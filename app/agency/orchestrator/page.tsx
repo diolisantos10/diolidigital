@@ -1,0 +1,399 @@
+"use client";
+
+import { useState } from "react";
+import { useAgencyStore } from "@/store/agency-store";
+import AgencyHeader from "@/components/agency/layout/AgencyHeader";
+import Button from "@/components/agency/ui/Button";
+import Badge from "@/components/agency/ui/Badge";
+import Link from "next/link";
+import { Priority, ProjectStage, MOCK_AGENTS } from "@/lib/agency/mock-data";
+
+type OrchestratorState = "idle" | "analyzing" | "ready" | "approved";
+
+interface OrchestratorPlan {
+  pipeline: ProjectStage[];
+  agents: string[];
+  tasks: Array<{ title: string; description: string; agentId: string; stage: string; dueDate: string }>;
+  risks: Array<{ level: "high" | "medium" | "low"; message: string }>;
+}
+
+function generatePlan(type: string, deadline: string): OrchestratorPlan {
+  const baseDate = deadline || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const d = new Date(baseDate);
+  const offset = (days: number) => new Date(d.getTime() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+  const plans: Record<string, OrchestratorPlan> = {
+    campaign: {
+      pipeline: ["briefing", "diagnosis", "planning", "production", "review", "delivery"],
+      agents: ["a6", "a1", "a2", "a4", "a5", "a7"],
+      tasks: [
+        { title: "Market & audience analysis", description: "Map target audience, competitive context, and strategic opportunity.", agentId: "a6", stage: "diagnosis", dueDate: offset(20) },
+        { title: "Campaign concept development", description: "Define the creative direction and campaign narrative.", agentId: "a5", stage: "planning", dueDate: offset(16) },
+        { title: "Write campaign copy", description: "Produce all copy: headline, body, CTAs, social captions.", agentId: "a1", stage: "production", dueDate: offset(12) },
+        { title: "Design campaign visuals", description: "Create all visual assets: hero images, ad creatives, social formats.", agentId: "a2", stage: "production", dueDate: offset(10) },
+        { title: "Set up paid media structure", description: "Build campaign architecture in Meta Ads and/or Google Ads.", agentId: "a4", stage: "production", dueDate: offset(8) },
+        { title: "Internal QA review", description: "Validate all materials against briefing, brand, and quality standards.", agentId: "a7", stage: "review", dueDate: offset(4) },
+      ],
+      risks: [
+        { level: "medium", message: "Creative review cycles may compress production timeline." },
+        { level: "low", message: "Audience targeting assumptions need validation from client." },
+      ],
+    },
+    branding: {
+      pipeline: ["briefing", "diagnosis", "planning", "production", "review", "delivery"],
+      agents: ["a6", "a2", "a1", "a7"],
+      tasks: [
+        { title: "Brand audit & competitive analysis", description: "Audit current brand equity and map the competitive landscape.", agentId: "a6", stage: "diagnosis", dueDate: offset(20) },
+        { title: "Positioning strategy", description: "Define brand positioning, pillars, and differentiation.", agentId: "a6", stage: "planning", dueDate: offset(16) },
+        { title: "Visual identity design", description: "Design logo, color system, typography, and usage guidelines.", agentId: "a2", stage: "production", dueDate: offset(10) },
+        { title: "Brand voice & messaging", description: "Define tone of voice, key messages, and language guidelines.", agentId: "a1", stage: "production", dueDate: offset(8) },
+        { title: "Brand guidelines document", description: "Compile all brand elements into a comprehensive guidelines document.", agentId: "a7", stage: "review", dueDate: offset(4) },
+      ],
+      risks: [
+        { level: "high", message: "Brand identity requires client approval at multiple stages — build in feedback time." },
+        { level: "low", message: "Asset delivery format (PDF/Figma/other) should be confirmed upfront." },
+      ],
+    },
+    seo: {
+      pipeline: ["briefing", "diagnosis", "planning", "production", "delivery", "ongoing"],
+      agents: ["a8", "a6", "a1"],
+      tasks: [
+        { title: "SEO audit", description: "Full technical and on-page SEO audit of the current site.", agentId: "a8", stage: "diagnosis", dueDate: offset(20) },
+        { title: "Keyword research & content map", description: "Identify priority keywords and map to content opportunities.", agentId: "a8", stage: "planning", dueDate: offset(15) },
+        { title: "Content briefs", description: "Write detailed briefs for all content pieces to be produced.", agentId: "a8", stage: "planning", dueDate: offset(12) },
+        { title: "Content production", description: "Write SEO-optimized articles and landing page copy.", agentId: "a1", stage: "production", dueDate: offset(7) },
+        { title: "On-page implementation guide", description: "Document all technical and on-page changes to implement.", agentId: "a8", stage: "production", dueDate: offset(5) },
+      ],
+      risks: [
+        { level: "medium", message: "SEO results require 3–6 months to materialize — set correct expectations with client." },
+      ],
+    },
+  };
+
+  const typeKey = type.toLowerCase().includes("brand") ? "branding" : type.toLowerCase().includes("seo") ? "seo" : "campaign";
+  return plans[typeKey] ?? plans.campaign;
+}
+
+export default function OrchestratorPage() {
+  const { clients, createProject } = useAgencyStore();
+  const [state, setState] = useState<OrchestratorState>("idle");
+  const [plan, setPlan] = useState<OrchestratorPlan | null>(null);
+  const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);
+
+  const [form, setForm] = useState({
+    clientId: "", name: "", goal: "", type: "Campaign", deadline: "", priority: "high" as Priority, notes: "",
+  });
+
+  const PROJECT_TYPES = ["Campaign", "Branding", "SEO", "Content", "Paid Media", "Social Media", "Branding + Web"];
+
+  const handleAnalyze = () => {
+    if (!form.clientId || !form.goal || !form.deadline) return;
+    setState("analyzing");
+    setTimeout(() => {
+      const generatedPlan = generatePlan(form.type, form.deadline);
+      setPlan(generatedPlan);
+      setState("ready");
+    }, 2200);
+  };
+
+  const handleApprove = () => {
+    if (!plan) return;
+    const id = createProject({
+      name: form.name || `${form.type} — ${clients.find(c => c.id === form.clientId)?.name}`,
+      clientId: form.clientId,
+      goal: form.goal,
+      type: form.type,
+      stage: "diagnosis",
+      priority: form.priority,
+      deadline: form.deadline,
+      agents: plan.agents,
+      initialTasks: plan.tasks.map((t) => ({ title: t.title, description: t.description, agentId: t.agentId, dueDate: t.dueDate })),
+    });
+    setCreatedProjectId(id);
+    setState("approved");
+  };
+
+  const handleReset = () => {
+    setState("idle"); setPlan(null); setCreatedProjectId(null);
+    setForm({ clientId: "", name: "", goal: "", type: "Campaign", deadline: "", priority: "high", notes: "" });
+  };
+
+  const STEP_LABELS = ["Receive Brief", "Analyze Context", "Generate Pipeline", "Assign Agents", "Activate"];
+  const STEP_STATES = { idle: -1, analyzing: 1, ready: 3, approved: 4 };
+  const activeStep = STEP_STATES[state];
+
+  return (
+    <>
+      <AgencyHeader
+        title="Orchestrator"
+        subtitle="Define a project goal. The Orchestrator will generate an execution plan."
+      />
+
+      {/* How it works strip */}
+      <div className="flex items-center gap-0 mb-8 bg-white rounded-[10px] border border-[#E5E5E2] px-6 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+        {STEP_LABELS.map((label, i) => (
+          <div key={i} className="flex items-center flex-1 min-w-0">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 transition-all ${
+                i <= activeStep
+                  ? "bg-[#5B5BD6] text-white"
+                  : "bg-[#F0F0ED] text-[#9B9B95]"
+              } ${state === "analyzing" && i === 1 ? "animate-pulse" : ""}`}>
+                {i + 1}
+              </div>
+              <span className={`text-[12px] font-medium truncate ${i <= activeStep ? "text-[#1A1A1A]" : "text-[#9B9B95]"}`}>
+                {label}
+              </span>
+            </div>
+            {i < STEP_LABELS.length - 1 && (
+              <div className={`flex-1 mx-3 h-[1px] transition-all ${i < activeStep ? "bg-[#5B5BD6]" : "bg-[#E5E5E2]"}`} />
+            )}
+          </div>
+        ))}
+      </div>
+
+      {state === "approved" ? (
+        /* Approved state */
+        <div className="bg-white rounded-[10px] border border-[#5B5BD6] px-8 py-10 text-center shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+          <div className="w-12 h-12 rounded-full bg-[#DCFCE7] flex items-center justify-center mx-auto mb-4">
+            <svg width="22" height="18" viewBox="0 0 22 18" fill="none">
+              <path d="M2 9l6 6L20 2" stroke="#16A34A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <h2 className="text-[18px] font-semibold text-[#1A1A1A] mb-2">Execution plan approved</h2>
+          <p className="text-[14px] text-[#6B6B65] mb-8">The project has been created and is now active in your pipeline.</p>
+          <div className="flex items-center justify-center gap-3">
+            {createdProjectId && (
+              <Link href={`/agency/projects/${createdProjectId}`}>
+                <Button variant="primary">View Project</Button>
+              </Link>
+            )}
+            <Button variant="secondary" onClick={handleReset}>Start New Brief</Button>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-[420px_1fr] gap-6">
+          {/* Form */}
+          <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-6 py-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)] h-fit">
+            <div className="text-[12px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-4">Brief Input</div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Client *</label>
+                <select
+                  value={form.clientId}
+                  onChange={(e) => setForm({ ...form, clientId: e.target.value })}
+                  disabled={state !== "idle"}
+                  className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
+                >
+                  <option value="">Select client...</option>
+                  {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Project Name (optional)</label>
+                <input
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  disabled={state !== "idle"}
+                  placeholder="Auto-generated if left blank"
+                  className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
+                />
+              </div>
+              <div>
+                <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Goal *</label>
+                <textarea
+                  value={form.goal}
+                  onChange={(e) => setForm({ ...form, goal: e.target.value })}
+                  disabled={state !== "idle"}
+                  placeholder="What is the business goal of this project?"
+                  rows={3}
+                  className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50 resize-none"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Type</label>
+                  <select
+                    value={form.type}
+                    onChange={(e) => setForm({ ...form, type: e.target.value })}
+                    disabled={state !== "idle"}
+                    className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
+                  >
+                    {PROJECT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Priority</label>
+                  <select
+                    value={form.priority}
+                    onChange={(e) => setForm({ ...form, priority: e.target.value as Priority })}
+                    disabled={state !== "idle"}
+                    className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
+                  >
+                    <option value="high">High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Deadline *</label>
+                <input
+                  type="date"
+                  value={form.deadline}
+                  onChange={(e) => setForm({ ...form, deadline: e.target.value })}
+                  disabled={state !== "idle"}
+                  className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
+                />
+              </div>
+              <div>
+                <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Additional Notes</label>
+                <textarea
+                  value={form.notes}
+                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                  disabled={state !== "idle"}
+                  placeholder="Constraints, references, context..."
+                  rows={2}
+                  className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50 resize-none"
+                />
+              </div>
+
+              {state === "idle" && (
+                <Button
+                  variant="primary"
+                  size="lg"
+                  className="w-full"
+                  onClick={handleAnalyze}
+                  disabled={!form.clientId || !form.goal || !form.deadline}
+                >
+                  Run Orchestrator
+                </Button>
+              )}
+              {state !== "idle" && (
+                <Button variant="ghost" size="sm" onClick={handleReset} className="w-full">
+                  Reset
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Output panel */}
+          <div>
+            {state === "idle" && (
+              <div className="bg-white rounded-[10px] border border-dashed border-[#E5E5E2] px-8 py-16 text-center">
+                <div className="w-10 h-10 rounded-full bg-[#F0F0ED] flex items-center justify-center mx-auto mb-4">
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    <rect x="3" y="3" width="5" height="5" rx="1" stroke="#9B9B95" strokeWidth="1.3"/>
+                    <rect x="12" y="3" width="5" height="5" rx="1" stroke="#9B9B95" strokeWidth="1.3"/>
+                    <rect x="3" y="12" width="5" height="5" rx="1" stroke="#9B9B95" strokeWidth="1.3"/>
+                    <rect x="12" y="12" width="5" height="5" rx="1" stroke="#9B9B95" strokeWidth="1.3"/>
+                  </svg>
+                </div>
+                <p className="text-[14px] font-medium text-[#1A1A1A]">Awaiting brief input</p>
+                <p className="text-[13px] text-[#9B9B95] mt-1.5 max-w-xs mx-auto">Fill in the client, goal, and deadline — then run the Orchestrator to generate an execution plan.</p>
+              </div>
+            )}
+
+            {state === "analyzing" && (
+              <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-8 py-16 text-center shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                <div className="w-10 h-10 rounded-full bg-[#EEF0FF] flex items-center justify-center mx-auto mb-4 animate-spin">
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                    <path d="M9 2v3M9 13v3M2 9h3M13 9h3M4.05 4.05l2.12 2.12M11.83 11.83l2.12 2.12M4.05 13.95l2.12-2.12M11.83 6.17l2.12-2.12" stroke="#5B5BD6" strokeWidth="1.5" strokeLinecap="round"/>
+                  </svg>
+                </div>
+                <p className="text-[14px] font-medium text-[#1A1A1A]">Analyzing brief...</p>
+                <p className="text-[13px] text-[#9B9B95] mt-1.5">Mapping goal to pipeline, selecting agents, sequencing tasks.</p>
+              </div>
+            )}
+
+            {state === "ready" && plan && (
+              <div className="space-y-4">
+                {/* Pipeline */}
+                <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                  <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Recommended Pipeline</div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {plan.pipeline.map((stage, i) => (
+                      <div key={stage} className="flex items-center gap-2">
+                        <Badge variant={stage} size="md" />
+                        {i < plan.pipeline.length - 1 && <span className="text-[#D0D0CC] text-[12px]">→</span>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Agents */}
+                <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                  <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Assigned Agents</div>
+                  <div className="flex flex-wrap gap-2">
+                    {plan.agents.map((agentId) => {
+                      const agent = MOCK_AGENTS.find((a) => a.id === agentId);
+                      if (!agent) return null;
+                      return (
+                        <div key={agentId} className="flex items-center gap-1.5 bg-[#EEF0FF] px-2.5 py-1.5 rounded-[7px]">
+                          <div className="w-5 h-5 rounded-full bg-[#5B5BD6] flex items-center justify-center text-[9px] font-bold text-white">
+                            {agent.name.slice(0, 1)}
+                          </div>
+                          <span className="text-[12px] font-medium text-[#5B5BD6]">{agent.name}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Tasks */}
+                <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+                  <div className="px-5 py-3.5 border-b border-[#F0F0ED]">
+                    <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Task Plan</div>
+                  </div>
+                  <div className="divide-y divide-[#F0F0ED]">
+                    {plan.tasks.map((task, i) => {
+                      const agent = MOCK_AGENTS.find((a) => a.id === task.agentId);
+                      return (
+                        <div key={i} className="flex items-start gap-3 px-5 py-3.5">
+                          <div className="w-5 h-5 rounded-full bg-[#F0F0ED] flex items-center justify-center text-[10px] font-bold text-[#9B9B95] shrink-0 mt-0.5">
+                            {i + 1}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[13px] font-medium text-[#1A1A1A]">{task.title}</div>
+                            <div className="text-[12px] text-[#9B9B95] mt-0.5">{task.description}</div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <div className="text-[11px] text-[#6B6B65]">{agent?.name}</div>
+                            <div className="text-[11px] text-[#9B9B95]">{task.dueDate.slice(5)}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Risks */}
+                {plan.risks.length > 0 && (
+                  <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                    <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Risk Flags</div>
+                    <div className="space-y-2">
+                      {plan.risks.map((risk, i) => (
+                        <div key={i} className="flex items-start gap-2.5">
+                          <Badge variant={risk.level} />
+                          <span className="text-[13px] text-[#1A1A1A]">{risk.message}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Approve CTA */}
+                <button
+                  onClick={handleApprove}
+                  className="w-full h-11 bg-[#1A1A1A] hover:bg-[#111111] text-white text-[14px] font-semibold rounded-[10px] transition-colors"
+                >
+                  Approve & Create Project
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
