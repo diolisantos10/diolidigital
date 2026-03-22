@@ -50,7 +50,7 @@ const EMPTY_FORM: SocialForm = {
 };
 
 type AgentState = "idle" | "generating" | "output_ready";
-type OutputTab = "brand" | "content" | "posts" | "handoff";
+type OutputTab = "brand" | "content" | "posts" | "handoff" | "contract";
 
 // ─── Output types ────────────────────────────────────────────────────────────
 
@@ -98,6 +98,18 @@ interface Post {
   designNotes: string;
 }
 
+interface DesignContract {
+  postId: number;
+  title: string;
+  format: string;
+  contentObjective: string;
+  keyCopy: string;
+  cta: string;
+  creativeDirection: string;
+  imagePrompt: string;
+  designNotes: string;
+}
+
 interface HandoffEntry {
   postId: number;
   title: string;
@@ -116,6 +128,7 @@ interface SocialOutput {
   schedule: ScheduleDay[];
   posts: Post[];
   handoff: HandoffEntry[];
+  contracts: DesignContract[];
 }
 
 // ─── Mock generator ──────────────────────────────────────────────────────────
@@ -271,7 +284,19 @@ function generateMockOutput(form: SocialForm): SocialOutput {
     designNotes: p.designNotes,
   }));
 
-  return { brandInterpretation, objectiveTranslation, territories, contentIdeas, schedule, posts, handoff };
+  const contracts: DesignContract[] = posts.map((p) => ({
+    postId: p.id,
+    title: p.title,
+    format: p.format,
+    contentObjective: p.objective,
+    keyCopy: p.caption.split("\n")[0],
+    cta: p.cta,
+    creativeDirection: p.creativeDirection,
+    imagePrompt: p.imagePrompt,
+    designNotes: p.designNotes,
+  }));
+
+  return { brandInterpretation, objectiveTranslation, territories, contentIdeas, schedule, posts, handoff, contracts };
 }
 
 
@@ -327,8 +352,27 @@ function buildExportText(form: SocialForm, output: SocialOutput): string {
     `${"=".repeat(60)}`,
     ``,
     formatHandoffAsText(output.handoff),
+    ``,
+    `${"=".repeat(60)}`,
+    `DESIGN AGENT INPUT CONTRACT`,
+    `${"=".repeat(60)}`,
+    ``,
+    formatContractAsText(output.contracts),
   ];
   return lines.join("\n");
+}
+
+function formatContractAsText(contracts: DesignContract[]): string {
+  return contracts.map((c) => [
+    `┌─ CONTRACT_${String(c.postId).padStart(2, "0")} — ${c.title}`,
+    `│ format             ${c.format}`,
+    `│ content_objective  ${c.contentObjective}`,
+    `│ key_copy           ${c.keyCopy}`,
+    `│ cta                ${c.cta}`,
+    `│ creative_direction ${c.creativeDirection}`,
+    `│ image_prompt       ${c.imagePrompt}`,
+    `└─ design_notes      ${c.designNotes}`,
+  ].join("\n")).join("\n\n");
 }
 
 function downloadTextFile(filename: string, content: string) {
@@ -616,12 +660,13 @@ export default function SocialMediaAgentPage() {
 
               {/* Output tabs */}
               <div className="flex items-center gap-1 bg-white border border-[#E5E5E2] rounded-[9px] p-1 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                {(["brand", "content", "posts", "handoff"] as OutputTab[]).map((tab) => {
+                {(["brand", "content", "posts", "handoff", "contract"] as OutputTab[]).map((tab) => {
                   const labels: Record<OutputTab, string> = {
                     brand: "Brand Brief",
                     content: "Content Map",
                     posts: "Post Package",
                     handoff: "Design Handoff",
+                    contract: "Agent Contract",
                   };
                   return (
                     <button
@@ -904,6 +949,93 @@ export default function SocialMediaAgentPage() {
                       ))}
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* Tab: Agent Contract */}
+              {activeTab === "contract" && (
+                <div className="space-y-4">
+
+                  {/* Header block */}
+                  <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                    <div className="px-5 py-4 flex items-start justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="w-2 h-2 rounded-full bg-[#5B5BD6]" />
+                          <p className="text-[13px] font-semibold text-[#1A1A1A]">Design Agent Input Contract</p>
+                          <span className="px-2 py-0.5 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-semibold uppercase tracking-wide">v1.0</span>
+                        </div>
+                        <p className="text-[12px] text-[#6B6B65] max-w-xl">
+                          Structured specification ready for consumption by a Design Agent. Each contract entry maps one post to its full design brief — format, copy, direction, prompt, and notes — with no ambiguity.
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleCopy("contract-all", formatContractAsText(output.contracts))}
+                        className="shrink-0 h-7 px-3 rounded-[6px] text-[12px] font-medium border border-[#E5E5E2] text-[#6B6B65] hover:bg-[#F7F7F6] hover:text-[#1A1A1A] transition-colors"
+                      >
+                        {copiedKey === "contract-all" ? "Copied" : "Copy Contract"}
+                      </button>
+                    </div>
+                    <div className="px-5 py-3 border-t border-[#F0F0ED] grid grid-cols-3 gap-4">
+                      <div>
+                        <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-0.5">Brand</p>
+                        <p className="text-[12px] font-medium text-[#1A1A1A]">{form.brandName}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-0.5">Posts</p>
+                        <p className="text-[12px] font-medium text-[#1A1A1A]">{output.contracts.length} assets</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-0.5">Source agent</p>
+                        <p className="text-[12px] font-medium text-[#1A1A1A]">Social Media Agent</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Contract entries */}
+                  {output.contracts.map((c) => (
+                    <div key={c.postId} className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+
+                      {/* Entry header */}
+                      <div className="px-5 py-3 bg-[#FAFAFA] border-b border-[#E5E5E2] flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="font-mono text-[11px] font-semibold text-[#5B5BD6] bg-[#EEF0FF] px-2 py-0.5 rounded-[4px]">
+                            CONTRACT_{String(c.postId).padStart(2, "0")}
+                          </span>
+                          <p className="text-[13px] font-semibold text-[#1A1A1A]">{c.title}</p>
+                          <span className="px-2 py-0.5 rounded-full bg-[#F0F0ED] text-[#6B6B65] text-[10px] font-medium">{c.format}</span>
+                        </div>
+                        <button
+                          onClick={() => handleCopy(
+                            `contract-${c.postId}`,
+                            formatContractAsText([c])
+                          )}
+                          className="h-6 px-2.5 rounded-[5px] text-[11px] font-medium border border-[#E5E5E2] text-[#6B6B65] hover:bg-[#F7F7F6] hover:text-[#1A1A1A] transition-colors"
+                        >
+                          {copiedKey === `contract-${c.postId}` ? "Copied" : "Copy"}
+                        </button>
+                      </div>
+
+                      {/* Fields grid */}
+                      <div className="divide-y divide-[#F0F0ED]">
+                        {[
+                          { label: "content_objective", value: c.contentObjective },
+                          { label: "key_copy", value: c.keyCopy },
+                          { label: "cta", value: c.cta },
+                          { label: "creative_direction", value: c.creativeDirection },
+                          { label: "image_prompt", value: c.imagePrompt, mono: true },
+                          { label: "design_notes", value: c.designNotes },
+                        ].map(({ label, value, mono }) => (
+                          <div key={label} className="px-5 py-3 grid grid-cols-[180px_1fr] gap-4 items-start">
+                            <p className="text-[11px] font-mono font-medium text-[#9B9B95] pt-px">{label}</p>
+                            <p className={`text-[12px] leading-relaxed text-[#1A1A1A] ${mono ? "font-mono text-[#6B6B65]" : ""}`}>{value}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                    </div>
+                  ))}
+
                 </div>
               )}
 
