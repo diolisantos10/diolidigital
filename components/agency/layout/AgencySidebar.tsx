@@ -31,6 +31,12 @@ const NAV = [
     ],
   },
   {
+    group: "AGENTS",
+    items: [
+      { label: "Social Media", href: "/agency/social-media-agent", icon: SocialIcon },
+    ],
+  },
+  {
     group: "LIBRARY",
     items: [
       { label: "Deliverables", href: "/agency/deliverables", icon: BoxIcon },
@@ -202,6 +208,16 @@ function FileTextIcon({ size = 16, className = "" }: { size?: number; className?
       <path d="M9.5 2H4a1 1 0 00-1 1v10a1 1 0 001 1h8a1 1 0 001-1V6.5L9.5 2z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
       <path d="M9 2v4h4" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
       <path d="M5.5 8.5h5M5.5 11h3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+    </svg>
+  );
+}
+function SocialIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
+      <rect x="2" y="2" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.3"/>
+      <rect x="9" y="2" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.3"/>
+      <rect x="2" y="9" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.3"/>
+      <rect x="9" y="9" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.3"/>
     </svg>
   );
 }
