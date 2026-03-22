@@ -49,24 +49,280 @@ const EMPTY_FORM: SocialForm = {
   notes: "",
 };
 
-type AgentState = "idle" | "output_ready";
+type AgentState = "idle" | "generating" | "output_ready";
 type OutputTab = "brand" | "content" | "posts" | "handoff";
+
+// ─── Output types ────────────────────────────────────────────────────────────
+
+interface BrandInterpretation {
+  practicalUnderstanding: string;
+  communicationStyle: string;
+  toReinforce: string[];
+  toAvoid: string[];
+}
+
+interface ObjectiveTranslation {
+  contentDirection: string;
+  primaryKPI: string;
+  contentRatio: string;
+}
+
+interface Territory {
+  name: string;
+  description: string;
+  frequency: string;
+}
+
+interface ContentIdea {
+  title: string;
+  territory: string;
+  format: string;
+}
+
+interface ScheduleDay {
+  day: string;
+  territory: string;
+  format: string;
+  active: boolean;
+}
+
+interface Post {
+  id: number;
+  title: string;
+  objective: string;
+  format: string;
+  caption: string;
+  cta: string;
+  creativeDirection: string;
+  imagePrompt: string;
+  designNotes: string;
+}
+
+interface HandoffEntry {
+  postId: number;
+  title: string;
+  format: string;
+  visualDirection: string;
+  prompt: string;
+  keyCopy: string;
+  designNotes: string;
+}
+
+interface SocialOutput {
+  brandInterpretation: BrandInterpretation;
+  objectiveTranslation: ObjectiveTranslation;
+  territories: Territory[];
+  contentIdeas: ContentIdea[];
+  schedule: ScheduleDay[];
+  posts: Post[];
+  handoff: HandoffEntry[];
+}
+
+// ─── Mock generator ──────────────────────────────────────────────────────────
+
+function generateMockOutput(form: SocialForm): SocialOutput {
+  const b = form.brandName;
+  const tone = form.toneOfVoice.toLowerCase();
+  const visual = form.visualStyle.toLowerCase();
+
+  const brandInterpretation: BrandInterpretation = {
+    practicalUnderstanding: `${b} operates in a space where audience trust and consistent visual presence are critical. The brand communicates expertise while remaining accessible to its target community.`,
+    communicationStyle: `${form.toneOfVoice} voice. Posts should feel curated and intentional — never reactive or generic. Every caption reflects the brand's point of view.`,
+    toReinforce: [
+      "Consistent visual identity across all formats",
+      "Authoritative but approachable tone in captions",
+      "Focus on value delivery over self-promotion",
+      "Signature aesthetic in every creative asset",
+    ],
+    toAvoid: [
+      "Trend-chasing content that feels off-brand",
+      "Overly casual or informal language",
+      "Cluttered layouts that dilute the visual message",
+      "Generic stock imagery without brand personality",
+    ],
+  };
+
+  const objectiveTranslation: ObjectiveTranslation = {
+    contentDirection: `Content should directly serve the goal of "${form.objective}". Each post must earn its place by moving the audience closer to action — awareness, trust, or enquiry.`,
+    primaryKPI: "Reach growth + DM enquiry rate + saved posts per week",
+    contentRatio: "50% value / educational — 30% brand story — 20% conversion / CTA",
+  };
+
+  const territories: Territory[] = [
+    {
+      name: "Brand World",
+      description: `Behind-the-scenes, process, and philosophy content that lets the audience inside ${b}'s world. Builds intimacy and brand affinity.`,
+      frequency: "2x per week",
+    },
+    {
+      name: "Value & Education",
+      description: "Practical, shareable posts that demonstrate expertise. Positions the brand as a reference — not just a seller.",
+      frequency: "2x per week",
+    },
+    {
+      name: "Social Proof",
+      description: "Client results, testimonials, and transformation stories. Converts curiosity into trust and trust into action.",
+      frequency: "1x per week",
+    },
+    {
+      name: "Conversion",
+      description: `Direct calls to action tied to ${b}'s core offer. Minimal copy, maximum clarity. Always with a frictionless next step.`,
+      frequency: "1x per week",
+    },
+  ];
+
+  const contentIdeas: ContentIdea[] = [
+    { title: `"The ${b} Method" — how we approach every project`, territory: "Brand World", format: "Carousel" },
+    { title: "3 mistakes brands make on social media (and how to fix them)", territory: "Value & Education", format: "Carousel" },
+    { title: `Behind the brief: a day inside ${b}`, territory: "Brand World", format: "Story" },
+    { title: `Client result: how we helped [client] achieve [outcome]`, territory: "Social Proof", format: "Single Image" },
+    { title: "What makes a great visual identity? A quick breakdown", territory: "Value & Education", format: "Carousel" },
+    { title: `Why we turned down a project last month`, territory: "Brand World", format: "Single Image" },
+    { title: "Your questions answered — office hours recap", territory: "Value & Education", format: "Story" },
+    { title: `Ready to grow your brand? Here's how to start with ${b}`, territory: "Conversion", format: "Single Image" },
+  ];
+
+  const schedule: ScheduleDay[] = [
+    { day: "Mon", territory: "Brand World", format: "Carousel", active: true },
+    { day: "Tue", territory: "—", format: "—", active: false },
+    { day: "Wed", territory: "Value", format: "Carousel", active: true },
+    { day: "Thu", territory: "Social Proof", format: "Single Image", active: true },
+    { day: "Fri", territory: "Brand World", format: "Story", active: true },
+    { day: "Sat", territory: "—", format: "—", active: false },
+    { day: "Sun", territory: "Conversion", format: "Single Image", active: true },
+  ];
+
+  const posts: Post[] = [
+    {
+      id: 1,
+      title: `The ${b} Method`,
+      objective: "Build brand authority and introduce the brand's unique process",
+      format: "Carousel",
+      caption: `There's a reason every project we take on starts the same way.\n\nNot with a brief. Not with a moodboard.\n\nWith a question: what does this brand actually need to say?\n\nSwipe to see how the ${b} method works from brief to delivery. 👉`,
+      cta: "Save this post — you'll want to come back to it.",
+      creativeDirection: `${visual} aesthetic. Slide 1: bold headline on brand-colour background. Slides 2–5: one idea per slide, clean typographic layout. Final slide: logo + CTA.`,
+      imagePrompt: `Minimalist editorial layout, ${visual} style, professional brand identity design process, clean typography on neutral background, high contrast, agency aesthetic, no people`,
+      designNotes: `6-slide carousel. Consistent slide template. Typography-led. Brand colour on slide 1 and last slide. Use ${b} brand font if available.`,
+    },
+    {
+      id: 2,
+      title: "3 Mistakes Brands Make on Social",
+      objective: "Deliver value, increase saves and shares, attract ideal clients",
+      format: "Carousel",
+      caption: `Most brands are losing on social — not because of bad content, but because of these 3 mistakes.\n\nAnd the worst part? They're easy to fix.\n\nSwipe to see if you're making any of them. 👉`,
+      cta: "Tag a brand that needs to see this.",
+      creativeDirection: `Clean educational layout. Each slide = one mistake + one fix. Numbered clearly. ${visual} visual style throughout.`,
+      imagePrompt: `Clean infographic style, ${visual} aesthetic, minimal illustration, bold numbers, educational content layout, neutral tones with brand accent colour`,
+      designNotes: `5-slide carousel. Slide structure: Cover → Mistake 1 → Mistake 2 → Mistake 3 → Summary/CTA. High contrast text on light background.`,
+    },
+    {
+      id: 3,
+      title: "Client Result Story",
+      objective: "Build social proof and convert warm leads",
+      format: "Single Image",
+      caption: `Six months ago, [Client] came to us with a brand that wasn't landing.\n\nToday, they're [outcome].\n\nWhat changed? Not the product. The way people perceived it.\n\nThat's what great social strategy does.`,
+      cta: "DM us 'STRATEGY' to learn how we can do the same for your brand.",
+      creativeDirection: `Before/after or result-focused visual. Clean, confident layout. ${visual} treatment. Client logo or project visual as hero.`,
+      imagePrompt: `${visual} style professional result showcase, before and after concept, clean layout, brand transformation visual, minimal design, confident typography`,
+      designNotes: `Single image. Strong typographic headline with result number or statement. Subtle brand texture. ${b} logo watermark bottom right.`,
+    },
+    {
+      id: 4,
+      title: `A Day Inside ${b}`,
+      objective: "Humanise the brand and build audience connection",
+      format: "Story",
+      caption: `Ever wonder what a day inside ${b} looks like?\n\nWe pulled back the curtain. Swipe through to see.`,
+      cta: "Reply with your biggest question about working with us.",
+      creativeDirection: `Raw, behind-the-scenes feel within ${visual} visual language. Mix of workspace, process, and team moments. Authentic but intentional.`,
+      imagePrompt: `Behind the scenes creative agency workspace, ${visual} aesthetic, natural lighting, process shots, authentic atmosphere, brand colours subtle in environment`,
+      designNotes: `3–5 story slides. Mix photo + text overlay. Use consistent story template frame. Keep text minimal — let the image do the work.`,
+    },
+    {
+      id: 5,
+      title: "What Makes a Great Visual Identity",
+      objective: "Educate the audience and position the brand as an expert",
+      format: "Carousel",
+      caption: `A logo is not a brand.\n\nA colour palette is not a brand.\n\nHere's what actually makes a visual identity work — and how to know if yours does. 👇`,
+      cta: "Save this before your next brand refresh.",
+      creativeDirection: `Educational carousel with clear hierarchy. ${visual} visual style. Each slide has a concept title + 2-line explanation. Ends with ${b} sign-off.`,
+      imagePrompt: `Educational design content, ${visual} style, visual identity elements layout, typography system, colour palette display, clean minimal aesthetic, brand design concept`,
+      designNotes: `6 slides. Cover + 4 concept slides + CTA slide. Typographic-led. Clean grid. Brand accent used sparingly for emphasis.`,
+    },
+    {
+      id: 6,
+      title: `Start With ${b}`,
+      objective: "Drive direct enquiries and convert ready buyers",
+      format: "Single Image",
+      caption: `If you're serious about growing your brand in the next 90 days —\n\nwe should talk.\n\n${b} is now accepting new clients for Q2.\n\nSpots are limited. The process starts with one message.`,
+      cta: "DM us 'START' to begin.",
+      creativeDirection: `High-confidence conversion creative. Minimal copy on image. ${visual} visual treatment. Clear, direct. No clutter — just the offer and the next step.`,
+      imagePrompt: `${visual} style bold conversion creative, minimal text layout, strong brand colour, confident call to action design, premium agency aesthetic, clean composition`,
+      designNotes: `Single image. Maximum 2 lines of text on asset. Brand colour dominant. ${b} logo centred or top-left. White space is intentional.`,
+    },
+  ];
+
+  const handoff: HandoffEntry[] = posts.map((p) => ({
+    postId: p.id,
+    title: p.title,
+    format: p.format,
+    visualDirection: p.creativeDirection,
+    prompt: p.imagePrompt,
+    keyCopy: p.caption.split("\n")[0],
+    designNotes: p.designNotes,
+  }));
+
+  return { brandInterpretation, objectiveTranslation, territories, contentIdeas, schedule, posts, handoff };
+}
+
+
+const STEPS = [
+  "Reading brand inputs…",
+  "Interpreting brand voice…",
+  "Mapping content territories…",
+  "Generating post ideas…",
+  "Building post package…",
+  "Preparing design handoff…",
+];
 
 export default function SocialMediaAgentPage() {
   const [form, setForm] = useState<SocialForm>(EMPTY_FORM);
   const [agentState, setAgentState] = useState<AgentState>("idle");
   const [activeTab, setActiveTab] = useState<OutputTab>("brand");
+  const [stepIndex, setStepIndex] = useState(0);
+  const [output, setOutput] = useState<SocialOutput | null>(null);
 
   const isReady = form.brandName.trim() !== "" && form.objective.trim() !== "";
 
   function handleRun() {
-    setAgentState("output_ready");
-    setActiveTab("brand");
+    setAgentState("generating");
+    setStepIndex(0);
+
+    let step = 0;
+    const delays = [600, 700, 600, 700, 600, 500];
+    let elapsed = 0;
+
+    delays.forEach((delay, i) => {
+      elapsed += delay;
+      setTimeout(() => {
+        setStepIndex(i);
+        if (i === delays.length - 1) {
+          setTimeout(() => {
+            setOutput(generateMockOutput(form));
+            setAgentState("output_ready");
+            setActiveTab("brand");
+          }, 400);
+        }
+      }, elapsed);
+    });
+
+    void step;
   }
 
   function handleReset() {
     setAgentState("idle");
     setForm(EMPTY_FORM);
+    setOutput(null);
+    setStepIndex(0);
   }
 
   return (
@@ -196,7 +452,7 @@ export default function SocialMediaAgentPage() {
               </div>
 
               {/* Submit / Reset button */}
-              {agentState === "idle" ? (
+              {agentState === "idle" && (
                 <button
                   disabled={!isReady}
                   onClick={handleRun}
@@ -204,9 +460,16 @@ export default function SocialMediaAgentPage() {
                     hover:bg-[#4A4AC5] active:bg-[#3939B4]
                     disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  Run Social Media Agent
+                  Generate Social Media Package
                 </button>
-              ) : (
+              )}
+              {agentState === "generating" && (
+                <button disabled className="w-full h-9 rounded-[7px] text-[13px] font-medium bg-[#5B5BD6] text-white opacity-70 cursor-not-allowed flex items-center justify-center gap-2">
+                  <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Generating…
+                </button>
+              )}
+              {agentState === "output_ready" && (
                 <button
                   onClick={handleReset}
                   className="w-full h-9 rounded-[7px] text-[13px] font-medium bg-transparent border border-[#E5E5E2] text-[#6B6B65] hover:bg-[#F7F7F6] transition-all"
@@ -234,7 +497,28 @@ export default function SocialMediaAgentPage() {
                 Fill in the brand brief and run the agent to generate your complete social media package.
               </p>
             </div>
-          ) : (
+          ) : agentState === "generating" ? (
+            <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-8 py-16 text-center shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              <div className="w-10 h-10 rounded-full bg-[#EEF0FF] flex items-center justify-center mx-auto mb-5">
+                <span className="w-5 h-5 border-2 border-[#5B5BD6] border-t-transparent rounded-full animate-spin" />
+              </div>
+              <p className="text-[14px] font-semibold text-[#1A1A1A] mb-6">Generating your package…</p>
+              <div className="max-w-[240px] mx-auto space-y-2.5">
+                {STEPS.map((label, i) => (
+                  <div key={label} className={`flex items-center gap-2.5 transition-opacity duration-300 ${i <= stepIndex ? "opacity-100" : "opacity-25"}`}>
+                    <span className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${i < stepIndex ? "bg-[#5B5BD6]" : i === stepIndex ? "bg-[#EEF0FF] border border-[#5B5BD6]" : "bg-[#F0F0ED]"}`}>
+                      {i < stepIndex && (
+                        <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+                          <path d="M1.5 4l1.8 1.8L6.5 2.5" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      )}
+                    </span>
+                    <span className={`text-[12px] text-left ${i <= stepIndex ? "text-[#1A1A1A]" : "text-[#9B9B95]"}`}>{label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : output !== null ? (
             <div className="space-y-4">
 
               {/* Output tabs */}
@@ -273,16 +557,34 @@ export default function SocialMediaAgentPage() {
                       <p className="text-[13px] font-semibold text-[#1A1A1A]">Brand Interpretation</p>
                     </div>
                     <div className="px-5 py-4 grid grid-cols-2 gap-3">
-                      {["Practical understanding", "Communication style", "What to reinforce", "What to avoid"].map((label) => (
-                        <div key={label} className="rounded-[8px] bg-[#F7F7F6] border border-[#E5E5E2] p-3">
-                          <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-2">{label}</p>
-                          <div className="space-y-1.5">
-                            <div className="h-2.5 bg-[#E5E5E2] rounded-full w-full" />
-                            <div className="h-2.5 bg-[#E5E5E2] rounded-full w-4/5" />
-                            <div className="h-2.5 bg-[#E5E5E2] rounded-full w-3/5" />
-                          </div>
-                        </div>
-                      ))}
+                      <div className="rounded-[8px] bg-[#F7F7F6] border border-[#E5E5E2] p-3">
+                        <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-2">Practical understanding</p>
+                        <p className="text-[12px] text-[#1A1A1A] leading-relaxed">{output.brandInterpretation.practicalUnderstanding}</p>
+                      </div>
+                      <div className="rounded-[8px] bg-[#F7F7F6] border border-[#E5E5E2] p-3">
+                        <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-2">Communication style</p>
+                        <p className="text-[12px] text-[#1A1A1A] leading-relaxed">{output.brandInterpretation.communicationStyle}</p>
+                      </div>
+                      <div className="rounded-[8px] bg-[#F7F7F6] border border-[#E5E5E2] p-3">
+                        <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-2">What to reinforce</p>
+                        <ul className="space-y-1">
+                          {output.brandInterpretation.toReinforce.map((item) => (
+                            <li key={item} className="flex items-start gap-1.5 text-[12px] text-[#1A1A1A]">
+                              <span className="mt-1 w-1.5 h-1.5 rounded-full bg-[#5B5BD6] shrink-0" />{item}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="rounded-[8px] bg-[#F7F7F6] border border-[#E5E5E2] p-3">
+                        <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-2">What to avoid</p>
+                        <ul className="space-y-1">
+                          {output.brandInterpretation.toAvoid.map((item) => (
+                            <li key={item} className="flex items-start gap-1.5 text-[12px] text-[#6B6B65]">
+                              <span className="mt-1 w-1.5 h-1.5 rounded-full bg-[#DC2626] shrink-0" />{item}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     </div>
                   </div>
 
@@ -293,13 +595,14 @@ export default function SocialMediaAgentPage() {
                       <p className="text-[13px] font-semibold text-[#1A1A1A]">Objective Translation</p>
                     </div>
                     <div className="px-5 py-4 grid grid-cols-3 gap-3">
-                      {["Content direction", "Primary KPI", "Content ratio"].map((label) => (
+                      {([
+                        { label: "Content direction", value: output.objectiveTranslation.contentDirection },
+                        { label: "Primary KPI", value: output.objectiveTranslation.primaryKPI },
+                        { label: "Content ratio", value: output.objectiveTranslation.contentRatio },
+                      ] as { label: string; value: string }[]).map(({ label, value }) => (
                         <div key={label} className="rounded-[8px] bg-[#F7F7F6] border border-[#E5E5E2] p-3">
                           <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-2">{label}</p>
-                          <div className="space-y-1.5">
-                            <div className="h-2.5 bg-[#E5E5E2] rounded-full w-full" />
-                            <div className="h-2.5 bg-[#E5E5E2] rounded-full w-3/4" />
-                          </div>
+                          <p className="text-[12px] text-[#1A1A1A] leading-relaxed">{value}</p>
                         </div>
                       ))}
                     </div>
@@ -319,16 +622,13 @@ export default function SocialMediaAgentPage() {
                       <p className="text-[13px] font-semibold text-[#1A1A1A]">Content Territories</p>
                     </div>
                     <div className="px-5 py-4 grid grid-cols-2 gap-3">
-                      {[1, 2, 3, 4].map((n) => (
-                        <div key={n} className="rounded-[8px] bg-[#F7F7F6] border border-[#E5E5E2] p-3">
+                      {output.territories.map((t) => (
+                        <div key={t.name} className="rounded-[8px] bg-[#F7F7F6] border border-[#E5E5E2] p-3">
                           <div className="flex items-center justify-between mb-2">
-                            <div className="h-3 bg-[#E5E5E2] rounded-full w-1/2" />
-                            <div className="h-5 w-14 bg-[#EEF0FF] rounded-full" />
+                            <p className="text-[12px] font-semibold text-[#1A1A1A]">{t.name}</p>
+                            <span className="px-2 py-0.5 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-medium">{t.frequency}</span>
                           </div>
-                          <div className="space-y-1.5">
-                            <div className="h-2.5 bg-[#E5E5E2] rounded-full w-full" />
-                            <div className="h-2.5 bg-[#E5E5E2] rounded-full w-5/6" />
-                          </div>
+                          <p className="text-[12px] text-[#6B6B65] leading-relaxed">{t.description}</p>
                         </div>
                       ))}
                     </div>
@@ -341,14 +641,14 @@ export default function SocialMediaAgentPage() {
                       <p className="text-[13px] font-semibold text-[#1A1A1A]">Content Ideas</p>
                     </div>
                     <div className="px-5 py-3 divide-y divide-[#F0F0ED]">
-                      {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
-                        <div key={n} className="py-3 flex items-center gap-3">
-                          <span className="text-[11px] font-semibold text-[#9B9B95] w-4">{n}</span>
-                          <div className="flex-1 space-y-1.5">
-                            <div className="h-2.5 bg-[#E5E5E2] rounded-full w-2/3" />
-                            <div className="h-2 bg-[#F0F0ED] rounded-full w-1/2" />
+                      {output.contentIdeas.map((idea, i) => (
+                        <div key={idea.title} className="py-3 flex items-center gap-3">
+                          <span className="text-[11px] font-semibold text-[#9B9B95] w-4 shrink-0">{i + 1}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[12px] font-medium text-[#1A1A1A] truncate">{idea.title}</p>
+                            <p className="text-[11px] text-[#9B9B95]">{idea.territory}</p>
                           </div>
-                          <div className="h-5 w-16 bg-[#F0F0ED] rounded-full" />
+                          <span className="px-2 py-0.5 rounded-full bg-[#F0F0ED] text-[#6B6B65] text-[10px] font-medium shrink-0">{idea.format}</span>
                         </div>
                       ))}
                     </div>
@@ -361,14 +661,20 @@ export default function SocialMediaAgentPage() {
                       <p className="text-[13px] font-semibold text-[#1A1A1A]">Content Schedule</p>
                     </div>
                     <div className="px-5 py-4 grid grid-cols-7 gap-2">
-                      {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
-                        <div key={day} className="rounded-[8px] border border-[#E5E5E2] overflow-hidden">
-                          <div className="bg-[#F7F7F6] px-2 py-1.5 text-center border-b border-[#E5E5E2]">
-                            <p className="text-[11px] font-semibold text-[#6B6B65]">{day}</p>
+                      {output.schedule.map((s) => (
+                        <div key={s.day} className={`rounded-[8px] border overflow-hidden ${s.active ? "border-[#5B5BD6] bg-[#FAFAFE]" : "border-[#E5E5E2] bg-white"}`}>
+                          <div className={`px-2 py-1.5 text-center border-b ${s.active ? "bg-[#EEF0FF] border-[#5B5BD6]" : "bg-[#F7F7F6] border-[#E5E5E2]"}`}>
+                            <p className={`text-[11px] font-semibold ${s.active ? "text-[#5B5BD6]" : "text-[#6B6B65]"}`}>{s.day}</p>
                           </div>
-                          <div className="p-2 space-y-1.5 min-h-[64px]">
-                            <div className="h-2 bg-[#E5E5E2] rounded-full w-full" />
-                            <div className="h-2 bg-[#F0F0ED] rounded-full w-3/4" />
+                          <div className="p-2 min-h-[64px]">
+                            {s.active ? (
+                              <>
+                                <p className="text-[10px] font-medium text-[#1A1A1A] leading-tight">{s.territory}</p>
+                                <p className="text-[10px] text-[#9B9B95] mt-0.5">{s.format}</p>
+                              </>
+                            ) : (
+                              <p className="text-[10px] text-[#C0C0BC]">Rest</p>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -382,29 +688,42 @@ export default function SocialMediaAgentPage() {
               {activeTab === "posts" && (
                 <div className="space-y-3">
                   <div className="px-1">
-                    <p className="text-[12px] text-[#9B9B95]">Section 6 — Final Post Package</p>
+                    <p className="text-[12px] text-[#9B9B95]">Section 6 — Final Post Package · {output.posts.length} posts</p>
                   </div>
-                  {[1, 2, 3, 4, 5, 6].map((n) => (
-                    <div key={n} className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                  {output.posts.map((post) => (
+                    <div key={post.id} className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
                       <div className="px-5 py-3.5 border-b border-[#E5E5E2] flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <span className="text-[12px] font-semibold text-[#9B9B95]">Post {n}</span>
-                          <div className="h-3 bg-[#E5E5E2] rounded-full w-32" />
+                          <span className="text-[11px] font-semibold text-[#9B9B95]">Post {post.id}</span>
+                          <p className="text-[13px] font-semibold text-[#1A1A1A]">{post.title}</p>
                         </div>
-                        <div className="h-5 w-20 bg-[#F0F0ED] rounded-full" />
+                        <span className="px-2.5 py-0.5 rounded-full bg-[#F0F0ED] text-[#6B6B65] text-[11px] font-medium">{post.format}</span>
                       </div>
-                      <div className="px-5 py-4 grid grid-cols-2 gap-x-6 gap-y-3">
-                        {["Objective", "Format", "Caption", "CTA", "Creative direction", "AI image prompt", "Design notes"].map((field) => (
-                          <div key={field} className={field === "Caption" || field === "Creative direction" || field === "AI image prompt" ? "col-span-2" : ""}>
-                            <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-1.5">{field}</p>
-                            <div className="space-y-1.5">
-                              <div className="h-2.5 bg-[#E5E5E2] rounded-full w-full" />
-                              {(field === "Caption" || field === "Creative direction" || field === "AI image prompt") && (
-                                <div className="h-2.5 bg-[#F0F0ED] rounded-full w-4/5" />
-                              )}
-                            </div>
-                          </div>
-                        ))}
+                      <div className="px-5 py-4 grid grid-cols-2 gap-x-6 gap-y-4">
+                        <div>
+                          <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-1">Objective</p>
+                          <p className="text-[12px] text-[#1A1A1A]">{post.objective}</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-1">CTA</p>
+                          <p className="text-[12px] text-[#1A1A1A]">{post.cta}</p>
+                        </div>
+                        <div className="col-span-2">
+                          <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-1">Caption</p>
+                          <p className="text-[12px] text-[#1A1A1A] leading-relaxed whitespace-pre-line">{post.caption}</p>
+                        </div>
+                        <div className="col-span-2">
+                          <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-1">Creative direction</p>
+                          <p className="text-[12px] text-[#1A1A1A] leading-relaxed">{post.creativeDirection}</p>
+                        </div>
+                        <div className="col-span-2 rounded-[7px] bg-[#F7F7F6] border border-[#E5E5E2] px-3 py-2.5">
+                          <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-1">AI image prompt</p>
+                          <p className="text-[12px] text-[#6B6B65] font-mono leading-relaxed">{post.imagePrompt}</p>
+                        </div>
+                        <div className="col-span-2">
+                          <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-1">Design notes</p>
+                          <p className="text-[12px] text-[#6B6B65]">{post.designNotes}</p>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -424,19 +743,33 @@ export default function SocialMediaAgentPage() {
                       <span className="ml-auto text-[11px] text-[#6B6B65]">Ready for Design Agent</span>
                     </div>
                     <div className="px-5 py-4 space-y-3">
-                      {[1, 2, 3, 4, 5, 6].map((n) => (
-                        <div key={n} className="rounded-[8px] border border-[#2A2A2A] bg-[#1A1A1A] p-3">
-                          <div className="flex items-center gap-2 mb-2.5">
-                            <span className="text-[11px] font-semibold text-[#5B5BD6]">POST_{String(n).padStart(2, "0")}</span>
-                            <div className="h-2 bg-[#2A2A2A] rounded-full w-24" />
+                      {output.handoff.map((h) => (
+                        <div key={h.postId} className="rounded-[8px] border border-[#2A2A2A] bg-[#1A1A1A] p-3">
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="text-[11px] font-semibold text-[#5B5BD6] font-mono">POST_{String(h.postId).padStart(2, "0")}</span>
+                            <span className="text-[11px] text-[#6B6B65]">{h.title}</span>
                           </div>
-                          <div className="grid grid-cols-2 gap-2">
-                            {["format", "visual_direction", "prompt", "key_copy", "design_notes"].map((key) => (
-                              <div key={key} className={key === "prompt" || key === "design_notes" ? "col-span-2" : ""}>
-                                <p className="text-[10px] font-mono text-[#6B6B65] mb-1">{key}</p>
-                                <div className="h-2 bg-[#2A2A2A] rounded-full w-full" />
-                              </div>
-                            ))}
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
+                            <div>
+                              <p className="text-[10px] font-mono text-[#6B6B65] mb-0.5">format</p>
+                              <p className="text-[11px] text-white">{h.format}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-mono text-[#6B6B65] mb-0.5">key_copy</p>
+                              <p className="text-[11px] text-white truncate">{h.keyCopy}</p>
+                            </div>
+                            <div className="col-span-2">
+                              <p className="text-[10px] font-mono text-[#6B6B65] mb-0.5">visual_direction</p>
+                              <p className="text-[11px] text-[#C0C0BC] leading-relaxed">{h.visualDirection}</p>
+                            </div>
+                            <div className="col-span-2">
+                              <p className="text-[10px] font-mono text-[#6B6B65] mb-0.5">prompt</p>
+                              <p className="text-[11px] text-[#C0C0BC] font-mono leading-relaxed">{h.prompt}</p>
+                            </div>
+                            <div className="col-span-2">
+                              <p className="text-[10px] font-mono text-[#6B6B65] mb-0.5">design_notes</p>
+                              <p className="text-[11px] text-[#C0C0BC] leading-relaxed">{h.designNotes}</p>
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -446,7 +779,7 @@ export default function SocialMediaAgentPage() {
               )}
 
             </div>
-          )}
+          ) : null}
 
         </div>
       </div>
