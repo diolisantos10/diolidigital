@@ -9,6 +9,7 @@ import Link from "next/link";
 import { Priority, ProjectStage, MOCK_AGENTS } from "@/lib/agency/mock-data";
 
 type OrchestratorState = "idle" | "analyzing" | "ready" | "approved";
+type InputMode = "form" | "voice" | "audio";
 
 interface OrchestratorPlan {
   pipeline: ProjectStage[];
@@ -77,8 +78,11 @@ function generatePlan(type: string, deadline: string): OrchestratorPlan {
 export default function OrchestratorPage() {
   const { clients, createProject } = useAgencyStore();
   const [state, setState] = useState<OrchestratorState>("idle");
+  const [inputMode, setInputMode] = useState<InputMode>("form");
   const [plan, setPlan] = useState<OrchestratorPlan | null>(null);
   const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);
+  const [voiceText, setVoiceText] = useState("");
+  const [audioFile, setAudioFile] = useState<File | null>(null);
 
   const [form, setForm] = useState({
     clientId: "", name: "", goal: "", type: "Campaign", deadline: "", priority: "high" as Priority, notes: "",
@@ -173,10 +177,36 @@ export default function OrchestratorPage() {
         </div>
       ) : (
         <div className="grid grid-cols-[420px_1fr] gap-6">
-          {/* Form */}
-          <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-6 py-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)] h-fit">
-            <div className="text-[12px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-4">Brief Input</div>
-            <div className="space-y-4">
+          {/* Input panel */}
+          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] h-fit overflow-hidden">
+
+            {/* Mode switcher */}
+            <div className="flex border-b border-[#F0F0ED]">
+              {([
+                { id: "form",  label: "Structured Form", icon: "⊞" },
+                { id: "voice", label: "Voice Description", icon: "◎" },
+                { id: "audio", label: "Audio Upload",     icon: "♪" },
+              ] as { id: InputMode; label: string; icon: string }[]).map((m) => (
+                <button
+                  key={m.id}
+                  onClick={() => { if (state === "idle") setInputMode(m.id); }}
+                  disabled={state !== "idle"}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-[12px] font-medium transition-colors border-b-2 -mb-[1px] ${
+                    inputMode === m.id
+                      ? "border-[#5B5BD6] text-[#5B5BD6]"
+                      : "border-transparent text-[#9B9B95] hover:text-[#6B6B65]"
+                  } disabled:opacity-50`}
+                >
+                  <span className="text-[13px]">{m.icon}</span>
+                  {m.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="px-6 py-5 space-y-4">
+
+            {/* ── MODE: Structured Form ── */}
+            {inputMode === "form" && (<div className="space-y-4">
               <div>
                 <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Client *</label>
                 <select
@@ -274,6 +304,144 @@ export default function OrchestratorPage() {
                   Reset
                 </Button>
               )}
+            </div>)}
+
+            {/* ── MODE: Voice Description ── */}
+            {inputMode === "voice" && (
+              <div className="space-y-4">
+                <div className="flex items-start gap-3 bg-[#F7F7F6] rounded-[8px] px-3.5 py-3">
+                  <span className="text-[18px] leading-none mt-0.5">◎</span>
+                  <p className="text-[12px] text-[#6B6B65] leading-relaxed">
+                    Describe the project as if speaking to a colleague. The system will extract the brief from your text.
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Your description</label>
+                  <textarea
+                    value={voiceText}
+                    onChange={(e) => setVoiceText(e.target.value)}
+                    disabled={state !== "idle"}
+                    placeholder={`e.g. "We need a social media campaign for Nova Studio launching next month. The goal is to drive awareness among design-forward audiences on Instagram and LinkedIn. Budget is tight, so we need lean creative. Deadline is end of April."`}
+                    rows={9}
+                    className="w-full px-3 py-2.5 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50 resize-none leading-relaxed"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Client *</label>
+                  <select
+                    value={form.clientId}
+                    onChange={(e) => setForm({ ...form, clientId: e.target.value })}
+                    disabled={state !== "idle"}
+                    className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
+                  >
+                    <option value="">Select client...</option>
+                    {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+                {state === "idle" && (
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    className="w-full"
+                    disabled={!voiceText.trim() || !form.clientId}
+                    onClick={() => {}}
+                  >
+                    Parse &amp; Generate Plan
+                  </Button>
+                )}
+                {state !== "idle" && (
+                  <Button variant="ghost" size="sm" onClick={handleReset} className="w-full">Reset</Button>
+                )}
+              </div>
+            )}
+
+            {/* ── MODE: Audio Upload ── */}
+            {inputMode === "audio" && (
+              <div className="space-y-4">
+                <div className="flex items-start gap-3 bg-[#F7F7F6] rounded-[8px] px-3.5 py-3">
+                  <span className="text-[18px] leading-none mt-0.5">♪</span>
+                  <p className="text-[12px] text-[#6B6B65] leading-relaxed">
+                    Upload a recorded brief (MP3, M4A, WAV). The system will simulate transcription and extract the structured brief.
+                  </p>
+                </div>
+
+                {/* Upload zone */}
+                <label className={`flex flex-col items-center justify-center gap-3 border-2 border-dashed rounded-[10px] px-6 py-10 cursor-pointer transition-colors ${
+                  audioFile ? "border-[#5B5BD6] bg-[#EEF0FF]/40" : "border-[#E5E5E2] hover:border-[#C0C0BA] bg-[#FAFAF9]"
+                }`}>
+                  <input
+                    type="file"
+                    accept=".mp3,.m4a,.wav,.ogg,.webm"
+                    className="sr-only"
+                    onChange={(e) => setAudioFile(e.target.files?.[0] ?? null)}
+                    disabled={state !== "idle"}
+                  />
+                  {audioFile ? (
+                    <>
+                      <div className="w-10 h-10 rounded-full bg-[#EEF0FF] flex items-center justify-center">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                          <path d="M9 2C6.24 2 4 4.24 4 7v4c0 2.76 2.24 5 5 5s5-2.24 5-5V7c0-2.76-2.24-5-5-5z" stroke="#5B5BD6" strokeWidth="1.3"/>
+                          <path d="M2 9.5C2 13.09 4.91 16 8.5 16h1C13.09 16 16 13.09 16 9.5" stroke="#5B5BD6" strokeWidth="1.3" strokeLinecap="round"/>
+                        </svg>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-[13px] font-medium text-[#5B5BD6]">{audioFile.name}</p>
+                        <p className="text-[11px] text-[#9B9B95] mt-0.5">{(audioFile.size / 1024).toFixed(0)} KB · Ready to process</p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-10 h-10 rounded-full bg-[#F0F0ED] flex items-center justify-center">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                          <path d="M9 2C6.24 2 4 4.24 4 7v4c0 2.76 2.24 5 5 5s5-2.24 5-5V7c0-2.76-2.24-5-5-5z" stroke="#9B9B95" strokeWidth="1.3"/>
+                          <path d="M2 9.5C2 13.09 4.91 16 8.5 16h1C13.09 16 16 13.09 16 9.5" stroke="#9B9B95" strokeWidth="1.3" strokeLinecap="round"/>
+                        </svg>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-[13px] font-medium text-[#1A1A1A]">Drop audio file here</p>
+                        <p className="text-[11px] text-[#9B9B95] mt-0.5">MP3, M4A, WAV, OGG supported</p>
+                      </div>
+                    </>
+                  )}
+                </label>
+
+                {audioFile && (
+                  <div>
+                    <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Client *</label>
+                    <select
+                      value={form.clientId}
+                      onChange={(e) => setForm({ ...form, clientId: e.target.value })}
+                      disabled={state !== "idle"}
+                      className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
+                    >
+                      <option value="">Select client...</option>
+                      {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  </div>
+                )}
+
+                {audioFile && (
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    className="w-full"
+                    disabled={!form.clientId}
+                    onClick={() => {}}
+                  >
+                    Transcribe &amp; Generate Plan
+                  </Button>
+                )}
+                {audioFile && (
+                  <button
+                    className="w-full text-[12px] text-[#9B9B95] hover:text-[#6B6B65] transition-colors"
+                    onClick={() => setAudioFile(null)}
+                  >
+                    Remove file
+                  </button>
+                )}
+              </div>
+            )}
+
             </div>
           </div>
 
