@@ -197,6 +197,82 @@ function briefingToProjectType(b: Briefing): string {
     : "Content";
 }
 
+// ─── Shared BriefingPreview component ────────────────────────────────────────
+
+const SERVICE_LABELS: Record<string, string> = {
+  social_media: "Social Media", ads: "Ads", seo: "SEO", branding: "Branding", content: "Content",
+};
+
+function BriefingPreview({ briefing, subtitle }: { briefing: Briefing; subtitle: string }) {
+  const Row = ({ label, value, detected }: { label: string; value: string; detected: boolean }) => (
+    <div className="flex items-start gap-3 py-3 border-b border-[#F7F7F6] last:border-0">
+      <div className="w-[130px] shrink-0">
+        <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">{label}</span>
+      </div>
+      <div className="flex-1 min-w-0">
+        {detected
+          ? <p className="text-[13px] text-[#1A1A1A] leading-snug">{value}</p>
+          : <p className="text-[12px] text-[#C0C0BC] italic">Not detected</p>
+        }
+      </div>
+      <span className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+        detected ? "bg-[#DCFCE7] text-[#16A34A]" : "bg-[#F0F0ED] text-[#9B9B95]"
+      }`}>
+        {detected ? "✓" : "—"}
+      </span>
+    </div>
+  );
+
+  return (
+    <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+      <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F0ED] bg-[#FAFAF9]">
+        <span className="text-[12px] font-semibold text-[#1A1A1A] uppercase tracking-[0.05em]">Parsed Brief Preview</span>
+        <span className="text-[11px] text-[#9B9B95]">{subtitle}</span>
+      </div>
+      <div className="px-5">
+        {/* Services */}
+        <div className="flex items-start gap-3 py-3 border-b border-[#F7F7F6]">
+          <div className="w-[130px] shrink-0 pt-0.5">
+            <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Services</span>
+          </div>
+          <div className="flex-1 flex flex-wrap gap-1.5">
+            {briefing.services.length > 0
+              ? briefing.services.map((s) => (
+                  <span key={s} className="h-5 px-2 rounded-full text-[11px] font-medium bg-[#EEF0FF] text-[#5B5BD6]">
+                    {SERVICE_LABELS[s] ?? s}
+                  </span>
+                ))
+              : <span className="text-[12px] text-[#C0C0BC] italic">Not detected</span>
+            }
+          </div>
+          <span className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+            briefing.services.length > 0 ? "bg-[#DCFCE7] text-[#16A34A]" : "bg-[#F0F0ED] text-[#9B9B95]"
+          }`}>{briefing.services.length > 0 ? "✓" : "—"}</span>
+        </div>
+        <Row label="Objective"   value={briefing.objective}           detected={!!briefing.objective} />
+        <Row label="Audience"    value={briefing.targetAudience}      detected={!!briefing.targetAudience} />
+        {/* Channels */}
+        <div className="flex items-start gap-3 py-3 border-b border-[#F7F7F6]">
+          <div className="w-[130px] shrink-0 pt-0.5">
+            <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Channels</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            {briefing.channels.length > 0
+              ? <p className="text-[13px] text-[#1A1A1A]">{briefing.channels.join(" · ")}</p>
+              : <p className="text-[12px] text-[#C0C0BC] italic">Not detected</p>
+            }
+          </div>
+          <span className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+            briefing.channels.length > 0 ? "bg-[#DCFCE7] text-[#16A34A]" : "bg-[#F0F0ED] text-[#9B9B95]"
+          }`}>{briefing.channels.length > 0 ? "✓" : "—"}</span>
+        </div>
+        <Row label="Deadline"    value={briefing.deadline}            detected={!!briefing.deadline} />
+        <Row label="Description" value={briefing.businessDescription} detected={!!briefing.businessDescription} />
+      </div>
+    </div>
+  );
+}
+
 export default function OrchestratorPage() {
   const { clients, createProject } = useAgencyStore();
   const [state, setState] = useState<OrchestratorState>("idle");
@@ -778,77 +854,11 @@ export default function OrchestratorPage() {
                 : null;
 
               if (previewText) {
-                const p = parseTextToBriefing(previewText, "");
-                const SERVICE_LABELS: Record<string, string> = {
-                  social_media: "Social Media", ads: "Ads", seo: "SEO", branding: "Branding", content: "Content",
-                };
-                const Row = ({ label, value, detected }: { label: string; value: string; detected: boolean }) => (
-                  <div className="flex items-start gap-3 py-3 border-b border-[#F7F7F6] last:border-0">
-                    <div className="w-[130px] shrink-0">
-                      <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">{label}</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      {detected
-                        ? <p className="text-[13px] text-[#1A1A1A] leading-snug">{value}</p>
-                        : <p className="text-[12px] text-[#C0C0BC] italic">Not detected</p>
-                      }
-                    </div>
-                    <span className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
-                      detected ? "bg-[#DCFCE7] text-[#16A34A]" : "bg-[#F0F0ED] text-[#9B9B95]"
-                    }`}>
-                      {detected ? "✓" : "—"}
-                    </span>
-                  </div>
-                );
                 return (
-                  <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-                    <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F0ED] bg-[#FAFAF9]">
-                      <span className="text-[12px] font-semibold text-[#1A1A1A] uppercase tracking-[0.05em]">Parsed Brief Preview</span>
-                      <span className="text-[11px] text-[#9B9B95]">
-                        {inputMode === "voice" ? "Updates as you type" : "Parsed from transcript"}
-                      </span>
-                    </div>
-                    <div className="px-5">
-                      {/* Services */}
-                      <div className="flex items-start gap-3 py-3 border-b border-[#F7F7F6]">
-                        <div className="w-[130px] shrink-0 pt-0.5">
-                          <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Services</span>
-                        </div>
-                        <div className="flex-1 flex flex-wrap gap-1.5">
-                          {p.services.length > 0
-                            ? p.services.map((s) => (
-                                <span key={s} className="h-5 px-2 rounded-full text-[11px] font-medium bg-[#EEF0FF] text-[#5B5BD6]">
-                                  {SERVICE_LABELS[s] ?? s}
-                                </span>
-                              ))
-                            : <span className="text-[12px] text-[#C0C0BC] italic">Not detected</span>
-                          }
-                        </div>
-                        <span className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
-                          p.services.length > 0 ? "bg-[#DCFCE7] text-[#16A34A]" : "bg-[#F0F0ED] text-[#9B9B95]"
-                        }`}>{p.services.length > 0 ? "✓" : "—"}</span>
-                      </div>
-                      <Row label="Objective"    value={p.objective}          detected={!!p.objective} />
-                      <Row label="Audience"     value={p.targetAudience}     detected={!!p.targetAudience} />
-                      {/* Channels */}
-                      <div className="flex items-start gap-3 py-3 border-b border-[#F7F7F6]">
-                        <div className="w-[130px] shrink-0 pt-0.5">
-                          <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Channels</span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          {p.channels.length > 0
-                            ? <p className="text-[13px] text-[#1A1A1A]">{p.channels.join(" · ")}</p>
-                            : <p className="text-[12px] text-[#C0C0BC] italic">Not detected</p>
-                          }
-                        </div>
-                        <span className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
-                          p.channels.length > 0 ? "bg-[#DCFCE7] text-[#16A34A]" : "bg-[#F0F0ED] text-[#9B9B95]"
-                        }`}>{p.channels.length > 0 ? "✓" : "—"}</span>
-                      </div>
-                      <Row label="Deadline"     value={p.deadline}           detected={!!p.deadline} />
-                      <Row label="Description"  value={p.businessDescription} detected={!!p.businessDescription} />
-                    </div>
-                  </div>
+                  <BriefingPreview
+                    briefing={parseTextToBriefing(previewText, "")}
+                    subtitle={inputMode === "voice" ? "Updates as you type" : "Parsed from transcript"}
+                  />
                 );
               }
               // Default idle placeholder
