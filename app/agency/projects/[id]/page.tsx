@@ -20,8 +20,8 @@ const DELIVERABLE_CYCLE: Record<DeliverableStatus, DeliverableStatus> = {
 
 export default function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { projects, clients, tasks, deliverables, briefings, updateTaskStatus, updateDeliverableStatus, updateProject } = useAgencyStore();
-  const [tab, setTab] = useState<"overview" | "pipeline" | "tasks" | "deliverables" | "strategy" | "assets" | "history">("overview");
+  const { projects, clients, tasks, deliverables, briefings, updateTaskStatus, updateDeliverableStatus, updateProject, moveProjectStage } = useAgencyStore();
+  const [tab, setTab] = useState<"overview" | "execution" | "pipeline" | "tasks" | "deliverables" | "strategy" | "assets" | "history">("overview");
   const [editOpen, setEditOpen] = useState(false);
 
   const project = projects.find((p) => p.id === id);
@@ -45,7 +45,42 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
   const getAgent = (agentId: string) => MOCK_AGENTS.find((a) => a.id === agentId);
 
-  const TABS = ["overview", "pipeline", "tasks", "deliverables", "strategy", "assets", "history"] as const;
+  const TABS = ["overview", "execution", "pipeline", "tasks", "deliverables", "strategy", "assets", "history"] as const;
+
+  // ── Execution helpers ──────────────────────────────────────────────────────
+  function getAgentStatus(agentId: string): "not_started" | "in_progress" | "done" {
+    const agentTasks = projectTasks.filter((t) => t.agentId === agentId);
+    if (agentTasks.length === 0) return "not_started";
+    if (agentTasks.every((t) => t.status === "done")) return "done";
+    if (agentTasks.some((t) => t.status === "in_progress" || t.status === "done")) return "in_progress";
+    return "not_started";
+  }
+
+  function getAgentRunUrl(agentName: string): string | null {
+    const n = agentName.toLowerCase();
+    if (n.includes("social")) return "/agency/social-media-agent";
+    if (n.includes("design")) return "/agency/design-agent";
+    return null;
+  }
+
+  function getDeliverableCategory(type: string): "posts" | "design" | "campaigns" | "other" {
+    const t = type.toLowerCase();
+    if (t.includes("social") || t.includes("post") || t.includes("caption") || t.includes("copy")) return "posts";
+    if (t.includes("design") || t.includes("visual") || t.includes("asset") || t.includes("brand") || t.includes("identity")) return "design";
+    if (t.includes("campaign") || t.includes("ad") || t.includes("paid") || t.includes("media")) return "campaigns";
+    return "other";
+  }
+
+  const STATUS_LABEL: Record<"not_started" | "in_progress" | "done", string> = {
+    not_started: "Not started",
+    in_progress: "In progress",
+    done: "Done",
+  };
+  const STATUS_COLOR: Record<"not_started" | "in_progress" | "done", string> = {
+    not_started: "bg-[#F0F0ED] text-[#9B9B95]",
+    in_progress: "bg-[#FFF4ED] text-[#C2530A]",
+    done: "bg-[#DCFCE7] text-[#16A34A]",
+  };
 
   return (
     <>
@@ -203,6 +238,139 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         </div>
       )}
 
+      {/* Tab: Execution */}
+      {tab === "execution" && (
+        <div className="space-y-6">
+
+          {/* Stage Control */}
+          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
+            <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Stage Control</div>
+            <div className="flex items-center gap-1 flex-wrap">
+              {STAGES.map((stage, i) => {
+                const isActive = project.stage === stage;
+                const isDone = STAGES.indexOf(stage) < STAGES.indexOf(project.stage);
+                return (
+                  <div key={stage} className="flex items-center gap-1">
+                    <button
+                      onClick={() => moveProjectStage(id, stage)}
+                      className={`h-7 px-3 rounded-full text-[12px] font-medium transition-all ${
+                        isActive
+                          ? "bg-[#5B5BD6] text-white"
+                          : isDone
+                          ? "bg-[#F0F0ED] text-[#6B6B65] hover:bg-[#E8E8E5]"
+                          : "bg-[#F7F7F6] text-[#9B9B95] border border-[#E5E5E2] hover:border-[#5B5BD6] hover:text-[#5B5BD6]"
+                      }`}
+                    >
+                      {isDone && <span className="mr-1 text-[#16A34A]">✓</span>}
+                      {stage.charAt(0).toUpperCase() + stage.slice(1)}
+                    </button>
+                    {i < STAGES.length - 1 && <span className="text-[#D0D0CC] text-[11px]">›</span>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Agent Pipeline */}
+          <div>
+            <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Agent Pipeline</div>
+            {project.agents.length === 0 ? (
+              <div className="bg-white rounded-[10px] border border-dashed border-[#E5E5E2] px-5 py-8 text-center">
+                <p className="text-[13px] text-[#9B9B95]">No agents assigned. Edit the project to assign agents.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {project.agents.map((agentId, idx) => {
+                  const agent = getAgent(agentId);
+                  if (!agent) return null;
+                  const status = getAgentStatus(agentId);
+                  const runUrl = getAgentRunUrl(agent.name);
+                  const agentTasks = projectTasks.filter((t) => t.agentId === agentId);
+                  const doneTasks = agentTasks.filter((t) => t.status === "done").length;
+                  return (
+                    <div key={agentId} className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 flex items-center gap-4">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold shrink-0 ${
+                        status === "done" ? "bg-[#DCFCE7] text-[#16A34A]" : status === "in_progress" ? "bg-[#FFF4ED] text-[#C2530A]" : "bg-[#EEF0FF] text-[#5B5BD6]"
+                      }`}>
+                        {idx + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <p className="text-[13px] font-semibold text-[#1A1A1A]">{agent.name}</p>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${STATUS_COLOR[status]}`}>
+                            {STATUS_LABEL[status]}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-[#9B9B95] truncate">{agent.role}</p>
+                        {agentTasks.length > 0 && (
+                          <p className="text-[11px] text-[#6B6B65] mt-1">
+                            {doneTasks}/{agentTasks.length} tasks complete
+                          </p>
+                        )}
+                      </div>
+                      {runUrl ? (
+                        <Link
+                          href={runUrl}
+                          className="shrink-0 h-7 px-3 rounded-[6px] text-[12px] font-medium border border-[#E5E5E2] text-[#1A1A1A] hover:bg-[#F7F7F6] hover:border-[#5B5BD6] hover:text-[#5B5BD6] transition-colors flex items-center gap-1.5"
+                        >
+                          Run
+                          <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+                            <path d="M2 5.5h7M5.5 2l3.5 3.5L5.5 9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </Link>
+                      ) : (
+                        <span className="shrink-0 h-7 px-3 rounded-[6px] text-[12px] font-medium border border-[#E5E5E2] text-[#C0C0BC] cursor-not-allowed flex items-center">
+                          No page yet
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Deliverables by category */}
+          <div>
+            <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Outputs</div>
+            <div className="grid grid-cols-3 gap-4">
+              {(["posts", "design", "campaigns"] as const).map((cat) => {
+                const catLabels = { posts: "Posts & Copy", design: "Design Assets", campaigns: "Campaigns & Ads" };
+                const catDeliverables = projectDeliverables.filter((d) => getDeliverableCategory(d.type) === cat);
+                return (
+                  <div key={cat} className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+                    <div className="px-4 py-3 border-b border-[#F0F0ED] flex items-center justify-between">
+                      <p className="text-[12px] font-semibold text-[#1A1A1A]">{catLabels[cat]}</p>
+                      <span className="text-[11px] text-[#9B9B95]">{catDeliverables.length}</span>
+                    </div>
+                    {catDeliverables.length === 0 ? (
+                      <div className="px-4 py-6 text-center">
+                        <p className="text-[11px] text-[#C0C0BC]">No outputs yet</p>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-[#F0F0ED]">
+                        {catDeliverables.map((d) => (
+                          <div key={d.id} className="px-4 py-2.5 flex items-center justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="text-[12px] font-medium text-[#1A1A1A] truncate">{d.name}</p>
+                              <p className="text-[10px] text-[#9B9B95]">v{d.version}</p>
+                            </div>
+                            <button onClick={() => updateDeliverableStatus(d.id, DELIVERABLE_CYCLE[d.status])}>
+                              <Badge variant={d.status} size="sm" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+        </div>
+      )}
+
       {/* Tab: Pipeline */}
       {tab === "pipeline" && (
         <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
@@ -227,6 +395,14 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   </div>
                   {isActive && <Badge variant="in_progress" size="md">Current</Badge>}
                   {isDone && <Badge variant="done" size="md">Done</Badge>}
+                  {!isActive && (
+                    <button
+                      onClick={() => moveProjectStage(id, stage)}
+                      className="h-6 px-2.5 rounded-[5px] text-[11px] font-medium border border-[#E5E5E2] text-[#6B6B65] hover:border-[#5B5BD6] hover:text-[#5B5BD6] transition-colors"
+                    >
+                      Move here
+                    </button>
+                  )}
                 </div>
               );
             })}
