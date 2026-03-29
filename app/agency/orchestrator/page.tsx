@@ -153,6 +153,21 @@ function parseVoiceText(text: string): ParsedBrief {
   return { services, objective: objectiveSentence, targetAudience: audienceSentence, channels, deadline, businessDescription };
 }
 
+// ─── Audio simulation ─────────────────────────────────────────────────────────
+
+const MOCK_TRANSCRIPTS = [
+  `So, basically what we need is a full social media campaign for the brand relaunch. The goal is to drive awareness and engagement — mainly on Instagram and LinkedIn. Our target audience is design-forward professionals, roughly 25 to 40 years old, based in urban centres in Brazil. We're thinking end of May as the deadline. Budget is lean, so we need creative that works hard. Notes: the client wants a bold visual direction, nothing too corporate.`,
+
+  `Right, so the client is a B2B SaaS company in the HR space. They want to generate leads — ideally 300 qualified leads over a 6-week campaign. The channels are LinkedIn and Google Ads, maybe some email retargeting. The target audience is HR directors and People Ops managers at companies with 50 to 500 employees. Deadline is end of June. They also want SEO work done on their blog to support organic growth long-term.`,
+
+  `We need a full branding project for a new food-tech startup. They're launching in 3 months, so the deadline is pretty tight. The objective is to build a strong visual identity and brand voice before the product launch. Target audience is health-conscious millennials, predominantly female, urban. Channels aren't fixed yet but they're planning TikTok and Instagram for launch. They also need content — product descriptions, landing page copy, that kind of thing.`,
+];
+
+function simulateTranscription(file: File): string {
+  const idx = file.name.length % MOCK_TRANSCRIPTS.length;
+  return MOCK_TRANSCRIPTS[idx];
+}
+
 export default function OrchestratorPage() {
   const { clients, createProject } = useAgencyStore();
   const [state, setState] = useState<OrchestratorState>("idle");
@@ -161,6 +176,8 @@ export default function OrchestratorPage() {
   const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);
   const [voiceText, setVoiceText] = useState("");
   const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [audioTranscribeState, setAudioTranscribeState] = useState<"idle" | "transcribing" | "done">("idle");
+  const [audioTranscript, setAudioTranscript] = useState("");
 
   const [form, setForm] = useState({
     clientId: "",
@@ -243,12 +260,49 @@ export default function OrchestratorPage() {
 
   const handleReset = () => {
     setState("idle"); setPlan(null); setCreatedProjectId(null);
+    setAudioFile(null); setAudioTranscribeState("idle"); setAudioTranscript("");
     setForm({
       clientId: "", name: "", goal: "", type: "Campaign",
       deadline: "", priority: "high", notes: "",
       services: [], businessDescription: "", objective: "",
       targetAudience: "", channels: "",
     });
+  };
+
+  const handleAudioTranscribe = () => {
+    if (!audioFile) return;
+    setAudioTranscribeState("transcribing");
+    setTimeout(() => {
+      setAudioTranscript(simulateTranscription(audioFile));
+      setAudioTranscribeState("done");
+    }, 2800);
+  };
+
+  const handleAudioAnalyze = () => {
+    if (!audioTranscript || !form.clientId) return;
+    const parsed = parseVoiceText(audioTranscript);
+    const type = parsed.services.length > 0
+      ? (parsed.services[0] === "social_media" ? "Social Media"
+        : parsed.services[0] === "ads" ? "Paid Media"
+        : parsed.services[0] === "seo" ? "SEO"
+        : parsed.services[0] === "branding" ? "Branding"
+        : "Content")
+      : "Campaign";
+    const goal = parsed.objective || audioTranscript.slice(0, 200);
+    setForm((prev) => ({
+      ...prev, goal, type,
+      services: parsed.services,
+      objective: parsed.objective,
+      targetAudience: parsed.targetAudience,
+      channels: parsed.channels.join(", "),
+      businessDescription: parsed.businessDescription,
+      deadline: parsed.deadline || prev.deadline,
+    }));
+    setState("analyzing");
+    setTimeout(() => {
+      setPlan(generatePlan(type, parsed.deadline));
+      setState("ready");
+    }, 2200);
   };
 
   const handleVoiceAnalyze = () => {
@@ -574,86 +628,129 @@ export default function OrchestratorPage() {
             {/* ── MODE: Audio Upload ── */}
             {inputMode === "audio" && (
               <div className="space-y-4">
-                <div className="flex items-start gap-3 bg-[#F7F7F6] rounded-[8px] px-3.5 py-3">
-                  <span className="text-[18px] leading-none mt-0.5">♪</span>
-                  <p className="text-[12px] text-[#6B6B65] leading-relaxed">
-                    Upload a recorded brief (MP3, M4A, WAV). The system will simulate transcription and extract the structured brief.
-                  </p>
-                </div>
 
-                {/* Upload zone */}
-                <label className={`flex flex-col items-center justify-center gap-3 border-2 border-dashed rounded-[10px] px-6 py-10 cursor-pointer transition-colors ${
-                  audioFile ? "border-[#5B5BD6] bg-[#EEF0FF]/40" : "border-[#E5E5E2] hover:border-[#C0C0BA] bg-[#FAFAF9]"
-                }`}>
-                  <input
-                    type="file"
-                    accept=".mp3,.m4a,.wav,.ogg,.webm"
-                    className="sr-only"
-                    onChange={(e) => setAudioFile(e.target.files?.[0] ?? null)}
-                    disabled={state !== "idle"}
-                  />
-                  {audioFile ? (
-                    <>
-                      <div className="w-10 h-10 rounded-full bg-[#EEF0FF] flex items-center justify-center">
-                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                          <path d="M9 2C6.24 2 4 4.24 4 7v4c0 2.76 2.24 5 5 5s5-2.24 5-5V7c0-2.76-2.24-5-5-5z" stroke="#5B5BD6" strokeWidth="1.3"/>
-                          <path d="M2 9.5C2 13.09 4.91 16 8.5 16h1C13.09 16 16 13.09 16 9.5" stroke="#5B5BD6" strokeWidth="1.3" strokeLinecap="round"/>
-                        </svg>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-[13px] font-medium text-[#5B5BD6]">{audioFile.name}</p>
-                        <p className="text-[11px] text-[#9B9B95] mt-0.5">{(audioFile.size / 1024).toFixed(0)} KB · Ready to process</p>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="w-10 h-10 rounded-full bg-[#F0F0ED] flex items-center justify-center">
-                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                          <path d="M9 2C6.24 2 4 4.24 4 7v4c0 2.76 2.24 5 5 5s5-2.24 5-5V7c0-2.76-2.24-5-5-5z" stroke="#9B9B95" strokeWidth="1.3"/>
-                          <path d="M2 9.5C2 13.09 4.91 16 8.5 16h1C13.09 16 16 13.09 16 9.5" stroke="#9B9B95" strokeWidth="1.3" strokeLinecap="round"/>
-                        </svg>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-[13px] font-medium text-[#1A1A1A]">Drop audio file here</p>
-                        <p className="text-[11px] text-[#9B9B95] mt-0.5">MP3, M4A, WAV, OGG supported</p>
-                      </div>
-                    </>
-                  )}
-                </label>
+                {/* Upload zone — hidden once transcribed */}
+                {audioTranscribeState !== "done" && (
+                  <label className={`flex flex-col items-center justify-center gap-3 border-2 border-dashed rounded-[10px] px-6 py-8 cursor-pointer transition-colors ${
+                    audioFile ? "border-[#5B5BD6] bg-[#EEF0FF]/40" : "border-[#E5E5E2] hover:border-[#C0C0BA] bg-[#FAFAF9]"
+                  } ${audioTranscribeState === "transcribing" ? "pointer-events-none" : ""}`}>
+                    <input
+                      type="file"
+                      accept=".mp3,.m4a,.wav,.ogg,.webm"
+                      className="sr-only"
+                      onChange={(e) => {
+                        setAudioFile(e.target.files?.[0] ?? null);
+                        setAudioTranscribeState("idle");
+                        setAudioTranscript("");
+                      }}
+                      disabled={audioTranscribeState === "transcribing"}
+                    />
+                    {audioFile ? (
+                      <>
+                        <div className={`w-10 h-10 rounded-full bg-[#EEF0FF] flex items-center justify-center ${audioTranscribeState === "transcribing" ? "animate-pulse" : ""}`}>
+                          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                            <path d="M9 2C6.24 2 4 4.24 4 7v4c0 2.76 2.24 5 5 5s5-2.24 5-5V7c0-2.76-2.24-5-5-5z" stroke="#5B5BD6" strokeWidth="1.3"/>
+                            <path d="M2 9.5C2 13.09 4.91 16 8.5 16h1C13.09 16 16 13.09 16 9.5" stroke="#5B5BD6" strokeWidth="1.3" strokeLinecap="round"/>
+                          </svg>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-[13px] font-medium text-[#5B5BD6]">{audioFile.name}</p>
+                          <p className="text-[11px] text-[#9B9B95] mt-0.5">
+                            {(audioFile.size / 1024).toFixed(0)} KB ·{" "}
+                            {audioTranscribeState === "transcribing" ? "Transcribing…" : "Ready to transcribe"}
+                          </p>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-10 h-10 rounded-full bg-[#F0F0ED] flex items-center justify-center">
+                          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                            <path d="M9 2C6.24 2 4 4.24 4 7v4c0 2.76 2.24 5 5 5s5-2.24 5-5V7c0-2.76-2.24-5-5-5z" stroke="#9B9B95" strokeWidth="1.3"/>
+                            <path d="M2 9.5C2 13.09 4.91 16 8.5 16h1C13.09 16 16 13.09 16 9.5" stroke="#9B9B95" strokeWidth="1.3" strokeLinecap="round"/>
+                          </svg>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-[13px] font-medium text-[#1A1A1A]">Drop audio file here</p>
+                          <p className="text-[11px] text-[#9B9B95] mt-0.5">MP3, M4A, WAV, OGG supported</p>
+                        </div>
+                      </>
+                    )}
+                  </label>
+                )}
 
-                {audioFile && (
-                  <div>
-                    <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Client *</label>
-                    <select
-                      value={form.clientId}
-                      onChange={(e) => setForm({ ...form, clientId: e.target.value })}
-                      disabled={state !== "idle"}
-                      className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
-                    >
-                      <option value="">Select client...</option>
-                      {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                    </select>
+                {/* Transcribe button */}
+                {audioFile && audioTranscribeState === "idle" && (
+                  <Button variant="secondary" size="lg" className="w-full" onClick={handleAudioTranscribe}>
+                    Transcribe Audio
+                  </Button>
+                )}
+
+                {/* Transcribing animation */}
+                {audioTranscribeState === "transcribing" && (
+                  <div className="flex items-center gap-2.5 px-4 py-3 bg-[#EEF0FF] rounded-[8px]">
+                    <div className="flex gap-1 shrink-0">
+                      {[0, 1, 2].map((i) => (
+                        <span key={i} className="w-1 h-4 bg-[#5B5BD6] rounded-full animate-pulse" style={{ animationDelay: `${i * 150}ms` }} />
+                      ))}
+                    </div>
+                    <p className="text-[12px] font-medium text-[#5B5BD6]">Transcribing audio…</p>
                   </div>
                 )}
 
-                {audioFile && (
-                  <Button
-                    variant="primary"
-                    size="lg"
-                    className="w-full"
-                    disabled={!form.clientId}
-                    onClick={() => {}}
-                  >
-                    Transcribe &amp; Generate Plan
-                  </Button>
+                {/* Transcript output */}
+                {audioTranscribeState === "done" && (
+                  <>
+                    <div className="flex items-center justify-between mb-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className="w-4 h-4 rounded-full bg-[#DCFCE7] flex items-center justify-center">
+                          <svg width="8" height="7" viewBox="0 0 8 7" fill="none">
+                            <path d="M1 3.5l2 2 4-4" stroke="#16A34A" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </span>
+                        <span className="text-[12px] font-medium text-[#1A1A1A]">Transcription complete</span>
+                      </div>
+                      <button
+                        className="text-[11px] text-[#9B9B95] hover:text-[#6B6B65] transition-colors"
+                        onClick={() => { setAudioFile(null); setAudioTranscribeState("idle"); setAudioTranscript(""); }}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                    <div className="bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] px-3 py-2.5">
+                      <p className="text-[12px] text-[#1A1A1A] leading-relaxed whitespace-pre-wrap">{audioTranscript}</p>
+                    </div>
+                  </>
                 )}
-                {audioFile && (
-                  <button
-                    className="w-full text-[12px] text-[#9B9B95] hover:text-[#6B6B65] transition-colors"
-                    onClick={() => setAudioFile(null)}
-                  >
-                    Remove file
-                  </button>
+
+                {/* Client + CTA — visible after transcription */}
+                {audioTranscribeState === "done" && (
+                  <>
+                    <div>
+                      <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Client *</label>
+                      <select
+                        value={form.clientId}
+                        onChange={(e) => setForm((p) => ({ ...p, clientId: e.target.value }))}
+                        disabled={state !== "idle"}
+                        className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
+                      >
+                        <option value="">Select client...</option>
+                        {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                    </div>
+                    <Button
+                      variant="primary"
+                      size="lg"
+                      className="w-full"
+                      disabled={!form.clientId || state !== "idle"}
+                      onClick={handleAudioAnalyze}
+                    >
+                      Generate Plan from Transcript
+                    </Button>
+                  </>
+                )}
+
+                {state !== "idle" && (
+                  <Button variant="ghost" size="sm" onClick={handleReset} className="w-full">Reset</Button>
                 )}
               </div>
             )}
@@ -664,9 +761,14 @@ export default function OrchestratorPage() {
           {/* Output panel */}
           <div>
             {state === "idle" && (() => {
-              // Voice mode with text → show parsed preview
-              if (inputMode === "voice" && voiceText.trim()) {
-                const p = parseVoiceText(voiceText);
+              // Audio mode after transcription → show parsed preview
+              const previewText =
+                inputMode === "voice" && voiceText.trim() ? voiceText
+                : inputMode === "audio" && audioTranscribeState === "done" ? audioTranscript
+                : null;
+
+              if (previewText) {
+                const p = parseVoiceText(previewText);
                 const SERVICE_LABELS: Record<string, string> = {
                   social_media: "Social Media", ads: "Ads", seo: "SEO", branding: "Branding", content: "Content",
                 };
@@ -692,7 +794,9 @@ export default function OrchestratorPage() {
                   <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
                     <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F0ED] bg-[#FAFAF9]">
                       <span className="text-[12px] font-semibold text-[#1A1A1A] uppercase tracking-[0.05em]">Parsed Brief Preview</span>
-                      <span className="text-[11px] text-[#9B9B95]">Updates as you type</span>
+                      <span className="text-[11px] text-[#9B9B95]">
+                        {inputMode === "voice" ? "Updates as you type" : "Parsed from transcript"}
+                      </span>
                     </div>
                     <div className="px-5">
                       {/* Services */}
@@ -752,6 +856,8 @@ export default function OrchestratorPage() {
                   <p className="text-[13px] text-[#9B9B95] mt-1.5 max-w-xs mx-auto">
                     {inputMode === "voice"
                       ? "Start typing your project description — a parsed preview will appear here."
+                      : inputMode === "audio"
+                      ? "Upload and transcribe an audio brief — the parsed preview will appear here."
                       : "Fill in the client, goal, and deadline — then run the Orchestrator to generate an execution plan."}
                   </p>
                 </div>
