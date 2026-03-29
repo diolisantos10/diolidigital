@@ -85,13 +85,59 @@ export default function OrchestratorPage() {
   const [audioFile, setAudioFile] = useState<File | null>(null);
 
   const [form, setForm] = useState({
-    clientId: "", name: "", goal: "", type: "Campaign", deadline: "", priority: "high" as Priority, notes: "",
+    clientId: "",
+    name: "",
+    // legacy fields kept for handleAnalyze / handleApprove (derived below)
+    goal: "",
+    type: "Campaign",
+    deadline: "",
+    priority: "high" as Priority,
+    notes: "",
+    // new structured fields
+    services: [] as string[],
+    businessDescription: "",
+    objective: "",
+    targetAudience: "",
+    channels: "",
   });
 
-  const PROJECT_TYPES = ["Campaign", "Branding", "SEO", "Content", "Paid Media", "Social Media", "Branding + Web"];
+  const SERVICE_OPTIONS = [
+    { id: "social_media", label: "Social Media" },
+    { id: "ads",          label: "Ads" },
+    { id: "seo",          label: "SEO" },
+    { id: "branding",     label: "Branding" },
+    { id: "content",      label: "Content" },
+  ];
+
+  // Keep legacy fields in sync so generation logic stays unchanged
+  const setField = <K extends keyof typeof form>(key: K, value: typeof form[K]) => {
+    setForm((prev) => {
+      const next = { ...prev, [key]: value };
+      if (key === "objective")           next.goal = value as string;
+      if (key === "services") {
+        const svcs = value as string[];
+        if (svcs.length > 0) {
+          const first = svcs[0];
+          next.type = first === "social_media" ? "Social Media"
+            : first === "ads"       ? "Paid Media"
+            : first === "seo"       ? "SEO"
+            : first === "branding"  ? "Branding"
+            : "Content";
+        }
+      }
+      return next;
+    });
+  };
+
+  const toggleService = (id: string) => {
+    const next = form.services.includes(id)
+      ? form.services.filter((s) => s !== id)
+      : [...form.services, id];
+    setField("services", next);
+  };
 
   const handleAnalyze = () => {
-    if (!form.clientId || !form.goal || !form.deadline) return;
+    if (!form.clientId || !form.goal) return;
     setState("analyzing");
     setTimeout(() => {
       const generatedPlan = generatePlan(form.type, form.deadline);
@@ -109,7 +155,7 @@ export default function OrchestratorPage() {
       type: form.type,
       stage: "diagnosis",
       priority: form.priority,
-      deadline: form.deadline,
+      deadline: form.deadline || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
       agents: plan.agents,
       initialTasks: plan.tasks.map((t) => ({ title: t.title, description: t.description, agentId: t.agentId, dueDate: t.dueDate })),
     });
@@ -119,7 +165,12 @@ export default function OrchestratorPage() {
 
   const handleReset = () => {
     setState("idle"); setPlan(null); setCreatedProjectId(null);
-    setForm({ clientId: "", name: "", goal: "", type: "Campaign", deadline: "", priority: "high", notes: "" });
+    setForm({
+      clientId: "", name: "", goal: "", type: "Campaign",
+      deadline: "", priority: "high", notes: "",
+      services: [], businessDescription: "", objective: "",
+      targetAudience: "", channels: "",
+    });
   };
 
   const STEP_LABELS = ["Receive Brief", "Analyze Context", "Generate Pipeline", "Assign Agents", "Activate"];
@@ -206,105 +257,161 @@ export default function OrchestratorPage() {
             <div className="px-6 py-5 space-y-4">
 
             {/* ── MODE: Structured Form ── */}
-            {inputMode === "form" && (<div className="space-y-4">
-              <div>
-                <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Client *</label>
-                <select
-                  value={form.clientId}
-                  onChange={(e) => setForm({ ...form, clientId: e.target.value })}
-                  disabled={state !== "idle"}
-                  className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
-                >
-                  <option value="">Select client...</option>
-                  {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Project Name (optional)</label>
-                <input
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  disabled={state !== "idle"}
-                  placeholder="Auto-generated if left blank"
-                  className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
-                />
-              </div>
-              <div>
-                <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Goal *</label>
-                <textarea
-                  value={form.goal}
-                  onChange={(e) => setForm({ ...form, goal: e.target.value })}
-                  disabled={state !== "idle"}
-                  placeholder="What is the business goal of this project?"
-                  rows={3}
-                  className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50 resize-none"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Type</label>
-                  <select
-                    value={form.type}
-                    onChange={(e) => setForm({ ...form, type: e.target.value })}
-                    disabled={state !== "idle"}
-                    className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
-                  >
-                    {PROJECT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Priority</label>
-                  <select
-                    value={form.priority}
-                    onChange={(e) => setForm({ ...form, priority: e.target.value as Priority })}
-                    disabled={state !== "idle"}
-                    className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
-                  >
-                    <option value="high">High</option>
-                    <option value="medium">Medium</option>
-                    <option value="low">Low</option>
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Deadline *</label>
-                <input
-                  type="date"
-                  value={form.deadline}
-                  onChange={(e) => setForm({ ...form, deadline: e.target.value })}
-                  disabled={state !== "idle"}
-                  className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
-                />
-              </div>
-              <div>
-                <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Additional Notes</label>
-                <textarea
-                  value={form.notes}
-                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                  disabled={state !== "idle"}
-                  placeholder="Constraints, references, context..."
-                  rows={2}
-                  className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50 resize-none"
-                />
-              </div>
+            {inputMode === "form" && (
+              <div className="space-y-4">
 
-              {state === "idle" && (
-                <Button
-                  variant="primary"
-                  size="lg"
-                  className="w-full"
-                  onClick={handleAnalyze}
-                  disabled={!form.clientId || !form.goal || !form.deadline}
-                >
-                  Run Orchestrator
-                </Button>
-              )}
-              {state !== "idle" && (
-                <Button variant="ghost" size="sm" onClick={handleReset} className="w-full">
-                  Reset
-                </Button>
-              )}
-            </div>)}
+                {/* Client */}
+                <div>
+                  <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Client *</label>
+                  <select
+                    value={form.clientId}
+                    onChange={(e) => setField("clientId", e.target.value)}
+                    disabled={state !== "idle"}
+                    className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
+                  >
+                    <option value="">Select client...</option>
+                    {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+
+                {/* Services multi-select */}
+                <div>
+                  <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">
+                    Services *
+                    {form.services.length > 0 && (
+                      <span className="ml-1.5 text-[11px] font-normal text-[#9B9B95]">({form.services.length} selected)</span>
+                    )}
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {SERVICE_OPTIONS.map((svc) => {
+                      const active = form.services.includes(svc.id);
+                      return (
+                        <button
+                          key={svc.id}
+                          type="button"
+                          onClick={() => { if (state === "idle") toggleService(svc.id); }}
+                          disabled={state !== "idle"}
+                          className={`h-7 px-3 rounded-full text-[12px] font-medium border transition-all disabled:opacity-50 ${
+                            active
+                              ? "bg-[#5B5BD6] border-[#5B5BD6] text-white"
+                              : "bg-white border-[#E5E5E2] text-[#6B6B65] hover:border-[#5B5BD6] hover:text-[#5B5BD6]"
+                          }`}
+                        >
+                          {svc.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Business description */}
+                <div>
+                  <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Business Description</label>
+                  <textarea
+                    value={form.businessDescription}
+                    onChange={(e) => setField("businessDescription", e.target.value)}
+                    disabled={state !== "idle"}
+                    placeholder="What does the client do? Their industry, product, or service."
+                    rows={2}
+                    className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50 resize-none"
+                  />
+                </div>
+
+                {/* Objective */}
+                <div>
+                  <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Objective *</label>
+                  <textarea
+                    value={form.objective}
+                    onChange={(e) => setField("objective", e.target.value)}
+                    disabled={state !== "idle"}
+                    placeholder="What is the measurable goal? e.g. increase brand awareness, generate 200 leads."
+                    rows={2}
+                    className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50 resize-none"
+                  />
+                </div>
+
+                {/* Target audience */}
+                <div>
+                  <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Target Audience</label>
+                  <input
+                    value={form.targetAudience}
+                    onChange={(e) => setField("targetAudience", e.target.value)}
+                    disabled={state !== "idle"}
+                    placeholder="e.g. Design professionals, 25–40, urban Brazil"
+                    className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
+                  />
+                </div>
+
+                {/* Channels */}
+                <div>
+                  <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Channels</label>
+                  <input
+                    value={form.channels}
+                    onChange={(e) => setField("channels", e.target.value)}
+                    disabled={state !== "idle"}
+                    placeholder="e.g. Instagram, LinkedIn, Google Ads"
+                    className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
+                  />
+                </div>
+
+                {/* Deadline + Priority */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Deadline <span className="font-normal text-[#9B9B95]">(optional)</span></label>
+                    <input
+                      type="date"
+                      value={form.deadline}
+                      onChange={(e) => setField("deadline", e.target.value)}
+                      disabled={state !== "idle"}
+                      className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Priority</label>
+                    <select
+                      value={form.priority}
+                      onChange={(e) => setField("priority", e.target.value as Priority)}
+                      disabled={state !== "idle"}
+                      className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
+                    >
+                      <option value="high">High</option>
+                      <option value="medium">Medium</option>
+                      <option value="low">Low</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Notes */}
+                <div>
+                  <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Notes</label>
+                  <textarea
+                    value={form.notes}
+                    onChange={(e) => setField("notes", e.target.value)}
+                    disabled={state !== "idle"}
+                    placeholder="Constraints, references, budget, context…"
+                    rows={2}
+                    className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50 resize-none"
+                  />
+                </div>
+
+                {state === "idle" && (
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    className="w-full"
+                    onClick={handleAnalyze}
+                    disabled={!form.clientId || !form.objective || form.services.length === 0}
+                  >
+                    Run Orchestrator
+                  </Button>
+                )}
+                {state !== "idle" && (
+                  <Button variant="ghost" size="sm" onClick={handleReset} className="w-full">
+                    Reset
+                  </Button>
+                )}
+              </div>
+            )}
 
             {/* ── MODE: Voice Description ── */}
             {inputMode === "voice" && (
