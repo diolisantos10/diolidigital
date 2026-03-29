@@ -193,6 +193,18 @@ function simulateTranscription(file: File): string {
   return MOCK_TRANSCRIPTS[idx];
 }
 
+// ─── Briefing helpers ─────────────────────────────────────────────────────────
+
+function briefingToProjectType(b: Briefing): string {
+  const first = b.services[0];
+  if (!first) return "Campaign";
+  return first === "social_media" ? "Social Media"
+    : first === "ads"      ? "Paid Media"
+    : first === "seo"      ? "SEO"
+    : first === "branding" ? "Branding"
+    : "Content";
+}
+
 export default function OrchestratorPage() {
   const { clients, createProject } = useAgencyStore();
   const [state, setState] = useState<OrchestratorState>("idle");
@@ -232,39 +244,35 @@ export default function OrchestratorPage() {
     { id: "content",      label: "Content" },
   ];
 
-  // Keep legacy fields in sync so generation logic stays unchanged
-  const setField = <K extends keyof typeof form>(key: K, value: typeof form[K]) => {
-    setForm((prev) => {
-      const next = { ...prev, [key]: value };
-      if (key === "objective")           next.goal = value as string;
-      if (key === "services") {
-        const svcs = value as string[];
-        if (svcs.length > 0) {
-          const first = svcs[0];
-          next.type = first === "social_media" ? "Social Media"
-            : first === "ads"       ? "Paid Media"
-            : first === "seo"       ? "SEO"
-            : first === "branding"  ? "Branding"
-            : "Content";
-        }
-      }
-      return next;
-    });
+  // Structured form helpers — write to briefing state
+  const setBriefingField = <K extends keyof Briefing>(key: K, value: Briefing[K]) => {
+    setBriefing((prev) => ({ ...prev, [key]: value }));
   };
 
   const toggleService = (id: string) => {
-    const next = form.services.includes(id)
-      ? form.services.filter((s) => s !== id)
-      : [...form.services, id];
-    setField("services", next);
+    setBriefing((prev) => ({
+      ...prev,
+      services: prev.services.includes(id)
+        ? prev.services.filter((s) => s !== id)
+        : [...prev.services, id],
+    }));
   };
 
   const handleAnalyze = () => {
-    if (!form.clientId || !form.goal) return;
+    if (!briefing.clientId || !briefing.objective || briefing.services.length === 0) return;
+    const projType = briefingToProjectType(briefing);
+    // Bridge to form so handleApprove (reads form) continues to work
+    setForm((prev) => ({
+      ...prev,
+      clientId: briefing.clientId,
+      goal: briefing.objective,
+      type: projType,
+      deadline: briefing.deadline,
+      notes: briefing.notes,
+    }));
     setState("analyzing");
     setTimeout(() => {
-      const generatedPlan = generatePlan(form.type, form.deadline);
-      setPlan(generatedPlan);
+      setPlan(generatePlan(projType, briefing.deadline));
       setState("ready");
     }, 2200);
   };
@@ -289,6 +297,7 @@ export default function OrchestratorPage() {
   const handleReset = () => {
     setState("idle"); setPlan(null); setCreatedProjectId(null);
     setAudioFile(null); setAudioTranscribeState("idle"); setAudioTranscript("");
+    setBriefing(EMPTY_BRIEFING);
     setForm({
       clientId: "", name: "", goal: "", type: "Campaign",
       deadline: "", priority: "high", notes: "",
@@ -454,8 +463,8 @@ export default function OrchestratorPage() {
                 <div>
                   <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Client *</label>
                   <select
-                    value={form.clientId}
-                    onChange={(e) => setField("clientId", e.target.value)}
+                    value={briefing.clientId}
+                    onChange={(e) => setBriefingField("clientId", e.target.value)}
                     disabled={state !== "idle"}
                     className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
                   >
@@ -468,13 +477,13 @@ export default function OrchestratorPage() {
                 <div>
                   <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">
                     Services *
-                    {form.services.length > 0 && (
-                      <span className="ml-1.5 text-[11px] font-normal text-[#9B9B95]">({form.services.length} selected)</span>
+                    {briefing.services.length > 0 && (
+                      <span className="ml-1.5 text-[11px] font-normal text-[#9B9B95]">({briefing.services.length} selected)</span>
                     )}
                   </label>
                   <div className="flex flex-wrap gap-2">
                     {SERVICE_OPTIONS.map((svc) => {
-                      const active = form.services.includes(svc.id);
+                      const active = briefing.services.includes(svc.id);
                       return (
                         <button
                           key={svc.id}
@@ -498,8 +507,8 @@ export default function OrchestratorPage() {
                 <div>
                   <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Business Description</label>
                   <textarea
-                    value={form.businessDescription}
-                    onChange={(e) => setField("businessDescription", e.target.value)}
+                    value={briefing.businessDescription}
+                    onChange={(e) => setBriefingField("businessDescription", e.target.value)}
                     disabled={state !== "idle"}
                     placeholder="What does the client do? Their industry, product, or service."
                     rows={2}
@@ -511,8 +520,8 @@ export default function OrchestratorPage() {
                 <div>
                   <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Objective *</label>
                   <textarea
-                    value={form.objective}
-                    onChange={(e) => setField("objective", e.target.value)}
+                    value={briefing.objective}
+                    onChange={(e) => setBriefingField("objective", e.target.value)}
                     disabled={state !== "idle"}
                     placeholder="What is the measurable goal? e.g. increase brand awareness, generate 200 leads."
                     rows={2}
@@ -524,8 +533,8 @@ export default function OrchestratorPage() {
                 <div>
                   <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Target Audience</label>
                   <input
-                    value={form.targetAudience}
-                    onChange={(e) => setField("targetAudience", e.target.value)}
+                    value={briefing.targetAudience}
+                    onChange={(e) => setBriefingField("targetAudience", e.target.value)}
                     disabled={state !== "idle"}
                     placeholder="e.g. Design professionals, 25–40, urban Brazil"
                     className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
@@ -536,8 +545,8 @@ export default function OrchestratorPage() {
                 <div>
                   <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Channels</label>
                   <input
-                    value={form.channels}
-                    onChange={(e) => setField("channels", e.target.value)}
+                    value={briefing.channels.join(", ")}
+                    onChange={(e) => setBriefingField("channels", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))}
                     disabled={state !== "idle"}
                     placeholder="e.g. Instagram, LinkedIn, Google Ads"
                     className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
@@ -550,8 +559,8 @@ export default function OrchestratorPage() {
                     <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Deadline <span className="font-normal text-[#9B9B95]">(optional)</span></label>
                     <input
                       type="date"
-                      value={form.deadline}
-                      onChange={(e) => setField("deadline", e.target.value)}
+                      value={briefing.deadline}
+                      onChange={(e) => setBriefingField("deadline", e.target.value)}
                       disabled={state !== "idle"}
                       className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
                     />
@@ -560,7 +569,7 @@ export default function OrchestratorPage() {
                     <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Priority</label>
                     <select
                       value={form.priority}
-                      onChange={(e) => setField("priority", e.target.value as Priority)}
+                      onChange={(e) => setForm((prev) => ({ ...prev, priority: e.target.value as Priority }))}
                       disabled={state !== "idle"}
                       className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
                     >
@@ -575,8 +584,8 @@ export default function OrchestratorPage() {
                 <div>
                   <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Notes</label>
                   <textarea
-                    value={form.notes}
-                    onChange={(e) => setField("notes", e.target.value)}
+                    value={briefing.notes}
+                    onChange={(e) => setBriefingField("notes", e.target.value)}
                     disabled={state !== "idle"}
                     placeholder="Constraints, references, budget, context…"
                     rows={2}
@@ -590,7 +599,7 @@ export default function OrchestratorPage() {
                     size="lg"
                     className="w-full"
                     onClick={handleAnalyze}
-                    disabled={!form.clientId || !form.objective || form.services.length === 0}
+                    disabled={!briefing.clientId || !briefing.objective || briefing.services.length === 0}
                   >
                     Run Orchestrator
                   </Button>
