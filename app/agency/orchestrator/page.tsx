@@ -11,6 +11,31 @@ import { Priority, ProjectStage, MOCK_AGENTS } from "@/lib/agency/mock-data";
 type OrchestratorState = "idle" | "analyzing" | "ready" | "approved";
 type InputMode = "form" | "voice" | "audio";
 
+// ─── Normalized briefing shape ────────────────────────────────────────────────
+// All 3 input modes will eventually produce this object.
+
+interface Briefing {
+  clientId: string;
+  services: string[];
+  businessDescription: string;
+  objective: string;
+  targetAudience: string;
+  channels: string[];
+  deadline: string;
+  notes: string;
+}
+
+const EMPTY_BRIEFING: Briefing = {
+  clientId: "",
+  services: [],
+  businessDescription: "",
+  objective: "",
+  targetAudience: "",
+  channels: [],
+  deadline: "",
+  notes: "",
+};
+
 interface OrchestratorPlan {
   pipeline: ProjectStage[];
   agents: string[];
@@ -195,6 +220,9 @@ export default function OrchestratorPage() {
     targetAudience: "",
     channels: "",
   });
+
+  // New normalized state — will replace `form` in the next refactor step
+  const [briefing, setBriefing] = useState<Briefing>(EMPTY_BRIEFING);
 
   const SERVICE_OPTIONS = [
     { id: "social_media", label: "Social Media" },
