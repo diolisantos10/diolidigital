@@ -287,7 +287,7 @@ export default function OrchestratorPage() {
   const [form, setForm] = useState({
     clientId: "",
     name: "",
-    // legacy fields kept for handleAnalyze / handleApprove (derived below)
+    // legacy fields kept for handleApprove (bridged via handleGenerate)
     goal: "",
     type: "Campaign",
     deadline: "",
@@ -326,21 +326,21 @@ export default function OrchestratorPage() {
     }));
   };
 
-  const handleAnalyze = () => {
-    if (!briefing.clientId || !briefing.objective || briefing.services.length === 0) return;
-    const projType = briefingToProjectType(briefing);
+  const handleGenerate = (b: Briefing) => {
+    const projType = briefingToProjectType(b);
+    setBriefing(b);
     // Bridge to form so handleApprove (reads form) continues to work
     setForm((prev) => ({
       ...prev,
-      clientId: briefing.clientId,
-      goal: briefing.objective,
+      clientId: b.clientId,
+      goal: b.objective,
       type: projType,
-      deadline: briefing.deadline,
-      notes: briefing.notes,
+      deadline: b.deadline,
+      notes: b.notes,
     }));
     setState("analyzing");
     setTimeout(() => {
-      setPlan(generatePlan(projType, briefing.deadline));
+      setPlan(generatePlan(projType, b.deadline));
       setState("ready");
     }, 2200);
   };
@@ -383,43 +383,6 @@ export default function OrchestratorPage() {
     }, 2800);
   };
 
-  const handleAudioAnalyze = () => {
-    if (!audioTranscript || !form.clientId) return;
-    const parsed = parseTextToBriefing(audioTranscript, form.clientId);
-    const projType = briefingToProjectType(parsed);
-    setBriefing(parsed);
-    setForm((prev) => ({
-      ...prev,
-      clientId: parsed.clientId,
-      goal: parsed.objective || audioTranscript.slice(0, 200),
-      type: projType,
-      deadline: parsed.deadline || prev.deadline,
-    }));
-    setState("analyzing");
-    setTimeout(() => {
-      setPlan(generatePlan(projType, parsed.deadline));
-      setState("ready");
-    }, 2200);
-  };
-
-  const handleVoiceAnalyze = () => {
-    if (!voiceText.trim() || !form.clientId) return;
-    const parsed = parseTextToBriefing(voiceText, form.clientId);
-    const projType = briefingToProjectType(parsed);
-    setBriefing(parsed);
-    setForm((prev) => ({
-      ...prev,
-      clientId: parsed.clientId,
-      goal: parsed.objective || voiceText.slice(0, 200),
-      type: projType,
-      deadline: parsed.deadline || prev.deadline,
-    }));
-    setState("analyzing");
-    setTimeout(() => {
-      setPlan(generatePlan(projType, parsed.deadline));
-      setState("ready");
-    }, 2200);
-  };
 
   const STEP_LABELS = ["Receive Brief", "Analyze Context", "Generate Pipeline", "Assign Agents", "Activate"];
   const STEP_STATES = { idle: -1, analyzing: 1, ready: 3, approved: 4 };
@@ -647,7 +610,7 @@ export default function OrchestratorPage() {
                     variant="primary"
                     size="lg"
                     className="w-full"
-                    onClick={handleAnalyze}
+                    onClick={() => handleGenerate(briefing)}
                     disabled={!briefing.clientId || !briefing.objective || briefing.services.length === 0}
                   >
                     Run Orchestrator
@@ -700,7 +663,10 @@ export default function OrchestratorPage() {
                     size="lg"
                     className="w-full"
                     disabled={!voiceText.trim() || !form.clientId}
-                    onClick={handleVoiceAnalyze}
+                    onClick={() => {
+                      const b = parseTextToBriefing(voiceText, form.clientId);
+                      handleGenerate({ ...b, objective: b.objective || voiceText.slice(0, 200) });
+                    }}
                   >
                     Parse &amp; Generate Plan
                   </Button>
@@ -828,7 +794,10 @@ export default function OrchestratorPage() {
                       size="lg"
                       className="w-full"
                       disabled={!form.clientId || state !== "idle"}
-                      onClick={handleAudioAnalyze}
+                      onClick={() => {
+                        const b = parseTextToBriefing(audioTranscript, form.clientId);
+                        handleGenerate({ ...b, objective: b.objective || audioTranscript.slice(0, 200) });
+                      }}
                     >
                       Generate Plan from Transcript
                     </Button>
