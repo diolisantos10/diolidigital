@@ -1,6 +1,7 @@
 "use client";
 
 import { useAgencyStore } from "@/store/agency-store";
+import { useTranslation } from "@/lib/i18n";
 import Link from "next/link";
 import { MOCK_AGENTS } from "@/lib/agency/mock-data";
 
@@ -25,11 +26,6 @@ const AGENT_SHORT: Record<string, string> = {
   a5: "Strategy", a6: "Research", a7: "QA", a8: "SEO", a9: "Email", a10: "PM",
 };
 
-const AGENT_RUN_URL: Record<string, string> = {
-  a3: "/agency/social-media-agent",
-  a2: "/agency/design-agent",
-};
-
 const EVENT_LABELS: Record<string, string> = {
   project_created: "Project created",
   project_stage_changed: "Stage moved",
@@ -44,6 +40,7 @@ const EVENT_LABELS: Record<string, string> = {
 
 export default function DashboardPage() {
   const { projects, tasks, deliverables, activity, clients } = useAgencyStore();
+  const { t } = useTranslation();
 
   const activeProjects = projects.filter((p) => p.stage !== "completed");
   const getClient = (cid: string) => clients.find((c) => c.id === cid);
@@ -56,10 +53,11 @@ export default function DashboardPage() {
     const pTasks = tasks.filter((t) => t.projectId === p.id);
     const pDeliverables = deliverables.filter((d) => d.projectId === p.id);
     const dl = daysLeft(p.deadline);
+    void pTasks;
 
     // Overdue — top priority
     if (dl < 0) {
-      actionItems.push({ id: `overdue-${p.id}`, label: `${p.name} is overdue`, cta: "Open project", href: `/agency/projects/${p.id}`, priority: "high" });
+      actionItems.push({ id: `overdue-${p.id}`, label: t.dashboard.isOverdue(p.name), cta: t.dashboard.openProject, href: `/agency/projects/${p.id}`, priority: "high" });
     }
 
     // Production stage with no deliverables saved
@@ -67,30 +65,30 @@ export default function DashboardPage() {
       const hasSocial = p.agents.includes("a3");
       const hasDesign = p.agents.includes("a2");
       if (hasSocial) {
-        actionItems.push({ id: `run-social-${p.id}`, label: `Run Social Media Agent for ${p.name}`, cta: "Run agent", href: `/agency/projects/${p.id}`, priority: "high" });
+        actionItems.push({ id: `run-social-${p.id}`, label: t.dashboard.runSocialAgent(p.name), cta: t.dashboard.runAgent, href: `/agency/projects/${p.id}`, priority: "high" });
       } else if (hasDesign) {
-        actionItems.push({ id: `run-design-${p.id}`, label: `Run Design Agent for ${p.name}`, cta: "Run agent", href: `/agency/projects/${p.id}`, priority: "high" });
+        actionItems.push({ id: `run-design-${p.id}`, label: t.dashboard.runDesignAgent(p.name), cta: t.dashboard.runAgent, href: `/agency/projects/${p.id}`, priority: "high" });
       } else {
-        actionItems.push({ id: `no-output-${p.id}`, label: `No outputs saved for ${p.name}`, cta: "View project", href: `/agency/projects/${p.id}`, priority: "normal" });
+        actionItems.push({ id: `no-output-${p.id}`, label: t.dashboard.noOutputsSaved(p.name), cta: t.dashboard.viewProject, href: `/agency/projects/${p.id}`, priority: "normal" });
       }
     }
 
     // Blocked tasks
-    const blocked = pTasks.filter((t) => t.status === "blocked");
+    const blocked = tasks.filter((tk) => tk.projectId === p.id && tk.status === "blocked");
     if (blocked.length > 0) {
-      actionItems.push({ id: `blocked-${p.id}`, label: `${blocked.length} blocked task${blocked.length > 1 ? "s" : ""} in ${p.name}`, cta: "Resolve", href: `/agency/projects/${p.id}?tab=tasks`, priority: "high" });
+      actionItems.push({ id: `blocked-${p.id}`, label: t.dashboard.blockedTasks(blocked.length, p.name), cta: t.dashboard.resolve, href: `/agency/projects/${p.id}?tab=tasks`, priority: "high" });
     }
   });
 
   // Deliverables in_review needing approval
   deliverables.filter((d) => d.status === "in_review").slice(0, 3).forEach((d) => {
     const p = projects.find((pr) => pr.id === d.projectId);
-    actionItems.push({ id: `review-${d.id}`, label: `Review "${d.name}"${p ? ` — ${p.name}` : ""}`, cta: "Review", href: `/agency/projects/${d.projectId}`, priority: "normal" });
+    actionItems.push({ id: `review-${d.id}`, label: t.dashboard.reviewDeliverable(d.name, p?.name ?? "—"), cta: t.dashboard.review, href: `/agency/projects/${d.projectId}`, priority: "normal" });
   });
 
   // Projects in briefing with no tasks yet
-  activeProjects.filter((p) => p.stage === "briefing" && tasks.filter((t) => t.projectId === p.id).length === 0).forEach((p) => {
-    actionItems.push({ id: `plan-${p.id}`, label: `${p.name} has no tasks — run Orchestrator`, cta: "Plan project", href: `/agency/orchestrator`, priority: "normal" });
+  activeProjects.filter((p) => p.stage === "briefing" && tasks.filter((tk) => tk.projectId === p.id).length === 0).forEach((p) => {
+    actionItems.push({ id: `plan-${p.id}`, label: t.dashboard.noTasksOrchestrator(p.name), cta: t.dashboard.planProject, href: `/agency/orchestrator`, priority: "normal" });
   });
 
   const sortedActions = [...actionItems.filter(a => a.priority === "high"), ...actionItems.filter(a => a.priority === "normal")].slice(0, 7);
@@ -106,23 +104,23 @@ export default function DashboardPage() {
 
   activeProjects.forEach((p) => {
     const dl = daysLeft(p.deadline);
-    if (dl < 0) blocks.push({ id: `od-${p.id}`, level: "high", message: `${p.name} — overdue by ${Math.abs(dl)} day${Math.abs(dl) !== 1 ? "s" : ""}`, href: `/agency/projects/${p.id}` });
-    else if (dl <= 3) blocks.push({ id: `urgent-${p.id}`, level: "high", message: `${p.name} — ${dl}d until deadline`, href: `/agency/projects/${p.id}` });
+    if (dl < 0) blocks.push({ id: `od-${p.id}`, level: "high", message: `${p.name} — ${t.dashboard.overdueBy(Math.abs(dl))}`, href: `/agency/projects/${p.id}` });
+    else if (dl <= 3) blocks.push({ id: `urgent-${p.id}`, level: "high", message: `${p.name} — ${t.dashboard.dUntilDeadline(dl)}`, href: `/agency/projects/${p.id}` });
   });
 
   activeProjects.filter((p) => p.stage === "production" && deliverables.filter((d) => d.projectId === p.id).length === 0).forEach((p) => {
-    blocks.push({ id: `noout-${p.id}`, level: "medium", message: `${p.name} — no outputs attached`, href: `/agency/projects/${p.id}` });
+    blocks.push({ id: `noout-${p.id}`, level: "medium", message: `${p.name} — ${t.dashboard.noOutputsAttached}`, href: `/agency/projects/${p.id}` });
   });
 
   activeProjects.filter((p) => p.agents.length === 0).forEach((p) => {
-    blocks.push({ id: `noagent-${p.id}`, level: "medium", message: `${p.name} — no agents assigned`, href: `/agency/projects/${p.id}` });
+    blocks.push({ id: `noagent-${p.id}`, level: "medium", message: `${p.name} — ${t.dashboard.noAgentsAssigned}`, href: `/agency/projects/${p.id}` });
   });
 
-  const uniqueBlockedProjectIds = [...new Set(tasks.filter((t) => t.status === "blocked").map((t) => t.projectId))];
+  const uniqueBlockedProjectIds = [...new Set(tasks.filter((tk) => tk.status === "blocked").map((tk) => tk.projectId))];
   uniqueBlockedProjectIds.forEach((pid) => {
     const p = projects.find((pr) => pr.id === pid);
     if (p && !blocks.find((b) => b.id === `od-${pid}`)) {
-      blocks.push({ id: `blk-${pid}`, level: "medium", message: `${p.name} — has blocked tasks`, href: `/agency/projects/${pid}` });
+      blocks.push({ id: `blk-${pid}`, level: "medium", message: `${p.name} — ${t.dashboard.hasBlockedTasks}`, href: `/agency/projects/${pid}` });
     }
   });
 
@@ -131,28 +129,28 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="mb-7">
         <p className="text-[12px] font-medium text-[#9B9B95] uppercase tracking-[0.06em] mb-1">
-          {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+          {new Date().toLocaleDateString("pt-BR", { weekday: "long", month: "long", day: "numeric" })}
         </p>
-        <h1 className="text-[24px] font-semibold tracking-[-0.02em] text-[#1A1A1A]">Command Dashboard</h1>
+        <h1 className="text-[24px] font-semibold tracking-[-0.02em] text-[#1A1A1A]">{t.dashboard.title}</h1>
       </div>
 
       {/* TODAY PANEL */}
       <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden mb-6">
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F0ED]">
           <div className="flex items-center gap-2">
-            <h2 className="text-[13px] font-semibold text-[#1A1A1A]">Today</h2>
+            <h2 className="text-[13px] font-semibold text-[#1A1A1A]">{t.dashboard.today}</h2>
             {sortedActions.length > 0 && (
               <span className="w-5 h-5 rounded-full bg-[#5B5BD6] text-white text-[10px] font-bold flex items-center justify-center">
                 {sortedActions.length}
               </span>
             )}
           </div>
-          <span className="text-[11px] text-[#9B9B95]">Derived from project state</span>
+          <span className="text-[11px] text-[#9B9B95]">{t.dashboard.derivedFrom}</span>
         </div>
         {sortedActions.length === 0 ? (
           <div className="px-5 py-8 text-center">
-            <p className="text-[13px] font-medium text-[#1A1A1A]">All clear</p>
-            <p className="text-[12px] text-[#9B9B95] mt-1">No actions pending. Projects are on track.</p>
+            <p className="text-[13px] font-medium text-[#1A1A1A]">{t.dashboard.allClear}</p>
+            <p className="text-[12px] text-[#9B9B95] mt-1">{t.dashboard.allClearSub}</p>
           </div>
         ) : (
           <div className="divide-y divide-[#F7F7F6]">
@@ -177,17 +175,17 @@ export default function DashboardPage() {
         <div className="space-y-6">
           <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F0ED]">
-              <h2 className="text-[13px] font-semibold text-[#1A1A1A]">Active Projects</h2>
-              <Link href="/agency/projects" className="text-[12px] text-[#5B5BD6] hover:underline font-medium">View all</Link>
+              <h2 className="text-[13px] font-semibold text-[#1A1A1A]">{t.dashboard.activeProjects}</h2>
+              <Link href="/agency/projects" className="text-[12px] text-[#5B5BD6] hover:underline font-medium">{t.common.viewAll}</Link>
             </div>
             {activeProjects.length === 0 ? (
-              <div className="px-5 py-8 text-center text-[13px] text-[#9B9B95]">No active projects</div>
+              <div className="px-5 py-8 text-center text-[13px] text-[#9B9B95]">{t.dashboard.noActiveProjects}</div>
             ) : (
               <div className="divide-y divide-[#F0F0ED]">
                 {activeProjects.slice(0, 7).map((project) => {
                   const client = getClient(project.clientId);
                   const dl = daysLeft(project.deadline);
-                  const pTasks = tasks.filter((t) => t.projectId === project.id);
+                  const pTasks = tasks.filter((tk) => tk.projectId === project.id);
 
                   return (
                     <Link
@@ -199,14 +197,14 @@ export default function DashboardPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
                           <span className="text-[13px] font-medium text-[#1A1A1A] truncate">{project.name}</span>
-                          {dl < 0 && <span className="text-[10px] font-bold text-[#DC2626] bg-[#FEE2E2] px-1.5 py-0.5 rounded shrink-0">OVERDUE</span>}
-                          {dl >= 0 && dl <= 3 && <span className="text-[10px] font-bold text-[#D97706] bg-[#FEF3C7] px-1.5 py-0.5 rounded shrink-0">URGENT</span>}
+                          {dl < 0 && <span className="text-[10px] font-bold text-[#DC2626] bg-[#FEE2E2] px-1.5 py-0.5 rounded shrink-0">{t.project.status.overdue}</span>}
+                          {dl >= 0 && dl <= 3 && <span className="text-[10px] font-bold text-[#D97706] bg-[#FEF3C7] px-1.5 py-0.5 rounded shrink-0">{t.project.status.urgent}</span>}
                         </div>
                         <div className="flex items-center gap-2 text-[11px] text-[#9B9B95]">
                           <span>{client?.name ?? "—"}</span>
                           <span>·</span>
                           <span className={dl < 0 ? "text-[#DC2626]" : dl <= 3 ? "text-[#D97706]" : ""}>
-                            {dl < 0 ? `${Math.abs(dl)}d overdue` : `${dl}d left`}
+                            {dl < 0 ? t.project.labels.daysOverdue(dl) : t.project.labels.daysLeft(dl)}
                           </span>
                         </div>
                       </div>
@@ -214,9 +212,9 @@ export default function DashboardPage() {
                       {/* Agent pipeline */}
                       <div className="flex items-center gap-1.5 shrink-0">
                         {project.agents.slice(0, 4).map((agentId) => {
-                          const agentTasks = pTasks.filter((t) => t.agentId === agentId);
-                          const isDone = agentTasks.length > 0 && agentTasks.every((t) => t.status === "done");
-                          const isActive = agentTasks.some((t) => t.status === "in_progress");
+                          const agentTasks = pTasks.filter((tk) => tk.agentId === agentId);
+                          const isDone = agentTasks.length > 0 && agentTasks.every((tk) => tk.status === "done");
+                          const isActive = agentTasks.some((tk) => tk.status === "in_progress");
                           return (
                             <span
                               key={agentId}
@@ -237,7 +235,7 @@ export default function DashboardPage() {
 
                       {/* Stage */}
                       <span className="shrink-0 text-[11px] font-medium text-[#6B6B65] bg-[#F7F7F6] border border-[#E5E5E2] px-2 py-0.5 rounded-full capitalize">
-                        {project.stage}
+                        {t.project.stages[project.stage as keyof typeof t.project.stages] ?? project.stage}
                       </span>
                     </Link>
                   );
@@ -253,11 +251,11 @@ export default function DashboardPage() {
           {/* Outputs Ready */}
           <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F0ED]">
-              <h2 className="text-[13px] font-semibold text-[#1A1A1A]">Outputs</h2>
-              <Link href="/agency/deliverables" className="text-[12px] text-[#5B5BD6] hover:underline">All deliverables</Link>
+              <h2 className="text-[13px] font-semibold text-[#1A1A1A]">{t.dashboard.outputs}</h2>
+              <Link href="/agency/deliverables" className="text-[12px] text-[#5B5BD6] hover:underline">{t.dashboard.allDeliverables}</Link>
             </div>
             {readyOutputs.length === 0 ? (
-              <div className="px-5 py-6 text-center text-[12px] text-[#9B9B95]">No outputs yet</div>
+              <div className="px-5 py-6 text-center text-[12px] text-[#9B9B95]">{t.dashboard.noOutputs}</div>
             ) : (
               <div className="divide-y divide-[#F0F0ED]">
                 {readyOutputs.map((d) => {
@@ -290,7 +288,7 @@ export default function DashboardPage() {
           {blocks.length > 0 && (
             <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
               <div className="px-5 py-3.5 border-b border-[#F0F0ED] flex items-center gap-2">
-                <h2 className="text-[13px] font-semibold text-[#1A1A1A]">Alerts</h2>
+                <h2 className="text-[13px] font-semibold text-[#1A1A1A]">{t.dashboard.alerts}</h2>
                 <span className="w-4 h-4 rounded-full bg-[#FEE2E2] text-[#DC2626] text-[9px] font-bold flex items-center justify-center">
                   {blocks.length}
                 </span>
@@ -313,7 +311,7 @@ export default function DashboardPage() {
           {/* Recent Activity */}
           <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
             <div className="px-5 py-3.5 border-b border-[#F0F0ED]">
-              <h2 className="text-[13px] font-semibold text-[#1A1A1A]">Recent Activity</h2>
+              <h2 className="text-[13px] font-semibold text-[#1A1A1A]">{t.dashboard.recentActivity}</h2>
             </div>
             <div className="divide-y divide-[#F0F0ED]">
               {activity.slice(0, 8).map((event) => (
@@ -327,7 +325,7 @@ export default function DashboardPage() {
                 </div>
               ))}
               {activity.length === 0 && (
-                <div className="px-5 py-6 text-center text-[12px] text-[#9B9B95]">No activity yet</div>
+                <div className="px-5 py-6 text-center text-[12px] text-[#9B9B95]">{t.dashboard.noActivity}</div>
               )}
             </div>
           </div>

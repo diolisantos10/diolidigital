@@ -2,56 +2,58 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
-const NAV = [
-  {
-    group: null,
-    items: [{ label: "Home", href: "/agency/dashboard", icon: HomeIcon }],
-  },
-  {
-    group: "WORK",
-    items: [
-      { label: "Projects", href: "/agency/projects", icon: FolderIcon },
-      { label: "Pipeline", href: "/agency/pipeline", icon: ColumnsIcon },
-      { label: "Tasks", href: "/agency/tasks", icon: CheckIcon },
-    ],
-  },
-  {
-    group: "CLIENTS",
-    items: [
-      { label: "Clients", href: "/agency/clients", icon: BuildingIcon },
-      { label: "Brand Assets", href: "/agency/brand-assets", icon: SwatchIcon },
-    ],
-  },
-  {
-    group: "INTELLIGENCE",
-    items: [
-      { label: "Orchestrator", href: "/agency/orchestrator", icon: CpuIcon },
-      { label: "Agents", href: "/agency/agents", icon: UserCogIcon },
-    ],
-  },
-  {
-    group: "AGENTS",
-    items: [
-      { label: "Social Media", href: "/agency/social-media-agent", icon: SocialIcon },
-      { label: "Design Agent", href: "/agency/design-agent", icon: DesignIcon },
-    ],
-  },
-  {
-    group: "LIBRARY",
-    items: [
-      { label: "Deliverables", href: "/agency/deliverables", icon: BoxIcon },
-      { label: "Briefings", href: "/agency/briefings", icon: FileTextIcon },
-    ],
-  },
-  {
-    group: "SYSTEM",
-    items: [{ label: "Settings", href: "/agency/settings", icon: SettingsIcon }],
-  },
-];
+import { useTranslation } from "@/lib/i18n";
 
 export default function AgencySidebar() {
   const path = usePathname();
+  const { t } = useTranslation();
+
+  const NAV = [
+    {
+      group: null,
+      items: [{ label: t.nav.home, href: "/agency/dashboard", icon: HomeIcon }],
+    },
+    {
+      group: t.nav.group.work,
+      items: [
+        { label: t.nav.projects, href: "/agency/projects", icon: FolderIcon },
+        { label: t.nav.pipeline, href: "/agency/pipeline", icon: ColumnsIcon },
+        { label: t.nav.tasks, href: "/agency/tasks", icon: CheckIcon },
+      ],
+    },
+    {
+      group: t.nav.group.clients,
+      items: [
+        { label: t.nav.clients, href: "/agency/clients", icon: BuildingIcon },
+        { label: t.nav.brandAssets, href: "/agency/brand-assets", icon: SwatchIcon },
+      ],
+    },
+    {
+      group: t.nav.group.intelligence,
+      items: [
+        { label: t.nav.orchestrator, href: "/agency/orchestrator", icon: CpuIcon },
+        { label: t.nav.agents, href: "/agency/agents", icon: UserCogIcon },
+      ],
+    },
+    {
+      group: t.nav.group.agents,
+      items: [
+        { label: t.nav.socialMedia, href: "/agency/social-media-agent", icon: SocialIcon },
+        { label: t.nav.designAgent, href: "/agency/design-agent", icon: DesignIcon },
+      ],
+    },
+    {
+      group: t.nav.group.library,
+      items: [
+        { label: t.nav.deliverables, href: "/agency/deliverables", icon: BoxIcon },
+        { label: t.nav.briefings, href: "/agency/briefings", icon: FileTextIcon },
+      ],
+    },
+    {
+      group: t.nav.group.system,
+      items: [{ label: t.nav.settings, href: "/agency/settings", icon: SettingsIcon }],
+    },
+  ];
 
   return (
     <aside className="fixed inset-y-0 left-0 w-[220px] flex flex-col bg-[#111111] z-40 overflow-y-auto">

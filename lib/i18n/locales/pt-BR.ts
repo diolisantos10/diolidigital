@@ -1,0 +1,191 @@
+import type { Translations } from "./en";
+
+export const ptBR: Translations = {
+  // ─── Navigation ──────────────────────────────────────────────────────────────
+  nav: {
+    home: "Início",
+    group: {
+      work: "TRABALHO",
+      clients: "CLIENTES",
+      intelligence: "INTELIGÊNCIA",
+      agents: "AGENTES",
+      library: "BIBLIOTECA",
+      system: "SISTEMA",
+    },
+    projects: "Projetos",
+    pipeline: "Pipeline",
+    tasks: "Tarefas",
+    clients: "Clientes",
+    brandAssets: "Ativos de Marca",
+    orchestrator: "Orquestrador",
+    agents: "Agentes",
+    socialMedia: "Redes Sociais",
+    designAgent: "Agente de Design",
+    deliverables: "Entregas",
+    briefings: "Briefings",
+    settings: "Configurações",
+  },
+
+  // ─── Common actions ───────────────────────────────────────────────────────────
+  common: {
+    save: "Salvar",
+    cancel: "Cancelar",
+    confirm: "Confirmar",
+    delete: "Excluir",
+    edit: "Editar",
+    create: "Criar",
+    back: "Voltar",
+    open: "Abrir",
+    view: "Ver",
+    run: "Executar",
+    export: "Exportar",
+    copy: "Copiar",
+    reset: "Redefinir",
+    send: "Enviar",
+    generate: "Gerar",
+    generating: "Gerando…",
+    viewAll: "Ver todos",
+    noActivity: "Sem atividade ainda",
+    loading: "Carregando…",
+  },
+
+  // ─── Dashboard ────────────────────────────────────────────────────────────────
+  dashboard: {
+    title: "Painel de Comando",
+    derivedFrom: "Derivado do estado dos projetos",
+    today: "Hoje",
+    allClear: "Tudo em ordem",
+    allClearSub: "Sem ações pendentes. Projetos no prazo.",
+    activeProjects: "Projetos Ativos",
+    noActiveProjects: "Sem projetos ativos",
+    outputs: "Entregas",
+    allDeliverables: "Todos os entregáveis",
+    noOutputs: "Sem entregas ainda",
+    alerts: "Alertas",
+    recentActivity: "Atividade Recente",
+    noActivity: "Sem atividade ainda",
+    // action labels
+    openProject: "Abrir projeto",
+    runAgent: "Executar agente",
+    viewProject: "Ver projeto",
+    resolve: "Resolver",
+    review: "Revisar",
+    planProject: "Planejar projeto",
+    // alert messages
+    overdueBy: (n: number) => `atrasado ${n} dia${n !== 1 ? "s" : ""}`,
+    dUntilDeadline: (n: number) => `${n}d para o prazo`,
+    noOutputsAttached: "sem entregas vinculadas",
+    noAgentsAssigned: "sem agentes atribuídos",
+    hasBlockedTasks: "tem tarefas bloqueadas",
+    runSocialAgent: (name: string) => `Executar Agente de Redes Sociais para ${name}`,
+    runDesignAgent: (name: string) => `Executar Agente de Design para ${name}`,
+    noOutputsSaved: (name: string) => `Sem entregas salvas para ${name}`,
+    blockedTasks: (n: number, name: string) =>
+      `${n} tarefa${n > 1 ? "s" : ""} bloqueada${n > 1 ? "s" : ""} em ${name}`,
+    reviewDeliverable: (name: string, project: string) =>
+      `Revisar "${name}" — ${project}`,
+    noTasksOrchestrator: (name: string) =>
+      `${name} sem tarefas — executar Orquestrador`,
+    isOverdue: (name: string) => `${name} está atrasado`,
+  },
+
+  // ─── Project ──────────────────────────────────────────────────────────────────
+  project: {
+    stages: {
+      briefing: "Briefing",
+      planning: "Planejamento",
+      production: "Produção",
+      review: "Revisão",
+      completed: "Concluído",
+    },
+    status: {
+      overdue: "ATRASADO",
+      urgent: "URGENTE",
+    },
+    labels: {
+      deadline: "Prazo",
+      daysLeft: (n: number) => `${n}d restantes`,
+      daysOverdue: (n: number) => `${Math.abs(n)}d de atraso`,
+      client: "Cliente",
+      goal: "Objetivo",
+      type: "Tipo",
+      stage: "Etapa",
+      priority: "Prioridade",
+      agents: "Agentes",
+    },
+    tabs: {
+      overview: "Visão Geral",
+      execution: "Execução",
+      tasks: "Tarefas",
+      pipeline: "Pipeline",
+      deliverables: "Entregas",
+      briefing: "Briefing",
+    },
+    execution: {
+      stageControl: "Controle de Etapa",
+      agentPipeline: "Pipeline de Agentes",
+      outputs: "Entregas",
+      runAgent: "Executar",
+      moveHere: "Mover aqui",
+      notStarted: "Não iniciado",
+      inProgress: "Em progresso",
+      done: "Concluído",
+      posts: "Posts",
+      design: "Design",
+      campaigns: "Campanhas",
+      other: "Outros",
+      noDeliverables: "Nenhuma entrega salva ainda.",
+    },
+  },
+
+  // ─── Agents ───────────────────────────────────────────────────────────────────
+  agents: {
+    social: {
+      title: "Agente de Redes Sociais",
+      subtitle: "Gere estratégia estruturada de redes sociais a partir de um briefing de marca",
+      inputLabel: "Briefing de Marca",
+      generateBtn: "Gerar Estratégia",
+    },
+    design: {
+      title: "Agente de Design",
+      subtitle: "Gere instruções visuais de execução a partir de um contrato de design",
+      inputLabel: "Contrato de Design",
+      generateBtn: "Gerar Briefings Visuais",
+    },
+    sendToDesign: "Enviar para Agente de Design",
+    saveToProject: "Salvar no Projeto",
+    savedToProject: "Salvo no Projeto",
+    exportPackage: "Exportar Pacote",
+  },
+
+  // ─── Settings ─────────────────────────────────────────────────────────────────
+  settings: {
+    title: "Configurações",
+    subtitle: "Configuração da plataforma e gestão do espaço de trabalho",
+    language: "Idioma",
+    languageDesc: "Escolha o idioma preferido da interface",
+    workspaceOverview: "Visão do Espaço de Trabalho",
+    dataPersistence: "Persistência de Dados",
+    persistenceActive: "Persistência localStorage ativa",
+    persistenceDesc:
+      "Todos os dados são armazenados no localStorage do seu navegador com a chave agency-os-v1. Os dados persistem entre atualizações de página e sessões do navegador neste dispositivo.",
+    platform: "Plataforma",
+    workspaceActions: "Ações do Espaço de Trabalho",
+    resetData: "Redefinir Dados Demo",
+    resetDataDesc:
+      "Restaurar todos os dados ao conjunto de dados mock original. Isso não pode ser desfeito.",
+    areYouSure: "Tem certeza?",
+    labels: {
+      system: "Sistema",
+      version: "Versão",
+      techStack: "Stack Tecnológico",
+      storage: "Armazenamento",
+      environment: "Ambiente",
+      clients: "Clientes",
+      projects: "Projetos",
+      tasks: "Tarefas",
+      deliverables: "Entregas",
+      briefings: "Briefings",
+    },
+  },
+};

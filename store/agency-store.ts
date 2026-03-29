@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { Locale } from "@/lib/i18n";
 import {
   Client,
   Project,
@@ -65,6 +66,10 @@ interface AgencyState {
   createBriefing: (briefing: Omit<Briefing, "id" | "createdAt">) => string;
   updateBriefingStatus: (id: string, status: Briefing["status"]) => void;
 
+  // i18n
+  locale: Locale;
+  setLocale: (locale: Locale) => void;
+
   // System
   addActivity: (event: Omit<ActivityEvent, "id" | "timestamp">) => void;
   resetStore: () => void;
@@ -81,6 +86,10 @@ export const useAgencyStore = create<AgencyState>()(
       deliverables: MOCK_DELIVERABLES,
       briefings: MOCK_BRIEFINGS,
       activity: MOCK_ACTIVITY,
+
+      // ── i18n ─────────────────────────────────────────────────────────────
+      locale: "pt-BR" as Locale,
+      setLocale: (locale) => set({ locale }),
 
       // ── Agent handoff ─────────────────────────────────────────────────────
       pendingDesignContract: null,
@@ -265,6 +274,7 @@ export const useAgencyStore = create<AgencyState>()(
         deliverables: s.deliverables,
         briefings: s.briefings,
         activity: s.activity,
+        locale: s.locale,
       }),
     }
   )
