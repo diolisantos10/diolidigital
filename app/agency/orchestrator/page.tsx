@@ -100,18 +100,10 @@ function generatePlan(type: string, deadline: string): OrchestratorPlan {
   return plans[typeKey] ?? plans.campaign;
 }
 
-// ─── Voice parsing ────────────────────────────────────────────────────────────
+// ─── Text parsing ─────────────────────────────────────────────────────────────
+// Shared by Voice Description and Audio Upload modes.
 
-interface ParsedBrief {
-  services: string[];
-  objective: string;
-  targetAudience: string;
-  channels: string[];
-  deadline: string;
-  businessDescription: string;
-}
-
-function parseVoiceText(text: string): ParsedBrief {
+function parseTextToBriefing(text: string, clientId: string): Briefing {
   const lower = text.toLowerCase();
   const sentences = text.split(/[.!?\n]+/).map((s) => s.trim()).filter(Boolean);
 
@@ -124,12 +116,12 @@ function parseVoiceText(text: string): ParsedBrief {
   if (/\bcontent\b|blog|articles|copywriting|conteúdo/.test(lower)) services.push("content");
 
   // Objective — sentence containing a goal verb
-  const objectiveSentence = sentences.find((s) =>
+  const objective = sentences.find((s) =>
     /goal|objective|want to|need to|looking to|aim|we need|we want|purpose|increase|generate|drive|grow|launch|build|boost/i.test(s)
   ) ?? sentences[0] ?? "";
 
   // Target audience
-  const audienceSentence = sentences.find((s) =>
+  const targetAudience = sentences.find((s) =>
     /audience|target|targeting|demographic|age|professionals|consumers|users|women|men|customers|personas/i.test(s)
   ) ?? "";
 
@@ -175,7 +167,7 @@ function parseVoiceText(text: string): ParsedBrief {
     !/goal|objective|want|need|aim|increase|generate|drive|audience|deadline|end of/i.test(s)
   ) ?? "";
 
-  return { services, objective: objectiveSentence, targetAudience: audienceSentence, channels, deadline, businessDescription };
+  return { clientId, services, objective, targetAudience, channels, deadline, businessDescription, notes: "" };
 }
 
 // ─── Audio simulation ─────────────────────────────────────────────────────────
@@ -317,57 +309,38 @@ export default function OrchestratorPage() {
 
   const handleAudioAnalyze = () => {
     if (!audioTranscript || !form.clientId) return;
-    const parsed = parseVoiceText(audioTranscript);
-    const type = parsed.services.length > 0
-      ? (parsed.services[0] === "social_media" ? "Social Media"
-        : parsed.services[0] === "ads" ? "Paid Media"
-        : parsed.services[0] === "seo" ? "SEO"
-        : parsed.services[0] === "branding" ? "Branding"
-        : "Content")
-      : "Campaign";
-    const goal = parsed.objective || audioTranscript.slice(0, 200);
+    const parsed = parseTextToBriefing(audioTranscript, form.clientId);
+    const projType = briefingToProjectType(parsed);
+    setBriefing(parsed);
     setForm((prev) => ({
-      ...prev, goal, type,
-      services: parsed.services,
-      objective: parsed.objective,
-      targetAudience: parsed.targetAudience,
-      channels: parsed.channels.join(", "),
-      businessDescription: parsed.businessDescription,
+      ...prev,
+      clientId: parsed.clientId,
+      goal: parsed.objective || audioTranscript.slice(0, 200),
+      type: projType,
       deadline: parsed.deadline || prev.deadline,
     }));
     setState("analyzing");
     setTimeout(() => {
-      setPlan(generatePlan(type, parsed.deadline));
+      setPlan(generatePlan(projType, parsed.deadline));
       setState("ready");
     }, 2200);
   };
 
   const handleVoiceAnalyze = () => {
     if (!voiceText.trim() || !form.clientId) return;
-    const parsed = parseVoiceText(voiceText);
-    // Derive type and goal from parsed data, then run analysis
-    const type = parsed.services.length > 0
-      ? (parsed.services[0] === "social_media" ? "Social Media"
-        : parsed.services[0] === "ads" ? "Paid Media"
-        : parsed.services[0] === "seo" ? "SEO"
-        : parsed.services[0] === "branding" ? "Branding"
-        : "Content")
-      : "Campaign";
-    const goal = parsed.objective || voiceText.slice(0, 200);
+    const parsed = parseTextToBriefing(voiceText, form.clientId);
+    const projType = briefingToProjectType(parsed);
+    setBriefing(parsed);
     setForm((prev) => ({
       ...prev,
-      goal,
-      type,
-      services: parsed.services,
-      objective: parsed.objective,
-      targetAudience: parsed.targetAudience,
-      channels: parsed.channels.join(", "),
-      businessDescription: parsed.businessDescription,
+      clientId: parsed.clientId,
+      goal: parsed.objective || voiceText.slice(0, 200),
+      type: projType,
       deadline: parsed.deadline || prev.deadline,
     }));
     setState("analyzing");
     setTimeout(() => {
-      setPlan(generatePlan(type, parsed.deadline));
+      setPlan(generatePlan(projType, parsed.deadline));
       setState("ready");
     }, 2200);
   };
@@ -805,7 +778,7 @@ export default function OrchestratorPage() {
                 : null;
 
               if (previewText) {
-                const p = parseVoiceText(previewText);
+                const p = parseTextToBriefing(previewText, "");
                 const SERVICE_LABELS: Record<string, string> = {
                   social_media: "Social Media", ads: "Ads", seo: "SEO", branding: "Branding", content: "Content",
                 };
