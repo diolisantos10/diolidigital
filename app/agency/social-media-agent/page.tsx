@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
+import { useAgencyStore } from "@/store/agency-store";
 
 const FREQUENCY_OPTIONS = [
   "3x per week",
@@ -403,6 +405,14 @@ export default function SocialMediaAgentPage() {
 
   const isReady = form.brandName.trim() !== "" && form.objective.trim() !== "";
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const router = useRouter();
+  const setPendingDesignContract = useAgencyStore((s) => s.setPendingDesignContract);
+
+  function handleSendToDesignAgent() {
+    if (!output) return;
+    setPendingDesignContract(formatContractAsText(output.contracts));
+    router.push("/agency/design-agent");
+  }
 
   function handleCopy(key: string, text: string) {
     navigator.clipboard.writeText(text).then(() => {
@@ -969,12 +979,23 @@ export default function SocialMediaAgentPage() {
                           Structured specification ready for consumption by a Design Agent. Each contract entry maps one post to its full design brief — format, copy, direction, prompt, and notes — with no ambiguity.
                         </p>
                       </div>
-                      <button
-                        onClick={() => handleCopy("contract-all", formatContractAsText(output.contracts))}
-                        className="shrink-0 h-7 px-3 rounded-[6px] text-[12px] font-medium border border-[#E5E5E2] text-[#6B6B65] hover:bg-[#F7F7F6] hover:text-[#1A1A1A] transition-colors"
-                      >
-                        {copiedKey === "contract-all" ? "Copied" : "Copy Contract"}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleCopy("contract-all", formatContractAsText(output.contracts))}
+                          className="shrink-0 h-7 px-3 rounded-[6px] text-[12px] font-medium border border-[#E5E5E2] text-[#6B6B65] hover:bg-[#F7F7F6] hover:text-[#1A1A1A] transition-colors"
+                        >
+                          {copiedKey === "contract-all" ? "Copied" : "Copy Contract"}
+                        </button>
+                        <button
+                          onClick={handleSendToDesignAgent}
+                          className="shrink-0 h-7 px-3 rounded-[6px] text-[12px] font-medium bg-[#C2530A] text-white hover:bg-[#A8460A] active:bg-[#8E3908] transition-colors flex items-center gap-1.5"
+                        >
+                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                            <path d="M2 6h8M6.5 2.5L10 6l-3.5 3.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                          Send to Design Agent
+                        </button>
+                      </div>
                     </div>
                     <div className="px-5 py-3 border-t border-[#F0F0ED] grid grid-cols-3 gap-4">
                       <div>

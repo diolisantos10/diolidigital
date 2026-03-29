@@ -29,6 +29,10 @@ interface AgencyState {
   briefings: Briefing[];
   activity: ActivityEvent[];
 
+  // Agent handoff
+  pendingDesignContract: string | null;
+  setPendingDesignContract: (contract: string | null) => void;
+
   // Client actions
   createClient: (client: Omit<Client, "id" | "createdAt">) => string;
   updateClient: (id: string, updates: Partial<Client>) => void;
@@ -74,6 +78,10 @@ export const useAgencyStore = create<AgencyState>()(
       deliverables: MOCK_DELIVERABLES,
       briefings: MOCK_BRIEFINGS,
       activity: MOCK_ACTIVITY,
+
+      // ── Agent handoff ─────────────────────────────────────────────────────
+      pendingDesignContract: null,
+      setPendingDesignContract: (contract) => set({ pendingDesignContract: contract }),
 
       // ── Clients ──────────────────────────────────────────────────────────
       createClient: (data) => {

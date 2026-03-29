@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
+import { useAgencyStore } from "@/store/agency-store";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -232,6 +233,15 @@ const STEPS = [
 export default function DesignAgentPage() {
   const [contractInput, setContractInput] = useState("");
   const [agentState, setAgentState] = useState<AgentState>("idle");
+  const pendingContract = useAgencyStore((s) => s.pendingDesignContract);
+  const setPendingDesignContract = useAgencyStore((s) => s.setPendingDesignContract);
+
+  useEffect(() => {
+    if (pendingContract) {
+      setContractInput(pendingContract);
+      setPendingDesignContract(null);
+    }
+  }, [pendingContract, setPendingDesignContract]);
   const [activeTab, setActiveTab] = useState<OutputTab>("briefs");
   const [stepIndex, setStepIndex] = useState(0);
   const [briefs, setBriefs] = useState<VisualBrief[]>([]);
