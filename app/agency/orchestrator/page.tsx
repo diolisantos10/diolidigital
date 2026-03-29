@@ -75,6 +75,84 @@ function generatePlan(type: string, deadline: string): OrchestratorPlan {
   return plans[typeKey] ?? plans.campaign;
 }
 
+// ─── Voice parsing ────────────────────────────────────────────────────────────
+
+interface ParsedBrief {
+  services: string[];
+  objective: string;
+  targetAudience: string;
+  channels: string[];
+  deadline: string;
+  businessDescription: string;
+}
+
+function parseVoiceText(text: string): ParsedBrief {
+  const lower = text.toLowerCase();
+  const sentences = text.split(/[.!?\n]+/).map((s) => s.trim()).filter(Boolean);
+
+  // Services — keyword scan
+  const services: string[] = [];
+  if (/social media|instagram|linkedin|twitter|tiktok|facebook|redes sociais|social/.test(lower)) services.push("social_media");
+  if (/\bads\b|advertising|google ads|meta ads|paid media|mídia paga|anúncio/.test(lower)) services.push("ads");
+  if (/\bseo\b|search engine|organic search|ranking/.test(lower)) services.push("seo");
+  if (/\bbrand\b|branding|identity|logo|visual identity|\bmarca\b/.test(lower)) services.push("branding");
+  if (/\bcontent\b|blog|articles|copywriting|conteúdo/.test(lower)) services.push("content");
+
+  // Objective — sentence containing a goal verb
+  const objectiveSentence = sentences.find((s) =>
+    /goal|objective|want to|need to|looking to|aim|we need|we want|purpose|increase|generate|drive|grow|launch|build|boost/i.test(s)
+  ) ?? sentences[0] ?? "";
+
+  // Target audience
+  const audienceSentence = sentences.find((s) =>
+    /audience|target|targeting|demographic|age|professionals|consumers|users|women|men|customers|personas/i.test(s)
+  ) ?? "";
+
+  // Channels — explicit platform mentions
+  const channels: string[] = [];
+  if (/instagram/i.test(text)) channels.push("Instagram");
+  if (/linkedin/i.test(text)) channels.push("LinkedIn");
+  if (/facebook/i.test(text)) channels.push("Facebook");
+  if (/\btiktok\b/i.test(text)) channels.push("TikTok");
+  if (/\btwitter\b|x\.com/i.test(text)) channels.push("Twitter/X");
+  if (/youtube/i.test(text)) channels.push("YouTube");
+  if (/google/i.test(text)) channels.push("Google");
+  if (/\bemail\b/i.test(text)) channels.push("Email");
+
+  // Deadline — month names or relative expressions
+  const MONTHS: Record<string, string> = {
+    january: "01", february: "02", march: "03", april: "04",
+    may: "05", june: "06", july: "07", august: "08",
+    september: "09", october: "10", november: "11", december: "12",
+    jan: "01", feb: "02", mar: "03", apr: "04",
+    jun: "06", jul: "07", aug: "08", sep: "09", oct: "10", nov: "11", dec: "12",
+  };
+  let deadline = "";
+  const year = new Date().getFullYear();
+  const monthMatch = lower.match(
+    /(?:end of|by|before|until|in)\s+(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec)/
+  );
+  if (monthMatch) {
+    deadline = `${year}-${MONTHS[monthMatch[1]]}-28`;
+  } else if (/next month/.test(lower)) {
+    const d = new Date(); d.setMonth(d.getMonth() + 1);
+    deadline = d.toISOString().slice(0, 10);
+  } else {
+    const weeksMatch = lower.match(/(\d+)\s*weeks?/);
+    if (weeksMatch) {
+      const days = parseInt(weeksMatch[1]) * 7;
+      deadline = new Date(Date.now() + days * 86400000).toISOString().slice(0, 10);
+    }
+  }
+
+  // Business description — first sentence that reads like context (not a goal)
+  const businessDescription = sentences.find((s) =>
+    !/goal|objective|want|need|aim|increase|generate|drive|audience|deadline|end of/i.test(s)
+  ) ?? "";
+
+  return { services, objective: objectiveSentence, targetAudience: audienceSentence, channels, deadline, businessDescription };
+}
+
 export default function OrchestratorPage() {
   const { clients, createProject } = useAgencyStore();
   const [state, setState] = useState<OrchestratorState>("idle");
@@ -171,6 +249,36 @@ export default function OrchestratorPage() {
       services: [], businessDescription: "", objective: "",
       targetAudience: "", channels: "",
     });
+  };
+
+  const handleVoiceAnalyze = () => {
+    if (!voiceText.trim() || !form.clientId) return;
+    const parsed = parseVoiceText(voiceText);
+    // Derive type and goal from parsed data, then run analysis
+    const type = parsed.services.length > 0
+      ? (parsed.services[0] === "social_media" ? "Social Media"
+        : parsed.services[0] === "ads" ? "Paid Media"
+        : parsed.services[0] === "seo" ? "SEO"
+        : parsed.services[0] === "branding" ? "Branding"
+        : "Content")
+      : "Campaign";
+    const goal = parsed.objective || voiceText.slice(0, 200);
+    setForm((prev) => ({
+      ...prev,
+      goal,
+      type,
+      services: parsed.services,
+      objective: parsed.objective,
+      targetAudience: parsed.targetAudience,
+      channels: parsed.channels.join(", "),
+      businessDescription: parsed.businessDescription,
+      deadline: parsed.deadline || prev.deadline,
+    }));
+    setState("analyzing");
+    setTimeout(() => {
+      setPlan(generatePlan(type, parsed.deadline));
+      setState("ready");
+    }, 2200);
   };
 
   const STEP_LABELS = ["Receive Brief", "Analyze Context", "Generate Pipeline", "Assign Agents", "Activate"];
@@ -416,28 +524,29 @@ export default function OrchestratorPage() {
             {/* ── MODE: Voice Description ── */}
             {inputMode === "voice" && (
               <div className="space-y-4">
-                <div className="flex items-start gap-3 bg-[#F7F7F6] rounded-[8px] px-3.5 py-3">
-                  <span className="text-[18px] leading-none mt-0.5">◎</span>
-                  <p className="text-[12px] text-[#6B6B65] leading-relaxed">
-                    Describe the project as if speaking to a colleague. The system will extract the brief from your text.
-                  </p>
-                </div>
                 <div>
-                  <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Your description</label>
+                  <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">
+                    Describe the project in your own words
+                  </label>
                   <textarea
                     value={voiceText}
                     onChange={(e) => setVoiceText(e.target.value)}
                     disabled={state !== "idle"}
-                    placeholder={`e.g. "We need a social media campaign for Nova Studio launching next month. The goal is to drive awareness among design-forward audiences on Instagram and LinkedIn. Budget is tight, so we need lean creative. Deadline is end of April."`}
-                    rows={9}
+                    placeholder={"e.g. \"We need a social media campaign for Nova Studio launching next month. The goal is to drive awareness among design-forward audiences on Instagram and LinkedIn. Deadline is end of April.\""}
+                    rows={10}
                     className="w-full px-3 py-2.5 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50 resize-none leading-relaxed"
                   />
+                  {voiceText.trim() && (
+                    <p className="text-[11px] text-[#9B9B95] mt-1">
+                      Preview updates live →
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Client *</label>
                   <select
                     value={form.clientId}
-                    onChange={(e) => setForm({ ...form, clientId: e.target.value })}
+                    onChange={(e) => setForm((p) => ({ ...p, clientId: e.target.value }))}
                     disabled={state !== "idle"}
                     className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
                   >
@@ -451,7 +560,7 @@ export default function OrchestratorPage() {
                     size="lg"
                     className="w-full"
                     disabled={!voiceText.trim() || !form.clientId}
-                    onClick={() => {}}
+                    onClick={handleVoiceAnalyze}
                   >
                     Parse &amp; Generate Plan
                   </Button>
@@ -554,20 +663,100 @@ export default function OrchestratorPage() {
 
           {/* Output panel */}
           <div>
-            {state === "idle" && (
-              <div className="bg-white rounded-[10px] border border-dashed border-[#E5E5E2] px-8 py-16 text-center">
-                <div className="w-10 h-10 rounded-full bg-[#F0F0ED] flex items-center justify-center mx-auto mb-4">
-                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                    <rect x="3" y="3" width="5" height="5" rx="1" stroke="#9B9B95" strokeWidth="1.3"/>
-                    <rect x="12" y="3" width="5" height="5" rx="1" stroke="#9B9B95" strokeWidth="1.3"/>
-                    <rect x="3" y="12" width="5" height="5" rx="1" stroke="#9B9B95" strokeWidth="1.3"/>
-                    <rect x="12" y="12" width="5" height="5" rx="1" stroke="#9B9B95" strokeWidth="1.3"/>
-                  </svg>
+            {state === "idle" && (() => {
+              // Voice mode with text → show parsed preview
+              if (inputMode === "voice" && voiceText.trim()) {
+                const p = parseVoiceText(voiceText);
+                const SERVICE_LABELS: Record<string, string> = {
+                  social_media: "Social Media", ads: "Ads", seo: "SEO", branding: "Branding", content: "Content",
+                };
+                const Row = ({ label, value, detected }: { label: string; value: string; detected: boolean }) => (
+                  <div className="flex items-start gap-3 py-3 border-b border-[#F7F7F6] last:border-0">
+                    <div className="w-[130px] shrink-0">
+                      <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">{label}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      {detected
+                        ? <p className="text-[13px] text-[#1A1A1A] leading-snug">{value}</p>
+                        : <p className="text-[12px] text-[#C0C0BC] italic">Not detected</p>
+                      }
+                    </div>
+                    <span className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                      detected ? "bg-[#DCFCE7] text-[#16A34A]" : "bg-[#F0F0ED] text-[#9B9B95]"
+                    }`}>
+                      {detected ? "✓" : "—"}
+                    </span>
+                  </div>
+                );
+                return (
+                  <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+                    <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F0ED] bg-[#FAFAF9]">
+                      <span className="text-[12px] font-semibold text-[#1A1A1A] uppercase tracking-[0.05em]">Parsed Brief Preview</span>
+                      <span className="text-[11px] text-[#9B9B95]">Updates as you type</span>
+                    </div>
+                    <div className="px-5">
+                      {/* Services */}
+                      <div className="flex items-start gap-3 py-3 border-b border-[#F7F7F6]">
+                        <div className="w-[130px] shrink-0 pt-0.5">
+                          <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Services</span>
+                        </div>
+                        <div className="flex-1 flex flex-wrap gap-1.5">
+                          {p.services.length > 0
+                            ? p.services.map((s) => (
+                                <span key={s} className="h-5 px-2 rounded-full text-[11px] font-medium bg-[#EEF0FF] text-[#5B5BD6]">
+                                  {SERVICE_LABELS[s] ?? s}
+                                </span>
+                              ))
+                            : <span className="text-[12px] text-[#C0C0BC] italic">Not detected</span>
+                          }
+                        </div>
+                        <span className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                          p.services.length > 0 ? "bg-[#DCFCE7] text-[#16A34A]" : "bg-[#F0F0ED] text-[#9B9B95]"
+                        }`}>{p.services.length > 0 ? "✓" : "—"}</span>
+                      </div>
+                      <Row label="Objective"    value={p.objective}          detected={!!p.objective} />
+                      <Row label="Audience"     value={p.targetAudience}     detected={!!p.targetAudience} />
+                      {/* Channels */}
+                      <div className="flex items-start gap-3 py-3 border-b border-[#F7F7F6]">
+                        <div className="w-[130px] shrink-0 pt-0.5">
+                          <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Channels</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          {p.channels.length > 0
+                            ? <p className="text-[13px] text-[#1A1A1A]">{p.channels.join(" · ")}</p>
+                            : <p className="text-[12px] text-[#C0C0BC] italic">Not detected</p>
+                          }
+                        </div>
+                        <span className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                          p.channels.length > 0 ? "bg-[#DCFCE7] text-[#16A34A]" : "bg-[#F0F0ED] text-[#9B9B95]"
+                        }`}>{p.channels.length > 0 ? "✓" : "—"}</span>
+                      </div>
+                      <Row label="Deadline"     value={p.deadline}           detected={!!p.deadline} />
+                      <Row label="Description"  value={p.businessDescription} detected={!!p.businessDescription} />
+                    </div>
+                  </div>
+                );
+              }
+              // Default idle placeholder
+              return (
+                <div className="bg-white rounded-[10px] border border-dashed border-[#E5E5E2] px-8 py-16 text-center">
+                  <div className="w-10 h-10 rounded-full bg-[#F0F0ED] flex items-center justify-center mx-auto mb-4">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                      <rect x="3" y="3" width="5" height="5" rx="1" stroke="#9B9B95" strokeWidth="1.3"/>
+                      <rect x="12" y="3" width="5" height="5" rx="1" stroke="#9B9B95" strokeWidth="1.3"/>
+                      <rect x="3" y="12" width="5" height="5" rx="1" stroke="#9B9B95" strokeWidth="1.3"/>
+                      <rect x="12" y="12" width="5" height="5" rx="1" stroke="#9B9B95" strokeWidth="1.3"/>
+                    </svg>
+                  </div>
+                  <p className="text-[14px] font-medium text-[#1A1A1A]">Awaiting brief input</p>
+                  <p className="text-[13px] text-[#9B9B95] mt-1.5 max-w-xs mx-auto">
+                    {inputMode === "voice"
+                      ? "Start typing your project description — a parsed preview will appear here."
+                      : "Fill in the client, goal, and deadline — then run the Orchestrator to generate an execution plan."}
+                  </p>
                 </div>
-                <p className="text-[14px] font-medium text-[#1A1A1A]">Awaiting brief input</p>
-                <p className="text-[13px] text-[#9B9B95] mt-1.5 max-w-xs mx-auto">Fill in the client, goal, and deadline — then run the Orchestrator to generate an execution plan.</p>
-              </div>
-            )}
+              );
+            })()}
 
             {state === "analyzing" && (
               <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-8 py-16 text-center shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
