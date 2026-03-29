@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAgencyStore } from "@/store/agency-store";
 import { notFound } from "next/navigation";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
@@ -20,7 +21,8 @@ const DELIVERABLE_CYCLE: Record<DeliverableStatus, DeliverableStatus> = {
 
 export default function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { projects, clients, tasks, deliverables, briefings, updateTaskStatus, updateDeliverableStatus, updateProject, moveProjectStage } = useAgencyStore();
+  const router = useRouter();
+  const { projects, clients, tasks, deliverables, briefings, updateTaskStatus, updateDeliverableStatus, updateProject, moveProjectStage, setPendingAgentInput } = useAgencyStore();
   const [tab, setTab] = useState<"overview" | "execution" | "pipeline" | "tasks" | "deliverables" | "strategy" | "assets" | "history">("overview");
   const [editOpen, setEditOpen] = useState(false);
 
@@ -309,15 +311,24 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                         )}
                       </div>
                       {runUrl ? (
-                        <Link
-                          href={runUrl}
+                        <button
+                          onClick={() => {
+                            setPendingAgentInput({
+                              projectId: id,
+                              projectName: project.name,
+                              clientName: client?.name ?? "",
+                              goal: project.goal,
+                              projectType: project.type,
+                            });
+                            router.push(runUrl);
+                          }}
                           className="shrink-0 h-7 px-3 rounded-[6px] text-[12px] font-medium border border-[#E5E5E2] text-[#1A1A1A] hover:bg-[#F7F7F6] hover:border-[#5B5BD6] hover:text-[#5B5BD6] transition-colors flex items-center gap-1.5"
                         >
                           Run
                           <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
                             <path d="M2 5.5h7M5.5 2l3.5 3.5L5.5 9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
                           </svg>
-                        </Link>
+                        </button>
                       ) : (
                         <span className="shrink-0 h-7 px-3 rounded-[6px] text-[12px] font-medium border border-[#E5E5E2] text-[#C0C0BC] cursor-not-allowed flex items-center">
                           No page yet

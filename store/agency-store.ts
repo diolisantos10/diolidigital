@@ -33,7 +33,10 @@ interface AgencyState {
   pendingDesignContract: string | null;
   setPendingDesignContract: (contract: string | null) => void;
 
-  // Client actions
+  pendingAgentInput: { projectId: string; projectName: string; clientName: string; goal: string; projectType: string } | null;
+  setPendingAgentInput: (input: { projectId: string; projectName: string; clientName: string; goal: string; projectType: string } | null) => void;
+
+  addDeliverable: (deliverable: Omit<Deliverable, "id" | "createdAt">) => string;
   createClient: (client: Omit<Client, "id" | "createdAt">) => string;
   updateClient: (id: string, updates: Partial<Client>) => void;
 
@@ -82,6 +85,26 @@ export const useAgencyStore = create<AgencyState>()(
       // ── Agent handoff ─────────────────────────────────────────────────────
       pendingDesignContract: null,
       setPendingDesignContract: (contract) => set({ pendingDesignContract: contract }),
+
+      pendingAgentInput: null,
+      setPendingAgentInput: (input) => set({ pendingAgentInput: input }),
+
+      // ── Deliverables (add) ────────────────────────────────────────────────
+      addDeliverable: (data) => {
+        const id = `d${uid()}`;
+        const deliverable: Deliverable = {
+          ...data,
+          id,
+          createdAt: new Date().toISOString().slice(0, 10),
+        };
+        set((s) => ({ deliverables: [...s.deliverables, deliverable] }));
+        get().addActivity({
+          type: "deliverable_updated",
+          message: `"${data.name}" saved to project`,
+          projectId: data.projectId,
+        });
+        return id;
+      },
 
       // ── Clients ──────────────────────────────────────────────────────────
       createClient: (data) => {

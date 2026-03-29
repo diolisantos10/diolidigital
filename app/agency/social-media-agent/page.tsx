@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import { useAgencyStore } from "@/store/agency-store";
@@ -402,16 +402,61 @@ export default function SocialMediaAgentPage() {
   const [activeTab, setActiveTab] = useState<OutputTab>("brand");
   const [stepIndex, setStepIndex] = useState(0);
   const [output, setOutput] = useState<SocialOutput | null>(null);
+  const [sourceProject, setSourceProject] = useState<{ projectId: string; projectName: string } | null>(null);
+  const [savedToProject, setSavedToProject] = useState(false);
 
   const isReady = form.brandName.trim() !== "" && form.objective.trim() !== "";
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const router = useRouter();
   const setPendingDesignContract = useAgencyStore((s) => s.setPendingDesignContract);
+  const pendingAgentInput = useAgencyStore((s) => s.pendingAgentInput);
+  const setPendingAgentInput = useAgencyStore((s) => s.setPendingAgentInput);
+  const addDeliverable = useAgencyStore((s) => s.addDeliverable);
+
+  useEffect(() => {
+    if (pendingAgentInput) {
+      setForm({
+        ...EMPTY_FORM,
+        brandName: pendingAgentInput.clientName,
+        brandSummary: pendingAgentInput.goal,
+        objective: pendingAgentInput.goal,
+        notes: `Project: ${pendingAgentInput.projectName} (${pendingAgentInput.projectType})`,
+      });
+      setSourceProject({ projectId: pendingAgentInput.projectId, projectName: pendingAgentInput.projectName });
+      setPendingAgentInput(null);
+    }
+  }, [pendingAgentInput, setPendingAgentInput]);
 
   function handleSendToDesignAgent() {
     if (!output) return;
     setPendingDesignContract(formatContractAsText(output.contracts));
     router.push("/agency/design-agent");
+  }
+
+  function handleSaveToProject() {
+    if (!output || !sourceProject) return;
+    addDeliverable({
+      projectId: sourceProject.projectId,
+      name: `${form.brandName} — Social Media Package`,
+      type: "Social Media Post",
+      status: "draft",
+      version: 1,
+    });
+    addDeliverable({
+      projectId: sourceProject.projectId,
+      name: `${form.brandName} — Design Handoff`,
+      type: "Design Asset",
+      status: "draft",
+      version: 1,
+    });
+    addDeliverable({
+      projectId: sourceProject.projectId,
+      name: `${form.brandName} — Content Strategy`,
+      type: "Social Media",
+      status: "draft",
+      version: 1,
+    });
+    setSavedToProject(true);
   }
 
   function handleCopy(key: string, text: string) {
@@ -458,6 +503,8 @@ export default function SocialMediaAgentPage() {
     setForm(EMPTY_FORM);
     setOutput(null);
     setStepIndex(0);
+    setSourceProject(null);
+    setSavedToProject(false);
   }
 
   return (
@@ -475,17 +522,48 @@ export default function SocialMediaAgentPage() {
             Production Agent
           </span>
           <span className="text-[12px] text-[#9B9B95]">v1.0 — Mock Mode</span>
-          {agentState === "output_ready" && (
-            <button
-              onClick={handleExport}
-              className="ml-auto flex items-center gap-1.5 h-7 px-3 rounded-[6px] text-[12px] font-medium border border-[#E5E5E2] bg-white text-[#1A1A1A] hover:bg-[#F7F7F6] transition-colors"
+          {sourceProject && (
+            <a
+              href={`/agency/projects/${sourceProject.projectId}`}
+              className="text-[12px] text-[#5B5BD6] hover:underline"
             >
-              <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-                <path d="M6.5 1v7M3.5 5.5L6.5 8.5 9.5 5.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M1.5 9.5v1a1 1 0 001 1h8a1 1 0 001-1v-1" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-              </svg>
-              Export Package
-            </button>
+              ← {sourceProject.projectName}
+            </a>
+          )}
+          {agentState === "output_ready" && (
+            <div className="ml-auto flex items-center gap-2">
+              {sourceProject && (
+                savedToProject ? (
+                  <span className="flex items-center gap-1.5 h-7 px-3 rounded-[6px] text-[12px] font-medium bg-[#DCFCE7] text-[#16A34A] border border-[#BBF7D0]">
+                    <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+                      <path d="M2 5.5l2.5 2.5 4.5-4.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    Saved to {sourceProject.projectName}
+                  </span>
+                ) : (
+                  <button
+                    onClick={handleSaveToProject}
+                    className="flex items-center gap-1.5 h-7 px-3 rounded-[6px] text-[12px] font-medium bg-[#5B5BD6] text-white hover:bg-[#4A4AC5] transition-colors"
+                  >
+                    <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+                      <path d="M5.5 1v6M2.5 4.5L5.5 7.5 8.5 4.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M1 8.5v1a.5.5 0 00.5.5h8a.5.5 0 00.5-.5v-1" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                    </svg>
+                    Save to {sourceProject.projectName}
+                  </button>
+                )
+              )}
+              <button
+                onClick={handleExport}
+                className="flex items-center gap-1.5 h-7 px-3 rounded-[6px] text-[12px] font-medium border border-[#E5E5E2] bg-white text-[#1A1A1A] hover:bg-[#F7F7F6] transition-colors"
+              >
+                <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                  <path d="M6.5 1v7M3.5 5.5L6.5 8.5 9.5 5.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M1.5 9.5v1a1 1 0 001 1h8a1 1 0 001-1v-1" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                </svg>
+                Export Package
+              </button>
+            </div>
           )}
         </div>
 
