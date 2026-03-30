@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAgencyStore } from "@/store/agency-store";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import Button from "@/components/agency/ui/Button";
@@ -43,61 +44,89 @@ interface OrchestratorPlan {
   risks: Array<{ level: "high" | "medium" | "low"; message: string }>;
 }
 
-function generatePlan(type: string, deadline: string): OrchestratorPlan {
-  const baseDate = deadline || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+// ─── Service-based plan generation ───────────────────────────────────────────
+
+function briefingToAgents(b: Briefing): string[] {
+  const set = new Set<string>();
+  set.add("a6"); // Research — always included for diagnosis
+  for (const svc of b.services) {
+    if (svc === "social_media") { set.add("a3"); set.add("a1"); set.add("a2"); }
+    if (svc === "ads")          { set.add("a4"); set.add("a1"); set.add("a2"); }
+    if (svc === "seo")          { set.add("a8"); set.add("a1"); }
+    if (svc === "branding")     { set.add("a2"); set.add("a1"); }
+    if (svc === "content")      { set.add("a5"); set.add("a1"); }
+  }
+  if (set.has("a2") || set.has("a1")) set.add("a7"); // QA when there are production agents
+  return Array.from(set);
+}
+
+function briefingToTasks(b: Briefing): OrchestratorPlan["tasks"] {
+  const baseDate = b.deadline || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const d = new Date(baseDate);
-  const offset = (days: number) => new Date(d.getTime() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const offset = (days: number) => new Date(d.getTime() - days * 86400000).toISOString().slice(0, 10);
 
-  const plans: Record<string, OrchestratorPlan> = {
-    campaign: {
-      pipeline: ["briefing", "diagnosis", "planning", "production", "review", "delivery"],
-      agents: ["a6", "a1", "a2", "a4", "a5", "a7"],
-      tasks: [
-        { title: "Market & audience analysis", description: "Map target audience, competitive context, and strategic opportunity.", agentId: "a6", stage: "diagnosis", dueDate: offset(20) },
-        { title: "Campaign concept development", description: "Define the creative direction and campaign narrative.", agentId: "a5", stage: "planning", dueDate: offset(16) },
-        { title: "Write campaign copy", description: "Produce all copy: headline, body, CTAs, social captions.", agentId: "a1", stage: "production", dueDate: offset(12) },
-        { title: "Design campaign visuals", description: "Create all visual assets: hero images, ad creatives, social formats.", agentId: "a2", stage: "production", dueDate: offset(10) },
-        { title: "Set up paid media structure", description: "Build campaign architecture in Meta Ads and/or Google Ads.", agentId: "a4", stage: "production", dueDate: offset(8) },
-        { title: "Internal QA review", description: "Validate all materials against briefing, brand, and quality standards.", agentId: "a7", stage: "review", dueDate: offset(4) },
-      ],
-      risks: [
-        { level: "medium", message: "Creative review cycles may compress production timeline." },
-        { level: "low", message: "Audience targeting assumptions need validation from client." },
-      ],
-    },
-    branding: {
-      pipeline: ["briefing", "diagnosis", "planning", "production", "review", "delivery"],
-      agents: ["a6", "a2", "a1", "a7"],
-      tasks: [
-        { title: "Brand audit & competitive analysis", description: "Audit current brand equity and map the competitive landscape.", agentId: "a6", stage: "diagnosis", dueDate: offset(20) },
-        { title: "Positioning strategy", description: "Define brand positioning, pillars, and differentiation.", agentId: "a6", stage: "planning", dueDate: offset(16) },
-        { title: "Visual identity design", description: "Design logo, color system, typography, and usage guidelines.", agentId: "a2", stage: "production", dueDate: offset(10) },
-        { title: "Brand voice & messaging", description: "Define tone of voice, key messages, and language guidelines.", agentId: "a1", stage: "production", dueDate: offset(8) },
-        { title: "Brand guidelines document", description: "Compile all brand elements into a comprehensive guidelines document.", agentId: "a7", stage: "review", dueDate: offset(4) },
-      ],
-      risks: [
-        { level: "high", message: "Brand identity requires client approval at multiple stages — build in feedback time." },
-        { level: "low", message: "Asset delivery format (PDF/Figma/other) should be confirmed upfront." },
-      ],
-    },
-    seo: {
-      pipeline: ["briefing", "diagnosis", "planning", "production", "delivery", "ongoing"],
-      agents: ["a8", "a6", "a1"],
-      tasks: [
-        { title: "SEO audit", description: "Full technical and on-page SEO audit of the current site.", agentId: "a8", stage: "diagnosis", dueDate: offset(20) },
-        { title: "Keyword research & content map", description: "Identify priority keywords and map to content opportunities.", agentId: "a8", stage: "planning", dueDate: offset(15) },
-        { title: "Content briefs", description: "Write detailed briefs for all content pieces to be produced.", agentId: "a8", stage: "planning", dueDate: offset(12) },
-        { title: "Content production", description: "Write SEO-optimized articles and landing page copy.", agentId: "a1", stage: "production", dueDate: offset(7) },
-        { title: "On-page implementation guide", description: "Document all technical and on-page changes to implement.", agentId: "a8", stage: "production", dueDate: offset(5) },
-      ],
-      risks: [
-        { level: "medium", message: "SEO results require 3–6 months to materialize — set correct expectations with client." },
-      ],
-    },
-  };
+  const tasks: OrchestratorPlan["tasks"] = [];
 
-  const typeKey = type.toLowerCase().includes("brand") ? "branding" : type.toLowerCase().includes("seo") ? "seo" : "campaign";
-  return plans[typeKey] ?? plans.campaign;
+  tasks.push({
+    title: "Project briefing & context analysis",
+    description: `Analyze client context, competitive landscape, and strategic opportunity for: ${b.objective || "defined objective"}.`,
+    agentId: "a6", stage: "diagnosis", dueDate: offset(22),
+  });
+
+  if (b.services.includes("branding")) {
+    tasks.push({ title: "Brand audit & positioning", description: "Audit brand equity, map competitive landscape, and define positioning pillars.", agentId: "a6", stage: "diagnosis", dueDate: offset(19) });
+    tasks.push({ title: "Visual identity design", description: "Design logo, color palette, typography, and brand mark.", agentId: "a2", stage: "production", dueDate: offset(12) });
+    tasks.push({ title: "Brand voice & messaging", description: "Define tone of voice, key messages, and language guidelines.", agentId: "a1", stage: "production", dueDate: offset(9) });
+    tasks.push({ title: "Brand guidelines document", description: "Compile all elements into comprehensive brand guidelines.", agentId: "a7", stage: "review", dueDate: offset(5) });
+  }
+
+  if (b.services.includes("seo")) {
+    tasks.push({ title: "SEO audit & keyword research", description: "Full technical SEO audit and priority keyword identification.", agentId: "a8", stage: "diagnosis", dueDate: offset(20) });
+    tasks.push({ title: "Content strategy & briefs", description: "Map keywords to content opportunities and write content briefs.", agentId: "a8", stage: "planning", dueDate: offset(14) });
+    tasks.push({ title: "SEO content production", description: "Write SEO-optimized articles and landing page copy.", agentId: "a1", stage: "production", dueDate: offset(7) });
+  }
+
+  if (b.services.includes("ads")) {
+    tasks.push({ title: "Paid media strategy & audience setup", description: "Define campaign structure, audience segments, bidding strategy, and ad placements.", agentId: "a4", stage: "planning", dueDate: offset(16) });
+    tasks.push({ title: "Ad copy & creative assets", description: "Write all ad copy variants and design visual assets for all placements.", agentId: "a1", stage: "production", dueDate: offset(10) });
+    tasks.push({ title: "Campaign setup & launch", description: "Set up all ad accounts, tracking pixels, audiences, and launch campaigns.", agentId: "a4", stage: "production", dueDate: offset(6) });
+  }
+
+  if (b.services.includes("social_media")) {
+    tasks.push({ title: "Social media strategy & content calendar", description: "Define channel strategy, content themes, posting cadence, and 30-day content calendar.", agentId: "a3", stage: "planning", dueDate: offset(17) });
+    tasks.push({ title: "Social media copy & captions", description: "Write all social posts, captions, hashtags, and story scripts.", agentId: "a1", stage: "production", dueDate: offset(10) });
+    tasks.push({ title: "Social media visual assets", description: "Design all visual content: feed posts, stories, cover images.", agentId: "a2", stage: "production", dueDate: offset(7) });
+  }
+
+  if (b.services.includes("content")) {
+    tasks.push({ title: "Content strategy", description: "Define content pillars, formats, distribution channels, and editorial calendar.", agentId: "a5", stage: "planning", dueDate: offset(16) });
+    tasks.push({ title: "Content production", description: "Write all content pieces: articles, landing pages, emails, and product copy.", agentId: "a1", stage: "production", dueDate: offset(8) });
+  }
+
+  tasks.sort((a, c) => (a.dueDate < c.dueDate ? -1 : 1));
+  return tasks;
+}
+
+function briefingToPlan(b: Briefing): OrchestratorPlan {
+  const agents = briefingToAgents(b);
+  const tasks = briefingToTasks(b);
+
+  const pipeline: ProjectStage[] = ["briefing", "diagnosis", "planning", "production"];
+  if (b.services.some((s) => ["branding", "ads"].includes(s))) pipeline.push("review");
+  if (b.services.some((s) => ["seo", "social_media"].includes(s))) pipeline.push("ongoing");
+  else pipeline.push("delivery");
+
+  const risks: OrchestratorPlan["risks"] = [];
+  if (b.services.includes("branding"))
+    risks.push({ level: "high", message: "Brand identity requires client approval at multiple stages — build in feedback time." });
+  if (b.services.includes("ads"))
+    risks.push({ level: "medium", message: "Ad performance depends on budget and audience quality — validate targeting assumptions early." });
+  if (b.services.includes("seo"))
+    risks.push({ level: "medium", message: "SEO results take 3–6 months to materialize — align client expectations upfront." });
+  if (!b.deadline)
+    risks.push({ level: "low", message: "No deadline set — consider adding one to ensure team prioritization." });
+
+  return { pipeline, agents, tasks, risks };
 }
 
 // ─── Text parsing ─────────────────────────────────────────────────────────────
@@ -275,6 +304,7 @@ function BriefingPreview({ briefing, subtitle }: { briefing: Briefing; subtitle:
 
 export default function OrchestratorPage() {
   const { clients, createProject } = useAgencyStore();
+  const router = useRouter();
   const [state, setState] = useState<OrchestratorState>("idle");
   const [inputMode, setInputMode] = useState<InputMode>("form");
   const [plan, setPlan] = useState<OrchestratorPlan | null>(null);
@@ -286,23 +316,19 @@ export default function OrchestratorPage() {
 
   const [form, setForm] = useState({
     clientId: "",
-    name: "",
-    // legacy fields kept for handleApprove (bridged via handleGenerate)
-    goal: "",
-    type: "Campaign",
-    deadline: "",
     priority: "high" as Priority,
-    notes: "",
-    // new structured fields
-    services: [] as string[],
-    businessDescription: "",
-    objective: "",
-    targetAudience: "",
-    channels: "",
   });
 
-  // New normalized state — will replace `form` in the next refactor step
   const [briefing, setBriefing] = useState<Briefing>(EMPTY_BRIEFING);
+
+  useEffect(() => {
+    if (state === "approved" && createdProjectId) {
+      const timer = setTimeout(() => {
+        router.push(`/agency/projects/${createdProjectId}`);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [state, createdProjectId, router]);
 
   const SERVICE_OPTIONS = [
     { id: "social_media", label: "Social Media" },
@@ -327,34 +353,26 @@ export default function OrchestratorPage() {
   };
 
   const handleGenerate = (b: Briefing) => {
-    const projType = briefingToProjectType(b);
     setBriefing(b);
-    // Bridge to form so handleApprove (reads form) continues to work
-    setForm((prev) => ({
-      ...prev,
-      clientId: b.clientId,
-      goal: b.objective,
-      type: projType,
-      deadline: b.deadline,
-      notes: b.notes,
-    }));
     setState("analyzing");
     setTimeout(() => {
-      setPlan(generatePlan(projType, b.deadline));
+      setPlan(briefingToPlan(b));
       setState("ready");
     }, 2200);
   };
 
   const handleApprove = () => {
     if (!plan) return;
+    const projType = briefingToProjectType(briefing);
+    const clientName = clients.find((c) => c.id === briefing.clientId)?.name ?? "Client";
     const id = createProject({
-      name: form.name || `${form.type} — ${clients.find(c => c.id === form.clientId)?.name}`,
-      clientId: form.clientId,
-      goal: form.goal,
-      type: form.type,
+      name: `${projType} — ${clientName}`,
+      clientId: briefing.clientId,
+      goal: briefing.objective,
+      type: projType,
       stage: "diagnosis",
       priority: form.priority,
-      deadline: form.deadline || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+      deadline: briefing.deadline || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
       agents: plan.agents,
       initialTasks: plan.tasks.map((t) => ({ title: t.title, description: t.description, agentId: t.agentId, dueDate: t.dueDate })),
     });
@@ -366,12 +384,7 @@ export default function OrchestratorPage() {
     setState("idle"); setPlan(null); setCreatedProjectId(null);
     setAudioFile(null); setAudioTranscribeState("idle"); setAudioTranscript("");
     setBriefing(EMPTY_BRIEFING);
-    setForm({
-      clientId: "", name: "", goal: "", type: "Campaign",
-      deadline: "", priority: "high", notes: "",
-      services: [], businessDescription: "", objective: "",
-      targetAudience: "", channels: "",
-    });
+    setForm({ clientId: "", priority: "high" });
   };
 
   const handleAudioTranscribe = () => {
