@@ -38,6 +38,17 @@ export interface Project {
   deadline: string;
   agents: string[];
   createdAt: string;
+  orchestratorBriefing?: OrchestratorBriefing;
+}
+
+export interface OrchestratorBriefing {
+  services: string[];
+  businessDescription: string;
+  objective: string;
+  targetAudience: string;
+  channels: string[];
+  deadline: string;
+  notes: string;
 }
 
 export interface Task {

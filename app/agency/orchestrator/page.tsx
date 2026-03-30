@@ -414,6 +414,15 @@ export default function OrchestratorPage() {
       deadline: briefing.deadline || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
       agents: plan.agents,
       initialTasks: plan.tasks.map((t) => ({ title: t.title, description: t.description, agentId: t.agentId, dueDate: t.dueDate })),
+      orchestratorBriefing: {
+        services: briefing.services,
+        businessDescription: briefing.businessDescription,
+        objective: briefing.objective,
+        targetAudience: briefing.targetAudience,
+        channels: briefing.channels,
+        deadline: briefing.deadline,
+        notes: briefing.notes,
+      },
     });
     setCreatedProjectId(id);
     setState("approved");

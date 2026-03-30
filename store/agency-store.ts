@@ -6,6 +6,7 @@ import type { Locale } from "@/lib/i18n";
 import {
   Client,
   Project,
+  OrchestratorBriefing,
   Task,
   Deliverable,
   Briefing,
@@ -52,6 +53,7 @@ interface AgencyState {
     deadline: string;
     agents: string[];
     initialTasks?: Array<{ title: string; description: string; agentId: string; dueDate: string }>;
+    orchestratorBriefing?: OrchestratorBriefing;
   }) => string;
   updateProject: (id: string, updates: Partial<Project>) => void;
   moveProjectStage: (id: string, stage: ProjectStage) => void;
@@ -148,6 +150,7 @@ export const useAgencyStore = create<AgencyState>()(
           deadline: payload.deadline,
           agents: payload.agents,
           createdAt: new Date().toISOString().slice(0, 10),
+          ...(payload.orchestratorBriefing ? { orchestratorBriefing: payload.orchestratorBriefing } : {}),
         };
         const newTasks: Task[] = (payload.initialTasks ?? []).map((t) => ({
           id: `t${uid()}`,

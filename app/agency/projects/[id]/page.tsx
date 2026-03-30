@@ -25,8 +25,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const searchParams = useSearchParams();
   const { projects, clients, tasks, deliverables, briefings, updateTaskStatus, updateDeliverableStatus, updateProject, moveProjectStage, setPendingAgentInput } = useAgencyStore();
 
-  type TabId = "overview" | "execution" | "pipeline" | "tasks" | "deliverables" | "strategy" | "assets" | "history";
-  const VALID_TABS: TabId[] = ["overview", "execution", "pipeline", "tasks", "deliverables", "strategy", "assets", "history"];
+  type TabId = "overview" | "execution" | "pipeline" | "tasks" | "deliverables" | "briefing" | "strategy" | "assets" | "history";
+  const VALID_TABS: TabId[] = ["overview", "execution", "pipeline", "tasks", "deliverables", "briefing", "strategy", "assets", "history"];
   const [tab, setTab] = useState<TabId>(() => {
     const t = searchParams.get("tab") as TabId | null;
     return t && VALID_TABS.includes(t) ? t : "overview";
@@ -524,6 +524,81 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           )}
         </div>
       )}
+
+      {/* Tab: Briefing */}
+      {tab === "briefing" && (() => {
+        const ob = project.orchestratorBriefing;
+        const SERVICE_LABELS: Record<string, string> = {
+          social_media: "Social Media", ads: "Ads", seo: "SEO", branding: "Branding", content: "Content",
+        };
+        const Row = ({ label, value }: { label: string; value: string }) => (
+          <div className="flex items-start gap-4 py-4 border-b border-[#F7F7F6] last:border-0">
+            <div className="w-[160px] shrink-0 pt-0.5">
+              <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">{label}</span>
+            </div>
+            <p className={`flex-1 text-[13px] leading-relaxed ${value ? "text-[#1A1A1A]" : "text-[#C0C0BC] italic"}`}>
+              {value || "Not specified"}
+            </p>
+          </div>
+        );
+
+        if (!ob) {
+          return (
+            <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-8 py-12 text-center shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              <div className="w-10 h-10 rounded-full bg-[#F0F0ED] flex items-center justify-center mx-auto mb-4">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                  <path d="M3 5h12M3 9h8M3 13h5" stroke="#9B9B95" strokeWidth="1.4" strokeLinecap="round"/>
+                </svg>
+              </div>
+              <p className="text-[14px] font-medium text-[#1A1A1A]">No briefing data</p>
+              <p className="text-[13px] text-[#9B9B95] mt-1.5 max-w-xs mx-auto">
+                This project was not created via the Orchestrator. Briefing data is available for projects generated from a parsed brief.
+              </p>
+            </div>
+          );
+        }
+
+        return (
+          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-3.5 border-b border-[#F0F0ED] bg-[#FAFAF9]">
+              <span className="text-[12px] font-semibold text-[#1A1A1A] uppercase tracking-[0.05em]">Original Briefing</span>
+              <span className="text-[11px] text-[#9B9B95]">Captured at project creation · read-only</span>
+            </div>
+            <div className="px-6">
+              {/* Services */}
+              <div className="flex items-start gap-4 py-4 border-b border-[#F7F7F6]">
+                <div className="w-[160px] shrink-0 pt-1">
+                  <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Services</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5 flex-1">
+                  {ob.services.length > 0
+                    ? ob.services.map((s) => (
+                        <span key={s} className="h-6 px-2.5 rounded-full text-[11px] font-medium bg-[#EEF0FF] text-[#5B5BD6]">
+                          {SERVICE_LABELS[s] ?? s}
+                        </span>
+                      ))
+                    : <span className="text-[13px] text-[#C0C0BC] italic">Not specified</span>
+                  }
+                </div>
+              </div>
+              <Row label="Objective"            value={ob.objective} />
+              <Row label="Business Description" value={ob.businessDescription} />
+              <Row label="Target Audience"      value={ob.targetAudience} />
+              {/* Channels */}
+              <div className="flex items-start gap-4 py-4 border-b border-[#F7F7F6]">
+                <div className="w-[160px] shrink-0 pt-0.5">
+                  <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Channels</span>
+                </div>
+                <p className={`flex-1 text-[13px] leading-relaxed ${ob.channels.length > 0 ? "text-[#1A1A1A]" : "text-[#C0C0BC] italic"}`}>
+                  {ob.channels.length > 0 ? ob.channels.join(" · ") : "Not specified"}
+                </p>
+              </div>
+              <Row label="Deadline" value={ob.deadline} />
+              <Row label="Notes"    value={ob.notes} />
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Tab: Strategy */}
       {tab === "strategy" && (
