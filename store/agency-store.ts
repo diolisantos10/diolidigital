@@ -63,6 +63,7 @@ interface AgencyState {
 
   // Deliverable actions
   updateDeliverableStatus: (id: string, status: DeliverableStatus) => void;
+  setDeliverableFeedback: (id: string, feedback: string) => void;
 
   // Briefing actions
   createBriefing: (briefing: Omit<Briefing, "id" | "createdAt">) => string;
@@ -219,6 +220,21 @@ export const useAgencyStore = create<AgencyState>()(
         get().addActivity({
           type: "deliverable_updated",
           message: `"${d.name}" status → ${status}`,
+          projectId: d.projectId,
+        });
+      },
+
+      setDeliverableFeedback: (id, feedback) => {
+        const d = get().deliverables.find((x) => x.id === id);
+        if (!d) return;
+        set((s) => ({
+          deliverables: s.deliverables.map((x) =>
+            x.id === id ? { ...x, status: "draft" as DeliverableStatus, clientFeedback: feedback } : x
+          ),
+        }));
+        get().addActivity({
+          type: "deliverable_updated",
+          message: `"${d.name}" — client requested changes`,
           projectId: d.projectId,
         });
       },

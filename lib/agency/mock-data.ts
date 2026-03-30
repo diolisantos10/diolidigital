@@ -71,6 +71,7 @@ export interface Deliverable {
   link?: string;
   version: number;
   createdAt: string;
+  clientFeedback?: string;
 }
 
 export interface Briefing {
