@@ -1011,6 +1011,56 @@ export default function OrchestratorPage() {
                   <span className="text-[12px] font-semibold text-[#1A1A1A] uppercase tracking-[0.05em]">Parsed Briefing</span>
                   <span className="text-[11px] text-[#9B9B95]">Review and adjust before generating</span>
                 </div>
+
+                {/* ── Briefing quality indicator ── */}
+                {(() => {
+                  const fields: Array<{ label: string; points: number; filled: boolean }> = [
+                    { label: "Objective",       points: 20, filled: briefing.objective.trim().length >= 15 },
+                    { label: "Target audience", points: 20, filled: !!briefing.targetAudience.trim() },
+                    { label: "Services",        points: 20, filled: briefing.services.length > 0 },
+                    { label: "Channels",        points: 15, filled: briefing.channels.length > 0 },
+                    { label: "Notes",           points: 15, filled: !!briefing.notes.trim() },
+                    { label: "Deadline",        points: 10, filled: !!briefing.deadline },
+                  ];
+                  const score = fields.filter((f) => f.filled).reduce((s, f) => s + f.points, 0);
+                  const color =
+                    score >= 80 ? { bar: "bg-[#16A34A]", text: "text-[#16A34A]", badge: "bg-[#DCFCE7] text-[#16A34A]" }
+                    : score >= 50 ? { bar: "bg-[#D97706]", text: "text-[#D97706]", badge: "bg-[#FEF3C7] text-[#D97706]" }
+                    :               { bar: "bg-[#DC2626]", text: "text-[#DC2626]", badge: "bg-[#FEE2E2] text-[#DC2626]" };
+                  const missing = fields.filter((f) => !f.filled);
+                  const done    = fields.filter((f) =>  f.filled);
+
+                  return (
+                    <div className="px-5 py-3.5 border-b border-[#F0F0ED] bg-[#FAFAF9] space-y-2.5">
+                      {/* Score row */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Briefing Quality</span>
+                        <span className={`text-[12px] font-bold tabular-nums ${color.text}`}>{score}%</span>
+                      </div>
+                      {/* Progress bar */}
+                      <div className="h-1.5 bg-[#F0F0ED] rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-300 ${color.bar}`}
+                          style={{ width: `${score}%` }}
+                        />
+                      </div>
+                      {/* Field checklist */}
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 pt-0.5">
+                        {done.map((f) => (
+                          <span key={f.label} className="flex items-center gap-1 text-[11px] text-[#6B6B65]">
+                            <span className="text-[#16A34A]">✓</span> {f.label}
+                          </span>
+                        ))}
+                        {missing.map((f) => (
+                          <span key={f.label} className="flex items-center gap-1 text-[11px] text-[#9B9B95]">
+                            <span className={color.text}>–</span> {f.label}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 <div className="px-5 py-4 space-y-4">
 
                   {/* Services */}
