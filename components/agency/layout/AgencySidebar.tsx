@@ -51,7 +51,10 @@ export default function AgencySidebar() {
     },
     {
       group: t.nav.group.system,
-      items: [{ label: t.nav.settings, href: "/agency/settings", icon: SettingsIcon }],
+      items: [
+        { label: t.nav.settings, href: "/agency/settings", icon: SettingsIcon },
+        { label: "Test Agent",   href: "/agency/test-agent", icon: FlaskIcon  },
+      ],
     },
   ];
 
@@ -237,6 +240,14 @@ function SettingsIcon({ size = 16, className = "" }: { size?: number; className?
     <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
       <circle cx="8" cy="8" r="2" stroke="currentColor" strokeWidth="1.3"/>
       <path d="M8 2v1.5M8 12.5V14m4.95-1.05l-1.06-1.06M4.11 4.11L3.05 3.05M14 8h-1.5M3.5 8H2m9.9 4.95l-1.06-1.06M4.11 11.89l-1.06 1.06" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+    </svg>
+  );
+}
+function FlaskIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
+      <path d="M6 2v5L3 12a1 1 0 00.9 1.5h8.2A1 1 0 0013 12l-3-5V2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M5.5 2h5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
     </svg>
   );
 }
