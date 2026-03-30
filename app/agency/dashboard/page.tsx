@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAgencyStore } from "@/store/agency-store";
 import { useTranslation } from "@/lib/i18n";
 import Link from "next/link";
@@ -38,9 +40,11 @@ interface ActionItem {
   reason: string;      // short explanation shown below the label
   projectId: string;
   projectName: string;
-  agentName: string;   // empty string when not agent-specific
+  clientId: string;
+  agentId: string;     // empty string when not agent-specific
+  agentName: string;
   cta: string;
-  href: string;
+  href: string;        // fallback href (used only for <Link> in planning type)
 }
 
 const TYPE_STYLES: Record<ActionType, { bg: string; text: string; label: string }> = {
@@ -49,6 +53,13 @@ const TYPE_STYLES: Record<ActionType, { bg: string; text: string; label: string 
   execution: { bg: "bg-[#EEF0FF]", text: "text-[#5B5BD6]", label: "Execute"  },
   planning:  { bg: "bg-[#F0F0ED]", text: "text-[#6B6B65]", label: "Plan"     },
 };
+
+// Maps agent IDs to dedicated agent pages (only agents with a page get direct execution)
+function getAgentRunUrl(agentId: string): string | null {
+  if (agentId === "a2") return "/agency/design-agent";
+  if (agentId === "a3") return "/agency/social-media-agent";
+  return null;
+}
 
 // Priority score = base + deadline proximity + stage weight + pending task load
 function scoreAction(
@@ -86,12 +97,64 @@ const EVENT_LABELS: Record<string, string> = {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const { projects, tasks, deliverables, activity, clients } = useAgencyStore();
+  const router = useRouter();
+  const { projects, tasks, deliverables, activity, clients, setPendingAgentInput } = useAgencyStore();
   const { t } = useTranslation();
+  const [confirmMsg, setConfirmMsg] = useState<string | null>(null);
 
   const activeProjects = projects.filter((p) => p.stage !== "completed");
   const getClient = (cid: string) => clients.find((c) => c.id === cid);
   const agentMap = Object.fromEntries(MOCK_AGENTS.map((a) => [a.id, a]));
+
+  // ── Action execution ──────────────────────────────────────────────────────
+  function handleAction(item: ActionItem) {
+    // Show inline feedback
+    const agent = agentMap[item.agentId];
+    let msg = `Opening ${item.projectName}…`;
+    if (item.type === "execution" && agent) {
+      const url = getAgentRunUrl(item.agentId);
+      msg = url ? `Opening ${agent.name} for ${item.projectName}…` : `Opening execution tab for ${item.projectName}…`;
+    } else if (item.type === "review") {
+      msg = `Opening deliverables for ${item.projectName}…`;
+    } else if (item.type === "unblock") {
+      msg = `Opening blocked tasks for ${item.projectName}…`;
+    } else if (item.type === "planning") {
+      msg = "Opening Orchestrator…";
+    }
+    setConfirmMsg(msg);
+    setTimeout(() => setConfirmMsg(null), 2500);
+
+    // Route with context
+    if (item.type === "execution" && item.agentId) {
+      const agentUrl = getAgentRunUrl(item.agentId);
+      if (agentUrl) {
+        const project = projects.find((p) => p.id === item.projectId);
+        const client  = clients.find((c) => c.id === item.clientId);
+        setPendingAgentInput({
+          projectId:   item.projectId,
+          projectName: item.projectName,
+          clientName:  client?.name ?? "",
+          goal:        project?.goal ?? "",
+          projectType: project?.type ?? "",
+        });
+        router.push(agentUrl);
+        return;
+      }
+      // No dedicated page — open project execution tab directly
+      router.push(`/agency/projects/${item.projectId}?tab=execution`);
+      return;
+    }
+    if (item.type === "review") {
+      router.push(`/agency/projects/${item.projectId}?tab=deliverables`);
+      return;
+    }
+    if (item.type === "unblock") {
+      router.push(`/agency/projects/${item.projectId}?tab=tasks`);
+      return;
+    }
+    // planning + open project: use the pre-computed href
+    router.push(item.href);
+  }
 
   // ── Action generation ─────────────────────────────────────────────────────
   const actionItems: ActionItem[] = [];
@@ -107,13 +170,12 @@ export default function DashboardPage() {
     if (blocked.length > 0) {
       const firstAgent = agentMap[blocked[0].agentId];
       actionItems.push({
-        id: `unblock-${p.id}`,
-        type: "unblock",
+        id: `unblock-${p.id}`, type: "unblock",
         score: scoreAction(100 + blocked.length * 2, dl, p.stage, pendingCnt),
         label: `${blocked.length} task${blocked.length !== 1 ? "s" : ""} blocked — ${p.name}`,
         reason: "Requires manual resolution",
-        projectId: p.id, projectName: p.name,
-        agentName: firstAgent?.name ?? "",
+        projectId: p.id, projectName: p.name, clientId: p.clientId,
+        agentId: firstAgent?.id ?? "", agentName: firstAgent?.name ?? "",
         cta: "Resolve", href: `/agency/projects/${p.id}`,
       });
     }
@@ -121,13 +183,12 @@ export default function DashboardPage() {
     // Overdue — base 85 (deadline modifier adds another +40 on top)
     if (dl < 0) {
       actionItems.push({
-        id: `overdue-${p.id}`,
-        type: "execution",
+        id: `overdue-${p.id}`, type: "execution",
         score: scoreAction(85, dl, p.stage, pendingCnt),
         label: `${p.name} is overdue`,
         reason: `${Math.abs(dl)} day${Math.abs(dl) !== 1 ? "s" : ""} past deadline`,
-        projectId: p.id, projectName: p.name,
-        agentName: "",
+        projectId: p.id, projectName: p.name, clientId: p.clientId,
+        agentId: "", agentName: "",
         cta: "Open Project", href: `/agency/projects/${p.id}`,
       });
     }
@@ -137,13 +198,12 @@ export default function DashboardPage() {
       const targetId    = p.agents.find((a) => ["a2", "a3", "a1"].includes(a)) ?? p.agents[0];
       const targetAgent = agentMap[targetId];
       actionItems.push({
-        id: `no-output-${p.id}`,
-        type: "execution",
+        id: `no-output-${p.id}`, type: "execution",
         score: scoreAction(60, dl, p.stage, pendingCnt),
         label: `No outputs saved — ${p.name}`,
         reason: `${targetAgent?.name ?? "Agent"} execution not started`,
-        projectId: p.id, projectName: p.name,
-        agentName: targetAgent?.name ?? "",
+        projectId: p.id, projectName: p.name, clientId: p.clientId,
+        agentId: targetId ?? "", agentName: targetAgent?.name ?? "",
         cta: "Run Agent", href: `/agency/projects/${p.id}`,
       });
     }
@@ -157,14 +217,13 @@ export default function DashboardPage() {
       stalled.slice(0, 1).forEach((agentId) => {
         const agent = agentMap[agentId];
         actionItems.push({
-          id: `stalled-${p.id}-${agentId}`,
-          type: "execution",
+          id: `stalled-${p.id}-${agentId}`, type: "execution",
           score: scoreAction(55, dl, p.stage, pendingCnt),
           label: `${agent?.name ?? agentId} not started — ${p.name}`,
           reason: "All assigned tasks still pending",
-          projectId: p.id, projectName: p.name,
-          agentName: agent?.name ?? "",
-          cta: "Open Project", href: `/agency/projects/${p.id}`,
+          projectId: p.id, projectName: p.name, clientId: p.clientId,
+          agentId, agentName: agent?.name ?? "",
+          cta: "Run Agent", href: `/agency/projects/${p.id}`,
         });
       });
     }
@@ -172,13 +231,12 @@ export default function DashboardPage() {
     // Briefing + no tasks — base 40
     if (p.stage === "briefing" && pTasks.length === 0) {
       actionItems.push({
-        id: `plan-${p.id}`,
-        type: "planning",
+        id: `plan-${p.id}`, type: "planning",
         score: scoreAction(40, dl, p.stage, 0),
         label: `${p.name} has no execution plan`,
         reason: "Run Orchestrator to generate tasks",
-        projectId: p.id, projectName: p.name,
-        agentName: "",
+        projectId: p.id, projectName: p.name, clientId: p.clientId,
+        agentId: "", agentName: "",
         cta: "Plan Project", href: `/agency/orchestrator`,
       });
     }
@@ -194,13 +252,12 @@ export default function DashboardPage() {
       const dl         = daysLeft(p.deadline);
       const pendingCnt = tasks.filter((t) => t.projectId === p.id && t.status === "pending").length;
       actionItems.push({
-        id: `review-${d.id}`,
-        type: "review",
+        id: `review-${d.id}`, type: "review",
         score: scoreAction(70, dl, p.stage, pendingCnt),
         label: `"${d.name}" needs review`,
         reason: "Awaiting approval",
-        projectId: p.id, projectName: p.name,
-        agentName: "",
+        projectId: p.id, projectName: p.name, clientId: p.clientId,
+        agentId: "", agentName: "",
         cta: "Review", href: `/agency/projects/${d.projectId}`,
       });
     });
@@ -260,7 +317,10 @@ export default function DashboardPage() {
               </span>
             )}
           </div>
-          <span className="text-[11px] text-[#9B9B95]">{t.dashboard.derivedFrom}</span>
+          {confirmMsg
+            ? <span className="text-[11px] font-medium text-[#16A34A] transition-opacity">{confirmMsg}</span>
+            : <span className="text-[11px] text-[#9B9B95]">{t.dashboard.derivedFrom}</span>
+          }
         </div>
         {sortedActions.length === 0 ? (
           <div className="px-5 py-8 text-center">
@@ -288,12 +348,12 @@ export default function DashboardPage() {
                     </p>
                   </div>
                   {/* CTA */}
-                  <Link
-                    href={item.href}
+                  <button
+                    onClick={() => handleAction(item)}
                     className="shrink-0 h-6 px-2.5 rounded-[5px] text-[11px] font-medium border border-[#E5E5E2] text-[#6B6B65] hover:border-[#5B5BD6] hover:text-[#5B5BD6] transition-colors whitespace-nowrap"
                   >
                     {item.cta} →
-                  </Link>
+                  </button>
                 </div>
               );
             })}

@@ -1,7 +1,7 @@
 "use client";
 
 import { use, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAgencyStore } from "@/store/agency-store";
 import { notFound } from "next/navigation";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
@@ -22,8 +22,15 @@ const DELIVERABLE_CYCLE: Record<DeliverableStatus, DeliverableStatus> = {
 export default function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { projects, clients, tasks, deliverables, briefings, updateTaskStatus, updateDeliverableStatus, updateProject, moveProjectStage, setPendingAgentInput } = useAgencyStore();
-  const [tab, setTab] = useState<"overview" | "execution" | "pipeline" | "tasks" | "deliverables" | "strategy" | "assets" | "history">("overview");
+
+  type TabId = "overview" | "execution" | "pipeline" | "tasks" | "deliverables" | "strategy" | "assets" | "history";
+  const VALID_TABS: TabId[] = ["overview", "execution", "pipeline", "tasks", "deliverables", "strategy", "assets", "history"];
+  const [tab, setTab] = useState<TabId>(() => {
+    const t = searchParams.get("tab") as TabId | null;
+    return t && VALID_TABS.includes(t) ? t : "overview";
+  });
   const [editOpen, setEditOpen] = useState(false);
 
   const project = projects.find((p) => p.id === id);
@@ -47,7 +54,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
   const getAgent = (agentId: string) => MOCK_AGENTS.find((a) => a.id === agentId);
 
-  const TABS = ["overview", "execution", "pipeline", "tasks", "deliverables", "strategy", "assets", "history"] as const;
+  const TABS = VALID_TABS;
 
   // ── Execution helpers ──────────────────────────────────────────────────────
   function getAgentStatus(agentId: string): "not_started" | "in_progress" | "done" {
