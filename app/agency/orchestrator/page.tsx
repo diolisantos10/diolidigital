@@ -131,30 +131,71 @@ function briefingToPlan(b: Briefing): OrchestratorPlan {
 
 // ─── Text parsing ─────────────────────────────────────────────────────────────
 // Shared by Voice Description and Audio Upload modes.
+// Each field draws from a distinct sentence; no duplication across fields.
 
 function parseTextToBriefing(text: string, clientId: string): Briefing {
   const lower = text.toLowerCase();
   const sentences = text.split(/[.!?\n]+/).map((s) => s.trim()).filter(Boolean);
+  const used = new Set<number>();
 
-  // Services — keyword scan
+  // Take the first unused sentence matching a predicate, mark it used.
+  const take = (test: (s: string) => boolean): string => {
+    const idx = sentences.findIndex((s, i) => !used.has(i) && test(s));
+    if (idx === -1) return "";
+    used.add(idx);
+    return sentences[idx];
+  };
+
+  // ── Target audience — must be explicitly stated ──────────────────────────
+  const targetAudience = take((s) =>
+    /target\s+audience|our\s+audience|targeting\s+|audience\s+is|aimed\s+at\b|for\s+(?:professionals|businesses|brands|women|men|startups)\b|\b\d{2}\s*(?:to|-)\s*\d{2}\b|millennials|gen\s*[zZ]\b|b2b\b|b2c\b/i.test(s)
+  );
+
+  // ── Business description — "is a/an", company-type nouns, no action intent ─
+  const businessDescription = take((s) =>
+    /\bis\s+an?\b|\bthey(?:'re| are)\s+an?\b|\bit'?s\s+an?\b|\bcompany\b|\bstartup\b|\bplatform\b|\bapp\b|\bstudio\b|\bfirm\b|\bshop\b|\bstore\b/i.test(s) &&
+    !/^we\s+(?:need|want|are)\b|need\s+(?:a|to)\s|want\s+(?:a|to)\s|looking\s+to\b|aim\s+(?:is|to)\b|goal\s+(?:is|to)\b|increase\b|generate\b|drive\s+|launch\s+(?:a|the)\b|boost\b|rebrand\b/i.test(s)
+  );
+
+  // ── Objective — explicit goal structure only; no sentence[0] fallback ─────
+  const objective = take((s) =>
+    /(?:goal|objective|aim|purpose)\s+(?:is\s+)?to\b/i.test(s) ||
+    /\bwe\s+(?:want|need|are\s+looking)\s+to\b/i.test(s) ||
+    /\bto\s+(?:increase|grow|generate|drive|boost|launch|build|establish|improve|scale|expand|create\s+awareness)\b/i.test(s)
+  );
+
+  // ── Notes — execution details, style cues, constraints ────────────────────
+  const notesParts: string[] = [];
+  sentences.forEach((s, i) => {
+    if (used.has(i)) return;
+    // Explicit "Notes:" label
+    if (/^notes?\s*[:—–]/i.test(s)) {
+      notesParts.push(s.replace(/^notes?\s*[:—–]\s*/i, "").trim());
+      used.add(i);
+      return;
+    }
+    // Execution/style/constraint signals
+    if (/transform\b|visual\s+style|\bstyle\s+(?:is|should|must)\b|use\s+(?:of\s+)?(?:models?|photos?|images?|\bai\b)|image\s+qualit|\bformat\s+(?:is|should)\b|constraint|budget\s+is|\btone\s+(?:is|should)\b|\bavoid\b|must\s+(?:be|use|have)\b|nothing\s+too\b|clean\s+look\b|bold\s+visual|minimal\b.*(?:clean|look|style)/i.test(s)) {
+      notesParts.push(s);
+      used.add(i);
+    }
+  });
+  const notes = notesParts.join(" ");
+
+  // ── Services — intent-first; require specific signals, avoid loose matches ─
   const services: string[] = [];
-  if (/social media|instagram|linkedin|twitter|tiktok|facebook|redes sociais|social/.test(lower)) services.push("social_media");
-  if (/\bads\b|advertising|google ads|meta ads|paid media|mídia paga|anúncio/.test(lower)) services.push("ads");
-  if (/\bseo\b|search engine|organic search|ranking/.test(lower)) services.push("seo");
-  if (/\bbrand\b|branding|identity|logo|visual identity|\bmarca\b/.test(lower)) services.push("branding");
-  if (/\bcontent\b|blog|articles|copywriting|conteúdo/.test(lower)) services.push("content");
+  // Social media: organic posting/growth intent, platform names not paired with "ads"
+  if (/social\s+media\b|content\s+calendar\b|posting\s+(?:schedule|plan|strategy)\b|grow\s+(?:on\s+)?(?:instagram|linkedin|tiktok|facebook)\b|instagram(?!\s+ads?)\b|tiktok(?!\s+ads?)\b|facebook(?!\s+ads?)\b|redes\s+sociais\b/i.test(text)) services.push("social_media");
+  // Ads: explicit paid media intent
+  if (/\bads?\b|paid\s+media\b|advertising\b|google\s+ads\b|meta\s+ads\b|\bppc\b|performance\s+(?:campaign|marketing)\b|mídia\s+paga\b/i.test(text)) services.push("ads");
+  // SEO: search-specific terms
+  if (/\bseo\b|search\s+engine\s+optim|organic\s+search\b|keyword\s+rank/i.test(text)) services.push("seo");
+  // Branding: identity work (not just "brand" appearing in any context)
+  if (/\bbranding\b|\bbrand\s+(?:identity|guidelines|voice|system)\b|\blogo\b|visual\s+identity\b|\srebrand\b/i.test(text)) services.push("branding");
+  // Content: written content production (not a stray "content" mention)
+  if (/content\s+strateg|content\s+plan|blog\s+posts?\b|\barticles?\b|copywriting\b|landing\s+page\s+copy\b|email\s+copy\b|product\s+descri/i.test(text)) services.push("content");
 
-  // Objective — sentence containing a goal verb
-  const objective = sentences.find((s) =>
-    /goal|objective|want to|need to|looking to|aim|we need|we want|purpose|increase|generate|drive|grow|launch|build|boost/i.test(s)
-  ) ?? sentences[0] ?? "";
-
-  // Target audience
-  const targetAudience = sentences.find((s) =>
-    /audience|target|targeting|demographic|age|professionals|consumers|users|women|men|customers|personas/i.test(s)
-  ) ?? "";
-
-  // Channels — explicit platform mentions
+  // ── Channels ──────────────────────────────────────────────────────────────
   const channels: string[] = [];
   if (/instagram/i.test(text)) channels.push("Instagram");
   if (/linkedin/i.test(text)) channels.push("LinkedIn");
@@ -162,10 +203,10 @@ function parseTextToBriefing(text: string, clientId: string): Briefing {
   if (/\btiktok\b/i.test(text)) channels.push("TikTok");
   if (/\btwitter\b|x\.com/i.test(text)) channels.push("Twitter/X");
   if (/youtube/i.test(text)) channels.push("YouTube");
-  if (/google/i.test(text)) channels.push("Google");
+  if (/\bgoogle\b/i.test(text)) channels.push("Google");
   if (/\bemail\b/i.test(text)) channels.push("Email");
 
-  // Deadline — month names or relative expressions
+  // ── Deadline ──────────────────────────────────────────────────────────────
   const MONTHS: Record<string, string> = {
     january: "01", february: "02", march: "03", april: "04",
     may: "05", june: "06", july: "07", august: "08",
@@ -176,27 +217,25 @@ function parseTextToBriefing(text: string, clientId: string): Briefing {
   let deadline = "";
   const year = new Date().getFullYear();
   const monthMatch = lower.match(
-    /(?:end of|by|before|until|in)\s+(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec)/
+    /(?:end\s+of|by|before|until|in)\s+(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec)/
   );
   if (monthMatch) {
     deadline = `${year}-${MONTHS[monthMatch[1]]}-28`;
-  } else if (/next month/.test(lower)) {
+  } else if (/next\s+month/i.test(lower)) {
     const d = new Date(); d.setMonth(d.getMonth() + 1);
     deadline = d.toISOString().slice(0, 10);
   } else {
     const weeksMatch = lower.match(/(\d+)\s*weeks?/);
+    const monthsMatch = lower.match(/(\d+)\s*months?/);
     if (weeksMatch) {
-      const days = parseInt(weeksMatch[1]) * 7;
-      deadline = new Date(Date.now() + days * 86400000).toISOString().slice(0, 10);
+      deadline = new Date(Date.now() + parseInt(weeksMatch[1]) * 7 * 86400000).toISOString().slice(0, 10);
+    } else if (monthsMatch) {
+      const d = new Date(); d.setMonth(d.getMonth() + parseInt(monthsMatch[1]));
+      deadline = d.toISOString().slice(0, 10);
     }
   }
 
-  // Business description — first sentence that reads like context (not a goal)
-  const businessDescription = sentences.find((s) =>
-    !/goal|objective|want|need|aim|increase|generate|drive|audience|deadline|end of/i.test(s)
-  ) ?? "";
-
-  return { clientId, services, objective, targetAudience, channels, deadline, businessDescription, notes: "" };
+  return { clientId, services, objective, targetAudience, channels, deadline, businessDescription, notes };
 }
 
 // ─── Audio simulation ─────────────────────────────────────────────────────────
