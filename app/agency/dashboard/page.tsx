@@ -3,7 +3,7 @@
 import { useAgencyStore } from "@/store/agency-store";
 import { useTranslation } from "@/lib/i18n";
 import Link from "next/link";
-import { MOCK_AGENTS } from "@/lib/agency/mock-data";
+import { MOCK_AGENTS, ProjectStage } from "@/lib/agency/mock-data";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -26,6 +26,53 @@ const AGENT_SHORT: Record<string, string> = {
   a5: "Strategy", a6: "Research", a7: "QA", a8: "SEO", a9: "Email", a10: "PM",
 };
 
+// ─── Action scoring engine ────────────────────────────────────────────────────
+
+type ActionType = "execution" | "review" | "unblock" | "planning";
+
+interface ActionItem {
+  id: string;
+  type: ActionType;
+  score: number;       // numeric priority — higher = more urgent
+  label: string;
+  reason: string;      // short explanation shown below the label
+  projectId: string;
+  projectName: string;
+  agentName: string;   // empty string when not agent-specific
+  cta: string;
+  href: string;
+}
+
+const TYPE_STYLES: Record<ActionType, { bg: string; text: string; label: string }> = {
+  unblock:   { bg: "bg-[#FEE2E2]", text: "text-[#DC2626]", label: "Unblock"  },
+  review:    { bg: "bg-[#FEF3C7]", text: "text-[#D97706]", label: "Review"   },
+  execution: { bg: "bg-[#EEF0FF]", text: "text-[#5B5BD6]", label: "Execute"  },
+  planning:  { bg: "bg-[#F0F0ED]", text: "text-[#6B6B65]", label: "Plan"     },
+};
+
+// Priority score = base + deadline proximity + stage weight + pending task load
+function scoreAction(
+  base: number,
+  dl: number,            // days left (negative = already overdue)
+  stage: ProjectStage,
+  pendingCount: number,
+): number {
+  let s = base;
+  // Deadline proximity
+  if (dl < 0)        s += 40;
+  else if (dl <= 3)  s += 30;
+  else if (dl <= 7)  s += 15;
+  else if (dl <= 14) s += 5;
+  // Stage weight — active execution stages rank higher
+  if      (stage === "production") s += 15;
+  else if (stage === "review")     s += 12;
+  else if (stage === "delivery")   s += 10;
+  else if (stage === "planning")   s += 5;
+  // Pending task load adds urgency
+  s += Math.min(pendingCount * 2, 10);
+  return s;
+}
+
 const EVENT_LABELS: Record<string, string> = {
   project_created: "Project created",
   project_stage_changed: "Stage moved",
@@ -44,54 +91,122 @@ export default function DashboardPage() {
 
   const activeProjects = projects.filter((p) => p.stage !== "completed");
   const getClient = (cid: string) => clients.find((c) => c.id === cid);
+  const agentMap = Object.fromEntries(MOCK_AGENTS.map((a) => [a.id, a]));
 
-  // ── Today actions ────────────────────────────────────────────────────────
-  type ActionItem = { id: string; label: string; href: string; cta: string; priority: "high" | "normal" };
+  // ── Action generation ─────────────────────────────────────────────────────
   const actionItems: ActionItem[] = [];
 
   activeProjects.forEach((p) => {
-    const pTasks = tasks.filter((t) => t.projectId === p.id);
-    const pDeliverables = deliverables.filter((d) => d.projectId === p.id);
-    const dl = daysLeft(p.deadline);
-    void pTasks;
+    const pTasks     = tasks.filter((t) => t.projectId === p.id);
+    const pDelivs    = deliverables.filter((d) => d.projectId === p.id);
+    const dl         = daysLeft(p.deadline);
+    const pendingCnt = pTasks.filter((t) => t.status === "pending").length;
+    const blocked    = pTasks.filter((t) => t.status === "blocked");
 
-    // Overdue — top priority
-    if (dl < 0) {
-      actionItems.push({ id: `overdue-${p.id}`, label: t.dashboard.isOverdue(p.name), cta: t.dashboard.openProject, href: `/agency/projects/${p.id}`, priority: "high" });
-    }
-
-    // Production stage with no deliverables saved
-    if (p.stage === "production" && pDeliverables.length === 0) {
-      const hasSocial = p.agents.includes("a3");
-      const hasDesign = p.agents.includes("a2");
-      if (hasSocial) {
-        actionItems.push({ id: `run-social-${p.id}`, label: t.dashboard.runSocialAgent(p.name), cta: t.dashboard.runAgent, href: `/agency/projects/${p.id}`, priority: "high" });
-      } else if (hasDesign) {
-        actionItems.push({ id: `run-design-${p.id}`, label: t.dashboard.runDesignAgent(p.name), cta: t.dashboard.runAgent, href: `/agency/projects/${p.id}`, priority: "high" });
-      } else {
-        actionItems.push({ id: `no-output-${p.id}`, label: t.dashboard.noOutputsSaved(p.name), cta: t.dashboard.viewProject, href: `/agency/projects/${p.id}`, priority: "normal" });
-      }
-    }
-
-    // Blocked tasks
-    const blocked = tasks.filter((tk) => tk.projectId === p.id && tk.status === "blocked");
+    // Unblock — base 100, +2 per additional blocked task
     if (blocked.length > 0) {
-      actionItems.push({ id: `blocked-${p.id}`, label: t.dashboard.blockedTasks(blocked.length, p.name), cta: t.dashboard.resolve, href: `/agency/projects/${p.id}?tab=tasks`, priority: "high" });
+      const firstAgent = agentMap[blocked[0].agentId];
+      actionItems.push({
+        id: `unblock-${p.id}`,
+        type: "unblock",
+        score: scoreAction(100 + blocked.length * 2, dl, p.stage, pendingCnt),
+        label: `${blocked.length} task${blocked.length !== 1 ? "s" : ""} blocked — ${p.name}`,
+        reason: "Requires manual resolution",
+        projectId: p.id, projectName: p.name,
+        agentName: firstAgent?.name ?? "",
+        cta: "Resolve", href: `/agency/projects/${p.id}`,
+      });
+    }
+
+    // Overdue — base 85 (deadline modifier adds another +40 on top)
+    if (dl < 0) {
+      actionItems.push({
+        id: `overdue-${p.id}`,
+        type: "execution",
+        score: scoreAction(85, dl, p.stage, pendingCnt),
+        label: `${p.name} is overdue`,
+        reason: `${Math.abs(dl)} day${Math.abs(dl) !== 1 ? "s" : ""} past deadline`,
+        projectId: p.id, projectName: p.name,
+        agentName: "",
+        cta: "Open Project", href: `/agency/projects/${p.id}`,
+      });
+    }
+
+    // Production + no deliverables saved — base 60
+    if (p.stage === "production" && pDelivs.length === 0) {
+      const targetId    = p.agents.find((a) => ["a2", "a3", "a1"].includes(a)) ?? p.agents[0];
+      const targetAgent = agentMap[targetId];
+      actionItems.push({
+        id: `no-output-${p.id}`,
+        type: "execution",
+        score: scoreAction(60, dl, p.stage, pendingCnt),
+        label: `No outputs saved — ${p.name}`,
+        reason: `${targetAgent?.name ?? "Agent"} execution not started`,
+        projectId: p.id, projectName: p.name,
+        agentName: targetAgent?.name ?? "",
+        cta: "Run Agent", href: `/agency/projects/${p.id}`,
+      });
+    }
+
+    // Production + agent with all-pending tasks (stalled) — base 55
+    if (p.stage === "production" && pDelivs.length > 0) {
+      const stalled = p.agents.filter((agentId) => {
+        const agentTasks = pTasks.filter((t) => t.agentId === agentId);
+        return agentTasks.length > 0 && agentTasks.every((t) => t.status === "pending");
+      });
+      stalled.slice(0, 1).forEach((agentId) => {
+        const agent = agentMap[agentId];
+        actionItems.push({
+          id: `stalled-${p.id}-${agentId}`,
+          type: "execution",
+          score: scoreAction(55, dl, p.stage, pendingCnt),
+          label: `${agent?.name ?? agentId} not started — ${p.name}`,
+          reason: "All assigned tasks still pending",
+          projectId: p.id, projectName: p.name,
+          agentName: agent?.name ?? "",
+          cta: "Open Project", href: `/agency/projects/${p.id}`,
+        });
+      });
+    }
+
+    // Briefing + no tasks — base 40
+    if (p.stage === "briefing" && pTasks.length === 0) {
+      actionItems.push({
+        id: `plan-${p.id}`,
+        type: "planning",
+        score: scoreAction(40, dl, p.stage, 0),
+        label: `${p.name} has no execution plan`,
+        reason: "Run Orchestrator to generate tasks",
+        projectId: p.id, projectName: p.name,
+        agentName: "",
+        cta: "Plan Project", href: `/agency/orchestrator`,
+      });
     }
   });
 
-  // Deliverables in_review needing approval
-  deliverables.filter((d) => d.status === "in_review").slice(0, 3).forEach((d) => {
-    const p = projects.find((pr) => pr.id === d.projectId);
-    actionItems.push({ id: `review-${d.id}`, label: t.dashboard.reviewDeliverable(d.name, p?.name ?? "—"), cta: t.dashboard.review, href: `/agency/projects/${d.projectId}`, priority: "normal" });
-  });
+  // Deliverables in_review — base 70
+  deliverables
+    .filter((d) => d.status === "in_review")
+    .slice(0, 4)
+    .forEach((d) => {
+      const p = projects.find((pr) => pr.id === d.projectId);
+      if (!p) return;
+      const dl         = daysLeft(p.deadline);
+      const pendingCnt = tasks.filter((t) => t.projectId === p.id && t.status === "pending").length;
+      actionItems.push({
+        id: `review-${d.id}`,
+        type: "review",
+        score: scoreAction(70, dl, p.stage, pendingCnt),
+        label: `"${d.name}" needs review`,
+        reason: "Awaiting approval",
+        projectId: p.id, projectName: p.name,
+        agentName: "",
+        cta: "Review", href: `/agency/projects/${d.projectId}`,
+      });
+    });
 
-  // Projects in briefing with no tasks yet
-  activeProjects.filter((p) => p.stage === "briefing" && tasks.filter((tk) => tk.projectId === p.id).length === 0).forEach((p) => {
-    actionItems.push({ id: `plan-${p.id}`, label: t.dashboard.noTasksOrchestrator(p.name), cta: t.dashboard.planProject, href: `/agency/orchestrator`, priority: "normal" });
-  });
-
-  const sortedActions = [...actionItems.filter(a => a.priority === "high"), ...actionItems.filter(a => a.priority === "normal")].slice(0, 7);
+  // Sort by score descending, cap at 7
+  const sortedActions = actionItems.sort((a, b) => b.score - a.score).slice(0, 7);
 
   // ── Outputs ready ────────────────────────────────────────────────────────
   const readyOutputs = deliverables
@@ -154,18 +269,34 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div className="divide-y divide-[#F7F7F6]">
-            {sortedActions.map((item) => (
-              <div key={item.id} className="flex items-center gap-3 px-5 py-3">
-                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${item.priority === "high" ? "bg-[#DC2626]" : "bg-[#D97706]"}`} />
-                <p className="text-[13px] text-[#1A1A1A] flex-1">{item.label}</p>
-                <Link
-                  href={item.href}
-                  className="shrink-0 h-6 px-2.5 rounded-[5px] text-[11px] font-medium border border-[#E5E5E2] text-[#6B6B65] hover:border-[#5B5BD6] hover:text-[#5B5BD6] transition-colors"
-                >
-                  {item.cta} →
-                </Link>
-              </div>
-            ))}
+            {sortedActions.map((item) => {
+              const ts = TYPE_STYLES[item.type];
+              return (
+                <div key={item.id} className="flex items-start gap-3 px-5 py-3.5">
+                  {/* Type badge */}
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] shrink-0 mt-0.5 ${ts.bg} ${ts.text}`}>
+                    {ts.label}
+                  </span>
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-medium text-[#1A1A1A] leading-snug">{item.label}</p>
+                    <p className="text-[11px] text-[#9B9B95] mt-0.5">
+                      {item.reason}
+                      {item.agentName && (
+                        <> · <span className="text-[#6B6B65]">{item.agentName}</span></>
+                      )}
+                    </p>
+                  </div>
+                  {/* CTA */}
+                  <Link
+                    href={item.href}
+                    className="shrink-0 h-6 px-2.5 rounded-[5px] text-[11px] font-medium border border-[#E5E5E2] text-[#6B6B65] hover:border-[#5B5BD6] hover:text-[#5B5BD6] transition-colors whitespace-nowrap"
+                  >
+                    {item.cta} →
+                  </Link>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
