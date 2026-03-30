@@ -8,8 +8,14 @@ import Badge from "@/components/agency/ui/Badge";
 import Button from "@/components/agency/ui/Button";
 import Modal from "@/components/agency/ui/Modal";
 import Link from "next/link";
-import { ClientStatus } from "@/lib/agency/mock-data";
-import { MOCK_BRAND_ASSETS } from "@/lib/agency/mock-data";
+import {
+  ClientStatus,
+  MOCK_BRAND_ASSETS,
+  MOCK_AGENTS,
+  ProjectStage,
+} from "@/lib/agency/mock-data";
+
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const ASSET_COLORS: Record<string, string> = {
   logo: "bg-[#EEF0FF] text-[#5B5BD6]",
@@ -20,18 +26,104 @@ const ASSET_COLORS: Record<string, string> = {
   guidelines: "bg-[#F5F3FF] text-[#7C3AED]",
 };
 
+const PIPELINE_STAGES: ProjectStage[] = [
+  "briefing", "diagnosis", "planning", "production", "review", "delivery",
+];
+
+const ACTIVITY_ICONS: Record<string, string> = {
+  project_created: "◆",
+  project_stage_changed: "→",
+  task_updated: "✓",
+  deliverable_updated: "◎",
+  client_created: "★",
+  briefing_created: "◈",
+  orchestrator_approved: "⚡",
+};
+
+// ─── Future-proof resource shape (supports AI and human agents) ───────────────
+
+interface Resource {
+  id: string;
+  name: string;
+  role: string;
+  type: "ai" | "human";
+  projectNames: string[];
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
+
+function initials(name: string): string {
+  return name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 export default function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { clients, projects, updateClient } = useAgencyStore();
+  const { clients, projects, tasks, deliverables, activity, updateClient } = useAgencyStore();
   const [editOpen, setEditOpen] = useState(false);
 
   const client = clients.find((c) => c.id === id);
   if (!client) return notFound();
 
+  // ── Derived collections ─────────────────────────────────────────────────────
   const clientProjects = projects.filter((p) => p.clientId === id);
-  const brandAssets = MOCK_BRAND_ASSETS.filter((a) => a.clientId === id);
-  const activeProjects = clientProjects.filter((p) => p.stage !== "completed");
+  const clientProjectIds = new Set(clientProjects.map((p) => p.id));
+  const projectMap = Object.fromEntries(clientProjects.map((p) => [p.id, p]));
+  const agentMap = Object.fromEntries(MOCK_AGENTS.map((a) => [a.id, a]));
 
+  const clientTasks = tasks.filter((t) => clientProjectIds.has(t.projectId));
+  const clientDeliverables = deliverables.filter((d) => clientProjectIds.has(d.projectId));
+  const clientActivity = [...activity]
+    .filter((e) => (e.projectId !== undefined && clientProjectIds.has(e.projectId)) || e.clientId === id)
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    .slice(0, 10);
+  const brandAssets = MOCK_BRAND_ASSETS.filter((a) => a.clientId === id);
+
+  // ── Stats ───────────────────────────────────────────────────────────────────
+  const activeProjects   = clientProjects.filter((p) => p.stage !== "completed");
+  const inProgressTasks  = clientTasks.filter((t) => t.status === "in_progress");
+  const pendingTasks     = clientTasks.filter((t) => t.status === "pending");
+  const doneTasks        = clientTasks.filter((t) => t.status === "done");
+  const blockedTasks     = clientTasks.filter((t) => t.status === "blocked");
+
+  // ── Resources ───────────────────────────────────────────────────────────────
+  const agentIdSet = new Set(clientProjects.flatMap((p) => p.agents));
+  const resources: Resource[] = MOCK_AGENTS
+    .filter((a) => agentIdSet.has(a.id))
+    .map((a) => ({
+      id: a.id,
+      name: a.name,
+      role: a.role,
+      type: "ai" as const,
+      projectNames: clientProjects.filter((p) => p.agents.includes(a.id)).map((p) => p.name),
+    }));
+
+  // ── Task groups ─────────────────────────────────────────────────────────────
+  const taskGroups = [
+    { label: "In Progress", tasks: inProgressTasks, dot: "bg-[#5B5BD6]",  text: "text-[#5B5BD6]"  },
+    { label: "Pending",     tasks: pendingTasks,    dot: "bg-[#9B9B95]",  text: "text-[#6B6B65]"  },
+    { label: "Blocked",     tasks: blockedTasks,    dot: "bg-[#DC2626]",  text: "text-[#DC2626]"  },
+    { label: "Done",        tasks: doneTasks,       dot: "bg-[#16A34A]",  text: "text-[#16A34A]"  },
+  ].filter((g) => g.tasks.length > 0);
+
+  // ── Deliverables grouped by type ────────────────────────────────────────────
+  const deliverableByType: Record<string, typeof clientDeliverables> = {};
+  for (const d of clientDeliverables) {
+    deliverableByType[d.type] = deliverableByType[d.type] ?? [];
+    deliverableByType[d.type].push(d);
+  }
+
+  // ── Edit form ───────────────────────────────────────────────────────────────
   const [form, setForm] = useState({
     name: client.name,
     industry: client.industry,
@@ -61,9 +153,36 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
         }
       />
 
-      <div className="grid grid-cols-[1fr_280px] gap-6">
-        {/* Left */}
-        <div className="space-y-6">
+      {/* ── Summary Bar ───────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-5 gap-3 mb-6">
+        {[
+          { label: "Active Projects",  value: activeProjects.length,      alert: false },
+          { label: "In Progress",      value: inProgressTasks.length,     alert: false },
+          { label: "Pending Tasks",    value: pendingTasks.length,        alert: false },
+          { label: "Deliverables",     value: clientDeliverables.length,  alert: false },
+          { label: "Blocked",          value: blockedTasks.length,        alert: true  },
+        ].map(({ label, value, alert }) => (
+          <div
+            key={label}
+            className={`bg-white rounded-[10px] border px-4 py-3.5 shadow-[0_1px_3px_rgba(0,0,0,0.04)] ${
+              alert && value > 0 ? "border-red-200" : "border-[#E5E5E2]"
+            }`}
+          >
+            <div className={`text-[22px] font-bold mono-num leading-none ${
+              alert && value > 0 ? "text-[#DC2626]" : "text-[#1A1A1A]"
+            }`}>
+              {value}
+            </div>
+            <div className="text-[11px] text-[#9B9B95] mt-1.5">{label}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-[1fr_300px] gap-6">
+
+        {/* ── LEFT COLUMN ─────────────────────────────────────────────────────── */}
+        <div className="space-y-5">
+
           {/* Description */}
           {client.description && (
             <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
@@ -71,97 +190,319 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
             </div>
           )}
 
-          {/* Projects */}
+          {/* ── Project Pipeline ──────────────────────────────────────────────── */}
           <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0F0ED]">
               <h2 className="text-[14px] font-semibold text-[#1A1A1A]">
-                Projects
-                <span className="ml-2 text-[12px] font-normal text-[#9B9B95]">{clientProjects.length} total</span>
+                Project Pipeline
+                <span className="ml-2 text-[12px] font-normal text-[#9B9B95]">{clientProjects.length} project{clientProjects.length !== 1 ? "s" : ""}</span>
               </h2>
               <Link href="/agency/orchestrator" className="text-[12px] text-[#5B5BD6] hover:underline font-medium">
                 + New project
               </Link>
             </div>
+
             {clientProjects.length === 0 ? (
               <div className="px-5 py-10 text-center text-[13px] text-[#9B9B95]">No projects yet.</div>
             ) : (
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-[#F0F0ED]">
-                    <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Project</th>
-                    <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Stage</th>
-                    <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Priority</th>
-                    <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Deadline</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {clientProjects.map((project, i) => (
-                    <tr key={project.id} className={`hover:bg-[#FAFAF9] transition-colors ${i > 0 ? "border-t border-[#F0F0ED]" : ""}`}>
-                      <td className="px-5 py-3">
-                        <Link href={`/agency/projects/${project.id}`} className="text-[13px] font-medium text-[#1A1A1A] hover:text-[#5B5BD6] transition-colors">
-                          {project.name}
-                        </Link>
-                        <div className="text-[11px] text-[#9B9B95]">{project.type}</div>
-                      </td>
-                      <td className="px-5 py-3"><Badge variant={project.stage} /></td>
-                      <td className="px-5 py-3"><Badge variant={project.priority} /></td>
-                      <td className="px-5 py-3 text-[12px] text-[#9B9B95]">{project.deadline.slice(5)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="divide-y divide-[#F0F0ED]">
+                {clientProjects.map((project) => {
+                  const stageIdx = PIPELINE_STAGES.indexOf(project.stage);
+                  const isCompleted = project.stage === "completed";
+                  const isOngoing   = project.stage === "ongoing";
+                  return (
+                    <div key={project.id} className="px-5 py-4 hover:bg-[#FAFAF9] transition-colors">
+                      <div className="flex items-center justify-between mb-2.5">
+                        <div className="min-w-0">
+                          <Link
+                            href={`/agency/projects/${project.id}`}
+                            className="text-[13px] font-medium text-[#1A1A1A] hover:text-[#5B5BD6] transition-colors"
+                          >
+                            {project.name}
+                          </Link>
+                          <span className="ml-2 text-[11px] text-[#9B9B95]">{project.type}</span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Badge variant={project.priority} />
+                          <span className="text-[11px] text-[#9B9B95]">{project.deadline.slice(5)}</span>
+                        </div>
+                      </div>
+                      {/* Stage bar */}
+                      <div className="flex items-center gap-1">
+                        {PIPELINE_STAGES.map((stage, i) => {
+                          const passed  = isCompleted || isOngoing || i < stageIdx;
+                          const current = !isCompleted && !isOngoing && stage === project.stage;
+                          return (
+                            <div
+                              key={stage}
+                              title={stage}
+                              className={`h-1.5 flex-1 rounded-full transition-colors ${
+                                current ? "bg-[#5B5BD6]"
+                                : passed  ? "bg-[#C7C8F6]"
+                                :           "bg-[#F0F0ED]"
+                              }`}
+                            />
+                          );
+                        })}
+                        <span className="ml-2 text-[11px] text-[#9B9B95] capitalize shrink-0 w-16 text-right">
+                          {project.stage}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
 
-          {/* Brand Assets */}
+          {/* ── Client Tasks ──────────────────────────────────────────────────── */}
+          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#F0F0ED]">
+              <h2 className="text-[14px] font-semibold text-[#1A1A1A]">
+                Tasks
+                <span className="ml-2 text-[12px] font-normal text-[#9B9B95]">{clientTasks.length} total</span>
+              </h2>
+            </div>
+
+            {clientTasks.length === 0 ? (
+              <div className="px-5 py-10 text-center text-[13px] text-[#9B9B95]">No tasks yet.</div>
+            ) : (
+              <div>
+                {taskGroups.map((group) => (
+                  <div key={group.label}>
+                    {/* Group header */}
+                    <div className="flex items-center gap-2 px-5 py-2 bg-[#FAFAF9] border-b border-[#F0F0ED]">
+                      <span className={`w-1.5 h-1.5 rounded-full ${group.dot}`} />
+                      <span className={`text-[11px] font-semibold uppercase tracking-[0.05em] ${group.text}`}>
+                        {group.label}
+                      </span>
+                      <span className="text-[11px] text-[#9B9B95]">({group.tasks.length})</span>
+                    </div>
+                    {/* Task rows */}
+                    {group.tasks.map((task, i) => {
+                      const proj  = projectMap[task.projectId];
+                      const agent = agentMap[task.agentId];
+                      return (
+                        <div
+                          key={task.id}
+                          className={`flex items-start gap-3 px-5 py-3 hover:bg-[#FAFAF9] transition-colors ${
+                            i > 0 ? "border-t border-[#F7F7F6]" : ""
+                          }`}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[13px] text-[#1A1A1A] font-medium leading-snug">{task.title}</div>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              {proj && (
+                                <Link
+                                  href={`/agency/projects/${proj.id}`}
+                                  className="text-[11px] text-[#9B9B95] hover:text-[#5B5BD6] transition-colors"
+                                >
+                                  {proj.name}
+                                </Link>
+                              )}
+                              {agent && (
+                                <>
+                                  <span className="text-[#D4D4CE]">·</span>
+                                  <span className="text-[11px] text-[#9B9B95]">{agent.name}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          <span className="text-[11px] text-[#9B9B95] shrink-0 pt-0.5">{task.dueDate.slice(5)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* ── Client Deliverables ───────────────────────────────────────────── */}
           <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0F0ED]">
-              <h2 className="text-[14px] font-semibold text-[#1A1A1A]">Brand Assets</h2>
-              <Link href="/agency/brand-assets" className="text-[12px] text-[#5B5BD6] hover:underline font-medium">Manage</Link>
+              <h2 className="text-[14px] font-semibold text-[#1A1A1A]">
+                Deliverables
+                <span className="ml-2 text-[12px] font-normal text-[#9B9B95]">{clientDeliverables.length} total</span>
+              </h2>
+              <Link href="/agency/deliverables" className="text-[12px] text-[#5B5BD6] hover:underline font-medium">
+                View all
+              </Link>
             </div>
-            {brandAssets.length === 0 ? (
-              <div className="px-5 py-10 text-center text-[13px] text-[#9B9B95]">No brand assets yet.</div>
+
+            {clientDeliverables.length === 0 ? (
+              <div className="px-5 py-10 text-center text-[13px] text-[#9B9B95]">No deliverables yet.</div>
+            ) : (
+              <div>
+                {Object.entries(deliverableByType).map(([type, items]) => (
+                  <div key={type}>
+                    <div className="flex items-center gap-2 px-5 py-2 bg-[#FAFAF9] border-b border-[#F0F0ED]">
+                      <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">{type}</span>
+                      <span className="text-[11px] text-[#9B9B95]">({items.length})</span>
+                    </div>
+                    {items.map((d, i) => {
+                      const proj = projectMap[d.projectId];
+                      return (
+                        <div
+                          key={d.id}
+                          className={`flex items-center gap-3 px-5 py-3 hover:bg-[#FAFAF9] transition-colors ${
+                            i > 0 ? "border-t border-[#F7F7F6]" : ""
+                          }`}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[13px] text-[#1A1A1A] font-medium">{d.name}</div>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              {proj && (
+                                <Link
+                                  href={`/agency/projects/${proj.id}`}
+                                  className="text-[11px] text-[#9B9B95] hover:text-[#5B5BD6] transition-colors"
+                                >
+                                  {proj.name}
+                                </Link>
+                              )}
+                              <span className="text-[#D4D4CE]">·</span>
+                              <span className="text-[11px] text-[#9B9B95]">v{d.version}</span>
+                            </div>
+                          </div>
+                          <Badge variant={d.status} />
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* ── Activity Timeline ─────────────────────────────────────────────── */}
+          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#F0F0ED]">
+              <h2 className="text-[14px] font-semibold text-[#1A1A1A]">Activity</h2>
+            </div>
+
+            {clientActivity.length === 0 ? (
+              <div className="px-5 py-10 text-center text-[13px] text-[#9B9B95]">No activity recorded yet.</div>
+            ) : (
+              <div className="px-5 py-4">
+                <div className="relative">
+                  {/* Vertical line */}
+                  <div className="absolute left-[7px] top-2 bottom-2 w-[1px] bg-[#F0F0ED]" />
+                  <div className="space-y-4">
+                    {clientActivity.map((event) => (
+                      <div key={event.id} className="flex items-start gap-3 relative">
+                        {/* Dot */}
+                        <div className="w-[15px] h-[15px] rounded-full bg-[#EEF0FF] border-2 border-[#5B5BD6] shrink-0 mt-0.5 z-10 flex items-center justify-center">
+                          <span className="text-[7px] text-[#5B5BD6]">{ACTIVITY_ICONS[event.type] ?? "·"}</span>
+                        </div>
+                        <div className="flex-1 min-w-0 pb-1">
+                          <div className="text-[13px] text-[#1A1A1A] leading-snug">{event.message}</div>
+                          <div className="text-[11px] text-[#9B9B95] mt-0.5">{timeAgo(event.timestamp)}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+        </div>
+
+        {/* ── RIGHT COLUMN ────────────────────────────────────────────────────── */}
+        <div className="space-y-4">
+
+          {/* ── Overview stats ───────────────────────────────────────────────── */}
+          <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+            <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Account</div>
+            <div className="space-y-3">
+              {[
+                { label: "Status",      value: client.status.charAt(0).toUpperCase() + client.status.slice(1) },
+                { label: "Client Since", value: client.createdAt.slice(0, 7) },
+                { label: "Industry",    value: client.industry },
+                { label: "Completed",   value: String(clientProjects.filter((p) => p.stage === "completed").length) },
+              ].map(({ label, value }) => (
+                <div key={label} className="flex items-start justify-between gap-2">
+                  <span className="text-[12px] text-[#9B9B95] shrink-0">{label}</span>
+                  <span className="text-[12px] font-medium text-[#1A1A1A] text-right">{value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ── Assigned Resources ───────────────────────────────────────────── */}
+          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#F0F0ED]">
+              <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Assigned Resources</div>
+            </div>
+
+            {resources.length === 0 ? (
+              <div className="px-5 py-6 text-center text-[13px] text-[#9B9B95]">No resources assigned.</div>
             ) : (
               <div className="divide-y divide-[#F0F0ED]">
-                {brandAssets.map((asset) => (
-                  <div key={asset.id} className="flex items-start gap-3 px-5 py-3.5">
-                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-[4px] shrink-0 mt-0.5 ${ASSET_COLORS[asset.type] ?? "bg-[#F0F0ED] text-[#6B6B65]"}`}>
-                      {asset.type.replace("_", " ").toUpperCase()}
-                    </span>
-                    <div className="min-w-0">
-                      <div className="text-[13px] font-medium text-[#1A1A1A]">{asset.name}</div>
-                      {asset.value && <div className="text-[12px] text-[#6B6B65] mt-0.5">{asset.value}</div>}
-                      {asset.notes && <div className="text-[11px] text-[#9B9B95] mt-1 italic">{asset.notes}</div>}
+                {resources.map((res) => (
+                  <div key={res.id} className="flex items-start gap-3 px-5 py-3.5">
+                    <div className="w-8 h-8 rounded-full bg-[#EEF0FF] flex items-center justify-center shrink-0 text-[11px] font-bold text-[#5B5BD6]">
+                      {initials(res.name)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[13px] font-medium text-[#1A1A1A]">{res.name}</span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                          res.type === "ai"
+                            ? "bg-[#EEF0FF] text-[#5B5BD6]"
+                            : "bg-[#F0FDF4] text-[#16A34A]"
+                        }`}>
+                          {res.type === "ai" ? "AI" : "Human"}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-[#9B9B95] mt-0.5">{res.role}</div>
+                      <div className="text-[11px] text-[#C0C0BC] mt-0.5">
+                        {res.projectNames.length} project{res.projectNames.length !== 1 ? "s" : ""}
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
             )}
           </div>
-        </div>
 
-        {/* Right */}
-        <div className="space-y-4">
-          <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-            <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Overview</div>
-            <div className="space-y-3">
-              {[
-                { label: "Total Projects", value: clientProjects.length },
-                { label: "Active", value: activeProjects.length },
-                { label: "Completed", value: clientProjects.filter(p => p.stage === "completed").length },
-                { label: "Client Since", value: client.createdAt.slice(0, 7) },
-              ].map(({ label, value }) => (
-                <div key={label} className="flex items-center justify-between">
-                  <span className="text-[12px] text-[#9B9B95]">{label}</span>
-                  <span className="text-[13px] font-medium text-[#1A1A1A] mono-num">{value}</span>
-                </div>
-              ))}
+          {/* ── Brand Assets ─────────────────────────────────────────────────── */}
+          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0F0ED]">
+              <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Brand Assets</div>
+              <Link href="/agency/brand-assets" className="text-[12px] text-[#5B5BD6] hover:underline font-medium">
+                Manage
+              </Link>
             </div>
+
+            {brandAssets.length === 0 ? (
+              <div className="px-5 py-6 text-center text-[13px] text-[#9B9B95]">No brand assets yet.</div>
+            ) : (
+              <div className="divide-y divide-[#F0F0ED]">
+                {brandAssets.map((asset) => (
+                  <div key={asset.id} className="px-5 py-3.5">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-[4px] shrink-0 ${ASSET_COLORS[asset.type] ?? "bg-[#F0F0ED] text-[#6B6B65]"}`}>
+                        {asset.type.replace("_", " ").toUpperCase()}
+                      </span>
+                      <span className="text-[13px] font-medium text-[#1A1A1A] truncate">{asset.name}</span>
+                    </div>
+                    {asset.value && (
+                      <div className="text-[12px] text-[#6B6B65]">{asset.value}</div>
+                    )}
+                    {asset.notes && (
+                      <div className="text-[11px] text-[#9B9B95] mt-1 italic">{asset.notes}</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
+
         </div>
       </div>
 
-      {/* Edit Modal */}
+      {/* ── Edit Modal ────────────────────────────────────────────────────────── */}
       <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Edit Client">
         <div className="space-y-4">
           <div>
