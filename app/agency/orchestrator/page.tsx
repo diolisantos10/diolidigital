@@ -9,7 +9,7 @@ import Badge from "@/components/agency/ui/Badge";
 import Link from "next/link";
 import { Priority, ProjectStage, MOCK_AGENTS } from "@/lib/agency/mock-data";
 
-type OrchestratorState = "idle" | "analyzing" | "ready" | "approved";
+type OrchestratorState = "idle" | "reviewing" | "analyzing" | "ready" | "approved";
 type InputMode = "form" | "voice" | "audio";
 
 // ─── Normalized briefing shape ────────────────────────────────────────────────
@@ -394,6 +394,12 @@ export default function OrchestratorPage() {
     }, 2200);
   };
 
+  // Voice / audio path: parse → show editable review step → user clicks Generate
+  const handleParsed = (b: Briefing) => {
+    setBriefing(b);
+    setState("reviewing");
+  };
+
   const handleApprove = () => {
     if (!plan) return;
     const projType = briefingToProjectType(briefing);
@@ -432,7 +438,7 @@ export default function OrchestratorPage() {
 
 
   const STEP_LABELS = ["Receive Brief", "Analyze Context", "Generate Pipeline", "Assign Agents", "Activate"];
-  const STEP_STATES = { idle: -1, analyzing: 1, ready: 3, approved: 4 };
+  const STEP_STATES = { idle: -1, reviewing: 0, analyzing: 1, ready: 3, approved: 4 };
   const activeStep = STEP_STATES[state];
 
   return (
@@ -712,10 +718,10 @@ export default function OrchestratorPage() {
                     disabled={!voiceText.trim() || !form.clientId}
                     onClick={() => {
                       const b = parseTextToBriefing(voiceText, form.clientId);
-                      handleGenerate({ ...b, objective: b.objective || voiceText.slice(0, 200) });
+                      handleParsed({ ...b, objective: b.objective || voiceText.slice(0, 200) });
                     }}
                   >
-                    Parse &amp; Generate Plan
+                    Parse Brief
                   </Button>
                 )}
                 {state !== "idle" && (
@@ -894,10 +900,10 @@ export default function OrchestratorPage() {
                       disabled={!form.clientId || state !== "idle"}
                       onClick={() => {
                         const b = parseTextToBriefing(audioTranscript, form.clientId);
-                        handleGenerate({ ...b, objective: b.objective || audioTranscript.slice(0, 200) });
+                        handleParsed({ ...b, objective: b.objective || audioTranscript.slice(0, 200) });
                       }}
                     >
-                      Generate Plan from Transcript
+                      Review Briefing
                     </Button>
                   </>
                 )}
@@ -950,6 +956,127 @@ export default function OrchestratorPage() {
                 </div>
               );
             })()}
+
+            {state === "reviewing" && (
+              <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F0ED] bg-[#FAFAF9]">
+                  <span className="text-[12px] font-semibold text-[#1A1A1A] uppercase tracking-[0.05em]">Parsed Briefing</span>
+                  <span className="text-[11px] text-[#9B9B95]">Review and adjust before generating</span>
+                </div>
+                <div className="px-5 py-4 space-y-4">
+
+                  {/* Services */}
+                  <div>
+                    <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">
+                      Services
+                      {briefing.services.length > 0 && (
+                        <span className="ml-1.5 text-[11px] font-normal text-[#9B9B95]">({briefing.services.length} selected)</span>
+                      )}
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {SERVICE_OPTIONS.map((svc) => {
+                        const active = briefing.services.includes(svc.id);
+                        return (
+                          <button
+                            key={svc.id}
+                            type="button"
+                            onClick={() => toggleService(svc.id)}
+                            className={`h-7 px-3 rounded-full text-[12px] font-medium border transition-all ${
+                              active
+                                ? "bg-[#5B5BD6] border-[#5B5BD6] text-white"
+                                : "bg-white border-[#E5E5E2] text-[#6B6B65] hover:border-[#5B5BD6] hover:text-[#5B5BD6]"
+                            }`}
+                          >
+                            {svc.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Objective */}
+                  <div>
+                    <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Objective</label>
+                    <textarea
+                      value={briefing.objective}
+                      onChange={(e) => setBriefingField("objective", e.target.value)}
+                      rows={2}
+                      className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white resize-none"
+                    />
+                  </div>
+
+                  {/* Business description */}
+                  <div>
+                    <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Business Description</label>
+                    <textarea
+                      value={briefing.businessDescription}
+                      onChange={(e) => setBriefingField("businessDescription", e.target.value)}
+                      rows={2}
+                      className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white resize-none"
+                    />
+                  </div>
+
+                  {/* Target audience */}
+                  <div>
+                    <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Target Audience</label>
+                    <input
+                      value={briefing.targetAudience}
+                      onChange={(e) => setBriefingField("targetAudience", e.target.value)}
+                      className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
+                    />
+                  </div>
+
+                  {/* Channels + Deadline */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Channels</label>
+                      <input
+                        value={briefing.channels.join(", ")}
+                        onChange={(e) => setBriefingField("channels", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))}
+                        placeholder="e.g. Instagram, LinkedIn"
+                        className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Deadline</label>
+                      <input
+                        type="date"
+                        value={briefing.deadline}
+                        onChange={(e) => setBriefingField("deadline", e.target.value)}
+                        className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Notes */}
+                  <div>
+                    <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Notes</label>
+                    <textarea
+                      value={briefing.notes}
+                      onChange={(e) => setBriefingField("notes", e.target.value)}
+                      rows={2}
+                      placeholder="Constraints, references, budget, context…"
+                      className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white resize-none"
+                    />
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-2 pt-1">
+                    <Button variant="ghost" size="sm" onClick={handleReset} className="shrink-0">
+                      Back
+                    </Button>
+                    <button
+                      onClick={() => handleGenerate(briefing)}
+                      disabled={!briefing.clientId || !briefing.objective || briefing.services.length === 0}
+                      className="flex-1 h-9 bg-[#1A1A1A] hover:bg-[#111111] disabled:opacity-40 text-white text-[13px] font-semibold rounded-[8px] transition-colors"
+                    >
+                      Generate Plan
+                    </button>
+                  </div>
+
+                </div>
+              </div>
+            )}
 
             {state === "analyzing" && (
               <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-8 py-16 text-center shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
