@@ -255,10 +255,32 @@ export default function DashboardPage() {
         id: `review-${d.id}`, type: "review",
         score: scoreAction(70, dl, p.stage, pendingCnt),
         label: `"${d.name}" needs review`,
-        reason: "Awaiting approval",
+        reason: "Awaiting client approval",
         projectId: p.id, projectName: p.name, clientId: p.clientId,
         agentId: "", agentName: "",
         cta: "Review", href: `/agency/projects/${d.projectId}`,
+      });
+    });
+
+  // Revision needed (client requested changes) — base 80
+  deliverables
+    .filter((d) => d.status === "draft" && d.clientFeedback)
+    .slice(0, 4)
+    .forEach((d) => {
+      const p = projects.find((pr) => pr.id === d.projectId);
+      if (!p) return;
+      const dl         = daysLeft(p.deadline);
+      const pendingCnt = tasks.filter((t) => t.projectId === p.id && t.status === "pending").length;
+      const reworkId   = p.agents.find((a) => ["a2", "a1", "a3"].includes(a)) ?? p.agents[0];
+      const reworkAgent = agentMap[reworkId ?? ""];
+      actionItems.push({
+        id: `revision-${d.id}`, type: "execution",
+        score: scoreAction(80, dl, p.stage, pendingCnt),
+        label: `"${d.name}" revision needed — ${p.name}`,
+        reason: "Client requested changes",
+        projectId: p.id, projectName: p.name, clientId: p.clientId,
+        agentId: reworkId ?? "", agentName: reworkAgent?.name ?? "",
+        cta: "Revise", href: `/agency/projects/${p.id}`,
       });
     });
 

@@ -144,6 +144,55 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       {tab === "overview" && (
         <div className="grid grid-cols-[1fr_280px] gap-6">
           <div className="space-y-5">
+            {/* Client Approval status */}
+            {projectDeliverables.length > 0 && (() => {
+              const awaitingReview = projectDeliverables.filter((d) => d.status === "in_review").length;
+              const approvedCount  = projectDeliverables.filter((d) => d.status === "approved").length;
+              const revisionNeeded = projectDeliverables.filter((d) => d.status === "draft" && d.clientFeedback).length;
+              if (awaitingReview === 0 && revisionNeeded === 0 && approvedCount === 0) return null;
+              const reworkAgentId  = project.agents.find((a) => ["a2", "a1", "a3"].includes(a)) ?? project.agents[0];
+              const reworkAgent    = reworkAgentId ? getAgent(reworkAgentId) : null;
+              return (
+                <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                  <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Client Approval</div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {awaitingReview > 0 && (
+                      <button
+                        onClick={() => setTab("deliverables")}
+                        className="flex items-center gap-1.5 h-7 px-3 rounded-full bg-[#FEF3C7] text-[#D97706] text-[12px] font-medium hover:opacity-80 transition-opacity"
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#D97706]" />
+                        {awaitingReview} awaiting review
+                      </button>
+                    )}
+                    {revisionNeeded > 0 && (
+                      <button
+                        onClick={() => setTab("deliverables")}
+                        className="flex items-center gap-1.5 h-7 px-3 rounded-full bg-[#FEE2E2] text-[#DC2626] text-[12px] font-medium hover:opacity-80 transition-opacity"
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#DC2626]" />
+                        {revisionNeeded} revision needed
+                      </button>
+                    )}
+                    {approvedCount > 0 && (
+                      <button
+                        onClick={() => setTab("deliverables")}
+                        className="flex items-center gap-1.5 h-7 px-3 rounded-full bg-[#DCFCE7] text-[#16A34A] text-[12px] font-medium hover:opacity-80 transition-opacity"
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#16A34A]" />
+                        {approvedCount} approved
+                      </button>
+                    )}
+                  </div>
+                  {revisionNeeded > 0 && reworkAgent && (
+                    <p className="text-[12px] text-[#9B9B95] mt-2.5">
+                      Next action: <span className="text-[#1A1A1A] font-medium">{reworkAgent.name}</span> should rework the flagged deliverable.
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
+
             {/* Goal */}
             <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
               <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">Goal</div>

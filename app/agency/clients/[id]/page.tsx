@@ -248,6 +248,34 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                           {project.stage}
                         </span>
                       </div>
+                      {/* Approval status strip */}
+                      {(() => {
+                        const projDelivs = deliverables.filter((d) => d.projectId === project.id);
+                        if (projDelivs.length === 0) return null;
+                        const awaiting = projDelivs.filter((d) => d.status === "in_review").length;
+                        const approved = projDelivs.filter((d) => d.status === "approved").length;
+                        const revision = projDelivs.filter((d) => d.status === "draft" && d.clientFeedback).length;
+                        if (awaiting === 0 && approved === 0 && revision === 0) return null;
+                        return (
+                          <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                            {awaiting > 0 && (
+                              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#D97706]">
+                                {awaiting} awaiting review
+                              </span>
+                            )}
+                            {revision > 0 && (
+                              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-[#FEE2E2] text-[#DC2626]">
+                                {revision} revision needed
+                              </span>
+                            )}
+                            {approved > 0 && (
+                              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-[#DCFCE7] text-[#16A34A]">
+                                {approved} approved
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                   );
                 })}
