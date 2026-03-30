@@ -1108,6 +1108,73 @@ export default function OrchestratorPage() {
                     />
                   </div>
 
+                  {/* ── Guided questions for missing / weak fields ── */}
+                  {(() => {
+                    type SuggestedQuestion = {
+                      field: "objective" | "targetAudience" | "channels" | "deadline";
+                      question: string;
+                      placeholder: string;
+                    };
+                    const questions: SuggestedQuestion[] = [];
+                    if (!briefing.objective || briefing.objective.trim().length < 15)
+                      questions.push({ field: "objective",      question: "What is the main goal of this project?",      placeholder: "e.g. Grow our Instagram following, generate 200 qualified leads, launch the new collection." });
+                    if (!briefing.targetAudience)
+                      questions.push({ field: "targetAudience", question: "Who is the target audience?",                 placeholder: "e.g. Urban professionals 25–40, health-conscious millennials, HR directors at mid-size companies" });
+                    if (briefing.channels.length === 0)
+                      questions.push({ field: "channels",       question: "Which channels will this run on?",            placeholder: "e.g. Instagram, LinkedIn, Google Ads" });
+                    if (!briefing.deadline)
+                      questions.push({ field: "deadline",       question: "Is there a target deadline?",                placeholder: "" });
+
+                    if (questions.length === 0) return null;
+
+                    return (
+                      <div className="border-t border-[#F0F0ED] pt-4 space-y-3.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Refine your briefing</span>
+                          <span className="w-[18px] h-[18px] rounded-full bg-[#FEF3C7] text-[#D97706] text-[10px] font-bold flex items-center justify-center shrink-0">
+                            {questions.length}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-[#9B9B95] -mt-1">These fields are missing or incomplete — answers update the form above.</p>
+                        {questions.map((q) => (
+                          <div key={q.field}>
+                            <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">{q.question}</label>
+                            {q.field === "objective" ? (
+                              <textarea
+                                value={briefing.objective}
+                                onChange={(e) => setBriefingField("objective", e.target.value)}
+                                placeholder={q.placeholder}
+                                rows={2}
+                                className="w-full px-3 py-2 text-[13px] bg-[#FFFBEB] border border-[#FDE68A] rounded-[7px] outline-none focus:border-[#F59E0B] focus:bg-white resize-none transition-colors"
+                              />
+                            ) : q.field === "deadline" ? (
+                              <input
+                                type="date"
+                                value={briefing.deadline}
+                                onChange={(e) => setBriefingField("deadline", e.target.value)}
+                                className="w-full h-8 px-3 text-[13px] bg-[#FFFBEB] border border-[#FDE68A] rounded-[7px] outline-none focus:border-[#F59E0B] focus:bg-white transition-colors"
+                              />
+                            ) : q.field === "channels" ? (
+                              <input
+                                value={briefing.channels.join(", ")}
+                                onChange={(e) => setBriefingField("channels", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))}
+                                placeholder={q.placeholder}
+                                className="w-full h-8 px-3 text-[13px] bg-[#FFFBEB] border border-[#FDE68A] rounded-[7px] outline-none focus:border-[#F59E0B] focus:bg-white transition-colors"
+                              />
+                            ) : (
+                              <input
+                                value={briefing.targetAudience}
+                                onChange={(e) => setBriefingField("targetAudience", e.target.value)}
+                                placeholder={q.placeholder}
+                                className="w-full h-8 px-3 text-[13px] bg-[#FFFBEB] border border-[#FDE68A] rounded-[7px] outline-none focus:border-[#F59E0B] focus:bg-white transition-colors"
+                              />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+
                   {/* Actions */}
                   <div className="flex gap-2 pt-1">
                     <Button variant="ghost" size="sm" onClick={handleReset} className="shrink-0">
