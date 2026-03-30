@@ -302,6 +302,12 @@ function BriefingPreview({ briefing, subtitle }: { briefing: Briefing; subtitle:
   );
 }
 
+// ─── Timer helper ─────────────────────────────────────────────────────────────
+
+function formatTimer(s: number): string {
+  return `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
+}
+
 export default function OrchestratorPage() {
   const { clients, createProject } = useAgencyStore();
   const router = useRouter();
@@ -320,6 +326,33 @@ export default function OrchestratorPage() {
   });
 
   const [briefing, setBriefing] = useState<Briefing>(EMPTY_BRIEFING);
+
+  const [recordingState, setRecordingState] = useState<"idle" | "recording">("idle");
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+
+  useEffect(() => {
+    if (recordingState !== "recording") return;
+    const interval = setInterval(() => setRecordingSeconds((s) => s + 1), 1000);
+    return () => clearInterval(interval);
+  }, [recordingState]);
+
+  const handleStartRecording = () => {
+    setAudioFile(null);
+    setAudioTranscript("");
+    setAudioTranscribeState("idle");
+    setRecordingSeconds(0);
+    setRecordingState("recording");
+  };
+
+  const handleStopRecording = () => {
+    const idx = recordingSeconds % MOCK_TRANSCRIPTS.length;
+    setRecordingState("idle");
+    setAudioTranscribeState("transcribing");
+    setTimeout(() => {
+      setAudioTranscript(MOCK_TRANSCRIPTS[idx]);
+      setAudioTranscribeState("done");
+    }, 2800);
+  };
 
   useEffect(() => {
     if (state === "approved" && createdProjectId) {
@@ -383,6 +416,7 @@ export default function OrchestratorPage() {
   const handleReset = () => {
     setState("idle"); setPlan(null); setCreatedProjectId(null);
     setAudioFile(null); setAudioTranscribeState("idle"); setAudioTranscript("");
+    setRecordingState("idle"); setRecordingSeconds(0);
     setBriefing(EMPTY_BRIEFING);
     setForm({ clientId: "", priority: "high" });
   };
@@ -690,12 +724,42 @@ export default function OrchestratorPage() {
               </div>
             )}
 
-            {/* ── MODE: Audio Upload ── */}
+            {/* ── MODE: Audio Upload / Record ── */}
             {inputMode === "audio" && (
               <div className="space-y-4">
 
-                {/* Upload zone — hidden once transcribed */}
-                {audioTranscribeState !== "done" && (
+                {/* ── Recording active ── */}
+                {recordingState === "recording" && (
+                  <div className="flex flex-col items-center gap-4 px-6 py-8 bg-[#FEF2F2] border-2 border-[#FCA5A5] rounded-[10px]">
+                    {/* Waveform */}
+                    <div className="flex items-center gap-[3px] h-10">
+                      {[5, 9, 6, 14, 8, 12, 5, 16, 7, 11, 6, 13, 8, 10, 5].map((h, i) => (
+                        <span
+                          key={i}
+                          className="w-1 rounded-full bg-[#EF4444] animate-pulse"
+                          style={{
+                            height: `${h * 2}px`,
+                            animationDuration: `${500 + (i % 4) * 180}ms`,
+                            animationDelay: `${i * 60}ms`,
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <div className="text-center">
+                      <p className="text-[13px] font-semibold text-[#EF4444]">Recording…</p>
+                      <p className="text-[12px] text-[#9B9B95] mt-0.5 tabular-nums">{formatTimer(recordingSeconds)}</p>
+                    </div>
+                    <button
+                      onClick={handleStopRecording}
+                      className="h-8 px-5 rounded-[7px] bg-[#EF4444] hover:bg-[#DC2626] text-white text-[12px] font-semibold transition-colors"
+                    >
+                      Stop Recording
+                    </button>
+                  </div>
+                )}
+
+                {/* ── Upload zone — hidden while recording or after transcription ── */}
+                {audioTranscribeState !== "done" && recordingState === "idle" && (
                   <label className={`flex flex-col items-center justify-center gap-3 border-2 border-dashed rounded-[10px] px-6 py-8 cursor-pointer transition-colors ${
                     audioFile ? "border-[#5B5BD6] bg-[#EEF0FF]/40" : "border-[#E5E5E2] hover:border-[#C0C0BA] bg-[#FAFAF9]"
                   } ${audioTranscribeState === "transcribing" ? "pointer-events-none" : ""}`}>
@@ -743,14 +807,32 @@ export default function OrchestratorPage() {
                   </label>
                 )}
 
-                {/* Transcribe button */}
-                {audioFile && audioTranscribeState === "idle" && (
+                {/* ── Record button — shown when idle, no file, not transcribed ── */}
+                {audioTranscribeState === "idle" && recordingState === "idle" && !audioFile && (
+                  <>
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 h-[1px] bg-[#F0F0ED]" />
+                      <span className="text-[11px] text-[#C0C0BC]">or</span>
+                      <div className="flex-1 h-[1px] bg-[#F0F0ED]" />
+                    </div>
+                    <button
+                      onClick={handleStartRecording}
+                      className="w-full h-10 flex items-center justify-center gap-2.5 rounded-[8px] border border-[#E5E5E2] bg-white hover:border-[#EF4444] hover:bg-[#FEF2F2] text-[#6B6B65] hover:text-[#EF4444] text-[13px] font-medium transition-all group"
+                    >
+                      <span className="w-2 h-2 rounded-full bg-[#EF4444] group-hover:animate-pulse" />
+                      Record Audio
+                    </button>
+                  </>
+                )}
+
+                {/* ── Transcribe button (upload path) ── */}
+                {audioFile && audioTranscribeState === "idle" && recordingState === "idle" && (
                   <Button variant="secondary" size="lg" className="w-full" onClick={handleAudioTranscribe}>
                     Transcribe Audio
                   </Button>
                 )}
 
-                {/* Transcribing animation */}
+                {/* ── Transcribing animation (shared by upload + record) ── */}
                 {audioTranscribeState === "transcribing" && (
                   <div className="flex items-center gap-2.5 px-4 py-3 bg-[#EEF0FF] rounded-[8px]">
                     <div className="flex gap-1 shrink-0">
@@ -762,7 +844,7 @@ export default function OrchestratorPage() {
                   </div>
                 )}
 
-                {/* Transcript output */}
+                {/* ── Transcript output (shared by upload + record) ── */}
                 {audioTranscribeState === "done" && (
                   <>
                     <div className="flex items-center justify-between mb-0.5">
@@ -776,7 +858,10 @@ export default function OrchestratorPage() {
                       </div>
                       <button
                         className="text-[11px] text-[#9B9B95] hover:text-[#6B6B65] transition-colors"
-                        onClick={() => { setAudioFile(null); setAudioTranscribeState("idle"); setAudioTranscript(""); }}
+                        onClick={() => {
+                          setAudioFile(null); setAudioTranscribeState("idle"); setAudioTranscript("");
+                          setRecordingState("idle"); setRecordingSeconds(0);
+                        }}
                       >
                         Remove
                       </button>
@@ -787,7 +872,7 @@ export default function OrchestratorPage() {
                   </>
                 )}
 
-                {/* Client + CTA — visible after transcription */}
+                {/* ── Client + CTA — visible after transcription ── */}
                 {audioTranscribeState === "done" && (
                   <>
                     <div>
