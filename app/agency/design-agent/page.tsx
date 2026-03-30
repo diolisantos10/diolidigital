@@ -233,8 +233,11 @@ const STEPS = [
 export default function DesignAgentPage() {
   const [contractInput, setContractInput] = useState("");
   const [agentState, setAgentState] = useState<AgentState>("idle");
-  const pendingContract = useAgencyStore((s) => s.pendingDesignContract);
+  const pendingContract       = useAgencyStore((s) => s.pendingDesignContract);
   const setPendingDesignContract = useAgencyStore((s) => s.setPendingDesignContract);
+  const projects              = useAgencyStore((s) => s.projects);
+  const addDeliverable        = useAgencyStore((s) => s.addDeliverable);
+  const pendingAgentInput     = useAgencyStore((s) => s.pendingAgentInput);
 
   useEffect(() => {
     if (pendingContract) {
@@ -246,6 +249,54 @@ export default function DesignAgentPage() {
   const [stepIndex, setStepIndex] = useState(0);
   const [briefs, setBriefs] = useState<VisualBrief[]>([]);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  // ── Real image generation ──────────────────────────────────────────────────
+  type ImageStatus = "idle" | "generating" | "done" | "error";
+  interface ImageState { status: ImageStatus; url?: string; error?: string }
+  interface SaveForm { name: string; projectId: string; saved: boolean }
+
+  const [imageStates, setImageStates] = useState<Record<number, ImageState>>({});
+  const [saveForms,   setSaveForms]   = useState<Record<number, SaveForm>>({});
+
+  async function handleGenerateImage(postId: number, prompt: string) {
+    setImageStates((prev) => ({ ...prev, [postId]: { status: "generating" } }));
+    try {
+      const res  = await fetch("/api/generate-image", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ prompt }),
+      });
+      const data = await res.json() as { url?: string; error?: string };
+      if (!res.ok || data.error) {
+        setImageStates((prev) => ({ ...prev, [postId]: { status: "error", error: data.error ?? "Generation failed." } }));
+      } else {
+        setImageStates((prev) => ({ ...prev, [postId]: { status: "done", url: data.url } }));
+        const defaultProjectId = pendingAgentInput?.projectId ?? projects[0]?.id ?? "";
+        const briefTitle = briefs.find((b) => b.postId === postId)?.title ?? "Design Asset";
+        setSaveForms((prev) => ({
+          ...prev,
+          [postId]: { name: briefTitle, projectId: defaultProjectId, saved: false },
+        }));
+      }
+    } catch {
+      setImageStates((prev) => ({ ...prev, [postId]: { status: "error", error: "Network error — could not reach the image API." } }));
+    }
+  }
+
+  function handleSaveDeliverable(postId: number) {
+    const form = saveForms[postId];
+    const img  = imageStates[postId];
+    if (!form || !img?.url || !form.projectId || !form.name) return;
+    addDeliverable({
+      projectId: form.projectId,
+      name:      form.name,
+      type:      "Design",
+      status:    "in_review",
+      link:      img.url,
+      version:   1,
+    });
+    setSaveForms((prev) => ({ ...prev, [postId]: { ...prev[postId], saved: true } }));
+  }
 
   const isReady = contractInput.trim().length > 20;
 
@@ -310,7 +361,7 @@ export default function DesignAgentPage() {
             <span className="w-1.5 h-1.5 rounded-full bg-[#C2530A] inline-block" />
             Production Agent
           </span>
-          <span className="text-[12px] text-[#9B9B95]">v1.0 — Mock Mode</span>
+          <span className="text-[12px] text-[#9B9B95]">v1.1 — DALL‑E 3</span>
           <span className="text-[12px] text-[#9B9B95]">·</span>
           <span className="text-[12px] text-[#9B9B95]">Receives output from Social Media Agent</span>
           {agentState === "output_ready" && (
@@ -505,6 +556,109 @@ export default function DesignAgentPage() {
                           <div className="rounded-[7px] bg-[#F7F7F6] border border-[#E5E5E2] px-3 py-2.5">
                             <p className="text-[11px] font-mono text-[#6B6B65] leading-relaxed">{b.enhancedPrompt}</p>
                           </div>
+                        </div>
+
+                        {/* Image generation section */}
+                        <div className="px-5 py-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-1.5">
+                              <span className="w-4 h-4 rounded-full bg-[#EEF0FF] flex items-center justify-center shrink-0">
+                                <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+                                  <path d="M4 1v2.5L6 5M4 1L2 5M1 7h6" stroke="#5B5BD6" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                              </span>
+                              <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide">Real Image</p>
+                            </div>
+                            {(!imageStates[b.postId] || imageStates[b.postId].status === "idle") && (
+                              <button
+                                onClick={() => handleGenerateImage(b.postId, b.enhancedPrompt)}
+                                className="h-7 px-3 rounded-[6px] text-[12px] font-semibold bg-[#5B5BD6] text-white hover:bg-[#4A4AC5] active:bg-[#3939B4] transition-colors flex items-center gap-1.5"
+                              >
+                                <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+                                  <path d="M5.5 1v4M5.5 10V6M1 5.5h4M10 5.5H6" stroke="white" strokeWidth="1.4" strokeLinecap="round"/>
+                                </svg>
+                                Generate Real Image
+                              </button>
+                            )}
+                            {imageStates[b.postId]?.status === "error" && (
+                              <button
+                                onClick={() => handleGenerateImage(b.postId, b.enhancedPrompt)}
+                                className="h-7 px-3 rounded-[6px] text-[12px] font-medium border border-[#DC2626] text-[#DC2626] hover:bg-[#FEF2F2] transition-colors"
+                              >
+                                Retry
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Generating */}
+                          {imageStates[b.postId]?.status === "generating" && (
+                            <div className="rounded-[8px] bg-[#F7F7F6] border border-[#E5E5E2] py-8 flex flex-col items-center gap-3">
+                              <span className="w-5 h-5 border-2 border-[#5B5BD6] border-t-transparent rounded-full animate-spin" />
+                              <p className="text-[12px] text-[#9B9B95]">Generating with DALL‑E 3…</p>
+                            </div>
+                          )}
+
+                          {/* Error */}
+                          {imageStates[b.postId]?.status === "error" && (
+                            <div className="rounded-[8px] bg-[#FEF2F2] border border-[#FECACA] px-4 py-3 flex items-start gap-2">
+                              <span className="text-[#DC2626] shrink-0 mt-px">⚠</span>
+                              <p className="text-[12px] text-[#DC2626] leading-snug">{imageStates[b.postId].error}</p>
+                            </div>
+                          )}
+
+                          {/* Done — image + save form */}
+                          {imageStates[b.postId]?.status === "done" && imageStates[b.postId].url && (
+                            <div className="space-y-3">
+                              <img
+                                src={imageStates[b.postId].url}
+                                alt={b.title}
+                                className="w-full rounded-[8px] border border-[#E5E5E2] shadow-sm"
+                              />
+
+                              {saveForms[b.postId]?.saved ? (
+                                <div className="rounded-[7px] bg-[#F0FDF4] border border-[#BBF7D0] px-4 py-2.5 flex items-center gap-2">
+                                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                                    <path d="M2.5 7.5l3 3 6-6" stroke="#16A34A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                  </svg>
+                                  <p className="text-[12px] text-[#16A34A] font-medium">Saved to project as a deliverable — status: In Review.</p>
+                                </div>
+                              ) : (
+                                <div className="rounded-[7px] bg-[#F7F7F6] border border-[#E5E5E2] p-3.5 space-y-2.5">
+                                  <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Save to Project</p>
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                      <label className="block text-[11px] text-[#6B6B65] mb-1">Name</label>
+                                      <input
+                                        value={saveForms[b.postId]?.name ?? b.title}
+                                        onChange={(e) => setSaveForms((prev) => ({ ...prev, [b.postId]: { ...prev[b.postId], name: e.target.value } }))}
+                                        className="w-full h-7 px-2 text-[12px] bg-white border border-[#E5E5E2] rounded-[5px] outline-none focus:border-[#5B5BD6]"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="block text-[11px] text-[#6B6B65] mb-1">Project</label>
+                                      <select
+                                        value={saveForms[b.postId]?.projectId ?? ""}
+                                        onChange={(e) => setSaveForms((prev) => ({ ...prev, [b.postId]: { ...prev[b.postId], projectId: e.target.value } }))}
+                                        className="w-full h-7 px-2 text-[12px] bg-white border border-[#E5E5E2] rounded-[5px] outline-none focus:border-[#5B5BD6]"
+                                      >
+                                        <option value="">— select project —</option>
+                                        {projects.map((p) => (
+                                          <option key={p.id} value={p.id}>{p.name}</option>
+                                        ))}
+                                      </select>
+                                    </div>
+                                  </div>
+                                  <button
+                                    disabled={!saveForms[b.postId]?.projectId || !saveForms[b.postId]?.name}
+                                    onClick={() => handleSaveDeliverable(b.postId)}
+                                    className="w-full h-7 rounded-[5px] text-[12px] font-medium bg-[#1A1A1A] text-white hover:bg-[#2A2A2A] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                  >
+                                    Save as Deliverable
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
 
                         {/* Section 3 — Layout Structure */}
