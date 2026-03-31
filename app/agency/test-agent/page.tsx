@@ -32,6 +32,11 @@ interface TestReport {
   blockers: string[];
   observations: string[];
   nextFixes: string[];
+  executiveSummary: string;
+  totalChecks: number;
+  projectNames: string[];
+  flowName: string;
+  readiness: "not_ready" | "warnings" | "ready";
 }
 
 interface Step {
@@ -307,13 +312,14 @@ function buildSteps(flowId: FlowId, snap: StoreSnapshot, selectedProjectId: stri
 
 // ─── Report generator ─────────────────────────────────────────────────────────
 
-function generateReport(logs: TestLog[]): TestReport {
+function generateReport(logs: TestLog[], projectNames: string[], flowName: string): TestReport {
   const passed       = logs.filter((l) => l.status === "pass").map((l) => l.action);
   const failed       = logs.filter((l) => l.status === "fail").map((l) => `${l.action} — ${l.detail}`);
   const observations = logs.filter((l) => l.status === "warning").map((l) => `${l.action}: ${l.detail}`);
   const blockers     = failed.filter((f) =>
     /agents assigned|tasks generated|project exists|assigned to project/i.test(f)
   );
+  const totalChecks  = logs.filter((l) => l.status !== "info").length;
 
   const nextFixes: string[] = [];
   if (failed.some((f) => /tasks generated|no tasks/i.test(f)))       nextFixes.push("Run Orchestrator to generate an execution plan and tasks for the project");
@@ -325,7 +331,19 @@ function generateReport(logs: TestLog[]): TestReport {
   if (observations.some((o) => /no approvals/i.test(o)))             nextFixes.push("Request client review — send portal link to client");
   if (nextFixes.length === 0 && failed.length === 0)                 nextFixes.push("All checks passed — no fixes required");
 
-  return { passed, failed, blockers, observations, nextFixes };
+  const readiness: TestReport["readiness"] =
+    blockers.length > 0 || failed.length > 0 ? "not_ready"
+    : observations.length > 0                ? "warnings"
+    : "ready";
+
+  const projStr       = projectNames.length === 1 ? `"${projectNames[0]}"` : `${projectNames.length} projects`;
+  const readinessLine =
+    readiness === "not_ready" ? "The system is not ready for pilot — critical issues must be resolved first."
+    : readiness === "warnings" ? "The system is conditionally ready — address warnings before going live."
+    : "All checks passed. The system is ready for pilot.";
+  const executiveSummary = `Tested ${projStr} through "${flowName}". ${passed.length} of ${totalChecks} checks passed with ${failed.length} failure(s) and ${observations.length} warning(s). ${readinessLine}`;
+
+  return { passed, failed, blockers, observations, nextFixes, executiveSummary, totalChecks, projectNames, flowName, readiness };
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -406,24 +424,20 @@ export default function TestAgentPage() {
 
         if (i === allLogs.length - 1) {
           const hasFail = allLogs.some((l) => l.status === "fail");
-          const rep = generateReport(allLogs);
+          const projNames = ids.map((id) => snap.projects.find((p) => p.id === id)?.name ?? id);
+          const rep = generateReport(allLogs, projNames, flowLabel);
           setReport(rep);
           setTestStatus(hasFail ? "failed" : "completed");
-
-          const readiness: QATestRun["readiness"] =
-            rep.blockers.length > 0 ? "not_ready"
-            : rep.failed.length > 0 || rep.observations.length > 0 ? "warnings"
-            : "ready";
           addTestRun({
             timestamp: new Date().toISOString(),
-            projectNames: ids.map((id) => snap.projects.find((p) => p.id === id)?.name ?? id),
+            projectNames: projNames,
             flowId: selectedFlow as string,
-            totalChecks: allLogs.filter((l) => l.status !== "info").length,
+            totalChecks: rep.totalChecks,
             passed: rep.passed.length,
             failed: rep.failed.length,
             warnings: rep.observations.length,
             blockers: rep.blockers.length,
-            readiness,
+            readiness: rep.readiness,
           });
         }
       }, (i + 1) * 380 + Math.floor(Math.random() * 120));
@@ -686,21 +700,43 @@ export default function TestAgentPage() {
       {/* Report */}
       {report && testStatus !== "running" && (
         <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5">
-          {/* Report header */}
-          <div className="flex items-center gap-3 mb-5 pb-4 border-b border-[#F0F0ED]">
+          {/* Readiness signal */}
+          {(() => {
+            const READINESS = {
+              not_ready: { bg: "bg-[#FEF2F2]", border: "border-[#FECACA]", text: "text-[#DC2626]", label: "Not Ready", icon: "✗" },
+              warnings:  { bg: "bg-[#FFFBEB]", border: "border-[#FDE68A]", text: "text-[#D97706]", label: "Ready with Warnings", icon: "⚠" },
+              ready:     { bg: "bg-[#F0FDF4]", border: "border-[#BBF7D0]", text: "text-[#16A34A]", label: "Ready for Pilot", icon: "✓" },
+            }[report.readiness];
+            return (
+              <div className={`flex items-center gap-3 rounded-[8px] border px-4 py-3 mb-5 ${READINESS.bg} ${READINESS.border}`}>
+                <span className={`text-[18px] font-bold leading-none ${READINESS.text}`}>{READINESS.icon}</span>
+                <span className={`text-[15px] font-bold ${READINESS.text}`}>{READINESS.label}</span>
+              </div>
+            );
+          })()}
+
+          {/* Report header row */}
+          <div className="flex items-center gap-3 mb-4 pb-4 border-b border-[#F0F0ED]">
             <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Test Report</div>
-            <span
-              className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide ${
-                testStatus === "completed" ? "bg-[#DCFCE7] text-[#16A34A]" : "bg-[#FEE2E2] text-[#DC2626]"
-              }`}
-            >
-              {testStatus === "completed" ? "All clear" : "Needs attention"}
-            </span>
             <div className="ml-auto flex items-center gap-4 text-[12px] text-[#9B9B95]">
+              <span className="text-[#6B6B65]">{report.totalChecks} checks</span>
               <span className="text-[#16A34A] font-medium">{report.passed.length} passed</span>
               <span className="text-[#DC2626] font-medium">{report.failed.length} failed</span>
               <span className="text-[#D97706] font-medium">{report.observations.length} warnings</span>
+              <span className="text-[#DC2626] font-medium">{report.blockers.length} blockers</span>
             </div>
+          </div>
+
+          {/* Run metadata */}
+          <div className="flex items-center gap-6 mb-4 text-[12px] text-[#6B6B65]">
+            <span><span className="text-[#9B9B95]">Projects: </span>{report.projectNames.join(", ")}</span>
+            <span><span className="text-[#9B9B95]">Flow: </span>{report.flowName}</span>
+          </div>
+
+          {/* Executive summary */}
+          <div className="bg-[#F7F7F6] border border-[#E5E5E2] rounded-[8px] px-4 py-3 mb-5">
+            <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1">Executive Summary</div>
+            <p className="text-[12.5px] text-[#1A1A1A] leading-relaxed">{report.executiveSummary}</p>
           </div>
 
           {/* Blockers */}
