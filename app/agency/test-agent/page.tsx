@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
-import { useAgencyStore } from "@/store/agency-store";
+import { useState, useRef } from "react";
+import { useAgencyStore, QATestRun } from "@/store/agency-store";
 import { MOCK_AGENTS } from "@/lib/agency/mock-data";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type TestStatus = "idle" | "running" | "completed" | "failed";
+type TestMode = "single" | "multi" | "simulation";
 type LogLevel = "pass" | "fail" | "info" | "warning";
 type FlowId =
   | "briefing_to_project"
@@ -327,62 +328,102 @@ function generateReport(logs: TestLog[]): TestReport {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function TestAgentPage() {
-  const store = useAgencyStore();
-  const { projects } = store;
+const MODE_OPTIONS: { id: TestMode; label: string; desc: string }[] = [
+  { id: "single",     label: "Single Project",         desc: "Test one project against a selected flow" },
+  { id: "multi",      label: "Multi-Project",          desc: "Select multiple projects to test in sequence" },
+  { id: "simulation", label: "Full Agency Simulation", desc: "Run all active projects through the selected flow" },
+];
 
-  const [selectedProjectId, setSelectedProjectId] = useState("");
-  const [selectedFlow,      setSelectedFlow]      = useState<FlowId | "">("");
-  const [testStatus,        setTestStatus]        = useState<TestStatus>("idle");
-  const [logs,              setLogs]              = useState<TestLog[]>([]);
-  const [report,            setReport]            = useState<TestReport | null>(null);
+export default function TestAgentPage() {
+  const { projects, addTestRun } = useAgencyStore();
+
+  const [mode,               setMode]               = useState<TestMode>("single");
+  const [selectedProjectId,  setSelectedProjectId]  = useState("");
+  const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
+  const [selectedFlow,       setSelectedFlow]       = useState<FlowId | "">("");
+  const [testStatus,         setTestStatus]         = useState<TestStatus>("idle");
+  const [logs,               setLogs]               = useState<TestLog[]>([]);
+  const [report,             setReport]             = useState<TestReport | null>(null);
   const cancelRef = useRef(false);
 
-  const runTest = useCallback(() => {
-    if (!selectedProjectId || !selectedFlow) return;
+  const activeProjects = projects.filter((p) => p.stage !== "completed");
 
-    // Snapshot current store state
+  const toggleProject = (id: string) =>
+    setSelectedProjectIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+
+  const getTargetIds = (): string[] => {
+    if (mode === "single")     return selectedProjectId ? [selectedProjectId] : [];
+    if (mode === "multi")      return selectedProjectIds;
+    return activeProjects.map((p) => p.id);
+  };
+
+  const targetIds = getTargetIds();
+  const canRun = !!selectedFlow && targetIds.length > 0 && testStatus !== "running";
+
+  const runTest = () => {
+    const ids = getTargetIds();
+    if (!selectedFlow || ids.length === 0) return;
+
     const snap = useAgencyStore.getState();
-
     setTestStatus("running");
     setLogs([]);
     setReport(null);
     cancelRef.current = false;
 
-    const steps = buildSteps(selectedFlow, snap, selectedProjectId);
-
     // Pre-compute all log entries synchronously
-    const allLogs: TestLog[] = steps.map((step, i) => {
-      const result = step.run();
-      const status: LogLevel =
-        result.ok === true     ? "pass"
-        : result.ok === false  ? "fail"
-        : result.ok === "warning" ? "warning"
-        : "info";
-      return {
-        id: `log-${i}`,
-        action: step.action,
-        status,
-        detail: result.detail,
-        timestamp: new Date().toISOString(),
-      };
-    });
+    const allLogs: TestLog[] = [];
 
-    // Stream them out with per-step delay
+    if (ids.length === 1) {
+      buildSteps(selectedFlow as FlowId, snap, ids[0]).forEach((step, i) => {
+        const result = step.run();
+        const status: LogLevel = result.ok === true ? "pass" : result.ok === false ? "fail" : result.ok === "warning" ? "warning" : "info";
+        allLogs.push({ id: `log-${i}`, action: step.action, status, detail: result.detail, timestamp: new Date().toISOString() });
+      });
+    } else {
+      ids.forEach((pid, pi) => {
+        const projName = snap.projects.find((p) => p.id === pid)?.name ?? pid;
+        allLogs.push({ id: `log-h${pi}`, action: `━━ ${projName} ━━`, status: "info", detail: `flow: ${selectedFlow}`, timestamp: new Date().toISOString() });
+        buildSteps(selectedFlow as FlowId, snap, pid).forEach((step, i) => {
+          const result = step.run();
+          const status: LogLevel = result.ok === true ? "pass" : result.ok === false ? "fail" : result.ok === "warning" ? "warning" : "info";
+          allLogs.push({ id: `log-${pi}-${i}`, action: step.action, status, detail: result.detail, timestamp: new Date().toISOString() });
+        });
+      });
+    }
+
+    // Stream them with per-step delay
     allLogs.forEach((log, i) => {
-      const delay = (i + 1) * 380 + Math.floor(Math.random() * 120);
       setTimeout(() => {
         if (cancelRef.current) return;
         setLogs((prev) => [...prev, log]);
 
         if (i === allLogs.length - 1) {
           const hasFail = allLogs.some((l) => l.status === "fail");
-          setReport(generateReport(allLogs));
+          const rep = generateReport(allLogs);
+          setReport(rep);
           setTestStatus(hasFail ? "failed" : "completed");
+
+          const readiness: QATestRun["readiness"] =
+            rep.blockers.length > 0 ? "not_ready"
+            : rep.failed.length > 0 || rep.observations.length > 0 ? "warnings"
+            : "ready";
+          addTestRun({
+            timestamp: new Date().toISOString(),
+            projectNames: ids.map((id) => snap.projects.find((p) => p.id === id)?.name ?? id),
+            flowId: selectedFlow as string,
+            totalChecks: allLogs.filter((l) => l.status !== "info").length,
+            passed: rep.passed.length,
+            failed: rep.failed.length,
+            warnings: rep.observations.length,
+            blockers: rep.blockers.length,
+            readiness,
+          });
         }
-      }, delay);
+      }, (i + 1) * 380 + Math.floor(Math.random() * 120));
     });
-  }, [selectedProjectId, selectedFlow]);
+  };
 
   const reset = () => {
     cancelRef.current = true;
@@ -392,7 +433,6 @@ export default function TestAgentPage() {
   };
 
   const selectedFlowDef = FLOWS.find((f) => f.id === selectedFlow);
-  const canRun = !!selectedProjectId && !!selectedFlow && testStatus !== "running";
 
   const STATUS_PILL: Record<TestStatus, { bg: string; text: string; label: string }> = {
     idle:      { bg: "bg-[#F0F0ED]",   text: "text-[#9B9B95]",  label: "Idle"      },
@@ -400,7 +440,6 @@ export default function TestAgentPage() {
     completed: { bg: "bg-[#DCFCE7]",   text: "text-[#16A34A]",  label: "Completed" },
     failed:    { bg: "bg-[#FEE2E2]",   text: "text-[#DC2626]",  label: "Failed"    },
   };
-
   const pill = STATUS_PILL[testStatus];
 
   return (
@@ -425,38 +464,116 @@ export default function TestAgentPage() {
       <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5 mb-5">
         <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-4">1. Test Setup</div>
 
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          {/* Project select */}
-          <div>
-            <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Select Project</label>
-            <select
-              value={selectedProjectId}
-              onChange={(e) => setSelectedProjectId(e.target.value)}
-              disabled={testStatus === "running"}
-              className="w-full h-9 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
-            >
-              <option value="">— choose a project —</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
+        {/* Mode selector */}
+        <div className="mb-4">
+          <label className="block text-[12px] font-medium text-[#6B6B65] mb-2">Test Mode</label>
+          <div className="grid grid-cols-3 gap-2">
+            {MODE_OPTIONS.map((m) => (
+              <button
+                key={m.id}
+                onClick={() => { setMode(m.id); setSelectedProjectId(""); setSelectedProjectIds([]); }}
+                disabled={testStatus === "running"}
+                className={`text-left px-3 py-2.5 rounded-[7px] border transition-all disabled:opacity-50 ${
+                  mode === m.id
+                    ? "border-[#5B5BD6] bg-[#EEF0FF]"
+                    : "border-[#E5E5E2] bg-[#F7F7F6] hover:border-[#C0C0BA]"
+                }`}
+              >
+                <div className={`text-[12px] font-semibold mb-0.5 ${mode === m.id ? "text-[#5B5BD6]" : "text-[#1A1A1A]"}`}>
+                  {m.label}
+                </div>
+                <div className="text-[10.5px] text-[#9B9B95] leading-snug">{m.desc}</div>
+              </button>
+            ))}
           </div>
+        </div>
 
-          {/* Flow select */}
-          <div>
-            <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Select Test Flow</label>
-            <select
-              value={selectedFlow}
-              onChange={(e) => setSelectedFlow(e.target.value as FlowId)}
-              disabled={testStatus === "running"}
-              className="w-full h-9 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
-            >
-              <option value="">— choose a flow —</option>
-              {FLOWS.map((f) => (
-                <option key={f.id} value={f.id}>{f.label}</option>
-              ))}
-            </select>
-          </div>
+        {/* Project selection — mode-aware */}
+        <div className="mb-4">
+          {mode === "single" && (
+            <div>
+              <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Select Project</label>
+              <select
+                value={selectedProjectId}
+                onChange={(e) => setSelectedProjectId(e.target.value)}
+                disabled={testStatus === "running"}
+                className="w-full h-9 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
+              >
+                <option value="">— choose a project —</option>
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {mode === "multi" && (
+            <div>
+              <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">
+                Select Projects
+                {selectedProjectIds.length > 0 && (
+                  <span className="ml-2 text-[#5B5BD6] font-semibold">{selectedProjectIds.length} selected</span>
+                )}
+              </label>
+              <div className="border border-[#E5E5E2] rounded-[7px] divide-y divide-[#F0F0ED] max-h-[200px] overflow-y-auto">
+                {projects.map((p) => {
+                  const checked = selectedProjectIds.includes(p.id);
+                  return (
+                    <label
+                      key={p.id}
+                      className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors ${
+                        checked ? "bg-[#EEF0FF]" : "hover:bg-[#F7F7F6]"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleProject(p.id)}
+                        disabled={testStatus === "running"}
+                        className="accent-[#5B5BD6]"
+                      />
+                      <span className={`text-[13px] font-medium flex-1 ${checked ? "text-[#5B5BD6]" : "text-[#1A1A1A]"}`}>
+                        {p.name}
+                      </span>
+                      <span className="text-[11px] text-[#9B9B95] capitalize">{p.stage}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {mode === "simulation" && (
+            <div className="flex items-start gap-2.5 bg-[#EEF0FF] border border-[#5B5BD6]/20 rounded-[7px] px-4 py-3">
+              <InfoIcon size={14} className="text-[#5B5BD6] shrink-0 mt-0.5" />
+              <div>
+                <p className="text-[12px] font-medium text-[#5B5BD6] mb-0.5">
+                  {activeProjects.length} active project{activeProjects.length !== 1 ? "s" : ""} will be tested
+                </p>
+                <p className="text-[11.5px] text-[#6B6B65]">
+                  {activeProjects.length > 0
+                    ? activeProjects.map((p) => p.name).join(", ")
+                    : "No active projects found"}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Flow select */}
+        <div className="mb-4">
+          <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Select Test Flow</label>
+          <select
+            value={selectedFlow}
+            onChange={(e) => setSelectedFlow(e.target.value as FlowId)}
+            disabled={testStatus === "running"}
+            className="w-full h-9 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
+          >
+            <option value="">— choose a flow —</option>
+            {FLOWS.map((f) => (
+              <option key={f.id} value={f.id}>{f.label}</option>
+            ))}
+          </select>
         </div>
 
         {/* Flow description */}
@@ -486,7 +603,11 @@ export default function TestAgentPage() {
             ) : (
               <>
                 <PlayIcon size={13} />
-                Run Test
+                {mode === "simulation"
+                  ? `Simulate All (${activeProjects.length})`
+                  : mode === "multi" && targetIds.length > 1
+                    ? `Run ${targetIds.length} Projects`
+                    : "Run Test"}
               </>
             )}
           </button>
@@ -515,6 +636,13 @@ export default function TestAgentPage() {
 
           <div className="space-y-1 font-mono">
             {logs.map((log) => {
+              if (/^━━/.test(log.action)) {
+                return (
+                  <div key={log.id} className="pt-3 pb-0.5 first:pt-0">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#5B5BD6]">{log.action}</span>
+                  </div>
+                );
+              }
               const col =
                 log.status === "pass"    ? "text-[#22C55E]"
                 : log.status === "fail"  ? "text-[#EF4444]"
@@ -567,7 +695,7 @@ export default function TestAgentPage() {
             </div>
           </div>
 
-          {/* Blockers — shown first if any */}
+          {/* Blockers */}
           {report.blockers.length > 0 && (
             <div className="bg-[#FEF2F2] border border-[#FECACA] rounded-[8px] p-4 mb-4">
               <div className="flex items-center gap-2 mb-2">
@@ -584,46 +712,10 @@ export default function TestAgentPage() {
 
           {/* 2×2 grid */}
           <div className="grid grid-cols-2 gap-4">
-            {/* Passed */}
-            <ReportSection
-              title="Passed Checks"
-              count={report.passed.length}
-              accentBg="bg-[#F0FDF4]"
-              accentText="text-[#16A34A]"
-              dotColor="bg-[#22C55E]"
-              items={report.passed}
-              emptyText="No checks passed."
-            />
-            {/* Failed */}
-            <ReportSection
-              title="Failed Checks"
-              count={report.failed.length}
-              accentBg="bg-[#FEF2F2]"
-              accentText="text-[#DC2626]"
-              dotColor="bg-[#EF4444]"
-              items={report.failed}
-              emptyText="No failures — all checks passed."
-            />
-            {/* Observations */}
-            <ReportSection
-              title="Observations"
-              count={report.observations.length}
-              accentBg="bg-[#FFFBEB]"
-              accentText="text-[#D97706]"
-              dotColor="bg-[#F59E0B]"
-              items={report.observations}
-              emptyText="No warnings recorded."
-            />
-            {/* Next fixes */}
-            <ReportSection
-              title="Recommended Fixes"
-              count={report.nextFixes.length}
-              accentBg="bg-[#EEF0FF]"
-              accentText="text-[#5B5BD6]"
-              dotColor="bg-[#5B5BD6]"
-              items={report.nextFixes}
-              emptyText="Nothing to fix."
-            />
+            <ReportSection title="Passed Checks" count={report.passed.length} accentBg="bg-[#F0FDF4]" accentText="text-[#16A34A]" dotColor="bg-[#22C55E]" items={report.passed} emptyText="No checks passed." />
+            <ReportSection title="Failed Checks" count={report.failed.length} accentBg="bg-[#FEF2F2]" accentText="text-[#DC2626]" dotColor="bg-[#EF4444]" items={report.failed} emptyText="No failures — all checks passed." />
+            <ReportSection title="Observations" count={report.observations.length} accentBg="bg-[#FFFBEB]" accentText="text-[#D97706]" dotColor="bg-[#F59E0B]" items={report.observations} emptyText="No warnings recorded." />
+            <ReportSection title="Recommended Fixes" count={report.nextFixes.length} accentBg="bg-[#EEF0FF]" accentText="text-[#5B5BD6]" dotColor="bg-[#5B5BD6]" items={report.nextFixes} emptyText="Nothing to fix." />
           </div>
         </div>
       )}
