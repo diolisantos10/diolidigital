@@ -9,6 +9,7 @@ type Variant =
   | "medium"
   | "low"
   | "briefing"
+  | "proposal_sent"
   | "diagnosis"
   | "planning"
   | "production"
@@ -40,6 +41,7 @@ const STYLES: Record<Variant, string> = {
   low: "bg-[#F0F0ED] text-[#6B6B65]",
   // Pipeline stages
   briefing: "bg-[#F0F0ED] text-[#6B6B65]",
+  proposal_sent: "bg-[#EEF0FF] text-[#5B5BD6]",
   diagnosis: "bg-[#EEF0FF] text-[#5B5BD6]",
   planning: "bg-[#E0E7FF] text-[#4338CA]",
   production: "bg-[#FEF3C7] text-[#D97706]",
@@ -68,6 +70,7 @@ const LABELS: Partial<Record<Variant, string>> = {
   pending_analysis: "Pending",
   in_progress: "In Progress",
   in_review: "In Review",
+  proposal_sent: "Proposal Sent",
 };
 
 interface BadgeProps {

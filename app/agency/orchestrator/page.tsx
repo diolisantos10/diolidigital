@@ -7,7 +7,7 @@ import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import Button from "@/components/agency/ui/Button";
 import Badge from "@/components/agency/ui/Badge";
 import Link from "next/link";
-import { Priority, ProjectStage, MOCK_AGENTS } from "@/lib/agency/mock-data";
+import { Priority, ProjectStage, MOCK_AGENTS, ProjectProposal } from "@/lib/agency/mock-data";
 
 type OrchestratorState = "idle" | "reviewing" | "analyzing" | "ready" | "approved";
 type InputMode = "form" | "voice" | "audio";
@@ -348,7 +348,7 @@ function formatTimer(s: number): string {
 }
 
 export default function OrchestratorPage() {
-  const { clients, createProject } = useAgencyStore();
+  const { clients, createProject, updateProject } = useAgencyStore();
   const router = useRouter();
   const [state, setState] = useState<OrchestratorState>("idle");
   const [inputMode, setInputMode] = useState<InputMode>("form");
@@ -443,14 +443,15 @@ export default function OrchestratorPage() {
     if (!plan) return;
     const projType = briefingToProjectType(briefing);
     const clientName = clients.find((c) => c.id === briefing.clientId)?.name ?? "Client";
+    const deadline = briefing.deadline || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     const id = createProject({
       name: `${projType} — ${clientName}`,
       clientId: briefing.clientId,
       goal: briefing.objective,
       type: projType,
-      stage: "diagnosis",
+      stage: "proposal_sent",
       priority: form.priority,
-      deadline: briefing.deadline || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+      deadline,
       agents: plan.agents,
       initialTasks: plan.tasks.map((t) => ({ title: t.title, description: t.description, agentId: t.agentId, dueDate: t.dueDate })),
       orchestratorBriefing: {
@@ -463,6 +464,21 @@ export default function OrchestratorPage() {
         notes: briefing.notes,
       },
     });
+
+    // Generate mock proposal
+    const serviceLabels: Record<string, string> = {
+      social_media: "Social Media Management", branding: "Brand Identity",
+      ads: "Paid Advertising", seo: "SEO", content: "Content Production", web: "Website",
+    };
+    const proposal: ProjectProposal = {
+      scope: briefing.objective || `Full-service ${projType.toLowerCase()} engagement for ${clientName}.`,
+      deliverables: briefing.services.map((s) => serviceLabels[s] ?? s),
+      timeline: deadline ? `Project delivery by ${deadline}` : "Timeline to be confirmed",
+      pricing: briefing.services.length <= 1 ? "€2,500 / month" : briefing.services.length <= 3 ? "€4,500 / month" : "€7,500 / month",
+      status: "pending",
+    };
+    updateProject(id, { proposal });
+
     setCreatedProjectId(id);
     setState("approved");
   };

@@ -404,8 +404,6 @@ export default function SocialMediaAgentPage() {
   const [output, setOutput] = useState<SocialOutput | null>(null);
   const [sourceProject, setSourceProject] = useState<{ projectId: string; projectName: string } | null>(null);
   const [savedToProject, setSavedToProject] = useState(false);
-
-  const isReady = form.brandName.trim() !== "" && form.objective.trim() !== "" && !!sourceProject;
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const router = useRouter();
   const setPendingDesignContract = useAgencyStore((s) => s.setPendingDesignContract);
@@ -413,6 +411,10 @@ export default function SocialMediaAgentPage() {
   const setPendingAgentInput = useAgencyStore((s) => s.setPendingAgentInput);
   const addDeliverable = useAgencyStore((s) => s.addDeliverable);
   const projects = useAgencyStore((s) => s.projects);
+
+  const linkedProject = sourceProject ? projects.find((p) => p.id === sourceProject.projectId) : null;
+  const isProposalPending = linkedProject?.stage === "proposal_sent";
+  const isReady = form.brandName.trim() !== "" && form.objective.trim() !== "" && !!sourceProject && !isProposalPending;
 
   useEffect(() => {
     if (pendingAgentInput) {
@@ -713,6 +715,16 @@ export default function SocialMediaAgentPage() {
                   className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white transition-colors resize-none"
                 />
               </div>
+
+              {/* Proposal gate */}
+              {isProposalPending && (
+                <div className="flex items-start gap-2 bg-[#FFFBEB] border border-[#FDE68A] rounded-[7px] px-3 py-2.5">
+                  <span className="text-[#D97706] text-[13px] shrink-0">⚠</span>
+                  <p className="text-[12px] text-[#D97706] leading-snug">
+                    Awaiting client approval — the project proposal must be approved before execution can begin.
+                  </p>
+                </div>
+              )}
 
               {/* Submit / Reset button */}
               {agentState === "idle" && (

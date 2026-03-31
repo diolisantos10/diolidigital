@@ -6,6 +6,7 @@ import type { Locale } from "@/lib/i18n";
 import {
   Client,
   Project,
+  ProjectProposal,
   OrchestratorBriefing,
   Task,
   Deliverable,
@@ -72,6 +73,8 @@ interface AgencyState {
   }) => string;
   updateProject: (id: string, updates: Partial<Project>) => void;
   moveProjectStage: (id: string, stage: ProjectStage) => void;
+  approveProposal: (id: string) => void;
+  requestProposalChanges: (id: string, notes: string) => void;
 
   // Task actions
   updateTaskStatus: (id: string, status: TaskStatus) => void;
@@ -211,6 +214,40 @@ export const useAgencyStore = create<AgencyState>()(
         get().addActivity({
           type: "project_stage_changed",
           message: `"${project.name}" moved to ${stage.charAt(0).toUpperCase() + stage.slice(1)}`,
+          projectId: id,
+        });
+      },
+
+      approveProposal: (id) => {
+        const project = get().projects.find((p) => p.id === id);
+        if (!project) return;
+        set((s) => ({
+          projects: s.projects.map((p) =>
+            p.id === id
+              ? { ...p, stage: "approved" as ProjectStage, proposal: p.proposal ? { ...p.proposal, status: "approved" as ProjectProposal["status"] } : p.proposal }
+              : p
+          ),
+        }));
+        get().addActivity({
+          type: "orchestrator_approved",
+          message: `Client approved proposal for "${project.name}"`,
+          projectId: id,
+        });
+      },
+
+      requestProposalChanges: (id, notes) => {
+        const project = get().projects.find((p) => p.id === id);
+        if (!project) return;
+        set((s) => ({
+          projects: s.projects.map((p) =>
+            p.id === id
+              ? { ...p, proposal: p.proposal ? { ...p.proposal, status: "changes_requested" as ProjectProposal["status"], requestedChanges: notes } : p.proposal }
+              : p
+          ),
+        }));
+        get().addActivity({
+          type: "project_stage_changed",
+          message: `Client requested proposal changes for "${project.name}"`,
           projectId: id,
         });
       },

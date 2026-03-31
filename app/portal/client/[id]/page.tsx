@@ -5,8 +5,10 @@ import { useAgencyStore } from "@/store/agency-store";
 import { notFound } from "next/navigation";
 import { DeliverableStatus, ProjectStage } from "@/lib/agency/mock-data";
 
+
 const STAGE_LABEL: Record<ProjectStage, string> = {
-  briefing: "Briefing", diagnosis: "Diagnosis", planning: "Planning",
+  briefing: "Briefing", proposal_sent: "Awaiting Approval", approved: "Approved",
+  diagnosis: "Diagnosis", planning: "Planning",
   production: "In Production", review: "In Review", delivery: "Delivery",
   ongoing: "Ongoing", completed: "Completed",
 };
@@ -24,7 +26,7 @@ const TYPE_ICON: Record<string, string> = {
 
 export default function ClientPortalPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { clients, projects, deliverables, updateDeliverableStatus, setDeliverableFeedback } = useAgencyStore();
+  const { clients, projects, deliverables, updateDeliverableStatus, setDeliverableFeedback, approveProposal, requestProposalChanges } = useAgencyStore();
 
   const client = clients.find((c) => c.id === id);
   if (!client) return notFound();
@@ -32,8 +34,10 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
   const clientProjects = projects.filter((p) => p.clientId === id);
 
   // Local UI state
-  const [feedbackOpen, setFeedbackOpen] = useState<Record<string, boolean>>({});
-  const [feedbackText, setFeedbackText] = useState<Record<string, string>>({});
+  const [feedbackOpen,         setFeedbackOpen]         = useState<Record<string, boolean>>({});
+  const [feedbackText,         setFeedbackText]         = useState<Record<string, string>>({});
+  const [proposalChangesOpen,  setProposalChangesOpen]  = useState<Record<string, boolean>>({});
+  const [proposalChangesText,  setProposalChangesText]  = useState<Record<string, string>>({});
 
   const handleApprove = (deliverableId: string) => {
     updateDeliverableStatus(deliverableId, "approved");
@@ -97,6 +101,113 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
                   </span>
                   <span className="text-[12px] text-[#9B9B95] ml-auto">Due {project.deadline.slice(5)}</span>
                 </div>
+
+                {/* Proposal section */}
+                {project.proposal && (project.stage === "proposal_sent" || project.stage === "approved") && (() => {
+                  const p = project.proposal!;
+                  const isApproved = p.status === "approved";
+                  const isChangesRequested = p.status === "changes_requested";
+                  const changesOpen = proposalChangesOpen[project.id] ?? false;
+                  return (
+                    <div className={`bg-white rounded-[10px] border shadow-[0_1px_3px_rgba(0,0,0,0.04)] mb-4 overflow-hidden ${
+                      isApproved ? "border-[#BBF7D0]" : isChangesRequested ? "border-[#FDE68A]" : "border-[#C7C7F5]"
+                    }`}>
+                      <div className="flex items-center justify-between px-5 py-3 border-b border-[#F0F0ED]">
+                        <span className="text-[12px] font-semibold text-[#1A1A1A]">Project Proposal</span>
+                        {isApproved && (
+                          <span className="h-5 px-2 rounded-full text-[10px] font-bold bg-[#DCFCE7] text-[#16A34A]">Approved</span>
+                        )}
+                        {isChangesRequested && (
+                          <span className="h-5 px-2 rounded-full text-[10px] font-bold bg-[#FEF3C7] text-[#D97706]">Changes Requested</span>
+                        )}
+                        {p.status === "pending" && (
+                          <span className="h-5 px-2 rounded-full text-[10px] font-bold bg-[#EEF0FF] text-[#5B5BD6]">Awaiting Your Approval</span>
+                        )}
+                      </div>
+                      <div className="px-5 py-4 space-y-3">
+                        <div>
+                          <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.04em] mb-0.5">Scope</p>
+                          <p className="text-[13px] text-[#1A1A1A] leading-relaxed">{p.scope}</p>
+                        </div>
+                        <div className="grid grid-cols-3 gap-4">
+                          <div>
+                            <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.04em] mb-1">Deliverables</p>
+                            <ul className="space-y-0.5">
+                              {p.deliverables.map((d, i) => (
+                                <li key={i} className="text-[12px] text-[#1A1A1A] flex items-center gap-1.5">
+                                  <span className="w-1 h-1 rounded-full bg-[#5B5BD6] shrink-0" />{d}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                          <div>
+                            <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.04em] mb-1">Timeline</p>
+                            <p className="text-[12px] text-[#1A1A1A]">{p.timeline}</p>
+                          </div>
+                          <div>
+                            <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.04em] mb-1">Investment</p>
+                            <p className="text-[13px] font-semibold text-[#1A1A1A]">{p.pricing}</p>
+                          </div>
+                        </div>
+                        {isChangesRequested && p.requestedChanges && (
+                          <div className="bg-[#FFFBEB] border border-[#FDE68A] rounded-[7px] px-3 py-2">
+                            <p className="text-[11px] font-semibold text-[#D97706] mb-0.5 uppercase tracking-[0.04em]">Your feedback</p>
+                            <p className="text-[12px] text-[#6B6B65]">{p.requestedChanges}</p>
+                          </div>
+                        )}
+                        {!isApproved && !changesOpen && (
+                          <div className="flex gap-2 pt-1">
+                            <button
+                              onClick={() => approveProposal(project.id)}
+                              className="h-8 px-4 rounded-[7px] bg-[#1A1A1A] hover:bg-[#111111] text-white text-[12px] font-medium transition-colors"
+                            >
+                              Approve Proposal
+                            </button>
+                            <button
+                              onClick={() => setProposalChangesOpen((prev) => ({ ...prev, [project.id]: true }))}
+                              className="h-8 px-3 rounded-[7px] border border-[#E5E5E2] hover:border-[#D97706] text-[#6B6B65] hover:text-[#D97706] text-[12px] font-medium transition-colors"
+                            >
+                              Request Changes
+                            </button>
+                          </div>
+                        )}
+                        {changesOpen && (
+                          <div className="space-y-2 pt-1">
+                            <textarea
+                              value={proposalChangesText[project.id] ?? ""}
+                              onChange={(e) => setProposalChangesText((prev) => ({ ...prev, [project.id]: e.target.value }))}
+                              placeholder="Describe what needs to change in the proposal…"
+                              rows={3}
+                              autoFocus
+                              className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white resize-none"
+                            />
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => {
+                                  const notes = (proposalChangesText[project.id] ?? "").trim();
+                                  if (!notes) return;
+                                  requestProposalChanges(project.id, notes);
+                                  setProposalChangesOpen((prev) => ({ ...prev, [project.id]: false }));
+                                  setProposalChangesText((prev) => ({ ...prev, [project.id]: "" }));
+                                }}
+                                disabled={!(proposalChangesText[project.id] ?? "").trim()}
+                                className="h-8 px-4 rounded-[7px] bg-[#1A1A1A] disabled:opacity-40 text-white text-[12px] font-medium"
+                              >
+                                Send Feedback
+                              </button>
+                              <button
+                                onClick={() => setProposalChangesOpen((prev) => ({ ...prev, [project.id]: false }))}
+                                className="h-8 px-3 rounded-[7px] border border-[#E5E5E2] text-[#9B9B95] text-[12px]"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {projectDeliverables.length === 0 ? (
                   <div className="bg-white rounded-[10px] border border-dashed border-[#E5E5E2] px-6 py-8 text-center">

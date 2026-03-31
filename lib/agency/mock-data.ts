@@ -3,6 +3,8 @@
 export type ClientStatus = "active" | "inactive" | "prospect";
 export type ProjectStage =
   | "briefing"
+  | "proposal_sent"
+  | "approved"
   | "diagnosis"
   | "planning"
   | "production"
@@ -27,6 +29,15 @@ export interface Client {
   createdAt: string;
 }
 
+export interface ProjectProposal {
+  scope: string;
+  deliverables: string[];
+  timeline: string;
+  pricing: string;
+  status: "pending" | "approved" | "changes_requested";
+  requestedChanges?: string;
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -39,6 +50,7 @@ export interface Project {
   agents: string[];
   createdAt: string;
   orchestratorBriefing?: OrchestratorBriefing;
+  proposal?: ProjectProposal;
 }
 
 export interface OrchestratorBriefing {

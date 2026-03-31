@@ -233,6 +233,7 @@ const STEPS = [
 export default function DesignAgentPage() {
   const [contractInput, setContractInput] = useState("");
   const [agentState, setAgentState] = useState<AgentState>("idle");
+  const [linkedProjectId, setLinkedProjectId] = useState<string | null>(null);
   const pendingContract       = useAgencyStore((s) => s.pendingDesignContract);
   const setPendingDesignContract = useAgencyStore((s) => s.setPendingDesignContract);
   const projects              = useAgencyStore((s) => s.projects);
@@ -245,6 +246,12 @@ export default function DesignAgentPage() {
       setPendingDesignContract(null);
     }
   }, [pendingContract, setPendingDesignContract]);
+
+  useEffect(() => {
+    if (pendingAgentInput?.projectId) {
+      setLinkedProjectId(pendingAgentInput.projectId);
+    }
+  }, [pendingAgentInput]);
   const [activeTab, setActiveTab] = useState<OutputTab>("briefs");
   const [stepIndex, setStepIndex] = useState(0);
   const [briefs, setBriefs] = useState<VisualBrief[]>([]);
@@ -298,7 +305,9 @@ export default function DesignAgentPage() {
     setSaveForms((prev) => ({ ...prev, [postId]: { ...prev[postId], saved: true } }));
   }
 
-  const isReady = contractInput.trim().length > 20;
+  const linkedProject = linkedProjectId ? projects.find((p) => p.id === linkedProjectId) : null;
+  const isProposalPending = linkedProject?.stage === "proposal_sent";
+  const isReady = contractInput.trim().length > 20 && !isProposalPending;
 
   function handleCopy(key: string, text: string) {
     navigator.clipboard.writeText(text).then(() => {
@@ -411,6 +420,15 @@ export default function DesignAgentPage() {
                   and copy the Agent Contract tab output.
                 </p>
               </div>
+
+              {isProposalPending && (
+                <div className="flex items-start gap-2 bg-[#FFFBEB] border border-[#FDE68A] rounded-[7px] px-3 py-2.5 mb-2">
+                  <span className="text-[#D97706] text-[13px] shrink-0">⚠</span>
+                  <p className="text-[12px] text-[#D97706] leading-snug">
+                    Awaiting client approval — the project proposal must be approved before execution can begin.
+                  </p>
+                </div>
+              )}
 
               {agentState === "idle" && (
                 <button
