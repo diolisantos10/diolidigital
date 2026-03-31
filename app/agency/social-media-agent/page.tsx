@@ -405,13 +405,14 @@ export default function SocialMediaAgentPage() {
   const [sourceProject, setSourceProject] = useState<{ projectId: string; projectName: string } | null>(null);
   const [savedToProject, setSavedToProject] = useState(false);
 
-  const isReady = form.brandName.trim() !== "" && form.objective.trim() !== "";
+  const isReady = form.brandName.trim() !== "" && form.objective.trim() !== "" && !!sourceProject;
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const router = useRouter();
   const setPendingDesignContract = useAgencyStore((s) => s.setPendingDesignContract);
   const pendingAgentInput = useAgencyStore((s) => s.pendingAgentInput);
   const setPendingAgentInput = useAgencyStore((s) => s.setPendingAgentInput);
   const addDeliverable = useAgencyStore((s) => s.addDeliverable);
+  const projects = useAgencyStore((s) => s.projects);
 
   useEffect(() => {
     if (pendingAgentInput) {
@@ -439,21 +440,14 @@ export default function SocialMediaAgentPage() {
       projectId: sourceProject.projectId,
       name: `${form.brandName} — Social Media Package`,
       type: "Social Media Post",
-      status: "draft",
-      version: 1,
-    });
-    addDeliverable({
-      projectId: sourceProject.projectId,
-      name: `${form.brandName} — Design Handoff`,
-      type: "Design Asset",
-      status: "draft",
+      status: "in_review",
       version: 1,
     });
     addDeliverable({
       projectId: sourceProject.projectId,
       name: `${form.brandName} — Content Strategy`,
       type: "Social Media",
-      status: "draft",
+      status: "in_review",
       version: 1,
     });
     setSavedToProject(true);
@@ -487,9 +481,31 @@ export default function SocialMediaAgentPage() {
         setStepIndex(i);
         if (i === delays.length - 1) {
           setTimeout(() => {
-            setOutput(generateMockOutput(form));
+            const generatedOutput = generateMockOutput(form);
+            setOutput(generatedOutput);
             setAgentState("output_ready");
             setActiveTab("brand");
+
+            // Auto-save deliverables when a project is linked
+            if (sourceProject) {
+              generatedOutput.posts.forEach((post, idx) => {
+                addDeliverable({
+                  projectId: sourceProject.projectId,
+                  name: `Post ${String(idx + 1).padStart(2, "0")} — ${post.title}`,
+                  type: "Social Media Post",
+                  status: "in_review",
+                  version: 1,
+                });
+              });
+              addDeliverable({
+                projectId: sourceProject.projectId,
+                name: `${form.brandName} — Content Strategy`,
+                type: "Social Media",
+                status: "in_review",
+                version: 1,
+              });
+              setSavedToProject(true);
+            }
           }, 400);
         }
       }, elapsed);
@@ -577,6 +593,28 @@ export default function SocialMediaAgentPage() {
               <p className="text-[12px] text-[#9B9B95] mt-0.5">Describe the brand and what you need.</p>
             </div>
             <div className="px-5 py-5 space-y-4">
+
+              {/* Project link */}
+              {!sourceProject && (
+                <div>
+                  <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">
+                    Link to project <span className="text-[#DC2626]">*</span>
+                  </label>
+                  <select
+                    value=""
+                    onChange={(e) => {
+                      const p = projects.find((x) => x.id === e.target.value);
+                      if (p) setSourceProject({ projectId: p.id, projectName: p.name });
+                    }}
+                    className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white transition-colors"
+                  >
+                    <option value="">— select a project —</option>
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Brand name */}
               <div>
