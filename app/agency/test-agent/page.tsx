@@ -346,6 +346,69 @@ function generateReport(logs: TestLog[], projectNames: string[], flowName: strin
   return { passed, failed, blockers, observations, nextFixes, executiveSummary, totalChecks, projectNames, flowName, readiness };
 }
 
+// ─── Export helpers ───────────────────────────────────────────────────────────
+
+function readinessLabel(r: TestReport["readiness"]) {
+  return r === "not_ready" ? "Not Ready" : r === "warnings" ? "Ready with Warnings" : "Ready for Pilot";
+}
+
+function triggerDownload(content: string, filename: string, mime: string) {
+  const url = URL.createObjectURL(new Blob([content], { type: mime }));
+  const a   = document.createElement("a");
+  a.href     = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportTxt(report: TestReport, timestamp: string) {
+  const lines = [
+    "QA Test Report",
+    "═══════════════════════════════════════",
+    `Timestamp : ${timestamp}`,
+    `Projects  : ${report.projectNames.join(", ")}`,
+    `Flow      : ${report.flowName}`,
+    `Readiness : ${readinessLabel(report.readiness)}`,
+    "",
+    `Total Checks : ${report.totalChecks}`,
+    `Passed       : ${report.passed.length}`,
+    `Failed       : ${report.failed.length}`,
+    `Warnings     : ${report.observations.length}`,
+    `Blockers     : ${report.blockers.length}`,
+    "",
+    "Executive Summary",
+    "─────────────────",
+    report.executiveSummary,
+    "",
+    "Observations",
+    "─────────────────",
+    ...(report.observations.length ? report.observations.map((o) => `  · ${o}`) : ["  (none)"]),
+    "",
+    "Recommended Fixes",
+    "─────────────────",
+    ...(report.nextFixes.map((f) => `  · ${f}`)),
+  ];
+  triggerDownload(lines.join("\n"), `qa-report-${timestamp.slice(0, 10)}.txt`, "text/plain");
+}
+
+function exportJson(report: TestReport, timestamp: string) {
+  const payload = {
+    timestamp,
+    projects: report.projectNames,
+    flow: report.flowName,
+    readiness: readinessLabel(report.readiness),
+    totalChecks: report.totalChecks,
+    passed: report.passed.length,
+    failed: report.failed.length,
+    warnings: report.observations.length,
+    blockers: report.blockers.length,
+    executiveSummary: report.executiveSummary,
+    observations: report.observations,
+    recommendedFixes: report.nextFixes,
+  };
+  triggerDownload(JSON.stringify(payload, null, 2), `qa-report-${timestamp.slice(0, 10)}.json`, "application/json");
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 const MODE_OPTIONS: { id: TestMode; label: string; desc: string }[] = [
@@ -355,7 +418,7 @@ const MODE_OPTIONS: { id: TestMode; label: string; desc: string }[] = [
 ];
 
 export default function TestAgentPage() {
-  const { projects, addTestRun } = useAgencyStore();
+  const { projects, addTestRun, testRuns, clearTestHistory } = useAgencyStore();
 
   const [mode,               setMode]               = useState<TestMode>("single");
   const [selectedProjectId,  setSelectedProjectId]  = useState("");
@@ -364,6 +427,7 @@ export default function TestAgentPage() {
   const [testStatus,         setTestStatus]         = useState<TestStatus>("idle");
   const [logs,               setLogs]               = useState<TestLog[]>([]);
   const [report,             setReport]             = useState<TestReport | null>(null);
+  const [runTimestamp,       setRunTimestamp]       = useState("");
   const cancelRef = useRef(false);
 
   const activeProjects = projects.filter((p) => p.stage !== "completed");
@@ -426,7 +490,9 @@ export default function TestAgentPage() {
           const hasFail = allLogs.some((l) => l.status === "fail");
           const projNames = ids.map((id) => snap.projects.find((p) => p.id === id)?.name ?? id);
           const rep = generateReport(allLogs, projNames, flowLabel);
+          const ts = new Date().toISOString();
           setReport(rep);
+          setRunTimestamp(ts);
           setTestStatus(hasFail ? "failed" : "completed");
           addTestRun({
             timestamp: new Date().toISOString(),
@@ -449,6 +515,28 @@ export default function TestAgentPage() {
     setTestStatus("idle");
     setLogs([]);
     setReport(null);
+    setRunTimestamp("");
+  };
+
+  const loadHistoryRun = (run: import("@/store/agency-store").QATestRun) => {
+    const flowLabel = FLOWS.find((f) => f.id === run.flowId)?.label ?? run.flowId;
+    const projStr   = run.projectNames.length === 1 ? `"${run.projectNames[0]}"` : `${run.projectNames.length} projects`;
+    const rLine     =
+      run.readiness === "not_ready" ? "The system is not ready for pilot — critical issues must be resolved first."
+      : run.readiness === "warnings" ? "The system is conditionally ready — address warnings before going live."
+      : "All checks passed. The system is ready for pilot.";
+    const summary = `[Historical] Tested ${projStr} through "${flowLabel}". ${run.passed} of ${run.totalChecks} checks passed with ${run.failed} failure(s) and ${run.warnings} warning(s). ${rLine}`;
+    setReport({
+      passed: [], failed: [], blockers: [], observations: [], nextFixes: [],
+      totalChecks:      run.totalChecks,
+      projectNames:     run.projectNames,
+      flowName:         flowLabel,
+      readiness:        run.readiness,
+      executiveSummary: summary,
+    });
+    setRunTimestamp(run.timestamp);
+    setTestStatus(run.failed > 0 || run.blockers > 0 ? "failed" : "completed");
+    setLogs([]);
   };
 
   const selectedFlowDef = FLOWS.find((f) => f.id === selectedFlow);
@@ -718,12 +806,26 @@ export default function TestAgentPage() {
           {/* Report header row */}
           <div className="flex items-center gap-3 mb-4 pb-4 border-b border-[#F0F0ED]">
             <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Test Report</div>
-            <div className="ml-auto flex items-center gap-4 text-[12px] text-[#9B9B95]">
+            <div className="flex items-center gap-4 text-[12px] text-[#9B9B95]">
               <span className="text-[#6B6B65]">{report.totalChecks} checks</span>
               <span className="text-[#16A34A] font-medium">{report.passed.length} passed</span>
               <span className="text-[#DC2626] font-medium">{report.failed.length} failed</span>
               <span className="text-[#D97706] font-medium">{report.observations.length} warnings</span>
               <span className="text-[#DC2626] font-medium">{report.blockers.length} blockers</span>
+            </div>
+            <div className="ml-auto flex items-center gap-2">
+              <button
+                onClick={() => exportTxt(report, runTimestamp || new Date().toISOString())}
+                className="h-7 px-3 text-[11px] font-medium text-[#6B6B65] border border-[#E5E5E2] rounded-[6px] hover:border-[#9B9B95] transition-colors"
+              >
+                Export .txt
+              </button>
+              <button
+                onClick={() => exportJson(report, runTimestamp || new Date().toISOString())}
+                className="h-7 px-3 text-[11px] font-medium text-[#6B6B65] border border-[#E5E5E2] rounded-[6px] hover:border-[#9B9B95] transition-colors"
+              >
+                Export .json
+              </button>
             </div>
           </div>
 
@@ -760,6 +862,53 @@ export default function TestAgentPage() {
             <ReportSection title="Failed Checks" count={report.failed.length} accentBg="bg-[#FEF2F2]" accentText="text-[#DC2626]" dotColor="bg-[#EF4444]" items={report.failed} emptyText="No failures — all checks passed." />
             <ReportSection title="Observations" count={report.observations.length} accentBg="bg-[#FFFBEB]" accentText="text-[#D97706]" dotColor="bg-[#F59E0B]" items={report.observations} emptyText="No warnings recorded." />
             <ReportSection title="Recommended Fixes" count={report.nextFixes.length} accentBg="bg-[#EEF0FF]" accentText="text-[#5B5BD6]" dotColor="bg-[#5B5BD6]" items={report.nextFixes} emptyText="Nothing to fix." />
+          </div>
+        </div>
+      )}
+
+      {/* Test History */}
+      {testRuns.length > 0 && (
+        <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5 mt-5">
+          <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#F0F0ED]">
+            <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">
+              Test History
+              <span className="ml-2 text-[#C0C0BA] font-normal normal-case">{testRuns.length} run{testRuns.length !== 1 ? "s" : ""}</span>
+            </div>
+            <button
+              onClick={clearTestHistory}
+              className="h-7 px-3 text-[11px] font-medium text-[#9B9B95] border border-[#E5E5E2] rounded-[6px] hover:border-[#DC2626] hover:text-[#DC2626] transition-colors"
+            >
+              Clear History
+            </button>
+          </div>
+
+          <div className="space-y-2">
+            {testRuns.map((run) => {
+              const BADGE = {
+                not_ready: { bg: "bg-[#FEE2E2]", text: "text-[#DC2626]", label: "Not Ready" },
+                warnings:  { bg: "bg-[#FEF3C7]", text: "text-[#D97706]", label: "Warnings" },
+                ready:     { bg: "bg-[#DCFCE7]", text: "text-[#16A34A]", label: "Pilot Ready" },
+              }[run.readiness];
+              return (
+                <div key={run.id} className="flex items-center gap-3 px-3 py-2.5 rounded-[7px] border border-[#F0F0ED] hover:border-[#E5E5E2] hover:bg-[#FAFAFA] transition-colors">
+                  <span className="text-[11px] text-[#9B9B95] tabular-nums shrink-0">{run.timestamp.slice(0, 10)} {run.timestamp.slice(11, 16)}</span>
+                  <span className="text-[12px] font-medium text-[#1A1A1A] flex-1 truncate">{run.projectNames.join(", ")}</span>
+                  <span className="text-[11px] text-[#9B9B95] shrink-0 max-w-[140px] truncate">{FLOWS.find((f) => f.id === run.flowId)?.label ?? run.flowId}</span>
+                  <div className="flex items-center gap-2 shrink-0 text-[11px] text-[#9B9B95]">
+                    <span className="text-[#16A34A]">{run.passed}✓</span>
+                    <span className="text-[#DC2626]">{run.failed}✗</span>
+                    <span className="text-[#D97706]">{run.warnings}⚠</span>
+                  </div>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${BADGE.bg} ${BADGE.text}`}>{BADGE.label}</span>
+                  <button
+                    onClick={() => loadHistoryRun(run)}
+                    className="h-6 px-2.5 text-[11px] font-medium text-[#5B5BD6] border border-[#C7C7F5] rounded-[5px] hover:bg-[#EEF0FF] transition-colors shrink-0"
+                  >
+                    Load
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
