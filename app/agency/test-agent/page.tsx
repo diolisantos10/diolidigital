@@ -22,6 +22,8 @@ interface TestLog {
   status: LogLevel;
   detail: string;
   timestamp: string;
+  projectName: string;
+  flowName: string;
 }
 
 interface TestReport {
@@ -375,20 +377,23 @@ export default function TestAgentPage() {
     // Pre-compute all log entries synchronously
     const allLogs: TestLog[] = [];
 
+    const flowLabel = FLOWS.find((f) => f.id === selectedFlow)?.label ?? (selectedFlow as string);
+
     if (ids.length === 1) {
+      const projName = snap.projects.find((p) => p.id === ids[0])?.name ?? ids[0];
       buildSteps(selectedFlow as FlowId, snap, ids[0]).forEach((step, i) => {
         const result = step.run();
         const status: LogLevel = result.ok === true ? "pass" : result.ok === false ? "fail" : result.ok === "warning" ? "warning" : "info";
-        allLogs.push({ id: `log-${i}`, action: step.action, status, detail: result.detail, timestamp: new Date().toISOString() });
+        allLogs.push({ id: `log-${i}`, action: step.action, status, detail: result.detail, timestamp: new Date().toISOString(), projectName: projName, flowName: flowLabel });
       });
     } else {
       ids.forEach((pid, pi) => {
         const projName = snap.projects.find((p) => p.id === pid)?.name ?? pid;
-        allLogs.push({ id: `log-h${pi}`, action: `━━ ${projName} ━━`, status: "info", detail: `flow: ${selectedFlow}`, timestamp: new Date().toISOString() });
+        allLogs.push({ id: `log-h${pi}`, action: `━━ ${projName} ━━`, status: "info", detail: `flow: ${selectedFlow}`, timestamp: new Date().toISOString(), projectName: projName, flowName: flowLabel });
         buildSteps(selectedFlow as FlowId, snap, pid).forEach((step, i) => {
           const result = step.run();
           const status: LogLevel = result.ok === true ? "pass" : result.ok === false ? "fail" : result.ok === "warning" ? "warning" : "info";
-          allLogs.push({ id: `log-${pi}-${i}`, action: step.action, status, detail: result.detail, timestamp: new Date().toISOString() });
+          allLogs.push({ id: `log-${pi}-${i}`, action: step.action, status, detail: result.detail, timestamp: new Date().toISOString(), projectName: projName, flowName: flowLabel });
         });
       });
     }
@@ -658,9 +663,12 @@ export default function TestAgentPage() {
                   <span className="text-[#3A3A34] shrink-0 tabular-nums">{log.timestamp.slice(11, 19)}</span>
                   <span className={`shrink-0 w-4 text-center font-bold ${col}`}>{prefix}</span>
                   <span className={`shrink-0 w-[52px] text-right font-bold uppercase text-[10px] ${col}`}>{log.status}</span>
+                  <span className="shrink-0 max-w-[90px] truncate text-[#4A4A44]">{log.projectName}</span>
+                  <span className="text-[#2A2A24] shrink-0">·</span>
+                  <span className="shrink-0 max-w-[80px] truncate text-[#3A3A34]">{log.flowName}</span>
                   <span className="text-[#C0C0BA] flex-1">{log.action}</span>
                   {log.detail && (
-                    <span className="text-[#5A5A54] shrink-0 max-w-[300px] truncate text-right">— {log.detail}</span>
+                    <span className="text-[#5A5A54] shrink-0 max-w-[260px] truncate text-right">— {log.detail}</span>
                   )}
                 </div>
               );
