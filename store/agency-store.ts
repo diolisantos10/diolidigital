@@ -23,6 +23,21 @@ import {
   MOCK_ACTIVITY,
 } from "@/lib/agency/mock-data";
 
+// ─── QA Test Run ──────────────────────────────────────────────────────────────
+
+export interface QATestRun {
+  id: string;
+  timestamp: string;
+  projectNames: string[];
+  flowId: string;
+  totalChecks: number;
+  passed: number;
+  failed: number;
+  warnings: number;
+  blockers: number;
+  readiness: "not_ready" | "warnings" | "ready";
+}
+
 interface AgencyState {
   clients: Client[];
   projects: Project[];
@@ -73,6 +88,11 @@ interface AgencyState {
   locale: Locale;
   setLocale: (locale: Locale) => void;
 
+  // QA Test History
+  testRuns: QATestRun[];
+  addTestRun: (run: Omit<QATestRun, "id">) => void;
+  clearTestHistory: () => void;
+
   // System
   addActivity: (event: Omit<ActivityEvent, "id" | "timestamp">) => void;
   resetStore: () => void;
@@ -89,6 +109,7 @@ export const useAgencyStore = create<AgencyState>()(
       deliverables: MOCK_DELIVERABLES,
       briefings: MOCK_BRIEFINGS,
       activity: MOCK_ACTIVITY,
+      testRuns: [],
 
       // ── i18n ─────────────────────────────────────────────────────────────
       locale: "pt-BR" as Locale,
@@ -262,6 +283,16 @@ export const useAgencyStore = create<AgencyState>()(
         }));
       },
 
+      // ── QA Test History ───────────────────────────────────────────────────
+      addTestRun: (data) => {
+        const id = `qa${uid()}`;
+        set((s) => ({ testRuns: [{ ...data, id }, ...s.testRuns].slice(0, 50) }));
+      },
+
+      clearTestHistory: () => {
+        set({ testRuns: [] });
+      },
+
       // ── Activity ──────────────────────────────────────────────────────────
       addActivity: (event) => {
         const entry: ActivityEvent = {
@@ -294,6 +325,7 @@ export const useAgencyStore = create<AgencyState>()(
         briefings: s.briefings,
         activity: s.activity,
         locale: s.locale,
+        testRuns: s.testRuns,
       }),
     }
   )
