@@ -8,6 +8,7 @@ import Button from "@/components/agency/ui/Button";
 import Badge from "@/components/agency/ui/Badge";
 import Link from "next/link";
 import { Priority, ProjectStage, MOCK_AGENTS, ProjectProposal } from "@/lib/agency/mock-data";
+import IntakeEngine, { IntakeSummary, IntakePrefill } from "@/components/agency/intake/IntakeEngine";
 
 type OrchestratorState = "idle" | "reviewing" | "analyzing" | "ready" | "approved";
 type InputMode = "form" | "voice" | "audio";
@@ -350,6 +351,7 @@ function formatTimer(s: number): string {
 export default function OrchestratorPage() {
   const { clients, createProject, updateProject } = useAgencyStore();
   const router = useRouter();
+  const [intakePhase, setIntakePhase] = useState<"intake" | "orchestrator">("intake");
   const [state, setState] = useState<OrchestratorState>("idle");
   const [inputMode, setInputMode] = useState<InputMode>("form");
   const [plan, setPlan] = useState<OrchestratorPlan | null>(null);
@@ -483,6 +485,20 @@ export default function OrchestratorPage() {
     setState("approved");
   };
 
+  const handleIntakeComplete = (_summary: IntakeSummary, prefill: IntakePrefill) => {
+    setBriefing({
+      clientId: prefill.clientId,
+      services: prefill.services,
+      businessDescription: prefill.businessDescription,
+      objective: prefill.objective,
+      targetAudience: prefill.targetAudience,
+      channels: prefill.channels,
+      deadline: prefill.deadline,
+      notes: prefill.notes,
+    });
+    setIntakePhase("orchestrator");
+  };
+
   const handleReset = () => {
     setState("idle"); setPlan(null); setCreatedProjectId(null);
     setAudioFile(null); setAudioTranscribeState("idle"); setAudioTranscript("");
@@ -509,8 +525,36 @@ export default function OrchestratorPage() {
     <>
       <AgencyHeader
         title="Orchestrator"
-        subtitle="Define a project goal. The Orchestrator will generate an execution plan."
+        subtitle={intakePhase === "intake" ? "Step 1 of 2 — Capture and validate client context before generating an execution plan." : "Step 2 of 2 — Review the execution plan and approve it to create the project."}
       />
+
+      {/* ── INTAKE PHASE ────────────────────────────────────────────────────── */}
+      {intakePhase === "intake" && (
+        <div className="mb-2">
+          <IntakeEngine clients={clients} onComplete={handleIntakeComplete} />
+        </div>
+      )}
+
+      {/* ── ORCHESTRATOR PHASE ──────────────────────────────────────────────── */}
+      {intakePhase === "orchestrator" && (
+      <>
+      {/* Intake complete banner */}
+      <div className="flex items-center justify-between mb-5 px-4 py-2.5 bg-[#DCFCE7] border border-[#BBF7D0] rounded-[8px]">
+        <div className="flex items-center gap-2">
+          <span className="w-4 h-4 rounded-full bg-[#16A34A] flex items-center justify-center shrink-0">
+            <svg width="8" height="7" viewBox="0 0 8 7" fill="none">
+              <path d="M1 3.5l2 2 4-4" stroke="white" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </span>
+          <span className="text-[12px] font-medium text-[#15803D]">Intake complete — brief pre-filled from your intake session.</span>
+        </div>
+        <button
+          onClick={() => { setIntakePhase("intake"); setState("idle"); setPlan(null); setBriefing(EMPTY_BRIEFING); }}
+          className="text-[11px] text-[#15803D] hover:text-[#166534] font-medium transition-colors"
+        >
+          ← Revise Intake
+        </button>
+      </div>
 
       {/* How it works strip */}
       <div className="flex items-center gap-0 mb-8 bg-white rounded-[10px] border border-[#E5E5E2] px-6 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
@@ -1359,6 +1403,8 @@ export default function OrchestratorPage() {
           </div>
         </div>
       )}
-    </>
+      </>
+    )}
+  </>
   );
 }
