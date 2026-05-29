@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { Client } from "@/lib/agency/mock-data";
 import Button from "@/components/agency/ui/Button";
+import { useAgencyStore } from "@/store/agency-store";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -716,6 +717,8 @@ interface IntakeEngineProps {
 }
 
 export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps) {
+  const { updateClient } = useAgencyStore();
+
   const [clientLevel, setClientLevel] = useState<ClientLevel | null>(null);
   const [intakeMode, setIntakeMode] = useState<IntakeMode>("guided");
   const [selectedClientId, setSelectedClientId] = useState("");
@@ -724,6 +727,7 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
   const [answers, setAnswers] = useState<IntakeAnswers>({});
   const [freeText, setFreeText] = useState("");
   const [summary, setSummary] = useState<IntakeSummary | null>(null);
+  const [profileSaved, setProfileSaved] = useState(false);
 
   const level = clientLevel ?? "intermediate";
   const selectedClient = clients.find((c) => c.id === selectedClientId) ?? null;
@@ -736,16 +740,43 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
     setAnswer(questionId, current.includes(option) ? current.filter((v) => v !== option) : [...current, option]);
   };
 
-  // When a client is selected, pre-load known profile data so we don't ask again
+  // When a client is selected, pre-load all known profile data so we don't ask again
   const handleClientSelect = (clientId: string) => {
     setSelectedClientId(clientId);
+    setProfileSaved(false);
     const client = clients.find((c) => c.id === clientId);
     if (client) {
       setAnswers((prev: IntakeAnswers) => ({
         ...prev,
         ...(!prev["business_name"] && client.name ? { business_name: client.name } : {}),
         ...(!prev["business_description"] && client.description ? { business_description: client.description } : {}),
+        ...(!prev["brand_tone"] && client.brandTone ? { brand_tone: client.brandTone } : {}),
+        ...(!prev["brand_existing"] && client.brandExisting ? { brand_existing: client.brandExisting } : {}),
+        ...(!prev["audience"] && client.targetAudience ? { audience: client.targetAudience } : {}),
+        ...(!prev["current_channels"] && client.currentChannels ? { current_channels: client.currentChannels } : {}),
+        ...(!prev["what_works"] && client.whatWorks ? { what_works: client.whatWorks } : {}),
+        ...(!prev["what_fails"] && client.whatFails ? { what_fails: client.whatFails } : {}),
+        ...(!(prev["available_assets"] as string[] | undefined)?.length && client.availableAssets?.length ? { available_assets: client.availableAssets } : {}),
+        ...(!prev["restrictions"] && client.restrictions ? { restrictions: client.restrictions } : {}),
       }));
+    }
+  };
+
+  // Persist completed client profile answers back to the Client Hub
+  const saveClientProfile = (currentAnswers: IntakeAnswers, clientId: string) => {
+    const updates: Partial<Client> = {};
+    if (currentAnswers["business_description"]) updates.description = currentAnswers["business_description"] as string;
+    if (currentAnswers["brand_tone"]) updates.brandTone = currentAnswers["brand_tone"] as string;
+    if (currentAnswers["brand_existing"]) updates.brandExisting = currentAnswers["brand_existing"] as string;
+    if (currentAnswers["audience"]) updates.targetAudience = currentAnswers["audience"] as string;
+    if (currentAnswers["current_channels"]) updates.currentChannels = currentAnswers["current_channels"] as string;
+    if (currentAnswers["what_works"]) updates.whatWorks = currentAnswers["what_works"] as string;
+    if (currentAnswers["what_fails"]) updates.whatFails = currentAnswers["what_fails"] as string;
+    if ((currentAnswers["available_assets"] as string[] | undefined)?.length) updates.availableAssets = currentAnswers["available_assets"] as string[];
+    if (currentAnswers["restrictions"]) updates.restrictions = currentAnswers["restrictions"] as string;
+    if (Object.keys(updates).length > 0) {
+      updateClient(clientId, updates);
+      setProfileSaved(true);
     }
   };
 
@@ -769,6 +800,7 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
     setFreeText("");
     setSummary(null);
     setSelectedClientId("");
+    setProfileSaved(false);
   };
 
   // Active blocks depend on which phase we're in
@@ -807,6 +839,7 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
     if (currentBlockIndex < activeBlocks.length - 1) {
       setCurrentBlockIndex((i: number) => i + 1);
     } else if (intakePhase === "client") {
+      saveClientProfile(answers, selectedClientId);
       setIntakePhase("project");
       setCurrentBlockIndex(0);
     } else {
@@ -1086,6 +1119,14 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
                 )}
               </div>
 
+              {/* Profile saved confirmation */}
+              {intakePhase === "project" && profileSaved && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-[#DCFCE7] border border-[#BBF7D0] rounded-[7px]">
+                  <span className="text-[#16A34A] font-bold text-[11px]">✓</span>
+                  <span className="text-[12px] font-medium text-[#15803D]">Client profile updated</span>
+                </div>
+              )}
+
               {/* Profile complete shortcut — skip to project brief */}
               {intakePhase === "client" && clientProfileComplete && selectedClientId && (
                 <div className="flex items-center justify-between gap-3 px-3 py-2.5 bg-[#DCFCE7] border border-[#BBF7D0] rounded-[7px]">
@@ -1094,7 +1135,7 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
                     <div className="text-[11px] text-[#166534]">All key client information is loaded.</div>
                   </div>
                   <button
-                    onClick={() => { setIntakePhase("project"); setCurrentBlockIndex(0); }}
+                    onClick={() => { saveClientProfile(answers, selectedClientId); setIntakePhase("project"); setCurrentBlockIndex(0); }}
                     className="h-7 px-3 text-[12px] font-semibold bg-[#16A34A] text-white rounded-[6px] hover:bg-[#15803D] transition-colors whitespace-nowrap shrink-0"
                   >
                     Start Project Brief →

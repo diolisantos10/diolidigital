@@ -27,6 +27,15 @@ export interface Client {
   status: ClientStatus;
   description?: string;
   createdAt: string;
+  // Intake-captured profile fields — saved from the Client Profile phase
+  brandTone?: string;
+  brandExisting?: string;
+  targetAudience?: string;
+  currentChannels?: string;
+  whatWorks?: string;
+  whatFails?: string;
+  availableAssets?: string[];
+  restrictions?: string;
 }
 
 export interface ProjectProposal {
