@@ -23,6 +23,7 @@ import {
   MOCK_BRIEFINGS,
   MOCK_ACTIVITY,
 } from "@/lib/agency/mock-data";
+import type { MaterialRequest, MaterialRequestStatus } from "@/lib/agency/workspace";
 
 // ─── QA Test Run ──────────────────────────────────────────────────────────────
 
@@ -91,6 +92,11 @@ interface AgencyState {
   locale: Locale;
   setLocale: (locale: Locale) => void;
 
+  // Material requests (agency → client asks for assets/content)
+  materialRequests: MaterialRequest[];
+  addMaterialRequest: (req: Omit<MaterialRequest, "id" | "requestedAt">) => string;
+  updateMaterialRequestStatus: (id: string, status: MaterialRequestStatus) => void;
+
   // QA Test History
   testRuns: QATestRun[];
   addTestRun: (run: Omit<QATestRun, "id">) => void;
@@ -112,6 +118,7 @@ export const useAgencyStore = create<AgencyState>()(
       deliverables: MOCK_DELIVERABLES,
       briefings: MOCK_BRIEFINGS,
       activity: MOCK_ACTIVITY,
+      materialRequests: [],
       testRuns: [],
 
       // ── i18n ─────────────────────────────────────────────────────────────
@@ -320,6 +327,26 @@ export const useAgencyStore = create<AgencyState>()(
         }));
       },
 
+      // ── Material Requests ─────────────────────────────────────────────────
+      addMaterialRequest: (data) => {
+        const id = `mr${uid()}`;
+        const req: MaterialRequest = {
+          ...data,
+          id,
+          requestedAt: new Date().toISOString(),
+        };
+        set((s) => ({ materialRequests: [...s.materialRequests, req] }));
+        return id;
+      },
+
+      updateMaterialRequestStatus: (id, status) => {
+        set((s) => ({
+          materialRequests: s.materialRequests.map((r) =>
+            r.id === id ? { ...r, status } : r
+          ),
+        }));
+      },
+
       // ── QA Test History ───────────────────────────────────────────────────
       addTestRun: (data) => {
         const id = `qa${uid()}`;
@@ -361,6 +388,7 @@ export const useAgencyStore = create<AgencyState>()(
         deliverables: s.deliverables,
         briefings: s.briefings,
         activity: s.activity,
+        materialRequests: s.materialRequests,
         locale: s.locale,
         testRuns: s.testRuns,
       }),

@@ -4,6 +4,7 @@ import { use, useState } from "react";
 import { useAgencyStore } from "@/store/agency-store";
 import { notFound } from "next/navigation";
 import { DeliverableStatus, ProjectStage } from "@/lib/agency/mock-data";
+import { getClientVisibleDeliverables } from "@/lib/agency/workspace";
 
 
 const STAGE_LABEL: Record<ProjectStage, string> = {
@@ -26,12 +27,15 @@ const TYPE_ICON: Record<string, string> = {
 
 export default function ClientPortalPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { clients, projects, deliverables, updateDeliverableStatus, setDeliverableFeedback, approveProposal, requestProposalChanges } = useAgencyStore();
+  const { clients, projects, deliverables, materialRequests, updateDeliverableStatus, setDeliverableFeedback, approveProposal, requestProposalChanges } = useAgencyStore();
 
   const client = clients.find((c) => c.id === id);
   if (!client) return notFound();
 
   const clientProjects = projects.filter((p) => p.clientId === id);
+  const clientProjectIds = new Set<string>(clientProjects.map((p) => p.id as string));
+  const visibleDeliverables = getClientVisibleDeliverables(deliverables, clientProjectIds);
+  const clientMaterialRequests = materialRequests.filter((r) => r.clientId === id && r.status === "pending");
 
   // Local UI state
   const [feedbackOpen,         setFeedbackOpen]         = useState<Record<string, boolean>>({});
@@ -318,6 +322,36 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* ── Requested Materials ─────────────────────────────────────────────── */}
+      {clientMaterialRequests.length > 0 && (
+        <div className="mt-10">
+          <h2 className="text-[15px] font-semibold text-[#1A1A1A] mb-1">Requested from You</h2>
+          <p className="text-[12px] text-[#9B9B95] mb-4">
+            The team needs the following from you to move forward.
+          </p>
+          <div className="space-y-3">
+            {clientMaterialRequests.map((req) => (
+              <div
+                key={req.id}
+                className="bg-white rounded-[10px] border border-[#FDE68A] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="text-[13px] font-medium text-[#1A1A1A]">{req.title}</div>
+                    {req.description && (
+                      <p className="text-[12px] text-[#6B6B65] mt-1 leading-relaxed">{req.description}</p>
+                    )}
+                  </div>
+                  <span className="h-5 px-2 rounded-full text-[10px] font-semibold bg-[#FEF3C7] text-[#D97706] shrink-0 whitespace-nowrap">
+                    Pending
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </>

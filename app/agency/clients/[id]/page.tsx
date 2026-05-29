@@ -14,6 +14,7 @@ import {
   MOCK_AGENTS,
   ProjectStage,
 } from "@/lib/agency/mock-data";
+import type { OperationalRisk } from "@/lib/agency/workspace";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -71,6 +72,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
   const { id } = use(params);
   const { clients, projects, tasks, deliverables, activity, updateClient } = useAgencyStore();
   const [editOpen, setEditOpen] = useState(false);
+  const portalUrl = `/portal/client/${id}`;
 
   const client = clients.find((c) => c.id === id);
   if (!client) return notFound();
@@ -123,6 +125,22 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
     deliverableByType[d.type].push(d);
   }
 
+  // ── Operational risks ────────────────────────────────────────────────────────
+  const risks: OperationalRisk[] = [];
+  const today = new Date();
+  for (const p of clientProjects) {
+    if (p.stage === "completed") continue;
+    const deadline = new Date(p.deadline);
+    const daysLeft = Math.ceil((deadline.getTime() - today.getTime()) / 86400000);
+    if (daysLeft < 0) risks.push({ severity: "high", label: "Overdue project", detail: `${p.name} passed deadline by ${Math.abs(daysLeft)}d`, projectId: p.id });
+    else if (daysLeft < 7) risks.push({ severity: "medium", label: "Deadline approaching", detail: `${p.name} — ${daysLeft}d remaining`, projectId: p.id });
+  }
+  const blockedCount = blockedTasks.length;
+  if (blockedCount > 0) risks.push({ severity: "high", label: `${blockedCount} blocked task${blockedCount > 1 ? "s" : ""}`, detail: blockedTasks.map((t) => t.title).join(", ") });
+  const stalledProjects = clientProjects.filter((p) => p.stage !== "completed" && !inProgressTasks.some((t) => t.projectId === p.id));
+  for (const p of stalledProjects) risks.push({ severity: "low", label: "No active tasks", detail: `${p.name} has no in-progress tasks`, projectId: p.id });
+  const RISK_COLORS = { high: { bg: "bg-[#FEE2E2]", text: "text-[#DC2626]", dot: "bg-[#DC2626]" }, medium: { bg: "bg-[#FEF3C7]", text: "text-[#D97706]", dot: "bg-[#D97706]" }, low: { bg: "bg-[#F0F0ED]", text: "text-[#6B6B65]", dot: "bg-[#9B9B95]" } };
+
   // ── Edit form ───────────────────────────────────────────────────────────────
   const [form, setForm] = useState({
     name: client.name,
@@ -145,6 +163,9 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
         meta={<Badge variant={client.status} size="md" />}
         actions={
           <>
+            <Link href={portalUrl} target="_blank">
+              <Button variant="ghost">Client View ↗</Button>
+            </Link>
             <Button variant="secondary" onClick={() => setEditOpen(true)}>Edit Client</Button>
             <Link href="/agency/orchestrator">
               <Button variant="primary">+ New Project</Button>
@@ -455,6 +476,36 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* ── Operational Risks ────────────────────────────────────────────── */}
+          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0F0ED]">
+              <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Operational Risks</div>
+              {risks.length > 0 && (
+                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${risks.some(r => r.severity === "high") ? "bg-[#FEE2E2] text-[#DC2626]" : "bg-[#FEF3C7] text-[#D97706]"}`}>
+                  {risks.length} flagged
+                </span>
+              )}
+            </div>
+            {risks.length === 0 ? (
+              <div className="px-5 py-5 text-center text-[12px] text-[#9B9B95]">No risks detected.</div>
+            ) : (
+              <div className="divide-y divide-[#F0F0ED]">
+                {risks.map((risk, i) => {
+                  const c = RISK_COLORS[risk.severity];
+                  return (
+                    <div key={i} className="flex items-start gap-3 px-5 py-3">
+                      <span className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${c.dot}`} />
+                      <div className="min-w-0 flex-1">
+                        <div className={`text-[12px] font-medium ${c.text}`}>{risk.label}</div>
+                        <div className="text-[11px] text-[#9B9B95] mt-0.5 leading-snug truncate">{risk.detail}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* ── Assigned Resources ───────────────────────────────────────────── */}
