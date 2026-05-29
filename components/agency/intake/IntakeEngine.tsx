@@ -8,13 +8,12 @@ import Button from "@/components/agency/ui/Button";
 
 export type ClientLevel = "beginner" | "intermediate" | "advanced";
 type IntakeMode = "guided" | "free_brief" | "existing_brief";
-
-// Level-specific text: either a single string (same for all levels) or per-level copy
+type IntakePhase = "client" | "project";
 type LevelText = string | Record<ClientLevel, string>;
 
 interface IntakeQuestion {
   id: string;
-  internalLabel: string; // agency-facing label used in summary / missing-info list
+  internalLabel: string;
   question: LevelText;
   hint?: LevelText;
   placeholder: LevelText;
@@ -65,9 +64,10 @@ function resolveOptions(opts: string[] | Record<ClientLevel, string[]>, level: C
   return Array.isArray(opts) ? opts : opts[level];
 }
 
-// ─── Question blocks ──────────────────────────────────────────────────────────
+// ─── CLIENT PROFILE blocks — stored once per client ──────────────────────────
+// These fields describe who the client is, not what they want to do right now.
 
-const INTAKE_BLOCKS: IntakeBlock[] = [
+const CLIENT_PROFILE_BLOCKS: IntakeBlock[] = [
   {
     id: "business",
     title: "Your Business",
@@ -163,57 +163,6 @@ const INTAKE_BLOCKS: IntakeBlock[] = [
           beginner: "e.g. Yes — we have a logo and professional photos from last year's campaign",
           intermediate: "e.g. Full brand guidelines, logo in SVG, professional photography",
           advanced: "e.g. Complete brand system: logo, guidelines, palette, photography library",
-        },
-        type: "text",
-        required: false,
-        weight: 5,
-      },
-    ],
-  },
-  {
-    id: "objective",
-    title: "What You Want to Achieve",
-    description: "What should this project actually do for your business?",
-    questions: [
-      {
-        id: "objective",
-        internalLabel: "Primary project objective",
-        question: {
-          beginner: "What do you want this project to achieve? More orders, more people finding you, more messages, more followers?",
-          intermediate: "What is the primary goal of this project?",
-          advanced: "Primary objective and campaign goal.",
-        },
-        hint: {
-          beginner: "There's no wrong answer — we just want to understand what success looks like for you.",
-          intermediate: "Be specific — a concrete outcome is more useful than a general direction.",
-          advanced: "",
-        },
-        placeholder: {
-          beginner: "e.g. I want more people to know we exist and come in to try us",
-          intermediate: "e.g. Generate 300 qualified leads from HR directors over 6 weeks",
-          advanced: "e.g. 300 MQLs in 6 weeks, CPL < €15, channel: LinkedIn + Google Ads",
-        },
-        type: "textarea",
-        required: true,
-        weight: 25,
-      },
-      {
-        id: "success_criteria",
-        internalLabel: "Success criteria / KPIs",
-        question: {
-          beginner: "How will you know if it worked? Is there a number you're hoping to hit?",
-          intermediate: "What does success look like? Any specific numbers or metrics you're targeting?",
-          advanced: "Success criteria and KPIs (ROAS, CPL, engagement rate, growth targets).",
-        },
-        hint: {
-          beginner: "For example: 50 new bookings a month, twice the Instagram followers, 20% more website visits.",
-          intermediate: "Even rough targets help us prioritise.",
-          advanced: "",
-        },
-        placeholder: {
-          beginner: "e.g. I'd love to double the number of online reservations in 3 months",
-          intermediate: "e.g. 200 new followers/month, 5% engagement rate, 50 monthly form submissions",
-          advanced: "e.g. ROAS 4x, CPL < €12, 5% conversion on landing page",
         },
         type: "text",
         required: false,
@@ -381,6 +330,92 @@ const INTAKE_BLOCKS: IntakeBlock[] = [
     ],
   },
   {
+    id: "restrictions",
+    title: "Brand Rules & Constraints",
+    description: "Anything we should never do, say, or show for this client.",
+    questions: [
+      {
+        id: "restrictions",
+        internalLabel: "Restrictions and constraints",
+        question: {
+          beginner: "Is there anything you absolutely don't want — a word, a color, a competitor to never mention?",
+          intermediate: "Are there any restrictions, brand rules, or things to avoid?",
+          advanced: "Restrictions, compliance requirements, brand constraints, or internal blockers.",
+        },
+        hint: {
+          beginner: "For example: a color that doesn't feel like you, a tone that's too pushy, a competitor you never want us to reference.",
+          intermediate: "Include compliance requirements if relevant (e.g. LGPD, GDPR).",
+          advanced: "",
+        },
+        placeholder: {
+          beginner: "e.g. Please don't use red — it doesn't feel like us. And never mention [competitor name].",
+          intermediate: "e.g. Avoid direct competitor references. Must comply with LGPD. No aggressive tone.",
+          advanced: "e.g. LGPD compliant. No mention of X brand. Legal: avoid specific performance claims.",
+        },
+        type: "textarea",
+        required: false,
+        weight: 3,
+      },
+    ],
+  },
+];
+
+// ─── PROJECT BRIEF blocks — captured fresh for each project ──────────────────
+// These fields describe what the client wants to do right now.
+
+const PROJECT_BRIEF_BLOCKS: IntakeBlock[] = [
+  {
+    id: "objective",
+    title: "What You Want to Achieve",
+    description: "What should this project actually do for the business?",
+    questions: [
+      {
+        id: "objective",
+        internalLabel: "Primary project objective",
+        question: {
+          beginner: "What do you want this project to achieve? More orders, more people finding you, more messages, more followers?",
+          intermediate: "What is the primary goal of this project?",
+          advanced: "Primary objective and campaign goal.",
+        },
+        hint: {
+          beginner: "There's no wrong answer — we just want to understand what success looks like for you.",
+          intermediate: "Be specific — a concrete outcome is more useful than a general direction.",
+          advanced: "",
+        },
+        placeholder: {
+          beginner: "e.g. I want more people to know we exist and come in to try us",
+          intermediate: "e.g. Generate 300 qualified leads from HR directors over 6 weeks",
+          advanced: "e.g. 300 MQLs in 6 weeks, CPL < €15, channel: LinkedIn + Google Ads",
+        },
+        type: "textarea",
+        required: true,
+        weight: 25,
+      },
+      {
+        id: "success_criteria",
+        internalLabel: "Success criteria / KPIs",
+        question: {
+          beginner: "How will you know if it worked? Is there a number you're hoping to hit?",
+          intermediate: "What does success look like? Any specific numbers or metrics you're targeting?",
+          advanced: "Success criteria and KPIs (ROAS, CPL, engagement rate, growth targets).",
+        },
+        hint: {
+          beginner: "For example: 50 new bookings a month, twice the Instagram followers, 20% more website visits.",
+          intermediate: "Even rough targets help us prioritise.",
+          advanced: "",
+        },
+        placeholder: {
+          beginner: "e.g. I'd love to double the number of online reservations in 3 months",
+          intermediate: "e.g. 200 new followers/month, 5% engagement rate, 50 monthly form submissions",
+          advanced: "e.g. ROAS 4x, CPL < €12, 5% conversion on landing page",
+        },
+        type: "text",
+        required: false,
+        weight: 5,
+      },
+    ],
+  },
+  {
     id: "services",
     title: "What Help You Need",
     description: "What kind of work does this project require?",
@@ -437,7 +472,7 @@ const INTAKE_BLOCKS: IntakeBlock[] = [
   {
     id: "budget_timeline",
     title: "Budget & Timeline",
-    description: "Help us scope what's realistic.",
+    description: "Help us scope what's realistic for this project.",
     questions: [
       {
         id: "budget",
@@ -489,41 +524,15 @@ const INTAKE_BLOCKS: IntakeBlock[] = [
       },
     ],
   },
-  {
-    id: "restrictions",
-    title: "Things to Avoid",
-    description: "Anything we should never do, say, or show.",
-    questions: [
-      {
-        id: "restrictions",
-        internalLabel: "Restrictions and constraints",
-        question: {
-          beginner: "Is there anything you absolutely don't want — a word, a color, a competitor to never mention?",
-          intermediate: "Are there any restrictions, brand rules, or things to avoid?",
-          advanced: "Restrictions, compliance requirements, brand constraints, or internal blockers.",
-        },
-        hint: {
-          beginner: "For example: a color that doesn't feel like you, a tone that's too pushy, a competitor you never want us to reference.",
-          intermediate: "Include compliance requirements if relevant (e.g. LGPD, GDPR).",
-          advanced: "",
-        },
-        placeholder: {
-          beginner: "e.g. Please don't use red — it doesn't feel like us. And never mention [competitor name].",
-          intermediate: "e.g. Avoid direct competitor references. Must comply with LGPD. No aggressive tone.",
-          advanced: "e.g. LGPD compliant. No mention of X brand. Legal: avoid specific performance claims.",
-        },
-        type: "textarea",
-        required: false,
-        weight: 3,
-      },
-    ],
-  },
 ];
+
+// Combined for scoring — order doesn't matter for computeIntakeSummary
+const ALL_INTAKE_BLOCKS: IntakeBlock[] = [...CLIENT_PROFILE_BLOCKS, ...PROJECT_BRIEF_BLOCKS];
 
 // ─── Scoring + summary ────────────────────────────────────────────────────────
 
 function computeIntakeSummary(answers: IntakeAnswers, clientId: string): IntakeSummary {
-  const allQuestions = INTAKE_BLOCKS.flatMap((b) => b.questions);
+  const allQuestions = ALL_INTAKE_BLOCKS.flatMap((b) => b.questions);
   let score = 0;
   const missingRequired: string[] = [];
 
@@ -572,7 +581,6 @@ function computeIntakeSummary(answers: IntakeAnswers, clientId: string): IntakeS
 // ─── Intake → orchestrator prefill ───────────────────────────────────────────
 
 const SERVICE_ID_MAP: Record<string, string> = {
-  // Advanced labels
   "Social Media": "social_media",
   "Paid Ads": "ads",
   "SEO": "seo",
@@ -580,12 +588,10 @@ const SERVICE_ID_MAP: Record<string, string> = {
   "Content Production": "content",
   "Email Marketing": "content",
   "Analytics": "content",
-  // Intermediate labels
   "Social Media Management": "social_media",
   "Paid Advertising": "ads",
   "Branding & Identity": "branding",
   "Analytics & Reporting": "content",
-  // Beginner labels
   "More visibility on social media": "social_media",
   "Paid ads to bring in more customers": "ads",
   "Show up higher on Google": "seo",
@@ -713,13 +719,14 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
   const [clientLevel, setClientLevel] = useState<ClientLevel | null>(null);
   const [intakeMode, setIntakeMode] = useState<IntakeMode>("guided");
   const [selectedClientId, setSelectedClientId] = useState("");
-
+  const [intakePhase, setIntakePhase] = useState<IntakePhase>("client");
   const [currentBlockIndex, setCurrentBlockIndex] = useState(0);
   const [answers, setAnswers] = useState<IntakeAnswers>({});
   const [freeText, setFreeText] = useState("");
   const [summary, setSummary] = useState<IntakeSummary | null>(null);
 
   const level = clientLevel ?? "intermediate";
+  const selectedClient = clients.find((c) => c.id === selectedClientId) ?? null;
 
   const setAnswer = (questionId: string, value: string | string[]) =>
     setAnswers((prev: IntakeAnswers) => ({ ...prev, [questionId]: value }));
@@ -727,6 +734,19 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
   const toggleMultiselect = (questionId: string, option: string) => {
     const current = (answers[questionId] as string[] | undefined) ?? [];
     setAnswer(questionId, current.includes(option) ? current.filter((v) => v !== option) : [...current, option]);
+  };
+
+  // When a client is selected, pre-load known profile data so we don't ask again
+  const handleClientSelect = (clientId: string) => {
+    setSelectedClientId(clientId);
+    const client = clients.find((c) => c.id === clientId);
+    if (client) {
+      setAnswers((prev: IntakeAnswers) => ({
+        ...prev,
+        ...(!prev["business_name"] && client.name ? { business_name: client.name } : {}),
+        ...(!prev["business_description"] && client.description ? { business_description: client.description } : {}),
+      }));
+    }
   };
 
   const availableModes: IntakeMode[] =
@@ -743,14 +763,37 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
   const handleLevelSelect = (lvl: ClientLevel) => {
     setClientLevel(lvl);
     setIntakeMode(lvl === "advanced" ? "existing_brief" : "guided");
+    setIntakePhase("client");
     setCurrentBlockIndex(0);
     setAnswers({});
     setFreeText("");
     setSummary(null);
+    setSelectedClientId("");
   };
 
-  const currentBlock = INTAKE_BLOCKS[currentBlockIndex];
-  const totalBlocks = INTAKE_BLOCKS.length;
+  // Active blocks depend on which phase we're in
+  const activeBlocks = intakePhase === "client" ? CLIENT_PROFILE_BLOCKS : PROJECT_BRIEF_BLOCKS;
+  const currentBlock = activeBlocks[currentBlockIndex];
+  const totalBlocks = activeBlocks.length;
+
+  // Check if all required client profile fields are already filled (from auto-load or prior answers)
+  const clientProfileComplete = CLIENT_PROFILE_BLOCKS
+    .flatMap((b) => b.questions)
+    .filter((q) => q.required)
+    .every((q) => {
+      const a = answers[q.id];
+      return Array.isArray(a) ? a.length > 0 : typeof a === "string" && a.trim().length > 3;
+    });
+
+  // Labels for missing required profile fields (shown in right panel during client phase)
+  const missingProfileLabels = CLIENT_PROFILE_BLOCKS
+    .flatMap((b) => b.questions)
+    .filter((q) => q.required)
+    .filter((q) => {
+      const a = answers[q.id];
+      return !(Array.isArray(a) ? a.length > 0 : typeof a === "string" && a.trim().length > 3);
+    })
+    .map((q) => q.internalLabel);
 
   const canAdvanceBlock = () =>
     currentBlock.questions
@@ -761,8 +804,11 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
       });
 
   const handleNextBlock = () => {
-    if (currentBlockIndex < totalBlocks - 1) {
+    if (currentBlockIndex < activeBlocks.length - 1) {
       setCurrentBlockIndex((i: number) => i + 1);
+    } else if (intakePhase === "client") {
+      setIntakePhase("project");
+      setCurrentBlockIndex(0);
     } else {
       setSummary(computeIntakeSummary(answers, selectedClientId));
     }
@@ -770,6 +816,11 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
 
   const handleTextSubmit = () => {
     const parsed = parseTextToAnswers(freeText);
+    // Auto-load client data on top of parsed answers
+    if (selectedClient) {
+      if (!parsed["business_name"] && selectedClient.name) parsed["business_name"] = selectedClient.name;
+      if (!parsed["business_description"] && selectedClient.description) parsed["business_description"] = selectedClient.description;
+    }
     setAnswers(parsed);
     setSummary(computeIntakeSummary(parsed, selectedClientId));
   };
@@ -805,7 +856,7 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
           </div>
 
           <div className="divide-y divide-[#F7F7F6]">
-            <SummaryRow label="Client Context" value={summary.clientContext} />
+            <SummaryRow label="Client" value={summary.clientContext} />
             <SummaryRow label="Objective" value={summary.projectObjective} />
             <div className="flex items-start gap-3 px-5 py-3">
               <span className="w-[140px] shrink-0 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] pt-0.5">
@@ -952,9 +1003,16 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
 
   const stepLabel = level === "beginner" ? "Step" : "Block";
 
+  const nextBlockLabel =
+    currentBlockIndex < activeBlocks.length - 1
+      ? `Next: ${activeBlocks[currentBlockIndex + 1]?.title}`
+      : intakePhase === "client"
+      ? "Continue to Project Brief →"
+      : "Generate Intake Summary";
+
   return (
     <div className="grid grid-cols-[420px_1fr] gap-6">
-      {/* Left panel */}
+      {/* ── Left panel ────────────────────────────────────────────────────── */}
       <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden h-fit">
 
         {/* Level chip + change */}
@@ -976,7 +1034,7 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
             {availableModes.map((mode) => (
               <button
                 key={mode}
-                onClick={() => { setIntakeMode(mode); setCurrentBlockIndex(0); setSummary(null); setAnswers({}); setFreeText(""); }}
+                onClick={() => { setIntakeMode(mode); setIntakePhase("client"); setCurrentBlockIndex(0); setSummary(null); setAnswers({}); setFreeText(""); setSelectedClientId(""); }}
                 className={`flex-1 py-2.5 text-[12px] font-medium border-b-2 -mb-[1px] transition-colors ${
                   intakeMode === mode
                     ? "border-[#5B5BD6] text-[#5B5BD6]"
@@ -990,12 +1048,12 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
         )}
 
         <div className="px-5 py-5 space-y-4">
-          {/* Client selector */}
+          {/* Client selector — auto-loads known profile data on selection */}
           <div>
             <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Client *</label>
             <select
               value={selectedClientId}
-              onChange={(e) => setSelectedClientId(e.target.value)}
+              onChange={(e) => handleClientSelect(e.target.value)}
               className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
             >
               <option value="">Select client...</option>
@@ -1006,7 +1064,45 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
           {/* ── GUIDED INTERVIEW ─────────────────────────────────────────────── */}
           {intakeMode === "guided" && (
             <div className="space-y-4">
-              {/* Progress */}
+              {/* Phase indicator */}
+              <div className="flex items-center justify-between px-3 py-2 bg-[#F7F7F6] border border-[#EBEBEA] rounded-[7px]">
+                <div>
+                  <div className="text-[11px] font-semibold text-[#1A1A1A]">
+                    {intakePhase === "client" ? "Phase 1 — Client Profile" : "Phase 2 — Project Brief"}
+                  </div>
+                  <div className="text-[10px] text-[#9B9B95] mt-0.5">
+                    {intakePhase === "client"
+                      ? "Capture or confirm what we know about this client."
+                      : `What does ${selectedClient?.name ?? "this client"} want to do now?`}
+                  </div>
+                </div>
+                {intakePhase === "project" && (
+                  <button
+                    onClick={() => { setIntakePhase("client"); setCurrentBlockIndex(0); }}
+                    className="text-[11px] text-[#9B9B95] hover:text-[#6B6B65] transition-colors whitespace-nowrap shrink-0 ml-3"
+                  >
+                    ← Profile
+                  </button>
+                )}
+              </div>
+
+              {/* Profile complete shortcut — skip to project brief */}
+              {intakePhase === "client" && clientProfileComplete && selectedClientId && (
+                <div className="flex items-center justify-between gap-3 px-3 py-2.5 bg-[#DCFCE7] border border-[#BBF7D0] rounded-[7px]">
+                  <div>
+                    <div className="text-[12px] font-semibold text-[#15803D]">Profile is complete</div>
+                    <div className="text-[11px] text-[#166534]">All key client information is loaded.</div>
+                  </div>
+                  <button
+                    onClick={() => { setIntakePhase("project"); setCurrentBlockIndex(0); }}
+                    className="h-7 px-3 text-[12px] font-semibold bg-[#16A34A] text-white rounded-[6px] hover:bg-[#15803D] transition-colors whitespace-nowrap shrink-0"
+                  >
+                    Start Project Brief →
+                  </button>
+                </div>
+              )}
+
+              {/* Block progress */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">
@@ -1090,8 +1186,20 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
 
               {/* Navigation */}
               <div className="flex gap-2 pt-1">
-                {currentBlockIndex > 0 && (
-                  <Button variant="ghost" size="sm" className="shrink-0" onClick={() => setCurrentBlockIndex((i: number) => i - 1)}>
+                {(currentBlockIndex > 0 || intakePhase === "project") && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="shrink-0"
+                    onClick={() => {
+                      if (currentBlockIndex > 0) {
+                        setCurrentBlockIndex((i: number) => i - 1);
+                      } else {
+                        setIntakePhase("client");
+                        setCurrentBlockIndex(CLIENT_PROFILE_BLOCKS.length - 1);
+                      }
+                    }}
+                  >
                     Back
                   </Button>
                 )}
@@ -1099,14 +1207,12 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
                   onClick={handleNextBlock}
                   disabled={!selectedClientId || !canAdvanceBlock()}
                   className={`flex-1 h-9 text-[13px] font-semibold rounded-[8px] transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
-                    currentBlockIndex === totalBlocks - 1
+                    currentBlockIndex === totalBlocks - 1 && intakePhase === "project"
                       ? "bg-[#1A1A1A] hover:bg-[#111111] text-white"
                       : "bg-[#5B5BD6] hover:bg-[#4A4AC0] text-white"
                   }`}
                 >
-                  {currentBlockIndex === totalBlocks - 1
-                    ? "Generate Intake Summary"
-                    : `Next: ${INTAKE_BLOCKS[currentBlockIndex + 1]?.title}`}
+                  {nextBlockLabel}
                 </button>
               </div>
             </div>
@@ -1117,10 +1223,10 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
             <div className="space-y-3.5">
               <div>
                 <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">
-                  Describe the project in your own words
+                  Describe the client and what they want to achieve
                 </label>
                 <p className="text-[11px] text-[#9B9B95] mb-2">
-                  Include who the client is, what they want to achieve, who they're targeting, and what kind of help they need.
+                  Include who the client is, what their business does, who they're targeting, what they want to achieve with this project, and what kind of help they need.
                 </p>
                 <textarea
                   value={freeText}
@@ -1148,7 +1254,7 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
                   Paste the client's existing brief
                 </label>
                 <p className="text-[11px] text-[#9B9B95] mb-2">
-                  We'll extract key fields automatically. Review the summary before continuing.
+                  We'll extract client profile data and project objectives automatically. Review the summary before continuing.
                 </p>
                 <textarea
                   value={freeText}
@@ -1170,75 +1276,158 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
         </div>
       </div>
 
-      {/* Right panel */}
+      {/* ── Right panel ───────────────────────────────────────────────────── */}
       <div className="space-y-3">
-        {/* Block progress map */}
         {intakeMode === "guided" && (
-          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-            <div className="px-5 py-3 border-b border-[#F0F0ED]">
-              <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Interview Progress</span>
-            </div>
-            <div className="divide-y divide-[#F7F7F6]">
-              {INTAKE_BLOCKS.map((block, i) => {
-                const isActive = i === currentBlockIndex;
-                const isDone = i < currentBlockIndex;
-                const allRequired = block.questions.filter((q) => q.required).every((q) => {
-                  const a = answers[q.id];
-                  return Array.isArray(a) ? a.length > 0 : typeof a === "string" && a.trim().length > 3;
-                });
-                return (
-                  <div key={block.id} className={`flex items-center gap-3 px-5 py-3 ${isActive ? "bg-[#EEF0FF]/40" : ""}`}>
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${
-                      isDone && allRequired ? "bg-[#DCFCE7] text-[#16A34A]" :
-                      isActive ? "bg-[#5B5BD6] text-white" :
-                      "bg-[#F0F0ED] text-[#9B9B95]"
-                    }`}>
-                      {isDone && allRequired ? "✓" : i + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className={`text-[12px] font-medium ${isActive ? "text-[#5B5BD6]" : isDone ? "text-[#6B6B65]" : "text-[#9B9B95]"}`}>
-                        {block.title}
-                      </div>
-                      <div className="text-[11px] text-[#9B9B95] truncate">{block.description}</div>
-                    </div>
+          <>
+            {/* CLIENT PHASE: block progress map + known info */}
+            {intakePhase === "client" && (
+              <>
+                <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+                  <div className="px-5 py-3 border-b border-[#F0F0ED]">
+                    <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Client Profile — Progress</span>
                   </div>
-                );
-              })}
-            </div>
-          </div>
+                  <div className="divide-y divide-[#F7F7F6]">
+                    {CLIENT_PROFILE_BLOCKS.map((block, i) => {
+                      const isActive = i === currentBlockIndex;
+                      const isDone = i < currentBlockIndex;
+                      const allRequired = block.questions.filter((q) => q.required).every((q) => {
+                        const a = answers[q.id];
+                        return Array.isArray(a) ? a.length > 0 : typeof a === "string" && a.trim().length > 3;
+                      });
+                      return (
+                        <div key={block.id} className={`flex items-center gap-3 px-5 py-3 ${isActive ? "bg-[#EEF0FF]/40" : ""}`}>
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${
+                            allRequired && (isDone || isActive) ? "bg-[#DCFCE7] text-[#16A34A]" :
+                            isActive ? "bg-[#5B5BD6] text-white" :
+                            "bg-[#F0F0ED] text-[#9B9B95]"
+                          }`}>
+                            {allRequired && (isDone || isActive) ? "✓" : i + 1}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className={`text-[12px] font-medium ${isActive ? "text-[#5B5BD6]" : isDone ? "text-[#6B6B65]" : "text-[#9B9B95]"}`}>
+                              {block.title}
+                            </div>
+                            <div className="text-[11px] text-[#9B9B95] truncate">{block.description}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Known information from Client Hub */}
+                {selectedClient && (
+                  <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+                    <div className="px-5 py-3 border-b border-[#F0F0ED] bg-[#FAFAF9]">
+                      <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Loaded from Client Hub</span>
+                    </div>
+                    <div className="divide-y divide-[#F7F7F6]">
+                      <ContextRow label="Name" value={selectedClient.name} />
+                      <ContextRow label="Industry" value={selectedClient.industry} />
+                      {selectedClient.website && <ContextRow label="Website" value={selectedClient.website} />}
+                      {selectedClient.description && <ContextRow label="About" value={selectedClient.description} />}
+                    </div>
+                    {missingProfileLabels.length > 0 && (
+                      <div className="px-5 py-3 border-t border-[#F0F0ED] bg-[#FFFBEB]">
+                        <div className="text-[10px] font-semibold text-[#D97706] uppercase tracking-[0.05em] mb-1.5">Missing from profile</div>
+                        <div className="space-y-1">
+                          {missingProfileLabels.map((label) => (
+                            <div key={label} className="flex items-center gap-1.5 text-[11px] text-[#92400E]">
+                              <span className="shrink-0 text-[#D97706]">·</span>
+                              {label}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* PROJECT PHASE: client context card + project brief progress */}
+            {intakePhase === "project" && (
+              <>
+                {/* Client profile summary — read-only context */}
+                <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+                  <div className="px-5 py-3 border-b border-[#F0F0ED] bg-[#FAFAF9]">
+                    <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Client Profile</span>
+                  </div>
+                  <div className="divide-y divide-[#F7F7F6]">
+                    {selectedClient && <ContextRow label="Client" value={`${selectedClient.name} · ${selectedClient.industry}`} />}
+                    {answers["business_description"] && <ContextRow label="About" value={answers["business_description"] as string} />}
+                    {answers["audience"] && <ContextRow label="Audience" value={answers["audience"] as string} />}
+                    {answers["brand_tone"] && <ContextRow label="Tone" value={answers["brand_tone"] as string} />}
+                    {answers["current_channels"] && <ContextRow label="Channels" value={answers["current_channels"] as string} />}
+                    {answers["restrictions"] && <ContextRow label="Constraints" value={answers["restrictions"] as string} />}
+                    {!answers["business_description"] && !answers["audience"] && (
+                      <div className="px-5 py-3">
+                        <p className="text-[12px] text-[#C0C0BC] italic">No profile data captured yet.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Project brief block progress */}
+                <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+                  <div className="px-5 py-3 border-b border-[#F0F0ED]">
+                    <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Project Brief — Progress</span>
+                  </div>
+                  <div className="divide-y divide-[#F7F7F6]">
+                    {PROJECT_BRIEF_BLOCKS.map((block, i) => {
+                      const isActive = i === currentBlockIndex;
+                      const isDone = i < currentBlockIndex;
+                      const allRequired = block.questions.filter((q) => q.required).every((q) => {
+                        const a = answers[q.id];
+                        return Array.isArray(a) ? a.length > 0 : typeof a === "string" && a.trim().length > 3;
+                      });
+                      return (
+                        <div key={block.id} className={`flex items-center gap-3 px-5 py-3 ${isActive ? "bg-[#EEF0FF]/40" : ""}`}>
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${
+                            allRequired && (isDone || isActive) ? "bg-[#DCFCE7] text-[#16A34A]" :
+                            isActive ? "bg-[#5B5BD6] text-white" :
+                            "bg-[#F0F0ED] text-[#9B9B95]"
+                          }`}>
+                            {allRequired && (isDone || isActive) ? "✓" : i + 1}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className={`text-[12px] font-medium ${isActive ? "text-[#5B5BD6]" : isDone ? "text-[#6B6B65]" : "text-[#9B9B95]"}`}>
+                              {block.title}
+                            </div>
+                            <div className="text-[11px] text-[#9B9B95] truncate">{block.description}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
+          </>
         )}
 
-        {/* Hint card for free brief / existing brief */}
+        {/* Free brief / existing brief: what to include */}
         {(intakeMode === "free_brief" || intakeMode === "existing_brief") && (
           <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
-            <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">
-              {intakeMode === "free_brief" ? "What to include" : "What we extract"}
+            <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">
+              Client Profile
             </div>
-            <ul className="space-y-2">
-              {(level === "beginner"
-                ? [
-                    "Who the client is and what they do",
-                    "What they want to achieve",
-                    "Who their customers are",
-                    "What kind of help they need",
-                    "Where they currently advertise or post",
-                    "When things need to be ready",
-                    "Roughly how much they can invest",
-                    "Anything they want to avoid",
-                  ]
-                : [
-                    "Business context & industry",
-                    "Primary objective & KPIs",
-                    "Target audience profile",
-                    "Services required",
-                    "Current channels & performance",
-                    "Deadline or launch date",
-                    "Budget range",
-                    "Restrictions or constraints",
-                  ]
-              ).map((item, i) => (
+            <ul className="space-y-1.5 mb-4">
+              {["Who the client is and what they do", "Their target audience", "Current marketing channels", "Brand tone and visual assets", "Brand rules or constraints"].map((item, i) => (
                 <li key={i} className="flex items-center gap-2 text-[12px] text-[#6B6B65]">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#D0D0CC] shrink-0" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#BBF7D0] shrink-0" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">
+              Project Brief
+            </div>
+            <ul className="space-y-1.5">
+              {["What they want to achieve with this project", "Services needed", "Budget range", "Deadline or launch date"].map((item, i) => (
+                <li key={i} className="flex items-center gap-2 text-[12px] text-[#6B6B65]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#EEF0FF] shrink-0" />
                   {item}
                 </li>
               ))}
@@ -1263,6 +1452,19 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
       ) : (
         <p className="flex-1 text-[12px] text-[#C0C0BC] italic">Not provided</p>
       )}
+    </div>
+  );
+}
+
+// ─── ContextRow ───────────────────────────────────────────────────────────────
+
+function ContextRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-start gap-3 px-5 py-2.5">
+      <span className="w-[80px] shrink-0 text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] pt-0.5">
+        {label}
+      </span>
+      <p className="flex-1 text-[12px] text-[#1A1A1A] leading-snug">{value}</p>
     </div>
   );
 }
