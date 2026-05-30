@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import { useAgencyStore } from "@/store/agency-store";
+import { getClientAgentContext } from "@/lib/agency/workspace";
+import type { AgentClientContext } from "@/lib/agency/workspace";
 
 const FREQUENCY_OPTIONS = [
   "3x per week",
@@ -135,21 +137,34 @@ interface SocialOutput {
 
 // ─── Mock generator ──────────────────────────────────────────────────────────
 
-function generateMockOutput(form: SocialForm): SocialOutput {
-  const b = form.brandName;
-  const tone = form.toneOfVoice.toLowerCase();
-  const visual = form.visualStyle.toLowerCase();
+function generateMockOutput(form: SocialForm, ctx: AgentClientContext | null): SocialOutput {
+  const b     = form.brandName;
+  const brain = ctx?.brandBrain;
+
+  // Brand Brain values take precedence over form selects
+  const toneLabel   = (brain?.toneOfVoice   ?? form.toneOfVoice).toLowerCase();
+  const visualLabel = (brain?.visualStyle    ?? form.visualStyle).toLowerCase();
+  const audience    =  brain?.targetAudience ?? ctx?.targetAudience ?? "the brand's core audience";
+  const visualPfx   =  brain?.visualStyle    ? brain.visualStyle + ", " : "";
+
+  // Split free-text Brain fields into list items
+  const splitLines = (s: string | undefined, limit = 4): string[] | null =>
+    s ? s.split(/[,\n·•]+/).map((r) => r.trim()).filter(Boolean).slice(0, limit) : null;
 
   const brandInterpretation: BrandInterpretation = {
-    practicalUnderstanding: `${b} operates in a space where audience trust and consistent visual presence are critical. The brand communicates expertise while remaining accessible to its target community.`,
-    communicationStyle: `${form.toneOfVoice} voice. Posts should feel curated and intentional — never reactive or generic. Every caption reflects the brand's point of view.`,
-    toReinforce: [
+    practicalUnderstanding: brain?.businessSummary
+      ? `${brain.businessSummary}${brain.positioning ? " " + brain.positioning : ""}`
+      : `${b} operates in a space where audience trust and consistent visual presence are critical. The brand communicates expertise while remaining accessible to its target community.`,
+    communicationStyle: brain?.toneOfVoice
+      ? `${brain.toneOfVoice}. Posts should feel curated and intentional — every caption reflects the brand's point of view.`
+      : `${form.toneOfVoice} voice. Posts should feel curated and intentional — never reactive or generic.`,
+    toReinforce: splitLines(brain?.brandRules) ?? [
       "Consistent visual identity across all formats",
       "Authoritative but approachable tone in captions",
       "Focus on value delivery over self-promotion",
       "Signature aesthetic in every creative asset",
     ],
-    toAvoid: [
+    toAvoid: splitLines(brain?.thingsToAvoid) ?? [
       "Trend-chasing content that feels off-brand",
       "Overly casual or informal language",
       "Cluttered layouts that dilute the visual message",
@@ -158,7 +173,7 @@ function generateMockOutput(form: SocialForm): SocialOutput {
   };
 
   const objectiveTranslation: ObjectiveTranslation = {
-    contentDirection: `Content should directly serve the goal of "${form.objective}". Each post must earn its place by moving the audience closer to action — awareness, trust, or enquiry.`,
+    contentDirection: `Content should directly serve the goal of "${form.objective}". Each post must earn its place by moving ${audience} closer to action — awareness, trust, or enquiry.`,
     primaryKPI: "Reach growth + DM enquiry rate + saved posts per week",
     contentRatio: "50% value / educational — 30% brand story — 20% conversion / CTA",
   };
@@ -166,45 +181,55 @@ function generateMockOutput(form: SocialForm): SocialOutput {
   const territories: Territory[] = [
     {
       name: "Brand World",
-      description: `Behind-the-scenes, process, and philosophy content that lets the audience inside ${b}'s world. Builds intimacy and brand affinity.`,
+      description: brain?.businessSummary
+        ? `Behind-the-scenes content that reveals the world behind ${b}. ${brain.businessSummary.slice(0, 100)}. Builds intimacy and brand affinity.`
+        : `Behind-the-scenes, process, and philosophy content that lets the audience inside ${b}'s world. Builds intimacy and brand affinity.`,
       frequency: "2x per week",
     },
     {
       name: "Value & Education",
-      description: "Practical, shareable posts that demonstrate expertise. Positions the brand as a reference — not just a seller.",
+      description: brain?.productsToHighlight
+        ? `Practical, shareable posts focused on ${brain.productsToHighlight.slice(0, 80)}. Positions the brand as the reference — not just a seller.`
+        : "Practical, shareable posts that demonstrate expertise. Positions the brand as a reference — not just a seller.",
       frequency: "2x per week",
     },
     {
       name: "Social Proof",
-      description: "Client results, testimonials, and transformation stories. Converts curiosity into trust and trust into action.",
+      description: `Client results, testimonials, and transformation stories targeted at ${audience}. Converts curiosity into trust and trust into action.`,
       frequency: "1x per week",
     },
     {
       name: "Conversion",
-      description: `Direct calls to action tied to ${b}'s core offer. Minimal copy, maximum clarity. Always with a frictionless next step.`,
+      description: brain?.productsToHighlight
+        ? `Direct calls to action tied to ${brain.productsToHighlight.split(/[,\n]/)[0].trim()}. Minimal copy, maximum clarity. Always with a frictionless next step.`
+        : `Direct calls to action tied to ${b}'s core offer. Minimal copy, maximum clarity. Always with a frictionless next step.`,
       frequency: "1x per week",
     },
   ];
 
+  const highlightTitle = brain?.productsToHighlight
+    ? `Spotlight: ${brain.productsToHighlight.split(/[,\n]/)[0].trim()}`
+    : "3 mistakes brands make on social media (and how to fix them)";
+
   const contentIdeas: ContentIdea[] = [
-    { title: `"The ${b} Method" — how we approach every project`, territory: "Brand World", format: "Carousel" },
-    { title: "3 mistakes brands make on social media (and how to fix them)", territory: "Value & Education", format: "Carousel" },
-    { title: `Behind the brief: a day inside ${b}`, territory: "Brand World", format: "Story" },
-    { title: `Client result: how we helped [client] achieve [outcome]`, territory: "Social Proof", format: "Single Image" },
-    { title: "What makes a great visual identity? A quick breakdown", territory: "Value & Education", format: "Carousel" },
-    { title: `Why we turned down a project last month`, territory: "Brand World", format: "Single Image" },
-    { title: "Your questions answered — office hours recap", territory: "Value & Education", format: "Story" },
-    { title: `Ready to grow your brand? Here's how to start with ${b}`, territory: "Conversion", format: "Single Image" },
+    { title: `"The ${b} Method" — how we approach every project`,   territory: "Brand World",      format: "Carousel"     },
+    { title: highlightTitle,                                          territory: "Value & Education", format: "Carousel"     },
+    { title: `Behind the brief: a day inside ${b}`,                  territory: "Brand World",      format: "Story"        },
+    { title: `Client result: how we helped [client] achieve [outcome]`, territory: "Social Proof",  format: "Single Image" },
+    { title: "What makes a great visual identity? A quick breakdown", territory: "Value & Education", format: "Carousel"    },
+    { title: `Why we turned down a project last month`,              territory: "Brand World",      format: "Single Image" },
+    { title: "Your questions answered — office hours recap",         territory: "Value & Education", format: "Story"       },
+    { title: `Ready to grow your brand? Here's how to start with ${b}`, territory: "Conversion",   format: "Single Image" },
   ];
 
   const schedule: ScheduleDay[] = [
-    { day: "Mon", territory: "Brand World", format: "Carousel", active: true },
-    { day: "Tue", territory: "—", format: "—", active: false },
-    { day: "Wed", territory: "Value", format: "Carousel", active: true },
-    { day: "Thu", territory: "Social Proof", format: "Single Image", active: true },
-    { day: "Fri", territory: "Brand World", format: "Story", active: true },
-    { day: "Sat", territory: "—", format: "—", active: false },
-    { day: "Sun", territory: "Conversion", format: "Single Image", active: true },
+    { day: "Mon", territory: "Brand World",  format: "Carousel",     active: true  },
+    { day: "Tue", territory: "—",            format: "—",            active: false },
+    { day: "Wed", territory: "Value",        format: "Carousel",     active: true  },
+    { day: "Thu", territory: "Social Proof", format: "Single Image", active: true  },
+    { day: "Fri", territory: "Brand World",  format: "Story",        active: true  },
+    { day: "Sat", territory: "—",            format: "—",            active: false },
+    { day: "Sun", territory: "Conversion",   format: "Single Image", active: true  },
   ];
 
   const posts: Post[] = [
@@ -215,20 +240,22 @@ function generateMockOutput(form: SocialForm): SocialOutput {
       format: "Carousel",
       caption: `There's a reason every project we take on starts the same way.\n\nNot with a brief. Not with a moodboard.\n\nWith a question: what does this brand actually need to say?\n\nSwipe to see how the ${b} method works from brief to delivery. 👉`,
       cta: "Save this post — you'll want to come back to it.",
-      creativeDirection: `${visual} aesthetic. Slide 1: bold headline on brand-colour background. Slides 2–5: one idea per slide, clean typographic layout. Final slide: logo + CTA.`,
-      imagePrompt: `Minimalist editorial layout, ${visual} style, professional brand identity design process, clean typography on neutral background, high contrast, agency aesthetic, no people`,
-      designNotes: `6-slide carousel. Consistent slide template. Typography-led. Brand colour on slide 1 and last slide. Use ${b} brand font if available.`,
+      creativeDirection: `${toneLabel} tone, ${visualLabel} aesthetic. Slide 1: bold headline on brand-colour background. Slides 2–5: one idea per slide, clean typographic layout. Final slide: logo + CTA.`,
+      imagePrompt: `${visualPfx}minimalist editorial layout, professional brand identity design process, clean typography on neutral background, high contrast, agency aesthetic, no people`,
+      designNotes: `6-slide carousel. Consistent slide template. Typography-led. Brand colour on slide 1 and last slide.${brain?.visualStyle ? " Style ref: " + brain.visualStyle + "." : ""}`,
     },
     {
       id: 2,
-      title: "3 Mistakes Brands Make on Social",
+      title: highlightTitle,
       objective: "Deliver value, increase saves and shares, attract ideal clients",
       format: "Carousel",
-      caption: `Most brands are losing on social — not because of bad content, but because of these 3 mistakes.\n\nAnd the worst part? They're easy to fix.\n\nSwipe to see if you're making any of them. 👉`,
+      caption: brain?.productsToHighlight
+        ? `Not all products are created equal.\n\nHere's what makes ${brain.productsToHighlight.split(/[,\n]/)[0].trim()} the right choice — and why it matters for your brand.\n\nSwipe to find out. 👉`
+        : `Most brands are losing on social — not because of bad content, but because of these 3 mistakes.\n\nAnd the worst part? They're easy to fix.\n\nSwipe to see if you're making any of them. 👉`,
       cta: "Tag a brand that needs to see this.",
-      creativeDirection: `Clean educational layout. Each slide = one mistake + one fix. Numbered clearly. ${visual} visual style throughout.`,
-      imagePrompt: `Clean infographic style, ${visual} aesthetic, minimal illustration, bold numbers, educational content layout, neutral tones with brand accent colour`,
-      designNotes: `5-slide carousel. Slide structure: Cover → Mistake 1 → Mistake 2 → Mistake 3 → Summary/CTA. High contrast text on light background.`,
+      creativeDirection: `Clean educational layout. ${visualLabel} visual style throughout. ${toneLabel} tone in all copy.`,
+      imagePrompt: `${visualPfx}clean infographic style, minimal illustration, bold numbers, educational content layout, neutral tones with brand accent colour`,
+      designNotes: `5-slide carousel. Cover → Points → Summary/CTA.${brain?.visualStyle ? " Style: " + brain.visualStyle + "." : ""}`,
     },
     {
       id: 3,
@@ -237,9 +264,9 @@ function generateMockOutput(form: SocialForm): SocialOutput {
       format: "Single Image",
       caption: `Six months ago, [Client] came to us with a brand that wasn't landing.\n\nToday, they're [outcome].\n\nWhat changed? Not the product. The way people perceived it.\n\nThat's what great social strategy does.`,
       cta: "DM us 'STRATEGY' to learn how we can do the same for your brand.",
-      creativeDirection: `Before/after or result-focused visual. Clean, confident layout. ${visual} treatment. Client logo or project visual as hero.`,
-      imagePrompt: `${visual} style professional result showcase, before and after concept, clean layout, brand transformation visual, minimal design, confident typography`,
-      designNotes: `Single image. Strong typographic headline with result number or statement. Subtle brand texture. ${b} logo watermark bottom right.`,
+      creativeDirection: `Result-focused visual. ${visualLabel} treatment. Confident layout for ${audience}.`,
+      imagePrompt: `${visualPfx}professional result showcase, before and after concept, clean layout, brand transformation visual, minimal design, confident typography`,
+      designNotes: `Single image. Strong typographic headline with result number.${brain?.visualStyle ? " Style: " + brain.visualStyle + "." : ""} ${b} logo watermark bottom right.`,
     },
     {
       id: 4,
@@ -248,9 +275,9 @@ function generateMockOutput(form: SocialForm): SocialOutput {
       format: "Story",
       caption: `Ever wonder what a day inside ${b} looks like?\n\nWe pulled back the curtain. Swipe through to see.`,
       cta: "Reply with your biggest question about working with us.",
-      creativeDirection: `Raw, behind-the-scenes feel within ${visual} visual language. Mix of workspace, process, and team moments. Authentic but intentional.`,
-      imagePrompt: `Behind the scenes creative agency workspace, ${visual} aesthetic, natural lighting, process shots, authentic atmosphere, brand colours subtle in environment`,
-      designNotes: `3–5 story slides. Mix photo + text overlay. Use consistent story template frame. Keep text minimal — let the image do the work.`,
+      creativeDirection: `Raw, behind-the-scenes feel within ${visualLabel} visual language. Authentic but intentional. Tone: ${toneLabel}.`,
+      imagePrompt: `${visualPfx}behind the scenes creative workspace, natural lighting, process shots, authentic atmosphere, brand colours subtle in environment`,
+      designNotes: `3–5 story slides. Mix photo + text overlay. Keep text minimal.${brain?.visualStyle ? " Style: " + brain.visualStyle + "." : ""}`,
     },
     {
       id: 5,
@@ -259,9 +286,9 @@ function generateMockOutput(form: SocialForm): SocialOutput {
       format: "Carousel",
       caption: `A logo is not a brand.\n\nA colour palette is not a brand.\n\nHere's what actually makes a visual identity work — and how to know if yours does. 👇`,
       cta: "Save this before your next brand refresh.",
-      creativeDirection: `Educational carousel with clear hierarchy. ${visual} visual style. Each slide has a concept title + 2-line explanation. Ends with ${b} sign-off.`,
-      imagePrompt: `Educational design content, ${visual} style, visual identity elements layout, typography system, colour palette display, clean minimal aesthetic, brand design concept`,
-      designNotes: `6 slides. Cover + 4 concept slides + CTA slide. Typographic-led. Clean grid. Brand accent used sparingly for emphasis.`,
+      creativeDirection: `Educational carousel with clear hierarchy. ${visualLabel} visual style. Each slide has a concept title + 2-line explanation. Ends with ${b} sign-off. ${toneLabel} throughout.`,
+      imagePrompt: `${visualPfx}educational design content, visual identity elements layout, typography system, colour palette display, clean minimal aesthetic, brand design concept`,
+      designNotes: `6 slides. Cover + 4 concept slides + CTA slide. Typographic-led.${brain?.brandRules ? " Brand rules: " + brain.brandRules.slice(0, 60) + "…" : ""}`,
     },
     {
       id: 6,
@@ -270,8 +297,8 @@ function generateMockOutput(form: SocialForm): SocialOutput {
       format: "Single Image",
       caption: `If you're serious about growing your brand in the next 90 days —\n\nwe should talk.\n\n${b} is now accepting new clients for Q2.\n\nSpots are limited. The process starts with one message.`,
       cta: "DM us 'START' to begin.",
-      creativeDirection: `High-confidence conversion creative. Minimal copy on image. ${visual} visual treatment. Clear, direct. No clutter — just the offer and the next step.`,
-      imagePrompt: `${visual} style bold conversion creative, minimal text layout, strong brand colour, confident call to action design, premium agency aesthetic, clean composition`,
+      creativeDirection: `High-confidence conversion creative. Minimal copy on image. ${visualLabel} visual treatment. Clear, direct.${brain?.thingsToAvoid ? " Avoid: " + brain.thingsToAvoid.slice(0, 50) + "." : ""}`,
+      imagePrompt: `${visualPfx}bold conversion creative, minimal text layout, strong brand colour, confident call to action design, premium aesthetic, clean composition`,
       designNotes: `Single image. Maximum 2 lines of text on asset. Brand colour dominant. ${b} logo centred or top-left. White space is intentional.`,
     },
   ];
@@ -387,6 +414,34 @@ function downloadTextFile(filename: string, content: string) {
   URL.revokeObjectURL(url);
 }
 
+// ─── Brand Brain context card ────────────────────────────────────────────────
+
+function BrandBrainContextCard({ ctx }: { ctx: AgentClientContext }) {
+  const ready      = ctx.brandBrainReadiness;
+  const incomplete = ready < 5;
+  return (
+    <div className={`rounded-[8px] border px-3 py-3 ${incomplete ? "bg-[#FFFBEB] border-[#FDE68A]" : "bg-[#F0FDF4] border-[#BBF7D0]"}`}>
+      <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center gap-1.5">
+          <span className={`text-[11px] font-bold ${incomplete ? "text-[#D97706]" : "text-[#16A34A]"}`}>{incomplete ? "⚠" : "●"}</span>
+          <span className="text-[11px] font-semibold text-[#1A1A1A]">{incomplete ? "Brand Brain incomplete" : "Using Brand Brain"}</span>
+          <span className="text-[10px] text-[#9B9B95]">· {ctx.clientName}</span>
+        </div>
+        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${ready === 10 ? "bg-[#DCFCE7] text-[#16A34A]" : ready >= 5 ? "bg-[#FEF3C7] text-[#D97706]" : "bg-[#F0F0ED] text-[#9B9B95]"}`}>{ready}/10</span>
+      </div>
+      {incomplete ? (
+        <p className="text-[11px] text-[#D97706] leading-snug">Outputs will use generic brand signals. Complete Brand Brain in the client workspace for fully brand-specific results.</p>
+      ) : (
+        <div className="space-y-1 mt-1">
+          {ctx.brandBrain?.toneOfVoice    && <div className="flex gap-2"><span className="text-[10px] text-[#9B9B95] w-14 shrink-0">Tone</span><span className="text-[11px] text-[#1A1A1A] truncate">{ctx.brandBrain.toneOfVoice}</span></div>}
+          {ctx.brandBrain?.targetAudience && <div className="flex gap-2"><span className="text-[10px] text-[#9B9B95] w-14 shrink-0">Audience</span><span className="text-[11px] text-[#1A1A1A] truncate">{ctx.brandBrain.targetAudience}</span></div>}
+          {ctx.brandBrain?.visualStyle    && <div className="flex gap-2"><span className="text-[10px] text-[#9B9B95] w-14 shrink-0">Visual</span><span className="text-[11px] text-[#1A1A1A] truncate">{ctx.brandBrain.visualStyle}</span></div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const STEPS = [
   "Reading brand inputs…",
   "Interpreting brand voice…",
@@ -411,24 +466,31 @@ export default function SocialMediaAgentPage() {
   const setPendingAgentInput = useAgencyStore((s) => s.setPendingAgentInput);
   const addDeliverable = useAgencyStore((s) => s.addDeliverable);
   const projects = useAgencyStore((s) => s.projects);
+  const clients  = useAgencyStore((s) => s.clients);
 
   const linkedProject = sourceProject ? projects.find((p) => p.id === sourceProject.projectId) : null;
+  const linkedClient  = linkedProject  ? clients.find((c) => c.id === linkedProject.clientId)  : null;
+  const agentCtx: AgentClientContext | null = linkedClient ? getClientAgentContext(linkedClient) : null;
   const isProposalPending = linkedProject?.stage === "proposal_sent";
   const isReady = form.brandName.trim() !== "" && form.objective.trim() !== "" && !!sourceProject && !isProposalPending;
 
   useEffect(() => {
     if (pendingAgentInput) {
+      // Try to pre-populate from Brand Brain if client data is available
+      const proj = projects.find((p) => p.id === pendingAgentInput.projectId);
+      const cl   = proj ? clients.find((c) => c.id === proj.clientId) : null;
+      const ctx  = cl ? getClientAgentContext(cl) : null;
       setForm({
         ...EMPTY_FORM,
-        brandName: pendingAgentInput.clientName,
-        brandSummary: pendingAgentInput.goal,
-        objective: pendingAgentInput.goal,
-        notes: `Project: ${pendingAgentInput.projectName} (${pendingAgentInput.projectType})`,
+        brandName:    pendingAgentInput.clientName,
+        brandSummary: ctx?.brandBrain?.businessSummary ?? pendingAgentInput.goal,
+        objective:    pendingAgentInput.goal,
+        notes:        `Project: ${pendingAgentInput.projectName} (${pendingAgentInput.projectType})`,
       });
       setSourceProject({ projectId: pendingAgentInput.projectId, projectName: pendingAgentInput.projectName });
       setPendingAgentInput(null);
     }
-  }, [pendingAgentInput, setPendingAgentInput]);
+  }, [pendingAgentInput, setPendingAgentInput, projects, clients]);
 
   function handleSendToDesignAgent() {
     if (!output) return;
@@ -472,6 +534,7 @@ export default function SocialMediaAgentPage() {
   function handleRun() {
     setAgentState("generating");
     setStepIndex(0);
+    const capturedCtx = agentCtx;
 
     let step = 0;
     const delays = [600, 700, 600, 700, 600, 500];
@@ -483,7 +546,7 @@ export default function SocialMediaAgentPage() {
         setStepIndex(i);
         if (i === delays.length - 1) {
           setTimeout(() => {
-            const generatedOutput = generateMockOutput(form);
+            const generatedOutput = generateMockOutput(form, capturedCtx);
             setOutput(generatedOutput);
             setAgentState("output_ready");
             setActiveTab("brand");
@@ -715,6 +778,11 @@ export default function SocialMediaAgentPage() {
                   className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white transition-colors resize-none"
                 />
               </div>
+
+              {/* Brand Brain context */}
+              {agentCtx && sourceProject && (
+                <BrandBrainContextCard ctx={agentCtx} />
+              )}
 
               {/* Proposal gate */}
               {isProposalPending && (

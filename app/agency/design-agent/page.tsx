@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import { useAgencyStore } from "@/store/agency-store";
+import { getClientAgentContext } from "@/lib/agency/workspace";
+import type { AgentClientContext } from "@/lib/agency/workspace";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -121,24 +123,33 @@ function buildLayoutStructure(format: string, title: string): string[] {
   ];
 }
 
-function generateVisualBriefs(posts: ParsedPost[]): VisualBrief[] {
+function generateVisualBriefs(posts: ParsedPost[], ctx: AgentClientContext | null): VisualBrief[] {
+  const brain        = ctx?.brandBrain;
+  const visualStyle  = brain?.visualStyle  ?? "";
+  const toneOfVoice  = brain?.toneOfVoice  ?? "";
+  const brandRules   = brain?.brandRules   ?? "";
+  const thingsToAvoid = brain?.thingsToAvoid ?? "";
+  const brandVisualCtx = visualStyle  ? `${visualStyle} visual direction`  : "the brand's established visual identity";
+  const brandToneCtx   = toneOfVoice  ? `${toneOfVoice} tone`             : "the brand's established tone";
+  const visualPfx      = visualStyle  ? `${visualStyle}, `                 : "";
+
   return posts.map((p) => {
     const isCarousel = p.format.toLowerCase().includes("carousel");
-    const isStory = p.format.toLowerCase().includes("story");
+    const isStory    = p.format.toLowerCase().includes("story");
 
     const visualConcept = p.creativeDirection
-      ? `The visual direction leans into a ${p.creativeDirection.toLowerCase()} approach. The concept centres on ${
+      ? `The visual direction leans into a ${p.creativeDirection.toLowerCase()} approach${visualStyle ? ", grounded in the brand's " + visualStyle.toLowerCase() + " aesthetic" : ""}. The concept centres on ${
           isCarousel
             ? "a progressive reveal — each slide earns the next by delivering one clear idea"
             : isStory
             ? "immediacy and intimacy — the story format demands a fast, punchy execution that lands in under 2 seconds"
             : "a single, decisive frame — one image, one message, zero noise"
         }. The key copy "${p.keyCopy.slice(0, 60)}${p.keyCopy.length > 60 ? "…" : ""}" becomes the visual anchor — it should be legible at thumb size.`
-      : `Visual concept centres on the post objective: ${p.contentObjective}. The design should communicate confidence — every element earns its place.`;
+      : `Visual concept centres on the post objective: ${p.contentObjective}. The design should communicate confidence — every element earns its place.${visualStyle ? " Style reference: " + visualStyle + "." : ""}`;
 
     const basePrompt = p.imagePrompt || "Clean editorial visual, professional brand aesthetic";
     const enhancedPrompt = [
-      basePrompt,
+      visualPfx + basePrompt,
       "ultra-high resolution, professional photography or CGI quality",
       "precise colour grading consistent with brand palette",
       "intentional negative space for text overlay",
@@ -162,13 +173,14 @@ function generateVisualBriefs(posts: ParsedPost[]): VisualBrief[] {
       visualHierarchy: `1st read (0–1s): ${p.keyCopy.slice(0, 40) || "Headline text"} — should land immediately. 2nd read (1–3s): supporting context or subheading. 3rd read (3s+): brand mark and CTA. Do not compete with the 1st read at any layer.`,
     };
 
-    const styleConsistency = `Ensure the visual output aligns with the brand's ${
-      p.creativeDirection || "established visual identity"
-    }. Typography choices must match the brand's tone — ${
+    const styleConsistencyBase = `Ensure the visual output aligns with the brand's ${brandVisualCtx}. Typography choices must match the ${brandToneCtx} — ${
       p.contentObjective.toLowerCase().includes("authority") || p.contentObjective.toLowerCase().includes("expert")
         ? "authoritative and refined; avoid playful or decorative typefaces"
         : "approachable yet considered; avoid sterile or overly corporate treatments"
-    }. Colour palette must stay within the brand system — do not introduce new colours. If in doubt, reduce — a simpler version is always more on-brand than an overworked one.`;
+    }.`;
+    const rulesNote   = brandRules    ? ` Brand rules: ${brandRules.slice(0, 120)}.`     : "";
+    const avoidNote   = thingsToAvoid ? ` Never include: ${thingsToAvoid.slice(0, 100)}.` : " Colour palette must stay within the brand system — do not introduce new colours.";
+    const styleConsistency = styleConsistencyBase + rulesNote + avoidNote + " If in doubt, reduce — a simpler version is always more on-brand than an overworked one.";
 
     return {
       postId: p.postId,
@@ -219,6 +231,34 @@ function downloadTextFile(filename: string, content: string) {
   URL.revokeObjectURL(url);
 }
 
+// ─── Brand Brain context card ────────────────────────────────────────────────
+
+function BrandBrainContextCard({ ctx }: { ctx: AgentClientContext }) {
+  const ready      = ctx.brandBrainReadiness;
+  const incomplete = ready < 5;
+  return (
+    <div className={`rounded-[8px] border px-3 py-3 ${incomplete ? "bg-[#FFFBEB] border-[#FDE68A]" : "bg-[#F0FDF4] border-[#BBF7D0]"}`}>
+      <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center gap-1.5">
+          <span className={`text-[11px] font-bold ${incomplete ? "text-[#D97706]" : "text-[#16A34A]"}`}>{incomplete ? "⚠" : "●"}</span>
+          <span className="text-[11px] font-semibold text-[#1A1A1A]">{incomplete ? "Brand Brain incomplete" : "Using Brand Brain"}</span>
+          <span className="text-[10px] text-[#9B9B95]">· {ctx.clientName}</span>
+        </div>
+        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${ready === 10 ? "bg-[#DCFCE7] text-[#16A34A]" : ready >= 5 ? "bg-[#FEF3C7] text-[#D97706]" : "bg-[#F0F0ED] text-[#9B9B95]"}`}>{ready}/10</span>
+      </div>
+      {incomplete ? (
+        <p className="text-[11px] text-[#D97706] leading-snug">Outputs will use generic visual signals. Complete Brand Brain in the client workspace for fully brand-specific results.</p>
+      ) : (
+        <div className="space-y-1 mt-1">
+          {ctx.brandBrain?.toneOfVoice    && <div className="flex gap-2"><span className="text-[10px] text-[#9B9B95] w-14 shrink-0">Tone</span><span className="text-[11px] text-[#1A1A1A] truncate">{ctx.brandBrain.toneOfVoice}</span></div>}
+          {ctx.brandBrain?.targetAudience && <div className="flex gap-2"><span className="text-[10px] text-[#9B9B95] w-14 shrink-0">Audience</span><span className="text-[11px] text-[#1A1A1A] truncate">{ctx.brandBrain.targetAudience}</span></div>}
+          {ctx.brandBrain?.visualStyle    && <div className="flex gap-2"><span className="text-[10px] text-[#9B9B95] w-14 shrink-0">Visual</span><span className="text-[11px] text-[#1A1A1A] truncate">{ctx.brandBrain.visualStyle}</span></div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const STEPS = [
   "Reading input contract…",
   "Interpreting post formats…",
@@ -237,6 +277,7 @@ export default function DesignAgentPage() {
   const pendingContract       = useAgencyStore((s) => s.pendingDesignContract);
   const setPendingDesignContract = useAgencyStore((s) => s.setPendingDesignContract);
   const projects              = useAgencyStore((s) => s.projects);
+  const clients               = useAgencyStore((s) => s.clients);
   const addDeliverable        = useAgencyStore((s) => s.addDeliverable);
   const pendingAgentInput     = useAgencyStore((s) => s.pendingAgentInput);
 
@@ -306,6 +347,8 @@ export default function DesignAgentPage() {
   }
 
   const linkedProject = linkedProjectId ? projects.find((p) => p.id === linkedProjectId) : null;
+  const linkedClient  = linkedProject   ? clients.find((c) => c.id === linkedProject.clientId) : null;
+  const agentCtx: AgentClientContext | null = linkedClient ? getClientAgentContext(linkedClient) : null;
   const isProposalPending = linkedProject?.stage === "proposal_sent";
   const isReady = contractInput.trim().length > 20 && !isProposalPending;
 
@@ -329,6 +372,7 @@ export default function DesignAgentPage() {
   function handleRun() {
     setAgentState("generating");
     setStepIndex(0);
+    const capturedCtx = agentCtx;
 
     const delays = [500, 600, 700, 600, 600, 500];
     let elapsed = 0;
@@ -339,7 +383,7 @@ export default function DesignAgentPage() {
         if (i === delays.length - 1) {
           setTimeout(() => {
             const parsed = parseContract(contractInput);
-            setBriefs(generateVisualBriefs(parsed));
+            setBriefs(generateVisualBriefs(parsed, capturedCtx));
             setAgentState("output_ready");
             setActiveTab("briefs");
           }, 400);
@@ -420,6 +464,29 @@ export default function DesignAgentPage() {
                   and copy the Agent Contract tab output.
                 </p>
               </div>
+
+              {/* Optional project link for Brand Brain context */}
+              <div>
+                <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">
+                  Link to project <span className="text-[11px] font-normal text-[#9B9B95]">(optional — enables Brand Brain)</span>
+                </label>
+                <select
+                  value={linkedProjectId ?? ""}
+                  onChange={(e) => setLinkedProjectId(e.target.value || null)}
+                  disabled={agentState !== "idle"}
+                  className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#C2530A] focus:bg-white transition-colors disabled:opacity-50"
+                >
+                  <option value="">— no project linked —</option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Brand Brain context */}
+              {agentCtx && (
+                <BrandBrainContextCard ctx={agentCtx} />
+              )}
 
               {isProposalPending && (
                 <div className="flex items-start gap-2 bg-[#FFFBEB] border border-[#FDE68A] rounded-[7px] px-3 py-2.5 mb-2">
