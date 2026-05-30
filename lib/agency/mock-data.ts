@@ -53,14 +53,50 @@ export interface Client {
   brandBrain?: BrandBrain;
 }
 
+export type ProposalStatus = "draft" | "sent" | "approved" | "rejected" | "changes_requested";
+
 export interface ProjectProposal {
+  objective?: string;
   scope: string;
   deliverables: string[];
   timeline: string;
   pricing: string;
-  status: "pending" | "approved" | "changes_requested";
+  status: ProposalStatus;
   requestedChanges?: string;
+  rejectionReason?: string;
 }
+
+export interface ServicePackage {
+  id: string;
+  name: string;
+  description: string;
+  includes: string[];
+  pricing: string;
+}
+
+export const SERVICE_PACKAGES: ServicePackage[] = [
+  {
+    id: "starter",
+    name: "Starter",
+    description: "Focused single-service engagement for brands with a clear, contained objective.",
+    includes: ["1 core service", "Monthly reporting", "2 revision rounds"],
+    pricing: "€2,500 / month",
+  },
+  {
+    id: "growth",
+    name: "Growth",
+    description: "Multi-channel execution for brands actively scaling their digital presence.",
+    includes: ["2–3 services", "Bi-weekly syncs", "3 revision rounds", "Brand Brain integration"],
+    pricing: "€4,500 / month",
+  },
+  {
+    id: "full_service",
+    name: "Full Service",
+    description: "Complete agency partnership — strategy, execution, and optimization across all channels.",
+    includes: ["4+ services", "Weekly syncs", "Unlimited revisions", "Brand Brain integration", "Creative direction"],
+    pricing: "€7,500 / month",
+  },
+];
 
 export interface Project {
   id: string;

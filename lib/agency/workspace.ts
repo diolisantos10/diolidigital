@@ -166,6 +166,65 @@ export interface MaterialRequest {
   requestedAt: string;
 }
 
+// ─── Client requirement generator ────────────────────────────────────────────
+// Maps selected services to the materials the agency needs from the client.
+// Returns ready-to-persist MaterialRequest stubs (no id/requestedAt yet).
+
+export function generateClientRequirements(
+  services: string[],
+  clientId: string,
+  projectId: string
+): Omit<MaterialRequest, "id" | "requestedAt">[] {
+  const reqs: Omit<MaterialRequest, "id" | "requestedAt">[] = [];
+
+  const universal: Omit<MaterialRequest, "id" | "requestedAt"> = {
+    clientId,
+    projectId,
+    title: "Brand assets & guidelines",
+    description: "Logo files (SVG/PNG), color palette, typography, and any existing brand guidelines or visual references.",
+    status: "pending",
+  };
+  reqs.push(universal);
+
+  if (services.includes("social_media") || services.includes("content")) {
+    reqs.push({
+      clientId, projectId,
+      title: "Content references & existing posts",
+      description: "Links to current social media profiles, top-performing posts, and any content you want us to avoid or replicate.",
+      status: "pending",
+    });
+  }
+
+  if (services.includes("ads")) {
+    reqs.push({
+      clientId, projectId,
+      title: "Ad account access & budget approval",
+      description: "Access to Meta Ads Manager and/or Google Ads account. Confirmed monthly budget for paid campaigns.",
+      status: "pending",
+    });
+  }
+
+  if (services.includes("seo")) {
+    reqs.push({
+      clientId, projectId,
+      title: "Website access & analytics",
+      description: "Admin access to CMS or website, Google Search Console, and Google Analytics (or equivalent) for SEO audit.",
+      status: "pending",
+    });
+  }
+
+  if (services.includes("branding")) {
+    reqs.push({
+      clientId, projectId,
+      title: "Brand inspiration & direction",
+      description: "Moodboards, competitor brands you admire or want to differentiate from, and any existing brand materials to preserve or replace.",
+      status: "pending",
+    });
+  }
+
+  return reqs;
+}
+
 // ─── Data selectors ───────────────────────────────────────────────────────────
 // Use these to filter store data before passing to portal view components.
 // This enforces visibility at the data layer, not just the UI layer.

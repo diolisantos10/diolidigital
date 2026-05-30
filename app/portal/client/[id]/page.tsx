@@ -27,7 +27,7 @@ const TYPE_ICON: Record<string, string> = {
 
 export default function ClientPortalPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { clients, projects, deliverables, materialRequests, updateDeliverableStatus, setDeliverableFeedback, approveProposal, requestProposalChanges } = useAgencyStore();
+  const { clients, projects, deliverables, materialRequests, updateDeliverableStatus, setDeliverableFeedback, approveProposal, rejectProposal, requestProposalChanges } = useAgencyStore();
 
   const client = clients.find((c) => c.id === id);
   if (!client) return notFound();
@@ -42,6 +42,8 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
   const [feedbackText,         setFeedbackText]         = useState<Record<string, string>>({});
   const [proposalChangesOpen,  setProposalChangesOpen]  = useState<Record<string, boolean>>({});
   const [proposalChangesText,  setProposalChangesText]  = useState<Record<string, string>>({});
+  const [proposalRejectOpen,   setProposalRejectOpen]   = useState<Record<string, boolean>>({});
+  const [proposalRejectText,   setProposalRejectText]   = useState<Record<string, string>>({});
 
   const handleApprove = (deliverableId: string) => {
     updateDeliverableStatus(deliverableId, "approved");
@@ -106,29 +108,40 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
                   <span className="text-[12px] text-[#9B9B95] ml-auto">Due {project.deadline.slice(5)}</span>
                 </div>
 
-                {/* Proposal section */}
-                {project.proposal && (project.stage === "proposal_sent" || project.stage === "approved") && (() => {
+                {/* Proposal section — shown when status is not draft */}
+                {project.proposal && project.proposal.status !== "draft" && (() => {
                   const p = project.proposal!;
                   const isApproved = p.status === "approved";
+                  const isRejected = p.status === "rejected";
                   const isChangesRequested = p.status === "changes_requested";
+                  const isSent = p.status === "sent";
                   const changesOpen = proposalChangesOpen[project.id] ?? false;
+                  const rejectOpen = proposalRejectOpen[project.id] ?? false;
+                  const borderColor = isApproved ? "border-[#BBF7D0]" : isRejected ? "border-[#FECACA]" : isChangesRequested ? "border-[#FDE68A]" : "border-[#C7C7F5]";
                   return (
-                    <div className={`bg-white rounded-[10px] border shadow-[0_1px_3px_rgba(0,0,0,0.04)] mb-4 overflow-hidden ${
-                      isApproved ? "border-[#BBF7D0]" : isChangesRequested ? "border-[#FDE68A]" : "border-[#C7C7F5]"
-                    }`}>
+                    <div className={`bg-white rounded-[10px] border shadow-[0_1px_3px_rgba(0,0,0,0.04)] mb-4 overflow-hidden ${borderColor}`}>
                       <div className="flex items-center justify-between px-5 py-3 border-b border-[#F0F0ED]">
                         <span className="text-[12px] font-semibold text-[#1A1A1A]">Project Proposal</span>
                         {isApproved && (
                           <span className="h-5 px-2 rounded-full text-[10px] font-bold bg-[#DCFCE7] text-[#16A34A]">Approved</span>
                         )}
+                        {isRejected && (
+                          <span className="h-5 px-2 rounded-full text-[10px] font-bold bg-[#FEE2E2] text-[#DC2626]">Rejected</span>
+                        )}
                         {isChangesRequested && (
                           <span className="h-5 px-2 rounded-full text-[10px] font-bold bg-[#FEF3C7] text-[#D97706]">Changes Requested</span>
                         )}
-                        {p.status === "pending" && (
+                        {isSent && (
                           <span className="h-5 px-2 rounded-full text-[10px] font-bold bg-[#EEF0FF] text-[#5B5BD6]">Awaiting Your Approval</span>
                         )}
                       </div>
                       <div className="px-5 py-4 space-y-3">
+                        {p.objective && (
+                          <div>
+                            <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.04em] mb-0.5">Objective</p>
+                            <p className="text-[13px] text-[#1A1A1A] leading-relaxed">{p.objective}</p>
+                          </div>
+                        )}
                         <div>
                           <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.04em] mb-0.5">Scope</p>
                           <p className="text-[13px] text-[#1A1A1A] leading-relaxed">{p.scope}</p>
@@ -159,7 +172,13 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
                             <p className="text-[12px] text-[#6B6B65]">{p.requestedChanges}</p>
                           </div>
                         )}
-                        {!isApproved && !changesOpen && (
+                        {isRejected && p.rejectionReason && (
+                          <div className="bg-[#FEF2F2] border border-[#FECACA] rounded-[7px] px-3 py-2">
+                            <p className="text-[11px] font-semibold text-[#DC2626] mb-0.5 uppercase tracking-[0.04em]">Reason for rejection</p>
+                            <p className="text-[12px] text-[#6B6B65]">{p.rejectionReason}</p>
+                          </div>
+                        )}
+                        {isSent && !changesOpen && !rejectOpen && (
                           <div className="flex gap-2 pt-1">
                             <button
                               onClick={() => approveProposal(project.id)}
@@ -172,6 +191,12 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
                               className="h-8 px-3 rounded-[7px] border border-[#E5E5E2] hover:border-[#D97706] text-[#6B6B65] hover:text-[#D97706] text-[12px] font-medium transition-colors"
                             >
                               Request Changes
+                            </button>
+                            <button
+                              onClick={() => setProposalRejectOpen((prev) => ({ ...prev, [project.id]: true }))}
+                              className="h-8 px-3 rounded-[7px] border border-[#E5E5E2] hover:border-[#DC2626] text-[#9B9B95] hover:text-[#DC2626] text-[12px] font-medium transition-colors"
+                            >
+                              Reject
                             </button>
                           </div>
                         )}
@@ -201,6 +226,37 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
                               </button>
                               <button
                                 onClick={() => setProposalChangesOpen((prev) => ({ ...prev, [project.id]: false }))}
+                                className="h-8 px-3 rounded-[7px] border border-[#E5E5E2] text-[#9B9B95] text-[12px]"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        {rejectOpen && (
+                          <div className="space-y-2 pt-1">
+                            <textarea
+                              value={proposalRejectText[project.id] ?? ""}
+                              onChange={(e) => setProposalRejectText((prev) => ({ ...prev, [project.id]: e.target.value }))}
+                              placeholder="Optionally explain why you are rejecting this proposal…"
+                              rows={3}
+                              autoFocus
+                              className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#FECACA] rounded-[7px] outline-none focus:border-[#DC2626] focus:bg-white resize-none"
+                            />
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => {
+                                  const reason = (proposalRejectText[project.id] ?? "").trim();
+                                  rejectProposal(project.id, reason || undefined);
+                                  setProposalRejectOpen((prev) => ({ ...prev, [project.id]: false }));
+                                  setProposalRejectText((prev) => ({ ...prev, [project.id]: "" }));
+                                }}
+                                className="h-8 px-4 rounded-[7px] bg-[#DC2626] hover:bg-[#B91C1C] text-white text-[12px] font-medium transition-colors"
+                              >
+                                Confirm Rejection
+                              </button>
+                              <button
+                                onClick={() => setProposalRejectOpen((prev) => ({ ...prev, [project.id]: false }))}
                                 className="h-8 px-3 rounded-[7px] border border-[#E5E5E2] text-[#9B9B95] text-[12px]"
                               >
                                 Cancel

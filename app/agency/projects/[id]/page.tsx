@@ -9,7 +9,7 @@ import Badge from "@/components/agency/ui/Badge";
 import Button from "@/components/agency/ui/Button";
 import Modal from "@/components/agency/ui/Modal";
 import Link from "next/link";
-import { TaskStatus, DeliverableStatus, Priority, ProjectStage, MOCK_AGENTS } from "@/lib/agency/mock-data";
+import { TaskStatus, DeliverableStatus, Priority, ProjectStage, MOCK_AGENTS, ProjectProposal } from "@/lib/agency/mock-data";
 
 const STAGES: ProjectStage[] = ["briefing","diagnosis","planning","production","review","delivery","ongoing","completed"];
 const TASK_CYCLE: Record<TaskStatus, TaskStatus> = {
@@ -23,15 +23,16 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const { id } = use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { projects, clients, tasks, deliverables, briefings, updateTaskStatus, updateDeliverableStatus, updateProject, moveProjectStage, setPendingAgentInput } = useAgencyStore();
+  const { projects, clients, tasks, deliverables, briefings, materialRequests, updateTaskStatus, updateDeliverableStatus, updateProject, updateProposal, sendProposal, moveProjectStage, setPendingAgentInput } = useAgencyStore();
 
-  type TabId = "overview" | "execution" | "pipeline" | "tasks" | "deliverables" | "briefing" | "strategy" | "assets" | "history";
-  const VALID_TABS: TabId[] = ["overview", "execution", "pipeline", "tasks", "deliverables", "briefing", "strategy", "assets", "history"];
+  type TabId = "overview" | "proposal" | "execution" | "pipeline" | "tasks" | "deliverables" | "briefing" | "strategy" | "assets" | "history";
+  const VALID_TABS: TabId[] = ["overview", "proposal", "execution", "pipeline", "tasks", "deliverables", "briefing", "strategy", "assets", "history"];
   const [tab, setTab] = useState<TabId>(() => {
     const t = searchParams.get("tab") as TabId | null;
     return t && VALID_TABS.includes(t) ? t : "overview";
   });
   const [editOpen, setEditOpen] = useState(false);
+  const [proposalDirty, setProposalDirty] = useState(false);
 
   const project = projects.find((p) => p.id === id);
   if (!project) return notFound();
@@ -40,6 +41,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const projectTasks = tasks.filter((t) => t.projectId === id);
   const projectDeliverables = deliverables.filter((d) => d.projectId === id);
   const briefing = briefings.find((b) => b.projectId === id);
+  const projectMaterialRequests = materialRequests.filter((r) => r.projectId === id);
   const doneTasks = projectTasks.filter((t) => t.status === "done").length;
   const progress = projectTasks.length > 0 ? Math.round((doneTasks / projectTasks.length) * 100) : 0;
 
@@ -50,6 +52,30 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const handleSaveEdit = () => {
     updateProject(id, editForm);
     setEditOpen(false);
+  };
+
+  const [proposalForm, setProposalForm] = useState<Partial<ProjectProposal>>(() => ({
+    objective: project?.proposal?.objective ?? "",
+    scope: project?.proposal?.scope ?? "",
+    deliverables: project?.proposal?.deliverables ?? [],
+    timeline: project?.proposal?.timeline ?? "",
+    pricing: project?.proposal?.pricing ?? "",
+  }));
+  const [deliverablesText, setDeliverablesText] = useState<string>(
+    (project?.proposal?.deliverables ?? []).join("\n")
+  );
+
+  const handleSaveProposal = () => {
+    const parsed = deliverablesText.split("\n").map((s) => s.trim()).filter(Boolean);
+    updateProposal(id, { ...proposalForm, deliverables: parsed });
+    setProposalDirty(false);
+  };
+
+  const handleSendProposal = () => {
+    const parsed = deliverablesText.split("\n").map((s) => s.trim()).filter(Boolean);
+    updateProposal(id, { ...proposalForm, deliverables: parsed });
+    sendProposal(id);
+    setProposalDirty(false);
   };
 
   const getAgent = (agentId: string) => MOCK_AGENTS.find((a) => a.id === agentId);
@@ -189,6 +215,79 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                       Next action: <span className="text-[#1A1A1A] font-medium">{reworkAgent.name}</span> should rework the flagged deliverable.
                     </p>
                   )}
+                </div>
+              );
+            })()}
+
+            {/* Project Manager — proposal gate + execution status */}
+            {(() => {
+              const prop = project.proposal;
+              const isApproved = prop?.status === "approved";
+              const isSent = prop?.status === "sent";
+              const isDraft = prop?.status === "draft";
+              const isRejected = prop?.status === "rejected";
+              const isChangesRequested = prop?.status === "changes_requested";
+              const executionBlocked = !prop || !isApproved;
+              const pendingRequests = projectMaterialRequests.filter((r) => r.status === "pending").length;
+              const blockedTasks = projectTasks.filter((t) => t.status === "blocked").length;
+
+              const nextAction = !prop
+                ? "Create a proposal in the Proposal tab before sending to the client."
+                : isDraft
+                ? "Review and send the proposal to the client for approval."
+                : isSent
+                ? "Awaiting client approval. No execution until approved."
+                : isChangesRequested
+                ? "Client requested changes — revise the proposal in the Proposal tab."
+                : isRejected
+                ? "Proposal rejected. Revise and resend via the Proposal tab."
+                : isApproved
+                ? blockedTasks > 0
+                  ? `${blockedTasks} task(s) blocked. Resolve blockers before proceeding.`
+                  : pendingRequests > 0
+                  ? `${pendingRequests} material request(s) pending from client.`
+                  : "Execution unlocked. Agents are cleared to run."
+                : "";
+
+              return (
+                <div className={`bg-white rounded-[10px] border shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 ${
+                  isApproved ? "border-[#BBF7D0]" : executionBlocked ? "border-[#FDE68A]" : "border-[#E5E5E2]"
+                }`}>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Project Manager</div>
+                    <button
+                      onClick={() => setTab("proposal")}
+                      className="text-[12px] text-[#5B5BD6] hover:underline"
+                    >
+                      {prop ? "View Proposal" : "Create Proposal"} →
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2.5">
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${isApproved ? "bg-[#16A34A]" : "bg-[#D97706]"}`} />
+                      <span className="text-[13px] font-medium text-[#1A1A1A]">
+                        {isApproved ? "Proposal approved — execution unlocked" : executionBlocked ? "Execution blocked — proposal not approved" : ""}
+                      </span>
+                    </div>
+                    {prop && (
+                      <div className="flex items-center gap-2 flex-wrap pl-4">
+                        {[
+                          { label: "Proposal", value: prop.status === "draft" ? "Draft" : prop.status === "sent" ? "Sent to client" : prop.status === "approved" ? "Approved" : prop.status === "rejected" ? "Rejected" : "Changes requested", color: isApproved ? "bg-[#DCFCE7] text-[#16A34A]" : isSent ? "bg-[#EEF0FF] text-[#5B5BD6]" : isRejected ? "bg-[#FEE2E2] text-[#DC2626]" : "bg-[#FEF3C7] text-[#D97706]" },
+                          ...(pendingRequests > 0 ? [{ label: "Client materials", value: `${pendingRequests} pending`, color: "bg-[#FEF3C7] text-[#D97706]" }] : []),
+                          ...(blockedTasks > 0 ? [{ label: "Blocked tasks", value: `${blockedTasks}`, color: "bg-[#FEE2E2] text-[#DC2626]" }] : []),
+                        ].map((item) => (
+                          <span key={item.label} className={`h-5 px-2 rounded-full text-[10px] font-semibold ${item.color}`}>
+                            {item.label}: {item.value}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {nextAction && (
+                      <p className="text-[12px] text-[#6B6B65] pl-4 leading-relaxed">
+                        <span className="font-medium text-[#1A1A1A]">Next: </span>{nextAction}
+                      </p>
+                    )}
+                  </div>
                 </div>
               );
             })()}
@@ -672,6 +771,149 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   <p className="text-[13px] text-[#1A1A1A] leading-relaxed">{value}</p>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tab: Proposal */}
+      {tab === "proposal" && (
+        <div className="space-y-5">
+          {/* Status banner */}
+          {project.proposal && (() => {
+            const p = project.proposal!;
+            const banners: Record<string, { bg: string; border: string; text: string; label: string }> = {
+              draft:             { bg: "bg-[#F7F7F6]",  border: "border-[#E5E5E2]",  text: "text-[#6B6B65]",  label: "Draft — not yet sent to client" },
+              sent:              { bg: "bg-[#EEF0FF]",  border: "border-[#C7C7F5]",  text: "text-[#5B5BD6]",  label: "Sent — awaiting client approval" },
+              approved:          { bg: "bg-[#DCFCE7]",  border: "border-[#BBF7D0]",  text: "text-[#16A34A]",  label: "Approved — execution unlocked" },
+              rejected:          { bg: "bg-[#FEF2F2]",  border: "border-[#FECACA]",  text: "text-[#DC2626]",  label: "Rejected — revise and resend" },
+              changes_requested: { bg: "bg-[#FFFBEB]",  border: "border-[#FDE68A]",  text: "text-[#D97706]",  label: "Changes requested by client" },
+            };
+            const b = banners[p.status];
+            return (
+              <div className={`flex items-center justify-between px-4 py-2.5 rounded-[8px] border ${b.bg} ${b.border}`}>
+                <span className={`text-[13px] font-medium ${b.text}`}>{b.label}</span>
+                {p.status === "changes_requested" && p.requestedChanges && (
+                  <span className="text-[12px] text-[#6B6B65] max-w-xs truncate">{p.requestedChanges}</span>
+                )}
+                {p.status === "rejected" && p.rejectionReason && (
+                  <span className="text-[12px] text-[#6B6B65] max-w-xs truncate">{p.rejectionReason}</span>
+                )}
+              </div>
+            );
+          })()}
+
+          {!project.proposal && (
+            <div className="px-4 py-3 rounded-[8px] border border-[#FDE68A] bg-[#FFFBEB]">
+              <p className="text-[13px] text-[#D97706]">No proposal created yet. Use the form below to draft one — it will not be visible to the client until you send it.</p>
+            </div>
+          )}
+
+          {/* Proposal editor */}
+          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-[#F0F0ED] flex items-center justify-between">
+              <span className="text-[13px] font-semibold text-[#1A1A1A]">Proposal Editor</span>
+              {proposalDirty && (
+                <span className="text-[11px] text-[#D97706]">Unsaved changes</span>
+              )}
+            </div>
+            <div className="px-5 py-4 space-y-4">
+              <div>
+                <label className="block text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.04em] mb-1.5">Objective</label>
+                <input
+                  value={proposalForm.objective ?? ""}
+                  onChange={(e) => { setProposalForm((f) => ({ ...f, objective: e.target.value })); setProposalDirty(true); }}
+                  placeholder="What is this project trying to achieve?"
+                  className="w-full h-9 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.04em] mb-1.5">Scope</label>
+                <textarea
+                  value={proposalForm.scope ?? ""}
+                  onChange={(e) => { setProposalForm((f) => ({ ...f, scope: e.target.value })); setProposalDirty(true); }}
+                  placeholder="Describe the full scope of work…"
+                  rows={4}
+                  className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white resize-none"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.04em] mb-1.5">Deliverables <span className="font-normal text-[#9B9B95] normal-case">(one per line)</span></label>
+                <textarea
+                  value={deliverablesText}
+                  onChange={(e) => { setDeliverablesText(e.target.value); setProposalDirty(true); }}
+                  placeholder="Social Media Management&#10;Content Calendar&#10;Monthly Report"
+                  rows={4}
+                  className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white resize-none font-mono"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.04em] mb-1.5">Timeline</label>
+                  <input
+                    value={proposalForm.timeline ?? ""}
+                    onChange={(e) => { setProposalForm((f) => ({ ...f, timeline: e.target.value })); setProposalDirty(true); }}
+                    placeholder="e.g. Project delivery by 2026-08-01"
+                    className="w-full h-9 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.04em] mb-1.5">Investment</label>
+                  <input
+                    value={proposalForm.pricing ?? ""}
+                    onChange={(e) => { setProposalForm((f) => ({ ...f, pricing: e.target.value })); setProposalDirty(true); }}
+                    placeholder="e.g. €4,500 / month"
+                    className="w-full h-9 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  onClick={handleSaveProposal}
+                  disabled={!proposalDirty && !!project.proposal}
+                  className="h-8 px-4 rounded-[7px] border border-[#E5E5E2] text-[#1A1A1A] text-[12px] font-medium hover:border-[#5B5BD6] hover:text-[#5B5BD6] transition-colors disabled:opacity-40"
+                >
+                  Save Draft
+                </button>
+                {(!project.proposal || project.proposal.status === "draft" || project.proposal.status === "changes_requested" || project.proposal.status === "rejected") && (
+                  <button
+                    onClick={handleSendProposal}
+                    className="h-8 px-4 rounded-[7px] bg-[#1A1A1A] hover:bg-[#111111] text-white text-[12px] font-medium transition-colors"
+                  >
+                    Send to Client
+                  </button>
+                )}
+                {project.proposal?.status === "sent" && (
+                  <span className="text-[12px] text-[#5B5BD6] font-medium">Proposal is awaiting client approval — editing will not update the sent version until you resend.</span>
+                )}
+                {project.proposal?.status === "approved" && (
+                  <span className="text-[12px] text-[#16A34A] font-medium">Proposal is approved. Editing is locked.</span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Client material requests */}
+          {projectMaterialRequests.length > 0 && (
+            <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-[#F0F0ED]">
+                <span className="text-[13px] font-semibold text-[#1A1A1A]">Required from Client</span>
+              </div>
+              <div className="divide-y divide-[#F0F0ED]">
+                {projectMaterialRequests.map((req) => (
+                  <div key={req.id} className="flex items-start justify-between px-5 py-3.5 gap-4">
+                    <div className="min-w-0">
+                      <div className="text-[13px] font-medium text-[#1A1A1A]">{req.title}</div>
+                      {req.description && <p className="text-[12px] text-[#6B6B65] mt-0.5 leading-relaxed">{req.description}</p>}
+                    </div>
+                    <span className={`h-5 px-2 rounded-full text-[10px] font-semibold shrink-0 whitespace-nowrap ${
+                      req.status === "received" ? "bg-[#DCFCE7] text-[#16A34A]" : req.status === "cancelled" ? "bg-[#F0F0ED] text-[#9B9B95]" : "bg-[#FEF3C7] text-[#D97706]"
+                    }`}>
+                      {req.status === "received" ? "Received" : req.status === "cancelled" ? "Cancelled" : "Pending"}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>

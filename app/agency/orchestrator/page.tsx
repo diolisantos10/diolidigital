@@ -501,7 +501,7 @@ export default function OrchestratorPage() {
       clientId: briefing.clientId,
       goal: briefing.objective,
       type: projType,
-      stage: "proposal_sent",
+      stage: "briefing",
       priority: form.priority,
       deadline,
       agents: plan.agents,
@@ -531,11 +531,12 @@ export default function OrchestratorPage() {
     if (brain?.toneOfVoice) scopeParts.push(`All deliverables will use a ${brain.toneOfVoice} tone of voice.`);
     if (brain?.productsToHighlight) scopeParts.push(`Key products/services to highlight: ${brain.productsToHighlight}.`);
     const proposal: ProjectProposal = {
+      objective: briefing.objective || undefined,
       scope: scopeParts.join(" "),
       deliverables: briefing.services.map((s) => serviceLabels[s] ?? s),
       timeline: deadline ? `Project delivery by ${deadline}` : "Timeline to be confirmed",
       pricing: briefing.services.length <= 1 ? "€2,500 / month" : briefing.services.length <= 3 ? "€4,500 / month" : "€7,500 / month",
-      status: "pending",
+      status: "draft",
     };
     updateProject(id, { proposal });
 

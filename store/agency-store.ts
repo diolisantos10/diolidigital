@@ -24,6 +24,7 @@ import {
   MOCK_ACTIVITY,
 } from "@/lib/agency/mock-data";
 import type { MaterialRequest, MaterialRequestStatus } from "@/lib/agency/workspace";
+import { generateClientRequirements } from "@/lib/agency/workspace";
 
 // ─── QA Test Run ──────────────────────────────────────────────────────────────
 
@@ -74,7 +75,10 @@ interface AgencyState {
   }) => string;
   updateProject: (id: string, updates: Partial<Project>) => void;
   moveProjectStage: (id: string, stage: ProjectStage) => void;
+  updateProposal: (id: string, updates: Partial<ProjectProposal>) => void;
+  sendProposal: (id: string) => void;
   approveProposal: (id: string) => void;
+  rejectProposal: (id: string, reason?: string) => void;
   requestProposalChanges: (id: string, notes: string) => void;
 
   // Task actions
@@ -193,9 +197,18 @@ export const useAgencyStore = create<AgencyState>()(
           status: "pending" as TaskStatus,
           dueDate: t.dueDate,
         }));
+        const services = payload.orchestratorBriefing?.services ?? [];
+        const autoRequests: MaterialRequest[] = services.length > 0
+          ? generateClientRequirements(services, payload.clientId, id).map((r) => ({
+              ...r,
+              id: `mr${uid()}`,
+              requestedAt: new Date().toISOString(),
+            }))
+          : [];
         set((s) => ({
           projects: [...s.projects, project],
           tasks: [...s.tasks, ...newTasks],
+          materialRequests: [...s.materialRequests, ...autoRequests],
         }));
         get().addActivity({
           type: "project_created",
@@ -225,9 +238,36 @@ export const useAgencyStore = create<AgencyState>()(
         });
       },
 
+      updateProposal: (id, updates) => {
+        set((s) => ({
+          projects: s.projects.map((p) =>
+            p.id === id && p.proposal
+              ? { ...p, proposal: { ...p.proposal, ...updates } }
+              : p
+          ),
+        }));
+      },
+
+      sendProposal: (id) => {
+        const project = get().projects.find((p) => p.id === id);
+        if (!project?.proposal) return;
+        set((s) => ({
+          projects: s.projects.map((p) =>
+            p.id === id
+              ? { ...p, stage: "proposal_sent" as ProjectStage, proposal: p.proposal ? { ...p.proposal, status: "sent" as ProjectProposal["status"] } : p.proposal }
+              : p
+          ),
+        }));
+        get().addActivity({
+          type: "project_stage_changed",
+          message: `Proposal sent to client for "${project.name}"`,
+          projectId: id,
+        });
+      },
+
       approveProposal: (id) => {
         const project = get().projects.find((p) => p.id === id);
-        if (!project) return;
+        if (!project?.proposal || project.proposal.status !== "sent") return;
         set((s) => ({
           projects: s.projects.map((p) =>
             p.id === id
@@ -238,6 +278,28 @@ export const useAgencyStore = create<AgencyState>()(
         get().addActivity({
           type: "orchestrator_approved",
           message: `Client approved proposal for "${project.name}"`,
+          projectId: id,
+        });
+      },
+
+      rejectProposal: (id, reason) => {
+        const project = get().projects.find((p) => p.id === id);
+        if (!project?.proposal) return;
+        set((s) => ({
+          projects: s.projects.map((p) =>
+            p.id === id
+              ? {
+                  ...p,
+                  proposal: p.proposal
+                    ? { ...p.proposal, status: "rejected" as ProjectProposal["status"], ...(reason ? { rejectionReason: reason } : {}) }
+                    : p.proposal,
+                }
+              : p
+          ),
+        }));
+        get().addActivity({
+          type: "project_stage_changed",
+          message: `Client rejected proposal for "${project.name}"`,
           projectId: id,
         });
       },
