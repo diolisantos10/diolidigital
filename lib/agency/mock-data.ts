@@ -201,6 +201,27 @@ export interface ActivityEvent {
 
 export const MOCK_CLIENTS: Client[] = [
   {
+    id: "c4",
+    name: "Dioli Digital",
+    industry: "Agência Digital com IA",
+    website: "dioli.digital",
+    status: "active",
+    description: "Empresa de soluções digitais com IA. Dioli Agência é o braço de marketing e design — focado em automação, conteúdo, tráfego e sistemas digitais para marcas, restaurantes e PMEs.",
+    createdAt: "2026-05-30",
+    brandBrain: {
+      businessSummary: "Dioli Digital é uma empresa de soluções digitais impulsionadas por inteligência artificial. Seu primeiro braço operacional é a Dioli Agência — uma agência de marketing digital que entrega redes sociais, design, tráfego pago, copy e sistemas digitais completos para marcas, restaurantes, PMEs e fundadores. A proposta central: resultado de grande agência, com a agilidade e personalização de uma estrutura orientada por IA.",
+      positioning: "A Dioli Agência não é uma agência tradicional. É uma estrutura de execução digital acelerada por IA, com estratégia sênior e entrega consistente. Posicionada entre a consultoria e a produção — pensa, executa e otimiza. O diferencial real: velocidade de execução, uso nativo de IA nos fluxos internos e foco em ROI para o cliente.",
+      targetAudience: "Donos de negócio, fundadores e gestores de marketing de PMEs, restaurantes, lojas, profissionais liberais e marcas em fase de crescimento no Brasil. Precisam de presença digital consistente e resultados mensuráveis — sem o overhead de uma grande agência ou o amadorismo de freelancers.",
+      toneOfVoice: "Estratégico, direto, premium. Fala como um parceiro sênior, não como vendedor. Confiante sem arrogância. Claro, sem jargão técnico desnecessário. Moderno sem apelar para hype de IA. Tom: como se a Dioli fosse o sócio mais inteligente da sala — que também entrega.",
+      visualStyle: "Clean e tech-premium. Base preta ou branca com acentos em laranja. Tipografia moderna e forte. Layouts com espaço em branco generoso. Iconografia minimalista. Mockups e imagens de alto padrão — nunca stock genérico. Dark mode bem-vindo. Sem gradientes brilhantes, sem excesso de cor.",
+      brandRules: "Nunca usar tom de 'melhor agência do mercado'. Nunca fazer promessas vagas de resultado. Logo nunca em fundos coloridos saturados. Laranja é acento, não base. Todo texto deve ser editado para concisão — se a palavra não ganha seu espaço, corta. Nunca comparar diretamente com concorrentes.",
+      productsToHighlight: "Gestão de redes sociais com IA. Design de conteúdo e identidade visual. Tráfego pago (Meta e Google). Copy e conteúdo estratégico. Sistemas digitais automatizados. Onboarding de clientes via plataforma interna.",
+      thingsToAvoid: "Hype genérico de IA: 'revolucionário', 'disruptivo', 'transformador'. Linguagem barata ou promocional demais. Jargão técnico que afasta o cliente leigo. Excesso de emojis ou informalidade excessiva. Qualquer coisa que pareça agência pequena tentando parecer grande.",
+      preferredChannels: "Instagram (principal — reels e carrossel para autoridade e alcance). LinkedIn (para founders e decisores B2B). WhatsApp (relacionamento e fechamento). Site (conversão e portfólio).",
+      strategicNotes: "Projeto de lançamento em andamento — piloto interno sendo gerenciado nesta plataforma. Meta para os primeiros 90 dias: 3 clientes pagantes em retainer. Comunicação deve equilibrar narrativa de IA com a humanidade da equipe. Fundador quer posicionamento premium desde o início, sem entrar em guerra de preço.",
+    },
+  },
+  {
     id: "c1",
     name: "Sushikasa",
     industry: "Food & Beverage",
@@ -266,6 +287,32 @@ export const MOCK_CLIENTS: Client[] = [
 ];
 
 export const MOCK_PROJECTS: Project[] = [
+  {
+    id: "p7",
+    name: "Lançamento Dioli Agência",
+    clientId: "c4",
+    goal: "Lançar a Dioli Agência com presença digital consistente, identidade visual aplicada nas redes sociais e primeiros conteúdos que comuniquem o posicionamento premium e diferenciador da marca.",
+    type: "Social Media + Design",
+    stage: "briefing",
+    priority: "high",
+    deadline: "2026-07-31",
+    agents: ["a2", "a3"],
+    createdAt: "2026-05-30",
+    proposal: {
+      objective: "Lançar a Dioli Agência com presença digital consistente que comunique seu posicionamento como agência digital com IA — estratégica, premium e orientada a resultado.",
+      scope: "Estratégia completa de redes sociais com posicionamento, persona e pilares de conteúdo. Desenvolvimento do sistema de templates de design para Instagram. Calendário editorial para os primeiros 30 dias. Batch inicial de conteúdo pronto para publicação.",
+      deliverables: [
+        "Estratégia de redes sociais (documento completo)",
+        "Sistema de templates de design — 10+ layouts editáveis",
+        "Calendário editorial — 30 dias",
+        "Batch inicial — 12 posts prontos para publicar",
+        "Guia de tom de voz e identidade visual aplicada",
+      ],
+      timeline: "6 semanas",
+      pricing: "A definir",
+      status: "draft",
+    },
+  },
   {
     id: "p1",
     name: "Brand Relaunch Campaign",
@@ -372,6 +419,19 @@ export const MOCK_DELIVERABLES: Deliverable[] = [
 ];
 
 export const MOCK_BRIEFINGS: Briefing[] = [
+  {
+    id: "b4",
+    projectId: "p7",
+    clientId: "c4",
+    goal: "Lançar a Dioli Agência com presença forte nas redes sociais, comunicando seu posicionamento como agência digital com IA de forma estratégica, premium e clara.",
+    audience: "Donos de negócio, fundadores e gestores de marketing de PMEs — restaurantes, lojas, marcas em crescimento no Brasil que precisam de presença digital profissional.",
+    keyMessage: "A Dioli Agência entrega resultado de grande agência com a agilidade da IA. Você foca no negócio, a gente cuida do digital.",
+    deliverables: "Estratégia de redes sociais, sistema de templates de design, calendário editorial, batch inicial de conteúdo.",
+    deadline: "2026-07-31",
+    successCriteria: "Perfil no Instagram ativo com identidade consistente. 12 posts publicados no primeiro mês. Feedback positivo de 2+ clientes piloto sobre o posicionamento percebido.",
+    status: "pending_analysis",
+    createdAt: "2026-05-30",
+  },
   {
     id: "b1",
     projectId: "p1",

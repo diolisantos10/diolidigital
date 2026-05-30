@@ -24,7 +24,7 @@ import {
   MOCK_ACTIVITY,
 } from "@/lib/agency/mock-data";
 import type { MaterialRequest, MaterialRequestStatus } from "@/lib/agency/workspace";
-import { generateClientRequirements } from "@/lib/agency/workspace";
+import { generateClientRequirements, MOCK_MATERIAL_REQUESTS } from "@/lib/agency/workspace";
 
 // ─── QA Test Run ──────────────────────────────────────────────────────────────
 
@@ -122,7 +122,7 @@ export const useAgencyStore = create<AgencyState>()(
       deliverables: MOCK_DELIVERABLES,
       briefings: MOCK_BRIEFINGS,
       activity: MOCK_ACTIVITY,
-      materialRequests: [],
+      materialRequests: MOCK_MATERIAL_REQUESTS,
       testRuns: [],
 
       // ── i18n ─────────────────────────────────────────────────────────────
@@ -440,6 +440,7 @@ export const useAgencyStore = create<AgencyState>()(
           deliverables: MOCK_DELIVERABLES,
           briefings: MOCK_BRIEFINGS,
           activity: MOCK_ACTIVITY,
+          materialRequests: MOCK_MATERIAL_REQUESTS,
         });
       },
     }),

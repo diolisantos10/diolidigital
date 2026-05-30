@@ -225,6 +225,48 @@ export function generateClientRequirements(
   return reqs;
 }
 
+// ─── Pilot seed data ──────────────────────────────────────────────────────────
+// Initial material requests for the Dioli Digital internal pilot project (p7).
+
+export const MOCK_MATERIAL_REQUESTS: MaterialRequest[] = [
+  {
+    id: "mr1",
+    clientId: "c4",
+    projectId: "p7",
+    title: "Logotipo e arquivos de marca",
+    description: "Arquivos do logo em SVG e PNG (fundo transparente), versão horizontal e símbolo isolado. Se disponível, incluir manual de identidade visual ou referências de cores e tipografia.",
+    status: "pending",
+    requestedAt: "2026-05-30T00:00:00.000Z",
+  },
+  {
+    id: "mr2",
+    clientId: "c4",
+    projectId: "p7",
+    title: "Referências visuais e de comunicação",
+    description: "Marcas, agências ou perfis que você admira e gostaria de usar como referência de tom, estética e posicionamento. Pode compartilhar via Pinterest, links ou prints.",
+    status: "pending",
+    requestedAt: "2026-05-30T00:00:00.000Z",
+  },
+  {
+    id: "mr3",
+    clientId: "c4",
+    projectId: "p7",
+    title: "Descrição dos serviços e diferenciais",
+    description: "Lista dos principais serviços da Dioli Agência com uma breve descrição de cada um. O que diferencia a Dioli das agências tradicionais? Quais resultados você entrega para seus clientes?",
+    status: "pending",
+    requestedAt: "2026-05-30T00:00:00.000Z",
+  },
+  {
+    id: "mr4",
+    clientId: "c4",
+    projectId: "p7",
+    title: "Notas do fundador",
+    description: "Texto livre sobre a visão da empresa: o que motivou criar a Dioli, para onde quer levar o negócio e qual mensagem central quer transmitir no lançamento. Sem formato definido — escreva como preferir.",
+    status: "pending",
+    requestedAt: "2026-05-30T00:00:00.000Z",
+  },
+];
+
 // ─── Data selectors ───────────────────────────────────────────────────────────
 // Use these to filter store data before passing to portal view components.
 // This enforces visibility at the data layer, not just the UI layer.
