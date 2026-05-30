@@ -9,6 +9,8 @@ import Badge from "@/components/agency/ui/Badge";
 import Link from "next/link";
 import { Priority, ProjectStage, MOCK_AGENTS, ProjectProposal } from "@/lib/agency/mock-data";
 import IntakeEngine, { IntakeSummary, IntakePrefill } from "@/components/agency/intake/IntakeEngine";
+import { getClientAgentContext } from "@/lib/agency/workspace";
+import type { AgentClientContext } from "@/lib/agency/workspace";
 
 type OrchestratorState = "idle" | "reviewing" | "analyzing" | "ready" | "approved";
 type InputMode = "form" | "voice" | "audio";
@@ -61,56 +63,63 @@ function briefingToAgents(b: Briefing): string[] {
   return Array.from(set);
 }
 
-function briefingToTasks(b: Briefing): OrchestratorPlan["tasks"] {
+function briefingToTasks(b: Briefing, ctx: AgentClientContext | null): OrchestratorPlan["tasks"] {
   const baseDate = b.deadline || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const d = new Date(baseDate);
   const offset = (days: number) => new Date(d.getTime() - days * 86400000).toISOString().slice(0, 10);
+
+  const brain = ctx?.brandBrain;
+  const audience = brain?.targetAudience || b.targetAudience || "the target audience";
+  const tone = brain?.toneOfVoice ? ` using a ${brain.toneOfVoice} tone` : "";
+  const positioning = brain?.positioning ? ` Positioning: ${brain.positioning}.` : "";
+  const products = brain?.productsToHighlight ? ` Highlight: ${brain.productsToHighlight}.` : "";
+  const channelHint = brain?.preferredChannels || b.channels.join(", ") || "selected channels";
 
   const tasks: OrchestratorPlan["tasks"] = [];
 
   tasks.push({
     title: "Project briefing & context analysis",
-    description: `Analyze client context, competitive landscape, and strategic opportunity for: ${b.objective || "defined objective"}.`,
+    description: `Analyze client context, competitive landscape, and strategic opportunity for: ${b.objective || "defined objective"}. Target: ${audience}.${positioning}`,
     agentId: "a6", stage: "diagnosis", dueDate: offset(22),
   });
 
   if (b.services.includes("branding")) {
-    tasks.push({ title: "Brand audit & positioning", description: "Audit brand equity, map competitive landscape, and define positioning pillars.", agentId: "a6", stage: "diagnosis", dueDate: offset(19) });
-    tasks.push({ title: "Visual identity design", description: "Design logo, color palette, typography, and brand mark.", agentId: "a2", stage: "production", dueDate: offset(12) });
-    tasks.push({ title: "Brand voice & messaging", description: "Define tone of voice, key messages, and language guidelines.", agentId: "a1", stage: "production", dueDate: offset(9) });
+    tasks.push({ title: "Brand audit & positioning", description: `Audit brand equity, map competitive landscape, and define positioning pillars.${positioning}`, agentId: "a6", stage: "diagnosis", dueDate: offset(19) });
+    tasks.push({ title: "Visual identity design", description: `Design logo, color palette, typography, and brand mark${brain?.visualStyle ? ` aligned with: ${brain.visualStyle}` : ""}.`, agentId: "a2", stage: "production", dueDate: offset(12) });
+    tasks.push({ title: "Brand voice & messaging", description: `Define tone of voice, key messages, and language guidelines${tone}.${products}`, agentId: "a1", stage: "production", dueDate: offset(9) });
     tasks.push({ title: "Brand guidelines document", description: "Compile all elements into comprehensive brand guidelines.", agentId: "a7", stage: "review", dueDate: offset(5) });
   }
 
   if (b.services.includes("seo")) {
-    tasks.push({ title: "SEO audit & keyword research", description: "Full technical SEO audit and priority keyword identification.", agentId: "a8", stage: "diagnosis", dueDate: offset(20) });
-    tasks.push({ title: "Content strategy & briefs", description: "Map keywords to content opportunities and write content briefs.", agentId: "a8", stage: "planning", dueDate: offset(14) });
-    tasks.push({ title: "SEO content production", description: "Write SEO-optimized articles and landing page copy.", agentId: "a1", stage: "production", dueDate: offset(7) });
+    tasks.push({ title: "SEO audit & keyword research", description: `Full technical SEO audit and priority keyword identification for ${audience}.`, agentId: "a8", stage: "diagnosis", dueDate: offset(20) });
+    tasks.push({ title: "Content strategy & briefs", description: `Map keywords to content opportunities and write content briefs${tone}.${products}`, agentId: "a8", stage: "planning", dueDate: offset(14) });
+    tasks.push({ title: "SEO content production", description: `Write SEO-optimized articles and landing page copy${tone}.`, agentId: "a1", stage: "production", dueDate: offset(7) });
   }
 
   if (b.services.includes("ads")) {
-    tasks.push({ title: "Paid media strategy & audience setup", description: "Define campaign structure, audience segments, bidding strategy, and ad placements.", agentId: "a4", stage: "planning", dueDate: offset(16) });
-    tasks.push({ title: "Ad copy & creative assets", description: "Write all ad copy variants and design visual assets for all placements.", agentId: "a1", stage: "production", dueDate: offset(10) });
+    tasks.push({ title: "Paid media strategy & audience setup", description: `Define campaign structure, audience segments targeting ${audience}, bidding strategy, and ad placements across ${channelHint}.`, agentId: "a4", stage: "planning", dueDate: offset(16) });
+    tasks.push({ title: "Ad copy & creative assets", description: `Write all ad copy variants${tone} and design visual assets for all placements.${products}`, agentId: "a1", stage: "production", dueDate: offset(10) });
     tasks.push({ title: "Campaign setup & launch", description: "Set up all ad accounts, tracking pixels, audiences, and launch campaigns.", agentId: "a4", stage: "production", dueDate: offset(6) });
   }
 
   if (b.services.includes("social_media")) {
-    tasks.push({ title: "Social media strategy & content calendar", description: "Define channel strategy, content themes, posting cadence, and 30-day content calendar.", agentId: "a3", stage: "planning", dueDate: offset(17) });
-    tasks.push({ title: "Social media copy & captions", description: "Write all social posts, captions, hashtags, and story scripts.", agentId: "a1", stage: "production", dueDate: offset(10) });
-    tasks.push({ title: "Social media visual assets", description: "Design all visual content: feed posts, stories, cover images.", agentId: "a2", stage: "production", dueDate: offset(7) });
+    tasks.push({ title: "Social media strategy & content calendar", description: `Define channel strategy for ${channelHint}, content themes for ${audience}, posting cadence, and 30-day content calendar.`, agentId: "a3", stage: "planning", dueDate: offset(17) });
+    tasks.push({ title: "Social media copy & captions", description: `Write all social posts, captions, hashtags, and story scripts${tone}.${products}`, agentId: "a1", stage: "production", dueDate: offset(10) });
+    tasks.push({ title: "Social media visual assets", description: `Design all visual content: feed posts, stories, cover images${brain?.visualStyle ? ` in ${brain.visualStyle} style` : ""}.`, agentId: "a2", stage: "production", dueDate: offset(7) });
   }
 
   if (b.services.includes("content")) {
-    tasks.push({ title: "Content strategy", description: "Define content pillars, formats, distribution channels, and editorial calendar.", agentId: "a5", stage: "planning", dueDate: offset(16) });
-    tasks.push({ title: "Content production", description: "Write all content pieces: articles, landing pages, emails, and product copy.", agentId: "a1", stage: "production", dueDate: offset(8) });
+    tasks.push({ title: "Content strategy", description: `Define content pillars, formats for ${audience}, distribution across ${channelHint}, and editorial calendar.`, agentId: "a5", stage: "planning", dueDate: offset(16) });
+    tasks.push({ title: "Content production", description: `Write all content pieces: articles, landing pages, emails, and product copy${tone}.${products}`, agentId: "a1", stage: "production", dueDate: offset(8) });
   }
 
   tasks.sort((a, c) => (a.dueDate < c.dueDate ? -1 : 1));
   return tasks;
 }
 
-function briefingToPlan(b: Briefing): OrchestratorPlan {
+function briefingToPlan(b: Briefing, ctx: AgentClientContext | null): OrchestratorPlan {
   const agents = briefingToAgents(b);
-  const tasks = briefingToTasks(b);
+  const tasks = briefingToTasks(b, ctx);
 
   const pipeline: ProjectStage[] = ["briefing", "diagnosis", "planning", "production"];
   if (b.services.some((s) => ["branding", "ads"].includes(s))) pipeline.push("review");
@@ -126,6 +135,14 @@ function briefingToPlan(b: Briefing): OrchestratorPlan {
     risks.push({ level: "medium", message: "SEO results take 3–6 months to materialize — align client expectations upfront." });
   if (!b.deadline)
     risks.push({ level: "low", message: "No deadline set — consider adding one to ensure team prioritization." });
+
+  // Brand Brain–specific risks
+  if (ctx && ctx.brandBrainReadiness < 5)
+    risks.push({ level: "medium", message: `Brand Brain is only ${ctx.brandBrainReadiness}/10 complete for ${ctx.clientName} — agent outputs may lack brand specificity. Complete it in the client workspace.` });
+  if (ctx?.brandBrain?.thingsToAvoid)
+    risks.push({ level: "low", message: `Brand restriction: "${ctx.brandBrain.thingsToAvoid}" — ensure all creative assets comply before delivery.` });
+  if (ctx?.brandBrain?.brandRules)
+    risks.push({ level: "low", message: `Brand rule validation required: "${ctx.brandBrain.brandRules}" — include QA checklist before client delivery.` });
 
   return { pipeline, agents, tasks, risks };
 }
@@ -342,6 +359,34 @@ function BriefingPreview({ briefing, subtitle }: { briefing: Briefing; subtitle:
   );
 }
 
+// ─── Brand Brain context card ─────────────────────────────────────────────────
+
+function BrandBrainContextCard({ ctx }: { ctx: AgentClientContext }) {
+  const ready = ctx.brandBrainReadiness;
+  const incomplete = ready < 5;
+  return (
+    <div className={`rounded-[8px] border px-3 py-3 ${incomplete ? "bg-[#FFFBEB] border-[#FDE68A]" : "bg-[#F0FDF4] border-[#BBF7D0]"}`}>
+      <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center gap-1.5">
+          <span className={`text-[11px] font-bold ${incomplete ? "text-[#D97706]" : "text-[#16A34A]"}`}>{incomplete ? "⚠" : "●"}</span>
+          <span className="text-[11px] font-semibold text-[#1A1A1A]">{incomplete ? "Brand Brain incomplete" : "Brand Brain loaded"}</span>
+          <span className="text-[10px] text-[#9B9B95]">· {ctx.clientName}</span>
+        </div>
+        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${ready === 10 ? "bg-[#DCFCE7] text-[#16A34A]" : ready >= 5 ? "bg-[#FEF3C7] text-[#D97706]" : "bg-[#F0F0ED] text-[#9B9B95]"}`}>{ready}/10</span>
+      </div>
+      {incomplete ? (
+        <p className="text-[11px] text-[#D97706] leading-snug">Plans and proposals will use generic signals. Complete Brand Brain in the client workspace for fully brand-specific outputs.</p>
+      ) : (
+        <div className="space-y-1 mt-1">
+          {ctx.brandBrain?.toneOfVoice    && <div className="flex gap-2"><span className="text-[10px] text-[#9B9B95] w-16 shrink-0">Tone</span><span className="text-[11px] text-[#1A1A1A] truncate">{ctx.brandBrain.toneOfVoice}</span></div>}
+          {ctx.brandBrain?.targetAudience && <div className="flex gap-2"><span className="text-[10px] text-[#9B9B95] w-16 shrink-0">Audience</span><span className="text-[11px] text-[#1A1A1A] truncate">{ctx.brandBrain.targetAudience}</span></div>}
+          {ctx.brandBrain?.positioning    && <div className="flex gap-2"><span className="text-[10px] text-[#9B9B95] w-16 shrink-0">Positioning</span><span className="text-[11px] text-[#1A1A1A] truncate">{ctx.brandBrain.positioning}</span></div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Timer helper ─────────────────────────────────────────────────────────────
 
 function formatTimer(s: number): string {
@@ -367,6 +412,10 @@ export default function OrchestratorPage() {
   });
 
   const [briefing, setBriefing] = useState<Briefing>(EMPTY_BRIEFING);
+
+  // Derive Brand Brain context whenever the selected client changes
+  const selectedClient = clients.find((c) => c.id === briefing.clientId) ?? null;
+  const agentCtx: AgentClientContext | null = selectedClient ? getClientAgentContext(selectedClient) : null;
 
   const [recordingState, setRecordingState] = useState<"idle" | "recording">("idle");
   const [recordingSeconds, setRecordingSeconds] = useState(0);
@@ -429,8 +478,9 @@ export default function OrchestratorPage() {
   const handleGenerate = (b: Briefing) => {
     setBriefing(b);
     setState("analyzing");
+    const capturedCtx = agentCtx;
     setTimeout(() => {
-      setPlan(briefingToPlan(b));
+      setPlan(briefingToPlan(b, capturedCtx));
       setState("ready");
     }, 2200);
   };
@@ -467,13 +517,21 @@ export default function OrchestratorPage() {
       },
     });
 
-    // Generate mock proposal
+    // Generate brand-aware proposal
     const serviceLabels: Record<string, string> = {
       social_media: "Social Media Management", branding: "Brand Identity",
       ads: "Paid Advertising", seo: "SEO", content: "Content Production", web: "Website",
     };
+    const brain = agentCtx?.brandBrain;
+    const scopeParts: string[] = [];
+    if (briefing.objective) scopeParts.push(briefing.objective);
+    else scopeParts.push(`Full-service ${projType.toLowerCase()} engagement for ${clientName}.`);
+    if (brain?.positioning) scopeParts.push(`Scope is designed to reinforce ${clientName}'s positioning: ${brain.positioning}.`);
+    if (brain?.targetAudience || briefing.targetAudience) scopeParts.push(`Target audience: ${brain?.targetAudience || briefing.targetAudience}.`);
+    if (brain?.toneOfVoice) scopeParts.push(`All deliverables will use a ${brain.toneOfVoice} tone of voice.`);
+    if (brain?.productsToHighlight) scopeParts.push(`Key products/services to highlight: ${brain.productsToHighlight}.`);
     const proposal: ProjectProposal = {
-      scope: briefing.objective || `Full-service ${projType.toLowerCase()} engagement for ${clientName}.`,
+      scope: scopeParts.join(" "),
       deliverables: briefing.services.map((s) => serviceLabels[s] ?? s),
       timeline: deadline ? `Project delivery by ${deadline}` : "Timeline to be confirmed",
       pricing: briefing.services.length <= 1 ? "€2,500 / month" : briefing.services.length <= 3 ? "€4,500 / month" : "€7,500 / month",
@@ -637,7 +695,19 @@ export default function OrchestratorPage() {
                   <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Client *</label>
                   <select
                     value={briefing.clientId}
-                    onChange={(e) => setBriefingField("clientId", e.target.value)}
+                    onChange={(e) => {
+                      const cid = e.target.value;
+                      const client = clients.find((c) => c.id === cid) ?? null;
+                      const ctx = client ? getClientAgentContext(client) : null;
+                      setBriefing((prev) => ({
+                        ...prev,
+                        clientId: cid,
+                        // Auto-populate from Brand Brain if fields are empty
+                        targetAudience: prev.targetAudience || ctx?.brandBrain?.targetAudience || ctx?.targetAudience || "",
+                        businessDescription: prev.businessDescription || ctx?.description || ctx?.brandBrain?.businessSummary || "",
+                        channels: prev.channels.length > 0 ? prev.channels : (ctx?.brandBrain?.preferredChannels ? ctx.brandBrain.preferredChannels.split(/[,\n·•]+/).map((s) => s.trim()).filter(Boolean) : []),
+                      }));
+                    }}
                     disabled={state !== "idle"}
                     className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
                   >
@@ -645,6 +715,11 @@ export default function OrchestratorPage() {
                     {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
+
+                {/* Brand Brain context card — shown when a client is selected */}
+                {agentCtx && (
+                  <BrandBrainContextCard ctx={agentCtx} />
+                )}
 
                 {/* Services multi-select */}
                 <div>
@@ -1317,6 +1392,9 @@ export default function OrchestratorPage() {
 
             {state === "ready" && plan && (
               <div className="space-y-4">
+                {/* Brand Brain context card */}
+                {agentCtx && <BrandBrainContextCard ctx={agentCtx} />}
+
                 {/* Pipeline */}
                 <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
                   <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Recommended Pipeline</div>
