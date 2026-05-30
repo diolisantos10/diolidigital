@@ -56,11 +56,11 @@ export default function ProjectsPage() {
   return (
     <>
       <AgencyHeader
-        title="Projects"
-        subtitle={`${projects.length} project${projects.length !== 1 ? "s" : ""} total`}
+        title="Projetos"
+        subtitle={`${projects.length} projeto${projects.length !== 1 ? "s" : ""} no total`}
         actions={
           <Link href="/agency/orchestrator">
-            <Button variant="primary">+ New Project</Button>
+            <Button variant="primary">+ Novo Projeto</Button>
           </Link>
         }
       />
@@ -70,7 +70,7 @@ export default function ProjectsPage() {
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search projects..."
+          placeholder="Buscar projetos..."
           className="h-8 px-3 text-[13px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] placeholder:text-[#9B9B95] w-56"
         />
         <select
@@ -78,7 +78,7 @@ export default function ProjectsPage() {
           onChange={(e) => setClientFilter(e.target.value)}
           className="h-8 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] text-[#6B6B65]"
         >
-          <option value="all">All Clients</option>
+          <option value="all">Todos os clientes</option>
           {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
         <select
@@ -86,7 +86,7 @@ export default function ProjectsPage() {
           onChange={(e) => setStageFilter(e.target.value as ProjectStage | "all")}
           className="h-8 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] text-[#6B6B65]"
         >
-          <option value="all">All Stages</option>
+          <option value="all">Todas as etapas</option>
           {(["briefing","diagnosis","planning","production","review","delivery","ongoing","completed"] as const).map((s) => (
             <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
           ))}
@@ -96,44 +96,44 @@ export default function ProjectsPage() {
           onChange={(e) => setPriorityFilter(e.target.value as Priority | "all")}
           className="h-8 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] text-[#6B6B65]"
         >
-          <option value="all">All Priorities</option>
-          <option value="high">High</option>
-          <option value="medium">Medium</option>
-          <option value="low">Low</option>
+          <option value="all">Todas as prioridades</option>
+          <option value="high">Alta</option>
+          <option value="medium">Média</option>
+          <option value="low">Baixa</option>
         </select>
         <select
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value as SortKey)}
           className="h-8 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] text-[#6B6B65]"
         >
-          <option value="deadline">Sort: Deadline</option>
-          <option value="priority">Sort: Priority</option>
-          <option value="name">Sort: Name</option>
+          <option value="deadline">Ordenar: Prazo</option>
+          <option value="priority">Ordenar: Prioridade</option>
+          <option value="name">Ordenar: Nome</option>
         </select>
         {hasFilters && (
           <button onClick={clearFilters} className="h-8 px-3 text-[12px] text-[#6B6B65] hover:text-[#1A1A1A] transition-colors">
-            Clear filters
+            Limpar filtros
           </button>
         )}
       </div>
 
       {filtered.length === 0 ? (
         <EmptyState
-          title="No projects found"
-          description={hasFilters ? "Try adjusting your filters." : "Use the Orchestrator to create your first project."}
-          action={<Link href="/agency/orchestrator"><Button variant="primary">Open Orchestrator</Button></Link>}
+          title="Nenhum projeto encontrado"
+          description={hasFilters ? "Tente ajustar os filtros." : "Use o Orquestrador para criar seu primeiro projeto."}
+          action={<Link href="/agency/orchestrator"><Button variant="primary">Abrir Orquestrador</Button></Link>}
         />
       ) : (
         <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
           <table className="w-full">
             <thead>
               <tr className="border-b border-[#F0F0ED]">
-                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Project</th>
-                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Client</th>
-                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Stage</th>
-                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Priority</th>
-                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Progress</th>
-                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Deadline</th>
+                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Projeto</th>
+                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Cliente</th>
+                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Etapa</th>
+                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Prioridade</th>
+                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Progresso</th>
+                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Prazo</th>
               </tr>
             </thead>
             <tbody>
@@ -171,7 +171,7 @@ export default function ProjectsPage() {
                     </td>
                     <td className="px-5 py-3.5">
                       <span className={`text-[12px] mono-num font-medium ${overdue ? "text-[#DC2626]" : daysLeft <= 7 ? "text-[#D97706]" : "text-[#6B6B65]"}`}>
-                        {overdue ? "Overdue" : `${daysLeft}d`}
+                        {overdue ? "Atrasado" : `${daysLeft}d`}
                       </span>
                     </td>
                   </tr>

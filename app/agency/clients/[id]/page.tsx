@@ -58,10 +58,10 @@ interface Resource {
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const m = Math.floor(diff / 60000);
-  if (m < 60) return `${m}m ago`;
+  if (m < 60) return `${m}m atrás`;
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
+  if (h < 24) return `${h}h atrás`;
+  return `${Math.floor(h / 24)}d atrás`;
 }
 
 function initials(name: string): string {
@@ -131,10 +131,10 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
 
   // ── Task groups ─────────────────────────────────────────────────────────────
   const taskGroups = [
-    { label: "In Progress", tasks: inProgressTasks, dot: "bg-[#5B5BD6]",  text: "text-[#5B5BD6]"  },
-    { label: "Pending",     tasks: pendingTasks,    dot: "bg-[#9B9B95]",  text: "text-[#6B6B65]"  },
-    { label: "Blocked",     tasks: blockedTasks,    dot: "bg-[#DC2626]",  text: "text-[#DC2626]"  },
-    { label: "Done",        tasks: doneTasks,       dot: "bg-[#16A34A]",  text: "text-[#16A34A]"  },
+    { label: "Em Andamento", tasks: inProgressTasks, dot: "bg-[#5B5BD6]",  text: "text-[#5B5BD6]"  },
+    { label: "Pendente",     tasks: pendingTasks,    dot: "bg-[#9B9B95]",  text: "text-[#6B6B65]"  },
+    { label: "Bloqueada",    tasks: blockedTasks,    dot: "bg-[#DC2626]",  text: "text-[#DC2626]"  },
+    { label: "Concluída",    tasks: doneTasks,       dot: "bg-[#16A34A]",  text: "text-[#16A34A]"  },
   ].filter((g) => g.tasks.length > 0);
 
   // ── Deliverables grouped by type ────────────────────────────────────────────
@@ -151,28 +151,28 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
     if (p.stage === "completed") continue;
     const deadline = new Date(p.deadline);
     const daysLeft = Math.ceil((deadline.getTime() - today.getTime()) / 86400000);
-    if (daysLeft < 0) risks.push({ severity: "high", label: "Overdue project", detail: `${p.name} passed deadline by ${Math.abs(daysLeft)}d`, projectId: p.id });
-    else if (daysLeft < 7) risks.push({ severity: "medium", label: "Deadline approaching", detail: `${p.name} — ${daysLeft}d remaining`, projectId: p.id });
+    if (daysLeft < 0) risks.push({ severity: "high", label: "Projeto atrasado", detail: `${p.name} passou o prazo em ${Math.abs(daysLeft)}d`, projectId: p.id });
+    else if (daysLeft < 7) risks.push({ severity: "medium", label: "Prazo se aproximando", detail: `${p.name} — ${daysLeft}d restantes`, projectId: p.id });
   }
   const blockedCount = blockedTasks.length;
-  if (blockedCount > 0) risks.push({ severity: "high", label: `${blockedCount} blocked task${blockedCount > 1 ? "s" : ""}`, detail: blockedTasks.map((t) => t.title).join(", ") });
+  if (blockedCount > 0) risks.push({ severity: "high", label: `${blockedCount} tarefa${blockedCount > 1 ? "s" : ""} bloqueada${blockedCount > 1 ? "s" : ""}`, detail: blockedTasks.map((t) => t.title).join(", ") });
   const stalledProjects = clientProjects.filter((p) => p.stage !== "completed" && !inProgressTasks.some((t) => t.projectId === p.id));
-  for (const p of stalledProjects) risks.push({ severity: "low", label: "No active tasks", detail: `${p.name} has no in-progress tasks`, projectId: p.id });
+  for (const p of stalledProjects) risks.push({ severity: "low", label: "Sem tarefas ativas", detail: `${p.name} não tem tarefas em andamento`, projectId: p.id });
   const RISK_COLORS = { high: { bg: "bg-[#FEE2E2]", text: "text-[#DC2626]", dot: "bg-[#DC2626]" }, medium: { bg: "bg-[#FEF3C7]", text: "text-[#D97706]", dot: "bg-[#D97706]" }, low: { bg: "bg-[#F0F0ED]", text: "text-[#6B6B65]", dot: "bg-[#9B9B95]" } };
 
   // ── Agent context readiness ──────────────────────────────────────────────────
   const agentCtx = getClientAgentContext(client);
   const BRAIN_FIELDS: { key: keyof BrandBrain; label: string; placeholder: string }[] = [
-    { key: "businessSummary",     label: "Business Summary",      placeholder: "What the business is, what it sells, why it exists" },
-    { key: "positioning",         label: "Positioning",           placeholder: "Market position and unique value proposition" },
-    { key: "targetAudience",      label: "Target Audience",       placeholder: "Who the brand is talking to" },
-    { key: "toneOfVoice",         label: "Tone of Voice",         placeholder: "How the brand communicates" },
-    { key: "visualStyle",         label: "Visual Style",          placeholder: "Visual direction, colors, aesthetic references" },
-    { key: "brandRules",          label: "Brand Rules",           placeholder: "Non-negotiables — must follow, always" },
-    { key: "productsToHighlight", label: "Products to Highlight", placeholder: "Key products / services to feature in content" },
-    { key: "thingsToAvoid",       label: "Things to Avoid",       placeholder: "Words, tones, references to never use" },
-    { key: "preferredChannels",   label: "Preferred Channels",    placeholder: "Best-performing channels for this brand" },
-    { key: "strategicNotes",      label: "Strategic Notes",       placeholder: "Agency-only context, history, caveats" },
+    { key: "businessSummary",     label: "Resumo do Negócio",       placeholder: "O que o negócio é, o que vende, por que existe" },
+    { key: "positioning",         label: "Posicionamento",          placeholder: "Posição no mercado e proposta de valor única" },
+    { key: "targetAudience",      label: "Público-Alvo",            placeholder: "Com quem a marca está falando" },
+    { key: "toneOfVoice",         label: "Tom de Voz",              placeholder: "Como a marca se comunica" },
+    { key: "visualStyle",         label: "Estilo Visual",           placeholder: "Direção visual, cores, referências estéticas" },
+    { key: "brandRules",          label: "Regras de Marca",         placeholder: "Inegociáveis — sempre seguir" },
+    { key: "productsToHighlight", label: "Produtos em Destaque",    placeholder: "Produtos / serviços principais para destacar no conteúdo" },
+    { key: "thingsToAvoid",       label: "O que Evitar",            placeholder: "Palavras, tons, referências para nunca usar" },
+    { key: "preferredChannels",   label: "Canais Preferenciais",    placeholder: "Canais com melhor desempenho para esta marca" },
+    { key: "strategicNotes",      label: "Notas Estratégicas",      placeholder: "Contexto interno da agência, histórico, ressalvas" },
   ];
 
   // ── Edit form ───────────────────────────────────────────────────────────────
@@ -198,11 +198,11 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
         actions={
           <>
             <Link href={portalUrl} target="_blank">
-              <Button variant="ghost">Client View ↗</Button>
+              <Button variant="ghost">Ver portal ↗</Button>
             </Link>
-            <Button variant="secondary" onClick={() => setEditOpen(true)}>Edit Client</Button>
+            <Button variant="secondary" onClick={() => setEditOpen(true)}>Editar Cliente</Button>
             <Link href="/agency/orchestrator">
-              <Button variant="primary">+ New Project</Button>
+              <Button variant="primary">+ Novo Projeto</Button>
             </Link>
           </>
         }
@@ -211,11 +211,11 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
       {/* ── Summary Bar ───────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-5 gap-3 mb-6">
         {[
-          { label: "Active Projects",  value: activeProjects.length,      alert: false },
-          { label: "In Progress",      value: inProgressTasks.length,     alert: false },
-          { label: "Pending Tasks",    value: pendingTasks.length,        alert: false },
-          { label: "Deliverables",     value: clientDeliverables.length,  alert: false },
-          { label: "Blocked",          value: blockedTasks.length,        alert: true  },
+          { label: "Projetos Ativos",  value: activeProjects.length,      alert: false },
+          { label: "Em Andamento",     value: inProgressTasks.length,     alert: false },
+          { label: "Tarefas Pendentes", value: pendingTasks.length,       alert: false },
+          { label: "Entregas",         value: clientDeliverables.length,  alert: false },
+          { label: "Bloqueadas",       value: blockedTasks.length,        alert: true  },
         ].map(({ label, value, alert }) => (
           <div
             key={label}
@@ -249,16 +249,16 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
           <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0F0ED]">
               <h2 className="text-[14px] font-semibold text-[#1A1A1A]">
-                Project Pipeline
-                <span className="ml-2 text-[12px] font-normal text-[#9B9B95]">{clientProjects.length} project{clientProjects.length !== 1 ? "s" : ""}</span>
+                Pipeline de Projetos
+                <span className="ml-2 text-[12px] font-normal text-[#9B9B95]">{clientProjects.length} projeto{clientProjects.length !== 1 ? "s" : ""}</span>
               </h2>
               <Link href="/agency/orchestrator" className="text-[12px] text-[#5B5BD6] hover:underline font-medium">
-                + New project
+                + Novo projeto
               </Link>
             </div>
 
             {clientProjects.length === 0 ? (
-              <div className="px-5 py-10 text-center text-[13px] text-[#9B9B95]">No projects yet.</div>
+              <div className="px-5 py-10 text-center text-[13px] text-[#9B9B95]">Nenhum projeto ainda.</div>
             ) : (
               <div className="divide-y divide-[#F0F0ED]">
                 {clientProjects.map((project) => {
@@ -315,17 +315,17 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                           <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                             {awaiting > 0 && (
                               <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#D97706]">
-                                {awaiting} awaiting review
+                                {awaiting} aguardando revisão
                               </span>
                             )}
                             {revision > 0 && (
                               <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-[#FEE2E2] text-[#DC2626]">
-                                {revision} revision needed
+                                {revision} revisão necessária
                               </span>
                             )}
                             {approved > 0 && (
                               <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-[#DCFCE7] text-[#16A34A]">
-                                {approved} approved
+                                {approved} aprovado{approved !== 1 ? "s" : ""}
                               </span>
                             )}
                           </div>
@@ -342,13 +342,13 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
           <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
             <div className="px-5 py-4 border-b border-[#F0F0ED]">
               <h2 className="text-[14px] font-semibold text-[#1A1A1A]">
-                Tasks
-                <span className="ml-2 text-[12px] font-normal text-[#9B9B95]">{clientTasks.length} total</span>
+                Tarefas
+                <span className="ml-2 text-[12px] font-normal text-[#9B9B95]">{clientTasks.length} no total</span>
               </h2>
             </div>
 
             {clientTasks.length === 0 ? (
-              <div className="px-5 py-10 text-center text-[13px] text-[#9B9B95]">No tasks yet.</div>
+              <div className="px-5 py-10 text-center text-[13px] text-[#9B9B95]">Nenhuma tarefa ainda.</div>
             ) : (
               <div>
                 {taskGroups.map((group) => (
@@ -405,16 +405,16 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
           <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0F0ED]">
               <h2 className="text-[14px] font-semibold text-[#1A1A1A]">
-                Deliverables
-                <span className="ml-2 text-[12px] font-normal text-[#9B9B95]">{clientDeliverables.length} total</span>
+                Entregas
+                <span className="ml-2 text-[12px] font-normal text-[#9B9B95]">{clientDeliverables.length} no total</span>
               </h2>
               <Link href="/agency/deliverables" className="text-[12px] text-[#5B5BD6] hover:underline font-medium">
-                View all
+                Ver todas
               </Link>
             </div>
 
             {clientDeliverables.length === 0 ? (
-              <div className="px-5 py-10 text-center text-[13px] text-[#9B9B95]">No deliverables yet.</div>
+              <div className="px-5 py-10 text-center text-[13px] text-[#9B9B95]">Nenhuma entrega ainda.</div>
             ) : (
               <div>
                 {Object.entries(deliverableByType).map(([type, items]) => (
@@ -472,17 +472,17 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                   {agentCtx.brandBrainReadiness}/10
                 </span>
                 {brainSaved && (
-                  <span className="text-[11px] text-[#16A34A] font-medium">✓ Saved</span>
+                  <span className="text-[11px] text-[#16A34A] font-medium">✓ Salvo</span>
                 )}
               </div>
               <div className="flex items-center gap-2">
                 {brainEditing ? (
                   <>
-                    <Button variant="ghost" onClick={() => { setBrainDraft(null); setBrainEditing(false); }}>Cancel</Button>
-                    <Button variant="primary" onClick={handleSaveBrain}>Save</Button>
+                    <Button variant="ghost" onClick={() => { setBrainDraft(null); setBrainEditing(false); }}>Cancelar</Button>
+                    <Button variant="primary" onClick={handleSaveBrain}>Salvar</Button>
                   </>
                 ) : (
-                  <Button variant="secondary" onClick={() => { setBrainDraft(client.brandBrain ?? EMPTY_BRAIN); setBrainEditing(true); }}>Edit</Button>
+                  <Button variant="secondary" onClick={() => { setBrainDraft(client.brandBrain ?? EMPTY_BRAIN); setBrainEditing(true); }}>Editar</Button>
                 )}
               </div>
             </div>
@@ -516,11 +516,11 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
           {/* ── Activity Timeline ─────────────────────────────────────────────── */}
           <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
             <div className="px-5 py-4 border-b border-[#F0F0ED]">
-              <h2 className="text-[14px] font-semibold text-[#1A1A1A]">Activity</h2>
+              <h2 className="text-[14px] font-semibold text-[#1A1A1A]">Atividade</h2>
             </div>
 
             {clientActivity.length === 0 ? (
-              <div className="px-5 py-10 text-center text-[13px] text-[#9B9B95]">No activity recorded yet.</div>
+              <div className="px-5 py-10 text-center text-[13px] text-[#9B9B95]">Nenhuma atividade registrada ainda.</div>
             ) : (
               <div className="px-5 py-4">
                 <div className="relative">
@@ -552,13 +552,13 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
 
           {/* ── Overview stats ───────────────────────────────────────────────── */}
           <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-            <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Account</div>
+            <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Conta</div>
             <div className="space-y-3">
               {[
-                { label: "Status",      value: client.status.charAt(0).toUpperCase() + client.status.slice(1) },
-                { label: "Client Since", value: client.createdAt.slice(0, 7) },
-                { label: "Industry",    value: client.industry },
-                { label: "Completed",   value: String(clientProjects.filter((p) => p.stage === "completed").length) },
+                { label: "Status",       value: client.status.charAt(0).toUpperCase() + client.status.slice(1) },
+                { label: "Cliente desde", value: client.createdAt.slice(0, 7) },
+                { label: "Setor",        value: client.industry },
+                { label: "Concluídos",   value: String(clientProjects.filter((p) => p.stage === "completed").length) },
               ].map(({ label, value }) => (
                 <div key={label} className="flex items-start justify-between gap-2">
                   <span className="text-[12px] text-[#9B9B95] shrink-0">{label}</span>
@@ -571,15 +571,15 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
           {/* ── Operational Risks ────────────────────────────────────────────── */}
           <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0F0ED]">
-              <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Operational Risks</div>
+              <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Riscos Operacionais</div>
               {risks.length > 0 && (
                 <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${risks.some(r => r.severity === "high") ? "bg-[#FEE2E2] text-[#DC2626]" : "bg-[#FEF3C7] text-[#D97706]"}`}>
-                  {risks.length} flagged
+                  {risks.length} detectado{risks.length !== 1 ? "s" : ""}
                 </span>
               )}
             </div>
             {risks.length === 0 ? (
-              <div className="px-5 py-5 text-center text-[12px] text-[#9B9B95]">No risks detected.</div>
+              <div className="px-5 py-5 text-center text-[12px] text-[#9B9B95]">Nenhum risco detectado.</div>
             ) : (
               <div className="divide-y divide-[#F0F0ED]">
                 {risks.map((risk, i) => {
@@ -601,11 +601,11 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
           {/* ── Assigned Resources ───────────────────────────────────────────── */}
           <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
             <div className="px-5 py-4 border-b border-[#F0F0ED]">
-              <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Assigned Resources</div>
+              <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Recursos Alocados</div>
             </div>
 
             {resources.length === 0 ? (
-              <div className="px-5 py-6 text-center text-[13px] text-[#9B9B95]">No resources assigned.</div>
+              <div className="px-5 py-6 text-center text-[13px] text-[#9B9B95]">Nenhum recurso alocado.</div>
             ) : (
               <div className="divide-y divide-[#F0F0ED]">
                 {resources.map((res) => (
@@ -621,12 +621,12 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                             ? "bg-[#EEF0FF] text-[#5B5BD6]"
                             : "bg-[#F0FDF4] text-[#16A34A]"
                         }`}>
-                          {res.type === "ai" ? "AI" : "Human"}
+                          {res.type === "ai" ? "IA" : "Humano"}
                         </span>
                       </div>
                       <div className="text-[11px] text-[#9B9B95] mt-0.5">{res.role}</div>
                       <div className="text-[11px] text-[#C0C0BC] mt-0.5">
-                        {res.projectNames.length} project{res.projectNames.length !== 1 ? "s" : ""}
+                        {res.projectNames.length} projeto{res.projectNames.length !== 1 ? "s" : ""}
                       </div>
                     </div>
                   </div>
@@ -638,14 +638,14 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
           {/* ── Brand Assets ─────────────────────────────────────────────────── */}
           <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0F0ED]">
-              <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Brand Assets</div>
+              <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Ativos de Marca</div>
               <Link href="/agency/brand-assets" className="text-[12px] text-[#5B5BD6] hover:underline font-medium">
-                Manage
+                Gerenciar
               </Link>
             </div>
 
             {brandAssets.length === 0 ? (
-              <div className="px-5 py-6 text-center text-[13px] text-[#9B9B95]">No brand assets yet.</div>
+              <div className="px-5 py-6 text-center text-[13px] text-[#9B9B95]">Nenhum ativo de marca ainda.</div>
             ) : (
               <div className="divide-y divide-[#F0F0ED]">
                 {brandAssets.map((asset) => (
@@ -672,10 +672,10 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
       </div>
 
       {/* ── Edit Modal ────────────────────────────────────────────────────────── */}
-      <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Edit Client">
+      <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Editar Cliente">
         <div className="space-y-4">
           <div>
-            <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Name</label>
+            <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Nome</label>
             <input
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -684,7 +684,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Industry</label>
+              <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Setor</label>
               <input
                 value={form.industry}
                 onChange={(e) => setForm({ ...form, industry: e.target.value })}
@@ -698,14 +698,14 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                 onChange={(e) => setForm({ ...form, status: e.target.value as ClientStatus })}
                 className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
               >
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
+                <option value="active">Ativo</option>
+                <option value="inactive">Inativo</option>
                 <option value="prospect">Prospect</option>
               </select>
             </div>
           </div>
           <div>
-            <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Website</label>
+            <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Site</label>
             <input
               value={form.website}
               onChange={(e) => setForm({ ...form, website: e.target.value })}
@@ -713,7 +713,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
             />
           </div>
           <div>
-            <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Description</label>
+            <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Descrição</label>
             <textarea
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
@@ -722,8 +722,8 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
             />
           </div>
           <div className="flex justify-end gap-2.5 pt-1">
-            <Button variant="ghost" onClick={() => setEditOpen(false)}>Cancel</Button>
-            <Button variant="primary" onClick={handleSave}>Save Changes</Button>
+            <Button variant="ghost" onClick={() => setEditOpen(false)}>Cancelar</Button>
+            <Button variant="primary" onClick={handleSave}>Salvar</Button>
           </div>
         </div>
       </Modal>

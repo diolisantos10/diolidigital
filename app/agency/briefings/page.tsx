@@ -49,15 +49,15 @@ export default function BriefingsPage() {
     <>
       <AgencyHeader
         title="Briefings"
-        subtitle={`${briefings.length} briefings submitted`}
-        actions={<Button variant="primary" onClick={() => setModalOpen(true)}>+ New Briefing</Button>}
+        subtitle={`${briefings.length} briefing${briefings.length !== 1 ? "s" : ""} enviado${briefings.length !== 1 ? "s" : ""}`}
+        actions={<Button variant="primary" onClick={() => setModalOpen(true)}>+ Novo Briefing</Button>}
       />
 
       {briefings.length === 0 ? (
         <EmptyState
-          title="No briefings yet"
-          description="Submit a briefing for a project to start the Orchestrator workflow."
-          action={<Button variant="primary" onClick={() => setModalOpen(true)}>Submit Briefing</Button>}
+          title="Nenhum briefing ainda"
+          description="Envie um briefing de projeto para iniciar o fluxo do Orquestrador."
+          action={<Button variant="primary" onClick={() => setModalOpen(true)}>Enviar Briefing</Button>}
         />
       ) : (
         <div className="space-y-3">
@@ -83,17 +83,17 @@ export default function BriefingsPage() {
                       </button>
                     </div>
                     <div className="text-[12px] text-[#9B9B95]">
-                      {client?.name} · Submitted {briefing.createdAt}
+                      {client?.name} · Enviado em {briefing.createdAt}
                     </div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-x-8 gap-y-3">
                   {[
-                    { label: "Business Goal", value: briefing.goal },
-                    { label: "Target Audience", value: briefing.audience },
-                    { label: "Key Message", value: briefing.keyMessage },
-                    { label: "Success Criteria", value: briefing.successCriteria },
+                    { label: "Objetivo de Negócio", value: briefing.goal },
+                    { label: "Público-Alvo", value: briefing.audience },
+                    { label: "Mensagem-Chave", value: briefing.keyMessage },
+                    { label: "Critérios de Sucesso", value: briefing.successCriteria },
                   ].map(({ label, value }) => (
                     <div key={label}>
                       <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1">{label}</div>
@@ -104,7 +104,7 @@ export default function BriefingsPage() {
 
                 {briefing.deliverables && (
                   <div className="mt-3 pt-3 border-t border-[#F0F0ED]">
-                    <span className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mr-2">Deliverables:</span>
+                    <span className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mr-2">Entregas:</span>
                     <span className="text-[13px] text-[#6B6B65]">{briefing.deliverables}</span>
                   </div>
                 )}
@@ -115,46 +115,46 @@ export default function BriefingsPage() {
       )}
 
       {/* Create Modal */}
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="New Briefing" width="max-w-2xl">
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Novo Briefing" width="max-w-2xl">
         <div className="space-y-4">
           <div>
-            <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Project *</label>
+            <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Projeto *</label>
             <select
               value={form.projectId}
               onChange={(e) => setForm({ ...form, projectId: e.target.value })}
               className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
             >
-              <option value="">Select a project...</option>
+              <option value="">Selecionar projeto...</option>
               {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Business Goal *</label>
+            <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Objetivo de Negócio *</label>
             <textarea
               value={form.goal}
               onChange={(e) => setForm({ ...form, goal: e.target.value })}
-              placeholder="What is the business objective of this project?"
+              placeholder="Qual é o objetivo de negócio deste projeto?"
               rows={2}
               className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white resize-none"
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Target Audience</label>
+              <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Público-Alvo</label>
               <textarea
                 value={form.audience}
                 onChange={(e) => setForm({ ...form, audience: e.target.value })}
-                placeholder="Who are you trying to reach?"
+                placeholder="Quem você quer alcançar?"
                 rows={2}
                 className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white resize-none"
               />
             </div>
             <div>
-              <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Key Message</label>
+              <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Mensagem-Chave</label>
               <textarea
                 value={form.keyMessage}
                 onChange={(e) => setForm({ ...form, keyMessage: e.target.value })}
-                placeholder="Core message to communicate"
+                placeholder="Mensagem central a ser comunicada"
                 rows={2}
                 className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white resize-none"
               />
@@ -162,16 +162,16 @@ export default function BriefingsPage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Deliverables Expected</label>
+              <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Entregas Esperadas</label>
               <input
                 value={form.deliverables}
                 onChange={(e) => setForm({ ...form, deliverables: e.target.value })}
-                placeholder="e.g. Campaign copy, visuals, ads"
+                placeholder="ex.: textos, peças visuais, anúncios"
                 className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
               />
             </div>
             <div>
-              <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Deadline</label>
+              <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Prazo</label>
               <input
                 type="date"
                 value={form.deadline}
@@ -181,18 +181,18 @@ export default function BriefingsPage() {
             </div>
           </div>
           <div>
-            <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Success Criteria</label>
+            <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Critérios de Sucesso</label>
             <input
               value={form.successCriteria}
               onChange={(e) => setForm({ ...form, successCriteria: e.target.value })}
-              placeholder="How will success be measured?"
+              placeholder="Como o sucesso será medido?"
               className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
             />
           </div>
           <div className="flex justify-end gap-2.5 pt-1">
-            <Button variant="ghost" onClick={() => setModalOpen(false)}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setModalOpen(false)}>Cancelar</Button>
             <Button variant="primary" onClick={handleCreate} disabled={!form.projectId || !form.goal}>
-              Submit Briefing
+              Enviar Briefing
             </Button>
           </div>
         </div>

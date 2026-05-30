@@ -37,9 +37,9 @@ export default function DeliverablesPage() {
   return (
     <>
       <AgencyHeader
-        title="Deliverables"
-        subtitle={`${deliverables.length} deliverables across all projects`}
-        meta={<p className="text-[12px] text-[#9B9B95]">Click a status badge to advance it through the workflow</p>}
+        title="Entregas"
+        subtitle={`${deliverables.length} entrega${deliverables.length !== 1 ? "s" : ""} em todos os projetos`}
+        meta={<p className="text-[12px] text-[#9B9B95]">Clique no badge de status para avançar no fluxo</p>}
       />
 
       {/* Filters */}
@@ -47,7 +47,7 @@ export default function DeliverablesPage() {
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search deliverables..."
+          placeholder="Buscar entregas..."
           className="h-8 px-3 text-[13px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] placeholder:text-[#9B9B95] w-56"
         />
         <select
@@ -55,18 +55,18 @@ export default function DeliverablesPage() {
           onChange={(e) => setStatusFilter(e.target.value as DeliverableStatus | "all")}
           className="h-8 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] text-[#6B6B65]"
         >
-          <option value="all">All Statuses</option>
-          <option value="draft">Draft</option>
-          <option value="in_review">In Review</option>
-          <option value="approved">Approved</option>
-          <option value="delivered">Delivered</option>
+          <option value="all">Todos os status</option>
+          <option value="draft">Rascunho</option>
+          <option value="in_review">Em Revisão</option>
+          <option value="approved">Aprovado</option>
+          <option value="delivered">Entregue</option>
         </select>
         <select
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value)}
           className="h-8 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] text-[#6B6B65]"
         >
-          <option value="all">All Types</option>
+          <option value="all">Todos os tipos</option>
           {types.map((t) => <option key={t} value={t}>{t}</option>)}
         </select>
         <select
@@ -74,30 +74,30 @@ export default function DeliverablesPage() {
           onChange={(e) => setProjectFilter(e.target.value)}
           className="h-8 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] text-[#6B6B65]"
         >
-          <option value="all">All Projects</option>
+          <option value="all">Todos os projetos</option>
           {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
         {(statusFilter !== "all" || typeFilter !== "all" || projectFilter !== "all" || search) && (
           <button
             onClick={() => { setStatusFilter("all"); setTypeFilter("all"); setProjectFilter("all"); setSearch(""); }}
             className="h-8 px-3 text-[12px] text-[#6B6B65] hover:text-[#1A1A1A]"
-          >Clear</button>
+          >Limpar</button>
         )}
       </div>
 
       {filtered.length === 0 ? (
-        <EmptyState title="No deliverables found" description="Deliverables appear here as agents complete their tasks." />
+        <EmptyState title="Nenhuma entrega encontrada" description="As entregas aparecem aqui conforme os agentes concluem suas tarefas." />
       ) : (
         <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
           <table className="w-full">
             <thead>
               <tr className="border-b border-[#F0F0ED]">
-                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Deliverable</th>
-                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Project</th>
-                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Type</th>
-                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Version</th>
+                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Entrega</th>
+                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Projeto</th>
+                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Tipo</th>
+                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Versão</th>
                 <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Status</th>
-                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Date</th>
+                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Data</th>
               </tr>
             </thead>
             <tbody>
@@ -115,7 +115,7 @@ export default function DeliverablesPage() {
                       <button
                         onClick={() => updateDeliverableStatus(d.id, DELIVERABLE_CYCLE[d.status])}
                         className="cursor-pointer hover:opacity-80 transition-opacity"
-                        title="Click to advance status"
+                        title="Clique para avançar o status"
                       >
                         <Badge variant={d.status} />
                       </button>

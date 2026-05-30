@@ -78,39 +78,39 @@ function briefingToTasks(b: Briefing, ctx: AgentClientContext | null): Orchestra
   const tasks: OrchestratorPlan["tasks"] = [];
 
   tasks.push({
-    title: "Project briefing & context analysis",
+    title: "Briefing e análise de contexto do projeto",
     description: `Analyze client context, competitive landscape, and strategic opportunity for: ${b.objective || "defined objective"}. Target: ${audience}.${positioning}`,
     agentId: "a6", stage: "diagnosis", dueDate: offset(22),
   });
 
   if (b.services.includes("branding")) {
-    tasks.push({ title: "Brand audit & positioning", description: `Audit brand equity, map competitive landscape, and define positioning pillars.${positioning}`, agentId: "a6", stage: "diagnosis", dueDate: offset(19) });
-    tasks.push({ title: "Visual identity design", description: `Design logo, color palette, typography, and brand mark${brain?.visualStyle ? ` aligned with: ${brain.visualStyle}` : ""}.`, agentId: "a2", stage: "production", dueDate: offset(12) });
-    tasks.push({ title: "Brand voice & messaging", description: `Define tone of voice, key messages, and language guidelines${tone}.${products}`, agentId: "a1", stage: "production", dueDate: offset(9) });
-    tasks.push({ title: "Brand guidelines document", description: "Compile all elements into comprehensive brand guidelines.", agentId: "a7", stage: "review", dueDate: offset(5) });
+    tasks.push({ title: "Auditoria de marca e posicionamento", description: `Audit brand equity, map competitive landscape, and define positioning pillars.${positioning}`, agentId: "a6", stage: "diagnosis", dueDate: offset(19) });
+    tasks.push({ title: "Design de identidade visual", description: `Design logo, color palette, typography, and brand mark${brain?.visualStyle ? ` aligned with: ${brain.visualStyle}` : ""}.`, agentId: "a2", stage: "production", dueDate: offset(12) });
+    tasks.push({ title: "Tom de voz e mensagens da marca", description: `Define tone of voice, key messages, and language guidelines${tone}.${products}`, agentId: "a1", stage: "production", dueDate: offset(9) });
+    tasks.push({ title: "Documento de diretrizes da marca", description: "Compile all elements into comprehensive brand guidelines.", agentId: "a7", stage: "review", dueDate: offset(5) });
   }
 
   if (b.services.includes("seo")) {
-    tasks.push({ title: "SEO audit & keyword research", description: `Full technical SEO audit and priority keyword identification for ${audience}.`, agentId: "a8", stage: "diagnosis", dueDate: offset(20) });
-    tasks.push({ title: "Content strategy & briefs", description: `Map keywords to content opportunities and write content briefs${tone}.${products}`, agentId: "a8", stage: "planning", dueDate: offset(14) });
-    tasks.push({ title: "SEO content production", description: `Write SEO-optimized articles and landing page copy${tone}.`, agentId: "a1", stage: "production", dueDate: offset(7) });
+    tasks.push({ title: "Auditoria de SEO e pesquisa de palavras-chave", description: `Full technical SEO audit and priority keyword identification for ${audience}.`, agentId: "a8", stage: "diagnosis", dueDate: offset(20) });
+    tasks.push({ title: "Estratégia de conteúdo e briefings", description: `Map keywords to content opportunities and write content briefs${tone}.${products}`, agentId: "a8", stage: "planning", dueDate: offset(14) });
+    tasks.push({ title: "Produção de conteúdo para SEO", description: `Write SEO-optimized articles and landing page copy${tone}.`, agentId: "a1", stage: "production", dueDate: offset(7) });
   }
 
   if (b.services.includes("ads")) {
-    tasks.push({ title: "Paid media strategy & audience setup", description: `Define campaign structure, audience segments targeting ${audience}, bidding strategy, and ad placements across ${channelHint}.`, agentId: "a4", stage: "planning", dueDate: offset(16) });
-    tasks.push({ title: "Ad copy & creative assets", description: `Write all ad copy variants${tone} and design visual assets for all placements.${products}`, agentId: "a1", stage: "production", dueDate: offset(10) });
-    tasks.push({ title: "Campaign setup & launch", description: "Set up all ad accounts, tracking pixels, audiences, and launch campaigns.", agentId: "a4", stage: "production", dueDate: offset(6) });
+    tasks.push({ title: "Estratégia de mídia paga e configuração de audiência", description: `Define campaign structure, audience segments targeting ${audience}, bidding strategy, and ad placements across ${channelHint}.`, agentId: "a4", stage: "planning", dueDate: offset(16) });
+    tasks.push({ title: "Copy e ativos criativos dos anúncios", description: `Write all ad copy variants${tone} and design visual assets for all placements.${products}`, agentId: "a1", stage: "production", dueDate: offset(10) });
+    tasks.push({ title: "Configuração e lançamento da campanha", description: "Set up all ad accounts, tracking pixels, audiences, and launch campaigns.", agentId: "a4", stage: "production", dueDate: offset(6) });
   }
 
   if (b.services.includes("social_media")) {
-    tasks.push({ title: "Social media strategy & content calendar", description: `Define channel strategy for ${channelHint}, content themes for ${audience}, posting cadence, and 30-day content calendar.`, agentId: "a3", stage: "planning", dueDate: offset(17) });
-    tasks.push({ title: "Social media copy & captions", description: `Write all social posts, captions, hashtags, and story scripts${tone}.${products}`, agentId: "a1", stage: "production", dueDate: offset(10) });
-    tasks.push({ title: "Social media visual assets", description: `Design all visual content: feed posts, stories, cover images${brain?.visualStyle ? ` in ${brain.visualStyle} style` : ""}.`, agentId: "a2", stage: "production", dueDate: offset(7) });
+    tasks.push({ title: "Estratégia de redes sociais e calendário de conteúdo", description: `Define channel strategy for ${channelHint}, content themes for ${audience}, posting cadence, and 30-day content calendar.`, agentId: "a3", stage: "planning", dueDate: offset(17) });
+    tasks.push({ title: "Copy e legendas para redes sociais", description: `Write all social posts, captions, hashtags, and story scripts${tone}.${products}`, agentId: "a1", stage: "production", dueDate: offset(10) });
+    tasks.push({ title: "Ativos visuais para redes sociais", description: `Design all visual content: feed posts, stories, cover images${brain?.visualStyle ? ` in ${brain.visualStyle} style` : ""}.`, agentId: "a2", stage: "production", dueDate: offset(7) });
   }
 
   if (b.services.includes("content")) {
-    tasks.push({ title: "Content strategy", description: `Define content pillars, formats for ${audience}, distribution across ${channelHint}, and editorial calendar.`, agentId: "a5", stage: "planning", dueDate: offset(16) });
-    tasks.push({ title: "Content production", description: `Write all content pieces: articles, landing pages, emails, and product copy${tone}.${products}`, agentId: "a1", stage: "production", dueDate: offset(8) });
+    tasks.push({ title: "Estratégia de conteúdo", description: `Define content pillars, formats for ${audience}, distribution across ${channelHint}, and editorial calendar.`, agentId: "a5", stage: "planning", dueDate: offset(16) });
+    tasks.push({ title: "Produção de conteúdo", description: `Write all content pieces: articles, landing pages, emails, and product copy${tone}.${products}`, agentId: "a1", stage: "production", dueDate: offset(8) });
   }
 
   tasks.sort((a, c) => (a.dueDate < c.dueDate ? -1 : 1));
@@ -128,21 +128,21 @@ function briefingToPlan(b: Briefing, ctx: AgentClientContext | null): Orchestrat
 
   const risks: OrchestratorPlan["risks"] = [];
   if (b.services.includes("branding"))
-    risks.push({ level: "high", message: "Brand identity requires client approval at multiple stages — build in feedback time." });
+    risks.push({ level: "high", message: "Identidade de marca requer aprovação do cliente em várias etapas — reserve tempo para feedback." });
   if (b.services.includes("ads"))
-    risks.push({ level: "medium", message: "Ad performance depends on budget and audience quality — validate targeting assumptions early." });
+    risks.push({ level: "medium", message: "O desempenho dos anúncios depende do orçamento e da qualidade da audiência — valide as hipóteses de segmentação cedo." });
   if (b.services.includes("seo"))
-    risks.push({ level: "medium", message: "SEO results take 3–6 months to materialize — align client expectations upfront." });
+    risks.push({ level: "medium", message: "Resultados de SEO levam 3–6 meses para se concretizar — alinhe as expectativas do cliente desde o início." });
   if (!b.deadline)
-    risks.push({ level: "low", message: "No deadline set — consider adding one to ensure team prioritization." });
+    risks.push({ level: "low", message: "Nenhum prazo definido — considere adicionar um para garantir a priorização da equipe." });
 
   // Brand Brain–specific risks
   if (ctx && ctx.brandBrainReadiness < 5)
-    risks.push({ level: "medium", message: `Brand Brain is only ${ctx.brandBrainReadiness}/10 complete for ${ctx.clientName} — agent outputs may lack brand specificity. Complete it in the client workspace.` });
+    risks.push({ level: "medium", message: `Brand Brain está apenas ${ctx.brandBrainReadiness}/10 completo para ${ctx.clientName} — os resultados dos agentes podem carecer de especificidade de marca. Complete no workspace do cliente.` });
   if (ctx?.brandBrain?.thingsToAvoid)
-    risks.push({ level: "low", message: `Brand restriction: "${ctx.brandBrain.thingsToAvoid}" — ensure all creative assets comply before delivery.` });
+    risks.push({ level: "low", message: `Restrição de marca: "${ctx.brandBrain.thingsToAvoid}" — garanta que todos os ativos criativos estejam em conformidade antes da entrega.` });
   if (ctx?.brandBrain?.brandRules)
-    risks.push({ level: "low", message: `Brand rule validation required: "${ctx.brandBrain.brandRules}" — include QA checklist before client delivery.` });
+    risks.push({ level: "low", message: `Validação de regra de marca necessária: "${ctx.brandBrain.brandRules}" — inclua checklist de QA antes da entrega ao cliente.` });
 
   return { pipeline, agents, tasks, risks };
 }
@@ -286,7 +286,7 @@ function briefingToProjectType(b: Briefing): string {
 // ─── Shared BriefingPreview component ────────────────────────────────────────
 
 const SERVICE_LABELS: Record<string, string> = {
-  social_media: "Social Media", ads: "Ads", seo: "SEO", branding: "Branding", content: "Content",
+  social_media: "Redes Sociais", ads: "Anúncios", seo: "SEO", branding: "Branding", content: "Conteúdo",
 };
 
 function BriefingPreview({ briefing, subtitle }: { briefing: Briefing; subtitle: string }) {
@@ -298,7 +298,7 @@ function BriefingPreview({ briefing, subtitle }: { briefing: Briefing; subtitle:
       <div className="flex-1 min-w-0">
         {detected
           ? <p className="text-[13px] text-[#1A1A1A] leading-snug">{value}</p>
-          : <p className="text-[12px] text-[#C0C0BC] italic">Not detected</p>
+          : <p className="text-[12px] text-[#C0C0BC] italic">Não detectado</p>
         }
       </div>
       <span className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
@@ -312,14 +312,14 @@ function BriefingPreview({ briefing, subtitle }: { briefing: Briefing; subtitle:
   return (
     <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
       <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F0ED] bg-[#FAFAF9]">
-        <span className="text-[12px] font-semibold text-[#1A1A1A] uppercase tracking-[0.05em]">Parsed Brief Preview</span>
+        <span className="text-[12px] font-semibold text-[#1A1A1A] uppercase tracking-[0.05em]">Prévia do Briefing Analisado</span>
         <span className="text-[11px] text-[#9B9B95]">{subtitle}</span>
       </div>
       <div className="px-5">
         {/* Services */}
         <div className="flex items-start gap-3 py-3 border-b border-[#F7F7F6]">
           <div className="w-[130px] shrink-0 pt-0.5">
-            <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Services</span>
+            <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Serviços</span>
           </div>
           <div className="flex-1 flex flex-wrap gap-1.5">
             {briefing.services.length > 0
@@ -328,32 +328,32 @@ function BriefingPreview({ briefing, subtitle }: { briefing: Briefing; subtitle:
                     {SERVICE_LABELS[s] ?? s}
                   </span>
                 ))
-              : <span className="text-[12px] text-[#C0C0BC] italic">Not detected</span>
+              : <span className="text-[12px] text-[#C0C0BC] italic">Não detectado</span>
             }
           </div>
           <span className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
             briefing.services.length > 0 ? "bg-[#DCFCE7] text-[#16A34A]" : "bg-[#F0F0ED] text-[#9B9B95]"
           }`}>{briefing.services.length > 0 ? "✓" : "—"}</span>
         </div>
-        <Row label="Objective"   value={briefing.objective}           detected={!!briefing.objective} />
-        <Row label="Audience"    value={briefing.targetAudience}      detected={!!briefing.targetAudience} />
+        <Row label="Objetivo"   value={briefing.objective}           detected={!!briefing.objective} />
+        <Row label="Audiência"    value={briefing.targetAudience}      detected={!!briefing.targetAudience} />
         {/* Channels */}
         <div className="flex items-start gap-3 py-3 border-b border-[#F7F7F6]">
           <div className="w-[130px] shrink-0 pt-0.5">
-            <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Channels</span>
+            <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Canais</span>
           </div>
           <div className="flex-1 min-w-0">
             {briefing.channels.length > 0
               ? <p className="text-[13px] text-[#1A1A1A]">{briefing.channels.join(" · ")}</p>
-              : <p className="text-[12px] text-[#C0C0BC] italic">Not detected</p>
+              : <p className="text-[12px] text-[#C0C0BC] italic">Não detectado</p>
             }
           </div>
           <span className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
             briefing.channels.length > 0 ? "bg-[#DCFCE7] text-[#16A34A]" : "bg-[#F0F0ED] text-[#9B9B95]"
           }`}>{briefing.channels.length > 0 ? "✓" : "—"}</span>
         </div>
-        <Row label="Deadline"    value={briefing.deadline}            detected={!!briefing.deadline} />
-        <Row label="Description" value={briefing.businessDescription} detected={!!briefing.businessDescription} />
+        <Row label="Prazo"    value={briefing.deadline}            detected={!!briefing.deadline} />
+        <Row label="Descrição" value={briefing.businessDescription} detected={!!briefing.businessDescription} />
       </div>
     </div>
   );
@@ -369,18 +369,18 @@ function BrandBrainContextCard({ ctx }: { ctx: AgentClientContext }) {
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-1.5">
           <span className={`text-[11px] font-bold ${incomplete ? "text-[#D97706]" : "text-[#16A34A]"}`}>{incomplete ? "⚠" : "●"}</span>
-          <span className="text-[11px] font-semibold text-[#1A1A1A]">{incomplete ? "Brand Brain incomplete" : "Brand Brain loaded"}</span>
+          <span className="text-[11px] font-semibold text-[#1A1A1A]">{incomplete ? "Brand Brain incompleto" : "Brand Brain carregado"}</span>
           <span className="text-[10px] text-[#9B9B95]">· {ctx.clientName}</span>
         </div>
         <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${ready === 10 ? "bg-[#DCFCE7] text-[#16A34A]" : ready >= 5 ? "bg-[#FEF3C7] text-[#D97706]" : "bg-[#F0F0ED] text-[#9B9B95]"}`}>{ready}/10</span>
       </div>
       {incomplete ? (
-        <p className="text-[11px] text-[#D97706] leading-snug">Plans and proposals will use generic signals. Complete Brand Brain in the client workspace for fully brand-specific outputs.</p>
+        <p className="text-[11px] text-[#D97706] leading-snug">Planos e propostas usarão sinais genéricos. Complete o Brand Brain no workspace do cliente para resultados totalmente específicos da marca.</p>
       ) : (
         <div className="space-y-1 mt-1">
-          {ctx.brandBrain?.toneOfVoice    && <div className="flex gap-2"><span className="text-[10px] text-[#9B9B95] w-16 shrink-0">Tone</span><span className="text-[11px] text-[#1A1A1A] truncate">{ctx.brandBrain.toneOfVoice}</span></div>}
-          {ctx.brandBrain?.targetAudience && <div className="flex gap-2"><span className="text-[10px] text-[#9B9B95] w-16 shrink-0">Audience</span><span className="text-[11px] text-[#1A1A1A] truncate">{ctx.brandBrain.targetAudience}</span></div>}
-          {ctx.brandBrain?.positioning    && <div className="flex gap-2"><span className="text-[10px] text-[#9B9B95] w-16 shrink-0">Positioning</span><span className="text-[11px] text-[#1A1A1A] truncate">{ctx.brandBrain.positioning}</span></div>}
+          {ctx.brandBrain?.toneOfVoice    && <div className="flex gap-2"><span className="text-[10px] text-[#9B9B95] w-16 shrink-0">Tom</span><span className="text-[11px] text-[#1A1A1A] truncate">{ctx.brandBrain.toneOfVoice}</span></div>}
+          {ctx.brandBrain?.targetAudience && <div className="flex gap-2"><span className="text-[10px] text-[#9B9B95] w-16 shrink-0">Audiência</span><span className="text-[11px] text-[#1A1A1A] truncate">{ctx.brandBrain.targetAudience}</span></div>}
+          {ctx.brandBrain?.positioning    && <div className="flex gap-2"><span className="text-[10px] text-[#9B9B95] w-16 shrink-0">Posicionamento</span><span className="text-[11px] text-[#1A1A1A] truncate">{ctx.brandBrain.positioning}</span></div>}
         </div>
       )}
     </div>
@@ -454,11 +454,11 @@ export default function OrchestratorPage() {
   }, [state, createdProjectId, router]);
 
   const SERVICE_OPTIONS = [
-    { id: "social_media", label: "Social Media" },
-    { id: "ads",          label: "Ads" },
+    { id: "social_media", label: "Redes Sociais" },
+    { id: "ads",          label: "Anúncios" },
     { id: "seo",          label: "SEO" },
     { id: "branding",     label: "Branding" },
-    { id: "content",      label: "Content" },
+    { id: "content",      label: "Conteúdo" },
   ];
 
   // Structured form helpers — write to briefing state
@@ -576,7 +576,7 @@ export default function OrchestratorPage() {
   };
 
 
-  const STEP_LABELS = ["Receive Brief", "Analyze Context", "Generate Pipeline", "Assign Agents", "Activate"];
+  const STEP_LABELS = ["Receber Briefing", "Analisar Contexto", "Gerar Pipeline", "Atribuir Agentes", "Ativar"];
   const STEP_STATES = { idle: -1, reviewing: 0, analyzing: 1, ready: 3, approved: 4 };
   const activeStep = STEP_STATES[state];
 
@@ -584,7 +584,7 @@ export default function OrchestratorPage() {
     <>
       <AgencyHeader
         title="Orchestrator"
-        subtitle={intakePhase === "intake" ? "Step 1 of 2 — Capture and validate client context before generating an execution plan." : "Step 2 of 2 — Review the execution plan and approve it to create the project."}
+        subtitle={intakePhase === "intake" ? "Passo 1 de 2 — Capture e valide o contexto do cliente antes de gerar o plano de execução." : "Passo 2 de 2 — Revise o plano de execução e aprove para criar o projeto."}
       />
 
       {/* ── INTAKE PHASE ────────────────────────────────────────────────────── */}
@@ -605,13 +605,13 @@ export default function OrchestratorPage() {
               <path d="M1 3.5l2 2 4-4" stroke="white" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </span>
-          <span className="text-[12px] font-medium text-[#15803D]">Intake complete — brief pre-filled from your intake session.</span>
+          <span className="text-[12px] font-medium text-[#15803D]">Intake concluído — briefing pré-preenchido da sua sessão de intake.</span>
         </div>
         <button
           onClick={() => { setIntakePhase("intake"); setState("idle"); setPlan(null); setBriefing(EMPTY_BRIEFING); }}
           className="text-[11px] text-[#15803D] hover:text-[#166534] font-medium transition-colors"
         >
-          ← Revise Intake
+          ← Revisar Intake
         </button>
       </div>
 
@@ -646,15 +646,15 @@ export default function OrchestratorPage() {
               <path d="M2 9l6 6L20 2" stroke="#16A34A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <h2 className="text-[18px] font-semibold text-[#1A1A1A] mb-2">Execution plan approved</h2>
-          <p className="text-[14px] text-[#6B6B65] mb-8">The project has been created and is now active in your pipeline.</p>
+          <h2 className="text-[18px] font-semibold text-[#1A1A1A] mb-2">Plano de execução aprovado</h2>
+          <p className="text-[14px] text-[#6B6B65] mb-8">O projeto foi criado e está ativo no seu pipeline.</p>
           <div className="flex items-center justify-center gap-3">
             {createdProjectId && (
               <Link href={`/agency/projects/${createdProjectId}`}>
-                <Button variant="primary">View Project</Button>
+                <Button variant="primary">Ver Projeto</Button>
               </Link>
             )}
-            <Button variant="secondary" onClick={handleReset}>Start New Brief</Button>
+            <Button variant="secondary" onClick={handleReset}>Iniciar Novo Briefing</Button>
           </div>
         </div>
       ) : (
@@ -665,9 +665,9 @@ export default function OrchestratorPage() {
             {/* Mode switcher */}
             <div className="flex border-b border-[#F0F0ED]">
               {([
-                { id: "form",  label: "Structured Form", icon: "⊞" },
-                { id: "voice", label: "Voice Description", icon: "◎" },
-                { id: "audio", label: "Audio Upload",     icon: "♪" },
+                { id: "form",  label: "Formulário Estruturado", icon: "⊞" },
+                { id: "voice", label: "Descrição por Voz", icon: "◎" },
+                { id: "audio", label: "Upload de Áudio",     icon: "♪" },
               ] as { id: InputMode; label: string; icon: string }[]).map((m) => (
                 <button
                   key={m.id}
@@ -693,7 +693,7 @@ export default function OrchestratorPage() {
 
                 {/* Client */}
                 <div>
-                  <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Client *</label>
+                  <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Cliente *</label>
                   <select
                     value={briefing.clientId}
                     onChange={(e) => {
@@ -712,7 +712,7 @@ export default function OrchestratorPage() {
                     disabled={state !== "idle"}
                     className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
                   >
-                    <option value="">Select client...</option>
+                    <option value="">Selecionar cliente</option>
                     {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
@@ -725,9 +725,9 @@ export default function OrchestratorPage() {
                 {/* Services multi-select */}
                 <div>
                   <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">
-                    Services *
+                    Serviços *
                     {briefing.services.length > 0 && (
-                      <span className="ml-1.5 text-[11px] font-normal text-[#9B9B95]">({briefing.services.length} selected)</span>
+                      <span className="ml-1.5 text-[11px] font-normal text-[#9B9B95]">({briefing.services.length} selecionados)</span>
                     )}
                   </label>
                   <div className="flex flex-wrap gap-2">
@@ -754,12 +754,12 @@ export default function OrchestratorPage() {
 
                 {/* Business description */}
                 <div>
-                  <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Business Description</label>
+                  <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Descrição do Negócio</label>
                   <textarea
                     value={briefing.businessDescription}
                     onChange={(e) => setBriefingField("businessDescription", e.target.value)}
                     disabled={state !== "idle"}
-                    placeholder="What does the client do? Their industry, product, or service."
+                    placeholder="O que o cliente faz? Setor, produto ou serviço."
                     rows={2}
                     className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50 resize-none"
                   />
@@ -767,12 +767,12 @@ export default function OrchestratorPage() {
 
                 {/* Objective */}
                 <div>
-                  <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Objective *</label>
+                  <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Objetivo *</label>
                   <textarea
                     value={briefing.objective}
                     onChange={(e) => setBriefingField("objective", e.target.value)}
                     disabled={state !== "idle"}
-                    placeholder="What is the measurable goal? e.g. increase brand awareness, generate 200 leads."
+                    placeholder="Qual é a meta mensurável? ex.: aumentar o reconhecimento de marca, gerar 200 leads."
                     rows={2}
                     className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50 resize-none"
                   />
@@ -780,24 +780,24 @@ export default function OrchestratorPage() {
 
                 {/* Target audience */}
                 <div>
-                  <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Target Audience</label>
+                  <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Público-alvo</label>
                   <input
                     value={briefing.targetAudience}
                     onChange={(e) => setBriefingField("targetAudience", e.target.value)}
                     disabled={state !== "idle"}
-                    placeholder="e.g. Design professionals, 25–40, urban Brazil"
+                    placeholder="ex.: Profissionais de design, 25–40, Brasil urbano"
                     className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
                   />
                 </div>
 
                 {/* Channels */}
                 <div>
-                  <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Channels</label>
+                  <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Canais</label>
                   <input
                     value={briefing.channels.join(", ")}
                     onChange={(e) => setBriefingField("channels", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))}
                     disabled={state !== "idle"}
-                    placeholder="e.g. Instagram, LinkedIn, Google Ads"
+                    placeholder="ex.: Instagram, LinkedIn, Google Ads"
                     className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
                   />
                 </div>
@@ -805,7 +805,7 @@ export default function OrchestratorPage() {
                 {/* Deadline + Priority */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Deadline <span className="font-normal text-[#9B9B95]">(optional)</span></label>
+                    <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Prazo <span className="font-normal text-[#9B9B95]">(opcional)</span></label>
                     <input
                       type="date"
                       value={briefing.deadline}
@@ -815,28 +815,28 @@ export default function OrchestratorPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Priority</label>
+                    <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Prioridade</label>
                     <select
                       value={form.priority}
                       onChange={(e) => setForm((prev) => ({ ...prev, priority: e.target.value as Priority }))}
                       disabled={state !== "idle"}
                       className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
                     >
-                      <option value="high">High</option>
-                      <option value="medium">Medium</option>
-                      <option value="low">Low</option>
+                      <option value="high">Alta</option>
+                      <option value="medium">Média</option>
+                      <option value="low">Baixa</option>
                     </select>
                   </div>
                 </div>
 
                 {/* Notes */}
                 <div>
-                  <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Notes</label>
+                  <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Observações</label>
                   <textarea
                     value={briefing.notes}
                     onChange={(e) => setBriefingField("notes", e.target.value)}
                     disabled={state !== "idle"}
-                    placeholder="Constraints, references, budget, context…"
+                    placeholder="Restrições, referências, orçamento, contexto…"
                     rows={2}
                     className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50 resize-none"
                   />
@@ -850,12 +850,12 @@ export default function OrchestratorPage() {
                     onClick={() => handleGenerate(briefing)}
                     disabled={!briefing.clientId || !briefing.objective || briefing.services.length === 0}
                   >
-                    Run Orchestrator
+                    Executar Orquestrador
                   </Button>
                 )}
                 {state !== "idle" && (
                   <Button variant="ghost" size="sm" onClick={handleReset} className="w-full">
-                    Reset
+                    Reiniciar
                   </Button>
                 )}
               </div>
@@ -866,31 +866,31 @@ export default function OrchestratorPage() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">
-                    Describe the project in your own words
+                    Descreva o projeto com suas próprias palavras
                   </label>
                   <textarea
                     value={voiceText}
                     onChange={(e) => setVoiceText(e.target.value)}
                     disabled={state !== "idle"}
-                    placeholder={"e.g. \"We need a social media campaign for Nova Studio launching next month. The goal is to drive awareness among design-forward audiences on Instagram and LinkedIn. Deadline is end of April.\""}
+                    placeholder={"ex.: \"Precisamos de uma campanha de redes sociais para a Nova Studio com lançamento no próximo mês. O objetivo é gerar reconhecimento entre públicos de design no Instagram e LinkedIn. Prazo: final de abril.\""}
                     rows={10}
                     className="w-full px-3 py-2.5 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50 resize-none leading-relaxed"
                   />
                   {voiceText.trim() && (
                     <p className="text-[11px] text-[#9B9B95] mt-1">
-                      Preview updates live →
+                      Prévia atualiza em tempo real →
                     </p>
                   )}
                 </div>
                 <div>
-                  <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Client *</label>
+                  <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Cliente *</label>
                   <select
                     value={form.clientId}
                     onChange={(e) => setForm((p) => ({ ...p, clientId: e.target.value }))}
                     disabled={state !== "idle"}
                     className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
                   >
-                    <option value="">Select client...</option>
+                    <option value="">Selecionar cliente</option>
                     {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
@@ -905,11 +905,11 @@ export default function OrchestratorPage() {
                       handleParsed({ ...b, objective: b.objective || voiceText.slice(0, 200) });
                     }}
                   >
-                    Parse Brief
+                    Analisar Briefing
                   </Button>
                 )}
                 {state !== "idle" && (
-                  <Button variant="ghost" size="sm" onClick={handleReset} className="w-full">Reset</Button>
+                  <Button variant="ghost" size="sm" onClick={handleReset} className="w-full">Reiniciar</Button>
                 )}
               </div>
             )}
@@ -936,14 +936,14 @@ export default function OrchestratorPage() {
                       ))}
                     </div>
                     <div className="text-center">
-                      <p className="text-[13px] font-semibold text-[#EF4444]">Recording…</p>
+                      <p className="text-[13px] font-semibold text-[#EF4444]">Gravando…</p>
                       <p className="text-[12px] text-[#9B9B95] mt-0.5 tabular-nums">{formatTimer(recordingSeconds)}</p>
                     </div>
                     <button
                       onClick={handleStopRecording}
                       className="h-8 px-5 rounded-[7px] bg-[#EF4444] hover:bg-[#DC2626] text-white text-[12px] font-semibold transition-colors"
                     >
-                      Stop Recording
+                      Parar Gravação
                     </button>
                   </div>
                 )}
@@ -976,7 +976,7 @@ export default function OrchestratorPage() {
                           <p className="text-[13px] font-medium text-[#5B5BD6]">{audioFile.name}</p>
                           <p className="text-[11px] text-[#9B9B95] mt-0.5">
                             {(audioFile.size / 1024).toFixed(0)} KB ·{" "}
-                            {audioTranscribeState === "transcribing" ? "Transcribing…" : "Ready to transcribe"}
+                            {audioTranscribeState === "transcribing" ? "Transcrevendo…" : "Pronto para transcrever"}
                           </p>
                         </div>
                       </>
@@ -989,8 +989,8 @@ export default function OrchestratorPage() {
                           </svg>
                         </div>
                         <div className="text-center">
-                          <p className="text-[13px] font-medium text-[#1A1A1A]">Drop audio file here</p>
-                          <p className="text-[11px] text-[#9B9B95] mt-0.5">MP3, M4A, WAV, OGG supported</p>
+                          <p className="text-[13px] font-medium text-[#1A1A1A]">Solte o arquivo de áudio aqui</p>
+                          <p className="text-[11px] text-[#9B9B95] mt-0.5">MP3, M4A, WAV, OGG suportados</p>
                         </div>
                       </>
                     )}
@@ -1002,7 +1002,7 @@ export default function OrchestratorPage() {
                   <>
                     <div className="flex items-center gap-3">
                       <div className="flex-1 h-[1px] bg-[#F0F0ED]" />
-                      <span className="text-[11px] text-[#C0C0BC]">or</span>
+                      <span className="text-[11px] text-[#C0C0BC]">ou</span>
                       <div className="flex-1 h-[1px] bg-[#F0F0ED]" />
                     </div>
                     <button
@@ -1010,7 +1010,7 @@ export default function OrchestratorPage() {
                       className="w-full h-10 flex items-center justify-center gap-2.5 rounded-[8px] border border-[#E5E5E2] bg-white hover:border-[#EF4444] hover:bg-[#FEF2F2] text-[#6B6B65] hover:text-[#EF4444] text-[13px] font-medium transition-all group"
                     >
                       <span className="w-2 h-2 rounded-full bg-[#EF4444] group-hover:animate-pulse" />
-                      Record Audio
+                      Gravar Áudio
                     </button>
                   </>
                 )}
@@ -1018,7 +1018,7 @@ export default function OrchestratorPage() {
                 {/* ── Transcribe button (upload path) ── */}
                 {audioFile && audioTranscribeState === "idle" && recordingState === "idle" && (
                   <Button variant="secondary" size="lg" className="w-full" onClick={handleAudioTranscribe}>
-                    Transcribe Audio
+                    Transcrever Áudio
                   </Button>
                 )}
 
@@ -1030,7 +1030,7 @@ export default function OrchestratorPage() {
                         <span key={i} className="w-1 h-4 bg-[#5B5BD6] rounded-full animate-pulse" style={{ animationDelay: `${i * 150}ms` }} />
                       ))}
                     </div>
-                    <p className="text-[12px] font-medium text-[#5B5BD6]">Transcribing audio…</p>
+                    <p className="text-[12px] font-medium text-[#5B5BD6]">Transcrevendo áudio…</p>
                   </div>
                 )}
 
@@ -1044,7 +1044,7 @@ export default function OrchestratorPage() {
                             <path d="M1 3.5l2 2 4-4" stroke="#16A34A" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
                           </svg>
                         </span>
-                        <span className="text-[12px] font-medium text-[#1A1A1A]">Transcription complete</span>
+                        <span className="text-[12px] font-medium text-[#1A1A1A]">Transcrição concluída</span>
                       </div>
                       <button
                         className="text-[11px] text-[#9B9B95] hover:text-[#6B6B65] transition-colors"
@@ -1053,7 +1053,7 @@ export default function OrchestratorPage() {
                           setRecordingState("idle"); setRecordingSeconds(0);
                         }}
                       >
-                        Remove
+                        Remover
                       </button>
                     </div>
                     <div className="bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] px-3 py-2.5">
@@ -1066,14 +1066,14 @@ export default function OrchestratorPage() {
                 {audioTranscribeState === "done" && (
                   <>
                     <div>
-                      <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Client *</label>
+                      <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Cliente *</label>
                       <select
                         value={form.clientId}
                         onChange={(e) => setForm((p) => ({ ...p, clientId: e.target.value }))}
                         disabled={state !== "idle"}
                         className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
                       >
-                        <option value="">Select client...</option>
+                        <option value="">Selecionar cliente</option>
                         {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                       </select>
                     </div>
@@ -1087,13 +1087,13 @@ export default function OrchestratorPage() {
                         handleParsed({ ...b, objective: b.objective || audioTranscript.slice(0, 200) });
                       }}
                     >
-                      Review Briefing
+                      Revisar Briefing
                     </Button>
                   </>
                 )}
 
                 {state !== "idle" && (
-                  <Button variant="ghost" size="sm" onClick={handleReset} className="w-full">Reset</Button>
+                  <Button variant="ghost" size="sm" onClick={handleReset} className="w-full">Reiniciar</Button>
                 )}
               </div>
             )}
@@ -1114,7 +1114,7 @@ export default function OrchestratorPage() {
                 return (
                   <BriefingPreview
                     briefing={parseTextToBriefing(previewText, "")}
-                    subtitle={inputMode === "voice" ? "Updates as you type" : "Parsed from transcript"}
+                    subtitle={inputMode === "voice" ? "Atualiza enquanto você digita" : "Analisado a partir da transcrição"}
                   />
                 );
               }
@@ -1129,13 +1129,13 @@ export default function OrchestratorPage() {
                       <rect x="12" y="12" width="5" height="5" rx="1" stroke="#9B9B95" strokeWidth="1.3"/>
                     </svg>
                   </div>
-                  <p className="text-[14px] font-medium text-[#1A1A1A]">Awaiting brief input</p>
+                  <p className="text-[14px] font-medium text-[#1A1A1A]">Aguardando entrada do briefing</p>
                   <p className="text-[13px] text-[#9B9B95] mt-1.5 max-w-xs mx-auto">
                     {inputMode === "voice"
-                      ? "Start typing your project description — a parsed preview will appear here."
+                      ? "Comece a digitar a descrição do projeto — uma prévia analisada aparecerá aqui."
                       : inputMode === "audio"
-                      ? "Upload and transcribe an audio brief — the parsed preview will appear here."
-                      : "Fill in the client, goal, and deadline — then run the Orchestrator to generate an execution plan."}
+                      ? "Faça o upload e transcreva um briefing em áudio — a prévia analisada aparecerá aqui."
+                      : "Preencha o cliente, objetivo e prazo — depois execute o Orquestrador para gerar o plano de execução."}
                   </p>
                 </div>
               );
@@ -1144,19 +1144,19 @@ export default function OrchestratorPage() {
             {state === "reviewing" && (
               <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
                 <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F0ED] bg-[#FAFAF9]">
-                  <span className="text-[12px] font-semibold text-[#1A1A1A] uppercase tracking-[0.05em]">Parsed Briefing</span>
-                  <span className="text-[11px] text-[#9B9B95]">Review and adjust before generating</span>
+                  <span className="text-[12px] font-semibold text-[#1A1A1A] uppercase tracking-[0.05em]">Briefing Analisado</span>
+                  <span className="text-[11px] text-[#9B9B95]">Revise e ajuste antes de gerar</span>
                 </div>
 
                 {/* ── Briefing quality indicator ── */}
                 {(() => {
                   const fields: Array<{ label: string; points: number; filled: boolean }> = [
-                    { label: "Objective",       points: 20, filled: briefing.objective.trim().length >= 15 },
-                    { label: "Target audience", points: 20, filled: !!briefing.targetAudience.trim() },
-                    { label: "Services",        points: 20, filled: briefing.services.length > 0 },
-                    { label: "Channels",        points: 15, filled: briefing.channels.length > 0 },
-                    { label: "Notes",           points: 15, filled: !!briefing.notes.trim() },
-                    { label: "Deadline",        points: 10, filled: !!briefing.deadline },
+                    { label: "Objetivo",         points: 20, filled: briefing.objective.trim().length >= 15 },
+                    { label: "Público-alvo",     points: 20, filled: !!briefing.targetAudience.trim() },
+                    { label: "Serviços",         points: 20, filled: briefing.services.length > 0 },
+                    { label: "Canais",           points: 15, filled: briefing.channels.length > 0 },
+                    { label: "Observações",      points: 15, filled: !!briefing.notes.trim() },
+                    { label: "Prazo",            points: 10, filled: !!briefing.deadline },
                   ];
                   const score = fields.filter((f) => f.filled).reduce((s, f) => s + f.points, 0);
                   const color =
@@ -1170,7 +1170,7 @@ export default function OrchestratorPage() {
                     <div className="px-5 py-3.5 border-b border-[#F0F0ED] bg-[#FAFAF9] space-y-2.5">
                       {/* Score row */}
                       <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Briefing Quality</span>
+                        <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Qualidade do Briefing</span>
                         <span className={`text-[12px] font-bold tabular-nums ${color.text}`}>{score}%</span>
                       </div>
                       {/* Progress bar */}
@@ -1202,9 +1202,9 @@ export default function OrchestratorPage() {
                   {/* Services */}
                   <div>
                     <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">
-                      Services
+                      Serviços
                       {briefing.services.length > 0 && (
-                        <span className="ml-1.5 text-[11px] font-normal text-[#9B9B95]">({briefing.services.length} selected)</span>
+                        <span className="ml-1.5 text-[11px] font-normal text-[#9B9B95]">({briefing.services.length} selecionados)</span>
                       )}
                     </label>
                     <div className="flex flex-wrap gap-2">
@@ -1230,7 +1230,7 @@ export default function OrchestratorPage() {
 
                   {/* Objective */}
                   <div>
-                    <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Objective</label>
+                    <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Objetivo</label>
                     <textarea
                       value={briefing.objective}
                       onChange={(e) => setBriefingField("objective", e.target.value)}
@@ -1241,7 +1241,7 @@ export default function OrchestratorPage() {
 
                   {/* Business description */}
                   <div>
-                    <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Business Description</label>
+                    <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Descrição do Negócio</label>
                     <textarea
                       value={briefing.businessDescription}
                       onChange={(e) => setBriefingField("businessDescription", e.target.value)}
@@ -1252,7 +1252,7 @@ export default function OrchestratorPage() {
 
                   {/* Target audience */}
                   <div>
-                    <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Target Audience</label>
+                    <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Público-alvo</label>
                     <input
                       value={briefing.targetAudience}
                       onChange={(e) => setBriefingField("targetAudience", e.target.value)}
@@ -1263,16 +1263,16 @@ export default function OrchestratorPage() {
                   {/* Channels + Deadline */}
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Channels</label>
+                      <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Canais</label>
                       <input
                         value={briefing.channels.join(", ")}
                         onChange={(e) => setBriefingField("channels", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))}
-                        placeholder="e.g. Instagram, LinkedIn"
+                        placeholder="ex.: Instagram, LinkedIn"
                         className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
                       />
                     </div>
                     <div>
-                      <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Deadline</label>
+                      <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Prazo</label>
                       <input
                         type="date"
                         value={briefing.deadline}
@@ -1284,12 +1284,12 @@ export default function OrchestratorPage() {
 
                   {/* Notes */}
                   <div>
-                    <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Notes</label>
+                    <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Observações</label>
                     <textarea
                       value={briefing.notes}
                       onChange={(e) => setBriefingField("notes", e.target.value)}
                       rows={2}
-                      placeholder="Constraints, references, budget, context…"
+                      placeholder="Restrições, referências, orçamento, contexto…"
                       className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white resize-none"
                     />
                   </div>
@@ -1303,25 +1303,25 @@ export default function OrchestratorPage() {
                     };
                     const questions: SuggestedQuestion[] = [];
                     if (!briefing.objective || briefing.objective.trim().length < 15)
-                      questions.push({ field: "objective",      question: "What is the main goal of this project?",      placeholder: "e.g. Grow our Instagram following, generate 200 qualified leads, launch the new collection." });
+                      questions.push({ field: "objective",      question: "Qual é o principal objetivo deste projeto?",      placeholder: "ex.: Crescer nosso Instagram, gerar 200 leads qualificados, lançar a nova coleção." });
                     if (!briefing.targetAudience)
-                      questions.push({ field: "targetAudience", question: "Who is the target audience?",                 placeholder: "e.g. Urban professionals 25–40, health-conscious millennials, HR directors at mid-size companies" });
+                      questions.push({ field: "targetAudience", question: "Quem é o público-alvo?",                 placeholder: "ex.: Profissionais urbanos 25–40, millennials conscientes de saúde, diretores de RH em médias empresas" });
                     if (briefing.channels.length === 0)
-                      questions.push({ field: "channels",       question: "Which channels will this run on?",            placeholder: "e.g. Instagram, LinkedIn, Google Ads" });
+                      questions.push({ field: "channels",       question: "Em quais canais isso será veiculado?",            placeholder: "ex.: Instagram, LinkedIn, Google Ads" });
                     if (!briefing.deadline)
-                      questions.push({ field: "deadline",       question: "Is there a target deadline?",                placeholder: "" });
+                      questions.push({ field: "deadline",       question: "Existe um prazo-alvo?",                placeholder: "" });
 
                     if (questions.length === 0) return null;
 
                     return (
                       <div className="border-t border-[#F0F0ED] pt-4 space-y-3.5">
                         <div className="flex items-center gap-2">
-                          <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Refine your briefing</span>
+                          <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Refine seu briefing</span>
                           <span className="w-[18px] h-[18px] rounded-full bg-[#FEF3C7] text-[#D97706] text-[10px] font-bold flex items-center justify-center shrink-0">
                             {questions.length}
                           </span>
                         </div>
-                        <p className="text-[11px] text-[#9B9B95] -mt-1">These fields are missing or incomplete — answers update the form above.</p>
+                        <p className="text-[11px] text-[#9B9B95] -mt-1">Esses campos estão ausentes ou incompletos — as respostas atualizam o formulário acima.</p>
                         {questions.map((q) => (
                           <div key={q.field}>
                             <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">{q.question}</label>
@@ -1364,14 +1364,14 @@ export default function OrchestratorPage() {
                   {/* Actions */}
                   <div className="flex gap-2 pt-1">
                     <Button variant="ghost" size="sm" onClick={handleReset} className="shrink-0">
-                      Back
+                      Voltar
                     </Button>
                     <button
                       onClick={() => handleGenerate(briefing)}
                       disabled={!briefing.clientId || !briefing.objective || briefing.services.length === 0}
                       className="flex-1 h-9 bg-[#1A1A1A] hover:bg-[#111111] disabled:opacity-40 text-white text-[13px] font-semibold rounded-[8px] transition-colors"
                     >
-                      Generate Plan
+                      Gerar Plano
                     </button>
                   </div>
 
@@ -1386,8 +1386,8 @@ export default function OrchestratorPage() {
                     <path d="M9 2v3M9 13v3M2 9h3M13 9h3M4.05 4.05l2.12 2.12M11.83 11.83l2.12 2.12M4.05 13.95l2.12-2.12M11.83 6.17l2.12-2.12" stroke="#5B5BD6" strokeWidth="1.5" strokeLinecap="round"/>
                   </svg>
                 </div>
-                <p className="text-[14px] font-medium text-[#1A1A1A]">Analyzing brief...</p>
-                <p className="text-[13px] text-[#9B9B95] mt-1.5">Mapping goal to pipeline, selecting agents, sequencing tasks.</p>
+                <p className="text-[14px] font-medium text-[#1A1A1A]">Analisando briefing...</p>
+                <p className="text-[13px] text-[#9B9B95] mt-1.5">Mapeando objetivo ao pipeline, selecionando agentes e sequenciando tarefas.</p>
               </div>
             )}
 
@@ -1398,7 +1398,7 @@ export default function OrchestratorPage() {
 
                 {/* Pipeline */}
                 <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                  <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Recommended Pipeline</div>
+                  <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Pipeline Recomendado</div>
                   <div className="flex items-center gap-2 flex-wrap">
                     {plan.pipeline.map((stage, i) => (
                       <div key={stage} className="flex items-center gap-2">
@@ -1411,7 +1411,7 @@ export default function OrchestratorPage() {
 
                 {/* Agents */}
                 <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                  <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Assigned Agents</div>
+                  <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Agentes Atribuídos</div>
                   <div className="flex flex-wrap gap-2">
                     {plan.agents.map((agentId) => {
                       const agent = MOCK_AGENTS.find((a) => a.id === agentId);
@@ -1431,7 +1431,7 @@ export default function OrchestratorPage() {
                 {/* Tasks */}
                 <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
                   <div className="px-5 py-3.5 border-b border-[#F0F0ED]">
-                    <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Task Plan</div>
+                    <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Plano de Tarefas</div>
                   </div>
                   <div className="divide-y divide-[#F0F0ED]">
                     {plan.tasks.map((task, i) => {
@@ -1458,7 +1458,7 @@ export default function OrchestratorPage() {
                 {/* Risks */}
                 {plan.risks.length > 0 && (
                   <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                    <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Risk Flags</div>
+                    <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Alertas de Risco</div>
                     <div className="space-y-2">
                       {plan.risks.map((risk, i) => (
                         <div key={i} className="flex items-start gap-2.5">
@@ -1475,7 +1475,7 @@ export default function OrchestratorPage() {
                   onClick={handleApprove}
                   className="w-full h-11 bg-[#1A1A1A] hover:bg-[#111111] text-white text-[14px] font-semibold rounded-[10px] transition-colors"
                 >
-                  Approve & Create Project
+                  Aprovar e Criar Projeto
                 </button>
               </div>
             )}

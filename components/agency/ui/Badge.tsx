@@ -67,10 +67,39 @@ const STYLES: Record<Variant, string> = {
 };
 
 const LABELS: Partial<Record<Variant, string>> = {
-  pending_analysis: "Pending",
-  in_progress: "In Progress",
-  in_review: "In Review",
-  proposal_sent: "Proposal Sent",
+  // Client status
+  active: "Ativo",
+  inactive: "Inativo",
+  prospect: "Prospect",
+  // Priority
+  high: "Alta",
+  medium: "Média",
+  low: "Baixa",
+  // Pipeline stages
+  briefing: "Briefing",
+  proposal_sent: "Proposta Enviada",
+  diagnosis: "Diagnóstico",
+  planning: "Planejamento",
+  production: "Produção",
+  review: "Revisão",
+  delivery: "Entrega",
+  ongoing: "Em Andamento",
+  completed: "Concluído",
+  // Task status
+  pending: "Pendente",
+  in_progress: "Em Andamento",
+  done: "Concluída",
+  blocked: "Bloqueada",
+  // Deliverable status
+  draft: "Rascunho",
+  in_review: "Em Revisão",
+  approved: "Aprovado",
+  delivered: "Entregue",
+  // Briefing status
+  pending_analysis: "Aguardando",
+  analyzed: "Analisado",
+  // Agent
+  available: "Disponível",
 };
 
 interface BadgeProps {

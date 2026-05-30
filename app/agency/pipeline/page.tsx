@@ -9,13 +9,13 @@ import { ProjectStage } from "@/lib/agency/mock-data";
 
 const STAGES: { key: ProjectStage; label: string }[] = [
   { key: "briefing", label: "Briefing" },
-  { key: "diagnosis", label: "Diagnosis" },
-  { key: "planning", label: "Planning" },
-  { key: "production", label: "Production" },
-  { key: "review", label: "Review" },
-  { key: "delivery", label: "Delivery" },
-  { key: "ongoing", label: "Ongoing" },
-  { key: "completed", label: "Completed" },
+  { key: "diagnosis", label: "Diagnóstico" },
+  { key: "planning", label: "Planejamento" },
+  { key: "production", label: "Produção" },
+  { key: "review", label: "Revisão" },
+  { key: "delivery", label: "Entrega" },
+  { key: "ongoing", label: "Em Andamento" },
+  { key: "completed", label: "Concluído" },
 ];
 
 const STAGE_ORDER = STAGES.map((s) => s.key);
@@ -40,8 +40,8 @@ export default function PipelinePage() {
   return (
     <>
       <AgencyHeader
-        title="Pipeline Board"
-        subtitle={`${projects.filter((p) => p.stage !== "completed").length} active projects in motion`}
+        title="Quadro de Pipeline"
+        subtitle={`${projects.filter((p) => p.stage !== "completed").length} projeto${projects.filter((p) => p.stage !== "completed").length !== 1 ? "s" : ""} ativo${projects.filter((p) => p.stage !== "completed").length !== 1 ? "s" : ""} em andamento`}
       />
 
       <div className="overflow-x-auto -mx-8 px-8">
@@ -91,7 +91,7 @@ export default function PipelinePage() {
                           <span className={`text-[11px] font-medium mono-num ${
                             overdue ? "text-[#DC2626]" : atRisk ? "text-[#D97706]" : "text-[#9B9B95]"
                           }`}>
-                            {overdue ? "Overdue" : `${daysLeft}d`}
+                            {overdue ? "Atrasado" : `${daysLeft}d`}
                           </span>
                         </div>
 
@@ -102,14 +102,14 @@ export default function PipelinePage() {
                             disabled={currentIdx === 0}
                             className="flex-1 h-6 text-[11px] text-[#6B6B65] bg-[#F0F0ED] rounded-[5px] hover:bg-[#E8E8E5] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                           >
-                            ← Prev
+                            ← Ant.
                           </button>
                           <button
                             onClick={() => handleMove(project.id, "next")}
                             disabled={currentIdx === STAGE_ORDER.length - 1}
                             className="flex-1 h-6 text-[11px] text-[#6B6B65] bg-[#F0F0ED] rounded-[5px] hover:bg-[#E8E8E5] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                           >
-                            Next →
+                            Próx. →
                           </button>
                         </div>
                       </div>
@@ -118,7 +118,7 @@ export default function PipelinePage() {
 
                   {stageProjects.length === 0 && (
                     <div className="h-16 rounded-[10px] border border-dashed border-[#E5E5E2] flex items-center justify-center">
-                      <span className="text-[12px] text-[#C0C0BC]">Empty</span>
+                      <span className="text-[12px] text-[#C0C0BC]">Vazio</span>
                     </div>
                   )}
                 </div>

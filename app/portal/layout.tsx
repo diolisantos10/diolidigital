@@ -13,9 +13,9 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           </div>
           <span className="text-[13px] font-semibold text-[#1A1A1A]">Dioli Studio</span>
           <span className="text-[#D0D0CC]">·</span>
-          <span className="text-[12px] text-[#9B9B95]">Client Portal</span>
+          <span className="text-[12px] text-[#9B9B95]">Portal do Cliente</span>
         </div>
-        <span className="text-[11px] text-[#9B9B95]">Review &amp; approve project outputs</span>
+        <span className="text-[11px] text-[#9B9B95]">Revise e aprove os entregáveis do projeto</span>
       </header>
       <main className="max-w-[860px] mx-auto px-8 py-10">
         {children}

@@ -313,13 +313,13 @@ function BrandBrainContextCard({ ctx }: { ctx: AgentClientContext }) {
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-1.5">
           <span className={`text-[11px] font-bold ${incomplete ? "text-[#D97706]" : "text-[#16A34A]"}`}>{incomplete ? "⚠" : "●"}</span>
-          <span className="text-[11px] font-semibold text-[#1A1A1A]">{incomplete ? "Brand Brain incomplete" : "Brand Brain active"}</span>
+          <span className="text-[11px] font-semibold text-[#1A1A1A]">{incomplete ? "Brand Brain incompleto" : "Brand Brain ativo"}</span>
           <span className="text-[10px] text-[#9B9B95]">· {ctx.clientName}</span>
         </div>
         <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${ready === 10 ? "bg-[#DCFCE7] text-[#16A34A]" : ready >= 5 ? "bg-[#FEF3C7] text-[#D97706]" : "bg-[#F0F0ED] text-[#9B9B95]"}`}>{ready}/10</span>
       </div>
       {incomplete ? (
-        <p className="text-[11px] text-[#D97706] leading-snug">Complete Brand Brain in client workspace for fully brand-specific outputs.</p>
+        <p className="text-[11px] text-[#D97706] leading-snug">Complete o Brand Brain no workspace do cliente para outputs totalmente específicos da marca.</p>
       ) : (
         <div className="space-y-0.5 mt-1">
           {ctx.brandBrain?.visualStyle    && <div className="flex gap-2"><span className="text-[10px] text-[#9B9B95] w-12 shrink-0">Visual</span><span className="text-[11px] text-[#1A1A1A] truncate">{ctx.brandBrain.visualStyle}</span></div>}
@@ -341,10 +341,10 @@ function ProposalGatePanel({
   linkedClient: { name: string } | null;
 }) {
   const statusMap: Record<string, { label: string; color: string; bg: string }> = {
-    draft:             { label: "Draft — not sent to client",  color: "text-[#6B6B65]", bg: "bg-[#F7F7F6]" },
-    sent:              { label: "Awaiting client approval",    color: "text-[#5B5BD6]", bg: "bg-[#EEF0FF]" },
-    rejected:          { label: "Rejected by client",          color: "text-[#DC2626]", bg: "bg-[#FEF2F2]" },
-    changes_requested: { label: "Changes requested by client", color: "text-[#D97706]", bg: "bg-[#FFFBEB]" },
+    draft:             { label: "Rascunho — não enviado ao cliente",  color: "text-[#6B6B65]", bg: "bg-[#F7F7F6]" },
+    sent:              { label: "Aguardando aprovação do cliente",    color: "text-[#5B5BD6]", bg: "bg-[#EEF0FF]" },
+    rejected:          { label: "Rejeitado pelo cliente",             color: "text-[#DC2626]", bg: "bg-[#FEF2F2]" },
+    changes_requested: { label: "Alterações solicitadas pelo cliente", color: "text-[#D97706]", bg: "bg-[#FFFBEB]" },
   };
   const info = proposalStatus ? (statusMap[proposalStatus] ?? statusMap.draft) : statusMap.draft;
 
@@ -356,39 +356,39 @@ function ProposalGatePanel({
           <circle cx="11" cy="11" r="9" stroke="#D97706" strokeWidth="1.5"/>
         </svg>
       </div>
-      <p className="text-[15px] font-semibold text-[#1A1A1A] mb-2">Execution blocked</p>
+      <p className="text-[15px] font-semibold text-[#1A1A1A] mb-2">Execução bloqueada</p>
       <p className="text-[13px] text-[#6B6B65] max-w-sm leading-relaxed mb-5">
-        The Design Agent can only run after the client has approved the project proposal.
-        This ensures all creative work is commercially authorised before production.
+        O Agente de Design só pode ser executado após a aprovação da proposta pelo cliente.
+        Isso garante que todo o trabalho criativo seja comercialmente autorizado antes da produção.
       </p>
       <div className={`flex items-center gap-2 px-4 py-2 rounded-full mb-5 ${info.bg}`}>
-        <span className={`text-[12px] font-semibold ${info.color}`}>Proposal status: {info.label}</span>
+        <span className={`text-[12px] font-semibold ${info.color}`}>Status da proposta: {info.label}</span>
       </div>
       {linkedProject && (
         <Link
           href={`/agency/projects/${linkedProject.id}?tab=proposal`}
           className="h-8 px-4 rounded-[7px] bg-[#1A1A1A] hover:bg-[#111111] text-white text-[12px] font-medium transition-colors"
         >
-          View Proposal →
+          Ver Proposta →
         </Link>
       )}
       {proposalStatus === "sent" && linkedClient && (
-        <p className="text-[11px] text-[#9B9B95] mt-3">Share the client portal link for {linkedClient.name} to approve.</p>
+        <p className="text-[11px] text-[#9B9B95] mt-3">Compartilhe o link do portal do cliente para {linkedClient.name} aprovar.</p>
       )}
       {proposalStatus === "draft" && (
-        <p className="text-[11px] text-[#9B9B95] mt-3">Draft → Send to client → Wait for approval → Run Design Agent</p>
+        <p className="text-[11px] text-[#9B9B95] mt-3">Rascunho → Enviar ao cliente → Aguardar aprovação → Executar Agente de Design</p>
       )}
     </div>
   );
 }
 
 const STEPS = [
-  "Reading brand context…",
-  "Interpreting creative briefs…",
-  "Developing visual concepts…",
-  "Enhancing image prompts…",
-  "Generating layout structures…",
-  "Writing design specifications…",
+  "Lendo contexto da marca…",
+  "Interpretando briefs criativos…",
+  "Desenvolvendo conceitos visuais…",
+  "Aprimorando prompts de imagem…",
+  "Gerando estruturas de layout…",
+  "Escrevendo especificações de design…",
 ];
 
 const PILLAR_COLORS: Record<string, string> = {
@@ -591,8 +591,8 @@ export default function DesignAgentPage() {
   return (
     <div className="flex flex-col min-h-screen bg-[#F7F7F6]">
       <AgencyHeader
-        title="Design Agent"
-        subtitle="Creative department — produces client-reviewable design briefs from Social Media V1 requests."
+        title="Agente de Design"
+        subtitle="Departamento Criativo — produz briefs de design revisáveis pelo cliente a partir das solicitações do Agente de Redes Sociais."
       />
 
       <div className="flex-1 p-6 max-w-[1200px] mx-auto w-full">
@@ -601,7 +601,7 @@ export default function DesignAgentPage() {
         <div className="flex items-center gap-2 mb-6 flex-wrap">
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#FFF4ED] text-[#C2530A] text-[11px] font-semibold tracking-wide uppercase">
             <span className="w-1.5 h-1.5 rounded-full bg-[#C2530A]" />
-            Creative Department
+            Departamento Criativo
           </span>
           <span className="text-[12px] text-[#9B9B95]">v1 · DALL‑E 3</span>
           {linkedProject && (
@@ -615,14 +615,14 @@ export default function DesignAgentPage() {
                 briefsSaved ? (
                   <span className="flex items-center gap-1.5 h-7 px-3 rounded-[6px] text-[12px] font-medium bg-[#DCFCE7] text-[#16A34A] border border-[#BBF7D0]">
                     <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M2 5.5l2.5 2.5 4.5-4.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                    Saved — {briefs.length} design brief{briefs.length !== 1 ? "s" : ""}
+                    Salvo — {briefs.length} brief{briefs.length !== 1 ? "s" : ""} de design
                   </span>
                 ) : (
                   <button
                     onClick={handleSaveAllBriefs}
                     className="h-7 px-3 rounded-[6px] text-[12px] font-medium bg-[#C2530A] text-white hover:bg-[#A8460A] transition-colors"
                   >
-                    Save {briefs.length} brief{briefs.length !== 1 ? "s" : ""} to project
+                    Salvar {briefs.length} brief{briefs.length !== 1 ? "s" : ""} no projeto
                   </button>
                 )
               )}
@@ -634,7 +634,7 @@ export default function DesignAgentPage() {
                   <path d="M6.5 1v7M3.5 5.5L6.5 8.5 9.5 5.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
                   <path d="M1.5 9.5v1a1 1 0 001 1h8a1 1 0 001-1v-1" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
                 </svg>
-                Export
+                Exportar
               </button>
             </div>
           )}
@@ -646,8 +646,8 @@ export default function DesignAgentPage() {
           {/* ── LEFT: Creative Brief ── */}
           <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
             <div className="px-5 py-4 border-b border-[#E5E5E2]">
-              <p className="text-[13px] font-semibold text-[#1A1A1A]">Creative Brief</p>
-              <p className="text-[12px] text-[#9B9B95] mt-0.5">Select a project to load design requests from Social Media V1.</p>
+              <p className="text-[13px] font-semibold text-[#1A1A1A]">Brief Criativo</p>
+              <p className="text-[12px] text-[#9B9B95] mt-0.5">Selecione um projeto para carregar as solicitações de design do Agente de Redes Sociais.</p>
             </div>
 
             <div className="px-5 py-5 space-y-4">
@@ -655,7 +655,7 @@ export default function DesignAgentPage() {
               {/* Project selector */}
               <div>
                 <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">
-                  Project <span className="text-[#DC2626]">*</span>
+                  Projeto <span className="text-[#DC2626]">*</span>
                 </label>
                 <select
                   value={linkedProjectId ?? ""}
@@ -663,7 +663,7 @@ export default function DesignAgentPage() {
                   disabled={agentState === "generating"}
                   className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#C2530A] focus:bg-white transition-colors disabled:opacity-50"
                 >
-                  <option value="">— select a project —</option>
+                  <option value="">— selecione um projeto —</option>
                   {projects.map((p) => (
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
@@ -680,7 +680,7 @@ export default function DesignAgentPage() {
                     <path d="M7 4.5V7M7 9.5h.01" stroke="#D97706" strokeWidth="1.4" strokeLinecap="round"/>
                     <circle cx="7" cy="7" r="6" stroke="#D97706" strokeWidth="1.2"/>
                   </svg>
-                  <p className="text-[12px] text-[#D97706] leading-snug">Proposal must be approved before running the Design Agent.</p>
+                  <p className="text-[12px] text-[#D97706] leading-snug">A proposta deve ser aprovada antes de executar o Agente de Design.</p>
                 </div>
               )}
 
@@ -699,7 +699,7 @@ export default function DesignAgentPage() {
                             : "text-[#9B9B95] hover:text-[#6B6B65]"
                         }`}
                       >
-                        {mode === "project_requests" ? "From Project" : "From Contract"}
+                        {mode === "project_requests" ? "Do Projeto" : "Do Contrato"}
                       </button>
                     ))}
                   </div>
@@ -713,12 +713,12 @@ export default function DesignAgentPage() {
                           {hasDesignRequestsDeliverable ? (
                             <>
                               <span className="w-1.5 h-1.5 rounded-full bg-[#16A34A]" />
-                              <span className="text-[11px] font-medium text-[#16A34A]">Social Media requests loaded</span>
+                              <span className="text-[11px] font-medium text-[#16A34A]">Solicitações de redes sociais carregadas</span>
                             </>
                           ) : (
                             <>
                               <span className="w-1.5 h-1.5 rounded-full bg-[#9B9B95]" />
-                              <span className="text-[11px] font-medium text-[#9B9B95]">4 template requests ready</span>
+                              <span className="text-[11px] font-medium text-[#9B9B95]">4 solicitações de template prontas</span>
                             </>
                           )}
                         </div>
@@ -770,11 +770,11 @@ export default function DesignAgentPage() {
                       {!hasDesignRequestsDeliverable && (
                         <div className="rounded-[7px] bg-[#FAFAFA] border border-[#F0F0ED] px-3 py-2.5">
                           <p className="text-[11px] text-[#9B9B95]">
-                            No Social Media requests yet.{" "}
+                            Nenhuma solicitação de redes sociais ainda.{" "}
                             <Link href="/agency/social-media-agent" className="text-[#5B5BD6] hover:underline">
-                              Run Social Media Agent
+                              Execute o Agente de Redes Sociais
                             </Link>{" "}
-                            first to generate brand-specific requests.
+                            primeiro para gerar solicitações específicas da marca.
                           </p>
                         </div>
                       )}
@@ -784,7 +784,7 @@ export default function DesignAgentPage() {
                   {/* ── Mode: Contract Input ── */}
                   {inputMode === "contract" && (
                     <div className="space-y-2">
-                      <label className="block text-[12px] font-medium text-[#6B6B65]">Contract payload</label>
+                      <label className="block text-[12px] font-medium text-[#6B6B65]">Payload do contrato</label>
                       <textarea
                         value={contractInput}
                         onChange={(e) => setContractInput(e.target.value)}
@@ -795,8 +795,8 @@ export default function DesignAgentPage() {
                       />
                       <div className="rounded-[7px] bg-[#FAFAFA] border border-[#F0F0ED] px-3 py-2">
                         <p className="text-[11px] text-[#9B9B95]">
-                          Copy the Design Handoff block from the Social Media Agent's{" "}
-                          <Link href="/agency/social-media-agent" className="text-[#5B5BD6] hover:underline">Design tab</Link>.
+                          Copie o bloco de Handoff de Design da aba Design do Agente de Redes Sociais{" "}
+                          <Link href="/agency/social-media-agent" className="text-[#5B5BD6] hover:underline">aqui</Link>.
                         </p>
                       </div>
                     </div>
@@ -812,21 +812,21 @@ export default function DesignAgentPage() {
                   className="w-full h-9 rounded-[7px] text-[13px] font-medium bg-[#C2530A] text-white hover:bg-[#A8460A] active:bg-[#8E3908] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                 >
                   {!linkedProject
-                    ? "Select a project to begin"
+                    ? "Selecione um projeto para começar"
                     : proposalBlocked
-                    ? "Awaiting proposal approval"
+                    ? "Aguardando aprovação da proposta"
                     : inputMode === "project_requests"
                     ? selectedRequestIds.size === 0
-                      ? "Select at least one request"
-                      : `Generate ${selectedRequestIds.size} Design Brief${selectedRequestIds.size !== 1 ? "s" : ""}`
-                    : "Run Design Agent"
+                      ? "Selecione pelo menos uma solicitação"
+                      : `Gerar ${selectedRequestIds.size} Brief${selectedRequestIds.size !== 1 ? "s" : ""} de Design`
+                    : "Executar Agente de Design"
                   }
                 </button>
               )}
               {agentState === "generating" && (
                 <button disabled className="w-full h-9 rounded-[7px] text-[13px] font-medium bg-[#C2530A] text-white opacity-70 cursor-not-allowed flex items-center justify-center gap-2">
                   <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Generating…
+                  Gerando…
                 </button>
               )}
               {agentState === "output_ready" && (
@@ -834,7 +834,7 @@ export default function DesignAgentPage() {
                   onClick={handleReset}
                   className="w-full h-9 rounded-[7px] text-[13px] font-medium bg-transparent border border-[#E5E5E2] text-[#6B6B65] hover:bg-[#F7F7F6] transition-all"
                 >
-                  Reset
+                  Reiniciar
                 </button>
               )}
             </div>
@@ -851,9 +851,9 @@ export default function DesignAgentPage() {
                   <path d="M7 13l2-4 2.5 2.5 2-4" stroke="#C2530A" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </div>
-              <p className="text-[14px] font-medium text-[#1A1A1A]">Select a project to begin</p>
+              <p className="text-[14px] font-medium text-[#1A1A1A]">Selecione um projeto para começar</p>
               <p className="text-[13px] text-[#9B9B95] mt-1.5 max-w-xs mx-auto leading-relaxed">
-                Link a project with an approved proposal. The Design Agent will load Social Media V1 creative requests automatically.
+                Vincule um projeto com proposta aprovada. O Agente de Design carregará as solicitações criativas automaticamente.
               </p>
             </div>
           )}
@@ -873,36 +873,36 @@ export default function DesignAgentPage() {
               {/* Project status overview */}
               <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Creative Pipeline</div>
+                  <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Pipeline Criativo</div>
                   <div className="flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-[#16A34A]" />
-                    <span className="text-[11px] font-medium text-[#16A34A]">Execution unlocked</span>
+                    <span className="text-[11px] font-medium text-[#16A34A]">Execução desbloqueada</span>
                   </div>
                 </div>
 
                 {/* Social → Design flow */}
                 <div className="flex items-center gap-2 mb-4">
                   <div className={`flex items-center gap-1.5 h-7 px-3 rounded-full text-[11px] font-medium ${hasDesignRequestsDeliverable ? "bg-[#F0FDF4] text-[#16A34A] border border-[#BBF7D0]" : "bg-[#F7F7F6] text-[#9B9B95] border border-[#E5E5E2]"}`}>
-                    {hasDesignRequestsDeliverable ? "✓ " : ""}Social Media
+                    {hasDesignRequestsDeliverable ? "✓ " : ""}Redes Sociais
                   </div>
                   <svg width="16" height="10" viewBox="0 0 16 10" fill="none">
                     <path d="M1 5h13M10 1l4 4-4 4" stroke="#C0C0BC" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                   <div className="flex items-center gap-1.5 h-7 px-3 rounded-full text-[11px] font-medium bg-[#FFF4ED] text-[#C2530A] border border-[#FDBA74]">
-                    Design Agent
+                    Agente de Design
                   </div>
                   <svg width="16" height="10" viewBox="0 0 16 10" fill="none">
                     <path d="M1 5h13M10 1l4 4-4 4" stroke="#C0C0BC" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                   <div className="flex items-center gap-1.5 h-7 px-3 rounded-full text-[11px] font-medium bg-[#F7F7F6] text-[#9B9B95] border border-[#E5E5E2]">
-                    Client Review
+                    Revisão do Cliente
                   </div>
                 </div>
 
                 {/* Existing designs */}
                 {existingDesigns.length > 0 ? (
                   <div>
-                    <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">Existing Design Deliverables</div>
+                    <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">Entregas de Design Existentes</div>
                     <div className="space-y-1.5">
                       {existingDesigns.map((d) => (
                         <div key={d.id} className="flex items-center justify-between py-1.5 px-3 rounded-[6px] bg-[#F7F7F6]">
@@ -918,10 +918,10 @@ export default function DesignAgentPage() {
                   </div>
                 ) : (
                   <p className="text-[12px] text-[#9B9B95]">
-                    No design deliverables yet.{" "}
+                    Nenhuma entrega de design ainda.{" "}
                     {inputMode === "project_requests"
-                      ? `Select ${selectedRequestIds.size > 0 ? selectedRequestIds.size + " request(s)" : "requests"} and generate.`
-                      : "Paste a contract and run."
+                      ? `Selecione ${selectedRequestIds.size > 0 ? selectedRequestIds.size + " solicitação(ões)" : "solicitações"} e gere.`
+                      : "Cole um contrato e execute."
                     }
                   </p>
                 )}
@@ -931,7 +931,7 @@ export default function DesignAgentPage() {
               {inputMode === "project_requests" && selectedRequests.length > 0 && (
                 <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
                   <div className="px-5 py-3 border-b border-[#F0F0ED]">
-                    <span className="text-[12px] font-semibold text-[#1A1A1A]">{selectedRequests.length} request{selectedRequests.length !== 1 ? "s" : ""} queued for design</span>
+                    <span className="text-[12px] font-semibold text-[#1A1A1A]">{selectedRequests.length} solicitação{selectedRequests.length !== 1 ? "s" : ""} na fila para design</span>
                   </div>
                   <div className="divide-y divide-[#F0F0ED]">
                     {selectedRequests.map((req) => (
@@ -956,7 +956,7 @@ export default function DesignAgentPage() {
               <div className="w-10 h-10 rounded-full bg-[#FFF4ED] flex items-center justify-center mx-auto mb-5">
                 <span className="w-5 h-5 border-2 border-[#C2530A] border-t-transparent rounded-full animate-spin" />
               </div>
-              <p className="text-[14px] font-semibold text-[#1A1A1A] mb-6">Generating visual briefs…</p>
+              <p className="text-[14px] font-semibold text-[#1A1A1A] mb-6">Gerando briefs visuais…</p>
               <div className="max-w-[240px] mx-auto space-y-2.5">
                 {STEPS.map((label, i) => (
                   <div key={label} className={`flex items-center gap-2.5 transition-opacity duration-300 ${i <= stepIndex ? "opacity-100" : "opacity-25"}`}>
@@ -981,7 +981,7 @@ export default function DesignAgentPage() {
               {/* Tabs */}
               <div className="flex items-center gap-1 bg-white border border-[#E5E5E2] rounded-[9px] p-1 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
                 {(["briefs", "specs"] as OutputTab[]).map((tab) => {
-                  const labels: Record<OutputTab, string> = { briefs: `Visual Briefs (${briefs.length})`, specs: "Design Specs" };
+                  const labels: Record<OutputTab, string> = { briefs: `Briefs Visuais (${briefs.length})`, specs: "Especificações de Design" };
                   return (
                     <button
                       key={tab}
@@ -1015,7 +1015,7 @@ export default function DesignAgentPage() {
                           onClick={() => handleCopy(`brief-${b.postId}`, formatBriefAsText(b))}
                           className="h-6 px-2.5 rounded-[5px] text-[11px] font-medium border border-[#E5E5E2] text-[#6B6B65] hover:bg-[#F7F7F6] hover:text-[#1A1A1A] transition-colors"
                         >
-                          {copiedKey === `brief-${b.postId}` ? "Copied" : "Copy Brief"}
+                          {copiedKey === `brief-${b.postId}` ? "Copiado" : "Copiar Brief"}
                         </button>
                       </div>
 
@@ -1025,7 +1025,7 @@ export default function DesignAgentPage() {
                         <div className="px-5 py-4">
                           <div className="flex items-center gap-1.5 mb-2">
                             <span className="w-4 h-4 rounded-full bg-[#FFF4ED] text-[#C2530A] text-[9px] font-bold flex items-center justify-center">1</span>
-                            <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide">Visual Concept</p>
+                            <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide">Conceito Visual</p>
                           </div>
                           <p className="text-[12px] text-[#1A1A1A] leading-relaxed">{b.visualConcept}</p>
                         </div>
@@ -1035,13 +1035,13 @@ export default function DesignAgentPage() {
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-1.5">
                               <span className="w-4 h-4 rounded-full bg-[#FFF4ED] text-[#C2530A] text-[9px] font-bold flex items-center justify-center">2</span>
-                              <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide">Enhanced Image Prompt</p>
+                              <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide">Prompt de Imagem</p>
                             </div>
                             <button
                               onClick={() => handleCopy(`prompt-${b.postId}`, b.enhancedPrompt)}
                               className="h-5 px-2 rounded-[4px] text-[10px] font-medium border border-[#E5E5E2] text-[#6B6B65] hover:bg-[#F7F7F6] transition-colors"
                             >
-                              {copiedKey === `prompt-${b.postId}` ? "Copied" : "Copy"}
+                              {copiedKey === `prompt-${b.postId}` ? "Copiado" : "Copiar"}
                             </button>
                           </div>
                           <div className="rounded-[7px] bg-[#F7F7F6] border border-[#E5E5E2] px-3 py-2.5">
@@ -1058,7 +1058,7 @@ export default function DesignAgentPage() {
                                   <path d="M4 1v2.5L6 5M4 1L2 5M1 7h6" stroke="#5B5BD6" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"/>
                                 </svg>
                               </span>
-                              <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide">Real Image</p>
+                              <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide">Imagem Real</p>
                             </div>
                             {(!imageStates[b.postId] || imageStates[b.postId].status === "idle") && (
                               <button
@@ -1068,7 +1068,7 @@ export default function DesignAgentPage() {
                                 <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
                                   <path d="M5.5 1v4M5.5 10V6M1 5.5h4M10 5.5H6" stroke="white" strokeWidth="1.4" strokeLinecap="round"/>
                                 </svg>
-                                Generate Real Image
+                                Gerar Imagem
                               </button>
                             )}
                             {imageStates[b.postId]?.status === "error" && (
@@ -1076,7 +1076,7 @@ export default function DesignAgentPage() {
                                 onClick={() => handleGenerateImage(b.postId, b.enhancedPrompt)}
                                 className="h-7 px-3 rounded-[6px] text-[12px] font-medium border border-[#DC2626] text-[#DC2626] hover:bg-[#FEF2F2] transition-colors"
                               >
-                                Retry
+                                Tentar novamente
                               </button>
                             )}
                           </div>
@@ -1084,7 +1084,7 @@ export default function DesignAgentPage() {
                           {imageStates[b.postId]?.status === "generating" && (
                             <div className="rounded-[8px] bg-[#F7F7F6] border border-[#E5E5E2] py-8 flex flex-col items-center gap-3">
                               <span className="w-5 h-5 border-2 border-[#5B5BD6] border-t-transparent rounded-full animate-spin" />
-                              <p className="text-[12px] text-[#9B9B95]">Generating with DALL‑E 3…</p>
+                              <p className="text-[12px] text-[#9B9B95]">Gerando imagem com DALL‑E 3…</p>
                             </div>
                           )}
 
@@ -1107,14 +1107,14 @@ export default function DesignAgentPage() {
                                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                                     <path d="M2.5 7.5l3 3 6-6" stroke="#16A34A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                                   </svg>
-                                  <p className="text-[12px] text-[#16A34A] font-medium">Saved to project as Design deliverable · In Review</p>
+                                  <p className="text-[12px] text-[#16A34A] font-medium">Salvo no projeto como entrega de Design · Em Revisão</p>
                                 </div>
                               ) : (
                                 <div className="rounded-[7px] bg-[#F7F7F6] border border-[#E5E5E2] p-3.5 space-y-2.5">
-                                  <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Save Image to Project</p>
+                                  <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Salvar Imagem no Projeto</p>
                                   <div className="grid grid-cols-2 gap-2">
                                     <div>
-                                      <label className="block text-[11px] text-[#6B6B65] mb-1">Name</label>
+                                      <label className="block text-[11px] text-[#6B6B65] mb-1">Nome</label>
                                       <input
                                         value={saveForms[b.postId]?.name ?? b.title}
                                         onChange={(e) => setSaveForms((prev) => ({ ...prev, [b.postId]: { ...prev[b.postId], name: e.target.value } }))}
@@ -1122,13 +1122,13 @@ export default function DesignAgentPage() {
                                       />
                                     </div>
                                     <div>
-                                      <label className="block text-[11px] text-[#6B6B65] mb-1">Project</label>
+                                      <label className="block text-[11px] text-[#6B6B65] mb-1">Projeto</label>
                                       <select
                                         value={saveForms[b.postId]?.projectId ?? ""}
                                         onChange={(e) => setSaveForms((prev) => ({ ...prev, [b.postId]: { ...prev[b.postId], projectId: e.target.value } }))}
                                         className="w-full h-7 px-2 text-[12px] bg-white border border-[#E5E5E2] rounded-[5px] outline-none focus:border-[#5B5BD6]"
                                       >
-                                        <option value="">— select —</option>
+                                        <option value="">— selecione —</option>
                                         {projects.map((p) => (
                                           <option key={p.id} value={p.id}>{p.name}</option>
                                         ))}
@@ -1140,7 +1140,7 @@ export default function DesignAgentPage() {
                                     onClick={() => handleSaveDeliverable(b.postId)}
                                     className="w-full h-7 rounded-[5px] text-[12px] font-medium bg-[#1A1A1A] text-white hover:bg-[#2A2A2A] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                                   >
-                                    Save as Deliverable
+                                    Salvar como Entrega
                                   </button>
                                 </div>
                               )}
@@ -1152,7 +1152,7 @@ export default function DesignAgentPage() {
                         <div className="px-5 py-4">
                           <div className="flex items-center gap-1.5 mb-3">
                             <span className="w-4 h-4 rounded-full bg-[#FFF4ED] text-[#C2530A] text-[9px] font-bold flex items-center justify-center">3</span>
-                            <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide">Layout Structure</p>
+                            <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide">Estrutura de Layout</p>
                           </div>
                           <div className="space-y-2">
                             {b.layoutStructure.map((slide, i) => (
@@ -1189,14 +1189,14 @@ export default function DesignAgentPage() {
                         <div className="px-5 py-4">
                           <div className="flex items-center gap-1.5 mb-3">
                             <span className="w-4 h-4 rounded-full bg-[#FFF4ED] text-[#C2530A] text-[9px] font-bold flex items-center justify-center">4</span>
-                            <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide">Design Instructions</p>
+                            <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide">Instruções de Design</p>
                           </div>
                           <div className="space-y-3">
                             {([
-                              { key: "Typography",       value: b.designInstructions.typography },
-                              { key: "Spacing",          value: b.designInstructions.spacing },
-                              { key: "Composition",      value: b.designInstructions.composition },
-                              { key: "Visual hierarchy", value: b.designInstructions.visualHierarchy },
+                              { key: "Tipografia",       value: b.designInstructions.typography },
+                              { key: "Espaçamento",      value: b.designInstructions.spacing },
+                              { key: "Composição",       value: b.designInstructions.composition },
+                              { key: "Hierarquia visual", value: b.designInstructions.visualHierarchy },
                             ] as { key: string; value: string }[]).map(({ key, value }) => (
                               <div key={key} className="grid grid-cols-[120px_1fr] gap-3 items-start">
                                 <p className="text-[11px] font-semibold text-[#9B9B95] pt-px">{key}</p>
@@ -1209,7 +1209,7 @@ export default function DesignAgentPage() {
                         <div className="px-5 py-4">
                           <div className="flex items-center gap-1.5 mb-2">
                             <span className="w-4 h-4 rounded-full bg-[#FFF4ED] text-[#C2530A] text-[9px] font-bold flex items-center justify-center">5</span>
-                            <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide">Style Consistency Notes</p>
+                            <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide">Notas de Consistência de Marca</p>
                           </div>
                           <p className="text-[12px] text-[#6B6B65] leading-relaxed">{b.styleConsistency}</p>
                         </div>
@@ -1217,19 +1217,19 @@ export default function DesignAgentPage() {
                         <div className="px-5 py-4">
                           <div className="flex items-center gap-1.5 mb-2">
                             <span className="w-4 h-4 rounded-full bg-[#FFF4ED] text-[#C2530A] text-[9px] font-bold flex items-center justify-center">6</span>
-                            <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide">Copy Placement Guidance</p>
+                            <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide">Orientações de Copy</p>
                           </div>
                           <p className="text-[12px] text-[#1A1A1A] leading-relaxed">{b.designInstructions.visualHierarchy}</p>
                           <div className="mt-2 flex items-center gap-2">
-                            <span className="text-[10px] text-[#9B9B95] bg-[#F0F0ED] px-2 py-0.5 rounded-[3px]">Format: {b.format}</span>
-                            <span className="text-[10px] text-[#9B9B95] bg-[#F0F0ED] px-2 py-0.5 rounded-[3px]">Ratio: {b.format.toLowerCase().includes("story") ? "9:16" : "1:1"}</span>
+                            <span className="text-[10px] text-[#9B9B95] bg-[#F0F0ED] px-2 py-0.5 rounded-[3px]">Formato: {b.format}</span>
+                            <span className="text-[10px] text-[#9B9B95] bg-[#F0F0ED] px-2 py-0.5 rounded-[3px]">Proporção: {b.format.toLowerCase().includes("story") ? "9:16" : "1:1"}</span>
                           </div>
                         </div>
                         {/* Brand consistency */}
                         <div className="px-5 py-4">
                           <div className="flex items-center gap-1.5 mb-2">
                             <span className="w-4 h-4 rounded-full bg-[#FFF4ED] text-[#C2530A] text-[9px] font-bold flex items-center justify-center">7</span>
-                            <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide">Brand Consistency Notes</p>
+                            <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide">Notas de Consistência de Marca</p>
                           </div>
                           <p className="text-[12px] text-[#6B6B65] leading-relaxed">{b.styleConsistency}</p>
                         </div>
