@@ -19,6 +19,19 @@ export type BriefingStatus = "pending_analysis" | "analyzed" | "approved";
 export type AgentStatus = "available" | "active";
 export type AssetType = "logo" | "color_palette" | "typography" | "tone_of_voice" | "visual_reference" | "guidelines";
 
+export interface BrandBrain {
+  businessSummary: string;       // What the business is, what it sells, why it exists
+  positioning: string;           // Market position and unique value proposition
+  targetAudience: string;        // Who the brand is talking to
+  toneOfVoice: string;           // How the brand communicates — adjectives, examples
+  visualStyle: string;           // Visual direction, colors, aesthetic references
+  brandRules: string;            // Non-negotiables — what we must always do
+  productsToHighlight: string;   // Key products, services, or offers to feature
+  thingsToAvoid: string;         // Words, tones, references, competitors to never use
+  preferredChannels: string;     // Best-performing or priority channels for this brand
+  strategicNotes: string;        // Agency-only context — ongoing strategy, history, caveats
+}
+
 export interface Client {
   id: string;
   name: string;
@@ -36,6 +49,8 @@ export interface Client {
   whatFails?: string;
   availableAssets?: string[];
   restrictions?: string;
+  // Brand Brain — structured intelligence layer for agents and internal use
+  brandBrain?: BrandBrain;
 }
 
 export interface ProjectProposal {
@@ -157,6 +172,18 @@ export const MOCK_CLIENTS: Client[] = [
     status: "active",
     description: "Premium Japanese restaurant chain. Bold identity, high-end positioning.",
     createdAt: "2024-01-10",
+    brandBrain: {
+      businessSummary: "Sushikasa is a 5-location premium Japanese restaurant chain in São Paulo. Positioned as a culinary experience, not just a meal — guests come for special occasions, business dinners, and celebrations.",
+      positioning: "The most refined Japanese dining experience in São Paulo. Not fast, not casual — an event. Competes on atmosphere, quality, and exclusivity, not price.",
+      targetAudience: "Urban professionals and couples aged 28–50, high disposable income, food-literate. Frequently dine out for experience, not just sustenance. Active on Instagram. Value recommendations from peers.",
+      toneOfVoice: "Refined, confident, minimal. Speaks like a connoisseur, not a salesperson. Never loud, never promotional. Uses restraint. Short sentences. Evokes texture, ritual, and presence.",
+      visualStyle: "Black and off-white as primary. Deep red as accent used sparingly. Photography: close-up textures, candlelit atmosphere, negative space. No bright gradients, no stock-looking imagery.",
+      brandRules: "Never use exclamation marks. Never write 'best' or 'amazing'. Always use Cormorant Garamond for headlines. Safe space around logo must always be respected. Never pair with other restaurant brands.",
+      productsToHighlight: "Omakase tasting menu (flagship). Premium sake pairing. Private dining room (capacity 14). Weekend brunch (newer, needs more awareness). Seasonal limited menus.",
+      thingsToAvoid: "Words: cheap, deal, discount, fast, best, amazing. Competitors: never mention by name. Tone: never casual, never aggressive, never use slang. Imagery: crowds, messy food photos, bright lighting.",
+      preferredChannels: "Instagram (primary — organic + paid). Google (Maps + Search for discovery). Email (retention for regular guests). LinkedIn (not primary but useful for corporate dining angle).",
+      strategicNotes: "Currently in brand relaunch phase. New visual identity approved but not fully rolled out across all locations. Q3 expansion to Rio — all campaigns should avoid geo-locking to SP for now. Owner is involved in approvals — expects premium output with minimal copy.",
+    },
   },
   {
     id: "c2",
@@ -166,6 +193,18 @@ export const MOCK_CLIENTS: Client[] = [
     status: "active",
     description: "Contemporary Brazilian streetwear brand targeting urban youth.",
     createdAt: "2024-02-05",
+    brandBrain: {
+      businessSummary: "Santioh is a contemporary Brazilian streetwear brand built for urban youth. Founded in São Paulo, sold online and in select concept stores. Collections release seasonally with a drop model.",
+      positioning: "Authentic Brazilian street culture — not trend-chasing, not luxury cosplay. Sits between accessible and aspirational. Worn by people who shape culture, not follow it.",
+      targetAudience: "Gen Z and younger millennials aged 18–28, São Paulo and major Brazilian cities. Active on Instagram and TikTok. Values authenticity, cultural references, and limited availability. Influenced by music, skateboarding, and local art.",
+      toneOfVoice: "Bold, urban, direct. Culturally aware without trying too hard. Can use slang when targeting Gen Z — but never forced. Confident, not arrogant. Speaks peer-to-peer, not brand-to-consumer.",
+      visualStyle: "Off-white and navy as base. High-contrast photography. Street environments, real locations, no studio backgrounds. Models are real people from the scene, not typical fashion models. Raw, editorial, energetic.",
+      brandRules: "Never use white backgrounds alone — always texture or environment. Logo never in red. Avoid corporate fonts. Copy must feel written by someone from the scene, not a marketing team.",
+      productsToHighlight: "Signature hoodies (flagship). Limited seasonal drops. Collab pieces (highest social traction). Accessories (lower margin but high visibility for brand building).",
+      thingsToAvoid: "Generic lifestyle language. Anything that feels too polished or corporate. Comparisons to international brands. Aspirational language that disconnects from local roots. Over-editing images.",
+      preferredChannels: "TikTok (fastest growth). Instagram Reels + Stories (primary community). WhatsApp (for loyal buyers via broadcast). Street activation / events (offline brand building).",
+      strategicNotes: "Summer 2024 collection is the biggest drop to date. Founder wants to expand to Rio and Belo Horizonte but brand is still primarily SP. Influencer strategy is key — prefer micro-influencers from the actual scene over big names. Budget is growing but lean — needs high ROI creative.",
+    },
   },
   {
     id: "c3",
@@ -175,6 +214,18 @@ export const MOCK_CLIENTS: Client[] = [
     status: "active",
     description: "Internal brand for the agency itself — portfolio, cases, and positioning.",
     createdAt: "2024-03-01",
+    brandBrain: {
+      businessSummary: "Dioli Studio is the agency's own brand — a strategic creative studio that builds brands, executes campaigns, and helps companies grow through design and marketing. Operates as a full-service partner, not just a vendor.",
+      positioning: "Strategy first, execution always. Not a production shop, not a consultancy — a hybrid that thinks and builds. Trusted by growing brands that need senior thinking with hands-on delivery.",
+      targetAudience: "Founders and marketing leads at SMBs and scale-ups, primarily in Brazil. Aged 28–45. Tired of agencies that overpromise and underdeliver. Looking for a long-term partner, not a project vendor.",
+      toneOfVoice: "Intelligent, direct, zero fluff. Speaks like a senior partner, not a pitch deck. Uses precision over volume. Confident about what it does, honest about what it doesn't. Never uses buzzwords.",
+      visualStyle: "Monochrome with indigo accent (#5B5BD6). Clean, structured layouts. Geometric precision. Typography-forward. No decorative elements without function. Dark-mode friendly.",
+      brandRules: "Indigo used only for CTAs and key highlights. Logo is the geometric monogram — never stretch, never color versions except black/white. All copy must be edited for conciseness — if a word doesn't earn its place, cut it.",
+      productsToHighlight: "Brand Strategy + Identity. Campaign production. AI-assisted execution workflows. Monthly retainer model. Portfolio cases (Sushikasa, Santioh).",
+      thingsToAvoid: "Agency jargon: 'synergy', 'holistic', 'leverage', '360', 'deep dive'. Vague promises. Logos on colorful backgrounds. Anything that feels like a typical agency website.",
+      preferredChannels: "LinkedIn (primary for B2B prospecting). Portfolio website (conversion). Referrals (highest close rate — track and nurture). Instagram (brand perception, not lead gen).",
+      strategicNotes: "Agency positioning project is ongoing. New website is in wireframe stage. Main differentiator to communicate: AI-powered workflows + strategic seniority. Target: 3 new retainer clients in H2 2024. Currently under-marketed — the work speaks louder than the brand.",
+    },
   },
 ];
 

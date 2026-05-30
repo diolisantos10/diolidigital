@@ -13,8 +13,10 @@ import {
   MOCK_BRAND_ASSETS,
   MOCK_AGENTS,
   ProjectStage,
+  type BrandBrain,
 } from "@/lib/agency/mock-data";
 import type { OperationalRisk } from "@/lib/agency/workspace";
+import { getClientAgentContext } from "@/lib/agency/workspace";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -72,10 +74,27 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
   const { id } = use(params);
   const { clients, projects, tasks, deliverables, activity, updateClient } = useAgencyStore();
   const [editOpen, setEditOpen] = useState(false);
+  const [brainEditing, setBrainEditing] = useState(false);
+  const [brainDraft, setBrainDraft] = useState<BrandBrain | null>(null);
+  const [brainSaved, setBrainSaved] = useState(false);
   const portalUrl = `/portal/client/${id}`;
 
   const client = clients.find((c) => c.id === id);
   if (!client) return notFound();
+
+  const EMPTY_BRAIN: BrandBrain = {
+    businessSummary: "", positioning: "", targetAudience: "", toneOfVoice: "",
+    visualStyle: "", brandRules: "", productsToHighlight: "", thingsToAvoid: "",
+    preferredChannels: "", strategicNotes: "",
+  };
+  const activeBrainDraft: BrandBrain = brainDraft ?? client.brandBrain ?? EMPTY_BRAIN;
+
+  const handleSaveBrain = () => {
+    updateClient(id, { brandBrain: activeBrainDraft });
+    setBrainEditing(false);
+    setBrainSaved(true);
+    setTimeout(() => setBrainSaved(false), 3000);
+  };
 
   // ── Derived collections ─────────────────────────────────────────────────────
   const clientProjects = projects.filter((p) => p.clientId === id);
@@ -140,6 +159,21 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
   const stalledProjects = clientProjects.filter((p) => p.stage !== "completed" && !inProgressTasks.some((t) => t.projectId === p.id));
   for (const p of stalledProjects) risks.push({ severity: "low", label: "No active tasks", detail: `${p.name} has no in-progress tasks`, projectId: p.id });
   const RISK_COLORS = { high: { bg: "bg-[#FEE2E2]", text: "text-[#DC2626]", dot: "bg-[#DC2626]" }, medium: { bg: "bg-[#FEF3C7]", text: "text-[#D97706]", dot: "bg-[#D97706]" }, low: { bg: "bg-[#F0F0ED]", text: "text-[#6B6B65]", dot: "bg-[#9B9B95]" } };
+
+  // ── Agent context readiness ──────────────────────────────────────────────────
+  const agentCtx = getClientAgentContext(client);
+  const BRAIN_FIELDS: { key: keyof BrandBrain; label: string; placeholder: string }[] = [
+    { key: "businessSummary",     label: "Business Summary",      placeholder: "What the business is, what it sells, why it exists" },
+    { key: "positioning",         label: "Positioning",           placeholder: "Market position and unique value proposition" },
+    { key: "targetAudience",      label: "Target Audience",       placeholder: "Who the brand is talking to" },
+    { key: "toneOfVoice",         label: "Tone of Voice",         placeholder: "How the brand communicates" },
+    { key: "visualStyle",         label: "Visual Style",          placeholder: "Visual direction, colors, aesthetic references" },
+    { key: "brandRules",          label: "Brand Rules",           placeholder: "Non-negotiables — must follow, always" },
+    { key: "productsToHighlight", label: "Products to Highlight", placeholder: "Key products / services to feature in content" },
+    { key: "thingsToAvoid",       label: "Things to Avoid",       placeholder: "Words, tones, references to never use" },
+    { key: "preferredChannels",   label: "Preferred Channels",    placeholder: "Best-performing channels for this brand" },
+    { key: "strategicNotes",      label: "Strategic Notes",       placeholder: "Agency-only context, history, caveats" },
+  ];
 
   // ── Edit form ───────────────────────────────────────────────────────────────
   const [form, setForm] = useState({
@@ -421,6 +455,62 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                 ))}
               </div>
             )}
+          </div>
+
+          {/* ── Brand Brain ──────────────────────────────────────────────────── */}
+          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0F0ED]">
+              <div className="flex items-center gap-2.5">
+                <h2 className="text-[14px] font-semibold text-[#1A1A1A]">Brand Brain</h2>
+                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                  agentCtx.brandBrainReadiness === 10
+                    ? "bg-[#DCFCE7] text-[#16A34A]"
+                    : agentCtx.brandBrainReadiness >= 5
+                    ? "bg-[#FEF3C7] text-[#D97706]"
+                    : "bg-[#F0F0ED] text-[#9B9B95]"
+                }`}>
+                  {agentCtx.brandBrainReadiness}/10
+                </span>
+                {brainSaved && (
+                  <span className="text-[11px] text-[#16A34A] font-medium">✓ Saved</span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {brainEditing ? (
+                  <>
+                    <Button variant="ghost" onClick={() => { setBrainDraft(null); setBrainEditing(false); }}>Cancel</Button>
+                    <Button variant="primary" onClick={handleSaveBrain}>Save</Button>
+                  </>
+                ) : (
+                  <Button variant="secondary" onClick={() => { setBrainDraft(client.brandBrain ?? EMPTY_BRAIN); setBrainEditing(true); }}>Edit</Button>
+                )}
+              </div>
+            </div>
+
+            <div className="divide-y divide-[#F0F0ED]">
+              {BRAIN_FIELDS.map(({ key, label, placeholder }) => {
+                const value = (client.brandBrain?.[key] ?? "") as string;
+                const draftValue = (activeBrainDraft[key] ?? "") as string;
+                return (
+                  <div key={key} className="px-5 py-3.5">
+                    <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">{label}</div>
+                    {brainEditing ? (
+                      <textarea
+                        value={draftValue}
+                        onChange={(e) => setBrainDraft({ ...activeBrainDraft, [key]: e.target.value })}
+                        placeholder={placeholder}
+                        rows={2}
+                        className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white resize-none"
+                      />
+                    ) : value ? (
+                      <p className="text-[13px] text-[#1A1A1A] leading-relaxed">{value}</p>
+                    ) : (
+                      <p className="text-[12px] text-[#C0C0BC] italic">{placeholder}</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           {/* ── Activity Timeline ─────────────────────────────────────────────── */}

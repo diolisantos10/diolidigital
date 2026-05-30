@@ -12,7 +12,7 @@
 //
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { Deliverable, Project, ProjectProposal } from "./mock-data";
+import type { BrandBrain, Client, Deliverable, Project, ProjectProposal } from "./mock-data";
 
 // ─── View types ───────────────────────────────────────────────────────────────
 
@@ -83,6 +83,12 @@ export const WORKSPACE_SECTIONS: WorkspaceSection[] = [
     label: "Orchestrator / Brief",
     visibility: "internal",
     description: "AI orchestration brief, execution plan, prompt context.",
+  },
+  {
+    id: "brand_brain",
+    label: "Brand Brain",
+    visibility: "internal",
+    description: "Structured brand intelligence: positioning, tone, visual style, rules, and strategic notes for agent context.",
   },
 
   // ── Client-visible ─────────────────────────────────────────────────────────
@@ -211,4 +217,53 @@ export interface OperationalRisk {
   label: string;
   detail: string;
   projectId?: string;
+}
+
+// ─── Agent client context ─────────────────────────────────────────────────────
+// Compact context object injected into agent prompts.
+// Merges Brand Brain fields with intake profile fields.
+
+export interface AgentClientContext {
+  clientId: string;
+  clientName: string;
+  industry: string;
+  // From intake profile
+  description?: string;
+  targetAudience?: string;
+  brandTone?: string;
+  currentChannels?: string;
+  whatWorks?: string;
+  whatFails?: string;
+  restrictions?: string;
+  // From Brand Brain (all optional — may not be filled yet)
+  brandBrain?: Partial<BrandBrain>;
+  // Readiness score: how many of the 10 Brand Brain fields are filled
+  brandBrainReadiness: number;
+}
+
+export function getClientAgentContext(client: Client): AgentClientContext {
+  const brain = client.brandBrain;
+  const brainFields: (keyof BrandBrain)[] = [
+    "businessSummary", "positioning", "targetAudience", "toneOfVoice",
+    "visualStyle", "brandRules", "productsToHighlight", "thingsToAvoid",
+    "preferredChannels", "strategicNotes",
+  ];
+  const filledCount = brain
+    ? brainFields.filter((k) => brain[k] && (brain[k] as string).trim().length > 0).length
+    : 0;
+
+  return {
+    clientId: client.id,
+    clientName: client.name,
+    industry: client.industry,
+    ...(client.description ? { description: client.description } : {}),
+    ...(client.targetAudience ? { targetAudience: client.targetAudience } : {}),
+    ...(client.brandTone ? { brandTone: client.brandTone } : {}),
+    ...(client.currentChannels ? { currentChannels: client.currentChannels } : {}),
+    ...(client.whatWorks ? { whatWorks: client.whatWorks } : {}),
+    ...(client.whatFails ? { whatFails: client.whatFails } : {}),
+    ...(client.restrictions ? { restrictions: client.restrictions } : {}),
+    ...(brain ? { brandBrain: brain } : {}),
+    brandBrainReadiness: filledCount,
+  };
 }
