@@ -292,6 +292,70 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               );
             })()}
 
+            {/* Social Media Department status */}
+            {(() => {
+              const SOCIAL_TYPES = ["Content Strategy", "Content Calendar", "Posts", "Stories", "Design Requests"];
+              const socialDeliverables = projectDeliverables.filter((d) => SOCIAL_TYPES.includes(d.type));
+              if (socialDeliverables.length === 0) return null;
+
+              const hasStrategy = socialDeliverables.some((d) => d.type === "Content Strategy");
+              const hasCalendar = socialDeliverables.some((d) => d.type === "Content Calendar");
+              const hasContent  = socialDeliverables.some((d) => d.type === "Posts" || d.type === "Stories");
+              const hasDesign   = socialDeliverables.some((d) => d.type === "Design Requests");
+              const pendingApproval = socialDeliverables.filter((d) => d.status === "in_review").length;
+              const approvedCount   = socialDeliverables.filter((d) => d.status === "approved").length;
+
+              const deptItems = [
+                { label: "Social Strategy",  done: hasStrategy },
+                { label: "Content Calendar", done: hasCalendar },
+                { label: "Content Package",  done: hasContent },
+                { label: "Design Requests",  done: hasDesign },
+              ];
+
+              return (
+                <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Social Media Department</div>
+                    <button onClick={() => setTab("deliverables")} className="text-[12px] text-[#5B5BD6] hover:underline">
+                      View deliverables →
+                    </button>
+                  </div>
+                  <div className="space-y-1.5">
+                    {deptItems.map(({ label, done }) => (
+                      <div key={label} className="flex items-center gap-2">
+                        <span className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${done ? "bg-[#DCFCE7]" : "bg-[#F0F0ED]"}`}>
+                          {done ? (
+                            <svg width="8" height="6" viewBox="0 0 8 6" fill="none">
+                              <path d="M1 3L3 5L7 1" stroke="#16A34A" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          ) : (
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#C0C0BC]" />
+                          )}
+                        </span>
+                        <span className={`text-[13px] ${done ? "text-[#1A1A1A]" : "text-[#9B9B95]"}`}>{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {(pendingApproval > 0 || approvedCount > 0) && (
+                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[#F0F0ED] flex-wrap">
+                      {pendingApproval > 0 && (
+                        <span className="flex items-center gap-1.5 h-6 px-2.5 rounded-full bg-[#FEF3C7] text-[#D97706] text-[11px] font-semibold">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#D97706]" />
+                          {pendingApproval} pending client approval
+                        </span>
+                      )}
+                      {approvedCount > 0 && (
+                        <span className="flex items-center gap-1.5 h-6 px-2.5 rounded-full bg-[#DCFCE7] text-[#16A34A] text-[11px] font-semibold">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#16A34A]" />
+                          {approvedCount} approved
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
             {/* Goal */}
             <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
               <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">Goal</div>

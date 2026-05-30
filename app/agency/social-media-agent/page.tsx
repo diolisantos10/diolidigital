@@ -6,14 +6,20 @@ import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import { useAgencyStore } from "@/store/agency-store";
 import { getClientAgentContext } from "@/lib/agency/workspace";
 import type { AgentClientContext } from "@/lib/agency/workspace";
+import Link from "next/link";
 
-const FREQUENCY_OPTIONS = [
-  "3x per week",
-  "5x per week",
-  "Daily",
-  "2x per week",
-  "1x per week",
-];
+// ─── Form ────────────────────────────────────────────────────────────────────
+
+interface SocialForm {
+  brandName: string;
+  brandSummary: string;
+  toneOfVoice: string;
+  visualStyle: string;
+  objective: string;
+  frequency: string;
+  channels: string[];
+  notes: string;
+}
 
 const TONE_OPTIONS = [
   "Professional & authoritative",
@@ -33,15 +39,9 @@ const VISUAL_OPTIONS = [
   "Organic & lifestyle",
 ];
 
-interface SocialForm {
-  brandName: string;
-  brandSummary: string;
-  toneOfVoice: string;
-  visualStyle: string;
-  objective: string;
-  frequency: string;
-  notes: string;
-}
+const FREQUENCY_OPTIONS = ["3x per week", "5x per week", "Daily", "2x per week", "1x per week"];
+
+const CHANNEL_OPTIONS = ["Instagram", "TikTok", "LinkedIn", "Facebook", "X / Twitter", "YouTube"];
 
 const EMPTY_FORM: SocialForm = {
   brandName: "",
@@ -50,11 +50,9 @@ const EMPTY_FORM: SocialForm = {
   visualStyle: VISUAL_OPTIONS[0],
   objective: "",
   frequency: FREQUENCY_OPTIONS[0],
+  channels: ["Instagram"],
   notes: "",
 };
-
-type AgentState = "idle" | "generating" | "output_ready";
-type OutputTab = "brand" | "content" | "posts" | "handoff" | "contract";
 
 // ─── Output types ────────────────────────────────────────────────────────────
 
@@ -65,40 +63,76 @@ interface BrandInterpretation {
   toAvoid: string[];
 }
 
-interface ObjectiveTranslation {
-  contentDirection: string;
-  primaryKPI: string;
-  contentRatio: string;
-}
-
-interface Territory {
+interface ContentPillar {
   name: string;
   description: string;
-  frequency: string;
+  percentage: number;
+  example: string;
+}
+
+interface ChannelRec {
+  channel: string;
+  priority: "primary" | "secondary";
+  rationale: string;
+  formats: string[];
+}
+
+interface SocialStrategy {
+  socialObjective: string;
+  contentPositioning: string;
+  contentPillars: ContentPillar[];
+  channelRecommendations: ChannelRec[];
+  postingFrequency: string;
+  strategicRationale: string;
 }
 
 interface ContentIdea {
   title: string;
-  territory: string;
+  pillar: string;
   format: string;
 }
 
-interface ScheduleDay {
+interface CalendarDay {
   day: string;
-  territory: string;
-  format: string;
   active: boolean;
+  format: string;
+  theme: string;
+  objective: string;
+  channel: string;
+  pillar: string;
 }
 
 interface Post {
   id: number;
   title: string;
+  pillar: string;
   objective: string;
   format: string;
   caption: string;
   cta: string;
   creativeDirection: string;
   imagePrompt: string;
+  designNotes: string;
+}
+
+interface StoryIdea {
+  id: number;
+  title: string;
+  pillar: string;
+  objective: string;
+  slideCount: number;
+  caption: string;
+  cta: string;
+  designNotes: string;
+}
+
+interface HandoffEntry {
+  postId: number;
+  title: string;
+  format: string;
+  visualDirection: string;
+  prompt: string;
+  keyCopy: string;
   designNotes: string;
 }
 
@@ -114,23 +148,13 @@ interface DesignContract {
   designNotes: string;
 }
 
-interface HandoffEntry {
-  postId: number;
-  title: string;
-  format: string;
-  visualDirection: string;
-  prompt: string;
-  keyCopy: string;
-  designNotes: string;
-}
-
 interface SocialOutput {
+  strategy: SocialStrategy;
   brandInterpretation: BrandInterpretation;
-  objectiveTranslation: ObjectiveTranslation;
-  territories: Territory[];
   contentIdeas: ContentIdea[];
-  schedule: ScheduleDay[];
+  calendar: CalendarDay[];
   posts: Post[];
+  stories: StoryIdea[];
   handoff: HandoffEntry[];
   contracts: DesignContract[];
 }
@@ -141,22 +165,23 @@ function generateMockOutput(form: SocialForm, ctx: AgentClientContext | null): S
   const b     = form.brandName;
   const brain = ctx?.brandBrain;
 
-  // Brand Brain values take precedence over form selects
-  const toneLabel   = (brain?.toneOfVoice   ?? form.toneOfVoice).toLowerCase();
-  const visualLabel = (brain?.visualStyle    ?? form.visualStyle).toLowerCase();
-  const audience    =  brain?.targetAudience ?? ctx?.targetAudience ?? "the brand's core audience";
-  const visualPfx   =  brain?.visualStyle    ? brain.visualStyle + ", " : "";
+  const tone      = (brain?.toneOfVoice   ?? form.toneOfVoice).toLowerCase();
+  const visual    = (brain?.visualStyle   ?? form.visualStyle).toLowerCase();
+  const audience  =  brain?.targetAudience ?? ctx?.targetAudience ?? "the brand's core audience";
+  const visualPfx =  brain?.visualStyle   ? brain.visualStyle + ", " : "";
+  const channels  = form.channels.length > 0 ? form.channels : ["Instagram"];
+  const primaryCh = channels[0];
 
-  // Split free-text Brain fields into list items
   const splitLines = (s: string | undefined, limit = 4): string[] | null =>
     s ? s.split(/[,\n·•]+/).map((r) => r.trim()).filter(Boolean).slice(0, limit) : null;
 
+  // ── Brand interpretation ────────────────────────────────────────────────
   const brandInterpretation: BrandInterpretation = {
     practicalUnderstanding: brain?.businessSummary
       ? `${brain.businessSummary}${brain.positioning ? " " + brain.positioning : ""}`
-      : `${b} operates in a space where audience trust and consistent visual presence are critical. The brand communicates expertise while remaining accessible to its target community.`,
+      : `${b} operates in a space where audience trust and consistent presence are critical. The brand communicates expertise while remaining accessible to its target community.`,
     communicationStyle: brain?.toneOfVoice
-      ? `${brain.toneOfVoice}. Posts should feel curated and intentional — every caption reflects the brand's point of view.`
+      ? `${brain.toneOfVoice}. Every caption reflects the brand's point of view — curated and intentional.`
       : `${form.toneOfVoice} voice. Posts should feel curated and intentional — never reactive or generic.`,
     toReinforce: splitLines(brain?.brandRules) ?? [
       "Consistent visual identity across all formats",
@@ -172,137 +197,200 @@ function generateMockOutput(form: SocialForm, ctx: AgentClientContext | null): S
     ],
   };
 
-  const objectiveTranslation: ObjectiveTranslation = {
-    contentDirection: `Content should directly serve the goal of "${form.objective}". Each post must earn its place by moving ${audience} closer to action — awareness, trust, or enquiry.`,
-    primaryKPI: "Reach growth + DM enquiry rate + saved posts per week",
-    contentRatio: "50% value / educational — 30% brand story — 20% conversion / CTA",
+  // ── Social strategy ─────────────────────────────────────────────────────
+  const highlightProduct = brain?.productsToHighlight
+    ? brain.productsToHighlight.split(/[,\n]/)[0].trim()
+    : `${b}'s core offer`;
+
+  const strategy: SocialStrategy = {
+    socialObjective: form.objective
+      ? `${form.objective} — specifically targeting ${audience} through consistent, brand-aligned content across ${channels.join(" and ")}.`
+      : `Build brand authority and generate consistent inbound interest from ${audience} through ${form.frequency.toLowerCase()} content on ${primaryCh}.`,
+    contentPositioning: brain?.positioning
+      ? `${b} will be positioned on social as: ${brain.positioning}. Content avoids commoditisation — every post signals expertise, not just presence.`
+      : `${b} will be positioned as a trusted authority in its space. Content avoids generic industry noise and instead creates a point of view that ${audience} can align with.`,
+    contentPillars: [
+      {
+        name: "Brand World",
+        description: brain?.businessSummary
+          ? `Behind-the-scenes content revealing the world behind ${b}. ${brain.businessSummary.slice(0, 80)}. Builds intimacy and affinity.`
+          : `Behind-the-scenes, process, and philosophy content that lets the audience inside ${b}'s world.`,
+        percentage: 25,
+        example: `"A day inside ${b}" — story-format walkthrough of how a project is built.`,
+      },
+      {
+        name: "Value & Education",
+        description: brain?.productsToHighlight
+          ? `Practical, shareable posts highlighting ${brain.productsToHighlight.slice(0, 70)}. Positions the brand as reference, not just seller.`
+          : "Practical, shareable posts that demonstrate expertise. Positions the brand as a reference — not just a seller.",
+        percentage: 30,
+        example: `"3 things most brands get wrong about [topic]" — carousel with actionable insight.`,
+      },
+      {
+        name: "Social Proof",
+        description: `Client results, testimonials, and transformation stories aimed at ${audience}. Converts curiosity into trust.`,
+        percentage: 20,
+        example: `"We helped [Client] achieve [outcome] in [timeframe]" — single image with result headline.`,
+      },
+      {
+        name: "Conversion",
+        description: brain?.productsToHighlight
+          ? `Direct CTAs tied to ${highlightProduct}. Minimal copy, maximum clarity. Always one frictionless next step.`
+          : `Direct calls to action tied to ${b}'s core offer. Minimal copy, maximum clarity.`,
+        percentage: 25,
+        example: `"Ready to grow? We're taking 3 new clients in Q2" — single image with DM CTA.`,
+      },
+    ],
+    channelRecommendations: [
+      {
+        channel: primaryCh,
+        priority: "primary",
+        rationale: brain?.preferredChannels
+          ? `${brain.preferredChannels.slice(0, 100)}`
+          : `${primaryCh} is where ${audience} is most active and discovery-oriented for this category. Organic reach is still viable at this brand's scale.`,
+        formats: primaryCh === "TikTok"
+          ? ["Short-form video (15–30s)", "Talking head + text overlay", "Trending sound with brand message"]
+          : primaryCh === "LinkedIn"
+          ? ["Long-form carousel", "Text post + insight", "Case study post"]
+          : ["Carousel", "Single image", "Reels", "Stories"],
+      },
+      ...(channels.length > 1 ? [{
+        channel: channels[1],
+        priority: "secondary" as const,
+        rationale: `${channels[1]} is used as a distribution layer — repurpose primary content with channel-specific adaptation.`,
+        formats: channels[1] === "TikTok"
+          ? ["Repurposed Reels", "Behind-the-scenes clips"]
+          : channels[1] === "LinkedIn"
+          ? ["Thought leadership posts", "Case study carousels"]
+          : ["Adapted Reels", "Cross-posted stories"],
+      }] : []),
+    ],
+    postingFrequency: form.frequency,
+    strategicRationale: brain?.strategicNotes
+      ? `Strategic context: ${brain.strategicNotes.slice(0, 150)}. Content plan is designed to build sustained engagement momentum, not one-off spikes. Each post serves the funnel and the brand simultaneously.`
+      : `This strategy is built for sustained momentum, not one-off spikes. The ${form.frequency.toLowerCase()} cadence is sustainable and sufficient to build algorithm favour while maintaining quality. Content is structured to serve the full funnel — awareness, trust, and conversion — without any single post having to do all three.`,
   };
 
-  const territories: Territory[] = [
-    {
-      name: "Brand World",
-      description: brain?.businessSummary
-        ? `Behind-the-scenes content that reveals the world behind ${b}. ${brain.businessSummary.slice(0, 100)}. Builds intimacy and brand affinity.`
-        : `Behind-the-scenes, process, and philosophy content that lets the audience inside ${b}'s world. Builds intimacy and brand affinity.`,
-      frequency: "2x per week",
-    },
-    {
-      name: "Value & Education",
-      description: brain?.productsToHighlight
-        ? `Practical, shareable posts focused on ${brain.productsToHighlight.slice(0, 80)}. Positions the brand as the reference — not just a seller.`
-        : "Practical, shareable posts that demonstrate expertise. Positions the brand as a reference — not just a seller.",
-      frequency: "2x per week",
-    },
-    {
-      name: "Social Proof",
-      description: `Client results, testimonials, and transformation stories targeted at ${audience}. Converts curiosity into trust and trust into action.`,
-      frequency: "1x per week",
-    },
-    {
-      name: "Conversion",
-      description: brain?.productsToHighlight
-        ? `Direct calls to action tied to ${brain.productsToHighlight.split(/[,\n]/)[0].trim()}. Minimal copy, maximum clarity. Always with a frictionless next step.`
-        : `Direct calls to action tied to ${b}'s core offer. Minimal copy, maximum clarity. Always with a frictionless next step.`,
-      frequency: "1x per week",
-    },
-  ];
-
-  const highlightTitle = brain?.productsToHighlight
-    ? `Spotlight: ${brain.productsToHighlight.split(/[,\n]/)[0].trim()}`
-    : "3 mistakes brands make on social media (and how to fix them)";
-
+  // ── Content ideas ───────────────────────────────────────────────────────
   const contentIdeas: ContentIdea[] = [
-    { title: `"The ${b} Method" — how we approach every project`,   territory: "Brand World",      format: "Carousel"     },
-    { title: highlightTitle,                                          territory: "Value & Education", format: "Carousel"     },
-    { title: `Behind the brief: a day inside ${b}`,                  territory: "Brand World",      format: "Story"        },
-    { title: `Client result: how we helped [client] achieve [outcome]`, territory: "Social Proof",  format: "Single Image" },
-    { title: "What makes a great visual identity? A quick breakdown", territory: "Value & Education", format: "Carousel"    },
-    { title: `Why we turned down a project last month`,              territory: "Brand World",      format: "Single Image" },
-    { title: "Your questions answered — office hours recap",         territory: "Value & Education", format: "Story"       },
-    { title: `Ready to grow your brand? Here's how to start with ${b}`, territory: "Conversion",   format: "Single Image" },
+    { title: `"The ${b} Method" — how we approach every project`,            pillar: "Brand World",      format: "Carousel" },
+    { title: `${brain?.productsToHighlight ? "Spotlight: " + highlightProduct : "3 mistakes brands make on social"}`, pillar: "Value & Education", format: "Carousel" },
+    { title: `Behind the brief: a day inside ${b}`,                           pillar: "Brand World",      format: "Story" },
+    { title: `Client result: how we helped [client] achieve [outcome]`,       pillar: "Social Proof",     format: "Single Image" },
+    { title: "What makes [key topic] work? A quick breakdown",                pillar: "Value & Education", format: "Carousel" },
+    { title: `Why we turned down a project last month`,                        pillar: "Brand World",      format: "Single Image" },
+    { title: "Your questions answered — FAQ format",                           pillar: "Value & Education", format: "Carousel" },
+    { title: `Ready to grow your brand? Here's how to start with ${b}`,       pillar: "Conversion",        format: "Single Image" },
   ];
 
-  const schedule: ScheduleDay[] = [
-    { day: "Mon", territory: "Brand World",  format: "Carousel",     active: true  },
-    { day: "Tue", territory: "—",            format: "—",            active: false },
-    { day: "Wed", territory: "Value",        format: "Carousel",     active: true  },
-    { day: "Thu", territory: "Social Proof", format: "Single Image", active: true  },
-    { day: "Fri", territory: "Brand World",  format: "Story",        active: true  },
-    { day: "Sat", territory: "—",            format: "—",            active: false },
-    { day: "Sun", territory: "Conversion",   format: "Single Image", active: true  },
-  ];
+  // ── Content calendar ────────────────────────────────────────────────────
+  const freqNum = form.frequency === "Daily" ? 7
+    : form.frequency === "5x per week" ? 5
+    : form.frequency === "3x per week" ? 3
+    : form.frequency === "2x per week" ? 2
+    : 1;
+  const activeDays = ["Mon", "Wed", "Fri", "Sun", "Tue", "Thu", "Sat"].slice(0, freqNum);
+  const dayMap: Record<string, { pillar: string; format: string; theme: string; objective: string }> = {
+    Mon: { pillar: "Brand World",      format: "Carousel",     theme: "Process / behind-the-scenes",  objective: "Awareness & affinity" },
+    Tue: { pillar: "Value & Education",format: "Carousel",     theme: "Educational / how-to",         objective: "Saves & shares" },
+    Wed: { pillar: "Social Proof",     format: "Single Image", theme: "Client result",                objective: "Trust & credibility" },
+    Thu: { pillar: "Value & Education",format: "Reel",         theme: "Quick tip / insight",          objective: "Reach & discovery" },
+    Fri: { pillar: "Brand World",      format: "Story",        theme: "Team / culture",               objective: "Connection & intimacy" },
+    Sat: { pillar: "Conversion",       format: "Single Image", theme: "Offer / CTA",                  objective: "Lead generation" },
+    Sun: { pillar: "Social Proof",     format: "Carousel",     theme: "Case study",                   objective: "Consideration" },
+  };
 
+  const calendar: CalendarDay[] = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => {
+    const isActive = activeDays.includes(day);
+    const info = dayMap[day];
+    return {
+      day,
+      active: isActive,
+      format: isActive ? info.format : "—",
+      theme: isActive ? info.theme : "—",
+      objective: isActive ? info.objective : "—",
+      channel: isActive ? primaryCh : "—",
+      pillar: isActive ? info.pillar : "—",
+    };
+  });
+
+  // ── Posts ───────────────────────────────────────────────────────────────
   const posts: Post[] = [
     {
-      id: 1,
-      title: `The ${b} Method`,
+      id: 1, title: `The ${b} Method`, pillar: "Brand World",
       objective: "Build brand authority and introduce the brand's unique process",
       format: "Carousel",
       caption: `There's a reason every project we take on starts the same way.\n\nNot with a brief. Not with a moodboard.\n\nWith a question: what does this brand actually need to say?\n\nSwipe to see how the ${b} method works from brief to delivery. 👉`,
       cta: "Save this post — you'll want to come back to it.",
-      creativeDirection: `${toneLabel} tone, ${visualLabel} aesthetic. Slide 1: bold headline on brand-colour background. Slides 2–5: one idea per slide, clean typographic layout. Final slide: logo + CTA.`,
+      creativeDirection: `${tone} tone, ${visual} aesthetic. Slide 1: bold headline on brand-colour background. Slides 2–5: one idea per slide, clean typographic layout. Final slide: logo + CTA.`,
       imagePrompt: `${visualPfx}minimalist editorial layout, professional brand identity design process, clean typography on neutral background, high contrast, agency aesthetic, no people`,
       designNotes: `6-slide carousel. Consistent slide template. Typography-led. Brand colour on slide 1 and last slide.${brain?.visualStyle ? " Style ref: " + brain.visualStyle + "." : ""}`,
     },
     {
       id: 2,
-      title: highlightTitle,
+      title: brain?.productsToHighlight ? `Spotlight: ${highlightProduct}` : "3 Mistakes Brands Make on Social",
+      pillar: "Value & Education",
       objective: "Deliver value, increase saves and shares, attract ideal clients",
       format: "Carousel",
       caption: brain?.productsToHighlight
-        ? `Not all products are created equal.\n\nHere's what makes ${brain.productsToHighlight.split(/[,\n]/)[0].trim()} the right choice — and why it matters for your brand.\n\nSwipe to find out. 👉`
+        ? `Not all offerings are equal.\n\nHere's what makes ${highlightProduct} the right choice — and why it matters for your brand.\n\nSwipe to find out. 👉`
         : `Most brands are losing on social — not because of bad content, but because of these 3 mistakes.\n\nAnd the worst part? They're easy to fix.\n\nSwipe to see if you're making any of them. 👉`,
       cta: "Tag a brand that needs to see this.",
-      creativeDirection: `Clean educational layout. ${visualLabel} visual style throughout. ${toneLabel} tone in all copy.`,
+      creativeDirection: `Clean educational layout. ${visual} visual style throughout. ${tone} tone in all copy.`,
       imagePrompt: `${visualPfx}clean infographic style, minimal illustration, bold numbers, educational content layout, neutral tones with brand accent colour`,
       designNotes: `5-slide carousel. Cover → Points → Summary/CTA.${brain?.visualStyle ? " Style: " + brain.visualStyle + "." : ""}`,
     },
     {
-      id: 3,
-      title: "Client Result Story",
+      id: 3, title: "Client Result Story", pillar: "Social Proof",
       objective: "Build social proof and convert warm leads",
       format: "Single Image",
       caption: `Six months ago, [Client] came to us with a brand that wasn't landing.\n\nToday, they're [outcome].\n\nWhat changed? Not the product. The way people perceived it.\n\nThat's what great social strategy does.`,
       cta: "DM us 'STRATEGY' to learn how we can do the same for your brand.",
-      creativeDirection: `Result-focused visual. ${visualLabel} treatment. Confident layout for ${audience}.`,
-      imagePrompt: `${visualPfx}professional result showcase, before and after concept, clean layout, brand transformation visual, minimal design, confident typography`,
+      creativeDirection: `Result-focused visual. ${visual} treatment. Confident layout for ${audience}.`,
+      imagePrompt: `${visualPfx}professional result showcase, clean layout, brand transformation visual, minimal design, confident typography`,
       designNotes: `Single image. Strong typographic headline with result number.${brain?.visualStyle ? " Style: " + brain.visualStyle + "." : ""} ${b} logo watermark bottom right.`,
     },
     {
-      id: 4,
-      title: `A Day Inside ${b}`,
-      objective: "Humanise the brand and build audience connection",
-      format: "Story",
-      caption: `Ever wonder what a day inside ${b} looks like?\n\nWe pulled back the curtain. Swipe through to see.`,
-      cta: "Reply with your biggest question about working with us.",
-      creativeDirection: `Raw, behind-the-scenes feel within ${visualLabel} visual language. Authentic but intentional. Tone: ${toneLabel}.`,
-      imagePrompt: `${visualPfx}behind the scenes creative workspace, natural lighting, process shots, authentic atmosphere, brand colours subtle in environment`,
-      designNotes: `3–5 story slides. Mix photo + text overlay. Keep text minimal.${brain?.visualStyle ? " Style: " + brain.visualStyle + "." : ""}`,
-    },
-    {
-      id: 5,
-      title: "What Makes a Great Visual Identity",
-      objective: "Educate the audience and position the brand as an expert",
-      format: "Carousel",
-      caption: `A logo is not a brand.\n\nA colour palette is not a brand.\n\nHere's what actually makes a visual identity work — and how to know if yours does. 👇`,
-      cta: "Save this before your next brand refresh.",
-      creativeDirection: `Educational carousel with clear hierarchy. ${visualLabel} visual style. Each slide has a concept title + 2-line explanation. Ends with ${b} sign-off. ${toneLabel} throughout.`,
-      imagePrompt: `${visualPfx}educational design content, visual identity elements layout, typography system, colour palette display, clean minimal aesthetic, brand design concept`,
-      designNotes: `6 slides. Cover + 4 concept slides + CTA slide. Typographic-led.${brain?.brandRules ? " Brand rules: " + brain.brandRules.slice(0, 60) + "…" : ""}`,
-    },
-    {
-      id: 6,
-      title: `Start With ${b}`,
+      id: 4, title: `Start With ${b}`, pillar: "Conversion",
       objective: "Drive direct enquiries and convert ready buyers",
       format: "Single Image",
-      caption: `If you're serious about growing your brand in the next 90 days —\n\nwe should talk.\n\n${b} is now accepting new clients for Q2.\n\nSpots are limited. The process starts with one message.`,
+      caption: `If you're serious about growing your brand in the next 90 days —\n\nwe should talk.\n\n${b} is now accepting new clients.\n\nSpots are limited. The process starts with one message.`,
       cta: "DM us 'START' to begin.",
-      creativeDirection: `High-confidence conversion creative. Minimal copy on image. ${visualLabel} visual treatment. Clear, direct.${brain?.thingsToAvoid ? " Avoid: " + brain.thingsToAvoid.slice(0, 50) + "." : ""}`,
-      imagePrompt: `${visualPfx}bold conversion creative, minimal text layout, strong brand colour, confident call to action design, premium aesthetic, clean composition`,
+      creativeDirection: `High-confidence conversion creative. Minimal copy on image. ${visual} visual treatment. Clear, direct.${brain?.thingsToAvoid ? " Avoid: " + brain.thingsToAvoid.slice(0, 50) + "." : ""}`,
+      imagePrompt: `${visualPfx}bold conversion creative, minimal text layout, strong brand colour, confident call to action design, premium aesthetic`,
       designNotes: `Single image. Maximum 2 lines of text on asset. Brand colour dominant. ${b} logo centred or top-left. White space is intentional.`,
     },
   ];
 
+  // ── Stories ─────────────────────────────────────────────────────────────
+  const stories: StoryIdea[] = [
+    {
+      id: 1, title: `A Day Inside ${b}`, pillar: "Brand World",
+      objective: "Humanise the brand, increase DMs and replies",
+      slideCount: 5,
+      caption: `Ever wonder what a day inside ${b} actually looks like?\n\nWe pulled back the curtain. Swipe through to see.`,
+      cta: "Reply with your biggest question about working with us.",
+      designNotes: `3–5 story slides. Mix photo + text overlay. Keep copy minimal. ${visual} feel. Authentic — not over-produced.${brain?.visualStyle ? " Style: " + brain.visualStyle + "." : ""}`,
+    },
+    {
+      id: 2, title: "Client Feedback Spotlight", pillar: "Social Proof",
+      objective: "Convert followers who are already warm",
+      slideCount: 3,
+      caption: `We received this message last week.\n\nThis is why we do what we do.`,
+      cta: "Swipe to see the full result — then DM us 'RESULTS' to see more.",
+      designNotes: `3 slides: quote slide → context slide → CTA slide. Clean, high-contrast. Screenshot-style quote treatment.`,
+    },
+    {
+      id: 3, title: "Quick Tip: 60-Second Insight", pillar: "Value & Education",
+      objective: "Drive saves and forward-shares, build reach",
+      slideCount: 4,
+      caption: `One thing most brands forget to do on ${primaryCh}.\n\nAnd it takes 2 minutes to fix.`,
+      cta: "Save this before you post today.",
+      designNotes: `4 slides. Cover → Setup → Tip → CTA. Bold text on brand background. Ultra-readable.`,
+    },
+  ];
+
+  // ── Handoff + Contracts ─────────────────────────────────────────────────
   const handoff: HandoffEntry[] = posts.map((p) => ({
     postId: p.id,
     title: p.title,
@@ -325,71 +413,10 @@ function generateMockOutput(form: SocialForm, ctx: AgentClientContext | null): S
     designNotes: p.designNotes,
   }));
 
-  return { brandInterpretation, objectiveTranslation, territories, contentIdeas, schedule, posts, handoff, contracts };
+  return { strategy, brandInterpretation, contentIdeas, calendar, posts, stories, handoff, contracts };
 }
-
 
 // ─── Export helpers ───────────────────────────────────────────────────────────
-
-function formatPostAsText(post: Post): string {
-  return [
-    `POST ${post.id} — ${post.title}`,
-    `Format: ${post.format}`,
-    `Objective: ${post.objective}`,
-    ``,
-    `Caption:`,
-    post.caption,
-    ``,
-    `CTA: ${post.cta}`,
-    ``,
-    `Creative direction: ${post.creativeDirection}`,
-    ``,
-    `AI image prompt: ${post.imagePrompt}`,
-    ``,
-    `Design notes: ${post.designNotes}`,
-  ].join("\n");
-}
-
-function formatHandoffAsText(handoff: HandoffEntry[]): string {
-  return handoff.map((h) => [
-    `─── POST_${String(h.postId).padStart(2, "0")} — ${h.title}`,
-    `format: ${h.format}`,
-    `key_copy: ${h.keyCopy}`,
-    `visual_direction: ${h.visualDirection}`,
-    `prompt: ${h.prompt}`,
-    `design_notes: ${h.designNotes}`,
-  ].join("\n")).join("\n\n");
-}
-
-function buildExportText(form: SocialForm, output: SocialOutput): string {
-  const lines: string[] = [
-    `SOCIAL MEDIA PACKAGE — ${form.brandName.toUpperCase()}`,
-    `Generated by Social Media Agent`,
-    `Objective: ${form.objective}`,
-    `Frequency: ${form.frequency}`,
-    `Tone: ${form.toneOfVoice}`,
-    `Visual style: ${form.visualStyle}`,
-    ``,
-    `${"=".repeat(60)}`,
-    `POST PACKAGE`,
-    `${"=".repeat(60)}`,
-    ``,
-    ...output.posts.map((p) => formatPostAsText(p) + "\n\n" + "-".repeat(60)),
-    ``,
-    `${"=".repeat(60)}`,
-    `DESIGN HANDOFF`,
-    `${"=".repeat(60)}`,
-    ``,
-    formatHandoffAsText(output.handoff),
-    ``,
-    `${"=".repeat(60)}`,
-    `DESIGN AGENT INPUT CONTRACT`,
-    `${"=".repeat(60)}`,
-    ``,
-    formatContractAsText(output.contracts),
-  ];
-  return lines.join("\n");
-}
 
 function formatContractAsText(contracts: DesignContract[]): string {
   return contracts.map((c) => [
@@ -404,6 +431,17 @@ function formatContractAsText(contracts: DesignContract[]): string {
   ].join("\n")).join("\n\n");
 }
 
+function formatHandoffAsText(handoff: HandoffEntry[]): string {
+  return handoff.map((h) => [
+    `─── POST_${String(h.postId).padStart(2, "0")} — ${h.title}`,
+    `format: ${h.format}`,
+    `key_copy: ${h.keyCopy}`,
+    `visual_direction: ${h.visualDirection}`,
+    `prompt: ${h.prompt}`,
+    `design_notes: ${h.designNotes}`,
+  ].join("\n")).join("\n\n");
+}
+
 function downloadTextFile(filename: string, content: string) {
   const blob = new Blob([content], { type: "text/plain" });
   const url = URL.createObjectURL(blob);
@@ -414,69 +452,73 @@ function downloadTextFile(filename: string, content: string) {
   URL.revokeObjectURL(url);
 }
 
-// ─── Brand Brain context card ────────────────────────────────────────────────
+// ─── Sub-components ───────────────────────────────────────────────────────────
 
-function BrandBrainContextCard({ ctx }: { ctx: AgentClientContext }) {
-  const ready      = ctx.brandBrainReadiness;
+function BrandBrainBadge({ ctx }: { ctx: AgentClientContext }) {
+  const ready = ctx.brandBrainReadiness;
   const incomplete = ready < 5;
   return (
-    <div className={`rounded-[8px] border px-3 py-3 ${incomplete ? "bg-[#FFFBEB] border-[#FDE68A]" : "bg-[#F0FDF4] border-[#BBF7D0]"}`}>
-      <div className="flex items-center justify-between mb-1.5">
+    <div className={`rounded-[8px] border px-3 py-2.5 ${incomplete ? "bg-[#FFFBEB] border-[#FDE68A]" : "bg-[#F0FDF4] border-[#BBF7D0]"}`}>
+      <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-1.5">
           <span className={`text-[11px] font-bold ${incomplete ? "text-[#D97706]" : "text-[#16A34A]"}`}>{incomplete ? "⚠" : "●"}</span>
-          <span className="text-[11px] font-semibold text-[#1A1A1A]">{incomplete ? "Brand Brain incomplete" : "Using Brand Brain"}</span>
-          <span className="text-[10px] text-[#9B9B95]">· {ctx.clientName}</span>
+          <span className="text-[11px] font-semibold text-[#1A1A1A]">{incomplete ? "Brand Brain incomplete" : "Brand Brain active"}</span>
         </div>
         <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${ready === 10 ? "bg-[#DCFCE7] text-[#16A34A]" : ready >= 5 ? "bg-[#FEF3C7] text-[#D97706]" : "bg-[#F0F0ED] text-[#9B9B95]"}`}>{ready}/10</span>
       </div>
-      {incomplete ? (
-        <p className="text-[11px] text-[#D97706] leading-snug">Outputs will use generic brand signals. Complete Brand Brain in the client workspace for fully brand-specific results.</p>
-      ) : (
-        <div className="space-y-1 mt-1">
-          {ctx.brandBrain?.toneOfVoice    && <div className="flex gap-2"><span className="text-[10px] text-[#9B9B95] w-14 shrink-0">Tone</span><span className="text-[11px] text-[#1A1A1A] truncate">{ctx.brandBrain.toneOfVoice}</span></div>}
-          {ctx.brandBrain?.targetAudience && <div className="flex gap-2"><span className="text-[10px] text-[#9B9B95] w-14 shrink-0">Audience</span><span className="text-[11px] text-[#1A1A1A] truncate">{ctx.brandBrain.targetAudience}</span></div>}
-          {ctx.brandBrain?.visualStyle    && <div className="flex gap-2"><span className="text-[10px] text-[#9B9B95] w-14 shrink-0">Visual</span><span className="text-[11px] text-[#1A1A1A] truncate">{ctx.brandBrain.visualStyle}</span></div>}
-        </div>
-      )}
+      {incomplete
+        ? <p className="text-[11px] text-[#D97706] leading-snug">Complete Brand Brain in the client workspace for fully brand-specific outputs.</p>
+        : <div className="flex gap-3 flex-wrap mt-1">
+            {ctx.brandBrain?.toneOfVoice    && <span className="text-[10px] text-[#6B6B65]">Tone: <span className="text-[#1A1A1A] font-medium">{ctx.brandBrain.toneOfVoice.slice(0,40)}</span></span>}
+            {ctx.brandBrain?.targetAudience && <span className="text-[10px] text-[#6B6B65]">Audience: <span className="text-[#1A1A1A] font-medium">{ctx.brandBrain.targetAudience.slice(0,40)}</span></span>}
+          </div>
+      }
     </div>
   );
 }
 
 const STEPS = [
-  "Reading brand inputs…",
-  "Interpreting brand voice…",
-  "Mapping content territories…",
-  "Generating post ideas…",
-  "Building post package…",
+  "Reading brand context…",
+  "Building social strategy…",
+  "Mapping content pillars…",
+  "Generating content calendar…",
+  "Writing post package…",
+  "Writing story ideas…",
   "Preparing design handoff…",
 ];
 
+type AgentState = "idle" | "generating" | "output_ready";
+type OutputTab = "strategy" | "calendar" | "posts" | "stories" | "design";
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 export default function SocialMediaAgentPage() {
-  const [form, setForm] = useState<SocialForm>(EMPTY_FORM);
-  const [agentState, setAgentState] = useState<AgentState>("idle");
-  const [activeTab, setActiveTab] = useState<OutputTab>("brand");
-  const [stepIndex, setStepIndex] = useState(0);
-  const [output, setOutput] = useState<SocialOutput | null>(null);
+  const [form, setForm]               = useState<SocialForm>(EMPTY_FORM);
+  const [agentState, setAgentState]   = useState<AgentState>("idle");
+  const [activeTab, setActiveTab]     = useState<OutputTab>("strategy");
+  const [stepIndex, setStepIndex]     = useState(0);
+  const [output, setOutput]           = useState<SocialOutput | null>(null);
   const [sourceProject, setSourceProject] = useState<{ projectId: string; projectName: string } | null>(null);
   const [savedToProject, setSavedToProject] = useState(false);
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [copiedKey, setCopiedKey]     = useState<string | null>(null);
+
   const router = useRouter();
-  const setPendingDesignContract = useAgencyStore((s) => s.setPendingDesignContract);
-  const pendingAgentInput = useAgencyStore((s) => s.pendingAgentInput);
-  const setPendingAgentInput = useAgencyStore((s) => s.setPendingAgentInput);
-  const addDeliverable = useAgencyStore((s) => s.addDeliverable);
-  const projects = useAgencyStore((s) => s.projects);
-  const clients  = useAgencyStore((s) => s.clients);
+  const { projects, clients, addDeliverable, setPendingDesignContract, pendingAgentInput, setPendingAgentInput } = useAgencyStore();
 
   const linkedProject = sourceProject ? projects.find((p) => p.id === sourceProject.projectId) : null;
   const linkedClient  = linkedProject  ? clients.find((c) => c.id === linkedProject.clientId)  : null;
   const agentCtx: AgentClientContext | null = linkedClient ? getClientAgentContext(linkedClient) : null;
-  const isProposalPending = linkedProject?.stage === "proposal_sent";
-  const isReady = form.brandName.trim() !== "" && form.objective.trim() !== "" && !!sourceProject && !isProposalPending;
 
+  // Execution gate: project linked but proposal not approved
+  const proposalStatus = linkedProject?.proposal?.status;
+  const proposalApproved = proposalStatus === "approved";
+  const proposalBlocked = !!linkedProject && !proposalApproved;
+
+  const isReady = form.brandName.trim() !== "" && form.objective.trim() !== "" && !!sourceProject && !proposalBlocked;
+
+  // Pre-populate from pendingAgentInput (set by project detail page)
   useEffect(() => {
     if (pendingAgentInput) {
-      // Try to pre-populate from Brand Brain if client data is available
       const proj = projects.find((p) => p.id === pendingAgentInput.projectId);
       const cl   = proj ? clients.find((c) => c.id === proj.clientId) : null;
       const ctx  = cl ? getClientAgentContext(cl) : null;
@@ -492,29 +534,53 @@ export default function SocialMediaAgentPage() {
     }
   }, [pendingAgentInput, setPendingAgentInput, projects, clients]);
 
+  function handleRun() {
+    if (!isReady) return;
+    setAgentState("generating");
+    setStepIndex(0);
+    const capturedCtx = agentCtx;
+    const capturedForm = form;
+
+    let elapsed = 0;
+    const delays = [500, 600, 600, 600, 600, 500, 500];
+    delays.forEach((delay, i) => {
+      elapsed += delay;
+      setTimeout(() => {
+        setStepIndex(i);
+        if (i === delays.length - 1) {
+          setTimeout(() => {
+            const result = generateMockOutput(capturedForm, capturedCtx);
+            setOutput(result);
+            setAgentState("output_ready");
+            setActiveTab("strategy");
+            if (sourceProject) {
+              saveDeliverablesForProject(result, sourceProject.projectId, capturedForm.brandName);
+              setSavedToProject(true);
+            }
+          }, 400);
+        }
+      }, elapsed);
+    });
+  }
+
+  function saveDeliverablesForProject(result: SocialOutput, projectId: string, brand: string) {
+    addDeliverable({ projectId, name: `Social Strategy — ${brand}`,                     type: "Content Strategy",  status: "in_review", version: 1 });
+    addDeliverable({ projectId, name: `Content Calendar — ${brand}`,                    type: "Content Calendar",  status: "in_review", version: 1 });
+    addDeliverable({ projectId, name: `Post Package — ${brand} (${result.posts.length} posts)`, type: "Posts",  status: "in_review", version: 1 });
+    addDeliverable({ projectId, name: `Story Package — ${brand} (${result.stories.length} stories)`, type: "Stories", status: "in_review", version: 1 });
+    addDeliverable({ projectId, name: `Design Requests — ${brand}`,                     type: "Design Requests",   status: "in_review", version: 1 });
+  }
+
+  function handleSaveToProject() {
+    if (!output || !sourceProject || savedToProject) return;
+    saveDeliverablesForProject(output, sourceProject.projectId, form.brandName);
+    setSavedToProject(true);
+  }
+
   function handleSendToDesignAgent() {
     if (!output) return;
     setPendingDesignContract(formatContractAsText(output.contracts));
     router.push("/agency/design-agent");
-  }
-
-  function handleSaveToProject() {
-    if (!output || !sourceProject) return;
-    addDeliverable({
-      projectId: sourceProject.projectId,
-      name: `${form.brandName} — Social Media Package`,
-      type: "Social Media Post",
-      status: "in_review",
-      version: 1,
-    });
-    addDeliverable({
-      projectId: sourceProject.projectId,
-      name: `${form.brandName} — Content Strategy`,
-      type: "Social Media",
-      status: "in_review",
-      version: 1,
-    });
-    setSavedToProject(true);
   }
 
   function handleCopy(key: string, text: string) {
@@ -526,141 +592,147 @@ export default function SocialMediaAgentPage() {
 
   function handleExport() {
     if (!output) return;
-    const content = buildExportText(form, output);
-    const slug = form.brandName.toLowerCase().replace(/\s+/g, "-");
-    downloadTextFile(`${slug}-social-media-package.txt`, content);
-  }
-
-  function handleRun() {
-    setAgentState("generating");
-    setStepIndex(0);
-    const capturedCtx = agentCtx;
-
-    let step = 0;
-    const delays = [600, 700, 600, 700, 600, 500];
-    let elapsed = 0;
-
-    delays.forEach((delay, i) => {
-      elapsed += delay;
-      setTimeout(() => {
-        setStepIndex(i);
-        if (i === delays.length - 1) {
-          setTimeout(() => {
-            const generatedOutput = generateMockOutput(form, capturedCtx);
-            setOutput(generatedOutput);
-            setAgentState("output_ready");
-            setActiveTab("brand");
-
-            // Auto-save deliverables when a project is linked
-            if (sourceProject) {
-              generatedOutput.posts.forEach((post, idx) => {
-                addDeliverable({
-                  projectId: sourceProject.projectId,
-                  name: `Post ${String(idx + 1).padStart(2, "0")} — ${post.title}`,
-                  type: "Social Media Post",
-                  status: "in_review",
-                  version: 1,
-                });
-              });
-              addDeliverable({
-                projectId: sourceProject.projectId,
-                name: `${form.brandName} — Content Strategy`,
-                type: "Social Media",
-                status: "in_review",
-                version: 1,
-              });
-              setSavedToProject(true);
-            }
-          }, 400);
-        }
-      }, elapsed);
-    });
-
-    void step;
+    const lines = [
+      `SOCIAL MEDIA PACKAGE — ${form.brandName.toUpperCase()}`,
+      `Generated by Social Media Agent — Dioli Agency OS`,
+      ``,
+      `STRATEGY`,
+      `Objective: ${output.strategy.socialObjective}`,
+      `Positioning: ${output.strategy.contentPositioning}`,
+      `Frequency: ${output.strategy.postingFrequency}`,
+      `Rationale: ${output.strategy.strategicRationale}`,
+      ``,
+      `CONTENT PILLARS`,
+      output.strategy.contentPillars.map((p) => `[${p.percentage}%] ${p.name}: ${p.description}`).join("\n"),
+      ``,
+      `POST PACKAGE`,
+      output.posts.map((p) => `Post ${p.id} — ${p.title}\nCaption: ${p.caption}\nCTA: ${p.cta}\nDesign: ${p.designNotes}`).join("\n\n"),
+      ``,
+      `STORY IDEAS`,
+      output.stories.map((s) => `Story ${s.id} — ${s.title} (${s.slideCount} slides)\nCaption: ${s.caption}\nCTA: ${s.cta}`).join("\n\n"),
+      ``,
+      `DESIGN HANDOFF`,
+      formatHandoffAsText(output.handoff),
+    ];
+    downloadTextFile(`${form.brandName.toLowerCase().replace(/\s+/g, "-")}-social-package.txt`, lines.join("\n"));
   }
 
   function handleReset() {
-    setAgentState("idle");
-    setForm(EMPTY_FORM);
-    setOutput(null);
-    setStepIndex(0);
-    setSourceProject(null);
-    setSavedToProject(false);
+    setAgentState("idle"); setOutput(null); setStepIndex(0);
+    setForm(EMPTY_FORM); setSourceProject(null); setSavedToProject(false);
   }
+
+  const TAB_LABELS: Record<OutputTab, string> = {
+    strategy: "Strategy",
+    calendar: "Calendar",
+    posts: "Posts",
+    stories: "Stories",
+    design: "Design",
+  };
+
+  // ── Blocked panel (proposal gate) ─────────────────────────────────────────
+  const ProposalGatePanel = () => {
+    const statusLabels: Record<string, { label: string; color: string; bg: string }> = {
+      draft:             { label: "Draft — not sent", color: "text-[#6B6B65]", bg: "bg-[#F7F7F6]" },
+      sent:              { label: "Awaiting client approval", color: "text-[#5B5BD6]", bg: "bg-[#EEF0FF]" },
+      rejected:          { label: "Rejected by client", color: "text-[#DC2626]", bg: "bg-[#FEF2F2]" },
+      changes_requested: { label: "Changes requested", color: "text-[#D97706]", bg: "bg-[#FFFBEB]" },
+    };
+    const statusInfo = proposalStatus ? (statusLabels[proposalStatus] ?? statusLabels.draft) : statusLabels.draft;
+
+    return (
+      <div className="bg-white rounded-[10px] border border-[#FDE68A] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-8 py-14 flex flex-col items-center text-center">
+        <div className="w-12 h-12 rounded-full bg-[#FEF3C7] flex items-center justify-center mb-5">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+            <path d="M11 7v5M11 15h.01" stroke="#D97706" strokeWidth="1.8" strokeLinecap="round"/>
+            <circle cx="11" cy="11" r="9" stroke="#D97706" strokeWidth="1.5"/>
+          </svg>
+        </div>
+        <p className="text-[15px] font-semibold text-[#1A1A1A] mb-2">Execution blocked</p>
+        <p className="text-[13px] text-[#6B6B65] max-w-sm leading-relaxed mb-5">
+          The Social Media Agent can only run after the client has approved the project proposal.
+          This ensures all work is commercially authorised before execution.
+        </p>
+        <div className={`flex items-center gap-2 px-4 py-2 rounded-full mb-5 ${statusInfo.bg}`}>
+          <span className={`text-[12px] font-semibold ${statusInfo.color}`}>
+            Proposal status: {statusInfo.label}
+          </span>
+        </div>
+        {linkedProject && (
+          <Link
+            href={`/agency/projects/${linkedProject.id}?tab=proposal`}
+            className="h-8 px-4 rounded-[7px] bg-[#1A1A1A] hover:bg-[#111111] text-white text-[12px] font-medium transition-colors"
+          >
+            View Proposal →
+          </Link>
+        )}
+        {proposalStatus === "draft" && (
+          <p className="text-[11px] text-[#9B9B95] mt-3">Draft → Send to client → Wait for approval → Run agent</p>
+        )}
+        {proposalStatus === "sent" && (
+          <p className="text-[11px] text-[#9B9B95] mt-3">Share the client portal link for {linkedClient?.name} to approve.</p>
+        )}
+        {proposalStatus === "rejected" && (
+          <p className="text-[11px] text-[#9B9B95] mt-3">Revise and resend the proposal, then wait for client approval.</p>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F7F7F6]">
       <AgencyHeader
         title="Social Media Agent"
-        subtitle="Transform brand inputs into a complete social media execution package."
+        subtitle="Brand-aligned strategy, content calendar, posts, and stories — ready for client review."
       />
 
       <div className="flex-1 p-6 max-w-[1200px] mx-auto w-full">
-        {/* Top label */}
+        {/* Top bar */}
         <div className="flex items-center gap-2 mb-6">
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[11px] font-semibold tracking-wide uppercase">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#5B5BD6] inline-block" />
-            Production Agent
+            <span className="w-1.5 h-1.5 rounded-full bg-[#5B5BD6]" />
+            Social Media Department
           </span>
-          <span className="text-[12px] text-[#9B9B95]">v1.0 — Mock Mode</span>
+          <span className="text-[12px] text-[#9B9B95]">v1</span>
           {sourceProject && (
-            <a
-              href={`/agency/projects/${sourceProject.projectId}`}
-              className="text-[12px] text-[#5B5BD6] hover:underline"
-            >
+            <Link href={`/agency/projects/${sourceProject.projectId}`} className="text-[12px] text-[#5B5BD6] hover:underline">
               ← {sourceProject.projectName}
-            </a>
+            </Link>
           )}
           {agentState === "output_ready" && (
             <div className="ml-auto flex items-center gap-2">
               {sourceProject && (
                 savedToProject ? (
                   <span className="flex items-center gap-1.5 h-7 px-3 rounded-[6px] text-[12px] font-medium bg-[#DCFCE7] text-[#16A34A] border border-[#BBF7D0]">
-                    <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
-                      <path d="M2 5.5l2.5 2.5 4.5-4.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    Saved to {sourceProject.projectName}
+                    <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M2 5.5l2.5 2.5 4.5-4.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    Saved — {sourceProject.projectName}
                   </span>
                 ) : (
-                  <button
-                    onClick={handleSaveToProject}
-                    className="flex items-center gap-1.5 h-7 px-3 rounded-[6px] text-[12px] font-medium bg-[#5B5BD6] text-white hover:bg-[#4A4AC5] transition-colors"
-                  >
-                    <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
-                      <path d="M5.5 1v6M2.5 4.5L5.5 7.5 8.5 4.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M1 8.5v1a.5.5 0 00.5.5h8a.5.5 0 00.5-.5v-1" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-                    </svg>
-                    Save to {sourceProject.projectName}
+                  <button onClick={handleSaveToProject} className="h-7 px-3 rounded-[6px] text-[12px] font-medium bg-[#5B5BD6] text-white hover:bg-[#4A4AC5] transition-colors">
+                    Save to Project
                   </button>
                 )
               )}
-              <button
-                onClick={handleExport}
-                className="flex items-center gap-1.5 h-7 px-3 rounded-[6px] text-[12px] font-medium border border-[#E5E5E2] bg-white text-[#1A1A1A] hover:bg-[#F7F7F6] transition-colors"
-              >
-                <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-                  <path d="M6.5 1v7M3.5 5.5L6.5 8.5 9.5 5.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M1.5 9.5v1a1 1 0 001 1h8a1 1 0 001-1v-1" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-                </svg>
+              <button onClick={handleExport} className="h-7 px-3 rounded-[6px] text-[12px] font-medium border border-[#E5E5E2] bg-white text-[#1A1A1A] hover:bg-[#F7F7F6] transition-colors">
                 Export Package
               </button>
             </div>
           )}
         </div>
 
-        {/* Main 2-col layout */}
-        <div className="grid grid-cols-[380px_1fr] gap-6 items-start">
+        {/* 2-col layout */}
+        <div className="grid grid-cols-[360px_1fr] gap-6 items-start">
 
-          {/* LEFT — Input form */}
+          {/* LEFT — form */}
           <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
             <div className="px-5 py-4 border-b border-[#E5E5E2]">
-              <p className="text-[13px] font-semibold text-[#1A1A1A]">Brand Brief</p>
-              <p className="text-[12px] text-[#9B9B95] mt-0.5">Describe the brand and what you need.</p>
+              <p className="text-[13px] font-semibold text-[#1A1A1A]">Brief</p>
+              <p className="text-[12px] text-[#9B9B95] mt-0.5">Link a project and describe what needs to be done.</p>
             </div>
             <div className="px-5 py-5 space-y-4">
 
               {/* Project link */}
-              {!sourceProject && (
+              {!sourceProject ? (
                 <div>
                   <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">
                     Link to project <span className="text-[#DC2626]">*</span>
@@ -671,7 +743,7 @@ export default function SocialMediaAgentPage() {
                       const p = projects.find((x) => x.id === e.target.value);
                       if (p) setSourceProject({ projectId: p.id, projectName: p.name });
                     }}
-                    className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white transition-colors"
+                    className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
                   >
                     <option value="">— select a project —</option>
                     {projects.map((p) => (
@@ -679,132 +751,137 @@ export default function SocialMediaAgentPage() {
                     ))}
                   </select>
                 </div>
+              ) : (
+                <div className="flex items-center justify-between py-1.5 px-3 rounded-[7px] bg-[#F7F7F6] border border-[#E5E5E2]">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full ${proposalApproved ? "bg-[#16A34A]" : proposalBlocked ? "bg-[#D97706]" : "bg-[#9B9B95]"}`} />
+                    <span className="text-[12px] font-medium text-[#1A1A1A] truncate max-w-[160px]">{sourceProject.projectName}</span>
+                  </div>
+                  <button onClick={() => { setSourceProject(null); setSavedToProject(false); }} className="text-[11px] text-[#9B9B95] hover:text-[#DC2626] transition-colors">✕</button>
+                </div>
               )}
 
               {/* Brand name */}
               <div>
-                <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">
-                  Brand name <span className="text-[#DC2626]">*</span>
-                </label>
+                <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Brand name <span className="text-[#DC2626]">*</span></label>
                 <input
                   type="text"
                   value={form.brandName}
                   onChange={(e) => setForm({ ...form, brandName: e.target.value })}
-                  placeholder="e.g. Santioh Studio"
-                  className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white transition-colors"
+                  placeholder="e.g. Sushikasa"
+                  className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
                 />
               </div>
 
               {/* Brand summary */}
               <div>
-                <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">
-                  Brand summary
-                </label>
+                <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Brand summary</label>
                 <textarea
                   value={form.brandSummary}
                   onChange={(e) => setForm({ ...form, brandSummary: e.target.value })}
-                  placeholder="Brief description of the brand, what it does, who it's for..."
-                  rows={3}
-                  className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white transition-colors resize-none"
+                  placeholder="What does the brand do, who is it for..."
+                  rows={2}
+                  className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white resize-none"
                 />
               </div>
 
-              {/* Tone of voice */}
+              {/* Objective */}
               <div>
-                <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">
-                  Tone of voice
-                </label>
-                <select
-                  value={form.toneOfVoice}
-                  onChange={(e) => setForm({ ...form, toneOfVoice: e.target.value })}
-                  className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white transition-colors"
-                >
-                  {TONE_OPTIONS.map((t) => <option key={t}>{t}</option>)}
-                </select>
-              </div>
-
-              {/* Visual style */}
-              <div>
-                <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">
-                  Visual style
-                </label>
-                <select
-                  value={form.visualStyle}
-                  onChange={(e) => setForm({ ...form, visualStyle: e.target.value })}
-                  className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white transition-colors"
-                >
-                  {VISUAL_OPTIONS.map((v) => <option key={v}>{v}</option>)}
-                </select>
-              </div>
-
-              {/* Main objective */}
-              <div>
-                <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">
-                  Main objective <span className="text-[#DC2626]">*</span>
-                </label>
+                <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Main objective <span className="text-[#DC2626]">*</span></label>
                 <input
                   type="text"
                   value={form.objective}
                   onChange={(e) => setForm({ ...form, objective: e.target.value })}
                   placeholder="e.g. Grow brand awareness and drive DM enquiries"
-                  className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white transition-colors"
+                  className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
                 />
               </div>
 
-              {/* Content frequency */}
+              {/* Channels */}
               <div>
-                <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">
-                  Content frequency
-                </label>
-                <select
-                  value={form.frequency}
-                  onChange={(e) => setForm({ ...form, frequency: e.target.value })}
-                  className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white transition-colors"
-                >
-                  {FREQUENCY_OPTIONS.map((f) => <option key={f}>{f}</option>)}
+                <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Channels</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {CHANNEL_OPTIONS.map((ch) => {
+                    const active = form.channels.includes(ch);
+                    return (
+                      <button
+                        key={ch}
+                        type="button"
+                        onClick={() => {
+                          setForm({ ...form, channels: active
+                            ? form.channels.filter((c) => c !== ch)
+                            : [...form.channels, ch]
+                          });
+                        }}
+                        className={`h-6 px-2.5 rounded-full text-[11px] font-medium transition-all ${
+                          active ? "bg-[#1A1A1A] text-white" : "bg-[#F0F0ED] text-[#6B6B65] hover:bg-[#E5E5E2]"
+                        }`}
+                      >
+                        {ch}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Frequency + Tone row */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Frequency</label>
+                  <select value={form.frequency} onChange={(e) => setForm({ ...form, frequency: e.target.value })}
+                    className="w-full h-8 px-3 text-[12px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white">
+                    {FREQUENCY_OPTIONS.map((f) => <option key={f}>{f}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Tone</label>
+                  <select value={form.toneOfVoice} onChange={(e) => setForm({ ...form, toneOfVoice: e.target.value })}
+                    className="w-full h-8 px-3 text-[12px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white">
+                    {TONE_OPTIONS.map((t) => <option key={t}>{t}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              {/* Visual style */}
+              <div>
+                <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Visual style</label>
+                <select value={form.visualStyle} onChange={(e) => setForm({ ...form, visualStyle: e.target.value })}
+                  className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white">
+                  {VISUAL_OPTIONS.map((v) => <option key={v}>{v}</option>)}
                 </select>
               </div>
 
-              {/* Extra notes */}
+              {/* Notes */}
               <div>
-                <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">
-                  Extra notes
-                </label>
+                <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Notes</label>
                 <textarea
                   value={form.notes}
                   onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                  placeholder="Campaigns, events, launches, constraints..."
+                  placeholder="Campaigns, launches, constraints..."
                   rows={2}
-                  className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white transition-colors resize-none"
+                  className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white resize-none"
                 />
               </div>
 
-              {/* Brand Brain context */}
-              {agentCtx && sourceProject && (
-                <BrandBrainContextCard ctx={agentCtx} />
-              )}
+              {/* Brand Brain card */}
+              {agentCtx && sourceProject && <BrandBrainBadge ctx={agentCtx} />}
 
-              {/* Proposal gate */}
-              {isProposalPending && (
-                <div className="flex items-start gap-2 bg-[#FFFBEB] border border-[#FDE68A] rounded-[7px] px-3 py-2.5">
-                  <span className="text-[#D97706] text-[13px] shrink-0">⚠</span>
-                  <p className="text-[12px] text-[#D97706] leading-snug">
-                    Awaiting client approval — the project proposal must be approved before execution can begin.
-                  </p>
-                </div>
-              )}
-
-              {/* Submit / Reset button */}
+              {/* Run / gate */}
               {agentState === "idle" && (
-                <button
-                  disabled={!isReady}
-                  onClick={handleRun}
-                  className="w-full h-9 rounded-[7px] text-[13px] font-medium bg-[#5B5BD6] text-white transition-all
-                    hover:bg-[#4A4AC5] active:bg-[#3939B4]
-                    disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  Generate Social Media Package
-                </button>
+                proposalBlocked ? (
+                  <div className="flex items-start gap-2 bg-[#FFFBEB] border border-[#FDE68A] rounded-[7px] px-3 py-2.5">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 mt-0.5">
+                      <path d="M7 4.5V7M7 9.5h.01" stroke="#D97706" strokeWidth="1.4" strokeLinecap="round"/>
+                      <circle cx="7" cy="7" r="6" stroke="#D97706" strokeWidth="1.2"/>
+                    </svg>
+                    <p className="text-[12px] text-[#D97706] leading-snug">Proposal must be approved before running the agent.</p>
+                  </div>
+                ) : (
+                  <button disabled={!isReady} onClick={handleRun}
+                    className="w-full h-9 rounded-[7px] text-[13px] font-medium bg-[#5B5BD6] text-white hover:bg-[#4A4AC5] active:bg-[#3939B4] disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+                    Run Social Media Agent
+                  </button>
+                )
               )}
               {agentState === "generating" && (
                 <button disabled className="w-full h-9 rounded-[7px] text-[13px] font-medium bg-[#5B5BD6] text-white opacity-70 cursor-not-allowed flex items-center justify-center gap-2">
@@ -813,42 +890,39 @@ export default function SocialMediaAgentPage() {
                 </button>
               )}
               {agentState === "output_ready" && (
-                <button
-                  onClick={handleReset}
-                  className="w-full h-9 rounded-[7px] text-[13px] font-medium bg-transparent border border-[#E5E5E2] text-[#6B6B65] hover:bg-[#F7F7F6] transition-all"
-                >
+                <button onClick={handleReset}
+                  className="w-full h-9 rounded-[7px] text-[13px] font-medium bg-transparent border border-[#E5E5E2] text-[#6B6B65] hover:bg-[#F7F7F6] transition-all">
                   Reset
                 </button>
               )}
-
             </div>
           </div>
 
-          {/* RIGHT — Output area */}
+          {/* RIGHT — output */}
           {agentState === "idle" ? (
-            <div className="bg-white rounded-[10px] border border-dashed border-[#E5E5E2] px-8 py-16 text-center">
-              <div className="w-10 h-10 rounded-full bg-[#F0F0ED] flex items-center justify-center mx-auto mb-4">
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                  <rect x="3" y="3" width="5" height="5" rx="1" stroke="#9B9B95" strokeWidth="1.3"/>
-                  <rect x="12" y="3" width="5" height="5" rx="1" stroke="#9B9B95" strokeWidth="1.3"/>
-                  <rect x="3" y="12" width="5" height="5" rx="1" stroke="#9B9B95" strokeWidth="1.3"/>
-                  <rect x="12" y="12" width="5" height="5" rx="1" stroke="#9B9B95" strokeWidth="1.3"/>
-                </svg>
+            proposalBlocked ? <ProposalGatePanel /> : (
+              <div className="bg-white rounded-[10px] border border-dashed border-[#E5E5E2] px-8 py-16 text-center">
+                <div className="w-10 h-10 rounded-full bg-[#EEF0FF] flex items-center justify-center mx-auto mb-4">
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    <circle cx="10" cy="10" r="7" stroke="#5B5BD6" strokeWidth="1.3"/>
+                    <path d="M7 10h6M10 7v6" stroke="#5B5BD6" strokeWidth="1.3" strokeLinecap="round"/>
+                  </svg>
+                </div>
+                <p className="text-[14px] font-medium text-[#1A1A1A]">Ready to generate</p>
+                <p className="text-[13px] text-[#9B9B95] mt-1.5 max-w-xs mx-auto">
+                  Link a project with an approved proposal, fill in the brief, and run the agent.
+                </p>
               </div>
-              <p className="text-[14px] font-medium text-[#1A1A1A]">Awaiting brief input</p>
-              <p className="text-[13px] text-[#9B9B95] mt-1.5 max-w-xs mx-auto">
-                Fill in the brand brief and run the agent to generate your complete social media package.
-              </p>
-            </div>
+            )
           ) : agentState === "generating" ? (
             <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-8 py-16 text-center shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
               <div className="w-10 h-10 rounded-full bg-[#EEF0FF] flex items-center justify-center mx-auto mb-5">
                 <span className="w-5 h-5 border-2 border-[#5B5BD6] border-t-transparent rounded-full animate-spin" />
               </div>
-              <p className="text-[14px] font-semibold text-[#1A1A1A] mb-6">Generating your package…</p>
-              <div className="max-w-[240px] mx-auto space-y-2.5">
+              <p className="text-[14px] font-semibold text-[#1A1A1A] mb-6">Building social media package…</p>
+              <div className="max-w-[260px] mx-auto space-y-2.5">
                 {STEPS.map((label, i) => (
-                  <div key={label} className={`flex items-center gap-2.5 transition-opacity duration-300 ${i <= stepIndex ? "opacity-100" : "opacity-25"}`}>
+                  <div key={label} className={`flex items-center gap-2.5 transition-opacity ${i <= stepIndex ? "opacity-100" : "opacity-25"}`}>
                     <span className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${i < stepIndex ? "bg-[#5B5BD6]" : i === stepIndex ? "bg-[#EEF0FF] border border-[#5B5BD6]" : "bg-[#F0F0ED]"}`}>
                       {i < stepIndex && (
                         <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
@@ -861,56 +935,133 @@ export default function SocialMediaAgentPage() {
                 ))}
               </div>
             </div>
-          ) : output !== null ? (
+          ) : output ? (
             <div className="space-y-4">
+
+              {/* Saved banner */}
+              {savedToProject && sourceProject && (
+                <div className="flex items-center justify-between px-4 py-2.5 bg-[#DCFCE7] border border-[#BBF7D0] rounded-[8px]">
+                  <div className="flex items-center gap-2">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2.5 7l3 3 6-6" stroke="#16A34A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    <span className="text-[12px] font-medium text-[#15803D]">
+                      5 deliverables saved to <Link href={`/agency/projects/${sourceProject.projectId}`} className="underline">{sourceProject.projectName}</Link> — status: In Review
+                    </span>
+                  </div>
+                  <Link href={`/portal/client/${linkedClient?.id}`} className="text-[11px] text-[#15803D] font-medium hover:opacity-70 transition-opacity">
+                    Client portal →
+                  </Link>
+                </div>
+              )}
 
               {/* Output tabs */}
               <div className="flex items-center gap-1 bg-white border border-[#E5E5E2] rounded-[9px] p-1 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                {(["brand", "content", "posts", "handoff", "contract"] as OutputTab[]).map((tab) => {
-                  const labels: Record<OutputTab, string> = {
-                    brand: "Brand Brief",
-                    content: "Content Map",
-                    posts: "Post Package",
-                    handoff: "Design Handoff",
-                    contract: "Agent Contract",
-                  };
-                  return (
-                    <button
-                      key={tab}
-                      onClick={() => setActiveTab(tab)}
-                      className={`flex-1 h-7 rounded-[6px] text-[12px] font-medium transition-all ${
-                        activeTab === tab
-                          ? "bg-[#1A1A1A] text-white"
-                          : "text-[#6B6B65] hover:text-[#1A1A1A] hover:bg-[#F0F0ED]"
-                      }`}
-                    >
-                      {labels[tab]}
-                    </button>
-                  );
-                })}
+                {(["strategy", "calendar", "posts", "stories", "design"] as OutputTab[]).map((tab) => (
+                  <button key={tab} onClick={() => setActiveTab(tab)}
+                    className={`flex-1 h-7 rounded-[6px] text-[12px] font-medium transition-all ${
+                      activeTab === tab ? "bg-[#1A1A1A] text-white" : "text-[#6B6B65] hover:text-[#1A1A1A] hover:bg-[#F0F0ED]"
+                    }`}>
+                    {TAB_LABELS[tab]}
+                  </button>
+                ))}
               </div>
 
-              {/* Tab: Brand Brief */}
-              {activeTab === "brand" && (
+              {/* ── Tab: Strategy ─────────────────────────────────────────── */}
+              {activeTab === "strategy" && (
                 <div className="space-y-4">
 
-                  {/* Section 1 — Brand Interpretation */}
+                  {/* Social Strategy */}
                   <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
                     <div className="px-5 py-3.5 border-b border-[#E5E5E2] flex items-center gap-2">
                       <span className="w-5 h-5 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-bold flex items-center justify-center">1</span>
+                      <p className="text-[13px] font-semibold text-[#1A1A1A]">Social Strategy</p>
+                    </div>
+                    <div className="px-5 py-4 space-y-4">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="rounded-[8px] bg-[#F7F7F6] border border-[#E5E5E2] p-3">
+                          <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-2">Social Objective</p>
+                          <p className="text-[12px] text-[#1A1A1A] leading-relaxed">{output.strategy.socialObjective}</p>
+                        </div>
+                        <div className="rounded-[8px] bg-[#F7F7F6] border border-[#E5E5E2] p-3">
+                          <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-2">Content Positioning</p>
+                          <p className="text-[12px] text-[#1A1A1A] leading-relaxed">{output.strategy.contentPositioning}</p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="rounded-[8px] bg-[#F7F7F6] border border-[#E5E5E2] p-3">
+                          <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-2">Posting Frequency</p>
+                          <p className="text-[12px] font-semibold text-[#1A1A1A]">{output.strategy.postingFrequency}</p>
+                        </div>
+                        <div className="rounded-[8px] bg-[#F7F7F6] border border-[#E5E5E2] p-3">
+                          <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-2">Strategic Rationale</p>
+                          <p className="text-[12px] text-[#1A1A1A] leading-relaxed">{output.strategy.strategicRationale}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Content Pillars */}
+                  <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                    <div className="px-5 py-3.5 border-b border-[#E5E5E2] flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-bold flex items-center justify-center">2</span>
+                      <p className="text-[13px] font-semibold text-[#1A1A1A]">Content Pillars</p>
+                    </div>
+                    <div className="px-5 py-4 grid grid-cols-2 gap-3">
+                      {output.strategy.contentPillars.map((pillar) => (
+                        <div key={pillar.name} className="rounded-[8px] bg-[#F7F7F6] border border-[#E5E5E2] p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-[12px] font-semibold text-[#1A1A1A]">{pillar.name}</p>
+                            <span className="px-2 py-0.5 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-semibold">{pillar.percentage}%</span>
+                          </div>
+                          <p className="text-[12px] text-[#6B6B65] leading-relaxed mb-2">{pillar.description}</p>
+                          <p className="text-[11px] text-[#9B9B95] italic">e.g. {pillar.example}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Channel Recommendations */}
+                  <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                    <div className="px-5 py-3.5 border-b border-[#E5E5E2] flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-bold flex items-center justify-center">3</span>
+                      <p className="text-[13px] font-semibold text-[#1A1A1A]">Channel Recommendations</p>
+                    </div>
+                    <div className="px-5 py-4 space-y-3">
+                      {output.strategy.channelRecommendations.map((rec) => (
+                        <div key={rec.channel} className="rounded-[8px] bg-[#F7F7F6] border border-[#E5E5E2] p-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <p className="text-[12px] font-semibold text-[#1A1A1A]">{rec.channel}</p>
+                            <span className={`h-5 px-2 rounded-full text-[10px] font-semibold ${rec.priority === "primary" ? "bg-[#EEF0FF] text-[#5B5BD6]" : "bg-[#F0F0ED] text-[#6B6B65]"}`}>
+                              {rec.priority === "primary" ? "Primary" : "Secondary"}
+                            </span>
+                          </div>
+                          <p className="text-[12px] text-[#6B6B65] leading-relaxed mb-2">{rec.rationale}</p>
+                          <div className="flex gap-1.5 flex-wrap">
+                            {rec.formats.map((f) => (
+                              <span key={f} className="h-5 px-2 rounded-full bg-white border border-[#E5E5E2] text-[10px] text-[#6B6B65]">{f}</span>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Brand interpretation */}
+                  <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                    <div className="px-5 py-3.5 border-b border-[#E5E5E2] flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-bold flex items-center justify-center">4</span>
                       <p className="text-[13px] font-semibold text-[#1A1A1A]">Brand Interpretation</p>
                     </div>
                     <div className="px-5 py-4 grid grid-cols-2 gap-3">
                       <div className="rounded-[8px] bg-[#F7F7F6] border border-[#E5E5E2] p-3">
-                        <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-2">Practical understanding</p>
+                        <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-2">Understanding</p>
                         <p className="text-[12px] text-[#1A1A1A] leading-relaxed">{output.brandInterpretation.practicalUnderstanding}</p>
                       </div>
                       <div className="rounded-[8px] bg-[#F7F7F6] border border-[#E5E5E2] p-3">
-                        <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-2">Communication style</p>
+                        <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-2">Communication Style</p>
                         <p className="text-[12px] text-[#1A1A1A] leading-relaxed">{output.brandInterpretation.communicationStyle}</p>
                       </div>
                       <div className="rounded-[8px] bg-[#F7F7F6] border border-[#E5E5E2] p-3">
-                        <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-2">What to reinforce</p>
+                        <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-2">Reinforce</p>
                         <ul className="space-y-1">
                           {output.brandInterpretation.toReinforce.map((item) => (
                             <li key={item} className="flex items-start gap-1.5 text-[12px] text-[#1A1A1A]">
@@ -920,7 +1071,7 @@ export default function SocialMediaAgentPage() {
                         </ul>
                       </div>
                       <div className="rounded-[8px] bg-[#F7F7F6] border border-[#E5E5E2] p-3">
-                        <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-2">What to avoid</p>
+                        <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-2">Avoid</p>
                         <ul className="space-y-1">
                           {output.brandInterpretation.toAvoid.map((item) => (
                             <li key={item} className="flex items-start gap-1.5 text-[12px] text-[#6B6B65]">
@@ -931,90 +1082,35 @@ export default function SocialMediaAgentPage() {
                       </div>
                     </div>
                   </div>
-
-                  {/* Section 2 — Objective Translation */}
-                  <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                    <div className="px-5 py-3.5 border-b border-[#E5E5E2] flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-bold flex items-center justify-center">2</span>
-                      <p className="text-[13px] font-semibold text-[#1A1A1A]">Objective Translation</p>
-                    </div>
-                    <div className="px-5 py-4 grid grid-cols-3 gap-3">
-                      {([
-                        { label: "Content direction", value: output.objectiveTranslation.contentDirection },
-                        { label: "Primary KPI", value: output.objectiveTranslation.primaryKPI },
-                        { label: "Content ratio", value: output.objectiveTranslation.contentRatio },
-                      ] as { label: string; value: string }[]).map(({ label, value }) => (
-                        <div key={label} className="rounded-[8px] bg-[#F7F7F6] border border-[#E5E5E2] p-3">
-                          <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-2">{label}</p>
-                          <p className="text-[12px] text-[#1A1A1A] leading-relaxed">{value}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
                 </div>
               )}
 
-              {/* Tab: Content Map */}
-              {activeTab === "content" && (
+              {/* ── Tab: Calendar ─────────────────────────────────────────── */}
+              {activeTab === "calendar" && (
                 <div className="space-y-4">
-
-                  {/* Section 3 — Content Territories */}
+                  {/* Week grid */}
                   <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                    <div className="px-5 py-3.5 border-b border-[#E5E5E2] flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-bold flex items-center justify-center">3</span>
-                      <p className="text-[13px] font-semibold text-[#1A1A1A]">Content Territories</p>
-                    </div>
-                    <div className="px-5 py-4 grid grid-cols-2 gap-3">
-                      {output.territories.map((t) => (
-                        <div key={t.name} className="rounded-[8px] bg-[#F7F7F6] border border-[#E5E5E2] p-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <p className="text-[12px] font-semibold text-[#1A1A1A]">{t.name}</p>
-                            <span className="px-2 py-0.5 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-medium">{t.frequency}</span>
-                          </div>
-                          <p className="text-[12px] text-[#6B6B65] leading-relaxed">{t.description}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Section 4 — Content Ideas */}
-                  <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                    <div className="px-5 py-3.5 border-b border-[#E5E5E2] flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-bold flex items-center justify-center">4</span>
-                      <p className="text-[13px] font-semibold text-[#1A1A1A]">Content Ideas</p>
-                    </div>
-                    <div className="px-5 py-3 divide-y divide-[#F0F0ED]">
-                      {output.contentIdeas.map((idea, i) => (
-                        <div key={idea.title} className="py-3 flex items-center gap-3">
-                          <span className="text-[11px] font-semibold text-[#9B9B95] w-4 shrink-0">{i + 1}</span>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-[12px] font-medium text-[#1A1A1A] truncate">{idea.title}</p>
-                            <p className="text-[11px] text-[#9B9B95]">{idea.territory}</p>
-                          </div>
-                          <span className="px-2 py-0.5 rounded-full bg-[#F0F0ED] text-[#6B6B65] text-[10px] font-medium shrink-0">{idea.format}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Section 5 — Content Schedule */}
-                  <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                    <div className="px-5 py-3.5 border-b border-[#E5E5E2] flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-bold flex items-center justify-center">5</span>
-                      <p className="text-[13px] font-semibold text-[#1A1A1A]">Content Schedule</p>
+                    <div className="px-5 py-3.5 border-b border-[#E5E5E2] flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-bold flex items-center justify-center">5</span>
+                        <p className="text-[13px] font-semibold text-[#1A1A1A]">Weekly Content Calendar</p>
+                      </div>
+                      <span className="text-[11px] text-[#9B9B95]">{output.calendar.filter((d) => d.active).length} active days · {form.frequency}</span>
                     </div>
                     <div className="px-5 py-4 grid grid-cols-7 gap-2">
-                      {output.schedule.map((s) => (
-                        <div key={s.day} className={`rounded-[8px] border overflow-hidden ${s.active ? "border-[#5B5BD6] bg-[#FAFAFE]" : "border-[#E5E5E2] bg-white"}`}>
-                          <div className={`px-2 py-1.5 text-center border-b ${s.active ? "bg-[#EEF0FF] border-[#5B5BD6]" : "bg-[#F7F7F6] border-[#E5E5E2]"}`}>
-                            <p className={`text-[11px] font-semibold ${s.active ? "text-[#5B5BD6]" : "text-[#6B6B65]"}`}>{s.day}</p>
+                      {output.calendar.map((day) => (
+                        <div key={day.day} className={`rounded-[8px] border overflow-hidden ${day.active ? "border-[#5B5BD6] bg-[#FAFAFE]" : "border-[#E5E5E2] bg-white"}`}>
+                          <div className={`px-2 py-1.5 text-center border-b ${day.active ? "bg-[#EEF0FF] border-[#5B5BD6]" : "bg-[#F7F7F6] border-[#E5E5E2]"}`}>
+                            <p className={`text-[11px] font-semibold ${day.active ? "text-[#5B5BD6]" : "text-[#6B6B65]"}`}>{day.day}</p>
                           </div>
-                          <div className="p-2 min-h-[64px]">
-                            {s.active ? (
+                          <div className="p-2 min-h-[110px] space-y-1">
+                            {day.active ? (
                               <>
-                                <p className="text-[10px] font-medium text-[#1A1A1A] leading-tight">{s.territory}</p>
-                                <p className="text-[10px] text-[#9B9B95] mt-0.5">{s.format}</p>
+                                <p className="text-[10px] font-semibold text-[#1A1A1A] leading-tight">{day.format}</p>
+                                <p className="text-[10px] text-[#5B5BD6] font-medium">{day.pillar}</p>
+                                <p className="text-[9.5px] text-[#6B6B65] leading-tight">{day.theme}</p>
+                                <p className="text-[9px] text-[#9B9B95] leading-tight italic">{day.objective}</p>
+                                <span className="inline-block mt-1 px-1.5 py-0.5 rounded-[3px] bg-[#F0F0ED] text-[9px] text-[#6B6B65]">{day.channel}</span>
                               </>
                             ) : (
                               <p className="text-[10px] text-[#C0C0BC]">Rest</p>
@@ -1025,39 +1121,75 @@ export default function SocialMediaAgentPage() {
                     </div>
                   </div>
 
+                  {/* Calendar detail list */}
+                  <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+                    <div className="px-5 py-3 border-b border-[#E5E5E2]">
+                      <p className="text-[12px] font-semibold text-[#1A1A1A]">Content Plan Detail</p>
+                    </div>
+                    <div className="divide-y divide-[#F0F0ED]">
+                      {output.calendar.filter((d) => d.active).map((day) => (
+                        <div key={day.day} className="grid grid-cols-[40px_90px_90px_1fr_90px_90px] items-center px-5 py-3 gap-3">
+                          <span className="text-[11px] font-semibold text-[#5B5BD6]">{day.day}</span>
+                          <span className="text-[11px] font-medium text-[#1A1A1A]">{day.format}</span>
+                          <span className="text-[11px] text-[#6B6B65]">{day.pillar}</span>
+                          <span className="text-[11px] text-[#1A1A1A]">{day.theme}</span>
+                          <span className="text-[11px] text-[#9B9B95]">{day.objective}</span>
+                          <span className="text-[11px] font-medium text-[#5B5BD6] text-right">{day.channel}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Content ideas */}
+                  <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+                    <div className="px-5 py-3.5 border-b border-[#E5E5E2] flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-bold flex items-center justify-center">6</span>
+                      <p className="text-[13px] font-semibold text-[#1A1A1A]">Content Ideas Bank</p>
+                    </div>
+                    <div className="divide-y divide-[#F0F0ED]">
+                      {output.contentIdeas.map((idea, i) => (
+                        <div key={idea.title} className="flex items-center gap-3 px-5 py-3">
+                          <span className="text-[11px] font-semibold text-[#9B9B95] w-4 shrink-0">{i + 1}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[12px] font-medium text-[#1A1A1A] truncate">{idea.title}</p>
+                            <p className="text-[11px] text-[#9B9B95]">{idea.pillar}</p>
+                          </div>
+                          <span className="px-2 py-0.5 rounded-full bg-[#F0F0ED] text-[#6B6B65] text-[10px] font-medium shrink-0">{idea.format}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
 
-              {/* Tab: Post Package */}
+              {/* ── Tab: Posts ────────────────────────────────────────────── */}
               {activeTab === "posts" && (
                 <div className="space-y-3">
-                  <div className="px-1">
-                    <p className="text-[12px] text-[#9B9B95]">Section 6 — Final Post Package · {output.posts.length} posts</p>
+                  <div className="flex items-center justify-between px-1">
+                    <p className="text-[12px] text-[#9B9B95]">{output.posts.length} post ideas — ready for client review</p>
+                    <button
+                      onClick={() => handleCopy("all-captions", output.posts.map((p) => `POST ${p.id} — ${p.title}\n${p.caption}\n\nCTA: ${p.cta}`).join("\n\n---\n\n"))}
+                      className="h-6 px-2.5 rounded-[5px] text-[11px] border border-[#E5E5E2] text-[#6B6B65] hover:bg-[#F7F7F6] transition-colors">
+                      {copiedKey === "all-captions" ? "Copied" : "Copy All Captions"}
+                    </button>
                   </div>
                   {output.posts.map((post) => (
                     <div key={post.id} className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
                       <div className="px-5 py-3.5 border-b border-[#E5E5E2] flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <span className="text-[11px] font-semibold text-[#9B9B95]">Post {post.id}</span>
+                          <span className="text-[11px] font-semibold text-[#9B9B95]">#{post.id}</span>
                           <p className="text-[13px] font-semibold text-[#1A1A1A]">{post.title}</p>
+                          <span className="px-2 py-0.5 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-medium">{post.pillar}</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="px-2.5 py-0.5 rounded-full bg-[#F0F0ED] text-[#6B6B65] text-[11px] font-medium">{post.format}</span>
-                          <button
-                            onClick={() => handleCopy(`prompt-${post.id}`, post.imagePrompt)}
-                            className="h-6 px-2.5 rounded-[5px] text-[11px] font-medium border border-[#E5E5E2] text-[#6B6B65] hover:bg-[#F7F7F6] hover:text-[#1A1A1A] transition-colors"
-                          >
-                            {copiedKey === `prompt-${post.id}` ? "Copied" : "Copy Prompt"}
-                          </button>
-                          <button
-                            onClick={() => handleCopy(`post-${post.id}`, formatPostAsText(post))}
-                            className="h-6 px-2.5 rounded-[5px] text-[11px] font-medium border border-[#E5E5E2] text-[#6B6B65] hover:bg-[#F7F7F6] hover:text-[#1A1A1A] transition-colors"
-                          >
-                            {copiedKey === `post-${post.id}` ? "Copied" : "Copy Post"}
+                        <div className="flex items-center gap-1.5">
+                          <span className="px-2 py-0.5 rounded-full bg-[#F0F0ED] text-[#6B6B65] text-[10px] font-medium">{post.format}</span>
+                          <button onClick={() => handleCopy(`post-${post.id}`, `${post.title}\n\n${post.caption}\n\nCTA: ${post.cta}`)}
+                            className="h-6 px-2 rounded-[5px] text-[10px] border border-[#E5E5E2] text-[#6B6B65] hover:bg-[#F7F7F6] transition-colors">
+                            {copiedKey === `post-${post.id}` ? "Copied" : "Copy"}
                           </button>
                         </div>
                       </div>
-                      <div className="px-5 py-4 grid grid-cols-2 gap-x-6 gap-y-4">
+                      <div className="px-5 py-4 grid grid-cols-2 gap-x-6 gap-y-3">
                         <div>
                           <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-1">Objective</p>
                           <p className="text-[12px] text-[#1A1A1A]">{post.objective}</p>
@@ -1072,14 +1204,10 @@ export default function SocialMediaAgentPage() {
                         </div>
                         <div className="col-span-2">
                           <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-1">Creative direction</p>
-                          <p className="text-[12px] text-[#1A1A1A] leading-relaxed">{post.creativeDirection}</p>
+                          <p className="text-[12px] text-[#6B6B65] leading-relaxed">{post.creativeDirection}</p>
                         </div>
                         <div className="col-span-2 rounded-[7px] bg-[#F7F7F6] border border-[#E5E5E2] px-3 py-2.5">
-                          <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-1">AI image prompt</p>
-                          <p className="text-[12px] text-[#6B6B65] font-mono leading-relaxed">{post.imagePrompt}</p>
-                        </div>
-                        <div className="col-span-2">
-                          <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-1">Design notes</p>
+                          <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-1">Design notes</p>
                           <p className="text-[12px] text-[#6B6B65]">{post.designNotes}</p>
                         </div>
                       </div>
@@ -1088,21 +1216,62 @@ export default function SocialMediaAgentPage() {
                 </div>
               )}
 
-              {/* Tab: Design Handoff */}
-              {activeTab === "handoff" && (
+              {/* ── Tab: Stories ──────────────────────────────────────────── */}
+              {activeTab === "stories" && (
                 <div className="space-y-3">
                   <div className="px-1">
-                    <p className="text-[12px] text-[#9B9B95]">Section 7 — Design Handoff Block</p>
+                    <p className="text-[12px] text-[#9B9B95]">{output.stories.length} story ideas — short-form, high-engagement formats</p>
                   </div>
+                  {output.stories.map((story) => (
+                    <div key={story.id} className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                      <div className="px-5 py-3.5 border-b border-[#E5E5E2] flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-semibold text-[#9B9B95]">Story {story.id}</span>
+                          <p className="text-[13px] font-semibold text-[#1A1A1A]">{story.title}</p>
+                          <span className="px-2 py-0.5 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-medium">{story.pillar}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="px-2 py-0.5 rounded-full bg-[#F0F0ED] text-[#6B6B65] text-[10px]">{story.slideCount} slides</span>
+                          <button onClick={() => handleCopy(`story-${story.id}`, `${story.title}\n\n${story.caption}\n\nCTA: ${story.cta}`)}
+                            className="h-6 px-2 rounded-[5px] text-[10px] border border-[#E5E5E2] text-[#6B6B65] hover:bg-[#F7F7F6] transition-colors">
+                            {copiedKey === `story-${story.id}` ? "Copied" : "Copy"}
+                          </button>
+                        </div>
+                      </div>
+                      <div className="px-5 py-4 grid grid-cols-2 gap-x-6 gap-y-3">
+                        <div>
+                          <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-1">Objective</p>
+                          <p className="text-[12px] text-[#1A1A1A]">{story.objective}</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-1">CTA</p>
+                          <p className="text-[12px] text-[#1A1A1A]">{story.cta}</p>
+                        </div>
+                        <div className="col-span-2">
+                          <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-1">Caption / Script</p>
+                          <p className="text-[12px] text-[#1A1A1A] leading-relaxed whitespace-pre-line">{story.caption}</p>
+                        </div>
+                        <div className="col-span-2 rounded-[7px] bg-[#F7F7F6] border border-[#E5E5E2] px-3 py-2.5">
+                          <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-1">Design notes</p>
+                          <p className="text-[12px] text-[#6B6B65]">{story.designNotes}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* ── Tab: Design ───────────────────────────────────────────── */}
+              {activeTab === "design" && (
+                <div className="space-y-4">
+                  {/* Handoff block */}
                   <div className="bg-[#111111] rounded-[10px] border border-[#2A2A2A] overflow-hidden">
                     <div className="px-5 py-3.5 border-b border-[#2A2A2A] flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-[#5B5BD6]" />
-                      <p className="text-[12px] font-semibold text-white">design_handoff.txt</p>
-                      <span className="text-[11px] text-[#6B6B65]">Ready for Design Agent</span>
-                      <button
-                        onClick={() => handleCopy("handoff-all", formatHandoffAsText(output.handoff))}
-                        className="ml-auto h-6 px-2.5 rounded-[5px] text-[11px] font-medium border border-[#2A2A2A] text-[#9B9B95] hover:border-[#5B5BD6] hover:text-white transition-colors"
-                      >
+                      <p className="text-[12px] font-semibold text-white">Design Handoff</p>
+                      <span className="text-[11px] text-[#6B6B65]">— ready for Design Agent</span>
+                      <button onClick={() => handleCopy("handoff-all", formatHandoffAsText(output.handoff))}
+                        className="ml-auto h-6 px-2.5 rounded-[5px] text-[11px] border border-[#2A2A2A] text-[#9B9B95] hover:border-[#5B5BD6] hover:text-white transition-colors">
                         {copiedKey === "handoff-all" ? "Copied" : "Copy All"}
                       </button>
                     </div>
@@ -1112,153 +1281,73 @@ export default function SocialMediaAgentPage() {
                           <div className="flex items-center gap-2 mb-3">
                             <span className="text-[11px] font-semibold text-[#5B5BD6] font-mono">POST_{String(h.postId).padStart(2, "0")}</span>
                             <span className="text-[11px] text-[#6B6B65]">{h.title}</span>
-                            <button
-                              onClick={() => handleCopy(
-                                `handoff-${h.postId}`,
-                                [
-                                  `POST_${String(h.postId).padStart(2, "0")} — ${h.title}`,
-                                  `format: ${h.format}`,
-                                  `key_copy: ${h.keyCopy}`,
-                                  `visual_direction: ${h.visualDirection}`,
-                                  `prompt: ${h.prompt}`,
-                                  `design_notes: ${h.designNotes}`,
-                                ].join("\n")
-                              )}
-                              className="ml-auto h-5 px-2 rounded-[4px] text-[10px] font-medium border border-[#2A2A2A] text-[#6B6B65] hover:border-[#5B5BD6] hover:text-white transition-colors"
-                            >
-                              {copiedKey === `handoff-${h.postId}` ? "Copied" : "Copy"}
+                            <button onClick={() => handleCopy(`h-${h.postId}`, `POST_${String(h.postId).padStart(2,"0")} — ${h.title}\nformat: ${h.format}\nkey_copy: ${h.keyCopy}\nvisual_direction: ${h.visualDirection}\nprompt: ${h.prompt}\ndesign_notes: ${h.designNotes}`)}
+                              className="ml-auto h-5 px-2 rounded-[4px] text-[10px] border border-[#2A2A2A] text-[#6B6B65] hover:border-[#5B5BD6] hover:text-white transition-colors">
+                              {copiedKey === `h-${h.postId}` ? "Copied" : "Copy"}
                             </button>
                           </div>
-                          <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
-                            <div>
-                              <p className="text-[10px] font-mono text-[#6B6B65] mb-0.5">format</p>
-                              <p className="text-[11px] text-white">{h.format}</p>
-                            </div>
-                            <div>
-                              <p className="text-[10px] font-mono text-[#6B6B65] mb-0.5">key_copy</p>
-                              <p className="text-[11px] text-white truncate">{h.keyCopy}</p>
-                            </div>
-                            <div className="col-span-2">
-                              <p className="text-[10px] font-mono text-[#6B6B65] mb-0.5">visual_direction</p>
-                              <p className="text-[11px] text-[#C0C0BC] leading-relaxed">{h.visualDirection}</p>
-                            </div>
-                            <div className="col-span-2">
-                              <p className="text-[10px] font-mono text-[#6B6B65] mb-0.5">prompt</p>
-                              <p className="text-[11px] text-[#C0C0BC] font-mono leading-relaxed">{h.prompt}</p>
-                            </div>
-                            <div className="col-span-2">
-                              <p className="text-[10px] font-mono text-[#6B6B65] mb-0.5">design_notes</p>
-                              <p className="text-[11px] text-[#C0C0BC] leading-relaxed">{h.designNotes}</p>
-                            </div>
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                            <div><p className="text-[10px] font-mono text-[#6B6B65] mb-0.5">format</p><p className="text-[11px] text-white">{h.format}</p></div>
+                            <div><p className="text-[10px] font-mono text-[#6B6B65] mb-0.5">key_copy</p><p className="text-[11px] text-white truncate">{h.keyCopy}</p></div>
+                            <div className="col-span-2"><p className="text-[10px] font-mono text-[#6B6B65] mb-0.5">visual_direction</p><p className="text-[11px] text-[#C0C0BC] leading-relaxed">{h.visualDirection}</p></div>
+                            <div className="col-span-2"><p className="text-[10px] font-mono text-[#6B6B65] mb-0.5">design_notes</p><p className="text-[11px] text-[#C0C0BC]">{h.designNotes}</p></div>
                           </div>
                         </div>
                       ))}
                     </div>
                   </div>
-                </div>
-              )}
 
-              {/* Tab: Agent Contract */}
-              {activeTab === "contract" && (
-                <div className="space-y-4">
-
-                  {/* Header block */}
-                  <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                    <div className="px-5 py-4 flex items-start justify-between gap-4">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="w-2 h-2 rounded-full bg-[#5B5BD6]" />
-                          <p className="text-[13px] font-semibold text-[#1A1A1A]">Design Agent Input Contract</p>
-                          <span className="px-2 py-0.5 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-semibold uppercase tracking-wide">v1.0</span>
-                        </div>
-                        <p className="text-[12px] text-[#6B6B65] max-w-xl">
-                          Structured specification ready for consumption by a Design Agent. Each contract entry maps one post to its full design brief — format, copy, direction, prompt, and notes — with no ambiguity.
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleCopy("contract-all", formatContractAsText(output.contracts))}
-                          className="shrink-0 h-7 px-3 rounded-[6px] text-[12px] font-medium border border-[#E5E5E2] text-[#6B6B65] hover:bg-[#F7F7F6] hover:text-[#1A1A1A] transition-colors"
-                        >
-                          {copiedKey === "contract-all" ? "Copied" : "Copy Contract"}
-                        </button>
-                        <button
-                          onClick={handleSendToDesignAgent}
-                          className="shrink-0 h-7 px-3 rounded-[6px] text-[12px] font-medium bg-[#C2530A] text-white hover:bg-[#A8460A] active:bg-[#8E3908] transition-colors flex items-center gap-1.5"
-                        >
-                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                            <path d="M2 6h8M6.5 2.5L10 6l-3.5 3.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
-                          Send to Design Agent
-                        </button>
-                      </div>
+                  {/* Send to Design Agent */}
+                  <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 flex items-center justify-between">
+                    <div>
+                      <p className="text-[13px] font-semibold text-[#1A1A1A]">Send to Design Agent</p>
+                      <p className="text-[12px] text-[#9B9B95] mt-0.5">Pass the full design contract to the Design Agent for asset production.</p>
                     </div>
-                    <div className="px-5 py-3 border-t border-[#F0F0ED] grid grid-cols-3 gap-4">
-                      <div>
-                        <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-0.5">Brand</p>
-                        <p className="text-[12px] font-medium text-[#1A1A1A]">{form.brandName}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-0.5">Posts</p>
-                        <p className="text-[12px] font-medium text-[#1A1A1A]">{output.contracts.length} assets</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-0.5">Source agent</p>
-                        <p className="text-[12px] font-medium text-[#1A1A1A]">Social Media Agent</p>
-                      </div>
-                    </div>
+                    <button onClick={handleSendToDesignAgent}
+                      className="h-8 px-4 rounded-[7px] text-[12px] font-medium bg-[#C2530A] text-white hover:bg-[#A8460A] transition-colors flex items-center gap-1.5 shrink-0">
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6h8M6.5 2.5L10 6l-3.5 3.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      Send to Design Agent
+                    </button>
                   </div>
 
-                  {/* Contract entries */}
-                  {output.contracts.map((c) => (
-                    <div key={c.postId} className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-
-                      {/* Entry header */}
-                      <div className="px-5 py-3 bg-[#FAFAFA] border-b border-[#E5E5E2] flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <span className="font-mono text-[11px] font-semibold text-[#5B5BD6] bg-[#EEF0FF] px-2 py-0.5 rounded-[4px]">
-                            CONTRACT_{String(c.postId).padStart(2, "0")}
-                          </span>
-                          <p className="text-[13px] font-semibold text-[#1A1A1A]">{c.title}</p>
-                          <span className="px-2 py-0.5 rounded-full bg-[#F0F0ED] text-[#6B6B65] text-[10px] font-medium">{c.format}</span>
-                        </div>
-                        <button
-                          onClick={() => handleCopy(
-                            `contract-${c.postId}`,
-                            formatContractAsText([c])
-                          )}
-                          className="h-6 px-2.5 rounded-[5px] text-[11px] font-medium border border-[#E5E5E2] text-[#6B6B65] hover:bg-[#F7F7F6] hover:text-[#1A1A1A] transition-colors"
-                        >
-                          {copiedKey === `contract-${c.postId}` ? "Copied" : "Copy"}
-                        </button>
-                      </div>
-
-                      {/* Fields grid */}
-                      <div className="divide-y divide-[#F0F0ED]">
-                        {[
-                          { label: "content_objective", value: c.contentObjective },
-                          { label: "key_copy", value: c.keyCopy },
-                          { label: "cta", value: c.cta },
-                          { label: "creative_direction", value: c.creativeDirection },
-                          { label: "image_prompt", value: c.imagePrompt, mono: true },
-                          { label: "design_notes", value: c.designNotes },
-                        ].map(({ label, value, mono }) => (
-                          <div key={label} className="px-5 py-3 grid grid-cols-[180px_1fr] gap-4 items-start">
-                            <p className="text-[11px] font-mono font-medium text-[#9B9B95] pt-px">{label}</p>
-                            <p className={`text-[12px] leading-relaxed text-[#1A1A1A] ${mono ? "font-mono text-[#6B6B65]" : ""}`}>{value}</p>
+                  {/* Contracts */}
+                  <div className="space-y-3">
+                    {output.contracts.map((c) => (
+                      <div key={c.postId} className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+                        <div className="px-5 py-3 bg-[#FAFAFA] border-b border-[#E5E5E2] flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <span className="font-mono text-[11px] font-semibold text-[#5B5BD6] bg-[#EEF0FF] px-2 py-0.5 rounded-[4px]">CONTRACT_{String(c.postId).padStart(2,"0")}</span>
+                            <p className="text-[13px] font-semibold text-[#1A1A1A]">{c.title}</p>
+                            <span className="px-2 py-0.5 rounded-full bg-[#F0F0ED] text-[#6B6B65] text-[10px]">{c.format}</span>
                           </div>
-                        ))}
+                          <button onClick={() => handleCopy(`c-${c.postId}`, formatContractAsText([c]))}
+                            className="h-6 px-2.5 rounded-[5px] text-[11px] border border-[#E5E5E2] text-[#6B6B65] hover:bg-[#F7F7F6] transition-colors">
+                            {copiedKey === `c-${c.postId}` ? "Copied" : "Copy"}
+                          </button>
+                        </div>
+                        <div className="divide-y divide-[#F0F0ED]">
+                          {([
+                            { label: "content_objective", value: c.contentObjective },
+                            { label: "key_copy",           value: c.keyCopy },
+                            { label: "cta",                value: c.cta },
+                            { label: "creative_direction", value: c.creativeDirection },
+                            { label: "image_prompt",       value: c.imagePrompt, mono: true },
+                            { label: "design_notes",       value: c.designNotes },
+                          ] as { label: string; value: string; mono?: boolean }[]).map(({ label, value, mono }) => (
+                            <div key={label} className="px-5 py-3 grid grid-cols-[160px_1fr] gap-4 items-start">
+                              <p className="text-[11px] font-mono font-medium text-[#9B9B95] pt-px">{label}</p>
+                              <p className={`text-[12px] leading-relaxed text-[#1A1A1A] ${mono ? "font-mono text-[#6B6B65]" : ""}`}>{value}</p>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-
-                    </div>
-                  ))}
-
+                    ))}
+                  </div>
                 </div>
               )}
 
             </div>
           ) : null}
-
         </div>
       </div>
     </div>
