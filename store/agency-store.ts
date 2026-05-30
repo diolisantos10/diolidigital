@@ -240,21 +240,23 @@ export const useAgencyStore = create<AgencyState>()(
 
       updateProposal: (id, updates) => {
         set((s) => ({
-          projects: s.projects.map((p) =>
-            p.id === id && p.proposal
-              ? { ...p, proposal: { ...p.proposal, ...updates } }
-              : p
-          ),
+          projects: s.projects.map((p) => {
+            if (p.id !== id) return p;
+            const base: ProjectProposal = p.proposal ?? {
+              scope: "", deliverables: [], timeline: "", pricing: "", status: "draft",
+            };
+            return { ...p, proposal: { ...base, ...updates } };
+          }),
         }));
       },
 
       sendProposal: (id) => {
         const project = get().projects.find((p) => p.id === id);
-        if (!project?.proposal) return;
+        if (!project) return;
         set((s) => ({
           projects: s.projects.map((p) =>
             p.id === id
-              ? { ...p, stage: "proposal_sent" as ProjectStage, proposal: p.proposal ? { ...p.proposal, status: "sent" as ProjectProposal["status"] } : p.proposal }
+              ? { ...p, stage: "proposal_sent" as ProjectStage, proposal: p.proposal ? { ...p.proposal, status: "sent" as ProjectProposal["status"] } : { scope: "", deliverables: [], timeline: "", pricing: "", status: "sent" as ProjectProposal["status"] } }
               : p
           ),
         }));
