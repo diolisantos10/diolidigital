@@ -15,6 +15,11 @@ export type ProjectStage =
 export type Priority = "high" | "medium" | "low";
 export type TaskStatus = "pending" | "in_progress" | "done" | "blocked";
 export type DeliverableStatus = "draft" | "in_review" | "approved" | "delivered";
+// Internal revision lifecycle — tracks where a deliverable sits in the review loop.
+// "none" = no revision active; "revision_requested" = client asked for changes;
+// "in_revision" = owner agent is reworking it; "resolved" = new version sent back.
+export type RevisionStatus = "none" | "revision_requested" | "in_revision" | "resolved";
+export type RevisionAuthor = "client" | "internal" | "agent";
 export type BriefingStatus = "pending_analysis" | "analyzed" | "approved";
 export type AgentStatus = "available" | "active";
 export type AssetType = "logo" | "color_palette" | "typography" | "tone_of_voice" | "visual_reference" | "guidelines";
@@ -134,6 +139,16 @@ export interface Task {
   deliverableId?: string;
 }
 
+// A single entry in a deliverable's revision history.
+export interface RevisionEntry {
+  version: number;
+  status: DeliverableStatus;
+  feedback?: string;
+  author: RevisionAuthor;
+  timestamp: string;
+  note: string;
+}
+
 export interface Deliverable {
   id: string;
   projectId: string;
@@ -144,6 +159,12 @@ export interface Deliverable {
   version: number;
   createdAt: string;
   clientFeedback?: string;
+  // ── Review Lifecycle V1 (all optional for backward compatibility) ──────────
+  ownerAgentId?: string;          // responsible agent/owner — inferred from type if absent
+  revisionStatus?: RevisionStatus;
+  lastFeedback?: string;          // most recent feedback captured (client or internal)
+  updatedAt?: string;             // ISO timestamp of last lifecycle change
+  revisionHistory?: RevisionEntry[];
 }
 
 export interface Briefing {

@@ -8,8 +8,10 @@ import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import Badge from "@/components/agency/ui/Badge";
 import Button from "@/components/agency/ui/Button";
 import Modal from "@/components/agency/ui/Modal";
+import DeliverableDetailModal from "@/components/agency/deliverables/DeliverableDetailModal";
 import Link from "next/link";
 import { TaskStatus, DeliverableStatus, Priority, ProjectStage, MOCK_AGENTS, ProjectProposal } from "@/lib/agency/mock-data";
+import { getOwner, getVersion, needsRevision, getFeedbackExcerpt } from "@/lib/agency/deliverables";
 
 const STAGES: ProjectStage[] = ["briefing","diagnosis","planning","production","review","delivery","ongoing","completed"];
 const TASK_CYCLE: Record<TaskStatus, TaskStatus> = {
@@ -33,6 +35,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   });
   const [editOpen, setEditOpen] = useState(false);
   const [proposalDirty, setProposalDirty] = useState(false);
+  const [detailId, setDetailId] = useState<string | null>(null);
 
   const project = projects.find((p) => p.id === id);
   if (!project) return notFound();
@@ -243,6 +246,12 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               const pendingRequests = projectMaterialRequests.filter((r) => r.status === "pending").length;
               const blockedTasks = projectTasks.filter((t) => t.status === "blocked").length;
 
+              // ── Deliverable review visibility ──────────────────────────────
+              const awaitingApproval = projectDeliverables.filter((d) => d.status === "in_review").length;
+              const revisionDeliverables = projectDeliverables.filter((d) => needsRevision(d));
+              const revisionNeeded = revisionDeliverables.length;
+              const revisionAgents = [...new Set(revisionDeliverables.map((d) => getOwner(d).name))];
+
               const nextAction = !prop
                 ? "Crie uma proposta na aba Proposta antes de enviar ao cliente."
                 : isDraft
@@ -258,6 +267,10 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   ? `${blockedTasks} tarefa(s) bloqueada(s). Resolva os bloqueios antes de prosseguir.`
                   : pendingRequests > 0
                   ? `${pendingRequests} solicitação(ões) de material pendente(s) do cliente.`
+                  : revisionNeeded > 0
+                  ? `${revisionNeeded} entrega(s) em revisão — ${revisionAgents.join(", ")} precisa(m) refazer.`
+                  : awaitingApproval > 0
+                  ? `${awaitingApproval} entrega(s) aguardando aprovação do cliente.`
                   : "Execução liberada. Agentes prontos para rodar."
                 : "";
 
@@ -298,6 +311,27 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                       <p className="text-[12px] text-[#6B6B65] pl-4 leading-relaxed">
                         <span className="font-medium text-[#1A1A1A]">Próximo: </span>{nextAction}
                       </p>
+                    )}
+                    {/* Deliverable review summary */}
+                    {(awaitingApproval > 0 || revisionNeeded > 0) && (
+                      <div className="flex items-center gap-2 flex-wrap pl-4 pt-1">
+                        {awaitingApproval > 0 && (
+                          <button
+                            onClick={() => setTab("deliverables")}
+                            className="h-5 px-2 rounded-full text-[10px] font-semibold bg-[#FEF3C7] text-[#D97706] hover:opacity-80 transition-opacity"
+                          >
+                            {awaitingApproval} aguardando aprovação
+                          </button>
+                        )}
+                        {revisionNeeded > 0 && (
+                          <button
+                            onClick={() => setTab("deliverables")}
+                            className="h-5 px-2 rounded-full text-[10px] font-semibold bg-[#FEE2E2] text-[#DC2626] hover:opacity-80 transition-opacity"
+                          >
+                            {revisionNeeded} em revisão{revisionAgents.length > 0 ? ` · ${revisionAgents.join(", ")}` : ""}
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
@@ -475,13 +509,22 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   <button onClick={() => setTab("deliverables")} className="text-[12px] text-[#5B5BD6] hover:underline">Ver todas</button>
                 </div>
                 {projectDeliverables.map((d, i) => (
-                  <div key={d.id} className={`flex items-center justify-between px-5 py-3 ${i > 0 ? "border-t border-[#F0F0ED]" : ""}`}>
+                  <div
+                    key={d.id}
+                    onClick={() => setDetailId(d.id)}
+                    className={`group flex items-center justify-between px-5 py-3 cursor-pointer hover:bg-[#FAFAF9] transition-colors ${i > 0 ? "border-t border-[#F0F0ED]" : ""}`}
+                  >
                     <div>
-                      <div className="text-[13px] font-medium text-[#1A1A1A]">{d.name}</div>
-                      <div className="text-[11px] text-[#9B9B95]">{d.type} · v{d.version}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[13px] font-medium text-[#1A1A1A] group-hover:text-[#5B5BD6] transition-colors">{d.name}</span>
+                        {needsRevision(d) && (
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#D97706]">Revisão</span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-[#9B9B95]">{d.type} · v{getVersion(d)} · {getOwner(d).name}</div>
                     </div>
                     <button
-                      onClick={() => updateDeliverableStatus(d.id, DELIVERABLE_CYCLE[d.status])}
+                      onClick={(e) => { e.stopPropagation(); updateDeliverableStatus(d.id, DELIVERABLE_CYCLE[d.status]); }}
                       className="cursor-pointer"
                     >
                       <Badge variant={d.status} />
@@ -786,26 +829,46 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               <thead>
                 <tr className="border-b border-[#F0F0ED]">
                   <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Nome</th>
-                  <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Tipo</th>
+                  <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Responsável</th>
                   <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Versão</th>
                   <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Status</th>
                   <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Data</th>
                 </tr>
               </thead>
               <tbody>
-                {projectDeliverables.map((d, i) => (
-                  <tr key={d.id} className={`hover:bg-[#FAFAF9] transition-colors ${i > 0 ? "border-t border-[#F0F0ED]" : ""}`}>
-                    <td className="px-5 py-3.5 text-[13px] font-medium text-[#1A1A1A]">{d.name}</td>
-                    <td className="px-5 py-3.5 text-[13px] text-[#6B6B65]">{d.type}</td>
-                    <td className="px-5 py-3.5 text-[13px] text-[#9B9B95] mono-num">v{d.version}</td>
-                    <td className="px-5 py-3.5">
-                      <button onClick={() => updateDeliverableStatus(d.id, DELIVERABLE_CYCLE[d.status])}>
-                        <Badge variant={d.status} />
-                      </button>
-                    </td>
-                    <td className="px-5 py-3.5 text-[12px] text-[#9B9B95]">{d.createdAt.slice(5)}</td>
-                  </tr>
-                ))}
+                {projectDeliverables.map((d, i) => {
+                  const owner = getOwner(d);
+                  const revision = needsRevision(d);
+                  const excerpt = getFeedbackExcerpt(d);
+                  return (
+                    <tr
+                      key={d.id}
+                      onClick={() => setDetailId(d.id)}
+                      className={`group hover:bg-[#FAFAF9] transition-colors cursor-pointer ${i > 0 ? "border-t border-[#F0F0ED]" : ""}`}
+                    >
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[13px] font-medium text-[#1A1A1A] group-hover:text-[#5B5BD6] transition-colors">{d.name}</span>
+                          <span className="text-[11px] text-[#9B9B95] bg-[#F0F0ED] px-1.5 py-0.5 rounded-[4px]">{d.type}</span>
+                          {revision && (
+                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#D97706]">Revisão necessária</span>
+                          )}
+                        </div>
+                        {excerpt && (
+                          <div className="text-[11px] text-[#9B9B95] mt-0.5 italic truncate max-w-[360px]">“{excerpt}”</div>
+                        )}
+                      </td>
+                      <td className="px-5 py-3.5 text-[13px] text-[#6B6B65]">{owner.name}</td>
+                      <td className="px-5 py-3.5 text-[13px] text-[#9B9B95] mono-num">v{getVersion(d)}</td>
+                      <td className="px-5 py-3.5">
+                        <button onClick={(e) => { e.stopPropagation(); updateDeliverableStatus(d.id, DELIVERABLE_CYCLE[d.status]); }}>
+                          <Badge variant={d.status} />
+                        </button>
+                      </td>
+                      <td className="px-5 py-3.5 text-[12px] text-[#9B9B95]">{d.createdAt.slice(5)}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
@@ -1149,6 +1212,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           </div>
         </div>
       </Modal>
+
+      <DeliverableDetailModal deliverableId={detailId} onClose={() => setDetailId(null)} />
     </>
   );
 }

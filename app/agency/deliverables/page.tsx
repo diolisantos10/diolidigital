@@ -5,7 +5,9 @@ import { useAgencyStore } from "@/store/agency-store";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import Badge from "@/components/agency/ui/Badge";
 import EmptyState from "@/components/agency/ui/EmptyState";
+import DeliverableDetailModal from "@/components/agency/deliverables/DeliverableDetailModal";
 import { DeliverableStatus } from "@/lib/agency/mock-data";
+import { getOwner, getVersion, needsRevision, getFeedbackExcerpt } from "@/lib/agency/deliverables";
 
 const DELIVERABLE_CYCLE: Record<DeliverableStatus, DeliverableStatus> = {
   draft: "in_review", in_review: "approved", approved: "delivered", delivered: "draft",
@@ -17,6 +19,7 @@ export default function DeliverablesPage() {
   const [statusFilter, setStatusFilter] = useState<DeliverableStatus | "all">("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [projectFilter, setProjectFilter] = useState("all");
+  const [detailId, setDetailId] = useState<string | null>(null);
 
   const types = [...new Set(deliverables.map((d) => d.type))];
 
@@ -94,7 +97,7 @@ export default function DeliverablesPage() {
               <tr className="border-b border-[#F0F0ED]">
                 <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Entrega</th>
                 <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Projeto</th>
-                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Tipo</th>
+                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Responsável</th>
                 <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Versão</th>
                 <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Status</th>
                 <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Data</th>
@@ -103,17 +106,33 @@ export default function DeliverablesPage() {
             <tbody>
               {filtered.map((d, i) => {
                 const project = getProject(d.projectId);
+                const owner = getOwner(d);
+                const revision = needsRevision(d);
+                const excerpt = getFeedbackExcerpt(d);
                 return (
-                  <tr key={d.id} className={`hover:bg-[#FAFAF9] transition-colors ${i > 0 ? "border-t border-[#F0F0ED]" : ""}`}>
-                    <td className="px-5 py-3.5 text-[13px] font-medium text-[#1A1A1A]">{d.name}</td>
-                    <td className="px-5 py-3.5 text-[13px] text-[#6B6B65]">{project?.name ?? "—"}</td>
+                  <tr
+                    key={d.id}
+                    onClick={() => setDetailId(d.id)}
+                    className={`group hover:bg-[#FAFAF9] transition-colors cursor-pointer ${i > 0 ? "border-t border-[#F0F0ED]" : ""}`}
+                  >
                     <td className="px-5 py-3.5">
-                      <span className="text-[12px] text-[#6B6B65] bg-[#F0F0ED] px-2 py-0.5 rounded-[5px]">{d.type}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[13px] font-medium text-[#1A1A1A] group-hover:text-[#5B5BD6] transition-colors">{d.name}</span>
+                        <span className="text-[11px] text-[#9B9B95] bg-[#F0F0ED] px-1.5 py-0.5 rounded-[4px]">{d.type}</span>
+                        {revision && (
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#D97706]">Revisão necessária</span>
+                        )}
+                      </div>
+                      {excerpt && (
+                        <div className="text-[11px] text-[#9B9B95] mt-0.5 italic truncate max-w-[420px]">“{excerpt}”</div>
+                      )}
                     </td>
-                    <td className="px-5 py-3.5 text-[12px] text-[#9B9B95] mono-num">v{d.version}</td>
+                    <td className="px-5 py-3.5 text-[13px] text-[#6B6B65]">{project?.name ?? "—"}</td>
+                    <td className="px-5 py-3.5 text-[13px] text-[#6B6B65]">{owner.name}</td>
+                    <td className="px-5 py-3.5 text-[12px] text-[#9B9B95] mono-num">v{getVersion(d)}</td>
                     <td className="px-5 py-3.5">
                       <button
-                        onClick={() => updateDeliverableStatus(d.id, DELIVERABLE_CYCLE[d.status])}
+                        onClick={(e) => { e.stopPropagation(); updateDeliverableStatus(d.id, DELIVERABLE_CYCLE[d.status]); }}
                         className="cursor-pointer hover:opacity-80 transition-opacity"
                         title="Clique para avançar o status"
                       >
@@ -128,6 +147,8 @@ export default function DeliverablesPage() {
           </table>
         </div>
       )}
+
+      <DeliverableDetailModal deliverableId={detailId} onClose={() => setDetailId(null)} />
     </>
   );
 }

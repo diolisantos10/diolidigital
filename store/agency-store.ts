@@ -10,6 +10,7 @@ import {
   OrchestratorBriefing,
   Task,
   Deliverable,
+  RevisionEntry,
   Briefing,
   ActivityEvent,
   TaskStatus,
@@ -25,6 +26,7 @@ import {
 } from "@/lib/agency/mock-data";
 import type { MaterialRequest, MaterialRequestStatus } from "@/lib/agency/workspace";
 import { generateClientRequirements, MOCK_MATERIAL_REQUESTS } from "@/lib/agency/workspace";
+import { inferOwnerAgent } from "@/lib/agency/deliverables";
 
 // ─── QA Test Run ──────────────────────────────────────────────────────────────
 
@@ -87,6 +89,8 @@ interface AgencyState {
   // Deliverable actions
   updateDeliverableStatus: (id: string, status: DeliverableStatus) => void;
   setDeliverableFeedback: (id: string, feedback: string) => void;
+  startDeliverableRevision: (id: string) => void;
+  resolveDeliverableRevision: (id: string, note?: string) => void;
 
   // Briefing actions
   createBriefing: (briefing: Omit<Briefing, "id" | "createdAt">) => string;
@@ -139,10 +143,19 @@ export const useAgencyStore = create<AgencyState>()(
       // ── Deliverables (add) ────────────────────────────────────────────────
       addDeliverable: (data) => {
         const id = `d${uid()}`;
+        const now = new Date().toISOString();
+        const version = data.version ?? 1;
         const deliverable: Deliverable = {
           ...data,
           id,
+          version,
           createdAt: new Date().toISOString().slice(0, 10),
+          ownerAgentId: data.ownerAgentId ?? inferOwnerAgent(data.type).id,
+          revisionStatus: data.revisionStatus ?? "none",
+          updatedAt: now,
+          revisionHistory: data.revisionHistory ?? [
+            { version, status: data.status, author: "agent", timestamp: now, note: "Entrega criada" },
+          ],
         };
         set((s) => ({ deliverables: [...s.deliverables, deliverable] }));
         get().addActivity({
@@ -343,8 +356,28 @@ export const useAgencyStore = create<AgencyState>()(
       updateDeliverableStatus: (id, status) => {
         const d = get().deliverables.find((x) => x.id === id);
         if (!d) return;
+        const now = new Date().toISOString();
+        const entry: RevisionEntry = {
+          version: d.version ?? 1,
+          status,
+          author: "internal",
+          timestamp: now,
+          note: `Status alterado para ${status}`,
+        };
+        // Approving/delivering, or sending a reworked draft back to review, resolves any open revision.
+        const wasInRevision = d.revisionStatus === "revision_requested" || d.revisionStatus === "in_revision";
+        const revisionStatus =
+          status === "approved" || status === "delivered"
+            ? "resolved"
+            : status === "in_review" && wasInRevision
+            ? "resolved"
+            : d.revisionStatus ?? "none";
         set((s) => ({
-          deliverables: s.deliverables.map((x) => (x.id === id ? { ...x, status } : x)),
+          deliverables: s.deliverables.map((x) =>
+            x.id === id
+              ? { ...x, status, revisionStatus, updatedAt: now, revisionHistory: [...(x.revisionHistory ?? []), entry] }
+              : x
+          ),
         }));
         get().addActivity({
           type: "deliverable_updated",
@@ -356,14 +389,97 @@ export const useAgencyStore = create<AgencyState>()(
       setDeliverableFeedback: (id, feedback) => {
         const d = get().deliverables.find((x) => x.id === id);
         if (!d) return;
+        const now = new Date().toISOString();
+        const ownerAgentId = d.ownerAgentId ?? inferOwnerAgent(d.type).id;
+        const entry: RevisionEntry = {
+          version: d.version ?? 1,
+          status: "draft",
+          feedback,
+          author: "client",
+          timestamp: now,
+          note: "Cliente solicitou alterações",
+        };
         set((s) => ({
           deliverables: s.deliverables.map((x) =>
-            x.id === id ? { ...x, status: "draft" as DeliverableStatus, clientFeedback: feedback } : x
+            x.id === id
+              ? {
+                  ...x,
+                  status: "draft" as DeliverableStatus,
+                  revisionStatus: "revision_requested",
+                  clientFeedback: feedback,
+                  lastFeedback: feedback,
+                  ownerAgentId,
+                  updatedAt: now,
+                  revisionHistory: [...(x.revisionHistory ?? []), entry],
+                }
+              : x
           ),
         }));
         get().addActivity({
           type: "deliverable_updated",
           message: `"${d.name}" — client requested changes`,
+          projectId: d.projectId,
+        });
+      },
+
+      // Owner agent picks up the revision work (draft → actively being reworked).
+      startDeliverableRevision: (id) => {
+        const d = get().deliverables.find((x) => x.id === id);
+        if (!d) return;
+        const now = new Date().toISOString();
+        const ownerAgentId = d.ownerAgentId ?? inferOwnerAgent(d.type).id;
+        const entry: RevisionEntry = {
+          version: d.version ?? 1,
+          status: d.status,
+          author: "internal",
+          timestamp: now,
+          note: "Revisão iniciada",
+        };
+        set((s) => ({
+          deliverables: s.deliverables.map((x) =>
+            x.id === id
+              ? { ...x, revisionStatus: "in_revision", ownerAgentId, updatedAt: now, revisionHistory: [...(x.revisionHistory ?? []), entry] }
+              : x
+          ),
+        }));
+        get().addActivity({
+          type: "deliverable_updated",
+          message: `"${d.name}" — revisão iniciada`,
+          projectId: d.projectId,
+        });
+      },
+
+      // Revision resolved → bump version and send the new version back to client review.
+      resolveDeliverableRevision: (id, note) => {
+        const d = get().deliverables.find((x) => x.id === id);
+        if (!d) return;
+        const now = new Date().toISOString();
+        const newVersion = (d.version ?? 1) + 1;
+        const entry: RevisionEntry = {
+          version: newVersion,
+          status: "in_review",
+          author: "internal",
+          timestamp: now,
+          note: note?.trim() || "Nova versão enviada para revisão do cliente",
+        };
+        set((s) => ({
+          deliverables: s.deliverables.map((x) =>
+            x.id === id
+              ? {
+                  ...x,
+                  version: newVersion,
+                  status: "in_review" as DeliverableStatus,
+                  revisionStatus: "resolved",
+                  clientFeedback: undefined,
+                  updatedAt: now,
+                  revisionHistory: [...(x.revisionHistory ?? []), entry],
+                }
+              : x
+          ),
+        }));
+        get().addActivity({
+          type: "deliverable_updated",
+          message: `"${d.name}" — nova versão v${newVersion} para revisão`,
           projectId: d.projectId,
         });
       },

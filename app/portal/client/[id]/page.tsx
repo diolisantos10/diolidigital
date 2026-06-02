@@ -331,12 +331,20 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
                             </div>
                           </div>
 
-                          {/* Previous client feedback (if set and status = draft) */}
-                          {d.clientFeedback && d.status === "draft" && (
-                            <div className="mx-5 mb-4 px-3 py-2.5 bg-[#FFFBEB] border border-[#FDE68A] rounded-[7px]">
-                              <p className="text-[11px] font-semibold text-[#D97706] mb-0.5 uppercase tracking-[0.04em]">Seu feedback</p>
-                              <p className="text-[12px] text-[#6B6B65] leading-relaxed">{d.clientFeedback}</p>
+                          {/* Revision in progress — keep it human, no internal detail */}
+                          {d.status === "draft" && d.revisionStatus === "in_revision" ? (
+                            <div className="mx-5 mb-4 px-3 py-2.5 bg-[#EEF0FF] border border-[#C7C7F5] rounded-[7px] flex items-center gap-2">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#5B5BD6] shrink-0" />
+                              <p className="text-[12px] text-[#5B5BD6] font-medium">Estamos ajustando esta entrega</p>
                             </div>
+                          ) : (
+                            /* Previous client feedback (if set and status = draft) */
+                            d.clientFeedback && d.status === "draft" && (
+                              <div className="mx-5 mb-4 px-3 py-2.5 bg-[#FFFBEB] border border-[#FDE68A] rounded-[7px]">
+                                <p className="text-[11px] font-semibold text-[#D97706] mb-0.5 uppercase tracking-[0.04em]">Seu feedback</p>
+                                <p className="text-[12px] text-[#6B6B65] leading-relaxed">{d.clientFeedback}</p>
+                              </div>
+                            )
                           )}
 
                           {/* Feedback input */}
