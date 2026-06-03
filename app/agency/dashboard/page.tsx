@@ -352,7 +352,7 @@ export default function DashboardPage() {
     <div>
       {/* Header */}
       <div className="mb-7">
-        <p className="text-[12px] font-medium text-[#9B9B95] uppercase tracking-[0.06em] mb-1">
+        <p suppressHydrationWarning className="text-[12px] font-medium text-[#9B9B95] uppercase tracking-[0.06em] mb-1">
           {new Date().toLocaleDateString("pt-BR", { weekday: "long", month: "long", day: "numeric" })}
         </p>
         <h1 className="text-[24px] font-semibold tracking-[-0.02em] text-[#1A1A1A]">{t.dashboard.title}</h1>
@@ -446,7 +446,7 @@ export default function DashboardPage() {
                         <div className="flex items-center gap-2 text-[11px] text-[#9B9B95]">
                           <span>{client?.name ?? "—"}</span>
                           <span>·</span>
-                          <span className={dl < 0 ? "text-[#DC2626]" : dl <= 3 ? "text-[#D97706]" : ""}>
+                          <span suppressHydrationWarning className={dl < 0 ? "text-[#DC2626]" : dl <= 3 ? "text-[#D97706]" : ""}>
                             {dl < 0 ? t.project.labels.daysOverdue(dl) : t.project.labels.daysLeft(dl)}
                           </span>
                         </div>
@@ -600,7 +600,7 @@ export default function DashboardPage() {
                     <p className="text-[11px] text-[#6B6B65] font-medium">{EVENT_LABELS[event.type] ?? event.type}</p>
                     <p className="text-[11px] text-[#9B9B95] truncate">{event.message}</p>
                   </div>
-                  <span className="text-[10px] text-[#C0C0BC] shrink-0">{timeAgo(event.timestamp, ops)}</span>
+                  <span suppressHydrationWarning className="text-[10px] text-[#C0C0BC] shrink-0">{timeAgo(event.timestamp, ops)}</span>
                 </div>
               ))}
               {activity.length === 0 && (
