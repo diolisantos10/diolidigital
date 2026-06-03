@@ -194,6 +194,11 @@ export interface StrategyRoomSpecialist {
   risks: string[];
   priority: "high" | "medium" | "low";
   confidence: number; // 1–10
+  // V2 expanded profile
+  mission?: string;
+  perspective?: string;
+  priorities?: string[];
+  concerns?: string[];
 }
 
 export interface StrategyRoomSynthesis {
@@ -205,6 +210,31 @@ export interface StrategyRoomSynthesis {
   strategicScore: number; // 1–10
 }
 
+export interface DebateTurn {
+  specialistId: string;
+  specialistName: string;
+  type: "opening" | "critique" | "addition" | "risk" | "consensus";
+  content: string;
+  replyTo?: string; // specialistId being addressed
+}
+
+export interface ConsensusLayer {
+  positioning: string;
+  strategy: string;
+  risks: string[];
+  opportunities: string[];
+  recommendedPackage: string;
+  recommendedChannels: string[];
+  recommendedDeliverables: string[];
+}
+
+export interface ExecutiveSummary {
+  biggestOpportunity: string;
+  biggestRisk: string;
+  recommendedAction: string;
+  confidenceScore: number; // 1–10
+}
+
 export interface StrategyRoom {
   projectId: string;
   clientId: string;
@@ -212,6 +242,10 @@ export interface StrategyRoom {
   specialists: StrategyRoomSpecialist[];
   finalSynthesis: StrategyRoomSynthesis;
   status: "draft" | "ready";
+  // V2 extensions
+  debateTurns?: DebateTurn[];
+  consensus?: ConsensusLayer;
+  executiveSummary?: ExecutiveSummary;
 }
 
 export interface Agent {
