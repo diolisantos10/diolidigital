@@ -12,9 +12,11 @@ import DeliverableDetailModal from "@/components/agency/deliverables/Deliverable
 import Link from "next/link";
 import { TaskStatus, DeliverableStatus, Priority, ProjectStage, MOCK_AGENTS, ProjectProposal, StrategyRoomSpecialist } from "@/lib/agency/mock-data";
 import { getOwner, getVersion, needsRevision, getFeedbackExcerpt } from "@/lib/agency/deliverables";
-import { getProjectProgress, getProjectReportText, getProjectHealth, getPilotChecklist } from "@/lib/agency/reporting";
+import { getProjectProgress, getProjectReportText, getProjectHealth, getPilotChecklist, getPilotAudit, getPilotTimeline, getOperatorPlaybook } from "@/lib/agency/reporting";
 import { getClientAgentContext } from "@/lib/agency/workspace";
 import PilotChecklist from "@/components/agency/PilotChecklist";
+import PilotPlaybook from "@/components/agency/PilotPlaybook";
+import PilotTimeline from "@/components/agency/PilotTimeline";
 
 const STAGES: ProjectStage[] = ["briefing","diagnosis","planning","production","review","delivery","ongoing","completed"];
 const TASK_CYCLE: Record<TaskStatus, TaskStatus> = {
@@ -188,7 +190,78 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       </div>
 
       {/* Tab: Overview */}
-      {tab === "overview" && (
+      {tab === "overview" && (() => {
+        const ovProgress = getProjectProgress(project, projectDeliverables, projectTasks, projectMaterialRequests, strategyRooms);
+        const ovHealth = getProjectHealth(project, ovProgress);
+        const ovAudit = getPilotAudit({ project, client, briefing, strategyRoom: strategyRoom ?? undefined, materialRequests: projectMaterialRequests });
+        const pendingCount = ovProgress.draft + ovProgress.inReview;
+        const PROPOSAL_TEXT: Record<string, string> = {
+          draft: "Rascunho", sent: "Enviada", approved: "Aprovada", rejected: "Reprovada", changes_requested: "Alterações solicitadas",
+        };
+        const goToReport = () => setTab("report");
+        return (
+        <div className="space-y-6">
+          {/* ── COMMAND CENTER — unified operational summary ── */}
+          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F0ED]">
+              <div className="flex items-center gap-2.5">
+                <h2 className="text-[13px] font-semibold text-[#1A1A1A]">Centro de Comando</h2>
+                <span className={`flex items-center gap-1.5 h-6 px-2.5 rounded-full text-[11px] font-semibold ${ovHealth.color}`}>
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: ovHealth.dotColor }} />
+                  {ovHealth.label}
+                </span>
+              </div>
+              <span className="text-[11px] text-[#9B9B95]">Prontidão {ovProgress.readinessScore}%</span>
+            </div>
+            {/* Stat row */}
+            <div className="grid grid-cols-5 divide-x divide-[#F0F0ED] border-b border-[#F0F0ED]">
+              {[
+                { label: "Proposta", value: PROPOSAL_TEXT[ovProgress.proposalStatus ?? "draft"] ?? "—", onClick: () => setTab("proposal"), warn: !ovProgress.proposalApproved },
+                { label: "Aprovações pend.", value: String(ovProgress.inReview), onClick: () => setTab("deliverables"), warn: ovProgress.inReview > 0 },
+                { label: "Revisões pend.", value: String(ovProgress.revisionNeeded), onClick: () => setTab("deliverables"), warn: ovProgress.revisionNeeded > 0 },
+                { label: "Entregas pend.", value: String(pendingCount), onClick: () => setTab("deliverables"), warn: pendingCount > 0 },
+                { label: "Materiais pend.", value: String(ovProgress.pendingMaterialRequests), onClick: () => setTab("briefing"), warn: ovProgress.pendingMaterialRequests > 0 },
+              ].map((s) => (
+                <button key={s.label} onClick={s.onClick} className="px-4 py-3 text-left hover:bg-[#FAFAF9] transition-colors">
+                  <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.04em] mb-1">{s.label}</div>
+                  <div className={`text-[16px] font-bold mono-num leading-none ${s.warn ? "text-[#D97706]" : "text-[#1A1A1A]"}`}>{s.value}</div>
+                </button>
+              ))}
+            </div>
+            {/* Next action + quick actions */}
+            <div className="px-5 py-3.5 flex items-center justify-between gap-4 flex-wrap">
+              <div className="min-w-0 flex-1">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.05em] text-[#9B9B95]">Próxima ação</span>
+                <p className="text-[13px] font-medium text-[#1A1A1A] leading-snug">{ovProgress.nextAction}</p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {!strategyRoom && (
+                  <button onClick={() => setTab("strategy")} className="h-7 px-3 rounded-[6px] text-[12px] font-medium border border-[#E5E5E2] text-[#6B6B65] hover:border-[#5B5BD6] hover:text-[#5B5BD6] transition-colors">Gerar Estratégia</button>
+                )}
+                <a href={`/portal/client/${project.clientId}`} target="_blank" rel="noreferrer" className="h-7 px-3 rounded-[6px] text-[12px] font-medium border border-[#E5E5E2] text-[#6B6B65] hover:border-[#5B5BD6] hover:text-[#5B5BD6] transition-colors flex items-center">Portal do Cliente ↗</a>
+                <button onClick={goToReport} className="h-7 px-3 rounded-[6px] text-[12px] font-medium bg-[#5B5BD6] text-white hover:opacity-90 transition-opacity">Ver Relatório</button>
+              </div>
+            </div>
+            {/* Audit warnings */}
+            {ovAudit.warnings.length > 0 && (
+              <div className="border-t border-[#F0F0ED] px-5 py-3 bg-[#FFFCF5]">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.05em] text-[#9B9B95] mb-2">
+                  Avisos de prontidão ({ovAudit.warnings.length})
+                </div>
+                <div className="space-y-1.5">
+                  {ovAudit.warnings.map((w, i) => (
+                    <div key={i} className="flex items-start gap-2">
+                      <span className={`mt-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-[3px] shrink-0 ${
+                        w.severity === "high" ? "bg-[#FEE2E2] text-[#DC2626]" : w.severity === "medium" ? "bg-[#FEF3C7] text-[#D97706]" : "bg-[#F0F0ED] text-[#6B6B65]"
+                      }`}>{w.area}</span>
+                      <span className="text-[12px] text-[#6B6B65] leading-snug">{w.message}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
         <div className="grid grid-cols-[1fr_280px] gap-6">
           <div className="space-y-5">
             {/* Client Approval status */}
@@ -651,7 +724,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             </div>
           </div>
         </div>
-      )}
+        </div>
+        );
+      })()}
 
       {/* Tab: Execution */}
       {tab === "execution" && (
@@ -1421,6 +1496,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         const projectHealth = getProjectHealth(project, progress);
         const brandBrainComplete = client ? getClientAgentContext(client).brandBrainReadiness >= 5 : false;
         const checklist = getPilotChecklist(progress, brandBrainComplete);
+        const playbook = getOperatorPlaybook(progress, brandBrainComplete);
+        const timeline = getPilotTimeline(project);
 
         const handleCopyReport = () => {
           const text = getProjectReportText(project.name, client?.name ?? "—", progress);
@@ -1628,7 +1705,13 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               </div>
             </div>
 
-            {/* First Client Checklist */}
+            {/* Pilot Execution Timeline */}
+            <PilotTimeline weeks={timeline} />
+
+            {/* First Client Playbook (4-phase) */}
+            <PilotPlaybook playbook={playbook} />
+
+            {/* First Client Checklist (readiness snapshot) */}
             <PilotChecklist checklist={checklist} />
           </div>
         );

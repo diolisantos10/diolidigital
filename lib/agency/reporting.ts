@@ -7,10 +7,10 @@
 //   - Client Workspace internal progress panel
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { Deliverable, Project, Task } from "@/lib/agency/mock-data";
+import type { Deliverable, Project, Task, Client, Briefing } from "@/lib/agency/mock-data";
 import type { StrategyRoom } from "@/lib/agency/mock-data";
 import type { MaterialRequest } from "@/lib/agency/workspace";
-import { needsRevision } from "@/lib/agency/deliverables";
+import { needsRevision, getVersion } from "@/lib/agency/deliverables";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -451,4 +451,311 @@ export function getProjectReportText(
   ];
 
   return lines.join("\n");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Pilot Execution V1 — operational layer for the first real client.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ─── Department detection (shared) ────────────────────────────────────────────
+// Infers which operational tracks a project runs, from agents + type + proposal.
+
+export interface DeptFlags {
+  social: boolean;
+  design: boolean;
+  ads: boolean;
+}
+
+export function detectDepartments(project: Project): DeptFlags {
+  const hay = `${project.type} ${project.goal} ${project.proposal?.scope ?? ""} ${(project.proposal?.deliverables ?? []).join(" ")}`.toLowerCase();
+  const agents = project.agents ?? [];
+  return {
+    social: agents.includes("a3") || /social|rede|instagram|conteúdo|content|post/.test(hay),
+    design: agents.includes("a2") || /design|identidade|visual|template|criativo|brand/.test(hay),
+    ads: agents.includes("a4") || /ads|tráfego|trafego|anúncio|anuncio|campanha|paid|meta|google/.test(hay),
+  };
+}
+
+// ─── Brand Brain completeness (shared) ────────────────────────────────────────
+
+const BRAND_BRAIN_FIELDS: (keyof NonNullable<Client["brandBrain"]>)[] = [
+  "businessSummary", "positioning", "targetAudience", "toneOfVoice", "visualStyle",
+  "brandRules", "productsToHighlight", "thingsToAvoid", "preferredChannels", "strategicNotes",
+];
+
+export function getBrandBrainScore(client: Client | undefined): { filled: number; total: number; complete: boolean } {
+  const brain = client?.brandBrain;
+  const filled = brain
+    ? BRAND_BRAIN_FIELDS.filter((k) => brain[k] && (brain[k] as string).trim().length > 0).length
+    : 0;
+  return { filled, total: BRAND_BRAIN_FIELDS.length, complete: filled >= 8 };
+}
+
+// ─── PART 1 — Pilot Audit ─────────────────────────────────────────────────────
+// Audits the readiness of a single project's inputs and emits warnings.
+
+export type WarningSeverity = "high" | "medium" | "low";
+
+export interface PilotWarning {
+  area: string;
+  severity: WarningSeverity;
+  message: string;
+}
+
+export interface PilotAudit {
+  warnings: PilotWarning[];
+  highCount: number;
+  mediumCount: number;
+  passed: boolean; // no high-severity warnings
+  brandBrain: { filled: number; total: number; complete: boolean };
+}
+
+export function getPilotAudit(input: {
+  project: Project;
+  client?: Client;
+  briefing?: Briefing;
+  strategyRoom?: StrategyRoom;
+  materialRequests: MaterialRequest[];
+}): PilotAudit {
+  const { project, client, briefing, strategyRoom, materialRequests } = input;
+  const warnings: PilotWarning[] = [];
+  const brandBrain = getBrandBrainScore(client);
+
+  // Brand Brain
+  if (brandBrain.filled === 0) {
+    warnings.push({ area: "Brand Brain", severity: "high", message: "Brand Brain vazio — preencha o contexto da marca antes de executar." });
+  } else if (brandBrain.filled < 5) {
+    warnings.push({ area: "Brand Brain", severity: "high", message: `Brand Brain incompleto (${brandBrain.filled}/10 campos) — execução gerará conteúdo genérico.` });
+  } else if (!brandBrain.complete) {
+    warnings.push({ area: "Brand Brain", severity: "low", message: `Brand Brain quase completo (${brandBrain.filled}/10) — preencha os campos restantes para mais precisão.` });
+  }
+
+  // Briefing
+  if (!briefing) {
+    warnings.push({ area: "Briefing", severity: "medium", message: "Sem briefing registrado — capture o briefing pelo Orquestrador." });
+  } else {
+    const missing = (["goal", "audience", "keyMessage", "deliverables", "successCriteria"] as const)
+      .filter((k) => !briefing[k] || briefing[k].trim().length === 0);
+    if (missing.length > 0) {
+      warnings.push({ area: "Briefing", severity: "medium", message: `Briefing incompleto — campos faltando: ${missing.join(", ")}.` });
+    } else if (briefing.status === "pending_analysis") {
+      warnings.push({ area: "Briefing", severity: "low", message: "Briefing ainda não analisado — revise e marque como analisado." });
+    }
+  }
+
+  // Strategy Room
+  if (!strategyRoom || strategyRoom.status !== "ready") {
+    warnings.push({ area: "Strategy Room", severity: "medium", message: "Strategy Room não gerado — rode a sala de estratégia para orientar a execução." });
+  }
+
+  // Proposal
+  const prop = project.proposal;
+  if (!prop) {
+    warnings.push({ area: "Proposta", severity: "high", message: "Nenhuma proposta criada — crie e envie a proposta ao cliente." });
+  } else {
+    if (!prop.pricing || /a definir|tbd|—|^$/i.test(prop.pricing.trim())) {
+      warnings.push({ area: "Proposta", severity: "high", message: "Preço da proposta não definido ('A definir') — defina o valor antes de enviar." });
+    }
+    if (!prop.deliverables || prop.deliverables.length < 2) {
+      warnings.push({ area: "Proposta", severity: "medium", message: "Proposta com poucas entregas — detalhe o escopo." });
+    }
+    if (!prop.timeline || prop.timeline.trim().length === 0) {
+      warnings.push({ area: "Proposta", severity: "low", message: "Proposta sem prazo definido." });
+    }
+    if (prop.status === "draft") {
+      warnings.push({ area: "Proposta", severity: "medium", message: "Proposta em rascunho — envie ao cliente para aprovação." });
+    }
+  }
+
+  // Material requests
+  const pending = materialRequests.filter((r) => r.projectId === project.id && r.status === "pending").length;
+  if (pending > 0) {
+    warnings.push({ area: "Materiais", severity: pending > 2 ? "medium" : "low", message: `${pending} solicitação(ões) de material pendente(s) do cliente.` });
+  }
+
+  const highCount = warnings.filter((w) => w.severity === "high").length;
+  const mediumCount = warnings.filter((w) => w.severity === "medium").length;
+  return { warnings, highCount, mediumCount, passed: highCount === 0, brandBrain };
+}
+
+// ─── PART 4 — Pilot Timeline ──────────────────────────────────────────────────
+// A 4-week execution timeline derived from active departments.
+
+export interface TimelineTrack {
+  dept: string;
+  accentHex: string;
+  items: string[];
+}
+
+export interface TimelineWeek {
+  week: number;
+  theme: string;
+  tracks: TimelineTrack[];
+}
+
+const TL_SOCIAL = "#5B5BD6";
+const TL_DESIGN = "#C2530A";
+const TL_ADS = "#0E7490";
+
+export function getPilotTimeline(project: Project): TimelineWeek[] {
+  const dept = detectDepartments(project);
+
+  const plan: Record<string, { social: string; design: string; ads: string }> = {
+    "1": {
+      social: "Estratégia de redes sociais, persona e pilares de conteúdo",
+      design: "Sistema de templates e identidade visual aplicada",
+      ads: "Estrutura de campanha, objetivos e mapeamento de públicos",
+    },
+    "2": {
+      social: "Calendário editorial de 30 dias e primeiras legendas",
+      design: "Criativos-base e variações dos templates aprovados",
+      ads: "Copy de anúncios e requisitos de criativos por estágio do funil",
+    },
+    "3": {
+      social: "Batch inicial de conteúdo e revisão interna",
+      design: "Ajustes finos, versões e pacote de assets",
+      ads: "Setup de campanha, segmentações e revisão de criativos",
+    },
+    "4": {
+      social: "Publicação, agendamento e relatório de lançamento",
+      design: "Entrega final do pacote visual e handoff",
+      ads: "Lançamento das campanhas e otimização inicial",
+    },
+  };
+
+  const themes: Record<string, string> = {
+    "1": "Fundação & Estratégia",
+    "2": "Produção",
+    "3": "Revisão & Refinamento",
+    "4": "Lançamento & Otimização",
+  };
+
+  return [1, 2, 3, 4].map((w) => {
+    const key = String(w);
+    const tracks: TimelineTrack[] = [];
+    if (dept.social) tracks.push({ dept: "Redes Sociais", accentHex: TL_SOCIAL, items: [plan[key].social] });
+    if (dept.design) tracks.push({ dept: "Design", accentHex: TL_DESIGN, items: [plan[key].design] });
+    if (dept.ads) tracks.push({ dept: "Tráfego Pago", accentHex: TL_ADS, items: [plan[key].ads] });
+    return { week: w, theme: themes[key], tracks };
+  });
+}
+
+// ─── PART 5 — Deliverable Quality Score ───────────────────────────────────────
+// Internal-only 0–100 score for a deliverable, from contextual + lifecycle signals.
+
+export interface QualitySignal {
+  label: string;
+  points: number;
+  max: number;
+  met: boolean;
+}
+
+export interface DeliverableQuality {
+  score: number; // 0–100
+  level: "high" | "medium" | "low";
+  signals: QualitySignal[];
+}
+
+export function getDeliverableQuality(
+  deliverable: Deliverable,
+  ctx: { brandBrainComplete: boolean; strategyRoomReady: boolean }
+): DeliverableQuality {
+  const version = getVersion(deliverable);
+  const revisionCount = (deliverable.revisionHistory?.length ?? 0) + (version > 1 ? version - 1 : 0);
+  const status = deliverable.status;
+
+  const signals: QualitySignal[] = [];
+
+  // 1. Brand Brain used — 20
+  signals.push({ label: "Brand Brain aplicado", max: 20, met: ctx.brandBrainComplete, points: ctx.brandBrainComplete ? 20 : 0 });
+
+  // 2. Strategy Room used — 15
+  signals.push({ label: "Strategy Room aplicado", max: 15, met: ctx.strategyRoomReady, points: ctx.strategyRoomReady ? 15 : 0 });
+
+  // 3. Completeness (left draft? reached review?) — 25
+  const completePts = status === "delivered" || status === "approved" ? 25 : status === "in_review" ? 18 : 8;
+  signals.push({ label: "Completude", max: 25, met: status !== "draft", points: completePts });
+
+  // 4. Approval — 25
+  const approvalPts = status === "delivered" || status === "approved" ? 25 : status === "in_review" ? 12 : 0;
+  signals.push({ label: "Aprovação", max: 25, met: status === "approved" || status === "delivered", points: approvalPts });
+
+  // 5. Revision economy (fewer reworks is better) — 15
+  const revPts = revisionCount === 0 ? 15 : revisionCount === 1 ? 9 : revisionCount === 2 ? 4 : 0;
+  signals.push({ label: "Eficiência de revisão", max: 15, met: revisionCount <= 1, points: revPts });
+
+  const score = Math.min(100, signals.reduce((sum, s) => sum + s.points, 0));
+  const level: DeliverableQuality["level"] = score >= 75 ? "high" : score >= 45 ? "medium" : "low";
+  return { score, level, signals };
+}
+
+// ─── PART 6 — First Client Playbook ───────────────────────────────────────────
+// Four-phase operational playbook with a single "what next" answer.
+
+export type PlaybookPhaseKey = "before_proposal" | "before_execution" | "before_client_review" | "before_delivery";
+
+export interface PlaybookPhase {
+  key: PlaybookPhaseKey;
+  title: string;
+  items: ChecklistItem[];
+  complete: boolean;
+  current: boolean;
+}
+
+export interface OperatorPlaybook {
+  phases: PlaybookPhase[];
+  currentPhaseKey: PlaybookPhaseKey;
+  currentPhaseTitle: string;
+  nextAction: string;
+}
+
+export function getOperatorPlaybook(
+  progress: ProjectProgress,
+  brandBrainComplete: boolean
+): OperatorPlaybook {
+  const proposalSent = progress.proposalStatus === "sent" || progress.proposalApproved;
+
+  const beforeProposal: ChecklistItem[] = [
+    { key: "bb", label: "Brand Brain preenchido", done: brandBrainComplete, hint: "Complete o contexto da marca no perfil do cliente." },
+    { key: "strategy", label: "Strategy Room gerado", done: progress.strategyRoomReady, hint: "Rode a sala de estratégia na aba Estratégia." },
+    { key: "proposal_sent", label: "Proposta enviada ao cliente", done: proposalSent, hint: "Crie e envie a proposta na aba Proposta." },
+  ];
+
+  const beforeExecution: ChecklistItem[] = [
+    { key: "proposal_approved", label: "Proposta aprovada", done: progress.proposalApproved, hint: "Cliente aprova a proposta no portal." },
+    { key: "materials", label: "Materiais necessários recebidos", done: progress.pendingMaterialRequests === 0, hint: "Sem materiais pendentes do cliente." },
+  ];
+
+  const beforeClientReview: ChecklistItem[] = [
+    { key: "generated", label: "Entregas geradas pelos agentes", done: progress.totalDeliverables > 0, hint: "Rode Social, Design e Tráfego Pago." },
+    { key: "internal_ok", label: "Revisão interna concluída", done: progress.totalDeliverables > 0 && progress.draft === 0 && progress.revisionNeeded === 0, hint: "Nenhum rascunho ou revisão interna pendente." },
+  ];
+
+  const beforeDelivery: ChecklistItem[] = [
+    { key: "client_review", label: "Revisão do cliente solicitada", done: progress.inReview > 0 || progress.approved > 0 || progress.delivered > 0, hint: "Envie as entregas ao portal do cliente." },
+    { key: "approved", label: "Entregas aprovadas pelo cliente", done: progress.approved > 0 || progress.delivered > 0, hint: "Cliente aprova as entregas no portal." },
+  ];
+
+  const phaseDefs: { key: PlaybookPhaseKey; title: string; items: ChecklistItem[] }[] = [
+    { key: "before_proposal", title: "Antes da proposta", items: beforeProposal },
+    { key: "before_execution", title: "Antes da execução", items: beforeExecution },
+    { key: "before_client_review", title: "Antes da revisão do cliente", items: beforeClientReview },
+    { key: "before_delivery", title: "Antes da entrega", items: beforeDelivery },
+  ];
+
+  const phasesComputed = phaseDefs.map((p) => ({ ...p, complete: p.items.every((i) => i.done) }));
+  const currentIdx = phasesComputed.findIndex((p) => !p.complete);
+  const currentPhaseKey = (currentIdx === -1 ? phasesComputed[3] : phasesComputed[currentIdx]).key;
+
+  const phases: PlaybookPhase[] = phasesComputed.map((p) => ({
+    ...p,
+    current: p.key === currentPhaseKey,
+  }));
+
+  return {
+    phases,
+    currentPhaseKey,
+    currentPhaseTitle: (currentIdx === -1 ? phasesComputed[3] : phasesComputed[currentIdx]).title,
+    nextAction: progress.nextAction,
+  };
 }

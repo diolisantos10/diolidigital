@@ -14,6 +14,7 @@ import {
   getLastFeedback,
   REVISION_AUTHOR_LABEL,
 } from "@/lib/agency/deliverables";
+import { getDeliverableQuality, getBrandBrainScore } from "@/lib/agency/reporting";
 
 interface Props {
   deliverableId: string | null;
@@ -30,7 +31,7 @@ function formatTimestamp(iso: string): string {
 // Accessible from the project deliverables tab, the global deliverables list,
 // and any internal view. Shows the full review lifecycle + owner actions.
 export default function DeliverableDetailModal({ deliverableId, onClose }: Props) {
-  const { deliverables, projects, clients, updateDeliverableStatus, startDeliverableRevision, resolveDeliverableRevision } = useAgencyStore();
+  const { deliverables, projects, clients, strategyRooms, updateDeliverableStatus, startDeliverableRevision, resolveDeliverableRevision } = useAgencyStore();
   const [resolveNote, setResolveNote] = useState("");
 
   const d = deliverables.find((x) => x.id === deliverableId) ?? null;
@@ -38,6 +39,13 @@ export default function DeliverableDetailModal({ deliverableId, onClose }: Props
 
   const project = projects.find((p) => p.id === d.projectId);
   const client = clients.find((c) => c.id === project?.clientId);
+  const strategyRoomReady = strategyRooms.some((r) => r.projectId === d.projectId && r.status === "ready");
+  const quality = getDeliverableQuality(d, {
+    brandBrainComplete: getBrandBrainScore(client).complete,
+    strategyRoomReady,
+  });
+  const QUALITY_COLOR = quality.level === "high" ? "text-[#16A34A]" : quality.level === "medium" ? "text-[#D97706]" : "text-[#DC2626]";
+  const QUALITY_BAR = quality.level === "high" ? "bg-[#16A34A]" : quality.level === "medium" ? "bg-[#D97706]" : "bg-[#DC2626]";
   const owner = getOwner(d);
   const version = getVersion(d);
   const history = getRevisionHistory(d);
@@ -81,6 +89,28 @@ export default function DeliverableDetailModal({ deliverableId, onClose }: Props
         <div className={`rounded-[8px] px-4 py-3 border ${revision ? "bg-[#FFFBEB] border-[#FDE68A]" : "bg-[#F7F7F6] border-[#E5E5E2]"}`}>
           <div className="text-[10px] font-semibold uppercase tracking-[0.05em] mb-0.5 text-[#9B9B95]">Próxima ação</div>
           <div className={`text-[13px] font-medium ${revision ? "text-[#B45309]" : "text-[#1A1A1A]"}`}>{nextAction}</div>
+        </div>
+
+        {/* Quality score (internal only) */}
+        <div className="rounded-[8px] px-4 py-3 border border-[#E5E5E2] bg-white">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.05em] text-[#9B9B95]">Qualidade da Entrega · interno</div>
+            <span className={`text-[16px] font-bold mono-num ${QUALITY_COLOR}`}>{quality.score}<span className="text-[11px] text-[#9B9B95] font-medium">/100</span></span>
+          </div>
+          <div className="h-1.5 bg-[#F0F0ED] rounded-full overflow-hidden mb-2.5">
+            <div className={`h-full rounded-full ${QUALITY_BAR}`} style={{ width: `${quality.score}%` }} />
+          </div>
+          <div className="space-y-1">
+            {quality.signals.map((sig) => (
+              <div key={sig.label} className="flex items-center justify-between text-[11px]">
+                <span className="flex items-center gap-1.5">
+                  <span className={`w-1.5 h-1.5 rounded-full ${sig.met ? "bg-[#16A34A]" : "bg-[#D0D0CC]"}`} />
+                  <span className="text-[#6B6B65]">{sig.label}</span>
+                </span>
+                <span className="text-[#9B9B95] mono-num">{sig.points}/{sig.max}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Client feedback */}
