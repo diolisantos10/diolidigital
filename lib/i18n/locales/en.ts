@@ -77,6 +77,58 @@ export interface Translations {
     reviewDeliverable: (name: string, project: string) => string;
     noTasksOrchestrator: (name: string) => string;
     isOverdue: (name: string) => string;
+    allClearAlerts: string;
+    ops: {
+      badgeUnblock: string;
+      badgeReview: string;
+      badgeExecute: string;
+      badgePlan: string;
+      reasonManual: string;
+      reasonPastDeadline: (n: number) => string;
+      reasonExecNotStarted: (agent: string) => string;
+      reasonAllPending: string;
+      reasonAwaitingClient: string;
+      reasonClientChanges: string;
+      reasonRunOrchestrator: string;
+      labelTasksBlocked: (n: number, project: string) => string;
+      labelOverdue: (project: string) => string;
+      labelNoOutputs: (project: string) => string;
+      labelNotStarted: (agent: string, project: string) => string;
+      labelNoPlan: (project: string) => string;
+      labelNeedsReview: (name: string) => string;
+      labelRevisionNeeded: (name: string, project: string) => string;
+      ctaResolve: string;
+      ctaOpenProject: string;
+      ctaRunAgent: string;
+      ctaReview: string;
+      ctaRevise: string;
+      ctaPlanProject: string;
+      openingProject: (name: string) => string;
+      openingAgent: (agent: string, name: string) => string;
+      openingExecution: (name: string) => string;
+      openingDeliverables: (name: string) => string;
+      openingBlocked: (name: string) => string;
+      openingOrchestrator: string;
+      evProjectCreated: string;
+      evStageChanged: string;
+      evTaskUpdated: string;
+      evDeliverableSaved: string;
+      evClientCreated: string;
+      evBriefingCreated: string;
+      evOrchestratorApproved: string;
+      justNow: string;
+      minsAgo: (n: number) => string;
+      hrsAgo: (n: number) => string;
+      daysAgo: (n: number) => string;
+      statusDraft: string;
+      statusInReview: string;
+      statusApproved: string;
+      statusDelivered: string;
+      healthTitle: string;
+      healthSub: string;
+      healthAllGood: string;
+      noProjects: string;
+    };
   };
   project: {
     stages: {
@@ -250,6 +302,58 @@ export const en: Translations = {
     reviewDeliverable: (name, project) => `Review "${name}" — ${project}`,
     noTasksOrchestrator: (name) => `${name} has no tasks — run Orchestrator`,
     isOverdue: (name) => `${name} is overdue`,
+    allClearAlerts: "No blocks or alerts. Everything is on track.",
+    ops: {
+      badgeUnblock: "Unblock",
+      badgeReview: "Review",
+      badgeExecute: "Execute",
+      badgePlan: "Plan",
+      reasonManual: "Requires manual resolution",
+      reasonPastDeadline: (n) => `${n} day${n !== 1 ? "s" : ""} past deadline`,
+      reasonExecNotStarted: (agent) => `${agent} execution not started`,
+      reasonAllPending: "All assigned tasks still pending",
+      reasonAwaitingClient: "Awaiting client approval",
+      reasonClientChanges: "Client requested changes",
+      reasonRunOrchestrator: "Run Orchestrator to generate tasks",
+      labelTasksBlocked: (n, project) => `${n} task${n !== 1 ? "s" : ""} blocked — ${project}`,
+      labelOverdue: (project) => `${project} is overdue`,
+      labelNoOutputs: (project) => `No outputs saved — ${project}`,
+      labelNotStarted: (agent, project) => `${agent} not started — ${project}`,
+      labelNoPlan: (project) => `${project} has no execution plan`,
+      labelNeedsReview: (name) => `"${name}" needs review`,
+      labelRevisionNeeded: (name, project) => `"${name}" revision needed — ${project}`,
+      ctaResolve: "Resolve",
+      ctaOpenProject: "Open Project",
+      ctaRunAgent: "Run Agent",
+      ctaReview: "Review",
+      ctaRevise: "Revise",
+      ctaPlanProject: "Plan Project",
+      openingProject: (name) => `Opening ${name}…`,
+      openingAgent: (agent, name) => `Opening ${agent} for ${name}…`,
+      openingExecution: (name) => `Opening execution tab for ${name}…`,
+      openingDeliverables: (name) => `Opening deliverables for ${name}…`,
+      openingBlocked: (name) => `Opening blocked tasks for ${name}…`,
+      openingOrchestrator: "Opening Orchestrator…",
+      evProjectCreated: "Project created",
+      evStageChanged: "Stage moved",
+      evTaskUpdated: "Task updated",
+      evDeliverableSaved: "Deliverable saved",
+      evClientCreated: "Client added",
+      evBriefingCreated: "Briefing submitted",
+      evOrchestratorApproved: "Orchestrator approved",
+      justNow: "just now",
+      minsAgo: (n) => `${n}m ago`,
+      hrsAgo: (n) => `${n}h ago`,
+      daysAgo: (n) => `${n}d ago`,
+      statusDraft: "Draft",
+      statusInReview: "In review",
+      statusApproved: "Approved",
+      statusDelivered: "Delivered",
+      healthTitle: "Project Health",
+      healthSub: "Operational status of active projects",
+      healthAllGood: "All projects healthy",
+      noProjects: "No active projects",
+    },
   },
   project: {
     stages: {

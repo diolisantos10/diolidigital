@@ -6,17 +6,25 @@ import { useAgencyStore } from "@/store/agency-store";
 import { useTranslation } from "@/lib/i18n";
 import Link from "next/link";
 import { MOCK_AGENTS, ProjectStage } from "@/lib/agency/mock-data";
+import { getProjectProgress, getProjectHealth } from "@/lib/agency/reporting";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function timeAgo(iso: string) {
+type OpsStrings = {
+  justNow: string;
+  minsAgo: (n: number) => string;
+  hrsAgo: (n: number) => string;
+  daysAgo: (n: number) => string;
+};
+
+function timeAgo(iso: string, ops: OpsStrings) {
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return ops.justNow;
+  if (mins < 60) return ops.minsAgo(mins);
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
+  if (hrs < 24) return ops.hrsAgo(hrs);
+  return ops.daysAgo(Math.floor(hrs / 24));
 }
 
 function daysLeft(deadline: string) {
@@ -47,11 +55,11 @@ interface ActionItem {
   href: string;        // fallback href (used only for <Link> in planning type)
 }
 
-const TYPE_STYLES: Record<ActionType, { bg: string; text: string; label: string }> = {
-  unblock:   { bg: "bg-[#FEE2E2]", text: "text-[#DC2626]", label: "Unblock"  },
-  review:    { bg: "bg-[#FEF3C7]", text: "text-[#D97706]", label: "Review"   },
-  execution: { bg: "bg-[#EEF0FF]", text: "text-[#5B5BD6]", label: "Execute"  },
-  planning:  { bg: "bg-[#F0F0ED]", text: "text-[#6B6B65]", label: "Plan"     },
+const TYPE_STYLES: Record<ActionType, { bg: string; text: string }> = {
+  unblock:   { bg: "bg-[#FEE2E2]", text: "text-[#DC2626]" },
+  review:    { bg: "bg-[#FEF3C7]", text: "text-[#D97706]" },
+  execution: { bg: "bg-[#EEF0FF]", text: "text-[#5B5BD6]" },
+  planning:  { bg: "bg-[#F0F0ED]", text: "text-[#6B6B65]" },
 };
 
 // Maps agent IDs to dedicated agent pages (only agents with a page get direct execution)
@@ -84,23 +92,30 @@ function scoreAction(
   return s;
 }
 
-const EVENT_LABELS: Record<string, string> = {
-  project_created: "Project created",
-  project_stage_changed: "Stage moved",
-  task_updated: "Task updated",
-  deliverable_updated: "Deliverable saved",
-  client_created: "Client added",
-  briefing_created: "Briefing submitted",
-  orchestrator_approved: "Orchestrator approved",
-};
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { projects, tasks, deliverables, activity, clients, setPendingAgentInput } = useAgencyStore();
+  const { projects, tasks, deliverables, activity, clients, materialRequests, strategyRooms, setPendingAgentInput } = useAgencyStore();
   const { t } = useTranslation();
   const [confirmMsg, setConfirmMsg] = useState<string | null>(null);
+
+  const ops = t.dashboard.ops;
+  const TYPE_LABELS: Record<ActionType, string> = {
+    unblock: ops.badgeUnblock, review: ops.badgeReview, execution: ops.badgeExecute, planning: ops.badgePlan,
+  };
+  const EVENT_LABELS: Record<string, string> = {
+    project_created: ops.evProjectCreated,
+    project_stage_changed: ops.evStageChanged,
+    task_updated: ops.evTaskUpdated,
+    deliverable_updated: ops.evDeliverableSaved,
+    client_created: ops.evClientCreated,
+    briefing_created: ops.evBriefingCreated,
+    orchestrator_approved: ops.evOrchestratorApproved,
+  };
+  const STATUS_LABELS: Record<string, string> = {
+    draft: ops.statusDraft, in_review: ops.statusInReview, approved: ops.statusApproved, delivered: ops.statusDelivered,
+  };
 
   const activeProjects = projects.filter((p) => p.stage !== "completed");
   const getClient = (cid: string) => clients.find((c) => c.id === cid);
@@ -110,16 +125,16 @@ export default function DashboardPage() {
   function handleAction(item: ActionItem) {
     // Show inline feedback
     const agent = agentMap[item.agentId];
-    let msg = `Opening ${item.projectName}…`;
+    let msg = ops.openingProject(item.projectName);
     if (item.type === "execution" && agent) {
       const url = getAgentRunUrl(item.agentId);
-      msg = url ? `Opening ${agent.name} for ${item.projectName}…` : `Opening execution tab for ${item.projectName}…`;
+      msg = url ? ops.openingAgent(agent.name, item.projectName) : ops.openingExecution(item.projectName);
     } else if (item.type === "review") {
-      msg = `Opening deliverables for ${item.projectName}…`;
+      msg = ops.openingDeliverables(item.projectName);
     } else if (item.type === "unblock") {
-      msg = `Opening blocked tasks for ${item.projectName}…`;
+      msg = ops.openingBlocked(item.projectName);
     } else if (item.type === "planning") {
-      msg = "Opening Orchestrator…";
+      msg = ops.openingOrchestrator;
     }
     setConfirmMsg(msg);
     setTimeout(() => setConfirmMsg(null), 2500);
@@ -172,11 +187,11 @@ export default function DashboardPage() {
       actionItems.push({
         id: `unblock-${p.id}`, type: "unblock",
         score: scoreAction(100 + blocked.length * 2, dl, p.stage, pendingCnt),
-        label: `${blocked.length} task${blocked.length !== 1 ? "s" : ""} blocked — ${p.name}`,
-        reason: "Requires manual resolution",
+        label: ops.labelTasksBlocked(blocked.length, p.name),
+        reason: ops.reasonManual,
         projectId: p.id, projectName: p.name, clientId: p.clientId,
         agentId: firstAgent?.id ?? "", agentName: firstAgent?.name ?? "",
-        cta: "Resolve", href: `/agency/projects/${p.id}`,
+        cta: ops.ctaResolve, href: `/agency/projects/${p.id}`,
       });
     }
 
@@ -185,11 +200,11 @@ export default function DashboardPage() {
       actionItems.push({
         id: `overdue-${p.id}`, type: "execution",
         score: scoreAction(85, dl, p.stage, pendingCnt),
-        label: `${p.name} is overdue`,
-        reason: `${Math.abs(dl)} day${Math.abs(dl) !== 1 ? "s" : ""} past deadline`,
+        label: ops.labelOverdue(p.name),
+        reason: ops.reasonPastDeadline(Math.abs(dl)),
         projectId: p.id, projectName: p.name, clientId: p.clientId,
         agentId: "", agentName: "",
-        cta: "Open Project", href: `/agency/projects/${p.id}`,
+        cta: ops.ctaOpenProject, href: `/agency/projects/${p.id}`,
       });
     }
 
@@ -200,11 +215,11 @@ export default function DashboardPage() {
       actionItems.push({
         id: `no-output-${p.id}`, type: "execution",
         score: scoreAction(60, dl, p.stage, pendingCnt),
-        label: `No outputs saved — ${p.name}`,
-        reason: `${targetAgent?.name ?? "Agent"} execution not started`,
+        label: ops.labelNoOutputs(p.name),
+        reason: ops.reasonExecNotStarted(targetAgent?.name ?? "Agente"),
         projectId: p.id, projectName: p.name, clientId: p.clientId,
         agentId: targetId ?? "", agentName: targetAgent?.name ?? "",
-        cta: "Run Agent", href: `/agency/projects/${p.id}`,
+        cta: ops.ctaRunAgent, href: `/agency/projects/${p.id}`,
       });
     }
 
@@ -219,11 +234,11 @@ export default function DashboardPage() {
         actionItems.push({
           id: `stalled-${p.id}-${agentId}`, type: "execution",
           score: scoreAction(55, dl, p.stage, pendingCnt),
-          label: `${agent?.name ?? agentId} not started — ${p.name}`,
-          reason: "All assigned tasks still pending",
+          label: ops.labelNotStarted(agent?.name ?? agentId, p.name),
+          reason: ops.reasonAllPending,
           projectId: p.id, projectName: p.name, clientId: p.clientId,
           agentId, agentName: agent?.name ?? "",
-          cta: "Run Agent", href: `/agency/projects/${p.id}`,
+          cta: ops.ctaRunAgent, href: `/agency/projects/${p.id}`,
         });
       });
     }
@@ -233,11 +248,11 @@ export default function DashboardPage() {
       actionItems.push({
         id: `plan-${p.id}`, type: "planning",
         score: scoreAction(40, dl, p.stage, 0),
-        label: `${p.name} has no execution plan`,
-        reason: "Run Orchestrator to generate tasks",
+        label: ops.labelNoPlan(p.name),
+        reason: ops.reasonRunOrchestrator,
         projectId: p.id, projectName: p.name, clientId: p.clientId,
         agentId: "", agentName: "",
-        cta: "Plan Project", href: `/agency/orchestrator`,
+        cta: ops.ctaPlanProject, href: `/agency/orchestrator`,
       });
     }
   });
@@ -254,11 +269,11 @@ export default function DashboardPage() {
       actionItems.push({
         id: `review-${d.id}`, type: "review",
         score: scoreAction(70, dl, p.stage, pendingCnt),
-        label: `"${d.name}" needs review`,
-        reason: "Awaiting client approval",
+        label: ops.labelNeedsReview(d.name),
+        reason: ops.reasonAwaitingClient,
         projectId: p.id, projectName: p.name, clientId: p.clientId,
         agentId: "", agentName: "",
-        cta: "Review", href: `/agency/projects/${d.projectId}`,
+        cta: ops.ctaReview, href: `/agency/projects/${d.projectId}`,
       });
     });
 
@@ -276,11 +291,11 @@ export default function DashboardPage() {
       actionItems.push({
         id: `revision-${d.id}`, type: "execution",
         score: scoreAction(80, dl, p.stage, pendingCnt),
-        label: `"${d.name}" revision needed — ${p.name}`,
-        reason: "Client requested changes",
+        label: ops.labelRevisionNeeded(d.name, p.name),
+        reason: ops.reasonClientChanges,
         projectId: p.id, projectName: p.name, clientId: p.clientId,
         agentId: reworkId ?? "", agentName: reworkAgent?.name ?? "",
-        cta: "Revise", href: `/agency/projects/${p.id}`,
+        cta: ops.ctaRevise, href: `/agency/projects/${p.id}`,
       });
     });
 
@@ -317,6 +332,21 @@ export default function DashboardPage() {
       blocks.push({ id: `blk-${pid}`, level: "medium", message: `${p.name} — ${t.dashboard.hasBlockedTasks}`, href: `/agency/projects/${pid}` });
     }
   });
+
+  // ── Project Health (operational status of each active project) ──────────────
+  const HEALTH_ORDER: Record<string, number> = { blocked: 0, attention: 1, good: 2, excellent: 3 };
+  const projectHealth = activeProjects
+    .map((p) => {
+      const prog = getProjectProgress(
+        p,
+        deliverables.filter((d) => d.projectId === p.id),
+        tasks.filter((tk) => tk.projectId === p.id),
+        materialRequests.filter((r) => r.projectId === p.id),
+        strategyRooms,
+      );
+      return { project: p, health: getProjectHealth(p, prog), client: getClient(p.clientId) };
+    })
+    .sort((a, b) => HEALTH_ORDER[a.health.level] - HEALTH_ORDER[b.health.level]);
 
   return (
     <div>
@@ -357,7 +387,7 @@ export default function DashboardPage() {
                 <div key={item.id} className="flex items-start gap-3 px-5 py-3.5">
                   {/* Type badge */}
                   <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] shrink-0 mt-0.5 ${ts.bg} ${ts.text}`}>
-                    {ts.label}
+                    {TYPE_LABELS[item.type]}
                   </span>
                   {/* Content */}
                   <div className="flex-1 min-w-0">
@@ -456,6 +486,38 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
+
+          {/* Project Health — operational status */}
+          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F0ED]">
+              <div>
+                <h2 className="text-[13px] font-semibold text-[#1A1A1A]">{ops.healthTitle}</h2>
+                <p className="text-[11px] text-[#9B9B95] mt-0.5">{ops.healthSub}</p>
+              </div>
+            </div>
+            {projectHealth.length === 0 ? (
+              <div className="px-5 py-8 text-center text-[13px] text-[#9B9B95]">{ops.noProjects}</div>
+            ) : (
+              <div className="divide-y divide-[#F0F0ED]">
+                {projectHealth.map(({ project, health, client }) => (
+                  <Link
+                    key={project.id}
+                    href={`/agency/projects/${project.id}?tab=report`}
+                    className="flex items-center gap-3 px-5 py-3 hover:bg-[#FAFAF9] transition-colors"
+                  >
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: health.dotColor }} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-medium text-[#1A1A1A] truncate">{project.name}</p>
+                      <p className="text-[11px] text-[#9B9B95] truncate">{client?.name ?? "—"}</p>
+                    </div>
+                    <span className={`shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full ${health.color}`}>
+                      {health.label}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* RIGHT column */}
@@ -487,8 +549,8 @@ export default function DashboardPage() {
                         <p className="text-[12px] font-medium text-[#1A1A1A] truncate">{d.name}</p>
                         <p className="text-[10px] text-[#9B9B95]">{p?.name ?? "—"} · {d.type}</p>
                       </div>
-                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-[3px] shrink-0 capitalize ${statusColor}`}>
-                        {d.status.replace("_", " ")}
+                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-[3px] shrink-0 ${statusColor}`}>
+                        {STATUS_LABELS[d.status] ?? d.status}
                       </span>
                     </Link>
                   );
@@ -498,14 +560,18 @@ export default function DashboardPage() {
           </div>
 
           {/* Blocks & Alerts */}
-          {blocks.length > 0 && (
-            <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-              <div className="px-5 py-3.5 border-b border-[#F0F0ED] flex items-center gap-2">
-                <h2 className="text-[13px] font-semibold text-[#1A1A1A]">{t.dashboard.alerts}</h2>
+          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-[#F0F0ED] flex items-center gap-2">
+              <h2 className="text-[13px] font-semibold text-[#1A1A1A]">{t.dashboard.alerts}</h2>
+              {blocks.length > 0 && (
                 <span className="w-4 h-4 rounded-full bg-[#FEE2E2] text-[#DC2626] text-[9px] font-bold flex items-center justify-center">
                   {blocks.length}
                 </span>
-              </div>
+              )}
+            </div>
+            {blocks.length === 0 ? (
+              <div className="px-5 py-6 text-center text-[12px] text-[#9B9B95]">{t.dashboard.allClearAlerts}</div>
+            ) : (
               <div className="divide-y divide-[#F0F0ED]">
                 {blocks.slice(0, 5).map((b) => (
                   <Link
@@ -518,8 +584,8 @@ export default function DashboardPage() {
                   </Link>
                 ))}
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Recent Activity */}
           <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
@@ -534,7 +600,7 @@ export default function DashboardPage() {
                     <p className="text-[11px] text-[#6B6B65] font-medium">{EVENT_LABELS[event.type] ?? event.type}</p>
                     <p className="text-[11px] text-[#9B9B95] truncate">{event.message}</p>
                   </div>
-                  <span className="text-[10px] text-[#C0C0BC] shrink-0">{timeAgo(event.timestamp)}</span>
+                  <span className="text-[10px] text-[#C0C0BC] shrink-0">{timeAgo(event.timestamp, ops)}</span>
                 </div>
               ))}
               {activity.length === 0 && (

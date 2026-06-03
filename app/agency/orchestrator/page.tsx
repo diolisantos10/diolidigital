@@ -286,7 +286,7 @@ function briefingToProjectType(b: Briefing): string {
 // ─── Shared BriefingPreview component ────────────────────────────────────────
 
 const SERVICE_LABELS: Record<string, string> = {
-  social_media: "Redes Sociais", ads: "Anúncios", seo: "SEO", branding: "Branding", content: "Conteúdo",
+  social_media: "Redes Sociais", ads: "Tráfego Pago", seo: "SEO", branding: "Branding", content: "Conteúdo",
 };
 
 function BriefingPreview({ briefing, subtitle }: { briefing: Briefing; subtitle: string }) {
@@ -455,7 +455,7 @@ export default function OrchestratorPage() {
 
   const SERVICE_OPTIONS = [
     { id: "social_media", label: "Redes Sociais" },
-    { id: "ads",          label: "Anúncios" },
+    { id: "ads",          label: "Tráfego Pago" },
     { id: "seo",          label: "SEO" },
     { id: "branding",     label: "Branding" },
     { id: "content",      label: "Conteúdo" },

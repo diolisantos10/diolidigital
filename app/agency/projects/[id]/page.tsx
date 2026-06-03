@@ -12,7 +12,9 @@ import DeliverableDetailModal from "@/components/agency/deliverables/Deliverable
 import Link from "next/link";
 import { TaskStatus, DeliverableStatus, Priority, ProjectStage, MOCK_AGENTS, ProjectProposal, StrategyRoomSpecialist } from "@/lib/agency/mock-data";
 import { getOwner, getVersion, needsRevision, getFeedbackExcerpt } from "@/lib/agency/deliverables";
-import { getProjectProgress, getProjectReportText } from "@/lib/agency/reporting";
+import { getProjectProgress, getProjectReportText, getProjectHealth, getPilotChecklist } from "@/lib/agency/reporting";
+import { getClientAgentContext } from "@/lib/agency/workspace";
+import PilotChecklist from "@/components/agency/PilotChecklist";
 
 const STAGES: ProjectStage[] = ["briefing","diagnosis","planning","production","review","delivery","ongoing","completed"];
 const TASK_CYCLE: Record<TaskStatus, TaskStatus> = {
@@ -1416,6 +1418,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           changes_requested: "bg-[#FEF3C7] text-[#D97706]",
         };
         const health = HEALTH_STYLE[progress.healthStatus];
+        const projectHealth = getProjectHealth(project, progress);
+        const brandBrainComplete = client ? getClientAgentContext(client).brandBrainReadiness >= 5 : false;
+        const checklist = getPilotChecklist(progress, brandBrainComplete);
 
         const handleCopyReport = () => {
           const text = getProjectReportText(project.name, client?.name ?? "—", progress);
@@ -1596,6 +1601,35 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 : "text-[#16A34A]"
               }`}>{progress.nextAction}</p>
             </div>
+
+            {/* Project Health Score */}
+            <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F0ED]">
+                <h3 className="text-[13px] font-semibold text-[#1A1A1A]">Saúde do Projeto</h3>
+                <span className={`flex items-center gap-1.5 h-6 px-2.5 rounded-full text-[11px] font-semibold ${projectHealth.color}`}>
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: projectHealth.dotColor }} />
+                  {projectHealth.label}
+                </span>
+              </div>
+              <div className="px-5 py-3 divide-y divide-[#F7F7F6]">
+                {projectHealth.signals.map((sig) => (
+                  <div key={sig.label} className="flex items-center justify-between py-2">
+                    <div className="flex items-center gap-2.5">
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                        sig.status === "ok" ? "bg-[#16A34A]" : sig.status === "warn" ? "bg-[#D97706]" : "bg-[#DC2626]"
+                      }`} />
+                      <span className="text-[12px] font-medium text-[#1A1A1A]">{sig.label}</span>
+                    </div>
+                    <span className={`text-[11px] ${
+                      sig.status === "ok" ? "text-[#9B9B95]" : sig.status === "warn" ? "text-[#D97706]" : "text-[#DC2626]"
+                    }`}>{sig.detail}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* First Client Checklist */}
+            <PilotChecklist checklist={checklist} />
           </div>
         );
       })()}

@@ -71,6 +71,147 @@ export interface ClientProgress {
   healthStatus: "on_track" | "needs_attention" | "at_risk";
 }
 
+// ─── Project Health Score ───────────────────────────────────────────────────
+// Operational readiness signal for the Dashboard & Client Hub.
+// Four levels: Excellent · Good · Attention · Blocked.
+
+export type HealthLevel = "excellent" | "good" | "attention" | "blocked";
+
+export interface HealthSignal {
+  label: string;
+  status: "ok" | "warn" | "bad";
+  detail: string;
+}
+
+export interface ProjectHealth {
+  level: HealthLevel;
+  label: string;     // pt-BR display label
+  color: string;     // Tailwind classes (bg + text)
+  dotColor: string;  // hex for the status dot
+  signals: HealthSignal[];
+  overdue: boolean;
+  daysToDeadline: number;
+}
+
+const HEALTH_META: Record<HealthLevel, { label: string; color: string; dotColor: string }> = {
+  excellent: { label: "Excelente", color: "bg-[#DCFCE7] text-[#16A34A]", dotColor: "#16A34A" },
+  good:      { label: "Bom",       color: "bg-[#EEF0FF] text-[#5B5BD6]", dotColor: "#5B5BD6" },
+  attention: { label: "Atenção",   color: "bg-[#FEF3C7] text-[#D97706]", dotColor: "#D97706" },
+  blocked:   { label: "Bloqueado", color: "bg-[#FEE2E2] text-[#DC2626]", dotColor: "#DC2626" },
+};
+
+export function getProjectHealth(project: Project, progress: ProjectProgress): ProjectHealth {
+  const daysToDeadline = Math.ceil((new Date(project.deadline).getTime() - Date.now()) / 86400000);
+  const overdue = daysToDeadline < 0 && project.stage !== "completed";
+
+  const completion = progress.totalDeliverables > 0
+    ? (progress.approved + progress.delivered) / progress.totalDeliverables
+    : 0;
+
+  // ── Determine level (simple rules, worst signal wins) ──
+  let level: HealthLevel;
+  if (overdue || progress.blockedTasks > 0 || progress.revisionNeeded > 2) {
+    level = "blocked";
+  } else if (
+    !progress.proposalApproved ||
+    progress.revisionNeeded > 0 ||
+    progress.pendingMaterialRequests > 0
+  ) {
+    level = "attention";
+  } else if (
+    progress.proposalApproved &&
+    progress.totalDeliverables > 0 &&
+    completion >= 0.75 &&
+    progress.inReview === 0
+  ) {
+    level = "excellent";
+  } else {
+    level = "good";
+  }
+
+  // ── Signals (always reported, in priority order) ──
+  const signals: HealthSignal[] = [
+    {
+      label: "Proposta aprovada",
+      status: progress.proposalApproved ? "ok" : "warn",
+      detail: progress.proposalApproved ? "Execução liberada" : "Aguardando aprovação da proposta",
+    },
+    {
+      label: "Materiais do cliente",
+      status: progress.pendingMaterialRequests === 0 ? "ok" : "warn",
+      detail: progress.pendingMaterialRequests === 0
+        ? "Tudo recebido"
+        : `${progress.pendingMaterialRequests} material(is) pendente(s)`,
+    },
+    {
+      label: "Revisões pendentes",
+      status: progress.revisionNeeded === 0 ? "ok" : progress.revisionNeeded > 2 ? "bad" : "warn",
+      detail: progress.revisionNeeded === 0
+        ? "Nenhuma revisão aberta"
+        : `${progress.revisionNeeded} entrega(s) requer(em) revisão`,
+    },
+    {
+      label: "Prazo",
+      status: overdue ? "bad" : daysToDeadline <= 3 ? "warn" : "ok",
+      detail: overdue
+        ? `${Math.abs(daysToDeadline)} dia(s) de atraso`
+        : `${daysToDeadline} dia(s) para o prazo`,
+    },
+    {
+      label: "Entregas aprovadas",
+      status: progress.approved + progress.delivered > 0 ? "ok" : "warn",
+      detail: progress.totalDeliverables > 0
+        ? `${progress.approved + progress.delivered}/${progress.totalDeliverables} aprovadas/entregues`
+        : "Nenhuma entrega gerada",
+    },
+  ];
+
+  const meta = HEALTH_META[level];
+  return { level, label: meta.label, color: meta.color, dotColor: meta.dotColor, signals, overdue, daysToDeadline };
+}
+
+// ─── Pilot Readiness Checklist ────────────────────────────────────────────────
+// Two-phase operational checklist for the first real client.
+
+export interface ChecklistItem {
+  key: string;
+  label: string;
+  done: boolean;
+  hint: string;
+}
+
+export interface PilotChecklist {
+  beforeExecution: ChecklistItem[];
+  beforeDelivery: ChecklistItem[];
+  readyToExecute: boolean;
+  readyToDeliver: boolean;
+}
+
+export function getPilotChecklist(
+  progress: ProjectProgress,
+  brandBrainComplete: boolean
+): PilotChecklist {
+  const beforeExecution: ChecklistItem[] = [
+    { key: "brand_brain", label: "Brand Brain completo", done: brandBrainComplete, hint: "Contexto da marca preenchido no perfil do cliente." },
+    { key: "strategy_room", label: "Strategy Room concluído", done: progress.strategyRoomReady, hint: "Gerar a sala de estratégia na aba Estratégia." },
+    { key: "proposal", label: "Proposta aprovada", done: progress.proposalApproved, hint: "Cliente aprovou a proposta no portal." },
+    { key: "materials", label: "Materiais necessários recebidos", done: progress.pendingMaterialRequests === 0, hint: "Sem materiais pendentes do cliente." },
+  ];
+
+  const beforeDelivery: ChecklistItem[] = [
+    { key: "generated", label: "Entregas geradas", done: progress.totalDeliverables > 0, hint: "Rodar os agentes (Social, Design, Tráfego Pago)." },
+    { key: "internal_review", label: "Revisão interna concluída", done: progress.totalDeliverables > 0 && progress.draft === 0 && progress.revisionNeeded === 0, hint: "Nenhum rascunho ou revisão interna em aberto." },
+    { key: "client_review", label: "Revisão do cliente solicitada", done: progress.inReview > 0 || progress.approved > 0 || progress.delivered > 0, hint: "Entregas enviadas ao portal do cliente." },
+  ];
+
+  return {
+    beforeExecution,
+    beforeDelivery,
+    readyToExecute: beforeExecution.every((i) => i.done),
+    readyToDeliver: beforeDelivery.every((i) => i.done),
+  };
+}
+
 // ─── Department definitions ───────────────────────────────────────────────────
 
 const DEPT_DEFS: Array<{ key: string; name: string; types: string[]; color: string; accentHex: string }> = [

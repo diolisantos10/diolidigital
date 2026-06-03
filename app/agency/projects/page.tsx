@@ -13,6 +13,13 @@ type SortKey = "deadline" | "priority" | "name";
 
 const PRIORITY_ORDER: Record<Priority, number> = { high: 0, medium: 1, low: 2 };
 
+// pt-BR stage labels — kept in sync with Badge labels for terminology consistency.
+const STAGE_LABELS: Record<ProjectStage, string> = {
+  briefing: "Briefing", proposal_sent: "Proposta Enviada", approved: "Aprovado",
+  diagnosis: "Diagnóstico", planning: "Planejamento", production: "Produção",
+  review: "Revisão", delivery: "Entrega", ongoing: "Em Andamento", completed: "Concluído",
+};
+
 export default function ProjectsPage() {
   const { projects, clients, tasks } = useAgencyStore();
   const [search, setSearch] = useState("");
@@ -88,7 +95,7 @@ export default function ProjectsPage() {
         >
           <option value="all">Todas as etapas</option>
           {(["briefing","diagnosis","planning","production","review","delivery","ongoing","completed"] as const).map((s) => (
-            <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+            <option key={s} value={s}>{STAGE_LABELS[s]}</option>
           ))}
         </select>
         <select
