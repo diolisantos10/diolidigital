@@ -17,6 +17,7 @@ import {
 } from "@/lib/agency/mock-data";
 import type { OperationalRisk } from "@/lib/agency/workspace";
 import { getClientAgentContext } from "@/lib/agency/workspace";
+import { getClientProgress } from "@/lib/agency/reporting";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -72,7 +73,7 @@ function initials(name: string): string {
 
 export default function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { clients, projects, tasks, deliverables, activity, updateClient } = useAgencyStore();
+  const { clients, projects, tasks, deliverables, activity, materialRequests, updateClient } = useAgencyStore();
   const [editOpen, setEditOpen] = useState(false);
   const [brainEditing, setBrainEditing] = useState(false);
   const [brainDraft, setBrainDraft] = useState<BrandBrain | null>(null);
@@ -209,6 +210,39 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
       />
 
       {/* ── Summary Bar ───────────────────────────────────────────────────────── */}
+      {(() => {
+        const cp = getClientProgress(id, projects, clientDeliverables.length > 0 ? clientDeliverables : deliverables.filter((d) => clientProjectIds.has(d.projectId)), materialRequests);
+        const HEALTH = {
+          on_track:        { bg: "bg-[#DCFCE7]", text: "text-[#16A34A]", label: "No Prazo", dot: "bg-[#16A34A]" },
+          needs_attention: { bg: "bg-[#FEF3C7]", text: "text-[#D97706]", label: "Atenção", dot: "bg-[#D97706]" },
+          at_risk:         { bg: "bg-[#FEE2E2]", text: "text-[#DC2626]", label: "Em Risco", dot: "bg-[#DC2626]" },
+        }[cp.healthStatus];
+        return cp.totalDeliverables > 0 ? (
+          <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-5 py-4 mb-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[12px] font-semibold text-[#1A1A1A]">Progresso do Cliente</span>
+              <span className={`flex items-center gap-1.5 h-5 px-2 rounded-full text-[10px] font-semibold ${HEALTH.bg} ${HEALTH.text}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${HEALTH.dot}`} />{HEALTH.label}
+              </span>
+            </div>
+            <div className="grid grid-cols-6 gap-3">
+              {[
+                { label: "Projetos Ativos",         value: cp.activeProjects,              neutral: true },
+                { label: "Aguardando Aprovação",     value: cp.pendingApprovals,            warn: true },
+                { label: "Em Revisão Interna",       value: cp.revisionsNeeded,             warn: true },
+                { label: "Materiais Pendentes",      value: cp.pendingMaterialRequests,     warn: true },
+                { label: "Entregas Aprovadas",       value: cp.approvedDeliverables,        good: true },
+                { label: "Entregues",                value: cp.deliveredDeliverables,       good: true },
+              ].map(({ label, value, neutral, warn, good }) => (
+                <div key={label} className="text-center">
+                  <div className={`text-[20px] font-bold mono-num leading-none ${warn && value > 0 ? "text-[#D97706]" : good && value > 0 ? "text-[#16A34A]" : "text-[#1A1A1A]"}`}>{value}</div>
+                  <div className="text-[10px] text-[#9B9B95] mt-1 leading-tight">{label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null;
+      })()}
       <div className="grid grid-cols-5 gap-3 mb-6">
         {[
           { label: "Projetos Ativos",  value: activeProjects.length,      alert: false },

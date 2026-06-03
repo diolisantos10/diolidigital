@@ -5,6 +5,7 @@ import { useAgencyStore } from "@/store/agency-store";
 import { notFound } from "next/navigation";
 import { DeliverableStatus, ProjectStage } from "@/lib/agency/mock-data";
 import { getClientVisibleDeliverables } from "@/lib/agency/workspace";
+import { getClientProgress, getNextProjectAction } from "@/lib/agency/reporting";
 
 
 const STAGE_LABEL: Record<ProjectStage, string> = {
@@ -31,6 +32,7 @@ const TYPE_ICON: Record<string, string> = {
 export default function ClientPortalPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { clients, projects, deliverables, materialRequests, updateDeliverableStatus, setDeliverableFeedback, approveProposal, rejectProposal, requestProposalChanges } = useAgencyStore();
+  const cp = getClientProgress(id, projects, deliverables, materialRequests);
 
   const client = clients.find((c) => c.id === id);
   if (!client) return notFound();
@@ -90,6 +92,55 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
           Revise os materiais abaixo e aprove-os ou solicite ajustes. Seu feedback vai direto para a equipe.
         </p>
       </div>
+
+      {/* ── Resumo do Projeto ─────────────────────────────────────────────── */}
+      {cp.totalDeliverables > 0 && (() => {
+        const nextMsg = (() => {
+          if (cp.pendingApprovals > 0)
+            return `Você tem ${cp.pendingApprovals} material(is) esperando sua aprovação abaixo.`;
+          if (cp.revisionsNeeded > 0)
+            return "Nossa equipe está ajustando alguns materiais com base no seu feedback. Avisaremos quando estiver pronto.";
+          if (cp.pendingMaterialRequests > 0)
+            return "Ainda aguardamos alguns materiais seus (ver lista abaixo).";
+          if (cp.approvedDeliverables > 0)
+            return "Tudo aprovado por enquanto. Novos materiais chegarão em breve.";
+          return "O projeto está em andamento. Em breve você receberá materiais para revisar.";
+        })();
+        return (
+          <div className="mb-6 bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-[#F0F0ED]">
+              <span className="text-[12px] font-semibold text-[#1A1A1A]">Resumo do Projeto</span>
+            </div>
+            <div className="px-5 py-4">
+              <div className="grid grid-cols-4 gap-3 mb-4">
+                {[
+                  { label: "Total de materiais",   value: cp.totalDeliverables,          subtle: false },
+                  { label: "Aguardando sua revisão", value: cp.pendingApprovals,         subtle: cp.pendingApprovals === 0, warn: cp.pendingApprovals > 0 },
+                  { label: "Aprovados por você",    value: cp.approvedDeliverables,       subtle: cp.approvedDeliverables === 0, good: true },
+                  { label: "Entregues",             value: cp.deliveredDeliverables,      subtle: cp.deliveredDeliverables === 0, good: true },
+                ].map(({ label, value, subtle, warn, good }) => (
+                  <div key={label} className="text-center">
+                    <div className={`text-[22px] font-bold mono-num leading-none ${warn ? "text-[#D97706]" : good && value > 0 ? "text-[#16A34A]" : "text-[#1A1A1A]"}`}>{value}</div>
+                    <div className={`text-[10px] mt-1 ${subtle ? "text-[#C0C0BC]" : "text-[#9B9B95]"}`}>{label}</div>
+                  </div>
+                ))}
+              </div>
+              <div className={`flex items-start gap-2 rounded-[7px] px-3 py-2.5 ${
+                cp.pendingApprovals > 0 ? "bg-[#FFFBEB] border border-[#FDE68A]"
+                : cp.revisionsNeeded > 0 ? "bg-[#EEF0FF] border border-[#C7C7F5]"
+                : "bg-[#F7F7F6] border border-[#F0F0ED]"
+              }`}>
+                <span className="text-[14px] shrink-0 mt-[1px]">
+                  {cp.pendingApprovals > 0 ? "👀" : cp.revisionsNeeded > 0 ? "🔧" : "✅"}
+                </span>
+                <p className={`text-[12px] leading-relaxed ${cp.pendingApprovals > 0 ? "text-[#92400E]" : "text-[#6B6B65]"}`}>
+                  {nextMsg}
+                </p>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {clientProjects.length === 0 ? (
         <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-8 py-14 text-center">

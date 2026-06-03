@@ -12,6 +12,7 @@ import DeliverableDetailModal from "@/components/agency/deliverables/Deliverable
 import Link from "next/link";
 import { TaskStatus, DeliverableStatus, Priority, ProjectStage, MOCK_AGENTS, ProjectProposal, StrategyRoomSpecialist } from "@/lib/agency/mock-data";
 import { getOwner, getVersion, needsRevision, getFeedbackExcerpt } from "@/lib/agency/deliverables";
+import { getProjectProgress, getProjectReportText } from "@/lib/agency/reporting";
 
 const STAGES: ProjectStage[] = ["briefing","diagnosis","planning","production","review","delivery","ongoing","completed"];
 const TASK_CYCLE: Record<TaskStatus, TaskStatus> = {
@@ -27,8 +28,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const searchParams = useSearchParams();
   const { projects, clients, tasks, deliverables, briefings, materialRequests, strategyRooms, generateStrategyRoom, clearStrategyRoom, updateTaskStatus, updateDeliverableStatus, updateProject, updateProposal, sendProposal, moveProjectStage, setPendingAgentInput } = useAgencyStore();
 
-  type TabId = "overview" | "proposal" | "execution" | "pipeline" | "tasks" | "deliverables" | "briefing" | "strategy" | "assets" | "history";
-  const VALID_TABS: TabId[] = ["overview", "proposal", "execution", "pipeline", "tasks", "deliverables", "briefing", "strategy", "assets", "history"];
+  type TabId = "overview" | "proposal" | "execution" | "pipeline" | "tasks" | "deliverables" | "briefing" | "strategy" | "assets" | "history" | "report";
+  const VALID_TABS: TabId[] = ["overview", "proposal", "execution", "pipeline", "tasks", "deliverables", "briefing", "strategy", "assets", "history", "report"];
   const [tab, setTab] = useState<TabId>(() => {
     const t = searchParams.get("tab") as TabId | null;
     return t && VALID_TABS.includes(t) ? t : "overview";
@@ -36,6 +37,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const [editOpen, setEditOpen] = useState(false);
   const [proposalDirty, setProposalDirty] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [reportCopied, setReportCopied] = useState(false);
 
   const project = projects.find((p) => p.id === id);
   if (!project) return notFound();
@@ -96,6 +98,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     strategy: "Estratégia",
     assets: "Ativos",
     history: "Histórico",
+    report: "Relatório",
   };
 
   // ── Execution helpers ──────────────────────────────────────────────────────
@@ -1394,6 +1397,208 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           </div>
         </div>
       )}
+
+      {/* Tab: Report */}
+      {tab === "report" && (() => {
+        const progress = getProjectProgress(project, projectDeliverables, projectTasks, projectMaterialRequests, strategyRooms);
+        const HEALTH_STYLE = {
+          on_track:         { bg: "bg-[#DCFCE7]", text: "text-[#16A34A]", label: "No Prazo" },
+          needs_attention:  { bg: "bg-[#FEF3C7]", text: "text-[#D97706]", label: "Atenção Necessária" },
+          at_risk:          { bg: "bg-[#FEE2E2]", text: "text-[#DC2626]", label: "Em Risco" },
+        };
+        const PROPOSAL_LABEL: Record<string, string> = {
+          draft: "Rascunho", sent: "Enviada", approved: "Aprovada",
+          rejected: "Rejeitada", changes_requested: "Alterações Solicitadas",
+        };
+        const PROPOSAL_COLOR: Record<string, string> = {
+          draft: "bg-[#F0F0ED] text-[#6B6B65]", sent: "bg-[#EEF0FF] text-[#5B5BD6]",
+          approved: "bg-[#DCFCE7] text-[#16A34A]", rejected: "bg-[#FEE2E2] text-[#DC2626]",
+          changes_requested: "bg-[#FEF3C7] text-[#D97706]",
+        };
+        const health = HEALTH_STYLE[progress.healthStatus];
+
+        const handleCopyReport = () => {
+          const text = getProjectReportText(project.name, client?.name ?? "—", progress);
+          navigator.clipboard.writeText(text).then(() => {
+            setReportCopied(true);
+            setTimeout(() => setReportCopied(false), 2500);
+          });
+        };
+
+        return (
+          <div className="space-y-4">
+            {/* Header row */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-semibold text-[#1A1A1A]">Relatório de Progresso</span>
+                <span className={`h-5 px-2 rounded-full text-[10px] font-semibold ${health.bg} ${health.text}`}>{health.label}</span>
+              </div>
+              <button
+                onClick={handleCopyReport}
+                className={`flex items-center gap-1.5 h-8 px-3 rounded-[7px] text-[12px] font-medium border transition-colors ${
+                  reportCopied
+                    ? "bg-[#DCFCE7] border-[#BBF7D0] text-[#16A34A]"
+                    : "bg-white border-[#E5E5E2] text-[#6B6B65] hover:bg-[#F7F7F6]"
+                }`}
+              >
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <rect x="1" y="3" width="8" height="8" rx="1.2" stroke="currentColor" strokeWidth="1.2"/>
+                  <path d="M4 3V2a1 1 0 011-1h4a1 1 0 011 1v6a1 1 0 01-1 1h-1" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                </svg>
+                {reportCopied ? "Copiado!" : "Copiar Relatório"}
+              </button>
+            </div>
+
+            {/* Score + meta */}
+            <div className="grid grid-cols-4 gap-3">
+              {[
+                { label: "Progresso Geral",     value: `${progress.readinessScore}%`,          sub: "Pontuação de prontidão" },
+                { label: "Proposta",             value: PROPOSAL_LABEL[progress.proposalStatus ?? "draft"] ?? "—", sub: "Status da proposta", color: PROPOSAL_COLOR[progress.proposalStatus ?? "draft"] },
+                { label: "Entregas Aprovadas",   value: `${progress.approved + progress.delivered}/${progress.totalDeliverables}`, sub: "Aprovadas + entregues" },
+                { label: "Em Revisão do Cliente", value: String(progress.inReview),            sub: "Aguardando aprovação do cliente" },
+              ].map(({ label, value, sub, color }) => (
+                <div key={label} className="bg-white rounded-[10px] border border-[#E5E5E2] px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                  <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1">{label}</div>
+                  {color ? (
+                    <span className={`inline-flex h-5 px-2 rounded-full text-[10px] font-semibold items-center ${color}`}>{value}</span>
+                  ) : (
+                    <div className="text-[20px] font-bold text-[#1A1A1A] mono-num leading-none">{value}</div>
+                  )}
+                  <div className="text-[10px] text-[#9B9B95] mt-1">{sub}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Progress bar */}
+            <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Prontidão do Projeto</span>
+                <span className="text-[12px] font-semibold text-[#1A1A1A]">{progress.readinessScore}%</span>
+              </div>
+              <div className="h-2 rounded-full bg-[#F0F0ED] overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{ width: `${progress.readinessScore}%`, backgroundColor: progress.readinessScore >= 75 ? "#16A34A" : progress.readinessScore >= 40 ? "#D97706" : "#DC2626" }}
+                />
+              </div>
+              <div className="flex items-center justify-between mt-2 flex-wrap gap-2">
+                {[
+                  { label: "Proposta aprovada", done: progress.proposalApproved },
+                  { label: "Strategy Room", done: progress.strategyRoomReady },
+                  { label: "Entregas geradas", done: progress.totalDeliverables > 0 },
+                  { label: "Itens aprovados", done: progress.approved + progress.delivered > 0 },
+                  { label: "Materiais recebidos", done: progress.pendingMaterialRequests === 0 },
+                ].map(({ label, done }) => (
+                  <div key={label} className="flex items-center gap-1">
+                    <span className={`w-3 h-3 rounded-full flex items-center justify-center ${done ? "bg-[#DCFCE7]" : "bg-[#F0F0ED]"}`}>
+                      {done && <svg width="7" height="5" viewBox="0 0 7 5" fill="none"><path d="M1 2.5l1.5 1.5 3.5-3" stroke="#16A34A" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                    </span>
+                    <span className={`text-[10px] ${done ? "text-[#16A34A]" : "text-[#9B9B95]"}`}>{label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Deliverable breakdown */}
+            <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Entregas por Status</div>
+              <div className="grid grid-cols-5 gap-2">
+                {[
+                  { label: "Rascunho",        value: progress.draft,          color: "bg-[#F0F0ED] text-[#6B6B65]" },
+                  { label: "Em Revisão",       value: progress.inReview,       color: "bg-[#FEF3C7] text-[#D97706]" },
+                  { label: "Em Revisão Int.", value: progress.revisionNeeded,  color: "bg-[#FEE2E2] text-[#DC2626]" },
+                  { label: "Aprovadas",        value: progress.approved,       color: "bg-[#DCFCE7] text-[#16A34A]" },
+                  { label: "Entregues",        value: progress.delivered,      color: "bg-[#EEF0FF] text-[#5B5BD6]" },
+                ].map(({ label, value, color }) => (
+                  <div key={label} className="text-center">
+                    <div className={`rounded-[8px] px-2 py-2 mb-1 ${color}`}>
+                      <span className="text-[18px] font-bold mono-num">{value}</span>
+                    </div>
+                    <span className="text-[10px] text-[#9B9B95]">{label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Department breakdown */}
+            <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Por Departamento</div>
+              <div className="space-y-3">
+                {progress.departments.map((dept) => (
+                  <div key={dept.key} className={`rounded-[8px] border px-4 py-3 ${dept.active ? "border-[#E5E5E2] bg-[#FAFAF9]" : "border-[#F0F0ED] bg-[#F7F7F6] opacity-50"}`}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className={`h-5 px-2 rounded-full text-[10px] font-semibold ${dept.color}`}>{dept.name}</span>
+                        {!dept.active && <span className="text-[10px] text-[#9B9B95]">sem entregas</span>}
+                      </div>
+                      {dept.active && <span className="text-[11px] text-[#9B9B95]">{dept.total} entrega(s)</span>}
+                    </div>
+                    {dept.active && (
+                      <div className="flex items-center gap-3 flex-wrap">
+                        {[
+                          { label: "aprovadas", value: dept.approved, show: true, green: true },
+                          { label: "entregues", value: dept.delivered, show: true, green: true },
+                          { label: "em revisão cliente", value: dept.inReview, show: dept.inReview > 0, green: false },
+                          { label: "revisão interna", value: dept.revisionNeeded, show: dept.revisionNeeded > 0, green: false },
+                          { label: "rascunho", value: dept.draft, show: dept.draft > 0, green: false },
+                        ].filter((x) => x.show).map((x) => (
+                          <span key={x.label} className={`text-[11px] font-medium ${x.green ? "text-[#16A34A]" : "text-[#D97706]"}`}>
+                            {x.value} {x.label}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Additional signals */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">Tarefas</div>
+                <div className="flex items-center gap-3">
+                  <div className="text-center">
+                    <div className="text-[18px] font-bold mono-num text-[#1A1A1A]">{progress.doneTasks}</div>
+                    <div className="text-[10px] text-[#9B9B95]">concluídas</div>
+                  </div>
+                  <span className="text-[#E5E5E2]">/</span>
+                  <div className="text-center">
+                    <div className="text-[18px] font-bold mono-num text-[#1A1A1A]">{progress.totalTasks}</div>
+                    <div className="text-[10px] text-[#9B9B95]">total</div>
+                  </div>
+                  {progress.blockedTasks > 0 && (
+                    <span className="ml-auto h-5 px-2 rounded-full bg-[#FEE2E2] text-[#DC2626] text-[10px] font-semibold">{progress.blockedTasks} bloqueada(s)</span>
+                  )}
+                </div>
+              </div>
+              <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">Materiais do Cliente</div>
+                <div className="flex items-center gap-2">
+                  <div className="text-[18px] font-bold mono-num text-[#1A1A1A]">{progress.pendingMaterialRequests}</div>
+                  <div className={`text-[11px] ${progress.pendingMaterialRequests > 0 ? "text-[#D97706]" : "text-[#9B9B95]"}`}>
+                    {progress.pendingMaterialRequests > 0 ? "pendente(s) — aguardar" : "tudo recebido"}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Next action */}
+            <div className={`rounded-[10px] border px-5 py-4 ${
+              progress.healthStatus === "at_risk" ? "bg-[#FEF2F2] border-[#FECACA]"
+              : progress.healthStatus === "needs_attention" ? "bg-[#FFFBEB] border-[#FDE68A]"
+              : "bg-[#F0FDF4] border-[#BBF7D0]"
+            }`}>
+              <div className="text-[10px] font-semibold uppercase tracking-[0.05em] mb-0.5 text-[#9B9B95]">Próxima Ação Recomendada</div>
+              <p className={`text-[13px] font-medium ${
+                progress.healthStatus === "at_risk" ? "text-[#DC2626]"
+                : progress.healthStatus === "needs_attention" ? "text-[#D97706]"
+                : "text-[#16A34A]"
+              }`}>{progress.nextAction}</p>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Edit Modal */}
       <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Editar Projeto">
