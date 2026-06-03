@@ -474,6 +474,68 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               );
             })()}
 
+            {/* Ads Department status */}
+            {(() => {
+              const ADS_TYPES = ["Ads Strategy", "Campaign Structure", "Audience Plan", "Ad Copy", "Creative Requirements", "Optimization Notes"];
+              const adsDeliverables = projectDeliverables.filter((d) => ADS_TYPES.includes(d.type));
+              if (adsDeliverables.length === 0) return null;
+
+              const hasStrategy  = adsDeliverables.some((d) => d.type === "Ads Strategy");
+              const hasStructure = adsDeliverables.some((d) => d.type === "Campaign Structure");
+              const hasCreative  = adsDeliverables.some((d) => d.type === "Creative Requirements");
+              const pendingApproval = adsDeliverables.filter((d) => d.status === "in_review").length;
+              const approvedCount   = adsDeliverables.filter((d) => d.status === "approved").length;
+
+              const deptItems = [
+                { label: "Estratégia de Ads",      done: hasStrategy },
+                { label: "Estrutura de Campanha",  done: hasStructure },
+                { label: "Requisitos de Criativo", done: hasCreative },
+              ];
+
+              return (
+                <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Departamento de Tráfego Pago</div>
+                    <button onClick={() => setTab("deliverables")} className="text-[12px] text-[#5B5BD6] hover:underline">
+                      Ver entregas →
+                    </button>
+                  </div>
+                  <div className="space-y-1.5">
+                    {deptItems.map(({ label, done }) => (
+                      <div key={label} className="flex items-center gap-2">
+                        <span className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${done ? "bg-[#ECFEFF]" : "bg-[#F0F0ED]"}`}>
+                          {done ? (
+                            <svg width="8" height="6" viewBox="0 0 8 6" fill="none">
+                              <path d="M1 3L3 5L7 1" stroke="#0E7490" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          ) : (
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#C0C0BC]" />
+                          )}
+                        </span>
+                        <span className={`text-[13px] ${done ? "text-[#1A1A1A]" : "text-[#9B9B95]"}`}>{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {(pendingApproval > 0 || approvedCount > 0) && (
+                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[#F0F0ED] flex-wrap">
+                      {pendingApproval > 0 && (
+                        <span className="flex items-center gap-1.5 h-6 px-2.5 rounded-full bg-[#FEF3C7] text-[#D97706] text-[11px] font-semibold">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#D97706]" />
+                          {pendingApproval} aguardando aprovação do cliente
+                        </span>
+                      )}
+                      {approvedCount > 0 && (
+                        <span className="flex items-center gap-1.5 h-6 px-2.5 rounded-full bg-[#DCFCE7] text-[#16A34A] text-[11px] font-semibold">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#16A34A]" />
+                          {approvedCount} aprovado(s)
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
             {/* Goal */}
             <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
               <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">Objetivo</div>

@@ -21,6 +21,7 @@ export const ptBR: Translations = {
     agents: "Agentes",
     socialMedia: "Redes Sociais",
     designAgent: "Agente de Design",
+    adsAgent: "Tráfego Pago",
     deliverables: "Entregas",
     briefings: "Briefings",
     settings: "Configurações",

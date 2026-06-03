@@ -40,6 +40,7 @@ export default function AgencySidebar() {
       items: [
         { label: t.nav.socialMedia, href: "/agency/social-media-agent", icon: SocialIcon },
         { label: t.nav.designAgent, href: "/agency/design-agent", icon: DesignIcon },
+        { label: t.nav.adsAgent, href: "/agency/ads-agent", icon: AdsIcon },
       ],
     },
     {
@@ -232,6 +233,13 @@ function SocialIcon({ size = 16, className = "" }: { size?: number; className?: 
       <rect x="9" y="2" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.3"/>
       <rect x="2" y="9" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.3"/>
       <rect x="9" y="9" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.3"/>
+    </svg>
+  );
+}
+function AdsIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
+      <path d="M2.5 13V8M6.5 13V4M10.5 13V9.5M14 13V6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
     </svg>
   );
 }

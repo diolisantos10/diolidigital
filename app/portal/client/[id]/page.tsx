@@ -22,7 +22,10 @@ const STATUS_STYLES: Record<DeliverableStatus, { bg: string; text: string; label
 };
 
 const TYPE_ICON: Record<string, string> = {
-  Copy: "✦", Design: "◈", Strategy: "◎", Report: "≡", default: "□",
+  Copy: "✦", Design: "◈", Strategy: "◎", Report: "≡",
+  "Ads Strategy": "◆", "Campaign Structure": "▤", "Audience Plan": "◉",
+  "Ad Copy": "✦", "Creative Requirements": "◈", "Optimization Notes": "⊹",
+  default: "□",
 };
 
 export default function ClientPortalPage({ params }: { params: Promise<{ id: string }> }) {

@@ -19,6 +19,7 @@ export interface Translations {
     agents: string;
     socialMedia: string;
     designAgent: string;
+    adsAgent: string;
     deliverables: string;
     briefings: string;
     settings: string;
@@ -191,6 +192,7 @@ export const en: Translations = {
     agents: "Agents",
     socialMedia: "Social Media",
     designAgent: "Design Agent",
+    adsAgent: "Paid Traffic",
     deliverables: "Deliverables",
     briefings: "Briefings",
     settings: "Settings",
