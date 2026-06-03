@@ -12,7 +12,7 @@ import DeliverableDetailModal from "@/components/agency/deliverables/Deliverable
 import Link from "next/link";
 import { TaskStatus, DeliverableStatus, Priority, ProjectStage, MOCK_AGENTS, ProjectProposal, StrategyRoomSpecialist, DebateTurn } from "@/lib/agency/mock-data";
 import { getOwner, getVersion, needsRevision, getFeedbackExcerpt } from "@/lib/agency/deliverables";
-import { getProjectProgress, getProjectReportText, getProjectHealth, getPilotChecklist, getPilotAudit, getPilotTimeline, getOperatorPlaybook } from "@/lib/agency/reporting";
+import { getProjectProgress, getProjectReportText, getProjectHealth, getPilotChecklist, getPilotAudit, getPilotTimeline, getOperatorPlaybook, isValidProposalPricing, INVALID_PRICING_MESSAGE } from "@/lib/agency/reporting";
 import { getClientAgentContext } from "@/lib/agency/workspace";
 import PilotChecklist from "@/components/agency/PilotChecklist";
 import PilotPlaybook from "@/components/agency/PilotPlaybook";
@@ -83,7 +83,12 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     setProposalDirty(false);
   };
 
+  // Live pricing validity, tracked against the editable form so the warning
+  // and the disabled send button update as the operator types.
+  const pricingValid = isValidProposalPricing(proposalForm.pricing);
+
   const handleSendProposal = () => {
+    if (!pricingValid) return;
     const parsed = deliverablesText.split("\n").map((s) => s.trim()).filter(Boolean);
     updateProposal(id, { ...proposalForm, deliverables: parsed });
     sendProposal(id);
@@ -1599,6 +1604,13 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   />
                 </div>
               </div>
+              {/* Pricing validation — block sending without a real price */}
+              {!pricingValid && (
+                <div className="flex items-start gap-2 rounded-[8px] border border-[#FECACA] bg-[#FEF2F2] px-4 py-3">
+                  <span className="mt-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-[3px] bg-[#FEE2E2] text-[#DC2626] shrink-0">INVESTIMENTO</span>
+                  <span className="text-[12px] text-[#DC2626] font-medium leading-snug">{INVALID_PRICING_MESSAGE}</span>
+                </div>
+              )}
               <div className="flex items-center gap-2 pt-1">
                 <button
                   onClick={handleSaveProposal}
@@ -1610,7 +1622,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 {(!project.proposal || project.proposal.status === "draft" || project.proposal.status === "changes_requested" || project.proposal.status === "rejected") && (
                   <button
                     onClick={handleSendProposal}
-                    className="h-8 px-4 rounded-[7px] bg-[#1A1A1A] hover:bg-[#111111] text-white text-[12px] font-medium transition-colors"
+                    disabled={!pricingValid}
+                    title={!pricingValid ? INVALID_PRICING_MESSAGE : undefined}
+                    className="h-8 px-4 rounded-[7px] bg-[#1A1A1A] hover:bg-[#111111] text-white text-[12px] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-[#1A1A1A]"
                   >
                     Enviar ao Cliente
                   </button>

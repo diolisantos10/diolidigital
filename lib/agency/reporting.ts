@@ -12,6 +12,28 @@ import type { StrategyRoom } from "@/lib/agency/mock-data";
 import type { MaterialRequest } from "@/lib/agency/workspace";
 import { needsRevision, getVersion } from "@/lib/agency/deliverables";
 
+// ─── Proposal pricing validation ─────────────────────────────────────────────
+// Single source of truth for "is this a real, sendable price?".
+// Used by the store (sendProposal guard), the Proposal tab UI, the pilot audit,
+// and the next-action engine. A proposal must never reach the client without it.
+
+export const INVALID_PRICING_MESSAGE =
+  "Defina o investimento antes de enviar a proposta ao cliente.";
+
+export function isValidProposalPricing(pricing?: string): boolean {
+  if (!pricing) return false;
+  const norm = pricing.trim().toLowerCase();
+  if (norm.length === 0) return false;
+  // Phrase placeholders — block if they appear anywhere in the value.
+  if (norm.includes("a definir") || norm.includes("tbd") || norm.includes("to be defined")) return false;
+  // Exact-token placeholders (dashes / bare zero with optional currency symbol).
+  const compact = norm.replace(/\s/g, "");
+  if (["-", "–", "—", "0", "€0", "r$0", "$0"].includes(compact)) return false;
+  // Any pure-zero amount, e.g. "0", "0,00", "r$ 0,00", "€0.00".
+  if (/^(r\$|€|\$)?0+([.,]0+)?$/.test(compact)) return false;
+  return true;
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface DeptProgress {
@@ -309,6 +331,8 @@ export function getProjectProgress(
 
   const nextAction = getNextProjectAction({
     proposalApproved,
+    proposalPricingValid: isValidProposalPricing(project.proposal?.pricing),
+    proposalSentOrApproved: proposalStatus === "sent" || proposalStatus === "approved",
     strategyRoomReady: !!strategyRoom,
     inReview,
     revisionNeeded,
@@ -345,6 +369,8 @@ export function getProjectProgress(
 
 interface ActionInput {
   proposalApproved: boolean;
+  proposalPricingValid: boolean;
+  proposalSentOrApproved: boolean;
   strategyRoomReady: boolean;
   inReview: number;
   revisionNeeded: number;
@@ -356,6 +382,8 @@ interface ActionInput {
 }
 
 export function getNextProjectAction(input: ActionInput): string {
+  // Pricing must be settled before the proposal can go out the door.
+  if (!input.proposalSentOrApproved && !input.proposalPricingValid) return INVALID_PRICING_MESSAGE;
   if (!input.proposalApproved)       return "Enviar e aprovar a proposta antes de iniciar a execução.";
   if (input.blockedTasks > 0)        return `${input.blockedTasks} tarefa(s) bloqueada(s) — resolver antes de continuar.`;
   if (input.pendingMaterialRequests > 0) return `${input.pendingMaterialRequests} material(is) pendente(s) do cliente — aguardar recebimento.`;
@@ -553,8 +581,8 @@ export function getPilotAudit(input: {
   if (!prop) {
     warnings.push({ area: "Proposta", severity: "high", message: "Nenhuma proposta criada — crie e envie a proposta ao cliente." });
   } else {
-    if (!prop.pricing || /a definir|tbd|—|^$/i.test(prop.pricing.trim())) {
-      warnings.push({ area: "Proposta", severity: "high", message: "Preço da proposta não definido ('A definir') — defina o valor antes de enviar." });
+    if (!isValidProposalPricing(prop.pricing)) {
+      warnings.push({ area: "Proposta", severity: "high", message: "Preço da proposta pendente — defina o investimento antes de enviar ao cliente." });
     }
     if (!prop.deliverables || prop.deliverables.length < 2) {
       warnings.push({ area: "Proposta", severity: "medium", message: "Proposta com poucas entregas — detalhe o escopo." });

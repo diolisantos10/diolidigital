@@ -29,6 +29,7 @@ import type { MaterialRequest, MaterialRequestStatus } from "@/lib/agency/worksp
 import { generateClientRequirements, MOCK_MATERIAL_REQUESTS } from "@/lib/agency/workspace";
 import { inferOwnerAgent } from "@/lib/agency/deliverables";
 import { generateStrategyRoomForProject } from "@/lib/agency/strategy-room";
+import { isValidProposalPricing } from "@/lib/agency/reporting";
 
 // ─── QA Test Run ──────────────────────────────────────────────────────────────
 
@@ -275,6 +276,14 @@ export const useAgencyStore = create<AgencyState>()(
       sendProposal: (id) => {
         const project = get().projects.find((p) => p.id === id);
         if (!project) return;
+        // Store-level safety net: never let a proposal reach the client without a real price,
+        // even if the UI guard is bypassed.
+        if (!isValidProposalPricing(project.proposal?.pricing)) {
+          if (typeof console !== "undefined") {
+            console.warn(`sendProposal blocked for "${project.name}": invalid or missing pricing.`);
+          }
+          return;
+        }
         set((s) => ({
           projects: s.projects.map((p) =>
             p.id === id
