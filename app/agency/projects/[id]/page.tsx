@@ -12,7 +12,7 @@ import DeliverableDetailModal from "@/components/agency/deliverables/Deliverable
 import Link from "next/link";
 import { TaskStatus, DeliverableStatus, Priority, ProjectStage, MOCK_AGENTS, ProjectProposal, StrategyRoomSpecialist, DebateTurn } from "@/lib/agency/mock-data";
 import { getOwner, getVersion, needsRevision, getFeedbackExcerpt } from "@/lib/agency/deliverables";
-import { getProjectProgress, getProjectReportText, getProjectHealth, getPilotChecklist, getPilotAudit, getPilotTimeline, getOperatorPlaybook, isValidProposalPricing, INVALID_PRICING_MESSAGE } from "@/lib/agency/reporting";
+import { getProjectProgress, getProjectReportText, getProjectHealth, getPilotChecklist, getPilotAudit, getPilotTimeline, getOperatorPlaybook, isValidProposalPricing, INVALID_PRICING_MESSAGE, getPilotOperationsReport, getPilotFindings, getPilotFinalReport } from "@/lib/agency/reporting";
 import { getClientAgentContext } from "@/lib/agency/workspace";
 import PilotChecklist from "@/components/agency/PilotChecklist";
 import PilotPlaybook from "@/components/agency/PilotPlaybook";
@@ -1712,6 +1712,10 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         const checklist = getPilotChecklist(progress, brandBrainComplete);
         const playbook = getOperatorPlaybook(progress, brandBrainComplete);
         const timeline = getPilotTimeline(project);
+        const audit = getPilotAudit({ project, client, briefing, strategyRoom: strategyRoom ?? undefined, materialRequests: projectMaterialRequests });
+        const opsReport = getPilotOperationsReport(project, client, projectDeliverables, projectMaterialRequests, strategyRoom ?? undefined);
+        const findings = getPilotFindings(audit, opsReport, progress);
+        const finalReport = getPilotFinalReport(audit, progress, findings, brandBrainComplete, project.agents);
 
         const handleCopyReport = () => {
           const text = getProjectReportText(project.name, client?.name ?? "—", progress);
@@ -1927,6 +1931,155 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
             {/* First Client Checklist (readiness snapshot) */}
             <PilotChecklist checklist={checklist} />
+
+            {/* ── PART 4 — Pilot Operations Report ── */}
+            <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-[#F0F0ED]">
+                <h3 className="text-[13px] font-semibold text-[#1A1A1A]">Relatório de Operações do Piloto</h3>
+                <p className="text-[11px] text-[#9B9B95] mt-0.5">Análise de execução baseada nos dados reais do piloto</p>
+              </div>
+              {(
+                [
+                  { title: "O que funcionou", icon: "✓", items: opsReport.whatWorked, accent: "#16A34A", bg: "bg-[#F0FDF4]", border: "border-[#BBF7D0]" },
+                  { title: "Fricção de UX", icon: "⚠", items: opsReport.uxFriction, accent: "#D97706", bg: "bg-[#FFFBEB]", border: "border-[#FDE68A]" },
+                  { title: "Informações faltando", icon: "?", items: opsReport.missingInfo, accent: "#DC2626", bg: "bg-[#FEF2F2]", border: "border-[#FECACA]" },
+                  { title: "Automações ausentes", icon: "⚡", items: opsReport.missingAutomation, accent: "#5B5BD6", bg: "bg-[#EEF0FF]", border: "border-[#C7D2FE]" },
+                  { title: "Pain points do operador", icon: "!", items: opsReport.operatorPainPoints, accent: "#C2530A", bg: "bg-[#FFF4ED]", border: "border-[#FED7AA]" },
+                ] as const
+              ).map((section) => (
+                <div key={section.title} className={`mx-5 my-3 rounded-[8px] border ${section.border} ${section.bg} overflow-hidden`}>
+                  <div className="px-4 py-2 border-b border-current border-opacity-20">
+                    <span className="text-[11px] font-bold uppercase tracking-[0.05em]" style={{ color: section.accent }}>
+                      {section.icon} {section.title} ({section.items.length})
+                    </span>
+                  </div>
+                  <div className="divide-y divide-current divide-opacity-10">
+                    {section.items.map((obs, i) => (
+                      <div key={i} className="px-4 py-2.5 flex items-start gap-3">
+                        <span className="shrink-0 mt-0.5 h-4 px-1.5 rounded-[3px] text-[9px] font-bold" style={{ backgroundColor: `${section.accent}20`, color: section.accent }}>
+                          {obs.area}
+                        </span>
+                        <span className="text-[12px] text-[#1A1A1A] leading-snug">{obs.finding}</span>
+                        <span className={`ml-auto shrink-0 h-4 px-1.5 rounded-full text-[9px] font-semibold ${
+                          obs.impact === "high" ? "bg-[#FEE2E2] text-[#DC2626]" : obs.impact === "medium" ? "bg-[#FEF3C7] text-[#D97706]" : "bg-[#F0F0ED] text-[#9B9B95]"
+                        }`}>{obs.impact}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              <div className="h-3" />
+            </div>
+
+            {/* ── PART 5 — P0/P1/P2 Findings ── */}
+            <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-[#F0F0ED] flex items-center justify-between">
+                <div>
+                  <h3 className="text-[13px] font-semibold text-[#1A1A1A]">Priorização do Piloto</h3>
+                  <p className="text-[11px] text-[#9B9B95] mt-0.5">Findings classificados por prioridade operacional</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {finalReport.p0Count > 0 && <span className="h-5 px-2 rounded-full bg-[#FEE2E2] text-[#DC2626] text-[10px] font-bold">{finalReport.p0Count} P0</span>}
+                  {finalReport.p1Count > 0 && <span className="h-5 px-2 rounded-full bg-[#FEF3C7] text-[#D97706] text-[10px] font-bold">{finalReport.p1Count} P1</span>}
+                  {finalReport.p2Count > 0 && <span className="h-5 px-2 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-bold">{finalReport.p2Count} P2</span>}
+                </div>
+              </div>
+              {(["P0", "P1", "P2"] as const).map((priority) => {
+                const pFindings = findings.filter((f) => f.priority === priority);
+                if (pFindings.length === 0) return null;
+                const pStyle = {
+                  P0: { bg: "bg-[#FEF2F2]", border: "border-[#FECACA]", label: "bg-[#FEE2E2] text-[#DC2626]", desc: "Bloqueador — corrigir antes do primeiro cliente externo" },
+                  P1: { bg: "bg-[#FFFBEB]", border: "border-[#FDE68A]", label: "bg-[#FEF3C7] text-[#D97706]", desc: "Importante — pode embarcar cliente, mas corrigir em seguida" },
+                  P2: { bg: "bg-[#EEF0FF]", border: "border-[#C7D2FE]", label: "bg-[#EEF0FF] text-[#5B5BD6]", desc: "Melhoria — backlog de otimização pós-piloto" },
+                }[priority];
+                return (
+                  <div key={priority} className={`mx-5 my-3 rounded-[8px] border ${pStyle.border} ${pStyle.bg} overflow-hidden`}>
+                    <div className="px-4 py-2 flex items-center gap-2 border-b border-current border-opacity-10">
+                      <span className={`h-5 px-2 rounded-full text-[10px] font-bold ${pStyle.label}`}>{priority}</span>
+                      <span className="text-[11px] text-[#6B6B65]">{pStyle.desc}</span>
+                    </div>
+                    <div className="divide-y divide-current divide-opacity-10">
+                      {pFindings.map((f) => (
+                        <div key={f.id} className="px-4 py-3">
+                          <div className="flex items-start gap-2 mb-1">
+                            <span className="shrink-0 mt-0.5 h-4 px-1.5 rounded-[3px] bg-black/5 text-[9px] font-bold text-[#6B6B65]">{f.area}</span>
+                            <span className="text-[12px] font-semibold text-[#1A1A1A] leading-snug">{f.title}</span>
+                          </div>
+                          <p className="text-[11px] text-[#6B6B65] leading-relaxed ml-0 mb-1.5">{f.description}</p>
+                          <div className="flex items-start gap-1.5">
+                            <span className="text-[9px] font-bold text-[#9B9B95] uppercase mt-0.5 shrink-0">Ação:</span>
+                            <span className="text-[11px] text-[#5B5BD6] leading-snug">{f.recommendation}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+              <div className="h-3" />
+            </div>
+
+            {/* ── PART 6 — Pilot Final Report ── */}
+            <div className="bg-[#1A1A1A] rounded-[10px] border border-[#2A2A2A] shadow-[0_1px_3px_rgba(0,0,0,0.12)] overflow-hidden">
+              <div className="px-5 py-4 border-b border-[#2A2A2A] flex items-center justify-between">
+                <div>
+                  <h3 className="text-[13px] font-semibold text-white">Avaliação Final do Piloto</h3>
+                  <p className="text-[11px] text-[#9B9B95] mt-0.5">Score consolidado e recomendação de próximos passos</p>
+                </div>
+                <div className="text-right">
+                  <div className="text-[32px] font-bold text-white mono-num leading-none">{finalReport.pilotScore}</div>
+                  <div className="text-[10px] text-[#9B9B95]">/100</div>
+                </div>
+              </div>
+
+              {/* Score bar */}
+              <div className="px-5 py-3 border-b border-[#2A2A2A]">
+                <div className="h-2 rounded-full bg-[#2A2A2A] overflow-hidden mb-2">
+                  <div
+                    className="h-full rounded-full transition-all duration-700"
+                    style={{
+                      width: `${finalReport.pilotScore}%`,
+                      backgroundColor: finalReport.pilotScore >= 75 ? "#16A34A" : finalReport.pilotScore >= 50 ? "#D97706" : "#DC2626",
+                    }}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                  {finalReport.scoreSignals.map((sig) => (
+                    <div key={sig.label} className="flex items-center justify-between text-[11px]">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${sig.met ? "bg-[#16A34A]" : "bg-[#4A4A4A]"}`} />
+                        <span className={sig.met ? "text-[#9B9B95]" : "text-[#4A4A4A]"}>{sig.label}</span>
+                      </div>
+                      <span className={`font-semibold mono-num ${sig.met ? "text-white" : "text-[#4A4A4A]"}`}>{sig.score}/{sig.max}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Recommendation */}
+              <div className="px-5 py-4 border-b border-[#2A2A2A]">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.05em] text-[#6B6B65] mb-1">Recomendação</div>
+                <div className={`inline-flex h-6 px-3 rounded-full text-[11px] font-bold items-center mb-2 ${
+                  finalReport.recommendation === "ready_for_external_client" ? "bg-[#16A34A] text-white"
+                  : finalReport.recommendation === "continue" ? "bg-[#D97706] text-white"
+                  : "bg-[#DC2626] text-white"
+                }`}>{finalReport.recommendationLabel}</div>
+                <p className="text-[12px] text-[#9B9B95] leading-relaxed">{finalReport.recommendationReason}</p>
+              </div>
+
+              {/* Top 10 Findings */}
+              <div className="px-5 py-4">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.05em] text-[#6B6B65] mb-3">Top 10 Findings</div>
+                <div className="space-y-2">
+                  {finalReport.topFindings.map((finding, i) => (
+                    <div key={i} className="flex items-start gap-2.5">
+                      <span className="w-4 h-4 rounded-full bg-[#2A2A2A] text-[9px] font-bold text-[#6B6B65] flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
+                      <span className="text-[12px] text-[#9B9B95] leading-snug">{finding}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         );
       })()}

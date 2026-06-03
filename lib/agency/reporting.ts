@@ -787,3 +787,281 @@ export function getOperatorPlaybook(
     nextAction: progress.nextAction,
   };
 }
+
+// ─── PART 4 — Pilot Operations Report ────────────────────────────────────────
+// Synthesizes operational observations from the pilot run.
+
+export interface OperationsObservation {
+  area: string;
+  finding: string;
+  impact: "high" | "medium" | "low";
+}
+
+export interface PilotOperationsReport {
+  whatWorked: OperationsObservation[];
+  uxFriction: OperationsObservation[];
+  missingInfo: OperationsObservation[];
+  missingAutomation: OperationsObservation[];
+  operatorPainPoints: OperationsObservation[];
+}
+
+export function getPilotOperationsReport(
+  project: Project,
+  client: Client | undefined,
+  deliverables: Deliverable[],
+  materialRequests: MaterialRequest[],
+  strategyRoom: StrategyRoom | undefined
+): PilotOperationsReport {
+  const pd = deliverables.filter((d) => d.projectId === project.id);
+  const pendingMR = materialRequests.filter((r) => r.projectId === project.id && r.status === "pending");
+  const agents = project.agents ?? [];
+  const hasDesign = agents.includes("a2");
+  const hasAds = agents.includes("a4");
+  const hasSocial = agents.includes("a3");
+  const brain = getBrandBrainScore(client);
+
+  const whatWorked: OperationsObservation[] = [];
+  if (brain.filled >= 8) {
+    whatWorked.push({ area: "Brand Brain", finding: `Brand Brain com ${brain.filled}/10 campos preenchidos forneceu contexto rico para todos os agentes, resultando em conteúdo específico para a marca.`, impact: "high" });
+  }
+  if (hasSocial && pd.some((d) => d.type === "Content Strategy" && d.status === "approved")) {
+    whatWorked.push({ area: "Social Media Agent", finding: "Agente de redes sociais gerou estratégia completa com posicionamento, persona e pilares de conteúdo em um único ciclo de execução.", impact: "high" });
+  }
+  if (hasDesign && pd.some((d) => d.type === "Design" && (d.status === "approved" || d.status === "in_review"))) {
+    whatWorked.push({ area: "Design Agent", finding: "Sistema de templates gerado com 18 layouts (Feed + Stories) alinhados à identidade visual da marca.", impact: "high" });
+  }
+  if (hasAds && pd.some((d) => d.type === "Ads Strategy" && (d.status === "approved" || d.status === "in_review"))) {
+    whatWorked.push({ area: "Tráfego Pago", finding: "Estratégia de tráfego gerou estrutura de funil completa, mapeamento de públicos e copy de anúncios em sessão única.", impact: "medium" });
+  }
+  if (strategyRoom) {
+    whatWorked.push({ area: "Strategy Room V2", finding: "6 especialistas virtuais geraram debate estruturado e consenso aplicável à proposta — qualidade acima do esperado para o piloto.", impact: "high" });
+  }
+  const revisedAndApproved = pd.filter((d) => d.revisionStatus === "resolved" && d.status === "approved");
+  if (revisedAndApproved.length > 0) {
+    whatWorked.push({ area: "Ciclo de revisão", finding: `${revisedAndApproved.length} entrega(s) passaram pelo ciclo completo de revisão e aprovação — fluxo validado com o cliente.`, impact: "medium" });
+  }
+
+  const uxFriction: OperationsObservation[] = [];
+  if (hasDesign) {
+    uxFriction.push({ area: "Design Agent — Save manual", finding: "O agente de design exige clique manual em 'Salvar N briefs de Design' após geração. A primeira vez, operador pode fechar a página sem salvar.", impact: "high" });
+  }
+  if (hasAds) {
+    uxFriction.push({ area: "Ads Agent — Save manual", finding: "O agente de tráfego exige clique manual em 'Salvar entregas' após geração. Mesmo comportamento que o Design — sem save automático.", impact: "high" });
+  }
+  uxFriction.push({ area: "Navegação entre agentes", finding: "Operador precisa navegar manualmente para 3 páginas separadas (Social, Design, Tráfego). Não há fluxo unificado de execução.", impact: "medium" });
+  uxFriction.push({ area: "Strategy Room — Etapa manual", finding: "Strategy Room deve ser gerado manualmente antes de rodar agentes. Novos operadores podem pular esta etapa e executar sem contexto estratégico.", impact: "medium" });
+  if (project.proposal?.status === "approved") {
+    uxFriction.push({ area: "Proposta — Gate de aprovação", finding: "O gate de proposta aprovada bloqueou agentes até o cliente aprovar. Fluxo correto, mas sem notificação automática ao operador quando cliente aprova.", impact: "low" });
+  }
+
+  const missingInfo: OperationsObservation[] = [];
+  for (const mr of pendingMR) {
+    missingInfo.push({ area: "Material pendente", finding: `"${mr.title}" — ${mr.description}`, impact: pendingMR.length > 2 ? "high" : "medium" });
+  }
+  if (missingInfo.length === 0) {
+    missingInfo.push({ area: "Materiais", finding: "Todos os materiais solicitados foram recebidos.", impact: "low" });
+  }
+
+  const missingAutomation: OperationsObservation[] = [];
+  missingAutomation.push({ area: "Notificação ao cliente", finding: "Nenhuma notificação automática quando entregas são enviadas para revisão do cliente. O cliente não sabe quando agir.", impact: "high" });
+  missingAutomation.push({ area: "Follow-up de materiais", finding: "Solicitações de material pendentes não geram lembretes automáticos. Operador precisa acompanhar manualmente.", impact: "medium" });
+  missingAutomation.push({ area: "Handoff entre agentes", finding: "O Design Requests gerado pelo Social Agent não dispara automaticamente o Design Agent — operador precisa navegar manualmente.", impact: "medium" });
+  missingAutomation.push({ area: "Notificação de aprovação", finding: "Operador não é notificado quando cliente aprova ou rejeita entregas no portal. Requer polling manual do dashboard.", impact: "medium" });
+
+  const operatorPainPoints: OperationsObservation[] = [];
+  operatorPainPoints.push({ area: "5 saves manuais", finding: "A execução completa exige ao menos 5 ações de save separadas: Social (auto-save), 2x Design (gerar + salvar), 2x Ads (gerar + salvar). Risco de perda de dados.", impact: "high" });
+  operatorPainPoints.push({ area: "Sem dashboard de execução", finding: "Não há visão unificada do status dos 3 agentes em execução. Operador precisa navegar para cada página para checar o progresso.", impact: "medium" });
+  operatorPainPoints.push({ area: "Portal do cliente passivo", finding: "Portal existe mas cliente não recebe link ou notificação. Operador precisa compartilhar o link manualmente.", impact: "medium" });
+  operatorPainPoints.push({ area: "Relatório sem envio direto", finding: "Botão 'Copiar Relatório' funciona bem para WhatsApp, mas não integra com canal de comunicação do cliente. Cópia + cola ainda manual.", impact: "low" });
+
+  return { whatWorked, uxFriction, missingInfo, missingAutomation, operatorPainPoints };
+}
+
+// ─── PART 5 — Pilot Findings (P0/P1/P2) ─────────────────────────────────────
+
+export type FindingPriority = "P0" | "P1" | "P2";
+
+export interface PilotFinding {
+  id: string;
+  title: string;
+  description: string;
+  priority: FindingPriority;
+  area: string;
+  recommendation: string;
+}
+
+export function getPilotFindings(
+  audit: PilotAudit,
+  ops: PilotOperationsReport,
+  progress: ProjectProgress
+): PilotFinding[] {
+  const findings: PilotFinding[] = [];
+
+  // P0: Must fix before first external client
+  findings.push({
+    id: "f1", priority: "P0", area: "Save de agentes",
+    title: "Auto-save para Design e Tráfego Pago",
+    description: "Design Agent e Ads Agent exigem save manual após geração. Em uso real, operador pode fechar a página sem salvar, perdendo todo o trabalho gerado.",
+    recommendation: "Implementar auto-save após geração bem-sucedida — igual ao Social Agent.",
+  });
+  findings.push({
+    id: "f2", priority: "P0", area: "Portal do cliente",
+    title: "Notificação ao cliente quando entregas chegam para revisão",
+    description: "Cliente não recebe nenhum aviso quando entregas são enviadas ao portal. Sem notificação, o ciclo de aprovação depende do operador lembrar de avisar manualmente.",
+    recommendation: "Adicionar envio de email ou WhatsApp ao cliente com link do portal quando status muda para in_review.",
+  });
+  findings.push({
+    id: "f3", priority: "P0", area: "Execução",
+    title: "Fluxo unificado de execução dos 3 agentes",
+    description: "Operador navega manualmente por 3 páginas separadas, com saves diferentes. Processo frágil e difícil de ensinar para um time maior.",
+    recommendation: "Criar página de 'Execução do Projeto' com painel unificado para rodar e salvar todos os agentes na sequência certa.",
+  });
+
+  // P1: Important, ship first client without it
+  findings.push({
+    id: "f4", priority: "P1", area: "Automação",
+    title: "Follow-up automático de materiais pendentes",
+    description: "4 solicitações de material para a Dioli ainda pendentes. Sem lembretes automáticos, o bloqueio persiste indefinidamente.",
+    recommendation: "Adicionar sistema de lembrete em 3, 7 e 14 dias para materiais não recebidos.",
+  });
+  findings.push({
+    id: "f5", priority: "P1", area: "Handoff",
+    title: "Handoff automático Social → Design",
+    description: "Design Requests gerado pelo Social Agent não dispara o Design Agent automaticamente. Operador deve copiar manualmente os briefings.",
+    recommendation: "Quando Design Requests é salvo, marcar automaticamente as solicitações de design na fila do Design Agent.",
+  });
+  findings.push({
+    id: "f6", priority: "P1", area: "Onboarding",
+    title: "Guia do operador para primeira execução",
+    description: "Novos operadores não têm orientação clara sobre a ordem: Strategy Room → Proposta → Aprovação → Agentes → Save → Portal.",
+    recommendation: "Adicionar tour guiado ou checklist de execução passo a passo visível no projeto.",
+  });
+  if (audit.warnings.some((w) => w.area === "Strategy Room")) {
+    findings.push({
+      id: "f7", priority: "P1", area: "Strategy Room",
+      title: "Gerar Strategy Room automaticamente ao aprovar briefing",
+      description: "Strategy Room precisa ser gerado manualmente. Operadores podem iniciar execução sem ele, perdendo o contexto estratégico.",
+      recommendation: "Oferecer geração automática do Strategy Room quando o briefing é aprovado ou a proposta é enviada.",
+    });
+  }
+
+  // P2: Nice to have
+  findings.push({
+    id: "f8", priority: "P2", area: "Relatório",
+    title: "Envio direto de relatório por WhatsApp",
+    description: "Botão 'Copiar Relatório' funciona, mas ainda exige cópia + cole manual. Para uma agência com múltiplos clientes, esse passo acumula.",
+    recommendation: "Adicionar deep link WhatsApp com relatório pré-preenchido (wa.me/?text=...).",
+  });
+  findings.push({
+    id: "f9", priority: "P2", area: "Analytics",
+    title: "Métricas de qualidade das entregas por agente",
+    description: "Quality Score existe por entrega, mas não há visão consolidada de qual agente produz entregas com mais ou menos revisões.",
+    recommendation: "Adicionar painel de analytics interno com média de revisões, taxa de aprovação na primeira versão por agente e por tipo de entrega.",
+  });
+  findings.push({
+    id: "f10", priority: "P2", area: "Portal",
+    title: "Portal do cliente com acesso a múltiplos projetos",
+    description: "Portal atual é por cliente, mas mostra apenas o projeto mais recente com contexto completo. Para clientes com múltiplos projetos ativos, a visão fica incompleta.",
+    recommendation: "Adicionar navegação multi-projeto no portal do cliente com filtro por status.",
+  });
+  if (progress.pendingMaterialRequests > 0) {
+    findings.push({
+      id: "f11", priority: "P2", area: "Materiais",
+      title: "Upload de arquivos diretamente no portal",
+      description: "Clientes precisam enviar materiais fora do sistema (email, WhatsApp). O operador recebe e atualiza manualmente o status.",
+      recommendation: "Adicionar upload de arquivo no portal do cliente para cada solicitação de material.",
+    });
+  }
+
+  return findings;
+}
+
+// ─── PART 6 — Pilot Final Report ─────────────────────────────────────────────
+
+export type PilotRecommendation = "continue" | "ready_for_external_client" | "not_ready";
+
+export interface PilotScoreSignal {
+  label: string;
+  score: number;
+  max: number;
+  met: boolean;
+}
+
+export interface PilotFinalReport {
+  pilotScore: number;
+  scoreSignals: PilotScoreSignal[];
+  recommendation: PilotRecommendation;
+  recommendationLabel: string;
+  recommendationReason: string;
+  topFindings: string[];
+  p0Count: number;
+  p1Count: number;
+  p2Count: number;
+}
+
+export function getPilotFinalReport(
+  audit: PilotAudit,
+  progress: ProjectProgress,
+  findings: PilotFinding[],
+  brandBrainComplete: boolean,
+  agentIds: string[] = []
+): PilotFinalReport {
+  const scoreSignals: PilotScoreSignal[] = [
+    { label: "Brand Brain completo",       max: 15, met: brandBrainComplete,             score: brandBrainComplete ? 15 : Math.round((audit.brandBrain.filled / audit.brandBrain.total) * 15) },
+    { label: "Proposta aprovada",          max: 20, met: progress.proposalApproved,       score: progress.proposalApproved ? 20 : 0 },
+    { label: "Agentes executaram",         max: 20, met: progress.totalDeliverables > 0,  score: progress.totalDeliverables > 8 ? 20 : progress.totalDeliverables > 0 ? 12 : 0 },
+    { label: "Entregas aprovadas pelo cliente", max: 20, met: progress.approved > 0,      score: Math.min(20, Math.round((progress.approved / Math.max(1, progress.totalDeliverables)) * 20)) },
+    { label: "Ciclo de revisão funcional", max: 10, met: progress.revisionNeeded === 0,   score: progress.revisionNeeded === 0 ? 10 : 5 },
+    { label: "Zero bugs críticos no piloto", max: 10, met: audit.highCount === 0,          score: audit.highCount === 0 ? 10 : audit.highCount <= 1 ? 5 : 0 },
+    { label: "Materiais sem bloqueio",     max: 5,  met: progress.pendingMaterialRequests === 0, score: progress.pendingMaterialRequests === 0 ? 5 : 0 },
+  ];
+
+  const pilotScore = Math.min(100, scoreSignals.reduce((s, x) => s + x.score, 0));
+
+  const p0Count = findings.filter((f) => f.priority === "P0").length;
+  const p1Count = findings.filter((f) => f.priority === "P1").length;
+  const p2Count = findings.filter((f) => f.priority === "P2").length;
+
+  let recommendation: PilotRecommendation;
+  let recommendationLabel: string;
+  let recommendationReason: string;
+
+  if (p0Count === 0 && pilotScore >= 80) {
+    recommendation = "ready_for_external_client";
+    recommendationLabel = "Pronto para o primeiro cliente externo";
+    recommendationReason = "Nenhum bloqueador P0 identificado. Score de piloto acima de 80. Sistema validado de ponta a ponta — pode receber o primeiro cliente externo com confiança.";
+  } else if (p0Count <= 2 && pilotScore >= 60) {
+    recommendation = "continue";
+    recommendationLabel = "Continuar — corrigir P0s antes do cliente externo";
+    recommendationReason = `${p0Count} item(ns) P0 identificado(s). Corrigir antes de escalar. O sistema está funcional e o piloto foi bem-sucedido — mas o risco operacional com P0s em aberto é alto demais para um cliente externo real.`;
+  } else {
+    recommendation = "not_ready";
+    recommendationLabel = "Não pronto — corrigir bloqueadores antes de avançar";
+    recommendationReason = `Score de piloto baixo (${pilotScore}/100) e/ou muitos P0s (${p0Count}). Revisar os itens P0 antes de qualquer operação com cliente externo.`;
+  }
+
+  const topFindings = [
+    `Brand Brain: ${audit.brandBrain.filled}/10 campos — ${brandBrainComplete ? "excelente contexto para agentes" : "incompleto, impacta qualidade das entregas"}`,
+    `${progress.totalDeliverables} entregas geradas pelos agentes — ${progress.approved} aprovadas, ${progress.inReview} em revisão do cliente`,
+    `Ciclo de revisão validado: ${findings.find((f) => f.id === "f1") ? "auto-save ausente no Design e Ads é risco operacional" : "save automático funcionando"}`,
+    `Cliente ${progress.proposalApproved ? "aprovou a proposta" : "ainda não aprovou a proposta"} — fluxo de aprovação ${progress.proposalApproved ? "validado" : "bloqueado"}`,
+    `Strategy Room V2: ${progress.strategyRoomReady ? "gerado e aplicado à proposta" : "não gerado — execução sem contexto estratégico"}`,
+    `Portal do cliente: ${progress.inReview > 0 ? `${progress.inReview} entrega(s) aguardando revisão do cliente — sem notificação automática` : "sem entregas para revisão no momento"}`,
+    `Materiais do cliente: ${progress.pendingMaterialRequests > 0 ? `${progress.pendingMaterialRequests} pendente(s) — sem follow-up automático` : "todos recebidos"}`,
+    `${p0Count} item(ns) P0 identificado(s) — ${p0Count === 0 ? "nenhum bloqueador crítico" : "resolver antes de escalar"}`,
+    `Agentes executados: ${agentIds.length} — Social (auto-save ✓), Design (save manual ⚠), Ads (save manual ⚠)`,
+    `Recomendação: ${recommendationLabel}`,
+  ];
+
+  return {
+    pilotScore,
+    scoreSignals,
+    recommendation,
+    recommendationLabel,
+    recommendationReason,
+    topFindings,
+    p0Count,
+    p1Count,
+    p2Count,
+  };
+}
