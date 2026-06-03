@@ -19,6 +19,7 @@ import type { OperationalRisk } from "@/lib/agency/workspace";
 import { getClientAgentContext } from "@/lib/agency/workspace";
 import { getClientProgress } from "@/lib/agency/reporting";
 import { getRolePermissions, BRAND_FIELD_LABELS } from "@/lib/agency/roles";
+import { parseBrandBook, type ParsedBrandField } from "@/lib/agency/brand-parser";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -75,12 +76,16 @@ function initials(name: string): string {
 export default function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { clients, projects, tasks, deliverables, activity, materialRequests, updateClient,
-          currentRole, brandUpdates, addBrandUpdate, applyBrandUpdate, dismissBrandUpdate } = useAgencyStore();
+          currentRole, brandUpdates, addBrandUpdate, applyBrandUpdate, applyAllPendingBrandUpdates, dismissBrandUpdate } = useAgencyStore();
   const [editOpen, setEditOpen] = useState(false);
   const [brainEditing, setBrainEditing] = useState(false);
   const [brainDraft, setBrainDraft] = useState<BrandBrain | null>(null);
   const [brainSaved, setBrainSaved] = useState(false);
   const [uploadMsg, setUploadMsg] = useState<string | null>(null);
+  const [parserOpen, setParserOpen] = useState(false);
+  const [parserText, setParserText] = useState("");
+  const [parserResults, setParserResults] = useState<ParsedBrandField[]>([]);
+  const [parserQueued, setParserQueued] = useState(false);
   const portalUrl = `/portal/client/${id}`;
 
   const client = clients.find((c) => c.id === id);
@@ -116,6 +121,45 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
     setUploadMsg(`"${file.name}" recebido. Análise automática de Brand Book será adicionada na próxima etapa.`);
     setTimeout(() => setUploadMsg(null), 5000);
     e.target.value = "";
+  };
+
+  const handleParserFileLoad = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => { setParserText((ev.target?.result as string) ?? ""); setParserResults([]); setParserQueued(false); };
+    reader.readAsText(file, "utf-8");
+    e.target.value = "";
+  };
+
+  const handleParse = () => {
+    const results = parseBrandBook(parserText);
+    setParserResults(results);
+    setParserQueued(false);
+  };
+
+  const handleQueueAll = () => {
+    const brain = client.brandBrain as Record<string, string> | undefined;
+    for (const r of parserResults) {
+      addBrandUpdate({
+        clientId: id, field: r.field, suggestedValue: r.value,
+        currentValue: brain?.[r.field] ?? "",
+        source: "parsed", status: "pending",
+        note: "Extraído automaticamente do Brand Book",
+      });
+    }
+    setParserQueued(true);
+  };
+
+  const handleQueueOne = (r: ParsedBrandField) => {
+    const brain = client.brandBrain as Record<string, string> | undefined;
+    addBrandUpdate({
+      clientId: id, field: r.field, suggestedValue: r.value,
+      currentValue: brain?.[r.field] ?? "",
+      source: "parsed", status: "pending",
+      note: "Extraído automaticamente do Brand Book",
+    });
+    setParserResults((prev) => prev.filter((x) => x.field !== r.field));
   };
 
   const perms = getRolePermissions(currentRole);
@@ -569,6 +613,102 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
               </div>
             )}
 
+            {/* ── Brand Book Parser ────────────────────────────────────────── */}
+            <div className="px-5 py-3 border-b border-[#F0F0ED] bg-[#FAFAF9]">
+              {!parserOpen ? (
+                <button
+                  onClick={() => setParserOpen(true)}
+                  className="text-[12px] font-medium text-[#5B5BD6] hover:underline"
+                >
+                  ✦ Analisar Brand Book (texto)
+                </button>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[12px] font-semibold text-[#1A1A1A]">Analisar Brand Book</span>
+                    <button
+                      onClick={() => { setParserOpen(false); setParserText(""); setParserResults([]); setParserQueued(false); }}
+                      className="text-[11px] text-[#9B9B95] hover:text-[#6B6B65]"
+                    >
+                      Fechar
+                    </button>
+                  </div>
+                  <textarea
+                    value={parserText}
+                    onChange={(e) => { setParserText(e.target.value); setParserResults([]); setParserQueued(false); }}
+                    placeholder="Cole o texto do Brand Book aqui..."
+                    rows={5}
+                    className="w-full px-3 py-2 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] resize-y"
+                  />
+                  <div className="flex items-center gap-2">
+                    <label className="cursor-pointer">
+                      <input type="file" accept=".txt" className="hidden" onChange={handleParserFileLoad} />
+                      <span className="inline-flex items-center h-7 px-2.5 rounded-[6px] border border-[#E5E5E2] text-[11px] text-[#6B6B65] hover:bg-[#EEEEEC] transition-colors cursor-pointer">
+                        Carregar .txt
+                      </span>
+                    </label>
+                    <button
+                      onClick={handleParse}
+                      disabled={!parserText.trim()}
+                      className="h-7 px-3 rounded-[6px] bg-[#5B5BD6] hover:bg-[#4A4AC0] disabled:opacity-40 text-white text-[11px] font-medium transition-colors"
+                    >
+                      Analisar Brand Book
+                    </button>
+                  </div>
+
+                  {parserText.trim() && parserResults.length === 0 && !parserQueued && (
+                    <p className="text-[12px] text-[#9B9B95]">
+                      Clique em "Analisar Brand Book" para extrair informações do texto colado.
+                    </p>
+                  )}
+
+                  {parserResults.length > 0 && (
+                    <div className="border border-[#E5E5E2] rounded-[8px] overflow-hidden">
+                      <div className="px-3 py-2.5 bg-[#F0F0ED] flex items-center justify-between">
+                        <span className="text-[11px] font-semibold text-[#6B6B65]">
+                          {parserQueued
+                            ? `✓ ${parserResults.length} sugestões criadas`
+                            : `${parserResults.length} sugestões encontradas`}
+                        </span>
+                        {!parserQueued && (
+                          <button
+                            onClick={handleQueueAll}
+                            className="h-6 px-2.5 rounded-[5px] bg-[#1A1A1A] text-white text-[10px] font-medium hover:bg-[#2A2A2A] transition-colors"
+                          >
+                            Aplicar ao Brand Hub ({parserResults.length})
+                          </button>
+                        )}
+                      </div>
+                      {!parserQueued ? (
+                        <div className="divide-y divide-[#F0F0ED] max-h-[280px] overflow-y-auto">
+                          {parserResults.map((r) => (
+                            <div key={r.field} className="px-3 py-2.5 flex items-start gap-3">
+                              <div className="flex-1 min-w-0">
+                                <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.04em] mb-0.5">
+                                  {BRAND_FIELD_LABELS[r.field] ?? r.field}
+                                </div>
+                                <p className="text-[12px] text-[#1A1A1A] leading-relaxed line-clamp-2">{r.value}</p>
+                              </div>
+                              <button
+                                onClick={() => handleQueueOne(r)}
+                                className="shrink-0 h-6 px-2 rounded-[5px] border border-[#E5E5E2] text-[10px] text-[#6B6B65] hover:bg-[#F0F0ED] transition-colors"
+                              >
+                                + Criar
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="px-3 py-2.5 text-[12px] text-[#16A34A]">
+                          Revise as sugestões em Atualizações Pendentes abaixo.
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div className="divide-y divide-[#F0F0ED]">
               {BRAIN_FIELDS.map(({ key, label, placeholder, internal }) => {
                 const value = (client.brandBrain?.[key] ?? "") as string;
@@ -605,12 +745,22 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
               <div className="border-t border-[#E5E5E2]">
                 <div className="px-5 py-3 border-b border-[#F0F0ED] flex items-center justify-between">
                   <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Atualizações Pendentes</div>
-                  <span className="text-[10px] text-[#9B9B95]">{clientBrandUpdates.filter(u => u.status === "pending").length} aguardando revisão</span>
+                  <div className="flex items-center gap-2">
+                    {perms.canApplyBrandUpdate && clientBrandUpdates.filter(u => u.status === "pending" && u.field !== "brand_book" && u.field !== "general").length > 1 && (
+                      <button
+                        onClick={() => applyAllPendingBrandUpdates(id)}
+                        className="h-6 px-2.5 rounded-[5px] text-[10px] font-medium bg-[#1A1A1A] text-white hover:bg-[#2A2A2A] transition-colors"
+                      >
+                        Aplicar tudo
+                      </button>
+                    )}
+                    <span className="text-[10px] text-[#9B9B95]">{clientBrandUpdates.filter(u => u.status === "pending").length} aguardando revisão</span>
+                  </div>
                 </div>
                 <div className="divide-y divide-[#F0F0ED]">
                   {clientBrandUpdates.slice(0, 8).map((upd) => {
-                    const srcLabel = upd.source === "client" ? "Portal do cliente" : upd.source === "upload" ? "Upload" : "Manual";
-                    const srcColor = upd.source === "client" ? "bg-[#EEF0FF] text-[#5B5BD6]" : upd.source === "upload" ? "bg-[#FEF3C7] text-[#D97706]" : "bg-[#F0F0ED] text-[#6B6B65]";
+                    const srcLabel = upd.source === "client" ? "Portal do cliente" : upd.source === "upload" ? "Upload" : upd.source === "parsed" ? "Análise Automática" : "Manual";
+                    const srcColor = upd.source === "client" ? "bg-[#EEF0FF] text-[#5B5BD6]" : upd.source === "upload" ? "bg-[#FEF3C7] text-[#D97706]" : upd.source === "parsed" ? "bg-[#F0FDF4] text-[#16A34A]" : "bg-[#F0F0ED] text-[#6B6B65]";
                     const statusColor = upd.status === "applied" ? "text-[#16A34A]" : upd.status === "reviewed" ? "text-[#5B5BD6]" : "text-[#D97706]";
                     const fieldLabel = BRAND_FIELD_LABELS[upd.field] ?? upd.field;
                     return (

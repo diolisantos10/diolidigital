@@ -7,6 +7,7 @@ import { DeliverableStatus, ProjectStage } from "@/lib/agency/mock-data";
 import { getClientVisibleDeliverables } from "@/lib/agency/workspace";
 import { getClientProgress, getNextProjectAction } from "@/lib/agency/reporting";
 import { PORTAL_SAFE_BRAND_FIELDS, BRAND_FIELD_LABELS } from "@/lib/agency/roles";
+import { parseBrandBook, type ParsedBrandField } from "@/lib/agency/brand-parser";
 
 
 const STAGE_LABEL: Record<ProjectStage, string> = {
@@ -58,6 +59,10 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
   const [brandSuggestText,     setBrandSuggestText]     = useState("");
   const [brandSuggestSent,     setBrandSuggestSent]     = useState(false);
   const [brandUploadMsg,       setBrandUploadMsg]       = useState<string | null>(null);
+  const [portalParserOpen,     setPortalParserOpen]     = useState(false);
+  const [portalParserText,     setPortalParserText]     = useState("");
+  const [portalParserResults,  setPortalParserResults]  = useState<ParsedBrandField[]>([]);
+  const [portalParserSent,     setPortalParserSent]     = useState(false);
 
   const handleBrandSuggest = () => {
     const text = brandSuggestText.trim();
@@ -91,6 +96,30 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
     setBrandUploadMsg(`"${file.name}" recebido. Nossa equipe irá analisá-lo e incorporar as informações ao seu Brand Hub.`);
     setTimeout(() => setBrandUploadMsg(null), 5000);
     e.target.value = "";
+  };
+
+  const handlePortalParse = () => {
+    // Filter to only portal-safe fields
+    const safeSet = new Set<string>(PORTAL_SAFE_BRAND_FIELDS);
+    const results = parseBrandBook(portalParserText).filter((r) => safeSet.has(r.field));
+    setPortalParserResults(results);
+    setPortalParserSent(false);
+  };
+
+  const handlePortalQueueAll = () => {
+    const brain = client.brandBrain as Record<string, string> | undefined;
+    for (const r of portalParserResults) {
+      addBrandUpdate({
+        clientId: id, field: r.field, suggestedValue: r.value,
+        currentValue: brain?.[r.field] ?? "",
+        source: "client", status: "pending",
+        note: "Extraído do Brand Book pelo cliente",
+      });
+    }
+    setPortalParserSent(true);
+    setPortalParserResults([]);
+    setPortalParserText("");
+    setTimeout(() => { setPortalParserSent(false); setPortalParserOpen(false); }, 4000);
   };
 
   const handleApprove = (deliverableId: string) => {
@@ -628,6 +657,96 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
                 Cancelar
               </button>
             </div>
+          </div>
+        )}
+
+        {/* ── Brand Book Parser ─────────────────────────────────────────────── */}
+        {portalParserSent && (
+          <div className="mt-4 px-4 py-3 bg-[#DCFCE7] rounded-[8px] text-[13px] text-[#16A34A] font-medium">
+            ✓ Sugestões enviadas. Nossa equipe irá revisar e atualizar as informações do Brand Hub.
+          </div>
+        )}
+
+        {!portalParserOpen && !portalParserSent ? (
+          <button
+            onClick={() => setPortalParserOpen(true)}
+            className="mt-3 h-8 px-4 rounded-[7px] border border-[#E5E5E2] text-[13px] font-medium text-[#1A1A1A] hover:bg-[#F7F7F6] transition-colors"
+          >
+            ✦ Analisar Brand Book
+          </button>
+        ) : null}
+
+        {portalParserOpen && (
+          <div className="mt-4 bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-[13px] font-semibold text-[#1A1A1A]">Analisar Brand Book</div>
+                <p className="text-[12px] text-[#9B9B95] mt-0.5">
+                  Cole o texto do seu Brand Book. Iremos identificar as informações automaticamente e enviar para revisão da equipe.
+                </p>
+              </div>
+              <button
+                onClick={() => { setPortalParserOpen(false); setPortalParserText(""); setPortalParserResults([]); }}
+                className="text-[12px] text-[#9B9B95] hover:text-[#6B6B65] ml-4 shrink-0"
+              >
+                Fechar
+              </button>
+            </div>
+            <textarea
+              value={portalParserText}
+              onChange={(e) => { setPortalParserText(e.target.value); setPortalParserResults([]); }}
+              placeholder="Cole o texto do Brand Book aqui..."
+              rows={6}
+              className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white resize-y"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={handlePortalParse}
+                disabled={!portalParserText.trim()}
+                className="h-8 px-4 rounded-[7px] bg-[#1A1A1A] hover:bg-[#2A2A2A] disabled:opacity-40 text-white text-[12px] font-medium transition-colors"
+              >
+                Analisar Brand Book
+              </button>
+              <button
+                onClick={() => { setPortalParserOpen(false); setPortalParserText(""); setPortalParserResults([]); }}
+                className="h-8 px-3 rounded-[7px] border border-[#E5E5E2] text-[#9B9B95] hover:text-[#6B6B65] text-[12px] transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+
+            {/* Results */}
+            {portalParserResults.length > 0 && (
+              <div className="border border-[#E5E5E2] rounded-[8px] overflow-hidden">
+                <div className="px-4 py-3 bg-[#F7F7F6] border-b border-[#F0F0ED] flex items-center justify-between">
+                  <span className="text-[12px] font-semibold text-[#1A1A1A]">
+                    {portalParserResults.length} sugestões encontradas
+                  </span>
+                  <button
+                    onClick={handlePortalQueueAll}
+                    className="h-7 px-3 rounded-[6px] bg-[#1A1A1A] hover:bg-[#2A2A2A] text-white text-[11px] font-medium transition-colors"
+                  >
+                    Aplicar ao Brand Hub ({portalParserResults.length})
+                  </button>
+                </div>
+                <div className="divide-y divide-[#F0F0ED] max-h-[260px] overflow-y-auto">
+                  {portalParserResults.map((r) => (
+                    <div key={r.field} className="px-4 py-3">
+                      <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-0.5">
+                        {BRAND_FIELD_LABELS[r.field] ?? r.field}
+                      </div>
+                      <p className="text-[13px] text-[#1A1A1A] leading-relaxed line-clamp-2">{r.value}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {portalParserText.trim() && portalParserResults.length === 0 && (
+              <p className="text-[12px] text-[#9B9B95]">
+                Nenhuma informação identificada. Verifique se o texto contém seções com títulos (ex.: "Cores da Marca:", "Tom de Voz:").
+              </p>
+            )}
           </div>
         )}
       </div>

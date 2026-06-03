@@ -42,7 +42,7 @@ export interface BrandUpdate {
   field: string;          // keyof BrandBrain | "general" | "brand_book"
   suggestedValue: string;
   currentValue?: string;
-  source: "client" | "manual" | "upload";
+  source: "client" | "manual" | "upload" | "parsed";
   status: "pending" | "reviewed" | "applied";
   submittedAt: string;
   note?: string;
@@ -141,11 +141,12 @@ interface AgencyState {
   currentRole: AgencyRole;
   setCurrentRole: (role: AgencyRole) => void;
 
-  // Brand Updates (pending suggestions from client / upload / manual)
+  // Brand Updates (pending suggestions from client / upload / manual / parsed)
   brandUpdates: BrandUpdate[];
   addBrandUpdate: (update: Omit<BrandUpdate, "id" | "submittedAt">) => string;
   reviewBrandUpdate: (id: string) => void;
   applyBrandUpdate: (id: string) => void;
+  applyAllPendingBrandUpdates: (clientId: string) => void;
   dismissBrandUpdate: (id: string) => void;
 
   // System
@@ -212,6 +213,29 @@ export const useAgencyStore = create<AgencyState>()(
         }),
       dismissBrandUpdate: (id) =>
         set((s) => ({ brandUpdates: s.brandUpdates.filter((u) => u.id !== id) })),
+      applyAllPendingBrandUpdates: (clientId) =>
+        set((s) => {
+          const pending = s.brandUpdates.filter(
+            (u) => u.clientId === clientId && u.status === "pending" &&
+            u.source !== "upload" && u.field !== "general" && u.field !== "brand_book"
+          );
+          if (pending.length === 0) return {};
+          let clients = s.clients;
+          for (const update of pending) {
+            clients = clients.map((c) =>
+              c.id !== update.clientId ? c :
+              { ...c, brandBrain: { ...(c.brandBrain ?? {}), [update.field]: update.suggestedValue } as typeof c.brandBrain }
+            );
+          }
+          const appliedIds = new Set(pending.map((u) => u.id));
+          return {
+            clients,
+            brandUpdates: s.brandUpdates.map((u) =>
+              appliedIds.has(u.id) ? { ...u, status: "applied" } :
+              (u.clientId === clientId && u.status === "pending") ? { ...u, status: "applied" } : u
+            ),
+          };
+        }),
 
       // ── Agent handoff ─────────────────────────────────────────────────────
       pendingDesignContract: null,
