@@ -10,7 +10,7 @@ import Button from "@/components/agency/ui/Button";
 import Modal from "@/components/agency/ui/Modal";
 import DeliverableDetailModal from "@/components/agency/deliverables/DeliverableDetailModal";
 import Link from "next/link";
-import { TaskStatus, DeliverableStatus, Priority, ProjectStage, MOCK_AGENTS, ProjectProposal } from "@/lib/agency/mock-data";
+import { TaskStatus, DeliverableStatus, Priority, ProjectStage, MOCK_AGENTS, ProjectProposal, StrategyRoomSpecialist } from "@/lib/agency/mock-data";
 import { getOwner, getVersion, needsRevision, getFeedbackExcerpt } from "@/lib/agency/deliverables";
 
 const STAGES: ProjectStage[] = ["briefing","diagnosis","planning","production","review","delivery","ongoing","completed"];
@@ -25,7 +25,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const { id } = use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { projects, clients, tasks, deliverables, briefings, materialRequests, updateTaskStatus, updateDeliverableStatus, updateProject, updateProposal, sendProposal, moveProjectStage, setPendingAgentInput } = useAgencyStore();
+  const { projects, clients, tasks, deliverables, briefings, materialRequests, strategyRooms, generateStrategyRoom, clearStrategyRoom, updateTaskStatus, updateDeliverableStatus, updateProject, updateProposal, sendProposal, moveProjectStage, setPendingAgentInput } = useAgencyStore();
 
   type TabId = "overview" | "proposal" | "execution" | "pipeline" | "tasks" | "deliverables" | "briefing" | "strategy" | "assets" | "history";
   const VALID_TABS: TabId[] = ["overview", "proposal", "execution", "pipeline", "tasks", "deliverables", "briefing", "strategy", "assets", "history"];
@@ -47,6 +47,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const projectMaterialRequests = materialRequests.filter((r) => r.projectId === id);
   const doneTasks = projectTasks.filter((t) => t.status === "done").length;
   const progress = projectTasks.length > 0 ? Math.round((doneTasks / projectTasks.length) * 100) : 0;
+  const strategyRoom = strategyRooms.find((r) => r.projectId === id) ?? null;
 
   const [editForm, setEditForm] = useState({
     name: project.name, goal: project.goal, type: project.type,
@@ -305,6 +306,14 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                             {item.label}: {item.value}
                           </span>
                         ))}
+                        {strategyRoom && (
+                          <button
+                            onClick={() => setTab("strategy")}
+                            className="h-5 px-2 rounded-full text-[10px] font-semibold bg-[#EEF0FF] text-[#5B5BD6] hover:opacity-80 transition-opacity"
+                          >
+                            Strategy Room completo
+                          </button>
+                        )}
                       </div>
                     )}
                     {nextAction && (
@@ -950,33 +959,196 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         );
       })()}
 
-      {/* Tab: Strategy */}
-      {tab === "strategy" && (
-        <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-6 py-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-          {!briefing ? (
-            <div className="py-10 text-center">
-              <p className="text-[14px] font-medium text-[#1A1A1A]">Nenhum briefing encontrado</p>
-              <p className="text-[13px] text-[#9B9B95] mt-1.5">Envie um briefing pela página de Briefings para popular esta aba.</p>
+      {/* Tab: Strategy Room */}
+      {tab === "strategy" && (() => {
+        const PRIORITY_COLOR: Record<string, string> = {
+          high: "bg-[#FEE2E2] text-[#DC2626]",
+          medium: "bg-[#FEF3C7] text-[#D97706]",
+          low: "bg-[#DCFCE7] text-[#16A34A]",
+        };
+        const PRIORITY_LABEL: Record<string, string> = {
+          high: "Alta", medium: "Média", low: "Baixa",
+        };
+
+        const applyStrategyToProposal = () => {
+          if (!strategyRoom) return;
+          const s = strategyRoom.finalSynthesis;
+          updateProposal(id, {
+            objective: s.recommendedStrategy.slice(0, 300),
+            scope: s.proposalImplications,
+            deliverables: s.recommendedServices,
+            timeline: "3–6 meses (faseado: lançamento → volume)",
+            pricing: "A definir conforme escopo aprovado",
+          });
+          setTab("proposal");
+        };
+
+        if (!strategyRoom) {
+          return (
+            <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-6 py-10 text-center">
+              <div className="w-12 h-12 rounded-full bg-[#EEF0FF] flex items-center justify-center mx-auto mb-4">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5B5BD6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+                </svg>
+              </div>
+              <p className="text-[15px] font-semibold text-[#1A1A1A] mb-1">Strategy Room</p>
+              <p className="text-[13px] text-[#9B9B95] max-w-sm mx-auto mb-5">
+                Seis especialistas de IA analisam o contexto do cliente e do projeto para produzir uma direção estratégica consolidada.
+              </p>
+              <button
+                onClick={() => generateStrategyRoom(id)}
+                className="inline-flex items-center gap-2 h-9 px-5 rounded-[8px] bg-[#5B5BD6] text-white text-[13px] font-medium hover:bg-[#4747c2] transition-colors"
+              >
+                Gerar Strategy Room
+              </button>
             </div>
-          ) : (
-            <div className="space-y-6 max-w-2xl">
-              {[
-                { label: "Objetivo do Negócio", value: briefing.goal },
-                { label: "Público-alvo", value: briefing.audience },
-                { label: "Mensagem-chave", value: briefing.keyMessage },
-                { label: "Entregas Solicitadas", value: briefing.deliverables },
-                { label: "Critérios de Sucesso", value: briefing.successCriteria },
-                ...(briefing.notes ? [{ label: "Observações", value: briefing.notes }] : []),
-              ].map(({ label, value }) => (
-                <div key={label}>
-                  <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">{label}</div>
-                  <p className="text-[13px] text-[#1A1A1A] leading-relaxed">{value}</p>
+          );
+        }
+
+        return (
+          <div className="space-y-5">
+            {/* Header bar */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="text-[13px] font-semibold text-[#1A1A1A]">Strategy Room</span>
+                <span className="h-5 px-2 rounded-full bg-[#DCFCE7] text-[#16A34A] text-[10px] font-semibold">Pronto</span>
+                <span className="text-[11px] text-[#9B9B95]">
+                  Gerado em {new Date(strategyRoom.generatedAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={applyStrategyToProposal}
+                  className="h-8 px-4 rounded-[7px] bg-[#5B5BD6] text-white text-[12px] font-medium hover:bg-[#4747c2] transition-colors"
+                >
+                  Aplicar à Proposta
+                </button>
+                <button
+                  onClick={() => clearStrategyRoom(id)}
+                  className="h-8 px-3 rounded-[7px] border border-[#E5E5E2] text-[#9B9B95] text-[12px] hover:text-[#DC2626] transition-colors"
+                >
+                  Limpar
+                </button>
+              </div>
+            </div>
+
+            {/* Specialist cards */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {strategyRoom.specialists.map((sp: StrategyRoomSpecialist) => (
+                <div key={sp.specialistId} className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <div className="text-[13px] font-semibold text-[#1A1A1A]">{sp.specialistName}</div>
+                      <div className="text-[11px] text-[#9B9B95]">{sp.role}</div>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`h-5 px-2 rounded-full text-[10px] font-semibold ${PRIORITY_COLOR[sp.priority]}`}>
+                        {PRIORITY_LABEL[sp.priority]}
+                      </span>
+                      <span className="h-5 px-2 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-semibold">
+                        {sp.confidence}/10
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mb-2">
+                    <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-0.5">Insight principal</div>
+                    <p className="text-[12px] text-[#1A1A1A] leading-relaxed">{sp.mainInsight}</p>
+                  </div>
+                  <div className="mb-2">
+                    <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-0.5">Direção recomendada</div>
+                    <p className="text-[12px] text-[#6B6B65] leading-relaxed">{sp.recommendedDirection}</p>
+                  </div>
+                  {sp.suggestedDeliverables.length > 0 && (
+                    <div className="mb-2">
+                      <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1">Entregas sugeridas</div>
+                      <div className="flex flex-wrap gap-1">
+                        {sp.suggestedDeliverables.map((d: string) => (
+                          <span key={d} className="h-5 px-2 rounded-full bg-[#F0F0ED] text-[#6B6B65] text-[10px] font-medium">{d}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {sp.risks.length > 0 && (
+                    <div>
+                      <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1">Riscos</div>
+                      <ul className="space-y-0.5">
+                        {sp.risks.map((r: string) => (
+                          <li key={r} className="flex items-start gap-1.5 text-[11px] text-[#9B9B95]">
+                            <span className="mt-[3px] w-1 h-1 rounded-full bg-[#D97706] shrink-0" />
+                            {r}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
-          )}
-        </div>
-      )}
+
+            {/* Final synthesis */}
+            <div className="bg-white rounded-[10px] border border-[#5B5BD6] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-[13px] font-semibold text-[#1A1A1A]">Síntese Estratégica Final</div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] text-[#9B9B95]">Score estratégico</span>
+                  <span className="h-7 w-7 rounded-full bg-[#5B5BD6] text-white text-[12px] font-bold flex items-center justify-center">
+                    {strategyRoom.finalSynthesis.strategicScore}
+                  </span>
+                </div>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-0.5">Estratégia recomendada</div>
+                  <p className="text-[13px] text-[#1A1A1A] leading-relaxed">{strategyRoom.finalSynthesis.recommendedStrategy}</p>
+                </div>
+                <div>
+                  <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1">Serviços recomendados</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {strategyRoom.finalSynthesis.recommendedServices.map((s: string) => (
+                      <span key={s} className="h-5 px-2 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-semibold">{s}</span>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-0.5">Implicações para proposta</div>
+                  <p className="text-[12px] text-[#6B6B65] leading-relaxed">{strategyRoom.finalSynthesis.proposalImplications}</p>
+                </div>
+                {strategyRoom.finalSynthesis.keyRisks.length > 0 && (
+                  <div>
+                    <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1">Riscos principais</div>
+                    <ul className="space-y-1">
+                      {strategyRoom.finalSynthesis.keyRisks.map((r: string) => (
+                        <li key={r} className="flex items-start gap-1.5 text-[12px] text-[#6B6B65]">
+                          <span className="mt-[4px] w-1.5 h-1.5 rounded-full bg-[#D97706] shrink-0" />
+                          {r}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                <div className="pt-2 border-t border-[#F0F0ED]">
+                  <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-0.5">Próxima ação para o PM</div>
+                  <p className="text-[13px] font-medium text-[#1A1A1A]">{strategyRoom.finalSynthesis.nextActionForPM}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Apply CTA */}
+            <div className="flex items-center justify-between bg-[#F7F7F6] rounded-[10px] border border-[#E5E5E2] px-5 py-3">
+              <div>
+                <p className="text-[13px] font-medium text-[#1A1A1A]">Pronto para gerar a proposta?</p>
+                <p className="text-[12px] text-[#9B9B95]">A síntese acima será aplicada automaticamente ao editor de proposta.</p>
+              </div>
+              <button
+                onClick={applyStrategyToProposal}
+                className="h-9 px-5 rounded-[8px] bg-[#5B5BD6] text-white text-[13px] font-medium hover:bg-[#4747c2] transition-colors shrink-0"
+              >
+                Aplicar à Proposta →
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Tab: Proposal */}
       {tab === "proposal" && (
@@ -1008,6 +1180,22 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           {!project.proposal && (
             <div className="px-4 py-3 rounded-[8px] border border-[#FDE68A] bg-[#FFFBEB]">
               <p className="text-[13px] text-[#D97706]">Nenhuma proposta criada ainda. Use o formulário abaixo — ela não será visível para o cliente até você enviá-la.</p>
+            </div>
+          )}
+
+          {/* Strategy Room summary banner */}
+          {strategyRoom && (
+            <div className="flex items-center justify-between px-4 py-3 rounded-[8px] border border-[#C7C7F5] bg-[#EEF0FF]">
+              <div>
+                <p className="text-[13px] font-medium text-[#5B5BD6]">Strategy Room completo · Score {strategyRoom.finalSynthesis.strategicScore}/10</p>
+                <p className="text-[12px] text-[#6B6B65] mt-0.5 truncate max-w-lg">{strategyRoom.finalSynthesis.recommendedStrategy.slice(0, 120)}…</p>
+              </div>
+              <button
+                onClick={() => setTab("strategy")}
+                className="text-[12px] text-[#5B5BD6] hover:underline shrink-0 ml-4"
+              >
+                Ver estratégia →
+              </button>
             </div>
           )}
 

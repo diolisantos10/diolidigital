@@ -182,6 +182,38 @@ export interface Briefing {
   createdAt: string;
 }
 
+// ─── Strategy Room ─────────────────────────────────────────────────────────────
+
+export interface StrategyRoomSpecialist {
+  specialistId: string;
+  specialistName: string;
+  role: string;
+  mainInsight: string;
+  recommendedDirection: string;
+  suggestedDeliverables: string[];
+  risks: string[];
+  priority: "high" | "medium" | "low";
+  confidence: number; // 1–10
+}
+
+export interface StrategyRoomSynthesis {
+  recommendedStrategy: string;
+  recommendedServices: string[];
+  proposalImplications: string;
+  keyRisks: string[];
+  nextActionForPM: string;
+  strategicScore: number; // 1–10
+}
+
+export interface StrategyRoom {
+  projectId: string;
+  clientId: string;
+  generatedAt: string;
+  specialists: StrategyRoomSpecialist[];
+  finalSynthesis: StrategyRoomSynthesis;
+  status: "draft" | "ready";
+}
+
 export interface Agent {
   id: string;
   name: string;

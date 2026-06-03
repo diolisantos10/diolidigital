@@ -17,6 +17,7 @@ import {
   DeliverableStatus,
   ProjectStage,
   Priority,
+  StrategyRoom,
   MOCK_CLIENTS,
   MOCK_PROJECTS,
   MOCK_TASKS,
@@ -27,6 +28,7 @@ import {
 import type { MaterialRequest, MaterialRequestStatus } from "@/lib/agency/workspace";
 import { generateClientRequirements, MOCK_MATERIAL_REQUESTS } from "@/lib/agency/workspace";
 import { inferOwnerAgent } from "@/lib/agency/deliverables";
+import { generateStrategyRoomForProject } from "@/lib/agency/strategy-room";
 
 // ─── QA Test Run ──────────────────────────────────────────────────────────────
 
@@ -110,6 +112,12 @@ interface AgencyState {
   addTestRun: (run: Omit<QATestRun, "id">) => void;
   clearTestHistory: () => void;
 
+  // Strategy Room
+  strategyRooms: StrategyRoom[];
+  generateStrategyRoom: (projectId: string) => void;
+  updateStrategyRoom: (projectId: string, updates: Partial<StrategyRoom>) => void;
+  clearStrategyRoom: (projectId: string) => void;
+
   // System
   addActivity: (event: Omit<ActivityEvent, "id" | "timestamp">) => void;
   resetStore: () => void;
@@ -128,6 +136,7 @@ export const useAgencyStore = create<AgencyState>()(
       activity: MOCK_ACTIVITY,
       materialRequests: MOCK_MATERIAL_REQUESTS,
       testRuns: [],
+      strategyRooms: [],
 
       // ── i18n ─────────────────────────────────────────────────────────────
       locale: "pt-BR" as Locale,
@@ -537,6 +546,43 @@ export const useAgencyStore = create<AgencyState>()(
         set({ testRuns: [] });
       },
 
+      // ── Strategy Room ─────────────────────────────────────────────────────
+      generateStrategyRoom: (projectId) => {
+        const state = get();
+        const project = state.projects.find((p) => p.id === projectId);
+        if (!project) return;
+        const client = state.clients.find((c) => c.id === project.clientId);
+        if (!client) return;
+        const briefing = state.briefings.find((b) => b.projectId === projectId);
+        const materialRequests = state.materialRequests.filter((r) => r.projectId === projectId);
+        const room = generateStrategyRoomForProject(project, client, briefing, materialRequests);
+        set((s) => ({
+          strategyRooms: [
+            ...s.strategyRooms.filter((r) => r.projectId !== projectId),
+            room,
+          ],
+        }));
+        get().addActivity({
+          type: "project_stage_changed",
+          message: `Strategy Room gerado para "${project.name}"`,
+          projectId,
+        });
+      },
+
+      updateStrategyRoom: (projectId, updates) => {
+        set((s) => ({
+          strategyRooms: s.strategyRooms.map((r) =>
+            r.projectId === projectId ? { ...r, ...updates } : r
+          ),
+        }));
+      },
+
+      clearStrategyRoom: (projectId) => {
+        set((s) => ({
+          strategyRooms: s.strategyRooms.filter((r) => r.projectId !== projectId),
+        }));
+      },
+
       // ── Activity ──────────────────────────────────────────────────────────
       addActivity: (event) => {
         const entry: ActivityEvent = {
@@ -557,6 +603,7 @@ export const useAgencyStore = create<AgencyState>()(
           briefings: MOCK_BRIEFINGS,
           activity: MOCK_ACTIVITY,
           materialRequests: MOCK_MATERIAL_REQUESTS,
+          strategyRooms: [],
         });
       },
     }),
@@ -572,6 +619,7 @@ export const useAgencyStore = create<AgencyState>()(
         materialRequests: s.materialRequests,
         locale: s.locale,
         testRuns: s.testRuns,
+        strategyRooms: s.strategyRooms,
       }),
     }
   )
