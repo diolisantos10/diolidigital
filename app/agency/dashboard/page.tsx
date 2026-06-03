@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAgencyStore } from "@/store/agency-store";
 import { useTranslation } from "@/lib/i18n";
@@ -29,6 +29,14 @@ function timeAgo(iso: string, ops: OpsStrings) {
 
 function daysLeft(deadline: string) {
   return Math.ceil((new Date(deadline).getTime() - Date.now()) / 86400000);
+}
+
+// Deterministic, timezone-independent short date (DD/MM) parsed directly from the
+// ISO string. Used as the SSR-stable fallback for relative timestamps until the
+// client has mounted — server and client render identical text, so no mismatch.
+function isoShortDate(iso: string) {
+  const parts = iso.slice(0, 10).split("-");
+  return parts.length === 3 ? `${parts[2]}/${parts[1]}` : iso;
 }
 
 const AGENT_SHORT: Record<string, string> = {
@@ -99,6 +107,11 @@ export default function DashboardPage() {
   const { projects, tasks, deliverables, activity, clients, materialRequests, strategyRooms, setPendingAgentInput } = useAgencyStore();
   const { t } = useTranslation();
   const [confirmMsg, setConfirmMsg] = useState<string | null>(null);
+  // Relative/current-time labels depend on the wall clock, which differs slightly
+  // between SSR and client hydration. Gate them so the first client render matches
+  // the server, then swap to live values after mount.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   const ops = t.dashboard.ops;
   const TYPE_LABELS: Record<ActionType, string> = {
@@ -352,8 +365,8 @@ export default function DashboardPage() {
     <div>
       {/* Header */}
       <div className="mb-7">
-        <p suppressHydrationWarning className="text-[12px] font-medium text-[#9B9B95] uppercase tracking-[0.06em] mb-1">
-          {new Date().toLocaleDateString("pt-BR", { weekday: "long", month: "long", day: "numeric" })}
+        <p className="text-[12px] font-medium text-[#9B9B95] uppercase tracking-[0.06em] mb-1">
+          {mounted ? new Date().toLocaleDateString("pt-BR", { weekday: "long", month: "long", day: "numeric" }) : " "}
         </p>
         <h1 className="text-[24px] font-semibold tracking-[-0.02em] text-[#1A1A1A]">{t.dashboard.title}</h1>
       </div>
@@ -446,8 +459,8 @@ export default function DashboardPage() {
                         <div className="flex items-center gap-2 text-[11px] text-[#9B9B95]">
                           <span>{client?.name ?? "—"}</span>
                           <span>·</span>
-                          <span suppressHydrationWarning className={dl < 0 ? "text-[#DC2626]" : dl <= 3 ? "text-[#D97706]" : ""}>
-                            {dl < 0 ? t.project.labels.daysOverdue(dl) : t.project.labels.daysLeft(dl)}
+                          <span className={mounted && dl < 0 ? "text-[#DC2626]" : mounted && dl <= 3 ? "text-[#D97706]" : ""}>
+                            {mounted ? (dl < 0 ? t.project.labels.daysOverdue(dl) : t.project.labels.daysLeft(dl)) : "—"}
                           </span>
                         </div>
                       </div>
@@ -600,7 +613,7 @@ export default function DashboardPage() {
                     <p className="text-[11px] text-[#6B6B65] font-medium">{EVENT_LABELS[event.type] ?? event.type}</p>
                     <p className="text-[11px] text-[#9B9B95] truncate">{event.message}</p>
                   </div>
-                  <span suppressHydrationWarning className="text-[10px] text-[#C0C0BC] shrink-0">{timeAgo(event.timestamp, ops)}</span>
+                  <span className="text-[10px] text-[#C0C0BC] shrink-0">{mounted ? timeAgo(event.timestamp, ops) : isoShortDate(event.timestamp)}</span>
                 </div>
               ))}
               {activity.length === 0 && (
