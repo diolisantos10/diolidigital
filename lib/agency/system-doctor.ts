@@ -129,14 +129,14 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
       proposalStatus === "approved"
         ? "Proposta aprovada — execução desbloqueada."
         : proposalStatus === "sent"
-        ? "Proposta enviada, aguardando aprovação do cliente."
-        : "Proposta em rascunho — ainda não enviada ao cliente.",
+        ? "Proposta enviada ao cliente, aguardando aprovação. Sem ação pendente do time."
+        : "Proposta em rascunho — ainda não enviada ao cliente Dioli Digital.",
     action:
       proposalStatus === "approved"
         ? "Nenhuma ação necessária."
         : proposalStatus === "sent"
-        ? "Aguardar aprovação ou acompanhar pelo portal do cliente."
-        : "Complete os campos da proposta e clique em Enviar ao Cliente.",
+        ? "Acompanhe a aprovação pelo portal ou entre em contato com Dioli Digital diretamente."
+        : "Abrir Projeto 'Lançamento Dioli Agência' → aba Proposta → preencher escopo e clicar em 'Enviar ao Cliente'.",
     route: `/agency/projects/${PILOT_PROJECT_ID}?tab=proposal`,
   });
 
@@ -149,11 +149,11 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
     explanation: !pilotProject
       ? "Projeto piloto ausente — precificação não verificável."
       : pricingValid
-      ? `Valor definido: ${proposalPricing}`
-      : `Precificação inválida ou em placeholder: "${proposalPricing ?? "(vazio)"}". Bloqueará o envio da proposta.`,
+      ? `Valor definido: ${proposalPricing}. Proposta desbloqueada para envio.`
+      : `Precificação em placeholder ou vazia: "${proposalPricing ?? "(vazio)"}". Impede o envio da proposta ao cliente.`,
     action: pricingValid
       ? "Nenhuma ação necessária."
-      : 'Defina um valor real no campo Investimento da proposta (ex.: "R$ 4.500 / mês").',
+      : "Abrir Projeto 'Lançamento Dioli Agência' → aba Proposta → campo Investimento → substituir placeholder por valor real (ex.: \"R$ 4.500 / mês\").",
     route: `/agency/projects/${PILOT_PROJECT_ID}?tab=proposal`,
   });
 
@@ -188,11 +188,11 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
     status: strategyRoom ? "pass" : "warning",
     severity: "medium",
     explanation: strategyRoom
-      ? "Strategy Room disponível com análise especializada do projeto."
-      : "Strategy Room ainda não gerado para o projeto piloto.",
+      ? `Strategy Room disponível com análise especializada (status: ${strategyRoom.status}).`
+      : "Strategy Room ainda não gerado para 'Lançamento Dioli Agência'. Agentes sem briefing estratégico.",
     action: strategyRoom
       ? "Nenhuma ação necessária."
-      : "Abra o projeto p7 → Centro de Comando → gerar Strategy Room.",
+      : "Abrir Projeto 'Lançamento Dioli Agência' → aba Centro de Comando → clicar em 'Gerar Strategy Room'.",
     route: `/agency/projects/${PILOT_PROJECT_ID}`,
   });
 
@@ -207,12 +207,12 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
     severity: "medium",
     explanation:
       pendingMaterials === 0
-        ? "Nenhuma requisição de material pendente."
-        : `${pendingMaterials} requisição(ões) de material aguardando o cliente.`,
+        ? "Nenhuma requisição de material pendente para 'Lançamento Dioli Agência'."
+        : `${pendingMaterials} requisição(ões) de material aguardando resposta da Dioli Digital. Pode bloquear entregas.`,
     action:
       pendingMaterials === 0
         ? "Nenhuma ação necessária."
-        : "Acompanhe pelo Centro de Comando do projeto ou pelo portal do cliente.",
+        : "Abrir Projeto 'Lançamento Dioli Agência' → aba Materiais → identificar quais itens estão pendentes e acompanhar junto ao cliente.",
     route: `/agency/projects/${PILOT_PROJECT_ID}`,
   });
 
@@ -225,12 +225,12 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
     severity: "high",
     explanation:
       openRevisions === 0
-        ? "Nenhuma entrega requer revisão no momento."
-        : `${openRevisions} entrega(s) com revisão pendente.`,
+        ? "Nenhuma entrega de 'Lançamento Dioli Agência' requer revisão no momento."
+        : `${openRevisions} entrega(s) com revisão solicitada pelo cliente ainda não resolvida.`,
     action:
       openRevisions === 0
         ? "Nenhuma ação necessária."
-        : "Abra as entregas com revisão aberta e resolva o feedback do cliente.",
+        : "Abrir Projeto 'Lançamento Dioli Agência' → aba Entregas → filtrar por 'Com Revisão' → abrir cada entrega e resolver o feedback.",
     route: `/agency/projects/${PILOT_PROJECT_ID}?tab=deliverables`,
   });
 
@@ -289,7 +289,7 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
     action:
       projectHealthStatus === "pass"
         ? "Nenhuma ação necessária."
-        : "Revise o Centro de Comando para identificar e resolver bloqueios.",
+        : "Abrir Projeto 'Lançamento Dioli Agência' → Centro de Comando → revisar alertas ativos e resolver bloqueios antes de continuar a execução.",
     route: `/agency/projects/${PILOT_PROJECT_ID}`,
   });
 
@@ -361,8 +361,8 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
         agentStatus === "pass"
           ? "Nenhuma ação necessária."
           : agentStatus === "warning"
-          ? `Acesse o agente ${agent.label} e produza as primeiras entregas para o projeto.`
-          : `Adicione o Agente ${agent.label} ao projeto piloto em Configurações do Projeto.`,
+          ? `Abrir Agente ${agent.label} → verificar se há tarefas pendentes para 'Lançamento Dioli Agência' → produzir primeiras entregas.`
+          : `Abrir Projeto 'Lançamento Dioli Agência' → aba Configurações → campo Agentes → adicionar Agente ${agent.label}.`,
       route:
         agent.id === "a3"
           ? "/agency/social-media-agent"

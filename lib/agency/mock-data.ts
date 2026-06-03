@@ -153,6 +153,84 @@ export interface RevisionEntry {
   note: string;
 }
 
+// ─── Deliverable Preview Content ──────────────────────────────────────────────
+// Structured content stored per deliverable type.
+// Rendered in the internal detail modal AND in the client portal.
+// "notes" fields are internal-only and must never render in the portal.
+
+export interface PreviewSection {
+  title: string;
+  body: string;
+  items?: string[];
+  notes?: string;
+}
+
+export interface PreviewPost {
+  order: number;
+  format: string;         // "Carrossel", "Reels", "Imagem única", etc.
+  caption: string;
+  hashtags: string;
+  notes?: string;         // internal only
+}
+
+export interface PreviewFrame {
+  order: number;
+  description: string;    // visual composition description
+  copy?: string;          // on-screen text / headline
+  cta?: string;           // call to action text
+}
+
+export interface PreviewCalendarEntry {
+  week: string;
+  day?: string;
+  format: string;
+  title: string;
+  caption: string;
+  notes?: string;         // internal only
+}
+
+export interface PreviewAdCopy {
+  label: string;          // "Variação A", "Variação B", etc.
+  headline: string;
+  body: string;
+  cta: string;
+  format?: string;
+}
+
+export interface PreviewAudience {
+  name: string;
+  description: string;
+  size: string;
+  interests: string;
+  behaviors?: string;
+}
+
+export interface PreviewCampaign {
+  name: string;
+  objective: string;
+  budget: string;
+  adsets: Array<{ name: string; audience: string; placements: string }>;
+}
+
+export interface PreviewDesignSpec {
+  name: string;
+  format: string;
+  description: string;
+  notes?: string;         // internal only
+}
+
+export interface DeliverablePreviewContent {
+  summary?: string;                     // one-line brief shown at the top
+  sections?: PreviewSection[];          // strategy / brief / report / identity docs
+  posts?: PreviewPost[];                // post batches
+  frames?: PreviewFrame[];              // story packages
+  entries?: PreviewCalendarEntry[];     // editorial calendars
+  adCopies?: PreviewAdCopy[];           // ad copy variations
+  audiences?: PreviewAudience[];        // audience plans
+  campaigns?: PreviewCampaign[];        // campaign structures
+  designSpecs?: PreviewDesignSpec[];    // design specs and templates
+}
+
 export interface Deliverable {
   id: string;
   projectId: string;
@@ -169,6 +247,8 @@ export interface Deliverable {
   lastFeedback?: string;          // most recent feedback captured (client or internal)
   updatedAt?: string;             // ISO timestamp of last lifecycle change
   revisionHistory?: RevisionEntry[];
+  // ── Preview Content V1 ────────────────────────────────────────────────────
+  previewContent?: DeliverablePreviewContent;
 }
 
 export interface Briefing {
@@ -534,6 +614,49 @@ export const MOCK_DELIVERABLES: Deliverable[] = [
       { version: 2, status: "in_review", author: "internal", timestamp: "2026-06-02T16:00:00.000Z", note: "Nova versão enviada para revisão do cliente" },
       { version: 2, status: "approved",  author: "internal", timestamp: "2026-06-03T08:00:00.000Z", note: "Aprovada pelo cliente" },
     ],
+    previewContent: {
+      summary: "Estratégia completa de redes sociais para os primeiros 60 dias da Dioli Agência. 5 pilares, mix de formatos, CTAs e diretrizes de tom.",
+      sections: [
+        {
+          title: "Objetivo da Estratégia",
+          body: "Posicionar a Dioli Agência como referência em marketing digital com IA para PMEs brasileiras, gerando autoridade, confiança e leads qualificados nos primeiros 60 dias de operação.",
+        },
+        {
+          title: "Pilares de Conteúdo",
+          body: "5 pilares estruturam toda a produção de conteúdo:",
+          items: [
+            "1. Autoridade com IA — Como a IA transforma resultados reais de clientes",
+            "2. Bastidores da Agência — O processo, a equipe, os bastidores do trabalho",
+            "3. Resultados de Clientes — Cases, métricas, antes e depois",
+            "4. Educação de Mercado — Dicas práticas e posicionamento como especialista",
+            "5. Humanização — A história da fundação, os valores, o propósito",
+          ],
+        },
+        {
+          title: "Tom de Voz",
+          body: "Direto e confiante, sem ser arrogante. Técnico mas acessível — complexidade explicada de forma simples. Inspirador e honesto — sem hype, sem promessas vazias. Leve e próximo, sem perder o profissionalismo.",
+        },
+        {
+          title: "Formatos e Frequência",
+          body: "Mix semanal recomendado:",
+          items: [
+            "Instagram Feed: 3×/semana — Carrosséis (educação), Posts únicos (resultados), Reels (bastidores)",
+            "Instagram Stories: Diariamente — Enquetes, bastidores, CTA para portfólio",
+            "LinkedIn: 2×/semana — Artigos de autoridade, cases expandidos",
+          ],
+        },
+        {
+          title: "CTAs Prioritários",
+          body: "Hierarquia de chamadas para ação por objetivo:",
+          items: [
+            "Geração de leads: 'Fale com a Dioli sobre o seu projeto →'",
+            "Autoridade: 'Veja como entregamos isso em 7 dias'",
+            "Engajamento: 'Qual desses problemas você já enfrentou?'",
+            "Salvamento: 'Salva esse post — você vai precisar'",
+          ],
+        },
+      ],
+    },
   },
   {
     id: "d9",
@@ -550,6 +673,23 @@ export const MOCK_DELIVERABLES: Deliverable[] = [
       { version: 1, status: "draft",     author: "agent",    timestamp: "2026-06-02T13:00:00.000Z", note: "Entrega criada" },
       { version: 1, status: "in_review", author: "internal", timestamp: "2026-06-02T15:00:00.000Z", note: "Status alterado para in_review" },
     ],
+    previewContent: {
+      summary: "Calendário editorial de 8 semanas (Junho–Julho 2026) para o lançamento da Dioli Agência. 3 publicações semanais no Instagram, alternando entre conteúdo educativo, case/prova social e posicionamento de marca.",
+      entries: [
+        { week: "Semana 1 (02–08 Jun)", day: "Terça", format: "Carrossel", title: "O que é uma agência com IA?", caption: "A Dioli não trabalha com tentativa e erro. Cada campanha começa com estratégia, dados e automação inteligente. Conheça a diferença." },
+        { week: "Semana 1 (02–08 Jun)", day: "Quinta", format: "Reels", title: "Bastidores do lançamento", caption: "Meses de planejamento, tecnologia de ponta e uma equipe movida por resultado. Bem-vindo à Dioli Agência. 🧡", notes: "Usar B-roll do workspace + narração curta" },
+        { week: "Semana 1 (02–08 Jun)", day: "Sábado", format: "Single", title: "Frase de posicionamento", caption: "\"Não vendemos seguidores. Vendemos crescimento.\" — Dioli Agência" },
+        { week: "Semana 2 (09–15 Jun)", day: "Terça", format: "Carrossel", title: "3 erros que destroem campanhas de tráfego pago", caption: "Você investe em anúncios mas não vê resultado? O problema quase nunca está no criativo. Está na estratégia. Aqui estão os 3 erros mais comuns." },
+        { week: "Semana 2 (09–15 Jun)", day: "Quinta", format: "Reels", title: "Case: restaurante 0 → 40k seguidores", caption: "Em 90 dias, um restaurante saiu do zero para 40 mil seguidores orgânicos. Estratégia + consistência + IA.", notes: "Usar gráficos animados + depoimento do cliente" },
+        { week: "Semana 2 (09–15 Jun)", day: "Sábado", format: "Single", title: "Dado impactante sobre presença digital", caption: "87% dos consumidores pesquisam no Instagram antes de comprar. Sua marca está sendo encontrada?" },
+        { week: "Semana 3 (16–22 Jun)", day: "Terça", format: "Carrossel", title: "Como funciona nosso processo de onboarding", caption: "Do briefing à primeira publicação em 7 dias. Veja como a Dioli estrutura o início de cada parceria." },
+        { week: "Semana 3 (16–22 Jun)", day: "Quinta", format: "Reels", title: "Antes e depois: identidade visual", caption: "Uma identidade visual forte não é estética. É estratégia de marca. Veja a transformação." },
+        { week: "Semana 3 (16–22 Jun)", day: "Sábado", format: "Single", title: "CTA de consulta gratuita", caption: "Quer saber o que está impedindo sua marca de crescer? Chama no direct. Consulta gratuita por tempo limitado." },
+        { week: "Semana 4 (23–29 Jun)", day: "Terça", format: "Carrossel", title: "O que fazemos (e o que não fazemos)", caption: "Transparência é parte da nossa estratégia. Saiba exatamente o que você contrata quando escolhe a Dioli." },
+        { week: "Semana 4 (23–29 Jun)", day: "Quinta", format: "Reels", title: "IA na prática: como usamos na sua campanha", caption: "Não é ficção científica. É análise de dados em tempo real, otimização automática e criação assistida. Assim funciona a Dioli." },
+        { week: "Julho (abertura)", day: "Terça", format: "Carrossel", title: "Resultados de Junho — Transparência total", caption: "Fechamos Junho com X posts, Y alcance orgânico e Z novos leads. Aqui está o relatório completo.", notes: "Preencher métricas reais em 30/Jun" },
+      ],
+    },
   },
   {
     id: "d10",
@@ -566,6 +706,19 @@ export const MOCK_DELIVERABLES: Deliverable[] = [
       { version: 1, status: "draft",     author: "agent",    timestamp: "2026-06-02T14:00:00.000Z", note: "Entrega criada" },
       { version: 1, status: "in_review", author: "internal", timestamp: "2026-06-02T16:00:00.000Z", note: "Status alterado para in_review" },
     ],
+    previewContent: {
+      summary: "8 posts prontos para Semana 1 do lançamento. Mix de carrosséis educativos, reels de bastidores e singles de posicionamento. Tom direto, premium e orientado a resultado.",
+      posts: [
+        { order: 1, format: "Carrossel (6 slides)", caption: "A Dioli Agência não nasceu para ser mais uma. Nasceu para ser a diferença entre uma marca invisível e uma marca que vende.\n\n→ Estratégia orientada por dados\n→ IA integrada em cada etapa\n→ Resultados mensuráveis desde a semana 1\n\nBem-vindo ao novo padrão de marketing digital.", hashtags: "#DiolicAgência #MarketingDigital #IAnoMarketing #AgênciaDigital #EstraégiaDeConteúdo" },
+        { order: 2, format: "Reels (0:45)", caption: "Bastidores de como construímos uma estratégia do zero. Sem achismo. Sem sorte. Só processo.\n\n🎯 Briefing aprofundado\n📊 Análise de concorrência\n🤖 IA para identificar oportunidades\n✍️ Conteúdo estratégico\n📈 Métricas que importam\n\nAssim nasce uma campanha Dioli.", hashtags: "#BastidoresDioli #ProcessoCriativo #MarketingComIA" },
+        { order: 3, format: "Single (quote)", caption: "\"A maioria das marcas posta. Poucas se comunicam. Ainda menos convertem.\"\n\nA diferença está na estratégia — não na frequência.\n\n— Dioli Agência", hashtags: "#EstraégiaDeMarca #MarketingDigital #Conteúdo" },
+        { order: 4, format: "Carrossel (5 slides)", caption: "5 perguntas para saber se você precisa de uma agência agora:\n\n1. Você posta, mas ninguém engaja?\n2. Você investe em anúncios sem retorno claro?\n3. Sua identidade visual não reflete quem você é?\n4. Você não tem tempo para criar conteúdo consistente?\n5. Você quer crescer, mas não sabe por onde começar?\n\nSe respondeu sim para 2 ou mais — vamos conversar.", hashtags: "#AgênciaDigital #GestãoDeMarca #MarketingParaPME" },
+        { order: 5, format: "Single (dado)", caption: "Marcas que publicam com consistência e estratégia crescem 3x mais rápido do que as que publicam por impulso.\n\nConsistência + Estratégia = Crescimento.\n\nSimples assim.", hashtags: "#DadosDeMarketing #ConsistênciaDigital #CrescimentoDigital" },
+        { order: 6, format: "Reels (1:00)", caption: "O que acontece quando uma PME decide levar o digital a sério?\n\n📍 Caso real. 60 dias. Resultado real.\n\nDesliza para ver os números 👉", hashtags: "#CaseDeMarketing #DiolicAgência #ResultadosReais", notes: "Animar gráfico de crescimento no final" },
+        { order: 7, format: "Carrossel (4 slides)", caption: "Por que tráfego pago sozinho não basta:\n\nSlide 1: Anúncio atrai. Perfil converte — ou repele.\nSlide 2: Sem conteúdo orgânico forte, o custo por lead sobe.\nSlide 3: Marca fraca = público que clica, mas não compra.\nSlide 4: A solução é o ecossistema completo. Tráfego + Conteúdo + Marca.\n\nA Dioli integra os três.", hashtags: "#TráfegoPago #MetaAds #EcossistemaDigital" },
+        { order: 8, format: "Single (CTA)", caption: "Primeira consulta gratuita.\n\nSem compromisso. Sem papo de vendedor.\n\nSó estratégia real para o seu negócio.\n\n👇 Link na bio ou chama no direct.", hashtags: "#ConsultaGratuita #MarketingDigital #DiolicAgência" },
+      ],
+    },
   },
   {
     id: "d11",
@@ -581,6 +734,19 @@ export const MOCK_DELIVERABLES: Deliverable[] = [
     revisionHistory: [
       { version: 1, status: "draft", author: "agent", timestamp: "2026-06-03T09:00:00.000Z", note: "Entrega criada" },
     ],
+    previewContent: {
+      summary: "Semana 2 aprofunda autoridade: erros comuns em tráfego pago, processo de onboarding, case de antes/depois e convite à consulta. Rascunho — aguarda revisão interna antes de enviar ao cliente.",
+      posts: [
+        { order: 1, format: "Carrossel (6 slides)", caption: "3 erros que destroem campanhas de tráfego pago (e como evitar cada um):\n\nErro 1: Público muito amplo → segmentação imprecisa = CPL alto\nErro 2: Criativo sem oferta clara → clique sem conversão\nErro 3: Ausência de pixel configurado → sem dados, sem otimização\n\nCorreções práticas em cada slide. Salva esse.", hashtags: "#MetaAds #TráfegoPago #GoogleAds #ErrosDeMarketing", notes: "Rascunho — revisar exemplos antes de aprovar" },
+        { order: 2, format: "Reels (0:30)", caption: "Em 30 segundos: o que acontece depois que você nos contrata.\n\n📋 Briefing → 🔍 Diagnóstico → 🎯 Estratégia → ✍️ Conteúdo → 🚀 Publicação → 📊 Relatório\n\nTudo isso em 7 dias.", hashtags: "#OnboardingDioli #ProcessoÁgil #AgênciaDigital" },
+        { order: 3, format: "Single (antes/depois)", caption: "Antes da Dioli: feed sem padrão, sem identidade, sem estratégia.\nDepois da Dioli: presença consistente, crescimento orgânico, conversão real.\n\nQual dos dois você quer ser?", hashtags: "#TransformaçãoDigital #AnteseDepois #IdentidadeVisual" },
+        { order: 4, format: "Carrossel (5 slides)", caption: "O que a IA faz na sua campanha:\n\n1. Analisa padrões de engajamento do seu setor\n2. Identifica os melhores horários para publicar\n3. Sugere temas com maior potencial de alcance\n4. Otimiza copy com base em dados de conversão\n5. Gera relatórios automáticos com insights reais\n\nSem achismo. Com inteligência.", hashtags: "#IAnoMarketing #MarketingInteligente #AutomaçãoDeMarketing" },
+        { order: 5, format: "Single (frase)", caption: "\"Não existe fórmula mágica. Existe processo. Existe dado. Existe consistência.\"\n\nE existe quem saiba usar os três.", hashtags: "#MarketingDigital #EstraégiaDeConteúdo #Resultado" },
+        { order: 6, format: "Carrossel (4 slides)", caption: "Como avaliamos se sua marca está pronta para crescer:\n\n→ Identidade visual coerente?\n→ Posicionamento definido?\n→ Audiência mapeada?\n→ Objetivos mensuráveis?\n\nNosso diagnóstico gratuito responde essas perguntas em 24h.", hashtags: "#DiagnósticoDigital #ConsultaGratuita #Diolic" },
+        { order: 7, format: "Reels (0:45)", caption: "Quanto custa não ter estratégia?\n\n→ Campanhas sem ROI\n→ Tempo desperdiçado em conteúdo que não converte\n→ Marca que cresce devagar (ou não cresce)\n\nO custo da inação é maior do que você imagina.", hashtags: "#ROI #EstraégiaDigital #MarketingComResultado" },
+        { order: 8, format: "Single (CTA final semana)", caption: "Você chegou até aqui. Isso já diz muito sobre você.\n\nEmpresários que chegam até aqui são os que realmente querem crescer.\n\nVamos conversar? 👇 Link na bio.", hashtags: "#CTADioli #ConsultaEstraégica #VamosConversar" },
+      ],
+    },
   },
   {
     id: "d12",
@@ -597,6 +763,16 @@ export const MOCK_DELIVERABLES: Deliverable[] = [
       { version: 1, status: "draft",     author: "agent",    timestamp: "2026-06-02T15:00:00.000Z", note: "Entrega criada" },
       { version: 1, status: "in_review", author: "internal", timestamp: "2026-06-02T17:00:00.000Z", note: "Status alterado para in_review" },
     ],
+    previewContent: {
+      summary: "Sequência de 5 stories para o dia de lançamento. Narrativa em arco: teaser → apresentação → proposta de valor → prova social → CTA. Fundo escuro com acento laranja, tipografia bold.",
+      frames: [
+        { order: 1, description: "Tela de abertura — teaser", copy: "Algo está prestes a mudar.", cta: "Arrasta para ver 👉" },
+        { order: 2, description: "Apresentação da agência", copy: "A Dioli Agência chegou.\n\nEstraégia. IA. Resultado.", cta: "Continua 👉" },
+        { order: 3, description: "Proposta de valor em 3 pontos", copy: "✦ Marketing orientado por dados\n✦ IA integrada em cada entrega\n✦ Time dedicado ao seu crescimento", cta: "E tem mais 👉" },
+        { order: 4, description: "Prova social / validação", copy: "Já ajudamos marcas a crescerem 3x em 90 dias.\n\nAgora é a sua vez.", cta: "Veja o que preparamos 👉" },
+        { order: 5, description: "CTA final com link", copy: "Primeira consulta gratuita.\n\nPor tempo limitado.", cta: "Link na bio ou clica aqui ☝️" },
+      ],
+    },
   },
   {
     id: "d13",
@@ -613,6 +789,20 @@ export const MOCK_DELIVERABLES: Deliverable[] = [
       { version: 1, status: "draft",     author: "agent",    timestamp: "2026-06-01T15:00:00.000Z", note: "Entrega criada" },
       { version: 1, status: "delivered", author: "internal", timestamp: "2026-06-01T16:00:00.000Z", note: "Entregue ao agente de Design" },
     ],
+    previewContent: {
+      summary: "Briefing completo para o time de design criar todos os templates e criativos do lançamento. Inclui paleta, tipografia, tom visual, formatos requeridos e especificações por tipo de peça.",
+      sections: [
+        { title: "Identidade Visual", body: "A Dioli opera em dois modos visuais: dark mode (fundo #0A0A0A, acentos laranja #FF6B2C) e light mode (fundo #FFFFFF, acentos laranja). O laranja é sempre o elemento de destaque — nunca decorativo. Tipografia principal: Inter Bold para headlines, Inter Regular para corpo. Sem serifadas." },
+        { title: "Tom Visual", body: "Premium, moderno, direto. Sem ilustrações infantis ou clipart. Fotografias de alta qualidade ou ausência delas. Gráficos e ícones minimalistas. Espaço negativo generoso. Nunca poluído." },
+        { title: "Formatos Requeridos", body: "Feed Instagram: 1080×1080px (single) e 1080×1350px (retrato). Stories: 1080×1920px. Reels (thumb): 1080×1080px. LinkedIn: 1200×628px. Todos os templates devem ter versão dark e light.", items: ["Feed quadrado: 1080×1080px", "Feed retrato: 1080×1350px", "Stories: 1080×1920px", "Thumb reels: 1080×1080px", "LinkedIn: 1200×628px"] },
+        { title: "Especificações por Peça", body: "Carrosséis: primeiro slide com headline impactante (max 8 palavras), slides intermediários com bullet points ou dados, último slide sempre com CTA + logo. Singles: uma mensagem, máximo 12 palavras, logo sutil no rodapé." },
+      ],
+      designSpecs: [
+        { name: "Template Carrossel Educativo", format: "1080×1350px × 6 slides", description: "Capa bold com título, slides 2–5 com conteúdo numerado, slide final com CTA e logo. Fundo escuro com texto branco e destaque laranja nos números." },
+        { name: "Template Single Quote", format: "1080×1080px", description: "Texto centralizado em Inter Bold, máx. 15 palavras, linha decorativa laranja abaixo da assinatura. Fundo escuro." },
+        { name: "Template Stories Sequencial", format: "1080×1920px × 5 telas", description: "Numeração discreta no canto superior, área de texto centralizada no terço inferior, CTA na última tela com botão laranja." },
+      ],
+    },
   },
   // Design Agent (a2) — Design
   {
@@ -634,6 +824,23 @@ export const MOCK_DELIVERABLES: Deliverable[] = [
       { version: 2, status: "in_review", author: "internal", timestamp: "2026-06-02T18:00:00.000Z", note: "Nova versão enviada para revisão do cliente" },
       { version: 2, status: "approved",  author: "internal", timestamp: "2026-06-03T09:00:00.000Z", note: "Aprovada pelo cliente" },
     ],
+    previewContent: {
+      summary: "12 layouts de templates para o feed do Instagram. Sistema visual coeso com dark mode como padrão, acento laranja, tipografia Inter. Versão 2 incorpora feedback do cliente: mais fundos escuros, laranja mais presente.",
+      designSpecs: [
+        { name: "Template A — Carrossel Educativo (dark)", format: "1080×1350px × 6 slides", description: "Capa: título bold, fundo #0A0A0A, destaque laranja. Slides 2–5: numeração laranja, texto branco. Slide 6: CTA + logo Dioli." },
+        { name: "Template B — Carrossel Educativo (light)", format: "1080×1350px × 6 slides", description: "Variante clara do Template A. Fundo #F5F5F5, texto #0A0A0A, acentos laranja mantidos. Uso em publicações de tom mais acessível." },
+        { name: "Template C — Single Quote (dark)", format: "1080×1080px", description: "Texto centralizado, Inter Bold, fundo escuro. Linha laranja acima da assinatura. Logo rodapé esquerdo." },
+        { name: "Template D — Single Quote (light)", format: "1080×1080px", description: "Variante clara. Fundo branco, texto escuro, acento laranja na linha decorativa." },
+        { name: "Template E — Single Dado/Estatística", format: "1080×1080px", description: "Número grande em laranja bold (ex: 87%), subtítulo em branco, contexto em cinza. Alto impacto visual." },
+        { name: "Template F — CTA com Botão", format: "1080×1080px", description: "Chamada para ação com pseudo-botão laranja. Texto: convite à ação. Rodapé: @dioliconsulting." },
+        { name: "Template G — Antes/Depois (split)", format: "1080×1080px", description: "Divisão vertical 50/50. Lado esquerdo cinza/neutro ('Antes'), direito laranja/vibrante ('Depois'). Label nos lados." },
+        { name: "Template H — Reels Thumbnail", format: "1080×1080px", description: "Ícone de play sutil no canto inferior direito. Headline bold. Fundo escuro. Bordas com gradiente laranja sutil." },
+        { name: "Template I — Conquista/Resultado", format: "1080×1350px", description: "Métrica principal em destaque máximo (tamanho 80pt laranja). Contexto abaixo em menor hierarquia." },
+        { name: "Template J — Processo em Steps", format: "1080×1350px × 4 slides", description: "Linha do tempo vertical com pontos numerados em laranja. Fundo escuro. Progressão clara de step 1 a 4." },
+        { name: "Template K — Pergunta/Resposta", format: "1080×1080px", description: "Pergunta em italic branco, resposta bold laranja. Formato de diálogo visual. Gera engajamento por reconhecimento." },
+        { name: "Template L — Fechamento/Assinatura", format: "1080×1080px", description: "Template de encerramento de série. Logotipo centralizado grande. URL da agência. Fundo totalmente escuro." },
+      ],
+    },
   },
   {
     id: "d15",
@@ -650,6 +857,17 @@ export const MOCK_DELIVERABLES: Deliverable[] = [
       { version: 1, status: "draft",     author: "agent",    timestamp: "2026-06-02T17:00:00.000Z", note: "Entrega criada" },
       { version: 1, status: "in_review", author: "internal", timestamp: "2026-06-02T18:30:00.000Z", note: "Status alterado para in_review" },
     ],
+    previewContent: {
+      summary: "6 templates para Stories em 1080×1920px. Cobertura de todos os tipos de publicação em Stories: conteúdo narrativo, pergunta/enquete, bastidores, CTA direto, sequência de lançamento e anúncio de novidade.",
+      designSpecs: [
+        { name: "Stories A — Narrativa Sequencial", format: "1080×1920px", description: "Zona de segurança no terço central. Numeração (1/5) no canto superior direito. Headline bold no terço superior, corpo no meio, CTA no inferior." },
+        { name: "Stories B — Enquete / Pergunta", format: "1080×1920px", description: "Texto da pergunta em bold centralizado. Área reservada abaixo para sticker de enquete do Instagram. Fundo degradê escuro→laranja sutil." },
+        { name: "Stories C — Bastidores (vertical)", format: "1080×1920px", description: "Área superior para foto/vídeo (70% da tela). Barra inferior escura com texto de contexto e tag @dioliconsulting." },
+        { name: "Stories D — CTA Direto", format: "1080×1920px", description: "Headline de 1 linha em 80pt bold. Sub em 28pt. Botão laranja arredondado no terço inferior. Seta de swipe up sutil abaixo." },
+        { name: "Stories E — Anúncio de Novidade", format: "1080×1920px", description: "Selo 'NOVO' em laranja no canto superior esquerdo. Ícone de produto/serviço centralizado. Nome da oferta em destaque." },
+        { name: "Stories F — Depoimento / Prova Social", format: "1080×1920px", description: "Aspas grandes em laranja no canto superior. Texto do depoimento em itálico branco centralizado. Nome/cargo da fonte no rodapé." },
+      ],
+    },
   },
   {
     id: "d16",
@@ -667,6 +885,14 @@ export const MOCK_DELIVERABLES: Deliverable[] = [
       { version: 1, status: "in_review", author: "internal", timestamp: "2026-06-02T19:00:00.000Z", note: "Status alterado para in_review" },
       { version: 1, status: "approved",  author: "internal", timestamp: "2026-06-03T10:00:00.000Z", note: "Aprovada pelo cliente" },
     ],
+    previewContent: {
+      summary: "3 variações de criativos para o dia de lançamento oficial. Cada variação testa um ângulo diferente: impacto emocional, proposta racional e urgência/escassez. Aprovados pelo cliente para uso imediato.",
+      designSpecs: [
+        { name: "Variação 1 — Impacto Emocional", format: "1080×1080px + 1080×1920px (Stories)", description: "Headline: \"A agência que faltava para o seu negócio.\" Fundo escuro total. Logo centralizado em laranja. Tagline abaixo em cinza claro. Zero distrações. Apelo à identidade." },
+        { name: "Variação 2 — Proposta Racional", format: "1080×1080px + 1080×1920px (Stories)", description: "Headline: \"Estratégia. IA. Resultado.\" + 3 ícones abaixo representando cada pilar. Fundo escuro, ícones em laranja outlined. Texto explicativo compacto abaixo de cada ícone." },
+        { name: "Variação 3 — Urgência / Escassez", format: "1080×1080px + 1080×1920px (Stories)", description: "Headline: \"Vagas limitadas para junho.\" Contador visual (ex: 3/10 vagas). CTA em botão laranja sólido. Subtext: \"Consulta gratuita — apenas esta semana.\"" },
+      ],
+    },
   },
   {
     id: "d17",
@@ -683,6 +909,15 @@ export const MOCK_DELIVERABLES: Deliverable[] = [
       { version: 1, status: "draft",     author: "agent",    timestamp: "2026-06-03T10:00:00.000Z", note: "Entrega criada" },
       { version: 1, status: "in_review", author: "internal", timestamp: "2026-06-03T11:00:00.000Z", note: "Status alterado para in_review" },
     ],
+    previewContent: {
+      summary: "Manual de uso da identidade visual da Dioli Agência aplicado às redes sociais. Define paleta oficial, tipografia, regras de uso do logo e comportamentos visuais proibidos.",
+      sections: [
+        { title: "Paleta de Cores", body: "Cor principal: Laranja Dioli (#FF6B2C). Uso: CTAs, destaques, ícones ativos, números em dados. Fundos primários: Preto Profundo (#0A0A0A) para dark mode; Branco (#FFFFFF) para light mode. Cinza de suporte: #1A1A1A (cards dark), #F5F5F5 (cards light). Nunca usar o laranja como cor de fundo dominante — ele é sempre acento.", items: ["#FF6B2C — Laranja Dioli (acento)", "#0A0A0A — Preto Profundo (fundo dark)", "#FFFFFF — Branco (fundo light)", "#1A1A1A — Cinza Escuro (cards dark)", "#F5F5F5 — Cinza Claro (cards light)"] },
+        { title: "Tipografia", body: "Família principal: Inter (Google Fonts, sem custo). Headlines: Inter Bold (700), tamanho mínimo 28pt em qualquer peça. Corpo: Inter Regular (400), espaçamento de linha 1.5. Nunca usar serifadas, nunca usar fontes decorativas. Hierarquia obrigatória: Headline > Subheadline > Corpo > Rodapé." },
+        { title: "Logo — Regras de Uso", body: "Versão principal: logotipo completo 'Dioli' em branco sobre fundo escuro, ou em preto sobre fundo branco. Versão reduzida: símbolo (ícone D) para uso em espaços pequenos (ex: rodapé de template). Zona de proteção: margem mínima equivalente à altura da letra 'D' ao redor do logo. Nunca deformar, rotacionar, aplicar sombra ou alterar cores do logo.", items: ["✓ Logo branco sobre fundo escuro", "✓ Logo preto sobre fundo branco", "✓ Logo laranja apenas em casos excepcionais (aprovação necessária)", "✗ Não aplicar sobre fotos sem overlay", "✗ Não usar versão colorida em fundos complexos"] },
+        { title: "Comportamentos Proibidos", body: "Esta seção define o que NÃO fazer para proteger a percepção premium da marca.", items: ["✗ Usar mais de 2 cores em uma única peça além da paleta oficial", "✗ Fontes que não sejam Inter", "✗ Backgrounds com gradientes complexos ou texturas", "✗ Imagens com filtros excessivos ou cores saturadas", "✗ Emojis em peças formais ou carrosséis educativos", "✗ Texto menor que 18pt em qualquer publicação"] },
+      ],
+    },
   },
   // Ads Agent (a4) — Tráfego Pago
   {
@@ -701,6 +936,16 @@ export const MOCK_DELIVERABLES: Deliverable[] = [
       { version: 1, status: "in_review", author: "internal", timestamp: "2026-06-01T20:00:00.000Z", note: "Status alterado para in_review" },
       { version: 1, status: "approved",  author: "internal", timestamp: "2026-06-03T08:30:00.000Z", note: "Aprovada pelo cliente" },
     ],
+    previewContent: {
+      summary: "Estratégia completa de tráfego pago para o lançamento da Dioli Agência no Meta Ads. Orçamento inicial de R$1.500/mês, 3 fases (Awareness → Consideração → Conversão), KPIs definidos por fase.",
+      sections: [
+        { title: "Objetivo de Campanha", body: "Fase 1 (Semanas 1–2): Reconhecimento de marca. Alcançar empreendedores de PMEs na Grande Curitiba e demais capitais do Sul. Meta: 50.000 impressões, CPM abaixo de R$15. Fase 2 (Semanas 3–4): Geração de leads qualificados. Meta: 80 leads ao custo de até R$18,75/lead. Fase 3 (Mês 2+): Conversão para consulta agendada. Meta: 15 consultas realizadas, taxa de conversão lead→consulta ≥ 20%." },
+        { title: "Orçamento", body: "Mês 1: R$1.500 total. Distribuição: 40% Awareness (R$600), 40% Leads (R$600), 20% Retargeting (R$300). Revisão de orçamento após Semana 2 com base em CPM e CTR reais. Escalonamento previsto para R$3.000/mês no Mês 2 se CPA < R$100." },
+        { title: "Públicos-alvo", body: "Público Frio: donos de negócio 25–45 anos, interesses em marketing digital, empreendedorismo, Instagram Business, Meta for Business. Raio: Brasil (foco Sul/SP). Lookalike: baseado em lista de contatos atuais (mín. 100 e-mails). Retargeting: visitantes do site + pessoas que interagiram com o perfil nos últimos 30 dias." },
+        { title: "Ângulos de Campanha", body: "Ângulo 1 — Dor: \"Você investe em marketing mas não vê resultado?\" (foco em frustração). Ângulo 2 — Autoridade: \"A agência que usa IA para criar campanhas que convertem\" (foco em diferencial). Ângulo 3 — Urgência: \"Vagas limitadas para junho — consulta gratuita\" (foco em escassez). Teste A/B obrigatório nas Semanas 1–2. Ângulo vencedor recebe 70% do budget na Semana 3." },
+        { title: "KPIs e Metas", body: "Semana 1–2: Alcance ≥ 20.000 pessoas únicas, Impressões ≥ 50.000, CPM ≤ R$15, CTR ≥ 1,5%. Semana 3–4: Leads ≥ 80, CPL ≤ R$18,75, Taxa de clique para formulário ≥ 4%. Mês 2: Consultas ≥ 15, CPA ≤ R$100, Conversão lead→consulta ≥ 20%." },
+      ],
+    },
   },
   {
     id: "d19",
@@ -717,6 +962,38 @@ export const MOCK_DELIVERABLES: Deliverable[] = [
       { version: 1, status: "draft",     author: "agent",    timestamp: "2026-06-02T18:00:00.000Z", note: "Entrega criada" },
       { version: 1, status: "in_review", author: "internal", timestamp: "2026-06-02T20:00:00.000Z", note: "Status alterado para in_review" },
     ],
+    previewContent: {
+      summary: "Estrutura técnica das campanhas no Meta Ads Manager. 3 campanhas com objetivos distintos, 6 conjuntos de anúncios e 12 criativos ativos. Pronta para importação após aprovação.",
+      campaigns: [
+        {
+          name: "DIOLI_JUN26_AWARENESS",
+          objective: "Reconhecimento — Alcance máximo com frequência controlada (max 3x/semana por pessoa)",
+          budget: "R$600 (Semanas 1–2)",
+          adsets: [
+            { name: "Frio — Empreendedores Sul", audience: "Donos de negócio 25–45, interesses marketing digital, Sul do Brasil", placements: "Feed Instagram + Stories Instagram" },
+            { name: "Frio — Empreendedores SP/Capital", audience: "Donos de negócio 28–45, interesses empreendedorismo, São Paulo Capital", placements: "Feed Instagram + Reels" },
+          ],
+        },
+        {
+          name: "DIOLI_JUN26_LEADS",
+          objective: "Geração de cadastros — Formulário nativo Meta (Nome, E-mail, Empresa, Desafio principal)",
+          budget: "R$600 (Semanas 3–4)",
+          adsets: [
+            { name: "Lookalike 1% — Contatos", audience: "Lookalike de lista de contatos existente (1%), Brasil", placements: "Feed Instagram + Facebook Feed" },
+            { name: "Interesse — Marketing Digital", audience: "Gestores de marketing 28–50, interesses Meta Business, Google Ads, Marketing Digital", placements: "Feed Instagram + Stories" },
+          ],
+        },
+        {
+          name: "DIOLI_JUN26_RETARGETING",
+          objective: "Conversão — Agendamento de consulta gratuita",
+          budget: "R$300 (Semanas 1–4, contínuo)",
+          adsets: [
+            { name: "Engajamento 30d — Instagram", audience: "Pessoas que interagiram com o perfil @dioliconsulting nos últimos 30 dias", placements: "Stories Instagram + Feed Instagram" },
+            { name: "Visitantes do Site", audience: "Visitantes do site nos últimos 14 dias (via pixel)", placements: "Feed Instagram + Facebook" },
+          ],
+        },
+      ],
+    },
   },
   {
     id: "d20",
@@ -732,6 +1009,17 @@ export const MOCK_DELIVERABLES: Deliverable[] = [
     revisionHistory: [
       { version: 1, status: "draft", author: "agent", timestamp: "2026-06-03T10:00:00.000Z", note: "Entrega criada" },
     ],
+    previewContent: {
+      summary: "6 variações de copy para anúncios no Meta Ads. Cobrem 3 ângulos (dor, autoridade, urgência) em 2 formatos cada (feed e stories). Aguardam aprovação interna antes de subir na plataforma.",
+      adCopies: [
+        { label: "Ângulo Dor — Feed", headline: "Você investe em marketing mas não vê resultado?", body: "A maioria das agências vende presença. A Dioli vende crescimento.\n\nEstraégia orientada por dados + IA integrada em cada campanha.\n\nPrimeira consulta gratuita — sem compromisso.", cta: "Agendar Consulta Gratuita", format: "Feed 1080×1080px" },
+        { label: "Ângulo Dor — Stories", headline: "Cansado de gastar e não crescer?", body: "Chega de achismo no marketing.\n\nA Dioli usa dados reais e IA para criar campanhas que convertem.\n\nVagas limitadas para junho.", cta: "Quero Saber Mais", format: "Stories 1080×1920px" },
+        { label: "Ângulo Autoridade — Feed", headline: "A agência que usa IA para criar campanhas que convertem.", body: "Não é promessa. É processo.\n\n→ Diagnóstico gratuito da sua presença digital\n→ Estratégia personalizada em 48h\n→ Execução com IA e time especializado\n\nResultados mensuráveis desde a semana 1.", cta: "Conhecer a Dioli", format: "Feed 1080×1080px" },
+        { label: "Ângulo Autoridade — Stories", headline: "Marketing com IA. Resultados reais.", body: "Estratégia + Automação + Time dedicado.\n\nAssim funciona a Dioli Agência.", cta: "Ver Como Funciona", format: "Stories 1080×1920px" },
+        { label: "Ângulo Urgência — Feed", headline: "Apenas 5 vagas para junho.", body: "A Dioli Agência trabalha com poucos clientes para entregar resultados extraordinários.\n\nRestam 5 vagas para início em junho.\n\nConsulta gratuita por tempo limitado.", cta: "Garantir Minha Vaga", format: "Feed 1080×1080px" },
+        { label: "Ângulo Urgência — Stories", headline: "Vagas limitadas. Consulta gratuita.", body: "Não deixa para depois.\n\nFecha junho com estratégia. Começa julho crescendo.", cta: "Quero Minha Vaga", format: "Stories 1080×1920px" },
+      ],
+    },
   },
   {
     id: "d21",
@@ -749,6 +1037,15 @@ export const MOCK_DELIVERABLES: Deliverable[] = [
       { version: 1, status: "in_review", author: "internal", timestamp: "2026-06-01T21:00:00.000Z", note: "Status alterado para in_review" },
       { version: 1, status: "approved",  author: "internal", timestamp: "2026-06-02T09:00:00.000Z", note: "Aprovada pelo cliente" },
     ],
+    previewContent: {
+      summary: "4 segmentos de público-alvo mapeados para as campanhas de tráfego pago e conteúdo orgânico. Cada segmento tem perfil detalhado, tamanho estimado, interesses e comportamentos de compra.",
+      audiences: [
+        { name: "Fundador de PME em Crescimento", description: "Dono de negócio entre 28–45 anos, empresa com 1–10 funcionários, já tem CNPJ e faturamento mínimo de R$10k/mês. Quer crescer mas não tem time de marketing interno. Busca parceiros, não fornecedores.", size: "Estimado: 180.000–250.000 pessoas (Brasil)", interests: "Empreendedorismo, Gestão de Negócios, Finanças, Automação, Instagram Business", behaviors: "Visita sites de agências, assiste conteúdo de marketing no YouTube, segue perfis como Conrado Adolpho, Neil Patel BR" },
+        { name: "Gestor de Marketing de PME", description: "Profissional de marketing em empresa pequena ou média, 25–38 anos. Gerencia múltiplos canais com orçamento limitado. Precisa de parceiro estratégico e execução ágil. Responde a diretores, não ao dono.", size: "Estimado: 90.000–130.000 pessoas (Brasil)", interests: "Meta Ads, Google Ads, Canva, HubSpot, Marketing Digital, Growth Hacking", behaviors: "Lê blogs de marketing (Rock Content, Resultados Digitais), usa ferramentas SaaS, busca cursos e certificações" },
+        { name: "Restaurante e Food Service", description: "Dono ou gestor de restaurante, cafeteria, delivery ou food business. Sabe que precisa de presença digital mas não tem tempo nem conhecimento para executar. Já tentou agências genéricas sem resultado.", size: "Estimado: 60.000–90.000 pessoas (Brasil Sul + capitais)", interests: "Gastronomia, Delivery, iFood, Instagram para restaurantes, Fotografia de alimentos", behaviors: "Pesquisa muito antes de contratar, prioriza referências e cases do mesmo setor" },
+        { name: "Marca de Produto com Loja Online", description: "Empreendedor com e-commerce ou loja física + online. Produto próprio ou revenda. Busca aumentar vendas e reconhecimento de marca. Meta Ads já foi tentado mas sem ROI claro.", size: "Estimado: 120.000–200.000 pessoas (Brasil)", interests: "E-commerce, Shopify, Dropshipping, Moda, Beleza, Nicho de produto", behaviors: "Testa múltiplas agências, muito sensível a ROI, cancela contrato rápido sem resultado" },
+      ],
+    },
   },
   {
     id: "d22",
@@ -765,6 +1062,14 @@ export const MOCK_DELIVERABLES: Deliverable[] = [
       { version: 1, status: "draft",     author: "agent",    timestamp: "2026-06-01T20:00:00.000Z", note: "Entrega criada" },
       { version: 1, status: "delivered", author: "internal", timestamp: "2026-06-02T10:00:00.000Z", note: "Entregue ao time criativo" },
     ],
+    previewContent: {
+      summary: "Especificações técnicas e de mensagem para os criativos de anúncio em cada etapa do funil. Guia para o time de design e copy produzirem peças alinhadas com o objetivo de cada fase.",
+      sections: [
+        { title: "Topo de Funil — Awareness", body: "Objetivo: Interromper o scroll e gerar reconhecimento de marca. Métricas-alvo: CPM baixo, alta taxa de visualização de vídeo (≥ 15s), alcance amplo.", items: ["Formato: Reels curtos (15–30s) ou imagem bold com headline de impacto", "Mensagem: Dor ou curiosidade — NÃO tentar vender ainda", "Visual: Fundo escuro, headline grande, zero texto miúdo", "Copy: 1 frase de impacto + máx. 2 linhas de contexto", "CTA: 'Saiba mais' ou 'Ver perfil'", "Tom: Provocativo, intrigante, direto"] },
+        { title: "Meio de Funil — Consideração", body: "Objetivo: Gerar cliques qualificados e leads. Público já conhece a marca. Hora de apresentar a proposta com mais profundidade.", items: ["Formato: Carrossel ou vídeo explicativo (30–60s)", "Mensagem: Diferencial da Dioli + processo + prova social", "Visual: Misto dark/light — mais estruturado que awareness", "Copy: 3–5 bullets com benefícios específicos", "CTA: 'Agendar Consulta Gratuita' ou 'Quero Saber Mais'", "Tom: Confiante, especialista, próximo"] },
+        { title: "Fundo de Funil — Conversão", body: "Objetivo: Converter leads quentes em consultas agendadas. Público já interagiu com a marca pelo menos 2 vezes.", items: ["Formato: Single estático ou vídeo curto (15s) de retargeting", "Mensagem: Urgência real (vagas, prazo, oferta)", "Visual: Direto ao ponto — CTA laranja dominante", "Copy: Foco na ação imediata, poucos elementos", "CTA: 'Garantir Minha Vaga' ou 'Agendar Agora'", "Tom: Urgente, exclusivo, sem rodeios"] },
+      ],
+    },
   },
   {
     id: "d23",
@@ -780,6 +1085,14 @@ export const MOCK_DELIVERABLES: Deliverable[] = [
     revisionHistory: [
       { version: 1, status: "draft", author: "agent", timestamp: "2026-06-03T11:00:00.000Z", note: "Entrega criada" },
     ],
+    previewContent: {
+      summary: "Observações e ações de otimização após a primeira semana de campanhas ativas. Em rascunho — dados reais serão inseridos ao final da Semana 1 (previsto: 09/Jun/2026).",
+      sections: [
+        { title: "Observações da Semana 1", body: "[ A preencher após 09/Jun/2026 com dados reais do Meta Ads Manager ]\n\nEstrutura de observação esperada:\n→ CPM real vs. meta (≤ R$15)\n→ CTR real vs. meta (≥ 1,5%)\n→ Frequência por conjunto de anúncios\n→ Criativo com melhor performance (headline vencedora)\n→ Público com menor CPM", notes: "Rascunho — preencher com dados reais em 09/Jun" },
+        { title: "Ações de Otimização Planejadas", body: "Baseadas no playbook padrão para Semana 1 de campanha nova:", items: ["Pausar criativos com CTR < 0,8% após 500 impressões", "Escalar conjuntos de anúncios com CPL < R$15 em 20% do orçamento", "Duplicar conjunto vencedor com orçamento adicional de R$150", "Ajustar segmentação geográfica se houver concentração em uma região não-alvo", "Atualizar copy dos anúncios de baixo desempenho mantendo o visual"] },
+        { title: "Próximos Passos — Semana 2", body: "Ações planejadas independente dos dados (estruturais):", items: ["Ativar campanha de Leads (DIOLI_JUN26_LEADS) na Semana 2", "Configurar evento de conversão 'Lead Gerado' no pixel", "Subir 2 novos criativos: Ângulo Dor v2 e Case Resultado", "Agendar call de alinhamento com cliente em 10/Jun para revisão de resultados"] },
+      ],
+    },
   },
 ];
 

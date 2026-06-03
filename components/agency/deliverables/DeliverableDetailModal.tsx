@@ -15,6 +15,7 @@ import {
   REVISION_AUTHOR_LABEL,
 } from "@/lib/agency/deliverables";
 import { getDeliverableQuality, getBrandBrainScore } from "@/lib/agency/reporting";
+import DeliverablePreview from "@/components/agency/deliverables/DeliverablePreview";
 
 interface Props {
   deliverableId: string | null;
@@ -123,14 +124,16 @@ export default function DeliverableDetailModal({ deliverableId, onClose }: Props
 
         {/* Content / preview */}
         <div>
-          <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Conteúdo</div>
-          {d.link ? (
+          <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">Conteúdo da Entrega</div>
+          {d.previewContent ? (
+            <DeliverablePreview deliverable={d} mode="internal" />
+          ) : d.link ? (
             <a href={d.link} target="_blank" rel="noreferrer" className="text-[13px] text-[#5B5BD6] hover:underline break-all">
               {d.link}
             </a>
           ) : (
             <p className="text-[12px] text-[#9B9B95] italic">
-              Pré-visualização não disponível. Esta entrega é gerada pelo agente responsável e revisada aqui.
+              Conteúdo ainda não disponível — entrega pendente do agente responsável.
             </p>
           )}
         </div>

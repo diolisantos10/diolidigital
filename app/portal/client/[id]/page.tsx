@@ -8,6 +8,7 @@ import { getClientVisibleDeliverables } from "@/lib/agency/workspace";
 import { getClientProgress, getNextProjectAction } from "@/lib/agency/reporting";
 import { PORTAL_SAFE_BRAND_FIELDS, BRAND_FIELD_LABELS } from "@/lib/agency/roles";
 import { parseBrandBook, type ParsedBrandField } from "@/lib/agency/brand-parser";
+import DeliverablePreview from "@/components/agency/deliverables/DeliverablePreview";
 
 
 const STAGE_LABEL: Record<ProjectStage, string> = {
@@ -46,6 +47,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
   const clientMaterialRequests = materialRequests.filter((r) => r.clientId === id && r.status === "pending");
 
   // Local UI state
+  const [previewOpen,          setPreviewOpen]          = useState<Record<string, boolean>>({});
   const [feedbackOpen,         setFeedbackOpen]         = useState<Record<string, boolean>>({});
   const [feedbackText,         setFeedbackText]         = useState<Record<string, string>>({});
   const [proposalChangesOpen,  setProposalChangesOpen]  = useState<Record<string, boolean>>({});
@@ -406,16 +408,42 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
                       const icon = TYPE_ICON[d.type] ?? TYPE_ICON.default;
                       const isInReview = d.status === "in_review";
                       const isFeedbackOpen = feedbackOpen[d.id] ?? false;
+                      const isPreviewOpen = previewOpen[d.id] ?? false;
+                      const hasPreview = !!d.previewContent;
 
                       return (
                         <div
                           key={d.id}
                           className={`bg-white rounded-[10px] border shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden transition-all ${
-                            isInReview ? "border-[#FDE68A]" : "border-[#E5E5E2]"
+                            isInReview ? "border-[#F59E0B] shadow-[0_1px_8px_rgba(245,158,11,0.12)]" : "border-[#E5E5E2]"
                           }`}
                         >
+                          {/* Attention banner for in_review items */}
+                          {isInReview && !isFeedbackOpen && (
+                            <div className="bg-[#FFFBEB] border-b border-[#FDE68A] px-5 py-2.5 flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-[#F59E0B] animate-pulse shrink-0" />
+                                <span className="text-[12px] font-semibold text-[#92400E]">Aguardando sua aprovação</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => handleApprove(d.id)}
+                                  className="h-7 px-3 rounded-[7px] bg-[#1A1A1A] hover:bg-[#111111] text-white text-[12px] font-semibold transition-colors"
+                                >
+                                  ✓ Aprovar
+                                </button>
+                                <button
+                                  onClick={() => handleRequestChanges(d.id)}
+                                  className="h-7 px-3 rounded-[7px] border border-[#FDE68A] hover:border-[#F59E0B] text-[#92400E] hover:bg-[#FEF3C7] text-[12px] font-medium transition-colors"
+                                >
+                                  Solicitar Alterações
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
                           <div className="flex items-center gap-4 px-5 py-4">
-                            {/* Type icon / preview placeholder */}
+                            {/* Type icon */}
                             <div className="w-10 h-10 rounded-[8px] bg-[#F7F7F6] border border-[#E5E5E2] flex items-center justify-center text-[18px] text-[#9B9B95] shrink-0">
                               {icon}
                             </div>
@@ -433,41 +461,39 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
                               </div>
                             </div>
 
-                            {/* Status + actions */}
+                            {/* Status + preview toggle */}
                             <div className="flex items-center gap-2 shrink-0">
                               <span className={`h-6 px-2.5 rounded-full text-[11px] font-semibold ${style.bg} ${style.text}`}>
                                 {style.label}
                               </span>
-                              {isInReview && !isFeedbackOpen && (
-                                <>
-                                  <button
-                                    onClick={() => handleApprove(d.id)}
-                                    className="h-7 px-3 rounded-[7px] bg-[#1A1A1A] hover:bg-[#111111] text-white text-[12px] font-medium transition-colors"
-                                  >
-                                    Aprovar
-                                  </button>
-                                  <button
-                                    onClick={() => handleRequestChanges(d.id)}
-                                    className="h-7 px-3 rounded-[7px] border border-[#E5E5E2] hover:border-[#D97706] text-[#6B6B65] hover:text-[#D97706] text-[12px] font-medium transition-colors"
-                                  >
-                                    Solicitar Alterações
-                                  </button>
-                                </>
+                              {hasPreview && (
+                                <button
+                                  onClick={() => setPreviewOpen((prev) => ({ ...prev, [d.id]: !isPreviewOpen }))}
+                                  className="h-6 px-2.5 rounded-full border border-[#E5E5E2] text-[11px] text-[#6B6B65] hover:bg-[#F7F7F6] font-medium transition-colors"
+                                >
+                                  {isPreviewOpen ? "Fechar" : "Ver conteúdo"}
+                                </button>
                               )}
                             </div>
                           </div>
+
+                          {/* Deliverable preview content */}
+                          {hasPreview && isPreviewOpen && (
+                            <div className="px-5 pb-5 border-t border-[#F0F0ED] pt-4 space-y-3 max-h-[520px] overflow-y-auto">
+                              <DeliverablePreview deliverable={d} mode="portal" />
+                            </div>
+                          )}
 
                           {/* Revision in progress — keep it human, no internal detail */}
                           {d.status === "draft" && d.revisionStatus === "in_revision" ? (
                             <div className="mx-5 mb-4 px-3 py-2.5 bg-[#EEF0FF] border border-[#C7C7F5] rounded-[7px] flex items-center gap-2">
                               <span className="w-1.5 h-1.5 rounded-full bg-[#5B5BD6] shrink-0" />
-                              <p className="text-[12px] text-[#5B5BD6] font-medium">Estamos ajustando esta entrega</p>
+                              <p className="text-[12px] text-[#5B5BD6] font-medium">Estamos ajustando esta entrega com base no seu feedback.</p>
                             </div>
                           ) : (
-                            /* Previous client feedback (if set and status = draft) */
                             d.clientFeedback && d.status === "draft" && (
                               <div className="mx-5 mb-4 px-3 py-2.5 bg-[#FFFBEB] border border-[#FDE68A] rounded-[7px]">
-                                <p className="text-[11px] font-semibold text-[#D97706] mb-0.5 uppercase tracking-[0.04em]">Seu feedback</p>
+                                <p className="text-[11px] font-semibold text-[#D97706] mb-0.5 uppercase tracking-[0.04em]">Seu feedback anterior</p>
                                 <p className="text-[12px] text-[#6B6B65] leading-relaxed">{d.clientFeedback}</p>
                               </div>
                             )
@@ -475,9 +501,9 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
 
                           {/* Feedback input */}
                           {isFeedbackOpen && (
-                            <div className="px-5 pb-4 space-y-2.5 border-t border-[#F0F0ED] pt-4">
-                              <label className="block text-[12px] font-medium text-[#1A1A1A]">
-                                O que precisa ser alterado?
+                            <div className="px-5 pb-5 space-y-2.5 border-t border-[#FDE68A] bg-[#FFFBEB] pt-4">
+                              <label className="block text-[12px] font-semibold text-[#92400E]">
+                                O que precisa ser alterado em "{d.name}"?
                               </label>
                               <textarea
                                 value={feedbackText[d.id] ?? ""}
@@ -485,7 +511,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
                                 placeholder="Descreva o que precisa mudar — a equipe receberá isso diretamente."
                                 rows={3}
                                 autoFocus
-                                className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white resize-none"
+                                className="w-full px-3 py-2 text-[13px] bg-white border border-[#FDE68A] rounded-[7px] outline-none focus:border-[#F59E0B] resize-none"
                               />
                               <div className="flex gap-2">
                                 <button
