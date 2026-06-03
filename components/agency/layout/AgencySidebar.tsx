@@ -115,7 +115,12 @@ export default function AgencySidebar() {
       </nav>
 
       {/* Bottom */}
-      <div className="px-4 py-4 border-t border-white/[0.06] shrink-0">
+      <div className="px-4 py-4 border-t border-white/[0.06] shrink-0 space-y-3">
+        {/* Pilot mode — data persists only in this browser (no production backend yet) */}
+        <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-[6px] bg-[#D97706]/10">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#D97706] shrink-0" />
+          <span className="text-[10px] font-medium text-[#D9A066] truncate">Modo piloto — dados locais</span>
+        </div>
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-full bg-[#5B5BD6]/20 flex items-center justify-center text-[11px] font-semibold text-[#5B5BD6]">
             D

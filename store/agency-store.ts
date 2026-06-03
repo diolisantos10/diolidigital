@@ -122,6 +122,8 @@ interface AgencyState {
   // System
   addActivity: (event: Omit<ActivityEvent, "id" | "timestamp">) => void;
   resetStore: () => void;
+  loadPilotData: () => void;
+  clearAllData: () => void;
 }
 
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -612,6 +614,42 @@ export const useAgencyStore = create<AgencyState>()(
           briefings: MOCK_BRIEFINGS,
           activity: MOCK_ACTIVITY,
           materialRequests: MOCK_MATERIAL_REQUESTS,
+          strategyRooms: [],
+        });
+      },
+
+      // ── Load Dioli Digital pilot data ───────────────────────────────────────
+      // Restores the Dioli Digital pilot (client c4, project p7 + its deliverables
+      // and tasks) without wiping the rest of the workspace. Idempotent.
+      loadPilotData: () => {
+        set((s) => {
+          const pilotClient = MOCK_CLIENTS.find((c) => c.id === "c4");
+          const pilotProject = MOCK_PROJECTS.find((p) => p.id === "p7");
+          const pilotDeliverables = MOCK_DELIVERABLES.filter((d) => d.projectId === "p7");
+          const pilotTasks = MOCK_TASKS.filter((t) => t.projectId === "p7");
+          const pilotMaterials = MOCK_MATERIAL_REQUESTS.filter((m) => m.projectId === "p7");
+          return {
+            clients: s.clients.some((c) => c.id === "c4") || !pilotClient ? s.clients : [...s.clients, pilotClient],
+            projects: s.projects.some((p) => p.id === "p7") || !pilotProject ? s.projects : [...s.projects, pilotProject],
+            deliverables: [...s.deliverables.filter((d) => d.projectId !== "p7"), ...pilotDeliverables],
+            tasks: [...s.tasks.filter((t) => t.projectId !== "p7"), ...pilotTasks],
+            materialRequests: [...s.materialRequests.filter((m) => m.projectId !== "p7"), ...pilotMaterials],
+          };
+        });
+      },
+
+      // ── Clear all local data ─────────────────────────────────────────────────
+      // Wipes the entire workspace. Use before handing the build to a fresh pilot.
+      clearAllData: () => {
+        set({
+          clients: [],
+          projects: [],
+          tasks: [],
+          deliverables: [],
+          briefings: [],
+          activity: [],
+          materialRequests: [],
+          testRuns: [],
           strategyRooms: [],
         });
       },
