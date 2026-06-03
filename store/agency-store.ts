@@ -185,32 +185,54 @@ export const useAgencyStore = create<AgencyState>()(
         const id = `bu${uid()}`;
         const entry: BrandUpdate = { ...update, id, submittedAt: new Date().toISOString() };
         set((s) => ({ brandUpdates: [entry, ...s.brandUpdates] }));
+        if (update.source === "client") {
+          get().addActivity({
+            type: "brand_update_submitted",
+            message: `Cliente enviou sugestão de atualização de marca`,
+            clientId: update.clientId,
+          });
+        } else {
+          get().addActivity({
+            type: "brand_update_submitted",
+            message: `Atualização de marca enviada`,
+            clientId: update.clientId,
+          });
+        }
         return id;
       },
       reviewBrandUpdate: (id) =>
         set((s) => ({
           brandUpdates: s.brandUpdates.map((u) => u.id === id ? { ...u, status: "reviewed" } : u),
         })),
-      applyBrandUpdate: (id) =>
+      applyBrandUpdate: (id) => {
+        const update = get().brandUpdates.find((u) => u.id === id);
         set((s) => {
-          const update = s.brandUpdates.find((u) => u.id === id);
-          if (!update || update.source === "upload" || update.field === "general" || update.field === "brand_book") {
+          const upd = s.brandUpdates.find((u) => u.id === id);
+          if (!upd || upd.source === "upload" || upd.field === "general" || upd.field === "brand_book") {
             return {
               brandUpdates: s.brandUpdates.map((u) => u.id === id ? { ...u, status: "applied" } : u),
             };
           }
           const clients = s.clients.map((c) => {
-            if (c.id !== update.clientId) return c;
+            if (c.id !== upd.clientId) return c;
             return {
               ...c,
-              brandBrain: { ...(c.brandBrain ?? {}), [update.field]: update.suggestedValue } as typeof c.brandBrain,
+              brandBrain: { ...(c.brandBrain ?? {}), [upd.field]: upd.suggestedValue } as typeof c.brandBrain,
             };
           });
           return {
             clients,
             brandUpdates: s.brandUpdates.map((u) => u.id === id ? { ...u, status: "applied" } : u),
           };
-        }),
+        });
+        if (update) {
+          get().addActivity({
+            type: "brand_update_applied",
+            message: `Atualização de marca aplicada ao Brand Hub`,
+            clientId: update.clientId,
+          });
+        }
+      },
       dismissBrandUpdate: (id) =>
         set((s) => ({ brandUpdates: s.brandUpdates.filter((u) => u.id !== id) })),
       applyAllPendingBrandUpdates: (clientId) =>
@@ -386,8 +408,8 @@ export const useAgencyStore = create<AgencyState>()(
           ),
         }));
         get().addActivity({
-          type: "project_stage_changed",
-          message: `Proposal sent to client for "${project.name}"`,
+          type: "proposal_sent",
+          message: `Proposta enviada ao cliente para "${project.name}"`,
           projectId: id,
         });
       },
@@ -403,8 +425,8 @@ export const useAgencyStore = create<AgencyState>()(
           ),
         }));
         get().addActivity({
-          type: "orchestrator_approved",
-          message: `Client approved proposal for "${project.name}"`,
+          type: "proposal_approved",
+          message: `Cliente aprovou proposta de "${project.name}"`,
           projectId: id,
         });
       },
@@ -425,8 +447,8 @@ export const useAgencyStore = create<AgencyState>()(
           ),
         }));
         get().addActivity({
-          type: "project_stage_changed",
-          message: `Client rejected proposal for "${project.name}"`,
+          type: "proposal_rejected",
+          message: `Cliente rejeitou proposta de "${project.name}"`,
           projectId: id,
         });
       },
@@ -492,8 +514,10 @@ export const useAgencyStore = create<AgencyState>()(
           ),
         }));
         get().addActivity({
-          type: "deliverable_updated",
-          message: `"${d.name}" status → ${status}`,
+          type: status === "approved" ? "deliverable_approved" : "deliverable_updated",
+          message: status === "approved"
+            ? `"${d.name}" aprovada pelo cliente`
+            : `"${d.name}" status → ${status}`,
           projectId: d.projectId,
         });
       },
@@ -528,8 +552,8 @@ export const useAgencyStore = create<AgencyState>()(
           ),
         }));
         get().addActivity({
-          type: "deliverable_updated",
-          message: `"${d.name}" — client requested changes`,
+          type: "change_requested",
+          message: `"${d.name}" — cliente solicitou alterações`,
           projectId: d.projectId,
         });
       },
@@ -666,7 +690,7 @@ export const useAgencyStore = create<AgencyState>()(
           ],
         }));
         get().addActivity({
-          type: "project_stage_changed",
+          type: "strategy_room_generated",
           message: `Strategy Room gerado para "${project.name}"`,
           projectId,
         });

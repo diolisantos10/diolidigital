@@ -6,15 +6,28 @@ import { useTranslation } from "@/lib/i18n";
 import { useAgencyStore } from "@/store/agency-store";
 import { AGENCY_ROLE_OPTIONS, isNavAllowed, type AgencyRole } from "@/lib/agency/roles";
 
+function usePendingCount() {
+  const { projects, deliverables, brandUpdates, materialRequests } = useAgencyStore();
+  const sentProposals = projects.filter((p) => p.proposal?.status === "sent").length;
+  const inReviewDelivs = deliverables.filter((d) => d.status === "in_review").length;
+  const pendingBrand = brandUpdates.filter((u) => u.status === "pending").length;
+  const pendingMats = materialRequests.filter((r) => r.status === "pending").length;
+  return sentProposals + inReviewDelivs + pendingBrand + pendingMats;
+}
+
 export default function AgencySidebar() {
   const path = usePathname();
   const { t } = useTranslation();
   const { currentRole, setCurrentRole } = useAgencyStore();
+  const pendingCount = usePendingCount();
 
   const NAV = [
     {
       group: null,
-      items: [{ label: t.nav.home, href: "/agency/dashboard", icon: HomeIcon }],
+      items: [
+        { label: t.nav.home, href: "/agency/dashboard", icon: HomeIcon },
+        { label: "Aprovações", href: "/agency/approvals", icon: BellIcon, badge: pendingCount },
+      ],
     },
     {
       group: t.nav.group.work,
@@ -92,6 +105,7 @@ export default function AgencySidebar() {
               )}
               {visibleItems.map((item) => {
                 const active = path === item.href || (item.href !== "/agency/dashboard" && path.startsWith(item.href));
+                const badge = (item as { badge?: number }).badge;
                 return (
                   <Link
                     key={item.href}
@@ -112,7 +126,12 @@ export default function AgencySidebar() {
                       size={15}
                       className={active ? "text-white" : "text-[#4A4A44] group-hover:text-[#8A8A84]"}
                     />
-                    {item.label}
+                    <span className="flex-1">{item.label}</span>
+                    {badge != null && badge > 0 && (
+                      <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[#D97706] text-white text-[10px] font-bold leading-none">
+                        {badge > 99 ? "99+" : badge}
+                      </span>
+                    )}
                   </Link>
                 );
               })}
@@ -165,6 +184,14 @@ function HomeIcon({ size = 16, className = "" }: { size?: number; className?: st
   return (
     <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
       <path d="M2 6.5L8 2l6 4.5V14a1 1 0 01-1 1H9.5v-4h-3v4H3a1 1 0 01-1-1V6.5z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+function BellIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
+      <path d="M8 2a4 4 0 00-4 4v3l-1 2h10l-1-2V6a4 4 0 00-4-4z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
+      <path d="M6.5 12.5a1.5 1.5 0 003 0" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
     </svg>
   );
 }

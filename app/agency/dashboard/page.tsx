@@ -8,6 +8,7 @@ import Link from "next/link";
 import { MOCK_AGENTS, ProjectStage } from "@/lib/agency/mock-data";
 import { getProjectProgress, getProjectHealth } from "@/lib/agency/reporting";
 import { runSystemDoctor } from "@/lib/agency/system-doctor";
+import { computeAllDirectives, PMUrgency } from "@/lib/agency/pm-agent";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -109,9 +110,16 @@ const DOCTOR_STATUS_COLOR = {
   critical: { bg: "bg-[#FEE2E2]", text: "text-[#DC2626]", dot: "bg-[#DC2626]", label: "Falha crítica" },
 };
 
+const URGENCY_STYLE: Record<PMUrgency, { bg: string; text: string; label: string }> = {
+  critical: { bg: "bg-[#FEE2E2]", text: "text-[#DC2626]", label: "Crítico" },
+  high:     { bg: "bg-[#FEF3C7]", text: "text-[#D97706]", label: "Alto" },
+  normal:   { bg: "bg-[#EEF0FF]", text: "text-[#5B5BD6]", label: "Normal" },
+  low:      { bg: "bg-[#F0F0ED]", text: "text-[#9B9B95]", label: "Baixo" },
+};
+
 export default function DashboardPage() {
   const router = useRouter();
-  const { projects, tasks, deliverables, activity, clients, materialRequests, strategyRooms, setPendingAgentInput } = useAgencyStore();
+  const { projects, tasks, deliverables, activity, clients, materialRequests, strategyRooms, brandUpdates, setPendingAgentInput } = useAgencyStore();
   const { t } = useTranslation();
   const [confirmMsg, setConfirmMsg] = useState<string | null>(null);
   const [persisted, setPersisted] = useState(false);
@@ -136,6 +144,16 @@ export default function DashboardPage() {
     client_created: ops.evClientCreated,
     briefing_created: ops.evBriefingCreated,
     orchestrator_approved: ops.evOrchestratorApproved,
+    proposal_sent: "Proposta enviada",
+    proposal_approved: "Proposta aprovada",
+    proposal_rejected: "Proposta rejeitada",
+    deliverable_approved: "Entrega aprovada",
+    change_requested: "Alteração solicitada",
+    revision_resolved: "Revisão concluída",
+    brand_update_applied: "Marca atualizada",
+    brand_update_submitted: "Sugestão de marca",
+    material_request_created: "Material solicitado",
+    strategy_room_generated: "Strategy Room gerado",
   };
   const STATUS_LABELS: Record<string, string> = {
     draft: ops.statusDraft, in_review: ops.statusInReview, approved: ops.statusApproved, delivered: ops.statusDelivered,
@@ -144,6 +162,19 @@ export default function DashboardPage() {
   const activeProjects = projects.filter((p) => p.stage !== "completed");
   const getClient = (cid: string) => clients.find((c) => c.id === cid);
   const agentMap = Object.fromEntries(MOCK_AGENTS.map((a) => [a.id, a]));
+
+  // ── PM Agent directives ──────────────────────────────────────────────────
+  const pmDirectives = computeAllDirectives({ projects, deliverables, tasks, materialRequests, strategyRooms, brandUpdates });
+
+  // ── Attention counts (for Centro de Comando) ─────────────────────────────
+  const attentionCounts = {
+    sentProposals: projects.filter((p) => p.proposal?.status === "sent").length,
+    inReviewDelivs: deliverables.filter((d) => d.status === "in_review").length,
+    pendingBrand: brandUpdates.filter((u) => u.status === "pending").length,
+    pendingMaterials: materialRequests.filter((r) => r.status === "pending").length,
+    revisionNeeded: deliverables.filter((d) => d.clientFeedback && (d.status === "draft" || d.revisionStatus === "revision_requested")).length,
+  };
+  const totalAttention = Object.values(attentionCounts).reduce((a, b) => a + b, 0);
 
   // ── System Doctor (automatic diagnostics, computed from store) ────────────
   const doctorReport = runSystemDoctor({ clients, projects, deliverables, materialRequests, strategyRooms, persisted });
@@ -384,6 +415,97 @@ export default function DashboardPage() {
           {mounted ? new Date().toLocaleDateString("pt-BR", { weekday: "long", month: "long", day: "numeric" }) : " "}
         </p>
         <h1 className="text-[24px] font-semibold tracking-[-0.02em] text-[#1A1A1A]">{t.dashboard.title}</h1>
+      </div>
+
+      {/* ── Centro de Comando ─────────────────────────────────────────────── */}
+      <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden mb-4">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-[#F0F0ED]">
+          <div className="flex items-center gap-2">
+            <h2 className="text-[13px] font-semibold text-[#1A1A1A]">Centro de Comando</h2>
+            <span className="text-[11px] text-[#9B9B95]">O que precisa da sua atenção agora?</span>
+          </div>
+          <Link href="/agency/approvals" className="text-[11px] text-[#5B5BD6] font-medium hover:underline">
+            Ver aprovações {totalAttention > 0 && <span className="ml-1 bg-[#D97706] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">{totalAttention}</span>}
+          </Link>
+        </div>
+
+        {/* Attention chips row */}
+        {totalAttention > 0 ? (
+          <div className="flex items-center gap-2 px-5 py-3 flex-wrap border-b border-[#F0F0ED]">
+            {attentionCounts.sentProposals > 0 && (
+              <Link href="/agency/approvals" className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#EEF0FF] hover:bg-[#E5E7FF] transition-colors">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#5B5BD6]" />
+                <span className="text-[11px] font-semibold text-[#5B5BD6]">{attentionCounts.sentProposals} proposta{attentionCounts.sentProposals !== 1 ? "s" : ""} aguardando</span>
+              </Link>
+            )}
+            {attentionCounts.inReviewDelivs > 0 && (
+              <Link href="/agency/approvals" className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#FEF3C7] hover:bg-[#FDE68A] transition-colors">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#D97706]" />
+                <span className="text-[11px] font-semibold text-[#D97706]">{attentionCounts.inReviewDelivs} entrega{attentionCounts.inReviewDelivs !== 1 ? "s" : ""} em revisão</span>
+              </Link>
+            )}
+            {attentionCounts.revisionNeeded > 0 && (
+              <Link href="/agency/approvals" className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#FEE2E2] hover:bg-[#FECACA] transition-colors">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#DC2626]" />
+                <span className="text-[11px] font-semibold text-[#DC2626]">{attentionCounts.revisionNeeded} revis{attentionCounts.revisionNeeded !== 1 ? "ões" : "ão"} solicitada{attentionCounts.revisionNeeded !== 1 ? "s" : ""}</span>
+              </Link>
+            )}
+            {attentionCounts.pendingBrand > 0 && (
+              <Link href="/agency/approvals" className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#EDE9FE] hover:bg-[#DDD6FE] transition-colors">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#7C3AED]" />
+                <span className="text-[11px] font-semibold text-[#7C3AED]">{attentionCounts.pendingBrand} sugestão{attentionCounts.pendingBrand !== 1 ? "" : ""} de marca</span>
+              </Link>
+            )}
+            {attentionCounts.pendingMaterials > 0 && (
+              <Link href="/agency/approvals" className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#E0F2FE] hover:bg-[#BAE6FD] transition-colors">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#0891B2]" />
+                <span className="text-[11px] font-semibold text-[#0891B2]">{attentionCounts.pendingMaterials} material(is) pendente{attentionCounts.pendingMaterials !== 1 ? "s" : ""}</span>
+              </Link>
+            )}
+          </div>
+        ) : (
+          <div className="px-5 py-3 border-b border-[#F0F0ED]">
+            <span className="text-[12px] text-[#16A34A] font-medium">✓ Nenhuma aprovação pendente</span>
+          </div>
+        )}
+
+        {/* PM Agent directives per project */}
+        {pmDirectives.length > 0 ? (
+          <div className="divide-y divide-[#F7F7F6]">
+            {pmDirectives.slice(0, 4).map((d) => {
+              const style = URGENCY_STYLE[d.urgency];
+              return (
+                <div key={d.projectId} className="flex items-start gap-3 px-5 py-3">
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] shrink-0 mt-0.5 ${style.bg} ${style.text}`}>
+                    {style.label}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] font-medium text-[#1A1A1A] leading-snug">
+                      <span className="text-[#9B9B95] font-normal">{d.projectName} · </span>
+                      {d.nextAction}
+                    </p>
+                    <p className="text-[11px] text-[#9B9B95] mt-0.5">{d.reason}</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {d.blocker && (
+                      <span className="text-[10px] font-semibold text-[#DC2626] bg-[#FEE2E2] px-1.5 py-0.5 rounded">Bloqueio</span>
+                    )}
+                    <Link
+                      href={d.route}
+                      className="h-6 px-2.5 rounded-[5px] text-[11px] font-medium border border-[#E5E5E2] text-[#6B6B65] hover:border-[#5B5BD6] hover:text-[#5B5BD6] transition-colors whitespace-nowrap inline-flex items-center"
+                    >
+                      {d.role} →
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="px-5 py-4 text-center text-[13px] text-[#9B9B95]">
+            Nenhum projeto ativo encontrado.
+          </div>
+        )}
       </div>
 
       {/* System Doctor compact card */}

@@ -361,7 +361,17 @@ export interface ActivityEvent {
     | "deliverable_updated"
     | "client_created"
     | "briefing_created"
-    | "orchestrator_approved";
+    | "orchestrator_approved"
+    | "proposal_sent"
+    | "proposal_approved"
+    | "proposal_rejected"
+    | "deliverable_approved"
+    | "change_requested"
+    | "revision_resolved"
+    | "brand_update_applied"
+    | "brand_update_submitted"
+    | "material_request_created"
+    | "strategy_room_generated";
   message: string;
   timestamp: string;
   projectId?: string;
