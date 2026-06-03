@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Locale } from "@/lib/i18n";
+import type { AgencyRole } from "@/lib/agency/roles";
 import {
   Client,
   Project,
@@ -30,6 +31,23 @@ import { generateClientRequirements, MOCK_MATERIAL_REQUESTS } from "@/lib/agency
 import { inferOwnerAgent } from "@/lib/agency/deliverables";
 import { generateStrategyRoomForProject } from "@/lib/agency/strategy-room";
 import { isValidProposalPricing } from "@/lib/agency/reporting";
+
+// ─── Brand Update ─────────────────────────────────────────────────────────────
+// A pending brand suggestion from the client portal, a manual internal edit,
+// or an uploaded Brand Book. NOT applied to BrandBrain until reviewed internally.
+
+export interface BrandUpdate {
+  id: string;
+  clientId: string;
+  field: string;          // keyof BrandBrain | "general" | "brand_book"
+  suggestedValue: string;
+  currentValue?: string;
+  source: "client" | "manual" | "upload";
+  status: "pending" | "reviewed" | "applied";
+  submittedAt: string;
+  note?: string;
+  fileName?: string;      // for upload source
+}
 
 // ─── QA Test Run ──────────────────────────────────────────────────────────────
 
@@ -119,6 +137,17 @@ interface AgencyState {
   updateStrategyRoom: (projectId: string, updates: Partial<StrategyRoom>) => void;
   clearStrategyRoom: (projectId: string) => void;
 
+  // Role simulation (internal testing only — no real auth)
+  currentRole: AgencyRole;
+  setCurrentRole: (role: AgencyRole) => void;
+
+  // Brand Updates (pending suggestions from client / upload / manual)
+  brandUpdates: BrandUpdate[];
+  addBrandUpdate: (update: Omit<BrandUpdate, "id" | "submittedAt">) => string;
+  reviewBrandUpdate: (id: string) => void;
+  applyBrandUpdate: (id: string) => void;
+  dismissBrandUpdate: (id: string) => void;
+
   // System
   addActivity: (event: Omit<ActivityEvent, "id" | "timestamp">) => void;
   resetStore: () => void;
@@ -140,10 +169,49 @@ export const useAgencyStore = create<AgencyState>()(
       materialRequests: MOCK_MATERIAL_REQUESTS,
       testRuns: [],
       strategyRooms: [],
+      currentRole: "master" as AgencyRole,
+      brandUpdates: [],
 
       // ── i18n ─────────────────────────────────────────────────────────────
       locale: "pt-BR" as Locale,
       setLocale: (locale) => set({ locale }),
+
+      // ── Role simulation ───────────────────────────────────────────────────
+      setCurrentRole: (role) => set({ currentRole: role }),
+
+      // ── Brand Updates ─────────────────────────────────────────────────────
+      addBrandUpdate: (update) => {
+        const id = `bu${uid()}`;
+        const entry: BrandUpdate = { ...update, id, submittedAt: new Date().toISOString() };
+        set((s) => ({ brandUpdates: [entry, ...s.brandUpdates] }));
+        return id;
+      },
+      reviewBrandUpdate: (id) =>
+        set((s) => ({
+          brandUpdates: s.brandUpdates.map((u) => u.id === id ? { ...u, status: "reviewed" } : u),
+        })),
+      applyBrandUpdate: (id) =>
+        set((s) => {
+          const update = s.brandUpdates.find((u) => u.id === id);
+          if (!update || update.source === "upload" || update.field === "general" || update.field === "brand_book") {
+            return {
+              brandUpdates: s.brandUpdates.map((u) => u.id === id ? { ...u, status: "applied" } : u),
+            };
+          }
+          const clients = s.clients.map((c) => {
+            if (c.id !== update.clientId) return c;
+            return {
+              ...c,
+              brandBrain: { ...(c.brandBrain ?? {}), [update.field]: update.suggestedValue } as typeof c.brandBrain,
+            };
+          });
+          return {
+            clients,
+            brandUpdates: s.brandUpdates.map((u) => u.id === id ? { ...u, status: "applied" } : u),
+          };
+        }),
+      dismissBrandUpdate: (id) =>
+        set((s) => ({ brandUpdates: s.brandUpdates.filter((u) => u.id !== id) })),
 
       // ── Agent handoff ─────────────────────────────────────────────────────
       pendingDesignContract: null,
@@ -651,6 +719,8 @@ export const useAgencyStore = create<AgencyState>()(
           materialRequests: [],
           testRuns: [],
           strategyRooms: [],
+          brandUpdates: [],
+          currentRole: "master",
         });
       },
     }),
@@ -667,6 +737,8 @@ export const useAgencyStore = create<AgencyState>()(
         locale: s.locale,
         testRuns: s.testRuns,
         strategyRooms: s.strategyRooms,
+        currentRole: s.currentRole,
+        brandUpdates: s.brandUpdates,
       }),
     }
   )

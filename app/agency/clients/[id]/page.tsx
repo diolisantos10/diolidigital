@@ -18,6 +18,7 @@ import {
 import type { OperationalRisk } from "@/lib/agency/workspace";
 import { getClientAgentContext } from "@/lib/agency/workspace";
 import { getClientProgress } from "@/lib/agency/reporting";
+import { getRolePermissions, BRAND_FIELD_LABELS } from "@/lib/agency/roles";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -73,11 +74,13 @@ function initials(name: string): string {
 
 export default function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { clients, projects, tasks, deliverables, activity, materialRequests, updateClient } = useAgencyStore();
+  const { clients, projects, tasks, deliverables, activity, materialRequests, updateClient,
+          currentRole, brandUpdates, addBrandUpdate, applyBrandUpdate, dismissBrandUpdate } = useAgencyStore();
   const [editOpen, setEditOpen] = useState(false);
   const [brainEditing, setBrainEditing] = useState(false);
   const [brainDraft, setBrainDraft] = useState<BrandBrain | null>(null);
   const [brainSaved, setBrainSaved] = useState(false);
+  const [uploadMsg, setUploadMsg] = useState<string | null>(null);
   const portalUrl = `/portal/client/${id}`;
 
   const client = clients.find((c) => c.id === id);
@@ -87,6 +90,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
     businessSummary: "", positioning: "", targetAudience: "", toneOfVoice: "",
     visualStyle: "", brandRules: "", productsToHighlight: "", thingsToAvoid: "",
     preferredChannels: "", strategicNotes: "",
+    colors: "", fonts: "", references: "",
   };
   const activeBrainDraft: BrandBrain = brainDraft ?? client.brandBrain ?? EMPTY_BRAIN;
 
@@ -96,6 +100,26 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
     setBrainSaved(true);
     setTimeout(() => setBrainSaved(false), 3000);
   };
+
+  const handleBrandBookUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    addBrandUpdate({
+      clientId: id,
+      field: "brand_book",
+      suggestedValue: file.name,
+      source: "upload",
+      status: "pending",
+      fileName: file.name,
+      note: "Brand Book enviado para análise.",
+    });
+    setUploadMsg(`"${file.name}" recebido. Análise automática de Brand Book será adicionada na próxima etapa.`);
+    setTimeout(() => setUploadMsg(null), 5000);
+    e.target.value = "";
+  };
+
+  const perms = getRolePermissions(currentRole);
+  const clientBrandUpdates = brandUpdates.filter((u) => u.clientId === id);
 
   // ── Derived collections ─────────────────────────────────────────────────────
   const clientProjects = projects.filter((p) => p.clientId === id);
@@ -163,17 +187,20 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
 
   // ── Agent context readiness ──────────────────────────────────────────────────
   const agentCtx = getClientAgentContext(client);
-  const BRAIN_FIELDS: { key: keyof BrandBrain; label: string; placeholder: string }[] = [
+  const BRAIN_FIELDS: { key: keyof BrandBrain; label: string; placeholder: string; internal?: boolean }[] = [
     { key: "businessSummary",     label: "Resumo do Negócio",       placeholder: "O que o negócio é, o que vende, por que existe" },
     { key: "positioning",         label: "Posicionamento",          placeholder: "Posição no mercado e proposta de valor única" },
     { key: "targetAudience",      label: "Público-Alvo",            placeholder: "Com quem a marca está falando" },
     { key: "toneOfVoice",         label: "Tom de Voz",              placeholder: "Como a marca se comunica" },
-    { key: "visualStyle",         label: "Estilo Visual",           placeholder: "Direção visual, cores, referências estéticas" },
+    { key: "visualStyle",         label: "Estilo Visual",           placeholder: "Direção visual, estética e referências de design" },
+    { key: "colors",              label: "Cores da Marca",          placeholder: "Paleta de cores com códigos hex — ex.: Preto #111111, Laranja #E85D04" },
+    { key: "fonts",               label: "Tipografia",              placeholder: "Fontes para títulos, corpo e dados — ex.: Inter Bold (títulos)" },
+    { key: "references",          label: "Referências e Assets",    placeholder: "Referências visuais, localização de arquivos, links de brand book" },
     { key: "brandRules",          label: "Regras de Marca",         placeholder: "Inegociáveis — sempre seguir" },
     { key: "productsToHighlight", label: "Produtos em Destaque",    placeholder: "Produtos / serviços principais para destacar no conteúdo" },
     { key: "thingsToAvoid",       label: "O que Evitar",            placeholder: "Palavras, tons, referências para nunca usar" },
     { key: "preferredChannels",   label: "Canais Preferenciais",    placeholder: "Canais com melhor desempenho para esta marca" },
-    { key: "strategicNotes",      label: "Notas Estratégicas",      placeholder: "Contexto interno da agência, histórico, ressalvas" },
+    { key: "strategicNotes",      label: "Notas Estratégicas",      placeholder: "Contexto interno da agência, histórico, ressalvas", internal: true },
   ];
 
   // ── Edit form ───────────────────────────────────────────────────────────────
@@ -491,44 +518,71 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
             )}
           </div>
 
-          {/* ── Brand Brain ──────────────────────────────────────────────────── */}
+          {/* ── Brand Hub ──────────────────────────────────────────────────── */}
           <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0F0ED]">
               <div className="flex items-center gap-2.5">
-                <h2 className="text-[14px] font-semibold text-[#1A1A1A]">Brand Brain</h2>
+                <h2 className="text-[14px] font-semibold text-[#1A1A1A]">Brand Hub</h2>
                 <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
-                  agentCtx.brandBrainReadiness === 10
+                  agentCtx.brandBrainReadiness >= 13
                     ? "bg-[#DCFCE7] text-[#16A34A]"
-                    : agentCtx.brandBrainReadiness >= 5
+                    : agentCtx.brandBrainReadiness >= 7
                     ? "bg-[#FEF3C7] text-[#D97706]"
                     : "bg-[#F0F0ED] text-[#9B9B95]"
                 }`}>
-                  {agentCtx.brandBrainReadiness}/10
+                  {agentCtx.brandBrainReadiness}/13
                 </span>
                 {brainSaved && (
                   <span className="text-[11px] text-[#16A34A] font-medium">✓ Salvo</span>
                 )}
+                {clientBrandUpdates.filter((u) => u.status === "pending").length > 0 && (
+                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#D97706]">
+                    {clientBrandUpdates.filter((u) => u.status === "pending").length} pendente(s)
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-2">
-                {brainEditing ? (
-                  <>
-                    <Button variant="ghost" onClick={() => { setBrainDraft(null); setBrainEditing(false); }}>Cancelar</Button>
-                    <Button variant="primary" onClick={handleSaveBrain}>Salvar</Button>
-                  </>
-                ) : (
-                  <Button variant="secondary" onClick={() => { setBrainDraft(client.brandBrain ?? EMPTY_BRAIN); setBrainEditing(true); }}>Editar</Button>
+                {/* Brand Book upload */}
+                <label className="cursor-pointer">
+                  <input type="file" accept=".pdf,.zip,.ai,.sketch,.fig,.png,.jpg,.zip" className="hidden" onChange={handleBrandBookUpload} />
+                  <span className="inline-flex items-center gap-1.5 h-7 px-3 rounded-[6px] text-[12px] font-medium bg-[#F7F7F6] border border-[#E5E5E2] text-[#6B6B65] hover:bg-[#EEEEEC] transition-colors cursor-pointer">
+                    ↑ Enviar Brand Book
+                  </span>
+                </label>
+                {perms.canEditBrandHub && (
+                  brainEditing ? (
+                    <>
+                      <Button variant="ghost" size="sm" onClick={() => { setBrainDraft(null); setBrainEditing(false); }}>Cancelar</Button>
+                      <Button variant="primary" size="sm" onClick={handleSaveBrain}>Salvar</Button>
+                    </>
+                  ) : (
+                    <Button variant="secondary" size="sm" onClick={() => { setBrainDraft(client.brandBrain ?? EMPTY_BRAIN); setBrainEditing(true); }}>Editar</Button>
+                  )
                 )}
               </div>
             </div>
 
+            {/* Upload confirmation */}
+            {uploadMsg && (
+              <div className="px-5 py-3 bg-[#DCFCE7] border-b border-[#DCFCE7] text-[12px] text-[#16A34A] font-medium">
+                ✓ {uploadMsg}
+              </div>
+            )}
+
             <div className="divide-y divide-[#F0F0ED]">
-              {BRAIN_FIELDS.map(({ key, label, placeholder }) => {
+              {BRAIN_FIELDS.map(({ key, label, placeholder, internal }) => {
                 const value = (client.brandBrain?.[key] ?? "") as string;
                 const draftValue = (activeBrainDraft[key] ?? "") as string;
+                if (internal && !perms.canViewStrategicNotes) return null;
                 return (
                   <div key={key} className="px-5 py-3.5">
-                    <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">{label}</div>
-                    {brainEditing ? (
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">{label}</div>
+                      {internal && (
+                        <span className="text-[9px] font-bold px-1 py-0.5 rounded-[3px] bg-[#F0F0ED] text-[#9B9B95]">Interno</span>
+                      )}
+                    </div>
+                    {brainEditing && perms.canEditBrandHub ? (
                       <textarea
                         value={draftValue}
                         onChange={(e) => setBrainDraft({ ...activeBrainDraft, [key]: e.target.value })}
@@ -545,6 +599,57 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                 );
               })}
             </div>
+
+            {/* Pending Brand Updates */}
+            {clientBrandUpdates.length > 0 && (
+              <div className="border-t border-[#E5E5E2]">
+                <div className="px-5 py-3 border-b border-[#F0F0ED] flex items-center justify-between">
+                  <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Atualizações Pendentes</div>
+                  <span className="text-[10px] text-[#9B9B95]">{clientBrandUpdates.filter(u => u.status === "pending").length} aguardando revisão</span>
+                </div>
+                <div className="divide-y divide-[#F0F0ED]">
+                  {clientBrandUpdates.slice(0, 8).map((upd) => {
+                    const srcLabel = upd.source === "client" ? "Portal do cliente" : upd.source === "upload" ? "Upload" : "Manual";
+                    const srcColor = upd.source === "client" ? "bg-[#EEF0FF] text-[#5B5BD6]" : upd.source === "upload" ? "bg-[#FEF3C7] text-[#D97706]" : "bg-[#F0F0ED] text-[#6B6B65]";
+                    const statusColor = upd.status === "applied" ? "text-[#16A34A]" : upd.status === "reviewed" ? "text-[#5B5BD6]" : "text-[#D97706]";
+                    const fieldLabel = BRAND_FIELD_LABELS[upd.field] ?? upd.field;
+                    return (
+                      <div key={upd.id} className="px-5 py-3">
+                        <div className="flex items-start justify-between gap-3 mb-1.5">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-[12px] font-medium text-[#1A1A1A]">{fieldLabel}</span>
+                            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-[4px] ${srcColor}`}>{srcLabel}</span>
+                            {upd.fileName && <span className="text-[11px] text-[#9B9B95]">{upd.fileName}</span>}
+                          </div>
+                          <span className={`text-[11px] font-semibold shrink-0 ${statusColor}`}>
+                            {upd.status === "applied" ? "Aplicado" : upd.status === "reviewed" ? "Revisado" : "Pendente"}
+                          </span>
+                        </div>
+                        {upd.source !== "upload" && (
+                          <p className="text-[12px] text-[#6B6B65] mb-2 leading-relaxed">{upd.suggestedValue}</p>
+                        )}
+                        {upd.status === "pending" && perms.canApplyBrandUpdate && (
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => applyBrandUpdate(upd.id)}
+                              className="h-6 px-2.5 rounded-[5px] text-[11px] font-medium bg-[#1A1A1A] text-white hover:bg-[#2A2A2A] transition-colors"
+                            >
+                              Aplicar ao Brand Hub
+                            </button>
+                            <button
+                              onClick={() => dismissBrandUpdate(upd.id)}
+                              className="h-6 px-2.5 rounded-[5px] text-[11px] text-[#9B9B95] hover:text-[#6B6B65] border border-[#E5E5E2] transition-colors"
+                            >
+                              Ignorar
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* ── Activity Timeline ─────────────────────────────────────────────── */}

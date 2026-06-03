@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { DeliverableStatus, ProjectStage } from "@/lib/agency/mock-data";
 import { getClientVisibleDeliverables } from "@/lib/agency/workspace";
 import { getClientProgress, getNextProjectAction } from "@/lib/agency/reporting";
+import { PORTAL_SAFE_BRAND_FIELDS, BRAND_FIELD_LABELS } from "@/lib/agency/roles";
 
 
 const STAGE_LABEL: Record<ProjectStage, string> = {
@@ -31,7 +32,8 @@ const TYPE_ICON: Record<string, string> = {
 
 export default function ClientPortalPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { clients, projects, deliverables, materialRequests, updateDeliverableStatus, setDeliverableFeedback, approveProposal, rejectProposal, requestProposalChanges } = useAgencyStore();
+  const { clients, projects, deliverables, materialRequests, updateDeliverableStatus, setDeliverableFeedback,
+          approveProposal, rejectProposal, requestProposalChanges, addBrandUpdate } = useAgencyStore();
   const cp = getClientProgress(id, projects, deliverables, materialRequests);
 
   const client = clients.find((c) => c.id === id);
@@ -49,6 +51,47 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
   const [proposalChangesText,  setProposalChangesText]  = useState<Record<string, string>>({});
   const [proposalRejectOpen,   setProposalRejectOpen]   = useState<Record<string, boolean>>({});
   const [proposalRejectText,   setProposalRejectText]   = useState<Record<string, string>>({});
+
+  // Brand section state
+  const [brandSuggestOpen,     setBrandSuggestOpen]     = useState(false);
+  const [brandSuggestField,    setBrandSuggestField]    = useState<string>(PORTAL_SAFE_BRAND_FIELDS[0]);
+  const [brandSuggestText,     setBrandSuggestText]     = useState("");
+  const [brandSuggestSent,     setBrandSuggestSent]     = useState(false);
+  const [brandUploadMsg,       setBrandUploadMsg]       = useState<string | null>(null);
+
+  const handleBrandSuggest = () => {
+    const text = brandSuggestText.trim();
+    if (!text) return;
+    addBrandUpdate({
+      clientId: id,
+      field: brandSuggestField,
+      suggestedValue: text,
+      currentValue: (client.brandBrain as Record<string, string> | undefined)?.[brandSuggestField] ?? "",
+      source: "client",
+      status: "pending",
+    });
+    setBrandSuggestText("");
+    setBrandSuggestSent(true);
+    setBrandSuggestOpen(false);
+    setTimeout(() => setBrandSuggestSent(false), 4000);
+  };
+
+  const handleBrandBookUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    addBrandUpdate({
+      clientId: id,
+      field: "brand_book",
+      suggestedValue: file.name,
+      source: "upload",
+      status: "pending",
+      fileName: file.name,
+      note: "Brand Book enviado pelo cliente para análise.",
+    });
+    setBrandUploadMsg(`"${file.name}" recebido. Nossa equipe irá analisá-lo e incorporar as informações ao seu Brand Hub.`);
+    setTimeout(() => setBrandUploadMsg(null), 5000);
+    e.target.value = "";
+  };
 
   const handleApprove = (deliverableId: string) => {
     updateDeliverableStatus(deliverableId, "approved");
@@ -472,6 +515,122 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
           </div>
         </div>
       )}
+
+      {/* ── Informações da Marca ─────────────────────────────────────────────── */}
+      {/* Client can view safe brand fields and suggest updates — never sees internal/strategic fields */}
+      <div className="mt-12 border-t border-[#F0F0ED] pt-10">
+        <div className="flex items-start justify-between mb-2">
+          <div>
+            <h2 className="text-[15px] font-semibold text-[#1A1A1A]">Informações da Marca</h2>
+            <p className="text-[12px] text-[#9B9B95] mt-1">
+              Confira as informações que usamos para criar conteúdo para a sua marca. Se algo estiver desatualizado, clique em "Sugerir Atualização".
+            </p>
+          </div>
+        </div>
+
+        {/* Success message */}
+        {brandSuggestSent && (
+          <div className="mb-4 px-4 py-3 bg-[#DCFCE7] rounded-[8px] text-[13px] text-[#16A34A] font-medium">
+            ✓ Sugestão enviada. Nossa equipe irá revisar e atualizar as informações.
+          </div>
+        )}
+        {brandUploadMsg && (
+          <div className="mb-4 px-4 py-3 bg-[#EEF0FF] rounded-[8px] text-[13px] text-[#5B5BD6] font-medium">
+            ✓ {brandUploadMsg}
+          </div>
+        )}
+
+        {/* Safe brand fields */}
+        {client.brandBrain ? (
+          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] divide-y divide-[#F0F0ED] mb-4">
+            {PORTAL_SAFE_BRAND_FIELDS.map((field) => {
+              const value = (client.brandBrain as Record<string, string> | undefined)?.[field];
+              if (!value) return null;
+              return (
+                <div key={field} className="px-5 py-3.5">
+                  <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1">
+                    {BRAND_FIELD_LABELS[field] ?? field}
+                  </div>
+                  <p className="text-[13px] text-[#1A1A1A] leading-relaxed">{value}</p>
+                </div>
+              );
+            })}
+            {PORTAL_SAFE_BRAND_FIELDS.every((f) => !(client.brandBrain as Record<string, string> | undefined)?.[f]) && (
+              <div className="px-5 py-8 text-center text-[13px] text-[#9B9B95]">
+                Nenhuma informação de marca cadastrada ainda. Envie seu Brand Book ou preencha as informações com a equipe.
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-5 py-8 text-center text-[13px] text-[#9B9B95] mb-4">
+            Nenhuma informação de marca cadastrada ainda.
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex flex-wrap gap-3">
+          {!brandSuggestOpen ? (
+            <button
+              onClick={() => setBrandSuggestOpen(true)}
+              className="h-8 px-4 rounded-[7px] border border-[#E5E5E2] text-[13px] font-medium text-[#1A1A1A] hover:bg-[#F7F7F6] transition-colors"
+            >
+              Sugerir Atualização
+            </button>
+          ) : null}
+
+          <label className="cursor-pointer">
+            <input type="file" accept=".pdf,.zip,.ai,.fig,.png,.jpg" className="hidden" onChange={handleBrandBookUpload} />
+            <span className="inline-flex items-center h-8 px-4 rounded-[7px] border border-[#E5E5E2] text-[13px] font-medium text-[#1A1A1A] hover:bg-[#F7F7F6] transition-colors cursor-pointer">
+              ↑ Enviar Brand Book
+            </span>
+          </label>
+        </div>
+
+        {/* Suggestion form */}
+        {brandSuggestOpen && (
+          <div className="mt-4 bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5 space-y-4">
+            <div className="text-[13px] font-semibold text-[#1A1A1A]">Sugerir atualização de marca</div>
+            <div>
+              <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Qual informação deseja atualizar?</label>
+              <select
+                value={brandSuggestField}
+                onChange={(e) => setBrandSuggestField(e.target.value)}
+                className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
+              >
+                {PORTAL_SAFE_BRAND_FIELDS.map((f) => (
+                  <option key={f} value={f}>{BRAND_FIELD_LABELS[f] ?? f}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Sua sugestão</label>
+              <textarea
+                value={brandSuggestText}
+                onChange={(e) => setBrandSuggestText(e.target.value)}
+                placeholder="Descreva o que mudou ou o que está incorreto. Nossa equipe irá revisar antes de aplicar."
+                rows={3}
+                autoFocus
+                className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white resize-none"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleBrandSuggest}
+                disabled={!brandSuggestText.trim()}
+                className="h-8 px-4 rounded-[7px] bg-[#1A1A1A] hover:bg-[#2A2A2A] disabled:opacity-40 text-white text-[12px] font-medium transition-colors"
+              >
+                Enviar Sugestão
+              </button>
+              <button
+                onClick={() => { setBrandSuggestOpen(false); setBrandSuggestText(""); }}
+                className="h-8 px-3 rounded-[7px] border border-[#E5E5E2] text-[#9B9B95] hover:text-[#6B6B65] text-[12px] transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </>
   );
 }

@@ -3,10 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslation } from "@/lib/i18n";
+import { useAgencyStore } from "@/store/agency-store";
+import { AGENCY_ROLE_OPTIONS, isNavAllowed, type AgencyRole } from "@/lib/agency/roles";
 
 export default function AgencySidebar() {
   const path = usePathname();
   const { t } = useTranslation();
+  const { currentRole, setCurrentRole } = useAgencyStore();
 
   const NAV = [
     {
@@ -75,52 +78,73 @@ export default function AgencySidebar() {
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-0.5">
-        {NAV.map((section, i) => (
-          <div key={i} className={i > 0 ? "mt-5" : ""}>
-            {section.group && (
-              <div className="px-2 py-1.5 mb-1">
-                <span className="text-[10px] font-semibold tracking-[0.08em] text-[#4A4A44] uppercase">
-                  {section.group}
-                </span>
-              </div>
-            )}
-            {section.items.map((item) => {
-              const active = path === item.href || (item.href !== "/agency/dashboard" && path.startsWith(item.href));
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`
-                    group flex items-center gap-2.5 px-2 py-[7px] rounded-[6px] text-[13px] font-medium relative
-                    transition-all duration-100
-                    ${active
-                      ? "bg-white/[0.08] text-white"
-                      : "text-[#6B6B65] hover:bg-white/[0.04] hover:text-[#C0C0BA]"
-                    }
-                  `}
-                >
-                  {active && (
-                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[18px] bg-[#5B5BD6] rounded-r-full" />
-                  )}
-                  <item.icon
-                    size={15}
-                    className={active ? "text-white" : "text-[#4A4A44] group-hover:text-[#8A8A84]"}
-                  />
-                  {item.label}
-                </Link>
-              );
-            })}
-          </div>
-        ))}
+        {NAV.map((section, i) => {
+          const visibleItems = section.items.filter((item) => isNavAllowed(currentRole, item.href));
+          if (visibleItems.length === 0) return null;
+          return (
+            <div key={i} className={i > 0 ? "mt-5" : ""}>
+              {section.group && (
+                <div className="px-2 py-1.5 mb-1">
+                  <span className="text-[10px] font-semibold tracking-[0.08em] text-[#4A4A44] uppercase">
+                    {section.group}
+                  </span>
+                </div>
+              )}
+              {visibleItems.map((item) => {
+                const active = path === item.href || (item.href !== "/agency/dashboard" && path.startsWith(item.href));
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`
+                      group flex items-center gap-2.5 px-2 py-[7px] rounded-[6px] text-[13px] font-medium relative
+                      transition-all duration-100
+                      ${active
+                        ? "bg-white/[0.08] text-white"
+                        : "text-[#6B6B65] hover:bg-white/[0.04] hover:text-[#C0C0BA]"
+                      }
+                    `}
+                  >
+                    {active && (
+                      <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[18px] bg-[#5B5BD6] rounded-r-full" />
+                    )}
+                    <item.icon
+                      size={15}
+                      className={active ? "text-white" : "text-[#4A4A44] group-hover:text-[#8A8A84]"}
+                    />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+          );
+        })}
       </nav>
 
       {/* Bottom */}
       <div className="px-4 py-4 border-t border-white/[0.06] shrink-0 space-y-3">
+        {/* Role simulator — internal testing only */}
+        <div>
+          <div className="text-[9px] font-semibold text-[#4A4A44] uppercase tracking-[0.08em] mb-1.5 px-0.5">
+            Visualizar como
+          </div>
+          <select
+            value={currentRole}
+            onChange={(e) => setCurrentRole(e.target.value as AgencyRole)}
+            className="w-full text-[11px] bg-[#1C1C1C] border border-white/[0.08] text-[#9B9B95] rounded-[6px] px-2 py-1.5 outline-none cursor-pointer hover:border-white/[0.15] transition-colors"
+          >
+            {AGENCY_ROLE_OPTIONS.map((r) => (
+              <option key={r.id} value={r.id}>{r.label}</option>
+            ))}
+          </select>
+        </div>
+
         {/* Pilot mode — data persists only in this browser (no production backend yet) */}
         <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-[6px] bg-[#D97706]/10">
           <span className="w-1.5 h-1.5 rounded-full bg-[#D97706] shrink-0" />
           <span className="text-[10px] font-medium text-[#D9A066] truncate">Modo piloto — dados locais</span>
         </div>
+
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-full bg-[#5B5BD6]/20 flex items-center justify-center text-[11px] font-semibold text-[#5B5BD6]">
             D

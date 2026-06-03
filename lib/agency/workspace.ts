@@ -348,6 +348,7 @@ export function getClientAgentContext(client: Client): AgentClientContext {
     "businessSummary", "positioning", "targetAudience", "toneOfVoice",
     "visualStyle", "brandRules", "productsToHighlight", "thingsToAvoid",
     "preferredChannels", "strategicNotes",
+    "colors", "fonts", "references",
   ];
   const filledCount = brain
     ? brainFields.filter((k) => brain[k] && (brain[k] as string).trim().length > 0).length

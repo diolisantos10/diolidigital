@@ -35,6 +35,10 @@ export interface BrandBrain {
   thingsToAvoid: string;         // Words, tones, references, competitors to never use
   preferredChannels: string;     // Best-performing or priority channels for this brand
   strategicNotes: string;        // Agency-only context — ongoing strategy, history, caveats
+  // Brand Hub extended fields (V1)
+  colors?: string;               // Brand color palette with hex codes
+  fonts?: string;                // Typography system: headings, body, accent
+  references?: string;           // Visual references, asset locations, brand book links
 }
 
 export interface Client {
@@ -306,6 +310,9 @@ export const MOCK_CLIENTS: Client[] = [
       thingsToAvoid: "Hype genérico de IA: 'revolucionário', 'disruptivo', 'transformador'. Linguagem barata ou promocional demais. Jargão técnico que afasta o cliente leigo. Excesso de emojis ou informalidade excessiva. Qualquer coisa que pareça agência pequena tentando parecer grande.",
       preferredChannels: "Instagram (principal — reels e carrossel para autoridade e alcance). LinkedIn (para founders e decisores B2B). WhatsApp (relacionamento e fechamento). Site (conversão e portfólio).",
       strategicNotes: "Projeto de lançamento em andamento — piloto interno sendo gerenciado nesta plataforma. Meta para os primeiros 90 dias: 3 clientes pagantes em retainer. Comunicação deve equilibrar narrativa de IA com a humanidade da equipe. Fundador quer posicionamento premium desde o início, sem entrar em guerra de preço.",
+      colors: "Preto #111111 (base e texto), Laranja #E85D04 (acento principal — CTAs, ícones, destaques), Branco #FFFFFF (fundos e espaço em branco), Cinza Claro #F7F7F6 (backgrounds secundários). Regra: laranja é acento — nunca usar como cor de fundo dominante.",
+      fonts: "Títulos: Inter Bold (700) ou alternativa sem-serif moderna de alta legibilidade. Corpo de texto: Inter Regular (400). Números e dados: fonte monospace. Regra: nunca fontes decorativas, script ou serifadas — a identidade é tech-premium, não editorial.",
+      references: "Referências de tom visual: Apple.com (clareza e espaço em branco generoso), Linear.app (UI minimalista e tech), Stripe (copy direta + premium sem pedantismo). Assets disponíveis: logo entregue pelo fundador (arquivos na pasta /brand-assets). Manual de identidade visual: a ser gerado pela equipe de design como entrega d17.",
     },
   },
   {
