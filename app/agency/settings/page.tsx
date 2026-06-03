@@ -1,51 +1,89 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useAgencyStore } from "@/store/agency-store";
 import { useTranslation } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import Button from "@/components/agency/ui/Button";
-import {
-  getReadinessSignals,
-  getPilotDataStatus,
-  READINESS_WARNINGS,
-  SMOKE_STEPS,
-  type ReadinessLevel,
-} from "@/lib/agency/readiness";
+import { runSystemDoctor, CHECK_GROUP_ORDER, type DiagnosticReport, type CheckStatus, type CheckSeverity } from "@/lib/agency/system-doctor";
+import { getPilotDataStatus } from "@/lib/agency/readiness";
 
-const LEVEL_DOT: Record<ReadinessLevel, string> = {
-  ok: "bg-[#16A34A]",
-  warning: "bg-[#D97706]",
-  info: "bg-[#5B5BD6]",
+// ─── Status / severity display maps ──────────────────────────────────────────
+
+const STATUS_LABEL: Record<CheckStatus, string> = {
+  pass: "Tudo certo",
+  warning: "Atenção",
+  fail: "Falha crítica",
+  info: "Informação",
 };
 
+const STATUS_COLOR: Record<CheckStatus, { dot: string; badge: string; border: string }> = {
+  pass:    { dot: "bg-[#16A34A]", badge: "bg-[#DCFCE7] text-[#16A34A]", border: "border-[#DCFCE7]" },
+  warning: { dot: "bg-[#D97706]", badge: "bg-[#FEF3C7] text-[#D97706]", border: "border-[#FEF3C7]" },
+  fail:    { dot: "bg-[#DC2626]", badge: "bg-[#FEE2E2] text-[#DC2626]", border: "border-[#FEE2E2]" },
+  info:    { dot: "bg-[#5B5BD6]", badge: "bg-[#EEF0FF] text-[#5B5BD6]", border: "border-[#EEF0FF]" },
+};
+
+const OVERALL_COLOR: Record<DiagnosticReport["overallStatus"], { ring: string; score: string; label: string; labelColor: string }> = {
+  healthy:  { ring: "stroke-[#16A34A]", score: "text-[#16A34A]", label: "Sistema saudável",  labelColor: "text-[#16A34A]" },
+  degraded: { ring: "stroke-[#D97706]", score: "text-[#D97706]", label: "Atenção necessária", labelColor: "text-[#D97706]" },
+  critical: { ring: "stroke-[#DC2626]", score: "text-[#DC2626]", label: "Falha crítica",      labelColor: "text-[#DC2626]" },
+};
+
+// ─── Score ring ───────────────────────────────────────────────────────────────
+
+function ScoreRing({ score, status }: { score: number; status: DiagnosticReport["overallStatus"] }) {
+  const { ring, score: scoreColor } = OVERALL_COLOR[status];
+  const r = 28;
+  const circ = 2 * Math.PI * r;
+  const offset = circ * (1 - score / 100);
+  return (
+    <div className="relative w-[72px] h-[72px] shrink-0">
+      <svg className="w-full h-full -rotate-90" viewBox="0 0 72 72">
+        <circle cx="36" cy="36" r={r} fill="none" strokeWidth="5" className="stroke-[#F0F0ED]" />
+        <circle
+          cx="36" cy="36" r={r} fill="none" strokeWidth="5"
+          strokeDasharray={circ}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          className={`${ring} transition-all duration-700`}
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className={`text-[15px] font-bold mono-num ${scoreColor}`}>{score}</span>
+      </div>
+    </div>
+  );
+}
+
 export default function SettingsPage() {
-  const { clients, projects, tasks, deliverables, briefings, resetStore, loadPilotData, clearAllData } =
-    useAgencyStore();
+  const { clients, projects, tasks, deliverables, briefings, materialRequests, strategyRooms,
+          resetStore, loadPilotData, clearAllData } = useAgencyStore();
   const { t, locale, setLocale } = useTranslation();
   const [confirmReset, setConfirmReset] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const [persisted, setPersisted] = useState(false);
-  const [smokeChecked, setSmokeChecked] = useState<Record<string, boolean>>({});
+  const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
 
-  // Persistence is a client-only signal (localStorage isn't available on the server).
   useEffect(() => {
-    try {
-      setPersisted(!!window.localStorage.getItem("agency-os-v1"));
-    } catch {
-      setPersisted(false);
-    }
+    try { setPersisted(!!window.localStorage.getItem("agency-os-v1")); }
+    catch { setPersisted(false); }
   }, [clients, projects, deliverables]);
 
-  const handleReset = () => {
-    resetStore();
-    setConfirmReset(false);
-  };
-  const handleClear = () => {
-    clearAllData();
-    setConfirmClear(false);
-  };
+  const report = runSystemDoctor({ clients, projects, deliverables, materialRequests, strategyRooms, persisted });
+  const pilot = getPilotDataStatus(clients, projects, deliverables);
+  const { score, pass, warning, fail, info, topAction, overallStatus, checks } = report;
+  const oc = OVERALL_COLOR[overallStatus];
+
+  const grouped = CHECK_GROUP_ORDER.map((group) => ({
+    group,
+    checks: checks.filter((c) => c.group === group),
+  }));
+
+  const handleReset = () => { resetStore(); setConfirmReset(false); };
+  const handleClear = () => { clearAllData(); setConfirmClear(false); };
 
   const stats = [
     { label: t.settings.labels.clients, value: clients.length },
@@ -60,98 +98,133 @@ export default function SettingsPage() {
     { value: "en", label: "English", flag: "🇺🇸" },
   ];
 
-  const signals = getReadinessSignals({ clients, projects, deliverables, persisted });
-  const pilot = getPilotDataStatus(clients, projects, deliverables);
-  const smokeDoneCount = SMOKE_STEPS.filter((s) => smokeChecked[s.id]).length;
-
   return (
     <>
-      <AgencyHeader
-        title={t.settings.title}
-        subtitle={t.settings.subtitle}
-      />
+      <AgencyHeader title={t.settings.title} subtitle={t.settings.subtitle} />
 
       <div className="max-w-2xl space-y-6">
 
-        {/* ── Deployment Readiness (internal only) ───────────────────────────── */}
-        <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-6 py-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-          <div className="flex items-center justify-between mb-4">
-            <div className="text-[12px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">
-              Prontidão para Produção
-            </div>
-            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-[4px] bg-[#EEF0FF] text-[#5B5BD6]">
-              Interno
-            </span>
-          </div>
-          <div className="space-y-2.5">
-            {signals.map((sig) => (
-              <div key={sig.id} className="flex items-start gap-2.5">
-                <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${LEVEL_DOT[sig.level]}`} />
-                <div className="flex-1 min-w-0">
-                  <div className="text-[13px] text-[#1A1A1A] font-medium">{sig.label}</div>
-                  <div className="text-[12px] text-[#6B6B65] leading-relaxed">{sig.value}</div>
-                </div>
+        {/* ── Diagnóstico Automático ──────────────────────────────────────────── */}
+        <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+          {/* Header + summary */}
+          <div className="px-6 py-5 border-b border-[#F0F0ED]">
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-[12px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">
+                Diagnóstico Automático
               </div>
-            ))}
-          </div>
-
-          {/* Internal warnings */}
-          <div className="mt-5 pt-4 border-t border-[#E5E5E2] space-y-3">
-            {READINESS_WARNINGS.map((w) => (
-              <div
-                key={w.id}
-                className="rounded-[8px] border border-[#FDE7C7] bg-[#FFFBF4] px-3.5 py-3"
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[12px]">⚠️</span>
-                  <span className="text-[12px] font-semibold text-[#9A5B00]">{w.title}</span>
-                </div>
-                <p className="text-[12px] text-[#8A6A3A] leading-relaxed">{w.detail}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ── Production Smoke Prep ───────────────────────────────────────────── */}
-        <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-6 py-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-          <div className="flex items-center justify-between mb-1">
-            <div className="text-[12px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">
-              Checklist de Smoke (Produção)
+              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-[4px] bg-[#EEF0FF] text-[#5B5BD6]">
+                Interno · Tempo real
+              </span>
             </div>
-            <span className="text-[12px] text-[#9B9B95] mono-num">
-              {smokeDoneCount}/{SMOKE_STEPS.length}
-            </span>
-          </div>
-          <p className="text-[12px] text-[#9B9B95] leading-relaxed mb-4">
-            Verificação manual do operador antes de liberar o piloto. Marcações ficam apenas nesta sessão.
-          </p>
-          <div className="space-y-1.5">
-            {SMOKE_STEPS.map((s) => {
-              const done = !!smokeChecked[s.id];
-              return (
-                <button
-                  key={s.id}
-                  onClick={() => setSmokeChecked((prev) => ({ ...prev, [s.id]: !prev[s.id] }))}
-                  className="w-full flex items-start gap-2.5 text-left px-2 py-1.5 rounded-[6px] hover:bg-[#F7F7F6] transition-colors"
-                >
-                  <span
-                    className={`w-4 h-4 rounded-[4px] border flex items-center justify-center mt-0.5 shrink-0 ${
-                      done ? "bg-[#16A34A] border-[#16A34A]" : "border-[#C0C0BA] bg-white"
-                    }`}
-                  >
-                    {done && (
-                      <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-                        <path d="M2.5 6.5l2.5 2.5 4.5-5" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    )}
+            <div className="flex items-center gap-5">
+              <ScoreRing score={score} status={overallStatus} />
+              <div className="flex-1 min-w-0">
+                <div className={`text-[15px] font-semibold mb-1 ${oc.labelColor}`}>{oc.label}</div>
+                <div className="flex items-center gap-3 mb-2.5">
+                  <span className="text-[12px] text-[#6B6B65] mono-num">
+                    <span className="font-semibold text-[#16A34A]">{pass}</span> ok ·{" "}
+                    <span className="font-semibold text-[#D97706]">{warning}</span> atenção ·{" "}
+                    <span className="font-semibold text-[#DC2626]">{fail}</span> falha ·{" "}
+                    <span className="font-semibold text-[#5B5BD6]">{info}</span> info
                   </span>
-                  <div className="flex-1 min-w-0">
-                    <div className={`text-[13px] font-medium ${done ? "text-[#9B9B95] line-through" : "text-[#1A1A1A]"}`}>
-                      {s.label}
-                    </div>
-                    <div className="text-[12px] text-[#9B9B95]">{s.hint}</div>
+                </div>
+                {(fail > 0 || warning > 0) && (
+                  <div className="flex items-start gap-2 bg-[#F7F7F6] rounded-[7px] px-3 py-2">
+                    <svg className="w-3.5 h-3.5 text-[#D97706] shrink-0 mt-0.5" viewBox="0 0 16 16" fill="none">
+                      <path d="M8 2L1 14h14L8 2z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
+                      <path d="M8 7v3M8 11.5v.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+                    </svg>
+                    <p className="text-[11px] text-[#6B6B65] leading-relaxed flex-1">
+                      <span className="font-medium text-[#1A1A1A]">Ação recomendada:</span>{" "}{topAction}
+                    </p>
                   </div>
-                </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Grouped checks */}
+          <div className="divide-y divide-[#F7F7F6]">
+            {grouped.map(({ group, checks: gChecks }) => {
+              const isOpen = expandedGroup === group;
+              const groupFail = gChecks.filter((c) => c.status === "fail").length;
+              const groupWarn = gChecks.filter((c) => c.status === "warning").length;
+              const groupPass = gChecks.filter((c) => c.status === "pass").length;
+
+              const groupSummaryStatus: CheckStatus =
+                groupFail > 0 ? "fail" : groupWarn > 0 ? "warning" : "pass";
+
+              return (
+                <div key={group}>
+                  <button
+                    className="w-full flex items-center gap-3 px-6 py-3 hover:bg-[#FAFAFA] transition-colors text-left"
+                    onClick={() => setExpandedGroup(isOpen ? null : group)}
+                  >
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${STATUS_COLOR[groupSummaryStatus].dot}`} />
+                    <span className="flex-1 text-[13px] font-medium text-[#1A1A1A]">{group}</span>
+                    <div className="flex items-center gap-1.5">
+                      {groupFail > 0 && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] bg-[#FEE2E2] text-[#DC2626]">
+                          {groupFail} falha{groupFail > 1 ? "s" : ""}
+                        </span>
+                      )}
+                      {groupWarn > 0 && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] bg-[#FEF3C7] text-[#D97706]">
+                          {groupWarn} atenção
+                        </span>
+                      )}
+                      {groupFail === 0 && groupWarn === 0 && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] bg-[#DCFCE7] text-[#16A34A]">
+                          {groupPass} ok
+                        </span>
+                      )}
+                    </div>
+                    <svg
+                      width="12" height="12" viewBox="0 0 12 12" fill="none"
+                      className={`shrink-0 text-[#9B9B95] transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                    >
+                      <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+
+                  {isOpen && (
+                    <div className="bg-[#FAFAFA] border-t border-[#F0F0ED] divide-y divide-[#F0F0ED]">
+                      {gChecks.map((check) => {
+                        const sc = STATUS_COLOR[check.status];
+                        return (
+                          <div key={check.id} className={`px-6 py-3.5 border-l-2 ${sc.border}`}>
+                            <div className="flex items-start gap-2.5 mb-1.5">
+                              <span className={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${sc.dot}`} />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-[13px] font-medium text-[#1A1A1A]">{check.label}</span>
+                                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] ${sc.badge}`}>
+                                    {STATUS_LABEL[check.status]}
+                                  </span>
+                                </div>
+                                <p className="text-[12px] text-[#6B6B65] mt-1 leading-relaxed">{check.explanation}</p>
+                                {check.status !== "pass" && check.status !== "info" && (
+                                  <div className="mt-1.5 flex items-start gap-1.5">
+                                    <span className="text-[11px] text-[#9B9B95] font-medium shrink-0">→</span>
+                                    <p className="text-[11px] text-[#5B5BD6] leading-relaxed">{check.action}</p>
+                                  </div>
+                                )}
+                              </div>
+                              {check.route && (
+                                <Link
+                                  href={check.route}
+                                  className="shrink-0 text-[11px] text-[#9B9B95] hover:text-[#5B5BD6] underline whitespace-nowrap"
+                                >
+                                  Ir →
+                                </Link>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>
@@ -239,12 +312,7 @@ export default function SettingsPage() {
                 Restaura o projeto piloto (Dioli Digital), suas entregas e tarefas sem apagar o restante do workspace.
               </div>
             </div>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => loadPilotData()}
-              disabled={pilot.available}
-            >
+            <Button variant="secondary" size="sm" onClick={() => loadPilotData()} disabled={pilot.available}>
               {pilot.available ? "Já carregado" : "Carregar piloto"}
             </Button>
           </div>
@@ -273,7 +341,7 @@ export default function SettingsPage() {
             <div className="pr-4">
               <div className="text-[13px] font-medium text-[#1A1A1A]">Limpar todos os dados locais</div>
               <div className="text-[12px] text-[#9B9B95] mt-0.5">
-                Remove clientes, projetos, tarefas e entregas deste navegador. Ação irreversível — use “Carregar piloto” ou “Redefinir” para repovoar.
+                Remove clientes, projetos, tarefas e entregas deste navegador. Ação irreversível.
               </div>
             </div>
             {!confirmClear ? (

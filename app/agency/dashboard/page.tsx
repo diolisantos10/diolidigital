@@ -7,6 +7,7 @@ import { useTranslation } from "@/lib/i18n";
 import Link from "next/link";
 import { MOCK_AGENTS, ProjectStage } from "@/lib/agency/mock-data";
 import { getProjectProgress, getProjectHealth } from "@/lib/agency/reporting";
+import { runSystemDoctor } from "@/lib/agency/system-doctor";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -102,16 +103,26 @@ function scoreAction(
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+const DOCTOR_STATUS_COLOR = {
+  healthy:  { bg: "bg-[#DCFCE7]", text: "text-[#16A34A]", dot: "bg-[#16A34A]", label: "Sistema saudável" },
+  degraded: { bg: "bg-[#FEF3C7]", text: "text-[#D97706]", dot: "bg-[#D97706]", label: "Atenção necessária" },
+  critical: { bg: "bg-[#FEE2E2]", text: "text-[#DC2626]", dot: "bg-[#DC2626]", label: "Falha crítica" },
+};
+
 export default function DashboardPage() {
   const router = useRouter();
   const { projects, tasks, deliverables, activity, clients, materialRequests, strategyRooms, setPendingAgentInput } = useAgencyStore();
   const { t } = useTranslation();
   const [confirmMsg, setConfirmMsg] = useState<string | null>(null);
+  const [persisted, setPersisted] = useState(false);
   // Relative/current-time labels depend on the wall clock, which differs slightly
   // between SSR and client hydration. Gate them so the first client render matches
   // the server, then swap to live values after mount.
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setMounted(true);
+    try { setPersisted(!!window.localStorage.getItem("agency-os-v1")); } catch { /* */ }
+  }, []);
 
   const ops = t.dashboard.ops;
   const TYPE_LABELS: Record<ActionType, string> = {
@@ -133,6 +144,10 @@ export default function DashboardPage() {
   const activeProjects = projects.filter((p) => p.stage !== "completed");
   const getClient = (cid: string) => clients.find((c) => c.id === cid);
   const agentMap = Object.fromEntries(MOCK_AGENTS.map((a) => [a.id, a]));
+
+  // ── System Doctor (automatic diagnostics, computed from store) ────────────
+  const doctorReport = runSystemDoctor({ clients, projects, deliverables, materialRequests, strategyRooms, persisted });
+  const docMeta = DOCTOR_STATUS_COLOR[doctorReport.overallStatus];
 
   // ── Action execution ──────────────────────────────────────────────────────
   function handleAction(item: ActionItem) {
@@ -369,6 +384,37 @@ export default function DashboardPage() {
           {mounted ? new Date().toLocaleDateString("pt-BR", { weekday: "long", month: "long", day: "numeric" }) : " "}
         </p>
         <h1 className="text-[24px] font-semibold tracking-[-0.02em] text-[#1A1A1A]">{t.dashboard.title}</h1>
+      </div>
+
+      {/* System Doctor compact card */}
+      <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden mb-4">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-[#F0F0ED]">
+          <div className="flex items-center gap-2">
+            <span className={`w-2 h-2 rounded-full shrink-0 ${docMeta.dot}`} />
+            <span className="text-[12px] font-semibold text-[#1A1A1A]">System Doctor</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] text-[#9B9B95]">
+              {doctorReport.pass} ok · {doctorReport.warning} atenção · {doctorReport.fail} falha
+            </span>
+            <Link href="/agency/settings" className="text-[11px] text-[#5B5BD6] hover:underline font-medium">
+              Ver diagnóstico →
+            </Link>
+          </div>
+        </div>
+        <div className="flex items-center gap-4 px-5 py-3">
+          {/* Score pill */}
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-[7px] ${docMeta.bg}`}>
+            <span className={`text-[18px] font-bold mono-num ${docMeta.text}`}>{doctorReport.score}</span>
+            <span className={`text-[11px] font-semibold ${docMeta.text}`}>/100</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className={`text-[12px] font-semibold mb-0.5 ${docMeta.text}`}>{docMeta.label}</div>
+            {(doctorReport.fail > 0 || doctorReport.warning > 0) && (
+              <p className="text-[11px] text-[#6B6B65] truncate leading-snug">{doctorReport.topAction}</p>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* TODAY PANEL */}
