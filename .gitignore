@@ -44,3 +44,8 @@ next-env.d.ts
 .claude/
 
 /lib/generated/prisma
+
+# SQLite database files
+*.db
+*.db-shm
+*.db-wal
