@@ -82,10 +82,14 @@ export interface DoctorInput {
   persisted: boolean;
   integrationConfigs?: IntegrationConfig[];
   agentProviderConfigs?: AgentProviderConfig[];
+  // SaaS foundation status — populated asynchronously in settings page
+  dbAvailable?: boolean;
+  authMode?: "real" | "mock" | "none";
+  portalMode?: "token" | "id_legacy";
 }
 
 export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
-  const { clients, projects, deliverables, materialRequests, strategyRooms, persisted, integrationConfigs, agentProviderConfigs } = input;
+  const { clients, projects, deliverables, materialRequests, strategyRooms, persisted, integrationConfigs, agentProviderConfigs, dbAvailable, authMode, portalMode } = input;
 
   const checks: DiagnosticCheck[] = [];
 
@@ -469,6 +473,79 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
     route: "/agency/integrations",
   });
 
+  // ── Group 6: Infraestrutura SaaS ─────────────────────────────────────────
+
+  // DB availability (only shown when explicitly checked — undefined = not yet tested)
+  if (dbAvailable !== undefined) {
+    checks.push({
+      id: "saas-db",
+      group: "Infraestrutura SaaS",
+      label: "Banco de dados",
+      status: dbAvailable ? "pass" : "warning",
+      severity: "medium",
+      explanation: dbAvailable
+        ? "Modo banco de dados — Prisma + SQLite conectado."
+        : "Banco de dados indisponível. Sistema operando em modo localStorage (local).",
+      action: dbAvailable
+        ? "Nenhuma ação necessária."
+        : "Execute 'npx prisma migrate dev && npm run db:seed' para inicializar o banco.",
+      route: "/agency/settings",
+    });
+  }
+
+  // Auth mode
+  const effectiveAuthMode = authMode ?? "none";
+  checks.push({
+    id: "saas-auth",
+    group: "Infraestrutura SaaS",
+    label: "Modo de autenticação",
+    status: effectiveAuthMode === "real" ? "pass" : effectiveAuthMode === "mock" ? "warning" : "info",
+    severity: "medium",
+    explanation:
+      effectiveAuthMode === "real"
+        ? "Autenticação real ativa — JWT + bcrypt + roles."
+        : effectiveAuthMode === "mock"
+        ? "Autenticação simulada — roles via localStorage. Seguro apenas para demo."
+        : "Autenticação não detectada. Sistema em modo de demonstração.",
+    action:
+      effectiveAuthMode === "real"
+        ? "Nenhuma ação necessária."
+        : "Ative a autenticação real: acesse /auth/signin e configure usuários via seed.",
+    route: "/auth/signin",
+  });
+
+  // Portal protection
+  const effectivePortalMode = portalMode ?? "id_legacy";
+  checks.push({
+    id: "saas-portal",
+    group: "Infraestrutura SaaS",
+    label: "Proteção do portal do cliente",
+    status: effectivePortalMode === "token" ? "pass" : "warning",
+    severity: "high",
+    explanation:
+      effectivePortalMode === "token"
+        ? "Portal acessado por token seguro — cada cliente tem URL única e não-adivinhável."
+        : "Portal acessado por ID direto (modo legacy). Qualquer pessoa com o ID pode acessar o portal.",
+    action:
+      effectivePortalMode === "token"
+        ? "Nenhuma ação necessária."
+        : "Use /portal/access?token=<portalToken> para compartilhar o portal com segurança.",
+    route: "/agency/settings",
+  });
+
+  checks.push({
+    id: "saas-localStorage",
+    group: "Infraestrutura SaaS",
+    label: "Persistência localStorage",
+    status: "info",
+    severity: "medium",
+    explanation: persisted
+      ? "Dados locais gravados (localStorage). Funcionam como fallback do banco de dados."
+      : "Sem dados locais gravados. Configure e salve algo para ativar fallback.",
+    action: "Migre progressivamente para o banco de dados usando as APIs /api/clients, /api/projects, etc.",
+    route: "/agency/settings",
+  });
+
   // ── Score ─────────────────────────────────────────────────────────────────
 
   let totalWeight = 0;
@@ -522,4 +599,5 @@ export const CHECK_GROUP_ORDER = [
   "Infraestrutura",
   "Prontidão dos Agentes",
   "Ferramentas & Integrações",
+  "Infraestrutura SaaS",
 ];

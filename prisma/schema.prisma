@@ -1,0 +1,204 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ─── Workspace ────────────────────────────────────────────────────────────────
+
+model AgencyWorkspace {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+
+  users                User[]
+  clients              Client[]
+  projects             Project[]
+  integrationConfigs   DbIntegrationConfig[]
+  agentProviderConfigs DbAgentProviderConfig[]
+  activityEvents       ActivityEvent[]
+}
+
+// ─── Users / Auth ─────────────────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  // Roles: master | project_manager | social_staff | design_staff | ads_staff | client
+  role         String   @default("master")
+  workspaceId  String
+  workspace    AgencyWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  // For client users only — links to the Client they may access
+  clientId     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// ─── Clients ──────────────────────────────────────────────────────────────────
+
+model Client {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   AgencyWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name        String
+  industry    String?
+  email       String?
+  phone       String?
+  website     String?
+  // Secure token for client portal access — replaces raw client ID in portal URL
+  portalToken String   @unique @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  projects   Project[]
+  brandBrain BrandBrain?
+}
+
+// ─── Projects ─────────────────────────────────────────────────────────────────
+
+model Project {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   AgencyWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  clientId    String
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  name        String
+  goal        String?
+  type        String?
+  stage       String   @default("briefing")
+  priority    String   @default("medium")
+  deadline    String?
+  proposalStatus  String?
+  proposalPricing String?
+  proposalScope   String?
+  proposalSentAt  String?
+  // JSON-encoded string array of assigned agent IDs
+  agents      String   @default("[]")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  deliverables     Deliverable[]
+  materialRequests MaterialRequest[]
+  strategyRooms    StrategyRoom[]
+  activityEvents   ActivityEvent[]
+}
+
+// ─── Deliverables ─────────────────────────────────────────────────────────────
+
+model Deliverable {
+  id              String   @id @default(cuid())
+  projectId       String
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name            String
+  type            String
+  status          String   @default("draft")
+  revisionStatus  String?
+  content         String?
+  clientFeedback  String?
+  lastFeedback    String?
+  ownerAgentId    String?
+  version         Int      @default(1)
+  // JSON-encoded revision history
+  revisionHistory String   @default("[]")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ─── Material Requests ────────────────────────────────────────────────────────
+
+model MaterialRequest {
+  id          String    @id @default(cuid())
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type        String
+  description String
+  status      String    @default("pending")
+  requestedAt DateTime  @default(now())
+  resolvedAt  DateTime?
+}
+
+// ─── Brand Brain ─────────────────────────────────────────────────────────────
+
+model BrandBrain {
+  id             String   @id @default(cuid())
+  clientId       String   @unique
+  client         Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  brandName      String?
+  tagline        String?
+  primaryColor   String?
+  secondaryColor String?
+  typography     String?
+  tone           String?
+  values         String   @default("[]")
+  targetAudience String?
+  positioning    String?
+  updatedAt      DateTime @updatedAt
+}
+
+// ─── Strategy Room ────────────────────────────────────────────────────────────
+
+model StrategyRoom {
+  id           String   @id @default(cuid())
+  projectId    String   @unique
+  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  status       String   @default("generating")
+  analysisJson String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// ─── Integration Configs ──────────────────────────────────────────────────────
+
+model DbIntegrationConfig {
+  id               String    @id @default(cuid())
+  workspaceId      String
+  workspace        AgencyWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  integrationId    String
+  configured       Boolean   @default(false)
+  selectedModel    String?
+  configWorkspace  String?
+  accountId        String?
+  folder           String?
+  webhookUrl       String?
+  lastTestStatus   String    @default("not_run")
+  lastTestAt       DateTime?
+  lastTestMessage  String?
+  lastConfiguredAt DateTime?
+
+  @@unique([workspaceId, integrationId])
+}
+
+model DbAgentProviderConfig {
+  id               String  @id @default(cuid())
+  workspaceId      String
+  workspace        AgencyWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  agentId          String
+  selectedProvider String  @default("rule_based")
+  selectedModel    String?
+
+  @@unique([workspaceId, agentId])
+}
+
+// ─── Activity Events ─────────────────────────────────────────────────────────
+
+model ActivityEvent {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   AgencyWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  projectId   String?
+  project     Project? @relation(fields: [projectId], references: [id])
+  type        String
+  message     String
+  clientId    String?
+  timestamp   DateTime @default(now())
+}
+

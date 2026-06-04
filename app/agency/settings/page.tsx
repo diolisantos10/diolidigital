@@ -94,13 +94,31 @@ export default function SettingsPage() {
   const [confirmClear, setConfirmClear] = useState(false);
   const [persisted, setPersisted] = useState(false);
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
+  const [dbAvailable, setDbAvailable] = useState<boolean | undefined>(undefined);
+  const [authMode, setAuthMode] = useState<"real" | "mock" | "none">("none");
 
   useEffect(() => {
     try { setPersisted(!!window.localStorage.getItem("agency-os-v1")); }
     catch { setPersisted(false); }
   }, [clients, projects, deliverables]);
 
-  const report = runSystemDoctor({ clients, projects, deliverables, materialRequests, strategyRooms, persisted, integrationConfigs, agentProviderConfigs });
+  // Check DB availability + auth session status asynchronously
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([
+      fetch("/api/clients", { method: "GET" }).then((r) => {
+        if (!cancelled) {
+          if (r.status === 200 || r.status === 401) {
+            setDbAvailable(true);
+            setAuthMode(r.status === 200 ? "real" : "mock");
+          }
+        }
+      }).catch(() => { if (!cancelled) setDbAvailable(false); }),
+    ]);
+    return () => { cancelled = true; };
+  }, []);
+
+  const report = runSystemDoctor({ clients, projects, deliverables, materialRequests, strategyRooms, persisted, integrationConfigs, agentProviderConfigs, dbAvailable, authMode, portalMode: "id_legacy" });
   const pilot = getPilotDataStatus(clients, projects, deliverables);
   const { score, pass, warning, fail, info, topAction, overallStatus, checks } = report;
   const oc = OVERALL_COLOR[overallStatus];
