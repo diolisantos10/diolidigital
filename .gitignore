@@ -43,7 +43,9 @@ next-env.d.ts
 # Claude Code
 .claude/
 
-/lib/generated/prisma
+# Prisma generated client — committed so Railway build has it without needing prisma generate
+# Run: prisma generate (already in npm run build) to regenerate after schema changes
+# /lib/generated/prisma  ← intentionally not ignored
 
 # SQLite database files
 *.db
