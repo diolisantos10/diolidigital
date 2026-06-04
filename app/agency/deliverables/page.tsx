@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useAgencyStore } from "@/store/agency-store";
+import { useDbDeliverables } from "@/lib/hooks/useDbDeliverables";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import Badge from "@/components/agency/ui/Badge";
 import EmptyState from "@/components/agency/ui/EmptyState";
@@ -9,12 +10,24 @@ import DeliverableDetailModal from "@/components/agency/deliverables/Deliverable
 import { DeliverableStatus } from "@/lib/agency/mock-data";
 import { getOwner, getVersion, needsRevision, getFeedbackExcerpt } from "@/lib/agency/deliverables";
 
+function SourceBadge({ source }: { source: "db" | "local" }) {
+  return (
+    <span className={`inline-flex items-center gap-1 h-5 px-2 rounded-full text-[10px] font-semibold ${
+      source === "db" ? "bg-[#DCFCE7] text-[#16A34A]" : "bg-[#F0F0ED] text-[#9B9B95]"
+    }`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${source === "db" ? "bg-[#16A34A]" : "bg-[#9B9B95]"}`} />
+      {source === "db" ? "DB" : "Local"}
+    </span>
+  );
+}
+
 const DELIVERABLE_CYCLE: Record<DeliverableStatus, DeliverableStatus> = {
   draft: "in_review", in_review: "approved", approved: "delivered", delivered: "draft",
 };
 
 export default function DeliverablesPage() {
-  const { deliverables, projects, updateDeliverableStatus } = useAgencyStore();
+  const { projects } = useAgencyStore();
+  const { deliverables, source, loading, updateStatus: updateDeliverableStatus } = useDbDeliverables();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<DeliverableStatus | "all">("all");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -42,7 +55,15 @@ export default function DeliverablesPage() {
       <AgencyHeader
         title="Entregas"
         subtitle={`${deliverables.length} entrega${deliverables.length !== 1 ? "s" : ""} em todos os projetos`}
-        meta={<p className="text-[12px] text-[#9B9B95]">Clique no badge de status para avançar no fluxo</p>}
+        meta={
+          <div className="flex items-center gap-2">
+            {loading ? (
+              <span className="text-[11px] text-[#9B9B95]">Carregando…</span>
+            ) : (
+              <SourceBadge source={source} />
+            )}
+          </div>
+        }
       />
 
       {/* Filters */}

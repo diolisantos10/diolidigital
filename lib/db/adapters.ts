@@ -7,8 +7,9 @@
 
 import type {
   Client, Project, Deliverable, Task,
-  ProjectProposal, RevisionEntry,
+  ProjectProposal, RevisionEntry, BrandBrain, ActivityEvent,
 } from "@/lib/agency/mock-data";
+import type { MaterialRequest } from "@/lib/agency/workspace";
 
 // ─── Raw DB shapes (matches Prisma output without generated client import) ────
 
@@ -143,6 +144,89 @@ export function dbDeliverableToMock(db: DbDeliverable): Deliverable {
     lastFeedback: db.lastFeedback ?? undefined,
     updatedAt: typeof db.updatedAt === "string" ? db.updatedAt : (db.updatedAt as Date).toISOString(),
     revisionHistory: revisionHistory.length > 0 ? revisionHistory : undefined,
+  };
+}
+
+export interface DbMaterialRequest {
+  id: string;
+  projectId: string;
+  type: string;          // stored as "type" in DB, maps to "title" in UI
+  description: string;
+  status: string;
+  requestedAt: string | Date;
+  resolvedAt?: string | Date | null;
+}
+
+export function dbMaterialRequestToMock(db: DbMaterialRequest, clientId: string): MaterialRequest {
+  return {
+    id: db.id,
+    clientId,
+    projectId: db.projectId,
+    title: db.type,
+    description: db.description,
+    status: db.status as MaterialRequest["status"],
+    requestedAt: typeof db.requestedAt === "string" ? db.requestedAt : (db.requestedAt as Date).toISOString(),
+  };
+}
+
+// DB BrandBrain has a different schema from the UI BrandBrain.
+// We do a best-effort partial mapping; existing fields not in DB are preserved.
+export interface DbBrandBrain {
+  id: string;
+  clientId: string;
+  brandName: string | null;
+  tagline: string | null;
+  primaryColor: string | null;
+  secondaryColor: string | null;
+  typography: string | null;
+  tone: string | null;
+  values: string;        // JSON-encoded string[]
+  targetAudience: string | null;
+  positioning: string | null;
+  updatedAt: string | Date;
+}
+
+export function dbBrandBrainToMock(db: DbBrandBrain, existing?: Partial<BrandBrain>): BrandBrain {
+  let valuesArr: string[] = [];
+  try { valuesArr = JSON.parse(db.values); } catch { /* keep empty */ }
+
+  const colorsStr = [db.primaryColor, db.secondaryColor].filter(Boolean).join(" · ");
+
+  return {
+    businessSummary:    existing?.businessSummary    ?? "",
+    positioning:        db.positioning               ?? existing?.positioning    ?? "",
+    targetAudience:     db.targetAudience            ?? existing?.targetAudience ?? "",
+    toneOfVoice:        db.tone                      ?? existing?.toneOfVoice    ?? "",
+    visualStyle:        existing?.visualStyle        ?? "",
+    brandRules:         valuesArr.length > 0 ? valuesArr.join("\n") : (existing?.brandRules ?? ""),
+    productsToHighlight: existing?.productsToHighlight ?? "",
+    thingsToAvoid:      existing?.thingsToAvoid      ?? "",
+    preferredChannels:  existing?.preferredChannels  ?? "",
+    strategicNotes:     existing?.strategicNotes     ?? "",
+    colors:             colorsStr || existing?.colors || "",
+    fonts:              db.typography                ?? existing?.fonts          ?? "",
+    references:         existing?.references         ?? "",
+  };
+}
+
+export interface DbActivityEvent {
+  id: string;
+  workspaceId: string;
+  projectId: string | null;
+  type: string;
+  message: string;
+  clientId: string | null;
+  timestamp: string | Date;
+}
+
+export function dbActivityEventToMock(db: DbActivityEvent): ActivityEvent {
+  return {
+    id: db.id,
+    type: db.type as ActivityEvent["type"],
+    message: db.message,
+    timestamp: typeof db.timestamp === "string" ? db.timestamp : (db.timestamp as Date).toISOString(),
+    projectId: db.projectId ?? undefined,
+    clientId: db.clientId ?? undefined,
   };
 }
 

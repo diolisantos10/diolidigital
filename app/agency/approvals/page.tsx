@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useAgencyStore, BrandUpdate } from "@/store/agency-store";
-import { MaterialRequest } from "@/lib/agency/workspace";
+import { useAgencyStore, type BrandUpdate } from "@/store/agency-store";
+import { useDbDeliverables } from "@/lib/hooks/useDbDeliverables";
+import { useDbMaterialRequests } from "@/lib/hooks/useDbMaterialRequests";
+import type { MaterialRequest } from "@/lib/agency/workspace";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -39,16 +41,23 @@ export default function ApprovalsPage() {
   const {
     projects,
     clients,
-    deliverables,
     brandUpdates,
-    materialRequests,
     approveProposal,
     rejectProposal,
-    updateDeliverableStatus,
     applyBrandUpdate,
     dismissBrandUpdate,
-    updateMaterialRequestStatus,
   } = useAgencyStore();
+
+  const {
+    deliverables,
+    updateStatus: updateDeliverableStatus,
+    setFeedback: setDeliverableFeedback,
+  } = useDbDeliverables();
+
+  const {
+    materialRequests,
+    updateStatus: updateMaterialRequestStatus,
+  } = useDbMaterialRequests();
 
   const [feedbackMap, setFeedbackMap] = useState<Record<string, string>>({});
   const [expandedFeedback, setExpandedFeedback] = useState<Record<string, boolean>>({});
@@ -208,8 +217,7 @@ export default function ApprovalsPage() {
                           <button
                             onClick={() => {
                               if (feedbackMap[d.id]?.trim()) {
-                                // Use setDeliverableFeedback from store
-                                useAgencyStore.getState().setDeliverableFeedback(d.id, feedbackMap[d.id]);
+                                setDeliverableFeedback(d.id, feedbackMap[d.id]);
                                 setExpandedFeedback((prev) => ({ ...prev, [d.id]: false }));
                                 setFeedbackMap((prev) => ({ ...prev, [d.id]: "" }));
                               }

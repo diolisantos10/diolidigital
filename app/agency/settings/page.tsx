@@ -6,6 +6,11 @@ import { useAgencyStore } from "@/store/agency-store";
 import { useDbClients } from "@/lib/hooks/useDbClients";
 import { useDbProjects } from "@/lib/hooks/useDbProjects";
 import { useDbTasks } from "@/lib/hooks/useDbTasks";
+import { useDbDeliverables } from "@/lib/hooks/useDbDeliverables";
+import { useDbMaterialRequests } from "@/lib/hooks/useDbMaterialRequests";
+import { useDbActivityEvents } from "@/lib/hooks/useDbActivityEvents";
+import { useDbBrandHub } from "@/lib/hooks/useDbBrandHub";
+import { PILOT_CLIENT_ID } from "@/lib/agency/system-doctor";
 import { useTranslation } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
@@ -96,6 +101,10 @@ export default function SettingsPage() {
   const { clients, source: clientsSource } = useDbClients();
   const { projects, source: projectsSource } = useDbProjects();
   const { tasks, source: tasksSource } = useDbTasks();
+  const { source: deliverablesSource } = useDbDeliverables();
+  const { source: materialRequestsSource } = useDbMaterialRequests();
+  const { source: activitySource } = useDbActivityEvents({ limit: 1 });
+  const { source: brandHubSource } = useDbBrandHub(PILOT_CLIENT_ID);
   const { t, locale, setLocale } = useTranslation();
   const [confirmReset, setConfirmReset] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
@@ -133,9 +142,13 @@ export default function SettingsPage() {
 
   const portalMode = dbAvailable ? "token" : "id_legacy";
   const dbSyncStatus = {
-    clients:  clientsSource,
-    projects: projectsSource,
-    tasks:    tasksSource,
+    clients:          clientsSource,
+    projects:         projectsSource,
+    tasks:            tasksSource,
+    deliverables:     deliverablesSource,
+    materialRequests: materialRequestsSource,
+    activityEvents:   activitySource,
+    brandHub:         brandHubSource,
   };
   const report = runSystemDoctor({ clients, projects, deliverables, materialRequests, strategyRooms, tasks, persisted, integrationConfigs, agentProviderConfigs, dbAvailable, authMode, portalMode, sessionActive, sessionUser, dbSyncStatus });
   const pilot = getPilotDataStatus(clients, projects, deliverables);

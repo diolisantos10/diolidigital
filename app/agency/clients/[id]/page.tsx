@@ -2,6 +2,8 @@
 
 import { use, useState } from "react";
 import { useAgencyStore } from "@/store/agency-store";
+import { useDbBrandHub } from "@/lib/hooks/useDbBrandHub";
+import { useDbActivityEvents } from "@/lib/hooks/useDbActivityEvents";
 import { notFound } from "next/navigation";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import Badge from "@/components/agency/ui/Badge";
@@ -75,8 +77,12 @@ function initials(name: string): string {
 
 export default function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { clients, projects, tasks, deliverables, activity, materialRequests, updateClient,
-          currentRole, brandUpdates, addBrandUpdate, applyBrandUpdate, applyAllPendingBrandUpdates, dismissBrandUpdate } = useAgencyStore();
+  const { clients, projects, tasks, deliverables, materialRequests, updateClient,
+          currentRole, brandUpdates, addBrandUpdate, applyBrandUpdate,
+          applyAllPendingBrandUpdates, dismissBrandUpdate } = useAgencyStore();
+
+  const { brandBrain: dbBrandBrain, update: updateBrandBrainDb } = useDbBrandHub(id);
+  const { events: clientActivity } = useDbActivityEvents({ clientId: id, limit: 10 });
   const [editOpen, setEditOpen] = useState(false);
   const [brainEditing, setBrainEditing] = useState(false);
   const [brainDraft, setBrainDraft] = useState<BrandBrain | null>(null);
@@ -97,10 +103,11 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
     preferredChannels: "", strategicNotes: "",
     colors: "", fonts: "", references: "",
   };
-  const activeBrainDraft: BrandBrain = brainDraft ?? client.brandBrain ?? EMPTY_BRAIN;
+  // dbBrandBrain overlays DB values on top of client.brandBrain
+  const activeBrainDraft: BrandBrain = brainDraft ?? dbBrandBrain ?? client.brandBrain ?? EMPTY_BRAIN;
 
-  const handleSaveBrain = () => {
-    updateClient(id, { brandBrain: activeBrainDraft });
+  const handleSaveBrain = async () => {
+    await updateBrandBrainDb(id, activeBrainDraft);
     setBrainEditing(false);
     setBrainSaved(true);
     setTimeout(() => setBrainSaved(false), 3000);
@@ -173,10 +180,6 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
 
   const clientTasks = tasks.filter((t) => clientProjectIds.has(t.projectId));
   const clientDeliverables = deliverables.filter((d) => clientProjectIds.has(d.projectId));
-  const clientActivity = [...activity]
-    .filter((e) => (e.projectId !== undefined && clientProjectIds.has(e.projectId)) || e.clientId === id)
-    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-    .slice(0, 10);
   const brandAssets = MOCK_BRAND_ASSETS.filter((a) => a.clientId === id);
 
   // ── Stats ───────────────────────────────────────────────────────────────────

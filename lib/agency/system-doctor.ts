@@ -77,6 +77,10 @@ export interface DbSyncStatus {
   clients?: "db" | "local";
   projects?: "db" | "local";
   tasks?: "db" | "local";
+  deliverables?: "db" | "local";
+  materialRequests?: "db" | "local";
+  brandHub?: "db" | "local";
+  activityEvents?: "db" | "local";
 }
 
 export interface DoctorInput {
@@ -787,9 +791,13 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
 
   if (dbSyncStatus !== undefined) {
     const entityChecks: { key: keyof DbSyncStatus; label: string; route: string }[] = [
-      { key: "clients",  label: "Clientes",  route: "/agency/clients"  },
-      { key: "projects", label: "Projetos",  route: "/agency/projects" },
-      { key: "tasks",    label: "Tarefas",   route: "/agency/tasks"    },
+      { key: "clients",          label: "Clientes",            route: "/agency/clients"      },
+      { key: "projects",         label: "Projetos",            route: "/agency/projects"     },
+      { key: "tasks",            label: "Tarefas",             route: "/agency/tasks"        },
+      { key: "deliverables",     label: "Entregas",            route: "/agency/deliverables" },
+      { key: "materialRequests", label: "Materiais Solicitados", route: "/agency/approvals"  },
+      { key: "brandHub",         label: "Brand Hub",           route: "/agency/clients"      },
+      { key: "activityEvents",   label: "Eventos de Atividade", route: "/agency/settings"    },
     ];
 
     for (const { key, label, route } of entityChecks) {
