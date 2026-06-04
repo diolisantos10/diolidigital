@@ -17,6 +17,9 @@ import { getClientAgentContext } from "@/lib/agency/workspace";
 import PilotChecklist from "@/components/agency/PilotChecklist";
 import PilotPlaybook from "@/components/agency/PilotPlaybook";
 import PilotTimeline from "@/components/agency/PilotTimeline";
+import { buildProjectTimeline, TIMELINE_DEPT_STYLE } from "@/lib/agency/orchestration/timeline";
+import { computeRecommendedStage } from "@/lib/agency/orchestration/pipeline-advance";
+import { generateAutoTasksForProject, AUTO_TASK_PRIORITY_STYLE, AUTO_TASK_OWNER_STYLE } from "@/lib/agency/orchestration/auto-tasks";
 
 const STAGES: ProjectStage[] = ["briefing","diagnosis","planning","production","review","delivery","ongoing","completed"];
 const TASK_CYCLE: Record<TaskStatus, TaskStatus> = {
@@ -32,8 +35,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const searchParams = useSearchParams();
   const { projects, clients, tasks, deliverables, briefings, materialRequests, strategyRooms, generateStrategyRoom, clearStrategyRoom, updateTaskStatus, updateDeliverableStatus, updateProject, updateProposal, sendProposal, moveProjectStage, setPendingAgentInput } = useAgencyStore();
 
-  type TabId = "overview" | "proposal" | "execution" | "pipeline" | "tasks" | "deliverables" | "briefing" | "strategy" | "assets" | "history" | "report";
-  const VALID_TABS: TabId[] = ["overview", "proposal", "execution", "pipeline", "tasks", "deliverables", "briefing", "strategy", "assets", "history", "report"];
+  type TabId = "overview" | "proposal" | "execution" | "pipeline" | "tasks" | "deliverables" | "briefing" | "strategy" | "assets" | "history" | "report" | "timeline";
+  const VALID_TABS: TabId[] = ["overview", "proposal", "execution", "pipeline", "tasks", "deliverables", "briefing", "strategy", "assets", "history", "report", "timeline"];
   const [tab, setTab] = useState<TabId>(() => {
     const t = searchParams.get("tab") as TabId | null;
     return t && VALID_TABS.includes(t) ? t : "overview";
@@ -110,6 +113,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     assets: "Ativos",
     history: "Histórico",
     report: "Relatório",
+    timeline: "Linha do Tempo",
   };
 
   // ── Execution helpers ──────────────────────────────────────────────────────
@@ -2079,6 +2083,158 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   ))}
                 </div>
               </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Tab: Linha do Tempo */}
+      {tab === "timeline" && (() => {
+        const timelineEvents = buildProjectTimeline({
+          project,
+          client,
+          deliverables: projectDeliverables,
+          activity: [],
+          materialRequests: projectMaterialRequests,
+          strategyRooms,
+        });
+        const advice = computeRecommendedStage({
+          project,
+          client,
+          deliverables: projectDeliverables,
+          materialRequests: projectMaterialRequests,
+          strategyRooms,
+        });
+        const projectAutoTasks = generateAutoTasksForProject({
+          project,
+          client,
+          deliverables: projectDeliverables,
+          tasks: projectTasks,
+          materialRequests: projectMaterialRequests,
+          strategyRooms,
+        });
+
+        return (
+          <div className="space-y-4">
+            {/* Pipeline recommendation banner */}
+            {!advice.isAligned && advice.recommendedStage && (
+              <div className={`rounded-[10px] border px-5 py-4 flex items-start gap-3 ${
+                advice.confidence === "high"
+                  ? "bg-[#EEF0FF] border-[#C7D2FE]"
+                  : "bg-[#FFFBEB] border-[#FDE68A]"
+              }`}>
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
+                  advice.confidence === "high" ? "bg-[#5B5BD6]" : "bg-[#D97706]"
+                }`}>
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                    <path d="M5 1v4M5 7.5v1" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className={`text-[12px] font-semibold mb-0.5 ${
+                    advice.confidence === "high" ? "text-[#5B5BD6]" : "text-[#D97706]"
+                  }`}>
+                    Estágio recomendado: <span className="uppercase">{advice.recommendedStage}</span>
+                    <span className="ml-2 text-[10px] font-normal opacity-70">(atual: {advice.currentStage})</span>
+                  </div>
+                  <p className="text-[12px] text-[#6B6B65]">{advice.reason}</p>
+                </div>
+                <button
+                  onClick={() => moveProjectStage(id, advice.recommendedStage as Parameters<typeof moveProjectStage>[1])}
+                  className={`shrink-0 h-7 px-3 rounded-[6px] text-[11px] font-medium border transition-colors ${
+                    advice.confidence === "high"
+                      ? "border-[#5B5BD6] text-[#5B5BD6] hover:bg-[#5B5BD6] hover:text-white"
+                      : "border-[#D97706] text-[#D97706] hover:bg-[#D97706] hover:text-white"
+                  }`}
+                >
+                  Aplicar
+                </button>
+              </div>
+            )}
+            {advice.isAligned && (
+              <div className="rounded-[10px] border border-[#BBF7D0] bg-[#F0FDF4] px-5 py-3 flex items-center gap-2">
+                <span className="w-4 h-4 rounded-full bg-[#16A34A] flex items-center justify-center shrink-0">
+                  <svg width="8" height="6" viewBox="0 0 8 6" fill="none"><path d="M1 3l2 2 4-4" stroke="white" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </span>
+                <span className="text-[12px] text-[#16A34A] font-medium">Pipeline alinhado — fase atual correta para o estado do projeto.</span>
+              </div>
+            )}
+
+            {/* PM auto-tasks */}
+            {projectAutoTasks.length > 0 && (
+              <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-[#F0F0ED] flex items-center justify-between">
+                  <span className="text-[13px] font-semibold text-[#1A1A1A]">Ações Recomendadas pelo PM</span>
+                  <span className="text-[11px] text-[#9B9B95]">{projectAutoTasks.length} item(ns)</span>
+                </div>
+                <div className="divide-y divide-[#F0F0ED]">
+                  {projectAutoTasks.map((at) => {
+                    const pStyle = AUTO_TASK_PRIORITY_STYLE[at.priority];
+                    const oColor = (AUTO_TASK_OWNER_STYLE as Record<string, { color: string }>)[at.owner]?.color ?? "#6B6B65";
+                    return (
+                      <div key={at.id} className="flex items-start gap-3 px-5 py-3 hover:bg-[#FAFAF9]">
+                        <span className={`shrink-0 mt-0.5 h-5 px-2 rounded-full text-[10px] font-semibold flex items-center ${pStyle.bg} ${pStyle.text}`}>
+                          {pStyle.label}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] font-medium text-[#1A1A1A]">{at.title}</p>
+                          <p className="text-[11px] text-[#9B9B95] mt-0.5">{at.description}</p>
+                        </div>
+                        <span className="shrink-0 text-[11px] font-medium" style={{ color: oColor }}>{at.owner}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Timeline events */}
+            <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-[#F0F0ED] flex items-center justify-between">
+                <span className="text-[13px] font-semibold text-[#1A1A1A]">Histórico do Projeto</span>
+                <span className="text-[11px] text-[#9B9B95]">{timelineEvents.length} evento(s)</span>
+              </div>
+              {timelineEvents.length === 0 ? (
+                <div className="px-5 py-10 text-center">
+                  <p className="text-[13px] text-[#9B9B95]">Nenhum evento registrado ainda.</p>
+                </div>
+              ) : (
+                <div className="px-5 py-4">
+                  <div className="relative">
+                    {/* Vertical line */}
+                    <div className="absolute left-[7px] top-2 bottom-2 w-px bg-[#E5E5E2]" />
+                    <div className="space-y-4">
+                      {timelineEvents.map((ev) => {
+                        const dStyle = TIMELINE_DEPT_STYLE[ev.dept];
+                        const dateStr = new Date(ev.timestamp).toLocaleDateString("pt-BR", {
+                          day: "2-digit", month: "short", year: "numeric",
+                        });
+                        return (
+                          <div key={ev.id} className="flex items-start gap-3 pl-0">
+                            {/* Dot */}
+                            <div className="relative z-10 w-[15px] h-[15px] rounded-full border-2 border-white shrink-0 mt-0.5"
+                              style={{ backgroundColor: dStyle.dot }} />
+                            {/* Content */}
+                            <div className="flex-1 min-w-0 pb-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-[13px] font-medium text-[#1A1A1A]">{ev.label}</span>
+                                <span className="h-4 px-1.5 rounded-full text-[9px] font-semibold"
+                                  style={{ backgroundColor: `${dStyle.dot}20`, color: dStyle.dot }}>
+                                  {dStyle.label}
+                                </span>
+                              </div>
+                              {ev.detail && (
+                                <p className="text-[11px] text-[#9B9B95] mt-0.5">{ev.detail}</p>
+                              )}
+                              <p className="text-[10px] text-[#C0C0BC] mt-0.5">{dateStr}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         );

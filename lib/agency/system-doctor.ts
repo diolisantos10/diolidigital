@@ -673,6 +673,109 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
     route: "/agency/dashboard",
   });
 
+  // Tasks overdue
+  const today = new Date().toISOString().slice(0, 10);
+  const overdueTasks = tasks.filter((t) => t.status !== "done" && t.dueDate && t.dueDate < today);
+  checks.push({
+    id: "orch-tasks-overdue",
+    group: "Orquestração",
+    label: "Tarefas atrasadas",
+    status: overdueTasks.length === 0 ? "pass" : overdueTasks.length <= 2 ? "warning" : "fail",
+    severity: "medium",
+    explanation: overdueTasks.length === 0
+      ? "Nenhuma tarefa com prazo vencido."
+      : `${overdueTasks.length} tarefa(s) com prazo vencido ainda não concluída(s).`,
+    action: overdueTasks.length === 0
+      ? "Nenhuma ação necessária."
+      : "Abrir Central de Tarefas → filtrar Atrasadas → resolver ou reagendar.",
+    route: "/agency/tasks",
+  });
+
+  // Blocked tasks
+  const blockedTasks = tasks.filter((t) => t.status === "blocked");
+  checks.push({
+    id: "orch-blocked-tasks",
+    group: "Orquestração",
+    label: "Tarefas bloqueadas",
+    status: blockedTasks.length === 0 ? "pass" : blockedTasks.length <= 2 ? "warning" : "fail",
+    severity: "high",
+    explanation: blockedTasks.length === 0
+      ? "Nenhuma tarefa bloqueada no workspace."
+      : `${blockedTasks.length} tarefa(s) bloqueada(s) — execução paralisada nestes pontos.`,
+    action: blockedTasks.length === 0
+      ? "Nenhuma ação necessária."
+      : "Abrir Central de Tarefas → aba Bloqueadas → identificar e resolver dependências.",
+    route: "/agency/tasks",
+  });
+
+  // Pipeline mismatch: pilot project recommended stage differs from current
+  const pipelineMismatch = (() => {
+    if (!pilotProject) return false;
+    const proposalApproved = pilotProject.proposal?.status === "approved";
+    const hasStrat = strategyRooms.some((r) => r.projectId === PILOT_PROJECT_ID);
+    const stage = pilotProject.stage;
+    // Should be "production" or later if proposal approved + strategy room, but is still "briefing" or "diagnosis"
+    if (proposalApproved && hasStrat && (stage === "briefing" || stage === "diagnosis" || stage === "planning")) return true;
+    // Should be at least "planning" if proposal approved but still in briefing
+    if (proposalApproved && !hasStrat && stage === "briefing") return true;
+    return false;
+  })();
+  checks.push({
+    id: "orch-pipeline-mismatch",
+    group: "Orquestração",
+    label: "Alinhamento de fase do pipeline",
+    status: pipelineMismatch ? "warning" : "pass",
+    severity: "medium",
+    explanation: pipelineMismatch
+      ? `Projeto "${pilotProject?.name}" está em fase "${pilotProject?.stage}" mas o pipeline indica uma fase mais avançada.`
+      : "Fase do projeto piloto alinhada com o estado do pipeline.",
+    action: pipelineMismatch
+      ? `Abrir Projeto → aba Linha do Tempo → clicar em "Aplicar" na recomendação de fase.`
+      : "Nenhuma ação necessária.",
+    route: `/agency/projects/${PILOT_PROJECT_ID}?tab=timeline`,
+  });
+
+  // Stage outdated: project in early stage but has approved deliverables
+  const stageOutdated = (() => {
+    if (!pilotProject) return false;
+    const hasApproved = deliverables.some(
+      (d) => d.projectId === PILOT_PROJECT_ID && (d.status === "approved" || d.status === "delivered")
+    );
+    return hasApproved && (pilotProject.stage === "briefing" || pilotProject.stage === "diagnosis");
+  })();
+  checks.push({
+    id: "orch-stage-outdated",
+    group: "Orquestração",
+    label: "Fase desatualizada",
+    status: stageOutdated ? "warning" : "pass",
+    severity: "low",
+    explanation: stageOutdated
+      ? `Projeto "${pilotProject?.name}" tem entregas aprovadas mas ainda está em fase inicial ("${pilotProject?.stage}").`
+      : "Nenhum projeto com fase desatualizada detectado.",
+    action: stageOutdated
+      ? "Avançar manualmente a fase do projeto para refletir o progresso real."
+      : "Nenhuma ação necessária.",
+    route: `/agency/projects/${PILOT_PROJECT_ID}?tab=pipeline`,
+  });
+
+  // Task center empty while blockers exist
+  const hasBlockers = checks.some((c) => (c.id.startsWith("orch-") || c.id === "open-revisions") && c.status === "fail");
+  const taskCenterEmpty = tasks.length === 0 && hasBlockers;
+  checks.push({
+    id: "orch-task-center-empty",
+    group: "Orquestração",
+    label: "Tarefas operacionais definidas",
+    status: taskCenterEmpty ? "warning" : "pass",
+    severity: "low",
+    explanation: taskCenterEmpty
+      ? "Existem bloqueios ativos no workspace mas nenhuma tarefa operacional foi criada para resolvê-los."
+      : "Tarefas operacionais presentes no workspace.",
+    action: taskCenterEmpty
+      ? "Acesse o Orchestrator para gerar tarefas automáticas ou crie tarefas manualmente na Central de Tarefas."
+      : "Nenhuma ação necessária.",
+    route: "/agency/tasks",
+  });
+
   // ── Score ─────────────────────────────────────────────────────────────────
 
   let totalWeight = 0;

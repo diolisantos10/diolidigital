@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useTranslation } from "@/lib/i18n";
 import { useAgencyStore } from "@/store/agency-store";
 import { AGENCY_ROLE_OPTIONS, isNavAllowed, type AgencyRole } from "@/lib/agency/roles";
+import { generateAllAutoTasks } from "@/lib/agency/orchestration/auto-tasks";
 
 const ROLE_LABEL: Record<string, string> = {
   master:          "Master",
@@ -29,11 +30,20 @@ function usePendingCount() {
   return sentProposals + inReviewDelivs + pendingBrand + pendingMats;
 }
 
+function useTaskBadgeCount() {
+  const { tasks, projects, clients, deliverables, materialRequests, strategyRooms } = useAgencyStore();
+  const autoTasks = generateAllAutoTasks({ projects, clients, deliverables, tasks, materialRequests, strategyRooms });
+  const criticalHigh = autoTasks.filter((t) => t.priority === "critical" || t.priority === "high").length;
+  const blocked = tasks.filter((t) => t.status === "blocked").length;
+  return criticalHigh + blocked;
+}
+
 export default function AgencySidebar({ userInfo }: { userInfo?: UserInfo | null }) {
   const path = usePathname();
   const { t } = useTranslation();
   const { currentRole, setCurrentRole } = useAgencyStore();
   const pendingCount = usePendingCount();
+  const taskBadgeCount = useTaskBadgeCount();
 
   const NAV = [
     {
@@ -48,7 +58,7 @@ export default function AgencySidebar({ userInfo }: { userInfo?: UserInfo | null
       items: [
         { label: t.nav.projects, href: "/agency/projects", icon: FolderIcon },
         { label: t.nav.pipeline, href: "/agency/pipeline", icon: ColumnsIcon },
-        { label: t.nav.tasks, href: "/agency/tasks", icon: CheckIcon },
+        { label: t.nav.tasks, href: "/agency/tasks", icon: CheckIcon, badge: taskBadgeCount },
       ],
     },
     {
