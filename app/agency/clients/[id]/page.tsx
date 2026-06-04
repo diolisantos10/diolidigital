@@ -4,6 +4,7 @@ import { use, useState } from "react";
 import { useAgencyStore } from "@/store/agency-store";
 import { useDbBrandHub } from "@/lib/hooks/useDbBrandHub";
 import { useDbActivityEvents } from "@/lib/hooks/useDbActivityEvents";
+import { useDbBrandUpdates } from "@/lib/hooks/useDbBrandUpdates";
 import { notFound } from "next/navigation";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import Badge from "@/components/agency/ui/Badge";
@@ -78,11 +79,12 @@ function initials(name: string): string {
 export default function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { clients, projects, tasks, deliverables, materialRequests, updateClient,
-          currentRole, brandUpdates, addBrandUpdate, applyBrandUpdate,
-          applyAllPendingBrandUpdates, dismissBrandUpdate } = useAgencyStore();
+          currentRole } = useAgencyStore();
 
   const { brandBrain: dbBrandBrain, update: updateBrandBrainDb } = useDbBrandHub(id);
   const { events: clientActivity } = useDbActivityEvents({ clientId: id, limit: 10 });
+  const { brandUpdates, add: addBrandUpdate, apply: applyBrandUpdate,
+          applyAllPending: applyAllPendingBrandUpdates, dismiss: dismissBrandUpdate } = useDbBrandUpdates({ clientId: id });
   const [editOpen, setEditOpen] = useState(false);
   const [brainEditing, setBrainEditing] = useState(false);
   const [brainDraft, setBrainDraft] = useState<BrandBrain | null>(null);

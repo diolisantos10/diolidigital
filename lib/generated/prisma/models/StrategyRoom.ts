@@ -27,6 +27,7 @@ export type AggregateStrategyRoom = {
 export type StrategyRoomMinAggregateOutputType = {
   id: string | null
   projectId: string | null
+  clientId: string | null
   status: string | null
   analysisJson: string | null
   createdAt: Date | null
@@ -36,6 +37,7 @@ export type StrategyRoomMinAggregateOutputType = {
 export type StrategyRoomMaxAggregateOutputType = {
   id: string | null
   projectId: string | null
+  clientId: string | null
   status: string | null
   analysisJson: string | null
   createdAt: Date | null
@@ -45,6 +47,7 @@ export type StrategyRoomMaxAggregateOutputType = {
 export type StrategyRoomCountAggregateOutputType = {
   id: number
   projectId: number
+  clientId: number
   status: number
   analysisJson: number
   createdAt: number
@@ -56,6 +59,7 @@ export type StrategyRoomCountAggregateOutputType = {
 export type StrategyRoomMinAggregateInputType = {
   id?: true
   projectId?: true
+  clientId?: true
   status?: true
   analysisJson?: true
   createdAt?: true
@@ -65,6 +69,7 @@ export type StrategyRoomMinAggregateInputType = {
 export type StrategyRoomMaxAggregateInputType = {
   id?: true
   projectId?: true
+  clientId?: true
   status?: true
   analysisJson?: true
   createdAt?: true
@@ -74,6 +79,7 @@ export type StrategyRoomMaxAggregateInputType = {
 export type StrategyRoomCountAggregateInputType = {
   id?: true
   projectId?: true
+  clientId?: true
   status?: true
   analysisJson?: true
   createdAt?: true
@@ -156,6 +162,7 @@ export type StrategyRoomGroupByArgs<ExtArgs extends runtime.Types.Extensions.Int
 export type StrategyRoomGroupByOutputType = {
   id: string
   projectId: string
+  clientId: string | null
   status: string
   analysisJson: string | null
   createdAt: Date
@@ -186,6 +193,7 @@ export type StrategyRoomWhereInput = {
   NOT?: Prisma.StrategyRoomWhereInput | Prisma.StrategyRoomWhereInput[]
   id?: Prisma.StringFilter<"StrategyRoom"> | string
   projectId?: Prisma.StringFilter<"StrategyRoom"> | string
+  clientId?: Prisma.StringNullableFilter<"StrategyRoom"> | string | null
   status?: Prisma.StringFilter<"StrategyRoom"> | string
   analysisJson?: Prisma.StringNullableFilter<"StrategyRoom"> | string | null
   createdAt?: Prisma.DateTimeFilter<"StrategyRoom"> | Date | string
@@ -196,6 +204,7 @@ export type StrategyRoomWhereInput = {
 export type StrategyRoomOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
+  clientId?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   analysisJson?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -209,6 +218,7 @@ export type StrategyRoomWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.StrategyRoomWhereInput | Prisma.StrategyRoomWhereInput[]
   OR?: Prisma.StrategyRoomWhereInput[]
   NOT?: Prisma.StrategyRoomWhereInput | Prisma.StrategyRoomWhereInput[]
+  clientId?: Prisma.StringNullableFilter<"StrategyRoom"> | string | null
   status?: Prisma.StringFilter<"StrategyRoom"> | string
   analysisJson?: Prisma.StringNullableFilter<"StrategyRoom"> | string | null
   createdAt?: Prisma.DateTimeFilter<"StrategyRoom"> | Date | string
@@ -219,6 +229,7 @@ export type StrategyRoomWhereUniqueInput = Prisma.AtLeast<{
 export type StrategyRoomOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
+  clientId?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   analysisJson?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -234,6 +245,7 @@ export type StrategyRoomScalarWhereWithAggregatesInput = {
   NOT?: Prisma.StrategyRoomScalarWhereWithAggregatesInput | Prisma.StrategyRoomScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"StrategyRoom"> | string
   projectId?: Prisma.StringWithAggregatesFilter<"StrategyRoom"> | string
+  clientId?: Prisma.StringNullableWithAggregatesFilter<"StrategyRoom"> | string | null
   status?: Prisma.StringWithAggregatesFilter<"StrategyRoom"> | string
   analysisJson?: Prisma.StringNullableWithAggregatesFilter<"StrategyRoom"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"StrategyRoom"> | Date | string
@@ -242,6 +254,7 @@ export type StrategyRoomScalarWhereWithAggregatesInput = {
 
 export type StrategyRoomCreateInput = {
   id?: string
+  clientId?: string | null
   status?: string
   analysisJson?: string | null
   createdAt?: Date | string
@@ -252,6 +265,7 @@ export type StrategyRoomCreateInput = {
 export type StrategyRoomUncheckedCreateInput = {
   id?: string
   projectId: string
+  clientId?: string | null
   status?: string
   analysisJson?: string | null
   createdAt?: Date | string
@@ -260,6 +274,7 @@ export type StrategyRoomUncheckedCreateInput = {
 
 export type StrategyRoomUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   analysisJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -270,6 +285,7 @@ export type StrategyRoomUpdateInput = {
 export type StrategyRoomUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   projectId?: Prisma.StringFieldUpdateOperationsInput | string
+  clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   analysisJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -279,6 +295,7 @@ export type StrategyRoomUncheckedUpdateInput = {
 export type StrategyRoomCreateManyInput = {
   id?: string
   projectId: string
+  clientId?: string | null
   status?: string
   analysisJson?: string | null
   createdAt?: Date | string
@@ -287,6 +304,7 @@ export type StrategyRoomCreateManyInput = {
 
 export type StrategyRoomUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   analysisJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -296,6 +314,7 @@ export type StrategyRoomUpdateManyMutationInput = {
 export type StrategyRoomUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   projectId?: Prisma.StringFieldUpdateOperationsInput | string
+  clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   analysisJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -315,6 +334,7 @@ export type StrategyRoomOrderByRelationAggregateInput = {
 export type StrategyRoomCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
+  clientId?: Prisma.SortOrder
   status?: Prisma.SortOrder
   analysisJson?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -324,6 +344,7 @@ export type StrategyRoomCountOrderByAggregateInput = {
 export type StrategyRoomMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
+  clientId?: Prisma.SortOrder
   status?: Prisma.SortOrder
   analysisJson?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -333,6 +354,7 @@ export type StrategyRoomMaxOrderByAggregateInput = {
 export type StrategyRoomMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
+  clientId?: Prisma.SortOrder
   status?: Prisma.SortOrder
   analysisJson?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -383,6 +405,7 @@ export type StrategyRoomUncheckedUpdateManyWithoutProjectNestedInput = {
 
 export type StrategyRoomCreateWithoutProjectInput = {
   id?: string
+  clientId?: string | null
   status?: string
   analysisJson?: string | null
   createdAt?: Date | string
@@ -391,6 +414,7 @@ export type StrategyRoomCreateWithoutProjectInput = {
 
 export type StrategyRoomUncheckedCreateWithoutProjectInput = {
   id?: string
+  clientId?: string | null
   status?: string
   analysisJson?: string | null
   createdAt?: Date | string
@@ -428,6 +452,7 @@ export type StrategyRoomScalarWhereInput = {
   NOT?: Prisma.StrategyRoomScalarWhereInput | Prisma.StrategyRoomScalarWhereInput[]
   id?: Prisma.StringFilter<"StrategyRoom"> | string
   projectId?: Prisma.StringFilter<"StrategyRoom"> | string
+  clientId?: Prisma.StringNullableFilter<"StrategyRoom"> | string | null
   status?: Prisma.StringFilter<"StrategyRoom"> | string
   analysisJson?: Prisma.StringNullableFilter<"StrategyRoom"> | string | null
   createdAt?: Prisma.DateTimeFilter<"StrategyRoom"> | Date | string
@@ -436,6 +461,7 @@ export type StrategyRoomScalarWhereInput = {
 
 export type StrategyRoomCreateManyProjectInput = {
   id?: string
+  clientId?: string | null
   status?: string
   analysisJson?: string | null
   createdAt?: Date | string
@@ -444,6 +470,7 @@ export type StrategyRoomCreateManyProjectInput = {
 
 export type StrategyRoomUpdateWithoutProjectInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   analysisJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -452,6 +479,7 @@ export type StrategyRoomUpdateWithoutProjectInput = {
 
 export type StrategyRoomUncheckedUpdateWithoutProjectInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   analysisJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -460,6 +488,7 @@ export type StrategyRoomUncheckedUpdateWithoutProjectInput = {
 
 export type StrategyRoomUncheckedUpdateManyWithoutProjectInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   analysisJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -471,6 +500,7 @@ export type StrategyRoomUncheckedUpdateManyWithoutProjectInput = {
 export type StrategyRoomSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   projectId?: boolean
+  clientId?: boolean
   status?: boolean
   analysisJson?: boolean
   createdAt?: boolean
@@ -481,6 +511,7 @@ export type StrategyRoomSelect<ExtArgs extends runtime.Types.Extensions.Internal
 export type StrategyRoomSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   projectId?: boolean
+  clientId?: boolean
   status?: boolean
   analysisJson?: boolean
   createdAt?: boolean
@@ -491,6 +522,7 @@ export type StrategyRoomSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
 export type StrategyRoomSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   projectId?: boolean
+  clientId?: boolean
   status?: boolean
   analysisJson?: boolean
   createdAt?: boolean
@@ -501,13 +533,14 @@ export type StrategyRoomSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
 export type StrategyRoomSelectScalar = {
   id?: boolean
   projectId?: boolean
+  clientId?: boolean
   status?: boolean
   analysisJson?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type StrategyRoomOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "projectId" | "status" | "analysisJson" | "createdAt" | "updatedAt", ExtArgs["result"]["strategyRoom"]>
+export type StrategyRoomOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "projectId" | "clientId" | "status" | "analysisJson" | "createdAt" | "updatedAt", ExtArgs["result"]["strategyRoom"]>
 export type StrategyRoomInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
 }
@@ -526,6 +559,7 @@ export type $StrategyRoomPayload<ExtArgs extends runtime.Types.Extensions.Intern
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     projectId: string
+    clientId: string | null
     status: string
     analysisJson: string | null
     createdAt: Date
@@ -956,6 +990,7 @@ export interface Prisma__StrategyRoomClient<T, Null = never, ExtArgs extends run
 export interface StrategyRoomFieldRefs {
   readonly id: Prisma.FieldRef<"StrategyRoom", 'String'>
   readonly projectId: Prisma.FieldRef<"StrategyRoom", 'String'>
+  readonly clientId: Prisma.FieldRef<"StrategyRoom", 'String'>
   readonly status: Prisma.FieldRef<"StrategyRoom", 'String'>
   readonly analysisJson: Prisma.FieldRef<"StrategyRoom", 'String'>
   readonly createdAt: Prisma.FieldRef<"StrategyRoom", 'DateTime'>

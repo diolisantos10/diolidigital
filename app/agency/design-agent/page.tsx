@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import { useAgencyStore } from "@/store/agency-store";
+import { useDbDeliverables } from "@/lib/hooks/useDbDeliverables";
 import { getClientAgentContext } from "@/lib/agency/workspace";
 import type { AgentClientContext } from "@/lib/agency/workspace";
 
@@ -419,10 +420,11 @@ export default function DesignAgentPage() {
   const [saveForms,   setSaveForms]   = useState<Record<number, SaveForm>>({});
 
   const {
-    projects, clients, deliverables, addDeliverable,
+    projects, clients, deliverables,
     pendingDesignContract, setPendingDesignContract,
     pendingAgentInput, setPendingAgentInput,
   } = useAgencyStore();
+  const { createDeliverable } = useDbDeliverables();
 
   // Auto-load contract from Social Media Agent handoff
   useEffect(() => {
@@ -507,12 +509,11 @@ export default function DesignAgentPage() {
   function handleSaveAllBriefs() {
     if (!linkedProjectId || !briefs.length || briefsSaved) return;
     briefs.forEach((b) => {
-      addDeliverable({
+      void createDeliverable({
         projectId: linkedProjectId,
         name:      `Design Brief — ${b.title} (${b.format})`,
         type:      "Design",
         status:    "in_review",
-        version:   1,
       });
     });
     setBriefsSaved(true);
@@ -550,13 +551,12 @@ export default function DesignAgentPage() {
     const form = saveForms[postId];
     const img  = imageStates[postId];
     if (!form || !img?.url || !form.projectId || !form.name) return;
-    addDeliverable({
+    void createDeliverable({
       projectId: form.projectId,
       name:      form.name,
       type:      "Design",
       status:    "in_review",
       link:      img.url,
-      version:   1,
     });
     setSaveForms((prev) => ({ ...prev, [postId]: { ...prev[postId], saved: true } }));
   }

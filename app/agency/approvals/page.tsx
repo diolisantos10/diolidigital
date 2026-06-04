@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useAgencyStore, type BrandUpdate } from "@/store/agency-store";
 import { useDbDeliverables } from "@/lib/hooks/useDbDeliverables";
 import { useDbMaterialRequests } from "@/lib/hooks/useDbMaterialRequests";
+import { useDbBrandUpdates } from "@/lib/hooks/useDbBrandUpdates";
 import type { MaterialRequest } from "@/lib/agency/workspace";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -41,11 +42,8 @@ export default function ApprovalsPage() {
   const {
     projects,
     clients,
-    brandUpdates,
     approveProposal,
     rejectProposal,
-    applyBrandUpdate,
-    dismissBrandUpdate,
   } = useAgencyStore();
 
   const {
@@ -58,6 +56,12 @@ export default function ApprovalsPage() {
     materialRequests,
     updateStatus: updateMaterialRequestStatus,
   } = useDbMaterialRequests();
+
+  const {
+    brandUpdates,
+    apply: applyBrandUpdate,
+    dismiss: dismissBrandUpdate,
+  } = useDbBrandUpdates();
 
   const [feedbackMap, setFeedbackMap] = useState<Record<string, string>>({});
   const [expandedFeedback, setExpandedFeedback] = useState<Record<string, boolean>>({});

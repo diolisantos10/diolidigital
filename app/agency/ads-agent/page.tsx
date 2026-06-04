@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import { useAgencyStore } from "@/store/agency-store";
+import { useDbDeliverables } from "@/lib/hooks/useDbDeliverables";
 import { getClientAgentContext } from "@/lib/agency/workspace";
 import type { AgentClientContext } from "@/lib/agency/workspace";
 import { generateAdsPlan, buildAdsDeliverables, ADS_DELIVERABLE_TYPES } from "@/lib/agency/ads-agent";
@@ -123,7 +124,8 @@ export default function AdsAgentPage() {
   const [plan, setPlan] = useState<AdsPlan | null>(null);
   const [saved, setSaved] = useState(false);
 
-  const { projects, clients, deliverables, strategyRooms, addDeliverable, pendingAgentInput, setPendingAgentInput } = useAgencyStore();
+  const { projects, clients, deliverables, strategyRooms, pendingAgentInput, setPendingAgentInput } = useAgencyStore();
+  const { createDeliverable } = useDbDeliverables();
 
   // Auto-link project from project detail "Run" handoff
   useEffect(() => {
@@ -176,12 +178,11 @@ export default function AdsAgentPage() {
     if (!linkedProjectId || !plan || saved) return;
     const drafts = buildAdsDeliverables(plan, linkedProject?.name ?? "Projeto");
     drafts.forEach((d) => {
-      addDeliverable({
+      void createDeliverable({
         projectId: linkedProjectId,
         name: d.name,
         type: d.type,
         status: "in_review",
-        version: 1,
       });
     });
     setSaved(true);

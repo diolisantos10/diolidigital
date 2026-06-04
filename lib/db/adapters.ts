@@ -8,8 +8,10 @@
 import type {
   Client, Project, Deliverable, Task,
   ProjectProposal, RevisionEntry, BrandBrain, ActivityEvent,
+  Briefing, StrategyRoom,
 } from "@/lib/agency/mock-data";
 import type { MaterialRequest } from "@/lib/agency/workspace";
+import type { BrandUpdate } from "@/store/agency-store";
 
 // ─── Raw DB shapes (matches Prisma output without generated client import) ────
 
@@ -241,4 +243,98 @@ export function dbTaskToMock(db: DbTask): Task {
     dueDate: db.dueDate ?? toDateStr(db.createdAt),
     deliverableId: db.deliverableId ?? undefined,
   };
+}
+
+// ─── Briefing ─────────────────────────────────────────────────────────────────
+
+export interface DbBriefing {
+  id: string;
+  projectId: string;
+  clientId: string;
+  goal: string;
+  audience: string;
+  keyMessage: string;
+  deliverables: string;
+  deadline: string;
+  successCriteria: string;
+  notes: string | null;
+  status: string;
+  createdAt: string | Date;
+}
+
+export function dbBriefingToMock(db: DbBriefing): Briefing {
+  return {
+    id: db.id,
+    projectId: db.projectId,
+    clientId: db.clientId,
+    goal: db.goal,
+    audience: db.audience,
+    keyMessage: db.keyMessage,
+    deliverables: db.deliverables,
+    deadline: db.deadline,
+    successCriteria: db.successCriteria,
+    notes: db.notes ?? undefined,
+    status: db.status as Briefing["status"],
+    createdAt: toDateStr(db.createdAt),
+  };
+}
+
+// ─── Brand Update ───────────────────────────────────────────────────────────
+
+export interface DbBrandUpdate {
+  id: string;
+  clientId: string;
+  field: string;
+  suggestedValue: string;
+  currentValue: string | null;
+  source: string;
+  status: string;
+  note: string | null;
+  fileName: string | null;
+  submittedAt: string | Date;
+}
+
+export function dbBrandUpdateToMock(db: DbBrandUpdate): BrandUpdate {
+  return {
+    id: db.id,
+    clientId: db.clientId,
+    field: db.field,
+    suggestedValue: db.suggestedValue,
+    currentValue: db.currentValue ?? undefined,
+    source: db.source as BrandUpdate["source"],
+    status: db.status as BrandUpdate["status"],
+    note: db.note ?? undefined,
+    fileName: db.fileName ?? undefined,
+    submittedAt: typeof db.submittedAt === "string" ? db.submittedAt : (db.submittedAt as Date).toISOString(),
+  };
+}
+
+// ─── Strategy Room ──────────────────────────────────────────────────────────
+// The full StrategyRoom object is stored as JSON in analysisJson. The adapter
+// parses it and falls back to a minimal shell if the JSON is missing/corrupt.
+
+export interface DbStrategyRoom {
+  id: string;
+  projectId: string;
+  clientId: string | null;
+  status: string;
+  analysisJson: string | null;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+}
+
+export function dbStrategyRoomToMock(db: DbStrategyRoom): StrategyRoom | null {
+  if (!db.analysisJson) return null;
+  try {
+    const parsed = JSON.parse(db.analysisJson) as StrategyRoom;
+    // Ensure projectId/clientId reflect the DB row of record
+    return {
+      ...parsed,
+      projectId: db.projectId,
+      clientId: parsed.clientId ?? db.clientId ?? "",
+      status: (db.status as StrategyRoom["status"]) ?? parsed.status,
+    };
+  } catch {
+    return null;
+  }
 }

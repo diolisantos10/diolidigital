@@ -59,8 +59,9 @@ model Client {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  projects   Project[]
-  brandBrain BrandBrain?
+  projects     Project[]
+  brandBrain   BrandBrain?
+  brandUpdates BrandUpdate[]
 }
 
 // ─── Projects ─────────────────────────────────────────────────────────────────
@@ -92,6 +93,7 @@ model Project {
   activityEvents   ActivityEvent[]
   tasks            Task[]
   timelineEvents   TimelineEvent[]
+  briefings        Briefing[]
 }
 
 // ─── Deliverables ─────────────────────────────────────────────────────────────
@@ -152,10 +154,49 @@ model StrategyRoom {
   id           String   @id @default(cuid())
   projectId    String   @unique
   project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  clientId     String?
   status       String   @default("generating")
+  // Full StrategyRoom object (specialists, debate turns, consensus, executive
+  // summary, synthesis) serialized as JSON — pragmatic single-column storage.
   analysisJson String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+}
+
+// ─── Briefings ─────────────────────────────────────────────────────────────
+
+model Briefing {
+  id              String   @id @default(cuid())
+  projectId       String
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  clientId        String
+  goal            String
+  audience        String   @default("")
+  keyMessage      String   @default("")
+  deliverables    String   @default("")
+  deadline        String   @default("")
+  successCriteria String   @default("")
+  notes           String?
+  status          String   @default("pending_analysis")
+  createdAt       DateTime @default(now())
+}
+
+// ─── Brand Updates ─────────────────────────────────────────────────────────
+// Pending brand suggestions (client portal / manual / upload / parsed) queued
+// before being applied to the client's BrandBrain.
+
+model BrandUpdate {
+  id             String   @id @default(cuid())
+  clientId       String
+  client         Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  field          String
+  suggestedValue String
+  currentValue   String?
+  source         String   @default("manual")
+  status         String   @default("pending")
+  note           String?
+  fileName       String?
+  submittedAt    DateTime @default(now())
 }
 
 // ─── Integration Configs ──────────────────────────────────────────────────────

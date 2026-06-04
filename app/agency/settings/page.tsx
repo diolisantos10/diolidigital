@@ -10,6 +10,9 @@ import { useDbDeliverables } from "@/lib/hooks/useDbDeliverables";
 import { useDbMaterialRequests } from "@/lib/hooks/useDbMaterialRequests";
 import { useDbActivityEvents } from "@/lib/hooks/useDbActivityEvents";
 import { useDbBrandHub } from "@/lib/hooks/useDbBrandHub";
+import { useDbStrategyRooms } from "@/lib/hooks/useDbStrategyRooms";
+import { useDbBriefings } from "@/lib/hooks/useDbBriefings";
+import { useDbBrandUpdates } from "@/lib/hooks/useDbBrandUpdates";
 import { PILOT_CLIENT_ID } from "@/lib/agency/system-doctor";
 import { useTranslation } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n";
@@ -105,6 +108,9 @@ export default function SettingsPage() {
   const { source: materialRequestsSource } = useDbMaterialRequests();
   const { source: activitySource } = useDbActivityEvents({ limit: 1 });
   const { source: brandHubSource } = useDbBrandHub(PILOT_CLIENT_ID);
+  const { source: strategyRoomsSource } = useDbStrategyRooms();
+  const { source: briefingsSource } = useDbBriefings();
+  const { source: brandUpdatesSource } = useDbBrandUpdates();
   const { t, locale, setLocale } = useTranslation();
   const [confirmReset, setConfirmReset] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
@@ -149,6 +155,11 @@ export default function SettingsPage() {
     materialRequests: materialRequestsSource,
     activityEvents:   activitySource,
     brandHub:         brandHubSource,
+    strategyRooms:    strategyRoomsSource,
+    briefings:        briefingsSource,
+    brandUpdates:     brandUpdatesSource,
+    // Agent outputs are persisted as deliverables — mirror that source.
+    agentOutputs:     deliverablesSource,
   };
   const report = runSystemDoctor({ clients, projects, deliverables, materialRequests, strategyRooms, tasks, persisted, integrationConfigs, agentProviderConfigs, dbAvailable, authMode, portalMode, sessionActive, sessionUser, dbSyncStatus });
   const pilot = getPilotDataStatus(clients, projects, deliverables);

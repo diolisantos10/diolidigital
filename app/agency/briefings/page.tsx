@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useAgencyStore } from "@/store/agency-store";
+import { useDbBriefings } from "@/lib/hooks/useDbBriefings";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import Badge from "@/components/agency/ui/Badge";
 import Button from "@/components/agency/ui/Button";
@@ -9,8 +10,20 @@ import Modal from "@/components/agency/ui/Modal";
 import EmptyState from "@/components/agency/ui/EmptyState";
 import { BriefingStatus } from "@/lib/agency/mock-data";
 
+function SourceBadge({ source }: { source: "db" | "local" }) {
+  return (
+    <span className={`inline-flex items-center gap-1 h-5 px-2 rounded-full text-[10px] font-semibold ${
+      source === "db" ? "bg-[#DCFCE7] text-[#16A34A]" : "bg-[#F0F0ED] text-[#9B9B95]"
+    }`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${source === "db" ? "bg-[#16A34A]" : "bg-[#9B9B95]"}`} />
+      {source === "db" ? "DB" : "Local"}
+    </span>
+  );
+}
+
 export default function BriefingsPage() {
-  const { briefings, projects, clients, createBriefing, updateBriefingStatus } = useAgencyStore();
+  const { projects, clients } = useAgencyStore();
+  const { briefings, source, loading, createBriefing, updateStatus: updateBriefingStatus } = useDbBriefings();
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState({
     projectId: "",
@@ -37,7 +50,7 @@ export default function BriefingsPage() {
   const handleCreate = () => {
     if (!form.projectId || !form.goal) return;
     const project = getProject(form.projectId);
-    createBriefing({
+    void createBriefing({
       ...form,
       clientId: project?.clientId ?? form.clientId,
     });
@@ -50,6 +63,11 @@ export default function BriefingsPage() {
       <AgencyHeader
         title="Briefings"
         subtitle={`${briefings.length} briefing${briefings.length !== 1 ? "s" : ""} enviado${briefings.length !== 1 ? "s" : ""}`}
+        meta={
+          <div className="flex items-center gap-2">
+            {loading ? <span className="text-[11px] text-[#9B9B95]">Carregando…</span> : <SourceBadge source={source} />}
+          </div>
+        }
         actions={<Button variant="primary" onClick={() => setModalOpen(true)}>+ Novo Briefing</Button>}
       />
 

@@ -82,6 +82,16 @@ export type BrandBrain = Prisma.BrandBrainModel
  */
 export type StrategyRoom = Prisma.StrategyRoomModel
 /**
+ * Model Briefing
+ * 
+ */
+export type Briefing = Prisma.BriefingModel
+/**
+ * Model BrandUpdate
+ * 
+ */
+export type BrandUpdate = Prisma.BrandUpdateModel
+/**
  * Model DbIntegrationConfig
  * 
  */

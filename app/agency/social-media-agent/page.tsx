@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import { useAgencyStore } from "@/store/agency-store";
+import { useDbDeliverables } from "@/lib/hooks/useDbDeliverables";
 import { getClientAgentContext } from "@/lib/agency/workspace";
 import type { AgentClientContext } from "@/lib/agency/workspace";
 import Link from "next/link";
@@ -503,7 +504,8 @@ export default function SocialMediaAgentPage() {
   const [copiedKey, setCopiedKey]     = useState<string | null>(null);
 
   const router = useRouter();
-  const { projects, clients, addDeliverable, setPendingDesignContract, pendingAgentInput, setPendingAgentInput } = useAgencyStore();
+  const { projects, clients, setPendingDesignContract, pendingAgentInput, setPendingAgentInput } = useAgencyStore();
+  const { createDeliverable } = useDbDeliverables();
 
   const linkedProject = sourceProject ? projects.find((p) => p.id === sourceProject.projectId) : null;
   const linkedClient  = linkedProject  ? clients.find((c) => c.id === linkedProject.clientId)  : null;
@@ -564,11 +566,11 @@ export default function SocialMediaAgentPage() {
   }
 
   function saveDeliverablesForProject(result: SocialOutput, projectId: string, brand: string) {
-    addDeliverable({ projectId, name: `Social Strategy — ${brand}`,                     type: "Content Strategy",  status: "in_review", version: 1 });
-    addDeliverable({ projectId, name: `Content Calendar — ${brand}`,                    type: "Content Calendar",  status: "in_review", version: 1 });
-    addDeliverable({ projectId, name: `Post Package — ${brand} (${result.posts.length} posts)`, type: "Posts",  status: "in_review", version: 1 });
-    addDeliverable({ projectId, name: `Story Package — ${brand} (${result.stories.length} stories)`, type: "Stories", status: "in_review", version: 1 });
-    addDeliverable({ projectId, name: `Design Requests — ${brand}`,                     type: "Design Requests",   status: "in_review", version: 1 });
+    void createDeliverable({ projectId, name: `Social Strategy — ${brand}`,                     type: "Content Strategy",  status: "in_review" });
+    void createDeliverable({ projectId, name: `Content Calendar — ${brand}`,                    type: "Content Calendar",  status: "in_review" });
+    void createDeliverable({ projectId, name: `Post Package — ${brand} (${result.posts.length} posts)`, type: "Posts",  status: "in_review" });
+    void createDeliverable({ projectId, name: `Story Package — ${brand} (${result.stories.length} stories)`, type: "Stories", status: "in_review" });
+    void createDeliverable({ projectId, name: `Design Requests — ${brand}`,                     type: "Design Requests",   status: "in_review" });
   }
 
   function handleSaveToProject() {

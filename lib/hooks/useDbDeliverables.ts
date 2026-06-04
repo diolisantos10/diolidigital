@@ -16,7 +16,7 @@ export interface UseDbDeliverablesResult {
   updateStatus: (id: string, status: DeliverableStatus) => void;
   setFeedback: (id: string, feedback: string) => void;
   resolveRevision: (id: string) => void;
-  createDeliverable: (d: { projectId: string; name: string; type: string; status?: string; ownerAgentId?: string; content?: string }) => Promise<Deliverable | null>;
+  createDeliverable: (d: { projectId: string; name: string; type: string; status?: string; ownerAgentId?: string; content?: string; link?: string }) => Promise<Deliverable | null>;
   refetch: () => void;
 }
 
@@ -103,17 +103,26 @@ export function useDbDeliverables(projectId?: string): UseDbDeliverablesResult {
 
   const createDeliverable = useCallback(async (d: {
     projectId: string; name: string; type: string;
-    status?: string; ownerAgentId?: string; content?: string;
+    status?: string; ownerAgentId?: string; content?: string; link?: string;
   }): Promise<Deliverable | null> => {
     if (source !== "db") {
-      const id = storeAdd({ ...d, status: (d.status as DeliverableStatus) ?? "draft", version: 1 });
+      const id = storeAdd({
+        projectId: d.projectId, name: d.name, type: d.type,
+        status: (d.status as DeliverableStatus) ?? "draft",
+        version: 1, link: d.link, ownerAgentId: d.ownerAgentId,
+      });
       return storeDeliverables.find((del) => del.id === id) ?? null;
     }
     try {
+      // The DB Deliverable has no `link` column — persist a link via `content`.
       const res = await fetch("/api/deliverables", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(d),
+        body: JSON.stringify({
+          projectId: d.projectId, name: d.name, type: d.type,
+          status: d.status, ownerAgentId: d.ownerAgentId,
+          content: d.content ?? d.link,
+        }),
       });
       if (!res.ok) return null;
       const raw: DbDeliverable = await res.json();

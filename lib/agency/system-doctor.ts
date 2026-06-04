@@ -81,6 +81,10 @@ export interface DbSyncStatus {
   materialRequests?: "db" | "local";
   brandHub?: "db" | "local";
   activityEvents?: "db" | "local";
+  strategyRooms?: "db" | "local";
+  briefings?: "db" | "local";
+  brandUpdates?: "db" | "local";
+  agentOutputs?: "db" | "local";
 }
 
 export interface DoctorInput {
@@ -798,6 +802,10 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
       { key: "materialRequests", label: "Materiais Solicitados", route: "/agency/approvals"  },
       { key: "brandHub",         label: "Brand Hub",           route: "/agency/clients"      },
       { key: "activityEvents",   label: "Eventos de Atividade", route: "/agency/settings"    },
+      { key: "strategyRooms",    label: "Strategy Rooms",      route: "/agency/projects"     },
+      { key: "briefings",        label: "Briefings",           route: "/agency/briefings"    },
+      { key: "brandUpdates",     label: "Atualizações de Marca", route: "/agency/approvals"   },
+      { key: "agentOutputs",     label: "Saídas dos Agentes",  route: "/agency/deliverables" },
     ];
 
     for (const { key, label, route } of entityChecks) {

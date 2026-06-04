@@ -2,6 +2,7 @@
 
 import { use, useState } from "react";
 import { useAgencyStore } from "@/store/agency-store";
+import { useDbBrandUpdates } from "@/lib/hooks/useDbBrandUpdates";
 import { notFound } from "next/navigation";
 import { DeliverableStatus, ProjectStage } from "@/lib/agency/mock-data";
 import { getClientVisibleDeliverables } from "@/lib/agency/workspace";
@@ -35,7 +36,8 @@ const TYPE_ICON: Record<string, string> = {
 export default function ClientPortalPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { clients, projects, deliverables, materialRequests, updateDeliverableStatus, setDeliverableFeedback,
-          approveProposal, rejectProposal, requestProposalChanges, addBrandUpdate } = useAgencyStore();
+          approveProposal, rejectProposal, requestProposalChanges } = useAgencyStore();
+  const { add: addBrandUpdate } = useDbBrandUpdates({ clientId: id });
   const cp = getClientProgress(id, projects, deliverables, materialRequests);
 
   const client = clients.find((c) => c.id === id);

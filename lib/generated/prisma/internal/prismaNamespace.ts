@@ -392,6 +392,8 @@ export const ModelName = {
   MaterialRequest: 'MaterialRequest',
   BrandBrain: 'BrandBrain',
   StrategyRoom: 'StrategyRoom',
+  Briefing: 'Briefing',
+  BrandUpdate: 'BrandUpdate',
   DbIntegrationConfig: 'DbIntegrationConfig',
   DbAgentProviderConfig: 'DbAgentProviderConfig',
   Task: 'Task',
@@ -412,7 +414,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "deliverable" | "materialRequest" | "brandBrain" | "strategyRoom" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "deliverable" | "materialRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1008,6 +1010,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    Briefing: {
+      payload: Prisma.$BriefingPayload<ExtArgs>
+      fields: Prisma.BriefingFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BriefingFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BriefingPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BriefingFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BriefingPayload>
+        }
+        findFirst: {
+          args: Prisma.BriefingFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BriefingPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BriefingFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BriefingPayload>
+        }
+        findMany: {
+          args: Prisma.BriefingFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BriefingPayload>[]
+        }
+        create: {
+          args: Prisma.BriefingCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BriefingPayload>
+        }
+        createMany: {
+          args: Prisma.BriefingCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BriefingCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BriefingPayload>[]
+        }
+        delete: {
+          args: Prisma.BriefingDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BriefingPayload>
+        }
+        update: {
+          args: Prisma.BriefingUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BriefingPayload>
+        }
+        deleteMany: {
+          args: Prisma.BriefingDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BriefingUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BriefingUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BriefingPayload>[]
+        }
+        upsert: {
+          args: Prisma.BriefingUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BriefingPayload>
+        }
+        aggregate: {
+          args: Prisma.BriefingAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBriefing>
+        }
+        groupBy: {
+          args: Prisma.BriefingGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BriefingGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BriefingCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BriefingCountAggregateOutputType> | number
+        }
+      }
+    }
+    BrandUpdate: {
+      payload: Prisma.$BrandUpdatePayload<ExtArgs>
+      fields: Prisma.BrandUpdateFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BrandUpdateFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandUpdatePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BrandUpdateFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandUpdatePayload>
+        }
+        findFirst: {
+          args: Prisma.BrandUpdateFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandUpdatePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BrandUpdateFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandUpdatePayload>
+        }
+        findMany: {
+          args: Prisma.BrandUpdateFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandUpdatePayload>[]
+        }
+        create: {
+          args: Prisma.BrandUpdateCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandUpdatePayload>
+        }
+        createMany: {
+          args: Prisma.BrandUpdateCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BrandUpdateCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandUpdatePayload>[]
+        }
+        delete: {
+          args: Prisma.BrandUpdateDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandUpdatePayload>
+        }
+        update: {
+          args: Prisma.BrandUpdateUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandUpdatePayload>
+        }
+        deleteMany: {
+          args: Prisma.BrandUpdateDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BrandUpdateUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BrandUpdateUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandUpdatePayload>[]
+        }
+        upsert: {
+          args: Prisma.BrandUpdateUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrandUpdatePayload>
+        }
+        aggregate: {
+          args: Prisma.BrandUpdateAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBrandUpdate>
+        }
+        groupBy: {
+          args: Prisma.BrandUpdateGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrandUpdateGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BrandUpdateCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrandUpdateCountAggregateOutputType> | number
+        }
+      }
+    }
     DbIntegrationConfig: {
       payload: Prisma.$DbIntegrationConfigPayload<ExtArgs>
       fields: Prisma.DbIntegrationConfigFieldRefs
@@ -1531,6 +1681,7 @@ export type BrandBrainScalarFieldEnum = (typeof BrandBrainScalarFieldEnum)[keyof
 export const StrategyRoomScalarFieldEnum = {
   id: 'id',
   projectId: 'projectId',
+  clientId: 'clientId',
   status: 'status',
   analysisJson: 'analysisJson',
   createdAt: 'createdAt',
@@ -1538,6 +1689,40 @@ export const StrategyRoomScalarFieldEnum = {
 } as const
 
 export type StrategyRoomScalarFieldEnum = (typeof StrategyRoomScalarFieldEnum)[keyof typeof StrategyRoomScalarFieldEnum]
+
+
+export const BriefingScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  clientId: 'clientId',
+  goal: 'goal',
+  audience: 'audience',
+  keyMessage: 'keyMessage',
+  deliverables: 'deliverables',
+  deadline: 'deadline',
+  successCriteria: 'successCriteria',
+  notes: 'notes',
+  status: 'status',
+  createdAt: 'createdAt'
+} as const
+
+export type BriefingScalarFieldEnum = (typeof BriefingScalarFieldEnum)[keyof typeof BriefingScalarFieldEnum]
+
+
+export const BrandUpdateScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  field: 'field',
+  suggestedValue: 'suggestedValue',
+  currentValue: 'currentValue',
+  source: 'source',
+  status: 'status',
+  note: 'note',
+  fileName: 'fileName',
+  submittedAt: 'submittedAt'
+} as const
+
+export type BrandUpdateScalarFieldEnum = (typeof BrandUpdateScalarFieldEnum)[keyof typeof BrandUpdateScalarFieldEnum]
 
 
 export const DbIntegrationConfigScalarFieldEnum = {
@@ -1786,6 +1971,8 @@ export type GlobalOmitConfig = {
   materialRequest?: Prisma.MaterialRequestOmit
   brandBrain?: Prisma.BrandBrainOmit
   strategyRoom?: Prisma.StrategyRoomOmit
+  briefing?: Prisma.BriefingOmit
+  brandUpdate?: Prisma.BrandUpdateOmit
   dbIntegrationConfig?: Prisma.DbIntegrationConfigOmit
   dbAgentProviderConfig?: Prisma.DbAgentProviderConfigOmit
   task?: Prisma.TaskOmit

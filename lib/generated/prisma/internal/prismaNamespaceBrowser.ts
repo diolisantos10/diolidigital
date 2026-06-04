@@ -59,6 +59,8 @@ export const ModelName = {
   MaterialRequest: 'MaterialRequest',
   BrandBrain: 'BrandBrain',
   StrategyRoom: 'StrategyRoom',
+  Briefing: 'Briefing',
+  BrandUpdate: 'BrandUpdate',
   DbIntegrationConfig: 'DbIntegrationConfig',
   DbAgentProviderConfig: 'DbAgentProviderConfig',
   Task: 'Task',
@@ -196,6 +198,7 @@ export type BrandBrainScalarFieldEnum = (typeof BrandBrainScalarFieldEnum)[keyof
 export const StrategyRoomScalarFieldEnum = {
   id: 'id',
   projectId: 'projectId',
+  clientId: 'clientId',
   status: 'status',
   analysisJson: 'analysisJson',
   createdAt: 'createdAt',
@@ -203,6 +206,40 @@ export const StrategyRoomScalarFieldEnum = {
 } as const
 
 export type StrategyRoomScalarFieldEnum = (typeof StrategyRoomScalarFieldEnum)[keyof typeof StrategyRoomScalarFieldEnum]
+
+
+export const BriefingScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  clientId: 'clientId',
+  goal: 'goal',
+  audience: 'audience',
+  keyMessage: 'keyMessage',
+  deliverables: 'deliverables',
+  deadline: 'deadline',
+  successCriteria: 'successCriteria',
+  notes: 'notes',
+  status: 'status',
+  createdAt: 'createdAt'
+} as const
+
+export type BriefingScalarFieldEnum = (typeof BriefingScalarFieldEnum)[keyof typeof BriefingScalarFieldEnum]
+
+
+export const BrandUpdateScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  field: 'field',
+  suggestedValue: 'suggestedValue',
+  currentValue: 'currentValue',
+  source: 'source',
+  status: 'status',
+  note: 'note',
+  fileName: 'fileName',
+  submittedAt: 'submittedAt'
+} as const
+
+export type BrandUpdateScalarFieldEnum = (typeof BrandUpdateScalarFieldEnum)[keyof typeof BrandUpdateScalarFieldEnum]
 
 
 export const DbIntegrationConfigScalarFieldEnum = {

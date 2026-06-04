@@ -3,6 +3,7 @@
 import { use, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAgencyStore } from "@/store/agency-store";
+import { useDbStrategyRooms } from "@/lib/hooks/useDbStrategyRooms";
 import { notFound } from "next/navigation";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import Badge from "@/components/agency/ui/Badge";
@@ -33,7 +34,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const { id } = use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { projects, clients, tasks, deliverables, briefings, materialRequests, strategyRooms, generateStrategyRoom, clearStrategyRoom, updateTaskStatus, updateDeliverableStatus, updateProject, updateProposal, sendProposal, moveProjectStage, setPendingAgentInput } = useAgencyStore();
+  const { projects, clients, tasks, deliverables, briefings, materialRequests, updateTaskStatus, updateDeliverableStatus, updateProject, updateProposal, sendProposal, moveProjectStage, setPendingAgentInput } = useAgencyStore();
+  const { strategyRooms, generate: generateStrategyRoom, clear: clearStrategyRoom } = useDbStrategyRooms();
 
   type TabId = "overview" | "proposal" | "execution" | "pipeline" | "tasks" | "deliverables" | "briefing" | "strategy" | "assets" | "history" | "report" | "timeline";
   const VALID_TABS: TabId[] = ["overview", "proposal", "execution", "pipeline", "tasks", "deliverables", "briefing", "strategy", "assets", "history", "report", "timeline"];
