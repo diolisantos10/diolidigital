@@ -92,6 +92,16 @@ export type DbIntegrationConfig = Prisma.DbIntegrationConfigModel
  */
 export type DbAgentProviderConfig = Prisma.DbAgentProviderConfigModel
 /**
+ * Model Task
+ * 
+ */
+export type Task = Prisma.TaskModel
+/**
+ * Model TimelineEvent
+ * 
+ */
+export type TimelineEvent = Prisma.TimelineEventModel
+/**
  * Model ActivityEvent
  * 
  */

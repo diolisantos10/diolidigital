@@ -11,7 +11,7 @@
 //   4. Prontidão dos Agentes— Social (a3), Design (a2), Ads (a4)
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { Client, Project, Deliverable, StrategyRoom } from "@/lib/agency/mock-data";
+import type { Client, Project, Deliverable, StrategyRoom, Task } from "@/lib/agency/mock-data";
 import type { MaterialRequest } from "@/lib/agency/workspace";
 import { isValidProposalPricing } from "@/lib/agency/reporting";
 import { needsRevision } from "@/lib/agency/deliverables";
@@ -79,6 +79,7 @@ export interface DoctorInput {
   deliverables: Deliverable[];
   materialRequests: MaterialRequest[];
   strategyRooms: StrategyRoom[];
+  tasks?: Task[];
   persisted: boolean;
   integrationConfigs?: IntegrationConfig[];
   agentProviderConfigs?: AgentProviderConfig[];
@@ -91,7 +92,7 @@ export interface DoctorInput {
 }
 
 export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
-  const { clients, projects, deliverables, materialRequests, strategyRooms, persisted, integrationConfigs, agentProviderConfigs, dbAvailable, authMode, portalMode, sessionActive, sessionUser } = input;
+  const { clients, projects, deliverables, materialRequests, strategyRooms, tasks = [], persisted, integrationConfigs, agentProviderConfigs, dbAvailable, authMode, portalMode, sessionActive, sessionUser } = input;
 
   const checks: DiagnosticCheck[] = [];
 
@@ -566,6 +567,112 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
     route: "/agency/settings",
   });
 
+  // ── Group 7: Orquestração ─────────────────────────────────────────────────
+
+  const activeProjects = projects.filter((p) => p.stage !== "completed");
+  const activeIds = new Set(activeProjects.map((p) => p.id));
+
+  // Pipeline integrity: projects with approved proposals but no strategy room
+  const missingStrategyProjects = activeProjects.filter(
+    (p) => p.proposal?.status === "approved" && !strategyRooms.some((r) => r.projectId === p.id)
+  );
+  checks.push({
+    id: "orch-pipeline-integrity",
+    group: "Orquestração",
+    label: "Integridade do pipeline",
+    status: missingStrategyProjects.length === 0 ? "pass" : missingStrategyProjects.length <= 2 ? "warning" : "fail",
+    severity: "medium",
+    explanation: missingStrategyProjects.length === 0
+      ? "Todos os projetos aprovados têm Strategy Room gerado."
+      : `${missingStrategyProjects.length} projeto(s) aprovado(s) sem Strategy Room: ${missingStrategyProjects.map((p) => p.name).slice(0, 2).join(", ")}.`,
+    action: missingStrategyProjects.length === 0
+      ? "Nenhuma ação necessária."
+      : "Abrir Orquestrador e gerar Strategy Room para os projetos aprovados.",
+    route: "/agency/orchestrator",
+  });
+
+  // Stalled approvals: in_review deliverables older than 5 days
+  const stalledDeliverables = deliverables.filter((d) => {
+    if (d.status !== "in_review" || !activeIds.has(d.projectId)) return false;
+    const daysSent = Math.floor((Date.now() - new Date(d.updatedAt ?? d.createdAt).getTime()) / 86400000);
+    return daysSent >= 5;
+  });
+  checks.push({
+    id: "orch-stalled-approvals",
+    group: "Orquestração",
+    label: "Aprovações paradas",
+    status: stalledDeliverables.length === 0 ? "pass" : stalledDeliverables.length <= 2 ? "warning" : "fail",
+    severity: "medium",
+    explanation: stalledDeliverables.length === 0
+      ? "Nenhuma entrega parada em aprovação há mais de 5 dias."
+      : `${stalledDeliverables.length} entrega(s) aguardando aprovação do cliente há 5+ dias: ${stalledDeliverables.map((d) => d.name).slice(0, 2).join(", ")}.`,
+    action: stalledDeliverables.length === 0
+      ? "Nenhuma ação necessária."
+      : "Contatar cliente para agilizar aprovação ou escalonar com PM.",
+    route: "/agency/approvals",
+  });
+
+  // Blocked projects: critical dependency violations
+  const blockedProjects = activeProjects.filter((p) => {
+    const proposal = p.proposal?.status;
+    return !proposal || proposal === "draft";
+  });
+  checks.push({
+    id: "orch-blocked-projects",
+    group: "Orquestração",
+    label: "Projetos bloqueados",
+    status: blockedProjects.length === 0 ? "pass" : blockedProjects.length <= 1 ? "warning" : "fail",
+    severity: "high",
+    explanation: blockedProjects.length === 0
+      ? "Todos os projetos ativos têm proposta enviada ou aprovada."
+      : `${blockedProjects.length} projeto(s) sem proposta enviada: ${blockedProjects.map((p) => p.name).slice(0, 2).join(", ")}.`,
+    action: blockedProjects.length === 0
+      ? "Nenhuma ação necessária."
+      : "Abrir os projetos pendentes → aba Proposta → finalizar e enviar ao cliente.",
+    route: "/agency/projects",
+  });
+
+  // Orphan deliverables: deliverables in active projects with no agent owner
+  const noOwnerDelivs = deliverables.filter(
+    (d) => activeIds.has(d.projectId) && !d.ownerAgentId && d.status !== "delivered"
+  );
+  checks.push({
+    id: "orch-orphan-deliverables",
+    group: "Orquestração",
+    label: "Entregas sem responsável",
+    status: noOwnerDelivs.length === 0 ? "pass" : noOwnerDelivs.length <= 3 ? "info" : "warning",
+    severity: "low",
+    explanation: noOwnerDelivs.length === 0
+      ? "Todas as entregas têm agente responsável definido."
+      : `${noOwnerDelivs.length} entrega(s) sem agente responsável — pode dificultar rastreamento.`,
+    action: noOwnerDelivs.length === 0
+      ? "Nenhuma ação necessária."
+      : "Revisar entregas sem dono e atribuir ao agente correto.",
+    route: "/agency/deliverables",
+  });
+
+  // Department idleness: agents assigned to approved projects but no deliverables
+  const agentDefs = [{ id: "a3", label: "Social Media" }, { id: "a2", label: "Design" }, { id: "a4", label: "Tráfego Pago" }];
+  const idleAgents = agentDefs.filter((ag) => {
+    const assignedApproved = activeProjects.filter((p) => p.agents.includes(ag.id) && p.proposal?.status === "approved");
+    const hasOutput = deliverables.some((d) => activeIds.has(d.projectId) && (d.ownerAgentId === ag.id || ["Content Strategy", "Design", "Ads Strategy"].includes(d.type)));
+    return assignedApproved.length > 0 && !hasOutput;
+  });
+  checks.push({
+    id: "orch-dept-idleness",
+    group: "Orquestração",
+    label: "Departamentos sem execução",
+    status: idleAgents.length === 0 ? "pass" : idleAgents.length <= 1 ? "warning" : "fail",
+    severity: "medium",
+    explanation: idleAgents.length === 0
+      ? "Todos os departamentos com projetos aprovados têm entregas geradas."
+      : `${idleAgents.map((a) => a.label).join(", ")} — atribuído(s) a projetos aprovados mas sem entregas geradas.`,
+    action: idleAgents.length === 0
+      ? "Nenhuma ação necessária."
+      : `Iniciar execução: ${idleAgents.map((a) => a.label).join(", ")}.`,
+    route: "/agency/dashboard",
+  });
+
   // ── Score ─────────────────────────────────────────────────────────────────
 
   let totalWeight = 0;
@@ -616,6 +723,7 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
 export const CHECK_GROUP_ORDER = [
   "Dados do Piloto",
   "Operações do Projeto",
+  "Orquestração",
   "Infraestrutura",
   "Prontidão dos Agentes",
   "Ferramentas & Integrações",

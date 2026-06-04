@@ -276,6 +276,8 @@ export type ProjectWhereInput = {
   materialRequests?: Prisma.MaterialRequestListRelationFilter
   strategyRooms?: Prisma.StrategyRoomListRelationFilter
   activityEvents?: Prisma.ActivityEventListRelationFilter
+  tasks?: Prisma.TaskListRelationFilter
+  timelineEvents?: Prisma.TimelineEventListRelationFilter
 }
 
 export type ProjectOrderByWithRelationInput = {
@@ -301,6 +303,8 @@ export type ProjectOrderByWithRelationInput = {
   materialRequests?: Prisma.MaterialRequestOrderByRelationAggregateInput
   strategyRooms?: Prisma.StrategyRoomOrderByRelationAggregateInput
   activityEvents?: Prisma.ActivityEventOrderByRelationAggregateInput
+  tasks?: Prisma.TaskOrderByRelationAggregateInput
+  timelineEvents?: Prisma.TimelineEventOrderByRelationAggregateInput
 }
 
 export type ProjectWhereUniqueInput = Prisma.AtLeast<{
@@ -329,6 +333,8 @@ export type ProjectWhereUniqueInput = Prisma.AtLeast<{
   materialRequests?: Prisma.MaterialRequestListRelationFilter
   strategyRooms?: Prisma.StrategyRoomListRelationFilter
   activityEvents?: Prisma.ActivityEventListRelationFilter
+  tasks?: Prisma.TaskListRelationFilter
+  timelineEvents?: Prisma.TimelineEventListRelationFilter
 }, "id">
 
 export type ProjectOrderByWithAggregationInput = {
@@ -396,6 +402,8 @@ export type ProjectCreateInput = {
   materialRequests?: Prisma.MaterialRequestCreateNestedManyWithoutProjectInput
   strategyRooms?: Prisma.StrategyRoomCreateNestedManyWithoutProjectInput
   activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutProjectInput
+  tasks?: Prisma.TaskCreateNestedManyWithoutProjectInput
+  timelineEvents?: Prisma.TimelineEventCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateInput = {
@@ -419,6 +427,8 @@ export type ProjectUncheckedCreateInput = {
   materialRequests?: Prisma.MaterialRequestUncheckedCreateNestedManyWithoutProjectInput
   strategyRooms?: Prisma.StrategyRoomUncheckedCreateNestedManyWithoutProjectInput
   activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutProjectInput
+  tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutProjectInput
+  timelineEvents?: Prisma.TimelineEventUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUpdateInput = {
@@ -442,6 +452,8 @@ export type ProjectUpdateInput = {
   materialRequests?: Prisma.MaterialRequestUpdateManyWithoutProjectNestedInput
   strategyRooms?: Prisma.StrategyRoomUpdateManyWithoutProjectNestedInput
   activityEvents?: Prisma.ActivityEventUpdateManyWithoutProjectNestedInput
+  tasks?: Prisma.TaskUpdateManyWithoutProjectNestedInput
+  timelineEvents?: Prisma.TimelineEventUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateInput = {
@@ -465,6 +477,8 @@ export type ProjectUncheckedUpdateInput = {
   materialRequests?: Prisma.MaterialRequestUncheckedUpdateManyWithoutProjectNestedInput
   strategyRooms?: Prisma.StrategyRoomUncheckedUpdateManyWithoutProjectNestedInput
   activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutProjectNestedInput
+  tasks?: Prisma.TaskUncheckedUpdateManyWithoutProjectNestedInput
+  timelineEvents?: Prisma.TimelineEventUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateManyInput = {
@@ -725,6 +739,34 @@ export type ProjectUpdateOneRequiredWithoutStrategyRoomsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.ProjectUpdateToOneWithWhereWithoutStrategyRoomsInput, Prisma.ProjectUpdateWithoutStrategyRoomsInput>, Prisma.ProjectUncheckedUpdateWithoutStrategyRoomsInput>
 }
 
+export type ProjectCreateNestedOneWithoutTasksInput = {
+  create?: Prisma.XOR<Prisma.ProjectCreateWithoutTasksInput, Prisma.ProjectUncheckedCreateWithoutTasksInput>
+  connectOrCreate?: Prisma.ProjectCreateOrConnectWithoutTasksInput
+  connect?: Prisma.ProjectWhereUniqueInput
+}
+
+export type ProjectUpdateOneRequiredWithoutTasksNestedInput = {
+  create?: Prisma.XOR<Prisma.ProjectCreateWithoutTasksInput, Prisma.ProjectUncheckedCreateWithoutTasksInput>
+  connectOrCreate?: Prisma.ProjectCreateOrConnectWithoutTasksInput
+  upsert?: Prisma.ProjectUpsertWithoutTasksInput
+  connect?: Prisma.ProjectWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ProjectUpdateToOneWithWhereWithoutTasksInput, Prisma.ProjectUpdateWithoutTasksInput>, Prisma.ProjectUncheckedUpdateWithoutTasksInput>
+}
+
+export type ProjectCreateNestedOneWithoutTimelineEventsInput = {
+  create?: Prisma.XOR<Prisma.ProjectCreateWithoutTimelineEventsInput, Prisma.ProjectUncheckedCreateWithoutTimelineEventsInput>
+  connectOrCreate?: Prisma.ProjectCreateOrConnectWithoutTimelineEventsInput
+  connect?: Prisma.ProjectWhereUniqueInput
+}
+
+export type ProjectUpdateOneRequiredWithoutTimelineEventsNestedInput = {
+  create?: Prisma.XOR<Prisma.ProjectCreateWithoutTimelineEventsInput, Prisma.ProjectUncheckedCreateWithoutTimelineEventsInput>
+  connectOrCreate?: Prisma.ProjectCreateOrConnectWithoutTimelineEventsInput
+  upsert?: Prisma.ProjectUpsertWithoutTimelineEventsInput
+  connect?: Prisma.ProjectWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ProjectUpdateToOneWithWhereWithoutTimelineEventsInput, Prisma.ProjectUpdateWithoutTimelineEventsInput>, Prisma.ProjectUncheckedUpdateWithoutTimelineEventsInput>
+}
+
 export type ProjectCreateNestedOneWithoutActivityEventsInput = {
   create?: Prisma.XOR<Prisma.ProjectCreateWithoutActivityEventsInput, Prisma.ProjectUncheckedCreateWithoutActivityEventsInput>
   connectOrCreate?: Prisma.ProjectCreateOrConnectWithoutActivityEventsInput
@@ -761,6 +803,8 @@ export type ProjectCreateWithoutWorkspaceInput = {
   materialRequests?: Prisma.MaterialRequestCreateNestedManyWithoutProjectInput
   strategyRooms?: Prisma.StrategyRoomCreateNestedManyWithoutProjectInput
   activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutProjectInput
+  tasks?: Prisma.TaskCreateNestedManyWithoutProjectInput
+  timelineEvents?: Prisma.TimelineEventCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutWorkspaceInput = {
@@ -783,6 +827,8 @@ export type ProjectUncheckedCreateWithoutWorkspaceInput = {
   materialRequests?: Prisma.MaterialRequestUncheckedCreateNestedManyWithoutProjectInput
   strategyRooms?: Prisma.StrategyRoomUncheckedCreateNestedManyWithoutProjectInput
   activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutProjectInput
+  tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutProjectInput
+  timelineEvents?: Prisma.TimelineEventUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutWorkspaceInput = {
@@ -852,6 +898,8 @@ export type ProjectCreateWithoutClientInput = {
   materialRequests?: Prisma.MaterialRequestCreateNestedManyWithoutProjectInput
   strategyRooms?: Prisma.StrategyRoomCreateNestedManyWithoutProjectInput
   activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutProjectInput
+  tasks?: Prisma.TaskCreateNestedManyWithoutProjectInput
+  timelineEvents?: Prisma.TimelineEventCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutClientInput = {
@@ -874,6 +922,8 @@ export type ProjectUncheckedCreateWithoutClientInput = {
   materialRequests?: Prisma.MaterialRequestUncheckedCreateNestedManyWithoutProjectInput
   strategyRooms?: Prisma.StrategyRoomUncheckedCreateNestedManyWithoutProjectInput
   activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutProjectInput
+  tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutProjectInput
+  timelineEvents?: Prisma.TimelineEventUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutClientInput = {
@@ -921,6 +971,8 @@ export type ProjectCreateWithoutDeliverablesInput = {
   materialRequests?: Prisma.MaterialRequestCreateNestedManyWithoutProjectInput
   strategyRooms?: Prisma.StrategyRoomCreateNestedManyWithoutProjectInput
   activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutProjectInput
+  tasks?: Prisma.TaskCreateNestedManyWithoutProjectInput
+  timelineEvents?: Prisma.TimelineEventCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutDeliverablesInput = {
@@ -943,6 +995,8 @@ export type ProjectUncheckedCreateWithoutDeliverablesInput = {
   materialRequests?: Prisma.MaterialRequestUncheckedCreateNestedManyWithoutProjectInput
   strategyRooms?: Prisma.StrategyRoomUncheckedCreateNestedManyWithoutProjectInput
   activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutProjectInput
+  tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutProjectInput
+  timelineEvents?: Prisma.TimelineEventUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutDeliverablesInput = {
@@ -981,6 +1035,8 @@ export type ProjectUpdateWithoutDeliverablesInput = {
   materialRequests?: Prisma.MaterialRequestUpdateManyWithoutProjectNestedInput
   strategyRooms?: Prisma.StrategyRoomUpdateManyWithoutProjectNestedInput
   activityEvents?: Prisma.ActivityEventUpdateManyWithoutProjectNestedInput
+  tasks?: Prisma.TaskUpdateManyWithoutProjectNestedInput
+  timelineEvents?: Prisma.TimelineEventUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutDeliverablesInput = {
@@ -1003,6 +1059,8 @@ export type ProjectUncheckedUpdateWithoutDeliverablesInput = {
   materialRequests?: Prisma.MaterialRequestUncheckedUpdateManyWithoutProjectNestedInput
   strategyRooms?: Prisma.StrategyRoomUncheckedUpdateManyWithoutProjectNestedInput
   activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutProjectNestedInput
+  tasks?: Prisma.TaskUncheckedUpdateManyWithoutProjectNestedInput
+  timelineEvents?: Prisma.TimelineEventUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateWithoutMaterialRequestsInput = {
@@ -1025,6 +1083,8 @@ export type ProjectCreateWithoutMaterialRequestsInput = {
   deliverables?: Prisma.DeliverableCreateNestedManyWithoutProjectInput
   strategyRooms?: Prisma.StrategyRoomCreateNestedManyWithoutProjectInput
   activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutProjectInput
+  tasks?: Prisma.TaskCreateNestedManyWithoutProjectInput
+  timelineEvents?: Prisma.TimelineEventCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutMaterialRequestsInput = {
@@ -1047,6 +1107,8 @@ export type ProjectUncheckedCreateWithoutMaterialRequestsInput = {
   deliverables?: Prisma.DeliverableUncheckedCreateNestedManyWithoutProjectInput
   strategyRooms?: Prisma.StrategyRoomUncheckedCreateNestedManyWithoutProjectInput
   activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutProjectInput
+  tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutProjectInput
+  timelineEvents?: Prisma.TimelineEventUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutMaterialRequestsInput = {
@@ -1085,6 +1147,8 @@ export type ProjectUpdateWithoutMaterialRequestsInput = {
   deliverables?: Prisma.DeliverableUpdateManyWithoutProjectNestedInput
   strategyRooms?: Prisma.StrategyRoomUpdateManyWithoutProjectNestedInput
   activityEvents?: Prisma.ActivityEventUpdateManyWithoutProjectNestedInput
+  tasks?: Prisma.TaskUpdateManyWithoutProjectNestedInput
+  timelineEvents?: Prisma.TimelineEventUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutMaterialRequestsInput = {
@@ -1107,6 +1171,8 @@ export type ProjectUncheckedUpdateWithoutMaterialRequestsInput = {
   deliverables?: Prisma.DeliverableUncheckedUpdateManyWithoutProjectNestedInput
   strategyRooms?: Prisma.StrategyRoomUncheckedUpdateManyWithoutProjectNestedInput
   activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutProjectNestedInput
+  tasks?: Prisma.TaskUncheckedUpdateManyWithoutProjectNestedInput
+  timelineEvents?: Prisma.TimelineEventUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateWithoutStrategyRoomsInput = {
@@ -1129,6 +1195,8 @@ export type ProjectCreateWithoutStrategyRoomsInput = {
   deliverables?: Prisma.DeliverableCreateNestedManyWithoutProjectInput
   materialRequests?: Prisma.MaterialRequestCreateNestedManyWithoutProjectInput
   activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutProjectInput
+  tasks?: Prisma.TaskCreateNestedManyWithoutProjectInput
+  timelineEvents?: Prisma.TimelineEventCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutStrategyRoomsInput = {
@@ -1151,6 +1219,8 @@ export type ProjectUncheckedCreateWithoutStrategyRoomsInput = {
   deliverables?: Prisma.DeliverableUncheckedCreateNestedManyWithoutProjectInput
   materialRequests?: Prisma.MaterialRequestUncheckedCreateNestedManyWithoutProjectInput
   activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutProjectInput
+  tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutProjectInput
+  timelineEvents?: Prisma.TimelineEventUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutStrategyRoomsInput = {
@@ -1189,6 +1259,8 @@ export type ProjectUpdateWithoutStrategyRoomsInput = {
   deliverables?: Prisma.DeliverableUpdateManyWithoutProjectNestedInput
   materialRequests?: Prisma.MaterialRequestUpdateManyWithoutProjectNestedInput
   activityEvents?: Prisma.ActivityEventUpdateManyWithoutProjectNestedInput
+  tasks?: Prisma.TaskUpdateManyWithoutProjectNestedInput
+  timelineEvents?: Prisma.TimelineEventUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutStrategyRoomsInput = {
@@ -1211,6 +1283,232 @@ export type ProjectUncheckedUpdateWithoutStrategyRoomsInput = {
   deliverables?: Prisma.DeliverableUncheckedUpdateManyWithoutProjectNestedInput
   materialRequests?: Prisma.MaterialRequestUncheckedUpdateManyWithoutProjectNestedInput
   activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutProjectNestedInput
+  tasks?: Prisma.TaskUncheckedUpdateManyWithoutProjectNestedInput
+  timelineEvents?: Prisma.TimelineEventUncheckedUpdateManyWithoutProjectNestedInput
+}
+
+export type ProjectCreateWithoutTasksInput = {
+  id?: string
+  name: string
+  goal?: string | null
+  type?: string | null
+  stage?: string
+  priority?: string
+  deadline?: string | null
+  proposalStatus?: string | null
+  proposalPricing?: string | null
+  proposalScope?: string | null
+  proposalSentAt?: string | null
+  agents?: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutProjectsInput
+  client: Prisma.ClientCreateNestedOneWithoutProjectsInput
+  deliverables?: Prisma.DeliverableCreateNestedManyWithoutProjectInput
+  materialRequests?: Prisma.MaterialRequestCreateNestedManyWithoutProjectInput
+  strategyRooms?: Prisma.StrategyRoomCreateNestedManyWithoutProjectInput
+  activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutProjectInput
+  timelineEvents?: Prisma.TimelineEventCreateNestedManyWithoutProjectInput
+}
+
+export type ProjectUncheckedCreateWithoutTasksInput = {
+  id?: string
+  workspaceId: string
+  clientId: string
+  name: string
+  goal?: string | null
+  type?: string | null
+  stage?: string
+  priority?: string
+  deadline?: string | null
+  proposalStatus?: string | null
+  proposalPricing?: string | null
+  proposalScope?: string | null
+  proposalSentAt?: string | null
+  agents?: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deliverables?: Prisma.DeliverableUncheckedCreateNestedManyWithoutProjectInput
+  materialRequests?: Prisma.MaterialRequestUncheckedCreateNestedManyWithoutProjectInput
+  strategyRooms?: Prisma.StrategyRoomUncheckedCreateNestedManyWithoutProjectInput
+  activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutProjectInput
+  timelineEvents?: Prisma.TimelineEventUncheckedCreateNestedManyWithoutProjectInput
+}
+
+export type ProjectCreateOrConnectWithoutTasksInput = {
+  where: Prisma.ProjectWhereUniqueInput
+  create: Prisma.XOR<Prisma.ProjectCreateWithoutTasksInput, Prisma.ProjectUncheckedCreateWithoutTasksInput>
+}
+
+export type ProjectUpsertWithoutTasksInput = {
+  update: Prisma.XOR<Prisma.ProjectUpdateWithoutTasksInput, Prisma.ProjectUncheckedUpdateWithoutTasksInput>
+  create: Prisma.XOR<Prisma.ProjectCreateWithoutTasksInput, Prisma.ProjectUncheckedCreateWithoutTasksInput>
+  where?: Prisma.ProjectWhereInput
+}
+
+export type ProjectUpdateToOneWithWhereWithoutTasksInput = {
+  where?: Prisma.ProjectWhereInput
+  data: Prisma.XOR<Prisma.ProjectUpdateWithoutTasksInput, Prisma.ProjectUncheckedUpdateWithoutTasksInput>
+}
+
+export type ProjectUpdateWithoutTasksInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  goal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  stage?: Prisma.StringFieldUpdateOperationsInput | string
+  priority?: Prisma.StringFieldUpdateOperationsInput | string
+  deadline?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposalStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposalPricing?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposalScope?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposalSentAt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agents?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutProjectsNestedInput
+  client?: Prisma.ClientUpdateOneRequiredWithoutProjectsNestedInput
+  deliverables?: Prisma.DeliverableUpdateManyWithoutProjectNestedInput
+  materialRequests?: Prisma.MaterialRequestUpdateManyWithoutProjectNestedInput
+  strategyRooms?: Prisma.StrategyRoomUpdateManyWithoutProjectNestedInput
+  activityEvents?: Prisma.ActivityEventUpdateManyWithoutProjectNestedInput
+  timelineEvents?: Prisma.TimelineEventUpdateManyWithoutProjectNestedInput
+}
+
+export type ProjectUncheckedUpdateWithoutTasksInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
+  clientId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  goal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  stage?: Prisma.StringFieldUpdateOperationsInput | string
+  priority?: Prisma.StringFieldUpdateOperationsInput | string
+  deadline?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposalStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposalPricing?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposalScope?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposalSentAt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agents?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deliverables?: Prisma.DeliverableUncheckedUpdateManyWithoutProjectNestedInput
+  materialRequests?: Prisma.MaterialRequestUncheckedUpdateManyWithoutProjectNestedInput
+  strategyRooms?: Prisma.StrategyRoomUncheckedUpdateManyWithoutProjectNestedInput
+  activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutProjectNestedInput
+  timelineEvents?: Prisma.TimelineEventUncheckedUpdateManyWithoutProjectNestedInput
+}
+
+export type ProjectCreateWithoutTimelineEventsInput = {
+  id?: string
+  name: string
+  goal?: string | null
+  type?: string | null
+  stage?: string
+  priority?: string
+  deadline?: string | null
+  proposalStatus?: string | null
+  proposalPricing?: string | null
+  proposalScope?: string | null
+  proposalSentAt?: string | null
+  agents?: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutProjectsInput
+  client: Prisma.ClientCreateNestedOneWithoutProjectsInput
+  deliverables?: Prisma.DeliverableCreateNestedManyWithoutProjectInput
+  materialRequests?: Prisma.MaterialRequestCreateNestedManyWithoutProjectInput
+  strategyRooms?: Prisma.StrategyRoomCreateNestedManyWithoutProjectInput
+  activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutProjectInput
+  tasks?: Prisma.TaskCreateNestedManyWithoutProjectInput
+}
+
+export type ProjectUncheckedCreateWithoutTimelineEventsInput = {
+  id?: string
+  workspaceId: string
+  clientId: string
+  name: string
+  goal?: string | null
+  type?: string | null
+  stage?: string
+  priority?: string
+  deadline?: string | null
+  proposalStatus?: string | null
+  proposalPricing?: string | null
+  proposalScope?: string | null
+  proposalSentAt?: string | null
+  agents?: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deliverables?: Prisma.DeliverableUncheckedCreateNestedManyWithoutProjectInput
+  materialRequests?: Prisma.MaterialRequestUncheckedCreateNestedManyWithoutProjectInput
+  strategyRooms?: Prisma.StrategyRoomUncheckedCreateNestedManyWithoutProjectInput
+  activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutProjectInput
+  tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutProjectInput
+}
+
+export type ProjectCreateOrConnectWithoutTimelineEventsInput = {
+  where: Prisma.ProjectWhereUniqueInput
+  create: Prisma.XOR<Prisma.ProjectCreateWithoutTimelineEventsInput, Prisma.ProjectUncheckedCreateWithoutTimelineEventsInput>
+}
+
+export type ProjectUpsertWithoutTimelineEventsInput = {
+  update: Prisma.XOR<Prisma.ProjectUpdateWithoutTimelineEventsInput, Prisma.ProjectUncheckedUpdateWithoutTimelineEventsInput>
+  create: Prisma.XOR<Prisma.ProjectCreateWithoutTimelineEventsInput, Prisma.ProjectUncheckedCreateWithoutTimelineEventsInput>
+  where?: Prisma.ProjectWhereInput
+}
+
+export type ProjectUpdateToOneWithWhereWithoutTimelineEventsInput = {
+  where?: Prisma.ProjectWhereInput
+  data: Prisma.XOR<Prisma.ProjectUpdateWithoutTimelineEventsInput, Prisma.ProjectUncheckedUpdateWithoutTimelineEventsInput>
+}
+
+export type ProjectUpdateWithoutTimelineEventsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  goal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  stage?: Prisma.StringFieldUpdateOperationsInput | string
+  priority?: Prisma.StringFieldUpdateOperationsInput | string
+  deadline?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposalStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposalPricing?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposalScope?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposalSentAt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agents?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutProjectsNestedInput
+  client?: Prisma.ClientUpdateOneRequiredWithoutProjectsNestedInput
+  deliverables?: Prisma.DeliverableUpdateManyWithoutProjectNestedInput
+  materialRequests?: Prisma.MaterialRequestUpdateManyWithoutProjectNestedInput
+  strategyRooms?: Prisma.StrategyRoomUpdateManyWithoutProjectNestedInput
+  activityEvents?: Prisma.ActivityEventUpdateManyWithoutProjectNestedInput
+  tasks?: Prisma.TaskUpdateManyWithoutProjectNestedInput
+}
+
+export type ProjectUncheckedUpdateWithoutTimelineEventsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
+  clientId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  goal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  stage?: Prisma.StringFieldUpdateOperationsInput | string
+  priority?: Prisma.StringFieldUpdateOperationsInput | string
+  deadline?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposalStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposalPricing?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposalScope?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposalSentAt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agents?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deliverables?: Prisma.DeliverableUncheckedUpdateManyWithoutProjectNestedInput
+  materialRequests?: Prisma.MaterialRequestUncheckedUpdateManyWithoutProjectNestedInput
+  strategyRooms?: Prisma.StrategyRoomUncheckedUpdateManyWithoutProjectNestedInput
+  activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutProjectNestedInput
+  tasks?: Prisma.TaskUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateWithoutActivityEventsInput = {
@@ -1233,6 +1531,8 @@ export type ProjectCreateWithoutActivityEventsInput = {
   deliverables?: Prisma.DeliverableCreateNestedManyWithoutProjectInput
   materialRequests?: Prisma.MaterialRequestCreateNestedManyWithoutProjectInput
   strategyRooms?: Prisma.StrategyRoomCreateNestedManyWithoutProjectInput
+  tasks?: Prisma.TaskCreateNestedManyWithoutProjectInput
+  timelineEvents?: Prisma.TimelineEventCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutActivityEventsInput = {
@@ -1255,6 +1555,8 @@ export type ProjectUncheckedCreateWithoutActivityEventsInput = {
   deliverables?: Prisma.DeliverableUncheckedCreateNestedManyWithoutProjectInput
   materialRequests?: Prisma.MaterialRequestUncheckedCreateNestedManyWithoutProjectInput
   strategyRooms?: Prisma.StrategyRoomUncheckedCreateNestedManyWithoutProjectInput
+  tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutProjectInput
+  timelineEvents?: Prisma.TimelineEventUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutActivityEventsInput = {
@@ -1293,6 +1595,8 @@ export type ProjectUpdateWithoutActivityEventsInput = {
   deliverables?: Prisma.DeliverableUpdateManyWithoutProjectNestedInput
   materialRequests?: Prisma.MaterialRequestUpdateManyWithoutProjectNestedInput
   strategyRooms?: Prisma.StrategyRoomUpdateManyWithoutProjectNestedInput
+  tasks?: Prisma.TaskUpdateManyWithoutProjectNestedInput
+  timelineEvents?: Prisma.TimelineEventUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutActivityEventsInput = {
@@ -1315,6 +1619,8 @@ export type ProjectUncheckedUpdateWithoutActivityEventsInput = {
   deliverables?: Prisma.DeliverableUncheckedUpdateManyWithoutProjectNestedInput
   materialRequests?: Prisma.MaterialRequestUncheckedUpdateManyWithoutProjectNestedInput
   strategyRooms?: Prisma.StrategyRoomUncheckedUpdateManyWithoutProjectNestedInput
+  tasks?: Prisma.TaskUncheckedUpdateManyWithoutProjectNestedInput
+  timelineEvents?: Prisma.TimelineEventUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateManyWorkspaceInput = {
@@ -1355,6 +1661,8 @@ export type ProjectUpdateWithoutWorkspaceInput = {
   materialRequests?: Prisma.MaterialRequestUpdateManyWithoutProjectNestedInput
   strategyRooms?: Prisma.StrategyRoomUpdateManyWithoutProjectNestedInput
   activityEvents?: Prisma.ActivityEventUpdateManyWithoutProjectNestedInput
+  tasks?: Prisma.TaskUpdateManyWithoutProjectNestedInput
+  timelineEvents?: Prisma.TimelineEventUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutWorkspaceInput = {
@@ -1377,6 +1685,8 @@ export type ProjectUncheckedUpdateWithoutWorkspaceInput = {
   materialRequests?: Prisma.MaterialRequestUncheckedUpdateManyWithoutProjectNestedInput
   strategyRooms?: Prisma.StrategyRoomUncheckedUpdateManyWithoutProjectNestedInput
   activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutProjectNestedInput
+  tasks?: Prisma.TaskUncheckedUpdateManyWithoutProjectNestedInput
+  timelineEvents?: Prisma.TimelineEventUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateManyWithoutWorkspaceInput = {
@@ -1435,6 +1745,8 @@ export type ProjectUpdateWithoutClientInput = {
   materialRequests?: Prisma.MaterialRequestUpdateManyWithoutProjectNestedInput
   strategyRooms?: Prisma.StrategyRoomUpdateManyWithoutProjectNestedInput
   activityEvents?: Prisma.ActivityEventUpdateManyWithoutProjectNestedInput
+  tasks?: Prisma.TaskUpdateManyWithoutProjectNestedInput
+  timelineEvents?: Prisma.TimelineEventUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutClientInput = {
@@ -1457,6 +1769,8 @@ export type ProjectUncheckedUpdateWithoutClientInput = {
   materialRequests?: Prisma.MaterialRequestUncheckedUpdateManyWithoutProjectNestedInput
   strategyRooms?: Prisma.StrategyRoomUncheckedUpdateManyWithoutProjectNestedInput
   activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutProjectNestedInput
+  tasks?: Prisma.TaskUncheckedUpdateManyWithoutProjectNestedInput
+  timelineEvents?: Prisma.TimelineEventUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateManyWithoutClientInput = {
@@ -1487,6 +1801,8 @@ export type ProjectCountOutputType = {
   materialRequests: number
   strategyRooms: number
   activityEvents: number
+  tasks: number
+  timelineEvents: number
 }
 
 export type ProjectCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1494,6 +1810,8 @@ export type ProjectCountOutputTypeSelect<ExtArgs extends runtime.Types.Extension
   materialRequests?: boolean | ProjectCountOutputTypeCountMaterialRequestsArgs
   strategyRooms?: boolean | ProjectCountOutputTypeCountStrategyRoomsArgs
   activityEvents?: boolean | ProjectCountOutputTypeCountActivityEventsArgs
+  tasks?: boolean | ProjectCountOutputTypeCountTasksArgs
+  timelineEvents?: boolean | ProjectCountOutputTypeCountTimelineEventsArgs
 }
 
 /**
@@ -1534,6 +1852,20 @@ export type ProjectCountOutputTypeCountActivityEventsArgs<ExtArgs extends runtim
   where?: Prisma.ActivityEventWhereInput
 }
 
+/**
+ * ProjectCountOutputType without action
+ */
+export type ProjectCountOutputTypeCountTasksArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.TaskWhereInput
+}
+
+/**
+ * ProjectCountOutputType without action
+ */
+export type ProjectCountOutputTypeCountTimelineEventsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.TimelineEventWhereInput
+}
+
 
 export type ProjectSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1558,6 +1890,8 @@ export type ProjectSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   materialRequests?: boolean | Prisma.Project$materialRequestsArgs<ExtArgs>
   strategyRooms?: boolean | Prisma.Project$strategyRoomsArgs<ExtArgs>
   activityEvents?: boolean | Prisma.Project$activityEventsArgs<ExtArgs>
+  tasks?: boolean | Prisma.Project$tasksArgs<ExtArgs>
+  timelineEvents?: boolean | Prisma.Project$timelineEventsArgs<ExtArgs>
   _count?: boolean | Prisma.ProjectCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["project"]>
 
@@ -1630,6 +1964,8 @@ export type ProjectInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs
   materialRequests?: boolean | Prisma.Project$materialRequestsArgs<ExtArgs>
   strategyRooms?: boolean | Prisma.Project$strategyRoomsArgs<ExtArgs>
   activityEvents?: boolean | Prisma.Project$activityEventsArgs<ExtArgs>
+  tasks?: boolean | Prisma.Project$tasksArgs<ExtArgs>
+  timelineEvents?: boolean | Prisma.Project$timelineEventsArgs<ExtArgs>
   _count?: boolean | Prisma.ProjectCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type ProjectIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1650,6 +1986,8 @@ export type $ProjectPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     materialRequests: Prisma.$MaterialRequestPayload<ExtArgs>[]
     strategyRooms: Prisma.$StrategyRoomPayload<ExtArgs>[]
     activityEvents: Prisma.$ActivityEventPayload<ExtArgs>[]
+    tasks: Prisma.$TaskPayload<ExtArgs>[]
+    timelineEvents: Prisma.$TimelineEventPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -2068,6 +2406,8 @@ export interface Prisma__ProjectClient<T, Null = never, ExtArgs extends runtime.
   materialRequests<T extends Prisma.Project$materialRequestsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Project$materialRequestsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MaterialRequestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   strategyRooms<T extends Prisma.Project$strategyRoomsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Project$strategyRoomsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$StrategyRoomPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   activityEvents<T extends Prisma.Project$activityEventsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Project$activityEventsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ActivityEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  tasks<T extends Prisma.Project$tasksArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Project$tasksArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TaskPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  timelineEvents<T extends Prisma.Project$timelineEventsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Project$timelineEventsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TimelineEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2605,6 +2945,54 @@ export type Project$activityEventsArgs<ExtArgs extends runtime.Types.Extensions.
   take?: number
   skip?: number
   distinct?: Prisma.ActivityEventScalarFieldEnum | Prisma.ActivityEventScalarFieldEnum[]
+}
+
+/**
+ * Project.tasks
+ */
+export type Project$tasksArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Task
+   */
+  select?: Prisma.TaskSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Task
+   */
+  omit?: Prisma.TaskOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.TaskInclude<ExtArgs> | null
+  where?: Prisma.TaskWhereInput
+  orderBy?: Prisma.TaskOrderByWithRelationInput | Prisma.TaskOrderByWithRelationInput[]
+  cursor?: Prisma.TaskWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.TaskScalarFieldEnum | Prisma.TaskScalarFieldEnum[]
+}
+
+/**
+ * Project.timelineEvents
+ */
+export type Project$timelineEventsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the TimelineEvent
+   */
+  select?: Prisma.TimelineEventSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the TimelineEvent
+   */
+  omit?: Prisma.TimelineEventOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.TimelineEventInclude<ExtArgs> | null
+  where?: Prisma.TimelineEventWhereInput
+  orderBy?: Prisma.TimelineEventOrderByWithRelationInput | Prisma.TimelineEventOrderByWithRelationInput[]
+  cursor?: Prisma.TimelineEventWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.TimelineEventScalarFieldEnum | Prisma.TimelineEventScalarFieldEnum[]
 }
 
 /**

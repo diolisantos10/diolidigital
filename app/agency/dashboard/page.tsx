@@ -8,7 +8,10 @@ import Link from "next/link";
 import { MOCK_AGENTS, ProjectStage } from "@/lib/agency/mock-data";
 import { getProjectProgress, getProjectHealth } from "@/lib/agency/reporting";
 import { runSystemDoctor } from "@/lib/agency/system-doctor";
-import { computeAllDirectives, PMUrgency } from "@/lib/agency/pm-agent";
+import { computeAllDirectives, computeOrchestrationSummary, PMUrgency } from "@/lib/agency/pm-agent";
+import { generateAllAutoTasks, AUTO_TASK_PRIORITY_STYLE } from "@/lib/agency/orchestration/auto-tasks";
+import { computeWorkspaceHealth, DEPT_HEALTH_STYLE } from "@/lib/agency/orchestration/department-health";
+import { evaluateProjectPipeline, STAGE_STATUS_STYLE } from "@/lib/agency/orchestration/pipeline";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -165,6 +168,11 @@ export default function DashboardPage() {
 
   // ── PM Agent directives ──────────────────────────────────────────────────
   const pmDirectives = computeAllDirectives({ projects, deliverables, tasks, materialRequests, strategyRooms, brandUpdates });
+
+  // ── Orchestration engine ─────────────────────────────────────────────────
+  const orchSummary = computeOrchestrationSummary({ projects, clients, deliverables, tasks, materialRequests, strategyRooms });
+  const autoTasks = generateAllAutoTasks({ projects, clients, deliverables, tasks, materialRequests, strategyRooms });
+  const workspaceHealth = computeWorkspaceHealth({ projects, deliverables, tasks });
 
   // ── Attention counts (for Centro de Comando) ─────────────────────────────
   const attentionCounts = {
@@ -593,6 +601,172 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* ── Orchestration Summary ─────────────────────────────────────────── */}
+      {(orchSummary.criticalBlockerCount > 0 || orchSummary.stalledApprovals.length > 0 || orchSummary.departments.some((d) => d.isIdle || d.isOverloaded)) && (
+        <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden mb-4">
+          <div className="flex items-center justify-between px-5 py-3 border-b border-[#F0F0ED]">
+            <div className="flex items-center gap-2">
+              <h2 className="text-[13px] font-semibold text-[#1A1A1A]">Orquestração</h2>
+              <span className="text-[11px] text-[#9B9B95]">{orchSummary.topQuestion}</span>
+            </div>
+            {orchSummary.criticalBlockerCount > 0 && (
+              <span className="text-[10px] font-bold bg-[#FEE2E2] text-[#DC2626] px-2 py-0.5 rounded-full">
+                {orchSummary.criticalBlockerCount} bloqueio{orchSummary.criticalBlockerCount !== 1 ? "s" : ""} crítico{orchSummary.criticalBlockerCount !== 1 ? "s" : ""}
+              </span>
+            )}
+          </div>
+          <div className="divide-y divide-[#F7F7F6]">
+            {orchSummary.blockers.slice(0, 4).map((b, i) => (
+              <Link key={i} href={b.route} className="flex items-center gap-3 px-5 py-2.5 hover:bg-[#FAFAF9] transition-colors">
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${b.severity === "critical" ? "bg-[#DC2626]" : b.severity === "high" ? "bg-[#D97706]" : "bg-[#9B9B95]"}`} />
+                <span className="text-[11px] text-[#9B9B95] font-medium shrink-0 w-[110px] truncate">{b.projectName}</span>
+                <span className="text-[12px] text-[#1A1A1A] flex-1">{b.message}</span>
+                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${b.severity === "critical" ? "bg-[#FEE2E2] text-[#DC2626]" : b.severity === "high" ? "bg-[#FEF3C7] text-[#D97706]" : "bg-[#F0F0ED] text-[#9B9B95]"}`}>
+                  {b.severity === "critical" ? "Crítico" : b.severity === "high" ? "Alto" : "Médio"}
+                </span>
+              </Link>
+            ))}
+            {orchSummary.stalledApprovals.slice(0, 2).map((s, i) => (
+              <Link key={`stall-${i}`} href="/agency/approvals" className="flex items-center gap-3 px-5 py-2.5 hover:bg-[#FAFAF9] transition-colors">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#7C3AED] shrink-0" />
+                <span className="text-[11px] text-[#9B9B95] font-medium shrink-0 w-[110px] truncate">{s.projectName}</span>
+                <span className="text-[12px] text-[#1A1A1A] flex-1">"{s.deliverableName}" parada há {s.daysSent} dias</span>
+                <span className="text-[9px] font-bold bg-[#EDE9FE] text-[#7C3AED] px-1.5 py-0.5 rounded shrink-0">Parada</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Auto Tasks (PM-generated) ─────────────────────────────────────── */}
+      {autoTasks.length > 0 && (
+        <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden mb-4">
+          <div className="flex items-center justify-between px-5 py-3 border-b border-[#F0F0ED]">
+            <div className="flex items-center gap-2">
+              <h2 className="text-[13px] font-semibold text-[#1A1A1A]">Tarefas Automáticas</h2>
+              <span className="w-5 h-5 rounded-full bg-[#5B5BD6] text-white text-[10px] font-bold flex items-center justify-center">{Math.min(autoTasks.length, 6)}</span>
+              <span className="text-[11px] text-[#9B9B95]">geradas pelo PM Engine</span>
+            </div>
+            <Link href="/agency/tasks" className="text-[11px] text-[#5B5BD6] font-medium hover:underline">
+              Ver todas →
+            </Link>
+          </div>
+          <div className="divide-y divide-[#F7F7F6]">
+            {autoTasks.slice(0, 6).map((task) => {
+              const ps = AUTO_TASK_PRIORITY_STYLE[task.priority];
+              return (
+                <Link key={task.id} href={task.route} className="flex items-start gap-3 px-5 py-3 hover:bg-[#FAFAF9] transition-colors">
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-[4px] shrink-0 mt-0.5 ${ps.bg} ${ps.text}`}>
+                    {ps.label}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] font-medium text-[#1A1A1A] leading-snug">
+                      <span className="text-[#9B9B95] font-normal">{task.projectName} · </span>
+                      {task.title}
+                    </p>
+                    <p className="text-[11px] text-[#9B9B95] truncate mt-0.5">{task.description}</p>
+                  </div>
+                  <span className="text-[10px] font-medium text-[#9B9B95] shrink-0 mt-0.5">{task.owner} →</span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── Department Health ─────────────────────────────────────────────── */}
+      <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden mb-6">
+        <div className="px-5 py-3 border-b border-[#F0F0ED] flex items-center gap-2">
+          <h2 className="text-[13px] font-semibold text-[#1A1A1A]">Saúde dos Departamentos</h2>
+          {workspaceHealth.mostOverloaded && (
+            <span className="text-[10px] font-semibold text-[#DC2626] bg-[#FEE2E2] px-2 py-0.5 rounded-full">
+              {workspaceHealth.mostOverloaded.label} sobrecarregado
+            </span>
+          )}
+          {workspaceHealth.mostIdle && !workspaceHealth.mostOverloaded && (
+            <span className="text-[10px] font-semibold text-[#9B9B95] bg-[#F0F0ED] px-2 py-0.5 rounded-full">
+              {workspaceHealth.mostIdle.label} ocioso
+            </span>
+          )}
+        </div>
+        <div className="grid grid-cols-3 divide-x divide-[#F0F0ED]">
+          {workspaceHealth.departments.map((dept) => {
+            const style = DEPT_HEALTH_STYLE[dept.level];
+            return (
+              <div key={dept.dept} className="px-5 py-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[12px] font-semibold text-[#1A1A1A]" style={{ color: dept.accentHex }}>{dept.label}</span>
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-[4px] ${style.bg} ${style.text}`}>{style.label}</span>
+                </div>
+                <p className="text-[11px] text-[#6B6B65] leading-snug mb-3">{dept.statusText}</p>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="text-center">
+                    <p className="text-[16px] font-bold text-[#1A1A1A] mono-num">{dept.metrics.generated}</p>
+                    <p className="text-[9px] text-[#9B9B95]">geradas</p>
+                  </div>
+                  <div className="text-center">
+                    <p className={`text-[16px] font-bold mono-num ${dept.metrics.revisionsOpen > 0 ? "text-[#DC2626]" : "text-[#1A1A1A]"}`}>{dept.metrics.revisionsOpen}</p>
+                    <p className="text-[9px] text-[#9B9B95]">revisões</p>
+                  </div>
+                  <div className="text-center">
+                    <p className={`text-[16px] font-bold mono-num ${dept.metrics.approved > 0 ? "text-[#16A34A]" : "text-[#9B9B95]"}`}>{dept.metrics.approved}</p>
+                    <p className="text-[9px] text-[#9B9B95]">aprovadas</p>
+                  </div>
+                </div>
+                {dept.recommendation && (
+                  <p className="text-[10px] text-[#D97706] mt-2 leading-snug">{dept.recommendation}</p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Execution Pipeline (per project) ─────────────────────────────── */}
+      {activeProjects.length > 0 && (
+        <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden mb-6">
+          <div className="flex items-center justify-between px-5 py-3 border-b border-[#F0F0ED]">
+            <h2 className="text-[13px] font-semibold text-[#1A1A1A]">Pipeline de Execução</h2>
+            <Link href="/agency/pipeline" className="text-[11px] text-[#5B5BD6] font-medium hover:underline">Ver quadro →</Link>
+          </div>
+          <div className="divide-y divide-[#F0F0ED]">
+            {activeProjects.slice(0, 5).map((project) => {
+              const client = getClient(project.clientId);
+              const pipeline = evaluateProjectPipeline({
+                project,
+                client,
+                deliverables,
+                materialRequests,
+                strategyRooms,
+              });
+              const relevant = pipeline.filter((s) => s.status !== "not_applicable").slice(0, 7);
+              return (
+                <Link key={project.id} href={`/agency/projects/${project.id}`} className="flex items-center gap-4 px-5 py-3 hover:bg-[#FAFAF9] transition-colors">
+                  <div className="w-[160px] shrink-0">
+                    <p className="text-[12px] font-medium text-[#1A1A1A] truncate">{project.name}</p>
+                    <p className="text-[10px] text-[#9B9B95]">{client?.name ?? "—"}</p>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-1 min-w-0 flex-wrap">
+                    {relevant.map((stage) => {
+                      const ss = STAGE_STATUS_STYLE[stage.status];
+                      return (
+                        <span
+                          key={stage.def.id}
+                          title={stage.blockedBy ?? stage.detail ?? stage.def.description}
+                          className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-[3px] whitespace-nowrap ${ss.bg} ${ss.text}`}
+                        >
+                          {stage.status === "complete" ? "✓ " : stage.status === "blocked" ? "✗ " : ""}{stage.def.name}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-[1fr_340px] gap-6">
         {/* LEFT — Active Projects with pipeline */}

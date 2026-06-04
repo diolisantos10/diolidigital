@@ -61,6 +61,8 @@ export const ModelName = {
   StrategyRoom: 'StrategyRoom',
   DbIntegrationConfig: 'DbIntegrationConfig',
   DbAgentProviderConfig: 'DbAgentProviderConfig',
+  Task: 'Task',
+  TimelineEvent: 'TimelineEvent',
   ActivityEvent: 'ActivityEvent'
 } as const
 
@@ -231,6 +233,35 @@ export const DbAgentProviderConfigScalarFieldEnum = {
 } as const
 
 export type DbAgentProviderConfigScalarFieldEnum = (typeof DbAgentProviderConfigScalarFieldEnum)[keyof typeof DbAgentProviderConfigScalarFieldEnum]
+
+
+export const TaskScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  title: 'title',
+  description: 'description',
+  agentId: 'agentId',
+  status: 'status',
+  dueDate: 'dueDate',
+  deliverableId: 'deliverableId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TaskScalarFieldEnum = (typeof TaskScalarFieldEnum)[keyof typeof TaskScalarFieldEnum]
+
+
+export const TimelineEventScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  type: 'type',
+  label: 'label',
+  dept: 'dept',
+  detail: 'detail',
+  timestamp: 'timestamp'
+} as const
+
+export type TimelineEventScalarFieldEnum = (typeof TimelineEventScalarFieldEnum)[keyof typeof TimelineEventScalarFieldEnum]
 
 
 export const ActivityEventScalarFieldEnum = {
