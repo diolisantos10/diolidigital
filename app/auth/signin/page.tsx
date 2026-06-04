@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState, useRef } from "react";
 import { signIn, type SignInResult } from "@/lib/auth/actions";
 
 export default function SignInPage() {
@@ -8,6 +8,17 @@ export default function SignInPage() {
     async (_, formData) => signIn(formData),
     null
   );
+  const [touched, setTouched] = useState(false);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
+
+  const error = !touched && result && "error" in result ? result.error : null;
+
+  function fillDemo() {
+    if (emailRef.current) emailRef.current.value = "master@dioli.studio";
+    if (passwordRef.current) passwordRef.current.value = "dioli2025";
+    setTouched(false);
+  }
 
   return (
     <div className="min-h-screen bg-[#F7F7F6] flex items-center justify-center p-4">
@@ -32,15 +43,17 @@ export default function SignInPage() {
           <form action={action} className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-[12px] font-semibold text-[#6B6B65] mb-1.5">
-                Email
+                E-mail
               </label>
               <input
+                ref={emailRef}
                 id="email"
                 name="email"
                 type="email"
                 required
                 autoComplete="email"
                 placeholder="master@dioli.studio"
+                onChange={() => setTouched(true)}
                 className="w-full border border-[#E8E8E4] rounded-[8px] px-3 py-2.5 text-[13px] text-[#1A1A1A] bg-white focus:outline-none focus:ring-2 focus:ring-[#5B5BD6]/30 placeholder:text-[#C0C0BA]"
               />
             </div>
@@ -49,19 +62,21 @@ export default function SignInPage() {
                 Senha
               </label>
               <input
+                ref={passwordRef}
                 id="password"
                 name="password"
                 type="password"
                 required
                 autoComplete="current-password"
                 placeholder="••••••••"
+                onChange={() => setTouched(true)}
                 className="w-full border border-[#E8E8E4] rounded-[8px] px-3 py-2.5 text-[13px] text-[#1A1A1A] bg-white focus:outline-none focus:ring-2 focus:ring-[#5B5BD6]/30 placeholder:text-[#C0C0BA]"
               />
             </div>
 
-            {result && "error" in result && (
+            {error && (
               <div className="bg-[#FEE2E2] border border-[#FECACA] rounded-[7px] px-3 py-2">
-                <p className="text-[12px] text-[#DC2626]">{result.error}</p>
+                <p className="text-[12px] text-[#DC2626]">{error}</p>
               </div>
             )}
 
@@ -74,12 +89,25 @@ export default function SignInPage() {
             </button>
           </form>
 
-          {/* Demo hint */}
+          {/* Demo credentials */}
           <div className="mt-6 pt-5 border-t border-[#F0F0ED]">
-            <p className="text-[11px] text-[#9B9B95] text-center">
-              Demo: <span className="font-mono text-[#6B6B65]">master@dioli.studio</span> /{" "}
-              <span className="font-mono text-[#6B6B65]">dioli2025</span>
-            </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[11px] text-[#9B9B95] mb-0.5">Credenciais de demonstração</p>
+                <p className="text-[11px] text-[#6B6B65]">
+                  <span className="font-mono">master@dioli.studio</span>
+                  <span className="text-[#C0C0BA] mx-1">/</span>
+                  <span className="font-mono">dioli2025</span>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={fillDemo}
+                className="text-[11px] font-medium text-[#5B5BD6] hover:text-[#4A4AC0] transition-colors px-2 py-1 rounded-[5px] hover:bg-[#EEF0FF]"
+              >
+                Preencher
+              </button>
+            </div>
           </div>
         </div>
       </div>

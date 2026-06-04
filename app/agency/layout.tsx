@@ -1,9 +1,15 @@
+import { getOptionalSession } from "@/lib/auth/dal";
 import AgencySidebar from "@/components/agency/layout/AgencySidebar";
 
-export default function AgencyLayout({ children }: { children: React.ReactNode }) {
+export default async function AgencyLayout({ children }: { children: React.ReactNode }) {
+  const session = await getOptionalSession();
+  const userInfo = session
+    ? { name: session.name, role: session.role, workspaceId: session.workspaceId }
+    : null;
+
   return (
     <div className="flex min-h-screen bg-[#F7F7F6]">
-      <AgencySidebar />
+      <AgencySidebar userInfo={userInfo} />
       <main className="flex-1 ml-[220px] min-h-screen">
         <div className="max-w-[1200px] mx-auto px-8 py-8">
           {children}

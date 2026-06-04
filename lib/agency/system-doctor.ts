@@ -86,10 +86,12 @@ export interface DoctorInput {
   dbAvailable?: boolean;
   authMode?: "real" | "mock" | "none";
   portalMode?: "token" | "id_legacy";
+  sessionActive?: boolean;
+  sessionUser?: string;
 }
 
 export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
-  const { clients, projects, deliverables, materialRequests, strategyRooms, persisted, integrationConfigs, agentProviderConfigs, dbAvailable, authMode, portalMode } = input;
+  const { clients, projects, deliverables, materialRequests, strategyRooms, persisted, integrationConfigs, agentProviderConfigs, dbAvailable, authMode, portalMode, sessionActive, sessionUser } = input;
 
   const checks: DiagnosticCheck[] = [];
 
@@ -474,6 +476,24 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
   });
 
   // ── Group 6: Infraestrutura SaaS ─────────────────────────────────────────
+
+  // Session check — only emit when explicitly probed
+  if (sessionActive !== undefined) {
+    checks.push({
+      id: "saas-session",
+      group: "Infraestrutura SaaS",
+      label: "Sessão autenticada",
+      status: sessionActive ? "pass" : "warning",
+      severity: "high",
+      explanation: sessionActive
+        ? `Sessão JWT ativa${sessionUser ? ` — ${sessionUser}` : ""}.`
+        : "Nenhuma sessão JWT ativa. Usuário não autenticado.",
+      action: sessionActive
+        ? "Nenhuma ação necessária."
+        : "Acesse /auth/signin para iniciar uma sessão.",
+      route: sessionActive ? undefined : "/auth/signin",
+    });
+  }
 
   // DB availability (only shown when explicitly checked — undefined = not yet tested)
   if (dbAvailable !== undefined) {

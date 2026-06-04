@@ -96,6 +96,8 @@ export default function SettingsPage() {
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
   const [dbAvailable, setDbAvailable] = useState<boolean | undefined>(undefined);
   const [authMode, setAuthMode] = useState<"real" | "mock" | "none">("none");
+  const [sessionActive, setSessionActive] = useState<boolean | undefined>(undefined);
+  const [sessionUser, setSessionUser] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     try { setPersisted(!!window.localStorage.getItem("agency-os-v1")); }
@@ -106,19 +108,24 @@ export default function SettingsPage() {
   useEffect(() => {
     let cancelled = false;
     Promise.all([
-      fetch("/api/clients", { method: "GET" }).then((r) => {
+      fetch("/api/clients").then((r) => {
         if (!cancelled) {
-          if (r.status === 200 || r.status === 401) {
-            setDbAvailable(true);
-            setAuthMode(r.status === 200 ? "real" : "mock");
-          }
+          setDbAvailable(r.ok || r.status === 401);
+          setAuthMode(r.ok ? "real" : "mock");
         }
       }).catch(() => { if (!cancelled) setDbAvailable(false); }),
+      fetch("/api/session").then((r) => r.json()).then((data: { active?: boolean; name?: string; email?: string }) => {
+        if (!cancelled) {
+          setSessionActive(!!data.active);
+          if (data.active && data.name) setSessionUser(`${data.name} (${data.email ?? ""})`);
+        }
+      }).catch(() => { if (!cancelled) setSessionActive(false); }),
     ]);
     return () => { cancelled = true; };
   }, []);
 
-  const report = runSystemDoctor({ clients, projects, deliverables, materialRequests, strategyRooms, persisted, integrationConfigs, agentProviderConfigs, dbAvailable, authMode, portalMode: "id_legacy" });
+  const portalMode = dbAvailable ? "token" : "id_legacy";
+  const report = runSystemDoctor({ clients, projects, deliverables, materialRequests, strategyRooms, persisted, integrationConfigs, agentProviderConfigs, dbAvailable, authMode, portalMode, sessionActive, sessionUser });
   const pilot = getPilotDataStatus(clients, projects, deliverables);
   const { score, pass, warning, fail, info, topAction, overallStatus, checks } = report;
   const oc = OVERALL_COLOR[overallStatus];

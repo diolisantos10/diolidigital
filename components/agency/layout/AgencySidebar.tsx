@@ -6,6 +6,20 @@ import { useTranslation } from "@/lib/i18n";
 import { useAgencyStore } from "@/store/agency-store";
 import { AGENCY_ROLE_OPTIONS, isNavAllowed, type AgencyRole } from "@/lib/agency/roles";
 
+const ROLE_LABEL: Record<string, string> = {
+  master:          "Master",
+  project_manager: "Project Manager",
+  social_staff:    "Social",
+  design_staff:    "Design",
+  client:          "Cliente",
+};
+
+interface UserInfo {
+  name: string;
+  role: string;
+  workspaceId: string;
+}
+
 function usePendingCount() {
   const { projects, deliverables, brandUpdates, materialRequests } = useAgencyStore();
   const sentProposals = projects.filter((p) => p.proposal?.status === "sent").length;
@@ -15,7 +29,7 @@ function usePendingCount() {
   return sentProposals + inReviewDelivs + pendingBrand + pendingMats;
 }
 
-export default function AgencySidebar() {
+export default function AgencySidebar({ userInfo }: { userInfo?: UserInfo | null }) {
   const path = usePathname();
   const { t } = useTranslation();
   const { currentRole, setCurrentRole } = useAgencyStore();
@@ -159,21 +173,33 @@ export default function AgencySidebar() {
           </select>
         </div>
 
-        {/* Pilot mode — data persists only in this browser (no production backend yet) */}
-        <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-[6px] bg-[#D97706]/10">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#D97706] shrink-0" />
-          <span className="text-[10px] font-medium text-[#D9A066] truncate">Modo piloto — dados locais</span>
-        </div>
-
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-full bg-[#5B5BD6]/20 flex items-center justify-center text-[11px] font-semibold text-[#5B5BD6]">
-            D
+        {/* Auth session indicator */}
+        {userInfo ? (
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-full bg-[#5B5BD6]/20 flex items-center justify-center text-[11px] font-semibold text-[#5B5BD6] shrink-0">
+              {userInfo.name.charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[12px] font-medium text-[#C0C0BA] truncate">{userInfo.name}</div>
+              <div className="text-[10px] text-[#4A4A44]">{ROLE_LABEL[userInfo.role] ?? userInfo.role}</div>
+            </div>
+            <Link
+              href="/auth/signout"
+              className="shrink-0 text-[10px] text-[#4A4A44] hover:text-[#C0C0BA] transition-colors"
+              title="Sair"
+            >
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                <path d="M6 14H3a1 1 0 01-1-1V3a1 1 0 011-1h3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+                <path d="M11 11l3-3-3-3M14 8H6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </Link>
           </div>
-          <div className="min-w-0">
-            <div className="text-[12px] font-medium text-[#C0C0BA] truncate">Dioli Agency</div>
-            <div className="text-[10px] text-[#4A4A44]">Internal OS</div>
+        ) : (
+          <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-[6px] bg-[#D97706]/10">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#D97706] shrink-0" />
+            <span className="text-[10px] font-medium text-[#D9A066] truncate">Modo piloto — dados locais</span>
           </div>
-        </div>
+        )}
       </div>
     </aside>
   );
