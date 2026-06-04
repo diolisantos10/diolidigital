@@ -69,6 +69,7 @@ export default function AgencySidebar() {
     {
       group: t.nav.group.system,
       items: [
+        { label: "Ferramentas & Integrações", href: "/agency/integrations", icon: IntegrationsIcon },
         { label: t.nav.settings, href: "/agency/settings", icon: SettingsIcon },
         { label: "Test Agent",   href: "/agency/test-agent", icon: FlaskIcon  },
       ],
@@ -296,6 +297,17 @@ function AdsIcon({ size = 16, className = "" }: { size?: number; className?: str
   return (
     <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
       <path d="M2.5 13V8M6.5 13V4M10.5 13V9.5M14 13V6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+    </svg>
+  );
+}
+function IntegrationsIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
+      <circle cx="4" cy="4" r="2" stroke="currentColor" strokeWidth="1.3"/>
+      <circle cx="12" cy="4" r="2" stroke="currentColor" strokeWidth="1.3"/>
+      <circle cx="4" cy="12" r="2" stroke="currentColor" strokeWidth="1.3"/>
+      <circle cx="12" cy="12" r="2" stroke="currentColor" strokeWidth="1.3"/>
+      <path d="M6 4h4M4 6v4M12 6v4M6 12h4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
     </svg>
   );
 }

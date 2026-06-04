@@ -15,6 +15,7 @@ import type { Client, Project, Deliverable, StrategyRoom } from "@/lib/agency/mo
 import type { MaterialRequest } from "@/lib/agency/workspace";
 import { isValidProposalPricing } from "@/lib/agency/reporting";
 import { needsRevision } from "@/lib/agency/deliverables";
+import { MOCK_INTEGRATIONS } from "@/lib/agency/integrations";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -372,6 +373,91 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
     });
   }
 
+  // ── Group 5: Ferramentas & Integrações ───────────────────────────────────
+
+  const aiProviders = MOCK_INTEGRATIONS.filter((i) => i.category === "ai_provider");
+  const configuredAI = aiProviders.filter(
+    (i) => i.status === "active" || i.status === "configured"
+  );
+  const hasAIProvider = configuredAI.length > 0;
+  checks.push({
+    id: "integration-ai-provider",
+    group: "Ferramentas & Integrações",
+    label: "Provedor de IA configurado",
+    status: hasAIProvider ? "pass" : "warning",
+    severity: "medium",
+    explanation: hasAIProvider
+      ? `${configuredAI.map((i) => i.name).join(", ")} disponível(is) para agentes.`
+      : "Nenhum provedor de IA ativo. Todos os agentes operam em modo regras (local).",
+    action: hasAIProvider
+      ? "Nenhuma ação necessária."
+      : "Acesse Ferramentas & Integrações para mapear provedor de IA (OpenAI/Claude).",
+    route: "/agency/integrations",
+  });
+
+  const imageGen = MOCK_INTEGRATIONS.find((i) => i.id === "int-openai-images");
+  const imageGenReady = imageGen?.status === "active" || imageGen?.status === "configured";
+  checks.push({
+    id: "integration-image-gen",
+    group: "Ferramentas & Integrações",
+    label: "Geração de imagens disponível",
+    status: imageGenReady ? "pass" : "info",
+    severity: "low",
+    explanation: imageGenReady
+      ? "DALL-E 3 configurado para Agente de Design via /api/generate-image."
+      : "Nenhum provedor de geração de imagens configurado. Agente de Design usa placeholders.",
+    action: imageGenReady
+      ? "Nenhuma ação necessária."
+      : "Configure OpenAI Images em Ferramentas & Integrações para habilitar geração visual.",
+    route: "/agency/integrations",
+  });
+
+  const adsPlatforms = MOCK_INTEGRATIONS.filter((i) => i.category === "ads_platform");
+  const connectedAds = adsPlatforms.filter(
+    (i) => i.status === "active" || i.status === "configured"
+  );
+  checks.push({
+    id: "integration-ads-platforms",
+    group: "Ferramentas & Integrações",
+    label: "Plataformas de mídia paga",
+    status: connectedAds.length > 0 ? "pass" : "info",
+    severity: "low",
+    explanation:
+      connectedAds.length > 0
+        ? `${connectedAds.map((i) => i.name).join(", ")} conectada(s).`
+        : "Meta Ads e Google Ads planejados — sem conexão ativa em V1. Agente de Ads opera localmente.",
+    action:
+      connectedAds.length > 0
+        ? "Nenhuma ação necessária."
+        : "Consulte Ferramentas & Integrações para roadmap de conexão com Meta e Google Ads.",
+    route: "/agency/integrations",
+  });
+
+  const AGENT_AI_CONFIGS_CHECK = [
+    { mode: "rule_based" }, // strategy_room
+    { mode: "rule_based" }, // pm_agent
+    { mode: "rule_based" }, // social
+    { mode: "hybrid" },     // design (DALL-E 3 configured)
+    { mode: "rule_based" }, // ads
+    { mode: "rule_based" }, // brand_hub
+    { mode: "rule_based" }, // system_doctor
+  ] as const;
+  const allRuleBased = AGENT_AI_CONFIGS_CHECK.every((a) => a.mode === "rule_based");
+  checks.push({
+    id: "integration-agent-modes",
+    group: "Ferramentas & Integrações",
+    label: "Modo dos agentes",
+    status: allRuleBased ? "info" : "pass",
+    severity: "low",
+    explanation: allRuleBased
+      ? "Todos os agentes operam em modo regras locais (V1). Nenhuma IA externa conectada, exceto DALL-E 3 para Design."
+      : "Alguns agentes com IA externa conectada.",
+    action: allRuleBased
+      ? "Consulte Ferramentas & Integrações para planejar a migração para IA externa."
+      : "Nenhuma ação necessária.",
+    route: "/agency/integrations",
+  });
+
   // ── Score ─────────────────────────────────────────────────────────────────
 
   let totalWeight = 0;
@@ -424,4 +510,5 @@ export const CHECK_GROUP_ORDER = [
   "Operações do Projeto",
   "Infraestrutura",
   "Prontidão dos Agentes",
+  "Ferramentas & Integrações",
 ];

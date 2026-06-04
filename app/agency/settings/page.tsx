@@ -298,6 +298,20 @@ export default function SettingsPage() {
                 <div className="text-[14px] font-semibold text-[#1A1A1A] mono-num">{lastActivity}</div>
               </div>
             </div>
+
+            {/* Integrations shortcut */}
+            <div className="flex items-center justify-between bg-[#F0F0FE] rounded-[8px] px-4 py-3 border border-[#DDDDFB] mt-1">
+              <div>
+                <div className="text-[13px] font-semibold text-[#5B5BD6]">Ferramentas &amp; Integrações</div>
+                <div className="text-[11px] text-[#6B6B65] mt-0.5">Configuração de IA e ferramentas externas por agente</div>
+              </div>
+              <Link
+                href="/agency/integrations"
+                className="shrink-0 px-3 py-1.5 bg-[#5B5BD6] text-white text-[12px] font-medium rounded-[6px] hover:bg-[#4A4AC0] transition-colors"
+              >
+                Gerenciar →
+              </Link>
+            </div>
           </div>
         </div>
 
