@@ -584,6 +584,76 @@ export function computeIntegrationReadiness(integrations: Integration[]): Integr
   };
 }
 
+// ─── V2 Operational Config ────────────────────────────────────────────────────
+
+export type ProviderOption = "rule_based" | "openai" | "gemini" | "claude" | "perplexity";
+export type TestStatus = "pass" | "fail" | "not_run";
+
+export interface IntegrationConfig {
+  integrationId: string;
+  configured: boolean;
+  selectedModel?: string;
+  workspace?: string;
+  accountId?: string;
+  folder?: string;
+  webhookUrl?: string;
+  assignedAgents: AssignedAgent[];
+  lastTestStatus: TestStatus;
+  lastTestAt?: string;
+  lastTestMessage?: string;
+  lastConfiguredAt?: string;
+  configuredManually?: boolean;
+}
+
+export interface AgentProviderConfig {
+  agentId: AgentId;
+  selectedProvider: ProviderOption;
+  selectedModel?: string;
+}
+
+export const PROVIDER_OPTIONS: { value: ProviderOption; label: string }[] = [
+  { value: "rule_based", label: "Regras locais (padrão)" },
+  { value: "openai",     label: "OpenAI (GPT-4o)" },
+  { value: "gemini",     label: "Google Gemini" },
+  { value: "claude",     label: "Claude (Anthropic)" },
+  { value: "perplexity", label: "Perplexity AI" },
+];
+
+export const PROVIDER_INTEGRATION_MAP: Record<ProviderOption, string | null> = {
+  rule_based:  null,
+  openai:      "int-openai",
+  gemini:      "int-gemini",
+  claude:      "int-claude",
+  perplexity:  "int-perplexity",
+};
+
+export function buildDefaultIntegrationConfigs(): IntegrationConfig[] {
+  return MOCK_INTEGRATIONS.map((i) => ({
+    integrationId: i.id,
+    configured: i.status === "configured" || i.status === "active",
+    assignedAgents: [...i.assignedAgents],
+    lastTestStatus: (i.status === "configured" || i.status === "active") ? "pass" : "not_run",
+    lastTestAt: (i.status === "configured" || i.status === "active")
+      ? new Date().toISOString()
+      : undefined,
+    lastTestMessage: (i.status === "configured" || i.status === "active")
+      ? "Configuração pré-instalada — simulação OK."
+      : undefined,
+  }));
+}
+
+export function buildDefaultAgentProviderConfigs(): AgentProviderConfig[] {
+  return [
+    { agentId: "strategy_room",  selectedProvider: "rule_based" },
+    { agentId: "pm_agent",       selectedProvider: "rule_based" },
+    { agentId: "social",         selectedProvider: "rule_based" },
+    { agentId: "design",         selectedProvider: "rule_based" },
+    { agentId: "ads",            selectedProvider: "rule_based" },
+    { agentId: "brand_hub",      selectedProvider: "rule_based" },
+    { agentId: "system_doctor",  selectedProvider: "rule_based" },
+  ];
+}
+
 // ─── UI Helpers ───────────────────────────────────────────────────────────────
 
 export const CATEGORY_LABELS: Record<IntegrationCategory, string> = {
@@ -658,4 +728,14 @@ export const AGENT_LABELS: Record<AssignedAgent, string> = {
   ads:             "Ads",
   brand_hub:       "Brand Hub",
   system_doctor:   "System Doctor",
+};
+
+export const AGENT_ID_LABELS: Record<AgentId, string> = {
+  strategy_room:  "Strategy Room",
+  pm_agent:       "PM Agent",
+  social:         "Social Media",
+  design:         "Design",
+  ads:            "Tráfego Pago",
+  brand_hub:      "Brand Hub",
+  system_doctor:  "System Doctor",
 };

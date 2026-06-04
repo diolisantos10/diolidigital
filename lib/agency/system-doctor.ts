@@ -15,7 +15,12 @@ import type { Client, Project, Deliverable, StrategyRoom } from "@/lib/agency/mo
 import type { MaterialRequest } from "@/lib/agency/workspace";
 import { isValidProposalPricing } from "@/lib/agency/reporting";
 import { needsRevision } from "@/lib/agency/deliverables";
-import { MOCK_INTEGRATIONS } from "@/lib/agency/integrations";
+import {
+  MOCK_INTEGRATIONS,
+  PROVIDER_INTEGRATION_MAP,
+  type IntegrationConfig,
+  type AgentProviderConfig,
+} from "@/lib/agency/integrations";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -74,11 +79,13 @@ export interface DoctorInput {
   deliverables: Deliverable[];
   materialRequests: MaterialRequest[];
   strategyRooms: StrategyRoom[];
-  persisted: boolean;   // true when localStorage key "agency-os-v1" exists
+  persisted: boolean;
+  integrationConfigs?: IntegrationConfig[];
+  agentProviderConfigs?: AgentProviderConfig[];
 }
 
 export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
-  const { clients, projects, deliverables, materialRequests, strategyRooms, persisted } = input;
+  const { clients, projects, deliverables, materialRequests, strategyRooms, persisted, integrationConfigs, agentProviderConfigs } = input;
 
   const checks: DiagnosticCheck[] = [];
 
@@ -375,9 +382,14 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
 
   // ── Group 5: Ferramentas & Integrações ───────────────────────────────────
 
+  const configs = integrationConfigs ?? [];
+  const isConfigured = (id: string) =>
+    configs.find((c) => c.integrationId === id)?.configured ?? false;
+
+  // AI provider check — use live config if available, else fall back to MOCK_INTEGRATIONS status
   const aiProviders = MOCK_INTEGRATIONS.filter((i) => i.category === "ai_provider");
-  const configuredAI = aiProviders.filter(
-    (i) => i.status === "active" || i.status === "configured"
+  const configuredAI = aiProviders.filter((i) =>
+    configs.length > 0 ? isConfigured(i.id) : (i.status === "active" || i.status === "configured")
   );
   const hasAIProvider = configuredAI.length > 0;
   checks.push({
@@ -388,33 +400,32 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
     severity: "medium",
     explanation: hasAIProvider
       ? `${configuredAI.map((i) => i.name).join(", ")} disponível(is) para agentes.`
-      : "Nenhum provedor de IA ativo. Todos os agentes operam em modo regras (local).",
+      : "Nenhum provedor de IA configurado. Agentes operam em modo regras locais.",
     action: hasAIProvider
       ? "Nenhuma ação necessária."
-      : "Acesse Ferramentas & Integrações para mapear provedor de IA (OpenAI/Claude).",
+      : "Acesse Ferramentas & Integrações → configure OpenAI ou Claude.",
     route: "/agency/integrations",
   });
 
-  const imageGen = MOCK_INTEGRATIONS.find((i) => i.id === "int-openai-images");
-  const imageGenReady = imageGen?.status === "active" || imageGen?.status === "configured";
+  const imageGenConfigured = isConfigured("int-openai-images");
   checks.push({
     id: "integration-image-gen",
     group: "Ferramentas & Integrações",
     label: "Geração de imagens disponível",
-    status: imageGenReady ? "pass" : "info",
+    status: imageGenConfigured ? "pass" : "info",
     severity: "low",
-    explanation: imageGenReady
+    explanation: imageGenConfigured
       ? "DALL-E 3 configurado para Agente de Design via /api/generate-image."
       : "Nenhum provedor de geração de imagens configurado. Agente de Design usa placeholders.",
-    action: imageGenReady
+    action: imageGenConfigured
       ? "Nenhuma ação necessária."
       : "Configure OpenAI Images em Ferramentas & Integrações para habilitar geração visual.",
     route: "/agency/integrations",
   });
 
   const adsPlatforms = MOCK_INTEGRATIONS.filter((i) => i.category === "ads_platform");
-  const connectedAds = adsPlatforms.filter(
-    (i) => i.status === "active" || i.status === "configured"
+  const connectedAds = adsPlatforms.filter((i) =>
+    configs.length > 0 ? isConfigured(i.id) : (i.status === "active" || i.status === "configured")
   );
   checks.push({
     id: "integration-ads-platforms",
@@ -425,36 +436,36 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
     explanation:
       connectedAds.length > 0
         ? `${connectedAds.map((i) => i.name).join(", ")} conectada(s).`
-        : "Meta Ads e Google Ads planejados — sem conexão ativa em V1. Agente de Ads opera localmente.",
+        : "Meta Ads e Google Ads não configurados — Agente de Ads opera localmente.",
     action:
       connectedAds.length > 0
         ? "Nenhuma ação necessária."
-        : "Consulte Ferramentas & Integrações para roadmap de conexão com Meta e Google Ads.",
+        : "Configure Meta Ads ou Google Ads em Ferramentas & Integrações.",
     route: "/agency/integrations",
   });
 
-  const AGENT_AI_CONFIGS_CHECK = [
-    { mode: "rule_based" }, // strategy_room
-    { mode: "rule_based" }, // pm_agent
-    { mode: "rule_based" }, // social
-    { mode: "hybrid" },     // design (DALL-E 3 configured)
-    { mode: "rule_based" }, // ads
-    { mode: "rule_based" }, // brand_hub
-    { mode: "rule_based" }, // system_doctor
-  ] as const;
-  const allRuleBased = AGENT_AI_CONFIGS_CHECK.every((a) => a.mode === "rule_based");
+  // Check if any agent selected an external provider that is not yet configured
+  const agentConfigs = agentProviderConfigs ?? [];
+  const misconfiguredAgents = agentConfigs.filter((ac) => {
+    if (ac.selectedProvider === "rule_based") return false;
+    const intId = PROVIDER_INTEGRATION_MAP[ac.selectedProvider];
+    if (!intId) return false;
+    return !isConfigured(intId);
+  });
   checks.push({
     id: "integration-agent-modes",
     group: "Ferramentas & Integrações",
     label: "Modo dos agentes",
-    status: allRuleBased ? "info" : "pass",
+    status: misconfiguredAgents.length > 0 ? "warning" : "info",
     severity: "low",
-    explanation: allRuleBased
-      ? "Todos os agentes operam em modo regras locais (V1). Nenhuma IA externa conectada, exceto DALL-E 3 para Design."
-      : "Alguns agentes com IA externa conectada.",
-    action: allRuleBased
-      ? "Consulte Ferramentas & Integrações para planejar a migração para IA externa."
-      : "Nenhuma ação necessária.",
+    explanation:
+      misconfiguredAgents.length > 0
+        ? `${misconfiguredAgents.length} agente(s) com provedor selecionado mas não configurado.`
+        : "Agentes em modo regras locais. Nenhum provedor externo configurado.",
+    action:
+      misconfiguredAgents.length > 0
+        ? "Configure os provedores selecionados em Ferramentas & Integrações."
+        : "Configure provedores de IA por agente em Ferramentas & Integrações.",
     route: "/agency/integrations",
   });
 

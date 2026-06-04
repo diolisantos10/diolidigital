@@ -31,6 +31,15 @@ import { generateClientRequirements, MOCK_MATERIAL_REQUESTS } from "@/lib/agency
 import { inferOwnerAgent } from "@/lib/agency/deliverables";
 import { generateStrategyRoomForProject } from "@/lib/agency/strategy-room";
 import { isValidProposalPricing } from "@/lib/agency/reporting";
+import {
+  type IntegrationConfig,
+  type AgentProviderConfig,
+  type AgentId,
+  buildDefaultIntegrationConfigs,
+  buildDefaultAgentProviderConfigs,
+  PROVIDER_INTEGRATION_MAP,
+  MOCK_INTEGRATIONS,
+} from "@/lib/agency/integrations";
 
 // ─── Brand Update ─────────────────────────────────────────────────────────────
 // A pending brand suggestion from the client portal, a manual internal edit,
@@ -149,6 +158,13 @@ interface AgencyState {
   applyAllPendingBrandUpdates: (clientId: string) => void;
   dismissBrandUpdate: (id: string) => void;
 
+  // Integrations V2
+  integrationConfigs: IntegrationConfig[];
+  agentProviderConfigs: AgentProviderConfig[];
+  saveIntegrationConfig: (id: string, patch: Partial<Omit<IntegrationConfig, "integrationId">>) => void;
+  runIntegrationTest: (id: string) => void;
+  updateAgentProviderConfig: (agentId: AgentId, patch: Partial<Omit<AgentProviderConfig, "agentId">>) => void;
+
   // System
   addActivity: (event: Omit<ActivityEvent, "id" | "timestamp">) => void;
   resetStore: () => void;
@@ -172,6 +188,8 @@ export const useAgencyStore = create<AgencyState>()(
       strategyRooms: [],
       currentRole: "master" as AgencyRole,
       brandUpdates: [],
+      integrationConfigs: buildDefaultIntegrationConfigs(),
+      agentProviderConfigs: buildDefaultAgentProviderConfigs(),
 
       // ── i18n ─────────────────────────────────────────────────────────────
       locale: "pt-BR" as Locale,
@@ -710,6 +728,49 @@ export const useAgencyStore = create<AgencyState>()(
         }));
       },
 
+      // ── Integrations V2 ───────────────────────────────────────────────────
+      saveIntegrationConfig: (id, patch) => {
+        set((s) => ({
+          integrationConfigs: s.integrationConfigs.map((c) =>
+            c.integrationId === id
+              ? { ...c, ...patch, lastConfiguredAt: new Date().toISOString() }
+              : c
+          ),
+        }));
+      },
+
+      runIntegrationTest: (id) => {
+        const config = get().integrationConfigs.find((c) => c.integrationId === id);
+        const now = new Date().toISOString();
+        if (!config?.configured) {
+          set((s) => ({
+            integrationConfigs: s.integrationConfigs.map((c) =>
+              c.integrationId === id
+                ? { ...c, lastTestStatus: "fail", lastTestAt: now, lastTestMessage: "Integração não configurada. Configure antes de testar." }
+                : c
+            ),
+          }));
+          return;
+        }
+        const integration = MOCK_INTEGRATIONS.find((i) => i.id === id);
+        const name = integration?.name ?? id;
+        set((s) => ({
+          integrationConfigs: s.integrationConfigs.map((c) =>
+            c.integrationId === id
+              ? { ...c, lastTestStatus: "pass", lastTestAt: now, lastTestMessage: `Conexão simulada com ${name} bem-sucedida.` }
+              : c
+          ),
+        }));
+      },
+
+      updateAgentProviderConfig: (agentId, patch) => {
+        set((s) => ({
+          agentProviderConfigs: s.agentProviderConfigs.map((c) =>
+            c.agentId === agentId ? { ...c, ...patch } : c
+          ),
+        }));
+      },
+
       // ── Activity ──────────────────────────────────────────────────────────
       addActivity: (event) => {
         const entry: ActivityEvent = {
@@ -731,6 +792,8 @@ export const useAgencyStore = create<AgencyState>()(
           activity: MOCK_ACTIVITY,
           materialRequests: MOCK_MATERIAL_REQUESTS,
           strategyRooms: [],
+          integrationConfigs: buildDefaultIntegrationConfigs(),
+          agentProviderConfigs: buildDefaultAgentProviderConfigs(),
         });
       },
 
@@ -769,6 +832,8 @@ export const useAgencyStore = create<AgencyState>()(
           strategyRooms: [],
           brandUpdates: [],
           currentRole: "master",
+          integrationConfigs: buildDefaultIntegrationConfigs(),
+          agentProviderConfigs: buildDefaultAgentProviderConfigs(),
         });
       },
     }),
@@ -787,6 +852,8 @@ export const useAgencyStore = create<AgencyState>()(
         strategyRooms: s.strategyRooms,
         currentRole: s.currentRole,
         brandUpdates: s.brandUpdates,
+        integrationConfigs: s.integrationConfigs,
+        agentProviderConfigs: s.agentProviderConfigs,
       }),
     }
   )

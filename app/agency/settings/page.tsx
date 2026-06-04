@@ -87,6 +87,7 @@ function CollapsibleSection({ title, badge, children }: { title: string; badge?:
 
 export default function SettingsPage() {
   const { clients, projects, tasks, deliverables, briefings, materialRequests, strategyRooms, brandUpdates,
+          integrationConfigs, agentProviderConfigs,
           resetStore, loadPilotData, clearAllData } = useAgencyStore();
   const { t, locale, setLocale } = useTranslation();
   const [confirmReset, setConfirmReset] = useState(false);
@@ -99,7 +100,7 @@ export default function SettingsPage() {
     catch { setPersisted(false); }
   }, [clients, projects, deliverables]);
 
-  const report = runSystemDoctor({ clients, projects, deliverables, materialRequests, strategyRooms, persisted });
+  const report = runSystemDoctor({ clients, projects, deliverables, materialRequests, strategyRooms, persisted, integrationConfigs, agentProviderConfigs });
   const pilot = getPilotDataStatus(clients, projects, deliverables);
   const { score, pass, warning, fail, info, topAction, overallStatus, checks } = report;
   const oc = OVERALL_COLOR[overallStatus];
@@ -303,7 +304,7 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between bg-[#F0F0FE] rounded-[8px] px-4 py-3 border border-[#DDDDFB] mt-1">
               <div>
                 <div className="text-[13px] font-semibold text-[#5B5BD6]">Ferramentas &amp; Integrações</div>
-                <div className="text-[11px] text-[#6B6B65] mt-0.5">Configuração de IA e ferramentas externas por agente</div>
+                <div className="text-[11px] text-[#6B6B65] mt-0.5">Gerenciar ferramentas, IAs dos agentes e conexões.</div>
               </div>
               <Link
                 href="/agency/integrations"
