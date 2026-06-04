@@ -3,8 +3,12 @@ import { jwtVerify } from "jose";
 
 const SESSION_COOKIE = "dioli-session";
 
+// Must match the fallback in lib/auth/session.ts — both Edge and Node runtimes
+// need the same key. When AUTH_SECRET is set (production) this value is never used.
+const DEV_FALLBACK_SECRET = "dioli-dev-fallback-set-AUTH_SECRET-in-production";
+
 function getSecret(): Uint8Array {
-  const secret = process.env.AUTH_SECRET ?? "";
+  const secret = process.env.AUTH_SECRET ?? DEV_FALLBACK_SECRET;
   return new TextEncoder().encode(secret);
 }
 

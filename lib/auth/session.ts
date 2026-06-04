@@ -15,25 +15,20 @@ export interface SessionPayload {
 const SESSION_COOKIE = "dioli-session";
 const SESSION_DURATION_DAYS = 7;
 
-// Prefer the configured AUTH_SECRET (required for sessions that survive
-// restarts / multiple instances). If it is missing we fall back to a secret
-// generated once per process so the app still boots and login works, instead
-// of crashing. This is NOT a hardcoded secret — it is random per process — and
-// AUTH_SECRET should always be set in production (see Railway Variables).
-let fallbackSecret: Uint8Array | null = null;
+// Must match the fallback in proxy.ts — Edge middleware and Node server actions
+// share no module state, so both must agree on the same literal string.
+// When AUTH_SECRET is set (production) this value is never used.
+const DEV_FALLBACK_SECRET = "dioli-dev-fallback-set-AUTH_SECRET-in-production";
 
 function getSecret(): Uint8Array {
   const secret = process.env.AUTH_SECRET;
   if (secret) return new TextEncoder().encode(secret);
 
-  if (!fallbackSecret) {
-    console.warn(
-      "[auth] AUTH_SECRET is not set — using an ephemeral per-process secret. " +
-      "Sessions will be invalidated on restart. Set AUTH_SECRET in your environment."
-    );
-    fallbackSecret = crypto.getRandomValues(new Uint8Array(32));
-  }
-  return fallbackSecret;
+  console.warn(
+    "[auth] AUTH_SECRET is not set — using static dev fallback. " +
+    "Set AUTH_SECRET in Railway Variables for production security."
+  );
+  return new TextEncoder().encode(DEV_FALLBACK_SECRET);
 }
 
 export async function createSession(payload: Omit<SessionPayload, "exp">): Promise<void> {
