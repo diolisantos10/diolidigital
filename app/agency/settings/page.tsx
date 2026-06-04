@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAgencyStore } from "@/store/agency-store";
+import { useDbClients } from "@/lib/hooks/useDbClients";
+import { useDbProjects } from "@/lib/hooks/useDbProjects";
+import { useDbTasks } from "@/lib/hooks/useDbTasks";
 import { useTranslation } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
@@ -86,9 +89,13 @@ function CollapsibleSection({ title, badge, children }: { title: string; badge?:
 }
 
 export default function SettingsPage() {
-  const { clients, projects, tasks, deliverables, briefings, materialRequests, strategyRooms, brandUpdates,
+  const { deliverables, briefings, materialRequests, strategyRooms, brandUpdates,
           integrationConfigs, agentProviderConfigs,
           resetStore, loadPilotData, clearAllData } = useAgencyStore();
+
+  const { clients, source: clientsSource } = useDbClients();
+  const { projects, source: projectsSource } = useDbProjects();
+  const { tasks, source: tasksSource } = useDbTasks();
   const { t, locale, setLocale } = useTranslation();
   const [confirmReset, setConfirmReset] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
@@ -125,7 +132,12 @@ export default function SettingsPage() {
   }, []);
 
   const portalMode = dbAvailable ? "token" : "id_legacy";
-  const report = runSystemDoctor({ clients, projects, deliverables, materialRequests, strategyRooms, persisted, integrationConfigs, agentProviderConfigs, dbAvailable, authMode, portalMode, sessionActive, sessionUser });
+  const dbSyncStatus = {
+    clients:  clientsSource,
+    projects: projectsSource,
+    tasks:    tasksSource,
+  };
+  const report = runSystemDoctor({ clients, projects, deliverables, materialRequests, strategyRooms, tasks, persisted, integrationConfigs, agentProviderConfigs, dbAvailable, authMode, portalMode, sessionActive, sessionUser, dbSyncStatus });
   const pilot = getPilotDataStatus(clients, projects, deliverables);
   const { score, pass, warning, fail, info, topAction, overallStatus, checks } = report;
   const oc = OVERALL_COLOR[overallStatus];

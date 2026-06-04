@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useAgencyStore } from "@/store/agency-store";
+import { useDbProjects } from "@/lib/hooks/useDbProjects";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import Badge from "@/components/agency/ui/Badge";
 import Button from "@/components/agency/ui/Button";
@@ -13,20 +14,34 @@ type SortKey = "deadline" | "priority" | "name";
 
 const PRIORITY_ORDER: Record<Priority, number> = { high: 0, medium: 1, low: 2 };
 
-// pt-BR stage labels — kept in sync with Badge labels for terminology consistency.
 const STAGE_LABELS: Record<ProjectStage, string> = {
   briefing: "Briefing", proposal_sent: "Proposta Enviada", approved: "Aprovado",
   diagnosis: "Diagnóstico", planning: "Planejamento", production: "Produção",
   review: "Revisão", delivery: "Entrega", ongoing: "Em Andamento", completed: "Concluído",
 };
 
+function SourceBadge({ source }: { source: "db" | "local" }) {
+  return (
+    <span className={`inline-flex items-center gap-1 h-5 px-2 rounded-full text-[10px] font-semibold ${
+      source === "db"
+        ? "bg-[#DCFCE7] text-[#16A34A]"
+        : "bg-[#F0F0ED] text-[#9B9B95]"
+    }`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${source === "db" ? "bg-[#16A34A]" : "bg-[#9B9B95]"}`} />
+      {source === "db" ? "DB" : "Local"}
+    </span>
+  );
+}
+
 export default function ProjectsPage() {
-  const { projects, clients, tasks } = useAgencyStore();
-  const [search, setSearch] = useState("");
+  const { clients, tasks }            = useAgencyStore();
+  const { projects, source, loading } = useDbProjects();
+
+  const [search, setSearch]             = useState("");
   const [clientFilter, setClientFilter] = useState("all");
-  const [stageFilter, setStageFilter] = useState<ProjectStage | "all">("all");
+  const [stageFilter, setStageFilter]   = useState<ProjectStage | "all">("all");
   const [priorityFilter, setPriorityFilter] = useState<Priority | "all">("all");
-  const [sortBy, setSortBy] = useState<SortKey>("deadline");
+  const [sortBy, setSortBy]             = useState<SortKey>("deadline");
 
   const filtered = useMemo(() => {
     return projects
@@ -49,10 +64,10 @@ export default function ProjectsPage() {
   const getClient = (id: string) => clients.find((c) => c.id === id);
 
   const getProgress = (projectId: string) => {
-    const projectTasks = tasks.filter((t) => t.projectId === projectId);
-    if (projectTasks.length === 0) return { done: 0, total: 0, pct: 0 };
-    const done = projectTasks.filter((t) => t.status === "done").length;
-    return { done, total: projectTasks.length, pct: Math.round((done / projectTasks.length) * 100) };
+    const pt = tasks.filter((t) => t.projectId === projectId);
+    if (pt.length === 0) return { done: 0, total: 0, pct: 0 };
+    const done = pt.filter((t) => t.status === "done").length;
+    return { done, total: pt.length, pct: Math.round((done / pt.length) * 100) };
   };
 
   const clearFilters = () => {
@@ -65,6 +80,15 @@ export default function ProjectsPage() {
       <AgencyHeader
         title="Projetos"
         subtitle={`${projects.length} projeto${projects.length !== 1 ? "s" : ""} no total`}
+        meta={
+          <div className="flex items-center gap-2">
+            {loading ? (
+              <span className="text-[11px] text-[#9B9B95]">Carregando…</span>
+            ) : (
+              <SourceBadge source={source} />
+            )}
+          </div>
+        }
         actions={
           <Link href="/agency/orchestrator">
             <Button variant="primary">+ Novo Projeto</Button>
@@ -147,8 +171,10 @@ export default function ProjectsPage() {
               {filtered.map((project, i) => {
                 const client = getClient(project.clientId);
                 const { done, total, pct } = getProgress(project.id);
-                const daysLeft = Math.ceil((new Date(project.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-                const overdue = daysLeft < 0;
+                const daysLeft = project.deadline
+                  ? Math.ceil((new Date(project.deadline).getTime() - Date.now()) / 86400000)
+                  : null;
+                const overdue = daysLeft !== null && daysLeft < 0;
                 return (
                   <tr key={project.id} className={`group hover:bg-[#FAFAF9] transition-colors ${i > 0 ? "border-t border-[#F0F0ED]" : ""}`}>
                     <td className="px-5 py-3.5">
@@ -177,9 +203,13 @@ export default function ProjectsPage() {
                       </div>
                     </td>
                     <td className="px-5 py-3.5">
-                      <span className={`text-[12px] mono-num font-medium ${overdue ? "text-[#DC2626]" : daysLeft <= 7 ? "text-[#D97706]" : "text-[#6B6B65]"}`}>
-                        {overdue ? "Atrasado" : `${daysLeft}d`}
-                      </span>
+                      {daysLeft === null ? (
+                        <span className="text-[12px] text-[#9B9B95]">—</span>
+                      ) : (
+                        <span className={`text-[12px] mono-num font-medium ${overdue ? "text-[#DC2626]" : daysLeft <= 7 ? "text-[#D97706]" : "text-[#6B6B65]"}`}>
+                          {overdue ? "Atrasado" : `${daysLeft}d`}
+                        </span>
+                      )}
                     </td>
                   </tr>
                 );

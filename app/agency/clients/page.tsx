@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useAgencyStore } from "@/store/agency-store";
+import { useDbClients } from "@/lib/hooks/useDbClients";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import Badge from "@/components/agency/ui/Badge";
 import Button from "@/components/agency/ui/Button";
@@ -10,13 +11,27 @@ import EmptyState from "@/components/agency/ui/EmptyState";
 import Link from "next/link";
 import { ClientStatus } from "@/lib/agency/mock-data";
 
-export default function ClientsPage() {
-  const { clients, projects, createClient } = useAgencyStore();
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<ClientStatus | "all">("all");
-  const [modalOpen, setModalOpen] = useState(false);
+function SourceBadge({ source }: { source: "db" | "local" }) {
+  return (
+    <span className={`inline-flex items-center gap-1 h-5 px-2 rounded-full text-[10px] font-semibold ${
+      source === "db"
+        ? "bg-[#DCFCE7] text-[#16A34A]"
+        : "bg-[#F0F0ED] text-[#9B9B95]"
+    }`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${source === "db" ? "bg-[#16A34A]" : "bg-[#9B9B95]"}`} />
+      {source === "db" ? "DB" : "Local"}
+    </span>
+  );
+}
 
-  const [form, setForm] = useState({
+export default function ClientsPage() {
+  const { projects, createClient } = useAgencyStore();
+  const { clients, source, loading } = useDbClients();
+
+  const [search, setSearch]           = useState("");
+  const [statusFilter, setStatusFilter] = useState<ClientStatus | "all">("all");
+  const [modalOpen, setModalOpen]     = useState(false);
+  const [form, setForm]               = useState({
     name: "", industry: "", website: "", status: "active" as ClientStatus, description: "",
   });
 
@@ -25,7 +40,7 @@ export default function ClientsPage() {
     .filter((c) =>
       !search ||
       c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.industry.toLowerCase().includes(search.toLowerCase())
+      (c.industry ?? "").toLowerCase().includes(search.toLowerCase())
     );
 
   const getProjectCount = (clientId: string) =>
@@ -43,6 +58,15 @@ export default function ClientsPage() {
       <AgencyHeader
         title="Clientes"
         subtitle={`${clients.length} cliente${clients.length !== 1 ? "s" : ""} cadastrado${clients.length !== 1 ? "s" : ""}`}
+        meta={
+          <div className="flex items-center gap-2">
+            {loading ? (
+              <span className="text-[11px] text-[#9B9B95]">Carregando…</span>
+            ) : (
+              <SourceBadge source={source} />
+            )}
+          </div>
+        }
         actions={
           <Button variant="primary" onClick={() => setModalOpen(true)}>
             + Novo Cliente

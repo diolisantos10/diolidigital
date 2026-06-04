@@ -73,6 +73,12 @@ const SEVERITY_WEIGHT: Record<CheckSeverity, number> = {
 
 // ─── Core runner ─────────────────────────────────────────────────────────────
 
+export interface DbSyncStatus {
+  clients?: "db" | "local";
+  projects?: "db" | "local";
+  tasks?: "db" | "local";
+}
+
 export interface DoctorInput {
   clients: Client[];
   projects: Project[];
@@ -89,10 +95,11 @@ export interface DoctorInput {
   portalMode?: "token" | "id_legacy";
   sessionActive?: boolean;
   sessionUser?: string;
+  dbSyncStatus?: DbSyncStatus;
 }
 
 export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
-  const { clients, projects, deliverables, materialRequests, strategyRooms, tasks = [], persisted, integrationConfigs, agentProviderConfigs, dbAvailable, authMode, portalMode, sessionActive, sessionUser } = input;
+  const { clients, projects, deliverables, materialRequests, strategyRooms, tasks = [], persisted, integrationConfigs, agentProviderConfigs, dbAvailable, authMode, portalMode, sessionActive, sessionUser, dbSyncStatus } = input;
 
   const checks: DiagnosticCheck[] = [];
 
@@ -776,6 +783,59 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
     route: "/agency/tasks",
   });
 
+  // ── Group 8: Sincronização de Dados ──────────────────────────────────────
+
+  if (dbSyncStatus !== undefined) {
+    const entityChecks: { key: keyof DbSyncStatus; label: string; route: string }[] = [
+      { key: "clients",  label: "Clientes",  route: "/agency/clients"  },
+      { key: "projects", label: "Projetos",  route: "/agency/projects" },
+      { key: "tasks",    label: "Tarefas",   route: "/agency/tasks"    },
+    ];
+
+    for (const { key, label, route } of entityChecks) {
+      const status = dbSyncStatus[key];
+      if (status !== undefined) {
+        checks.push({
+          id: `db-sync-${key}`,
+          group: "Sincronização de Dados",
+          label: `${label} — fonte de dados`,
+          status: status === "db" ? "pass" : "info",
+          severity: "low",
+          explanation: status === "db"
+            ? `${label} carregados do banco de dados.`
+            : `${label} em modo local (localStorage). Banco indisponível ou usuário não autenticado.`,
+          action: status === "db"
+            ? "Nenhuma ação necessária."
+            : `Autentique-se e verifique a conexão com o banco para sincronizar ${label.toLowerCase()}.`,
+          route,
+        });
+      }
+    }
+
+    const allDb  = Object.values(dbSyncStatus).every((s) => s === "db");
+    const anyDb  = Object.values(dbSyncStatus).some((s) => s === "db");
+    const anyLocal = Object.values(dbSyncStatus).some((s) => s === "local");
+
+    checks.push({
+      id: "db-sync-summary",
+      group: "Sincronização de Dados",
+      label: "Modo geral de dados",
+      status: allDb ? "pass" : anyDb ? "warning" : "info",
+      severity: "medium",
+      explanation: allDb
+        ? "Todas as entidades sincronizadas com o banco de dados."
+        : anyDb && anyLocal
+        ? "Modo misto — parte dos dados vem do banco, parte do localStorage. Pode causar inconsistências."
+        : "Sistema em modo localStorage. Dados persistem apenas localmente neste navegador.",
+      action: allDb
+        ? "Nenhuma ação necessária."
+        : anyDb
+        ? "Verificar quais entidades ainda usam localStorage e forçar reconexão com o banco."
+        : "Faça login e certifique-se que DATABASE_URL está configurada no ambiente.",
+      route: "/agency/settings",
+    });
+  }
+
   // ── Score ─────────────────────────────────────────────────────────────────
 
   let totalWeight = 0;
@@ -831,4 +891,5 @@ export const CHECK_GROUP_ORDER = [
   "Prontidão dos Agentes",
   "Ferramentas & Integrações",
   "Infraestrutura SaaS",
+  "Sincronização de Dados",
 ];
