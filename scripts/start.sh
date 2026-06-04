@@ -1,25 +1,31 @@
 #!/bin/sh
-set -e
+# Runtime entrypoint for the Next.js standalone server on Railway.
+# Intentionally tolerant: the database is already provisioned + seeded at BUILD
+# time (see package.json "build"), so the server MUST boot even if none of the
+# provisioning steps below succeed at runtime.
 
-# Resolve the project root BEFORE the Next.js standalone server chdir's into
-# .next/standalone (see .next/standalone/server.js: process.chdir(__dirname)).
 ROOT="$(pwd)"
 
-# Normalize DATABASE_URL to an ABSOLUTE file path. Without this, the seed step
-# (run from the project root) and the standalone server (run from
-# .next/standalone) resolve "file:./dev.db" to two different files, so the
-# server opens an empty DB and every query fails with "no such table".
-# Remote URLs (libsql://, postgres://, …) are left untouched.
-DB="${DATABASE_URL:-file:./dev.db}"
+# The standalone server runs `process.chdir(.next/standalone)` on boot, and the
+# database is baked into that directory at build time. Point every local-file
+# DATABASE_URL at that exact absolute file so the seed step and the server agree
+# regardless of working directory. Remote URLs (libsql://, postgres://, …) are
+# honored as-is.
+DB="${DATABASE_URL:-}"
 case "$DB" in
-  file:./*) DB="file:$ROOT/${DB#file:./}" ;;
+  "" | file:*) DB="file:$ROOT/.next/standalone/dev.db" ;;
 esac
 export DATABASE_URL="$DB"
 echo "▶ DATABASE_URL=$DATABASE_URL"
 
-# Provision schema + seed the demo workspace. Both are idempotent (the seed
-# uses upserts), so this is safe to run on every boot.
-npx prisma db push --accept-data-loss
-npx prisma db seed
+# Best-effort refresh of schema + seed data. Uses the locally installed CLI
+# (never npx, to avoid any network fetch) and never aborts the boot on failure.
+PRISMA="$ROOT/node_modules/.bin/prisma"
+if [ -x "$PRISMA" ]; then
+  "$PRISMA" db push --accept-data-loss || echo "⚠ prisma db push skipped (using build-seeded DB)"
+  "$PRISMA" db seed                    || echo "⚠ prisma db seed skipped (using build-seeded DB)"
+else
+  echo "⚠ prisma CLI unavailable at runtime; relying on build-seeded DB"
+fi
 
 exec env HOSTNAME=0.0.0.0 PORT="${PORT:-8080}" node .next/standalone/server.js
