@@ -28,7 +28,7 @@ import {
 } from "@/lib/agency/mock-data";
 import type { MaterialRequest, MaterialRequestStatus } from "@/lib/agency/workspace";
 import { generateClientRequirements, MOCK_MATERIAL_REQUESTS } from "@/lib/agency/workspace";
-import { inferOwnerAgent } from "@/lib/agency/deliverables";
+import { inferOwnerAgent, needsRevision } from "@/lib/agency/deliverables";
 import { generateStrategyRoomForProject } from "@/lib/agency/strategy-room";
 import { isValidProposalPricing } from "@/lib/agency/reporting";
 import {
@@ -49,6 +49,15 @@ import { runDesignRuleBased } from "@/lib/agency/intelligence/design";
 import { runPaidTrafficRuleBased } from "@/lib/agency/intelligence/paid-traffic";
 import { runBrandHubRuleBased } from "@/lib/agency/intelligence/brand-hub";
 import { runOperationsRuleBased } from "@/lib/agency/intelligence/operations";
+import {
+  buildStrategyDeliverable,
+  buildSocialDeliverable,
+  buildPMDeliverable,
+} from "@/lib/agency/intelligence/deliverable-builders";
+import {
+  isOpenAIDepartment,
+  type AIRunContext,
+} from "@/lib/agency/intelligence/openai-schemas";
 
 // ─── Brand Update ─────────────────────────────────────────────────────────────
 // A pending brand suggestion from the client portal, a manual internal edit,
@@ -121,6 +130,9 @@ interface AgencyState {
   aiRunLogs: AIRunLog[];
   addAIRunLog: (log: Omit<AIRunLog, "id" | "createdAt">) => string;
   runDepartmentIntelligence: (deptId: string, projectId?: string) => string | null;
+  // Async path: routes through the server OpenAI provider when selected, with
+  // graceful rule-based fallback. Returns the created AI run log id (or null).
+  runDepartmentIntelligenceWithProvider: (deptId: string, projectId?: string) => Promise<string | null>;
 
   // Agent handoff
   pendingDesignContract: string | null;
@@ -479,6 +491,160 @@ export const useAgencyStore = create<AgencyState>()(
         });
 
         return logId;
+      },
+
+      runDepartmentIntelligenceWithProvider: async (deptId, projectId) => {
+        const s = get();
+        const dept = DEPARTMENT_DEFS.find((d) => d.id === deptId);
+        if (!dept) return null;
+
+        const deptConfig = s.departmentConfigs.find((c) => c.departmentId === deptId);
+        const provider = (deptConfig?.aiProvider ?? dept.aiProvider) as AIProvider;
+        const prompt = deptConfig?.currentPrompt ?? dept.defaultPrompt;
+
+        // Only strategy/social/PM with provider=openai use the server route.
+        // Everything else keeps the existing synchronous rule-based behavior.
+        if (provider !== "openai" || !isOpenAIDepartment(deptId)) {
+          return get().runDepartmentIntelligence(deptId, projectId);
+        }
+
+        const activeProjects = s.projects.filter((p) => p.stage !== "completed");
+        const targetProjectId = projectId ?? activeProjects[0]?.id;
+        const project = s.projects.find((p) => p.id === targetProjectId);
+        const client = project ? s.clients.find((c) => c.id === project.clientId) : undefined;
+
+        if (!project || !client) {
+          return get().addAIRunLog({
+            departmentId: deptId,
+            projectId: targetProjectId,
+            provider: "rule_based",
+            model: "rule_based",
+            status: "fallback",
+            fallbackUsed: true,
+            fallbackReason: "Nenhum projeto ativo encontrado",
+            promptSummary: prompt.slice(0, 120).replace(/\n/g, " "),
+            outputSummary: "Nenhum projeto ativo encontrado para gerar inteligência.",
+            warnings: [],
+          });
+        }
+
+        // Build a portal-safe, serializable context (no internal strategicNotes).
+        const bb = client.brandBrain;
+        const brandBrain: Record<string, string> = {};
+        if (bb) {
+          for (const [k, v] of Object.entries(bb)) {
+            if (k === "strategicNotes") continue;
+            if (typeof v === "string" && v.trim()) brandBrain[k] = v;
+          }
+        }
+        const projectDelivs = s.deliverables.filter((d) => d.projectId === project.id);
+        const context: AIRunContext = {
+          projectName: project.name,
+          projectGoal: project.proposal?.objective ?? project.goal,
+          clientName: client.name,
+          clientIndustry: client.industry,
+          brandBrain,
+          briefingAudience: s.briefings.find((b) => b.projectId === project.id)?.audience,
+          pendingMaterialCount: s.materialRequests.filter(
+            (m) => m.projectId === project.id && m.status === "pending",
+          ).length,
+          stage: project.stage,
+          deliverablesCount: projectDelivs.length,
+          inReviewCount: projectDelivs.filter((d) => d.status === "in_review").length,
+          revisionCount: projectDelivs.filter((d) => needsRevision(d)).length,
+          hasStrategyRoom: s.strategyRooms.some((r) => r.projectId === project.id),
+          prompt,
+        };
+
+        // Helper: run the rule-based engine locally and build the deliverable.
+        const runRuleBasedFallback = (reason: string, warnings: string[]): string => {
+          let outputSummary = "";
+          if (deptId === "strategy") {
+            const out = runStrategyRuleBased(
+              project,
+              client,
+              s.briefings.find((b) => b.projectId === project.id),
+              s.materialRequests,
+            );
+            outputSummary = out.executiveSummary;
+            get().addDeliverable(buildStrategyDeliverable(project.name, project.id, dept.primaryAgentId, out));
+          } else if (deptId === "social-media") {
+            const out = runSocialRuleBased(project, client);
+            outputSummary = out.executiveSummary;
+            get().addDeliverable(buildSocialDeliverable(project.name, project.id, dept.primaryAgentId, out));
+          } else {
+            const out = runPMRuleBased(project, client, s.deliverables, s.materialRequests, s.strategyRooms);
+            outputSummary = out.executiveSummary;
+            get().addDeliverable(buildPMDeliverable(project.name, project.id, dept.primaryAgentId, out));
+          }
+          return get().addAIRunLog({
+            departmentId: deptId,
+            projectId: project.id,
+            provider: "rule_based",
+            model: "rule_based",
+            status: "fallback",
+            fallbackUsed: true,
+            fallbackReason: reason,
+            promptSummary: prompt.slice(0, 120).replace(/\n/g, " "),
+            outputSummary,
+            warnings,
+          });
+        };
+
+        try {
+          const res = await fetch("/api/ai/run", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ departmentId: deptId, projectId: project.id, provider: "openai", context }),
+          });
+
+          if (!res.ok) {
+            return runRuleBasedFallback(
+              `Rota de IA retornou HTTP ${res.status}`,
+              [`Falha ao acessar o provedor OpenAI (HTTP ${res.status}) — usando regras locais`],
+            );
+          }
+
+          const data = await res.json();
+
+          // Server signalled fallback (key missing / error / invalid response).
+          if (data.mode === "fallback") {
+            return runRuleBasedFallback(
+              data.fallbackReason ?? "Fallback do servidor",
+              data.warnings ?? [],
+            );
+          }
+
+          // OpenAI success — build deliverable from validated output.
+          let outputSummary = "";
+          if (deptId === "strategy") {
+            outputSummary = data.output.executiveSummary;
+            get().addDeliverable(buildStrategyDeliverable(project.name, project.id, dept.primaryAgentId, data.output));
+          } else if (deptId === "social-media") {
+            outputSummary = data.output.executiveSummary;
+            get().addDeliverable(buildSocialDeliverable(project.name, project.id, dept.primaryAgentId, data.output));
+          } else {
+            outputSummary = data.output.executiveSummary;
+            get().addDeliverable(buildPMDeliverable(project.name, project.id, dept.primaryAgentId, data.output));
+          }
+
+          return get().addAIRunLog({
+            departmentId: deptId,
+            projectId: project.id,
+            provider: "openai",
+            model: data.model ?? "openai",
+            status: "success",
+            fallbackUsed: false,
+            promptSummary: prompt.slice(0, 120).replace(/\n/g, " "),
+            outputSummary,
+            warnings: [],
+          });
+        } catch {
+          return runRuleBasedFallback(
+            "Erro de rede ao chamar a rota de IA",
+            ["Erro de rede ao chamar o provedor OpenAI — usando regras locais"],
+          );
+        }
       },
 
       // ── i18n ─────────────────────────────────────────────────────────────

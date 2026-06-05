@@ -109,10 +109,14 @@ export interface DoctorInput {
   aiRunLogs?: AIRunLog[];
   // Source reported by useDbAIRunLogs hook; undefined = not yet resolved
   aiRunLogSource?: "db" | "local";
+  // OpenAI provider status (GET /api/ai/run); undefined = not yet resolved
+  openaiConfigured?: boolean;
+  // Per-department provider selections (from departmentConfigs)
+  departmentConfigs?: { departmentId: string; aiProvider: string }[];
 }
 
 export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
-  const { clients, projects, deliverables, materialRequests, strategyRooms, tasks = [], persisted, integrationConfigs, agentProviderConfigs, dbAvailable, authMode, portalMode, sessionActive, sessionUser, dbSyncStatus, aiRunLogs = [], aiRunLogSource } = input;
+  const { clients, projects, deliverables, materialRequests, strategyRooms, tasks = [], persisted, integrationConfigs, agentProviderConfigs, dbAvailable, authMode, portalMode, sessionActive, sessionUser, dbSyncStatus, aiRunLogs = [], aiRunLogSource, openaiConfigured, departmentConfigs = [] } = input;
 
   const checks: DiagnosticCheck[] = [];
 
@@ -1012,6 +1016,73 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
           : "Faça login e verifique a conexão com o banco para persistir os logs de intelligence.",
       route: "/agency/settings",
     });
+  }
+
+  // ── OpenAI provider checks (Departamentos group) ─────────────────────────
+  const OPENAI_DEPT_LABELS: Record<string, string> = {
+    strategy: "Estratégia",
+    "social-media": "Social Media",
+    "project-management": "Gestão de Projetos",
+  };
+  const openaiDeptsSelected = departmentConfigs.filter(
+    (c) => c.aiProvider === "openai" && OPENAI_DEPT_LABELS[c.departmentId],
+  );
+
+  // 1. Global OpenAI key status — only surfaced once status is resolved.
+  if (openaiConfigured !== undefined) {
+    checks.push({
+      id: "openai-key-status",
+      group: "Departamentos",
+      label: "OpenAI — chave de API",
+      status: openaiConfigured ? "pass" : openaiDeptsSelected.length > 0 ? "warning" : "info",
+      severity: openaiDeptsSelected.length > 0 ? "medium" : "low",
+      explanation: openaiConfigured
+        ? "OPENAI_API_KEY configurada no servidor. Provedor OpenAI disponível."
+        : openaiDeptsSelected.length > 0
+        ? "OPENAI_API_KEY ausente, mas departamentos selecionaram OpenAI. Runs caem para regras locais."
+        : "OPENAI_API_KEY não configurada. Nenhum departamento usa OpenAI no momento.",
+      action: openaiConfigured
+        ? "Nenhuma ação necessária."
+        : "Defina OPENAI_API_KEY nas variáveis de ambiente do servidor (Railway) para ativar a IA real.",
+      route: "/agency/settings",
+    });
+  }
+
+  // 2. Per-department: OpenAI selected but key missing.
+  if (openaiConfigured === false) {
+    for (const c of openaiDeptsSelected) {
+      checks.push({
+        id: `openai-missing-key-${c.departmentId}`,
+        group: "Departamentos",
+        label: `${OPENAI_DEPT_LABELS[c.departmentId]} — OpenAI sem chave`,
+        status: "warning",
+        severity: "medium",
+        explanation: `${OPENAI_DEPT_LABELS[c.departmentId]} está configurado para OpenAI, mas a chave não existe no servidor. As execuções usam regras locais.`,
+        action: "Configure OPENAI_API_KEY no servidor ou volte o provedor para regras locais.",
+        route: `/agency/departments/${c.departmentId}`,
+      });
+    }
+  }
+
+  // 3. Recent OpenAI failure / fallback after OpenAI selection.
+  for (const c of openaiDeptsSelected) {
+    const deptLogs = aiRunLogs
+      .filter((l) => l.departmentId === c.departmentId)
+      .slice(0, 5);
+    const recentFallbacks = deptLogs.filter((l) => l.fallbackUsed);
+    const lastWasFallback = deptLogs[0]?.fallbackUsed === true;
+    if (deptLogs.length > 0 && recentFallbacks.length >= 2 && lastWasFallback) {
+      checks.push({
+        id: `openai-fallback-${c.departmentId}`,
+        group: "Departamentos",
+        label: `${OPENAI_DEPT_LABELS[c.departmentId]} — fallback após OpenAI`,
+        status: "warning",
+        severity: "medium",
+        explanation: `${OPENAI_DEPT_LABELS[c.departmentId]} selecionou OpenAI mas as últimas execuções caíram para regras locais (${recentFallbacks.length} de ${deptLogs.length}). Motivo: ${deptLogs[0]?.fallbackReason ?? "desconhecido"}.`,
+        action: "Verifique OPENAI_API_KEY, cota da conta e conectividade do servidor.",
+        route: `/agency/departments/${c.departmentId}`,
+      });
+    }
   }
 
   // ── Score ─────────────────────────────────────────────────────────────────

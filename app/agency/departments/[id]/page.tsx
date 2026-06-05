@@ -14,6 +14,8 @@ import { generateAllAutoTasks } from "@/lib/agency/orchestration/auto-tasks";
 import { needsRevision } from "@/lib/agency/deliverables";
 import { MOCK_INTEGRATIONS } from "@/lib/agency/integrations";
 import { useDbAIRunLogs } from "@/lib/hooks/useDbAIRunLogs";
+import { useAiProviderStatus } from "@/lib/hooks/useAiProviderStatus";
+import { isOpenAIDepartment } from "@/lib/agency/intelligence/openai-schemas";
 
 const INTELLIGENCE_DEPTS = new Set([
   "strategy",
@@ -67,8 +69,9 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
   const [lastRunId, setLastRunId] = useState<string | null>(null);
 
   const store = useAgencyStore();
-  const { deliverables, tasks, projects, materialRequests, strategyRooms, clients, departmentConfigs, saveDepartmentConfig, aiRunLogs: storeRunLogs, runDepartmentIntelligence } = store;
+  const { deliverables, tasks, projects, materialRequests, strategyRooms, clients, departmentConfigs, saveDepartmentConfig, aiRunLogs: storeRunLogs, runDepartmentIntelligenceWithProvider } = store;
   const dbRunLogs = useDbAIRunLogs({ departmentId: id, limit: 50 });
+  const { openaiConfigured } = useAiProviderStatus();
 
   const dept = DEPARTMENT_DEFS.find((d) => d.id === id);
 
@@ -149,17 +152,20 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
     }
   }
 
-  const handleRunIntelligence = useCallback(() => {
+  const handleRunIntelligence = useCallback(async () => {
     setIntelligenceRunning(true);
-    const logId = runDepartmentIntelligence(activeDept.id);
-    setLastRunId(logId);
-    // Persist to DB if connected — fire and forget.
-    if (logId && dbRunLogs.source === "db") {
-      const newLog = useAgencyStore.getState().aiRunLogs.find((l) => l.id === logId);
-      if (newLog) dbRunLogs.save(newLog);
+    try {
+      const logId = await runDepartmentIntelligenceWithProvider(activeDept.id);
+      setLastRunId(logId);
+      // Persist to DB if connected — fire and forget.
+      if (logId && dbRunLogs.source === "db") {
+        const newLog = useAgencyStore.getState().aiRunLogs.find((l) => l.id === logId);
+        if (newLog) dbRunLogs.save(newLog);
+      }
+    } finally {
+      setIntelligenceRunning(false);
     }
-    setTimeout(() => setIntelligenceRunning(false), 800);
-  }, [activeDept.id, runDepartmentIntelligence, dbRunLogs]);
+  }, [activeDept.id, runDepartmentIntelligenceWithProvider, dbRunLogs]);
 
   const PRIORITY_STYLE: Record<string, { bg: string; text: string; label: string }> = {
     critical: { bg: "bg-[#FEE2E2]", text: "text-[#DC2626]", label: "Crítico" },
@@ -174,6 +180,11 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
     approved: { bg: "bg-[#DCFCE7]", text: "text-[#16A34A]", label: "Aprovado" },
     delivered: { bg: "bg-[#DCFCE7]", text: "text-[#16A34A]", label: "Entregue" },
   };
+
+  // ── AI provider state for the Intelligence card ──────────────────────────
+  const selectedProvider = savedConfig?.aiProvider ?? activeDept.aiProvider;
+  const isOpenAICapable = isOpenAIDepartment(activeDept.id);
+  const usingOpenAI = isOpenAICapable && selectedProvider === "openai";
 
   return (
     <div>
@@ -278,18 +289,40 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
                     <h3 className="text-[13px] font-semibold" style={{ color: activeDept.color }}>
                       Intelligence Mode
                     </h3>
-                    <span
-                      className="inline-flex items-center h-5 px-2 rounded-full text-[10px] font-medium"
-                      style={{ backgroundColor: `${activeDept.color}22`, color: activeDept.color }}
-                    >
-                      Regras locais (V1)
-                    </span>
+                    {usingOpenAI ? (
+                      openaiConfigured === false ? (
+                        <span className="inline-flex items-center h-5 px-2 rounded-full text-[10px] font-medium bg-[#FEE2E2] text-[#DC2626]">
+                          OpenAI — chave ausente
+                        </span>
+                      ) : openaiConfigured === true ? (
+                        <span className="inline-flex items-center h-5 px-2 rounded-full text-[10px] font-medium bg-[#DCFCE7] text-[#16A34A]">
+                          OpenAI configurado
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center h-5 px-2 rounded-full text-[10px] font-medium bg-[#F0F0ED] text-[#6B6B65]">
+                          OpenAI selecionado
+                        </span>
+                      )
+                    ) : (
+                      <span
+                        className="inline-flex items-center h-5 px-2 rounded-full text-[10px] font-medium"
+                        style={{ backgroundColor: `${activeDept.color}22`, color: activeDept.color }}
+                      >
+                        Regras locais
+                      </span>
+                    )}
                     {lastRun?.fallbackUsed && (
                       <span className="inline-flex items-center h-5 px-2 rounded-full text-[10px] font-medium bg-[#FEF3C7] text-[#D97706]">
                         Fallback ativo
                       </span>
                     )}
                   </div>
+                  {usingOpenAI && (
+                    <p className="text-[11px] text-[#6B6B65] mb-1.5">
+                      Provedor selecionado: <strong>OpenAI</strong>
+                      {openaiConfigured === false && " — defina OPENAI_API_KEY no servidor para ativar (fallback automático para regras locais)."}
+                    </p>
+                  )}
 
                   {lastRun ? (
                     <div className="space-y-1.5">
@@ -306,12 +339,17 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
                           }
                         >
                           {lastRun.status === "success"
-                            ? "Sucesso"
+                            ? `Sucesso via ${lastRun.provider === "openai" ? `OpenAI (${lastRun.model})` : "regras locais"}`
                             : lastRun.status === "fallback"
                             ? "Fallback (regras locais)"
                             : "Erro"}
                         </span>
                       </div>
+                      {lastRun.fallbackUsed && lastRun.fallbackReason && (
+                        <div className="text-[11px] text-[#92400E]">
+                          Motivo do fallback: {lastRun.fallbackReason}
+                        </div>
+                      )}
                       <p className="text-[12px] text-[#6B6B65] leading-relaxed line-clamp-2">
                         {lastRun.outputSummary}
                       </p>
@@ -433,11 +471,33 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
                 <label className="block text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-1.5">
                   Provedor de IA
                 </label>
-                <div className="flex items-center gap-2 p-3 rounded-[8px] bg-[#F7F7F6] border border-[#E8E8E3]">
-                  <div className="text-[13px] font-medium text-[#1A1A1A]">
-                    {savedConfig?.aiProvider ?? dept.aiProvider === "rule_based" ? "Regras locais (sem IA externa)" : (savedConfig?.aiProvider ?? dept.aiProvider)}
+                {isOpenAICapable ? (
+                  <div>
+                    <select
+                      value={selectedProvider}
+                      onChange={(e) => saveDepartmentConfig(activeDept.id, { aiProvider: e.target.value, model: e.target.value })}
+                      className="w-full p-3 rounded-[8px] bg-white border border-[#E8E8E3] text-[13px] text-[#1A1A1A] outline-none focus:border-[#5B5BD6]"
+                    >
+                      <option value="rule_based">Regras locais (sem IA externa)</option>
+                      <option value="openai">OpenAI</option>
+                    </select>
+                    {selectedProvider === "openai" && (
+                      <div className="mt-1.5 text-[11px] text-[#6B6B65]">
+                        {openaiConfigured === false
+                          ? "⚠ OPENAI_API_KEY ausente — runs usarão regras locais até a chave ser configurada."
+                          : openaiConfigured === true
+                          ? "✓ Chave configurada no servidor. Runs usarão OpenAI."
+                          : "Status da chave sendo verificado…"}
+                      </div>
+                    )}
                   </div>
-                </div>
+                ) : (
+                  <div className="flex items-center gap-2 p-3 rounded-[8px] bg-[#F7F7F6] border border-[#E8E8E3]">
+                    <div className="text-[13px] font-medium text-[#1A1A1A]">
+                      {(savedConfig?.aiProvider ?? dept.aiProvider) === "rule_based" ? "Regras locais (sem IA externa)" : (savedConfig?.aiProvider ?? dept.aiProvider)}
+                    </div>
+                  </div>
+                )}
               </div>
               <div>
                 <label className="block text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-1.5">

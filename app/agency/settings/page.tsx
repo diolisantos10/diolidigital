@@ -14,6 +14,7 @@ import { useDbStrategyRooms } from "@/lib/hooks/useDbStrategyRooms";
 import { useDbBriefings } from "@/lib/hooks/useDbBriefings";
 import { useDbBrandUpdates } from "@/lib/hooks/useDbBrandUpdates";
 import { useDbAIRunLogs } from "@/lib/hooks/useDbAIRunLogs";
+import { useAiProviderStatus } from "@/lib/hooks/useAiProviderStatus";
 import { PILOT_CLIENT_ID } from "@/lib/agency/system-doctor";
 import { useTranslation } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n";
@@ -99,9 +100,10 @@ function CollapsibleSection({ title, badge, children }: { title: string; badge?:
 
 export default function SettingsPage() {
   const { deliverables, briefings, materialRequests, strategyRooms, brandUpdates,
-          integrationConfigs, agentProviderConfigs, aiRunLogs: storeRunLogs,
+          integrationConfigs, agentProviderConfigs, aiRunLogs: storeRunLogs, departmentConfigs,
           resetStore, loadPilotData, clearAllData } = useAgencyStore();
   const { logs: dbAiRunLogs, source: aiRunLogSource } = useDbAIRunLogs({ limit: 200 });
+  const { openaiConfigured } = useAiProviderStatus();
 
   const { clients, source: clientsSource } = useDbClients();
   const { projects, source: projectsSource } = useDbProjects();
@@ -165,7 +167,7 @@ export default function SettingsPage() {
   };
   // Prefer DB-sourced AI run logs; fall back to local store.
   const aiRunLogs = dbAiRunLogs.length > 0 ? dbAiRunLogs : storeRunLogs;
-  const report = runSystemDoctor({ clients, projects, deliverables, materialRequests, strategyRooms, tasks, persisted, integrationConfigs, agentProviderConfigs, dbAvailable, authMode, portalMode, sessionActive, sessionUser, dbSyncStatus, aiRunLogs, aiRunLogSource });
+  const report = runSystemDoctor({ clients, projects, deliverables, materialRequests, strategyRooms, tasks, persisted, integrationConfigs, agentProviderConfigs, dbAvailable, authMode, portalMode, sessionActive, sessionUser, dbSyncStatus, aiRunLogs, aiRunLogSource, openaiConfigured, departmentConfigs });
   const pilot = getPilotDataStatus(clients, projects, deliverables);
   const { score, pass, warning, fail, info, topAction, overallStatus, checks } = report;
   const oc = OVERALL_COLOR[overallStatus];
