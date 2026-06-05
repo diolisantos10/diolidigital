@@ -24,6 +24,7 @@ model AgencyWorkspace {
   integrationConfigs   DbIntegrationConfig[]
   agentProviderConfigs DbAgentProviderConfig[]
   activityEvents       ActivityEvent[]
+  aiRunLogs            AIRunLog[]
 }
 
 // ─── Users / Auth ─────────────────────────────────────────────────────────────
@@ -272,5 +273,26 @@ model ActivityEvent {
   message     String
   clientId    String?
   timestamp   DateTime @default(now())
+}
+
+// ─── AI Run Logs ──────────────────────────────────────────────────────────────
+// Tracks every department intelligence execution — provider used, fallback
+// status, prompt/output summaries, and warnings. Persisted per workspace.
+
+model AIRunLog {
+  id             String          @id @default(cuid())
+  workspaceId    String
+  workspace      AgencyWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  departmentId   String
+  projectId      String?
+  provider       String          @default("rule_based")
+  model          String          @default("rule_based")
+  status         String          @default("success")
+  fallbackUsed   Boolean         @default(false)
+  fallbackReason String?
+  promptSummary  String?
+  outputSummary  String?
+  warnings       String          @default("[]")
+  createdAt      DateTime        @default(now())
 }
 

@@ -105,12 +105,14 @@ export interface DoctorInput {
   sessionActive?: boolean;
   sessionUser?: string;
   dbSyncStatus?: DbSyncStatus;
-  // AI intelligence run logs — from agency store
+  // AI intelligence run logs — from agency store or DB
   aiRunLogs?: AIRunLog[];
+  // Source reported by useDbAIRunLogs hook; undefined = not yet resolved
+  aiRunLogSource?: "db" | "local";
 }
 
 export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
-  const { clients, projects, deliverables, materialRequests, strategyRooms, tasks = [], persisted, integrationConfigs, agentProviderConfigs, dbAvailable, authMode, portalMode, sessionActive, sessionUser, dbSyncStatus, aiRunLogs = [] } = input;
+  const { clients, projects, deliverables, materialRequests, strategyRooms, tasks = [], persisted, integrationConfigs, agentProviderConfigs, dbAvailable, authMode, portalMode, sessionActive, sessionUser, dbSyncStatus, aiRunLogs = [], aiRunLogSource } = input;
 
   const checks: DiagnosticCheck[] = [];
 
@@ -990,6 +992,26 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
         route: "/agency/integrations",
       });
     }
+  }
+
+  // AI Run Log persistence check
+  if (aiRunLogs.length > 0) {
+    checks.push({
+      id: "intel-log-persistence",
+      group: "Departamentos",
+      label: "AI Run Logs — persistência",
+      status: aiRunLogSource === "db" ? "pass" : aiRunLogSource === "local" ? "info" : "info",
+      severity: "low",
+      explanation:
+        aiRunLogSource === "db"
+          ? `${aiRunLogs.length} AI run log(s) sincronizados com o banco de dados.`
+          : `${aiRunLogs.length} AI run log(s) em localStorage. Sem sincronização com banco.`,
+      action:
+        aiRunLogSource === "db"
+          ? "Nenhuma ação necessária."
+          : "Faça login e verifique a conexão com o banco para persistir os logs de intelligence.",
+      route: "/agency/settings",
+    });
   }
 
   // ── Score ─────────────────────────────────────────────────────────────────

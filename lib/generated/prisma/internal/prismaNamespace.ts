@@ -398,7 +398,8 @@ export const ModelName = {
   DbAgentProviderConfig: 'DbAgentProviderConfig',
   Task: 'Task',
   TimelineEvent: 'TimelineEvent',
-  ActivityEvent: 'ActivityEvent'
+  ActivityEvent: 'ActivityEvent',
+  AIRunLog: 'AIRunLog'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -414,7 +415,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "deliverable" | "materialRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "deliverable" | "materialRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1528,6 +1529,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    AIRunLog: {
+      payload: Prisma.$AIRunLogPayload<ExtArgs>
+      fields: Prisma.AIRunLogFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AIRunLogFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AIRunLogPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AIRunLogFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AIRunLogPayload>
+        }
+        findFirst: {
+          args: Prisma.AIRunLogFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AIRunLogPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AIRunLogFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AIRunLogPayload>
+        }
+        findMany: {
+          args: Prisma.AIRunLogFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AIRunLogPayload>[]
+        }
+        create: {
+          args: Prisma.AIRunLogCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AIRunLogPayload>
+        }
+        createMany: {
+          args: Prisma.AIRunLogCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AIRunLogCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AIRunLogPayload>[]
+        }
+        delete: {
+          args: Prisma.AIRunLogDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AIRunLogPayload>
+        }
+        update: {
+          args: Prisma.AIRunLogUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AIRunLogPayload>
+        }
+        deleteMany: {
+          args: Prisma.AIRunLogDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AIRunLogUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AIRunLogUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AIRunLogPayload>[]
+        }
+        upsert: {
+          args: Prisma.AIRunLogUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AIRunLogPayload>
+        }
+        aggregate: {
+          args: Prisma.AIRunLogAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAIRunLog>
+        }
+        groupBy: {
+          args: Prisma.AIRunLogGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AIRunLogGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AIRunLogCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AIRunLogCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1797,6 +1872,25 @@ export const ActivityEventScalarFieldEnum = {
 export type ActivityEventScalarFieldEnum = (typeof ActivityEventScalarFieldEnum)[keyof typeof ActivityEventScalarFieldEnum]
 
 
+export const AIRunLogScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  departmentId: 'departmentId',
+  projectId: 'projectId',
+  provider: 'provider',
+  model: 'model',
+  status: 'status',
+  fallbackUsed: 'fallbackUsed',
+  fallbackReason: 'fallbackReason',
+  promptSummary: 'promptSummary',
+  outputSummary: 'outputSummary',
+  warnings: 'warnings',
+  createdAt: 'createdAt'
+} as const
+
+export type AIRunLogScalarFieldEnum = (typeof AIRunLogScalarFieldEnum)[keyof typeof AIRunLogScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1978,6 +2072,7 @@ export type GlobalOmitConfig = {
   task?: Prisma.TaskOmit
   timelineEvent?: Prisma.TimelineEventOmit
   activityEvent?: Prisma.ActivityEventOmit
+  aIRunLog?: Prisma.AIRunLogOmit
 }
 
 /* Types for Logging */

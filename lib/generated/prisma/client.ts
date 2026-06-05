@@ -116,3 +116,8 @@ export type TimelineEvent = Prisma.TimelineEventModel
  * 
  */
 export type ActivityEvent = Prisma.ActivityEventModel
+/**
+ * Model AIRunLog
+ * 
+ */
+export type AIRunLog = Prisma.AIRunLogModel

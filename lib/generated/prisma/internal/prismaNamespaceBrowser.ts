@@ -65,7 +65,8 @@ export const ModelName = {
   DbAgentProviderConfig: 'DbAgentProviderConfig',
   Task: 'Task',
   TimelineEvent: 'TimelineEvent',
-  ActivityEvent: 'ActivityEvent'
+  ActivityEvent: 'ActivityEvent',
+  AIRunLog: 'AIRunLog'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -312,6 +313,25 @@ export const ActivityEventScalarFieldEnum = {
 } as const
 
 export type ActivityEventScalarFieldEnum = (typeof ActivityEventScalarFieldEnum)[keyof typeof ActivityEventScalarFieldEnum]
+
+
+export const AIRunLogScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  departmentId: 'departmentId',
+  projectId: 'projectId',
+  provider: 'provider',
+  model: 'model',
+  status: 'status',
+  fallbackUsed: 'fallbackUsed',
+  fallbackReason: 'fallbackReason',
+  promptSummary: 'promptSummary',
+  outputSummary: 'outputSummary',
+  warnings: 'warnings',
+  createdAt: 'createdAt'
+} as const
+
+export type AIRunLogScalarFieldEnum = (typeof AIRunLogScalarFieldEnum)[keyof typeof AIRunLogScalarFieldEnum]
 
 
 export const SortOrder = {

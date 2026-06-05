@@ -11,7 +11,7 @@ import type {
   Briefing, StrategyRoom,
 } from "@/lib/agency/mock-data";
 import type { MaterialRequest } from "@/lib/agency/workspace";
-import type { BrandUpdate } from "@/store/agency-store";
+import type { BrandUpdate, AIRunLog } from "@/store/agency-store";
 
 // ─── Raw DB shapes (matches Prisma output without generated client import) ────
 
@@ -337,4 +337,42 @@ export function dbStrategyRoomToMock(db: DbStrategyRoom): StrategyRoom | null {
   } catch {
     return null;
   }
+}
+
+// ─── AI Run Log ──────────────────────────────────────────────────────────────
+
+export interface DbAIRunLog {
+  id: string;
+  workspaceId: string;
+  departmentId: string;
+  projectId: string | null;
+  provider: string;
+  model: string;
+  status: string;
+  fallbackUsed: boolean;
+  fallbackReason: string | null;
+  promptSummary: string | null;
+  outputSummary: string | null;
+  warnings: string;  // JSON array
+  createdAt: string | Date;
+}
+
+export function dbAIRunLogToStore(db: DbAIRunLog): AIRunLog {
+  let warnings: string[] = [];
+  try { warnings = JSON.parse(db.warnings); } catch { /* keep empty */ }
+
+  return {
+    id: db.id,
+    departmentId: db.departmentId,
+    projectId: db.projectId ?? undefined,
+    provider: db.provider as AIRunLog["provider"],
+    model: db.model,
+    status: db.status as AIRunLog["status"],
+    fallbackUsed: db.fallbackUsed,
+    fallbackReason: db.fallbackReason ?? undefined,
+    promptSummary: db.promptSummary ?? "",
+    outputSummary: db.outputSummary ?? "",
+    warnings,
+    createdAt: typeof db.createdAt === "string" ? db.createdAt : (db.createdAt as Date).toISOString(),
+  };
 }

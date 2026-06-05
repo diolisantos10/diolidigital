@@ -13,6 +13,7 @@ import {
 import { generateAllAutoTasks } from "@/lib/agency/orchestration/auto-tasks";
 import { needsRevision } from "@/lib/agency/deliverables";
 import { MOCK_INTEGRATIONS } from "@/lib/agency/integrations";
+import { useDbAIRunLogs } from "@/lib/hooks/useDbAIRunLogs";
 
 const INTELLIGENCE_DEPTS = new Set([
   "strategy",
@@ -21,6 +22,7 @@ const INTELLIGENCE_DEPTS = new Set([
   "design",
   "paid-traffic",
   "brand-hub",
+  "operations",
 ]);
 
 const INTELLIGENCE_LABELS: Record<string, string> = {
@@ -30,6 +32,7 @@ const INTELLIGENCE_LABELS: Record<string, string> = {
   design: "Rodar Inteligência de Design",
   "paid-traffic": "Rodar Inteligência de Tráfego",
   "brand-hub": "Rodar Auditoria de Marca",
+  operations: "Rodar Inteligência Operacional",
 };
 
 type TabId =
@@ -64,7 +67,8 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
   const [lastRunId, setLastRunId] = useState<string | null>(null);
 
   const store = useAgencyStore();
-  const { deliverables, tasks, projects, materialRequests, strategyRooms, clients, departmentConfigs, saveDepartmentConfig, aiRunLogs, runDepartmentIntelligence } = store;
+  const { deliverables, tasks, projects, materialRequests, strategyRooms, clients, departmentConfigs, saveDepartmentConfig, aiRunLogs: storeRunLogs, runDepartmentIntelligence } = store;
+  const dbRunLogs = useDbAIRunLogs({ departmentId: id, limit: 50 });
 
   const dept = DEPARTMENT_DEFS.find((d) => d.id === id);
 
@@ -111,7 +115,10 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
 
   const activeProjects = projects.filter((p) => p.stage !== "completed");
 
-  const deptRunLogs = aiRunLogs?.filter((l) => l.departmentId === dept.id) ?? [];
+  // Prefer DB-sourced logs; fall back to local store.
+  const deptRunLogs = dbRunLogs.logs.length > 0
+    ? dbRunLogs.logs
+    : (storeRunLogs?.filter((l) => l.departmentId === dept.id) ?? []);
   const lastRun = lastRunId
     ? deptRunLogs.find((l) => l.id === lastRunId) ?? deptRunLogs[0]
     : deptRunLogs[0];
@@ -144,10 +151,15 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
 
   const handleRunIntelligence = useCallback(() => {
     setIntelligenceRunning(true);
-    const id = runDepartmentIntelligence(activeDept.id);
-    setLastRunId(id);
+    const logId = runDepartmentIntelligence(activeDept.id);
+    setLastRunId(logId);
+    // Persist to DB if connected — fire and forget.
+    if (logId && dbRunLogs.source === "db") {
+      const newLog = useAgencyStore.getState().aiRunLogs.find((l) => l.id === logId);
+      if (newLog) dbRunLogs.save(newLog);
+    }
     setTimeout(() => setIntelligenceRunning(false), 800);
-  }, [activeDept.id, runDepartmentIntelligence]);
+  }, [activeDept.id, runDepartmentIntelligence, dbRunLogs]);
 
   const PRIORITY_STYLE: Record<string, { bg: string; text: string; label: string }> = {
     critical: { bg: "bg-[#FEE2E2]", text: "text-[#DC2626]", label: "Crítico" },

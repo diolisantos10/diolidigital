@@ -13,6 +13,7 @@ import { useDbBrandHub } from "@/lib/hooks/useDbBrandHub";
 import { useDbStrategyRooms } from "@/lib/hooks/useDbStrategyRooms";
 import { useDbBriefings } from "@/lib/hooks/useDbBriefings";
 import { useDbBrandUpdates } from "@/lib/hooks/useDbBrandUpdates";
+import { useDbAIRunLogs } from "@/lib/hooks/useDbAIRunLogs";
 import { PILOT_CLIENT_ID } from "@/lib/agency/system-doctor";
 import { useTranslation } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n";
@@ -98,8 +99,9 @@ function CollapsibleSection({ title, badge, children }: { title: string; badge?:
 
 export default function SettingsPage() {
   const { deliverables, briefings, materialRequests, strategyRooms, brandUpdates,
-          integrationConfigs, agentProviderConfigs, aiRunLogs,
+          integrationConfigs, agentProviderConfigs, aiRunLogs: storeRunLogs,
           resetStore, loadPilotData, clearAllData } = useAgencyStore();
+  const { logs: dbAiRunLogs, source: aiRunLogSource } = useDbAIRunLogs({ limit: 200 });
 
   const { clients, source: clientsSource } = useDbClients();
   const { projects, source: projectsSource } = useDbProjects();
@@ -161,7 +163,9 @@ export default function SettingsPage() {
     // Agent outputs are persisted as deliverables — mirror that source.
     agentOutputs:     deliverablesSource,
   };
-  const report = runSystemDoctor({ clients, projects, deliverables, materialRequests, strategyRooms, tasks, persisted, integrationConfigs, agentProviderConfigs, dbAvailable, authMode, portalMode, sessionActive, sessionUser, dbSyncStatus, aiRunLogs });
+  // Prefer DB-sourced AI run logs; fall back to local store.
+  const aiRunLogs = dbAiRunLogs.length > 0 ? dbAiRunLogs : storeRunLogs;
+  const report = runSystemDoctor({ clients, projects, deliverables, materialRequests, strategyRooms, tasks, persisted, integrationConfigs, agentProviderConfigs, dbAvailable, authMode, portalMode, sessionActive, sessionUser, dbSyncStatus, aiRunLogs, aiRunLogSource });
   const pilot = getPilotDataStatus(clients, projects, deliverables);
   const { score, pass, warning, fail, info, topAction, overallStatus, checks } = report;
   const oc = OVERALL_COLOR[overallStatus];

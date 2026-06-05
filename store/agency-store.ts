@@ -48,6 +48,7 @@ import { runPMRuleBased } from "@/lib/agency/intelligence/pm";
 import { runDesignRuleBased } from "@/lib/agency/intelligence/design";
 import { runPaidTrafficRuleBased } from "@/lib/agency/intelligence/paid-traffic";
 import { runBrandHubRuleBased } from "@/lib/agency/intelligence/brand-hub";
+import { runOperationsRuleBased } from "@/lib/agency/intelligence/operations";
 
 // ─── Brand Update ─────────────────────────────────────────────────────────────
 // A pending brand suggestion from the client portal, a manual internal edit,
@@ -443,10 +444,28 @@ export const useAgencyStore = create<AgencyState>()(
                 ],
               },
             });
+          } else if (deptId === "operations") {
+            const output = runOperationsRuleBased({
+              clients: s.clients,
+              projects: s.projects,
+              deliverables: s.deliverables,
+              materialRequests: s.materialRequests,
+              strategyRooms: s.strategyRooms,
+              tasks: s.tasks,
+              integrationConfigs: s.integrationConfigs,
+              aiRunLogs: s.aiRunLogs,
+            });
+            outputSummary = output.executiveSummary;
+            // Operations intelligence is system-wide — no project-scoped deliverable.
+            // Log an activity event instead.
+            get().addActivity({
+              type: "intelligence_run",
+              message: `Operations Intelligence executada: score ${output.score}/100 (${output.riskLevel})`,
+            });
           }
         }
 
-        return get().addAIRunLog({
+        const logId = get().addAIRunLog({
           departmentId: deptId,
           projectId: targetProjectId,
           provider: meta.provider,
@@ -458,6 +477,8 @@ export const useAgencyStore = create<AgencyState>()(
           outputSummary,
           warnings: meta.warnings,
         });
+
+        return logId;
       },
 
       // ── i18n ─────────────────────────────────────────────────────────────
