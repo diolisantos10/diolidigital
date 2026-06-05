@@ -14,12 +14,22 @@ import { generateAllAutoTasks } from "@/lib/agency/orchestration/auto-tasks";
 import { needsRevision } from "@/lib/agency/deliverables";
 import { MOCK_INTEGRATIONS } from "@/lib/agency/integrations";
 
-const INTELLIGENCE_DEPTS = new Set(["strategy", "social-media", "project-management"]);
+const INTELLIGENCE_DEPTS = new Set([
+  "strategy",
+  "social-media",
+  "project-management",
+  "design",
+  "paid-traffic",
+  "brand-hub",
+]);
 
 const INTELLIGENCE_LABELS: Record<string, string> = {
   strategy: "Rodar Inteligência Estratégica",
   "social-media": "Rodar Inteligência Social",
   "project-management": "Rodar Inteligência de Gestão",
+  design: "Rodar Inteligência de Design",
+  "paid-traffic": "Rodar Inteligência de Tráfego",
+  "brand-hub": "Rodar Auditoria de Marca",
 };
 
 type TabId =

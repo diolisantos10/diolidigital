@@ -45,6 +45,9 @@ import { DEPARTMENT_DEFS } from "@/lib/agency/departments";
 import { runStrategyRuleBased } from "@/lib/agency/intelligence/strategy";
 import { runSocialRuleBased } from "@/lib/agency/intelligence/social";
 import { runPMRuleBased } from "@/lib/agency/intelligence/pm";
+import { runDesignRuleBased } from "@/lib/agency/intelligence/design";
+import { runPaidTrafficRuleBased } from "@/lib/agency/intelligence/paid-traffic";
+import { runBrandHubRuleBased } from "@/lib/agency/intelligence/brand-hub";
 
 // ─── Brand Update ─────────────────────────────────────────────────────────────
 // A pending brand suggestion from the client portal, a manual internal edit,
@@ -367,6 +370,75 @@ export const useAgencyStore = create<AgencyState>()(
                     items: output.suggestedTasks.map(
                       (t) => `[${t.urgency.toUpperCase()}] ${t.title} → ${t.owner}`,
                     ),
+                  },
+                ],
+              },
+            });
+          } else if (deptId === "design") {
+            const output = runDesignRuleBased(project, client);
+            outputSummary = output.executiveSummary;
+            get().addDeliverable({
+              name: `Inteligência de Design — ${project.name}`,
+              type: "design",
+              projectId: project.id,
+              status: "draft",
+              version: 1,
+              ownerAgentId: dept.primaryAgentId,
+              previewContent: {
+                summary: output.executiveSummary,
+                sections: [
+                  { title: "Diagnóstico criativo", body: output.creativeDiagnosis },
+                  { title: "Direção visual", body: output.visualDirection },
+                  { title: "Riscos de design", body: "", items: output.designRisks },
+                  { title: "Assets necessários", body: "", items: output.assetRequirements },
+                  { title: "Ideias de prompt", body: "", items: output.promptIdeas },
+                  { title: "Recomendações de brief criativo", body: "", items: output.creativeBriefRecommendations },
+                ],
+              },
+            });
+          } else if (deptId === "paid-traffic") {
+            const output = runPaidTrafficRuleBased(project, client, s.strategyRooms);
+            outputSummary = output.executiveSummary;
+            get().addDeliverable({
+              name: `Inteligência de Tráfego — ${project.name}`,
+              type: "ads",
+              projectId: project.id,
+              status: "draft",
+              version: 1,
+              ownerAgentId: dept.primaryAgentId,
+              previewContent: {
+                summary: output.executiveSummary,
+                sections: [
+                  { title: "Diagnóstico de campanha", body: output.campaignDiagnosis },
+                  { title: "Recomendação de funil", body: "", items: output.funnelRecommendation },
+                  { title: "Estratégia de audiência", body: "", items: output.audienceStrategy },
+                  { title: "Direção de budget", body: output.budgetDirection },
+                  { title: "Ângulos de anúncio", body: "", items: output.adAngles },
+                  { title: "Riscos de otimização", body: "", items: output.optimizationRisks },
+                ],
+              },
+            });
+          } else if (deptId === "brand-hub") {
+            const output = runBrandHubRuleBased(client);
+            outputSummary = output.executiveSummary;
+            get().addDeliverable({
+              name: `Auditoria de Marca — ${client.name}`,
+              type: "document",
+              projectId: project.id,
+              status: "draft",
+              version: 1,
+              ownerAgentId: dept.primaryAgentId,
+              previewContent: {
+                summary: output.executiveSummary,
+                sections: [
+                  { title: `Diagnóstico de marca (${output.completeness}% completo)`, body: output.brandDiagnosis },
+                  { title: "Informações faltando", body: "", items: output.missingInformation },
+                  { title: "Gaps de posicionamento", body: "", items: output.positioningGaps },
+                  { title: "Inconsistências de tom/estilo", body: "", items: output.consistencyIssues },
+                  {
+                    title: "Atualizações de marca recomendadas",
+                    body: "",
+                    items: output.recommendedBrandUpdates.map((u) => `${u.field}: ${u.suggestion}`),
                   },
                 ],
               },

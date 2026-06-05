@@ -944,6 +944,9 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
     { id: "strategy", label: "Estratégia", route: "/agency/departments/strategy" },
     { id: "social-media", label: "Social Media", route: "/agency/departments/social-media" },
     { id: "project-management", label: "Gestão de Projetos", route: "/agency/departments/project-management" },
+    { id: "design", label: "Design", route: "/agency/departments/design" },
+    { id: "paid-traffic", label: "Tráfego Pago", route: "/agency/departments/paid-traffic" },
+    { id: "brand-hub", label: "Brand Hub", route: "/agency/departments/brand-hub" },
   ];
 
   if (approvedProjects.length > 0) {
