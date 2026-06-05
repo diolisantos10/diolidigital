@@ -4,12 +4,12 @@
 import type { AgencyRole } from "@/lib/agency/roles";
 
 export type DepartmentId =
-  | "project_management"
+  | "project-management"
   | "strategy"
-  | "brand_hub"
-  | "social_media"
+  | "brand-hub"
+  | "social-media"
   | "design"
-  | "paid_traffic"
+  | "paid-traffic"
   | "operations";
 
 export interface DepartmentDef {
@@ -32,11 +32,15 @@ export interface DepartmentDef {
   color: string;
   accentBg: string;
   iconKey: string;
+  // Link to the agent generator / tool this department owns (if any).
+  // The department detail page is the primary home; the generator is a tool inside it.
+  generatorRoute?: string;
+  generatorLabel?: string;
 }
 
 export const DEPARTMENT_DEFS: DepartmentDef[] = [
   {
-    id: "project_management",
+    id: "project-management",
     name: "Gestão de Projetos",
     mission: "Garantir que todos os projetos avancem no pipeline, bloqueios sejam resolvidos e clientes estejam alinhados.",
     responsibilities: [
@@ -82,6 +86,8 @@ Regras:
     color: "#1A1A1A",
     accentBg: "#F0F0ED",
     iconKey: "pm",
+    generatorRoute: "/agency/agents",
+    generatorLabel: "Abrir PM Agent",
   },
   {
     id: "strategy",
@@ -127,9 +133,11 @@ Regras:
     color: "#7C3AED",
     accentBg: "#F5F3FF",
     iconKey: "strategy",
+    generatorRoute: "/agency/orchestrator",
+    generatorLabel: "Abrir Strategy Room",
   },
   {
-    id: "brand_hub",
+    id: "brand-hub",
     name: "Brand Hub",
     mission: "Manter o Brand Brain atualizado e garantir consistência de marca em todas as entregas da agência.",
     responsibilities: [
@@ -172,9 +180,11 @@ Regras:
     color: "#C2530A",
     accentBg: "#FFF7ED",
     iconKey: "brand",
+    generatorRoute: "/agency/brand-assets",
+    generatorLabel: "Abrir Brand Hub",
   },
   {
-    id: "social_media",
+    id: "social-media",
     name: "Social Media",
     mission: "Criar e gerir conteúdo estratégico para redes sociais que engaja o público-alvo e fortalece o posicionamento da marca.",
     responsibilities: [
@@ -218,6 +228,8 @@ Regras:
     color: "#5B5BD6",
     accentBg: "#EEF0FF",
     iconKey: "social",
+    generatorRoute: "/agency/social-media-agent",
+    generatorLabel: "Abrir gerador Social",
   },
   {
     id: "design",
@@ -264,9 +276,11 @@ Regras:
     color: "#C2530A",
     accentBg: "#FFF7ED",
     iconKey: "design",
+    generatorRoute: "/agency/design-agent",
+    generatorLabel: "Abrir gerador de Design",
   },
   {
-    id: "paid_traffic",
+    id: "paid-traffic",
     name: "Tráfego Pago",
     mission: "Planejar e otimizar campanhas de mídia paga que geram resultados mensuráveis com eficiência de budget.",
     responsibilities: [
@@ -310,6 +324,8 @@ Regras:
     color: "#0E7490",
     accentBg: "#ECFEFF",
     iconKey: "ads",
+    generatorRoute: "/agency/ads-agent",
+    generatorLabel: "Abrir planejador de Tráfego",
   },
   {
     id: "operations",
@@ -355,6 +371,8 @@ Regras:
     color: "#16A34A",
     accentBg: "#DCFCE7",
     iconKey: "system",
+    generatorRoute: "/agency/settings",
+    generatorLabel: "Abrir System Doctor",
   },
 ];
 
@@ -365,25 +383,25 @@ export function getDepartmentDef(id: DepartmentId): DepartmentDef | undefined {
 // ownerAgentId → departmentId mapping for execution agents
 export const AGENT_DEPT_MAP: Record<string, DepartmentId> = {
   a2: "design",
-  a3: "social_media",
-  a4: "paid_traffic",
+  a3: "social-media",
+  a4: "paid-traffic",
 };
 
 // AutoTask owner label → departmentId
 export const TASK_OWNER_DEPT_MAP: Record<string, DepartmentId> = {
-  PM: "project_management",
-  Social: "social_media",
+  PM: "project-management",
+  Social: "social-media",
   Design: "design",
-  Ads: "paid_traffic",
+  Ads: "paid-traffic",
 };
 
 // Department → AutoTask owner label
 export const DEPT_TASK_OWNER_MAP: Record<DepartmentId, string> = {
-  project_management: "PM",
+  "project-management": "PM",
   strategy: "PM",
-  brand_hub: "Design",
-  social_media: "Social",
+  "brand-hub": "Design",
+  "social-media": "Social",
   design: "Design",
-  paid_traffic: "Ads",
+  "paid-traffic": "Ads",
   operations: "",
 };

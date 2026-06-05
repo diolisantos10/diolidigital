@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import { useAgencyStore } from "@/store/agency-store";
@@ -12,25 +11,14 @@ import {
 } from "@/lib/agency/production-templates";
 import { DEPARTMENT_DEFS } from "@/lib/agency/departments";
 
-const DEPT_LABEL: Record<string, string> = {
-  project_management: "Gestão de Projetos",
-  strategy: "Estratégia",
-  brand_hub: "Brand Hub",
-  social_media: "Social Media",
-  design: "Design",
-  paid_traffic: "Tráfego Pago",
-  operations: "Operações & Sistema",
-};
+// Derived from DEPARTMENT_DEFS — single source of truth for slugs/labels/colors.
+const DEPT_LABEL: Record<string, string> = Object.fromEntries(
+  DEPARTMENT_DEFS.map((d) => [d.id, d.name])
+);
 
-const DEPT_COLOR: Record<string, string> = {
-  project_management: "#1A1A1A",
-  strategy: "#7C3AED",
-  brand_hub: "#C2530A",
-  social_media: "#5B5BD6",
-  design: "#C2530A",
-  paid_traffic: "#0E7490",
-  operations: "#16A34A",
-};
+const DEPT_COLOR: Record<string, string> = Object.fromEntries(
+  DEPARTMENT_DEFS.map((d) => [d.id, d.color])
+);
 
 type Step = 1 | 2 | 3 | 4 | 5;
 
@@ -96,7 +84,6 @@ function StepIndicator({ step }: { step: Step }) {
 }
 
 export default function NewProductionPage() {
-  const router = useRouter();
   const { createClient, createProject, addMaterialRequest, addActivity } = useAgencyStore();
 
   const [step, setStep] = useState<Step>(1);

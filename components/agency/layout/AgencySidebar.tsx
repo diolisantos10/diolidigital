@@ -6,6 +6,7 @@ import { useTranslation } from "@/lib/i18n";
 import { useAgencyStore } from "@/store/agency-store";
 import { AGENCY_ROLE_OPTIONS, isNavAllowed, type AgencyRole } from "@/lib/agency/roles";
 import { generateAllAutoTasks } from "@/lib/agency/orchestration/auto-tasks";
+import { DEPARTMENT_DEFS } from "@/lib/agency/departments";
 
 const ROLE_LABEL: Record<string, string> = {
   master:          "Master",
@@ -13,6 +14,17 @@ const ROLE_LABEL: Record<string, string> = {
   social_staff:    "Social",
   design_staff:    "Design",
   client:          "Cliente",
+};
+
+// Maps each department's iconKey to a sidebar icon component.
+const DEPT_ICON_BY_KEY: Record<string, (p: { size?: number; className?: string }) => React.ReactElement> = {
+  pm: UserCogIcon,
+  strategy: CpuIcon,
+  brand: SwatchIcon,
+  social: SocialIcon,
+  design: DesignIcon,
+  ads: AdsIcon,
+  system: SettingsIcon,
 };
 
 interface UserInfo {
@@ -69,25 +81,15 @@ export default function AgencySidebar({ userInfo }: { userInfo?: UserInfo | null
       ],
     },
     {
-      group: "Produção",
+      group: "Departamentos",
       items: [
-        { label: "Departamentos", href: "/agency/departments", icon: DepartmentsIcon },
-        { label: "Nova Produção", href: "/agency/production/new", icon: PlusCircleIcon },
-      ],
-    },
-    {
-      group: t.nav.group.intelligence,
-      items: [
-        { label: t.nav.orchestrator, href: "/agency/orchestrator", icon: CpuIcon },
-        { label: t.nav.agents, href: "/agency/agents", icon: UserCogIcon },
-      ],
-    },
-    {
-      group: t.nav.group.agents,
-      items: [
-        { label: t.nav.socialMedia, href: "/agency/social-media-agent", icon: SocialIcon },
-        { label: t.nav.designAgent, href: "/agency/design-agent", icon: DesignIcon },
-        { label: t.nav.adsAgent, href: "/agency/ads-agent", icon: AdsIcon },
+        { label: "Visão Geral", href: "/agency/departments", icon: DepartmentsIcon },
+        ...DEPARTMENT_DEFS.map((d) => ({
+          label: d.name,
+          href: `/agency/departments/${d.id}`,
+          icon: DEPT_ICON_BY_KEY[d.iconKey] ?? DepartmentsIcon,
+        })),
+        { label: "Nova Linha de Produção", href: "/agency/production/new", icon: PlusCircleIcon },
       ],
     },
     {

@@ -24,26 +24,18 @@ type TabId =
   | "team"
   | "metrics";
 
+// Standardized department IA (gold-standard from Design dept):
+// Overview → Work Queue → Agent Config → Prompt → Tools → Deliverables → Human Staff → Metrics
 const TABS: { id: TabId; label: string }[] = [
   { id: "overview", label: "Visão Geral" },
+  { id: "queue", label: "Fila de Trabalho" },
   { id: "agent", label: "Configuração do Agente" },
   { id: "prompt", label: "Prompt & Instruções" },
   { id: "tools", label: "Ferramentas & Integrações" },
-  { id: "queue", label: "Fila de Trabalho" },
   { id: "deliverables", label: "Entregas" },
   { id: "team", label: "Equipe Humana" },
   { id: "metrics", label: "Métricas" },
 ];
-
-const DEPT_NAME_MAP: Record<string, string> = {
-  project_management: "Gestão de Projetos",
-  strategy: "Estratégia",
-  brand_hub: "Brand Hub",
-  social_media: "Social Media",
-  design: "Design",
-  paid_traffic: "Tráfego Pago",
-  operations: "Operações & Sistema",
-};
 
 export default function DepartmentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -80,7 +72,7 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
     const agentDept = AGENT_DEPT_MAP[d.ownerAgentId ?? ""];
     if (agentDept === dept.id) return true;
     if (
-      (dept.id === "strategy" || dept.id === "project_management") &&
+      (dept.id === "strategy" || dept.id === "project-management") &&
       ["document", "planning"].includes(d.type) &&
       !Object.keys(AGENT_DEPT_MAP).includes(d.ownerAgentId ?? "")
     )
@@ -169,6 +161,20 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
               {savedConfig?.aiProvider ?? dept.aiProvider === "rule_based" ? "Regras locais" : (savedConfig?.aiProvider ?? dept.aiProvider)}
             </div>
           </div>
+        }
+        actions={
+          dept.generatorRoute ? (
+            <Link
+              href={dept.generatorRoute}
+              className="inline-flex items-center gap-2 h-9 px-4 rounded-[8px] text-white text-[13px] font-medium hover:opacity-90 transition-opacity"
+              style={{ backgroundColor: dept.color }}
+            >
+              {dept.generatorLabel ?? "Abrir ferramenta"}
+              <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                <path d="M3 6.5h7M7 3.5l3 3-3 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </Link>
+          ) : undefined
         }
       />
 
@@ -449,6 +455,33 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
               Ver Central de Tarefas →
             </Link>
           </div>
+
+          {/* Next action — open the department's generator/tool */}
+          {dept.generatorRoute && (
+            <div
+              className="flex items-center justify-between gap-3 p-4 rounded-[10px] mb-4 border"
+              style={{ backgroundColor: dept.accentBg, borderColor: `${dept.color}33` }}
+            >
+              <div>
+                <div className="text-[12px] font-semibold" style={{ color: dept.color }}>
+                  Próxima ação
+                </div>
+                <div className="text-[12px] text-[#6B6B65] mt-0.5">
+                  Produza entregas deste departamento usando a ferramenta dedicada.
+                </div>
+              </div>
+              <Link
+                href={dept.generatorRoute}
+                className="shrink-0 inline-flex items-center gap-2 h-9 px-4 rounded-[8px] text-white text-[12px] font-medium hover:opacity-90 transition-opacity"
+                style={{ backgroundColor: dept.color }}
+              >
+                {dept.generatorLabel ?? "Abrir ferramenta"}
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path d="M2.5 6h7M6.5 3l3 3-3 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </Link>
+            </div>
+          )}
 
           {deptTasks.length === 0 ? (
             <div className="bg-white rounded-[12px] border border-[#E8E8E3] py-16 text-center">

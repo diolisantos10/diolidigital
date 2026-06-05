@@ -395,10 +395,10 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
           : `Abrir Projeto 'Lançamento Dioli Agência' → aba Configurações → campo Agentes → adicionar Agente ${agent.label}.`,
       route:
         agent.id === "a3"
-          ? "/agency/social-media-agent"
+          ? "/agency/departments/social-media"
           : agent.id === "a2"
-          ? "/agency/design-agent"
-          : "/agency/ads-agent",
+          ? "/agency/departments/design"
+          : "/agency/departments/paid-traffic",
     });
   }
 
@@ -685,7 +685,7 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
     action: idleAgents.length === 0
       ? "Nenhuma ação necessária."
       : `Iniciar execução: ${idleAgents.map((a) => a.label).join(", ")}.`,
-    route: "/agency/dashboard",
+    route: "/agency/departments",
   });
 
   // Tasks overdue
@@ -855,9 +855,9 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
   // ── Group 9: Departamentos ────────────────────────────────────────────────
 
   const executionAgents = [
-    { id: "a3", label: "Social Media", deptRoute: "/agency/departments/social_media" },
+    { id: "a3", label: "Social Media", deptRoute: "/agency/departments/social-media" },
     { id: "a2", label: "Design", deptRoute: "/agency/departments/design" },
-    { id: "a4", label: "Tráfego Pago", deptRoute: "/agency/departments/paid_traffic" },
+    { id: "a4", label: "Tráfego Pago", deptRoute: "/agency/departments/paid-traffic" },
   ];
   const approvedProjects = activeProjects.filter((p) => p.proposal?.status === "approved");
 
@@ -932,7 +932,7 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
       pmBlockers.length === 0
         ? "Nenhuma ação necessária."
         : "Abrir Departamento Gestão de Projetos → Fila de Trabalho → gerar Strategy Rooms pendentes.",
-    route: "/agency/departments/project_management",
+    route: "/agency/departments/project-management",
   });
 
   // ── Score ─────────────────────────────────────────────────────────────────

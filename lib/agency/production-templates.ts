@@ -46,7 +46,7 @@ export const PRODUCTION_TEMPLATES: ProductionTemplate[] = [
     description: "Lançamento da agência interna — posicionamento premium no mercado digital",
     industry: "Marketing Digital",
     projectType: "launch",
-    departments: ["strategy", "social_media", "design", "paid_traffic"],
+    departments: ["strategy", "social-media", "design", "paid-traffic"],
     strategyFocus: [
       "Posicionamento como agência premium com IA integrada",
       "Autoridade em marketing digital B2B e B2C",
@@ -61,14 +61,14 @@ export const PRODUCTION_TEMPLATES: ProductionTemplate[] = [
     },
     suggestedDeliverables: [
       { name: "Identidade visual", type: "design", department: "design" },
-      { name: "Manual da marca", type: "document", department: "brand_hub" },
-      { name: "Posts de lançamento (Pack 10)", type: "social_post", department: "social_media" },
-      { name: "Stories de lançamento", type: "social_post", department: "social_media" },
-      { name: "Campanha Meta Ads — Awareness", type: "ads", department: "paid_traffic" },
-      { name: "Copy para anúncios — 5 variações", type: "copy", department: "paid_traffic" },
+      { name: "Manual da marca", type: "document", department: "brand-hub" },
+      { name: "Posts de lançamento (Pack 10)", type: "social_post", department: "social-media" },
+      { name: "Stories de lançamento", type: "social_post", department: "social-media" },
+      { name: "Campanha Meta Ads — Awareness", type: "ads", department: "paid-traffic" },
+      { name: "Copy para anúncios — 5 variações", type: "copy", department: "paid-traffic" },
       { name: "Apresentação de posicionamento", type: "document", department: "strategy" },
-      { name: "Bio e descrição de perfil", type: "copy", department: "social_media" },
-      { name: "Calendário editorial — Mês 1", type: "planning", department: "social_media" },
+      { name: "Bio e descrição de perfil", type: "copy", department: "social-media" },
+      { name: "Calendário editorial — Mês 1", type: "planning", department: "social-media" },
     ],
     materialRequests: [
       { type: "logo", description: "Logo em vetor (SVG/AI) para aplicações digitais e impressas" },
@@ -84,7 +84,7 @@ export const PRODUCTION_TEMPLATES: ProductionTemplate[] = [
     description: "SaaS de tecnologia para restaurantes — posicionamento B2B com foco em escalabilidade",
     industry: "SaaS / Tecnologia para Restaurantes",
     projectType: "launch",
-    departments: ["strategy", "social_media", "design", "paid_traffic"],
+    departments: ["strategy", "social-media", "design", "paid-traffic"],
     strategyFocus: [
       "Posicionamento B2B para donos de restaurante",
       "Comunicação técnica + emocional (ROI + simplicidade)",
@@ -100,9 +100,9 @@ export const PRODUCTION_TEMPLATES: ProductionTemplate[] = [
     suggestedDeliverables: [
       { name: "Identidade visual — versão SaaS", type: "design", department: "design" },
       { name: "Apresentação de posicionamento B2B", type: "document", department: "strategy" },
-      { name: "Landing page — copy e estrutura", type: "copy", department: "social_media" },
-      { name: "Posts LinkedIn — autoridade B2B", type: "social_post", department: "social_media" },
-      { name: "Campanha Meta Ads — geração de leads", type: "ads", department: "paid_traffic" },
+      { name: "Landing page — copy e estrutura", type: "copy", department: "social-media" },
+      { name: "Posts LinkedIn — autoridade B2B", type: "social_post", department: "social-media" },
+      { name: "Campanha Meta Ads — geração de leads", type: "ads", department: "paid-traffic" },
       { name: "Materiais de onboarding (deck)", type: "document", department: "design" },
     ],
     materialRequests: [
@@ -119,7 +119,7 @@ export const PRODUCTION_TEMPLATES: ProductionTemplate[] = [
     description: "Restaurante de sushi e rodízio — marca local, delivery e presença digital forte",
     industry: "Gastronomia / Restaurante",
     projectType: "branding",
-    departments: ["social_media", "design", "paid_traffic"],
+    departments: ["social-media", "design", "paid-traffic"],
     strategyFocus: [
       "Posicionamento premium-acessível no mercado local",
       "Comunicação visual forte com foco em apetite-appeal",
@@ -134,11 +134,11 @@ export const PRODUCTION_TEMPLATES: ProductionTemplate[] = [
     },
     suggestedDeliverables: [
       { name: "Identidade visual completa", type: "design", department: "design" },
-      { name: "Pack de posts — cardápio visual (10)", type: "social_post", department: "social_media" },
-      { name: "Stories de promoção semanal", type: "social_post", department: "social_media" },
-      { name: "Campanha Meta Ads — geolocalizada", type: "ads", department: "paid_traffic" },
-      { name: "Copy para delivery (iFood/Rappi)", type: "copy", department: "social_media" },
-      { name: "Calendário editorial — Mês 1", type: "planning", department: "social_media" },
+      { name: "Pack de posts — cardápio visual (10)", type: "social_post", department: "social-media" },
+      { name: "Stories de promoção semanal", type: "social_post", department: "social-media" },
+      { name: "Campanha Meta Ads — geolocalizada", type: "ads", department: "paid-traffic" },
+      { name: "Copy para delivery (iFood/Rappi)", type: "copy", department: "social-media" },
+      { name: "Calendário editorial — Mês 1", type: "planning", department: "social-media" },
     ],
     materialRequests: [
       { type: "photos", description: "Fotos profissionais dos pratos para feed do Instagram" },
@@ -154,7 +154,7 @@ export const PRODUCTION_TEMPLATES: ProductionTemplate[] = [
     description: "Template genérico para clientes de solução digital — estratégia, branding, social e ads",
     industry: "Solução Digital",
     projectType: "full_service",
-    departments: ["strategy", "brand_hub", "social_media", "design", "paid_traffic"],
+    departments: ["strategy", "brand-hub", "social-media", "design", "paid-traffic"],
     strategyFocus: [
       "Diagnóstico de posicionamento atual",
       "Definição de público-alvo e proposta de valor",
@@ -169,11 +169,11 @@ export const PRODUCTION_TEMPLATES: ProductionTemplate[] = [
     },
     suggestedDeliverables: [
       { name: "Diagnóstico de posicionamento", type: "document", department: "strategy" },
-      { name: "Brand Brief inicial", type: "document", department: "brand_hub" },
-      { name: "Calendário editorial — Mês 1", type: "planning", department: "social_media" },
-      { name: "Pack de posts inicial (5)", type: "social_post", department: "social_media" },
+      { name: "Brand Brief inicial", type: "document", department: "brand-hub" },
+      { name: "Calendário editorial — Mês 1", type: "planning", department: "social-media" },
+      { name: "Pack de posts inicial (5)", type: "social_post", department: "social-media" },
       { name: "Identidade visual (ou refinamento)", type: "design", department: "design" },
-      { name: "Campanha de awareness inicial", type: "ads", department: "paid_traffic" },
+      { name: "Campanha de awareness inicial", type: "ads", department: "paid-traffic" },
     ],
     materialRequests: [
       { type: "logo", description: "Logo em vetor (se existente) ou briefing para criação" },

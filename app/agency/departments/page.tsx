@@ -9,7 +9,6 @@ import {
   AGENT_DEPT_MAP,
   DEPT_TASK_OWNER_MAP,
   type DepartmentDef,
-  type DepartmentId,
 } from "@/lib/agency/departments";
 import { generateAllAutoTasks } from "@/lib/agency/orchestration/auto-tasks";
 import { needsRevision } from "@/lib/agency/deliverables";
@@ -34,13 +33,13 @@ function computeMetrics(
     const agentDept = AGENT_DEPT_MAP[d.ownerAgentId ?? ""];
     if (agentDept === dept.id) return true;
     if (
-      (dept.id === "strategy" || dept.id === "project_management") &&
+      (dept.id === "strategy" || dept.id === "project-management") &&
       ["document", "planning"].includes(d.type) &&
       !Object.keys(AGENT_DEPT_MAP).includes(d.ownerAgentId ?? "")
     )
       return true;
     if (
-      dept.id === "brand_hub" &&
+      dept.id === "brand-hub" &&
       d.type === "document" &&
       d.ownerAgentId === "a2"
     )
@@ -217,7 +216,7 @@ export default function DepartmentsPage() {
   return (
     <div>
       <AgencyHeader
-        title="Departamentos"
+        title="Visão Geral dos Departamentos"
         subtitle="Linha de produção da Dioli Agência — cada departamento com missão, agente e métricas operacionais."
         actions={
           <Link
@@ -227,7 +226,7 @@ export default function DepartmentsPage() {
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
               <path d="M7 2v10M2 7h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
             </svg>
-            Nova Produção
+            Nova Linha de Produção
           </Link>
         }
       />
