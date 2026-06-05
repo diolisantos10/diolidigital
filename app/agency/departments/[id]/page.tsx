@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useMemo } from "react";
+import { use, useState, useMemo, useCallback } from "react";
 import Link from "next/link";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import { useAgencyStore } from "@/store/agency-store";
@@ -13,6 +13,14 @@ import {
 import { generateAllAutoTasks } from "@/lib/agency/orchestration/auto-tasks";
 import { needsRevision } from "@/lib/agency/deliverables";
 import { MOCK_INTEGRATIONS } from "@/lib/agency/integrations";
+
+const INTELLIGENCE_DEPTS = new Set(["strategy", "social-media", "project-management"]);
+
+const INTELLIGENCE_LABELS: Record<string, string> = {
+  strategy: "Rodar Inteligência Estratégica",
+  "social-media": "Rodar Inteligência Social",
+  "project-management": "Rodar Inteligência de Gestão",
+};
 
 type TabId =
   | "overview"
@@ -42,9 +50,11 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
   const [tab, setTab] = useState<TabId>("overview");
   const [promptDraft, setPromptDraft] = useState<string | null>(null);
   const [promptSaved, setPromptSaved] = useState(false);
+  const [intelligenceRunning, setIntelligenceRunning] = useState(false);
+  const [lastRunId, setLastRunId] = useState<string | null>(null);
 
   const store = useAgencyStore();
-  const { deliverables, tasks, projects, materialRequests, strategyRooms, clients, departmentConfigs, saveDepartmentConfig } = store;
+  const { deliverables, tasks, projects, materialRequests, strategyRooms, clients, departmentConfigs, saveDepartmentConfig, aiRunLogs, runDepartmentIntelligence } = store;
 
   const dept = DEPARTMENT_DEFS.find((d) => d.id === id);
 
@@ -91,6 +101,11 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
 
   const activeProjects = projects.filter((p) => p.stage !== "completed");
 
+  const deptRunLogs = aiRunLogs?.filter((l) => l.departmentId === dept.id) ?? [];
+  const lastRun = lastRunId
+    ? deptRunLogs.find((l) => l.id === lastRunId) ?? deptRunLogs[0]
+    : deptRunLogs[0];
+
   // Metrics
   const metrics = {
     openTasks: deptTasks.length,
@@ -116,6 +131,13 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
       saveDepartmentConfig(activeDept.id, { currentPrompt: activeDept.defaultPrompt });
     }
   }
+
+  const handleRunIntelligence = useCallback(() => {
+    setIntelligenceRunning(true);
+    const id = runDepartmentIntelligence(activeDept.id);
+    setLastRunId(id);
+    setTimeout(() => setIntelligenceRunning(false), 800);
+  }, [activeDept.id, runDepartmentIntelligence]);
 
   const PRIORITY_STYLE: Record<string, { bg: string; text: string; label: string }> = {
     critical: { bg: "bg-[#FEE2E2]", text: "text-[#DC2626]", label: "Crítico" },
@@ -215,6 +237,97 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
               </div>
             ))}
           </div>
+
+          {/* Intelligence Mode Card — only for strategy, social-media, project-management */}
+          {INTELLIGENCE_DEPTS.has(activeDept.id) && (
+            <div
+              className="rounded-[12px] border p-5"
+              style={{ backgroundColor: activeDept.accentBg, borderColor: `${activeDept.color}33` }}
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div
+                      className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0"
+                      style={{ backgroundColor: activeDept.color }}
+                    >
+                      ✦
+                    </div>
+                    <h3 className="text-[13px] font-semibold" style={{ color: activeDept.color }}>
+                      Intelligence Mode
+                    </h3>
+                    <span
+                      className="inline-flex items-center h-5 px-2 rounded-full text-[10px] font-medium"
+                      style={{ backgroundColor: `${activeDept.color}22`, color: activeDept.color }}
+                    >
+                      Regras locais (V1)
+                    </span>
+                    {lastRun?.fallbackUsed && (
+                      <span className="inline-flex items-center h-5 px-2 rounded-full text-[10px] font-medium bg-[#FEF3C7] text-[#D97706]">
+                        Fallback ativo
+                      </span>
+                    )}
+                  </div>
+
+                  {lastRun ? (
+                    <div className="space-y-1.5">
+                      <div className="text-[12px] text-[#6B6B65]">
+                        <strong>Último run:</strong>{" "}
+                        {new Date(lastRun.createdAt).toLocaleString("pt-BR")} —{" "}
+                        <span
+                          className={
+                            lastRun.status === "success"
+                              ? "text-[#16A34A]"
+                              : lastRun.status === "fallback"
+                              ? "text-[#D97706]"
+                              : "text-[#DC2626]"
+                          }
+                        >
+                          {lastRun.status === "success"
+                            ? "Sucesso"
+                            : lastRun.status === "fallback"
+                            ? "Fallback (regras locais)"
+                            : "Erro"}
+                        </span>
+                      </div>
+                      <p className="text-[12px] text-[#6B6B65] leading-relaxed line-clamp-2">
+                        {lastRun.outputSummary}
+                      </p>
+                      {lastRun.warnings.length > 0 && (
+                        <div className="mt-2 p-2.5 rounded-[6px] bg-[#FEF3C7] border border-[#FDE68A]">
+                          {lastRun.warnings.map((w, i) => (
+                            <div key={i} className="text-[11px] text-[#92400E]">
+                              ⚠ {w}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-[12px] text-[#6B6B65]">
+                      Nenhum run registrado para este departamento. Execute a inteligência para gerar análise e entregas automáticas.
+                    </p>
+                  )}
+                </div>
+
+                <button
+                  onClick={handleRunIntelligence}
+                  disabled={intelligenceRunning}
+                  className="shrink-0 inline-flex items-center gap-2 h-9 px-4 rounded-[8px] text-white text-[12px] font-medium transition-opacity disabled:opacity-60"
+                  style={{ backgroundColor: activeDept.color }}
+                >
+                  {intelligenceRunning ? (
+                    <>
+                      <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                      Executando...
+                    </>
+                  ) : (
+                    INTELLIGENCE_LABELS[activeDept.id] ?? "Rodar Inteligência"
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Mission & Responsibilities */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

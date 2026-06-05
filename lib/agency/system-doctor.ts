@@ -21,6 +21,7 @@ import {
   type IntegrationConfig,
   type AgentProviderConfig,
 } from "@/lib/agency/integrations";
+import type { AIRunLog } from "@/store/agency-store";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -104,10 +105,12 @@ export interface DoctorInput {
   sessionActive?: boolean;
   sessionUser?: string;
   dbSyncStatus?: DbSyncStatus;
+  // AI intelligence run logs — from agency store
+  aiRunLogs?: AIRunLog[];
 }
 
 export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
-  const { clients, projects, deliverables, materialRequests, strategyRooms, tasks = [], persisted, integrationConfigs, agentProviderConfigs, dbAvailable, authMode, portalMode, sessionActive, sessionUser, dbSyncStatus } = input;
+  const { clients, projects, deliverables, materialRequests, strategyRooms, tasks = [], persisted, integrationConfigs, agentProviderConfigs, dbAvailable, authMode, portalMode, sessionActive, sessionUser, dbSyncStatus, aiRunLogs = [] } = input;
 
   const checks: DiagnosticCheck[] = [];
 
@@ -934,6 +937,57 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
         : "Abrir Departamento Gestão de Projetos → Fila de Trabalho → gerar Strategy Rooms pendentes.",
     route: "/agency/departments/project-management",
   });
+
+  // Intelligence coverage: strategy, social-media, and PM should have run intelligence
+  // if there are active approved projects.
+  const intelligenceDepts: { id: string; label: string; route: string }[] = [
+    { id: "strategy", label: "Estratégia", route: "/agency/departments/strategy" },
+    { id: "social-media", label: "Social Media", route: "/agency/departments/social-media" },
+    { id: "project-management", label: "Gestão de Projetos", route: "/agency/departments/project-management" },
+  ];
+
+  if (approvedProjects.length > 0) {
+    for (const d of intelligenceDepts) {
+      const hasRun = aiRunLogs.some((l) => l.departmentId === d.id);
+      checks.push({
+        id: `intel-coverage-${d.id}`,
+        group: "Departamentos",
+        label: `${d.label} — intelligence executada`,
+        status: hasRun ? "pass" : "warning",
+        severity: "low",
+        explanation: hasRun
+          ? `Intelligence de ${d.label} executada. Análise e entregas geradas.`
+          : `${d.label} tem projetos aprovados mas nenhuma intelligence foi executada ainda.`,
+        action: hasRun
+          ? "Nenhuma ação necessária."
+          : `Abrir Departamento ${d.label} → Visão Geral → clicar em "Rodar Inteligência".`,
+        route: d.route,
+      });
+    }
+  }
+
+  // Repeated fallback: intelligence configured with external provider but always falling back
+  const fallbackCounts = intelligenceDepts.map((d) => {
+    const logs = aiRunLogs.filter((l) => l.departmentId === d.id);
+    const totalRuns = logs.length;
+    const fallbackRuns = logs.filter((l) => l.fallbackUsed).length;
+    return { ...d, totalRuns, fallbackRuns };
+  });
+
+  for (const fc of fallbackCounts) {
+    if (fc.totalRuns >= 3 && fc.fallbackRuns === fc.totalRuns) {
+      checks.push({
+        id: `intel-fallback-${fc.id}`,
+        group: "Departamentos",
+        label: `${fc.label} — fallback repetido`,
+        status: "info",
+        severity: "low",
+        explanation: `${fc.label} executou intelligence ${fc.totalRuns}x, sempre usando regras locais (fallback). Configure um provedor externo em Integrações para ativar IA real.`,
+        action: "Acesse Ferramentas & Integrações → configure um provedor de IA (OpenAI, Claude, Gemini) para o departamento.",
+        route: "/agency/integrations",
+      });
+    }
+  }
 
   // ── Score ─────────────────────────────────────────────────────────────────
 

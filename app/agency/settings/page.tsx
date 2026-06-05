@@ -98,7 +98,7 @@ function CollapsibleSection({ title, badge, children }: { title: string; badge?:
 
 export default function SettingsPage() {
   const { deliverables, briefings, materialRequests, strategyRooms, brandUpdates,
-          integrationConfigs, agentProviderConfigs,
+          integrationConfigs, agentProviderConfigs, aiRunLogs,
           resetStore, loadPilotData, clearAllData } = useAgencyStore();
 
   const { clients, source: clientsSource } = useDbClients();
@@ -161,7 +161,7 @@ export default function SettingsPage() {
     // Agent outputs are persisted as deliverables — mirror that source.
     agentOutputs:     deliverablesSource,
   };
-  const report = runSystemDoctor({ clients, projects, deliverables, materialRequests, strategyRooms, tasks, persisted, integrationConfigs, agentProviderConfigs, dbAvailable, authMode, portalMode, sessionActive, sessionUser, dbSyncStatus });
+  const report = runSystemDoctor({ clients, projects, deliverables, materialRequests, strategyRooms, tasks, persisted, integrationConfigs, agentProviderConfigs, dbAvailable, authMode, portalMode, sessionActive, sessionUser, dbSyncStatus, aiRunLogs });
   const pilot = getPilotDataStatus(clients, projects, deliverables);
   const { score, pass, warning, fail, info, topAction, overallStatus, checks } = report;
   const oc = OVERALL_COLOR[overallStatus];

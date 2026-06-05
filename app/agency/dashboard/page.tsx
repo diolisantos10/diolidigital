@@ -122,7 +122,7 @@ const URGENCY_STYLE: Record<PMUrgency, { bg: string; text: string; label: string
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { projects, tasks, deliverables, activity, clients, materialRequests, strategyRooms, brandUpdates, setPendingAgentInput } = useAgencyStore();
+  const { projects, tasks, deliverables, activity, clients, materialRequests, strategyRooms, brandUpdates, aiRunLogs, setPendingAgentInput } = useAgencyStore();
   const { t } = useTranslation();
   const [confirmMsg, setConfirmMsg] = useState<string | null>(null);
   const [persisted, setPersisted] = useState(false);
@@ -185,7 +185,7 @@ export default function DashboardPage() {
   const totalAttention = Object.values(attentionCounts).reduce((a, b) => a + b, 0);
 
   // ── System Doctor (automatic diagnostics, computed from store) ────────────
-  const doctorReport = runSystemDoctor({ clients, projects, deliverables, materialRequests, strategyRooms, persisted });
+  const doctorReport = runSystemDoctor({ clients, projects, deliverables, materialRequests, strategyRooms, persisted, aiRunLogs });
   const docMeta = DOCTOR_STATUS_COLOR[doctorReport.overallStatus];
 
   // ── Action execution ──────────────────────────────────────────────────────

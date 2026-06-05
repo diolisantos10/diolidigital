@@ -40,6 +40,11 @@ import {
   PROVIDER_INTEGRATION_MAP,
   MOCK_INTEGRATIONS,
 } from "@/lib/agency/integrations";
+import { type AIProvider, resolveProvider } from "@/lib/agency/ai-runner";
+import { DEPARTMENT_DEFS } from "@/lib/agency/departments";
+import { runStrategyRuleBased } from "@/lib/agency/intelligence/strategy";
+import { runSocialRuleBased } from "@/lib/agency/intelligence/social";
+import { runPMRuleBased } from "@/lib/agency/intelligence/pm";
 
 // ─── Brand Update ─────────────────────────────────────────────────────────────
 // A pending brand suggestion from the client portal, a manual internal edit,
@@ -81,6 +86,21 @@ export interface DepartmentConfig {
   model: string;
 }
 
+export interface AIRunLog {
+  id: string;
+  departmentId: string;
+  projectId?: string;
+  provider: AIProvider;
+  model: string;
+  status: "success" | "fallback" | "error";
+  fallbackUsed: boolean;
+  fallbackReason?: string;
+  promptSummary: string;
+  outputSummary: string;
+  warnings: string[];
+  createdAt: string;
+}
+
 interface AgencyState {
   clients: Client[];
   projects: Project[];
@@ -92,6 +112,11 @@ interface AgencyState {
   // Department configs (prompt overrides, provider selection)
   departmentConfigs: DepartmentConfig[];
   saveDepartmentConfig: (deptId: string, patch: Partial<Omit<DepartmentConfig, "departmentId">>) => void;
+
+  // AI Run Logs — tracks every intelligence execution per department
+  aiRunLogs: AIRunLog[];
+  addAIRunLog: (log: Omit<AIRunLog, "id" | "createdAt">) => string;
+  runDepartmentIntelligence: (deptId: string, projectId?: string) => string | null;
 
   // Agent handoff
   pendingDesignContract: string | null;
@@ -203,6 +228,7 @@ export const useAgencyStore = create<AgencyState>()(
       integrationConfigs: buildDefaultIntegrationConfigs(),
       agentProviderConfigs: buildDefaultAgentProviderConfigs(),
       departmentConfigs: [],
+      aiRunLogs: [],
 
       // ── Department configs ────────────────────────────────────────────────
       saveDepartmentConfig: (deptId, patch) => {
@@ -229,6 +255,136 @@ export const useAgencyStore = create<AgencyState>()(
               },
             ],
           };
+        });
+      },
+
+      // ── AI Run Logs ───────────────────────────────────────────────────────
+      addAIRunLog: (log) => {
+        const id = `arl${uid()}`;
+        const entry: AIRunLog = { ...log, id, createdAt: new Date().toISOString() };
+        set((s) => ({ aiRunLogs: [entry, ...s.aiRunLogs].slice(0, 200) }));
+        return id;
+      },
+
+      runDepartmentIntelligence: (deptId, projectId) => {
+        const s = get();
+        const dept = DEPARTMENT_DEFS.find((d) => d.id === deptId);
+        if (!dept) return null;
+
+        const deptConfig = s.departmentConfigs.find((c) => c.departmentId === deptId);
+        const provider = (deptConfig?.aiProvider ?? dept.aiProvider) as AIProvider;
+        const model = deptConfig?.model ?? dept.model;
+        const prompt = deptConfig?.currentPrompt ?? dept.defaultPrompt;
+
+        const meta = resolveProvider(provider, model, prompt);
+
+        const activeProjects = s.projects.filter((p) => p.stage !== "completed");
+        const targetProjectId = projectId ?? activeProjects[0]?.id;
+        const project = s.projects.find((p) => p.id === targetProjectId);
+        const client = project ? s.clients.find((c) => c.id === project.clientId) : undefined;
+
+        let outputSummary = "Nenhum projeto ativo encontrado para gerar inteligência.";
+
+        if (project && client) {
+          if (deptId === "strategy") {
+            const output = runStrategyRuleBased(
+              project,
+              client,
+              s.briefings.find((b) => b.projectId === project.id),
+              s.materialRequests,
+            );
+            outputSummary = output.executiveSummary;
+            get().addDeliverable({
+              name: `Inteligência Estratégica — ${project.name}`,
+              type: "planning",
+              projectId: project.id,
+              status: "draft",
+              version: 1,
+              ownerAgentId: dept.primaryAgentId,
+              previewContent: {
+                summary: output.executiveSummary,
+                sections: [
+                  { title: "Diagnóstico", body: output.diagnosis },
+                  { title: "Oportunidade", body: output.opportunity },
+                  { title: "Risco", body: output.risk },
+                  { title: "Posicionamento", body: output.positioning },
+                  { title: "Canais recomendados", body: output.channels.join(", ") },
+                  { title: "Entregas sugeridas", body: "", items: output.suggestedDeliverables },
+                ],
+              },
+            });
+          } else if (deptId === "social-media") {
+            const output = runSocialRuleBased(project, client);
+            outputSummary = output.executiveSummary;
+            get().addDeliverable({
+              name: `Inteligência Social — ${project.name}`,
+              type: "planning",
+              projectId: project.id,
+              status: "draft",
+              version: 1,
+              ownerAgentId: dept.primaryAgentId,
+              previewContent: {
+                summary: output.executiveSummary,
+                sections: [
+                  { title: "Canal principal", body: output.platform },
+                  { title: "Frequência de postagem", body: output.postingFrequency },
+                  { title: "Temas de conteúdo", body: "", items: output.contentThemes },
+                  { title: "Formatos", body: "", items: output.formats },
+                  { title: "Tom de copy", body: output.copyTone },
+                  { title: "Plano 4 semanas", body: output.fourWeekPlan },
+                ],
+              },
+            });
+          } else if (deptId === "project-management") {
+            const output = runPMRuleBased(
+              project,
+              client,
+              s.deliverables,
+              s.materialRequests,
+              s.strategyRooms,
+            );
+            outputSummary = output.executiveSummary;
+            get().addDeliverable({
+              name: `Inteligência de Gestão — ${project.name}`,
+              type: "planning",
+              projectId: project.id,
+              status: "draft",
+              version: 1,
+              ownerAgentId: dept.primaryAgentId,
+              previewContent: {
+                summary: output.executiveSummary,
+                sections: [
+                  { title: "Status do projeto", body: output.projectStatus },
+                  {
+                    title: "Bloqueios identificados",
+                    body: output.blockers.length > 0 ? "" : "Nenhum bloqueio crítico.",
+                    items: output.blockers.length > 0 ? output.blockers : undefined,
+                  },
+                  { title: "Próximas ações", body: "", items: output.nextActions },
+                  {
+                    title: "Tarefas sugeridas",
+                    body: "",
+                    items: output.suggestedTasks.map(
+                      (t) => `[${t.urgency.toUpperCase()}] ${t.title} → ${t.owner}`,
+                    ),
+                  },
+                ],
+              },
+            });
+          }
+        }
+
+        return get().addAIRunLog({
+          departmentId: deptId,
+          projectId: targetProjectId,
+          provider: meta.provider,
+          model: meta.model,
+          status: meta.fallbackUsed ? "fallback" : "success",
+          fallbackUsed: meta.fallbackUsed,
+          fallbackReason: meta.fallbackReason,
+          promptSummary: meta.promptSummary,
+          outputSummary,
+          warnings: meta.warnings,
         });
       },
 
@@ -896,6 +1052,7 @@ export const useAgencyStore = create<AgencyState>()(
         integrationConfigs: s.integrationConfigs,
         agentProviderConfigs: s.agentProviderConfigs,
         departmentConfigs: s.departmentConfigs,
+        aiRunLogs: s.aiRunLogs,
       }),
     }
   )
