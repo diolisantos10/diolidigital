@@ -852,6 +852,89 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
     });
   }
 
+  // ── Group 9: Departamentos ────────────────────────────────────────────────
+
+  const executionAgents = [
+    { id: "a3", label: "Social Media", deptRoute: "/agency/departments/social_media" },
+    { id: "a2", label: "Design", deptRoute: "/agency/departments/design" },
+    { id: "a4", label: "Tráfego Pago", deptRoute: "/agency/departments/paid_traffic" },
+  ];
+  const approvedProjects = activeProjects.filter((p) => p.proposal?.status === "approved");
+
+  for (const ag of executionAgents) {
+    const assigned = approvedProjects.filter((p) => p.agents.includes(ag.id));
+    const produced = deliverables.filter((d) => d.ownerAgentId === ag.id && activeIds.has(d.projectId));
+    const revisions = produced.filter((d) => needsRevision(d));
+    const pendingApprovals = produced.filter((d) => d.status === "in_review");
+
+    const hasBlockedOutput = assigned.length > 0 && produced.length === 0;
+    const manyRevisions = revisions.length >= 3;
+
+    checks.push({
+      id: `dept-output-${ag.id}`,
+      group: "Departamentos",
+      label: `${ag.label} — produção ativa`,
+      status: hasBlockedOutput ? "warning" : produced.length > 0 ? "pass" : "info",
+      severity: "medium",
+      explanation: hasBlockedOutput
+        ? `${ag.label} tem ${assigned.length} projeto(s) aprovado(s) mas não produziu nenhuma entrega.`
+        : produced.length > 0
+        ? `${ag.label} produziu ${produced.length} entrega(s) em projetos ativos.`
+        : `${ag.label} sem projetos aprovados ativos. Departamento em espera.`,
+      action: hasBlockedOutput
+        ? `Abrir departamento ${ag.label} → Fila de Trabalho → iniciar produção.`
+        : "Nenhuma ação necessária.",
+      route: ag.deptRoute,
+    });
+
+    if (manyRevisions) {
+      checks.push({
+        id: `dept-revisions-${ag.id}`,
+        group: "Departamentos",
+        label: `${ag.label} — revisões acumuladas`,
+        status: "warning",
+        severity: "medium",
+        explanation: `${ag.label} tem ${revisions.length} revisões abertas simultaneamente. Pode indicar desalinhamento com o cliente.`,
+        action: `Abrir departamento ${ag.label} → Entregas → resolver revisões prioritárias.`,
+        route: ag.deptRoute,
+      });
+    }
+
+    if (pendingApprovals.length >= 4) {
+      checks.push({
+        id: `dept-approvals-${ag.id}`,
+        group: "Departamentos",
+        label: `${ag.label} — aprovações paradas`,
+        status: "info",
+        severity: "low",
+        explanation: `${pendingApprovals.length} entregas de ${ag.label} aguardando aprovação do cliente.`,
+        action: `Acompanhar aprovações pelo portal do cliente.`,
+        route: ag.deptRoute,
+      });
+    }
+  }
+
+  // PM dept: check if any active project missing strategy room
+  const pmBlockers = approvedProjects.filter(
+    (p) => !strategyRooms.some((r) => r.projectId === p.id)
+  );
+  checks.push({
+    id: "dept-pm-strategy",
+    group: "Departamentos",
+    label: "Gestão de Projetos — Strategy Rooms",
+    status: pmBlockers.length === 0 ? "pass" : pmBlockers.length <= 1 ? "warning" : "fail",
+    severity: "medium",
+    explanation:
+      pmBlockers.length === 0
+        ? "Todos os projetos aprovados têm Strategy Room gerado."
+        : `${pmBlockers.length} projeto(s) aprovado(s) sem Strategy Room. PM não pode avançar sem ele.`,
+    action:
+      pmBlockers.length === 0
+        ? "Nenhuma ação necessária."
+        : "Abrir Departamento Gestão de Projetos → Fila de Trabalho → gerar Strategy Rooms pendentes.",
+    route: "/agency/departments/project_management",
+  });
+
   // ── Score ─────────────────────────────────────────────────────────────────
 
   let totalWeight = 0;
@@ -903,6 +986,7 @@ export const CHECK_GROUP_ORDER = [
   "Dados do Piloto",
   "Operações do Projeto",
   "Orquestração",
+  "Departamentos",
   "Infraestrutura",
   "Prontidão dos Agentes",
   "Ferramentas & Integrações",

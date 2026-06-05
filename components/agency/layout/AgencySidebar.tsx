@@ -69,6 +69,13 @@ export default function AgencySidebar({ userInfo }: { userInfo?: UserInfo | null
       ],
     },
     {
+      group: "Produção",
+      items: [
+        { label: "Departamentos", href: "/agency/departments", icon: DepartmentsIcon },
+        { label: "Nova Produção", href: "/agency/production/new", icon: PlusCircleIcon },
+      ],
+    },
+    {
       group: t.nav.group.intelligence,
       items: [
         { label: t.nav.orchestrator, href: "/agency/orchestrator", icon: CpuIcon },
@@ -360,6 +367,24 @@ function FlaskIcon({ size = 16, className = "" }: { size?: number; className?: s
     <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
       <path d="M6 2v5L3 12a1 1 0 00.9 1.5h8.2A1 1 0 0013 12l-3-5V2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
       <path d="M5.5 2h5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+    </svg>
+  );
+}
+function DepartmentsIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
+      <rect x="2" y="2" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.3"/>
+      <rect x="9" y="2" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.3"/>
+      <rect x="2" y="9" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.3"/>
+      <path d="M11.5 9v6M9 11.5h5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+    </svg>
+  );
+}
+function PlusCircleIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
+      <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.3"/>
+      <path d="M8 5v6M5 8h6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
     </svg>
   );
 }

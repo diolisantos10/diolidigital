@@ -73,6 +73,14 @@ export interface QATestRun {
   readiness: "not_ready" | "warnings" | "ready";
 }
 
+export interface DepartmentConfig {
+  departmentId: string;
+  currentPrompt: string;
+  promptUpdatedAt: string;
+  aiProvider: string;
+  model: string;
+}
+
 interface AgencyState {
   clients: Client[];
   projects: Project[];
@@ -80,6 +88,10 @@ interface AgencyState {
   deliverables: Deliverable[];
   briefings: Briefing[];
   activity: ActivityEvent[];
+
+  // Department configs (prompt overrides, provider selection)
+  departmentConfigs: DepartmentConfig[];
+  saveDepartmentConfig: (deptId: string, patch: Partial<Omit<DepartmentConfig, "departmentId">>) => void;
 
   // Agent handoff
   pendingDesignContract: string | null;
@@ -190,6 +202,35 @@ export const useAgencyStore = create<AgencyState>()(
       brandUpdates: [],
       integrationConfigs: buildDefaultIntegrationConfigs(),
       agentProviderConfigs: buildDefaultAgentProviderConfigs(),
+      departmentConfigs: [],
+
+      // ── Department configs ────────────────────────────────────────────────
+      saveDepartmentConfig: (deptId, patch) => {
+        set((s) => {
+          const existing = s.departmentConfigs.find((c) => c.departmentId === deptId);
+          if (existing) {
+            return {
+              departmentConfigs: s.departmentConfigs.map((c) =>
+                c.departmentId === deptId
+                  ? { ...c, ...patch, promptUpdatedAt: new Date().toISOString() }
+                  : c
+              ),
+            };
+          }
+          return {
+            departmentConfigs: [
+              ...s.departmentConfigs,
+              {
+                departmentId: deptId,
+                currentPrompt: patch.currentPrompt ?? "",
+                promptUpdatedAt: new Date().toISOString(),
+                aiProvider: patch.aiProvider ?? "rule_based",
+                model: patch.model ?? "rule_based",
+              },
+            ],
+          };
+        });
+      },
 
       // ── i18n ─────────────────────────────────────────────────────────────
       locale: "pt-BR" as Locale,
@@ -854,6 +895,7 @@ export const useAgencyStore = create<AgencyState>()(
         brandUpdates: s.brandUpdates,
         integrationConfigs: s.integrationConfigs,
         agentProviderConfigs: s.agentProviderConfigs,
+        departmentConfigs: s.departmentConfigs,
       }),
     }
   )
