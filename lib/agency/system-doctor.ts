@@ -22,6 +22,11 @@ import {
   type AgentProviderConfig,
 } from "@/lib/agency/integrations";
 import type { AIRunLog } from "@/store/agency-store";
+import {
+  DEPARTMENT_BLUEPRINTS,
+  getBlueprintGaps,
+} from "@/lib/agency/department-blueprint";
+import { DEPARTMENT_DEFS } from "@/lib/agency/departments";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1187,6 +1192,82 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
     }
   }
 
+  // ── Group 10: Modelo Operacional (Blueprint completeness) ─────────────────
+  // Diagnoses whether each department's operating blueprint is complete.
+
+  for (const bp of DEPARTMENT_BLUEPRINTS) {
+    const def = DEPARTMENT_DEFS.find((d) => d.id === bp.departmentId);
+    const label = def?.name ?? bp.departmentId;
+    const gaps = getBlueprintGaps(bp);
+    const isGold = bp.maturity === "gold_standard";
+
+    // Per-department blueprint summary.
+    checks.push({
+      id: `blueprint-${bp.departmentId}`,
+      group: "Modelo Operacional",
+      label: `${label} — blueprint operacional`,
+      // Gold standard with gaps = warning (regression). Shell with gaps = info
+      // (expected, pending promotion). No gaps = pass.
+      status: gaps.length === 0 ? "pass" : isGold ? "warning" : "info",
+      severity: isGold ? "medium" : "low",
+      explanation:
+        gaps.length === 0
+          ? `Blueprint de ${label} completo: identidade, intake, execução, entregas, handoffs e qualidade definidos.`
+          : isGold
+          ? `${label} é padrão-ouro mas tem ${gaps.length} seção(ões) incompleta(s): ${gaps.map((g) => g.section).join(", ")}.`
+          : `${label} usa o shell do blueprint. Seções a configurar: ${gaps.map((g) => g.section).join(", ")}.`,
+      action:
+        gaps.length === 0
+          ? "Nenhuma ação necessária."
+          : isGold
+          ? `Revisar o blueprint de ${label} — seções obrigatórias ausentes.`
+          : `Promover ${label} ao blueprint completo (referência: Design) preenchendo: ${gaps.map((g) => g.section).join(", ")}.`,
+      route: `/agency/departments/${bp.departmentId}`,
+    });
+  }
+
+  // At least one gold-standard department must exist (the replication reference).
+  const goldCount = DEPARTMENT_BLUEPRINTS.filter((b) => b.maturity === "gold_standard").length;
+  checks.push({
+    id: "blueprint-gold-standard",
+    group: "Modelo Operacional",
+    label: "Departamento padrão-ouro definido",
+    status: goldCount > 0 ? "pass" : "fail",
+    severity: "high",
+    explanation:
+      goldCount > 0
+        ? `${goldCount} departamento(s) com blueprint completo servem de referência para replicação.`
+        : "Nenhum departamento padrão-ouro definido. Sem referência para replicar o modelo operacional.",
+    action:
+      goldCount > 0
+        ? "Nenhuma ação necessária."
+        : "Promover ao menos um departamento (Design recomendado) ao blueprint completo.",
+    route: "/agency/departments/design",
+  });
+
+  // Blocked work without a stated reason (process hygiene).
+  const blockedNoReason = tasks.filter(
+    (t) => t.status === "blocked" && !t.description?.trim(),
+  );
+  if (blockedTasks.length > 0) {
+    checks.push({
+      id: "blueprint-blocked-no-reason",
+      group: "Modelo Operacional",
+      label: "Trabalho bloqueado com motivo",
+      status: blockedNoReason.length === 0 ? "pass" : "warning",
+      severity: "medium",
+      explanation:
+        blockedNoReason.length === 0
+          ? "Todas as tarefas bloqueadas têm um motivo registrado."
+          : `${blockedNoReason.length} tarefa(s) bloqueada(s) sem motivo descrito. Bloqueio sem causa dificulta a resolução.`,
+      action:
+        blockedNoReason.length === 0
+          ? "Nenhuma ação necessária."
+          : "Abrir Central de Tarefas → adicionar o motivo do bloqueio em cada item bloqueado.",
+      route: "/agency/tasks",
+    });
+  }
+
   // ── Score ─────────────────────────────────────────────────────────────────
 
   let totalWeight = 0;
@@ -1239,6 +1320,7 @@ export const CHECK_GROUP_ORDER = [
   "Operações do Projeto",
   "Orquestração",
   "Departamentos",
+  "Modelo Operacional",
   "Infraestrutura",
   "Prontidão dos Agentes",
   "Ferramentas & Integrações",
