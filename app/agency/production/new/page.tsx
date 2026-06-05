@@ -10,6 +10,7 @@ import {
   type TemplateId,
 } from "@/lib/agency/production-templates";
 import { DEPARTMENT_DEFS } from "@/lib/agency/departments";
+import { getOperatingModel } from "@/lib/agency/operating-model";
 
 // Derived from DEPARTMENT_DEFS — single source of truth for slugs/labels/colors.
 const DEPT_LABEL: Record<string, string> = Object.fromEntries(
@@ -415,7 +416,7 @@ export default function NewProductionPage() {
                       : "border-[#E8E8E3] bg-white hover:border-[#C8C8C3]"
                   }`}
                 >
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2.5">
                       <div
                         className="w-7 h-7 rounded-[6px] flex items-center justify-center text-white text-[12px] font-bold shrink-0"
@@ -430,7 +431,7 @@ export default function NewProductionPage() {
                         )}
                       </div>
                     </div>
-                    <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                    <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors shrink-0 ${
                       selected ? "border-[#5B5BD6] bg-[#5B5BD6]" : "border-[#D0D0CC]"
                     }`}>
                       {selected && (
@@ -440,6 +441,19 @@ export default function NewProductionPage() {
                       )}
                     </div>
                   </div>
+                  {(() => {
+                    const om = getOperatingModel(dept.id);
+                    const items = om ? om.outputs.slice(0, 2).map((o) => o.label) : dept.responsibilities.slice(0, 2);
+                    return items.length > 0 ? (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {items.map((item, i) => (
+                          <span key={i} className="inline-flex items-center h-4 px-1.5 rounded text-[9px] font-medium bg-white/60 text-[#6B6B65] border border-[#E0E0DB]">
+                            {item}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null;
+                  })()}
                 </button>
               );
             })}

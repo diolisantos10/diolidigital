@@ -944,6 +944,108 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
     route: "/agency/departments/project-management",
   });
 
+  // ── Input gap diagnostics (V1 Operating Model) ────────────────────────────
+
+  // 1. Strategy: approved projects where Brand Hub is missing positioning or audience
+  const strategyBrandHubGap = approvedProjects.filter((p) => {
+    const client = clients.find((c) => c.id === p.clientId);
+    const bb = client?.brandBrain;
+    return !bb?.positioning?.trim() || !bb?.targetAudience?.trim();
+  });
+  checks.push({
+    id: "input-gap-strategy",
+    group: "Departamentos",
+    label: "Estratégia — Brand Hub incompleto",
+    status: strategyBrandHubGap.length === 0 ? "pass" : "warning",
+    severity: "medium",
+    explanation:
+      strategyBrandHubGap.length === 0
+        ? "Todos os clientes com projetos aprovados têm Brand Hub com posicionamento e público-alvo."
+        : `${strategyBrandHubGap.length} projeto(s) aprovado(s) cujo cliente não tem posicionamento ou público-alvo no Brand Hub — Strategy Agent sem input adequado.`,
+    action:
+      strategyBrandHubGap.length === 0
+        ? "Nenhuma ação necessária."
+        : "Acesse os clientes afetados → Brand Hub → preencher Posicionamento e Público-alvo antes de iniciar Strategy Room.",
+    route: "/agency/clients",
+  });
+
+  // 2. Social: projects with Social assigned but no strategy room
+  const socialAssignedProjects = approvedProjects.filter((p) => p.agents.includes("a3"));
+  const socialWithoutStrategy = socialAssignedProjects.filter(
+    (p) => !strategyRooms.some((r) => r.projectId === p.id)
+  );
+  if (socialAssignedProjects.length > 0) {
+    checks.push({
+      id: "input-gap-social",
+      group: "Departamentos",
+      label: "Social Media — sem output de Estratégia",
+      status: socialWithoutStrategy.length === 0 ? "pass" : "warning",
+      severity: "medium",
+      explanation:
+        socialWithoutStrategy.length === 0
+          ? "Todos os projetos com Social Media têm Strategy Room disponível."
+          : `${socialWithoutStrategy.length} projeto(s) com Social Media atribuído mas sem Strategy Room. Social Media não tem briefing estratégico.`,
+      action:
+        socialWithoutStrategy.length === 0
+          ? "Nenhuma ação necessária."
+          : "Gerar Strategy Room para os projetos pendentes antes de iniciar calendário editorial.",
+      route: "/agency/departments/strategy",
+    });
+  }
+
+  // 3. Design: projects with Design assigned but client brand hub has no visual style
+  const designAssignedProjects = approvedProjects.filter((p) => p.agents.includes("a2"));
+  const designWithoutBrandDir = designAssignedProjects.filter((p) => {
+    const client = clients.find((c) => c.id === p.clientId);
+    return !client?.brandBrain?.visualStyle?.trim();
+  });
+  if (designAssignedProjects.length > 0) {
+    checks.push({
+      id: "input-gap-design",
+      group: "Departamentos",
+      label: "Design — sem direção visual no Brand Hub",
+      status: designWithoutBrandDir.length === 0 ? "pass" : "warning",
+      severity: "medium",
+      explanation:
+        designWithoutBrandDir.length === 0
+          ? "Todos os clientes com Design têm estilo visual definido no Brand Hub."
+          : `${designWithoutBrandDir.length} projeto(s) com Design atribuído mas sem estilo visual no Brand Hub — Design sem referência criativa.`,
+      action:
+        designWithoutBrandDir.length === 0
+          ? "Nenhuma ação necessária."
+          : "Acesse Brand Hub dos clientes afetados → preencher campo Estilo Visual antes de iniciar produção de design.",
+      route: "/agency/departments/brand-hub",
+    });
+  }
+
+  // 4. Paid Traffic: projects with Ads assigned but missing strategy room or approved design deliverables
+  const trafficAssignedProjects = approvedProjects.filter((p) => p.agents.includes("a4"));
+  const trafficWithoutInputs = trafficAssignedProjects.filter((p) => {
+    const hasStrategy = strategyRooms.some((r) => r.projectId === p.id);
+    const hasDesignAsset = deliverables.some(
+      (d) => d.projectId === p.id && d.ownerAgentId === "a2" && (d.status === "approved" || d.status === "delivered")
+    );
+    return !hasStrategy || !hasDesignAsset;
+  });
+  if (trafficAssignedProjects.length > 0) {
+    checks.push({
+      id: "input-gap-traffic",
+      group: "Departamentos",
+      label: "Tráfego Pago — entradas incompletas",
+      status: trafficWithoutInputs.length === 0 ? "pass" : "warning",
+      severity: "medium",
+      explanation:
+        trafficWithoutInputs.length === 0
+          ? "Todos os projetos com Tráfego Pago têm Strategy Room e criativos de Design disponíveis."
+          : `${trafficWithoutInputs.length} projeto(s) com Tráfego Pago atribuído sem Strategy Room ou criativos aprovados de Design.`,
+      action:
+        trafficWithoutInputs.length === 0
+          ? "Nenhuma ação necessária."
+          : "Garantir Strategy Room e criativos aprovados de Design antes de iniciar campanhas pagas.",
+      route: "/agency/departments/paid-traffic",
+    });
+  }
+
   // Intelligence coverage: strategy, social-media, and PM should have run intelligence
   // if there are active approved projects.
   const intelligenceDepts: { id: string; label: string; route: string }[] = [

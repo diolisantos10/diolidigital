@@ -16,6 +16,7 @@ import { MOCK_INTEGRATIONS } from "@/lib/agency/integrations";
 import { useDbAIRunLogs } from "@/lib/hooks/useDbAIRunLogs";
 import { useAiProviderStatus } from "@/lib/hooks/useAiProviderStatus";
 import { isOpenAIDepartment } from "@/lib/agency/intelligence/openai-schemas";
+import { getOperatingModel, ALL_HANDOFFS } from "@/lib/agency/operating-model";
 
 const INTELLIGENCE_DEPTS = new Set([
   "strategy",
@@ -38,31 +39,39 @@ const INTELLIGENCE_LABELS: Record<string, string> = {
 };
 
 type TabId =
-  | "overview"
-  | "agent"
-  | "prompt"
-  | "tools"
+  | "operation"
   | "queue"
   | "deliverables"
-  | "team"
-  | "metrics";
+  | "handoffs"
+  | "quality"
+  | "tools"
+  | "agent"
+  | "team";
 
-// Standardized department IA (gold-standard from Design dept):
-// Overview → Work Queue → Agent Config → Prompt → Tools → Deliverables → Human Staff → Metrics
 const TABS: { id: TabId; label: string }[] = [
-  { id: "overview", label: "Visão Geral" },
+  { id: "operation", label: "Operação" },
   { id: "queue", label: "Fila de Trabalho" },
-  { id: "agent", label: "Configuração do Agente" },
-  { id: "prompt", label: "Prompt & Instruções" },
-  { id: "tools", label: "Ferramentas & Integrações" },
   { id: "deliverables", label: "Entregas" },
-  { id: "team", label: "Equipe Humana" },
-  { id: "metrics", label: "Métricas" },
+  { id: "handoffs", label: "Handoffs" },
+  { id: "quality", label: "Qualidade" },
+  { id: "tools", label: "Ferramentas" },
+  { id: "agent", label: "Configuração do Agente" },
+  { id: "team", label: "Equipe" },
 ];
+
+const DEPT_LABEL_MAP: Record<string, string> = Object.fromEntries(
+  DEPARTMENT_DEFS.map((d) => [d.id, d.name])
+);
+
+const QUALITY_CATEGORY_LABEL: Record<string, string> = {
+  input: "Entrada",
+  output: "Saída",
+  process: "Processo",
+};
 
 export default function DepartmentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const [tab, setTab] = useState<TabId>("overview");
+  const [tab, setTab] = useState<TabId>("operation");
   const [promptDraft, setPromptDraft] = useState<string | null>(null);
   const [promptSaved, setPromptSaved] = useState(false);
   const [intelligenceRunning, setIntelligenceRunning] = useState(false);
@@ -94,7 +103,6 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
   const savedConfig = departmentConfigs?.find((c) => c.departmentId === dept.id);
   const activePrompt = promptDraft ?? savedConfig?.currentPrompt ?? dept.defaultPrompt;
 
-  // Deliverables for this dept
   const deptDelivs = deliverables.filter((d) => {
     const agentDept = AGENT_DEPT_MAP[d.ownerAgentId ?? ""];
     if (agentDept === dept.id) return true;
@@ -107,18 +115,15 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
     return false;
   });
 
-  // Work queue (auto-tasks for this dept)
   const deptOwner = DEPT_TASK_OWNER_MAP[dept.id as DepartmentId];
   const deptTasks = deptOwner ? autoTasks.filter((t) => t.owner === deptOwner) : [];
 
-  // Connected integrations
   const connectedIntegrations = MOCK_INTEGRATIONS.filter((i) =>
     dept.connectedToolIds.includes(i.id)
   );
 
   const activeProjects = projects.filter((p) => p.stage !== "completed");
 
-  // Prefer DB-sourced logs; fall back to local store.
   const deptRunLogs = dbRunLogs.logs.length > 0
     ? dbRunLogs.logs
     : (storeRunLogs?.filter((l) => l.departmentId === dept.id) ?? []);
@@ -126,7 +131,6 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
     ? deptRunLogs.find((l) => l.id === lastRunId) ?? deptRunLogs[0]
     : deptRunLogs[0];
 
-  // Metrics
   const metrics = {
     openTasks: deptTasks.length,
     pendingApprovals: deptDelivs.filter((d) => d.status === "in_review").length,
@@ -136,6 +140,12 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
   };
 
   const activeDept = dept;
+  const operatingModel = getOperatingModel(dept.id);
+
+  // Handoffs outgoing from this dept
+  const handoffsOut = ALL_HANDOFFS.filter((h) => h.fromDeptId === dept.id);
+  // Handoffs incoming to this dept (from other depts)
+  const handoffsIn = ALL_HANDOFFS.filter((h) => h.toDeptId === dept.id);
 
   function handleSavePrompt() {
     if (promptDraft !== null && saveDepartmentConfig) {
@@ -157,7 +167,6 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
     try {
       const logId = await runDepartmentIntelligenceWithProvider(activeDept.id);
       setLastRunId(logId);
-      // Persist to DB if connected — fire and forget.
       if (logId && dbRunLogs.source === "db") {
         const newLog = useAgencyStore.getState().aiRunLogs.find((l) => l.id === logId);
         if (newLog) dbRunLogs.save(newLog);
@@ -181,7 +190,6 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
     delivered: { bg: "bg-[#DCFCE7]", text: "text-[#16A34A]", label: "Entregue" },
   };
 
-  // ── AI provider state for the Intelligence card ──────────────────────────
   const selectedProvider = savedConfig?.aiProvider ?? activeDept.aiProvider;
   const isOpenAICapable = isOpenAIDepartment(activeDept.id);
   const usingOpenAI = isOpenAICapable && selectedProvider === "openai";
@@ -250,8 +258,8 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
         ))}
       </div>
 
-      {/* Tab content */}
-      {tab === "overview" && (
+      {/* ── Tab: Operação ─────────────────────────────────────────────────────── */}
+      {tab === "operation" && (
         <div className="space-y-6">
           {/* Stats row */}
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
@@ -271,7 +279,7 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
             ))}
           </div>
 
-          {/* Intelligence Mode Card — only for strategy, social-media, project-management */}
+          {/* Intelligence Mode Card */}
           {INTELLIGENCE_DEPTS.has(activeDept.id) && (
             <div
               className="rounded-[12px] border p-5"
@@ -323,7 +331,6 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
                       {openaiConfigured === false && " — defina OPENAI_API_KEY no servidor para ativar (fallback automático para regras locais)."}
                     </p>
                   )}
-
                   {lastRun ? (
                     <div className="space-y-1.5">
                       <div className="text-[12px] text-[#6B6B65]">
@@ -356,20 +363,17 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
                       {lastRun.warnings.length > 0 && (
                         <div className="mt-2 p-2.5 rounded-[6px] bg-[#FEF3C7] border border-[#FDE68A]">
                           {lastRun.warnings.map((w, i) => (
-                            <div key={i} className="text-[11px] text-[#92400E]">
-                              ⚠ {w}
-                            </div>
+                            <div key={i} className="text-[11px] text-[#92400E]">⚠ {w}</div>
                           ))}
                         </div>
                       )}
                     </div>
                   ) : (
                     <p className="text-[12px] text-[#6B6B65]">
-                      Nenhum run registrado para este departamento. Execute a inteligência para gerar análise e entregas automáticas.
+                      Nenhum run registrado. Execute a inteligência para gerar análise e entregas automáticas.
                     </p>
                   )}
                 </div>
-
                 <button
                   onClick={handleRunIntelligence}
                   disabled={intelligenceRunning}
@@ -389,64 +393,532 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
             </div>
           )}
 
-          {/* Mission & Responsibilities */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-white rounded-[12px] border border-[#E8E8E3] p-5">
-              <h3 className="text-[13px] font-semibold text-[#1A1A1A] mb-3">Missão</h3>
-              <p className="text-[13px] text-[#6B6B65] leading-relaxed">{dept.mission}</p>
+          {/* Operating Model detail — for depts with defined model */}
+          {operatingModel ? (
+            <div className="space-y-4">
+              {/* Trigger & Criteria */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white rounded-[12px] border border-[#E8E8E3] p-5">
+                  <h3 className="text-[12px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-3">Gatilho de início</h3>
+                  <p className="text-[13px] text-[#1A1A1A] leading-relaxed">{operatingModel.startTrigger}</p>
+                </div>
+                <div className="bg-white rounded-[12px] border border-[#E8E8E3] p-5">
+                  <h3 className="text-[12px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-3">Critérios de conclusão</h3>
+                  <ul className="space-y-1.5">
+                    {operatingModel.completionCriteria.map((c, i) => (
+                      <li key={i} className="flex items-start gap-2 text-[12px] text-[#6B6B65]">
+                        <span className="text-[#16A34A] mt-0.5 shrink-0">✓</span>
+                        {c}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              {/* Inputs */}
+              <div className="bg-white rounded-[12px] border border-[#E8E8E3] p-5">
+                <h3 className="text-[13px] font-semibold text-[#1A1A1A] mb-4">
+                  Entradas necessárias
+                  <span className="ml-2 text-[11px] font-normal text-[#9B9B95]">O que este departamento precisa receber para começar</span>
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {operatingModel.inputs.map((input, i) => (
+                    <div
+                      key={i}
+                      className={`p-3 rounded-[8px] border ${input.required ? "border-[#E8E8E3] bg-[#F7F7F6]" : "border-dashed border-[#D0D0CC] bg-white"}`}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <span
+                          className={`inline-flex items-center h-4 px-1.5 rounded text-[9px] font-bold uppercase ${
+                            input.required
+                              ? "bg-[#FEE2E2] text-[#DC2626]"
+                              : "bg-[#F0F0ED] text-[#9B9B95]"
+                          }`}
+                        >
+                          {input.required ? "Obrigatório" : "Opcional"}
+                        </span>
+                        <span className="text-[10px] text-[#9B9B95]">Fonte: {input.source}</span>
+                      </div>
+                      <div className="text-[13px] font-medium text-[#1A1A1A] mb-0.5">{input.label}</div>
+                      <div className="text-[11px] text-[#6B6B65] leading-relaxed">{input.description}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Outputs */}
+              <div className="bg-white rounded-[12px] border border-[#E8E8E3] p-5">
+                <h3 className="text-[13px] font-semibold text-[#1A1A1A] mb-4">
+                  Saídas produzidas
+                  <span className="ml-2 text-[11px] font-normal text-[#9B9B95]">O que este departamento entrega</span>
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {operatingModel.outputs.map((output, i) => (
+                    <div key={i} className="p-3 rounded-[8px] border border-[#E8E8E3] bg-[#F7F7F6]">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span
+                          className="inline-flex items-center h-4 px-1.5 rounded text-[9px] font-medium bg-[#EEF0FF] text-[#5B5BD6]"
+                        >
+                          {output.type}
+                        </span>
+                        {output.handoffTarget && (
+                          <span className="text-[10px] text-[#9B9B95]">→ {output.handoffTarget}</span>
+                        )}
+                      </div>
+                      <div className="text-[13px] font-medium text-[#1A1A1A] mb-0.5">{output.label}</div>
+                      <div className="text-[11px] text-[#6B6B65] leading-relaxed">{output.description}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-            <div className="bg-white rounded-[12px] border border-[#E8E8E3] p-5">
-              <h3 className="text-[13px] font-semibold text-[#1A1A1A] mb-3">Responsabilidades</h3>
-              <ul className="space-y-1.5">
-                {dept.responsibilities.map((r, i) => (
-                  <li key={i} className="flex items-start gap-2 text-[13px] text-[#6B6B65]">
-                    <span className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: dept.color }} />
-                    {r}
-                  </li>
-                ))}
-              </ul>
+          ) : (
+            /* Fallback for depts without an operating model: show mission/responsibilities/rules */
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white rounded-[12px] border border-[#E8E8E3] p-5">
+                  <h3 className="text-[13px] font-semibold text-[#1A1A1A] mb-3">Missão</h3>
+                  <p className="text-[13px] text-[#6B6B65] leading-relaxed">{dept.mission}</p>
+                </div>
+                <div className="bg-white rounded-[12px] border border-[#E8E8E3] p-5">
+                  <h3 className="text-[13px] font-semibold text-[#1A1A1A] mb-3">Responsabilidades</h3>
+                  <ul className="space-y-1.5">
+                    {dept.responsibilities.map((r, i) => (
+                      <li key={i} className="flex items-start gap-2 text-[13px] text-[#6B6B65]">
+                        <span className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: dept.color }} />
+                        {r}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+              <div className="bg-white rounded-[12px] border border-[#E8E8E3] p-5">
+                <h3 className="text-[13px] font-semibold text-[#1A1A1A] mb-3">Regras Operacionais</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-2">Regras</div>
+                    <ul className="space-y-1">
+                      {dept.rules.map((r, i) => (
+                        <li key={i} className="text-[12px] text-[#6B6B65] flex items-start gap-1.5">
+                          <span className="text-[#16A34A] mt-0.5">✓</span> {r}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-2">Ações proibidas</div>
+                    <ul className="space-y-1">
+                      {dept.forbiddenActions.map((r, i) => (
+                        <li key={i} className="text-[12px] text-[#6B6B65] flex items-start gap-1.5">
+                          <span className="text-[#DC2626] mt-0.5">✗</span> {r}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-2">Escalada</div>
+                    <ul className="space-y-1">
+                      {dept.escalationRules.map((r, i) => (
+                        <li key={i} className="text-[12px] text-[#6B6B65] flex items-start gap-1.5">
+                          <span className="text-[#D97706] mt-0.5">⚑</span> {r}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
             </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Tab: Fila de Trabalho ─────────────────────────────────────────────── */}
+      {tab === "queue" && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-[14px] font-semibold text-[#1A1A1A]">
+              Fila de Trabalho
+              {deptTasks.length > 0 && (
+                <span className="ml-2 inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#D97706] text-white text-[10px] font-bold">
+                  {deptTasks.length}
+                </span>
+              )}
+            </h3>
+            <Link href="/agency/tasks" className="text-[12px] text-[#5B5BD6] hover:underline">
+              Ver Central de Tarefas →
+            </Link>
           </div>
 
-          {/* Rules */}
+          {dept.generatorRoute && (
+            <div
+              className="flex items-center justify-between gap-3 p-4 rounded-[10px] mb-4 border"
+              style={{ backgroundColor: dept.accentBg, borderColor: `${dept.color}33` }}
+            >
+              <div>
+                <div className="text-[12px] font-semibold" style={{ color: dept.color }}>Próxima ação</div>
+                <div className="text-[12px] text-[#6B6B65] mt-0.5">Produza entregas deste departamento usando a ferramenta dedicada.</div>
+              </div>
+              <Link
+                href={dept.generatorRoute}
+                className="shrink-0 inline-flex items-center gap-2 h-9 px-4 rounded-[8px] text-white text-[12px] font-medium hover:opacity-90 transition-opacity"
+                style={{ backgroundColor: dept.color }}
+              >
+                {dept.generatorLabel ?? "Abrir ferramenta"}
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path d="M2.5 6h7M6.5 3l3 3-3 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </Link>
+            </div>
+          )}
+
+          {deptTasks.length === 0 ? (
+            <div className="bg-white rounded-[12px] border border-[#E8E8E3] py-16 text-center">
+              <div className="text-[32px] mb-3">✓</div>
+              <div className="text-[14px] font-medium text-[#1A1A1A]">Fila vazia</div>
+              <div className="text-[13px] text-[#9B9B95] mt-1">Nenhuma tarefa pendente para este departamento.</div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {deptTasks.map((task) => {
+                const style = PRIORITY_STYLE[task.priority] ?? PRIORITY_STYLE.medium;
+                return (
+                  <div key={task.id} className="bg-white rounded-[10px] border border-[#E8E8E3] p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`inline-flex items-center h-5 px-2 rounded-full text-[10px] font-semibold ${style.bg} ${style.text}`}>
+                            {style.label}
+                          </span>
+                          <span className="text-[11px] text-[#9B9B95]">{task.projectName}</span>
+                        </div>
+                        <div className="text-[13px] font-medium text-[#1A1A1A]">{task.title}</div>
+                        <div className="text-[12px] text-[#6B6B65] mt-0.5">{task.description}</div>
+                      </div>
+                      <Link
+                        href={task.route}
+                        className="shrink-0 h-7 px-3 rounded-[6px] bg-[#F7F7F6] border border-[#E8E8E3] text-[11px] text-[#6B6B65] hover:bg-[#F0F0ED] transition-colors inline-flex items-center"
+                      >
+                        Abrir
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Tab: Entregas ─────────────────────────────────────────────────────── */}
+      {tab === "deliverables" && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-[14px] font-semibold text-[#1A1A1A]">
+              Entregas ({deptDelivs.length})
+            </h3>
+            <Link href="/agency/deliverables" className="text-[12px] text-[#5B5BD6] hover:underline">
+              Ver todas →
+            </Link>
+          </div>
+
+          {deptDelivs.length === 0 ? (
+            <div className="bg-white rounded-[12px] border border-[#E8E8E3] py-16 text-center">
+              <div className="text-[13px] text-[#9B9B95]">Nenhuma entrega produzida por este departamento ainda.</div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {deptDelivs.slice().sort((a, b) => (b.updatedAt ?? b.createdAt) > (a.updatedAt ?? a.createdAt) ? 1 : -1).map((d) => {
+                const style = DELIVERABLE_STATUS_STYLE[d.status] ?? DELIVERABLE_STATUS_STYLE.draft;
+                const project = projects.find((p) => p.id === d.projectId);
+                return (
+                  <div key={d.id} className="bg-white rounded-[10px] border border-[#E8E8E3] p-4 flex items-center justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className={`inline-flex items-center h-5 px-2 rounded-full text-[10px] font-semibold ${style.bg} ${style.text}`}>
+                          {style.label}
+                        </span>
+                        <span className="text-[11px] text-[#9B9B95]">{d.type}</span>
+                        {needsRevision(d) && (
+                          <span className="inline-flex items-center h-5 px-2 rounded-full text-[10px] font-semibold bg-[#FEE2E2] text-[#DC2626]">
+                            Revisão
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[13px] font-medium text-[#1A1A1A] mt-1 truncate">{d.name}</div>
+                      {project && (
+                        <div className="text-[11px] text-[#9B9B95] mt-0.5">{project.name}</div>
+                      )}
+                    </div>
+                    <div className="text-[11px] text-[#9B9B95] shrink-0">v{d.version ?? 1}</div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Tab: Handoffs ─────────────────────────────────────────────────────── */}
+      {tab === "handoffs" && (
+        <div className="space-y-6">
+          {/* Incoming */}
+          <div>
+            <h3 className="text-[14px] font-semibold text-[#1A1A1A] mb-3">
+              Entradas recebidas
+              <span className="ml-2 text-[12px] font-normal text-[#9B9B95]">O que este departamento recebe de outros</span>
+            </h3>
+            {handoffsIn.length === 0 ? (
+              <div className="bg-white rounded-[12px] border border-[#E8E8E3] py-10 text-center">
+                <div className="text-[13px] text-[#9B9B95]">Nenhum handoff de entrada mapeado para este departamento.</div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {handoffsIn.map((h, i) => {
+                  const fromDept = DEPARTMENT_DEFS.find((d) => d.id === h.fromDeptId);
+                  return (
+                    <div key={i} className="bg-white rounded-[12px] border border-[#E8E8E3] p-4">
+                      <div className="flex items-start gap-3">
+                        <div
+                          className="w-8 h-8 rounded-[6px] flex items-center justify-center text-white text-[11px] font-bold shrink-0"
+                          style={{ backgroundColor: fromDept?.color ?? "#6B6B65" }}
+                        >
+                          {fromDept?.name.charAt(0) ?? "?"}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[13px] font-semibold text-[#1A1A1A]">
+                              {DEPT_LABEL_MAP[h.fromDeptId] ?? h.fromDeptId}
+                            </span>
+                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="text-[#9B9B95]">
+                              <path d="M2.5 6h7M6.5 3l3 3-3 3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                            <span className="text-[13px] font-semibold" style={{ color: activeDept.color }}>
+                              {activeDept.name}
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-[#9B9B95] mb-2">Gatilho: {h.trigger}</div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {h.what.map((w, j) => (
+                              <span key={j} className="inline-flex items-center h-5 px-2 rounded-full text-[10px] font-medium bg-[#F0F0ED] text-[#6B6B65]">
+                                {w}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        <Link
+                          href={`/agency/departments/${h.fromDeptId}`}
+                          className="shrink-0 h-7 px-3 rounded-[6px] bg-[#F7F7F6] border border-[#E8E8E3] text-[11px] text-[#6B6B65] hover:bg-[#F0F0ED] transition-colors inline-flex items-center"
+                        >
+                          Ver dept
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Outgoing */}
+          <div>
+            <h3 className="text-[14px] font-semibold text-[#1A1A1A] mb-3">
+              Saídas entregues
+              <span className="ml-2 text-[12px] font-normal text-[#9B9B95]">O que este departamento passa para outros</span>
+            </h3>
+            {handoffsOut.length === 0 ? (
+              <div className="bg-white rounded-[12px] border border-[#E8E8E3] py-10 text-center">
+                <div className="text-[13px] text-[#9B9B95]">Nenhum handoff de saída mapeado para este departamento.</div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {handoffsOut.map((h, i) => {
+                  const toDept = DEPARTMENT_DEFS.find((d) => d.id === h.toDeptId);
+                  return (
+                    <div key={i} className="bg-white rounded-[12px] border border-[#E8E8E3] p-4">
+                      <div className="flex items-start gap-3">
+                        <div
+                          className="w-8 h-8 rounded-[6px] flex items-center justify-center text-white text-[11px] font-bold shrink-0"
+                          style={{ backgroundColor: activeDept.color }}
+                        >
+                          {activeDept.name.charAt(0)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[13px] font-semibold" style={{ color: activeDept.color }}>
+                              {activeDept.name}
+                            </span>
+                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="text-[#9B9B95]">
+                              <path d="M2.5 6h7M6.5 3l3 3-3 3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                            <span className="text-[13px] font-semibold text-[#1A1A1A]">
+                              {DEPT_LABEL_MAP[h.toDeptId] ?? h.toDeptId}
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-[#9B9B95] mb-2">Gatilho: {h.trigger}</div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {h.what.map((w, j) => (
+                              <span
+                                key={j}
+                                className="inline-flex items-center h-5 px-2 rounded-full text-[10px] font-medium"
+                                style={{ backgroundColor: `${activeDept.color}18`, color: activeDept.color }}
+                              >
+                                {w}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        <Link
+                          href={`/agency/departments/${h.toDeptId}`}
+                          className="shrink-0 h-7 px-3 rounded-[6px] bg-[#F7F7F6] border border-[#E8E8E3] text-[11px] text-[#6B6B65] hover:bg-[#F0F0ED] transition-colors inline-flex items-center"
+                        >
+                          Ver dept
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {handoffsIn.length === 0 && handoffsOut.length === 0 && (
+            <div className="p-4 rounded-[10px] bg-[#F0F0ED] border border-[#E0E0DB] text-[12px] text-[#6B6B65]">
+              Mapa de handoffs completo estará disponível à medida que mais departamentos forem integrados ao modelo operacional.
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Tab: Qualidade ────────────────────────────────────────────────────── */}
+      {tab === "quality" && (
+        <div className="space-y-4">
+          {/* Quality checklist from operating model */}
+          {operatingModel && (
+            <div className="bg-white rounded-[12px] border border-[#E8E8E3] p-5">
+              <h3 className="text-[13px] font-semibold text-[#1A1A1A] mb-4">Checklist de qualidade</h3>
+              {(["input", "process", "output"] as const).map((cat) => {
+                const items = operatingModel.qualityChecklist.filter((q) => q.category === cat);
+                if (items.length === 0) return null;
+                return (
+                  <div key={cat} className="mb-4 last:mb-0">
+                    <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-2">
+                      {QUALITY_CATEGORY_LABEL[cat]}
+                    </div>
+                    <ul className="space-y-2">
+                      {items.map((item, i) => (
+                        <li key={i} className="flex items-start gap-2.5">
+                          <div className="w-4 h-4 mt-0.5 shrink-0 rounded border-2 border-[#D0D0CC] bg-white" />
+                          <span className="text-[13px] text-[#1A1A1A]">{item.item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Operational rules from dept definition */}
           <div className="bg-white rounded-[12px] border border-[#E8E8E3] p-5">
-            <h3 className="text-[13px] font-semibold text-[#1A1A1A] mb-3">Regras Operacionais</h3>
+            <h3 className="text-[13px] font-semibold text-[#1A1A1A] mb-4">Regras Operacionais</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-2">Regras</div>
-                <ul className="space-y-1">
+                <ul className="space-y-1.5">
                   {dept.rules.map((r, i) => (
                     <li key={i} className="text-[12px] text-[#6B6B65] flex items-start gap-1.5">
-                      <span className="text-[#16A34A] mt-0.5">✓</span> {r}
+                      <span className="text-[#16A34A] mt-0.5 shrink-0">✓</span> {r}
                     </li>
                   ))}
                 </ul>
               </div>
               <div>
                 <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-2">Ações proibidas</div>
-                <ul className="space-y-1">
+                <ul className="space-y-1.5">
                   {dept.forbiddenActions.map((r, i) => (
                     <li key={i} className="text-[12px] text-[#6B6B65] flex items-start gap-1.5">
-                      <span className="text-[#DC2626] mt-0.5">✗</span> {r}
+                      <span className="text-[#DC2626] mt-0.5 shrink-0">✗</span> {r}
                     </li>
                   ))}
                 </ul>
               </div>
               <div>
                 <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-2">Escalada</div>
-                <ul className="space-y-1">
+                <ul className="space-y-1.5">
                   {dept.escalationRules.map((r, i) => (
                     <li key={i} className="text-[12px] text-[#6B6B65] flex items-start gap-1.5">
-                      <span className="text-[#D97706] mt-0.5">⚑</span> {r}
+                      <span className="text-[#D97706] mt-0.5 shrink-0">⚑</span> {r}
                     </li>
                   ))}
                 </ul>
               </div>
             </div>
           </div>
+
+          {!operatingModel && (
+            <div className="p-4 rounded-[10px] bg-[#F0F0ED] border border-[#E0E0DB] text-[12px] text-[#6B6B65]">
+              Checklist de qualidade detalhado estará disponível quando o modelo operacional deste departamento for definido.
+            </div>
+          )}
         </div>
       )}
 
+      {/* ── Tab: Ferramentas ─────────────────────────────────────────────────── */}
+      {tab === "tools" && (
+        <div className="space-y-4">
+          <div className="bg-white rounded-[12px] border border-[#E8E8E3] p-5">
+            <h3 className="text-[14px] font-semibold text-[#1A1A1A] mb-4">Ferramentas & Integrações</h3>
+            {connectedIntegrations.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="text-[13px] text-[#9B9B95]">Nenhuma ferramenta conectada a este departamento.</div>
+                <Link href="/agency/integrations" className="mt-2 inline-block text-[12px] text-[#5B5BD6] hover:underline">
+                  Configurar integrações →
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {connectedIntegrations.map((integration) => (
+                  <div key={integration.id} className="flex items-center justify-between p-3 rounded-[8px] bg-[#F7F7F6] border border-[#E8E8E3]">
+                    <div>
+                      <div className="text-[13px] font-medium text-[#1A1A1A]">{integration.name}</div>
+                      <div className="text-[11px] text-[#9B9B95]">{integration.purpose}</div>
+                    </div>
+                    <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium ${
+                      integration.status === "active" || integration.status === "configured"
+                        ? "bg-[#DCFCE7] text-[#16A34A]"
+                        : integration.status === "planned"
+                        ? "bg-[#EEF0FF] text-[#5B5BD6]"
+                        : "bg-[#F0F0ED] text-[#9B9B95]"
+                    }`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${
+                        integration.status === "active" || integration.status === "configured"
+                          ? "bg-[#16A34A]"
+                          : integration.status === "planned"
+                          ? "bg-[#5B5BD6]"
+                          : "bg-[#9B9B95]"
+                      }`} />
+                      {integration.status === "active" ? "Ativo" :
+                       integration.status === "configured" ? "Configurado" :
+                       integration.status === "planned" ? "Planejado" : "Disponível"}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="p-4 rounded-[10px] bg-[#EEF0FF] border border-[#C7C9F0]">
+            <div className="text-[12px] text-[#5B5BD6]">
+              Configure provedores de IA e ferramentas externas em{" "}
+              <Link href="/agency/integrations" className="font-medium hover:underline">
+                Ferramentas & Integrações
+              </Link>
+              .
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Tab: Configuração do Agente ───────────────────────────────────────── */}
       {tab === "agent" && (
         <div className="space-y-4">
           <div className="bg-white rounded-[12px] border border-[#E8E8E3] p-5">
@@ -528,21 +1000,7 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
             </div>
           </div>
 
-          <div className="p-4 rounded-[10px] bg-[#F0F0ED] border border-[#E0E0DB]">
-            <div className="text-[12px] text-[#6B6B65]">
-              <strong className="text-[#1A1A1A]">V1 — Configuração mapeada.</strong>{" "}
-              Configurações de provedor de IA por departamento estão disponíveis em{" "}
-              <Link href="/agency/integrations" className="text-[#5B5BD6] hover:underline">
-                Ferramentas & Integrações
-              </Link>
-              .
-            </div>
-          </div>
-        </div>
-      )}
-
-      {tab === "prompt" && (
-        <div className="space-y-4">
+          {/* Prompt editor — merged from former Prompt tab */}
           <div className="bg-white rounded-[12px] border border-[#E8E8E3] p-5">
             <div className="flex items-center justify-between mb-4">
               <div>
@@ -569,7 +1027,7 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
             <textarea
               value={activePrompt}
               onChange={(e) => setPromptDraft(e.target.value)}
-              rows={20}
+              rows={16}
               className="w-full p-4 rounded-[8px] bg-[#F7F7F6] border border-[#E8E8E3] text-[13px] text-[#1A1A1A] font-mono leading-relaxed resize-y outline-none focus:border-[#5B5BD6] focus:ring-1 focus:ring-[#5B5BD6]/20"
             />
             {savedConfig?.promptUpdatedAt && (
@@ -578,55 +1036,12 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
               </div>
             )}
           </div>
-        </div>
-      )}
 
-      {tab === "tools" && (
-        <div className="space-y-4">
-          <div className="bg-white rounded-[12px] border border-[#E8E8E3] p-5">
-            <h3 className="text-[14px] font-semibold text-[#1A1A1A] mb-4">Ferramentas & Integrações</h3>
-            {connectedIntegrations.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="text-[13px] text-[#9B9B95]">Nenhuma ferramenta conectada a este departamento.</div>
-                <Link href="/agency/integrations" className="mt-2 inline-block text-[12px] text-[#5B5BD6] hover:underline">
-                  Configurar integrações →
-                </Link>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {connectedIntegrations.map((integration) => (
-                  <div key={integration.id} className="flex items-center justify-between p-3 rounded-[8px] bg-[#F7F7F6] border border-[#E8E8E3]">
-                    <div>
-                      <div className="text-[13px] font-medium text-[#1A1A1A]">{integration.name}</div>
-                      <div className="text-[11px] text-[#9B9B95]">{integration.purpose}</div>
-                    </div>
-                    <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium ${
-                      integration.status === "active" || integration.status === "configured"
-                        ? "bg-[#DCFCE7] text-[#16A34A]"
-                        : integration.status === "planned"
-                        ? "bg-[#EEF0FF] text-[#5B5BD6]"
-                        : "bg-[#F0F0ED] text-[#9B9B95]"
-                    }`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${
-                        integration.status === "active" || integration.status === "configured"
-                          ? "bg-[#16A34A]"
-                          : integration.status === "planned"
-                          ? "bg-[#5B5BD6]"
-                          : "bg-[#9B9B95]"
-                      }`} />
-                      {integration.status === "active" ? "Ativo" :
-                       integration.status === "configured" ? "Configurado" :
-                       integration.status === "planned" ? "Planejado" : "Disponível"}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="p-4 rounded-[10px] bg-[#EEF0FF] border border-[#C7C9F0]">
-            <div className="text-[12px] text-[#5B5BD6]">
-              Configure provedores de IA e ferramentas externas em{" "}
-              <Link href="/agency/integrations" className="font-medium hover:underline">
+          <div className="p-4 rounded-[10px] bg-[#F0F0ED] border border-[#E0E0DB]">
+            <div className="text-[12px] text-[#6B6B65]">
+              <strong className="text-[#1A1A1A]">V1 — Configuração mapeada.</strong>{" "}
+              Configurações de provedor de IA por departamento estão disponíveis em{" "}
+              <Link href="/agency/integrations" className="text-[#5B5BD6] hover:underline">
                 Ferramentas & Integrações
               </Link>
               .
@@ -635,135 +1050,7 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
         </div>
       )}
 
-      {tab === "queue" && (
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-[14px] font-semibold text-[#1A1A1A]">
-              Fila de Trabalho
-              {deptTasks.length > 0 && (
-                <span className="ml-2 inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#D97706] text-white text-[10px] font-bold">
-                  {deptTasks.length}
-                </span>
-              )}
-            </h3>
-            <Link href="/agency/tasks" className="text-[12px] text-[#5B5BD6] hover:underline">
-              Ver Central de Tarefas →
-            </Link>
-          </div>
-
-          {/* Next action — open the department's generator/tool */}
-          {dept.generatorRoute && (
-            <div
-              className="flex items-center justify-between gap-3 p-4 rounded-[10px] mb-4 border"
-              style={{ backgroundColor: dept.accentBg, borderColor: `${dept.color}33` }}
-            >
-              <div>
-                <div className="text-[12px] font-semibold" style={{ color: dept.color }}>
-                  Próxima ação
-                </div>
-                <div className="text-[12px] text-[#6B6B65] mt-0.5">
-                  Produza entregas deste departamento usando a ferramenta dedicada.
-                </div>
-              </div>
-              <Link
-                href={dept.generatorRoute}
-                className="shrink-0 inline-flex items-center gap-2 h-9 px-4 rounded-[8px] text-white text-[12px] font-medium hover:opacity-90 transition-opacity"
-                style={{ backgroundColor: dept.color }}
-              >
-                {dept.generatorLabel ?? "Abrir ferramenta"}
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                  <path d="M2.5 6h7M6.5 3l3 3-3 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </Link>
-            </div>
-          )}
-
-          {deptTasks.length === 0 ? (
-            <div className="bg-white rounded-[12px] border border-[#E8E8E3] py-16 text-center">
-              <div className="text-[32px] mb-3">✓</div>
-              <div className="text-[14px] font-medium text-[#1A1A1A]">Fila vazia</div>
-              <div className="text-[13px] text-[#9B9B95] mt-1">Nenhuma tarefa pendente para este departamento.</div>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {deptTasks.map((task) => {
-                const style = PRIORITY_STYLE[task.priority] ?? PRIORITY_STYLE.medium;
-                return (
-                  <div key={task.id} className="bg-white rounded-[10px] border border-[#E8E8E3] p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className={`inline-flex items-center h-5 px-2 rounded-full text-[10px] font-semibold ${style.bg} ${style.text}`}>
-                            {style.label}
-                          </span>
-                          <span className="text-[11px] text-[#9B9B95]">{task.projectName}</span>
-                        </div>
-                        <div className="text-[13px] font-medium text-[#1A1A1A]">{task.title}</div>
-                        <div className="text-[12px] text-[#6B6B65] mt-0.5">{task.description}</div>
-                      </div>
-                      <Link
-                        href={task.route}
-                        className="shrink-0 h-7 px-3 rounded-[6px] bg-[#F7F7F6] border border-[#E8E8E3] text-[11px] text-[#6B6B65] hover:bg-[#F0F0ED] transition-colors inline-flex items-center"
-                      >
-                        Abrir
-                      </Link>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {tab === "deliverables" && (
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-[14px] font-semibold text-[#1A1A1A]">
-              Entregas ({deptDelivs.length})
-            </h3>
-            <Link href="/agency/deliverables" className="text-[12px] text-[#5B5BD6] hover:underline">
-              Ver todas →
-            </Link>
-          </div>
-
-          {deptDelivs.length === 0 ? (
-            <div className="bg-white rounded-[12px] border border-[#E8E8E3] py-16 text-center">
-              <div className="text-[13px] text-[#9B9B95]">Nenhuma entrega produzida por este departamento ainda.</div>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {deptDelivs.slice().sort((a, b) => (b.updatedAt ?? b.createdAt) > (a.updatedAt ?? a.createdAt) ? 1 : -1).map((d) => {
-                const style = DELIVERABLE_STATUS_STYLE[d.status] ?? DELIVERABLE_STATUS_STYLE.draft;
-                const project = projects.find((p) => p.id === d.projectId);
-                return (
-                  <div key={d.id} className="bg-white rounded-[10px] border border-[#E8E8E3] p-4 flex items-center justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className={`inline-flex items-center h-5 px-2 rounded-full text-[10px] font-semibold ${style.bg} ${style.text}`}>
-                          {style.label}
-                        </span>
-                        <span className="text-[11px] text-[#9B9B95]">{d.type}</span>
-                        {needsRevision(d) && (
-                          <span className="inline-flex items-center h-5 px-2 rounded-full text-[10px] font-semibold bg-[#FEE2E2] text-[#DC2626]">
-                            Revisão
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-[13px] font-medium text-[#1A1A1A] mt-1 truncate">{d.name}</div>
-                      {project && (
-                        <div className="text-[11px] text-[#9B9B95] mt-0.5">{project.name}</div>
-                      )}
-                    </div>
-                    <div className="text-[11px] text-[#9B9B95] shrink-0">v{d.version ?? 1}</div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
+      {/* ── Tab: Equipe ───────────────────────────────────────────────────────── */}
       {tab === "team" && (
         <div className="bg-white rounded-[12px] border border-[#E8E8E3] p-8 text-center">
           <div className="text-[32px] mb-3">👥</div>
@@ -772,7 +1059,7 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
             Placeholder para equipe humana do departamento. Em V2, esta seção permitirá
             associar usuários internos, definir responsabilidades e gerenciar aprovações por pessoa.
           </p>
-          <div className="mt-6 flex justify-center gap-2">
+          <div className="mt-6 flex justify-center gap-2 flex-wrap">
             {dept.ownerRoles.map((r) => (
               <div key={r} className="flex items-center gap-2 px-3 py-2 rounded-[8px] bg-[#F7F7F6] border border-[#E8E8E3]">
                 <div className="w-7 h-7 rounded-full bg-[#5B5BD6]/10 flex items-center justify-center text-[11px] font-semibold text-[#5B5BD6]">
@@ -782,59 +1069,7 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
               </div>
             ))}
           </div>
-          <div className="mt-4 text-[11px] text-[#9B9B95]">
-            Roles com acesso a este departamento
-          </div>
-        </div>
-      )}
-
-      {tab === "metrics" && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {[
-              { label: "Tarefas abertas", value: metrics.openTasks, icon: "📋" },
-              { label: "Aguardando aprovação", value: metrics.pendingApprovals, icon: "⏳" },
-              { label: "Revisões abertas", value: metrics.pendingRevisions, icon: "✏️" },
-              { label: "Entregas produzidas", value: metrics.deliverablesProduced, icon: "📦" },
-              { label: "Entregas aprovadas", value: metrics.approvedDeliverables, icon: "✅" },
-              { label: "Projetos ativos", value: activeProjects.length, icon: "🚀" },
-            ].map((s) => (
-              <div key={s.label} className="bg-white rounded-[12px] border border-[#E8E8E3] p-5 text-center">
-                <div className="text-[24px] mb-1">{s.icon}</div>
-                <div className="text-[28px] font-semibold text-[#1A1A1A]">{s.value}</div>
-                <div className="text-[11px] text-[#9B9B95] mt-1">{s.label}</div>
-              </div>
-            ))}
-          </div>
-
-          <div className="bg-white rounded-[12px] border border-[#E8E8E3] p-5">
-            <h3 className="text-[13px] font-semibold text-[#1A1A1A] mb-4">Taxa de aprovação</h3>
-            {metrics.deliverablesProduced === 0 ? (
-              <div className="text-[13px] text-[#9B9B95]">Nenhuma entrega produzida ainda.</div>
-            ) : (
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[12px] text-[#6B6B65]">Aprovadas / Total</span>
-                  <span className="text-[13px] font-medium text-[#1A1A1A]">
-                    {metrics.approvedDeliverables}/{metrics.deliverablesProduced} (
-                    {Math.round((metrics.approvedDeliverables / metrics.deliverablesProduced) * 100)}%)
-                  </span>
-                </div>
-                <div className="h-2 bg-[#F0F0ED] rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-[#16A34A] rounded-full"
-                    style={{
-                      width: `${Math.round((metrics.approvedDeliverables / metrics.deliverablesProduced) * 100)}%`,
-                    }}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="p-4 rounded-[10px] bg-[#F0F0ED] border border-[#E0E0DB] text-[12px] text-[#6B6B65]">
-            Métricas avançadas (tempo médio de aprovação, produtividade por período, comparativos) estarão disponíveis em V2.
-          </div>
+          <div className="mt-4 text-[11px] text-[#9B9B95]">Roles com acesso a este departamento</div>
         </div>
       )}
     </div>
