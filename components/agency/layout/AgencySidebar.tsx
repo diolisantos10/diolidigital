@@ -42,6 +42,11 @@ function usePendingCount() {
   return sentProposals + inReviewDelivs + pendingBrand + pendingMats;
 }
 
+function useNewRequestsCount() {
+  const { clientRequests } = useAgencyStore();
+  return (clientRequests ?? []).filter((r) => r.status === "new").length;
+}
+
 function useTaskBadgeCount() {
   const { tasks, projects, clients, deliverables, materialRequests, strategyRooms } = useAgencyStore();
   const autoTasks = generateAllAutoTasks({ projects, clients, deliverables, tasks, materialRequests, strategyRooms });
@@ -56,6 +61,7 @@ export default function AgencySidebar({ userInfo }: { userInfo?: UserInfo | null
   const { currentRole, setCurrentRole } = useAgencyStore();
   const pendingCount = usePendingCount();
   const taskBadgeCount = useTaskBadgeCount();
+  const newRequestsCount = useNewRequestsCount();
 
   const NAV = [
     {
@@ -63,6 +69,7 @@ export default function AgencySidebar({ userInfo }: { userInfo?: UserInfo | null
       items: [
         { label: t.nav.home, href: "/agency/dashboard", icon: HomeIcon },
         { label: "Aprovações", href: "/agency/approvals", icon: BellIcon, badge: pendingCount },
+        { label: "Solicitações", href: "/agency/requests", icon: FileTextIcon, badge: newRequestsCount },
       ],
     },
     {

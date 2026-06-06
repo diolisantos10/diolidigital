@@ -58,6 +58,7 @@ import {
   isOpenAIDepartment,
   type AIRunContext,
 } from "@/lib/agency/intelligence/openai-schemas";
+import type { ClientRequest, ClientRequestStatus } from "@/lib/agency/client-requests";
 
 // ─── Brand Update ─────────────────────────────────────────────────────────────
 // A pending brand suggestion from the client portal, a manual internal edit,
@@ -211,6 +212,11 @@ interface AgencyState {
   applyAllPendingBrandUpdates: (clientId: string) => void;
   dismissBrandUpdate: (id: string) => void;
 
+  // Client requests (from portal Briefing Room)
+  clientRequests: ClientRequest[];
+  addClientRequest: (req: Omit<ClientRequest, "id" | "createdAt" | "updatedAt">) => string;
+  updateClientRequest: (id: string, updates: Partial<Pick<ClientRequest, "status">>) => void;
+
   // Integrations V2
   integrationConfigs: IntegrationConfig[];
   agentProviderConfigs: AgentProviderConfig[];
@@ -241,6 +247,7 @@ export const useAgencyStore = create<AgencyState>()(
       strategyRooms: [],
       currentRole: "master" as AgencyRole,
       brandUpdates: [],
+      clientRequests: [],
       integrationConfigs: buildDefaultIntegrationConfigs(),
       agentProviderConfigs: buildDefaultAgentProviderConfigs(),
       departmentConfigs: [],
@@ -653,6 +660,28 @@ export const useAgencyStore = create<AgencyState>()(
 
       // ── Role simulation ───────────────────────────────────────────────────
       setCurrentRole: (role) => set({ currentRole: role }),
+
+      // ── Client Requests ───────────────────────────────────────────────────
+      addClientRequest: (req) => {
+        const id = `cr${uid()}`;
+        const now = new Date().toISOString();
+        const entry: ClientRequest = { ...req, id, createdAt: now, updatedAt: now };
+        set((s) => ({ clientRequests: [entry, ...s.clientRequests] }));
+        get().addActivity({
+          type: "briefing_created",
+          message: `Nova solicitação do cliente: "${req.title}"`,
+          clientId: req.clientId,
+        });
+        return id;
+      },
+
+      updateClientRequest: (id, updates) => {
+        set((s) => ({
+          clientRequests: s.clientRequests.map((r) =>
+            r.id === id ? { ...r, ...updates, updatedAt: new Date().toISOString() } : r
+          ),
+        }));
+      },
 
       // ── Brand Updates ─────────────────────────────────────────────────────
       addBrandUpdate: (update) => {
@@ -1308,6 +1337,7 @@ export const useAgencyStore = create<AgencyState>()(
         strategyRooms: s.strategyRooms,
         currentRole: s.currentRole,
         brandUpdates: s.brandUpdates,
+        clientRequests: s.clientRequests,
         integrationConfigs: s.integrationConfigs,
         agentProviderConfigs: s.agentProviderConfigs,
         departmentConfigs: s.departmentConfigs,

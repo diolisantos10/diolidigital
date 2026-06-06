@@ -100,7 +100,7 @@ function CollapsibleSection({ title, badge, children }: { title: string; badge?:
 
 export default function SettingsPage() {
   const { deliverables, briefings, materialRequests, strategyRooms, brandUpdates,
-          integrationConfigs, agentProviderConfigs, aiRunLogs: storeRunLogs, departmentConfigs,
+          integrationConfigs, agentProviderConfigs, aiRunLogs: storeRunLogs, departmentConfigs, clientRequests,
           resetStore, loadPilotData, clearAllData } = useAgencyStore();
   const { logs: dbAiRunLogs, source: aiRunLogSource } = useDbAIRunLogs({ limit: 200 });
   const { openaiConfigured } = useAiProviderStatus();
@@ -167,7 +167,7 @@ export default function SettingsPage() {
   };
   // Prefer DB-sourced AI run logs; fall back to local store.
   const aiRunLogs = dbAiRunLogs.length > 0 ? dbAiRunLogs : storeRunLogs;
-  const report = runSystemDoctor({ clients, projects, deliverables, materialRequests, strategyRooms, tasks, persisted, integrationConfigs, agentProviderConfigs, dbAvailable, authMode, portalMode, sessionActive, sessionUser, dbSyncStatus, aiRunLogs, aiRunLogSource, openaiConfigured, departmentConfigs });
+  const report = runSystemDoctor({ clients, projects, deliverables, materialRequests, strategyRooms, tasks, persisted, integrationConfigs, agentProviderConfigs, dbAvailable, authMode, portalMode, sessionActive, sessionUser, dbSyncStatus, aiRunLogs, aiRunLogSource, openaiConfigured, departmentConfigs, clientRequests });
   const pilot = getPilotDataStatus(clients, projects, deliverables);
   const { score, pass, warning, fail, info, topAction, overallStatus, checks } = report;
   const oc = OVERALL_COLOR[overallStatus];

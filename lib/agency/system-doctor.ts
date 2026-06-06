@@ -12,6 +12,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Client, Project, Deliverable, StrategyRoom, Task } from "@/lib/agency/mock-data";
+import type { ClientRequest } from "@/lib/agency/client-requests";
 import type { MaterialRequest } from "@/lib/agency/workspace";
 import { isValidProposalPricing } from "@/lib/agency/reporting";
 import { needsRevision } from "@/lib/agency/deliverables";
@@ -118,10 +119,12 @@ export interface DoctorInput {
   openaiConfigured?: boolean;
   // Per-department provider selections (from departmentConfigs)
   departmentConfigs?: { departmentId: string; aiProvider: string }[];
+  // Client requests from portal Briefing Room
+  clientRequests?: ClientRequest[];
 }
 
 export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
-  const { clients, projects, deliverables, materialRequests, strategyRooms, tasks = [], persisted, integrationConfigs, agentProviderConfigs, dbAvailable, authMode, portalMode, sessionActive, sessionUser, dbSyncStatus, aiRunLogs = [], aiRunLogSource, openaiConfigured, departmentConfigs = [] } = input;
+  const { clients, projects, deliverables, materialRequests, strategyRooms, tasks = [], persisted, integrationConfigs, agentProviderConfigs, dbAvailable, authMode, portalMode, sessionActive, sessionUser, dbSyncStatus, aiRunLogs = [], aiRunLogSource, openaiConfigured, departmentConfigs = [], clientRequests = [] } = input;
 
   const checks: DiagnosticCheck[] = [];
 
@@ -1306,6 +1309,55 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
     });
   }
 
+  // ── Group 11: Solicitações de Clientes ───────────────────────────────────
+
+  const pendingRequests = clientRequests.filter((r) => r.status === "new");
+  checks.push({
+    id: "requests-pending-review",
+    group: "Solicitações de Clientes",
+    label: "Solicitações aguardando análise",
+    status: pendingRequests.length === 0 ? "pass" : pendingRequests.length <= 2 ? "warning" : "fail",
+    severity: "high",
+    explanation:
+      pendingRequests.length === 0
+        ? "Nenhuma solicitação de cliente aguardando análise."
+        : `${pendingRequests.length} solicitação(ões) novas recebidas pelo portal ainda não analisadas.`,
+    action:
+      pendingRequests.length === 0
+        ? "Nenhuma ação necessária."
+        : "Acesse Solicitações → analisar e encaminhar cada briefing para o departamento adequado.",
+    route: "/agency/requests",
+  });
+
+  const incompleteRequests = clientRequests.filter((r) => r.missingInfo.length >= 3 && r.status !== "rejected" && r.status !== "completed");
+  checks.push({
+    id: "requests-missing-fields",
+    group: "Solicitações de Clientes",
+    label: "Solicitações com informações incompletas",
+    status: incompleteRequests.length === 0 ? "pass" : "warning",
+    severity: "medium",
+    explanation:
+      incompleteRequests.length === 0
+        ? "Todas as solicitações ativas têm informações suficientes para análise inicial."
+        : `${incompleteRequests.length} solicitação(ões) com 3 ou mais campos críticos ausentes (prazo, orçamento, público, etc.).`,
+    action:
+      incompleteRequests.length === 0
+        ? "Nenhuma ação necessária."
+        : "Entrar em contato com o cliente para coletar as informações faltantes antes de iniciar o projeto.",
+    route: "/agency/requests",
+  });
+
+  checks.push({
+    id: "requests-intake-available",
+    group: "Solicitações de Clientes",
+    label: "Intake de solicitações disponível no portal",
+    status: "pass",
+    severity: "low",
+    explanation: "O portal do cliente inclui o fluxo de nova solicitação (Briefing Room). Clientes podem enviar briefings diretamente.",
+    action: "Compartilhe o link do portal com os clientes para que possam enviar solicitações.",
+    route: "/portal/client/c4",
+  });
+
   // ── Score ─────────────────────────────────────────────────────────────────
 
   let totalWeight = 0;
@@ -1359,6 +1411,7 @@ export const CHECK_GROUP_ORDER = [
   "Orquestração",
   "Departamentos",
   "Modelo Operacional",
+  "Solicitações de Clientes",
   "Infraestrutura",
   "Prontidão dos Agentes",
   "Ferramentas & Integrações",

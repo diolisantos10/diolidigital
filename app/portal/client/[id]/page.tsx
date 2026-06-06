@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAgencyStore } from "@/store/agency-store";
 import { useDbBrandUpdates } from "@/lib/hooks/useDbBrandUpdates";
 import { notFound } from "next/navigation";
@@ -10,6 +11,7 @@ import { getClientProgress, getNextProjectAction } from "@/lib/agency/reporting"
 import { PORTAL_SAFE_BRAND_FIELDS, BRAND_FIELD_LABELS } from "@/lib/agency/roles";
 import { parseBrandBook, type ParsedBrandField } from "@/lib/agency/brand-parser";
 import DeliverablePreview from "@/components/agency/deliverables/DeliverablePreview";
+import { REQUEST_STATUS_LABEL, REQUEST_STATUS_STYLE } from "@/lib/agency/client-requests";
 
 
 const STAGE_LABEL: Record<ProjectStage, string> = {
@@ -35,7 +37,8 @@ const TYPE_ICON: Record<string, string> = {
 
 export default function ClientPortalPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { clients, projects, deliverables, materialRequests, updateDeliverableStatus, setDeliverableFeedback,
+  const router = useRouter();
+  const { clients, projects, deliverables, materialRequests, clientRequests, updateDeliverableStatus, setDeliverableFeedback,
           approveProposal, rejectProposal, requestProposalChanges } = useAgencyStore();
   const { add: addBrandUpdate } = useDbBrandUpdates({ clientId: id });
   const cp = getClientProgress(id, projects, deliverables, materialRequests);
@@ -43,6 +46,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
   const client = clients.find((c) => c.id === id);
   if (!client) return notFound();
 
+  const myRequests = (clientRequests ?? []).filter((r) => r.clientId === id);
   const clientProjects = projects.filter((p) => p.clientId === id);
   const clientProjectIds = new Set<string>(clientProjects.map((p) => p.id as string));
   const visibleDeliverables = getClientVisibleDeliverables(deliverables, clientProjectIds);
@@ -154,20 +158,82 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
       <div className="mb-8">
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-[22px] font-semibold text-[#1A1A1A]">{client.name}</h1>
+            <h1 className="text-[22px] font-semibold text-[#1A1A1A]">Olá, {client.name}</h1>
             <p className="text-[13px] text-[#9B9B95] mt-0.5">{client.industry}</p>
           </div>
-          {totalInReview > 0 && (
-            <span className="flex items-center gap-1.5 h-7 px-3 rounded-full bg-[#FEF3C7] text-[#D97706] text-[12px] font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#D97706]" />
-              {totalInReview} aguardando revisão
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {totalInReview > 0 && (
+              <span className="flex items-center gap-1.5 h-7 px-3 rounded-full bg-[#FEF3C7] text-[#D97706] text-[12px] font-medium">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#D97706]" />
+                {totalInReview} aguardando revisão
+              </span>
+            )}
+            <button
+              onClick={() => router.push(`/portal/client/${id}/briefing`)}
+              className="h-8 px-4 rounded-[8px] bg-[#1A1A1A] hover:bg-[#111111] text-white text-[12px] font-medium transition-colors"
+            >
+              + Nova solicitação
+            </button>
+          </div>
         </div>
         <p className="text-[13px] text-[#6B6B65] mt-3 max-w-lg leading-relaxed">
-          Revise os materiais abaixo e aprove-os ou solicite ajustes. Seu feedback vai direto para a equipe.
+          Revise os materiais abaixo, acompanhe suas solicitações e envie feedback direto para a equipe.
         </p>
       </div>
+
+      {/* ── Minhas Solicitações ───────────────────────────────────────────────── */}
+      {myRequests.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-[15px] font-semibold text-[#1A1A1A]">Minhas solicitações</h2>
+            <button
+              onClick={() => router.push(`/portal/client/${id}/briefing`)}
+              className="text-[12px] text-[#5B5BD6] hover:underline font-medium"
+            >
+              + Nova solicitação
+            </button>
+          </div>
+          <div className="space-y-2.5">
+            {myRequests.map((req) => {
+              const style = REQUEST_STATUS_STYLE[req.status];
+              return (
+                <div
+                  key={req.id}
+                  className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[13px] font-medium text-[#1A1A1A] truncate">{req.title}</span>
+                        <span className={`h-5 px-2 rounded-full text-[10px] font-semibold shrink-0 ${style.bg} ${style.text}`}>
+                          {REQUEST_STATUS_LABEL[req.status]}
+                        </span>
+                      </div>
+                      {req.extractedSummary.services.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {req.extractedSummary.services.map((s) => (
+                            <span key={s} className="text-[11px] text-[#9B9B95]">{s}</span>
+                          )).reduce((acc: React.ReactNode[], el, i, arr) => {
+                            acc.push(el);
+                            if (i < arr.length - 1) acc.push(<span key={`sep-${i}`} className="text-[#D0D0CC]">·</span>);
+                            return acc;
+                          }, [])}
+                        </div>
+                      )}
+                      <p className="text-[11px] text-[#C0C0BC] mt-1">
+                        Enviada em {new Date(req.createdAt).toLocaleDateString("pt-BR")}
+                      </p>
+                    </div>
+                    {req.status === "new" && (
+                      <span className="w-2 h-2 rounded-full bg-[#5B5BD6] shrink-0 mt-1.5" />
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ── Resumo do Projeto ─────────────────────────────────────────────── */}
       {cp.totalDeliverables > 0 && (() => {
