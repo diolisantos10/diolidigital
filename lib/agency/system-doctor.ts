@@ -1194,6 +1194,7 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
 
   // ── Group 10: Modelo Operacional (Blueprint completeness) ─────────────────
   // Diagnoses whether each department's operating blueprint is complete.
+  // Intake is NOT checked here — intake is centralized under PM, not per-dept.
 
   for (const bp of DEPARTMENT_BLUEPRINTS) {
     const def = DEPARTMENT_DEFS.find((d) => d.id === bp.departmentId);
@@ -1212,7 +1213,7 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
       severity: isGold ? "medium" : "low",
       explanation:
         gaps.length === 0
-          ? `Blueprint de ${label} completo: identidade, intake, execução, entregas, handoffs e qualidade definidos.`
+          ? `Blueprint de ${label} completo: identidade, execução, entregas, handoffs e qualidade definidos.`
           : isGold
           ? `${label} é padrão-ouro mas tem ${gaps.length} seção(ões) incompleta(s): ${gaps.map((g) => g.section).join(", ")}.`
           : `${label} usa o shell do blueprint. Seções a configurar: ${gaps.map((g) => g.section).join(", ")}.`,
@@ -1220,10 +1221,26 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
         gaps.length === 0
           ? "Nenhuma ação necessária."
           : isGold
-          ? `Revisar o blueprint de ${label} — seções obrigatórias ausentes.`
+          ? `Revisar o blueprint de ${label} — seções obrigatórias ausentes: ${gaps.map((g) => g.section).join(", ")}.`
           : `Promover ${label} ao blueprint completo (referência: Design) preenchendo: ${gaps.map((g) => g.section).join(", ")}.`,
       route: `/agency/departments/${bp.departmentId}`,
     });
+
+    // Per-department: warn if handoff rules are missing (replaces old "missing intake" warning).
+    const missingHandoffs =
+      !bp.handoffs || (bp.handoffs.sends.length === 0 && bp.handoffs.receives.length === 0);
+    if (missingHandoffs && bp.maturity === "gold_standard") {
+      checks.push({
+        id: `blueprint-handoff-missing-${bp.departmentId}`,
+        group: "Modelo Operacional",
+        label: `${label} — regras de handoff ausentes`,
+        status: "warning",
+        severity: "high",
+        explanation: `${label} é padrão-ouro mas não tem regras de handoff definidas. Sem handoffs, o departamento não passa trabalho adiante de forma rastreável.`,
+        action: `Abrir blueprint de ${label} → seção Handoffs → mapear o que envia e recebe de cada departamento.`,
+        route: `/agency/departments/${bp.departmentId}`,
+      });
+    }
   }
 
   // At least one gold-standard department must exist (the replication reference).
@@ -1243,6 +1260,27 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
         ? "Nenhuma ação necessária."
         : "Promover ao menos um departamento (Design recomendado) ao blueprint completo.",
     route: "/agency/departments/design",
+  });
+
+  // Central intake check — PM is the single intake point. If PM blueprint lacks handoffs,
+  // demand distribution is untracked.
+  const pmBlueprint = DEPARTMENT_BLUEPRINTS.find((b) => b.departmentId === "project-management");
+  const pmHandoffsMissing =
+    !pmBlueprint?.handoffs ||
+    (pmBlueprint.handoffs.sends.length === 0 && pmBlueprint.handoffs.receives.length === 0);
+  checks.push({
+    id: "blueprint-central-intake",
+    group: "Modelo Operacional",
+    label: "Gestão de Projetos — intake central configurado",
+    status: pmHandoffsMissing ? "warning" : "pass",
+    severity: "medium",
+    explanation: pmHandoffsMissing
+      ? "Gestão de Projetos é o intake central da agência, mas suas regras de distribuição para os departamentos ainda não estão mapeadas no blueprint."
+      : "Gestão de Projetos tem regras de distribuição de demanda mapeadas — intake central operacional.",
+    action: pmHandoffsMissing
+      ? "Abrir Departamento Gestão de Projetos → Configuração → mapear handoffs de saída para Strategy, Design, Social, Tráfego Pago."
+      : "Nenhuma ação necessária.",
+    route: "/agency/departments/project-management",
   });
 
   // Blocked work without a stated reason (process hygiene).

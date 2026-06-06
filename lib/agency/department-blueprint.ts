@@ -549,8 +549,6 @@ export interface BlueprintGap {
 export function getBlueprintGaps(b: DepartmentOperatingBlueprint): BlueprintGap[] {
   const gaps: BlueprintGap[] = [];
   if (!b.identity.mission?.trim()) gaps.push({ section: "Identidade", detail: "Missão ausente." });
-  if (!b.intake) gaps.push({ section: "Intake", detail: "Regras de intake não configuradas." });
-  else if (b.intake.requiredInformation.length === 0) gaps.push({ section: "Intake", detail: "Sem informações obrigatórias definidas." });
   if (!b.deliverables || b.deliverables.types.length === 0) gaps.push({ section: "Entregas", detail: "Tipos de entrega não definidos." });
   if (!b.handoffs || (b.handoffs.sends.length === 0 && b.handoffs.receives.length === 0)) gaps.push({ section: "Handoffs", detail: "Regras de handoff não configuradas." });
   if (!b.quality || (b.quality.beforeStart.length === 0 && b.quality.beforeHandoff.length === 0)) gaps.push({ section: "Qualidade", detail: "Checklist de qualidade ausente." });
@@ -559,10 +557,9 @@ export function getBlueprintGaps(b: DepartmentOperatingBlueprint): BlueprintGap[
 }
 
 export function getBlueprintCompleteness(b: DepartmentOperatingBlueprint): number {
-  // 7 weighted sections; identity always counts.
+  // 6 weighted sections; identity always counts. Intake is not scored — PM owns intake centrally.
   const sections = [
     !!b.identity.mission?.trim(),
-    !!b.intake && b.intake.requiredInformation.length > 0,
     !!b.execution && b.execution.steps.length > 0,
     !!b.deliverables && b.deliverables.types.length > 0,
     !!b.handoffs && (b.handoffs.sends.length > 0 || b.handoffs.receives.length > 0),
