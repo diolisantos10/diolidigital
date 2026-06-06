@@ -38,6 +38,7 @@ export interface ClientRequest {
   updatedAt: string;
   source: "client_portal";
   attachments: never[];
+  linkedProjectId?: string;
 }
 
 export const REQUEST_STATUS_LABEL: Record<ClientRequestStatus, string> = {

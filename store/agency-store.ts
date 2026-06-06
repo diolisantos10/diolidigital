@@ -215,7 +215,7 @@ interface AgencyState {
   // Client requests (from portal Briefing Room)
   clientRequests: ClientRequest[];
   addClientRequest: (req: Omit<ClientRequest, "id" | "createdAt" | "updatedAt">) => string;
-  updateClientRequest: (id: string, updates: Partial<Pick<ClientRequest, "status">>) => void;
+  updateClientRequest: (id: string, updates: Partial<Pick<ClientRequest, "status" | "linkedProjectId">>) => void;
 
   // Integrations V2
   integrationConfigs: IntegrationConfig[];

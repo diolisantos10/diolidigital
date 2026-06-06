@@ -1329,6 +1329,53 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
     route: "/agency/requests",
   });
 
+  // Requests reviewed but not yet converted to a project
+  const reviewedNoProject = clientRequests.filter(
+    (r) =>
+      (r.status === "under_review" || r.status === "proposal_pending") &&
+      !r.linkedProjectId
+  );
+  checks.push({
+    id: "requests-reviewed-no-project",
+    group: "Solicitações de Clientes",
+    label: "Solicitações analisadas sem projeto criado",
+    status: reviewedNoProject.length === 0 ? "pass" : reviewedNoProject.length <= 2 ? "warning" : "fail",
+    severity: "medium",
+    explanation:
+      reviewedNoProject.length === 0
+        ? "Todas as solicitações analisadas têm projeto criado ou ainda estão aguardando."
+        : `${reviewedNoProject.length} solicitação(ões) estão em análise ou aguardando proposta mas nenhum projeto foi criado ainda.`,
+    action:
+      reviewedNoProject.length === 0
+        ? "Nenhuma ação necessária."
+        : "Acesse Solicitações → abrir cada solicitação → clicar em 'Criar projeto' para avançar no pipeline.",
+    route: "/agency/requests",
+  });
+
+  // Requests converted but check if they have material requests linked
+  const convertedRequests = clientRequests.filter((r) => r.linkedProjectId);
+  const convertedWithoutMaterials = convertedRequests.filter(
+    (r) => !materialRequests.some((m) => m.projectId === r.linkedProjectId)
+  );
+  if (convertedRequests.length > 0) {
+    checks.push({
+      id: "requests-converted-no-materials",
+      group: "Solicitações de Clientes",
+      label: "Projetos de solicitação sem materiais solicitados",
+      status: convertedWithoutMaterials.length === 0 ? "pass" : "warning",
+      severity: "medium",
+      explanation:
+        convertedWithoutMaterials.length === 0
+          ? "Todos os projetos criados a partir de solicitações têm materiais solicitados ao cliente."
+          : `${convertedWithoutMaterials.length} projeto(s) criado(s) de solicitações sem requisição de materiais ao cliente.`,
+      action:
+        convertedWithoutMaterials.length === 0
+          ? "Nenhuma ação necessária."
+          : "Acessar o projeto e solicitar os materiais necessários ao cliente pelo portal.",
+      route: "/agency/requests",
+    });
+  }
+
   const incompleteRequests = clientRequests.filter((r) => r.missingInfo.length >= 3 && r.status !== "rejected" && r.status !== "completed");
   checks.push({
     id: "requests-missing-fields",

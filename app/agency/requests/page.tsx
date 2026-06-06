@@ -1,12 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useAgencyStore } from "@/store/agency-store";
 import {
   REQUEST_STATUS_LABEL,
   REQUEST_STATUS_STYLE,
   type ClientRequestStatus,
+  type ClientRequest,
 } from "@/lib/agency/client-requests";
+import type { Priority } from "@/lib/agency/mock-data";
+
+// ── Constants ─────────────────────────────────────────────────────────────────
 
 const DEPT_LABELS: Record<string, string> = {
   "social-media":       "Social Media",
@@ -16,6 +21,17 @@ const DEPT_LABELS: Record<string, string> = {
   "project-management": "Gestão de Projetos",
   "strategy":           "Estratégia",
 };
+
+const DEPT_AGENT: Record<string, string> = {
+  "project-management": "pm_agent",
+  "strategy":           "pm_agent",
+  "brand-hub":          "a2",
+  "social-media":       "a3",
+  "design":             "a2",
+  "paid-traffic":       "a4",
+};
+
+const ALL_CONVERSION_DEPTS = ["strategy", "social-media", "design", "paid-traffic", "brand-hub"];
 
 const STATUS_FILTERS: { label: string; value: ClientRequestStatus | "all" }[] = [
   { label: "Todas",              value: "all" },
@@ -28,19 +44,205 @@ const STATUS_FILTERS: { label: string; value: ClientRequestStatus | "all" }[] = 
   { label: "Recusadas",         value: "rejected" },
 ];
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function deriveProjectName(services: string[], clientName: string): string {
+  if (services.length === 0) return `Projeto Digital — ${clientName}`;
+  const hasSocial  = services.some((s) => /social/i.test(s));
+  const hasDesign  = services.some((s) => /design|branding/i.test(s));
+  const hasTraffic = services.some((s) => /tráfego|pago|ads/i.test(s));
+  if (hasSocial && hasDesign && hasTraffic) return `Crescimento Digital — ${clientName}`;
+  if (hasSocial && hasDesign) return `Presença Digital — ${clientName}`;
+  if (hasSocial) return `Crescimento Social — ${clientName}`;
+  if (hasDesign) return `Identidade Visual — ${clientName}`;
+  if (hasTraffic) return `Campanhas Pagas — ${clientName}`;
+  return `${services[0]} — ${clientName}`;
+}
+
+function deriveGoal(objectives: string[]): string {
+  if (objectives.length === 0) return "";
+  return objectives.map((o) => o.replace(/^[A-Z]/, (c) => c.toLowerCase())).join(", ");
+}
+
+function deriveProjectType(services: string[]): string {
+  if (services.length > 2) return "Multi-channel";
+  if (services.some((s) => /social/i.test(s))) return "Social Media";
+  if (services.some((s) => /design|branding/i.test(s))) return "Design";
+  if (services.some((s) => /tráfego|ads/i.test(s))) return "Paid Traffic";
+  return "Digital Marketing";
+}
+
+function suggestMaterials(services: string[]): string[] {
+  const mats = new Set<string>();
+  if (services.some((s) => /social/i.test(s))) {
+    mats.add("Fotos e vídeos dos produtos/serviços");
+    mats.add("Links das redes sociais ativas");
+    mats.add("Promoções e ofertas vigentes");
+  }
+  if (services.some((s) => /design|branding/i.test(s))) {
+    mats.add("Logo e identidade visual (arquivos editáveis)");
+    mats.add("Paleta de cores e fontes da marca");
+  }
+  if (services.some((s) => /tráfego|pago|ads/i.test(s))) {
+    mats.add("Conta de anúncios (Meta Ads / Google Ads)");
+    mats.add("Criativos de anúncio anteriores (se houver)");
+  }
+  if (services.some((s) => /landing page|website|site/i.test(s))) {
+    mats.add("Textos e conteúdo para a página");
+    mats.add("Domínio e acesso à hospedagem");
+  }
+  if (services.some((s) => /apresentação|presentation/i.test(s))) {
+    mats.add("Conteúdo e dados para a apresentação");
+  }
+  mats.add("Referências visuais ou de comunicação");
+  mats.add("Descrição do público-alvo (idade, interesses, localização)");
+  return Array.from(mats);
+}
+
+interface ConversionForm {
+  projectName: string;
+  goal: string;
+  selectedDepts: string[];
+  priority: Priority;
+  deadline: string;
+  scope: string;
+  materials: string[];
+  newMaterial: string;
+}
+
+function buildDefaultForm(req: ClientRequest, clientName: string): ConversionForm {
+  const { services, objectives, urgency, suggestedDepartments } = req.extractedSummary;
+  const priority: Priority =
+    urgency?.toLowerCase().includes("urgente") || urgency?.toLowerCase().includes("hoje")
+      ? "high"
+      : urgency?.toLowerCase().includes("semana")
+      ? "medium"
+      : "medium";
+  const deadline = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+  const depts = suggestedDepartments.filter((d) => d !== "project-management");
+  return {
+    projectName: deriveProjectName(services, clientName),
+    goal: deriveGoal(objectives),
+    selectedDepts: depts.length > 0 ? depts : ["social-media"],
+    priority,
+    deadline,
+    scope: req.rawText.slice(0, 600),
+    materials: suggestMaterials(services),
+    newMaterial: "",
+  };
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────────
+
 export default function AgencyRequestsPage() {
-  const { clientRequests, clients, updateClientRequest } = useAgencyStore();
+  const {
+    clientRequests, clients, projects,
+    updateClientRequest, createProject, createBriefing, addMaterialRequest,
+  } = useAgencyStore();
+
   const [activeFilter, setActiveFilter] = useState<ClientRequestStatus | "all">("all");
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedId, setExpandedId]     = useState<string | null>(null);
+  const [convertingId, setConvertingId] = useState<string | null>(null);
+  const [convForm, setConvForm]         = useState<ConversionForm | null>(null);
+  // requestId → created projectId (success state per request)
+  const [createdProjects, setCreatedProjects] = useState<Record<string, string>>({});
 
-  const filtered = (clientRequests ?? []).filter(
-    (r) => activeFilter === "all" || r.status === activeFilter
-  );
+  const all    = clientRequests ?? [];
+  const filtered = all.filter((r) => activeFilter === "all" || r.status === activeFilter);
+  const newCount = all.filter((r) => r.status === "new").length;
 
-  const newCount = (clientRequests ?? []).filter((r) => r.status === "new").length;
+  const getClient = (clientId: string) => clients.find((c) => c.id === clientId);
 
-  const getClientName = (clientId: string) =>
-    clients.find((c) => c.id === clientId)?.name ?? clientId;
+  function openConversion(req: ClientRequest) {
+    const client = getClient(req.clientId);
+    const form = buildDefaultForm(req, client?.name ?? "Cliente");
+    setConvForm(form);
+    setConvertingId(req.id);
+    setExpandedId(req.id);
+  }
+
+  function cancelConversion() {
+    setConvertingId(null);
+    setConvForm(null);
+  }
+
+  function handleConfirmConversion(req: ClientRequest) {
+    if (!convForm) return;
+    const client = getClient(req.clientId);
+
+    // Map selected dept IDs to unique agent IDs
+    const agentIds = Array.from(
+      new Set(
+        ["pm_agent", ...convForm.selectedDepts.map((d) => DEPT_AGENT[d] ?? "pm_agent")]
+      )
+    );
+
+    // 1. Create project
+    const dueDays = Math.max(
+      7,
+      Math.floor((new Date(convForm.deadline).getTime() - Date.now()) / 86400000)
+    );
+    const pmDueDate = new Date(Date.now() + Math.min(dueDays, 7) * 86400000)
+      .toISOString().slice(0, 10);
+
+    const projectId = createProject({
+      name:     convForm.projectName,
+      clientId: req.clientId,
+      goal:     convForm.goal || req.rawText.slice(0, 120),
+      type:     deriveProjectType(req.extractedSummary.services),
+      stage:    "briefing",
+      priority: convForm.priority,
+      deadline: convForm.deadline,
+      agents:   agentIds,
+      initialTasks: [
+        {
+          title: `Analisar solicitação e preparar proposta — ${client?.name ?? "Cliente"}`,
+          description: `Solicitação convertida do portal. Escopo: ${convForm.scope.slice(0, 200)}`,
+          agentId: "pm_agent",
+          dueDate: pmDueDate,
+        },
+      ],
+    });
+
+    // 2. Create briefing
+    createBriefing({
+      projectId,
+      clientId:  req.clientId,
+      goal:      convForm.goal || req.rawText.slice(0, 120),
+      audience:  req.extractedSummary.objectives.join("; ") || "A definir",
+      keyMessage: req.extractedSummary.objectives.slice(0, 2).join(", ") || "A definir",
+      deliverables: req.extractedSummary.services.join(", ") || "A definir",
+      deadline:  convForm.deadline,
+      successCriteria: req.extractedSummary.objectives.join("; ") || "A definir",
+      notes: `Convertido da solicitação do portal: "${req.title}"`,
+      status: "pending_analysis",
+    });
+
+    // 3. Create material requests
+    for (const mat of convForm.materials) {
+      if (mat.trim()) {
+        addMaterialRequest({
+          clientId:  req.clientId,
+          projectId,
+          title:     mat.trim(),
+          description: "Necessário para início do projeto",
+          status: "pending",
+        });
+      }
+    }
+
+    // 4. Update client request status
+    updateClientRequest(req.id, { status: "in_progress", linkedProjectId: projectId });
+
+    // 5. Record success
+    setCreatedProjects((prev) => ({ ...prev, [req.id]: projectId }));
+    setConvertingId(null);
+    setConvForm(null);
+  }
+
+  function patchForm(patch: Partial<ConversionForm>) {
+    setConvForm((f) => (f ? { ...f, ...patch } : f));
+  }
 
   return (
     <div className="space-y-6">
@@ -63,9 +265,7 @@ export default function AgencyRequestsPage() {
       {/* Filter tabs */}
       <div className="flex gap-1 flex-wrap">
         {STATUS_FILTERS.map((f) => {
-          const count = f.value === "all"
-            ? (clientRequests ?? []).length
-            : (clientRequests ?? []).filter((r) => r.status === f.value).length;
+          const count = f.value === "all" ? all.length : all.filter((r) => r.status === f.value).length;
           return (
             <button
               key={f.value}
@@ -76,7 +276,7 @@ export default function AgencyRequestsPage() {
                   : "bg-[#F0F0ED] text-[#6B6B65] hover:bg-[#E5E5E2]"
               }`}
             >
-              {f.label} {count > 0 && <span className="opacity-60 ml-0.5">({count})</span>}
+              {f.label}{count > 0 && <span className="opacity-60 ml-0.5"> ({count})</span>}
             </button>
           );
         })}
@@ -89,7 +289,7 @@ export default function AgencyRequestsPage() {
           <p className="text-[13px] text-[#9B9B95] mt-1.5">
             {activeFilter === "all"
               ? "Solicitações dos clientes aparecerão aqui quando enviadas pelo portal."
-              : "Nenhuma solicitação com esse status no momento."}
+              : "Nenhuma solicitação com esse status."}
           </p>
         </div>
       )}
@@ -99,29 +299,37 @@ export default function AgencyRequestsPage() {
         {filtered.map((req) => {
           const style = REQUEST_STATUS_STYLE[req.status];
           const isExpanded = expandedId === req.id;
-          const clientName = getClientName(req.clientId);
+          const isConverting = convertingId === req.id;
+          const createdProjectId = createdProjects[req.id];
+          const clientName = getClient(req.clientId)?.name ?? req.clientId;
 
           return (
             <div
               key={req.id}
               className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden"
             >
-              {/* Header row */}
+              {/* ── Header row ── */}
               <div
                 className="flex items-center gap-4 px-5 py-4 cursor-pointer hover:bg-[#F7F7F6] transition-colors"
-                onClick={() => setExpandedId(isExpanded ? null : req.id)}
+                onClick={() => {
+                  if (isConverting) return;
+                  setExpandedId(isExpanded ? null : req.id);
+                }}
               >
-                {/* Status dot */}
                 {req.status === "new" && (
                   <span className="w-2 h-2 rounded-full bg-[#5B5BD6] shrink-0" />
                 )}
-
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-[13px] font-semibold text-[#1A1A1A]">{req.title}</span>
                     <span className={`h-5 px-2 rounded-full text-[10px] font-semibold ${style.bg} ${style.text}`}>
                       {REQUEST_STATUS_LABEL[req.status]}
                     </span>
+                    {createdProjectId && (
+                      <span className="h-5 px-2 rounded-full bg-[#DCFCE7] text-[#16A34A] text-[10px] font-semibold">
+                        Projeto criado
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-[12px] text-[#6B6B65] font-medium">{clientName}</span>
@@ -139,30 +347,27 @@ export default function AgencyRequestsPage() {
                     </span>
                   </div>
                 </div>
-
-                {/* Missing info badge */}
                 {req.missingInfo.length > 0 && (
                   <span className="h-5 px-2 rounded-full bg-[#FEF3C7] text-[#D97706] text-[10px] font-semibold shrink-0">
                     {req.missingInfo.length} info{req.missingInfo.length !== 1 ? "s" : ""} ausente{req.missingInfo.length !== 1 ? "s" : ""}
                   </span>
                 )}
-
                 <span className="text-[#C0C0BC] text-[12px] shrink-0">{isExpanded ? "▲" : "▼"}</span>
               </div>
 
-              {/* Expanded detail */}
-              {isExpanded && (
+              {/* ── Expanded detail ── */}
+              {isExpanded && !isConverting && !createdProjectId && (
                 <div className="border-t border-[#F0F0ED] px-5 py-5 space-y-5">
                   {/* Raw text */}
                   <div>
                     <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">Texto original</div>
-                    <p className="text-[13px] text-[#1A1A1A] leading-relaxed whitespace-pre-wrap bg-[#F7F7F6] rounded-[8px] px-4 py-3">
+                    <p className="text-[13px] text-[#1A1A1A] leading-relaxed whitespace-pre-wrap bg-[#F7F7F6] rounded-[8px] px-4 py-3 max-h-[160px] overflow-y-auto">
                       {req.rawText}
                     </p>
                   </div>
 
                   {/* Extracted summary grid */}
-                  <div className="grid grid-cols-2 gap-5">
+                  <div className="grid grid-cols-2 gap-4">
                     {req.extractedSummary.services.length > 0 && (
                       <div>
                         <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Serviços</div>
@@ -173,7 +378,6 @@ export default function AgencyRequestsPage() {
                         </div>
                       </div>
                     )}
-
                     {req.extractedSummary.channels.length > 0 && (
                       <div>
                         <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Canais</div>
@@ -184,7 +388,6 @@ export default function AgencyRequestsPage() {
                         </div>
                       </div>
                     )}
-
                     {req.extractedSummary.objectives.length > 0 && (
                       <div>
                         <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Objetivos</div>
@@ -195,31 +398,6 @@ export default function AgencyRequestsPage() {
                         </div>
                       </div>
                     )}
-
-                    {req.extractedSummary.quantities.length > 0 && (
-                      <div>
-                        <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Quantidades</div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {req.extractedSummary.quantities.map((q) => (
-                            <span key={q} className="h-5 px-2 rounded-full bg-[#FEF3C7] text-[#D97706] text-[11px] font-medium">{q}</span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {req.extractedSummary.suggestedDepartments.length > 0 && (
-                      <div>
-                        <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Departamentos sugeridos</div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {req.extractedSummary.suggestedDepartments.map((d) => (
-                            <span key={d} className="h-5 px-2 rounded-full bg-[#F0F0ED] text-[#1A1A1A] text-[11px] font-medium">
-                              {DEPT_LABELS[d] ?? d}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
                     {req.extractedSummary.urgency && (
                       <div>
                         <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Urgência</div>
@@ -254,24 +432,16 @@ export default function AgencyRequestsPage() {
                         Analisar
                       </button>
                     )}
-                    {req.status === "under_review" && (
-                      <button
-                        onClick={() => updateClientRequest(req.id, { status: "proposal_pending" })}
-                        className="h-8 px-4 rounded-[7px] bg-[#1A1A1A] hover:bg-[#111111] text-white text-[12px] font-medium transition-colors"
-                      >
-                        Marcar como proposta pendente
-                      </button>
-                    )}
                     <button
-                      disabled
-                      className="h-8 px-4 rounded-[7px] border border-[#E5E5E2] text-[#9B9B95] text-[12px] font-medium cursor-not-allowed opacity-60"
-                      title="Em breve"
+                      onClick={(e) => { e.stopPropagation(); openConversion(req); }}
+                      className="h-8 px-4 rounded-[7px] border border-[#5B5BD6] text-[#5B5BD6] hover:bg-[#EEF0FF] text-[12px] font-medium transition-colors"
                     >
                       Criar projeto
                     </button>
                     {req.status !== "completed" && req.status !== "rejected" && (
                       <select
                         value={req.status}
+                        onClick={(e) => e.stopPropagation()}
                         onChange={(e) => updateClientRequest(req.id, { status: e.target.value as ClientRequestStatus })}
                         className="ml-auto h-8 px-2 text-[12px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] text-[#6B6B65]"
                       >
@@ -283,9 +453,281 @@ export default function AgencyRequestsPage() {
                   </div>
                 </div>
               )}
+
+              {/* ── Conversion Panel ── */}
+              {isConverting && convForm && (
+                <ConversionPanel
+                  req={req}
+                  clientName={getClient(req.clientId)?.name ?? "Cliente"}
+                  form={convForm}
+                  onPatch={patchForm}
+                  onConfirm={() => handleConfirmConversion(req)}
+                  onCancel={cancelConversion}
+                />
+              )}
+
+              {/* ── Success State ── */}
+              {isExpanded && createdProjectId && (
+                <SuccessPanel
+                  req={req}
+                  projectId={createdProjectId}
+                  projectName={projects.find((p) => p.id === createdProjectId)?.name ?? "Projeto"}
+                  clientId={req.clientId}
+                />
+              )}
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+// ── Conversion Panel ──────────────────────────────────────────────────────────
+
+function ConversionPanel({
+  req, clientName, form, onPatch, onConfirm, onCancel,
+}: {
+  req: ClientRequest;
+  clientName: string;
+  form: ConversionForm;
+  onPatch: (p: Partial<ConversionForm>) => void;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  function toggleDept(d: string) {
+    const next = form.selectedDepts.includes(d)
+      ? form.selectedDepts.filter((x) => x !== d)
+      : [...form.selectedDepts, d];
+    onPatch({ selectedDepts: next });
+  }
+
+  function addMaterial() {
+    const m = form.newMaterial.trim();
+    if (!m || form.materials.includes(m)) return;
+    onPatch({ materials: [...form.materials, m], newMaterial: "" });
+  }
+
+  function removeMaterial(i: number) {
+    onPatch({ materials: form.materials.filter((_, idx) => idx !== i) });
+  }
+
+  return (
+    <div className="border-t border-[#E5E5E2] bg-[#F7F7F6] px-5 py-5 space-y-5">
+      {/* Panel header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="text-[13px] font-semibold text-[#1A1A1A]">Criar projeto</div>
+          <p className="text-[11px] text-[#9B9B95] mt-0.5">
+            Baseado em: {req.title} · {clientName}
+          </p>
+        </div>
+        <button
+          onClick={onCancel}
+          className="text-[12px] text-[#9B9B95] hover:text-[#6B6B65] transition-colors"
+        >
+          Cancelar
+        </button>
+      </div>
+
+      {/* Row 1: name + priority + deadline */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="col-span-1">
+          <label className="block text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1">
+            Nome do projeto
+          </label>
+          <input
+            type="text"
+            value={form.projectName}
+            onChange={(e) => onPatch({ projectName: e.target.value })}
+            className="w-full h-9 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] transition-colors"
+          />
+        </div>
+        <div>
+          <label className="block text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1">
+            Prioridade
+          </label>
+          <select
+            value={form.priority}
+            onChange={(e) => onPatch({ priority: e.target.value as Priority })}
+            className="w-full h-9 px-2 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6]"
+          >
+            <option value="high">Alta</option>
+            <option value="medium">Média</option>
+            <option value="low">Baixa</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1">
+            Prazo
+          </label>
+          <input
+            type="date"
+            value={form.deadline}
+            onChange={(e) => onPatch({ deadline: e.target.value })}
+            className="w-full h-9 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6]"
+          />
+        </div>
+      </div>
+
+      {/* Goal */}
+      <div>
+        <label className="block text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1">
+          Objetivo do projeto
+        </label>
+        <input
+          type="text"
+          value={form.goal}
+          onChange={(e) => onPatch({ goal: e.target.value })}
+          placeholder="Ex.: ganhar novos clientes e aumentar vendas"
+          className="w-full h-9 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] transition-colors"
+        />
+      </div>
+
+      {/* Departments */}
+      <div>
+        <label className="block text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">
+          Departamentos envolvidos
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {ALL_CONVERSION_DEPTS.map((d) => {
+            const checked = form.selectedDepts.includes(d);
+            return (
+              <button
+                key={d}
+                onClick={() => toggleDept(d)}
+                className={`h-7 px-3 rounded-[6px] text-[12px] font-medium border transition-colors ${
+                  checked
+                    ? "bg-[#1A1A1A] border-[#1A1A1A] text-white"
+                    : "bg-white border-[#E5E5E2] text-[#6B6B65] hover:border-[#9B9B95]"
+                }`}
+              >
+                {checked ? "✓ " : ""}{DEPT_LABELS[d]}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Scope */}
+      <div>
+        <label className="block text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1">
+          Escopo inicial (vai para o briefing)
+        </label>
+        <textarea
+          value={form.scope}
+          onChange={(e) => onPatch({ scope: e.target.value })}
+          rows={3}
+          className="w-full px-3 py-2 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] resize-none leading-relaxed"
+        />
+      </div>
+
+      {/* Material requests */}
+      <div>
+        <label className="block text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">
+          Materiais necessários do cliente
+        </label>
+        <div className="space-y-1.5 mb-2">
+          {form.materials.map((m, i) => (
+            <div key={i} className="flex items-center gap-2 bg-white border border-[#E5E5E2] rounded-[7px] px-3 py-1.5">
+              <span className="flex-1 text-[12px] text-[#1A1A1A]">{m}</span>
+              <button
+                onClick={() => removeMaterial(i)}
+                className="text-[#C0C0BC] hover:text-[#DC2626] text-[11px] transition-colors shrink-0"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={form.newMaterial}
+            onChange={(e) => onPatch({ newMaterial: e.target.value })}
+            onKeyDown={(e) => e.key === "Enter" && addMaterial()}
+            placeholder="Adicionar material (Enter para confirmar)..."
+            className="flex-1 h-8 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] transition-colors"
+          />
+          <button
+            onClick={addMaterial}
+            disabled={!form.newMaterial.trim()}
+            className="h-8 px-3 rounded-[7px] border border-[#E5E5E2] text-[#6B6B65] hover:border-[#5B5BD6] hover:text-[#5B5BD6] text-[12px] disabled:opacity-40 transition-colors"
+          >
+            + Add
+          </button>
+        </div>
+      </div>
+
+      {/* Confirm action */}
+      <div className="flex items-center gap-3 pt-1 border-t border-[#E5E5E2]">
+        <button
+          onClick={onConfirm}
+          disabled={!form.projectName.trim() || !form.deadline}
+          className="h-9 px-5 rounded-[8px] bg-[#1A1A1A] hover:bg-[#111111] disabled:opacity-40 disabled:cursor-not-allowed text-white text-[12px] font-medium transition-colors"
+        >
+          Confirmar e criar projeto
+        </button>
+        <button
+          onClick={onCancel}
+          className="h-9 px-4 rounded-[8px] border border-[#E5E5E2] text-[#6B6B65] hover:text-[#1A1A1A] text-[12px] font-medium transition-colors"
+        >
+          Cancelar
+        </button>
+        <p className="text-[11px] text-[#C0C0BC] ml-auto">
+          Cria projeto + briefing + {form.materials.length} material(is) + tarefa PM
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ── Success Panel ─────────────────────────────────────────────────────────────
+
+function SuccessPanel({
+  req, projectId, projectName, clientId,
+}: {
+  req: ClientRequest;
+  projectId: string;
+  projectName: string;
+  clientId: string;
+}) {
+  return (
+    <div className="border-t border-[#BBF7D0] bg-[#F0FDF4] px-5 py-5">
+      <div className="flex items-start gap-3">
+        <div className="w-8 h-8 rounded-full bg-[#DCFCE7] flex items-center justify-center shrink-0 text-[#16A34A] font-bold text-[14px]">
+          ✓
+        </div>
+        <div className="flex-1">
+          <div className="text-[13px] font-semibold text-[#15803D] mb-0.5">Projeto criado com sucesso!</div>
+          <p className="text-[12px] text-[#16A34A]">{projectName}</p>
+          <div className="flex flex-wrap gap-2 mt-3">
+            <Link
+              href={`/agency/projects/${projectId}`}
+              className="h-7 px-3 rounded-[6px] bg-[#1A1A1A] hover:bg-[#111111] text-white text-[11px] font-medium transition-colors inline-flex items-center"
+            >
+              Ver projeto →
+            </Link>
+            <Link
+              href={`/agency/clients/${clientId}`}
+              className="h-7 px-3 rounded-[6px] border border-[#BBF7D0] bg-white hover:bg-[#F0FDF4] text-[#15803D] text-[11px] font-medium transition-colors inline-flex items-center"
+            >
+              Brand Hub
+            </Link>
+            <Link
+              href="/agency/departments/strategy"
+              className="h-7 px-3 rounded-[6px] border border-[#BBF7D0] bg-white hover:bg-[#F0FDF4] text-[#15803D] text-[11px] font-medium transition-colors inline-flex items-center"
+            >
+              Abrir Estratégia
+            </Link>
+            <Link
+              href="/agency/departments/project-management"
+              className="h-7 px-3 rounded-[6px] border border-[#BBF7D0] bg-white hover:bg-[#F0FDF4] text-[#15803D] text-[11px] font-medium transition-colors inline-flex items-center"
+            >
+              Gestão de Projetos
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );
