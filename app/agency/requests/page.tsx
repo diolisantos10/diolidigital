@@ -254,12 +254,21 @@ export default function AgencyRequestsPage() {
             Briefings recebidos pelo portal — analise e transforme em projetos.
           </p>
         </div>
-        {newCount > 0 && (
-          <span className="flex items-center gap-1.5 h-7 px-3 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[12px] font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#5B5BD6]" />
-            {newCount} nova{newCount !== 1 ? "s" : ""}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          <Link
+            href="/portal-demo/sushi-cazza"
+            className="h-7 px-3 rounded-[6px] border border-[#FDE68A] bg-[#FFFBEB] text-[#D97706] hover:border-[#F59E0B] text-[11px] font-semibold transition-colors inline-flex items-center gap-1.5"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B]" />
+            Testar como cliente Sushi Cazza
+          </Link>
+          {newCount > 0 && (
+            <span className="flex items-center gap-1.5 h-7 px-3 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[12px] font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#5B5BD6]" />
+              {newCount} nova{newCount !== 1 ? "s" : ""}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Filter tabs */}

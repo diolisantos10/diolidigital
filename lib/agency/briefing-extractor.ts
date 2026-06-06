@@ -77,7 +77,7 @@ const CHANNEL_PATTERNS: { label: string; pattern: RegExp }[] = [
 // ── Objective detection ───────────────────────────────────────────────────────
 
 const OBJECTIVE_PATTERNS: { label: string; pattern: RegExp }[] = [
-  { label: "Aumentar vendas",       pattern: /\bvendas?\b/i },
+  { label: "Aumentar vendas",       pattern: /\bvendas?\b|\bvender\b/i },
   { label: "Novos clientes",        pattern: /\bnovos?\s*clientes?\b/i },
   { label: "Autoridade / visibilidade", pattern: /\bautoridade\b|\bvisibilidade\b|\bpresença\b/i },
   { label: "Lançamento",            pattern: /\blançamento\b|\blançar\b/i },
