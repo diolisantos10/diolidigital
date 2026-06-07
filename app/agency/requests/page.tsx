@@ -339,6 +339,11 @@ export default function AgencyRequestsPage() {
                         Projeto criado
                       </span>
                     )}
+                    {req.attachments.length > 0 && (
+                      <span className="h-5 px-2 rounded-full bg-[#F0F0ED] text-[#6B6B65] text-[10px] font-semibold">
+                        {req.attachments.length} arquivo{req.attachments.length !== 1 ? "s" : ""}
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-[12px] text-[#6B6B65] font-medium">{clientName}</span>
@@ -416,6 +421,52 @@ export default function AgencyRequestsPage() {
                       </div>
                     )}
                   </div>
+
+                  {/* Attachments */}
+                  {req.attachments.length > 0 && (
+                    <div>
+                      <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">
+                        Arquivos anexados ({req.attachments.length})
+                      </div>
+                      <div className="space-y-1.5">
+                        {req.attachments.map((att) => (
+                          <div key={att.id} className="flex items-center gap-3 bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] px-3 py-2">
+                            <div className="w-7 h-7 rounded-[5px] bg-white border border-[#E5E5E2] flex items-center justify-center shrink-0">
+                              <span className="text-[7px] font-bold text-[#6B6B65]">{att.fileType}</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[11px] font-medium text-[#1A1A1A] truncate">{att.fileName}</p>
+                              <p className="text-[10px] text-[#9B9B95]">
+                                {att.sizeBytes < 1024 * 1024
+                                  ? `${(att.sizeBytes / 1024).toFixed(1)} KB`
+                                  : `${(att.sizeBytes / (1024 * 1024)).toFixed(1)} MB`}
+                                {" · "}{att.fileType}{" · "}{att.source === "briefing_room" ? "Briefing Room" : att.source}
+                              </p>
+                            </div>
+                            {att.previewUrl ? (
+                              <a
+                                href={att.previewUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="h-5 px-2 rounded-[4px] border border-[#5B5BD6] text-[#5B5BD6] text-[9px] font-semibold hover:bg-[#EEF0FF] transition-colors shrink-0"
+                              >
+                                Visualizar
+                              </a>
+                            ) : (
+                              <span className="h-5 px-2 rounded-[4px] bg-[#F0F0ED] text-[#9B9B95] text-[9px] font-semibold shrink-0">
+                                local
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      {req.attachments.some((a) => a.storageStatus === "local_only") && (
+                        <p className="text-[10px] text-[#C0C0BC] mt-1.5">
+                          Arquivo registrado localmente nesta sessão. Upload permanente será conectado ao storage.
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   {/* Missing info */}
                   {req.missingInfo.length > 0 && (

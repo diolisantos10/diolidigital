@@ -6,6 +6,8 @@ import { useAgencyStore } from "@/store/agency-store";
 import { extractBriefing } from "@/lib/agency/briefing-extractor";
 import { DEMO_CLIENT_ID, SUSHI_CAZZA_EXAMPLE_TEXT } from "@/lib/agency/demo-client";
 import { useSpeechToText } from "@/lib/hooks/useSpeechToText";
+import { FileUploadZone } from "@/components/agency/briefing/FileUploadZone";
+import type { RequestAttachment } from "@/lib/agency/client-requests";
 
 export default function DemoBriefingPage() {
   const { addClientRequest } = useAgencyStore();
@@ -16,6 +18,7 @@ export default function DemoBriefingPage() {
   const [links,    setLinks]    = useState("");
   const [budget,   setBudget]   = useState("");
   const [summary,  setSummary]  = useState(() => extractBriefing("").summary);
+  const [attachments, setAttachments] = useState<RequestAttachment[]>([]);
   const [submitted, setSubmitted] = useState(false);
   const [submittedId, setSubmittedId] = useState<string | null>(null);
 
@@ -59,7 +62,7 @@ export default function DemoBriefingPage() {
       missingInfo: s.missingInfo,
       status: "new",
       source: "client_portal",
-      attachments: [],
+      attachments,
     });
     setSubmittedId(id);
     setSubmitted(true);
@@ -75,6 +78,11 @@ export default function DemoBriefingPage() {
         <p className="text-[13px] text-[#6B6B65] leading-relaxed mb-1">
           Próximo passo: nossa equipe vai analisar e estruturar seu projeto.
         </p>
+        {attachments.length > 0 && (
+          <p className="text-[12px] text-[#16A34A] font-medium mb-1">
+            {attachments.length} arquivo{attachments.length !== 1 ? "s" : ""} anexado{attachments.length !== 1 ? "s" : ""} com sucesso.
+          </p>
+        )}
         <p className="text-[12px] text-[#9B9B95] mb-8">
           Você será notificado assim que tivermos novidades.
         </p>
@@ -89,6 +97,7 @@ export default function DemoBriefingPage() {
             onClick={() => {
               setRawText(""); setTitle(""); setDeadline(""); setLinks(""); setBudget("");
               setSummary(extractBriefing("").summary);
+              setAttachments([]);
               setSubmitted(false); setSubmittedId(null);
             }}
             className="h-9 px-4 rounded-[8px] border border-[#E5E5E2] text-[#6B6B65] hover:text-[#1A1A1A] text-[12px] font-medium transition-colors"
@@ -262,15 +271,12 @@ export default function DemoBriefingPage() {
           </div>
         </div>
 
-        {/* Upload placeholder */}
-        <div className="border border-dashed border-[#E5E5E2] rounded-[10px] px-5 py-4 text-center">
-          <p className="text-[12px] text-[#9B9B95]">
-            ↑ Arraste arquivos aqui ou{" "}
-            <span className="text-[#5B5BD6] cursor-not-allowed">clique para selecionar</span>
-            <span className="block text-[10px] text-[#C0C0BC] mt-0.5">
-              Brand Book, logo, referências — disponível em breve
-            </span>
-          </p>
+        {/* File upload */}
+        <div>
+          <label className="block text-[12px] font-medium text-[#6B6B65] mb-2">
+            Anexar arquivos <span className="text-[#9B9B95] font-normal">(opcional)</span>
+          </label>
+          <FileUploadZone clientId={DEMO_CLIENT_ID} onChange={setAttachments} />
         </div>
 
         {/* Submit */}

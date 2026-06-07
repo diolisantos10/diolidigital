@@ -7,6 +7,8 @@ import { notFound } from "next/navigation";
 import { extractBriefing } from "@/lib/agency/briefing-extractor";
 import type { ExtractedRequestSummary } from "@/lib/agency/client-requests";
 import { useSpeechToText } from "@/lib/hooks/useSpeechToText";
+import { FileUploadZone } from "@/components/agency/briefing/FileUploadZone";
+import type { RequestAttachment } from "@/lib/agency/client-requests";
 
 // ── Dept display names ────────────────────────────────────────────────────────
 const DEPT_LABELS: Record<string, string> = {
@@ -36,7 +38,8 @@ export default function BriefingRoomPage({ params }: { params: Promise<{ id: str
   const [autoTitle,  setAutoTitle]  = useState("");
 
   // ── Submit state ──────────────────────────────────────────────────────────
-  const [submitted,  setSubmitted]  = useState(false);
+  const [submitted,    setSubmitted]    = useState(false);
+  const [attachments,  setAttachments]  = useState<RequestAttachment[]>([]);
 
   // ── Speech-to-text ────────────────────────────────────────────────────────
   const handleTranscript = useCallback((text: string) => {
@@ -95,7 +98,7 @@ export default function BriefingRoomPage({ params }: { params: Promise<{ id: str
       missingInfo: enrichedMissingInfo,
       status: "new",
       source: "client_portal",
-      attachments: [],
+      attachments,
     });
 
     setSubmitted(true);
@@ -361,9 +364,12 @@ export default function BriefingRoomPage({ params }: { params: Promise<{ id: str
             />
           </div>
 
-          {/* Upload placeholder */}
-          <div className="border border-dashed border-[#E5E5E2] rounded-[8px] px-4 py-4 text-center">
-            <p className="text-[12px] text-[#9B9B95]">↑ Anexar arquivos <span className="text-[#C0C0BC]">— disponível em breve</span></p>
+          {/* File upload */}
+          <div>
+            <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">
+              Anexar arquivos
+            </div>
+            <FileUploadZone clientId={id} onChange={setAttachments} />
           </div>
         </div>
 

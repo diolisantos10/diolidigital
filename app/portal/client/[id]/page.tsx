@@ -224,6 +224,11 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
                             ))}
                           </div>
                         )}
+                        {req.attachments.length > 0 && (
+                          <p className="text-[10px] text-[#9B9B95] mt-1">
+                            📎 {req.attachments.length} material{req.attachments.length !== 1 ? "is" : ""} enviado{req.attachments.length !== 1 ? "s" : ""}
+                          </p>
+                        )}
                         <p className="text-[11px] text-[#C0C0BC] mt-1">
                           Enviada em {new Date(req.createdAt).toLocaleDateString("pt-BR")}
                         </p>

@@ -13,6 +13,22 @@ export type ClientRequestStatus =
   | "completed"
   | "rejected";
 
+export type AttachmentStorageStatus = "local_only" | "uploaded" | "failed";
+
+export interface RequestAttachment {
+  id: string;
+  requestId?: string;
+  clientId: string;
+  fileName: string;
+  fileType: string;
+  mimeType: string;
+  sizeBytes: number;
+  source: "briefing_room";
+  createdAt: string;
+  previewUrl?: string;
+  storageStatus: AttachmentStorageStatus;
+}
+
 export interface ExtractedRequestSummary {
   clientName?: string;
   segment?: string;
@@ -37,7 +53,7 @@ export interface ClientRequest {
   createdAt: string;
   updatedAt: string;
   source: "client_portal";
-  attachments: never[];
+  attachments: RequestAttachment[];
   linkedProjectId?: string;
 }
 

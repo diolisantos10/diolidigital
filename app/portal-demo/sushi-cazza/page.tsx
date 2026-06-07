@@ -72,6 +72,13 @@ export default function DemoClientPage() {
                             ))}
                           </div>
                         )}
+                        {req.attachments.length > 0 && (
+                          <div className="flex items-center gap-1 mt-1">
+                            <span className="text-[10px] text-[#9B9B95]">
+                              📎 {req.attachments.length} material{req.attachments.length !== 1 ? "is" : ""} enviado{req.attachments.length !== 1 ? "s" : ""}
+                            </span>
+                          </div>
+                        )}
                         <p className="text-[11px] text-[#C0C0BC] mt-1">
                           Enviada em {new Date(req.createdAt).toLocaleDateString("pt-BR")}
                         </p>
