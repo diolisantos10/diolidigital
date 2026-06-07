@@ -40,6 +40,14 @@ export default function BriefingRoomPage({ params }: { params: Promise<{ id: str
   // ── Submit state ──────────────────────────────────────────────────────────
   const [submitted,    setSubmitted]    = useState(false);
   const [attachments,  setAttachments]  = useState<RequestAttachment[]>([]);
+  const [countdown,    setCountdown]    = useState(3);
+
+  useEffect(() => {
+    if (!submitted) return;
+    if (countdown <= 0) { router.push(`/portal/client/${id}`); return; }
+    const t = setTimeout(() => setCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [submitted, countdown, router, id]);
 
   // ── Speech-to-text ────────────────────────────────────────────────────────
   const handleTranscript = useCallback((text: string) => {
@@ -106,19 +114,22 @@ export default function BriefingRoomPage({ params }: { params: Promise<{ id: str
 
   if (submitted) {
     return (
-      <div className="max-w-[640px] mx-auto py-16 px-4 text-center">
+      <div className="max-w-[560px] mx-auto py-16 px-4 text-center">
         <div className="w-14 h-14 rounded-full bg-[#DCFCE7] flex items-center justify-center mx-auto mb-5 text-[28px]">
           ✓
         </div>
         <h1 className="text-[20px] font-semibold text-[#1A1A1A] mb-2">Solicitação enviada!</h1>
-        <p className="text-[14px] text-[#6B6B65] leading-relaxed max-w-[380px] mx-auto mb-8">
+        <p className="text-[14px] text-[#6B6B65] leading-relaxed max-w-[380px] mx-auto mb-2">
           Recebemos seu briefing. Nossa equipe irá analisar e entrar em contato com os próximos passos.
+        </p>
+        <p className="text-[12px] text-[#9B9B95] mb-8">
+          Redirecionando para o seu painel em {countdown}s…
         </p>
         <button
           onClick={() => router.push(`/portal/client/${id}`)}
           className="h-9 px-5 rounded-[8px] bg-[#1A1A1A] hover:bg-[#111111] text-white text-[13px] font-medium transition-colors"
         >
-          Voltar ao portal
+          Ir para meu painel →
         </button>
       </div>
     );

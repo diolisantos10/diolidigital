@@ -43,16 +43,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
   const { add: addBrandUpdate } = useDbBrandUpdates({ clientId: id });
   const cp = getClientProgress(id, projects, deliverables, materialRequests);
 
-  const client = clients.find((c) => c.id === id);
-  if (!client) return notFound();
-
-  const myRequests = (clientRequests ?? []).filter((r) => r.clientId === id);
-  const clientProjects = projects.filter((p) => p.clientId === id);
-  const clientProjectIds = new Set<string>(clientProjects.map((p) => p.id as string));
-  const visibleDeliverables = getClientVisibleDeliverables(deliverables, clientProjectIds);
-  const clientMaterialRequests = materialRequests.filter((r) => r.clientId === id && r.status === "pending");
-
-  // Local UI state
+  // Local UI state — all hooks must appear before any conditional return
   const [previewOpen,          setPreviewOpen]          = useState<Record<string, boolean>>({});
   const [feedbackOpen,         setFeedbackOpen]         = useState<Record<string, boolean>>({});
   const [feedbackText,         setFeedbackText]         = useState<Record<string, string>>({});
@@ -71,6 +62,16 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
   const [portalParserText,     setPortalParserText]     = useState("");
   const [portalParserResults,  setPortalParserResults]  = useState<ParsedBrandField[]>([]);
   const [portalParserSent,     setPortalParserSent]     = useState(false);
+
+  // Client guard (after all hooks)
+  const client = clients.find((c) => c.id === id);
+  if (!client) return notFound();
+
+  const myRequests = (clientRequests ?? []).filter((r) => r.clientId === id);
+  const clientProjects = projects.filter((p) => p.clientId === id);
+  const clientProjectIds = new Set<string>(clientProjects.map((p) => p.id as string));
+  const visibleDeliverables = getClientVisibleDeliverables(deliverables, clientProjectIds);
+  const clientMaterialRequests = materialRequests.filter((r) => r.clientId === id && r.status === "pending");
 
   const handleBrandSuggest = () => {
     const text = brandSuggestText.trim();
@@ -156,17 +157,30 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
     <>
       {/* Client header */}
       <div className="mb-8">
-        <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-[22px] font-semibold text-[#1A1A1A]">Olá, {client.name}</h1>
-            <p className="text-[13px] text-[#9B9B95] mt-0.5">{client.industry}</p>
+            <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1">
+              Dashboard da Marca
+            </p>
+            <h1 className="text-[24px] font-semibold text-[#1A1A1A]">Olá, {client.name}</h1>
+            <p className="text-[13px] text-[#6B6B65] mt-2 max-w-lg leading-relaxed">
+              Acompanhe solicitações, projetos, materiais enviados e próximos passos com a equipe Dioli.
+            </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
             {totalInReview > 0 && (
               <span className="flex items-center gap-1.5 h-7 px-3 rounded-full bg-[#FEF3C7] text-[#D97706] text-[12px] font-medium">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#D97706]" />
                 {totalInReview} aguardando revisão
               </span>
+            )}
+            {myRequests.some((r) => ["new","under_review","proposal_pending"].includes(r.status)) && (
+              <button
+                onClick={() => router.push(`/portal/client/${id}/briefing`)}
+                className="h-8 px-4 rounded-[8px] border border-[#E5E5E2] text-[#1A1A1A] hover:bg-[#F7F7F6] text-[12px] font-medium transition-colors"
+              >
+                Complementar briefing
+              </button>
             )}
             <button
               onClick={() => router.push(`/portal/client/${id}/briefing`)}
@@ -176,10 +190,140 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
             </button>
           </div>
         </div>
-        <p className="text-[13px] text-[#6B6B65] mt-3 max-w-lg leading-relaxed">
-          Revise os materiais abaixo, acompanhe suas solicitações e envie feedback direto para a equipe.
-        </p>
       </div>
+
+      {/* ── Status card ──────────────────────────────────────────────── */}
+      {(() => {
+        const latest = myRequests[0];
+        if (!latest) return null;
+        type Color = "indigo" | "amber" | "green" | "red";
+        const cfg: Record<string, { title: string; message: string; nextStep: string; estimate: string; currentStep: number; color: Color }> = {
+          new:              { title: "Solicitação recebida",       message: "Recebemos seu briefing. Nossa equipe está analisando para estruturar o escopo.",      nextStep: "Análise pela equipe Dioli",            estimate: "Retorno em até 24 horas úteis", currentStep: 1, color: "indigo" },
+          under_review:     { title: "Em análise pela equipe",     message: "Nossa equipe está analisando seu briefing em detalhes para propor o escopo ideal.",   nextStep: "Estruturação do escopo e orçamento",    estimate: "Retorno em até 24 horas úteis", currentStep: 1, color: "indigo" },
+          proposal_pending: { title: "Proposta em preparação",     message: "Estamos estruturando o escopo e o orçamento. Em breve você receberá a proposta.",    nextStep: "Proposta para sua aprovação",           estimate: "Em breve",                     currentStep: 2, color: "amber" },
+          waiting_client:   { title: "Aguardando sua aprovação",   message: "Há uma proposta aguardando a sua revisão e aprovação.",                               nextStep: "Revise e aprove no painel abaixo",      estimate: "Ação necessária",               currentStep: 3, color: "amber" },
+          in_progress:      { title: "Projeto em andamento",       message: "A equipe está trabalhando no seu projeto. As entregas aparecerão aqui em breve.",     nextStep: "Aguardar entrega dos materiais",        estimate: "Conforme prazo acordado",       currentStep: 4, color: "green" },
+          completed:        { title: "Concluído",                  message: "Sua solicitação foi concluída com sucesso.",                                           nextStep: "Envie uma nova solicitação",            estimate: "",                              currentStep: 4, color: "green" },
+          rejected:         { title: "Solicitação encerrada",      message: "Esta solicitação não avançou. Entre em contato para entender os próximos passos.",    nextStep: "Entre em contato com a equipe",         estimate: "",                              currentStep: -1, color: "red" },
+        };
+        const STEPS = ["Briefing enviado","Em análise","Escopo / proposta","Aprovação","Projeto iniciado"];
+        const s = cfg[latest.status];
+        if (!s) return null;
+        const COLORS: Record<Color, { bg: string; border: string; title: string; text: string; dot: string; bar: string }> = {
+          indigo: { bg: "bg-[#EEF0FF]", border: "border-[#C7C7F5]", title: "text-[#5B5BD6]", text: "text-[#4B4B9F]", dot: "bg-[#5B5BD6]", bar: "bg-[#5B5BD6]" },
+          amber:  { bg: "bg-[#FFFBEB]", border: "border-[#FDE68A]", title: "text-[#D97706]", text: "text-[#92400E]", dot: "bg-[#F59E0B]", bar: "bg-[#F59E0B]" },
+          green:  { bg: "bg-[#F0FDF4]", border: "border-[#BBF7D0]", title: "text-[#16A34A]", text: "text-[#15803D]", dot: "bg-[#16A34A]", bar: "bg-[#16A34A]" },
+          red:    { bg: "bg-[#FEF2F2]", border: "border-[#FECACA]", title: "text-[#DC2626]", text: "text-[#B91C1C]", dot: "bg-[#DC2626]", bar: "bg-[#DC2626]" },
+        };
+        const c = COLORS[s.color];
+        return (
+          <div className={`mb-6 rounded-[12px] border p-5 ${c.bg} ${c.border}`}>
+            <div className="flex items-start justify-between gap-4 mb-3">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`w-2 h-2 rounded-full ${c.dot} shrink-0`} />
+                  <span className={`text-[13px] font-semibold ${c.title}`}>{s.title}</span>
+                </div>
+                <p className={`text-[13px] leading-relaxed ${c.text} max-w-lg`}>{s.message}</p>
+              </div>
+              {s.estimate && (
+                <div className="text-right shrink-0">
+                  <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Prazo estimado</p>
+                  <p className={`text-[12px] font-medium mt-0.5 ${c.title}`}>{s.estimate}</p>
+                </div>
+              )}
+            </div>
+            {s.nextStep && (
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-[11px] text-[#9B9B95] font-medium">Próxima etapa:</span>
+                <span className={`text-[11px] font-semibold ${c.title}`}>{s.nextStep}</span>
+              </div>
+            )}
+            {s.currentStep >= 0 && (
+              <div className="flex items-center overflow-x-auto">
+                {STEPS.map((step, i) => {
+                  const done = i < s.currentStep;
+                  const active = i === s.currentStep;
+                  return (
+                    <div key={step} className="flex items-center gap-0 flex-1 min-w-0">
+                      <div className="flex flex-col items-center shrink-0">
+                        <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold border-2 ${done ? `${c.bar} border-transparent text-white` : active ? `${c.bar} border-transparent text-white` : "bg-white border-[#D0D0CC] text-[#C0C0BC]"}`}>
+                          {done ? "✓" : i + 1}
+                        </div>
+                        <p className={`text-[9px] font-medium mt-1 text-center w-[68px] leading-tight ${done || active ? c.title : "text-[#C0C0BC]"}`}>{step}</p>
+                      </div>
+                      {i < STEPS.length - 1 && (
+                        <div className={`flex-1 h-0.5 mt-[-12px] mx-1 ${done ? c.bar : "bg-[#E5E5E2]"}`} />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* ── Brand materials card ──────────────────────────────────────── */}
+      {(() => {
+        const latest = myRequests[0];
+        if (!latest) return null;
+        if (latest.attachments.length === 0 && latest.missingInfo.length === 0) return null;
+        const formatB = (n: number) => n < 1024*1024 ? `${(n/1024).toFixed(0)} KB` : `${(n/(1024*1024)).toFixed(1)} MB`;
+        return (
+          <div className="mb-6 bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-[#F0F0ED] flex items-center justify-between">
+              <span className="text-[12px] font-semibold text-[#1A1A1A]">Materiais da marca</span>
+              <button
+                onClick={() => router.push(`/portal/client/${id}/briefing`)}
+                className="h-6 px-3 rounded-[5px] border border-[#E5E5E2] text-[#6B6B65] hover:text-[#1A1A1A] hover:border-[#9B9B95] text-[10px] font-medium transition-colors"
+              >
+                + Enviar complemento
+              </button>
+            </div>
+            <div className="px-5 py-4 grid grid-cols-2 gap-5">
+              <div>
+                <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">
+                  Enviados ({latest.attachments.length})
+                </p>
+                {latest.attachments.length === 0 ? (
+                  <p className="text-[12px] text-[#C0C0BC]">Nenhum arquivo enviado ainda.</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {latest.attachments.map((att) => (
+                      <div key={att.id} className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-[4px] bg-[#DCFCE7] flex items-center justify-center shrink-0">
+                          <span className="text-[7px] font-bold text-[#16A34A]">{att.fileType}</span>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-medium text-[#1A1A1A] truncate">{att.fileName}</p>
+                          <p className="text-[9px] text-[#9B9B95]">{formatB(att.sizeBytes)}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">
+                  Pode complementar
+                </p>
+                {latest.missingInfo.length === 0 ? (
+                  <p className="text-[12px] text-[#16A34A] font-medium">Briefing completo ✓</p>
+                ) : (
+                  <ul className="space-y-1">
+                    {latest.missingInfo.slice(0, 5).map((m) => (
+                      <li key={m} className="flex items-center gap-1.5 text-[11px] text-[#6B6B65]">
+                        <span className="w-1 h-1 rounded-full bg-[#D0D0CC] shrink-0" />{m}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── Minhas Solicitações ───────────────────────────────────────────────── */}
       {myRequests.length > 0 && (
@@ -197,6 +341,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
             {myRequests.map((req) => {
               const style = REQUEST_STATUS_STYLE[req.status];
               const isInProgress = req.status === "in_progress";
+              const isNew        = req.status === "new";
               const isWaiting    = req.status === "waiting_client";
               const isProposal   = req.status === "proposal_pending" || req.status === "under_review";
               return (
@@ -233,21 +378,23 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
                           Enviada em {new Date(req.createdAt).toLocaleDateString("pt-BR")}
                         </p>
                       </div>
-                      {req.status === "new" && (
-                        <span className="w-2 h-2 rounded-full bg-[#5B5BD6] shrink-0 mt-1.5" />
-                      )}
+
                     </div>
                   </div>
-                  {(isInProgress || isProposal) && (
+                  {(isInProgress || isProposal || isNew) && (
                     <div className={`px-5 py-2.5 flex items-center gap-2 border-t ${
                       isInProgress
                         ? "bg-[#F0FDF4] border-[#BBF7D0]"
+                        : isNew
+                        ? "bg-[#EEF0FF] border-[#C7C7F5]"
                         : "bg-[#EEF0FF] border-[#C7C7F5]"
                     }`}>
                       <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isInProgress ? "bg-[#16A34A]" : "bg-[#5B5BD6]"}`} />
                       <p className={`text-[12px] font-medium ${isInProgress ? "text-[#16A34A]" : "text-[#5B5BD6]"}`}>
                         {isInProgress
                           ? "Nossa equipe está estruturando o seu projeto. Em breve entraremos em contato."
+                          : isNew
+                          ? "Recebemos seu briefing. Nossa equipe irá analisar e retornar com os próximos passos."
                           : "Sua solicitação está sendo analisada. Retornaremos com os próximos passos."}
                       </p>
                     </div>
@@ -310,8 +457,8 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
 
       {clientProjects.length === 0 ? (
         <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-8 py-14 text-center">
-          <p className="text-[14px] font-medium text-[#1A1A1A]">Nenhum projeto ativo</p>
-          <p className="text-[13px] text-[#9B9B95] mt-1.5">Os projetos aparecerão aqui assim que forem criados.</p>
+          <p className="text-[14px] font-medium text-[#1A1A1A]">Seus projetos aparecerão aqui</p>
+          <p className="text-[13px] text-[#9B9B95] mt-1.5 max-w-sm mx-auto">Após a análise inicial, nossa equipe estruturará o projeto e você poderá acompanhar as entregas neste painel.</p>
         </div>
       ) : (
         <div className="space-y-8">

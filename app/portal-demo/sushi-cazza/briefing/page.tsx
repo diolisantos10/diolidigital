@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAgencyStore } from "@/store/agency-store";
 import { extractBriefing } from "@/lib/agency/briefing-extractor";
@@ -10,6 +11,7 @@ import { FileUploadZone } from "@/components/agency/briefing/FileUploadZone";
 import type { RequestAttachment } from "@/lib/agency/client-requests";
 
 export default function DemoBriefingPage() {
+  const router = useRouter();
   const { addClientRequest } = useAgencyStore();
 
   const [rawText,  setRawText]  = useState("");
@@ -21,6 +23,14 @@ export default function DemoBriefingPage() {
   const [attachments, setAttachments] = useState<RequestAttachment[]>([]);
   const [submitted, setSubmitted] = useState(false);
   const [submittedId, setSubmittedId] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState(3);
+
+  useEffect(() => {
+    if (!submitted) return;
+    if (countdown <= 0) { router.push("/portal-demo/sushi-cazza"); return; }
+    const t = setTimeout(() => setCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [submitted, countdown, router]);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -76,7 +86,7 @@ export default function DemoBriefingPage() {
         </div>
         <h1 className="text-[22px] font-semibold text-[#1A1A1A] mb-2">Solicitação enviada para a Dioli.</h1>
         <p className="text-[13px] text-[#6B6B65] leading-relaxed mb-1">
-          Próximo passo: nossa equipe vai analisar e estruturar seu projeto.
+          Nossa equipe vai analisar e estruturar seu projeto.
         </p>
         {attachments.length > 0 && (
           <p className="text-[12px] text-[#16A34A] font-medium mb-1">
@@ -84,32 +94,26 @@ export default function DemoBriefingPage() {
           </p>
         )}
         <p className="text-[12px] text-[#9B9B95] mb-8">
-          Você será notificado assim que tivermos novidades.
+          Redirecionando para o seu painel em {countdown}s…
         </p>
         <div className="flex flex-wrap items-center justify-center gap-3">
           <Link
             href="/portal-demo/sushi-cazza"
             className="h-9 px-5 rounded-[8px] bg-[#1A1A1A] hover:bg-[#111111] text-white text-[12px] font-medium transition-colors inline-flex items-center"
           >
-            Ver minha solicitação →
+            Ir para meu painel →
           </Link>
           <button
             onClick={() => {
               setRawText(""); setTitle(""); setDeadline(""); setLinks(""); setBudget("");
               setSummary(extractBriefing("").summary);
               setAttachments([]);
-              setSubmitted(false); setSubmittedId(null);
+              setSubmitted(false); setSubmittedId(null); setCountdown(3);
             }}
             className="h-9 px-4 rounded-[8px] border border-[#E5E5E2] text-[#6B6B65] hover:text-[#1A1A1A] text-[12px] font-medium transition-colors"
           >
             Enviar outra solicitação
           </button>
-          <Link
-            href="/agency/requests"
-            className="h-9 px-4 rounded-[8px] border border-[#5B5BD6] text-[#5B5BD6] hover:bg-[#EEF0FF] text-[12px] font-medium transition-colors inline-flex items-center"
-          >
-            Abrir painel do cliente →
-          </Link>
         </div>
 
         {submittedId && (
