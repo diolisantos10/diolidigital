@@ -10,6 +10,7 @@ import {
   type ClientRequest,
   type BriefingAnalysis,
 } from "@/lib/agency/client-requests";
+import type { BriefingScope, LiveEstimate } from "@/lib/agency/briefing-conversation";
 import { processBriefing } from "@/lib/agency/briefing-processor";
 import type { Priority } from "@/lib/agency/mock-data";
 
@@ -352,6 +353,11 @@ export default function AgencyRequestsPage() {
                         Projeto criado
                       </span>
                     )}
+                    {req.v2Scope && (
+                      <span className="h-5 px-2 rounded-full bg-[#F0F0ED] text-[#6B6B65] text-[10px] font-semibold">
+                        V2 conversacional
+                      </span>
+                    )}
                     {req.attachments.length > 0 && (
                       <span className="h-5 px-2 rounded-full bg-[#F0F0ED] text-[#6B6B65] text-[10px] font-semibold">
                         {req.attachments.length} arquivo{req.attachments.length !== 1 ? "s" : ""}
@@ -404,6 +410,11 @@ export default function AgencyRequestsPage() {
                       </p>
                     )}
                   </div>
+
+                  {/* V2 structured scope (from conversational briefing) */}
+                  {req.v2Scope && (
+                    <V2ScopePanel scope={req.v2Scope} estimate={req.v2Estimate} />
+                  )}
 
                   {/* Analysis panel OR extracted summary */}
                   {req.analysis ? (
@@ -584,6 +595,133 @@ export default function AgencyRequestsPage() {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+// ── V2 Scope Panel ────────────────────────────────────────────────────────────
+
+function V2ScopePanel({ scope, estimate }: { scope: BriefingScope; estimate?: LiveEstimate }) {
+  const fmtBRL = (n: number) => `R$ ${n.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}`;
+
+  const CONF_LABEL: Record<string, string> = {
+    low: "Estimativa inicial", medium: "Estimativa aprox.", high: "Estimativa confiável",
+  };
+  const CONF_STYLE: Record<string, string> = {
+    low: "bg-[#FEF3C7] text-[#D97706]",
+    medium: "bg-[#EEF0FF] text-[#5B5BD6]",
+    high: "bg-[#DCFCE7] text-[#16A34A]",
+  };
+
+  return (
+    <div className="bg-[#F7F7F6] border border-[#E5E5E2] rounded-[10px] px-4 py-4 space-y-4">
+      <div className="flex items-center gap-2">
+        <span className="text-[12px] font-semibold text-[#1A1A1A]">Escopo V2 — Briefing conversacional</span>
+        <span className="h-5 px-2 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[9px] font-semibold">automático</span>
+      </div>
+
+      {/* Services + quantities grid */}
+      <div className="grid grid-cols-2 gap-4">
+        {scope.wantsSocialMedia && (
+          <div>
+            <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Social Media</div>
+            <div className="space-y-0.5 text-[11px] text-[#1A1A1A]">
+              {scope.social?.platforms.length
+                ? <div><span className="text-[#9B9B95]">Canais:</span> {scope.social.platforms.join(", ")}</div>
+                : null}
+              {scope.social?.postsPerWeek !== undefined
+                ? <div><span className="text-[#9B9B95]">Posts:</span> {scope.social.postsPerWeek * 4}/mês</div>
+                : null}
+              {scope.social?.storiesPerWeek !== undefined && scope.social.storiesPerWeek > 0
+                ? <div><span className="text-[#9B9B95]">Stories:</span> {scope.social.storiesPerWeek * 4}/mês</div>
+                : null}
+              {scope.social?.reelsPerMonth !== undefined && scope.social.reelsPerMonth > 0
+                ? <div><span className="text-[#9B9B95]">Reels:</span> {scope.social.reelsPerMonth}/mês</div>
+                : null}
+              {scope.social?.hasPhotos !== undefined
+                ? <div><span className="text-[#9B9B95]">Fotos:</span> {scope.social.hasPhotos ? "Disponíveis" : "Sem produção"}</div>
+                : null}
+              {scope.social?.needsCopy !== undefined
+                ? <div><span className="text-[#9B9B95]">Copy:</span> {scope.social.needsCopy ? "Pela Dioli" : "Pelo cliente"}</div>
+                : null}
+            </div>
+          </div>
+        )}
+        {scope.wantsPaidTraffic && (
+          <div>
+            <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Tráfego Pago</div>
+            <div className="space-y-0.5 text-[11px] text-[#1A1A1A]">
+              {scope.traffic?.monthlyAdBudget
+                ? <div><span className="text-[#9B9B95]">Verba:</span> {scope.traffic.monthlyAdBudget}</div>
+                : <div className="text-[#9B9B95]">Verba não informada</div>}
+            </div>
+          </div>
+        )}
+        {scope.branding.requested && (
+          <div>
+            <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Identidade Visual</div>
+            {scope.branding.wantsRebrand
+              ? <div className="text-[11px] text-[#1A1A1A]">Rebranding solicitado</div>
+              : <div className="text-[11px] text-[#1A1A1A]">Criação de marca</div>}
+          </div>
+        )}
+        {scope.objectives.length > 0 && (
+          <div>
+            <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Objetivos</div>
+            <div className="flex flex-wrap gap-1">
+              {scope.objectives.map((o) => (
+                <span key={o} className="h-5 px-2 rounded-full bg-[#DCFCE7] text-[#16A34A] text-[10px] font-medium">{o}</span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Meta row */}
+      <div className="flex flex-wrap gap-3 text-[11px]">
+        {scope.serviceMode && (
+          <span className="text-[#9B9B95]">
+            Modalidade: <strong className="text-[#1A1A1A]">{scope.serviceMode === "monthly" ? "Mensal" : scope.serviceMode === "one_off" ? "Pontual" : "A definir"}</strong>
+          </span>
+        )}
+        {scope.branding.hasBrandBook && (
+          <span className="text-[#9B9B95]">Brand Book: <strong className="text-[#1A1A1A]">Disponível</strong></span>
+        )}
+        {scope.budgetRange && (
+          <span className="text-[#9B9B95]">Orçamento: <strong className="text-[#1A1A1A]">{scope.budgetRange}</strong></span>
+        )}
+        {scope.deadline && (
+          <span className="text-[#9B9B95]">Prazo: <strong className="text-[#1A1A1A]">{scope.deadline}</strong></span>
+        )}
+      </div>
+
+      {/* Estimate */}
+      {estimate && estimate.confidence !== "none" && (
+        <div className="border-t border-[#E5E5E2] pt-3">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Estimativa live</span>
+            <span className={`h-4 px-1.5 rounded-[3px] text-[9px] font-semibold ${CONF_STYLE[estimate.confidence] ?? ""}`}>
+              {CONF_LABEL[estimate.confidence]}
+            </span>
+          </div>
+          <div className="space-y-1">
+            {estimate.items.map((item, i) => (
+              <div key={i} className="flex items-center justify-between text-[11px]">
+                <span className="text-[#6B6B65]">{item.label}</span>
+                <span className="text-[#1A1A1A] font-medium">
+                  {fmtBRL(item.minPrice)}–{fmtBRL(item.maxPrice)}/{item.unit}
+                </span>
+              </div>
+            ))}
+            <div className="flex items-center justify-between pt-1 border-t border-[#E5E5E2] text-[11px]">
+              <span className="font-semibold text-[#1A1A1A]">Total estimado</span>
+              <span className="font-semibold text-[#1A1A1A]">
+                {fmtBRL(estimate.totalMin)} – {fmtBRL(estimate.totalMax)}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -14,4 +14,4 @@ export const DEMO_CLIENT = {
 };
 
 export const SUSHI_CAZZA_EXAMPLE_TEXT =
-  "Tenho um restaurante japonês chamado Sushi Cazza. Preciso de social media para Instagram e Facebook para ganhar novos clientes, fortalecer autoridade e vender mais. Não tenho uma identidade visual definida ainda — gostaria de criar uma marca que transmita sofisticação e aconchego.";
+  "Tenho um restaurante japonês chamado Sushi Cazza. Preciso de social media para Instagram e Facebook para ganhar novos clientes, fortalecer autoridade e vender mais. Tenho um Brand Book.";

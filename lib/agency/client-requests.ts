@@ -80,6 +80,10 @@ export interface ClientRequest {
   attachments: RequestAttachment[];
   linkedProjectId?: string;
   analysis?: BriefingAnalysis;
+  // V2 conversational briefing fields
+  conversationTranscript?: import("./briefing-conversation").ConvMessage[];
+  v2Scope?: import("./briefing-conversation").BriefingScope;
+  v2Estimate?: import("./briefing-conversation").LiveEstimate;
 }
 
 export const REQUEST_STATUS_LABEL: Record<ClientRequestStatus, string> = {
