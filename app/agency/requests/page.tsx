@@ -8,7 +8,9 @@ import {
   REQUEST_STATUS_STYLE,
   type ClientRequestStatus,
   type ClientRequest,
+  type BriefingAnalysis,
 } from "@/lib/agency/client-requests";
+import { processBriefing } from "@/lib/agency/briefing-processor";
 import type { Priority } from "@/lib/agency/mock-data";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -137,7 +139,7 @@ function buildDefaultForm(req: ClientRequest, clientName: string): ConversionFor
 export default function AgencyRequestsPage() {
   const {
     clientRequests, clients, projects,
-    updateClientRequest, createProject, createBriefing, addMaterialRequest,
+    updateClientRequest, setRequestAnalysis, createProject, createBriefing, addMaterialRequest,
   } = useAgencyStore();
 
   const [activeFilter, setActiveFilter] = useState<ClientRequestStatus | "all">("all");
@@ -146,6 +148,8 @@ export default function AgencyRequestsPage() {
   const [convForm, setConvForm]         = useState<ConversionForm | null>(null);
   // requestId → created projectId (success state per request)
   const [createdProjects, setCreatedProjects] = useState<Record<string, string>>({});
+  const [processingId,    setProcessingId]    = useState<string | null>(null);
+  const [rawOpenId,       setRawOpenId]       = useState<string | null>(null);
 
   const all    = clientRequests ?? [];
   const filtered = all.filter((r) => activeFilter === "all" || r.status === activeFilter);
@@ -242,6 +246,15 @@ export default function AgencyRequestsPage() {
 
   function patchForm(patch: Partial<ConversionForm>) {
     setConvForm((f) => (f ? { ...f, ...patch } : f));
+  }
+
+  function handleProcessBriefing(req: ClientRequest) {
+    setProcessingId(req.id);
+    const client = getClient(req.clientId);
+    const analysis = processBriefing(req, client?.name ?? "Cliente");
+    setRequestAnalysis(req.id, analysis);
+    updateClientRequest(req.id, { status: "proposal_pending" });
+    setProcessingId(null);
   }
 
   return (
@@ -372,55 +385,88 @@ export default function AgencyRequestsPage() {
               {/* ── Expanded detail ── */}
               {isExpanded && !isConverting && !createdProjectId && (
                 <div className="border-t border-[#F0F0ED] px-5 py-5 space-y-5">
-                  {/* Raw text */}
+                  {/* Raw text — collapsible when analysis exists */}
                   <div>
-                    <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">Texto original</div>
-                    <p className="text-[13px] text-[#1A1A1A] leading-relaxed whitespace-pre-wrap bg-[#F7F7F6] rounded-[8px] px-4 py-3 max-h-[160px] overflow-y-auto">
-                      {req.rawText}
-                    </p>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Texto original</div>
+                      {req.analysis && (
+                        <button
+                          onClick={() => setRawOpenId(rawOpenId === req.id ? null : req.id)}
+                          className="text-[10px] text-[#5B5BD6] hover:underline font-medium"
+                        >
+                          {rawOpenId === req.id ? "▲ Ocultar" : "▼ Ver briefing completo"}
+                        </button>
+                      )}
+                    </div>
+                    {(!req.analysis || rawOpenId === req.id) && (
+                      <p className="text-[13px] text-[#1A1A1A] leading-relaxed whitespace-pre-wrap bg-[#F7F7F6] rounded-[8px] px-4 py-3 max-h-[200px] overflow-y-auto">
+                        {req.rawText}
+                      </p>
+                    )}
                   </div>
 
-                  {/* Extracted summary grid */}
-                  <div className="grid grid-cols-2 gap-4">
-                    {req.extractedSummary.services.length > 0 && (
-                      <div>
-                        <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Serviços</div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {req.extractedSummary.services.map((s) => (
-                            <span key={s} className="h-5 px-2 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[11px] font-medium">{s}</span>
-                          ))}
+                  {/* Analysis panel OR extracted summary */}
+                  {req.analysis ? (
+                    <AnalysisPanel analysis={req.analysis} />
+                  ) : (
+                    <>
+                      {/* Extracted summary grid */}
+                      <div className="grid grid-cols-2 gap-4">
+                        {req.extractedSummary.services.length > 0 && (
+                          <div>
+                            <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Serviços</div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {req.extractedSummary.services.map((s) => (
+                                <span key={s} className="h-5 px-2 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[11px] font-medium">{s}</span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {req.extractedSummary.channels.length > 0 && (
+                          <div>
+                            <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Canais</div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {req.extractedSummary.channels.map((c) => (
+                                <span key={c} className="h-5 px-2 rounded-full bg-[#F0F0ED] text-[#6B6B65] text-[11px] font-medium">{c}</span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {req.extractedSummary.objectives.length > 0 && (
+                          <div>
+                            <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Objetivos</div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {req.extractedSummary.objectives.map((o) => (
+                                <span key={o} className="h-5 px-2 rounded-full bg-[#DCFCE7] text-[#16A34A] text-[11px] font-medium">{o}</span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {req.extractedSummary.urgency && (
+                          <div>
+                            <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Urgência</div>
+                            <span className="h-5 px-2 rounded-full bg-[#FEE2E2] text-[#DC2626] text-[11px] font-medium inline-block">
+                              {req.extractedSummary.urgency}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Missing info */}
+                      {req.missingInfo.length > 0 && (
+                        <div className="bg-[#FFFBEB] border border-[#FDE68A] rounded-[8px] px-4 py-3">
+                          <div className="text-[10px] font-semibold text-[#D97706] uppercase tracking-[0.05em] mb-1.5">Informações ausentes</div>
+                          <ul className="space-y-0.5">
+                            {req.missingInfo.map((m) => (
+                              <li key={m} className="text-[12px] text-[#92400E] flex items-center gap-1.5">
+                                <span className="w-1 h-1 rounded-full bg-[#F59E0B] shrink-0" />{m}
+                              </li>
+                            ))}
+                          </ul>
                         </div>
-                      </div>
-                    )}
-                    {req.extractedSummary.channels.length > 0 && (
-                      <div>
-                        <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Canais</div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {req.extractedSummary.channels.map((c) => (
-                            <span key={c} className="h-5 px-2 rounded-full bg-[#F0F0ED] text-[#6B6B65] text-[11px] font-medium">{c}</span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {req.extractedSummary.objectives.length > 0 && (
-                      <div>
-                        <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Objetivos</div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {req.extractedSummary.objectives.map((o) => (
-                            <span key={o} className="h-5 px-2 rounded-full bg-[#DCFCE7] text-[#16A34A] text-[11px] font-medium">{o}</span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {req.extractedSummary.urgency && (
-                      <div>
-                        <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Urgência</div>
-                        <span className="h-5 px-2 rounded-full bg-[#FEE2E2] text-[#DC2626] text-[11px] font-medium inline-block">
-                          {req.extractedSummary.urgency}
-                        </span>
-                      </div>
-                    )}
-                  </div>
+                      )}
+                    </>
+                  )}
 
                   {/* Attachments */}
                   {req.attachments.length > 0 && (
@@ -468,22 +514,8 @@ export default function AgencyRequestsPage() {
                     </div>
                   )}
 
-                  {/* Missing info */}
-                  {req.missingInfo.length > 0 && (
-                    <div className="bg-[#FFFBEB] border border-[#FDE68A] rounded-[8px] px-4 py-3">
-                      <div className="text-[10px] font-semibold text-[#D97706] uppercase tracking-[0.05em] mb-1.5">Informações ausentes</div>
-                      <ul className="space-y-0.5">
-                        {req.missingInfo.map((m) => (
-                          <li key={m} className="text-[12px] text-[#92400E] flex items-center gap-1.5">
-                            <span className="w-1 h-1 rounded-full bg-[#F59E0B] shrink-0" />{m}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
                   {/* Actions */}
-                  <div className="flex items-center gap-2 pt-1 border-t border-[#F0F0ED]">
+                  <div className="flex items-center gap-2 pt-1 border-t border-[#F0F0ED] flex-wrap">
                     {req.status === "new" && (
                       <button
                         onClick={() => updateClientRequest(req.id, { status: "under_review" })}
@@ -491,6 +523,19 @@ export default function AgencyRequestsPage() {
                       >
                         Analisar
                       </button>
+                    )}
+                    {!req.analysis ? (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleProcessBriefing(req); }}
+                        disabled={processingId === req.id}
+                        className="h-8 px-4 rounded-[7px] border border-[#7C3AED] text-[#7C3AED] hover:bg-[#F5F3FF] disabled:opacity-50 text-[12px] font-medium transition-colors"
+                      >
+                        {processingId === req.id ? "Processando…" : "✦ Processar briefing"}
+                      </button>
+                    ) : (
+                      <span className="h-7 px-3 rounded-full bg-[#DCFCE7] text-[#16A34A] text-[10px] font-semibold flex items-center gap-1">
+                        ✓ Briefing processado
+                      </span>
                     )}
                     <button
                       onClick={(e) => { e.stopPropagation(); openConversion(req); }}
@@ -538,6 +583,147 @@ export default function AgencyRequestsPage() {
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+// ── Analysis Panel ────────────────────────────────────────────────────────────
+
+function AnalysisPanel({ analysis }: { analysis: BriefingAnalysis }) {
+  const [proposalOpen, setProposalOpen] = useState(false);
+  const fmt = (n: number) => `R$ ${n.toLocaleString("pt-BR")}`;
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center gap-2">
+        <span className="text-[12px] font-semibold text-[#1A1A1A]">Análise do briefing</span>
+        <span className="text-[10px] text-[#9B9B95]">
+          Processado em {new Date(analysis.processedAt).toLocaleDateString("pt-BR")}
+        </span>
+      </div>
+
+      {/* Executive summary */}
+      <div className="bg-[#F7F7F6] rounded-[8px] px-4 py-3">
+        <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1">O que entendemos</div>
+        <p className="text-[12px] text-[#1A1A1A] leading-relaxed">{analysis.executiveSummary}</p>
+      </div>
+
+      {/* 2-col: goal + needs */}
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Objetivo principal</div>
+          <p className="text-[12px] text-[#1A1A1A] leading-relaxed">{analysis.clientGoal}</p>
+        </div>
+        <div>
+          <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Necessidades diagnosticadas</div>
+          <ul className="space-y-0.5">
+            {analysis.diagnosedNeeds.map((n) => (
+              <li key={n} className="text-[11px] text-[#1A1A1A] flex items-start gap-1.5">
+                <span className="w-1 h-1 rounded-full bg-[#5B5BD6] shrink-0 mt-1.5" />{n}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Serviços recomendados</div>
+          <div className="flex flex-wrap gap-1.5">
+            {analysis.recommendedServices.map((s) => (
+              <span key={s} className="h-5 px-2 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[11px] font-medium">{s}</span>
+            ))}
+          </div>
+        </div>
+        <div>
+          <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Prazo estimado</div>
+          <span className="text-[12px] font-semibold text-[#1A1A1A]">{analysis.estimatedTimeline}</span>
+        </div>
+      </div>
+
+      {/* Deliverables */}
+      <div>
+        <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Entregáveis sugeridos</div>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+          {analysis.suggestedDeliverables.map((d) => (
+            <div key={d} className="flex items-start gap-1.5 text-[11px] text-[#1A1A1A]">
+              <span className="text-[#16A34A] shrink-0">✓</span>{d}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Investment */}
+      <div className="bg-[#F7F7F6] rounded-[8px] px-4 py-3">
+        <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">Faixa de investimento</div>
+        <div className="flex items-baseline gap-1.5 mb-2.5">
+          <span className="text-[17px] font-bold text-[#1A1A1A]">{fmt(analysis.priceRange.min)}</span>
+          <span className="text-[13px] text-[#9B9B95]">–</span>
+          <span className="text-[17px] font-bold text-[#1A1A1A]">{fmt(analysis.priceRange.max)}</span>
+          <span className="text-[11px] text-[#9B9B95] ml-1">estimado</span>
+        </div>
+        <div className="space-y-1.5 border-t border-[#E5E5E2] pt-2.5">
+          {analysis.lineItems.map((item) => (
+            <div key={item.service} className="flex items-center justify-between gap-4 text-[11px]">
+              <div className="text-[#6B6B65]">
+                <span className="font-medium text-[#1A1A1A]">{item.service}</span>
+                {" — "}{item.description}
+              </div>
+              <span className="text-[#1A1A1A] font-medium shrink-0">
+                {fmt(item.minPrice)}–{fmt(item.maxPrice)}/{item.unit}
+              </span>
+            </div>
+          ))}
+        </div>
+        <p className="text-[9px] text-[#C0C0BC] mt-2">*Valores estimados. Sujeitos a detalhamento de escopo.</p>
+      </div>
+
+      {/* Missing info */}
+      {analysis.missingInfo.length > 0 && (
+        <div className="bg-[#FFFBEB] border border-[#FDE68A] rounded-[8px] px-4 py-3">
+          <div className="text-[10px] font-semibold text-[#D97706] uppercase tracking-[0.05em] mb-1.5">Informações faltantes</div>
+          <div className="flex flex-wrap gap-1.5">
+            {analysis.missingInfo.map((m) => (
+              <span key={m} className="h-5 px-2 rounded-full bg-[#FEF3C7] text-[#92400E] text-[10px] font-medium">{m}</span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Next questions */}
+      {analysis.nextQuestions.length > 0 && (
+        <div>
+          <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Próximas perguntas para o cliente</div>
+          <ol className="space-y-1">
+            {analysis.nextQuestions.map((q, i) => (
+              <li key={i} className="flex items-start gap-2 text-[12px] text-[#1A1A1A]">
+                <span className="text-[#5B5BD6] font-semibold shrink-0 w-4">{i + 1}.</span>{q}
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+
+      {/* Proposal draft collapsible */}
+      <div className="border border-[#E5E5E2] rounded-[8px] overflow-hidden">
+        <button
+          onClick={() => setProposalOpen((o) => !o)}
+          className="w-full flex items-center justify-between px-4 py-3 bg-[#F7F7F6] hover:bg-[#F0F0ED] transition-colors text-left"
+        >
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[12px] font-semibold text-[#1A1A1A]">Rascunho de proposta</span>
+            <span className="h-5 px-2 rounded-full bg-[#FEF3C7] text-[#D97706] text-[9px] font-semibold">
+              PM deve revisar antes de enviar
+            </span>
+          </div>
+          <span className="text-[12px] text-[#9B9B95] shrink-0 ml-4">{proposalOpen ? "▲" : "▼"}</span>
+        </button>
+        {proposalOpen && (
+          <div className="bg-white px-4 py-3">
+            <pre className="text-[11px] text-[#1A1A1A] leading-relaxed whitespace-pre-wrap font-mono overflow-y-auto max-h-[400px]">
+              {analysis.proposalDraft}
+            </pre>
+          </div>
+        )}
       </div>
     </div>
   );

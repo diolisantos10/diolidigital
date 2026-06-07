@@ -216,6 +216,7 @@ interface AgencyState {
   clientRequests: ClientRequest[];
   addClientRequest: (req: Omit<ClientRequest, "id" | "createdAt" | "updatedAt">) => string;
   updateClientRequest: (id: string, updates: Partial<Pick<ClientRequest, "status" | "linkedProjectId">>) => void;
+  setRequestAnalysis: (id: string, analysis: import("@/lib/agency/client-requests").BriefingAnalysis) => void;
 
   // Integrations V2
   integrationConfigs: IntegrationConfig[];
@@ -679,6 +680,14 @@ export const useAgencyStore = create<AgencyState>()(
         set((s) => ({
           clientRequests: s.clientRequests.map((r) =>
             r.id === id ? { ...r, ...updates, updatedAt: new Date().toISOString() } : r
+          ),
+        }));
+      },
+
+      setRequestAnalysis: (id, analysis) => {
+        set((s) => ({
+          clientRequests: s.clientRequests.map((r) =>
+            r.id === id ? { ...r, analysis, updatedAt: new Date().toISOString() } : r
           ),
         }));
       },

@@ -41,6 +41,30 @@ export interface ExtractedRequestSummary {
   missingInfo: string[];
 }
 
+export interface ProposalLineItem {
+  service: string;
+  description: string;
+  unit: string;
+  minPrice: number;
+  maxPrice: number;
+}
+
+export interface BriefingAnalysis {
+  processedAt: string;
+  executiveSummary: string;
+  clientGoal: string;
+  diagnosedNeeds: string[];
+  recommendedServices: string[];
+  suggestedDeliverables: string[];
+  departments: string[];
+  missingInfo: string[];
+  estimatedTimeline: string;
+  priceRange: { min: number; max: number };
+  lineItems: ProposalLineItem[];
+  proposalDraft: string;
+  nextQuestions: string[];
+}
+
 export interface ClientRequest {
   id: string;
   clientId: string;
@@ -55,6 +79,7 @@ export interface ClientRequest {
   source: "client_portal";
   attachments: RequestAttachment[];
   linkedProjectId?: string;
+  analysis?: BriefingAnalysis;
 }
 
 export const REQUEST_STATUS_LABEL: Record<ClientRequestStatus, string> = {
