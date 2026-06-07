@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useAgencyStore } from "@/store/agency-store";
 import { extractBriefing } from "@/lib/agency/briefing-extractor";
 import { DEMO_CLIENT_ID, SUSHI_CAZZA_EXAMPLE_TEXT } from "@/lib/agency/demo-client";
+import { useSpeechToText } from "@/lib/hooks/useSpeechToText";
 
 export default function DemoBriefingPage() {
   const { addClientRequest } = useAgencyStore();
@@ -28,6 +29,13 @@ export default function DemoBriefingPage() {
     }, 300);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [rawText]);
+
+  const handleTranscript = useCallback((text: string) => {
+    setRawText((prev) => prev ? prev.trimEnd() + " " + text : text);
+  }, []);
+
+  const { isListening, isSupported, error: micError, startListening, stopListening } =
+    useSpeechToText({ onTranscript: handleTranscript });
 
   function fillExample() {
     setRawText(SUSHI_CAZZA_EXAMPLE_TEXT);
@@ -142,7 +150,64 @@ export default function DemoBriefingPage() {
             autoFocus
             className="w-full px-4 py-3 text-[13px] bg-white border border-[#E5E5E2] rounded-[10px] outline-none focus:border-[#5B5BD6] focus:shadow-[0_0_0_3px_rgba(91,91,214,0.08)] resize-none leading-relaxed transition-all placeholder:text-[#C0C0BC]"
           />
-          <p className="text-[11px] text-[#C0C0BC] mt-1.5">{rawText.length} caracteres</p>
+          <div className="flex items-center justify-between mt-1.5">
+            <p className="text-[11px] text-[#C0C0BC]">{rawText.length} caracteres</p>
+
+            {/* Mic button */}
+            {isSupported ? (
+              <div className="flex items-center gap-2">
+                {isListening && (
+                  <span className="flex items-center gap-1.5 text-[11px] text-[#DC2626] font-medium">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#DC2626] animate-pulse" />
+                    Ouvindo...
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={isListening ? stopListening : startListening}
+                  className={`h-7 px-3 rounded-[6px] text-[11px] font-medium border transition-colors flex items-center gap-1.5 ${
+                    isListening
+                      ? "bg-[#FEE2E2] border-[#FECACA] text-[#DC2626] hover:bg-[#FECACA]"
+                      : "bg-white border-[#E5E5E2] text-[#6B6B65] hover:border-[#9B9B95]"
+                  }`}
+                >
+                  {isListening ? (
+                    <>
+                      <span className="w-2 h-2 rounded-[2px] bg-[#DC2626]" />
+                      Parar gravação
+                    </>
+                  ) : (
+                    <>
+                      <svg width="11" height="14" viewBox="0 0 11 14" fill="none">
+                        <rect x="3.5" y="0.5" width="4" height="7" rx="2" stroke="currentColor" strokeWidth="1.2"/>
+                        <path d="M1 7C1 9.76 3.01 12 5.5 12C7.99 12 10 9.76 10 7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                        <line x1="5.5" y1="12" x2="5.5" y2="13.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                      </svg>
+                      Gravar áudio
+                    </>
+                  )}
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                disabled
+                className="h-7 px-3 rounded-[6px] text-[11px] font-medium border border-[#E5E5E2] bg-[#F7F7F6] text-[#C0C0BC] cursor-not-allowed"
+              >
+                Microfone indisponível
+              </button>
+            )}
+          </div>
+
+          {/* Mic helper + error */}
+          {isSupported && !micError && (
+            <p className="text-[11px] text-[#9B9B95] mt-1.5">
+              Você pode falar o briefing em voz alta. A transcrição será adicionada ao texto acima.
+            </p>
+          )}
+          {micError && (
+            <p className="text-[11px] text-[#DC2626] mt-1.5">{micError}</p>
+          )}
         </div>
 
         {/* Optional fields */}

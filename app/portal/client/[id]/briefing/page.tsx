@@ -6,6 +6,7 @@ import { useAgencyStore } from "@/store/agency-store";
 import { notFound } from "next/navigation";
 import { extractBriefing } from "@/lib/agency/briefing-extractor";
 import type { ExtractedRequestSummary } from "@/lib/agency/client-requests";
+import { useSpeechToText } from "@/lib/hooks/useSpeechToText";
 
 // ── Dept display names ────────────────────────────────────────────────────────
 const DEPT_LABELS: Record<string, string> = {
@@ -22,10 +23,8 @@ export default function BriefingRoomPage({ params }: { params: Promise<{ id: str
   const router = useRouter();
   const { clients, addClientRequest } = useAgencyStore();
 
-  const client = clients.find((c) => c.id === id);
-  if (!client) return notFound();
-
   // ── Form state ─────────────────────────────────────────────────────────────
+  // All hooks must appear before any conditional return.
   const [rawText,    setRawText]    = useState("");
   const [title,      setTitle]      = useState("");
   const [deadline,   setDeadline]   = useState("");
@@ -38,6 +37,13 @@ export default function BriefingRoomPage({ params }: { params: Promise<{ id: str
 
   // ── Submit state ──────────────────────────────────────────────────────────
   const [submitted,  setSubmitted]  = useState(false);
+
+  // ── Speech-to-text ────────────────────────────────────────────────────────
+  const handleTranscript = useCallback((text: string) => {
+    setRawText((prev) => prev ? prev.trimEnd() + " " + text : text);
+  }, []);
+  const { isListening, isSupported, error: micError, startListening, stopListening } =
+    useSpeechToText({ onTranscript: handleTranscript });
 
   // Run extraction whenever rawText changes (debounced 300ms)
   const runExtraction = useCallback(() => {
@@ -56,7 +62,9 @@ export default function BriefingRoomPage({ params }: { params: Promise<{ id: str
     return () => clearTimeout(timer);
   }, [runExtraction]);
 
-  const effectiveTitle = title.trim() || autoTitle || "Solicitação";
+  // ── Client guard (after all hooks) ────────────────────────────────────────
+  const client = clients.find((c) => c.id === id);
+  if (!client) return notFound();
 
   const handleSubmit = () => {
     if (!rawText.trim()) return;
@@ -64,7 +72,6 @@ export default function BriefingRoomPage({ params }: { params: Promise<{ id: str
     const { summary: s, title: t } = extractBriefing(rawText);
     const finalTitle = title.trim() || t || "Solicitação";
 
-    // Merge optional fields into summary if present
     const enrichedMissingInfo = [...s.missingInfo];
     if (deadline.trim()) {
       const idx = enrichedMissingInfo.indexOf("Prazo de entrega");
@@ -141,10 +148,69 @@ export default function BriefingRoomPage({ params }: { params: Promise<{ id: str
             autoFocus
             className="w-full px-5 pt-5 pb-4 text-[14px] text-[#1A1A1A] placeholder:text-[#C0C0BC] leading-relaxed bg-transparent outline-none resize-none"
           />
-          <div className="px-5 pb-4 flex items-center justify-between">
-            <span className="text-[11px] text-[#C0C0BC]">{rawText.length} caracteres</span>
-            {rawText.trim().length >= 20 && (
-              <span className="text-[11px] text-[#9B9B95]">Analisando em tempo real...</span>
+          <div className="px-5 pb-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-[#C0C0BC]">{rawText.length} caracteres</span>
+              {rawText.trim().length >= 20 && (
+                <span className="text-[11px] text-[#9B9B95]">Analisando em tempo real...</span>
+              )}
+            </div>
+
+            {/* Mic row */}
+            <div className="flex items-center gap-2">
+              {isSupported ? (
+                <>
+                  {isListening && (
+                    <span className="flex items-center gap-1.5 text-[11px] text-[#DC2626] font-medium">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#DC2626] animate-pulse" />
+                      Ouvindo...
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={isListening ? stopListening : startListening}
+                    className={`h-7 px-3 rounded-[6px] text-[11px] font-medium border transition-colors flex items-center gap-1.5 ${
+                      isListening
+                        ? "bg-[#FEE2E2] border-[#FECACA] text-[#DC2626] hover:bg-[#FECACA]"
+                        : "bg-[#F7F7F6] border-[#E5E5E2] text-[#6B6B65] hover:border-[#9B9B95]"
+                    }`}
+                  >
+                    {isListening ? (
+                      <>
+                        <span className="w-2 h-2 rounded-[2px] bg-[#DC2626]" />
+                        Parar gravação
+                      </>
+                    ) : (
+                      <>
+                        <svg width="11" height="14" viewBox="0 0 11 14" fill="none">
+                          <rect x="3.5" y="0.5" width="4" height="7" rx="2" stroke="currentColor" strokeWidth="1.2"/>
+                          <path d="M1 7C1 9.76 3.01 12 5.5 12C7.99 12 10 9.76 10 7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                          <line x1="5.5" y1="12" x2="5.5" y2="13.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                        </svg>
+                        Gravar áudio
+                      </>
+                    )}
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  className="h-7 px-3 rounded-[6px] text-[11px] font-medium border border-[#E5E5E2] bg-[#F7F7F6] text-[#C0C0BC] cursor-not-allowed"
+                >
+                  Microfone indisponível
+                </button>
+              )}
+            </div>
+
+            {/* Mic helper / error */}
+            {isSupported && !micError && (
+              <p className="text-[11px] text-[#9B9B95]">
+                Você pode falar o briefing em voz alta. A transcrição será adicionada ao texto acima.
+              </p>
+            )}
+            {micError && (
+              <p className="text-[11px] text-[#DC2626]">{micError}</p>
             )}
           </div>
         </div>
