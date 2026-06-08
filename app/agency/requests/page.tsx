@@ -15,6 +15,27 @@ import { processBriefing } from "@/lib/agency/briefing-processor";
 import type { Priority } from "@/lib/agency/mock-data";
 import { DEMO_CLIENT_ID } from "@/lib/agency/demo-client";
 
+// ── CopyLinkButton ────────────────────────────────────────────────────────────
+
+function CopyLinkButton({ path }: { path: string }) {
+  const [copied, setCopied] = useState(false);
+  function handleCopy() {
+    const url = typeof window !== "undefined" ? window.location.origin + path : path;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+  return (
+    <button
+      onClick={handleCopy}
+      className="h-7 px-3 rounded-[6px] border border-[#E5E5E2] bg-white text-[11px] font-medium text-[#6B6B65] hover:border-[#9B9B95] hover:text-[#1A1A1A] transition-colors whitespace-nowrap"
+    >
+      {copied ? "Copiado!" : "Copiar link"}
+    </button>
+  );
+}
+
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const DEPT_LABELS: Record<string, string> = {
@@ -149,8 +170,9 @@ export default function AgencyRequestsPage() {
   // and never reachable from the client portal.
   const isMaster = currentRole === "master";
 
-  const [activeFilter, setActiveFilter] = useState<ClientRequestStatus | "all">("all");
-  const [expandedId, setExpandedId]     = useState<string | null>(null);
+  const [activeFilter, setActiveFilter]   = useState<ClientRequestStatus | "all">("all");
+  const [sourceFilter, setSourceFilter]   = useState<"all" | "public_briefing" | "client_portal">("all");
+  const [expandedId, setExpandedId]       = useState<string | null>(null);
   const [convertingId, setConvertingId] = useState<string | null>(null);
   const [convForm, setConvForm]         = useState<ConversionForm | null>(null);
   // requestId → created projectId (success state per request)
@@ -164,8 +186,12 @@ export default function AgencyRequestsPage() {
   const [showDemoReset,   setShowDemoReset]   = useState(false);
 
   const all    = clientRequests ?? [];
-  const filtered = all.filter((r) => activeFilter === "all" || r.status === activeFilter);
+  const filtered = all.filter((r) =>
+    (activeFilter === "all" || r.status === activeFilter) &&
+    (sourceFilter === "all" || r.source === sourceFilter)
+  );
   const newCount = all.filter((r) => r.status === "new").length;
+  const prospectCount = all.filter((r) => r.source === "public_briefing").length;
 
   const getClient = (clientId: string) => clients.find((c) => c.id === clientId);
 
@@ -331,6 +357,39 @@ export default function AgencyRequestsPage() {
         </div>
       </div>
 
+      {/* Public briefing link (ADMIN only) */}
+      <div className="flex items-center gap-3 bg-[#F7F7F6] border border-[#E5E5E2] rounded-[10px] px-4 py-3">
+        <div className="flex-1 min-w-0">
+          <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-0.5">
+            Link público para novo cliente
+          </div>
+          <code className="text-[12px] text-[#1A1A1A] font-mono">/briefing</code>
+          <span className="text-[11px] text-[#9B9B95] ml-2">— envie este link a um novo prospect</span>
+        </div>
+        <CopyLinkButton path="/briefing" />
+      </div>
+
+      {/* Source filter */}
+      <div className="flex items-center gap-2">
+        {[
+          { label: "Todos",                                  value: "all" as const },
+          { label: `Prospects (${prospectCount})`,           value: "public_briefing" as const },
+          { label: "Portal de clientes",                     value: "client_portal" as const },
+        ].map((opt) => (
+          <button
+            key={opt.value}
+            onClick={() => setSourceFilter(opt.value)}
+            className={`h-7 px-3 rounded-[6px] text-[12px] font-medium transition-colors ${
+              sourceFilter === opt.value
+                ? "bg-[#1A1A1A] text-white"
+                : "bg-[#F0F0ED] text-[#6B6B65] hover:bg-[#E5E5E2]"
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
       {/* Filter tabs */}
       <div className="flex gap-1 flex-wrap">
         {STATUS_FILTERS.map((f) => {
@@ -370,7 +429,9 @@ export default function AgencyRequestsPage() {
           const isExpanded = expandedId === req.id;
           const isConverting = convertingId === req.id;
           const createdProjectId = createdProjects[req.id];
-          const clientName = getClient(req.clientId)?.name ?? req.clientId;
+          const clientName = req.source === "public_briefing"
+            ? (req.prospectName ?? req.extractedSummary.clientName ?? req.clientId)
+            : (getClient(req.clientId)?.name ?? req.clientId);
 
           return (
             <div
@@ -402,6 +463,11 @@ export default function AgencyRequestsPage() {
                     {req.v2Scope && (
                       <span className="h-5 px-2 rounded-full bg-[#F0F0ED] text-[#6B6B65] text-[10px] font-semibold">
                         V2 conversacional
+                      </span>
+                    )}
+                    {req.source === "public_briefing" && (
+                      <span className="h-5 px-2 rounded-full bg-[#EFF6FF] text-[#2563EB] text-[10px] font-semibold">
+                        briefing público
                       </span>
                     )}
                     {req.attachments.length > 0 && (
@@ -456,6 +522,29 @@ export default function AgencyRequestsPage() {
                       </p>
                     )}
                   </div>
+
+                  {/* Prospect contact info */}
+                  {req.source === "public_briefing" && (
+                    <div className="bg-[#EFF6FF] border border-[#BFDBFE] rounded-[8px] px-4 py-3">
+                      <div className="text-[10px] font-semibold text-[#2563EB] uppercase tracking-[0.05em] mb-2">
+                        Dados do prospect
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                        {[
+                          { label: "Nome",      value: req.prospectName },
+                          { label: "Negócio",   value: req.extractedSummary.clientName ?? req.v2Scope?.businessName },
+                          { label: "E-mail",    value: req.prospectEmail },
+                          { label: "WhatsApp",  value: req.prospectPhone },
+                          { label: "Segmento",  value: req.extractedSummary.segment ?? req.v2Scope?.segment },
+                        ].filter((r) => r.value).map((row) => (
+                          <div key={row.label} className="flex items-start gap-1.5 text-[11px]">
+                            <span className="text-[#60A5FA] w-14 shrink-0">{row.label}</span>
+                            <span className="text-[#1E3A5F] font-medium">{row.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* V2 structured scope (from conversational briefing) */}
                   {req.v2Scope && (
@@ -581,6 +670,23 @@ export default function AgencyRequestsPage() {
                         Analisar
                       </button>
                     )}
+                    {/* Prospect approval actions */}
+                    {req.source === "public_briefing" && req.status !== "approved" && req.status !== "rejected" && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); updateClientRequest(req.id, { status: "approved" }); }}
+                        className="h-8 px-4 rounded-[7px] bg-[#16A34A] hover:bg-[#15803D] text-white text-[12px] font-medium transition-colors"
+                      >
+                        Aprovar como cliente
+                      </button>
+                    )}
+                    {req.source === "public_briefing" && req.status !== "rejected" && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); updateClientRequest(req.id, { status: "rejected" }); }}
+                        className="h-8 px-4 rounded-[7px] border border-[#E5E5E2] text-[#9B9B95] hover:border-[#DC2626] hover:text-[#DC2626] text-[12px] font-medium transition-colors"
+                      >
+                        Recusar
+                      </button>
+                    )}
                     {!req.analysis ? (
                       <button
                         onClick={(e) => { e.stopPropagation(); handleProcessBriefing(req); }}
@@ -623,7 +729,7 @@ export default function AgencyRequestsPage() {
                         onChange={(e) => updateClientRequest(req.id, { status: e.target.value as ClientRequestStatus })}
                         className="ml-auto h-8 px-2 text-[12px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] text-[#6B6B65]"
                       >
-                        {(["new", "under_review", "proposal_pending", "in_progress", "waiting_client", "completed", "rejected"] as ClientRequestStatus[]).map((s) => (
+                        {(["new", "under_review", "proposal_pending", "in_progress", "waiting_client", "approved", "completed", "rejected"] as ClientRequestStatus[]).map((s) => (
                           <option key={s} value={s}>{REQUEST_STATUS_LABEL[s]}</option>
                         ))}
                       </select>
