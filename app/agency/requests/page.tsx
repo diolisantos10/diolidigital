@@ -13,6 +13,7 @@ import {
 import type { BriefingScope, LiveEstimate } from "@/lib/agency/briefing-conversation";
 import { processBriefing } from "@/lib/agency/briefing-processor";
 import type { Priority } from "@/lib/agency/mock-data";
+import { DEMO_CLIENT_ID } from "@/lib/agency/demo-client";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -139,9 +140,14 @@ function buildDefaultForm(req: ClientRequest, clientName: string): ConversionFor
 
 export default function AgencyRequestsPage() {
   const {
-    clientRequests, clients, projects,
+    clientRequests, clients, projects, currentRole,
     updateClientRequest, setRequestAnalysis, createProject, createBriefing, addMaterialRequest,
+    deleteClientRequest, deleteClientRequestsByClient,
   } = useAgencyStore();
+
+  // Destructive controls are master-only — never shown to other internal roles
+  // and never reachable from the client portal.
+  const isMaster = currentRole === "master";
 
   const [activeFilter, setActiveFilter] = useState<ClientRequestStatus | "all">("all");
   const [expandedId, setExpandedId]     = useState<string | null>(null);
@@ -151,6 +157,11 @@ export default function AgencyRequestsPage() {
   const [createdProjects, setCreatedProjects] = useState<Record<string, string>>({});
   const [processingId,    setProcessingId]    = useState<string | null>(null);
   const [rawOpenId,       setRawOpenId]       = useState<string | null>(null);
+  // Delete confirmation: the request pending permanent deletion (modal target)
+  const [deleteTarget,    setDeleteTarget]    = useState<ClientRequest | null>(null);
+  const [deleteConfirm,   setDeleteConfirm]   = useState("");
+  // Demo reset confirmation (Sushi Cazza test requests)
+  const [showDemoReset,   setShowDemoReset]   = useState(false);
 
   const all    = clientRequests ?? [];
   const filtered = all.filter((r) => activeFilter === "all" || r.status === activeFilter);
@@ -258,6 +269,30 @@ export default function AgencyRequestsPage() {
     setProcessingId(null);
   }
 
+  // Demo test requests = anything tied to the fixed Sushi Cazza demo client.
+  const demoRequestCount = all.filter((r) => r.clientId === DEMO_CLIENT_ID).length;
+
+  function openDeleteModal(req: ClientRequest) {
+    setDeleteTarget(req);
+    setDeleteConfirm("");
+  }
+
+  function confirmDelete() {
+    if (!deleteTarget) return;
+    if (deleteConfirm.trim().toUpperCase() !== "APAGAR") return;
+    deleteClientRequest(deleteTarget.id);
+    // Clean up any per-request UI state pointing at the removed row.
+    if (expandedId === deleteTarget.id) setExpandedId(null);
+    if (convertingId === deleteTarget.id) { setConvertingId(null); setConvForm(null); }
+    setDeleteTarget(null);
+    setDeleteConfirm("");
+  }
+
+  function runDemoReset() {
+    deleteClientRequestsByClient(DEMO_CLIENT_ID);
+    setShowDemoReset(false);
+  }
+
   return (
     <div className="space-y-6">
       {/* Page header */}
@@ -276,6 +311,17 @@ export default function AgencyRequestsPage() {
             <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B]" />
             Testar como cliente Sushi Cazza
           </Link>
+          {isMaster && demoRequestCount > 0 && (
+            <button
+              onClick={() => setShowDemoReset(true)}
+              className="h-7 px-3 rounded-[6px] border border-[#FCA5A5] bg-[#FEF2F2] text-[#DC2626] hover:border-[#F87171] text-[11px] font-semibold transition-colors inline-flex items-center gap-1.5"
+              title="Apaga apenas as solicitações de teste do Sushi Cazza"
+            >
+              <span className="text-[10px]">⟲</span>
+              Resetar teste Sushi Cazza ({demoRequestCount})
+              <span className="h-3.5 px-1 rounded-[3px] bg-[#DC2626] text-white text-[8px] font-bold leading-[14px]">ADMIN</span>
+            </button>
+          )}
           {newCount > 0 && (
             <span className="flex items-center gap-1.5 h-7 px-3 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[12px] font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-[#5B5BD6]" />
@@ -582,6 +628,18 @@ export default function AgencyRequestsPage() {
                         ))}
                       </select>
                     )}
+                    {/* Master-only destructive control */}
+                    {isMaster && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); openDeleteModal(req); }}
+                        className={`h-8 px-4 rounded-[7px] border border-[#FCA5A5] text-[#DC2626] hover:bg-[#FEF2F2] text-[12px] font-medium transition-colors inline-flex items-center gap-1.5 ${
+                          req.status === "completed" || req.status === "rejected" ? "ml-auto" : ""
+                        }`}
+                      >
+                        Apagar solicitação
+                        <span className="h-3.5 px-1 rounded-[3px] bg-[#DC2626] text-white text-[8px] font-bold leading-[14px]">ADMIN</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -611,6 +669,103 @@ export default function AgencyRequestsPage() {
           );
         })}
       </div>
+
+      {/* ── Delete confirmation modal (master only) ── */}
+      {isMaster && deleteTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+          onClick={() => { setDeleteTarget(null); setDeleteConfirm(""); }}
+        >
+          <div
+            className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_8px_30px_rgba(0,0,0,0.12)] w-full max-w-[460px] p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-2.5 mb-3">
+              <div className="w-9 h-9 rounded-full bg-[#FEF2F2] flex items-center justify-center text-[#DC2626] text-[16px] shrink-0">⚠</div>
+              <h2 className="text-[16px] font-semibold text-[#1A1A1A]">Apagar solicitação definitivamente?</h2>
+            </div>
+            <p className="text-[13px] text-[#6B6B65] leading-relaxed mb-3">
+              Esta ação remove a solicitação, briefing, conversa, escopo, estimativa, anexos
+              registrados e histórico associado a esta solicitação. Esta ação não pode ser desfeita.
+            </p>
+            {deleteTarget.linkedProjectId && (
+              <div className="bg-[#FFFBEB] border border-[#FDE68A] rounded-[8px] px-4 py-3 mb-3">
+                <p className="text-[12px] text-[#92400E] leading-relaxed">
+                  Esta solicitação já gerou um projeto. O projeto será mantido.
+                </p>
+              </div>
+            )}
+            <div className="bg-[#F7F7F6] rounded-[8px] px-3 py-2 mb-4">
+              <p className="text-[12px] text-[#6B6B65]">
+                <span className="font-semibold text-[#1A1A1A]">{deleteTarget.title}</span>
+                {" · "}{getClient(deleteTarget.clientId)?.name ?? deleteTarget.clientId}
+              </p>
+            </div>
+            <label className="block text-[11px] font-medium text-[#6B6B65] mb-1.5">
+              Digite <span className="font-bold text-[#DC2626]">APAGAR</span> para confirmar
+            </label>
+            <input
+              autoFocus
+              value={deleteConfirm}
+              onChange={(e) => setDeleteConfirm(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") confirmDelete(); }}
+              placeholder="APAGAR"
+              className="w-full h-9 px-3 text-[13px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#DC2626] mb-4"
+            />
+            <div className="flex items-center justify-end gap-2">
+              <button
+                onClick={() => { setDeleteTarget(null); setDeleteConfirm(""); }}
+                className="h-9 px-4 rounded-[7px] border border-[#E5E5E2] text-[#6B6B65] hover:bg-[#F7F7F6] text-[13px] font-medium transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={deleteConfirm.trim().toUpperCase() !== "APAGAR"}
+                className="h-9 px-4 rounded-[7px] bg-[#DC2626] hover:bg-[#B91C1C] disabled:opacity-40 disabled:cursor-not-allowed text-white text-[13px] font-medium transition-colors"
+              >
+                Apagar definitivamente
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Demo reset confirmation modal (master only) ── */}
+      {isMaster && showDemoReset && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+          onClick={() => setShowDemoReset(false)}
+        >
+          <div
+            className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_8px_30px_rgba(0,0,0,0.12)] w-full max-w-[440px] p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-2.5 mb-3">
+              <div className="w-9 h-9 rounded-full bg-[#FEF2F2] flex items-center justify-center text-[#DC2626] text-[16px] shrink-0">⟲</div>
+              <h2 className="text-[16px] font-semibold text-[#1A1A1A]">Resetar teste Sushi Cazza?</h2>
+            </div>
+            <p className="text-[13px] text-[#6B6B65] leading-relaxed mb-4">
+              Isso apagará apenas as solicitações de teste do Sushi Cazza
+              {" "}({demoRequestCount}). Clientes, projetos e demais dados não serão afetados.
+            </p>
+            <div className="flex items-center justify-end gap-2">
+              <button
+                onClick={() => setShowDemoReset(false)}
+                className="h-9 px-4 rounded-[7px] border border-[#E5E5E2] text-[#6B6B65] hover:bg-[#F7F7F6] text-[13px] font-medium transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={runDemoReset}
+                className="h-9 px-4 rounded-[7px] bg-[#DC2626] hover:bg-[#B91C1C] text-white text-[13px] font-medium transition-colors"
+              >
+                Apagar solicitações de teste
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -217,6 +217,12 @@ interface AgencyState {
   addClientRequest: (req: Omit<ClientRequest, "id" | "createdAt" | "updatedAt">) => string;
   updateClientRequest: (id: string, updates: Partial<Pick<ClientRequest, "status" | "linkedProjectId">>) => void;
   setRequestAnalysis: (id: string, analysis: import("@/lib/agency/client-requests").BriefingAnalysis) => void;
+  // Master-only: permanently remove a request (briefing, conversation, scope, estimate,
+  // attachments, analysis). Does NOT delete any linked project.
+  deleteClientRequest: (id: string) => void;
+  // Master-only testing helper: remove only the requests belonging to a given client
+  // (used to reset the Sushi Cazza demo). Returns the number removed.
+  deleteClientRequestsByClient: (clientId: string) => number;
 
   // Integrations V2
   integrationConfigs: IntegrationConfig[];
@@ -690,6 +696,32 @@ export const useAgencyStore = create<AgencyState>()(
             r.id === id ? { ...r, analysis, updatedAt: new Date().toISOString() } : r
           ),
         }));
+      },
+
+      deleteClientRequest: (id) => {
+        const req = get().clientRequests.find((r) => r.id === id);
+        if (!req) return;
+        const clientName = get().clients.find((c) => c.id === req.clientId)?.name ?? req.clientId;
+        // Remove only the request — any linked project is intentionally preserved.
+        set((s) => ({ clientRequests: s.clientRequests.filter((r) => r.id !== id) }));
+        get().addActivity({
+          type: "request_deleted",
+          message: `Solicitação apagada: "${req.title}" (${clientName})`,
+          clientId: req.clientId,
+        });
+      },
+
+      deleteClientRequestsByClient: (clientId) => {
+        const matches = get().clientRequests.filter((r) => r.clientId === clientId);
+        if (matches.length === 0) return 0;
+        const clientName = get().clients.find((c) => c.id === clientId)?.name ?? clientId;
+        set((s) => ({ clientRequests: s.clientRequests.filter((r) => r.clientId !== clientId) }));
+        get().addActivity({
+          type: "request_deleted",
+          message: `${matches.length} solicitação(ões) de teste apagada(s): ${clientName}`,
+          clientId,
+        });
+        return matches.length;
       },
 
       // ── Brand Updates ─────────────────────────────────────────────────────

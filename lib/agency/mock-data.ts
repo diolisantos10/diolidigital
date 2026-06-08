@@ -372,7 +372,8 @@ export interface ActivityEvent {
     | "brand_update_submitted"
     | "material_request_created"
     | "strategy_room_generated"
-    | "intelligence_run";
+    | "intelligence_run"
+    | "request_deleted";
   message: string;
   timestamp: string;
   projectId?: string;
