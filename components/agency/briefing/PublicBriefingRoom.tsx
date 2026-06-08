@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import type { ConvState, ConvMessage, BriefingScope, LiveEstimate } from "@/lib/agency/briefing-conversation";
 import { initProspectConvState, processProspectMessage } from "@/lib/agency/prospect-engine";
 import { detectPackage, getPackageDef, SOCIAL_PACKAGES } from "@/lib/agency/live-calculator";
 import { FileUploadZone } from "@/components/agency/briefing/FileUploadZone";
+import { useSpeechToText } from "@/lib/hooks/useSpeechToText";
 import type { RequestAttachment, ExtractedRequestSummary } from "@/lib/agency/client-requests";
 
 // ── Public types ───────────────────────────────────────────────────────────────
@@ -438,6 +439,14 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [conv.messages]);
 
+  // Append transcribed text to input (never auto-submits; user reviews before sending)
+  const handleTranscript = useCallback((text: string) => {
+    setInputText((prev) => (prev ? prev.trimEnd() + " " + text : text));
+  }, []);
+
+  const { isListening, isSupported, error: micError, startListening, stopListening } =
+    useSpeechToText({ onTranscript: handleTranscript });
+
   function handleSend() {
     const text = inputText.trim();
     if (!text) return;
@@ -544,6 +553,37 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
             </button>
           </div>
           <div className="flex items-center gap-2 mt-2">
+            {/* Microphone button */}
+            {isSupported ? (
+              <button
+                type="button"
+                onClick={isListening ? stopListening : startListening}
+                className={`h-6 px-2.5 rounded-[5px] text-[10px] font-medium border transition-colors flex items-center gap-1.5 ${
+                  isListening
+                    ? "bg-[#FEE2E2] border-[#FECACA] text-[#DC2626]"
+                    : "bg-white border-[#E5E5E2] text-[#9B9B95] hover:border-[#9B9B95]"
+                }`}
+                title={isListening ? "Parar gravação" : "Ditar por voz"}
+              >
+                {isListening ? (
+                  <><span className="w-1.5 h-1.5 rounded-full bg-[#DC2626] animate-pulse" />Parar</>
+                ) : (
+                  <>
+                    <svg width="9" height="12" viewBox="0 0 9 12" fill="none">
+                      <rect x="2.5" y="0.5" width="4" height="6" rx="2" stroke="currentColor" strokeWidth="1.1"/>
+                      <path d="M0.5 6C0.5 8.21 2.29 10 4.5 10C6.71 10 8.5 8.21 8.5 6" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/>
+                      <line x1="4.5" y1="10" x2="4.5" y2="11.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/>
+                    </svg>
+                    Voz
+                  </>
+                )}
+              </button>
+            ) : (
+              <span className="text-[10px] text-[#C0C0BC]" title="Seu navegador não suporta transcrição por voz.">
+                Microfone indisponível
+              </span>
+            )}
+            {/* File attach button */}
             <button
               type="button"
               onClick={() => setShowFileUpload((v) => !v)}
@@ -563,6 +603,12 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
               Enter para enviar · Shift+Enter nova linha
             </span>
           </div>
+          {/* Microphone error feedback */}
+          {micError && (
+            <p className="text-[10px] text-[#DC2626] mt-1">
+              Não consegui acessar o microfone. Verifique a permissão do navegador.
+            </p>
+          )}
         </div>
       </div>
 
