@@ -10,6 +10,7 @@ export type ClientRequestStatus =
   | "proposal_pending"
   | "in_progress"
   | "waiting_client"
+  | "approved"
   | "completed"
   | "rejected";
 
@@ -76,7 +77,11 @@ export interface ClientRequest {
   status: ClientRequestStatus;
   createdAt: string;
   updatedAt: string;
-  source: "client_portal";
+  source: "client_portal" | "public_briefing";
+  // Prospect-only (source === "public_briefing")
+  prospectName?: string;
+  prospectEmail?: string;
+  prospectPhone?: string;
   attachments: RequestAttachment[];
   linkedProjectId?: string;
   analysis?: BriefingAnalysis;
@@ -92,6 +97,7 @@ export const REQUEST_STATUS_LABEL: Record<ClientRequestStatus, string> = {
   proposal_pending: "Aguardando Proposta",
   in_progress:      "Em Andamento",
   waiting_client:   "Aguardando Cliente",
+  approved:         "Aprovado",
   completed:        "Concluída",
   rejected:         "Recusada",
 };
@@ -102,6 +108,7 @@ export const REQUEST_STATUS_STYLE: Record<ClientRequestStatus, { bg: string; tex
   proposal_pending: { bg: "bg-[#F0F0ED]",  text: "text-[#6B6B65]"  },
   in_progress:      { bg: "bg-[#DCFCE7]",  text: "text-[#16A34A]"  },
   waiting_client:   { bg: "bg-[#FEF3C7]",  text: "text-[#D97706]"  },
+  approved:         { bg: "bg-[#DCFCE7]",  text: "text-[#15803D]"  },
   completed:        { bg: "bg-[#DCFCE7]",  text: "text-[#15803D]"  },
   rejected:         { bg: "bg-[#FEE2E2]",  text: "text-[#DC2626]"  },
 };

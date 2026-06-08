@@ -306,7 +306,7 @@ interface NegotiationResult {
   replyText: string;
 }
 
-function detectNegotiation(text: string, state: ConvState): NegotiationResult | null {
+export function detectNegotiation(text: string, state: ConvState): NegotiationResult | null {
   const s   = state.scope;
   const soc = s.social ?? { platforms: [] };
   const t   = text.toLowerCase();

@@ -45,6 +45,10 @@ export interface BriefingScope {
   branding: BrandingScope;
   budgetRange?: string;
   deadline?: string;
+  // Prospect-only fields (public /briefing flow)
+  prospectName?: string;
+  prospectEmail?: string;
+  prospectPhone?: string;
 }
 
 // ── Live estimate ─────────────────────────────────────────────────────────────
