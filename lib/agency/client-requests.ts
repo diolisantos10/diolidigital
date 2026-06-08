@@ -89,6 +89,8 @@ export interface ClientRequest {
   conversationTranscript?: import("./briefing-conversation").ConvMessage[];
   v2Scope?: import("./briefing-conversation").BriefingScope;
   v2Estimate?: import("./briefing-conversation").LiveEstimate;
+  // SDR Agent V1 handoff summary (set on submit from public /briefing)
+  sdrHandoff?: import("./sdr-agent").SDRHandoff;
 }
 
 export const REQUEST_STATUS_LABEL: Record<ClientRequestStatus, string> = {

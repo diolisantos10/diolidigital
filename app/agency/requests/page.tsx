@@ -11,6 +11,7 @@ import {
   type BriefingAnalysis,
 } from "@/lib/agency/client-requests";
 import type { BriefingScope, LiveEstimate } from "@/lib/agency/briefing-conversation";
+import type { SDRHandoff } from "@/lib/agency/sdr-agent";
 import { processBriefing } from "@/lib/agency/briefing-processor";
 import type { Priority } from "@/lib/agency/mock-data";
 import { DEMO_CLIENT_ID } from "@/lib/agency/demo-client";
@@ -33,6 +34,60 @@ function CopyLinkButton({ path }: { path: string }) {
     >
       {copied ? "Copiado!" : "Copiar link"}
     </button>
+  );
+}
+
+// ── SDRHandoffPanel ───────────────────────────────────────────────────────────
+
+function SDRHandoffPanel({ handoff }: { handoff: SDRHandoff }) {
+  return (
+    <div className="bg-[#F5F3FF] border border-[#DDD6FE] rounded-[8px] px-4 py-3.5 space-y-2.5">
+      <div className="text-[9px] font-semibold text-[#7C3AED] uppercase tracking-[0.06em]">
+        ✦ Diagnóstico SDR Agent
+      </div>
+
+      <div>
+        <p className="text-[10px] font-semibold text-[#5B21B6] mb-0.5">Diagnóstico</p>
+        <p className="text-[11px] text-[#4C1D95] leading-relaxed">{handoff.diagnosis}</p>
+      </div>
+
+      <div>
+        <p className="text-[10px] font-semibold text-[#5B21B6] mb-0.5">Budget</p>
+        <p className="text-[11px] text-[#4C1D95]">{handoff.budgetFit}</p>
+      </div>
+
+      {handoff.objectionsHandled.length > 0 && (
+        <div>
+          <p className="text-[10px] font-semibold text-[#5B21B6] mb-0.5">Objeções detectadas</p>
+          {handoff.objectionsHandled.map((o, i) => (
+            <p key={i} className="text-[11px] text-[#4C1D95]">• {o}</p>
+          ))}
+        </div>
+      )}
+
+      {handoff.tradeoffsAccepted.length > 0 && (
+        <div>
+          <p className="text-[10px] font-semibold text-[#5B21B6] mb-0.5">Concessões aceitas</p>
+          {handoff.tradeoffsAccepted.map((t, i) => (
+            <p key={i} className="text-[11px] text-[#4C1D95]">• {t}</p>
+          ))}
+        </div>
+      )}
+
+      {handoff.unresolvedRisks.length > 0 && (
+        <div className="bg-[#FEF3C7] border border-[#FDE68A] rounded-[6px] px-3 py-2">
+          <p className="text-[10px] font-semibold text-[#D97706] mb-0.5">Riscos não resolvidos</p>
+          {handoff.unresolvedRisks.map((r, i) => (
+            <p key={i} className="text-[11px] text-[#92400E]">• {r}</p>
+          ))}
+        </div>
+      )}
+
+      <div className="bg-[#EDE9FE] rounded-[6px] px-3 py-2">
+        <p className="text-[10px] font-semibold text-[#5B21B6] mb-0.5">Ação recomendada para o PM</p>
+        <p className="text-[11px] text-[#4C1D95] leading-relaxed">{handoff.recommendedPMAction}</p>
+      </div>
+    </div>
   );
 }
 
@@ -470,6 +525,11 @@ export default function AgencyRequestsPage() {
                         briefing público
                       </span>
                     )}
+                    {req.sdrHandoff && (
+                      <span className="h-5 px-2 rounded-full bg-[#EDE9FE] text-[#7C3AED] text-[10px] font-semibold">
+                        ✦ SDR
+                      </span>
+                    )}
                     {req.attachments.length > 0 && (
                       <span className="h-5 px-2 rounded-full bg-[#F0F0ED] text-[#6B6B65] text-[10px] font-semibold">
                         {req.attachments.length} arquivo{req.attachments.length !== 1 ? "s" : ""}
@@ -549,6 +609,11 @@ export default function AgencyRequestsPage() {
                   {/* V2 structured scope (from conversational briefing) */}
                   {req.v2Scope && (
                     <V2ScopePanel scope={req.v2Scope} estimate={req.v2Estimate} />
+                  )}
+
+                  {/* SDR Agent handoff summary */}
+                  {req.sdrHandoff && (
+                    <SDRHandoffPanel handoff={req.sdrHandoff} />
                   )}
 
                   {/* Analysis panel OR extracted summary */}

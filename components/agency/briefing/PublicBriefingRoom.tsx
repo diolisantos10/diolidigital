@@ -2,11 +2,13 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { ConvState, ConvMessage, BriefingScope, LiveEstimate } from "@/lib/agency/briefing-conversation";
-import { initProspectConvState, processProspectMessage } from "@/lib/agency/prospect-engine";
+import { initProspectConvState, processProspectMessage, type ProspectConvState } from "@/lib/agency/prospect-engine";
+import { canSubmitProposal, getSubmissionBlockReason, buildHandoffSummary } from "@/lib/agency/sdr-agent";
 import { detectPackage, getPackageDef, SOCIAL_PACKAGES } from "@/lib/agency/live-calculator";
 import { FileUploadZone } from "@/components/agency/briefing/FileUploadZone";
 import { useSpeechToText } from "@/lib/hooks/useSpeechToText";
 import type { RequestAttachment, ExtractedRequestSummary } from "@/lib/agency/client-requests";
+import type { SDRHandoff } from "@/lib/agency/sdr-agent";
 
 // ── Public types ───────────────────────────────────────────────────────────────
 
@@ -23,6 +25,7 @@ export interface PublicBriefingRoomSubmitData {
   prospectPhone: string;
   businessName: string;
   segment: string;
+  sdrHandoff?: SDRHandoff;
 }
 
 interface PublicBriefingRoomProps {
@@ -424,13 +427,16 @@ function ProposalCard({
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
-  const [conv,           setConv]           = useState<ConvState>(() => initProspectConvState());
+  const [state,          setState]          = useState<ProspectConvState>(() => initProspectConvState());
   const [inputText,      setInputText]      = useState("");
   const [showFileUpload, setShowFileUpload] = useState(false);
   const [attachments,    setAttachments]    = useState<RequestAttachment[]>([]);
 
   // Internal temp ID for file upload association
   const [tempClientId] = useState(() => "prospect-" + Date.now());
+
+  const conv = state.conv;
+  const sdr  = state.sdr;
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef    = useRef<HTMLTextAreaElement>(null);
@@ -451,12 +457,12 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
     const text = inputText.trim();
     if (!text) return;
     setInputText("");
-    setConv((prev) => processProspectMessage(text, prev));
+    setState((prev) => processProspectMessage(text, prev));
     setTimeout(() => textareaRef.current?.focus(), 0);
   }
 
   function sendAction(text: string) {
-    setConv((prev) => processProspectMessage(text, prev));
+    setState((prev) => processProspectMessage(text, prev));
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -482,6 +488,7 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
       prospectPhone: scope.prospectPhone ?? "",
       businessName: scope.businessName ?? "",
       segment: scope.segment ?? "",
+      sdrHandoff: buildHandoffSummary(conv, sdr),
     });
   }
 
@@ -489,6 +496,8 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
   const estimate = conv.estimate;
   const hasScope = scope.wantsSocialMedia || !!scope.wantsPaidTraffic || scope.branding.requested;
   const identityDone = !!scope.prospectEmail && !!scope.prospectPhone;
+  const canSubmit    = canSubmitProposal(conv, sdr);
+  const blockReason  = getSubmissionBlockReason(conv, sdr);
 
   const visibleActions = QUICK_ACTIONS.filter((qa) => qa.show(scope));
 
@@ -619,15 +628,15 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
           {/* Header */}
           <div className="px-4 py-3.5 border-b border-[#F0F0ED]">
             <div className="text-[11px] font-semibold text-[#1A1A1A] uppercase tracking-[0.05em]">
-              {conv.canSubmit ? "Proposta pronta" : "Sua proposta em construção"}
+              {canSubmit ? "Proposta pronta" : "Sua proposta em construção"}
             </div>
             <p className="text-[10px] text-[#9B9B95] mt-0.5">
-              {conv.canSubmit ? "Pronta para envio" : "Atualizada conforme você responde"}
+              {canSubmit ? "Pronta para envio" : "Atualizada conforme você responde"}
             </p>
           </div>
 
           {/* Body */}
-          {conv.canSubmit ? (
+          {canSubmit ? (
             /* ── Proposal-ready state ── */
             <div className="px-4 py-4">
               <ProposalCard
@@ -698,6 +707,36 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
                 <EstimateSection estimate={estimate} />
               )}
 
+              {/* SDR: budget fit indicator */}
+              {sdr.budgetSignal.fitStatus === "fits" && sdr.budgetSignal.amount && (
+                <div className="bg-[#DCFCE7] border border-[#86EFAC] rounded-[8px] px-3 py-2">
+                  <p className="text-[10px] font-semibold text-[#166534]">Orçamento confirmado</p>
+                  <p className="text-[9px] text-[#15803D] mt-0.5">
+                    R$ {sdr.budgetSignal.amount.toLocaleString("pt-BR")} — dentro da estimativa.
+                  </p>
+                </div>
+              )}
+              {(sdr.budgetSignal.fitStatus === "above_budget" || sdr.budgetSignal.fitStatus === "below_recommended") && (
+                <div className="bg-[#FEF3C7] border border-[#FDE68A] rounded-[8px] px-3 py-2">
+                  <p className="text-[10px] font-semibold text-[#D97706]">Orçamento abaixo da estimativa</p>
+                  {sdr.budgetSignal.amount && (
+                    <p className="text-[9px] text-[#92400E] mt-0.5">
+                      R$ {sdr.budgetSignal.amount.toLocaleString("pt-BR")} mencionado — ajustando escopo.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* SDR: active objection indicator */}
+              {sdr.objection.active && (
+                <div className="bg-[#FEF3C7] border border-[#FDE68A] rounded-[8px] px-3 py-2">
+                  <p className="text-[10px] font-semibold text-[#D97706]">Ponto em aberto</p>
+                  <p className="text-[9px] text-[#92400E] mt-0.5">
+                    Continue a conversa para resolver antes de enviar.
+                  </p>
+                </div>
+              )}
+
               {estimate.missingForEstimate.length > 0 && (
                 <div className="bg-[#FFFBEB] border border-[#FDE68A] rounded-[8px] px-3 py-2.5">
                   <div className="text-[9px] font-semibold text-[#D97706] uppercase tracking-[0.06em] mb-1.5">
@@ -762,20 +801,20 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
           )}
 
           {/* Submit disabled state */}
-          {!conv.canSubmit && (
+          {!canSubmit && (
             <div className="px-4 pb-4 pt-3 border-t border-[#F0F0ED]">
               <button
                 disabled
                 className="w-full h-10 rounded-[8px] bg-[#F0F0ED] text-[#C0C0BC] text-[12px] cursor-not-allowed"
               >
-                Continue a conversa para enviar
+                {blockReason ?? "Continue a conversa para enviar"}
               </button>
             </div>
           )}
         </div>
 
         {/* Packages reference — only shown before service scope is captured */}
-        {!conv.canSubmit && !hasScope && identityDone && (
+        {!canSubmit && !hasScope && identityDone && (
           <div className="mt-3 bg-[#F7F7F6] rounded-[10px] border border-[#E5E5E2] px-4 py-3">
             <div className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-2">
               Planos Social Media

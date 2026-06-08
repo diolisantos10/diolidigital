@@ -27,6 +27,7 @@ export default function BriefingPage() {
       prospectName: data.prospectName,
       prospectEmail: data.prospectEmail,
       prospectPhone: data.prospectPhone,
+      sdrHandoff: data.sdrHandoff,
     });
     setSubmittedId(id);
     setSubmitted(true);
