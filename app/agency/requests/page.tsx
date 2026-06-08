@@ -548,6 +548,22 @@ export default function AgencyRequestsPage() {
                         ✓ Briefing processado
                       </span>
                     )}
+                    {req.v2Scope && (
+                      <>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); updateClientRequest(req.id, { status: "proposal_pending" }); }}
+                          className="h-8 px-4 rounded-[7px] border border-[#16A34A] text-[#16A34A] hover:bg-[#DCFCE7] text-[12px] font-medium transition-colors"
+                        >
+                          Preparar proposta
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); updateClientRequest(req.id, { status: "waiting_client" }); }}
+                          className="h-8 px-4 rounded-[7px] border border-[#D97706] text-[#D97706] hover:bg-[#FEF3C7] text-[12px] font-medium transition-colors"
+                        >
+                          Solicitar complemento
+                        </button>
+                      </>
+                    )}
                     <button
                       onClick={(e) => { e.stopPropagation(); openConversion(req); }}
                       className="h-8 px-4 rounded-[7px] border border-[#5B5BD6] text-[#5B5BD6] hover:bg-[#EEF0FF] text-[12px] font-medium transition-colors"

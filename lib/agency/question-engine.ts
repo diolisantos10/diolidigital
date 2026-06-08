@@ -297,7 +297,119 @@ export function buildAcknowledgment(scope: BriefingScope): string {
   return parts.join(" ");
 }
 
-// ── Engine functions ──────────────────────────────────────────────────────────
+// ── Negotiation detection ─────────────────────────────────────────────────────
+// Recognises scope-modification intents so the SDR can adjust the cart live.
+// Only fires on explicit signals — does not intercept normal question answers.
+
+interface NegotiationResult {
+  scopeDelta: Partial<BriefingScope>;
+  replyText: string;
+}
+
+function detectNegotiation(text: string, state: ConvState): NegotiationResult | null {
+  const s   = state.scope;
+  const soc = s.social ?? { platforms: [] };
+  const t   = text.toLowerCase();
+
+  // ── Price objection ─────────────────────────────────────────────────────
+  if (/tá caro|ta caro|muito caro|caro demais|ficou caro|tô achando caro|achei caro/.test(t)) {
+    const posts = soc.postsPerWeek ? soc.postsPerWeek * 4 : null;
+    if (s.wantsSocialMedia && posts && posts > 8) {
+      return {
+        scopeDelta: { social: { ...soc, postsPerWeek: 2, storiesPerWeek: 2, reelsPerMonth: 0 }, wantsPaidTraffic: false },
+        replyText:
+          "Entendido! Posso ajustar para o **Plano Starter** — 8 posts + 8 stories/mês, sem reels e sem tráfego, faixa de **R$ 1.200–1.800/mês**.\n\nIso serve como ponto de partida. Quando o negócio crescer, a gente escala.",
+      };
+    }
+    return {
+      scopeDelta: {},
+      replyText: "Claro! Podemos ajustar. O que você prefere reduzir — posts, stories, reels — ou deixar o tráfego pago para depois?",
+    };
+  }
+
+  // ── Request cheaper/smaller plan ────────────────────────────────────────
+  if (/quero começar menor|comecar menor|plano mais barato|mais barato|o starter|plano starter\b|starter\b|plano menor|menor plano|mais simples|mais enxuto|começar pequeno/.test(t)) {
+    return {
+      scopeDelta: {
+        social: { ...soc, postsPerWeek: 2, storiesPerWeek: 2, reelsPerMonth: 0 },
+        wantsPaidTraffic: false,
+      },
+      replyText:
+        "Feito! Ajustei para o **Plano Starter** — 8 posts + 8 stories/mês, sem reels e sem tráfego pago. Faixa de **R$ 1.200–1.800/mês**.\n\nQuando quiser escalar, é só dizer.",
+    };
+  }
+
+  // ── Remove reels ─────────────────────────────────────────────────────────
+  if (
+    s.wantsSocialMedia &&
+    /sem reels?|tira reels?|não quero reels?|nao quero reels?|deixa reels? pra depois|reels? por enquanto não|reels? depois|sem os reels?|cancela reels?|tira os reels?/.test(t)
+  ) {
+    return {
+      scopeDelta: { social: { ...soc, reelsPerMonth: 0 } },
+      replyText: "Feito! Removi os reels do escopo. Você pode adicionar quando estiver pronto para produção de vídeo.",
+    };
+  }
+
+  // ── Add reels ────────────────────────────────────────────────────────────
+  if (
+    s.wantsSocialMedia &&
+    /quero reels?|adicionar reels?|adiciona reels?|inclui reels?|coloca reels?|incluir reels?/.test(t)
+  ) {
+    const n = extractNumber(text) ?? 2;
+    return {
+      scopeDelta: { social: { ...soc, reelsPerMonth: n } },
+      replyText: `Ótimo! Adicionei ${n} reel${n !== 1 ? "s" : ""}/mês — roteiro + edição a partir de material do cliente. Filmagem não está incluída por padrão.`,
+    };
+  }
+
+  // ── Remove paid traffic ──────────────────────────────────────────────────
+  if (
+    /sem tráfego|sem trafego|tira tráfego|tira trafego|não quero tráfego|nao quero trafego|deixa tráfego|deixa trafego|tráfego depois|trafego depois|sem anúncio|sem anuncio/.test(t)
+  ) {
+    return {
+      scopeDelta: { wantsPaidTraffic: false },
+      replyText: "Entendido! Deixei o tráfego pago de fora por agora. É uma boa estratégia começar com orgânico e adicionar mídia paga quando tiver mais tração.",
+    };
+  }
+
+  // ── Add paid traffic ─────────────────────────────────────────────────────
+  if (
+    /quero tráfego|quero trafego|inclui tráfego|inclui trafego|adicionar tráfego|adiciona tráfego|adiciona trafego|incluir tráfego|com tráfego|com trafego/.test(t)
+  ) {
+    return {
+      scopeDelta: { wantsPaidTraffic: true },
+      replyText: "Ótimo! Adicionei tráfego pago ao escopo. Qual é a verba mensal disponível para anúncios? (Esse valor vai direto ao Meta/Google — separado da taxa de gestão.)",
+    };
+  }
+
+  // ── Increase posts ───────────────────────────────────────────────────────
+  if (
+    s.wantsSocialMedia && soc.postsPerWeek !== undefined &&
+    /mais posts?|aumentar posts?|aumenta posts?|sobe posts?|mais postagens?/.test(t)
+  ) {
+    const n = extractNumber(text) ?? soc.postsPerWeek + 1;
+    return {
+      scopeDelta: { social: { ...soc, postsPerWeek: n } },
+      replyText: `Feito! Ajustei para ${n} posts por semana (${n * 4}/mês).`,
+    };
+  }
+
+  // ── Reduce posts ─────────────────────────────────────────────────────────
+  if (
+    s.wantsSocialMedia && soc.postsPerWeek !== undefined &&
+    /menos posts?|diminuir posts?|diminui posts?|reduzir posts?|reduz posts?/.test(t)
+  ) {
+    const n = extractNumber(text) ?? Math.max(2, soc.postsPerWeek - 1);
+    return {
+      scopeDelta: { social: { ...soc, postsPerWeek: n } },
+      replyText: `Feito! Ajustei para ${n} posts por semana (${n * 4}/mês).`,
+    };
+  }
+
+  return null;
+}
+
+
 
 export function getNextQuestion(state: ConvState): QuestionDef | null {
   for (const q of QUESTIONS) {
@@ -317,36 +429,58 @@ export function processClientMessage(text: string, state: ConvState): ConvState 
 
   let newScope: BriefingScope;
   let newAnswered: string[];
+  let negotiationReply: string | null = null;
 
   if (state.isFirstMessage) {
     const delta = parseInitialMessage(text);
     newScope    = mergeScopeDelta(emptyScope(), delta);
     newAnswered = inferAnsweredQIds(newScope);
   } else {
-    const currentQ = getNextQuestion(state);
-    if (currentQ) {
-      const delta = currentQ.parse(text, state);
-      newScope    = mergeScopeDelta(state.scope, delta);
-      newAnswered = [...new Set([...state.answeredQIds, currentQ.id, ...inferAnsweredQIds(newScope)])];
+    // Check negotiation intent before answering the current question
+    const negotiation = detectNegotiation(text, state);
+    if (negotiation) {
+      newScope        = mergeScopeDelta(state.scope, negotiation.scopeDelta);
+      newAnswered     = [...new Set([...state.answeredQIds, ...inferAnsweredQIds(newScope)])];
+      negotiationReply = negotiation.replyText;
     } else {
-      newScope    = state.scope;
-      newAnswered = state.answeredQIds;
+      const currentQ = getNextQuestion(state);
+      if (currentQ) {
+        const delta = currentQ.parse(text, state);
+        newScope    = mergeScopeDelta(state.scope, delta);
+        newAnswered = [...new Set([...state.answeredQIds, currentQ.id, ...inferAnsweredQIds(newScope)])];
+      } else {
+        newScope    = state.scope;
+        newAnswered = state.answeredQIds;
+      }
     }
   }
 
-  const mid: ConvState = { ...withClient, scope: newScope, answeredQIds: newAnswered, isFirstMessage: false, estimate: state.estimate, canSubmit: false };
-  const estimate  = computeEstimate(newScope);
-  const nextQ     = getNextQuestion(mid);
-  const allDone   = nextQ === null;
+  const mid: ConvState = {
+    ...withClient,
+    scope: newScope,
+    answeredQIds: newAnswered,
+    isFirstMessage: false,
+    estimate: state.estimate,
+    canSubmit: false,
+  };
+  const estimate = computeEstimate(newScope);
+  const nextQ    = getNextQuestion(mid);
+  const allDone  = nextQ === null;
 
   let replyText: string;
   if (state.isFirstMessage) {
     const ack = buildAcknowledgment(newScope);
-    replyText = nextQ ? `${ack}\n\n${nextQ.text(mid)}` : `${ack}\n\nTenho as informações principais! Você pode revisar o escopo ao lado e enviar quando estiver pronto.`;
+    replyText = nextQ
+      ? `${ack}\n\n${nextQ.text(mid)}`
+      : `${ack}\n\nTenho as informações principais! Revise o escopo ao lado e envie quando estiver pronto.`;
+  } else if (negotiationReply) {
+    replyText = nextQ && !allDone
+      ? `${negotiationReply}\n\n${nextQ.text(mid)}`
+      : negotiationReply;
   } else if (nextQ) {
     replyText = nextQ.text(mid);
   } else {
-    replyText = "Ótimo! Tenho tudo que preciso para montar o escopo. Revise ao lado e clique em **\"Enviar solicitação\"** quando estiver pronto.";
+    replyText = "Ótimo! Tenho tudo que preciso. Revise o escopo ao lado e clique em **\"Enviar solicitação\"** quando estiver pronto.";
   }
 
   const assistantMsg: ConvMessage = {
