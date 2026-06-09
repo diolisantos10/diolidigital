@@ -6,7 +6,12 @@ import { useTrainingStore, type TrainingMode } from "@/store/training-store";
 import { SEED_SCENARIOS } from "@/lib/agency/training/scenarios";
 import type { SimulationRun, AgentImprovementSuggestion, ImprovementStatus } from "@/lib/agency/training/types";
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+type RunFilter  = "last20" | "fails" | "warnings" | "passes" | "dynamic" | "seed";
+type SuggFilter = "pending" | "approved" | "rejected" | "all";
+
+// ── Constants ─────────────────────────────────────────────────────────────────
 
 const VERDICT_STYLE = {
   pass:    { bg: "bg-[#DCFCE7]", text: "text-[#16A34A]", label: "Pass"    },
@@ -28,21 +33,58 @@ const STATUS_STYLE: Record<ImprovementStatus, { bg: string; text: string; label:
   applied:  { bg: "bg-[#EEF0FF]", text: "text-[#5B5BD6]", label: "Aplicado"  },
 };
 
+const MODE_OPTIONS: { id: TrainingMode; label: string; desc: string }[] = [
+  { id: "dynamic", label: "Dinâmico", desc: "Gera cenários novos a cada ciclo — treino real." },
+  { id: "mixed",   label: "Misto",    desc: "30% fixos (regressão) + 70% dinâmicos."          },
+  { id: "seed",    label: "Fixos",    desc: "Apenas os 22 cenários seed — prova de regressão." },
+];
+
+const RUN_FILTER_OPTIONS: { id: RunFilter; label: string }[] = [
+  { id: "last20",   label: "Últimas 20" },
+  { id: "fails",    label: "Falhas"     },
+  { id: "warnings", label: "Warnings"  },
+  { id: "passes",   label: "Passes"    },
+  { id: "dynamic",  label: "Dinâmicos" },
+  { id: "seed",     label: "Fixos"     },
+];
+
+const SUGG_FILTER_OPTIONS: { id: SuggFilter; label: string }[] = [
+  { id: "pending",  label: "Pendentes"  },
+  { id: "approved", label: "Aprovadas"  },
+  { id: "rejected", label: "Rejeitadas" },
+  { id: "all",      label: "Todas"      },
+];
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
 function fmt(iso: string): string {
   return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
 
-// ── Sub-components ────────────────────────────────────────────────────────────
-
-function StatCard({ label, value, color }: { label: string; value: string | number; color?: "green" | "yellow" | "red" }) {
-  const cl = color === "green" ? "text-[#16A34A]" : color === "yellow" ? "text-[#D97706]" : color === "red" ? "text-[#DC2626]" : "text-[#1A1A1A]";
-  return (
-    <div className="bg-white border border-[#E5E5E2] rounded-[10px] px-4 py-3.5">
-      <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1">{label}</p>
-      <p className={`text-[22px] font-bold ${cl}`}>{value}</p>
-    </div>
-  );
+function isToday(iso: string): boolean {
+  const d = new Date(iso);
+  const n = new Date();
+  return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate();
 }
+
+function applyRunFilter(runs: SimulationRun[], f: RunFilter): SimulationRun[] {
+  const rev = [...runs].reverse();
+  switch (f) {
+    case "last20":   return rev.slice(0, 20);
+    case "fails":    return rev.filter((r) => r.verdict === "fail");
+    case "warnings": return rev.filter((r) => r.verdict === "warning");
+    case "passes":   return rev.filter((r) => r.verdict === "pass");
+    case "dynamic":  return rev.filter((r) => r.scenarioOrigin === "dynamic");
+    case "seed":     return rev.filter((r) => r.scenarioOrigin === "seed");
+  }
+}
+
+function applySuggFilter(suggs: AgentImprovementSuggestion[], f: SuggFilter): AgentImprovementSuggestion[] {
+  if (f === "all") return suggs;
+  return suggs.filter((s) => s.status === f);
+}
+
+// ── Shared micro-components ───────────────────────────────────────────────────
 
 function OriginBadge({ origin }: { origin: "seed" | "dynamic" }) {
   return origin === "dynamic"
@@ -50,23 +92,208 @@ function OriginBadge({ origin }: { origin: "seed" | "dynamic" }) {
     : <span className="h-4 px-1.5 rounded-[3px] bg-[#F0F0ED] text-[#9B9B95] text-[8px] font-bold uppercase tracking-wide">seed</span>;
 }
 
+// ── Part 1 — Status card ──────────────────────────────────────────────────────
+
+function StatusCard({ continuousMode, isRunning }: { continuousMode: boolean; isRunning: boolean }) {
+  return (
+    <div className="bg-white border border-[#E5E5E2] rounded-[10px] overflow-hidden">
+      <div className="flex divide-x divide-[#F0F0ED]">
+
+        {/* Status dot */}
+        <div className="px-5 py-4 shrink-0 min-w-[160px]">
+          <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-2">Status</p>
+          {continuousMode ? (
+            <div className="flex items-center gap-2">
+              <span className={`w-2 h-2 rounded-full shrink-0 ${isRunning ? "bg-[#16A34A] animate-pulse" : "bg-[#D97706]"}`} />
+              <span className={`text-[13px] font-semibold ${isRunning ? "text-[#16A34A]" : "text-[#D97706]"}`}>
+                {isRunning ? "Rodando" : "Aguardando…"}
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#C0C0BC] shrink-0" />
+              <span className="text-[13px] font-semibold text-[#6B6B65]">Pausado</span>
+            </div>
+          )}
+        </div>
+
+        {/* Mode name + explanation */}
+        <div className="px-5 py-4 flex-1">
+          <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1">Modo atual</p>
+          <p className="text-[13px] font-semibold text-[#D97706]">Treinamento contínuo experimental</p>
+          <p className="text-[11px] text-[#6B6B65] mt-0.5 leading-relaxed">
+            As simulações rodam apenas enquanto{" "}
+            <span className="font-medium text-[#1A1A1A]">esta tela estiver aberta</span>.
+          </p>
+        </div>
+
+        {/* Engine status */}
+        <div className="px-5 py-4 shrink-0">
+          <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-2">Motor de execução</p>
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#16A34A] shrink-0" />
+              <span className="text-[11px] text-[#1A1A1A]">Navegador aberto</span>
+              <span className="text-[9px] font-bold text-[#16A34A] bg-[#DCFCE7] px-1.5 py-0.5 rounded-[3px]">ATIVO</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#D0D0CC] shrink-0" />
+              <span className="text-[11px] text-[#9B9B95]">Worker 24h backend</span>
+              <span className="text-[9px] font-bold text-[#9B9B95] bg-[#F0F0ED] px-1.5 py-0.5 rounded-[3px]">PRÓXIMA FASE</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      {/* Warning strip — always visible */}
+      <div className="border-t border-[#F0F0ED] bg-[#FAFAF9] px-5 py-2 flex items-center gap-2">
+        <span className="text-[11px] text-[#D97706] shrink-0">⚠</span>
+        <p className="text-[11px] text-[#9B9B95]">
+          Se você <span className="font-medium text-[#6B6B65]">fechar esta aba</span>, o treino contínuo pausa automaticamente. Nenhum log é apagado.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ── Part 4 — Summary cards ────────────────────────────────────────────────────
+
+function SummaryCards({
+  pending, approved, rejected, runsToday, avgScore, criticalFails,
+}: {
+  pending: number; approved: number; rejected: number;
+  runsToday: number; avgScore: number; criticalFails: number;
+}) {
+  return (
+    <div className="grid grid-cols-6 gap-2.5">
+      <div className="bg-white border border-[#E5E5E2] rounded-[10px] px-4 py-3.5">
+        <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1">Pendentes</p>
+        <p className={`text-[22px] font-bold ${pending > 0 ? "text-[#D97706]" : "text-[#1A1A1A]"}`}>{pending}</p>
+      </div>
+      <div className="bg-white border border-[#E5E5E2] rounded-[10px] px-4 py-3.5">
+        <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1">Aprovadas</p>
+        <p className={`text-[22px] font-bold ${approved > 0 ? "text-[#16A34A]" : "text-[#1A1A1A]"}`}>{approved}</p>
+      </div>
+      <div className="bg-white border border-[#E5E5E2] rounded-[10px] px-4 py-3.5">
+        <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1">Rejeitadas</p>
+        <p className="text-[22px] font-bold text-[#1A1A1A]">{rejected}</p>
+      </div>
+      <div className="bg-white border border-[#E5E5E2] rounded-[10px] px-4 py-3.5">
+        <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1">Runs hoje</p>
+        <p className="text-[22px] font-bold text-[#1A1A1A]">{runsToday}</p>
+      </div>
+      <div className="bg-white border border-[#E5E5E2] rounded-[10px] px-4 py-3.5">
+        <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1">Score médio</p>
+        <p className={`text-[22px] font-bold ${avgScore >= 80 ? "text-[#16A34A]" : avgScore >= 60 ? "text-[#D97706]" : avgScore > 0 ? "text-[#DC2626]" : "text-[#1A1A1A]"}`}>
+          {avgScore > 0 ? avgScore : "—"}
+        </p>
+      </div>
+      <div className="bg-white border border-[#E5E5E2] rounded-[10px] px-4 py-3.5">
+        <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1">Falhas críticas</p>
+        <p className={`text-[22px] font-bold ${criticalFails > 0 ? "text-[#DC2626]" : "text-[#1A1A1A]"}`}>{criticalFails}</p>
+      </div>
+    </div>
+  );
+}
+
+// ── Overfitting warning (unchanged) ──────────────────────────────────────────
+
+function OverfitWarning({ runs }: { runs: SimulationRun[] }) {
+  const last20  = runs.slice(-20);
+  const allSeed = last20.length >= 10 && last20.every((r) => r.scenarioOrigin === "seed");
+  if (!allSeed) return null;
+  return (
+    <div className="bg-[#FEF3C7] border border-[#FDE68A] rounded-[8px] px-4 py-3 flex items-start gap-3">
+      <span className="text-[14px] shrink-0">⚠</span>
+      <div className="text-[12px]">
+        <p className="font-semibold text-[#92400E]">Overfitting detectado</p>
+        <p className="text-[#B45309] leading-relaxed mt-0.5">
+          Você está rodando apenas cenários fixos. Use cenários dinâmicos para treino real.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ── Mode selector (unchanged) ─────────────────────────────────────────────────
+
+function ModeSelector({ mode, onChange }: { mode: TrainingMode; onChange: (m: TrainingMode) => void }) {
+  return (
+    <div className="flex gap-1 p-1 bg-[#F0F0ED] rounded-[8px] w-fit">
+      {MODE_OPTIONS.map((opt) => (
+        <button
+          key={opt.id}
+          onClick={() => onChange(opt.id)}
+          title={opt.desc}
+          className={`h-7 px-3.5 rounded-[6px] text-[11px] font-medium transition-all ${
+            mode === opt.id
+              ? "bg-white shadow-[0_1px_3px_rgba(0,0,0,0.08)] text-[#1A1A1A]"
+              : "text-[#6B6B65] hover:text-[#1A1A1A]"
+          }`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ── Part 3 — Run history filter bar ──────────────────────────────────────────
+
+function RunFilterBar({
+  filter, onChange, counts,
+}: {
+  filter: RunFilter;
+  onChange: (f: RunFilter) => void;
+  counts: Record<RunFilter, number>;
+}) {
+  return (
+    <div className="flex gap-1.5 flex-wrap">
+      {RUN_FILTER_OPTIONS.map((opt) => {
+        const active = filter === opt.id;
+        const n      = counts[opt.id];
+        return (
+          <button
+            key={opt.id}
+            onClick={() => onChange(opt.id)}
+            className={`h-7 px-3 rounded-[6px] text-[11px] font-medium transition-all flex items-center gap-1.5 ${
+              active
+                ? "bg-[#1A1A1A] text-white"
+                : "bg-white border border-[#E5E5E2] text-[#6B6B65] hover:border-[#9B9B95] hover:text-[#1A1A1A]"
+            }`}
+          >
+            {opt.label}
+            {n > 0 && (
+              <span className={`text-[9px] font-bold px-1 rounded-[3px] leading-4 ${
+                active ? "bg-white/20 text-white" : "bg-[#F0F0ED] text-[#9B9B95]"
+              }`}>{n}</span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Part 3 — Run row (compact, expand on click) ───────────────────────────────
+
 function RunRow({ run, onExpand }: { run: SimulationRun; onExpand: (id: string) => void }) {
   const v = VERDICT_STYLE[run.verdict];
   return (
     <button
       onClick={() => onExpand(run.id)}
-      className="w-full flex items-center gap-3 px-4 py-2.5 bg-white border border-[#E5E5E2] rounded-[8px] text-[12px] hover:border-[#9B9B95] transition-colors text-left"
+      className="group w-full flex items-center gap-3 px-4 py-2.5 bg-white border border-[#E5E5E2] rounded-[8px] text-[12px] hover:border-[#9B9B95] transition-colors text-left"
     >
-      <span className={`shrink-0 h-5 px-2 rounded-[4px] text-[10px] font-bold ${v.bg} ${v.text}`}>
-        {v.label}
-      </span>
+      <span className={`shrink-0 h-5 px-2 rounded-[4px] text-[10px] font-bold ${v.bg} ${v.text}`}>{v.label}</span>
       <OriginBadge origin={run.scenarioOrigin} />
       <span className="font-medium text-[#1A1A1A] flex-1 truncate">{run.scenarioName}</span>
       <span className="text-[#6B6B65] shrink-0">{run.score}/100</span>
-      <span className="text-[#9B9B95] font-mono text-[10px] shrink-0">{fmt(run.completedAt)}</span>
       {run.issues.length > 0 && (
         <span className="text-[10px] text-[#DC2626] shrink-0">{run.issues.length} issue{run.issues.length > 1 ? "s" : ""}</span>
       )}
+      <span className="text-[#9B9B95] font-mono text-[10px] shrink-0">{fmt(run.completedAt)}</span>
+      <span className="text-[10px] text-[#C0C0BC] group-hover:text-[#9B9B95] shrink-0 transition-colors">Ver detalhes →</span>
     </button>
   );
 }
@@ -84,10 +311,9 @@ function RunDetail({ run, onClose }: { run: SimulationRun; onClose: () => void }
           </div>
           <p className="text-[11px] text-[#9B9B95]">Score: {run.score}/100 · {fmt(run.completedAt)}</p>
         </div>
-        <button onClick={onClose} className="text-[11px] text-[#9B9B95] hover:text-[#1A1A1A] transition-colors">Fechar</button>
+        <button onClick={onClose} className="text-[11px] text-[#9B9B95] hover:text-[#1A1A1A] transition-colors">Fechar ×</button>
       </div>
 
-      {/* Scenario metadata (dynamic only) */}
       {run.scenarioOrigin === "dynamic" && run.scenarioMetadata && (
         <div className="bg-[#EEF0FF] border border-[#C7D2FE] rounded-[8px] px-3 py-2.5 space-y-2">
           <p className="text-[9px] font-semibold text-[#5B5BD6] uppercase tracking-[0.06em]">Dimensões do cenário gerado</p>
@@ -99,13 +325,10 @@ function RunDetail({ run, onClose }: { run: SimulationRun; onClose: () => void }
               </div>
             ))}
           </div>
-          {run.scenarioSeed && (
-            <p className="text-[9px] text-[#818CF8] font-mono">seed: {run.scenarioSeed}</p>
-          )}
+          {run.scenarioSeed && <p className="text-[9px] text-[#818CF8] font-mono">seed: {run.scenarioSeed}</p>}
         </div>
       )}
 
-      {/* Issues */}
       {run.issues.length > 0 && (
         <div>
           <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Issues ({run.issues.length})</p>
@@ -120,7 +343,6 @@ function RunDetail({ run, onClose }: { run: SimulationRun; onClose: () => void }
         </div>
       )}
 
-      {/* Recommendations */}
       {run.recommendations.length > 0 && (
         <div>
           <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Recomendações</p>
@@ -136,6 +358,49 @@ function RunDetail({ run, onClose }: { run: SimulationRun; onClose: () => void }
     </div>
   );
 }
+
+// ── Part 2 — Suggestion tab bar ───────────────────────────────────────────────
+
+function SuggTabBar({
+  active, onChange, counts,
+}: {
+  active: SuggFilter;
+  onChange: (t: SuggFilter) => void;
+  counts: Record<SuggFilter, number>;
+}) {
+  return (
+    <div className="flex gap-1 p-1 bg-[#F0F0ED] rounded-[8px] w-fit">
+      {SUGG_FILTER_OPTIONS.map((opt) => {
+        const isActive = active === opt.id;
+        const n        = counts[opt.id];
+        return (
+          <button
+            key={opt.id}
+            onClick={() => onChange(opt.id)}
+            className={`h-7 px-3.5 rounded-[6px] text-[11px] font-medium transition-all flex items-center gap-1.5 ${
+              isActive
+                ? "bg-white shadow-[0_1px_3px_rgba(0,0,0,0.08)] text-[#1A1A1A]"
+                : "text-[#6B6B65] hover:text-[#1A1A1A]"
+            }`}
+          >
+            {opt.label}
+            {n > 0 && (
+              <span className={`text-[9px] font-bold px-1 rounded-[3px] leading-4 ${
+                opt.id === "pending"
+                  ? "bg-[#D97706] text-white"
+                  : isActive
+                  ? "bg-[#F0F0ED] text-[#6B6B65]"
+                  : "bg-[#D5D5D0] text-[#6B6B65]"
+              }`}>{n}</span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Part 2 — Suggestion card ──────────────────────────────────────────────────
 
 function SuggestionCard({ suggestion, onDecide }: {
   suggestion: AgentImprovementSuggestion;
@@ -187,50 +452,42 @@ function SuggestionCard({ suggestion, onDecide }: {
   );
 }
 
-// ── Mode selector ─────────────────────────────────────────────────────────────
+// ── Part 6 — Backend placeholder ──────────────────────────────────────────────
 
-const MODE_OPTIONS: { id: TrainingMode; label: string; desc: string }[] = [
-  { id: "dynamic", label: "Dinâmico",  desc: "Gera cenários novos a cada ciclo — treino real." },
-  { id: "mixed",   label: "Misto",     desc: "30% fixos (regressão) + 70% dinâmicos." },
-  { id: "seed",    label: "Fixos",     desc: "Apenas os 22 cenários seed — prova de regressão." },
-];
-
-function ModeSelector({ mode, onChange }: { mode: TrainingMode; onChange: (m: TrainingMode) => void }) {
+function BackendPlaceholder() {
   return (
-    <div className="flex gap-1 p-1 bg-[#F0F0ED] rounded-[8px] w-fit">
-      {MODE_OPTIONS.map((opt) => (
-        <button
-          key={opt.id}
-          onClick={() => onChange(opt.id)}
-          className={`h-7 px-3.5 rounded-[6px] text-[11px] font-medium transition-all ${
-            mode === opt.id
-              ? "bg-white shadow-[0_1px_3px_rgba(0,0,0,0.08)] text-[#1A1A1A]"
-              : "text-[#6B6B65] hover:text-[#1A1A1A]"
-          }`}
-          title={opt.desc}
-        >
-          {opt.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-// ── Overfitting warning ───────────────────────────────────────────────────────
-
-function OverfitWarning({ runs }: { runs: SimulationRun[] }) {
-  const last20      = runs.slice(-20);
-  const allSeed     = last20.length >= 10 && last20.every((r) => r.scenarioOrigin === "seed");
-  if (!allSeed) return null;
-  return (
-    <div className="bg-[#FEF3C7] border border-[#FDE68A] rounded-[8px] px-4 py-3 flex items-start gap-3">
-      <span className="text-[14px] shrink-0">⚠</span>
-      <div className="text-[12px]">
-        <p className="font-semibold text-[#92400E]">Overfitting detectado</p>
-        <p className="text-[#B45309] leading-relaxed mt-0.5">
-          Você está rodando apenas cenários fixos. O SDR pode "decorar" os testes sem generalizar.
-          Use cenários dinâmicos para treino real.
-        </p>
+    <div className="border border-dashed border-[#C7D2FE] rounded-[10px] bg-[#EEF0FF]/30 px-5 py-5">
+      <div className="flex items-start gap-3">
+        <div className="w-8 h-8 rounded-[8px] bg-[#EEF0FF] border border-[#C7D2FE] flex items-center justify-center shrink-0 text-[15px]">
+          🔧
+        </div>
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <h3 className="text-[13px] font-semibold text-[#5B5BD6]">Treino 24h backend — próxima fase</h3>
+            <span className="text-[9px] font-bold text-[#5B5BD6] bg-[#EEF0FF] border border-[#C7D2FE] px-1.5 py-0.5 rounded-[3px] tracking-wide">PLANEJADO</span>
+          </div>
+          <p className="text-[12px] text-[#6B6B65] mb-3 leading-relaxed">
+            O treino contínuo atual requer a aba aberta. A próxima fase implementa execução autônoma em backend:
+          </p>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+            {[
+              ["Roda mesmo com aba fechada",   "Processo Node.js independente"],
+              ["Agenda automática",             "Cron job configurável por horário"],
+              ["Limite de runs por hora",       "Controle de custo e quota de CPU"],
+              ["Fila de jobs persistente",      "Baseada em Redis ou PostgreSQL"],
+              ["Logs persistidos no banco",     "Histórico completo, não em localStorage"],
+              ["Alertas de regressão",          "Notificação quando score médio cai"],
+            ].map(([feat, detail]) => (
+              <div key={feat} className="flex items-start gap-2">
+                <span className="text-[#C7D2FE] shrink-0 mt-0.5 text-[10px]">○</span>
+                <div>
+                  <p className="text-[11px] font-medium text-[#3730A3]">{feat}</p>
+                  <p className="text-[10px] text-[#818CF8]">{detail}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -246,20 +503,25 @@ export default function TrainingPage() {
   } = useTrainingStore();
 
   const [expandedRunId, setExpandedRunId] = useState<string | null>(null);
+  const [runFilter,     setRunFilter]     = useState<RunFilter>("last20");
+  const [suggTab,       setSuggTab]       = useState<SuggFilter>("pending");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Continuous loop — clears itself when mode stops or component unmounts
   useEffect(() => {
     if (continuousMode && !isRunning) {
       intervalRef.current = setInterval(() => {
-        if (trainingMode === "seed")    runSeedScenarios(3);
+        if      (trainingMode === "seed")    runSeedScenarios(3);
         else if (trainingMode === "dynamic") runDynamicScenarios(3);
-        else runMixedScenarios(3);
+        else                                 runMixedScenarios(3);
       }, 8000);
     } else {
       if (intervalRef.current) clearInterval(intervalRef.current);
     }
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [continuousMode, isRunning, trainingMode, runSeedScenarios, runDynamicScenarios, runMixedScenarios]);
+
+  // ── Derived counts ────────────────────────────────────────────────────────
 
   const totalRuns    = runs.length;
   const seedCount    = runs.filter((r) => r.scenarioOrigin === "seed").length;
@@ -268,14 +530,46 @@ export default function TrainingPage() {
   const warnCount    = runs.filter((r) => r.verdict === "warning").length;
   const failCount    = runs.filter((r) => r.verdict === "fail").length;
   const avgScore     = totalRuns > 0 ? Math.round(runs.reduce((a, r) => a + r.score, 0) / totalRuns) : 0;
-  const latestRuns   = [...runs].reverse().slice(0, 15);
-  const pendingCount = suggestions.filter((s) => s.status === "pending").length;
-  const expandedRun  = expandedRunId ? runs.find((r) => r.id === expandedRunId) : null;
+  const runsToday    = runs.filter((r) => isToday(r.startedAt)).length;
+  const critFails    = runs.filter((r) => r.issues.some((i) => i.severity === "error")).length;
+
+  const pendingCount  = suggestions.filter((s) => s.status === "pending").length;
+  const approvedCount = suggestions.filter((s) => s.status === "approved").length;
+  const rejectedCount = suggestions.filter((s) => s.status === "rejected").length;
+
+  // ── Filtered views ────────────────────────────────────────────────────────
+
+  const visibleRuns = applyRunFilter(runs, runFilter);
+  const visibleSugg = applySuggFilter(suggestions, suggTab);
+  const expandedRun = expandedRunId ? runs.find((r) => r.id === expandedRunId) : null;
+
+  const runFilterCounts: Record<RunFilter, number> = {
+    last20:   Math.min(totalRuns, 20),
+    fails:    failCount,
+    warnings: warnCount,
+    passes:   passCount,
+    dynamic:  dynCount,
+    seed:     seedCount,
+  };
+
+  const suggCounts: Record<SuggFilter, number> = {
+    pending:  pendingCount,
+    approved: approvedCount,
+    rejected: rejectedCount,
+    all:      suggestions.length,
+  };
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
 
   function runNow(count: number) {
-    if (trainingMode === "seed")         runSeedScenarios(count);
+    if      (trainingMode === "seed")    runSeedScenarios(count);
     else if (trainingMode === "dynamic") runDynamicScenarios(count);
-    else runMixedScenarios(count);
+    else                                 runMixedScenarios(count);
+  }
+
+  function changeRunFilter(f: RunFilter) {
+    setRunFilter(f);
+    setExpandedRunId(null);
   }
 
   const BTN = "h-8 px-4 rounded-[7px] border text-[12px] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed";
@@ -285,6 +579,8 @@ export default function TrainingPage() {
   const BTN_BLUE   = `${BTN} bg-[#EEF0FF] border-[#C7D2FE] text-[#5B5BD6] hover:bg-[#E0E7FF]`;
 
   const modeDesc = MODE_OPTIONS.find((m) => m.id === trainingMode)?.desc ?? "";
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <div className="space-y-5 max-w-[900px]">
@@ -307,18 +603,21 @@ export default function TrainingPage() {
         </button>
       </div>
 
+      {/* Part 1 — Status card */}
+      <StatusCard continuousMode={continuousMode} isRunning={isRunning} />
+
+      {/* Part 4 — Summary cards */}
+      <SummaryCards
+        pending={pendingCount}
+        approved={approvedCount}
+        rejected={rejectedCount}
+        runsToday={runsToday}
+        avgScore={avgScore}
+        criticalFails={critFails}
+      />
+
       {/* Overfitting warning */}
       <OverfitWarning runs={runs} />
-
-      {/* Stats */}
-      <div className="grid grid-cols-6 gap-2.5">
-        <StatCard label="Total de Runs"   value={totalRuns}         />
-        <StatCard label="Score Médio"     value={`${avgScore}/100`} />
-        <StatCard label="Dinâmicos"       value={dynCount}  color="green"  />
-        <StatCard label="Pass (≥ 80)"    value={passCount}  color="green"  />
-        <StatCard label="Warning (60–79)" value={warnCount} color="yellow" />
-        <StatCard label="Fail (< 60)"    value={failCount}  color="red"    />
-      </div>
 
       {/* Mode + run controls */}
       <div className="bg-white border border-[#E5E5E2] rounded-[10px] px-4 py-4 space-y-3">
@@ -342,7 +641,6 @@ export default function TrainingPage() {
           <button className={BTN_LIGHT} onClick={() => runNow(10)} disabled={isRunning}>Rodar 10</button>
           <button className={BTN_LIGHT} onClick={() => runNow(50)} disabled={isRunning}>Rodar 50</button>
 
-          {/* Quick overrides */}
           {trainingMode !== "dynamic" && (
             <button className={BTN_BLUE}  onClick={() => runDynamicScenarios(10)} disabled={isRunning}>10 dinâmicos</button>
           )}
@@ -369,12 +667,13 @@ export default function TrainingPage() {
 
         {continuousMode && (
           <div className="bg-[#FEF3C7] border border-[#FDE68A] rounded-[8px] px-3 py-2 text-[11px] text-[#92400E]">
-            Modo contínuo: roda 3 simulações a cada 8 s enquanto esta tela estiver aberta.
+            Modo contínuo ativo: roda 3 simulações a cada 8 s.{" "}
+            <span className="font-semibold">Pausa se você fechar ou trocar de aba.</span>
           </div>
         )}
       </div>
 
-      {/* Distribution */}
+      {/* Distribution strip */}
       {totalRuns > 0 && (
         <div className="flex items-center gap-3 text-[11px] text-[#6B6B65]">
           <span>{seedCount} fixo{seedCount !== 1 ? "s" : ""}</span>
@@ -385,19 +684,32 @@ export default function TrainingPage() {
         </div>
       )}
 
-      {/* Latest runs */}
+      {/* Part 3 — Run history with filter bar */}
       <section>
-        <h2 className="text-[13px] font-semibold text-[#1A1A1A] mb-2.5">
-          Últimas simulações
-          {latestRuns.length > 0 && <span className="text-[#9B9B95] font-normal ml-1.5">({latestRuns.length} de {totalRuns})</span>}
-        </h2>
-        {latestRuns.length === 0 ? (
+        <div className="flex items-center justify-between mb-3 gap-4 flex-wrap">
+          <h2 className="text-[13px] font-semibold text-[#1A1A1A] shrink-0">
+            Histórico de simulações
+            {totalRuns > 0 && (
+              <span className="text-[#9B9B95] font-normal ml-1.5 text-[12px]">
+                ({visibleRuns.length}
+                {runFilter === "last20" && totalRuns > 20 ? ` de ${totalRuns}` : ""})
+              </span>
+            )}
+          </h2>
+          <RunFilterBar filter={runFilter} onChange={changeRunFilter} counts={runFilterCounts} />
+        </div>
+
+        {visibleRuns.length === 0 ? (
           <div className="border border-dashed border-[#E5E5E2] rounded-[10px] px-6 py-8 text-center">
-            <p className="text-[13px] text-[#9B9B95]">Nenhuma simulação ainda. Clique em "Rodar 1" para começar.</p>
+            <p className="text-[13px] text-[#9B9B95]">
+              {totalRuns === 0
+                ? "Nenhuma simulação ainda. Clique em \"Rodar 1\" para começar."
+                : "Nenhuma simulação corresponde ao filtro selecionado."}
+            </p>
           </div>
         ) : (
           <div className="space-y-1.5">
-            {latestRuns.map((run) =>
+            {visibleRuns.map((run) =>
               expandedRunId === run.id && expandedRun ? (
                 <RunDetail key={run.id} run={expandedRun} onClose={() => setExpandedRunId(null)} />
               ) : (
@@ -408,31 +720,69 @@ export default function TrainingPage() {
         )}
       </section>
 
-      {/* Improvement suggestions */}
+      {/* Part 2 + 5 — Suggestion queue with tabs */}
       <section>
-        <div className="flex items-center gap-2 mb-1">
-          <h2 className="text-[13px] font-semibold text-[#1A1A1A]">Melhorias sugeridas</h2>
-          {pendingCount > 0 && (
-            <span className="h-5 min-w-[20px] px-1.5 rounded-full bg-[#D97706] text-white text-[10px] font-bold flex items-center justify-center">
-              {pendingCount}
-            </span>
-          )}
+        <div className="flex items-center gap-3 mb-1 flex-wrap">
+          <h2 className="text-[13px] font-semibold text-[#1A1A1A] shrink-0">Melhorias sugeridas</h2>
+          <SuggTabBar active={suggTab} onChange={setSuggTab} counts={suggCounts} />
         </div>
+
         <p className="text-[11px] text-[#9B9B95] mb-3 leading-relaxed">
-          Geradas automaticamente quando o mesmo problema aparece em 2+ runs.
-          A aplicação automática ao brain será feita em fase futura.
+          {suggTab === "pending" &&
+            "Geradas quando o mesmo critério falha em 2+ runs. Aprovar ou rejeitar move a sugestão para o arquivo correspondente."}
+          {suggTab === "approved" &&
+            "Sugestões que foram aprovadas para revisão futura."}
+          {suggTab === "rejected" &&
+            "Sugestões descartadas. Ficam aqui para referência, nunca são apagadas."}
+          {suggTab === "all" &&
+            "Todas as sugestões geradas nesta sessão de treino."}
         </p>
-        {suggestions.length === 0 ? (
+
+        {/* Part 5 — Approved archive note */}
+        {suggTab === "approved" && approvedCount > 0 && (
+          <div className="mb-3 bg-[#F0FDF4] border border-[#BBF7D0] rounded-[8px] px-4 py-3 flex items-start gap-3">
+            <span className="text-[#16A34A] shrink-0 mt-0.5">✓</span>
+            <div>
+              <p className="text-[12px] font-semibold text-[#15803D] leading-snug">
+                Estas sugestões foram aprovadas, mas ainda não foram aplicadas automaticamente ao brain do SDR.
+              </p>
+              <span className="inline-flex items-center gap-1.5 mt-2 text-[10px] font-semibold text-[#5B5BD6] bg-[#EEF0FF] border border-[#C7D2FE] px-2 py-1 rounded-[4px]">
+                ⏳ aguardando aplicação futura
+              </span>
+            </div>
+          </div>
+        )}
+
+        {visibleSugg.length === 0 ? (
           <div className="border border-dashed border-[#E5E5E2] rounded-[10px] px-6 py-8 text-center">
-            <p className="text-[13px] text-[#9B9B95]">Nenhuma melhoria detectada ainda.</p>
-            <p className="text-[11px] text-[#C0C0BC] mt-1">Sugestões surgem quando o mesmo critério falha em 2+ simulações.</p>
+            <p className="text-[13px] text-[#9B9B95]">
+              {suggestions.length === 0
+                ? "Nenhuma melhoria detectada ainda."
+                : suggTab === "pending"
+                ? "Nenhuma sugestão pendente. Todas as melhorias foram decididas."
+                : suggTab === "approved"
+                ? "Nenhuma sugestão aprovada ainda."
+                : suggTab === "rejected"
+                ? "Nenhuma sugestão rejeitada."
+                : "Nenhuma sugestão encontrada."}
+            </p>
+            {suggestions.length === 0 && (
+              <p className="text-[11px] text-[#C0C0BC] mt-1">
+                Sugestões surgem quando o mesmo critério falha em 2+ simulações.
+              </p>
+            )}
           </div>
         ) : (
           <div className="space-y-3">
-            {suggestions.map((s) => <SuggestionCard key={s.id} suggestion={s} onDecide={updateSuggestionStatus} />)}
+            {visibleSugg.map((s) => (
+              <SuggestionCard key={s.id} suggestion={s} onDecide={updateSuggestionStatus} />
+            ))}
           </div>
         )}
       </section>
+
+      {/* Part 6 — Backend placeholder */}
+      <BackendPlaceholder />
 
     </div>
   );
