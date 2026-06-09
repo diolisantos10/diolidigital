@@ -151,6 +151,7 @@ export default function AgencySidebar({ userInfo }: { userInfo?: UserInfo | null
                   <Link
                     key={item.href}
                     href={item.href}
+                    prefetch={false}
                     className={`
                       group flex items-center gap-2.5 px-2 py-[7px] rounded-[6px] text-[13px] font-medium relative
                       transition-all duration-100

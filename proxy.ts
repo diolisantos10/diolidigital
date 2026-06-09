@@ -26,13 +26,19 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   if (AGENCY_PATTERN.test(pathname)) {
     const token = request.cookies.get(SESSION_COOKIE)?.value;
     if (!token) {
-      return NextResponse.redirect(new URL("/auth/signin", request.url));
+      const signinUrl = request.nextUrl.clone();
+      signinUrl.pathname = "/auth/signin";
+      signinUrl.search = "";
+      return NextResponse.redirect(signinUrl);
     }
     try {
       await jwtVerify(token, getSecret());
       return NextResponse.next();
     } catch {
-      const response = NextResponse.redirect(new URL("/auth/signin", request.url));
+      const signinUrl = request.nextUrl.clone();
+      signinUrl.pathname = "/auth/signin";
+      signinUrl.search = "";
+      const response = NextResponse.redirect(signinUrl);
       response.cookies.delete(SESSION_COOKIE);
       return response;
     }
