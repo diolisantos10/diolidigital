@@ -21,6 +21,14 @@ const SIMULATORS: SimCard[] = [
     tag: "Vendas · Briefing",
   },
   {
+    id: "training",
+    label: "Treinamento Contínuo",
+    description: "Rode simulações automáticas, avalie performance do SDR e gerencie sugestões de melhoria sem afetar dados reais.",
+    status: "available",
+    href: "/agency/simulations/training",
+    tag: "SDR · Avaliação",
+  },
+  {
     id: "pm",
     label: "PM Agent",
     description: "Simule fluxos de gestão de projetos, aprovações e handoffs entre departamentos.",
@@ -35,14 +43,6 @@ const SIMULATORS: SimCard[] = [
     status: "coming_soon",
     href: "#",
     tag: "Social Media",
-  },
-  {
-    id: "design",
-    label: "Design Agent",
-    description: "Simule briefings criativos, revisão de entregas e solicitações de material.",
-    status: "coming_soon",
-    href: "#",
-    tag: "Design",
   },
 ];
 
