@@ -7,6 +7,12 @@ import { SEED_SCENARIOS } from "@/lib/agency/training/scenarios";
 import type { SimulationRun, AgentImprovementSuggestion, ImprovementStatus } from "@/lib/agency/training/types";
 import type { BatchRunResult } from "@/lib/agency/training/batch-runner";
 import type { CompactRun, CompactSuggestion, AlertItem, BatchSummary } from "@/lib/agency/training/training-store-service";
+import GuidedTour, { usePageTour } from "@/components/agency/onboarding/GuidedTour";
+import InfoTooltip from "@/components/agency/onboarding/InfoTooltip";
+import ExplainScreenDrawer from "@/components/agency/onboarding/ExplainScreenDrawer";
+import OnboardingActions from "@/components/agency/onboarding/OnboardingActions";
+import { SDR_TRAINING_TOUR } from "@/lib/onboarding/tours/sdr-training";
+import { buildTrainingExplanation } from "@/lib/onboarding/explanations/sdr-training";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -167,34 +173,56 @@ function SummaryCards({
   pending: number; approved: number; rejected: number;
   runsToday: number; avgScore: number; criticalFails: number;
 }) {
+  const cards: { label: string; value: string | number; color: string; info: string }[] = [
+    {
+      label: "Pendentes",
+      value: pending,
+      color: pending > 0 ? "text-[#D97706]" : "text-[#1A1A1A]",
+      info: "Sugestões de melhoria geradas pelo treino que aguardam sua decisão. Aprove ou rejeite na seção \"Melhorias sugeridas\".",
+    },
+    {
+      label: "Aprovadas",
+      value: approved,
+      color: approved > 0 ? "text-[#16A34A]" : "text-[#1A1A1A]",
+      info: "Sugestões aprovadas. Elas não são aplicadas automaticamente ao brain do SDR — aguardam aplicação manual.",
+    },
+    {
+      label: "Rejeitadas",
+      value: rejected,
+      color: "text-[#1A1A1A]",
+      info: "Sugestões descartadas. Ficam arquivadas para referência e nunca são apagadas.",
+    },
+    {
+      label: "Runs hoje",
+      value: runsToday,
+      color: "text-[#1A1A1A]",
+      info: "Quantidade de simulações executadas hoje nesta sessão de navegador.",
+    },
+    {
+      label: "Score médio",
+      value: avgScore > 0 ? avgScore : "—",
+      color: avgScore >= 80 ? "text-[#16A34A]" : avgScore >= 60 ? "text-[#D97706]" : avgScore > 0 ? "text-[#DC2626]" : "text-[#1A1A1A]",
+      info: "Média de pontuação (0–100) de todas as simulações da sessão. Verde ≥ 80, amarelo ≥ 60, vermelho < 60.",
+    },
+    {
+      label: "Falhas críticas",
+      value: criticalFails,
+      color: criticalFails > 0 ? "text-[#DC2626]" : "text-[#1A1A1A]",
+      info: "Simulações com pelo menos um erro grave (severidade \"error\"). Exigem atenção imediata.",
+    },
+  ];
+
   return (
     <div className="grid grid-cols-6 gap-2.5">
-      <div className="bg-white border border-[#E5E5E2] rounded-[10px] px-4 py-3.5">
-        <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1">Pendentes</p>
-        <p className={`text-[22px] font-bold ${pending > 0 ? "text-[#D97706]" : "text-[#1A1A1A]"}`}>{pending}</p>
-      </div>
-      <div className="bg-white border border-[#E5E5E2] rounded-[10px] px-4 py-3.5">
-        <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1">Aprovadas</p>
-        <p className={`text-[22px] font-bold ${approved > 0 ? "text-[#16A34A]" : "text-[#1A1A1A]"}`}>{approved}</p>
-      </div>
-      <div className="bg-white border border-[#E5E5E2] rounded-[10px] px-4 py-3.5">
-        <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1">Rejeitadas</p>
-        <p className="text-[22px] font-bold text-[#1A1A1A]">{rejected}</p>
-      </div>
-      <div className="bg-white border border-[#E5E5E2] rounded-[10px] px-4 py-3.5">
-        <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1">Runs hoje</p>
-        <p className="text-[22px] font-bold text-[#1A1A1A]">{runsToday}</p>
-      </div>
-      <div className="bg-white border border-[#E5E5E2] rounded-[10px] px-4 py-3.5">
-        <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1">Score médio</p>
-        <p className={`text-[22px] font-bold ${avgScore >= 80 ? "text-[#16A34A]" : avgScore >= 60 ? "text-[#D97706]" : avgScore > 0 ? "text-[#DC2626]" : "text-[#1A1A1A]"}`}>
-          {avgScore > 0 ? avgScore : "—"}
-        </p>
-      </div>
-      <div className="bg-white border border-[#E5E5E2] rounded-[10px] px-4 py-3.5">
-        <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1">Falhas críticas</p>
-        <p className={`text-[22px] font-bold ${criticalFails > 0 ? "text-[#DC2626]" : "text-[#1A1A1A]"}`}>{criticalFails}</p>
-      </div>
+      {cards.map((c) => (
+        <div key={c.label} className="bg-white border border-[#E5E5E2] rounded-[10px] px-4 py-3.5">
+          <div className="flex items-center gap-1 mb-1">
+            <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em]">{c.label}</p>
+            <InfoTooltip title={c.label}>{c.info}</InfoTooltip>
+          </div>
+          <p className={`text-[22px] font-bold ${c.color}`}>{c.value}</p>
+        </div>
+      ))}
     </div>
   );
 }
@@ -571,6 +599,9 @@ function ServerTrainingPanel() {
       {/* Header */}
       <div className="px-5 py-4 flex items-center gap-3 border-b border-[#C7D2FE]/50 flex-wrap">
         <h3 className="text-[13px] font-semibold text-[#3730A3]">Treino 24h — Servidor</h3>
+        <InfoTooltip title="Treino 24h">
+          Batches executados no servidor via cron, independentes da aba aberta. Resultados, sugestões e alertas são persistidos no banco de dados.
+        </InfoTooltip>
         {configStatus && (
           <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-[3px] tracking-wide ${CONFIG_CHIP[configStatus].bg} ${CONFIG_CHIP[configStatus].text}`}>
             {CONFIG_CHIP[configStatus].label.toUpperCase()}
@@ -637,7 +668,7 @@ function ServerTrainingPanel() {
         )}
 
         {/* Manual run controls */}
-        <div className="bg-white border border-[#E5E5E2] rounded-[8px] p-3 space-y-3">
+        <div data-tour="training-batch" className="bg-white border border-[#E5E5E2] rounded-[8px] p-3 space-y-3">
           <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em]">Rodar batch no servidor</p>
           <div className="flex items-center gap-3 flex-wrap">
             <div>
@@ -812,6 +843,10 @@ export default function TrainingPage() {
   const [suggTab,       setSuggTab]       = useState<SuggFilter>("pending");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Onboarding — auto-starts on first visit, persisted as tour_completed_sdr-training
+  const { tourOpen, startTour, closeTour } = usePageTour(SDR_TRAINING_TOUR);
+  const [explainOpen, setExplainOpen] = useState(false);
+
   // Continuous loop — clears itself when mode stops or component unmounts
   useEffect(() => {
     if (continuousMode && !isRunning) {
@@ -903,29 +938,34 @@ export default function TrainingPage() {
             Simule conversas, avalie performance e gerencie melhorias. Nenhum dado real é salvo.
           </p>
         </div>
-        <button onClick={clearRuns} className="text-[11px] text-[#9B9B95] hover:text-[#DC2626] transition-colors">
-          Limpar logs
-        </button>
+        <div className="flex items-center gap-3 shrink-0">
+          <OnboardingActions onStartTour={startTour} onExplain={() => setExplainOpen(true)} />
+          <button onClick={clearRuns} className="text-[11px] text-[#9B9B95] hover:text-[#DC2626] transition-colors">
+            Limpar logs
+          </button>
+        </div>
       </div>
 
       {/* Part 1 — Status card */}
       <StatusCard continuousMode={continuousMode} isRunning={isRunning} />
 
       {/* Part 4 — Summary cards */}
-      <SummaryCards
-        pending={pendingCount}
-        approved={approvedCount}
-        rejected={rejectedCount}
-        runsToday={runsToday}
-        avgScore={avgScore}
-        criticalFails={critFails}
-      />
+      <div data-tour="training-stats">
+        <SummaryCards
+          pending={pendingCount}
+          approved={approvedCount}
+          rejected={rejectedCount}
+          runsToday={runsToday}
+          avgScore={avgScore}
+          criticalFails={critFails}
+        />
+      </div>
 
       {/* Overfitting warning */}
       <OverfitWarning runs={runs} />
 
       {/* Mode + run controls — Modo navegador */}
-      <div className="bg-white border border-[#E5E5E2] rounded-[10px] px-4 py-4 space-y-3">
+      <div data-tour="training-controls" className="bg-white border border-[#E5E5E2] rounded-[10px] px-4 py-4 space-y-3">
         <div className="flex items-center gap-2 mb-0.5">
           <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em]">Modo navegador</p>
           <span className="text-[9px] font-bold text-[#D97706] bg-[#FEF3C7] px-1.5 py-0.5 rounded-[3px] tracking-wide">REQUER ABA ABERTA</span>
@@ -994,10 +1034,13 @@ export default function TrainingPage() {
       )}
 
       {/* Part 3 — Run history with filter bar */}
-      <section>
+      <section data-tour="training-runs">
         <div className="flex items-center justify-between mb-3 gap-4 flex-wrap">
-          <h2 className="text-[13px] font-semibold text-[#1A1A1A] shrink-0">
+          <h2 className="text-[13px] font-semibold text-[#1A1A1A] shrink-0 inline-flex items-center gap-1">
             Histórico de simulações
+            <InfoTooltip title="Histórico">
+              Cada linha é uma simulação de conversa do SDR avaliada com verdict e score. Clique em uma linha para ver issues e recomendações.
+            </InfoTooltip>
             {totalRuns > 0 && (
               <span className="text-[#9B9B95] font-normal ml-1.5 text-[12px]">
                 ({visibleRuns.length}
@@ -1030,9 +1073,14 @@ export default function TrainingPage() {
       </section>
 
       {/* Part 2 + 5 — Suggestion queue with tabs */}
-      <section>
+      <section data-tour="training-suggestions">
         <div className="flex items-center gap-3 mb-1 flex-wrap">
-          <h2 className="text-[13px] font-semibold text-[#1A1A1A] shrink-0">Melhorias sugeridas</h2>
+          <h2 className="text-[13px] font-semibold text-[#1A1A1A] shrink-0 inline-flex items-center gap-1">
+            Melhorias sugeridas
+            <InfoTooltip title="Sugestões">
+              Geradas automaticamente quando o mesmo critério falha em 2+ runs. Aprovar não altera o brain do SDR — a sugestão aguarda aplicação manual.
+            </InfoTooltip>
+          </h2>
           <SuggTabBar active={suggTab} onChange={setSuggTab} counts={suggCounts} />
         </div>
 
@@ -1091,7 +1139,27 @@ export default function TrainingPage() {
       </section>
 
       {/* Part 6 — Server training panel */}
-      <ServerTrainingPanel />
+      <div data-tour="training-server">
+        <ServerTrainingPanel />
+      </div>
+
+      {/* Onboarding — tour guiado + explicação da tela */}
+      <GuidedTour tour={SDR_TRAINING_TOUR} open={tourOpen} onClose={closeTour} />
+      <ExplainScreenDrawer
+        open={explainOpen}
+        onClose={() => setExplainOpen(false)}
+        screenTitle="Treinamento Contínuo — SDR"
+        explanation={buildTrainingExplanation({
+          totalRuns,
+          runsToday,
+          avgScore,
+          failCount,
+          criticalFails: critFails,
+          pendingSuggestions: pendingCount,
+          approvedSuggestions: approvedCount,
+          continuousMode,
+        })}
+      />
 
     </div>
   );
