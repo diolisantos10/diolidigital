@@ -8,8 +8,9 @@ const SESSION_COOKIE = "dioli-session";
 const DEV_FALLBACK_SECRET = "dioli-dev-fallback-set-AUTH_SECRET-in-production";
 
 function getSecret(): Uint8Array {
-  const secret = process.env.AUTH_SECRET ?? DEV_FALLBACK_SECRET;
-  return new TextEncoder().encode(secret);
+  const secret = process.env.AUTH_SECRET;
+  if (secret) return new TextEncoder().encode(secret);
+  return new TextEncoder().encode(DEV_FALLBACK_SECRET);
 }
 
 const AGENCY_PATTERN = /^\/agency(\/|$)/;
