@@ -40,6 +40,16 @@ export interface SimulationScenario {
   createdAt:            string;
 }
 
+export interface DynamicScenarioMetadata {
+  segment:          string;
+  businessMaturity: string;
+  personaTone:      string;
+  budgetProfile:    string;
+  objectionProfile: string;
+  materialProfile:  string;
+  serviceIntent:    string;
+}
+
 export interface SimulationIssue {
   criterion:   string;
   description: string;
@@ -47,23 +57,27 @@ export interface SimulationIssue {
 }
 
 export interface SimulationRun {
-  id:            string;
-  agentId:       "sdr";
-  scenarioId:    string;
-  scenarioName:  string;
-  startedAt:     string;
-  completedAt:   string;
-  transcript:    ConvMessage[];
-  finalScope:    BriefingScope | null;
-  finalEstimate: LiveEstimate  | null;
-  finalSdrState: SDRAgentState | null;
-  sdrHandoff:    SDRHandoff    | null;
-  score:         number;
-  verdict:       SimulationVerdict;
-  issues:        SimulationIssue[];
-  recommendations: string[];
-  engineVersion: string;
-  status:        SimulationStatus;
+  id:               string;
+  agentId:          "sdr";
+  scenarioId:       string;
+  scenarioName:     string;
+  startedAt:        string;
+  completedAt:      string;
+  transcript:       ConvMessage[];
+  finalScope:       BriefingScope | null;
+  finalEstimate:    LiveEstimate  | null;
+  finalSdrState:    SDRAgentState | null;
+  sdrHandoff:       SDRHandoff    | null;
+  score:            number;
+  verdict:          SimulationVerdict;
+  issues:           SimulationIssue[];
+  recommendations:  string[];
+  engineVersion:    string;
+  status:           SimulationStatus;
+  // Provenance
+  scenarioOrigin:   "seed" | "dynamic";
+  scenarioSeed?:    string;
+  scenarioMetadata?: DynamicScenarioMetadata;
 }
 
 export interface AgentImprovementSuggestion {
