@@ -399,7 +399,12 @@ export const ModelName = {
   Task: 'Task',
   TimelineEvent: 'TimelineEvent',
   ActivityEvent: 'ActivityEvent',
-  AIRunLog: 'AIRunLog'
+  AIRunLog: 'AIRunLog',
+  TrainingBatch: 'TrainingBatch',
+  DbSimulationRun: 'DbSimulationRun',
+  DbAgentSuggestion: 'DbAgentSuggestion',
+  TrainingAlert: 'TrainingAlert',
+  BrainChangeRequest: 'BrainChangeRequest'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -415,7 +420,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "deliverable" | "materialRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "deliverable" | "materialRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1603,6 +1608,376 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    TrainingBatch: {
+      payload: Prisma.$TrainingBatchPayload<ExtArgs>
+      fields: Prisma.TrainingBatchFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.TrainingBatchFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TrainingBatchPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.TrainingBatchFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TrainingBatchPayload>
+        }
+        findFirst: {
+          args: Prisma.TrainingBatchFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TrainingBatchPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.TrainingBatchFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TrainingBatchPayload>
+        }
+        findMany: {
+          args: Prisma.TrainingBatchFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TrainingBatchPayload>[]
+        }
+        create: {
+          args: Prisma.TrainingBatchCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TrainingBatchPayload>
+        }
+        createMany: {
+          args: Prisma.TrainingBatchCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.TrainingBatchCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TrainingBatchPayload>[]
+        }
+        delete: {
+          args: Prisma.TrainingBatchDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TrainingBatchPayload>
+        }
+        update: {
+          args: Prisma.TrainingBatchUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TrainingBatchPayload>
+        }
+        deleteMany: {
+          args: Prisma.TrainingBatchDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.TrainingBatchUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.TrainingBatchUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TrainingBatchPayload>[]
+        }
+        upsert: {
+          args: Prisma.TrainingBatchUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TrainingBatchPayload>
+        }
+        aggregate: {
+          args: Prisma.TrainingBatchAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateTrainingBatch>
+        }
+        groupBy: {
+          args: Prisma.TrainingBatchGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TrainingBatchGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.TrainingBatchCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TrainingBatchCountAggregateOutputType> | number
+        }
+      }
+    }
+    DbSimulationRun: {
+      payload: Prisma.$DbSimulationRunPayload<ExtArgs>
+      fields: Prisma.DbSimulationRunFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.DbSimulationRunFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DbSimulationRunPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.DbSimulationRunFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DbSimulationRunPayload>
+        }
+        findFirst: {
+          args: Prisma.DbSimulationRunFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DbSimulationRunPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.DbSimulationRunFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DbSimulationRunPayload>
+        }
+        findMany: {
+          args: Prisma.DbSimulationRunFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DbSimulationRunPayload>[]
+        }
+        create: {
+          args: Prisma.DbSimulationRunCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DbSimulationRunPayload>
+        }
+        createMany: {
+          args: Prisma.DbSimulationRunCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.DbSimulationRunCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DbSimulationRunPayload>[]
+        }
+        delete: {
+          args: Prisma.DbSimulationRunDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DbSimulationRunPayload>
+        }
+        update: {
+          args: Prisma.DbSimulationRunUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DbSimulationRunPayload>
+        }
+        deleteMany: {
+          args: Prisma.DbSimulationRunDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.DbSimulationRunUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.DbSimulationRunUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DbSimulationRunPayload>[]
+        }
+        upsert: {
+          args: Prisma.DbSimulationRunUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DbSimulationRunPayload>
+        }
+        aggregate: {
+          args: Prisma.DbSimulationRunAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateDbSimulationRun>
+        }
+        groupBy: {
+          args: Prisma.DbSimulationRunGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DbSimulationRunGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.DbSimulationRunCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DbSimulationRunCountAggregateOutputType> | number
+        }
+      }
+    }
+    DbAgentSuggestion: {
+      payload: Prisma.$DbAgentSuggestionPayload<ExtArgs>
+      fields: Prisma.DbAgentSuggestionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.DbAgentSuggestionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DbAgentSuggestionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.DbAgentSuggestionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DbAgentSuggestionPayload>
+        }
+        findFirst: {
+          args: Prisma.DbAgentSuggestionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DbAgentSuggestionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.DbAgentSuggestionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DbAgentSuggestionPayload>
+        }
+        findMany: {
+          args: Prisma.DbAgentSuggestionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DbAgentSuggestionPayload>[]
+        }
+        create: {
+          args: Prisma.DbAgentSuggestionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DbAgentSuggestionPayload>
+        }
+        createMany: {
+          args: Prisma.DbAgentSuggestionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.DbAgentSuggestionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DbAgentSuggestionPayload>[]
+        }
+        delete: {
+          args: Prisma.DbAgentSuggestionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DbAgentSuggestionPayload>
+        }
+        update: {
+          args: Prisma.DbAgentSuggestionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DbAgentSuggestionPayload>
+        }
+        deleteMany: {
+          args: Prisma.DbAgentSuggestionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.DbAgentSuggestionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.DbAgentSuggestionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DbAgentSuggestionPayload>[]
+        }
+        upsert: {
+          args: Prisma.DbAgentSuggestionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DbAgentSuggestionPayload>
+        }
+        aggregate: {
+          args: Prisma.DbAgentSuggestionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateDbAgentSuggestion>
+        }
+        groupBy: {
+          args: Prisma.DbAgentSuggestionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DbAgentSuggestionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.DbAgentSuggestionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DbAgentSuggestionCountAggregateOutputType> | number
+        }
+      }
+    }
+    TrainingAlert: {
+      payload: Prisma.$TrainingAlertPayload<ExtArgs>
+      fields: Prisma.TrainingAlertFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.TrainingAlertFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TrainingAlertPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.TrainingAlertFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TrainingAlertPayload>
+        }
+        findFirst: {
+          args: Prisma.TrainingAlertFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TrainingAlertPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.TrainingAlertFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TrainingAlertPayload>
+        }
+        findMany: {
+          args: Prisma.TrainingAlertFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TrainingAlertPayload>[]
+        }
+        create: {
+          args: Prisma.TrainingAlertCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TrainingAlertPayload>
+        }
+        createMany: {
+          args: Prisma.TrainingAlertCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.TrainingAlertCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TrainingAlertPayload>[]
+        }
+        delete: {
+          args: Prisma.TrainingAlertDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TrainingAlertPayload>
+        }
+        update: {
+          args: Prisma.TrainingAlertUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TrainingAlertPayload>
+        }
+        deleteMany: {
+          args: Prisma.TrainingAlertDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.TrainingAlertUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.TrainingAlertUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TrainingAlertPayload>[]
+        }
+        upsert: {
+          args: Prisma.TrainingAlertUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TrainingAlertPayload>
+        }
+        aggregate: {
+          args: Prisma.TrainingAlertAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateTrainingAlert>
+        }
+        groupBy: {
+          args: Prisma.TrainingAlertGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TrainingAlertGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.TrainingAlertCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TrainingAlertCountAggregateOutputType> | number
+        }
+      }
+    }
+    BrainChangeRequest: {
+      payload: Prisma.$BrainChangeRequestPayload<ExtArgs>
+      fields: Prisma.BrainChangeRequestFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BrainChangeRequestFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrainChangeRequestPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BrainChangeRequestFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrainChangeRequestPayload>
+        }
+        findFirst: {
+          args: Prisma.BrainChangeRequestFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrainChangeRequestPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BrainChangeRequestFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrainChangeRequestPayload>
+        }
+        findMany: {
+          args: Prisma.BrainChangeRequestFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrainChangeRequestPayload>[]
+        }
+        create: {
+          args: Prisma.BrainChangeRequestCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrainChangeRequestPayload>
+        }
+        createMany: {
+          args: Prisma.BrainChangeRequestCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BrainChangeRequestCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrainChangeRequestPayload>[]
+        }
+        delete: {
+          args: Prisma.BrainChangeRequestDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrainChangeRequestPayload>
+        }
+        update: {
+          args: Prisma.BrainChangeRequestUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrainChangeRequestPayload>
+        }
+        deleteMany: {
+          args: Prisma.BrainChangeRequestDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BrainChangeRequestUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BrainChangeRequestUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrainChangeRequestPayload>[]
+        }
+        upsert: {
+          args: Prisma.BrainChangeRequestUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrainChangeRequestPayload>
+        }
+        aggregate: {
+          args: Prisma.BrainChangeRequestAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBrainChangeRequest>
+        }
+        groupBy: {
+          args: Prisma.BrainChangeRequestGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrainChangeRequestGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BrainChangeRequestCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrainChangeRequestCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1891,6 +2266,93 @@ export const AIRunLogScalarFieldEnum = {
 export type AIRunLogScalarFieldEnum = (typeof AIRunLogScalarFieldEnum)[keyof typeof AIRunLogScalarFieldEnum]
 
 
+export const TrainingBatchScalarFieldEnum = {
+  id: 'id',
+  mode: 'mode',
+  triggeredBy: 'triggeredBy',
+  totalRuns: 'totalRuns',
+  passCount: 'passCount',
+  warningCount: 'warningCount',
+  failCount: 'failCount',
+  averageScore: 'averageScore',
+  durationMs: 'durationMs',
+  createdAt: 'createdAt'
+} as const
+
+export type TrainingBatchScalarFieldEnum = (typeof TrainingBatchScalarFieldEnum)[keyof typeof TrainingBatchScalarFieldEnum]
+
+
+export const DbSimulationRunScalarFieldEnum = {
+  id: 'id',
+  batchId: 'batchId',
+  agentId: 'agentId',
+  scenarioOrigin: 'scenarioOrigin',
+  scenarioSeed: 'scenarioSeed',
+  scenarioName: 'scenarioName',
+  scenarioMetadata: 'scenarioMetadata',
+  score: 'score',
+  verdict: 'verdict',
+  transcript: 'transcript',
+  finalScope: 'finalScope',
+  finalEstimate: 'finalEstimate',
+  sdrHandoff: 'sdrHandoff',
+  issues: 'issues',
+  recommendations: 'recommendations',
+  engineVersion: 'engineVersion',
+  createdAt: 'createdAt'
+} as const
+
+export type DbSimulationRunScalarFieldEnum = (typeof DbSimulationRunScalarFieldEnum)[keyof typeof DbSimulationRunScalarFieldEnum]
+
+
+export const DbAgentSuggestionScalarFieldEnum = {
+  id: 'id',
+  agentId: 'agentId',
+  title: 'title',
+  problem: 'problem',
+  evidence: 'evidence',
+  suggestedChange: 'suggestedChange',
+  impact: 'impact',
+  status: 'status',
+  sourceRunIds: 'sourceRunIds',
+  createdAt: 'createdAt',
+  decidedAt: 'decidedAt'
+} as const
+
+export type DbAgentSuggestionScalarFieldEnum = (typeof DbAgentSuggestionScalarFieldEnum)[keyof typeof DbAgentSuggestionScalarFieldEnum]
+
+
+export const TrainingAlertScalarFieldEnum = {
+  id: 'id',
+  agentId: 'agentId',
+  title: 'title',
+  message: 'message',
+  severity: 'severity',
+  triggerType: 'triggerType',
+  relatedRunIds: 'relatedRunIds',
+  status: 'status',
+  createdAt: 'createdAt',
+  resolvedAt: 'resolvedAt'
+} as const
+
+export type TrainingAlertScalarFieldEnum = (typeof TrainingAlertScalarFieldEnum)[keyof typeof TrainingAlertScalarFieldEnum]
+
+
+export const BrainChangeRequestScalarFieldEnum = {
+  id: 'id',
+  agentId: 'agentId',
+  title: 'title',
+  sourceSuggestionIds: 'sourceSuggestionIds',
+  proposedChange: 'proposedChange',
+  status: 'status',
+  createdAt: 'createdAt',
+  approvedAt: 'approvedAt',
+  appliedAt: 'appliedAt'
+} as const
+
+export type BrainChangeRequestScalarFieldEnum = (typeof BrainChangeRequestScalarFieldEnum)[keyof typeof BrainChangeRequestScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -2073,6 +2535,11 @@ export type GlobalOmitConfig = {
   timelineEvent?: Prisma.TimelineEventOmit
   activityEvent?: Prisma.ActivityEventOmit
   aIRunLog?: Prisma.AIRunLogOmit
+  trainingBatch?: Prisma.TrainingBatchOmit
+  dbSimulationRun?: Prisma.DbSimulationRunOmit
+  dbAgentSuggestion?: Prisma.DbAgentSuggestionOmit
+  trainingAlert?: Prisma.TrainingAlertOmit
+  brainChangeRequest?: Prisma.BrainChangeRequestOmit
 }
 
 /* Types for Logging */

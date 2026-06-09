@@ -97,3 +97,28 @@ export type ActivityEvent = Prisma.ActivityEventModel
  * 
  */
 export type AIRunLog = Prisma.AIRunLogModel
+/**
+ * Model TrainingBatch
+ * 
+ */
+export type TrainingBatch = Prisma.TrainingBatchModel
+/**
+ * Model DbSimulationRun
+ * 
+ */
+export type DbSimulationRun = Prisma.DbSimulationRunModel
+/**
+ * Model DbAgentSuggestion
+ * 
+ */
+export type DbAgentSuggestion = Prisma.DbAgentSuggestionModel
+/**
+ * Model TrainingAlert
+ * 
+ */
+export type TrainingAlert = Prisma.TrainingAlertModel
+/**
+ * Model BrainChangeRequest
+ * 
+ */
+export type BrainChangeRequest = Prisma.BrainChangeRequestModel

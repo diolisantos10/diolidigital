@@ -1,29 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession }     from "@/lib/auth/session";
-import { executeBatch }   from "@/lib/agency/training/batch-runner";
-import { getTrainingSummary } from "@/lib/agency/training/training-store-service";
+import { getSession }           from "@/lib/auth/session";
+import { executeBatch }         from "@/lib/agency/training/batch-runner";
+import { getTrainingSummary }   from "@/lib/agency/training/training-store-service";
 import { MAX_COUNT_HARD_CAP, TRAINING_JOB_CONFIG } from "@/lib/agency/training/config";
 
-// GET — return server training state (status, config, last batch summary)
+// GET — persistent training summary from DB
 export async function GET(): Promise<NextResponse> {
   const session = await getSession();
-  if (!session)               return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session)                 return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (session.role !== "master")
     return NextResponse.json({ error: "Forbidden — master role required" }, { status: 403 });
 
-  const summary = getTrainingSummary();
+  const summary = await getTrainingSummary();
   return NextResponse.json({
-    cronConfigured:   !!process.env.CRON_SECRET,
-    enabled:          TRAINING_JOB_CONFIG.enabled,
-    totalServerRuns:  summary.totalRuns,
-    lastBatchSummary: summary.lastBatchSummary,
+    cronConfigured: !!process.env.CRON_SECRET,
+    enabled:        TRAINING_JOB_CONFIG.enabled,
+    ...summary,
   });
 }
 
-// POST — run a batch manually
+// POST — run a batch manually, persist results to DB
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const session = await getSession();
-  if (!session)               return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session)                 return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (session.role !== "master")
     return NextResponse.json({ error: "Forbidden — master role required" }, { status: 403 });
 
@@ -42,7 +41,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const triggeredBy = body.triggeredBy === "cron" ? "cron" : "manual";
 
   try {
-    const result = executeBatch({ mode, count, triggeredBy });
+    const result = await executeBatch({ mode, count, triggeredBy });
     return NextResponse.json(result);
   } catch (err) {
     return NextResponse.json({ error: "Batch execution failed", detail: String(err) }, { status: 500 });

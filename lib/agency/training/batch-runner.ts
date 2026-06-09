@@ -4,10 +4,12 @@ import { generateDynamicScenario } from "./dynamic-scenario-generator";
 import { SEED_SCENARIOS }          from "./scenarios";
 import { generateImprovementSuggestions } from "./suggestions";
 import {
-  saveRuns, saveSuggestions, setLastBatch, getRuns, getSuggestions,
+  saveBatch, saveRuns, saveSuggestions, saveAlerts,
+  getRuns, getSuggestions, getActiveAlertTitles,
 } from "./training-store-service";
-import { MAX_COUNT_HARD_CAP }      from "./config";
-import type { SimulationRun }      from "./types";
+import { generateAlerts }  from "./alerts";
+import { MAX_COUNT_HARD_CAP } from "./config";
+import type { SimulationRun } from "./types";
 
 export type { TrainingMode } from "./config";
 
@@ -26,6 +28,7 @@ export interface BatchRunResult {
   suggestionsCreated: number;
   durationMs:         number;
   triggeredBy:        string;
+  mode:               string;
   completedAt:        string;
 }
 
@@ -69,22 +72,21 @@ function runBatch(count: number, mode: "seed" | "dynamic" | "mixed"): Simulation
   return newRuns;
 }
 
-export function executeBatch(options: BatchRunOptions): BatchRunResult {
-  const { mode, triggeredBy }       = options;
-  const count                       = Math.min(options.count, MAX_COUNT_HARD_CAP);
-  const startedAt                   = Date.now();
+export async function executeBatch(options: BatchRunOptions): Promise<BatchRunResult> {
+  const { mode, triggeredBy } = options;
+  const count                 = Math.min(options.count, MAX_COUNT_HARD_CAP);
+  const startedAt             = Date.now();
 
-  const existingRuns        = getRuns();
-  const existingSuggestions = getSuggestions();
+  // Fetch context for suggestion dedup and alert generation
+  const [existingRuns, existingSuggestions] = await Promise.all([
+    getRuns(200),
+    getSuggestions(),
+  ]);
 
+  // CPU-bound simulation — synchronous
   const newRuns        = runBatch(count, mode);
-  const newSuggestions = generateImprovementSuggestions(
-    [...existingRuns, ...newRuns],
-    existingSuggestions,
-  );
-
-  saveRuns(newRuns);
-  saveSuggestions(newSuggestions);
+  const allRuns        = [...existingRuns, ...newRuns];
+  const newSuggestions = generateImprovementSuggestions(allRuns, existingSuggestions);
 
   const pass    = newRuns.filter((r) => r.verdict === "pass").length;
   const warning = newRuns.filter((r) => r.verdict === "warning").length;
@@ -92,19 +94,35 @@ export function executeBatch(options: BatchRunOptions): BatchRunResult {
   const avgScore = newRuns.length > 0
     ? Math.round(newRuns.reduce((s, r) => s + r.score, 0) / newRuns.length)
     : 0;
+  const durationMs  = Date.now() - startedAt;
+  const completedAt = new Date().toISOString();
 
-  const result: BatchRunResult = {
+  // Persist batch → get batchId → persist runs and suggestions in parallel
+  const batchId = await saveBatch({
+    mode, triggeredBy, totalRuns: newRuns.length,
+    pass, warning, fail, averageScore: avgScore, durationMs,
+  });
+
+  await Promise.all([
+    saveRuns(newRuns, batchId),
+    saveSuggestions(newSuggestions),
+  ]);
+
+  // Alert generation — uses in-memory allRuns (no extra DB round-trip)
+  const activeTitles = await getActiveAlertTitles();
+  const alerts       = generateAlerts(allRuns, activeTitles);
+  if (alerts.length > 0) await saveAlerts(alerts);
+
+  return {
     totalRuns:          newRuns.length,
     pass,
     warning,
     fail,
     averageScore:       avgScore,
     suggestionsCreated: newSuggestions.length,
-    durationMs:         Date.now() - startedAt,
+    durationMs,
     triggeredBy,
-    completedAt:        new Date().toISOString(),
+    mode,
+    completedAt,
   };
-
-  setLastBatch(result);
-  return result;
 }

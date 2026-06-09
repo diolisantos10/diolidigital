@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { executeBatch }      from "@/lib/agency/training/batch-runner";
+import { executeBatch }        from "@/lib/agency/training/batch-runner";
 import { TRAINING_JOB_CONFIG } from "@/lib/agency/training/config";
 
-// Protected cron endpoint — requires CRON_SECRET in Authorization: Bearer header.
-// Configure this URL in Railway Cron or any external scheduler.
-// If CRON_SECRET env var is missing, returns 503 — never runs unsecured.
+// Protected cron endpoint — Authorization: Bearer <CRON_SECRET>
+// Returns 503 when CRON_SECRET is not set — never runs unsecured.
+// Set TRAINING_ENABLED=true in Railway Variables to activate the worker.
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const cronSecret = process.env.CRON_SECRET;
 
   if (!cronSecret) {
     return NextResponse.json(
-      { error: "Cron endpoint not configured — set CRON_SECRET in Railway Variables to enable" },
+      { error: "Cron endpoint not configured — set CRON_SECRET in Railway Variables" },
       { status: 503 },
     );
   }
@@ -23,14 +23,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   if (!TRAINING_JOB_CONFIG.enabled) {
     return NextResponse.json({
-      message: "Training worker disabled — set enabled: true in TRAINING_JOB_CONFIG to activate",
+      message: "Worker disabled — set TRAINING_ENABLED=true in Railway Variables to activate",
       ran: false,
     });
   }
 
   try {
-    const dynamicResult = executeBatch({ mode: "dynamic", count: 10, triggeredBy: "cron" });
-    const mixedResult   = executeBatch({ mode: "mixed",   count: 5,  triggeredBy: "cron" });
+    const [dynamicResult, mixedResult] = await Promise.all([
+      executeBatch({ mode: "dynamic", count: 10, triggeredBy: "cron" }),
+      executeBatch({ mode: "mixed",   count: 5,  triggeredBy: "cron" }),
+    ]);
 
     return NextResponse.json({
       batches:     [dynamicResult, mixedResult],

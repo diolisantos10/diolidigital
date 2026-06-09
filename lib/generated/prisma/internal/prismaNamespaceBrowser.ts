@@ -66,7 +66,12 @@ export const ModelName = {
   Task: 'Task',
   TimelineEvent: 'TimelineEvent',
   ActivityEvent: 'ActivityEvent',
-  AIRunLog: 'AIRunLog'
+  AIRunLog: 'AIRunLog',
+  TrainingBatch: 'TrainingBatch',
+  DbSimulationRun: 'DbSimulationRun',
+  DbAgentSuggestion: 'DbAgentSuggestion',
+  TrainingAlert: 'TrainingAlert',
+  BrainChangeRequest: 'BrainChangeRequest'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -332,6 +337,93 @@ export const AIRunLogScalarFieldEnum = {
 } as const
 
 export type AIRunLogScalarFieldEnum = (typeof AIRunLogScalarFieldEnum)[keyof typeof AIRunLogScalarFieldEnum]
+
+
+export const TrainingBatchScalarFieldEnum = {
+  id: 'id',
+  mode: 'mode',
+  triggeredBy: 'triggeredBy',
+  totalRuns: 'totalRuns',
+  passCount: 'passCount',
+  warningCount: 'warningCount',
+  failCount: 'failCount',
+  averageScore: 'averageScore',
+  durationMs: 'durationMs',
+  createdAt: 'createdAt'
+} as const
+
+export type TrainingBatchScalarFieldEnum = (typeof TrainingBatchScalarFieldEnum)[keyof typeof TrainingBatchScalarFieldEnum]
+
+
+export const DbSimulationRunScalarFieldEnum = {
+  id: 'id',
+  batchId: 'batchId',
+  agentId: 'agentId',
+  scenarioOrigin: 'scenarioOrigin',
+  scenarioSeed: 'scenarioSeed',
+  scenarioName: 'scenarioName',
+  scenarioMetadata: 'scenarioMetadata',
+  score: 'score',
+  verdict: 'verdict',
+  transcript: 'transcript',
+  finalScope: 'finalScope',
+  finalEstimate: 'finalEstimate',
+  sdrHandoff: 'sdrHandoff',
+  issues: 'issues',
+  recommendations: 'recommendations',
+  engineVersion: 'engineVersion',
+  createdAt: 'createdAt'
+} as const
+
+export type DbSimulationRunScalarFieldEnum = (typeof DbSimulationRunScalarFieldEnum)[keyof typeof DbSimulationRunScalarFieldEnum]
+
+
+export const DbAgentSuggestionScalarFieldEnum = {
+  id: 'id',
+  agentId: 'agentId',
+  title: 'title',
+  problem: 'problem',
+  evidence: 'evidence',
+  suggestedChange: 'suggestedChange',
+  impact: 'impact',
+  status: 'status',
+  sourceRunIds: 'sourceRunIds',
+  createdAt: 'createdAt',
+  decidedAt: 'decidedAt'
+} as const
+
+export type DbAgentSuggestionScalarFieldEnum = (typeof DbAgentSuggestionScalarFieldEnum)[keyof typeof DbAgentSuggestionScalarFieldEnum]
+
+
+export const TrainingAlertScalarFieldEnum = {
+  id: 'id',
+  agentId: 'agentId',
+  title: 'title',
+  message: 'message',
+  severity: 'severity',
+  triggerType: 'triggerType',
+  relatedRunIds: 'relatedRunIds',
+  status: 'status',
+  createdAt: 'createdAt',
+  resolvedAt: 'resolvedAt'
+} as const
+
+export type TrainingAlertScalarFieldEnum = (typeof TrainingAlertScalarFieldEnum)[keyof typeof TrainingAlertScalarFieldEnum]
+
+
+export const BrainChangeRequestScalarFieldEnum = {
+  id: 'id',
+  agentId: 'agentId',
+  title: 'title',
+  sourceSuggestionIds: 'sourceSuggestionIds',
+  proposedChange: 'proposedChange',
+  status: 'status',
+  createdAt: 'createdAt',
+  approvedAt: 'approvedAt',
+  appliedAt: 'appliedAt'
+} as const
+
+export type BrainChangeRequestScalarFieldEnum = (typeof BrainChangeRequestScalarFieldEnum)[keyof typeof BrainChangeRequestScalarFieldEnum]
 
 
 export const SortOrder = {

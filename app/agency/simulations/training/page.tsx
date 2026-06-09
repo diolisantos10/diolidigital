@@ -6,6 +6,7 @@ import { useTrainingStore, type TrainingMode } from "@/store/training-store";
 import { SEED_SCENARIOS } from "@/lib/agency/training/scenarios";
 import type { SimulationRun, AgentImprovementSuggestion, ImprovementStatus } from "@/lib/agency/training/types";
 import type { BatchRunResult } from "@/lib/agency/training/batch-runner";
+import type { CompactRun, CompactSuggestion, AlertItem, BatchSummary } from "@/lib/agency/training/training-store-service";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -453,13 +454,27 @@ function SuggestionCard({ suggestion, onDecide }: {
   );
 }
 
-// ── Part 6 — Server training panel (replaces static placeholder) ──────────────
+// ── Part 6 — Server training panel V3 (persistent DB) ────────────────────────
 
 interface ServerStatus {
-  cronConfigured:   boolean;
-  enabled:          boolean;
-  totalServerRuns:  number;
-  lastBatchSummary: BatchRunResult | null;
+  cronConfigured:       boolean;
+  enabled:              boolean;
+  totalServerRuns:      number;
+  runsToday:            number;
+  runsThisWeek:         number;
+  averageScore:         number;
+  passCount:            number;
+  warnCount:            number;
+  failCount:            number;
+  pendingSuggestions:   number;
+  approvedSuggestions:  number;
+  rejectedSuggestions:  number;
+  activeAlerts:         number;
+  lastBatchAt:          string | null;
+  lastBatchSummary:     BatchSummary | null;
+  recentRuns:           CompactRun[];
+  activeSuggestions:    CompactSuggestion[];
+  alertItems:           AlertItem[];
 }
 
 const SERVER_MODE_OPTIONS: { id: TrainingMode; label: string }[] = [
@@ -467,6 +482,12 @@ const SERVER_MODE_OPTIONS: { id: TrainingMode; label: string }[] = [
   { id: "mixed",   label: "Misto"    },
   { id: "seed",    label: "Fixos"    },
 ];
+
+const SEVERITY_STYLE: Record<string, { bg: string; text: string }> = {
+  critical: { bg: "bg-[#FEE2E2]", text: "text-[#DC2626]" },
+  warning:  { bg: "bg-[#FEF3C7]", text: "text-[#D97706]" },
+  info:     { bg: "bg-[#EEF0FF]", text: "text-[#5B5BD6]" },
+};
 
 function ServerTrainingPanel() {
   const [status,          setStatus]          = useState<ServerStatus | null>(null);
@@ -476,6 +497,7 @@ function ServerTrainingPanel() {
   const [isServerRunning, setIsServerRunning] = useState(false);
   const [lastResult,      setLastResult]      = useState<BatchRunResult | null>(null);
   const [runError,        setRunError]        = useState<string | null>(null);
+  const [approvingId,     setApprovingId]     = useState<string | null>(null);
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -483,7 +505,6 @@ function ServerTrainingPanel() {
       if (!res.ok) { setLoadError(true); return; }
       const data: ServerStatus = await res.json();
       setStatus(data);
-      if (data.lastBatchSummary) setLastResult(data.lastBatchSummary);
     } catch {
       setLoadError(true);
     }
@@ -495,7 +516,7 @@ function ServerTrainingPanel() {
     setIsServerRunning(true);
     setRunError(null);
     try {
-      const res = await fetch("/api/admin/training/sdr/run", {
+      const res  = await fetch("/api/admin/training/sdr/run", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ mode: serverMode, count: serverCount, triggeredBy: "manual" }),
@@ -514,6 +535,20 @@ function ServerTrainingPanel() {
     }
   }
 
+  async function decideSuggestion(id: string, newStatus: "approved" | "rejected") {
+    setApprovingId(id);
+    try {
+      const res = await fetch(`/api/admin/training/sdr/suggestions/${id}`, {
+        method:  "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ status: newStatus }),
+      });
+      if (res.ok) fetchStatus();
+    } finally {
+      setApprovingId(null);
+    }
+  }
+
   const configStatus = !status
     ? null
     : !status.cronConfigured
@@ -523,36 +558,35 @@ function ServerTrainingPanel() {
     : "disabled";
 
   const CONFIG_CHIP = {
-    unconfigured: { bg: "bg-[#F0F0ED]",  text: "text-[#9B9B95]",  label: "não configurado" },
-    active:       { bg: "bg-[#DCFCE7]",  text: "text-[#16A34A]",  label: "configurado"     },
-    disabled:     { bg: "bg-[#FEF3C7]",  text: "text-[#D97706]",  label: "desabilitado"    },
+    unconfigured: { bg: "bg-[#F0F0ED]", text: "text-[#9B9B95]", label: "não configurado" },
+    active:       { bg: "bg-[#DCFCE7]", text: "text-[#16A34A]", label: "configurado"     },
+    disabled:     { bg: "bg-[#FEF3C7]", text: "text-[#D97706]", label: "desabilitado"    },
   };
+
+  const lastBatch = status?.lastBatchSummary;
 
   return (
     <div className="border border-[#C7D2FE] rounded-[10px] bg-[#EEF0FF]/20 overflow-hidden">
 
       {/* Header */}
-      <div className="px-5 py-4 flex items-start justify-between gap-4 border-b border-[#C7D2FE]/50">
-        <div className="flex items-center gap-2 flex-wrap">
-          <h3 className="text-[13px] font-semibold text-[#3730A3]">Treino 24h — Servidor</h3>
-          {configStatus && (
-            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-[3px] tracking-wide ${CONFIG_CHIP[configStatus].bg} ${CONFIG_CHIP[configStatus].text}`}>
-              {CONFIG_CHIP[configStatus].label.toUpperCase()}
-            </span>
-          )}
-          {status && (
-            <span className="text-[10px] text-[#6B6B65]">{status.totalServerRuns} runs no servidor</span>
-          )}
-        </div>
+      <div className="px-5 py-4 flex items-center gap-3 border-b border-[#C7D2FE]/50 flex-wrap">
+        <h3 className="text-[13px] font-semibold text-[#3730A3]">Treino 24h — Servidor</h3>
+        {configStatus && (
+          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-[3px] tracking-wide ${CONFIG_CHIP[configStatus].bg} ${CONFIG_CHIP[configStatus].text}`}>
+            {CONFIG_CHIP[configStatus].label.toUpperCase()}
+          </span>
+        )}
+        {status && (
+          <span className="text-[10px] text-[#6B6B65]">{status.totalServerRuns} runs persistidos no DB</span>
+        )}
+        {status && status.activeAlerts > 0 && (
+          <span className="text-[9px] font-bold text-[#DC2626] bg-[#FEE2E2] px-1.5 py-0.5 rounded-[3px]">
+            {status.activeAlerts} ALERTA{status.activeAlerts > 1 ? "S" : ""}
+          </span>
+        )}
       </div>
 
       <div className="px-5 py-4 space-y-4">
-
-        {/* Explanation */}
-        <p className="text-[12px] text-[#6B6B65] leading-relaxed">
-          Quando configurado com <span className="font-mono text-[11px] bg-[#EEF0FF] text-[#5B5BD6] px-1 rounded">CRON_SECRET</span>, o Railway/cron pode acionar o treino automaticamente sem a página aberta.
-          O batch é executado no servidor Node.js — nenhuma aba precisa ficar aberta.
-        </p>
 
         {loadError && (
           <div className="bg-[#FEE2E2] border border-[#FECACA] rounded-[8px] px-3 py-2 text-[11px] text-[#DC2626]">
@@ -560,10 +594,51 @@ function ServerTrainingPanel() {
           </div>
         )}
 
+        {/* Stats grid */}
+        {status && (
+          <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
+            {([
+              ["Runs hoje",   status.runsToday,            "text-[#1A1A1A]"],
+              ["Runs semana", status.runsThisWeek,          "text-[#1A1A1A]"],
+              ["Score médio", status.averageScore || "—",   status.averageScore >= 80 ? "text-[#16A34A]" : status.averageScore >= 60 ? "text-[#D97706]" : status.averageScore > 0 ? "text-[#DC2626]" : "text-[#1A1A1A]"],
+              ["Falhas",      status.failCount,             status.failCount > 0 ? "text-[#DC2626]" : "text-[#1A1A1A]"],
+              ["Pendentes",   status.pendingSuggestions,    status.pendingSuggestions > 0 ? "text-[#D97706]" : "text-[#1A1A1A]"],
+              ["Aprovadas",   status.approvedSuggestions,   status.approvedSuggestions > 0 ? "text-[#16A34A]" : "text-[#1A1A1A]"],
+              ["Rejeitadas",  status.rejectedSuggestions,   "text-[#1A1A1A]"],
+              ["Alertas",     status.activeAlerts,          status.activeAlerts > 0 ? "text-[#DC2626]" : "text-[#1A1A1A]"],
+            ] as [string, string | number, string][]).map(([label, val, color]) => (
+              <div key={label} className="bg-white border border-[#E5E5E2] rounded-[8px] px-3 py-2.5 text-center">
+                <p className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-0.5">{label}</p>
+                <p className={`text-[18px] font-bold ${color}`}>{val}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Active alerts */}
+        {status && status.alertItems.length > 0 && (
+          <div className="space-y-1.5">
+            <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em]">Alertas ativos</p>
+            {status.alertItems.map((alert) => {
+              const s = SEVERITY_STYLE[alert.severity] ?? SEVERITY_STYLE.info;
+              return (
+                <div key={alert.id} className={`flex items-start gap-3 px-3 py-2.5 rounded-[8px] border ${s.bg} border-transparent`}>
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-[3px] shrink-0 mt-0.5 ${s.bg} ${s.text} border border-current/20`}>
+                    {alert.severity.toUpperCase()}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-[11px] font-semibold ${s.text}`}>{alert.title}</p>
+                    <p className="text-[10px] text-[#6B6B65] mt-0.5 leading-relaxed">{alert.message}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         {/* Manual run controls */}
         <div className="bg-white border border-[#E5E5E2] rounded-[8px] p-3 space-y-3">
-          <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em]">Rodar batch manual agora</p>
-
+          <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em]">Rodar batch no servidor</p>
           <div className="flex items-center gap-3 flex-wrap">
             <div>
               <p className="text-[10px] text-[#9B9B95] mb-1">Modo</p>
@@ -583,19 +658,14 @@ function ServerTrainingPanel() {
                 ))}
               </div>
             </div>
-
             <div>
               <p className="text-[10px] text-[#9B9B95] mb-1">Quantidade (máx. 100)</p>
               <input
-                type="number"
-                min={1}
-                max={100}
-                value={serverCount}
+                type="number" min={1} max={100} value={serverCount}
                 onChange={(e) => setServerCount(Math.min(100, Math.max(1, Number(e.target.value))))}
                 className="h-8 w-20 px-2 rounded-[6px] border border-[#E5E5E2] bg-white text-[12px] text-[#1A1A1A] focus:outline-none focus:ring-1 focus:ring-[#C7D2FE]"
               />
             </div>
-
             <div className="pt-4">
               <button
                 onClick={runServerBatch}
@@ -606,55 +676,120 @@ function ServerTrainingPanel() {
               </button>
             </div>
           </div>
-
-          {runError && (
-            <p className="text-[11px] text-[#DC2626]">{runError}</p>
-          )}
+          {runError && <p className="text-[11px] text-[#DC2626]">{runError}</p>}
         </div>
 
         {/* Last batch summary */}
-        {lastResult && (
-          <div className="bg-white border border-[#E5E5E2] rounded-[8px] p-3 space-y-2">
-            <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em]">Último batch no servidor</p>
-            <div className="flex flex-wrap gap-3">
-              {([
-                ["Runs",        String(lastResult.totalRuns)],
-                ["Pass",        String(lastResult.pass)],
-                ["Warning",     String(lastResult.warning)],
-                ["Fail",        String(lastResult.fail)],
-                ["Score médio", `${lastResult.averageScore}/100`],
-                ["Sugestões",   String(lastResult.suggestionsCreated)],
-                ["Duração",     `${lastResult.durationMs}ms`],
-                ["Por",         lastResult.triggeredBy],
-              ] as [string, string][]).map(([k, v]) => (
-                <div key={k} className="text-center">
-                  <p className="text-[9px] text-[#9B9B95]">{k}</p>
-                  <p className="text-[12px] font-semibold text-[#1A1A1A]">{v}</p>
-                </div>
-              ))}
+        {(lastBatch ?? lastResult) && (() => {
+          const b = lastBatch ?? (lastResult ? {
+            totalRuns: lastResult.totalRuns, pass: lastResult.pass, warning: lastResult.warning,
+            fail: lastResult.fail, averageScore: lastResult.averageScore,
+            durationMs: lastResult.durationMs, triggeredBy: lastResult.triggeredBy,
+            mode: lastResult.mode, completedAt: lastResult.completedAt,
+          } : null);
+          if (!b) return null;
+          return (
+            <div className="bg-white border border-[#E5E5E2] rounded-[8px] p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em]">Último batch</p>
+                <span className="text-[9px] bg-[#F0F0ED] text-[#6B6B65] px-1.5 py-0.5 rounded-[3px]">{b.mode}</span>
+                <span className="text-[9px] bg-[#F0F0ED] text-[#6B6B65] px-1.5 py-0.5 rounded-[3px]">{b.triggeredBy}</span>
+              </div>
+              <div className="flex flex-wrap gap-4">
+                {([
+                  ["Runs",   String(b.totalRuns)],
+                  ["Pass",   String(b.pass)],
+                  ["Warn",   String(b.warning)],
+                  ["Fail",   String(b.fail)],
+                  ["Score",  `${b.averageScore}/100`],
+                  ["Tempo",  `${b.durationMs}ms`],
+                ] as [string, string][]).map(([k, v]) => (
+                  <div key={k} className="text-center">
+                    <p className="text-[9px] text-[#9B9B95]">{k}</p>
+                    <p className="text-[12px] font-semibold text-[#1A1A1A]">{v}</p>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[10px] text-[#C0C0BC]">{new Date(b.completedAt).toLocaleString("pt-BR")}</p>
             </div>
-            <p className="text-[10px] text-[#C0C0BC]">
-              {new Date(lastResult.completedAt).toLocaleString("pt-BR")}
+          );
+        })()}
+
+        {/* Pending server suggestions */}
+        {status && status.activeSuggestions.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em]">
+              Melhorias pendentes — servidor ({status.activeSuggestions.length})
+            </p>
+            {status.activeSuggestions.map((s) => {
+              const imp = IMPACT_STYLE[s.impact] ?? IMPACT_STYLE.medium;
+              return (
+                <div key={s.id} className="bg-white border border-[#E5E5E2] rounded-[8px] px-3 py-2.5 flex items-center gap-3">
+                  <span className={`h-5 px-2 rounded-[4px] text-[9px] font-bold uppercase shrink-0 ${imp.bg} ${imp.text}`}>{s.impact}</span>
+                  <span className="text-[12px] font-medium text-[#1A1A1A] flex-1 truncate">{s.title}</span>
+                  <span className="text-[10px] text-[#9B9B95] shrink-0">{s.sourceRunCount} runs</span>
+                  <div className="flex gap-1.5 shrink-0">
+                    <button
+                      onClick={() => decideSuggestion(s.id, "approved")}
+                      disabled={approvingId === s.id}
+                      className="h-6 px-2.5 rounded-[5px] bg-[#DCFCE7] text-[#16A34A] text-[10px] font-semibold hover:bg-[#BBF7D0] transition-colors disabled:opacity-40"
+                    >Aprovar</button>
+                    <button
+                      onClick={() => decideSuggestion(s.id, "rejected")}
+                      disabled={approvingId === s.id}
+                      className="h-6 px-2.5 rounded-[5px] bg-[#F0F0ED] text-[#6B6B65] text-[10px] font-medium hover:bg-[#E5E5E2] transition-colors disabled:opacity-40"
+                    >Rejeitar</button>
+                  </div>
+                </div>
+              );
+            })}
+            <p className="text-[10px] text-[#9B9B95] leading-relaxed">
+              Ao aprovar: criado BrainChangeRequest com status <span className="font-mono bg-[#F0F0ED] px-1 rounded text-[9px]">pending</span> — aguarda aplicação manual ao SDR brain.
             </p>
           </div>
         )}
 
-        {/* Cron setup note */}
+        {/* Recent server runs */}
+        {status && status.recentRuns.length > 0 && (
+          <div className="space-y-1">
+            <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em]">
+              Runs recentes — servidor (últimas {status.recentRuns.length})
+            </p>
+            <div className="space-y-1">
+              {status.recentRuns.map((run) => {
+                const v = VERDICT_STYLE[run.verdict as keyof typeof VERDICT_STYLE] ?? VERDICT_STYLE.fail;
+                return (
+                  <div key={run.id} className="flex items-center gap-2.5 px-3 py-2 bg-white border border-[#E5E5E2] rounded-[7px] text-[11px]">
+                    <span className={`shrink-0 h-4 px-1.5 rounded-[3px] text-[9px] font-bold ${v.bg} ${v.text}`}>{v.label}</span>
+                    <span className={`h-4 px-1.5 rounded-[3px] text-[8px] font-bold uppercase shrink-0 ${run.scenarioOrigin === "dynamic" ? "bg-[#EEF0FF] text-[#5B5BD6]" : "bg-[#F0F0ED] text-[#9B9B95]"}`}>{run.scenarioOrigin}</span>
+                    <span className="flex-1 truncate text-[#1A1A1A] font-medium">{run.scenarioName}</span>
+                    <span className="text-[#6B6B65] shrink-0">{run.score}/100</span>
+                    <span className="text-[#C0C0BC] font-mono shrink-0 text-[9px]">
+                      {new Date(run.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Setup instructions */}
         {configStatus === "unconfigured" && (
           <div className="border border-dashed border-[#C7D2FE] rounded-[8px] px-4 py-3 space-y-2">
             <p className="text-[11px] font-semibold text-[#5B5BD6]">Para ativar o worker 24h:</p>
             <div className="space-y-1 text-[11px] text-[#6B6B65]">
-              <p>1. Adicione <code className="bg-[#EEF0FF] text-[#5B5BD6] px-1 rounded text-[10px]">CRON_SECRET=&lt;valor-seguro&gt;</code> nas Railway Variables</p>
-              <p>2. Configure um cron externo chamando <code className="bg-[#EEF0FF] text-[#5B5BD6] px-1 rounded text-[10px]">POST /api/cron/training/sdr</code> com <code className="bg-[#EEF0FF] text-[#5B5BD6] px-1 rounded text-[10px]">Authorization: Bearer &lt;CRON_SECRET&gt;</code></p>
-              <p>3. Para ativar o cron automático, mude <code className="bg-[#EEF0FF] text-[#5B5BD6] px-1 rounded text-[10px]">enabled: true</code> em <code className="bg-[#EEF0FF] text-[#5B5BD6] px-1 rounded text-[10px]">lib/agency/training/config.ts</code></p>
+              <p>1. Adicione <code className="bg-[#EEF0FF] text-[#5B5BD6] px-1 rounded text-[10px]">CRON_SECRET=&lt;valor&gt;</code> e <code className="bg-[#EEF0FF] text-[#5B5BD6] px-1 rounded text-[10px]">TRAINING_ENABLED=true</code> nas Railway Variables</p>
+              <p>2. Configure um scheduler chamando <code className="bg-[#EEF0FF] text-[#5B5BD6] px-1 rounded text-[10px]">POST /api/cron/training/sdr</code> com header <code className="bg-[#EEF0FF] text-[#5B5BD6] px-1 rounded text-[10px]">Authorization: Bearer &lt;CRON_SECRET&gt;</code></p>
+              <p>3. O batch roda 10 dinâmicos + 5 mistos por acionamento, persiste no DB e gera alertas automaticamente.</p>
             </div>
           </div>
         )}
 
         {configStatus === "disabled" && (
           <div className="bg-[#FEF3C7] border border-[#FDE68A] rounded-[8px] px-3 py-2 text-[11px] text-[#92400E]">
-            <span className="font-semibold">Worker desabilitado.</span> O endpoint cron existe mas responde em no-op.
-            Para ativar, mude <code className="bg-white/50 px-1 rounded text-[10px]">enabled: true</code> em <code className="bg-white/50 px-1 rounded text-[10px]">lib/agency/training/config.ts</code>.
+            <span className="font-semibold">Worker desabilitado.</span> O endpoint cron existe mas retorna no-op.
+            Adicione <code className="bg-white/50 px-1 rounded text-[10px]">TRAINING_ENABLED=true</code> nas Railway Variables para ativar.
           </div>
         )}
 
