@@ -22,8 +22,8 @@ const SIMULATORS: SimCard[] = [
   },
   {
     id: "training",
-    label: "Treinamento Contínuo",
-    description: "Rode simulações automáticas, avalie performance do SDR e gerencie sugestões de melhoria sem afetar dados reais.",
+    label: "Treinamento Contínuo SDR",
+    description: "Rode simulações automáticas, avalie performance do SDR e gerencie sugestões de melhoria. Resultados salvos no banco de dados.",
     status: "available",
     href: "/agency/simulations/training",
     tag: "SDR · Avaliação",
@@ -44,6 +44,22 @@ const SIMULATORS: SimCard[] = [
     href: "#",
     tag: "Social Media",
   },
+  {
+    id: "design",
+    label: "Design Agent",
+    description: "Simule briefings criativos, geração de conceitos visuais e revisões de identidade de marca.",
+    status: "coming_soon",
+    href: "#",
+    tag: "Design",
+  },
+  {
+    id: "ads",
+    label: "Paid Traffic Agent",
+    description: "Simule estrutura de campanhas, análise de segmentação e otimização de criativos para mídia paga.",
+    status: "coming_soon",
+    href: "#",
+    tag: "Tráfego Pago",
+  },
 ];
 
 export default function SimulationsPage() {
@@ -55,7 +71,7 @@ export default function SimulationsPage() {
           <h1 className="text-[20px] font-semibold text-[#1A1A1A]">Laboratório de Simulações</h1>
         </div>
         <p className="text-[13px] text-[#6B6B65] leading-relaxed max-w-[540px]">
-          Ambiente interno para testar agentes sem afetar fluxos reais. Nenhum dado é salvo no sistema.
+          Ambiente interno para testar agentes sem afetar fluxos reais. Simulações SDR salvam resultados no banco para análise contínua.
         </p>
       </div>
 

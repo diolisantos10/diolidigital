@@ -111,7 +111,6 @@ export default function AgencySidebar({ userInfo }: { userInfo?: UserInfo | null
       items: [
         { label: "Ferramentas & Integrações", href: "/agency/integrations", icon: IntegrationsIcon },
         { label: t.nav.settings, href: "/agency/settings", icon: SettingsIcon },
-        { label: "Test Agent",   href: "/agency/test-agent", icon: FlaskIcon  },
         { label: "Laboratório",  href: "/agency/simulations", icon: FlaskIcon  },
       ],
     },
