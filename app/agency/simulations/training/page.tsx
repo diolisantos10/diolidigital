@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useTrainingStore, type TrainingMode } from "@/store/training-store";
 import { SEED_SCENARIOS } from "@/lib/agency/training/scenarios";
 import type { SimulationRun, AgentImprovementSuggestion, ImprovementStatus } from "@/lib/agency/training/types";
+import type { BatchRunResult } from "@/lib/agency/training/batch-runner";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -452,42 +453,211 @@ function SuggestionCard({ suggestion, onDecide }: {
   );
 }
 
-// ── Part 6 — Backend placeholder ──────────────────────────────────────────────
+// ── Part 6 — Server training panel (replaces static placeholder) ──────────────
 
-function BackendPlaceholder() {
+interface ServerStatus {
+  cronConfigured:   boolean;
+  enabled:          boolean;
+  totalServerRuns:  number;
+  lastBatchSummary: BatchRunResult | null;
+}
+
+const SERVER_MODE_OPTIONS: { id: TrainingMode; label: string }[] = [
+  { id: "dynamic", label: "Dinâmico" },
+  { id: "mixed",   label: "Misto"    },
+  { id: "seed",    label: "Fixos"    },
+];
+
+function ServerTrainingPanel() {
+  const [status,          setStatus]          = useState<ServerStatus | null>(null);
+  const [loadError,       setLoadError]       = useState(false);
+  const [serverMode,      setServerMode]      = useState<TrainingMode>("dynamic");
+  const [serverCount,     setServerCount]     = useState(10);
+  const [isServerRunning, setIsServerRunning] = useState(false);
+  const [lastResult,      setLastResult]      = useState<BatchRunResult | null>(null);
+  const [runError,        setRunError]        = useState<string | null>(null);
+
+  const fetchStatus = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/training/sdr/run");
+      if (!res.ok) { setLoadError(true); return; }
+      const data: ServerStatus = await res.json();
+      setStatus(data);
+      if (data.lastBatchSummary) setLastResult(data.lastBatchSummary);
+    } catch {
+      setLoadError(true);
+    }
+  }, []);
+
+  useEffect(() => { fetchStatus(); }, [fetchStatus]);
+
+  async function runServerBatch() {
+    setIsServerRunning(true);
+    setRunError(null);
+    try {
+      const res = await fetch("/api/admin/training/sdr/run", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ mode: serverMode, count: serverCount, triggeredBy: "manual" }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setRunError(data.error ?? "Erro desconhecido");
+      } else {
+        setLastResult(data as BatchRunResult);
+        fetchStatus();
+      }
+    } catch {
+      setRunError("Falha na requisição — verifique a conexão.");
+    } finally {
+      setIsServerRunning(false);
+    }
+  }
+
+  const configStatus = !status
+    ? null
+    : !status.cronConfigured
+    ? "unconfigured"
+    : status.enabled
+    ? "active"
+    : "disabled";
+
+  const CONFIG_CHIP = {
+    unconfigured: { bg: "bg-[#F0F0ED]",  text: "text-[#9B9B95]",  label: "não configurado" },
+    active:       { bg: "bg-[#DCFCE7]",  text: "text-[#16A34A]",  label: "configurado"     },
+    disabled:     { bg: "bg-[#FEF3C7]",  text: "text-[#D97706]",  label: "desabilitado"    },
+  };
+
   return (
-    <div className="border border-dashed border-[#C7D2FE] rounded-[10px] bg-[#EEF0FF]/30 px-5 py-5">
-      <div className="flex items-start gap-3">
-        <div className="w-8 h-8 rounded-[8px] bg-[#EEF0FF] border border-[#C7D2FE] flex items-center justify-center shrink-0 text-[15px]">
-          🔧
+    <div className="border border-[#C7D2FE] rounded-[10px] bg-[#EEF0FF]/20 overflow-hidden">
+
+      {/* Header */}
+      <div className="px-5 py-4 flex items-start justify-between gap-4 border-b border-[#C7D2FE]/50">
+        <div className="flex items-center gap-2 flex-wrap">
+          <h3 className="text-[13px] font-semibold text-[#3730A3]">Treino 24h — Servidor</h3>
+          {configStatus && (
+            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-[3px] tracking-wide ${CONFIG_CHIP[configStatus].bg} ${CONFIG_CHIP[configStatus].text}`}>
+              {CONFIG_CHIP[configStatus].label.toUpperCase()}
+            </span>
+          )}
+          {status && (
+            <span className="text-[10px] text-[#6B6B65]">{status.totalServerRuns} runs no servidor</span>
+          )}
         </div>
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <h3 className="text-[13px] font-semibold text-[#5B5BD6]">Treino 24h backend — próxima fase</h3>
-            <span className="text-[9px] font-bold text-[#5B5BD6] bg-[#EEF0FF] border border-[#C7D2FE] px-1.5 py-0.5 rounded-[3px] tracking-wide">PLANEJADO</span>
+      </div>
+
+      <div className="px-5 py-4 space-y-4">
+
+        {/* Explanation */}
+        <p className="text-[12px] text-[#6B6B65] leading-relaxed">
+          Quando configurado com <span className="font-mono text-[11px] bg-[#EEF0FF] text-[#5B5BD6] px-1 rounded">CRON_SECRET</span>, o Railway/cron pode acionar o treino automaticamente sem a página aberta.
+          O batch é executado no servidor Node.js — nenhuma aba precisa ficar aberta.
+        </p>
+
+        {loadError && (
+          <div className="bg-[#FEE2E2] border border-[#FECACA] rounded-[8px] px-3 py-2 text-[11px] text-[#DC2626]">
+            Não foi possível carregar o status do servidor. Você precisa ser master para ver esta seção.
           </div>
-          <p className="text-[12px] text-[#6B6B65] mb-3 leading-relaxed">
-            O treino contínuo atual requer a aba aberta. A próxima fase implementa execução autônoma em backend:
-          </p>
-          <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-            {[
-              ["Roda mesmo com aba fechada",   "Processo Node.js independente"],
-              ["Agenda automática",             "Cron job configurável por horário"],
-              ["Limite de runs por hora",       "Controle de custo e quota de CPU"],
-              ["Fila de jobs persistente",      "Baseada em Redis ou PostgreSQL"],
-              ["Logs persistidos no banco",     "Histórico completo, não em localStorage"],
-              ["Alertas de regressão",          "Notificação quando score médio cai"],
-            ].map(([feat, detail]) => (
-              <div key={feat} className="flex items-start gap-2">
-                <span className="text-[#C7D2FE] shrink-0 mt-0.5 text-[10px]">○</span>
-                <div>
-                  <p className="text-[11px] font-medium text-[#3730A3]">{feat}</p>
-                  <p className="text-[10px] text-[#818CF8]">{detail}</p>
-                </div>
+        )}
+
+        {/* Manual run controls */}
+        <div className="bg-white border border-[#E5E5E2] rounded-[8px] p-3 space-y-3">
+          <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em]">Rodar batch manual agora</p>
+
+          <div className="flex items-center gap-3 flex-wrap">
+            <div>
+              <p className="text-[10px] text-[#9B9B95] mb-1">Modo</p>
+              <div className="flex gap-1 p-1 bg-[#F0F0ED] rounded-[7px]">
+                {SERVER_MODE_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => setServerMode(opt.id)}
+                    className={`h-6 px-3 rounded-[5px] text-[10px] font-medium transition-all ${
+                      serverMode === opt.id
+                        ? "bg-white shadow-[0_1px_2px_rgba(0,0,0,0.08)] text-[#1A1A1A]"
+                        : "text-[#6B6B65] hover:text-[#1A1A1A]"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
               </div>
-            ))}
+            </div>
+
+            <div>
+              <p className="text-[10px] text-[#9B9B95] mb-1">Quantidade (máx. 100)</p>
+              <input
+                type="number"
+                min={1}
+                max={100}
+                value={serverCount}
+                onChange={(e) => setServerCount(Math.min(100, Math.max(1, Number(e.target.value))))}
+                className="h-8 w-20 px-2 rounded-[6px] border border-[#E5E5E2] bg-white text-[12px] text-[#1A1A1A] focus:outline-none focus:ring-1 focus:ring-[#C7D2FE]"
+              />
+            </div>
+
+            <div className="pt-4">
+              <button
+                onClick={runServerBatch}
+                disabled={isServerRunning || loadError}
+                className="h-8 px-4 rounded-[7px] bg-[#EEF0FF] border border-[#C7D2FE] text-[#5B5BD6] text-[12px] font-semibold hover:bg-[#E0E7FF] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {isServerRunning ? "Rodando…" : "Rodar batch no servidor agora"}
+              </button>
+            </div>
           </div>
+
+          {runError && (
+            <p className="text-[11px] text-[#DC2626]">{runError}</p>
+          )}
         </div>
+
+        {/* Last batch summary */}
+        {lastResult && (
+          <div className="bg-white border border-[#E5E5E2] rounded-[8px] p-3 space-y-2">
+            <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em]">Último batch no servidor</p>
+            <div className="flex flex-wrap gap-3">
+              {([
+                ["Runs",        String(lastResult.totalRuns)],
+                ["Pass",        String(lastResult.pass)],
+                ["Warning",     String(lastResult.warning)],
+                ["Fail",        String(lastResult.fail)],
+                ["Score médio", `${lastResult.averageScore}/100`],
+                ["Sugestões",   String(lastResult.suggestionsCreated)],
+                ["Duração",     `${lastResult.durationMs}ms`],
+                ["Por",         lastResult.triggeredBy],
+              ] as [string, string][]).map(([k, v]) => (
+                <div key={k} className="text-center">
+                  <p className="text-[9px] text-[#9B9B95]">{k}</p>
+                  <p className="text-[12px] font-semibold text-[#1A1A1A]">{v}</p>
+                </div>
+              ))}
+            </div>
+            <p className="text-[10px] text-[#C0C0BC]">
+              {new Date(lastResult.completedAt).toLocaleString("pt-BR")}
+            </p>
+          </div>
+        )}
+
+        {/* Cron setup note */}
+        {configStatus === "unconfigured" && (
+          <div className="border border-dashed border-[#C7D2FE] rounded-[8px] px-4 py-3 space-y-2">
+            <p className="text-[11px] font-semibold text-[#5B5BD6]">Para ativar o worker 24h:</p>
+            <div className="space-y-1 text-[11px] text-[#6B6B65]">
+              <p>1. Adicione <code className="bg-[#EEF0FF] text-[#5B5BD6] px-1 rounded text-[10px]">CRON_SECRET=&lt;valor-seguro&gt;</code> nas Railway Variables</p>
+              <p>2. Configure um cron externo chamando <code className="bg-[#EEF0FF] text-[#5B5BD6] px-1 rounded text-[10px]">POST /api/cron/training/sdr</code> com <code className="bg-[#EEF0FF] text-[#5B5BD6] px-1 rounded text-[10px]">Authorization: Bearer &lt;CRON_SECRET&gt;</code></p>
+              <p>3. Para ativar o cron automático, mude <code className="bg-[#EEF0FF] text-[#5B5BD6] px-1 rounded text-[10px]">enabled: true</code> em <code className="bg-[#EEF0FF] text-[#5B5BD6] px-1 rounded text-[10px]">lib/agency/training/config.ts</code></p>
+            </div>
+          </div>
+        )}
+
+        {configStatus === "disabled" && (
+          <div className="bg-[#FEF3C7] border border-[#FDE68A] rounded-[8px] px-3 py-2 text-[11px] text-[#92400E]">
+            <span className="font-semibold">Worker desabilitado.</span> O endpoint cron existe mas responde em no-op.
+            Para ativar, mude <code className="bg-white/50 px-1 rounded text-[10px]">enabled: true</code> em <code className="bg-white/50 px-1 rounded text-[10px]">lib/agency/training/config.ts</code>.
+          </div>
+        )}
+
       </div>
     </div>
   );
@@ -619,8 +789,12 @@ export default function TrainingPage() {
       {/* Overfitting warning */}
       <OverfitWarning runs={runs} />
 
-      {/* Mode + run controls */}
+      {/* Mode + run controls — Modo navegador */}
       <div className="bg-white border border-[#E5E5E2] rounded-[10px] px-4 py-4 space-y-3">
+        <div className="flex items-center gap-2 mb-0.5">
+          <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em]">Modo navegador</p>
+          <span className="text-[9px] font-bold text-[#D97706] bg-[#FEF3C7] px-1.5 py-0.5 rounded-[3px] tracking-wide">REQUER ABA ABERTA</span>
+        </div>
         <div className="flex items-center gap-3 flex-wrap">
           <div>
             <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1.5">Modo de treino</p>
@@ -781,8 +955,8 @@ export default function TrainingPage() {
         )}
       </section>
 
-      {/* Part 6 — Backend placeholder */}
-      <BackendPlaceholder />
+      {/* Part 6 — Server training panel */}
+      <ServerTrainingPanel />
 
     </div>
   );
