@@ -296,3 +296,80 @@ model AIRunLog {
   createdAt      DateTime        @default(now())
 }
 
+// ─── Continuous SDR Training V3 ───────────────────────────────────────────────
+
+model TrainingBatch {
+  id           String            @id @default(cuid())
+  mode         String
+  triggeredBy  String
+  totalRuns    Int
+  passCount    Int
+  warningCount Int
+  failCount    Int
+  averageScore Int
+  durationMs   Int
+  createdAt    DateTime          @default(now())
+
+  runs         DbSimulationRun[]
+}
+
+model DbSimulationRun {
+  id               String         @id
+  batchId          String?
+  batch            TrainingBatch? @relation(fields: [batchId], references: [id])
+  agentId          String
+  scenarioOrigin   String
+  scenarioSeed     String?
+  scenarioName     String
+  scenarioMetadata String         @default("{}")
+  score            Int
+  verdict          String
+  transcript       String         @default("[]")
+  finalScope       String?
+  finalEstimate    String?
+  sdrHandoff       String?
+  issues           String         @default("[]")
+  recommendations  String         @default("[]")
+  engineVersion    String
+  createdAt        DateTime       @default(now())
+}
+
+model DbAgentSuggestion {
+  id              String    @id
+  agentId         String
+  title           String
+  problem         String
+  evidence        String
+  suggestedChange String
+  impact          String
+  status          String    @default("pending")
+  sourceRunIds    String    @default("[]")
+  createdAt       DateTime  @default(now())
+  decidedAt       DateTime?
+}
+
+model TrainingAlert {
+  id            String    @id @default(cuid())
+  agentId       String
+  title         String
+  message       String
+  severity      String
+  triggerType   String
+  relatedRunIds String    @default("[]")
+  status        String    @default("active")
+  createdAt     DateTime  @default(now())
+  resolvedAt    DateTime?
+}
+
+model BrainChangeRequest {
+  id                  String    @id @default(cuid())
+  agentId             String
+  title               String
+  sourceSuggestionIds String    @default("[]")
+  proposedChange      String
+  status              String    @default("pending")
+  createdAt           DateTime  @default(now())
+  approvedAt          DateTime?
+  appliedAt           DateTime?
+}
+
