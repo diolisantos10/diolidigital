@@ -37,56 +37,221 @@ function CopyLinkButton({ path }: { path: string }) {
   );
 }
 
-// ── SDRHandoffPanel ───────────────────────────────────────────────────────────
+// ── SDRHandoffPanel / Brain Review Panel ─────────────────────────────────────
 
 function SDRHandoffPanel({ handoff }: { handoff: SDRHandoff }) {
+  const brain = handoff.brainReasoningOutput;
+  const flow  = handoff.cognitiveFlowSummary;
+  const qg    = handoff.qualityGateResult;
+
+  const qgColors = {
+    PASS:    { bg: "bg-[#DCFCE7]", border: "border-[#86EFAC]", text: "text-[#166534]", badge: "bg-[#16A34A]" },
+    WARNING: { bg: "bg-[#FEF3C7]", border: "border-[#FDE68A]", text: "text-[#92400E]", badge: "bg-[#D97706]" },
+    FAIL:    { bg: "bg-[#FEE2E2]", border: "border-[#FECACA]", text: "text-[#991B1B]", badge: "bg-[#DC2626]" },
+  } as const;
+
   return (
-    <div className="bg-[#F5F3FF] border border-[#DDD6FE] rounded-[8px] px-4 py-3.5 space-y-2.5">
-      <div className="text-[9px] font-semibold text-[#7C3AED] uppercase tracking-[0.06em]">
-        ✦ Diagnóstico SDR Agent
+    <div className="space-y-3">
+      {/* Brain Review Panel header */}
+      <div className="bg-[#F5F3FF] border border-[#DDD6FE] rounded-[8px] px-4 py-3.5 space-y-2.5">
+        <div className="flex items-center justify-between">
+          <div className="text-[9px] font-semibold text-[#7C3AED] uppercase tracking-[0.06em]">
+            ✦ Brain Review Panel — SDR Agent
+          </div>
+          {qg && (
+            <span className={`h-5 px-2 rounded-full text-white text-[9px] font-bold ${qgColors[qg.overall].badge}`}>
+              {qg.overall}
+            </span>
+          )}
+        </div>
+
+        {/* Brain Diagnosis */}
+        {brain ? (
+          <>
+            <div>
+              <p className="text-[10px] font-semibold text-[#5B21B6] mb-1">Diagnóstico Brain</p>
+              <p className="text-[11px] text-[#4C1D95] leading-relaxed">{brain.intentionDetected}</p>
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className="text-[9px] text-[#9B9B95]">Confiança:</span>
+                <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${
+                  brain.confidenceLevel === "high" ? "bg-[#DCFCE7] text-[#16A34A]"
+                  : brain.confidenceLevel === "medium" ? "bg-[#EEF0FF] text-[#5B5BD6]"
+                  : "bg-[#FEF3C7] text-[#D97706]"
+                }`}>
+                  {brain.confidenceLevel === "high" ? "Alta" : brain.confidenceLevel === "medium" ? "Média" : "Baixa"}
+                </span>
+              </div>
+            </div>
+
+            {/* Known facts */}
+            {brain.knownFacts.length > 0 && (
+              <div>
+                <p className="text-[10px] font-semibold text-[#5B21B6] mb-1">Fatos Conhecidos</p>
+                <div className="flex flex-wrap gap-1">
+                  {brain.knownFacts.map((f, i) => (
+                    <span key={i} className="h-5 px-2 rounded-[4px] bg-[#EDE9FE] text-[#5B21B6] text-[10px]">{f}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Unknown facts */}
+            {brain.unknownFacts.length > 0 && (
+              <div>
+                <p className="text-[10px] font-semibold text-[#D97706] mb-0.5">Incógnitas</p>
+                {brain.unknownFacts.slice(0, 4).map((u, i) => (
+                  <p key={i} className="text-[11px] text-[#92400E]">? {u}</p>
+                ))}
+              </div>
+            )}
+
+            {/* Risks */}
+            {brain.risks.length > 0 && (
+              <div className="bg-[#FEF3C7] border border-[#FDE68A] rounded-[6px] px-3 py-2">
+                <p className="text-[10px] font-semibold text-[#D97706] mb-0.5">Riscos</p>
+                {brain.risks.map((r, i) => (
+                  <p key={i} className="text-[11px] text-[#92400E]">⚠ {r}</p>
+                ))}
+              </div>
+            )}
+
+            {/* Opportunities */}
+            {brain.opportunities.length > 0 && (
+              <div>
+                <p className="text-[10px] font-semibold text-[#16A34A] mb-0.5">Oportunidades</p>
+                {brain.opportunities.map((o, i) => (
+                  <p key={i} className="text-[11px] text-[#166534]">✓ {o}</p>
+                ))}
+              </div>
+            )}
+
+            {/* Recommended dept/services */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-[10px] font-semibold text-[#5B21B6] mb-0.5">Departamento recomendado</p>
+                <span className="h-5 px-2 rounded-full bg-[#EDE9FE] text-[#7C3AED] text-[10px] font-medium">
+                  {brain.recommendedDepartment}
+                </span>
+              </div>
+              {brain.recommendedServices.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-semibold text-[#5B21B6] mb-0.5">Serviços recomendados</p>
+                  <div className="flex flex-wrap gap-1">
+                    {brain.recommendedServices.map((s, i) => (
+                      <span key={i} className="h-5 px-2 rounded-full bg-[#EDE9FE] text-[#7C3AED] text-[10px]">{s}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          <>
+            <div>
+              <p className="text-[10px] font-semibold text-[#5B21B6] mb-0.5">Diagnóstico</p>
+              <p className="text-[11px] text-[#4C1D95] leading-relaxed">{handoff.diagnosis}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold text-[#5B21B6] mb-0.5">Budget</p>
+              <p className="text-[11px] text-[#4C1D95]">{handoff.budgetFit}</p>
+            </div>
+          </>
+        )}
+
+        {/* Recommended PM action */}
+        <div className="bg-[#EDE9FE] rounded-[6px] px-3 py-2">
+          <p className="text-[10px] font-semibold text-[#5B21B6] mb-0.5">Ação recomendada para o PM</p>
+          <p className="text-[11px] text-[#4C1D95] leading-relaxed">
+            {brain?.nextAction ?? handoff.recommendedPMAction}
+          </p>
+        </div>
       </div>
 
-      <div>
-        <p className="text-[10px] font-semibold text-[#5B21B6] mb-0.5">Diagnóstico</p>
-        <p className="text-[11px] text-[#4C1D95] leading-relaxed">{handoff.diagnosis}</p>
-      </div>
-
-      <div>
-        <p className="text-[10px] font-semibold text-[#5B21B6] mb-0.5">Budget</p>
-        <p className="text-[11px] text-[#4C1D95]">{handoff.budgetFit}</p>
-      </div>
-
-      {handoff.objectionsHandled.length > 0 && (
-        <div>
-          <p className="text-[10px] font-semibold text-[#5B21B6] mb-0.5">Objeções detectadas</p>
-          {handoff.objectionsHandled.map((o, i) => (
-            <p key={i} className="text-[11px] text-[#4C1D95]">• {o}</p>
-          ))}
+      {/* Cognitive Flow Summary */}
+      {flow && (
+        <div className="bg-[#F0F0FF] border border-[#C7C7FF] rounded-[8px] px-4 py-3">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[10px] font-semibold text-[#5B5BD6] uppercase tracking-[0.06em]">Fluxo Cognitivo</p>
+            <span className="text-[11px] font-bold text-[#5B5BD6]">{flow.stepsCompleted}/{flow.totalSteps} passos · {flow.completionRate}%</span>
+          </div>
+          <div className="w-full bg-[#E0E0F8] rounded-full h-1.5 mb-2">
+            <div
+              className="bg-[#5B5BD6] h-1.5 rounded-full transition-all"
+              style={{ width: `${flow.completionRate}%` }}
+            />
+          </div>
+          <div className="grid grid-cols-4 gap-1">
+            {flow.steps.map((step) => (
+              <div key={step.stepId} className="flex items-center gap-1 text-[9px]">
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                  step.completed ? "bg-[#5B5BD6]" : "bg-[#D0D0CC]"
+                }`} />
+                <span className={step.completed ? "text-[#5B5BD6]" : "text-[#C0C0BC]"} title={step.summary}>
+                  {step.order}. {step.label.split(" ")[0]}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
-      {handoff.tradeoffsAccepted.length > 0 && (
-        <div>
-          <p className="text-[10px] font-semibold text-[#5B21B6] mb-0.5">Concessões aceitas</p>
-          {handoff.tradeoffsAccepted.map((t, i) => (
-            <p key={i} className="text-[11px] text-[#4C1D95]">• {t}</p>
-          ))}
+      {/* Quality Gate */}
+      {qg && (
+        <div className={`border rounded-[8px] px-4 py-3 ${qgColors[qg.overall].bg} ${qgColors[qg.overall].border}`}>
+          <div className="flex items-center justify-between mb-2">
+            <p className={`text-[10px] font-semibold uppercase tracking-[0.06em] ${qgColors[qg.overall].text}`}>
+              Quality Gate SDR — {qg.overall}
+            </p>
+            <span className="text-[10px] text-[#6B6B65]">
+              {qg.passCount} pass · {qg.warningCount} warn · {qg.failCount} fail
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-1">
+            {qg.items.map((item) => (
+              <div key={item.id} className="flex items-start gap-1 text-[10px]" title={item.detail}>
+                <span className={`shrink-0 font-bold ${
+                  item.status === "PASS" ? "text-[#16A34A]"
+                  : item.status === "WARNING" ? "text-[#D97706]"
+                  : "text-[#DC2626]"
+                }`}>
+                  {item.status === "PASS" ? "✓" : item.status === "WARNING" ? "!" : "✗"}
+                </span>
+                <span className="text-[#6B6B65] leading-tight">{item.label}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
-      {handoff.unresolvedRisks.length > 0 && (
-        <div className="bg-[#FEF3C7] border border-[#FDE68A] rounded-[6px] px-3 py-2">
-          <p className="text-[10px] font-semibold text-[#D97706] mb-0.5">Riscos não resolvidos</p>
-          {handoff.unresolvedRisks.map((r, i) => (
-            <p key={i} className="text-[11px] text-[#92400E]">• {r}</p>
-          ))}
+      {/* Legacy fields: objections + tradeoffs */}
+      {(handoff.objectionsHandled.length > 0 || handoff.tradeoffsAccepted.length > 0 || handoff.unresolvedRisks.length > 0) && (
+        <div className="bg-[#F5F3FF] border border-[#DDD6FE] rounded-[8px] px-4 py-3 space-y-2">
+          {handoff.objectionsHandled.length > 0 && (
+            <div>
+              <p className="text-[10px] font-semibold text-[#5B21B6] mb-0.5">Objeções tratadas</p>
+              {handoff.objectionsHandled.map((o, i) => (
+                <p key={i} className="text-[11px] text-[#4C1D95]">• {o}</p>
+              ))}
+            </div>
+          )}
+          {handoff.tradeoffsAccepted.length > 0 && (
+            <div>
+              <p className="text-[10px] font-semibold text-[#5B21B6] mb-0.5">Concessões aceitas</p>
+              {handoff.tradeoffsAccepted.map((t, i) => (
+                <p key={i} className="text-[11px] text-[#4C1D95]">• {t}</p>
+              ))}
+            </div>
+          )}
+          {handoff.unresolvedRisks.length > 0 && (
+            <div className="bg-[#FEF3C7] border border-[#FDE68A] rounded-[6px] px-3 py-2">
+              <p className="text-[10px] font-semibold text-[#D97706] mb-0.5">Riscos não resolvidos</p>
+              {handoff.unresolvedRisks.map((r, i) => (
+                <p key={i} className="text-[11px] text-[#92400E]">• {r}</p>
+              ))}
+            </div>
+          )}
         </div>
       )}
-
-      <div className="bg-[#EDE9FE] rounded-[6px] px-3 py-2">
-        <p className="text-[10px] font-semibold text-[#5B21B6] mb-0.5">Ação recomendada para o PM</p>
-        <p className="text-[11px] text-[#4C1D95] leading-relaxed">{handoff.recommendedPMAction}</p>
-      </div>
     </div>
   );
 }

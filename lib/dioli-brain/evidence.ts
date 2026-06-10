@@ -13,6 +13,12 @@ export const EVIDENCE_TYPE_LABELS: Record<EvidenceType, string> = {
   client_praise:           "Elogio do Cliente",
   brand_before_after:      "Melhoria de Marca (Antes/Depois)",
   revenue_leads_increase:  "Receita / Leads Aumentados",
+  briefing_completed:      "Briefing Concluído",
+  qualified_lead:          "Lead Qualificado",
+  proposal_generated:      "Proposta Gerada",
+  objection_resolved:      "Objeção Resolvida",
+  budget_aligned:          "Budget Alinhado",
+  request_converted:       "Solicitação Convertida",
   other:                   "Outro",
 };
 
@@ -25,6 +31,12 @@ export const EVIDENCE_TYPE_DESCRIPTIONS: Record<EvidenceType, string> = {
   client_praise:           "Cliente elogiou formalmente a qualidade ou rapidez da entrega.",
   brand_before_after:      "Identidade de marca visivelmente melhorada em relação ao estado anterior.",
   revenue_leads_increase:  "Receita ou número de leads aumentou após a campanha.",
+  briefing_completed:      "Conversa de briefing concluída com escopo e estimativa definidos.",
+  qualified_lead:          "Lead qualificado com identidade, serviço, objetivos e budget capturados.",
+  proposal_generated:      "Proposta inicial gerada e enviada para análise interna.",
+  objection_resolved:      "Objeção de preço, escopo ou prazo resolvida durante a conversa.",
+  budget_aligned:          "Budget do prospect alinhado com estimativa de escopo aprovada.",
+  request_converted:       "Solicitação de briefing convertida em projeto ativo.",
   other:                   "Outro tipo de evidência de valor.",
 };
 
@@ -50,7 +62,10 @@ export function createEvidenceItem(
 
 export function getEvidenceTypesByDepartment(departmentId: string): EvidenceType[] {
   const map: Record<string, EvidenceType[]> = {
-    "client-service-sdr":  ["first_round_approval", "client_praise", "delivery_time_reduction"],
+    "client-service-sdr":  [
+      "briefing_completed", "qualified_lead", "proposal_generated",
+      "objection_resolved", "budget_aligned", "request_converted",
+    ],
     strategy:              ["campaign_reach", "engagement_increase", "conversion_improvement"],
     "social-media":        ["engagement_increase", "campaign_reach", "client_praise"],
     design:                ["first_round_approval", "brand_before_after", "client_praise"],

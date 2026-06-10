@@ -10,6 +10,10 @@ import { ENGINE_ROUTES } from "@/lib/dioli-brain/router";
 import { BRAIN_STATUS_LABELS, BRAIN_STATUS_COLORS } from "@/lib/dioli-brain/department-adapter";
 import { GLOBAL_QUALITY_GATE, ALL_QUALITY_GATES } from "@/lib/dioli-brain/quality-gates";
 import { TRAINING_RULES, BRAIN_CHANGE_SOURCE_LABELS, BRAIN_CHANGE_STATUS_LABELS } from "@/lib/dioli-brain/training-policy";
+import { computeSDRScorecard } from "@/lib/dioli-brain/sdr-scorecard";
+import { computeSDRMaturity, MATURITY_LABELS, MATURITY_COLORS } from "@/lib/dioli-brain/department-maturity";
+import { useAgencyStore } from "@/store/agency-store";
+import { useTrainingStore } from "@/store/training-store";
 
 const TAB_IDS = ["overview", "flow", "departments", "knowledge", "training", "quality", "director"] as const;
 type TabId = (typeof TAB_IDS)[number];
@@ -98,6 +102,108 @@ export default function BrainPage() {
   );
 }
 
+// ─── SDR Pilot Panel ──────────────────────────────────────────────────────────
+
+function SDRPilotPanel() {
+  const { clientRequests } = useAgencyStore();
+  const { runs, suggestions } = useTrainingStore();
+
+  const scorecard = computeSDRScorecard(clientRequests, runs, suggestions, 0);
+  const maturity  = computeSDRMaturity({
+    hasSimulator:               true,
+    hasTrainingCenter:          true,
+    hasQualityGate:             true,
+    hasGovernanceIntegration:   true,
+    hasEvidenceLayer:           true,
+    hasBrainReasoningOutput:    true,
+    brainChangeRequestsGenerated: 0,
+    trainingSuggestionsGenerated: scorecard.trainingSuggestionsGenerated,
+    qualityGatePassRate:          scorecard.qualityGatePassRate,
+  });
+
+  const statuses = [
+    { label: "Simulador",    active: true },
+    { label: "Treinamento",  active: true },
+    { label: "Quality Gate", active: true },
+    { label: "Governança",   active: true },
+    { label: "Evidência",    active: true },
+  ];
+
+  const scorecardMetrics = [
+    { label: "Briefings",        value: `${scorecard.briefingsCompleted}/${scorecard.briefingsStarted}` },
+    { label: "Qualificação",     value: `${scorecard.qualifiedRate}%` },
+    { label: "QG Pass",          value: scorecard.briefingsStarted > 0 ? `${scorecard.qualityGatePassRate}%` : "—" },
+    { label: "Objeções resolvidas", value: `${scorecard.objectionResolutionRate}%` },
+    { label: "Confiança média",  value: `${scorecard.averageConfidence}%` },
+    { label: "Treinamentos",     value: runs.length.toString() },
+    { label: "Sugestões",        value: scorecard.trainingSuggestionsGenerated.toString() },
+    { label: "Brain Changes",    value: scorecard.brainChangeRequestsGenerated.toString() },
+    { label: "Score médio",      value: runs.length > 0 ? `${Math.round(runs.reduce((a, r) => a + r.score, 0) / runs.length)}/100` : "—" },
+  ];
+
+  return (
+    <div className="rounded-[10px] border border-[#16A34A]/30 bg-[#16A34A]/[0.04] p-5 space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="text-[11px] font-semibold text-[#16A34A] uppercase tracking-[0.08em]">
+          Primeiro Piloto — Atendimento / SDR
+        </div>
+        <div className="flex items-center gap-2">
+          <span
+            className="text-[11px] font-bold px-2.5 py-0.5 rounded-full border"
+            style={{ color: maturity.color, borderColor: `${maturity.color}40`, background: `${maturity.color}15` }}
+          >
+            {MATURITY_LABELS[maturity.current]}
+          </span>
+          <span className="text-[10px] text-[#4A4A44]">{maturity.completionPct}% maturidade</span>
+        </div>
+      </div>
+
+      {/* Active capability statuses */}
+      <div className="flex gap-2 flex-wrap">
+        {statuses.map((s) => (
+          <span
+            key={s.label}
+            className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${
+              s.active
+                ? "text-[#16A34A] bg-[#16A34A]/10 border-[#16A34A]/20"
+                : "text-[#4A4A44] bg-white/[0.03] border-white/[0.06]"
+            }`}
+          >
+            {s.active ? "✓ " : "○ "}{s.label}
+          </span>
+        ))}
+      </div>
+
+      {/* Maturity criteria */}
+      <div className="grid grid-cols-2 gap-1.5">
+        {maturity.criteria.map((c) => (
+          <div key={c.id} className="flex items-center gap-1.5 text-[10px]">
+            <span className={c.met ? "text-[#16A34A]" : "text-[#4A4A44]"}>
+              {c.met ? "✓" : "○"}
+            </span>
+            <span className={c.met ? "text-[#8A8A84]" : "text-[#4A4A44]"}>{c.label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* SDR Scorecard */}
+      <div className="border-t border-[#16A34A]/20 pt-3">
+        <div className="text-[10px] font-semibold text-[#4A4A44] uppercase tracking-[0.06em] mb-2">
+          Scorecard SDR
+        </div>
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+          {scorecardMetrics.map((m) => (
+            <div key={m.label} className="text-center">
+              <div className="text-[15px] font-bold text-white">{m.value}</div>
+              <div className="text-[9px] text-[#4A4A44] mt-0.5">{m.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Overview Tab ─────────────────────────────────────────────────────────────
 
 function OverviewTab() {
@@ -162,25 +268,8 @@ function OverviewTab() {
         </div>
       </div>
 
-      {/* Pilot */}
-      <div className="rounded-[10px] border border-[#16A34A]/30 bg-[#16A34A]/[0.04] p-5">
-        <div className="text-[11px] font-semibold text-[#16A34A] uppercase tracking-[0.08em] mb-3">
-          Primeiro Piloto — Atendimento / SDR
-        </div>
-        <p className="text-[13px] text-[#8A8A84] leading-relaxed">
-          O departamento de Atendimento controla a entrada de toda demanda de cliente.
-          Antes de qualquer departamento agir, o Brain deve capturar a intenção corretamente.
-          O SDR já tem simulador, evaluador, loop de treinamento e modelo de handoff —
-          tornando-o o candidato natural para o primeiro piloto completo.
-        </p>
-        <div className="flex gap-2 mt-3">
-          {["Briefing Room", "SDR Agent", "Training Center", "Lab", "Treinamento Contínuo"].map((m) => (
-            <span key={m} className="text-[10px] font-medium text-[#16A34A] bg-[#16A34A]/10 px-2 py-0.5 rounded-full border border-[#16A34A]/20">
-              {m}
-            </span>
-          ))}
-        </div>
-      </div>
+      {/* Pilot — live metrics */}
+      <SDRPilotPanel />
 
       {/* System map */}
       <SystemMapSection />

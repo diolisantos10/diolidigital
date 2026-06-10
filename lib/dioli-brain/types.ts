@@ -129,6 +129,12 @@ export type EvidenceType =
   | "client_praise"
   | "brand_before_after"
   | "revenue_leads_increase"
+  | "briefing_completed"
+  | "qualified_lead"
+  | "proposal_generated"
+  | "objection_resolved"
+  | "budget_aligned"
+  | "request_converted"
   | "other";
 
 export type EvidenceApprovalStatus = "draft" | "pending_approval" | "approved" | "rejected";

@@ -39,6 +39,59 @@ export interface ObjectionState {
   resolvedAt?: string;
 }
 
+// ── Brain Reasoning Output ─────────────────────────────────────────────────────
+
+export interface BrainReasoningOutput {
+  intentionDetected: string;
+  confidenceLevel: "low" | "medium" | "high";
+  knownFacts: string[];
+  unknownFacts: string[];
+  risks: string[];
+  opportunities: string[];
+  recommendedDepartment: string;
+  recommendedServices: string[];
+  approvalRequired: boolean;
+  qualityGateStatus: "PASS" | "WARNING" | "FAIL";
+  nextAction: string;
+}
+
+// ── Cognitive Flow Step Result ─────────────────────────────────────────────────
+
+export interface CognitiveFlowStepResult {
+  stepId: string;
+  order: number;
+  label: string;
+  completed: boolean;
+  confidence: "low" | "medium" | "high" | null;
+  summary: string;
+}
+
+export interface CognitiveFlowSummary {
+  stepsCompleted: number;
+  totalSteps: number;
+  completionRate: number;
+  steps: CognitiveFlowStepResult[];
+  overallConfidence: "low" | "medium" | "high";
+}
+
+// ── SDR Quality Gate ───────────────────────────────────────────────────────────
+
+export interface SDRQualityGateItem {
+  id: string;
+  label: string;
+  status: "PASS" | "WARNING" | "FAIL";
+  detail: string;
+}
+
+export interface SDRQualityGateResult {
+  overall: "PASS" | "WARNING" | "FAIL";
+  items: SDRQualityGateItem[];
+  passCount: number;
+  warningCount: number;
+  failCount: number;
+  blocksSubmission: boolean;
+}
+
 export interface SDRHandoff {
   diagnosis: string;
   finalScopeDescription: string;
@@ -47,6 +100,9 @@ export interface SDRHandoff {
   tradeoffsAccepted: string[];
   unresolvedRisks: string[];
   recommendedPMAction: string;
+  brainReasoningOutput?: BrainReasoningOutput;
+  cognitiveFlowSummary?: CognitiveFlowSummary;
+  qualityGateResult?: SDRQualityGateResult;
 }
 
 export interface SDRAgentState {
@@ -278,6 +334,324 @@ export function computeQualificationScore(scope: BriefingScope, sdr: SDRAgentSta
   return Math.min(score, 10);
 }
 
+// ── SDR Quality Gate (12-item checklist) ──────────────────────────────────────
+
+export function runSDRQualityGate(conv: ConvState, sdr: SDRAgentState): SDRQualityGateResult {
+  const s = conv.scope;
+  const e = conv.estimate;
+
+  const items: SDRQualityGateItem[] = [
+    {
+      id: "identity",
+      label: "Identidade completa (e-mail + telefone)",
+      status: (s.prospectEmail && s.prospectPhone) ? "PASS" : "FAIL",
+      detail: (s.prospectEmail && s.prospectPhone)
+        ? `${s.prospectEmail} · ${s.prospectPhone}`
+        : "E-mail e/ou telefone não capturados.",
+    },
+    {
+      id: "business_name",
+      label: "Nome do negócio identificado",
+      status: s.businessName ? "PASS" : "WARNING",
+      detail: s.businessName ?? "Nome do negócio não informado.",
+    },
+    {
+      id: "segment",
+      label: "Segmento de mercado identificado",
+      status: s.segment ? "PASS" : "WARNING",
+      detail: s.segment ?? "Segmento não identificado.",
+    },
+    {
+      id: "service",
+      label: "Pelo menos 1 serviço selecionado",
+      status: (s.wantsSocialMedia || s.wantsPaidTraffic || s.branding.requested) ? "PASS" : "FAIL",
+      detail: (s.wantsSocialMedia || s.wantsPaidTraffic || s.branding.requested)
+        ? [s.wantsSocialMedia && "Social Media", s.wantsPaidTraffic && "Tráfego Pago", s.branding.requested && "Identidade Visual"].filter(Boolean).join(", ")
+        : "Nenhum serviço definido.",
+    },
+    {
+      id: "service_mode",
+      label: "Modalidade de serviço definida",
+      status: s.serviceMode ? "PASS" : "WARNING",
+      detail: s.serviceMode === "monthly" ? "Gestão mensal" : s.serviceMode === "one_off" ? "Projeto pontual" : "Modalidade não definida.",
+    },
+    {
+      id: "objectives",
+      label: "Objetivos de negócio capturados",
+      status: s.objectives.length > 0 ? "PASS" : "WARNING",
+      detail: s.objectives.length > 0 ? s.objectives.join(", ") : "Nenhum objetivo capturado.",
+    },
+    {
+      id: "budget_informed",
+      label: "Budget informado pelo prospect",
+      status: sdr.budgetSignal.amount !== undefined ? "PASS" : "WARNING",
+      detail: sdr.budgetSignal.amount !== undefined
+        ? `R$ ${sdr.budgetSignal.amount.toLocaleString("pt-BR")}`
+        : "Budget não informado.",
+    },
+    {
+      id: "budget_fit",
+      label: "Budget fit avaliado",
+      status: sdr.budgetSignal.fitStatus !== "unknown" ? "PASS" : "WARNING",
+      detail: ({
+        fits:              "Budget adequado ao escopo.",
+        above_budget:      "Budget abaixo da estimativa — escopo ajustado.",
+        below_recommended: "Budget abaixo do Plano Starter mínimo.",
+        unknown:           "Status de budget não avaliado.",
+      } as const)[sdr.budgetSignal.fitStatus],
+    },
+    {
+      id: "objections",
+      label: "Objeções ativas resolvidas",
+      status: sdr.objection.active ? "FAIL" : "PASS",
+      detail: sdr.objection.active
+        ? `Objeção ativa: ${sdr.objection.types.join(", ") || "tipo desconhecido"}.`
+        : sdr.objection.types.length > 0 ? `${sdr.objection.types.length} objeção(ões) resolvida(s).` : "Sem objeções registradas.",
+    },
+    {
+      id: "social_scope",
+      label: "Escopo de Social Media completo",
+      status: !s.wantsSocialMedia ? "PASS"
+        : s.social?.postsPerWeek !== undefined ? "PASS" : "WARNING",
+      detail: !s.wantsSocialMedia ? "Social Media não selecionado."
+        : s.social?.postsPerWeek !== undefined
+          ? `${s.social.postsPerWeek * 4} posts/mês definidos.`
+          : "Frequência de posts não definida.",
+    },
+    {
+      id: "estimate_confidence",
+      label: "Estimativa com nível de confiança",
+      status: e.confidence === "none" ? "WARNING" : "PASS",
+      detail: ({
+        none:   "Estimativa ainda não gerada.",
+        low:    "Estimativa inicial (confiança baixa).",
+        medium: "Estimativa aproximada (confiança média).",
+        high:   "Estimativa confiável (confiança alta).",
+      } as const)[e.confidence],
+    },
+    {
+      id: "qualification_score",
+      label: "Score de qualificação ≥ 6/10",
+      status: computeQualificationScore(s, sdr) >= 6 ? "PASS" : "WARNING",
+      detail: `Score: ${computeQualificationScore(s, sdr)}/10`,
+    },
+  ];
+
+  const failCount    = items.filter((i) => i.status === "FAIL").length;
+  const warningCount = items.filter((i) => i.status === "WARNING").length;
+  const passCount    = items.filter((i) => i.status === "PASS").length;
+  const overall: "PASS" | "WARNING" | "FAIL" =
+    failCount > 0 ? "FAIL" : warningCount > 0 ? "WARNING" : "PASS";
+
+  return { overall, items, passCount, warningCount, failCount, blocksSubmission: failCount > 0 };
+}
+
+// ── Cognitive Flow Summary ─────────────────────────────────────────────────────
+
+export function buildCognitiveFlowSummary(conv: ConvState, sdr: SDRAgentState): CognitiveFlowSummary {
+  const s = conv.scope;
+  const e = conv.estimate;
+  const confScore = { none: 0, low: 1, medium: 2, high: 3 } as const;
+
+  const steps: CognitiveFlowStepResult[] = [
+    {
+      stepId: "01_intention", order: 1, label: "Intenção Detectada",
+      completed: s.wantsSocialMedia || !!s.wantsPaidTraffic || s.branding.requested,
+      confidence: (s.wantsSocialMedia || !!s.wantsPaidTraffic || s.branding.requested) ? "high" : null,
+      summary: (s.wantsSocialMedia || !!s.wantsPaidTraffic || s.branding.requested)
+        ? `Serviços: ${[s.wantsSocialMedia && "Social Media", s.wantsPaidTraffic && "Tráfego Pago", s.branding.requested && "ID Visual"].filter(Boolean).join(", ")}`
+        : "Nenhum serviço detectado.",
+    },
+    {
+      stepId: "02_context", order: 2, label: "Contexto do Negócio",
+      completed: !!(s.businessName || s.segment),
+      confidence: (s.businessName && s.segment) ? "high" : (s.businessName || s.segment) ? "medium" : null,
+      summary: [s.businessName, s.segment].filter(Boolean).join(" — ") || "Contexto não capturado.",
+    },
+    {
+      stepId: "03_certainty", order: 3, label: "Certeza / Confiança",
+      completed: e.confidence !== "none",
+      confidence: e.confidence === "none" ? null : (e.confidence as "low" | "medium" | "high"),
+      summary: e.confidence !== "none"
+        ? `Estimativa ${e.confidence} — R$ ${e.totalMin.toLocaleString("pt-BR")}–${e.totalMax.toLocaleString("pt-BR")}/mês`
+        : "Estimativa não disponível.",
+    },
+    {
+      stepId: "04_unknowns", order: 4, label: "Incógnitas Identificadas",
+      completed: true,
+      confidence: e.missingForEstimate.length === 0 ? "high" : "medium",
+      summary: e.missingForEstimate.length > 0
+        ? `${e.missingForEstimate.length} informação(ões) faltando: ${e.missingForEstimate.slice(0, 2).join(", ")}`
+        : "Sem informações faltando.",
+    },
+    {
+      stepId: "05_routing", order: 5, label: "Roteamento de Departamento",
+      completed: s.wantsSocialMedia || !!s.wantsPaidTraffic || s.branding.requested,
+      confidence: "high",
+      summary: (() => {
+        const depts: string[] = [];
+        if (s.wantsSocialMedia) depts.push("Social Media", "Design");
+        if (s.wantsPaidTraffic) depts.push("Tráfego Pago");
+        if (s.branding.requested) depts.push("Identidade Visual");
+        return depts.length > 0 ? depts.join(", ") : "Departamento não determinado.";
+      })(),
+    },
+    {
+      stepId: "06_permission", order: 6, label: "Permissão / Identidade",
+      completed: !!(s.prospectEmail && s.prospectPhone),
+      confidence: (s.prospectEmail && s.prospectPhone) ? "high" : null,
+      summary: (s.prospectEmail && s.prospectPhone)
+        ? `${s.prospectEmail} · ${s.prospectPhone}`
+        : "Identidade não completa.",
+    },
+    {
+      stepId: "07_brand", order: 7, label: "Contexto de Marca",
+      completed: s.branding.hasBrandBook || s.branding.requested || !!s.segment,
+      confidence: s.branding.hasBrandBook ? "high" : (s.branding.requested || !!s.segment) ? "medium" : null,
+      summary: s.branding.hasBrandBook ? "Brand Book disponível."
+        : s.branding.requested ? "Identidade Visual solicitada."
+        : s.segment ? `Segmento: ${s.segment}.`
+        : "Contexto de marca não capturado.",
+    },
+    {
+      stepId: "08_objective", order: 8, label: "Objetivo Estratégico",
+      completed: s.objectives.length > 0,
+      confidence: s.objectives.length >= 2 ? "high" : s.objectives.length === 1 ? "medium" : null,
+      summary: s.objectives.length > 0 ? s.objectives.join(", ") : "Nenhum objetivo capturado.",
+    },
+    {
+      stepId: "09_risk", order: 9, label: "Riscos e Objeções",
+      completed: !sdr.objection.active,
+      confidence: sdr.objection.active ? null : sdr.objection.types.length > 0 ? "medium" : "high",
+      summary: sdr.objection.active
+        ? `Objeção ativa: ${sdr.objection.types.join(", ")}.`
+        : sdr.objection.types.length > 0
+          ? `${sdr.objection.types.length} objeção(ões) resolvida(s).`
+          : "Sem objeções registradas.",
+    },
+    {
+      stepId: "10_approval", order: 10, label: "Aprovação / Budget",
+      completed: sdr.budgetSignal.fitStatus !== "unknown",
+      confidence: sdr.budgetSignal.fitStatus === "fits" ? "high"
+        : sdr.budgetSignal.fitStatus !== "unknown" ? "medium" : null,
+      summary: sdr.budgetSignal.amount !== undefined
+        ? `R$ ${sdr.budgetSignal.amount.toLocaleString("pt-BR")} — ${({
+            fits: "adequado", above_budget: "ajustado", below_recommended: "abaixo do mínimo", unknown: "não avaliado",
+          } as const)[sdr.budgetSignal.fitStatus]}`
+        : "Budget não informado.",
+    },
+    {
+      stepId: "11_training", order: 11, label: "Sinal para Treinamento",
+      completed: computeQualificationScore(s, sdr) >= 7,
+      confidence: computeQualificationScore(s, sdr) >= 8 ? "high"
+        : computeQualificationScore(s, sdr) >= 6 ? "medium" : "low",
+      summary: `Score de qualificação: ${computeQualificationScore(s, sdr)}/10`,
+    },
+    {
+      stepId: "12_measurement", order: 12, label: "Métricas e Evidência",
+      completed: e.confidence === "medium" || e.confidence === "high",
+      confidence: e.confidence === "high" ? "high" : e.confidence === "medium" ? "medium" : null,
+      summary: e.totalMin > 0
+        ? `Estimativa ${e.confidence}: R$ ${e.totalMin.toLocaleString("pt-BR")}–${e.totalMax.toLocaleString("pt-BR")}/mês`
+        : "Estimativa não disponível para medição.",
+    },
+  ];
+
+  const stepsCompleted = steps.filter((s) => s.completed).length;
+  const totalSteps = steps.length;
+  const completionRate = Math.round((stepsCompleted / totalSteps) * 100);
+
+  const confValues = steps.filter((s) => s.confidence).map((s) => confScore[s.confidence!]);
+  const avgConf = confValues.length > 0 ? confValues.reduce((a, b) => a + b, 0) / confValues.length : 0;
+  const overallConfidence: "low" | "medium" | "high" = avgConf >= 2.5 ? "high" : avgConf >= 1.5 ? "medium" : "low";
+
+  return { stepsCompleted, totalSteps, completionRate, steps, overallConfidence };
+}
+
+// ── Brain Reasoning Output ─────────────────────────────────────────────────────
+
+export function buildBrainReasoningOutput(
+  conv: ConvState,
+  sdr: SDRAgentState,
+  qualityGateResult: SDRQualityGateResult,
+): BrainReasoningOutput {
+  const s = conv.scope;
+  const e = conv.estimate;
+
+  const services: string[] = [];
+  if (s.wantsSocialMedia) services.push("Social Media");
+  if (s.wantsPaidTraffic) services.push("Tráfego Pago");
+  if (s.branding.requested) services.push("Identidade Visual");
+
+  const depts: string[] = [];
+  if (s.wantsSocialMedia) { depts.push("social-media"); depts.push("design"); }
+  if (s.wantsPaidTraffic) depts.push("paid-traffic");
+  if (s.branding.requested) depts.push("brand-hub");
+
+  const knownFacts: string[] = [];
+  if (s.prospectName) knownFacts.push(`Prospect: ${s.prospectName}`);
+  if (s.businessName) knownFacts.push(`Negócio: ${s.businessName}`);
+  if (s.segment) knownFacts.push(`Segmento: ${s.segment}`);
+  if (services.length > 0) knownFacts.push(`Serviços: ${services.join(", ")}`);
+  if (s.objectives.length > 0) knownFacts.push(`Objetivos: ${s.objectives.join(", ")}`);
+  if (sdr.budgetSignal.amount !== undefined) knownFacts.push(`Budget: R$ ${sdr.budgetSignal.amount.toLocaleString("pt-BR")}`);
+  if (s.social?.postsPerWeek !== undefined) knownFacts.push(`${s.social.postsPerWeek * 4} posts/mês`);
+  if (s.serviceMode) knownFacts.push(`Modalidade: ${s.serviceMode === "monthly" ? "gestão mensal" : "projeto pontual"}`);
+
+  const unknownFacts = [...e.missingForEstimate];
+  if (!s.businessName) unknownFacts.push("Nome do negócio não informado");
+  if (!s.segment) unknownFacts.push("Segmento não identificado");
+  if (!s.serviceMode) unknownFacts.push("Modalidade não definida");
+  if (sdr.budgetSignal.amount === undefined) unknownFacts.push("Budget não informado");
+
+  const risks: string[] = [];
+  if (sdr.objection.active) risks.push(`Objeção ativa: ${sdr.objection.types.join(", ")}`);
+  if (sdr.budgetSignal.fitStatus === "below_recommended") risks.push("Budget abaixo do Plano Starter mínimo");
+  if (sdr.objection.types.includes("needs_internal_approval")) risks.push("Aprovação interna pendente");
+  if (e.confidence === "none" || e.confidence === "low") risks.push("Estimativa com baixa confiança");
+
+  const opportunities: string[] = [];
+  if (sdr.budgetSignal.fitStatus === "fits") opportunities.push("Budget alinhado — proposta viável imediatamente");
+  if (s.objectives.length >= 2) opportunities.push("Múltiplos objetivos capturados — escopo claro");
+  if (sdr.objection.types.length > 0 && !sdr.objection.active) opportunities.push("Objeções resolvidas — prospect comprometido");
+  if (e.confidence === "high") opportunities.push("Estimativa confiável disponível");
+
+  const intentionDetected = services.length > 0
+    ? `${s.businessName ?? "Prospect"} solicita: ${services.join(", ")}.${s.serviceMode === "monthly" ? " Gestão mensal." : s.serviceMode === "one_off" ? " Projeto pontual." : ""}`
+    : "Intenção não detectada.";
+
+  const confidenceLevel: "low" | "medium" | "high" =
+    e.confidence === "high" ? "high" : e.confidence === "medium" ? "medium" : "low";
+
+  const recommendedDepartment = depts.length > 0 ? depts[0] : "project-management";
+
+  const approvalRequired = sdr.objection.types.includes("needs_internal_approval") ||
+    sdr.budgetSignal.fitStatus === "below_recommended";
+
+  let nextAction = "Enviar proposta formal e agendar call de kickoff.";
+  if (sdr.budgetSignal.fitStatus === "above_budget" || sdr.budgetSignal.fitStatus === "below_recommended") {
+    nextAction = "Negociar escopo antes da proposta formal. Apresentar opções de plano ajustado.";
+  } else if (sdr.objection.types.includes("needs_internal_approval")) {
+    nextAction = "Enviar proposta por e-mail para facilitar aprovação interna. Agendar follow-up em 48h.";
+  } else if (unknownFacts.length > 2) {
+    nextAction = "Complementar informações faltando antes de gerar proposta formal.";
+  }
+
+  return {
+    intentionDetected,
+    confidenceLevel,
+    knownFacts,
+    unknownFacts,
+    risks,
+    opportunities,
+    recommendedDepartment,
+    recommendedServices: services,
+    approvalRequired,
+    qualityGateStatus: qualityGateResult.overall,
+    nextAction,
+  };
+}
+
 // ── Handoff builder ───────────────────────────────────────────────────────────
 
 export function buildHandoffSummary(conv: ConvState, sdr: SDRAgentState): SDRHandoff {
@@ -355,6 +729,10 @@ export function buildHandoffSummary(conv: ConvState, sdr: SDRAgentState): SDRHan
       "Enviar proposta por e-mail para facilitar aprovação interna. Agendar follow-up em 48h.";
   }
 
+  const qualityGateResult = runSDRQualityGate(conv, sdr);
+  const cognitiveFlowSummary = buildCognitiveFlowSummary(conv, sdr);
+  const brainReasoningOutput = buildBrainReasoningOutput(conv, sdr, qualityGateResult);
+
   return {
     diagnosis,
     finalScopeDescription,
@@ -363,5 +741,8 @@ export function buildHandoffSummary(conv: ConvState, sdr: SDRAgentState): SDRHan
     tradeoffsAccepted,
     unresolvedRisks,
     recommendedPMAction,
+    brainReasoningOutput,
+    cognitiveFlowSummary,
+    qualityGateResult,
   };
 }
