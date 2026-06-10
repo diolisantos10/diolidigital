@@ -71,7 +71,8 @@ export const ModelName = {
   DbSimulationRun: 'DbSimulationRun',
   DbAgentSuggestion: 'DbAgentSuggestion',
   TrainingAlert: 'TrainingAlert',
-  BrainChangeRequest: 'BrainChangeRequest'
+  BrainChangeRequest: 'BrainChangeRequest',
+  BrainVersion: 'BrainVersion'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -420,10 +421,32 @@ export const BrainChangeRequestScalarFieldEnum = {
   status: 'status',
   createdAt: 'createdAt',
   approvedAt: 'approvedAt',
-  appliedAt: 'appliedAt'
+  appliedAt: 'appliedAt',
+  source: 'source',
+  department: 'department',
+  category: 'category',
+  description: 'description',
+  rationale: 'rationale',
+  expectedImpact: 'expectedImpact',
+  riskLevel: 'riskLevel',
+  requestedBy: 'requestedBy',
+  approvalRequiredBy: 'approvalRequiredBy',
+  reviewedAt: 'reviewedAt',
+  reviewNote: 'reviewNote'
 } as const
 
 export type BrainChangeRequestScalarFieldEnum = (typeof BrainChangeRequestScalarFieldEnum)[keyof typeof BrainChangeRequestScalarFieldEnum]
+
+
+export const BrainVersionScalarFieldEnum = {
+  id: 'id',
+  version: 'version',
+  summary: 'summary',
+  changeRequestId: 'changeRequestId',
+  createdAt: 'createdAt'
+} as const
+
+export type BrainVersionScalarFieldEnum = (typeof BrainVersionScalarFieldEnum)[keyof typeof BrainVersionScalarFieldEnum]
 
 
 export const SortOrder = {

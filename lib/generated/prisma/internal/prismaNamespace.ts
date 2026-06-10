@@ -404,7 +404,8 @@ export const ModelName = {
   DbSimulationRun: 'DbSimulationRun',
   DbAgentSuggestion: 'DbAgentSuggestion',
   TrainingAlert: 'TrainingAlert',
-  BrainChangeRequest: 'BrainChangeRequest'
+  BrainChangeRequest: 'BrainChangeRequest',
+  BrainVersion: 'BrainVersion'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -420,7 +421,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "deliverable" | "materialRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "deliverable" | "materialRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1978,6 +1979,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    BrainVersion: {
+      payload: Prisma.$BrainVersionPayload<ExtArgs>
+      fields: Prisma.BrainVersionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BrainVersionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrainVersionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BrainVersionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrainVersionPayload>
+        }
+        findFirst: {
+          args: Prisma.BrainVersionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrainVersionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BrainVersionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrainVersionPayload>
+        }
+        findMany: {
+          args: Prisma.BrainVersionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrainVersionPayload>[]
+        }
+        create: {
+          args: Prisma.BrainVersionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrainVersionPayload>
+        }
+        createMany: {
+          args: Prisma.BrainVersionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BrainVersionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrainVersionPayload>[]
+        }
+        delete: {
+          args: Prisma.BrainVersionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrainVersionPayload>
+        }
+        update: {
+          args: Prisma.BrainVersionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrainVersionPayload>
+        }
+        deleteMany: {
+          args: Prisma.BrainVersionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BrainVersionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BrainVersionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrainVersionPayload>[]
+        }
+        upsert: {
+          args: Prisma.BrainVersionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrainVersionPayload>
+        }
+        aggregate: {
+          args: Prisma.BrainVersionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBrainVersion>
+        }
+        groupBy: {
+          args: Prisma.BrainVersionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrainVersionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BrainVersionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrainVersionCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -2347,10 +2422,32 @@ export const BrainChangeRequestScalarFieldEnum = {
   status: 'status',
   createdAt: 'createdAt',
   approvedAt: 'approvedAt',
-  appliedAt: 'appliedAt'
+  appliedAt: 'appliedAt',
+  source: 'source',
+  department: 'department',
+  category: 'category',
+  description: 'description',
+  rationale: 'rationale',
+  expectedImpact: 'expectedImpact',
+  riskLevel: 'riskLevel',
+  requestedBy: 'requestedBy',
+  approvalRequiredBy: 'approvalRequiredBy',
+  reviewedAt: 'reviewedAt',
+  reviewNote: 'reviewNote'
 } as const
 
 export type BrainChangeRequestScalarFieldEnum = (typeof BrainChangeRequestScalarFieldEnum)[keyof typeof BrainChangeRequestScalarFieldEnum]
+
+
+export const BrainVersionScalarFieldEnum = {
+  id: 'id',
+  version: 'version',
+  summary: 'summary',
+  changeRequestId: 'changeRequestId',
+  createdAt: 'createdAt'
+} as const
+
+export type BrainVersionScalarFieldEnum = (typeof BrainVersionScalarFieldEnum)[keyof typeof BrainVersionScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -2540,6 +2637,7 @@ export type GlobalOmitConfig = {
   dbAgentSuggestion?: Prisma.DbAgentSuggestionOmit
   trainingAlert?: Prisma.TrainingAlertOmit
   brainChangeRequest?: Prisma.BrainChangeRequestOmit
+  brainVersion?: Prisma.BrainVersionOmit
 }
 
 /* Types for Logging */

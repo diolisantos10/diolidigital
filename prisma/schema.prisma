@@ -367,9 +367,31 @@ model BrainChangeRequest {
   title               String
   sourceSuggestionIds String    @default("[]")
   proposedChange      String
-  status              String    @default("pending")
+  status              String    @default("pending_review")
   createdAt           DateTime  @default(now())
   approvedAt          DateTime?
   appliedAt           DateTime?
+  // Governance fields (Brain Director layer)
+  source              String    @default("manual")
+  department          String    @default("client-service-sdr")
+  category            String    @default("department_logic")
+  description         String    @default("")
+  rationale           String    @default("")
+  expectedImpact      String    @default("")
+  riskLevel           String    @default("medium")
+  requestedBy         String    @default("system")
+  approvalRequiredBy  String    @default("brain_director")
+  reviewedAt          DateTime?
+  reviewNote          String?
+}
+
+// Brain version history — every applied change increments the version.
+// Governance only: no runtime mutation of Brain logic yet.
+model BrainVersion {
+  id              String   @id @default(cuid())
+  version         String   @unique
+  summary         String
+  changeRequestId String?
+  createdAt       DateTime @default(now())
 }
 

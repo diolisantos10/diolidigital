@@ -273,18 +273,28 @@ export async function updateSuggestionStatus(
     data:  { status, decidedAt: new Date() },
   });
 
-  // When approved — create a pending BrainChangeRequest (never auto-applies to SDR brain)
+  // When approved — create a BrainChangeRequest in the Brain Director governance
+  // queue (status pending_review). It NEVER auto-applies to the SDR brain:
+  // apply is a separate, explicit transition reviewed by the Brain Director.
   if (status === "approved") {
     const suggestion = await prisma.dbAgentSuggestion.findUnique({ where: { id } });
     if (suggestion) {
-      await prisma.brainChangeRequest.create({
-        data: {
-          agentId:             suggestion.agentId,
-          title:               suggestion.title,
-          sourceSuggestionIds: JSON.stringify([id]),
-          proposedChange:      suggestion.suggestedChange,
-          status:              "pending",
-        },
+      const { createChangeRequest } = await import("@/lib/dioli-brain/governance-service");
+      const impactToRisk = { low: "low", medium: "medium", high: "high", critical: "critical" } as const;
+      await createChangeRequest({
+        agentId:             suggestion.agentId,
+        title:               suggestion.title,
+        description:         suggestion.problem,
+        rationale:           suggestion.evidence,
+        expectedImpact:      `Impacto estimado: ${suggestion.impact}. Origem: ${(() => { try { return (JSON.parse(suggestion.sourceRunIds) as string[]).length; } catch { return 0; } })()} runs de simulação.`,
+        proposedChange:      suggestion.suggestedChange,
+        source:              "training_simulation",
+        department:          "client-service-sdr",
+        category:            "department_logic",
+        riskLevel:           impactToRisk[suggestion.impact as keyof typeof impactToRisk] ?? "medium",
+        requestedBy:         "training_center",
+        sourceSuggestionIds: [id],
+        status:              "pending_review",
       });
     }
   }

@@ -27,12 +27,14 @@ export const TRAINING_POLICY = {
 
 // Source labels for BrainChangeRequest
 export const BRAIN_CHANGE_SOURCE_LABELS = {
-  real_client:           "Cliente Real",
   training_simulation:   "Simulação de Treinamento",
-  rejected_deliverable:  "Entrega Rejeitada",
-  approved_deliverable:  "Entrega Aprovada",
+  real_client:           "Cliente Real",
+  approved_delivery:     "Entrega Aprovada",
+  rejected_delivery:     "Entrega Rejeitada",
+  quality_review:        "Revisão de Qualidade",
   performance_result:    "Resultado de Performance",
   ceo_instruction:       "Instrução do CEO",
+  manual:                "Manual",
 } as const;
 
 // Status labels for BrainChangeRequest

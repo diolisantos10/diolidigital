@@ -3,7 +3,7 @@
 // The Brain Director is the quality gatekeeper — no agent bypasses this layer.
 
 import { BRAIN_ROLES } from "./brain-config";
-import type { BrainRoleId } from "./types";
+import type { BrainRoleId, BrainChangeCategory } from "./types";
 
 export const BRAIN_DIRECTOR_ROLE = BRAIN_ROLES.find((r) => r.id === "brain_director")!;
 
@@ -45,17 +45,22 @@ export function canRoleModifyBrain(roleId: BrainRoleId): boolean {
   return role?.canModifyBrain ?? false;
 }
 
-export function getRequiredApproversForChange(
-  changeType: "cognitive_flow" | "department_scope" | "quality_gate" | "training_policy"
-): BrainRoleId[] {
-  switch (changeType) {
+// Approval chain per change category.
+// Structural categories (cognitive flow, quality gates, department permissions,
+// routing, knowledge policies) require CEO approval.
+export function getRequiredApproversForChange(category: BrainChangeCategory): BrainRoleId[] {
+  switch (category) {
     case "cognitive_flow":
       return ["ceo", "brain_director"];
-    case "department_scope":
-      return ["brain_director"];
     case "quality_gate":
-      return ["brain_director", "quality"];
-    case "training_policy":
+      return ["ceo", "brain_director", "quality"];
+    case "department_permissions":
+      return ["ceo", "brain_director"];
+    case "routing":
+      return ["ceo", "brain_director"];
+    case "knowledge_policy":
+      return ["ceo", "brain_director"];
+    case "department_logic":
       return ["brain_director"];
     default:
       return ["brain_director"];

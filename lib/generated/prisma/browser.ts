@@ -122,3 +122,8 @@ export type TrainingAlert = Prisma.TrainingAlertModel
  * 
  */
 export type BrainChangeRequest = Prisma.BrainChangeRequestModel
+/**
+ * Model BrainVersion
+ * 
+ */
+export type BrainVersion = Prisma.BrainVersionModel

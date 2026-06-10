@@ -34,6 +34,17 @@ export type BrainChangeRequestMinAggregateOutputType = {
   createdAt: Date | null
   approvedAt: Date | null
   appliedAt: Date | null
+  source: string | null
+  department: string | null
+  category: string | null
+  description: string | null
+  rationale: string | null
+  expectedImpact: string | null
+  riskLevel: string | null
+  requestedBy: string | null
+  approvalRequiredBy: string | null
+  reviewedAt: Date | null
+  reviewNote: string | null
 }
 
 export type BrainChangeRequestMaxAggregateOutputType = {
@@ -46,6 +57,17 @@ export type BrainChangeRequestMaxAggregateOutputType = {
   createdAt: Date | null
   approvedAt: Date | null
   appliedAt: Date | null
+  source: string | null
+  department: string | null
+  category: string | null
+  description: string | null
+  rationale: string | null
+  expectedImpact: string | null
+  riskLevel: string | null
+  requestedBy: string | null
+  approvalRequiredBy: string | null
+  reviewedAt: Date | null
+  reviewNote: string | null
 }
 
 export type BrainChangeRequestCountAggregateOutputType = {
@@ -58,6 +80,17 @@ export type BrainChangeRequestCountAggregateOutputType = {
   createdAt: number
   approvedAt: number
   appliedAt: number
+  source: number
+  department: number
+  category: number
+  description: number
+  rationale: number
+  expectedImpact: number
+  riskLevel: number
+  requestedBy: number
+  approvalRequiredBy: number
+  reviewedAt: number
+  reviewNote: number
   _all: number
 }
 
@@ -72,6 +105,17 @@ export type BrainChangeRequestMinAggregateInputType = {
   createdAt?: true
   approvedAt?: true
   appliedAt?: true
+  source?: true
+  department?: true
+  category?: true
+  description?: true
+  rationale?: true
+  expectedImpact?: true
+  riskLevel?: true
+  requestedBy?: true
+  approvalRequiredBy?: true
+  reviewedAt?: true
+  reviewNote?: true
 }
 
 export type BrainChangeRequestMaxAggregateInputType = {
@@ -84,6 +128,17 @@ export type BrainChangeRequestMaxAggregateInputType = {
   createdAt?: true
   approvedAt?: true
   appliedAt?: true
+  source?: true
+  department?: true
+  category?: true
+  description?: true
+  rationale?: true
+  expectedImpact?: true
+  riskLevel?: true
+  requestedBy?: true
+  approvalRequiredBy?: true
+  reviewedAt?: true
+  reviewNote?: true
 }
 
 export type BrainChangeRequestCountAggregateInputType = {
@@ -96,6 +151,17 @@ export type BrainChangeRequestCountAggregateInputType = {
   createdAt?: true
   approvedAt?: true
   appliedAt?: true
+  source?: true
+  department?: true
+  category?: true
+  description?: true
+  rationale?: true
+  expectedImpact?: true
+  riskLevel?: true
+  requestedBy?: true
+  approvalRequiredBy?: true
+  reviewedAt?: true
+  reviewNote?: true
   _all?: true
 }
 
@@ -181,6 +247,17 @@ export type BrainChangeRequestGroupByOutputType = {
   createdAt: Date
   approvedAt: Date | null
   appliedAt: Date | null
+  source: string
+  department: string
+  category: string
+  description: string
+  rationale: string
+  expectedImpact: string
+  riskLevel: string
+  requestedBy: string
+  approvalRequiredBy: string
+  reviewedAt: Date | null
+  reviewNote: string | null
   _count: BrainChangeRequestCountAggregateOutputType | null
   _min: BrainChangeRequestMinAggregateOutputType | null
   _max: BrainChangeRequestMaxAggregateOutputType | null
@@ -214,6 +291,17 @@ export type BrainChangeRequestWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"BrainChangeRequest"> | Date | string
   approvedAt?: Prisma.DateTimeNullableFilter<"BrainChangeRequest"> | Date | string | null
   appliedAt?: Prisma.DateTimeNullableFilter<"BrainChangeRequest"> | Date | string | null
+  source?: Prisma.StringFilter<"BrainChangeRequest"> | string
+  department?: Prisma.StringFilter<"BrainChangeRequest"> | string
+  category?: Prisma.StringFilter<"BrainChangeRequest"> | string
+  description?: Prisma.StringFilter<"BrainChangeRequest"> | string
+  rationale?: Prisma.StringFilter<"BrainChangeRequest"> | string
+  expectedImpact?: Prisma.StringFilter<"BrainChangeRequest"> | string
+  riskLevel?: Prisma.StringFilter<"BrainChangeRequest"> | string
+  requestedBy?: Prisma.StringFilter<"BrainChangeRequest"> | string
+  approvalRequiredBy?: Prisma.StringFilter<"BrainChangeRequest"> | string
+  reviewedAt?: Prisma.DateTimeNullableFilter<"BrainChangeRequest"> | Date | string | null
+  reviewNote?: Prisma.StringNullableFilter<"BrainChangeRequest"> | string | null
 }
 
 export type BrainChangeRequestOrderByWithRelationInput = {
@@ -226,6 +314,17 @@ export type BrainChangeRequestOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   approvedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   appliedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  source?: Prisma.SortOrder
+  department?: Prisma.SortOrder
+  category?: Prisma.SortOrder
+  description?: Prisma.SortOrder
+  rationale?: Prisma.SortOrder
+  expectedImpact?: Prisma.SortOrder
+  riskLevel?: Prisma.SortOrder
+  requestedBy?: Prisma.SortOrder
+  approvalRequiredBy?: Prisma.SortOrder
+  reviewedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  reviewNote?: Prisma.SortOrderInput | Prisma.SortOrder
 }
 
 export type BrainChangeRequestWhereUniqueInput = Prisma.AtLeast<{
@@ -241,6 +340,17 @@ export type BrainChangeRequestWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"BrainChangeRequest"> | Date | string
   approvedAt?: Prisma.DateTimeNullableFilter<"BrainChangeRequest"> | Date | string | null
   appliedAt?: Prisma.DateTimeNullableFilter<"BrainChangeRequest"> | Date | string | null
+  source?: Prisma.StringFilter<"BrainChangeRequest"> | string
+  department?: Prisma.StringFilter<"BrainChangeRequest"> | string
+  category?: Prisma.StringFilter<"BrainChangeRequest"> | string
+  description?: Prisma.StringFilter<"BrainChangeRequest"> | string
+  rationale?: Prisma.StringFilter<"BrainChangeRequest"> | string
+  expectedImpact?: Prisma.StringFilter<"BrainChangeRequest"> | string
+  riskLevel?: Prisma.StringFilter<"BrainChangeRequest"> | string
+  requestedBy?: Prisma.StringFilter<"BrainChangeRequest"> | string
+  approvalRequiredBy?: Prisma.StringFilter<"BrainChangeRequest"> | string
+  reviewedAt?: Prisma.DateTimeNullableFilter<"BrainChangeRequest"> | Date | string | null
+  reviewNote?: Prisma.StringNullableFilter<"BrainChangeRequest"> | string | null
 }, "id">
 
 export type BrainChangeRequestOrderByWithAggregationInput = {
@@ -253,6 +363,17 @@ export type BrainChangeRequestOrderByWithAggregationInput = {
   createdAt?: Prisma.SortOrder
   approvedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   appliedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  source?: Prisma.SortOrder
+  department?: Prisma.SortOrder
+  category?: Prisma.SortOrder
+  description?: Prisma.SortOrder
+  rationale?: Prisma.SortOrder
+  expectedImpact?: Prisma.SortOrder
+  riskLevel?: Prisma.SortOrder
+  requestedBy?: Prisma.SortOrder
+  approvalRequiredBy?: Prisma.SortOrder
+  reviewedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  reviewNote?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.BrainChangeRequestCountOrderByAggregateInput
   _max?: Prisma.BrainChangeRequestMaxOrderByAggregateInput
   _min?: Prisma.BrainChangeRequestMinOrderByAggregateInput
@@ -271,6 +392,17 @@ export type BrainChangeRequestScalarWhereWithAggregatesInput = {
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"BrainChangeRequest"> | Date | string
   approvedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"BrainChangeRequest"> | Date | string | null
   appliedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"BrainChangeRequest"> | Date | string | null
+  source?: Prisma.StringWithAggregatesFilter<"BrainChangeRequest"> | string
+  department?: Prisma.StringWithAggregatesFilter<"BrainChangeRequest"> | string
+  category?: Prisma.StringWithAggregatesFilter<"BrainChangeRequest"> | string
+  description?: Prisma.StringWithAggregatesFilter<"BrainChangeRequest"> | string
+  rationale?: Prisma.StringWithAggregatesFilter<"BrainChangeRequest"> | string
+  expectedImpact?: Prisma.StringWithAggregatesFilter<"BrainChangeRequest"> | string
+  riskLevel?: Prisma.StringWithAggregatesFilter<"BrainChangeRequest"> | string
+  requestedBy?: Prisma.StringWithAggregatesFilter<"BrainChangeRequest"> | string
+  approvalRequiredBy?: Prisma.StringWithAggregatesFilter<"BrainChangeRequest"> | string
+  reviewedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"BrainChangeRequest"> | Date | string | null
+  reviewNote?: Prisma.StringNullableWithAggregatesFilter<"BrainChangeRequest"> | string | null
 }
 
 export type BrainChangeRequestCreateInput = {
@@ -283,6 +415,17 @@ export type BrainChangeRequestCreateInput = {
   createdAt?: Date | string
   approvedAt?: Date | string | null
   appliedAt?: Date | string | null
+  source?: string
+  department?: string
+  category?: string
+  description?: string
+  rationale?: string
+  expectedImpact?: string
+  riskLevel?: string
+  requestedBy?: string
+  approvalRequiredBy?: string
+  reviewedAt?: Date | string | null
+  reviewNote?: string | null
 }
 
 export type BrainChangeRequestUncheckedCreateInput = {
@@ -295,6 +438,17 @@ export type BrainChangeRequestUncheckedCreateInput = {
   createdAt?: Date | string
   approvedAt?: Date | string | null
   appliedAt?: Date | string | null
+  source?: string
+  department?: string
+  category?: string
+  description?: string
+  rationale?: string
+  expectedImpact?: string
+  riskLevel?: string
+  requestedBy?: string
+  approvalRequiredBy?: string
+  reviewedAt?: Date | string | null
+  reviewNote?: string | null
 }
 
 export type BrainChangeRequestUpdateInput = {
@@ -307,6 +461,17 @@ export type BrainChangeRequestUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   appliedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  source?: Prisma.StringFieldUpdateOperationsInput | string
+  department?: Prisma.StringFieldUpdateOperationsInput | string
+  category?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.StringFieldUpdateOperationsInput | string
+  rationale?: Prisma.StringFieldUpdateOperationsInput | string
+  expectedImpact?: Prisma.StringFieldUpdateOperationsInput | string
+  riskLevel?: Prisma.StringFieldUpdateOperationsInput | string
+  requestedBy?: Prisma.StringFieldUpdateOperationsInput | string
+  approvalRequiredBy?: Prisma.StringFieldUpdateOperationsInput | string
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reviewNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type BrainChangeRequestUncheckedUpdateInput = {
@@ -319,6 +484,17 @@ export type BrainChangeRequestUncheckedUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   appliedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  source?: Prisma.StringFieldUpdateOperationsInput | string
+  department?: Prisma.StringFieldUpdateOperationsInput | string
+  category?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.StringFieldUpdateOperationsInput | string
+  rationale?: Prisma.StringFieldUpdateOperationsInput | string
+  expectedImpact?: Prisma.StringFieldUpdateOperationsInput | string
+  riskLevel?: Prisma.StringFieldUpdateOperationsInput | string
+  requestedBy?: Prisma.StringFieldUpdateOperationsInput | string
+  approvalRequiredBy?: Prisma.StringFieldUpdateOperationsInput | string
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reviewNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type BrainChangeRequestCreateManyInput = {
@@ -331,6 +507,17 @@ export type BrainChangeRequestCreateManyInput = {
   createdAt?: Date | string
   approvedAt?: Date | string | null
   appliedAt?: Date | string | null
+  source?: string
+  department?: string
+  category?: string
+  description?: string
+  rationale?: string
+  expectedImpact?: string
+  riskLevel?: string
+  requestedBy?: string
+  approvalRequiredBy?: string
+  reviewedAt?: Date | string | null
+  reviewNote?: string | null
 }
 
 export type BrainChangeRequestUpdateManyMutationInput = {
@@ -343,6 +530,17 @@ export type BrainChangeRequestUpdateManyMutationInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   appliedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  source?: Prisma.StringFieldUpdateOperationsInput | string
+  department?: Prisma.StringFieldUpdateOperationsInput | string
+  category?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.StringFieldUpdateOperationsInput | string
+  rationale?: Prisma.StringFieldUpdateOperationsInput | string
+  expectedImpact?: Prisma.StringFieldUpdateOperationsInput | string
+  riskLevel?: Prisma.StringFieldUpdateOperationsInput | string
+  requestedBy?: Prisma.StringFieldUpdateOperationsInput | string
+  approvalRequiredBy?: Prisma.StringFieldUpdateOperationsInput | string
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reviewNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type BrainChangeRequestUncheckedUpdateManyInput = {
@@ -355,6 +553,17 @@ export type BrainChangeRequestUncheckedUpdateManyInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   approvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   appliedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  source?: Prisma.StringFieldUpdateOperationsInput | string
+  department?: Prisma.StringFieldUpdateOperationsInput | string
+  category?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.StringFieldUpdateOperationsInput | string
+  rationale?: Prisma.StringFieldUpdateOperationsInput | string
+  expectedImpact?: Prisma.StringFieldUpdateOperationsInput | string
+  riskLevel?: Prisma.StringFieldUpdateOperationsInput | string
+  requestedBy?: Prisma.StringFieldUpdateOperationsInput | string
+  approvalRequiredBy?: Prisma.StringFieldUpdateOperationsInput | string
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reviewNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type BrainChangeRequestCountOrderByAggregateInput = {
@@ -367,6 +576,17 @@ export type BrainChangeRequestCountOrderByAggregateInput = {
   createdAt?: Prisma.SortOrder
   approvedAt?: Prisma.SortOrder
   appliedAt?: Prisma.SortOrder
+  source?: Prisma.SortOrder
+  department?: Prisma.SortOrder
+  category?: Prisma.SortOrder
+  description?: Prisma.SortOrder
+  rationale?: Prisma.SortOrder
+  expectedImpact?: Prisma.SortOrder
+  riskLevel?: Prisma.SortOrder
+  requestedBy?: Prisma.SortOrder
+  approvalRequiredBy?: Prisma.SortOrder
+  reviewedAt?: Prisma.SortOrder
+  reviewNote?: Prisma.SortOrder
 }
 
 export type BrainChangeRequestMaxOrderByAggregateInput = {
@@ -379,6 +599,17 @@ export type BrainChangeRequestMaxOrderByAggregateInput = {
   createdAt?: Prisma.SortOrder
   approvedAt?: Prisma.SortOrder
   appliedAt?: Prisma.SortOrder
+  source?: Prisma.SortOrder
+  department?: Prisma.SortOrder
+  category?: Prisma.SortOrder
+  description?: Prisma.SortOrder
+  rationale?: Prisma.SortOrder
+  expectedImpact?: Prisma.SortOrder
+  riskLevel?: Prisma.SortOrder
+  requestedBy?: Prisma.SortOrder
+  approvalRequiredBy?: Prisma.SortOrder
+  reviewedAt?: Prisma.SortOrder
+  reviewNote?: Prisma.SortOrder
 }
 
 export type BrainChangeRequestMinOrderByAggregateInput = {
@@ -391,6 +622,17 @@ export type BrainChangeRequestMinOrderByAggregateInput = {
   createdAt?: Prisma.SortOrder
   approvedAt?: Prisma.SortOrder
   appliedAt?: Prisma.SortOrder
+  source?: Prisma.SortOrder
+  department?: Prisma.SortOrder
+  category?: Prisma.SortOrder
+  description?: Prisma.SortOrder
+  rationale?: Prisma.SortOrder
+  expectedImpact?: Prisma.SortOrder
+  riskLevel?: Prisma.SortOrder
+  requestedBy?: Prisma.SortOrder
+  approvalRequiredBy?: Prisma.SortOrder
+  reviewedAt?: Prisma.SortOrder
+  reviewNote?: Prisma.SortOrder
 }
 
 
@@ -405,6 +647,17 @@ export type BrainChangeRequestSelect<ExtArgs extends runtime.Types.Extensions.In
   createdAt?: boolean
   approvedAt?: boolean
   appliedAt?: boolean
+  source?: boolean
+  department?: boolean
+  category?: boolean
+  description?: boolean
+  rationale?: boolean
+  expectedImpact?: boolean
+  riskLevel?: boolean
+  requestedBy?: boolean
+  approvalRequiredBy?: boolean
+  reviewedAt?: boolean
+  reviewNote?: boolean
 }, ExtArgs["result"]["brainChangeRequest"]>
 
 export type BrainChangeRequestSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -417,6 +670,17 @@ export type BrainChangeRequestSelectCreateManyAndReturn<ExtArgs extends runtime.
   createdAt?: boolean
   approvedAt?: boolean
   appliedAt?: boolean
+  source?: boolean
+  department?: boolean
+  category?: boolean
+  description?: boolean
+  rationale?: boolean
+  expectedImpact?: boolean
+  riskLevel?: boolean
+  requestedBy?: boolean
+  approvalRequiredBy?: boolean
+  reviewedAt?: boolean
+  reviewNote?: boolean
 }, ExtArgs["result"]["brainChangeRequest"]>
 
 export type BrainChangeRequestSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -429,6 +693,17 @@ export type BrainChangeRequestSelectUpdateManyAndReturn<ExtArgs extends runtime.
   createdAt?: boolean
   approvedAt?: boolean
   appliedAt?: boolean
+  source?: boolean
+  department?: boolean
+  category?: boolean
+  description?: boolean
+  rationale?: boolean
+  expectedImpact?: boolean
+  riskLevel?: boolean
+  requestedBy?: boolean
+  approvalRequiredBy?: boolean
+  reviewedAt?: boolean
+  reviewNote?: boolean
 }, ExtArgs["result"]["brainChangeRequest"]>
 
 export type BrainChangeRequestSelectScalar = {
@@ -441,9 +716,20 @@ export type BrainChangeRequestSelectScalar = {
   createdAt?: boolean
   approvedAt?: boolean
   appliedAt?: boolean
+  source?: boolean
+  department?: boolean
+  category?: boolean
+  description?: boolean
+  rationale?: boolean
+  expectedImpact?: boolean
+  riskLevel?: boolean
+  requestedBy?: boolean
+  approvalRequiredBy?: boolean
+  reviewedAt?: boolean
+  reviewNote?: boolean
 }
 
-export type BrainChangeRequestOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "agentId" | "title" | "sourceSuggestionIds" | "proposedChange" | "status" | "createdAt" | "approvedAt" | "appliedAt", ExtArgs["result"]["brainChangeRequest"]>
+export type BrainChangeRequestOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "agentId" | "title" | "sourceSuggestionIds" | "proposedChange" | "status" | "createdAt" | "approvedAt" | "appliedAt" | "source" | "department" | "category" | "description" | "rationale" | "expectedImpact" | "riskLevel" | "requestedBy" | "approvalRequiredBy" | "reviewedAt" | "reviewNote", ExtArgs["result"]["brainChangeRequest"]>
 
 export type $BrainChangeRequestPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "BrainChangeRequest"
@@ -458,6 +744,17 @@ export type $BrainChangeRequestPayload<ExtArgs extends runtime.Types.Extensions.
     createdAt: Date
     approvedAt: Date | null
     appliedAt: Date | null
+    source: string
+    department: string
+    category: string
+    description: string
+    rationale: string
+    expectedImpact: string
+    riskLevel: string
+    requestedBy: string
+    approvalRequiredBy: string
+    reviewedAt: Date | null
+    reviewNote: string | null
   }, ExtArgs["result"]["brainChangeRequest"]>
   composites: {}
 }
@@ -890,6 +1187,17 @@ export interface BrainChangeRequestFieldRefs {
   readonly createdAt: Prisma.FieldRef<"BrainChangeRequest", 'DateTime'>
   readonly approvedAt: Prisma.FieldRef<"BrainChangeRequest", 'DateTime'>
   readonly appliedAt: Prisma.FieldRef<"BrainChangeRequest", 'DateTime'>
+  readonly source: Prisma.FieldRef<"BrainChangeRequest", 'String'>
+  readonly department: Prisma.FieldRef<"BrainChangeRequest", 'String'>
+  readonly category: Prisma.FieldRef<"BrainChangeRequest", 'String'>
+  readonly description: Prisma.FieldRef<"BrainChangeRequest", 'String'>
+  readonly rationale: Prisma.FieldRef<"BrainChangeRequest", 'String'>
+  readonly expectedImpact: Prisma.FieldRef<"BrainChangeRequest", 'String'>
+  readonly riskLevel: Prisma.FieldRef<"BrainChangeRequest", 'String'>
+  readonly requestedBy: Prisma.FieldRef<"BrainChangeRequest", 'String'>
+  readonly approvalRequiredBy: Prisma.FieldRef<"BrainChangeRequest", 'String'>
+  readonly reviewedAt: Prisma.FieldRef<"BrainChangeRequest", 'DateTime'>
+  readonly reviewNote: Prisma.FieldRef<"BrainChangeRequest", 'String'>
 }
     
 

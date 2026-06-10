@@ -151,12 +151,14 @@ export interface EvidenceItem {
 // ─── Brain Change Request ─────────────────────────────────────────────────────
 
 export type BrainChangeSource =
-  | "real_client"
   | "training_simulation"
-  | "rejected_deliverable"
-  | "approved_deliverable"
+  | "real_client"
+  | "approved_delivery"
+  | "rejected_delivery"
+  | "quality_review"
   | "performance_result"
-  | "ceo_instruction";
+  | "ceo_instruction"
+  | "manual";
 
 export type BrainChangeStatus =
   | "draft"
@@ -165,6 +167,18 @@ export type BrainChangeStatus =
   | "rejected"
   | "applied"
   | "archived";
+
+// Categories that determine the approval chain.
+// Structural categories require CEO approval (see brain-director.ts).
+export type BrainChangeCategory =
+  | "cognitive_flow"
+  | "quality_gate"
+  | "department_permissions"
+  | "routing"
+  | "knowledge_policy"
+  | "department_logic";
+
+export type BrainChangeRiskLevel = "low" | "medium" | "high" | "critical";
 
 export interface BrainChangeGovernance {
   source: BrainChangeSource;
