@@ -25,16 +25,35 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
 
   if (AGENCY_PATTERN.test(pathname)) {
     const token = request.cookies.get(SESSION_COOKIE)?.value;
+
+    // Forensic log — one line per /agency request, visible in Railway logs.
+    // sec-fetch-dest=document → real navigation; =empty → fetch (RSC/Flight).
+    const meta = [
+      `pathname=${pathname}`,
+      `cookiePresent=${Boolean(token)}`,
+      `host=${request.headers.get("host")}`,
+      `xfProto=${request.headers.get("x-forwarded-proto")}`,
+      `xfHost=${request.headers.get("x-forwarded-host")}`,
+      `secFetchDest=${request.headers.get("sec-fetch-dest")}`,
+      `secFetchMode=${request.headers.get("sec-fetch-mode")}`,
+      `authSecretSet=${Boolean(process.env.AUTH_SECRET)}`,
+    ].join(" ");
+
     if (!token) {
+      console.log(`[PROXY] ${meta} sessionValid=false reason=no_cookie action=redirect_signin`);
       const signinUrl = request.nextUrl.clone();
       signinUrl.pathname = "/auth/signin";
       signinUrl.search = "";
       return NextResponse.redirect(signinUrl);
     }
     try {
-      await jwtVerify(token, getSecret());
+      const { payload } = await jwtVerify(token, getSecret());
+      const email = (payload as { email?: string }).email ?? "?";
+      console.log(`[PROXY] ${meta} sessionValid=true email=${email} action=next`);
       return NextResponse.next();
-    } catch {
+    } catch (err) {
+      const errInfo = err instanceof Error ? `${err.name}:${err.message}` : String(err);
+      console.log(`[PROXY] ${meta} sessionValid=false reason=jwt_verify_failed err=${errInfo} action=redirect_signin_and_delete_cookie`);
       const signinUrl = request.nextUrl.clone();
       signinUrl.pathname = "/auth/signin";
       signinUrl.search = "";
