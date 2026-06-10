@@ -29,14 +29,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const [dynamicResult, mixedResult] = await Promise.all([
-      executeBatch({ mode: "dynamic", count: 10, triggeredBy: "cron" }),
-      executeBatch({ mode: "mixed",   count: 5,  triggeredBy: "cron" }),
-    ]);
+    // Sequential — each batch re-checks the daily cap after the previous one.
+    const dynamicCount = TRAINING_JOB_CONFIG.batchSize;
+    const mixedCount   = Math.max(1, Math.floor(TRAINING_JOB_CONFIG.batchSize / 2));
+
+    const dynamicResult = await executeBatch({ mode: "dynamic", count: dynamicCount, triggeredBy: "cron" });
+    const mixedResult   = await executeBatch({ mode: "mixed",   count: mixedCount,   triggeredBy: "cron" });
 
     return NextResponse.json({
       batches:     [dynamicResult, mixedResult],
       totalRuns:   dynamicResult.totalRuns + mixedResult.totalRuns,
+      capReached:  dynamicResult.capReached || mixedResult.capReached,
+      dailyCap:    TRAINING_JOB_CONFIG.dailyCap,
       completedAt: new Date().toISOString(),
     });
   } catch (err) {

@@ -5,10 +5,10 @@ import { SEED_SCENARIOS }          from "./scenarios";
 import { generateImprovementSuggestions } from "./suggestions";
 import {
   saveBatch, saveRuns, saveSuggestions, saveAlerts,
-  getRuns, getSuggestions, getActiveAlertTitles,
+  getRuns, getSuggestions, getActiveAlertTitles, countRunsToday,
 } from "./training-store-service";
 import { generateAlerts }  from "./alerts";
-import { MAX_COUNT_HARD_CAP } from "./config";
+import { MAX_COUNT_HARD_CAP, TRAINING_JOB_CONFIG } from "./config";
 import type { SimulationRun } from "./types";
 
 export type { TrainingMode } from "./config";
@@ -30,6 +30,11 @@ export interface BatchRunResult {
   triggeredBy:        string;
   mode:               string;
   completedAt:        string;
+  // Daily-cap accounting — requested count may be reduced or zeroed
+  requestedCount:     number;
+  capReached:         boolean;
+  runsTodayBefore:    number;
+  dailyCap:           number;
 }
 
 function runBatch(count: number, mode: "seed" | "dynamic" | "mixed"): SimulationRun[] {
@@ -74,8 +79,23 @@ function runBatch(count: number, mode: "seed" | "dynamic" | "mixed"): Simulation
 
 export async function executeBatch(options: BatchRunOptions): Promise<BatchRunResult> {
   const { mode, triggeredBy } = options;
-  const count                 = Math.min(options.count, MAX_COUNT_HARD_CAP);
+  const requestedCount        = Math.min(options.count, MAX_COUNT_HARD_CAP);
   const startedAt             = Date.now();
+
+  // Daily cap — clamp the batch to remaining quota, never exceed.
+  const runsTodayBefore = await countRunsToday();
+  const remaining       = Math.max(0, TRAINING_JOB_CONFIG.dailyCap - runsTodayBefore);
+  const count           = Math.min(requestedCount, remaining);
+
+  if (count === 0) {
+    return {
+      totalRuns: 0, pass: 0, warning: 0, fail: 0, averageScore: 0,
+      suggestionsCreated: 0, durationMs: Date.now() - startedAt,
+      triggeredBy, mode, completedAt: new Date().toISOString(),
+      requestedCount, capReached: true, runsTodayBefore,
+      dailyCap: TRAINING_JOB_CONFIG.dailyCap,
+    };
+  }
 
   // Fetch context for suggestion dedup and alert generation
   const [existingRuns, existingSuggestions] = await Promise.all([
@@ -124,5 +144,9 @@ export async function executeBatch(options: BatchRunOptions): Promise<BatchRunRe
     triggeredBy,
     mode,
     completedAt,
+    requestedCount,
+    capReached:         count < requestedCount,
+    runsTodayBefore,
+    dailyCap:           TRAINING_JOB_CONFIG.dailyCap,
   };
 }

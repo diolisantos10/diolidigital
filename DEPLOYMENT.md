@@ -37,6 +37,53 @@ railway domain          # prints https://<app>.up.railway.app  -> paste it above
 
 Railway auto-runs `npm run build` then `npm run start`; the app binds to `$PORT`.
 
+## Required Railway Variables
+
+| Variable | Required | Purpose |
+|---|---|---|
+| `AUTH_SECRET` | **Yes** | JWT signing key. Generate: `openssl rand -base64 32`. Auth fails loudly (HTTP 500 with message) if missing in production. |
+| `DATABASE_URL` | **Yes** | Prisma connection string. |
+| `CRON_SECRET` | For 24h training | Bearer token protecting `/api/cron/training/sdr`. Endpoint returns 503 if unset. Generate: `openssl rand -base64 32`. |
+| `TRAINING_ENABLED` | For 24h training | Set `true` to activate the backend training worker. Default: `false` (safe). |
+| `TRAINING_BATCH_SIZE` | Optional | Runs per cron batch (default `10`). Cron executes 1× dynamic batch + 1× mixed half-batch per trigger. |
+| `TRAINING_DAILY_CAP` | Optional | Max persisted runs per day (default `200`). Enforced server-side in every batch — cron and manual. |
+| `AUTH_DEBUG` | Optional | `true` enables per-request `[PROXY]` auth logs. |
+
+## 24h Training Worker — cron setup
+
+The worker is a protected HTTP endpoint; any scheduler can trigger it.
+
+**Endpoint:**
+```
+POST https://<your-app>.up.railway.app/api/cron/training/sdr
+Authorization: Bearer <CRON_SECRET>
+```
+
+**Recommended frequency:** every 1 hour.
+
+**Per trigger it runs** `TRAINING_BATCH_SIZE` dynamic + half that mixed
+(default 10 + 5 = 15 runs), persisting TrainingBatch, DbSimulationRun,
+DbAgentSuggestion and TrainingAlert rows. The daily cap is re-checked before
+each batch; once `TRAINING_DAILY_CAP` is hit the endpoint returns
+`capReached: true` and runs nothing.
+
+**Option A — Railway cron service (recommended):** add a second Railway
+service in the same project with a cron schedule `0 * * * *` and command:
+
+```bash
+curl -fsS -X POST "$APP_URL/api/cron/training/sdr" \
+  -H "Authorization: Bearer $CRON_SECRET"
+```
+
+**Option B — external scheduler** (GitHub Actions schedule, cron-job.org,
+UptimeRobot heartbeat): same POST request, same header.
+
+**Safety responses:**
+- `CRON_SECRET` unset → 503 (never runs unsecured)
+- wrong/missing Bearer token → 401
+- `TRAINING_ENABLED` ≠ `true` → 200 with `ran: false` (no-op)
+- daily cap reached → 200 with `capReached: true`, zero runs
+
 ## Running the pilot smoke test against production
 
 The Playwright smoke scripts default to a local server but accept an override:

@@ -102,7 +102,29 @@ function OriginBadge({ origin }: { origin: "seed" | "dynamic" }) {
 
 // ── Part 1 — Status card ──────────────────────────────────────────────────────
 
-function StatusCard({ continuousMode, isRunning }: { continuousMode: boolean; isRunning: boolean }) {
+export interface WorkerStatus {
+  configured:  boolean; // CRON_SECRET set
+  enabled:     boolean; // TRAINING_ENABLED=true
+  active:      boolean; // both
+  lastBatchAt: string | null;
+  runsToday:   number;
+  dailyCap:    number;
+}
+
+function fmtBatchTime(iso: string | null): string {
+  if (!iso) return "nenhum ainda";
+  return new Date(iso).toLocaleString("pt-BR", {
+    day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
+  });
+}
+
+function StatusCard({
+  continuousMode, isRunning, worker,
+}: {
+  continuousMode: boolean; isRunning: boolean; worker: WorkerStatus | null;
+}) {
+  const workerActive = worker?.active ?? false;
+
   return (
     <div className="bg-white border border-[#E5E5E2] rounded-[10px] overflow-hidden">
       <div className="flex divide-x divide-[#F0F0ED]">
@@ -110,7 +132,12 @@ function StatusCard({ continuousMode, isRunning }: { continuousMode: boolean; is
         {/* Status dot */}
         <div className="px-5 py-4 shrink-0 min-w-[160px]">
           <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-2">Status</p>
-          {continuousMode ? (
+          {workerActive ? (
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#16A34A] animate-pulse shrink-0" />
+              <span className="text-[13px] font-semibold text-[#16A34A]">Ativo</span>
+            </div>
+          ) : continuousMode ? (
             <div className="flex items-center gap-2">
               <span className={`w-2 h-2 rounded-full shrink-0 ${isRunning ? "bg-[#16A34A] animate-pulse" : "bg-[#D97706]"}`} />
               <span className={`text-[13px] font-semibold ${isRunning ? "text-[#16A34A]" : "text-[#D97706]"}`}>
@@ -128,11 +155,24 @@ function StatusCard({ continuousMode, isRunning }: { continuousMode: boolean; is
         {/* Mode name + explanation */}
         <div className="px-5 py-4 flex-1">
           <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1">Modo atual</p>
-          <p className="text-[13px] font-semibold text-[#D97706]">Treinamento contínuo experimental</p>
-          <p className="text-[11px] text-[#6B6B65] mt-0.5 leading-relaxed">
-            As simulações rodam apenas enquanto{" "}
-            <span className="font-medium text-[#1A1A1A]">esta tela estiver aberta</span>.
-          </p>
+          {workerActive ? (
+            <>
+              <p className="text-[13px] font-semibold text-[#16A34A]">Treinamento automático 24h</p>
+              <p className="text-[11px] text-[#6B6B65] mt-0.5 leading-relaxed">
+                O servidor treina sozinho via cron —{" "}
+                <span className="font-medium text-[#1A1A1A]">não precisa manter esta tela aberta</span>.
+                {" "}Último batch: {fmtBatchTime(worker?.lastBatchAt ?? null)}.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-[13px] font-semibold text-[#D97706]">Treinamento contínuo experimental</p>
+              <p className="text-[11px] text-[#6B6B65] mt-0.5 leading-relaxed">
+                As simulações rodam apenas enquanto{" "}
+                <span className="font-medium text-[#1A1A1A]">esta tela estiver aberta</span>.
+              </p>
+            </>
+          )}
         </div>
 
         {/* Engine status */}
@@ -142,24 +182,48 @@ function StatusCard({ continuousMode, isRunning }: { continuousMode: boolean; is
             <div className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-[#16A34A] shrink-0" />
               <span className="text-[11px] text-[#1A1A1A]">Navegador aberto</span>
-              <span className="text-[9px] font-bold text-[#16A34A] bg-[#DCFCE7] px-1.5 py-0.5 rounded-[3px]">ATIVO</span>
+              {workerActive ? (
+                <span className="text-[9px] font-bold text-[#6B6B65] bg-[#F0F0ED] px-1.5 py-0.5 rounded-[3px]">OPCIONAL</span>
+              ) : (
+                <span className="text-[9px] font-bold text-[#16A34A] bg-[#DCFCE7] px-1.5 py-0.5 rounded-[3px]">ATIVO</span>
+              )}
             </div>
             <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#D0D0CC] shrink-0" />
-              <span className="text-[11px] text-[#9B9B95]">Worker 24h backend</span>
-              <span className="text-[9px] font-bold text-[#9B9B95] bg-[#F0F0ED] px-1.5 py-0.5 rounded-[3px]">PRÓXIMA FASE</span>
+              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${workerActive ? "bg-[#16A34A]" : "bg-[#D0D0CC]"}`} />
+              <span className={`text-[11px] ${workerActive ? "text-[#1A1A1A]" : "text-[#9B9B95]"}`}>Worker 24h backend</span>
+              {workerActive ? (
+                <span className="text-[9px] font-bold text-[#16A34A] bg-[#DCFCE7] px-1.5 py-0.5 rounded-[3px]">ATIVO</span>
+              ) : (
+                <span className="text-[9px] font-bold text-[#D97706] bg-[#FEF3C7] px-1.5 py-0.5 rounded-[3px]">CONFIGURAR</span>
+              )}
             </div>
+            {worker && workerActive && (
+              <p className="text-[10px] text-[#9B9B95]">
+                Hoje: {worker.runsToday}/{worker.dailyCap} runs
+              </p>
+            )}
           </div>
         </div>
 
       </div>
 
-      {/* Warning strip — always visible */}
+      {/* Info strip */}
       <div className="border-t border-[#F0F0ED] bg-[#FAFAF9] px-5 py-2 flex items-center gap-2">
-        <span className="text-[11px] text-[#D97706] shrink-0">⚠</span>
-        <p className="text-[11px] text-[#9B9B95]">
-          Se você <span className="font-medium text-[#6B6B65]">fechar esta aba</span>, o treino contínuo pausa automaticamente. Nenhum log é apagado.
-        </p>
+        {workerActive ? (
+          <>
+            <span className="text-[11px] text-[#16A34A] shrink-0">✓</span>
+            <p className="text-[11px] text-[#9B9B95]">
+              O treino no servidor <span className="font-medium text-[#6B6B65]">continua mesmo com a aba fechada</span>. Resultados são persistidos no banco.
+            </p>
+          </>
+        ) : (
+          <>
+            <span className="text-[11px] text-[#D97706] shrink-0">⚠</span>
+            <p className="text-[11px] text-[#9B9B95]">
+              Se você <span className="font-medium text-[#6B6B65]">fechar esta aba</span>, o treino contínuo pausa automaticamente. Para ativar o worker 24h, configure <span className="font-mono text-[10px]">CRON_SECRET</span> e <span className="font-mono text-[10px]">TRAINING_ENABLED=true</span> no Railway.
+            </p>
+          </>
+        )}
       </div>
     </div>
   );
@@ -487,6 +551,9 @@ function SuggestionCard({ suggestion, onDecide }: {
 interface ServerStatus {
   cronConfigured:       boolean;
   enabled:              boolean;
+  workerActive:         boolean;
+  dailyCap:             number;
+  batchSize:            number;
   totalServerRuns:      number;
   runsToday:            number;
   runsThisWeek:         number;
@@ -847,6 +914,27 @@ export default function TrainingPage() {
   const { tourOpen, startTour, closeTour } = usePageTour(SDR_TRAINING_TOUR);
   const [explainOpen, setExplainOpen] = useState(false);
 
+  // Worker 24h status — drives the execution-engine card
+  const [workerStatus, setWorkerStatus] = useState<WorkerStatus | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/admin/training/sdr/run")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: ServerStatus | null) => {
+        if (cancelled || !data) return;
+        setWorkerStatus({
+          configured:  data.cronConfigured,
+          enabled:     data.enabled,
+          active:      data.workerActive,
+          lastBatchAt: data.lastBatchAt,
+          runsToday:   data.runsToday,
+          dailyCap:    data.dailyCap,
+        });
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
   // Continuous loop — clears itself when mode stops or component unmounts
   useEffect(() => {
     if (continuousMode && !isRunning) {
@@ -947,7 +1035,7 @@ export default function TrainingPage() {
       </div>
 
       {/* Part 1 — Status card */}
-      <StatusCard continuousMode={continuousMode} isRunning={isRunning} />
+      <StatusCard continuousMode={continuousMode} isRunning={isRunning} worker={workerStatus} />
 
       {/* Part 4 — Summary cards */}
       <div data-tour="training-stats">

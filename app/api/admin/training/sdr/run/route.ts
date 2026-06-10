@@ -15,6 +15,9 @@ export async function GET(): Promise<NextResponse> {
   return NextResponse.json({
     cronConfigured: !!process.env.CRON_SECRET,
     enabled:        TRAINING_JOB_CONFIG.enabled,
+    workerActive:   !!process.env.CRON_SECRET && TRAINING_JOB_CONFIG.enabled,
+    dailyCap:       TRAINING_JOB_CONFIG.dailyCap,
+    batchSize:      TRAINING_JOB_CONFIG.batchSize,
     ...summary,
   });
 }

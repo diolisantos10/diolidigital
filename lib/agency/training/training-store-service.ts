@@ -231,6 +231,13 @@ export async function saveAlerts(inputs: TrainingAlertInput[]): Promise<void> {
 
 // ── Read operations ───────────────────────────────────────────────────────────
 
+// Lightweight count used for daily-cap enforcement before each batch.
+export async function countRunsToday(): Promise<number> {
+  const now          = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return prisma.dbSimulationRun.count({ where: { createdAt: { gte: startOfToday } } });
+}
+
 export async function getRuns(limit = 200): Promise<SimulationRun[]> {
   const rows = await prisma.dbSimulationRun.findMany({
     orderBy: { createdAt: "asc" },
