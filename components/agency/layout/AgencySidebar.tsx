@@ -116,6 +116,18 @@ export default function AgencySidebar({ userInfo }: { userInfo?: UserInfo | null
     },
   ];
 
+  // Dev assertion: every nav href must be a root-relative /agency/ path.
+  // Catches misconfigurations (absolute URLs, typos, empty strings) at dev time.
+  if (process.env.NODE_ENV === "development") {
+    const bad = NAV.flatMap((s) => s.items).filter(
+      (item) => !item.href.startsWith("/agency/") || item.href.includes("://")
+    );
+    if (bad.length > 0) {
+      // eslint-disable-next-line no-console
+      console.error("[Sidebar] Invalid nav hrefs:", bad.map((i) => `${i.label} → "${i.href}"`));
+    }
+  }
+
   return (
     <aside className="fixed inset-y-0 left-0 w-[220px] flex flex-col bg-[#111111] z-40 overflow-y-auto">
       {/* Logo */}
@@ -148,10 +160,13 @@ export default function AgencySidebar({ userInfo }: { userInfo?: UserInfo | null
                 const active = path === item.href || (item.href !== "/agency/dashboard" && path.startsWith(item.href));
                 const badge = (item as { badge?: number }).badge;
                 return (
-                  <Link
+                  // Plain anchor → full document navigation (same as typing the URL).
+                  // Next.js <Link> triggers RSC soft navigation which has proven
+                  // unreliable behind Railway's TLS-terminating proxy; direct URL
+                  // always works, so document nav must work too.
+                  <a
                     key={item.href}
                     href={item.href}
-                    prefetch={false}
                     className={`
                       group flex items-center gap-2.5 px-2 py-[7px] rounded-[6px] text-[13px] font-medium relative
                       transition-all duration-100
@@ -174,7 +189,7 @@ export default function AgencySidebar({ userInfo }: { userInfo?: UserInfo | null
                         {badge > 99 ? "99+" : badge}
                       </span>
                     )}
-                  </Link>
+                  </a>
                 );
               })}
             </div>
