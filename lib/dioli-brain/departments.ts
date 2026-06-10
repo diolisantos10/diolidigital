@@ -1,0 +1,394 @@
+// Dioli Brain — Department Definitions
+// Departments are professional scopes — not independent brains.
+// Brain logic is shared. Departments define:
+//   permissions, tools, deliverables, quality gates, evidence types, approval triggers.
+
+import type { BrainDepartment } from "./types";
+
+export const BRAIN_DEPARTMENTS: BrainDepartment[] = [
+  {
+    id: "client-service-sdr",
+    name: "Atendimento / SDR",
+    mission:
+      "Capturar a intenção real do cliente, qualificar a demanda e fazer o handoff correto para o pipeline de execução.",
+    responsibilities: [
+      "Receber e qualificar briefings de novos clientes",
+      "Conduzir conversação de descoberta via Briefing Room",
+      "Identificar escopo, budget e expectativas",
+      "Gerar handoff estruturado para PM",
+      "Alertar sobre clientes que precisam de atenção imediata",
+    ],
+    permissions: [
+      "Acessar Brand Brain do cliente",
+      "Criar e atualizar Briefings",
+      "Criar Client Requests",
+      "Visualizar histórico do cliente",
+      "Gerar estimativa de escopo e proposta inicial",
+    ],
+    forbiddenActions: [
+      "Aprovar entrega sem revisão do cliente",
+      "Iniciar produção sem proposta aprovada",
+      "Fazer promessas de prazo ou budget sem validação do PM",
+      "Modificar Brand Brain sem aprovação",
+    ],
+    tools: [
+      "briefing_room",
+      "sdr_agent",
+      "prospect_engine",
+      "live_calculator",
+      "client_history",
+    ],
+    suggestedAIEngine: "fast_commercial",
+    allowedKnowledgeSources: [
+      "client_brand_brain",
+      "client_profile",
+      "briefings",
+      "client_requests",
+      "training_logs",
+    ],
+    qualityGate: [
+      "Budget do cliente respeitado e separado do management fee",
+      "Objeções identificadas e endereçadas",
+      "Escopo claro — sem promessas vagas",
+      "Nenhuma promessa falsa sobre prazo ou resultado",
+      "Management fee separado do budget de mídia",
+      "Handoff inclui todos os campos obrigatórios",
+    ],
+    simulator: "lib/agency/training/runner.ts",
+    trainingCenter: "/agency/simulations/training",
+    evidenceTypes: [
+      "first_round_approval",
+      "client_praise",
+      "delivery_time_reduction",
+    ],
+    humanApprovalTriggers: [
+      "budget_acima_de_threshold",
+      "escopo_customizado_sem_precedente",
+      "cliente_com_historico_de_conflito",
+    ],
+    firstVersionStatus: "existing",
+  },
+  {
+    id: "strategy",
+    name: "Estratégia",
+    mission:
+      "Transformar briefing e Brand Brain em estratégia clara que guia toda a execução da agência.",
+    responsibilities: [
+      "Gerar Strategy Rooms com múltiplos especialistas",
+      "Definir posicionamento e diferenciação",
+      "Recomendar canais e abordagens com justificativa",
+      "Criar briefings downstream para Social, Design e Tráfego",
+    ],
+    permissions: [
+      "Acessar Brand Brain completo",
+      "Acessar todos os Briefings do projeto",
+      "Criar e atualizar Strategy Rooms",
+      "Recomendar departamentos para acionamento",
+    ],
+    forbiddenActions: [
+      "Iniciar execução sem Strategy Room aprovada",
+      "Recomendar canais sem dados de público-alvo",
+    ],
+    tools: [
+      "strategy_room_generator",
+      "brand_brain_reader",
+      "market_intelligence",
+    ],
+    suggestedAIEngine: "reasoning",
+    allowedKnowledgeSources: [
+      "client_brand_brain",
+      "briefings",
+      "strategy_rooms",
+      "projects",
+    ],
+    qualityGate: [
+      "Posicionamento coerente com Brand Brain",
+      "Objetivo alinhado com meta do cliente",
+      "Premissas explícitas — nada implícito",
+      "Canais recomendados com justificativa de dados",
+      "Pelo menos 3 perspectivas de especialistas",
+    ],
+    simulator: null,
+    trainingCenter: null,
+    evidenceTypes: ["campaign_reach", "engagement_increase", "conversion_improvement"],
+    humanApprovalTriggers: [
+      "mudança_de_posicionamento_estratégico",
+      "recomendação_contrária_ao_brief_do_cliente",
+    ],
+    firstVersionStatus: "partial",
+  },
+  {
+    id: "social-media",
+    name: "Social Media",
+    mission:
+      "Criar e gerir conteúdo estratégico para redes sociais que engaja o público-alvo e fortalece o posicionamento.",
+    responsibilities: [
+      "Calendários editoriais mensais",
+      "Criação de posts, stories e reels",
+      "Copy otimizada para cada plataforma",
+      "Análise de performance e otimização",
+    ],
+    permissions: [
+      "Acessar Brand Brain",
+      "Acessar Strategy Room",
+      "Criar entregáveis de Social",
+      "Visualizar calendário editorial",
+    ],
+    forbiddenActions: [
+      "Publicar conteúdo sem aprovação do PM",
+      "Desviar do tom de voz do Brand Brain",
+      "Usar referências de concorrentes sem aprovação",
+    ],
+    tools: [
+      "social_media_agent",
+      "brand_brain_reader",
+      "editorial_calendar",
+    ],
+    suggestedAIEngine: "creative_copy",
+    allowedKnowledgeSources: [
+      "client_brand_brain",
+      "briefings",
+      "strategy_rooms",
+      "deliverables",
+    ],
+    qualityGate: [
+      "Tom de voz da marca respeitado",
+      "Conteúdo adequado ao canal e formato",
+      "CTA claro e coerente com objetivo",
+      "Calendário aprovado antes de agendamento",
+      "Sem conteúdo ambíguo ou fora de contexto",
+    ],
+    simulator: null,
+    trainingCenter: null,
+    evidenceTypes: [
+      "engagement_increase",
+      "campaign_reach",
+      "client_praise",
+    ],
+    humanApprovalTriggers: [
+      "conteúdo_sensível_ou_polémico",
+      "publicação_imediata_sem_calendário",
+    ],
+    firstVersionStatus: "partial",
+  },
+  {
+    id: "design",
+    name: "Design",
+    mission:
+      "Criar identidades visuais e materiais gráficos que expressam a essência de cada marca com consistência e impacto.",
+    responsibilities: [
+      "Identidades visuais",
+      "Materiais gráficos para todos os canais",
+      "Briefs criativos para a equipe",
+      "Garantir consistência com Brand Brain",
+    ],
+    permissions: [
+      "Acessar Brand Brain e Brand Assets",
+      "Criar entregáveis de Design",
+      "Gerar prompts de imagem via OpenAI",
+      "Visualizar briefings criativos",
+    ],
+    forbiddenActions: [
+      "Usar fontes não autorizadas pelo Brand Brain",
+      "Entregar sem briefing criativo aprovado",
+      "Criar assets com identidade de marca de terceiros",
+    ],
+    tools: [
+      "design_agent",
+      "brand_brain_reader",
+      "image_generator",
+      "asset_bank",
+    ],
+    suggestedAIEngine: "multimodal",
+    allowedKnowledgeSources: [
+      "client_brand_brain",
+      "brand_assets",
+      "briefings",
+      "strategy_rooms",
+      "deliverables",
+    ],
+    qualityGate: [
+      "Consistência visual com Brand Brain",
+      "Brandbook respeitado integralmente",
+      "Nenhum asset inventado fora do escopo",
+      "Versões para digital e impresso incluídas quando necessário",
+      "Briefing criativo aprovado antes do início",
+    ],
+    simulator: null,
+    trainingCenter: null,
+    evidenceTypes: [
+      "first_round_approval",
+      "brand_before_after",
+      "client_praise",
+    ],
+    humanApprovalTriggers: [
+      "identidade_visual_nova",
+      "revisao_3_ou_mais_rodadas",
+    ],
+    firstVersionStatus: "existing",
+  },
+  {
+    id: "paid-traffic",
+    name: "Tráfego Pago",
+    mission:
+      "Planejar e otimizar campanhas de mídia paga que geram resultados mensuráveis com eficiência de budget.",
+    responsibilities: [
+      "Estratégia de campanhas Meta e Google",
+      "Segmentação de públicos",
+      "Copy e estrutura de anúncios",
+      "Relatórios de performance",
+    ],
+    permissions: [
+      "Acessar Brand Brain e Strategy Room",
+      "Criar entregáveis de Ads",
+      "Visualizar budget e metas de campanha",
+    ],
+    forbiddenActions: [
+      "Iniciar campanha sem aprovação da proposta",
+      "Usar criativos sem aprovação do Design",
+      "Comprometer budget acima do autorizado",
+      "Combinar management fee com budget de mídia",
+    ],
+    tools: [
+      "ads_agent",
+      "meta_ads_integration",
+      "google_ads_integration",
+      "performance_analyzer",
+    ],
+    suggestedAIEngine: "analytical",
+    allowedKnowledgeSources: [
+      "client_brand_brain",
+      "strategy_rooms",
+      "briefings",
+      "deliverables",
+    ],
+    qualityGate: [
+      "Budget separado do management fee",
+      "Oferta clara e compreensível",
+      "Lógica de público coerente com Brand Brain",
+      "Objetivo SMART definido antes do início",
+      "Criativos aprovados pelo Design antes de uso",
+    ],
+    simulator: null,
+    trainingCenter: null,
+    evidenceTypes: [
+      "conversion_improvement",
+      "campaign_reach",
+      "revenue_leads_increase",
+    ],
+    humanApprovalTriggers: [
+      "budget_acima_de_threshold",
+      "campanha_para_público_novo",
+    ],
+    firstVersionStatus: "partial",
+  },
+  {
+    id: "project-management",
+    name: "Gestão de Projetos",
+    mission:
+      "Garantir que todos os projetos avancem no pipeline sem bloqueios e com alinhamento total com o cliente.",
+    responsibilities: [
+      "Criação e atualização de projetos",
+      "Envio e acompanhamento de propostas",
+      "Geração de tarefas operacionais",
+      "Coordenação entre departamentos",
+      "Comunicação com clientes",
+    ],
+    permissions: [
+      "Acessar todos os projetos e clientes",
+      "Criar e atualizar tarefas",
+      "Aprovar passagem de estágio no pipeline",
+      "Visualizar estado de todos os departamentos",
+    ],
+    forbiddenActions: [
+      "Aprovar entrega sem revisão do cliente",
+      "Iniciar produção sem proposta aprovada",
+    ],
+    tools: [
+      "pm_agent",
+      "auto_task_generator",
+      "pipeline_engine",
+      "timeline_generator",
+    ],
+    suggestedAIEngine: "operational",
+    allowedKnowledgeSources: [
+      "client_profile",
+      "projects",
+      "deliverables",
+      "briefings",
+      "strategy_rooms",
+      "brain_change_requests",
+      "quality_reviews",
+    ],
+    qualityGate: [
+      "Task tem dono claro",
+      "Prazo definido",
+      "Dependências mapeadas",
+      "Cliente alinhado antes de passagem de stage",
+    ],
+    simulator: null,
+    trainingCenter: null,
+    evidenceTypes: ["delivery_time_reduction", "first_round_approval"],
+    humanApprovalTriggers: [
+      "proposta_acima_de_threshold",
+      "cliente_em_conflito",
+      "projeto_parado_mais_de_5_dias",
+    ],
+    firstVersionStatus: "existing",
+  },
+  {
+    id: "quality",
+    name: "Qualidade",
+    mission: "Auditar e garantir que o padrão do Brain é respeitado em todas as entregas e handoffs.",
+    responsibilities: [
+      "Auditar entregas contra Quality Gate global e por departamento",
+      "Bloquear entregas que falham nos checks",
+      "Identificar padrões de falha para treinamento",
+      "Manter o Brain Director informado sobre gaps",
+    ],
+    permissions: [
+      "Acessar todos os departamentos",
+      "Bloquear entregas antes de envio ao cliente",
+      "Criar alertas de qualidade",
+      "Propor BrainChangeRequests",
+    ],
+    forbiddenActions: [
+      "Aprovar entrega sem executar Quality Gate",
+      "Ignorar alertas críticos por mais de 24h",
+    ],
+    tools: [
+      "system_doctor",
+      "quality_gate_runner",
+      "simulation_lab",
+    ],
+    suggestedAIEngine: "multi_model_audit",
+    allowedKnowledgeSources: [
+      "deliverables",
+      "quality_reviews",
+      "training_logs",
+      "improvement_suggestions",
+      "brain_change_requests",
+      "evidence",
+    ],
+    qualityGate: [
+      "Auditoria imparcial — modelo diferente do que gerou o output",
+      "Escalação quando necessário — sem omitir problemas",
+      "Justificativa registrada em toda rejeição",
+    ],
+    simulator: "lib/agency/training/runner.ts",
+    trainingCenter: "/agency/simulations/training",
+    evidenceTypes: ["first_round_approval", "client_praise"],
+    humanApprovalTriggers: ["entrega_crítica_com_risco_legal_ou_financeiro"],
+    firstVersionStatus: "partial",
+  },
+];
+
+export function getBrainDepartment(id: string): BrainDepartment | undefined {
+  return BRAIN_DEPARTMENTS.find((d) => d.id === id);
+}
+
+export function getBrainDepartmentsByStatus(
+  status: BrainDepartment["firstVersionStatus"]
+): BrainDepartment[] {
+  return BRAIN_DEPARTMENTS.filter((d) => d.firstVersionStatus === status);
+}

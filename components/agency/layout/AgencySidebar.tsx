@@ -107,6 +107,12 @@ export default function AgencySidebar({ userInfo }: { userInfo?: UserInfo | null
       ],
     },
     {
+      group: "Inteligência",
+      items: [
+        { label: "Dioli Brain", href: "/agency/brain", icon: BrainIcon },
+      ],
+    },
+    {
       group: t.nav.group.system,
       items: [
         { label: "Ferramentas & Integrações", href: "/agency/integrations", icon: IntegrationsIcon },
@@ -410,6 +416,17 @@ function PlusCircleIcon({ size = 16, className = "" }: { size?: number; classNam
     <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
       <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.3"/>
       <path d="M8 5v6M5 8h6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+    </svg>
+  );
+}
+function BrainIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
+      <path
+        d="M8 2C5.24 2 3 4.24 3 7c0 1.1.36 2.12.96 2.94C3.36 10.32 3 11.12 3 12c0 1.1.9 2 2 2h6c1.1 0 2-.9 2-2 0-.88-.36-1.68-.96-2.06C12.64 9.12 13 8.1 13 7c0-2.76-2.24-5-5-5z"
+        stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"
+      />
+      <path d="M6 7h4M7 9.5h2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
     </svg>
   );
 }
