@@ -11,9 +11,11 @@ import { BRAIN_STATUS_LABELS, BRAIN_STATUS_COLORS } from "@/lib/dioli-brain/depa
 import { GLOBAL_QUALITY_GATE, ALL_QUALITY_GATES } from "@/lib/dioli-brain/quality-gates";
 import { TRAINING_RULES, BRAIN_CHANGE_SOURCE_LABELS, BRAIN_CHANGE_STATUS_LABELS } from "@/lib/dioli-brain/training-policy";
 import { computeSDRScorecard } from "@/lib/dioli-brain/sdr-scorecard";
-import { computeSDRMaturity, MATURITY_LABELS, MATURITY_COLORS } from "@/lib/dioli-brain/department-maturity";
+import { computeSDRMaturity, computeStrategyMaturity, MATURITY_LABELS, MATURITY_COLORS } from "@/lib/dioli-brain/department-maturity";
+import { computeStrategyScorecard } from "@/lib/dioli-brain/strategy-scorecard";
 import { useAgencyStore } from "@/store/agency-store";
 import { useTrainingStore } from "@/store/training-store";
+import { useStrategyStore } from "@/store/strategy-store";
 
 const TAB_IDS = ["overview", "flow", "departments", "knowledge", "training", "quality", "director"] as const;
 type TabId = (typeof TAB_IDS)[number];
@@ -204,6 +206,115 @@ function SDRPilotPanel() {
   );
 }
 
+// ─── Strategy Department Panel ────────────────────────────────────────────────
+
+function StrategyDepartmentPanel() {
+  const { canvases, changeRequestCanvasIds } = useStrategyStore();
+
+  const scorecard = computeStrategyScorecard(canvases, changeRequestCanvasIds.length);
+  const maturity  = computeStrategyMaturity({
+    hasStrategyEngine:        true,
+    hasWorkspace:             true,
+    hasQualityGate:           true,
+    hasSimulator:             true,
+    hasTrainingStructure:     true,
+    hasGovernanceIntegration: true,
+    hasEvidenceTypes:         true,
+    strategiesCreated:            scorecard.strategiesCreated,
+    strategiesApproved:           scorecard.strategiesApproved,
+    brainChangeRequestsGenerated: scorecard.brainChangeRequestsGenerated,
+    qualityGatePassRate:          scorecard.qualityGatePassRate,
+  });
+
+  const statuses = [
+    { label: "Engine",        active: true },
+    { label: "Workspace",     active: true },
+    { label: "Quality Gate",  active: true },
+    { label: "Simulador",     active: true },
+    { label: "Treinamento",   active: true },
+    { label: "Governança",    active: true },
+    { label: "Evidência",     active: true },
+  ];
+
+  const scorecardMetrics = [
+    { label: "Criadas",          value: scorecard.strategiesCreated.toString() },
+    { label: "Aprovadas",        value: scorecard.strategiesApproved.toString() },
+    { label: "Aprovação",        value: `${scorecard.approvalRate}%` },
+    { label: "QG Pass",          value: scorecard.strategiesCreated > 0 ? `${scorecard.qualityGatePassRate}%` : "—" },
+    { label: "Roadmaps",         value: scorecard.roadmapsGenerated.toString() },
+    { label: "Territórios",      value: scorecard.territoriesDefined.toString() },
+    { label: "Evidências",       value: scorecard.evidenceGenerated.toString() },
+    { label: "Brain Changes",    value: scorecard.brainChangeRequestsGenerated.toString() },
+  ];
+
+  return (
+    <div className="rounded-[10px] border border-[#7C3AED]/30 bg-[#7C3AED]/[0.04] p-5 space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="text-[11px] font-semibold text-[#7C3AED] uppercase tracking-[0.08em]">
+          Segundo Departamento — Estratégia
+        </div>
+        <div className="flex items-center gap-2">
+          <span
+            className="text-[11px] font-bold px-2.5 py-0.5 rounded-full border"
+            style={{ color: maturity.color, borderColor: `${maturity.color}40`, background: `${maturity.color}15` }}
+          >
+            {MATURITY_LABELS[maturity.current]}
+          </span>
+          <span className="text-[10px] text-[#4A4A44]">{maturity.completionPct}% maturidade</span>
+        </div>
+      </div>
+
+      <p className="text-[12px] text-[#8A8A84] leading-relaxed">
+        Transforma clientes qualificados pelo SDR em direção estratégica: posicionamento, territórios de
+        conteúdo, direção de comunicação e roadmap. Não cria criativos finais nem lança campanhas.
+      </p>
+
+      {/* Active capability statuses */}
+      <div className="flex gap-2 flex-wrap">
+        {statuses.map((s) => (
+          <span
+            key={s.label}
+            className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${
+              s.active
+                ? "text-[#7C3AED] bg-[#7C3AED]/10 border-[#7C3AED]/20"
+                : "text-[#4A4A44] bg-white/[0.03] border-white/[0.06]"
+            }`}
+          >
+            {s.active ? "✓ " : "○ "}{s.label}
+          </span>
+        ))}
+      </div>
+
+      {/* Maturity criteria */}
+      <div className="grid grid-cols-2 gap-1.5">
+        {maturity.criteria.map((c) => (
+          <div key={c.id} className="flex items-center gap-1.5 text-[10px]">
+            <span className={c.met ? "text-[#7C3AED]" : "text-[#4A4A44]"}>
+              {c.met ? "✓" : "○"}
+            </span>
+            <span className={c.met ? "text-[#8A8A84]" : "text-[#4A4A44]"}>{c.label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Strategy Scorecard */}
+      <div className="border-t border-[#7C3AED]/20 pt-3">
+        <div className="text-[10px] font-semibold text-[#4A4A44] uppercase tracking-[0.06em] mb-2">
+          Scorecard Estratégia
+        </div>
+        <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
+          {scorecardMetrics.map((m) => (
+            <div key={m.label} className="text-center">
+              <div className="text-[15px] font-bold text-white">{m.value}</div>
+              <div className="text-[9px] text-[#4A4A44] mt-0.5">{m.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Overview Tab ─────────────────────────────────────────────────────────────
 
 function OverviewTab() {
@@ -270,6 +381,9 @@ function OverviewTab() {
 
       {/* Pilot — live metrics */}
       <SDRPilotPanel />
+
+      {/* Strategy Department — live metrics */}
+      <StrategyDepartmentPanel />
 
       {/* System map */}
       <SystemMapSection />

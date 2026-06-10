@@ -110,6 +110,7 @@ export default function AgencySidebar({ userInfo }: { userInfo?: UserInfo | null
       group: "Inteligência",
       items: [
         { label: "Dioli Brain", href: "/agency/brain", icon: BrainIcon },
+        { label: "Estratégia (Brain)", href: "/agency/strategy", icon: CompassIcon },
       ],
     },
     {
@@ -416,6 +417,14 @@ function PlusCircleIcon({ size = 16, className = "" }: { size?: number; classNam
     <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
       <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.3"/>
       <path d="M8 5v6M5 8h6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+    </svg>
+  );
+}
+function CompassIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
+      <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.3"/>
+      <path d="M10.5 5.5L9 9l-3.5 1.5L7 7l3.5-1.5z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
     </svg>
   );
 }

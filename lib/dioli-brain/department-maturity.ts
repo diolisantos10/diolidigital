@@ -45,6 +45,32 @@ export const MATURITY_DESCRIPTIONS: Record<DepartmentMaturity, string> = {
   autonomous:  "Departamento autônomo: aprendizado contínuo sem intervenção manual.",
 };
 
+// ── Shared maturity computation ───────────────────────────────────────────────
+
+function deriveMaturity(departmentId: string, criteria: MaturityCriterion[]): DepartmentMaturityInfo {
+  const metCount = criteria.filter((c) => c.met).length;
+  const completionPct = Math.round((metCount / criteria.length) * 100);
+
+  const stageMet = (stage: DepartmentMaturity) =>
+    criteria.filter((c) => c.stage === stage).every((c) => c.met);
+
+  let current: DepartmentMaturity = "draft";
+  if (stageMet("draft") && stageMet("partial") && stageMet("operational") && stageMet("optimizing") && stageMet("autonomous")) current = "autonomous";
+  else if (stageMet("draft") && stageMet("partial") && stageMet("operational") && stageMet("optimizing")) current = "optimizing";
+  else if (stageMet("draft") && stageMet("partial") && stageMet("operational")) current = "operational";
+  else if (stageMet("draft") && stageMet("partial")) current = "partial";
+
+  return {
+    departmentId,
+    current,
+    label:       MATURITY_LABELS[current],
+    color:       MATURITY_COLORS[current],
+    description: MATURITY_DESCRIPTIONS[current],
+    criteria,
+    completionPct,
+  };
+}
+
 export interface SDRMaturityInput {
   hasSimulator: boolean;
   hasTrainingCenter: boolean;
@@ -71,28 +97,39 @@ export function computeSDRMaturity(input: SDRMaturityInput): DepartmentMaturityI
     { id: "qg_pass_rate",     label: "Quality Gate pass rate ≥ 70%",                met: input.qualityGatePassRate >= 70,    stage: "autonomous" },
   ];
 
-  const metCount = criteria.filter((c) => c.met).length;
-  const completionPct = Math.round((metCount / criteria.length) * 100);
+  return deriveMaturity("client-service-sdr", criteria);
+}
 
-  const draftMet    = criteria.filter((c) => c.stage === "draft").every((c) => c.met);
-  const partialMet  = criteria.filter((c) => c.stage === "partial").every((c) => c.met);
-  const opMet       = criteria.filter((c) => c.stage === "operational").every((c) => c.met);
-  const optMet      = criteria.filter((c) => c.stage === "optimizing").every((c) => c.met);
-  const autoMet     = criteria.filter((c) => c.stage === "autonomous").every((c) => c.met);
+// ── Strategy Department maturity ──────────────────────────────────────────────
 
-  let current: DepartmentMaturity = "draft";
-  if (draftMet && partialMet && opMet && optMet && autoMet) current = "autonomous";
-  else if (draftMet && partialMet && opMet && optMet) current = "optimizing";
-  else if (draftMet && partialMet && opMet) current = "operational";
-  else if (draftMet && partialMet) current = "partial";
+export interface StrategyMaturityInput {
+  hasStrategyEngine: boolean;
+  hasWorkspace: boolean;
+  hasQualityGate: boolean;
+  hasSimulator: boolean;
+  hasTrainingStructure: boolean;
+  hasGovernanceIntegration: boolean;
+  hasEvidenceTypes: boolean;
+  strategiesCreated: number;
+  strategiesApproved: number;
+  brainChangeRequestsGenerated: number;
+  qualityGatePassRate: number;
+}
 
-  return {
-    departmentId:  "client-service-sdr",
-    current,
-    label:         MATURITY_LABELS[current],
-    color:         MATURITY_COLORS[current],
-    description:   MATURITY_DESCRIPTIONS[current],
-    criteria,
-    completionPct,
-  };
+export function computeStrategyMaturity(input: StrategyMaturityInput): DepartmentMaturityInfo {
+  const criteria: MaturityCriterion[] = [
+    { id: "types_defined",   label: "Departamento e Canvas definidos no Brain",     met: true,                                stage: "draft" },
+    { id: "engine",          label: "Strategy Engine com Fluxo Cognitivo",          met: input.hasStrategyEngine,             stage: "partial" },
+    { id: "workspace",       label: "Workspace /agency/strategy ativo",             met: input.hasWorkspace,                  stage: "partial" },
+    { id: "quality_gate",    label: "Quality Gate de 8 itens implementado",         met: input.hasQualityGate,                stage: "operational" },
+    { id: "simulator",       label: "Simulador de Estratégia no Laboratório",       met: input.hasSimulator,                  stage: "operational" },
+    { id: "training",        label: "Estrutura de treinamento definida",            met: input.hasTrainingStructure,          stage: "operational" },
+    { id: "governance",      label: "Integração com governança Brain ativa",        met: input.hasGovernanceIntegration,      stage: "operational" },
+    { id: "evidence",        label: "Evidence Layer com tipos de Estratégia",       met: input.hasEvidenceTypes,              stage: "operational" },
+    { id: "strategies",      label: "Estratégias aprovadas (≥ 3)",                  met: input.strategiesApproved >= 3,       stage: "optimizing" },
+    { id: "change_requests", label: "Brain Change Requests gerados (≥ 1)",          met: input.brainChangeRequestsGenerated >= 1, stage: "optimizing" },
+    { id: "qg_pass_rate",    label: "Quality Gate pass rate ≥ 70%",                met: input.qualityGatePassRate >= 70 && input.strategiesCreated >= 5, stage: "autonomous" },
+  ];
+
+  return deriveMaturity("strategy", criteria);
 }

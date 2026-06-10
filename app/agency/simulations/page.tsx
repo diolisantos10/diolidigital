@@ -29,6 +29,14 @@ const SIMULATORS: SimCard[] = [
     tag: "SDR · Avaliação",
   },
   {
+    id: "strategy",
+    label: "Simulador de Estratégia",
+    description: "Gere Strategy Canvases com cenários sintéticos (restaurante, e-commerce, clínica, academia…) e avalie a qualidade do Strategy Engine.",
+    status: "available",
+    href: "/agency/simulations/strategy",
+    tag: "Estratégia · Brain",
+  },
+  {
     id: "pm",
     label: "PM Agent",
     description: "Simule fluxos de gestão de projetos, aprovações e handoffs entre departamentos.",

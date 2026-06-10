@@ -135,6 +135,11 @@ export type EvidenceType =
   | "objection_resolved"
   | "budget_aligned"
   | "request_converted"
+  | "strategy_approved"
+  | "positioning_created"
+  | "content_territory_defined"
+  | "roadmap_created"
+  | "opportunity_identified"
   | "other";
 
 export type EvidenceApprovalStatus = "draft" | "pending_approval" | "approved" | "rejected";

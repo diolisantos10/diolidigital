@@ -19,6 +19,11 @@ export const EVIDENCE_TYPE_LABELS: Record<EvidenceType, string> = {
   objection_resolved:      "Objeção Resolvida",
   budget_aligned:          "Budget Alinhado",
   request_converted:       "Solicitação Convertida",
+  strategy_approved:          "Estratégia Aprovada",
+  positioning_created:        "Posicionamento Criado",
+  content_territory_defined:  "Território de Conteúdo Definido",
+  roadmap_created:            "Roadmap Criado",
+  opportunity_identified:     "Oportunidade Identificada",
   other:                   "Outro",
 };
 
@@ -37,6 +42,11 @@ export const EVIDENCE_TYPE_DESCRIPTIONS: Record<EvidenceType, string> = {
   objection_resolved:      "Objeção de preço, escopo ou prazo resolvida durante a conversa.",
   budget_aligned:          "Budget do prospect alinhado com estimativa de escopo aprovada.",
   request_converted:       "Solicitação de briefing convertida em projeto ativo.",
+  strategy_approved:          "Strategy Canvas aprovado e adotado como direção oficial.",
+  positioning_created:        "Posicionamento estratégico definido e validado para o cliente.",
+  content_territory_defined:  "Territórios de conteúdo definidos como base do calendário editorial.",
+  roadmap_created:            "Roadmap estratégico em fases criado e aprovado.",
+  opportunity_identified:     "Oportunidade de crescimento identificada na análise estratégica.",
   other:                   "Outro tipo de evidência de valor.",
 };
 
@@ -66,7 +76,10 @@ export function getEvidenceTypesByDepartment(departmentId: string): EvidenceType
       "briefing_completed", "qualified_lead", "proposal_generated",
       "objection_resolved", "budget_aligned", "request_converted",
     ],
-    strategy:              ["campaign_reach", "engagement_increase", "conversion_improvement"],
+    strategy:              [
+      "strategy_approved", "positioning_created", "content_territory_defined",
+      "roadmap_created", "opportunity_identified",
+    ],
     "social-media":        ["engagement_increase", "campaign_reach", "client_praise"],
     design:                ["first_round_approval", "brand_before_after", "client_praise"],
     "paid-traffic":        ["conversion_improvement", "campaign_reach", "revenue_leads_increase"],

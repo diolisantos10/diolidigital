@@ -283,6 +283,7 @@ const STATUS_FILTERS: { label: string; value: ClientRequestStatus | "all" }[] = 
   { label: "Novas",              value: "new" },
   { label: "Em Análise",        value: "under_review" },
   { label: "Aguardando Proposta", value: "proposal_pending" },
+  { label: "Aguardando Estratégia", value: "waiting_strategy" },
   { label: "Em Andamento",      value: "in_progress" },
   { label: "Aguardando Cliente",value: "waiting_client" },
   { label: "Concluídas",        value: "completed" },
@@ -946,6 +947,23 @@ export default function AgencyRequestsPage() {
                         </button>
                       </>
                     )}
+                    {req.sdrHandoff && req.status !== "waiting_strategy" && req.status !== "completed" && req.status !== "rejected" && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); updateClientRequest(req.id, { status: "waiting_strategy" }); }}
+                        className="h-8 px-4 rounded-[7px] border border-[#7C3AED] text-[#7C3AED] hover:bg-[#F5F3FF] text-[12px] font-medium transition-colors"
+                      >
+                        ⟶ Enviar para Estratégia
+                      </button>
+                    )}
+                    {req.status === "waiting_strategy" && (
+                      <Link
+                        href="/agency/strategy"
+                        onClick={(e) => e.stopPropagation()}
+                        className="h-8 px-4 rounded-[7px] bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-[12px] font-medium transition-colors inline-flex items-center"
+                      >
+                        Na fila de Estratégia →
+                      </Link>
+                    )}
                     <button
                       onClick={(e) => { e.stopPropagation(); openConversion(req); }}
                       className="h-8 px-4 rounded-[7px] border border-[#5B5BD6] text-[#5B5BD6] hover:bg-[#EEF0FF] text-[12px] font-medium transition-colors"
@@ -959,7 +977,7 @@ export default function AgencyRequestsPage() {
                         onChange={(e) => updateClientRequest(req.id, { status: e.target.value as ClientRequestStatus })}
                         className="ml-auto h-8 px-2 text-[12px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] text-[#6B6B65]"
                       >
-                        {(["new", "under_review", "proposal_pending", "in_progress", "waiting_client", "approved", "completed", "rejected"] as ClientRequestStatus[]).map((s) => (
+                        {(["new", "under_review", "proposal_pending", "waiting_strategy", "in_progress", "waiting_client", "approved", "completed", "rejected"] as ClientRequestStatus[]).map((s) => (
                           <option key={s} value={s}>{REQUEST_STATUS_LABEL[s]}</option>
                         ))}
                       </select>

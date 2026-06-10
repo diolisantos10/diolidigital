@@ -8,6 +8,7 @@ export type ClientRequestStatus =
   | "new"
   | "under_review"
   | "proposal_pending"
+  | "waiting_strategy"
   | "in_progress"
   | "waiting_client"
   | "approved"
@@ -97,6 +98,7 @@ export const REQUEST_STATUS_LABEL: Record<ClientRequestStatus, string> = {
   new:              "Nova",
   under_review:     "Em Análise",
   proposal_pending: "Aguardando Proposta",
+  waiting_strategy: "Aguardando Estratégia",
   in_progress:      "Em Andamento",
   waiting_client:   "Aguardando Cliente",
   approved:         "Aprovado",
@@ -108,6 +110,7 @@ export const REQUEST_STATUS_STYLE: Record<ClientRequestStatus, { bg: string; tex
   new:              { bg: "bg-[#EEF0FF]",  text: "text-[#5B5BD6]"  },
   under_review:     { bg: "bg-[#FEF3C7]",  text: "text-[#D97706]"  },
   proposal_pending: { bg: "bg-[#F0F0ED]",  text: "text-[#6B6B65]"  },
+  waiting_strategy: { bg: "bg-[#F5F3FF]",  text: "text-[#7C3AED]"  },
   in_progress:      { bg: "bg-[#DCFCE7]",  text: "text-[#16A34A]"  },
   waiting_client:   { bg: "bg-[#FEF3C7]",  text: "text-[#D97706]"  },
   approved:         { bg: "bg-[#DCFCE7]",  text: "text-[#15803D]"  },
