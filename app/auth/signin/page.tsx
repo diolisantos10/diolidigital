@@ -1,23 +1,54 @@
 "use client";
 
-import { useActionState, useState, useRef } from "react";
-import { signIn, type SignInResult } from "@/lib/auth/actions";
+import { useState, useRef, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 
-export default function SignInPage() {
-  const [result, action, pending] = useActionState<SignInResult | null, FormData>(
-    async (_, formData) => signIn(formData),
-    null
-  );
-  const [touched, setTouched] = useState(false);
+function SignInForm() {
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
+  const searchParams = useSearchParams();
 
-  const error = !touched && result && "error" in result ? result.error : null;
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    setPending(true);
+
+    const email = emailRef.current?.value ?? "";
+    const password = passwordRef.current?.value ?? "";
+
+    try {
+      const res = await fetch("/api/auth/signin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data: { ok?: boolean; error?: string } = await res.json();
+
+      if (res.ok && data.ok) {
+        const callback = searchParams.get("callbackUrl") ?? "";
+        const dest =
+          callback.startsWith("/agency/") ? callback : "/agency/dashboard";
+        // Hard navigation ensures the browser picks up the new session cookie.
+        window.location.replace(dest);
+        return;
+      }
+
+      setError(data.error ?? "Erro ao entrar. Tente novamente.");
+    } catch {
+      setError("Erro de rede. Verifique sua conexão.");
+    }
+
+    setPending(false);
+  }
 
   function fillDemo() {
     if (emailRef.current) emailRef.current.value = "master@dioli.studio";
     if (passwordRef.current) passwordRef.current.value = "dioli2025";
-    setTouched(false);
+    setError(null);
   }
 
   return (
@@ -40,7 +71,7 @@ export default function SignInPage() {
           <h1 className="text-[18px] font-semibold text-[#1A1A1A] mb-1">Entrar</h1>
           <p className="text-[13px] text-[#9B9B95] mb-6">Acesse o painel da agência</p>
 
-          <form action={action} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-[12px] font-semibold text-[#6B6B65] mb-1.5">
                 E-mail
@@ -53,7 +84,6 @@ export default function SignInPage() {
                 required
                 autoComplete="email"
                 placeholder="master@dioli.studio"
-                onChange={() => setTouched(true)}
                 className="w-full border border-[#E8E8E4] rounded-[8px] px-3 py-2.5 text-[13px] text-[#1A1A1A] bg-white focus:outline-none focus:ring-2 focus:ring-[#5B5BD6]/30 placeholder:text-[#C0C0BA]"
               />
             </div>
@@ -69,7 +99,6 @@ export default function SignInPage() {
                 required
                 autoComplete="current-password"
                 placeholder="••••••••"
-                onChange={() => setTouched(true)}
                 className="w-full border border-[#E8E8E4] rounded-[8px] px-3 py-2.5 text-[13px] text-[#1A1A1A] bg-white focus:outline-none focus:ring-2 focus:ring-[#5B5BD6]/30 placeholder:text-[#C0C0BA]"
               />
             </div>
@@ -112,5 +141,13 @@ export default function SignInPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense>
+      <SignInForm />
+    </Suspense>
   );
 }

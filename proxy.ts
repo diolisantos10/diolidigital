@@ -1,18 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
+import { getAuthSecret } from "@/lib/auth/secret";
 
 const SESSION_COOKIE = "dioli-session";
-
-// Must match the fallback in lib/auth/session.ts — both Edge and Node runtimes
-// need the same key. When AUTH_SECRET is set (production) this value is never used.
-const DEV_FALLBACK_SECRET = "dioli-dev-fallback-set-AUTH_SECRET-in-production";
-
-function getSecret(): Uint8Array {
-  const secret = process.env.AUTH_SECRET;
-  if (secret) return new TextEncoder().encode(secret);
-  return new TextEncoder().encode(DEV_FALLBACK_SECRET);
-}
-
 const AGENCY_PATTERN = /^\/agency(\/|$)/;
 const PUBLIC_PATHS = ["/auth/signin", "/auth/signout", "/portal/", "/api/"];
 
@@ -24,46 +14,68 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   }
 
   if (AGENCY_PATTERN.test(pathname)) {
+    // Obtain signing key — throws in production if AUTH_SECRET is not set.
+    let secret: Uint8Array;
+    try {
+      secret = getAuthSecret();
+    } catch (configErr) {
+      console.error("[AUTH] Config error:", configErr);
+      return new NextResponse(
+        "Authentication misconfigured: AUTH_SECRET is not set in Railway Variables.",
+        { status: 500 }
+      );
+    }
+
     const token = request.cookies.get(SESSION_COOKIE)?.value;
 
-    // Forensic log — one line per /agency request, visible in Railway logs.
-    // sec-fetch-dest=document → real navigation; =empty → fetch (RSC/Flight).
-    const meta = [
-      `pathname=${pathname}`,
-      `cookiePresent=${Boolean(token)}`,
-      `host=${request.headers.get("host")}`,
-      `xfProto=${request.headers.get("x-forwarded-proto")}`,
-      `xfHost=${request.headers.get("x-forwarded-host")}`,
-      `secFetchDest=${request.headers.get("sec-fetch-dest")}`,
-      `secFetchMode=${request.headers.get("sec-fetch-mode")}`,
-      `authSecretSet=${Boolean(process.env.AUTH_SECRET)}`,
-    ].join(" ");
+    if (process.env.AUTH_DEBUG === "true") {
+      console.log(
+        `[PROXY] pathname=${pathname}`,
+        `cookiePresent=${Boolean(token)}`,
+        `host=${request.headers.get("host")}`,
+        `xfProto=${request.headers.get("x-forwarded-proto")}`,
+        `secFetchDest=${request.headers.get("sec-fetch-dest")}`,
+        `authSecretSet=${Boolean(process.env.AUTH_SECRET)}`
+      );
+    }
 
     if (!token) {
-      console.log(`[PROXY] ${meta} sessionValid=false reason=no_cookie action=redirect_signin`);
-      const signinUrl = request.nextUrl.clone();
-      signinUrl.pathname = "/auth/signin";
-      signinUrl.search = "";
-      return NextResponse.redirect(signinUrl);
+      return buildSigninRedirect(request, pathname);
     }
+
     try {
-      const { payload } = await jwtVerify(token, getSecret());
-      const email = (payload as { email?: string }).email ?? "?";
-      console.log(`[PROXY] ${meta} sessionValid=true email=${email} action=next`);
+      await jwtVerify(token, secret);
       return NextResponse.next();
-    } catch (err) {
-      const errInfo = err instanceof Error ? `${err.name}:${err.message}` : String(err);
-      console.log(`[PROXY] ${meta} sessionValid=false reason=jwt_verify_failed err=${errInfo} action=redirect_signin_and_delete_cookie`);
-      const signinUrl = request.nextUrl.clone();
-      signinUrl.pathname = "/auth/signin";
-      signinUrl.search = "";
-      const response = NextResponse.redirect(signinUrl);
-      response.cookies.delete(SESSION_COOKIE);
+    } catch {
+      // JWT invalid or expired — clear cookie and send to signin.
+      const response = buildSigninRedirect(request, pathname);
+      response.cookies.set(SESSION_COOKIE, "", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 0,
+        path: "/",
+      });
       return response;
     }
   }
 
   return NextResponse.next();
+}
+
+function buildSigninRedirect(request: NextRequest, fromPath: string): NextResponse {
+  const url = request.nextUrl.clone();
+  url.pathname = "/auth/signin";
+  // Preserve the intended destination so the signin page can redirect back.
+  // Only /agency/* paths are allowed to prevent open-redirect attacks.
+  if (AGENCY_PATTERN.test(fromPath)) {
+    url.searchParams.set("callbackUrl", fromPath);
+  } else {
+    url.search = "";
+  }
+  const response = NextResponse.redirect(url);
+  response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
+  return response;
 }
 
 export const config = {
