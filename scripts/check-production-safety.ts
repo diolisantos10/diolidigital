@@ -41,11 +41,17 @@ const startShCode = startSh
 // ── 1. DATABASE_URL safety under NODE_ENV=production ─────────────────────────
 
 if (process.env.NODE_ENV === "production") {
-  const dbUrl = process.env.DATABASE_URL ?? "";
-  check("NODE_ENV=production: DATABASE_URL is set", dbUrl.length > 0);
+  const volumePath = process.env.RAILWAY_VOLUME_MOUNT_PATH ?? "";
+  // start.sh auto-defaults to SQLite on a mounted Railway Volume when
+  // DATABASE_URL is unset — mirror that here.
+  const dbUrl =
+    process.env.DATABASE_URL ?? (volumePath ? `file:${volumePath}/dioli.db` : "");
+  check(
+    "NODE_ENV=production: persistent database available (DATABASE_URL or Railway Volume)",
+    dbUrl.length > 0,
+  );
   // file: is allowed ONLY when it points inside a mounted Railway Volume
   // (persistent storage). Any other file: path is ephemeral and gets wiped.
-  const volumePath = process.env.RAILWAY_VOLUME_MOUNT_PATH ?? "";
   const isVolumeBacked =
     volumePath.length > 0 && dbUrl.startsWith(`file:${volumePath}/`);
   check(

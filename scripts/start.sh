@@ -26,10 +26,22 @@ fi
 if [ "$IS_PRODUCTION" = "true" ]; then
   echo "▶ Production startup (NODE_ENV=$NODE_ENV RAILWAY_ENVIRONMENT=${RAILWAY_ENVIRONMENT:-unset})"
 
-  # 1. DATABASE_URL must be set explicitly — no silent fallback in production.
+  # 0. Auto-configure: if DATABASE_URL is unset but a Railway Volume is
+  #    mounted, default to SQLite on the volume — persistent storage, safe.
+  if [ -z "$DATABASE_URL" ] && [ -n "$RAILWAY_VOLUME_MOUNT_PATH" ]; then
+    export DATABASE_URL="file:$RAILWAY_VOLUME_MOUNT_PATH/dioli.db"
+    echo "▶ DATABASE_URL not set — defaulting to Railway Volume: $DATABASE_URL"
+  fi
+
+  # 1. Without a volume, DATABASE_URL must be set explicitly — no ephemeral
+  #    fallback in production.
   if [ -z "$DATABASE_URL" ]; then
-    echo "✗ FATAL: DATABASE_URL is not set."
-    echo "  Add DATABASE_URL to Railway Variables (e.g. a libsql:// / Turso URL or managed database)."
+    echo "✗ FATAL: no persistent database available."
+    echo "  No DATABASE_URL variable and no Railway Volume mounted."
+    echo "  Fix with ONE of (Railway dashboard):"
+    echo "    a) Service → Settings → Volumes → Attach Volume (mount path: /data)."
+    echo "       Nothing else needed — startup auto-uses file:/data/dioli.db."
+    echo "    b) Variables → add DATABASE_URL (libsql://… Turso URL or managed DB)."
     exit 1
   fi
 
