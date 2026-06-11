@@ -33,14 +33,25 @@ if [ "$IS_PRODUCTION" = "true" ]; then
     exit 1
   fi
 
-  # 2. Block file: SQLite in production — Railway's filesystem is ephemeral,
-  #    so a file: database silently loses ALL data on every deploy.
+  # 2. Block ephemeral file: SQLite in production — Railway's container
+  #    filesystem is wiped on every deploy. EXCEPTION: a file: path inside a
+  #    mounted Railway Volume (RAILWAY_VOLUME_MOUNT_PATH) IS persistent and
+  #    therefore allowed.
   case "$DATABASE_URL" in
     file:*)
-      echo "✗ FATAL: DATABASE_URL uses a file: SQLite database in production."
-      echo "  Railway's filesystem is ephemeral — all data would be lost on every deploy."
-      echo "  Use a persistent database (libsql://… Turso, or a Railway volume-backed DB)."
-      exit 1
+      if [ -n "$RAILWAY_VOLUME_MOUNT_PATH" ] && \
+         [ "${DATABASE_URL#file:$RAILWAY_VOLUME_MOUNT_PATH/}" != "$DATABASE_URL" ]; then
+        echo "▶ SQLite on Railway Volume ($RAILWAY_VOLUME_MOUNT_PATH) — persistent storage, allowed."
+      else
+        echo "✗ FATAL: DATABASE_URL uses an ephemeral file: SQLite database in production."
+        echo "  Railway's container filesystem is wiped on every deploy — all data would be lost."
+        echo "  Fix with ONE of:"
+        echo "    a) Attach a Railway Volume (e.g. mount at /data) and set:"
+        echo "       DATABASE_URL=file:/data/dioli.db"
+        echo "    b) Use a remote persistent database:"
+        echo "       DATABASE_URL=libsql://<your-db>.turso.io?authToken=…"
+        exit 1
+      fi
       ;;
   esac
 

@@ -43,10 +43,19 @@ const startShCode = startSh
 if (process.env.NODE_ENV === "production") {
   const dbUrl = process.env.DATABASE_URL ?? "";
   check("NODE_ENV=production: DATABASE_URL is set", dbUrl.length > 0);
+  // file: is allowed ONLY when it points inside a mounted Railway Volume
+  // (persistent storage). Any other file: path is ephemeral and gets wiped.
+  const volumePath = process.env.RAILWAY_VOLUME_MOUNT_PATH ?? "";
+  const isVolumeBacked =
+    volumePath.length > 0 && dbUrl.startsWith(`file:${volumePath}/`);
   check(
-    "NODE_ENV=production: DATABASE_URL is not file: (ephemeral)",
-    !dbUrl.startsWith("file:"),
-    dbUrl.startsWith("file:") ? "file: SQLite is wiped on every Railway deploy" : undefined,
+    "NODE_ENV=production: DATABASE_URL is not ephemeral file:",
+    !dbUrl.startsWith("file:") || isVolumeBacked,
+    dbUrl.startsWith("file:")
+      ? isVolumeBacked
+        ? `volume-backed SQLite (${volumePath}) — persistent`
+        : "ephemeral file: SQLite is wiped on every Railway deploy"
+      : undefined,
   );
 } else {
   console.log("ℹ️  NODE_ENV is not production — runtime DATABASE_URL checks skipped (config checks still apply).");
