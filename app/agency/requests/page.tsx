@@ -288,6 +288,7 @@ const STATUS_FILTERS: { label: string; value: ClientRequestStatus | "all" }[] = 
   { label: "Aguardando Design", value: "waiting_design" },
   { label: "Aguardando Tráfego", value: "waiting_traffic" },
   { label: "Aguardando Analytics", value: "waiting_analytics" },
+  { label: "Aguardando Quality", value: "waiting_quality" },
   { label: "Em Andamento",      value: "in_progress" },
   { label: "Aguardando Cliente",value: "waiting_client" },
   { label: "Concluídas",        value: "completed" },
@@ -951,7 +952,7 @@ export default function AgencyRequestsPage() {
                         </button>
                       </>
                     )}
-                    {req.sdrHandoff && req.status !== "waiting_strategy" && req.status !== "waiting_social" && req.status !== "waiting_design" && req.status !== "waiting_traffic" && req.status !== "waiting_analytics" && req.status !== "completed" && req.status !== "rejected" && (
+                    {req.sdrHandoff && req.status !== "waiting_strategy" && req.status !== "waiting_social" && req.status !== "waiting_design" && req.status !== "waiting_traffic" && req.status !== "waiting_analytics" && req.status !== "waiting_quality" && req.status !== "completed" && req.status !== "rejected" && (
                       <button
                         onClick={(e) => { e.stopPropagation(); updateClientRequest(req.id, { status: "waiting_strategy" }); }}
                         className="h-8 px-4 rounded-[7px] border border-[#7C3AED] text-[#7C3AED] hover:bg-[#F5F3FF] text-[12px] font-medium transition-colors"
@@ -995,6 +996,15 @@ export default function AgencyRequestsPage() {
                         Na fila de Analytics →
                       </Link>
                     )}
+                    {req.status === "waiting_quality" && (
+                      <Link
+                        href="/agency/quality"
+                        onClick={(e) => e.stopPropagation()}
+                        className="h-8 px-4 rounded-[7px] bg-[#5B5BD6] hover:bg-[#4A4AC4] text-white text-[12px] font-medium transition-colors inline-flex items-center"
+                      >
+                        Na fila de Quality →
+                      </Link>
+                    )}
                     {req.status === "waiting_social" && (
                       <Link
                         href="/agency/social"
@@ -1017,7 +1027,7 @@ export default function AgencyRequestsPage() {
                         onChange={(e) => updateClientRequest(req.id, { status: e.target.value as ClientRequestStatus })}
                         className="ml-auto h-8 px-2 text-[12px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] text-[#6B6B65]"
                       >
-                        {(["new", "under_review", "proposal_pending", "waiting_strategy", "waiting_social", "waiting_design", "waiting_traffic", "waiting_analytics", "in_progress", "waiting_client", "approved", "completed", "rejected"] as ClientRequestStatus[]).map((s) => (
+                        {(["new", "under_review", "proposal_pending", "waiting_strategy", "waiting_social", "waiting_design", "waiting_traffic", "waiting_analytics", "waiting_quality", "in_progress", "waiting_client", "approved", "completed", "rejected"] as ClientRequestStatus[]).map((s) => (
                           <option key={s} value={s}>{REQUEST_STATUS_LABEL[s]}</option>
                         ))}
                       </select>

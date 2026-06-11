@@ -21,7 +21,7 @@ const FILTERS: { label: string; value: CanvasFilter }[] = [
 ];
 
 export default function QualityWorkspacePage() {
-  const { addActivity } = useAgencyStore();
+  const { addActivity, updateClientRequest } = useAgencyStore();
   const { canvases: strategyCanvases } = useStrategyStore();
   const { canvases: socialCanvases }   = useSocialStore();
   const { canvases: designCanvases }   = useDesignStore();
@@ -54,7 +54,8 @@ export default function QualityWorkspacePage() {
   function handleApprove(canvas: QualityCanvas, note?: string) {
     if (canvas.overallVerdict === "BLOCKED") return;
     reviewCanvas(canvas.id, "approved", note);
-    addActivity({ type: "intelligence_run", message: `Quality Audit aprovado: ${canvas.clientName}` });
+    if (canvas.requestId) updateClientRequest(canvas.requestId, { status: "in_progress" });
+    addActivity({ type: "intelligence_run", message: `Quality Audit aprovado: ${canvas.clientName} — pipeline Brain concluído` });
   }
 
   async function handleProposeBrainChange(canvas: QualityCanvas) {

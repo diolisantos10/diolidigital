@@ -965,8 +965,53 @@ function OverviewTab() {
       {/* Quality Department — live metrics */}
       <QualityDepartmentPanel />
 
+      {/* Department Pipeline */}
+      <DepartmentPipelineSection />
+
       {/* System map */}
       <SystemMapSection />
+    </div>
+  );
+}
+
+function DepartmentPipelineSection() {
+  const PIPELINE_STEPS = [
+    { step: 1, dept: "SDR",       status: "waiting_strategy", label: "Atendimento / SDR",  color: "#5B5BD6", href: "/agency/requests" },
+    { step: 2, dept: "Strategy",  status: "waiting_social",   label: "Estratégia",         color: "#7C3AED", href: "/agency/strategy" },
+    { step: 3, dept: "Social",    status: "waiting_design",   label: "Social Media",       color: "#DB2777", href: "/agency/social" },
+    { step: 4, dept: "Design",    status: "waiting_traffic",  label: "Design",             color: "#EA580C", href: "/agency/design" },
+    { step: 5, dept: "Traffic",   status: "waiting_analytics",label: "Tráfego Pago",       color: "#0284C7", href: "/agency/traffic" },
+    { step: 6, dept: "Analytics", status: "waiting_quality",  label: "Analytics",          color: "#16A34A", href: "/agency/analytics" },
+    { step: 7, dept: "Quality",   status: "in_progress",      label: "Quality",            color: "#5B5BD6", href: "/agency/quality" },
+  ];
+
+  return (
+    <div className="rounded-[10px] border border-white/[0.06] bg-[#111111] p-5">
+      <div className="text-[11px] font-semibold text-[#4A4A44] uppercase tracking-[0.08em] mb-4">
+        Pipeline de Departamentos — Fase 1 Completa
+      </div>
+      <div className="flex items-start gap-0 overflow-x-auto pb-1">
+        {PIPELINE_STEPS.map((s, i) => (
+          <div key={s.dept} className="flex items-center shrink-0">
+            <div className="flex flex-col items-center gap-1.5 w-[88px]">
+              <div
+                className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0"
+                style={{ background: s.color }}
+              >
+                {s.step}
+              </div>
+              <div className="text-[10px] font-semibold text-white text-center leading-tight">{s.label}</div>
+              <div className="text-[9px] text-[#4A4A44] text-center leading-tight font-mono">{s.status}</div>
+            </div>
+            {i < PIPELINE_STEPS.length - 1 && (
+              <div className="w-6 h-px bg-[#2A2A2A] shrink-0 mb-5" />
+            )}
+          </div>
+        ))}
+      </div>
+      <div className="mt-3 pt-3 border-t border-white/[0.04] text-[11px] text-[#4A4A44]">
+        Cada departamento gera um Canvas aprovado antes de avançar para o próximo. Quality encerra o loop Brain.
+      </div>
     </div>
   );
 }

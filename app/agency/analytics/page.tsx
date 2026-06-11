@@ -57,8 +57,8 @@ export default function AnalyticsWorkspacePage() {
   function handleApprove(canvas: AnalyticsCanvas, note?: string) {
     if (canvas.qualityGateResult.overall === "FAIL") return;
     reviewCanvas(canvas.id, "approved", note);
-    if (canvas.requestId) updateClientRequest(canvas.requestId, { status: "in_progress" });
-    addActivity({ type: "intelligence_run", message: `Analytics Canvas aprovado: ${canvas.clientName}` });
+    if (canvas.requestId) updateClientRequest(canvas.requestId, { status: "waiting_quality" });
+    addActivity({ type: "intelligence_run", message: `Analytics Canvas aprovado: ${canvas.clientName} — enviado para Quality` });
   }
 
   async function handleProposeBrainChange(canvas: AnalyticsCanvas) {
