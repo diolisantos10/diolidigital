@@ -7,13 +7,17 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build && cp -r .next/static .next/standalone/.next/static && cp -r public .next/standalone/public && cp .env .next/standalone/.env 2>/dev/null || true && npm run db:provision",
-    "db:provision": "DATABASE_URL=\"file:$(pwd)/.next/standalone/dev.db\" prisma db push --accept-data-loss && DATABASE_URL=\"file:$(pwd)/.next/standalone/dev.db\" node scripts/seed-db.mjs",
+    "build": "prisma generate && next build && cp -r .next/static .next/standalone/.next/static && cp -r public .next/standalone/public",
+    "build:dev": "npm run build && cp .env .next/standalone/.env 2>/dev/null || true && npm run db:provision:dev",
+    "db:provision:dev": "DATABASE_URL=\"file:$(pwd)/.next/standalone/dev.db\" prisma db push --accept-data-loss && DATABASE_URL=\"file:$(pwd)/.next/standalone/dev.db\" node scripts/seed-db.mjs",
     "start": "sh scripts/start.sh",
+    "start:dev": "sh scripts/start-dev.sh",
     "lint": "eslint",
     "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
     "db:seed": "node scripts/seed-db.mjs",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "check:production-safety": "tsx scripts/check-production-safety.ts"
   },
   "prisma": {
     "seed": "node scripts/seed-db.mjs"
