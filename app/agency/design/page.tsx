@@ -9,6 +9,7 @@ import { computeDesignScorecard } from "@/lib/dioli-brain/design-scorecard";
 import { buildDesignChangeRequestInput } from "@/lib/dioli-brain/design-training";
 import type { SocialCanvas } from "@/lib/dioli-brain/social-canvas";
 import type { DesignCanvas, DesignAssetStatus } from "@/lib/dioli-brain/design-canvas";
+import { saveArtifactToDb } from "@/lib/agency/persistence/save-artifact";
 
 type CanvasFilter = "all" | "draft" | "approved" | "rejected";
 
@@ -59,6 +60,13 @@ export default function DesignWorkspacePage() {
     reviewCanvas(canvas.id, "approved", note);
     if (canvas.requestId) {
       updateClientRequest(canvas.requestId, { status: "waiting_traffic" });
+      saveArtifactToDb({
+        clientRequestId: canvas.requestId,
+        department: "design",
+        canvasId: canvas.id,
+        canvas,
+        qualityGate: canvas.qualityGateResult,
+      });
     }
     addActivity({
       type: "intelligence_run",

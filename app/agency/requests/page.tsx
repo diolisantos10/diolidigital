@@ -389,12 +389,51 @@ export default function AgencyRequestsPage() {
   const {
     clientRequests, clients, projects, currentRole,
     updateClientRequest, setRequestAnalysis, createProject, createBriefing, addMaterialRequest,
-    deleteClientRequest, deleteClientRequestsByClient,
+    deleteClientRequest, deleteClientRequestsByClient, addActivity,
   } = useAgencyStore();
 
   // Destructive controls are master-only — never shown to other internal roles
   // and never reachable from the client portal.
   const isMaster = currentRole === "master";
+
+  const PIPELINE_ORDER: ClientRequestStatus[] = [
+    "new", "under_review", "proposal_pending",
+    "waiting_strategy", "waiting_social", "waiting_design",
+    "waiting_traffic", "waiting_analytics", "waiting_quality",
+    "in_progress", "waiting_client", "approved", "completed",
+  ];
+
+  function handleManualStatusOverride(req: ClientRequest, newStatus: ClientRequestStatus) {
+    if (newStatus === req.status) return;
+    const fromIdx = PIPELINE_ORDER.indexOf(req.status);
+    const toIdx   = PIPELINE_ORDER.indexOf(newStatus);
+    const isSkip  = fromIdx >= 0 && toIdx >= 0 && Math.abs(toIdx - fromIdx) > 2;
+
+    if (isSkip) {
+      const reason = window.prompt(
+        `Atenção: saltar de "${REQUEST_STATUS_LABEL[req.status]}" para "${REQUEST_STATUS_LABEL[newStatus]}" pula ${Math.abs(toIdx - fromIdx) - 1} etapa(s) do pipeline.\n\nInforme o motivo do override:`
+      );
+      if (reason === null) return; // cancelled
+      if (!reason.trim()) {
+        window.alert("Motivo obrigatório para alteração manual de status.");
+        return;
+      }
+      updateClientRequest(req.id, { status: newStatus });
+      addActivity({
+        type: "intelligence_run",
+        message: `Override manual: ${req.title ?? req.id} de "${REQUEST_STATUS_LABEL[req.status]}" → "${REQUEST_STATUS_LABEL[newStatus]}". Motivo: ${reason.trim()}`,
+        clientId: req.clientId,
+      });
+      return;
+    }
+
+    updateClientRequest(req.id, { status: newStatus });
+    addActivity({
+      type: "intelligence_run",
+      message: `Status alterado manualmente: ${req.title ?? req.id} → "${REQUEST_STATUS_LABEL[newStatus]}"`,
+      clientId: req.clientId,
+    });
+  }
 
   const [activeFilter, setActiveFilter]   = useState<ClientRequestStatus | "all">("all");
   const [sourceFilter, setSourceFilter]   = useState<"all" | "public_briefing" | "client_portal">("all");
@@ -1024,7 +1063,7 @@ export default function AgencyRequestsPage() {
                       <select
                         value={req.status}
                         onClick={(e) => e.stopPropagation()}
-                        onChange={(e) => updateClientRequest(req.id, { status: e.target.value as ClientRequestStatus })}
+                        onChange={(e) => handleManualStatusOverride(req, e.target.value as ClientRequestStatus)}
                         className="ml-auto h-8 px-2 text-[12px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] text-[#6B6B65]"
                       >
                         {(["new", "under_review", "proposal_pending", "waiting_strategy", "waiting_social", "waiting_design", "waiting_traffic", "waiting_analytics", "waiting_quality", "in_progress", "waiting_client", "approved", "completed", "rejected"] as ClientRequestStatus[]).map((s) => (

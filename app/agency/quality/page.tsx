@@ -12,6 +12,7 @@ import { QualityAuditCard } from "@/components/agency/quality/QualityAuditCard";
 import { computeQualityScorecard } from "@/lib/dioli-brain/quality-scorecard";
 import { buildQualityChangeRequestInput } from "@/lib/dioli-brain/quality-training";
 import type { QualityCanvas } from "@/lib/dioli-brain/quality-canvas";
+import { saveArtifactToDb } from "@/lib/agency/persistence/save-artifact";
 
 type CanvasFilter = "all" | "draft" | "approved" | "rejected";
 
@@ -54,7 +55,15 @@ export default function QualityWorkspacePage() {
   function handleApprove(canvas: QualityCanvas, note?: string) {
     if (canvas.overallVerdict === "BLOCKED") return;
     reviewCanvas(canvas.id, "approved", note);
-    if (canvas.requestId) updateClientRequest(canvas.requestId, { status: "in_progress" });
+    if (canvas.requestId) {
+      updateClientRequest(canvas.requestId, { status: "in_progress" });
+      saveArtifactToDb({
+        clientRequestId: canvas.requestId,
+        department: "quality",
+        canvasId: canvas.id,
+        canvas,
+      });
+    }
     addActivity({ type: "intelligence_run", message: `Quality Audit aprovado: ${canvas.clientName} — pipeline Brain concluído` });
   }
 

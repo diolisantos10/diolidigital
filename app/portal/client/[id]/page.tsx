@@ -12,6 +12,7 @@ import { PORTAL_SAFE_BRAND_FIELDS, BRAND_FIELD_LABELS } from "@/lib/agency/roles
 import { parseBrandBook, type ParsedBrandField } from "@/lib/agency/brand-parser";
 import DeliverablePreview from "@/components/agency/deliverables/DeliverablePreview";
 import { REQUEST_STATUS_LABEL, REQUEST_STATUS_STYLE } from "@/lib/agency/client-requests";
+import { BrainPipelinePortalSection } from "@/components/agency/portal/BrainPipelinePortalSection";
 
 
 const STAGE_LABEL: Record<ProjectStage, string> = {
@@ -405,6 +406,9 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
           </div>
         </div>
       )}
+
+      {/* ── Brain Pipeline (DB-backed) ────────────────────────────────────── */}
+      <BrainPipelinePortalSection clientId={id} />
 
       {/* ── Resumo do Projeto ─────────────────────────────────────────────── */}
       {cp.totalDeliverables > 0 && (() => {

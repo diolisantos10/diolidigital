@@ -9,6 +9,7 @@ import { AnalyticsCanvasCard } from "@/components/agency/analytics/AnalyticsCanv
 import { computeAnalyticsScorecard } from "@/lib/dioli-brain/analytics-scorecard";
 import { buildAnalyticsChangeRequestInput } from "@/lib/dioli-brain/analytics-training";
 import type { AnalyticsCanvas } from "@/lib/dioli-brain/analytics-canvas";
+import { saveArtifactToDb } from "@/lib/agency/persistence/save-artifact";
 
 type CanvasFilter = "all" | "draft" | "approved" | "rejected";
 
@@ -57,7 +58,16 @@ export default function AnalyticsWorkspacePage() {
   function handleApprove(canvas: AnalyticsCanvas, note?: string) {
     if (canvas.qualityGateResult.overall === "FAIL") return;
     reviewCanvas(canvas.id, "approved", note);
-    if (canvas.requestId) updateClientRequest(canvas.requestId, { status: "waiting_quality" });
+    if (canvas.requestId) {
+      updateClientRequest(canvas.requestId, { status: "waiting_quality" });
+      saveArtifactToDb({
+        clientRequestId: canvas.requestId,
+        department: "analytics",
+        canvasId: canvas.id,
+        canvas,
+        qualityGate: canvas.qualityGateResult,
+      });
+    }
     addActivity({ type: "intelligence_run", message: `Analytics Canvas aprovado: ${canvas.clientName} — enviado para Quality` });
   }
 

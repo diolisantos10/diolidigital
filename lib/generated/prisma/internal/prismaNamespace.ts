@@ -405,7 +405,13 @@ export const ModelName = {
   DbAgentSuggestion: 'DbAgentSuggestion',
   TrainingAlert: 'TrainingAlert',
   BrainChangeRequest: 'BrainChangeRequest',
-  BrainVersion: 'BrainVersion'
+  BrainVersion: 'BrainVersion',
+  ClientRequestDb: 'ClientRequestDb',
+  BrainArtifact: 'BrainArtifact',
+  ApprovalRequest: 'ApprovalRequest',
+  ApprovalComment: 'ApprovalComment',
+  EvidenceItem: 'EvidenceItem',
+  PortalAccess: 'PortalAccess'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -421,7 +427,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "deliverable" | "materialRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "deliverable" | "materialRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "portalAccess"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2053,6 +2059,450 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    ClientRequestDb: {
+      payload: Prisma.$ClientRequestDbPayload<ExtArgs>
+      fields: Prisma.ClientRequestDbFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ClientRequestDbFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientRequestDbPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ClientRequestDbFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientRequestDbPayload>
+        }
+        findFirst: {
+          args: Prisma.ClientRequestDbFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientRequestDbPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ClientRequestDbFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientRequestDbPayload>
+        }
+        findMany: {
+          args: Prisma.ClientRequestDbFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientRequestDbPayload>[]
+        }
+        create: {
+          args: Prisma.ClientRequestDbCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientRequestDbPayload>
+        }
+        createMany: {
+          args: Prisma.ClientRequestDbCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ClientRequestDbCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientRequestDbPayload>[]
+        }
+        delete: {
+          args: Prisma.ClientRequestDbDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientRequestDbPayload>
+        }
+        update: {
+          args: Prisma.ClientRequestDbUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientRequestDbPayload>
+        }
+        deleteMany: {
+          args: Prisma.ClientRequestDbDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ClientRequestDbUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ClientRequestDbUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientRequestDbPayload>[]
+        }
+        upsert: {
+          args: Prisma.ClientRequestDbUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientRequestDbPayload>
+        }
+        aggregate: {
+          args: Prisma.ClientRequestDbAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateClientRequestDb>
+        }
+        groupBy: {
+          args: Prisma.ClientRequestDbGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ClientRequestDbGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ClientRequestDbCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ClientRequestDbCountAggregateOutputType> | number
+        }
+      }
+    }
+    BrainArtifact: {
+      payload: Prisma.$BrainArtifactPayload<ExtArgs>
+      fields: Prisma.BrainArtifactFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BrainArtifactFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrainArtifactPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BrainArtifactFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrainArtifactPayload>
+        }
+        findFirst: {
+          args: Prisma.BrainArtifactFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrainArtifactPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BrainArtifactFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrainArtifactPayload>
+        }
+        findMany: {
+          args: Prisma.BrainArtifactFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrainArtifactPayload>[]
+        }
+        create: {
+          args: Prisma.BrainArtifactCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrainArtifactPayload>
+        }
+        createMany: {
+          args: Prisma.BrainArtifactCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BrainArtifactCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrainArtifactPayload>[]
+        }
+        delete: {
+          args: Prisma.BrainArtifactDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrainArtifactPayload>
+        }
+        update: {
+          args: Prisma.BrainArtifactUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrainArtifactPayload>
+        }
+        deleteMany: {
+          args: Prisma.BrainArtifactDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BrainArtifactUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BrainArtifactUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrainArtifactPayload>[]
+        }
+        upsert: {
+          args: Prisma.BrainArtifactUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BrainArtifactPayload>
+        }
+        aggregate: {
+          args: Prisma.BrainArtifactAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBrainArtifact>
+        }
+        groupBy: {
+          args: Prisma.BrainArtifactGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrainArtifactGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BrainArtifactCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BrainArtifactCountAggregateOutputType> | number
+        }
+      }
+    }
+    ApprovalRequest: {
+      payload: Prisma.$ApprovalRequestPayload<ExtArgs>
+      fields: Prisma.ApprovalRequestFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ApprovalRequestFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApprovalRequestPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ApprovalRequestFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApprovalRequestPayload>
+        }
+        findFirst: {
+          args: Prisma.ApprovalRequestFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApprovalRequestPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ApprovalRequestFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApprovalRequestPayload>
+        }
+        findMany: {
+          args: Prisma.ApprovalRequestFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApprovalRequestPayload>[]
+        }
+        create: {
+          args: Prisma.ApprovalRequestCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApprovalRequestPayload>
+        }
+        createMany: {
+          args: Prisma.ApprovalRequestCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ApprovalRequestCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApprovalRequestPayload>[]
+        }
+        delete: {
+          args: Prisma.ApprovalRequestDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApprovalRequestPayload>
+        }
+        update: {
+          args: Prisma.ApprovalRequestUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApprovalRequestPayload>
+        }
+        deleteMany: {
+          args: Prisma.ApprovalRequestDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ApprovalRequestUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ApprovalRequestUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApprovalRequestPayload>[]
+        }
+        upsert: {
+          args: Prisma.ApprovalRequestUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApprovalRequestPayload>
+        }
+        aggregate: {
+          args: Prisma.ApprovalRequestAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateApprovalRequest>
+        }
+        groupBy: {
+          args: Prisma.ApprovalRequestGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ApprovalRequestGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ApprovalRequestCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ApprovalRequestCountAggregateOutputType> | number
+        }
+      }
+    }
+    ApprovalComment: {
+      payload: Prisma.$ApprovalCommentPayload<ExtArgs>
+      fields: Prisma.ApprovalCommentFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ApprovalCommentFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApprovalCommentPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ApprovalCommentFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApprovalCommentPayload>
+        }
+        findFirst: {
+          args: Prisma.ApprovalCommentFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApprovalCommentPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ApprovalCommentFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApprovalCommentPayload>
+        }
+        findMany: {
+          args: Prisma.ApprovalCommentFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApprovalCommentPayload>[]
+        }
+        create: {
+          args: Prisma.ApprovalCommentCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApprovalCommentPayload>
+        }
+        createMany: {
+          args: Prisma.ApprovalCommentCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ApprovalCommentCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApprovalCommentPayload>[]
+        }
+        delete: {
+          args: Prisma.ApprovalCommentDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApprovalCommentPayload>
+        }
+        update: {
+          args: Prisma.ApprovalCommentUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApprovalCommentPayload>
+        }
+        deleteMany: {
+          args: Prisma.ApprovalCommentDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ApprovalCommentUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ApprovalCommentUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApprovalCommentPayload>[]
+        }
+        upsert: {
+          args: Prisma.ApprovalCommentUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApprovalCommentPayload>
+        }
+        aggregate: {
+          args: Prisma.ApprovalCommentAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateApprovalComment>
+        }
+        groupBy: {
+          args: Prisma.ApprovalCommentGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ApprovalCommentGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ApprovalCommentCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ApprovalCommentCountAggregateOutputType> | number
+        }
+      }
+    }
+    EvidenceItem: {
+      payload: Prisma.$EvidenceItemPayload<ExtArgs>
+      fields: Prisma.EvidenceItemFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.EvidenceItemFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EvidenceItemPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.EvidenceItemFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EvidenceItemPayload>
+        }
+        findFirst: {
+          args: Prisma.EvidenceItemFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EvidenceItemPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.EvidenceItemFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EvidenceItemPayload>
+        }
+        findMany: {
+          args: Prisma.EvidenceItemFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EvidenceItemPayload>[]
+        }
+        create: {
+          args: Prisma.EvidenceItemCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EvidenceItemPayload>
+        }
+        createMany: {
+          args: Prisma.EvidenceItemCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.EvidenceItemCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EvidenceItemPayload>[]
+        }
+        delete: {
+          args: Prisma.EvidenceItemDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EvidenceItemPayload>
+        }
+        update: {
+          args: Prisma.EvidenceItemUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EvidenceItemPayload>
+        }
+        deleteMany: {
+          args: Prisma.EvidenceItemDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.EvidenceItemUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.EvidenceItemUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EvidenceItemPayload>[]
+        }
+        upsert: {
+          args: Prisma.EvidenceItemUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EvidenceItemPayload>
+        }
+        aggregate: {
+          args: Prisma.EvidenceItemAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateEvidenceItem>
+        }
+        groupBy: {
+          args: Prisma.EvidenceItemGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.EvidenceItemGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.EvidenceItemCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.EvidenceItemCountAggregateOutputType> | number
+        }
+      }
+    }
+    PortalAccess: {
+      payload: Prisma.$PortalAccessPayload<ExtArgs>
+      fields: Prisma.PortalAccessFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.PortalAccessFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalAccessPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.PortalAccessFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalAccessPayload>
+        }
+        findFirst: {
+          args: Prisma.PortalAccessFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalAccessPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.PortalAccessFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalAccessPayload>
+        }
+        findMany: {
+          args: Prisma.PortalAccessFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalAccessPayload>[]
+        }
+        create: {
+          args: Prisma.PortalAccessCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalAccessPayload>
+        }
+        createMany: {
+          args: Prisma.PortalAccessCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.PortalAccessCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalAccessPayload>[]
+        }
+        delete: {
+          args: Prisma.PortalAccessDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalAccessPayload>
+        }
+        update: {
+          args: Prisma.PortalAccessUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalAccessPayload>
+        }
+        deleteMany: {
+          args: Prisma.PortalAccessDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.PortalAccessUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.PortalAccessUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalAccessPayload>[]
+        }
+        upsert: {
+          args: Prisma.PortalAccessUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalAccessPayload>
+        }
+        aggregate: {
+          args: Prisma.PortalAccessAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregatePortalAccess>
+        }
+        groupBy: {
+          args: Prisma.PortalAccessGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PortalAccessGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.PortalAccessCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PortalAccessCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -2450,6 +2900,108 @@ export const BrainVersionScalarFieldEnum = {
 export type BrainVersionScalarFieldEnum = (typeof BrainVersionScalarFieldEnum)[keyof typeof BrainVersionScalarFieldEnum]
 
 
+export const ClientRequestDbScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  clientId: 'clientId',
+  businessName: 'businessName',
+  segment: 'segment',
+  services: 'services',
+  objectives: 'objectives',
+  status: 'status',
+  source: 'source',
+  rawContext: 'rawContext',
+  briefingJson: 'briefingJson',
+  sdrHandoffJson: 'sdrHandoffJson',
+  attachmentsJson: 'attachmentsJson',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ClientRequestDbScalarFieldEnum = (typeof ClientRequestDbScalarFieldEnum)[keyof typeof ClientRequestDbScalarFieldEnum]
+
+
+export const BrainArtifactScalarFieldEnum = {
+  id: 'id',
+  clientRequestId: 'clientRequestId',
+  department: 'department',
+  canvasId: 'canvasId',
+  canvasJson: 'canvasJson',
+  qualityGateJson: 'qualityGateJson',
+  cognitiveFlowJson: 'cognitiveFlowJson',
+  version: 'version',
+  status: 'status',
+  approvedAt: 'approvedAt',
+  approvedBy: 'approvedBy',
+  createdAt: 'createdAt'
+} as const
+
+export type BrainArtifactScalarFieldEnum = (typeof BrainArtifactScalarFieldEnum)[keyof typeof BrainArtifactScalarFieldEnum]
+
+
+export const ApprovalRequestScalarFieldEnum = {
+  id: 'id',
+  clientRequestId: 'clientRequestId',
+  artifactId: 'artifactId',
+  department: 'department',
+  requestedBy: 'requestedBy',
+  status: 'status',
+  reviewedBy: 'reviewedBy',
+  reviewedAt: 'reviewedAt',
+  expiresAt: 'expiresAt',
+  reviewNote: 'reviewNote',
+  clientVisible: 'clientVisible',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ApprovalRequestScalarFieldEnum = (typeof ApprovalRequestScalarFieldEnum)[keyof typeof ApprovalRequestScalarFieldEnum]
+
+
+export const ApprovalCommentScalarFieldEnum = {
+  id: 'id',
+  approvalRequestId: 'approvalRequestId',
+  authorName: 'authorName',
+  authorRole: 'authorRole',
+  body: 'body',
+  isClientVisible: 'isClientVisible',
+  createdAt: 'createdAt'
+} as const
+
+export type ApprovalCommentScalarFieldEnum = (typeof ApprovalCommentScalarFieldEnum)[keyof typeof ApprovalCommentScalarFieldEnum]
+
+
+export const EvidenceItemScalarFieldEnum = {
+  id: 'id',
+  clientRequestId: 'clientRequestId',
+  artifactId: 'artifactId',
+  department: 'department',
+  type: 'type',
+  label: 'label',
+  valueJson: 'valueJson',
+  sourceUrl: 'sourceUrl',
+  createdAt: 'createdAt'
+} as const
+
+export type EvidenceItemScalarFieldEnum = (typeof EvidenceItemScalarFieldEnum)[keyof typeof EvidenceItemScalarFieldEnum]
+
+
+export const PortalAccessScalarFieldEnum = {
+  id: 'id',
+  token: 'token',
+  clientRequestId: 'clientRequestId',
+  clientId: 'clientId',
+  grantedAt: 'grantedAt',
+  expiresAt: 'expiresAt',
+  revokedAt: 'revokedAt',
+  lastAccessedAt: 'lastAccessedAt',
+  accessCount: 'accessCount',
+  createdAt: 'createdAt'
+} as const
+
+export type PortalAccessScalarFieldEnum = (typeof PortalAccessScalarFieldEnum)[keyof typeof PortalAccessScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -2638,6 +3190,12 @@ export type GlobalOmitConfig = {
   trainingAlert?: Prisma.TrainingAlertOmit
   brainChangeRequest?: Prisma.BrainChangeRequestOmit
   brainVersion?: Prisma.BrainVersionOmit
+  clientRequestDb?: Prisma.ClientRequestDbOmit
+  brainArtifact?: Prisma.BrainArtifactOmit
+  approvalRequest?: Prisma.ApprovalRequestOmit
+  approvalComment?: Prisma.ApprovalCommentOmit
+  evidenceItem?: Prisma.EvidenceItemOmit
+  portalAccess?: Prisma.PortalAccessOmit
 }
 
 /* Types for Logging */

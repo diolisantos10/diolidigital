@@ -8,6 +8,7 @@ import { computeStrategyScorecard } from "@/lib/dioli-brain/strategy-scorecard";
 import { buildStrategyChangeRequestInput } from "@/lib/dioli-brain/strategy-training";
 import type { ClientRequest } from "@/lib/agency/client-requests";
 import type { StrategyCanvas } from "@/lib/dioli-brain/strategy-canvas";
+import { saveArtifactToDb } from "@/lib/agency/persistence/save-artifact";
 
 type CanvasFilter = "all" | "draft" | "approved" | "rejected";
 
@@ -59,10 +60,18 @@ export default function StrategyWorkspacePage() {
   }
 
   function handleApprove(canvas: StrategyCanvas, note?: string) {
+    if (canvas.qualityGateResult.overall === "FAIL") return;
     reviewCanvas(canvas.id, "approved", note);
-    // Strategy → Social handoff: approved strategy enters the Social queue.
     if (canvas.requestId) {
       updateClientRequest(canvas.requestId, { status: "waiting_social" });
+      saveArtifactToDb({
+        clientRequestId: canvas.requestId,
+        department: "strategy",
+        canvasId: canvas.id,
+        canvas,
+        qualityGate: canvas.qualityGateResult,
+        cognitiveFlow: canvas.cognitiveFlowTrace,
+      });
     }
     addActivity({
       type: "intelligence_run",

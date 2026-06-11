@@ -10,7 +10,7 @@ export default function BriefingPage() {
   const [submitted, setSubmitted] = useState(false);
   const [submittedId, setSubmittedId] = useState<string | null>(null);
 
-  function handleSubmit(data: PublicBriefingRoomSubmitData) {
+  async function handleSubmit(data: PublicBriefingRoomSubmitData) {
     const id = addClientRequest({
       clientId: `prospect-${Date.now()}`,
       source: "public_briefing",
@@ -29,6 +29,31 @@ export default function BriefingPage() {
       prospectPhone: data.prospectPhone,
       sdrHandoff: data.sdrHandoff,
     });
+
+    // Dual-write to DB — non-blocking, failure does not prevent local submission
+    try {
+      await fetch("/api/brain/client-requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          businessName:   data.prospectName ?? data.title,
+          segment:        data.extractedSummary.segment,
+          services:       data.extractedSummary.services,
+          objectives:     data.extractedSummary.objectives,
+          rawContext:     data.rawText,
+          source:         "briefing",
+          briefingJson:   { transcript: data.conversationTranscript, scope: data.v2Scope, estimate: data.v2Estimate },
+          sdrHandoffJson: data.sdrHandoff ?? null,
+          attachmentsJson: data.attachments.map((a) => ({
+            id: a.id, fileName: a.fileName, fileType: a.fileType, sizeBytes: a.sizeBytes,
+          })),
+        }),
+      });
+    } catch {
+      // DB write failure is non-fatal — local store is the fallback
+      console.warn("[briefing] DB dual-write failed — request saved locally only");
+    }
+
     setSubmittedId(id);
     setSubmitted(true);
   }

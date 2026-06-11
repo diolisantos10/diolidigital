@@ -9,6 +9,7 @@ import { computeTrafficScorecard } from "@/lib/dioli-brain/traffic-scorecard";
 import { buildTrafficChangeRequestInput } from "@/lib/dioli-brain/traffic-training";
 import type { StrategyCanvas } from "@/lib/dioli-brain/strategy-canvas";
 import type { TrafficCanvas } from "@/lib/dioli-brain/traffic-canvas";
+import { saveArtifactToDb } from "@/lib/agency/persistence/save-artifact";
 
 type CanvasFilter = "all" | "draft" | "approved" | "rejected";
 type BudgetScenario = "low" | "medium" | "high" | "premium";
@@ -49,7 +50,16 @@ export default function TrafficWorkspacePage() {
   function handleApprove(canvas: TrafficCanvas, note?: string) {
     if (canvas.qualityGateResult.overall === "FAIL") return;
     reviewCanvas(canvas.id, "approved", note);
-    if (canvas.requestId) updateClientRequest(canvas.requestId, { status: "waiting_analytics" });
+    if (canvas.requestId) {
+      updateClientRequest(canvas.requestId, { status: "waiting_analytics" });
+      saveArtifactToDb({
+        clientRequestId: canvas.requestId,
+        department: "traffic",
+        canvasId: canvas.id,
+        canvas,
+        qualityGate: canvas.qualityGateResult,
+      });
+    }
     addActivity({ type: "intelligence_run", message: `Traffic Canvas aprovado: ${canvas.clientName} — enviado para Analytics` });
   }
 

@@ -9,6 +9,7 @@ import { computeSocialScorecard } from "@/lib/dioli-brain/social-scorecard";
 import { buildSocialChangeRequestInput } from "@/lib/dioli-brain/social-training";
 import type { StrategyCanvas } from "@/lib/dioli-brain/strategy-canvas";
 import type { SocialCanvas } from "@/lib/dioli-brain/social-canvas";
+import { saveArtifactToDb } from "@/lib/agency/persistence/save-artifact";
 
 type CanvasFilter = "all" | "draft" | "approved" | "rejected";
 
@@ -57,12 +58,18 @@ export default function SocialWorkspacePage() {
   }
 
   function handleApprove(canvas: SocialCanvas, note?: string) {
-    // FAIL blocks approval (also enforced in the card UI).
     if (canvas.qualityGateResult.overall === "FAIL") return;
     reviewCanvas(canvas.id, "approved", note);
-    // Approved plan hands off to Design department.
     if (canvas.requestId) {
       updateClientRequest(canvas.requestId, { status: "waiting_design" });
+      saveArtifactToDb({
+        clientRequestId: canvas.requestId,
+        department: "social",
+        canvasId: canvas.id,
+        canvas,
+        qualityGate: canvas.qualityGateResult,
+        cognitiveFlow: (canvas as { cognitiveFlowTrace?: object }).cognitiveFlowTrace,
+      });
     }
     addActivity({
       type: "intelligence_run",

@@ -395,3 +395,108 @@ model BrainVersion {
   createdAt       DateTime @default(now())
 }
 
+// ─── Foundation Sprint: Brain Pipeline Persistence ────────────────────────────
+
+// DB-backed client request — source of truth for the real workflow.
+// Zustand localStorage remains as labeled prototype/simulation layer.
+model ClientRequestDb {
+  id              String   @id @default(cuid())
+  workspaceId     String?
+  clientId        String?
+  businessName    String
+  segment         String   @default("")
+  // JSON-encoded string arrays
+  services        String   @default("[]")
+  objectives      String   @default("[]")
+  status          String   @default("new")
+  source          String   @default("briefing")
+  rawContext      String   @default("")
+  briefingJson    String?
+  sdrHandoffJson  String?
+  attachmentsJson String   @default("[]")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  artifacts     BrainArtifact[]
+  approvals     ApprovalRequest[]
+  evidenceItems EvidenceItem[]
+  portalAccess  PortalAccess[]
+}
+
+// One record per department approval — persists canvas payload + gate + trace.
+model BrainArtifact {
+  id                String   @id @default(cuid())
+  clientRequestId   String
+  clientRequest     ClientRequestDb @relation(fields: [clientRequestId], references: [id], onDelete: Cascade)
+  department        String
+  canvasId          String
+  canvasJson        String
+  qualityGateJson   String?
+  cognitiveFlowJson String?
+  version           Int      @default(1)
+  status            String   @default("approved")
+  approvedAt        DateTime @default(now())
+  approvedBy        String   @default("internal")
+  createdAt         DateTime @default(now())
+}
+
+// Formal approval flow — one record per department review cycle.
+model ApprovalRequest {
+  id              String   @id @default(cuid())
+  clientRequestId String
+  clientRequest   ClientRequestDb @relation(fields: [clientRequestId], references: [id], onDelete: Cascade)
+  artifactId      String?
+  department      String
+  requestedBy     String   @default("internal")
+  status          String   @default("pending")
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  expiresAt       DateTime?
+  reviewNote      String?
+  clientVisible   Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  comments ApprovalComment[]
+}
+
+model ApprovalComment {
+  id                String   @id @default(cuid())
+  approvalRequestId String
+  approvalRequest   ApprovalRequest @relation(fields: [approvalRequestId], references: [id], onDelete: Cascade)
+  authorName        String
+  authorRole        String   @default("internal")
+  body              String
+  isClientVisible   Boolean  @default(false)
+  createdAt         DateTime @default(now())
+}
+
+// Evidence items tied to a request or artifact — persisted to DB.
+model EvidenceItem {
+  id              String   @id @default(cuid())
+  clientRequestId String?
+  clientRequest   ClientRequestDb? @relation(fields: [clientRequestId], references: [id])
+  artifactId      String?
+  department      String
+  type            String
+  label           String
+  valueJson       String   @default("{}")
+  sourceUrl       String?
+  createdAt       DateTime @default(now())
+}
+
+// Granular, time-limited portal access per client request.
+model PortalAccess {
+  id              String    @id @default(cuid())
+  token           String    @unique @default(cuid())
+  clientRequestId String?
+  clientRequest   ClientRequestDb? @relation(fields: [clientRequestId], references: [id])
+  clientId        String?
+  grantedAt       DateTime  @default(now())
+  expiresAt       DateTime?
+  revokedAt       DateTime?
+  lastAccessedAt  DateTime?
+  accessCount     Int       @default(0)
+  createdAt       DateTime  @default(now())
+}
+

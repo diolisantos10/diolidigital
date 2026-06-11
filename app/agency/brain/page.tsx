@@ -970,6 +970,9 @@ function OverviewTab() {
 
       {/* System map */}
       <SystemMapSection />
+
+      {/* Sushi Cazza pilot readiness */}
+      <PilotReadinessChecklist />
     </div>
   );
 }
@@ -1054,6 +1057,84 @@ function SystemMapSection() {
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+// ─── Pilot Readiness Checklist ────────────────────────────────────────────────
+
+type CheckStatus = "done" | "partial" | "blocked";
+
+interface CheckItem {
+  label: string;
+  status: CheckStatus;
+  note?: string;
+}
+
+const PILOT_CHECKS: CheckItem[] = [
+  { status: "done",    label: "Modelos DB persistidos (ClientRequestDb, BrainArtifact, ApprovalRequest, EvidenceItem, PortalAccess)" },
+  { status: "done",    label: "Briefing público grava em DB (dual-write: Zustand + API)" },
+  { status: "done",    label: "FAIL bloqueia aprovação em todos os departamentos (incluindo Estratégia)" },
+  { status: "done",    label: "Aprovações de departamento persistem BrainArtifact no DB" },
+  { status: "done",    label: "APIs brain/client-requests, brain/artifacts, brain/approvals, brain/evidence criadas" },
+  { status: "done",    label: "Portal cliente: seção Brain Pipeline lê do DB em tempo real" },
+  { status: "done",    label: "Rota /portal/access/[token] valida PortalAccess e renderiza pipeline" },
+  { status: "done",    label: "Override manual de status requer motivo e registra atividade" },
+  { status: "partial", label: "Portal cliente: deliverables e propostas ainda lêem do Zustand (localStorage)", note: "Migração incremental pendente" },
+  { status: "partial", label: "Aprovação formal do cliente via ApprovalRequest (API existe, UI pendente)", note: "Fluxo backend pronto, tela cliente não criada" },
+  { status: "partial", label: "Evidências persistidas no DB via API (saveEvidenceToDb pendente nas UIs de depto)", note: "API pronta, chamadas de UI pendentes" },
+  { status: "blocked", label: "SQLite ephemeral no Railway: dados apagados a cada deploy (db:provision --accept-data-loss)", note: "Necessário migrar para Postgres ou proteger seed antes do piloto real" },
+];
+
+function PilotReadinessChecklist() {
+  const done    = PILOT_CHECKS.filter((c) => c.status === "done").length;
+  const partial = PILOT_CHECKS.filter((c) => c.status === "partial").length;
+  const blocked = PILOT_CHECKS.filter((c) => c.status === "blocked").length;
+
+  const statusStyle: Record<CheckStatus, { icon: string; color: string; bg: string }> = {
+    done:    { icon: "✓", color: "#16A34A", bg: "#DCFCE7" },
+    partial: { icon: "~", color: "#D97706", bg: "#FEF3C7" },
+    blocked: { icon: "✗", color: "#DC2626", bg: "#FEE2E2" },
+  };
+
+  return (
+    <div>
+      <SectionTitle>Prontidão para Piloto Sushi Cazza</SectionTitle>
+      <div className="rounded-[10px] border border-white/[0.06] bg-[#111111] p-4 mb-3">
+        <div className="flex items-center gap-4 mb-3">
+          <span className="text-[11px] text-[#6B6B65]">
+            <span className="text-[#16A34A] font-bold">{done}</span> concluídos ·{" "}
+            <span className="text-[#D97706] font-bold">{partial}</span> parciais ·{" "}
+            <span className="text-[#DC2626] font-bold">{blocked}</span> bloqueados
+          </span>
+          <span className={`ml-auto h-6 px-3 rounded-full text-[10px] font-semibold flex items-center ${
+            blocked > 0 ? "bg-[#FEE2E2] text-[#DC2626]" : partial > 0 ? "bg-[#FEF3C7] text-[#D97706]" : "bg-[#DCFCE7] text-[#16A34A]"
+          }`}>
+            {blocked > 0 ? "NÃO PRONTO" : partial > 0 ? "QUASE PRONTO" : "PRONTO"}
+          </span>
+        </div>
+        <div className="space-y-2">
+          {PILOT_CHECKS.map((item, i) => {
+            const s = statusStyle[item.status];
+            return (
+              <div key={i} className="flex items-start gap-2.5">
+                <div
+                  className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 mt-0.5"
+                  style={{ background: s.bg, color: s.color }}
+                >
+                  {s.icon}
+                </div>
+                <div>
+                  <p className="text-[11px] text-[#C0C0BC] leading-tight">{item.label}</p>
+                  {item.note && (
+                    <p className="text-[10px] text-[#6B6B65] mt-0.5 italic">{item.note}</p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

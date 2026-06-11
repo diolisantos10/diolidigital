@@ -127,3 +127,33 @@ export type BrainChangeRequest = Prisma.BrainChangeRequestModel
  * 
  */
 export type BrainVersion = Prisma.BrainVersionModel
+/**
+ * Model ClientRequestDb
+ * 
+ */
+export type ClientRequestDb = Prisma.ClientRequestDbModel
+/**
+ * Model BrainArtifact
+ * 
+ */
+export type BrainArtifact = Prisma.BrainArtifactModel
+/**
+ * Model ApprovalRequest
+ * 
+ */
+export type ApprovalRequest = Prisma.ApprovalRequestModel
+/**
+ * Model ApprovalComment
+ * 
+ */
+export type ApprovalComment = Prisma.ApprovalCommentModel
+/**
+ * Model EvidenceItem
+ * 
+ */
+export type EvidenceItem = Prisma.EvidenceItemModel
+/**
+ * Model PortalAccess
+ * 
+ */
+export type PortalAccess = Prisma.PortalAccessModel

@@ -72,7 +72,13 @@ export const ModelName = {
   DbAgentSuggestion: 'DbAgentSuggestion',
   TrainingAlert: 'TrainingAlert',
   BrainChangeRequest: 'BrainChangeRequest',
-  BrainVersion: 'BrainVersion'
+  BrainVersion: 'BrainVersion',
+  ClientRequestDb: 'ClientRequestDb',
+  BrainArtifact: 'BrainArtifact',
+  ApprovalRequest: 'ApprovalRequest',
+  ApprovalComment: 'ApprovalComment',
+  EvidenceItem: 'EvidenceItem',
+  PortalAccess: 'PortalAccess'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -447,6 +453,108 @@ export const BrainVersionScalarFieldEnum = {
 } as const
 
 export type BrainVersionScalarFieldEnum = (typeof BrainVersionScalarFieldEnum)[keyof typeof BrainVersionScalarFieldEnum]
+
+
+export const ClientRequestDbScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  clientId: 'clientId',
+  businessName: 'businessName',
+  segment: 'segment',
+  services: 'services',
+  objectives: 'objectives',
+  status: 'status',
+  source: 'source',
+  rawContext: 'rawContext',
+  briefingJson: 'briefingJson',
+  sdrHandoffJson: 'sdrHandoffJson',
+  attachmentsJson: 'attachmentsJson',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ClientRequestDbScalarFieldEnum = (typeof ClientRequestDbScalarFieldEnum)[keyof typeof ClientRequestDbScalarFieldEnum]
+
+
+export const BrainArtifactScalarFieldEnum = {
+  id: 'id',
+  clientRequestId: 'clientRequestId',
+  department: 'department',
+  canvasId: 'canvasId',
+  canvasJson: 'canvasJson',
+  qualityGateJson: 'qualityGateJson',
+  cognitiveFlowJson: 'cognitiveFlowJson',
+  version: 'version',
+  status: 'status',
+  approvedAt: 'approvedAt',
+  approvedBy: 'approvedBy',
+  createdAt: 'createdAt'
+} as const
+
+export type BrainArtifactScalarFieldEnum = (typeof BrainArtifactScalarFieldEnum)[keyof typeof BrainArtifactScalarFieldEnum]
+
+
+export const ApprovalRequestScalarFieldEnum = {
+  id: 'id',
+  clientRequestId: 'clientRequestId',
+  artifactId: 'artifactId',
+  department: 'department',
+  requestedBy: 'requestedBy',
+  status: 'status',
+  reviewedBy: 'reviewedBy',
+  reviewedAt: 'reviewedAt',
+  expiresAt: 'expiresAt',
+  reviewNote: 'reviewNote',
+  clientVisible: 'clientVisible',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ApprovalRequestScalarFieldEnum = (typeof ApprovalRequestScalarFieldEnum)[keyof typeof ApprovalRequestScalarFieldEnum]
+
+
+export const ApprovalCommentScalarFieldEnum = {
+  id: 'id',
+  approvalRequestId: 'approvalRequestId',
+  authorName: 'authorName',
+  authorRole: 'authorRole',
+  body: 'body',
+  isClientVisible: 'isClientVisible',
+  createdAt: 'createdAt'
+} as const
+
+export type ApprovalCommentScalarFieldEnum = (typeof ApprovalCommentScalarFieldEnum)[keyof typeof ApprovalCommentScalarFieldEnum]
+
+
+export const EvidenceItemScalarFieldEnum = {
+  id: 'id',
+  clientRequestId: 'clientRequestId',
+  artifactId: 'artifactId',
+  department: 'department',
+  type: 'type',
+  label: 'label',
+  valueJson: 'valueJson',
+  sourceUrl: 'sourceUrl',
+  createdAt: 'createdAt'
+} as const
+
+export type EvidenceItemScalarFieldEnum = (typeof EvidenceItemScalarFieldEnum)[keyof typeof EvidenceItemScalarFieldEnum]
+
+
+export const PortalAccessScalarFieldEnum = {
+  id: 'id',
+  token: 'token',
+  clientRequestId: 'clientRequestId',
+  clientId: 'clientId',
+  grantedAt: 'grantedAt',
+  expiresAt: 'expiresAt',
+  revokedAt: 'revokedAt',
+  lastAccessedAt: 'lastAccessedAt',
+  accessCount: 'accessCount',
+  createdAt: 'createdAt'
+} as const
+
+export type PortalAccessScalarFieldEnum = (typeof PortalAccessScalarFieldEnum)[keyof typeof PortalAccessScalarFieldEnum]
 
 
 export const SortOrder = {
