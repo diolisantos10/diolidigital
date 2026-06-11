@@ -36,6 +36,11 @@ export const EVIDENCE_TYPE_LABELS: Record<EvidenceType, string> = {
   visual_identity_created:       "Identidade Visual Criada",
   asset_delivered:               "Asset Entregue",
   design_first_round_approval:   "Design Aprovado na 1ª Rodada",
+  traffic_canvas_approved:       "Traffic Canvas Aprovado",
+  campaign_launched:             "Campanha Lançada",
+  leads_generated:               "Leads Gerados via Tráfego Pago",
+  roas_achieved:                 "ROAS Atingido",
+  cac_reduced:                   "CAC Reduzido",
   other:                         "Outro",
 };
 
@@ -71,6 +76,11 @@ export const EVIDENCE_TYPE_DESCRIPTIONS: Record<EvidenceType, string> = {
   visual_identity_created:       "Identidade visual criada ou atualizada com base no Brand Brain.",
   asset_delivered:               "Asset visual entregue conforme os requisitos do calendário editorial.",
   design_first_round_approval:   "Peça de design aprovada pelo cliente sem rodadas de revisão.",
+  traffic_canvas_approved:       "Traffic Canvas aprovado com estrutura de campanhas e budget validados.",
+  campaign_launched:             "Campanha de mídia paga lançada dentro do plano aprovado.",
+  leads_generated:               "Leads gerados via tráfego pago dentro do CPL projetado.",
+  roas_achieved:                 "ROAS projetado atingido ou superado em campanha aprovada.",
+  cac_reduced:                   "CAC reduzido em relação ao baseline anterior da conta.",
   other:                         "Outro tipo de evidência de valor.",
 };
 
@@ -110,7 +120,7 @@ export function getEvidenceTypesByDepartment(departmentId: string): EvidenceType
       "social_strategy_executed",
     ],
     design:                ["design_canvas_approved", "creative_brief_executed", "visual_identity_created", "asset_delivered", "design_first_round_approval"],
-    "paid-traffic":        ["conversion_improvement", "campaign_reach", "revenue_leads_increase"],
+    "paid-traffic":        ["traffic_canvas_approved", "campaign_launched", "leads_generated", "roas_achieved", "cac_reduced"],
     "project-management":  ["delivery_time_reduction", "first_round_approval"],
     analytics:             ["conversion_improvement", "revenue_leads_increase"],
     quality:               ["first_round_approval", "client_praise"],

@@ -152,6 +152,11 @@ export type EvidenceType =
   | "visual_identity_created"
   | "asset_delivered"
   | "design_first_round_approval"
+  | "traffic_canvas_approved"
+  | "campaign_launched"
+  | "leads_generated"
+  | "roas_achieved"
+  | "cac_reduced"
   | "other";
 
 export type EvidenceApprovalStatus = "draft" | "pending_approval" | "approved" | "rejected";

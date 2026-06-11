@@ -207,3 +207,41 @@ export function computeDesignMaturity(input: DesignMaturityInput): DepartmentMat
 
   return deriveMaturity("design", criteria);
 }
+
+// ── Paid Traffic Department maturity ─────────────────────────────────────────
+
+export interface TrafficMaturityInput {
+  hasTrafficEngine: boolean;
+  hasWorkspace: boolean;
+  hasQualityGate: boolean;
+  hasBudgetModel: boolean;
+  hasAudienceModel: boolean;
+  hasSimulator: boolean;
+  hasTrainingStructure: boolean;
+  hasGovernanceIntegration: boolean;
+  hasEvidenceTypes: boolean;
+  canvasesCreated: number;
+  canvasesApproved: number;
+  brainChangeRequestsGenerated: number;
+  qualityGatePassRate: number;
+}
+
+export function computeTrafficMaturity(input: TrafficMaturityInput): DepartmentMaturityInfo {
+  const criteria: MaturityCriterion[] = [
+    { id: "types_defined",    label: "Departamento e TrafficCanvas definidos no Brain",  met: true,                                    stage: "draft" },
+    { id: "engine",           label: "Traffic Engine com Fluxo Cognitivo",               met: input.hasTrafficEngine,                  stage: "partial" },
+    { id: "workspace",        label: "Workspace /agency/traffic ativo",                  met: input.hasWorkspace,                      stage: "partial" },
+    { id: "quality_gate",     label: "Quality Gate de 10 itens implementado",            met: input.hasQualityGate,                    stage: "operational" },
+    { id: "budget_model",     label: "Modelo de budget (low/medium/high/premium)",       met: input.hasBudgetModel,                    stage: "operational" },
+    { id: "audience_model",   label: "Audience Model por segmento",                      met: input.hasAudienceModel,                  stage: "operational" },
+    { id: "simulator",        label: "Simulador de Tráfego no Laboratório",              met: input.hasSimulator,                      stage: "operational" },
+    { id: "training",         label: "Estrutura de treinamento definida",                met: input.hasTrainingStructure,              stage: "operational" },
+    { id: "governance",       label: "Integração com governança Brain ativa",            met: input.hasGovernanceIntegration,          stage: "operational" },
+    { id: "evidence",         label: "Evidence Layer com tipos de Tráfego",              met: input.hasEvidenceTypes,                  stage: "operational" },
+    { id: "canvases",         label: "Traffic Canvases aprovados (≥ 3)",                 met: input.canvasesApproved >= 3,             stage: "optimizing" },
+    { id: "change_requests",  label: "Brain Change Requests gerados (≥ 1)",              met: input.brainChangeRequestsGenerated >= 1, stage: "optimizing" },
+    { id: "qg_pass_rate",     label: "Quality Gate pass rate ≥ 70%",                    met: input.qualityGatePassRate >= 70 && input.canvasesCreated >= 5, stage: "autonomous" },
+  ];
+
+  return deriveMaturity("paid-traffic", criteria);
+}

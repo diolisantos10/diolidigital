@@ -113,6 +113,7 @@ export default function AgencySidebar({ userInfo }: { userInfo?: UserInfo | null
         { label: "Estratégia (Brain)", href: "/agency/strategy", icon: CompassIcon },
         { label: "Social (Brain)", href: "/agency/social", icon: SocialIcon },
         { label: "Design (Brain)", href: "/agency/design", icon: DesignIcon },
+        { label: "Tráfego (Brain)", href: "/agency/traffic", icon: AdsIcon },
       ],
     },
     {

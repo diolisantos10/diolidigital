@@ -58,11 +58,11 @@ export default function DesignWorkspacePage() {
     if (canvas.qualityGateResult.overall === "FAIL") return;
     reviewCanvas(canvas.id, "approved", note);
     if (canvas.requestId) {
-      updateClientRequest(canvas.requestId, { status: "proposal_pending" });
+      updateClientRequest(canvas.requestId, { status: "waiting_traffic" });
     }
     addActivity({
       type: "intelligence_run",
-      message: `Design Canvas aprovado: ${canvas.clientName}`,
+      message: `Design Canvas aprovado: ${canvas.clientName} — enviado para Tráfego`,
     });
   }
 

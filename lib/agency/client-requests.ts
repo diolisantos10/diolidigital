@@ -11,6 +11,7 @@ export type ClientRequestStatus =
   | "waiting_strategy"
   | "waiting_social"
   | "waiting_design"
+  | "waiting_traffic"
   | "in_progress"
   | "waiting_client"
   | "approved"
@@ -103,6 +104,7 @@ export const REQUEST_STATUS_LABEL: Record<ClientRequestStatus, string> = {
   waiting_strategy: "Aguardando Estratégia",
   waiting_social:   "Aguardando Social",
   waiting_design:   "Aguardando Design",
+  waiting_traffic:  "Aguardando Tráfego",
   in_progress:      "Em Andamento",
   waiting_client:   "Aguardando Cliente",
   approved:         "Aprovado",
@@ -117,6 +119,7 @@ export const REQUEST_STATUS_STYLE: Record<ClientRequestStatus, { bg: string; tex
   waiting_strategy: { bg: "bg-[#F5F3FF]",  text: "text-[#7C3AED]"  },
   waiting_social:   { bg: "bg-[#FDF2F8]",  text: "text-[#DB2777]"  },
   waiting_design:   { bg: "bg-[#FFF7ED]",  text: "text-[#EA580C]"  },
+  waiting_traffic:  { bg: "bg-[#F0F9FF]",  text: "text-[#0284C7]"  },
   in_progress:      { bg: "bg-[#DCFCE7]",  text: "text-[#16A34A]"  },
   waiting_client:   { bg: "bg-[#FEF3C7]",  text: "text-[#D97706]"  },
   approved:         { bg: "bg-[#DCFCE7]",  text: "text-[#15803D]"  },

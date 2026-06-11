@@ -62,11 +62,11 @@ const SIMULATORS: SimCard[] = [
   },
   {
     id: "ads",
-    label: "Paid Traffic Agent",
-    description: "Simule estrutura de campanhas, análise de segmentação e otimização de criativos para mídia paga.",
-    status: "coming_soon",
-    href: "#",
-    tag: "Tráfego Pago",
+    label: "Simulador de Tráfego Pago",
+    description: "Gere Traffic Canvases completos por segmento: estrutura de campanhas, modelo de audiência, budget detalhado (fee separado), mapeamento de ofertas e projeções de CAC/ROAS.",
+    status: "available",
+    href: "/agency/simulations/traffic",
+    tag: "Tráfego Pago · Brain",
   },
 ];
 

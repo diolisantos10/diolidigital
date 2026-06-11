@@ -11,15 +11,17 @@ import { BRAIN_STATUS_LABELS, BRAIN_STATUS_COLORS } from "@/lib/dioli-brain/depa
 import { GLOBAL_QUALITY_GATE, ALL_QUALITY_GATES } from "@/lib/dioli-brain/quality-gates";
 import { TRAINING_RULES, BRAIN_CHANGE_SOURCE_LABELS, BRAIN_CHANGE_STATUS_LABELS } from "@/lib/dioli-brain/training-policy";
 import { computeSDRScorecard } from "@/lib/dioli-brain/sdr-scorecard";
-import { computeSDRMaturity, computeStrategyMaturity, computeSocialMaturity, computeDesignMaturity, MATURITY_LABELS } from "@/lib/dioli-brain/department-maturity";
+import { computeSDRMaturity, computeStrategyMaturity, computeSocialMaturity, computeDesignMaturity, computeTrafficMaturity, MATURITY_LABELS } from "@/lib/dioli-brain/department-maturity";
 import { computeStrategyScorecard } from "@/lib/dioli-brain/strategy-scorecard";
 import { computeSocialScorecard } from "@/lib/dioli-brain/social-scorecard";
 import { computeDesignScorecard } from "@/lib/dioli-brain/design-scorecard";
+import { computeTrafficScorecard } from "@/lib/dioli-brain/traffic-scorecard";
 import { useAgencyStore } from "@/store/agency-store";
 import { useTrainingStore } from "@/store/training-store";
 import { useStrategyStore } from "@/store/strategy-store";
 import { useSocialStore } from "@/store/social-store";
 import { useDesignStore } from "@/store/design-store";
+import { useTrafficStore } from "@/store/traffic-store";
 
 const TAB_IDS = ["overview", "flow", "departments", "knowledge", "training", "quality", "director"] as const;
 type TabId = (typeof TAB_IDS)[number];
@@ -543,6 +545,119 @@ function DesignDepartmentPanel() {
   );
 }
 
+// ─── Traffic Department Panel ─────────────────────────────────────────────────
+
+function TrafficDepartmentPanel() {
+  const { canvases, changeRequestCanvasIds } = useTrafficStore();
+
+  const scorecard = computeTrafficScorecard(canvases, changeRequestCanvasIds.length);
+  const maturity  = computeTrafficMaturity({
+    hasTrafficEngine:         true,
+    hasWorkspace:             true,
+    hasQualityGate:           true,
+    hasBudgetModel:           true,
+    hasAudienceModel:         true,
+    hasSimulator:             true,
+    hasTrainingStructure:     true,
+    hasGovernanceIntegration: true,
+    hasEvidenceTypes:         true,
+    canvasesCreated:              scorecard.canvasesCreated,
+    canvasesApproved:             scorecard.canvasesApproved,
+    brainChangeRequestsGenerated: scorecard.brainChangeRequestsGenerated,
+    qualityGatePassRate:          scorecard.qualityGatePassRate,
+  });
+
+  const statuses = [
+    { label: "Engine",        active: true },
+    { label: "Workspace",     active: true },
+    { label: "Quality Gate",  active: true },
+    { label: "Budget Model",  active: true },
+    { label: "Audience",      active: true },
+    { label: "Simulador",     active: true },
+    { label: "Treinamento",   active: true },
+    { label: "Governança",    active: true },
+    { label: "Evidência",     active: true },
+  ];
+
+  const scorecardMetrics = [
+    { label: "Canvases",        value: scorecard.canvasesCreated.toString() },
+    { label: "Aprovados",       value: scorecard.canvasesApproved.toString() },
+    { label: "Aprovação",       value: `${scorecard.approvalRate}%` },
+    { label: "Campanhas",       value: scorecard.campaignsPlanned.toString() },
+    { label: "Budget total",    value: `R$ ${scorecard.totalBudgetAllocated.toLocaleString("pt-BR")}` },
+    { label: "QG Pass",         value: scorecard.canvasesCreated > 0 ? `${scorecard.qualityGatePassRate}%` : "—" },
+    { label: "Evidências",      value: scorecard.evidenceGenerated.toString() },
+    { label: "Brain Changes",   value: scorecard.brainChangeRequestsGenerated.toString() },
+  ];
+
+  return (
+    <div className="rounded-[10px] border border-[#0284C7]/30 bg-[#0284C7]/[0.04] p-5 space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="text-[11px] font-semibold text-[#0284C7] uppercase tracking-[0.08em]">
+          Quinto Departamento — Tráfego Pago (terceiro de execução)
+        </div>
+        <div className="flex items-center gap-2">
+          <span
+            className="text-[11px] font-bold px-2.5 py-0.5 rounded-full border"
+            style={{ color: maturity.color, borderColor: `${maturity.color}40`, background: `${maturity.color}15` }}
+          >
+            {MATURITY_LABELS[maturity.current]}
+          </span>
+          <span className="text-[10px] text-[#4A4A44]">{maturity.completionPct}% maturidade</span>
+        </div>
+      </div>
+
+      <p className="text-[12px] text-[#8A8A84] leading-relaxed">
+        Transforma estratégia em planos de campanhas pagas: estrutura de campanha, audiências, budget (fee separado),
+        mapeamento de ofertas e projeções de CAC/ROAS. Nunca lança campanha sem Traffic Canvas aprovado.
+      </p>
+
+      {/* Active capability statuses */}
+      <div className="flex gap-2 flex-wrap">
+        {statuses.map((s) => (
+          <span
+            key={s.label}
+            className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${
+              s.active
+                ? "text-[#0284C7] bg-[#0284C7]/10 border-[#0284C7]/20"
+                : "text-[#4A4A44] bg-white/[0.03] border-white/[0.06]"
+            }`}
+          >
+            {s.active ? "✓ " : "○ "}{s.label}
+          </span>
+        ))}
+      </div>
+
+      {/* Maturity criteria */}
+      <div className="grid grid-cols-2 gap-1.5">
+        {maturity.criteria.map((c) => (
+          <div key={c.id} className="flex items-center gap-1.5 text-[10px]">
+            <span className={c.met ? "text-[#0284C7]" : "text-[#4A4A44]"}>
+              {c.met ? "✓" : "○"}
+            </span>
+            <span className={c.met ? "text-[#8A8A84]" : "text-[#4A4A44]"}>{c.label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Traffic Scorecard */}
+      <div className="border-t border-[#0284C7]/20 pt-3">
+        <div className="text-[10px] font-semibold text-[#4A4A44] uppercase tracking-[0.06em] mb-2">
+          Scorecard Tráfego Pago
+        </div>
+        <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
+          {scorecardMetrics.map((m) => (
+            <div key={m.label} className="text-center">
+              <div className="text-[15px] font-bold text-white">{m.value}</div>
+              <div className="text-[9px] text-[#4A4A44] mt-0.5">{m.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Overview Tab ─────────────────────────────────────────────────────────────
 
 function OverviewTab() {
@@ -618,6 +733,9 @@ function OverviewTab() {
 
       {/* Design Department — live metrics */}
       <DesignDepartmentPanel />
+
+      {/* Traffic Department — live metrics */}
+      <TrafficDepartmentPanel />
 
       {/* System map */}
       <SystemMapSection />
