@@ -30,8 +30,13 @@ export const EVIDENCE_TYPE_LABELS: Record<EvidenceType, string> = {
   engagement_improved:        "Engajamento Melhorado",
   content_approved:           "Conteúdo Aprovado",
   content_published:          "Conteúdo Publicado",
-  social_strategy_executed:   "Estratégia Social Executada",
-  other:                   "Outro",
+  social_strategy_executed:      "Estratégia Social Executada",
+  design_canvas_approved:        "Design Canvas Aprovado",
+  creative_brief_executed:       "Brief Criativo Executado",
+  visual_identity_created:       "Identidade Visual Criada",
+  asset_delivered:               "Asset Entregue",
+  design_first_round_approval:   "Design Aprovado na 1ª Rodada",
+  other:                         "Outro",
 };
 
 export const EVIDENCE_TYPE_DESCRIPTIONS: Record<EvidenceType, string> = {
@@ -60,8 +65,13 @@ export const EVIDENCE_TYPE_DESCRIPTIONS: Record<EvidenceType, string> = {
   engagement_improved:        "Engajamento melhorado após execução do plano de conteúdo.",
   content_approved:           "Conteúdo aprovado pelo cliente dentro do fluxo de aprovação.",
   content_published:          "Conteúdo publicado conforme o calendário editorial aprovado.",
-  social_strategy_executed:   "Direção estratégica transformada em operação de conteúdo ativa.",
-  other:                   "Outro tipo de evidência de valor.",
+  social_strategy_executed:      "Direção estratégica transformada em operação de conteúdo ativa.",
+  design_canvas_approved:        "Design Canvas aprovado com briefs criativos e direção visual validados.",
+  creative_brief_executed:       "Brief criativo executado e entregue dentro das diretrizes da marca.",
+  visual_identity_created:       "Identidade visual criada ou atualizada com base no Brand Brain.",
+  asset_delivered:               "Asset visual entregue conforme os requisitos do calendário editorial.",
+  design_first_round_approval:   "Peça de design aprovada pelo cliente sem rodadas de revisão.",
+  other:                         "Outro tipo de evidência de valor.",
 };
 
 export const EVIDENCE_GOVERNANCE_RULES = [
@@ -99,7 +109,7 @@ export function getEvidenceTypesByDepartment(departmentId: string): EvidenceType
       "engagement_improved", "content_approved", "content_published",
       "social_strategy_executed",
     ],
-    design:                ["first_round_approval", "brand_before_after", "client_praise"],
+    design:                ["design_canvas_approved", "creative_brief_executed", "visual_identity_created", "asset_delivered", "design_first_round_approval"],
     "paid-traffic":        ["conversion_improvement", "campaign_reach", "revenue_leads_increase"],
     "project-management":  ["delivery_time_reduction", "first_round_approval"],
     analytics:             ["conversion_improvement", "revenue_leads_increase"],

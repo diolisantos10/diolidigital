@@ -54,11 +54,11 @@ const SIMULATORS: SimCard[] = [
   },
   {
     id: "design",
-    label: "Design Agent",
-    description: "Simule briefings criativos, geração de conceitos visuais e revisões de identidade de marca.",
-    status: "coming_soon",
-    href: "#",
-    tag: "Design",
+    label: "Simulador de Design",
+    description: "Gere Design Canvases completos — executa a cadeia Estratégia → Social → Design com briefs criativos, prompts de imagem e requisitos de assets por segmento.",
+    status: "available",
+    href: "/agency/simulations/design",
+    tag: "Design · Brain",
   },
   {
     id: "ads",

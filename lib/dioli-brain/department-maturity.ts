@@ -169,3 +169,41 @@ export function computeSocialMaturity(input: SocialMaturityInput): DepartmentMat
 
   return deriveMaturity("social-media", criteria);
 }
+
+// ── Design Department maturity ────────────────────────────────────────────────
+
+export interface DesignMaturityInput {
+  hasDesignEngine: boolean;
+  hasWorkspace: boolean;
+  hasQualityGate: boolean;
+  hasBriefGenerator: boolean;
+  hasPromptSpecs: boolean;
+  hasSimulator: boolean;
+  hasTrainingStructure: boolean;
+  hasGovernanceIntegration: boolean;
+  hasEvidenceTypes: boolean;
+  canvasesCreated: number;
+  canvasesApproved: number;
+  brainChangeRequestsGenerated: number;
+  qualityGatePassRate: number;
+}
+
+export function computeDesignMaturity(input: DesignMaturityInput): DepartmentMaturityInfo {
+  const criteria: MaturityCriterion[] = [
+    { id: "types_defined",    label: "Departamento e DesignCanvas definidos no Brain",    met: true,                                    stage: "draft" },
+    { id: "engine",           label: "Design Engine com Fluxo Cognitivo",                 met: input.hasDesignEngine,                   stage: "partial" },
+    { id: "workspace",        label: "Workspace /agency/design ativo",                    met: input.hasWorkspace,                      stage: "partial" },
+    { id: "quality_gate",     label: "Quality Gate de 10 itens implementado",             met: input.hasQualityGate,                    stage: "operational" },
+    { id: "brief_generator",  label: "Gerador de Briefs Criativos ativo",                 met: input.hasBriefGenerator,                 stage: "operational" },
+    { id: "prompt_specs",     label: "Specs de prompts de imagem geradas",                met: input.hasPromptSpecs,                    stage: "operational" },
+    { id: "simulator",        label: "Simulador de Design no Laboratório",                met: input.hasSimulator,                      stage: "operational" },
+    { id: "training",         label: "Estrutura de treinamento definida",                 met: input.hasTrainingStructure,              stage: "operational" },
+    { id: "governance",       label: "Integração com governança Brain ativa",             met: input.hasGovernanceIntegration,          stage: "operational" },
+    { id: "evidence",         label: "Evidence Layer com tipos de Design",                met: input.hasEvidenceTypes,                  stage: "operational" },
+    { id: "canvases",         label: "Canvases de Design aprovados (≥ 3)",                met: input.canvasesApproved >= 3,             stage: "optimizing" },
+    { id: "change_requests",  label: "Brain Change Requests gerados (≥ 1)",               met: input.brainChangeRequestsGenerated >= 1, stage: "optimizing" },
+    { id: "qg_pass_rate",     label: "Quality Gate pass rate ≥ 70%",                     met: input.qualityGatePassRate >= 70 && input.canvasesCreated >= 5, stage: "autonomous" },
+  ];
+
+  return deriveMaturity("design", criteria);
+}

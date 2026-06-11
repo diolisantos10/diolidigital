@@ -147,6 +147,11 @@ export type EvidenceType =
   | "content_approved"
   | "content_published"
   | "social_strategy_executed"
+  | "design_canvas_approved"
+  | "creative_brief_executed"
+  | "visual_identity_created"
+  | "asset_delivered"
+  | "design_first_round_approval"
   | "other";
 
 export type EvidenceApprovalStatus = "draft" | "pending_approval" | "approved" | "rejected";

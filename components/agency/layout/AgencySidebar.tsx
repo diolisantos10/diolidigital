@@ -112,6 +112,7 @@ export default function AgencySidebar({ userInfo }: { userInfo?: UserInfo | null
         { label: "Dioli Brain", href: "/agency/brain", icon: BrainIcon },
         { label: "Estratégia (Brain)", href: "/agency/strategy", icon: CompassIcon },
         { label: "Social (Brain)", href: "/agency/social", icon: SocialIcon },
+        { label: "Design (Brain)", href: "/agency/design", icon: DesignIcon },
       ],
     },
     {

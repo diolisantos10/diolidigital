@@ -60,13 +60,13 @@ export default function SocialWorkspacePage() {
     // FAIL blocks approval (also enforced in the card UI).
     if (canvas.qualityGateResult.overall === "FAIL") return;
     reviewCanvas(canvas.id, "approved", note);
-    // Approved plan moves the linked request forward in the pipeline.
+    // Approved plan hands off to Design department.
     if (canvas.requestId) {
-      updateClientRequest(canvas.requestId, { status: "proposal_pending" });
+      updateClientRequest(canvas.requestId, { status: "waiting_design" });
     }
     addActivity({
       type: "intelligence_run",
-      message: `Plano de conteúdo aprovado: ${canvas.clientName}`,
+      message: `Plano de conteúdo aprovado: ${canvas.clientName} — enviado para Design`,
     });
   }
 
