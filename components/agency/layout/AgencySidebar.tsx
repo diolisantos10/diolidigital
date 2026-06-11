@@ -114,6 +114,7 @@ export default function AgencySidebar({ userInfo }: { userInfo?: UserInfo | null
         { label: "Social (Brain)", href: "/agency/social", icon: SocialIcon },
         { label: "Design (Brain)", href: "/agency/design", icon: DesignIcon },
         { label: "Tráfego (Brain)", href: "/agency/traffic", icon: AdsIcon },
+        { label: "Analytics (Brain)", href: "/agency/analytics", icon: AnalyticsIcon },
       ],
     },
     {
@@ -428,6 +429,18 @@ function CompassIcon({ size = 16, className = "" }: { size?: number; className?:
     <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
       <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.3"/>
       <path d="M10.5 5.5L9 9l-3.5 1.5L7 7l3.5-1.5z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+function AnalyticsIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
+      <path d="M2 13l3-4 3 2 3-5 3 3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+      <circle cx="2" cy="13" r="1" fill="currentColor"/>
+      <circle cx="5" cy="9" r="1" fill="currentColor"/>
+      <circle cx="8" cy="11" r="1" fill="currentColor"/>
+      <circle cx="11" cy="6" r="1" fill="currentColor"/>
+      <circle cx="14" cy="9" r="1" fill="currentColor"/>
     </svg>
   );
 }

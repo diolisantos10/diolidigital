@@ -157,6 +157,11 @@ export type EvidenceType =
   | "leads_generated"
   | "roas_achieved"
   | "cac_reduced"
+  | "analytics_canvas_approved"
+  | "kpi_framework_created"
+  | "attribution_model_defined"
+  | "performance_gap_identified"
+  | "recommendation_executed"
   | "other";
 
 export type EvidenceApprovalStatus = "draft" | "pending_approval" | "approved" | "rejected";

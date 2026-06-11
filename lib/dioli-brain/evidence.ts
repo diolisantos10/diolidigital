@@ -41,6 +41,11 @@ export const EVIDENCE_TYPE_LABELS: Record<EvidenceType, string> = {
   leads_generated:               "Leads Gerados via Tráfego Pago",
   roas_achieved:                 "ROAS Atingido",
   cac_reduced:                   "CAC Reduzido",
+  analytics_canvas_approved:     "Analytics Canvas Aprovado",
+  kpi_framework_created:         "Framework de KPIs Criado",
+  attribution_model_defined:     "Modelo de Atribuição Definido",
+  performance_gap_identified:    "Gap de Performance Identificado",
+  recommendation_executed:       "Recomendação Executada",
   other:                         "Outro",
 };
 
@@ -81,6 +86,11 @@ export const EVIDENCE_TYPE_DESCRIPTIONS: Record<EvidenceType, string> = {
   leads_generated:               "Leads gerados via tráfego pago dentro do CPL projetado.",
   roas_achieved:                 "ROAS projetado atingido ou superado em campanha aprovada.",
   cac_reduced:                   "CAC reduzido em relação ao baseline anterior da conta.",
+  analytics_canvas_approved:     "Analytics Canvas aprovado com framework de KPIs e atribuição validados.",
+  kpi_framework_created:         "Framework de KPIs criado com métricas mensuráveis e responsáveis definidos.",
+  attribution_model_defined:     "Modelo de atribuição configurado e alinhado com os canais ativos da conta.",
+  performance_gap_identified:    "Gap de performance identificado com causa-raiz e plano de melhoria definidos.",
+  recommendation_executed:       "Recomendação de otimização executada com resultado mensurável registrado.",
   other:                         "Outro tipo de evidência de valor.",
 };
 
@@ -122,7 +132,7 @@ export function getEvidenceTypesByDepartment(departmentId: string): EvidenceType
     design:                ["design_canvas_approved", "creative_brief_executed", "visual_identity_created", "asset_delivered", "design_first_round_approval"],
     "paid-traffic":        ["traffic_canvas_approved", "campaign_launched", "leads_generated", "roas_achieved", "cac_reduced"],
     "project-management":  ["delivery_time_reduction", "first_round_approval"],
-    analytics:             ["conversion_improvement", "revenue_leads_increase"],
+    analytics:             ["analytics_canvas_approved", "kpi_framework_created", "attribution_model_defined", "performance_gap_identified", "recommendation_executed"],
     quality:               ["first_round_approval", "client_praise"],
   };
   return map[departmentId] ?? ["other"];

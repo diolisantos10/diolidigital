@@ -49,8 +49,8 @@ export default function TrafficWorkspacePage() {
   function handleApprove(canvas: TrafficCanvas, note?: string) {
     if (canvas.qualityGateResult.overall === "FAIL") return;
     reviewCanvas(canvas.id, "approved", note);
-    if (canvas.requestId) updateClientRequest(canvas.requestId, { status: "proposal_pending" });
-    addActivity({ type: "intelligence_run", message: `Traffic Canvas aprovado: ${canvas.clientName}` });
+    if (canvas.requestId) updateClientRequest(canvas.requestId, { status: "waiting_analytics" });
+    addActivity({ type: "intelligence_run", message: `Traffic Canvas aprovado: ${canvas.clientName} — enviado para Analytics` });
   }
 
   async function handleProposeBrainChange(canvas: TrafficCanvas) {

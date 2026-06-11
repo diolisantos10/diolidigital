@@ -245,3 +245,41 @@ export function computeTrafficMaturity(input: TrafficMaturityInput): DepartmentM
 
   return deriveMaturity("paid-traffic", criteria);
 }
+
+// ── Analytics Department maturity ─────────────────────────────────────────────
+
+export interface AnalyticsMaturityInput {
+  hasAnalyticsEngine: boolean;
+  hasWorkspace: boolean;
+  hasQualityGate: boolean;
+  hasKPIFramework: boolean;
+  hasAttributionModel: boolean;
+  hasSimulator: boolean;
+  hasTrainingStructure: boolean;
+  hasGovernanceIntegration: boolean;
+  hasEvidenceTypes: boolean;
+  canvasesCreated: number;
+  canvasesApproved: number;
+  brainChangeRequestsGenerated: number;
+  qualityGatePassRate: number;
+}
+
+export function computeAnalyticsMaturity(input: AnalyticsMaturityInput): DepartmentMaturityInfo {
+  const criteria: MaturityCriterion[] = [
+    { id: "types_defined",     label: "Departamento e AnalyticsCanvas definidos no Brain",  met: true,                                    stage: "draft" },
+    { id: "engine",            label: "Analytics Engine com Fluxo Cognitivo",               met: input.hasAnalyticsEngine,                stage: "partial" },
+    { id: "workspace",         label: "Workspace /agency/analytics ativo",                  met: input.hasWorkspace,                      stage: "partial" },
+    { id: "quality_gate",      label: "Quality Gate de 10 itens implementado",              met: input.hasQualityGate,                    stage: "operational" },
+    { id: "kpi_framework",     label: "Framework de KPIs por segmento",                     met: input.hasKPIFramework,                   stage: "operational" },
+    { id: "attribution_model", label: "Modelo de atribuição por canal",                     met: input.hasAttributionModel,               stage: "operational" },
+    { id: "simulator",         label: "Simulador de Analytics no Laboratório",              met: input.hasSimulator,                      stage: "operational" },
+    { id: "training",          label: "Estrutura de treinamento definida",                  met: input.hasTrainingStructure,              stage: "operational" },
+    { id: "governance",        label: "Integração com governança Brain ativa",              met: input.hasGovernanceIntegration,          stage: "operational" },
+    { id: "evidence",          label: "Evidence Layer com tipos de Analytics",              met: input.hasEvidenceTypes,                  stage: "operational" },
+    { id: "canvases",          label: "Analytics Canvases aprovados (≥ 3)",                 met: input.canvasesApproved >= 3,             stage: "optimizing" },
+    { id: "change_requests",   label: "Brain Change Requests gerados (≥ 1)",                met: input.brainChangeRequestsGenerated >= 1, stage: "optimizing" },
+    { id: "qg_pass_rate",      label: "Quality Gate pass rate ≥ 70%",                      met: input.qualityGatePassRate >= 70 && input.canvasesCreated >= 5, stage: "autonomous" },
+  ];
+
+  return deriveMaturity("analytics", criteria);
+}

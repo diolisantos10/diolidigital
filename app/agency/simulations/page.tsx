@@ -68,6 +68,14 @@ const SIMULATORS: SimCard[] = [
     href: "/agency/simulations/traffic",
     tag: "Tráfego Pago · Brain",
   },
+  {
+    id: "analytics",
+    label: "Simulador de Analytics",
+    description: "Gere Analytics Canvases completos por segmento: framework de KPIs, modelo de atribuição, gaps de performance, recomendações cross-departamento e thresholds de alerta.",
+    status: "available",
+    href: "/agency/simulations/analytics",
+    tag: "Analytics · Brain",
+  },
 ];
 
 export default function SimulationsPage() {
