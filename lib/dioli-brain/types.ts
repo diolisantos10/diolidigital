@@ -140,6 +140,13 @@ export type EvidenceType =
   | "content_territory_defined"
   | "roadmap_created"
   | "opportunity_identified"
+  | "content_plan_created"
+  | "calendar_generated"
+  | "territory_executed"
+  | "engagement_improved"
+  | "content_approved"
+  | "content_published"
+  | "social_strategy_executed"
   | "other";
 
 export type EvidenceApprovalStatus = "draft" | "pending_approval" | "approved" | "rejected";

@@ -60,13 +60,13 @@ export default function StrategyWorkspacePage() {
 
   function handleApprove(canvas: StrategyCanvas, note?: string) {
     reviewCanvas(canvas.id, "approved", note);
-    // Approved strategy moves the linked request forward in the pipeline.
+    // Strategy → Social handoff: approved strategy enters the Social queue.
     if (canvas.requestId) {
-      updateClientRequest(canvas.requestId, { status: "proposal_pending" });
+      updateClientRequest(canvas.requestId, { status: "waiting_social" });
     }
     addActivity({
       type: "intelligence_run",
-      message: `Estratégia aprovada: ${canvas.clientName}`,
+      message: `Estratégia aprovada: ${canvas.clientName} — enviada para Social Media`,
     });
   }
 

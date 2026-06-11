@@ -46,11 +46,11 @@ const SIMULATORS: SimCard[] = [
   },
   {
     id: "social",
-    label: "Social Agent",
-    description: "Simule geração de pautas, revisões de conteúdo e fluxo de aprovação de posts.",
-    status: "coming_soon",
-    href: "#",
-    tag: "Social Media",
+    label: "Simulador Social",
+    description: "Gere Social Canvases, planos de conteúdo e calendários editoriais a partir de estratégias sintéticas (restaurante, e-commerce, clínica, educação…).",
+    status: "available",
+    href: "/agency/simulations/social",
+    tag: "Social Media · Brain",
   },
   {
     id: "design",

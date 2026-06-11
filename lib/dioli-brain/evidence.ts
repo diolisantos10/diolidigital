@@ -24,6 +24,13 @@ export const EVIDENCE_TYPE_LABELS: Record<EvidenceType, string> = {
   content_territory_defined:  "Território de Conteúdo Definido",
   roadmap_created:            "Roadmap Criado",
   opportunity_identified:     "Oportunidade Identificada",
+  content_plan_created:       "Plano de Conteúdo Criado",
+  calendar_generated:         "Calendário Editorial Gerado",
+  territory_executed:         "Território de Conteúdo Executado",
+  engagement_improved:        "Engajamento Melhorado",
+  content_approved:           "Conteúdo Aprovado",
+  content_published:          "Conteúdo Publicado",
+  social_strategy_executed:   "Estratégia Social Executada",
   other:                   "Outro",
 };
 
@@ -47,6 +54,13 @@ export const EVIDENCE_TYPE_DESCRIPTIONS: Record<EvidenceType, string> = {
   content_territory_defined:  "Territórios de conteúdo definidos como base do calendário editorial.",
   roadmap_created:            "Roadmap estratégico em fases criado e aprovado.",
   opportunity_identified:     "Oportunidade de crescimento identificada na análise estratégica.",
+  content_plan_created:       "Plano de conteúdo mensal criado a partir da estratégia aprovada.",
+  calendar_generated:         "Calendário editorial gerado com temas, formatos e canais definidos.",
+  territory_executed:         "Território de conteúdo da estratégia executado em pauta real.",
+  engagement_improved:        "Engajamento melhorado após execução do plano de conteúdo.",
+  content_approved:           "Conteúdo aprovado pelo cliente dentro do fluxo de aprovação.",
+  content_published:          "Conteúdo publicado conforme o calendário editorial aprovado.",
+  social_strategy_executed:   "Direção estratégica transformada em operação de conteúdo ativa.",
   other:                   "Outro tipo de evidência de valor.",
 };
 
@@ -80,7 +94,11 @@ export function getEvidenceTypesByDepartment(departmentId: string): EvidenceType
       "strategy_approved", "positioning_created", "content_territory_defined",
       "roadmap_created", "opportunity_identified",
     ],
-    "social-media":        ["engagement_increase", "campaign_reach", "client_praise"],
+    "social-media":        [
+      "content_plan_created", "calendar_generated", "territory_executed",
+      "engagement_improved", "content_approved", "content_published",
+      "social_strategy_executed",
+    ],
     design:                ["first_round_approval", "brand_before_after", "client_praise"],
     "paid-traffic":        ["conversion_improvement", "campaign_reach", "revenue_leads_increase"],
     "project-management":  ["delivery_time_reduction", "first_round_approval"],

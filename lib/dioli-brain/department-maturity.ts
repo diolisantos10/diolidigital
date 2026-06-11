@@ -133,3 +133,39 @@ export function computeStrategyMaturity(input: StrategyMaturityInput): Departmen
 
   return deriveMaturity("strategy", criteria);
 }
+
+// ── Social Media Department maturity ──────────────────────────────────────────
+
+export interface SocialMaturityInput {
+  hasSocialEngine: boolean;
+  hasWorkspace: boolean;
+  hasQualityGate: boolean;
+  hasCalendar: boolean;
+  hasSimulator: boolean;
+  hasTrainingStructure: boolean;
+  hasGovernanceIntegration: boolean;
+  hasEvidenceTypes: boolean;
+  plansCreated: number;
+  plansApproved: number;
+  brainChangeRequestsGenerated: number;
+  qualityGatePassRate: number;
+}
+
+export function computeSocialMaturity(input: SocialMaturityInput): DepartmentMaturityInfo {
+  const criteria: MaturityCriterion[] = [
+    { id: "types_defined",   label: "Departamento e SocialCanvas definidos no Brain", met: true,                                stage: "draft" },
+    { id: "engine",          label: "Social Engine com Fluxo Cognitivo",              met: input.hasSocialEngine,               stage: "partial" },
+    { id: "workspace",       label: "Workspace /agency/social ativo",                 met: input.hasWorkspace,                  stage: "partial" },
+    { id: "quality_gate",    label: "Quality Gate de 12 itens implementado",          met: input.hasQualityGate,                stage: "operational" },
+    { id: "calendar",        label: "Calendário editorial gerado pelo engine",        met: input.hasCalendar,                   stage: "operational" },
+    { id: "simulator",       label: "Simulador Social no Laboratório",                met: input.hasSimulator,                  stage: "operational" },
+    { id: "training",        label: "Estrutura de treinamento definida",              met: input.hasTrainingStructure,          stage: "operational" },
+    { id: "governance",      label: "Integração com governança Brain ativa",          met: input.hasGovernanceIntegration,      stage: "operational" },
+    { id: "evidence",        label: "Evidence Layer com tipos de Social",             met: input.hasEvidenceTypes,              stage: "operational" },
+    { id: "plans",           label: "Planos de conteúdo aprovados (≥ 3)",             met: input.plansApproved >= 3,            stage: "optimizing" },
+    { id: "change_requests", label: "Brain Change Requests gerados (≥ 1)",            met: input.brainChangeRequestsGenerated >= 1, stage: "optimizing" },
+    { id: "qg_pass_rate",    label: "Quality Gate pass rate ≥ 70%",                  met: input.qualityGatePassRate >= 70 && input.plansCreated >= 5, stage: "autonomous" },
+  ];
+
+  return deriveMaturity("social-media", criteria);
+}

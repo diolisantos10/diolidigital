@@ -96,7 +96,7 @@ const SEGMENT_PROFILES: SegmentProfile[] = [
     risks: ["Margem comprimida limita verba de mídia", "Concorrência direta em leilão de anúncios da categoria"],
   },
   {
-    match: /cl[íi]nica|consult[óo]rio|dent|m[ée]dic|est[ée]tica|fisio|psico|sa[úu]de/i,
+    match: /cl[íi]nica|consult[óo]rio|dent|m[ée]dic|est[ée]tica(?!\s+capilar)|fisio|psico|sa[úu]de/i,
     audience: "Pacientes locais 25–60 anos que pesquisam reputação e confiança antes de agendar — decisão por autoridade percebida.",
     painPoints: [
       "Agenda ociosa em horários específicos",
