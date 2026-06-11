@@ -162,6 +162,10 @@ export type EvidenceType =
   | "attribution_model_defined"
   | "performance_gap_identified"
   | "recommendation_executed"
+  | "quality_audit_passed"
+  | "quality_gate_blocked"
+  | "audit_completed"
+  | "pattern_identified"
   | "other";
 
 export type EvidenceApprovalStatus = "draft" | "pending_approval" | "approved" | "rejected";

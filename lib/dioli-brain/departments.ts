@@ -538,11 +538,11 @@ export const BRAIN_DEPARTMENTS: BrainDepartment[] = [
       "Escalação quando necessário — sem omitir problemas",
       "Justificativa registrada em toda rejeição",
     ],
-    simulator: "lib/agency/training/runner.ts",
-    trainingCenter: "/agency/simulations/training",
-    evidenceTypes: ["first_round_approval", "client_praise"],
+    simulator: "/agency/simulations/quality",
+    trainingCenter: "/agency/quality",
+    evidenceTypes: ["quality_audit_passed", "quality_gate_blocked", "audit_completed", "pattern_identified"],
     humanApprovalTriggers: ["entrega_crítica_com_risco_legal_ou_financeiro"],
-    firstVersionStatus: "partial",
+    firstVersionStatus: "existing",
   },
 ];
 

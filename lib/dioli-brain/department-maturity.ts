@@ -283,3 +283,41 @@ export function computeAnalyticsMaturity(input: AnalyticsMaturityInput): Departm
 
   return deriveMaturity("analytics", criteria);
 }
+
+// ── Quality Department maturity ───────────────────────────────────────────────
+
+export interface QualityMaturityInput {
+  hasQualityEngine: boolean;
+  hasWorkspace: boolean;
+  hasGlobalGate: boolean;
+  hasDeptGates: boolean;
+  hasPatternDetection: boolean;
+  hasSimulator: boolean;
+  hasTrainingStructure: boolean;
+  hasGovernanceIntegration: boolean;
+  hasEvidenceTypes: boolean;
+  auditsRun: number;
+  auditsApproved: number;
+  brainChangeRequestsGenerated: number;
+  qualityGatePassRate: number;
+}
+
+export function computeQualityMaturity(input: QualityMaturityInput): DepartmentMaturityInfo {
+  const criteria: MaturityCriterion[] = [
+    { id: "types_defined",     label: "Departamento e QualityCanvas definidos no Brain",  met: true,                                    stage: "draft" },
+    { id: "engine",            label: "Quality Engine com Fluxo Cognitivo",               met: input.hasQualityEngine,                  stage: "partial" },
+    { id: "workspace",         label: "Workspace /agency/quality ativo",                  met: input.hasWorkspace,                      stage: "partial" },
+    { id: "global_gate",       label: "Quality Gate global de 7 itens implementado",      met: input.hasGlobalGate,                     stage: "operational" },
+    { id: "dept_gates",        label: "Quality Gates por departamento implementados",      met: input.hasDeptGates,                      stage: "operational" },
+    { id: "pattern_detection", label: "Detecção de padrões ativa",                        met: input.hasPatternDetection,               stage: "operational" },
+    { id: "simulator",         label: "Simulador de Quality no Laboratório",              met: input.hasSimulator,                      stage: "operational" },
+    { id: "training",          label: "Estrutura de treinamento definida",                met: input.hasTrainingStructure,              stage: "operational" },
+    { id: "governance",        label: "Integração com governança Brain ativa",            met: input.hasGovernanceIntegration,          stage: "operational" },
+    { id: "evidence",          label: "Evidence Layer com tipos de Quality",              met: input.hasEvidenceTypes,                  stage: "operational" },
+    { id: "audits",            label: "Auditorias aprovadas (≥ 3)",                       met: input.auditsApproved >= 3,               stage: "optimizing" },
+    { id: "change_requests",   label: "Brain Change Requests gerados (≥ 1)",              met: input.brainChangeRequestsGenerated >= 1, stage: "optimizing" },
+    { id: "qg_pass_rate",      label: "Quality Gate pass rate ≥ 70%",                    met: input.qualityGatePassRate >= 70 && input.auditsRun >= 5, stage: "autonomous" },
+  ];
+
+  return deriveMaturity("quality", criteria);
+}

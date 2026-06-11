@@ -115,6 +115,7 @@ export default function AgencySidebar({ userInfo }: { userInfo?: UserInfo | null
         { label: "Design (Brain)", href: "/agency/design", icon: DesignIcon },
         { label: "Tráfego (Brain)", href: "/agency/traffic", icon: AdsIcon },
         { label: "Analytics (Brain)", href: "/agency/analytics", icon: AnalyticsIcon },
+        { label: "Quality (Brain)", href: "/agency/quality", icon: QualityIcon },
       ],
     },
     {
@@ -429,6 +430,13 @@ function CompassIcon({ size = 16, className = "" }: { size?: number; className?:
     <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
       <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.3"/>
       <path d="M10.5 5.5L9 9l-3.5 1.5L7 7l3.5-1.5z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+function QualityIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
+      <path d="M8 2L9.8 6.2 14.5 6.9l-3.25 3.15.77 4.46L8 12.3 3.98 14.5l.77-4.46L1.5 6.9l4.7-.7L8 2z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
     </svg>
   );
 }

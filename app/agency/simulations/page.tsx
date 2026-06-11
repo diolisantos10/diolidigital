@@ -76,6 +76,14 @@ const SIMULATORS: SimCard[] = [
     href: "/agency/simulations/analytics",
     tag: "Analytics · Brain",
   },
+  {
+    id: "quality",
+    label: "Simulador de Quality",
+    description: "Roda auditorias cross-departamento completas: Quality Gate global + departamental, detecção de padrões de força e risco, candidatos a evidência e sinais de treinamento.",
+    status: "available",
+    href: "/agency/simulations/quality",
+    tag: "Quality · Brain",
+  },
 ];
 
 export default function SimulationsPage() {

@@ -46,6 +46,10 @@ export const EVIDENCE_TYPE_LABELS: Record<EvidenceType, string> = {
   attribution_model_defined:     "Modelo de Atribuição Definido",
   performance_gap_identified:    "Gap de Performance Identificado",
   recommendation_executed:       "Recomendação Executada",
+  quality_audit_passed:          "Auditoria de Qualidade Aprovada",
+  quality_gate_blocked:          "Entrega Bloqueada pelo Quality Gate",
+  audit_completed:               "Auditoria Concluída",
+  pattern_identified:            "Padrão de Qualidade Identificado",
   other:                         "Outro",
 };
 
@@ -91,6 +95,10 @@ export const EVIDENCE_TYPE_DESCRIPTIONS: Record<EvidenceType, string> = {
   attribution_model_defined:     "Modelo de atribuição configurado e alinhado com os canais ativos da conta.",
   performance_gap_identified:    "Gap de performance identificado com causa-raiz e plano de melhoria definidos.",
   recommendation_executed:       "Recomendação de otimização executada com resultado mensurável registrado.",
+  quality_audit_passed:          "Auditoria de qualidade executada e aprovada — todos os checks passaram.",
+  quality_gate_blocked:          "Entrega bloqueada pelo Quality Gate antes de chegar ao cliente.",
+  audit_completed:               "Auditoria cross-departamento concluída com padrões e riscos documentados.",
+  pattern_identified:            "Padrão de qualidade identificado — candidato a Brain Change Request.",
   other:                         "Outro tipo de evidência de valor.",
 };
 
@@ -133,7 +141,7 @@ export function getEvidenceTypesByDepartment(departmentId: string): EvidenceType
     "paid-traffic":        ["traffic_canvas_approved", "campaign_launched", "leads_generated", "roas_achieved", "cac_reduced"],
     "project-management":  ["delivery_time_reduction", "first_round_approval"],
     analytics:             ["analytics_canvas_approved", "kpi_framework_created", "attribution_model_defined", "performance_gap_identified", "recommendation_executed"],
-    quality:               ["first_round_approval", "client_praise"],
+    quality:               ["quality_audit_passed", "quality_gate_blocked", "audit_completed", "pattern_identified"],
   };
   return map[departmentId] ?? ["other"];
 }
