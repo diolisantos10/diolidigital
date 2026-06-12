@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { createClientRequest, listClientRequests, updateClientRequest } from "@/lib/agency/persistence/client-request-service";
+import { requireSession } from "@/lib/auth/api-guard";
+
+// GET (list) and PATCH (mutate) are internal — session required.
+// POST stays public: it is the submit target of the public /briefing form.
+// It can only create "new" requests (status/source are service-controlled).
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
+  const { error } = await requireSession();
+  if (error) return error;
+
   const { searchParams } = new URL(request.url);
   const workspaceId = searchParams.get("workspaceId") ?? undefined;
   const status      = searchParams.get("status") ?? undefined;
@@ -51,6 +59,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 }
 
 export async function PATCH(request: NextRequest): Promise<NextResponse> {
+  const { error } = await requireSession();
+  if (error) return error;
+
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });

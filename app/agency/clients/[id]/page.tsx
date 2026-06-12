@@ -94,7 +94,36 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
   const [parserText, setParserText] = useState("");
   const [parserResults, setParserResults] = useState<ParsedBrandField[]>([]);
   const [parserQueued, setParserQueued] = useState(false);
-  const portalUrl = `/portal/client/${id}`;
+  // Secure client portal link (PortalAccess token) — replaces the legacy
+  // /portal/client/[id] link, which is unprotected and store-backed.
+  const [portalModalOpen, setPortalModalOpen] = useState(false);
+  const [portalLink, setPortalLink] = useState<string | null>(null);
+  const [portalGenError, setPortalGenError] = useState<string | null>(null);
+  const [generatingPortal, setGeneratingPortal] = useState(false);
+  const [portalCopied, setPortalCopied] = useState(false);
+
+  async function handleGeneratePortalLink() {
+    setGeneratingPortal(true);
+    setPortalGenError(null);
+    setPortalCopied(false);
+    try {
+      const res = await fetch("/api/brain/portal-access", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientId: id }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({} as { error?: string }));
+        throw new Error(j.error ?? `Falha HTTP ${res.status}`);
+      }
+      const j = await res.json();
+      setPortalLink(`${window.location.origin}${j.url}`);
+    } catch (e) {
+      setPortalGenError(e instanceof Error ? e.message : "Falha ao gerar link.");
+    } finally {
+      setGeneratingPortal(false);
+    }
+  }
 
   const client = clients.find((c) => c.id === id);
   if (!client) return notFound();
@@ -274,9 +303,9 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
         meta={<Badge variant={client.status} size="md" />}
         actions={
           <>
-            <Link href={portalUrl} target="_blank">
-              <Button variant="ghost">Ver portal ↗</Button>
-            </Link>
+            <Button variant="ghost" onClick={() => { setPortalModalOpen(true); if (!portalLink) void handleGeneratePortalLink(); }}>
+              Link do portal
+            </Button>
             <Button variant="secondary" onClick={() => setEditOpen(true)}>Editar Cliente</Button>
             <Link href="/agency/orchestrator">
               <Button variant="primary">+ Novo Projeto</Button>
@@ -1019,6 +1048,51 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
             <Button variant="ghost" onClick={() => setEditOpen(false)}>Cancelar</Button>
             <Button variant="primary" onClick={handleSave}>Salvar</Button>
           </div>
+        </div>
+      </Modal>
+
+      {/* ── Portal Link Modal (secure token portal) ──────────────────────────── */}
+      <Modal open={portalModalOpen} onClose={() => setPortalModalOpen(false)} title="Link do portal do cliente">
+        <div className="space-y-4">
+          <p className="text-[12px] text-[#6B6B65] leading-relaxed">
+            Link seguro de uso único por cliente — validade de 30 dias, revogável.
+            Compartilhe apenas com {client.name}.
+          </p>
+          {generatingPortal && (
+            <div className="flex items-center gap-2 text-[12px] text-[#6B6B65]">
+              <div className="w-3.5 h-3.5 rounded-full border-2 border-[#5B5BD6] border-t-transparent animate-spin" />
+              Gerando link…
+            </div>
+          )}
+          {portalGenError && (
+            <p className="text-[12px] text-[#DC2626]">{portalGenError}</p>
+          )}
+          {portalLink && !generatingPortal && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <input
+                  readOnly
+                  value={portalLink}
+                  onFocus={(e) => e.target.select()}
+                  className="flex-1 px-3 py-2 text-[12px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none font-mono"
+                />
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    void navigator.clipboard.writeText(portalLink).then(() => {
+                      setPortalCopied(true);
+                      setTimeout(() => setPortalCopied(false), 2000);
+                    });
+                  }}
+                >
+                  {portalCopied ? "Copiado ✓" : "Copiar"}
+                </Button>
+              </div>
+              <Button variant="ghost" onClick={() => void handleGeneratePortalLink()}>
+                Gerar novo link
+              </Button>
+            </div>
+          )}
         </div>
       </Modal>
     </>

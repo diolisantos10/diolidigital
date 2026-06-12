@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useAgencyStore } from "@/store/agency-store";
 import { useStrategyStore } from "@/store/strategy-store";
 import { StrategyCanvasCard } from "@/components/agency/strategy/StrategyCanvasCard";
+import ApprovalSaveToast from "@/components/agency/ApprovalSaveToast";
 import { computeStrategyScorecard } from "@/lib/dioli-brain/strategy-scorecard";
 import { buildStrategyChangeRequestInput } from "@/lib/dioli-brain/strategy-training";
 import type { ClientRequest } from "@/lib/agency/client-requests";
@@ -28,6 +29,8 @@ export default function StrategyWorkspacePage() {
 
   const [filter, setFilter] = useState<CanvasFilter>("all");
   const [proposeError, setProposeError] = useState<string | null>(null);
+  const [approving, setApproving] = useState(false);
+  const [approveError, setApproveError] = useState<string | null>(null);
 
   // ── Incoming queue: requests handed off by the SDR ──
   const queue = (clientRequests ?? []).filter((r) => r.status === "waiting_strategy");
@@ -59,20 +62,32 @@ export default function StrategyWorkspacePage() {
     });
   }
 
-  function handleApprove(canvas: StrategyCanvas, note?: string) {
+  async function handleApprove(canvas: StrategyCanvas, note?: string) {
     if (canvas.qualityGateResult.overall === "FAIL") return;
-    reviewCanvas(canvas.id, "approved", note);
+    if (approving) return;
+    // DB persistence FIRST — the approval only completes after the artifact
+    // is confirmed saved. On failure: no state change, visible error.
     if (canvas.requestId) {
+      setApproving(true);
+      setApproveError(null);
+      try {
+        await saveArtifactToDb({
+          clientRequestId: canvas.requestId,
+          department: "strategy",
+          canvasId: canvas.id,
+          canvas,
+          qualityGate: canvas.qualityGateResult,
+          cognitiveFlow: canvas.cognitiveFlowTrace,
+        });
+      } catch (e) {
+        setApproveError(e instanceof Error ? e.message : "Falha ao salvar no banco.");
+        setApproving(false);
+        return;
+      }
+      setApproving(false);
       updateClientRequest(canvas.requestId, { status: "waiting_social" });
-      saveArtifactToDb({
-        clientRequestId: canvas.requestId,
-        department: "strategy",
-        canvasId: canvas.id,
-        canvas,
-        qualityGate: canvas.qualityGateResult,
-        cognitiveFlow: canvas.cognitiveFlowTrace,
-      });
     }
+    reviewCanvas(canvas.id, "approved", note);
     addActivity({
       type: "intelligence_run",
       message: `Estratégia aprovada: ${canvas.clientName} — enviada para Social Media`,
@@ -277,6 +292,7 @@ export default function StrategyWorkspacePage() {
           </div>
         )}
       </div>
+      <ApprovalSaveToast saving={approving} error={approveError} onDismiss={() => setApproveError(null)} />
     </div>
   );
 }

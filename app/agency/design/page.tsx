@@ -5,6 +5,7 @@ import { useAgencyStore } from "@/store/agency-store";
 import { useSocialStore } from "@/store/social-store";
 import { useDesignStore } from "@/store/design-store";
 import { DesignCanvasCard } from "@/components/agency/design/DesignCanvasCard";
+import ApprovalSaveToast from "@/components/agency/ApprovalSaveToast";
 import { computeDesignScorecard } from "@/lib/dioli-brain/design-scorecard";
 import { buildDesignChangeRequestInput } from "@/lib/dioli-brain/design-training";
 import type { SocialCanvas } from "@/lib/dioli-brain/social-canvas";
@@ -30,6 +31,8 @@ export default function DesignWorkspacePage() {
 
   const [filter, setFilter] = useState<CanvasFilter>("all");
   const [proposeError, setProposeError] = useState<string | null>(null);
+  const [approving, setApproving] = useState(false);
+  const [approveError, setApproveError] = useState<string | null>(null);
 
   // ── Incoming queue: approved social canvases not yet with a design canvas ──
   // Dioli Standard: Design never produces output without an approved Social Canvas.
@@ -55,19 +58,30 @@ export default function DesignWorkspacePage() {
     });
   }
 
-  function handleApprove(canvas: DesignCanvas, note?: string) {
+  async function handleApprove(canvas: DesignCanvas, note?: string) {
     if (canvas.qualityGateResult.overall === "FAIL") return;
-    reviewCanvas(canvas.id, "approved", note);
+    if (approving) return;
+    // DB persistence FIRST — approval only completes after a confirmed save.
     if (canvas.requestId) {
+      setApproving(true);
+      setApproveError(null);
+      try {
+        await saveArtifactToDb({
+          clientRequestId: canvas.requestId,
+          department: "design",
+          canvasId: canvas.id,
+          canvas,
+          qualityGate: canvas.qualityGateResult,
+        });
+      } catch (e) {
+        setApproveError(e instanceof Error ? e.message : "Falha ao salvar no banco.");
+        setApproving(false);
+        return;
+      }
+      setApproving(false);
       updateClientRequest(canvas.requestId, { status: "waiting_traffic" });
-      saveArtifactToDb({
-        clientRequestId: canvas.requestId,
-        department: "design",
-        canvasId: canvas.id,
-        canvas,
-        qualityGate: canvas.qualityGateResult,
-      });
     }
+    reviewCanvas(canvas.id, "approved", note);
     addActivity({
       type: "intelligence_run",
       message: `Design Canvas aprovado: ${canvas.clientName} — enviado para Tráfego`,
@@ -238,6 +252,7 @@ export default function DesignWorkspacePage() {
           </div>
         )}
       </div>
+      <ApprovalSaveToast saving={approving} error={approveError} onDismiss={() => setApproveError(null)} />
     </div>
   );
 }

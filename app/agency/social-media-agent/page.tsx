@@ -949,8 +949,8 @@ export default function SocialMediaAgentPage() {
                       5 entregas salvas em <Link href={`/agency/projects/${sourceProject.projectId}`} className="underline">{sourceProject.projectName}</Link> — status: Em Revisão
                     </span>
                   </div>
-                  <Link href={`/portal/client/${linkedClient?.id}`} className="text-[11px] text-[#15803D] font-medium hover:opacity-70 transition-opacity">
-                    Portal do cliente →
+                  <Link href={`/agency/clients/${linkedClient?.id}`} className="text-[11px] text-[#15803D] font-medium hover:opacity-70 transition-opacity">
+                    Gerar link do portal →
                   </Link>
                 </div>
               )}

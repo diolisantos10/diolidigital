@@ -5,6 +5,7 @@ import { useAgencyStore } from "@/store/agency-store";
 import { useStrategyStore } from "@/store/strategy-store";
 import { useSocialStore } from "@/store/social-store";
 import { SocialCanvasCard } from "@/components/agency/social/SocialCanvasCard";
+import ApprovalSaveToast from "@/components/agency/ApprovalSaveToast";
 import { computeSocialScorecard } from "@/lib/dioli-brain/social-scorecard";
 import { buildSocialChangeRequestInput } from "@/lib/dioli-brain/social-training";
 import type { StrategyCanvas } from "@/lib/dioli-brain/strategy-canvas";
@@ -30,6 +31,8 @@ export default function SocialWorkspacePage() {
 
   const [filter, setFilter] = useState<CanvasFilter>("all");
   const [proposeError, setProposeError] = useState<string | null>(null);
+  const [approving, setApproving] = useState(false);
+  const [approveError, setApproveError] = useState<string | null>(null);
 
   // ── Incoming queue: approved strategies handed off to Social ──
   // Dioli Standard: Social never produces output without an approved Strategy.
@@ -57,20 +60,31 @@ export default function SocialWorkspacePage() {
     });
   }
 
-  function handleApprove(canvas: SocialCanvas, note?: string) {
+  async function handleApprove(canvas: SocialCanvas, note?: string) {
     if (canvas.qualityGateResult.overall === "FAIL") return;
-    reviewCanvas(canvas.id, "approved", note);
+    if (approving) return;
+    // DB persistence FIRST — approval only completes after a confirmed save.
     if (canvas.requestId) {
+      setApproving(true);
+      setApproveError(null);
+      try {
+        await saveArtifactToDb({
+          clientRequestId: canvas.requestId,
+          department: "social",
+          canvasId: canvas.id,
+          canvas,
+          qualityGate: canvas.qualityGateResult,
+          cognitiveFlow: (canvas as { cognitiveFlowTrace?: object }).cognitiveFlowTrace,
+        });
+      } catch (e) {
+        setApproveError(e instanceof Error ? e.message : "Falha ao salvar no banco.");
+        setApproving(false);
+        return;
+      }
+      setApproving(false);
       updateClientRequest(canvas.requestId, { status: "waiting_design" });
-      saveArtifactToDb({
-        clientRequestId: canvas.requestId,
-        department: "social",
-        canvasId: canvas.id,
-        canvas,
-        qualityGate: canvas.qualityGateResult,
-        cognitiveFlow: (canvas as { cognitiveFlowTrace?: object }).cognitiveFlowTrace,
-      });
     }
+    reviewCanvas(canvas.id, "approved", note);
     addActivity({
       type: "intelligence_run",
       message: `Plano de conteúdo aprovado: ${canvas.clientName} — enviado para Design`,
@@ -261,6 +275,7 @@ export default function SocialWorkspacePage() {
           </div>
         )}
       </div>
+      <ApprovalSaveToast saving={approving} error={approveError} onDismiss={() => setApproveError(null)} />
     </div>
   );
 }

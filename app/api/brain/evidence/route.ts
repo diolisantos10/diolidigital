@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createEvidenceItem, getEvidenceForRequest } from "@/lib/agency/persistence/evidence-service";
 import type { EvidenceType } from "@/lib/agency/persistence/evidence-service";
+import { requireSession } from "@/lib/auth/api-guard";
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
+  const { error } = await requireSession();
+  if (error) return error;
+
   const { searchParams } = new URL(request.url);
   const clientRequestId = searchParams.get("clientRequestId");
   if (!clientRequestId) {
@@ -17,6 +21,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  const { error } = await requireSession();
+  if (error) return error;
+
   let body: Record<string, unknown>;
   try { body = await request.json(); } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });

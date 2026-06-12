@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-service";
+import { requireSession } from "@/lib/auth/api-guard";
 
 const CLIENT_SAFE_DEPARTMENTS: Record<string, string> = {
   strategy:  "Estratégia",
@@ -19,20 +20,40 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const clientRequestId = searchParams.get("clientRequestId");
   const clientId        = searchParams.get("clientId");
 
-  // Token-based access — most secure path
+  // Token-based access — the only public path. Everything else needs a session.
   if (token) {
     const access = await validatePortalAccess(token);
     if (!access.valid) {
       return NextResponse.json({ error: "Access denied", reason: access.reason }, { status: 403 });
     }
-    const reqId = access.record?.clientRequestId;
+    let reqId = access.record?.clientRequestId ?? null;
+    // Token issued for a client (not a specific request): resolve the most
+    // recent Brain request for that client at view time.
+    if (!reqId && access.record?.clientId) {
+      const latest = await prisma.clientRequestDb.findFirst({
+        where: { clientId: access.record.clientId },
+        orderBy: { createdAt: "desc" },
+      });
+      reqId = latest?.id ?? null;
+      if (!reqId) {
+        // Valid token, but no Brain request yet — empty portal state.
+        const client = await prisma.client.findUnique({ where: { id: access.record.clientId } });
+        return NextResponse.json({
+          id: null, businessName: client?.name ?? "Cliente", status: "new",
+          services: [], objectives: [], createdAt: null, pipeline: [], approvals: [],
+        });
+      }
+    }
     if (!reqId) {
       return NextResponse.json({ error: "Token not linked to a request" }, { status: 404 });
     }
     return NextResponse.json(await buildPortalData(reqId));
   }
 
-  // Direct clientRequestId (internal use / testing)
+  // Direct clientRequestId / clientId — internal use only (agency session).
+  const { error } = await requireSession();
+  if (error) return error;
+
   if (clientRequestId) {
     return NextResponse.json(await buildPortalData(clientRequestId));
   }

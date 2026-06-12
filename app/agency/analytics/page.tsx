@@ -6,6 +6,7 @@ import { useStrategyStore } from "@/store/strategy-store";
 import { useTrafficStore } from "@/store/traffic-store";
 import { useAnalyticsStore } from "@/store/analytics-store";
 import { AnalyticsCanvasCard } from "@/components/agency/analytics/AnalyticsCanvasCard";
+import ApprovalSaveToast from "@/components/agency/ApprovalSaveToast";
 import { computeAnalyticsScorecard } from "@/lib/dioli-brain/analytics-scorecard";
 import { buildAnalyticsChangeRequestInput } from "@/lib/dioli-brain/analytics-training";
 import type { AnalyticsCanvas } from "@/lib/dioli-brain/analytics-canvas";
@@ -26,6 +27,8 @@ export default function AnalyticsWorkspacePage() {
 
   const [filter, setFilter] = useState<CanvasFilter>("all");
   const [proposeError, setProposeError] = useState<string | null>(null);
+  const [approving, setApproving] = useState(false);
+  const [approveError, setApproveError] = useState<string | null>(null);
 
   // Queue: approved traffic canvases that don't yet have an analytics canvas
   const analyticsByTraffic = new Set(canvases.map((c) => c.trafficCanvasId).filter(Boolean));
@@ -55,19 +58,30 @@ export default function AnalyticsWorkspacePage() {
     });
   }
 
-  function handleApprove(canvas: AnalyticsCanvas, note?: string) {
+  async function handleApprove(canvas: AnalyticsCanvas, note?: string) {
     if (canvas.qualityGateResult.overall === "FAIL") return;
-    reviewCanvas(canvas.id, "approved", note);
+    if (approving) return;
+    // DB persistence FIRST — approval only completes after a confirmed save.
     if (canvas.requestId) {
+      setApproving(true);
+      setApproveError(null);
+      try {
+        await saveArtifactToDb({
+          clientRequestId: canvas.requestId,
+          department: "analytics",
+          canvasId: canvas.id,
+          canvas,
+          qualityGate: canvas.qualityGateResult,
+        });
+      } catch (e) {
+        setApproveError(e instanceof Error ? e.message : "Falha ao salvar no banco.");
+        setApproving(false);
+        return;
+      }
+      setApproving(false);
       updateClientRequest(canvas.requestId, { status: "waiting_quality" });
-      saveArtifactToDb({
-        clientRequestId: canvas.requestId,
-        department: "analytics",
-        canvasId: canvas.id,
-        canvas,
-        qualityGate: canvas.qualityGateResult,
-      });
     }
+    reviewCanvas(canvas.id, "approved", note);
     addActivity({ type: "intelligence_run", message: `Analytics Canvas aprovado: ${canvas.clientName} — enviado para Quality` });
   }
 
@@ -180,6 +194,7 @@ export default function AnalyticsWorkspacePage() {
           </div>
         )}
       </div>
+      <ApprovalSaveToast saving={approving} error={approveError} onDismiss={() => setApproveError(null)} />
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { useTrafficStore } from "@/store/traffic-store";
 import { useAnalyticsStore } from "@/store/analytics-store";
 import { useQualityStore } from "@/store/quality-store";
 import { QualityAuditCard } from "@/components/agency/quality/QualityAuditCard";
+import ApprovalSaveToast from "@/components/agency/ApprovalSaveToast";
 import { computeQualityScorecard } from "@/lib/dioli-brain/quality-scorecard";
 import { buildQualityChangeRequestInput } from "@/lib/dioli-brain/quality-training";
 import type { QualityCanvas } from "@/lib/dioli-brain/quality-canvas";
@@ -32,6 +33,8 @@ export default function QualityWorkspacePage() {
 
   const [filter, setFilter] = useState<CanvasFilter>("all");
   const [proposeError, setProposeError] = useState<string | null>(null);
+  const [approving, setApproving] = useState(false);
+  const [approveError, setApproveError] = useState<string | null>(null);
 
   // Queue: approved analytics canvases that don't yet have a quality audit
   const auditedCanvasIds = new Set(canvases.map((c) => c.auditedCanvasId).filter(Boolean));
@@ -52,18 +55,29 @@ export default function QualityWorkspacePage() {
     addActivity({ type: "intelligence_run", message: `Quality Audit gerado para "${analyticsCanvas.clientName}"` });
   }
 
-  function handleApprove(canvas: QualityCanvas, note?: string) {
+  async function handleApprove(canvas: QualityCanvas, note?: string) {
     if (canvas.overallVerdict === "BLOCKED") return;
-    reviewCanvas(canvas.id, "approved", note);
+    if (approving) return;
+    // DB persistence FIRST — approval only completes after a confirmed save.
     if (canvas.requestId) {
+      setApproving(true);
+      setApproveError(null);
+      try {
+        await saveArtifactToDb({
+          clientRequestId: canvas.requestId,
+          department: "quality",
+          canvasId: canvas.id,
+          canvas,
+        });
+      } catch (e) {
+        setApproveError(e instanceof Error ? e.message : "Falha ao salvar no banco.");
+        setApproving(false);
+        return;
+      }
+      setApproving(false);
       updateClientRequest(canvas.requestId, { status: "in_progress" });
-      saveArtifactToDb({
-        clientRequestId: canvas.requestId,
-        department: "quality",
-        canvasId: canvas.id,
-        canvas,
-      });
     }
+    reviewCanvas(canvas.id, "approved", note);
     addActivity({ type: "intelligence_run", message: `Quality Audit aprovado: ${canvas.clientName} — pipeline Brain concluído` });
   }
 
@@ -176,6 +190,7 @@ export default function QualityWorkspacePage() {
           </div>
         )}
       </div>
+      <ApprovalSaveToast saving={approving} error={approveError} onDismiss={() => setApproveError(null)} />
     </div>
   );
 }

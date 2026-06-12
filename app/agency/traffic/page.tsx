@@ -5,6 +5,7 @@ import { useAgencyStore } from "@/store/agency-store";
 import { useStrategyStore } from "@/store/strategy-store";
 import { useTrafficStore } from "@/store/traffic-store";
 import { TrafficCanvasCard } from "@/components/agency/traffic/TrafficCanvasCard";
+import ApprovalSaveToast from "@/components/agency/ApprovalSaveToast";
 import { computeTrafficScorecard } from "@/lib/dioli-brain/traffic-scorecard";
 import { buildTrafficChangeRequestInput } from "@/lib/dioli-brain/traffic-training";
 import type { StrategyCanvas } from "@/lib/dioli-brain/strategy-canvas";
@@ -32,6 +33,8 @@ export default function TrafficWorkspacePage() {
   const [filter, setFilter] = useState<CanvasFilter>("all");
   const [budgetScenario, setBudgetScenario] = useState<BudgetScenario>("medium");
   const [proposeError, setProposeError] = useState<string | null>(null);
+  const [approving, setApproving] = useState(false);
+  const [approveError, setApproveError] = useState<string | null>(null);
 
   const trafficByStrategy = new Set(canvases.map((c) => c.strategyCanvasId).filter(Boolean));
   const queue = strategyCanvases.filter(
@@ -47,19 +50,30 @@ export default function TrafficWorkspacePage() {
     addActivity({ type: "intelligence_run", message: `Traffic Canvas gerado para "${strategy.clientName}" — budget: ${budgetScenario}`, clientId: request?.clientId });
   }
 
-  function handleApprove(canvas: TrafficCanvas, note?: string) {
+  async function handleApprove(canvas: TrafficCanvas, note?: string) {
     if (canvas.qualityGateResult.overall === "FAIL") return;
-    reviewCanvas(canvas.id, "approved", note);
+    if (approving) return;
+    // DB persistence FIRST — approval only completes after a confirmed save.
     if (canvas.requestId) {
+      setApproving(true);
+      setApproveError(null);
+      try {
+        await saveArtifactToDb({
+          clientRequestId: canvas.requestId,
+          department: "traffic",
+          canvasId: canvas.id,
+          canvas,
+          qualityGate: canvas.qualityGateResult,
+        });
+      } catch (e) {
+        setApproveError(e instanceof Error ? e.message : "Falha ao salvar no banco.");
+        setApproving(false);
+        return;
+      }
+      setApproving(false);
       updateClientRequest(canvas.requestId, { status: "waiting_analytics" });
-      saveArtifactToDb({
-        clientRequestId: canvas.requestId,
-        department: "traffic",
-        canvasId: canvas.id,
-        canvas,
-        qualityGate: canvas.qualityGateResult,
-      });
     }
+    reviewCanvas(canvas.id, "approved", note);
     addActivity({ type: "intelligence_run", message: `Traffic Canvas aprovado: ${canvas.clientName} — enviado para Analytics` });
   }
 
@@ -177,6 +191,7 @@ export default function TrafficWorkspacePage() {
           </div>
         )}
       </div>
+      <ApprovalSaveToast saving={approving} error={approveError} onDismiss={() => setApproveError(null)} />
     </div>
   );
 }

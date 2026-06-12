@@ -1,5 +1,6 @@
-// Client-side helper — fire-and-forget artifact persistence on approval.
-// Never throws; logs warning on failure so approvals are never blocked.
+// Client-side helper — persists an approved artifact to the DB.
+// THROWS on failure: approval flows must only complete after the artifact
+// is confirmed saved (no silent data loss).
 
 import type { Department } from "./brain-artifact-service";
 
@@ -13,17 +14,31 @@ interface SaveArtifactInput {
   version?: number;
 }
 
+export class ArtifactSaveError extends Error {
+  constructor(message: string, readonly status?: number) {
+    super(message);
+    this.name = "ArtifactSaveError";
+  }
+}
+
 export async function saveArtifactToDb(input: SaveArtifactInput): Promise<void> {
+  let res: Response;
   try {
-    const res = await fetch("/api/brain/artifacts", {
+    res = await fetch("/api/brain/artifacts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(input),
     });
-    if (!res.ok) {
-      console.warn(`[brain/artifacts] save failed HTTP ${res.status} for ${input.department}/${input.canvasId}`);
-    }
   } catch {
-    console.warn(`[brain/artifacts] save network error for ${input.department}/${input.canvasId}`);
+    throw new ArtifactSaveError(
+      `Erro de rede ao salvar ${input.department}/${input.canvasId} — verifique a conexão.`,
+    );
+  }
+  if (!res.ok) {
+    const detail = await res.json().catch(() => ({} as { error?: string }));
+    throw new ArtifactSaveError(
+      detail.error ?? `Falha HTTP ${res.status} ao salvar ${input.department}/${input.canvasId}.`,
+      res.status,
+    );
   }
 }

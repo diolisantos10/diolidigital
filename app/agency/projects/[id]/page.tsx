@@ -251,7 +251,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 {!strategyRoom && (
                   <button onClick={() => setTab("strategy")} className="h-7 px-3 rounded-[6px] text-[12px] font-medium border border-[#E5E5E2] text-[#6B6B65] hover:border-[#5B5BD6] hover:text-[#5B5BD6] transition-colors">Gerar Estratégia</button>
                 )}
-                <a href={`/portal/client/${project.clientId}`} target="_blank" rel="noreferrer" className="h-7 px-3 rounded-[6px] text-[12px] font-medium border border-[#E5E5E2] text-[#6B6B65] hover:border-[#5B5BD6] hover:text-[#5B5BD6] transition-colors flex items-center">Portal do Cliente ↗</a>
+                <a href={`/agency/clients/${project.clientId}`} className="h-7 px-3 rounded-[6px] text-[12px] font-medium border border-[#E5E5E2] text-[#6B6B65] hover:border-[#5B5BD6] hover:text-[#5B5BD6] transition-colors flex items-center">Gerar link do portal ↗</a>
                 <button onClick={goToReport} className="h-7 px-3 rounded-[6px] text-[12px] font-medium bg-[#5B5BD6] text-white hover:opacity-90 transition-opacity">Ver Relatório</button>
               </div>
             </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useCallback, useEffect, useState } from "react";
 
 interface PipelineStep {
   id: string;
@@ -42,27 +42,70 @@ const STATUS_LABEL: Record<string, string> = {
   completed:         "Concluído",
 };
 
+const ACTION_LABEL: Record<string, string> = {
+  approve:          "Aprovar",
+  request_revision: "Pedir revisão",
+  reject:           "Rejeitar",
+};
+
 export default function PortalAccessTokenPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params);
   const [data,    setData]    = useState<PortalData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState<string | null>(null);
+  // Client decision state — per-approval comment drafts + submit status.
+  const [comments,   setComments]   = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [actionDone,  setActionDone]  = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadData = useCallback(async () => {
     if (!token) return;
-    fetch(`/api/brain/portal-data?token=${encodeURIComponent(token)}`)
-      .then(async (res) => {
-        if (!res.ok) {
-          const json = await res.json().catch(() => ({}));
-          setError(json.reason === "expired" ? "expired" : json.reason === "revoked" ? "revoked" : "invalid");
-          return;
-        }
-        const json = await res.json();
-        setData(json);
-      })
-      .catch(() => setError("network"))
-      .finally(() => setLoading(false));
+    try {
+      const res = await fetch(`/api/brain/portal-data?token=${encodeURIComponent(token)}`);
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        setError(json.reason === "expired" ? "expired" : json.reason === "revoked" ? "revoked" : "invalid");
+        return;
+      }
+      setData(await res.json());
+    } catch {
+      setError("network");
+    } finally {
+      setLoading(false);
+    }
   }, [token]);
+
+  useEffect(() => { void loadData(); }, [loadData]);
+
+  async function handleDecision(approvalId: string, action: "approve" | "request_revision" | "reject") {
+    if (submitting) return;
+    setSubmitting(approvalId);
+    setActionError(null);
+    try {
+      const res = await fetch("/api/portal/approvals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token,
+          approvalRequestId: approvalId,
+          action,
+          comment: comments[approvalId]?.trim() || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({} as { error?: string }));
+        throw new Error(j.error ?? `Falha HTTP ${res.status}`);
+      }
+      setActionDone(approvalId);
+      setComments((c) => ({ ...c, [approvalId]: "" }));
+      await loadData();
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Não foi possível enviar. Tente novamente.");
+    } finally {
+      setSubmitting(null);
+    }
+  }
 
   if (loading) {
     return (
@@ -160,6 +203,58 @@ export default function PortalAccessTokenPage({ params }: { params: Promise<{ to
             })}
           </div>
         </div>
+
+        {/* Pending approvals — the client decides here */}
+        {data.approvals.some((ap) => ap.status === "pending") && (
+          <div className="mb-6 bg-white border border-[#E5C76B] rounded-[12px] p-4">
+            <p className="text-[11px] font-semibold text-[#9B7B2D] uppercase tracking-[0.05em] mb-3">
+              Aguardando sua aprovação
+            </p>
+            <div className="space-y-4">
+              {data.approvals.filter((ap) => ap.status === "pending").map((ap) => (
+                <div key={ap.id} className="border border-[#EFE8D0] rounded-[10px] p-3.5">
+                  <p className="text-[13px] font-medium text-[#1A1A1A] mb-2">{ap.department}</p>
+                  <textarea
+                    value={comments[ap.id] ?? ""}
+                    onChange={(e) => setComments((c) => ({ ...c, [ap.id]: e.target.value }))}
+                    placeholder="Comentário (opcional)…"
+                    rows={2}
+                    className="w-full px-3 py-2 text-[12px] bg-[#FAF9F7] border border-[#E5E5E2] rounded-[8px] outline-none focus:border-[#9B7B2D] resize-none mb-2.5"
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    {(["approve", "request_revision", "reject"] as const).map((action) => (
+                      <button
+                        key={action}
+                        disabled={submitting === ap.id}
+                        onClick={() => void handleDecision(ap.id, action)}
+                        className={`h-8 px-3.5 rounded-[7px] text-[12px] font-medium transition-opacity disabled:opacity-50 ${
+                          action === "approve"
+                            ? "bg-[#16A34A] text-white hover:opacity-90"
+                            : action === "request_revision"
+                              ? "bg-[#F0F0ED] text-[#1A1A1A] hover:bg-[#E5E5E2]"
+                              : "bg-white border border-[#FCA5A5] text-[#DC2626] hover:bg-[#FEF2F2]"
+                        }`}
+                      >
+                        {submitting === ap.id ? "Enviando…" : ACTION_LABEL[action]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {actionError && (
+              <p className="text-[12px] text-[#DC2626] mt-3">{actionError}</p>
+            )}
+          </div>
+        )}
+
+        {actionDone && !data.approvals.some((ap) => ap.id === actionDone && ap.status === "pending") && (
+          <div className="mb-6 bg-[#DCFCE7] border border-[#BBF7D0] rounded-[12px] px-4 py-3">
+            <p className="text-[12px] font-medium text-[#15803D]">
+              ✓ Decisão registrada — a equipe Dioli foi notificada.
+            </p>
+          </div>
+        )}
 
         {/* Client-visible approvals / comments */}
         {data.approvals.length > 0 && (
