@@ -63,6 +63,17 @@ if (process.env.NODE_ENV === "production") {
         : "ephemeral file: SQLite is wiped on every Railway deploy"
       : undefined,
   );
+  // PostgreSQL URLs are permanently incompatible — schema is provider=sqlite,
+  // driver is @prisma/adapter-libsql (file: and libsql:// only).
+  // Railway Postgres services inject postgresql:// which must never be used.
+  const isPostgres = dbUrl.startsWith("postgresql://") || dbUrl.startsWith("postgres://");
+  check(
+    "DATABASE_URL is not a PostgreSQL URL (schema=sqlite; Postgres is incompatible)",
+    !isPostgres,
+    isPostgres
+      ? "detach Railway Postgres service — attach a Railway Volume at /data instead"
+      : undefined,
+  );
 } else {
   console.log("ℹ️  NODE_ENV is not production — runtime DATABASE_URL checks skipped (config checks still apply).");
 }
@@ -122,6 +133,10 @@ check(
   "scripts/start.sh blocks file: DATABASE_URL in production",
   /file:\*\)/.test(startShCode),
 );
+check(
+  "scripts/start.sh blocks PostgreSQL URL (incompatible with SQLite schema)",
+  startShCode.includes("postgresql://"),
+);
 
 // ── 6. Migration history covers the current schema ───────────────────────────
 
@@ -141,10 +156,16 @@ console.log(
     ? "✅ PRODUCTION SAFETY PASS — no configuration can destroy production data."
     : `❌ PRODUCTION SAFETY FAIL (${failures} issue${failures > 1 ? "s" : ""}) — fix before deploying.`}`,
 );
-console.log(`\nRequired Railway Variables:
-  DATABASE_URL  — persistent database URL (libsql://…, NOT file:)
+console.log(`\nRequired Railway Configuration:
   AUTH_SECRET   — JWT signing key (openssl rand -base64 32)
   CRON_SECRET   — cron endpoint protection
-  NODE_ENV      — production (Railway usually sets this automatically)\n`);
+  NODE_ENV      — production (Railway sets this automatically)
+
+Database — choose ONE:
+  (recommended) Attach a Railway Volume at /data
+                startup auto-configures DATABASE_URL=file:/data/dioli.db
+  DATABASE_URL  — libsql://[db].turso.io?authToken=[token]  (Turso remote SQLite)
+
+  ✗ DO NOT use: Railway Postgres service  (provider=sqlite is incompatible)\n`);
 
 process.exit(failures === 0 ? 0 : 1);

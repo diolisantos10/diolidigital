@@ -45,7 +45,25 @@ if [ "$IS_PRODUCTION" = "true" ]; then
     exit 1
   fi
 
-  # 2. Block ephemeral file: SQLite in production — Railway's container
+  # 2. Reject PostgreSQL URLs — this app uses provider=sqlite (migration_lock.toml)
+  #    with @prisma/adapter-libsql, which only accepts file: and libsql:// URLs.
+  #    Railway's Postgres service injects postgresql:// which is incompatible;
+  #    migrate deploy would also fail due to the sqlite provider lock.
+  case "$DATABASE_URL" in
+    postgresql://*|postgres://*)
+      echo "✗ FATAL: DATABASE_URL is a PostgreSQL URL — incompatible with this app."
+      echo "  Schema:  provider=sqlite  (prisma/migration_lock.toml)"
+      echo "  Driver:  @prisma/adapter-libsql  (supports file: and libsql:// only)"
+      echo "  The Railway Postgres service CANNOT be used here."
+      echo "  Fix (Railway dashboard):"
+      echo "    a) Remove the Postgres service variable reference from this app service."
+      echo "    b) Attach a Railway Volume (mount path: /data) instead."
+      echo "       Startup will auto-use file:/data/dioli.db — no other variables needed."
+      exit 1
+      ;;
+  esac
+
+  # 3. Block ephemeral file: SQLite in production — Railway's container
   #    filesystem is wiped on every deploy. EXCEPTION: a file: path inside a
   #    mounted Railway Volume (RAILWAY_VOLUME_MOUNT_PATH) IS persistent and
   #    therefore allowed.
@@ -67,12 +85,12 @@ if [ "$IS_PRODUCTION" = "true" ]; then
       ;;
   esac
 
-  # 3. Apply pending migrations — additive only, never destructive.
+  # 4. Apply pending migrations — additive only, never destructive.
   #    Failure is fatal: booting with a mismatched schema corrupts behavior.
   echo "▶ prisma migrate deploy"
   "$PRISMA" migrate deploy
 
-  # 4. NO automatic seed in production. To seed a brand-new production
+  # 5. NO automatic seed in production. To seed a brand-new production
   #    database intentionally, run once manually:
   #      railway run node scripts/seed-db.mjs
 else
