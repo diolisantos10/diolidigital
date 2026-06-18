@@ -4,6 +4,7 @@ import {
   updateApprovalStatus,
   addApprovalComment,
   getApprovalsForRequest,
+  setApprovalVisibility,
 } from "@/lib/agency/persistence/approval-service";
 import type { ApprovalStatus } from "@/lib/agency/persistence/approval-service";
 import { requireSession } from "@/lib/auth/api-guard";
@@ -20,6 +21,30 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const approvals = await getApprovalsForRequest(clientRequestId);
     return NextResponse.json(approvals);
+  } catch {
+    return NextResponse.json({ error: "DB unavailable" }, { status: 503 });
+  }
+}
+
+export async function PATCH(request: NextRequest): Promise<NextResponse> {
+  const { error } = await requireSession();
+  if (error) return error;
+
+  let body: Record<string, unknown>;
+  try { body = await request.json(); } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  const id = body.id as string | undefined;
+  if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
+
+  if (typeof body.clientVisible !== "boolean") {
+    return NextResponse.json({ error: "clientVisible (boolean) required" }, { status: 400 });
+  }
+
+  try {
+    const updated = await setApprovalVisibility(id, body.clientVisible);
+    return NextResponse.json(updated);
   } catch {
     return NextResponse.json({ error: "DB unavailable" }, { status: 503 });
   }

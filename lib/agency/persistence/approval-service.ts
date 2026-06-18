@@ -67,6 +67,13 @@ export async function addApprovalComment(input: AddCommentInput) {
   });
 }
 
+export async function setApprovalVisibility(id: string, clientVisible: boolean) {
+  return prisma.approvalRequest.update({
+    where: { id },
+    data: { clientVisible },
+  });
+}
+
 export async function getApprovalsForRequest(clientRequestId: string) {
   return prisma.approvalRequest.findMany({
     where: { clientRequestId },
