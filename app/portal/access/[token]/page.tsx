@@ -28,6 +28,16 @@ interface PortalData {
   }>;
 }
 
+// Strip common copy/paste artifacts from the raw URL path segment.
+// Only touches boundaries — interior of the token is never mutated.
+// Handles: surrounding whitespace, leading/trailing backticks (markdown
+// code-fence artifacts), and trailing periods (sentence-end paste).
+function sanitizePortalToken(raw: string): string {
+  let t = raw.trim().replace(/^`+|`+$/g, "").trim();
+  t = t.replace(/\.+$/, "");
+  return t;
+}
+
 const DEPT_ORDER = ["strategy", "social", "design", "traffic", "analytics", "quality"];
 
 const STATUS_LABEL: Record<string, string> = {
@@ -49,7 +59,8 @@ const ACTION_LABEL: Record<string, string> = {
 };
 
 export default function PortalAccessTokenPage({ params }: { params: Promise<{ token: string }> }) {
-  const { token } = use(params);
+  const { token: rawToken } = use(params);
+  const token = sanitizePortalToken(rawToken);
   const [data,    setData]    = useState<PortalData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState<string | null>(null);
