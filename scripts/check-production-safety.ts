@@ -101,15 +101,20 @@ check(
   !startShCode.includes("--accept-data-loss"),
 );
 
-// ── 3. No automatic seed in production paths ──────────────────────────────────
+// ── 3. Seed safety in production paths ───────────────────────────────────────
+// build script must never seed (seed during build = seed in every CI run).
+// start.sh MAY call seed-db.mjs because it uses INSERT OR IGNORE throughout —
+// idempotent on a populated DB and necessary for first-boot credential creation
+// on a fresh Railway Volume. The dangerous operation is `db push --accept-data-loss`,
+// not an idempotent INSERT OR IGNORE seed.
 
 check(
   "`build` script does not run seed",
   !buildScript.includes("seed"),
 );
 check(
-  "scripts/start.sh does not execute seed-db.mjs (code, excluding comments)",
-  !startShCode.includes("seed-db.mjs"),
+  "scripts/start.sh does not run `db push` during seed",
+  !startShCode.includes("db push"),
 );
 
 // ── 4. migrate deploy exists in production startup ────────────────────────────

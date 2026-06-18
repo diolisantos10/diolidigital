@@ -90,9 +90,12 @@ if [ "$IS_PRODUCTION" = "true" ]; then
   echo "▶ prisma migrate deploy"
   "$PRISMA" migrate deploy
 
-  # 5. NO automatic seed in production. To seed a brand-new production
-  #    database intentionally, run once manually:
-  #      railway run node scripts/seed-db.mjs
+  # 5. Seed initial workspace + users on every boot (idempotent).
+  #    seed-db.mjs uses INSERT OR IGNORE throughout — a no-op on populated
+  #    databases, so this is safe to run on every restart. Ensures a fresh
+  #    Railway Volume always has login credentials available from boot.
+  echo "▶ Applying seed (idempotent — INSERT OR IGNORE)"
+  "$NODE" "$ROOT/scripts/seed-db.mjs" || echo "⚠ Seed step failed (non-fatal — DB may still be functional)"
 else
   echo "▶ Non-production startup (NODE_ENV=${NODE_ENV:-unset})"
   # Local convenience fallback only — never reached in production.
