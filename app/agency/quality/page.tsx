@@ -13,7 +13,15 @@ import ApprovalSaveToast from "@/components/agency/ApprovalSaveToast";
 import { computeQualityScorecard } from "@/lib/dioli-brain/quality-scorecard";
 import { buildQualityChangeRequestInput } from "@/lib/dioli-brain/quality-training";
 import type { QualityCanvas } from "@/lib/dioli-brain/quality-canvas";
+import type { StrategyCanvas } from "@/lib/dioli-brain/strategy-canvas";
+import type { SocialCanvas } from "@/lib/dioli-brain/social-canvas";
+import type { DesignCanvas } from "@/lib/dioli-brain/design-canvas";
+import type { TrafficCanvas } from "@/lib/dioli-brain/traffic-canvas";
+import type { AnalyticsCanvas } from "@/lib/dioli-brain/analytics-canvas";
 import { saveArtifactToDb } from "@/lib/agency/persistence/save-artifact";
+import { useDbRequests, type DbRequest } from "@/lib/agency/db-pipeline-hooks";
+import { generateQualityCanvas } from "@/lib/dioli-brain/quality-engine";
+import { DbPipelineSection, PreviewField } from "@/components/agency/DbPipelineSection";
 
 type CanvasFilter = "all" | "draft" | "approved" | "rejected";
 
@@ -35,6 +43,87 @@ export default function QualityWorkspacePage() {
   const [proposeError, setProposeError] = useState<string | null>(null);
   const [approving, setApproving] = useState(false);
   const [approveError, setApproveError] = useState<string | null>(null);
+
+  // ── DB pipeline state ──
+  const { requests: dbQueue, loading: dbLoading, error: dbError, reload: reloadDb } = useDbRequests("waiting_quality");
+  const [dbCanvases, setDbCanvases] = useState<Record<string, QualityCanvas>>({});
+  const [dbGenerating, setDbGenerating] = useState<string | null>(null);
+  const [dbApproving, setDbApproving] = useState<string | null>(null);
+  const [dbError2, setDbError2] = useState<string | null>(null);
+
+  async function handleDbGenerate(req: DbRequest) {
+    setDbGenerating(req.id);
+    setDbError2(null);
+    try {
+      const res = await fetch(`/api/brain/artifacts?clientRequestId=${encodeURIComponent(req.id)}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status} ao carregar artifacts.`);
+      const data = await res.json();
+      const list: { department: string; canvasJson: string }[] = Array.isArray(data) ? data : data?.artifacts ?? data?.data ?? [];
+      const get = (dept: string) => {
+        const art = list.find((a) => a.department === dept);
+        return art ? JSON.parse(art.canvasJson) : null;
+      };
+      const strategyCanvas = get("strategy") as StrategyCanvas | null;
+      if (!strategyCanvas) throw new Error("Strategy Canvas não encontrado para esta solicitação.");
+      const canvas = generateQualityCanvas({
+        strategyCanvas,
+        socialCanvas: (get("social") as SocialCanvas | null) ?? undefined,
+        designCanvas: (get("design") as DesignCanvas | null) ?? undefined,
+        trafficCanvas: (get("traffic") as TrafficCanvas | null) ?? undefined,
+        analyticsCanvas: (get("analytics") as AnalyticsCanvas | null) ?? undefined,
+        requestId: req.id,
+        source: "request",
+      });
+      setDbCanvases((prev) => ({ ...prev, [req.id]: canvas }));
+    } catch (e) {
+      setDbError2(e instanceof Error ? e.message : "Falha ao gerar Quality Canvas.");
+    } finally {
+      setDbGenerating(null);
+    }
+  }
+
+  async function handleDbApprove(req: DbRequest) {
+    const canvas = dbCanvases[req.id];
+    if (!canvas) return;
+    if (canvas.overallVerdict === "BLOCKED" || canvas.overallVerdict === "FAIL") return;
+    setDbApproving(req.id);
+    setDbError2(null);
+    try {
+      await saveArtifactToDb({
+        clientRequestId: req.id,
+        department: "quality",
+        canvasId: canvas.id,
+        canvas,
+        qualityGate: canvas.gateResult,
+      });
+      // After Quality is saved, publish the client-visible departments.
+      for (const department of ["strategy", "social", "design", "quality"]) {
+        const apr = await fetch("/api/brain/approvals", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            clientRequestId: req.id,
+            department,
+            clientVisible: true,
+            requestedBy: "master@dioli.studio",
+          }),
+        });
+        if (!apr.ok) {
+          throw new Error(`HTTP ${apr.status} ao registrar aprovação de ${department}.`);
+        }
+      }
+      setDbCanvases((prev) => {
+        const next = { ...prev };
+        delete next[req.id];
+        return next;
+      });
+      await reloadDb();
+    } catch (e) {
+      setDbError2(e instanceof Error ? e.message : "Falha ao aprovar no banco.");
+    } finally {
+      setDbApproving(null);
+    }
+  }
 
   // Queue: approved analytics canvases that don't yet have a quality audit
   const auditedCanvasIds = new Set(canvases.map((c) => c.auditedCanvasId).filter(Boolean));
@@ -108,6 +197,27 @@ export default function QualityWorkspacePage() {
 
   return (
     <div className="space-y-6">
+      <DbPipelineSection
+        title="Pipeline DB — Quality"
+        dbQueue={dbQueue}
+        dbLoading={dbLoading}
+        dbError={dbError}
+        dbError2={dbError2}
+        canvases={dbCanvases}
+        generatingId={dbGenerating}
+        approvingId={dbApproving}
+        onGenerate={handleDbGenerate}
+        onApprove={handleDbApprove}
+        getQg={(c) => ({ overall: c.overallVerdict === "BLOCKED" ? "FAIL" : c.overallVerdict })}
+        renderPreview={(c) => (
+          <>
+            <PreviewField label="Veredicto" value={c.overallVerdict} />
+            <PreviewField label="Status" value={c.status} />
+            <PreviewField label="Checks" value={`${c.gateResult.passCount} pass · ${c.gateResult.failCount} fail`} />
+          </>
+        )}
+      />
+
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2">

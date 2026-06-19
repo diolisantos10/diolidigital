@@ -10,7 +10,12 @@ import { computeTrafficScorecard } from "@/lib/dioli-brain/traffic-scorecard";
 import { buildTrafficChangeRequestInput } from "@/lib/dioli-brain/traffic-training";
 import type { StrategyCanvas } from "@/lib/dioli-brain/strategy-canvas";
 import type { TrafficCanvas } from "@/lib/dioli-brain/traffic-canvas";
+import type { SocialCanvas } from "@/lib/dioli-brain/social-canvas";
+import type { DesignCanvas } from "@/lib/dioli-brain/design-canvas";
 import { saveArtifactToDb } from "@/lib/agency/persistence/save-artifact";
+import { useDbRequests, type DbRequest } from "@/lib/agency/db-pipeline-hooks";
+import { generateTrafficCanvas } from "@/lib/dioli-brain/traffic-engine";
+import { DbPipelineSection, PreviewField } from "@/components/agency/DbPipelineSection";
 
 type CanvasFilter = "all" | "draft" | "approved" | "rejected";
 type BudgetScenario = "low" | "medium" | "high" | "premium";
@@ -35,6 +40,71 @@ export default function TrafficWorkspacePage() {
   const [proposeError, setProposeError] = useState<string | null>(null);
   const [approving, setApproving] = useState(false);
   const [approveError, setApproveError] = useState<string | null>(null);
+
+  // ── DB pipeline state ──
+  const { requests: dbQueue, loading: dbLoading, error: dbError, reload: reloadDb } = useDbRequests("waiting_traffic");
+  const [dbCanvases, setDbCanvases] = useState<Record<string, TrafficCanvas>>({});
+  const [dbGenerating, setDbGenerating] = useState<string | null>(null);
+  const [dbApproving, setDbApproving] = useState<string | null>(null);
+  const [dbError2, setDbError2] = useState<string | null>(null);
+
+  async function handleDbGenerate(req: DbRequest) {
+    setDbGenerating(req.id);
+    setDbError2(null);
+    try {
+      const res = await fetch(`/api/brain/artifacts?clientRequestId=${encodeURIComponent(req.id)}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status} ao carregar artifacts.`);
+      const data = await res.json();
+      const list: { department: string; canvasJson: string }[] = Array.isArray(data) ? data : data?.artifacts ?? data?.data ?? [];
+      const get = (dept: string) => {
+        const art = list.find((a) => a.department === dept);
+        return art ? JSON.parse(art.canvasJson) : null;
+      };
+      const strategyCanvas = get("strategy") as StrategyCanvas | null;
+      if (!strategyCanvas) throw new Error("Strategy Canvas não encontrado para esta solicitação.");
+      const socialCanvas = get("social") as SocialCanvas | null;
+      const designCanvas = get("design") as DesignCanvas | null;
+      const canvas = generateTrafficCanvas({
+        strategyCanvas,
+        socialCanvas: socialCanvas ?? undefined,
+        designCanvas: designCanvas ?? undefined,
+        requestId: req.id,
+        source: "request",
+      });
+      setDbCanvases((prev) => ({ ...prev, [req.id]: canvas }));
+    } catch (e) {
+      setDbError2(e instanceof Error ? e.message : "Falha ao gerar Traffic Canvas.");
+    } finally {
+      setDbGenerating(null);
+    }
+  }
+
+  async function handleDbApprove(req: DbRequest) {
+    const canvas = dbCanvases[req.id];
+    if (!canvas) return;
+    if (canvas.qualityGateResult.overall === "FAIL") return;
+    setDbApproving(req.id);
+    setDbError2(null);
+    try {
+      await saveArtifactToDb({
+        clientRequestId: req.id,
+        department: "traffic",
+        canvasId: canvas.id,
+        canvas,
+        qualityGate: canvas.qualityGateResult,
+      });
+      setDbCanvases((prev) => {
+        const next = { ...prev };
+        delete next[req.id];
+        return next;
+      });
+      await reloadDb();
+    } catch (e) {
+      setDbError2(e instanceof Error ? e.message : "Falha ao aprovar no banco.");
+    } finally {
+      setDbApproving(null);
+    }
+  }
 
   const trafficByStrategy = new Set(canvases.map((c) => c.strategyCanvasId).filter(Boolean));
   const queue = strategyCanvases.filter(
@@ -104,6 +174,27 @@ export default function TrafficWorkspacePage() {
 
   return (
     <div className="space-y-6">
+      <DbPipelineSection
+        title="Pipeline DB — Tráfego Pago"
+        dbQueue={dbQueue}
+        dbLoading={dbLoading}
+        dbError={dbError}
+        dbError2={dbError2}
+        canvases={dbCanvases}
+        generatingId={dbGenerating}
+        approvingId={dbApproving}
+        onGenerate={handleDbGenerate}
+        onApprove={handleDbApprove}
+        getQg={(c) => c.qualityGateResult}
+        renderPreview={(c) => (
+          <>
+            <PreviewField span={2} label="Objetivo principal" value={c.mainObjective} />
+            <PreviewField label="Budget mensal" value={`R$ ${c.budgetAllocation.totalMonthlyBRL.toLocaleString("pt-BR")}`} />
+            <PreviewField span={3} label="ROAS projetado" value={c.projectedROAS} />
+          </>
+        )}
+      />
+
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2">

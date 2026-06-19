@@ -11,6 +11,9 @@ import { buildDesignChangeRequestInput } from "@/lib/dioli-brain/design-training
 import type { SocialCanvas } from "@/lib/dioli-brain/social-canvas";
 import type { DesignCanvas, DesignAssetStatus } from "@/lib/dioli-brain/design-canvas";
 import { saveArtifactToDb } from "@/lib/agency/persistence/save-artifact";
+import { useDbRequests, type DbRequest } from "@/lib/agency/db-pipeline-hooks";
+import { generateDesignCanvas } from "@/lib/dioli-brain/design-engine";
+import { DbPipelineSection, PreviewField } from "@/components/agency/DbPipelineSection";
 
 type CanvasFilter = "all" | "draft" | "approved" | "rejected";
 
@@ -33,6 +36,60 @@ export default function DesignWorkspacePage() {
   const [proposeError, setProposeError] = useState<string | null>(null);
   const [approving, setApproving] = useState(false);
   const [approveError, setApproveError] = useState<string | null>(null);
+
+  // ── DB pipeline state ──
+  const { requests: dbQueue, loading: dbLoading, error: dbError, reload: reloadDb } = useDbRequests("waiting_design");
+  const [dbCanvases, setDbCanvases] = useState<Record<string, DesignCanvas>>({});
+  const [dbGenerating, setDbGenerating] = useState<string | null>(null);
+  const [dbApproving, setDbApproving] = useState<string | null>(null);
+  const [dbError2, setDbError2] = useState<string | null>(null);
+
+  async function handleDbGenerate(req: DbRequest) {
+    setDbGenerating(req.id);
+    setDbError2(null);
+    try {
+      const res = await fetch(`/api/brain/artifacts?clientRequestId=${encodeURIComponent(req.id)}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status} ao carregar artifacts.`);
+      const data = await res.json();
+      const list: { department: string; canvasJson: string }[] = Array.isArray(data) ? data : data?.artifacts ?? data?.data ?? [];
+      const socialArt = list.find((a) => a.department === "social");
+      if (!socialArt) throw new Error("Social Canvas não encontrado para esta solicitação.");
+      const socialCanvas = JSON.parse(socialArt.canvasJson) as SocialCanvas;
+      const canvas = generateDesignCanvas({ socialCanvas, requestId: req.id, source: "request" });
+      setDbCanvases((prev) => ({ ...prev, [req.id]: canvas }));
+    } catch (e) {
+      setDbError2(e instanceof Error ? e.message : "Falha ao gerar Design Canvas.");
+    } finally {
+      setDbGenerating(null);
+    }
+  }
+
+  async function handleDbApprove(req: DbRequest) {
+    const canvas = dbCanvases[req.id];
+    if (!canvas) return;
+    if (canvas.qualityGateResult.overall === "FAIL") return;
+    setDbApproving(req.id);
+    setDbError2(null);
+    try {
+      await saveArtifactToDb({
+        clientRequestId: req.id,
+        department: "design",
+        canvasId: canvas.id,
+        canvas,
+        qualityGate: canvas.qualityGateResult,
+      });
+      setDbCanvases((prev) => {
+        const next = { ...prev };
+        delete next[req.id];
+        return next;
+      });
+      await reloadDb();
+    } catch (e) {
+      setDbError2(e instanceof Error ? e.message : "Falha ao aprovar no banco.");
+    } finally {
+      setDbApproving(null);
+    }
+  }
 
   // ── Incoming queue: approved social canvases not yet with a design canvas ──
   // Dioli Standard: Design never produces output without an approved Social Canvas.
@@ -128,6 +185,26 @@ export default function DesignWorkspacePage() {
 
   return (
     <div className="space-y-6">
+      <DbPipelineSection
+        title="Pipeline DB — Design"
+        dbQueue={dbQueue}
+        dbLoading={dbLoading}
+        dbError={dbError}
+        dbError2={dbError2}
+        canvases={dbCanvases}
+        generatingId={dbGenerating}
+        approvingId={dbApproving}
+        onGenerate={handleDbGenerate}
+        onApprove={handleDbApprove}
+        getQg={(c) => c.qualityGateResult}
+        renderPreview={(c) => (
+          <>
+            <PreviewField span={3} label="Conceito visual" value={c.visualConcept} />
+            <PreviewField span={3} label="Direção de cor" value={c.colorDirection} />
+          </>
+        )}
+      />
+
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>

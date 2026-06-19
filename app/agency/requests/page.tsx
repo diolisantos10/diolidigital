@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
 import { useAgencyStore } from "@/store/agency-store";
+import { useDbRequests, parseJson, type DbRequest } from "@/lib/agency/db-pipeline-hooks";
 import {
   REQUEST_STATUS_LABEL,
   REQUEST_STATUS_STYLE,
@@ -396,6 +397,42 @@ export default function AgencyRequestsPage() {
   // and never reachable from the client portal.
   const isMaster = currentRole === "master";
 
+  // ── DB pipeline: real briefing submissions (ClientRequestDb, status "new") ──
+  const {
+    requests: dbRequests,
+    loading: dbLoading,
+    error: dbError,
+    reload: reloadDb,
+  } = useDbRequests("new");
+  const [dbSending, setDbSending] = useState<string | null>(null);
+  const [dbSendError, setDbSendError] = useState<string | null>(null);
+
+  const handleSendToStrategy = useCallback(
+    async (req: DbRequest) => {
+      setDbSending(req.id);
+      setDbSendError(null);
+      try {
+        const res = await fetch(
+          `/api/brain/client-requests?id=${encodeURIComponent(req.id)}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: "waiting_strategy" }),
+          },
+        );
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status} ao enviar para Estratégia.`);
+        }
+        await reloadDb();
+      } catch (e) {
+        setDbSendError(e instanceof Error ? e.message : "Falha ao enviar para Estratégia.");
+      } finally {
+        setDbSending(null);
+      }
+    },
+    [reloadDb],
+  );
+
   const PIPELINE_ORDER: ClientRequestStatus[] = [
     "new", "under_review", "proposal_pending",
     "waiting_strategy", "waiting_social", "waiting_design",
@@ -586,6 +623,58 @@ export default function AgencyRequestsPage() {
 
   return (
     <div className="space-y-6">
+      {/* ── DB Pipeline — briefings reais (ClientRequestDb) ── */}
+      {!dbLoading && !dbError && dbRequests.length > 0 && (
+        <div className="bg-white rounded-[10px] border border-[#DDD6FE] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+          <div className="flex items-center gap-2 px-5 py-3 bg-[#F5F3FF] border-b border-[#DDD6FE]">
+            <h2 className="text-[14px] font-semibold text-[#1A1A1A]">Pipeline DB — Briefings reais</h2>
+            <span className="h-5 px-2 rounded-full bg-white text-[#7C3AED] text-[10px] font-semibold flex items-center border border-[#DDD6FE]">
+              {dbRequests.length} novo{dbRequests.length !== 1 ? "s" : ""}
+            </span>
+            <span className="h-5 px-2 rounded-full bg-[#7C3AED] text-white text-[10px] font-semibold flex items-center">
+              ✦ Dioli Brain
+            </span>
+          </div>
+          {dbSendError && (
+            <div className="px-5 py-2 bg-[#FEE2E2] border-b border-[#FECACA]">
+              <p className="text-[11px] text-[#991B1B]">{dbSendError}</p>
+            </div>
+          )}
+          <div className="divide-y divide-[#F0F0ED]">
+            {dbRequests.map((req) => {
+              const services = parseJson<string[]>(req.services, []);
+              return (
+                <div key={req.id} className="flex items-center gap-3 px-5 py-3.5">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[13px] font-semibold text-[#1A1A1A]">{req.businessName}</span>
+                      {req.segment && (
+                        <span className="h-5 px-2 rounded-full bg-[#F0F0ED] text-[#6B6B65] text-[10px] font-medium">
+                          {req.segment}
+                        </span>
+                      )}
+                      <span className="h-5 px-2 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-semibold">
+                        {req.status}
+                      </span>
+                    </div>
+                    {services.length > 0 && (
+                      <p className="text-[11px] text-[#9B9B95] mt-0.5 truncate">{services.join(", ")}</p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => handleSendToStrategy(req)}
+                    disabled={dbSending === req.id}
+                    className="h-8 px-4 rounded-[7px] bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-50 text-white text-[12px] font-medium transition-colors shrink-0"
+                  >
+                    {dbSending === req.id ? "Enviando…" : "Iniciar Estratégia →"}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Page header */}
       <div className="flex items-start justify-between">
         <div>

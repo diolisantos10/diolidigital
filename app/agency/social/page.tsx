@@ -11,6 +11,9 @@ import { buildSocialChangeRequestInput } from "@/lib/dioli-brain/social-training
 import type { StrategyCanvas } from "@/lib/dioli-brain/strategy-canvas";
 import type { SocialCanvas } from "@/lib/dioli-brain/social-canvas";
 import { saveArtifactToDb } from "@/lib/agency/persistence/save-artifact";
+import { useDbRequests, type DbRequest } from "@/lib/agency/db-pipeline-hooks";
+import { generateSocialCanvas } from "@/lib/dioli-brain/social-engine";
+import { DbPipelineSection, PreviewField } from "@/components/agency/DbPipelineSection";
 
 type CanvasFilter = "all" | "draft" | "approved" | "rejected";
 
@@ -33,6 +36,60 @@ export default function SocialWorkspacePage() {
   const [proposeError, setProposeError] = useState<string | null>(null);
   const [approving, setApproving] = useState(false);
   const [approveError, setApproveError] = useState<string | null>(null);
+
+  // ── DB pipeline state ──
+  const { requests: dbQueue, loading: dbLoading, error: dbError, reload: reloadDb } = useDbRequests("waiting_social");
+  const [dbCanvases, setDbCanvases] = useState<Record<string, SocialCanvas>>({});
+  const [dbGenerating, setDbGenerating] = useState<string | null>(null);
+  const [dbApproving, setDbApproving] = useState<string | null>(null);
+  const [dbError2, setDbError2] = useState<string | null>(null);
+
+  async function handleDbGenerate(req: DbRequest) {
+    setDbGenerating(req.id);
+    setDbError2(null);
+    try {
+      const res = await fetch(`/api/brain/artifacts?clientRequestId=${encodeURIComponent(req.id)}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status} ao carregar artifacts.`);
+      const data = await res.json();
+      const list: { department: string; canvasJson: string }[] = Array.isArray(data) ? data : data?.artifacts ?? data?.data ?? [];
+      const strategyArt = list.find((a) => a.department === "strategy");
+      if (!strategyArt) throw new Error("Strategy Canvas não encontrado para esta solicitação.");
+      const strategyCanvas = JSON.parse(strategyArt.canvasJson) as StrategyCanvas;
+      const canvas = generateSocialCanvas({ strategyCanvas, requestId: req.id, source: "request" });
+      setDbCanvases((prev) => ({ ...prev, [req.id]: canvas }));
+    } catch (e) {
+      setDbError2(e instanceof Error ? e.message : "Falha ao gerar Social Canvas.");
+    } finally {
+      setDbGenerating(null);
+    }
+  }
+
+  async function handleDbApprove(req: DbRequest) {
+    const canvas = dbCanvases[req.id];
+    if (!canvas) return;
+    if (canvas.qualityGateResult.overall === "FAIL") return;
+    setDbApproving(req.id);
+    setDbError2(null);
+    try {
+      await saveArtifactToDb({
+        clientRequestId: req.id,
+        department: "social",
+        canvasId: canvas.id,
+        canvas,
+        qualityGate: canvas.qualityGateResult,
+      });
+      setDbCanvases((prev) => {
+        const next = { ...prev };
+        delete next[req.id];
+        return next;
+      });
+      await reloadDb();
+    } catch (e) {
+      setDbError2(e instanceof Error ? e.message : "Falha ao aprovar no banco.");
+    } finally {
+      setDbApproving(null);
+    }
+  }
 
   // ── Incoming queue: approved strategies handed off to Social ──
   // Dioli Standard: Social never produces output without an approved Strategy.
@@ -133,6 +190,26 @@ export default function SocialWorkspacePage() {
 
   return (
     <div className="space-y-6">
+      <DbPipelineSection
+        title="Pipeline DB — Social Media"
+        dbQueue={dbQueue}
+        dbLoading={dbLoading}
+        dbError={dbError}
+        dbError2={dbError2}
+        canvases={dbCanvases}
+        generatingId={dbGenerating}
+        approvingId={dbApproving}
+        onGenerate={handleDbGenerate}
+        onApprove={handleDbApprove}
+        getQg={(c) => c.qualityGateResult}
+        renderPreview={(c) => (
+          <>
+            <PreviewField span={3} label="Direção de comunicação" value={c.communicationDirection} />
+            <PreviewField span={3} label="Pilares" value={c.editorialPillars.slice(0, 3).map((p) => p.name).join(", ")} />
+          </>
+        )}
+      />
+
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>

@@ -10,6 +10,8 @@ import { buildStrategyChangeRequestInput } from "@/lib/dioli-brain/strategy-trai
 import type { ClientRequest } from "@/lib/agency/client-requests";
 import type { StrategyCanvas } from "@/lib/dioli-brain/strategy-canvas";
 import { saveArtifactToDb } from "@/lib/agency/persistence/save-artifact";
+import { useDbRequests, parseJson, type DbRequest } from "@/lib/agency/db-pipeline-hooks";
+import { generateStrategyCanvas } from "@/lib/dioli-brain/strategy-engine";
 
 type CanvasFilter = "all" | "draft" | "approved" | "rejected";
 
@@ -31,6 +33,61 @@ export default function StrategyWorkspacePage() {
   const [proposeError, setProposeError] = useState<string | null>(null);
   const [approving, setApproving] = useState(false);
   const [approveError, setApproveError] = useState<string | null>(null);
+
+  // ── DB pipeline state ──
+  const { requests: dbQueue, loading: dbLoading, error: dbError, reload: reloadDb } = useDbRequests("waiting_strategy");
+  const [dbCanvases, setDbCanvases] = useState<Record<string, StrategyCanvas>>({});
+  const [dbGenerating, setDbGenerating] = useState<string | null>(null);
+  const [dbApproving, setDbApproving] = useState<string | null>(null);
+  const [dbError2, setDbError2] = useState<string | null>(null);
+
+  async function handleDbGenerate(req: DbRequest) {
+    setDbGenerating(req.id);
+    setDbError2(null);
+    try {
+      const canvas = generateStrategyCanvas({
+        businessName: req.businessName,
+        segment: req.segment ?? "",
+        objectives: parseJson<string[]>(req.objectives, []),
+        services: parseJson<string[]>(req.services, []),
+        rawContext: req.rawContext ?? "",
+        requestId: req.id,
+        source: "request",
+      });
+      setDbCanvases((prev) => ({ ...prev, [req.id]: canvas }));
+    } catch (e) {
+      setDbError2(e instanceof Error ? e.message : "Falha ao gerar Strategy Canvas.");
+    } finally {
+      setDbGenerating(null);
+    }
+  }
+
+  async function handleDbApprove(req: DbRequest) {
+    const canvas = dbCanvases[req.id];
+    if (!canvas) return;
+    if (canvas.qualityGateResult.overall === "FAIL") return;
+    setDbApproving(req.id);
+    setDbError2(null);
+    try {
+      await saveArtifactToDb({
+        clientRequestId: req.id,
+        department: "strategy",
+        canvasId: canvas.id,
+        canvas,
+        qualityGate: canvas.qualityGateResult,
+      });
+      setDbCanvases((prev) => {
+        const next = { ...prev };
+        delete next[req.id];
+        return next;
+      });
+      await reloadDb();
+    } catch (e) {
+      setDbError2(e instanceof Error ? e.message : "Falha ao aprovar no banco.");
+    } finally {
+      setDbApproving(null);
+    }
+  }
 
   // ── Incoming queue: requests handed off by the SDR ──
   const queue = (clientRequests ?? []).filter((r) => r.status === "waiting_strategy");
@@ -136,6 +193,98 @@ export default function StrategyWorkspacePage() {
 
   return (
     <div className="space-y-6">
+      {/* ── DB Pipeline — Estratégia ── */}
+      {(dbLoading || dbError || dbQueue.length > 0) && (
+        <div className="bg-white rounded-[10px] border border-[#DDD6FE] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+          <div className="flex items-center gap-2 px-5 py-3 bg-[#F5F3FF] border-b border-[#DDD6FE]">
+            <h2 className="text-[14px] font-semibold text-[#1A1A1A]">Pipeline DB — Estratégia</h2>
+            <span className="h-5 px-2 rounded-full bg-white text-[#7C3AED] text-[10px] font-semibold flex items-center border border-[#DDD6FE]">
+              {dbQueue.length}
+            </span>
+            <span className="h-5 px-2 rounded-full bg-[#7C3AED] text-white text-[10px] font-semibold flex items-center">
+              ✦ Dioli Brain
+            </span>
+          </div>
+          {dbLoading && (
+            <div className="px-5 py-6 flex items-center gap-2 text-[12px] text-[#9B9B95]">
+              <span className="w-3.5 h-3.5 border-2 border-[#DDD6FE] border-t-[#7C3AED] rounded-full animate-spin" />
+              Carregando fila do banco…
+            </div>
+          )}
+          {dbError && !dbLoading && (
+            <div className="px-5 py-3 bg-[#FEE2E2]">
+              <p className="text-[11px] text-[#991B1B]">{dbError}</p>
+            </div>
+          )}
+          {dbError2 && (
+            <div className="px-5 py-2 bg-[#FEE2E2] border-b border-[#FECACA]">
+              <p className="text-[11px] text-[#991B1B]">{dbError2}</p>
+            </div>
+          )}
+          {!dbLoading && !dbError && (
+            <div className="divide-y divide-[#F0F0ED]">
+              {dbQueue.map((req) => {
+                const canvas = dbCanvases[req.id];
+                const qg = canvas?.qualityGateResult;
+                return (
+                  <div key={req.id} className="px-5 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[13px] font-semibold text-[#1A1A1A]">{req.businessName}</span>
+                          {req.segment && (
+                            <span className="h-5 px-2 rounded-full bg-[#F0F0ED] text-[#6B6B65] text-[10px] font-medium">{req.segment}</span>
+                          )}
+                          <span className="h-5 px-2 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-semibold">{req.status}</span>
+                          {qg && (
+                            <span className={`h-5 px-2 rounded-full text-white text-[9px] font-bold flex items-center ${qg.overall === "PASS" ? "bg-[#16A34A]" : qg.overall === "WARNING" ? "bg-[#D97706]" : "bg-[#DC2626]"}`}>
+                              QG {qg.overall}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {!canvas ? (
+                        <button
+                          onClick={() => handleDbGenerate(req)}
+                          disabled={dbGenerating === req.id}
+                          className="h-8 px-4 rounded-[7px] bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-50 text-white text-[12px] font-medium transition-colors shrink-0"
+                        >
+                          {dbGenerating === req.id ? "Gerando…" : "✦ Generate"}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleDbApprove(req)}
+                          disabled={dbApproving === req.id || qg?.overall === "FAIL"}
+                          className="h-8 px-4 rounded-[7px] bg-[#16A34A] hover:bg-[#15803D] disabled:opacity-50 text-white text-[12px] font-medium transition-colors shrink-0"
+                        >
+                          {dbApproving === req.id ? "Aprovando…" : "Approve →"}
+                        </button>
+                      )}
+                    </div>
+                    {canvas && (
+                      <dl className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3 bg-[#F7F7F6] rounded-[8px] px-4 py-3">
+                        <div className="sm:col-span-3">
+                          <dt className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Posicionamento</dt>
+                          <dd className="text-[11px] text-[#1A1A1A] leading-snug mt-0.5">{canvas.positioningStatement}</dd>
+                        </div>
+                        <div className="sm:col-span-2">
+                          <dt className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Público</dt>
+                          <dd className="text-[11px] text-[#1A1A1A] leading-snug mt-0.5">{canvas.audience}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Territórios</dt>
+                          <dd className="text-[11px] text-[#1A1A1A] leading-snug mt-0.5">{canvas.contentTerritories.slice(0, 3).join(", ")}</dd>
+                        </div>
+                      </dl>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
