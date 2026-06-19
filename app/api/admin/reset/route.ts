@@ -2,12 +2,13 @@
 // operational tables while preserving workspace, users, auth, and migrations.
 //
 // DELETE /api/admin/reset
+//   Requires: ALLOW_PRODUCTION_RESET=true env var (disabled by default in production)
 //   Requires: master role session
 //   Body:     { confirm: "DELETE_ALL_OPERATIONAL_DATA" }
 //   Returns:  { before, after, tablesCleared }
 //
-// This endpoint exists to support clean-slate rehearsal runs before the
-// first real client session. Remove or gate behind env flag post-launch.
+// To enable on Railway: set ALLOW_PRODUCTION_RESET=true in environment variables.
+// Remove or leave unset once real clients are onboarded.
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
@@ -16,6 +17,12 @@ import { getSession } from "@/lib/auth/session";
 const CONFIRM_PHRASE = "DELETE_ALL_OPERATIONAL_DATA";
 
 export async function DELETE(request: NextRequest): Promise<NextResponse> {
+  // Disabled unless explicitly enabled via environment variable.
+  // Returns 404 to avoid revealing endpoint existence in production.
+  if (process.env.ALLOW_PRODUCTION_RESET !== "true") {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (session.role !== "master")
