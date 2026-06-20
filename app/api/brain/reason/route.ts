@@ -18,6 +18,7 @@ import {
   validateStrategyOutput,
   type AIRunContext,
 } from "@/lib/agency/intelligence/openai-schemas";
+import type { StrategyIntelligenceOutput } from "@/lib/agency/intelligence/strategy";
 import { getDepartmentDef } from "@/lib/agency/departments";
 import { generateStrategyCanvas } from "@/lib/dioli-brain/strategy-engine";
 import { generateSocialCanvas } from "@/lib/dioli-brain/social-engine";
@@ -39,6 +40,31 @@ function isDeptAiEnabled(dept: string): boolean {
   if (!flag) return false;
   const depts = flag.split(",").map((s) => s.trim().toLowerCase());
   return depts.includes("all") || depts.includes(dept);
+}
+
+// ── Coherence guard (Phase A1) ────────────────────────────────────────────────
+// AI output is already shape-valid (validateStrategyOutput). The coherence guard
+// is a second, semantic filter: AI may return shape-valid but empty/placeholder
+// content ("N/A", whitespace, single-char strings). Such output must NOT overlay
+// the rule-based canvas — Law 2: AI never degrades the truth. When incoherent,
+// the rule-based canvas is preserved untouched and a warning is recorded.
+
+function isMeaningfulString(v: unknown): boolean {
+  return typeof v === "string" && v.trim().length > 10 && v.trim().toUpperCase() !== "N/A";
+}
+
+function hasNonEmptyItem(arr: unknown): boolean {
+  return Array.isArray(arr) && arr.some((x) => typeof x === "string" && x.trim().length > 0);
+}
+
+function isCoherent(output: StrategyIntelligenceOutput): boolean {
+  // Each narrative string must be substantive (> 10 chars, not "N/A"/whitespace).
+  const strings = [output.diagnosis, output.opportunity, output.risk, output.positioning, output.executiveSummary];
+  if (!strings.every(isMeaningfulString)) return false;
+  // Array fields must each carry at least one non-empty item.
+  if (!hasNonEmptyItem(output.channels)) return false;
+  if (!hasNonEmptyItem(output.suggestedDeliverables)) return false;
+  return true;
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -141,7 +167,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     if (result.ok) {
       const aiOut = validateStrategyOutput(result.data);
-      if (aiOut) {
+      if (aiOut && !isCoherent(aiOut)) {
+        warnings.push("AI output incoerente (campos vazios ou placeholders) — motor rule-based preservado.");
+      } else if (aiOut) {
         const c = canvas as StrategyCanvas;
         // Overlay AI narrative on top of rule-based structural canvas.
         c.businessSummary      = aiOut.diagnosis;
