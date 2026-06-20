@@ -61,6 +61,7 @@ export const ModelName = {
   StrategyRoom: 'StrategyRoom',
   Briefing: 'Briefing',
   BrandUpdate: 'BrandUpdate',
+  BrainUpdate: 'BrainUpdate',
   DbIntegrationConfig: 'DbIntegrationConfig',
   DbAgentProviderConfig: 'DbAgentProviderConfig',
   Task: 'Task',
@@ -253,6 +254,22 @@ export const BrandUpdateScalarFieldEnum = {
 } as const
 
 export type BrandUpdateScalarFieldEnum = (typeof BrandUpdateScalarFieldEnum)[keyof typeof BrandUpdateScalarFieldEnum]
+
+
+export const BrainUpdateScalarFieldEnum = {
+  id: 'id',
+  clientRequestId: 'clientRequestId',
+  department: 'department',
+  fieldChanged: 'fieldChanged',
+  previousValue: 'previousValue',
+  proposedValue: 'proposedValue',
+  source: 'source',
+  status: 'status',
+  createdAt: 'createdAt',
+  appliedAt: 'appliedAt'
+} as const
+
+export type BrainUpdateScalarFieldEnum = (typeof BrainUpdateScalarFieldEnum)[keyof typeof BrainUpdateScalarFieldEnum]
 
 
 export const DbIntegrationConfigScalarFieldEnum = {

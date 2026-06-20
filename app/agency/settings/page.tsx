@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useAgencyStore } from "@/store/agency-store";
 import { useDbClients } from "@/lib/hooks/useDbClients";
@@ -94,6 +94,100 @@ function CollapsibleSection({ title, badge, children }: { title: string; badge?:
           {children}
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Pending Brain Updates (learning loop, Phase 5) ────────────────────────────
+// Lists pending BrainUpdate proposals and lets a human apply each one (the only
+// path that mutates the actual BrandBrain).
+
+interface PendingBrainUpdate {
+  id: string;
+  clientRequestId: string;
+  department: string;
+  fieldChanged: string;
+  previousValue: string | null;
+  proposedValue: string;
+  source: string;
+}
+
+function PendingBrainUpdates() {
+  const [updates, setUpdates] = useState<PendingBrainUpdate[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [applying, setApplying] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/brain/updates");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setUpdates((await res.json()) as PendingBrainUpdate[]);
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Falha ao carregar atualizações.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { void load(); }, [load]);
+
+  async function apply(id: string) {
+    setApplying(id);
+    setError(null);
+    try {
+      const res = await fetch(`/api/brain/updates/${id}/apply`, { method: "POST" });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error((d as { error?: string }).error ?? `HTTP ${res.status}`);
+      }
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Falha ao aplicar.");
+    } finally {
+      setApplying(null);
+    }
+  }
+
+  return (
+    <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+      <div className="px-6 py-4 border-b border-[#F0F0ED] flex items-center justify-between">
+        <span className="text-[13px] font-semibold text-[#1A1A1A]">Atualizações de Brain pendentes</span>
+        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-[4px] bg-[#F5F3FF] text-[#7C3AED]">
+          ✦ Learning loop
+        </span>
+      </div>
+      <div className="px-6 py-4 space-y-2">
+        {loading && <p className="text-[12px] text-[#9B9B95]">Carregando…</p>}
+        {error && <p className="text-[12px] text-[#991B1B]">{error}</p>}
+        {!loading && !error && updates.length === 0 && (
+          <p className="text-[12px] text-[#9B9B95]">Nenhuma atualização pendente. O Brain propõe mudanças a partir de entregas aprovadas.</p>
+        )}
+        {updates.map((u) => (
+          <div key={u.id} className="flex items-start gap-3 border border-[#F0F0ED] rounded-[8px] px-3 py-2.5">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[12px] font-semibold text-[#1A1A1A]">{u.fieldChanged}</span>
+                <span className="h-4 px-1.5 rounded-[3px] bg-[#F0F0ED] text-[#6B6B65] text-[9px] font-medium leading-4">{u.department}</span>
+                <span className="h-4 px-1.5 rounded-[3px] bg-[#EEF0FF] text-[#5B5BD6] text-[9px] font-medium leading-4">{u.source}</span>
+              </div>
+              {u.previousValue && (
+                <p className="text-[11px] text-[#9B9B95] mt-0.5 line-through truncate">{u.previousValue}</p>
+              )}
+              <p className="text-[11px] text-[#1A1A1A] mt-0.5 truncate">{u.proposedValue}</p>
+            </div>
+            <button
+              onClick={() => apply(u.id)}
+              disabled={applying === u.id}
+              className="h-7 px-3 rounded-[6px] bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-50 text-white text-[11px] font-medium transition-colors shrink-0"
+            >
+              {applying === u.id ? "Aplicando…" : "Aplicar"}
+            </button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -201,6 +295,9 @@ export default function SettingsPage() {
       <AgencyHeader title={t.settings.title} subtitle={t.settings.subtitle} />
 
       <div className="max-w-2xl space-y-5">
+
+        {/* ── Learning loop: pending Brain updates ─────────────────────────────── */}
+        <PendingBrainUpdates />
 
         {/* ── SECTION 1: Saúde do Sistema ──────────────────────────────────────── */}
         <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">

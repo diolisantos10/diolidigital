@@ -4,6 +4,7 @@ import type { Department } from "@/lib/agency/persistence/brain-artifact-service
 import { createEvidenceItem } from "@/lib/agency/persistence/evidence-service";
 import { requireSession } from "@/lib/auth/api-guard";
 import { prisma } from "@/lib/db/client";
+import { proposeBrainUpdate } from "@/lib/dioli-brain/brain-update";
 
 // Evidence auto-created on every approved artifact — one per department.
 const APPROVAL_EVIDENCE_LABEL: Record<string, string> = {
@@ -122,9 +123,54 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }).catch((e) => console.error("[brain/artifacts] auto-evidence failed", e));
     }
 
+    // ── Learning loop (Phase 5) ──────────────────────────────────────────────
+    // When the quality gate PASSes, propose brand-brain updates from the canvas.
+    // NEVER auto-applied — each is a pending BrainUpdate awaiting human approval.
+    // Failure here must not fail the artifact save (derived signal).
+    if (gate?.overall === "PASS") {
+      await proposeBrainUpdatesFromCanvas(
+        clientRequestId as string,
+        department as string,
+        canvas as Record<string, unknown>,
+      ).catch((e) => console.error("[brain/artifacts] brain-update proposal failed", e));
+    }
+
     return NextResponse.json(artifact, { status: 201 });
   } catch (e) {
     console.error("[brain/artifacts] POST error", e);
     return NextResponse.json({ error: "DB unavailable" }, { status: 503 });
+  }
+}
+
+// Extracts brand-brain learning signals from an approved canvas. Conservative:
+// only proposes fields that map to writable BrandBrain columns, and only when the
+// canvas actually carries a substantive value (never invents).
+async function proposeBrainUpdatesFromCanvas(
+  clientRequestId: string,
+  department: string,
+  canvas: Record<string, unknown>,
+): Promise<void> {
+  const substantive = (v: unknown): v is string => typeof v === "string" && v.trim().length > 10;
+
+  if (department === "strategy") {
+    if (substantive(canvas.positioningStatement)) {
+      await proposeBrainUpdate({
+        clientRequestId, department, fieldChanged: "positioning",
+        proposedValue: canvas.positioningStatement, source: "approved_delivery",
+      });
+    }
+    if (substantive(canvas.audience)) {
+      await proposeBrainUpdate({
+        clientRequestId, department, fieldChanged: "targetAudience",
+        proposedValue: canvas.audience, source: "approved_delivery",
+      });
+    }
+  } else if (department === "social") {
+    if (substantive(canvas.communicationDirection)) {
+      await proposeBrainUpdate({
+        clientRequestId, department, fieldChanged: "brandVoice",
+        proposedValue: canvas.communicationDirection, source: "approved_delivery",
+      });
+    }
   }
 }

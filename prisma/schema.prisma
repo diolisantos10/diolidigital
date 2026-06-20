@@ -200,6 +200,25 @@ model BrandUpdate {
   submittedAt    DateTime @default(now())
 }
 
+// ─── Brain Updates (learning loop) ────────────────────────────────────────────
+// Department-scoped feedback proposals from approved deliverables / quality
+// reviews / human edits. NEVER auto-applied — a human applies each one, which
+// then mutates the actual BrandBrain. Distinct from BrandUpdate (portal/manual
+// brand-field queue) — this captures the Brain's own learning signal.
+
+model BrainUpdate {
+  id              String   @id @default(cuid())
+  clientRequestId String
+  department      String
+  fieldChanged    String   // which brand brain field
+  previousValue   String?
+  proposedValue   String
+  source          String   // "approved_delivery" | "quality_review" | "human_edit"
+  status          String   @default("pending") // "pending" | "applied" | "rejected"
+  createdAt       DateTime @default(now())
+  appliedAt       DateTime?
+}
+
 // ─── Integration Configs ──────────────────────────────────────────────────────
 
 model DbIntegrationConfig {

@@ -92,6 +92,11 @@ export type Briefing = Prisma.BriefingModel
  */
 export type BrandUpdate = Prisma.BrandUpdateModel
 /**
+ * Model BrainUpdate
+ * 
+ */
+export type BrainUpdate = Prisma.BrainUpdateModel
+/**
  * Model DbIntegrationConfig
  * 
  */
