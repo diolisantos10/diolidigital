@@ -20,6 +20,7 @@ import {
 } from "@/lib/agency/intelligence/openai-schemas";
 import type { StrategyIntelligenceOutput } from "@/lib/agency/intelligence/strategy";
 import { getDepartmentDef } from "@/lib/agency/departments";
+import { buildClientSnapshot, snapshotBrandBrain, type ClientKnowledgeSnapshot } from "@/lib/dioli-brain/client-snapshot";
 import { generateStrategyCanvas } from "@/lib/dioli-brain/strategy-engine";
 import { generateSocialCanvas } from "@/lib/dioli-brain/social-engine";
 import { generateDesignCanvas } from "@/lib/dioli-brain/design-engine";
@@ -112,11 +113,33 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   let model = "rule_based";
   let canvas: unknown;
 
+  // ── 0. ClientKnowledgeSnapshot (Phase 2) ──────────────────────────────────────
+  // When a requestId is present, the server reads DB truth (request + BrandBrain)
+  // instead of trusting only what the UI passed. Null snapshot → backwards compat:
+  // fall back to the client-supplied context. Snapshot fields take precedence only
+  // where they carry real data (never invented).
+  let snapshot: ClientKnowledgeSnapshot | null = null;
+  if (requestId) {
+    try {
+      snapshot = await buildClientSnapshot(requestId);
+    } catch (e) {
+      console.error("[brain/reason] snapshot read failed", e);
+      warnings.push("Snapshot do cliente indisponível — usando contexto enviado pela UI.");
+    }
+  }
+  // Engine inputs — enriched from snapshot when available, else UI context.
+  const effBusinessName = snapshot?.businessName || businessName;
+  const effSegment      = snapshot?.segment || segment;
+  const effServices     = snapshot && snapshot.services.length > 0 ? snapshot.services : services;
+  const effObjectives   = snapshot && snapshot.objectives.length > 0 ? snapshot.objectives : objectives;
+  const effRawContext   = snapshot?.rawContext || rawContext;
+
   // ── 1. Rule-based engine (always runs — provides full canvas structure) ───────
 
   if (deptId === "strategy") {
     canvas = generateStrategyCanvas({
-      businessName, segment, objectives, services, rawContext, requestId, source: "request",
+      businessName: effBusinessName, segment: effSegment, objectives: effObjectives,
+      services: effServices, rawContext: effRawContext, requestId, source: "request",
     });
   } else if (deptId === "social") {
     if (!strategyCanvas) {
@@ -156,11 +179,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (isOpenAIConfigured() && isDeptAiEnabled(deptId) && deptId === "strategy") {
     const def = getDepartmentDef("strategy");
     const ctx: AIRunContext = {
-      projectName:     businessName,
-      clientName:      businessName,
-      clientIndustry:  segment,
-      projectGoal:     objectives.join("; ") || rawContext.slice(0, 300),
-      prompt:          def?.defaultPrompt ?? "Você é o Strategy Agent da Dioli Agência.",
+      projectName:      effBusinessName,
+      clientName:       effBusinessName,
+      clientIndustry:   effSegment,
+      projectGoal:      effObjectives.join("; ") || effRawContext.slice(0, 300),
+      briefingAudience: snapshot?.targetAudience,
+      brandBrain:       snapshot ? snapshotBrandBrain(snapshot) : undefined,
+      prompt:           def?.defaultPrompt ?? "Você é o Strategy Agent da Dioli Agência.",
     };
     const messages = buildStrategyMessages(ctx);
     const result = await callOpenAI(messages);
