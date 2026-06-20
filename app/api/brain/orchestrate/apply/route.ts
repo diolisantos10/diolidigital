@@ -1,0 +1,139 @@
+// POST /api/brain/orchestrate/apply — the ONLY state-mutating orchestrator route.
+//
+// Agency role only. Reads { clientRequestId, proposal }, validates the proposal
+// shape, then creates the Project + Tasks via Prisma and advances the request
+// status. This route exists precisely so that nothing is ever created without an
+// explicit, human-confirmed apply call (Law 2).
+
+import { NextRequest, NextResponse } from "next/server";
+import { requireSession } from "@/lib/auth/api-guard";
+import { prisma } from "@/lib/db/client";
+import { getDepartmentDef, type DepartmentId } from "@/lib/agency/departments";
+
+const AGENCY_ROLES = ["master", "project_manager"] as const;
+// Reasoning departments accepted in a proposal. "analytics" is a reasoning dept
+// without a 1:1 DepartmentDef — handled separately when resolving the owning agent.
+const VALID_DEPTS = [
+  "strategy", "social-media", "design", "paid-traffic", "analytics", "project-management",
+] as const;
+// Reasoning dept → DepartmentDef id (for resolving the owning agent). Analytics has
+// no dedicated DepartmentDef, so its tasks route to the PM agent.
+const DEPT_TO_DEF: Record<string, DepartmentId> = {
+  strategy: "strategy",
+  "social-media": "social-media",
+  design: "design",
+  "paid-traffic": "paid-traffic",
+  analytics: "project-management",
+  "project-management": "project-management",
+};
+const VALID_PRIORITIES = ["critical", "high", "medium", "low"];
+
+interface IncomingTask {
+  title: string;
+  description: string;
+  department: string;
+  priority: string;
+  estimatedDays: number;
+}
+
+function validateProposal(p: unknown): { name: string; goal: string; stage: string; tasks: IncomingTask[] } | null {
+  if (!p || typeof p !== "object") return null;
+  const o = p as Record<string, unknown>;
+  if (typeof o.name !== "string" || o.name.trim().length === 0) return null;
+  if (typeof o.goal !== "string") return null;
+  if (typeof o.stage !== "string" || o.stage.trim().length === 0) return null;
+  if (!Array.isArray(o.tasks) || o.tasks.length === 0) return null;
+  const tasks: IncomingTask[] = [];
+  for (const t of o.tasks) {
+    if (!t || typeof t !== "object") return null;
+    const tt = t as Record<string, unknown>;
+    if (typeof tt.title !== "string" || tt.title.trim().length === 0) return null;
+    if (typeof tt.department !== "string" || !(VALID_DEPTS as readonly string[]).includes(tt.department)) return null;
+    if (typeof tt.priority !== "string" || !VALID_PRIORITIES.includes(tt.priority)) return null;
+    tasks.push({
+      title: tt.title,
+      description: typeof tt.description === "string" ? tt.description : "",
+      department: tt.department,
+      priority: tt.priority,
+      estimatedDays: typeof tt.estimatedDays === "number" ? tt.estimatedDays : 3,
+    });
+  }
+  return { name: o.name, goal: o.goal, stage: o.stage, tasks };
+}
+
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  const { session, error } = await requireSession([...AGENCY_ROLES]);
+  if (error) return error;
+  if (session.clientId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  let body: { clientRequestId?: unknown; proposal?: unknown };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  const clientRequestId = body.clientRequestId;
+  if (!clientRequestId || typeof clientRequestId !== "string") {
+    return NextResponse.json({ error: "clientRequestId required" }, { status: 400 });
+  }
+  const proposal = validateProposal(body.proposal);
+  if (!proposal) {
+    return NextResponse.json({ error: "Invalid proposal shape" }, { status: 400 });
+  }
+
+  try {
+    const req = await prisma.clientRequestDb.findUnique({ where: { id: clientRequestId } });
+    if (!req) return NextResponse.json({ error: "ClientRequest not found" }, { status: 404 });
+
+    // Resolve (or create) the Client this project belongs to. A request may not be
+    // linked to a Client yet — create one from the briefing's businessName.
+    let clientId = req.clientId ?? undefined;
+    if (!clientId) {
+      const client = await prisma.client.create({
+        data: {
+          workspaceId: session.workspaceId,
+          name: req.businessName,
+          industry: req.segment || null,
+        },
+      });
+      clientId = client.id;
+      await prisma.clientRequestDb.update({
+        where: { id: clientRequestId },
+        data: { clientId, workspaceId: session.workspaceId },
+      });
+    }
+
+    const project = await prisma.project.create({
+      data: {
+        workspaceId: session.workspaceId,
+        clientId,
+        name: proposal.name,
+        goal: proposal.goal,
+        stage: proposal.stage,
+        priority: "medium",
+      },
+    });
+
+    // Map each proposal task to a Task row. department → owning agent id (for routing).
+    await prisma.task.createMany({
+      data: proposal.tasks.map((t) => ({
+        projectId: project.id,
+        title: t.title,
+        description: t.description || null,
+        agentId: getDepartmentDef(DEPT_TO_DEF[t.department])?.primaryAgentId ?? null,
+        status: "pending",
+      })),
+    });
+
+    // Advance the request — a project now exists for it.
+    await prisma.clientRequestDb
+      .update({ where: { id: clientRequestId }, data: { status: "in_progress" } })
+      .catch((e) => console.error("[brain/orchestrate/apply] status advance failed", e));
+
+    return NextResponse.json({ ok: true, projectId: project.id, taskCount: proposal.tasks.length }, { status: 201 });
+  } catch (e) {
+    console.error("[brain/orchestrate/apply] POST error", e);
+    return NextResponse.json({ error: "DB unavailable" }, { status: 503 });
+  }
+}

@@ -16,6 +16,7 @@ import type { SDRHandoff } from "@/lib/agency/sdr-agent";
 import { processBriefing } from "@/lib/agency/briefing-processor";
 import type { Priority } from "@/lib/agency/mock-data";
 import { DEMO_CLIENT_ID } from "@/lib/agency/demo-client";
+import { usePMOrchestrator } from "@/lib/dioli-brain/use-pm-orchestrator";
 
 // ── CopyLinkButton ────────────────────────────────────────────────────────────
 
@@ -35,6 +36,109 @@ function CopyLinkButton({ path }: { path: string }) {
     >
       {copied ? "Copiado!" : "Copiar link"}
     </button>
+  );
+}
+
+// ── PM Orchestrator (Phase 3) ─────────────────────────────────────────────────
+// Minimal proposal flow attached to a status="new" DB request. Hidden entirely
+// when BRAIN_PM_AUTOPILOT is off (propose() returns enabled:false → status
+// "disabled"). The proposal is a DRAFT: nothing is created until "Aprovar & Criar".
+
+const PRIORITY_STYLE: Record<string, string> = {
+  critical: "bg-[#FEE2E2] text-[#991B1B]",
+  high:     "bg-[#FEF3C7] text-[#92400E]",
+  medium:   "bg-[#EEF0FF] text-[#5B5BD6]",
+  low:      "bg-[#F0F0ED] text-[#6B6B65]",
+};
+
+function OrchestratePanel({ requestId, onApplied }: { requestId: string; onApplied: () => void }) {
+  const { status, proposal, projectId, error, propose, apply, reset } = usePMOrchestrator(requestId);
+
+  if (status === "idle") {
+    return (
+      <button
+        onClick={propose}
+        className="h-8 px-4 rounded-[7px] border border-[#7C3AED] text-[#7C3AED] hover:bg-[#F5F3FF] text-[12px] font-medium transition-colors shrink-0"
+      >
+        ✦ Orquestrar
+      </button>
+    );
+  }
+  if (status === "proposing") {
+    return <span className="text-[11px] text-[#9B9B95] shrink-0">Raciocinando…</span>;
+  }
+  if (status === "disabled") {
+    return <span className="text-[11px] text-[#9B9B95] shrink-0">PM Autopilot desativado</span>;
+  }
+  if (status === "done") {
+    return (
+      <span className="text-[11px] font-medium text-[#166534] shrink-0">
+        Projeto criado{projectId ? ` (${projectId.slice(0, 6)}…)` : ""} ✓
+      </span>
+    );
+  }
+  if (status === "error") {
+    return (
+      <div className="flex items-center gap-2 shrink-0">
+        <span className="text-[11px] text-[#991B1B]">{error}</span>
+        <button onClick={reset} className="text-[11px] underline text-[#6B6B65]">Tentar de novo</button>
+      </div>
+    );
+  }
+  // proposed | applying — render the inline draft proposal for approval.
+  if (!proposal) return null;
+  return (
+    <div className="w-full mt-2 rounded-[8px] border border-[#DDD6FE] bg-[#FBFAFF] p-3 space-y-2">
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-[12px] font-semibold text-[#1A1A1A]">{proposal.name}</span>
+        <span className="h-4 px-1.5 rounded-[3px] bg-[#7C3AED] text-white text-[9px] font-semibold leading-4">
+          {proposal.reasoningMode === "openai" ? "AI" : "RULE-BASED"}
+        </span>
+        <span className="text-[11px] text-[#9B9B95]">DRAFT — nada foi criado ainda</span>
+      </div>
+      <p className="text-[11px] text-[#6B6B65]">{proposal.goal}</p>
+      {proposal.warnings.length > 0 && (
+        <ul className="text-[10px] text-[#92400E] list-disc pl-4">
+          {proposal.warnings.map((w, i) => <li key={i}>{w}</li>)}
+        </ul>
+      )}
+      <table className="w-full text-[11px]">
+        <thead>
+          <tr className="text-[#9B9B95] text-left">
+            <th className="font-medium py-1">Tarefa</th>
+            <th className="font-medium py-1">Depto</th>
+            <th className="font-medium py-1">Prioridade</th>
+            <th className="font-medium py-1">Dias</th>
+          </tr>
+        </thead>
+        <tbody>
+          {proposal.tasks.map((t, i) => (
+            <tr key={i} className="border-t border-[#EEE]">
+              <td className="py-1 pr-2 text-[#1A1A1A]">{t.title}</td>
+              <td className="py-1 pr-2 text-[#6B6B65]">{t.department}</td>
+              <td className="py-1 pr-2">
+                <span className={`px-1.5 py-0.5 rounded-[3px] text-[9px] font-semibold ${PRIORITY_STYLE[t.priority] ?? ""}`}>
+                  {t.priority}
+                </span>
+              </td>
+              <td className="py-1 text-[#6B6B65]">{t.estimatedDays}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="flex items-center gap-2 pt-1">
+        <button
+          onClick={async () => { await apply(proposal); onApplied(); }}
+          disabled={status === "applying"}
+          className="h-8 px-4 rounded-[7px] bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-50 text-white text-[12px] font-medium transition-colors"
+        >
+          {status === "applying" ? "Criando…" : "Aprovar & Criar projeto"}
+        </button>
+        <button onClick={reset} className="h-8 px-3 text-[12px] text-[#6B6B65] hover:text-[#1A1A1A]">
+          Descartar
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -644,30 +748,33 @@ export default function AgencyRequestsPage() {
             {dbRequests.map((req) => {
               const services = parseJson<string[]>(req.services, []);
               return (
-                <div key={req.id} className="flex items-center gap-3 px-5 py-3.5">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[13px] font-semibold text-[#1A1A1A]">{req.businessName}</span>
-                      {req.segment && (
-                        <span className="h-5 px-2 rounded-full bg-[#F0F0ED] text-[#6B6B65] text-[10px] font-medium">
-                          {req.segment}
+                <div key={req.id} className="px-5 py-3.5">
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[13px] font-semibold text-[#1A1A1A]">{req.businessName}</span>
+                        {req.segment && (
+                          <span className="h-5 px-2 rounded-full bg-[#F0F0ED] text-[#6B6B65] text-[10px] font-medium">
+                            {req.segment}
+                          </span>
+                        )}
+                        <span className="h-5 px-2 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-semibold">
+                          {req.status}
                         </span>
+                      </div>
+                      {services.length > 0 && (
+                        <p className="text-[11px] text-[#9B9B95] mt-0.5 truncate">{services.join(", ")}</p>
                       )}
-                      <span className="h-5 px-2 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-semibold">
-                        {req.status}
-                      </span>
                     </div>
-                    {services.length > 0 && (
-                      <p className="text-[11px] text-[#9B9B95] mt-0.5 truncate">{services.join(", ")}</p>
-                    )}
+                    <OrchestratePanel requestId={req.id} onApplied={reloadDb} />
+                    <button
+                      onClick={() => handleSendToStrategy(req)}
+                      disabled={dbSending === req.id}
+                      className="h-8 px-4 rounded-[7px] bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-50 text-white text-[12px] font-medium transition-colors shrink-0"
+                    >
+                      {dbSending === req.id ? "Enviando…" : "Iniciar Estratégia →"}
+                    </button>
                   </div>
-                  <button
-                    onClick={() => handleSendToStrategy(req)}
-                    disabled={dbSending === req.id}
-                    className="h-8 px-4 rounded-[7px] bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-50 text-white text-[12px] font-medium transition-colors shrink-0"
-                  >
-                    {dbSending === req.id ? "Enviando…" : "Iniciar Estratégia →"}
-                  </button>
                 </div>
               );
             })}

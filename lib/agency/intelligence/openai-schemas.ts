@@ -135,6 +135,100 @@ Gere um diagnóstico de gestão (status, bloqueios, próximas ações, tarefas s
   return { system, user };
 }
 
+// ── PM Orchestrator ───────────────────────────────────────────────────────────
+// Distinct from buildPMMessages (which diagnoses an existing project). The
+// orchestrator turns a client briefing/snapshot into a full project proposal:
+// name, goal, stage, and a department-distributed task list. Output is a DRAFT —
+// the server never auto-applies it (Law 2).
+
+// Minimal snapshot shape the orchestrator prompt needs. Kept structural (not an
+// import of the server-only snapshot module) so this file stays isomorphic.
+export interface PMOrchestratorInput {
+  businessName: string;
+  segment: string;
+  services: string[];
+  objectives: string[];
+  rawContext: string;
+  brandBrain?: Record<string, string>;
+  missingFields?: string[];
+}
+
+export function buildPMOrchestratorMessages(input: PMOrchestratorInput): OpenAIMessages {
+  const bb = Object.entries(input.brandBrain ?? {})
+    .filter(([, v]) => typeof v === "string" && v.trim().length > 0)
+    .map(([k, v]) => `- ${k}: ${v}`);
+  const brandBlock = bb.length > 0 ? bb.join("\n") : "(Brand Brain incompleto ou ausente)";
+
+  const system = `Você é o PM Orchestrator da Dioli Agência. Responda SEMPRE em português do Brasil.
+A partir do briefing do cliente, proponha UM projeto com tarefas distribuídas por departamento.
+Departamentos válidos (use exatamente estes ids no campo "department"):
+strategy, social-media, design, paid-traffic, analytics, project-management.
+NUNCA invente fatos ausentes — se faltar informação, gere uma tarefa de coleta/alinhamento.
+Retorne APENAS um objeto JSON válido com exatamente estas chaves:
+{
+  "name": string,
+  "goal": string,
+  "stage": string,
+  "tasks": [{ "title": string, "description": string, "department": string, "priority": "critical"|"high"|"medium"|"low", "estimatedDays": number }]
+}
+Não inclua texto fora do JSON.`;
+
+  const user = `Cliente: ${input.businessName} (${input.segment || "segmento não informado"})
+Serviços contratados/desejados: ${input.services.length > 0 ? input.services.join(", ") : "não informados"}
+Objetivos: ${input.objectives.length > 0 ? input.objectives.join("; ") : "não informados"}
+Contexto: ${input.rawContext.slice(0, 600) || "(sem contexto adicional)"}
+${input.missingFields && input.missingFields.length > 0 ? `Campos ausentes no Brand Brain: ${input.missingFields.join(", ")}` : ""}
+
+Brand Brain:
+${brandBlock}
+
+Gere um plano de projeto acionável (nome, objetivo, estágio inicial e 4–8 tarefas distribuídas pelos departamentos relevantes, com prioridade e estimativa em dias).`;
+
+  return { system, user };
+}
+
+const PRIORITIES = ["critical", "high", "medium", "low"];
+const ORCHESTRATOR_DEPTS = ["strategy", "social-media", "design", "paid-traffic", "analytics", "project-management"];
+
+export interface ValidatedTaskProposal {
+  title: string;
+  description: string;
+  department: string;
+  priority: "critical" | "high" | "medium" | "low";
+  estimatedDays: number;
+}
+
+export interface ValidatedProjectProposal {
+  name: string;
+  goal: string;
+  stage: string;
+  tasks: ValidatedTaskProposal[];
+}
+
+export function validatePMOrchestratorOutput(raw: unknown): ValidatedProjectProposal | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  if (!isStr(o.name) || !isStr(o.goal) || !isStr(o.stage) || !Array.isArray(o.tasks)) return null;
+  const tasks: ValidatedTaskProposal[] = [];
+  for (const t of o.tasks as unknown[]) {
+    if (!t || typeof t !== "object") return null;
+    const tt = t as Record<string, unknown>;
+    if (!isStr(tt.title) || !isStr(tt.description)) return null;
+    if (!isStr(tt.department) || !ORCHESTRATOR_DEPTS.includes(tt.department)) return null;
+    if (!isStr(tt.priority) || !PRIORITIES.includes(tt.priority)) return null;
+    const days = typeof tt.estimatedDays === "number" && tt.estimatedDays > 0 ? Math.round(tt.estimatedDays) : 3;
+    tasks.push({
+      title: tt.title,
+      description: tt.description,
+      department: tt.department,
+      priority: tt.priority as ValidatedTaskProposal["priority"],
+      estimatedDays: days,
+    });
+  }
+  if (tasks.length === 0) return null;
+  return { name: o.name, goal: o.goal, stage: o.stage, tasks };
+}
+
 export function buildMessages(departmentId: OpenAIDepartmentId, ctx: AIRunContext): OpenAIMessages {
   switch (departmentId) {
     case "strategy":
