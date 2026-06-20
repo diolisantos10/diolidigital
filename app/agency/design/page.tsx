@@ -12,7 +12,7 @@ import type { SocialCanvas } from "@/lib/dioli-brain/social-canvas";
 import type { DesignCanvas, DesignAssetStatus } from "@/lib/dioli-brain/design-canvas";
 import { saveArtifactToDb } from "@/lib/agency/persistence/save-artifact";
 import { useDbRequests, type DbRequest } from "@/lib/agency/db-pipeline-hooks";
-import { generateDesignCanvas } from "@/lib/dioli-brain/design-engine";
+import { reasonAsDepartment } from "@/lib/dioli-brain/reason";
 import { DbPipelineSection, PreviewField } from "@/components/agency/DbPipelineSection";
 
 type CanvasFilter = "all" | "draft" | "approved" | "rejected";
@@ -55,8 +55,8 @@ export default function DesignWorkspacePage() {
       const socialArt = list.find((a) => a.department === "social");
       if (!socialArt) throw new Error("Social Canvas não encontrado para esta solicitação.");
       const socialCanvas = JSON.parse(socialArt.canvasJson) as SocialCanvas;
-      const canvas = generateDesignCanvas({ socialCanvas, requestId: req.id, source: "request" });
-      setDbCanvases((prev) => ({ ...prev, [req.id]: canvas }));
+      const result = await reasonAsDepartment("design", { businessName: req.businessName, requestId: req.id, socialCanvas });
+      setDbCanvases((prev) => ({ ...prev, [req.id]: result.canvas as DesignCanvas }));
     } catch (e) {
       setDbError2(e instanceof Error ? e.message : "Falha ao gerar Design Canvas.");
     } finally {

@@ -11,7 +11,7 @@ import type { ClientRequest } from "@/lib/agency/client-requests";
 import type { StrategyCanvas } from "@/lib/dioli-brain/strategy-canvas";
 import { saveArtifactToDb } from "@/lib/agency/persistence/save-artifact";
 import { useDbRequests, parseJson, type DbRequest } from "@/lib/agency/db-pipeline-hooks";
-import { generateStrategyCanvas } from "@/lib/dioli-brain/strategy-engine";
+import { reasonAsDepartment } from "@/lib/dioli-brain/reason";
 
 type CanvasFilter = "all" | "draft" | "approved" | "rejected";
 
@@ -45,16 +45,15 @@ export default function StrategyWorkspacePage() {
     setDbGenerating(req.id);
     setDbError2(null);
     try {
-      const canvas = generateStrategyCanvas({
+      const result = await reasonAsDepartment("strategy", {
         businessName: req.businessName,
-        segment: req.segment ?? "",
-        objectives: parseJson<string[]>(req.objectives, []),
-        services: parseJson<string[]>(req.services, []),
-        rawContext: req.rawContext ?? "",
-        requestId: req.id,
-        source: "request",
+        segment:      req.segment ?? "",
+        objectives:   parseJson<string[]>(req.objectives, []),
+        services:     parseJson<string[]>(req.services, []),
+        rawContext:   req.rawContext ?? "",
+        requestId:    req.id,
       });
-      setDbCanvases((prev) => ({ ...prev, [req.id]: canvas }));
+      setDbCanvases((prev) => ({ ...prev, [req.id]: result.canvas as StrategyCanvas }));
     } catch (e) {
       setDbError2(e instanceof Error ? e.message : "Falha ao gerar Strategy Canvas.");
     } finally {

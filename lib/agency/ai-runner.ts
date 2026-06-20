@@ -1,6 +1,7 @@
 // Shared AI execution layer for department intelligence.
-// V1: External providers always fall back to rule_based — no real API calls.
-// The infrastructure is ready to wire real providers in V2.
+// Real AI calls happen server-side via POST /api/brain/reason (reasonAsDepartment)
+// and POST /api/ai/run (legacy store path). This module provides the metadata
+// type and the provider-resolution helper used by the UI store.
 
 export type AIProvider = "rule_based" | "openai" | "gemini" | "claude" | "perplexity";
 
@@ -13,22 +14,26 @@ export interface AIRunMeta {
   promptSummary: string;
 }
 
-// Resolves which provider will execute. In V1, external providers always fall back
-// because no API keys are wired. The system never crashes — it degrades gracefully.
+// Resolves which provider will execute for a given request.
+// isConfigured comes from the caller (e.g. fetched via GET /api/ai/run).
+// When true and the requested provider is external, the provider is used;
+// otherwise falls back to rule_based gracefully.
 export function resolveProvider(
   requestedProvider: AIProvider,
   _requestedModel: string,
   prompt: string,
+  isConfigured = false,
 ): AIRunMeta {
   const isExternal = requestedProvider !== "rule_based";
-  const fallbackUsed = isExternal;
-  const fallbackReason = isExternal
-    ? `Provedor "${requestedProvider}" não configurado — usando regras locais (V1)`
+  const fallbackUsed = isExternal && !isConfigured;
+  const activeProvider: AIProvider = fallbackUsed ? "rule_based" : requestedProvider;
+  const fallbackReason = fallbackUsed
+    ? `Provedor "${requestedProvider}" não configurado — usando regras locais`
     : undefined;
 
   return {
-    provider: "rule_based",
-    model: "rule_based",
+    provider: activeProvider,
+    model: fallbackUsed ? "rule_based" : _requestedModel || requestedProvider,
     fallbackUsed,
     fallbackReason,
     warnings: fallbackUsed ? [`Fallback ativo: ${fallbackReason}`] : [],

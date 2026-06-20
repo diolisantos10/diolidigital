@@ -13,14 +13,9 @@ import ApprovalSaveToast from "@/components/agency/ApprovalSaveToast";
 import { computeQualityScorecard } from "@/lib/dioli-brain/quality-scorecard";
 import { buildQualityChangeRequestInput } from "@/lib/dioli-brain/quality-training";
 import type { QualityCanvas } from "@/lib/dioli-brain/quality-canvas";
-import type { StrategyCanvas } from "@/lib/dioli-brain/strategy-canvas";
-import type { SocialCanvas } from "@/lib/dioli-brain/social-canvas";
-import type { DesignCanvas } from "@/lib/dioli-brain/design-canvas";
-import type { TrafficCanvas } from "@/lib/dioli-brain/traffic-canvas";
-import type { AnalyticsCanvas } from "@/lib/dioli-brain/analytics-canvas";
 import { saveArtifactToDb } from "@/lib/agency/persistence/save-artifact";
 import { useDbRequests, type DbRequest } from "@/lib/agency/db-pipeline-hooks";
-import { generateQualityCanvas } from "@/lib/dioli-brain/quality-engine";
+import { reasonAsDepartment } from "@/lib/dioli-brain/reason";
 import { DbPipelineSection, PreviewField } from "@/components/agency/DbPipelineSection";
 
 type CanvasFilter = "all" | "draft" | "approved" | "rejected";
@@ -63,18 +58,18 @@ export default function QualityWorkspacePage() {
         const art = list.find((a) => a.department === dept);
         return art ? JSON.parse(art.canvasJson) : null;
       };
-      const strategyCanvas = get("strategy") as StrategyCanvas | null;
+      const strategyCanvas = get("strategy");
       if (!strategyCanvas) throw new Error("Strategy Canvas não encontrado para esta solicitação.");
-      const canvas = generateQualityCanvas({
+      const result = await reasonAsDepartment("quality", {
+        businessName:    req.businessName,
+        requestId:       req.id,
         strategyCanvas,
-        socialCanvas: (get("social") as SocialCanvas | null) ?? undefined,
-        designCanvas: (get("design") as DesignCanvas | null) ?? undefined,
-        trafficCanvas: (get("traffic") as TrafficCanvas | null) ?? undefined,
-        analyticsCanvas: (get("analytics") as AnalyticsCanvas | null) ?? undefined,
-        requestId: req.id,
-        source: "request",
+        socialCanvas:    get("social")    ?? undefined,
+        designCanvas:    get("design")    ?? undefined,
+        trafficCanvas:   get("traffic")   ?? undefined,
+        analyticsCanvas: get("analytics") ?? undefined,
       });
-      setDbCanvases((prev) => ({ ...prev, [req.id]: canvas }));
+      setDbCanvases((prev) => ({ ...prev, [req.id]: result.canvas as QualityCanvas }));
     } catch (e) {
       setDbError2(e instanceof Error ? e.message : "Falha ao gerar Quality Canvas.");
     } finally {
