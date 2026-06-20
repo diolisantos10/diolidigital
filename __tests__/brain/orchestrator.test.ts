@@ -5,13 +5,15 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 import type { ClientKnowledgeSnapshot } from "@/lib/dioli-brain/client-snapshot";
 
-// ── OpenAI mock ───────────────────────────────────────────────────────────────
+// ── Active provider mock (pluggable registry, Phase 4) ─────────────────────────
 const callOpenAI = vi.fn();
 const isOpenAIConfigured = vi.fn(() => false);
-vi.mock("@/lib/ai/openai-provider", () => ({
-  callOpenAI: (...a: unknown[]) => callOpenAI(...a),
-  isOpenAIConfigured: () => isOpenAIConfigured(),
-  openAIModel: () => "gpt-4o-mini",
+vi.mock("@/lib/ai/provider-registry", () => ({
+  getActiveProvider: () => ({
+    isConfigured: () => isOpenAIConfigured(),
+    call: (...a: unknown[]) => callOpenAI(...a),
+    modelId: () => "gpt-4o-mini",
+  }),
 }));
 
 // ── Prisma mock (for the apply route) ───────────────────────────────────────────

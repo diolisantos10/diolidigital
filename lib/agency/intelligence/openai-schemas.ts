@@ -7,9 +7,39 @@
 import type { StrategyIntelligenceOutput } from "@/lib/agency/intelligence/strategy";
 import type { SocialIntelligenceOutput } from "@/lib/agency/intelligence/social";
 import type { PMIntelligenceOutput, PMSuggestedTask } from "@/lib/agency/intelligence/pm";
+import type { DesignIntelligenceOutput } from "@/lib/agency/intelligence/design";
+import type { PaidTrafficIntelligenceOutput } from "@/lib/agency/intelligence/paid-traffic";
 
-// Departments that support the OpenAI provider in V1.
+// Analytics / Quality have no rule-based *IntelligenceOutput type — the flat AI
+// JSON shape is defined here (matches the canvas fields the route overlays).
+export interface AnalyticsIntelligenceOutput {
+  primaryKPIs: string[];
+  reportingCadence: string;
+  attributionModel: string;
+  keyInsights: string[];
+  performanceGaps: string[];
+  recommendations: string[];
+  executiveSummary: string;
+}
+
+export interface QualityIntelligenceOutput {
+  overallVerdict: "PASS" | "WARNING" | "FAIL";
+  criticalFindings: string[];
+  recommendations: string[];
+  patternNotes: string[];
+  executiveSummary: string;
+}
+
+// Legacy department-runner ids (DepartmentDef-style), used by /api/ai/run and the
+// department detail page. Unchanged for backwards compatibility.
 export const OPENAI_DEPARTMENTS = ["strategy", "social-media", "project-management"] as const;
+
+// Brain reasoning-dept ids (used by the /api/brain/reason gateway). All 6 depts
+// now have an AI prompt builder + validator (Phase 4).
+export const BRAIN_AI_DEPTS = [
+  "strategy", "social", "design", "traffic", "analytics", "quality",
+] as const;
+export type BrainAiDept = (typeof BRAIN_AI_DEPTS)[number];
 export type OpenAIDepartmentId = (typeof OPENAI_DEPARTMENTS)[number];
 
 export function isOpenAIDepartment(id: string): id is OpenAIDepartmentId {
@@ -227,6 +257,204 @@ export function validatePMOrchestratorOutput(raw: unknown): ValidatedProjectProp
   }
   if (tasks.length === 0) return null;
   return { name: o.name, goal: o.goal, stage: o.stage, tasks };
+}
+
+// ── Design / Traffic / Analytics / Quality builders (Phase 4) ──────────────────
+
+export function buildDesignMessages(ctx: AIRunContext): OpenAIMessages {
+  const system = `${ctx.prompt}
+
+Você é o Design Agent da Dioli Agência. Responda SEMPRE em português do Brasil.
+Retorne APENAS um objeto JSON válido com exatamente estas chaves:
+{
+  "creativeDiagnosis": string,
+  "visualDirection": string,
+  "designRisks": string[],
+  "assetRequirements": string[],
+  "promptIdeas": string[],
+  "creativeBriefRecommendations": string[],
+  "executiveSummary": string
+}
+Não inclua texto fora do JSON.`;
+  const user = `Projeto: "${ctx.projectName}"
+Cliente: ${ctx.clientName} (${ctx.clientIndustry})
+
+Brand Brain:
+${brandBrainBlock(ctx)}
+
+Gere uma direção criativa (diagnóstico, direção visual, riscos, requisitos de assets, ideias de prompt, recomendações de brief e resumo executivo).`;
+  return { system, user };
+}
+
+export function buildTrafficMessages(ctx: AIRunContext): OpenAIMessages {
+  const system = `${ctx.prompt}
+
+Você é o Ads Agent da Dioli Agência. Responda SEMPRE em português do Brasil.
+Retorne APENAS um objeto JSON válido com exatamente estas chaves:
+{
+  "campaignDiagnosis": string,
+  "funnelRecommendation": string[],
+  "audienceStrategy": string[],
+  "budgetDirection": string,
+  "adAngles": string[],
+  "optimizationRisks": string[],
+  "executiveSummary": string
+}
+Não inclua texto fora do JSON.`;
+  const user = `Projeto: "${ctx.projectName}"
+Cliente: ${ctx.clientName} (${ctx.clientIndustry})
+Objetivo: ${ctx.projectGoal ?? ctx.projectName}
+
+Brand Brain:
+${brandBrainBlock(ctx)}
+
+Gere um plano de tráfego pago (diagnóstico, funil, estratégia de público, direção de budget, ângulos de anúncio, riscos de otimização e resumo executivo).`;
+  return { system, user };
+}
+
+export function buildAnalyticsMessages(ctx: AIRunContext): OpenAIMessages {
+  const system = `${ctx.prompt}
+
+Você é o Analytics Agent da Dioli Agência. Responda SEMPRE em português do Brasil.
+Retorne APENAS um objeto JSON válido com exatamente estas chaves:
+{
+  "primaryKPIs": string[],
+  "reportingCadence": string,
+  "attributionModel": string,
+  "keyInsights": string[],
+  "performanceGaps": string[],
+  "recommendations": string[],
+  "executiveSummary": string
+}
+Não inclua texto fora do JSON.`;
+  const user = `Projeto: "${ctx.projectName}"
+Cliente: ${ctx.clientName} (${ctx.clientIndustry})
+Objetivo: ${ctx.projectGoal ?? ctx.projectName}
+
+Brand Brain:
+${brandBrainBlock(ctx)}
+
+Gere um framework de analytics (KPIs primários, cadência de relatório, modelo de atribuição, insights-chave, gaps de performance, recomendações e resumo executivo).`;
+  return { system, user };
+}
+
+export function buildQualityMessages(ctx: AIRunContext): OpenAIMessages {
+  const system = `${ctx.prompt}
+
+Você é o Quality Agent da Dioli Agência. Responda SEMPRE em português do Brasil.
+Retorne APENAS um objeto JSON válido com exatamente estas chaves:
+{
+  "overallVerdict": "PASS"|"WARNING"|"FAIL",
+  "criticalFindings": string[],
+  "recommendations": string[],
+  "patternNotes": string[],
+  "executiveSummary": string
+}
+Não inclua texto fora do JSON.`;
+  const user = `Projeto: "${ctx.projectName}"
+Cliente: ${ctx.clientName} (${ctx.clientIndustry})
+
+Brand Brain:
+${brandBrainBlock(ctx)}
+
+Audite os entregáveis do projeto contra padrões de qualidade (veredito geral, achados críticos, recomendações, notas de padrão e resumo executivo).`;
+  return { system, user };
+}
+
+export function validateDesignOutput(raw: unknown): DesignIntelligenceOutput | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  if (
+    isStr(o.creativeDiagnosis) && isStr(o.visualDirection) && isStrArr(o.designRisks) &&
+    isStrArr(o.assetRequirements) && isStrArr(o.promptIdeas) &&
+    isStrArr(o.creativeBriefRecommendations) && isStr(o.executiveSummary)
+  ) {
+    return {
+      creativeDiagnosis: o.creativeDiagnosis,
+      visualDirection: o.visualDirection,
+      designRisks: o.designRisks,
+      assetRequirements: o.assetRequirements,
+      promptIdeas: o.promptIdeas,
+      creativeBriefRecommendations: o.creativeBriefRecommendations,
+      executiveSummary: o.executiveSummary,
+    };
+  }
+  return null;
+}
+
+export function validateTrafficOutput(raw: unknown): PaidTrafficIntelligenceOutput | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  if (
+    isStr(o.campaignDiagnosis) && isStrArr(o.funnelRecommendation) && isStrArr(o.audienceStrategy) &&
+    isStr(o.budgetDirection) && isStrArr(o.adAngles) && isStrArr(o.optimizationRisks) &&
+    isStr(o.executiveSummary)
+  ) {
+    return {
+      campaignDiagnosis: o.campaignDiagnosis,
+      funnelRecommendation: o.funnelRecommendation,
+      audienceStrategy: o.audienceStrategy,
+      budgetDirection: o.budgetDirection,
+      adAngles: o.adAngles,
+      optimizationRisks: o.optimizationRisks,
+      executiveSummary: o.executiveSummary,
+    };
+  }
+  return null;
+}
+
+export function validateAnalyticsOutput(raw: unknown): AnalyticsIntelligenceOutput | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  if (
+    isStrArr(o.primaryKPIs) && isStr(o.reportingCadence) && isStr(o.attributionModel) &&
+    isStrArr(o.keyInsights) && isStrArr(o.performanceGaps) && isStrArr(o.recommendations) &&
+    isStr(o.executiveSummary)
+  ) {
+    return {
+      primaryKPIs: o.primaryKPIs,
+      reportingCadence: o.reportingCadence,
+      attributionModel: o.attributionModel,
+      keyInsights: o.keyInsights,
+      performanceGaps: o.performanceGaps,
+      recommendations: o.recommendations,
+      executiveSummary: o.executiveSummary,
+    };
+  }
+  return null;
+}
+
+const QUALITY_VERDICTS = ["PASS", "WARNING", "FAIL"];
+
+export function validateQualityOutput(raw: unknown): QualityIntelligenceOutput | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  if (
+    isStr(o.overallVerdict) && QUALITY_VERDICTS.includes(o.overallVerdict) &&
+    isStrArr(o.criticalFindings) && isStrArr(o.recommendations) &&
+    isStrArr(o.patternNotes) && isStr(o.executiveSummary)
+  ) {
+    return {
+      overallVerdict: o.overallVerdict as QualityIntelligenceOutput["overallVerdict"],
+      criticalFindings: o.criticalFindings,
+      recommendations: o.recommendations,
+      patternNotes: o.patternNotes,
+      executiveSummary: o.executiveSummary,
+    };
+  }
+  return null;
+}
+
+// Dispatch by Brain reasoning-dept id (Phase 4). Used by /api/brain/reason.
+export function buildBrainMessages(dept: BrainAiDept, ctx: AIRunContext): OpenAIMessages {
+  switch (dept) {
+    case "strategy":  return buildStrategyMessages(ctx);
+    case "social":    return buildSocialMessages(ctx);
+    case "design":    return buildDesignMessages(ctx);
+    case "traffic":   return buildTrafficMessages(ctx);
+    case "analytics": return buildAnalyticsMessages(ctx);
+    case "quality":   return buildQualityMessages(ctx);
+  }
 }
 
 export function buildMessages(departmentId: OpenAIDepartmentId, ctx: AIRunContext): OpenAIMessages {

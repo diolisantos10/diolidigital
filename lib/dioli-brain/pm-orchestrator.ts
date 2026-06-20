@@ -4,7 +4,7 @@
 // orchestratePMReasoning NEVER mutates state (Law 2). Applying is a separate,
 // explicitly-approved route.
 
-import { callOpenAI, isOpenAIConfigured } from "@/lib/ai/openai-provider";
+import { getActiveProvider } from "@/lib/ai/provider-registry";
 import {
   buildPMOrchestratorMessages,
   validatePMOrchestratorOutput,
@@ -131,7 +131,8 @@ export async function orchestratePMReasoning(
 ): Promise<ProjectProposal> {
   const ruleBased = proposeProjectRuleBased(snapshot);
 
-  if (!isOpenAIConfigured() || !isPmAiEnabled()) {
+  const provider = getActiveProvider();
+  if (!provider.isConfigured() || !isPmAiEnabled()) {
     return ruleBased;
   }
 
@@ -145,7 +146,7 @@ export async function orchestratePMReasoning(
     missingFields: snapshot.missingFields,
   });
 
-  const result = await callOpenAI(messages);
+  const result = await provider.call(messages);
   if (!result.ok) {
     return { ...ruleBased, warnings: [...ruleBased.warnings, `AI indisponível (${result.error}) — proposta rule-based preservada.`] };
   }
@@ -161,7 +162,7 @@ export async function orchestratePMReasoning(
     stage: validated.stage,
     tasks: validated.tasks,
     reasoningMode: "openai",
-    model: result.model,
+    model: provider.modelId(),
     warnings: [],
   };
 }

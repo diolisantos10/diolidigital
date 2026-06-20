@@ -22,13 +22,16 @@ vi.mock("@/lib/auth/session", () => ({
   isAgencyRole: (role: string) => ["master", "project_manager", "social_staff", "design_staff", "ads_staff"].includes(role),
 }));
 
-// OpenAI provider: controllable per-test via the exported mocks.
+// Active AI provider: controllable per-test via the exported mocks. The route now
+// calls getActiveProvider() (pluggable provider registry, Phase 4).
 const callOpenAI = vi.fn();
 const isOpenAIConfigured = vi.fn(() => false);
-vi.mock("@/lib/ai/openai-provider", () => ({
-  callOpenAI: (...args: unknown[]) => callOpenAI(...args),
-  isOpenAIConfigured: () => isOpenAIConfigured(),
-  openAIModel: () => "gpt-4o-mini",
+vi.mock("@/lib/ai/provider-registry", () => ({
+  getActiveProvider: () => ({
+    isConfigured: () => isOpenAIConfigured(),
+    call: (...args: unknown[]) => callOpenAI(...args),
+    modelId: () => "gpt-4o-mini",
+  }),
 }));
 
 import { POST } from "@/app/api/brain/reason/route";

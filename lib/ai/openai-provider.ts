@@ -84,3 +84,14 @@ export async function callOpenAI(messages: OpenAIMessages): Promise<OpenAIResult
     clearTimeout(timeout);
   }
 }
+
+// ── ProviderAdapter ───────────────────────────────────────────────────────────
+// Adapter conforming to the provider-registry interface. Lets the registry select
+// OpenAI uniformly alongside other vendors. (Type import only — no runtime cycle.)
+import type { ProviderAdapter } from "@/lib/ai/provider-registry";
+
+export const openAIAdapter: ProviderAdapter = {
+  isConfigured: () => isOpenAIConfigured(),
+  call: (messages) => callOpenAI(messages),
+  modelId: () => openAIModel(),
+};
