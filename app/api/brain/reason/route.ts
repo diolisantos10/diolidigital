@@ -268,6 +268,8 @@ function applyAiOverlay(
     const aiOut = validateTrafficOutput(data);
     if (!aiOut) { warnings.push("AI output shape inválido — motor rule-based preservado."); return false; }
     const c = canvas as TrafficCanvas;
+    // Lei 2: AI writes interpretive strings only. budgetAllocation/channelBreakdown/funnelBreakdown
+    // (all numeric) remain rule-based — never overwritten here. gateway-safety.test.ts asserts this.
     if (aiOut.campaignDiagnosis.trim().length > 10) c.channelRationale = aiOut.campaignDiagnosis;
     if (aiOut.budgetDirection.trim().length > 10) c.offerContext = `${c.offerContext} ${aiOut.budgetDirection}`.trim();
     if (aiOut.optimizationRisks.length > 0) c.keyRisks = [...aiOut.optimizationRisks, ...c.keyRisks].slice(0, 8);
@@ -277,6 +279,8 @@ function applyAiOverlay(
     const aiOut = validateAnalyticsOutput(data);
     if (!aiOut) { warnings.push("AI output shape inválido — motor rule-based preservado."); return false; }
     const c = canvas as AnalyticsCanvas;
+    // Lei 2: AI writes interpretive strings only. passCount/warningCount/failCount/estimatedContribution
+    // (all numeric) remain rule-based — never overwritten here. gateway-safety.test.ts asserts this.
     if (aiOut.keyInsights.length > 0) c.keyInsights = [...aiOut.keyInsights, ...c.keyInsights].slice(0, 8);
     if (aiOut.recommendations.length > 0) c.alertThresholds = [...c.alertThresholds, ...aiOut.recommendations].slice(0, 8);
     if (aiOut.primaryKPIs.length > 0 && c.primaryKPI.trim().length === 0) c.primaryKPI = aiOut.primaryKPIs[0];

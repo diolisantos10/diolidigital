@@ -6,17 +6,19 @@ environment flags that activate AI, and how to add a new AI-backed department.
 
 ## The 2 Laws (inviolable)
 
-**Law 1 — Every department reasons through the Brain.**
+**Lei 1 — Todo agente raciocina através do Brain (nunca regras hardcoded).**
 Every department/agent reasons through the Brain using real AI when configured.
 The rule-based engine is a *fallback only*, never the primary brain. AI off or AI
 failure falls back to rule-based transparently — the system never crashes and the
 caller always receives the same canvas type.
 
-**Law 2 — Reasoning is thought, not power.**
+**Lei 2 — Raciocínio é pensamento, não poder: a IA nunca altera regras/preços/runtime e nunca inventa.**
 AI proposes; it never auto-applies state mutations. Every mutation (a project, a task,
-a brand-brain change) requires explicit human approval. The Brain never invents facts:
-it uses the Knowledge Base (DB truth) as its source. Missing data is reported as
-`missingContext` / `missingFields`, never fabricated. No PII is placed in snapshots.
+a brand-brain change) requires explicit human approval. The Brain never invents facts
+(numbers, prices, rules): it uses the Knowledge Base (DB truth) as its source.
+Missing data is reported as `missingContext` / `missingFields`, never fabricated.
+No PII is placed in snapshots. AI numeric fields in traffic/analytics are forbidden
+in the overlay — numeric data is always rule-based.
 
 ## The Gateway Principle
 
