@@ -5,7 +5,7 @@ import type { ConvState, ConvMessage, BriefingScope, LiveEstimate } from "@/lib/
 import { initProspectConvState, processProspectMessage, type ProspectConvState } from "@/lib/agency/prospect-engine";
 import { canSubmitProposal, getSubmissionBlockReason, buildHandoffSummary } from "@/lib/agency/sdr-agent";
 import { detectPackage, getPackageDef, SOCIAL_PACKAGES } from "@/lib/agency/live-calculator";
-import { FileUploadZone } from "@/components/agency/briefing/FileUploadZone";
+import { MaterialsLinkField } from "@/components/agency/briefing/FileUploadZone";
 import { useSpeechToText } from "@/lib/hooks/useSpeechToText";
 import type { RequestAttachment, ExtractedRequestSummary } from "@/lib/agency/client-requests";
 import type { SDRHandoff } from "@/lib/agency/sdr-agent";
@@ -429,10 +429,10 @@ function ProposalCard({
 export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
   const [state,          setState]          = useState<ProspectConvState>(() => initProspectConvState());
   const [inputText,      setInputText]      = useState("");
-  const [showFileUpload, setShowFileUpload] = useState(false);
+  const [showLinkField,  setShowLinkField]  = useState(false);
   const [attachments,    setAttachments]    = useState<RequestAttachment[]>([]);
 
-  // Internal temp ID for file upload association
+  // Internal temp ID for link association
   const [tempClientId] = useState(() => "prospect-" + Date.now());
 
   const conv = state.conv;
@@ -529,10 +529,10 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* File upload (toggled) */}
-        {showFileUpload && (
+        {/* Materials link field (toggled) */}
+        {showLinkField && (
           <div className="px-5 pb-3 border-t border-[#F0F0ED] pt-3">
-            <FileUploadZone clientId={tempClientId} onChange={setAttachments} />
+            <MaterialsLinkField clientId={tempClientId} onChange={setAttachments} />
           </div>
         )}
 
@@ -594,21 +594,22 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
                 Microfone indisponível
               </span>
             )}
-            {/* File attach button */}
+            {/* Materials link button */}
             <button
               type="button"
-              onClick={() => setShowFileUpload((v) => !v)}
+              onClick={() => setShowLinkField((v) => !v)}
               className={`h-6 px-2.5 rounded-[5px] text-[10px] font-medium border transition-colors flex items-center gap-1.5 ${
-                showFileUpload
+                showLinkField
                   ? "bg-[#EEF0FF] border-[#C7C7FF] text-[#5B5BD6]"
                   : "bg-white border-[#E5E5E2] text-[#9B9B95] hover:border-[#9B9B95]"
               }`}
             >
-              <svg width="10" height="11" viewBox="0 0 10 11" fill="none">
-                <path d="M8.5 6V8.5A1 1 0 017.5 9.5H2A1 1 0 011 8.5V2A1 1 0 012 1H4.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/>
-                <path d="M7 0.5L9.5 3L5.5 7H3.5V5L7 0.5Z" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"/>
+              <svg width="10" height="10" viewBox="0 0 14 14" fill="none">
+                <path d="M5.5 8.5L8.5 5.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                <path d="M7.5 3.5L9 2A2.12 2.12 0 0112 5L10.5 6.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M6.5 10.5L5 12A2.12 2.12 0 012 9L3.5 7.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
-              {attachments.length > 0 ? `${attachments.length} arquivo${attachments.length !== 1 ? "s" : ""}` : "Anexar referência"}
+              {attachments.length > 0 ? `${attachments.length} link${attachments.length !== 1 ? "s" : ""}` : "Compartilhar materiais"}
             </button>
             <span className="text-[10px] text-[#C0C0BC] ml-auto hidden sm:block">
               Enter para enviar · Shift+Enter nova linha
@@ -787,15 +788,15 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
             </div>
           )}
 
-          {/* Attachments */}
+          {/* Links shared */}
           {attachments.length > 0 && (
             <div className="px-4 pb-3 border-t border-[#F0F0ED] pt-3">
               <div className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1.5">
-                Materiais anexados
+                Links compartilhados
               </div>
               {attachments.map((a) => (
                 <div key={a.id} className="flex items-center gap-1.5 text-[10px] text-[#6B6B65] py-0.5">
-                  <span className="w-1 h-1 rounded-full bg-[#9B9B95] shrink-0" />
+                  <span className="w-1 h-1 rounded-full bg-[#5B5BD6] shrink-0" />
                   <span className="truncate">{a.fileName}</span>
                 </div>
               ))}

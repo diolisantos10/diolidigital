@@ -20,7 +20,7 @@ export type ClientRequestStatus =
   | "completed"
   | "rejected";
 
-export type AttachmentStorageStatus = "local_only" | "uploaded" | "failed";
+export type AttachmentStorageStatus = "local_only" | "uploaded" | "failed" | "link";
 
 export interface RequestAttachment {
   id: string;

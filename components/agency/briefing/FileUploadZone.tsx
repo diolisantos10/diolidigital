@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, DragEvent, ChangeEvent } from "react";
+import { useState, useRef, useEffect, DragEvent, ChangeEvent, useCallback } from "react";
 import type { RequestAttachment } from "@/lib/agency/client-requests";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -230,6 +230,152 @@ export function FileUploadZone({ clientId, onChange }: FileUploadZoneProps) {
 
           <p className="text-[11px] text-[#9B9B95]">
             {entries.length} arquivo{entries.length !== 1 ? "s" : ""} anexado{entries.length !== 1 ? "s" : ""} — Materiais anexados ao briefing.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── MaterialsLinkField ───────────────────────────────────────────────────────
+// Replaces FileUploadZone for the public briefing flow.
+// Files are never stored on our server — clients share Google Drive / Dropbox /
+// WhatsApp links instead. Produces RequestAttachment[] with storageStatus:"link".
+
+interface MaterialsLinkFieldProps {
+  clientId: string;
+  onChange: (attachments: RequestAttachment[]) => void;
+}
+
+function domainLabel(url: string): string {
+  try {
+    const { hostname } = new URL(url);
+    const host = hostname.replace(/^www\./, "");
+    if (host.includes("drive.google"))  return "Google Drive";
+    if (host.includes("docs.google"))   return "Google Docs";
+    if (host.includes("dropbox"))       return "Dropbox";
+    if (host.includes("notion"))        return "Notion";
+    if (host.includes("figma"))         return "Figma";
+    if (host.includes("wa.me") || host.includes("whatsapp")) return "WhatsApp";
+    if (host.includes("instagram"))     return "Instagram";
+    if (host.includes("pinterest"))     return "Pinterest";
+    return host.length > 28 ? host.slice(0, 28) + "…" : host;
+  } catch {
+    return url.length > 35 ? url.slice(0, 35) + "…" : url;
+  }
+}
+
+export function MaterialsLinkField({ clientId, onChange }: MaterialsLinkFieldProps) {
+  const [links, setLinks]   = useState<RequestAttachment[]>([]);
+  const [input, setInput]   = useState("");
+  const [error, setError]   = useState("");
+
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+
+  const notify = useCallback((next: RequestAttachment[]) => {
+    onChangeRef.current(next);
+  }, []);
+
+  function add() {
+    const url = input.trim();
+    if (!url) return;
+    if (!url.startsWith("http://") && !url.startsWith("https://")) {
+      setError("Cole um link completo começando com https://");
+      return;
+    }
+    if (links.length >= 10) {
+      setError("Máximo de 10 links por solicitação.");
+      return;
+    }
+    const att: RequestAttachment = {
+      id: `lnk${Math.random().toString(36).slice(2, 10)}`,
+      clientId,
+      fileName: domainLabel(url),
+      fileType: "LINK",
+      mimeType: "text/uri-list",
+      sizeBytes: 0,
+      source: "briefing_room",
+      createdAt: new Date().toISOString(),
+      previewUrl: url,
+      storageStatus: "link",
+    };
+    const next = [...links, att];
+    setLinks(next);
+    notify(next);
+    setInput("");
+    setError("");
+  }
+
+  function remove(id: string) {
+    const next = links.filter((l) => l.id !== id);
+    setLinks(next);
+    notify(next);
+    setError("");
+  }
+
+  return (
+    <div className="space-y-2.5">
+      <p className="text-[11px] text-[#6B6B65]">
+        Compartilhe materiais como brand book, logo ou referências via link.
+        Google Drive, Dropbox, Figma, Notion e WhatsApp são aceitos.
+      </p>
+
+      {/* Input row */}
+      <div className="flex gap-2">
+        <input
+          type="url"
+          value={input}
+          onChange={(e) => { setInput(e.target.value); setError(""); }}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
+          placeholder="https://drive.google.com/…"
+          className="flex-1 px-3 py-2 text-[12px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[8px] outline-none focus:border-[#1A1A1A] focus:bg-white transition-all placeholder:text-[#C0C0BC]"
+        />
+        <button
+          type="button"
+          onClick={add}
+          disabled={!input.trim()}
+          className="px-3 py-2 rounded-[8px] bg-[#1A1A1A] hover:bg-[#111111] disabled:opacity-40 disabled:cursor-not-allowed text-white text-[11px] font-semibold transition-colors shrink-0"
+        >
+          Adicionar
+        </button>
+      </div>
+
+      {error && (
+        <p className="text-[11px] text-[#DC2626]">{error}</p>
+      )}
+
+      {/* Link list */}
+      {links.length > 0 && (
+        <div className="space-y-1.5">
+          {links.map((l) => (
+            <div
+              key={l.id}
+              className="flex items-center gap-3 bg-white border border-[#E5E5E2] rounded-[8px] px-3 py-2.5"
+            >
+              <div className="w-8 h-8 rounded-[6px] bg-[#EEF0FF] flex items-center justify-center shrink-0">
+                <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+                  <path d="M5.5 8.5L8.5 5.5" stroke="#5B5BD6" strokeWidth="1.3" strokeLinecap="round"/>
+                  <path d="M7.5 3.5L9 2A2.12 2.12 0 0112 5L10.5 6.5" stroke="#5B5BD6" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M6.5 10.5L5 12A2.12 2.12 0 012 9L3.5 7.5" stroke="#5B5BD6" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] font-medium text-[#1A1A1A] truncate">{l.fileName}</p>
+                <p className="text-[10px] text-[#9B9B95] truncate">{l.previewUrl}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => remove(l.id)}
+                aria-label={`Remover link ${l.fileName}`}
+                className="text-[#C0C0BC] hover:text-[#DC2626] transition-colors shrink-0 text-[18px] leading-none pb-0.5"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+          <p className="text-[11px] text-[#9B9B95]">
+            {links.length} link{links.length !== 1 ? "s" : ""} adicionado{links.length !== 1 ? "s" : ""}.
           </p>
         </div>
       )}
