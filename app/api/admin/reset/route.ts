@@ -43,7 +43,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
   // Count before
   const [
     clientRequests, artifacts, approvals, comments, evidence, portalAccess,
-    clients, projects,
+    clients, projects, brainUpdates,
   ] = await Promise.all([
     prisma.clientRequestDb.count(),
     prisma.brainArtifact.count(),
@@ -53,13 +53,16 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
     prisma.portalAccess.count(),
     prisma.client.count(),
     prisma.project.count(),
+    prisma.brainUpdate.count(),
   ]);
 
-  const before = { clientRequests, artifacts, approvals, comments, evidence, portalAccess, clients, projects };
+  const before = { clientRequests, artifacts, approvals, comments, evidence, portalAccess, clients, projects, brainUpdates };
 
   // Delete order: children without cascade first, then parents (which cascade the rest)
   await prisma.evidenceItem.deleteMany({});
   await prisma.portalAccess.deleteMany({});
+  // BrainUpdate has no FK cascade from clientRequestDb — must be explicit
+  await prisma.brainUpdate.deleteMany({});
   // clientRequestDb cascades → BrainArtifact, ApprovalRequest → ApprovalComment
   await prisma.clientRequestDb.deleteMany({});
   // client cascades → Project → Deliverable, MaterialRequest, Task, TimelineEvent, Briefing, StrategyRoom
@@ -69,7 +72,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
   // Count after
   const [
     clientRequestsA, artifactsA, approvalsA, commentsA, evidenceA, portalAccessA,
-    clientsA, projectsA,
+    clientsA, projectsA, brainUpdatesA,
   ] = await Promise.all([
     prisma.clientRequestDb.count(),
     prisma.brainArtifact.count(),
@@ -79,13 +82,14 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
     prisma.portalAccess.count(),
     prisma.client.count(),
     prisma.project.count(),
+    prisma.brainUpdate.count(),
   ]);
 
-  const after = { clientRequests: clientRequestsA, artifacts: artifactsA, approvals: approvalsA, comments: commentsA, evidence: evidenceA, portalAccess: portalAccessA, clients: clientsA, projects: projectsA };
+  const after = { clientRequests: clientRequestsA, artifacts: artifactsA, approvals: approvalsA, comments: commentsA, evidence: evidenceA, portalAccess: portalAccessA, clients: clientsA, projects: projectsA, brainUpdates: brainUpdatesA };
 
   return NextResponse.json({
     ok: true,
-    tablesCleared: ["evidenceItem", "portalAccess", "clientRequestDb", "client"],
+    tablesCleared: ["evidenceItem", "portalAccess", "brainUpdate", "clientRequestDb", "client"],
     before,
     after,
   });

@@ -70,6 +70,19 @@ describe("SDR context awareness — Sushi Cazza scenario", () => {
     expect(lastAssistantText(s1)).not.toContain("nome do seu negócio");
   });
 
+  it("handles real production filename: Sushi_Cazza_Master_Brand_Book_v2_REVISAO_FIEL.pdf", () => {
+    const s0 = initProspectConvState();
+    const s1 = processProspectMessage(
+      "quero gestão de redes sociais",
+      s0,
+      ["Sushi_Cazza_Master_Brand_Book_v2_REVISAO_FIEL.pdf"],
+    );
+    expect(scopeOf(s1).businessName).toBe("Sushi Cazza");
+    expect(lastAssistantText(s1)).not.toContain("nome do seu negócio");
+    // Should use confirmation pattern since businessName is known but prospectName is not
+    expect(lastAssistantText(s1)).toMatch(/entendi.*sushi cazza/i);
+  });
+
   it("file name hint is NOT used when text already provides the business name", () => {
     const s0 = initProspectConvState();
     const s1 = processProspectMessage(

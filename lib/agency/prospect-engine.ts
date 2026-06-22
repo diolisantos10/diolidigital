@@ -103,15 +103,24 @@ function parseProspectNameBiz(text: string): { prospectName?: string; businessNa
 }
 
 // Extract a business name hint from uploaded file names (weak signal — used only when
-// text-based detection finds nothing). Strips generic descriptor words so that
-// "sushi_cazza_brand_book.pdf" → "Sushi Cazza" and ignores "apresentacao_geral.pdf".
+// text-based detection finds nothing). Takes words from the START of the filename
+// until hitting a descriptor/filler word so that:
+//   "Sushi_Cazza_Master_Brand_Book_v2_REVISAO_FIEL.pdf" → "Sushi Cazza"
+//   "sushi_cazza_brand_book.pdf" → "Sushi Cazza"
+//   "apresentacao_institucional.pdf" → (ignored — "apresentacao" is a filler-like word)
 function extractBizFromFileNames(fileNames: string[]): string | undefined {
-  const FILLER = /^(brand|book|guide|logo|identidade|visual|manual|marca|proposta|briefing|documento|arquivo|file|doc|presentation|slide|deck|kit|pack|template|mockup|reference|ref|final|v\d+|original|compressed|revised?|draft|version|copy|\d+)$/i;
+  const FILLER = /^(brand|book|guide|logo|identidade|visual|manual|marca|proposta|briefing|documento|arquivo|file|doc|presentation|slide|deck|kit|pack|template|mockup|reference|ref|final|v\d+|original|compressed|revised?|revisao|fiel|draft|version|copy|master|update|new|old|complete|full|apresent\w*|institucional|completo|oficial|\d+)$/i;
   for (const name of fileNames) {
     const base = name.replace(/\.[^.]+$/, "").replace(/[_\-]+/g, " ").trim();
-    const words = base.split(/\s+/).filter((w) => w.length >= 2 && !FILLER.test(w));
-    if (words.length >= 1) {
-      const candidate = words
+    const words = base.split(/\s+/);
+    // Take words from the START until hitting a filler/descriptor keyword
+    const nameWords: string[] = [];
+    for (const w of words) {
+      if (w.length < 2 || FILLER.test(w)) break;
+      nameWords.push(w);
+    }
+    if (nameWords.length >= 1) {
+      const candidate = nameWords
         .slice(0, 4)
         .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
         .join(" ");
