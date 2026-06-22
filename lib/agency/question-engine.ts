@@ -76,8 +76,24 @@ export function parseInitialMessage(text: string): Partial<BriefingScope> {
   else if (/academia|fitness|crossfit/i.test(text)) segment = "Fitness";
 
   let businessName: string | undefined;
+  // "chamado X" / "chamada X"
   const nameMatch = text.match(/chamad[ao]\s+([A-ZÀÁÂÃÄÅÈÉÊËÌÍÎÏÒÓÔÕÖÙÚÛÜ][^.!?,]{1,30}?)(?:\s*[.!?,]|\s+que\s|\s+e\s|\s+para\s|$)/i);
   if (nameMatch) businessName = nameMatch[1].trim();
+  // "sou/trabalho/venho da/do [Name]" — no /i so capture group requires uppercase
+  if (!businessName) {
+    const m = text.match(/\b(?:sou|estou|trabalho|venho)\s+(?:da|do|de|na|no)\s+([A-ZÀ-ÿ][A-Za-zÀ-ÿ]{1,}(?:\s+[A-Za-zÀ-ÿ]{2,}){0,3})(?:\s*[,.!?]|\s+e\s|$)/);
+    if (m) businessName = m[1].trim();
+  }
+  // "para o/a [Name]" — no /i so capture group requires uppercase
+  if (!businessName) {
+    const m = text.match(/\bpara\s+(?:o|a)\s+([A-ZÀ-ÿ][A-Za-zÀ-ÿ]{1,}(?:\s+[A-Za-zÀ-ÿ]{2,}){0,3})(?:\s*[,.!?]|\s+e\s|$)/);
+    if (m) businessName = m[1].trim();
+  }
+  // Multi-word TitleCase at sentence start — "Sushi Cazza, quero…" or standalone
+  if (!businessName) {
+    const m = text.match(/^([A-ZÀ-ÿ][a-zÀ-ÿ]{1,}(?:\s+[A-ZÀ-ÿ][a-zÀ-ÿ]{1,})+)(?:\s*[,.]|\s+[a-z]|$)/);
+    if (m) businessName = m[1].trim();
+  }
 
   const platforms = wantsSocialMedia ? detectPlatforms(text) : [];
 

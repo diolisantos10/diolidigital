@@ -44,23 +44,81 @@ function parseProspectNameBiz(text: string): { prospectName?: string; businessNa
   let prospectName: string | undefined;
   let businessName: string | undefined;
 
+  // ── Business name (ordered; first match wins) ─────────────────────────────
+  // All capture groups require an uppercase-first letter — never match lowercase common words.
+  // Post-match check `/^[A-ZÀ-ÿ]/` guards patterns that use /i for keyword matching.
+
+  // 1. "chamado X" / "chamada X"
+  const bizMatch = text.match(/chamad[ao]\s+([A-ZÀ-ÿ][^.!?,]{1,30}?)(?:\s*[.!?,]|\s+que\s|\s+e\s|\s+para\s|$)/i);
+  if (bizMatch && /^[A-ZÀ-ÿ]/.test(bizMatch[1])) businessName = bizMatch[1].trim();
+
+  // 2. "é o/a X" — "meu negócio é o Sushi Cazza"
+  if (!businessName) {
+    const m = text.match(/[eé]\s+(?:o|a)\s+([A-ZÀ-ÿ][^.!?,\s]{2,}(?:\s+[A-Za-zÀ-ÿ]{2,}){0,3})/i);
+    if (m && /^[A-ZÀ-ÿ]/.test(m[1])) businessName = m[1].trim();
+  }
+
+  // 3. "negócio/empresa/restaurante… é/se chama X" — without article
+  if (!businessName) {
+    const m = text.match(/\b(?:neg[óo]cio|empresa|restaurante|loja|marca|bar|sushi\s*bar|caf[eé]|cantina)\s+(?:é|se\s+chama)\s+([A-ZÀ-ÿ][A-Za-zÀ-ÿ]{1,}(?:\s+[A-Za-zÀ-ÿ]{2,}){0,3})/i);
+    if (m && /^[A-ZÀ-ÿ]/.test(m[1])) businessName = m[1].trim();
+  }
+
+  // 4. "sou/trabalho/venho da/do/de [Name]" — no /i so capture requires uppercase
+  if (!businessName) {
+    const m = text.match(/\b(?:sou|estou|trabalho|venho|falo)\s+(?:da|do|de|na|no|pelo|pela)\s+([A-ZÀ-ÿ][A-Za-zÀ-ÿ]{1,}(?:\s+[A-Za-zÀ-ÿ]{2,}){0,3})(?:\s*[,.!?]|\s+e\s|$)/);
+    if (m) businessName = m[1].trim();
+  }
+
+  // 5. "para o/a [Name]" — no /i so capture requires uppercase
+  if (!businessName) {
+    const m = text.match(/\bpara\s+(?:o|a)\s+([A-ZÀ-ÿ][A-Za-zÀ-ÿ]{1,}(?:\s+[A-Za-zÀ-ÿ]{2,}){0,3})(?:\s*[,.!?]|\s+e\s|$)/);
+    if (m) businessName = m[1].trim();
+  }
+
+  // 6. Multi-word TitleCase at sentence start — "Sushi Cazza, quero…" or standalone "Sushi Cazza"
+  if (!businessName) {
+    const m = text.match(/^([A-ZÀ-ÿ][a-zÀ-ÿ]{1,}(?:\s+[A-ZÀ-ÿ][a-zÀ-ÿ]{1,})+)(?:\s*[,.]|\s+[a-z]|$)/);
+    if (m) businessName = m[1].trim();
+  }
+
+  // ── Person name (skip greetings and words identical to business name) ──────
+  const GREETINGS = /^(oi|olá|ola|hey|hi|hello|bom|boa|caro|cara|prezado|prezada)$/i;
   const namePatterns = [
     /\b(?:sou (?:a |o )?|me chamo |meu nome [eé] |chamo-me )([A-Za-zÀ-ÿ]{2,}(?:\s+[A-Za-zÀ-ÿ]{2,})?)/i,
     /^([A-Za-zÀ-ÿ]{2,}(?:\s+[A-Za-zÀ-ÿ]{2,})?)\s*[,–-]/,
   ];
   for (const p of namePatterns) {
     const m = text.match(p);
-    if (m) { prospectName = m[1].trim(); break; }
-  }
-
-  const bizMatch = text.match(/chamad[ao]\s+([A-ZÀ-ÿ][^.!?,]{1,30}?)(?:\s*[.!?,]|\s+que\s|\s+e\s|\s+para\s|$)/i);
-  if (bizMatch) { businessName = bizMatch[1].trim(); }
-  if (!businessName) {
-    const m2 = text.match(/[eé]\s+(?:o|a)\s+([A-ZÀ-ÿ][^.!?,\s]{2,}(?:\s+[A-Za-zÀ-ÿ]{2,}){0,3})/i);
-    if (m2) businessName = m2[1].trim();
+    if (m) {
+      const candidate = m[1].trim();
+      if (!GREETINGS.test(candidate) && candidate.toLowerCase() !== businessName?.toLowerCase()) {
+        prospectName = candidate;
+      }
+      break;
+    }
   }
 
   return { prospectName, businessName };
+}
+
+// Extract a business name hint from uploaded file names (weak signal — used only when
+// text-based detection finds nothing). Strips generic descriptor words so that
+// "sushi_cazza_brand_book.pdf" → "Sushi Cazza" and ignores "apresentacao_geral.pdf".
+function extractBizFromFileNames(fileNames: string[]): string | undefined {
+  const FILLER = /^(brand|book|guide|logo|identidade|visual|manual|marca|proposta|briefing|documento|arquivo|file|doc|presentation|slide|deck|kit|pack|template|mockup|reference|ref|final|v\d+|original|compressed|revised?|draft|version|copy|\d+)$/i;
+  for (const name of fileNames) {
+    const base = name.replace(/\.[^.]+$/, "").replace(/[_\-]+/g, " ").trim();
+    const words = base.split(/\s+/).filter((w) => w.length >= 2 && !FILLER.test(w));
+    if (words.length >= 1) {
+      const candidate = words
+        .slice(0, 4)
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(" ");
+      if (candidate.length >= 3) return candidate;
+    }
+  }
+  return undefined;
 }
 
 // ── Identity question IDs ─────────────────────────────────────────────────────
@@ -79,14 +137,31 @@ const IDENTITY_QUESTIONS: QuestionDef[] = [
   {
     id: "prospect_name_biz",
     when: (s) => !s.scope.prospectName || !s.scope.businessName,
-    text: () => "Para começar, qual é o seu nome e o nome do seu negócio?",
-    parse: (answer) => {
+    text: (s) => {
+      const biz  = s.scope.businessName;
+      const name = s.scope.prospectName;
+      if (biz && !name) {
+        return `Entendi que estamos falando do **${biz}**! Qual é o seu nome para eu registrar o contato?`;
+      }
+      if (name && !biz) {
+        const first = name.split(" ")[0];
+        return `Prazer, ${first}! E qual é o nome do seu negócio?`;
+      }
+      return "Para começar, qual é o seu nome e o nome do seu negócio?";
+    },
+    parse: (answer, s) => {
       const { prospectName, businessName } = parseProspectNameBiz(answer);
       return {
         ...(prospectName ? { prospectName } : {}),
         ...(businessName
           ? { businessName }
-          : !prospectName ? { businessName: answer.trim() } : {}),
+          // If we already know the businessName and only asked for a person name,
+          // treat the raw answer as the prospect name rather than the business name.
+          : s.scope.businessName
+          ? { prospectName: prospectName ?? answer.trim() }
+          : !prospectName
+          ? { businessName: answer.trim() }
+          : {}),
       };
     },
   },
@@ -157,7 +232,11 @@ export function initProspectConvState(): ProspectConvState {
 
 // ── processProspectMessage ────────────────────────────────────────────────────
 
-export function processProspectMessage(text: string, state: ProspectConvState): ProspectConvState {
+export function processProspectMessage(
+  text: string,
+  state: ProspectConvState,
+  attachmentFileNames?: string[],
+): ProspectConvState {
   const { conv, sdr } = state;
 
   const clientMsg: ConvMessage = {
@@ -176,11 +255,16 @@ export function processProspectMessage(text: string, state: ProspectConvState): 
 
   if (conv.isFirstMessage) {
     const serviceDelta = parseInitialMessage(text);
-    const { prospectName, businessName } = parseProspectNameBiz(text);
+    const { prospectName, businessName: bizFromText } = parseProspectNameBiz(text);
+    // Use file-name hint as a weak signal only when text detection finds nothing
+    const bizFromFiles = !bizFromText && attachmentFileNames?.length
+      ? extractBizFromFileNames(attachmentFileNames)
+      : undefined;
+    const businessName = bizFromText ?? bizFromFiles;
     newScope = mergeScopeDelta(emptyScope(), {
       ...serviceDelta,
       ...(prospectName ? { prospectName } : {}),
-      ...(businessName ? { businessName: businessName ?? serviceDelta.businessName } : {}),
+      ...(businessName ? { businessName } : {}),
     });
     newAnswered = inferProspectAnsweredQIds(newScope);
   } else {

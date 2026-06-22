@@ -457,12 +457,14 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
     const text = inputText.trim();
     if (!text) return;
     setInputText("");
-    setState((prev) => processProspectMessage(text, prev));
+    const fileNames = attachments.map((a) => a.fileName);
+    setState((prev) => processProspectMessage(text, prev, fileNames));
     setTimeout(() => textareaRef.current?.focus(), 0);
   }
 
   function sendAction(text: string) {
-    setState((prev) => processProspectMessage(text, prev));
+    const fileNames = attachments.map((a) => a.fileName);
+    setState((prev) => processProspectMessage(text, prev, fileNames));
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
