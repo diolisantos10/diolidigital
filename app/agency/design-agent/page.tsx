@@ -476,11 +476,12 @@ export default function DesignAgentPage() {
     });
   }
 
-  function handleRun() {
+  async function handleRun() {
     setAgentState("generating");
     setStepIndex(0);
     setBriefsSaved(false);
     const capturedCtx = agentCtx;
+    const capturedClient = linkedClient;
 
     let posts: ParsedPost[];
     if (inputMode === "project_requests") {
@@ -489,21 +490,41 @@ export default function DesignAgentPage() {
       posts = parseContract(contractInput);
     }
 
-    const delays = [500, 600, 700, 600, 600, 500];
-    let elapsed = 0;
-    delays.forEach((delay, i) => {
-      elapsed += delay;
-      setTimeout(() => {
-        setStepIndex(i);
-        if (i === delays.length - 1) {
-          setTimeout(() => {
-            setBriefs(generateVisualBriefs(posts, capturedCtx));
-            setAgentState("output_ready");
-            setActiveTab("briefs");
-          }, 400);
-        }
-      }, elapsed);
+    // Advance progress steps while real API runs
+    const stepDelays = [600, 1400, 2500, 4000, 6000];
+    stepDelays.forEach((ms, i) => {
+      setTimeout(() => setStepIndex(i + 1), ms);
     });
+
+    let finalBriefs: VisualBrief[];
+    try {
+      const res = await fetch("/api/agents/design/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          posts,
+          brandName: capturedClient?.name ?? linkedProject?.name ?? "Marca",
+          brandBrain: capturedCtx?.brandBrain ?? null,
+        }),
+      });
+
+      const data = (await res.json()) as { ok: boolean; briefs?: VisualBrief[]; error?: string };
+
+      if (!data.ok || !data.briefs || data.briefs.length === 0) {
+        console.warn("[design-agent] AI unavailable, using rule-based fallback:", data.error);
+        finalBriefs = generateVisualBriefs(posts, capturedCtx);
+      } else {
+        finalBriefs = data.briefs;
+      }
+    } catch (err) {
+      console.warn("[design-agent] fetch error, falling back to rule-based:", err);
+      finalBriefs = generateVisualBriefs(posts, capturedCtx);
+    }
+
+    setBriefs(finalBriefs);
+    setAgentState("output_ready");
+    setActiveTab("briefs");
+    setStepIndex(5);
   }
 
   function handleSaveAllBriefs() {

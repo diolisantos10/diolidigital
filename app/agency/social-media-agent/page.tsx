@@ -536,33 +536,58 @@ export default function SocialMediaAgentPage() {
     }
   }, [pendingAgentInput, setPendingAgentInput, projects, clients]);
 
-  function handleRun() {
+  async function handleRun() {
     if (!isReady) return;
     setAgentState("generating");
     setStepIndex(0);
     const capturedCtx = agentCtx;
     const capturedForm = form;
 
-    let elapsed = 0;
-    const delays = [500, 600, 600, 600, 600, 500, 500];
-    delays.forEach((delay, i) => {
-      elapsed += delay;
-      setTimeout(() => {
-        setStepIndex(i);
-        if (i === delays.length - 1) {
-          setTimeout(() => {
-            const result = generateMockOutput(capturedForm, capturedCtx);
-            setOutput(result);
-            setAgentState("output_ready");
-            setActiveTab("strategy");
-            if (sourceProject) {
-              saveDeliverablesForProject(result, sourceProject.projectId, capturedForm.brandName);
-              setSavedToProject(true);
-            }
-          }, 400);
-        }
-      }, elapsed);
+    // Advance through progress steps while the real API call runs in parallel
+    const stepDelays = [800, 1200, 2000, 3500, 5500, 8000];
+    stepDelays.forEach((ms, i) => {
+      setTimeout(() => setStepIndex(i + 1), ms);
     });
+
+    let finalResult: SocialOutput;
+    try {
+      const res = await fetch("/api/agents/social/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          brandName:    capturedForm.brandName,
+          brandSummary: capturedForm.brandSummary,
+          toneOfVoice:  capturedForm.toneOfVoice,
+          visualStyle:  capturedForm.visualStyle,
+          objective:    capturedForm.objective,
+          frequency:    capturedForm.frequency,
+          channels:     capturedForm.channels,
+          notes:        capturedForm.notes,
+          brandBrain:   capturedCtx?.brandBrain ?? null,
+        }),
+      });
+
+      const data = (await res.json()) as { ok: boolean; output?: SocialOutput; error?: string };
+
+      if (!data.ok || !data.output) {
+        console.warn("[social-agent] AI unavailable, using rule-based fallback:", data.error);
+        finalResult = generateMockOutput(capturedForm, capturedCtx);
+      } else {
+        finalResult = data.output;
+      }
+    } catch (err) {
+      console.warn("[social-agent] fetch error, falling back to rule-based:", err);
+      finalResult = generateMockOutput(capturedForm, capturedCtx);
+    }
+
+    setOutput(finalResult);
+    setAgentState("output_ready");
+    setActiveTab("strategy");
+    setStepIndex(6);
+    if (sourceProject) {
+      saveDeliverablesForProject(finalResult, sourceProject.projectId, capturedForm.brandName);
+      setSavedToProject(true);
+    }
   }
 
   function saveDeliverablesForProject(result: SocialOutput, projectId: string, brand: string) {

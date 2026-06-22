@@ -151,27 +151,54 @@ export default function AdsAgentPage() {
   const isReady = !!linkedProject && !proposalBlocked;
 
   // ── Actions ───────────────────────────────────────────────────────────────────
-  function handleRun() {
+  async function handleRun() {
     if (!linkedProject || !linkedClient) return;
     setAgentState("generating");
     setStepIndex(0);
     setSaved(false);
 
-    const delays = [500, 600, 600, 700, 600, 500];
-    let elapsed = 0;
-    delays.forEach((delay, i) => {
-      elapsed += delay;
-      setTimeout(() => {
-        setStepIndex(i);
-        if (i === delays.length - 1) {
-          setTimeout(() => {
-            setPlan(generateAdsPlan(linkedProject!, linkedClient!, strategyRoom, agentCtx));
-            setAgentState("output_ready");
-            setActiveTab("strategy");
-          }, 400);
-        }
-      }, elapsed);
+    // Advance steps while real API call runs
+    const stepDelays = [800, 1800, 3000, 4500, 6500];
+    stepDelays.forEach((ms, i) => {
+      setTimeout(() => setStepIndex(i + 1), ms);
     });
+
+    let finalPlan: AdsPlan;
+    try {
+      const res = await fetch("/api/agents/ads/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectId:            linkedProject.id,
+          clientId:             linkedClient.id,
+          projectName:          linkedProject.name,
+          clientName:           linkedClient.name,
+          projectObjective:     linkedProject.orchestratorBriefing?.objective ?? linkedProject.goal,
+          services:             linkedProject.orchestratorBriefing?.services ?? [],
+          budget:               linkedProject.proposal?.pricing,
+          brandBrain:           linkedClient.brandBrain ?? null,
+          strategyRoomSynthesis: strategyRoom?.finalSynthesis?.recommendedStrategy ?? null,
+          brandBrainReadiness:  agentCtx?.brandBrainReadiness ?? 0,
+        }),
+      });
+
+      const data = (await res.json()) as { ok: boolean; plan?: AdsPlan; error?: string };
+
+      if (!data.ok || !data.plan) {
+        console.warn("[ads-agent] AI unavailable, using rule-based fallback:", data.error);
+        finalPlan = generateAdsPlan(linkedProject!, linkedClient!, strategyRoom, agentCtx);
+      } else {
+        finalPlan = data.plan;
+      }
+    } catch (err) {
+      console.warn("[ads-agent] fetch error, falling back to rule-based:", err);
+      finalPlan = generateAdsPlan(linkedProject!, linkedClient!, strategyRoom, agentCtx);
+    }
+
+    setPlan(finalPlan);
+    setAgentState("output_ready");
+    setActiveTab("strategy");
+    setStepIndex(5);
   }
 
   function handleSaveAll() {
