@@ -99,6 +99,27 @@ function parseProspectNameBiz(text: string): { prospectName?: string; businessNa
     }
   }
 
+  // ── Fallback: bare answer to "qual é o seu nome?" ─────────────────────────
+  // When neither a business nor a person name matched a pattern, but the user
+  // typed a short proper-noun-like answer (e.g. just "Pedro"), treat it as the
+  // person's name. The welcome explicitly asks for the name first, so a short
+  // standalone answer is far more likely a name than a service request. This
+  // stops the "I didn't understand, repeating the question" loop.
+  if (!businessName && !prospectName) {
+    const trimmed = text.trim();
+    const words = trimmed.split(/\s+/);
+    const SERVICE_OR_INTENT =
+      /\b(redes?|social|m[ií]dia|tr[áa]fego|ads?|an[úu]ncio|marca|logo|identidade|posts?|stories|reels?|quero|preciso|gostaria|busco|procuro)\b/i;
+    if (
+      words.length >= 1 && words.length <= 2 &&
+      /^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ.'-]*( [A-Za-zÀ-ÿ][A-Za-zÀ-ÿ.'-]*)?$/.test(trimmed) &&
+      !SERVICE_OR_INTENT.test(trimmed) &&
+      !GREETINGS.test(words[0])
+    ) {
+      prospectName = trimmed;
+    }
+  }
+
   return { prospectName, businessName };
 }
 
@@ -183,17 +204,24 @@ const IDENTITY_QUESTIONS: QuestionDef[] = [
         ? `Prazer, ${first}! Qual é o seu e-mail para contato?`
         : "Qual é o seu e-mail para contato?";
     },
-    parse: (answer) => ({
-      prospectEmail: extractEmail(answer) ?? answer.trim(),
-    }),
+    // Only accept a syntactically valid e-mail. An invalid answer returns no
+    // delta, so the question stays pending and is re-asked (never stores junk
+    // like "Meu nome é Pedro" in the e-mail field).
+    parse: (answer) => {
+      const email = extractEmail(answer);
+      return email ? { prospectEmail: email } : {};
+    },
   },
   {
     id: "prospect_phone",
     when: (s) => !s.scope.prospectPhone,
     text: () => "E o seu WhatsApp?",
-    parse: (answer) => ({
-      prospectPhone: cleanPhone(answer) || answer.trim(),
-    }),
+    // Require at least 8 digits — otherwise re-ask rather than storing garbage.
+    parse: (answer) => {
+      const cleaned = cleanPhone(answer);
+      const digits = cleaned.replace(/\D/g, "");
+      return digits.length >= 8 ? { prospectPhone: cleaned } : {};
+    },
   },
 ];
 
@@ -261,6 +289,7 @@ export function processProspectMessage(
   let newAnswered: string[];
   let negotiationReply: string | null = null;
   let negotiationHappened = false;
+  let correctionPrefix = "";
 
   if (conv.isFirstMessage) {
     const serviceDelta = parseInitialMessage(text);
@@ -286,9 +315,25 @@ export function processProspectMessage(
     } else {
       const currentQ = getNextProspectQuestion(conv);
       if (currentQ) {
-        const delta = currentQ.parse(text, conv);
-        newScope    = mergeScopeDelta(conv.scope, delta);
-        newAnswered = [...new Set([...conv.answeredQIds, currentQ.id, ...inferProspectAnsweredQIds(newScope)])];
+        const delta    = currentQ.parse(text, conv);
+        newScope       = mergeScopeDelta(conv.scope, delta);
+        const inferred = inferProspectAnsweredQIds(newScope);
+        const isIdentity = IDENTITY_QUESTIONS.some((q) => q.id === currentQ.id);
+        // Identity questions are only marked answered once actually satisfied.
+        // This prevents (a) losing the person's name when only the business was
+        // parsed, and (b) storing an invalid e-mail/phone as if it were valid.
+        // Non-identity questions keep the original "asked = answered" behavior.
+        const stillPending = isIdentity && currentQ.when({ ...conv, scope: newScope });
+        if (stillPending) {
+          newAnswered = [...new Set([...conv.answeredQIds, ...inferred])];
+          if (currentQ.id === "prospect_email") {
+            correctionPrefix = "Quase! Esse e-mail não parece válido — pode confirmar no formato nome@dominio.com?";
+          } else if (currentQ.id === "prospect_phone") {
+            correctionPrefix = "Preciso de um WhatsApp válido com DDD para registrar — pode enviar? (ex.: 11 91234-5678)";
+          }
+        } else {
+          newAnswered = [...new Set([...conv.answeredQIds, currentQ.id, ...inferred])];
+        }
       } else {
         newScope    = conv.scope;
         newAnswered = conv.answeredQIds;
@@ -403,6 +448,12 @@ export function processProspectMessage(
 
   } else {
     replyText = "Perfeito! Tenho todas as informações. Revise a proposta ao lado e clique em **\"Enviar para análise\"** quando estiver pronto.";
+  }
+
+  // A rejected e-mail/phone takes over the reply with a focused correction ask,
+  // rather than silently advancing or repeating the neutral question text.
+  if (correctionPrefix) {
+    replyText = correctionPrefix;
   }
 
   // ── Finalise SDR state ────────────────────────────────────────────────────
