@@ -1,5 +1,35 @@
 import { prisma } from "@/lib/db/client";
 
+// ── Normalization ─────────────────────────────────────────────────────────────
+// SQLite (via Prisma) stores JSON fields as raw strings. This normalizer parses
+// them at the service boundary so every caller gets proper objects/arrays.
+
+function safeJson(str: string | null | undefined, fallback: unknown): unknown {
+  if (!str) return fallback;
+  try { return JSON.parse(str); } catch { return fallback; }
+}
+
+type RawRecord = Awaited<ReturnType<typeof prisma.clientRequestDb.findUniqueOrThrow>>;
+
+export interface NormalizedClientRequest extends Omit<RawRecord, "services" | "objectives" | "briefingJson" | "sdrHandoffJson" | "attachmentsJson"> {
+  services:        string[];
+  objectives:      string[];
+  briefingJson:    Record<string, unknown> | null;
+  sdrHandoffJson:  Record<string, unknown> | null;
+  attachmentsJson: unknown[];
+}
+
+export function normalizeClientRequest(raw: RawRecord): NormalizedClientRequest {
+  return {
+    ...raw,
+    services:        safeJson(raw.services, [])        as string[],
+    objectives:      safeJson(raw.objectives, [])      as string[],
+    briefingJson:    safeJson(raw.briefingJson, null)  as Record<string, unknown> | null,
+    sdrHandoffJson:  safeJson(raw.sdrHandoffJson, null) as Record<string, unknown> | null,
+    attachmentsJson: safeJson(raw.attachmentsJson, []) as unknown[],
+  };
+}
+
 export type ClientRequestDbStatus =
   | "new"
   | "waiting_strategy"
@@ -34,8 +64,8 @@ export interface UpdateClientRequestInput {
   workspaceId?: string;
 }
 
-export async function createClientRequest(input: CreateClientRequestInput) {
-  return prisma.clientRequestDb.create({
+export async function createClientRequest(input: CreateClientRequestInput): Promise<NormalizedClientRequest> {
+  const raw = await prisma.clientRequestDb.create({
     data: {
       businessName:    input.businessName,
       segment:         input.segment         ?? "",
@@ -51,18 +81,20 @@ export async function createClientRequest(input: CreateClientRequestInput) {
       status: "new",
     },
   });
+  return normalizeClientRequest(raw);
 }
 
-export async function getClientRequest(id: string) {
-  return prisma.clientRequestDb.findUnique({ where: { id } });
+export async function getClientRequest(id: string): Promise<NormalizedClientRequest | null> {
+  const raw = await prisma.clientRequestDb.findUnique({ where: { id } });
+  return raw ? normalizeClientRequest(raw) : null;
 }
 
 export async function listClientRequests(options?: {
   workspaceId?: string;
   status?: ClientRequestDbStatus;
   limit?: number;
-}) {
-  return prisma.clientRequestDb.findMany({
+}): Promise<NormalizedClientRequest[]> {
+  const rows = await prisma.clientRequestDb.findMany({
     where: {
       ...(options?.workspaceId ? { workspaceId: options.workspaceId } : {}),
       ...(options?.status      ? { status: options.status }           : {}),
@@ -70,10 +102,11 @@ export async function listClientRequests(options?: {
     orderBy: { createdAt: "desc" },
     take: options?.limit ?? 100,
   });
+  return rows.map(normalizeClientRequest);
 }
 
-export async function updateClientRequest(id: string, input: UpdateClientRequestInput) {
-  return prisma.clientRequestDb.update({
+export async function updateClientRequest(id: string, input: UpdateClientRequestInput): Promise<NormalizedClientRequest> {
+  const raw = await prisma.clientRequestDb.update({
     where: { id },
     data: {
       ...(input.status      ? { status: input.status }                                        : {}),
@@ -83,4 +116,5 @@ export async function updateClientRequest(id: string, input: UpdateClientRequest
       ...(input.sdrHandoffJson ? { sdrHandoffJson: JSON.stringify(input.sdrHandoffJson) }     : {}),
     },
   });
+  return normalizeClientRequest(raw);
 }

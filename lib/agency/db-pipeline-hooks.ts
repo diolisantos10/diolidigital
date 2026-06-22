@@ -8,17 +8,20 @@
 import { useCallback, useEffect, useState } from "react";
 
 // ── DB record shapes (mirror the API responses) ───────────────────────────────
+// JSON fields are normalized at the API boundary (service layer) and arrive as
+// parsed objects. parseJson() handles both string and already-parsed inputs.
 
 export interface DbRequest {
   id: string;
   businessName: string;
   segment: string | null;
-  services: string;      // JSON array
-  objectives: string;    // JSON array
+  services: string[];
+  objectives: string[];
   rawContext: string;
   status: string;
-  briefingJson: string | null;
-  sdrHandoffJson: string | null;
+  briefingJson: Record<string, unknown> | null;
+  sdrHandoffJson: Record<string, unknown> | null;
+  attachmentsJson: unknown[];
   createdAt: string;
 }
 
@@ -27,7 +30,7 @@ export interface DbArtifact {
   clientRequestId: string;
   department: string;
   canvasId: string;
-  canvasJson: string;   // JSON-encoded canvas object
+  canvasJson: string;   // JSON-encoded canvas object (artifact layer not yet normalized)
   qualityGateJson: string | null;
   version: number;
   status: string;
@@ -36,8 +39,11 @@ export interface DbArtifact {
 }
 
 // ── JSON parse utility ─────────────────────────────────────────────────────────
+// Accepts string (legacy path) or already-parsed value (normalized API response).
 
-export function parseJson<T>(json: string | null | undefined, fallback: T): T {
+export function parseJson<T>(json: unknown, fallback: T): T {
+  if (json === null || json === undefined) return fallback;
+  if (typeof json !== "string") return json as T;
   if (!json) return fallback;
   try {
     return JSON.parse(json) as T;

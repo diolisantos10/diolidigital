@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
-import { createClientRequest, listClientRequests, updateClientRequest } from "@/lib/agency/persistence/client-request-service";
+import { createClientRequest, listClientRequests, updateClientRequest, getClientRequest } from "@/lib/agency/persistence/client-request-service";
 import { requireSession } from "@/lib/auth/api-guard";
 
 // GET (list) and PATCH (mutate) are internal — session required.
@@ -12,6 +12,19 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   if (error) return error;
 
   const { searchParams } = new URL(request.url);
+  const id = searchParams.get("id");
+
+  // Single-record fetch by id.
+  if (id) {
+    try {
+      const record = await getClientRequest(id);
+      if (!record) return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return NextResponse.json(record);
+    } catch {
+      return NextResponse.json({ error: "DB unavailable" }, { status: 503 });
+    }
+  }
+
   const workspaceId = searchParams.get("workspaceId") ?? undefined;
   const status      = searchParams.get("status") ?? undefined;
   const limit       = Math.min(parseInt(searchParams.get("limit") ?? "100", 10), 500);
