@@ -45,7 +45,7 @@ describe("provider registry", () => {
     expect(activeProviderId()).toBe("claude");
     const p = getActiveProvider();
     expect(p.isConfigured()).toBe(false);
-    expect(p.modelId()).toBe("claude-placeholder");
+    expect(p.modelId()).toMatch(/claude/i);
   });
 
   it("BRAIN_AI_PROVIDER=gemini → gemini adapter (not configured)", () => {

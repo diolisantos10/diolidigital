@@ -453,18 +453,101 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
   const { isListening, isSupported, error: micError, startListening, stopListening } =
     useSpeechToText({ onTranscript: handleTranscript });
 
+  // ── AI extraction (async, fire-and-forget) ────────────────────────────────
+  // Sends the conversation + new message to the server; Claude Haiku extracts
+  // structured fields the rule-based regex may have missed. Only fills empty
+  // scope fields — never overwrites confirmed data. Failure is silent (Lei 2:
+  // rule-based is the universal fallback).
+  const fireAiExtract = useCallback(
+    async (userText: string, messages: typeof conv.messages) => {
+      try {
+        const res = await fetch("/api/brain/briefing-extract", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messages: messages.map((m) => ({ role: m.role, text: m.text })),
+            currentMessage: userText,
+          }),
+        });
+        if (!res.ok) return;
+        const data = (await res.json()) as { ok: boolean; extracted?: Record<string, unknown> };
+        if (!data.ok || !data.extracted) return;
+        const ex = data.extracted;
+
+        setState((prev) => {
+          const scope = prev.conv.scope;
+          let changed = false;
+          const patch: Partial<typeof scope> = {};
+
+          if (!scope.prospectName && typeof ex.prospectName === "string" && ex.prospectName.trim()) {
+            patch.prospectName = ex.prospectName.trim();
+            changed = true;
+          }
+          if (!scope.businessName && typeof ex.businessName === "string" && ex.businessName.trim()) {
+            patch.businessName = ex.businessName.trim();
+            changed = true;
+          }
+          if (
+            !scope.prospectEmail &&
+            typeof ex.prospectEmail === "string" &&
+            /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(ex.prospectEmail)
+          ) {
+            patch.prospectEmail = ex.prospectEmail.trim();
+            changed = true;
+          }
+          if (
+            !scope.prospectPhone &&
+            typeof ex.prospectPhone === "string" &&
+            ex.prospectPhone.replace(/\D/g, "").length >= 8
+          ) {
+            patch.prospectPhone = ex.prospectPhone.trim();
+            changed = true;
+          }
+          if (!scope.segment && typeof ex.segment === "string" && ex.segment.trim()) {
+            patch.segment = ex.segment.trim();
+            changed = true;
+          }
+
+          if (!changed) return prev;
+
+          const newScope = { ...scope, ...patch };
+
+          // Recompute which identity questions are now satisfied so the engine
+          // skips them on the next turn — only adds to the set, never removes.
+          const newAnswered = new Set(prev.conv.answeredQIds);
+          if (newScope.prospectName && newScope.businessName) newAnswered.add("prospect_name_biz");
+          if (newScope.prospectEmail)  newAnswered.add("prospect_email");
+          if (newScope.prospectPhone)  newAnswered.add("prospect_phone");
+
+          return {
+            ...prev,
+            conv: { ...prev.conv, scope: newScope, answeredQIds: [...newAnswered] },
+          };
+        });
+      } catch {
+        // Silent — rule-based result stays
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
   function handleSend() {
     const text = inputText.trim();
     if (!text) return;
     setInputText("");
     const fileNames = attachments.map((a) => a.fileName);
+    const currentMessages = conv.messages; // capture before state update
     setState((prev) => processProspectMessage(text, prev, fileNames));
+    void fireAiExtract(text, currentMessages);
     setTimeout(() => textareaRef.current?.focus(), 0);
   }
 
   function sendAction(text: string) {
     const fileNames = attachments.map((a) => a.fileName);
+    const currentMessages = conv.messages;
     setState((prev) => processProspectMessage(text, prev, fileNames));
+    void fireAiExtract(text, currentMessages);
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
