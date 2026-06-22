@@ -4,15 +4,19 @@
 // Returns SocialOutput shape expected by the social-media-agent page.
 
 import { NextRequest, NextResponse } from "next/server";
-import { isClaudeConfigured, claudeModel } from "@/lib/ai/claude-provider";
+import { claudeModel } from "@/lib/ai/claude-provider";
+import { getSession } from "@/lib/auth/session";
+import { resolveProviderKey } from "@/lib/ai/resolve-key";
 
 const CLAUDE_URL = "https://api.anthropic.com/v1/messages";
 const MAX_TOKENS = 4096;
 
 export async function POST(req: NextRequest) {
-  if (!isClaudeConfigured()) {
+  const session = await getSession();
+  const resolved = await resolveProviderKey("claude", session?.workspaceId);
+  if (!resolved) {
     return NextResponse.json(
-      { ok: false, error: "ANTHROPIC_API_KEY não configurada. Configure a variável de ambiente no Railway." },
+      { ok: false, error: "Nenhuma chave Claude configurada. Adicione em Integrações → IAs dos Agentes." },
       { status: 503 },
     );
   }
@@ -211,8 +215,8 @@ Responda com este JSON exato (sem texto antes ou depois):
 
 IMPORTANTE: Substitua todos os textos de exemplo pelo conteúdo REAL da marca ${brandName}. Legendas devem ser completas e prontas para publicar.`;
 
-  const apiKey = process.env.ANTHROPIC_API_KEY!;
-  const model = claudeModel();
+  const apiKey = resolved.apiKey;
+  const model = resolved.model ?? claudeModel();
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 60_000);

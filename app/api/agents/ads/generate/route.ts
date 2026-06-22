@@ -3,14 +3,18 @@
 // Returns AdsPlan shape expected by the ads-agent page.
 
 import { NextRequest, NextResponse } from "next/server";
-import { isClaudeConfigured, claudeModel } from "@/lib/ai/claude-provider";
+import { claudeModel } from "@/lib/ai/claude-provider";
+import { getSession } from "@/lib/auth/session";
+import { resolveProviderKey } from "@/lib/ai/resolve-key";
 
 const CLAUDE_URL = "https://api.anthropic.com/v1/messages";
 
 export async function POST(req: NextRequest) {
-  if (!isClaudeConfigured()) {
+  const session = await getSession();
+  const resolved = await resolveProviderKey("claude", session?.workspaceId);
+  if (!resolved) {
     return NextResponse.json(
-      { ok: false, error: "ANTHROPIC_API_KEY não configurada." },
+      { ok: false, error: "Nenhuma chave Claude configurada. Adicione em Integrações → IAs dos Agentes." },
       { status: 503 },
     );
   }
@@ -185,8 +189,8 @@ Responda com JSON exato no seguinte formato:
 
 IMPORTANTE: Todo conteúdo deve ser específico para ${clientName} e seu objetivo real. Sem textos genéricos ou placeholders.`;
 
-  const apiKey = process.env.ANTHROPIC_API_KEY!;
-  const model = claudeModel();
+  const apiKey = resolved.apiKey;
+  const model = resolved.model ?? claudeModel();
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 60_000);
 

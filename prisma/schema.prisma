@@ -232,6 +232,10 @@ model DbIntegrationConfig {
   accountId        String?
   folder           String?
   webhookUrl       String?
+  // API key storage — AES-256-GCM encrypted (see lib/security/crypto.ts).
+  // apiKeyHint is a non-sensitive display string e.g. "sk-ant-…a1b2".
+  apiKeyEncrypted  String?
+  apiKeyHint       String?
   lastTestStatus   String    @default("not_run")
   lastTestAt       DateTime?
   lastTestMessage  String?

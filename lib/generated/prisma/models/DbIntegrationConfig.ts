@@ -34,6 +34,8 @@ export type DbIntegrationConfigMinAggregateOutputType = {
   accountId: string | null
   folder: string | null
   webhookUrl: string | null
+  apiKeyEncrypted: string | null
+  apiKeyHint: string | null
   lastTestStatus: string | null
   lastTestAt: Date | null
   lastTestMessage: string | null
@@ -50,6 +52,8 @@ export type DbIntegrationConfigMaxAggregateOutputType = {
   accountId: string | null
   folder: string | null
   webhookUrl: string | null
+  apiKeyEncrypted: string | null
+  apiKeyHint: string | null
   lastTestStatus: string | null
   lastTestAt: Date | null
   lastTestMessage: string | null
@@ -66,6 +70,8 @@ export type DbIntegrationConfigCountAggregateOutputType = {
   accountId: number
   folder: number
   webhookUrl: number
+  apiKeyEncrypted: number
+  apiKeyHint: number
   lastTestStatus: number
   lastTestAt: number
   lastTestMessage: number
@@ -84,6 +90,8 @@ export type DbIntegrationConfigMinAggregateInputType = {
   accountId?: true
   folder?: true
   webhookUrl?: true
+  apiKeyEncrypted?: true
+  apiKeyHint?: true
   lastTestStatus?: true
   lastTestAt?: true
   lastTestMessage?: true
@@ -100,6 +108,8 @@ export type DbIntegrationConfigMaxAggregateInputType = {
   accountId?: true
   folder?: true
   webhookUrl?: true
+  apiKeyEncrypted?: true
+  apiKeyHint?: true
   lastTestStatus?: true
   lastTestAt?: true
   lastTestMessage?: true
@@ -116,6 +126,8 @@ export type DbIntegrationConfigCountAggregateInputType = {
   accountId?: true
   folder?: true
   webhookUrl?: true
+  apiKeyEncrypted?: true
+  apiKeyHint?: true
   lastTestStatus?: true
   lastTestAt?: true
   lastTestMessage?: true
@@ -205,6 +217,8 @@ export type DbIntegrationConfigGroupByOutputType = {
   accountId: string | null
   folder: string | null
   webhookUrl: string | null
+  apiKeyEncrypted: string | null
+  apiKeyHint: string | null
   lastTestStatus: string
   lastTestAt: Date | null
   lastTestMessage: string | null
@@ -242,6 +256,8 @@ export type DbIntegrationConfigWhereInput = {
   accountId?: Prisma.StringNullableFilter<"DbIntegrationConfig"> | string | null
   folder?: Prisma.StringNullableFilter<"DbIntegrationConfig"> | string | null
   webhookUrl?: Prisma.StringNullableFilter<"DbIntegrationConfig"> | string | null
+  apiKeyEncrypted?: Prisma.StringNullableFilter<"DbIntegrationConfig"> | string | null
+  apiKeyHint?: Prisma.StringNullableFilter<"DbIntegrationConfig"> | string | null
   lastTestStatus?: Prisma.StringFilter<"DbIntegrationConfig"> | string
   lastTestAt?: Prisma.DateTimeNullableFilter<"DbIntegrationConfig"> | Date | string | null
   lastTestMessage?: Prisma.StringNullableFilter<"DbIntegrationConfig"> | string | null
@@ -259,6 +275,8 @@ export type DbIntegrationConfigOrderByWithRelationInput = {
   accountId?: Prisma.SortOrderInput | Prisma.SortOrder
   folder?: Prisma.SortOrderInput | Prisma.SortOrder
   webhookUrl?: Prisma.SortOrderInput | Prisma.SortOrder
+  apiKeyEncrypted?: Prisma.SortOrderInput | Prisma.SortOrder
+  apiKeyHint?: Prisma.SortOrderInput | Prisma.SortOrder
   lastTestStatus?: Prisma.SortOrder
   lastTestAt?: Prisma.SortOrderInput | Prisma.SortOrder
   lastTestMessage?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -280,6 +298,8 @@ export type DbIntegrationConfigWhereUniqueInput = Prisma.AtLeast<{
   accountId?: Prisma.StringNullableFilter<"DbIntegrationConfig"> | string | null
   folder?: Prisma.StringNullableFilter<"DbIntegrationConfig"> | string | null
   webhookUrl?: Prisma.StringNullableFilter<"DbIntegrationConfig"> | string | null
+  apiKeyEncrypted?: Prisma.StringNullableFilter<"DbIntegrationConfig"> | string | null
+  apiKeyHint?: Prisma.StringNullableFilter<"DbIntegrationConfig"> | string | null
   lastTestStatus?: Prisma.StringFilter<"DbIntegrationConfig"> | string
   lastTestAt?: Prisma.DateTimeNullableFilter<"DbIntegrationConfig"> | Date | string | null
   lastTestMessage?: Prisma.StringNullableFilter<"DbIntegrationConfig"> | string | null
@@ -297,6 +317,8 @@ export type DbIntegrationConfigOrderByWithAggregationInput = {
   accountId?: Prisma.SortOrderInput | Prisma.SortOrder
   folder?: Prisma.SortOrderInput | Prisma.SortOrder
   webhookUrl?: Prisma.SortOrderInput | Prisma.SortOrder
+  apiKeyEncrypted?: Prisma.SortOrderInput | Prisma.SortOrder
+  apiKeyHint?: Prisma.SortOrderInput | Prisma.SortOrder
   lastTestStatus?: Prisma.SortOrder
   lastTestAt?: Prisma.SortOrderInput | Prisma.SortOrder
   lastTestMessage?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -319,6 +341,8 @@ export type DbIntegrationConfigScalarWhereWithAggregatesInput = {
   accountId?: Prisma.StringNullableWithAggregatesFilter<"DbIntegrationConfig"> | string | null
   folder?: Prisma.StringNullableWithAggregatesFilter<"DbIntegrationConfig"> | string | null
   webhookUrl?: Prisma.StringNullableWithAggregatesFilter<"DbIntegrationConfig"> | string | null
+  apiKeyEncrypted?: Prisma.StringNullableWithAggregatesFilter<"DbIntegrationConfig"> | string | null
+  apiKeyHint?: Prisma.StringNullableWithAggregatesFilter<"DbIntegrationConfig"> | string | null
   lastTestStatus?: Prisma.StringWithAggregatesFilter<"DbIntegrationConfig"> | string
   lastTestAt?: Prisma.DateTimeNullableWithAggregatesFilter<"DbIntegrationConfig"> | Date | string | null
   lastTestMessage?: Prisma.StringNullableWithAggregatesFilter<"DbIntegrationConfig"> | string | null
@@ -334,6 +358,8 @@ export type DbIntegrationConfigCreateInput = {
   accountId?: string | null
   folder?: string | null
   webhookUrl?: string | null
+  apiKeyEncrypted?: string | null
+  apiKeyHint?: string | null
   lastTestStatus?: string
   lastTestAt?: Date | string | null
   lastTestMessage?: string | null
@@ -351,6 +377,8 @@ export type DbIntegrationConfigUncheckedCreateInput = {
   accountId?: string | null
   folder?: string | null
   webhookUrl?: string | null
+  apiKeyEncrypted?: string | null
+  apiKeyHint?: string | null
   lastTestStatus?: string
   lastTestAt?: Date | string | null
   lastTestMessage?: string | null
@@ -366,6 +394,8 @@ export type DbIntegrationConfigUpdateInput = {
   accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   folder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   webhookUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  apiKeyEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  apiKeyHint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastTestStatus?: Prisma.StringFieldUpdateOperationsInput | string
   lastTestAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastTestMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -383,6 +413,8 @@ export type DbIntegrationConfigUncheckedUpdateInput = {
   accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   folder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   webhookUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  apiKeyEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  apiKeyHint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastTestStatus?: Prisma.StringFieldUpdateOperationsInput | string
   lastTestAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastTestMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -399,6 +431,8 @@ export type DbIntegrationConfigCreateManyInput = {
   accountId?: string | null
   folder?: string | null
   webhookUrl?: string | null
+  apiKeyEncrypted?: string | null
+  apiKeyHint?: string | null
   lastTestStatus?: string
   lastTestAt?: Date | string | null
   lastTestMessage?: string | null
@@ -414,6 +448,8 @@ export type DbIntegrationConfigUpdateManyMutationInput = {
   accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   folder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   webhookUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  apiKeyEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  apiKeyHint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastTestStatus?: Prisma.StringFieldUpdateOperationsInput | string
   lastTestAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastTestMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -430,6 +466,8 @@ export type DbIntegrationConfigUncheckedUpdateManyInput = {
   accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   folder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   webhookUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  apiKeyEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  apiKeyHint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastTestStatus?: Prisma.StringFieldUpdateOperationsInput | string
   lastTestAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastTestMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -461,6 +499,8 @@ export type DbIntegrationConfigCountOrderByAggregateInput = {
   accountId?: Prisma.SortOrder
   folder?: Prisma.SortOrder
   webhookUrl?: Prisma.SortOrder
+  apiKeyEncrypted?: Prisma.SortOrder
+  apiKeyHint?: Prisma.SortOrder
   lastTestStatus?: Prisma.SortOrder
   lastTestAt?: Prisma.SortOrder
   lastTestMessage?: Prisma.SortOrder
@@ -477,6 +517,8 @@ export type DbIntegrationConfigMaxOrderByAggregateInput = {
   accountId?: Prisma.SortOrder
   folder?: Prisma.SortOrder
   webhookUrl?: Prisma.SortOrder
+  apiKeyEncrypted?: Prisma.SortOrder
+  apiKeyHint?: Prisma.SortOrder
   lastTestStatus?: Prisma.SortOrder
   lastTestAt?: Prisma.SortOrder
   lastTestMessage?: Prisma.SortOrder
@@ -493,6 +535,8 @@ export type DbIntegrationConfigMinOrderByAggregateInput = {
   accountId?: Prisma.SortOrder
   folder?: Prisma.SortOrder
   webhookUrl?: Prisma.SortOrder
+  apiKeyEncrypted?: Prisma.SortOrder
+  apiKeyHint?: Prisma.SortOrder
   lastTestStatus?: Prisma.SortOrder
   lastTestAt?: Prisma.SortOrder
   lastTestMessage?: Prisma.SortOrder
@@ -554,6 +598,8 @@ export type DbIntegrationConfigCreateWithoutWorkspaceInput = {
   accountId?: string | null
   folder?: string | null
   webhookUrl?: string | null
+  apiKeyEncrypted?: string | null
+  apiKeyHint?: string | null
   lastTestStatus?: string
   lastTestAt?: Date | string | null
   lastTestMessage?: string | null
@@ -569,6 +615,8 @@ export type DbIntegrationConfigUncheckedCreateWithoutWorkspaceInput = {
   accountId?: string | null
   folder?: string | null
   webhookUrl?: string | null
+  apiKeyEncrypted?: string | null
+  apiKeyHint?: string | null
   lastTestStatus?: string
   lastTestAt?: Date | string | null
   lastTestMessage?: string | null
@@ -613,6 +661,8 @@ export type DbIntegrationConfigScalarWhereInput = {
   accountId?: Prisma.StringNullableFilter<"DbIntegrationConfig"> | string | null
   folder?: Prisma.StringNullableFilter<"DbIntegrationConfig"> | string | null
   webhookUrl?: Prisma.StringNullableFilter<"DbIntegrationConfig"> | string | null
+  apiKeyEncrypted?: Prisma.StringNullableFilter<"DbIntegrationConfig"> | string | null
+  apiKeyHint?: Prisma.StringNullableFilter<"DbIntegrationConfig"> | string | null
   lastTestStatus?: Prisma.StringFilter<"DbIntegrationConfig"> | string
   lastTestAt?: Prisma.DateTimeNullableFilter<"DbIntegrationConfig"> | Date | string | null
   lastTestMessage?: Prisma.StringNullableFilter<"DbIntegrationConfig"> | string | null
@@ -628,6 +678,8 @@ export type DbIntegrationConfigCreateManyWorkspaceInput = {
   accountId?: string | null
   folder?: string | null
   webhookUrl?: string | null
+  apiKeyEncrypted?: string | null
+  apiKeyHint?: string | null
   lastTestStatus?: string
   lastTestAt?: Date | string | null
   lastTestMessage?: string | null
@@ -643,6 +695,8 @@ export type DbIntegrationConfigUpdateWithoutWorkspaceInput = {
   accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   folder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   webhookUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  apiKeyEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  apiKeyHint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastTestStatus?: Prisma.StringFieldUpdateOperationsInput | string
   lastTestAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastTestMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -658,6 +712,8 @@ export type DbIntegrationConfigUncheckedUpdateWithoutWorkspaceInput = {
   accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   folder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   webhookUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  apiKeyEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  apiKeyHint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastTestStatus?: Prisma.StringFieldUpdateOperationsInput | string
   lastTestAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastTestMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -673,6 +729,8 @@ export type DbIntegrationConfigUncheckedUpdateManyWithoutWorkspaceInput = {
   accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   folder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   webhookUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  apiKeyEncrypted?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  apiKeyHint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastTestStatus?: Prisma.StringFieldUpdateOperationsInput | string
   lastTestAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastTestMessage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -691,6 +749,8 @@ export type DbIntegrationConfigSelect<ExtArgs extends runtime.Types.Extensions.I
   accountId?: boolean
   folder?: boolean
   webhookUrl?: boolean
+  apiKeyEncrypted?: boolean
+  apiKeyHint?: boolean
   lastTestStatus?: boolean
   lastTestAt?: boolean
   lastTestMessage?: boolean
@@ -708,6 +768,8 @@ export type DbIntegrationConfigSelectCreateManyAndReturn<ExtArgs extends runtime
   accountId?: boolean
   folder?: boolean
   webhookUrl?: boolean
+  apiKeyEncrypted?: boolean
+  apiKeyHint?: boolean
   lastTestStatus?: boolean
   lastTestAt?: boolean
   lastTestMessage?: boolean
@@ -725,6 +787,8 @@ export type DbIntegrationConfigSelectUpdateManyAndReturn<ExtArgs extends runtime
   accountId?: boolean
   folder?: boolean
   webhookUrl?: boolean
+  apiKeyEncrypted?: boolean
+  apiKeyHint?: boolean
   lastTestStatus?: boolean
   lastTestAt?: boolean
   lastTestMessage?: boolean
@@ -742,13 +806,15 @@ export type DbIntegrationConfigSelectScalar = {
   accountId?: boolean
   folder?: boolean
   webhookUrl?: boolean
+  apiKeyEncrypted?: boolean
+  apiKeyHint?: boolean
   lastTestStatus?: boolean
   lastTestAt?: boolean
   lastTestMessage?: boolean
   lastConfiguredAt?: boolean
 }
 
-export type DbIntegrationConfigOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "integrationId" | "configured" | "selectedModel" | "configWorkspace" | "accountId" | "folder" | "webhookUrl" | "lastTestStatus" | "lastTestAt" | "lastTestMessage" | "lastConfiguredAt", ExtArgs["result"]["dbIntegrationConfig"]>
+export type DbIntegrationConfigOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "integrationId" | "configured" | "selectedModel" | "configWorkspace" | "accountId" | "folder" | "webhookUrl" | "apiKeyEncrypted" | "apiKeyHint" | "lastTestStatus" | "lastTestAt" | "lastTestMessage" | "lastConfiguredAt", ExtArgs["result"]["dbIntegrationConfig"]>
 export type DbIntegrationConfigInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   workspace?: boolean | Prisma.AgencyWorkspaceDefaultArgs<ExtArgs>
 }
@@ -774,6 +840,8 @@ export type $DbIntegrationConfigPayload<ExtArgs extends runtime.Types.Extensions
     accountId: string | null
     folder: string | null
     webhookUrl: string | null
+    apiKeyEncrypted: string | null
+    apiKeyHint: string | null
     lastTestStatus: string
     lastTestAt: Date | null
     lastTestMessage: string | null
@@ -1211,6 +1279,8 @@ export interface DbIntegrationConfigFieldRefs {
   readonly accountId: Prisma.FieldRef<"DbIntegrationConfig", 'String'>
   readonly folder: Prisma.FieldRef<"DbIntegrationConfig", 'String'>
   readonly webhookUrl: Prisma.FieldRef<"DbIntegrationConfig", 'String'>
+  readonly apiKeyEncrypted: Prisma.FieldRef<"DbIntegrationConfig", 'String'>
+  readonly apiKeyHint: Prisma.FieldRef<"DbIntegrationConfig", 'String'>
   readonly lastTestStatus: Prisma.FieldRef<"DbIntegrationConfig", 'String'>
   readonly lastTestAt: Prisma.FieldRef<"DbIntegrationConfig", 'DateTime'>
   readonly lastTestMessage: Prisma.FieldRef<"DbIntegrationConfig", 'String'>

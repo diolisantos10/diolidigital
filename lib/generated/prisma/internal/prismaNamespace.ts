@@ -2801,6 +2801,8 @@ export const DbIntegrationConfigScalarFieldEnum = {
   accountId: 'accountId',
   folder: 'folder',
   webhookUrl: 'webhookUrl',
+  apiKeyEncrypted: 'apiKeyEncrypted',
+  apiKeyHint: 'apiKeyHint',
   lastTestStatus: 'lastTestStatus',
   lastTestAt: 'lastTestAt',
   lastTestMessage: 'lastTestMessage',

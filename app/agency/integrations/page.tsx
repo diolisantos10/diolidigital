@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import AiKeyManager from "@/components/agency/AiKeyManager";
 import { useAgencyStore } from "@/store/agency-store";
 import {
   MOCK_INTEGRATIONS,
@@ -619,6 +620,9 @@ export default function IntegrationsPage() {
         )}
       </div>
 
+      {/* Real AI key connection — paste, test, done */}
+      <AiKeyManager />
+
       {/* Agent Provider Section */}
       <AgentProviderSection />
 
@@ -693,15 +697,17 @@ export default function IntegrationsPage() {
       </div>
 
       {/* Security notice */}
-      <div className="bg-[#F0F4FF] border border-[#DDDDFB] rounded-[10px] px-5 py-4 flex items-start gap-3">
+      <div className="bg-[#F0FDF4] border border-[#BBF7D0] rounded-[10px] px-5 py-4 flex items-start gap-3">
         <span className="text-[16px] shrink-0">🔒</span>
         <div>
-          <div className="text-[13px] font-semibold text-[#5B5BD6]">Segurança de chaves de API — V2</div>
+          <div className="text-[13px] font-semibold text-[#16A34A]">Suas chaves estão seguras</div>
           <p className="text-[12px] text-[#6B6B65] mt-1">
-            Configuração segura de chaves será adicionada com backend. Não insira chaves reais nesta interface.
-            Em V2, apenas a geração de imagens via DALL-E 3 está ativa (chave gerenciada pelo servidor).
+            As chaves de IA são criptografadas (AES-256) antes de serem guardadas e nunca aparecem de volta na tela —
+            só mostramos uma dica (ex.: <span className="font-mono">sk-ant-…a1b2</span>). Conecte na seção
+            &ldquo;Conectar Inteligências Artificiais&rdquo; acima. Para reforço extra em produção, defina a variável
+            <span className="font-mono"> CREDENTIALS_SECRET</span> no Railway.
           </p>
-          <Link href="/agency/settings" className="text-[12px] text-[#5B5BD6] font-medium hover:underline mt-1 inline-block">
+          <Link href="/agency/settings" className="text-[12px] text-[#16A34A] font-medium hover:underline mt-1 inline-block">
             Ver diagnóstico completo em Saúde do Sistema →
           </Link>
         </div>
