@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import { useAgencyStore } from "@/store/agency-store";
 import { useDbDeliverables } from "@/lib/hooks/useDbDeliverables";
 import { getClientAgentContext } from "@/lib/agency/workspace";
+import type { BrandExtraction } from "@/app/api/brain/analyze-brand-book/route";
 
 // ─── Brand Hub Agent — Brand Intelligence Department ──────────────────────────
 //
@@ -92,6 +93,13 @@ export default function BrandHubAgentPage() {
   const [saved, setSaved] = useState(false);
   const [saveSkipped, setSaveSkipped] = useState(false);
 
+  // ── Brand Book Upload state ───────────────────────────────────────────────
+  const [bbFile, setBbFile] = useState<File | null>(null);
+  const [bbUploading, setBbUploading] = useState(false);
+  const [bbExtraction, setBbExtraction] = useState<BrandExtraction | null>(null);
+  const [bbError, setBbError] = useState<string | null>(null);
+  const bbInputRef = useRef<HTMLInputElement>(null);
+
   const { clients, projects } = useAgencyStore();
   const { createDeliverable } = useDbDeliverables();
 
@@ -172,6 +180,28 @@ export default function BrandHubAgentPage() {
     setSaveSkipped(false);
   }
 
+  async function handleBrandBookUpload(file: File) {
+    setBbFile(file);
+    setBbError(null);
+    setBbExtraction(null);
+    setBbUploading(true);
+    const fd = new FormData();
+    fd.append("file", file);
+    try {
+      const res = await fetch("/api/brain/analyze-brand-book", { method: "POST", body: fd });
+      const data = (await res.json()) as { ok: boolean; extraction?: BrandExtraction; error?: string };
+      if (!data.ok || !data.extraction) {
+        setBbError(data.error ?? "Erro ao analisar o arquivo.");
+      } else {
+        setBbExtraction(data.extraction);
+      }
+    } catch {
+      setBbError("Erro de rede ao enviar o arquivo.");
+    } finally {
+      setBbUploading(false);
+    }
+  }
+
   // ── JSX ───────────────────────────────────────────────────────────────────────
   const OUTPUT_TABS: { id: OutputTab; label: string }[] = [
     { id: "overview", label: "Visão Geral" },
@@ -220,6 +250,118 @@ export default function BrandHubAgentPage() {
               )}
             </div>
           )}
+        </div>
+
+        {/* Brand Book Upload — full width */}
+        <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] mb-6">
+          <div className="px-5 py-4 border-b border-[#E5E5E2] flex items-center justify-between">
+            <div>
+              <p className="text-[13px] font-semibold text-[#1A1A1A]">Importar Brand Book</p>
+              <p className="text-[12px] text-[#9B9B95] mt-0.5">Envie qualquer arquivo — PDF, imagem, DOCX ou PPTX — e Claude extrai a identidade da marca automaticamente.</p>
+            </div>
+            <span className="text-[11px] px-2.5 py-1 rounded-full font-medium" style={{ backgroundColor: "#FFF7ED", color: ACCENT }}>PDF · PPT · DOCX · Imagem</span>
+          </div>
+
+          <div className="px-5 py-4">
+            {/* Drop zone */}
+            {!bbExtraction && !bbUploading && (
+              <div
+                className="border-2 border-dashed border-[#E5E5E2] rounded-[8px] px-6 py-8 text-center cursor-pointer hover:border-[#C2530A]/40 hover:bg-[#FFF7ED]/40 transition-all"
+                onClick={() => bbInputRef.current?.click()}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleBrandBookUpload(f); }}
+              >
+                <div className="w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: "#FFF7ED" }}>
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    <path d="M10 13V4M7 7l3-3 3 3" stroke={ACCENT} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M4 14v1a2 2 0 002 2h8a2 2 0 002-2v-1" stroke={ACCENT} strokeWidth="1.5" strokeLinecap="round"/>
+                  </svg>
+                </div>
+                <p className="text-[13px] font-medium text-[#1A1A1A] mb-1">Arraste aqui ou clique para selecionar</p>
+                <p className="text-[12px] text-[#9B9B95]">PDF, PNG, JPG, WEBP, DOCX, PPTX — máximo 20 MB</p>
+                <input
+                  ref={bbInputRef}
+                  type="file"
+                  className="hidden"
+                  accept=".pdf,.png,.jpg,.jpeg,.webp,.svg,.docx,.doc,.pptx,.ppt"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleBrandBookUpload(f); }}
+                />
+              </div>
+            )}
+
+            {/* Uploading */}
+            {bbUploading && (
+              <div className="flex items-center gap-4 px-4 py-5 rounded-[8px] bg-[#FFF7ED] border border-[#FDBA74]">
+                <span className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin shrink-0" style={{ borderColor: ACCENT, borderTopColor: "transparent" }} />
+                <div>
+                  <p className="text-[13px] font-medium text-[#1A1A1A]">Analisando {bbFile?.name}…</p>
+                  <p className="text-[12px] text-[#9B9B95]">Claude está lendo o documento. Pode levar até 90 s para PDFs grandes.</p>
+                </div>
+              </div>
+            )}
+
+            {/* Error */}
+            {bbError && !bbUploading && (
+              <div className="rounded-[8px] border border-[#FECACA] bg-[#FEE2E2] px-4 py-3 flex items-start gap-3">
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" className="shrink-0 mt-0.5"><circle cx="7.5" cy="7.5" r="6" stroke="#DC2626" strokeWidth="1.3"/><path d="M7.5 5v3M7.5 10h.01" stroke="#DC2626" strokeWidth="1.3" strokeLinecap="round"/></svg>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[12px] text-[#DC2626]">{bbError}</p>
+                </div>
+                <button onClick={() => { setBbError(null); setBbFile(null); }} className="shrink-0 text-[11px] text-[#DC2626] hover:underline">Tentar novamente</button>
+              </div>
+            )}
+
+            {/* Extracted data */}
+            {bbExtraction && !bbUploading && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="#16A34A" strokeWidth="1.3"/><path d="M4 6.5l1.5 1.5 3.5-3.5" stroke="#16A34A" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    <span className="text-[12px] font-semibold text-[#16A34A]">Identidade extraída — {bbFile?.name}</span>
+                  </div>
+                  <button onClick={() => { setBbExtraction(null); setBbFile(null); setBbError(null); }} className="text-[11px] text-[#9B9B95] hover:text-[#1A1A1A] transition-colors">Limpar</button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-x-6 gap-y-2 bg-[#FAFAF9] rounded-[8px] border border-[#E5E5E2] px-4 py-3">
+                  {bbExtraction.brandName && <div className="text-[12px]"><span className="text-[#9B9B95]">Marca: </span><span className="font-medium text-[#1A1A1A]">{bbExtraction.brandName}</span></div>}
+                  {bbExtraction.tagline && <div className="text-[12px]"><span className="text-[#9B9B95]">Tagline: </span><span className="text-[#1A1A1A]">{bbExtraction.tagline}</span></div>}
+                  {bbExtraction.typography && <div className="text-[12px]"><span className="text-[#9B9B95]">Tipografia: </span><span className="text-[#1A1A1A]">{bbExtraction.typography}</span></div>}
+                  {bbExtraction.tone && <div className="text-[12px]"><span className="text-[#9B9B95]">Tom: </span><span className="text-[#1A1A1A]">{bbExtraction.tone}</span></div>}
+                  {bbExtraction.targetAudience && <div className="col-span-2 text-[12px]"><span className="text-[#9B9B95]">Público: </span><span className="text-[#1A1A1A]">{bbExtraction.targetAudience}</span></div>}
+                  {bbExtraction.positioning && <div className="col-span-2 text-[12px]"><span className="text-[#9B9B95]">Posicionamento: </span><span className="text-[#1A1A1A]">{bbExtraction.positioning}</span></div>}
+                </div>
+
+                {/* Color swatches */}
+                {(bbExtraction.primaryColor || bbExtraction.secondaryColor || bbExtraction.accentColor) && (
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span className="text-[11px] text-[#9B9B95]">Paleta:</span>
+                    {[
+                      { label: "Primária", hex: bbExtraction.primaryColor },
+                      { label: "Secundária", hex: bbExtraction.secondaryColor },
+                      { label: "Destaque", hex: bbExtraction.accentColor },
+                    ].filter(c => c.hex).map((c) => (
+                      <div key={c.label} className="flex items-center gap-1.5">
+                        <div className="w-5 h-5 rounded-[4px] border border-[#E5E5E2] shrink-0" style={{ backgroundColor: c.hex }} />
+                        <span className="text-[11px] text-[#6B6B65]">{c.hex}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {bbExtraction.values && bbExtraction.values.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {bbExtraction.values.map((v, i) => (
+                      <span key={i} className="px-2 py-0.5 rounded-full text-[11px] bg-[#F0F0ED] text-[#6B6B65]">{v}</span>
+                    ))}
+                  </div>
+                )}
+
+                {bbExtraction.summary && (
+                  <p className="text-[12px] text-[#6B6B65] leading-relaxed">{bbExtraction.summary}</p>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* 2-col layout */}

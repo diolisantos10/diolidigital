@@ -50,15 +50,16 @@ function SignInForm() {
       <div className="w-full max-w-[400px]">
         {/* Logo */}
         <div className="flex items-center gap-3 mb-8 justify-center">
-          <div className="w-8 h-8 rounded-[8px] bg-[#5B5BD6] flex items-center justify-center">
-            <svg width="16" height="16" viewBox="0 0 12 12" fill="none">
-              <rect x="1" y="1" width="4" height="4" rx="1" fill="white"/>
-              <rect x="7" y="1" width="4" height="4" rx="1" fill="white" fillOpacity="0.6"/>
-              <rect x="1" y="7" width="4" height="4" rx="1" fill="white" fillOpacity="0.6"/>
-              <rect x="7" y="7" width="4" height="4" rx="1" fill="white"/>
+          <div className="flex items-center gap-1.5">
+            <svg width="38" height="26" viewBox="0 0 38 26" fill="none">
+              <circle cx="13" cy="13" r="12" stroke="#070A1F" strokeWidth="2.2"/>
+              <circle cx="29" cy="13" r="7.5" fill="#9AF5F0" fillOpacity="0.25" stroke="#070A1F" strokeWidth="2"/>
             </svg>
           </div>
-          <span className="text-[18px] font-semibold text-[#1A1A1A]">Dioli Agency OS</span>
+          <div>
+            <span className="text-[18px] font-bold text-[#070A1F] tracking-[-0.02em]">Dioli</span>
+            <span className="text-[11px] font-semibold text-[#070A1F]/50 ml-1.5 tracking-[0.12em] uppercase">Digital</span>
+          </div>
         </div>
 
         <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_2px_8px_rgba(0,0,0,0.06)] p-8">
@@ -78,7 +79,7 @@ function SignInForm() {
                 required
                 autoComplete="email"
                 placeholder="seu@email.com"
-                className="w-full border border-[#E8E8E4] rounded-[8px] px-3 py-2.5 text-[13px] text-[#1A1A1A] bg-white focus:outline-none focus:ring-2 focus:ring-[#5B5BD6]/30 placeholder:text-[#C0C0BA]"
+                className="w-full border border-[#E8E8E4] rounded-[8px] px-3 py-2.5 text-[13px] text-[#1A1A1A] bg-white focus:outline-none focus:ring-2 focus:ring-[#9AF5F0]/40 placeholder:text-[#C0C0BA]"
               />
             </div>
             <div>
@@ -93,7 +94,7 @@ function SignInForm() {
                 required
                 autoComplete="current-password"
                 placeholder="••••••••"
-                className="w-full border border-[#E8E8E4] rounded-[8px] px-3 py-2.5 text-[13px] text-[#1A1A1A] bg-white focus:outline-none focus:ring-2 focus:ring-[#5B5BD6]/30 placeholder:text-[#C0C0BA]"
+                className="w-full border border-[#E8E8E4] rounded-[8px] px-3 py-2.5 text-[13px] text-[#1A1A1A] bg-white focus:outline-none focus:ring-2 focus:ring-[#9AF5F0]/40 placeholder:text-[#C0C0BA]"
               />
             </div>
 
@@ -106,7 +107,7 @@ function SignInForm() {
             <button
               type="submit"
               disabled={pending}
-              className="w-full bg-[#5B5BD6] text-white rounded-[8px] py-2.5 text-[13px] font-semibold hover:bg-[#4A4AC0] transition-colors disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+              className="w-full bg-[#070A1F] text-white rounded-[8px] py-2.5 text-[13px] font-semibold hover:bg-[#0D1230] transition-colors disabled:opacity-60 disabled:cursor-not-allowed mt-2"
             >
               {pending ? "Entrando…" : "Entrar"}
             </button>

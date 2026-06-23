@@ -159,12 +159,11 @@ export default function AgencySidebar({ userInfo }: { userInfo?: UserInfo | null
       {/* Logo */}
       <div className="h-14 flex items-center px-5 border-b border-white/[0.06] shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="w-6 h-6 rounded-[5px] bg-[#5B5BD6] flex items-center justify-center">
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-              <path d="M2 2h3v3H2V2zm5 0h3v3H7V2zm-5 5h3v3H2V7zm5 0h3v3H7V7z" fill="white" fillOpacity="0.9"/>
-            </svg>
-          </div>
-          <span className="text-[13px] font-semibold tracking-[-0.01em] text-white">Dioli OS</span>
+          <svg width="26" height="18" viewBox="0 0 26 18" fill="none">
+            <circle cx="9" cy="9" r="8" stroke="#9AF5F0" strokeWidth="1.8"/>
+            <circle cx="20" cy="9" r="5" fill="#9AF5F0" fillOpacity="0.2" stroke="#9AF5F0" strokeWidth="1.5"/>
+          </svg>
+          <span className="text-[13px] font-semibold tracking-[-0.01em] text-white">Dioli Digital</span>
         </div>
       </div>
 
@@ -203,7 +202,7 @@ export default function AgencySidebar({ userInfo }: { userInfo?: UserInfo | null
                     `}
                   >
                     {active && (
-                      <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[18px] bg-[#5B5BD6] rounded-r-full" />
+                      <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[18px] bg-[#9AF5F0] rounded-r-full" />
                     )}
                     <item.icon
                       size={15}
@@ -244,7 +243,7 @@ export default function AgencySidebar({ userInfo }: { userInfo?: UserInfo | null
         {/* Auth session indicator */}
         {userInfo ? (
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-full bg-[#5B5BD6]/20 flex items-center justify-center text-[11px] font-semibold text-[#5B5BD6] shrink-0">
+            <div className="w-7 h-7 rounded-full bg-[#9AF5F0]/20 flex items-center justify-center text-[11px] font-semibold text-[#9AF5F0] shrink-0">
               {userInfo.name.charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">
