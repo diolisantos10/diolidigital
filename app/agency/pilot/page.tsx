@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import { useAgencyStore } from "@/store/agency-store";
@@ -173,6 +173,17 @@ const PHASES: { id: number; label: string; subtitle: string; color: string; step
 export default function PilotPage() {
   const { clients, projects, deliverables, clientRequests, clearAllData } = useAgencyStore();
   const [confirmingReset, setConfirmingReset] = useState(false);
+  const [aiStatus, setAiStatus] = useState<"loading" | "connected" | "disconnected" | "error">("loading");
+
+  useEffect(() => {
+    fetch("/api/ai-keys")
+      .then((r) => r.json())
+      .then((data) => {
+        const anyConnected = data.providers?.some((p: { configured: boolean }) => p.configured);
+        setAiStatus(anyConnected ? "connected" : "disconnected");
+      })
+      .catch(() => setAiStatus("error"));
+  }, []);
 
   // Most-recent project = the one this pilot is working through.
   const activeProject = projects.length > 0 ? projects[projects.length - 1] : null;
@@ -269,6 +280,26 @@ export default function PilotPage() {
             <p className="text-[11px] text-[#9B9B95] mt-1 leading-snug">Onde a solicitação do cliente chega para você processar.</p>
           </div>
         </div>
+
+        {/* ── AI connection warning ── */}
+        {aiStatus === "disconnected" && (
+          <div className="bg-[#FFFBEB] border border-[#FDE68A] rounded-[10px] px-5 py-4 flex items-start gap-3">
+            <span className="text-[20px] leading-none shrink-0 mt-0.5">⚠️</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-semibold text-[#92400E]">Nenhuma IA conectada</p>
+              <p className="text-[12px] text-[#78350F] mt-0.5 leading-relaxed">
+                Os agentes vão rodar no modo regras — sem raciocínio real de IA. Para ativar Claude, OpenAI ou Gemini, clique em{" "}
+                <strong>Conectar IA</strong> e cole a chave. Leva menos de 1 minuto.
+              </p>
+            </div>
+            <Link
+              href="/agency/integrations"
+              className="shrink-0 h-8 px-4 rounded-[7px] bg-[#F59E0B] hover:bg-[#D97706] text-white text-[12px] font-semibold transition-colors inline-flex items-center"
+            >
+              Conectar IA →
+            </Link>
+          </div>
+        )}
 
         {/* Active project banner */}
         {activeProject && (
