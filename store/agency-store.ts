@@ -215,7 +215,7 @@ interface AgencyState {
   // Client requests (from portal Briefing Room)
   clientRequests: ClientRequest[];
   addClientRequest: (req: Omit<ClientRequest, "id" | "createdAt" | "updatedAt">) => string;
-  updateClientRequest: (id: string, updates: Partial<Pick<ClientRequest, "status" | "linkedProjectId">>) => void;
+  updateClientRequest: (id: string, updates: Partial<Pick<ClientRequest, "status" | "linkedProjectId" | "clientId">>) => void;
   setRequestAnalysis: (id: string, analysis: import("@/lib/agency/client-requests").BriefingAnalysis) => void;
   // Master-only: permanently remove a request (briefing, conversation, scope, estimate,
   // attachments, analysis). Does NOT delete any linked project.
@@ -1357,6 +1357,9 @@ export const useAgencyStore = create<AgencyState>()(
           testRuns: [],
           strategyRooms: [],
           brandUpdates: [],
+          clientRequests: [],
+          departmentConfigs: [],
+          aiRunLogs: [],
           currentRole: "master",
           integrationConfigs: buildDefaultIntegrationConfigs(),
           agentProviderConfigs: buildDefaultAgentProviderConfigs(),

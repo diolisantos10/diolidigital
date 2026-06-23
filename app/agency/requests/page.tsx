@@ -493,7 +493,7 @@ function buildDefaultForm(req: ClientRequest, clientName: string): ConversionFor
 export default function AgencyRequestsPage() {
   const {
     clientRequests, clients, projects, currentRole,
-    updateClientRequest, setRequestAnalysis, createProject, createBriefing, addMaterialRequest,
+    updateClientRequest, setRequestAnalysis, createClient, createProject, createBriefing, addMaterialRequest,
     deleteClientRequest, deleteClientRequestsByClient, addActivity,
   } = useAgencyStore();
 
@@ -616,7 +616,31 @@ export default function AgencyRequestsPage() {
 
   function handleConfirmConversion(req: ClientRequest) {
     if (!convForm) return;
-    const client = getClient(req.clientId);
+    const existingClient = getClient(req.clientId);
+
+    // 0. Ensure a real Client record exists. Public-briefing prospects arrive
+    // with a synthetic clientId ("prospect-…") and no Client row, so converting
+    // them must first create the client — otherwise the downstream agent pages
+    // (which look the client up) have nothing to run against.
+    let clientId = req.clientId;
+    let clientName = existingClient?.name ?? "Cliente";
+    if (!existingClient) {
+      clientName =
+        req.extractedSummary.clientName ??
+        req.v2Scope?.businessName ??
+        req.prospectName ??
+        req.title ??
+        "Novo Cliente";
+      clientId = createClient({
+        name: clientName,
+        industry: req.extractedSummary.segment ?? req.v2Scope?.segment ?? "—",
+        status: "active",
+        description: req.rawText.slice(0, 200),
+      });
+      // Point the request at the freshly created client so the portal and
+      // pipeline views resolve the same record from here on.
+      updateClientRequest(req.id, { clientId });
+    }
 
     // Map selected dept IDs to unique agent IDs
     const agentIds = Array.from(
@@ -635,7 +659,7 @@ export default function AgencyRequestsPage() {
 
     const projectId = createProject({
       name:     convForm.projectName,
-      clientId: req.clientId,
+      clientId,
       goal:     convForm.goal || req.rawText.slice(0, 120),
       type:     deriveProjectType(req.extractedSummary.services),
       stage:    "briefing",
@@ -644,7 +668,7 @@ export default function AgencyRequestsPage() {
       agents:   agentIds,
       initialTasks: [
         {
-          title: `Analisar solicitação e preparar proposta — ${client?.name ?? "Cliente"}`,
+          title: `Analisar solicitação e preparar proposta — ${clientName}`,
           description: `Solicitação convertida do portal. Escopo: ${convForm.scope.slice(0, 200)}`,
           agentId: "pm_agent",
           dueDate: pmDueDate,
@@ -655,7 +679,7 @@ export default function AgencyRequestsPage() {
     // 2. Create briefing
     createBriefing({
       projectId,
-      clientId:  req.clientId,
+      clientId,
       goal:      convForm.goal || req.rawText.slice(0, 120),
       audience:  req.extractedSummary.objectives.join("; ") || "A definir",
       keyMessage: req.extractedSummary.objectives.slice(0, 2).join(", ") || "A definir",
@@ -670,7 +694,7 @@ export default function AgencyRequestsPage() {
     for (const mat of convForm.materials) {
       if (mat.trim()) {
         addMaterialRequest({
-          clientId:  req.clientId,
+          clientId,
           projectId,
           title:     mat.trim(),
           description: "Necessário para início do projeto",
