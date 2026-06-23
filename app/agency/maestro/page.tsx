@@ -259,6 +259,18 @@ export default function MaestroPage() {
           </div>
         </div>
 
+        {/* ── Pilot CTA ── */}
+        <div className="bg-[#F5F3FF] border border-[#DDD6FE] rounded-[10px] px-5 py-4 flex items-center justify-between gap-4">
+          <div>
+            <p className="text-[13px] font-semibold text-[#7C3AED]">Piloto Sushi Cazza</p>
+            <p className="text-[12px] text-[#6B6B65] mt-0.5">Guia passo a passo para rodar o pipeline completo com o primeiro cliente real.</p>
+          </div>
+          <Link href="/agency/pilot"
+            className="h-9 px-5 rounded-[8px] text-[13px] font-semibold text-white bg-[#7C3AED] hover:bg-[#6D28D9] transition-colors shrink-0">
+            Iniciar Piloto →
+          </Link>
+        </div>
+
         {/* ── Quick links ── */}
         <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
           <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Atalhos de Gestão</p>
