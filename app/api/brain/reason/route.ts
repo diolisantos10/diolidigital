@@ -12,7 +12,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getSession, isAgencyRole } from "@/lib/auth/session";
-import { getActiveProvider } from "@/lib/ai/provider-registry";
+import { generate, anyProviderConfigured } from "@/lib/ai/generate";
 import {
   buildBrainMessages,
   validateStrategyOutput,
@@ -44,8 +44,12 @@ const VALID_DEPTS = ["strategy", "social", "design", "traffic", "analytics", "qu
 type ReasoningDept = (typeof VALID_DEPTS)[number];
 
 function isDeptAiEnabled(dept: string): boolean {
-  const flag = process.env.BRAIN_AI_DEPARTMENTS ?? "";
-  if (!flag) return false;
+  // Default: AI reasoning is ON for every department whenever a provider key is
+  // connected (UI or env). An operator may still restrict it with an explicit
+  // BRAIN_AI_DEPARTMENTS allowlist (e.g. "strategy,social"), but it is no longer
+  // required to turn AI on — connecting a key in the UI is enough.
+  const flag = (process.env.BRAIN_AI_DEPARTMENTS ?? "").trim();
+  if (!flag) return true;
   const depts = flag.split(",").map((s) => s.trim().toLowerCase());
   return depts.includes("all") || depts.includes(dept);
 }
@@ -180,13 +184,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     });
   }
 
-  // ── 2. AI enhancement (all 6 depts — Phase 4) ─────────────────────────────────
-  // Provider-agnostic via getActiveProvider() (BRAIN_AI_PROVIDER). The rule-based
-  // canvas is never overwritten structurally — AI only overlays narrative fields,
-  // and only when validated + coherent. AI off/fail → rule-based, no crash.
+  // ── 2. AI enhancement (all 6 depts) ───────────────────────────────────────────
+  // Provider-agnostic via the unified caller (lib/ai/generate.ts), which resolves
+  // the key from the Integrations UI first and env second, then calls whichever
+  // provider is connected (Claude / OpenAI / Gemini). The rule-based canvas is
+  // never overwritten structurally — AI only overlays narrative fields, and only
+  // when validated + coherent. AI off/fail → rule-based, no crash.
 
-  const provider = getActiveProvider();
-  if (provider.isConfigured() && isDeptAiEnabled(deptId)) {
+  if (isDeptAiEnabled(deptId) && (await anyProviderConfigured(session.workspaceId))) {
     const ctx: AIRunContext = {
       projectName:      effBusinessName,
       clientName:       effBusinessName,
@@ -197,15 +202,20 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       prompt:           DEPT_PROMPT[deptId],
     };
     const messages = buildBrainMessages(deptId as BrainAiDept, ctx);
-    const result = await provider.call(messages);
+    const result = await generate({
+      system:      messages.system,
+      user:        messages.user,
+      maxTokens:   2048,
+      workspaceId: session.workspaceId,
+    });
 
     if (!result.ok) {
-      warnings.push(`AI indisponível (${result.error}) — motor rule-based preservado.`);
+      warnings.push(`IA indisponível (${result.error}) — motor rule-based preservado.`);
     } else {
       const applied = applyAiOverlay(deptId, canvas, result.data, warnings);
       if (applied) {
-        mode  = "openai";
-        model = provider.modelId();
+        mode  = "openai"; // "AI overlay applied" (provider-agnostic label)
+        model = `${result.provider}:${result.model}`;
       }
     }
   }
