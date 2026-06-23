@@ -6,7 +6,7 @@ import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import { useAgencyStore } from "@/store/agency-store";
 import { useDbDeliverables } from "@/lib/hooks/useDbDeliverables";
 import { getClientAgentContext } from "@/lib/agency/workspace";
-import type { BrandExtraction } from "@/app/api/brain/analyze-brand-book/route";
+import type { BrandExtraction } from "@/lib/types/brand-extraction";
 
 // ─── Brand Hub Agent — Brand Intelligence Department ──────────────────────────
 //

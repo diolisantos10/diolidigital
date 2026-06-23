@@ -16,19 +16,8 @@ import { getSession } from "@/lib/auth/session";
 import { resolveProviderKey } from "@/lib/ai/resolve-key";
 import AdmZip from "adm-zip";
 
-export interface BrandExtraction {
-  brandName: string;
-  tagline: string;
-  primaryColor: string;
-  secondaryColor: string;
-  accentColor: string;
-  typography: string;
-  tone: string;
-  values: string[];
-  targetAudience: string;
-  positioning: string;
-  summary: string;
-}
+import type { BrandExtraction } from "@/lib/types/brand-extraction";
+export type { BrandExtraction };
 
 const MAX_FILE_BYTES = 20 * 1024 * 1024; // 20 MB
 const TIMEOUT_MS = 90_000;
