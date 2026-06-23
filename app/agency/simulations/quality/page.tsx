@@ -65,7 +65,7 @@ export default function QualitySimulatorPage() {
         <div className="flex items-center justify-between mb-2.5">
           <span className="text-[10px] font-semibold text-[#9B9B95] uppercase">Cenários</span>
           <div className="flex gap-2">
-            <button onClick={runAll} className="h-7 px-3 rounded-[6px] bg-[#070A1F] hover:bg-[#4A4AC5] text-white text-[11px] font-semibold">
+            <button onClick={runAll} className="h-7 px-3 rounded-[6px] bg-[#070A1F] hover:bg-[#0D1230] text-white text-[11px] font-semibold">
               ✦ Rodar todos ({SCENARIOS.length})
             </button>
             {canvases.length > 0 && (

@@ -225,8 +225,8 @@ Regras:
     escalationRules: [
       "Cliente pede mudança de posicionamento → envolver Strategy",
     ],
-    color: "#5B5BD6",
-    accentBg: "#EEF0FF",
+    color: "#070A1F",
+    accentBg: "#E6FBFA",
     iconKey: "social",
     generatorRoute: "/agency/social-media-agent",
     generatorLabel: "Abrir gerador Social",

@@ -271,7 +271,7 @@ export default function NewProductionPage() {
             <button
               onClick={() => setStep(2)}
               disabled={!canProceedStep1}
-              className="h-10 px-6 rounded-[8px] bg-[#070A1F] text-white text-[13px] font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#4A4AC5] transition-colors"
+              className="h-10 px-6 rounded-[8px] bg-[#070A1F] text-white text-[13px] font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#0D1230] transition-colors"
             >
               Próximo →
             </button>
@@ -388,7 +388,7 @@ export default function NewProductionPage() {
             <button
               onClick={() => setStep(3)}
               disabled={!canProceedStep2}
-              className="h-10 px-6 rounded-[8px] bg-[#070A1F] text-white text-[13px] font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#4A4AC5] transition-colors"
+              className="h-10 px-6 rounded-[8px] bg-[#070A1F] text-white text-[13px] font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#0D1230] transition-colors"
             >
               Próximo →
             </button>
@@ -500,7 +500,7 @@ export default function NewProductionPage() {
             <button
               onClick={() => setStep(4)}
               disabled={!canProceedStep3}
-              className="h-10 px-6 rounded-[8px] bg-[#070A1F] text-white text-[13px] font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#4A4AC5] transition-colors"
+              className="h-10 px-6 rounded-[8px] bg-[#070A1F] text-white text-[13px] font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#0D1230] transition-colors"
             >
               Revisar →
             </button>
@@ -589,7 +589,7 @@ export default function NewProductionPage() {
             <button
               onClick={handleCreate}
               disabled={!canCreate || loading}
-              className="h-10 px-6 rounded-[8px] bg-[#070A1F] text-white text-[13px] font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#4A4AC5] transition-colors flex items-center gap-2"
+              className="h-10 px-6 rounded-[8px] bg-[#070A1F] text-white text-[13px] font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#0D1230] transition-colors flex items-center gap-2"
             >
               {loading ? (
                 <>
@@ -621,7 +621,7 @@ export default function NewProductionPage() {
             {createdProjectId && (
               <Link
                 href={`/agency/projects/${createdProjectId}`}
-                className="w-full h-10 rounded-[8px] bg-[#070A1F] text-white text-[13px] font-medium hover:bg-[#4A4AC5] transition-colors flex items-center justify-center gap-2"
+                className="w-full h-10 rounded-[8px] bg-[#070A1F] text-white text-[13px] font-medium hover:bg-[#0D1230] transition-colors flex items-center justify-center gap-2"
               >
                 Abrir Projeto →
               </Link>

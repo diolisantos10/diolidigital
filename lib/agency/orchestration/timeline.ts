@@ -260,7 +260,7 @@ export function buildProjectTimeline(input: {
 
 export const TIMELINE_DEPT_STYLE: Record<TimelineEventDept, { dot: string; label: string }> = {
   pm:     { dot: "#1A1A1A", label: "PM" },
-  social: { dot: "#5B5BD6", label: "Social" },
+  social: { dot: "#070A1F", label: "Social" },
   design: { dot: "#C2530A", label: "Design" },
   ads:    { dot: "#0E7490", label: "Ads" },
   client: { dot: "#7C3AED", label: "Cliente" },

@@ -240,7 +240,7 @@ export function evaluateProjectPipeline(input: {
 export const STAGE_STATUS_STYLE: Record<PipelineStageStatus, { dot: string; bg: string; text: string; label: string }> = {
   complete:       { dot: "#16A34A", bg: "bg-[#DCFCE7]", text: "text-[#16A34A]", label: "Concluído" },
   active:         { dot: "#D97706", bg: "bg-[#FEF3C7]", text: "text-[#D97706]", label: "Em andamento" },
-  ready:          { dot: "#5B5BD6", bg: "bg-[#EEF0FF]", text: "text-[#5B5BD6]", label: "Pronto" },
+  ready:          { dot: "#070A1F", bg: "bg-[#E6FBFA]", text: "text-[#070A1F]", label: "Pronto" },
   blocked:        { dot: "#DC2626", bg: "bg-[#FEE2E2]", text: "text-[#DC2626]", label: "Bloqueado" },
   not_applicable: { dot: "#D0D0CC", bg: "bg-[#F0F0ED]", text: "text-[#9B9B95]", label: "N/A" },
 };

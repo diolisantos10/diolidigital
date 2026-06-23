@@ -462,7 +462,7 @@ export const MOCK_CLIENTS: Client[] = [
       positioning: "Strategy first, execution always. Not a production shop, not a consultancy — a hybrid that thinks and builds. Trusted by growing brands that need senior thinking with hands-on delivery.",
       targetAudience: "Founders and marketing leads at SMBs and scale-ups, primarily in Brazil. Aged 28–45. Tired of agencies that overpromise and underdeliver. Looking for a long-term partner, not a project vendor.",
       toneOfVoice: "Intelligent, direct, zero fluff. Speaks like a senior partner, not a pitch deck. Uses precision over volume. Confident about what it does, honest about what it doesn't. Never uses buzzwords.",
-      visualStyle: "Monochrome with indigo accent (#5B5BD6). Clean, structured layouts. Geometric precision. Typography-forward. No decorative elements without function. Dark-mode friendly.",
+      visualStyle: "Monochrome with indigo accent (#070A1F). Clean, structured layouts. Geometric precision. Typography-forward. No decorative elements without function. Dark-mode friendly.",
       brandRules: "Indigo used only for CTAs and key highlights. Logo is the geometric monogram — never stretch, never color versions except black/white. All copy must be edited for conciseness — if a word doesn't earn its place, cut it.",
       productsToHighlight: "Brand Strategy + Identity. Campaign production. AI-assisted execution workflows. Monthly retainer model. Portfolio cases (Sushikasa, Santioh).",
       thingsToAvoid: "Agency jargon: 'synergy', 'holistic', 'leverage', '360', 'deep dive'. Vague promises. Logos on colorful backgrounds. Anything that feels like a typical agency website.",
@@ -1275,7 +1275,7 @@ export const MOCK_BRAND_ASSETS: BrandAsset[] = [
   { id: "ba6", clientId: "c2", type: "color_palette", name: "Brand Colors", value: "#0A0A0A, #FFFFFF, #E8E0D0, #3D5A80", notes: "Off-white is the primary background. Navy is the accent." },
   { id: "ba7", clientId: "c2", type: "tone_of_voice", name: "Brand Voice", value: "Bold, urban, culturally aware, aspirational but accessible.", notes: "Can use slang when targeting Gen Z. Always confident, never arrogant." },
   { id: "ba8", clientId: "c3", type: "logo", name: "Dioli Studio Mark", value: "SVG, geometric monogram", notes: "Primary usage: black on white. Reversed: white on black. No color version." },
-  { id: "ba9", clientId: "c3", type: "color_palette", name: "Studio Colors", value: "#111111, #F7F7F6, #5B5BD6", notes: "Accent (indigo) used sparingly — only for CTAs and highlights." },
+  { id: "ba9", clientId: "c3", type: "color_palette", name: "Studio Colors", value: "#111111, #F7F7F6, #070A1F", notes: "Accent (indigo) used sparingly — only for CTAs and highlights." },
 ];
 
 export const MOCK_ACTIVITY: ActivityEvent[] = [

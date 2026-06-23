@@ -698,7 +698,7 @@ export default function TestAgentPage() {
             disabled={!canRun}
             className={`h-9 px-5 rounded-[7px] text-[13px] font-medium transition-all flex items-center gap-2 ${
               canRun
-                ? "bg-[#070A1F] text-white hover:bg-[#4A4AC5] shadow-[0_1px_3px_rgba(91,91,214,0.3)]"
+                ? "bg-[#070A1F] text-white hover:bg-[#0D1230] shadow-[0_1px_3px_rgba(91,91,214,0.3)]"
                 : "bg-[#F0F0ED] text-[#9B9B95] cursor-not-allowed"
             }`}
           >

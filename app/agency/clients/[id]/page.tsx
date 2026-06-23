@@ -303,9 +303,16 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
         meta={<Badge variant={client.status} size="md" />}
         actions={
           <>
-            <Button variant="ghost" onClick={() => { setPortalModalOpen(true); if (!portalLink) void handleGeneratePortalLink(); }}>
-              Link do portal
-            </Button>
+            <button
+              onClick={() => { setPortalModalOpen(true); if (!portalLink) void handleGeneratePortalLink(); }}
+              className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-[7px] text-[13px] font-medium bg-[#9AF5F0] text-[#070A1F] hover:bg-[#7DEDE7] active:bg-[#6BE0DA] transition-all duration-100 select-none whitespace-nowrap"
+              title="Gerar e copiar o link seguro do portal para enviar ao cliente"
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <path d="M6.5 9.5l3-3M7 4.5l.7-.7a3 3 0 014.3 4.2l-.7.7M9 11.5l-.7.7a3 3 0 01-4.3-4.2l.7-.7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Portal do cliente
+            </button>
             <Button variant="secondary" onClick={() => setEditOpen(true)}>Editar Cliente</Button>
             <Link href="/agency/orchestrator">
               <Button variant="primary">+ Novo Projeto</Button>

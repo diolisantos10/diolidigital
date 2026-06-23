@@ -69,7 +69,6 @@ export default function AgencySidebar({ userInfo }: { userInfo?: UserInfo | null
       items: [
         { label: t.nav.home, href: "/agency/dashboard", icon: HomeIcon },
         { label: "Painel Maestro", href: "/agency/maestro", icon: BrainIcon },
-        { label: "Piloto Sushi Cazza", href: "/agency/pilot", icon: FlaskIcon },
         { label: "Aprovações", href: "/agency/approvals", icon: BellIcon, badge: pendingCount },
         { label: "Solicitações", href: "/agency/requests", icon: FileTextIcon, badge: newRequestsCount },
       ],

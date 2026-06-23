@@ -1084,7 +1084,7 @@ export default function DesignAgentPage() {
                             {(!imageStates[b.postId] || imageStates[b.postId].status === "idle") && (
                               <button
                                 onClick={() => handleGenerateImage(b.postId, b.enhancedPrompt)}
-                                className="h-7 px-3 rounded-[6px] text-[12px] font-semibold bg-[#070A1F] text-white hover:bg-[#4A4AC5] transition-colors flex items-center gap-1.5"
+                                className="h-7 px-3 rounded-[6px] text-[12px] font-semibold bg-[#070A1F] text-white hover:bg-[#0D1230] transition-colors flex items-center gap-1.5"
                               >
                                 <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
                                   <path d="M5.5 1v4M5.5 10V6M1 5.5h4M10 5.5H6" stroke="white" strokeWidth="1.4" strokeLinecap="round"/>

@@ -33,7 +33,7 @@ export const MATURITY_COLORS: Record<DepartmentMaturity, string> = {
   draft:       "#6B6B65",
   partial:     "#D97706",
   operational: "#16A34A",
-  optimizing:  "#5B5BD6",
+  optimizing:  "#070A1F",
   autonomous:  "#7C3AED",
 };
 

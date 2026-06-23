@@ -76,7 +76,7 @@ export const PRODUCTION_TEMPLATES: ProductionTemplate[] = [
       { type: "credentials", description: "Acesso às contas de redes sociais existentes" },
     ],
     agents: ["a3", "a2", "a4"],
-    color: "#5B5BD6",
+    color: "#070A1F",
   },
   {
     id: "fute_foocci",

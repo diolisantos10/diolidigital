@@ -117,7 +117,7 @@ export const REQUEST_STATUS_LABEL: Record<ClientRequestStatus, string> = {
 };
 
 export const REQUEST_STATUS_STYLE: Record<ClientRequestStatus, { bg: string; text: string }> = {
-  new:              { bg: "bg-[#EEF0FF]",  text: "text-[#5B5BD6]"  },
+  new:              { bg: "bg-[#E6FBFA]",  text: "text-[#070A1F]"  },
   under_review:     { bg: "bg-[#FEF3C7]",  text: "text-[#D97706]"  },
   proposal_pending: { bg: "bg-[#F0F0ED]",  text: "text-[#6B6B65]"  },
   waiting_strategy: { bg: "bg-[#F5F3FF]",  text: "text-[#7C3AED]"  },
@@ -125,7 +125,7 @@ export const REQUEST_STATUS_STYLE: Record<ClientRequestStatus, { bg: string; tex
   waiting_design:   { bg: "bg-[#FFF7ED]",  text: "text-[#EA580C]"  },
   waiting_traffic:  { bg: "bg-[#F0F9FF]",  text: "text-[#0284C7]"  },
   waiting_analytics: { bg: "bg-[#F0FDF4]",  text: "text-[#16A34A]"  },
-  waiting_quality:   { bg: "bg-[#EEF0FF]",  text: "text-[#5B5BD6]"  },
+  waiting_quality:   { bg: "bg-[#E6FBFA]",  text: "text-[#070A1F]"  },
   in_progress:      { bg: "bg-[#DCFCE7]",  text: "text-[#16A34A]"  },
   waiting_client:   { bg: "bg-[#FEF3C7]",  text: "text-[#D97706]"  },
   approved:         { bg: "bg-[#DCFCE7]",  text: "text-[#15803D]"  },

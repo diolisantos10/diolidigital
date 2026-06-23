@@ -49,7 +49,7 @@ const DEPT_DEFS = [
     dept: "social",
     label: "Redes Sociais",
     agentId: "a3",
-    accentHex: "#5B5BD6",
+    accentHex: "#070A1F",
     types: ["Content Strategy", "Content Calendar", "Posts", "Stories", "Design Requests"],
   },
   {

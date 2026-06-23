@@ -1120,7 +1120,7 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
                 <label className="block text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-1.5">Prompt do agente</label>
                 <div className="flex gap-2">
                   <button onClick={handleResetPrompt} className="h-9 px-3 rounded-[7px] border border-[#E8E8E3] text-[12px] text-[#6B6B65] hover:bg-[#F7F7F6]">Restaurar</button>
-                  <button onClick={handleSavePrompt} className="h-9 px-4 rounded-[7px] bg-[#070A1F] text-white text-[12px] font-medium hover:bg-[#4A4AC5]">
+                  <button onClick={handleSavePrompt} className="h-9 px-4 rounded-[7px] bg-[#070A1F] text-white text-[12px] font-medium hover:bg-[#0D1230]">
                     {promptSaved ? "Salvo ✓" : "Salvar"}
                   </button>
                 </div>

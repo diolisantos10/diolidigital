@@ -246,13 +246,13 @@ export function generateAllAutoTasks(input: {
 export const AUTO_TASK_PRIORITY_STYLE: Record<AutoTaskPriority, { bg: string; text: string; label: string }> = {
   critical: { bg: "bg-[#FEE2E2]", text: "text-[#DC2626]", label: "Crítico" },
   high:     { bg: "bg-[#FEF3C7]", text: "text-[#D97706]", label: "Alto" },
-  medium:   { bg: "bg-[#EEF0FF]", text: "text-[#5B5BD6]", label: "Médio" },
+  medium:   { bg: "bg-[#E6FBFA]", text: "text-[#070A1F]", label: "Médio" },
   low:      { bg: "bg-[#F0F0ED]", text: "text-[#9B9B95]", label: "Baixo" },
 };
 
 export const AUTO_TASK_OWNER_STYLE: Record<AutoTaskOwner, { color: string }> = {
   PM:      { color: "#1A1A1A" },
-  Social:  { color: "#5B5BD6" },
+  Social:  { color: "#070A1F" },
   Design:  { color: "#C2530A" },
   Ads:     { color: "#0E7490" },
   Cliente: { color: "#7C3AED" },

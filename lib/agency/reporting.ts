@@ -117,7 +117,7 @@ export interface ProjectHealth {
 
 const HEALTH_META: Record<HealthLevel, { label: string; color: string; dotColor: string }> = {
   excellent: { label: "Excelente", color: "bg-[#DCFCE7] text-[#16A34A]", dotColor: "#16A34A" },
-  good:      { label: "Bom",       color: "bg-[#EEF0FF] text-[#5B5BD6]", dotColor: "#5B5BD6" },
+  good:      { label: "Bom",       color: "bg-[#E6FBFA] text-[#070A1F]", dotColor: "#070A1F" },
   attention: { label: "Atenção",   color: "bg-[#FEF3C7] text-[#D97706]", dotColor: "#D97706" },
   blocked:   { label: "Bloqueado", color: "bg-[#FEE2E2] text-[#DC2626]", dotColor: "#DC2626" },
 };
@@ -241,8 +241,8 @@ const DEPT_DEFS: Array<{ key: string; name: string; types: string[]; color: stri
     key: "social",
     name: "Redes Sociais",
     types: ["Content Strategy", "Content Calendar", "Posts", "Stories", "Design Requests"],
-    color: "bg-[#EEF0FF] text-[#5B5BD6]",
-    accentHex: "#5B5BD6",
+    color: "bg-[#E6FBFA] text-[#070A1F]",
+    accentHex: "#070A1F",
   },
   {
     key: "design",
@@ -621,7 +621,7 @@ export interface TimelineWeek {
   tracks: TimelineTrack[];
 }
 
-const TL_SOCIAL = "#5B5BD6";
+const TL_SOCIAL = "#070A1F";
 const TL_DESIGN = "#C2530A";
 const TL_ADS = "#0E7490";
 

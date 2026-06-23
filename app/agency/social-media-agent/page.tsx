@@ -735,7 +735,7 @@ export default function SocialMediaAgentPage() {
                     Salvo — {sourceProject.projectName}
                   </span>
                 ) : (
-                  <button onClick={handleSaveToProject} className="h-7 px-3 rounded-[6px] text-[12px] font-medium bg-[#070A1F] text-white hover:bg-[#4A4AC5] transition-colors">
+                  <button onClick={handleSaveToProject} className="h-7 px-3 rounded-[6px] text-[12px] font-medium bg-[#070A1F] text-white hover:bg-[#0D1230] transition-colors">
                     Salvar no projeto
                   </button>
                 )
@@ -905,7 +905,7 @@ export default function SocialMediaAgentPage() {
                   </div>
                 ) : (
                   <button disabled={!isReady} onClick={handleRun}
-                    className="w-full h-9 rounded-[7px] text-[13px] font-medium bg-[#070A1F] text-white hover:bg-[#4A4AC5] active:bg-[#3939B4] disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+                    className="w-full h-9 rounded-[7px] text-[13px] font-medium bg-[#070A1F] text-white hover:bg-[#0D1230] active:bg-[#161B3D] disabled:opacity-40 disabled:cursor-not-allowed transition-all">
                     Executar Agente de Redes Sociais
                   </button>
                 )

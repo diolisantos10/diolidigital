@@ -255,7 +255,7 @@ export default function QualityWorkspacePage() {
                 <button
                   onClick={() => handleRunAudit(analytics)}
                   disabled={!hasStrategy}
-                  className="shrink-0 text-[11px] font-semibold px-3 py-1.5 rounded-[6px] bg-[#070A1F] text-white hover:bg-[#4A4AC5] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="shrink-0 text-[11px] font-semibold px-3 py-1.5 rounded-[6px] bg-[#070A1F] text-white hover:bg-[#0D1230] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Rodar Auditoria
                 </button>
