@@ -661,7 +661,7 @@ export default function SocialMediaAgentPage() {
   const ProposalGatePanel = () => {
     const statusLabels: Record<string, { label: string; color: string; bg: string }> = {
       draft:             { label: "Rascunho — não enviado", color: "text-[#6B6B65]", bg: "bg-[#F7F7F6]" },
-      sent:              { label: "Aguardando aprovação do cliente", color: "text-[#5B5BD6]", bg: "bg-[#EEF0FF]" },
+      sent:              { label: "Aguardando aprovação do cliente", color: "text-[#070A1F]", bg: "bg-[#E6FBFA]" },
       rejected:          { label: "Rejeitado pelo cliente", color: "text-[#DC2626]", bg: "bg-[#FEF2F2]" },
       changes_requested: { label: "Alterações solicitadas", color: "text-[#D97706]", bg: "bg-[#FFFBEB]" },
     };
@@ -716,13 +716,13 @@ export default function SocialMediaAgentPage() {
       <div className="flex-1 p-6 max-w-[1200px] mx-auto w-full">
         {/* Top bar */}
         <div className="flex items-center gap-2 mb-6">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[11px] font-semibold tracking-wide uppercase">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#5B5BD6]" />
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[11px] font-semibold tracking-wide uppercase">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#070A1F]" />
             Departamento de Redes Sociais
           </span>
           <span className="text-[12px] text-[#9B9B95]">v1</span>
           {sourceProject && (
-            <Link href={`/agency/projects/${sourceProject.projectId}`} className="text-[12px] text-[#5B5BD6] hover:underline">
+            <Link href={`/agency/projects/${sourceProject.projectId}`} className="text-[12px] text-[#070A1F] hover:underline">
               ← {sourceProject.projectName}
             </Link>
           )}
@@ -735,7 +735,7 @@ export default function SocialMediaAgentPage() {
                     Salvo — {sourceProject.projectName}
                   </span>
                 ) : (
-                  <button onClick={handleSaveToProject} className="h-7 px-3 rounded-[6px] text-[12px] font-medium bg-[#5B5BD6] text-white hover:bg-[#4A4AC5] transition-colors">
+                  <button onClick={handleSaveToProject} className="h-7 px-3 rounded-[6px] text-[12px] font-medium bg-[#070A1F] text-white hover:bg-[#4A4AC5] transition-colors">
                     Salvar no projeto
                   </button>
                 )
@@ -770,7 +770,7 @@ export default function SocialMediaAgentPage() {
                       const p = projects.find((x) => x.id === e.target.value);
                       if (p) setSourceProject({ projectId: p.id, projectName: p.name });
                     }}
-                    className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
+                    className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
                   >
                     <option value="">— selecione um projeto —</option>
                     {projects.map((p) => (
@@ -796,7 +796,7 @@ export default function SocialMediaAgentPage() {
                   value={form.brandName}
                   onChange={(e) => setForm({ ...form, brandName: e.target.value })}
                   placeholder="e.g. Sushikasa"
-                  className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
+                  className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
                 />
               </div>
 
@@ -808,7 +808,7 @@ export default function SocialMediaAgentPage() {
                   onChange={(e) => setForm({ ...form, brandSummary: e.target.value })}
                   placeholder="O que a marca faz, para quem é..."
                   rows={2}
-                  className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white resize-none"
+                  className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white resize-none"
                 />
               </div>
 
@@ -820,7 +820,7 @@ export default function SocialMediaAgentPage() {
                   value={form.objective}
                   onChange={(e) => setForm({ ...form, objective: e.target.value })}
                   placeholder="ex.: Aumentar reconhecimento da marca e gerar contato direto"
-                  className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
+                  className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
                 />
               </div>
 
@@ -856,14 +856,14 @@ export default function SocialMediaAgentPage() {
                 <div>
                   <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Frequência de posts</label>
                   <select value={form.frequency} onChange={(e) => setForm({ ...form, frequency: e.target.value })}
-                    className="w-full h-8 px-3 text-[12px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white">
+                    className="w-full h-8 px-3 text-[12px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white">
                     {FREQUENCY_OPTIONS.map((f) => <option key={f}>{f}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Tom de voz</label>
                   <select value={form.toneOfVoice} onChange={(e) => setForm({ ...form, toneOfVoice: e.target.value })}
-                    className="w-full h-8 px-3 text-[12px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white">
+                    className="w-full h-8 px-3 text-[12px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white">
                     {TONE_OPTIONS.map((t) => <option key={t}>{t}</option>)}
                   </select>
                 </div>
@@ -873,7 +873,7 @@ export default function SocialMediaAgentPage() {
               <div>
                 <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Estilo visual</label>
                 <select value={form.visualStyle} onChange={(e) => setForm({ ...form, visualStyle: e.target.value })}
-                  className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white">
+                  className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white">
                   {VISUAL_OPTIONS.map((v) => <option key={v}>{v}</option>)}
                 </select>
               </div>
@@ -886,7 +886,7 @@ export default function SocialMediaAgentPage() {
                   onChange={(e) => setForm({ ...form, notes: e.target.value })}
                   placeholder="Campanhas, lançamentos, restrições..."
                   rows={2}
-                  className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white resize-none"
+                  className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white resize-none"
                 />
               </div>
 
@@ -905,13 +905,13 @@ export default function SocialMediaAgentPage() {
                   </div>
                 ) : (
                   <button disabled={!isReady} onClick={handleRun}
-                    className="w-full h-9 rounded-[7px] text-[13px] font-medium bg-[#5B5BD6] text-white hover:bg-[#4A4AC5] active:bg-[#3939B4] disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+                    className="w-full h-9 rounded-[7px] text-[13px] font-medium bg-[#070A1F] text-white hover:bg-[#4A4AC5] active:bg-[#3939B4] disabled:opacity-40 disabled:cursor-not-allowed transition-all">
                     Executar Agente de Redes Sociais
                   </button>
                 )
               )}
               {agentState === "generating" && (
-                <button disabled className="w-full h-9 rounded-[7px] text-[13px] font-medium bg-[#5B5BD6] text-white opacity-70 cursor-not-allowed flex items-center justify-center gap-2">
+                <button disabled className="w-full h-9 rounded-[7px] text-[13px] font-medium bg-[#070A1F] text-white opacity-70 cursor-not-allowed flex items-center justify-center gap-2">
                   <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   Gerando…
                 </button>
@@ -929,10 +929,10 @@ export default function SocialMediaAgentPage() {
           {agentState === "idle" ? (
             proposalBlocked ? <ProposalGatePanel /> : (
               <div className="bg-white rounded-[10px] border border-dashed border-[#E5E5E2] px-8 py-16 text-center">
-                <div className="w-10 h-10 rounded-full bg-[#EEF0FF] flex items-center justify-center mx-auto mb-4">
+                <div className="w-10 h-10 rounded-full bg-[#E6FBFA] flex items-center justify-center mx-auto mb-4">
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                    <circle cx="10" cy="10" r="7" stroke="#5B5BD6" strokeWidth="1.3"/>
-                    <path d="M7 10h6M10 7v6" stroke="#5B5BD6" strokeWidth="1.3" strokeLinecap="round"/>
+                    <circle cx="10" cy="10" r="7" stroke="#070A1F" strokeWidth="1.3"/>
+                    <path d="M7 10h6M10 7v6" stroke="#070A1F" strokeWidth="1.3" strokeLinecap="round"/>
                   </svg>
                 </div>
                 <p className="text-[14px] font-medium text-[#1A1A1A]">Pronto para gerar</p>
@@ -943,14 +943,14 @@ export default function SocialMediaAgentPage() {
             )
           ) : agentState === "generating" ? (
             <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-8 py-16 text-center shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-              <div className="w-10 h-10 rounded-full bg-[#EEF0FF] flex items-center justify-center mx-auto mb-5">
-                <span className="w-5 h-5 border-2 border-[#5B5BD6] border-t-transparent rounded-full animate-spin" />
+              <div className="w-10 h-10 rounded-full bg-[#E6FBFA] flex items-center justify-center mx-auto mb-5">
+                <span className="w-5 h-5 border-2 border-[#070A1F] border-t-transparent rounded-full animate-spin" />
               </div>
               <p className="text-[14px] font-semibold text-[#1A1A1A] mb-6">Construindo pacote de redes sociais…</p>
               <div className="max-w-[260px] mx-auto space-y-2.5">
                 {STEPS.map((label, i) => (
                   <div key={label} className={`flex items-center gap-2.5 transition-opacity ${i <= stepIndex ? "opacity-100" : "opacity-25"}`}>
-                    <span className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${i < stepIndex ? "bg-[#5B5BD6]" : i === stepIndex ? "bg-[#EEF0FF] border border-[#5B5BD6]" : "bg-[#F0F0ED]"}`}>
+                    <span className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${i < stepIndex ? "bg-[#070A1F]" : i === stepIndex ? "bg-[#E6FBFA] border border-[#070A1F]" : "bg-[#F0F0ED]"}`}>
                       {i < stepIndex && (
                         <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
                           <path d="M1.5 4l1.8 1.8L6.5 2.5" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -999,7 +999,7 @@ export default function SocialMediaAgentPage() {
                   {/* Social Strategy */}
                   <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
                     <div className="px-5 py-3.5 border-b border-[#E5E5E2] flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-bold flex items-center justify-center">1</span>
+                      <span className="w-5 h-5 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[10px] font-bold flex items-center justify-center">1</span>
                       <p className="text-[13px] font-semibold text-[#1A1A1A]">Estratégia de Redes Sociais</p>
                     </div>
                     <div className="px-5 py-4 space-y-4">
@@ -1029,7 +1029,7 @@ export default function SocialMediaAgentPage() {
                   {/* Content Pillars */}
                   <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
                     <div className="px-5 py-3.5 border-b border-[#E5E5E2] flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-bold flex items-center justify-center">2</span>
+                      <span className="w-5 h-5 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[10px] font-bold flex items-center justify-center">2</span>
                       <p className="text-[13px] font-semibold text-[#1A1A1A]">Pilares de Conteúdo</p>
                     </div>
                     <div className="px-5 py-4 grid grid-cols-2 gap-3">
@@ -1037,7 +1037,7 @@ export default function SocialMediaAgentPage() {
                         <div key={pillar.name} className="rounded-[8px] bg-[#F7F7F6] border border-[#E5E5E2] p-3">
                           <div className="flex items-center justify-between mb-2">
                             <p className="text-[12px] font-semibold text-[#1A1A1A]">{pillar.name}</p>
-                            <span className="px-2 py-0.5 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-semibold">{pillar.percentage}%</span>
+                            <span className="px-2 py-0.5 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[10px] font-semibold">{pillar.percentage}%</span>
                           </div>
                           <p className="text-[12px] text-[#6B6B65] leading-relaxed mb-2">{pillar.description}</p>
                           <p className="text-[11px] text-[#9B9B95] italic">e.g. {pillar.example}</p>
@@ -1049,7 +1049,7 @@ export default function SocialMediaAgentPage() {
                   {/* Channel Recommendations */}
                   <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
                     <div className="px-5 py-3.5 border-b border-[#E5E5E2] flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-bold flex items-center justify-center">3</span>
+                      <span className="w-5 h-5 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[10px] font-bold flex items-center justify-center">3</span>
                       <p className="text-[13px] font-semibold text-[#1A1A1A]">Recomendações de Canal</p>
                     </div>
                     <div className="px-5 py-4 space-y-3">
@@ -1057,7 +1057,7 @@ export default function SocialMediaAgentPage() {
                         <div key={rec.channel} className="rounded-[8px] bg-[#F7F7F6] border border-[#E5E5E2] p-3">
                           <div className="flex items-center gap-2 mb-2">
                             <p className="text-[12px] font-semibold text-[#1A1A1A]">{rec.channel}</p>
-                            <span className={`h-5 px-2 rounded-full text-[10px] font-semibold ${rec.priority === "primary" ? "bg-[#EEF0FF] text-[#5B5BD6]" : "bg-[#F0F0ED] text-[#6B6B65]"}`}>
+                            <span className={`h-5 px-2 rounded-full text-[10px] font-semibold ${rec.priority === "primary" ? "bg-[#E6FBFA] text-[#070A1F]" : "bg-[#F0F0ED] text-[#6B6B65]"}`}>
                               {rec.priority === "primary" ? "Primário" : "Secundário"}
                             </span>
                           </div>
@@ -1075,7 +1075,7 @@ export default function SocialMediaAgentPage() {
                   {/* Brand interpretation */}
                   <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
                     <div className="px-5 py-3.5 border-b border-[#E5E5E2] flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-bold flex items-center justify-center">4</span>
+                      <span className="w-5 h-5 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[10px] font-bold flex items-center justify-center">4</span>
                       <p className="text-[13px] font-semibold text-[#1A1A1A]">Interpretação da Marca</p>
                     </div>
                     <div className="px-5 py-4 grid grid-cols-2 gap-3">
@@ -1092,7 +1092,7 @@ export default function SocialMediaAgentPage() {
                         <ul className="space-y-1">
                           {output.brandInterpretation.toReinforce.map((item) => (
                             <li key={item} className="flex items-start gap-1.5 text-[12px] text-[#1A1A1A]">
-                              <span className="mt-1 w-1.5 h-1.5 rounded-full bg-[#5B5BD6] shrink-0" />{item}
+                              <span className="mt-1 w-1.5 h-1.5 rounded-full bg-[#070A1F] shrink-0" />{item}
                             </li>
                           ))}
                         </ul>
@@ -1119,22 +1119,22 @@ export default function SocialMediaAgentPage() {
                   <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
                     <div className="px-5 py-3.5 border-b border-[#E5E5E2] flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="w-5 h-5 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-bold flex items-center justify-center">5</span>
+                        <span className="w-5 h-5 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[10px] font-bold flex items-center justify-center">5</span>
                         <p className="text-[13px] font-semibold text-[#1A1A1A]">Calendário de Conteúdo Semanal</p>
                       </div>
                       <span className="text-[11px] text-[#9B9B95]">{output.calendar.filter((d) => d.active).length} dias ativos · {form.frequency}</span>
                     </div>
                     <div className="px-5 py-4 grid grid-cols-7 gap-2">
                       {output.calendar.map((day) => (
-                        <div key={day.day} className={`rounded-[8px] border overflow-hidden ${day.active ? "border-[#5B5BD6] bg-[#FAFAFE]" : "border-[#E5E5E2] bg-white"}`}>
-                          <div className={`px-2 py-1.5 text-center border-b ${day.active ? "bg-[#EEF0FF] border-[#5B5BD6]" : "bg-[#F7F7F6] border-[#E5E5E2]"}`}>
-                            <p className={`text-[11px] font-semibold ${day.active ? "text-[#5B5BD6]" : "text-[#6B6B65]"}`}>{day.day}</p>
+                        <div key={day.day} className={`rounded-[8px] border overflow-hidden ${day.active ? "border-[#070A1F] bg-[#FAFAFE]" : "border-[#E5E5E2] bg-white"}`}>
+                          <div className={`px-2 py-1.5 text-center border-b ${day.active ? "bg-[#E6FBFA] border-[#070A1F]" : "bg-[#F7F7F6] border-[#E5E5E2]"}`}>
+                            <p className={`text-[11px] font-semibold ${day.active ? "text-[#070A1F]" : "text-[#6B6B65]"}`}>{day.day}</p>
                           </div>
                           <div className="p-2 min-h-[110px] space-y-1">
                             {day.active ? (
                               <>
                                 <p className="text-[10px] font-semibold text-[#1A1A1A] leading-tight">{day.format}</p>
-                                <p className="text-[10px] text-[#5B5BD6] font-medium">{day.pillar}</p>
+                                <p className="text-[10px] text-[#070A1F] font-medium">{day.pillar}</p>
                                 <p className="text-[9.5px] text-[#6B6B65] leading-tight">{day.theme}</p>
                                 <p className="text-[9px] text-[#9B9B95] leading-tight italic">{day.objective}</p>
                                 <span className="inline-block mt-1 px-1.5 py-0.5 rounded-[3px] bg-[#F0F0ED] text-[9px] text-[#6B6B65]">{day.channel}</span>
@@ -1156,12 +1156,12 @@ export default function SocialMediaAgentPage() {
                     <div className="divide-y divide-[#F0F0ED]">
                       {output.calendar.filter((d) => d.active).map((day) => (
                         <div key={day.day} className="grid grid-cols-[40px_90px_90px_1fr_90px_90px] items-center px-5 py-3 gap-3">
-                          <span className="text-[11px] font-semibold text-[#5B5BD6]">{day.day}</span>
+                          <span className="text-[11px] font-semibold text-[#070A1F]">{day.day}</span>
                           <span className="text-[11px] font-medium text-[#1A1A1A]">{day.format}</span>
                           <span className="text-[11px] text-[#6B6B65]">{day.pillar}</span>
                           <span className="text-[11px] text-[#1A1A1A]">{day.theme}</span>
                           <span className="text-[11px] text-[#9B9B95]">{day.objective}</span>
-                          <span className="text-[11px] font-medium text-[#5B5BD6] text-right">{day.channel}</span>
+                          <span className="text-[11px] font-medium text-[#070A1F] text-right">{day.channel}</span>
                         </div>
                       ))}
                     </div>
@@ -1170,7 +1170,7 @@ export default function SocialMediaAgentPage() {
                   {/* Content ideas */}
                   <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
                     <div className="px-5 py-3.5 border-b border-[#E5E5E2] flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-bold flex items-center justify-center">6</span>
+                      <span className="w-5 h-5 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[10px] font-bold flex items-center justify-center">6</span>
                       <p className="text-[13px] font-semibold text-[#1A1A1A]">Banco de Ideias de Conteúdo</p>
                     </div>
                     <div className="divide-y divide-[#F0F0ED]">
@@ -1206,7 +1206,7 @@ export default function SocialMediaAgentPage() {
                         <div className="flex items-center gap-2">
                           <span className="text-[11px] font-semibold text-[#9B9B95]">#{post.id}</span>
                           <p className="text-[13px] font-semibold text-[#1A1A1A]">{post.title}</p>
-                          <span className="px-2 py-0.5 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-medium">{post.pillar}</span>
+                          <span className="px-2 py-0.5 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[10px] font-medium">{post.pillar}</span>
                         </div>
                         <div className="flex items-center gap-1.5">
                           <span className="px-2 py-0.5 rounded-full bg-[#F0F0ED] text-[#6B6B65] text-[10px] font-medium">{post.format}</span>
@@ -1255,7 +1255,7 @@ export default function SocialMediaAgentPage() {
                         <div className="flex items-center gap-2">
                           <span className="text-[11px] font-semibold text-[#9B9B95]">Story {story.id}</span>
                           <p className="text-[13px] font-semibold text-[#1A1A1A]">{story.title}</p>
-                          <span className="px-2 py-0.5 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-medium">{story.pillar}</span>
+                          <span className="px-2 py-0.5 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[10px] font-medium">{story.pillar}</span>
                         </div>
                         <div className="flex items-center gap-1.5">
                           <span className="px-2 py-0.5 rounded-full bg-[#F0F0ED] text-[#6B6B65] text-[10px]">{story.slideCount} slides</span>
@@ -1294,11 +1294,11 @@ export default function SocialMediaAgentPage() {
                   {/* Handoff block */}
                   <div className="bg-[#111111] rounded-[10px] border border-[#2A2A2A] overflow-hidden">
                     <div className="px-5 py-3.5 border-b border-[#2A2A2A] flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-[#5B5BD6]" />
+                      <span className="w-2 h-2 rounded-full bg-[#070A1F]" />
                       <p className="text-[12px] font-semibold text-white">Handoff de Design</p>
                       <span className="text-[11px] text-[#6B6B65]">— pronto para o Agente de Design</span>
                       <button onClick={() => handleCopy("handoff-all", formatHandoffAsText(output.handoff))}
-                        className="ml-auto h-6 px-2.5 rounded-[5px] text-[11px] border border-[#2A2A2A] text-[#9B9B95] hover:border-[#5B5BD6] hover:text-white transition-colors">
+                        className="ml-auto h-6 px-2.5 rounded-[5px] text-[11px] border border-[#2A2A2A] text-[#9B9B95] hover:border-[#070A1F] hover:text-white transition-colors">
                         {copiedKey === "handoff-all" ? "Copiado" : "Copiar Tudo"}
                       </button>
                     </div>
@@ -1306,10 +1306,10 @@ export default function SocialMediaAgentPage() {
                       {output.handoff.map((h) => (
                         <div key={h.postId} className="rounded-[8px] border border-[#2A2A2A] bg-[#1A1A1A] p-3">
                           <div className="flex items-center gap-2 mb-3">
-                            <span className="text-[11px] font-semibold text-[#5B5BD6] font-mono">POST_{String(h.postId).padStart(2, "0")}</span>
+                            <span className="text-[11px] font-semibold text-[#070A1F] font-mono">POST_{String(h.postId).padStart(2, "0")}</span>
                             <span className="text-[11px] text-[#6B6B65]">{h.title}</span>
                             <button onClick={() => handleCopy(`h-${h.postId}`, `POST_${String(h.postId).padStart(2,"0")} — ${h.title}\nformat: ${h.format}\nkey_copy: ${h.keyCopy}\nvisual_direction: ${h.visualDirection}\nprompt: ${h.prompt}\ndesign_notes: ${h.designNotes}`)}
-                              className="ml-auto h-5 px-2 rounded-[4px] text-[10px] border border-[#2A2A2A] text-[#6B6B65] hover:border-[#5B5BD6] hover:text-white transition-colors">
+                              className="ml-auto h-5 px-2 rounded-[4px] text-[10px] border border-[#2A2A2A] text-[#6B6B65] hover:border-[#070A1F] hover:text-white transition-colors">
                               {copiedKey === `h-${h.postId}` ? "Copiado" : "Copiar"}
                             </button>
                           </div>
@@ -1343,7 +1343,7 @@ export default function SocialMediaAgentPage() {
                       <div key={c.postId} className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
                         <div className="px-5 py-3 bg-[#FAFAFA] border-b border-[#E5E5E2] flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <span className="font-mono text-[11px] font-semibold text-[#5B5BD6] bg-[#EEF0FF] px-2 py-0.5 rounded-[4px]">CONTRACT_{String(c.postId).padStart(2,"0")}</span>
+                            <span className="font-mono text-[11px] font-semibold text-[#070A1F] bg-[#E6FBFA] px-2 py-0.5 rounded-[4px]">CONTRACT_{String(c.postId).padStart(2,"0")}</span>
                             <p className="text-[13px] font-semibold text-[#1A1A1A]">{c.title}</p>
                             <span className="px-2 py-0.5 rounded-full bg-[#F0F0ED] text-[#6B6B65] text-[10px]">{c.format}</span>
                           </div>

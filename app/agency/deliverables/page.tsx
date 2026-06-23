@@ -72,12 +72,12 @@ export default function DeliverablesPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar entregas..."
-          className="h-8 px-3 text-[13px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] placeholder:text-[#9B9B95] w-56"
+          className="h-8 px-3 text-[13px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] placeholder:text-[#9B9B95] w-56"
         />
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as DeliverableStatus | "all")}
-          className="h-8 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] text-[#6B6B65]"
+          className="h-8 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] text-[#6B6B65]"
         >
           <option value="all">Todos os status</option>
           <option value="draft">Rascunho</option>
@@ -88,7 +88,7 @@ export default function DeliverablesPage() {
         <select
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value)}
-          className="h-8 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] text-[#6B6B65]"
+          className="h-8 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] text-[#6B6B65]"
         >
           <option value="all">Todos os tipos</option>
           {types.map((t) => <option key={t} value={t}>{t}</option>)}
@@ -96,7 +96,7 @@ export default function DeliverablesPage() {
         <select
           value={projectFilter}
           onChange={(e) => setProjectFilter(e.target.value)}
-          className="h-8 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] text-[#6B6B65]"
+          className="h-8 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] text-[#6B6B65]"
         >
           <option value="all">Todos os projetos</option>
           {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -138,7 +138,7 @@ export default function DeliverablesPage() {
                   >
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-2">
-                        <span className="text-[13px] font-medium text-[#1A1A1A] group-hover:text-[#5B5BD6] transition-colors">{d.name}</span>
+                        <span className="text-[13px] font-medium text-[#1A1A1A] group-hover:text-[#070A1F] transition-colors">{d.name}</span>
                         <span className="text-[11px] text-[#9B9B95] bg-[#F0F0ED] px-1.5 py-0.5 rounded-[4px]">{d.type}</span>
                         {revision && (
                           <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#D97706]">Revisão necessária</span>

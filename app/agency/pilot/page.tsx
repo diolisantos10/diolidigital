@@ -59,7 +59,7 @@ const PHASES: { id: number; label: string; subtitle: string; color: string; step
     id: 2,
     label: "Fase 2 — A agência recebe",
     subtitle: "Agora você troca de chapéu: vira a agência e processa a solicitação que chegou.",
-    color: "#5B5BD6",
+    color: "#070A1F",
     steps: [
       {
         number: 2,
@@ -69,7 +69,7 @@ const PHASES: { id: number; label: string; subtitle: string; color: string; step
         description: "A solicitação aparece em Solicitações. Abra-a, clique em Analisar e depois em Converter em projeto. Isso cria o cliente e o projeto automaticamente.",
         action: "Abrir Solicitações",
         href: "/agency/requests",
-        color: "#5B5BD6",
+        color: "#070A1F",
         done: (s) => s.projectCreated,
         hint: "Ao converter, o registro do cliente é criado — não precisa criar cliente à mão.",
       },
@@ -271,12 +271,12 @@ export default function PilotPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-4 py-3">
             <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1">Link do cliente (input)</p>
-            <Link href="/briefing" className="text-[13px] font-mono text-[#1A1A1A] hover:text-[#5B5BD6] transition-colors">/briefing</Link>
+            <Link href="/briefing" className="text-[13px] font-mono text-[#1A1A1A] hover:text-[#070A1F] transition-colors">/briefing</Link>
             <p className="text-[11px] text-[#9B9B95] mt-1 leading-snug">É aqui que o cliente entra e dá os inputs. Sem login.</p>
           </div>
           <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-4 py-3">
             <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1">Link da agência (admin)</p>
-            <Link href="/agency/requests" className="text-[13px] font-mono text-[#1A1A1A] hover:text-[#5B5BD6] transition-colors">/agency/requests</Link>
+            <Link href="/agency/requests" className="text-[13px] font-mono text-[#1A1A1A] hover:text-[#070A1F] transition-colors">/agency/requests</Link>
             <p className="text-[11px] text-[#9B9B95] mt-1 leading-snug">Onde a solicitação do cliente chega para você processar.</p>
           </div>
         </div>
@@ -353,7 +353,7 @@ export default function PilotPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                             <span className="text-[10px] font-semibold uppercase tracking-[0.05em]" style={{ color: step.color }}>{step.dept}</span>
-                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${step.who === "cliente" ? "bg-[#F0F0ED] text-[#6B6B65]" : "bg-[#EEF0FF] text-[#5B5BD6]"}`}>
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${step.who === "cliente" ? "bg-[#F0F0ED] text-[#6B6B65]" : "bg-[#E6FBFA] text-[#070A1F]"}`}>
                               {step.who === "cliente" ? "VOCÊ = CLIENTE" : "VOCÊ = AGÊNCIA"}
                             </span>
                             {isDone && (
@@ -385,7 +385,7 @@ export default function PilotPage() {
 
         {/* Bottom links */}
         <div className="flex items-center justify-between pt-2">
-          <Link href="/agency/maestro" className="text-[12px] text-[#5B5BD6] hover:underline">← Painel Maestro</Link>
+          <Link href="/agency/maestro" className="text-[12px] text-[#070A1F] hover:underline">← Painel Maestro</Link>
           <Link href="/agency/deliverables" className="text-[12px] text-[#9B9B95] hover:text-[#1A1A1A] transition-colors">Ver todas as entregas →</Link>
         </div>
       </div>

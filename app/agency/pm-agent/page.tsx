@@ -167,7 +167,7 @@ export default function PmAgentPage() {
           </span>
           <span className="text-[12px] text-[#9B9B95]">v1 · ✦ Dioli Brain</span>
           {linkedProject && (
-            <Link href={`/agency/projects/${linkedProject.id}`} className="text-[12px] text-[#5B5BD6] hover:underline">
+            <Link href={`/agency/projects/${linkedProject.id}`} className="text-[12px] text-[#070A1F] hover:underline">
               ← {linkedProject.name}
             </Link>
           )}

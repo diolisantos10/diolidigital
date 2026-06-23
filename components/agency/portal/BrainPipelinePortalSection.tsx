@@ -61,7 +61,7 @@ export function BrainPipelinePortalSection({ clientId }: { clientId: string }) {
     <div className="mt-8">
       <div className="flex items-center gap-2 mb-4">
         <h2 className="text-[15px] font-semibold text-[#1A1A1A]">Acompanhamento de Projeto</h2>
-        <span className="h-5 px-2 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-semibold flex items-center">
+        <span className="h-5 px-2 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[10px] font-semibold flex items-center">
           ✦ Dioli Brain
         </span>
       </div>
@@ -84,7 +84,7 @@ export function BrainPipelinePortalSection({ clientId }: { clientId: string }) {
                   </p>
                   <div className="w-20 h-1.5 bg-[#F0F0ED] rounded-full mt-1 overflow-hidden">
                     <div
-                      className="h-full bg-[#5B5BD6] rounded-full transition-all"
+                      className="h-full bg-[#070A1F] rounded-full transition-all"
                       style={{ width: `${(doneCount / DEPT_ORDER.length) * 100}%` }}
                     />
                   </div>

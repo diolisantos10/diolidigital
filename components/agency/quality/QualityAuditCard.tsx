@@ -59,7 +59,7 @@ export function QualityAuditCard({ canvas, onApprove, onReject, onProposeBrainCh
               : "bg-[#F0F0ED] text-[#6B6B65]"
             }`}>{statusLabel}</span>
             {canvas.auditType === "cross_dept_audit" && (
-              <span className="h-5 px-2 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[9px] font-semibold">Cross-dept</span>
+              <span className="h-5 px-2 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[9px] font-semibold">Cross-dept</span>
             )}
           </div>
           <div className="flex items-center gap-2 text-[11px] text-[#9B9B95]">
@@ -155,7 +155,7 @@ export function QualityAuditCard({ canvas, onApprove, onReject, onProposeBrainCh
                   <div key={p.id} className={`flex items-start gap-2 text-[10px] px-3 py-1.5 rounded-[6px] ${
                     p.type === "strength" ? "bg-[#DCFCE7] text-[#166534]"
                     : p.type === "risk" ? "bg-[#FEE2E2] text-[#991B1B]"
-                    : p.type === "opportunity" ? "bg-[#EEF0FF] text-[#5B5BD6]"
+                    : p.type === "opportunity" ? "bg-[#E6FBFA] text-[#070A1F]"
                     : "bg-[#FEF3C7] text-[#92400E]"
                   }`}>
                     <span className="font-bold shrink-0">{PATTERN_ICONS[p.type]}</span>
@@ -187,7 +187,7 @@ export function QualityAuditCard({ canvas, onApprove, onReject, onProposeBrainCh
                     <div className="flex items-start gap-2 mb-1">
                       <span className={`h-4 px-1.5 rounded-[3px] text-[9px] font-semibold border ${PRIORITY_COLORS[r.priority]}`}>{r.priority}</span>
                       <span className="text-[10px] text-[#9B9B95] font-medium">{DEPT_LABELS[r.department] ?? r.department}</span>
-                      {r.brainChangeCandidate && <span className="ml-auto h-4 px-1.5 rounded-[3px] bg-[#EEF0FF] text-[#5B5BD6] text-[9px] font-semibold border border-[#C7C7F5]">Brain Change</span>}
+                      {r.brainChangeCandidate && <span className="ml-auto h-4 px-1.5 rounded-[3px] bg-[#E6FBFA] text-[#070A1F] text-[9px] font-semibold border border-[#C7C7F5]">Brain Change</span>}
                     </div>
                     <p className="text-[11px] font-medium text-[#1A1A1A] mb-0.5">{r.issue}</p>
                     <p className="text-[11px] text-[#6B6B65] leading-relaxed">{r.recommendation}</p>
@@ -223,8 +223,8 @@ export function QualityAuditCard({ canvas, onApprove, onReject, onProposeBrainCh
             <div className="grid grid-cols-3 gap-1.5">
               {canvas.cognitiveFlowTrace.map((step) => (
                 <div key={step.stepId} className="flex items-center gap-1 text-[10px]">
-                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${step.completed ? "bg-[#5B5BD6]" : "bg-[#D0D0CC]"}`} />
-                  <span className={step.completed ? "text-[#5B5BD6]" : "text-[#C0C0BC]"} title={step.summary}>{step.order}. {step.label}</span>
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${step.completed ? "bg-[#070A1F]" : "bg-[#D0D0CC]"}`} />
+                  <span className={step.completed ? "text-[#070A1F]" : "text-[#C0C0BC]"} title={step.summary}>{step.order}. {step.label}</span>
                 </div>
               ))}
             </div>
@@ -257,18 +257,18 @@ export function QualityAuditCard({ canvas, onApprove, onReject, onProposeBrainCh
                   )}
                   {onProposeBrainChange && !brainChangeCreated && (
                     <button onClick={onProposeBrainChange}
-                      className="h-8 px-4 rounded-[7px] border border-[#5B5BD6] text-[#5B5BD6] hover:bg-[#EEF0FF] text-[12px] font-medium">
+                      className="h-8 px-4 rounded-[7px] border border-[#070A1F] text-[#070A1F] hover:bg-[#E6FBFA] text-[12px] font-medium">
                       ✦ Propor Brain Change
                     </button>
                   )}
                   {brainChangeCreated && (
-                    <span className="h-8 px-4 rounded-[7px] bg-[#EEF0FF] text-[#5B5BD6] text-[12px] font-medium flex items-center">✓ Brain Change criado</span>
+                    <span className="h-8 px-4 rounded-[7px] bg-[#E6FBFA] text-[#070A1F] text-[12px] font-medium flex items-center">✓ Brain Change criado</span>
                   )}
                 </div>
               ) : (
                 <div className="space-y-3">
                   <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Nota (opcional)..."
-                    rows={2} className="w-full px-3 py-2 text-[12px] border border-[#E8E8E2] rounded-[7px] outline-none focus:border-[#5B5BD6] resize-none" />
+                    rows={2} className="w-full px-3 py-2 text-[12px] border border-[#E8E8E2] rounded-[7px] outline-none focus:border-[#070A1F] resize-none" />
                   <div className="flex gap-2">
                     {onApprove && !isBlocked && (
                       <button onClick={() => { onApprove(note); setShowActions(false); setNote(""); }}
@@ -296,11 +296,11 @@ export function QualityAuditCard({ canvas, onApprove, onReject, onProposeBrainCh
             <div className="flex gap-2 pt-2">
               {!brainChangeCreated ? (
                 <button onClick={onProposeBrainChange}
-                  className="h-8 px-4 rounded-[7px] border border-[#5B5BD6] text-[#5B5BD6] hover:bg-[#EEF0FF] text-[12px] font-medium">
+                  className="h-8 px-4 rounded-[7px] border border-[#070A1F] text-[#070A1F] hover:bg-[#E6FBFA] text-[12px] font-medium">
                   ✦ Propor Brain Change
                 </button>
               ) : (
-                <span className="h-8 px-4 rounded-[7px] bg-[#EEF0FF] text-[#5B5BD6] text-[12px] font-medium flex items-center">✓ Brain Change criado</span>
+                <span className="h-8 px-4 rounded-[7px] bg-[#E6FBFA] text-[#070A1F] text-[12px] font-medium flex items-center">✓ Brain Change criado</span>
               )}
             </div>
           )}

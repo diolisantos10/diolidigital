@@ -24,7 +24,7 @@ export default function OnboardingActions({
       </button>
       <button
         onClick={onExplain}
-        className="h-7 px-2.5 rounded-[6px] border border-[#C7D2FE] bg-[#EEF0FF] text-[11px] font-semibold text-[#5B5BD6] hover:bg-[#E0E7FF] transition-colors flex items-center gap-1"
+        className="h-7 px-2.5 rounded-[6px] border border-[#C7D2FE] bg-[#E6FBFA] text-[11px] font-semibold text-[#070A1F] hover:bg-[#E0E7FF] transition-colors flex items-center gap-1"
       >
         <svg width="11" height="11" viewBox="0 0 16 16" fill="none">
           <path

@@ -150,7 +150,7 @@ function ConfigPanel({ integration, onClose }: ConfigPanelProps) {
                   <select
                     value={model}
                     onChange={(e) => setModel(e.target.value)}
-                    className="w-full border border-[#E8E8E4] rounded-[7px] px-3 py-2 text-[13px] text-[#1C1C1A] bg-white focus:outline-none focus:ring-2 focus:ring-[#5B5BD6]/30"
+                    className="w-full border border-[#E8E8E4] rounded-[7px] px-3 py-2 text-[13px] text-[#1C1C1A] bg-white focus:outline-none focus:ring-2 focus:ring-[#070A1F]/30"
                   >
                     <option value="">Selecionar modelo…</option>
                     {modelOptions.map((m) => (
@@ -184,7 +184,7 @@ function ConfigPanel({ integration, onClose }: ConfigPanelProps) {
                 value={workspace}
                 onChange={(e) => setWorkspace(e.target.value)}
                 placeholder="Ex.: minha-agencia ou ID do workspace"
-                className="w-full border border-[#E8E8E4] rounded-[7px] px-3 py-2 text-[13px] text-[#1C1C1A] bg-white focus:outline-none focus:ring-2 focus:ring-[#5B5BD6]/30"
+                className="w-full border border-[#E8E8E4] rounded-[7px] px-3 py-2 text-[13px] text-[#1C1C1A] bg-white focus:outline-none focus:ring-2 focus:ring-[#070A1F]/30"
               />
             </div>
           )}
@@ -199,7 +199,7 @@ function ConfigPanel({ integration, onClose }: ConfigPanelProps) {
                   value={accountId}
                   onChange={(e) => setAccountId(e.target.value)}
                   placeholder="Ex.: act_1234567890"
-                  className="w-full border border-[#E8E8E4] rounded-[7px] px-3 py-2 text-[13px] text-[#1C1C1A] bg-white focus:outline-none focus:ring-2 focus:ring-[#5B5BD6]/30"
+                  className="w-full border border-[#E8E8E4] rounded-[7px] px-3 py-2 text-[13px] text-[#1C1C1A] bg-white focus:outline-none focus:ring-2 focus:ring-[#070A1F]/30"
                 />
               </div>
               <div>
@@ -209,7 +209,7 @@ function ConfigPanel({ integration, onClose }: ConfigPanelProps) {
                   value={workspace}
                   onChange={(e) => setWorkspace(e.target.value)}
                   placeholder="Ex.: 123456789"
-                  className="w-full border border-[#E8E8E4] rounded-[7px] px-3 py-2 text-[13px] text-[#1C1C1A] bg-white focus:outline-none focus:ring-2 focus:ring-[#5B5BD6]/30"
+                  className="w-full border border-[#E8E8E4] rounded-[7px] px-3 py-2 text-[13px] text-[#1C1C1A] bg-white focus:outline-none focus:ring-2 focus:ring-[#070A1F]/30"
                 />
               </div>
             </>
@@ -224,7 +224,7 @@ function ConfigPanel({ integration, onClose }: ConfigPanelProps) {
                 value={folder}
                 onChange={(e) => setFolder(e.target.value)}
                 placeholder="Ex.: /Clientes/DigiAgência ou ID do Drive"
-                className="w-full border border-[#E8E8E4] rounded-[7px] px-3 py-2 text-[13px] text-[#1C1C1A] bg-white focus:outline-none focus:ring-2 focus:ring-[#5B5BD6]/30"
+                className="w-full border border-[#E8E8E4] rounded-[7px] px-3 py-2 text-[13px] text-[#1C1C1A] bg-white focus:outline-none focus:ring-2 focus:ring-[#070A1F]/30"
               />
             </div>
           )}
@@ -246,7 +246,7 @@ function ConfigPanel({ integration, onClose }: ConfigPanelProps) {
                   ? "https://hook.make.com/..."
                   : "Ex.: G-XXXXXXXXXX ou UA-XXXXXXXX"
                 }
-                className="w-full border border-[#E8E8E4] rounded-[7px] px-3 py-2 text-[13px] text-[#1C1C1A] bg-white focus:outline-none focus:ring-2 focus:ring-[#5B5BD6]/30"
+                className="w-full border border-[#E8E8E4] rounded-[7px] px-3 py-2 text-[13px] text-[#1C1C1A] bg-white focus:outline-none focus:ring-2 focus:ring-[#070A1F]/30"
               />
             </div>
           )}
@@ -269,7 +269,7 @@ function ConfigPanel({ integration, onClose }: ConfigPanelProps) {
             <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-2">Agentes que usam</div>
             <div className="flex flex-wrap gap-1.5">
               {integration.assignedAgents.map((ag) => (
-                <span key={ag} className="text-[11px] bg-[#EEF0FF] text-[#5B5BD6] px-2 py-0.5 rounded font-medium">
+                <span key={ag} className="text-[11px] bg-[#E6FBFA] text-[#070A1F] px-2 py-0.5 rounded font-medium">
                   {AGENT_LABELS[ag]}
                 </span>
               ))}
@@ -300,7 +300,7 @@ function ConfigPanel({ integration, onClose }: ConfigPanelProps) {
           {/* Security notice */}
           <div className="bg-[#F0F4FF] border border-[#DDDDFB] rounded-[8px] px-4 py-3 flex items-start gap-2">
             <span className="text-[14px] shrink-0">🔒</span>
-            <p className="text-[11px] text-[#5B5BD6]">
+            <p className="text-[11px] text-[#070A1F]">
               Chaves reais serão armazenadas com segurança quando o backend estiver ativo.
               Esta configuração é salva localmente como mapeamento operacional.
             </p>
@@ -319,7 +319,7 @@ function ConfigPanel({ integration, onClose }: ConfigPanelProps) {
           ) : (
             <button
               onClick={handleSave}
-              className="px-4 py-2 bg-[#5B5BD6] text-white rounded-[7px] text-[13px] font-semibold hover:bg-[#4A4AC0] transition-colors"
+              className="px-4 py-2 bg-[#070A1F] text-white rounded-[7px] text-[13px] font-semibold hover:bg-[#0D1230] transition-colors"
             >
               Salvar configuração
             </button>
@@ -390,7 +390,7 @@ function IntegrationCard({ integration, onConfigure }: IntegrationCardProps) {
       <div className="flex items-center gap-2 px-4 py-2.5 border-t border-[#F4F4F0] bg-[#FAFAF9]">
         <button
           onClick={onConfigure}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#5B5BD6] text-white text-[12px] font-medium rounded-[6px] hover:bg-[#4A4AC0] transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#070A1F] text-white text-[12px] font-medium rounded-[6px] hover:bg-[#0D1230] transition-colors"
         >
           ⚙ Configurar
         </button>
@@ -403,7 +403,7 @@ function IntegrationCard({ integration, onConfigure }: IntegrationCardProps) {
         </button>
         <button
           onClick={() => setDetailsOpen((v) => !v)}
-          className="ml-auto text-[12px] text-[#9B9B95] hover:text-[#5B5BD6] transition-colors"
+          className="ml-auto text-[12px] text-[#9B9B95] hover:text-[#070A1F] transition-colors"
         >
           {detailsOpen ? "Ocultar detalhes ▴" : "Ver detalhes ▾"}
         </button>
@@ -453,7 +453,7 @@ function IntegrationCard({ integration, onConfigure }: IntegrationCardProps) {
             </div>
           )}
           {config?.selectedModel && (
-            <div className="text-[11px] text-[#5B5BD6]">
+            <div className="text-[11px] text-[#070A1F]">
               <span className="font-semibold">Modelo configurado: </span>{config.selectedModel}
             </div>
           )}
@@ -505,7 +505,7 @@ function AgentProviderSection() {
                 <select
                   value={ac.selectedProvider}
                   onChange={(e) => updateAgentProviderConfig(ac.agentId, { selectedProvider: e.target.value as typeof ac.selectedProvider })}
-                  className="w-full border border-[#E8E8E4] rounded-[7px] px-3 py-1.5 text-[12px] text-[#1C1C1A] bg-white focus:outline-none focus:ring-2 focus:ring-[#5B5BD6]/30"
+                  className="w-full border border-[#E8E8E4] rounded-[7px] px-3 py-1.5 text-[12px] text-[#1C1C1A] bg-white focus:outline-none focus:ring-2 focus:ring-[#070A1F]/30"
                 >
                   {PROVIDER_OPTIONS.map((p) => (
                     <option key={p.value} value={p.value}>{p.label}</option>
@@ -585,7 +585,7 @@ export default function IntegrationsPage() {
           <ReadinessRing score={readiness.score} />
           <div className="flex items-center gap-6 flex-wrap">
             <div className="text-center">
-              <div className="text-[22px] font-bold text-[#5B5BD6] mono-num">{readiness.configuredCount}</div>
+              <div className="text-[22px] font-bold text-[#070A1F] mono-num">{readiness.configuredCount}</div>
               <div className="text-[11px] text-[#9B9B95] mt-0.5">Configurados</div>
             </div>
             <div className="text-center">

@@ -64,7 +64,7 @@ function StepIndicator({ step }: { step: Step }) {
                   done
                     ? "bg-[#16A34A] text-white"
                     : active
-                    ? "bg-[#5B5BD6] text-white"
+                    ? "bg-[#070A1F] text-white"
                     : "bg-[#E8E8E3] text-[#9B9B95]"
                 }`}
               >
@@ -235,7 +235,7 @@ export default function NewProductionPage() {
                   onClick={() => selectTemplate(t)}
                   className={`text-left p-5 rounded-[12px] border-2 transition-all ${
                     selected
-                      ? "border-[#5B5BD6] bg-[#EEF0FF]"
+                      ? "border-[#070A1F] bg-[#E6FBFA]"
                       : "border-[#E8E8E3] bg-white hover:border-[#C8C8C3]"
                   }`}
                 >
@@ -271,7 +271,7 @@ export default function NewProductionPage() {
             <button
               onClick={() => setStep(2)}
               disabled={!canProceedStep1}
-              className="h-10 px-6 rounded-[8px] bg-[#5B5BD6] text-white text-[13px] font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#4A4AC5] transition-colors"
+              className="h-10 px-6 rounded-[8px] bg-[#070A1F] text-white text-[13px] font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#4A4AC5] transition-colors"
             >
               Próximo →
             </button>
@@ -295,7 +295,7 @@ export default function NewProductionPage() {
                   value={wizard.clientName}
                   onChange={(e) => setField("clientName", e.target.value)}
                   placeholder={template.name}
-                  className="w-full h-10 px-3 rounded-[8px] border border-[#E8E8E3] text-[13px] text-[#1A1A1A] outline-none focus:border-[#5B5BD6] focus:ring-1 focus:ring-[#5B5BD6]/20"
+                  className="w-full h-10 px-3 rounded-[8px] border border-[#E8E8E3] text-[13px] text-[#1A1A1A] outline-none focus:border-[#070A1F] focus:ring-1 focus:ring-[#070A1F]/20"
                 />
               </div>
               <div>
@@ -306,7 +306,7 @@ export default function NewProductionPage() {
                   type="text"
                   value={wizard.industry}
                   onChange={(e) => setField("industry", e.target.value)}
-                  className="w-full h-10 px-3 rounded-[8px] border border-[#E8E8E3] text-[13px] text-[#1A1A1A] outline-none focus:border-[#5B5BD6] focus:ring-1 focus:ring-[#5B5BD6]/20"
+                  className="w-full h-10 px-3 rounded-[8px] border border-[#E8E8E3] text-[13px] text-[#1A1A1A] outline-none focus:border-[#070A1F] focus:ring-1 focus:ring-[#070A1F]/20"
                 />
               </div>
               <div>
@@ -317,7 +317,7 @@ export default function NewProductionPage() {
                   type="email"
                   value={wizard.email}
                   onChange={(e) => setField("email", e.target.value)}
-                  className="w-full h-10 px-3 rounded-[8px] border border-[#E8E8E3] text-[13px] text-[#1A1A1A] outline-none focus:border-[#5B5BD6] focus:ring-1 focus:ring-[#5B5BD6]/20"
+                  className="w-full h-10 px-3 rounded-[8px] border border-[#E8E8E3] text-[13px] text-[#1A1A1A] outline-none focus:border-[#070A1F] focus:ring-1 focus:ring-[#070A1F]/20"
                 />
               </div>
               <div>
@@ -328,7 +328,7 @@ export default function NewProductionPage() {
                   type="text"
                   value={wizard.projectName}
                   onChange={(e) => setField("projectName", e.target.value)}
-                  className="w-full h-10 px-3 rounded-[8px] border border-[#E8E8E3] text-[13px] text-[#1A1A1A] outline-none focus:border-[#5B5BD6] focus:ring-1 focus:ring-[#5B5BD6]/20"
+                  className="w-full h-10 px-3 rounded-[8px] border border-[#E8E8E3] text-[13px] text-[#1A1A1A] outline-none focus:border-[#070A1F] focus:ring-1 focus:ring-[#070A1F]/20"
                 />
               </div>
             </div>
@@ -344,7 +344,7 @@ export default function NewProductionPage() {
                     type="text"
                     value={wizard.tone}
                     onChange={(e) => setField("tone", e.target.value)}
-                    className="w-full h-10 px-3 rounded-[8px] border border-[#E8E8E3] text-[13px] text-[#1A1A1A] outline-none focus:border-[#5B5BD6] focus:ring-1 focus:ring-[#5B5BD6]/20"
+                    className="w-full h-10 px-3 rounded-[8px] border border-[#E8E8E3] text-[13px] text-[#1A1A1A] outline-none focus:border-[#070A1F] focus:ring-1 focus:ring-[#070A1F]/20"
                   />
                 </div>
                 <div>
@@ -353,7 +353,7 @@ export default function NewProductionPage() {
                     type="text"
                     value={wizard.values}
                     onChange={(e) => setField("values", e.target.value)}
-                    className="w-full h-10 px-3 rounded-[8px] border border-[#E8E8E3] text-[13px] text-[#1A1A1A] outline-none focus:border-[#5B5BD6] focus:ring-1 focus:ring-[#5B5BD6]/20"
+                    className="w-full h-10 px-3 rounded-[8px] border border-[#E8E8E3] text-[13px] text-[#1A1A1A] outline-none focus:border-[#070A1F] focus:ring-1 focus:ring-[#070A1F]/20"
                   />
                 </div>
                 <div className="sm:col-span-2">
@@ -362,7 +362,7 @@ export default function NewProductionPage() {
                     type="text"
                     value={wizard.targetAudience}
                     onChange={(e) => setField("targetAudience", e.target.value)}
-                    className="w-full h-10 px-3 rounded-[8px] border border-[#E8E8E3] text-[13px] text-[#1A1A1A] outline-none focus:border-[#5B5BD6] focus:ring-1 focus:ring-[#5B5BD6]/20"
+                    className="w-full h-10 px-3 rounded-[8px] border border-[#E8E8E3] text-[13px] text-[#1A1A1A] outline-none focus:border-[#070A1F] focus:ring-1 focus:ring-[#070A1F]/20"
                   />
                 </div>
                 <div className="sm:col-span-2">
@@ -371,7 +371,7 @@ export default function NewProductionPage() {
                     value={wizard.positioning}
                     onChange={(e) => setField("positioning", e.target.value)}
                     rows={2}
-                    className="w-full px-3 py-2.5 rounded-[8px] border border-[#E8E8E3] text-[13px] text-[#1A1A1A] outline-none focus:border-[#5B5BD6] focus:ring-1 focus:ring-[#5B5BD6]/20 resize-none"
+                    className="w-full px-3 py-2.5 rounded-[8px] border border-[#E8E8E3] text-[13px] text-[#1A1A1A] outline-none focus:border-[#070A1F] focus:ring-1 focus:ring-[#070A1F]/20 resize-none"
                   />
                 </div>
               </div>
@@ -388,7 +388,7 @@ export default function NewProductionPage() {
             <button
               onClick={() => setStep(3)}
               disabled={!canProceedStep2}
-              className="h-10 px-6 rounded-[8px] bg-[#5B5BD6] text-white text-[13px] font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#4A4AC5] transition-colors"
+              className="h-10 px-6 rounded-[8px] bg-[#070A1F] text-white text-[13px] font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#4A4AC5] transition-colors"
             >
               Próximo →
             </button>
@@ -412,7 +412,7 @@ export default function NewProductionPage() {
                   onClick={() => toggleDept(dept.id)}
                   className={`text-left p-4 rounded-[10px] border-2 transition-all ${
                     selected
-                      ? "border-[#5B5BD6] bg-[#EEF0FF]"
+                      ? "border-[#070A1F] bg-[#E6FBFA]"
                       : "border-[#E8E8E3] bg-white hover:border-[#C8C8C3]"
                   }`}
                 >
@@ -432,7 +432,7 @@ export default function NewProductionPage() {
                       </div>
                     </div>
                     <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors shrink-0 ${
-                      selected ? "border-[#5B5BD6] bg-[#5B5BD6]" : "border-[#D0D0CC]"
+                      selected ? "border-[#070A1F] bg-[#070A1F]" : "border-[#D0D0CC]"
                     }`}>
                       {selected && (
                         <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
@@ -469,7 +469,7 @@ export default function NewProductionPage() {
                   .filter((d) => wizard.selectedDepts.includes(d.department))
                   .map((d, i) => (
                     <div key={i} className="flex items-center gap-2 text-[12px] text-[#6B6B65]">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#5B5BD6] shrink-0" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#070A1F] shrink-0" />
                       {d.name}
                       <span className="text-[10px] text-[#9B9B95]">({d.type})</span>
                     </div>
@@ -486,7 +486,7 @@ export default function NewProductionPage() {
               type="date"
               value={wizard.deadline}
               onChange={(e) => setField("deadline", e.target.value)}
-              className="w-full sm:w-64 h-10 px-3 rounded-[8px] border border-[#E8E8E3] text-[13px] text-[#1A1A1A] outline-none focus:border-[#5B5BD6]"
+              className="w-full sm:w-64 h-10 px-3 rounded-[8px] border border-[#E8E8E3] text-[13px] text-[#1A1A1A] outline-none focus:border-[#070A1F]"
             />
           </div>
 
@@ -500,7 +500,7 @@ export default function NewProductionPage() {
             <button
               onClick={() => setStep(4)}
               disabled={!canProceedStep3}
-              className="h-10 px-6 rounded-[8px] bg-[#5B5BD6] text-white text-[13px] font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#4A4AC5] transition-colors"
+              className="h-10 px-6 rounded-[8px] bg-[#070A1F] text-white text-[13px] font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#4A4AC5] transition-colors"
             >
               Revisar →
             </button>
@@ -564,7 +564,7 @@ export default function NewProductionPage() {
                   { label: "Agentes", value: template.agents.length },
                 ].map((s) => (
                   <div key={s.label} className="bg-[#F7F7F6] rounded-[8px] p-3">
-                    <div className="text-[20px] font-semibold text-[#5B5BD6]">{s.value}</div>
+                    <div className="text-[20px] font-semibold text-[#070A1F]">{s.value}</div>
                     <div className="text-[11px] text-[#9B9B95] mt-0.5">{s.label}</div>
                   </div>
                 ))}
@@ -589,7 +589,7 @@ export default function NewProductionPage() {
             <button
               onClick={handleCreate}
               disabled={!canCreate || loading}
-              className="h-10 px-6 rounded-[8px] bg-[#5B5BD6] text-white text-[13px] font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#4A4AC5] transition-colors flex items-center gap-2"
+              className="h-10 px-6 rounded-[8px] bg-[#070A1F] text-white text-[13px] font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#4A4AC5] transition-colors flex items-center gap-2"
             >
               {loading ? (
                 <>
@@ -621,7 +621,7 @@ export default function NewProductionPage() {
             {createdProjectId && (
               <Link
                 href={`/agency/projects/${createdProjectId}`}
-                className="w-full h-10 rounded-[8px] bg-[#5B5BD6] text-white text-[13px] font-medium hover:bg-[#4A4AC5] transition-colors flex items-center justify-center gap-2"
+                className="w-full h-10 rounded-[8px] bg-[#070A1F] text-white text-[13px] font-medium hover:bg-[#4A4AC5] transition-colors flex items-center justify-center gap-2"
               >
                 Abrir Projeto →
               </Link>

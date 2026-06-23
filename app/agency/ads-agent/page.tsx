@@ -65,9 +65,9 @@ function ContextCard({ ctx, usedStrategyRoom }: { ctx: AgentClientContext; usedS
           </div>
         )}
       </div>
-      <div className={`flex items-center gap-1.5 rounded-[8px] border px-3 py-2 ${usedStrategyRoom ? "bg-[#EEF0FF] border-[#C7C7F5]" : "bg-[#FAFAF9] border-[#F0F0ED]"}`}>
-        <span className={`w-1.5 h-1.5 rounded-full ${usedStrategyRoom ? "bg-[#5B5BD6]" : "bg-[#C0C0BC]"}`} />
-        <span className={`text-[11px] font-medium ${usedStrategyRoom ? "text-[#5B5BD6]" : "text-[#9B9B95]"}`}>
+      <div className={`flex items-center gap-1.5 rounded-[8px] border px-3 py-2 ${usedStrategyRoom ? "bg-[#E6FBFA] border-[#C7C7F5]" : "bg-[#FAFAF9] border-[#F0F0ED]"}`}>
+        <span className={`w-1.5 h-1.5 rounded-full ${usedStrategyRoom ? "bg-[#070A1F]" : "bg-[#C0C0BC]"}`} />
+        <span className={`text-[11px] font-medium ${usedStrategyRoom ? "text-[#070A1F]" : "text-[#9B9B95]"}`}>
           {usedStrategyRoom ? "Strategy Room conectado" : "Strategy Room não gerado (opcional)"}
         </span>
       </div>
@@ -78,7 +78,7 @@ function ContextCard({ ctx, usedStrategyRoom }: { ctx: AgentClientContext; usedS
 function ProposalGatePanel({ proposalStatus, linkedProject }: { proposalStatus: string | undefined; linkedProject: { id: string; name: string } | null }) {
   const statusMap: Record<string, { label: string; color: string; bg: string }> = {
     draft:             { label: "Rascunho — não enviado ao cliente",   color: "text-[#6B6B65]", bg: "bg-[#F7F7F6]" },
-    sent:              { label: "Aguardando aprovação do cliente",     color: "text-[#5B5BD6]", bg: "bg-[#EEF0FF]" },
+    sent:              { label: "Aguardando aprovação do cliente",     color: "text-[#070A1F]", bg: "bg-[#E6FBFA]" },
     rejected:          { label: "Rejeitado pelo cliente",              color: "text-[#DC2626]", bg: "bg-[#FEF2F2]" },
     changes_requested: { label: "Alterações solicitadas pelo cliente", color: "text-[#D97706]", bg: "bg-[#FFFBEB]" },
   };
@@ -109,7 +109,7 @@ function ProposalGatePanel({ proposalStatus, linkedProject }: { proposalStatus: 
 }
 
 const AUDIENCE_COLOR: Record<string, string> = {
-  fria: "bg-[#EEF0FF] text-[#5B5BD6]",
+  fria: "bg-[#E6FBFA] text-[#070A1F]",
   morna: "bg-[#FEF3C7] text-[#D97706]",
   quente: "bg-[#FEE2E2] text-[#DC2626]",
 };
@@ -248,7 +248,7 @@ export default function AdsAgentPage() {
           </span>
           <span className="text-[12px] text-[#9B9B95]">v1 · planejamento (sem API)</span>
           {linkedProject && (
-            <Link href={`/agency/projects/${linkedProject.id}`} className="text-[12px] text-[#5B5BD6] hover:underline">
+            <Link href={`/agency/projects/${linkedProject.id}`} className="text-[12px] text-[#070A1F] hover:underline">
               ← {linkedProject.name}
             </Link>
           )}
@@ -440,7 +440,7 @@ export default function AdsAgentPage() {
                 <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 space-y-4">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="h-6 px-2.5 rounded-full text-[11px] font-semibold text-white flex items-center" style={{ backgroundColor: ACCENT }}>{plan.platform}</span>
-                    {plan.usedStrategyRoom && <span className="h-6 px-2.5 rounded-full text-[11px] font-semibold bg-[#EEF0FF] text-[#5B5BD6] flex items-center">Baseado no Strategy Room</span>}
+                    {plan.usedStrategyRoom && <span className="h-6 px-2.5 rounded-full text-[11px] font-semibold bg-[#E6FBFA] text-[#070A1F] flex items-center">Baseado no Strategy Room</span>}
                     <span className="h-6 px-2.5 rounded-full text-[11px] font-semibold bg-[#F0F0ED] text-[#6B6B65] flex items-center">Brand Brain {plan.brandBrainReadiness}/10</span>
                   </div>
                   <Field label="Objetivo da campanha" value={plan.campaignObjective} />

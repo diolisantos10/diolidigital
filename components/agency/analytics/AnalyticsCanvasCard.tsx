@@ -12,7 +12,7 @@ interface AnalyticsCanvasCardProps {
 }
 
 const STATUS_STYLE: Record<string, { bg: string; text: string; label: string }> = {
-  draft:    { bg: "bg-[#EEF0FF]", text: "text-[#5B5BD6]", label: "Rascunho" },
+  draft:    { bg: "bg-[#E6FBFA]", text: "text-[#070A1F]", label: "Rascunho" },
   approved: { bg: "bg-[#DCFCE7]", text: "text-[#16A34A]", label: "Aprovado" },
   rejected: { bg: "bg-[#FEE2E2]", text: "text-[#DC2626]", label: "Rejeitado" },
 };
@@ -22,7 +22,7 @@ const CATEGORY_LABEL: Record<string, string> = {
 };
 
 const CATEGORY_COLOR: Record<string, string> = {
-  business: "#5B5BD6", content: "#DB2777", traffic: "#0284C7", brand: "#EA580C", cross_dept: "#7C3AED",
+  business: "#070A1F", content: "#DB2777", traffic: "#0284C7", brand: "#EA580C", cross_dept: "#7C3AED",
 };
 
 const EFFORT_LABEL: Record<string, string>   = { baixo: "Baixo", medio: "Médio", alto: "Alto" };
@@ -337,7 +337,7 @@ export function AnalyticsCanvasCard({
                   ) : (
                     <button
                       onClick={onProposeBrainChange}
-                      className="h-8 px-3 rounded-[7px] border border-[#5B5BD6] text-[#5B5BD6] hover:bg-[#EEF0FF] text-[11px] font-medium transition-colors"
+                      className="h-8 px-3 rounded-[7px] border border-[#070A1F] text-[#070A1F] hover:bg-[#E6FBFA] text-[11px] font-medium transition-colors"
                     >
                       ✦ Propor Brain Change
                     </button>

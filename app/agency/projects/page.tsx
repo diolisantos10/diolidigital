@@ -102,12 +102,12 @@ export default function ProjectsPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar projetos..."
-          className="h-8 px-3 text-[13px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] placeholder:text-[#9B9B95] w-56"
+          className="h-8 px-3 text-[13px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] placeholder:text-[#9B9B95] w-56"
         />
         <select
           value={clientFilter}
           onChange={(e) => setClientFilter(e.target.value)}
-          className="h-8 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] text-[#6B6B65]"
+          className="h-8 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] text-[#6B6B65]"
         >
           <option value="all">Todos os clientes</option>
           {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -115,7 +115,7 @@ export default function ProjectsPage() {
         <select
           value={stageFilter}
           onChange={(e) => setStageFilter(e.target.value as ProjectStage | "all")}
-          className="h-8 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] text-[#6B6B65]"
+          className="h-8 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] text-[#6B6B65]"
         >
           <option value="all">Todas as etapas</option>
           {(["briefing","diagnosis","planning","production","review","delivery","ongoing","completed"] as const).map((s) => (
@@ -125,7 +125,7 @@ export default function ProjectsPage() {
         <select
           value={priorityFilter}
           onChange={(e) => setPriorityFilter(e.target.value as Priority | "all")}
-          className="h-8 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] text-[#6B6B65]"
+          className="h-8 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] text-[#6B6B65]"
         >
           <option value="all">Todas as prioridades</option>
           <option value="high">Alta</option>
@@ -135,7 +135,7 @@ export default function ProjectsPage() {
         <select
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value as SortKey)}
-          className="h-8 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] text-[#6B6B65]"
+          className="h-8 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] text-[#6B6B65]"
         >
           <option value="deadline">Ordenar: Prazo</option>
           <option value="priority">Ordenar: Prioridade</option>
@@ -179,7 +179,7 @@ export default function ProjectsPage() {
                   <tr key={project.id} className={`group hover:bg-[#FAFAF9] transition-colors ${i > 0 ? "border-t border-[#F0F0ED]" : ""}`}>
                     <td className="px-5 py-3.5">
                       <Link href={`/agency/projects/${project.id}`}>
-                        <div className="text-[13px] font-medium text-[#1A1A1A] group-hover:text-[#5B5BD6] transition-colors">
+                        <div className="text-[13px] font-medium text-[#1A1A1A] group-hover:text-[#070A1F] transition-colors">
                           {project.name}
                         </div>
                         <div className="text-[11px] text-[#9B9B95]">{project.type}</div>
@@ -197,7 +197,7 @@ export default function ProjectsPage() {
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-2">
                         <div className="w-16 h-1.5 bg-[#F0F0ED] rounded-full overflow-hidden">
-                          <div className="h-full bg-[#5B5BD6] rounded-full" style={{ width: `${pct}%` }} />
+                          <div className="h-full bg-[#070A1F] rounded-full" style={{ width: `${pct}%` }} />
                         </div>
                         <span className="text-[11px] text-[#9B9B95] mono-num">{done}/{total}</span>
                       </div>

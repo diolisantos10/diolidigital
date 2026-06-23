@@ -80,7 +80,7 @@ function TrainingSummaryBar() {
 
       <Link
         href="/agency/simulations/training"
-        className="ml-auto text-[11px] font-medium text-[#5B5BD6] hover:underline shrink-0"
+        className="ml-auto text-[11px] font-medium text-[#070A1F] hover:underline shrink-0"
       >
         Ver treinamento →
       </Link>
@@ -103,7 +103,7 @@ export default function SDRSimulatorPage() {
         </span>
         <Link
           href="/agency/simulations/training"
-          className="ml-auto text-[11px] text-[#9B9B95] hover:text-[#5B5BD6] transition-colors"
+          className="ml-auto text-[11px] text-[#9B9B95] hover:text-[#070A1F] transition-colors"
         >
           Treinamento contínuo →
         </Link>

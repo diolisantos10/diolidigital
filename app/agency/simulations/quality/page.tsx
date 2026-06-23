@@ -51,7 +51,7 @@ export default function QualitySimulatorPage() {
         <span>/</span>
         <span className="text-[#1A1A1A] font-medium">Quality</span>
         <span className="ml-1 text-[9px] font-bold text-[#C0C0BC] bg-[#F0F0ED] px-1.5 py-0.5 rounded-full">INTERNO</span>
-        <a href="/agency/quality" className="ml-auto text-[11px] text-[#9B9B95] hover:text-[#5B5BD6]">Workspace Quality →</a>
+        <a href="/agency/quality" className="ml-auto text-[11px] text-[#9B9B95] hover:text-[#070A1F]">Workspace Quality →</a>
       </div>
 
       <div className="mb-5">
@@ -65,7 +65,7 @@ export default function QualitySimulatorPage() {
         <div className="flex items-center justify-between mb-2.5">
           <span className="text-[10px] font-semibold text-[#9B9B95] uppercase">Cenários</span>
           <div className="flex gap-2">
-            <button onClick={runAll} className="h-7 px-3 rounded-[6px] bg-[#5B5BD6] hover:bg-[#4A4AC5] text-white text-[11px] font-semibold">
+            <button onClick={runAll} className="h-7 px-3 rounded-[6px] bg-[#070A1F] hover:bg-[#4A4AC5] text-white text-[11px] font-semibold">
               ✦ Rodar todos ({SCENARIOS.length})
             </button>
             {canvases.length > 0 && (
@@ -76,7 +76,7 @@ export default function QualitySimulatorPage() {
         <div className="flex flex-wrap gap-2">
           {SCENARIOS.map((s) => (
             <button key={s.id} onClick={() => setCanvases((prev) => [runScenarioCanvas(s), ...prev].slice(0, 20))}
-              className="h-7 px-3 rounded-[6px] border border-[#E5E5E2] bg-white hover:border-[#5B5BD6] hover:text-[#5B5BD6] text-[#6B6B65] text-[11px] font-medium">
+              className="h-7 px-3 rounded-[6px] border border-[#E5E5E2] bg-white hover:border-[#070A1F] hover:text-[#070A1F] text-[#6B6B65] text-[11px] font-medium">
               {s.label}
             </button>
           ))}
@@ -85,8 +85,8 @@ export default function QualitySimulatorPage() {
 
       {canvases.length > 0 && (
         <>
-          <div className="rounded-[10px] border border-[#5B5BD6]/20 bg-[#EEF0FF]/60 px-4 py-3 mb-5">
-            <div className="text-[9px] font-semibold text-[#5B5BD6] uppercase tracking-[0.08em] mb-2">Sessão — {canvases.length} auditoria(s)</div>
+          <div className="rounded-[10px] border border-[#070A1F]/20 bg-[#E6FBFA]/60 px-4 py-3 mb-5">
+            <div className="text-[9px] font-semibold text-[#070A1F] uppercase tracking-[0.08em] mb-2">Sessão — {canvases.length} auditoria(s)</div>
             <div className="grid grid-cols-4 gap-4 sm:grid-cols-8">
               {[
                 { label: "Total",            value: canvases.length },

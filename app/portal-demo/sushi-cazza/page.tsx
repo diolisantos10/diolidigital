@@ -28,7 +28,7 @@ const STATUS_CFG: Record<ClientRequestStatus, {
 };
 
 const COLORS: Record<Color, { bg: string; border: string; title: string; text: string; dot: string; bar: string }> = {
-  indigo: { bg: "bg-[#EEF0FF]", border: "border-[#C7C7F5]", title: "text-[#5B5BD6]", text: "text-[#4B4B9F]", dot: "bg-[#5B5BD6]", bar: "bg-[#5B5BD6]" },
+  indigo: { bg: "bg-[#E6FBFA]", border: "border-[#C7C7F5]", title: "text-[#070A1F]", text: "text-[#4B4B9F]", dot: "bg-[#070A1F]", bar: "bg-[#070A1F]" },
   amber:  { bg: "bg-[#FFFBEB]", border: "border-[#FDE68A]", title: "text-[#D97706]", text: "text-[#92400E]", dot: "bg-[#F59E0B]", bar: "bg-[#F59E0B]" },
   green:  { bg: "bg-[#F0FDF4]", border: "border-[#BBF7D0]", title: "text-[#16A34A]", text: "text-[#15803D]", dot: "bg-[#16A34A]", bar: "bg-[#16A34A]" },
   red:    { bg: "bg-[#FEF2F2]", border: "border-[#FECACA]", title: "text-[#DC2626]", text: "text-[#B91C1C]", dot: "bg-[#DC2626]", bar: "bg-[#DC2626]" },
@@ -200,7 +200,7 @@ export default function DemoClientPage() {
             <h2 className="text-[15px] font-semibold text-[#1A1A1A]">Minhas solicitações</h2>
             <Link
               href="/portal-demo/sushi-cazza/briefing"
-              className="text-[12px] text-[#5B5BD6] hover:underline font-medium"
+              className="text-[12px] text-[#070A1F] hover:underline font-medium"
             >
               + Nova solicitação
             </Link>
@@ -254,14 +254,14 @@ export default function DemoClientPage() {
                       isInProgress
                         ? "bg-[#F0FDF4] border-[#BBF7D0]"
                         : isNew
-                        ? "bg-[#EEF0FF] border-[#C7C7F5]"
+                        ? "bg-[#E6FBFA] border-[#C7C7F5]"
                         : "bg-[#FFFBEB] border-[#FDE68A]"
                     }`}>
                       <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                        isInProgress ? "bg-[#16A34A]" : isNew ? "bg-[#5B5BD6]" : "bg-[#F59E0B]"
+                        isInProgress ? "bg-[#16A34A]" : isNew ? "bg-[#070A1F]" : "bg-[#F59E0B]"
                       }`} />
                       <p className={`text-[12px] font-medium ${
-                        isInProgress ? "text-[#16A34A]" : isNew ? "text-[#5B5BD6]" : "text-[#D97706]"
+                        isInProgress ? "text-[#16A34A]" : isNew ? "text-[#070A1F]" : "text-[#D97706]"
                       }`}>
                         {isInProgress
                           ? "Nossa equipe está estruturando o seu projeto. Em breve entraremos em contato."
@@ -284,7 +284,7 @@ export default function DemoClientPage() {
           </p>
           <Link
             href="/portal-demo/sushi-cazza/briefing"
-            className="inline-flex items-center h-9 px-5 rounded-[8px] bg-[#5B5BD6] hover:bg-[#4A4AB5] text-white text-[13px] font-medium transition-colors"
+            className="inline-flex items-center h-9 px-5 rounded-[8px] bg-[#070A1F] hover:bg-[#4A4AB5] text-white text-[13px] font-medium transition-colors"
           >
             Enviar primeira solicitação →
           </Link>

@@ -71,7 +71,7 @@ interface ActionItem {
 const TYPE_STYLES: Record<ActionType, { bg: string; text: string }> = {
   unblock:   { bg: "bg-[#FEE2E2]", text: "text-[#DC2626]" },
   review:    { bg: "bg-[#FEF3C7]", text: "text-[#D97706]" },
-  execution: { bg: "bg-[#EEF0FF]", text: "text-[#5B5BD6]" },
+  execution: { bg: "bg-[#E6FBFA]", text: "text-[#070A1F]" },
   planning:  { bg: "bg-[#F0F0ED]", text: "text-[#6B6B65]" },
 };
 
@@ -119,7 +119,7 @@ const DOCTOR_STATUS_COLOR = {
 const URGENCY_STYLE: Record<PMUrgency, { bg: string; text: string; label: string }> = {
   critical: { bg: "bg-[#FEE2E2]", text: "text-[#DC2626]", label: "Crítico" },
   high:     { bg: "bg-[#FEF3C7]", text: "text-[#D97706]", label: "Alto" },
-  normal:   { bg: "bg-[#EEF0FF]", text: "text-[#5B5BD6]", label: "Normal" },
+  normal:   { bg: "bg-[#E6FBFA]", text: "text-[#070A1F]", label: "Normal" },
   low:      { bg: "bg-[#F0F0ED]", text: "text-[#9B9B95]", label: "Baixo" },
 };
 
@@ -435,7 +435,7 @@ export default function DashboardPage() {
             <h2 className="text-[13px] font-semibold text-[#1A1A1A]">Centro de Comando</h2>
             <span className="text-[11px] text-[#9B9B95]">O que precisa da sua atenção agora?</span>
           </div>
-          <Link href="/agency/approvals" className="text-[11px] text-[#5B5BD6] font-medium hover:underline">
+          <Link href="/agency/approvals" className="text-[11px] text-[#070A1F] font-medium hover:underline">
             Ver aprovações {totalAttention > 0 && <span className="ml-1 bg-[#D97706] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">{totalAttention}</span>}
           </Link>
         </div>
@@ -444,9 +444,9 @@ export default function DashboardPage() {
         {totalAttention > 0 ? (
           <div className="flex items-center gap-2 px-5 py-3 flex-wrap border-b border-[#F0F0ED]">
             {attentionCounts.sentProposals > 0 && (
-              <Link href="/agency/approvals" className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#EEF0FF] hover:bg-[#E5E7FF] transition-colors">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#5B5BD6]" />
-                <span className="text-[11px] font-semibold text-[#5B5BD6]">{attentionCounts.sentProposals} proposta{attentionCounts.sentProposals !== 1 ? "s" : ""} aguardando</span>
+              <Link href="/agency/approvals" className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#E6FBFA] hover:bg-[#E5E7FF] transition-colors">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#070A1F]" />
+                <span className="text-[11px] font-semibold text-[#070A1F]">{attentionCounts.sentProposals} proposta{attentionCounts.sentProposals !== 1 ? "s" : ""} aguardando</span>
               </Link>
             )}
             {attentionCounts.inReviewDelivs > 0 && (
@@ -503,7 +503,7 @@ export default function DashboardPage() {
                     )}
                     <Link
                       href={d.route}
-                      className="h-6 px-2.5 rounded-[5px] text-[11px] font-medium border border-[#E5E5E2] text-[#6B6B65] hover:border-[#5B5BD6] hover:text-[#5B5BD6] transition-colors whitespace-nowrap inline-flex items-center"
+                      className="h-6 px-2.5 rounded-[5px] text-[11px] font-medium border border-[#E5E5E2] text-[#6B6B65] hover:border-[#070A1F] hover:text-[#070A1F] transition-colors whitespace-nowrap inline-flex items-center"
                     >
                       {d.role} →
                     </Link>
@@ -530,7 +530,7 @@ export default function DashboardPage() {
             <span className="text-[10px] text-[#9B9B95]">
               {doctorReport.pass} ok · {doctorReport.warning} atenção · {doctorReport.fail} falha
             </span>
-            <Link href="/agency/settings" className="text-[11px] text-[#5B5BD6] hover:underline font-medium">
+            <Link href="/agency/settings" className="text-[11px] text-[#070A1F] hover:underline font-medium">
               Ver diagnóstico →
             </Link>
           </div>
@@ -556,7 +556,7 @@ export default function DashboardPage() {
           <div className="flex items-center gap-2">
             <h2 className="text-[13px] font-semibold text-[#1A1A1A]">{t.dashboard.today}</h2>
             {sortedActions.length > 0 && (
-              <span className="w-5 h-5 rounded-full bg-[#5B5BD6] text-white text-[10px] font-bold flex items-center justify-center">
+              <span className="w-5 h-5 rounded-full bg-[#070A1F] text-white text-[10px] font-bold flex items-center justify-center">
                 {sortedActions.length}
               </span>
             )}
@@ -594,7 +594,7 @@ export default function DashboardPage() {
                   {/* CTA */}
                   <button
                     onClick={() => handleAction(item)}
-                    className="shrink-0 h-6 px-2.5 rounded-[5px] text-[11px] font-medium border border-[#E5E5E2] text-[#6B6B65] hover:border-[#5B5BD6] hover:text-[#5B5BD6] transition-colors whitespace-nowrap"
+                    className="shrink-0 h-6 px-2.5 rounded-[5px] text-[11px] font-medium border border-[#E5E5E2] text-[#6B6B65] hover:border-[#070A1F] hover:text-[#070A1F] transition-colors whitespace-nowrap"
                   >
                     {item.cta} →
                   </button>
@@ -648,10 +648,10 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between px-5 py-3 border-b border-[#F0F0ED]">
             <div className="flex items-center gap-2">
               <h2 className="text-[13px] font-semibold text-[#1A1A1A]">Tarefas Automáticas</h2>
-              <span className="w-5 h-5 rounded-full bg-[#5B5BD6] text-white text-[10px] font-bold flex items-center justify-center">{Math.min(autoTasks.length, 6)}</span>
+              <span className="w-5 h-5 rounded-full bg-[#070A1F] text-white text-[10px] font-bold flex items-center justify-center">{Math.min(autoTasks.length, 6)}</span>
               <span className="text-[11px] text-[#9B9B95]">geradas pelo PM Engine</span>
             </div>
-            <Link href="/agency/tasks" className="text-[11px] text-[#5B5BD6] font-medium hover:underline">
+            <Link href="/agency/tasks" className="text-[11px] text-[#070A1F] font-medium hover:underline">
               Ver todas →
             </Link>
           </div>
@@ -731,7 +731,7 @@ export default function DashboardPage() {
         <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden mb-6">
           <div className="flex items-center justify-between px-5 py-3 border-b border-[#F0F0ED]">
             <h2 className="text-[13px] font-semibold text-[#1A1A1A]">Pipeline de Execução</h2>
-            <Link href="/agency/pipeline" className="text-[11px] text-[#5B5BD6] font-medium hover:underline">Ver quadro →</Link>
+            <Link href="/agency/pipeline" className="text-[11px] text-[#070A1F] font-medium hover:underline">Ver quadro →</Link>
           </div>
           <div className="divide-y divide-[#F0F0ED]">
             {activeProjects.slice(0, 5).map((project) => {
@@ -777,7 +777,7 @@ export default function DashboardPage() {
           <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F0ED]">
               <h2 className="text-[13px] font-semibold text-[#1A1A1A]">{t.dashboard.activeProjects}</h2>
-              <Link href="/agency/projects" className="text-[12px] text-[#5B5BD6] hover:underline font-medium">{t.common.viewAll}</Link>
+              <Link href="/agency/projects" className="text-[12px] text-[#070A1F] hover:underline font-medium">{t.common.viewAll}</Link>
             </div>
             {activeProjects.length === 0 ? (
               <div className="px-5 py-8 text-center text-[13px] text-[#9B9B95]">{t.dashboard.noActiveProjects}</div>
@@ -885,7 +885,7 @@ export default function DashboardPage() {
           <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F0ED]">
               <h2 className="text-[13px] font-semibold text-[#1A1A1A]">{t.dashboard.outputs}</h2>
-              <Link href="/agency/deliverables" className="text-[12px] text-[#5B5BD6] hover:underline">{t.dashboard.allDeliverables}</Link>
+              <Link href="/agency/deliverables" className="text-[12px] text-[#070A1F] hover:underline">{t.dashboard.allDeliverables}</Link>
             </div>
             {readyOutputs.length === 0 ? (
               <div className="px-5 py-6 text-center text-[12px] text-[#9B9B95]">{t.dashboard.noOutputs}</div>

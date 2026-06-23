@@ -17,7 +17,7 @@ const QG_STYLE = {
 
 const ASSET_STATUS_STYLE: Record<DesignAssetStatus, { bg: string; text: string; label: string }> = {
   pending:     { bg: "bg-[#F0F0ED]",  text: "text-[#6B6B65]", label: "Pendente" },
-  in_progress: { bg: "bg-[#EEF0FF]",  text: "text-[#5B5BD6]", label: "Em produção" },
+  in_progress: { bg: "bg-[#E6FBFA]",  text: "text-[#070A1F]", label: "Em produção" },
   review:      { bg: "bg-[#FEF3C7]",  text: "text-[#D97706]", label: "Em revisão" },
   approved:    { bg: "bg-[#DCFCE7]",  text: "text-[#16A34A]", label: "Aprovado" },
   published:   { bg: "bg-[#FDF2F8]",  text: "text-[#DB2777]", label: "Publicado" },
@@ -104,7 +104,7 @@ export function DesignCanvasCard({
         </div>
         <button
           onClick={() => setExpanded(!expanded)}
-          className="shrink-0 text-[11px] text-[#5B5BD6] hover:underline"
+          className="shrink-0 text-[11px] text-[#070A1F] hover:underline"
         >
           {expanded ? "Fechar" : "Ver canvas"}
         </button>
@@ -166,7 +166,7 @@ export function DesignCanvasCard({
                 <div key={brief.id} className="rounded-[8px] border border-[#E8E8E2] bg-[#FAFAF8] p-3 space-y-2">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-[12px] font-semibold text-[#1A1A1A]">{brief.themeTitle}</span>
-                    <span className="text-[10px] bg-[#EEF0FF] text-[#5B5BD6] px-2 py-0.5 rounded-full">{brief.pillar}</span>
+                    <span className="text-[10px] bg-[#E6FBFA] text-[#070A1F] px-2 py-0.5 rounded-full">{brief.pillar}</span>
                     <span className="text-[10px] bg-[#F0F0ED] text-[#6B6B65] px-2 py-0.5 rounded-full">{brief.format}</span>
                     <span className="text-[10px] bg-[#F0F0ED] text-[#6B6B65] px-2 py-0.5 rounded-full">{brief.channel}</span>
                   </div>
@@ -208,7 +208,7 @@ export function DesignCanvasCard({
                   <p className="text-[10px] text-[#DC2626] font-mono">— {spec.promptNegative}</p>
                   <div className="flex gap-1.5 flex-wrap">
                     {spec.colorPalette.map((c, i) => (
-                      <span key={i} className="text-[10px] bg-[#EEF0FF] text-[#5B5BD6] px-1.5 py-0.5 rounded">{c}</span>
+                      <span key={i} className="text-[10px] bg-[#E6FBFA] text-[#070A1F] px-1.5 py-0.5 rounded">{c}</span>
                     ))}
                   </div>
                 </div>
@@ -316,7 +316,7 @@ export function DesignCanvasCard({
           {showNoteInput ? (
             <div className="flex-1 flex items-center gap-2">
               <input
-                className="flex-1 text-[11px] border border-[#E8E8E2] rounded-[6px] px-2 py-1.5 outline-none focus:border-[#5B5BD6]"
+                className="flex-1 text-[11px] border border-[#E8E8E2] rounded-[6px] px-2 py-1.5 outline-none focus:border-[#070A1F]"
                 placeholder={showNoteInput === "approve" ? "Nota de aprovação (opcional)" : "Motivo da rejeição"}
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
@@ -367,8 +367,8 @@ export function DesignCanvasCard({
                   disabled={brainChangeCreated}
                   className={`text-[11px] font-medium px-3 py-1.5 rounded-[6px] transition-colors ${
                     brainChangeCreated
-                      ? "bg-[#EEF0FF] text-[#9B9B95] cursor-default"
-                      : "bg-[#EEF0FF] text-[#5B5BD6] hover:bg-[#E0E3FF]"
+                      ? "bg-[#E6FBFA] text-[#9B9B95] cursor-default"
+                      : "bg-[#E6FBFA] text-[#070A1F] hover:bg-[#E0E3FF]"
                   }`}
                 >
                   {brainChangeCreated ? "Brain Change criado ✓" : "Propor ao Brain"}

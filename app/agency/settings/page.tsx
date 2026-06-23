@@ -36,7 +36,7 @@ const STATUS_COLOR: Record<CheckStatus, { dot: string; badge: string; border: st
   pass:    { dot: "bg-[#16A34A]", badge: "bg-[#DCFCE7] text-[#16A34A]", border: "border-[#DCFCE7]" },
   warning: { dot: "bg-[#D97706]", badge: "bg-[#FEF3C7] text-[#D97706]", border: "border-[#FEF3C7]" },
   fail:    { dot: "bg-[#DC2626]", badge: "bg-[#FEE2E2] text-[#DC2626]", border: "border-[#FEE2E2]" },
-  info:    { dot: "bg-[#5B5BD6]", badge: "bg-[#EEF0FF] text-[#5B5BD6]", border: "border-[#EEF0FF]" },
+  info:    { dot: "bg-[#070A1F]", badge: "bg-[#E6FBFA] text-[#070A1F]", border: "border-[#E6FBFA]" },
 };
 
 const OVERALL_COLOR: Record<DiagnosticReport["overallStatus"], { ring: string; score: string; label: string; labelColor: string }> = {
@@ -171,7 +171,7 @@ function PendingBrainUpdates() {
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-[12px] font-semibold text-[#1A1A1A]">{u.fieldChanged}</span>
                 <span className="h-4 px-1.5 rounded-[3px] bg-[#F0F0ED] text-[#6B6B65] text-[9px] font-medium leading-4">{u.department}</span>
-                <span className="h-4 px-1.5 rounded-[3px] bg-[#EEF0FF] text-[#5B5BD6] text-[9px] font-medium leading-4">{u.source}</span>
+                <span className="h-4 px-1.5 rounded-[3px] bg-[#E6FBFA] text-[#070A1F] text-[9px] font-medium leading-4">{u.source}</span>
               </div>
               {u.previousValue && (
                 <p className="text-[11px] text-[#9B9B95] mt-0.5 line-through truncate">{u.previousValue}</p>
@@ -303,7 +303,7 @@ export default function SettingsPage() {
         <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
           <div className="px-6 py-4 border-b border-[#F0F0ED] flex items-center justify-between">
             <span className="text-[13px] font-semibold text-[#1A1A1A]">Saúde do Sistema</span>
-            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-[4px] bg-[#EEF0FF] text-[#5B5BD6]">
+            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-[4px] bg-[#E6FBFA] text-[#070A1F]">
               Interno · Tempo real
             </span>
           </div>
@@ -319,7 +319,7 @@ export default function SettingsPage() {
                     <span className="font-semibold text-[#16A34A]">{pass}</span> ok ·{" "}
                     <span className="font-semibold text-[#D97706]">{warning}</span> atenção ·{" "}
                     <span className="font-semibold text-[#DC2626]">{fail}</span> falha ·{" "}
-                    <span className="font-semibold text-[#5B5BD6]">{info}</span> info
+                    <span className="font-semibold text-[#070A1F]">{info}</span> info
                   </span>
                 </div>
                 {(fail > 0 || warning > 0) && (
@@ -398,14 +398,14 @@ export default function SettingsPage() {
                                 {check.status !== "pass" && check.status !== "info" && (
                                   <div className="mt-1.5 flex items-start gap-1.5">
                                     <span className="text-[11px] text-[#9B9B95] font-medium shrink-0">→</span>
-                                    <p className="text-[11px] text-[#5B5BD6] leading-relaxed">{check.action}</p>
+                                    <p className="text-[11px] text-[#070A1F] leading-relaxed">{check.action}</p>
                                   </div>
                                 )}
                               </div>
                               {check.route && (
                                 <Link
                                   href={check.route}
-                                  className="shrink-0 text-[11px] text-[#9B9B95] hover:text-[#5B5BD6] underline whitespace-nowrap"
+                                  className="shrink-0 text-[11px] text-[#9B9B95] hover:text-[#070A1F] underline whitespace-nowrap"
                                 >
                                   Ir →
                                 </Link>
@@ -454,7 +454,7 @@ export default function SettingsPage() {
               </div>
               <div className="bg-[#FAFAF9] rounded-[8px] px-3 py-2.5 border border-[#F0F0ED]">
                 <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-0.5">Brand updates pendentes</div>
-                <div className={`text-[18px] font-bold mono-num ${pendingBrandUpdates > 0 ? "text-[#5B5BD6]" : "text-[#1A1A1A]"}`}>
+                <div className={`text-[18px] font-bold mono-num ${pendingBrandUpdates > 0 ? "text-[#070A1F]" : "text-[#1A1A1A]"}`}>
                   {pendingBrandUpdates}
                 </div>
               </div>
@@ -467,12 +467,12 @@ export default function SettingsPage() {
             {/* Integrations shortcut */}
             <div className="flex items-center justify-between bg-[#F0F0FE] rounded-[8px] px-4 py-3 border border-[#DDDDFB] mt-1">
               <div>
-                <div className="text-[13px] font-semibold text-[#5B5BD6]">Ferramentas &amp; Integrações</div>
+                <div className="text-[13px] font-semibold text-[#070A1F]">Ferramentas &amp; Integrações</div>
                 <div className="text-[11px] text-[#6B6B65] mt-0.5">Gerenciar ferramentas, IAs dos agentes e conexões.</div>
               </div>
               <Link
                 href="/agency/integrations"
-                className="shrink-0 px-3 py-1.5 bg-[#5B5BD6] text-white text-[12px] font-medium rounded-[6px] hover:bg-[#4A4AC0] transition-colors"
+                className="shrink-0 px-3 py-1.5 bg-[#070A1F] text-white text-[12px] font-medium rounded-[6px] hover:bg-[#0D1230] transition-colors"
               >
                 Gerenciar →
               </Link>

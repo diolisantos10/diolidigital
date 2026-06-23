@@ -181,7 +181,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           <span className="text-[12px] text-[#6B6B65] font-medium mono-num">{doneTasks}/{projectTasks.length} tarefas concluídas</span>
         </div>
         <div className="h-1.5 bg-[#F0F0ED] rounded-full overflow-hidden">
-          <div className="h-full bg-[#5B5BD6] rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
+          <div className="h-full bg-[#070A1F] rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
         </div>
       </div>
 
@@ -193,7 +193,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             onClick={() => setTab(t)}
             className={`h-9 px-4 text-[13px] font-medium border-b-2 transition-colors ${
               tab === t
-                ? "border-[#5B5BD6] text-[#5B5BD6]"
+                ? "border-[#070A1F] text-[#070A1F]"
                 : "border-transparent text-[#6B6B65] hover:text-[#1A1A1A]"
             }`}
           >
@@ -249,10 +249,10 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 {!strategyRoom && (
-                  <button onClick={() => setTab("strategy")} className="h-7 px-3 rounded-[6px] text-[12px] font-medium border border-[#E5E5E2] text-[#6B6B65] hover:border-[#5B5BD6] hover:text-[#5B5BD6] transition-colors">Gerar Estratégia</button>
+                  <button onClick={() => setTab("strategy")} className="h-7 px-3 rounded-[6px] text-[12px] font-medium border border-[#E5E5E2] text-[#6B6B65] hover:border-[#070A1F] hover:text-[#070A1F] transition-colors">Gerar Estratégia</button>
                 )}
-                <a href={`/agency/clients/${project.clientId}`} className="h-7 px-3 rounded-[6px] text-[12px] font-medium border border-[#E5E5E2] text-[#6B6B65] hover:border-[#5B5BD6] hover:text-[#5B5BD6] transition-colors flex items-center">Gerar link do portal ↗</a>
-                <button onClick={goToReport} className="h-7 px-3 rounded-[6px] text-[12px] font-medium bg-[#5B5BD6] text-white hover:opacity-90 transition-opacity">Ver Relatório</button>
+                <a href={`/agency/clients/${project.clientId}`} className="h-7 px-3 rounded-[6px] text-[12px] font-medium border border-[#E5E5E2] text-[#6B6B65] hover:border-[#070A1F] hover:text-[#070A1F] transition-colors flex items-center">Gerar link do portal ↗</a>
+                <button onClick={goToReport} className="h-7 px-3 rounded-[6px] text-[12px] font-medium bg-[#070A1F] text-white hover:opacity-90 transition-opacity">Ver Relatório</button>
               </div>
             </div>
             {/* Audit warnings */}
@@ -374,7 +374,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Gerente de Projeto</div>
                     <button
                       onClick={() => setTab("proposal")}
-                      className="text-[12px] text-[#5B5BD6] hover:underline"
+                      className="text-[12px] text-[#070A1F] hover:underline"
                     >
                       {prop ? "Ver Proposta" : "Criar Proposta"} →
                     </button>
@@ -389,7 +389,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     {prop && (
                       <div className="flex items-center gap-2 flex-wrap pl-4">
                         {[
-                          { label: "Proposta", value: prop.status === "draft" ? "Rascunho" : prop.status === "sent" ? "Enviada ao cliente" : prop.status === "approved" ? "Aprovada" : prop.status === "rejected" ? "Reprovada" : "Alterações solicitadas", color: isApproved ? "bg-[#DCFCE7] text-[#16A34A]" : isSent ? "bg-[#EEF0FF] text-[#5B5BD6]" : isRejected ? "bg-[#FEE2E2] text-[#DC2626]" : "bg-[#FEF3C7] text-[#D97706]" },
+                          { label: "Proposta", value: prop.status === "draft" ? "Rascunho" : prop.status === "sent" ? "Enviada ao cliente" : prop.status === "approved" ? "Aprovada" : prop.status === "rejected" ? "Reprovada" : "Alterações solicitadas", color: isApproved ? "bg-[#DCFCE7] text-[#16A34A]" : isSent ? "bg-[#E6FBFA] text-[#070A1F]" : isRejected ? "bg-[#FEE2E2] text-[#DC2626]" : "bg-[#FEF3C7] text-[#D97706]" },
                           ...(pendingRequests > 0 ? [{ label: "Materiais do cliente", value: `${pendingRequests} pendente(s)`, color: "bg-[#FEF3C7] text-[#D97706]" }] : []),
                           ...(blockedTasks > 0 ? [{ label: "Tarefas bloqueadas", value: `${blockedTasks}`, color: "bg-[#FEE2E2] text-[#DC2626]" }] : []),
                         ].map((item) => (
@@ -400,7 +400,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                         {strategyRoom && (
                           <button
                             onClick={() => setTab("strategy")}
-                            className="h-5 px-2 rounded-full text-[10px] font-semibold bg-[#EEF0FF] text-[#5B5BD6] hover:opacity-80 transition-opacity"
+                            className="h-5 px-2 rounded-full text-[10px] font-semibold bg-[#E6FBFA] text-[#070A1F] hover:opacity-80 transition-opacity"
                           >
                             Strategy Room completo
                           </button>
@@ -462,7 +462,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
                   <div className="flex items-center justify-between mb-3">
                     <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Departamento de Redes Sociais</div>
-                    <button onClick={() => setTab("deliverables")} className="text-[12px] text-[#5B5BD6] hover:underline">
+                    <button onClick={() => setTab("deliverables")} className="text-[12px] text-[#070A1F] hover:underline">
                       Ver entregas →
                     </button>
                   </div>
@@ -522,7 +522,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
                   <div className="flex items-center justify-between mb-3">
                     <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Departamento de Design</div>
-                    <button onClick={() => setTab("deliverables")} className="text-[12px] text-[#5B5BD6] hover:underline">
+                    <button onClick={() => setTab("deliverables")} className="text-[12px] text-[#070A1F] hover:underline">
                       Ver entregas →
                     </button>
                   </div>
@@ -587,7 +587,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
                   <div className="flex items-center justify-between mb-3">
                     <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Departamento de Tráfego Pago</div>
-                    <button onClick={() => setTab("deliverables")} className="text-[12px] text-[#5B5BD6] hover:underline">
+                    <button onClick={() => setTab("deliverables")} className="text-[12px] text-[#070A1F] hover:underline">
                       Ver entregas →
                     </button>
                   </div>
@@ -637,7 +637,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
               <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F0ED]">
                 <div className="text-[13px] font-semibold text-[#1A1A1A]">Tarefas</div>
-                <button onClick={() => setTab("tasks")} className="text-[12px] text-[#5B5BD6] hover:underline">Ver todas</button>
+                <button onClick={() => setTab("tasks")} className="text-[12px] text-[#070A1F] hover:underline">Ver todas</button>
               </div>
               {projectTasks.slice(0, 4).map((task, i) => (
                 <div key={task.id} className={`flex items-center gap-3 px-5 py-3 ${i > 0 ? "border-t border-[#F0F0ED]" : ""}`}>
@@ -645,10 +645,10 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     onClick={() => updateTaskStatus(task.id, TASK_CYCLE[task.status])}
                     className={`w-4 h-4 rounded-[4px] border flex items-center justify-center shrink-0 transition-colors ${
                       task.status === "done"
-                        ? "bg-[#5B5BD6] border-[#5B5BD6]"
+                        ? "bg-[#070A1F] border-[#070A1F]"
                         : task.status === "blocked"
                         ? "bg-[#FEE2E2] border-[#DC2626]"
-                        : "border-[#D0D0CC] hover:border-[#5B5BD6]"
+                        : "border-[#D0D0CC] hover:border-[#070A1F]"
                     }`}
                   >
                     {task.status === "done" && (
@@ -668,7 +668,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
                 <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F0ED]">
                   <div className="text-[13px] font-semibold text-[#1A1A1A]">Entregas</div>
-                  <button onClick={() => setTab("deliverables")} className="text-[12px] text-[#5B5BD6] hover:underline">Ver todas</button>
+                  <button onClick={() => setTab("deliverables")} className="text-[12px] text-[#070A1F] hover:underline">Ver todas</button>
                 </div>
                 {projectDeliverables.map((d, i) => (
                   <div
@@ -678,7 +678,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   >
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-[13px] font-medium text-[#1A1A1A] group-hover:text-[#5B5BD6] transition-colors">{d.name}</span>
+                        <span className="text-[13px] font-medium text-[#1A1A1A] group-hover:text-[#070A1F] transition-colors">{d.name}</span>
                         {needsRevision(d) && (
                           <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#D97706]">Revisão</span>
                         )}
@@ -726,7 +726,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   if (!agent) return null;
                   return (
                     <div key={agentId} className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-[#EEF0FF] flex items-center justify-center text-[10px] font-bold text-[#5B5BD6]">
+                      <div className="w-6 h-6 rounded-full bg-[#E6FBFA] flex items-center justify-center text-[10px] font-bold text-[#070A1F]">
                         {agent.name.slice(0, 1)}
                       </div>
                       <span className="text-[12px] text-[#1A1A1A]">{agent.name}</span>
@@ -758,10 +758,10 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                       onClick={() => moveProjectStage(id, stage)}
                       className={`h-7 px-3 rounded-full text-[12px] font-medium transition-all ${
                         isActive
-                          ? "bg-[#5B5BD6] text-white"
+                          ? "bg-[#070A1F] text-white"
                           : isDone
                           ? "bg-[#F0F0ED] text-[#6B6B65] hover:bg-[#E8E8E5]"
-                          : "bg-[#F7F7F6] text-[#9B9B95] border border-[#E5E5E2] hover:border-[#5B5BD6] hover:text-[#5B5BD6]"
+                          : "bg-[#F7F7F6] text-[#9B9B95] border border-[#E5E5E2] hover:border-[#070A1F] hover:text-[#070A1F]"
                       }`}
                     >
                       {isDone && <span className="mr-1 text-[#16A34A]">✓</span>}
@@ -793,7 +793,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   return (
                     <div key={agentId} className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 flex items-center gap-4">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold shrink-0 ${
-                        status === "done" ? "bg-[#DCFCE7] text-[#16A34A]" : status === "in_progress" ? "bg-[#FFF4ED] text-[#C2530A]" : "bg-[#EEF0FF] text-[#5B5BD6]"
+                        status === "done" ? "bg-[#DCFCE7] text-[#16A34A]" : status === "in_progress" ? "bg-[#FFF4ED] text-[#C2530A]" : "bg-[#E6FBFA] text-[#070A1F]"
                       }`}>
                         {idx + 1}
                       </div>
@@ -823,7 +823,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                             });
                             router.push(runUrl);
                           }}
-                          className="shrink-0 h-7 px-3 rounded-[6px] text-[12px] font-medium border border-[#E5E5E2] text-[#1A1A1A] hover:bg-[#F7F7F6] hover:border-[#5B5BD6] hover:text-[#5B5BD6] transition-colors flex items-center gap-1.5"
+                          className="shrink-0 h-7 px-3 rounded-[6px] text-[12px] font-medium border border-[#E5E5E2] text-[#1A1A1A] hover:bg-[#F7F7F6] hover:border-[#070A1F] hover:text-[#070A1F] transition-colors flex items-center gap-1.5"
                         >
                           Executar
                           <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
@@ -893,12 +893,12 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               return (
                 <div key={stage} className={`flex items-center gap-4 px-6 py-4 ${isActive ? "bg-[#FAFAFE]" : ""}`}>
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${
-                    isActive ? "bg-[#5B5BD6] text-white" : isDone ? "bg-[#DCFCE7] text-[#16A34A]" : "bg-[#F0F0ED] text-[#9B9B95]"
+                    isActive ? "bg-[#070A1F] text-white" : isDone ? "bg-[#DCFCE7] text-[#16A34A]" : "bg-[#F0F0ED] text-[#9B9B95]"
                   }`}>
                     {isDone ? "✓" : i + 1}
                   </div>
                   <div className="flex-1">
-                    <div className={`text-[13px] font-medium ${isActive ? "text-[#5B5BD6]" : isDone ? "text-[#6B6B65]" : "text-[#9B9B95]"}`}>
+                    <div className={`text-[13px] font-medium ${isActive ? "text-[#070A1F]" : isDone ? "text-[#6B6B65]" : "text-[#9B9B95]"}`}>
                       {stage.charAt(0).toUpperCase() + stage.slice(1)}
                     </div>
                     {isActive && (
@@ -910,7 +910,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   {!isActive && (
                     <button
                       onClick={() => moveProjectStage(id, stage)}
-                      className="h-6 px-2.5 rounded-[5px] text-[11px] font-medium border border-[#E5E5E2] text-[#6B6B65] hover:border-[#5B5BD6] hover:text-[#5B5BD6] transition-colors"
+                      className="h-6 px-2.5 rounded-[5px] text-[11px] font-medium border border-[#E5E5E2] text-[#6B6B65] hover:border-[#070A1F] hover:text-[#070A1F] transition-colors"
                     >
                       Mover aqui
                     </button>
@@ -951,10 +951,10 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                           onClick={() => updateTaskStatus(task.id, TASK_CYCLE[task.status])}
                           className={`w-4 h-4 rounded-[4px] border flex items-center justify-center transition-colors ${
                             task.status === "done"
-                              ? "bg-[#5B5BD6] border-[#5B5BD6]"
+                              ? "bg-[#070A1F] border-[#070A1F]"
                               : task.status === "blocked"
                               ? "bg-[#FEE2E2] border-[#DC2626]"
-                              : "border-[#D0D0CC] hover:border-[#5B5BD6]"
+                              : "border-[#D0D0CC] hover:border-[#070A1F]"
                           }`}
                         >
                           {task.status === "done" && (
@@ -1012,7 +1012,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     >
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-2">
-                          <span className="text-[13px] font-medium text-[#1A1A1A] group-hover:text-[#5B5BD6] transition-colors">{d.name}</span>
+                          <span className="text-[13px] font-medium text-[#1A1A1A] group-hover:text-[#070A1F] transition-colors">{d.name}</span>
                           <span className="text-[11px] text-[#9B9B95] bg-[#F0F0ED] px-1.5 py-0.5 rounded-[4px]">{d.type}</span>
                           {revision && (
                             <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#D97706]">Revisão necessária</span>
@@ -1087,7 +1087,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 <div className="flex flex-wrap gap-1.5 flex-1">
                   {ob.services.length > 0
                     ? ob.services.map((s) => (
-                        <span key={s} className="h-6 px-2.5 rounded-full text-[11px] font-medium bg-[#EEF0FF] text-[#5B5BD6]">
+                        <span key={s} className="h-6 px-2.5 rounded-full text-[11px] font-medium bg-[#E6FBFA] text-[#070A1F]">
                           {SERVICE_LABELS[s] ?? s}
                         </span>
                       ))
@@ -1128,17 +1128,17 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           opening: "Abertura", critique: "Crítica", addition: "Adição", risk: "Risco", consensus: "Consenso",
         };
         const DEBATE_TYPE_COLOR: Record<string, string> = {
-          opening: "bg-[#EEF0FF] text-[#5B5BD6]",
+          opening: "bg-[#E6FBFA] text-[#070A1F]",
           critique: "bg-[#FEE2E2] text-[#DC2626]",
           addition: "bg-[#DCFCE7] text-[#16A34A]",
           risk: "bg-[#FEF3C7] text-[#D97706]",
-          consensus: "bg-[#5B5BD6] text-white",
+          consensus: "bg-[#070A1F] text-white",
         };
         const SPECIALIST_AVATAR: Record<string, string> = {
           strat: "BS", social: "SM", creative: "CD", paid: "PM", growth: "GS", ceo: "CE",
         };
         const SPECIALIST_COLOR: Record<string, string> = {
-          strat: "bg-[#5B5BD6]", social: "bg-[#0E7490]", creative: "bg-[#C2530A]",
+          strat: "bg-[#070A1F]", social: "bg-[#0E7490]", creative: "bg-[#C2530A]",
           paid: "bg-[#16A34A]", growth: "bg-[#7C3AED]", ceo: "bg-[#1A1A1A]",
         };
 
@@ -1160,8 +1160,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         if (!strategyRoom) {
           return (
             <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-6 py-10 text-center">
-              <div className="w-12 h-12 rounded-full bg-[#EEF0FF] flex items-center justify-center mx-auto mb-4">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5B5BD6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <div className="w-12 h-12 rounded-full bg-[#E6FBFA] flex items-center justify-center mx-auto mb-4">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#070A1F" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
                 </svg>
               </div>
@@ -1171,7 +1171,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               </p>
               <button
                 onClick={() => { generateStrategyRoom(id); setStratViewTab("specialists"); }}
-                className="inline-flex items-center gap-2 h-9 px-5 rounded-[8px] bg-[#5B5BD6] text-white text-[13px] font-medium hover:bg-[#4747c2] transition-colors"
+                className="inline-flex items-center gap-2 h-9 px-5 rounded-[8px] bg-[#070A1F] text-white text-[13px] font-medium hover:bg-[#4747c2] transition-colors"
               >
                 Gerar Strategy Room
               </button>
@@ -1202,7 +1202,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 ) : (
                   <button
                     onClick={applyEntireStrategy}
-                    className="h-8 px-4 rounded-[7px] bg-[#5B5BD6] text-white text-[12px] font-medium hover:bg-[#4747c2] transition-colors"
+                    className="h-8 px-4 rounded-[7px] bg-[#070A1F] text-white text-[12px] font-medium hover:bg-[#4747c2] transition-colors"
                   >
                     Aplicar Estratégia Completa
                   </button>
@@ -1237,7 +1237,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     <div className="text-[9px] font-semibold uppercase tracking-[0.06em] text-[#EF4444] mb-1">Maior Risco</div>
                     <p className="text-[12px] text-[#E5E5E2] leading-snug">{exec.biggestRisk}</p>
                   </div>
-                  <div className="bg-[#5B5BD6]/20 rounded-[8px] px-3 py-2.5 border border-[#5B5BD6]/30">
+                  <div className="bg-[#070A1F]/20 rounded-[8px] px-3 py-2.5 border border-[#070A1F]/30">
                     <div className="text-[9px] font-semibold uppercase tracking-[0.06em] text-[#8B8BF0] mb-1">Ação Recomendada</div>
                     <p className="text-[12px] text-[#E5E5E2] leading-snug">{exec.recommendedAction}</p>
                   </div>
@@ -1269,7 +1269,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     {/* Specialist header */}
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-2.5">
-                        <div className={`w-8 h-8 rounded-full ${SPECIALIST_COLOR[sp.specialistId] ?? "bg-[#5B5BD6]"} text-white text-[11px] font-bold flex items-center justify-center shrink-0`}>
+                        <div className={`w-8 h-8 rounded-full ${SPECIALIST_COLOR[sp.specialistId] ?? "bg-[#070A1F]"} text-white text-[11px] font-bold flex items-center justify-center shrink-0`}>
                           {SPECIALIST_AVATAR[sp.specialistId] ?? sp.specialistName.slice(0, 2).toUpperCase()}
                         </div>
                         <div>
@@ -1281,7 +1281,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                         <span className={`h-5 px-2 rounded-full text-[10px] font-semibold ${PRIORITY_COLOR[sp.priority]}`}>
                           {PRIORITY_LABEL[sp.priority]}
                         </span>
-                        <span className="h-5 px-2 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-semibold">
+                        <span className="h-5 px-2 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[10px] font-semibold">
                           {sp.confidence}/10
                         </span>
                       </div>
@@ -1300,7 +1300,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                         <ol className="space-y-0.5">
                           {sp.priorities.map((p, i) => (
                             <li key={i} className="flex items-start gap-1.5 text-[11px] text-[#6B6B65]">
-                              <span className="mt-[1px] w-4 h-4 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[9px] font-bold flex items-center justify-center shrink-0">{i + 1}</span>
+                              <span className="mt-[1px] w-4 h-4 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[9px] font-bold flex items-center justify-center shrink-0">{i + 1}</span>
                               {p}
                             </li>
                           ))}
@@ -1361,7 +1361,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     debate.map((turn: DebateTurn, idx: number) => (
                       <div key={idx} className={`px-5 py-4 ${turn.type === "consensus" ? "bg-[#FAFAFE]" : ""}`}>
                         <div className="flex items-start gap-3">
-                          <div className={`w-8 h-8 rounded-full ${SPECIALIST_COLOR[turn.specialistId] ?? "bg-[#5B5BD6]"} text-white text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5`}>
+                          <div className={`w-8 h-8 rounded-full ${SPECIALIST_COLOR[turn.specialistId] ?? "bg-[#070A1F]"} text-white text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5`}>
                             {SPECIALIST_AVATAR[turn.specialistId] ?? turn.specialistName.slice(0, 2).toUpperCase()}
                           </div>
                           <div className="flex-1 min-w-0">
@@ -1390,10 +1390,10 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             {stratViewTab === "consensus" && consensus && (
               <div className="space-y-4">
                 {/* Consensus layer */}
-                <div className="bg-white rounded-[10px] border border-[#5B5BD6] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
+                <div className="bg-white rounded-[10px] border border-[#070A1F] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
                   <div className="flex items-center justify-between mb-4">
                     <div className="text-[13px] font-semibold text-[#1A1A1A]">Consenso Estratégico</div>
-                    <span className="h-5 px-2 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-semibold">
+                    <span className="h-5 px-2 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[10px] font-semibold">
                       Score {strategyRoom.finalSynthesis.strategicScore}/10
                     </span>
                   </div>
@@ -1432,7 +1432,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     </div>
                     <div>
                       <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1">Pacote recomendado</div>
-                      <span className="inline-flex h-6 px-3 rounded-full bg-[#5B5BD6] text-white text-[11px] font-semibold items-center">
+                      <span className="inline-flex h-6 px-3 rounded-full bg-[#070A1F] text-white text-[11px] font-semibold items-center">
                         {consensus.recommendedPackage}
                       </span>
                     </div>
@@ -1440,7 +1440,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                       <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Canais recomendados</div>
                       <div className="flex flex-wrap gap-1.5">
                         {consensus.recommendedChannels.map((ch) => (
-                          <span key={ch} className="h-5 px-2 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-semibold">{ch}</span>
+                          <span key={ch} className="h-5 px-2 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[10px] font-semibold">{ch}</span>
                         ))}
                       </div>
                     </div>
@@ -1467,7 +1467,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                         { label: "Agente Design →", action: () => { setPendingAgentInput({ projectId: id, projectName: project.name, clientName: client?.name ?? "", goal: project.goal, projectType: project.type }); router.push("/agency/design-agent"); } },
                         { label: "Agente Tráfego Pago →", action: () => { setPendingAgentInput({ projectId: id, projectName: project.name, clientName: client?.name ?? "", goal: project.goal, projectType: project.type }); router.push("/agency/ads-agent"); } },
                       ].map(({ label, action }) => (
-                        <button key={label} onClick={action} className="h-8 px-4 rounded-[7px] bg-white border border-[#E5E5E2] text-[#1A1A1A] text-[12px] font-medium hover:border-[#5B5BD6] hover:text-[#5B5BD6] transition-colors">
+                        <button key={label} onClick={action} className="h-8 px-4 rounded-[7px] bg-white border border-[#E5E5E2] text-[#1A1A1A] text-[12px] font-medium hover:border-[#070A1F] hover:text-[#070A1F] transition-colors">
                           {label}
                         </button>
                       ))}
@@ -1481,7 +1481,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     </div>
                     <button
                       onClick={applyEntireStrategy}
-                      className="h-9 px-5 rounded-[8px] bg-[#5B5BD6] text-white text-[13px] font-medium hover:bg-[#4747c2] transition-colors shrink-0"
+                      className="h-9 px-5 rounded-[8px] bg-[#070A1F] text-white text-[13px] font-medium hover:bg-[#4747c2] transition-colors shrink-0"
                     >
                       Aplicar Estratégia Completa →
                     </button>
@@ -1494,7 +1494,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             {stratViewTab === "consensus" && !consensus && (
               <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-6 py-8 text-center">
                 <p className="text-[13px] text-[#9B9B95]">Consenso não disponível. Regere o Strategy Room para ativar o V2.</p>
-                <button onClick={() => { clearStrategyRoom(id); generateStrategyRoom(id); }} className="mt-3 h-8 px-4 rounded-[7px] bg-[#5B5BD6] text-white text-[12px] font-medium hover:bg-[#4747c2] transition-colors">
+                <button onClick={() => { clearStrategyRoom(id); generateStrategyRoom(id); }} className="mt-3 h-8 px-4 rounded-[7px] bg-[#070A1F] text-white text-[12px] font-medium hover:bg-[#4747c2] transition-colors">
                   Regerar Strategy Room V2
                 </button>
               </div>
@@ -1511,7 +1511,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             const p = project.proposal!;
             const banners: Record<string, { bg: string; border: string; text: string; label: string }> = {
               draft:             { bg: "bg-[#F7F7F6]",  border: "border-[#E5E5E2]",  text: "text-[#6B6B65]",  label: "Rascunho — ainda não enviado ao cliente" },
-              sent:              { bg: "bg-[#EEF0FF]",  border: "border-[#C7C7F5]",  text: "text-[#5B5BD6]",  label: "Enviado — aguardando aprovação do cliente" },
+              sent:              { bg: "bg-[#E6FBFA]",  border: "border-[#C7C7F5]",  text: "text-[#070A1F]",  label: "Enviado — aguardando aprovação do cliente" },
               approved:          { bg: "bg-[#DCFCE7]",  border: "border-[#BBF7D0]",  text: "text-[#16A34A]",  label: "Aprovado — execução liberada" },
               rejected:          { bg: "bg-[#FEF2F2]",  border: "border-[#FECACA]",  text: "text-[#DC2626]",  label: "Reprovado — revise e reenvie" },
               changes_requested: { bg: "bg-[#FFFBEB]",  border: "border-[#FDE68A]",  text: "text-[#D97706]",  label: "Alterações solicitadas pelo cliente" },
@@ -1538,14 +1538,14 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
           {/* Strategy Room summary banner */}
           {strategyRoom && (
-            <div className="flex items-center justify-between px-4 py-3 rounded-[8px] border border-[#C7C7F5] bg-[#EEF0FF]">
+            <div className="flex items-center justify-between px-4 py-3 rounded-[8px] border border-[#C7C7F5] bg-[#E6FBFA]">
               <div>
-                <p className="text-[13px] font-medium text-[#5B5BD6]">Strategy Room completo · Score {strategyRoom.finalSynthesis.strategicScore}/10</p>
+                <p className="text-[13px] font-medium text-[#070A1F]">Strategy Room completo · Score {strategyRoom.finalSynthesis.strategicScore}/10</p>
                 <p className="text-[12px] text-[#6B6B65] mt-0.5 truncate max-w-lg">{strategyRoom.finalSynthesis.recommendedStrategy.slice(0, 120)}…</p>
               </div>
               <button
                 onClick={() => setTab("strategy")}
-                className="text-[12px] text-[#5B5BD6] hover:underline shrink-0 ml-4"
+                className="text-[12px] text-[#070A1F] hover:underline shrink-0 ml-4"
               >
                 Ver estratégia →
               </button>
@@ -1567,7 +1567,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   value={proposalForm.objective ?? ""}
                   onChange={(e) => { setProposalForm((f) => ({ ...f, objective: e.target.value })); setProposalDirty(true); }}
                   placeholder="O que este projeto pretende alcançar?"
-                  className="w-full h-9 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
+                  className="w-full h-9 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
                 />
               </div>
               <div>
@@ -1577,7 +1577,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   onChange={(e) => { setProposalForm((f) => ({ ...f, scope: e.target.value })); setProposalDirty(true); }}
                   placeholder="Descreva o escopo completo do trabalho…"
                   rows={4}
-                  className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white resize-none"
+                  className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white resize-none"
                 />
               </div>
               <div>
@@ -1587,7 +1587,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   onChange={(e) => { setDeliverablesText(e.target.value); setProposalDirty(true); }}
                   placeholder={"Gestão de Redes Sociais\nCalendário de Conteúdo\nRelatório Mensal"}
                   rows={4}
-                  className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white resize-none font-mono"
+                  className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white resize-none font-mono"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -1597,7 +1597,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     value={proposalForm.timeline ?? ""}
                     onChange={(e) => { setProposalForm((f) => ({ ...f, timeline: e.target.value })); setProposalDirty(true); }}
                     placeholder="ex.: entrega do projeto até 01/08/2026"
-                    className="w-full h-9 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
+                    className="w-full h-9 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
                   />
                 </div>
                 <div>
@@ -1606,7 +1606,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     value={proposalForm.pricing ?? ""}
                     onChange={(e) => { setProposalForm((f) => ({ ...f, pricing: e.target.value })); setProposalDirty(true); }}
                     placeholder="ex.: R$ 4.500 / mês"
-                    className="w-full h-9 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
+                    className="w-full h-9 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
                   />
                 </div>
               </div>
@@ -1621,7 +1621,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 <button
                   onClick={handleSaveProposal}
                   disabled={!proposalDirty && !!project.proposal}
-                  className="h-8 px-4 rounded-[7px] border border-[#E5E5E2] text-[#1A1A1A] text-[12px] font-medium hover:border-[#5B5BD6] hover:text-[#5B5BD6] transition-colors disabled:opacity-40"
+                  className="h-8 px-4 rounded-[7px] border border-[#E5E5E2] text-[#1A1A1A] text-[12px] font-medium hover:border-[#070A1F] hover:text-[#070A1F] transition-colors disabled:opacity-40"
                 >
                   Salvar Rascunho
                 </button>
@@ -1636,7 +1636,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   </button>
                 )}
                 {project.proposal?.status === "sent" && (
-                  <span className="text-[12px] text-[#5B5BD6] font-medium">Proposta aguardando aprovação — edições não atualizam a versão enviada até reenvio.</span>
+                  <span className="text-[12px] text-[#070A1F] font-medium">Proposta aguardando aprovação — edições não atualizam a versão enviada até reenvio.</span>
                 )}
                 {project.proposal?.status === "approved" && (
                   <span className="text-[12px] text-[#16A34A] font-medium">Proposta aprovada. Edição bloqueada.</span>
@@ -1676,10 +1676,10 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-6 py-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
           <p className="text-[13px] text-[#6B6B65]">
             Os ativos de marca de <strong>{client?.name}</strong> são gerenciados na seção{" "}
-            <Link href="/agency/brand-assets" className="text-[#5B5BD6] hover:underline">Brand Assets</Link>.
+            <Link href="/agency/brand-assets" className="text-[#070A1F] hover:underline">Brand Assets</Link>.
           </p>
           {client && (
-            <Link href={`/agency/clients/${client.id}`} className="inline-flex items-center gap-1.5 mt-4 text-[13px] font-medium text-[#5B5BD6] hover:underline">
+            <Link href={`/agency/clients/${client.id}`} className="inline-flex items-center gap-1.5 mt-4 text-[13px] font-medium text-[#070A1F] hover:underline">
               Ver ativos de {client.name} →
             </Link>
           )}
@@ -1708,7 +1708,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           rejected: "Rejeitada", changes_requested: "Alterações Solicitadas",
         };
         const PROPOSAL_COLOR: Record<string, string> = {
-          draft: "bg-[#F0F0ED] text-[#6B6B65]", sent: "bg-[#EEF0FF] text-[#5B5BD6]",
+          draft: "bg-[#F0F0ED] text-[#6B6B65]", sent: "bg-[#E6FBFA] text-[#070A1F]",
           approved: "bg-[#DCFCE7] text-[#16A34A]", rejected: "bg-[#FEE2E2] text-[#DC2626]",
           changes_requested: "bg-[#FEF3C7] text-[#D97706]",
         };
@@ -1814,7 +1814,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   { label: "Em Revisão",       value: progress.inReview,       color: "bg-[#FEF3C7] text-[#D97706]" },
                   { label: "Em Revisão Int.", value: progress.revisionNeeded,  color: "bg-[#FEE2E2] text-[#DC2626]" },
                   { label: "Aprovadas",        value: progress.approved,       color: "bg-[#DCFCE7] text-[#16A34A]" },
-                  { label: "Entregues",        value: progress.delivered,      color: "bg-[#EEF0FF] text-[#5B5BD6]" },
+                  { label: "Entregues",        value: progress.delivered,      color: "bg-[#E6FBFA] text-[#070A1F]" },
                 ].map(({ label, value, color }) => (
                   <div key={label} className="text-center">
                     <div className={`rounded-[8px] px-2 py-2 mb-1 ${color}`}>
@@ -1949,7 +1949,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   { title: "O que funcionou", icon: "✓", items: opsReport.whatWorked, accent: "#16A34A", bg: "bg-[#F0FDF4]", border: "border-[#BBF7D0]" },
                   { title: "Fricção de UX", icon: "⚠", items: opsReport.uxFriction, accent: "#D97706", bg: "bg-[#FFFBEB]", border: "border-[#FDE68A]" },
                   { title: "Informações faltando", icon: "?", items: opsReport.missingInfo, accent: "#DC2626", bg: "bg-[#FEF2F2]", border: "border-[#FECACA]" },
-                  { title: "Automações ausentes", icon: "⚡", items: opsReport.missingAutomation, accent: "#5B5BD6", bg: "bg-[#EEF0FF]", border: "border-[#C7D2FE]" },
+                  { title: "Automações ausentes", icon: "⚡", items: opsReport.missingAutomation, accent: "#070A1F", bg: "bg-[#E6FBFA]", border: "border-[#C7D2FE]" },
                   { title: "Pain points do operador", icon: "!", items: opsReport.operatorPainPoints, accent: "#C2530A", bg: "bg-[#FFF4ED]", border: "border-[#FED7AA]" },
                 ] as const
               ).map((section) => (
@@ -1987,7 +1987,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 <div className="flex items-center gap-2">
                   {finalReport.p0Count > 0 && <span className="h-5 px-2 rounded-full bg-[#FEE2E2] text-[#DC2626] text-[10px] font-bold">{finalReport.p0Count} P0</span>}
                   {finalReport.p1Count > 0 && <span className="h-5 px-2 rounded-full bg-[#FEF3C7] text-[#D97706] text-[10px] font-bold">{finalReport.p1Count} P1</span>}
-                  {finalReport.p2Count > 0 && <span className="h-5 px-2 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-bold">{finalReport.p2Count} P2</span>}
+                  {finalReport.p2Count > 0 && <span className="h-5 px-2 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[10px] font-bold">{finalReport.p2Count} P2</span>}
                 </div>
               </div>
               {(["P0", "P1", "P2"] as const).map((priority) => {
@@ -1996,7 +1996,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 const pStyle = {
                   P0: { bg: "bg-[#FEF2F2]", border: "border-[#FECACA]", label: "bg-[#FEE2E2] text-[#DC2626]", desc: "Bloqueador — corrigir antes do primeiro cliente externo" },
                   P1: { bg: "bg-[#FFFBEB]", border: "border-[#FDE68A]", label: "bg-[#FEF3C7] text-[#D97706]", desc: "Importante — pode embarcar cliente, mas corrigir em seguida" },
-                  P2: { bg: "bg-[#EEF0FF]", border: "border-[#C7D2FE]", label: "bg-[#EEF0FF] text-[#5B5BD6]", desc: "Melhoria — backlog de otimização pós-piloto" },
+                  P2: { bg: "bg-[#E6FBFA]", border: "border-[#C7D2FE]", label: "bg-[#E6FBFA] text-[#070A1F]", desc: "Melhoria — backlog de otimização pós-piloto" },
                 }[priority];
                 return (
                   <div key={priority} className={`mx-5 my-3 rounded-[8px] border ${pStyle.border} ${pStyle.bg} overflow-hidden`}>
@@ -2014,7 +2014,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                           <p className="text-[11px] text-[#6B6B65] leading-relaxed ml-0 mb-1.5">{f.description}</p>
                           <div className="flex items-start gap-1.5">
                             <span className="text-[9px] font-bold text-[#9B9B95] uppercase mt-0.5 shrink-0">Ação:</span>
-                            <span className="text-[11px] text-[#5B5BD6] leading-snug">{f.recommendation}</span>
+                            <span className="text-[11px] text-[#070A1F] leading-snug">{f.recommendation}</span>
                           </div>
                         </div>
                       ))}
@@ -2122,11 +2122,11 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             {!advice.isAligned && advice.recommendedStage && (
               <div className={`rounded-[10px] border px-5 py-4 flex items-start gap-3 ${
                 advice.confidence === "high"
-                  ? "bg-[#EEF0FF] border-[#C7D2FE]"
+                  ? "bg-[#E6FBFA] border-[#C7D2FE]"
                   : "bg-[#FFFBEB] border-[#FDE68A]"
               }`}>
                 <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
-                  advice.confidence === "high" ? "bg-[#5B5BD6]" : "bg-[#D97706]"
+                  advice.confidence === "high" ? "bg-[#070A1F]" : "bg-[#D97706]"
                 }`}>
                   <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
                     <path d="M5 1v4M5 7.5v1" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
@@ -2134,7 +2134,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className={`text-[12px] font-semibold mb-0.5 ${
-                    advice.confidence === "high" ? "text-[#5B5BD6]" : "text-[#D97706]"
+                    advice.confidence === "high" ? "text-[#070A1F]" : "text-[#D97706]"
                   }`}>
                     Estágio recomendado: <span className="uppercase">{advice.recommendedStage}</span>
                     <span className="ml-2 text-[10px] font-normal opacity-70">(atual: {advice.currentStage})</span>
@@ -2145,7 +2145,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   onClick={() => moveProjectStage(id, advice.recommendedStage as Parameters<typeof moveProjectStage>[1])}
                   className={`shrink-0 h-7 px-3 rounded-[6px] text-[11px] font-medium border transition-colors ${
                     advice.confidence === "high"
-                      ? "border-[#5B5BD6] text-[#5B5BD6] hover:bg-[#5B5BD6] hover:text-white"
+                      ? "border-[#070A1F] text-[#070A1F] hover:bg-[#070A1F] hover:text-white"
                       : "border-[#D97706] text-[#D97706] hover:bg-[#D97706] hover:text-white"
                   }`}
                 >
@@ -2250,7 +2250,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             <input
               value={editForm.name}
               onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-              className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
+              className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
             />
           </div>
           <div>
@@ -2259,7 +2259,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               value={editForm.goal}
               onChange={(e) => setEditForm({ ...editForm, goal: e.target.value })}
               rows={3}
-              className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white resize-none"
+              className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white resize-none"
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -2268,7 +2268,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               <input
                 value={editForm.type}
                 onChange={(e) => setEditForm({ ...editForm, type: e.target.value })}
-                className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
+                className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
               />
             </div>
             <div>
@@ -2277,7 +2277,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 type="date"
                 value={editForm.deadline}
                 onChange={(e) => setEditForm({ ...editForm, deadline: e.target.value })}
-                className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
+                className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
               />
             </div>
             <div>
@@ -2285,7 +2285,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               <select
                 value={editForm.priority}
                 onChange={(e) => setEditForm({ ...editForm, priority: e.target.value as Priority })}
-                className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
+                className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
               >
                 <option value="high">Alta</option>
                 <option value="medium">Média</option>
@@ -2297,7 +2297,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               <select
                 value={editForm.stage}
                 onChange={(e) => setEditForm({ ...editForm, stage: e.target.value as ProjectStage })}
-                className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
+                className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
               >
                 {STAGES.map((s) => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
               </select>

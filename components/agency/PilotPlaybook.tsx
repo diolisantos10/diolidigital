@@ -17,8 +17,8 @@ export default function PilotPlaybook({ playbook }: { playbook: OperatorPlaybook
       </div>
 
       {/* What next */}
-      <div className="px-5 py-3 bg-[#EEF0FF] border-b border-[#E0E3FB]">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.05em] text-[#5B5BD6]">O que fazer agora</span>
+      <div className="px-5 py-3 bg-[#E6FBFA] border-b border-[#E0E3FB]">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.05em] text-[#070A1F]">O que fazer agora</span>
         <p className="text-[13px] font-medium text-[#1A1A1A] leading-snug">{playbook.nextAction}</p>
       </div>
 
@@ -28,13 +28,13 @@ export default function PilotPlaybook({ playbook }: { playbook: OperatorPlaybook
           <div key={phase.key} className={`px-5 py-3 ${phase.current ? "bg-[#FAFAFE]" : ""}`}>
             <div className="flex items-center gap-2 mb-2">
               <span className={`w-5 h-5 rounded-full shrink-0 flex items-center justify-center text-[10px] font-bold ${
-                phase.complete ? "bg-[#DCFCE7] text-[#16A34A]" : phase.current ? "bg-[#5B5BD6] text-white" : "bg-[#F0F0ED] text-[#9B9B95]"
+                phase.complete ? "bg-[#DCFCE7] text-[#16A34A]" : phase.current ? "bg-[#070A1F] text-white" : "bg-[#F0F0ED] text-[#9B9B95]"
               }`}>
                 {phase.complete ? "✓" : idx + 1}
               </span>
-              <h4 className={`text-[12px] font-semibold ${phase.current ? "text-[#5B5BD6]" : "text-[#1A1A1A]"}`}>{phase.title}</h4>
+              <h4 className={`text-[12px] font-semibold ${phase.current ? "text-[#070A1F]" : "text-[#1A1A1A]"}`}>{phase.title}</h4>
               {phase.current && !phase.complete && (
-                <span className="h-4 px-1.5 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[9px] font-semibold flex items-center">ATUAL</span>
+                <span className="h-4 px-1.5 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[9px] font-semibold flex items-center">ATUAL</span>
               )}
             </div>
             <div className="pl-7 space-y-1">

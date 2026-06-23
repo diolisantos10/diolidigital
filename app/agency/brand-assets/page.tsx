@@ -7,7 +7,7 @@ import { MOCK_BRAND_ASSETS, AssetType } from "@/lib/agency/mock-data";
 import Link from "next/link";
 
 const ASSET_COLORS: Record<AssetType, string> = {
-  logo: "bg-[#EEF0FF] text-[#5B5BD6]",
+  logo: "bg-[#E6FBFA] text-[#070A1F]",
   color_palette: "bg-[#FEF3C7] text-[#D97706]",
   typography: "bg-[#F0FDF4] text-[#16A34A]",
   tone_of_voice: "bg-[#FFF7ED] text-[#C2410C]",
@@ -68,7 +68,7 @@ export default function BrandAssetsPage() {
                   <h2 className="text-[14px] font-semibold text-[#1A1A1A]">{client.name}</h2>
                   <span className="text-[12px] text-[#9B9B95]">{assets.length} assets</span>
                 </div>
-                <Link href={`/agency/clients/${client.id}`} className="text-[12px] text-[#5B5BD6] hover:underline">
+                <Link href={`/agency/clients/${client.id}`} className="text-[12px] text-[#070A1F] hover:underline">
                   View client
                 </Link>
               </div>

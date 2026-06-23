@@ -216,14 +216,14 @@ export default function TasksPage() {
             onClick={() => setTab(t)}
             className={`flex items-center gap-1.5 h-9 px-4 text-[13px] font-medium border-b-2 transition-colors ${
               tab === t
-                ? "border-[#5B5BD6] text-[#5B5BD6]"
+                ? "border-[#070A1F] text-[#070A1F]"
                 : "border-transparent text-[#6B6B65] hover:text-[#1A1A1A]"
             }`}
           >
             {TAB_LABELS[t]}
             {counts[t] > 0 && (
               <span className={`inline-flex items-center justify-center min-w-[16px] h-[16px] px-1 rounded-full text-[10px] font-bold leading-none ${
-                tab === t ? "bg-[#5B5BD6] text-white" : "bg-[#F0F0ED] text-[#9B9B95]"
+                tab === t ? "bg-[#070A1F] text-white" : "bg-[#F0F0ED] text-[#9B9B95]"
               }`}>
                 {counts[t]}
               </span>
@@ -238,12 +238,12 @@ export default function TasksPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar tarefas…"
-          className="h-8 px-3 text-[13px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] placeholder:text-[#9B9B95] w-52"
+          className="h-8 px-3 text-[13px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] placeholder:text-[#9B9B95] w-52"
         />
         <select
           value={projectFilter}
           onChange={(e) => setProjectFilter(e.target.value)}
-          className="h-8 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] text-[#6B6B65]"
+          className="h-8 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] text-[#6B6B65]"
         >
           <option value="all">Todos os projetos</option>
           {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -251,7 +251,7 @@ export default function TasksPage() {
         <select
           value={priorityFilter}
           onChange={(e) => setPriorityFilter(e.target.value as AutoTaskPriority | "all")}
-          className="h-8 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] text-[#6B6B65]"
+          className="h-8 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] text-[#6B6B65]"
         >
           <option value="all">Toda prioridade</option>
           <option value="critical">Crítico</option>
@@ -262,7 +262,7 @@ export default function TasksPage() {
         <select
           value={ownerFilter}
           onChange={(e) => setOwnerFilter(e.target.value)}
-          className="h-8 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] text-[#6B6B65]"
+          className="h-8 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] text-[#6B6B65]"
         >
           <option value="all">Todo responsável</option>
           <option value="PM">PM</option>
@@ -319,12 +319,12 @@ export default function TasksPage() {
                           onClick={() => task.storeStatus && updateTaskStatus(task.id, TASK_CYCLE[task.storeStatus])}
                           className={`w-4 h-4 rounded-[4px] border flex items-center justify-center transition-colors ${
                             task.storeStatus === "done"
-                              ? "bg-[#5B5BD6] border-[#5B5BD6]"
+                              ? "bg-[#070A1F] border-[#070A1F]"
                               : task.storeStatus === "blocked"
                               ? "bg-[#FEE2E2] border-[#DC2626]"
                               : task.storeStatus === "in_progress"
-                              ? "border-[#5B5BD6] bg-[#EEF0FF]"
-                              : "border-[#D0D0CC] hover:border-[#5B5BD6]"
+                              ? "border-[#070A1F] bg-[#E6FBFA]"
+                              : "border-[#D0D0CC] hover:border-[#070A1F]"
                           }`}
                         >
                           {task.storeStatus === "done" && (
@@ -334,7 +334,7 @@ export default function TasksPage() {
                           )}
                         </button>
                       ) : (
-                        <span className="w-4 h-4 rounded-[4px] bg-[#EEF0FF] border border-[#5B5BD6]/30 flex items-center justify-center text-[7px] text-[#5B5BD6] font-bold leading-none">
+                        <span className="w-4 h-4 rounded-[4px] bg-[#E6FBFA] border border-[#070A1F]/30 flex items-center justify-center text-[7px] text-[#070A1F] font-bold leading-none">
                           PM
                         </span>
                       )}
@@ -352,7 +352,7 @@ export default function TasksPage() {
                     <td className="px-4 py-3.5 min-w-[140px]">
                       <Link
                         href={`/agency/projects/${task.projectId}`}
-                        className="text-[12px] font-medium text-[#1A1A1A] hover:text-[#5B5BD6] transition-colors block truncate max-w-[160px]"
+                        className="text-[12px] font-medium text-[#1A1A1A] hover:text-[#070A1F] transition-colors block truncate max-w-[160px]"
                       >
                         {task.projectName}
                       </Link>
@@ -388,7 +388,7 @@ export default function TasksPage() {
                             : "Pendente"}
                         </span>
                       ) : (
-                        <span className="inline-flex h-5 px-2 rounded-full text-[10px] font-semibold items-center bg-[#EEF0FF] text-[#5B5BD6]">
+                        <span className="inline-flex h-5 px-2 rounded-full text-[10px] font-semibold items-center bg-[#E6FBFA] text-[#070A1F]">
                           Sugerida
                         </span>
                       )}
@@ -444,7 +444,7 @@ export default function TasksPage() {
                           <button
                             onClick={() => { const at = autoTaskById[task.id]; if (at) handleSaveAutoTask(at); }}
                             disabled={savingAutoId === task.id}
-                            className="h-6 px-2 rounded-[5px] text-[10px] font-medium border border-[#E5E5E2] text-[#5B5BD6] hover:bg-[#EEF0FF] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="h-6 px-2 rounded-[5px] text-[10px] font-medium border border-[#E5E5E2] text-[#070A1F] hover:bg-[#E6FBFA] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {savingAutoId === task.id ? "…" : "Salvar no DB"}
                           </button>
@@ -452,7 +452,7 @@ export default function TasksPage() {
                         {task.route && (
                           <Link
                             href={task.route}
-                            className="h-6 w-6 flex items-center justify-center rounded-[5px] border border-[#E5E5E2] text-[#6B6B65] hover:border-[#5B5BD6] hover:text-[#5B5BD6] transition-colors text-[12px]"
+                            className="h-6 w-6 flex items-center justify-center rounded-[5px] border border-[#E5E5E2] text-[#6B6B65] hover:border-[#070A1F] hover:text-[#070A1F] transition-colors text-[12px]"
                           >
                             →
                           </Link>

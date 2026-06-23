@@ -80,7 +80,7 @@ export default function ClientsPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar clientes..."
-          className="h-8 px-3 text-[13px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] placeholder:text-[#9B9B95] w-64"
+          className="h-8 px-3 text-[13px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] placeholder:text-[#9B9B95] w-64"
         />
         <div className="flex items-center gap-1.5">
           {(["all", "active", "inactive", "prospect"] as const).map((s) => (
@@ -129,7 +129,7 @@ export default function ClientsPage() {
                           {client.name.slice(0, 2).toUpperCase()}
                         </div>
                         <div>
-                          <div className="text-[13px] font-medium text-[#1A1A1A] group-hover:text-[#5B5BD6] transition-colors">
+                          <div className="text-[13px] font-medium text-[#1A1A1A] group-hover:text-[#070A1F] transition-colors">
                             {client.name}
                           </div>
                           {client.website && (
@@ -161,7 +161,7 @@ export default function ClientsPage() {
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               placeholder="ex.: Sushikasa"
-              className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
+              className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -171,7 +171,7 @@ export default function ClientsPage() {
                 value={form.industry}
                 onChange={(e) => setForm({ ...form, industry: e.target.value })}
                 placeholder="ex.: Alimentação"
-                className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
+                className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
               />
             </div>
             <div>
@@ -179,7 +179,7 @@ export default function ClientsPage() {
               <select
                 value={form.status}
                 onChange={(e) => setForm({ ...form, status: e.target.value as ClientStatus })}
-                className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
+                className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
               >
                 <option value="active">Ativo</option>
                 <option value="inactive">Inativo</option>
@@ -193,7 +193,7 @@ export default function ClientsPage() {
               value={form.website}
               onChange={(e) => setForm({ ...form, website: e.target.value })}
               placeholder="ex.: exemplo.com.br"
-              className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
+              className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
             />
           </div>
           <div>
@@ -203,7 +203,7 @@ export default function ClientsPage() {
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               placeholder="Breve descrição do cliente..."
               rows={3}
-              className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white resize-none"
+              className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white resize-none"
             />
           </div>
           <div className="flex justify-end gap-2.5 pt-1">

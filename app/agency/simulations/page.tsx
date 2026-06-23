@@ -116,7 +116,7 @@ function SimulatorCard({ sim }: { sim: SimCard }) {
       className={`
         group relative flex flex-col gap-3 p-5 rounded-[12px] border transition-all
         ${available
-          ? "border-[#E5E5E2] bg-white hover:border-[#5B5BD6]/40 hover:shadow-[0_2px_12px_rgba(91,91,214,0.08)] cursor-pointer"
+          ? "border-[#E5E5E2] bg-white hover:border-[#070A1F]/40 hover:shadow-[0_2px_12px_rgba(91,91,214,0.08)] cursor-pointer"
           : "border-[#EBEBEA] bg-[#FAFAF9] cursor-default opacity-70"
         }
       `}
@@ -145,7 +145,7 @@ function SimulatorCard({ sim }: { sim: SimCard }) {
       {/* CTA */}
       {available && (
         <div className="mt-auto pt-1">
-          <span className="inline-flex items-center gap-1 text-[12px] font-medium text-[#5B5BD6] group-hover:gap-1.5 transition-all">
+          <span className="inline-flex items-center gap-1 text-[12px] font-medium text-[#070A1F] group-hover:gap-1.5 transition-all">
             Abrir simulador
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
               <path d="M2.5 6h7M6.5 3l3 3-3 3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
@@ -171,7 +171,7 @@ function SimulatorCard({ sim }: { sim: SimCard }) {
 
 function FlaskIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 16 16" fill="none" className="text-[#5B5BD6]">
+    <svg width="18" height="18" viewBox="0 0 16 16" fill="none" className="text-[#070A1F]">
       <path d="M6 2v5L3 12a1 1 0 00.9 1.5h8.2A1 1 0 0013 12l-3-5V2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
       <path d="M5.5 2h5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
     </svg>

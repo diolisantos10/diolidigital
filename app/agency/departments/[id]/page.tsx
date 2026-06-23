@@ -93,7 +93,7 @@ const READINESS_STYLE: Record<ReadinessStatus, { bg: string; text: string; label
 
 const STATUS_STYLE: Record<WorkItemStatus, { bg: string; text: string; border: string }> = {
   waiting_for_input: { bg: "bg-[#FEF3C7]", text: "text-[#D97706]", border: "border-[#FDE68A]" },
-  ready_to_start: { bg: "bg-[#EEF0FF]", text: "text-[#5B5BD6]", border: "border-[#C4C9FF]" },
+  ready_to_start: { bg: "bg-[#E6FBFA]", text: "text-[#070A1F]", border: "border-[#C4C9FF]" },
   in_progress: { bg: "bg-[#DBEAFE]", text: "text-[#1D4ED8]", border: "border-[#93C5FD]" },
   waiting_review: { bg: "bg-[#FEF3C7]", text: "text-[#D97706]", border: "border-[#FDE68A]" },
   waiting_client_approval: { bg: "bg-[#FEF3C7]", text: "text-[#D97706]", border: "border-[#FDE68A]" },
@@ -177,7 +177,7 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
     return (
       <div className="text-center py-20">
         <div className="text-[14px] text-[#9B9B95]">Departamento não encontrado.</div>
-        <Link href="/agency/departments" className="mt-3 inline-block text-[13px] text-[#5B5BD6] hover:underline">
+        <Link href="/agency/departments" className="mt-3 inline-block text-[13px] text-[#070A1F] hover:underline">
           ← Voltar para Departamentos
         </Link>
       </div>
@@ -318,7 +318,7 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
   const PRIORITY_STYLE: Record<string, { bg: string; text: string; label: string }> = {
     critical: { bg: "bg-[#FEE2E2]", text: "text-[#DC2626]", label: "Crítico" },
     high: { bg: "bg-[#FEF3C7]", text: "text-[#D97706]", label: "Alto" },
-    medium: { bg: "bg-[#EEF0FF]", text: "text-[#5B5BD6]", label: "Médio" },
+    medium: { bg: "bg-[#E6FBFA]", text: "text-[#070A1F]", label: "Médio" },
     low: { bg: "bg-[#F0F0ED]", text: "text-[#9B9B95]", label: "Baixo" },
   };
 
@@ -392,7 +392,7 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
             onClick={() => setTab(t.id)}
             className={`px-3 py-2.5 text-[13px] font-medium whitespace-nowrap border-b-2 -mb-px transition-colors ${
               tab === t.id
-                ? "border-[#5B5BD6] text-[#5B5BD6]"
+                ? "border-[#070A1F] text-[#070A1F]"
                 : "border-transparent text-[#6B6B65] hover:text-[#1A1A1A]"
             }`}
           >
@@ -545,7 +545,7 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
                 {kanbanCards.length} {kanbanCards.length === 1 ? "item" : "itens"} · derivado dos dados atuais
               </span>
             </h3>
-            <Link href="/agency/tasks" className="text-[12px] text-[#5B5BD6] hover:underline">
+            <Link href="/agency/tasks" className="text-[12px] text-[#070A1F] hover:underline">
               Central de Tarefas →
             </Link>
           </div>
@@ -601,14 +601,14 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
                             <Link
                               key={card.id}
                               href={card.route}
-                              className="block bg-white rounded-[8px] border border-[#E8E8E3] p-2.5 hover:border-[#5B5BD6] transition-colors"
+                              className="block bg-white rounded-[8px] border border-[#E8E8E3] p-2.5 hover:border-[#070A1F] transition-colors"
                             >
                               <div className="flex items-center gap-1 mb-1.5 flex-wrap">
                                 <span className={`inline-flex items-center h-4 px-1.5 rounded text-[9px] font-bold ${pStyle.bg} ${pStyle.text}`}>
                                   {pStyle.label}
                                 </span>
                                 <span className={`inline-flex items-center h-4 px-1.5 rounded text-[9px] font-medium ${
-                                  card.type === "task" ? "bg-[#EEF0FF] text-[#5B5BD6]" : "bg-[#F0F0ED] text-[#6B6B65]"
+                                  card.type === "task" ? "bg-[#E6FBFA] text-[#070A1F]" : "bg-[#F0F0ED] text-[#6B6B65]"
                                 }`}>
                                   {card.type === "task" ? "Tarefa" : "Entrega"}
                                 </span>
@@ -643,7 +643,7 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
                   <div key={i} className="p-3 rounded-[8px] bg-[#F7F7F6] border border-[#E8E8E3]">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-[13px] font-medium text-[#1A1A1A]">{t.label}</span>
-                      <span className="inline-flex items-center h-4 px-1.5 rounded text-[9px] font-medium bg-[#EEF0FF] text-[#5B5BD6]">{t.outputFormat}</span>
+                      <span className="inline-flex items-center h-4 px-1.5 rounded text-[9px] font-medium bg-[#E6FBFA] text-[#070A1F]">{t.outputFormat}</span>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                       {t.acceptanceCriteria.map((c, j) => (
@@ -681,7 +681,7 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
             <h3 className="text-[14px] font-semibold text-[#1A1A1A]">
               Entregas produzidas ({deptDelivs.length})
             </h3>
-            <Link href="/agency/deliverables" className="text-[12px] text-[#5B5BD6] hover:underline">Ver todas →</Link>
+            <Link href="/agency/deliverables" className="text-[12px] text-[#070A1F] hover:underline">Ver todas →</Link>
           </div>
 
           {deptDelivs.length === 0 ? (
@@ -723,8 +723,8 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
         <div className="space-y-6">
           {/* How this dept receives work */}
           {isPM ? (
-            <div className="p-4 rounded-[12px] bg-[#EEF0FF] border border-[#C4C9FF]">
-              <div className="text-[11px] font-bold text-[#5B5BD6] uppercase tracking-wide mb-1">Gestão de Projetos = Intake Central</div>
+            <div className="p-4 rounded-[12px] bg-[#E6FBFA] border border-[#C4C9FF]">
+              <div className="text-[11px] font-bold text-[#070A1F] uppercase tracking-wide mb-1">Gestão de Projetos = Intake Central</div>
               <div className="text-[13px] text-[#1A1A1A]">
                 Todas as demandas entram pela Gestão de Projetos. O PM qualifica e distribui para os departamentos de execução. Nenhum departamento recebe demanda diretamente do cliente.
               </div>
@@ -891,7 +891,7 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
             {connectedIntegrations.length === 0 ? (
               <div className="text-center py-6">
                 <div className="text-[13px] text-[#9B9B95]">Nenhuma ferramenta conectada a este departamento.</div>
-                <Link href="/agency/integrations" className="mt-2 inline-block text-[12px] text-[#5B5BD6] hover:underline">
+                <Link href="/agency/integrations" className="mt-2 inline-block text-[12px] text-[#070A1F] hover:underline">
                   Configurar integrações →
                 </Link>
               </div>
@@ -907,7 +907,7 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
                       integration.status === "active" || integration.status === "configured"
                         ? "bg-[#DCFCE7] text-[#16A34A]"
                         : integration.status === "planned"
-                        ? "bg-[#EEF0FF] text-[#5B5BD6]"
+                        ? "bg-[#E6FBFA] text-[#070A1F]"
                         : "bg-[#F0F0ED] text-[#9B9B95]"
                     }`}>
                       {integration.status === "active" ? "Ativo"
@@ -961,7 +961,7 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
                 <ul className="space-y-1.5">
                   {blueprint.people.aiHumanCollaboration.map((c, i) => (
                     <li key={i} className="text-[12px] text-[#6B6B65] flex items-start gap-1.5">
-                      <span className="text-[#5B5BD6] mt-0.5">↔</span> {c}
+                      <span className="text-[#070A1F] mt-0.5">↔</span> {c}
                     </li>
                   ))}
                 </ul>
@@ -972,7 +972,7 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
               <div className="flex flex-wrap gap-2">
                 {dept.ownerRoles.map((r) => (
                   <div key={r} className="flex items-center gap-2 px-3 py-2 rounded-[8px] bg-[#F7F7F6] border border-[#E8E8E3]">
-                    <div className="w-7 h-7 rounded-full bg-[#5B5BD6]/10 flex items-center justify-center text-[11px] font-semibold text-[#5B5BD6]">
+                    <div className="w-7 h-7 rounded-full bg-[#070A1F]/10 flex items-center justify-center text-[11px] font-semibold text-[#070A1F]">
                       {r.charAt(0).toUpperCase()}
                     </div>
                     <div className="text-[12px] text-[#6B6B65]">{r}</div>
@@ -995,7 +995,7 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
                 <p className="text-[13px] text-[#6B6B65] leading-relaxed">
                   A Gestão de Projetos é o ponto de entrada central. Todas as demandas chegam aqui primeiro — o PM qualifica, prioriza e distribui para os departamentos de execução.
                 </p>
-                <div className="p-3 rounded-[8px] bg-[#EEF0FF] border border-[#C4C9FF] text-[12px] text-[#5B5BD6]">
+                <div className="p-3 rounded-[8px] bg-[#E6FBFA] border border-[#C4C9FF] text-[12px] text-[#070A1F]">
                   ↳ Nenhum departamento recebe demanda diretamente do cliente. Toda demanda passa pelo PM.
                 </div>
               </div>
@@ -1103,7 +1103,7 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
                   <select
                     value={selectedProvider}
                     onChange={(e) => saveDepartmentConfig(activeDept.id, { aiProvider: e.target.value, model: e.target.value })}
-                    className="w-full p-3 rounded-[8px] bg-white border border-[#E8E8E3] text-[13px] text-[#1A1A1A] outline-none focus:border-[#5B5BD6]"
+                    className="w-full p-3 rounded-[8px] bg-white border border-[#E8E8E3] text-[13px] text-[#1A1A1A] outline-none focus:border-[#070A1F]"
                   >
                     <option value="rule_based">Regras locais (sem IA externa)</option>
                     <option value="openai">OpenAI</option>
@@ -1120,7 +1120,7 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
                 <label className="block text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-1.5">Prompt do agente</label>
                 <div className="flex gap-2">
                   <button onClick={handleResetPrompt} className="h-9 px-3 rounded-[7px] border border-[#E8E8E3] text-[12px] text-[#6B6B65] hover:bg-[#F7F7F6]">Restaurar</button>
-                  <button onClick={handleSavePrompt} className="h-9 px-4 rounded-[7px] bg-[#5B5BD6] text-white text-[12px] font-medium hover:bg-[#4A4AC5]">
+                  <button onClick={handleSavePrompt} className="h-9 px-4 rounded-[7px] bg-[#070A1F] text-white text-[12px] font-medium hover:bg-[#4A4AC5]">
                     {promptSaved ? "Salvo ✓" : "Salvar"}
                   </button>
                 </div>
@@ -1130,7 +1130,7 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
               value={activePrompt}
               onChange={(e) => setPromptDraft(e.target.value)}
               rows={10}
-              className="w-full p-4 rounded-[8px] bg-[#F7F7F6] border border-[#E8E8E3] text-[13px] text-[#1A1A1A] font-mono leading-relaxed resize-y outline-none focus:border-[#5B5BD6]"
+              className="w-full p-4 rounded-[8px] bg-[#F7F7F6] border border-[#E8E8E3] text-[13px] text-[#1A1A1A] font-mono leading-relaxed resize-y outline-none focus:border-[#070A1F]"
             />
           </div>
 

@@ -27,7 +27,7 @@ import { parseBrandBook, type ParsedBrandField } from "@/lib/agency/brand-parser
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const ASSET_COLORS: Record<string, string> = {
-  logo: "bg-[#EEF0FF] text-[#5B5BD6]",
+  logo: "bg-[#E6FBFA] text-[#070A1F]",
   color_palette: "bg-[#FEF3C7] text-[#D97706]",
   typography: "bg-[#F0FDF4] text-[#16A34A]",
   tone_of_voice: "bg-[#FFF7ED] text-[#C2410C]",
@@ -234,7 +234,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
 
   // ── Task groups ─────────────────────────────────────────────────────────────
   const taskGroups = [
-    { label: "Em Andamento", tasks: inProgressTasks, dot: "bg-[#5B5BD6]",  text: "text-[#5B5BD6]"  },
+    { label: "Em Andamento", tasks: inProgressTasks, dot: "bg-[#070A1F]",  text: "text-[#070A1F]"  },
     { label: "Pendente",     tasks: pendingTasks,    dot: "bg-[#9B9B95]",  text: "text-[#6B6B65]"  },
     { label: "Bloqueada",    tasks: blockedTasks,    dot: "bg-[#DC2626]",  text: "text-[#DC2626]"  },
     { label: "Concluída",    tasks: doneTasks,       dot: "bg-[#16A34A]",  text: "text-[#16A34A]"  },
@@ -391,7 +391,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                 Pipeline de Projetos
                 <span className="ml-2 text-[12px] font-normal text-[#9B9B95]">{clientProjects.length} projeto{clientProjects.length !== 1 ? "s" : ""}</span>
               </h2>
-              <Link href="/agency/orchestrator" className="text-[12px] text-[#5B5BD6] hover:underline font-medium">
+              <Link href="/agency/orchestrator" className="text-[12px] text-[#070A1F] hover:underline font-medium">
                 + Novo projeto
               </Link>
             </div>
@@ -410,7 +410,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                         <div className="min-w-0">
                           <Link
                             href={`/agency/projects/${project.id}`}
-                            className="text-[13px] font-medium text-[#1A1A1A] hover:text-[#5B5BD6] transition-colors"
+                            className="text-[13px] font-medium text-[#1A1A1A] hover:text-[#070A1F] transition-colors"
                           >
                             {project.name}
                           </Link>
@@ -431,7 +431,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                               key={stage}
                               title={stage}
                               className={`h-1.5 flex-1 rounded-full transition-colors ${
-                                current ? "bg-[#5B5BD6]"
+                                current ? "bg-[#070A1F]"
                                 : passed  ? "bg-[#C7C8F6]"
                                 :           "bg-[#F0F0ED]"
                               }`}
@@ -517,7 +517,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                               {proj && (
                                 <Link
                                   href={`/agency/projects/${proj.id}`}
-                                  className="text-[11px] text-[#9B9B95] hover:text-[#5B5BD6] transition-colors"
+                                  className="text-[11px] text-[#9B9B95] hover:text-[#070A1F] transition-colors"
                                 >
                                   {proj.name}
                                 </Link>
@@ -547,7 +547,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                 Entregas
                 <span className="ml-2 text-[12px] font-normal text-[#9B9B95]">{clientDeliverables.length} no total</span>
               </h2>
-              <Link href="/agency/deliverables" className="text-[12px] text-[#5B5BD6] hover:underline font-medium">
+              <Link href="/agency/deliverables" className="text-[12px] text-[#070A1F] hover:underline font-medium">
                 Ver todas
               </Link>
             </div>
@@ -577,7 +577,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                               {proj && (
                                 <Link
                                   href={`/agency/projects/${proj.id}`}
-                                  className="text-[11px] text-[#9B9B95] hover:text-[#5B5BD6] transition-colors"
+                                  className="text-[11px] text-[#9B9B95] hover:text-[#070A1F] transition-colors"
                                 >
                                   {proj.name}
                                 </Link>
@@ -652,7 +652,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
               {!parserOpen ? (
                 <button
                   onClick={() => setParserOpen(true)}
-                  className="text-[12px] font-medium text-[#5B5BD6] hover:underline"
+                  className="text-[12px] font-medium text-[#070A1F] hover:underline"
                 >
                   ✦ Analisar Brand Book (texto)
                 </button>
@@ -672,7 +672,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                     onChange={(e) => { setParserText(e.target.value); setParserResults([]); setParserQueued(false); }}
                     placeholder="Cole o texto do Brand Book aqui..."
                     rows={5}
-                    className="w-full px-3 py-2 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] resize-y"
+                    className="w-full px-3 py-2 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] resize-y"
                   />
                   <div className="flex items-center gap-2">
                     <label className="cursor-pointer">
@@ -684,7 +684,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                     <button
                       onClick={handleParse}
                       disabled={!parserText.trim()}
-                      className="h-7 px-3 rounded-[6px] bg-[#5B5BD6] hover:bg-[#4A4AC0] disabled:opacity-40 text-white text-[11px] font-medium transition-colors"
+                      className="h-7 px-3 rounded-[6px] bg-[#070A1F] hover:bg-[#0D1230] disabled:opacity-40 text-white text-[11px] font-medium transition-colors"
                     >
                       Analisar Brand Book
                     </button>
@@ -762,7 +762,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                         onChange={(e) => setBrainDraft({ ...activeBrainDraft, [key]: e.target.value })}
                         placeholder={placeholder}
                         rows={2}
-                        className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white resize-none"
+                        className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white resize-none"
                       />
                     ) : value ? (
                       <p className="text-[13px] text-[#1A1A1A] leading-relaxed">{value}</p>
@@ -794,8 +794,8 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                 <div className="divide-y divide-[#F0F0ED]">
                   {clientBrandUpdates.slice(0, 8).map((upd) => {
                     const srcLabel = upd.source === "client" ? "Portal do cliente" : upd.source === "upload" ? "Upload" : upd.source === "parsed" ? "Análise Automática" : "Manual";
-                    const srcColor = upd.source === "client" ? "bg-[#EEF0FF] text-[#5B5BD6]" : upd.source === "upload" ? "bg-[#FEF3C7] text-[#D97706]" : upd.source === "parsed" ? "bg-[#F0FDF4] text-[#16A34A]" : "bg-[#F0F0ED] text-[#6B6B65]";
-                    const statusColor = upd.status === "applied" ? "text-[#16A34A]" : upd.status === "reviewed" ? "text-[#5B5BD6]" : "text-[#D97706]";
+                    const srcColor = upd.source === "client" ? "bg-[#E6FBFA] text-[#070A1F]" : upd.source === "upload" ? "bg-[#FEF3C7] text-[#D97706]" : upd.source === "parsed" ? "bg-[#F0FDF4] text-[#16A34A]" : "bg-[#F0F0ED] text-[#6B6B65]";
+                    const statusColor = upd.status === "applied" ? "text-[#16A34A]" : upd.status === "reviewed" ? "text-[#070A1F]" : "text-[#D97706]";
                     const fieldLabel = BRAND_FIELD_LABELS[upd.field] ?? upd.field;
                     return (
                       <div key={upd.id} className="px-5 py-3">
@@ -853,8 +853,8 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                     {clientActivity.map((event) => (
                       <div key={event.id} className="flex items-start gap-3 relative">
                         {/* Dot */}
-                        <div className="w-[15px] h-[15px] rounded-full bg-[#EEF0FF] border-2 border-[#5B5BD6] shrink-0 mt-0.5 z-10 flex items-center justify-center">
-                          <span className="text-[7px] text-[#5B5BD6]">{ACTIVITY_ICONS[event.type] ?? "·"}</span>
+                        <div className="w-[15px] h-[15px] rounded-full bg-[#E6FBFA] border-2 border-[#070A1F] shrink-0 mt-0.5 z-10 flex items-center justify-center">
+                          <span className="text-[7px] text-[#070A1F]">{ACTIVITY_ICONS[event.type] ?? "·"}</span>
                         </div>
                         <div className="flex-1 min-w-0 pb-1">
                           <div className="text-[13px] text-[#1A1A1A] leading-snug">{event.message}</div>
@@ -933,7 +933,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
               <div className="divide-y divide-[#F0F0ED]">
                 {resources.map((res) => (
                   <div key={res.id} className="flex items-start gap-3 px-5 py-3.5">
-                    <div className="w-8 h-8 rounded-full bg-[#EEF0FF] flex items-center justify-center shrink-0 text-[11px] font-bold text-[#5B5BD6]">
+                    <div className="w-8 h-8 rounded-full bg-[#E6FBFA] flex items-center justify-center shrink-0 text-[11px] font-bold text-[#070A1F]">
                       {initials(res.name)}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -941,7 +941,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                         <span className="text-[13px] font-medium text-[#1A1A1A]">{res.name}</span>
                         <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
                           res.type === "ai"
-                            ? "bg-[#EEF0FF] text-[#5B5BD6]"
+                            ? "bg-[#E6FBFA] text-[#070A1F]"
                             : "bg-[#F0FDF4] text-[#16A34A]"
                         }`}>
                           {res.type === "ai" ? "IA" : "Humano"}
@@ -962,7 +962,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
           <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0F0ED]">
               <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Ativos de Marca</div>
-              <Link href="/agency/brand-assets" className="text-[12px] text-[#5B5BD6] hover:underline font-medium">
+              <Link href="/agency/brand-assets" className="text-[12px] text-[#070A1F] hover:underline font-medium">
                 Gerenciar
               </Link>
             </div>
@@ -1002,7 +1002,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
             <input
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
+              className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -1011,7 +1011,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
               <input
                 value={form.industry}
                 onChange={(e) => setForm({ ...form, industry: e.target.value })}
-                className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
+                className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
               />
             </div>
             <div>
@@ -1019,7 +1019,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
               <select
                 value={form.status}
                 onChange={(e) => setForm({ ...form, status: e.target.value as ClientStatus })}
-                className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
+                className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
               >
                 <option value="active">Ativo</option>
                 <option value="inactive">Inativo</option>
@@ -1032,7 +1032,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
             <input
               value={form.website}
               onChange={(e) => setForm({ ...form, website: e.target.value })}
-              className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
+              className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
             />
           </div>
           <div>
@@ -1041,7 +1041,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               rows={3}
-              className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white resize-none"
+              className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white resize-none"
             />
           </div>
           <div className="flex justify-end gap-2.5 pt-1">
@@ -1060,7 +1060,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
           </p>
           {generatingPortal && (
             <div className="flex items-center gap-2 text-[12px] text-[#6B6B65]">
-              <div className="w-3.5 h-3.5 rounded-full border-2 border-[#5B5BD6] border-t-transparent animate-spin" />
+              <div className="w-3.5 h-3.5 rounded-full border-2 border-[#070A1F] border-t-transparent animate-spin" />
               Gerando link…
             </div>
           )}

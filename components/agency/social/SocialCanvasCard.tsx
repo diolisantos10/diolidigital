@@ -17,7 +17,7 @@ const QG_STYLE = {
 
 const ENTRY_STATUS_STYLE: Record<ContentStatus, { bg: string; text: string; label: string }> = {
   draft:     { bg: "bg-[#F0F0ED]", text: "text-[#6B6B65]", label: "Rascunho" },
-  planned:   { bg: "bg-[#EEF0FF]", text: "text-[#5B5BD6]", label: "Planejado" },
+  planned:   { bg: "bg-[#E6FBFA]", text: "text-[#070A1F]", label: "Planejado" },
   approved:  { bg: "bg-[#DCFCE7]", text: "text-[#16A34A]", label: "Aprovado" },
   published: { bg: "bg-[#FDF2F8]", text: "text-[#DB2777]", label: "Publicado" },
 };
@@ -37,7 +37,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function TagList({ items, color = "bg-[#EEF0FF] text-[#5B5BD6]" }: { items: string[]; color?: string }) {
+function TagList({ items, color = "bg-[#E6FBFA] text-[#070A1F]" }: { items: string[]; color?: string }) {
   return (
     <div className="flex flex-wrap gap-1.5">
       {items.map((item, i) => (
@@ -198,7 +198,7 @@ export function SocialCanvasCard({
 
           {/* Campaign support */}
           <Section title="Suporte a Campanhas">
-            <BulletList items={canvas.campaignSupport} marker="▸" markerClass="text-[#5B5BD6]" />
+            <BulletList items={canvas.campaignSupport} marker="▸" markerClass="text-[#070A1F]" />
           </Section>
 
           {/* Opportunities / risks */}
@@ -237,7 +237,7 @@ export function SocialCanvasCard({
                 <div key={t.id} className="bg-[#F7F7F6] rounded-[8px] px-3 py-2">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-[11px] font-semibold text-[#1A1A1A] truncate">{t.title}</span>
-                    <span className="px-1.5 py-0.5 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[9px] font-semibold shrink-0">{t.format}</span>
+                    <span className="px-1.5 py-0.5 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[9px] font-semibold shrink-0">{t.format}</span>
                   </div>
                   <p className="text-[10px] text-[#9B9B95] mt-0.5">{t.pillar} · {t.channel}</p>
                 </div>
@@ -278,7 +278,7 @@ export function SocialCanvasCard({
                   <div key={e.id} className="flex items-center gap-2 bg-[#F7F7F6] rounded-[7px] px-3 py-1.5">
                     <span className="text-[10px] font-semibold text-[#6B6B65] w-[120px] shrink-0">{e.date}</span>
                     <span className="text-[11px] text-[#1A1A1A] flex-1 truncate">{e.theme}</span>
-                    <span className="px-1.5 py-0.5 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[9px] font-semibold shrink-0">{e.format}</span>
+                    <span className="px-1.5 py-0.5 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[9px] font-semibold shrink-0">{e.format}</span>
                     <span className="text-[10px] text-[#9B9B95] shrink-0 hidden sm:inline">{e.pillar}</span>
                     {onSetEntryStatus && canvas.status === "approved" ? (
                       <select
@@ -332,15 +332,15 @@ export function SocialCanvasCard({
           {/* Cognitive Flow trace */}
           <div className="bg-[#F0F0FF] border border-[#C7C7FF] rounded-[8px] px-4 py-3">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-semibold text-[#5B5BD6] uppercase tracking-[0.06em]">
+              <span className="text-[10px] font-semibold text-[#070A1F] uppercase tracking-[0.06em]">
                 Fluxo Cognitivo
               </span>
-              <span className="text-[11px] font-bold text-[#5B5BD6]">{flowCompleted}/12 passos</span>
+              <span className="text-[11px] font-bold text-[#070A1F]">{flowCompleted}/12 passos</span>
             </div>
             <div className="space-y-1">
               {canvas.cognitiveFlowTrace.map((step) => (
                 <div key={step.stepId} className="flex items-start gap-1.5 text-[10px]">
-                  <span className={`shrink-0 ${step.completed ? "text-[#5B5BD6]" : "text-[#C0C0BC]"}`}>
+                  <span className={`shrink-0 ${step.completed ? "text-[#070A1F]" : "text-[#C0C0BC]"}`}>
                     {step.completed ? "✓" : "○"}
                   </span>
                   <span className="text-[#6B6B65] shrink-0 font-medium">{step.order}. {step.label}:</span>

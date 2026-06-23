@@ -898,7 +898,7 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
               <div className="flex flex-wrap gap-1.5">
                 {summary.servicesRequested.length > 0 ? (
                   summary.servicesRequested.map((s: string) => (
-                    <span key={s} className="h-5 px-2 rounded-full text-[11px] font-medium bg-[#EEF0FF] text-[#5B5BD6]">{s}</span>
+                    <span key={s} className="h-5 px-2 rounded-full text-[11px] font-medium bg-[#E6FBFA] text-[#070A1F]">{s}</span>
                   ))
                 ) : (
                   <span className="text-[12px] text-[#C0C0BC] italic">Not specified</span>
@@ -1005,7 +1005,7 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
                 <button
                   key={level}
                   onClick={() => handleLevelSelect(level)}
-                  className="flex flex-col items-start gap-3 p-4 rounded-[8px] border-2 border-[#E5E5E2] hover:border-[#5B5BD6] hover:bg-[#EEF0FF]/20 text-left transition-all group"
+                  className="flex flex-col items-start gap-3 p-4 rounded-[8px] border-2 border-[#E5E5E2] hover:border-[#070A1F] hover:bg-[#E6FBFA]/20 text-left transition-all group"
                 >
                   <div className={`w-9 h-9 rounded-full bg-[#F0F0ED] ${hoverBg} flex items-center justify-center text-[14px] font-bold text-[#9B9B95] group-hover:text-white transition-all`}>
                     {icon}
@@ -1070,7 +1070,7 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
                 onClick={() => { setIntakeMode(mode); setIntakePhase("client"); setCurrentBlockIndex(0); setSummary(null); setAnswers({}); setFreeText(""); setSelectedClientId(""); }}
                 className={`flex-1 py-2.5 text-[12px] font-medium border-b-2 -mb-[1px] transition-colors ${
                   intakeMode === mode
-                    ? "border-[#5B5BD6] text-[#5B5BD6]"
+                    ? "border-[#070A1F] text-[#070A1F]"
                     : "border-transparent text-[#9B9B95] hover:text-[#6B6B65]"
                 }`}
               >
@@ -1087,7 +1087,7 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
             <select
               value={selectedClientId}
               onChange={(e) => handleClientSelect(e.target.value)}
-              className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
+              className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
             >
               <option value="">Select client...</option>
               {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -1153,7 +1153,7 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
                 </div>
                 <div className="h-1 bg-[#F0F0ED] rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-[#5B5BD6] rounded-full transition-all duration-300"
+                    className="h-full bg-[#070A1F] rounded-full transition-all duration-300"
                     style={{ width: `${((currentBlockIndex + 1) / totalBlocks) * 100}%` }}
                   />
                 </div>
@@ -1188,7 +1188,7 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
                           onChange={(e) => setAnswer(q.id, e.target.value)}
                           placeholder={placeholderText}
                           rows={3}
-                          className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white resize-none"
+                          className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white resize-none"
                         />
                       )}
                       {q.type === "text" && (
@@ -1196,7 +1196,7 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
                           value={(answers[q.id] as string) ?? ""}
                           onChange={(e) => setAnswer(q.id, e.target.value)}
                           placeholder={placeholderText}
-                          className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
+                          className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
                         />
                       )}
                       {q.type === "multiselect" && (
@@ -1210,8 +1210,8 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
                                 onClick={() => toggleMultiselect(q.id, opt)}
                                 className={`h-7 px-3 rounded-full text-[12px] font-medium border transition-all ${
                                   selected
-                                    ? "bg-[#5B5BD6] border-[#5B5BD6] text-white"
-                                    : "bg-white border-[#E5E5E2] text-[#6B6B65] hover:border-[#5B5BD6] hover:text-[#5B5BD6]"
+                                    ? "bg-[#070A1F] border-[#070A1F] text-white"
+                                    : "bg-white border-[#E5E5E2] text-[#6B6B65] hover:border-[#070A1F] hover:text-[#070A1F]"
                                 }`}
                               >
                                 {opt}
@@ -1250,7 +1250,7 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
                   className={`flex-1 h-9 text-[13px] font-semibold rounded-[8px] transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
                     currentBlockIndex === totalBlocks - 1 && intakePhase === "project"
                       ? "bg-[#1A1A1A] hover:bg-[#111111] text-white"
-                      : "bg-[#5B5BD6] hover:bg-[#4A4AC0] text-white"
+                      : "bg-[#070A1F] hover:bg-[#0D1230] text-white"
                   }`}
                 >
                   {nextBlockLabel}
@@ -1274,13 +1274,13 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
                   onChange={(e) => setFreeText(e.target.value)}
                   placeholder={`e.g. "The client runs a Japanese restaurant in São Paulo. They want more people to discover them and visit — especially couples and professionals looking for a special experience. They're active on Instagram but have never run paid ads. Budget is around €2,000/month and they need to be ready before July."`}
                   rows={9}
-                  className="w-full px-3 py-2.5 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white resize-none leading-relaxed"
+                  className="w-full px-3 py-2.5 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white resize-none leading-relaxed"
                 />
               </div>
               <button
                 onClick={handleTextSubmit}
                 disabled={!selectedClientId || freeText.trim().length < 20}
-                className="w-full h-9 bg-[#5B5BD6] hover:bg-[#4A4AC0] disabled:opacity-40 disabled:cursor-not-allowed text-white text-[13px] font-semibold rounded-[8px] transition-colors"
+                className="w-full h-9 bg-[#070A1F] hover:bg-[#0D1230] disabled:opacity-40 disabled:cursor-not-allowed text-white text-[13px] font-semibold rounded-[8px] transition-colors"
               >
                 Parse & Generate Summary
               </button>
@@ -1302,13 +1302,13 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
                   onChange={(e) => setFreeText(e.target.value)}
                   placeholder="Paste the full brief text here..."
                   rows={11}
-                  className="w-full px-3 py-2.5 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white resize-none leading-relaxed font-mono"
+                  className="w-full px-3 py-2.5 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white resize-none leading-relaxed font-mono"
                 />
               </div>
               <button
                 onClick={handleTextSubmit}
                 disabled={!selectedClientId || freeText.trim().length < 30}
-                className="w-full h-9 bg-[#5B5BD6] hover:bg-[#4A4AC0] disabled:opacity-40 disabled:cursor-not-allowed text-white text-[13px] font-semibold rounded-[8px] transition-colors"
+                className="w-full h-9 bg-[#070A1F] hover:bg-[#0D1230] disabled:opacity-40 disabled:cursor-not-allowed text-white text-[13px] font-semibold rounded-[8px] transition-colors"
               >
                 Extract & Review
               </button>
@@ -1337,16 +1337,16 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
                         return Array.isArray(a) ? a.length > 0 : typeof a === "string" && a.trim().length > 3;
                       });
                       return (
-                        <div key={block.id} className={`flex items-center gap-3 px-5 py-3 ${isActive ? "bg-[#EEF0FF]/40" : ""}`}>
+                        <div key={block.id} className={`flex items-center gap-3 px-5 py-3 ${isActive ? "bg-[#E6FBFA]/40" : ""}`}>
                           <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${
                             allRequired && (isDone || isActive) ? "bg-[#DCFCE7] text-[#16A34A]" :
-                            isActive ? "bg-[#5B5BD6] text-white" :
+                            isActive ? "bg-[#070A1F] text-white" :
                             "bg-[#F0F0ED] text-[#9B9B95]"
                           }`}>
                             {allRequired && (isDone || isActive) ? "✓" : i + 1}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className={`text-[12px] font-medium ${isActive ? "text-[#5B5BD6]" : isDone ? "text-[#6B6B65]" : "text-[#9B9B95]"}`}>
+                            <div className={`text-[12px] font-medium ${isActive ? "text-[#070A1F]" : isDone ? "text-[#6B6B65]" : "text-[#9B9B95]"}`}>
                               {block.title}
                             </div>
                             <div className="text-[11px] text-[#9B9B95] truncate">{block.description}</div>
@@ -1424,16 +1424,16 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
                         return Array.isArray(a) ? a.length > 0 : typeof a === "string" && a.trim().length > 3;
                       });
                       return (
-                        <div key={block.id} className={`flex items-center gap-3 px-5 py-3 ${isActive ? "bg-[#EEF0FF]/40" : ""}`}>
+                        <div key={block.id} className={`flex items-center gap-3 px-5 py-3 ${isActive ? "bg-[#E6FBFA]/40" : ""}`}>
                           <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${
                             allRequired && (isDone || isActive) ? "bg-[#DCFCE7] text-[#16A34A]" :
-                            isActive ? "bg-[#5B5BD6] text-white" :
+                            isActive ? "bg-[#070A1F] text-white" :
                             "bg-[#F0F0ED] text-[#9B9B95]"
                           }`}>
                             {allRequired && (isDone || isActive) ? "✓" : i + 1}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className={`text-[12px] font-medium ${isActive ? "text-[#5B5BD6]" : isDone ? "text-[#6B6B65]" : "text-[#9B9B95]"}`}>
+                            <div className={`text-[12px] font-medium ${isActive ? "text-[#070A1F]" : isDone ? "text-[#6B6B65]" : "text-[#9B9B95]"}`}>
                               {block.title}
                             </div>
                             <div className="text-[11px] text-[#9B9B95] truncate">{block.description}</div>
@@ -1468,7 +1468,7 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
             <ul className="space-y-1.5">
               {["What they want to achieve with this project", "Services needed", "Budget range", "Deadline or launch date"].map((item, i) => (
                 <li key={i} className="flex items-center gap-2 text-[12px] text-[#6B6B65]">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#EEF0FF] shrink-0" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#E6FBFA] shrink-0" />
                   {item}
                 </li>
               ))}

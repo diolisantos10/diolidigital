@@ -58,13 +58,13 @@ export default function BrainPage() {
         <div className="flex items-start justify-between">
           <div>
             <div className="flex items-center gap-3 mb-1">
-              <div className="w-8 h-8 rounded-[7px] bg-[#5B5BD6] flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-[7px] bg-[#070A1F] flex items-center justify-center shrink-0">
                 <BrainIcon size={16} className="text-white" />
               </div>
               <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-white">
                 Dioli Brain
               </h1>
-              <span className="text-[11px] font-mono text-[#5B5BD6] bg-[#5B5BD6]/10 px-2 py-0.5 rounded-full border border-[#5B5BD6]/20">
+              <span className="text-[11px] font-mono text-[#070A1F] bg-[#070A1F]/10 px-2 py-0.5 rounded-full border border-[#070A1F]/20">
                 v{BRAIN_VERSION}
               </span>
             </div>
@@ -74,7 +74,7 @@ export default function BrainPage() {
           </div>
           <div className="text-right">
             <div className="text-[11px] text-[#4A4A44] mb-1">Piloto ativo</div>
-            <div className="text-[13px] font-medium text-[#5B5BD6]">Atendimento / SDR</div>
+            <div className="text-[13px] font-medium text-[#070A1F]">Atendimento / SDR</div>
           </div>
         </div>
 
@@ -816,9 +816,9 @@ function QualityDepartmentPanel() {
   ];
 
   return (
-    <div className="rounded-[10px] border border-[#5B5BD6]/30 bg-[#5B5BD6]/[0.04] p-5 space-y-4">
+    <div className="rounded-[10px] border border-[#070A1F]/30 bg-[#070A1F]/[0.04] p-5 space-y-4">
       <div className="flex items-center justify-between">
-        <div className="text-[11px] font-semibold text-[#5B5BD6] uppercase tracking-[0.08em]">
+        <div className="text-[11px] font-semibold text-[#070A1F] uppercase tracking-[0.08em]">
           Sétimo Departamento — Quality (auditoria e padrões)
         </div>
         <div className="flex items-center gap-2">
@@ -843,7 +843,7 @@ function QualityDepartmentPanel() {
             key={s.label}
             className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${
               s.active
-                ? "text-[#5B5BD6] bg-[#5B5BD6]/10 border-[#5B5BD6]/20"
+                ? "text-[#070A1F] bg-[#070A1F]/10 border-[#070A1F]/20"
                 : "text-[#4A4A44] bg-white/[0.03] border-white/[0.06]"
             }`}
           >
@@ -855,7 +855,7 @@ function QualityDepartmentPanel() {
       <div className="grid grid-cols-2 gap-1.5">
         {maturity.criteria.map((c) => (
           <div key={c.id} className="flex items-center gap-1.5 text-[10px]">
-            <span className={c.met ? "text-[#5B5BD6]" : "text-[#4A4A44]"}>
+            <span className={c.met ? "text-[#070A1F]" : "text-[#4A4A44]"}>
               {c.met ? "✓" : "○"}
             </span>
             <span className={c.met ? "text-[#8A8A84]" : "text-[#4A4A44]"}>{c.label}</span>
@@ -863,7 +863,7 @@ function QualityDepartmentPanel() {
         ))}
       </div>
 
-      <div className="border-t border-[#5B5BD6]/20 pt-3">
+      <div className="border-t border-[#070A1F]/20 pt-3">
         <div className="text-[10px] font-semibold text-[#4A4A44] uppercase tracking-[0.06em] mb-2">
           Scorecard Quality
         </div>
@@ -891,8 +891,8 @@ function OverviewTab() {
   return (
     <div className="space-y-6 max-w-5xl">
       {/* Thesis */}
-      <div className="rounded-[10px] border border-[#5B5BD6]/30 bg-[#5B5BD6]/[0.04] p-5">
-        <div className="text-[11px] font-semibold text-[#5B5BD6] uppercase tracking-[0.08em] mb-3">Tese Central</div>
+      <div className="rounded-[10px] border border-[#070A1F]/30 bg-[#070A1F]/[0.04] p-5">
+        <div className="text-[11px] font-semibold text-[#070A1F] uppercase tracking-[0.08em] mb-3">Tese Central</div>
         <p className="text-[15px] font-medium text-white leading-relaxed">
           A IA não é o produto. O Brain é o produto.
         </p>
@@ -907,7 +907,7 @@ function OverviewTab() {
       {/* Status cards */}
       <div className="grid grid-cols-4 gap-4">
         <StatCard label="Módulos mapeados" value={mapped} total={CURRENT_SYSTEM_MAP.length} color="#16A34A" />
-        <StatCard label="Depts existentes" value={existing} total={BRAIN_DEPARTMENTS.length} color="#5B5BD6" />
+        <StatCard label="Depts existentes" value={existing} total={BRAIN_DEPARTMENTS.length} color="#070A1F" />
         <StatCard label="Depts parciais" value={partial} total={BRAIN_DEPARTMENTS.length} color="#D97706" />
         <StatCard label="Precisam refatorar" value={needsRefactor} total={CURRENT_SYSTEM_MAP.length} color="#7C3AED" />
       </div>
@@ -937,7 +937,7 @@ function OverviewTab() {
         <div className="space-y-2">
           {BRAIN_RULES.map((rule, i) => (
             <div key={i} className="flex items-start gap-2.5 text-[12px] text-[#8A8A84]">
-              <span className="text-[#5B5BD6] mt-0.5 shrink-0">—</span>
+              <span className="text-[#070A1F] mt-0.5 shrink-0">—</span>
               <span>{rule}</span>
             </div>
           ))}
@@ -979,13 +979,13 @@ function OverviewTab() {
 
 function DepartmentPipelineSection() {
   const PIPELINE_STEPS = [
-    { step: 1, dept: "SDR",       status: "waiting_strategy", label: "Atendimento / SDR",  color: "#5B5BD6", href: "/agency/requests" },
+    { step: 1, dept: "SDR",       status: "waiting_strategy", label: "Atendimento / SDR",  color: "#070A1F", href: "/agency/requests" },
     { step: 2, dept: "Strategy",  status: "waiting_social",   label: "Estratégia",         color: "#7C3AED", href: "/agency/strategy" },
     { step: 3, dept: "Social",    status: "waiting_design",   label: "Social Media",       color: "#DB2777", href: "/agency/social" },
     { step: 4, dept: "Design",    status: "waiting_traffic",  label: "Design",             color: "#EA580C", href: "/agency/design" },
     { step: 5, dept: "Traffic",   status: "waiting_analytics",label: "Tráfego Pago",       color: "#0284C7", href: "/agency/traffic" },
     { step: 6, dept: "Analytics", status: "waiting_quality",  label: "Analytics",          color: "#16A34A", href: "/agency/analytics" },
-    { step: 7, dept: "Quality",   status: "in_progress",      label: "Quality",            color: "#5B5BD6", href: "/agency/quality" },
+    { step: 7, dept: "Quality",   status: "in_progress",      label: "Quality",            color: "#070A1F", href: "/agency/quality" },
   ];
 
   return (
@@ -1049,7 +1049,7 @@ function SystemMapSection() {
                   <p className="text-[11px] text-[#6B6B65]">{m.notes}</p>
                 </div>
                 {m.brainDepartmentId && (
-                  <span className="text-[10px] text-[#5B5BD6] bg-[#5B5BD6]/10 px-1.5 py-0.5 rounded border border-[#5B5BD6]/20 shrink-0">
+                  <span className="text-[10px] text-[#070A1F] bg-[#070A1F]/10 px-1.5 py-0.5 rounded border border-[#070A1F]/20 shrink-0">
                     {m.brainDepartmentId}
                   </span>
                 )}
@@ -1153,13 +1153,13 @@ function FlowTab() {
         {DIOLI_COGNITIVE_FLOW.map((step) => (
           <div key={step.id} className="rounded-[8px] border border-white/[0.06] bg-[#111111] p-4">
             <div className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full bg-[#5B5BD6]/10 border border-[#5B5BD6]/20 flex items-center justify-center shrink-0 mt-0.5">
-                <span className="text-[10px] font-bold text-[#5B5BD6]">{step.order}</span>
+              <div className="w-6 h-6 rounded-full bg-[#070A1F]/10 border border-[#070A1F]/20 flex items-center justify-center shrink-0 mt-0.5">
+                <span className="text-[10px] font-bold text-[#070A1F]">{step.order}</span>
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-[13px] font-semibold text-white mb-0.5">{step.label}</div>
                 <div className="text-[12px] text-[#6B6B65] italic mb-2">{step.guidingQuestion}</div>
-                <div className="text-[11px] text-[#5B5BD6]">
+                <div className="text-[11px] text-[#070A1F]">
                   Output: <span className="font-mono">{step.output}</span>
                 </div>
                 {step.riskFlags.length > 0 && (
@@ -1220,7 +1220,7 @@ function DepartmentsTab() {
               <div className="space-y-0.5">
                 {dept.qualityGate.slice(0, 3).map((check) => (
                   <div key={check} className="flex items-center gap-1.5 text-[11px] text-[#8A8A84]">
-                    <span className="text-[#5B5BD6]">·</span>
+                    <span className="text-[#070A1F]">·</span>
                     {check}
                   </div>
                 ))}
@@ -1253,14 +1253,14 @@ function DepartmentsTab() {
                 <div className="text-[12px] font-semibold text-white">{route.departmentId}</div>
                 <div className="flex gap-1.5">
                   <Chip label={route.costTier} color={route.costTier === "low" ? "#16A34A" : route.costTier === "medium" ? "#D97706" : "#DC2626"} />
-                  <Chip label={route.latencyTier} color="#5B5BD6" />
+                  <Chip label={route.latencyTier} color="#070A1F" />
                   <Chip label={route.qualityTier} color="#7C3AED" />
                 </div>
               </div>
               <div className="flex gap-4 text-[11px] text-[#6B6B65]">
                 <span>Preferido: <span className="text-white font-mono">{route.preferredProvider}</span></span>
                 <span>Fallback: <span className="text-white font-mono">{route.fallbackProvider}</span></span>
-                <span>Capacidade: <span className="text-[#5B5BD6]">{route.capabilityRequired}</span></span>
+                <span>Capacidade: <span className="text-[#070A1F]">{route.capabilityRequired}</span></span>
               </div>
             </div>
           ))}
@@ -1385,15 +1385,15 @@ function TrainingTab() {
         )}
         <a
           href="/agency/simulations/training"
-          className="inline-block mt-4 text-[12px] text-[#5B5BD6] hover:text-[#7C7CE8] transition-colors"
+          className="inline-block mt-4 text-[12px] text-[#070A1F] hover:text-[#7C7CE8] transition-colors"
         >
           Abrir Training Center completo →
         </a>
       </div>
 
       {/* Pipeline explanation */}
-      <div className="rounded-[10px] border border-[#5B5BD6]/20 bg-[#5B5BD6]/[0.03] p-5">
-        <div className="text-[11px] font-semibold text-[#5B5BD6] uppercase tracking-[0.08em] mb-3">
+      <div className="rounded-[10px] border border-[#070A1F]/20 bg-[#070A1F]/[0.03] p-5">
+        <div className="text-[11px] font-semibold text-[#070A1F] uppercase tracking-[0.08em] mb-3">
           Pipeline de Governança
         </div>
         <div className="flex items-center gap-2 text-[12px] text-[#8A8A84] flex-wrap">
@@ -1403,7 +1403,7 @@ function TrainingTab() {
           <span className="text-[#4A4A44]">→</span>
           <span className="text-white font-medium">Aprovação manual</span>
           <span className="text-[#4A4A44]">→</span>
-          <span className="text-[#5B5BD6] font-medium">BrainChangeRequest</span>
+          <span className="text-[#070A1F] font-medium">BrainChangeRequest</span>
           <span className="text-[#4A4A44]">→</span>
           <span className="text-white font-medium">Brain Director</span>
           <span className="text-[#4A4A44]">→</span>
@@ -1421,7 +1421,7 @@ function TrainingTab() {
         <div className="space-y-2">
           {TRAINING_RULES.map((rule, i) => (
             <div key={i} className="flex items-start gap-2.5 text-[12px] text-[#8A8A84]">
-              <span className="text-[#5B5BD6] mt-0.5 shrink-0">—</span>
+              <span className="text-[#070A1F] mt-0.5 shrink-0">—</span>
               <span>{rule}</span>
             </div>
           ))}
@@ -1450,8 +1450,8 @@ function QualityTab() {
       </div>
 
       {/* Global gate */}
-      <div className="rounded-[10px] border border-[#5B5BD6]/20 bg-[#5B5BD6]/[0.03] p-5">
-        <div className="text-[11px] font-semibold text-[#5B5BD6] uppercase tracking-[0.08em] mb-3">
+      <div className="rounded-[10px] border border-[#070A1F]/20 bg-[#070A1F]/[0.03] p-5">
+        <div className="text-[11px] font-semibold text-[#070A1F] uppercase tracking-[0.08em] mb-3">
           Gate Global — todos os departamentos
         </div>
         <div className="space-y-2">
@@ -1605,7 +1605,7 @@ function DirectorTab({ onCountsChange }: { onCountsChange: (n: number) => void }
         {data && (
           <div className="text-right shrink-0">
             <div className="text-[11px] text-[#4A4A44] mb-1">Versão atual do Brain</div>
-            <div className="text-[16px] font-mono font-bold text-[#5B5BD6]">v{data.currentVersion}</div>
+            <div className="text-[16px] font-mono font-bold text-[#070A1F]">v{data.currentVersion}</div>
           </div>
         )}
       </div>
@@ -1678,7 +1678,7 @@ function DirectorTab({ onCountsChange }: { onCountsChange: (n: number) => void }
                         )}
                       </div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <Chip label={sourceLabel} color="#5B5BD6" />
+                        <Chip label={sourceLabel} color="#070A1F" />
                         <Chip label={req.department} color="#8A8A84" />
                         <Chip label={`risco: ${req.riskLevel}`} color={riskColor} />
                         <Chip label={statusLabel} color="#6B6B65" />
@@ -1731,7 +1731,7 @@ function DirectorTab({ onCountsChange }: { onCountsChange: (n: number) => void }
                       </div>
                       <div className="flex gap-1.5">
                         {req.approvalRequiredBy.map((r) => (
-                          <Chip key={r} label={r} color={r === "ceo" ? "#F59E0B" : "#5B5BD6"} />
+                          <Chip key={r} label={r} color={r === "ceo" ? "#F59E0B" : "#070A1F"} />
                         ))}
                       </div>
                     </div>
@@ -1745,7 +1745,7 @@ function DirectorTab({ onCountsChange }: { onCountsChange: (n: number) => void }
                       {req.status === "draft" && (
                         <ActionButton
                           label="Submeter para Revisão"
-                          color="#5B5BD6"
+                          color="#070A1F"
                           busy={actionBusy === req.id}
                           onClick={() => runAction(req.id, "submit")}
                         />
@@ -1769,7 +1769,7 @@ function DirectorTab({ onCountsChange }: { onCountsChange: (n: number) => void }
                       {req.status === "approved" && (
                         <ActionButton
                           label="Aplicar (versiona o Brain)"
-                          color="#5B5BD6"
+                          color="#070A1F"
                           busy={actionBusy === req.id}
                           onClick={() => runAction(req.id, "apply")}
                         />
@@ -1803,7 +1803,7 @@ function DirectorTab({ onCountsChange }: { onCountsChange: (n: number) => void }
             <div className="space-y-2">
               {data.versions.map((v) => (
                 <div key={v.id} className="flex items-center gap-3 rounded-[8px] border border-white/[0.06] bg-[#111111] px-4 py-2.5">
-                  <span className="text-[12px] font-mono font-bold text-[#5B5BD6] shrink-0">v{v.version}</span>
+                  <span className="text-[12px] font-mono font-bold text-[#070A1F] shrink-0">v{v.version}</span>
                   <span className="text-[12px] text-[#C0C0BA] flex-1 truncate">{v.summary}</span>
                   <span className="text-[10px] text-[#4A4A44] shrink-0">
                     {new Date(v.createdAt).toLocaleString("pt-BR")}
@@ -1884,14 +1884,14 @@ const ARCHITECTURE_LAYERS = [
   {
     id: "brain_director",
     icon: "⬡",
-    color: "#5B5BD6",
+    color: "#070A1F",
     name: "Brain Director",
     description: "Audita raciocínio, approva/rejeita BrainChangeRequests, versiona o Brain.",
   },
   {
     id: "brain",
     icon: "●",
-    color: "#5B5BD6",
+    color: "#070A1F",
     name: "Dioli Brain",
     description: "Fluxo cognitivo compartilhado, Knowledge Base, Quality Gate, Evidence.",
   },

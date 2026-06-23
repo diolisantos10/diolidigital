@@ -47,7 +47,7 @@ function AgentCard({ agent }: { agent: typeof MOCK_AGENTS[0] }) {
     <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-5 py-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-shadow">
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-[8px] bg-[#EEF0FF] flex items-center justify-center text-[14px] font-bold text-[#5B5BD6]">
+          <div className="w-9 h-9 rounded-[8px] bg-[#E6FBFA] flex items-center justify-center text-[14px] font-bold text-[#070A1F]">
             {agent.name.slice(0, 1)}
           </div>
           <div>
@@ -77,7 +77,7 @@ function AgentCard({ agent }: { agent: typeof MOCK_AGENTS[0] }) {
           <div className="space-y-0.5">
             {agent.outputs.slice(0, 3).map((output) => (
               <div key={output} className="flex items-center gap-1.5">
-                <div className="w-1 h-1 rounded-full bg-[#5B5BD6]/40 shrink-0" />
+                <div className="w-1 h-1 rounded-full bg-[#070A1F]/40 shrink-0" />
                 <span className="text-[11px] text-[#6B6B65]">{output}</span>
               </div>
             ))}

@@ -126,7 +126,7 @@ function MessageBubble({ msg }: { msg: ConvMessage }) {
   return (
     <div className={`flex ${isAssistant ? "justify-start" : "justify-end"}`}>
       {isAssistant && (
-        <div className="w-6 h-6 rounded-full bg-[#5B5BD6] flex items-center justify-center shrink-0 mr-2 mt-0.5">
+        <div className="w-6 h-6 rounded-full bg-[#070A1F] flex items-center justify-center shrink-0 mr-2 mt-0.5">
           <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
             <circle cx="4" cy="4" r="2.5" fill="white" fillOpacity="0.9"/>
           </svg>
@@ -149,7 +149,7 @@ function MessageBubble({ msg }: { msg: ConvMessage }) {
 
 const PKG_STYLE: Record<string, { bg: string; text: string }> = {
   starter: { bg: "bg-[#F0F0ED]",  text: "text-[#6B6B65]"  },
-  growth:  { bg: "bg-[#EEF0FF]",  text: "text-[#5B5BD6]"  },
+  growth:  { bg: "bg-[#E6FBFA]",  text: "text-[#070A1F]"  },
   pro:     { bg: "bg-[#F5F3FF]",  text: "text-[#7C3AED]"  },
 };
 
@@ -238,7 +238,7 @@ function ScopeSection({ scope }: { scope: BriefingScope }) {
 const CONFIDENCE_CFG = {
   none:   { label: "",                     bg: "",               text: "" },
   low:    { label: "Estimativa inicial",   bg: "bg-[#FEF3C7]",  text: "text-[#D97706]" },
-  medium: { label: "Estimativa aprox.",    bg: "bg-[#EEF0FF]",  text: "text-[#5B5BD6]" },
+  medium: { label: "Estimativa aprox.",    bg: "bg-[#E6FBFA]",  text: "text-[#070A1F]" },
   high:   { label: "Estimativa confiável", bg: "bg-[#DCFCE7]",  text: "text-[#16A34A]" },
 };
 
@@ -549,7 +549,7 @@ export function BriefingRoomV2({
                   : "Digite sua resposta…"
               }
               rows={2}
-              className="flex-1 px-3 py-2.5 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[8px] outline-none focus:border-[#5B5BD6] focus:bg-white transition-all resize-none leading-relaxed placeholder:text-[#C0C0BC]"
+              className="flex-1 px-3 py-2.5 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[8px] outline-none focus:border-[#070A1F] focus:bg-white transition-all resize-none leading-relaxed placeholder:text-[#C0C0BC]"
             />
             <button
               onClick={handleSend}
@@ -592,7 +592,7 @@ export function BriefingRoomV2({
               onClick={() => setShowFileUpload((v) => !v)}
               className={`h-6 px-2.5 rounded-[5px] text-[10px] font-medium border transition-colors flex items-center gap-1.5 ${
                 showFileUpload
-                  ? "bg-[#EEF0FF] border-[#C7C7FF] text-[#5B5BD6]"
+                  ? "bg-[#E6FBFA] border-[#C7C7FF] text-[#070A1F]"
                   : "bg-white border-[#E5E5E2] text-[#9B9B95] hover:border-[#9B9B95]"
               }`}
             >

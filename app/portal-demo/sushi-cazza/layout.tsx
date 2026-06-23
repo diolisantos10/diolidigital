@@ -21,7 +21,7 @@ export default function DemoLayout({ children }: { children: React.ReactNode }) 
       {/* Portal header */}
       <header className="bg-white border-b border-[#E5E5E2] px-8 h-14 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-6 h-6 rounded-[6px] bg-[#5B5BD6] flex items-center justify-center">
+          <div className="w-6 h-6 rounded-[6px] bg-[#070A1F] flex items-center justify-center">
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
               <rect x="1" y="1" width="4" height="4" rx="1" fill="white"/>
               <rect x="7" y="1" width="4" height="4" rx="1" fill="white" fillOpacity="0.6"/>
@@ -49,7 +49,7 @@ export default function DemoLayout({ children }: { children: React.ReactNode }) 
             Este é um ambiente de teste — os dados são armazenados localmente e não são enviados para nenhum servidor.
           </p>
           <div className="flex items-center gap-4 text-[11px]">
-            <Link href="/agency/requests" className="text-[#5B5BD6] hover:underline font-medium">
+            <Link href="/agency/requests" className="text-[#070A1F] hover:underline font-medium">
               Ver solicitações no painel
             </Link>
             <Link href="/agency/dashboard" className="text-[#9B9B95] hover:text-[#6B6B65] transition-colors">

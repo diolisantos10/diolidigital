@@ -140,7 +140,7 @@ export default function BriefingsPage() {
             <select
               value={form.projectId}
               onChange={(e) => setForm({ ...form, projectId: e.target.value })}
-              className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
+              className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
             >
               <option value="">Selecionar projeto...</option>
               {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -153,7 +153,7 @@ export default function BriefingsPage() {
               onChange={(e) => setForm({ ...form, goal: e.target.value })}
               placeholder="Qual é o objetivo de negócio deste projeto?"
               rows={2}
-              className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white resize-none"
+              className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white resize-none"
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -164,7 +164,7 @@ export default function BriefingsPage() {
                 onChange={(e) => setForm({ ...form, audience: e.target.value })}
                 placeholder="Quem você quer alcançar?"
                 rows={2}
-                className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white resize-none"
+                className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white resize-none"
               />
             </div>
             <div>
@@ -174,7 +174,7 @@ export default function BriefingsPage() {
                 onChange={(e) => setForm({ ...form, keyMessage: e.target.value })}
                 placeholder="Mensagem central a ser comunicada"
                 rows={2}
-                className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white resize-none"
+                className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white resize-none"
               />
             </div>
           </div>
@@ -185,7 +185,7 @@ export default function BriefingsPage() {
                 value={form.deliverables}
                 onChange={(e) => setForm({ ...form, deliverables: e.target.value })}
                 placeholder="ex.: textos, peças visuais, anúncios"
-                className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
+                className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
               />
             </div>
             <div>
@@ -194,7 +194,7 @@ export default function BriefingsPage() {
                 type="date"
                 value={form.deadline}
                 onChange={(e) => setForm({ ...form, deadline: e.target.value })}
-                className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
+                className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
               />
             </div>
           </div>
@@ -204,7 +204,7 @@ export default function BriefingsPage() {
               value={form.successCriteria}
               onChange={(e) => setForm({ ...form, successCriteria: e.target.value })}
               placeholder="Como o sucesso será medido?"
-              className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
+              className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
             />
           </div>
           <div className="flex justify-end gap-2.5 pt-1">

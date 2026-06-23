@@ -128,7 +128,7 @@ export default function DeliverableDetailModal({ deliverableId, onClose }: Props
           {d.previewContent ? (
             <DeliverablePreview deliverable={d} mode="internal" />
           ) : d.link ? (
-            <a href={d.link} target="_blank" rel="noreferrer" className="text-[13px] text-[#5B5BD6] hover:underline break-all">
+            <a href={d.link} target="_blank" rel="noreferrer" className="text-[13px] text-[#070A1F] hover:underline break-all">
               {d.link}
             </a>
           ) : (
@@ -149,7 +149,7 @@ export default function DeliverableDetailModal({ deliverableId, onClose }: Props
               <div className="space-y-3">
                 {[...history].reverse().map((h, i) => (
                   <div key={i} className="relative">
-                    <div className="absolute -left-4 top-1 w-[11px] h-[11px] rounded-full bg-[#EEF0FF] border-2 border-[#5B5BD6]" />
+                    <div className="absolute -left-4 top-1 w-[11px] h-[11px] rounded-full bg-[#E6FBFA] border-2 border-[#070A1F]" />
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-[12px] font-medium text-[#1A1A1A]">v{h.version}</span>
                       <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#F0F0ED] text-[#6B6B65] font-medium">
@@ -213,7 +213,7 @@ export default function DeliverableDetailModal({ deliverableId, onClose }: Props
               onChange={(e) => setResolveNote(e.target.value)}
               placeholder="O que mudou nesta versão?"
               rows={2}
-              className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white resize-none"
+              className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white resize-none"
             />
           </div>
         )}

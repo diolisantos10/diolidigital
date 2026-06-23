@@ -148,7 +148,7 @@ export default function GuidedTour({
             width: rect.width,
             height: rect.height,
             boxShadow: "0 0 0 9999px rgba(17,17,17,0.55)",
-            outline: "2px solid #5B5BD6",
+            outline: "2px solid #070A1F",
           }}
         />
       )}
@@ -161,7 +161,7 @@ export default function GuidedTour({
         aria-label={step.title}
       >
         <div className="flex items-center justify-between mb-2">
-          <span className="text-[10px] font-bold text-[#5B5BD6] bg-[#EEF0FF] px-2 py-0.5 rounded-full">
+          <span className="text-[10px] font-bold text-[#070A1F] bg-[#E6FBFA] px-2 py-0.5 rounded-full">
             {stepIndex + 1} de {tour.steps.length}
           </span>
           <button
@@ -193,7 +193,7 @@ export default function GuidedTour({
           ) : (
             <button
               onClick={() => setStepIndex((i) => i + 1)}
-              className="h-7 px-3.5 rounded-[6px] bg-[#5B5BD6] text-white text-[11px] font-semibold hover:bg-[#4A4AC0] transition-colors"
+              className="h-7 px-3.5 rounded-[6px] bg-[#070A1F] text-white text-[11px] font-semibold hover:bg-[#0D1230] transition-colors"
             >
               Próximo
             </button>

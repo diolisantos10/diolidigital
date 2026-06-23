@@ -24,7 +24,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function TagList({ items, color = "bg-[#EEF0FF] text-[#5B5BD6]" }: { items: string[]; color?: string }) {
+function TagList({ items, color = "bg-[#E6FBFA] text-[#070A1F]" }: { items: string[]; color?: string }) {
   return (
     <div className="flex flex-wrap gap-1.5">
       {items.map((item, i) => (
@@ -137,7 +137,7 @@ export function StrategyCanvasCard({
           </div>
 
           <Section title="Vantagens Competitivas">
-            <BulletList items={canvas.competitiveAdvantages} marker="▸" markerClass="text-[#5B5BD6]" />
+            <BulletList items={canvas.competitiveAdvantages} marker="▸" markerClass="text-[#070A1F]" />
           </Section>
 
           <div className="grid grid-cols-2 gap-4">
@@ -229,15 +229,15 @@ export function StrategyCanvasCard({
           {/* Cognitive Flow trace */}
           <div className="bg-[#F0F0FF] border border-[#C7C7FF] rounded-[8px] px-4 py-3">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-semibold text-[#5B5BD6] uppercase tracking-[0.06em]">
+              <span className="text-[10px] font-semibold text-[#070A1F] uppercase tracking-[0.06em]">
                 Fluxo Cognitivo
               </span>
-              <span className="text-[11px] font-bold text-[#5B5BD6]">{flowCompleted}/12 passos</span>
+              <span className="text-[11px] font-bold text-[#070A1F]">{flowCompleted}/12 passos</span>
             </div>
             <div className="space-y-1">
               {canvas.cognitiveFlowTrace.map((step) => (
                 <div key={step.stepId} className="flex items-start gap-1.5 text-[10px]">
-                  <span className={`shrink-0 ${step.completed ? "text-[#5B5BD6]" : "text-[#C0C0BC]"}`}>
+                  <span className={`shrink-0 ${step.completed ? "text-[#070A1F]" : "text-[#C0C0BC]"}`}>
                     {step.completed ? "✓" : "○"}
                   </span>
                   <span className="text-[#6B6B65] shrink-0 font-medium">{step.order}. {step.label}:</span>
@@ -263,7 +263,7 @@ export function StrategyCanvasCard({
                 onChange={(e) => setReviewNote(e.target.value)}
                 placeholder="Nota de revisão (opcional)…"
                 rows={2}
-                className="w-full px-3 py-2 text-[12px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[8px] outline-none focus:border-[#5B5BD6] focus:bg-white transition-all resize-none"
+                className="w-full px-3 py-2 text-[12px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[8px] outline-none focus:border-[#070A1F] focus:bg-white transition-all resize-none"
               />
               <div className="flex items-center gap-2">
                 {onApprove && (

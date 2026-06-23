@@ -217,15 +217,15 @@ export default function QualityWorkspacePage() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-[20px] font-semibold text-[#1A1A1A]">Quality</h1>
-            <span className="h-5 px-2 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-semibold flex items-center">Brain · Auditoria</span>
+            <span className="h-5 px-2 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[10px] font-semibold flex items-center">Brain · Auditoria</span>
           </div>
           <p className="text-[12px] text-[#6B6B65] mt-0.5">Auditoria cross-departamento: verifica qualidade, detecta padrões e candidatos a evidência em todo o pipeline</p>
         </div>
-        <a href="/agency/simulations/quality" className="text-[11px] font-medium px-3 py-1.5 rounded-[6px] bg-[#EEF0FF] text-[#5B5BD6] hover:bg-[#DDD6FE]">Laboratório →</a>
+        <a href="/agency/simulations/quality" className="text-[11px] font-medium px-3 py-1.5 rounded-[6px] bg-[#E6FBFA] text-[#070A1F] hover:bg-[#DDD6FE]">Laboratório →</a>
       </div>
 
-      <div className="rounded-[10px] border border-[#5B5BD6]/20 bg-[#EEF0FF]/40 px-4 py-3">
-        <div className="text-[9px] font-semibold text-[#5B5BD6] uppercase tracking-[0.08em] mb-2">Scorecard — Quality</div>
+      <div className="rounded-[10px] border border-[#070A1F]/20 bg-[#E6FBFA]/40 px-4 py-3">
+        <div className="text-[9px] font-semibold text-[#070A1F] uppercase tracking-[0.08em] mb-2">Scorecard — Quality</div>
         <div className="grid grid-cols-4 gap-3 sm:grid-cols-8">
           {scorecardMetrics.map((m) => (
             <div key={m.label} className="text-center">
@@ -237,7 +237,7 @@ export default function QualityWorkspacePage() {
       </div>
 
       <div className="rounded-[8px] bg-[#F0F0ED] px-3 py-2 text-[11px] text-[#6B6B65]">
-        <span className="font-semibold text-[#5B5BD6]">Dioli Standard:</span>{" "}
+        <span className="font-semibold text-[#070A1F]">Dioli Standard:</span>{" "}
         Auditoria usa modelo diferente do que gerou o output. Falhas bloqueantes impedem aprovação. Problemas críticos são escalados — nunca omitidos.
       </div>
 
@@ -247,7 +247,7 @@ export default function QualityWorkspacePage() {
           {queue.map((analytics) => {
             const hasStrategy = strategyCanvases.some((s) => s.id === analytics.strategyCanvasId);
             return (
-              <div key={analytics.id} className="rounded-[10px] border border-[#5B5BD6]/30 bg-[#EEF0FF]/40 px-4 py-3 flex items-center justify-between gap-3">
+              <div key={analytics.id} className="rounded-[10px] border border-[#070A1F]/30 bg-[#E6FBFA]/40 px-4 py-3 flex items-center justify-between gap-3">
                 <div>
                   <p className="text-[13px] font-medium text-[#1A1A1A]">{analytics.clientName}</p>
                   <p className="text-[11px] text-[#6B6B65]">{analytics.segment} · Analytics Canvas aprovado</p>
@@ -255,7 +255,7 @@ export default function QualityWorkspacePage() {
                 <button
                   onClick={() => handleRunAudit(analytics)}
                   disabled={!hasStrategy}
-                  className="shrink-0 text-[11px] font-semibold px-3 py-1.5 rounded-[6px] bg-[#5B5BD6] text-white hover:bg-[#4A4AC5] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="shrink-0 text-[11px] font-semibold px-3 py-1.5 rounded-[6px] bg-[#070A1F] text-white hover:bg-[#4A4AC5] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Rodar Auditoria
                 </button>

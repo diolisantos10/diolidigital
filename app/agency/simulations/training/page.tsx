@@ -30,7 +30,7 @@ const VERDICT_STYLE = {
 const IMPACT_STYLE: Record<string, { bg: string; text: string }> = {
   low:      { bg: "bg-[#F0F0ED]",  text: "text-[#6B6B65]" },
   medium:   { bg: "bg-[#FEF3C7]",  text: "text-[#D97706]" },
-  high:     { bg: "bg-[#EEF0FF]",  text: "text-[#5B5BD6]" },
+  high:     { bg: "bg-[#E6FBFA]",  text: "text-[#070A1F]" },
   critical: { bg: "bg-[#FEE2E2]",  text: "text-[#DC2626]" },
 };
 
@@ -38,7 +38,7 @@ const STATUS_STYLE: Record<ImprovementStatus, { bg: string; text: string; label:
   pending:  { bg: "bg-[#FEF3C7]", text: "text-[#D97706]", label: "Pendente"  },
   approved: { bg: "bg-[#DCFCE7]", text: "text-[#16A34A]", label: "Aprovado"  },
   rejected: { bg: "bg-[#F0F0ED]", text: "text-[#9B9B95]", label: "Rejeitado" },
-  applied:  { bg: "bg-[#EEF0FF]", text: "text-[#5B5BD6]", label: "Aplicado"  },
+  applied:  { bg: "bg-[#E6FBFA]", text: "text-[#070A1F]", label: "Aplicado"  },
 };
 
 const MODE_OPTIONS: { id: TrainingMode; label: string; desc: string }[] = [
@@ -96,7 +96,7 @@ function applySuggFilter(suggs: AgentImprovementSuggestion[], f: SuggFilter): Ag
 
 function OriginBadge({ origin }: { origin: "seed" | "dynamic" }) {
   return origin === "dynamic"
-    ? <span className="h-4 px-1.5 rounded-[3px] bg-[#EEF0FF] text-[#5B5BD6] text-[8px] font-bold uppercase tracking-wide">dinâmico</span>
+    ? <span className="h-4 px-1.5 rounded-[3px] bg-[#E6FBFA] text-[#070A1F] text-[8px] font-bold uppercase tracking-wide">dinâmico</span>
     : <span className="h-4 px-1.5 rounded-[3px] bg-[#F0F0ED] text-[#9B9B95] text-[8px] font-bold uppercase tracking-wide">seed</span>;
 }
 
@@ -409,8 +409,8 @@ function RunDetail({ run, onClose }: { run: SimulationRun; onClose: () => void }
       </div>
 
       {run.scenarioOrigin === "dynamic" && run.scenarioMetadata && (
-        <div className="bg-[#EEF0FF] border border-[#C7D2FE] rounded-[8px] px-3 py-2.5 space-y-2">
-          <p className="text-[9px] font-semibold text-[#5B5BD6] uppercase tracking-[0.06em]">Dimensões do cenário gerado</p>
+        <div className="bg-[#E6FBFA] border border-[#C7D2FE] rounded-[8px] px-3 py-2.5 space-y-2">
+          <p className="text-[9px] font-semibold text-[#070A1F] uppercase tracking-[0.06em]">Dimensões do cenário gerado</p>
           <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[10px]">
             {Object.entries(run.scenarioMetadata).map(([k, v]) => (
               <div key={k} className="flex items-center gap-1.5">
@@ -443,7 +443,7 @@ function RunDetail({ run, onClose }: { run: SimulationRun; onClose: () => void }
           <div className="space-y-1">
             {run.recommendations.map((r, i) => (
               <div key={i} className="flex items-start gap-2 text-[11px] text-[#1A1A1A]">
-                <span className="text-[#5B5BD6] shrink-0">→</span>{r}
+                <span className="text-[#070A1F] shrink-0">→</span>{r}
               </div>
             ))}
           </div>
@@ -581,7 +581,7 @@ const SERVER_MODE_OPTIONS: { id: TrainingMode; label: string }[] = [
 const SEVERITY_STYLE: Record<string, { bg: string; text: string }> = {
   critical: { bg: "bg-[#FEE2E2]", text: "text-[#DC2626]" },
   warning:  { bg: "bg-[#FEF3C7]", text: "text-[#D97706]" },
-  info:     { bg: "bg-[#EEF0FF]", text: "text-[#5B5BD6]" },
+  info:     { bg: "bg-[#E6FBFA]", text: "text-[#070A1F]" },
 };
 
 function ServerTrainingPanel() {
@@ -661,7 +661,7 @@ function ServerTrainingPanel() {
   const lastBatch = status?.lastBatchSummary;
 
   return (
-    <div className="border border-[#C7D2FE] rounded-[10px] bg-[#EEF0FF]/20 overflow-hidden">
+    <div className="border border-[#C7D2FE] rounded-[10px] bg-[#E6FBFA]/20 overflow-hidden">
 
       {/* Header */}
       <div className="px-5 py-4 flex items-center gap-3 border-b border-[#C7D2FE]/50 flex-wrap">
@@ -768,7 +768,7 @@ function ServerTrainingPanel() {
               <button
                 onClick={runServerBatch}
                 disabled={isServerRunning || loadError}
-                className="h-8 px-4 rounded-[7px] bg-[#EEF0FF] border border-[#C7D2FE] text-[#5B5BD6] text-[12px] font-semibold hover:bg-[#E0E7FF] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="h-8 px-4 rounded-[7px] bg-[#E6FBFA] border border-[#C7D2FE] text-[#070A1F] text-[12px] font-semibold hover:bg-[#E0E7FF] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {isServerRunning ? "Rodando…" : "Rodar batch no servidor agora"}
               </button>
@@ -859,7 +859,7 @@ function ServerTrainingPanel() {
                 return (
                   <div key={run.id} className="flex items-center gap-2.5 px-3 py-2 bg-white border border-[#E5E5E2] rounded-[7px] text-[11px]">
                     <span className={`shrink-0 h-4 px-1.5 rounded-[3px] text-[9px] font-bold ${v.bg} ${v.text}`}>{v.label}</span>
-                    <span className={`h-4 px-1.5 rounded-[3px] text-[8px] font-bold uppercase shrink-0 ${run.scenarioOrigin === "dynamic" ? "bg-[#EEF0FF] text-[#5B5BD6]" : "bg-[#F0F0ED] text-[#9B9B95]"}`}>{run.scenarioOrigin}</span>
+                    <span className={`h-4 px-1.5 rounded-[3px] text-[8px] font-bold uppercase shrink-0 ${run.scenarioOrigin === "dynamic" ? "bg-[#E6FBFA] text-[#070A1F]" : "bg-[#F0F0ED] text-[#9B9B95]"}`}>{run.scenarioOrigin}</span>
                     <span className="flex-1 truncate text-[#1A1A1A] font-medium">{run.scenarioName}</span>
                     <span className="text-[#6B6B65] shrink-0">{run.score}/100</span>
                     <span className="text-[#C0C0BC] font-mono shrink-0 text-[9px]">
@@ -875,10 +875,10 @@ function ServerTrainingPanel() {
         {/* Setup instructions */}
         {configStatus === "unconfigured" && (
           <div className="border border-dashed border-[#C7D2FE] rounded-[8px] px-4 py-3 space-y-2">
-            <p className="text-[11px] font-semibold text-[#5B5BD6]">Para ativar o worker 24h:</p>
+            <p className="text-[11px] font-semibold text-[#070A1F]">Para ativar o worker 24h:</p>
             <div className="space-y-1 text-[11px] text-[#6B6B65]">
-              <p>1. Adicione <code className="bg-[#EEF0FF] text-[#5B5BD6] px-1 rounded text-[10px]">CRON_SECRET=&lt;valor&gt;</code> e <code className="bg-[#EEF0FF] text-[#5B5BD6] px-1 rounded text-[10px]">TRAINING_ENABLED=true</code> nas Railway Variables</p>
-              <p>2. Configure um scheduler chamando <code className="bg-[#EEF0FF] text-[#5B5BD6] px-1 rounded text-[10px]">POST /api/cron/training/sdr</code> com header <code className="bg-[#EEF0FF] text-[#5B5BD6] px-1 rounded text-[10px]">Authorization: Bearer &lt;CRON_SECRET&gt;</code></p>
+              <p>1. Adicione <code className="bg-[#E6FBFA] text-[#070A1F] px-1 rounded text-[10px]">CRON_SECRET=&lt;valor&gt;</code> e <code className="bg-[#E6FBFA] text-[#070A1F] px-1 rounded text-[10px]">TRAINING_ENABLED=true</code> nas Railway Variables</p>
+              <p>2. Configure um scheduler chamando <code className="bg-[#E6FBFA] text-[#070A1F] px-1 rounded text-[10px]">POST /api/cron/training/sdr</code> com header <code className="bg-[#E6FBFA] text-[#070A1F] px-1 rounded text-[10px]">Authorization: Bearer &lt;CRON_SECRET&gt;</code></p>
               <p>3. O batch roda 10 dinâmicos + 5 mistos por acionamento, persiste no DB e gera alertas automaticamente.</p>
             </div>
           </div>
@@ -1004,7 +1004,7 @@ export default function TrainingPage() {
   const BTN_DARK   = `${BTN} bg-[#1A1A1A] border-[#1A1A1A] text-white hover:bg-[#111111]`;
   const BTN_LIGHT  = `${BTN} bg-white border-[#E5E5E2] text-[#6B6B65] hover:border-[#9B9B95] hover:text-[#1A1A1A]`;
   const BTN_YELLOW = `${BTN} bg-[#FEF3C7] border-[#FDE68A] text-[#D97706] hover:bg-[#FEF08A]`;
-  const BTN_BLUE   = `${BTN} bg-[#EEF0FF] border-[#C7D2FE] text-[#5B5BD6] hover:bg-[#E0E7FF]`;
+  const BTN_BLUE   = `${BTN} bg-[#E6FBFA] border-[#C7D2FE] text-[#070A1F] hover:bg-[#E0E7FF]`;
 
   const modeDesc = MODE_OPTIONS.find((m) => m.id === trainingMode)?.desc ?? "";
 
@@ -1070,7 +1070,7 @@ export default function TrainingPage() {
 
         <div className="text-[10px] text-[#9B9B95] leading-relaxed border-t border-[#F0F0ED] pt-2.5">
           <span className="font-semibold text-[#6B6B65]">Cenários seed</span> = prova de regressão.&nbsp;&nbsp;
-          <span className="font-semibold text-[#5B5BD6]">Cenários dinâmicos</span> = treino real (evita overfitting).
+          <span className="font-semibold text-[#070A1F]">Cenários dinâmicos</span> = treino real (evita overfitting).
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
@@ -1115,7 +1115,7 @@ export default function TrainingPage() {
         <div className="flex items-center gap-3 text-[11px] text-[#6B6B65]">
           <span>{seedCount} fixo{seedCount !== 1 ? "s" : ""}</span>
           <span className="text-[#C0C0BC]">+</span>
-          <span className="text-[#5B5BD6] font-medium">{dynCount} dinâmico{dynCount !== 1 ? "s" : ""}</span>
+          <span className="text-[#070A1F] font-medium">{dynCount} dinâmico{dynCount !== 1 ? "s" : ""}</span>
           <span className="text-[#C0C0BC]">=</span>
           <span className="font-medium text-[#1A1A1A]">{totalRuns} total</span>
         </div>
@@ -1191,7 +1191,7 @@ export default function TrainingPage() {
               <p className="text-[12px] font-semibold text-[#15803D] leading-snug">
                 Estas sugestões foram aprovadas, mas ainda não foram aplicadas automaticamente ao brain do SDR.
               </p>
-              <span className="inline-flex items-center gap-1.5 mt-2 text-[10px] font-semibold text-[#5B5BD6] bg-[#EEF0FF] border border-[#C7D2FE] px-2 py-1 rounded-[4px]">
+              <span className="inline-flex items-center gap-1.5 mt-2 text-[10px] font-semibold text-[#070A1F] bg-[#E6FBFA] border border-[#C7D2FE] px-2 py-1 rounded-[4px]">
                 ⏳ aguardando aplicação futura
               </span>
             </div>

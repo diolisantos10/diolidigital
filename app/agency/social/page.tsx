@@ -277,7 +277,7 @@ export default function SocialWorkspacePage() {
                       }`}>
                         Estratégia QG {strategy.qualityGateResult.overall}
                       </span>
-                      <span className="h-5 px-2 rounded-full bg-[#F0F0FF] text-[#5B5BD6] text-[10px] font-semibold">
+                      <span className="h-5 px-2 rounded-full bg-[#F0F0FF] text-[#070A1F] text-[10px] font-semibold">
                         Fluxo {strategy.cognitiveFlowTrace.filter((s) => s.completed).length}/12
                       </span>
                     </div>

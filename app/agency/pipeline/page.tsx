@@ -75,12 +75,12 @@ export default function PipelinePage() {
                         key={project.id}
                         className={`group bg-white rounded-[10px] border p-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all duration-200 ${
                           isHighlighted
-                            ? "border-[#5B5BD6] shadow-[0_0_0_2px_rgba(91,91,214,0.15)]"
+                            ? "border-[#070A1F] shadow-[0_0_0_2px_rgba(91,91,214,0.15)]"
                             : "border-[#E5E5E2] hover:shadow-[0_2px_8px_rgba(0,0,0,0.08)]"
                         }`}
                       >
                         <Link href={`/agency/projects/${project.id}`}>
-                          <div className="text-[13px] font-medium text-[#1A1A1A] hover:text-[#5B5BD6] transition-colors leading-snug mb-1">
+                          <div className="text-[13px] font-medium text-[#1A1A1A] hover:text-[#070A1F] transition-colors leading-snug mb-1">
                             {project.name}
                           </div>
                         </Link>

@@ -51,7 +51,7 @@ export default function ExplainScreenDrawer({
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-[#E5E5E2] shrink-0">
           <div>
-            <p className="text-[10px] font-semibold text-[#5B5BD6] uppercase tracking-[0.06em]">
+            <p className="text-[10px] font-semibold text-[#070A1F] uppercase tracking-[0.06em]">
               Explicação da tela
             </p>
             <h2 className="text-[14px] font-semibold text-[#1A1A1A]">{screenTitle}</h2>
@@ -69,7 +69,7 @@ export default function ExplainScreenDrawer({
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
-          <p className="text-[12px] text-[#3730A3] leading-relaxed bg-[#EEF0FF] border border-[#C7D2FE] rounded-[8px] px-3 py-2.5">
+          <p className="text-[12px] text-[#3730A3] leading-relaxed bg-[#E6FBFA] border border-[#C7D2FE] rounded-[8px] px-3 py-2.5">
             {explanation.summary}
           </p>
 
@@ -81,7 +81,7 @@ export default function ExplainScreenDrawer({
               <ul className="space-y-1.5">
                 {sec.items.map((item, i) => (
                   <li key={i} className="flex items-start gap-2 text-[12px] text-[#1A1A1A] leading-relaxed">
-                    <span className="text-[#5B5BD6] shrink-0">·</span>
+                    <span className="text-[#070A1F] shrink-0">·</span>
                     {item}
                   </li>
                 ))}

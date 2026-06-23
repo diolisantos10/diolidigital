@@ -47,7 +47,7 @@ function CopyLinkButton({ path }: { path: string }) {
 const PRIORITY_STYLE: Record<string, string> = {
   critical: "bg-[#FEE2E2] text-[#991B1B]",
   high:     "bg-[#FEF3C7] text-[#92400E]",
-  medium:   "bg-[#EEF0FF] text-[#5B5BD6]",
+  medium:   "bg-[#E6FBFA] text-[#070A1F]",
   low:      "bg-[#F0F0ED] text-[#6B6B65]",
 };
 
@@ -180,7 +180,7 @@ function SDRHandoffPanel({ handoff }: { handoff: SDRHandoff }) {
                 <span className="text-[9px] text-[#9B9B95]">Confiança:</span>
                 <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${
                   brain.confidenceLevel === "high" ? "bg-[#DCFCE7] text-[#16A34A]"
-                  : brain.confidenceLevel === "medium" ? "bg-[#EEF0FF] text-[#5B5BD6]"
+                  : brain.confidenceLevel === "medium" ? "bg-[#E6FBFA] text-[#070A1F]"
                   : "bg-[#FEF3C7] text-[#D97706]"
                 }`}>
                   {brain.confidenceLevel === "high" ? "Alta" : brain.confidenceLevel === "medium" ? "Média" : "Baixa"}
@@ -276,12 +276,12 @@ function SDRHandoffPanel({ handoff }: { handoff: SDRHandoff }) {
       {flow && (
         <div className="bg-[#F0F0FF] border border-[#C7C7FF] rounded-[8px] px-4 py-3">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-[10px] font-semibold text-[#5B5BD6] uppercase tracking-[0.06em]">Fluxo Cognitivo</p>
-            <span className="text-[11px] font-bold text-[#5B5BD6]">{flow.stepsCompleted}/{flow.totalSteps} passos · {flow.completionRate}%</span>
+            <p className="text-[10px] font-semibold text-[#070A1F] uppercase tracking-[0.06em]">Fluxo Cognitivo</p>
+            <span className="text-[11px] font-bold text-[#070A1F]">{flow.stepsCompleted}/{flow.totalSteps} passos · {flow.completionRate}%</span>
           </div>
           <div className="w-full bg-[#E0E0F8] rounded-full h-1.5 mb-2">
             <div
-              className="bg-[#5B5BD6] h-1.5 rounded-full transition-all"
+              className="bg-[#070A1F] h-1.5 rounded-full transition-all"
               style={{ width: `${flow.completionRate}%` }}
             />
           </div>
@@ -289,9 +289,9 @@ function SDRHandoffPanel({ handoff }: { handoff: SDRHandoff }) {
             {flow.steps.map((step) => (
               <div key={step.stepId} className="flex items-center gap-1 text-[9px]">
                 <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                  step.completed ? "bg-[#5B5BD6]" : "bg-[#D0D0CC]"
+                  step.completed ? "bg-[#070A1F]" : "bg-[#D0D0CC]"
                 }`} />
-                <span className={step.completed ? "text-[#5B5BD6]" : "text-[#C0C0BC]"} title={step.summary}>
+                <span className={step.completed ? "text-[#070A1F]" : "text-[#C0C0BC]"} title={step.summary}>
                   {step.order}. {step.label.split(" ")[0]}
                 </span>
               </div>
@@ -782,7 +782,7 @@ export default function AgencyRequestsPage() {
                             {req.segment}
                           </span>
                         )}
-                        <span className="h-5 px-2 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-semibold">
+                        <span className="h-5 px-2 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[10px] font-semibold">
                           {req.status}
                         </span>
                       </div>
@@ -834,8 +834,8 @@ export default function AgencyRequestsPage() {
             </button>
           )}
           {newCount > 0 && (
-            <span className="flex items-center gap-1.5 h-7 px-3 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[12px] font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#5B5BD6]" />
+            <span className="flex items-center gap-1.5 h-7 px-3 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[12px] font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#070A1F]" />
               {newCount} nova{newCount !== 1 ? "s" : ""}
             </span>
           )}
@@ -932,7 +932,7 @@ export default function AgencyRequestsPage() {
                 }}
               >
                 {req.status === "new" && (
-                  <span className="w-2 h-2 rounded-full bg-[#5B5BD6] shrink-0" />
+                  <span className="w-2 h-2 rounded-full bg-[#070A1F] shrink-0" />
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -1000,7 +1000,7 @@ export default function AgencyRequestsPage() {
                       {req.analysis && (
                         <button
                           onClick={() => setRawOpenId(rawOpenId === req.id ? null : req.id)}
-                          className="text-[10px] text-[#5B5BD6] hover:underline font-medium"
+                          className="text-[10px] text-[#070A1F] hover:underline font-medium"
                         >
                           {rawOpenId === req.id ? "▲ Ocultar" : "▼ Ver briefing completo"}
                         </button>
@@ -1058,7 +1058,7 @@ export default function AgencyRequestsPage() {
                             <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Serviços</div>
                             <div className="flex flex-wrap gap-1.5">
                               {req.extractedSummary.services.map((s) => (
-                                <span key={s} className="h-5 px-2 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[11px] font-medium">{s}</span>
+                                <span key={s} className="h-5 px-2 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[11px] font-medium">{s}</span>
                               ))}
                             </div>
                           </div>
@@ -1135,7 +1135,7 @@ export default function AgencyRequestsPage() {
                                 href={att.previewUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="h-5 px-2 rounded-[4px] border border-[#5B5BD6] text-[#5B5BD6] text-[9px] font-semibold hover:bg-[#EEF0FF] transition-colors shrink-0"
+                                className="h-5 px-2 rounded-[4px] border border-[#070A1F] text-[#070A1F] text-[9px] font-semibold hover:bg-[#E6FBFA] transition-colors shrink-0"
                               >
                                 Visualizar
                               </a>
@@ -1259,7 +1259,7 @@ export default function AgencyRequestsPage() {
                       <Link
                         href="/agency/quality"
                         onClick={(e) => e.stopPropagation()}
-                        className="h-8 px-4 rounded-[7px] bg-[#5B5BD6] hover:bg-[#4A4AC4] text-white text-[12px] font-medium transition-colors inline-flex items-center"
+                        className="h-8 px-4 rounded-[7px] bg-[#070A1F] hover:bg-[#4A4AC4] text-white text-[12px] font-medium transition-colors inline-flex items-center"
                       >
                         Na fila de Quality →
                       </Link>
@@ -1275,7 +1275,7 @@ export default function AgencyRequestsPage() {
                     )}
                     <button
                       onClick={(e) => { e.stopPropagation(); openConversion(req); }}
-                      className="h-8 px-4 rounded-[7px] border border-[#5B5BD6] text-[#5B5BD6] hover:bg-[#EEF0FF] text-[12px] font-medium transition-colors"
+                      className="h-8 px-4 rounded-[7px] border border-[#070A1F] text-[#070A1F] hover:bg-[#E6FBFA] text-[12px] font-medium transition-colors"
                     >
                       Criar projeto
                     </button>
@@ -1284,7 +1284,7 @@ export default function AgencyRequestsPage() {
                         value={req.status}
                         onClick={(e) => e.stopPropagation()}
                         onChange={(e) => handleManualStatusOverride(req, e.target.value as ClientRequestStatus)}
-                        className="ml-auto h-8 px-2 text-[12px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] text-[#6B6B65]"
+                        className="ml-auto h-8 px-2 text-[12px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] text-[#6B6B65]"
                       >
                         {(["new", "under_review", "proposal_pending", "waiting_strategy", "waiting_social", "waiting_design", "waiting_traffic", "waiting_analytics", "waiting_quality", "in_progress", "waiting_client", "approved", "completed", "rejected"] as ClientRequestStatus[]).map((s) => (
                           <option key={s} value={s}>{REQUEST_STATUS_LABEL[s]}</option>
@@ -1443,7 +1443,7 @@ function V2ScopePanel({ scope, estimate }: { scope: BriefingScope; estimate?: Li
   };
   const CONF_STYLE: Record<string, string> = {
     low: "bg-[#FEF3C7] text-[#D97706]",
-    medium: "bg-[#EEF0FF] text-[#5B5BD6]",
+    medium: "bg-[#E6FBFA] text-[#070A1F]",
     high: "bg-[#DCFCE7] text-[#16A34A]",
   };
 
@@ -1451,7 +1451,7 @@ function V2ScopePanel({ scope, estimate }: { scope: BriefingScope; estimate?: Li
     <div className="bg-[#F7F7F6] border border-[#E5E5E2] rounded-[10px] px-4 py-4 space-y-4">
       <div className="flex items-center gap-2">
         <span className="text-[12px] font-semibold text-[#1A1A1A]">Escopo V2 — Briefing conversacional</span>
-        <span className="h-5 px-2 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[9px] font-semibold">automático</span>
+        <span className="h-5 px-2 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[9px] font-semibold">automático</span>
       </div>
 
       {/* Services + quantities grid */}
@@ -1593,7 +1593,7 @@ function AnalysisPanel({ analysis }: { analysis: BriefingAnalysis }) {
           <ul className="space-y-0.5">
             {analysis.diagnosedNeeds.map((n) => (
               <li key={n} className="text-[11px] text-[#1A1A1A] flex items-start gap-1.5">
-                <span className="w-1 h-1 rounded-full bg-[#5B5BD6] shrink-0 mt-1.5" />{n}
+                <span className="w-1 h-1 rounded-full bg-[#070A1F] shrink-0 mt-1.5" />{n}
               </li>
             ))}
           </ul>
@@ -1602,7 +1602,7 @@ function AnalysisPanel({ analysis }: { analysis: BriefingAnalysis }) {
           <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Serviços recomendados</div>
           <div className="flex flex-wrap gap-1.5">
             {analysis.recommendedServices.map((s) => (
-              <span key={s} className="h-5 px-2 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[11px] font-medium">{s}</span>
+              <span key={s} className="h-5 px-2 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[11px] font-medium">{s}</span>
             ))}
           </div>
         </div>
@@ -1668,7 +1668,7 @@ function AnalysisPanel({ analysis }: { analysis: BriefingAnalysis }) {
           <ol className="space-y-1">
             {analysis.nextQuestions.map((q, i) => (
               <li key={i} className="flex items-start gap-2 text-[12px] text-[#1A1A1A]">
-                <span className="text-[#5B5BD6] font-semibold shrink-0 w-4">{i + 1}.</span>{q}
+                <span className="text-[#070A1F] font-semibold shrink-0 w-4">{i + 1}.</span>{q}
               </li>
             ))}
           </ol>
@@ -1758,7 +1758,7 @@ function ConversionPanel({
             type="text"
             value={form.projectName}
             onChange={(e) => onPatch({ projectName: e.target.value })}
-            className="w-full h-9 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] transition-colors"
+            className="w-full h-9 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] transition-colors"
           />
         </div>
         <div>
@@ -1768,7 +1768,7 @@ function ConversionPanel({
           <select
             value={form.priority}
             onChange={(e) => onPatch({ priority: e.target.value as Priority })}
-            className="w-full h-9 px-2 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6]"
+            className="w-full h-9 px-2 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F]"
           >
             <option value="high">Alta</option>
             <option value="medium">Média</option>
@@ -1783,7 +1783,7 @@ function ConversionPanel({
             type="date"
             value={form.deadline}
             onChange={(e) => onPatch({ deadline: e.target.value })}
-            className="w-full h-9 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6]"
+            className="w-full h-9 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F]"
           />
         </div>
       </div>
@@ -1798,7 +1798,7 @@ function ConversionPanel({
           value={form.goal}
           onChange={(e) => onPatch({ goal: e.target.value })}
           placeholder="Ex.: ganhar novos clientes e aumentar vendas"
-          className="w-full h-9 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] transition-colors"
+          className="w-full h-9 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] transition-colors"
         />
       </div>
 
@@ -1836,7 +1836,7 @@ function ConversionPanel({
           value={form.scope}
           onChange={(e) => onPatch({ scope: e.target.value })}
           rows={3}
-          className="w-full px-3 py-2 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] resize-none leading-relaxed"
+          className="w-full px-3 py-2 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] resize-none leading-relaxed"
         />
       </div>
 
@@ -1865,12 +1865,12 @@ function ConversionPanel({
             onChange={(e) => onPatch({ newMaterial: e.target.value })}
             onKeyDown={(e) => e.key === "Enter" && addMaterial()}
             placeholder="Adicionar material (Enter para confirmar)..."
-            className="flex-1 h-8 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] transition-colors"
+            className="flex-1 h-8 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] transition-colors"
           />
           <button
             onClick={addMaterial}
             disabled={!form.newMaterial.trim()}
-            className="h-8 px-3 rounded-[7px] border border-[#E5E5E2] text-[#6B6B65] hover:border-[#5B5BD6] hover:text-[#5B5BD6] text-[12px] disabled:opacity-40 transition-colors"
+            className="h-8 px-3 rounded-[7px] border border-[#E5E5E2] text-[#6B6B65] hover:border-[#070A1F] hover:text-[#070A1F] text-[12px] disabled:opacity-40 transition-colors"
           >
             + Add
           </button>

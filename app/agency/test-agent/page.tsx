@@ -543,7 +543,7 @@ export default function TestAgentPage() {
 
   const STATUS_PILL: Record<TestStatus, { bg: string; text: string; label: string }> = {
     idle:      { bg: "bg-[#F0F0ED]",   text: "text-[#9B9B95]",  label: "Idle"      },
-    running:   { bg: "bg-[#EEF0FF]",   text: "text-[#5B5BD6]",  label: "Running…"  },
+    running:   { bg: "bg-[#E6FBFA]",   text: "text-[#070A1F]",  label: "Running…"  },
     completed: { bg: "bg-[#DCFCE7]",   text: "text-[#16A34A]",  label: "Completed" },
     failed:    { bg: "bg-[#FEE2E2]",   text: "text-[#DC2626]",  label: "Failed"    },
   };
@@ -554,8 +554,8 @@ export default function TestAgentPage() {
       {/* Header */}
       <div className="mb-7">
         <div className="flex items-center gap-3 mb-1.5">
-          <div className="w-7 h-7 rounded-[7px] bg-[#EEF0FF] flex items-center justify-center shrink-0">
-            <FlaskIcon size={14} className="text-[#5B5BD6]" />
+          <div className="w-7 h-7 rounded-[7px] bg-[#E6FBFA] flex items-center justify-center shrink-0">
+            <FlaskIcon size={14} className="text-[#070A1F]" />
           </div>
           <h1 className="text-[24px] font-semibold tracking-[-0.02em] text-[#1A1A1A]">Test Agent</h1>
           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide ${pill.bg} ${pill.text}`}>
@@ -582,11 +582,11 @@ export default function TestAgentPage() {
                 disabled={testStatus === "running"}
                 className={`text-left px-3 py-2.5 rounded-[7px] border transition-all disabled:opacity-50 ${
                   mode === m.id
-                    ? "border-[#5B5BD6] bg-[#EEF0FF]"
+                    ? "border-[#070A1F] bg-[#E6FBFA]"
                     : "border-[#E5E5E2] bg-[#F7F7F6] hover:border-[#C0C0BA]"
                 }`}
               >
-                <div className={`text-[12px] font-semibold mb-0.5 ${mode === m.id ? "text-[#5B5BD6]" : "text-[#1A1A1A]"}`}>
+                <div className={`text-[12px] font-semibold mb-0.5 ${mode === m.id ? "text-[#070A1F]" : "text-[#1A1A1A]"}`}>
                   {m.label}
                 </div>
                 <div className="text-[10.5px] text-[#9B9B95] leading-snug">{m.desc}</div>
@@ -604,7 +604,7 @@ export default function TestAgentPage() {
                 value={selectedProjectId}
                 onChange={(e) => setSelectedProjectId(e.target.value)}
                 disabled={testStatus === "running"}
-                className="w-full h-9 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
+                className="w-full h-9 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white disabled:opacity-50"
               >
                 <option value="">— choose a project —</option>
                 {projects.map((p) => (
@@ -619,7 +619,7 @@ export default function TestAgentPage() {
               <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">
                 Select Projects
                 {selectedProjectIds.length > 0 && (
-                  <span className="ml-2 text-[#5B5BD6] font-semibold">{selectedProjectIds.length} selected</span>
+                  <span className="ml-2 text-[#070A1F] font-semibold">{selectedProjectIds.length} selected</span>
                 )}
               </label>
               <div className="border border-[#E5E5E2] rounded-[7px] divide-y divide-[#F0F0ED] max-h-[200px] overflow-y-auto">
@@ -629,7 +629,7 @@ export default function TestAgentPage() {
                     <label
                       key={p.id}
                       className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors ${
-                        checked ? "bg-[#EEF0FF]" : "hover:bg-[#F7F7F6]"
+                        checked ? "bg-[#E6FBFA]" : "hover:bg-[#F7F7F6]"
                       }`}
                     >
                       <input
@@ -637,9 +637,9 @@ export default function TestAgentPage() {
                         checked={checked}
                         onChange={() => toggleProject(p.id)}
                         disabled={testStatus === "running"}
-                        className="accent-[#5B5BD6]"
+                        className="accent-[#070A1F]"
                       />
-                      <span className={`text-[13px] font-medium flex-1 ${checked ? "text-[#5B5BD6]" : "text-[#1A1A1A]"}`}>
+                      <span className={`text-[13px] font-medium flex-1 ${checked ? "text-[#070A1F]" : "text-[#1A1A1A]"}`}>
                         {p.name}
                       </span>
                       <span className="text-[11px] text-[#9B9B95] capitalize">{p.stage}</span>
@@ -651,10 +651,10 @@ export default function TestAgentPage() {
           )}
 
           {mode === "simulation" && (
-            <div className="flex items-start gap-2.5 bg-[#EEF0FF] border border-[#5B5BD6]/20 rounded-[7px] px-4 py-3">
-              <InfoIcon size={14} className="text-[#5B5BD6] shrink-0 mt-0.5" />
+            <div className="flex items-start gap-2.5 bg-[#E6FBFA] border border-[#070A1F]/20 rounded-[7px] px-4 py-3">
+              <InfoIcon size={14} className="text-[#070A1F] shrink-0 mt-0.5" />
               <div>
-                <p className="text-[12px] font-medium text-[#5B5BD6] mb-0.5">
+                <p className="text-[12px] font-medium text-[#070A1F] mb-0.5">
                   {activeProjects.length} active project{activeProjects.length !== 1 ? "s" : ""} will be tested
                 </p>
                 <p className="text-[11.5px] text-[#6B6B65]">
@@ -674,7 +674,7 @@ export default function TestAgentPage() {
             value={selectedFlow}
             onChange={(e) => setSelectedFlow(e.target.value as FlowId)}
             disabled={testStatus === "running"}
-            className="w-full h-9 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
+            className="w-full h-9 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white disabled:opacity-50"
           >
             <option value="">— choose a flow —</option>
             {FLOWS.map((f) => (
@@ -698,7 +698,7 @@ export default function TestAgentPage() {
             disabled={!canRun}
             className={`h-9 px-5 rounded-[7px] text-[13px] font-medium transition-all flex items-center gap-2 ${
               canRun
-                ? "bg-[#5B5BD6] text-white hover:bg-[#4A4AC5] shadow-[0_1px_3px_rgba(91,91,214,0.3)]"
+                ? "bg-[#070A1F] text-white hover:bg-[#4A4AC5] shadow-[0_1px_3px_rgba(91,91,214,0.3)]"
                 : "bg-[#F0F0ED] text-[#9B9B95] cursor-not-allowed"
             }`}
           >
@@ -746,7 +746,7 @@ export default function TestAgentPage() {
               if (/^━━/.test(log.action)) {
                 return (
                   <div key={log.id} className="pt-3 pb-0.5 first:pt-0">
-                    <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#5B5BD6]">{log.action}</span>
+                    <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#070A1F]">{log.action}</span>
                   </div>
                 );
               }
@@ -777,7 +777,7 @@ export default function TestAgentPage() {
             })}
             {testStatus === "running" && (
               <div className="flex items-center gap-2 text-[11.5px] text-[#3A3A34] mt-1 animate-pulse">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#5B5BD6] animate-ping" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#070A1F] animate-ping" />
                 Processing next step…
               </div>
             )}
@@ -861,7 +861,7 @@ export default function TestAgentPage() {
             <ReportSection title="Passed Checks" count={report.passed.length} accentBg="bg-[#F0FDF4]" accentText="text-[#16A34A]" dotColor="bg-[#22C55E]" items={report.passed} emptyText="No checks passed." />
             <ReportSection title="Failed Checks" count={report.failed.length} accentBg="bg-[#FEF2F2]" accentText="text-[#DC2626]" dotColor="bg-[#EF4444]" items={report.failed} emptyText="No failures — all checks passed." />
             <ReportSection title="Observations" count={report.observations.length} accentBg="bg-[#FFFBEB]" accentText="text-[#D97706]" dotColor="bg-[#F59E0B]" items={report.observations} emptyText="No warnings recorded." />
-            <ReportSection title="Recommended Fixes" count={report.nextFixes.length} accentBg="bg-[#EEF0FF]" accentText="text-[#5B5BD6]" dotColor="bg-[#5B5BD6]" items={report.nextFixes} emptyText="Nothing to fix." />
+            <ReportSection title="Recommended Fixes" count={report.nextFixes.length} accentBg="bg-[#E6FBFA]" accentText="text-[#070A1F]" dotColor="bg-[#070A1F]" items={report.nextFixes} emptyText="Nothing to fix." />
           </div>
         </div>
       )}
@@ -902,7 +902,7 @@ export default function TestAgentPage() {
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${BADGE.bg} ${BADGE.text}`}>{BADGE.label}</span>
                   <button
                     onClick={() => loadHistoryRun(run)}
-                    className="h-6 px-2.5 text-[11px] font-medium text-[#5B5BD6] border border-[#C7C7F5] rounded-[5px] hover:bg-[#EEF0FF] transition-colors shrink-0"
+                    className="h-6 px-2.5 text-[11px] font-medium text-[#070A1F] border border-[#C7C7F5] rounded-[5px] hover:bg-[#E6FBFA] transition-colors shrink-0"
                   >
                     Load
                   </button>

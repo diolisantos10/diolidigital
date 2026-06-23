@@ -124,7 +124,7 @@ function MessageBubble({ msg }: { msg: ConvMessage }) {
 
 const PKG_STYLE: Record<string, { bg: string; text: string }> = {
   starter: { bg: "bg-[#F0F0ED]", text: "text-[#6B6B65]" },
-  growth:  { bg: "bg-[#EEF0FF]", text: "text-[#5B5BD6]" },
+  growth:  { bg: "bg-[#E6FBFA]", text: "text-[#070A1F]" },
   pro:     { bg: "bg-[#F5F3FF]", text: "text-[#7C3AED]" },
 };
 
@@ -182,7 +182,7 @@ function CartPanel({
   const CONFIDENCE_STYLE: Record<string, { bg: string; text: string; label: string }> = {
     none:   { bg: "", text: "", label: "" },
     low:    { bg: "bg-[#FEF3C7]", text: "text-[#D97706]", label: "Estimativa inicial" },
-    medium: { bg: "bg-[#EEF0FF]", text: "text-[#5B5BD6]", label: "Estimativa aprox." },
+    medium: { bg: "bg-[#E6FBFA]", text: "text-[#070A1F]", label: "Estimativa aprox." },
     high:   { bg: "bg-[#DCFCE7]", text: "text-[#16A34A]", label: "Confiável" },
   };
   const conf = CONFIDENCE_STYLE[estimate.confidence];
@@ -360,7 +360,7 @@ function DebugPanel({
   return (
     <div className="bg-[#0E0E0E] rounded-[12px] border border-[#1E1E1E] overflow-hidden flex flex-col h-full">
       <div className="px-4 py-3 border-b border-[#1E1E1E] shrink-0">
-        <div className="text-[10px] font-semibold text-[#5B5BD6] uppercase tracking-[0.06em]">
+        <div className="text-[10px] font-semibold text-[#070A1F] uppercase tracking-[0.06em]">
           ✦ Debug — Estado do Agente
         </div>
       </div>
@@ -371,7 +371,7 @@ function DebugPanel({
         <section>
           <div className="text-[9px] font-semibold text-[#3A3A3A] uppercase tracking-[0.06em] mb-1.5">Fase</div>
           <div className="flex flex-wrap gap-1.5">
-            <span className="h-5 px-2 rounded-[3px] bg-[#5B5BD6]/20 text-[#5B5BD6] text-[9px] font-semibold flex items-center">
+            <span className="h-5 px-2 rounded-[3px] bg-[#070A1F]/20 text-[#070A1F] text-[9px] font-semibold flex items-center">
               {STAGE_LABELS[sdr.negotiationStage] ?? sdr.negotiationStage}
             </span>
             {sdr.isRestaurant && (
@@ -470,7 +470,7 @@ function DebugPanel({
             value={estimate.confidence}
             valueClass={
               estimate.confidence === "high"   ? "text-[#16A34A]" :
-              estimate.confidence === "medium" ? "text-[#5B5BD6]" :
+              estimate.confidence === "medium" ? "text-[#070A1F]" :
               estimate.confidence === "low"    ? "text-[#D97706]" :
               "text-[#2A2A2A]"
             }
@@ -666,7 +666,7 @@ export function SDRSimulator() {
             {preset.scenario && (
               <button
                 onClick={() => autoRunScenario(preset)}
-                className="h-7 px-2.5 rounded-r-[6px] border border-l-0 border-[#E5E5E2] bg-white text-[10px] text-[#9B9B95] hover:border-[#9B9B95] hover:text-[#5B5BD6] transition-colors"
+                className="h-7 px-2.5 rounded-r-[6px] border border-l-0 border-[#E5E5E2] bg-white text-[10px] text-[#9B9B95] hover:border-[#9B9B95] hover:text-[#070A1F] transition-colors"
                 title={`Auto-run: ${preset.scenario.length} mensagens`}
               >
                 ▶ Auto

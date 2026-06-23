@@ -234,7 +234,7 @@ export default function StrategyWorkspacePage() {
                           {req.segment && (
                             <span className="h-5 px-2 rounded-full bg-[#F0F0ED] text-[#6B6B65] text-[10px] font-medium">{req.segment}</span>
                           )}
-                          <span className="h-5 px-2 rounded-full bg-[#EEF0FF] text-[#5B5BD6] text-[10px] font-semibold">{req.status}</span>
+                          <span className="h-5 px-2 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[10px] font-semibold">{req.status}</span>
                           {qg && (
                             <span className={`h-5 px-2 rounded-full text-white text-[9px] font-bold flex items-center ${qg.overall === "PASS" ? "bg-[#16A34A]" : qg.overall === "WARNING" ? "bg-[#D97706]" : "bg-[#DC2626]"}`}>
                               QG {qg.overall}
@@ -358,7 +358,7 @@ export default function StrategyWorkspacePage() {
                           </span>
                         )}
                         {flow && (
-                          <span className="h-5 px-2 rounded-full bg-[#F0F0FF] text-[#5B5BD6] text-[10px] font-semibold">
+                          <span className="h-5 px-2 rounded-full bg-[#F0F0FF] text-[#070A1F] text-[10px] font-semibold">
                             Fluxo {flow.stepsCompleted}/{flow.totalSteps}
                           </span>
                         )}

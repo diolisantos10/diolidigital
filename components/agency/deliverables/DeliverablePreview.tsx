@@ -46,7 +46,7 @@ function PostBlock({ p, mode }: { p: PreviewPost; mode: "internal" | "portal" })
   return (
     <div className="rounded-[8px] border border-[#E5E5E2] bg-[#FAFAF9] px-4 py-3 space-y-2">
       <div className="flex items-center gap-2">
-        <span className="w-5 h-5 rounded-full bg-[#EEF0FF] text-[10px] font-bold text-[#5B5BD6] flex items-center justify-center shrink-0">{p.order}</span>
+        <span className="w-5 h-5 rounded-full bg-[#E6FBFA] text-[10px] font-bold text-[#070A1F] flex items-center justify-center shrink-0">{p.order}</span>
         <span className="text-[11px] font-semibold text-[#6B6B65] bg-[#F0F0ED] px-2 py-0.5 rounded-full">{p.format}</span>
       </div>
       <p className="text-[12px] text-[#4B4B45] leading-relaxed whitespace-pre-line">{p.caption}</p>
@@ -62,7 +62,7 @@ function FrameBlock({ f, mode }: { f: PreviewFrame; mode: "internal" | "portal" 
   return (
     <div className="rounded-[8px] border border-[#E5E5E2] bg-[#FAFAF9] px-4 py-3 space-y-2">
       <div className="flex items-center gap-2">
-        <span className="w-5 h-5 rounded-full bg-[#EEF0FF] text-[10px] font-bold text-[#5B5BD6] flex items-center justify-center shrink-0">{f.order}</span>
+        <span className="w-5 h-5 rounded-full bg-[#E6FBFA] text-[10px] font-bold text-[#070A1F] flex items-center justify-center shrink-0">{f.order}</span>
         <span className="text-[12px] font-semibold text-[#1A1A1A]">{f.description}</span>
       </div>
       {f.copy && (
@@ -86,7 +86,7 @@ function CalendarEntryBlock({ e, mode }: { e: PreviewCalendarEntry; mode: "inter
           <div className="text-[12px] font-semibold text-[#1A1A1A]">{e.title}</div>
           <div className="flex gap-2 mt-0.5 flex-wrap">
             <span className="text-[10px] text-[#9B9B95]">{e.week}{e.day ? ` · ${e.day}` : ""}</span>
-            <span className="text-[10px] font-medium text-[#5B5BD6] bg-[#EEF0FF] px-1.5 py-0.5 rounded-full">{e.format}</span>
+            <span className="text-[10px] font-medium text-[#070A1F] bg-[#E6FBFA] px-1.5 py-0.5 rounded-full">{e.format}</span>
           </div>
         </div>
       </div>

@@ -26,7 +26,7 @@ const STATUS_STYLES: Record<DeliverableStatus, { bg: string; text: string; label
   draft:     { bg: "bg-[#F0F0ED]",  text: "text-[#6B6B65]",  label: "Rascunho"   },
   in_review: { bg: "bg-[#FEF3C7]",  text: "text-[#D97706]",  label: "Em Revisão" },
   approved:  { bg: "bg-[#DCFCE7]",  text: "text-[#16A34A]",  label: "Aprovado"   },
-  delivered: { bg: "bg-[#EEF0FF]",  text: "text-[#5B5BD6]",  label: "Entregue"   },
+  delivered: { bg: "bg-[#E6FBFA]",  text: "text-[#070A1F]",  label: "Entregue"   },
 };
 
 const TYPE_ICON: Record<string, string> = {
@@ -211,7 +211,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
         const s = cfg[latest.status];
         if (!s) return null;
         const COLORS: Record<Color, { bg: string; border: string; title: string; text: string; dot: string; bar: string }> = {
-          indigo: { bg: "bg-[#EEF0FF]", border: "border-[#C7C7F5]", title: "text-[#5B5BD6]", text: "text-[#4B4B9F]", dot: "bg-[#5B5BD6]", bar: "bg-[#5B5BD6]" },
+          indigo: { bg: "bg-[#E6FBFA]", border: "border-[#C7C7F5]", title: "text-[#070A1F]", text: "text-[#4B4B9F]", dot: "bg-[#070A1F]", bar: "bg-[#070A1F]" },
           amber:  { bg: "bg-[#FFFBEB]", border: "border-[#FDE68A]", title: "text-[#D97706]", text: "text-[#92400E]", dot: "bg-[#F59E0B]", bar: "bg-[#F59E0B]" },
           green:  { bg: "bg-[#F0FDF4]", border: "border-[#BBF7D0]", title: "text-[#16A34A]", text: "text-[#15803D]", dot: "bg-[#16A34A]", bar: "bg-[#16A34A]" },
           red:    { bg: "bg-[#FEF2F2]", border: "border-[#FECACA]", title: "text-[#DC2626]", text: "text-[#B91C1C]", dot: "bg-[#DC2626]", bar: "bg-[#DC2626]" },
@@ -333,7 +333,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
             <h2 className="text-[15px] font-semibold text-[#1A1A1A]">Minhas solicitações</h2>
             <button
               onClick={() => router.push(`/portal/client/${id}/briefing`)}
-              className="text-[12px] text-[#5B5BD6] hover:underline font-medium"
+              className="text-[12px] text-[#070A1F] hover:underline font-medium"
             >
               + Nova solicitação
             </button>
@@ -387,11 +387,11 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
                       isInProgress
                         ? "bg-[#F0FDF4] border-[#BBF7D0]"
                         : isNew
-                        ? "bg-[#EEF0FF] border-[#C7C7F5]"
-                        : "bg-[#EEF0FF] border-[#C7C7F5]"
+                        ? "bg-[#E6FBFA] border-[#C7C7F5]"
+                        : "bg-[#E6FBFA] border-[#C7C7F5]"
                     }`}>
-                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isInProgress ? "bg-[#16A34A]" : "bg-[#5B5BD6]"}`} />
-                      <p className={`text-[12px] font-medium ${isInProgress ? "text-[#16A34A]" : "text-[#5B5BD6]"}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isInProgress ? "bg-[#16A34A]" : "bg-[#070A1F]"}`} />
+                      <p className={`text-[12px] font-medium ${isInProgress ? "text-[#16A34A]" : "text-[#070A1F]"}`}>
                         {isInProgress
                           ? "Nossa equipe está estruturando o seu projeto. Em breve entraremos em contato."
                           : isNew
@@ -444,7 +444,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
               </div>
               <div className={`flex items-start gap-2 rounded-[7px] px-3 py-2.5 ${
                 cp.pendingApprovals > 0 ? "bg-[#FFFBEB] border border-[#FDE68A]"
-                : cp.revisionsNeeded > 0 ? "bg-[#EEF0FF] border border-[#C7C7F5]"
+                : cp.revisionsNeeded > 0 ? "bg-[#E6FBFA] border border-[#C7C7F5]"
                 : "bg-[#F7F7F6] border border-[#F0F0ED]"
               }`}>
                 <span className="text-[14px] shrink-0 mt-[1px]">
@@ -503,7 +503,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
                           <span className="h-5 px-2 rounded-full text-[10px] font-bold bg-[#FEF3C7] text-[#D97706]">Alterações Solicitadas</span>
                         )}
                         {isSent && (
-                          <span className="h-5 px-2 rounded-full text-[10px] font-bold bg-[#EEF0FF] text-[#5B5BD6]">Aguardando sua Aprovação</span>
+                          <span className="h-5 px-2 rounded-full text-[10px] font-bold bg-[#E6FBFA] text-[#070A1F]">Aguardando sua Aprovação</span>
                         )}
                       </div>
                       <div className="px-5 py-4 space-y-3">
@@ -523,7 +523,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
                             <ul className="space-y-0.5">
                               {p.deliverables.map((d, i) => (
                                 <li key={i} className="text-[12px] text-[#1A1A1A] flex items-center gap-1.5">
-                                  <span className="w-1 h-1 rounded-full bg-[#5B5BD6] shrink-0" />{d}
+                                  <span className="w-1 h-1 rounded-full bg-[#070A1F] shrink-0" />{d}
                                 </li>
                               ))}
                             </ul>
@@ -579,7 +579,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
                               placeholder="Descreva o que precisa ser alterado na proposta…"
                               rows={3}
                               autoFocus
-                              className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white resize-none"
+                              className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white resize-none"
                             />
                             <div className="flex gap-2">
                               <button
@@ -729,9 +729,9 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
 
                           {/* Revision in progress — keep it human, no internal detail */}
                           {d.status === "draft" && d.revisionStatus === "in_revision" ? (
-                            <div className="mx-5 mb-4 px-3 py-2.5 bg-[#EEF0FF] border border-[#C7C7F5] rounded-[7px] flex items-center gap-2">
-                              <span className="w-1.5 h-1.5 rounded-full bg-[#5B5BD6] shrink-0" />
-                              <p className="text-[12px] text-[#5B5BD6] font-medium">Estamos ajustando esta entrega com base no seu feedback.</p>
+                            <div className="mx-5 mb-4 px-3 py-2.5 bg-[#E6FBFA] border border-[#C7C7F5] rounded-[7px] flex items-center gap-2">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#070A1F] shrink-0" />
+                              <p className="text-[12px] text-[#070A1F] font-medium">Estamos ajustando esta entrega com base no seu feedback.</p>
                             </div>
                           ) : (
                             d.clientFeedback && d.status === "draft" && (
@@ -833,7 +833,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
           </div>
         )}
         {brandUploadMsg && (
-          <div className="mb-4 px-4 py-3 bg-[#EEF0FF] rounded-[8px] text-[13px] text-[#5B5BD6] font-medium">
+          <div className="mb-4 px-4 py-3 bg-[#E6FBFA] rounded-[8px] text-[13px] text-[#070A1F] font-medium">
             ✓ {brandUploadMsg}
           </div>
         )}
@@ -893,7 +893,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
               <select
                 value={brandSuggestField}
                 onChange={(e) => setBrandSuggestField(e.target.value)}
-                className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
+                className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
               >
                 {PORTAL_SAFE_BRAND_FIELDS.map((f) => (
                   <option key={f} value={f}>{BRAND_FIELD_LABELS[f] ?? f}</option>
@@ -908,7 +908,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
                 placeholder="Descreva o que mudou ou o que está incorreto. Nossa equipe irá revisar antes de aplicar."
                 rows={3}
                 autoFocus
-                className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white resize-none"
+                className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white resize-none"
               />
             </div>
             <div className="flex gap-2">
@@ -966,7 +966,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
               onChange={(e) => { setPortalParserText(e.target.value); setPortalParserResults([]); }}
               placeholder="Cole o texto do Brand Book aqui..."
               rows={6}
-              className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white resize-y"
+              className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white resize-y"
             />
             <div className="flex gap-2">
               <button

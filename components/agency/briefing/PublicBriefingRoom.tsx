@@ -154,7 +154,7 @@ function MessageBubble({ msg }: { msg: ConvMessage }) {
 
 const PKG_STYLE: Record<string, { bg: string; text: string }> = {
   starter: { bg: "bg-[#F0F0ED]", text: "text-[#6B6B65]" },
-  growth:  { bg: "bg-[#EEF0FF]", text: "text-[#5B5BD6]" },
+  growth:  { bg: "bg-[#E6FBFA]", text: "text-[#070A1F]" },
   pro:     { bg: "bg-[#F5F3FF]", text: "text-[#7C3AED]" },
 };
 
@@ -243,7 +243,7 @@ function ScopeSection({ scope }: { scope: BriefingScope }) {
 const CONFIDENCE_CFG = {
   none:   { label: "",                     bg: "",               text: "" },
   low:    { label: "Estimativa inicial",   bg: "bg-[#FEF3C7]",  text: "text-[#D97706]" },
-  medium: { label: "Estimativa aprox.",    bg: "bg-[#EEF0FF]",  text: "text-[#5B5BD6]" },
+  medium: { label: "Estimativa aprox.",    bg: "bg-[#E6FBFA]",  text: "text-[#070A1F]" },
   high:   { label: "Estimativa confiável", bg: "bg-[#DCFCE7]",  text: "text-[#16A34A]" },
 };
 
@@ -683,7 +683,7 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
               onClick={() => setShowLinkField((v) => !v)}
               className={`h-6 px-2.5 rounded-[5px] text-[10px] font-medium border transition-colors flex items-center gap-1.5 ${
                 showLinkField
-                  ? "bg-[#EEF0FF] border-[#C7C7FF] text-[#5B5BD6]"
+                  ? "bg-[#E6FBFA] border-[#C7C7FF] text-[#070A1F]"
                   : "bg-white border-[#E5E5E2] text-[#9B9B95] hover:border-[#9B9B95]"
               }`}
             >
@@ -879,7 +879,7 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
               </div>
               {attachments.map((a) => (
                 <div key={a.id} className="flex items-center gap-1.5 text-[10px] text-[#6B6B65] py-0.5">
-                  <span className="w-1 h-1 rounded-full bg-[#5B5BD6] shrink-0" />
+                  <span className="w-1 h-1 rounded-full bg-[#070A1F] shrink-0" />
                   <span className="truncate">{a.fileName}</span>
                 </div>
               ))}

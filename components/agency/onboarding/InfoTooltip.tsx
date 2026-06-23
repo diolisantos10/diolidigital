@@ -51,7 +51,7 @@ export default function InfoTooltip({
           setOpen((v) => !v);
         }}
         className={`inline-flex items-center justify-center w-[14px] h-[14px] rounded-full transition-colors ${
-          open ? "text-[#5B5BD6]" : "text-[#C0C0BC] hover:text-[#5B5BD6]"
+          open ? "text-[#070A1F]" : "text-[#C0C0BC] hover:text-[#070A1F]"
         }`}
       >
         <svg width="12" height="12" viewBox="0 0 16 16" fill="none">

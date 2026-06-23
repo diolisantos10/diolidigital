@@ -221,7 +221,7 @@ export default function DepartmentsPage() {
         actions={
           <Link
             href="/agency/production/new"
-            className="inline-flex items-center gap-2 h-9 px-4 rounded-[8px] bg-[#5B5BD6] text-white text-[13px] font-medium hover:bg-[#4A4AC5] transition-colors"
+            className="inline-flex items-center gap-2 h-9 px-4 rounded-[8px] bg-[#070A1F] text-white text-[13px] font-medium hover:bg-[#4A4AC5] transition-colors"
           >
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
               <path d="M7 2v10M2 7h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>

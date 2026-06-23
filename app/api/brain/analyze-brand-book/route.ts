@@ -28,7 +28,7 @@ Retorne APENAS JSON válido com esta estrutura exata:
 {
   "brandName": "nome oficial da marca",
   "tagline": "slogan ou tagline, ou string vazia se não houver",
-  "primaryColor": "#HEXCODE da cor primária principal (ex: #5B5BD6)",
+  "primaryColor": "#HEXCODE da cor primária principal (ex: #070A1F)",
   "secondaryColor": "#HEXCODE da cor secundária (ex: #1A1A1A), ou string vazia",
   "accentColor": "#HEXCODE de cor de destaque ou terciária, ou string vazia",
   "typography": "nome(s) da(s) fonte(s) principal(is) (ex: Geist Sans, Inter Bold)",
@@ -39,7 +39,7 @@ Retorne APENAS JSON válido com esta estrutura exata:
   "summary": "resumo da identidade completa da marca em 2-3 frases"
 }
 
-Para cores: identifique pelos swatches visuais, pela paleta de cores apresentada ou por menção textual (ex: "Cor Principal: #5B5BD6"). Se não conseguir extrair um hex exato, estime pela cor predominante visível.
+Para cores: identifique pelos swatches visuais, pela paleta de cores apresentada ou por menção textual (ex: "Cor Principal: #070A1F"). Se não conseguir extrair um hex exato, estime pela cor predominante visível.
 Se alguma informação não estiver no documento, use string vazia ou array vazio — nunca invente.`;
 
 // ── Text extractors ───────────────────────────────────────────────────────────

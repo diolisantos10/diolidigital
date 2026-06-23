@@ -179,7 +179,7 @@ export function TrafficCanvasCard({
                 <div key={aud.id} className="rounded-[6px] bg-[#FAFAF8] px-3 py-2 text-[11px]">
                   <div className="flex items-center gap-2 mb-0.5">
                     <span className="font-medium text-[#1A1A1A]">{aud.name}</span>
-                    <span className="text-[10px] bg-[#EEF0FF] text-[#5B5BD6] px-1.5 py-0.5 rounded-full">{aud.funnelStage}</span>
+                    <span className="text-[10px] bg-[#E6FBFA] text-[#070A1F] px-1.5 py-0.5 rounded-full">{aud.funnelStage}</span>
                     <span className="text-[10px] text-[#9B9B95]">{aud.estimatedReach}</span>
                   </div>
                   <p className="text-[10px] text-[#6B6B65]">{aud.description}</p>
@@ -284,7 +284,7 @@ export function TrafficCanvasCard({
               )}
               {onProposeBrainChange && isReviewed && (
                 <button onClick={onProposeBrainChange} disabled={brainChangeCreated}
-                  className={`text-[11px] font-medium px-3 py-1.5 rounded-[6px] ${brainChangeCreated ? "bg-[#EEF0FF] text-[#9B9B95] cursor-default" : "bg-[#EEF0FF] text-[#5B5BD6] hover:bg-[#E0E3FF]"}`}>
+                  className={`text-[11px] font-medium px-3 py-1.5 rounded-[6px] ${brainChangeCreated ? "bg-[#E6FBFA] text-[#9B9B95] cursor-default" : "bg-[#E6FBFA] text-[#070A1F] hover:bg-[#E0E3FF]"}`}>
                   {brainChangeCreated ? "Brain Change criado ✓" : "Propor ao Brain"}
                 </button>
               )}

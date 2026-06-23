@@ -343,7 +343,7 @@ function ProposalGatePanel({
 }) {
   const statusMap: Record<string, { label: string; color: string; bg: string }> = {
     draft:             { label: "Rascunho — não enviado ao cliente",  color: "text-[#6B6B65]", bg: "bg-[#F7F7F6]" },
-    sent:              { label: "Aguardando aprovação do cliente",    color: "text-[#5B5BD6]", bg: "bg-[#EEF0FF]" },
+    sent:              { label: "Aguardando aprovação do cliente",    color: "text-[#070A1F]", bg: "bg-[#E6FBFA]" },
     rejected:          { label: "Rejeitado pelo cliente",             color: "text-[#DC2626]", bg: "bg-[#FEF2F2]" },
     changes_requested: { label: "Alterações solicitadas pelo cliente", color: "text-[#D97706]", bg: "bg-[#FFFBEB]" },
   };
@@ -393,7 +393,7 @@ const STEPS = [
 ];
 
 const PILLAR_COLORS: Record<string, string> = {
-  "Brand World":       "bg-[#EEF0FF] text-[#5B5BD6]",
+  "Brand World":       "bg-[#E6FBFA] text-[#070A1F]",
   "Value & Education": "bg-[#FFF4ED] text-[#C2530A]",
   "Social Proof":      "bg-[#F0FDF4] text-[#16A34A]",
   "Conversion":        "bg-[#FEF3C7] text-[#D97706]",
@@ -626,7 +626,7 @@ export default function DesignAgentPage() {
           </span>
           <span className="text-[12px] text-[#9B9B95]">v1 · DALL‑E 3</span>
           {linkedProject && (
-            <Link href={`/agency/projects/${linkedProject.id}`} className="text-[12px] text-[#5B5BD6] hover:underline">
+            <Link href={`/agency/projects/${linkedProject.id}`} className="text-[12px] text-[#070A1F] hover:underline">
               ← {linkedProject.name}
             </Link>
           )}
@@ -744,7 +744,7 @@ export default function DesignAgentPage() {
                           )}
                         </div>
                         <div className="flex items-center gap-2">
-                          <button onClick={() => setSelectedRequestIds(new Set(autoRequests.map((r) => r.id)))} className="text-[11px] text-[#5B5BD6] hover:underline">All</button>
+                          <button onClick={() => setSelectedRequestIds(new Set(autoRequests.map((r) => r.id)))} className="text-[11px] text-[#070A1F] hover:underline">All</button>
                           <span className="text-[#D0D0CC] text-[10px]">·</span>
                           <button onClick={() => setSelectedRequestIds(new Set())} className="text-[11px] text-[#9B9B95] hover:underline">None</button>
                         </div>
@@ -792,7 +792,7 @@ export default function DesignAgentPage() {
                         <div className="rounded-[7px] bg-[#FAFAFA] border border-[#F0F0ED] px-3 py-2.5">
                           <p className="text-[11px] text-[#9B9B95]">
                             Nenhuma solicitação de redes sociais ainda.{" "}
-                            <Link href="/agency/social-media-agent" className="text-[#5B5BD6] hover:underline">
+                            <Link href="/agency/social-media-agent" className="text-[#070A1F] hover:underline">
                               Execute o Agente de Redes Sociais
                             </Link>{" "}
                             primeiro para gerar solicitações específicas da marca.
@@ -817,7 +817,7 @@ export default function DesignAgentPage() {
                       <div className="rounded-[7px] bg-[#FAFAFA] border border-[#F0F0ED] px-3 py-2">
                         <p className="text-[11px] text-[#9B9B95]">
                           Copie o bloco de Handoff de Design da aba Design do Agente de Redes Sociais{" "}
-                          <Link href="/agency/social-media-agent" className="text-[#5B5BD6] hover:underline">aqui</Link>.
+                          <Link href="/agency/social-media-agent" className="text-[#070A1F] hover:underline">aqui</Link>.
                         </p>
                       </div>
                     </div>
@@ -1074,9 +1074,9 @@ export default function DesignAgentPage() {
                         <div className="px-5 py-4">
                           <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-1.5">
-                              <span className="w-4 h-4 rounded-full bg-[#EEF0FF] flex items-center justify-center shrink-0">
+                              <span className="w-4 h-4 rounded-full bg-[#E6FBFA] flex items-center justify-center shrink-0">
                                 <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-                                  <path d="M4 1v2.5L6 5M4 1L2 5M1 7h6" stroke="#5B5BD6" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"/>
+                                  <path d="M4 1v2.5L6 5M4 1L2 5M1 7h6" stroke="#070A1F" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"/>
                                 </svg>
                               </span>
                               <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide">Imagem Real</p>
@@ -1084,7 +1084,7 @@ export default function DesignAgentPage() {
                             {(!imageStates[b.postId] || imageStates[b.postId].status === "idle") && (
                               <button
                                 onClick={() => handleGenerateImage(b.postId, b.enhancedPrompt)}
-                                className="h-7 px-3 rounded-[6px] text-[12px] font-semibold bg-[#5B5BD6] text-white hover:bg-[#4A4AC5] transition-colors flex items-center gap-1.5"
+                                className="h-7 px-3 rounded-[6px] text-[12px] font-semibold bg-[#070A1F] text-white hover:bg-[#4A4AC5] transition-colors flex items-center gap-1.5"
                               >
                                 <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
                                   <path d="M5.5 1v4M5.5 10V6M1 5.5h4M10 5.5H6" stroke="white" strokeWidth="1.4" strokeLinecap="round"/>
@@ -1104,7 +1104,7 @@ export default function DesignAgentPage() {
 
                           {imageStates[b.postId]?.status === "generating" && (
                             <div className="rounded-[8px] bg-[#F7F7F6] border border-[#E5E5E2] py-8 flex flex-col items-center gap-3">
-                              <span className="w-5 h-5 border-2 border-[#5B5BD6] border-t-transparent rounded-full animate-spin" />
+                              <span className="w-5 h-5 border-2 border-[#070A1F] border-t-transparent rounded-full animate-spin" />
                               <p className="text-[12px] text-[#9B9B95]">Gerando imagem com DALL‑E 3…</p>
                             </div>
                           )}
@@ -1139,7 +1139,7 @@ export default function DesignAgentPage() {
                                       <input
                                         value={saveForms[b.postId]?.name ?? b.title}
                                         onChange={(e) => setSaveForms((prev) => ({ ...prev, [b.postId]: { ...prev[b.postId], name: e.target.value } }))}
-                                        className="w-full h-7 px-2 text-[12px] bg-white border border-[#E5E5E2] rounded-[5px] outline-none focus:border-[#5B5BD6]"
+                                        className="w-full h-7 px-2 text-[12px] bg-white border border-[#E5E5E2] rounded-[5px] outline-none focus:border-[#070A1F]"
                                       />
                                     </div>
                                     <div>
@@ -1147,7 +1147,7 @@ export default function DesignAgentPage() {
                                       <select
                                         value={saveForms[b.postId]?.projectId ?? ""}
                                         onChange={(e) => setSaveForms((prev) => ({ ...prev, [b.postId]: { ...prev[b.postId], projectId: e.target.value } }))}
-                                        className="w-full h-7 px-2 text-[12px] bg-white border border-[#E5E5E2] rounded-[5px] outline-none focus:border-[#5B5BD6]"
+                                        className="w-full h-7 px-2 text-[12px] bg-white border border-[#E5E5E2] rounded-[5px] outline-none focus:border-[#070A1F]"
                                       >
                                         <option value="">— selecione —</option>
                                         {projects.map((p) => (

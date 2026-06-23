@@ -129,8 +129,8 @@ export default function MaestroPage() {
         {/* ── Top bar ── */}
         <div className="flex items-center gap-4 flex-wrap">
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[#EEF0FF] text-[#5B5BD6]">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#5B5BD6]" />
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[#E6FBFA] text-[#070A1F]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#070A1F]" />
               7 Departamentos · ✦ Dioli Brain
             </span>
           </div>
@@ -139,7 +139,7 @@ export default function MaestroPage() {
             <select
               value={selectedProjectId ?? ""}
               onChange={(e) => setSelectedProjectId(e.target.value || null)}
-              className="h-8 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] transition-colors"
+              className="h-8 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] transition-colors"
             >
               <option value="">— todos os projetos —</option>
               {projects.map((p) => (
@@ -147,7 +147,7 @@ export default function MaestroPage() {
               ))}
             </select>
             {linkedProject && (
-              <Link href={`/agency/projects/${linkedProject.id}`} className="text-[12px] text-[#5B5BD6] hover:underline">
+              <Link href={`/agency/projects/${linkedProject.id}`} className="text-[12px] text-[#070A1F] hover:underline">
                 Ver projeto →
               </Link>
             )}

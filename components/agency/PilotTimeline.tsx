@@ -16,7 +16,7 @@ export default function PilotTimeline({ weeks }: { weeks: TimelineWeek[] }) {
         {weeks.map((w) => (
           <div key={w.week} className="px-5 py-3.5">
             <div className="flex items-center gap-2.5 mb-2.5">
-              <span className="w-6 h-6 rounded-full bg-[#5B5BD6] text-white text-[11px] font-bold flex items-center justify-center shrink-0">
+              <span className="w-6 h-6 rounded-full bg-[#070A1F] text-white text-[11px] font-bold flex items-center justify-center shrink-0">
                 {w.week}
               </span>
               <div>

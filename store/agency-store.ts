@@ -23,8 +23,6 @@ import {
   MOCK_PROJECTS,
   MOCK_TASKS,
   MOCK_DELIVERABLES,
-  MOCK_BRIEFINGS,
-  MOCK_ACTIVITY,
 } from "@/lib/agency/mock-data";
 import type { MaterialRequest, MaterialRequestStatus } from "@/lib/agency/workspace";
 import { generateClientRequirements, MOCK_MATERIAL_REQUESTS } from "@/lib/agency/workspace";
@@ -243,13 +241,15 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 export const useAgencyStore = create<AgencyState>()(
   persist(
     (set, get) => ({
-      clients: MOCK_CLIENTS,
-      projects: MOCK_PROJECTS,
-      tasks: MOCK_TASKS,
-      deliverables: MOCK_DELIVERABLES,
-      briefings: MOCK_BRIEFINGS,
-      activity: MOCK_ACTIVITY,
-      materialRequests: MOCK_MATERIAL_REQUESTS,
+      // Clean slate — no demo data. Pilot data can be loaded explicitly via
+      // loadPilotData(); the workspace otherwise starts empty for production.
+      clients: [],
+      projects: [],
+      tasks: [],
+      deliverables: [],
+      briefings: [],
+      activity: [],
+      materialRequests: [],
       testRuns: [],
       strategyRooms: [],
       currentRole: "master" as AgencyRole,
@@ -1308,16 +1308,22 @@ export const useAgencyStore = create<AgencyState>()(
       },
 
       // ── Reset ─────────────────────────────────────────────────────────────
+      // Resets to a clean, empty workspace (no demo data). Integration/provider
+      // configs are restored to defaults.
       resetStore: () => {
         set({
-          clients: MOCK_CLIENTS,
-          projects: MOCK_PROJECTS,
-          tasks: MOCK_TASKS,
-          deliverables: MOCK_DELIVERABLES,
-          briefings: MOCK_BRIEFINGS,
-          activity: MOCK_ACTIVITY,
-          materialRequests: MOCK_MATERIAL_REQUESTS,
+          clients: [],
+          projects: [],
+          tasks: [],
+          deliverables: [],
+          briefings: [],
+          activity: [],
+          materialRequests: [],
           strategyRooms: [],
+          brandUpdates: [],
+          clientRequests: [],
+          departmentConfigs: [],
+          aiRunLogs: [],
           integrationConfigs: buildDefaultIntegrationConfigs(),
           agentProviderConfigs: buildDefaultAgentProviderConfigs(),
         });
@@ -1367,7 +1373,9 @@ export const useAgencyStore = create<AgencyState>()(
       },
     }),
     {
-      name: "agency-os-v1",
+      // v2 — bumped to flush stale demo data persisted in older browsers.
+      // A fresh key means existing clients rehydrate into a clean workspace.
+      name: "agency-os-v2",
       partialize: (s) => ({
         clients: s.clients,
         projects: s.projects,

@@ -149,7 +149,7 @@ export function FileUploadZone({ clientId, onChange }: FileUploadZoneProps) {
         onClick={() => inputRef.current?.click()}
         className={`border-2 border-dashed rounded-[10px] px-5 py-6 text-center cursor-pointer transition-all select-none ${
           isDragOver
-            ? "border-[#5B5BD6] bg-[#EEF0FF]"
+            ? "border-[#070A1F] bg-[#E6FBFA]"
             : "border-[#E5E5E2] bg-white hover:border-[#9B9B95] hover:bg-[#F7F7F6]"
         }`}
       >
@@ -164,13 +164,13 @@ export function FileUploadZone({ clientId, onChange }: FileUploadZoneProps) {
         />
         <svg
           width="22" height="22" viewBox="0 0 24 24" fill="none"
-          className={`mx-auto mb-2 ${isDragOver ? "text-[#5B5BD6]" : "text-[#9B9B95]"}`}
+          className={`mx-auto mb-2 ${isDragOver ? "text-[#070A1F]" : "text-[#9B9B95]"}`}
         >
           <path d="M21 15V19A2 2 0 0119 21H5A2 2 0 013 19V15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           <polyline points="17 8 12 3 7 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           <line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
-        <p className={`text-[13px] font-medium ${isDragOver ? "text-[#5B5BD6]" : "text-[#1A1A1A]"}`}>
+        <p className={`text-[13px] font-medium ${isDragOver ? "text-[#070A1F]" : "text-[#1A1A1A]"}`}>
           {isDragOver ? "Solte os arquivos aqui" : "Arraste arquivos ou clique para selecionar"}
         </p>
         <p className="text-[11px] text-[#9B9B95] mt-1">
@@ -353,11 +353,11 @@ export function MaterialsLinkField({ clientId, onChange }: MaterialsLinkFieldPro
               key={l.id}
               className="flex items-center gap-3 bg-white border border-[#E5E5E2] rounded-[8px] px-3 py-2.5"
             >
-              <div className="w-8 h-8 rounded-[6px] bg-[#EEF0FF] flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-[6px] bg-[#E6FBFA] flex items-center justify-center shrink-0">
                 <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
-                  <path d="M5.5 8.5L8.5 5.5" stroke="#5B5BD6" strokeWidth="1.3" strokeLinecap="round"/>
-                  <path d="M7.5 3.5L9 2A2.12 2.12 0 0112 5L10.5 6.5" stroke="#5B5BD6" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M6.5 10.5L5 12A2.12 2.12 0 012 9L3.5 7.5" stroke="#5B5BD6" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M5.5 8.5L8.5 5.5" stroke="#070A1F" strokeWidth="1.3" strokeLinecap="round"/>
+                  <path d="M7.5 3.5L9 2A2.12 2.12 0 0112 5L10.5 6.5" stroke="#070A1F" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M6.5 10.5L5 12A2.12 2.12 0 012 9L3.5 7.5" stroke="#070A1F" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </div>
               <div className="flex-1 min-w-0">

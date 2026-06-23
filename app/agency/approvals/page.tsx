@@ -118,7 +118,7 @@ export default function ApprovalsPage() {
       <div className="space-y-10">
         {/* ── 1. Proposals ────────────────────────────────────────────────── */}
         <section>
-          <SectionHeader label="Propostas Aguardando Resposta" count={sentProposals.length} color="bg-[#5B5BD6]" />
+          <SectionHeader label="Propostas Aguardando Resposta" count={sentProposals.length} color="bg-[#070A1F]" />
           {sentProposals.length === 0 ? (
             <EmptyState label="Nenhuma proposta aguardando aprovação." />
           ) : (
@@ -142,7 +142,7 @@ export default function ApprovalsPage() {
                     <div className="flex items-center gap-2 shrink-0">
                       <button
                         onClick={() => approveProposal(project.id)}
-                        className="px-3 py-1.5 bg-[#5B5BD6] text-white text-[12px] font-medium rounded-[6px] hover:bg-[#4A4AC0] transition-colors"
+                        className="px-3 py-1.5 bg-[#070A1F] text-white text-[12px] font-medium rounded-[6px] hover:bg-[#0D1230] transition-colors"
                       >
                         ✓ Aprovar
                       </button>
@@ -182,7 +182,7 @@ export default function ApprovalsPage() {
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-[13px] font-semibold text-[#1C1C1A] truncate">{d.name}</span>
                           {d.version && d.version > 1 && (
-                            <span className="text-[10px] bg-[#EEF0FF] text-[#5B5BD6] px-1.5 py-0.5 rounded font-medium">v{d.version}</span>
+                            <span className="text-[10px] bg-[#E6FBFA] text-[#070A1F] px-1.5 py-0.5 rounded font-medium">v{d.version}</span>
                           )}
                         </div>
                         {project && (
@@ -215,7 +215,7 @@ export default function ApprovalsPage() {
                           value={feedbackMap[d.id] ?? ""}
                           onChange={(e) => setFeedbackMap((prev) => ({ ...prev, [d.id]: e.target.value }))}
                           placeholder="Descreva as alterações necessárias..."
-                          className="w-full text-[13px] border border-[#E8E8E4] rounded-[8px] px-3 py-2 resize-none h-20 outline-none focus:border-[#5B5BD6] transition-colors"
+                          className="w-full text-[13px] border border-[#E8E8E4] rounded-[8px] px-3 py-2 resize-none h-20 outline-none focus:border-[#070A1F] transition-colors"
                         />
                         <div className="flex justify-end mt-2">
                           <button

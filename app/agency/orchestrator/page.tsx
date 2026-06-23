@@ -324,7 +324,7 @@ function BriefingPreview({ briefing, subtitle }: { briefing: Briefing; subtitle:
           <div className="flex-1 flex flex-wrap gap-1.5">
             {briefing.services.length > 0
               ? briefing.services.map((s) => (
-                  <span key={s} className="h-5 px-2 rounded-full text-[11px] font-medium bg-[#EEF0FF] text-[#5B5BD6]">
+                  <span key={s} className="h-5 px-2 rounded-full text-[11px] font-medium bg-[#E6FBFA] text-[#070A1F]">
                     {SERVICE_LABELS[s] ?? s}
                   </span>
                 ))
@@ -622,7 +622,7 @@ export default function OrchestratorPage() {
             <div className="flex items-center gap-2.5 min-w-0">
               <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 transition-all ${
                 i <= activeStep
-                  ? "bg-[#5B5BD6] text-white"
+                  ? "bg-[#070A1F] text-white"
                   : "bg-[#F0F0ED] text-[#9B9B95]"
               } ${state === "analyzing" && i === 1 ? "animate-pulse" : ""}`}>
                 {i + 1}
@@ -632,7 +632,7 @@ export default function OrchestratorPage() {
               </span>
             </div>
             {i < STEP_LABELS.length - 1 && (
-              <div className={`flex-1 mx-3 h-[1px] transition-all ${i < activeStep ? "bg-[#5B5BD6]" : "bg-[#E5E5E2]"}`} />
+              <div className={`flex-1 mx-3 h-[1px] transition-all ${i < activeStep ? "bg-[#070A1F]" : "bg-[#E5E5E2]"}`} />
             )}
           </div>
         ))}
@@ -640,7 +640,7 @@ export default function OrchestratorPage() {
 
       {state === "approved" ? (
         /* Approved state */
-        <div className="bg-white rounded-[10px] border border-[#5B5BD6] px-8 py-10 text-center shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+        <div className="bg-white rounded-[10px] border border-[#070A1F] px-8 py-10 text-center shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
           <div className="w-12 h-12 rounded-full bg-[#DCFCE7] flex items-center justify-center mx-auto mb-4">
             <svg width="22" height="18" viewBox="0 0 22 18" fill="none">
               <path d="M2 9l6 6L20 2" stroke="#16A34A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -675,7 +675,7 @@ export default function OrchestratorPage() {
                   disabled={state !== "idle"}
                   className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-[12px] font-medium transition-colors border-b-2 -mb-[1px] ${
                     inputMode === m.id
-                      ? "border-[#5B5BD6] text-[#5B5BD6]"
+                      ? "border-[#070A1F] text-[#070A1F]"
                       : "border-transparent text-[#9B9B95] hover:text-[#6B6B65]"
                   } disabled:opacity-50`}
                 >
@@ -710,7 +710,7 @@ export default function OrchestratorPage() {
                       }));
                     }}
                     disabled={state !== "idle"}
-                    className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
+                    className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white disabled:opacity-50"
                   >
                     <option value="">Selecionar cliente</option>
                     {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -741,8 +741,8 @@ export default function OrchestratorPage() {
                           disabled={state !== "idle"}
                           className={`h-7 px-3 rounded-full text-[12px] font-medium border transition-all disabled:opacity-50 ${
                             active
-                              ? "bg-[#5B5BD6] border-[#5B5BD6] text-white"
-                              : "bg-white border-[#E5E5E2] text-[#6B6B65] hover:border-[#5B5BD6] hover:text-[#5B5BD6]"
+                              ? "bg-[#070A1F] border-[#070A1F] text-white"
+                              : "bg-white border-[#E5E5E2] text-[#6B6B65] hover:border-[#070A1F] hover:text-[#070A1F]"
                           }`}
                         >
                           {svc.label}
@@ -761,7 +761,7 @@ export default function OrchestratorPage() {
                     disabled={state !== "idle"}
                     placeholder="O que o cliente faz? Setor, produto ou serviço."
                     rows={2}
-                    className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50 resize-none"
+                    className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white disabled:opacity-50 resize-none"
                   />
                 </div>
 
@@ -774,7 +774,7 @@ export default function OrchestratorPage() {
                     disabled={state !== "idle"}
                     placeholder="Qual é a meta mensurável? ex.: aumentar o reconhecimento de marca, gerar 200 leads."
                     rows={2}
-                    className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50 resize-none"
+                    className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white disabled:opacity-50 resize-none"
                   />
                 </div>
 
@@ -786,7 +786,7 @@ export default function OrchestratorPage() {
                     onChange={(e) => setBriefingField("targetAudience", e.target.value)}
                     disabled={state !== "idle"}
                     placeholder="ex.: Profissionais de design, 25–40, Brasil urbano"
-                    className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
+                    className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white disabled:opacity-50"
                   />
                 </div>
 
@@ -798,7 +798,7 @@ export default function OrchestratorPage() {
                     onChange={(e) => setBriefingField("channels", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))}
                     disabled={state !== "idle"}
                     placeholder="ex.: Instagram, LinkedIn, Google Ads"
-                    className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
+                    className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white disabled:opacity-50"
                   />
                 </div>
 
@@ -811,7 +811,7 @@ export default function OrchestratorPage() {
                       value={briefing.deadline}
                       onChange={(e) => setBriefingField("deadline", e.target.value)}
                       disabled={state !== "idle"}
-                      className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
+                      className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white disabled:opacity-50"
                     />
                   </div>
                   <div>
@@ -820,7 +820,7 @@ export default function OrchestratorPage() {
                       value={form.priority}
                       onChange={(e) => setForm((prev) => ({ ...prev, priority: e.target.value as Priority }))}
                       disabled={state !== "idle"}
-                      className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
+                      className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white disabled:opacity-50"
                     >
                       <option value="high">Alta</option>
                       <option value="medium">Média</option>
@@ -838,7 +838,7 @@ export default function OrchestratorPage() {
                     disabled={state !== "idle"}
                     placeholder="Restrições, referências, orçamento, contexto…"
                     rows={2}
-                    className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50 resize-none"
+                    className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white disabled:opacity-50 resize-none"
                   />
                 </div>
 
@@ -874,7 +874,7 @@ export default function OrchestratorPage() {
                     disabled={state !== "idle"}
                     placeholder={"ex.: \"Precisamos de uma campanha de redes sociais para a Nova Studio com lançamento no próximo mês. O objetivo é gerar reconhecimento entre públicos de design no Instagram e LinkedIn. Prazo: final de abril.\""}
                     rows={10}
-                    className="w-full px-3 py-2.5 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50 resize-none leading-relaxed"
+                    className="w-full px-3 py-2.5 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white disabled:opacity-50 resize-none leading-relaxed"
                   />
                   {voiceText.trim() && (
                     <p className="text-[11px] text-[#9B9B95] mt-1">
@@ -888,7 +888,7 @@ export default function OrchestratorPage() {
                     value={form.clientId}
                     onChange={(e) => setForm((p) => ({ ...p, clientId: e.target.value }))}
                     disabled={state !== "idle"}
-                    className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
+                    className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white disabled:opacity-50"
                   >
                     <option value="">Selecionar cliente</option>
                     {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -951,7 +951,7 @@ export default function OrchestratorPage() {
                 {/* ── Upload zone — hidden while recording or after transcription ── */}
                 {audioTranscribeState !== "done" && recordingState === "idle" && (
                   <label className={`flex flex-col items-center justify-center gap-3 border-2 border-dashed rounded-[10px] px-6 py-8 cursor-pointer transition-colors ${
-                    audioFile ? "border-[#5B5BD6] bg-[#EEF0FF]/40" : "border-[#E5E5E2] hover:border-[#C0C0BA] bg-[#FAFAF9]"
+                    audioFile ? "border-[#070A1F] bg-[#E6FBFA]/40" : "border-[#E5E5E2] hover:border-[#C0C0BA] bg-[#FAFAF9]"
                   } ${audioTranscribeState === "transcribing" ? "pointer-events-none" : ""}`}>
                     <input
                       type="file"
@@ -966,14 +966,14 @@ export default function OrchestratorPage() {
                     />
                     {audioFile ? (
                       <>
-                        <div className={`w-10 h-10 rounded-full bg-[#EEF0FF] flex items-center justify-center ${audioTranscribeState === "transcribing" ? "animate-pulse" : ""}`}>
+                        <div className={`w-10 h-10 rounded-full bg-[#E6FBFA] flex items-center justify-center ${audioTranscribeState === "transcribing" ? "animate-pulse" : ""}`}>
                           <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                            <path d="M9 2C6.24 2 4 4.24 4 7v4c0 2.76 2.24 5 5 5s5-2.24 5-5V7c0-2.76-2.24-5-5-5z" stroke="#5B5BD6" strokeWidth="1.3"/>
-                            <path d="M2 9.5C2 13.09 4.91 16 8.5 16h1C13.09 16 16 13.09 16 9.5" stroke="#5B5BD6" strokeWidth="1.3" strokeLinecap="round"/>
+                            <path d="M9 2C6.24 2 4 4.24 4 7v4c0 2.76 2.24 5 5 5s5-2.24 5-5V7c0-2.76-2.24-5-5-5z" stroke="#070A1F" strokeWidth="1.3"/>
+                            <path d="M2 9.5C2 13.09 4.91 16 8.5 16h1C13.09 16 16 13.09 16 9.5" stroke="#070A1F" strokeWidth="1.3" strokeLinecap="round"/>
                           </svg>
                         </div>
                         <div className="text-center">
-                          <p className="text-[13px] font-medium text-[#5B5BD6]">{audioFile.name}</p>
+                          <p className="text-[13px] font-medium text-[#070A1F]">{audioFile.name}</p>
                           <p className="text-[11px] text-[#9B9B95] mt-0.5">
                             {(audioFile.size / 1024).toFixed(0)} KB ·{" "}
                             {audioTranscribeState === "transcribing" ? "Transcrevendo…" : "Pronto para transcrever"}
@@ -1024,13 +1024,13 @@ export default function OrchestratorPage() {
 
                 {/* ── Transcribing animation (shared by upload + record) ── */}
                 {audioTranscribeState === "transcribing" && (
-                  <div className="flex items-center gap-2.5 px-4 py-3 bg-[#EEF0FF] rounded-[8px]">
+                  <div className="flex items-center gap-2.5 px-4 py-3 bg-[#E6FBFA] rounded-[8px]">
                     <div className="flex gap-1 shrink-0">
                       {[0, 1, 2].map((i) => (
-                        <span key={i} className="w-1 h-4 bg-[#5B5BD6] rounded-full animate-pulse" style={{ animationDelay: `${i * 150}ms` }} />
+                        <span key={i} className="w-1 h-4 bg-[#070A1F] rounded-full animate-pulse" style={{ animationDelay: `${i * 150}ms` }} />
                       ))}
                     </div>
-                    <p className="text-[12px] font-medium text-[#5B5BD6]">Transcrevendo áudio…</p>
+                    <p className="text-[12px] font-medium text-[#070A1F]">Transcrevendo áudio…</p>
                   </div>
                 )}
 
@@ -1071,7 +1071,7 @@ export default function OrchestratorPage() {
                         value={form.clientId}
                         onChange={(e) => setForm((p) => ({ ...p, clientId: e.target.value }))}
                         disabled={state !== "idle"}
-                        className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white disabled:opacity-50"
+                        className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white disabled:opacity-50"
                       >
                         <option value="">Selecionar cliente</option>
                         {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -1217,8 +1217,8 @@ export default function OrchestratorPage() {
                             onClick={() => toggleService(svc.id)}
                             className={`h-7 px-3 rounded-full text-[12px] font-medium border transition-all ${
                               active
-                                ? "bg-[#5B5BD6] border-[#5B5BD6] text-white"
-                                : "bg-white border-[#E5E5E2] text-[#6B6B65] hover:border-[#5B5BD6] hover:text-[#5B5BD6]"
+                                ? "bg-[#070A1F] border-[#070A1F] text-white"
+                                : "bg-white border-[#E5E5E2] text-[#6B6B65] hover:border-[#070A1F] hover:text-[#070A1F]"
                             }`}
                           >
                             {svc.label}
@@ -1235,7 +1235,7 @@ export default function OrchestratorPage() {
                       value={briefing.objective}
                       onChange={(e) => setBriefingField("objective", e.target.value)}
                       rows={2}
-                      className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white resize-none"
+                      className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white resize-none"
                     />
                   </div>
 
@@ -1246,7 +1246,7 @@ export default function OrchestratorPage() {
                       value={briefing.businessDescription}
                       onChange={(e) => setBriefingField("businessDescription", e.target.value)}
                       rows={2}
-                      className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white resize-none"
+                      className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white resize-none"
                     />
                   </div>
 
@@ -1256,7 +1256,7 @@ export default function OrchestratorPage() {
                     <input
                       value={briefing.targetAudience}
                       onChange={(e) => setBriefingField("targetAudience", e.target.value)}
-                      className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
+                      className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
                     />
                   </div>
 
@@ -1268,7 +1268,7 @@ export default function OrchestratorPage() {
                         value={briefing.channels.join(", ")}
                         onChange={(e) => setBriefingField("channels", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))}
                         placeholder="ex.: Instagram, LinkedIn"
-                        className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
+                        className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
                       />
                     </div>
                     <div>
@@ -1277,7 +1277,7 @@ export default function OrchestratorPage() {
                         type="date"
                         value={briefing.deadline}
                         onChange={(e) => setBriefingField("deadline", e.target.value)}
-                        className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white"
+                        className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
                       />
                     </div>
                   </div>
@@ -1290,7 +1290,7 @@ export default function OrchestratorPage() {
                       onChange={(e) => setBriefingField("notes", e.target.value)}
                       rows={2}
                       placeholder="Restrições, referências, orçamento, contexto…"
-                      className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#5B5BD6] focus:bg-white resize-none"
+                      className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white resize-none"
                     />
                   </div>
 
@@ -1381,9 +1381,9 @@ export default function OrchestratorPage() {
 
             {state === "analyzing" && (
               <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-8 py-16 text-center shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                <div className="w-10 h-10 rounded-full bg-[#EEF0FF] flex items-center justify-center mx-auto mb-4 animate-spin">
+                <div className="w-10 h-10 rounded-full bg-[#E6FBFA] flex items-center justify-center mx-auto mb-4 animate-spin">
                   <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                    <path d="M9 2v3M9 13v3M2 9h3M13 9h3M4.05 4.05l2.12 2.12M11.83 11.83l2.12 2.12M4.05 13.95l2.12-2.12M11.83 6.17l2.12-2.12" stroke="#5B5BD6" strokeWidth="1.5" strokeLinecap="round"/>
+                    <path d="M9 2v3M9 13v3M2 9h3M13 9h3M4.05 4.05l2.12 2.12M11.83 11.83l2.12 2.12M4.05 13.95l2.12-2.12M11.83 6.17l2.12-2.12" stroke="#070A1F" strokeWidth="1.5" strokeLinecap="round"/>
                   </svg>
                 </div>
                 <p className="text-[14px] font-medium text-[#1A1A1A]">Analisando briefing...</p>
@@ -1417,11 +1417,11 @@ export default function OrchestratorPage() {
                       const agent = MOCK_AGENTS.find((a) => a.id === agentId);
                       if (!agent) return null;
                       return (
-                        <div key={agentId} className="flex items-center gap-1.5 bg-[#EEF0FF] px-2.5 py-1.5 rounded-[7px]">
-                          <div className="w-5 h-5 rounded-full bg-[#5B5BD6] flex items-center justify-center text-[9px] font-bold text-white">
+                        <div key={agentId} className="flex items-center gap-1.5 bg-[#E6FBFA] px-2.5 py-1.5 rounded-[7px]">
+                          <div className="w-5 h-5 rounded-full bg-[#070A1F] flex items-center justify-center text-[9px] font-bold text-white">
                             {agent.name.slice(0, 1)}
                           </div>
-                          <span className="text-[12px] font-medium text-[#5B5BD6]">{agent.name}</span>
+                          <span className="text-[12px] font-medium text-[#070A1F]">{agent.name}</span>
                         </div>
                       );
                     })}

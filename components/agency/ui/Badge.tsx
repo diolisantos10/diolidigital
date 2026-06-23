@@ -34,15 +34,15 @@ const STYLES: Record<Variant, string> = {
   // Client status
   active: "bg-[#DCFCE7] text-[#16A34A]",
   inactive: "bg-[#F0F0ED] text-[#9B9B95]",
-  prospect: "bg-[#EEF0FF] text-[#5B5BD6]",
+  prospect: "bg-[#E6FBFA] text-[#070A1F]",
   // Priority
   high: "bg-[#FEE2E2] text-[#DC2626]",
   medium: "bg-[#FEF3C7] text-[#D97706]",
   low: "bg-[#F0F0ED] text-[#6B6B65]",
   // Pipeline stages
   briefing: "bg-[#F0F0ED] text-[#6B6B65]",
-  proposal_sent: "bg-[#EEF0FF] text-[#5B5BD6]",
-  diagnosis: "bg-[#EEF0FF] text-[#5B5BD6]",
+  proposal_sent: "bg-[#E6FBFA] text-[#070A1F]",
+  diagnosis: "bg-[#E6FBFA] text-[#070A1F]",
   planning: "bg-[#E0E7FF] text-[#4338CA]",
   production: "bg-[#FEF3C7] text-[#D97706]",
   review: "bg-[#FFE4E6] text-[#E11D48]",
@@ -51,17 +51,17 @@ const STYLES: Record<Variant, string> = {
   completed: "bg-[#F0F0ED] text-[#9B9B95]",
   // Task status
   pending: "bg-[#F0F0ED] text-[#6B6B65]",
-  in_progress: "bg-[#EEF0FF] text-[#5B5BD6]",
+  in_progress: "bg-[#E6FBFA] text-[#070A1F]",
   done: "bg-[#DCFCE7] text-[#16A34A]",
   blocked: "bg-[#FEE2E2] text-[#DC2626]",
   // Deliverable status
   draft: "bg-[#F0F0ED] text-[#6B6B65]",
   in_review: "bg-[#FEF3C7] text-[#D97706]",
   approved: "bg-[#DCFCE7] text-[#16A34A]",
-  delivered: "bg-[#EEF0FF] text-[#5B5BD6]",
+  delivered: "bg-[#E6FBFA] text-[#070A1F]",
   // Briefing status
   pending_analysis: "bg-[#FEF3C7] text-[#D97706]",
-  analyzed: "bg-[#EEF0FF] text-[#5B5BD6]",
+  analyzed: "bg-[#E6FBFA] text-[#070A1F]",
   // Agent
   available: "bg-[#F0F0ED] text-[#6B6B65]",
 };

@@ -226,7 +226,7 @@ export default function BrandHubAgentPage() {
           </span>
           <span className="text-[12px] text-[#9B9B95]">v1 · brand health report</span>
           {linkedClient && (
-            <Link href={`/agency/clients/${linkedClient.id}`} className="text-[12px] text-[#5B5BD6] hover:underline">
+            <Link href={`/agency/clients/${linkedClient.id}`} className="text-[12px] text-[#070A1F] hover:underline">
               ← {linkedClient.name}
             </Link>
           )}
