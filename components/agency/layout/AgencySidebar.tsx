@@ -117,6 +117,7 @@ export default function AgencySidebar({ userInfo }: { userInfo?: UserInfo | null
         { label: "Social Media", href: "/agency/social-media-agent", icon: SocialIcon },
         { label: "Design", href: "/agency/design-agent", icon: DesignIcon },
         { label: "Tráfego Pago", href: "/agency/ads-agent", icon: AdsIcon },
+        { label: "Operações", href: "/agency/operations-agent", icon: SettingsIcon },
       ],
     },
     {

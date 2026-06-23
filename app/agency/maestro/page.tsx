@@ -87,10 +87,10 @@ const AGENT_REGISTRY: AgentMeta[] = [
   {
     deptId: "operations",
     label: "Operações",
-    role: "Ops Agent",
+    role: "System Doctor",
     color: "#059669",
     accentBg: "#ECFDF5",
-    agentRoute: null,
+    agentRoute: "/agency/operations-agent",
     brainRoute: null,
     deliverableTypes: [],
   },
