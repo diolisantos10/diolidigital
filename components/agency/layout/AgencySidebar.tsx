@@ -68,6 +68,7 @@ export default function AgencySidebar({ userInfo }: { userInfo?: UserInfo | null
       group: null,
       items: [
         { label: t.nav.home, href: "/agency/dashboard", icon: HomeIcon },
+        { label: "Painel Maestro", href: "/agency/maestro", icon: BrainIcon },
         { label: "Aprovações", href: "/agency/approvals", icon: BellIcon, badge: pendingCount },
         { label: "Solicitações", href: "/agency/requests", icon: FileTextIcon, badge: newRequestsCount },
       ],
@@ -104,6 +105,17 @@ export default function AgencySidebar({ userInfo }: { userInfo?: UserInfo | null
       items: [
         { label: t.nav.deliverables, href: "/agency/deliverables", icon: BoxIcon },
         { label: t.nav.briefings, href: "/agency/briefings", icon: FileTextIcon },
+      ],
+    },
+    {
+      group: "Agentes IA",
+      items: [
+        { label: "PM Agent", href: "/agency/pm-agent", icon: UserCogIcon },
+        { label: "Estratégia", href: "/agency/strategy-agent", icon: CompassIcon },
+        { label: "Brand Hub", href: "/agency/brand-hub-agent", icon: SwatchIcon },
+        { label: "Social Media", href: "/agency/social-media-agent", icon: SocialIcon },
+        { label: "Design", href: "/agency/design-agent", icon: DesignIcon },
+        { label: "Tráfego Pago", href: "/agency/ads-agent", icon: AdsIcon },
       ],
     },
     {

@@ -79,6 +79,9 @@ const TYPE_STYLES: Record<ActionType, { bg: string; text: string }> = {
 function getAgentRunUrl(agentId: string): string | null {
   if (agentId === "a2") return "/agency/design-agent";
   if (agentId === "a3") return "/agency/social-media-agent";
+  if (agentId === "a4") return "/agency/ads-agent";
+  if (agentId === "a5") return "/agency/strategy-agent";
+  if (agentId === "a10") return "/agency/pm-agent";
   return null;
 }
 
