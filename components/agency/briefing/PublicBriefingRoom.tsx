@@ -153,9 +153,11 @@ function MessageBubble({ msg }: { msg: ConvMessage }) {
 // ── Package badge ─────────────────────────────────────────────────────────────
 
 const PKG_STYLE: Record<string, { bg: string; text: string }> = {
-  starter: { bg: "bg-[#F0F0ED]", text: "text-[#6B6B65]" },
-  growth:  { bg: "bg-[#E6FBFA]", text: "text-[#070A1F]" },
-  pro:     { bg: "bg-[#E6FBFA]", text: "text-[#070A1F]" },
+  essencial: { bg: "bg-[#F0F0ED]", text: "text-[#6B6B65]" },
+  starter:   { bg: "bg-[#F0F0ED]", text: "text-[#6B6B65]" },
+  growth:    { bg: "bg-[#E6FBFA]", text: "text-[#070A1F]" },
+  pro:       { bg: "bg-[#E6FBFA]", text: "text-[#070A1F]" },
+  premium:   { bg: "bg-[#070A1F]", text: "text-white" },
 };
 
 // ── Scope section ─────────────────────────────────────────────────────────────
@@ -1315,17 +1317,23 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
             </div>
             {SOCIAL_PACKAGES.map((pkg) => (
               <div key={pkg.id} className="flex items-center justify-between py-1 text-[10px]">
-                <div>
+                <div className="min-w-0">
                   <span className={`font-semibold ${PKG_STYLE[pkg.id]?.text ?? "text-[#6B6B65]"}`}>
-                    {pkg.label}
+                    {pkg.label.replace("Plano ", "")}
                   </span>
-                  <span className="text-[#9B9B95] ml-1">{pkg.description.split("—")[0].trim()}</span>
+                  <span className="text-[#9B9B95] ml-1">
+                    {pkg.postsPerMonth} posts
+                    {pkg.reelsPerMonth > 0 ? ` · ${pkg.reelsPerMonth} reels` : ""}
+                  </span>
                 </div>
                 <span className="text-[#6B6B65] shrink-0 ml-2">
                   R$ {pkg.minPrice.toLocaleString("pt-BR")}–{pkg.maxPrice.toLocaleString("pt-BR")}
                 </span>
               </div>
             ))}
+            <p className="text-[9px] text-[#C0C0BC] mt-2 leading-relaxed">
+              Reels, copy, design, calendário e relatórios inclusos conforme o plano. Tráfego pago e identidade visual são adicionais.
+            </p>
           </div>
         )}
       </div>

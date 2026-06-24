@@ -84,6 +84,7 @@ export default function AgencySidebar({ userInfo }: { userInfo?: UserInfo | null
       group: t.nav.group.clients,
       items: [
         { label: t.nav.clients, href: "/agency/clients", icon: BuildingIcon },
+        { label: "Planos & Preços", href: "/agency/catalog", icon: TagIcon },
         { label: t.nav.brandAssets, href: "/agency/brand-assets", icon: SwatchIcon },
       ],
     },
@@ -314,6 +315,14 @@ function BuildingIcon({ size = 16, className = "" }: { size?: number; className?
       <rect x="6" y="9" width="2" height="5" stroke="currentColor" strokeWidth="1.3"/>
       <rect x="5" y="5.5" width="2" height="2" rx="0.5" stroke="currentColor" strokeWidth="1.2"/>
       <rect x="9" y="5.5" width="2" height="2" rx="0.5" stroke="currentColor" strokeWidth="1.2"/>
+    </svg>
+  );
+}
+function TagIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
+      <path d="M2.5 2.5h4.7a1 1 0 01.7.3l5.8 5.8a1 1 0 010 1.4l-3.9 3.9a1 1 0 01-1.4 0L2.6 8.1a1 1 0 01-.3-.7V2.5z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
+      <circle cx="5.2" cy="5.2" r="1" fill="currentColor"/>
     </svg>
   );
 }
