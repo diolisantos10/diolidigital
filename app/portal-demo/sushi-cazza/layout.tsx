@@ -35,7 +35,7 @@ export default function DemoLayout({ children }: { children: React.ReactNode }) 
           <span className="text-[#D0D0CC]">·</span>
           <span className="h-5 px-2 rounded-full bg-[#FEF3C7] text-[#D97706] text-[10px] font-semibold">Demo</span>
         </div>
-        <span className="text-[11px] text-[#9B9B95]">Sushi Cazza — ambiente de teste</span>
+        <span className="text-[11px] text-[#9B9B95]">Cliente Demonstração — ambiente de teste</span>
       </header>
 
       <main className="max-w-[860px] mx-auto px-8 py-10">

@@ -89,7 +89,7 @@ export function parseInitialMessage(text: string): Partial<BriefingScope> {
     const m = text.match(/\bpara\s+(?:o|a)\s+([A-ZÀ-ÿ][A-Za-zÀ-ÿ]{1,}(?:\s+[A-Za-zÀ-ÿ]{2,}){0,3})(?:\s*[,.!?]|\s+e\s|$)/);
     if (m) businessName = m[1].trim();
   }
-  // Multi-word TitleCase at sentence start — "Sushi Cazza, quero…" or standalone
+  // Multi-word TitleCase at sentence start — "Marca Exemplo, quero…" or standalone
   if (!businessName) {
     const m = text.match(/^([A-ZÀ-ÿ][a-zÀ-ÿ]{1,}(?:\s+[A-ZÀ-ÿ][a-zÀ-ÿ]{1,})+)(?:\s*[,.]|\s+[a-z]|$)/);
     if (m) businessName = m[1].trim();

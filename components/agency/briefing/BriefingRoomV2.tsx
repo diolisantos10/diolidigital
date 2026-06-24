@@ -508,7 +508,7 @@ export function BriefingRoomV2({
                 onClick={handleExample}
                 className="h-7 px-3 rounded-[6px] border border-[#FDE68A] bg-[#FFFBEB] text-[#D97706] hover:border-[#F59E0B] text-[10px] font-semibold transition-colors whitespace-nowrap"
               >
-                ✦ Exemplo Sushi Cazza
+                ✦ Preencher exemplo
               </button>
             )}
             <button

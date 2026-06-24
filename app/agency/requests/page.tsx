@@ -630,7 +630,7 @@ export default function AgencyRequestsPage() {
   // Delete confirmation: the request pending permanent deletion (modal target)
   const [deleteTarget,    setDeleteTarget]    = useState<ClientRequest | null>(null);
   const [deleteConfirm,   setDeleteConfirm]   = useState("");
-  // Demo reset confirmation (Sushi Cazza test requests)
+  // Demo reset confirmation (demonstration test requests)
   const [showDemoReset,   setShowDemoReset]   = useState(false);
 
   const all    = clientRequests ?? [];
@@ -767,7 +767,7 @@ export default function AgencyRequestsPage() {
     setProcessingId(null);
   }
 
-  // Demo test requests = anything tied to the fixed Sushi Cazza demo client.
+  // Demo test requests = anything tied to the fixed demonstration client.
   const demoRequestCount = all.filter((r) => r.clientId === DEMO_CLIENT_ID).length;
 
   function openDeleteModal(req: ClientRequest) {
@@ -949,10 +949,10 @@ export default function AgencyRequestsPage() {
               <button
                 onClick={() => setShowDemoReset(true)}
                 className="h-7 px-3 rounded-[6px] border border-[#FCA5A5] bg-[#FEF2F2] text-[#DC2626] hover:border-[#F87171] text-[11px] font-semibold transition-colors inline-flex items-center gap-1.5"
-                title="Apaga apenas as solicitações de teste do Sushi Cazza"
+                title="Apaga apenas as solicitações de demonstração"
               >
                 <span className="text-[10px]">⟲</span>
-                Resetar teste Sushi Cazza ({demoRequestCount})
+                Limpar solicitações de demonstração ({demoRequestCount})
                 <span className="h-3.5 px-1 rounded-[3px] bg-[#DC2626] text-white text-[8px] font-bold leading-[14px]">ADMIN</span>
               </button>
             )}
@@ -1587,10 +1587,10 @@ export default function AgencyRequestsPage() {
           >
             <div className="flex items-center gap-2.5 mb-3">
               <div className="w-9 h-9 rounded-full bg-[#FEF2F2] flex items-center justify-center text-[#DC2626] text-[16px] shrink-0">⟲</div>
-              <h2 className="text-[16px] font-semibold text-[#1A1A1A]">Resetar teste Sushi Cazza?</h2>
+              <h2 className="text-[16px] font-semibold text-[#1A1A1A]">Limpar solicitações de demonstração?</h2>
             </div>
             <p className="text-[13px] text-[#6B6B65] leading-relaxed mb-4">
-              Isso apagará apenas as solicitações de teste do Sushi Cazza
+              Isso apagará apenas as solicitações de demonstração
               {" "}({demoRequestCount}). Clientes, projetos e demais dados não serão afetados.
             </p>
             <div className="flex items-center justify-end gap-2">

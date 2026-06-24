@@ -5,15 +5,15 @@ export const SEED_SCENARIOS: SimulationScenario[] = [
   {
     id: "restaurant_sushi_objection",
     agentId: "sdr",
-    name: "Sushi Cazza — Objeção de Preço",
+    name: "Restaurante Japonês — Objeção de Preço",
     segment: "restaurante",
     difficulty: "hard",
-    persona: "Kenji — dono de restaurante japonês, desconfiado com marketing",
+    persona: "Marina — dona de restaurante japonês, desconfiada com marketing",
     initialMessage:
-      "Oi, me chamo Kenji e tenho um restaurante japonês chamado Sushi Cazza. Quero social media mas não sei bem o que preciso.",
+      "Oi, me chamo Marina e tenho um restaurante japonês. Quero social media mas não sei bem o que preciso.",
     personaAnswers: {
-      identity:  "Kenji Tanaka, Sushi Cazza",
-      email:     "kenji@sushicazza.com.br",
+      identity:  "Marina Alves, Restaurante Japonês",
+      email:     "marina@restaurante.com.br",
       phone:     "11987654321",
       service:   "Quero principalmente Instagram, fotos dos pratos e promoções",
       frequency: "3 vezes por semana no feed",

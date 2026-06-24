@@ -971,7 +971,7 @@ function OverviewTab() {
       {/* System map */}
       <SystemMapSection />
 
-      {/* Sushi Cazza pilot readiness */}
+      {/* Pilot readiness */}
       <PilotReadinessChecklist />
     </div>
   );
@@ -1100,7 +1100,7 @@ function PilotReadinessChecklist() {
 
   return (
     <div>
-      <SectionTitle>Prontidão para Piloto Sushi Cazza</SectionTitle>
+      <SectionTitle>Prontidão para Piloto</SectionTitle>
       <div className="rounded-[10px] border border-white/[0.06] bg-[#111111] p-4 mb-3">
         <div className="flex items-center gap-4 mb-3">
           <span className="text-[11px] text-[#6B6B65]">

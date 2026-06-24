@@ -52,7 +52,7 @@ function parseProspectNameBiz(text: string): { prospectName?: string; businessNa
   const bizMatch = text.match(/chamad[ao]\s+([A-ZÀ-ÿ][^.!?,]{1,30}?)(?:\s*[.!?,]|\s+que\s|\s+e\s|\s+para\s|$)/i);
   if (bizMatch && /^[A-ZÀ-ÿ]/.test(bizMatch[1])) businessName = bizMatch[1].trim();
 
-  // 2. "é o/a X" — "meu negócio é o Sushi Cazza"
+  // 2. "é o/a X" — "meu negócio é o Restaurante Sabor"
   if (!businessName) {
     const m = text.match(/[eé]\s+(?:o|a)\s+([A-ZÀ-ÿ][^.!?,\s]{2,}(?:\s+[A-Za-zÀ-ÿ]{2,}){0,3})/i);
     if (m && /^[A-ZÀ-ÿ]/.test(m[1])) businessName = m[1].trim();
@@ -76,7 +76,7 @@ function parseProspectNameBiz(text: string): { prospectName?: string; businessNa
     if (m) businessName = m[1].trim();
   }
 
-  // 6. Multi-word TitleCase at sentence start — "Sushi Cazza, quero…" or standalone "Sushi Cazza"
+  // 6. Multi-word TitleCase at sentence start — "Marca Exemplo, quero…" or standalone "Marca Exemplo"
   if (!businessName) {
     const m = text.match(/^([A-ZÀ-ÿ][a-zÀ-ÿ]{1,}(?:\s+[A-ZÀ-ÿ][a-zÀ-ÿ]{1,})+)(?:\s*[,.]|\s+[a-z]|$)/);
     if (m) businessName = m[1].trim();
@@ -126,8 +126,8 @@ function parseProspectNameBiz(text: string): { prospectName?: string; businessNa
 // Extract a business name hint from uploaded file names (weak signal — used only when
 // text-based detection finds nothing). Takes words from the START of the filename
 // until hitting a descriptor/filler word so that:
-//   "Sushi_Cazza_Master_Brand_Book_v2_REVISAO_FIEL.pdf" → "Sushi Cazza"
-//   "sushi_cazza_brand_book.pdf" → "Sushi Cazza"
+//   "Marca_Exemplo_Brand_Book_v2.pdf" → "Marca Exemplo"
+//   "marca_exemplo_brand_book.pdf" → "Marca Exemplo"
 //   "apresentacao_institucional.pdf" → (ignored — "apresentacao" is a filler-like word)
 function extractBizFromFileNames(fileNames: string[]): string | undefined {
   const FILLER = /^(brand|book|guide|logo|identidade|visual|manual|marca|proposta|briefing|documento|arquivo|file|doc|presentation|slide|deck|kit|pack|template|mockup|reference|ref|final|v\d+|original|compressed|revised?|revisao|fiel|draft|version|copy|master|update|new|old|complete|full|apresent\w*|institucional|completo|oficial|\d+)$/i;

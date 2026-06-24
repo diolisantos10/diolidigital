@@ -251,7 +251,7 @@ interface AgencyState {
   // attachments, analysis). Does NOT delete any linked project.
   deleteClientRequest: (id: string) => void;
   // Master-only testing helper: remove only the requests belonging to a given client
-  // (used to reset the Sushi Cazza demo). Returns the number removed.
+  // (used to reset the demonstration data). Returns the number removed.
   deleteClientRequestsByClient: (clientId: string) => number;
 
   // Integrations V2

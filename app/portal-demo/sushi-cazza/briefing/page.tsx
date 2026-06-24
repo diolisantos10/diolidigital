@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAgencyStore } from "@/store/agency-store";
-import { DEMO_CLIENT_ID, SUSHI_CAZZA_EXAMPLE_TEXT } from "@/lib/agency/demo-client";
+import { DEMO_CLIENT_ID, DEMO_EXAMPLE_TEXT } from "@/lib/agency/demo-client";
 import { BriefingRoomV2 } from "@/components/agency/briefing/BriefingRoomV2";
 import type { BriefingRoomV2SubmitData } from "@/components/agency/briefing/BriefingRoomV2";
 
@@ -73,7 +73,7 @@ export default function DemoBriefingPage() {
     <BriefingRoomV2
       clientId={DEMO_CLIENT_ID}
       showDemoButton
-      exampleText={SUSHI_CAZZA_EXAMPLE_TEXT}
+      exampleText={DEMO_EXAMPLE_TEXT}
       onSubmit={handleSubmit}
       onCancel={() => router.push("/portal-demo/sushi-cazza")}
     />

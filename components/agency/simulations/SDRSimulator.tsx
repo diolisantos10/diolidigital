@@ -22,14 +22,14 @@ interface Preset {
 
 const PRESETS: Preset[] = [
   {
-    id: "sushi_cazza",
-    label: "Sushi Cazza",
+    id: "restaurante",
+    label: "Restaurante Japonês",
     tag: "Restaurante · Objeção de preço",
     firstMessage:
-      "Me chamo Kenji e tenho um restaurante japonês chamado Sushi Cazza. Quero social media para Instagram e Facebook para ganhar novos clientes e vender mais. Tenho Brand Book.",
+      "Me chamo Marina e tenho um restaurante japonês. Quero social media para Instagram e Facebook para ganhar novos clientes e vender mais. Tenho Brand Book.",
     scenario: [
-      "Me chamo Kenji e tenho um restaurante japonês chamado Sushi Cazza. Quero social media para Instagram e Facebook para ganhar novos clientes e vender mais. Tenho Brand Book.",
-      "kenji@sushicazza.com.br",
+      "Me chamo Marina e tenho um restaurante japonês. Quero social media para Instagram e Facebook para ganhar novos clientes e vender mais. Tenho Brand Book.",
+      "marina@restaurante.com.br",
       "(11) 98765-4321",
       "Mensal",
       "3 posts por semana",
