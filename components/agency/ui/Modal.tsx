@@ -26,11 +26,11 @@ export default function Modal({ open, onClose, title, children, width = "max-w-l
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"
+        className="absolute inset-0 bg-[#070A1F]/40 backdrop-blur-[3px]"
         onClick={onClose}
       />
       {/* Panel */}
-      <div className={`relative bg-white rounded-[12px] shadow-[0_20px_60px_rgba(0,0,0,0.15)] w-full mx-4 ${width} overflow-hidden`}>
+      <div className={`relative bg-white rounded-[14px] shadow-[0_24px_70px_rgba(7,10,31,0.22)] w-full mx-4 ${width} overflow-hidden animate-fade-up`}>
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#E5E5E2]">
           <h2 className="text-[15px] font-semibold text-[#1A1A1A] tracking-[-0.01em]">{title}</h2>

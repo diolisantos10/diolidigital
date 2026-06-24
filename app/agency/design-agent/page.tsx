@@ -673,7 +673,7 @@ export default function DesignAgentPage() {
         <div className="grid grid-cols-[380px_1fr] gap-6 items-start">
 
           {/* ── LEFT: Creative Brief ── */}
-          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+          <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
             <div className="px-5 py-4 border-b border-[#E5E5E2]">
               <p className="text-[13px] font-semibold text-[#1A1A1A]">Brief Criativo</p>
               <p className="text-[12px] text-[#9B9B95] mt-0.5">Selecione um projeto para carregar as solicitações de design do Agente de Redes Sociais.</p>
@@ -900,7 +900,7 @@ export default function DesignAgentPage() {
           {agentState === "idle" && linkedProject && !proposalBlocked && (
             <div className="space-y-4">
               {/* Project status overview */}
-              <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
+              <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Pipeline Criativo</div>
                   <div className="flex items-center gap-1.5">
@@ -958,7 +958,7 @@ export default function DesignAgentPage() {
 
               {/* Selected requests preview */}
               {inputMode === "project_requests" && selectedRequests.length > 0 && (
-                <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+                <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
                   <div className="px-5 py-3 border-b border-[#F0F0ED]">
                     <span className="text-[12px] font-semibold text-[#1A1A1A]">{selectedRequests.length} solicitação{selectedRequests.length !== 1 ? "s" : ""} na fila para design</span>
                   </div>
@@ -981,7 +981,7 @@ export default function DesignAgentPage() {
 
           {/* Generating */}
           {agentState === "generating" && (
-            <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-8 py-16 text-center shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+            <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-8 py-16 text-center shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
               <div className="w-10 h-10 rounded-full bg-[#FFF4ED] flex items-center justify-center mx-auto mb-5">
                 <span className="w-5 h-5 border-2 border-[#C2530A] border-t-transparent rounded-full animate-spin" />
               </div>
@@ -1029,7 +1029,7 @@ export default function DesignAgentPage() {
               {activeTab === "briefs" && (
                 <div className="space-y-4">
                   {briefs.map((b) => (
-                    <div key={b.postId} className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                    <div key={b.postId} className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
 
                       {/* Card header */}
                       <div className="px-5 py-3.5 border-b border-[#E5E5E2] flex items-center justify-between">
@@ -1205,7 +1205,7 @@ export default function DesignAgentPage() {
               {activeTab === "specs" && (
                 <div className="space-y-4">
                   {briefs.map((b) => (
-                    <div key={b.postId} className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                    <div key={b.postId} className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
                       <div className="px-5 py-3.5 border-b border-[#E5E5E2] flex items-center gap-2.5">
                         <span className="font-mono text-[11px] font-semibold text-[#C2530A] bg-[#FFF4ED] px-2 py-0.5 rounded-[4px]">
                           BRIEF_{String(b.postId).padStart(2, "0")}

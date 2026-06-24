@@ -52,7 +52,7 @@ export default function BrandAssetsPage() {
       </div>
 
       {grouped.length === 0 ? (
-        <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-8 py-16 text-center">
+        <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-8 py-16 text-center">
           <p className="text-[14px] font-medium text-[#1A1A1A]">No assets found</p>
           <p className="text-[13px] text-[#9B9B95] mt-1.5">Brand assets are added per client in their client profile.</p>
         </div>
@@ -73,7 +73,7 @@ export default function BrandAssetsPage() {
                 </Link>
               </div>
 
-              <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+              <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
                 <div className="divide-y divide-[#F0F0ED]">
                   {assets.map((asset) => (
                     <div key={asset.id} className="flex items-start gap-4 px-5 py-4">

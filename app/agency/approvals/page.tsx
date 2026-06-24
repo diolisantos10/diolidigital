@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import { useAgencyStore, type BrandUpdate } from "@/store/agency-store";
 import { useDbDeliverables } from "@/lib/hooks/useDbDeliverables";
 import { useDbMaterialRequests } from "@/lib/hooks/useDbMaterialRequests";
@@ -96,24 +97,22 @@ export default function ApprovalsPage() {
   return (
     <div className="max-w-[860px] mx-auto px-6 py-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-[22px] font-semibold text-[#1C1C1A] tracking-[-0.02em]">
-            Centro de Aprovações
-          </h1>
-          <p className="text-[13px] text-[#6B6B65] mt-0.5">
-            {totalPending > 0
-              ? `${totalPending} item(ns) aguardando ação`
-              : "Nenhum item pendente — tudo em dia"}
-          </p>
-        </div>
-        {totalPending > 0 && (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#FEF3C7] text-[#D97706] text-[12px] font-semibold">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#D97706] animate-pulse" />
-            {totalPending} pendente{totalPending !== 1 ? "s" : ""}
-          </span>
-        )}
-      </div>
+      <AgencyHeader
+        title="Centro de Aprovações"
+        subtitle={
+          totalPending > 0
+            ? `${totalPending} item(ns) aguardando ação`
+            : "Nenhum item pendente — tudo em dia"
+        }
+        actions={
+          totalPending > 0 ? (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#FEF3C7] text-[#D97706] text-[12px] font-semibold">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#D97706] animate-pulse" />
+              {totalPending} pendente{totalPending !== 1 ? "s" : ""}
+            </span>
+          ) : undefined
+        }
+      />
 
       <div className="space-y-10">
         {/* ── 1. Proposals ────────────────────────────────────────────────── */}

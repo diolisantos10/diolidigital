@@ -14,6 +14,7 @@ import { saveArtifactToDb } from "@/lib/agency/persistence/save-artifact";
 import { useDbRequests, type DbRequest } from "@/lib/agency/db-pipeline-hooks";
 import { reasonAsDepartment } from "@/lib/dioli-brain/reason";
 import { DbPipelineSection, PreviewField } from "@/components/agency/DbPipelineSection";
+import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 
 type CanvasFilter = "all" | "draft" | "approved" | "rejected";
 
@@ -199,16 +200,16 @@ export default function AnalyticsWorkspacePage() {
         )}
       />
 
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-[20px] font-semibold text-[#1A1A1A]">Analytics</h1>
-            <span className="h-5 px-2 rounded-full bg-[#F0FDF4] text-[#16A34A] text-[10px] font-semibold flex items-center">Brain · Mensuração</span>
-          </div>
-          <p className="text-[12px] text-[#6B6B65] mt-0.5">Framework de KPIs, atribuição de canais, gaps de performance e recomendações de melhoria</p>
-        </div>
-        <a href="/agency/simulations/analytics" className="text-[11px] font-medium px-3 py-1.5 rounded-[6px] bg-[#F0FDF4] text-[#16A34A] hover:bg-[#DCFCE7]">Laboratório →</a>
-      </div>
+      <AgencyHeader
+        title="Analytics"
+        subtitle="Framework de KPIs, atribuição de canais, gaps de performance e recomendações de melhoria"
+        meta={
+          <span className="h-5 px-2 rounded-full bg-[#F0FDF4] text-[#16A34A] text-[10px] font-semibold flex items-center">Brain · Mensuração</span>
+        }
+        actions={
+          <a href="/agency/simulations/analytics" className="text-[11px] font-medium px-3 py-1.5 rounded-[6px] bg-[#F0FDF4] text-[#16A34A] hover:bg-[#DCFCE7]">Laboratório →</a>
+        }
+      />
 
       <div className="rounded-[10px] border border-[#16A34A]/20 bg-[#F0FDF4]/50 px-4 py-3">
         <div className="text-[9px] font-semibold text-[#16A34A] uppercase tracking-[0.08em] mb-2">Scorecard — Analytics</div>

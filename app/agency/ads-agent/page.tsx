@@ -275,7 +275,7 @@ export default function AdsAgentPage() {
         {/* 2-col layout */}
         <div className="grid grid-cols-[380px_1fr] gap-6 items-start">
           {/* ── LEFT: Setup ── */}
-          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+          <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
             <div className="px-5 py-4 border-b border-[#E5E5E2]">
               <p className="text-[13px] font-semibold text-[#1A1A1A]">Briefing de Mídia</p>
               <p className="text-[12px] text-[#9B9B95] mt-0.5">Selecione um projeto aprovado para arquitetar o plano de tráfego pago.</p>
@@ -383,7 +383,7 @@ export default function AdsAgentPage() {
 
           {/* Idle — ready */}
           {agentState === "idle" && linkedProject && !proposalBlocked && (
-            <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-8 py-14 text-center">
+            <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-8 py-14 text-center">
               <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-5" style={{ backgroundColor: "#ECFEFF" }}>
                 <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
                   <path d="M3 19V10M9 19V5M15 19v-6M21 19V8" stroke={ACCENT} strokeWidth="1.8" strokeLinecap="round" />
@@ -398,7 +398,7 @@ export default function AdsAgentPage() {
 
           {/* Generating */}
           {agentState === "generating" && (
-            <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-8 py-12">
+            <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-8 py-12">
               <div className="max-w-md mx-auto space-y-3">
                 {STEPS.map((s, i) => (
                   <div key={i} className={`flex items-center gap-3 transition-opacity ${i <= stepIndex ? "opacity-100" : "opacity-30"}`}>
@@ -437,7 +437,7 @@ export default function AdsAgentPage() {
 
               {/* Strategy */}
               {activeTab === "strategy" && (
-                <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 space-y-4">
+                <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 space-y-4">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="h-6 px-2.5 rounded-full text-[11px] font-semibold text-white flex items-center" style={{ backgroundColor: ACCENT }}>{plan.platform}</span>
                     {plan.usedStrategyRoom && <span className="h-6 px-2.5 rounded-full text-[11px] font-semibold bg-[#E6FBFA] text-[#070A1F] flex items-center">Baseado no Strategy Room</span>}
@@ -463,7 +463,7 @@ export default function AdsAgentPage() {
               {activeTab === "structure" && (
                 <div className="space-y-3">
                   {plan.funnel.map((f, i) => (
-                    <div key={i} className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
+                    <div key={i} className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
                       <div className="flex items-center justify-between mb-1.5">
                         <span className="text-[13px] font-semibold text-[#1A1A1A]">{f.stage}</span>
                         <span className="text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: "#ECFEFF", color: ACCENT }}>{f.platforms}</span>
@@ -482,13 +482,13 @@ export default function AdsAgentPage() {
               {/* Audience */}
               {activeTab === "audience" && (
                 <div className="space-y-3">
-                  <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
+                  <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
                     <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1">Estratégia de audiência</div>
                     <p className="text-[13px] text-[#1A1A1A] leading-relaxed">{plan.audienceStrategy}</p>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     {plan.audienceSegments.map((s, i) => (
-                      <div key={i} className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-4 py-3">
+                      <div key={i} className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-4 py-3">
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-[12px] font-semibold text-[#1A1A1A]">{s.name}</span>
                           <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${AUDIENCE_COLOR[s.type]}`}>{s.type}</span>
@@ -505,7 +505,7 @@ export default function AdsAgentPage() {
               {activeTab === "copy" && (
                 <div className="space-y-3">
                   {plan.adCopyIdeas.map((c, i) => (
-                    <div key={i} className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
+                    <div key={i} className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: "#ECFEFF", color: ACCENT }}>{c.angle}</span>
                       </div>
@@ -521,7 +521,7 @@ export default function AdsAgentPage() {
               {activeTab === "creative" && (
                 <div className="grid grid-cols-2 gap-3">
                   {plan.creativeRequirements.map((c, i) => (
-                    <div key={i} className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-4 py-3">
+                    <div key={i} className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-4 py-3">
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-[12px] font-semibold text-[#1A1A1A]">{c.asset}</span>
                         <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-[#F0F0ED] text-[#6B6B65]">{c.format}</span>
@@ -560,7 +560,7 @@ export default function AdsAgentPage() {
               )}
 
               {/* Save footer */}
-              <div className="flex items-center justify-between bg-[#F7F7F6] rounded-[10px] border border-[#E5E5E2] px-5 py-3">
+              <div className="flex items-center justify-between bg-[#F7F7F6] rounded-[12px] border border-[#E5E5E2] px-5 py-3">
                 <div>
                   <p className="text-[13px] font-medium text-[#1A1A1A]">Salvar plano como entregas revisáveis</p>
                   <p className="text-[12px] text-[#9B9B95]">6 entregas agrupadas vão para revisão do cliente no portal.</p>

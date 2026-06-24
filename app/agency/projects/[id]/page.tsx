@@ -215,7 +215,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         return (
         <div className="space-y-6">
           {/* ── COMMAND CENTER — unified operational summary ── */}
-          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+          <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F0ED]">
               <div className="flex items-center gap-2.5">
                 <h2 className="text-[13px] font-semibold text-[#1A1A1A]">Centro de Comando</h2>
@@ -286,7 +286,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               const reworkAgentId  = project.agents.find((a) => ["a2", "a1", "a3"].includes(a)) ?? project.agents[0];
               const reworkAgent    = reworkAgentId ? getAgent(reworkAgentId) : null;
               return (
-                <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
                   <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Aprovação do Cliente</div>
                   <div className="flex items-center gap-2 flex-wrap">
                     {awaitingReview > 0 && (
@@ -459,7 +459,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               ];
 
               return (
-                <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
+                <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
                   <div className="flex items-center justify-between mb-3">
                     <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Departamento de Redes Sociais</div>
                     <button onClick={() => setTab("deliverables")} className="text-[12px] text-[#070A1F] hover:underline">
@@ -519,7 +519,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               ];
 
               return (
-                <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
+                <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
                   <div className="flex items-center justify-between mb-3">
                     <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Departamento de Design</div>
                     <button onClick={() => setTab("deliverables")} className="text-[12px] text-[#070A1F] hover:underline">
@@ -584,7 +584,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               ];
 
               return (
-                <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
+                <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
                   <div className="flex items-center justify-between mb-3">
                     <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Departamento de Tráfego Pago</div>
                     <button onClick={() => setTab("deliverables")} className="text-[12px] text-[#070A1F] hover:underline">
@@ -628,13 +628,13 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             })()}
 
             {/* Goal */}
-            <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+            <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
               <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">Objetivo</div>
               <p className="text-[14px] text-[#1A1A1A] leading-relaxed">{project.goal}</p>
             </div>
 
             {/* Tasks snapshot */}
-            <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
               <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F0ED]">
                 <div className="text-[13px] font-semibold text-[#1A1A1A]">Tarefas</div>
                 <button onClick={() => setTab("tasks")} className="text-[12px] text-[#070A1F] hover:underline">Ver todas</button>
@@ -665,7 +665,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
             {/* Deliverables snapshot */}
             {projectDeliverables.length > 0 && (
-              <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+              <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
                 <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F0ED]">
                   <div className="text-[13px] font-semibold text-[#1A1A1A]">Entregas</div>
                   <button onClick={() => setTab("deliverables")} className="text-[12px] text-[#070A1F] hover:underline">Ver todas</button>
@@ -699,7 +699,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
           {/* Sidebar info */}
           <div className="space-y-4">
-            <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+            <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
               <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Detalhes</div>
               <div className="space-y-2.5">
                 {[
@@ -718,7 +718,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             </div>
 
             {/* Agents */}
-            <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+            <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
               <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Agentes Atribuídos</div>
               <div className="space-y-2">
                 {project.agents.map((agentId) => {
@@ -746,7 +746,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         <div className="space-y-6">
 
           {/* Stage Control */}
-          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
+          <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
             <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Controle de Etapa</div>
             <div className="flex items-center gap-1 flex-wrap">
               {STAGES.map((stage, i) => {
@@ -791,7 +791,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   const agentTasks = projectTasks.filter((t) => t.agentId === agentId);
                   const doneTasks = agentTasks.filter((t) => t.status === "done").length;
                   return (
-                    <div key={agentId} className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 flex items-center gap-4">
+                    <div key={agentId} className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 flex items-center gap-4">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold shrink-0 ${
                         status === "done" ? "bg-[#DCFCE7] text-[#16A34A]" : status === "in_progress" ? "bg-[#FFF4ED] text-[#C2530A]" : "bg-[#E6FBFA] text-[#070A1F]"
                       }`}>
@@ -850,7 +850,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 const catLabels = { posts: "Posts & Copy", design: "Ativos de Design", campaigns: "Campanhas & Anúncios" };
                 const catDeliverables = projectDeliverables.filter((d) => getDeliverableCategory(d.type) === cat);
                 return (
-                  <div key={cat} className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+                  <div key={cat} className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
                     <div className="px-4 py-3 border-b border-[#F0F0ED] flex items-center justify-between">
                       <p className="text-[12px] font-semibold text-[#1A1A1A]">{catLabels[cat]}</p>
                       <span className="text-[11px] text-[#9B9B95]">{catDeliverables.length}</span>
@@ -885,7 +885,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
       {/* Tab: Pipeline */}
       {tab === "pipeline" && (
-        <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+        <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
           <div className="divide-y divide-[#F0F0ED]">
             {STAGES.map((stage, i) => {
               const isActive = project.stage === stage;
@@ -924,7 +924,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
       {/* Tab: Tasks */}
       {tab === "tasks" && (
-        <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+        <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
           {projectTasks.length === 0 ? (
             <div className="px-5 py-16 text-center">
               <p className="text-[14px] font-medium text-[#1A1A1A]">Nenhuma tarefa encontrada.</p>
@@ -982,7 +982,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
       {/* Tab: Deliverables */}
       {tab === "deliverables" && (
-        <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+        <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
           {projectDeliverables.length === 0 ? (
             <div className="px-5 py-16 text-center">
               <p className="text-[14px] font-medium text-[#1A1A1A]">Nenhuma entrega salva ainda.</p>
@@ -1058,7 +1058,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
         if (!ob) {
           return (
-            <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-8 py-12 text-center shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+            <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-8 py-12 text-center shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
               <div className="w-10 h-10 rounded-full bg-[#F0F0ED] flex items-center justify-center mx-auto mb-4">
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                   <path d="M3 5h12M3 9h8M3 13h5" stroke="#9B9B95" strokeWidth="1.4" strokeLinecap="round"/>
@@ -1073,7 +1073,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         }
 
         return (
-          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+          <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
             <div className="flex items-center justify-between px-6 py-3.5 border-b border-[#F0F0ED] bg-[#FAFAF9]">
               <span className="text-[12px] font-semibold text-[#1A1A1A] uppercase tracking-[0.05em]">Briefing Original</span>
               <span className="text-[11px] text-[#9B9B95]">Capturado na criação do projeto · somente leitura</span>
@@ -1159,7 +1159,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
         if (!strategyRoom) {
           return (
-            <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-6 py-10 text-center">
+            <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-6 py-10 text-center">
               <div className="w-12 h-12 rounded-full bg-[#E6FBFA] flex items-center justify-center mx-auto mb-4">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#070A1F" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
@@ -1265,7 +1265,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             {stratViewTab === "specialists" && (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {strategyRoom.specialists.map((sp: StrategyRoomSpecialist) => (
-                  <div key={sp.specialistId} className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
+                  <div key={sp.specialistId} className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
                     {/* Specialist header */}
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-2.5">
@@ -1349,7 +1349,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
             {/* ── Debate view ─── */}
             {stratViewTab === "debate" && (
-              <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+              <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
                 <div className="px-5 py-3.5 border-b border-[#F0F0ED]">
                   <h3 className="text-[13px] font-semibold text-[#1A1A1A]">Debate entre Especialistas</h3>
                   <p className="text-[11px] text-[#9B9B95] mt-0.5">Discussão sequencial — cada especialista responde, critica e adiciona perspectiva</p>
@@ -1474,7 +1474,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-between bg-[#F7F7F6] rounded-[10px] border border-[#E5E5E2] px-5 py-3.5">
+                  <div className="flex items-center justify-between bg-[#F7F7F6] rounded-[12px] border border-[#E5E5E2] px-5 py-3.5">
                     <div>
                       <p className="text-[13px] font-medium text-[#1A1A1A]">Pronto para executar a estratégia?</p>
                       <p className="text-[12px] text-[#9B9B95]">Popula a Proposta + prepara links para os 3 agentes em um clique.</p>
@@ -1492,7 +1492,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
             {/* Consensus placeholder when not generated */}
             {stratViewTab === "consensus" && !consensus && (
-              <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-6 py-8 text-center">
+              <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-6 py-8 text-center">
                 <p className="text-[13px] text-[#9B9B95]">Consenso não disponível. Regere o Strategy Room para ativar o V2.</p>
                 <button onClick={() => { clearStrategyRoom(id); generateStrategyRoom(id); }} className="mt-3 h-8 px-4 rounded-[7px] bg-[#070A1F] text-white text-[12px] font-medium hover:bg-[#4747c2] transition-colors">
                   Regerar Strategy Room V2
@@ -1553,7 +1553,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           )}
 
           {/* Proposal editor */}
-          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+          <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
             <div className="px-5 py-3.5 border-b border-[#F0F0ED] flex items-center justify-between">
               <span className="text-[13px] font-semibold text-[#1A1A1A]">Editor de Proposta</span>
               {proposalDirty && (
@@ -1647,7 +1647,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
           {/* Client material requests */}
           {projectMaterialRequests.length > 0 && (
-            <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
               <div className="px-5 py-3.5 border-b border-[#F0F0ED]">
                 <span className="text-[13px] font-semibold text-[#1A1A1A]">Solicitado ao Cliente</span>
               </div>
@@ -1673,7 +1673,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
       {/* Tab: Assets */}
       {tab === "assets" && (
-        <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-6 py-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+        <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-6 py-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
           <p className="text-[13px] text-[#6B6B65]">
             Os ativos de marca de <strong>{client?.name}</strong> são gerenciados na seção{" "}
             <Link href="/agency/brand-assets" className="text-[#070A1F] hover:underline">Brand Assets</Link>.
@@ -1688,7 +1688,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
       {/* Tab: History */}
       {tab === "history" && (
-        <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+        <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
           <div className="px-6 py-4 text-center text-[13px] text-[#9B9B95]">
             O histórico de atividades está disponível no Painel de Controle.
           </div>
@@ -1763,7 +1763,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 { label: "Entregas Aprovadas",   value: `${progress.approved + progress.delivered}/${progress.totalDeliverables}`, sub: "Aprovadas + entregues" },
                 { label: "Em Revisão do Cliente", value: String(progress.inReview),            sub: "Aguardando aprovação do cliente" },
               ].map(({ label, value, sub, color }) => (
-                <div key={label} className="bg-white rounded-[10px] border border-[#E5E5E2] px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                <div key={label} className="bg-white rounded-[12px] border border-[#E5E5E2] px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
                   <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1">{label}</div>
                   {color ? (
                     <span className={`inline-flex h-5 px-2 rounded-full text-[10px] font-semibold items-center ${color}`}>{value}</span>
@@ -1776,7 +1776,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             </div>
 
             {/* Progress bar */}
-            <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+            <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Prontidão do Projeto</span>
                 <span className="text-[12px] font-semibold text-[#1A1A1A]">{progress.readinessScore}%</span>
@@ -1806,7 +1806,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             </div>
 
             {/* Deliverable breakdown */}
-            <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+            <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
               <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Entregas por Status</div>
               <div className="grid grid-cols-5 gap-2">
                 {[
@@ -1827,7 +1827,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             </div>
 
             {/* Department breakdown */}
-            <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+            <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
               <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Por Departamento</div>
               <div className="space-y-3">
                 {progress.departments.map((dept) => (
@@ -1861,7 +1861,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
             {/* Additional signals */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
                 <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">Tarefas</div>
                 <div className="flex items-center gap-3">
                   <div className="text-center">
@@ -1878,7 +1878,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   )}
                 </div>
               </div>
-              <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
                 <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">Materiais do Cliente</div>
                 <div className="flex items-center gap-2">
                   <div className="text-[18px] font-bold mono-num text-[#1A1A1A]">{progress.pendingMaterialRequests}</div>
@@ -1904,7 +1904,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             </div>
 
             {/* Project Health Score */}
-            <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
               <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F0ED]">
                 <h3 className="text-[13px] font-semibold text-[#1A1A1A]">Saúde do Projeto</h3>
                 <span className={`flex items-center gap-1.5 h-6 px-2.5 rounded-full text-[11px] font-semibold ${projectHealth.color}`}>
@@ -1939,7 +1939,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             <PilotChecklist checklist={checklist} />
 
             {/* ── PART 4 — Pilot Operations Report ── */}
-            <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
               <div className="px-5 py-3.5 border-b border-[#F0F0ED]">
                 <h3 className="text-[13px] font-semibold text-[#1A1A1A]">Relatório de Operações do Piloto</h3>
                 <p className="text-[11px] text-[#9B9B95] mt-0.5">Análise de execução baseada nos dados reais do piloto</p>
@@ -1978,7 +1978,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             </div>
 
             {/* ── PART 5 — P0/P1/P2 Findings ── */}
-            <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
               <div className="px-5 py-3.5 border-b border-[#F0F0ED] flex items-center justify-between">
                 <div>
                   <h3 className="text-[13px] font-semibold text-[#1A1A1A]">Priorização do Piloto</h3>
@@ -2164,7 +2164,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
             {/* PM auto-tasks */}
             {projectAutoTasks.length > 0 && (
-              <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+              <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
                 <div className="px-5 py-3.5 border-b border-[#F0F0ED] flex items-center justify-between">
                   <span className="text-[13px] font-semibold text-[#1A1A1A]">Ações Recomendadas pelo PM</span>
                   <span className="text-[11px] text-[#9B9B95]">{projectAutoTasks.length} item(ns)</span>
@@ -2191,7 +2191,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             )}
 
             {/* Timeline events */}
-            <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
               <div className="px-5 py-3.5 border-b border-[#F0F0ED] flex items-center justify-between">
                 <span className="text-[13px] font-semibold text-[#1A1A1A]">Histórico do Projeto</span>
                 <span className="text-[11px] text-[#9B9B95]">{timelineEvents.length} evento(s)</span>

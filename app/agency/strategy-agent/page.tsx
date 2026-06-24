@@ -188,7 +188,7 @@ export default function StrategyAgentPage() {
         {/* 2-col layout */}
         <div className="grid grid-cols-[360px_1fr] gap-6 items-start">
           {/* ── LEFT ── */}
-          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+          <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
             <div className="px-5 py-4 border-b border-[#E5E5E2]">
               <p className="text-[13px] font-semibold text-[#1A1A1A]">Briefing Estratégico</p>
               <p className="text-[12px] text-[#9B9B95] mt-0.5">Selecione um projeto para gerar o Strategy Canvas com IA.</p>
@@ -314,7 +314,7 @@ export default function StrategyAgentPage() {
           )}
 
           {agentState === "idle" && linkedProject && (
-            <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-8 py-14 text-center">
+            <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-8 py-14 text-center">
               <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-5" style={{ backgroundColor: "#E6FBFA" }}>
                 <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
                   <circle cx="11" cy="11" r="9" stroke={ACCENT} strokeWidth="1.5"/>
@@ -329,7 +329,7 @@ export default function StrategyAgentPage() {
           )}
 
           {agentState === "generating" && (
-            <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-8 py-12">
+            <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-8 py-12">
               <div className="max-w-md mx-auto space-y-3">
                 {STEPS.map((s, i) => (
                   <div key={i} className={`flex items-center gap-3 transition-opacity ${i <= stepIndex ? "opacity-100" : "opacity-30"}`}>
@@ -381,7 +381,7 @@ export default function StrategyAgentPage() {
 
               {/* Diagnóstico */}
               {activeTab === "diagnostico" && (
-                <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 space-y-4">
+                <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 space-y-4">
                   <Field label="Diagnóstico de negócio" value={canvas.businessSummary} />
                   <Field label="Objetivo principal" value={canvas.mainObjective} />
                   {canvas.secondaryObjectives.length > 0 && (
@@ -411,7 +411,7 @@ export default function StrategyAgentPage() {
 
               {/* Posição & Público */}
               {activeTab === "posicao" && (
-                <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 space-y-4">
+                <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 space-y-4">
                   <Field label="Posicionamento" value={canvas.positioningStatement} />
                   <Field label="Público-alvo" value={canvas.audience} />
                   <Field label="Direção de comunicação" value={canvas.communicationDirection} />
@@ -445,7 +445,7 @@ export default function StrategyAgentPage() {
               {/* Canais & Serviços */}
               {activeTab === "canais" && (
                 <div className="space-y-3">
-                  <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
+                  <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
                     <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">Canais prioritários</div>
                     <div className="flex flex-wrap gap-2">
                       {canvas.priorityChannels.map((ch) => (
@@ -453,7 +453,7 @@ export default function StrategyAgentPage() {
                       ))}
                     </div>
                   </div>
-                  <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
+                  <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
                     <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">Serviços recomendados</div>
                     <ul className="space-y-1">
                       {canvas.recommendedServices.map((s, i) => (
@@ -463,7 +463,7 @@ export default function StrategyAgentPage() {
                       ))}
                     </ul>
                   </div>
-                  <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
+                  <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
                     <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">Territórios de conteúdo</div>
                     <div className="flex flex-wrap gap-2">
                       {canvas.contentTerritories.map((t) => (
@@ -478,7 +478,7 @@ export default function StrategyAgentPage() {
               {activeTab === "roadmap" && (
                 <div className="space-y-3">
                   {canvas.recommendedRoadmap.map((phase, i) => (
-                    <div key={i} className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
+                    <div key={i} className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
                       <div className="flex items-center justify-between mb-1.5">
                         <div className="flex items-center gap-2">
                           <span className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0" style={{ backgroundColor: ACCENT }}>{i + 1}</span>
@@ -549,7 +549,7 @@ export default function StrategyAgentPage() {
               )}
 
               {/* Save footer */}
-              <div className="flex items-center justify-between bg-[#F7F7F6] rounded-[10px] border border-[#E5E5E2] px-5 py-3">
+              <div className="flex items-center justify-between bg-[#F7F7F6] rounded-[12px] border border-[#E5E5E2] px-5 py-3">
                 <div>
                   <p className="text-[13px] font-medium text-[#1A1A1A]">Salvar Strategy Canvas como entrega</p>
                   <p className="text-[12px] text-[#9B9B95]">Vai para revisão como "strategy_document" no projeto.</p>

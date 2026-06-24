@@ -14,6 +14,7 @@ import { saveArtifactToDb } from "@/lib/agency/persistence/save-artifact";
 import { useDbRequests, type DbRequest } from "@/lib/agency/db-pipeline-hooks";
 import { reasonAsDepartment } from "@/lib/dioli-brain/reason";
 import { DbPipelineSection, PreviewField } from "@/components/agency/DbPipelineSection";
+import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 
 type CanvasFilter = "all" | "draft" | "approved" | "rejected";
 type BudgetScenario = "low" | "medium" | "high" | "premium";
@@ -191,16 +192,16 @@ export default function TrafficWorkspacePage() {
         )}
       />
 
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-[20px] font-semibold text-[#1A1A1A]">Tráfego Pago</h1>
-            <span className="h-5 px-2 rounded-full bg-[#F0F9FF] text-[#0284C7] text-[10px] font-semibold flex items-center">Brain · Execução</span>
-          </div>
-          <p className="text-[12px] text-[#6B6B65] mt-0.5">Transforma estratégia em planos de campanhas pagas com budget, audiências e criativos</p>
-        </div>
-        <a href="/agency/simulations/traffic" className="text-[11px] font-medium px-3 py-1.5 rounded-[6px] bg-[#F0F9FF] text-[#0284C7] hover:bg-[#BAE6FD]">Laboratório →</a>
-      </div>
+      <AgencyHeader
+        title="Tráfego Pago"
+        subtitle="Transforma estratégia em planos de campanhas pagas com budget, audiências e criativos"
+        meta={
+          <span className="h-5 px-2 rounded-full bg-[#F0F9FF] text-[#0284C7] text-[10px] font-semibold inline-flex items-center">Brain · Execução</span>
+        }
+        actions={
+          <a href="/agency/simulations/traffic" className="text-[11px] font-medium px-3 py-1.5 rounded-[6px] bg-[#F0F9FF] text-[#0284C7] hover:bg-[#BAE6FD]">Laboratório →</a>
+        }
+      />
 
       <div className="rounded-[10px] border border-[#0284C7]/20 bg-[#F0F9FF]/50 px-4 py-3">
         <div className="text-[9px] font-semibold text-[#0284C7] uppercase tracking-[0.08em] mb-2">Scorecard — Paid Traffic</div>

@@ -445,7 +445,7 @@ export default function DashboardPage() {
             { label: "Entregas pendentes",  value: deliverables.filter((d) => d.status === "draft" || d.status === "in_review").length, sub: `${deliverables.filter((d) => d.status === "approved").length} aprovadas`, color: "#16A34A" },
             { label: "Atenção necessária",  value: totalAttention, sub: totalAttention === 0 ? "tudo em dia" : "itens pendentes", color: totalAttention > 0 ? "#DC2626" : "#16A34A" },
           ].map((kpi) => (
-            <div key={kpi.label} className="bg-white rounded-[10px] border border-[#E5E5E2] px-4 py-3.5" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+            <div key={kpi.label} className="bg-white rounded-[12px] border border-[#E5E5E2] px-4 py-3.5" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
               <div className="text-[11px] font-medium text-[#9B9B95] mb-1 truncate">{kpi.label}</div>
               <div className="flex items-baseline gap-2">
                 <span className="text-[24px] font-bold leading-none mono-num" style={{ color: kpi.color }}>{kpi.value}</span>

@@ -214,7 +214,7 @@ export default function OperationsAgentPage() {
 
         <div className="grid grid-cols-[360px_1fr] gap-6 items-start">
           {/* ── LEFT ── */}
-          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+          <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
             <div className="px-5 py-4 border-b border-[#E5E5E2]">
               <p className="text-[13px] font-semibold text-[#1A1A1A]">Diagnóstico Operacional</p>
               <p className="text-[12px] text-[#9B9B95] mt-0.5">O System Doctor analisa a agência inteira — não um projeto.</p>
@@ -277,7 +277,7 @@ export default function OperationsAgentPage() {
 
           {/* ── RIGHT ── */}
           {agentState === "idle" && (
-            <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-8 py-14 text-center">
+            <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-8 py-14 text-center">
               <div className="w-12 h-12 rounded-full bg-[#ECFDF5] flex items-center justify-center mx-auto mb-5">
                 <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
                   <path d="M11 2a4 4 0 00-4 4v1a4 4 0 108 0V6a4 4 0 00-4-4z" stroke="#059669" strokeWidth="1.5"/>
@@ -292,7 +292,7 @@ export default function OperationsAgentPage() {
           )}
 
           {agentState === "generating" && (
-            <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-8 py-12">
+            <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-8 py-12">
               <div className="max-w-md mx-auto space-y-3">
                 {STEPS.map((s, i) => (
                   <div key={i} className={`flex items-center gap-3 transition-opacity ${i <= stepIndex ? "opacity-100" : "opacity-30"}`}>
@@ -339,7 +339,7 @@ export default function OperationsAgentPage() {
 
               {/* Overview */}
               {activeTab === "overview" && (
-                <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 space-y-4">
+                <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 space-y-4">
                   <div className="flex items-center gap-4 pb-3 border-b border-[#F0F0ED]">
                     <div className="w-14 h-14 rounded-full flex items-center justify-center border-4" style={{ borderColor: healthColor }}>
                       <span className="text-[20px] font-black" style={{ color: healthColor }}>{assessment.healthScore}</span>
@@ -368,7 +368,7 @@ export default function OperationsAgentPage() {
 
               {/* Bottlenecks */}
               {activeTab === "bottlenecks" && (
-                <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 space-y-2">
+                <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 space-y-2">
                   <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Gargalos operacionais</div>
                   {assessment.bottlenecks.map((b, i) => (
                     <div key={i} className="flex items-start gap-3 bg-[#F7F7F6] rounded-[8px] border border-[#E5E5E2] px-4 py-3">
@@ -400,7 +400,7 @@ export default function OperationsAgentPage() {
 
               {/* Actions */}
               {activeTab === "actions" && (
-                <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 space-y-2">
+                <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 space-y-2">
                   <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Ações recomendadas</div>
                   {assessment.actionItems.map((a, i) => (
                     <div key={i} className="flex items-start gap-3 bg-[#F7F7F6] rounded-[8px] border border-[#E5E5E2] px-4 py-3">

@@ -225,7 +225,7 @@ export default function PilotPage() {
 
       <div className="flex-1 p-6 max-w-[920px] mx-auto w-full space-y-6">
         {/* ── Reset / status bar ── */}
-        <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
+        <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div>
               <p className="text-[13px] font-semibold text-[#1A1A1A]">
@@ -269,12 +269,12 @@ export default function PilotPage() {
 
         {/* ── URLs ── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-4 py-3">
+          <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-4 py-3">
             <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1">Link do cliente (input)</p>
             <Link href="/briefing" className="text-[13px] font-mono text-[#1A1A1A] hover:text-[#070A1F] transition-colors">/briefing</Link>
             <p className="text-[11px] text-[#9B9B95] mt-1 leading-snug">É aqui que o cliente entra e dá os inputs. Sem login.</p>
           </div>
-          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-4 py-3">
+          <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-4 py-3">
             <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1">Link da agência (admin)</p>
             <Link href="/agency/requests" className="text-[13px] font-mono text-[#1A1A1A] hover:text-[#070A1F] transition-colors">/agency/requests</Link>
             <p className="text-[11px] text-[#9B9B95] mt-1 leading-snug">Onde a solicitação do cliente chega para você processar.</p>

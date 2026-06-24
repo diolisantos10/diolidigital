@@ -1311,7 +1311,7 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
 
         {/* Packages reference — only shown before service scope is captured */}
         {!canSubmit && !hasScope && identityDone && (
-          <div className="mt-3 bg-[#F7F7F6] rounded-[10px] border border-[#E5E5E2] px-4 py-3">
+          <div className="mt-3 bg-[#F7F7F6] rounded-[12px] border border-[#E5E5E2] px-4 py-3">
             <div className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-2">
               Planos Social Media
             </div>

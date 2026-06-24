@@ -310,7 +310,7 @@ function BriefingPreview({ briefing, subtitle }: { briefing: Briefing; subtitle:
   );
 
   return (
-    <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+    <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
       <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F0ED] bg-[#FAFAF9]">
         <span className="text-[12px] font-semibold text-[#1A1A1A] uppercase tracking-[0.05em]">Prévia do Briefing Analisado</span>
         <span className="text-[11px] text-[#9B9B95]">{subtitle}</span>
@@ -616,7 +616,7 @@ export default function OrchestratorPage() {
       </div>
 
       {/* How it works strip */}
-      <div className="flex items-center gap-0 mb-8 bg-white rounded-[10px] border border-[#E5E5E2] px-6 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+      <div className="flex items-center gap-0 mb-8 bg-white rounded-[12px] border border-[#E5E5E2] px-6 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
         {STEP_LABELS.map((label, i) => (
           <div key={i} className="flex items-center flex-1 min-w-0">
             <div className="flex items-center gap-2.5 min-w-0">
@@ -660,7 +660,7 @@ export default function OrchestratorPage() {
       ) : (
         <div className="grid grid-cols-[420px_1fr] gap-6">
           {/* Input panel */}
-          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] h-fit overflow-hidden">
+          <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] h-fit overflow-hidden">
 
             {/* Mode switcher */}
             <div className="flex border-b border-[#F0F0ED]">
@@ -1142,7 +1142,7 @@ export default function OrchestratorPage() {
             })()}
 
             {state === "reviewing" && (
-              <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+              <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
                 <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F0ED] bg-[#FAFAF9]">
                   <span className="text-[12px] font-semibold text-[#1A1A1A] uppercase tracking-[0.05em]">Briefing Analisado</span>
                   <span className="text-[11px] text-[#9B9B95]">Revise e ajuste antes de gerar</span>
@@ -1380,7 +1380,7 @@ export default function OrchestratorPage() {
             )}
 
             {state === "analyzing" && (
-              <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-8 py-16 text-center shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-8 py-16 text-center shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
                 <div className="w-10 h-10 rounded-full bg-[#E6FBFA] flex items-center justify-center mx-auto mb-4 animate-spin">
                   <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                     <path d="M9 2v3M9 13v3M2 9h3M13 9h3M4.05 4.05l2.12 2.12M11.83 11.83l2.12 2.12M4.05 13.95l2.12-2.12M11.83 6.17l2.12-2.12" stroke="#070A1F" strokeWidth="1.5" strokeLinecap="round"/>
@@ -1397,7 +1397,7 @@ export default function OrchestratorPage() {
                 {agentCtx && <BrandBrainContextCard ctx={agentCtx} />}
 
                 {/* Pipeline */}
-                <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
                   <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Pipeline Recomendado</div>
                   <div className="flex items-center gap-2 flex-wrap">
                     {plan.pipeline.map((stage, i) => (
@@ -1410,7 +1410,7 @@ export default function OrchestratorPage() {
                 </div>
 
                 {/* Agents */}
-                <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
                   <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Agentes Atribuídos</div>
                   <div className="flex flex-wrap gap-2">
                     {plan.agents.map((agentId) => {
@@ -1429,7 +1429,7 @@ export default function OrchestratorPage() {
                 </div>
 
                 {/* Tasks */}
-                <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+                <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
                   <div className="px-5 py-3.5 border-b border-[#F0F0ED]">
                     <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Plano de Tarefas</div>
                   </div>
@@ -1457,7 +1457,7 @@ export default function OrchestratorPage() {
 
                 {/* Risks */}
                 {plan.risks.length > 0 && (
-                  <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                  <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
                     <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Alertas de Risco</div>
                     <div className="space-y-2">
                       {plan.risks.map((risk, i) => (

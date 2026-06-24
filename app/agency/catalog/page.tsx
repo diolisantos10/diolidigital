@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import { DEPARTMENT_CATALOG } from "@/lib/agency/service-catalog";
 import {
   SOCIAL_PACKAGES,
@@ -83,14 +84,10 @@ export default function CatalogPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="text-[20px] font-semibold text-[#1A1A1A]">Catálogo de Planos & Preços</h1>
-        <p className="text-[13px] text-[#9B9B95] mt-0.5 max-w-[640px]">
-          Cada departamento opera como uma empresa, com catálogo e preços próprios.
-          Social Media é o carro-chefe, com planos isolados; Tráfego Pago e Identidade Visual
-          são adicionais que se somam ao plano.
-        </p>
-      </div>
+      <AgencyHeader
+        title="Catálogo de Planos & Preços"
+        subtitle="Cada departamento opera como uma empresa, com catálogo e preços próprios. Social Media é o carro-chefe, com planos isolados; Tráfego Pago e Identidade Visual são adicionais que se somam ao plano."
+      />
 
       {/* Social Media department */}
       {social && (

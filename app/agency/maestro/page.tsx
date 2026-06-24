@@ -155,7 +155,7 @@ export default function MaestroPage() {
         </div>
 
         {/* ── Canvas Chain ── */}
-        <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
+        <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
           <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Cadeia de Canvas — fluxo de raciocínio</p>
           <div className="flex items-center gap-1.5 flex-wrap">
             {CANVAS_CHAIN.map((c, i) => (
@@ -191,7 +191,7 @@ export default function MaestroPage() {
               return (
                 <div
                   key={agent.deptId}
-                  className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden"
+                  className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden"
                 >
                   {/* Header */}
                   <div className="px-4 pt-4 pb-3 border-b border-[#F0F0ED]">
@@ -260,7 +260,7 @@ export default function MaestroPage() {
         </div>
 
         {/* ── Quick links ── */}
-        <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
+        <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
           <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Atalhos de Gestão</p>
           <div className="flex flex-wrap gap-2">
             {[

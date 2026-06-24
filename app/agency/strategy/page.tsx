@@ -12,6 +12,7 @@ import type { StrategyCanvas } from "@/lib/dioli-brain/strategy-canvas";
 import { saveArtifactToDb } from "@/lib/agency/persistence/save-artifact";
 import { useDbRequests, parseJson, type DbRequest } from "@/lib/agency/db-pipeline-hooks";
 import { reasonAsDepartment } from "@/lib/dioli-brain/reason";
+import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 
 type CanvasFilter = "all" | "draft" | "approved" | "rejected";
 
@@ -285,25 +286,23 @@ export default function StrategyWorkspacePage() {
       )}
 
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-[20px] font-semibold text-[#1A1A1A]">Estratégia</h1>
-            <span className="h-5 px-2 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[10px] font-semibold flex items-center">
-              ✦ Dioli Brain
-            </span>
-          </div>
-          <p className="text-[13px] text-[#9B9B95] mt-0.5">
-            Transforme clientes qualificados em direção estratégica. Diagnóstico, posicionamento e roadmap — nada de criativos finais.
-          </p>
-        </div>
-        <a
-          href="/agency/simulations/strategy"
-          className="h-8 px-4 rounded-[7px] border border-[#E5E5E2] text-[#6B6B65] hover:border-[#070A1F] hover:text-[#070A1F] text-[12px] font-medium transition-colors inline-flex items-center gap-1.5"
-        >
-          Simulador de Estratégia →
-        </a>
-      </div>
+      <AgencyHeader
+        title="Estratégia"
+        subtitle="Transforme clientes qualificados em direção estratégica. Diagnóstico, posicionamento e roadmap — nada de criativos finais."
+        meta={
+          <span className="h-5 px-2 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[10px] font-semibold inline-flex items-center">
+            ✦ Dioli Brain
+          </span>
+        }
+        actions={
+          <a
+            href="/agency/simulations/strategy"
+            className="h-8 px-4 rounded-[7px] border border-[#E5E5E2] text-[#6B6B65] hover:border-[#070A1F] hover:text-[#070A1F] text-[12px] font-medium transition-colors inline-flex items-center gap-1.5"
+          >
+            Simulador de Estratégia →
+          </a>
+        }
+      />
 
       {/* Scorecard */}
       <div className="bg-[#F7F7F6] border border-[#E5E5E2] rounded-[10px] px-4 py-3">
@@ -332,7 +331,7 @@ export default function StrategyWorkspacePage() {
         </div>
 
         {queue.length === 0 ? (
-          <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-6 py-8 text-center">
+          <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-6 py-8 text-center">
             <p className="text-[13px] text-[#9B9B95]">
               Nenhuma solicitação aguardando estratégia. Use &ldquo;Enviar para Estratégia&rdquo; em uma solicitação qualificada pelo SDR.
             </p>
@@ -345,7 +344,7 @@ export default function StrategyWorkspacePage() {
               const flow = req.sdrHandoff?.cognitiveFlowSummary;
               const hasCanvas = canvasByRequest.has(req.id);
               return (
-                <div key={req.id} className="bg-white rounded-[10px] border border-[#E5E5E2] px-5 py-4">
+                <div key={req.id} className="bg-white rounded-[12px] border border-[#E5E5E2] px-5 py-4">
                   <div className="flex items-center gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -418,7 +417,7 @@ export default function StrategyWorkspacePage() {
         )}
 
         {filtered.length === 0 ? (
-          <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-6 py-10 text-center">
+          <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-6 py-10 text-center">
             <p className="text-[13px] text-[#9B9B95]">
               {filter === "all"
                 ? "Nenhum Strategy Canvas ainda. Gere o primeiro a partir da fila de entrada."

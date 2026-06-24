@@ -18,6 +18,7 @@ import { computeDesignScorecard } from "@/lib/dioli-brain/design-scorecard";
 import { computeTrafficScorecard } from "@/lib/dioli-brain/traffic-scorecard";
 import { computeAnalyticsScorecard } from "@/lib/dioli-brain/analytics-scorecard";
 import { computeQualityScorecard } from "@/lib/dioli-brain/quality-scorecard";
+import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import { useAgencyStore } from "@/store/agency-store";
 import { useTrainingStore } from "@/store/training-store";
 import { useStrategyStore } from "@/store/strategy-store";
@@ -55,28 +56,27 @@ export default function BrainPage() {
     <div className="min-h-screen bg-[#0A0A0A] text-white">
       {/* Header */}
       <div className="border-b border-white/[0.06] px-8 py-6">
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-3 mb-1">
-              <div className="w-8 h-8 rounded-[7px] bg-[#070A1F] flex items-center justify-center shrink-0">
-                <BrainIcon size={16} className="text-white" />
+        <AgencyHeader
+          tone="dark"
+          title="Dioli Brain"
+          subtitle={BRAIN_IDENTITY.tagline}
+          meta={
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-[7px] bg-[#9AF5F0]/15 flex items-center justify-center shrink-0">
+                <BrainIcon size={16} className="text-[#9AF5F0]" />
               </div>
-              <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-white">
-                Dioli Brain
-              </h1>
-              <span className="text-[11px] font-mono text-[#070A1F] bg-[#070A1F]/10 px-2 py-0.5 rounded-full border border-[#070A1F]/20">
+              <span className="text-[11px] font-mono text-[#9AF5F0] bg-[#9AF5F0]/10 px-2 py-0.5 rounded-full border border-[#9AF5F0]/20">
                 v{BRAIN_VERSION}
               </span>
             </div>
-            <p className="text-[13px] text-[#6B6B65] max-w-xl">
-              {BRAIN_IDENTITY.tagline}
-            </p>
-          </div>
-          <div className="text-right">
-            <div className="text-[11px] text-[#4A4A44] mb-1">Piloto ativo</div>
-            <div className="text-[13px] font-medium text-[#070A1F]">Atendimento / SDR</div>
-          </div>
-        </div>
+          }
+          actions={
+            <div className="text-right">
+              <div className="text-[11px] text-[#6B6B65] mb-1">Piloto ativo</div>
+              <div className="text-[13px] font-medium text-[#9AF5F0]">Atendimento / SDR</div>
+            </div>
+          }
+        />
 
         {/* Tabs */}
         <div className="flex gap-1 mt-5 flex-wrap">

@@ -71,7 +71,7 @@ function ScoreRing({ score, status }: { score: number; status: DiagnosticReport[
 function CollapsibleSection({ title, badge, children }: { title: string; badge?: string; children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+    <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
       <button
         className="w-full flex items-center justify-between px-6 py-4 hover:bg-[#FAFAFA] transition-colors text-left"
         onClick={() => setOpen((v) => !v)}
@@ -152,7 +152,7 @@ function PendingBrainUpdates() {
   }
 
   return (
-    <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+    <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
       <div className="px-6 py-4 border-b border-[#F0F0ED] flex items-center justify-between">
         <span className="text-[13px] font-semibold text-[#1A1A1A]">Atualizações de Brain pendentes</span>
         <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-[4px] bg-[#E6FBFA] text-[#070A1F]">
@@ -300,7 +300,7 @@ export default function SettingsPage() {
         <PendingBrainUpdates />
 
         {/* ── SECTION 1: Saúde do Sistema ──────────────────────────────────────── */}
-        <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+        <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
           <div className="px-6 py-4 border-b border-[#F0F0ED] flex items-center justify-between">
             <span className="text-[13px] font-semibold text-[#1A1A1A]">Saúde do Sistema</span>
             <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-[4px] bg-[#E6FBFA] text-[#070A1F]">
@@ -423,7 +423,7 @@ export default function SettingsPage() {
         </div>
 
         {/* ── SECTION 2: Status do Workspace ───────────────────────────────────── */}
-        <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+        <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
           <div className="px-6 py-4 border-b border-[#F0F0ED]">
             <span className="text-[13px] font-semibold text-[#1A1A1A]">Status do Workspace</span>
           </div>

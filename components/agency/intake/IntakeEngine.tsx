@@ -870,7 +870,7 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
 
     return (
       <div className="max-w-2xl space-y-4">
-        <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+        <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
           <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F0ED] bg-[#FAFAF9]">
             <span className="text-[12px] font-semibold text-[#1A1A1A] uppercase tracking-[0.05em]">Intake Summary</span>
             <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${color.badge}`}>
@@ -961,7 +961,7 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
   if (!clientLevel) {
     return (
       <div className="max-w-2xl">
-        <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+        <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
           <div className="px-6 py-5 border-b border-[#F0F0ED]">
             <h2 className="text-[15px] font-semibold text-[#1A1A1A]">Client Intake</h2>
             <p className="text-[13px] text-[#9B9B95] mt-1">
@@ -1046,7 +1046,7 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
   return (
     <div className="grid grid-cols-[420px_1fr] gap-6">
       {/* ── Left panel ────────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden h-fit">
+      <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden h-fit">
 
         {/* Level chip + change */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-[#F0F0ED] bg-[#FAFAF9]">
@@ -1324,7 +1324,7 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
             {/* CLIENT PHASE: block progress map + known info */}
             {intakePhase === "client" && (
               <>
-                <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+                <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
                   <div className="px-5 py-3 border-b border-[#F0F0ED]">
                     <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Client Profile — Progress</span>
                   </div>
@@ -1359,7 +1359,7 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
 
                 {/* Known information from Client Hub */}
                 {selectedClient && (
-                  <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+                  <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
                     <div className="px-5 py-3 border-b border-[#F0F0ED] bg-[#FAFAF9]">
                       <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Loaded from Client Hub</span>
                     </div>
@@ -1391,7 +1391,7 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
             {intakePhase === "project" && (
               <>
                 {/* Client profile summary — read-only context */}
-                <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+                <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
                   <div className="px-5 py-3 border-b border-[#F0F0ED] bg-[#FAFAF9]">
                     <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Client Profile</span>
                   </div>
@@ -1411,7 +1411,7 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
                 </div>
 
                 {/* Project brief block progress */}
-                <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+                <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
                   <div className="px-5 py-3 border-b border-[#F0F0ED]">
                     <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Project Brief — Progress</span>
                   </div>
@@ -1450,7 +1450,7 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
 
         {/* Free brief / existing brief: what to include */}
         {(intakeMode === "free_brief" || intakeMode === "existing_brief") && (
-          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
+          <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
             <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">
               Client Profile
             </div>

@@ -44,7 +44,7 @@ export default function AgentsPage() {
 
 function AgentCard({ agent }: { agent: typeof MOCK_AGENTS[0] }) {
   return (
-    <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-5 py-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-shadow">
+    <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-5 py-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-shadow">
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-[8px] bg-[#E6FBFA] flex items-center justify-center text-[14px] font-bold text-[#070A1F]">

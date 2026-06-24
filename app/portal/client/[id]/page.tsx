@@ -424,7 +424,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
           return "O projeto está em andamento. Em breve você receberá materiais para revisar.";
         })();
         return (
-          <div className="mb-6 bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+          <div className="mb-6 bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
             <div className="px-5 py-3.5 border-b border-[#F0F0ED]">
               <span className="text-[12px] font-semibold text-[#1A1A1A]">Resumo do Projeto</span>
             </div>
@@ -460,7 +460,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
       })()}
 
       {clientProjects.length === 0 ? (
-        <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-8 py-14 text-center">
+        <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-8 py-14 text-center">
           <p className="text-[14px] font-medium text-[#1A1A1A]">Seus projetos aparecerão aqui</p>
           <p className="text-[13px] text-[#9B9B95] mt-1.5 max-w-sm mx-auto">Após a análise inicial, nossa equipe estruturará o projeto e você poderá acompanhar as entregas neste painel.</p>
         </div>
@@ -840,7 +840,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
 
         {/* Safe brand fields */}
         {client.brandBrain ? (
-          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] divide-y divide-[#F0F0ED] mb-4">
+          <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] divide-y divide-[#F0F0ED] mb-4">
             {PORTAL_SAFE_BRAND_FIELDS.map((field) => {
               const value = (client.brandBrain as Record<string, string> | undefined)?.[field];
               if (!value) return null;
@@ -860,7 +860,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
             )}
           </div>
         ) : (
-          <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-5 py-8 text-center text-[13px] text-[#9B9B95] mb-4">
+          <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-5 py-8 text-center text-[13px] text-[#9B9B95] mb-4">
             Nenhuma informação de marca cadastrada ainda.
           </div>
         )}
@@ -886,7 +886,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
 
         {/* Suggestion form */}
         {brandSuggestOpen && (
-          <div className="mt-4 bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5 space-y-4">
+          <div className="mt-4 bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5 space-y-4">
             <div className="text-[13px] font-semibold text-[#1A1A1A]">Sugerir atualização de marca</div>
             <div>
               <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Qual informação deseja atualizar?</label>
@@ -946,7 +946,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ id: str
         ) : null}
 
         {portalParserOpen && (
-          <div className="mt-4 bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5 space-y-4">
+          <div className="mt-4 bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5 space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-[13px] font-semibold text-[#1A1A1A]">Analisar Brand Book</div>

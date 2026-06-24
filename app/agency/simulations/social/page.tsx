@@ -232,7 +232,7 @@ export default function SocialSimulatorPage() {
 
       {/* Canvases */}
       {canvases.length === 0 ? (
-        <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-6 py-12 text-center">
+        <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-6 py-12 text-center">
           <p className="text-[13px] text-[#9B9B95]">
             Selecione um cenário acima para gerar um Social Canvas de teste.
           </p>

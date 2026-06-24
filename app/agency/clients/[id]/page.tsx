@@ -330,7 +330,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
           at_risk:         { bg: "bg-[#FEE2E2]", text: "text-[#DC2626]", label: "Em Risco", dot: "bg-[#DC2626]" },
         }[cp.healthStatus];
         return cp.totalDeliverables > 0 ? (
-          <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-5 py-4 mb-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+          <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-5 py-4 mb-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
             <div className="flex items-center justify-between mb-3">
               <span className="text-[12px] font-semibold text-[#1A1A1A]">Progresso do Cliente</span>
               <span className={`flex items-center gap-1.5 h-5 px-2 rounded-full text-[10px] font-semibold ${HEALTH.bg} ${HEALTH.text}`}>
@@ -386,13 +386,13 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
 
           {/* Description */}
           {client.description && (
-            <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+            <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
               <p className="text-[13px] text-[#6B6B65] leading-relaxed">{client.description}</p>
             </div>
           )}
 
           {/* ── Project Pipeline ──────────────────────────────────────────────── */}
-          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+          <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0F0ED]">
               <h2 className="text-[14px] font-semibold text-[#1A1A1A]">
                 Pipeline de Projetos
@@ -485,7 +485,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
           </div>
 
           {/* ── Client Tasks ──────────────────────────────────────────────────── */}
-          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+          <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
             <div className="px-5 py-4 border-b border-[#F0F0ED]">
               <h2 className="text-[14px] font-semibold text-[#1A1A1A]">
                 Tarefas
@@ -548,7 +548,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
           </div>
 
           {/* ── Client Deliverables ───────────────────────────────────────────── */}
-          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+          <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0F0ED]">
               <h2 className="text-[14px] font-semibold text-[#1A1A1A]">
                 Entregas
@@ -604,7 +604,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
           </div>
 
           {/* ── Brand Hub ──────────────────────────────────────────────────── */}
-          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+          <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0F0ED]">
               <div className="flex items-center gap-2.5">
                 <h2 className="text-[14px] font-semibold text-[#1A1A1A]">Brand Hub</h2>
@@ -844,7 +844,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
           </div>
 
           {/* ── Activity Timeline ─────────────────────────────────────────────── */}
-          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+          <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
             <div className="px-5 py-4 border-b border-[#F0F0ED]">
               <h2 className="text-[14px] font-semibold text-[#1A1A1A]">Atividade</h2>
             </div>
@@ -881,7 +881,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
         <div className="space-y-4">
 
           {/* ── Overview stats ───────────────────────────────────────────────── */}
-          <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+          <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
             <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Conta</div>
             <div className="space-y-3">
               {[
@@ -899,7 +899,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
           </div>
 
           {/* ── Operational Risks ────────────────────────────────────────────── */}
-          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+          <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0F0ED]">
               <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Riscos Operacionais</div>
               {risks.length > 0 && (
@@ -929,7 +929,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
           </div>
 
           {/* ── Assigned Resources ───────────────────────────────────────────── */}
-          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+          <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
             <div className="px-5 py-4 border-b border-[#F0F0ED]">
               <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Recursos Alocados</div>
             </div>
@@ -966,7 +966,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
           </div>
 
           {/* ── Brand Assets ─────────────────────────────────────────────────── */}
-          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+          <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0F0ED]">
               <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Ativos de Marca</div>
               <Link href="/agency/brand-assets" className="text-[12px] text-[#070A1F] hover:underline font-medium">

@@ -105,7 +105,7 @@ export default function ClientsPage() {
           action={<Button variant="primary" onClick={() => setModalOpen(true)}>Adicionar Cliente</Button>}
         />
       ) : (
-        <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+        <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
           <table className="w-full">
             <thead>
               <tr className="border-b border-[#F0F0ED]">

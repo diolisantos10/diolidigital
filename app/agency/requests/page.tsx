@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import Link from "next/link";
+import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import { useAgencyStore } from "@/store/agency-store";
 import { useDbRequests, parseJson, type DbRequest } from "@/lib/agency/db-pipeline-hooks";
 import {
@@ -894,33 +895,31 @@ export default function AgencyRequestsPage() {
       )}
 
       {/* Page header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-[20px] font-semibold text-[#1A1A1A]">Solicitações de Clientes</h1>
-          <p className="text-[13px] text-[#9B9B95] mt-0.5">
-            Briefings recebidos pelo portal — analise e transforme em projetos.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {isMaster && demoRequestCount > 0 && (
-            <button
-              onClick={() => setShowDemoReset(true)}
-              className="h-7 px-3 rounded-[6px] border border-[#FCA5A5] bg-[#FEF2F2] text-[#DC2626] hover:border-[#F87171] text-[11px] font-semibold transition-colors inline-flex items-center gap-1.5"
-              title="Apaga apenas as solicitações de teste do Sushi Cazza"
-            >
-              <span className="text-[10px]">⟲</span>
-              Resetar teste Sushi Cazza ({demoRequestCount})
-              <span className="h-3.5 px-1 rounded-[3px] bg-[#DC2626] text-white text-[8px] font-bold leading-[14px]">ADMIN</span>
-            </button>
-          )}
-          {newCount > 0 && (
-            <span className="flex items-center gap-1.5 h-7 px-3 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[12px] font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#070A1F]" />
-              {newCount} nova{newCount !== 1 ? "s" : ""}
-            </span>
-          )}
-        </div>
-      </div>
+      <AgencyHeader
+        title="Solicitações de Clientes"
+        subtitle="Briefings recebidos pelo portal — analise e transforme em projetos."
+        actions={
+          <>
+            {isMaster && demoRequestCount > 0 && (
+              <button
+                onClick={() => setShowDemoReset(true)}
+                className="h-7 px-3 rounded-[6px] border border-[#FCA5A5] bg-[#FEF2F2] text-[#DC2626] hover:border-[#F87171] text-[11px] font-semibold transition-colors inline-flex items-center gap-1.5"
+                title="Apaga apenas as solicitações de teste do Sushi Cazza"
+              >
+                <span className="text-[10px]">⟲</span>
+                Resetar teste Sushi Cazza ({demoRequestCount})
+                <span className="h-3.5 px-1 rounded-[3px] bg-[#DC2626] text-white text-[8px] font-bold leading-[14px]">ADMIN</span>
+              </button>
+            )}
+            {newCount > 0 && (
+              <span className="flex items-center gap-1.5 h-7 px-3 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[12px] font-medium">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#070A1F]" />
+                {newCount} nova{newCount !== 1 ? "s" : ""}
+              </span>
+            )}
+          </>
+        }
+      />
 
       {/* Public briefing link — entry point to onboard the first client */}
       <div className="flex items-center gap-4 bg-[#070A1F] rounded-[12px] px-5 py-4">
@@ -991,7 +990,7 @@ export default function AgencyRequestsPage() {
 
       {/* Empty state */}
       {filtered.length === 0 && (
-        <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-8 py-14 text-center">
+        <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-8 py-14 text-center">
           <p className="text-[14px] font-medium text-[#1A1A1A]">Nenhuma solicitação</p>
           <p className="text-[13px] text-[#9B9B95] mt-1.5">
             {activeFilter === "all"
@@ -1015,7 +1014,7 @@ export default function AgencyRequestsPage() {
           return (
             <div
               key={req.id}
-              className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden"
+              className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden"
             >
               {/* ── Header row ── */}
               <div

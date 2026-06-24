@@ -17,6 +17,7 @@ import { saveArtifactToDb } from "@/lib/agency/persistence/save-artifact";
 import { useDbRequests, type DbRequest } from "@/lib/agency/db-pipeline-hooks";
 import { reasonAsDepartment } from "@/lib/dioli-brain/reason";
 import { DbPipelineSection, PreviewField } from "@/components/agency/DbPipelineSection";
+import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 
 type CanvasFilter = "all" | "draft" | "approved" | "rejected";
 
@@ -213,16 +214,16 @@ export default function QualityWorkspacePage() {
         )}
       />
 
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-[20px] font-semibold text-[#1A1A1A]">Quality</h1>
-            <span className="h-5 px-2 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[10px] font-semibold flex items-center">Brain · Auditoria</span>
-          </div>
-          <p className="text-[12px] text-[#6B6B65] mt-0.5">Auditoria cross-departamento: verifica qualidade, detecta padrões e candidatos a evidência em todo o pipeline</p>
-        </div>
-        <a href="/agency/simulations/quality" className="text-[11px] font-medium px-3 py-1.5 rounded-[6px] bg-[#E6FBFA] text-[#070A1F] hover:bg-[#9AF5F0]">Laboratório →</a>
-      </div>
+      <AgencyHeader
+        title="Quality"
+        subtitle="Auditoria cross-departamento: verifica qualidade, detecta padrões e candidatos a evidência em todo o pipeline"
+        meta={
+          <span className="h-5 px-2 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[10px] font-semibold inline-flex items-center">Brain · Auditoria</span>
+        }
+        actions={
+          <a href="/agency/simulations/quality" className="text-[11px] font-medium px-3 py-1.5 rounded-[6px] bg-[#E6FBFA] text-[#070A1F] hover:bg-[#9AF5F0]">Laboratório →</a>
+        }
+      />
 
       <div className="rounded-[10px] border border-[#070A1F]/20 bg-[#E6FBFA]/40 px-4 py-3">
         <div className="text-[9px] font-semibold text-[#070A1F] uppercase tracking-[0.08em] mb-2">Scorecard — Quality</div>

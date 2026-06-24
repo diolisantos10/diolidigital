@@ -72,7 +72,7 @@ export default async function DebugAuthPage() {
           : "✗ Session problem detected — see table below"}
       </div>
 
-      <div className="bg-white rounded-[10px] border border-[#E5E5E2] overflow-hidden text-[13px]">
+      <div className="bg-white rounded-[12px] border border-[#E5E5E2] overflow-hidden text-[13px]">
         <table className="w-full">
           <tbody>
             {Object.entries(diag).map(([key, val]) => {

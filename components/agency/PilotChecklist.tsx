@@ -41,7 +41,7 @@ function Phase({
 }) {
   const doneCount = items.filter((i) => i.done).length;
   return (
-    <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+    <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
       <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F0ED]">
         <h3 className="text-[13px] font-semibold text-[#1A1A1A]">{title}</h3>
         <span

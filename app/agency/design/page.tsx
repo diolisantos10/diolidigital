@@ -14,6 +14,7 @@ import { saveArtifactToDb } from "@/lib/agency/persistence/save-artifact";
 import { useDbRequests, type DbRequest } from "@/lib/agency/db-pipeline-hooks";
 import { reasonAsDepartment } from "@/lib/dioli-brain/reason";
 import { DbPipelineSection, PreviewField } from "@/components/agency/DbPipelineSection";
+import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 
 type CanvasFilter = "all" | "draft" | "approved" | "rejected";
 
@@ -206,25 +207,23 @@ export default function DesignWorkspacePage() {
       />
 
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-[20px] font-semibold text-[#1A1A1A]">Design</h1>
-            <span className="h-5 px-2 rounded-full bg-[#FFF7ED] text-[#EA580C] text-[10px] font-semibold flex items-center">
-              Brain · Execução
-            </span>
-          </div>
-          <p className="text-[12px] text-[#6B6B65] mt-0.5">
-            Transforma planos de conteúdo em direção visual e briefs criativos
-          </p>
-        </div>
-        <a
-          href="/agency/simulations/design"
-          className="text-[11px] font-medium px-3 py-1.5 rounded-[6px] bg-[#FFF7ED] text-[#EA580C] hover:bg-[#FED7AA]"
-        >
-          Laboratório →
-        </a>
-      </div>
+      <AgencyHeader
+        title="Design"
+        subtitle="Transforma planos de conteúdo em direção visual e briefs criativos"
+        meta={
+          <span className="h-5 px-2 rounded-full bg-[#FFF7ED] text-[#EA580C] text-[10px] font-semibold inline-flex items-center">
+            Brain · Execução
+          </span>
+        }
+        actions={
+          <a
+            href="/agency/simulations/design"
+            className="text-[11px] font-medium px-3 py-1.5 rounded-[6px] bg-[#FFF7ED] text-[#EA580C] hover:bg-[#FED7AA]"
+          >
+            Laboratório →
+          </a>
+        }
+      />
 
       {/* Scorecard */}
       <div className="rounded-[10px] border border-[#EA580C]/20 bg-[#FFF7ED]/50 px-4 py-3">

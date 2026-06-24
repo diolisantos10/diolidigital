@@ -14,6 +14,7 @@ import { saveArtifactToDb } from "@/lib/agency/persistence/save-artifact";
 import { useDbRequests, type DbRequest } from "@/lib/agency/db-pipeline-hooks";
 import { reasonAsDepartment } from "@/lib/dioli-brain/reason";
 import { DbPipelineSection, PreviewField } from "@/components/agency/DbPipelineSection";
+import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 
 type CanvasFilter = "all" | "draft" | "approved" | "rejected";
 
@@ -211,25 +212,23 @@ export default function SocialWorkspacePage() {
       />
 
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-[20px] font-semibold text-[#1A1A1A]">Social Media</h1>
-            <span className="h-5 px-2 rounded-full bg-[#FDF2F8] text-[#DB2777] text-[10px] font-semibold flex items-center">
-              ✦ Dioli Brain
-            </span>
-          </div>
-          <p className="text-[13px] text-[#9B9B95] mt-0.5">
-            Transforme estratégia aprovada em operação de conteúdo: pilares, plano mensal e calendário editorial — sem alterar posicionamento ou estratégia.
-          </p>
-        </div>
-        <a
-          href="/agency/simulations/social"
-          className="h-8 px-4 rounded-[7px] border border-[#E5E5E2] text-[#6B6B65] hover:border-[#DB2777] hover:text-[#DB2777] text-[12px] font-medium transition-colors inline-flex items-center gap-1.5"
-        >
-          Simulador Social →
-        </a>
-      </div>
+      <AgencyHeader
+        title="Social Media"
+        subtitle="Transforme estratégia aprovada em operação de conteúdo: pilares, plano mensal e calendário editorial — sem alterar posicionamento ou estratégia."
+        meta={
+          <span className="h-5 px-2 rounded-full bg-[#FDF2F8] text-[#DB2777] text-[10px] font-semibold inline-flex items-center">
+            ✦ Dioli Brain
+          </span>
+        }
+        actions={
+          <a
+            href="/agency/simulations/social"
+            className="h-8 px-4 rounded-[7px] border border-[#E5E5E2] text-[#6B6B65] hover:border-[#DB2777] hover:text-[#DB2777] text-[12px] font-medium transition-colors inline-flex items-center gap-1.5"
+          >
+            Simulador Social →
+          </a>
+        }
+      />
 
       {/* Scorecard */}
       <div className="bg-[#F7F7F6] border border-[#E5E5E2] rounded-[10px] px-4 py-3">
@@ -258,7 +257,7 @@ export default function SocialWorkspacePage() {
         </div>
 
         {queue.length === 0 ? (
-          <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-6 py-8 text-center">
+          <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-6 py-8 text-center">
             <p className="text-[13px] text-[#9B9B95]">
               Nenhuma estratégia aprovada aguardando Social. Aprove um Strategy Canvas no workspace de Estratégia para iniciar o handoff.
             </p>
@@ -266,7 +265,7 @@ export default function SocialWorkspacePage() {
         ) : (
           <div className="space-y-2">
             {queue.map((strategy) => (
-              <div key={strategy.id} className="bg-white rounded-[10px] border border-[#E5E5E2] px-5 py-4">
+              <div key={strategy.id} className="bg-white rounded-[12px] border border-[#E5E5E2] px-5 py-4">
                 <div className="flex items-center gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -329,7 +328,7 @@ export default function SocialWorkspacePage() {
         )}
 
         {filtered.length === 0 ? (
-          <div className="bg-white rounded-[10px] border border-[#E5E5E2] px-6 py-10 text-center">
+          <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-6 py-10 text-center">
             <p className="text-[13px] text-[#9B9B95]">
               {filter === "all"
                 ? "Nenhum Social Canvas ainda. Gere o primeiro a partir de uma estratégia aprovada."

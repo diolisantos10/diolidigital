@@ -192,7 +192,7 @@ export default function PmAgentPage() {
 
         <div className="grid grid-cols-[360px_1fr] gap-6 items-start">
           {/* ── LEFT ── */}
-          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+          <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
             <div className="px-5 py-4 border-b border-[#E5E5E2]">
               <p className="text-[13px] font-semibold text-[#1A1A1A]">Análise de Projeto</p>
               <p className="text-[12px] text-[#9B9B95] mt-0.5">Selecione um projeto para o PM Agent analisar.</p>
@@ -284,7 +284,7 @@ export default function PmAgentPage() {
           )}
 
           {agentState === "idle" && linkedProject && (
-            <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-8 py-14 text-center">
+            <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-8 py-14 text-center">
               <div className="w-12 h-12 rounded-full bg-[#F0F0ED] flex items-center justify-center mx-auto mb-5">
                 <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
                   <rect x="3" y="3" width="16" height="16" rx="2" stroke="#1A1A1A" strokeWidth="1.5"/>
@@ -299,7 +299,7 @@ export default function PmAgentPage() {
           )}
 
           {agentState === "generating" && (
-            <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-8 py-12">
+            <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-8 py-12">
               <div className="max-w-md mx-auto space-y-3">
                 {STEPS.map((s, i) => (
                   <div key={i} className={`flex items-center gap-3 transition-opacity ${i <= stepIndex ? "opacity-100" : "opacity-30"}`}>
@@ -335,7 +335,7 @@ export default function PmAgentPage() {
 
               {/* Overview */}
               {activeTab === "overview" && (
-                <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 space-y-4">
+                <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 space-y-4">
                   <div className="flex items-center gap-4 pb-3 border-b border-[#F0F0ED]">
                     <div className="w-14 h-14 rounded-full flex items-center justify-center border-4"
                       style={{ borderColor: healthColor }}>
@@ -373,7 +373,7 @@ export default function PmAgentPage() {
 
               {/* Priorities */}
               {activeTab === "priorities" && (
-                <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 space-y-2">
+                <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 space-y-2">
                   <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Top prioridades desta semana</div>
                   {assessment.topPriorities.map((p, i) => (
                     <div key={i} className="flex items-start gap-3 bg-[#F7F7F6] rounded-[8px] border border-[#E5E5E2] px-4 py-3">
@@ -388,7 +388,7 @@ export default function PmAgentPage() {
               {activeTab === "plan" && (
                 <div className="space-y-2">
                   {assessment.weeklyPlan.map((day, i) => (
-                    <div key={i} className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-3 flex items-center gap-4">
+                    <div key={i} className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-3 flex items-center gap-4">
                       <div className="w-16 shrink-0">
                         <p className="text-[12px] font-semibold text-[#1A1A1A]">{day.day}</p>
                       </div>
@@ -414,7 +414,7 @@ export default function PmAgentPage() {
               )}
 
               {/* Footer */}
-              <div className="flex items-center justify-between bg-[#F7F7F6] rounded-[10px] border border-[#E5E5E2] px-5 py-3">
+              <div className="flex items-center justify-between bg-[#F7F7F6] rounded-[12px] border border-[#E5E5E2] px-5 py-3">
                 <div>
                   <p className="text-[13px] font-medium text-[#1A1A1A]">Salvar PM Assessment como entrega</p>
                   <p className="text-[12px] text-[#9B9B95]">Vai para revisão como "planning" no projeto.</p>

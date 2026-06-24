@@ -112,9 +112,9 @@ interface BadgeProps {
 export default function Badge({ variant, children, className = "", size = "sm" }: BadgeProps) {
   const style = STYLES[variant] ?? STYLES.default;
   const label = children ?? LABELS[variant] ?? variant.charAt(0).toUpperCase() + variant.slice(1);
-  const sizeClass = size === "md" ? "px-2.5 py-1 text-[12px]" : "px-2 py-0.5 text-[11px]";
+  const sizeClass = size === "md" ? "px-2.5 py-1 text-[11.5px]" : "px-2 py-0.5 text-[10.5px]";
   return (
-    <span className={`inline-flex items-center rounded-[5px] font-medium ${sizeClass} ${style} ${className}`}>
+    <span className={`inline-flex items-center rounded-[6px] font-semibold tracking-[0.01em] ${sizeClass} ${style} ${className}`}>
       {label}
     </span>
   );

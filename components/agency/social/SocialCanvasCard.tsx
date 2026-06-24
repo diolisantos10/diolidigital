@@ -87,7 +87,7 @@ export function SocialCanvasCard({
   const approvalBlocked = qg.overall === "FAIL";
 
   return (
-    <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+    <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
       {/* Header */}
       <div
         className="flex items-center gap-3 px-5 py-4 cursor-pointer hover:bg-[#F7F7F6] transition-colors"

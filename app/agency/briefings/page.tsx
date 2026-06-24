@@ -85,7 +85,7 @@ export default function BriefingsPage() {
             return (
               <div
                 key={briefing.id}
-                className="bg-white rounded-[10px] border border-[#E5E5E2] px-6 py-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
+                className="bg-white rounded-[12px] border border-[#E5E5E2] px-6 py-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div>

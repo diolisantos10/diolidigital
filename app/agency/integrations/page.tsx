@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import AiKeyManager from "@/components/agency/AiKeyManager";
 import { useAgencyStore } from "@/store/agency-store";
 import {
@@ -567,17 +568,13 @@ export default function IntegrationsPage() {
   return (
     <div className="max-w-[960px] mx-auto px-6 py-8">
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <h1 className="text-[22px] font-semibold text-[#1C1C1A] tracking-[-0.02em]">
-            Ferramentas &amp; Integrações
-          </h1>
+      <AgencyHeader
+        title="Ferramentas & Integrações"
+        subtitle="Configure provedores de IA por agente, teste conexões e gerencie ferramentas externas."
+        meta={
           <span className="text-[11px] bg-[#F4F4F0] text-[#9B9B95] px-2 py-0.5 rounded font-medium">V2 — Central Operacional</span>
-        </div>
-        <p className="text-[13px] text-[#6B6B65]">
-          Configure provedores de IA por agente, teste conexões e gerencie ferramentas externas.
-        </p>
-      </div>
+        }
+      />
 
       {/* Readiness Overview */}
       <div className="bg-white border border-[#E5E5E2] rounded-[10px] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5 mb-6">
