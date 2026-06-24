@@ -118,3 +118,10 @@ export async function updateClientRequest(id: string, input: UpdateClientRequest
   });
   return normalizeClientRequest(raw);
 }
+
+// Hard-delete a briefing request. Cascades to BrainArtifact and
+// ApprovalRequest (→ ApprovalComment) via the schema's onDelete rules.
+// Used to remove test/demo briefings so the agency starts clean.
+export async function deleteClientRequest(id: string): Promise<void> {
+  await prisma.clientRequestDb.delete({ where: { id } });
+}

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
-import { createClientRequest, listClientRequests, updateClientRequest, getClientRequest } from "@/lib/agency/persistence/client-request-service";
+import { createClientRequest, listClientRequests, updateClientRequest, getClientRequest, deleteClientRequest } from "@/lib/agency/persistence/client-request-service";
 import { requireSession } from "@/lib/auth/api-guard";
 
 // GET (list) and PATCH (mutate) are internal — session required.
@@ -91,6 +91,23 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json(record);
   } catch (e) {
     console.error("[brain/client-requests] PATCH error", e);
+    return NextResponse.json({ error: "Not found or DB unavailable" }, { status: 404 });
+  }
+}
+
+export async function DELETE(request: NextRequest): Promise<NextResponse> {
+  const { error } = await requireSession(["master", "project_manager"]);
+  if (error) return error;
+
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get("id");
+  if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
+
+  try {
+    await deleteClientRequest(id);
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    console.error("[brain/client-requests] DELETE error", e);
     return NextResponse.json({ error: "Not found or DB unavailable" }, { status: 404 });
   }
 }

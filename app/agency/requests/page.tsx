@@ -20,7 +20,7 @@ import { usePMOrchestrator } from "@/lib/dioli-brain/use-pm-orchestrator";
 
 // ── CopyLinkButton ────────────────────────────────────────────────────────────
 
-function CopyLinkButton({ path }: { path: string }) {
+function CopyLinkButton({ path, dark = false }: { path: string; dark?: boolean }) {
   const [copied, setCopied] = useState(false);
   function handleCopy() {
     const url = typeof window !== "undefined" ? window.location.origin + path : path;
@@ -32,7 +32,11 @@ function CopyLinkButton({ path }: { path: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="h-7 px-3 rounded-[6px] border border-[#E5E5E2] bg-white text-[11px] font-medium text-[#6B6B65] hover:border-[#9B9B95] hover:text-[#1A1A1A] transition-colors whitespace-nowrap"
+      className={`h-9 px-4 rounded-[8px] text-[13px] font-semibold transition-colors whitespace-nowrap shrink-0 ${
+        dark
+          ? "border border-white/20 bg-white/5 text-white hover:bg-white/10"
+          : "h-7 px-3 rounded-[6px] border border-[#E5E5E2] bg-white text-[11px] font-medium text-[#6B6B65] hover:border-[#9B9B95] hover:text-[#1A1A1A]"
+      }`}
     >
       {copied ? "Copiado!" : "Copiar link"}
     </button>
@@ -510,6 +514,30 @@ export default function AgencyRequestsPage() {
   } = useDbRequests("new");
   const [dbSending, setDbSending] = useState<string | null>(null);
   const [dbSendError, setDbSendError] = useState<string | null>(null);
+  const [dbDeleting, setDbDeleting] = useState<string | null>(null);
+
+  const handleDeleteDbRequest = useCallback(
+    async (req: DbRequest) => {
+      if (!confirm(`Excluir o briefing de "${req.businessName}"? Esta ação é permanente.`)) return;
+      setDbDeleting(req.id);
+      setDbSendError(null);
+      try {
+        const res = await fetch(
+          `/api/brain/client-requests?id=${encodeURIComponent(req.id)}`,
+          { method: "DELETE" },
+        );
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status} ao excluir briefing.`);
+        }
+        await reloadDb();
+      } catch (e) {
+        setDbSendError(e instanceof Error ? e.message : "Falha ao excluir briefing.");
+      } finally {
+        setDbDeleting(null);
+      }
+    },
+    [reloadDb],
+  );
 
   const handleSendToStrategy = useCallback(
     async (req: DbRequest) => {
@@ -798,6 +826,22 @@ export default function AgencyRequestsPage() {
                     >
                       {dbSending === req.id ? "Enviando…" : "Iniciar Estratégia →"}
                     </button>
+                    {isMaster && (
+                      <button
+                        onClick={() => handleDeleteDbRequest(req)}
+                        disabled={dbDeleting === req.id}
+                        title="Excluir briefing permanentemente"
+                        className="h-8 w-8 rounded-[7px] border border-[#FCA5A5] bg-white hover:bg-[#FEF2F2] text-[#DC2626] disabled:opacity-50 transition-colors shrink-0 inline-flex items-center justify-center"
+                      >
+                        {dbDeleting === req.id ? (
+                          <span className="w-3.5 h-3.5 rounded-full border-2 border-[#DC2626] border-t-transparent animate-spin" />
+                        ) : (
+                          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                            <path d="M3 4.5h10M6.5 4.5V3.5a1 1 0 011-1h1a1 1 0 011 1v1M5 4.5l.5 8a1 1 0 001 1h3a1 1 0 001-1l.5-8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        )}
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -815,13 +859,6 @@ export default function AgencyRequestsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Link
-            href="/portal-demo/sushi-cazza"
-            className="h-7 px-3 rounded-[6px] border border-[#FDE68A] bg-[#FFFBEB] text-[#D97706] hover:border-[#F59E0B] text-[11px] font-semibold transition-colors inline-flex items-center gap-1.5"
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B]" />
-            Testar como cliente Sushi Cazza
-          </Link>
           {isMaster && demoRequestCount > 0 && (
             <button
               onClick={() => setShowDemoReset(true)}
@@ -842,16 +879,29 @@ export default function AgencyRequestsPage() {
         </div>
       </div>
 
-      {/* Public briefing link (ADMIN only) */}
-      <div className="flex items-center gap-3 bg-[#F7F7F6] border border-[#E5E5E2] rounded-[10px] px-4 py-3">
-        <div className="flex-1 min-w-0">
-          <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-0.5">
-            Link público para novo cliente
-          </div>
-          <code className="text-[12px] text-[#1A1A1A] font-mono">/briefing</code>
-          <span className="text-[11px] text-[#9B9B95] ml-2">— envie este link a um novo prospect</span>
+      {/* Public briefing link — entry point to onboard the first client */}
+      <div className="flex items-center gap-4 bg-[#070A1F] rounded-[12px] px-5 py-4">
+        <div className="w-10 h-10 rounded-[10px] bg-[#9AF5F0]/15 flex items-center justify-center shrink-0">
+          <svg width="20" height="20" viewBox="0 0 16 16" fill="none">
+            <path d="M9.5 2H4a1 1 0 00-1 1v10a1 1 0 001 1h8a1 1 0 001-1V6.5L9.5 2z" stroke="#9AF5F0" strokeWidth="1.3" strokeLinejoin="round"/>
+            <path d="M9 2v4h4" stroke="#9AF5F0" strokeWidth="1.3" strokeLinejoin="round"/>
+            <path d="M5.5 8.5h5M5.5 11h3" stroke="#9AF5F0" strokeWidth="1.3" strokeLinecap="round"/>
+          </svg>
         </div>
-        <CopyLinkButton path="/briefing" />
+        <div className="flex-1 min-w-0">
+          <div className="text-[14px] font-semibold text-white">Adicionar primeiro cliente</div>
+          <p className="text-[12px] text-[#9AF5F0]/80 mt-0.5">
+            Envie o link de briefing <code className="font-mono text-white">/briefing</code> ao cliente — ou preencha você mesmo para começar.
+          </p>
+        </div>
+        <Link
+          href="/briefing"
+          target="_blank"
+          className="h-9 px-4 rounded-[8px] bg-[#9AF5F0] text-[#070A1F] hover:bg-[#7DEDE7] text-[13px] font-semibold transition-colors shrink-0 inline-flex items-center gap-1.5"
+        >
+          Abrir briefing →
+        </Link>
+        <CopyLinkButton path="/briefing" dark />
       </div>
 
       {/* Source filter */}
