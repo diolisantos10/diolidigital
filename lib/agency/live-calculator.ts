@@ -26,8 +26,8 @@ export const SOCIAL_PACKAGES: PackageDef[] = [
     label: "Plano Starter",
     postsPerMonth: 8,
     storiesPerMonth: 8,
-    minPrice: 1200,
-    maxPrice: 1800,
+    minPrice: 700,
+    maxPrice: 1100,
     description: "8 posts + 8 stories/mês — ideal para começar",
   },
   {
@@ -35,8 +35,8 @@ export const SOCIAL_PACKAGES: PackageDef[] = [
     label: "Plano Growth",
     postsPerMonth: 12,
     storiesPerMonth: 16,
-    minPrice: 2000,
-    maxPrice: 3200,
+    minPrice: 1200,
+    maxPrice: 1800,
     description: "12 posts + 16 stories/mês — ritmo constante",
   },
   {
@@ -44,8 +44,8 @@ export const SOCIAL_PACKAGES: PackageDef[] = [
     label: "Plano Pro",
     postsPerMonth: 20,
     storiesPerMonth: 30,
-    minPrice: 3500,
-    maxPrice: 5000,
+    minPrice: 2000,
+    maxPrice: 3200,
     description: "20 posts + 30 stories/mês — presença forte",
   },
 ];
@@ -63,10 +63,10 @@ export function getPackageDef(id: SocialPackage): PackageDef {
 // ── Add-on prices ─────────────────────────────────────────────────────────────
 
 const P = {
-  reel:         { min:  300, max:  700 }, // editing from client footage
-  trafficMgmt:  { min:  700, max: 1800 }, // monthly management fee
-  branding:     { min: 2500, max: 5000 }, // visual identity
-  brandingFull: { min: 4000, max: 8000 }, // full brand book / rebrand
+  reel:         { min:  150, max:  400 }, // editing from client footage
+  trafficMgmt:  { min:  500, max: 1200 }, // monthly management fee
+  branding:     { min: 1200, max: 2500 }, // visual identity
+  brandingFull: { min: 2000, max: 4000 }, // full brand book / rebrand
 };
 
 // ── Main export ───────────────────────────────────────────────────────────────

@@ -1,11 +1,9 @@
-import { getOptionalSession } from "@/lib/auth/dal";
+import { verifySession } from "@/lib/auth/dal";
 import AgencySidebar from "@/components/agency/layout/AgencySidebar";
 
 export default async function AgencyLayout({ children }: { children: React.ReactNode }) {
-  const session = await getOptionalSession();
-  const userInfo = session
-    ? { name: session.name, role: session.role, workspaceId: session.workspaceId }
-    : null;
+  const session = await verifySession(); // redirects to /auth/signin if no valid session
+  const userInfo = { name: session.name, role: session.role, workspaceId: session.workspaceId };
 
   return (
     <div className="flex min-h-screen bg-[#F7F7F6]">

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslation } from "@/lib/i18n";
 import { useAgencyStore } from "@/store/agency-store";
@@ -155,19 +154,46 @@ export default function AgencySidebar({ userInfo }: { userInfo?: UserInfo | null
 
   return (
     <aside className="fixed inset-y-0 left-0 w-[220px] flex flex-col bg-[#111111] z-40 overflow-y-auto">
-      {/* Logo */}
-      <div className="h-14 flex items-center px-5 border-b border-white/[0.06] shrink-0">
-        <div className="flex items-center gap-2.5">
-          <svg width="26" height="18" viewBox="0 0 26 18" fill="none">
-            <circle cx="9" cy="9" r="8" stroke="#9AF5F0" strokeWidth="1.8"/>
-            <circle cx="20" cy="9" r="5" fill="#9AF5F0" fillOpacity="0.2" stroke="#9AF5F0" strokeWidth="1.5"/>
-          </svg>
-          <span className="text-[13px] font-semibold tracking-[-0.01em] text-white">Dioli Digital</span>
+
+      {/* ── Top: logo + user strip ──────────────────────────────────────────── */}
+      <div className="shrink-0">
+        {/* Logo row */}
+        <div className="h-12 flex items-center px-4 border-b border-white/[0.06]">
+          <div className="flex items-center gap-2.5 flex-1 min-w-0">
+            <svg width="22" height="15" viewBox="0 0 26 18" fill="none">
+              <circle cx="9" cy="9" r="8" stroke="#9AF5F0" strokeWidth="1.8"/>
+              <circle cx="20" cy="9" r="5" fill="#9AF5F0" fillOpacity="0.2" stroke="#9AF5F0" strokeWidth="1.5"/>
+            </svg>
+            <span className="text-[12px] font-semibold tracking-[-0.01em] text-white">Dioli Digital</span>
+          </div>
         </div>
+
+        {/* User card — visible and always at the top */}
+        {userInfo ? (
+          <div className="mx-3 mt-3 mb-1 flex items-center gap-2.5 bg-white/[0.05] rounded-[8px] px-3 py-2.5 border border-white/[0.06]">
+            <div className="w-8 h-8 rounded-full bg-[#9AF5F0]/20 flex items-center justify-center text-[13px] font-bold text-[#9AF5F0] shrink-0">
+              {userInfo.name.charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[12px] font-semibold text-white truncate leading-tight">{userInfo.name}</div>
+              <div className="text-[10px] text-[#6B6B65] leading-tight mt-0.5">{ROLE_LABEL[userInfo.role] ?? userInfo.role}</div>
+            </div>
+            <a
+              href="/auth/signout"
+              className="shrink-0 text-[#4A4A44] hover:text-[#EF4444] transition-colors"
+              title="Sair da conta"
+            >
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                <path d="M6 14H3a1 1 0 01-1-1V3a1 1 0 011-1h3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+                <path d="M11 11l3-3-3-3M14 8H6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </a>
+          </div>
+        ) : null}
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5">
+      <nav className="flex-1 px-3 py-3 space-y-0.5">
         {NAV.map((section, i) => {
           const visibleItems = section.items.filter((item) => isNavAllowed(currentRole, item.href));
           if (visibleItems.length === 0) return null;
@@ -221,51 +247,20 @@ export default function AgencySidebar({ userInfo }: { userInfo?: UserInfo | null
         })}
       </nav>
 
-      {/* Bottom */}
-      <div className="px-4 py-4 border-t border-white/[0.06] shrink-0 space-y-3">
-        {/* Role simulator — internal testing only */}
-        <div>
-          <div className="text-[9px] font-semibold text-[#4A4A44] uppercase tracking-[0.08em] mb-1.5 px-0.5">
-            Visualizar como
-          </div>
-          <select
-            value={currentRole}
-            onChange={(e) => setCurrentRole(e.target.value as AgencyRole)}
-            className="w-full text-[11px] bg-[#1C1C1C] border border-white/[0.08] text-[#9B9B95] rounded-[6px] px-2 py-1.5 outline-none cursor-pointer hover:border-white/[0.15] transition-colors"
-          >
-            {AGENCY_ROLE_OPTIONS.map((r) => (
-              <option key={r.id} value={r.id}>{r.label}</option>
-            ))}
-          </select>
+      {/* Bottom: role simulator only */}
+      <div className="px-3 py-3 border-t border-white/[0.06] shrink-0">
+        <div className="text-[9px] font-semibold text-[#4A4A44] uppercase tracking-[0.08em] mb-1.5 px-1">
+          Visualizar como
         </div>
-
-        {/* Auth session indicator */}
-        {userInfo ? (
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-full bg-[#9AF5F0]/20 flex items-center justify-center text-[11px] font-semibold text-[#9AF5F0] shrink-0">
-              {userInfo.name.charAt(0).toUpperCase()}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-[12px] font-medium text-[#C0C0BA] truncate">{userInfo.name}</div>
-              <div className="text-[10px] text-[#4A4A44]">{ROLE_LABEL[userInfo.role] ?? userInfo.role}</div>
-            </div>
-            <Link
-              href="/auth/signout"
-              className="shrink-0 text-[10px] text-[#4A4A44] hover:text-[#C0C0BA] transition-colors"
-              title="Sair"
-            >
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-                <path d="M6 14H3a1 1 0 01-1-1V3a1 1 0 011-1h3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-                <path d="M11 11l3-3-3-3M14 8H6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </Link>
-          </div>
-        ) : (
-          <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-[6px] bg-[#D97706]/10">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#D97706] shrink-0" />
-            <span className="text-[10px] font-medium text-[#D9A066] truncate">Modo piloto — dados locais</span>
-          </div>
-        )}
+        <select
+          value={currentRole}
+          onChange={(e) => setCurrentRole(e.target.value as AgencyRole)}
+          className="w-full text-[11px] bg-[#1C1C1C] border border-white/[0.08] text-[#9B9B95] rounded-[6px] px-2 py-1.5 outline-none cursor-pointer hover:border-white/[0.15] transition-colors"
+        >
+          {AGENCY_ROLE_OPTIONS.map((r) => (
+            <option key={r.id} value={r.id}>{r.label}</option>
+          ))}
+        </select>
       </div>
     </aside>
   );
