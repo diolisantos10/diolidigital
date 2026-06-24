@@ -95,7 +95,7 @@ export default function BriefingPage() {
             Voltar ao início
           </button>
           <a
-            href="https://wa.me/5511999999999"
+            href="https://wa.me/5511989400692"
             className="h-9 px-5 rounded-[8px] bg-[#1A1A1A] hover:bg-[#111111] text-white text-[13px] font-medium transition-colors inline-flex items-center"
           >
             Enviar complemento por WhatsApp

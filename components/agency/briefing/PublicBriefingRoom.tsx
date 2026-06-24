@@ -434,6 +434,41 @@ function ProposalCard({
 
 interface SdrReply { reply: string; scope: Record<string, unknown> }
 
+// An uploaded briefing file and its processing status.
+interface UploadItem {
+  id: string;
+  attachment: RequestAttachment;
+  status: "uploading" | "done" | "error";
+}
+
+interface UploadResult {
+  fileName: string;
+  fileType: string;
+  sizeBytes: number;
+  mimeType: string;
+  extractedText: string;
+}
+
+async function fetchUpload(file: File): Promise<UploadResult | null> {
+  try {
+    const form = new FormData();
+    form.append("file", file);
+    const res = await fetch("/api/sdr/upload", { method: "POST", body: form });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { ok?: boolean } & Partial<UploadResult>;
+    if (!data.ok) return null;
+    return {
+      fileName:      data.fileName ?? file.name,
+      fileType:      data.fileType ?? "FILE",
+      sizeBytes:     data.sizeBytes ?? file.size,
+      mimeType:      data.mimeType ?? file.type,
+      extractedText: data.extractedText ?? "",
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function fetchSdrReply(
   priorMessages: ConvMessage[],
   currentMessage: string,
@@ -483,11 +518,29 @@ function mergeScopeGaps(base: BriefingScope, patch: Record<string, unknown>): Br
     out.prospectEmail = patch.prospectEmail.trim();
   }
 
-  if (!out.wantsSocialMedia && typeof patch.wantsSocialMedia === "boolean") {
-    out.wantsSocialMedia = patch.wantsSocialMedia;
+  // Infer service intent from the data Claude returns: if it sent a social/
+  // traffic/branding sub-object with real content, the prospect clearly wants
+  // that service even if the boolean flag wasn't set explicitly. This is what
+  // lets the live estimate compute reliably from the conversation.
+  const ps0 = patch.social  as Record<string, unknown> | undefined;
+  const pt0 = patch.traffic as Record<string, unknown> | undefined;
+  const pb0 = patch.branding as Record<string, unknown> | undefined;
+  const socialImplied =
+    patch.wantsSocialMedia === true ||
+    (!!ps0 && typeof ps0 === "object" &&
+      (asNum(ps0.postsPerWeek) !== undefined ||
+       (Array.isArray(ps0.platforms) && ps0.platforms.length > 0) ||
+       asNum(ps0.reelsPerMonth) !== undefined ||
+       asNum(ps0.storiesPerWeek) !== undefined));
+  const trafficImplied =
+    patch.wantsPaidTraffic === true ||
+    (!!pt0 && typeof pt0 === "object" && typeof pt0.monthlyAdBudget === "string" && pt0.monthlyAdBudget.trim().length > 0);
+
+  if (!out.wantsSocialMedia && (socialImplied || patch.wantsSocialMedia === false)) {
+    out.wantsSocialMedia = socialImplied;
   }
-  if (out.wantsPaidTraffic === undefined && typeof patch.wantsPaidTraffic === "boolean") {
-    out.wantsPaidTraffic = patch.wantsPaidTraffic;
+  if (out.wantsPaidTraffic === undefined && (trafficImplied || patch.wantsPaidTraffic === false)) {
+    out.wantsPaidTraffic = trafficImplied;
   }
   if (out.serviceMode === undefined && typeof patch.serviceMode === "string"
       && ["monthly", "one_off", "unsure"].includes(patch.serviceMode)) {
@@ -502,7 +555,7 @@ function mergeScopeGaps(base: BriefingScope, patch: Record<string, unknown>): Br
     out.objectives = [...merged].slice(0, 6);
   }
 
-  const pb = patch.branding as Record<string, unknown> | undefined;
+  const pb = pb0;
   if (pb && typeof pb === "object") {
     out.branding = {
       requested:    out.branding.requested    || pb.requested === true,
@@ -511,8 +564,8 @@ function mergeScopeGaps(base: BriefingScope, patch: Record<string, unknown>): Br
     };
   }
 
-  const ps = patch.social as Record<string, unknown> | undefined;
-  if (ps && typeof ps === "object" && (out.wantsSocialMedia || patch.wantsSocialMedia === true)) {
+  const ps = ps0;
+  if (ps && typeof ps === "object" && (out.wantsSocialMedia || socialImplied)) {
     const cur = out.social ?? { platforms: [] };
     out.social = {
       platforms:     cur.platforms?.length ? cur.platforms
@@ -525,8 +578,8 @@ function mergeScopeGaps(base: BriefingScope, patch: Record<string, unknown>): Br
     };
   }
 
-  const pt = patch.traffic as Record<string, unknown> | undefined;
-  if (pt && typeof pt === "object" && (out.wantsPaidTraffic || patch.wantsPaidTraffic === true)) {
+  const pt = pt0;
+  if (pt && typeof pt === "object" && (out.wantsPaidTraffic || trafficImplied)) {
     const cur = out.traffic ?? { platforms: [] };
     out.traffic = {
       platforms:       cur.platforms?.length ? cur.platforms
@@ -538,12 +591,122 @@ function mergeScopeGaps(base: BriefingScope, patch: Record<string, unknown>): Br
   return out;
 }
 
+// ── Briefing file upload zone ──────────────────────────────────────────────────
+// Compact drag-and-drop uploader for the public briefing. Accepts the briefing
+// itself (Word, PDF), plus references (images, slides). Uploading + read status
+// is shown per file; the SDR reads extractable documents automatically.
+
+const UPLOAD_ACCEPT = ".pdf,.doc,.docx,.ppt,.pptx,.png,.jpg,.jpeg,.webp,.svg,.txt,.csv,.md";
+
+function fmtBytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function BriefingFileUpload({
+  items,
+  onPick,
+  onRemove,
+}: {
+  items: UploadItem[];
+  onPick: (files: File[]) => void;
+  onRemove: (id: string) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [dragOver, setDragOver] = useState(false);
+
+  return (
+    <div className="space-y-2">
+      <div
+        onClick={() => inputRef.current?.click()}
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={(e) => { e.preventDefault(); setDragOver(false); }}
+        onDrop={(e) => { e.preventDefault(); setDragOver(false); onPick(Array.from(e.dataTransfer.files)); }}
+        className={`border-2 border-dashed rounded-[10px] px-4 py-5 text-center cursor-pointer transition-all select-none ${
+          dragOver ? "border-[#070A1F] bg-[#E6FBFA]" : "border-[#E5E5E2] bg-white hover:border-[#9B9B95] hover:bg-[#F7F7F6]"
+        }`}
+      >
+        <input
+          ref={inputRef}
+          type="file"
+          multiple
+          accept={UPLOAD_ACCEPT}
+          onChange={(e) => { onPick(Array.from(e.target.files ?? [])); e.target.value = ""; }}
+          className="hidden"
+          aria-label="Selecionar arquivos do briefing"
+        />
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className={`mx-auto mb-1.5 ${dragOver ? "text-[#070A1F]" : "text-[#9B9B95]"}`}>
+          <path d="M21 15V19A2 2 0 0119 21H5A2 2 0 013 19V15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          <polyline points="17 8 12 3 7 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          <line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        <p className={`text-[12px] font-medium ${dragOver ? "text-[#070A1F]" : "text-[#1A1A1A]"}`}>
+          {dragOver ? "Solte aqui" : "Arraste ou clique para enviar"}
+        </p>
+        <p className="text-[10px] text-[#9B9B95] mt-0.5">
+          Briefing em Word/PDF, fotos, cardápio, referências. A Dioli lê o documento automaticamente.
+        </p>
+        <p className="text-[9px] text-[#C0C0BC] mt-0.5">PDF, DOC, DOCX, PPT, PNG, JPG, SVG, TXT · máx. 20 MB</p>
+      </div>
+
+      {items.length > 0 && (
+        <div className="space-y-1.5">
+          {items.map((it) => (
+            <div key={it.id} className="flex items-center gap-2.5 bg-white border border-[#E5E5E2] rounded-[8px] px-2.5 py-2">
+              <div className="w-7 h-7 rounded-[6px] bg-[#F0F0ED] flex items-center justify-center shrink-0">
+                <span className="text-[8px] font-bold text-[#6B6B65] leading-none">{it.attachment.fileType}</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] font-medium text-[#1A1A1A] truncate">{it.attachment.fileName}</p>
+                <p className="text-[10px] text-[#9B9B95]">{fmtBytes(it.attachment.sizeBytes)}</p>
+              </div>
+              {it.status === "uploading" && (
+                <span className="h-4 px-1.5 rounded-[3px] bg-[#FEF3C7] text-[9px] font-semibold text-[#D97706] shrink-0 whitespace-nowrap">
+                  Lendo…
+                </span>
+              )}
+              {it.status === "done" && (
+                <span className="h-4 px-1.5 rounded-[3px] bg-[#DCFCE7] text-[9px] font-semibold text-[#16A34A] shrink-0 whitespace-nowrap">
+                  Anexado
+                </span>
+              )}
+              {it.status === "error" && (
+                <span className="h-4 px-1.5 rounded-[3px] bg-[#FEE2E2] text-[9px] font-semibold text-[#DC2626] shrink-0 whitespace-nowrap">
+                  Falhou
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onRemove(it.id); }}
+                aria-label={`Remover ${it.attachment.fileName}`}
+                className="text-[#C0C0BC] hover:text-[#DC2626] transition-colors shrink-0 text-[16px] leading-none"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
   const [state,          setState]          = useState<ProspectConvState>(() => initProspectConvState());
   const [inputText,      setInputText]      = useState("");
-  const [showLinkField,  setShowLinkField]  = useState(false);
-  const [attachments,    setAttachments]    = useState<RequestAttachment[]>([]);
+  const [showMaterials,  setShowMaterials]  = useState(false);
+  const [linkAtts,       setLinkAtts]       = useState<RequestAttachment[]>([]);
+  const [fileItems,      setFileItems]      = useState<UploadItem[]>([]);
   const [aiThinking,     setAiThinking]     = useState(false);
+
+  // Combined attachment list (uploaded files first, then shared links).
+  const attachments: RequestAttachment[] = [
+    ...fileItems.filter((f) => f.status !== "error").map((f) => f.attachment),
+    ...linkAtts,
+  ];
+  const attachmentsRef = useRef(attachments);
+  attachmentsRef.current = attachments;
 
   // Internal temp ID for link association
   const [tempClientId] = useState(() => "prospect-" + Date.now());
@@ -653,10 +816,13 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
   // and a scope patch; the rule-based engine runs underneath for state tracking
   // and as the universal fallback (Lei 2) if Claude is unavailable.
   const runTurn = useCallback(
-    async (text: string) => {
+    // `text` is what the prospect sees in their bubble. `sdrText` (optional) is
+    // what Claude actually reads — used to feed an uploaded briefing's extracted
+    // content to the SDR without dumping the whole document into the chat.
+    async (text: string, sdrText?: string) => {
       const prevState = stateRef.current;
       const priorMessages = prevState.conv.messages;
-      const fileNames = attachments.map((a) => a.fileName);
+      const fileNames = attachmentsRef.current.map((a) => a.fileName);
 
       // Rule-based baseline: authoritative state machine (sdr, scope, flow).
       const ruleResult = processProspectMessage(text, prevState, fileNames);
@@ -668,7 +834,7 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
       setState({ ...ruleResult, conv: { ...ruleResult.conv, messages: userVisible } });
       setAiThinking(true);
 
-      const claude = await fetchSdrReply(priorMessages, text, ruleResult.conv.scope);
+      const claude = await fetchSdrReply(priorMessages, sdrText ?? text, ruleResult.conv.scope);
       setAiThinking(false);
 
       if (claude) {
@@ -691,8 +857,70 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
         void fireAiExtract(text, priorMessages);
       }
     },
-    [attachments, fireAiExtract],
+    [fireAiExtract],
   );
+
+  // ── File upload (briefing documents) ──────────────────────────────────────
+  // Uploads each picked file, extracts its text server-side, and — when text is
+  // found — feeds the briefing to Claude so it reads the document and continues
+  // the conversation. The file is always listed as an attachment.
+  const uid = () => "up" + Math.random().toString(36).slice(2, 10);
+
+  const handleFilesPicked = useCallback(
+    async (files: File[]) => {
+      for (const file of files) {
+        const id = uid();
+        const optimistic: RequestAttachment = {
+          id,
+          clientId: tempClientId,
+          fileName: file.name,
+          fileType: (file.name.split(".").pop()?.toUpperCase() ?? "FILE"),
+          mimeType: file.type,
+          sizeBytes: file.size,
+          source: "briefing_room",
+          createdAt: new Date().toISOString(),
+          storageStatus: "local_only",
+        };
+        setFileItems((prev) => [...prev, { id, attachment: optimistic, status: "uploading" }]);
+
+        const result = await fetchUpload(file);
+
+        if (!result) {
+          setFileItems((prev) => prev.map((it) => (it.id === id ? { ...it, status: "error" } : it)));
+          continue;
+        }
+
+        setFileItems((prev) =>
+          prev.map((it) =>
+            it.id === id
+              ? {
+                  ...it,
+                  status: "done",
+                  attachment: { ...it.attachment, fileType: result.fileType, mimeType: result.mimeType },
+                }
+              : it,
+          ),
+        );
+
+        // If we extracted briefing content, let the SDR read it.
+        if (result.extractedText.trim()) {
+          const visible = `📎 Enviei meu briefing: **${result.fileName}**`;
+          const sdrText =
+            `O cliente anexou um arquivo de briefing chamado "${result.fileName}". ` +
+            `Leia o conteúdo abaixo, extraia tudo que for relevante (negócio, segmento, serviços, ` +
+            `objetivos, quantidades, prazos, contato) para o scope e dê continuidade à conversa de ` +
+            `forma natural, confirmando os pontos principais que entendeu.\n\n` +
+            `--- CONTEÚDO DO BRIEFING ---\n${result.extractedText}`;
+          void runTurn(visible, sdrText);
+        }
+      }
+    },
+    [tempClientId, runTurn],
+  );
+
+  const removeFileItem = useCallback((id: string) => {
+    setFileItems((prev) => prev.filter((it) => it.id !== id));
+  }, []);
 
   function handleSend() {
     const text = inputText.trim();
@@ -781,10 +1009,19 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Materials link field (toggled) */}
-        {showLinkField && (
-          <div className="px-5 pb-3 border-t border-[#F0F0ED] pt-3">
-            <MaterialsLinkField clientId={tempClientId} onChange={setAttachments} />
+        {/* Materials panel (toggled): file upload + cloud links */}
+        {showMaterials && (
+          <div className="px-5 pb-3 border-t border-[#F0F0ED] pt-3 space-y-4">
+            {/* File upload */}
+            <div>
+              <div className="text-[11px] font-semibold text-[#1A1A1A] mb-2">Enviar arquivo do briefing</div>
+              <BriefingFileUpload items={fileItems} onPick={handleFilesPicked} onRemove={removeFileItem} />
+            </div>
+            {/* Cloud links */}
+            <div>
+              <div className="text-[11px] font-semibold text-[#1A1A1A] mb-2">Ou compartilhar por link</div>
+              <MaterialsLinkField clientId={tempClientId} onChange={setLinkAtts} />
+            </div>
           </div>
         )}
 
@@ -846,22 +1083,24 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
                 Microfone indisponível
               </span>
             )}
-            {/* Materials link button */}
+            {/* Materials button (file upload + links) */}
             <button
               type="button"
-              onClick={() => setShowLinkField((v) => !v)}
+              onClick={() => setShowMaterials((v) => !v)}
               className={`h-6 px-2.5 rounded-[5px] text-[10px] font-medium border transition-colors flex items-center gap-1.5 ${
-                showLinkField
+                showMaterials
                   ? "bg-[#E6FBFA] border-[#C7C7FF] text-[#070A1F]"
                   : "bg-white border-[#E5E5E2] text-[#9B9B95] hover:border-[#9B9B95]"
               }`}
             >
-              <svg width="10" height="10" viewBox="0 0 14 14" fill="none">
-                <path d="M5.5 8.5L8.5 5.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-                <path d="M7.5 3.5L9 2A2.12 2.12 0 0112 5L10.5 6.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M6.5 10.5L5 12A2.12 2.12 0 012 9L3.5 7.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+                <path d="M21 15V19A2 2 0 0119 21H5A2 2 0 013 19V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <polyline points="17 8 12 3 7 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
-              {attachments.length > 0 ? `${attachments.length} link${attachments.length !== 1 ? "s" : ""}` : "Compartilhar materiais"}
+              {attachments.length > 0
+                ? `${attachments.length} anexo${attachments.length !== 1 ? "s" : ""}`
+                : "Anexar briefing / materiais"}
             </button>
             <span className="text-[10px] text-[#C0C0BC] ml-auto hidden sm:block">
               Enter para enviar · Shift+Enter nova linha
