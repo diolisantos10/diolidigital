@@ -618,7 +618,7 @@ export default function AgencyRequestsPage() {
   }
 
   const [activeFilter, setActiveFilter]   = useState<ClientRequestStatus | "all">("all");
-  const [sourceFilter, setSourceFilter]   = useState<"all" | "public_briefing" | "client_portal">("all");
+  const [sourceFilter, setSourceFilter]   = useState<"all" | "public_briefing" | "client_portal" | "self_serve">("all");
   const [expandedId, setExpandedId]       = useState<string | null>(null);
   const [convertingId, setConvertingId] = useState<string | null>(null);
   const [convForm, setConvForm]         = useState<ConversionForm | null>(null);
@@ -950,9 +950,10 @@ export default function AgencyRequestsPage() {
       {/* Source filter */}
       <div className="flex items-center gap-2">
         {[
-          { label: "Todos",                                  value: "all" as const },
-          { label: `Prospects (${prospectCount})`,           value: "public_briefing" as const },
-          { label: "Portal de clientes",                     value: "client_portal" as const },
+          { label: "Todos",                                   value: "all" as const },
+          { label: `Prospects (${prospectCount})`,            value: "public_briefing" as const },
+          { label: "Portal de clientes",                      value: "client_portal" as const },
+          { label: `Vitrine (${all.filter((r) => r.source === "self_serve").length})`, value: "self_serve" as const },
         ].map((opt) => (
           <button
             key={opt.value}

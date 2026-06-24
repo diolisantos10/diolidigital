@@ -83,8 +83,8 @@ export interface ClientRequest {
   status: ClientRequestStatus;
   createdAt: string;
   updatedAt: string;
-  source: "client_portal" | "public_briefing";
-  // Prospect-only (source === "public_briefing")
+  source: "client_portal" | "public_briefing" | "self_serve";
+  // Prospect-only (source === "public_briefing" | "self_serve")
   prospectName?: string;
   prospectEmail?: string;
   prospectPhone?: string;

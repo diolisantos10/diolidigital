@@ -71,6 +71,7 @@ export default function AgencySidebar({ userInfo }: { userInfo?: UserInfo | null
         { label: "Painel Maestro", href: "/agency/maestro", icon: BrainIcon },
         { label: "Aprovações", href: "/agency/approvals", icon: BellIcon, badge: pendingCount },
         { label: "Solicitações", href: "/agency/requests", icon: FileTextIcon, badge: newRequestsCount },
+        { label: "Vitrine (Self-Serve)", href: "/vitrine", icon: ShopIcon },
       ],
     },
     {
@@ -318,6 +319,15 @@ function TagIcon({ size = 16, className = "" }: { size?: number; className?: str
     <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
       <path d="M2.5 2.5h4.7a1 1 0 01.7.3l5.8 5.8a1 1 0 010 1.4l-3.9 3.9a1 1 0 01-1.4 0L2.6 8.1a1 1 0 01-.3-.7V2.5z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
       <circle cx="5.2" cy="5.2" r="1" fill="currentColor"/>
+    </svg>
+  );
+}
+function ShopIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
+      <path d="M1.5 2h13l-1.5 5H3L1.5 2z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
+      <path d="M3 7v6h10V7" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
+      <path d="M6 13v-3h4v3" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
     </svg>
   );
 }
