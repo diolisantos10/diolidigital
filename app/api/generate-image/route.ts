@@ -1,51 +1,42 @@
-export async function POST(request: Request) {
-  const { prompt } = await request.json();
+// POST /api/generate-image
+// Official Dioli design endpoint — generates a visual asset via the GPT image
+// engine (gpt-image-1 → dall-e-3 fallback). Used by the platform's design tools
+// and client deliverables. Keeps the legacy `{ url }` response contract.
 
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    return Response.json(
-      { error: "OPENAI_API_KEY is not set. Add it to your .env.local file." },
-      { status: 500 }
-    );
+import { NextRequest, NextResponse } from "next/server";
+import { getSession } from "@/lib/auth/session";
+import { generateDesign, type DesignSize, type DesignQuality } from "@/lib/ai/design-engine";
+
+export async function POST(request: NextRequest) {
+  const body = (await request.json().catch(() => ({}))) as {
+    prompt?: string;
+    size?: DesignSize;
+    quality?: DesignQuality;
+  };
+
+  if (!body.prompt || typeof body.prompt !== "string") {
+    return NextResponse.json({ error: "prompt is required." }, { status: 400 });
   }
 
-  if (!prompt || typeof prompt !== "string") {
-    return Response.json({ error: "prompt is required." }, { status: 400 });
+  // Workspace-scope the key when a session exists; public callers fall back to
+  // the first configured key / env var.
+  const session = await getSession();
+
+  const result = await generateDesign({
+    prompt: body.prompt,
+    size: body.size,
+    quality: body.quality,
+    workspaceId: session?.workspaceId,
+  });
+
+  if (!result.ok) {
+    const status = result.reason === "not_configured" ? 503 : 500;
+    return NextResponse.json({ error: result.error ?? "Falha ao gerar imagem." }, { status });
   }
 
-  try {
-    const res = await fetch("https://api.openai.com/v1/images/generations", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "dall-e-3",
-        prompt: prompt.slice(0, 4000), // DALL-E 3 hard limit
-        n: 1,
-        size: "1024x1024",
-        quality: "standard",
-      }),
-    });
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      const msg = (err as { error?: { message?: string } }).error?.message ?? `OpenAI returned ${res.status}`;
-      return Response.json({ error: msg }, { status: res.status });
-    }
-
-    const data = (await res.json()) as { data?: { url?: string }[] };
-    const url = data.data?.[0]?.url;
-    if (!url) {
-      return Response.json({ error: "No image URL in OpenAI response." }, { status: 500 });
-    }
-
-    return Response.json({ url });
-  } catch {
-    return Response.json(
-      { error: "Network error — could not reach OpenAI. Check your connection." },
-      { status: 500 }
-    );
-  }
+  return NextResponse.json({
+    url: result.url,
+    model: result.model,
+    revisedPrompt: result.revisedPrompt,
+  });
 }

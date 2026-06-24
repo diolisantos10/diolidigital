@@ -6,6 +6,7 @@ import { useAgencyStore } from "@/store/agency-store";
 import { AGENCY_ROLE_OPTIONS, isNavAllowed, type AgencyRole } from "@/lib/agency/roles";
 import { generateAllAutoTasks } from "@/lib/agency/orchestration/auto-tasks";
 import { DEPARTMENT_DEFS } from "@/lib/agency/departments";
+import { DioliLogo } from "@/components/brand/DioliLogo";
 
 const ROLE_LABEL: Record<string, string> = {
   master:          "Master",
@@ -160,13 +161,7 @@ export default function AgencySidebar({ userInfo }: { userInfo?: UserInfo | null
       <div className="shrink-0">
         {/* Logo row */}
         <div className="h-12 flex items-center px-4 border-b border-white/[0.06]">
-          <div className="flex items-center gap-2.5 flex-1 min-w-0">
-            <svg width="22" height="15" viewBox="0 0 26 18" fill="none">
-              <circle cx="9" cy="9" r="8" stroke="#9AF5F0" strokeWidth="1.8"/>
-              <circle cx="20" cy="9" r="5" fill="#9AF5F0" fillOpacity="0.2" stroke="#9AF5F0" strokeWidth="1.5"/>
-            </svg>
-            <span className="text-[12px] font-semibold tracking-[-0.01em] text-white">Dioli Digital</span>
-          </div>
+          <DioliLogo variant="full" tone="light" markSize={20} className="text-[12px]" />
         </div>
 
         {/* User card — visible and always at the top */}

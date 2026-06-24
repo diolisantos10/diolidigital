@@ -543,10 +543,18 @@ export default function DesignAgentPage() {
   async function handleGenerateImage(postId: number, prompt: string) {
     setImageStates((prev) => ({ ...prev, [postId]: { status: "generating" } }));
     try {
+      // Pick the aspect ratio from the post format so Stories/Reels come out
+      // vertical (9:16-ish) and feed posts square.
+      const fmt = (briefs.find((b) => b.postId === postId)?.format ?? "").toLowerCase();
+      const size = /stor|reel|vertical|9:16/.test(fmt)
+        ? "portrait"
+        : /capa|banner|horizontal|16:9|landscape/.test(fmt)
+        ? "landscape"
+        : "square";
       const res  = await fetch("/api/generate-image", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ prompt }),
+        body:    JSON.stringify({ prompt, size, quality: "high" }),
       });
       const data = await res.json() as { url?: string; error?: string };
       if (!res.ok || data.error) {

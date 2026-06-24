@@ -1,9 +1,24 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
+export const viewport: Viewport = {
+  themeColor: "#070A1F",
+};
+
 export const metadata: Metadata = {
-  title: "Dioli Digital",
-  description: "Estratégia humana. Execução inteligente.",
+  title: {
+    default: "Dioli Digital — Agência Digital com IA",
+    template: "%s · Dioli Digital",
+  },
+  description: "Estratégia humana. Execução inteligente. Social media, tráfego pago e identidade visual potencializados por IA.",
+  applicationName: "Dioli Digital",
+  openGraph: {
+    title: "Dioli Digital — Agência Digital com IA",
+    description: "Estratégia humana. Execução inteligente.",
+    type: "website",
+    locale: "pt_BR",
+    siteName: "Dioli Digital",
+  },
 };
 
 export default function RootLayout({
