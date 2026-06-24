@@ -32,6 +32,8 @@ export function normalizeClientRequest(raw: RawRecord): NormalizedClientRequest 
 
 export type ClientRequestDbStatus =
   | "new"
+  | "scope_ready"
+  | "needs_revision"
   | "waiting_strategy"
   | "waiting_social"
   | "waiting_design"
@@ -91,13 +93,22 @@ export async function getClientRequest(id: string): Promise<NormalizedClientRequ
 
 export async function listClientRequests(options?: {
   workspaceId?: string;
-  status?: ClientRequestDbStatus;
+  status?: ClientRequestDbStatus | string;
   limit?: number;
 }): Promise<NormalizedClientRequest[]> {
+  let statusFilter: Record<string, unknown> | undefined;
+  if (options?.status) {
+    const statuses = options.status.includes(",")
+      ? options.status.split(",").map((s) => s.trim()).filter(Boolean)
+      : [options.status];
+    statusFilter = statuses.length === 1
+      ? { status: statuses[0] }
+      : { status: { in: statuses } };
+  }
   const rows = await prisma.clientRequestDb.findMany({
     where: {
       ...(options?.workspaceId ? { workspaceId: options.workspaceId } : {}),
-      ...(options?.status      ? { status: options.status }           : {}),
+      ...statusFilter,
     },
     orderBy: { createdAt: "desc" },
     take: options?.limit ?? 100,

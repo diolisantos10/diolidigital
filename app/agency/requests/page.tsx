@@ -519,16 +519,16 @@ export default function AgencyRequestsPage() {
   const isMaster = currentRole === "master";
   const isEditorRole = currentRole === "master" || currentRole === "project_manager";
 
-  // ── DB pipeline: real briefing submissions (ClientRequestDb, status "new") ──
+  // ── DB pipeline: real briefing submissions (new + scope_ready + needs_revision) ──
   const {
     requests: dbRequests,
     loading: dbLoading,
     error: dbError,
     reload: reloadDb,
-  } = useDbRequests("new");
-  const [dbSending, setDbSending] = useState<string | null>(null);
+  } = useDbRequests("new,scope_ready,needs_revision");
   const [dbSendError, setDbSendError] = useState<string | null>(null);
   const [dbDeleting, setDbDeleting] = useState<string | null>(null);
+  const [dbGenerating, setDbGenerating] = useState<string | null>(null);
 
   const handleDeleteDbRequest = useCallback(
     async (req: DbRequest) => {
@@ -553,30 +553,27 @@ export default function AgencyRequestsPage() {
     [reloadDb],
   );
 
-  const handleSendToStrategy = useCallback(
+  const handleAutoScope = useCallback(
     async (req: DbRequest) => {
-      setDbSending(req.id);
+      setDbGenerating(req.id);
       setDbSendError(null);
       try {
-        const res = await fetch(
-          `/api/brain/client-requests?id=${encodeURIComponent(req.id)}`,
-          {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ status: "waiting_strategy" }),
-          },
-        );
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status} ao enviar para Estratégia.`);
+        const res = await fetch("/api/brain/auto-scope", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ clientRequestId: req.id }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          throw new Error(data.error ?? `HTTP ${res.status} ao gerar escopo.`);
         }
-        await reloadDb();
+        window.location.assign(`/agency/requests/${req.id}/scope`);
       } catch (e) {
-        setDbSendError(e instanceof Error ? e.message : "Falha ao enviar para Estratégia.");
-      } finally {
-        setDbSending(null);
+        setDbSendError(e instanceof Error ? e.message : "Falha ao gerar escopo.");
+        setDbGenerating(null);
       }
     },
-    [reloadDb],
+    [],
   );
 
   const PIPELINE_ORDER: ClientRequestStatus[] = [
@@ -829,8 +826,18 @@ export default function AgencyRequestsPage() {
           <div className="flex items-center gap-2 px-5 py-3 bg-[#E6FBFA] border-b border-[#9AF5F0]">
             <h2 className="text-[14px] font-semibold text-[#1A1A1A]">Pipeline DB — Briefings reais</h2>
             <span className="h-5 px-2 rounded-full bg-white text-[#070A1F] text-[10px] font-semibold flex items-center border border-[#9AF5F0]">
-              {dbRequests.length} novo{dbRequests.length !== 1 ? "s" : ""}
+              {dbRequests.filter(r => r.status === "new").length} novo{dbRequests.filter(r => r.status === "new").length !== 1 ? "s" : ""}
             </span>
+            {dbRequests.some(r => r.status === "scope_ready") && (
+              <span className="h-5 px-2 rounded-full bg-[#FEF3C7] text-[#92400E] text-[10px] font-semibold flex items-center">
+                {dbRequests.filter(r => r.status === "scope_ready").length} para revisar
+              </span>
+            )}
+            {dbRequests.some(r => r.status === "needs_revision") && (
+              <span className="h-5 px-2 rounded-full bg-[#FEE2E2] text-[#991B1B] text-[10px] font-semibold flex items-center">
+                {dbRequests.filter(r => r.status === "needs_revision").length} revisão
+              </span>
+            )}
             <span className="h-5 px-2 rounded-full bg-[#070A1F] text-white text-[10px] font-semibold flex items-center">
               ✦ Dioli Brain
             </span>
@@ -843,9 +850,20 @@ export default function AgencyRequestsPage() {
           <div className="divide-y divide-[#F0F0ED]">
             {dbRequests.map((req) => {
               const services = parseJson<string[]>(req.services, []);
+              const isGenerating = dbGenerating === req.id;
+              const STATUS_BADGE: Record<string, string> = {
+                new: "bg-[#E6FBFA] text-[#070A1F]",
+                scope_ready: "bg-[#FEF3C7] text-[#92400E]",
+                needs_revision: "bg-[#FEE2E2] text-[#991B1B]",
+              };
+              const STATUS_LABEL: Record<string, string> = {
+                new: "Novo",
+                scope_ready: "Escopo pronto",
+                needs_revision: "Revisão pendente",
+              };
               return (
                 <div key={req.id} className="px-5 py-3.5">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-wrap">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-[13px] font-semibold text-[#1A1A1A]">{req.businessName}</span>
@@ -854,22 +872,59 @@ export default function AgencyRequestsPage() {
                             {req.segment}
                           </span>
                         )}
-                        <span className="h-5 px-2 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[10px] font-semibold">
-                          {req.status}
+                        <span className={`h-5 px-2 rounded-full text-[10px] font-semibold ${STATUS_BADGE[req.status] ?? "bg-[#F0F0ED] text-[#6B6B65]"}`}>
+                          {STATUS_LABEL[req.status] ?? req.status}
                         </span>
                       </div>
                       {services.length > 0 && (
                         <p className="text-[11px] text-[#9B9B95] mt-0.5 truncate">{services.join(", ")}</p>
                       )}
                     </div>
-                    <OrchestratePanel requestId={req.id} onApplied={reloadDb} />
-                    <button
-                      onClick={() => handleSendToStrategy(req)}
-                      disabled={dbSending === req.id}
-                      className="h-8 px-4 rounded-[7px] bg-[#070A1F] hover:bg-[#0D1230] disabled:opacity-50 text-white text-[12px] font-medium transition-colors shrink-0"
-                    >
-                      {dbSending === req.id ? "Enviando…" : "Iniciar Estratégia →"}
-                    </button>
+
+                    {/* Per-status action buttons */}
+                    {req.status === "new" && (
+                      <button
+                        onClick={() => handleAutoScope(req)}
+                        disabled={isGenerating}
+                        className="h-8 px-4 rounded-[7px] bg-[#070A1F] hover:bg-[#0D1230] disabled:opacity-50 text-white text-[12px] font-semibold transition-colors shrink-0 inline-flex items-center gap-1.5"
+                      >
+                        {isGenerating ? (
+                          <>
+                            <span className="w-3 h-3 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                            Gerando escopo…
+                          </>
+                        ) : (
+                          <>✦ Aceitar &amp; Desenhar Projeto</>
+                        )}
+                      </button>
+                    )}
+
+                    {req.status === "scope_ready" && (
+                      <a
+                        href={`/agency/requests/${req.id}/scope`}
+                        className="h-8 px-4 rounded-[7px] bg-[#9AF5F0] hover:bg-[#7DEDE7] text-[#070A1F] text-[12px] font-semibold transition-colors shrink-0 inline-flex items-center gap-1"
+                      >
+                        Ver escopo →
+                      </a>
+                    )}
+
+                    {req.status === "needs_revision" && (
+                      <button
+                        onClick={() => handleAutoScope(req)}
+                        disabled={isGenerating}
+                        className="h-8 px-4 rounded-[7px] border border-[#F59E0B] bg-[#FEF3C7] hover:bg-[#FDE68A] disabled:opacity-50 text-[#92400E] text-[12px] font-semibold transition-colors shrink-0 inline-flex items-center gap-1.5"
+                      >
+                        {isGenerating ? (
+                          <>
+                            <span className="w-3 h-3 rounded-full border-2 border-[#92400E] border-t-transparent animate-spin" />
+                            Redesenhando…
+                          </>
+                        ) : (
+                          <>↺ Redesenhar escopo</>
+                        )}
+                      </button>
+                    )}
+
                     {isMaster && (
                       <button
                         onClick={() => handleDeleteDbRequest(req)}
