@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useCallback } from "react";
 import Link from "next/link";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import { useAgencyStore } from "@/store/agency-store";
+import type { DepartmentOperationMode } from "@/store/agency-store";
 import {
   DEPARTMENT_DEFS,
   AGENT_DEPT_MAP,
@@ -12,6 +13,7 @@ import {
 } from "@/lib/agency/departments";
 import { generateAllAutoTasks } from "@/lib/agency/orchestration/auto-tasks";
 import { needsRevision } from "@/lib/agency/deliverables";
+import { DeptModeBadge } from "@/components/agency/departments/DeptModeSelector";
 
 interface DeptMetrics {
   openTasks: number;
@@ -109,7 +111,7 @@ function StatCell({ label, value, highlight }: { label: string; value: number; h
   );
 }
 
-function DeptCard({ dept, metrics }: { dept: DepartmentDef; metrics: DeptMetrics }) {
+function DeptCard({ dept, metrics, mode }: { dept: DepartmentDef; metrics: DeptMetrics; mode: DepartmentOperationMode }) {
   return (
     <div className="bg-white rounded-[12px] border border-[#E8E8E3] flex flex-col hover:border-[#C8C8C3] transition-colors">
       <div className="p-5 flex-1">
@@ -128,6 +130,7 @@ function DeptCard({ dept, metrics }: { dept: DepartmentDef; metrics: DeptMetrics
               </div>
             </div>
           </div>
+          <DeptModeBadge mode={mode} />
         </div>
 
         <p className="text-[12px] text-[#6B6B65] leading-relaxed mb-4 line-clamp-2">{dept.mission}</p>
@@ -191,21 +194,28 @@ function DeptCard({ dept, metrics }: { dept: DepartmentDef; metrics: DeptMetrics
 
 export default function DepartmentsPage() {
   const store = useAgencyStore();
-  const { projects, clients, deliverables, tasks, materialRequests, strategyRooms } = store;
+  const { projects, clients, deliverables, tasks, materialRequests, strategyRooms, departmentConfigs, saveDepartmentConfig } = store;
 
   const autoTasks = useMemo(
     () => generateAllAutoTasks({ projects, clients, deliverables, tasks, materialRequests, strategyRooms }),
     [projects, clients, deliverables, tasks, materialRequests, strategyRooms]
   );
 
+  const getDeptMode = useCallback((deptId: string): DepartmentOperationMode => {
+    const saved = departmentConfigs?.find((c) => c.departmentId === deptId)?.operationMode;
+    if (saved) return saved;
+    return deptId === "project-management" ? "hybrid" : "full_ai";
+  }, [departmentConfigs]);
+
   const deptData = useMemo(
     () =>
       DEPARTMENT_DEFS.map((dept) => ({
         dept,
         metrics: computeMetrics(dept, store, autoTasks),
+        mode: getDeptMode(dept.id),
       })),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [autoTasks, deliverables, projects]
+    [autoTasks, deliverables, projects, getDeptMode]
   );
 
   const healthy = deptData.filter((d) => d.metrics.status === "healthy").length;
@@ -213,11 +223,14 @@ export default function DepartmentsPage() {
   const idle = deptData.filter((d) => d.metrics.status === "idle").length;
   const totalTasks = deptData.reduce((s, d) => s + d.metrics.openTasks, 0);
 
+  // Departments under PM command (excludes project-management itself)
+  const subDepts = DEPARTMENT_DEFS.filter((d) => d.id !== "project-management" && d.id !== "operations");
+
   return (
     <div>
       <AgencyHeader
         title="Visão Geral dos Departamentos"
-        subtitle="Linha de produção da Dioli Agência — cada departamento com missão, agente e métricas operacionais."
+        subtitle="Linha de produção da Dioli Agência — hierarquia de operação e métricas por departamento."
         actions={
           <Link
             href="/agency/production/new"
@@ -230,6 +243,105 @@ export default function DepartmentsPage() {
           </Link>
         }
       />
+
+      {/* ── Hierarchy banner ─────────────────────────────────────────────────── */}
+      <div className="rounded-[14px] border border-[#9AF5F0] bg-[#070A1F] px-6 py-5 mb-6">
+        <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#9AF5F0]/60 mb-3">
+          ✦ Hierarquia de Operação — Dioli Agency OS
+        </div>
+        <div className="flex flex-col gap-3">
+
+          {/* Layer 1: Master */}
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-[10px] bg-[#9AF5F0] flex items-center justify-center text-[#070A1F] font-bold text-[13px] shrink-0">M</div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[13px] font-semibold text-white">Master</div>
+              <div className="text-[11px] text-white/50">Acesso e controle total da agência — modifica qualquer configuração.</div>
+            </div>
+            <span className="shrink-0 h-5 px-2 rounded-full bg-white/10 text-white/70 text-[10px] font-semibold">Nível 1</span>
+          </div>
+
+          <div className="ml-4 border-l border-white/10 pl-4">
+
+            {/* Layer 2: PM */}
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-8 h-8 rounded-[9px] bg-[#DCFCE7] flex items-center justify-center text-[#166534] font-bold text-[12px] shrink-0">PM</div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[13px] font-semibold text-white">Project Manager</div>
+                <div className="text-[11px] text-white/50">Comanda e autoriza todos os departamentos. Decisão humana.</div>
+              </div>
+              <span className="shrink-0 h-5 px-2 rounded-full bg-[#DCFCE7]/20 text-[#86EFAC] text-[10px] font-semibold border border-[#86EFAC]/40">⚡ Híbrido</span>
+            </div>
+
+            <div className="ml-4 border-l border-white/10 pl-4">
+
+              {/* Layer 3: Departments */}
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-white/30 mb-2">Departamentos — 100% IA Autônoma</div>
+              <div className="flex flex-wrap gap-2">
+                {subDepts.map((d) => {
+                  const m = getDeptMode(d.id);
+                  return (
+                    <Link
+                      key={d.id}
+                      href={`/agency/departments/${d.id}`}
+                      className="inline-flex items-center gap-1.5 h-7 px-3 rounded-[7px] text-[11px] font-medium transition-colors"
+                      style={{ backgroundColor: `${d.color}22`, color: d.color, border: `1px solid ${d.color}44` }}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: d.color }} />
+                      {d.name}
+                      {m !== "full_ai" && <span className="text-white/50 text-[9px]">({m === "hybrid" ? "híbrido" : "humano"})</span>}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Quick mode control ───────────────────────────────────────────────── */}
+      <div className="bg-white rounded-[12px] border border-[#E8E8E3] px-5 py-4 mb-6">
+        <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#9B9B95] mb-3">Controle de modos — todos os departamentos</div>
+        <div className="space-y-2">
+          {DEPARTMENT_DEFS.map((dept) => {
+            const mode = getDeptMode(dept.id);
+            const options: { id: DepartmentOperationMode; label: string; icon: string }[] = [
+              { id: "full_ai",    label: "IA Autônoma", icon: "✦" },
+              { id: "hybrid",     label: "Híbrido",     icon: "⚡" },
+              { id: "full_human", label: "Humano",      icon: "👤" },
+            ];
+            return (
+              <div key={dept.id} className="flex items-center gap-3">
+                <div className="flex items-center gap-2 w-44 shrink-0">
+                  <div className="w-5 h-5 rounded-[5px] text-white text-[10px] font-bold flex items-center justify-center shrink-0" style={{ backgroundColor: dept.color }}>
+                    {dept.name.charAt(0)}
+                  </div>
+                  <span className="text-[12px] font-medium text-[#1A1A1A] truncate">{dept.name}</span>
+                </div>
+                <div className="flex gap-1">
+                  {options.map((opt) => (
+                    <button
+                      key={opt.id}
+                      onClick={() => saveDepartmentConfig(dept.id, { operationMode: opt.id })}
+                      className="h-7 px-2.5 rounded-[6px] text-[11px] font-medium transition-colors"
+                      style={mode === opt.id ? {
+                        background: dept.color,
+                        color: "#FFFFFF",
+                      } : {
+                        background: "#F7F7F6",
+                        color: "#6B6B65",
+                        border: "1px solid #E8E8E3",
+                      }}
+                    >
+                      {opt.icon} {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       {/* Summary bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
@@ -250,8 +362,8 @@ export default function DepartmentsPage() {
 
       {/* Department grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {deptData.map(({ dept, metrics }) => (
-          <DeptCard key={dept.id} dept={dept} metrics={metrics} />
+        {deptData.map(({ dept, metrics, mode }) => (
+          <DeptCard key={dept.id} dept={dept} metrics={metrics} mode={mode} />
         ))}
       </div>
 

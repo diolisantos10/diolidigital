@@ -193,7 +193,9 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
 
   const savedConfig = departmentConfigs?.find((c) => c.departmentId === dept.id);
   const activePrompt = promptDraft ?? savedConfig?.currentPrompt ?? dept.defaultPrompt;
-  const operationMode: DepartmentOperationMode = savedConfig?.operationMode ?? "hybrid";
+  // PM defaults to hybrid (human decision-maker); all other departments default to full_ai.
+  const defaultMode: DepartmentOperationMode = dept.id === "project-management" ? "hybrid" : "full_ai";
+  const operationMode: DepartmentOperationMode = savedConfig?.operationMode ?? defaultMode;
 
   function handleModeChange(next: DepartmentOperationMode) {
     saveDepartmentConfig(id, { operationMode: next });

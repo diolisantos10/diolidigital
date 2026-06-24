@@ -58,6 +58,32 @@ import {
 } from "@/lib/agency/intelligence/openai-schemas";
 import type { ClientRequest, ClientRequestStatus } from "@/lib/agency/client-requests";
 
+// ─── Department operation-mode defaults ───────────────────────────────────────
+// PM = hybrid (human decision-maker commands the operation).
+// All other departments = full_ai (AI runs autonomously).
+// These are overrideable per-dept via saveDepartmentConfig.
+
+function buildDefaultDepartmentConfigs(): DepartmentConfig[] {
+  const depts = [
+    { id: "project-management", mode: "hybrid" as DepartmentOperationMode },
+    { id: "strategy",           mode: "full_ai" as DepartmentOperationMode },
+    { id: "brand-hub",          mode: "full_ai" as DepartmentOperationMode },
+    { id: "social-media",       mode: "full_ai" as DepartmentOperationMode },
+    { id: "design",             mode: "full_ai" as DepartmentOperationMode },
+    { id: "paid-traffic",       mode: "full_ai" as DepartmentOperationMode },
+    { id: "operations",         mode: "full_ai" as DepartmentOperationMode },
+  ];
+  const now = new Date().toISOString();
+  return depts.map((d) => ({
+    departmentId: d.id,
+    currentPrompt: "",
+    promptUpdatedAt: now,
+    aiProvider: "rule_based",
+    model: "rule_based",
+    operationMode: d.mode,
+  }));
+}
+
 // ─── Brand Update ─────────────────────────────────────────────────────────────
 // A pending brand suggestion from the client portal, a manual internal edit,
 // or an uploaded Brand Book. NOT applied to BrandBrain until reviewed internally.
@@ -261,7 +287,8 @@ export const useAgencyStore = create<AgencyState>()(
       clientRequests: [],
       integrationConfigs: buildDefaultIntegrationConfigs(),
       agentProviderConfigs: buildDefaultAgentProviderConfigs(),
-      departmentConfigs: [],
+      // Default hierarchy: PM = hybrid (human commands), all other depts = full_ai.
+      departmentConfigs: buildDefaultDepartmentConfigs(),
       aiRunLogs: [],
 
       // ── Department configs ────────────────────────────────────────────────
@@ -1327,7 +1354,7 @@ export const useAgencyStore = create<AgencyState>()(
           strategyRooms: [],
           brandUpdates: [],
           clientRequests: [],
-          departmentConfigs: [],
+          departmentConfigs: buildDefaultDepartmentConfigs(),
           aiRunLogs: [],
           integrationConfigs: buildDefaultIntegrationConfigs(),
           agentProviderConfigs: buildDefaultAgentProviderConfigs(),
