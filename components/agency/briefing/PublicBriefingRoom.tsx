@@ -1322,7 +1322,7 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
                     {pkg.label.replace("Plano ", "")}
                   </span>
                   <span className="text-[#9B9B95] ml-1">
-                    {pkg.postsPerMonth} posts
+                    {pkg.postsPerWeek} posts/sem
                     {pkg.reelsPerMonth > 0 ? ` · ${pkg.reelsPerMonth} reels` : ""}
                   </span>
                 </div>

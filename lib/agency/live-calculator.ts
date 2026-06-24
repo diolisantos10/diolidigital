@@ -21,8 +21,10 @@ export type CommunityLevel = "none" | "basic" | "full";
 export interface PackageDef {
   id: SocialPackage;
   label: string;
-  postsPerMonth: number;
-  storiesPerMonth: number;
+  postsPerWeek: number;    // primary cadence shown to clients
+  storiesPerWeek: number;
+  postsPerMonth: number;   // = postsPerWeek * 4 (derived, kept for legacy reads)
+  storiesPerMonth: number; // = storiesPerWeek * 4
   reelsPerMonth: number;   // reels included in the plan
   copy: boolean;           // copywriting (textos) included
   design: boolean;         // custom design / artes
@@ -34,91 +36,103 @@ export interface PackageDef {
   description: string;
 }
 
-// Startup-friendly pricing — lowest viable rung of the market.
+// Agency-grade volume (per week), startup-friendly pricing. Cadence is weekly
+// because that's how a real operation runs — not a handful of posts a month.
 export const SOCIAL_PACKAGES: PackageDef[] = [
   {
     id: "essencial",
     label: "Plano Essencial",
-    postsPerMonth: 4,
-    storiesPerMonth: 4,
-    reelsPerMonth: 0,
+    postsPerWeek: 3,
+    storiesPerWeek: 5,
+    postsPerMonth: 12,
+    storiesPerMonth: 20,
+    reelsPerMonth: 2,
     copy: true,
     design: true,
     calendar: false,
     reports: "none",
     community: "none",
-    minPrice: 400,
-    maxPrice: 600,
-    description: "4 posts + 4 stories/mês — presença mínima para começar",
+    minPrice: 600,
+    maxPrice: 900,
+    description: "3 posts + 5 stories/semana + 2 reels/mês — presença consistente",
   },
   {
     id: "starter",
     label: "Plano Starter",
-    postsPerMonth: 8,
-    storiesPerMonth: 8,
-    reelsPerMonth: 1,
+    postsPerWeek: 5,
+    storiesPerWeek: 7,
+    postsPerMonth: 20,
+    storiesPerMonth: 28,
+    reelsPerMonth: 4,
     copy: true,
     design: true,
     calendar: true,
     reports: "basic",
     community: "none",
-    minPrice: 700,
-    maxPrice: 1100,
-    description: "8 posts + 8 stories + 1 reel/mês — primeiro passo consistente",
+    minPrice: 900,
+    maxPrice: 1400,
+    description: "5 posts + 7 stories/semana + 4 reels/mês — ritmo profissional",
   },
   {
     id: "growth",
     label: "Plano Growth",
-    postsPerMonth: 12,
-    storiesPerMonth: 16,
-    reelsPerMonth: 2,
+    postsPerWeek: 7,
+    storiesPerWeek: 10,
+    postsPerMonth: 28,
+    storiesPerMonth: 40,
+    reelsPerMonth: 6,
     copy: true,
     design: true,
     calendar: true,
     reports: "basic",
     community: "basic",
-    minPrice: 1200,
-    maxPrice: 1800,
-    description: "12 posts + 16 stories + 2 reels/mês — ritmo constante",
+    minPrice: 1500,
+    maxPrice: 2400,
+    description: "1 post/dia + 10 stories/semana + 6 reels/mês — ritmo constante",
   },
   {
     id: "pro",
     label: "Plano Pro",
-    postsPerMonth: 20,
-    storiesPerMonth: 30,
-    reelsPerMonth: 4,
+    postsPerWeek: 10,
+    storiesPerWeek: 14,
+    postsPerMonth: 40,
+    storiesPerMonth: 56,
+    reelsPerMonth: 10,
     copy: true,
     design: true,
     calendar: true,
     reports: "advanced",
     community: "full",
-    minPrice: 2000,
-    maxPrice: 3200,
-    description: "20 posts + 30 stories + 4 reels/mês — presença forte",
+    minPrice: 2500,
+    maxPrice: 4000,
+    description: "10 posts + 14 stories/semana + 10 reels/mês — presença forte",
   },
   {
     id: "premium",
     label: "Plano Premium",
-    postsPerMonth: 30,
-    storiesPerMonth: 45,
-    reelsPerMonth: 8,
+    postsPerWeek: 15,
+    storiesPerWeek: 21,
+    postsPerMonth: 60,
+    storiesPerMonth: 84,
+    reelsPerMonth: 16,
     copy: true,
     design: true,
     calendar: true,
     reports: "advanced",
     community: "full",
-    minPrice: 3500,
-    maxPrice: 5000,
-    description: "30 posts + 45 stories + 8 reels/mês — operação de marca completa",
+    minPrice: 4000,
+    maxPrice: 6500,
+    description: "15 posts + 21 stories/semana + 16 reels/mês — operação de marca completa",
   },
 ];
 
+// Receives posts-per-MONTH (scope stores postsPerWeek; estimate passes *4).
 export function detectPackage(postsPerMonth: number): SocialPackage {
-  if (postsPerMonth <= 4)  return "essencial";
-  if (postsPerMonth <= 8)  return "starter";
-  if (postsPerMonth <= 14) return "growth";
-  if (postsPerMonth <= 22) return "pro";
-  return "premium";
+  if (postsPerMonth <= 14) return "essencial"; // ~3/semana
+  if (postsPerMonth <= 24) return "starter";   // ~5/semana
+  if (postsPerMonth <= 34) return "growth";    // ~7/semana
+  if (postsPerMonth <= 50) return "pro";       // ~10/semana
+  return "premium";                             // 15+/semana
 }
 
 export function getPackageDef(id: SocialPackage): PackageDef {
@@ -169,7 +183,7 @@ export function computeEstimate(scope: BriefingScope): LiveEstimate {
 
       items.push({
         label:    pkg.label,
-        detail:   `${pkg.postsPerMonth} posts + ${pkg.storiesPerMonth} stories${pkg.reelsPerMonth > 0 ? ` + ${pkg.reelsPerMonth} reels` : ""}/mês`,
+        detail:   `${pkg.postsPerWeek} posts + ${pkg.storiesPerWeek} stories/semana${pkg.reelsPerMonth > 0 ? ` · ${pkg.reelsPerMonth} reels/mês` : ""}`,
         minPrice: pkg.minPrice,
         maxPrice: pkg.maxPrice,
         unit:     "mês",
@@ -177,8 +191,8 @@ export function computeEstimate(scope: BriefingScope): LiveEstimate {
       totalMin += pkg.minPrice;
       totalMax += pkg.maxPrice;
 
-      included.push(`${pkg.postsPerMonth} posts/mês`);
-      included.push(`${pkg.storiesPerMonth} stories/mês`);
+      included.push(`${pkg.postsPerWeek} posts/semana (${pkg.postsPerMonth}/mês)`);
+      included.push(`${pkg.storiesPerWeek} stories/semana`);
       if (pkg.reelsPerMonth > 0) included.push(`${pkg.reelsPerMonth} reels/mês (edição)`);
       if (pkg.copy)     included.push("Copywriting (textos)");
       if (pkg.design)   included.push("Design personalizado das artes");

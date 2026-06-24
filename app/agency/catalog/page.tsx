@@ -26,8 +26,9 @@ function Check({ on }: { on: boolean }) {
 type Row = { label: string; render: (p: PackageDef) => ReactNode };
 
 const SOCIAL_ROWS: Row[] = [
-  { label: "Posts/mês",            render: (p) => p.postsPerMonth },
-  { label: "Stories/mês",          render: (p) => p.storiesPerMonth },
+  { label: "Posts/semana",         render: (p) => <span className="font-semibold">{p.postsPerWeek}</span> },
+  { label: "Stories/semana",       render: (p) => p.storiesPerWeek },
+  { label: "Total posts/mês",      render: (p) => <span className="text-[#9B9B95]">{p.postsPerMonth}</span> },
   { label: "Reels/mês",            render: (p) => (p.reelsPerMonth > 0 ? p.reelsPerMonth : <Check on={false} />) },
   { label: "Copywriting",          render: (p) => <Check on={p.copy} /> },
   { label: "Design personalizado", render: (p) => <Check on={p.design} /> },
