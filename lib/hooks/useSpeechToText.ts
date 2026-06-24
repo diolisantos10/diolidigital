@@ -1,49 +1,17 @@
 // ─── useSpeechToText ─────────────────────────────────────────────────────────
-// Client-only hook. Wraps the browser Web Speech API (SpeechRecognition /
-// webkitSpeechRecognition). Safe to import in server-rendered pages — all
-// window access is gated inside useEffect so SSR never crashes.
+// Records audio via MediaRecorder, sends it to /api/sdr/transcribe (Whisper),
+// and delivers the Portuguese transcript via onTranscript.
+//
+// Drop-in replacement for the old Web Speech API hook — same interface.
+// Safe to import in server-rendered pages; all browser API access is gated
+// inside useEffect / async callbacks.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useRef, useCallback, useEffect } from "react";
 
-// Minimal local interface — avoids needing SpeechRecognition in lib.dom
-interface SpeechRecognitionResult {
-  readonly isFinal: boolean;
-  readonly [index: number]: { readonly transcript: string };
-}
-interface SpeechRecognitionResultList {
-  readonly length: number;
-  readonly [index: number]: SpeechRecognitionResult;
-}
-interface SpeechRecognitionEvent {
-  readonly resultIndex: number;
-  readonly results: SpeechRecognitionResultList;
-}
-interface SpeechRecognitionErrorEvent {
-  readonly error: string;
-}
-interface ISpeechRecognition {
-  lang: string;
-  continuous: boolean;
-  interimResults: boolean;
-  onresult: ((event: SpeechRecognitionEvent) => void) | null;
-  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
-  onend: (() => void) | null;
-  start: () => void;
-  stop: () => void;
-  abort: () => void;
-}
-interface SpeechRecognitionConstructor {
-  new(): ISpeechRecognition;
-}
-type WindowWithSpeech = Window & {
-  SpeechRecognition?: SpeechRecognitionConstructor;
-  webkitSpeechRecognition?: SpeechRecognitionConstructor;
-};
-
 interface UseSpeechToTextOptions {
   onTranscript: (text: string) => void;
-  lang?: string;
+  lang?: string; // kept for interface compatibility; Whisper always uses pt
 }
 
 export interface UseSpeechToTextReturn {
@@ -54,82 +22,101 @@ export interface UseSpeechToTextReturn {
   stopListening: () => void;
 }
 
+function mimeToExt(mime: string): string {
+  if (mime.includes("ogg"))  return "ogg";
+  if (mime.includes("mp4"))  return "mp4";
+  if (mime.includes("mpeg")) return "mpeg";
+  return "webm";
+}
+
 export function useSpeechToText({
   onTranscript,
-  lang = "pt-BR",
 }: UseSpeechToTextOptions): UseSpeechToTextReturn {
-  const [isListening, setIsListening] = useState(false);
-  const [isSupported, setIsSupported] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [isListening,  setIsListening]  = useState(false);
+  const [isSupported,  setIsSupported]  = useState(false);
+  const [error,        setError]        = useState<string | null>(null);
 
-  const recognitionRef = useRef<ISpeechRecognition | null>(null);
-
-  // Keep onTranscript stable without adding it to the effect deps.
-  // This prevents recreating the recognition object on every render.
-  const onTranscriptRef = useRef(onTranscript);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef        = useRef<Blob[]>([]);
+  const onTranscriptRef  = useRef(onTranscript);
   onTranscriptRef.current = onTranscript;
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const win = window as WindowWithSpeech;
-    const SR = win.SpeechRecognition ?? win.webkitSpeechRecognition;
-    if (!SR) return;
-
-    setIsSupported(true);
-
-    const recognition = new SR();
-    recognition.lang = lang;
-    recognition.continuous = true;
-    recognition.interimResults = false;
-
-    recognition.onresult = (event) => {
-      let transcript = "";
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        if (event.results[i].isFinal) {
-          transcript += event.results[i][0].transcript;
-        }
-      }
-      if (transcript.trim()) {
-        onTranscriptRef.current(transcript.trim());
-      }
-    };
-
-    recognition.onerror = (event) => {
-      if (event.error === "not-allowed") {
-        setError("Permissão de microfone negada. Ative o acesso ao microfone nas configurações do navegador.");
-      } else if (event.error !== "no-speech") {
-        setError("Erro no reconhecimento de voz. Tente novamente.");
-      }
-      setIsListening(false);
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-    };
-
-    recognitionRef.current = recognition;
-
-    return () => {
-      recognition.abort();
-    };
-  }, [lang]);
-
-  const startListening = useCallback(() => {
-    const r = recognitionRef.current;
-    if (!r) return;
-    setError(null);
-    try {
-      r.start();
-      setIsListening(true);
-    } catch {
-      // start() throws DOMException if already started — ignore
+    if (typeof window !== "undefined" && !!navigator.mediaDevices?.getUserMedia) {
+      setIsSupported(true);
     }
   }, []);
 
   const stopListening = useCallback(() => {
-    recognitionRef.current?.stop();
-    // onend fires and sets isListening to false
+    const mr = mediaRecorderRef.current;
+    if (mr && mr.state === "recording") {
+      mr.stop(); // triggers onstop → upload → setIsListening(false)
+    }
+  }, []);
+
+  const startListening = useCallback(async () => {
+    if (mediaRecorderRef.current?.state === "recording") return;
+
+    setError(null);
+
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      setError("Permissão de microfone negada. Ative o acesso ao microfone nas configurações do navegador.");
+      return;
+    }
+
+    chunksRef.current = [];
+
+    // Prefer webm (Chrome, Edge); fall back to browser default (Firefox → ogg)
+    const preferWebm = MediaRecorder.isTypeSupported("audio/webm");
+    const mr = new MediaRecorder(stream, preferWebm ? { mimeType: "audio/webm" } : {});
+    mediaRecorderRef.current = mr;
+
+    mr.ondataavailable = (e) => {
+      if (e.data.size > 0) chunksRef.current.push(e.data);
+    };
+
+    mr.onstop = async () => {
+      // Release mic indicator immediately
+      stream.getTracks().forEach((t) => t.stop());
+
+      const blob = new Blob(chunksRef.current, { type: mr.mimeType || "audio/webm" });
+      chunksRef.current = [];
+
+      // Skip clips too short to produce a useful transcript
+      if (blob.size < 1_000) {
+        setIsListening(false);
+        return;
+      }
+
+      try {
+        const ext  = mimeToExt(mr.mimeType || "audio/webm");
+        const form = new FormData();
+        form.append("file", blob, `audio.${ext}`);
+
+        const res = await fetch("/api/sdr/transcribe", { method: "POST", body: form });
+        if (!res.ok) throw new Error("http_error");
+
+        const data = (await res.json()) as { ok?: boolean; text?: string; reason?: string };
+
+        if (data.ok && data.text?.trim()) {
+          onTranscriptRef.current(data.text.trim());
+        } else if (data.reason === "not_configured") {
+          setError("Transcrição por voz não configurada. Adicione a chave OpenAI nas Integrações.");
+        } else if (data.reason !== "empty_transcript") {
+          setError("Não consegui transcrever o áudio. Tente novamente.");
+        }
+      } catch {
+        setError("Erro ao enviar o áudio. Verifique a conexão e tente novamente.");
+      } finally {
+        setIsListening(false);
+      }
+    };
+
+    mr.start();
+    setIsListening(true);
   }, []);
 
   return { isListening, isSupported, error, startListening, stopListening };
