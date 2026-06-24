@@ -3,8 +3,6 @@
 
 export type TemplateId =
   | "dioli_digital"
-  | "fute_foocci"
-  | "sushi_cazza"
   | "digital_solution";
 
 export interface TemplateDeliverable {
@@ -77,76 +75,6 @@ export const PRODUCTION_TEMPLATES: ProductionTemplate[] = [
     ],
     agents: ["a3", "a2", "a4"],
     color: "#070A1F",
-  },
-  {
-    id: "fute_foocci",
-    name: "Fute / Foocci",
-    description: "SaaS de tecnologia para restaurantes — posicionamento B2B com foco em escalabilidade",
-    industry: "SaaS / Tecnologia para Restaurantes",
-    projectType: "launch",
-    departments: ["strategy", "social-media", "design", "paid-traffic"],
-    strategyFocus: [
-      "Posicionamento B2B para donos de restaurante",
-      "Comunicação técnica + emocional (ROI + simplicidade)",
-      "Lançamento com estratégia de product-led growth",
-    ],
-    proposalPackage: "Strategy + Branding + Social Media + Ads (LinkedIn + Meta)",
-    starterBrandHub: {
-      tone: "Confiante, prático e inovador",
-      values: ["Eficiência", "Tecnologia", "Resultado para o restaurante"],
-      targetAudience: "Donos e gestores de restaurantes que querem digitalizar operações",
-      positioning: "A plataforma mais simples e completa para restaurantes modernos",
-    },
-    suggestedDeliverables: [
-      { name: "Identidade visual — versão SaaS", type: "design", department: "design" },
-      { name: "Apresentação de posicionamento B2B", type: "document", department: "strategy" },
-      { name: "Landing page — copy e estrutura", type: "copy", department: "social-media" },
-      { name: "Posts LinkedIn — autoridade B2B", type: "social_post", department: "social-media" },
-      { name: "Campanha Meta Ads — geração de leads", type: "ads", department: "paid-traffic" },
-      { name: "Materiais de onboarding (deck)", type: "document", department: "design" },
-    ],
-    materialRequests: [
-      { type: "logo", description: "Logo atual em vetor para adaptação" },
-      { type: "product_screens", description: "Screenshots/mockups do produto para uso em materiais" },
-      { type: "case_studies", description: "Cases de clientes existentes para prova social" },
-    ],
-    agents: ["a3", "a2", "a4"],
-    color: "#0E7490",
-  },
-  {
-    id: "sushi_cazza",
-    name: "Sushi Cazza",
-    description: "Restaurante de sushi e rodízio — marca local, delivery e presença digital forte",
-    industry: "Gastronomia / Restaurante",
-    projectType: "branding",
-    departments: ["social-media", "design", "paid-traffic"],
-    strategyFocus: [
-      "Posicionamento premium-acessível no mercado local",
-      "Comunicação visual forte com foco em apetite-appeal",
-      "Estratégia de delivery + visitas presenciais",
-    ],
-    proposalPackage: "Social Media + Design + Tráfego Local (Meta Ads geolocalizado)",
-    starterBrandHub: {
-      tone: "Caloroso, apetitoso e autêntico",
-      values: ["Qualidade", "Experiência", "Tradição japonesa com toque brasileiro"],
-      targetAudience: "Amantes de sushi e culinária japonesa na região, 25-45 anos",
-      positioning: "O melhor rodízio de sushi da cidade — experiência premium sem complicação",
-    },
-    suggestedDeliverables: [
-      { name: "Identidade visual completa", type: "design", department: "design" },
-      { name: "Pack de posts — cardápio visual (10)", type: "social_post", department: "social-media" },
-      { name: "Stories de promoção semanal", type: "social_post", department: "social-media" },
-      { name: "Campanha Meta Ads — geolocalizada", type: "ads", department: "paid-traffic" },
-      { name: "Copy para delivery (iFood/Rappi)", type: "copy", department: "social-media" },
-      { name: "Calendário editorial — Mês 1", type: "planning", department: "social-media" },
-    ],
-    materialRequests: [
-      { type: "photos", description: "Fotos profissionais dos pratos para feed do Instagram" },
-      { type: "menu", description: "Cardápio completo com preços para criação de conteúdo" },
-      { type: "logo", description: "Logo atual ou briefing para criação de nova identidade" },
-    ],
-    agents: ["a3", "a2", "a4"],
-    color: "#C2530A",
   },
   {
     id: "digital_solution",

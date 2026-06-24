@@ -7,6 +7,7 @@ import { AGENCY_ROLE_OPTIONS, isNavAllowed, type AgencyRole } from "@/lib/agency
 import { generateAllAutoTasks } from "@/lib/agency/orchestration/auto-tasks";
 import { DEPARTMENT_DEFS } from "@/lib/agency/departments";
 import { DioliLogo } from "@/components/brand/DioliLogo";
+import RoleGuide, { useRoleGuide } from "@/components/agency/onboarding/RoleGuide";
 
 const ROLE_LABEL: Record<string, string> = {
   master:          "Master",
@@ -68,6 +69,8 @@ export default function AgencySidebar({ userInfo, mobileOpen = false, onMobileCl
   const pendingCount = usePendingCount();
   const taskBadgeCount = useTaskBadgeCount();
   const newRequestsCount = useNewRequestsCount();
+  // Role getting-started guide — auto-opens on a role's first visit, re-openable below.
+  const { guideOpen, openGuide, closeGuide } = useRoleGuide(currentRole);
 
   const NAV = [
     {
@@ -274,8 +277,23 @@ export default function AgencySidebar({ userInfo, mobileOpen = false, onMobileCl
         })}
       </nav>
 
-      {/* ── Bottom: role switcher ─────────────────────────────────────────────── */}
+      {/* ── Bottom: role guide + role switcher ────────────────────────────────── */}
       <div className="px-3 py-3 shrink-0" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+        <button
+          onClick={openGuide}
+          className="w-full flex items-center gap-2 mb-2.5 px-2.5 py-2 rounded-[7px] text-[11.5px] font-medium transition-colors"
+          style={{ background: "rgba(154,245,240,0.10)", color: "#9AF5F0" }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(154,245,240,0.18)")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(154,245,240,0.10)")}
+          title="Abrir o guia desta função"
+        >
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="shrink-0">
+            <circle cx="8" cy="8" r="6.25" stroke="currentColor" strokeWidth="1.3" />
+            <path d="M6.4 6.2a1.6 1.6 0 113.05.7c-.27.74-1.45.93-1.45 1.85" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+            <circle cx="8" cy="11.2" r="0.55" fill="currentColor" />
+          </svg>
+          <span className="flex-1 text-left truncate">Guia da função</span>
+        </button>
         <div className="text-[9px] font-semibold uppercase tracking-[0.1em] mb-1.5 px-1"
              style={{ color: "rgba(255,255,255,0.22)" }}>
           Visualizar como
@@ -287,15 +305,21 @@ export default function AgencySidebar({ userInfo, mobileOpen = false, onMobileCl
           style={{
             background: "rgba(255,255,255,0.05)",
             border: "1px solid rgba(255,255,255,0.08)",
-            color: "rgba(255,255,255,0.5)",
+            color: "rgba(255,255,255,0.85)",
           }}
         >
           {AGENCY_ROLE_OPTIONS.map((r) => (
-            <option key={r.id} value={r.id}>{r.label}</option>
+            // Explicit dark bg + light text so the open dropdown is legible —
+            // browsers render <option> with a system-default (light) background,
+            // which made white-on-white text invisible.
+            <option key={r.id} value={r.id} style={{ background: "#0B0F24", color: "#FFFFFF" }}>
+              {r.label}
+            </option>
           ))}
         </select>
       </div>
     </aside>
+    <RoleGuide role={currentRole} open={guideOpen} onClose={closeGuide} />
     </>
   );
 }
