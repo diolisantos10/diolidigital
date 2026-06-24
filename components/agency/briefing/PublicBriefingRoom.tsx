@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import type { ConvState, ConvMessage, BriefingScope, LiveEstimate } from "@/lib/agency/briefing-conversation";
 import { initProspectConvState, processProspectMessage, type ProspectConvState } from "@/lib/agency/prospect-engine";
 import { canSubmitProposal, getSubmissionBlockReason, buildHandoffSummary } from "@/lib/agency/sdr-agent";
-import { detectPackage, getPackageDef, SOCIAL_PACKAGES } from "@/lib/agency/live-calculator";
+import { detectPackage, getPackageDef, SOCIAL_PACKAGES, computeEstimate } from "@/lib/agency/live-calculator";
 import { MaterialsLinkField } from "@/components/agency/briefing/FileUploadZone";
 import { useSpeechToText } from "@/lib/hooks/useSpeechToText";
 import type { RequestAttachment, ExtractedRequestSummary } from "@/lib/agency/client-requests";
@@ -426,11 +426,124 @@ function ProposalCard({
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
+// ── Claude SDR integration ─────────────────────────────────────────────────────
+// The conversational brain. Calls /api/sdr/chat for a natural reply + scope
+// patch. Returns null on any failure so the caller falls back to the rule-based
+// engine (Lei 2). The patch only FILLS gaps in the rule-based scope — it never
+// overwrites confirmed data, so the live estimate machinery stays stable.
+
+interface SdrReply { reply: string; scope: Record<string, unknown> }
+
+async function fetchSdrReply(
+  priorMessages: ConvMessage[],
+  currentMessage: string,
+  scope: BriefingScope,
+): Promise<SdrReply | null> {
+  try {
+    const res = await fetch("/api/sdr/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: priorMessages.map((m) => ({ role: m.role, text: m.text })),
+        currentMessage,
+        scope,
+      }),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { ok?: boolean; reply?: unknown; scope?: unknown };
+    if (!data.ok || typeof data.reply !== "string" || !data.reply.trim()) return null;
+    return {
+      reply: data.reply.trim(),
+      scope: data.scope && typeof data.scope === "object" ? (data.scope as Record<string, unknown>) : {},
+    };
+  } catch {
+    return null;
+  }
+}
+
+function asNum(v: unknown): number | undefined {
+  return typeof v === "number" && Number.isFinite(v) ? v : undefined;
+}
+
+// Gap-fill merge: only writes fields the rule-based scope hasn't already set.
+function mergeScopeGaps(base: BriefingScope, patch: Record<string, unknown>): BriefingScope {
+  if (!patch || typeof patch !== "object") return base;
+  const out: BriefingScope = { ...base };
+
+  const fillStr = (key: "prospectName" | "businessName" | "segment" | "prospectPhone" | "budgetRange" | "deadline") => {
+    if (!out[key] && typeof patch[key] === "string" && (patch[key] as string).trim()) {
+      out[key] = (patch[key] as string).trim();
+    }
+  };
+  fillStr("prospectName"); fillStr("businessName"); fillStr("segment");
+  fillStr("prospectPhone"); fillStr("budgetRange"); fillStr("deadline");
+
+  if (!out.prospectEmail && typeof patch.prospectEmail === "string"
+      && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(patch.prospectEmail)) {
+    out.prospectEmail = patch.prospectEmail.trim();
+  }
+
+  if (!out.wantsSocialMedia && typeof patch.wantsSocialMedia === "boolean") {
+    out.wantsSocialMedia = patch.wantsSocialMedia;
+  }
+  if (out.wantsPaidTraffic === undefined && typeof patch.wantsPaidTraffic === "boolean") {
+    out.wantsPaidTraffic = patch.wantsPaidTraffic;
+  }
+  if (out.serviceMode === undefined && typeof patch.serviceMode === "string"
+      && ["monthly", "one_off", "unsure"].includes(patch.serviceMode)) {
+    out.serviceMode = patch.serviceMode as BriefingScope["serviceMode"];
+  }
+
+  if (Array.isArray(patch.objectives) && patch.objectives.length) {
+    const merged = new Set([
+      ...(out.objectives ?? []),
+      ...patch.objectives.filter((x): x is string => typeof x === "string" && x.trim().length > 0).map((x) => x.trim()),
+    ]);
+    out.objectives = [...merged].slice(0, 6);
+  }
+
+  const pb = patch.branding as Record<string, unknown> | undefined;
+  if (pb && typeof pb === "object") {
+    out.branding = {
+      requested:    out.branding.requested    || pb.requested === true,
+      hasBrandBook: out.branding.hasBrandBook || pb.hasBrandBook === true,
+      wantsRebrand: out.branding.wantsRebrand || pb.wantsRebrand === true,
+    };
+  }
+
+  const ps = patch.social as Record<string, unknown> | undefined;
+  if (ps && typeof ps === "object" && (out.wantsSocialMedia || patch.wantsSocialMedia === true)) {
+    const cur = out.social ?? { platforms: [] };
+    out.social = {
+      platforms:     cur.platforms?.length ? cur.platforms
+                       : Array.isArray(ps.platforms) ? (ps.platforms as unknown[]).filter((x): x is string => typeof x === "string") : [],
+      postsPerWeek:  cur.postsPerWeek  ?? asNum(ps.postsPerWeek),
+      storiesPerWeek: cur.storiesPerWeek ?? asNum(ps.storiesPerWeek),
+      reelsPerMonth: cur.reelsPerMonth ?? asNum(ps.reelsPerMonth),
+      needsCopy:     cur.needsCopy     ?? (typeof ps.needsCopy === "boolean" ? ps.needsCopy : undefined),
+      hasPhotos:     cur.hasPhotos     ?? (typeof ps.hasPhotos === "boolean" ? ps.hasPhotos : undefined),
+    };
+  }
+
+  const pt = patch.traffic as Record<string, unknown> | undefined;
+  if (pt && typeof pt === "object" && (out.wantsPaidTraffic || patch.wantsPaidTraffic === true)) {
+    const cur = out.traffic ?? { platforms: [] };
+    out.traffic = {
+      platforms:       cur.platforms?.length ? cur.platforms
+                         : Array.isArray(pt.platforms) ? (pt.platforms as unknown[]).filter((x): x is string => typeof x === "string") : [],
+      monthlyAdBudget: cur.monthlyAdBudget ?? (typeof pt.monthlyAdBudget === "string" ? pt.monthlyAdBudget : undefined),
+    };
+  }
+
+  return out;
+}
+
 export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
   const [state,          setState]          = useState<ProspectConvState>(() => initProspectConvState());
   const [inputText,      setInputText]      = useState("");
   const [showLinkField,  setShowLinkField]  = useState(false);
   const [attachments,    setAttachments]    = useState<RequestAttachment[]>([]);
+  const [aiThinking,     setAiThinking]     = useState(false);
 
   // Internal temp ID for link association
   const [tempClientId] = useState(() => "prospect-" + Date.now());
@@ -438,12 +551,16 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
   const conv = state.conv;
   const sdr  = state.sdr;
 
+  // Latest committed state, readable inside async turns without stale closures.
+  const stateRef = useRef(state);
+  stateRef.current = state;
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef    = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [conv.messages]);
+  }, [conv.messages, aiThinking]);
 
   // Append transcribed text to input (never auto-submits; user reviews before sending)
   const handleTranscript = useCallback((text: string) => {
@@ -532,22 +649,62 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
     [],
   );
 
+  // Runs one conversational turn. Claude (the SDR brain) generates the reply
+  // and a scope patch; the rule-based engine runs underneath for state tracking
+  // and as the universal fallback (Lei 2) if Claude is unavailable.
+  const runTurn = useCallback(
+    async (text: string) => {
+      const prevState = stateRef.current;
+      const priorMessages = prevState.conv.messages;
+      const fileNames = attachments.map((a) => a.fileName);
+
+      // Rule-based baseline: authoritative state machine (sdr, scope, flow).
+      const ruleResult = processProspectMessage(text, prevState, fileNames);
+      const ruleMessages = ruleResult.conv.messages;
+      const userVisible = ruleMessages.slice(0, -1); // prior + user msg, no reply yet
+      const ruleAssistant = ruleMessages[ruleMessages.length - 1];
+
+      // Show the user's message immediately with a typing indicator.
+      setState({ ...ruleResult, conv: { ...ruleResult.conv, messages: userVisible } });
+      setAiThinking(true);
+
+      const claude = await fetchSdrReply(priorMessages, text, ruleResult.conv.scope);
+      setAiThinking(false);
+
+      if (claude) {
+        const mergedScope = mergeScopeGaps(ruleResult.conv.scope, claude.scope);
+        const estimate = computeEstimate(mergedScope);
+        const assistantMsg: ConvMessage = { ...ruleAssistant, text: claude.reply };
+        const newConv: ConvState = {
+          ...ruleResult.conv,
+          scope: mergedScope,
+          estimate,
+          messages: [...userVisible, assistantMsg],
+        };
+        setState({
+          conv: { ...newConv, canSubmit: canSubmitProposal(newConv, ruleResult.sdr) },
+          sdr: ruleResult.sdr,
+        });
+      } else {
+        // Fallback: rule-based reply + the lighter extraction pass.
+        setState(ruleResult);
+        void fireAiExtract(text, priorMessages);
+      }
+    },
+    [attachments, fireAiExtract],
+  );
+
   function handleSend() {
     const text = inputText.trim();
-    if (!text) return;
+    if (!text || aiThinking) return;
     setInputText("");
-    const fileNames = attachments.map((a) => a.fileName);
-    const currentMessages = conv.messages; // capture before state update
-    setState((prev) => processProspectMessage(text, prev, fileNames));
-    void fireAiExtract(text, currentMessages);
+    void runTurn(text);
     setTimeout(() => textareaRef.current?.focus(), 0);
   }
 
   function sendAction(text: string) {
-    const fileNames = attachments.map((a) => a.fileName);
-    const currentMessages = conv.messages;
-    setState((prev) => processProspectMessage(text, prev, fileNames));
-    void fireAiExtract(text, currentMessages);
+    if (aiThinking) return;
+    void runTurn(text);
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -609,6 +766,18 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
           {conv.messages.map((msg) => (
             <MessageBubble key={msg.id} msg={msg} />
           ))}
+          {aiThinking && (
+            <div className="flex items-center gap-2.5">
+              <div className="w-5 h-5 rounded-full bg-[#1A1A1A] flex items-center justify-center shrink-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-white" />
+              </div>
+              <div className="flex items-center gap-1 px-3 py-2.5 rounded-[12px] bg-[#F0F0ED]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#9B9B95] animate-bounce" style={{ animationDelay: "0ms" }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#9B9B95] animate-bounce" style={{ animationDelay: "150ms" }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#9B9B95] animate-bounce" style={{ animationDelay: "300ms" }} />
+              </div>
+            </div>
+          )}
           <div ref={messagesEndRef} />
         </div>
 
@@ -637,7 +806,7 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
             />
             <button
               onClick={handleSend}
-              disabled={!inputText.trim()}
+              disabled={!inputText.trim() || aiThinking}
               className="w-[52px] rounded-[8px] bg-[#1A1A1A] hover:bg-[#111111] disabled:opacity-40 disabled:cursor-not-allowed text-white flex items-center justify-center transition-colors shrink-0"
               aria-label="Enviar"
             >

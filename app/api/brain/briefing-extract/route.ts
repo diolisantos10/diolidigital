@@ -13,6 +13,7 @@
 // request/response cycle and never logged.
 
 import { NextRequest, NextResponse } from "next/server";
+import { resolveProviderKey } from "@/lib/ai/resolve-key";
 
 const CLAUDE_URL  = "https://api.anthropic.com/v1/messages";
 const MODEL       = "claude-haiku-4-5-20251001";
@@ -119,11 +120,12 @@ function validateExtracted(raw: unknown): ExtractedFields {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
+  const resolved = await resolveProviderKey("claude");
+  if (!resolved) {
     // Not configured — tell client to rely on rule-based engine (not an error).
     return NextResponse.json({ ok: false, reason: "not_configured" });
   }
+  const apiKey = resolved.apiKey;
 
   let body: ExtractRequest;
   try {
