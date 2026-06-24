@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { createClientRequest, listClientRequests, updateClientRequest, getClientRequest, deleteClientRequest } from "@/lib/agency/persistence/client-request-service";
 import { requireSession } from "@/lib/auth/api-guard";
+import { runAutoScope } from "@/lib/dioli-brain/run-auto-scope";
 
 // GET (list) and PATCH (mutate) are internal — session required.
 // POST stays public: it is the submit target of the public /briefing form.
@@ -64,6 +65,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       sdrHandoffJson:  body.sdrHandoffJson  != null              ? body.sdrHandoffJson as object : undefined,
       attachmentsJson: Array.isArray(body.attachmentsJson)       ? body.attachmentsJson as object[] : [],
     });
+
+    // Automatically generate the full scope as soon as the briefing lands —
+    // no PM click needed. Fire-and-forget: the 201 returns immediately while
+    // the synchronous engine chain runs in the background.
+    runAutoScope(record.id).catch((e) => {
+      console.error("[client-requests] background auto-scope failed for", record.id, e);
+    });
+
     return NextResponse.json(record, { status: 201 });
   } catch (e) {
     console.error("[brain/client-requests] POST error", e);

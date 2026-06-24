@@ -883,20 +883,10 @@ export default function AgencyRequestsPage() {
 
                     {/* Per-status action buttons */}
                     {req.status === "new" && (
-                      <button
-                        onClick={() => handleAutoScope(req)}
-                        disabled={isGenerating}
-                        className="h-8 px-4 rounded-[7px] bg-[#070A1F] hover:bg-[#0D1230] disabled:opacity-50 text-white text-[12px] font-semibold transition-colors shrink-0 inline-flex items-center gap-1.5"
-                      >
-                        {isGenerating ? (
-                          <>
-                            <span className="w-3 h-3 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                            Gerando escopo…
-                          </>
-                        ) : (
-                          <>✦ Aceitar &amp; Desenhar Projeto</>
-                        )}
-                      </button>
+                      <span className="inline-flex items-center gap-1.5 h-8 px-4 rounded-[7px] bg-[#F0F0ED] text-[#6B6B65] text-[12px] font-medium shrink-0">
+                        <span className="w-3 h-3 rounded-full border-2 border-[#9B9B95] border-t-transparent animate-spin" />
+                        Gerando escopo…
+                      </span>
                     )}
 
                     {req.status === "scope_ready" && (
