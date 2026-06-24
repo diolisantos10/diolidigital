@@ -23,6 +23,8 @@ import {
   type WorkItemStatus,
   type ReadinessStatus,
 } from "@/lib/agency/department-blueprint";
+import DeptModeSelector, { DeptModeBadge } from "@/components/agency/departments/DeptModeSelector";
+import type { DepartmentOperationMode } from "@/store/agency-store";
 
 const INTELLIGENCE_DEPTS = new Set([
   "strategy",
@@ -191,6 +193,11 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
 
   const savedConfig = departmentConfigs?.find((c) => c.departmentId === dept.id);
   const activePrompt = promptDraft ?? savedConfig?.currentPrompt ?? dept.defaultPrompt;
+  const operationMode: DepartmentOperationMode = savedConfig?.operationMode ?? "hybrid";
+
+  function handleModeChange(next: DepartmentOperationMode) {
+    saveDepartmentConfig(id, { operationMode: next });
+  }
 
   const deptDelivs = deliverables.filter((d) => {
     const agentDept = AGENT_DEPT_MAP[d.ownerAgentId ?? ""];
@@ -351,7 +358,7 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
         title={dept.name}
         subtitle={blueprint?.identity.mission ?? dept.mission}
         meta={
-          <div className="flex items-center gap-2 mt-1">
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
             <div
               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] text-[11px] font-medium"
               style={{ backgroundColor: dept.accentBg, color: dept.color }}
@@ -366,6 +373,7 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
                 {blueprint.maturity === "gold_standard" ? "★ Blueprint completo" : `Blueprint ${completeness}%`}
               </div>
             )}
+            <DeptModeBadge mode={operationMode} />
           </div>
         }
         actions={
@@ -382,6 +390,13 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
             </Link>
           ) : undefined
         }
+      />
+
+      {/* ── Operation mode selector ─────────────────────────────────────────── */}
+      <DeptModeSelector
+        mode={operationMode}
+        onChange={handleModeChange}
+        deptColor={dept.color}
       />
 
       {/* Tabs */}
@@ -1037,8 +1052,36 @@ export default function DepartmentDetailPage({ params }: { params: Promise<{ id:
             )}
           </div>
 
+          {/* Full-human mode banner — shown instead of intelligence runner */}
+          {operationMode === "full_human" && (
+            <div className="rounded-[12px] border border-[#FDE68A] bg-[#FEF3C7] px-5 py-4 flex items-start gap-3">
+              <span className="text-[20px] shrink-0 mt-0.5">👤</span>
+              <div>
+                <div className="text-[13px] font-semibold text-[#92400E] mb-0.5">Modo 100% Humano ativo</div>
+                <p className="text-[12px] text-[#92400E]/80 leading-relaxed">
+                  A IA está desligada para este departamento. O trabalho é realizado e registrado manualmente.
+                  Altere o modo de operação acima para reativar a inteligência.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Full-AI mode banner — notify that deliveries are auto-approved */}
+          {operationMode === "full_ai" && (
+            <div className="rounded-[12px] border border-[#9AF5F0] bg-[#E6FBFA] px-5 py-4 flex items-start gap-3">
+              <span className="text-[18px] shrink-0 mt-0.5">✦</span>
+              <div>
+                <div className="text-[13px] font-semibold text-[#070A1F] mb-0.5">Modo Autônomo IA ativo</div>
+                <p className="text-[12px] text-[#070A1F]/70 leading-relaxed">
+                  Entregas deste departamento são aprovadas automaticamente e registradas para auditoria.
+                  Revise periodicamente em <strong>Qualidade</strong> para garantir padrão.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Intelligence runner */}
-          {INTELLIGENCE_DEPTS.has(activeDept.id) && (
+          {INTELLIGENCE_DEPTS.has(activeDept.id) && operationMode !== "full_human" && (
             <div className="rounded-[12px] border p-5" style={{ backgroundColor: activeDept.accentBg, borderColor: `${activeDept.color}33` }}>
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">

@@ -90,12 +90,16 @@ export interface QATestRun {
   readiness: "not_ready" | "warnings" | "ready";
 }
 
+export type DepartmentOperationMode = "full_ai" | "hybrid" | "full_human";
+
 export interface DepartmentConfig {
   departmentId: string;
   currentPrompt: string;
   promptUpdatedAt: string;
   aiProvider: string;
   model: string;
+  /** How this department runs: autonomous AI, hybrid (AI + human approval), or fully human. */
+  operationMode: DepartmentOperationMode;
 }
 
 export interface AIRunLog {
@@ -282,6 +286,7 @@ export const useAgencyStore = create<AgencyState>()(
                 promptUpdatedAt: new Date().toISOString(),
                 aiProvider: patch.aiProvider ?? "rule_based",
                 model: patch.model ?? "rule_based",
+                operationMode: patch.operationMode ?? "hybrid",
               },
             ],
           };
