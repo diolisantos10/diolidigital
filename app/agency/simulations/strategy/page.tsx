@@ -5,6 +5,7 @@ import Link from "next/link";
 import { generateStrategyCanvas } from "@/lib/dioli-brain/strategy-engine";
 import type { StrategyCanvas } from "@/lib/dioli-brain/strategy-canvas";
 import { StrategyCanvasCard } from "@/components/agency/strategy/StrategyCanvasCard";
+import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 
 // Synthetic scenarios — simulator results stay in local state only (never persisted).
 
@@ -119,32 +120,11 @@ export default function StrategySimulatorPage() {
 
   return (
     <div>
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-1.5 mb-4 text-[12px] text-[#9B9B95]">
-        <Link href="/agency/simulations" className="hover:text-[#6B6B65] transition-colors">
-          Laboratório
-        </Link>
-        <span>/</span>
-        <span className="text-[#1A1A1A] font-medium">Estratégia</span>
-        <span className="ml-1 text-[9px] font-bold text-[#C0C0BC] bg-[#F0F0ED] px-1.5 py-0.5 rounded-full tracking-wide">
-          INTERNO
-        </span>
-        <a
-          href="/agency/strategy"
-          className="ml-auto text-[11px] text-[#9B9B95] hover:text-[#070A1F] transition-colors"
-        >
-          Workspace de Estratégia →
-        </a>
-      </div>
-
-      {/* Header */}
-      <div className="mb-5">
-        <h1 className="text-[20px] font-semibold text-[#1A1A1A]">Simulador de Estratégia</h1>
-        <p className="text-[13px] text-[#6B6B65] mt-0.5 max-w-[560px] leading-relaxed">
-          Gere Strategy Canvases com cenários sintéticos e avalie a qualidade do Strategy Engine.
-          Resultados são locais à sessão — nada é salvo no pipeline real.
-        </p>
-      </div>
+      <AgencyHeader
+        title="Simulador de Estratégia"
+        subtitle="Gere Strategy Canvases com cenários sintéticos e avalie a qualidade do Strategy Engine. Resultados são locais à sessão — nada é salvo no pipeline real."
+        actions={<a href="/agency/strategy" className="text-[11px] text-[#9B9B95] hover:text-[#070A1F] transition-colors">Workspace de Estratégia →</a>}
+      />
 
       {/* Scenario buttons */}
       <div className="bg-[#F7F7F6] border border-[#E5E5E2] rounded-[10px] px-4 py-3.5 mb-5">

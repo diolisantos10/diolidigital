@@ -7,6 +7,7 @@ import { generateTrafficCanvas } from "@/lib/dioli-brain/traffic-engine";
 import { computeTrafficScorecard } from "@/lib/dioli-brain/traffic-scorecard";
 import type { TrafficCanvas } from "@/lib/dioli-brain/traffic-canvas";
 import { TrafficCanvasCard } from "@/components/agency/traffic/TrafficCanvasCard";
+import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 
 interface TrafficScenario {
   id: string; label: string; businessName: string; segment: string;
@@ -41,20 +42,11 @@ export default function TrafficSimulatorPage() {
 
   return (
     <div>
-      <div className="flex items-center gap-1.5 mb-4 text-[12px] text-[#9B9B95]">
-        <Link href="/agency/simulations" className="hover:text-[#6B6B65]">Laboratório</Link>
-        <span>/</span>
-        <span className="text-[#1A1A1A] font-medium">Tráfego Pago</span>
-        <span className="ml-1 text-[9px] font-bold text-[#C0C0BC] bg-[#F0F0ED] px-1.5 py-0.5 rounded-full">INTERNO</span>
-        <a href="/agency/traffic" className="ml-auto text-[11px] text-[#9B9B95] hover:text-[#0284C7]">Workspace Traffic →</a>
-      </div>
-
-      <div className="mb-5">
-        <h1 className="text-[20px] font-semibold text-[#1A1A1A]">Simulador de Tráfego Pago</h1>
-        <p className="text-[13px] text-[#6B6B65] mt-0.5 max-w-[640px] leading-relaxed">
-          Gera Traffic Canvases completos por segmento: estrutura de campanhas, modelo de audiência, budget detalhado (fee separado), mapeamento de ofertas e projeções de CAC/ROAS.
-        </p>
-      </div>
+      <AgencyHeader
+        title="Simulador de Tráfego Pago"
+        subtitle="Gera Traffic Canvases completos por segmento: estrutura de campanhas, modelo de audiência, budget detalhado (fee separado), mapeamento de ofertas e projeções de CAC/ROAS."
+        actions={<a href="/agency/traffic" className="text-[11px] text-[#9B9B95] hover:text-[#0284C7]">Workspace Traffic →</a>}
+      />
 
       <div className="bg-[#F7F7F6] border border-[#E5E5E2] rounded-[10px] px-4 py-3.5 mb-5">
         <div className="flex items-center justify-between mb-2.5">

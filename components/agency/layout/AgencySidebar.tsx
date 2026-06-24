@@ -33,6 +33,12 @@ interface UserInfo {
   workspaceId: string;
 }
 
+interface AgencySidebarProps {
+  userInfo?: UserInfo | null;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
+}
+
 function usePendingCount() {
   const { projects, deliverables, brandUpdates, materialRequests } = useAgencyStore();
   const sentProposals = projects.filter((p) => p.proposal?.status === "sent").length;
@@ -55,7 +61,7 @@ function useTaskBadgeCount() {
   return criticalHigh + blocked;
 }
 
-export default function AgencySidebar({ userInfo }: { userInfo?: UserInfo | null }) {
+export default function AgencySidebar({ userInfo, mobileOpen = false, onMobileClose }: AgencySidebarProps) {
   const path = usePathname();
   const { t } = useTranslation();
   const { currentRole, setCurrentRole } = useAgencyStore();
@@ -156,10 +162,22 @@ export default function AgencySidebar({ userInfo }: { userInfo?: UserInfo | null
   }
 
   return (
-    <aside
-      className="fixed inset-y-0 left-0 w-[224px] flex flex-col z-40 overflow-y-auto"
-      style={{ background: "linear-gradient(180deg, #0B0F2A 0%, #070A1F 40%, #050817 100%)" }}
-    >
+    <>
+      {mobileOpen && (
+        <div
+          className="md:hidden fixed inset-0 z-30 bg-black/50"
+          onClick={onMobileClose}
+        />
+      )}
+      <aside
+        className={[
+          "fixed inset-y-0 left-0 w-[224px] flex flex-col z-40 overflow-y-auto",
+          "transition-transform duration-200",
+          "md:translate-x-0",
+          mobileOpen ? "translate-x-0" : "-translate-x-full",
+        ].join(" ")}
+        style={{ background: "linear-gradient(180deg, #0B0F2A 0%, #070A1F 40%, #050817 100%)" }}
+      >
       {/* ── Logo ─────────────────────────────────────────────────────────────── */}
       <div className="shrink-0">
         <div className="h-[52px] flex items-center px-5 border-b border-white/[0.05]">
@@ -278,6 +296,7 @@ export default function AgencySidebar({ userInfo }: { userInfo?: UserInfo | null
         </select>
       </div>
     </aside>
+    </>
   );
 }
 

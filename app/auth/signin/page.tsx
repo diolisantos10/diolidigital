@@ -2,6 +2,7 @@
 
 import { useState, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { DioliLogo } from "@/components/brand/DioliLogo";
 
 function SignInForm() {
   const [error, setError] = useState<string | null>(null);
@@ -46,23 +47,14 @@ function SignInForm() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F7F7F6] flex items-center justify-center p-4">
-      <div className="w-full max-w-[400px]">
+    <div className="min-h-screen bg-[#070A1F] flex items-center justify-center p-4">
+      <div className="w-full max-w-[380px]">
         {/* Logo */}
-        <div className="flex items-center gap-3 mb-8 justify-center">
-          <div className="flex items-center gap-1.5">
-            <svg width="38" height="26" viewBox="0 0 38 26" fill="none">
-              <circle cx="13" cy="13" r="12" stroke="#070A1F" strokeWidth="2.2"/>
-              <circle cx="29" cy="13" r="7.5" fill="#9AF5F0" fillOpacity="0.25" stroke="#070A1F" strokeWidth="2"/>
-            </svg>
-          </div>
-          <div>
-            <span className="text-[18px] font-bold text-[#070A1F] tracking-[-0.02em]">Dioli</span>
-            <span className="text-[11px] font-semibold text-[#070A1F]/50 ml-1.5 tracking-[0.12em] uppercase">Digital</span>
-          </div>
+        <div className="flex justify-center mb-8">
+          <DioliLogo variant="full" tone="light" markSize={28} className="text-[15px]" />
         </div>
 
-        <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_2px_8px_rgba(0,0,0,0.06)] p-8">
+        <div className="bg-white rounded-[14px] border border-[#E5E5E2] shadow-[0_20px_60px_rgba(0,0,0,0.25)] p-8">
           <h1 className="text-[18px] font-semibold text-[#1A1A1A] mb-1">Entrar</h1>
           <p className="text-[13px] text-[#9B9B95] mb-6">Acesse o painel da agência</p>
 

@@ -7,6 +7,7 @@ import { generateSocialCanvas } from "@/lib/dioli-brain/social-engine";
 import { computeSocialScorecard } from "@/lib/dioli-brain/social-scorecard";
 import type { SocialCanvas } from "@/lib/dioli-brain/social-canvas";
 import { SocialCanvasCard } from "@/components/agency/social/SocialCanvasCard";
+import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 
 // Synthetic scenarios — simulator results stay in local state only (never persisted).
 // Dioli Standard: Social never runs without Strategy. Each scenario first generates
@@ -129,32 +130,11 @@ export default function SocialSimulatorPage() {
 
   return (
     <div>
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-1.5 mb-4 text-[12px] text-[#9B9B95]">
-        <Link href="/agency/simulations" className="hover:text-[#6B6B65] transition-colors">
-          Laboratório
-        </Link>
-        <span>/</span>
-        <span className="text-[#1A1A1A] font-medium">Social Media</span>
-        <span className="ml-1 text-[9px] font-bold text-[#C0C0BC] bg-[#F0F0ED] px-1.5 py-0.5 rounded-full tracking-wide">
-          INTERNO
-        </span>
-        <a
-          href="/agency/social"
-          className="ml-auto text-[11px] text-[#9B9B95] hover:text-[#DB2777] transition-colors"
-        >
-          Workspace Social →
-        </a>
-      </div>
-
-      {/* Header */}
-      <div className="mb-5">
-        <h1 className="text-[20px] font-semibold text-[#1A1A1A]">Simulador Social</h1>
-        <p className="text-[13px] text-[#6B6B65] mt-0.5 max-w-[600px] leading-relaxed">
-          Cada cenário gera uma estratégia sintética e a transforma em Social Canvas, plano de conteúdo
-          e calendário editorial via Social Engine. Resultados são locais à sessão — nada é salvo no pipeline real.
-        </p>
-      </div>
+      <AgencyHeader
+        title="Simulador Social"
+        subtitle="Cada cenário gera uma estratégia sintética e a transforma em Social Canvas, plano de conteúdo e calendário editorial via Social Engine. Resultados são locais à sessão — nada é salvo no pipeline real."
+        actions={<a href="/agency/social" className="text-[11px] text-[#9B9B95] hover:text-[#DB2777] transition-colors">Workspace Social →</a>}
+      />
 
       {/* Scenario buttons */}
       <div className="bg-[#F7F7F6] border border-[#E5E5E2] rounded-[10px] px-4 py-3.5 mb-5">

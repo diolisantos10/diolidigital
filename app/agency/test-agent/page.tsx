@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { useAgencyStore, QATestRun } from "@/store/agency-store";
 import { MOCK_AGENTS } from "@/lib/agency/mock-data";
+import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -551,21 +552,20 @@ export default function TestAgentPage() {
 
   return (
     <div>
-      {/* Header */}
-      <div className="mb-7">
-        <div className="flex items-center gap-3 mb-1.5">
-          <div className="w-7 h-7 rounded-[7px] bg-[#E6FBFA] flex items-center justify-center shrink-0">
-            <FlaskIcon size={14} className="text-[#070A1F]" />
+      <AgencyHeader
+        title="Test Agent"
+        subtitle="Simulate and validate project flows against the current store state. Generates structured logs and a QA report."
+        meta={
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-[7px] bg-[#E6FBFA] flex items-center justify-center shrink-0">
+              <FlaskIcon size={14} className="text-[#070A1F]" />
+            </div>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide ${pill.bg} ${pill.text}`}>
+              {pill.label}
+            </span>
           </div>
-          <h1 className="text-[24px] font-semibold tracking-[-0.02em] text-[#1A1A1A]">Test Agent</h1>
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide ${pill.bg} ${pill.text}`}>
-            {pill.label}
-          </span>
-        </div>
-        <p className="text-[13px] text-[#9B9B95] ml-10">
-          Simulate and validate project flows against the current store state. Generates structured logs and a QA report.
-        </p>
-      </div>
+        }
+      />
 
       {/* Setup panel */}
       <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5 mb-5">

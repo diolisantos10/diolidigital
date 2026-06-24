@@ -13,6 +13,7 @@ import ExplainScreenDrawer from "@/components/agency/onboarding/ExplainScreenDra
 import OnboardingActions from "@/components/agency/onboarding/OnboardingActions";
 import { SDR_TRAINING_TOUR } from "@/lib/onboarding/tours/sdr-training";
 import { buildTrainingExplanation } from "@/lib/onboarding/explanations/sdr-training";
+import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -1013,26 +1014,18 @@ export default function TrainingPage() {
   return (
     <div className="space-y-5 max-w-[900px]">
 
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="flex items-center gap-1.5 mb-1.5 text-[12px] text-[#9B9B95]">
-            <Link href="/agency/simulations" className="hover:text-[#6B6B65] transition-colors">Laboratório</Link>
-            <span>/</span>
-            <span className="text-[#1A1A1A] font-medium">Treinamento Contínuo — SDR</span>
-            <span className="ml-1 text-[9px] font-bold text-[#C0C0BC] bg-[#F0F0ED] px-1.5 py-0.5 rounded-full tracking-wide">INTERNO</span>
-          </div>
-          <p className="text-[12px] text-[#6B6B65] leading-relaxed max-w-[500px]">
-            Simule conversas, avalie performance e gerencie melhorias. Nenhum dado real é salvo.
-          </p>
-        </div>
-        <div className="flex items-center gap-3 shrink-0">
-          <OnboardingActions onStartTour={startTour} onExplain={() => setExplainOpen(true)} />
-          <button onClick={clearRuns} className="text-[11px] text-[#9B9B95] hover:text-[#DC2626] transition-colors">
-            Limpar logs
-          </button>
-        </div>
-      </div>
+      <AgencyHeader
+        title="Treinamento Contínuo — SDR"
+        subtitle="Simule conversas, avalie performance e gerencie melhorias. Nenhum dado real é salvo."
+        actions={
+          <>
+            <OnboardingActions onStartTour={startTour} onExplain={() => setExplainOpen(true)} />
+            <button onClick={clearRuns} className="text-[11px] text-[#9B9B95] hover:text-[#DC2626] transition-colors">
+              Limpar logs
+            </button>
+          </>
+        }
+      />
 
       {/* Part 1 — Status card */}
       <StatusCard continuousMode={continuousMode} isRunning={isRunning} worker={workerStatus} />

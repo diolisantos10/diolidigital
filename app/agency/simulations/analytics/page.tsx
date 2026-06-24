@@ -8,6 +8,7 @@ import { generateAnalyticsCanvas } from "@/lib/dioli-brain/analytics-engine";
 import { computeAnalyticsScorecard } from "@/lib/dioli-brain/analytics-scorecard";
 import type { AnalyticsCanvas } from "@/lib/dioli-brain/analytics-canvas";
 import { AnalyticsCanvasCard } from "@/components/agency/analytics/AnalyticsCanvasCard";
+import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 
 interface AnalyticsScenario {
   id: string; label: string; businessName: string; segment: string;
@@ -43,20 +44,11 @@ export default function AnalyticsSimulatorPage() {
 
   return (
     <div>
-      <div className="flex items-center gap-1.5 mb-4 text-[12px] text-[#9B9B95]">
-        <Link href="/agency/simulations" className="hover:text-[#6B6B65]">Laboratório</Link>
-        <span>/</span>
-        <span className="text-[#1A1A1A] font-medium">Analytics</span>
-        <span className="ml-1 text-[9px] font-bold text-[#C0C0BC] bg-[#F0F0ED] px-1.5 py-0.5 rounded-full">INTERNO</span>
-        <a href="/agency/analytics" className="ml-auto text-[11px] text-[#9B9B95] hover:text-[#16A34A]">Workspace Analytics →</a>
-      </div>
-
-      <div className="mb-5">
-        <h1 className="text-[20px] font-semibold text-[#1A1A1A]">Simulador de Analytics</h1>
-        <p className="text-[13px] text-[#6B6B65] mt-0.5 max-w-[640px] leading-relaxed">
-          Gera Analytics Canvases completos por segmento: framework de KPIs, modelo de atribuição, gaps de performance, recomendações e sumários cross-departamento.
-        </p>
-      </div>
+      <AgencyHeader
+        title="Simulador de Analytics"
+        subtitle="Gera Analytics Canvases completos por segmento: framework de KPIs, modelo de atribuição, gaps de performance, recomendações e sumários cross-departamento."
+        actions={<a href="/agency/analytics" className="text-[11px] text-[#9B9B95] hover:text-[#16A34A]">Workspace Analytics →</a>}
+      />
 
       <div className="bg-[#F7F7F6] border border-[#E5E5E2] rounded-[10px] px-4 py-3.5 mb-5">
         <div className="flex items-center justify-between mb-2.5">

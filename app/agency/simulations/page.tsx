@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 
 interface SimCard {
   id: string;
@@ -89,15 +90,10 @@ const SIMULATORS: SimCard[] = [
 export default function SimulationsPage() {
   return (
     <div>
-      <div className="mb-7">
-        <div className="flex items-center gap-2 mb-1">
-          <FlaskIcon />
-          <h1 className="text-[20px] font-semibold text-[#1A1A1A]">Laboratório de Simulações</h1>
-        </div>
-        <p className="text-[13px] text-[#6B6B65] leading-relaxed max-w-[540px]">
-          Ambiente interno para testar agentes sem afetar fluxos reais. Simulações SDR salvam resultados no banco para análise contínua.
-        </p>
-      </div>
+      <AgencyHeader
+        title="Laboratório de Simulações"
+        subtitle="Ambiente interno para testar agentes sem afetar fluxos reais. Simulações SDR salvam resultados no banco para análise contínua."
+      />
 
       <div className="grid grid-cols-2 gap-4 max-w-[700px]">
         {SIMULATORS.map((sim) => (

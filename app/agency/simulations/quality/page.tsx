@@ -9,6 +9,7 @@ import { generateQualityCanvas } from "@/lib/dioli-brain/quality-engine";
 import { computeQualityScorecard } from "@/lib/dioli-brain/quality-scorecard";
 import type { QualityCanvas } from "@/lib/dioli-brain/quality-canvas";
 import { QualityAuditCard } from "@/components/agency/quality/QualityAuditCard";
+import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 
 interface QualityScenario {
   id: string; label: string; businessName: string; segment: string;
@@ -46,20 +47,11 @@ export default function QualitySimulatorPage() {
 
   return (
     <div>
-      <div className="flex items-center gap-1.5 mb-4 text-[12px] text-[#9B9B95]">
-        <Link href="/agency/simulations" className="hover:text-[#6B6B65]">Laboratório</Link>
-        <span>/</span>
-        <span className="text-[#1A1A1A] font-medium">Quality</span>
-        <span className="ml-1 text-[9px] font-bold text-[#C0C0BC] bg-[#F0F0ED] px-1.5 py-0.5 rounded-full">INTERNO</span>
-        <a href="/agency/quality" className="ml-auto text-[11px] text-[#9B9B95] hover:text-[#070A1F]">Workspace Quality →</a>
-      </div>
-
-      <div className="mb-5">
-        <h1 className="text-[20px] font-semibold text-[#1A1A1A]">Simulador de Quality</h1>
-        <p className="text-[13px] text-[#6B6B65] mt-0.5 max-w-[640px] leading-relaxed">
-          Roda auditorias cross-departamento completas: Quality Gate global + departamental, detecção de padrões, flags de risco, recomendações e candidatos a evidência.
-        </p>
-      </div>
+      <AgencyHeader
+        title="Simulador de Quality"
+        subtitle="Roda auditorias cross-departamento completas: Quality Gate global + departamental, detecção de padrões, flags de risco, recomendações e candidatos a evidência."
+        actions={<a href="/agency/quality" className="text-[11px] text-[#9B9B95] hover:text-[#070A1F]">Workspace Quality →</a>}
+      />
 
       <div className="bg-[#F7F7F6] border border-[#E5E5E2] rounded-[10px] px-4 py-3.5 mb-5">
         <div className="flex items-center justify-between mb-2.5">
