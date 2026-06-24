@@ -6,10 +6,10 @@ export default async function AgencyLayout({ children }: { children: React.React
   const userInfo = { name: session.name, role: session.role, workspaceId: session.workspaceId };
 
   return (
-    <div className="flex min-h-screen bg-[#F7F7F6]">
+    <div className="flex min-h-screen" style={{ background: "var(--bg)" }}>
       <AgencySidebar userInfo={userInfo} />
-      <main className="flex-1 ml-[220px] min-h-screen">
-        <div className="max-w-[1200px] mx-auto px-8 py-8">
+      <main className="flex-1 ml-[224px] min-h-screen overflow-x-hidden">
+        <div className="max-w-[1240px] mx-auto px-8 py-8">
           {children}
         </div>
       </main>

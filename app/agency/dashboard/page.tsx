@@ -420,16 +420,44 @@ export default function DashboardPage() {
 
   return (
     <div>
-      {/* Header */}
+      {/* ── Hero header ─────────────────────────────────────────────────────── */}
       <div className="mb-7">
-        <p className="text-[12px] font-medium text-[#9B9B95] uppercase tracking-[0.06em] mb-1">
-          {mounted ? new Date().toLocaleDateString("pt-BR", { weekday: "long", month: "long", day: "numeric" }) : " "}
+        <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#9B9B95] mb-1.5">
+          {mounted ? new Date().toLocaleDateString("pt-BR", { weekday: "long", month: "long", day: "numeric" }) : "\u00a0"}
         </p>
-        <h1 className="text-[24px] font-semibold tracking-[-0.02em] text-[#1A1A1A]">{t.dashboard.title}</h1>
+        <div className="flex items-end justify-between gap-4 mb-5">
+          <h1 className="text-[26px] font-semibold tracking-[-0.03em] text-[#1A1A1A] leading-tight">
+            {t.dashboard.title}
+          </h1>
+          <Link
+            href="/agency/projects"
+            className="h-8 px-4 rounded-[8px] text-[12px] font-semibold flex items-center gap-1.5 shrink-0 transition-colors hover:opacity-90"
+            style={{ background: "#070A1F", color: "#9AF5F0" }}
+          >
+            Ver projetos →
+          </Link>
+        </div>
+        {/* KPI strip */}
+        <div className="grid grid-cols-4 gap-3">
+          {[
+            { label: "Projetos ativos",     value: activeProjects.length, sub: `${projects.filter((p) => p.stage === "completed").length} concluídos`, color: "#070A1F" },
+            { label: "Tarefas abertas",     value: tasks.filter((tk) => tk.status === "pending" || tk.status === "in_progress").length, sub: `${tasks.filter((tk) => tk.status === "blocked").length} bloqueadas`, color: "#D97706" },
+            { label: "Entregas pendentes",  value: deliverables.filter((d) => d.status === "draft" || d.status === "in_review").length, sub: `${deliverables.filter((d) => d.status === "approved").length} aprovadas`, color: "#16A34A" },
+            { label: "Atenção necessária",  value: totalAttention, sub: totalAttention === 0 ? "tudo em dia" : "itens pendentes", color: totalAttention > 0 ? "#DC2626" : "#16A34A" },
+          ].map((kpi) => (
+            <div key={kpi.label} className="bg-white rounded-[10px] border border-[#E5E5E2] px-4 py-3.5" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+              <div className="text-[11px] font-medium text-[#9B9B95] mb-1 truncate">{kpi.label}</div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-[24px] font-bold leading-none mono-num" style={{ color: kpi.color }}>{kpi.value}</span>
+                <span className="text-[11px] text-[#C0C0BC] truncate">{kpi.sub}</span>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* ── Centro de Comando ─────────────────────────────────────────────── */}
-      <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden mb-4">
+      <div className="bg-white rounded-[12px] border border-[#E5E5E2] overflow-hidden mb-4">
         <div className="flex items-center justify-between px-5 py-3 border-b border-[#F0F0ED]">
           <div className="flex items-center gap-2">
             <h2 className="text-[13px] font-semibold text-[#1A1A1A]">Centro de Comando</h2>
@@ -520,7 +548,7 @@ export default function DashboardPage() {
       </div>
 
       {/* System Doctor compact card */}
-      <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden mb-4">
+      <div className="bg-white rounded-[12px] border border-[#E5E5E2] overflow-hidden mb-4">
         <div className="flex items-center justify-between px-5 py-3 border-b border-[#F0F0ED]">
           <div className="flex items-center gap-2">
             <span className={`w-2 h-2 rounded-full shrink-0 ${docMeta.dot}`} />
@@ -551,7 +579,7 @@ export default function DashboardPage() {
       </div>
 
       {/* TODAY PANEL */}
-      <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden mb-6">
+      <div className="bg-white rounded-[12px] border border-[#E5E5E2] overflow-hidden mb-6">
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F0ED]">
           <div className="flex items-center gap-2">
             <h2 className="text-[13px] font-semibold text-[#1A1A1A]">{t.dashboard.today}</h2>
@@ -607,7 +635,7 @@ export default function DashboardPage() {
 
       {/* ── Orchestration Summary ─────────────────────────────────────────── */}
       {(orchSummary.criticalBlockerCount > 0 || orchSummary.stalledApprovals.length > 0 || orchSummary.departments.some((d) => d.isIdle || d.isOverloaded)) && (
-        <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden mb-4">
+        <div className="bg-white rounded-[12px] border border-[#E5E5E2] overflow-hidden mb-4">
           <div className="flex items-center justify-between px-5 py-3 border-b border-[#F0F0ED]">
             <div className="flex items-center gap-2">
               <h2 className="text-[13px] font-semibold text-[#1A1A1A]">Orquestração</h2>
@@ -644,7 +672,7 @@ export default function DashboardPage() {
 
       {/* ── Auto Tasks (PM-generated) ─────────────────────────────────────── */}
       {autoTasks.length > 0 && (
-        <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden mb-4">
+        <div className="bg-white rounded-[12px] border border-[#E5E5E2] overflow-hidden mb-4">
           <div className="flex items-center justify-between px-5 py-3 border-b border-[#F0F0ED]">
             <div className="flex items-center gap-2">
               <h2 className="text-[13px] font-semibold text-[#1A1A1A]">Tarefas Automáticas</h2>
@@ -679,7 +707,7 @@ export default function DashboardPage() {
       )}
 
       {/* ── Department Health ─────────────────────────────────────────────── */}
-      <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden mb-6">
+      <div className="bg-white rounded-[12px] border border-[#E5E5E2] overflow-hidden mb-6">
         <div className="px-5 py-3 border-b border-[#F0F0ED] flex items-center gap-2">
           <h2 className="text-[13px] font-semibold text-[#1A1A1A]">Saúde dos Departamentos</h2>
           {workspaceHealth.mostOverloaded && (
@@ -728,7 +756,7 @@ export default function DashboardPage() {
 
       {/* ── Execution Pipeline (per project) ─────────────────────────────── */}
       {activeProjects.length > 0 && (
-        <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden mb-6">
+        <div className="bg-white rounded-[12px] border border-[#E5E5E2] overflow-hidden mb-6">
           <div className="flex items-center justify-between px-5 py-3 border-b border-[#F0F0ED]">
             <h2 className="text-[13px] font-semibold text-[#1A1A1A]">Pipeline de Execução</h2>
             <Link href="/agency/pipeline" className="text-[11px] text-[#070A1F] font-medium hover:underline">Ver quadro →</Link>
@@ -774,7 +802,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-[1fr_340px] gap-6">
         {/* LEFT — Active Projects with pipeline */}
         <div className="space-y-6">
-          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+          <div className="bg-white rounded-[12px] border border-[#E5E5E2] overflow-hidden">
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F0ED]">
               <h2 className="text-[13px] font-semibold text-[#1A1A1A]">{t.dashboard.activeProjects}</h2>
               <Link href="/agency/projects" className="text-[12px] text-[#070A1F] hover:underline font-medium">{t.common.viewAll}</Link>
@@ -846,7 +874,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Project Health — operational status */}
-          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+          <div className="bg-white rounded-[12px] border border-[#E5E5E2] overflow-hidden">
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F0ED]">
               <div>
                 <h2 className="text-[13px] font-semibold text-[#1A1A1A]">{ops.healthTitle}</h2>
@@ -882,7 +910,7 @@ export default function DashboardPage() {
         <div className="space-y-5">
 
           {/* Outputs Ready */}
-          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+          <div className="bg-white rounded-[12px] border border-[#E5E5E2] overflow-hidden">
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F0ED]">
               <h2 className="text-[13px] font-semibold text-[#1A1A1A]">{t.dashboard.outputs}</h2>
               <Link href="/agency/deliverables" className="text-[12px] text-[#070A1F] hover:underline">{t.dashboard.allDeliverables}</Link>
@@ -918,7 +946,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Blocks & Alerts */}
-          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+          <div className="bg-white rounded-[12px] border border-[#E5E5E2] overflow-hidden">
             <div className="px-5 py-3.5 border-b border-[#F0F0ED] flex items-center gap-2">
               <h2 className="text-[13px] font-semibold text-[#1A1A1A]">{t.dashboard.alerts}</h2>
               {blocks.length > 0 && (
@@ -946,7 +974,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Recent Activity */}
-          <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+          <div className="bg-white rounded-[12px] border border-[#E5E5E2] overflow-hidden">
             <div className="px-5 py-3.5 border-b border-[#F0F0ED]">
               <h2 className="text-[13px] font-semibold text-[#1A1A1A]">{t.dashboard.recentActivity}</h2>
             </div>

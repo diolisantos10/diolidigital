@@ -156,28 +156,36 @@ export default function AgencySidebar({ userInfo }: { userInfo?: UserInfo | null
   }
 
   return (
-    <aside className="fixed inset-y-0 left-0 w-[220px] flex flex-col bg-[#111111] z-40 overflow-y-auto">
-
-      {/* ── Top: logo + user strip ──────────────────────────────────────────── */}
+    <aside
+      className="fixed inset-y-0 left-0 w-[224px] flex flex-col z-40 overflow-y-auto"
+      style={{ background: "linear-gradient(180deg, #0B0F2A 0%, #070A1F 40%, #050817 100%)" }}
+    >
+      {/* ── Logo ─────────────────────────────────────────────────────────────── */}
       <div className="shrink-0">
-        {/* Logo row */}
-        <div className="h-12 flex items-center px-4 border-b border-white/[0.06]">
-          <DioliLogo variant="full" tone="light" markSize={20} className="text-[12px]" />
+        <div className="h-[52px] flex items-center px-5 border-b border-white/[0.05]">
+          <DioliLogo variant="full" tone="light" markSize={22} className="text-[13px]" />
         </div>
 
-        {/* User card — visible and always at the top */}
+        {/* User card */}
         {userInfo ? (
-          <div className="mx-3 mt-3 mb-1 flex items-center gap-2.5 bg-white/[0.05] rounded-[8px] px-3 py-2.5 border border-white/[0.06]">
-            <div className="w-8 h-8 rounded-full bg-[#9AF5F0]/20 flex items-center justify-center text-[13px] font-bold text-[#9AF5F0] shrink-0">
+          <div className="mx-3 mt-3 mb-1 flex items-center gap-2.5 rounded-[10px] px-3 py-2.5"
+               style={{ background: "rgba(154,245,240,0.06)", border: "1px solid rgba(154,245,240,0.10)" }}>
+            <div className="w-[30px] h-[30px] rounded-full flex items-center justify-center text-[12px] font-bold shrink-0"
+                 style={{ background: "rgba(154,245,240,0.15)", color: "#9AF5F0" }}>
               {userInfo.name.charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-[12px] font-semibold text-white truncate leading-tight">{userInfo.name}</div>
-              <div className="text-[10px] text-[#6B6B65] leading-tight mt-0.5">{ROLE_LABEL[userInfo.role] ?? userInfo.role}</div>
+              <div className="text-[10px] leading-tight mt-0.5" style={{ color: "rgba(154,245,240,0.5)" }}>
+                {ROLE_LABEL[userInfo.role] ?? userInfo.role}
+              </div>
             </div>
             <a
               href="/auth/signout"
-              className="shrink-0 text-[#4A4A44] hover:text-[#EF4444] transition-colors"
+              className="shrink-0 transition-colors"
+              style={{ color: "rgba(255,255,255,0.25)" }}
+              onMouseEnter={e => (e.currentTarget.style.color = "#EF4444")}
+              onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.25)")}
               title="Sair da conta"
             >
               <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
@@ -189,7 +197,7 @@ export default function AgencySidebar({ userInfo }: { userInfo?: UserInfo | null
         ) : null}
       </div>
 
-      {/* Nav */}
+      {/* ── Nav ──────────────────────────────────────────────────────────────── */}
       <nav className="flex-1 px-3 py-3 space-y-0.5">
         {NAV.map((section, i) => {
           const visibleItems = section.items.filter((item) => isNavAllowed(currentRole, item.href));
@@ -197,8 +205,9 @@ export default function AgencySidebar({ userInfo }: { userInfo?: UserInfo | null
           return (
             <div key={i} className={i > 0 ? "mt-5" : ""}>
               {section.group && (
-                <div className="px-2 py-1.5 mb-1">
-                  <span className="text-[10px] font-semibold tracking-[0.08em] text-[#4A4A44] uppercase">
+                <div className="px-2 pt-1 pb-1.5 mb-0.5">
+                  <span className="text-[9.5px] font-semibold tracking-[0.1em] uppercase"
+                        style={{ color: "rgba(255,255,255,0.22)" }}>
                     {section.group}
                   </span>
                 </div>
@@ -207,32 +216,35 @@ export default function AgencySidebar({ userInfo }: { userInfo?: UserInfo | null
                 const active = path === item.href || (item.href !== "/agency/dashboard" && path.startsWith(item.href));
                 const badge = (item as { badge?: number }).badge;
                 return (
-                  // Plain anchor → full document navigation (same as typing the URL).
-                  // Next.js <Link> triggers RSC soft navigation which has proven
-                  // unreliable behind Railway's TLS-terminating proxy; direct URL
-                  // always works, so document nav must work too.
                   <a
                     key={item.href}
                     href={item.href}
-                    className={`
-                      group flex items-center gap-2.5 px-2 py-[7px] rounded-[6px] text-[13px] font-medium relative
-                      transition-all duration-100
-                      ${active
-                        ? "bg-white/[0.08] text-white"
-                        : "text-[#6B6B65] hover:bg-white/[0.04] hover:text-[#C0C0BA]"
-                      }
-                    `}
+                    className="group flex items-center gap-2.5 px-2.5 py-[6px] rounded-[7px] text-[12.5px] font-medium relative transition-all duration-100"
+                    style={active ? {
+                      background: "rgba(154,245,240,0.10)",
+                      color: "#FFFFFF",
+                    } : {
+                      color: "rgba(255,255,255,0.4)",
+                    }}
+                    onMouseEnter={e => { if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
+                    onMouseLeave={e => { if (!active) e.currentTarget.style.background = "transparent"; }}
                   >
                     {active && (
-                      <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[18px] bg-[#9AF5F0] rounded-r-full" />
+                      <span
+                        className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[20px] rounded-r-full"
+                        style={{ background: "#9AF5F0", boxShadow: "0 0 6px rgba(154,245,240,0.6)" }}
+                      />
                     )}
                     <item.icon
-                      size={15}
-                      className={active ? "text-white" : "text-[#4A4A44] group-hover:text-[#8A8A84]"}
+                      size={14}
+                      className="shrink-0 transition-colors"
+                      // @ts-expect-error style override
+                      style={{ color: active ? "#9AF5F0" : undefined }}
                     />
-                    <span className="flex-1">{item.label}</span>
+                    <span className="flex-1 truncate">{item.label}</span>
                     {badge != null && badge > 0 && (
-                      <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[#D97706] text-white text-[10px] font-bold leading-none">
+                      <span className="inline-flex items-center justify-center min-w-[18px] h-[17px] px-1 rounded-full text-[10px] font-bold leading-none"
+                            style={{ background: "#D97706", color: "#fff" }}>
                         {badge > 99 ? "99+" : badge}
                       </span>
                     )}
@@ -244,15 +256,21 @@ export default function AgencySidebar({ userInfo }: { userInfo?: UserInfo | null
         })}
       </nav>
 
-      {/* Bottom: role simulator only */}
-      <div className="px-3 py-3 border-t border-white/[0.06] shrink-0">
-        <div className="text-[9px] font-semibold text-[#4A4A44] uppercase tracking-[0.08em] mb-1.5 px-1">
+      {/* ── Bottom: role switcher ─────────────────────────────────────────────── */}
+      <div className="px-3 py-3 shrink-0" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+        <div className="text-[9px] font-semibold uppercase tracking-[0.1em] mb-1.5 px-1"
+             style={{ color: "rgba(255,255,255,0.22)" }}>
           Visualizar como
         </div>
         <select
           value={currentRole}
           onChange={(e) => setCurrentRole(e.target.value as AgencyRole)}
-          className="w-full text-[11px] bg-[#1C1C1C] border border-white/[0.08] text-[#9B9B95] rounded-[6px] px-2 py-1.5 outline-none cursor-pointer hover:border-white/[0.15] transition-colors"
+          className="w-full text-[11px] rounded-[6px] px-2 py-1.5 outline-none cursor-pointer transition-colors"
+          style={{
+            background: "rgba(255,255,255,0.05)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            color: "rgba(255,255,255,0.5)",
+          }}
         >
           {AGENCY_ROLE_OPTIONS.map((r) => (
             <option key={r.id} value={r.id}>{r.label}</option>
