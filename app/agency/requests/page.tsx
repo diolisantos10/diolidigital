@@ -11,12 +11,24 @@ import {
   type ClientRequest,
   type BriefingAnalysis,
 } from "@/lib/agency/client-requests";
-import type { BriefingScope, LiveEstimate } from "@/lib/agency/briefing-conversation";
+import type { BriefingScope, LiveEstimate, EstimateItem } from "@/lib/agency/briefing-conversation";
 import type { SDRHandoff } from "@/lib/agency/sdr-agent";
 import { processBriefing } from "@/lib/agency/briefing-processor";
 import type { Priority } from "@/lib/agency/mock-data";
 import { DEMO_CLIENT_ID } from "@/lib/agency/demo-client";
 import { usePMOrchestrator } from "@/lib/dioli-brain/use-pm-orchestrator";
+
+// ── Proposal Edit Types ───────────────────────────────────────────────────────
+
+interface EditableItem extends EstimateItem {
+  _key: string; // stable identity for React keys
+}
+
+interface ProposalDraft {
+  items: EditableItem[];
+  noteToClient: string;
+  sentAt?: string;
+}
 
 // ── CopyLinkButton ────────────────────────────────────────────────────────────
 
@@ -504,6 +516,7 @@ export default function AgencyRequestsPage() {
   // Destructive controls are master-only — never shown to other internal roles
   // and never reachable from the client portal.
   const isMaster = currentRole === "master";
+  const isEditorRole = currentRole === "master" || currentRole === "project_manager";
 
   // ── DB pipeline: real briefing submissions (ClientRequestDb, status "new") ──
   const {
@@ -613,6 +626,9 @@ export default function AgencyRequestsPage() {
   const [createdProjects, setCreatedProjects] = useState<Record<string, string>>({});
   const [processingId,    setProcessingId]    = useState<string | null>(null);
   const [rawOpenId,       setRawOpenId]       = useState<string | null>(null);
+  // Proposal editor state (master + PM only)
+  const [proposalEditId,  setProposalEditId]  = useState<string | null>(null);
+  const [proposalDrafts,  setProposalDrafts]  = useState<Record<string, ProposalDraft>>({});
   // Delete confirmation: the request pending permanent deletion (modal target)
   const [deleteTarget,    setDeleteTarget]    = useState<ClientRequest | null>(null);
   const [deleteConfirm,   setDeleteConfirm]   = useState("");
@@ -775,6 +791,33 @@ export default function AgencyRequestsPage() {
   function runDemoReset() {
     deleteClientRequestsByClient(DEMO_CLIENT_ID);
     setShowDemoReset(false);
+  }
+
+  function openProposalEdit(req: ClientRequest) {
+    const existing = proposalDrafts[req.id];
+    if (existing) { setProposalEditId(req.id); return; }
+    const estimate = req.v2Estimate;
+    const items: EditableItem[] = estimate
+      ? estimate.items.map((it, i) => ({ ...it, _key: `${i}` }))
+      : [];
+    setProposalDrafts((prev) => ({
+      ...prev,
+      [req.id]: { items, noteToClient: "" },
+    }));
+    setProposalEditId(req.id);
+  }
+
+  function saveProposalDraft(reqId: string, draft: ProposalDraft) {
+    setProposalDrafts((prev) => ({ ...prev, [reqId]: draft }));
+  }
+
+  function markProposalSent(reqId: string) {
+    setProposalDrafts((prev) => ({
+      ...prev,
+      [reqId]: { ...prev[reqId], sentAt: new Date().toISOString() },
+    }));
+    updateClientRequest(reqId, { status: "waiting_client" });
+    setProposalEditId(null);
   }
 
   return (
@@ -1088,7 +1131,32 @@ export default function AgencyRequestsPage() {
 
                   {/* V2 structured scope (from conversational briefing) */}
                   {req.v2Scope && (
-                    <V2ScopePanel scope={req.v2Scope} estimate={req.v2Estimate} />
+                    <div className="space-y-2">
+                      <V2ScopePanel scope={req.v2Scope} estimate={proposalDrafts[req.id] ? {
+                        ...req.v2Estimate!,
+                        items: proposalDrafts[req.id].items,
+                        totalMin: proposalDrafts[req.id].items.reduce((s, i) => s + i.minPrice, 0),
+                        totalMax: proposalDrafts[req.id].items.reduce((s, i) => s + i.maxPrice, 0),
+                      } : req.v2Estimate} />
+                      {isEditorRole && req.v2Estimate && req.v2Estimate.confidence !== "none" && (
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); openProposalEdit(req); }}
+                            className="h-7 px-3 rounded-[6px] border border-[#070A1F] text-[#070A1F] hover:bg-[#E6FBFA] text-[11px] font-semibold transition-colors inline-flex items-center gap-1.5"
+                          >
+                            <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                              <path d="M11 2a1.414 1.414 0 012 2L5 12l-3 1 1-3L11 2z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
+                            </svg>
+                            Editar proposta
+                          </button>
+                          {proposalDrafts[req.id]?.sentAt && (
+                            <span className="h-5 px-2 rounded-full bg-[#DCFCE7] text-[#16A34A] text-[9px] font-semibold flex items-center gap-1">
+                              ✓ Proposta enviada {new Date(proposalDrafts[req.id].sentAt!).toLocaleDateString("pt-BR")}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   )}
 
                   {/* SDR Agent handoff summary */}
@@ -1443,6 +1511,24 @@ export default function AgencyRequestsPage() {
           </div>
         </div>
       )}
+
+      {/* ── Proposal Edit Modal (master + PM) ── */}
+      {isEditorRole && proposalEditId && (() => {
+        const req = all.find((r) => r.id === proposalEditId);
+        const draft = proposalDrafts[proposalEditId];
+        if (!req || !draft) return null;
+        const clientLabel = req.prospectName ?? req.extractedSummary?.clientName ?? req.v2Scope?.businessName ?? "Cliente";
+        return (
+          <ProposalEditModal
+            clientLabel={clientLabel}
+            clientEmail={req.prospectEmail}
+            draft={draft}
+            onClose={() => setProposalEditId(null)}
+            onSave={(d) => saveProposalDraft(proposalEditId, d)}
+            onSend={() => markProposalSent(proposalEditId)}
+          />
+        );
+      })()}
 
       {/* ── Demo reset confirmation modal (master only) ── */}
       {isMaster && showDemoReset && (
@@ -1994,6 +2080,236 @@ function SuccessPanel({
             >
               Gestão de Projetos
             </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Proposal Edit Modal ───────────────────────────────────────────────────────
+
+function ProposalEditModal({
+  clientLabel,
+  clientEmail,
+  draft,
+  onClose,
+  onSave,
+  onSend,
+}: {
+  clientLabel: string;
+  clientEmail?: string;
+  draft: ProposalDraft;
+  onClose: () => void;
+  onSave: (d: ProposalDraft) => void;
+  onSend: () => void;
+}) {
+  const [items, setItems] = useState<EditableItem[]>(() =>
+    draft.items.map((it, i) => ({ ...it, _key: it._key ?? String(i) }))
+  );
+  const [note, setNote]   = useState(draft.noteToClient);
+  const [sent, setSent]   = useState(false);
+
+  const fmtBRL = (n: number) => `R$ ${n.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}`;
+  const totalMin = items.reduce((s, it) => s + (Number(it.minPrice) || 0), 0);
+  const totalMax = items.reduce((s, it) => s + (Number(it.maxPrice) || 0), 0);
+
+  function patchItem(key: string, patch: Partial<EditableItem>) {
+    setItems((prev) => prev.map((it) => it._key === key ? { ...it, ...patch } : it));
+  }
+
+  function removeItem(key: string) {
+    setItems((prev) => prev.filter((it) => it._key !== key));
+  }
+
+  function addItem() {
+    setItems((prev) => [
+      ...prev,
+      { _key: String(Date.now()), label: "Novo item", detail: "", minPrice: 0, maxPrice: 0, unit: "mês" },
+    ]);
+  }
+
+  function handleSave() {
+    onSave({ items, noteToClient: note });
+    onClose();
+  }
+
+  function handleSend() {
+    if (sent) return;
+    onSave({ items, noteToClient: note });
+    setSent(true);
+    setTimeout(() => { onSend(); }, 1200);
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 px-4 py-6 overflow-y-auto"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-[14px] border border-[#E5E5E2] shadow-[0_12px_40px_rgba(0,0,0,0.16)] w-full max-w-[640px] mt-8 mb-8"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-[#F0F0ED]">
+          <div>
+            <h2 className="text-[16px] font-semibold text-[#1A1A1A]">Editar proposta</h2>
+            <p className="text-[12px] text-[#9B9B95] mt-0.5">Para: <span className="font-medium text-[#1A1A1A]">{clientLabel}</span>
+              {clientEmail && <span className="text-[#9B9B95]"> · {clientEmail}</span>}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-full hover:bg-[#F0F0ED] flex items-center justify-center text-[#9B9B95] hover:text-[#1A1A1A] transition-colors text-[16px]"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="px-6 py-5 space-y-5">
+          {/* Role badge */}
+          <div className="flex items-center gap-2">
+            <span className="h-5 px-2 rounded-full bg-[#FEF3C7] text-[#D97706] text-[9px] font-semibold">
+              Revisão obrigatória antes de enviar ao cliente
+            </span>
+          </div>
+
+          {/* Line items table */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Itens da proposta</span>
+              <button
+                onClick={addItem}
+                className="h-6 px-2.5 rounded-[5px] border border-[#E5E5E2] text-[10px] font-semibold text-[#6B6B65] hover:border-[#070A1F] hover:text-[#070A1F] transition-colors"
+              >
+                + Adicionar item
+              </button>
+            </div>
+            <div className="border border-[#E5E5E2] rounded-[8px] overflow-hidden divide-y divide-[#F0F0ED]">
+              {items.length === 0 && (
+                <div className="px-4 py-3 text-[12px] text-[#9B9B95] text-center">Nenhum item. Adicione um acima.</div>
+              )}
+              {items.map((it) => (
+                <div key={it._key} className="px-4 py-3 space-y-2">
+                  <div className="flex items-start gap-2">
+                    <input
+                      value={it.label}
+                      onChange={(e) => patchItem(it._key, { label: e.target.value })}
+                      placeholder="Nome do serviço"
+                      className="flex-1 text-[13px] font-medium text-[#1A1A1A] bg-transparent border-b border-transparent hover:border-[#E5E5E2] focus:border-[#070A1F] outline-none py-0.5 transition-colors"
+                    />
+                    <button
+                      onClick={() => removeItem(it._key)}
+                      className="shrink-0 w-6 h-6 rounded-full text-[#9B9B95] hover:bg-[#FEF2F2] hover:text-[#DC2626] flex items-center justify-center transition-colors text-[14px]"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <input
+                    value={it.detail}
+                    onChange={(e) => patchItem(it._key, { detail: e.target.value })}
+                    placeholder="Descrição (opcional)"
+                    className="w-full text-[11px] text-[#6B6B65] bg-transparent border-b border-transparent hover:border-[#E5E5E2] focus:border-[#070A1F] outline-none py-0.5 transition-colors"
+                  />
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5 text-[11px]">
+                      <span className="text-[#9B9B95] shrink-0">Mín R$</span>
+                      <input
+                        type="number"
+                        value={it.minPrice}
+                        onChange={(e) => patchItem(it._key, { minPrice: Number(e.target.value) })}
+                        className="w-20 text-[12px] font-semibold text-[#1A1A1A] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[5px] px-2 py-1 outline-none focus:border-[#070A1F]"
+                      />
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[11px]">
+                      <span className="text-[#9B9B95] shrink-0">Máx R$</span>
+                      <input
+                        type="number"
+                        value={it.maxPrice}
+                        onChange={(e) => patchItem(it._key, { maxPrice: Number(e.target.value) })}
+                        className="w-20 text-[12px] font-semibold text-[#1A1A1A] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[5px] px-2 py-1 outline-none focus:border-[#070A1F]"
+                      />
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[11px]">
+                      <span className="text-[#9B9B95] shrink-0">/</span>
+                      <input
+                        value={it.unit}
+                        onChange={(e) => patchItem(it._key, { unit: e.target.value })}
+                        className="w-16 text-[11px] text-[#6B6B65] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[5px] px-2 py-1 outline-none focus:border-[#070A1F]"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Total */}
+            {items.length > 0 && (
+              <div className="flex items-center justify-between mt-2 px-1">
+                <span className="text-[12px] font-semibold text-[#1A1A1A]">Total estimado</span>
+                <span className="text-[13px] font-bold text-[#070A1F]">
+                  {fmtBRL(totalMin)} – {fmtBRL(totalMax)}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Note to client */}
+          <div>
+            <label className="block text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">
+              Mensagem personalizada para o cliente (opcional)
+            </label>
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Ex: Olá, [Nome]! Com base no briefing que nos enviou, preparamos duas opções de proposta…"
+              rows={4}
+              className="w-full text-[12px] text-[#1A1A1A] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[8px] px-3 py-2.5 outline-none focus:border-[#070A1F] resize-none leading-relaxed"
+            />
+          </div>
+
+          {/* Send feedback */}
+          {sent && (
+            <div className="bg-[#DCFCE7] border border-[#86EFAC] rounded-[8px] px-4 py-3 flex items-center gap-2.5">
+              <span className="text-[#16A34A] font-bold text-[16px]">✓</span>
+              <div>
+                <p className="text-[12px] font-semibold text-[#15803D]">Proposta marcada como enviada</p>
+                <p className="text-[11px] text-[#166534] mt-0.5">
+                  Status atualizado para "Aguardando cliente".
+                  {clientEmail
+                    ? " Integração de e-mail disponível em breve para envio automático."
+                    : " Envie manualmente por WhatsApp ou e-mail ao cliente."}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-[#F0F0ED] bg-[#FAFAF9] rounded-b-[14px]">
+          <button
+            onClick={onClose}
+            className="h-9 px-4 rounded-[8px] border border-[#E5E5E2] text-[#6B6B65] hover:bg-[#F0F0ED] text-[13px] font-medium transition-colors"
+          >
+            Fechar
+          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleSave}
+              className="h-9 px-4 rounded-[8px] border border-[#070A1F] text-[#070A1F] hover:bg-[#E6FBFA] text-[13px] font-medium transition-colors"
+            >
+              Salvar rascunho
+            </button>
+            <button
+              onClick={handleSend}
+              disabled={sent || items.length === 0}
+              className="h-9 px-5 rounded-[8px] bg-[#070A1F] hover:bg-[#0D1230] disabled:opacity-50 disabled:cursor-not-allowed text-white text-[13px] font-semibold transition-colors inline-flex items-center gap-2"
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <path d="M2 8l12-6-6 12-1.5-5.5L2 8z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
+              </svg>
+              {sent ? "Enviada ✓" : "Enviar proposta"}
+            </button>
           </div>
         </div>
       </div>
