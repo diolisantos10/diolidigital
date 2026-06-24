@@ -258,9 +258,9 @@ function StrategyDepartmentPanel() {
   ];
 
   return (
-    <div className="rounded-[10px] border border-[#7C3AED]/30 bg-[#7C3AED]/[0.04] p-5 space-y-4">
+    <div className="rounded-[10px] border border-[#070A1F]/30 bg-[#070A1F]/[0.04] p-5 space-y-4">
       <div className="flex items-center justify-between">
-        <div className="text-[11px] font-semibold text-[#7C3AED] uppercase tracking-[0.08em]">
+        <div className="text-[11px] font-semibold text-[#070A1F] uppercase tracking-[0.08em]">
           Segundo Departamento — Estratégia
         </div>
         <div className="flex items-center gap-2">
@@ -286,7 +286,7 @@ function StrategyDepartmentPanel() {
             key={s.label}
             className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${
               s.active
-                ? "text-[#7C3AED] bg-[#7C3AED]/10 border-[#7C3AED]/20"
+                ? "text-[#070A1F] bg-[#070A1F]/10 border-[#070A1F]/20"
                 : "text-[#4A4A44] bg-white/[0.03] border-white/[0.06]"
             }`}
           >
@@ -299,7 +299,7 @@ function StrategyDepartmentPanel() {
       <div className="grid grid-cols-2 gap-1.5">
         {maturity.criteria.map((c) => (
           <div key={c.id} className="flex items-center gap-1.5 text-[10px]">
-            <span className={c.met ? "text-[#7C3AED]" : "text-[#4A4A44]"}>
+            <span className={c.met ? "text-[#070A1F]" : "text-[#4A4A44]"}>
               {c.met ? "✓" : "○"}
             </span>
             <span className={c.met ? "text-[#8A8A84]" : "text-[#4A4A44]"}>{c.label}</span>
@@ -308,7 +308,7 @@ function StrategyDepartmentPanel() {
       </div>
 
       {/* Strategy Scorecard */}
-      <div className="border-t border-[#7C3AED]/20 pt-3">
+      <div className="border-t border-[#070A1F]/20 pt-3">
         <div className="text-[10px] font-semibold text-[#4A4A44] uppercase tracking-[0.06em] mb-2">
           Scorecard Estratégia
         </div>
@@ -909,7 +909,7 @@ function OverviewTab() {
         <StatCard label="Módulos mapeados" value={mapped} total={CURRENT_SYSTEM_MAP.length} color="#16A34A" />
         <StatCard label="Depts existentes" value={existing} total={BRAIN_DEPARTMENTS.length} color="#070A1F" />
         <StatCard label="Depts parciais" value={partial} total={BRAIN_DEPARTMENTS.length} color="#D97706" />
-        <StatCard label="Precisam refatorar" value={needsRefactor} total={CURRENT_SYSTEM_MAP.length} color="#7C3AED" />
+        <StatCard label="Precisam refatorar" value={needsRefactor} total={CURRENT_SYSTEM_MAP.length} color="#070A1F" />
       </div>
 
       {/* Architecture layers */}
@@ -980,7 +980,7 @@ function OverviewTab() {
 function DepartmentPipelineSection() {
   const PIPELINE_STEPS = [
     { step: 1, dept: "SDR",       status: "waiting_strategy", label: "Atendimento / SDR",  color: "#070A1F", href: "/agency/requests" },
-    { step: 2, dept: "Strategy",  status: "waiting_social",   label: "Estratégia",         color: "#7C3AED", href: "/agency/strategy" },
+    { step: 2, dept: "Strategy",  status: "waiting_social",   label: "Estratégia",         color: "#070A1F", href: "/agency/strategy" },
     { step: 3, dept: "Social",    status: "waiting_design",   label: "Social Media",       color: "#DB2777", href: "/agency/social" },
     { step: 4, dept: "Design",    status: "waiting_traffic",  label: "Design",             color: "#EA580C", href: "/agency/design" },
     { step: 5, dept: "Traffic",   status: "waiting_analytics",label: "Tráfego Pago",       color: "#0284C7", href: "/agency/traffic" },
@@ -1021,7 +1021,7 @@ function DepartmentPipelineSection() {
 
 function SystemMapSection() {
   const statusColors: Record<string, string> = {
-    mapped: "#16A34A", partial: "#D97706", unmapped: "#6B6B65", needs_refactor: "#7C3AED",
+    mapped: "#16A34A", partial: "#D97706", unmapped: "#6B6B65", needs_refactor: "#070A1F",
   };
   const statusLabels: Record<string, string> = {
     mapped: "Mapeado", partial: "Parcial", unmapped: "Não mapeado", needs_refactor: "Refatorar",
@@ -1254,7 +1254,7 @@ function DepartmentsTab() {
                 <div className="flex gap-1.5">
                   <Chip label={route.costTier} color={route.costTier === "low" ? "#16A34A" : route.costTier === "medium" ? "#D97706" : "#DC2626"} />
                   <Chip label={route.latencyTier} color="#070A1F" />
-                  <Chip label={route.qualityTier} color="#7C3AED" />
+                  <Chip label={route.qualityTier} color="#070A1F" />
                 </div>
               </div>
               <div className="flex gap-4 text-[11px] text-[#6B6B65]">

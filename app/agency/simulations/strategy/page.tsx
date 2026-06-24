@@ -131,7 +131,7 @@ export default function StrategySimulatorPage() {
         </span>
         <a
           href="/agency/strategy"
-          className="ml-auto text-[11px] text-[#9B9B95] hover:text-[#7C3AED] transition-colors"
+          className="ml-auto text-[11px] text-[#9B9B95] hover:text-[#070A1F] transition-colors"
         >
           Workspace de Estratégia →
         </a>
@@ -153,7 +153,7 @@ export default function StrategySimulatorPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={runAll}
-              className="h-7 px-3 rounded-[6px] bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-[11px] font-semibold transition-colors"
+              className="h-7 px-3 rounded-[6px] bg-[#070A1F] hover:bg-[#0D1230] text-white text-[11px] font-semibold transition-colors"
             >
               ✦ Rodar todos ({SCENARIOS.length})
             </button>
@@ -172,7 +172,7 @@ export default function StrategySimulatorPage() {
             <button
               key={s.id}
               onClick={() => runScenario(s)}
-              className="h-7 px-3 rounded-[6px] border border-[#E5E5E2] bg-white text-[#6B6B65] hover:border-[#7C3AED] hover:text-[#7C3AED] text-[11px] font-medium transition-colors"
+              className="h-7 px-3 rounded-[6px] border border-[#E5E5E2] bg-white text-[#6B6B65] hover:border-[#070A1F] hover:text-[#070A1F] text-[11px] font-medium transition-colors"
             >
               {s.label}
             </button>

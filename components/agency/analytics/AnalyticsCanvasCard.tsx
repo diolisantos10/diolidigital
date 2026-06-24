@@ -22,7 +22,7 @@ const CATEGORY_LABEL: Record<string, string> = {
 };
 
 const CATEGORY_COLOR: Record<string, string> = {
-  business: "#070A1F", content: "#DB2777", traffic: "#0284C7", brand: "#EA580C", cross_dept: "#7C3AED",
+  business: "#070A1F", content: "#DB2777", traffic: "#0284C7", brand: "#EA580C", cross_dept: "#070A1F",
 };
 
 const EFFORT_LABEL: Record<string, string>   = { baixo: "Baixo", medio: "Médio", alto: "Alto" };

@@ -150,7 +150,7 @@ function MessageBubble({ msg }: { msg: ConvMessage }) {
 const PKG_STYLE: Record<string, { bg: string; text: string }> = {
   starter: { bg: "bg-[#F0F0ED]",  text: "text-[#6B6B65]"  },
   growth:  { bg: "bg-[#E6FBFA]",  text: "text-[#070A1F]"  },
-  pro:     { bg: "bg-[#F5F3FF]",  text: "text-[#7C3AED]"  },
+  pro:     { bg: "bg-[#E6FBFA]",  text: "text-[#070A1F]"  },
 };
 
 // ── Scope section ─────────────────────────────────────────────────────────────

@@ -28,7 +28,7 @@ const AGENT_REGISTRY: AgentMeta[] = [
     deptId: "project-management",
     label: "Gestão de Projetos",
     role: "PM Agent",
-    color: "#1A1A1A",
+    color: "#070A1F",
     accentBg: "#F0F0ED",
     agentRoute: "/agency/pm-agent",
     brainRoute: null,
@@ -38,8 +38,8 @@ const AGENT_REGISTRY: AgentMeta[] = [
     deptId: "strategy",
     label: "Estratégia",
     role: "Strategy Agent",
-    color: "#7C3AED",
-    accentBg: "#F5F3FF",
+    color: "#070A1F",
+    accentBg: "#F0F0ED",
     agentRoute: "/agency/strategy-agent",
     brainRoute: "/agency/strategy",
     deliverableTypes: ["strategy_document", "planning"],
@@ -48,8 +48,8 @@ const AGENT_REGISTRY: AgentMeta[] = [
     deptId: "brand-hub",
     label: "Brand Hub",
     role: "Brand Guardian",
-    color: "#C2530A",
-    accentBg: "#FFF7ED",
+    color: "#070A1F",
+    accentBg: "#E6FBFA",
     agentRoute: "/agency/brand-hub-agent",
     brainRoute: null,
     deliverableTypes: ["document", "design"],
@@ -58,8 +58,8 @@ const AGENT_REGISTRY: AgentMeta[] = [
     deptId: "social-media",
     label: "Social Media",
     role: "Social Agent",
-    color: "#E53E3E",
-    accentBg: "#FFF5F5",
+    color: "#070A1F",
+    accentBg: "#F0F0ED",
     agentRoute: "/agency/social-media-agent",
     brainRoute: "/agency/social",
     deliverableTypes: ["social_media"],
@@ -68,8 +68,8 @@ const AGENT_REGISTRY: AgentMeta[] = [
     deptId: "design",
     label: "Design",
     role: "Design Agent",
-    color: "#2563EB",
-    accentBg: "#EFF6FF",
+    color: "#070A1F",
+    accentBg: "#F0F0ED",
     agentRoute: "/agency/design-agent",
     brainRoute: "/agency/design",
     deliverableTypes: ["design"],
@@ -78,8 +78,8 @@ const AGENT_REGISTRY: AgentMeta[] = [
     deptId: "paid-traffic",
     label: "Tráfego Pago",
     role: "Ads Agent",
-    color: "#0E7490",
-    accentBg: "#ECFEFF",
+    color: "#070A1F",
+    accentBg: "#E6FBFA",
     agentRoute: "/agency/ads-agent",
     brainRoute: "/agency/traffic",
     deliverableTypes: ["paid_traffic"],
@@ -88,8 +88,8 @@ const AGENT_REGISTRY: AgentMeta[] = [
     deptId: "operations",
     label: "Operações",
     role: "System Doctor",
-    color: "#059669",
-    accentBg: "#ECFDF5",
+    color: "#070A1F",
+    accentBg: "#F0F0ED",
     agentRoute: "/agency/operations-agent",
     brainRoute: null,
     deliverableTypes: [],
@@ -97,12 +97,12 @@ const AGENT_REGISTRY: AgentMeta[] = [
 ];
 
 const CANVAS_CHAIN = [
-  { label: "Strategy Canvas", dept: "strategy", color: "#7C3AED" },
-  { label: "Social Canvas",   dept: "social-media", color: "#E53E3E" },
-  { label: "Design Canvas",   dept: "design", color: "#2563EB" },
-  { label: "Traffic Canvas",  dept: "paid-traffic", color: "#0E7490" },
-  { label: "Analytics",       dept: null, color: "#6B6B65" },
-  { label: "Quality Gate",    dept: null, color: "#6B6B65" },
+  { label: "Strategy Canvas", dept: "strategy",      color: "#070A1F" },
+  { label: "Social Canvas",   dept: "social-media",  color: "#070A1F" },
+  { label: "Design Canvas",   dept: "design",        color: "#070A1F" },
+  { label: "Traffic Canvas",  dept: "paid-traffic",  color: "#070A1F" },
+  { label: "Analytics",       dept: null,            color: "#6B6B65" },
+  { label: "Quality Gate",    dept: null,            color: "#6B6B65" },
 ];
 
 export default function MaestroPage() {
@@ -257,18 +257,6 @@ export default function MaestroPage() {
               );
             })}
           </div>
-        </div>
-
-        {/* ── Pilot CTA ── */}
-        <div className="bg-[#F5F3FF] border border-[#DDD6FE] rounded-[10px] px-5 py-4 flex items-center justify-between gap-4">
-          <div>
-            <p className="text-[13px] font-semibold text-[#7C3AED]">Piloto Sushi Cazza</p>
-            <p className="text-[12px] text-[#6B6B65] mt-0.5">Guia passo a passo para rodar o pipeline completo com o primeiro cliente real.</p>
-          </div>
-          <Link href="/agency/pilot"
-            className="h-9 px-5 rounded-[8px] text-[13px] font-semibold text-white bg-[#7C3AED] hover:bg-[#6D28D9] transition-colors shrink-0">
-            Iniciar Piloto →
-          </Link>
         </div>
 
         {/* ── Quick links ── */}

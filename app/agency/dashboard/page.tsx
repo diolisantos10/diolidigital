@@ -462,9 +462,9 @@ export default function DashboardPage() {
               </Link>
             )}
             {attentionCounts.pendingBrand > 0 && (
-              <Link href="/agency/approvals" className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#EDE9FE] hover:bg-[#DDD6FE] transition-colors">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#7C3AED]" />
-                <span className="text-[11px] font-semibold text-[#7C3AED]">{attentionCounts.pendingBrand} sugestão{attentionCounts.pendingBrand !== 1 ? "" : ""} de marca</span>
+              <Link href="/agency/approvals" className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#EDE9FE] hover:bg-[#9AF5F0] transition-colors">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#070A1F]" />
+                <span className="text-[11px] font-semibold text-[#070A1F]">{attentionCounts.pendingBrand} sugestão{attentionCounts.pendingBrand !== 1 ? "" : ""} de marca</span>
               </Link>
             )}
             {attentionCounts.pendingMaterials > 0 && (
@@ -632,10 +632,10 @@ export default function DashboardPage() {
             ))}
             {orchSummary.stalledApprovals.slice(0, 2).map((s, i) => (
               <Link key={`stall-${i}`} href="/agency/approvals" className="flex items-center gap-3 px-5 py-2.5 hover:bg-[#FAFAF9] transition-colors">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#7C3AED] shrink-0" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#070A1F] shrink-0" />
                 <span className="text-[11px] text-[#9B9B95] font-medium shrink-0 w-[110px] truncate">{s.projectName}</span>
                 <span className="text-[12px] text-[#1A1A1A] flex-1">"{s.deliverableName}" parada há {s.daysSent} dias</span>
-                <span className="text-[9px] font-bold bg-[#EDE9FE] text-[#7C3AED] px-1.5 py-0.5 rounded shrink-0">Parada</span>
+                <span className="text-[9px] font-bold bg-[#EDE9FE] text-[#070A1F] px-1.5 py-0.5 rounded shrink-0">Parada</span>
               </Link>
             ))}
           </div>

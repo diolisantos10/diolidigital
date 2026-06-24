@@ -1139,7 +1139,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         };
         const SPECIALIST_COLOR: Record<string, string> = {
           strat: "bg-[#070A1F]", social: "bg-[#0E7490]", creative: "bg-[#C2530A]",
-          paid: "bg-[#16A34A]", growth: "bg-[#7C3AED]", ceo: "bg-[#1A1A1A]",
+          paid: "bg-[#16A34A]", growth: "bg-[#070A1F]", ceo: "bg-[#1A1A1A]",
         };
 
         const applyEntireStrategy = () => {

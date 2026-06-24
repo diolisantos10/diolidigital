@@ -8,7 +8,7 @@ import { useDbDeliverables } from "@/lib/hooks/useDbDeliverables";
 import { getClientAgentContext } from "@/lib/agency/workspace";
 import type { StrategyCanvas } from "@/lib/dioli-brain/strategy-canvas";
 
-const ACCENT = "#7C3AED";
+const ACCENT = "#070A1F";
 
 type AgentState = "idle" | "generating" | "output_ready";
 type OutputTab = "diagnostico" | "posicao" | "canais" | "roadmap" | "riscos" | "quality";
@@ -151,7 +151,7 @@ export default function StrategyAgentPage() {
         {/* Badge row */}
         <div className="flex items-center gap-2 mb-6 flex-wrap">
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-wide uppercase"
-            style={{ backgroundColor: "#F5F3FF", color: ACCENT }}>
+            style={{ backgroundColor: "#E6FBFA", color: ACCENT }}>
             <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: ACCENT }} />
             Departamento de Estratégia
           </span>
@@ -164,7 +164,7 @@ export default function StrategyAgentPage() {
           {agentState === "output_ready" && (
             <div className="ml-auto flex items-center gap-2">
               <span className="text-[11px] font-medium px-2.5 py-1 rounded-full"
-                style={{ backgroundColor: mode === "openai" ? "#F5F3FF" : "#F0F0ED", color: mode === "openai" ? ACCENT : "#6B6B65" }}>
+                style={{ backgroundColor: mode === "openai" ? "#E6FBFA" : "#F0F0ED", color: mode === "openai" ? ACCENT : "#6B6B65" }}>
                 {mode === "openai" ? `✦ IA · ${aiModel}` : "motor rule-based"}
               </span>
               {saved ? (
@@ -221,7 +221,7 @@ export default function StrategyAgentPage() {
 
               {/* Brand Brain readiness */}
               {agentCtx && (
-                <div className={`rounded-[8px] border px-3 py-2.5 ${agentCtx.brandBrainReadiness < 5 ? "bg-[#FFFBEB] border-[#FDE68A]" : "bg-[#F5F3FF] border-[#DDD6FE]"}`}>
+                <div className={`rounded-[8px] border px-3 py-2.5 ${agentCtx.brandBrainReadiness < 5 ? "bg-[#FFFBEB] border-[#FDE68A]" : "bg-[#E6FBFA] border-[#9AF5F0]"}`}>
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-1.5">
                       <span className="text-[11px] font-bold" style={{ color: agentCtx.brandBrainReadiness < 5 ? "#D97706" : ACCENT }}>
@@ -232,7 +232,7 @@ export default function StrategyAgentPage() {
                       </span>
                       <span className="text-[10px] text-[#9B9B95]">· {agentCtx.clientName}</span>
                     </div>
-                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${agentCtx.brandBrainReadiness === 10 ? "bg-[#DCFCE7] text-[#16A34A]" : agentCtx.brandBrainReadiness >= 5 ? "bg-[#F5F3FF] text-[#7C3AED]" : "bg-[#F0F0ED] text-[#9B9B95]"}`}>
+                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${agentCtx.brandBrainReadiness === 10 ? "bg-[#DCFCE7] text-[#16A34A]" : agentCtx.brandBrainReadiness >= 5 ? "bg-[#E6FBFA] text-[#070A1F]" : "bg-[#F0F0ED] text-[#9B9B95]"}`}>
                       {agentCtx.brandBrainReadiness}/10
                     </span>
                   </div>
@@ -253,7 +253,7 @@ export default function StrategyAgentPage() {
 
               {/* What gets generated */}
               {linkedProject && (
-                <div className="rounded-[8px] border border-[#DDD6FE] bg-[#F5F3FF] px-3 py-3">
+                <div className="rounded-[8px] border border-[#9AF5F0] bg-[#E6FBFA] px-3 py-3">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.05em] mb-2" style={{ color: ACCENT }}>Será gerado</p>
                   <ul className="space-y-1">
                     {["Diagnóstico de negócio", "Posicionamento estratégico", "Público-alvo definido", "Canais e serviços prioritários", "Roadmap de execução", "Quality Gate (8 critérios)"].map((item) => (
@@ -302,7 +302,7 @@ export default function StrategyAgentPage() {
 
           {agentState === "idle" && !linkedProject && (
             <div className="bg-white rounded-[10px] border border-dashed border-[#E5E5E2] px-8 py-16 text-center">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: "#F5F3FF" }}>
+              <div className="w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: "#E6FBFA" }}>
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                   <circle cx="10" cy="10" r="8" stroke={ACCENT} strokeWidth="1.5"/>
                   <path d="M12.5 7.5L11 11l-3.5 1.5L9 9l3.5-1.5z" stroke={ACCENT} strokeWidth="1.5" strokeLinejoin="round"/>
@@ -315,7 +315,7 @@ export default function StrategyAgentPage() {
 
           {agentState === "idle" && linkedProject && (
             <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-8 py-14 text-center">
-              <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-5" style={{ backgroundColor: "#F5F3FF" }}>
+              <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-5" style={{ backgroundColor: "#E6FBFA" }}>
                 <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
                   <circle cx="11" cy="11" r="9" stroke={ACCENT} strokeWidth="1.5"/>
                   <path d="M14 8L12 12.5l-4 1.5L10 9.5 14 8z" stroke={ACCENT} strokeWidth="1.5" strokeLinejoin="round"/>
@@ -334,7 +334,7 @@ export default function StrategyAgentPage() {
                 {STEPS.map((s, i) => (
                   <div key={i} className={`flex items-center gap-3 transition-opacity ${i <= stepIndex ? "opacity-100" : "opacity-30"}`}>
                     <span className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${i < stepIndex ? "bg-[#DCFCE7]" : i === stepIndex ? "" : "bg-[#F0F0ED]"}`}
-                      style={i === stepIndex ? { backgroundColor: "#F5F3FF" } : {}}>
+                      style={i === stepIndex ? { backgroundColor: "#E6FBFA" } : {}}>
                       {i < stepIndex ? (
                         <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
                           <path d="M1 4l2.5 2.5L9 1" stroke="#16A34A" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
@@ -401,7 +401,7 @@ export default function StrategyAgentPage() {
                       <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Diferenciais</div>
                       <div className="flex flex-wrap gap-1.5">
                         {canvas.differentiators.map((d) => (
-                          <span key={d} className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#F5F3FF]" style={{ color: ACCENT }}>{d}</span>
+                          <span key={d} className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#E6FBFA]" style={{ color: ACCENT }}>{d}</span>
                         ))}
                       </div>
                     </div>
@@ -467,7 +467,7 @@ export default function StrategyAgentPage() {
                     <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">Territórios de conteúdo</div>
                     <div className="flex flex-wrap gap-2">
                       {canvas.contentTerritories.map((t) => (
-                        <span key={t} className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-[#F5F3FF]" style={{ color: ACCENT }}>{t}</span>
+                        <span key={t} className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-[#E6FBFA]" style={{ color: ACCENT }}>{t}</span>
                       ))}
                     </div>
                   </div>
@@ -484,7 +484,7 @@ export default function StrategyAgentPage() {
                           <span className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0" style={{ backgroundColor: ACCENT }}>{i + 1}</span>
                           <span className="text-[13px] font-semibold text-[#1A1A1A]">{phase.phase}</span>
                         </div>
-                        <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-[#F5F3FF]" style={{ color: ACCENT }}>
+                        <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-[#E6FBFA]" style={{ color: ACCENT }}>
                           {phase.durationWeeks} {phase.durationWeeks === 1 ? "semana" : "semanas"}
                         </span>
                       </div>

@@ -79,7 +79,7 @@ const PHASES: { id: number; label: string; subtitle: string; color: string; step
     id: 3,
     label: "Fase 3 — Os agentes de IA produzem",
     subtitle: "Com o projeto criado, rode cada departamento. Cada agente usa o contexto do cliente para raciocinar.",
-    color: "#7C3AED",
+    color: "#070A1F",
     steps: [
       {
         number: 3,
@@ -100,7 +100,7 @@ const PHASES: { id: number; label: string; subtitle: string; color: string; step
         description: "Diagnóstico, posicionamento, público, canais e roadmap. Base de tudo.",
         action: "Abrir Strategy Agent",
         href: "/agency/strategy-agent",
-        color: "#7C3AED",
+        color: "#070A1F",
         done: (s) => (s.delivByType["strategy_document"] ?? 0) > 0,
       },
       {
@@ -303,16 +303,16 @@ export default function PilotPage() {
 
         {/* Active project banner */}
         {activeProject && (
-          <div className="bg-[#F5F3FF] border border-[#DDD6FE] rounded-[10px] px-5 py-3 flex items-center justify-between gap-4">
+          <div className="bg-[#E6FBFA] border border-[#9AF5F0] rounded-[10px] px-5 py-3 flex items-center justify-between gap-4">
             <div>
-              <p className="text-[12px] font-semibold text-[#7C3AED]">Projeto ativo do piloto</p>
+              <p className="text-[12px] font-semibold text-[#070A1F]">Projeto ativo do piloto</p>
               <p className="text-[12px] text-[#6B6B65] mt-0.5">
                 <span className="font-medium text-[#1A1A1A]">{activeProject.name}</span>
                 {activeClient && <> · {activeClient.name}</>} · {activeProject.stage}
               </p>
             </div>
             <Link href={`/agency/projects/${activeProject.id}`}
-              className="h-8 px-4 rounded-[7px] bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-[12px] font-medium transition-colors shrink-0">
+              className="h-8 px-4 rounded-[7px] bg-[#070A1F] hover:bg-[#0D1230] text-white text-[12px] font-medium transition-colors shrink-0">
               Ver projeto →
             </Link>
           </div>

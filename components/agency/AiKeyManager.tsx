@@ -36,7 +36,7 @@ const META: Record<Provider, ProviderMeta> = {
     keyUrl: "https://console.anthropic.com/settings/keys",
     keyHelp: "console.anthropic.com → API Keys → Create Key",
     models: ["claude-sonnet-4-6", "claude-opus-4-8", "claude-haiku-4-5-20251001"],
-    accent: "#7C3AED",
+    accent: "#070A1F",
   },
   openai: {
     name: "OpenAI",

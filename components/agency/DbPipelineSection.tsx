@@ -53,20 +53,20 @@ export function DbPipelineSection<C>({
   if (!dbLoading && !dbError && dbQueue.length === 0) return null;
 
   return (
-    <div className="bg-white rounded-[10px] border border-[#DDD6FE] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-      <div className="flex items-center gap-2 px-5 py-3 bg-[#F5F3FF] border-b border-[#DDD6FE]">
+    <div className="bg-white rounded-[10px] border border-[#9AF5F0] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+      <div className="flex items-center gap-2 px-5 py-3 bg-[#E6FBFA] border-b border-[#9AF5F0]">
         <h2 className="text-[14px] font-semibold text-[#1A1A1A]">{title}</h2>
-        <span className="h-5 px-2 rounded-full bg-white text-[#7C3AED] text-[10px] font-semibold flex items-center border border-[#DDD6FE]">
+        <span className="h-5 px-2 rounded-full bg-white text-[#070A1F] text-[10px] font-semibold flex items-center border border-[#9AF5F0]">
           {dbQueue.length}
         </span>
-        <span className="h-5 px-2 rounded-full bg-[#7C3AED] text-white text-[10px] font-semibold flex items-center">
+        <span className="h-5 px-2 rounded-full bg-[#070A1F] text-white text-[10px] font-semibold flex items-center">
           ✦ Dioli Brain
         </span>
       </div>
 
       {dbLoading && (
         <div className="px-5 py-6 flex items-center gap-2 text-[12px] text-[#9B9B95]">
-          <span className="w-3.5 h-3.5 border-2 border-[#DDD6FE] border-t-[#7C3AED] rounded-full animate-spin" />
+          <span className="w-3.5 h-3.5 border-2 border-[#9AF5F0] border-t-[#070A1F] rounded-full animate-spin" />
           Carregando fila do banco…
         </div>
       )}
@@ -109,7 +109,7 @@ export function DbPipelineSection<C>({
                     <button
                       onClick={() => onGenerate(req)}
                       disabled={generatingId === req.id}
-                      className="h-8 px-4 rounded-[7px] bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-50 text-white text-[12px] font-medium transition-colors shrink-0"
+                      className="h-8 px-4 rounded-[7px] bg-[#070A1F] hover:bg-[#0D1230] disabled:opacity-50 text-white text-[12px] font-medium transition-colors shrink-0"
                     >
                       {generatingId === req.id ? "Gerando…" : "✦ Generate"}
                     </button>

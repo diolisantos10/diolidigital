@@ -12,7 +12,7 @@ const ASSET_COLORS: Record<AssetType, string> = {
   typography: "bg-[#F0FDF4] text-[#16A34A]",
   tone_of_voice: "bg-[#FFF7ED] text-[#C2410C]",
   visual_reference: "bg-[#F0F0ED] text-[#6B6B65]",
-  guidelines: "bg-[#F5F3FF] text-[#7C3AED]",
+  guidelines: "bg-[#E6FBFA] text-[#070A1F]",
 };
 
 export default function BrandAssetsPage() {

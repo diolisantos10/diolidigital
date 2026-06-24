@@ -155,7 +155,7 @@ function PendingBrainUpdates() {
     <div className="bg-white rounded-[10px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
       <div className="px-6 py-4 border-b border-[#F0F0ED] flex items-center justify-between">
         <span className="text-[13px] font-semibold text-[#1A1A1A]">Atualizações de Brain pendentes</span>
-        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-[4px] bg-[#F5F3FF] text-[#7C3AED]">
+        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-[4px] bg-[#E6FBFA] text-[#070A1F]">
           ✦ Learning loop
         </span>
       </div>
@@ -181,7 +181,7 @@ function PendingBrainUpdates() {
             <button
               onClick={() => apply(u.id)}
               disabled={applying === u.id}
-              className="h-7 px-3 rounded-[6px] bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-50 text-white text-[11px] font-medium transition-colors shrink-0"
+              className="h-7 px-3 rounded-[6px] bg-[#070A1F] hover:bg-[#0D1230] disabled:opacity-50 text-white text-[11px] font-medium transition-colors shrink-0"
             >
               {applying === u.id ? "Aplicando…" : "Aplicar"}
             </button>

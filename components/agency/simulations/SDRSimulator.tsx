@@ -125,7 +125,7 @@ function MessageBubble({ msg }: { msg: ConvMessage }) {
 const PKG_STYLE: Record<string, { bg: string; text: string }> = {
   starter: { bg: "bg-[#F0F0ED]", text: "text-[#6B6B65]" },
   growth:  { bg: "bg-[#E6FBFA]", text: "text-[#070A1F]" },
-  pro:     { bg: "bg-[#F5F3FF]", text: "text-[#7C3AED]" },
+  pro:     { bg: "bg-[#E6FBFA]", text: "text-[#070A1F]" },
 };
 
 function CartPanel({
@@ -525,8 +525,8 @@ function SimulationResult({ handoff, onReset }: { handoff: SDRHandoff; onReset: 
         </button>
       </div>
 
-      <div className="bg-[#F5F3FF] border border-[#DDD6FE] rounded-[10px] px-4 py-4 space-y-3">
-        <div className="text-[9px] font-semibold text-[#7C3AED] uppercase tracking-[0.06em]">✦ SDR Handoff</div>
+      <div className="bg-[#E6FBFA] border border-[#9AF5F0] rounded-[10px] px-4 py-4 space-y-3">
+        <div className="text-[9px] font-semibold text-[#070A1F] uppercase tracking-[0.06em]">✦ SDR Handoff</div>
 
         {[
           { title: "Diagnóstico",   value: handoff.diagnosis },
@@ -693,7 +693,7 @@ export function SDRSimulator() {
               <div className="text-[14px] font-semibold text-[#1A1A1A] mt-0.5">SDR Agent — Briefing Room</div>
             </div>
             <div className="flex items-center gap-2">
-              <span className="h-5 px-2.5 rounded-full bg-[#EDE9FE] text-[#7C3AED] text-[9px] font-semibold">
+              <span className="h-5 px-2.5 rounded-full bg-[#EDE9FE] text-[#070A1F] text-[9px] font-semibold">
                 ✦ Interno
               </span>
               <span className="h-2 w-2 rounded-full bg-[#16A34A]" />

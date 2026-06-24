@@ -132,7 +132,7 @@ export function StrategyCanvasCard({
               <BulletList items={canvas.painPoints} marker="–" />
             </Section>
             <Section title="Diferenciais">
-              <BulletList items={canvas.differentiators} marker="✦" markerClass="text-[#7C3AED]" />
+              <BulletList items={canvas.differentiators} marker="✦" markerClass="text-[#070A1F]" />
             </Section>
           </div>
 
@@ -156,8 +156,8 @@ export function StrategyCanvasCard({
           </div>
 
           {/* Positioning */}
-          <div className="bg-[#F5F3FF] border border-[#DDD6FE] rounded-[8px] px-4 py-3">
-            <div className="text-[9px] font-semibold text-[#7C3AED] uppercase tracking-[0.06em] mb-1">
+          <div className="bg-[#E6FBFA] border border-[#9AF5F0] rounded-[8px] px-4 py-3">
+            <div className="text-[9px] font-semibold text-[#070A1F] uppercase tracking-[0.06em] mb-1">
               Declaração de Posicionamento
             </div>
             <p className="text-[12px] text-[#4C1D95] leading-relaxed font-medium">{canvas.positioningStatement}</p>
@@ -169,7 +169,7 @@ export function StrategyCanvasCard({
 
           <div className="grid grid-cols-2 gap-4">
             <Section title="Territórios de Conteúdo">
-              <TagList items={canvas.contentTerritories} color="bg-[#F5F3FF] text-[#7C3AED]" />
+              <TagList items={canvas.contentTerritories} color="bg-[#E6FBFA] text-[#070A1F]" />
             </Section>
             <Section title="Canais Prioritários">
               <TagList items={canvas.priorityChannels} />
@@ -296,7 +296,7 @@ export function StrategyCanvasCard({
               ) : (
                 <button
                   onClick={onProposeBrainChange}
-                  className="h-8 px-4 rounded-[7px] border border-[#7C3AED] text-[#7C3AED] hover:bg-[#F5F3FF] text-[12px] font-medium transition-colors"
+                  className="h-8 px-4 rounded-[7px] border border-[#070A1F] text-[#070A1F] hover:bg-[#E6FBFA] text-[12px] font-medium transition-colors"
                 >
                   ✦ Propor melhoria ao Brain
                 </button>

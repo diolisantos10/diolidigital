@@ -108,7 +108,7 @@ export function SocialCanvasCard({
               </span>
             )}
             {canvas.strategyCanvasId && (
-              <span className="h-5 px-2 rounded-full bg-[#F5F3FF] text-[#7C3AED] text-[10px] font-semibold">
+              <span className="h-5 px-2 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[10px] font-semibold">
                 Estratégia vinculada
               </span>
             )}

@@ -221,7 +221,7 @@ export default function QualityWorkspacePage() {
           </div>
           <p className="text-[12px] text-[#6B6B65] mt-0.5">Auditoria cross-departamento: verifica qualidade, detecta padrões e candidatos a evidência em todo o pipeline</p>
         </div>
-        <a href="/agency/simulations/quality" className="text-[11px] font-medium px-3 py-1.5 rounded-[6px] bg-[#E6FBFA] text-[#070A1F] hover:bg-[#DDD6FE]">Laboratório →</a>
+        <a href="/agency/simulations/quality" className="text-[11px] font-medium px-3 py-1.5 rounded-[6px] bg-[#E6FBFA] text-[#070A1F] hover:bg-[#9AF5F0]">Laboratório →</a>
       </div>
 
       <div className="rounded-[10px] border border-[#070A1F]/20 bg-[#E6FBFA]/40 px-4 py-3">

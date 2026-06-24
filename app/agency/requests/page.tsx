@@ -58,7 +58,7 @@ function OrchestratePanel({ requestId, onApplied }: { requestId: string; onAppli
     return (
       <button
         onClick={propose}
-        className="h-8 px-4 rounded-[7px] border border-[#7C3AED] text-[#7C3AED] hover:bg-[#F5F3FF] text-[12px] font-medium transition-colors shrink-0"
+        className="h-8 px-4 rounded-[7px] border border-[#070A1F] text-[#070A1F] hover:bg-[#E6FBFA] text-[12px] font-medium transition-colors shrink-0"
       >
         ✦ Orquestrar
       </button>
@@ -88,10 +88,10 @@ function OrchestratePanel({ requestId, onApplied }: { requestId: string; onAppli
   // proposed | applying — render the inline draft proposal for approval.
   if (!proposal) return null;
   return (
-    <div className="w-full mt-2 rounded-[8px] border border-[#DDD6FE] bg-[#FBFAFF] p-3 space-y-2">
+    <div className="w-full mt-2 rounded-[8px] border border-[#9AF5F0] bg-[#FBFAFF] p-3 space-y-2">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-[12px] font-semibold text-[#1A1A1A]">{proposal.name}</span>
-        <span className="h-4 px-1.5 rounded-[3px] bg-[#7C3AED] text-white text-[9px] font-semibold leading-4">
+        <span className="h-4 px-1.5 rounded-[3px] bg-[#070A1F] text-white text-[9px] font-semibold leading-4">
           {proposal.reasoningMode === "openai" ? "AI" : "RULE-BASED"}
         </span>
         <span className="text-[11px] text-[#9B9B95]">DRAFT — nada foi criado ainda</span>
@@ -130,7 +130,7 @@ function OrchestratePanel({ requestId, onApplied }: { requestId: string; onAppli
         <button
           onClick={async () => { await apply(proposal); onApplied(); }}
           disabled={status === "applying"}
-          className="h-8 px-4 rounded-[7px] bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-50 text-white text-[12px] font-medium transition-colors"
+          className="h-8 px-4 rounded-[7px] bg-[#070A1F] hover:bg-[#0D1230] disabled:opacity-50 text-white text-[12px] font-medium transition-colors"
         >
           {status === "applying" ? "Criando…" : "Aprovar & Criar projeto"}
         </button>
@@ -158,9 +158,9 @@ function SDRHandoffPanel({ handoff }: { handoff: SDRHandoff }) {
   return (
     <div className="space-y-3">
       {/* Brain Review Panel header */}
-      <div className="bg-[#F5F3FF] border border-[#DDD6FE] rounded-[8px] px-4 py-3.5 space-y-2.5">
+      <div className="bg-[#E6FBFA] border border-[#9AF5F0] rounded-[8px] px-4 py-3.5 space-y-2.5">
         <div className="flex items-center justify-between">
-          <div className="text-[9px] font-semibold text-[#7C3AED] uppercase tracking-[0.06em]">
+          <div className="text-[9px] font-semibold text-[#070A1F] uppercase tracking-[0.06em]">
             ✦ Brain Review Panel — SDR Agent
           </div>
           {qg && (
@@ -234,7 +234,7 @@ function SDRHandoffPanel({ handoff }: { handoff: SDRHandoff }) {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <p className="text-[10px] font-semibold text-[#5B21B6] mb-0.5">Departamento recomendado</p>
-                <span className="h-5 px-2 rounded-full bg-[#EDE9FE] text-[#7C3AED] text-[10px] font-medium">
+                <span className="h-5 px-2 rounded-full bg-[#EDE9FE] text-[#070A1F] text-[10px] font-medium">
                   {brain.recommendedDepartment}
                 </span>
               </div>
@@ -243,7 +243,7 @@ function SDRHandoffPanel({ handoff }: { handoff: SDRHandoff }) {
                   <p className="text-[10px] font-semibold text-[#5B21B6] mb-0.5">Serviços recomendados</p>
                   <div className="flex flex-wrap gap-1">
                     {brain.recommendedServices.map((s, i) => (
-                      <span key={i} className="h-5 px-2 rounded-full bg-[#EDE9FE] text-[#7C3AED] text-[10px]">{s}</span>
+                      <span key={i} className="h-5 px-2 rounded-full bg-[#EDE9FE] text-[#070A1F] text-[10px]">{s}</span>
                     ))}
                   </div>
                 </div>
@@ -330,7 +330,7 @@ function SDRHandoffPanel({ handoff }: { handoff: SDRHandoff }) {
 
       {/* Legacy fields: objections + tradeoffs */}
       {(handoff.objectionsHandled.length > 0 || handoff.tradeoffsAccepted.length > 0 || handoff.unresolvedRisks.length > 0) && (
-        <div className="bg-[#F5F3FF] border border-[#DDD6FE] rounded-[8px] px-4 py-3 space-y-2">
+        <div className="bg-[#E6FBFA] border border-[#9AF5F0] rounded-[8px] px-4 py-3 space-y-2">
           {handoff.objectionsHandled.length > 0 && (
             <div>
               <p className="text-[10px] font-semibold text-[#5B21B6] mb-0.5">Objeções tratadas</p>
@@ -753,13 +753,13 @@ export default function AgencyRequestsPage() {
     <div className="space-y-6">
       {/* ── DB Pipeline — briefings reais (ClientRequestDb) ── */}
       {!dbLoading && !dbError && dbRequests.length > 0 && (
-        <div className="bg-white rounded-[10px] border border-[#DDD6FE] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-          <div className="flex items-center gap-2 px-5 py-3 bg-[#F5F3FF] border-b border-[#DDD6FE]">
+        <div className="bg-white rounded-[10px] border border-[#9AF5F0] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+          <div className="flex items-center gap-2 px-5 py-3 bg-[#E6FBFA] border-b border-[#9AF5F0]">
             <h2 className="text-[14px] font-semibold text-[#1A1A1A]">Pipeline DB — Briefings reais</h2>
-            <span className="h-5 px-2 rounded-full bg-white text-[#7C3AED] text-[10px] font-semibold flex items-center border border-[#DDD6FE]">
+            <span className="h-5 px-2 rounded-full bg-white text-[#070A1F] text-[10px] font-semibold flex items-center border border-[#9AF5F0]">
               {dbRequests.length} novo{dbRequests.length !== 1 ? "s" : ""}
             </span>
-            <span className="h-5 px-2 rounded-full bg-[#7C3AED] text-white text-[10px] font-semibold flex items-center">
+            <span className="h-5 px-2 rounded-full bg-[#070A1F] text-white text-[10px] font-semibold flex items-center">
               ✦ Dioli Brain
             </span>
           </div>
@@ -794,7 +794,7 @@ export default function AgencyRequestsPage() {
                     <button
                       onClick={() => handleSendToStrategy(req)}
                       disabled={dbSending === req.id}
-                      className="h-8 px-4 rounded-[7px] bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-50 text-white text-[12px] font-medium transition-colors shrink-0"
+                      className="h-8 px-4 rounded-[7px] bg-[#070A1F] hover:bg-[#0D1230] disabled:opacity-50 text-white text-[12px] font-medium transition-colors shrink-0"
                     >
                       {dbSending === req.id ? "Enviando…" : "Iniciar Estratégia →"}
                     </button>
@@ -956,7 +956,7 @@ export default function AgencyRequestsPage() {
                       </span>
                     )}
                     {req.sdrHandoff && (
-                      <span className="h-5 px-2 rounded-full bg-[#EDE9FE] text-[#7C3AED] text-[10px] font-semibold">
+                      <span className="h-5 px-2 rounded-full bg-[#EDE9FE] text-[#070A1F] text-[10px] font-semibold">
                         ✦ SDR
                       </span>
                     )}
@@ -1186,7 +1186,7 @@ export default function AgencyRequestsPage() {
                       <button
                         onClick={(e) => { e.stopPropagation(); handleProcessBriefing(req); }}
                         disabled={processingId === req.id}
-                        className="h-8 px-4 rounded-[7px] border border-[#7C3AED] text-[#7C3AED] hover:bg-[#F5F3FF] disabled:opacity-50 text-[12px] font-medium transition-colors"
+                        className="h-8 px-4 rounded-[7px] border border-[#070A1F] text-[#070A1F] hover:bg-[#E6FBFA] disabled:opacity-50 text-[12px] font-medium transition-colors"
                       >
                         {processingId === req.id ? "Processando…" : "✦ Processar briefing"}
                       </button>
@@ -1214,7 +1214,7 @@ export default function AgencyRequestsPage() {
                     {req.sdrHandoff && req.status !== "waiting_strategy" && req.status !== "waiting_social" && req.status !== "waiting_design" && req.status !== "waiting_traffic" && req.status !== "waiting_analytics" && req.status !== "waiting_quality" && req.status !== "completed" && req.status !== "rejected" && (
                       <button
                         onClick={(e) => { e.stopPropagation(); updateClientRequest(req.id, { status: "waiting_strategy" }); }}
-                        className="h-8 px-4 rounded-[7px] border border-[#7C3AED] text-[#7C3AED] hover:bg-[#F5F3FF] text-[12px] font-medium transition-colors"
+                        className="h-8 px-4 rounded-[7px] border border-[#070A1F] text-[#070A1F] hover:bg-[#E6FBFA] text-[12px] font-medium transition-colors"
                       >
                         ⟶ Enviar para Estratégia
                       </button>
@@ -1223,7 +1223,7 @@ export default function AgencyRequestsPage() {
                       <Link
                         href="/agency/strategy"
                         onClick={(e) => e.stopPropagation()}
-                        className="h-8 px-4 rounded-[7px] bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-[12px] font-medium transition-colors inline-flex items-center"
+                        className="h-8 px-4 rounded-[7px] bg-[#070A1F] hover:bg-[#0D1230] text-white text-[12px] font-medium transition-colors inline-flex items-center"
                       >
                         Na fila de Estratégia →
                       </Link>

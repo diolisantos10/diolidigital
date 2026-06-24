@@ -280,7 +280,7 @@ export default function ApprovalsPage() {
 
         {/* ── 4. Brand updates ─────────────────────────────────────────── */}
         <section>
-          <SectionHeader label="Sugestões de Marca Pendentes" count={pendingBrandUpdates.length} color="bg-[#7C3AED]" />
+          <SectionHeader label="Sugestões de Marca Pendentes" count={pendingBrandUpdates.length} color="bg-[#070A1F]" />
           {pendingBrandUpdates.length === 0 ? (
             <EmptyState label="Nenhuma sugestão de marca aguardando revisão." />
           ) : (
@@ -305,7 +305,7 @@ export default function ApprovalsPage() {
                       <div className="flex items-center gap-2 shrink-0">
                         <button
                           onClick={() => applyBrandUpdate(u.id)}
-                          className="px-3 py-1.5 bg-[#EDE9FE] text-[#7C3AED] text-[12px] font-medium rounded-[6px] hover:bg-[#DDD6FE] transition-colors"
+                          className="px-3 py-1.5 bg-[#EDE9FE] text-[#070A1F] text-[12px] font-medium rounded-[6px] hover:bg-[#9AF5F0] transition-colors"
                         >
                           Aplicar ao Brand Hub
                         </button>
