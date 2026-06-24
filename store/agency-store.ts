@@ -158,6 +158,8 @@ interface AgencyState {
   // AI Run Logs — tracks every intelligence execution per department
   aiRunLogs: AIRunLog[];
   addAIRunLog: (log: Omit<AIRunLog, "id" | "createdAt">) => string;
+  /** Resolves a department's operation mode with hierarchy fallback (PM→hybrid, others→full_ai). */
+  getDepartmentMode: (deptId: string) => DepartmentOperationMode;
   runDepartmentIntelligence: (deptId: string, projectId?: string) => string | null;
   // Async path: routes through the server OpenAI provider when selected, with
   // graceful rule-based fallback. Returns the created AI run log id (or null).
@@ -320,6 +322,14 @@ export const useAgencyStore = create<AgencyState>()(
         });
       },
 
+      // ── Department operation mode ─────────────────────────────────────────
+      getDepartmentMode: (deptId) => {
+        const saved = get().departmentConfigs?.find((c) => c.departmentId === deptId)?.operationMode;
+        if (saved) return saved;
+        // Hierarchy default: PM is the human decision-maker; everything else is autonomous.
+        return deptId === "project-management" ? "hybrid" : "full_ai";
+      },
+
       // ── AI Run Logs ───────────────────────────────────────────────────────
       addAIRunLog: (log) => {
         const id = `arl${uid()}`;
@@ -332,6 +342,27 @@ export const useAgencyStore = create<AgencyState>()(
         const s = get();
         const dept = DEPARTMENT_DEFS.find((d) => d.id === deptId);
         if (!dept) return null;
+
+        // ── Operation mode gate ──────────────────────────────────────────────
+        // full_human: AI is disabled for this department — no production runs.
+        const mode = get().getDepartmentMode(deptId);
+        if (mode === "full_human") {
+          return get().addAIRunLog({
+            departmentId: deptId,
+            projectId,
+            provider: "rule_based",
+            model: "rule_based",
+            status: "fallback",
+            fallbackUsed: true,
+            fallbackReason: "Departamento em modo 100% Humano — IA desativada",
+            promptSummary: "",
+            outputSummary: "Produção por IA desativada (modo 100% Humano). O trabalho é realizado manualmente.",
+            warnings: [],
+          });
+        }
+        // Snapshot existing deliverable ids so we can auto-approve only the new
+        // ones produced by this run when the department is fully autonomous.
+        const idsBefore = new Set(s.deliverables.map((d) => d.id));
 
         const deptConfig = s.departmentConfigs.find((c) => c.departmentId === deptId);
         const provider = (deptConfig?.aiProvider ?? dept.aiProvider) as AIProvider;
@@ -523,6 +554,13 @@ export const useAgencyStore = create<AgencyState>()(
           }
         }
 
+        // full_ai: auto-approve the deliverables this run produced — they skip
+        // the human review gate (logged for audit in the Quality tab).
+        if (mode === "full_ai") {
+          const newDelivs = get().deliverables.filter((d) => !idsBefore.has(d.id));
+          for (const d of newDelivs) get().updateDeliverableStatus(d.id, "approved");
+        }
+
         const logId = get().addAIRunLog({
           departmentId: deptId,
           projectId: targetProjectId,
@@ -544,6 +582,23 @@ export const useAgencyStore = create<AgencyState>()(
         const dept = DEPARTMENT_DEFS.find((d) => d.id === deptId);
         if (!dept) return null;
 
+        // full_human: AI disabled — block production (same gate as the sync path).
+        const mode = get().getDepartmentMode(deptId);
+        if (mode === "full_human") {
+          return get().addAIRunLog({
+            departmentId: deptId,
+            projectId,
+            provider: "rule_based",
+            model: "rule_based",
+            status: "fallback",
+            fallbackUsed: true,
+            fallbackReason: "Departamento em modo 100% Humano — IA desativada",
+            promptSummary: "",
+            outputSummary: "Produção por IA desativada (modo 100% Humano). O trabalho é realizado manualmente.",
+            warnings: [],
+          });
+        }
+
         const deptConfig = s.departmentConfigs.find((c) => c.departmentId === deptId);
         const provider = (deptConfig?.aiProvider ?? dept.aiProvider) as AIProvider;
         const prompt = deptConfig?.currentPrompt ?? dept.defaultPrompt;
@@ -553,6 +608,15 @@ export const useAgencyStore = create<AgencyState>()(
         if (provider !== "openai" || !isOpenAIDepartment(deptId)) {
           return get().runDepartmentIntelligence(deptId, projectId);
         }
+
+        // Auto-approve gate (full_ai): snapshot ids so new deliverables from this
+        // run can be approved without the human review step.
+        const idsBefore = new Set(s.deliverables.map((d) => d.id));
+        const autoApproveIfFullAi = () => {
+          if (mode !== "full_ai") return;
+          const newDelivs = get().deliverables.filter((d) => !idsBefore.has(d.id));
+          for (const d of newDelivs) get().updateDeliverableStatus(d.id, "approved");
+        };
 
         const activeProjects = s.projects.filter((p) => p.stage !== "completed");
         const targetProjectId = projectId ?? activeProjects[0]?.id;
@@ -623,6 +687,7 @@ export const useAgencyStore = create<AgencyState>()(
             outputSummary = out.executiveSummary;
             get().addDeliverable(buildPMDeliverable(project.name, project.id, dept.primaryAgentId, out));
           }
+          autoApproveIfFullAi();
           return get().addAIRunLog({
             departmentId: deptId,
             projectId: project.id,
@@ -674,6 +739,7 @@ export const useAgencyStore = create<AgencyState>()(
             get().addDeliverable(buildPMDeliverable(project.name, project.id, dept.primaryAgentId, data.output));
           }
 
+          autoApproveIfFullAi();
           return get().addAIRunLog({
             departmentId: deptId,
             projectId: project.id,
@@ -1396,7 +1462,7 @@ export const useAgencyStore = create<AgencyState>()(
           strategyRooms: [],
           brandUpdates: [],
           clientRequests: [],
-          departmentConfigs: [],
+          departmentConfigs: buildDefaultDepartmentConfigs(),
           aiRunLogs: [],
           currentRole: "master",
           integrationConfigs: buildDefaultIntegrationConfigs(),
