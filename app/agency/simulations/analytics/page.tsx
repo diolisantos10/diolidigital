@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { generateStrategyCanvas } from "@/lib/dioli-brain/strategy-engine";
 import { generateTrafficCanvas } from "@/lib/dioli-brain/traffic-engine";
 import { generateAnalyticsCanvas } from "@/lib/dioli-brain/analytics-engine";
