@@ -1,17 +1,23 @@
 "use client";
 
 import { use } from "react";
-import Link from "next/link";
 import { useAgencyStore } from "@/store/agency-store";
 
 export default function ClientPortalHome({ params }: { params: Promise<{ clientId: string }> }) {
   const { clientId } = use(params);
-  const { clients, projects, clientPortalItems, approveProposal, updateClientPortalItem } = useAgencyStore();
+  const {
+    clients, projects, clientPortalItems, materialRequests,
+    approveProposal, updateClientPortalItem, updateMaterialRequestStatus,
+  } = useAgencyStore();
 
   const client = clients.find((c) => c.id === clientId);
   const clientProjects = projects.filter((p) => p.clientId === clientId);
   const portalItems = clientPortalItems.filter((i) => i.clientId === clientId);
   const pendingItems = portalItems.filter((i) => i.status === "pending");
+  const pendingMaterials = materialRequests.filter(
+    (m) => m.clientId === clientId && m.status === "pending",
+  );
+  const activeProjects = clientProjects.filter((p) => p.stage !== "completed");
 
   if (!client) {
     return (
@@ -22,16 +28,19 @@ export default function ClientPortalHome({ params }: { params: Promise<{ clientI
     );
   }
 
-  function handleApproveProposal(item: typeof portalItems[0]) {
-    if (!item.projectId) return;
-    // Approve proposal in store (cascades departments automatically)
-    approveProposal(item.projectId);
-    // Mark portal item as approved
+  function handleApproveItem(item: typeof portalItems[0]) {
+    if (item.type === "proposal_approval" && item.projectId) {
+      approveProposal(item.projectId);
+    }
     updateClientPortalItem(item.id, { status: "approved", respondedAt: new Date().toISOString() });
   }
 
   function handleRejectItem(item: typeof portalItems[0]) {
     updateClientPortalItem(item.id, { status: "rejected", respondedAt: new Date().toISOString() });
+  }
+
+  function handleMaterialReceived(materialId: string) {
+    updateMaterialRequestStatus(materialId, "received");
   }
 
   const STAGE_LABEL: Record<string, string> = {
@@ -126,7 +135,7 @@ export default function ClientPortalHome({ params }: { params: Promise<{ clientI
                 </div>
                 <div className="flex items-center gap-2 mt-5 pt-4 border-t border-[#F0F0ED]">
                   <button
-                    onClick={() => handleApproveProposal(item)}
+                    onClick={() => handleApproveItem(item)}
                     className="h-9 px-5 rounded-[8px] bg-[#16A34A] hover:bg-[#15803D] text-white text-[13px] font-semibold transition-colors"
                   >
                     {item.type === "proposal_approval" ? "✓ Aprovar proposta" : "✓ Aprovar"}
@@ -141,6 +150,46 @@ export default function ClientPortalHome({ params }: { params: Promise<{ clientI
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Material requests — agency needs these from the client */}
+      {pendingMaterials.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <h2 className="text-[16px] font-semibold text-[#1A1A1A]">Materiais solicitados</h2>
+            <span className="h-5 px-2 rounded-full bg-[#FEF3C7] text-[#D97706] text-[10px] font-semibold">{pendingMaterials.length}</span>
+          </div>
+          <p className="text-[12px] text-[#9B9B95]">
+            A equipe precisa dos itens abaixo para avançar no seu projeto. Envie pelo WhatsApp ou e-mail para o seu gerente de conta.
+          </p>
+          <div className="space-y-2">
+            {pendingMaterials.map((mat) => (
+              <div key={mat.id} className="bg-white rounded-[10px] border border-[#E5E5E2] px-5 py-4 flex items-start gap-4">
+                <div className="w-8 h-8 rounded-full bg-[#FEF3C7] flex items-center justify-center shrink-0 text-[14px]">📎</div>
+                <div className="flex-1">
+                  <h3 className="text-[13px] font-semibold text-[#1A1A1A]">{mat.title}</h3>
+                  <p className="text-[12px] text-[#6B6B65] mt-0.5">{mat.description}</p>
+                </div>
+                <button
+                  onClick={() => handleMaterialReceived(mat.id)}
+                  className="h-7 px-3 rounded-[6px] border border-[#E5E5E2] text-[11px] text-[#6B6B65] hover:border-[#16A34A] hover:text-[#16A34A] transition-colors shrink-0"
+                >
+                  Enviei
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Active projects status */}
+      {activeProjects.length > 0 && pendingItems.length === 0 && pendingMaterials.length === 0 && (
+        <div className="bg-[#F0FDF4] border border-[#BBF7D0] rounded-[12px] px-5 py-4">
+          <p className="text-[13px] font-semibold text-[#15803D] mb-0.5">A equipe está trabalhando no seu projeto</p>
+          <p className="text-[12px] text-[#16A34A]">
+            Nenhuma pendência agora. Você será notificado quando houver algo para aprovar ou materiais solicitados.
+          </p>
         </div>
       )}
 

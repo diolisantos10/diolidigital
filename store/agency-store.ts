@@ -783,6 +783,26 @@ export const useAgencyStore = create<AgencyState>()(
           }
 
           autoApproveIfFullAi();
+
+          // Notify client in portal when AI produces client-relevant work.
+          // PM intelligence is internal-only; strategy/social/design/traffic are shared.
+          if (deptId !== "project-management" && client.id) {
+            const DEPT_LABEL: Record<string, string> = {
+              strategy:    "Análise Estratégica",
+              "social-media": "Plano de Social Media",
+              design:      "Direção Criativa",
+              "paid-traffic": "Plano de Tráfego Pago",
+            };
+            get().addClientPortalItem({
+              clientId: client.id,
+              projectId: project.id,
+              type: "content_approval",
+              title: `${DEPT_LABEL[deptId] ?? deptId} — ${project.name}`,
+              description: outputSummary.slice(0, 200) || "Novo conteúdo pronto para revisão.",
+              status: "pending",
+            });
+          }
+
           return get().addAIRunLog({
             departmentId: deptId,
             projectId: project.id,

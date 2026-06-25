@@ -735,7 +735,7 @@ export default function AgencyRequestsPage() {
       deliverables: deliverablesList.length > 0 ? deliverablesList : ["A definir"],
       timeline:     timelineText,
       pricing:      pricingText,
-      status:       "draft",
+      status:       "sent",
     });
 
     // Create portal item so client can see and approve the proposal
@@ -1985,14 +1985,26 @@ function SuccessPanel({
   projectName: string;
   clientId: string;
 }) {
+  const [copied, setCopied] = useState(false);
+  const portalUrl = typeof window !== "undefined"
+    ? `${window.location.origin}/portal/${clientId}`
+    : `/portal/${clientId}`;
+
+  function copyPortalLink() {
+    navigator.clipboard.writeText(portalUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
   return (
-    <div className="border-t border-[#BBF7D0] bg-[#F0FDF4] px-5 py-5">
+    <div className="border-t border-[#BBF7D0] bg-[#F0FDF4] px-5 py-5 space-y-4">
       <div className="flex items-start gap-3">
         <div className="w-8 h-8 rounded-full bg-[#DCFCE7] flex items-center justify-center shrink-0 text-[#16A34A] font-bold text-[14px]">
           ✓
         </div>
         <div className="flex-1">
-          <div className="text-[13px] font-semibold text-[#15803D] mb-0.5">Projeto criado com sucesso!</div>
+          <div className="text-[13px] font-semibold text-[#15803D] mb-0.5">Projeto criado e proposta enviada ao portal!</div>
           <p className="text-[12px] text-[#16A34A]">{projectName}</p>
           <div className="flex flex-wrap gap-2 mt-3">
             <Link
@@ -2008,19 +2020,45 @@ function SuccessPanel({
               Brand Hub
             </Link>
             <Link
-              href="/agency/departments/strategy"
+              href="/agency/control-room"
               className="h-7 px-3 rounded-[6px] border border-[#BBF7D0] bg-white hover:bg-[#F0FDF4] text-[#15803D] text-[11px] font-medium transition-colors inline-flex items-center"
             >
-              Abrir Estratégia
-            </Link>
-            <Link
-              href="/agency/departments/project-management"
-              className="h-7 px-3 rounded-[6px] border border-[#BBF7D0] bg-white hover:bg-[#F0FDF4] text-[#15803D] text-[11px] font-medium transition-colors inline-flex items-center"
-            >
-              Gestão de Projetos
+              Sala de Controle
             </Link>
           </div>
         </div>
+      </div>
+
+      {/* Portal link — the most important thing to share with the client */}
+      <div className="bg-white border border-[#BBF7D0] rounded-[10px] px-4 py-3">
+        <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">
+          Link do portal do cliente — envie por WhatsApp ou e-mail
+        </p>
+        <div className="flex items-center gap-2">
+          <code className="flex-1 text-[11px] text-[#1A1A1A] bg-[#F7F7F6] rounded-[6px] px-3 py-1.5 truncate font-mono">
+            {portalUrl}
+          </code>
+          <button
+            onClick={copyPortalLink}
+            className={`h-7 px-3 rounded-[6px] text-[11px] font-semibold shrink-0 transition-colors ${
+              copied
+                ? "bg-[#DCFCE7] text-[#16A34A]"
+                : "bg-[#1A1A1A] hover:bg-[#111111] text-white"
+            }`}
+          >
+            {copied ? "Copiado!" : "Copiar"}
+          </button>
+          <Link
+            href={`/portal/${clientId}`}
+            target="_blank"
+            className="h-7 px-3 rounded-[6px] border border-[#BBF7D0] text-[#15803D] hover:bg-[#F0FDF4] text-[11px] font-medium transition-colors inline-flex items-center shrink-0"
+          >
+            Abrir →
+          </Link>
+        </div>
+        <p className="text-[10px] text-[#9B9B95] mt-1.5">
+          O cliente vê a proposta, aprova, e os agentes começam automaticamente.
+        </p>
       </div>
     </div>
   );
