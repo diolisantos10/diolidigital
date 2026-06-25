@@ -101,6 +101,24 @@ export interface BrandUpdate {
   fileName?: string;      // for upload source
 }
 
+// ─── Client Portal Item ───────────────────────────────────────────────────────
+// Represents a pending or completed action item surfaced to the client in their
+// portal (proposal approval, content approval, material request, info request).
+
+export interface ClientPortalItem {
+  id: string;
+  clientId: string;
+  projectId: string;
+  type: "proposal_approval" | "content_approval" | "material_request" | "info_request";
+  title: string;
+  description: string;
+  status: "pending" | "approved" | "rejected" | "uploaded";
+  payload?: Record<string, unknown>; // proposal data, deliverable data, etc.
+  departmentId?: string;
+  createdAt: string;
+  respondedAt?: string;
+}
+
 // ─── QA Test Run ──────────────────────────────────────────────────────────────
 
 export interface QATestRun {
@@ -262,6 +280,11 @@ interface AgencyState {
   runIntegrationTest: (id: string) => void;
   updateAgentProviderConfig: (agentId: AgentId, patch: Partial<Omit<AgentProviderConfig, "agentId">>) => void;
 
+  // Client Portal Items (proposals, content, material requests surfaced to the client)
+  clientPortalItems: ClientPortalItem[];
+  addClientPortalItem: (item: Omit<ClientPortalItem, 'id' | 'createdAt'>) => string;
+  updateClientPortalItem: (id: string, updates: Partial<ClientPortalItem>) => void;
+
   // System
   addActivity: (event: Omit<ActivityEvent, "id" | "timestamp">) => void;
   resetStore: () => void;
@@ -288,6 +311,7 @@ export const useAgencyStore = create<AgencyState>()(
       currentRole: "master" as AgencyRole,
       brandUpdates: [],
       clientRequests: [],
+      clientPortalItems: [],
       integrationConfigs: buildDefaultIntegrationConfigs(),
       agentProviderConfigs: buildDefaultAgentProviderConfigs(),
       // Default hierarchy: PM = hybrid (human commands), all other depts = full_ai.
@@ -823,6 +847,22 @@ export const useAgencyStore = create<AgencyState>()(
         return matches.length;
       },
 
+      // ── Client Portal Items ───────────────────────────────────────────────
+      addClientPortalItem: (item) => {
+        const id = `cpi${uid()}`;
+        const entry: ClientPortalItem = { ...item, id, createdAt: new Date().toISOString() };
+        set((s) => ({ clientPortalItems: [...s.clientPortalItems, entry] }));
+        return id;
+      },
+
+      updateClientPortalItem: (id, updates) => {
+        set((s) => ({
+          clientPortalItems: s.clientPortalItems.map((i) =>
+            i.id === id ? { ...i, ...updates } : i
+          ),
+        }));
+      },
+
       // ── Brand Updates ─────────────────────────────────────────────────────
       addBrandUpdate: (update) => {
         const id = `bu${uid()}`;
@@ -1088,6 +1128,27 @@ export const useAgencyStore = create<AgencyState>()(
           message: `Cliente aprovou proposta de "${project.name}"`,
           projectId: id,
         });
+
+        // ── Auto-cascade departments on approval ──────────────────────────────
+        // Map agent IDs (stored on the project) to department IDs.
+        const AGENT_TO_DEPT: Record<string, string> = {
+          pm_agent: "project-management",
+          a2:       "design",
+          a3:       "social-media",
+          a4:       "paid-traffic",
+        };
+        // Always run strategy and PM regardless of agents configured.
+        const deptIds = new Set<string>(["strategy", "project-management"]);
+        for (const agentId of project.agents ?? []) {
+          const deptId = AGENT_TO_DEPT[agentId];
+          if (deptId) deptIds.add(deptId);
+        }
+        for (const deptId of deptIds) {
+          const mode = get().getDepartmentMode(deptId);
+          if (mode === "full_ai" || mode === "hybrid") {
+            get().runDepartmentIntelligence(deptId, id);
+          }
+        }
       },
 
       rejectProposal: (id, reason) => {

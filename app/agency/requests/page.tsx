@@ -512,6 +512,7 @@ export default function AgencyRequestsPage() {
     updateClientRequest, updateProposal, createClient, createProject, createBriefing, addMaterialRequest,
     deleteClientRequest, deleteClientRequestsByClient,
     runDepartmentIntelligence, getDepartmentMode,
+    addClientPortalItem,
   } = useAgencyStore();
 
   // Destructive controls are master-only — never shown to other internal roles
@@ -735,6 +736,23 @@ export default function AgencyRequestsPage() {
       timeline:     timelineText,
       pricing:      pricingText,
       status:       "draft",
+    });
+
+    // Create portal item so client can see and approve the proposal
+    addClientPortalItem({
+      clientId,
+      projectId,
+      type: "proposal_approval",
+      title: `Proposta — ${convForm.projectName}`,
+      description: `Sua proposta está pronta para revisão e aprovação.`,
+      status: "pending",
+      payload: {
+        projectName: convForm.projectName,
+        goal: convForm.goal,
+        pricing: pricingText,
+        timeline: timelineText,
+        deliverables: deliverablesList,
+      },
     });
 
     // 5. Auto-run department intelligence for full_ai departments

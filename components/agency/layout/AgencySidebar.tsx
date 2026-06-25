@@ -89,6 +89,7 @@ export default function AgencySidebar({ userInfo, mobileOpen = false, onMobileCl
         { label: t.nav.projects, href: "/agency/projects", icon: FolderIcon },
         { label: t.nav.pipeline, href: "/agency/pipeline", icon: ColumnsIcon },
         { label: t.nav.tasks, href: "/agency/tasks", icon: CheckIcon, badge: taskBadgeCount },
+        { label: "Sala de Controle", href: "/agency/control-room", icon: BrainIcon },
       ],
     },
     {

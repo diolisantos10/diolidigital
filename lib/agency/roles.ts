@@ -11,16 +11,18 @@
 export type AgencyRole =
   | "master"
   | "project_manager"
+  | "executivo_comercial"
   | "social_staff"
   | "design_staff"
   | "ads_staff";
 
 export const AGENCY_ROLE_OPTIONS: { id: AgencyRole; label: string; description: string }[] = [
-  { id: "master",          label: "Master",          description: "Acesso total — todas as seções e ações." },
-  { id: "project_manager", label: "Project Manager", description: "Operações de projeto e Brand Hub." },
-  { id: "social_staff",    label: "Social",          description: "Social Media Agent + entregas próprias." },
-  { id: "design_staff",    label: "Design",          description: "Design Agent + entregas próprias." },
-  { id: "ads_staff",       label: "Ads",             description: "Ads Agent + entregas próprias." },
+  { id: "master",              label: "Master",          description: "Acesso total — todas as seções e ações." },
+  { id: "project_manager",     label: "Project Manager", description: "Operações de projeto e Brand Hub." },
+  { id: "executivo_comercial", label: "Comercial",       description: "Proposta comercial, negociação e onboarding de clientes." },
+  { id: "social_staff",        label: "Social",          description: "Social Media Agent + entregas próprias." },
+  { id: "design_staff",        label: "Design",          description: "Design Agent + entregas próprias." },
+  { id: "ads_staff",           label: "Ads",             description: "Ads Agent + entregas próprias." },
 ];
 
 // ─── Nav allowlist ────────────────────────────────────────────────────────────
@@ -28,11 +30,12 @@ export const AGENCY_ROLE_OPTIONS: { id: AgencyRole; label: string; description: 
 // (prefix-matched — /agency/deliverables matches /agency/deliverables/*).
 
 export const ROLE_NAV_ALLOWLIST: Record<AgencyRole, string[] | "all"> = {
-  master:          "all",
-  project_manager: "all",
-  social_staff:    ["/agency/dashboard", "/agency/approvals", "/agency/departments/social-media", "/agency/social-media-agent", "/agency/deliverables", "/agency/settings"],
-  design_staff:    ["/agency/dashboard", "/agency/approvals", "/agency/departments/design",       "/agency/design-agent",       "/agency/deliverables", "/agency/settings"],
-  ads_staff:       ["/agency/dashboard", "/agency/approvals", "/agency/departments/paid-traffic", "/agency/ads-agent",          "/agency/deliverables", "/agency/settings"],
+  master:              "all",
+  project_manager:     "all",
+  executivo_comercial: ["/agency/requests", "/agency/clients", "/agency/dashboard", "/agency/settings", "/agency/projects"],
+  social_staff:        ["/agency/dashboard", "/agency/approvals", "/agency/departments/social-media", "/agency/social-media-agent", "/agency/deliverables", "/agency/settings"],
+  design_staff:        ["/agency/dashboard", "/agency/approvals", "/agency/departments/design",       "/agency/design-agent",       "/agency/deliverables", "/agency/settings"],
+  ads_staff:           ["/agency/dashboard", "/agency/approvals", "/agency/departments/paid-traffic", "/agency/ads-agent",          "/agency/deliverables", "/agency/settings"],
 };
 
 export function isNavAllowed(role: AgencyRole, href: string): boolean {
@@ -67,6 +70,15 @@ export const ROLE_PERMISSIONS: Record<AgencyRole, RolePermissions> = {
     canEditBrandHub:       true,
     canApplyBrandUpdate:   true,
     canViewStrategicNotes: true,
+    canViewDiagnostics:    false,
+    canViewAllClients:     true,
+    canResetStore:         false,
+    agentFilter:           "all",
+  },
+  executivo_comercial: {
+    canEditBrandHub:       false,
+    canApplyBrandUpdate:   false,
+    canViewStrategicNotes: false,
     canViewDiagnostics:    false,
     canViewAllClients:     true,
     canResetStore:         false,
