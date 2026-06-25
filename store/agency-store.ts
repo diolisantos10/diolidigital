@@ -51,6 +51,8 @@ import {
   buildStrategyDeliverable,
   buildSocialDeliverable,
   buildPMDeliverable,
+  buildDesignDeliverable,
+  buildTrafficDeliverable,
 } from "@/lib/agency/intelligence/deliverable-builders";
 import {
   isOpenAIDepartment,
@@ -78,8 +80,8 @@ function buildDefaultDepartmentConfigs(): DepartmentConfig[] {
     departmentId: d.id,
     currentPrompt: "",
     promptUpdatedAt: now,
-    aiProvider: "rule_based",
-    model: "rule_based",
+    aiProvider: "claude",
+    model: "claude-haiku-4-5-20251001",
     operationMode: d.mode,
   }));
 }
@@ -338,8 +340,8 @@ export const useAgencyStore = create<AgencyState>()(
                 departmentId: deptId,
                 currentPrompt: patch.currentPrompt ?? "",
                 promptUpdatedAt: new Date().toISOString(),
-                aiProvider: patch.aiProvider ?? "rule_based",
-                model: patch.model ?? "rule_based",
+                aiProvider: patch.aiProvider ?? "claude",
+                model: patch.model ?? "claude-haiku-4-5-20251001",
                 operationMode: patch.operationMode ?? "hybrid",
               },
             ],
@@ -628,9 +630,11 @@ export const useAgencyStore = create<AgencyState>()(
         const provider = (deptConfig?.aiProvider ?? dept.aiProvider) as AIProvider;
         const prompt = deptConfig?.currentPrompt ?? dept.defaultPrompt;
 
-        // Only strategy/social/PM with provider=openai use the server route.
-        // Everything else keeps the existing synchronous rule-based behavior.
-        if (provider !== "openai" || !isOpenAIDepartment(deptId)) {
+        // Departments supported by the server AI route.
+        const AI_DEPTS = ["strategy", "social-media", "project-management", "design", "paid-traffic"];
+
+        // If provider is rule_based or the dept isn't in the AI-capable list, use sync rule-based.
+        if ((provider !== "openai" && provider !== "claude") || !AI_DEPTS.includes(deptId)) {
           return get().runDepartmentIntelligence(deptId, projectId);
         }
 
@@ -707,6 +711,14 @@ export const useAgencyStore = create<AgencyState>()(
             const out = runSocialRuleBased(project, client);
             outputSummary = out.executiveSummary;
             get().addDeliverable(buildSocialDeliverable(project.name, project.id, dept.primaryAgentId, out));
+          } else if (deptId === "design") {
+            const out = runDesignRuleBased(project, client);
+            outputSummary = out.executiveSummary;
+            get().addDeliverable(buildDesignDeliverable(project.name, project.id, dept.primaryAgentId, out));
+          } else if (deptId === "paid-traffic") {
+            const out = runPaidTrafficRuleBased(project, client, s.strategyRooms);
+            outputSummary = out.executiveSummary;
+            get().addDeliverable(buildTrafficDeliverable(project.name, project.id, dept.primaryAgentId, out));
           } else {
             const out = runPMRuleBased(project, client, s.deliverables, s.materialRequests, s.strategyRooms);
             outputSummary = out.executiveSummary;
@@ -731,13 +743,13 @@ export const useAgencyStore = create<AgencyState>()(
           const res = await fetch("/api/ai/run", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ departmentId: deptId, projectId: project.id, provider: "openai", context }),
+            body: JSON.stringify({ departmentId: deptId, projectId: project.id, provider, context }),
           });
 
           if (!res.ok) {
             return runRuleBasedFallback(
               `Rota de IA retornou HTTP ${res.status}`,
-              [`Falha ao acessar o provedor OpenAI (HTTP ${res.status}) — usando regras locais`],
+              [`Falha ao acessar o provedor ${provider} (HTTP ${res.status}) — usando regras locais`],
             );
           }
 
@@ -751,7 +763,7 @@ export const useAgencyStore = create<AgencyState>()(
             );
           }
 
-          // OpenAI success — build deliverable from validated output.
+          // AI success — build deliverable from validated output.
           let outputSummary = "";
           if (deptId === "strategy") {
             outputSummary = data.output.executiveSummary;
@@ -759,6 +771,12 @@ export const useAgencyStore = create<AgencyState>()(
           } else if (deptId === "social-media") {
             outputSummary = data.output.executiveSummary;
             get().addDeliverable(buildSocialDeliverable(project.name, project.id, dept.primaryAgentId, data.output));
+          } else if (deptId === "design") {
+            outputSummary = data.output.executiveSummary;
+            get().addDeliverable(buildDesignDeliverable(project.name, project.id, dept.primaryAgentId, data.output));
+          } else if (deptId === "paid-traffic") {
+            outputSummary = data.output.executiveSummary;
+            get().addDeliverable(buildTrafficDeliverable(project.name, project.id, dept.primaryAgentId, data.output));
           } else {
             outputSummary = data.output.executiveSummary;
             get().addDeliverable(buildPMDeliverable(project.name, project.id, dept.primaryAgentId, data.output));
@@ -768,8 +786,8 @@ export const useAgencyStore = create<AgencyState>()(
           return get().addAIRunLog({
             departmentId: deptId,
             projectId: project.id,
-            provider: "openai",
-            model: data.model ?? "openai",
+            provider,
+            model: data.model ?? provider,
             status: "success",
             fallbackUsed: false,
             promptSummary: prompt.slice(0, 120).replace(/\n/g, " "),
@@ -779,7 +797,7 @@ export const useAgencyStore = create<AgencyState>()(
         } catch {
           return runRuleBasedFallback(
             "Erro de rede ao chamar a rota de IA",
-            ["Erro de rede ao chamar o provedor OpenAI — usando regras locais"],
+            [`Erro de rede ao chamar o provedor ${provider} — usando regras locais`],
           );
         }
       },
@@ -1146,7 +1164,7 @@ export const useAgencyStore = create<AgencyState>()(
         for (const deptId of deptIds) {
           const mode = get().getDepartmentMode(deptId);
           if (mode === "full_ai" || mode === "hybrid") {
-            get().runDepartmentIntelligence(deptId, id);
+            void get().runDepartmentIntelligenceWithProvider(deptId, id);
           }
         }
       },
@@ -1552,6 +1570,19 @@ export const useAgencyStore = create<AgencyState>()(
       // v2 — bumped to flush stale demo data persisted in older browsers.
       // A fresh key means existing clients rehydrate into a clean workspace.
       name: "agency-os-v2",
+      onRehydrateStorage: () => (state) => {
+        // Migrate any old "rule_based" department configs to "claude" so AI
+        // actually runs now that keys are connected.
+        if (!state) return;
+        const needsMigration = state.departmentConfigs.some((c) => c.aiProvider === "rule_based");
+        if (needsMigration) {
+          state.departmentConfigs = state.departmentConfigs.map((c) =>
+            c.aiProvider === "rule_based"
+              ? { ...c, aiProvider: "claude", model: "claude-haiku-4-5-20251001" }
+              : c
+          );
+        }
+      },
       partialize: (s) => ({
         clients: s.clients,
         projects: s.projects,

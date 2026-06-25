@@ -511,7 +511,7 @@ export default function AgencyRequestsPage() {
     clientRequests, clients, projects, currentRole,
     updateClientRequest, updateProposal, createClient, createProject, createBriefing, addMaterialRequest,
     deleteClientRequest, deleteClientRequestsByClient,
-    runDepartmentIntelligence, getDepartmentMode,
+    runDepartmentIntelligenceWithProvider, getDepartmentMode,
     addClientPortalItem,
   } = useAgencyStore();
 
@@ -760,11 +760,11 @@ export default function AgencyRequestsPage() {
     for (const deptId of deptIds) {
       const mode = getDepartmentMode(deptId);
       if (mode === "full_ai" || mode === "hybrid") {
-        runDepartmentIntelligence(deptId, projectId);
+        void runDepartmentIntelligenceWithProvider(deptId, projectId);
       }
     }
     // Always run PM intelligence so it can plan and coordinate
-    runDepartmentIntelligence("project-management", projectId);
+    void runDepartmentIntelligenceWithProvider("project-management", projectId);
 
     // 6. Update client request status
     updateClientRequest(req.id, { status: "in_progress", linkedProjectId: projectId });

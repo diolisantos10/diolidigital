@@ -30,9 +30,10 @@ export interface QualityIntelligenceOutput {
   executiveSummary: string;
 }
 
-// Legacy department-runner ids (DepartmentDef-style), used by /api/ai/run and the
-// department detail page. Unchanged for backwards compatibility.
-export const OPENAI_DEPARTMENTS = ["strategy", "social-media", "project-management"] as const;
+// Department ids supported by /api/ai/run (both OpenAI and Claude providers).
+export const OPENAI_DEPARTMENTS = [
+  "strategy", "social-media", "project-management", "design", "paid-traffic",
+] as const;
 
 // Brain reasoning-dept ids (used by the /api/brain/reason gateway). All 6 depts
 // now have an AI prompt builder + validator (Phase 4).
@@ -459,12 +460,11 @@ export function buildBrainMessages(dept: BrainAiDept, ctx: AIRunContext): OpenAI
 
 export function buildMessages(departmentId: OpenAIDepartmentId, ctx: AIRunContext): OpenAIMessages {
   switch (departmentId) {
-    case "strategy":
-      return buildStrategyMessages(ctx);
-    case "social-media":
-      return buildSocialMessages(ctx);
-    case "project-management":
-      return buildPMMessages(ctx);
+    case "strategy":          return buildStrategyMessages(ctx);
+    case "social-media":      return buildSocialMessages(ctx);
+    case "project-management": return buildPMMessages(ctx);
+    case "design":            return buildDesignMessages(ctx);
+    case "paid-traffic":      return buildTrafficMessages(ctx);
   }
 }
 

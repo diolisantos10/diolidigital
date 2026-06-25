@@ -15,7 +15,7 @@ const DEPTS = [
 export default function ControlRoomPage() {
   const {
     projects, clients, deliverables, clientPortalItems,
-    runDepartmentIntelligence, getDepartmentMode,
+    runDepartmentIntelligenceWithProvider, getDepartmentMode,
   } = useAgencyStore();
 
   const active = projects.filter((p) => p.stage !== "completed");
@@ -24,7 +24,7 @@ export default function ControlRoomPage() {
     for (const dept of DEPTS) {
       const mode = getDepartmentMode(dept.id);
       if (mode !== "full_human") {
-        runDepartmentIntelligence(dept.id, projectId);
+        void runDepartmentIntelligenceWithProvider(dept.id, projectId);
       }
     }
   }
@@ -119,7 +119,7 @@ export default function ControlRoomPage() {
                         )}
                         {mode !== "full_human" && (
                           <button
-                            onClick={() => runDepartmentIntelligence(dept.id, project.id)}
+                            onClick={() => void runDepartmentIntelligenceWithProvider(dept.id, project.id)}
                             className="mt-2 h-6 px-2 rounded-[5px] border border-[#E5E5E2] text-[10px] text-[#6B6B65] hover:border-[#070A1F] hover:text-[#070A1F] transition-colors w-full"
                           >
                             Rodar
