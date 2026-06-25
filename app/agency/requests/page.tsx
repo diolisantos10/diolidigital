@@ -14,7 +14,6 @@ import {
 } from "@/lib/agency/client-requests";
 import type { BriefingScope, LiveEstimate, EstimateItem } from "@/lib/agency/briefing-conversation";
 import type { SDRHandoff } from "@/lib/agency/sdr-agent";
-import { processBriefing } from "@/lib/agency/briefing-processor";
 import type { Priority } from "@/lib/agency/mock-data";
 import { DEMO_CLIENT_ID } from "@/lib/agency/demo-client";
 import { usePMOrchestrator } from "@/lib/dioli-brain/use-pm-orchestrator";
@@ -510,8 +509,8 @@ function buildDefaultForm(req: ClientRequest, clientName: string): ConversionFor
 export default function AgencyRequestsPage() {
   const {
     clientRequests, clients, projects, currentRole,
-    updateClientRequest, setRequestAnalysis, createClient, createProject, createBriefing, addMaterialRequest,
-    deleteClientRequest, deleteClientRequestsByClient, addActivity,
+    updateClientRequest, createClient, createProject, createBriefing, addMaterialRequest,
+    deleteClientRequest, deleteClientRequestsByClient,
   } = useAgencyStore();
 
   // Destructive controls are master-only — never shown to other internal roles
@@ -576,45 +575,6 @@ export default function AgencyRequestsPage() {
     [],
   );
 
-  const PIPELINE_ORDER: ClientRequestStatus[] = [
-    "new", "under_review", "proposal_pending",
-    "waiting_strategy", "waiting_social", "waiting_design",
-    "waiting_traffic", "waiting_analytics", "waiting_quality",
-    "in_progress", "waiting_client", "approved", "completed",
-  ];
-
-  function handleManualStatusOverride(req: ClientRequest, newStatus: ClientRequestStatus) {
-    if (newStatus === req.status) return;
-    const fromIdx = PIPELINE_ORDER.indexOf(req.status);
-    const toIdx   = PIPELINE_ORDER.indexOf(newStatus);
-    const isSkip  = fromIdx >= 0 && toIdx >= 0 && Math.abs(toIdx - fromIdx) > 2;
-
-    if (isSkip) {
-      const reason = window.prompt(
-        `Atenção: saltar de "${REQUEST_STATUS_LABEL[req.status]}" para "${REQUEST_STATUS_LABEL[newStatus]}" pula ${Math.abs(toIdx - fromIdx) - 1} etapa(s) do pipeline.\n\nInforme o motivo do override:`
-      );
-      if (reason === null) return; // cancelled
-      if (!reason.trim()) {
-        window.alert("Motivo obrigatório para alteração manual de status.");
-        return;
-      }
-      updateClientRequest(req.id, { status: newStatus });
-      addActivity({
-        type: "intelligence_run",
-        message: `Override manual: ${req.title ?? req.id} de "${REQUEST_STATUS_LABEL[req.status]}" → "${REQUEST_STATUS_LABEL[newStatus]}". Motivo: ${reason.trim()}`,
-        clientId: req.clientId,
-      });
-      return;
-    }
-
-    updateClientRequest(req.id, { status: newStatus });
-    addActivity({
-      type: "intelligence_run",
-      message: `Status alterado manualmente: ${req.title ?? req.id} → "${REQUEST_STATUS_LABEL[newStatus]}"`,
-      clientId: req.clientId,
-    });
-  }
-
   const [activeFilter, setActiveFilter]   = useState<ClientRequestStatus | "all">("all");
   const [sourceFilter, setSourceFilter]   = useState<"all" | "public_briefing" | "client_portal" | "self_serve">("all");
   const [expandedId, setExpandedId]       = useState<string | null>(null);
@@ -622,7 +582,6 @@ export default function AgencyRequestsPage() {
   const [convForm, setConvForm]         = useState<ConversionForm | null>(null);
   // requestId → created projectId (success state per request)
   const [createdProjects, setCreatedProjects] = useState<Record<string, string>>({});
-  const [processingId,    setProcessingId]    = useState<string | null>(null);
   const [rawOpenId,       setRawOpenId]       = useState<string | null>(null);
   // Proposal editor state (master + PM only)
   const [proposalEditId,  setProposalEditId]  = useState<string | null>(null);
@@ -756,15 +715,6 @@ export default function AgencyRequestsPage() {
 
   function patchForm(patch: Partial<ConversionForm>) {
     setConvForm((f) => (f ? { ...f, ...patch } : f));
-  }
-
-  function handleProcessBriefing(req: ClientRequest) {
-    setProcessingId(req.id);
-    const client = getClient(req.clientId);
-    const analysis = processBriefing(req, client?.name ?? "Cliente");
-    setRequestAnalysis(req.id, analysis);
-    updateClientRequest(req.id, { status: "proposal_pending" });
-    setProcessingId(null);
   }
 
   // Demo test requests = anything tied to the fixed demonstration client.
@@ -1320,147 +1270,16 @@ export default function AgencyRequestsPage() {
 
                   {/* Actions */}
                   <div className="flex items-center gap-2 pt-1 border-t border-[#F0F0ED] flex-wrap">
-                    {req.status === "new" && (
-                      <button
-                        onClick={() => updateClientRequest(req.id, { status: "under_review" })}
-                        className="h-8 px-4 rounded-[7px] bg-[#1A1A1A] hover:bg-[#111111] text-white text-[12px] font-medium transition-colors"
-                      >
-                        Analisar
-                      </button>
-                    )}
-                    {/* Prospect approval actions */}
-                    {req.source === "public_briefing" && req.status !== "approved" && req.status !== "rejected" && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); updateClientRequest(req.id, { status: "approved" }); }}
-                        className="h-8 px-4 rounded-[7px] bg-[#16A34A] hover:bg-[#15803D] text-white text-[12px] font-medium transition-colors"
-                      >
-                        Aprovar como cliente
-                      </button>
-                    )}
-                    {req.source === "public_briefing" && req.status !== "rejected" && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); updateClientRequest(req.id, { status: "rejected" }); }}
-                        className="h-8 px-4 rounded-[7px] border border-[#E5E5E2] text-[#9B9B95] hover:border-[#DC2626] hover:text-[#DC2626] text-[12px] font-medium transition-colors"
-                      >
-                        Recusar
-                      </button>
-                    )}
-                    {!req.analysis ? (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleProcessBriefing(req); }}
-                        disabled={processingId === req.id}
-                        className="h-8 px-4 rounded-[7px] border border-[#070A1F] text-[#070A1F] hover:bg-[#E6FBFA] disabled:opacity-50 text-[12px] font-medium transition-colors"
-                      >
-                        {processingId === req.id ? "Processando…" : "✦ Processar briefing"}
-                      </button>
-                    ) : (
-                      <span className="h-7 px-3 rounded-full bg-[#DCFCE7] text-[#16A34A] text-[10px] font-semibold flex items-center gap-1">
-                        ✓ Briefing processado
-                      </span>
-                    )}
-                    {req.v2Scope && (
-                      <>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); updateClientRequest(req.id, { status: "proposal_pending" }); }}
-                          className="h-8 px-4 rounded-[7px] border border-[#16A34A] text-[#16A34A] hover:bg-[#DCFCE7] text-[12px] font-medium transition-colors"
-                        >
-                          Preparar proposta
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); updateClientRequest(req.id, { status: "waiting_client" }); }}
-                          className="h-8 px-4 rounded-[7px] border border-[#D97706] text-[#D97706] hover:bg-[#FEF3C7] text-[12px] font-medium transition-colors"
-                        >
-                          Solicitar complemento
-                        </button>
-                      </>
-                    )}
-                    {req.sdrHandoff && req.status !== "waiting_strategy" && req.status !== "waiting_social" && req.status !== "waiting_design" && req.status !== "waiting_traffic" && req.status !== "waiting_analytics" && req.status !== "waiting_quality" && req.status !== "completed" && req.status !== "rejected" && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); updateClientRequest(req.id, { status: "waiting_strategy" }); }}
-                        className="h-8 px-4 rounded-[7px] border border-[#070A1F] text-[#070A1F] hover:bg-[#E6FBFA] text-[12px] font-medium transition-colors"
-                      >
-                        ⟶ Enviar para Estratégia
-                      </button>
-                    )}
-                    {req.status === "waiting_strategy" && (
-                      <Link
-                        href="/agency/strategy"
-                        onClick={(e) => e.stopPropagation()}
-                        className="h-8 px-4 rounded-[7px] bg-[#070A1F] hover:bg-[#0D1230] text-white text-[12px] font-medium transition-colors inline-flex items-center"
-                      >
-                        Na fila de Estratégia →
-                      </Link>
-                    )}
-                    {req.status === "waiting_design" && (
-                      <Link
-                        href="/agency/design"
-                        onClick={(e) => e.stopPropagation()}
-                        className="h-8 px-4 rounded-[7px] bg-[#EA580C] hover:bg-[#C2410C] text-white text-[12px] font-medium transition-colors inline-flex items-center"
-                      >
-                        Na fila de Design →
-                      </Link>
-                    )}
-                    {req.status === "waiting_traffic" && (
-                      <Link
-                        href="/agency/traffic"
-                        onClick={(e) => e.stopPropagation()}
-                        className="h-8 px-4 rounded-[7px] bg-[#0284C7] hover:bg-[#0369A1] text-white text-[12px] font-medium transition-colors inline-flex items-center"
-                      >
-                        Na fila de Tráfego →
-                      </Link>
-                    )}
-                    {req.status === "waiting_analytics" && (
-                      <Link
-                        href="/agency/analytics"
-                        onClick={(e) => e.stopPropagation()}
-                        className="h-8 px-4 rounded-[7px] bg-[#16A34A] hover:bg-[#15803D] text-white text-[12px] font-medium transition-colors inline-flex items-center"
-                      >
-                        Na fila de Analytics →
-                      </Link>
-                    )}
-                    {req.status === "waiting_quality" && (
-                      <Link
-                        href="/agency/quality"
-                        onClick={(e) => e.stopPropagation()}
-                        className="h-8 px-4 rounded-[7px] bg-[#070A1F] hover:bg-[#4A4AC4] text-white text-[12px] font-medium transition-colors inline-flex items-center"
-                      >
-                        Na fila de Quality →
-                      </Link>
-                    )}
-                    {req.status === "waiting_social" && (
-                      <Link
-                        href="/agency/social"
-                        onClick={(e) => e.stopPropagation()}
-                        className="h-8 px-4 rounded-[7px] bg-[#DB2777] hover:bg-[#BE185D] text-white text-[12px] font-medium transition-colors inline-flex items-center"
-                      >
-                        Na fila de Social →
-                      </Link>
-                    )}
                     <button
                       onClick={(e) => { e.stopPropagation(); openConversion(req); }}
-                      className="h-8 px-4 rounded-[7px] border border-[#070A1F] text-[#070A1F] hover:bg-[#E6FBFA] text-[12px] font-medium transition-colors"
+                      className="h-8 px-4 rounded-[7px] bg-[#1A1A1A] hover:bg-[#111111] text-white text-[12px] font-medium transition-colors"
                     >
                       Criar projeto
                     </button>
-                    {req.status !== "completed" && req.status !== "rejected" && (
-                      <select
-                        value={req.status}
-                        onClick={(e) => e.stopPropagation()}
-                        onChange={(e) => handleManualStatusOverride(req, e.target.value as ClientRequestStatus)}
-                        className="ml-auto h-8 px-2 text-[12px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] text-[#6B6B65]"
-                      >
-                        {(["new", "under_review", "proposal_pending", "waiting_strategy", "waiting_social", "waiting_design", "waiting_traffic", "waiting_analytics", "waiting_quality", "in_progress", "waiting_client", "approved", "completed", "rejected"] as ClientRequestStatus[]).map((s) => (
-                          <option key={s} value={s}>{REQUEST_STATUS_LABEL[s]}</option>
-                        ))}
-                      </select>
-                    )}
-                    {/* Master-only destructive control */}
                     {isMaster && (
                       <button
                         onClick={(e) => { e.stopPropagation(); openDeleteModal(req); }}
-                        className={`h-8 px-4 rounded-[7px] border border-[#FCA5A5] text-[#DC2626] hover:bg-[#FEF2F2] text-[12px] font-medium transition-colors inline-flex items-center gap-1.5 ${
-                          req.status === "completed" || req.status === "rejected" ? "ml-auto" : ""
-                        }`}
+                        className="ml-auto h-8 px-4 rounded-[7px] border border-[#FCA5A5] text-[#DC2626] hover:bg-[#FEF2F2] text-[12px] font-medium transition-colors inline-flex items-center gap-1.5"
                       >
                         Apagar solicitação
                         <span className="h-3.5 px-1 rounded-[3px] bg-[#DC2626] text-white text-[8px] font-bold leading-[14px]">ADMIN</span>
