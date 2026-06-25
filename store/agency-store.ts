@@ -190,6 +190,7 @@ interface AgencyState {
     orchestratorBriefing?: OrchestratorBriefing;
   }) => string;
   updateProject: (id: string, updates: Partial<Project>) => void;
+  deleteProject: (id: string) => void;
   moveProjectStage: (id: string, stage: ProjectStage) => void;
   updateProposal: (id: string, updates: Partial<ProjectProposal>) => void;
   sendProposal: (id: string) => void;
@@ -1004,6 +1005,22 @@ export const useAgencyStore = create<AgencyState>()(
         set((s) => ({
           projects: s.projects.map((p) => (p.id === id ? { ...p, ...updates } : p)),
         }));
+      },
+
+      deleteProject: (id) => {
+        const project = get().projects.find((p) => p.id === id);
+        if (!project) return;
+        set((s) => ({
+          projects: s.projects.filter((p) => p.id !== id),
+          tasks: s.tasks.filter((t) => t.projectId !== id),
+          briefings: s.briefings.filter((b) => b.projectId !== id),
+          materialRequests: s.materialRequests.filter((m) => m.projectId !== id),
+        }));
+        get().addActivity({
+          type: "project_stage_changed",
+          message: `Projeto apagado: "${project.name}"`,
+          clientId: project.clientId,
+        });
       },
 
       moveProjectStage: (id, stage) => {

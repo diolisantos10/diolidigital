@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useAgencyStore } from "@/store/agency-store";
 import { useDbProjects } from "@/lib/hooks/useDbProjects";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
@@ -34,8 +34,16 @@ function SourceBadge({ source }: { source: "db" | "local" }) {
 }
 
 export default function ProjectsPage() {
-  const { clients, tasks }            = useAgencyStore();
+  const { clients, tasks, currentRole, deleteProject } = useAgencyStore();
   const { projects, source, loading } = useDbProjects();
+
+  const isMaster = currentRole === "master";
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+
+  const handleDelete = useCallback((id: string) => {
+    setDeleteTarget(null);
+    deleteProject(id);
+  }, [deleteProject]);
 
   const [search, setSearch]             = useState("");
   const [clientFilter, setClientFilter] = useState("all");
@@ -90,9 +98,25 @@ export default function ProjectsPage() {
           </div>
         }
         actions={
-          <Link href="/agency/orchestrator">
-            <Button variant="primary">+ Novo Projeto</Button>
-          </Link>
+          <>
+            {isMaster && source === "local" && projects.length > 0 && (
+              <button
+                onClick={() => {
+                  if (!confirm(`Apagar todos os ${projects.length} projetos locais? Esta ação não pode ser desfeita.`)) return;
+                  projects.forEach((p) => deleteProject(p.id));
+                }}
+                className="h-8 px-3 rounded-[7px] border border-[#FCA5A5] bg-[#FEF2F2] text-[#DC2626] hover:border-[#F87171] text-[11px] font-semibold transition-colors inline-flex items-center gap-1.5"
+                title="Apaga todos os projetos do localStorage"
+              >
+                <span className="text-[10px]">⟲</span>
+                Limpar projetos locais ({projects.length})
+                <span className="h-3.5 px-1 rounded-[3px] bg-[#DC2626] text-white text-[8px] font-bold leading-[14px]">ADMIN</span>
+              </button>
+            )}
+            <Link href="/agency/orchestrator">
+              <Button variant="primary">+ Novo Projeto</Button>
+            </Link>
+          </>
         }
       />
 
@@ -165,6 +189,7 @@ export default function ProjectsPage() {
                 <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Prioridade</th>
                 <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Progresso</th>
                 <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Prazo</th>
+                {isMaster && source === "local" && <th className="px-5 py-3" />}
               </tr>
             </thead>
             <tbody>
@@ -211,6 +236,36 @@ export default function ProjectsPage() {
                         </span>
                       )}
                     </td>
+                    {isMaster && source === "local" && (
+                      <td className="px-5 py-3.5">
+                        {deleteTarget === project.id ? (
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => handleDelete(project.id)}
+                              className="h-6 px-2 rounded-[5px] bg-[#DC2626] text-white text-[10px] font-semibold hover:bg-[#B91C1C] transition-colors"
+                            >
+                              Confirmar
+                            </button>
+                            <button
+                              onClick={() => setDeleteTarget(null)}
+                              className="h-6 px-2 rounded-[5px] border border-[#E5E5E2] text-[#6B6B65] text-[10px] hover:bg-[#F0F0ED] transition-colors"
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setDeleteTarget(project.id)}
+                            title="Apagar projeto local"
+                            className="opacity-0 group-hover:opacity-100 h-6 w-6 rounded-[5px] border border-[#FCA5A5] text-[#DC2626] hover:bg-[#FEF2F2] flex items-center justify-center transition-all"
+                          >
+                            <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                              <path d="M3 4.5h10M6.5 4.5V3.5a1 1 0 011-1h1a1 1 0 011 1v1M5 4.5l.5 8a1 1 0 001 1h3a1 1 0 001-1l.5-8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </button>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 );
               })}
