@@ -1544,21 +1544,92 @@ export const useAgencyStore = create<AgencyState>()(
       },
 
       // ── Load Dioli Digital pilot data ───────────────────────────────────────
-      // Restores the Dioli Digital pilot (client c4, project p7 + its deliverables
-      // and tasks) without wiping the rest of the workspace. Idempotent.
+      // Restores the Dioli Digital pilot (client c4 + a fresh Instagram request)
+      // without wiping the rest of the workspace. Idempotent.
       loadPilotData: () => {
+        const DIOLI_REQUEST_ID = "cr-dioli-instagram-01";
+        const dioliRequest: ClientRequest = {
+          id: DIOLI_REQUEST_ID,
+          clientId: "c4",
+          title: "Gestão de Instagram — 1 post/dia",
+          rawText: "Precisamos lançar a presença da Dioli Digital no Instagram. Começando com 1 post por dia. O conteúdo fica nas mãos da agência — vocês decidem o mapa de conteúdo, os temas, os formatos e a linha editorial. Vou aprovar cada entrega antes de publicar. Queremos posicionamento premium, alinhado com a identidade da marca.",
+          extractedSummary: {
+            clientName: "Dioli Digital",
+            segment: "Agência Digital com IA",
+            services: ["Gestão de Social Media", "Criação de Conteúdo — Instagram"],
+            channels: ["Instagram"],
+            objectives: [
+              "Construir presença digital no Instagram",
+              "Gerar autoridade e posicionamento premium",
+              "Atrair leads qualificados",
+            ],
+            quantities: ["1 post por dia", "30 posts/mês"],
+            urgency: "Iniciar imediatamente",
+            suggestedDepartments: ["social-media"],
+            missingInfo: [],
+          },
+          suggestedDepartments: ["social-media"],
+          missingInfo: [],
+          status: "new",
+          createdAt: "2026-06-25T09:00:00.000Z",
+          updatedAt: "2026-06-25T09:00:00.000Z",
+          source: "client_portal",
+          attachments: [],
+          v2Scope: {
+            businessName: "Dioli Digital",
+            segment: "Agência Digital com IA",
+            objectives: [
+              "Presença digital consistente no Instagram",
+              "Geração de autoridade e posicionamento premium",
+              "Atração de leads qualificados via conteúdo",
+            ],
+            serviceMode: "monthly",
+            wantsSocialMedia: true,
+            social: {
+              platforms: ["Instagram"],
+              postsPerWeek: 7,
+              needsCopy: true,
+              hasPhotos: false,
+            },
+            wantsPaidTraffic: false,
+            branding: { requested: false, hasBrandBook: true, wantsRebrand: false },
+            budgetRange: "R$ 1.500 – R$ 2.500/mês",
+          },
+          v2Estimate: {
+            items: [
+              {
+                label: "Gestão de Social Media — Instagram",
+                detail: "1 post por dia (30 posts/mês) · copy + direção visual · calendário editorial mensal · relatório de performance",
+                minPrice: 1500,
+                maxPrice: 2500,
+                unit: "mês",
+              },
+            ],
+            totalMin: 1500,
+            totalMax: 2500,
+            confidence: "high",
+            missingForEstimate: [],
+            included: [
+              "30 posts por mês no Instagram",
+              "Copy e legenda de cada post",
+              "Calendário editorial mensal",
+              "Relatório de performance mensal",
+            ],
+            notIncluded: ["Stories", "Reels", "Tráfego pago", "Design de identidade visual"],
+          },
+        };
+
         set((s) => {
           const pilotClient = MOCK_CLIENTS.find((c) => c.id === "c4");
-          const pilotProject = MOCK_PROJECTS.find((p) => p.id === "p7");
-          const pilotDeliverables = MOCK_DELIVERABLES.filter((d) => d.projectId === "p7");
-          const pilotTasks = MOCK_TASKS.filter((t) => t.projectId === "p7");
-          const pilotMaterials = MOCK_MATERIAL_REQUESTS.filter((m) => m.projectId === "p7");
           return {
-            clients: s.clients.some((c) => c.id === "c4") || !pilotClient ? s.clients : [...s.clients, pilotClient],
-            projects: s.projects.some((p) => p.id === "p7") || !pilotProject ? s.projects : [...s.projects, pilotProject],
-            deliverables: [...s.deliverables.filter((d) => d.projectId !== "p7"), ...pilotDeliverables],
-            tasks: [...s.tasks.filter((t) => t.projectId !== "p7"), ...pilotTasks],
-            materialRequests: [...s.materialRequests.filter((m) => m.projectId !== "p7"), ...pilotMaterials],
+            clients: s.clients.some((c) => c.id === "c4") || !pilotClient
+              ? s.clients
+              : [...s.clients, pilotClient],
+            // Remove stale Dioli requests and inject the fresh one
+            clientRequests: [
+              dioliRequest,
+              ...s.clientRequests.filter((r) => r.id !== DIOLI_REQUEST_ID && r.clientId !== "c4"),
+            ],
           };
         });
       },

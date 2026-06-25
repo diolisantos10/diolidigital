@@ -486,13 +486,18 @@ export default function SettingsPage() {
             {/* Load pilot data */}
             <div className="flex items-center justify-between py-3.5 border-b border-[#F0F0ED]">
               <div className="pr-4">
-                <div className="text-[13px] font-medium text-[#1A1A1A]">Carregar dados do piloto Dioli Digital</div>
+                <div className="text-[13px] font-medium text-[#1A1A1A]">Carregar solicitação — Dioli Digital (Instagram)</div>
                 <div className="text-[12px] text-[#9B9B95] mt-0.5">
-                  Restaura o projeto piloto (Dioli Digital), suas entregas e tarefas sem apagar o restante do workspace.
+                  Adiciona o cliente Dioli Digital e uma solicitação pronta (1 post/dia no Instagram) na fila de Solicitações — pronta para o Comercial converter.
                 </div>
               </div>
-              <Button variant="secondary" size="sm" onClick={() => loadPilotData()} disabled={pilot.available}>
-                {pilot.available ? "Já carregado" : "Carregar piloto"}
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => loadPilotData()}
+                disabled={clientRequests.some((r) => r.id === "cr-dioli-instagram-01")}
+              >
+                {clientRequests.some((r) => r.id === "cr-dioli-instagram-01") ? "Já carregado" : "Carregar solicitação"}
               </Button>
             </div>
 
