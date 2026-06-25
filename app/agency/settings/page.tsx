@@ -247,7 +247,7 @@ export default function SettingsPage() {
   const portalMode = dbAvailable ? "token" : "id_legacy";
   const dbSyncStatus = {
     clients:          clientsSource,
-    projects:         projectsSource,
+    projects:         (projectsSource === "mixed" ? "db" : projectsSource) as "db" | "local",
     tasks:            tasksSource,
     deliverables:     deliverablesSource,
     materialRequests: materialRequestsSource,

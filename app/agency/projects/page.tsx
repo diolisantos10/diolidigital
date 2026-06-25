@@ -20,15 +20,16 @@ const STAGE_LABELS: Record<ProjectStage, string> = {
   review: "Revisão", delivery: "Entrega", ongoing: "Em Andamento", completed: "Concluído",
 };
 
-function SourceBadge({ source }: { source: "db" | "local" }) {
+function SourceBadge({ source }: { source: "db" | "local" | "mixed" }) {
+  const config = {
+    db:    { bg: "bg-[#DCFCE7] text-[#16A34A]", dot: "bg-[#16A34A]", label: "DB" },
+    local: { bg: "bg-[#F0F0ED] text-[#9B9B95]", dot: "bg-[#9B9B95]", label: "Local" },
+    mixed: { bg: "bg-[#FEF3C7] text-[#D97706]", dot: "bg-[#D97706]", label: "DB + Local" },
+  }[source];
   return (
-    <span className={`inline-flex items-center gap-1 h-5 px-2 rounded-full text-[10px] font-semibold ${
-      source === "db"
-        ? "bg-[#DCFCE7] text-[#16A34A]"
-        : "bg-[#F0F0ED] text-[#9B9B95]"
-    }`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${source === "db" ? "bg-[#16A34A]" : "bg-[#9B9B95]"}`} />
-      {source === "db" ? "DB" : "Local"}
+    <span className={`inline-flex items-center gap-1 h-5 px-2 rounded-full text-[10px] font-semibold ${config.bg}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${config.dot}`} />
+      {config.label}
     </span>
   );
 }
@@ -99,7 +100,7 @@ export default function ProjectsPage() {
         }
         actions={
           <>
-            {isMaster && source === "local" && projects.length > 0 && (
+            {isMaster && source !== "db" && projects.length > 0 && (
               <button
                 onClick={() => {
                   if (!confirm(`Apagar todos os ${projects.length} projetos locais? Esta ação não pode ser desfeita.`)) return;
@@ -189,7 +190,7 @@ export default function ProjectsPage() {
                 <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Prioridade</th>
                 <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Progresso</th>
                 <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Prazo</th>
-                {isMaster && source === "local" && <th className="px-5 py-3" />}
+                {isMaster && source !== "db" && <th className="px-5 py-3" />}
               </tr>
             </thead>
             <tbody>
@@ -236,7 +237,7 @@ export default function ProjectsPage() {
                         </span>
                       )}
                     </td>
-                    {isMaster && source === "local" && (
+                    {isMaster && source !== "db" && (
                       <td className="px-5 py-3.5">
                         {deleteTarget === project.id ? (
                           <div className="flex items-center gap-1.5">

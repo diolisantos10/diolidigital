@@ -509,8 +509,9 @@ function buildDefaultForm(req: ClientRequest, clientName: string): ConversionFor
 export default function AgencyRequestsPage() {
   const {
     clientRequests, clients, projects, currentRole,
-    updateClientRequest, createClient, createProject, createBriefing, addMaterialRequest,
+    updateClientRequest, updateProposal, createClient, createProject, createBriefing, addMaterialRequest,
     deleteClientRequest, deleteClientRequestsByClient,
+    runDepartmentIntelligence, getDepartmentMode,
   } = useAgencyStore();
 
   // Destructive controls are master-only — never shown to other internal roles
@@ -704,10 +705,50 @@ export default function AgencyRequestsPage() {
       }
     }
 
-    // 4. Update client request status
+    // 4. Auto-populate proposal from briefing data
+    const estimate = req.v2Estimate;
+    const scope    = req.v2Scope;
+    const services = req.extractedSummary.services;
+    const deliverablesList = scope
+      ? [
+          ...(scope.wantsSocialMedia ? ["Gestão de Social Media"] : []),
+          ...(scope.wantsPaidTraffic ? ["Tráfego Pago"] : []),
+          ...(scope.branding.requested ? ["Identidade Visual / Branding"] : []),
+          ...services.filter((s) => !/social|tráfego|ads|brand/i.test(s)),
+        ]
+      : services;
+    const pricingText = estimate && estimate.confidence !== "none"
+      ? `R$ ${estimate.totalMin.toLocaleString("pt-BR")} – R$ ${estimate.totalMax.toLocaleString("pt-BR")} / mês`
+      : "";
+    const timelineText = scope?.deadline
+      ? `Entrega: ${scope.deadline}`
+      : convForm.deadline
+      ? `Prazo: ${new Date(convForm.deadline).toLocaleDateString("pt-BR")}`
+      : "";
+    updateProposal(projectId, {
+      objective:    convForm.goal || req.rawText.slice(0, 120),
+      scope:        convForm.scope.slice(0, 800),
+      deliverables: deliverablesList.length > 0 ? deliverablesList : ["A definir"],
+      timeline:     timelineText,
+      pricing:      pricingText,
+      status:       "draft",
+    });
+
+    // 5. Auto-run department intelligence for full_ai departments
+    const deptIds = [...new Set(convForm.selectedDepts)];
+    for (const deptId of deptIds) {
+      const mode = getDepartmentMode(deptId);
+      if (mode === "full_ai" || mode === "hybrid") {
+        runDepartmentIntelligence(deptId, projectId);
+      }
+    }
+    // Always run PM intelligence so it can plan and coordinate
+    runDepartmentIntelligence("project-management", projectId);
+
+    // 6. Update client request status
     updateClientRequest(req.id, { status: "in_progress", linkedProjectId: projectId });
 
-    // 5. Record success
+    // 7. Record success
     setCreatedProjects((prev) => ({ ...prev, [req.id]: projectId }));
     setConvertingId(null);
     setConvForm(null);
