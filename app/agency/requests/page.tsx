@@ -618,6 +618,9 @@ export default function AgencyRequestsPage() {
 
   function handleConfirmConversion(req: ClientRequest) {
     if (!convForm) return;
+    // Guard: if this request was already converted, don't create a second project.
+    if (createdProjects[req.id]) return;
+
     const existingClient = getClient(req.clientId);
 
     // 0. Ensure a real Client record exists. Public-briefing prospects arrive
@@ -1754,6 +1757,14 @@ function ConversionPanel({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const [submitting, setSubmitting] = useState(false);
+
+  function handleConfirm() {
+    if (submitting) return;
+    setSubmitting(true);
+    onConfirm();
+  }
+
   function toggleDept(d: string) {
     const next = form.selectedDepts.includes(d)
       ? form.selectedDepts.filter((x) => x !== d)
@@ -1921,11 +1932,16 @@ function ConversionPanel({
       {/* Confirm action */}
       <div className="flex items-center gap-3 pt-1 border-t border-[#E5E5E2]">
         <button
-          onClick={onConfirm}
-          disabled={!form.projectName.trim() || !form.deadline}
-          className="h-9 px-5 rounded-[8px] bg-[#1A1A1A] hover:bg-[#111111] disabled:opacity-40 disabled:cursor-not-allowed text-white text-[12px] font-medium transition-colors"
+          onClick={handleConfirm}
+          disabled={!form.projectName.trim() || !form.deadline || submitting}
+          className="h-9 px-5 rounded-[8px] bg-[#1A1A1A] hover:bg-[#111111] disabled:opacity-40 disabled:cursor-not-allowed text-white text-[12px] font-medium transition-colors inline-flex items-center gap-2"
         >
-          Confirmar e criar projeto
+          {submitting ? (
+            <>
+              <span className="w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent animate-spin" />
+              Criando…
+            </>
+          ) : "Confirmar e criar projeto"}
         </button>
         <button
           onClick={onCancel}
