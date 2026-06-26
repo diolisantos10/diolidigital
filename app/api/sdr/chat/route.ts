@@ -350,12 +350,32 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     let scopePatch = parsed.scope && typeof parsed.scope === "object" ? (parsed.scope as Record<string, unknown>) : {};
+
+    // ── Email guardrail ──────────────────────────────────────────────────────
+    // The model sometimes hallucinates an email-validation reply even when the
+    // client's message has nothing to do with email (e.g. "Sim, temos brand book").
+    // Two defences:
+    // 1. Strip prospectEmail from the scope patch if the message has no "@".
+    // 2. Reject the entire reply if it reads as email-validation language — the
+    //    rule-based fallback (Lei 2) handles this turn instead.
+    const msgHasAt = body.currentMessage.includes("@");
+    if (!msgHasAt && scopePatch.prospectEmail) {
+      delete scopePatch.prospectEmail;
+    }
+    const replyText = parsed.reply.trim();
+    const EMAIL_HALLUCINATION = /e-mail.*v[áa]lid|formato.*@|nome@dom[íi]nio|confirmar.*e-mail|e-mail.*formato/i;
+    if (!msgHasAt && EMAIL_HALLUCINATION.test(replyText)) {
+      // Model confused — let the rule-based engine handle this turn.
+      console.warn("[sdr/chat] email-hallucination detected, falling back");
+      return NextResponse.json({ ok: false, reason: "email_hallucination" });
+    }
+
     // Hard floor guardrail: clamp any discount the model proposed.
     scopePatch = enforceDiscountFloor(scopePatch, typedScope, maxDiscountPct);
 
     return NextResponse.json({
       ok: true,
-      reply: parsed.reply.trim(),
+      reply: replyText,
       needsClarification: parsed.needsClarification === true,
       scope: scopePatch,
     });

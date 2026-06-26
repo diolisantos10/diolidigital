@@ -1129,12 +1129,14 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
                   : "Digite sua resposta…"
               }
               rows={2}
-              className="flex-1 px-3 py-2.5 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[8px] outline-none focus:border-[#1A1A1A] focus:bg-white transition-all resize-none leading-relaxed placeholder:text-[#C0C0BC]"
+              className="flex-1 px-3 py-2.5 bg-[#F7F7F6] border border-[#E5E5E2] rounded-[8px] outline-none focus:border-[#1A1A1A] focus:bg-white transition-all resize-none leading-relaxed placeholder:text-[#C0C0BC]"
+              style={{ fontSize: "16px", touchAction: "manipulation" }}
             />
             <button
               onClick={handleSend}
               disabled={!inputText.trim() || aiThinking}
               className="w-[52px] rounded-[8px] bg-[#1A1A1A] hover:bg-[#111111] disabled:opacity-40 disabled:cursor-not-allowed text-white flex items-center justify-center transition-colors shrink-0"
+              style={{ touchAction: "manipulation" }}
               aria-label="Enviar"
             >
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -1150,6 +1152,7 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
                   type="button"
                   disabled
                   className="h-6 px-2.5 rounded-[5px] text-[10px] font-medium border bg-[#F0F0ED] border-[#E5E5E2] text-[#9B9B95] flex items-center gap-1.5 cursor-not-allowed"
+                  style={{ touchAction: "manipulation" }}
                   title="Transcrevendo áudio…"
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-[#9B9B95] animate-bounce" style={{ animationDelay: "0ms" }} />
@@ -1166,6 +1169,7 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
                       ? "bg-[#FEE2E2] border-[#FECACA] text-[#DC2626]"
                       : "bg-white border-[#E5E5E2] text-[#9B9B95] hover:border-[#9B9B95]"
                   }`}
+                  style={{ touchAction: "manipulation" }}
                   title={isListening ? "Parar gravação" : "Ditar por voz"}
                 >
                   {isListening ? (
