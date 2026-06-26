@@ -178,6 +178,7 @@ function ScopeSection({ scope }: { scope: BriefingScope }) {
 
   if (scope.serviceMode === "monthly")  rows.push({ label: "Modalidade", value: "Gestão mensal" });
   if (scope.serviceMode === "one_off")  rows.push({ label: "Modalidade", value: "Projeto pontual" });
+  if (scope.serviceMode === "umbrella") rows.push({ label: "Modalidade", value: "Parceria contínua (guarda-chuva)" });
 
   if (scope.wantsSocialMedia) {
     rows.push({ label: "Serviço", value: "Social Media" });
@@ -197,8 +198,18 @@ function ScopeSection({ scope }: { scope: BriefingScope }) {
         value: scope.social.reelsPerMonth > 0 ? `${scope.social.reelsPerMonth}/mês (edição)` : "Não incluído",
         dim: scope.social.reelsPerMonth === 0,
       });
+    if (scope.social?.hasVideomaker !== undefined || scope.social?.needsVideoProduction !== undefined) {
+      const v = scope.social?.needsVideoProduction
+        ? "Produção pela Dioli"
+        : scope.social?.hasVideomaker
+        ? "Videomaker próprio"
+        : "A definir";
+      rows.push({ label: "Vídeo", value: v, dim: v === "A definir" });
+    }
     if (scope.social?.hasPhotos !== undefined)
       rows.push({ label: "Fotos", value: scope.social.hasPhotos ? "Disponíveis" : "Sem produção", dim: !scope.social.hasPhotos });
+    if (scope.social?.creativesReady !== undefined)
+      rows.push({ label: "Criativos", value: scope.social.creativesReady ? "Prontos" : "Criar do zero", dim: !scope.social.creativesReady });
     if (scope.social?.needsCopy !== undefined)
       rows.push({ label: "Copy", value: scope.social.needsCopy ? "Pela Dioli" : "Pelo cliente" });
   }
@@ -270,12 +281,34 @@ function EstimateSection({ estimate }: { estimate: LiveEstimate }) {
           </span>
         </div>
       ))}
-      <div className="flex items-center justify-between pt-1.5 border-t border-[#F0F0ED]">
-        <span className="text-[11px] font-semibold text-[#1A1A1A]">Total</span>
-        <span className="text-[13px] font-bold text-[#1A1A1A]">
-          {fmtBRL(estimate.totalMin)} – {fmtBRL(estimate.totalMax)}
-        </span>
-      </div>
+      {estimate.discountPct && estimate.discountedMin !== undefined ? (
+        <>
+          <div className="flex items-center justify-between pt-1.5 border-t border-[#F0F0ED]">
+            <span className="text-[10px] text-[#9B9B95]">Subtotal</span>
+            <span className="text-[11px] text-[#9B9B95] line-through">
+              {fmtBRL(estimate.totalMin)} – {fmtBRL(estimate.totalMax)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-medium text-[#16A34A]">
+              Desconto {estimate.discountPct}%{estimate.discountReason ? ` · ${estimate.discountReason}` : ""}
+            </span>
+          </div>
+          <div className="flex items-center justify-between pt-1 border-t border-[#F0F0ED]">
+            <span className="text-[11px] font-semibold text-[#1A1A1A]">Total com desconto</span>
+            <span className="text-[13px] font-bold text-[#16A34A]">
+              {fmtBRL(estimate.discountedMin)} – {fmtBRL(estimate.discountedMax ?? estimate.discountedMin)}
+            </span>
+          </div>
+        </>
+      ) : (
+        <div className="flex items-center justify-between pt-1.5 border-t border-[#F0F0ED]">
+          <span className="text-[11px] font-semibold text-[#1A1A1A]">Total</span>
+          <span className="text-[13px] font-bold text-[#1A1A1A]">
+            {fmtBRL(estimate.totalMin)} – {fmtBRL(estimate.totalMax)}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -367,11 +400,28 @@ function ProposalCard({
       {estimate.totalMin > 0 && (
         <div>
           <div className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1">Investimento estimado</div>
-          <p className="text-[14px] font-bold text-[#1A1A1A]">
-            {fmtBRL(estimate.totalMin)} – {fmtBRL(estimate.totalMax)}
-            <span className="text-[11px] font-normal text-[#9B9B95] ml-1">/mês</span>
-          </p>
-          <p className="text-[9px] text-[#C0C0BC] mt-0.5">*Sujeito a detalhamento no escopo final</p>
+          {estimate.discountPct && estimate.discountedMin !== undefined ? (
+            <>
+              <p className="text-[11px] text-[#9B9B95] line-through">
+                {fmtBRL(estimate.totalMin)} – {fmtBRL(estimate.totalMax)}/mês
+              </p>
+              <p className="text-[14px] font-bold text-[#16A34A]">
+                {fmtBRL(estimate.discountedMin)} – {fmtBRL(estimate.discountedMax ?? estimate.discountedMin)}
+                <span className="text-[11px] font-normal text-[#9B9B95] ml-1">/mês</span>
+              </p>
+              <p className="text-[9px] text-[#16A34A] mt-0.5">
+                {estimate.discountPct}% de desconto{estimate.discountReason ? ` · ${estimate.discountReason}` : ""}
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-[14px] font-bold text-[#1A1A1A]">
+                {fmtBRL(estimate.totalMin)} – {fmtBRL(estimate.totalMax)}
+                <span className="text-[11px] font-normal text-[#9B9B95] ml-1">/mês</span>
+              </p>
+              <p className="text-[9px] text-[#C0C0BC] mt-0.5">*Sujeito a detalhamento no escopo final</p>
+            </>
+          )}
         </div>
       )}
 
@@ -544,9 +594,40 @@ function mergeScopeGaps(base: BriefingScope, patch: Record<string, unknown>): Br
   if (out.wantsPaidTraffic === undefined && (trafficImplied || patch.wantsPaidTraffic === false)) {
     out.wantsPaidTraffic = trafficImplied;
   }
-  if (out.serviceMode === undefined && typeof patch.serviceMode === "string"
-      && ["monthly", "one_off", "unsure"].includes(patch.serviceMode)) {
-    out.serviceMode = patch.serviceMode as BriefingScope["serviceMode"];
+  // serviceMode: allow the SDR to UPGRADE the engagement (e.g. one_off → umbrella)
+  // since classification sharpens as the conversation deepens.
+  if (typeof patch.serviceMode === "string"
+      && ["monthly", "one_off", "umbrella", "unsure"].includes(patch.serviceMode)) {
+    if (out.serviceMode === undefined || out.serviceMode === "unsure") {
+      out.serviceMode = patch.serviceMode as BriefingScope["serviceMode"];
+    }
+  }
+
+  // decisionMaker — gap-fill once known.
+  if (out.decisionMaker === undefined && typeof patch.decisionMaker === "boolean") {
+    out.decisionMaker = patch.decisionMaker;
+  }
+
+  // competitors — accumulate.
+  if (Array.isArray(patch.competitors) && patch.competitors.length) {
+    const merged = new Set([
+      ...(out.competitors ?? []),
+      ...patch.competitors.filter((x): x is string => typeof x === "string" && x.trim().length > 0).map((x) => x.trim()),
+    ]);
+    out.competitors = [...merged].slice(0, 6);
+  }
+
+  // negotiation — the SDR OWNS this (server enforces the margin floor), so the
+  // patch is authoritative when present. Never invented client-side.
+  const pn = patch.negotiation as Record<string, unknown> | undefined;
+  if (pn && typeof pn === "object" && typeof pn.discountPct === "number" && pn.discountPct > 0) {
+    out.negotiation = {
+      discountPct: pn.discountPct,
+      discountReason: typeof pn.discountReason === "string" ? pn.discountReason : undefined,
+      appliedLevers: Array.isArray(pn.appliedLevers)
+        ? pn.appliedLevers.filter((x): x is string => typeof x === "string")
+        : undefined,
+    };
   }
 
   if (Array.isArray(patch.objectives) && patch.objectives.length) {
@@ -569,6 +650,8 @@ function mergeScopeGaps(base: BriefingScope, patch: Record<string, unknown>): Br
   const ps = ps0;
   if (ps && typeof ps === "object" && (out.wantsSocialMedia || socialImplied)) {
     const cur = out.social ?? { platforms: [] };
+    const bool = (v: unknown, fallback: boolean | undefined) =>
+      typeof v === "boolean" ? v : fallback;
     out.social = {
       platforms:     cur.platforms?.length ? cur.platforms
                        : Array.isArray(ps.platforms) ? (ps.platforms as unknown[]).filter((x): x is string => typeof x === "string") : [],
@@ -577,6 +660,11 @@ function mergeScopeGaps(base: BriefingScope, patch: Record<string, unknown>): Br
       reelsPerMonth: cur.reelsPerMonth ?? asNum(ps.reelsPerMonth),
       needsCopy:     cur.needsCopy     ?? (typeof ps.needsCopy === "boolean" ? ps.needsCopy : undefined),
       hasPhotos:     cur.hasPhotos     ?? (typeof ps.hasPhotos === "boolean" ? ps.hasPhotos : undefined),
+      hasVideomaker:        cur.hasVideomaker        ?? bool(ps.hasVideomaker, undefined),
+      needsVideoProduction: cur.needsVideoProduction ?? bool(ps.needsVideoProduction, undefined),
+      creativesReady:       cur.creativesReady       ?? bool(ps.creativesReady, undefined),
+      hasReferences:        cur.hasReferences        ?? bool(ps.hasReferences, undefined),
+      postingGoal:   cur.postingGoal ?? (typeof ps.postingGoal === "string" ? ps.postingGoal : undefined),
     };
   }
 

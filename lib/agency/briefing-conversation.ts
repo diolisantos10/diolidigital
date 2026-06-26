@@ -19,6 +19,12 @@ export interface SocialScope {
   reelsPerMonth?: number;
   needsCopy?: boolean;
   hasPhotos?: boolean;
+  // Deep-probe production fields (drive accuracy of the quote)
+  hasVideomaker?: boolean;     // client has someone to shoot/edit video
+  needsVideoProduction?: boolean; // Dioli must produce/edit video
+  creativesReady?: boolean;    // brand has existing creatives/templates ready
+  postingGoal?: string;        // what each post should drive (sales, authority…)
+  hasReferences?: boolean;     // client provided visual/brand references
 }
 
 export interface TrafficScope {
@@ -32,12 +38,27 @@ export interface BrandingScope {
   wantsRebrand: boolean;
 }
 
+// Engagement type — how the client enters the agency.
+//   monthly   = fixed monthly retainer for a defined scope
+//   one_off   = single project with a start and end
+//   umbrella  = ongoing partnership, indeterminate time, scope evolves
+//              (the "guarda-chuva" — client lives under the agency umbrella)
+//   unsure    = not yet decided
+export type EngagementType = "monthly" | "one_off" | "umbrella" | "unsure";
+
+// ── Negotiation (client-visible: only the final discounted price) ──────────────
+export interface NegotiationState {
+  discountPct?: number;       // discount the SDR granted
+  discountReason?: string;    // client-facing justification (e.g. "compromisso anual")
+  appliedLevers?: string[];   // internal lever ids used
+}
+
 // ── Main scope ────────────────────────────────────────────────────────────────
 export interface BriefingScope {
   businessName?: string;
   segment?: string;
   objectives: string[];
-  serviceMode?: "monthly" | "one_off" | "unsure";
+  serviceMode?: EngagementType;
   wantsSocialMedia: boolean;
   social?: SocialScope;
   wantsPaidTraffic?: boolean;
@@ -45,6 +66,10 @@ export interface BriefingScope {
   branding: BrandingScope;
   budgetRange?: string;
   deadline?: string;
+  // Qualification depth
+  decisionMaker?: boolean;    // is the person the decision-maker?
+  competitors?: string[];     // competitors / references the client admires
+  negotiation?: NegotiationState;
   // Prospect-only fields (public /briefing flow)
   prospectName?: string;
   prospectEmail?: string;
@@ -70,6 +95,12 @@ export interface LiveEstimate {
   missingForEstimate: string[];
   included: string[];
   notIncluded: string[];
+  // Negotiated discount (client-visible). When set, the panel shows the
+  // discounted total alongside the original. Margin/floor stay internal.
+  discountPct?: number;
+  discountReason?: string;
+  discountedMin?: number;
+  discountedMax?: number;
 }
 
 // ── Conversation state ────────────────────────────────────────────────────────

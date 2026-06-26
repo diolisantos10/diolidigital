@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
+import MarginIntelligencePanel from "@/components/agency/catalog/MarginIntelligencePanel";
 import { DEPARTMENT_CATALOG } from "@/lib/agency/service-catalog";
 import {
   SOCIAL_PACKAGES,
@@ -149,6 +150,9 @@ export default function CatalogPage() {
       <p className="text-[11px] text-[#C0C0BC]">
         Preços de referência (faixa min–máx). A proposta final é calibrada conforme o escopo e o orçamento do cliente.
       </p>
+
+      {/* Internal margin intelligence — master only, never client-facing */}
+      <MarginIntelligencePanel />
     </div>
   );
 }

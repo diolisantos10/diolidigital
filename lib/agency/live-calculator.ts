@@ -268,5 +268,24 @@ export function computeEstimate(scope: BriefingScope): LiveEstimate {
     else                           confidence = "low";
   }
 
-  return { items, totalMin, totalMax, confidence, missingForEstimate: missing, included, notIncluded };
+  // ── Negotiated discount (client-visible final price) ────────────────────────
+  // The SDR grants the discount %; the floor/margin guardrail is enforced
+  // server-side (pricing-margins.ts) before the % ever reaches the scope.
+  const neg = scope.negotiation;
+  let discountPct: number | undefined;
+  let discountReason: string | undefined;
+  let discountedMin: number | undefined;
+  let discountedMax: number | undefined;
+  if (neg?.discountPct && neg.discountPct > 0 && totalMin > 0) {
+    discountPct = Math.min(40, Math.round(neg.discountPct));
+    discountReason = neg.discountReason;
+    discountedMin = Math.round(totalMin * (1 - discountPct / 100));
+    discountedMax = Math.round(totalMax * (1 - discountPct / 100));
+  }
+
+  return {
+    items, totalMin, totalMax, confidence,
+    missingForEstimate: missing, included, notIncluded,
+    discountPct, discountReason, discountedMin, discountedMax,
+  };
 }

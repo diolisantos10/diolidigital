@@ -126,6 +126,18 @@ export function emptySdrState(): SDRAgentState {
   };
 }
 
+// ── Engagement-mode label ──────────────────────────────────────────────────────
+// Human label for the engagement type, including the "umbrella" (guarda-chuva)
+// continuous-partnership mode.
+export function engagementLabel(mode: BriefingScope["serviceMode"]): string {
+  switch (mode) {
+    case "monthly":  return "Gestão mensal";
+    case "one_off":  return "Projeto pontual";
+    case "umbrella": return "Parceria contínua (guarda-chuva)";
+    default:         return "Modalidade não definida";
+  }
+}
+
 // ── Restaurant detection ──────────────────────────────────────────────────────
 
 export function isRestaurantSegment(scope: BriefingScope): boolean {
@@ -373,7 +385,7 @@ export function runSDRQualityGate(conv: ConvState, sdr: SDRAgentState): SDRQuali
       id: "service_mode",
       label: "Modalidade de serviço definida",
       status: s.serviceMode ? "PASS" : "WARNING",
-      detail: s.serviceMode === "monthly" ? "Gestão mensal" : s.serviceMode === "one_off" ? "Projeto pontual" : "Modalidade não definida.",
+      detail: s.serviceMode ? engagementLabel(s.serviceMode) : "Modalidade não definida.",
     },
     {
       id: "objectives",
@@ -596,7 +608,7 @@ export function buildBrainReasoningOutput(
   if (s.objectives.length > 0) knownFacts.push(`Objetivos: ${s.objectives.join(", ")}`);
   if (sdr.budgetSignal.amount !== undefined) knownFacts.push(`Budget: R$ ${sdr.budgetSignal.amount.toLocaleString("pt-BR")}`);
   if (s.social?.postsPerWeek !== undefined) knownFacts.push(`${s.social.postsPerWeek * 4} posts/mês`);
-  if (s.serviceMode) knownFacts.push(`Modalidade: ${s.serviceMode === "monthly" ? "gestão mensal" : "projeto pontual"}`);
+  if (s.serviceMode) knownFacts.push(`Modalidade: ${engagementLabel(s.serviceMode)}`);
 
   const unknownFacts = [...e.missingForEstimate];
   if (!s.businessName) unknownFacts.push("Nome do negócio não informado");
@@ -617,7 +629,7 @@ export function buildBrainReasoningOutput(
   if (e.confidence === "high") opportunities.push("Estimativa confiável disponível");
 
   const intentionDetected = services.length > 0
-    ? `${s.businessName ?? "Prospect"} solicita: ${services.join(", ")}.${s.serviceMode === "monthly" ? " Gestão mensal." : s.serviceMode === "one_off" ? " Projeto pontual." : ""}`
+    ? `${s.businessName ?? "Prospect"} solicita: ${services.join(", ")}.${s.serviceMode && s.serviceMode !== "unsure" ? ` ${engagementLabel(s.serviceMode)}.` : ""}`
     : "Intenção não detectada.";
 
   const confidenceLevel: "low" | "medium" | "high" =
@@ -667,8 +679,8 @@ export function buildHandoffSummary(conv: ConvState, sdr: SDRAgentState): SDRHan
   if (scope.wantsPaidTraffic) serviceList.push("Tráfego Pago");
   if (scope.branding.requested) serviceList.push("Identidade Visual");
 
-  const modeStr = scope.serviceMode === "monthly" ? " Gestão mensal."
-    : scope.serviceMode === "one_off" ? " Projeto pontual." : "";
+  const modeStr = scope.serviceMode && scope.serviceMode !== "unsure"
+    ? ` ${engagementLabel(scope.serviceMode)}.` : "";
   const segmentStr = scope.segment ? ` (${scope.segment})` : "";
   const diagnosis = `${biz}${segmentStr} solicitou: ${serviceList.join(", ") || "escopo a definir"}.${modeStr}`;
 

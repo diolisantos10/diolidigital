@@ -721,9 +721,17 @@ export default function AgencyRequestsPage() {
           ...services.filter((s) => !/social|tráfego|ads|brand/i.test(s)),
         ]
       : services;
-    const pricingText = estimate && estimate.confidence !== "none"
-      ? `R$ ${estimate.totalMin.toLocaleString("pt-BR")} – R$ ${estimate.totalMax.toLocaleString("pt-BR")} / mês`
-      : "";
+    // Use the NEGOTIATED price when the SDR granted a discount; otherwise list price.
+    const unit = scope?.serviceMode === "one_off" ? "projeto" : "mês";
+    let pricingText = "";
+    if (estimate && estimate.confidence !== "none") {
+      if (estimate.discountPct && estimate.discountedMin !== undefined) {
+        const reason = estimate.discountReason ? ` (${estimate.discountPct}% — ${estimate.discountReason})` : ` (${estimate.discountPct}% off)`;
+        pricingText = `R$ ${estimate.discountedMin.toLocaleString("pt-BR")} – R$ ${(estimate.discountedMax ?? estimate.discountedMin).toLocaleString("pt-BR")} / ${unit}${reason}`;
+      } else {
+        pricingText = `R$ ${estimate.totalMin.toLocaleString("pt-BR")} – R$ ${estimate.totalMax.toLocaleString("pt-BR")} / ${unit}`;
+      }
+    }
     const timelineText = scope?.deadline
       ? `Entrega: ${scope.deadline}`
       : convForm.deadline

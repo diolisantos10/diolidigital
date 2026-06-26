@@ -171,6 +171,7 @@ function ScopeSection({ scope }: { scope: BriefingScope }) {
 
   if (scope.serviceMode === "monthly")  rows.push({ label: "Modalidade", value: "Gestão mensal" });
   if (scope.serviceMode === "one_off")  rows.push({ label: "Modalidade", value: "Projeto pontual" });
+  if (scope.serviceMode === "umbrella") rows.push({ label: "Modalidade", value: "Parceria contínua (guarda-chuva)" });
 
   if (scope.wantsSocialMedia) {
     rows.push({ label: "Serviço", value: "Social Media" });
