@@ -356,17 +356,153 @@ const QUICK_ACTIONS: QuickAction[] = [
 
 // ── Proposal card ─────────────────────────────────────────────────────────────
 
+// ── Google sign-in button ─────────────────────────────────────────────────────
+
+interface GoogleAuthResult { email: string; name: string; picture: string }
+
+function GoogleSignInButton({
+  onSuccess,
+  onFallback,
+  loading,
+}: {
+  onSuccess: (result: GoogleAuthResult) => void;
+  onFallback: () => void;
+  loading: boolean;
+}) {
+  const [state, setState] = useState<"idle" | "opening" | "waiting" | "error">("idle");
+
+  function handleClick() {
+    if (loading || state !== "idle") return;
+    setState("opening");
+
+    const popup = window.open(
+      "/api/auth/google",
+      "google_auth_popup",
+      "width=520,height=660,scrollbars=yes,resizable=yes,toolbar=no,menubar=no",
+    );
+
+    if (!popup) {
+      // Popup blocked — fall back to email input
+      setState("idle");
+      onFallback();
+      return;
+    }
+
+    setState("waiting");
+
+    const openedPopup = popup;
+
+    function onMessage(evt: MessageEvent) {
+      // Only accept messages from our own origin
+      if (evt.origin !== window.location.origin) return;
+      const data = evt.data as Record<string, string> | undefined;
+      if (!data) return;
+
+      window.removeEventListener("message", onMessage);
+      openedPopup.close();
+
+      if (data.type === "google_auth_success" && data.email) {
+        setState("idle");
+        onSuccess({ email: data.email, name: data.name ?? "", picture: data.picture ?? "" });
+      } else {
+        setState("error");
+      }
+    }
+
+    window.addEventListener("message", onMessage);
+
+    // Detect popup closed without completing auth (user closed manually)
+    const poll = setInterval(() => {
+      if (openedPopup.closed) {
+        clearInterval(poll);
+        window.removeEventListener("message", onMessage);
+        setState("idle");
+      }
+    }, 800);
+  }
+
+  if (state === "waiting" || state === "opening") {
+    return (
+      <button disabled className="w-full h-11 rounded-[8px] bg-[#F7F7F6] border border-[#E5E5E2] text-[#9B9B95] text-[13px] font-medium flex items-center justify-center gap-2 cursor-not-allowed">
+        <span className="w-1.5 h-1.5 rounded-full bg-[#9B9B95] animate-bounce" style={{ animationDelay: "0ms" }} />
+        <span className="w-1.5 h-1.5 rounded-full bg-[#9B9B95] animate-bounce" style={{ animationDelay: "150ms" }} />
+        <span className="w-1.5 h-1.5 rounded-full bg-[#9B9B95] animate-bounce" style={{ animationDelay: "300ms" }} />
+      </button>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <button
+        onClick={handleClick}
+        disabled={loading}
+        style={{ touchAction: "manipulation" }}
+        className="w-full h-11 rounded-[8px] bg-white border border-[#E5E5E2] hover:border-[#9B9B95] hover:bg-[#FAFAF9] text-[#1A1A1A] text-[13px] font-semibold transition-colors flex items-center justify-center gap-2.5 disabled:opacity-50"
+      >
+        {/* Google "G" logo */}
+        <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        Continuar com Google para ver a proposta
+      </button>
+      {state === "error" && (
+        <p className="text-[10px] text-[#DC2626] text-center">
+          Erro ao autenticar.{" "}
+          <button onClick={onFallback} className="underline">Usar e-mail manual</button>
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ── Email fallback (when Google isn't configured or popup is blocked) ──────────
+
+function EmailFallbackForm({ onSubmit, loading }: { onSubmit: (email: string) => void; loading: boolean }) {
+  const [email, setEmail] = useState("");
+  const valid = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
+
+  return (
+    <div className="space-y-2">
+      <input
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="seu@email.com"
+        className="w-full px-3 py-2.5 border border-[#E5E5E2] rounded-[8px] outline-none focus:border-[#1A1A1A] transition-colors"
+        style={{ fontSize: "16px" }}
+      />
+      <button
+        onClick={() => valid && onSubmit(email)}
+        disabled={!valid || loading}
+        style={{ touchAction: "manipulation" }}
+        className="w-full h-11 rounded-[8px] bg-[#1A1A1A] hover:bg-[#111111] disabled:opacity-40 text-white text-[13px] font-semibold transition-colors"
+      >
+        {loading ? "Enviando…" : "Enviar proposta para análise →"}
+      </button>
+    </div>
+  );
+}
+
+// ── Proposal card ─────────────────────────────────────────────────────────────
+
 function ProposalCard({
   scope,
   estimate,
-  submitLabel,
-  onSubmit,
+  onGoogleSuccess,
+  onEmailSubmit,
+  submitting,
 }: {
   scope: BriefingScope;
   estimate: LiveEstimate;
-  submitLabel: string;
-  onSubmit: () => void;
+  onGoogleSuccess: (result: GoogleAuthResult) => void;
+  onEmailSubmit: (email: string) => void;
+  submitting: boolean;
 }) {
+  const [useFallback, setUseFallback] = useState(false);
+
   let pkgDesc: string | null = null;
   if (scope.wantsSocialMedia && scope.social?.postsPerWeek !== undefined) {
     const ppm = scope.social.postsPerWeek * 4;
@@ -465,13 +601,16 @@ function ProposalCard({
         </p>
       </div>
 
-      {/* Submit CTA */}
-      <button
-        onClick={onSubmit}
-        className="w-full h-11 rounded-[8px] bg-[#1A1A1A] hover:bg-[#111111] text-white text-[13px] font-semibold transition-colors"
-      >
-        {submitLabel}
-      </button>
+      {/* CTA — Google sign-in or email fallback */}
+      {useFallback ? (
+        <EmailFallbackForm onSubmit={onEmailSubmit} loading={submitting} />
+      ) : (
+        <GoogleSignInButton
+          onSuccess={onGoogleSuccess}
+          onFallback={() => setUseFallback(true)}
+          loading={submitting}
+        />
+      )}
     </div>
   );
 }
@@ -1032,30 +1171,39 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
     }
   }
 
-  function handleSubmit() {
+  const [submitting, setSubmitting] = useState(false);
+
+  // Unified submit — called after Google auth or manual email fallback.
+  function handleSubmitWithContact(email: string, name?: string) {
+    if (submitting) return;
+    setSubmitting(true);
     const scope = conv.scope;
+    const mergedScope: BriefingScope = {
+      ...scope,
+      prospectEmail: email,
+      prospectName:  scope.prospectName ?? name ?? "",
+    };
     const rawText = buildRawText(conv.messages);
     onSubmit({
       conversationTranscript: conv.messages,
-      v2Scope: scope,
-      v2Estimate: conv.estimate,
+      v2Scope:          mergedScope,
+      v2Estimate:       conv.estimate,
       attachments,
-      extractedSummary: buildExtractedSummary(scope),
+      extractedSummary: buildExtractedSummary(mergedScope),
       rawText,
-      title: buildTitle(scope),
-      prospectName: scope.prospectName ?? "",
-      prospectEmail: scope.prospectEmail ?? "",
-      prospectPhone: scope.prospectPhone ?? "",
-      businessName: scope.businessName ?? "",
-      segment: scope.segment ?? "",
-      sdrHandoff: buildHandoffSummary(conv, sdr),
+      title:            buildTitle(mergedScope),
+      prospectName:     mergedScope.prospectName ?? "",
+      prospectEmail:    email,
+      prospectPhone:    scope.prospectPhone ?? "",
+      businessName:     mergedScope.businessName ?? "",
+      segment:          mergedScope.segment ?? "",
+      sdrHandoff:       buildHandoffSummary(conv, sdr),
     });
   }
 
   const scope    = conv.scope;
   const estimate = conv.estimate;
   const hasScope = scope.wantsSocialMedia || !!scope.wantsPaidTraffic || scope.branding.requested;
-  const identityDone = !!scope.prospectEmail && !!scope.prospectPhone;
   const canSubmit    = canSubmitProposal(conv, sdr);
   const blockReason  = getSubmissionBlockReason(conv, sdr);
 
@@ -1244,23 +1392,18 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
               <ProposalCard
                 scope={scope}
                 estimate={estimate}
-                submitLabel="Enviar orçamento para análise da Dioli →"
-                onSubmit={handleSubmit}
+                onGoogleSuccess={(result) => handleSubmitWithContact(result.email, result.name)}
+                onEmailSubmit={(email) => handleSubmitWithContact(email)}
+                submitting={submitting}
               />
             </div>
           ) : !hasScope ? (
             /* ── Identity / empty state ── */
             <div className="px-4 py-4">
-              {/* Identity status panel */}
               <div className="px-0 py-0">
-                <div className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-2">
-                  Seus dados de contato
-                </div>
                 {[
-                  { label: "Nome",     value: scope.prospectName },
-                  { label: "Negócio",  value: scope.businessName },
-                  { label: "E-mail",   value: scope.prospectEmail },
-                  { label: "WhatsApp", value: scope.prospectPhone },
+                  { label: "Nome",    value: scope.prospectName },
+                  { label: "Negócio", value: scope.businessName },
                 ].map((row) => (
                   <div key={row.label} className="flex items-center gap-2 text-[11px] py-0.5">
                     <span className="text-[#9B9B95] w-16 shrink-0">{row.label}</span>
@@ -1279,30 +1422,6 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
           ) : (
             /* ── Scope in progress ── */
             <div className="px-4 py-4 space-y-4">
-              {/* If identity not yet done, show identity fields too */}
-              {!identityDone && (
-                <div className="bg-[#F7F7F6] rounded-[8px] px-3 py-3 mb-2">
-                  <div className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-2">
-                    Seus dados de contato
-                  </div>
-                  {[
-                    { label: "Nome",     value: scope.prospectName },
-                    { label: "Negócio",  value: scope.businessName },
-                    { label: "E-mail",   value: scope.prospectEmail },
-                    { label: "WhatsApp", value: scope.prospectPhone },
-                  ].map((row) => (
-                    <div key={row.label} className="flex items-center gap-2 text-[11px] py-0.5">
-                      <span className="text-[#9B9B95] w-16 shrink-0">{row.label}</span>
-                      {row.value ? (
-                        <span className="text-[#1A1A1A] font-medium">{row.value}</span>
-                      ) : (
-                        <span className="text-[#D0D0CC]">aguardando…</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-
               <ScopeSection scope={scope} />
 
               {estimate.confidence !== "none" && (
@@ -1416,7 +1535,7 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
         </div>
 
         {/* Packages reference — only shown before service scope is captured */}
-        {!canSubmit && !hasScope && identityDone && (
+        {!canSubmit && !hasScope && !!scope.prospectName && (
           <div className="mt-3 bg-[#F7F7F6] rounded-[12px] border border-[#E5E5E2] px-4 py-3">
             <div className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-2">
               Planos Social Media
