@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import type { ConvState, ConvMessage, BriefingScope, LiveEstimate } from "@/lib/agency/briefing-conversation";
 import { initProspectConvState, processProspectMessage, type ProspectConvState } from "@/lib/agency/prospect-engine";
 import { canSubmitProposal, getSubmissionBlockReason, buildHandoffSummary } from "@/lib/agency/sdr-agent";
-import { detectPackage, getPackageDef, SOCIAL_PACKAGES, computeEstimate } from "@/lib/agency/live-calculator";
+import { detectPackage, getPackageDef, computeEstimate } from "@/lib/agency/live-calculator";
 import { MaterialsLinkField } from "@/components/agency/briefing/FileUploadZone";
 import { useSpeechToText } from "@/lib/hooks/useSpeechToText";
 import type { RequestAttachment, ExtractedRequestSummary } from "@/lib/agency/client-requests";
@@ -450,15 +450,14 @@ function GoogleSignInButton({
       </button>
       {state === "error" && (
         <p className="text-[10px] text-[#DC2626] text-center">
-          Erro ao autenticar.{" "}
-          <button onClick={onFallback} className="underline">Usar e-mail manual</button>
+          Erro ao autenticar com Google. Use o formulário abaixo.
         </p>
       )}
     </div>
   );
 }
 
-// ── Email fallback (when Google isn't configured or popup is blocked) ──────────
+// ── Email fallback (used inside ProposalCard) ─────────────────────────────────
 
 function EmailFallbackForm({ onSubmit, loading }: { onSubmit: (email: string) => void; loading: boolean }) {
   const [email, setEmail] = useState("");
@@ -481,6 +480,45 @@ function EmailFallbackForm({ onSubmit, loading }: { onSubmit: (email: string) =>
         className="w-full h-11 rounded-[8px] bg-[#1A1A1A] hover:bg-[#111111] disabled:opacity-40 text-white text-[13px] font-semibold transition-colors"
       >
         {loading ? "Enviando…" : "Enviar proposta para análise →"}
+      </button>
+    </div>
+  );
+}
+
+// ── Email contact form (name + email, shown as alternative to Google) ─────────
+
+function EmailContactForm({ onSubmit, loading }: { onSubmit: (email: string, name: string) => void; loading: boolean }) {
+  const [name,  setName]  = useState("");
+  const [email, setEmail] = useState("");
+  const valid =
+    name.trim().length >= 2 &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
+
+  return (
+    <div className="space-y-2">
+      <input
+        type="text"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Seu nome completo"
+        className="w-full px-3 py-2.5 border border-[#E5E5E2] rounded-[8px] outline-none focus:border-[#1A1A1A] transition-colors"
+        style={{ fontSize: "16px" }}
+      />
+      <input
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="seu@email.com"
+        className="w-full px-3 py-2.5 border border-[#E5E5E2] rounded-[8px] outline-none focus:border-[#1A1A1A] transition-colors"
+        style={{ fontSize: "16px" }}
+      />
+      <button
+        onClick={() => valid && onSubmit(email, name.trim())}
+        disabled={!valid || loading}
+        style={{ touchAction: "manipulation" }}
+        className="w-full h-11 rounded-[8px] bg-[#1A1A1A] hover:bg-[#111111] disabled:opacity-40 text-white text-[13px] font-semibold transition-colors"
+      >
+        {loading ? "Enviando…" : "Enviar por e-mail →"}
       </button>
     </div>
   );
@@ -1202,7 +1240,6 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
   }
 
   const [confirmStep, setConfirmStep] = useState<"pending" | "confirmed">("pending");
-  const [authFallback, setAuthFallback] = useState(false);
 
   const scope    = conv.scope;
   const estimate = conv.estimate;
@@ -1416,20 +1453,25 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
               </p>
             </div>
           ) : confirmStep === "confirmed" ? (
-            /* ── Google login ── */
+            /* ── Auth step: Google or e-mail ── */
             <div className="px-4 py-4 space-y-3">
               <p className="text-[11px] text-[#6B6B65] leading-relaxed">
-                Seu pedido foi registrado. Faça login com Google para gerar seu orçamento personalizado — é rápido e gratuito.
+                Ótimo! Identifique-se para receber seu orçamento personalizado.
               </p>
-              {authFallback ? (
-                <EmailFallbackForm onSubmit={(email) => handleSubmitWithContact(email)} loading={submitting} />
-              ) : (
-                <GoogleSignInButton
-                  onSuccess={(r) => handleSubmitWithContact(r.email, r.name)}
-                  onFallback={() => setAuthFallback(true)}
-                  loading={submitting}
-                />
-              )}
+              <GoogleSignInButton
+                onSuccess={(r) => handleSubmitWithContact(r.email, r.name)}
+                onFallback={() => {}}
+                loading={submitting}
+              />
+              <div className="flex items-center gap-2">
+                <div className="flex-1 h-px bg-[#F0F0ED]" />
+                <span className="text-[10px] text-[#C0C0BC]">ou</span>
+                <div className="flex-1 h-px bg-[#F0F0ED]" />
+              </div>
+              <EmailContactForm
+                onSubmit={(email, name) => handleSubmitWithContact(email, name)}
+                loading={submitting}
+              />
             </div>
           ) : (
             /* ── Scope list (building or confirming) ── */
@@ -1490,33 +1532,6 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
           )}
         </div>
 
-        {/* Packages reference — only shown before service scope is captured */}
-        {!canSubmit && !hasScope && !!scope.prospectName && (
-          <div className="mt-3 bg-[#F7F7F6] rounded-[12px] border border-[#E5E5E2] px-4 py-3">
-            <div className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-2">
-              Planos Social Media
-            </div>
-            {SOCIAL_PACKAGES.map((pkg) => (
-              <div key={pkg.id} className="flex items-center justify-between py-1 text-[10px]">
-                <div className="min-w-0">
-                  <span className={`font-semibold ${PKG_STYLE[pkg.id]?.text ?? "text-[#6B6B65]"}`}>
-                    {pkg.label.replace("Plano ", "")}
-                  </span>
-                  <span className="text-[#9B9B95] ml-1">
-                    {pkg.postsPerWeek} posts/sem
-                    {pkg.reelsPerMonth > 0 ? ` · ${pkg.reelsPerMonth} reels` : ""}
-                  </span>
-                </div>
-                <span className="text-[#6B6B65] shrink-0 ml-2">
-                  R$ {pkg.minPrice.toLocaleString("pt-BR")}–{pkg.maxPrice.toLocaleString("pt-BR")}
-                </span>
-              </div>
-            ))}
-            <p className="text-[9px] text-[#C0C0BC] mt-2 leading-relaxed">
-              Reels, copy, design, calendário e relatórios inclusos conforme o plano. Tráfego pago e identidade visual são adicionais.
-            </p>
-          </div>
-        )}
       </div>
     </div>
   );
