@@ -1201,6 +1201,9 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
     });
   }
 
+  const [confirmStep, setConfirmStep] = useState<"pending" | "confirmed">("pending");
+  const [authFallback, setAuthFallback] = useState(false);
+
   const scope    = conv.scope;
   const estimate = conv.estimate;
   const hasScope = scope.wantsSocialMedia || !!scope.wantsPaidTraffic || scope.branding.requested;
@@ -1371,125 +1374,72 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
         </div>
       </div>
 
-      {/* ── Right: Proposal panel ─────────────────────────────────────────────── */}
+      {/* ── Right: Request panel ──────────────────────────────────────────────── */}
       <div className="lg:sticky lg:top-6">
         <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
 
           {/* Header */}
           <div className="px-4 py-3.5 border-b border-[#F0F0ED]">
             <div className="text-[11px] font-semibold text-[#1A1A1A] uppercase tracking-[0.05em]">
-              {canSubmit ? "Proposta pronta" : "Sua proposta em construção"}
+              {canSubmit && confirmStep === "confirmed"
+                ? "Quase lá!"
+                : canSubmit
+                ? "Confirme seu pedido"
+                : "O que você está pedindo"}
             </div>
             <p className="text-[10px] text-[#9B9B95] mt-0.5">
-              {canSubmit ? "Pronta para envio" : "Atualizada conforme você responde"}
+              {canSubmit && confirmStep === "confirmed"
+                ? "Faça login para gerar seu orçamento"
+                : canSubmit
+                ? "É isso mesmo que você precisa?"
+                : "Atualizado conforme a conversa avança"}
             </p>
           </div>
 
           {/* Body */}
-          {canSubmit ? (
-            /* ── Proposal-ready state ── */
+          {!hasScope ? (
+            /* ── Empty state ── */
             <div className="px-4 py-4">
-              <ProposalCard
-                scope={scope}
-                estimate={estimate}
-                onGoogleSuccess={(result) => handleSubmitWithContact(result.email, result.name)}
-                onEmailSubmit={(email) => handleSubmitWithContact(email)}
-                submitting={submitting}
-              />
+              {[
+                { label: "Nome",    value: scope.prospectName },
+                { label: "Negócio", value: scope.businessName },
+              ].map((row) => (
+                <div key={row.label} className="flex items-center gap-2 text-[11px] py-0.5">
+                  <span className="text-[#9B9B95] w-16 shrink-0">{row.label}</span>
+                  {row.value
+                    ? <span className="text-[#1A1A1A] font-medium">{row.value}</span>
+                    : <span className="text-[#D0D0CC]">aguardando…</span>}
+                </div>
+              ))}
+              <p className="text-[10px] text-[#C0C0BC] mt-3 leading-relaxed">
+                O que você precisar vai aparecer aqui conforme a conversa avança.
+              </p>
             </div>
-          ) : !hasScope ? (
-            /* ── Identity / empty state ── */
-            <div className="px-4 py-4">
-              <div className="px-0 py-0">
-                {[
-                  { label: "Nome",    value: scope.prospectName },
-                  { label: "Negócio", value: scope.businessName },
-                ].map((row) => (
-                  <div key={row.label} className="flex items-center gap-2 text-[11px] py-0.5">
-                    <span className="text-[#9B9B95] w-16 shrink-0">{row.label}</span>
-                    {row.value ? (
-                      <span className="text-[#1A1A1A] font-medium">{row.value}</span>
-                    ) : (
-                      <span className="text-[#D0D0CC]">aguardando…</span>
-                    )}
-                  </div>
-                ))}
-                <p className="text-[10px] text-[#C0C0BC] mt-3 leading-relaxed">
-                  O escopo e estimativa aparecerão aqui conforme a conversa avança.
-                </p>
-              </div>
+          ) : confirmStep === "confirmed" ? (
+            /* ── Google login ── */
+            <div className="px-4 py-4 space-y-3">
+              <p className="text-[11px] text-[#6B6B65] leading-relaxed">
+                Seu pedido foi registrado. Faça login com Google para gerar seu orçamento personalizado — é rápido e gratuito.
+              </p>
+              {authFallback ? (
+                <EmailFallbackForm onSubmit={(email) => handleSubmitWithContact(email)} loading={submitting} />
+              ) : (
+                <GoogleSignInButton
+                  onSuccess={(r) => handleSubmitWithContact(r.email, r.name)}
+                  onFallback={() => setAuthFallback(true)}
+                  loading={submitting}
+                />
+              )}
             </div>
           ) : (
-            /* ── Scope in progress ── */
+            /* ── Scope list (building or confirming) ── */
             <div className="px-4 py-4 space-y-4">
               <ScopeSection scope={scope} />
 
-              {estimate.confidence !== "none" && (
-                <EstimateSection estimate={estimate} />
-              )}
-
-              {/* SDR: budget fit indicator */}
-              {sdr.budgetSignal.fitStatus === "fits" && sdr.budgetSignal.amount && (
-                <div className="bg-[#DCFCE7] border border-[#86EFAC] rounded-[8px] px-3 py-2">
-                  <p className="text-[10px] font-semibold text-[#166534]">Orçamento confirmado</p>
-                  <p className="text-[9px] text-[#15803D] mt-0.5">
-                    R$ {sdr.budgetSignal.amount.toLocaleString("pt-BR")} — dentro da estimativa.
-                  </p>
-                </div>
-              )}
-              {(sdr.budgetSignal.fitStatus === "above_budget" || sdr.budgetSignal.fitStatus === "below_recommended") && (
-                <div className="bg-[#FEF3C7] border border-[#FDE68A] rounded-[8px] px-3 py-2">
-                  <p className="text-[10px] font-semibold text-[#D97706]">Orçamento abaixo da estimativa</p>
-                  {sdr.budgetSignal.amount && (
-                    <p className="text-[9px] text-[#92400E] mt-0.5">
-                      R$ {sdr.budgetSignal.amount.toLocaleString("pt-BR")} mencionado — ajustando escopo.
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {/* SDR: active objection indicator */}
-              {sdr.objection.active && (
-                <div className="bg-[#FEF3C7] border border-[#FDE68A] rounded-[8px] px-3 py-2">
-                  <p className="text-[10px] font-semibold text-[#D97706]">Ponto em aberto</p>
-                  <p className="text-[9px] text-[#92400E] mt-0.5">
-                    Continue a conversa para resolver antes de enviar.
-                  </p>
-                </div>
-              )}
-
-              {estimate.missingForEstimate.length > 0 && (
-                <div className="bg-[#FFFBEB] border border-[#FDE68A] rounded-[8px] px-3 py-2.5">
-                  <div className="text-[9px] font-semibold text-[#D97706] uppercase tracking-[0.06em] mb-1.5">
-                    Preciso saber ainda
-                  </div>
-                  <ul className="space-y-0.5">
-                    {estimate.missingForEstimate.map((m) => (
-                      <li key={m} className="flex items-start gap-1.5 text-[10px] text-[#92400E]">
-                        <span className="w-1 h-1 rounded-full bg-[#F59E0B] mt-1 shrink-0" />{m}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {estimate.notIncluded.length > 0 && (
+              {/* Quick-adjust chips — only while still building */}
+              {!canSubmit && visibleActions.length > 0 && (
                 <div>
-                  <div className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1">Não incluso</div>
-                  {estimate.notIncluded.slice(0, 3).map((ni) => (
-                    <div key={ni} className="flex items-start gap-1.5 text-[10px] text-[#9B9B95] py-0.5">
-                      <span className="mt-1.5 w-1 h-1 rounded-full bg-[#D0D0CC] shrink-0" />{ni}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Quick actions */}
-              {visibleActions.length > 0 && (
-                <div>
-                  <div className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1.5">
-                    Ajustar escopo
-                  </div>
+                  <div className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1.5">Ajustar</div>
                   <div className="flex flex-wrap gap-1.5">
                     {visibleActions.map((qa) => (
                       <button
@@ -1503,15 +1453,24 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
                   </div>
                 </div>
               )}
+
+              {/* Confirm CTA — appears when canSubmit */}
+              {canSubmit && (
+                <button
+                  onClick={() => setConfirmStep("confirmed")}
+                  style={{ touchAction: "manipulation" }}
+                  className="w-full h-11 rounded-[8px] bg-[#1A1A1A] hover:bg-[#111111] text-white text-[13px] font-semibold transition-colors"
+                >
+                  Sim, quero meu orçamento →
+                </button>
+              )}
             </div>
           )}
 
-          {/* Links shared */}
+          {/* Attachments */}
           {attachments.length > 0 && (
             <div className="px-4 pb-3 border-t border-[#F0F0ED] pt-3">
-              <div className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1.5">
-                Links compartilhados
-              </div>
+              <div className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1.5">Materiais</div>
               {attachments.map((a) => (
                 <div key={a.id} className="flex items-center gap-1.5 text-[10px] text-[#6B6B65] py-0.5">
                   <span className="w-1 h-1 rounded-full bg-[#070A1F] shrink-0" />
@@ -1521,15 +1480,12 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
             </div>
           )}
 
-          {/* Submit disabled state */}
-          {!canSubmit && (
-            <div className="px-4 pb-4 pt-3 border-t border-[#F0F0ED]">
-              <button
-                disabled
-                className="w-full h-10 rounded-[8px] bg-[#F0F0ED] text-[#C0C0BC] text-[12px] cursor-not-allowed"
-              >
-                {blockReason ?? "Continue a conversa para enviar"}
-              </button>
+          {/* "Keep talking" hint while scope is incomplete */}
+          {!canSubmit && hasScope && (
+            <div className="px-4 pb-4 pt-0">
+              <p className="text-[10px] text-[#C0C0BC] leading-relaxed">
+                {blockReason ?? "Continue a conversa — o botão aparece quando tivermos tudo."}
+              </p>
             </div>
           )}
         </div>
