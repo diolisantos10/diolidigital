@@ -16,6 +16,7 @@ interface UseSpeechToTextOptions {
 
 export interface UseSpeechToTextReturn {
   isListening: boolean;
+  isTranscribing: boolean;
   isSupported: boolean;
   error: string | null;
   startListening: () => void;
@@ -32,9 +33,10 @@ function mimeToExt(mime: string): string {
 export function useSpeechToText({
   onTranscript,
 }: UseSpeechToTextOptions): UseSpeechToTextReturn {
-  const [isListening,  setIsListening]  = useState(false);
-  const [isSupported,  setIsSupported]  = useState(false);
-  const [error,        setError]        = useState<string | null>(null);
+  const [isListening,    setIsListening]    = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [isSupported,    setIsSupported]    = useState(false);
+  const [error,          setError]          = useState<string | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef        = useRef<Blob[]>([]);
@@ -79,7 +81,9 @@ export function useSpeechToText({
     };
 
     mr.onstop = async () => {
-      // Release mic indicator immediately
+      // Immediately exit recording state so the button stops showing "Parar"
+      setIsListening(false);
+      // Release mic indicator
       stream.getTracks().forEach((t) => t.stop());
 
       const blob = new Blob(chunksRef.current, { type: mr.mimeType || "audio/webm" });
@@ -87,10 +91,10 @@ export function useSpeechToText({
 
       // Skip clips too short to produce a useful transcript
       if (blob.size < 1_000) {
-        setIsListening(false);
         return;
       }
 
+      setIsTranscribing(true);
       try {
         const ext  = mimeToExt(mr.mimeType || "audio/webm");
         const form = new FormData();
@@ -111,7 +115,7 @@ export function useSpeechToText({
       } catch {
         setError("Erro ao enviar o áudio. Verifique a conexão e tente novamente.");
       } finally {
-        setIsListening(false);
+        setIsTranscribing(false);
       }
     };
 
@@ -119,5 +123,5 @@ export function useSpeechToText({
     setIsListening(true);
   }, []);
 
-  return { isListening, isSupported, error, startListening, stopListening };
+  return { isListening, isTranscribing, isSupported, error, startListening, stopListening };
 }
