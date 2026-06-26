@@ -302,32 +302,36 @@ export function buildConsultativeFrequencyQuestion(scope: BriefingScope): string
   return "Quantas postagens por semana você imagina para o feed? **3 por semana** é um bom ritmo para começar — mas posso ajustar para o seu negócio.";
 }
 
-export function buildBudgetQuestion(scope: BriefingScope, estimate: LiveEstimate): string {
+// NOTE: never quotes a price. The estimate is shown only after Google sign-in.
+// This question just nudges toward closing the discovery.
+export function buildBudgetQuestion(scope: BriefingScope, _estimate: LiveEstimate): string {
   const biz = scope.businessName ?? "seu negócio";
-  if (estimate.totalMin > 0) {
-    return `Para fechar o escopo do **${biz}**: a estimativa atual está em **R$ ${estimate.totalMin.toLocaleString("pt-BR")}–${estimate.totalMax.toLocaleString("pt-BR")}/mês**. Isso está dentro do que você planejou, ou precisa ajustar?`;
-  }
-  return `Qual faixa de orçamento mensal você tem em mente para o **${biz}**? Isso me ajuda a montar o escopo certo.`;
+  return `Acho que já tenho o essencial do **${biz}**! Tem mais algum detalhe que você queira incluir, ou posso preparar seu orçamento?`;
 }
 
 // ── Submission gate ───────────────────────────────────────────────────────────
 
+// Submission gate. E-mail and WhatsApp are intentionally NOT required here —
+// they are captured via Google sign-in AFTER the prospect confirms the request.
+// The gate fires once we know WHO they are (name) and WHAT they need (a service
+// plus enough scope detail). The "Sim, quero meu orçamento" CTA then appears,
+// and identity is collected on the next step.
 export function canSubmitProposal(conv: ConvState, sdr: SDRAgentState): boolean {
   const scope = conv.scope;
-  const identityDone = !!scope.prospectEmail && !!scope.prospectPhone;
+  const hasName = !!scope.prospectName;
   const hasService = scope.wantsSocialMedia || !!scope.wantsPaidTraffic || scope.branding.requested;
   const serviceAnswered = conv.answeredQIds.filter((id) => !id.startsWith("prospect_")).length;
-  return identityDone && hasService && !sdr.objection.active && serviceAnswered >= 3;
+  return hasName && hasService && !sdr.objection.active && serviceAnswered >= 3;
 }
 
 export function getSubmissionBlockReason(conv: ConvState, sdr: SDRAgentState): string | null {
   const scope = conv.scope;
-  if (!scope.prospectEmail || !scope.prospectPhone)
-    return "Precisamos do seu e-mail e WhatsApp para enviar a proposta.";
+  if (!scope.prospectName)
+    return "Me diga seu nome e o nome do seu negócio para começar.";
   if (!scope.wantsSocialMedia && !scope.wantsPaidTraffic && !scope.branding.requested)
-    return "Conte o que você precisa para montarmos a proposta.";
+    return "Conte o que você precisa para montarmos seu pedido.";
   if (sdr.objection.active)
-    return "Resolva o ponto em aberto antes de enviar.";
+    return "Resolva o ponto em aberto antes de continuar.";
   return null;
 }
 

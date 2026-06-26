@@ -31,15 +31,6 @@ export interface ProspectConvState {
 
 // ── Identity helpers ──────────────────────────────────────────────────────────
 
-function extractEmail(t: string): string | undefined {
-  const m = t.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
-  return m ? m[0] : undefined;
-}
-
-function cleanPhone(t: string): string {
-  return t.replace(/[^0-9+\s()-]/g, "").trim();
-}
-
 function parseProspectNameBiz(text: string): { prospectName?: string; businessName?: string } {
   let prospectName: string | undefined;
   let businessName: string | undefined;
@@ -156,13 +147,16 @@ function extractBizFromFileNames(fileNames: string[]): string | undefined {
 function inferProspectAnsweredQIds(scope: BriefingScope): string[] {
   const base = inferAnsweredQIds(scope);
   if (scope.prospectName && scope.businessName) base.push("prospect_name_biz");
-  if (scope.prospectEmail) base.push("prospect_email");
-  if (scope.prospectPhone) base.push("prospect_phone");
   return [...new Set(base)];
 }
 
 // ── Identity question definitions ─────────────────────────────────────────────
 
+// NOTE: e-mail and WhatsApp are NEVER collected in the conversation. They are
+// captured automatically when the prospect signs in with Google after confirming
+// their request (see PublicBriefingRoom → GoogleSignInButton). Asking for them in
+// the chat caused the model to confuse business descriptions with email inputs —
+// the bug is eliminated by removing the questions entirely, not by patching them.
 const IDENTITY_QUESTIONS: QuestionDef[] = [
   {
     id: "prospect_name_biz",
@@ -171,7 +165,7 @@ const IDENTITY_QUESTIONS: QuestionDef[] = [
       const biz  = s.scope.businessName;
       const name = s.scope.prospectName;
       if (biz && !name) {
-        return `Entendi que estamos falando do **${biz}**! Qual é o seu nome para eu registrar o contato?`;
+        return `Entendi que estamos falando do **${biz}**! E qual é o seu nome?`;
       }
       if (name && !biz) {
         const first = name.split(" ")[0];
@@ -193,34 +187,6 @@ const IDENTITY_QUESTIONS: QuestionDef[] = [
           ? { businessName: answer.trim() }
           : {}),
       };
-    },
-  },
-  {
-    id: "prospect_email",
-    when: (s) => !s.scope.prospectEmail,
-    text: (s) => {
-      const first = s.scope.prospectName?.split(" ")[0];
-      return first
-        ? `Prazer, ${first}! Qual é o seu e-mail para contato?`
-        : "Qual é o seu e-mail para contato?";
-    },
-    // Only accept a syntactically valid e-mail. An invalid answer returns no
-    // delta, so the question stays pending and is re-asked (never stores junk
-    // like "Meu nome é Pedro" in the e-mail field).
-    parse: (answer) => {
-      const email = extractEmail(answer);
-      return email ? { prospectEmail: email } : {};
-    },
-  },
-  {
-    id: "prospect_phone",
-    when: (s) => !s.scope.prospectPhone,
-    text: () => "E o seu WhatsApp?",
-    // Require at least 8 digits — otherwise re-ask rather than storing garbage.
-    parse: (answer) => {
-      const cleaned = cleanPhone(answer);
-      const digits = cleaned.replace(/\D/g, "");
-      return digits.length >= 8 ? { prospectPhone: cleaned } : {};
     },
   },
 ];
@@ -289,7 +255,6 @@ export function processProspectMessage(
   let newAnswered: string[];
   let negotiationReply: string | null = null;
   let negotiationHappened = false;
-  let correctionPrefix = "";
 
   if (conv.isFirstMessage) {
     const serviceDelta = parseInitialMessage(text);
@@ -326,11 +291,6 @@ export function processProspectMessage(
         const stillPending = isIdentity && currentQ.when({ ...conv, scope: newScope });
         if (stillPending) {
           newAnswered = [...new Set([...conv.answeredQIds, ...inferred])];
-          if (currentQ.id === "prospect_email") {
-            correctionPrefix = "Quase! Esse e-mail não parece válido — pode confirmar no formato nome@dominio.com?";
-          } else if (currentQ.id === "prospect_phone") {
-            correctionPrefix = "Preciso de um WhatsApp válido com DDD para registrar — pode enviar? (ex.: 11 91234-5678)";
-          }
         } else {
           newAnswered = [...new Set([...conv.answeredQIds, currentQ.id, ...inferred])];
         }
@@ -421,7 +381,7 @@ export function processProspectMessage(
     const prefix = ack ? ack + "\n\n" : "";
     replyText = nextQ
       ? `${prefix}${buildSDRQuestionText(nextQ, mid, newSdr)}`
-      : `${prefix}Tenho as informações principais! Revise a proposta ao lado e envie quando estiver pronto.`;
+      : `${prefix}Tenho as informações principais! Confira o resumo do seu pedido ao lado e confirme para eu preparar seu orçamento.`;
 
   } else if (newSdr.objection.active) {
     if (negotiationHappened) {
@@ -447,13 +407,7 @@ export function processProspectMessage(
     }
 
   } else {
-    replyText = "Perfeito! Tenho todas as informações. Revise a proposta ao lado e clique em **\"Enviar para análise\"** quando estiver pronto.";
-  }
-
-  // A rejected e-mail/phone takes over the reply with a focused correction ask,
-  // rather than silently advancing or repeating the neutral question text.
-  if (correctionPrefix) {
-    replyText = correctionPrefix;
+    replyText = "Perfeito! Tenho todas as informações que preciso. Confira o resumo do seu pedido ao lado e confirme para eu preparar seu orçamento personalizado.";
   }
 
   // ── Finalise SDR state ────────────────────────────────────────────────────

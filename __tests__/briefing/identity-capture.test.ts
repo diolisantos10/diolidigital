@@ -1,8 +1,12 @@
-// Identity capture robustness — reproduces the exact production failure where:
+// Identity capture robustness — reproduces the exact production failures where:
 //   1. A bare first name ("Pedro") caused the bot to repeat the same question.
 //   2. Only the business was captured, silently dropping the person's name.
-//   3. A non-email answer ("Meu nome é Pedro") was stored in the e-mail field.
-// All three are rule-based (no AI) and must never regress.
+//
+// E-mail and WhatsApp are NO LONGER collected in the conversation — they are
+// captured via Google sign-in after the prospect confirms their request. These
+// tests guard that the SDR (a) still captures name + business, and (b) NEVER
+// asks for e-mail/phone or mistakes a business reply for an e-mail input.
+// All behaviour here is rule-based (no AI) and must never regress.
 
 import { describe, it, expect } from "vitest";
 import { initProspectConvState, processProspectMessage } from "@/lib/agency/prospect-engine";
@@ -31,36 +35,36 @@ describe("identity capture — bare name and validation", () => {
     const s2 = processProspectMessage("Restaurante Sushi Cazza", s1); // business
     expect(scopeOf(s2).prospectName).toBe("Pedro");
     expect(scopeOf(s2).businessName).toContain("Sushi Cazza");
-    // With name + business known, it should now ask for the e-mail.
-    expect(lastAssistantText(s2)).toMatch(/e-?mail/i);
   });
 
-  it("rejects a non-email answer in the e-mail step instead of storing it", () => {
+  it("moves to discovery after name + business — never asks for e-mail", () => {
     const s0 = initProspectConvState();
     const s1 = processProspectMessage("Pedro", s0);
     const s2 = processProspectMessage("Restaurante Sushi Cazza", s1);
-    const s3 = processProspectMessage("Meu nome é Pedro", s2); // not an e-mail
+    // With name + business known, the next step is discovery (what they need),
+    // NOT an e-mail request. E-mail is collected via Google after confirmation.
+    expect(lastAssistantText(s2)).not.toMatch(/e-?mail/i);
+    expect(lastAssistantText(s2)).not.toMatch(/whatsapp/i);
+  });
+
+  it("never stores an e-mail/phone from the conversation and never asks for them", () => {
+    const s0 = initProspectConvState();
+    const s1 = processProspectMessage("Pedro", s0);
+    const s2 = processProspectMessage("Restaurante Sushi Cazza", s1);
+    // Even if the prospect volunteers an e-mail, the SDR ignores it — Google owns it.
+    const s3 = processProspectMessage("pedro@sushicazza.com.br", s2);
     expect(scopeOf(s3).prospectEmail).toBeUndefined();
-    expect(lastAssistantText(s3)).toMatch(/n[ãa]o parece v[áa]lido|formato/i);
+    expect(scopeOf(s3).prospectPhone).toBeUndefined();
+    // And it must never validate / ask about e-mail format.
+    expect(lastAssistantText(s3)).not.toMatch(/n[ãa]o parece v[áa]lido|formato.*@|nome@dom[íi]nio/i);
   });
 
-  it("accepts a valid e-mail and advances to the phone step", () => {
+  it("does not mistake a short non-email reply for an e-mail input", () => {
     const s0 = initProspectConvState();
     const s1 = processProspectMessage("Pedro", s0);
     const s2 = processProspectMessage("Restaurante Sushi Cazza", s1);
-    const s3 = processProspectMessage("pedro@sushicazza.com.br", s2);
-    expect(scopeOf(s3).prospectEmail).toBe("pedro@sushicazza.com.br");
-    expect(lastAssistantText(s3)).toMatch(/whatsapp/i);
-  });
-
-  it("rejects an invalid phone and accepts a valid one", () => {
-    const s0 = initProspectConvState();
-    const s1 = processProspectMessage("Pedro", s0);
-    const s2 = processProspectMessage("Restaurante Sushi Cazza", s1);
-    const s3 = processProspectMessage("pedro@sushicazza.com.br", s2);
-    const s4 = processProspectMessage("não sei", s3);          // invalid phone
-    expect(scopeOf(s4).prospectPhone).toBeUndefined();
-    const s5 = processProspectMessage("(11) 91234-5678", s4);  // valid
-    expect(scopeOf(s5).prospectPhone).toMatch(/91234/);
+    const s3 = processProspectMessage("só isso", s2); // the reply that used to break it
+    expect(scopeOf(s3).prospectEmail).toBeUndefined();
+    expect(lastAssistantText(s3)).not.toMatch(/e-?mail/i);
   });
 });
