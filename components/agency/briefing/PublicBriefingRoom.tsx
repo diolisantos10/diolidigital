@@ -1062,7 +1062,7 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
   const visibleActions = QUICK_ACTIONS.filter((qa) => qa.show(scope));
 
   return (
-    <div className="grid grid-cols-[1fr_300px] gap-6 items-start">
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">
 
       {/* ── Left: Chat ───────────────────────────────────────────────────────── */}
       <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden flex flex-col">
@@ -1206,7 +1206,7 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
       </div>
 
       {/* ── Right: Proposal panel ─────────────────────────────────────────────── */}
-      <div className="sticky top-6">
+      <div className="lg:sticky lg:top-6">
         <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
 
           {/* Header */}
