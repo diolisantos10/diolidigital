@@ -3,6 +3,30 @@ import { prisma } from "@/lib/db/client";
 import { createClientRequest, listClientRequests, updateClientRequest, getClientRequest, deleteClientRequest } from "@/lib/agency/persistence/client-request-service";
 import { requireSession } from "@/lib/auth/api-guard";
 import { runAutoScope } from "@/lib/dioli-brain/run-auto-scope";
+import { sendEmail } from "@/lib/email/send";
+import { briefingConfirmationEmail } from "@/lib/email/templates";
+
+// Fire-and-forget prospect confirmation. Reads the e-mail from the briefing
+// scope; a no-op when e-mail isn't configured or no address was captured.
+function sendBriefingConfirmation(body: Record<string, unknown>): void {
+  if (body.source !== "briefing") return;
+  const scope = (body.briefingJson as { scope?: Record<string, unknown> } | undefined)?.scope;
+  const email = typeof scope?.prospectEmail === "string" ? scope.prospectEmail : "";
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return;
+
+  const { subject, html } = briefingConfirmationEmail({
+    prospectName: typeof scope?.prospectName === "string" ? scope.prospectName : undefined,
+    businessName: typeof scope?.businessName === "string" ? scope.businessName : undefined,
+    services:     Array.isArray(body.services) ? (body.services as string[]) : undefined,
+  });
+
+  sendEmail({ to: email, subject, html })
+    .then((r) => {
+      if (r.skipped) console.warn("[client-requests] confirmation e-mail skipped — RESEND_API_KEY not set");
+      else if (!r.ok) console.error("[client-requests] confirmation e-mail failed:", r.error);
+    })
+    .catch((e) => console.error("[client-requests] confirmation e-mail threw:", e));
+}
 
 // GET (list) and PATCH (mutate) are internal — session required.
 // POST stays public: it is the submit target of the public /briefing form.
@@ -72,6 +96,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     runAutoScope(record.id).catch((e) => {
       console.error("[client-requests] background auto-scope failed for", record.id, e);
     });
+
+    // Confirmation e-mail to the prospect — fire-and-forget, never blocks the 201.
+    sendBriefingConfirmation(body);
 
     return NextResponse.json(record, { status: 201 });
   } catch (e) {
