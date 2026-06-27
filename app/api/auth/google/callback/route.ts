@@ -21,17 +21,31 @@ function safeAttr(s: string) {
 
 function popupHtml(payload: Record<string, string>): Response {
   const json = JSON.stringify(payload).replace(/</g, "\\u003c").replace(/>/g, "\\u003e");
+  const isError = payload.type === "google_auth_error";
+  const heading = isError ? "Não foi possível autenticar" : "Login concluído ✓";
+  const detail  = isError
+    ? `Código do erro: ${safeAttr(payload.error ?? "desconhecido")}`
+    : `Bem-vindo, ${safeAttr(payload.name || payload.email || "")}. Já pode fechar esta janela.`;
+  const color = isError ? "#dc2626" : "#16a34a";
   return new Response(
-    `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>
+    `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+<body style="font-family:sans-serif;padding:2rem;text-align:center;color:#1a1a1a">
+<h2 style="color:${color};font-size:18px;margin-bottom:8px">${heading}</h2>
+<p style="color:#6b7280;font-size:14px;word-break:break-word">${detail}</p>
 <script>
+var payload = ${json};
+var hadOpener = false;
 try {
   if (window.opener && typeof window.opener.postMessage === "function") {
-    window.opener.postMessage(${json}, window.location.origin);
+    window.opener.postMessage(payload, window.location.origin);
+    hadOpener = true;
   }
 } catch(e) {}
-setTimeout(function(){ window.close(); }, 300);
+// Auto-close only when opened as a popup (opener present). When opened directly
+// in a standalone tab — the 20s isolated test — keep it open so the result and
+// any error code can be read and screenshotted.
+if (hadOpener) { setTimeout(function(){ window.close(); }, 600); }
 </script>
-<p style="font-family:sans-serif;color:#6b7280;padding:2rem">Autenticando…</p>
 </body></html>`,
     { headers: { "Content-Type": "text/html; charset=utf-8" } },
   );
@@ -73,7 +87,18 @@ export async function GET(req: NextRequest) {
         grant_type:    "authorization_code",
       }),
     });
-    if (!tokenRes.ok) return popupHtml({ type: "google_auth_error", error: "token_exchange" });
+    if (!tokenRes.ok) {
+      // Surface Google's actual reason (invalid_client, redirect_uri_mismatch,
+      // invalid_grant, …) so the failure is diagnosable without guesswork.
+      const raw = await tokenRes.text().catch(() => "");
+      let reason = "token_exchange";
+      try {
+        const j = JSON.parse(raw) as { error?: string; error_description?: string };
+        if (j.error) reason = j.error_description ? `${j.error} — ${j.error_description}` : j.error;
+      } catch { /* keep generic */ }
+      console.error("[auth/google/callback] token exchange failed:", tokenRes.status, raw);
+      return popupHtml({ type: "google_auth_error", error: reason });
+    }
 
     const tokens = (await tokenRes.json()) as GoogleTokens;
 

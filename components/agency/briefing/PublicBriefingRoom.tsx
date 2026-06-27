@@ -370,6 +370,7 @@ function GoogleSignInButton({
   loading: boolean;
 }) {
   const [state, setState] = useState<"idle" | "opening" | "waiting" | "error">("idle");
+  const [errorCode, setErrorCode] = useState("");
 
   function handleClick() {
     if (loading || state !== "idle") return;
@@ -405,6 +406,7 @@ function GoogleSignInButton({
         setState("idle");
         onSuccess({ email: data.email, name: data.name ?? "", picture: data.picture ?? "" });
       } else {
+        setErrorCode(typeof data.error === "string" ? data.error : "desconhecido");
         setState("error");
       }
     }
@@ -450,7 +452,7 @@ function GoogleSignInButton({
       </button>
       {state === "error" && (
         <p className="text-[10px] text-[#DC2626] text-center">
-          Erro ao autenticar com Google. Use o formulário abaixo.
+          Erro ao autenticar com Google{errorCode ? ` (${errorCode})` : ""}. Use o formulário abaixo.
         </p>
       )}
     </div>
