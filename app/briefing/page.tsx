@@ -76,7 +76,7 @@ export default function BriefingPage() {
             {[
               "Nossa equipe analisa o escopo enviado",
               "Preparamos uma proposta formal detalhada",
-              "Entramos em contato por e-mail ou WhatsApp em até 1 dia útil",
+              "Entramos em contato pelo e-mail informado em até 1 dia útil",
             ].map((s, i) => (
               <li key={i} className="flex items-start gap-2 text-[12px] text-[#6B6B65]">
                 <span className="w-4 h-4 rounded-full bg-[#1A1A1A] text-white text-[9px] font-bold flex items-center justify-center shrink-0 mt-0.5">
@@ -98,7 +98,7 @@ export default function BriefingPage() {
             href="https://wa.me/5511989400692"
             className="h-9 px-5 rounded-[8px] bg-[#1A1A1A] hover:bg-[#111111] text-white text-[13px] font-medium transition-colors inline-flex items-center"
           >
-            Enviar complemento por WhatsApp
+            Falar com a Dioli no WhatsApp
           </a>
         </div>
         {submittedId && (
