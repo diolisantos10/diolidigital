@@ -370,18 +370,6 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
     route: "/agency/settings",
   });
 
-  checks.push({
-    id: "portal-no-auth",
-    group: "Infraestrutura",
-    label: "Risco: portal do cliente sem autenticação",
-    status: "warning",
-    severity: "high",
-    explanation:
-      "O portal do cliente é aberto por ID na URL (/portal/client/[id]) sem nenhum sistema de login. Qualquer pessoa com o link acessa todas as entregas daquele cliente.",
-    action: "Compartilhe links do portal apenas diretamente com o cliente. Não divulgue IDs de cliente em redes sociais ou comunicações abertas.",
-    route: "/portal/client/c4",
-  });
-
   // ── Group 4: Prontidão dos Agentes ───────────────────────────────────────
 
   const assignedAgentIds = pilotProject?.agents ?? [];
@@ -1397,12 +1385,12 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
   checks.push({
     id: "requests-intake-available",
     group: "Solicitações de Clientes",
-    label: "Intake de solicitações disponível no portal",
+    label: "Intake de solicitações disponível",
     status: "pass",
     severity: "low",
-    explanation: "O portal do cliente inclui o fluxo de nova solicitação (Briefing Room). Clientes podem enviar briefings diretamente.",
-    action: "Compartilhe o link do portal com os clientes para que possam enviar solicitações.",
-    route: "/portal/client/c4",
+    explanation: "O Briefing Room público (/briefing) permite que prospects e clientes enviem solicitações diretamente.",
+    action: "Compartilhe o link do briefing com os clientes para que possam enviar solicitações.",
+    route: "/briefing",
   });
 
   // ── Score ─────────────────────────────────────────────────────────────────

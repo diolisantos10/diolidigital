@@ -10,6 +10,7 @@ import Badge from "@/components/agency/ui/Badge";
 import Button from "@/components/agency/ui/Button";
 import Modal from "@/components/agency/ui/Modal";
 import DeliverableDetailModal from "@/components/agency/deliverables/DeliverableDetailModal";
+import { SecurePortalLinkButton } from "@/components/agency/portal/SecurePortalLinkButton";
 import Link from "next/link";
 import { TaskStatus, DeliverableStatus, Priority, ProjectStage, MOCK_AGENTS, ProjectProposal, StrategyRoomSpecialist, DebateTurn } from "@/lib/agency/mock-data";
 import { getOwner, getVersion, needsRevision, getFeedbackExcerpt } from "@/lib/agency/deliverables";
@@ -47,7 +48,6 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const [proposalDirty, setProposalDirty] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [reportCopied, setReportCopied] = useState(false);
-  const [portalLinkCopied, setPortalLinkCopied] = useState(false);
   const [stratViewTab, setStratViewTab] = useState<"specialists" | "debate" | "consensus">("specialists");
   const [stratApplied, setStratApplied] = useState(false);
 
@@ -55,16 +55,6 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   if (!project) return notFound();
 
   const portalClientId = project.clientId;
-
-  function copyPortalLink() {
-    const url = typeof window !== "undefined"
-      ? `${window.location.origin}/portal/${portalClientId}`
-      : `/portal/${portalClientId}`;
-    navigator.clipboard.writeText(url).then(() => {
-      setPortalLinkCopied(true);
-      setTimeout(() => setPortalLinkCopied(false), 2000);
-    });
-  }
 
   const client = clients.find((c) => c.id === project.clientId);
   const projectTasks = tasks.filter((t) => t.projectId === id);
@@ -264,10 +254,11 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 {!strategyRoom && (
                   <button onClick={() => setTab("strategy")} className="h-7 px-3 rounded-[6px] text-[12px] font-medium border border-[#E5E5E2] text-[#6B6B65] hover:border-[#070A1F] hover:text-[#070A1F] transition-colors">Gerar Estratégia</button>
                 )}
-                <button onClick={copyPortalLink} className={`h-7 px-3 rounded-[6px] text-[12px] font-medium border transition-colors flex items-center ${portalLinkCopied ? "border-[#BBF7D0] bg-[#F0FDF4] text-[#16A34A]" : "border-[#E5E5E2] text-[#6B6B65] hover:border-[#070A1F] hover:text-[#070A1F]"}`}>
-                  {portalLinkCopied ? "Link copiado!" : "Copiar link do portal"}
-                </button>
-                <Link href={`/portal/${portalClientId}`} target="_blank" className="h-7 px-3 rounded-[6px] text-[12px] font-medium border border-[#E5E5E2] text-[#6B6B65] hover:border-[#070A1F] hover:text-[#070A1F] transition-colors flex items-center">Portal ↗</Link>
+                <SecurePortalLinkButton
+                  clientId={portalClientId}
+                  label="Portal do cliente ↗"
+                  className="h-7 px-3 rounded-[6px] text-[12px] font-medium border border-[#E5E5E2] text-[#6B6B65] hover:border-[#070A1F] hover:text-[#070A1F] transition-colors flex items-center disabled:opacity-60"
+                />
                 <button onClick={goToReport} className="h-7 px-3 rounded-[6px] text-[12px] font-medium bg-[#070A1F] text-white hover:opacity-90 transition-opacity">Ver Relatório</button>
               </div>
             </div>

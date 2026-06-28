@@ -102,12 +102,6 @@ export const READINESS_WARNINGS: ReadinessWarning[] = [
     detail:
       "Os dados vivem somente neste navegador. Não há backend nem sincronização. Limpar o navegador, trocar de dispositivo ou usar aba anônima zera tudo. Não use para dados de produção que não possam ser perdidos.",
   },
-  {
-    id: "portal-no-auth",
-    title: "Portal do cliente sem autenticação",
-    detail:
-      "O portal abre por ID na URL (/portal/client/[id]) sem login. Qualquer pessoa com o link acessa as entregas daquele cliente. Compartilhe os links com cuidado. NÃO exiba este aviso ao cliente.",
-  },
 ];
 
 export interface SmokeStep {

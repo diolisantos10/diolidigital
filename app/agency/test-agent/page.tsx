@@ -288,7 +288,7 @@ function buildSteps(flowId: FlowId, snap: StoreSnapshot, selectedProjectId: stri
       action: "Verify client portal route registered",
       run: () => ({
         ok: true,
-        detail: `/portal/client/${project?.clientId ?? "[id]"} — portal route active`,
+        detail: `/portal/access/[token] — secure portal route active`,
       }),
     },
   ];

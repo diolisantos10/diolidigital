@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import Link from "next/link";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
+import { SecurePortalLinkButton } from "@/components/agency/portal/SecurePortalLinkButton";
 import { useAgencyStore } from "@/store/agency-store";
 import { useDbRequests, parseJson, type DbRequest } from "@/lib/agency/db-pipeline-hooks";
 import {
@@ -1993,18 +1994,6 @@ function SuccessPanel({
   projectName: string;
   clientId: string;
 }) {
-  const [copied, setCopied] = useState(false);
-  const portalUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/portal/${clientId}`
-    : `/portal/${clientId}`;
-
-  function copyPortalLink() {
-    navigator.clipboard.writeText(portalUrl).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  }
-
   return (
     <div className="border-t border-[#BBF7D0] bg-[#F0FDF4] px-5 py-5 space-y-4">
       <div className="flex items-start gap-3">
@@ -2042,28 +2031,11 @@ function SuccessPanel({
         <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">
           Link do portal do cliente — envie por WhatsApp ou e-mail
         </p>
-        <div className="flex items-center gap-2">
-          <code className="flex-1 text-[11px] text-[#1A1A1A] bg-[#F7F7F6] rounded-[6px] px-3 py-1.5 truncate font-mono">
-            {portalUrl}
-          </code>
-          <button
-            onClick={copyPortalLink}
-            className={`h-7 px-3 rounded-[6px] text-[11px] font-semibold shrink-0 transition-colors ${
-              copied
-                ? "bg-[#DCFCE7] text-[#16A34A]"
-                : "bg-[#1A1A1A] hover:bg-[#111111] text-white"
-            }`}
-          >
-            {copied ? "Copiado!" : "Copiar"}
-          </button>
-          <Link
-            href={`/portal/${clientId}`}
-            target="_blank"
-            className="h-7 px-3 rounded-[6px] border border-[#BBF7D0] text-[#15803D] hover:bg-[#F0FDF4] text-[11px] font-medium transition-colors inline-flex items-center shrink-0"
-          >
-            Abrir →
-          </Link>
-        </div>
+        <SecurePortalLinkButton
+          clientId={clientId}
+          label="Gerar e copiar link seguro →"
+          className="w-full h-9 rounded-[8px] bg-[#1A1A1A] hover:bg-[#111111] disabled:opacity-60 text-white text-[12px] font-semibold transition-colors"
+        />
         <p className="text-[10px] text-[#9B9B95] mt-1.5">
           O cliente vê a proposta, aprova, e os agentes começam automaticamente.
         </p>

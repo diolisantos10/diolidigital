@@ -2,6 +2,7 @@
 
 import { useAgencyStore } from "@/store/agency-store";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
+import { SecurePortalLinkButton } from "@/components/agency/portal/SecurePortalLinkButton";
 import Link from "next/link";
 
 const DEPTS = [
@@ -70,11 +71,11 @@ export default function ControlRoomPage() {
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     {pendingPortal.length > 0 && (
-                      <Link href={`/portal/${project.clientId}`}>
+                      <SecurePortalLinkButton clientId={project.clientId}>
                         <span className="h-6 px-2.5 rounded-full bg-[#FEF3C7] text-[#D97706] text-[10px] font-semibold inline-flex items-center gap-1">
                           ⚠ {pendingPortal.length} pendente{pendingPortal.length !== 1 ? "s" : ""} no portal
                         </span>
-                      </Link>
+                      </SecurePortalLinkButton>
                     )}
                     <button
                       onClick={() => runAll(project.id)}
