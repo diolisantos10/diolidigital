@@ -451,6 +451,10 @@ export default function ScopeReviewPage({ params }: { params: Promise<{ id: stri
 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  // Set once the scope is fully approved and the project is created. Drives the
+  // success screen — we do NOT redirect to /agency/projects/[id] because that
+  // page reads the Zustand store, not the DB, and would 404 on a DB project.
+  const [approvedProjectId, setApprovedProjectId] = useState<string | null>(null);
 
   // ── Fetch data ────────────────────────────────────────────────────────────
 
@@ -554,7 +558,10 @@ export default function ScopeReviewPage({ params }: { params: Promise<{ id: stri
       const data = await res.json();
 
       if (data.action === "approved_all") {
-        window.location.replace("/agency/projects/" + data.projectId);
+        // Project created in the DB. Show an in-page success state instead of
+        // redirecting to the Zustand-backed project page (which would 404).
+        setApprovedProjectId(data.projectId ?? "");
+        setSubmitting(false);
       } else if (data.action === "revisions_requested") {
         window.location.replace("/agency/requests");
       } else {
@@ -567,6 +574,37 @@ export default function ScopeReviewPage({ params }: { params: Promise<{ id: stri
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
+
+  if (approvedProjectId !== null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4" style={{ background: "var(--bg, #F5F5F3)" }}>
+        <div className="max-w-[460px] w-full bg-white border border-[#E5E5E2] rounded-[16px] p-8 text-center shadow-[0_2px_12px_rgba(0,0,0,0.05)]">
+          <div className="w-14 h-14 rounded-full bg-[#DCFCE7] flex items-center justify-center mx-auto mb-5 text-[#16A34A] text-[26px] font-bold">
+            ✓
+          </div>
+          <h1 className="text-[20px] font-semibold text-[#1A1A1A] mb-2">Escopo aprovado</h1>
+          <p className="text-[14px] text-[#6B6B65] leading-relaxed mb-6">
+            O projeto de <span className="font-semibold text-[#1A1A1A]">{request?.businessName ?? "este cliente"}</span> foi
+            criado e entrou em execução. A equipe já pode tocar as frentes aprovadas.
+          </p>
+          <div className="flex items-center justify-center gap-3 flex-wrap">
+            <Link
+              href="/agency/requests"
+              className="h-10 px-5 rounded-[8px] bg-[#070A1F] text-white text-[13px] font-semibold hover:bg-[#0D1230] transition-colors inline-flex items-center"
+            >
+              Ver solicitações
+            </Link>
+            <Link
+              href="/agency/control-room"
+              className="h-10 px-5 rounded-[8px] border border-[#E5E5E2] bg-white text-[#6B6B65] hover:text-[#1A1A1A] hover:border-[#9B9B95] text-[13px] font-semibold transition-colors inline-flex items-center"
+            >
+              Sala de Controle
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen" style={{ background: "var(--bg, #F5F5F3)" }}>
