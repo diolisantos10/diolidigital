@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useCallback, useEffect, useState } from "react";
+import { PortalChat } from "@/components/agency/portal/PortalChat";
 
 interface PipelineStep {
   id: string;
@@ -213,6 +214,14 @@ export default function PortalAccessTokenPage({ params }: { params: Promise<{ to
               );
             })}
           </div>
+        </div>
+
+        {/* Conversa direta com a equipe — o canal que faltava */}
+        <div className="mb-6">
+          <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">
+            Conversa com a equipe
+          </p>
+          <PortalChat token={token} authorName={data.businessName} height={340} />
         </div>
 
         {/* Pending approvals — the client decides here */}

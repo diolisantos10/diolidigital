@@ -266,6 +266,7 @@ export type ClientRequestDbWhereInput = {
   approvals?: Prisma.ApprovalRequestListRelationFilter
   evidenceItems?: Prisma.EvidenceItemListRelationFilter
   portalAccess?: Prisma.PortalAccessListRelationFilter
+  messages?: Prisma.PortalMessageListRelationFilter
 }
 
 export type ClientRequestDbOrderByWithRelationInput = {
@@ -288,6 +289,7 @@ export type ClientRequestDbOrderByWithRelationInput = {
   approvals?: Prisma.ApprovalRequestOrderByRelationAggregateInput
   evidenceItems?: Prisma.EvidenceItemOrderByRelationAggregateInput
   portalAccess?: Prisma.PortalAccessOrderByRelationAggregateInput
+  messages?: Prisma.PortalMessageOrderByRelationAggregateInput
 }
 
 export type ClientRequestDbWhereUniqueInput = Prisma.AtLeast<{
@@ -313,6 +315,7 @@ export type ClientRequestDbWhereUniqueInput = Prisma.AtLeast<{
   approvals?: Prisma.ApprovalRequestListRelationFilter
   evidenceItems?: Prisma.EvidenceItemListRelationFilter
   portalAccess?: Prisma.PortalAccessListRelationFilter
+  messages?: Prisma.PortalMessageListRelationFilter
 }, "id">
 
 export type ClientRequestDbOrderByWithAggregationInput = {
@@ -377,6 +380,7 @@ export type ClientRequestDbCreateInput = {
   approvals?: Prisma.ApprovalRequestCreateNestedManyWithoutClientRequestInput
   evidenceItems?: Prisma.EvidenceItemCreateNestedManyWithoutClientRequestInput
   portalAccess?: Prisma.PortalAccessCreateNestedManyWithoutClientRequestInput
+  messages?: Prisma.PortalMessageCreateNestedManyWithoutClientRequestInput
 }
 
 export type ClientRequestDbUncheckedCreateInput = {
@@ -399,6 +403,7 @@ export type ClientRequestDbUncheckedCreateInput = {
   approvals?: Prisma.ApprovalRequestUncheckedCreateNestedManyWithoutClientRequestInput
   evidenceItems?: Prisma.EvidenceItemUncheckedCreateNestedManyWithoutClientRequestInput
   portalAccess?: Prisma.PortalAccessUncheckedCreateNestedManyWithoutClientRequestInput
+  messages?: Prisma.PortalMessageUncheckedCreateNestedManyWithoutClientRequestInput
 }
 
 export type ClientRequestDbUpdateInput = {
@@ -421,6 +426,7 @@ export type ClientRequestDbUpdateInput = {
   approvals?: Prisma.ApprovalRequestUpdateManyWithoutClientRequestNestedInput
   evidenceItems?: Prisma.EvidenceItemUpdateManyWithoutClientRequestNestedInput
   portalAccess?: Prisma.PortalAccessUpdateManyWithoutClientRequestNestedInput
+  messages?: Prisma.PortalMessageUpdateManyWithoutClientRequestNestedInput
 }
 
 export type ClientRequestDbUncheckedUpdateInput = {
@@ -443,6 +449,7 @@ export type ClientRequestDbUncheckedUpdateInput = {
   approvals?: Prisma.ApprovalRequestUncheckedUpdateManyWithoutClientRequestNestedInput
   evidenceItems?: Prisma.EvidenceItemUncheckedUpdateManyWithoutClientRequestNestedInput
   portalAccess?: Prisma.PortalAccessUncheckedUpdateManyWithoutClientRequestNestedInput
+  messages?: Prisma.PortalMessageUncheckedUpdateManyWithoutClientRequestNestedInput
 }
 
 export type ClientRequestDbCreateManyInput = {
@@ -563,6 +570,20 @@ export type ClientRequestDbNullableScalarRelationFilter = {
   isNot?: Prisma.ClientRequestDbWhereInput | null
 }
 
+export type ClientRequestDbCreateNestedOneWithoutMessagesInput = {
+  create?: Prisma.XOR<Prisma.ClientRequestDbCreateWithoutMessagesInput, Prisma.ClientRequestDbUncheckedCreateWithoutMessagesInput>
+  connectOrCreate?: Prisma.ClientRequestDbCreateOrConnectWithoutMessagesInput
+  connect?: Prisma.ClientRequestDbWhereUniqueInput
+}
+
+export type ClientRequestDbUpdateOneRequiredWithoutMessagesNestedInput = {
+  create?: Prisma.XOR<Prisma.ClientRequestDbCreateWithoutMessagesInput, Prisma.ClientRequestDbUncheckedCreateWithoutMessagesInput>
+  connectOrCreate?: Prisma.ClientRequestDbCreateOrConnectWithoutMessagesInput
+  upsert?: Prisma.ClientRequestDbUpsertWithoutMessagesInput
+  connect?: Prisma.ClientRequestDbWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ClientRequestDbUpdateToOneWithWhereWithoutMessagesInput, Prisma.ClientRequestDbUpdateWithoutMessagesInput>, Prisma.ClientRequestDbUncheckedUpdateWithoutMessagesInput>
+}
+
 export type ClientRequestDbCreateNestedOneWithoutArtifactsInput = {
   create?: Prisma.XOR<Prisma.ClientRequestDbCreateWithoutArtifactsInput, Prisma.ClientRequestDbUncheckedCreateWithoutArtifactsInput>
   connectOrCreate?: Prisma.ClientRequestDbCreateOrConnectWithoutArtifactsInput
@@ -623,6 +644,110 @@ export type ClientRequestDbUpdateOneWithoutPortalAccessNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.ClientRequestDbUpdateToOneWithWhereWithoutPortalAccessInput, Prisma.ClientRequestDbUpdateWithoutPortalAccessInput>, Prisma.ClientRequestDbUncheckedUpdateWithoutPortalAccessInput>
 }
 
+export type ClientRequestDbCreateWithoutMessagesInput = {
+  id?: string
+  workspaceId?: string | null
+  clientId?: string | null
+  businessName: string
+  segment?: string
+  services?: string
+  objectives?: string
+  status?: string
+  source?: string
+  rawContext?: string
+  briefingJson?: string | null
+  sdrHandoffJson?: string | null
+  attachmentsJson?: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  artifacts?: Prisma.BrainArtifactCreateNestedManyWithoutClientRequestInput
+  approvals?: Prisma.ApprovalRequestCreateNestedManyWithoutClientRequestInput
+  evidenceItems?: Prisma.EvidenceItemCreateNestedManyWithoutClientRequestInput
+  portalAccess?: Prisma.PortalAccessCreateNestedManyWithoutClientRequestInput
+}
+
+export type ClientRequestDbUncheckedCreateWithoutMessagesInput = {
+  id?: string
+  workspaceId?: string | null
+  clientId?: string | null
+  businessName: string
+  segment?: string
+  services?: string
+  objectives?: string
+  status?: string
+  source?: string
+  rawContext?: string
+  briefingJson?: string | null
+  sdrHandoffJson?: string | null
+  attachmentsJson?: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  artifacts?: Prisma.BrainArtifactUncheckedCreateNestedManyWithoutClientRequestInput
+  approvals?: Prisma.ApprovalRequestUncheckedCreateNestedManyWithoutClientRequestInput
+  evidenceItems?: Prisma.EvidenceItemUncheckedCreateNestedManyWithoutClientRequestInput
+  portalAccess?: Prisma.PortalAccessUncheckedCreateNestedManyWithoutClientRequestInput
+}
+
+export type ClientRequestDbCreateOrConnectWithoutMessagesInput = {
+  where: Prisma.ClientRequestDbWhereUniqueInput
+  create: Prisma.XOR<Prisma.ClientRequestDbCreateWithoutMessagesInput, Prisma.ClientRequestDbUncheckedCreateWithoutMessagesInput>
+}
+
+export type ClientRequestDbUpsertWithoutMessagesInput = {
+  update: Prisma.XOR<Prisma.ClientRequestDbUpdateWithoutMessagesInput, Prisma.ClientRequestDbUncheckedUpdateWithoutMessagesInput>
+  create: Prisma.XOR<Prisma.ClientRequestDbCreateWithoutMessagesInput, Prisma.ClientRequestDbUncheckedCreateWithoutMessagesInput>
+  where?: Prisma.ClientRequestDbWhereInput
+}
+
+export type ClientRequestDbUpdateToOneWithWhereWithoutMessagesInput = {
+  where?: Prisma.ClientRequestDbWhereInput
+  data: Prisma.XOR<Prisma.ClientRequestDbUpdateWithoutMessagesInput, Prisma.ClientRequestDbUncheckedUpdateWithoutMessagesInput>
+}
+
+export type ClientRequestDbUpdateWithoutMessagesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  businessName?: Prisma.StringFieldUpdateOperationsInput | string
+  segment?: Prisma.StringFieldUpdateOperationsInput | string
+  services?: Prisma.StringFieldUpdateOperationsInput | string
+  objectives?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  source?: Prisma.StringFieldUpdateOperationsInput | string
+  rawContext?: Prisma.StringFieldUpdateOperationsInput | string
+  briefingJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sdrHandoffJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  attachmentsJson?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  artifacts?: Prisma.BrainArtifactUpdateManyWithoutClientRequestNestedInput
+  approvals?: Prisma.ApprovalRequestUpdateManyWithoutClientRequestNestedInput
+  evidenceItems?: Prisma.EvidenceItemUpdateManyWithoutClientRequestNestedInput
+  portalAccess?: Prisma.PortalAccessUpdateManyWithoutClientRequestNestedInput
+}
+
+export type ClientRequestDbUncheckedUpdateWithoutMessagesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  businessName?: Prisma.StringFieldUpdateOperationsInput | string
+  segment?: Prisma.StringFieldUpdateOperationsInput | string
+  services?: Prisma.StringFieldUpdateOperationsInput | string
+  objectives?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  source?: Prisma.StringFieldUpdateOperationsInput | string
+  rawContext?: Prisma.StringFieldUpdateOperationsInput | string
+  briefingJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sdrHandoffJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  attachmentsJson?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  artifacts?: Prisma.BrainArtifactUncheckedUpdateManyWithoutClientRequestNestedInput
+  approvals?: Prisma.ApprovalRequestUncheckedUpdateManyWithoutClientRequestNestedInput
+  evidenceItems?: Prisma.EvidenceItemUncheckedUpdateManyWithoutClientRequestNestedInput
+  portalAccess?: Prisma.PortalAccessUncheckedUpdateManyWithoutClientRequestNestedInput
+}
+
 export type ClientRequestDbCreateWithoutArtifactsInput = {
   id?: string
   workspaceId?: string | null
@@ -642,6 +767,7 @@ export type ClientRequestDbCreateWithoutArtifactsInput = {
   approvals?: Prisma.ApprovalRequestCreateNestedManyWithoutClientRequestInput
   evidenceItems?: Prisma.EvidenceItemCreateNestedManyWithoutClientRequestInput
   portalAccess?: Prisma.PortalAccessCreateNestedManyWithoutClientRequestInput
+  messages?: Prisma.PortalMessageCreateNestedManyWithoutClientRequestInput
 }
 
 export type ClientRequestDbUncheckedCreateWithoutArtifactsInput = {
@@ -663,6 +789,7 @@ export type ClientRequestDbUncheckedCreateWithoutArtifactsInput = {
   approvals?: Prisma.ApprovalRequestUncheckedCreateNestedManyWithoutClientRequestInput
   evidenceItems?: Prisma.EvidenceItemUncheckedCreateNestedManyWithoutClientRequestInput
   portalAccess?: Prisma.PortalAccessUncheckedCreateNestedManyWithoutClientRequestInput
+  messages?: Prisma.PortalMessageUncheckedCreateNestedManyWithoutClientRequestInput
 }
 
 export type ClientRequestDbCreateOrConnectWithoutArtifactsInput = {
@@ -700,6 +827,7 @@ export type ClientRequestDbUpdateWithoutArtifactsInput = {
   approvals?: Prisma.ApprovalRequestUpdateManyWithoutClientRequestNestedInput
   evidenceItems?: Prisma.EvidenceItemUpdateManyWithoutClientRequestNestedInput
   portalAccess?: Prisma.PortalAccessUpdateManyWithoutClientRequestNestedInput
+  messages?: Prisma.PortalMessageUpdateManyWithoutClientRequestNestedInput
 }
 
 export type ClientRequestDbUncheckedUpdateWithoutArtifactsInput = {
@@ -721,6 +849,7 @@ export type ClientRequestDbUncheckedUpdateWithoutArtifactsInput = {
   approvals?: Prisma.ApprovalRequestUncheckedUpdateManyWithoutClientRequestNestedInput
   evidenceItems?: Prisma.EvidenceItemUncheckedUpdateManyWithoutClientRequestNestedInput
   portalAccess?: Prisma.PortalAccessUncheckedUpdateManyWithoutClientRequestNestedInput
+  messages?: Prisma.PortalMessageUncheckedUpdateManyWithoutClientRequestNestedInput
 }
 
 export type ClientRequestDbCreateWithoutApprovalsInput = {
@@ -742,6 +871,7 @@ export type ClientRequestDbCreateWithoutApprovalsInput = {
   artifacts?: Prisma.BrainArtifactCreateNestedManyWithoutClientRequestInput
   evidenceItems?: Prisma.EvidenceItemCreateNestedManyWithoutClientRequestInput
   portalAccess?: Prisma.PortalAccessCreateNestedManyWithoutClientRequestInput
+  messages?: Prisma.PortalMessageCreateNestedManyWithoutClientRequestInput
 }
 
 export type ClientRequestDbUncheckedCreateWithoutApprovalsInput = {
@@ -763,6 +893,7 @@ export type ClientRequestDbUncheckedCreateWithoutApprovalsInput = {
   artifacts?: Prisma.BrainArtifactUncheckedCreateNestedManyWithoutClientRequestInput
   evidenceItems?: Prisma.EvidenceItemUncheckedCreateNestedManyWithoutClientRequestInput
   portalAccess?: Prisma.PortalAccessUncheckedCreateNestedManyWithoutClientRequestInput
+  messages?: Prisma.PortalMessageUncheckedCreateNestedManyWithoutClientRequestInput
 }
 
 export type ClientRequestDbCreateOrConnectWithoutApprovalsInput = {
@@ -800,6 +931,7 @@ export type ClientRequestDbUpdateWithoutApprovalsInput = {
   artifacts?: Prisma.BrainArtifactUpdateManyWithoutClientRequestNestedInput
   evidenceItems?: Prisma.EvidenceItemUpdateManyWithoutClientRequestNestedInput
   portalAccess?: Prisma.PortalAccessUpdateManyWithoutClientRequestNestedInput
+  messages?: Prisma.PortalMessageUpdateManyWithoutClientRequestNestedInput
 }
 
 export type ClientRequestDbUncheckedUpdateWithoutApprovalsInput = {
@@ -821,6 +953,7 @@ export type ClientRequestDbUncheckedUpdateWithoutApprovalsInput = {
   artifacts?: Prisma.BrainArtifactUncheckedUpdateManyWithoutClientRequestNestedInput
   evidenceItems?: Prisma.EvidenceItemUncheckedUpdateManyWithoutClientRequestNestedInput
   portalAccess?: Prisma.PortalAccessUncheckedUpdateManyWithoutClientRequestNestedInput
+  messages?: Prisma.PortalMessageUncheckedUpdateManyWithoutClientRequestNestedInput
 }
 
 export type ClientRequestDbCreateWithoutEvidenceItemsInput = {
@@ -842,6 +975,7 @@ export type ClientRequestDbCreateWithoutEvidenceItemsInput = {
   artifacts?: Prisma.BrainArtifactCreateNestedManyWithoutClientRequestInput
   approvals?: Prisma.ApprovalRequestCreateNestedManyWithoutClientRequestInput
   portalAccess?: Prisma.PortalAccessCreateNestedManyWithoutClientRequestInput
+  messages?: Prisma.PortalMessageCreateNestedManyWithoutClientRequestInput
 }
 
 export type ClientRequestDbUncheckedCreateWithoutEvidenceItemsInput = {
@@ -863,6 +997,7 @@ export type ClientRequestDbUncheckedCreateWithoutEvidenceItemsInput = {
   artifacts?: Prisma.BrainArtifactUncheckedCreateNestedManyWithoutClientRequestInput
   approvals?: Prisma.ApprovalRequestUncheckedCreateNestedManyWithoutClientRequestInput
   portalAccess?: Prisma.PortalAccessUncheckedCreateNestedManyWithoutClientRequestInput
+  messages?: Prisma.PortalMessageUncheckedCreateNestedManyWithoutClientRequestInput
 }
 
 export type ClientRequestDbCreateOrConnectWithoutEvidenceItemsInput = {
@@ -900,6 +1035,7 @@ export type ClientRequestDbUpdateWithoutEvidenceItemsInput = {
   artifacts?: Prisma.BrainArtifactUpdateManyWithoutClientRequestNestedInput
   approvals?: Prisma.ApprovalRequestUpdateManyWithoutClientRequestNestedInput
   portalAccess?: Prisma.PortalAccessUpdateManyWithoutClientRequestNestedInput
+  messages?: Prisma.PortalMessageUpdateManyWithoutClientRequestNestedInput
 }
 
 export type ClientRequestDbUncheckedUpdateWithoutEvidenceItemsInput = {
@@ -921,6 +1057,7 @@ export type ClientRequestDbUncheckedUpdateWithoutEvidenceItemsInput = {
   artifacts?: Prisma.BrainArtifactUncheckedUpdateManyWithoutClientRequestNestedInput
   approvals?: Prisma.ApprovalRequestUncheckedUpdateManyWithoutClientRequestNestedInput
   portalAccess?: Prisma.PortalAccessUncheckedUpdateManyWithoutClientRequestNestedInput
+  messages?: Prisma.PortalMessageUncheckedUpdateManyWithoutClientRequestNestedInput
 }
 
 export type ClientRequestDbCreateWithoutPortalAccessInput = {
@@ -942,6 +1079,7 @@ export type ClientRequestDbCreateWithoutPortalAccessInput = {
   artifacts?: Prisma.BrainArtifactCreateNestedManyWithoutClientRequestInput
   approvals?: Prisma.ApprovalRequestCreateNestedManyWithoutClientRequestInput
   evidenceItems?: Prisma.EvidenceItemCreateNestedManyWithoutClientRequestInput
+  messages?: Prisma.PortalMessageCreateNestedManyWithoutClientRequestInput
 }
 
 export type ClientRequestDbUncheckedCreateWithoutPortalAccessInput = {
@@ -963,6 +1101,7 @@ export type ClientRequestDbUncheckedCreateWithoutPortalAccessInput = {
   artifacts?: Prisma.BrainArtifactUncheckedCreateNestedManyWithoutClientRequestInput
   approvals?: Prisma.ApprovalRequestUncheckedCreateNestedManyWithoutClientRequestInput
   evidenceItems?: Prisma.EvidenceItemUncheckedCreateNestedManyWithoutClientRequestInput
+  messages?: Prisma.PortalMessageUncheckedCreateNestedManyWithoutClientRequestInput
 }
 
 export type ClientRequestDbCreateOrConnectWithoutPortalAccessInput = {
@@ -1000,6 +1139,7 @@ export type ClientRequestDbUpdateWithoutPortalAccessInput = {
   artifacts?: Prisma.BrainArtifactUpdateManyWithoutClientRequestNestedInput
   approvals?: Prisma.ApprovalRequestUpdateManyWithoutClientRequestNestedInput
   evidenceItems?: Prisma.EvidenceItemUpdateManyWithoutClientRequestNestedInput
+  messages?: Prisma.PortalMessageUpdateManyWithoutClientRequestNestedInput
 }
 
 export type ClientRequestDbUncheckedUpdateWithoutPortalAccessInput = {
@@ -1021,6 +1161,7 @@ export type ClientRequestDbUncheckedUpdateWithoutPortalAccessInput = {
   artifacts?: Prisma.BrainArtifactUncheckedUpdateManyWithoutClientRequestNestedInput
   approvals?: Prisma.ApprovalRequestUncheckedUpdateManyWithoutClientRequestNestedInput
   evidenceItems?: Prisma.EvidenceItemUncheckedUpdateManyWithoutClientRequestNestedInput
+  messages?: Prisma.PortalMessageUncheckedUpdateManyWithoutClientRequestNestedInput
 }
 
 
@@ -1033,6 +1174,7 @@ export type ClientRequestDbCountOutputType = {
   approvals: number
   evidenceItems: number
   portalAccess: number
+  messages: number
 }
 
 export type ClientRequestDbCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1040,6 +1182,7 @@ export type ClientRequestDbCountOutputTypeSelect<ExtArgs extends runtime.Types.E
   approvals?: boolean | ClientRequestDbCountOutputTypeCountApprovalsArgs
   evidenceItems?: boolean | ClientRequestDbCountOutputTypeCountEvidenceItemsArgs
   portalAccess?: boolean | ClientRequestDbCountOutputTypeCountPortalAccessArgs
+  messages?: boolean | ClientRequestDbCountOutputTypeCountMessagesArgs
 }
 
 /**
@@ -1080,6 +1223,13 @@ export type ClientRequestDbCountOutputTypeCountPortalAccessArgs<ExtArgs extends 
   where?: Prisma.PortalAccessWhereInput
 }
 
+/**
+ * ClientRequestDbCountOutputType without action
+ */
+export type ClientRequestDbCountOutputTypeCountMessagesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.PortalMessageWhereInput
+}
+
 
 export type ClientRequestDbSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1101,6 +1251,7 @@ export type ClientRequestDbSelect<ExtArgs extends runtime.Types.Extensions.Inter
   approvals?: boolean | Prisma.ClientRequestDb$approvalsArgs<ExtArgs>
   evidenceItems?: boolean | Prisma.ClientRequestDb$evidenceItemsArgs<ExtArgs>
   portalAccess?: boolean | Prisma.ClientRequestDb$portalAccessArgs<ExtArgs>
+  messages?: boolean | Prisma.ClientRequestDb$messagesArgs<ExtArgs>
   _count?: boolean | Prisma.ClientRequestDbCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["clientRequestDb"]>
 
@@ -1164,6 +1315,7 @@ export type ClientRequestDbInclude<ExtArgs extends runtime.Types.Extensions.Inte
   approvals?: boolean | Prisma.ClientRequestDb$approvalsArgs<ExtArgs>
   evidenceItems?: boolean | Prisma.ClientRequestDb$evidenceItemsArgs<ExtArgs>
   portalAccess?: boolean | Prisma.ClientRequestDb$portalAccessArgs<ExtArgs>
+  messages?: boolean | Prisma.ClientRequestDb$messagesArgs<ExtArgs>
   _count?: boolean | Prisma.ClientRequestDbCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type ClientRequestDbIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -1176,6 +1328,7 @@ export type $ClientRequestDbPayload<ExtArgs extends runtime.Types.Extensions.Int
     approvals: Prisma.$ApprovalRequestPayload<ExtArgs>[]
     evidenceItems: Prisma.$EvidenceItemPayload<ExtArgs>[]
     portalAccess: Prisma.$PortalAccessPayload<ExtArgs>[]
+    messages: Prisma.$PortalMessagePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1591,6 +1744,7 @@ export interface Prisma__ClientRequestDbClient<T, Null = never, ExtArgs extends 
   approvals<T extends Prisma.ClientRequestDb$approvalsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ClientRequestDb$approvalsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ApprovalRequestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   evidenceItems<T extends Prisma.ClientRequestDb$evidenceItemsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ClientRequestDb$evidenceItemsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EvidenceItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   portalAccess<T extends Prisma.ClientRequestDb$portalAccessArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ClientRequestDb$portalAccessArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PortalAccessPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  messages<T extends Prisma.ClientRequestDb$messagesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ClientRequestDb$messagesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PortalMessagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2119,6 +2273,30 @@ export type ClientRequestDb$portalAccessArgs<ExtArgs extends runtime.Types.Exten
   take?: number
   skip?: number
   distinct?: Prisma.PortalAccessScalarFieldEnum | Prisma.PortalAccessScalarFieldEnum[]
+}
+
+/**
+ * ClientRequestDb.messages
+ */
+export type ClientRequestDb$messagesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the PortalMessage
+   */
+  select?: Prisma.PortalMessageSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the PortalMessage
+   */
+  omit?: Prisma.PortalMessageOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.PortalMessageInclude<ExtArgs> | null
+  where?: Prisma.PortalMessageWhereInput
+  orderBy?: Prisma.PortalMessageOrderByWithRelationInput | Prisma.PortalMessageOrderByWithRelationInput[]
+  cursor?: Prisma.PortalMessageWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.PortalMessageScalarFieldEnum | Prisma.PortalMessageScalarFieldEnum[]
 }
 
 /**

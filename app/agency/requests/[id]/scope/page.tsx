@@ -3,6 +3,7 @@
 import { use, useState, useEffect } from "react";
 import Link from "next/link";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
+import { PortalChat } from "@/components/agency/portal/PortalChat";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -624,6 +625,16 @@ export default function ScopeReviewPage({ params }: { params: Promise<{ id: stri
               />
             ))}
           </>
+        )}
+
+        {/* Conversa com o cliente — mesmo canal do portal, lado da equipe */}
+        {!loading && !fetchError && request && (
+          <div>
+            <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">
+              Conversa com o cliente
+            </p>
+            <PortalChat clientRequestId={requestId} height={320} />
+          </div>
         )}
       </div>
 

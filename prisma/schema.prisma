@@ -444,6 +444,24 @@ model ClientRequestDb {
   approvals     ApprovalRequest[]
   evidenceItems EvidenceItem[]
   portalAccess  PortalAccess[]
+  messages      PortalMessage[]
+}
+
+// Client ↔ team conversation. One thread per Brain request (the project the
+// client sees in their portal). authorRole distinguishes who wrote it; the
+// read flags drive unread badges on each side.
+model PortalMessage {
+  id              String   @id @default(cuid())
+  clientRequestId String
+  clientRequest   ClientRequestDb @relation(fields: [clientRequestId], references: [id], onDelete: Cascade)
+  authorRole      String   // "client" | "team"
+  authorName      String   @default("")
+  body            String
+  readByTeam      Boolean  @default(false)
+  readByClient    Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  @@index([clientRequestId, createdAt])
 }
 
 // One record per department approval — persists canvas payload + gate + trace.

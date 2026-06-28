@@ -138,6 +138,11 @@ export type BrainVersion = Prisma.BrainVersionModel
  */
 export type ClientRequestDb = Prisma.ClientRequestDbModel
 /**
+ * Model PortalMessage
+ * 
+ */
+export type PortalMessage = Prisma.PortalMessageModel
+/**
  * Model BrainArtifact
  * 
  */

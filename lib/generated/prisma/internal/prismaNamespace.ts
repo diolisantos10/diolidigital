@@ -408,6 +408,7 @@ export const ModelName = {
   BrainChangeRequest: 'BrainChangeRequest',
   BrainVersion: 'BrainVersion',
   ClientRequestDb: 'ClientRequestDb',
+  PortalMessage: 'PortalMessage',
   BrainArtifact: 'BrainArtifact',
   ApprovalRequest: 'ApprovalRequest',
   ApprovalComment: 'ApprovalComment',
@@ -428,7 +429,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "deliverable" | "materialRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "portalAccess"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "deliverable" | "materialRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "portalAccess"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2208,6 +2209,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    PortalMessage: {
+      payload: Prisma.$PortalMessagePayload<ExtArgs>
+      fields: Prisma.PortalMessageFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.PortalMessageFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalMessagePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.PortalMessageFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalMessagePayload>
+        }
+        findFirst: {
+          args: Prisma.PortalMessageFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalMessagePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.PortalMessageFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalMessagePayload>
+        }
+        findMany: {
+          args: Prisma.PortalMessageFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalMessagePayload>[]
+        }
+        create: {
+          args: Prisma.PortalMessageCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalMessagePayload>
+        }
+        createMany: {
+          args: Prisma.PortalMessageCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.PortalMessageCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalMessagePayload>[]
+        }
+        delete: {
+          args: Prisma.PortalMessageDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalMessagePayload>
+        }
+        update: {
+          args: Prisma.PortalMessageUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalMessagePayload>
+        }
+        deleteMany: {
+          args: Prisma.PortalMessageDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.PortalMessageUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.PortalMessageUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalMessagePayload>[]
+        }
+        upsert: {
+          args: Prisma.PortalMessageUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PortalMessagePayload>
+        }
+        aggregate: {
+          args: Prisma.PortalMessageAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregatePortalMessage>
+        }
+        groupBy: {
+          args: Prisma.PortalMessageGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PortalMessageGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.PortalMessageCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PortalMessageCountAggregateOutputType> | number
+        }
+      }
+    }
     BrainArtifact: {
       payload: Prisma.$BrainArtifactPayload<ExtArgs>
       fields: Prisma.BrainArtifactFieldRefs
@@ -3014,6 +3089,20 @@ export const ClientRequestDbScalarFieldEnum = {
 export type ClientRequestDbScalarFieldEnum = (typeof ClientRequestDbScalarFieldEnum)[keyof typeof ClientRequestDbScalarFieldEnum]
 
 
+export const PortalMessageScalarFieldEnum = {
+  id: 'id',
+  clientRequestId: 'clientRequestId',
+  authorRole: 'authorRole',
+  authorName: 'authorName',
+  body: 'body',
+  readByTeam: 'readByTeam',
+  readByClient: 'readByClient',
+  createdAt: 'createdAt'
+} as const
+
+export type PortalMessageScalarFieldEnum = (typeof PortalMessageScalarFieldEnum)[keyof typeof PortalMessageScalarFieldEnum]
+
+
 export const BrainArtifactScalarFieldEnum = {
   id: 'id',
   clientRequestId: 'clientRequestId',
@@ -3285,6 +3374,7 @@ export type GlobalOmitConfig = {
   brainChangeRequest?: Prisma.BrainChangeRequestOmit
   brainVersion?: Prisma.BrainVersionOmit
   clientRequestDb?: Prisma.ClientRequestDbOmit
+  portalMessage?: Prisma.PortalMessageOmit
   brainArtifact?: Prisma.BrainArtifactOmit
   approvalRequest?: Prisma.ApprovalRequestOmit
   approvalComment?: Prisma.ApprovalCommentOmit
