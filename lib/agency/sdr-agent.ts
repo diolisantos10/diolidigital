@@ -318,10 +318,18 @@ export function buildBudgetQuestion(scope: BriefingScope, _estimate: LiveEstimat
 // and identity is collected on the next step.
 export function canSubmitProposal(conv: ConvState, sdr: SDRAgentState): boolean {
   const scope = conv.scope;
-  const hasName = !!scope.prospectName;
+  if (!scope.prospectName) return false;
   const hasService = scope.wantsSocialMedia || !!scope.wantsPaidTraffic || scope.branding.requested;
-  const serviceAnswered = conv.answeredQIds.filter((id) => !id.startsWith("prospect_")).length;
-  return hasName && hasService && !sdr.objection.active && serviceAnswered >= 3;
+  if (!hasService || sdr.objection.active) return false;
+
+  // Service-aware scope completeness: the CORE detail of each requested service
+  // must be captured before a lead is valid. Counting "any N questions answered"
+  // let a social lead through with no post quantity — the "posts: indefinido"
+  // bug. We now gate on the scope fields themselves, so it can never happen.
+  if (scope.wantsSocialMedia && scope.social?.postsPerWeek === undefined) return false;
+  if (scope.wantsPaidTraffic && !scope.traffic?.monthlyAdBudget) return false;
+
+  return true;
 }
 
 export function getSubmissionBlockReason(conv: ConvState, sdr: SDRAgentState): string | null {
@@ -332,6 +340,10 @@ export function getSubmissionBlockReason(conv: ConvState, sdr: SDRAgentState): s
     return "Conte o que você precisa para montarmos seu pedido.";
   if (sdr.objection.active)
     return "Resolva o ponto em aberto antes de continuar.";
+  if (scope.wantsSocialMedia && scope.social?.postsPerWeek === undefined)
+    return "Quantos posts por semana você imagina? Preciso disso para montar seu pedido.";
+  if (scope.wantsPaidTraffic && !scope.traffic?.monthlyAdBudget)
+    return "Qual verba mensal você pensa para os anúncios?";
   return null;
 }
 
