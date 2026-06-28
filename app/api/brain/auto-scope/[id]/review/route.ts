@@ -89,6 +89,7 @@ export async function POST(
         data: {
           workspaceId: session.workspaceId,
           clientId,
+          clientRequestId,
           name: proposal.name,
           goal: proposal.goal,
           stage: "planning",

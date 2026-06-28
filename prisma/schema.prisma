@@ -73,6 +73,9 @@ model Project {
   workspace   AgencyWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   clientId    String
   client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  // Links a project back to the Brain request it was created from, so the
+  // execution view can load the approved department canvases (BrainArtifact).
+  clientRequestId String?
   name        String
   goal        String?
   type        String?

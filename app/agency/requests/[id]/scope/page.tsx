@@ -589,16 +589,16 @@ export default function ScopeReviewPage({ params }: { params: Promise<{ id: stri
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <Link
-              href="/agency/requests"
+              href={approvedProjectId ? `/agency/execution/${approvedProjectId}` : "/agency/requests"}
               className="h-10 px-5 rounded-[8px] bg-[#070A1F] text-white text-[13px] font-semibold hover:bg-[#0D1230] transition-colors inline-flex items-center"
             >
-              Ver solicitações
+              Ver o projeto →
             </Link>
             <Link
-              href="/agency/control-room"
+              href="/agency/requests"
               className="h-10 px-5 rounded-[8px] border border-[#E5E5E2] bg-white text-[#6B6B65] hover:text-[#1A1A1A] hover:border-[#9B9B95] text-[13px] font-semibold transition-colors inline-flex items-center"
             >
-              Sala de Controle
+              Solicitações
             </Link>
           </div>
         </div>
