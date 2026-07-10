@@ -17,19 +17,17 @@ import {
   type DbClient, type DbProject, type DbTask, type DbDeliverable,
 } from "@/lib/db/adapters";
 
-function mergeById<T extends { id: string }>(dbRows: T[], local: T[]): T[] {
-  const dbIds = new Set(dbRows.map((r) => r.id));
-  return [...dbRows, ...local.filter((l) => !dbIds.has(l.id))];
-}
-
-async function fetchJson<T>(url: string): Promise<T[]> {
+// Returns the parsed array, or null if the request FAILED (so we can tell an
+// empty-but-successful response apart from an error and never wipe local data
+// on a network blip).
+async function fetchJson<T>(url: string): Promise<T[] | null> {
   try {
     const res = await fetch(url);
-    if (!res.ok) return [];
+    if (!res.ok) return null;
     const data = await res.json();
-    return Array.isArray(data) ? (data as T[]) : [];
+    return Array.isArray(data) ? (data as T[]) : null;
   } catch {
-    return [];
+    return null;
   }
 }
 
@@ -48,14 +46,15 @@ export function useHydrateFromDb() {
         fetchJson<DbDeliverable>("/api/deliverables"),
       ]);
 
-      // Nothing came back (offline / all failed) — keep the local store as-is.
-      if (!clients.length && !projects.length && !tasks.length && !deliverables.length) return;
-
+      // DB is the single source of truth: each entity that loaded successfully
+      // REPLACES the local copy, so stale localStorage (e.g. pilot/demo data
+      // loaded in one browser) stops showing and every browser matches. A
+      // failed fetch (null) leaves that entity's local data untouched.
       useAgencyStore.setState((s) => ({
-        clients:      mergeById(clients.map(dbClientToMock),        s.clients),
-        projects:     mergeById(projects.map(dbProjectToMock),      s.projects),
-        tasks:        mergeById(tasks.map(dbTaskToMock),            s.tasks),
-        deliverables: mergeById(deliverables.map(dbDeliverableToMock), s.deliverables),
+        clients:      clients      ? clients.map(dbClientToMock)           : s.clients,
+        projects:     projects     ? projects.map(dbProjectToMock)         : s.projects,
+        tasks:        tasks         ? tasks.map(dbTaskToMock)              : s.tasks,
+        deliverables: deliverables ? deliverables.map(dbDeliverableToMock) : s.deliverables,
       }));
     })();
   }, []);

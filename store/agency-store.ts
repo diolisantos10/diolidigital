@@ -1023,6 +1023,19 @@ export const useAgencyStore = create<AgencyState>()(
         };
         set((s) => ({ clients: [...s.clients, client] }));
         get().addActivity({ type: "client_created", message: `New client "${data.name}" added`, clientId: id });
+        // Write-through: persist to the DB so the client syncs to other
+        // browsers, then reconcile the local id with the DB cuid so hydration
+        // doesn't duplicate it. Failure is silent — the local copy stays.
+        void fetch("/api/clients", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: client.name, industry: client.industry, website: client.website }),
+        })
+          .then((r) => (r.ok ? r.json() : null))
+          .then((db) => {
+            if (db?.id) set((s) => ({ clients: s.clients.map((c) => (c.id === id ? { ...c, id: db.id } : c)) }));
+          })
+          .catch(() => {});
         return id;
       },
 
@@ -1030,6 +1043,14 @@ export const useAgencyStore = create<AgencyState>()(
         set((s) => ({
           clients: s.clients.map((c) => (c.id === id ? { ...c, ...updates } : c)),
         }));
+        // Persist edits to DB-backed clients (cuid ids are long; local ids aren't).
+        if (id.length > 12) {
+          void fetch(`/api/clients/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updates),
+          }).catch(() => {});
+        }
       },
 
       // ── Projects ──────────────────────────────────────────────────────────
@@ -1076,6 +1097,29 @@ export const useAgencyStore = create<AgencyState>()(
           projectId: id,
           clientId: payload.clientId,
         });
+        // Write-through when the client is already DB-backed (cuid). Persists the
+        // project and reconciles the local id → DB id across project + its tasks
+        // + material requests, so it syncs to other browsers without duplicating.
+        if (payload.clientId.length > 12) {
+          void fetch("/api/projects", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              clientId: payload.clientId, name: project.name, goal: project.goal, type: project.type,
+              stage: project.stage, priority: project.priority, deadline: project.deadline, agents: project.agents,
+            }),
+          })
+            .then((r) => (r.ok ? r.json() : null))
+            .then((db) => {
+              if (!db?.id) return;
+              set((s) => ({
+                projects:         s.projects.map((p) => (p.id === id ? { ...p, id: db.id } : p)),
+                tasks:            s.tasks.map((t) => (t.projectId === id ? { ...t, projectId: db.id } : t)),
+                materialRequests: s.materialRequests.map((m) => (m.projectId === id ? { ...m, projectId: db.id } : m)),
+              }));
+            })
+            .catch(() => {});
+        }
         return id;
       },
 
@@ -1083,6 +1127,18 @@ export const useAgencyStore = create<AgencyState>()(
         set((s) => ({
           projects: s.projects.map((p) => (p.id === id ? { ...p, ...updates } : p)),
         }));
+        // Persist edits to DB-backed projects.
+        if (id.length > 12) {
+          const u = updates as Record<string, unknown>;
+          void fetch(`/api/projects/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: u.name, goal: u.goal, stage: u.stage, priority: u.priority,
+              deadline: u.deadline, agents: u.agents,
+            }),
+          }).catch(() => {});
+        }
       },
 
       deleteProject: (id) => {
