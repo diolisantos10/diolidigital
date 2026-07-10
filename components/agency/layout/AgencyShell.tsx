@@ -3,6 +3,7 @@
 import { useState } from "react";
 import AgencySidebar from "./AgencySidebar";
 import { MobileMenuButton } from "./MobileMenuButton";
+import { useHydrateFromDb } from "@/lib/hooks/useHydrateFromDb";
 
 interface UserInfo {
   name: string;
@@ -18,6 +19,9 @@ export function AgencyShell({
   children: React.ReactNode;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  // Pull DB-backed entities into the store so the panel shows the same data in
+  // any browser / device, not just where it was created.
+  useHydrateFromDb();
 
   return (
     <div className="flex min-h-screen" style={{ background: "var(--bg)" }}>
