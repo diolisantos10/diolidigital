@@ -118,15 +118,21 @@ export function inferAnsweredQIds(scope: BriefingScope): string[] {
   const a: string[] = [];
   if (scope.wantsSocialMedia || scope.wantsPaidTraffic !== undefined || scope.branding.requested)
     a.push("detect_service");
+  if (scope.objectives.length)                      a.push("main_objective");
+  if (scope.targetAudience)                         a.push("target_audience");
   if (scope.serviceMode !== undefined)              a.push("service_mode");
   if (scope.social?.platforms.length)               a.push("social_platforms");
   if (scope.social?.postsPerWeek !== undefined)     a.push("posts_per_week");
   if (scope.social?.storiesPerWeek !== undefined)   a.push("stories");
   if (scope.social?.reelsPerMonth !== undefined)    a.push("reels");
+  if (scope.social?.hasVideomaker !== undefined)    a.push("social_video");
   if (scope.social?.hasPhotos !== undefined)        a.push("has_photos");
   if (scope.social?.needsCopy !== undefined)        a.push("needs_copy");
   if (scope.wantsPaidTraffic !== undefined)         a.push("wants_traffic");
+  if (scope.traffic?.platforms.length)              a.push("traffic_platforms");
   if (scope.traffic?.monthlyAdBudget)               a.push("ad_budget");
+  if (scope.branding.deliverables)                  a.push("branding_deliverables");
+  if (scope.competitors?.length)                    a.push("competitors_refs");
   if (scope.budgetRange)                            a.push("budget_range");
   if (scope.deadline)                               a.push("deadline");
   return a;
@@ -160,6 +166,25 @@ const QUESTIONS: QuestionDef[] = [
         ...(wantsSocialMedia ? { social: { platforms: detectPlatforms(answer) } } : {}),
       };
     },
+  },
+
+  // Q0.1 — UNIVERSAL: main objective (the agency needs to know what success is)
+  {
+    id: "main_objective",
+    when: (s) => s.scope.objectives.length === 0,
+    text: () => "Qual é o **principal objetivo** que você quer alcançar com esse trabalho? (ex: mais vendas, mais clientes, autoridade, engajamento)",
+    parse: (answer) => {
+      const detected = detectObjectives(answer);
+      return { objectives: detected.length ? detected : [answer.trim().slice(0, 90)] };
+    },
+  },
+
+  // Q0.2 — UNIVERSAL: target audience (who we're speaking to)
+  {
+    id: "target_audience",
+    when: (s) => !s.scope.targetAudience,
+    text: () => "Quem é o seu **público-alvo** — o cliente ideal que você quer atingir? (idade, perfil, região, o que buscam)",
+    parse: (answer) => ({ targetAudience: answer.trim() }),
   },
 
   // Q1 — monthly vs one-off
@@ -209,6 +234,18 @@ const QUESTIONS: QuestionDef[] = [
     parse: (answer, s) => ({ social: { ...social(s), reelsPerMonth: isNo(answer) ? 0 : (extractNumber(answer) ?? 4) } }),
   },
 
+  // Q5.1 — video production (only when reels/videos are in scope)
+  {
+    id: "social_video",
+    when: (s) => s.scope.wantsSocialMedia && (s.scope.social?.reelsPerMonth ?? 0) > 0 && s.scope.social?.hasVideomaker === undefined,
+    text: () => "Para os vídeos/reels: vocês têm alguém para **gravar e editar**, ou a Dioli cuida da produção do vídeo?",
+    parse: (answer, s) => {
+      const dioli = /dioli|voc[êe]s|produç|produz|precis|não tenho|nao tenho|sem\b/i.test(answer);
+      const own   = /temos|tenho|pr[óo]prio|n[óo]s|equipe|videomaker|j[áa] tem/i.test(answer) && !dioli;
+      return { social: { ...social(s), hasVideomaker: own, needsVideoProduction: !own } };
+    },
+  },
+
   // Q6 — has photos
   {
     id: "has_photos",
@@ -239,12 +276,56 @@ const QUESTIONS: QuestionDef[] = [
     parse: (answer) => ({ wantsPaidTraffic: isYes(answer) || /tráfego|anúncio|ads|impulsion/i.test(answer) }),
   },
 
+  // Q8.1 — traffic platforms (only if traffic wanted)
+  {
+    id: "traffic_platforms",
+    when: (s) => !!s.scope.wantsPaidTraffic && !s.scope.traffic?.platforms.length,
+    text: () => "Os anúncios seriam em qual plataforma: **Meta (Instagram/Facebook)**, **Google**, ou ambos?",
+    parse: (answer, s) => {
+      const plat = detectPlatforms(answer);
+      return { traffic: { ...(s.scope.traffic ?? { platforms: [] }), platforms: plat.length ? plat : ["Meta Ads"] } };
+    },
+  },
+
   // Q9 — ad budget (only if traffic wanted)
   {
     id: "ad_budget",
     when: (s) => !!s.scope.wantsPaidTraffic && !s.scope.traffic?.monthlyAdBudget,
     text: () => "Qual é a verba mensal disponível para os anúncios? (Esse valor vai direto para o Google/Meta — é separado da gestão)",
     parse: (answer, s) => ({ traffic: { ...(s.scope.traffic ?? { platforms: [] }), monthlyAdBudget: answer.trim() } }),
+  },
+
+  // Q9.1 — BRANDING: is there a current identity? (only if branding requested)
+  {
+    id: "branding_current",
+    when: (s) => s.scope.branding.requested,
+    text: () => "Sobre a identidade visual: você **já tem logo/identidade** hoje, ou vamos criar **do zero**?",
+    parse: (answer, s) => {
+      const t = answer.toLowerCase();
+      const fromScratch = /do zero|zero|não tenho|nao tenho|nenhum|criar|nova\b|nao\b|não\b/.test(t) && !/tenho|temos|j[áa]/.test(t);
+      const rebrand     = /rebrand|reposicion|renovar|atualizar|refazer|modernizar|melhorar/.test(t);
+      return { branding: { ...s.scope.branding, hasBrandBook: !fromScratch && /tenho|temos|j[áa]|possu|atual|existe/.test(t), wantsRebrand: rebrand } };
+    },
+  },
+
+  // Q9.2 — BRANDING: what deliverables (only if branding requested)
+  {
+    id: "branding_deliverables",
+    when: (s) => s.scope.branding.requested && !s.scope.branding.deliverables,
+    text: () => "O que você precisa na identidade: **logo, paleta de cores, tipografia, manual de marca completo**? Pode listar o que tiver em mente.",
+    parse: (answer, s) => ({ branding: { ...s.scope.branding, deliverables: answer.trim() } }),
+  },
+
+  // Q9.3 — UNIVERSAL: competitors / references
+  {
+    id: "competitors_refs",
+    when: (s) => (s.scope.competitors?.length ?? 0) === 0,
+    text: () => "Tem **concorrentes ou referências** (marcas, perfis) que você admira ou quer usar de inspiração?",
+    parse: (answer) => {
+      if (isNo(answer)) return { competitors: [] };
+      const refs = answer.split(/,|\se\s|;|\/| - /).map((x) => x.trim()).filter((x) => x.length > 1).slice(0, 6);
+      return { competitors: refs.length ? refs : [answer.trim().slice(0, 60)] };
+    },
   },
 
   // Q10 — budget range
@@ -434,6 +515,20 @@ export function getNextQuestion(state: ConvState): QuestionDef | null {
   return null;
 }
 
+// Questions that are asked but do NOT block submission — the price-sensitive
+// ones. The interview still surfaces them, but a client who skips them can
+// still submit once the substantive discovery (audience, objectives, service
+// depth) is complete. This is what keeps the submission gate from deadlocking.
+const OPTIONAL_QIDS = new Set(["budget_range", "deadline"]);
+
+// The still-pending questions that MUST be answered before a lead is complete.
+// Empty ⇒ the substantive protocol is fully covered.
+export function remainingRequiredQuestions(state: ConvState): QuestionDef[] {
+  return QUESTIONS.filter(
+    (q) => !OPTIONAL_QIDS.has(q.id) && !state.answeredQIds.includes(q.id) && q.when(state),
+  );
+}
+
 export function processClientMessage(text: string, state: ConvState): ConvState {
   const clientMsg: ConvMessage = {
     id: `c${Date.now()}${Math.random().toString(36).slice(2, 5)}`,
@@ -510,7 +605,9 @@ export function processClientMessage(text: string, state: ConvState): ConvState 
     ...mid,
     messages: [...mid.messages, assistantMsg],
     estimate,
-    canSubmit: allDone || newAnswered.length >= 5,
+    // Only when the full protocol is exhausted — no early close on a talkative
+    // client who happened to answer a handful of questions.
+    canSubmit: allDone,
   };
 }
 

@@ -4,6 +4,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { BriefingScope, ConvState, LiveEstimate } from "./briefing-conversation";
+import { remainingRequiredQuestions } from "./question-engine";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -316,34 +317,31 @@ export function buildBudgetQuestion(scope: BriefingScope, _estimate: LiveEstimat
 // The gate fires once we know WHO they are (name) and WHAT they need (a service
 // plus enough scope detail). The "Sim, quero meu orçamento" CTA then appears,
 // and identity is collected on the next step.
+// The interview does NOT close until the full question protocol is exhausted.
+// A quieter client simply gets asked more — the engine keeps surfacing the next
+// applicable question until every area they need is covered. The gate opens only
+// when: identity is known, a service is chosen, there is no open price objection,
+// AND getNextQuestion returns null (no applicable question left to ask).
 export function canSubmitProposal(conv: ConvState, sdr: SDRAgentState): boolean {
   const scope = conv.scope;
-  if (!scope.prospectName) return false;
+  if (!scope.prospectName || !scope.businessName) return false;
   const hasService = scope.wantsSocialMedia || !!scope.wantsPaidTraffic || scope.branding.requested;
   if (!hasService || sdr.objection.active) return false;
-
-  // Service-aware scope completeness: the CORE detail of each requested service
-  // must be captured before a lead is valid. Counting "any N questions answered"
-  // let a social lead through with no post quantity — the "posts: indefinido"
-  // bug. We now gate on the scope fields themselves, so it can never happen.
-  if (scope.wantsSocialMedia && scope.social?.postsPerWeek === undefined) return false;
-  if (scope.wantsPaidTraffic && !scope.traffic?.monthlyAdBudget) return false;
-
+  // Full protocol must be complete — no substantive question left to ask.
+  if (remainingRequiredQuestions(conv).length > 0) return false;
   return true;
 }
 
 export function getSubmissionBlockReason(conv: ConvState, sdr: SDRAgentState): string | null {
   const scope = conv.scope;
-  if (!scope.prospectName)
+  if (!scope.prospectName || !scope.businessName)
     return "Me diga seu nome e o nome do seu negócio para começar.";
   if (!scope.wantsSocialMedia && !scope.wantsPaidTraffic && !scope.branding.requested)
     return "Conte o que você precisa para montarmos seu pedido.";
   if (sdr.objection.active)
     return "Resolva o ponto em aberto antes de continuar.";
-  if (scope.wantsSocialMedia && scope.social?.postsPerWeek === undefined)
-    return "Quantos posts por semana você imagina? Preciso disso para montar seu pedido.";
-  if (scope.wantsPaidTraffic && !scope.traffic?.monthlyAdBudget)
-    return "Qual verba mensal você pensa para os anúncios?";
+  if (remainingRequiredQuestions(conv).length > 0)
+    return "Ainda tenho algumas perguntas para entender tudo que você precisa.";
   return null;
 }
 

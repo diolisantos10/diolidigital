@@ -36,6 +36,7 @@ export interface BrandingScope {
   requested: boolean;    // user explicitly asked for branding / logo / identity
   hasBrandBook: boolean; // user HAS a brand book — does NOT imply wanting branding
   wantsRebrand: boolean;
+  deliverables?: string; // what they need: logo, paleta, tipografia, manual…
 }
 
 // Engagement type — how the client enters the agency.
@@ -57,6 +58,7 @@ export interface NegotiationState {
 export interface BriefingScope {
   businessName?: string;
   segment?: string;
+  targetAudience?: string;    // who the client sells to (ideal customer)
   objectives: string[];
   serviceMode?: EngagementType;
   wantsSocialMedia: boolean;

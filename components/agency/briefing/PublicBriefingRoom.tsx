@@ -736,12 +736,12 @@ function mergeScopeGaps(base: BriefingScope, patch: Record<string, unknown>): Br
   if (!patch || typeof patch !== "object") return base;
   const out: BriefingScope = { ...base };
 
-  const fillStr = (key: "prospectName" | "businessName" | "segment" | "prospectPhone" | "budgetRange" | "deadline") => {
+  const fillStr = (key: "prospectName" | "businessName" | "segment" | "targetAudience" | "prospectPhone" | "budgetRange" | "deadline") => {
     if (!out[key] && typeof patch[key] === "string" && (patch[key] as string).trim()) {
       out[key] = (patch[key] as string).trim();
     }
   };
-  fillStr("prospectName"); fillStr("businessName"); fillStr("segment");
+  fillStr("prospectName"); fillStr("businessName"); fillStr("segment"); fillStr("targetAudience");
   fillStr("prospectPhone"); fillStr("budgetRange"); fillStr("deadline");
 
   if (!out.prospectEmail && typeof patch.prospectEmail === "string"
@@ -823,6 +823,7 @@ function mergeScopeGaps(base: BriefingScope, patch: Record<string, unknown>): Br
       requested:    out.branding.requested    || pb.requested === true,
       hasBrandBook: out.branding.hasBrandBook || pb.hasBrandBook === true,
       wantsRebrand: out.branding.wantsRebrand || pb.wantsRebrand === true,
+      deliverables: out.branding.deliverables ?? (typeof pb.deliverables === "string" ? pb.deliverables.trim() : undefined),
     };
   }
 
