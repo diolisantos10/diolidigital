@@ -1,11 +1,9 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useTranslation } from "@/lib/i18n";
 import { useAgencyStore } from "@/store/agency-store";
 import { AGENCY_ROLE_OPTIONS, isNavAllowed, type AgencyRole } from "@/lib/agency/roles";
 import { generateAllAutoTasks } from "@/lib/agency/orchestration/auto-tasks";
-import { DEPARTMENT_DEFS } from "@/lib/agency/departments";
 import { DioliLogo } from "@/components/brand/DioliLogo";
 import RoleGuide, { useRoleGuide } from "@/components/agency/onboarding/RoleGuide";
 
@@ -15,17 +13,6 @@ const ROLE_LABEL: Record<string, string> = {
   social_staff:    "Social",
   design_staff:    "Design",
   client:          "Cliente",
-};
-
-// Maps each department's iconKey to a sidebar icon component.
-const DEPT_ICON_BY_KEY: Record<string, (p: { size?: number; className?: string }) => React.ReactElement> = {
-  pm: UserCogIcon,
-  strategy: CpuIcon,
-  brand: SwatchIcon,
-  social: SocialIcon,
-  design: DesignIcon,
-  ads: AdsIcon,
-  system: SettingsIcon,
 };
 
 interface UserInfo {
@@ -64,7 +51,6 @@ function useTaskBadgeCount() {
 
 export default function AgencySidebar({ userInfo, mobileOpen = false, onMobileClose }: AgencySidebarProps) {
   const path = usePathname();
-  const { t } = useTranslation();
   const { currentRole, setCurrentRole } = useAgencyStore();
   const pendingCount = usePendingCount();
   const taskBadgeCount = useTaskBadgeCount();
@@ -72,83 +58,42 @@ export default function AgencySidebar({ userInfo, mobileOpen = false, onMobileCl
   // Role getting-started guide — auto-opens on a role's first visit, re-openable below.
   const { guideOpen, openGuide, closeGuide } = useRoleGuide(currentRole);
 
+  // Lean navigation — organised by PURPOSE, not by accumulation. The old menu
+  // listed each department in three parallel sections (Departamentos, Agentes
+  // IA, Inteligência); the autonomous execution view replaced those relays, so
+  // the day-to-day surface is: intake → work → clients → intelligence/system.
   const NAV = [
     {
       group: null,
       items: [
-        { label: t.nav.home, href: "/agency/dashboard", icon: HomeIcon },
-        { label: "Painel Maestro", href: "/agency/maestro", icon: BrainIcon },
-        { label: "Aprovações", href: "/agency/approvals", icon: BellIcon, badge: pendingCount },
+        { label: "Início", href: "/agency/dashboard", icon: HomeIcon },
         { label: "Solicitações", href: "/agency/requests", icon: FileTextIcon, badge: newRequestsCount },
-        { label: "Vitrine (Self-Serve)", href: "/vitrine", icon: ShopIcon },
+        { label: "Aprovações", href: "/agency/approvals", icon: BellIcon, badge: pendingCount },
       ],
     },
     {
-      group: t.nav.group.work,
+      group: "Trabalho",
       items: [
-        { label: t.nav.projects, href: "/agency/projects", icon: FolderIcon },
-        { label: t.nav.pipeline, href: "/agency/pipeline", icon: ColumnsIcon },
-        { label: t.nav.tasks, href: "/agency/tasks", icon: CheckIcon, badge: taskBadgeCount },
-        { label: "Sala de Controle", href: "/agency/control-room", icon: BrainIcon },
+        { label: "Projetos", href: "/agency/projects", icon: FolderIcon },
+        { label: "Pipeline", href: "/agency/pipeline", icon: ColumnsIcon },
+        { label: "Tarefas", href: "/agency/tasks", icon: CheckIcon, badge: taskBadgeCount },
+        { label: "Entregas", href: "/agency/deliverables", icon: BoxIcon },
       ],
     },
     {
-      group: t.nav.group.clients,
+      group: "Clientes",
       items: [
-        { label: t.nav.clients, href: "/agency/clients", icon: BuildingIcon },
+        { label: "Clientes", href: "/agency/clients", icon: BuildingIcon },
         { label: "Planos & Preços", href: "/agency/catalog", icon: TagIcon },
-        { label: t.nav.brandAssets, href: "/agency/brand-assets", icon: SwatchIcon },
+        { label: "Ativos de Marca", href: "/agency/brand-assets", icon: SwatchIcon },
       ],
     },
     {
-      group: "Departamentos",
-      items: [
-        { label: "Visão Geral", href: "/agency/departments", icon: DepartmentsIcon },
-        ...DEPARTMENT_DEFS.map((d) => ({
-          label: d.name,
-          href: `/agency/departments/${d.id}`,
-          icon: DEPT_ICON_BY_KEY[d.iconKey] ?? DepartmentsIcon,
-        })),
-        { label: "Nova Linha de Produção", href: "/agency/production/new", icon: PlusCircleIcon },
-      ],
-    },
-    {
-      group: t.nav.group.library,
-      items: [
-        { label: t.nav.deliverables, href: "/agency/deliverables", icon: BoxIcon },
-        { label: t.nav.briefings, href: "/agency/briefings", icon: FileTextIcon },
-      ],
-    },
-    {
-      group: "Agentes IA",
-      items: [
-        { label: "PM Agent", href: "/agency/pm-agent", icon: UserCogIcon },
-        { label: "Estratégia", href: "/agency/strategy-agent", icon: CompassIcon },
-        { label: "Brand Hub", href: "/agency/brand-hub-agent", icon: SwatchIcon },
-        { label: "Social Media", href: "/agency/social-media-agent", icon: SocialIcon },
-        { label: "Design", href: "/agency/design-agent", icon: DesignIcon },
-        { label: "Tráfego Pago", href: "/agency/ads-agent", icon: AdsIcon },
-        { label: "Operações", href: "/agency/operations-agent", icon: SettingsIcon },
-      ],
-    },
-    {
-      group: "Inteligência",
+      group: "Inteligência & Sistema",
       items: [
         { label: "Dioli Brain", href: "/agency/brain", icon: BrainIcon },
-        { label: "Estratégia (Brain)", href: "/agency/strategy", icon: CompassIcon },
-        { label: "Social (Brain)", href: "/agency/social", icon: SocialIcon },
-        { label: "Design (Brain)", href: "/agency/design", icon: DesignIcon },
-        { label: "Tráfego (Brain)", href: "/agency/traffic", icon: AdsIcon },
-        { label: "Analytics (Brain)", href: "/agency/analytics", icon: AnalyticsIcon },
-        { label: "Quality (Brain)", href: "/agency/quality", icon: QualityIcon },
-      ],
-    },
-    {
-      group: t.nav.group.system,
-      items: [
         { label: "Ferramentas & Integrações", href: "/agency/integrations", icon: IntegrationsIcon },
-        { label: t.nav.settings, href: "/agency/settings", icon: SettingsIcon },
-        { label: "Laboratório",  href: "/agency/simulations", icon: FlaskIcon  },
+        { label: "Configurações", href: "/agency/settings", icon: SettingsIcon },
       ],
     },
   ];
@@ -384,39 +329,12 @@ function TagIcon({ size = 16, className = "" }: { size?: number; className?: str
     </svg>
   );
 }
-function ShopIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
-      <path d="M1.5 2h13l-1.5 5H3L1.5 2z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
-      <path d="M3 7v6h10V7" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
-      <path d="M6 13v-3h4v3" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
-    </svg>
-  );
-}
 function SwatchIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
       <circle cx="5" cy="8" r="3.5" stroke="currentColor" strokeWidth="1.3"/>
       <circle cx="11" cy="5.5" r="3" stroke="currentColor" strokeWidth="1.3"/>
       <circle cx="10.5" cy="11" r="2.5" stroke="currentColor" strokeWidth="1.3"/>
-    </svg>
-  );
-}
-function CpuIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
-      <rect x="4" y="4" width="8" height="8" rx="1" stroke="currentColor" strokeWidth="1.3"/>
-      <path d="M6 4V2m4 2V2M6 14v-2m4 2v-2M4 6H2m2 4H2m12-4h-2m2 4h-2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-    </svg>
-  );
-}
-function UserCogIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
-      <circle cx="6" cy="5" r="2.5" stroke="currentColor" strokeWidth="1.3"/>
-      <path d="M2 13c0-2.21 1.79-4 4-4s4 1.79 4 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-      <circle cx="12.5" cy="11" r="2" stroke="currentColor" strokeWidth="1.3"/>
-      <path d="M12.5 9V8m0 6v-1m1.73-2.73l.7-.7M10.07 13.43l-.7.7M14.5 11h1M9.5 11H8.5m1.93-2.27l-.7-.7m4.24 4.24l.7.7" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/>
     </svg>
   );
 }
@@ -438,31 +356,6 @@ function FileTextIcon({ size = 16, className = "" }: { size?: number; className?
     </svg>
   );
 }
-function DesignIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
-      <circle cx="8" cy="8" r="5.5" stroke="currentColor" strokeWidth="1.3"/>
-      <path d="M5.5 10.5l1.5-3 2 2 1.5-3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  );
-}
-function SocialIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
-      <rect x="2" y="2" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.3"/>
-      <rect x="9" y="2" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.3"/>
-      <rect x="2" y="9" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.3"/>
-      <rect x="9" y="9" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.3"/>
-    </svg>
-  );
-}
-function AdsIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
-      <path d="M2.5 13V8M6.5 13V4M10.5 13V9.5M14 13V6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-    </svg>
-  );
-}
 function IntegrationsIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
@@ -479,59 +372,6 @@ function SettingsIcon({ size = 16, className = "" }: { size?: number; className?
     <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
       <circle cx="8" cy="8" r="2" stroke="currentColor" strokeWidth="1.3"/>
       <path d="M8 2v1.5M8 12.5V14m4.95-1.05l-1.06-1.06M4.11 4.11L3.05 3.05M14 8h-1.5M3.5 8H2m9.9 4.95l-1.06-1.06M4.11 11.89l-1.06 1.06" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-    </svg>
-  );
-}
-function FlaskIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
-      <path d="M6 2v5L3 12a1 1 0 00.9 1.5h8.2A1 1 0 0013 12l-3-5V2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M5.5 2h5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-    </svg>
-  );
-}
-function DepartmentsIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
-      <rect x="2" y="2" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.3"/>
-      <rect x="9" y="2" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.3"/>
-      <rect x="2" y="9" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.3"/>
-      <path d="M11.5 9v6M9 11.5h5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-    </svg>
-  );
-}
-function PlusCircleIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
-      <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.3"/>
-      <path d="M8 5v6M5 8h6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-    </svg>
-  );
-}
-function CompassIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
-      <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.3"/>
-      <path d="M10.5 5.5L9 9l-3.5 1.5L7 7l3.5-1.5z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
-    </svg>
-  );
-}
-function QualityIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
-      <path d="M8 2L9.8 6.2 14.5 6.9l-3.25 3.15.77 4.46L8 12.3 3.98 14.5l.77-4.46L1.5 6.9l4.7-.7L8 2z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
-    </svg>
-  );
-}
-function AnalyticsIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
-      <path d="M2 13l3-4 3 2 3-5 3 3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-      <circle cx="2" cy="13" r="1" fill="currentColor"/>
-      <circle cx="5" cy="9" r="1" fill="currentColor"/>
-      <circle cx="8" cy="11" r="1" fill="currentColor"/>
-      <circle cx="11" cy="6" r="1" fill="currentColor"/>
-      <circle cx="14" cy="9" r="1" fill="currentColor"/>
     </svg>
   );
 }
