@@ -132,6 +132,19 @@ export function dbDeliverableToMock(db: DbDeliverable): Deliverable {
   let revisionHistory: RevisionEntry[] = [];
   try { revisionHistory = JSON.parse(db.revisionHistory); } catch { /* keep empty */ }
 
+  // The deliverable body is stored in `content`: rich previewContent is written
+  // as JSON (an object), a plain link/text otherwise. Reconstruct both so the
+  // deliverable renders identically after a DB round-trip (it was being dropped).
+  let previewContent: Deliverable["previewContent"];
+  let link: string | undefined;
+  if (db.content) {
+    const raw = db.content.trim();
+    if (raw.startsWith("{")) {
+      try { previewContent = JSON.parse(raw) as Deliverable["previewContent"]; } catch { /* not JSON */ }
+    }
+    if (!previewContent) link = raw;
+  }
+
   return {
     id: db.id,
     projectId: db.projectId,
@@ -146,6 +159,8 @@ export function dbDeliverableToMock(db: DbDeliverable): Deliverable {
     lastFeedback: db.lastFeedback ?? undefined,
     updatedAt: typeof db.updatedAt === "string" ? db.updatedAt : (db.updatedAt as Date).toISOString(),
     revisionHistory: revisionHistory.length > 0 ? revisionHistory : undefined,
+    ...(previewContent ? { previewContent } : {}),
+    ...(link ? { link } : {}),
   };
 }
 

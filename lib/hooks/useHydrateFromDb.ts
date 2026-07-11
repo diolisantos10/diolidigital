@@ -46,15 +46,18 @@ export function useHydrateFromDb() {
         fetchJson<DbDeliverable>("/api/deliverables"),
       ]);
 
-      // DB is the single source of truth: each entity that loaded successfully
-      // REPLACES the local copy, so stale localStorage (e.g. pilot/demo data
-      // loaded in one browser) stops showing and every browser matches. A
-      // failed fetch (null) leaves that entity's local data untouched.
+      // DB is the source of truth, but REPLACE only when the DB actually has
+      // rows for that entity — so real DB data supersedes stale local/pilot
+      // data, while an empty (or failed) response never WIPES local rows that
+      // may not have written through yet. Prevents the "successful-but-empty
+      // response deletes unsynced data" data-loss path.
+      const pick = <D, T>(db: D[] | null, adapt: () => T[], local: T[]): T[] =>
+        db && db.length > 0 ? adapt() : local;
       useAgencyStore.setState((s) => ({
-        clients:      clients      ? clients.map(dbClientToMock)           : s.clients,
-        projects:     projects     ? projects.map(dbProjectToMock)         : s.projects,
-        tasks:        tasks         ? tasks.map(dbTaskToMock)              : s.tasks,
-        deliverables: deliverables ? deliverables.map(dbDeliverableToMock) : s.deliverables,
+        clients:      pick(clients,      () => clients!.map(dbClientToMock),          s.clients),
+        projects:     pick(projects,     () => projects!.map(dbProjectToMock),        s.projects),
+        tasks:        pick(tasks,        () => tasks!.map(dbTaskToMock),              s.tasks),
+        deliverables: pick(deliverables, () => deliverables!.map(dbDeliverableToMock), s.deliverables),
       }));
     })();
   }, []);

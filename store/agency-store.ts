@@ -1022,7 +1022,18 @@ export const useAgencyStore = create<AgencyState>()(
           })
             .then((r) => (r.ok ? r.json() : null))
             .then((db) => {
-              if (db?.id) set((s) => ({ deliverables: s.deliverables.map((x) => (x.id === id ? { ...x, id: db.id } : x)) }));
+              if (!db?.id) return;
+              set((s) => ({ deliverables: s.deliverables.map((x) => (x.id === id ? { ...x, id: db.id } : x)) }));
+              // The deliverable may have been auto-approved (full_ai) between the
+              // POST and now — that status update ran against the local id and
+              // didn't persist. Re-sync the current status to the DB row.
+              const cur = get().deliverables.find((x) => x.id === db.id);
+              if (cur && (cur.status !== "draft" || (cur.revisionStatus && cur.revisionStatus !== "none"))) {
+                void fetch(`/api/deliverables/${db.id}`, {
+                  method: "PUT", headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ status: cur.status, revisionStatus: cur.revisionStatus ?? "none", revisionHistory: cur.revisionHistory ?? [] }),
+                }).catch(() => {});
+              }
             })
             .catch(() => {});
         }
@@ -1049,7 +1060,35 @@ export const useAgencyStore = create<AgencyState>()(
         })
           .then((r) => (r.ok ? r.json() : null))
           .then((db) => {
-            if (db?.id) set((s) => ({ clients: s.clients.map((c) => (c.id === id ? { ...c, id: db.id } : c)) }));
+            if (!db?.id) return;
+            const oldClientId = id;
+            set((s) => ({
+              clients:  s.clients.map((c) => (c.id === oldClientId ? { ...c, id: db.id } : c)),
+              projects: s.projects.map((p) => (p.clientId === oldClientId ? { ...p, clientId: db.id } : p)),
+            }));
+            // Projects created for this client BEFORE it had a DB id were skipped
+            // by write-through (clientId was still local). Persist them now.
+            const pending = get().projects.filter((p) => p.clientId === db.id && p.id.length <= 12);
+            for (const proj of pending) {
+              const localProjId = proj.id;
+              void fetch("/api/projects", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  clientId: db.id, name: proj.name, goal: proj.goal, type: proj.type,
+                  stage: proj.stage, priority: proj.priority, deadline: proj.deadline, agents: proj.agents,
+                }),
+              })
+                .then((r) => (r.ok ? r.json() : null))
+                .then((dbp) => {
+                  if (!dbp?.id) return;
+                  set((s) => ({
+                    projects:         s.projects.map((p) => (p.id === localProjId ? { ...p, id: dbp.id } : p)),
+                    tasks:            s.tasks.map((t) => (t.projectId === localProjId ? { ...t, projectId: dbp.id } : t)),
+                    materialRequests: s.materialRequests.map((m) => (m.projectId === localProjId ? { ...m, projectId: dbp.id } : m)),
+                  }));
+                })
+                .catch(() => {});
+            }
           })
           .catch(() => {});
         return id;
