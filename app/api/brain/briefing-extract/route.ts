@@ -13,6 +13,7 @@
 // request/response cycle and never logged.
 
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimited } from "@/lib/security/rate-limit";
 import { resolveProviderKey } from "@/lib/ai/resolve-key";
 
 const CLAUDE_URL  = "https://api.anthropic.com/v1/messages";
@@ -120,6 +121,9 @@ function validateExtracted(raw: unknown): ExtractedFields {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const _limited = rateLimited(req, "briefing-extract", 30, 60_000);
+  if (_limited) return _limited as NextResponse;
+
   const resolved = await resolveProviderKey("claude");
   if (!resolved) {
     // Not configured — tell client to rely on rule-based engine (not an error).

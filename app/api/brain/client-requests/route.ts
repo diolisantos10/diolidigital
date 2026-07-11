@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db/client";
 import { createClientRequest, listClientRequests, updateClientRequest, getClientRequest, deleteClientRequest } from "@/lib/agency/persistence/client-request-service";
 import { requireSession } from "@/lib/auth/api-guard";
 import { runAutoScope } from "@/lib/dioli-brain/run-auto-scope";
+import { rateLimited } from "@/lib/security/rate-limit";
 import { sendEmail } from "@/lib/email/send";
 import { briefingConfirmationEmail } from "@/lib/email/templates";
 
@@ -63,6 +64,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  // Public + fires the AI auto-scope pipeline — cap it tightly per IP.
+  const limited = rateLimited(request, "client-requests", 8, 60_000);
+  if (limited) return limited as NextResponse;
+
   let body: Record<string, unknown>;
   try {
     body = await request.json();

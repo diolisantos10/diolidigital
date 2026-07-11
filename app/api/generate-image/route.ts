@@ -4,10 +4,14 @@
 // and client deliverables. Keeps the legacy `{ url }` response contract.
 
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimited } from "@/lib/security/rate-limit";
 import { getSession } from "@/lib/auth/session";
 import { generateDesign, type DesignSize, type DesignQuality } from "@/lib/ai/design-engine";
 
 export async function POST(request: NextRequest) {
+  const _limited = rateLimited(request, "generate-image", 10, 60_000);
+  if (_limited) return _limited;
+
   const body = (await request.json().catch(() => ({}))) as {
     prompt?: string;
     size?: DesignSize;

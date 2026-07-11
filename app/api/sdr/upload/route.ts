@@ -16,6 +16,7 @@
 // the raw file is a separate (future) concern.
 
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimited } from "@/lib/security/rate-limit";
 import { resolveProviderKey } from "@/lib/ai/resolve-key";
 import AdmZip from "adm-zip";
 
@@ -123,6 +124,9 @@ async function extractWithClaude(buf: Buffer, mime: string): Promise<string> {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const _limited = rateLimited(req, "sdr-upload", 12, 60_000);
+  if (_limited) return _limited as NextResponse;
+
   let formData: FormData;
   try {
     formData = await req.formData();

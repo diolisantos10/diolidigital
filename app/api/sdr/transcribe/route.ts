@@ -8,6 +8,7 @@
 // the request cycle and never stored.
 
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimited } from "@/lib/security/rate-limit";
 import { resolveProviderKey } from "@/lib/ai/resolve-key";
 
 const OPENAI_URL = "https://api.openai.com/v1/audio/transcriptions";
@@ -21,6 +22,9 @@ function mimeToExt(mime: string): string {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const _limited = rateLimited(req, "sdr-transcribe", 12, 60_000);
+  if (_limited) return _limited as NextResponse;
+
   const resolved = await resolveProviderKey("openai");
   if (!resolved) {
     return NextResponse.json({ ok: false, reason: "not_configured" });
@@ -36,6 +40,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const audioFile = formData.get("file");
   if (!audioFile || !(audioFile instanceof Blob)) {
     return NextResponse.json({ ok: false, reason: "bad_request" }, { status: 400 });
+  }
+  // Cap upload size (Whisper's own limit is 25 MB) so a huge blob can't be
+  // buffered server-side or run up transcription cost.
+  const MAX_AUDIO_BYTES = 25 * 1024 * 1024;
+  if (audioFile.size > MAX_AUDIO_BYTES) {
+    return NextResponse.json({ ok: false, reason: "file_too_large" }, { status: 413 });
   }
 
   const mime = audioFile.type || "audio/webm";
