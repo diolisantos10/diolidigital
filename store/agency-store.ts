@@ -1010,6 +1010,22 @@ export const useAgencyStore = create<AgencyState>()(
           message: `"${data.name}" saved to project`,
           projectId: data.projectId,
         });
+        // Write-through when the project is DB-backed; reconcile local id → DB id.
+        if (data.projectId.length > 12) {
+          void fetch("/api/deliverables", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              projectId: deliverable.projectId, name: deliverable.name, type: deliverable.type,
+              status: deliverable.status, ownerAgentId: deliverable.ownerAgentId,
+              content: deliverable.previewContent ? JSON.stringify(deliverable.previewContent) : (deliverable.link ?? undefined),
+            }),
+          })
+            .then((r) => (r.ok ? r.json() : null))
+            .then((db) => {
+              if (db?.id) set((s) => ({ deliverables: s.deliverables.map((x) => (x.id === id ? { ...x, id: db.id } : x)) }));
+            })
+            .catch(() => {});
+        }
         return id;
       },
 
@@ -1205,6 +1221,12 @@ export const useAgencyStore = create<AgencyState>()(
           message: `Proposta enviada ao cliente para "${project.name}"`,
           projectId: id,
         });
+        if (id.length > 12) {
+          void fetch(`/api/projects/${id}`, {
+            method: "PUT", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ stage: "proposal_sent", proposalStatus: "sent" }),
+          }).catch(() => {});
+        }
       },
 
       approveProposal: (id) => {
@@ -1298,6 +1320,13 @@ export const useAgencyStore = create<AgencyState>()(
             projectId: task.projectId,
           });
         }
+        // Persist to the DB so the status change syncs to other browsers.
+        if (id.length > 12) {
+          void fetch(`/api/tasks/${id}`, {
+            method: "PATCH", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status }),
+          }).catch(() => {});
+        }
       },
 
       // ── Deliverables ──────────────────────────────────────────────────────
@@ -1334,6 +1363,13 @@ export const useAgencyStore = create<AgencyState>()(
             : `"${d.name}" status → ${status}`,
           projectId: d.projectId,
         });
+        if (id.length > 12) {
+          const upd = get().deliverables.find((x) => x.id === id);
+          void fetch(`/api/deliverables/${id}`, {
+            method: "PUT", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status, revisionStatus, revisionHistory: upd?.revisionHistory ?? [] }),
+          }).catch(() => {});
+        }
       },
 
       setDeliverableFeedback: (id, feedback) => {
@@ -1370,6 +1406,13 @@ export const useAgencyStore = create<AgencyState>()(
           message: `"${d.name}" — cliente solicitou alterações`,
           projectId: d.projectId,
         });
+        if (id.length > 12) {
+          const upd = get().deliverables.find((x) => x.id === id);
+          void fetch(`/api/deliverables/${id}`, {
+            method: "PUT", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: "draft", revisionStatus: "revision_requested", clientFeedback: feedback, lastFeedback: feedback, revisionHistory: upd?.revisionHistory ?? [] }),
+          }).catch(() => {});
+        }
       },
 
       // Owner agent picks up the revision work (draft → actively being reworked).
@@ -1432,6 +1475,13 @@ export const useAgencyStore = create<AgencyState>()(
           message: `"${d.name}" — nova versão v${newVersion} para revisão`,
           projectId: d.projectId,
         });
+        if (id.length > 12) {
+          const upd = get().deliverables.find((x) => x.id === id);
+          void fetch(`/api/deliverables/${id}`, {
+            method: "PUT", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: "in_review", revisionStatus: "resolved", version: newVersion, revisionHistory: upd?.revisionHistory ?? [] }),
+          }).catch(() => {});
+        }
       },
 
       // ── Briefings ─────────────────────────────────────────────────────────
@@ -1466,6 +1516,17 @@ export const useAgencyStore = create<AgencyState>()(
           requestedAt: new Date().toISOString(),
         };
         set((s) => ({ materialRequests: [...s.materialRequests, req] }));
+        if (data.projectId && data.projectId.length > 12) {
+          void fetch("/api/material-requests", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ projectId: data.projectId, title: data.title, description: data.description }),
+          })
+            .then((r) => (r.ok ? r.json() : null))
+            .then((db) => {
+              if (db?.id) set((s) => ({ materialRequests: s.materialRequests.map((r) => (r.id === id ? { ...r, id: db.id } : r)) }));
+            })
+            .catch(() => {});
+        }
         return id;
       },
 
@@ -1475,6 +1536,12 @@ export const useAgencyStore = create<AgencyState>()(
             r.id === id ? { ...r, status } : r
           ),
         }));
+        if (id.length > 12) {
+          void fetch(`/api/material-requests/${id}`, {
+            method: "PATCH", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status }),
+          }).catch(() => {});
+        }
       },
 
       // ── QA Test History ───────────────────────────────────────────────────
