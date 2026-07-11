@@ -38,8 +38,12 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const { projects, clients, tasks, deliverables, briefings, materialRequests, updateTaskStatus, updateDeliverableStatus, updateProject, updateProposal, sendProposal, moveProjectStage, setPendingAgentInput } = useAgencyStore();
   const { strategyRooms, generate: generateStrategyRoom, clear: clearStrategyRoom } = useDbStrategyRooms();
 
-  type TabId = "overview" | "proposal" | "execution" | "pipeline" | "tasks" | "deliverables" | "briefing" | "strategy" | "assets" | "history" | "report" | "timeline";
-  const VALID_TABS: TabId[] = ["overview", "proposal", "execution", "pipeline", "tasks", "deliverables", "briefing", "strategy", "assets", "history", "report", "timeline"];
+  type TabId = "overview" | "proposal" | "execution" | "pipeline" | "tasks" | "deliverables" | "briefing" | "strategy" | "report" | "timeline";
+  // Every tab remains reachable (deep-links + in-page buttons), but the tab BAR
+  // shows only the five that matter day-to-day. Dead stubs (assets, history)
+  // were removed entirely.
+  const VALID_TABS: TabId[] = ["overview", "proposal", "execution", "pipeline", "tasks", "deliverables", "briefing", "strategy", "report", "timeline"];
+  const BAR_TABS: TabId[] = ["overview", "proposal", "tasks", "deliverables", "strategy"];
   const [tab, setTab] = useState<TabId>(() => {
     const t = searchParams.get("tab") as TabId | null;
     return t && VALID_TABS.includes(t) ? t : "overview";
@@ -105,7 +109,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
   const getAgent = (agentId: string) => MOCK_AGENTS.find((a) => a.id === agentId);
 
-  const TABS = VALID_TABS;
+  const TABS = BAR_TABS;
   const TAB_LABELS: Record<TabId, string> = {
     overview: "Visão Geral",
     proposal: "Proposta",
@@ -115,8 +119,6 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     deliverables: "Entregas",
     briefing: "Briefing",
     strategy: "Estratégia",
-    assets: "Ativos",
-    history: "Histórico",
     report: "Relatório",
     timeline: "Linha do Tempo",
   };
@@ -1679,29 +1681,6 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       )}
 
       {/* Tab: Assets */}
-      {tab === "assets" && (
-        <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-6 py-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-          <p className="text-[13px] text-[#6B6B65]">
-            Os ativos de marca de <strong>{client?.name}</strong> são gerenciados na seção{" "}
-            <Link href="/agency/brand-assets" className="text-[#070A1F] hover:underline">Brand Assets</Link>.
-          </p>
-          {client && (
-            <Link href={`/agency/clients/${client.id}`} className="inline-flex items-center gap-1.5 mt-4 text-[13px] font-medium text-[#070A1F] hover:underline">
-              Ver ativos de {client.name} →
-            </Link>
-          )}
-        </div>
-      )}
-
-      {/* Tab: History */}
-      {tab === "history" && (
-        <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-          <div className="px-6 py-4 text-center text-[13px] text-[#9B9B95]">
-            O histórico de atividades está disponível no Painel de Controle.
-          </div>
-        </div>
-      )}
-
       {/* Tab: Report */}
       {tab === "report" && (() => {
         const progress = getProjectProgress(project, projectDeliverables, projectTasks, projectMaterialRequests, strategyRooms);
