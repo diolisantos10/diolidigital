@@ -1243,6 +1243,7 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
   }
 
   const [confirmStep, setConfirmStep] = useState<"pending" | "confirmed">("pending");
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const scope    = conv.scope;
   const estimate = conv.estimate;
@@ -1415,7 +1416,7 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
       </div>
 
       {/* ── Right: Request panel ──────────────────────────────────────────────── */}
-      <div className="lg:sticky lg:top-6">
+      <div ref={panelRef} className="lg:sticky lg:top-6 scroll-mt-4">
         <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
 
           {/* Header */}
@@ -1536,6 +1537,23 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
         </div>
 
       </div>
+
+      {/* Mobile sticky confirm — on phones the summary panel sits BELOW the chat,
+          so surface the CTA in a fixed bar that's always reachable with a thumb. */}
+      {canSubmit && confirmStep === "pending" && (
+        <div className="lg:hidden fixed inset-x-0 bottom-0 z-30 bg-white/95 backdrop-blur border-t border-[#E5E5E2] px-4 py-3 shadow-[0_-2px_12px_rgba(0,0,0,0.08)]">
+          <button
+            onClick={() => {
+              setConfirmStep("confirmed");
+              setTimeout(() => panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+            }}
+            style={{ touchAction: "manipulation" }}
+            className="w-full h-12 rounded-[10px] bg-[#1A1A1A] hover:bg-[#111111] text-white text-[14px] font-semibold transition-colors"
+          >
+            Sim, quero meu orçamento →
+          </button>
+        </div>
+      )}
     </div>
   );
 }

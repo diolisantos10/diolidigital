@@ -174,7 +174,15 @@ const IDENTITY_QUESTIONS: QuestionDef[] = [
       return "Para começar, qual é o seu nome e o nome do seu negócio?";
     },
     parse: (answer, s) => {
-      const { prospectName, businessName } = parseProspectNameBiz(answer);
+      let { prospectName, businessName } = parseProspectNameBiz(answer);
+      // "Negócio = Nome" fix: a bare multi-word proper name given while we still
+      // need the person's name (welcome asks the NAME first) is the person, not
+      // the business — the old TitleCase rule wrongly captured it as businessName.
+      const hasBizSignal = /chamad[ao]|neg[óo]cio|empresa|loja\b|marca\b|restaurante|bar\b|caf[eé]|est[úu]dio|studio|ag[êe]ncia|cl[íi]nica|é\s+(o|a)\s|sou\s+d[aeo]/i.test(answer);
+      if (businessName && !prospectName && !s.scope.prospectName && !hasBizSignal && businessName.trim().split(/\s+/).length >= 3) {
+        prospectName = businessName;
+        businessName = undefined;
+      }
       return {
         ...(prospectName ? { prospectName } : {}),
         ...(businessName
@@ -258,7 +266,18 @@ export function processProspectMessage(
 
   if (conv.isFirstMessage) {
     const serviceDelta = parseInitialMessage(text);
-    const { prospectName, businessName: bizFromText } = parseProspectNameBiz(text);
+    let { prospectName, businessName: bizFromText } = parseProspectNameBiz(text);
+    // Negócio ≠ Nome: a bare person name (no business keyword) must not be
+    // captured as the business — both parsers guess it from a TitleCase string.
+    const hasBizSignal = /chamad[ao]|neg[óo]cio|empresa|loja\b|marca\b|restaurante|bar\b|caf[eé]|est[úu]dio|studio|ag[êe]ncia|cl[íi]nica|é\s+(o|a)\s|sou\s+d[aeo]/i.test(text);
+    const guessedBiz = bizFromText ?? serviceDelta.businessName;
+    // 3+ words with no business keyword reads as a full person name (first +
+    // middle + last), not a brand — treat it as the person, ask the business next.
+    if (guessedBiz && !prospectName && !hasBizSignal && guessedBiz.trim().split(/\s+/).length >= 3) {
+      prospectName = guessedBiz;
+      bizFromText = undefined;
+      delete serviceDelta.businessName;
+    }
     // Use file-name hint as a weak signal only when text detection finds nothing
     const bizFromFiles = !bizFromText && attachmentFileNames?.length
       ? extractBizFromFileNames(attachmentFileNames)
@@ -381,7 +400,7 @@ export function processProspectMessage(
     const prefix = ack ? ack + "\n\n" : "";
     replyText = nextQ
       ? `${prefix}${buildSDRQuestionText(nextQ, mid, newSdr)}`
-      : `${prefix}Tenho as informações principais! Confira o resumo do seu pedido ao lado e confirme para eu preparar seu orçamento.`;
+      : `${prefix}Tenho as informações principais! Confira o resumo do seu pedido e confirme para eu preparar seu orçamento.`;
 
   } else if (newSdr.objection.active) {
     if (negotiationHappened) {
@@ -407,7 +426,7 @@ export function processProspectMessage(
     }
 
   } else {
-    replyText = "Perfeito! Tenho todas as informações que preciso. Confira o resumo do seu pedido ao lado e confirme para eu preparar seu orçamento personalizado.";
+    replyText = "Perfeito! Tenho todas as informações que preciso. Confira o resumo do seu pedido e confirme para eu preparar seu orçamento personalizado.";
   }
 
   // ── Finalise SDR state ────────────────────────────────────────────────────

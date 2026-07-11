@@ -156,9 +156,13 @@ const QUESTIONS: QuestionDef[] = [
     when: (s) => !s.scope.wantsSocialMedia && s.scope.wantsPaidTraffic === undefined && !s.scope.branding.requested,
     text: () => "Pode me contar mais? Você está buscando gestão de redes sociais, tráfego pago, criação de identidade visual — ou uma combinação?",
     parse: (answer) => {
-      const wantsSocialMedia  = /social|instagram|facebook|redes|posts/i.test(answer);
-      const wantsPaidTraffic  = /tráfego|anúncio|ads|pago|impulsion/i.test(answer);
-      const requestedBranding = detectBrandingRequest(answer);
+      // "os 3", "todos", "as três", "tudo", "uma combinação" → the client wants
+      // ALL three services just offered. Without this, a short "Os 3" captured
+      // nothing and the request silently had no service.
+      const all = /\b(os\s*(3|tr[êe]s)|as\s*tr[êe]s|todos|todas|tudo|todo\s+os|uma?\s*combina|combina[çc])\b/i.test(answer);
+      const wantsSocialMedia  = all || /social|instagram|facebook|redes|posts/i.test(answer);
+      const wantsPaidTraffic  = all || /tráfego|anúncio|ads|pago|impulsion/i.test(answer);
+      const requestedBranding = all || detectBrandingRequest(answer);
       return {
         wantsSocialMedia,
         ...(wantsPaidTraffic ? { wantsPaidTraffic: true } : {}),
@@ -583,7 +587,7 @@ export function processClientMessage(text: string, state: ConvState): ConvState 
     const ack = buildAcknowledgment(newScope);
     replyText = nextQ
       ? `${ack}\n\n${nextQ.text(mid)}`
-      : `${ack}\n\nTenho as informações principais! Revise o escopo ao lado e envie quando estiver pronto.`;
+      : `${ack}\n\nTenho as informações principais! Revise o resumo do seu pedido e envie quando estiver pronto.`;
   } else if (negotiationReply) {
     replyText = nextQ && !allDone
       ? `${negotiationReply}\n\n${nextQ.text(mid)}`
@@ -591,7 +595,7 @@ export function processClientMessage(text: string, state: ConvState): ConvState 
   } else if (nextQ) {
     replyText = nextQ.text(mid);
   } else {
-    replyText = "Ótimo! Tenho tudo que preciso. Revise o escopo ao lado e clique em **\"Enviar solicitação\"** quando estiver pronto.";
+    replyText = "Ótimo! Tenho tudo que preciso. Revise o resumo do seu pedido e clique em **\"Enviar solicitação\"** quando estiver pronto.";
   }
 
   const assistantMsg: ConvMessage = {

@@ -79,3 +79,23 @@ describe("SDR discovery protocol — complete before closing", () => {
     expect(state.conv.scope.branding.requested).toBe(true);
   });
 });
+
+describe("SDR intake fixes — Os 3 and Negócio≠Nome", () => {
+  it("'Os 3' after name+business captures all three services", () => {
+    let s = initProspectConvState();
+    s = processProspectMessage("Beatriz", s);
+    s = processProspectMessage("Estúdio Bella", s);
+    s = processProspectMessage("Os 3", s);        // wants social + traffic + branding
+    const sc = s.conv.scope;
+    expect(sc.wantsSocialMedia).toBe(true);
+    expect(sc.wantsPaidTraffic).toBe(true);
+    expect(sc.branding.requested).toBe(true);
+  });
+
+  it("a bare multi-word person name never becomes the business name", () => {
+    let s = initProspectConvState();
+    s = processProspectMessage("Beatriz Souza Gimenes", s);   // person's full name
+    expect(s.conv.scope.prospectName).toBe("Beatriz Souza Gimenes");
+    expect(s.conv.scope.businessName).not.toBe("Beatriz Souza Gimenes");
+  });
+});
