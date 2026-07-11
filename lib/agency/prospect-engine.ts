@@ -367,8 +367,16 @@ export function processProspectMessage(
         newSdr.objection = { ...newSdr.objection, active: false, resolvedAt: new Date().toISOString() };
         if (bAmt !== undefined) newSdr.budgetSignal = { ...newSdr.budgetSignal, fitStatus: newFit };
       }
-    } else if (clientAccepts) {
-      newSdr.objection = { ...newSdr.objection, active: false, resolvedAt: new Date().toISOString() };
+    } else {
+      // Also resolve when the prospect answers the objection by stating a budget
+      // that FITS the current estimate — no scope change or acceptance word
+      // needed. Without this, the confirm CTA stayed wedged behind the objection.
+      const bAmt = newSdr.budgetSignal.amount;
+      const fits = bAmt !== undefined && evaluateBudgetFit(bAmt, newEstimate) === "fits";
+      if (clientAccepts || fits) {
+        newSdr.objection = { ...newSdr.objection, active: false, resolvedAt: new Date().toISOString() };
+        if (fits) newSdr.budgetSignal = { ...newSdr.budgetSignal, fitStatus: "fits" };
+      }
     }
   }
 
