@@ -8,6 +8,7 @@
 
 import { use, useCallback, useEffect, useState } from "react";
 import { PortalChat } from "@/components/agency/portal/PortalChat";
+import { FloatingChat } from "@/components/agency/portal/FloatingChat";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -270,6 +271,24 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
         {/* ── VISÃO GERAL ── */}
         {section === "overview" && (
           <div className="space-y-6">
+            {/* Talk-to-your-manager banner — communication front and center */}
+            <button
+              onClick={() => setSection("chat")}
+              className="w-full text-left rounded-[14px] px-4 py-3.5 flex items-center gap-3 shadow-[0_2px_10px_rgba(7,10,31,0.06)] transition-transform hover:scale-[1.005]"
+              style={{ background: "linear-gradient(120deg,#0B0F2A,#0A1030)" }}
+            >
+              <span className="flex items-center justify-center w-10 h-10 rounded-full shrink-0" style={{ background: "rgba(154,245,240,0.14)" }}>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <path d="M4 4h12a1 1 0 011 1v8a1 1 0 01-1 1H8l-3.5 3V14H4a1 1 0 01-1-1V5a1 1 0 011-1z" stroke="#9AF5F0" strokeWidth="1.4" strokeLinejoin="round" />
+                </svg>
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-[14px] font-semibold text-white leading-tight">Fale com seu gerente de projeto</p>
+                <p className="text-[12px] text-white/55 leading-tight mt-0.5">Texto ou áudio, quando quiser — a equipe responde rápido.</p>
+              </div>
+              <span className="text-[#9AF5F0] text-[18px] shrink-0">→</span>
+            </button>
+
             {/* Results */}
             <section>
               <div className="flex items-center justify-between mb-2.5">
@@ -474,6 +493,9 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
       <footer className="max-w-[860px] mx-auto px-5 pb-8 text-center">
         <p className="text-[10px] text-[#C0C0BC]">Acesso seguro via link único · Dioli Digital</p>
       </footer>
+
+      {/* Always-on WhatsApp-style chat — the client can talk to the team from anywhere */}
+      <FloatingChat token={token} authorName={data.businessName} />
 
       <style jsx global>{`
         .no-scrollbar::-webkit-scrollbar { display: none; }

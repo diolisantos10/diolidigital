@@ -7,6 +7,7 @@
 // no websockets, no extra deps — efficiency over machinery.
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useSpeechToText } from "@/lib/hooks/useSpeechToText";
 
 interface ChatMessage {
   id: string;
@@ -26,6 +27,8 @@ interface PortalChatProps {
   authorName?: string;
   /** Visual height of the scroll area. */
   height?: number;
+  /** Fill the parent (no border/radius) — used inside the floating chat drawer. */
+  bare?: boolean;
 }
 
 function timeLabel(iso: string): string {
@@ -33,13 +36,21 @@ function timeLabel(iso: string): string {
   return d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
-export function PortalChat({ token, clientRequestId, authorName, height = 360 }: PortalChatProps) {
+export function PortalChat({ token, clientRequestId, authorName, height = 360, bare = false }: PortalChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
+
+  // Voice input — record, transcribe (pt-BR), drop the text into the box. Lets
+  // the client fire off a message by talking, WhatsApp-style.
+  const appendTranscript = useCallback((text: string) => {
+    setInput((prev) => (prev ? prev.trimEnd() + " " + text : text));
+  }, []);
+  const { isListening, isTranscribing, isSupported, startListening, stopListening } =
+    useSpeechToText({ onTranscript: appendTranscript });
 
   const query = token
     ? `token=${encodeURIComponent(token)}`
@@ -119,10 +130,10 @@ export function PortalChat({ token, clientRequestId, authorName, height = 360 }:
   }
 
   return (
-    <div className="flex flex-col rounded-[12px] border border-[#E5E5E2] bg-white overflow-hidden">
+    <div className={`flex flex-col bg-white overflow-hidden ${bare ? "flex-1 min-h-0" : "rounded-[12px] border border-[#E5E5E2]"}`}>
       <div
         className="px-4 py-3 overflow-y-auto space-y-3"
-        style={{ height }}
+        style={bare ? { flex: 1, minHeight: 0 } : { height }}
       >
         {loading ? (
           <p className="text-[12px] text-[#9B9B95] text-center py-8">Carregando conversa…</p>
@@ -161,23 +172,53 @@ export function PortalChat({ token, clientRequestId, authorName, height = 360 }:
         <p className="text-[10px] text-[#DC2626] px-4 pb-1">{error}</p>
       )}
 
-      <div className="border-t border-[#F0F0ED] p-2.5 flex gap-2">
+      <div className="border-t border-[#F0F0ED] p-2.5 flex items-end gap-2">
+        {isSupported && (
+          <button
+            type="button"
+            onClick={isTranscribing ? undefined : (isListening ? stopListening : startListening)}
+            disabled={isTranscribing}
+            title={isListening ? "Parar gravação" : "Gravar áudio"}
+            style={{ touchAction: "manipulation" }}
+            className={`w-10 h-10 rounded-full shrink-0 flex items-center justify-center transition-colors ${
+              isListening ? "bg-[#DC2626] text-white animate-pulse"
+              : isTranscribing ? "bg-[#F0F0ED] text-[#9B9B95]"
+              : "bg-[#F0F0ED] text-[#6B6B65] hover:bg-[#E5E5E2]"}`}
+          >
+            {isTranscribing ? (
+              <span className="flex gap-0.5">
+                <span className="w-1 h-1 rounded-full bg-[#9B9B95] animate-bounce" style={{ animationDelay: "0ms" }} />
+                <span className="w-1 h-1 rounded-full bg-[#9B9B95] animate-bounce" style={{ animationDelay: "150ms" }} />
+                <span className="w-1 h-1 rounded-full bg-[#9B9B95] animate-bounce" style={{ animationDelay: "300ms" }} />
+              </span>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <rect x="5.5" y="1.5" width="5" height="8" rx="2.5" stroke="currentColor" strokeWidth="1.3" />
+                <path d="M3 8a5 5 0 0010 0" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+                <path d="M8 13v1.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+              </svg>
+            )}
+          </button>
+        )}
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={onKeyDown}
-          placeholder="Escreva uma mensagem…"
+          placeholder={isListening ? "Gravando… fale agora" : "Escreva ou grave um áudio…"}
           rows={1}
-          className="flex-1 px-3 py-2 bg-[#F7F7F6] border border-[#E5E5E2] rounded-[8px] outline-none focus:border-[#1A1A1A] focus:bg-white transition-all resize-none leading-relaxed"
+          className="flex-1 px-3 py-2.5 bg-[#F7F7F6] border border-[#E5E5E2] rounded-[10px] outline-none focus:border-[#1A1A1A] focus:bg-white transition-all resize-none leading-relaxed"
           style={{ fontSize: "16px" }}
         />
         <button
           onClick={send}
           disabled={!input.trim() || sending}
-          className="px-4 rounded-[8px] bg-[#1A1A1A] hover:bg-[#111111] disabled:opacity-40 text-white text-[13px] font-semibold transition-colors shrink-0"
+          title="Enviar"
+          className="w-10 h-10 rounded-full bg-[#12B5AC] hover:bg-[#0E9E96] disabled:opacity-40 text-white flex items-center justify-center transition-colors shrink-0"
           style={{ touchAction: "manipulation" }}
         >
-          {sending ? "…" : "Enviar"}
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M14.5 8L2 2.5l2.5 5.5L2 13.5 14.5 8z" fill="currentColor" />
+          </svg>
         </button>
       </div>
     </div>
