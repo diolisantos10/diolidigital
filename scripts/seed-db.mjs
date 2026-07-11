@@ -35,8 +35,14 @@ async function main() {
   console.log("✓ Workspace");
 
   // Users (staff only — no demo clients)
-  const masterHash = await hash("dioli2025", 12);
-  const staffHash  = await hash("staff2025",  12);
+  // Passwords come from env so production isn't seeded with a public default.
+  // When SEED_MASTER_PASSWORD / SEED_STAFF_PASSWORD are set, the existing users
+  // are ROTATED to them (INSERT OR IGNORE alone never updates an existing row).
+  const masterPw = process.env.SEED_MASTER_PASSWORD || "dioli2025";
+  const staffPw  = process.env.SEED_STAFF_PASSWORD  || "staff2025";
+  const usingDefaultMaster = !process.env.SEED_MASTER_PASSWORD;
+  const masterHash = await hash(masterPw, 12);
+  const staffHash  = await hash(staffPw,  12);
 
   await q(`INSERT OR IGNORE INTO User (id, email, name, passwordHash, role, workspaceId, createdAt, updatedAt)
     VALUES ('cmpyzf27d0001nq7dt0331v31','master@dioli.studio','Dioli Master',?,'master',?, datetime('now'), datetime('now'))`, [masterHash, wsId]);
@@ -46,10 +52,21 @@ async function main() {
     VALUES ('u_social01','social@dioli.studio','Social Staff',?,'social_staff',?, datetime('now'), datetime('now'))`, [staffHash, wsId]);
   await q(`INSERT OR IGNORE INTO User (id, email, name, passwordHash, role, workspaceId, createdAt, updatedAt)
     VALUES ('u_design01','design@dioli.studio','Design Staff',?,'design_staff',?, datetime('now'), datetime('now'))`, [staffHash, wsId]);
-  console.log("✓ Users: master@dioli.studio / dioli2025");
+
+  // Rotate existing accounts to the env-provided passwords (only when set).
+  if (process.env.SEED_MASTER_PASSWORD) {
+    await q(`UPDATE User SET passwordHash = ? WHERE email = 'master@dioli.studio'`, [masterHash]);
+  }
+  if (process.env.SEED_STAFF_PASSWORD) {
+    await q(`UPDATE User SET passwordHash = ? WHERE email IN ('pm@dioli.studio','social@dioli.studio','design@dioli.studio')`, [staffHash]);
+  }
+  if (usingDefaultMaster) {
+    console.warn("⚠ SEED_MASTER_PASSWORD não definido — master usando senha PADRÃO pública. Defina uma senha forte nas Variables do Railway.");
+  }
+  console.log("✓ Users seeded (master@dioli.studio)");
 
   console.log("\n✅ Seed complete — sistema limpo, sem dados demo.");
-  console.log("   Login:  master@dioli.studio / dioli2025");
+  console.log("   Login:  master@dioli.studio");
 }
 
 main()
