@@ -13,12 +13,20 @@ const ALGO = "aes-256-gcm";
 const IV_LENGTH = 12; // GCM standard
 const SALT = "dioli-agency-os::credentials::v1";
 
+let warnedMissingSecret = false;
+
 function secretMaterial(): string {
-  return (
-    process.env.CREDENTIALS_SECRET?.trim() ||
-    process.env.DATABASE_URL?.trim() ||
-    "dioli-agency-os-fallback-secret-change-me"
-  );
+  const explicit = process.env.CREDENTIALS_SECRET?.trim();
+  if (explicit) return explicit;
+  // Falling back to a predictable source (the DB path) weakens at-rest
+  // encryption — anyone with the DB file could re-derive the key. Warn loudly
+  // once so an operator sets a real secret; behaviour is unchanged to avoid
+  // breaking keys already encrypted with the fallback.
+  if (!warnedMissingSecret && process.env.NODE_ENV === "production") {
+    warnedMissingSecret = true;
+    console.warn("⚠ CREDENTIALS_SECRET não definido — chaves de API são cifradas com uma chave derivada do DATABASE_URL (previsível). Defina CREDENTIALS_SECRET nas Variables do Railway.");
+  }
+  return process.env.DATABASE_URL?.trim() || "dioli-agency-os-fallback-secret-change-me";
 }
 
 function derivedKey(): Buffer {

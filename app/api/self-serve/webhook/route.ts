@@ -3,7 +3,26 @@
 // On payment approved: marks the ClientRequestDb as "in_progress".
 
 import { NextRequest, NextResponse } from "next/server";
+import { createHmac, timingSafeEqual } from "crypto";
 import { prisma } from "@/lib/db/client";
+
+// Validate Mercado Pago's x-signature HMAC. Manifest per MP docs:
+//   id:<data.id>;request-id:<x-request-id>;ts:<ts>;
+// Only enforced when MERCADOPAGO_WEBHOOK_SECRET is set (so it can't lock out an
+// unconfigured instance); when set, a bad/missing signature is rejected.
+function verifyMpSignature(req: NextRequest, dataId: string): boolean {
+  const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET?.trim();
+  if (!secret) return true; // not configured → skip (warned below)
+  const sig = req.headers.get("x-signature");
+  const requestId = req.headers.get("x-request-id") ?? "";
+  if (!sig) return false;
+  const parts = Object.fromEntries(sig.split(",").map((p) => p.split("=").map((x) => x.trim())));
+  const ts = parts.ts, v1 = parts.v1;
+  if (!ts || !v1) return false;
+  const manifest = `id:${dataId.toLowerCase()};request-id:${requestId};ts:${ts};`;
+  const expected = createHmac("sha256", secret).update(manifest).digest("hex");
+  try { return timingSafeEqual(Buffer.from(expected), Buffer.from(v1)); } catch { return false; }
+}
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const mpToken = process.env.MERCADOPAGO_ACCESS_TOKEN?.trim();
@@ -21,6 +40,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const paymentId = (body.data as Record<string, string> | undefined)?.id;
   if (type !== "payment" || !paymentId) {
     return NextResponse.json({ ok: true, ignored: true });
+  }
+
+  if (!verifyMpSignature(req, paymentId)) {
+    return NextResponse.json({ ok: false, error: "invalid_signature" }, { status: 401 });
+  }
+  if (!process.env.MERCADOPAGO_WEBHOOK_SECRET) {
+    console.warn("[self-serve/webhook] MERCADOPAGO_WEBHOOK_SECRET não definido — assinatura NÃO verificada.");
   }
 
   try {

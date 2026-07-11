@@ -1,3 +1,4 @@
+import { randomBytes } from "crypto";
 import { prisma } from "@/lib/db/client";
 
 export interface CreatePortalAccessInput {
@@ -6,9 +7,14 @@ export interface CreatePortalAccessInput {
   expiresAt?: Date;
 }
 
+// A portal token is the SOLE credential for unauthenticated client access, so
+// it must be unguessable. cuid (the schema default) is collision-resistant but
+// low-entropy — mint a 256-bit random, URL-safe token instead. Existing cuid
+// tokens keep validating (lookup is by value).
 export async function createPortalAccess(input: CreatePortalAccessInput) {
   return prisma.portalAccess.create({
     data: {
+      token:           randomBytes(32).toString("base64url"),
       clientRequestId: input.clientRequestId,
       clientId:        input.clientId,
       expiresAt:       input.expiresAt,
