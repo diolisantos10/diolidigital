@@ -7,8 +7,7 @@
 // client's business name under the Dioli brand.
 
 import { use, useCallback, useEffect, useState } from "react";
-import { PortalChat } from "@/components/agency/portal/PortalChat";
-import { FloatingChat } from "@/components/agency/portal/FloatingChat";
+import { ChatDrawer } from "@/components/agency/portal/FloatingChat";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -38,7 +37,7 @@ interface PortalData {
   approvals: PortalApproval[];
 }
 
-type SectionId = "overview" | "approvals" | "materials" | "integrations" | "chat";
+type SectionId = "overview" | "approvals" | "materials" | "integrations";
 
 // ── Token sanitiser (paste artifacts) ────────────────────────────────────────
 
@@ -71,7 +70,6 @@ const SECTIONS: { id: SectionId; label: string; icon: string }[] = [
   { id: "approvals",    label: "Aprovações",   icon: "✓" },
   { id: "materials",    label: "Materiais",    icon: "↑" },
   { id: "integrations", label: "Integrações",  icon: "⚡" },
-  { id: "chat",         label: "Conversa",     icon: "✦" },
 ];
 
 // Marketing-agency integrations the client connects so the agency can pull data
@@ -135,6 +133,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
   const [comments, setComments] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [chatOpen, setChatOpen] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!token) return;
@@ -224,15 +223,30 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
             <DioliMark />
             <span className="text-[11px] font-medium text-white/45">Portal do Cliente</span>
           </div>
-          <div className="mt-7 sm:mt-9">
-            <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full text-[11px] font-semibold"
-                  style={{ background: "rgba(154,245,240,0.12)", color: "#9AF5F0" }}>
-              <span className="w-1.5 h-1.5 rounded-full bg-[#9AF5F0] animate-pulse" /> {currentStatus}
-            </span>
-            <h1 className="text-[26px] sm:text-[32px] font-bold text-white mt-2.5 tracking-tight leading-tight">
-              {data.businessName}
-            </h1>
-            <p className="text-[13px] text-white/55 mt-1">Sua central de projeto com a Dioli — resultados, aprovações e comunicação num só lugar.</p>
+          <div className="mt-7 sm:mt-9 flex items-end justify-between gap-4">
+            <div className="min-w-0">
+              <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full text-[11px] font-semibold"
+                    style={{ background: "rgba(154,245,240,0.12)", color: "#9AF5F0" }}>
+                <span className="w-1.5 h-1.5 rounded-full bg-[#9AF5F0] animate-pulse" /> {currentStatus}
+              </span>
+              <h1 className="text-[26px] sm:text-[32px] font-bold text-white mt-2.5 tracking-tight leading-tight truncate">
+                {data.businessName}
+              </h1>
+              <p className="text-[13px] text-white/55 mt-1">Sua central de projeto com a Dioli — resultados, aprovações e comunicação num só lugar.</p>
+            </div>
+            {/* Single chat entry — talk to the team by text, voice or attachment */}
+            <button
+              onClick={() => setChatOpen(true)}
+              aria-label="Falar com a equipe"
+              style={{ touchAction: "manipulation", background: "rgba(154,245,240,0.14)", border: "1px solid rgba(154,245,240,0.22)" }}
+              className="shrink-0 inline-flex items-center gap-2 h-11 pl-3.5 pr-4 rounded-full text-white font-semibold text-[13px] transition-transform hover:scale-[1.03]"
+            >
+              <svg width="17" height="17" viewBox="0 0 20 20" fill="none">
+                <path d="M4 4h12a1 1 0 011 1v8a1 1 0 01-1 1H8l-3.5 3V14H4a1 1 0 01-1-1V5a1 1 0 011-1z" stroke="#9AF5F0" strokeWidth="1.4" strokeLinejoin="round" />
+              </svg>
+              <span className="hidden sm:block">Falar com a equipe</span>
+              <span className="w-2 h-2 rounded-full bg-[#22C55E]" />
+            </button>
           </div>
         </div>
       </header>
@@ -271,24 +285,6 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
         {/* ── VISÃO GERAL ── */}
         {section === "overview" && (
           <div className="space-y-6">
-            {/* Talk-to-your-manager banner — communication front and center */}
-            <button
-              onClick={() => setSection("chat")}
-              className="w-full text-left rounded-[14px] px-4 py-3.5 flex items-center gap-3 shadow-[0_2px_10px_rgba(7,10,31,0.06)] transition-transform hover:scale-[1.005]"
-              style={{ background: "linear-gradient(120deg,#0B0F2A,#0A1030)" }}
-            >
-              <span className="flex items-center justify-center w-10 h-10 rounded-full shrink-0" style={{ background: "rgba(154,245,240,0.14)" }}>
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                  <path d="M4 4h12a1 1 0 011 1v8a1 1 0 01-1 1H8l-3.5 3V14H4a1 1 0 01-1-1V5a1 1 0 011-1z" stroke="#9AF5F0" strokeWidth="1.4" strokeLinejoin="round" />
-                </svg>
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="text-[14px] font-semibold text-white leading-tight">Fale com seu gerente de projeto</p>
-                <p className="text-[12px] text-white/55 leading-tight mt-0.5">Texto ou áudio, quando quiser — a equipe responde rápido.</p>
-              </div>
-              <span className="text-[#9AF5F0] text-[18px] shrink-0">→</span>
-            </button>
-
             {/* Results */}
             <section>
               <div className="flex items-center justify-between mb-2.5">
@@ -445,7 +441,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
             </div>
             <div className="bg-white rounded-[14px] border border-[#ECEBE7] p-5">
               <h3 className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">Enviar por link</h3>
-              <p className="text-[12px] text-[#6B6B65]">Prefere mandar um link (WeTransfer, Drive, Dropbox)? Fale com a equipe na aba <button onClick={() => setSection("chat")} className="text-[#12B5AC] font-semibold hover:underline">Conversa</button> que a gente organiza.</p>
+              <p className="text-[12px] text-[#6B6B65]">Prefere mandar um link (WeTransfer, Drive, Dropbox)? <button onClick={() => setChatOpen(true)} className="text-[#12B5AC] font-semibold hover:underline">Fale com a equipe</button> e anexe o link direto no chat.</p>
             </div>
           </div>
         )}
@@ -480,22 +476,14 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
           </div>
         )}
 
-        {/* ── CONVERSA ── */}
-        {section === "chat" && (
-          <div className="space-y-3">
-            <h2 className="text-[16px] font-bold text-[#1A1A1A]">Conversa com a equipe</h2>
-            <p className="text-[13px] text-[#6B6B65] -mt-1">Fale direto com quem cuida do seu projeto. Tire dúvidas, mande referências, peça ajustes.</p>
-            <PortalChat token={token} authorName={data.businessName} height={420} />
-          </div>
-        )}
       </main>
 
       <footer className="max-w-[860px] mx-auto px-5 pb-8 text-center">
         <p className="text-[10px] text-[#C0C0BC]">Acesso seguro via link único · Dioli Digital</p>
       </footer>
 
-      {/* Always-on WhatsApp-style chat — the client can talk to the team from anywhere */}
-      <FloatingChat token={token} authorName={data.businessName} />
+      {/* One chat entry — opened from the header button */}
+      <ChatDrawer open={chatOpen} onClose={() => setChatOpen(false)} token={token} authorName={data.businessName} />
 
       <style jsx global>{`
         .no-scrollbar::-webkit-scrollbar { display: none; }

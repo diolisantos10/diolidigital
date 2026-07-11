@@ -36,13 +36,43 @@ function timeLabel(iso: string): string {
   return d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
+// Render message text with clickable links (attachments arrive as shared URLs).
+function LinkifiedBody({ text, mine }: { text: string; mine: boolean }) {
+  const parts = text.split(/(https?:\/\/[^\s]+)/g);
+  return (
+    <>
+      {parts.map((p, i) =>
+        /^https?:\/\//.test(p) ? (
+          <a key={i} href={p} target="_blank" rel="noopener noreferrer"
+             className={`underline break-all ${mine ? "text-[#9AF5F0]" : "text-[#12B5AC]"}`}>
+            {p.length > 42 ? p.slice(0, 42) + "…" : p}
+          </a>
+        ) : (
+          <span key={i}>{p}</span>
+        ),
+      )}
+    </>
+  );
+}
+
 export function PortalChat({ token, clientRequestId, authorName, height = 360, bare = false }: PortalChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [attachOpen, setAttachOpen] = useState(false);
+  const [linkDraft, setLinkDraft] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
+
+  function addLink() {
+    const url = linkDraft.trim();
+    if (!url) return;
+    const withProto = /^https?:\/\//.test(url) ? url : `https://${url}`;
+    setInput((prev) => (prev ? prev.trimEnd() + " " + withProto : withProto));
+    setLinkDraft("");
+    setAttachOpen(false);
+  }
 
   // Voice input — record, transcribe (pt-BR), drop the text into the box. Lets
   // the client fire off a message by talking, WhatsApp-style.
@@ -158,7 +188,7 @@ export function PortalChat({ token, clientRequestId, authorName, height = 360, b
                       : "bg-[#F0F0ED] text-[#1A1A1A] rounded-tl-[4px]"
                   }`}
                 >
-                  {m.body}
+                  <LinkifiedBody text={m.body} mine={m.mine} />
                 </div>
                 <span className="text-[9px] text-[#C0C0BC] mt-0.5 px-1">{timeLabel(m.createdAt)}</span>
               </div>
@@ -172,7 +202,35 @@ export function PortalChat({ token, clientRequestId, authorName, height = 360, b
         <p className="text-[10px] text-[#DC2626] px-4 pb-1">{error}</p>
       )}
 
+      {/* Attach a link (Drive, WeTransfer, image URL…) — reliable without file storage */}
+      {attachOpen && (
+        <div className="border-t border-[#F0F0ED] px-2.5 pt-2.5 flex gap-2 items-center">
+          <input
+            value={linkDraft}
+            onChange={(e) => setLinkDraft(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addLink(); } }}
+            placeholder="Cole um link (Drive, WeTransfer, imagem…)"
+            autoFocus
+            className="flex-1 px-3 py-2 bg-[#F7F7F6] border border-[#E5E5E2] rounded-[8px] outline-none focus:border-[#1A1A1A] text-[13px]"
+            style={{ fontSize: "16px" }}
+          />
+          <button onClick={addLink} disabled={!linkDraft.trim()} className="h-9 px-3 rounded-[8px] bg-[#12B5AC] disabled:opacity-40 text-white text-[12px] font-semibold shrink-0">Anexar</button>
+          <button onClick={() => { setAttachOpen(false); setLinkDraft(""); }} className="h-9 px-2 text-[#9B9B95] text-[12px] shrink-0">✕</button>
+        </div>
+      )}
+
       <div className="border-t border-[#F0F0ED] p-2.5 flex items-end gap-2">
+        <button
+          type="button"
+          onClick={() => setAttachOpen((v) => !v)}
+          title="Anexar link / material"
+          style={{ touchAction: "manipulation" }}
+          className={`w-10 h-10 rounded-full shrink-0 flex items-center justify-center transition-colors ${attachOpen ? "bg-[#E6FBFA] text-[#0E9E96]" : "bg-[#F0F0ED] text-[#6B6B65] hover:bg-[#E5E5E2]"}`}
+        >
+          <svg width="17" height="17" viewBox="0 0 20 20" fill="none">
+            <path d="M13 7l-5.5 5.5a2 2 0 002.83 2.83L16 9.66a3.5 3.5 0 00-4.95-4.95L5.4 10.3a5 5 0 007.07 7.07L17 12.83" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
         {isSupported && (
           <button
             type="button"
