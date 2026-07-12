@@ -76,6 +76,7 @@ export default function AgencySidebar({ userInfo, mobileOpen = false, onMobileCl
       items: [
         { label: "Projetos", href: "/agency/projects", icon: FolderIcon },
         { label: "Pipeline", href: "/agency/pipeline", icon: ColumnsIcon },
+        { label: "Planner", href: "/agency/planner", icon: CalendarIcon },
         { label: "Tarefas", href: "/agency/tasks", icon: CheckIcon, badge: taskBadgeCount },
         { label: "Entregas", href: "/agency/deliverables", icon: BoxIcon },
       ],
@@ -344,6 +345,16 @@ function BoxIcon({ size = 16, className = "" }: { size?: number; className?: str
       <path d="M14 5.5l-6 3.5-6-3.5" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
       <path d="M2 5.5l6-3.5 6 3.5V11a1 1 0 01-.5.866L8 14 2.5 11.866A1 1 0 012 11V5.5z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
       <path d="M8 9v5" stroke="currentColor" strokeWidth="1.3"/>
+    </svg>
+  );
+}
+function CalendarIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
+      <rect x="2" y="3" width="12" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.3"/>
+      <path d="M2 6h12M5.5 2v2.5M10.5 2v2.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+      <rect x="4.5" y="8" width="2" height="2" rx="0.4" fill="currentColor"/>
+      <rect x="9.5" y="8" width="2" height="2" rx="0.4" fill="currentColor"/>
     </svg>
   );
 }

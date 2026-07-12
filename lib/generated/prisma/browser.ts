@@ -143,6 +143,11 @@ export type ClientRequestDb = Prisma.ClientRequestDbModel
  */
 export type PortalMessage = Prisma.PortalMessageModel
 /**
+ * Model SocialPost
+ * 
+ */
+export type SocialPost = Prisma.SocialPostModel
+/**
  * Model BrainArtifact
  * 
  */

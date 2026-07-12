@@ -42,6 +42,17 @@ interface PortalData {
   approvals: PortalApproval[];
 }
 
+interface PortalPost {
+  id: string;
+  caption: string;
+  networks: string[];
+  format: string;
+  pillar: string | null;
+  mediaUrl: string | null;
+  scheduledFor: string | null;
+  status: string;
+}
+
 type SectionId = string;
 
 // A contracted service → its dedicated tab. Matches on keywords in the service
@@ -138,6 +149,8 @@ const PLATFORM_META: Record<string, { label: string; color: string; initials: st
   twitter:   { label: "X (Twitter)", color: "#111", initials: "X" },
   threads:   { label: "Threads",   color: "#111", initials: "@" },
 };
+const PT_MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+
 function platformMeta(name: string) {
   const key = name.toLowerCase().replace(/[^a-z]/g, "");
   for (const k of Object.keys(PLATFORM_META)) if (key.includes(k)) return PLATFORM_META[k];
@@ -192,6 +205,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
+  const [posts, setPosts] = useState<PortalPost[]>([]);
 
   const loadData = useCallback(async () => {
     if (!token) return;
@@ -211,6 +225,21 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
   }, [token]);
 
   useEffect(() => { void loadData(); }, [loadData]);
+
+  // Editorial calendar — the posts the agency programmed for this client.
+  // Read-only here; the agency edits them in the Planner.
+  useEffect(() => {
+    if (!token) return;
+    void (async () => {
+      try {
+        const res = await fetch(`/api/social-posts?token=${encodeURIComponent(token)}`);
+        if (res.ok) {
+          const json = await res.json();
+          setPosts(Array.isArray(json.posts) ? json.posts : []);
+        }
+      } catch { /* portal still works without the calendar */ }
+    })();
+  }, [token]);
 
   async function handleDecision(approvalId: string, action: "approve" | "request_revision" | "reject") {
     if (submitting) return;
@@ -501,6 +530,53 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
                       );
                     })}
                   </div>
+                </section>
+              )}
+
+              {/* Editorial calendar — what's coming up (Social tab) */}
+              {tab.id === "social" && (
+                <section>
+                  <h3 className="text-[14px] font-bold text-[#1A1A1A] mb-2.5">Calendário editorial</h3>
+                  {posts.length === 0 ? (
+                    <div className="bg-white rounded-[12px] border border-[#ECEBE7] px-4 py-6 text-center">
+                      <p className="text-[13px] text-[#9B9B95]">Seu calendário está sendo montado — em breve você verá aqui os posts programados.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {[...posts]
+                        .sort((a, b) => (a.scheduledFor ?? "").localeCompare(b.scheduledFor ?? ""))
+                        .slice(0, 12)
+                        .map((p) => (
+                          <div key={p.id} className="bg-white rounded-[12px] border border-[#ECEBE7] px-3.5 py-3 flex items-center gap-3 shadow-[0_1px_2px_rgba(7,10,31,0.03)]">
+                            <div className="w-[46px] shrink-0 text-center">
+                              {p.scheduledFor ? (
+                                <>
+                                  <div className="text-[15px] font-bold text-[#1A1A1A] leading-none">{new Date(p.scheduledFor).getDate()}</div>
+                                  <div className="text-[9px] uppercase text-[#9B9B95] mt-0.5">{PT_MONTHS[new Date(p.scheduledFor).getMonth()]}</div>
+                                </>
+                              ) : <div className="text-[11px] text-[#C7C7C0]">—</div>}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[13px] font-medium text-[#1A1A1A] truncate">{p.caption || <span className="italic text-[#9B9B95]">Conteúdo programado</span>}</p>
+                              <div className="flex items-center gap-1.5 mt-1">
+                                <span className="text-[11px] text-[#9B9B95] capitalize">{p.format}</span>
+                                {p.pillar && <><span className="text-[#D7D7D2]">·</span><span className="text-[11px] text-[#9B9B95]">{p.pillar}</span></>}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0">
+                              {p.networks.slice(0, 4).map((n) => {
+                                const m = platformMeta(n);
+                                return <span key={n} className="w-[18px] h-[18px] rounded-full text-white text-[8px] font-bold flex items-center justify-center" style={{ background: m.color }} title={m.label}>{m.initials}</span>;
+                              })}
+                            </div>
+                            <span className="shrink-0 h-[20px] px-2 rounded-full text-[10px] font-semibold flex items-center"
+                                  style={p.status === "published" ? { background: "#DCFCE7", color: "#16A34A" } : { background: "#DBEAFE", color: "#1D4ED8" }}>
+                              {p.status === "published" ? "Publicado" : "Programado"}
+                            </span>
+                          </div>
+                        ))}
+                    </div>
+                  )}
                 </section>
               )}
 

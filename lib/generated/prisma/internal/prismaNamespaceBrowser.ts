@@ -76,6 +76,7 @@ export const ModelName = {
   BrainVersion: 'BrainVersion',
   ClientRequestDb: 'ClientRequestDb',
   PortalMessage: 'PortalMessage',
+  SocialPost: 'SocialPost',
   BrainArtifact: 'BrainArtifact',
   ApprovalRequest: 'ApprovalRequest',
   ApprovalComment: 'ApprovalComment',
@@ -509,6 +510,25 @@ export const PortalMessageScalarFieldEnum = {
 } as const
 
 export type PortalMessageScalarFieldEnum = (typeof PortalMessageScalarFieldEnum)[keyof typeof PortalMessageScalarFieldEnum]
+
+
+export const SocialPostScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  clientId: 'clientId',
+  clientRequestId: 'clientRequestId',
+  caption: 'caption',
+  networks: 'networks',
+  format: 'format',
+  pillar: 'pillar',
+  mediaUrl: 'mediaUrl',
+  scheduledFor: 'scheduledFor',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SocialPostScalarFieldEnum = (typeof SocialPostScalarFieldEnum)[keyof typeof SocialPostScalarFieldEnum]
 
 
 export const BrainArtifactScalarFieldEnum = {

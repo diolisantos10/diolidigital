@@ -467,6 +467,28 @@ model PortalMessage {
   @@index([clientRequestId, createdAt])
 }
 
+// A planned/scheduled social post — the unit of the universal Planner. One post
+// composed once, targeting many networks, scheduled to a date. Surfaces on the
+// agency planner (edit) and the client portal Social tab (read-only calendar).
+model SocialPost {
+  id              String   @id @default(cuid())
+  workspaceId     String
+  clientId        String?
+  clientRequestId String?  // links it to the client's portal thread
+  caption         String   @default("")
+  networks        String   @default("[]")   // JSON array: instagram|facebook|tiktok|linkedin|youtube|pinterest
+  format          String   @default("feed")  // feed|reel|story|carousel|video
+  pillar          String?                     // content pillar
+  mediaUrl        String?                     // link to the creative (Drive/etc.) until native storage
+  scheduledFor    DateTime?
+  status          String   @default("draft")  // draft|scheduled|approved|published
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([workspaceId, scheduledFor])
+  @@index([clientRequestId])
+}
+
 // One record per department approval — persists canvas payload + gate + trace.
 model BrainArtifact {
   id                String   @id @default(cuid())
