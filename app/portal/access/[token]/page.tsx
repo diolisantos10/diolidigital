@@ -26,18 +26,58 @@ interface PortalApproval {
   reviewNote: string | null;
   comments: Array<{ id: string; authorName: string; body: string; createdAt: string }>;
 }
+interface DeptContent { label: string; headline: string | null; bullets: string[]; approvedAt: string | null }
 interface PortalData {
   id: string | null;
   businessName: string;
   status: string;
+  segment?: string;
+  targetAudience?: string;
   services: string[];
   objectives: string[];
+  departments?: Record<string, DeptContent>;
   createdAt: string | null;
   pipeline: PipelineStep[];
   approvals: PortalApproval[];
 }
 
-type SectionId = "overview" | "approvals" | "materials" | "integrations";
+type SectionId = string;
+
+// A contracted service → its dedicated tab. Matches on keywords in the service
+// label, maps to the department canvas that feeds its content, and defines the
+// service-specific metric tiles (live once the client connects the accounts).
+interface ServiceTab {
+  id: string; label: string; icon: string; match: RegExp; deptKey: string;
+  metrics: { label: string; hint: string }[];
+  planTitle: string;
+}
+const SERVICE_TABS: ServiceTab[] = [
+  {
+    id: "social", label: "Social Media", icon: "◆", match: /social|redes|instagram|conte[úu]do/i, deptKey: "social",
+    metrics: [
+      { label: "Alcance", hint: "Conecte o Instagram" },
+      { label: "Seguidores", hint: "Conecte o Instagram" },
+      { label: "Engajamento", hint: "Conecte o Instagram" },
+      { label: "Stories/sem", hint: "Conecte o Instagram" },
+    ],
+    planTitle: "Seu plano de conteúdo",
+  },
+  {
+    id: "traffic", label: "Tráfego Pago", icon: "▲", match: /tr[áa]fego|ads|an[úu]ncio|m[íi]dia\s*paga/i, deptKey: "traffic",
+    metrics: [
+      { label: "Investimento", hint: "Conecte o Meta Ads" },
+      { label: "Cliques", hint: "Conecte o Meta Ads" },
+      { label: "Conversões", hint: "Conecte o Meta/Analytics" },
+      { label: "CTR", hint: "Conecte o Meta Ads" },
+    ],
+    planTitle: "Sua estratégia de anúncios",
+  },
+  {
+    id: "design", label: "Identidade Visual", icon: "✦", match: /identidade|design|marca|logo|visual/i, deptKey: "design",
+    metrics: [],
+    planTitle: "Direção visual da sua marca",
+  },
+];
 
 // ── Token sanitiser (paste artifacts) ────────────────────────────────────────
 
@@ -64,13 +104,6 @@ const STATUS_LABEL: Record<string, string> = {
 const ACTION_LABEL: Record<string, string> = {
   approve: "Aprovar", request_revision: "Pedir revisão", reject: "Rejeitar",
 };
-
-const SECTIONS: { id: SectionId; label: string; icon: string }[] = [
-  { id: "overview",     label: "Visão Geral",  icon: "◎" },
-  { id: "approvals",    label: "Aprovações",   icon: "✓" },
-  { id: "materials",    label: "Materiais",    icon: "↑" },
-  { id: "integrations", label: "Integrações",  icon: "⚡" },
-];
 
 // Marketing-agency integrations the client connects so the agency can pull data
 // and materials. `href` opens the OAuth flow when configured; otherwise the card
@@ -212,6 +245,18 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
   const pendingApprovals = data.approvals.filter((a) => a.status === "pending");
   const allComments = data.approvals.flatMap((a) => a.comments);
 
+  // A dedicated tab for each contracted service, in order, deduped.
+  const activeServiceTabs = SERVICE_TABS.filter((t) => data.services.some((s) => t.match.test(s)));
+  const seenSvc = new Set<string>();
+  const serviceTabs = activeServiceTabs.filter((t) => (seenSvc.has(t.id) ? false : (seenSvc.add(t.id), true)));
+  const navTabs = [
+    { id: "overview", label: "Visão Geral", icon: "◎" },
+    ...serviceTabs.map((t) => ({ id: t.id, label: t.label, icon: t.icon })),
+    { id: "approvals", label: "Aprovações", icon: "✓" },
+    { id: "materials", label: "Materiais", icon: "↑" },
+    { id: "integrations", label: "Integrações", icon: "⚡" },
+  ];
+
   // ── Shell ──────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-[#FAF9F7]">
@@ -255,7 +300,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
       <div className="sticky top-0 z-20 bg-[#FAF9F7]/90 backdrop-blur border-b border-[#ECEBE7] -mt-10 sm:-mt-12">
         <div className="max-w-[860px] mx-auto px-3">
           <div className="flex gap-1 overflow-x-auto no-scrollbar py-2.5">
-            {SECTIONS.map((s) => {
+            {navTabs.map((s) => {
               const active = section === s.id;
               const badge = s.id === "approvals" ? pendingApprovals.length : 0;
               return (
@@ -347,6 +392,37 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
               </section>
             )}
 
+            {/* Sobre o negócio — o que a Dioli entendeu do cliente */}
+            {(data.segment || data.targetAudience || data.objectives.length > 0) && (
+              <section className="bg-white rounded-[14px] border border-[#ECEBE7] p-5 shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
+                <h2 className="text-[14px] font-bold text-[#1A1A1A] mb-3">Sobre o seu negócio</h2>
+                <div className="space-y-3">
+                  {data.segment && (
+                    <div>
+                      <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em]">Segmento</div>
+                      <p className="text-[13px] text-[#1A1A1A] mt-0.5">{data.segment}</p>
+                    </div>
+                  )}
+                  {data.targetAudience && (
+                    <div>
+                      <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em]">Público-alvo</div>
+                      <p className="text-[13px] text-[#1A1A1A] mt-0.5">{data.targetAudience}</p>
+                    </div>
+                  )}
+                  {data.objectives.length > 0 && (
+                    <div>
+                      <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em]">Objetivos</div>
+                      <div className="flex flex-wrap gap-1.5 mt-1.5">
+                        {data.objectives.map((o, i) => (
+                          <span key={i} className="h-7 px-3 rounded-full bg-[#F0EFEB] text-[#3A3A38] text-[11px] font-medium flex items-center">{o}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
+
             {pendingApprovals.length > 0 && (
               <button onClick={() => setSection("approvals")} className="w-full bg-[#FFFBEB] border border-[#FCE7A0] rounded-[12px] px-4 py-3 flex items-center justify-between text-left hover:bg-[#FEF9E0] transition-colors">
                 <div>
@@ -358,6 +434,60 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
             )}
           </div>
         )}
+
+        {/* ── ABAS POR SERVIÇO (dinâmicas) ── */}
+        {serviceTabs.map((tab) => {
+          if (section !== tab.id) return null;
+          const dept = data.departments?.[tab.deptKey];
+          return (
+            <div key={tab.id} className="space-y-6">
+              <div>
+                <h2 className="text-[18px] font-bold text-[#1A1A1A]">{tab.label}</h2>
+                <p className="text-[13px] text-[#6B6B65] mt-0.5">Métricas, plano e entregas de {tab.label.toLowerCase()} num só lugar.</p>
+              </div>
+
+              {tab.metrics.length > 0 && (
+                <section>
+                  <div className="flex items-center justify-between mb-2.5">
+                    <h3 className="text-[14px] font-bold text-[#1A1A1A]">Resultados</h3>
+                    <button onClick={() => setSection("integrations")} className="text-[11px] font-semibold text-[#12B5AC] hover:underline">Conectar contas →</button>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    {tab.metrics.map((m) => <MetricTile key={m.label} label={m.label} value="—" hint={m.hint} locked />)}
+                  </div>
+                </section>
+              )}
+
+              <section className="bg-white rounded-[14px] border border-[#ECEBE7] p-5 shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
+                <div className="flex items-center justify-between mb-2.5">
+                  <h3 className="text-[14px] font-bold text-[#1A1A1A]">{tab.planTitle}</h3>
+                  {dept && <span className="h-5 px-2 rounded-full bg-[#DCFCE7] text-[#16A34A] text-[10px] font-semibold flex items-center">✓ Aprovado</span>}
+                </div>
+                {dept && (dept.headline || dept.bullets.length > 0) ? (
+                  <>
+                    {dept.headline && <p className="text-[13px] text-[#3A3A38] leading-relaxed mb-2">{dept.headline}</p>}
+                    {dept.bullets.length > 0 && (
+                      <ul className="space-y-1.5">
+                        {dept.bullets.map((b, i) => (
+                          <li key={i} className="flex items-start gap-2 text-[12px] text-[#6B6B65]"><span className="text-[#12B5AC] mt-0.5 shrink-0">•</span>{b}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-[13px] text-[#9B9B95]">A equipe está preparando seu plano de {tab.label.toLowerCase()} — em breve aparece aqui.</p>
+                )}
+              </section>
+
+              {tab.metrics.length > 0 && (
+                <div className="bg-gradient-to-r from-[#E6FBFA] to-[#F0FDFC] border border-[#C7EFEC] rounded-[12px] px-4 py-3 flex items-center justify-between gap-3">
+                  <p className="text-[12px] text-[#0E5F5A] leading-snug"><span className="font-semibold">Quer ver seus números aqui?</span> Conecte suas contas e acompanhe {tab.label.toLowerCase()} em tempo real.</p>
+                  <button onClick={() => setSection("integrations")} className="shrink-0 h-8 px-3 rounded-[8px] bg-[#0E5F5A] text-white text-[12px] font-semibold hover:bg-[#0B4E4A] transition-colors">Conectar</button>
+                </div>
+              )}
+            </div>
+          );
+        })}
 
         {/* ── APROVAÇÕES ── */}
         {section === "approvals" && (
