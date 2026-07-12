@@ -33,6 +33,7 @@ interface PortalData {
   status: string;
   segment?: string;
   targetAudience?: string;
+  socialPlatforms?: string[];
   services: string[];
   objectives: string[];
   departments?: Record<string, DeptContent>;
@@ -112,12 +113,36 @@ const INTEGRATIONS: {
   key: string; name: string; desc: string; category: string; color: string; initials: string; href?: string;
 }[] = [
   { key: "gdrive",    name: "Google Drive",     desc: "Repositório de fotos, vídeos e materiais", category: "Arquivos", color: "#1FA463", initials: "GD" },
-  { key: "instagram", name: "Instagram",        desc: "Métricas de alcance, seguidores e engajamento", category: "Social", color: "#E1306C", initials: "IG" },
-  { key: "meta",      name: "Meta Business",    desc: "Facebook + Instagram Ads e páginas", category: "Tráfego", color: "#1877F2", initials: "MB" },
-  { key: "ganalytics",name: "Google Analytics", desc: "Tráfego e conversões do site", category: "Analytics", color: "#E8710A", initials: "GA" },
-  { key: "gads",      name: "Google Ads",       desc: "Campanhas e desempenho de anúncios", category: "Tráfego", color: "#4285F4", initials: "GA" },
   { key: "onedrive",  name: "OneDrive",         desc: "Alternativa de repositório (Microsoft)", category: "Arquivos", color: "#0364B8", initials: "OD" },
+  { key: "instagram", name: "Instagram",        desc: "Alcance, seguidores e engajamento", category: "Social", color: "#E1306C", initials: "IG" },
+  { key: "facebook",  name: "Facebook",         desc: "Página, alcance e engajamento", category: "Social", color: "#1877F2", initials: "FB" },
+  { key: "tiktok",    name: "TikTok",           desc: "Visualizações, seguidores e engajamento", category: "Social", color: "#010101", initials: "TT" },
+  { key: "linkedin",  name: "LinkedIn",         desc: "Página da empresa e engajamento B2B", category: "Social", color: "#0A66C2", initials: "IN" },
+  { key: "youtube",   name: "YouTube",          desc: "Inscritos, visualizações e retenção", category: "Social", color: "#FF0000", initials: "YT" },
+  { key: "pinterest", name: "Pinterest",        desc: "Pins, alcance e tráfego", category: "Social", color: "#E60023", initials: "PT" },
+  { key: "meta",      name: "Meta Business",    desc: "Facebook + Instagram Ads e páginas", category: "Tráfego", color: "#0668E1", initials: "MB" },
+  { key: "gads",      name: "Google Ads",       desc: "Campanhas e desempenho de anúncios", category: "Tráfego", color: "#4285F4", initials: "GA" },
+  { key: "tiktokads", name: "TikTok Ads",       desc: "Campanhas de mídia no TikTok", category: "Tráfego", color: "#010101", initials: "TA" },
+  { key: "ganalytics",name: "Google Analytics", desc: "Tráfego e conversões do site", category: "Analytics", color: "#E8710A", initials: "GA" },
 ];
+
+// Visual metadata for every social network the client might run — so a
+// contracted platform always renders with its colour/initials, ready to connect.
+const PLATFORM_META: Record<string, { label: string; color: string; initials: string }> = {
+  instagram: { label: "Instagram", color: "#E1306C", initials: "IG" },
+  facebook:  { label: "Facebook",  color: "#1877F2", initials: "FB" },
+  tiktok:    { label: "TikTok",    color: "#010101", initials: "TT" },
+  linkedin:  { label: "LinkedIn",  color: "#0A66C2", initials: "IN" },
+  youtube:   { label: "YouTube",   color: "#FF0000", initials: "YT" },
+  pinterest: { label: "Pinterest", color: "#E60023", initials: "PT" },
+  twitter:   { label: "X (Twitter)", color: "#111", initials: "X" },
+  threads:   { label: "Threads",   color: "#111", initials: "@" },
+};
+function platformMeta(name: string) {
+  const key = name.toLowerCase().replace(/[^a-z]/g, "");
+  for (const k of Object.keys(PLATFORM_META)) if (key.includes(k)) return PLATFORM_META[k];
+  return { label: name, color: "#6B6B65", initials: name.slice(0, 2).toUpperCase() };
+}
 
 // ── Brand mark ───────────────────────────────────────────────────────────────
 
@@ -454,6 +479,27 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                     {tab.metrics.map((m) => <MetricTile key={m.label} label={m.label} value="—" hint={m.hint} locked />)}
+                  </div>
+                </section>
+              )}
+
+              {/* Contracted networks — each ready to connect (Social tab) */}
+              {tab.id === "social" && (data.socialPlatforms?.length ?? 0) > 0 && (
+                <section>
+                  <h3 className="text-[14px] font-bold text-[#1A1A1A] mb-2.5">Suas redes</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                    {data.socialPlatforms!.map((p) => {
+                      const m = platformMeta(p);
+                      return (
+                        <div key={p} className="bg-white rounded-[12px] border border-[#ECEBE7] px-3.5 py-3 flex items-center gap-2.5 shadow-[0_1px_2px_rgba(7,10,31,0.03)]">
+                          <span className="w-8 h-8 rounded-[9px] flex items-center justify-center text-white text-[11px] font-bold shrink-0" style={{ background: m.color }}>{m.initials}</span>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[13px] font-semibold text-[#1A1A1A] truncate">{m.label}</p>
+                            <button onClick={() => setSection("integrations")} className="text-[11px] font-medium text-[#12B5AC] hover:underline">Conectar</button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </section>
               )}

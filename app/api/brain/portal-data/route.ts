@@ -164,6 +164,10 @@ async function buildPortalData(clientRequestId: string) {
     status:       clientRequest.status,
     segment:      clientRequest.segment || (typeof scope.segment === "string" ? scope.segment : ""),
     targetAudience: typeof scope.targetAudience === "string" ? scope.targetAudience : "",
+    socialPlatforms: (() => {
+      const p = (scope.social as { platforms?: unknown } | undefined)?.platforms;
+      return Array.isArray(p) ? p.filter((x): x is string => typeof x === "string") : [];
+    })(),
     services,
     objectives,
     departments,
