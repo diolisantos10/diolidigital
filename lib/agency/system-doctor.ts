@@ -808,7 +808,7 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
       { key: "brandHub",         label: "Brand Hub",           route: "/agency/clients"      },
       { key: "activityEvents",   label: "Eventos de Atividade", route: "/agency/settings"    },
       { key: "strategyRooms",    label: "Strategy Rooms",      route: "/agency/projects"     },
-      { key: "briefings",        label: "Briefings",           route: "/agency/briefings"    },
+      { key: "briefings",        label: "Briefings",           route: "/agency/requests"     },
       { key: "brandUpdates",     label: "Atualizações de Marca", route: "/agency/approvals"   },
       { key: "agentOutputs",     label: "Saídas dos Agentes",  route: "/agency/deliverables" },
     ];
