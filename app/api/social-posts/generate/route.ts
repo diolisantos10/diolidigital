@@ -85,7 +85,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   let body: Record<string, unknown>;
   try { body = await request.json(); } catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
 
-  const mode = body.mode === "ideas" ? "ideas" : "caption";
+  const mode = body.mode === "ideas" ? "ideas" : body.mode === "script" ? "script" : "caption";
   const clientId = typeof body.clientId === "string" && body.clientId ? body.clientId : null;
   const networks = Array.isArray(body.networks)
     ? (body.networks as unknown[]).filter((x): x is string => typeof x === "string") : [];
@@ -105,7 +105,28 @@ Escreva SEMPRE em português do Brasil. Nunca use clichês vazios nem promessas 
 Responda SEMPRE e SOMENTE com um JSON válido, sem texto fora do JSON, sem markdown.`;
 
   let user: string;
-  if (mode === "caption") {
+  if (mode === "script") {
+    user = `Escreva um ROTEIRO completo de vídeo curto (${fmtName}) pronto para gravar.
+
+CONTEXTO DO CLIENTE
+${contextBlock(ctx)}
+
+ESPECIFICAÇÃO
+${netNames.length ? `Redes: ${netNames.join(", ")}` : "Redes: multiplataforma"}
+Formato: ${fmtName}
+${pillar ? `Pilar/tema: ${pillar}` : ""}
+${brief ? `Orientação da equipe: ${brief}` : ""}
+
+REGRAS
+- Duração alvo: 15 a 40 segundos.
+- Comece com um gancho visual forte nos primeiros 2 segundos.
+- Divida em cenas curtas e filmáveis (o que aparece na tela + o que é falado + texto na tela).
+- Sugira um áudio/trilha e uma legenda pronta para o post.
+- Ofereça 3 variações de gancho para teste.
+
+Responda EXATAMENTE neste formato JSON:
+{"hooks": ["gancho 1", "gancho 2", "gancho 3"], "scenes": [{"visual": "o que aparece", "voiceover": "narração/fala", "onScreen": "texto na tela"}], "audio": "sugestão de trilha/áudio", "cta": "chamada final", "caption": "legenda pronta para publicar"}`;
+  } else if (mode === "caption") {
     user = `Escreva UMA legenda pronta para publicar.
 
 CONTEXTO DO CLIENTE
@@ -146,7 +167,7 @@ Responda EXATAMENTE neste formato JSON:
 
   const result = await generate({
     system, user,
-    maxTokens: mode === "ideas" ? 2048 : 900,
+    maxTokens: mode === "caption" ? 900 : 2048,
     workspaceId: session.workspaceId,
     preferredProvider: "claude",
   });
@@ -156,6 +177,31 @@ Responda EXATAMENTE neste formato JSON:
   }
 
   const data = result.data as Record<string, unknown>;
+
+  if (mode === "script") {
+    const arrStr = (v: unknown) => Array.isArray(v) ? (v as unknown[]).filter((x): x is string => typeof x === "string") : [];
+    const scenes = Array.isArray(data.scenes)
+      ? (data.scenes as unknown[])
+          .filter((x): x is Record<string, unknown> => !!x && typeof x === "object")
+          .map((s) => ({
+            visual:    typeof s.visual === "string" ? s.visual : "",
+            voiceover: typeof s.voiceover === "string" ? s.voiceover : "",
+            onScreen:  typeof s.onScreen === "string" ? s.onScreen : "",
+          }))
+          .filter((s) => s.visual || s.voiceover || s.onScreen)
+      : [];
+    if (scenes.length === 0) return NextResponse.json({ error: "Roteiro vazio" }, { status: 502 });
+    return NextResponse.json({
+      script: {
+        hooks: arrStr(data.hooks),
+        scenes,
+        audio: typeof data.audio === "string" ? data.audio : "",
+        cta:   typeof data.cta === "string" ? data.cta : "",
+      },
+      caption: typeof data.caption === "string" ? data.caption : "",
+    });
+  }
+
   if (mode === "caption") {
     const caption = typeof data.caption === "string" ? data.caption : "";
     const hashtags = Array.isArray(data.hashtags)

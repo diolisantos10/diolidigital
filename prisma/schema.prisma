@@ -480,6 +480,7 @@ model SocialPost {
   format          String   @default("feed")  // feed|reel|story|carousel|video
   pillar          String?                     // content pillar
   mediaUrl        String?                     // link to the creative (Drive/etc.) until native storage
+  scriptJson      String?                     // AI video/reel script (hook, scenes, cta, audio)
   scheduledFor    DateTime?
   status          String   @default("draft")  // draft|scheduled|approved|published
   createdAt       DateTime @default(now())

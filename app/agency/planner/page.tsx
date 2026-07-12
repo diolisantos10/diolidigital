@@ -51,6 +51,12 @@ const MONTHS = [
 ];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+interface VideoScript {
+  hooks: string[];
+  scenes: { visual: string; voiceover: string; onScreen: string }[];
+  audio: string;
+  cta: string;
+}
 interface Post {
   id: string;
   clientId: string | null;
@@ -60,9 +66,11 @@ interface Post {
   format: string;
   pillar: string | null;
   mediaUrl: string | null;
+  script: VideoScript | null;
   scheduledFor: string | null;
   status: string;
 }
+const VIDEO_FORMATS = new Set(["reel", "video", "story"]);
 
 // Local-date key (YYYY-MM-DD) from an ISO string, in the viewer's timezone.
 function dayKey(iso: string | null): string | null {
@@ -490,6 +498,29 @@ function Composer({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [script, setScript] = useState<VideoScript | null>(post?.script ?? null);
+  const [scripting, setScripting] = useState(false);
+
+  // Generate a filmable video/reel script, grounded in the client's context.
+  async function generateScript() {
+    setScripting(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/social-posts/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "script", clientId: clientId || null, networks, format, pillar: pillar.trim() || null, brief: caption.trim() || null }),
+      });
+      const json = await res.json();
+      if (!res.ok) { setError(json.error ? `IA: ${json.error}` : "Não foi possível gerar o roteiro."); return; }
+      if (json.script) setScript(json.script);
+      if (json.caption && !caption.trim()) setCaption(json.caption);
+    } catch {
+      setError("Falha ao gerar roteiro. Tente de novo.");
+    } finally {
+      setScripting(false);
+    }
+  }
 
   // Ask the AI copilot to write the caption. The current caption text (if any)
   // is passed as a brief — so "post sobre promoção de inverno" becomes a full
@@ -534,6 +565,7 @@ function Composer({
       pillar: pillar.trim() || null,
       mediaUrl: mediaUrl.trim() || null,
       clientId: clientId || null,
+      script: script ?? null,
       scheduledFor: when ? new Date(when).toISOString() : null,
       status,
     };
@@ -616,6 +648,59 @@ function Composer({
               style={{ border: "1px solid #E7E7E2" }}
             />
           </div>
+
+          {/* Video/reel script studio */}
+          {VIDEO_FORMATS.has(format) && (
+            <div className="rounded-[10px] p-3" style={{ background: "#FBFBF9", border: "1px solid #EFEFEA" }}>
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[13px]">🎬</span>
+                  <span className="text-[12px] font-semibold text-[#1A1A1A]">Roteiro de vídeo</span>
+                </div>
+                <button
+                  onClick={generateScript}
+                  disabled={scripting}
+                  className="text-[11.5px] font-semibold text-[#12B5AC] hover:underline disabled:opacity-50"
+                >
+                  {scripting ? "Gerando roteiro…" : script ? "Gerar de novo" : "✨ Gerar roteiro com IA"}
+                </button>
+              </div>
+              {!script ? (
+                <p className="text-[11.5px] text-[#9B9B95]">A IA escreve um roteiro filmável — ganchos, cenas, texto na tela, áudio e CTA — pronto para gravar.</p>
+              ) : (
+                <div className="space-y-3 mt-2">
+                  {script.hooks.length > 0 && (
+                    <div>
+                      <p className="text-[10.5px] font-semibold uppercase tracking-wide text-[#9B9B95] mb-1">Ganchos (teste A/B)</p>
+                      <ul className="space-y-1">
+                        {script.hooks.map((h, i) => (
+                          <li key={i} className="text-[12px] text-[#3A3A38] flex gap-1.5"><span className="text-[#12B5AC]">›</span>{h}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-[10.5px] font-semibold uppercase tracking-wide text-[#9B9B95] mb-1.5">Cenas</p>
+                    <div className="space-y-2">
+                      {script.scenes.map((s, i) => (
+                        <div key={i} className="rounded-[8px] bg-white p-2.5" style={{ border: "1px solid #EFEFEA" }}>
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <span className="w-4 h-4 rounded-full bg-[#0B0F2A] text-white text-[9px] font-bold flex items-center justify-center">{i + 1}</span>
+                            <span className="text-[11px] font-semibold text-[#1A1A1A]">{s.visual || "Cena"}</span>
+                          </div>
+                          {s.voiceover && <p className="text-[11.5px] text-[#3A3A38]"><span className="text-[#9B9B95]">🎙 </span>{s.voiceover}</p>}
+                          {s.onScreen && <p className="text-[11.5px] text-[#0E5F5A] mt-0.5"><span className="text-[#9B9B95]">▦ </span>{s.onScreen}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  {script.audio && <p className="text-[11.5px] text-[#3A3A38]"><span className="font-semibold">Áudio:</span> {script.audio}</p>}
+                  {script.cta && <p className="text-[11.5px] text-[#3A3A38]"><span className="font-semibold">CTA:</span> {script.cta}</p>}
+                  <button onClick={() => setScript(null)} className="text-[11px] text-[#9B9B95] hover:text-[#DC2626]">Remover roteiro</button>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Formato">

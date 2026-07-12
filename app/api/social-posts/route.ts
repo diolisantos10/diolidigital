@@ -10,16 +10,18 @@ import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-ser
 interface DbPost {
   id: string; clientId: string | null; clientRequestId: string | null;
   caption: string; networks: string; format: string; pillar: string | null;
-  mediaUrl: string | null; scheduledFor: Date | null; status: string;
+  mediaUrl: string | null; scriptJson: string | null; scheduledFor: Date | null; status: string;
   createdAt: Date; updatedAt: Date;
 }
 function toDTO(p: DbPost) {
   let networks: string[] = [];
   try { networks = JSON.parse(p.networks); } catch { /* [] */ }
+  let script: unknown = null;
+  if (p.scriptJson) { try { script = JSON.parse(p.scriptJson); } catch { /* null */ } }
   return {
     id: p.id, clientId: p.clientId, clientRequestId: p.clientRequestId,
     caption: p.caption, networks, format: p.format, pillar: p.pillar,
-    mediaUrl: p.mediaUrl,
+    mediaUrl: p.mediaUrl, script,
     scheduledFor: p.scheduledFor ? p.scheduledFor.toISOString() : null,
     status: p.status,
   };
@@ -97,6 +99,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         format:          typeof body.format === "string" ? body.format : "feed",
         pillar:          typeof body.pillar === "string" ? body.pillar : null,
         mediaUrl:        typeof body.mediaUrl === "string" ? body.mediaUrl : null,
+        scriptJson:      body.script && typeof body.script === "object" ? JSON.stringify(body.script) : null,
         scheduledFor:    typeof body.scheduledFor === "string" && body.scheduledFor ? new Date(body.scheduledFor) : null,
         status:          typeof body.status === "string" ? body.status : "scheduled",
       },

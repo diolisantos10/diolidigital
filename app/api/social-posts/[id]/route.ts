@@ -23,6 +23,8 @@ export async function PATCH(request: NextRequest, ctx: { params: Promise<Params>
   if (typeof body.format === "string") data.format = body.format;
   if (typeof body.pillar === "string" || body.pillar === null) data.pillar = body.pillar;
   if (typeof body.mediaUrl === "string" || body.mediaUrl === null) data.mediaUrl = body.mediaUrl;
+  if (body.script === null) data.scriptJson = null;
+  else if (body.script && typeof body.script === "object") data.scriptJson = JSON.stringify(body.script);
   if (typeof body.status === "string") data.status = body.status;
   if (body.scheduledFor === null) data.scheduledFor = null;
   else if (typeof body.scheduledFor === "string" && body.scheduledFor) data.scheduledFor = new Date(body.scheduledFor);
