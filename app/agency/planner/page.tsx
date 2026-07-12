@@ -94,6 +94,8 @@ export default function PlannerPage() {
   const [editing, setEditing] = useState<Post | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
   const [presetDate, setPresetDate] = useState<string | null>(null);
+  const [ideasOpen, setIdeasOpen] = useState(false);
+  const [seed, setSeed] = useState<{ caption?: string; format?: string; pillar?: string } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -156,12 +158,25 @@ export default function PlannerPage() {
 
   function openNew(dateKey?: string) {
     setEditing(null);
+    setSeed(null);
     setPresetDate(dateKey ?? null);
     setComposerOpen(true);
   }
   function openEdit(p: Post) {
     setEditing(p);
+    setSeed(null);
     setPresetDate(null);
+    setComposerOpen(true);
+  }
+  function openFromIdea(idea: { title: string; angle: string; format: string; pillar: string }) {
+    setEditing(null);
+    setPresetDate(null);
+    setSeed({
+      caption: idea.angle ? `${idea.title}\n\n${idea.angle}` : idea.title,
+      format: idea.format,
+      pillar: idea.pillar,
+    });
+    setIdeasOpen(false);
     setComposerOpen(true);
   }
 
@@ -228,6 +243,14 @@ export default function PlannerPage() {
         </div>
 
         <div className="flex-1" />
+
+        <button
+          onClick={() => setIdeasOpen(true)}
+          className="h-9 px-3 rounded-[8px] text-[12.5px] font-semibold transition-colors"
+          style={{ background: "#E6FBFA", color: "#0E5F5A", border: "1px solid #C7EFEC" }}
+        >
+          ✨ Ideias
+        </button>
 
         <select
           value={clientFilter}
@@ -362,13 +385,23 @@ export default function PlannerPage() {
 
       {composerOpen && (
         <Composer
-          key={editing?.id ?? "new"}
+          key={editing?.id ?? (seed ? "seed" : "new")}
           post={editing}
+          seed={seed}
           presetDate={presetDate}
           clients={clients}
           onClose={() => setComposerOpen(false)}
           onSaved={handleSaved}
           onDelete={editing ? () => { handleDelete(editing.id); setComposerOpen(false); } : undefined}
+        />
+      )}
+
+      {ideasOpen && (
+        <IdeasPanel
+          clientId={clientFilter === "all" ? null : clientFilter}
+          clientName={clientFilter === "all" ? "todos os clientes" : clientName(clientFilter)}
+          onClose={() => setIdeasOpen(false)}
+          onPick={openFromIdea}
         />
       )}
     </>
@@ -423,9 +456,10 @@ function StatusPill({ status }: { status: string }) {
 
 // ─── Composer modal ───────────────────────────────────────────────────────────
 function Composer({
-  post, presetDate, clients, onClose, onSaved, onDelete,
+  post, seed, presetDate, clients, onClose, onSaved, onDelete,
 }: {
   post: Post | null;
+  seed?: { caption?: string; format?: string; pillar?: string } | null;
   presetDate: string | null;
   clients: { id: string; name: string }[];
   onClose: () => void;
@@ -445,16 +479,45 @@ function Composer({
     return "";
   })();
 
-  const [caption, setCaption] = useState(post?.caption ?? "");
+  const [caption, setCaption] = useState(post?.caption ?? seed?.caption ?? "");
   const [networks, setNetworks] = useState<string[]>(post?.networks ?? []);
-  const [format, setFormat] = useState(post?.format ?? "feed");
-  const [pillar, setPillar] = useState(post?.pillar ?? "");
+  const [format, setFormat] = useState(post?.format ?? seed?.format ?? "feed");
+  const [pillar, setPillar] = useState(post?.pillar ?? seed?.pillar ?? "");
   const [mediaUrl, setMediaUrl] = useState(post?.mediaUrl ?? "");
   const [clientId, setClientId] = useState(post?.clientId ?? "");
   const [when, setWhen] = useState(initialWhen);
   const [status, setStatus] = useState(post?.status ?? "scheduled");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+
+  // Ask the AI copilot to write the caption. The current caption text (if any)
+  // is passed as a brief — so "post sobre promoção de inverno" becomes a full
+  // publish-ready caption grounded in the client's context.
+  async function generateCaption() {
+    setGenerating(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/social-posts/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "caption", clientId: clientId || null, networks, format, pillar: pillar.trim() || null, brief: caption.trim() || null }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json.error === undefined ? "Não foi possível gerar." : `IA: ${json.error}`);
+        return;
+      }
+      const tags = Array.isArray(json.hashtags) && json.hashtags.length
+        ? "\n\n" + json.hashtags.map((h: string) => `#${h}`).join(" ")
+        : "";
+      setCaption((json.caption ?? "") + tags);
+    } catch {
+      setError("Falha ao gerar. Tente de novo.");
+    } finally {
+      setGenerating(false);
+    }
+  }
 
   function toggleNetwork(id: string) {
     setNetworks((prev) => (prev.includes(id) ? prev.filter((n) => n !== id) : [...prev, id]));
@@ -532,16 +595,27 @@ function Composer({
             </div>
           </Field>
 
-          <Field label="Legenda">
+          <div>
+            <div className="flex items-baseline justify-between mb-1.5">
+              <label className="text-[12px] font-semibold text-[#1A1A1A]">Legenda</label>
+              <button
+                onClick={generateCaption}
+                disabled={generating}
+                className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-[#12B5AC] hover:underline disabled:opacity-50"
+                title="A IA escreve a legenda com base no cliente e no que você já digitou"
+              >
+                {generating ? "Gerando…" : "✨ Gerar com IA"}
+              </button>
+            </div>
             <textarea
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
-              rows={4}
-              placeholder="Escreva a legenda do post…"
+              rows={5}
+              placeholder="Escreva a legenda — ou digite uma ideia curta e toque em ✨ Gerar com IA."
               className="w-full rounded-[8px] px-3 py-2 text-[13px] text-[#1A1A1A] outline-none resize-y"
               style={{ border: "1px solid #E7E7E2" }}
             />
-          </Field>
+          </div>
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Formato">
@@ -618,6 +692,111 @@ function Composer({
           >
             {saving ? "Salvando…" : post ? "Salvar" : "Programar post"}
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Ideas panel ──────────────────────────────────────────────────────────────
+// AI content ideation. Generates a batch of grounded post ideas the team can
+// drop straight into the calendar.
+interface Idea { title: string; angle: string; format: string; pillar: string }
+
+function IdeasPanel({
+  clientId, clientName, onClose, onPick,
+}: {
+  clientId: string | null;
+  clientName: string;
+  onClose: () => void;
+  onPick: (idea: Idea) => void;
+}) {
+  const [ideas, setIdeas] = useState<Idea[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [brief, setBrief] = useState("");
+
+  async function run() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/social-posts/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "ideas", clientId, brief: brief.trim() || null, count: 6 }),
+      });
+      const json = await res.json();
+      if (!res.ok) { setError(json.error ? `IA: ${json.error}` : "Não foi possível gerar."); return; }
+      setIdeas(Array.isArray(json.ideas) ? json.ideas : []);
+    } catch {
+      setError("Falha de rede. Tente de novo.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4" onClick={onClose}>
+      <div className="bg-white w-full sm:max-w-[560px] max-h-[92vh] overflow-y-auto rounded-t-[16px] sm:rounded-[16px] shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="sticky top-0 bg-white px-5 py-4 flex items-center justify-between z-10" style={{ borderBottom: "1px solid #EFEFEA" }}>
+          <div>
+            <h2 className="text-[16px] font-semibold text-[#1A1A1A]">✨ Ideias de conteúdo</h2>
+            <p className="text-[11.5px] text-[#9B9B95] mt-0.5">Para {clientName}</p>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full text-[#9B9B95] hover:bg-[#F0F0ED]">✕</button>
+        </div>
+
+        <div className="px-5 py-4 space-y-4">
+          <div className="flex gap-2">
+            <input
+              value={brief}
+              onChange={(e) => setBrief(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && !loading) run(); }}
+              placeholder="Direcionamento (opcional): ex. lançamento, datas comemorativas…"
+              className="flex-1 h-9 px-3 rounded-[8px] text-[13px] text-[#1A1A1A] outline-none"
+              style={{ border: "1px solid #E7E7E2" }}
+            />
+            <button
+              onClick={run}
+              disabled={loading}
+              className="h-9 px-4 rounded-[8px] text-[12.5px] font-semibold text-white disabled:opacity-60 shrink-0"
+              style={{ background: "#0E5F5A" }}
+            >
+              {loading ? "Gerando…" : ideas.length ? "Gerar mais" : "Gerar ideias"}
+            </button>
+          </div>
+
+          {error && <div className="text-[12px] text-[#DC2626] bg-[#FEF2F2] rounded-[8px] px-3 py-2">{error}</div>}
+
+          {ideas.length === 0 && !loading && !error && (
+            <div className="text-[13px] text-[#9B9B95] text-center py-8">
+              Toque em <span className="font-semibold text-[#0E5F5A]">Gerar ideias</span> e a IA sugere pautas específicas para este cliente.
+            </div>
+          )}
+
+          <div className="space-y-2">
+            {ideas.map((idea, i) => (
+              <div key={i} className="rounded-[12px] border border-[#ECEBE7] px-3.5 py-3 hover:border-[#C7EFEC] transition-colors">
+                <div className="flex items-start gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] font-semibold text-[#1A1A1A]">{idea.title}</p>
+                    {idea.angle && <p className="text-[12px] text-[#6B6B65] mt-0.5 leading-snug">{idea.angle}</p>}
+                    <div className="flex items-center gap-1.5 mt-1.5">
+                      <span className="h-[18px] px-2 rounded-full bg-[#F0F0ED] text-[#6B6B65] text-[10px] font-medium capitalize flex items-center">{idea.format}</span>
+                      {idea.pillar && <span className="h-[18px] px-2 rounded-full bg-[#E6FBFA] text-[#0E5F5A] text-[10px] font-medium flex items-center">{idea.pillar}</span>}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => onPick(idea)}
+                    className="shrink-0 h-8 px-3 rounded-[8px] text-[12px] font-semibold text-white hover:opacity-90"
+                    style={{ background: "#0B0F2A" }}
+                  >
+                    Usar
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
