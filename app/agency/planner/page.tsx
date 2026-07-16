@@ -72,6 +72,28 @@ interface Post {
 }
 const VIDEO_FORMATS = new Set(["reel", "video", "story"]);
 
+// Turn a roteiro into a provider-agnostic generation prompt, ready to paste
+// into Runway / Pika (or feed to their API later — same text). Each scene
+// becomes a clip prompt; overall specs and audio/CTA framing lead it.
+function buildVideoPrompt(script: VideoScript, format: string, pillar: string): string {
+  const ratio = format === "story" ? "9:16 vertical" : format === "reel" ? "9:16 vertical" : "9:16 vertical";
+  const lines: string[] = [];
+  lines.push(`Vídeo curto para redes sociais — ${ratio}, ~15–30s, ritmo dinâmico, alta qualidade.`);
+  if (pillar) lines.push(`Tema: ${pillar}.`);
+  if (script.hooks[0]) lines.push(`Abertura (gancho, 0–2s): ${script.hooks[0]}`);
+  lines.push("");
+  lines.push("CLIPES (gere um por cena):");
+  script.scenes.forEach((s, i) => {
+    const parts = [s.visual].filter(Boolean);
+    if (s.onScreen) parts.push(`texto na tela: "${s.onScreen}"`);
+    lines.push(`${i + 1}. ${parts.join(" — ")}`);
+  });
+  lines.push("");
+  if (script.audio) lines.push(`Trilha/áudio: ${script.audio}`);
+  if (script.cta) lines.push(`Encerramento (CTA): ${script.cta}`);
+  return lines.join("\n");
+}
+
 // Local-date key (YYYY-MM-DD) from an ISO string, in the viewer's timezone.
 function dayKey(iso: string | null): string | null {
   if (!iso) return null;
@@ -500,6 +522,19 @@ function Composer({
   const [generating, setGenerating] = useState(false);
   const [script, setScript] = useState<VideoScript | null>(post?.script ?? null);
   const [scripting, setScripting] = useState(false);
+  const [copiedPrompt, setCopiedPrompt] = useState(false);
+
+  async function copyVideoPrompt() {
+    if (!script) return;
+    const text = buildVideoPrompt(script, format, pillar.trim());
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedPrompt(true);
+      setTimeout(() => setCopiedPrompt(false), 2000);
+    } catch {
+      setError("Não consegui copiar. Selecione e copie manualmente.");
+    }
+  }
 
   // Generate a filmable video/reel script, grounded in the client's context.
   async function generateScript() {
@@ -696,6 +731,22 @@ function Composer({
                   </div>
                   {script.audio && <p className="text-[11.5px] text-[#3A3A38]"><span className="font-semibold">Áudio:</span> {script.audio}</p>}
                   {script.cta && <p className="text-[11.5px] text-[#3A3A38]"><span className="font-semibold">CTA:</span> {script.cta}</p>}
+
+                  {/* Ready-to-paste generation prompt for Runway / Pika */}
+                  <div className="rounded-[8px] p-2.5" style={{ background: "#0B0F2A" }}>
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span className="text-[10.5px] font-semibold uppercase tracking-wide" style={{ color: "#9AF5F0" }}>Prompt de vídeo (IA)</span>
+                      <button
+                        onClick={copyVideoPrompt}
+                        className="text-[11px] font-semibold rounded-[6px] px-2 py-1 transition-colors"
+                        style={copiedPrompt ? { background: "#16A34A", color: "#fff" } : { background: "rgba(154,245,240,0.15)", color: "#9AF5F0" }}
+                      >
+                        {copiedPrompt ? "✓ Copiado" : "Copiar prompt"}
+                      </button>
+                    </div>
+                    <p className="text-[10.5px] leading-relaxed" style={{ color: "#8C93AE" }}>Cole no Runway ou Pika para gerar o vídeo. Quando você assinar um deles, a geração automática entra aqui neste mesmo prompt.</p>
+                  </div>
+
                   <button onClick={() => setScript(null)} className="text-[11px] text-[#9B9B95] hover:text-[#DC2626]">Remover roteiro</button>
                 </div>
               )}
