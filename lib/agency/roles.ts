@@ -33,9 +33,9 @@ export const ROLE_NAV_ALLOWLIST: Record<AgencyRole, string[] | "all"> = {
   master:              "all",
   project_manager:     "all",
   executivo_comercial: ["/agency/requests", "/agency/clients", "/agency/dashboard", "/agency/settings", "/agency/projects"],
-  social_staff:        ["/agency/dashboard", "/agency/approvals", "/agency/planner", "/agency/departments/social-media", "/agency/social-media-agent", "/agency/deliverables", "/agency/settings"],
-  design_staff:        ["/agency/dashboard", "/agency/approvals", "/agency/departments/design",       "/agency/design-agent",       "/agency/deliverables", "/agency/settings"],
-  ads_staff:           ["/agency/dashboard", "/agency/approvals", "/agency/departments/paid-traffic", "/agency/ads-agent",          "/agency/deliverables", "/agency/settings"],
+  social_staff:        ["/agency/dashboard", "/agency/approvals", "/agency/planner", "/agency/social-media-agent", "/agency/deliverables", "/agency/settings"],
+  design_staff:        ["/agency/dashboard", "/agency/approvals", "/agency/design-agent",       "/agency/deliverables", "/agency/settings"],
+  ads_staff:           ["/agency/dashboard", "/agency/approvals", "/agency/ads-agent",          "/agency/deliverables", "/agency/settings"],
 };
 
 export function isNavAllowed(role: AgencyRole, href: string): boolean {

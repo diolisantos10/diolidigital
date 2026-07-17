@@ -400,10 +400,10 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
           : `Abrir Projeto 'Lançamento Dioli Agência' → aba Configurações → campo Agentes → adicionar Agente ${agent.label}.`,
       route:
         agent.id === "a3"
-          ? "/agency/departments/social-media"
+          ? "/agency/social-media-agent"
           : agent.id === "a2"
-          ? "/agency/departments/design"
-          : "/agency/departments/paid-traffic",
+          ? "/agency/design-agent"
+          : "/agency/ads-agent",
     });
   }
 
