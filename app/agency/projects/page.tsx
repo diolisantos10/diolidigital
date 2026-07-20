@@ -261,8 +261,8 @@ export default function ProjectsPage() {
                         ) : (
                           <button
                             onClick={() => setDeleteTarget(project.id)}
-                            title="Apagar projeto local"
-                            className="opacity-0 group-hover:opacity-100 h-6 w-6 rounded-[5px] border border-[#FCA5A5] text-[#DC2626] hover:bg-[#FEF2F2] flex items-center justify-center transition-all"
+                            title="Excluir projeto"
+                            className="opacity-60 group-hover:opacity-100 h-7 w-7 rounded-[6px] border border-[#FCA5A5] text-[#DC2626] hover:bg-[#FEF2F2] flex items-center justify-center transition-all"
                           >
                             <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
                               <path d="M3 4.5h10M6.5 4.5V3.5a1 1 0 011-1h1a1 1 0 011 1v1M5 4.5l.5 8a1 1 0 001 1h3a1 1 0 001-1l.5-8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
