@@ -191,7 +191,7 @@ export default function ProjectsPage() {
                 <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Prioridade</th>
                 <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Progresso</th>
                 <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Prazo</th>
-                {isMaster && source !== "db" && <th className="px-5 py-3" />}
+                {isMaster && <th className="px-5 py-3" />}
               </tr>
             </thead>
             <tbody>
@@ -241,7 +241,7 @@ export default function ProjectsPage() {
                         </span>
                       )}
                     </td>
-                    {isMaster && source !== "db" && (
+                    {isMaster && (
                       <td className="px-5 py-3.5">
                         {deleteTarget === project.id ? (
                           <div className="flex items-center gap-1.5">

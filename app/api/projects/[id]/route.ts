@@ -57,3 +57,30 @@ export async function PUT(
   });
   return NextResponse.json(project);
 }
+
+export async function DELETE(
+  _request: NextRequest,
+  context: { params: Promise<Params> }
+): Promise<NextResponse> {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (session.role !== "master") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const { id } = await context.params;
+
+  const existing = await prisma.project.findFirst({ where: { id, workspaceId: session.workspaceId } });
+  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  try {
+    // Non-cascading optional refs must be detached first; cascading children
+    // (tasks, deliverables, strategy rooms, etc.) go with the project.
+    await prisma.$transaction([
+      prisma.activityEvent.updateMany({ where: { projectId: id }, data: { projectId: null } }),
+      prisma.aIRunLog.updateMany({ where: { projectId: id }, data: { projectId: null } }),
+      prisma.project.delete({ where: { id } }),
+    ]);
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    console.error("[projects] DELETE error", e);
+    return NextResponse.json({ error: "DB unavailable" }, { status: 503 });
+  }
+}

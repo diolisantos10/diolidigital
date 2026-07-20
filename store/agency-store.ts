@@ -215,6 +215,9 @@ interface AgencyState {
   updateProposal: (id: string, updates: Partial<ProjectProposal>) => void;
   sendProposal: (id: string) => void;
   approveProposal: (id: string) => void;
+  /** Partner brand: release execution with no charge — skips the paid-proposal
+   *  gate by setting an approved, zero-cost proposal. Persists to DB. */
+  markPartnerProject: (id: string) => void;
   rejectProposal: (id: string, reason?: string) => void;
   requestProposalChanges: (id: string, notes: string) => void;
 
@@ -1210,6 +1213,9 @@ export const useAgencyStore = create<AgencyState>()(
           message: `Projeto apagado: "${project.name}"`,
           clientId: project.clientId,
         });
+        if (id.length > 12) {
+          void fetch(`/api/projects/${id}`, { method: "DELETE" }).catch(() => {});
+        }
       },
 
       moveProjectStage: (id, stage) => {
@@ -1264,6 +1270,40 @@ export const useAgencyStore = create<AgencyState>()(
           void fetch(`/api/projects/${id}`, {
             method: "PUT", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ stage: "proposal_sent", proposalStatus: "sent" }),
+          }).catch(() => {});
+        }
+      },
+
+      markPartnerProject: (id) => {
+        const project = get().projects.find((p) => p.id === id);
+        if (!project) return;
+        const partnerProposal: ProjectProposal = {
+          objective:    project.proposal?.objective ?? "",
+          scope:        project.proposal?.scope || "Marca parceira — execução liberada sem cobrança.",
+          deliverables: project.proposal?.deliverables ?? [],
+          timeline:     project.proposal?.timeline ?? "",
+          pricing:      "Cortesia — marca parceira",
+          status:       "approved" as ProjectProposal["status"],
+        };
+        set((s) => ({
+          projects: s.projects.map((p) =>
+            p.id === id ? { ...p, stage: "approved" as ProjectStage, proposal: partnerProposal } : p
+          ),
+        }));
+        get().addActivity({
+          type: "proposal_approved",
+          message: `"${project.name}" liberado como marca parceira (sem custo)`,
+          projectId: id,
+        });
+        if (id.length > 12) {
+          void fetch(`/api/projects/${id}`, {
+            method: "PUT", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              stage: "approved",
+              proposalStatus: "approved",
+              proposalPricing: "Cortesia — marca parceira",
+              proposalScope: partnerProposal.scope,
+            }),
           }).catch(() => {});
         }
       },

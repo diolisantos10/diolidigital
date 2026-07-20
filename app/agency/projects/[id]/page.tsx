@@ -35,7 +35,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const { id } = use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { projects, clients, tasks, deliverables, briefings, materialRequests, updateTaskStatus, updateDeliverableStatus, updateProject, updateProposal, sendProposal, moveProjectStage, setPendingAgentInput } = useAgencyStore();
+  const { projects, clients, tasks, deliverables, briefings, materialRequests, updateTaskStatus, updateDeliverableStatus, updateProject, updateProposal, sendProposal, markPartnerProject, moveProjectStage, setPendingAgentInput } = useAgencyStore();
   const { strategyRooms, generate: generateStrategyRoom, clear: clearStrategyRoom } = useDbStrategyRooms();
 
   type TabId = "overview" | "proposal" | "execution" | "pipeline" | "tasks" | "deliverables" | "briefing" | "strategy" | "report" | "timeline";
@@ -395,6 +395,19 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                         {isApproved ? "Proposta aprovada — execução liberada" : executionBlocked ? "Execução bloqueada — proposta não aprovada" : ""}
                       </span>
                     </div>
+                    {executionBlocked && (
+                      <div className="pl-4 pt-1">
+                        <button
+                          onClick={() => { if (confirm("Liberar este projeto como MARCA PARCEIRA (sem cobrança)? A execução é liberada sem passar pela proposta paga.")) markPartnerProject(id); }}
+                          className="h-8 px-3.5 rounded-[7px] bg-[#0E7C75] hover:bg-[#0B655F] text-white text-[12px] font-semibold transition-colors"
+                        >
+                          Marca parceira — liberar sem custo
+                        </button>
+                        <p className="text-[11px] text-[#9B9B95] mt-1 leading-snug">
+                          Cliente que não paga (parceria): libera a execução direto, sem proposta.
+                        </p>
+                      </div>
+                    )}
                     {prop && (
                       <div className="flex items-center gap-2 flex-wrap pl-4">
                         {[
