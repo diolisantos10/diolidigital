@@ -1304,7 +1304,11 @@ export const useAgencyStore = create<AgencyState>()(
               proposalPricing: "Cortesia — marca parceira",
               proposalScope: partnerProposal.scope,
             }),
-          }).catch(() => {});
+          })
+            // Approval fires the autonomous engine: agents produce and route to
+            // the client portal, or ask the client for what's missing.
+            .then(() => fetch(`/api/projects/${id}/execute`, { method: "POST" }))
+            .catch(() => {});
         }
       },
 
