@@ -671,7 +671,11 @@ export default function ScopeReviewPage({ params }: { params: Promise<{ id: stri
             <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">
               Conversa com o cliente
             </p>
-            <PortalChat clientRequestId={requestId} height={320} />
+            <PortalChat
+              clientRequestId={requestId}
+              height={320}
+              suggestContext={`O escopo do projeto de ${request.businessName} acabou de ser revisado pela equipe (${approvedCount} de ${DEPARTMENTS.length} áreas aprovadas). Escreva uma mensagem avisando que o projeto foi aprovado e que a equipe vai dar sequência ao cronograma, com próximos passos em breve.`}
+            />
           </div>
         )}
       </div>

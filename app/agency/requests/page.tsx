@@ -6,6 +6,7 @@ import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import { SecurePortalLinkButton } from "@/components/agency/portal/SecurePortalLinkButton";
 import { useAgencyStore } from "@/store/agency-store";
 import { useDbRequests, parseJson, type DbRequest } from "@/lib/agency/db-pipeline-hooks";
+import { formatShort, timeAgo } from "@/lib/agency/format-time";
 import {
   REQUEST_STATUS_LABEL,
   REQUEST_STATUS_STYLE,
@@ -900,6 +901,9 @@ export default function AgencyRequestsPage() {
                       {services.length > 0 && (
                         <p className="text-[11px] text-[#9B9B95] mt-0.5 truncate">{services.join(", ")}</p>
                       )}
+                      <p className="text-[10.5px] text-[#B7B7B1] mt-0.5">
+                        Recebido {formatShort(req.createdAt)} · {timeAgo(req.createdAt)}
+                      </p>
                     </div>
 
                     {/* Per-status action buttons */}

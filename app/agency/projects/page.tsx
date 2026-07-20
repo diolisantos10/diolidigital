@@ -9,6 +9,7 @@ import Button from "@/components/agency/ui/Button";
 import EmptyState from "@/components/agency/ui/EmptyState";
 import Link from "next/link";
 import { Priority, ProjectStage } from "@/lib/agency/mock-data";
+import { formatShort, timeAgo } from "@/lib/agency/format-time";
 
 type SortKey = "deadline" | "priority" | "name";
 
@@ -209,6 +210,9 @@ export default function ProjectsPage() {
                           {project.name}
                         </div>
                         <div className="text-[11px] text-[#9B9B95]">{project.type}</div>
+                        <div className="text-[10.5px] text-[#B7B7B1] mt-0.5">
+                          Criado {formatShort(project.createdAt)} · {timeAgo(project.createdAt)}
+                        </div>
                       </Link>
                     </td>
                     <td className="px-5 py-3.5">

@@ -23,6 +23,9 @@ interface PortalChatProps {
   token?: string;
   /** Team side: the request thread id (requires an agency session). */
   clientRequestId?: string;
+  /** Team side: when set, shows an "✨ Sugerir mensagem" button that drafts a
+   *  reply with AI, biased by this situation hint (e.g. "escopo aprovado"). */
+  suggestContext?: string;
   /** Optional name shown to the other side when this viewer sends. */
   authorName?: string;
   /** Visual height of the scroll area. */
@@ -55,7 +58,7 @@ function LinkifiedBody({ text, mine }: { text: string; mine: boolean }) {
   );
 }
 
-export function PortalChat({ token, clientRequestId, authorName, height = 360, bare = false }: PortalChatProps) {
+export function PortalChat({ token, clientRequestId, suggestContext, authorName, height = 360, bare = false }: PortalChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
@@ -63,7 +66,33 @@ export function PortalChat({ token, clientRequestId, authorName, height = 360, b
   const [error, setError] = useState<string | null>(null);
   const [attachOpen, setAttachOpen] = useState(false);
   const [linkDraft, setLinkDraft] = useState("");
+  const [suggesting, setSuggesting] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
+
+  // Team side only: draft a message with AI, drop it in the box for review.
+  const isTeam = !token && !!clientRequestId;
+  async function suggestMessage() {
+    if (suggesting || !clientRequestId) return;
+    setSuggesting(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/portal/messages/suggest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientRequestId, context: suggestContext ?? "" }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error ? `IA: ${data.error}` : "Não foi possível sugerir a mensagem.");
+        return;
+      }
+      if (data.message) setInput(data.message);
+    } catch {
+      setError("Falha ao sugerir. Tente de novo.");
+    } finally {
+      setSuggesting(false);
+    }
+  }
 
   function addLink() {
     const url = linkDraft.trim();
@@ -216,6 +245,22 @@ export function PortalChat({ token, clientRequestId, authorName, height = 360, b
           />
           <button onClick={addLink} disabled={!linkDraft.trim()} className="h-9 px-3 rounded-[8px] bg-[#12B5AC] disabled:opacity-40 text-white text-[12px] font-semibold shrink-0">Anexar</button>
           <button onClick={() => { setAttachOpen(false); setLinkDraft(""); }} className="h-9 px-2 text-[#9B9B95] text-[12px] shrink-0">✕</button>
+        </div>
+      )}
+
+      {/* Team side: AI drafts the message; PM reviews, tweaks and sends. */}
+      {isTeam && (
+        <div className="border-t border-[#F0F0ED] px-2.5 pt-2 -mb-1 flex items-center">
+          <button
+            type="button"
+            onClick={suggestMessage}
+            disabled={suggesting}
+            className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-[11.5px] font-semibold transition-colors disabled:opacity-50"
+            style={{ background: "#E6FBFA", color: "#0E7C75" }}
+            title="A IA escreve a mensagem pra você — é só revisar e enviar"
+          >
+            {suggesting ? "Escrevendo…" : "✨ Sugerir mensagem"}
+          </button>
         </div>
       )}
 

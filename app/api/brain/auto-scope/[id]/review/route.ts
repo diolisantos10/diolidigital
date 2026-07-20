@@ -57,6 +57,20 @@ export async function POST(
     if (!req) return NextResponse.json({ error: "ClientRequest not found" }, { status: 404 });
 
     if (allApproved) {
+      // Idempotency guard: if a project was already created for this request
+      // (double submit, retry, re-opening the scope page), return it instead of
+      // creating a duplicate. This is what caused two identical projects.
+      const existingProject = await prisma.project.findFirst({
+        where: { clientRequestId },
+        orderBy: { createdAt: "asc" },
+      });
+      if (existingProject) {
+        return NextResponse.json(
+          { ok: true, action: "approved_all", projectId: existingProject.id, alreadyApproved: true },
+          { status: 200 },
+        );
+      }
+
       // Approve all draft artifacts.
       await prisma.brainArtifact.updateMany({
         where: { clientRequestId, status: "draft" },
