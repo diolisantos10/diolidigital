@@ -32,7 +32,7 @@ export function AgencyShell({
       />
       <MobileMenuButton onClick={() => setMobileOpen(true)} />
       <main className="flex-1 md:ml-[224px] min-h-screen overflow-x-hidden">
-        <div className="max-w-[1240px] mx-auto px-4 md:px-8 py-8">
+        <div className="max-w-[1240px] mx-auto px-4 md:px-8 pt-16 pb-8 md:py-8">
           {children}
         </div>
       </main>

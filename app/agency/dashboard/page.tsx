@@ -438,7 +438,7 @@ export default function DashboardPage() {
           </Link>
         </div>
         {/* KPI strip */}
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {[
             { label: "Projetos ativos",     value: activeProjects.length, sub: `${projects.filter((p) => p.stage === "completed").length} concluídos`, color: "#070A1F" },
             { label: "Tarefas abertas",     value: tasks.filter((tk) => tk.status === "pending" || tk.status === "in_progress").length, sub: `${tasks.filter((tk) => tk.status === "blocked").length} bloqueadas`, color: "#D97706" },
@@ -721,7 +721,7 @@ export default function DashboardPage() {
             </span>
           )}
         </div>
-        <div className="grid grid-cols-3 divide-x divide-[#F0F0ED]">
+        <div className="grid grid-cols-1 divide-y sm:grid-cols-3 sm:divide-x sm:divide-y-0 divide-[#F0F0ED]">
           {workspaceHealth.departments.map((dept) => {
             const style = DEPT_HEALTH_STYLE[dept.level];
             return (
@@ -799,7 +799,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-[1fr_340px] gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
         {/* LEFT — Active Projects with pipeline */}
         <div className="space-y-6">
           <div className="bg-white rounded-[12px] border border-[#E5E5E2] overflow-hidden">
