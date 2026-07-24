@@ -1,0 +1,157 @@
+// GET /api/meta/callback
+// Meta redirects here after the user authenticates. This route:
+//   1. Validates the state cookie (CSRF).
+//   2. Exchanges the code for a short-lived token, then a long-lived one.
+//   3. Discovers the user's Pages + linked Instagram Business accounts.
+//   4. Stores each as a MetaConnection (token encrypted at rest).
+//   5. Returns an HTML popup that postMessages the result to the opener.
+
+import { NextRequest } from "next/server";
+import { getSession } from "@/lib/auth/session";
+import { resolveMetaAppCredentials, DEFAULT_SCOPES } from "@/lib/integrations/meta/config";
+import { exchangeCodeForToken, exchangeForLongLivedToken } from "@/lib/integrations/meta/oauth";
+import { discoverPages } from "@/lib/integrations/meta/discovery";
+import { saveConnection } from "@/lib/integrations/meta/connections";
+
+function safeAttr(s: string) {
+  return s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/'/g, "&#39;").replace(/</g, "&lt;");
+}
+
+function popupHtml(payload: Record<string, string>): Response {
+  const json = JSON.stringify(payload).replace(/</g, "\\u003c").replace(/>/g, "\\u003e");
+  const isError = payload.type === "meta_auth_error";
+  const heading = isError ? "Não foi possível conectar" : "Conta Meta conectada ✓";
+  const detail = isError
+    ? `Motivo: ${safeAttr(payload.error ?? "desconhecido")}`
+    : `${safeAttr(payload.summary || "Contas conectadas")}. Já pode fechar esta janela.`;
+  const color = isError ? "#dc2626" : "#16a34a";
+  return new Response(
+    `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+<body style="font-family:sans-serif;padding:2rem;text-align:center;color:#1a1a1a">
+<h2 style="color:${color};font-size:18px;margin-bottom:8px">${heading}</h2>
+<p style="color:#6b7280;font-size:14px;word-break:break-word">${detail}</p>
+<script>
+var payload = ${json};
+var hadOpener = false;
+try {
+  if (window.opener && typeof window.opener.postMessage === "function") {
+    window.opener.postMessage(payload, window.location.origin);
+    hadOpener = true;
+  }
+} catch(e) {}
+if (hadOpener) { setTimeout(function(){ window.close(); }, 800); }
+</script>
+</body></html>`,
+    { headers: { "Content-Type": "text/html; charset=utf-8" } },
+  );
+}
+
+export async function GET(req: NextRequest): Promise<Response> {
+  const { searchParams } = new URL(req.url);
+  const code = searchParams.get("code");
+  const state = searchParams.get("state");
+  const err = searchParams.get("error_description") ?? searchParams.get("error");
+
+  if (err || !code || !state) {
+    return popupHtml({ type: "meta_auth_error", error: err ?? "no_code" });
+  }
+
+  // CSRF: state must match the cookie set in /api/meta/connect.
+  const storedState = req.cookies.get("_meta_oauth_state")?.value;
+  if (!storedState || storedState !== state) {
+    return popupHtml({ type: "meta_auth_error", error: "state_mismatch" });
+  }
+
+  // The popup carries the same session cookie — resolve the workspace from it.
+  const session = await getSession();
+  if (!session) return popupHtml({ type: "meta_auth_error", error: "sessão expirada" });
+
+  const creds = await resolveMetaAppCredentials(session.workspaceId);
+  if (!creds) return popupHtml({ type: "meta_auth_error", error: "app_not_configured" });
+
+  const clientId = req.cookies.get("_meta_oauth_client")?.value || null;
+
+  const proto = req.headers.get("x-forwarded-proto") ?? "https";
+  const host = req.headers.get("host") ?? "localhost:3000";
+  const redirectUri = `${proto}://${host}/api/meta/callback`;
+
+  try {
+    // 1. code → short-lived token
+    const shortTok = await exchangeCodeForToken({
+      appId: creds.appId,
+      appSecret: creds.appSecret,
+      redirectUri,
+      code,
+    });
+    // 2. short-lived → long-lived (~60 days)
+    const longTok = await exchangeForLongLivedToken({
+      appId: creds.appId,
+      appSecret: creds.appSecret,
+      shortLivedToken: shortTok.access_token,
+    });
+    const userToken = longTok.access_token;
+    const userTokenExpiry = longTok.expires_in
+      ? new Date(Date.now() + longTok.expires_in * 1000)
+      : null;
+
+    // 3. Discover Pages + linked Instagram accounts.
+    const pages = await discoverPages(userToken);
+
+    // 4. Persist each connectable asset. Page tokens don't expire for
+    //    long-lived users; IG publishing uses the Page token too.
+    let saved = 0;
+    const names: string[] = [];
+    for (const page of pages) {
+      await saveConnection({
+        workspaceId: session.workspaceId,
+        clientId,
+        platform: "facebook",
+        name: page.name,
+        externalId: page.id,
+        accessToken: page.accessToken,
+        tokenExpiresAt: null,
+        scopes: DEFAULT_SCOPES,
+        meta: { pageId: page.id },
+      });
+      saved++;
+      names.push(`FB: ${page.name}`);
+
+      if (page.instagram) {
+        await saveConnection({
+          workspaceId: session.workspaceId,
+          clientId,
+          platform: "instagram",
+          name: page.instagram.username ? `@${page.instagram.username}` : `IG ${page.instagram.id}`,
+          externalId: page.instagram.id,
+          accessToken: page.accessToken, // IG Graph publishing uses the Page token
+          tokenExpiresAt: null,
+          scopes: DEFAULT_SCOPES,
+          meta: { pageId: page.id, igUserId: page.instagram.id },
+        });
+        saved++;
+        names.push(`IG: ${page.instagram.username ?? page.instagram.id}`);
+      }
+    }
+
+    if (saved === 0) {
+      return popupHtml({
+        type: "meta_auth_error",
+        error: "Nenhuma Página/Instagram encontrado nesta conta. Verifique se você administra uma Página com Instagram Business vinculado.",
+      });
+    }
+
+    // Keep the user token available (best-effort) for future discovery under a
+    // pseudo-connection is out of scope; Page tokens are what publishing needs.
+    void userToken;
+    void userTokenExpiry;
+
+    return popupHtml({
+      type: "meta_auth_success",
+      summary: `${saved} conta(s) conectada(s) — ${names.slice(0, 4).join(", ")}${names.length > 4 ? "…" : ""}`,
+    });
+  } catch (e) {
+    const reason = e instanceof Error ? e.message : "unknown";
+    console.error("[meta/callback] failed:", reason);
+    return popupHtml({ type: "meta_auth_error", error: reason });
+  }
+}

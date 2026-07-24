@@ -25,6 +25,7 @@ model AgencyWorkspace {
   agentProviderConfigs DbAgentProviderConfig[]
   activityEvents       ActivityEvent[]
   aiRunLogs            AIRunLog[]
+  metaConnections      MetaConnection[]
 }
 
 // ─── Users / Auth ─────────────────────────────────────────────────────────────
@@ -550,6 +551,46 @@ model EvidenceItem {
   valueJson       String   @default("{}")
   sourceUrl       String?
   createdAt       DateTime @default(now())
+}
+
+// ─── Meta (Instagram / Facebook / WhatsApp) connected accounts ──────────────────
+// One row per connected asset (an IG business account, a FB page, or a WhatsApp
+// number). Populated by the OAuth flow in app/api/meta/*. The long-lived access
+// token is AES-256-GCM encrypted at rest (see lib/security/crypto.ts) — exactly
+// like AI keys in DbIntegrationConfig. The Meta APP credentials (App ID / App
+// Secret) live in DbIntegrationConfig (integrationId "int-meta"), NOT here.
+model MetaConnection {
+  id            String   @id @default(cuid())
+  workspaceId   String
+  workspace     AgencyWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  // Optional: a connection can belong to a specific client, or to the agency
+  // itself (clientId null = the agency's own accounts).
+  clientId      String?
+  // instagram | facebook | whatsapp
+  platform      String
+  // Human-readable label: IG handle, Page name, or WhatsApp display name.
+  name          String   @default("")
+  // The platform's native id: IG Business Account id, FB Page id, or WABA
+  // phone-number id — the id the Graph API publish/insights calls target.
+  externalId    String
+  // Long-lived access token — ENCRYPTED (iv:tag:ciphertext). Page tokens for
+  // FB/IG do not expire; user tokens last ~60 days (see tokenExpiresAt).
+  accessTokenEncrypted String
+  tokenHint     String?
+  tokenExpiresAt DateTime?
+  // Granted scopes/permissions (JSON array) and any extra platform metadata
+  // (e.g. linked page id, business id) as JSON — avoids new columns per field.
+  scopes        String   @default("[]")
+  metaJson      String   @default("{}")
+  status        String   @default("connected") // connected | expired | revoked | error
+  connectedAt   DateTime @default(now())
+  lastSyncedAt  DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([workspaceId, platform, externalId])
+  @@index([workspaceId, platform])
+  @@index([clientId])
 }
 
 // Granular, time-limited portal access per client request.

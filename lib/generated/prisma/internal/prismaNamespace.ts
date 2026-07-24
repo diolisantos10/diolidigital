@@ -414,6 +414,7 @@ export const ModelName = {
   ApprovalRequest: 'ApprovalRequest',
   ApprovalComment: 'ApprovalComment',
   EvidenceItem: 'EvidenceItem',
+  MetaConnection: 'MetaConnection',
   PortalAccess: 'PortalAccess'
 } as const
 
@@ -430,7 +431,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "deliverable" | "materialRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "portalAccess"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "deliverable" | "materialRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "portalAccess"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2654,6 +2655,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    MetaConnection: {
+      payload: Prisma.$MetaConnectionPayload<ExtArgs>
+      fields: Prisma.MetaConnectionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MetaConnectionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaConnectionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MetaConnectionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaConnectionPayload>
+        }
+        findFirst: {
+          args: Prisma.MetaConnectionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaConnectionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MetaConnectionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaConnectionPayload>
+        }
+        findMany: {
+          args: Prisma.MetaConnectionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaConnectionPayload>[]
+        }
+        create: {
+          args: Prisma.MetaConnectionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaConnectionPayload>
+        }
+        createMany: {
+          args: Prisma.MetaConnectionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MetaConnectionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaConnectionPayload>[]
+        }
+        delete: {
+          args: Prisma.MetaConnectionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaConnectionPayload>
+        }
+        update: {
+          args: Prisma.MetaConnectionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaConnectionPayload>
+        }
+        deleteMany: {
+          args: Prisma.MetaConnectionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MetaConnectionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MetaConnectionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaConnectionPayload>[]
+        }
+        upsert: {
+          args: Prisma.MetaConnectionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaConnectionPayload>
+        }
+        aggregate: {
+          args: Prisma.MetaConnectionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMetaConnection>
+        }
+        groupBy: {
+          args: Prisma.MetaConnectionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaConnectionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MetaConnectionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaConnectionCountAggregateOutputType> | number
+        }
+      }
+    }
     PortalAccess: {
       payload: Prisma.$PortalAccessPayload<ExtArgs>
       fields: Prisma.PortalAccessFieldRefs
@@ -3264,6 +3339,28 @@ export const EvidenceItemScalarFieldEnum = {
 export type EvidenceItemScalarFieldEnum = (typeof EvidenceItemScalarFieldEnum)[keyof typeof EvidenceItemScalarFieldEnum]
 
 
+export const MetaConnectionScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  clientId: 'clientId',
+  platform: 'platform',
+  name: 'name',
+  externalId: 'externalId',
+  accessTokenEncrypted: 'accessTokenEncrypted',
+  tokenHint: 'tokenHint',
+  tokenExpiresAt: 'tokenExpiresAt',
+  scopes: 'scopes',
+  metaJson: 'metaJson',
+  status: 'status',
+  connectedAt: 'connectedAt',
+  lastSyncedAt: 'lastSyncedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MetaConnectionScalarFieldEnum = (typeof MetaConnectionScalarFieldEnum)[keyof typeof MetaConnectionScalarFieldEnum]
+
+
 export const PortalAccessScalarFieldEnum = {
   id: 'id',
   token: 'token',
@@ -3476,6 +3573,7 @@ export type GlobalOmitConfig = {
   approvalRequest?: Prisma.ApprovalRequestOmit
   approvalComment?: Prisma.ApprovalCommentOmit
   evidenceItem?: Prisma.EvidenceItemOmit
+  metaConnection?: Prisma.MetaConnectionOmit
   portalAccess?: Prisma.PortalAccessOmit
 }
 

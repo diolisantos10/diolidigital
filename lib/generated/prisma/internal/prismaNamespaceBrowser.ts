@@ -81,6 +81,7 @@ export const ModelName = {
   ApprovalRequest: 'ApprovalRequest',
   ApprovalComment: 'ApprovalComment',
   EvidenceItem: 'EvidenceItem',
+  MetaConnection: 'MetaConnection',
   PortalAccess: 'PortalAccess'
 } as const
 
@@ -595,6 +596,28 @@ export const EvidenceItemScalarFieldEnum = {
 } as const
 
 export type EvidenceItemScalarFieldEnum = (typeof EvidenceItemScalarFieldEnum)[keyof typeof EvidenceItemScalarFieldEnum]
+
+
+export const MetaConnectionScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  clientId: 'clientId',
+  platform: 'platform',
+  name: 'name',
+  externalId: 'externalId',
+  accessTokenEncrypted: 'accessTokenEncrypted',
+  tokenHint: 'tokenHint',
+  tokenExpiresAt: 'tokenExpiresAt',
+  scopes: 'scopes',
+  metaJson: 'metaJson',
+  status: 'status',
+  connectedAt: 'connectedAt',
+  lastSyncedAt: 'lastSyncedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MetaConnectionScalarFieldEnum = (typeof MetaConnectionScalarFieldEnum)[keyof typeof MetaConnectionScalarFieldEnum]
 
 
 export const PortalAccessScalarFieldEnum = {

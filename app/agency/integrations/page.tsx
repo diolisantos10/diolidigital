@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import AiKeyManager from "@/components/agency/AiKeyManager";
+import MetaConnectManager from "@/components/agency/MetaConnectManager";
 import { useAgencyStore } from "@/store/agency-store";
 import {
   MOCK_INTEGRATIONS,
@@ -619,6 +620,9 @@ export default function IntegrationsPage() {
 
       {/* Real AI key connection — paste, test, done */}
       <AiKeyManager />
+
+      {/* Meta (Instagram / Facebook / WhatsApp) — connect real accounts via OAuth */}
+      <MetaConnectManager />
 
       {/* Agent Provider Section */}
       <AgentProviderSection />

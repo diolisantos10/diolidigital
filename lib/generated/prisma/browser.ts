@@ -168,6 +168,11 @@ export type ApprovalComment = Prisma.ApprovalCommentModel
  */
 export type EvidenceItem = Prisma.EvidenceItemModel
 /**
+ * Model MetaConnection
+ * 
+ */
+export type MetaConnection = Prisma.MetaConnectionModel
+/**
  * Model PortalAccess
  * 
  */
