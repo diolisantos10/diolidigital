@@ -26,7 +26,7 @@ vi.mock("@/lib/auth/session", () => ({
 // calls generate() / anyProviderConfigured() (lib/ai/generate.ts), which resolve
 // the key from the Integrations UI first and env second.
 const generateAi = vi.fn();
-const anyProviderConfigured = vi.fn(async () => false);
+const anyProviderConfigured = vi.fn(async (..._args: unknown[]) => false);
 vi.mock("@/lib/ai/generate", () => ({
   generate: (...args: unknown[]) => generateAi(...args),
   anyProviderConfigured: (...args: unknown[]) => anyProviderConfigured(...args),

@@ -2,6 +2,7 @@
 // Uses only production dependencies: @libsql/client + bcryptjs.
 import { createClient } from "@libsql/client";
 import { hash } from "bcryptjs";
+import { randomBytes } from "node:crypto";
 
 const dbUrl = process.env.DATABASE_URL ?? "file:./dev.db";
 const url = dbUrl.startsWith("file:./")
@@ -35,12 +36,17 @@ async function main() {
   console.log("✓ Workspace");
 
   // Users (staff only — no demo clients)
-  // Passwords come from env so production isn't seeded with a public default.
-  // When SEED_MASTER_PASSWORD / SEED_STAFF_PASSWORD are set, the existing users
-  // are ROTATED to them (INSERT OR IGNORE alone never updates an existing row).
-  const masterPw = process.env.SEED_MASTER_PASSWORD || "dioli2025";
-  const staffPw  = process.env.SEED_STAFF_PASSWORD  || "staff2025";
-  const usingDefaultMaster = !process.env.SEED_MASTER_PASSWORD;
+  // SEGURANÇA: a senha NUNCA é uma constante pública commitada (era "dioli2025" —
+  // takeover trivial se a env não fosse setada). Sem SEED_MASTER_PASSWORD/
+  // SEED_STAFF_PASSWORD, geramos uma senha ALEATÓRIA forte por boot: numa base nova
+  // o usuário nasce sem credencial pública (dono reseta pelo fluxo de senha); numa
+  // base existente o INSERT OR IGNORE não toca o usuário e o UPDATE só roda com env.
+  const masterEnv = process.env.SEED_MASTER_PASSWORD;
+  const staffEnv  = process.env.SEED_STAFF_PASSWORD;
+  const usingDefaultMaster = !masterEnv;
+  const usingDefaultStaff  = !staffEnv;
+  const masterPw = masterEnv || randomBytes(24).toString("base64url");
+  const staffPw  = staffEnv  || randomBytes(24).toString("base64url");
   const masterHash = await hash(masterPw, 12);
   const staffHash  = await hash(staffPw,  12);
 
@@ -60,8 +66,9 @@ async function main() {
   if (process.env.SEED_STAFF_PASSWORD) {
     await q(`UPDATE User SET passwordHash = ? WHERE email IN ('pm@dioli.studio','social@dioli.studio','design@dioli.studio')`, [staffHash]);
   }
-  if (usingDefaultMaster) {
-    console.warn("⚠ SEED_MASTER_PASSWORD não definido — master usando senha PADRÃO pública. Defina uma senha forte nas Variables do Railway.");
+  if (usingDefaultMaster || usingDefaultStaff) {
+    const which = [usingDefaultMaster && "SEED_MASTER_PASSWORD", usingDefaultStaff && "SEED_STAFF_PASSWORD"].filter(Boolean).join(" e ");
+    console.warn(`⚠ ${which} não definido(s) — senha ALEATÓRIA por boot (nunca uma senha pública). Numa base nova, defina a env e faça um novo boot, OU use o fluxo de redefinição de senha. NUNCA há credencial pública.`);
   }
   console.log("✓ Users seeded (master@dioli.studio)");
 

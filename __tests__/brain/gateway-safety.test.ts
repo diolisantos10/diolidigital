@@ -25,16 +25,10 @@ const DIRECT_ENGINE_FNS = [
 // Explicit whitelist: relative path prefixes permitted to call engines directly.
 // These are sandbox/training tools — not in the production reasoning pipeline.
 // To add a new allowed path, append here and document why (no silent drift).
+// Só a página de simulação que AINDA existe. As demais foram deletadas — a
+// whitelist só encolhe (remover entrada = progresso; toda entrada é auditável).
 const GATEWAY_WHITELIST: string[] = [
-  "app/agency/simulations/strategy/page.tsx",
-  "app/agency/simulations/social/page.tsx",
-  "app/agency/simulations/design/page.tsx",
-  "app/agency/simulations/traffic/page.tsx",
-  "app/agency/simulations/analytics/page.tsx",
-  "app/agency/simulations/quality/page.tsx",
   "app/agency/simulations/training/page.tsx",
-  "app/agency/simulations/sdr/page.tsx",
-  "app/agency/simulations/page.tsx",
 ];
 
 function getAllTsxFiles(dir: string): string[] {

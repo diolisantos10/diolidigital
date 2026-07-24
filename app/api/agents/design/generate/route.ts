@@ -4,7 +4,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { claudeModel } from "@/lib/ai/claude-provider";
-import { getSession } from "@/lib/auth/session";
+import { requireSession } from "@/lib/auth/api-guard";
 import { resolveProviderKey } from "@/lib/ai/resolve-key";
 
 const CLAUDE_URL = "https://api.anthropic.com/v1/messages";
@@ -31,8 +31,10 @@ interface BrandBrain {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getSession();
-  const resolved = await resolveProviderKey("claude", session?.workspaceId);
+  // SEGURANÇA: exige sessão — antes, anônimo queimava a chave Claude da agência.
+  const guard = await requireSession();
+  if (guard.error) return guard.error;
+  const resolved = await resolveProviderKey("claude", guard.session.workspaceId);
   if (!resolved) {
     return NextResponse.json(
       { ok: false, error: "Nenhuma chave Claude configurada. Adicione em Integrações → IAs dos Agentes." },
