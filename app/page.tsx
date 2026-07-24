@@ -8,10 +8,12 @@ import { AppMockup } from "@/components/brand/AppMockup";
    ⚙️  EDITE AQUI — seus dados de contato (troque os valores entre aspas)
    ─────────────────────────────────────────────────────────────────────────── */
 const CONTATO = {
-  // WhatsApp com código do país, só dígitos. Ex.: 55 + DDD + número.
-  whatsapp: "5511999999999", // ← TROQUE pelo seu número real
-  instagram: "https://instagram.com/dioli.digital", // ← confira/ajuste
-  email: "contato@dioli.studio", // ← confira/ajuste
+  // WhatsApp com código do país, só dígitos. (55 + DDD 11 + 98940-0692)
+  whatsapp: "5511989400692",
+  instagram: "https://instagram.com/dioli.digital",
+  facebook: "https://www.facebook.com/dioli.digital",
+  email: "agenciadioli@gmail.com",
+  site: "https://diolidigital.com.br",
 };
 const WHATS_MSG = "Olá! Vim pelo site da Dioli Digital e quero saber mais sobre os serviços.";
 const whatsappUrl = `https://wa.me/${CONTATO.whatsapp}?text=${encodeURIComponent(WHATS_MSG)}`;
@@ -365,6 +367,7 @@ export default function SitePage() {
           <div className="flex flex-col gap-2.5 text-[13.5px] md:items-end">
             <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="text-[var(--text-secondary)] transition-colors hover:text-[var(--navy)]">WhatsApp</a>
             <a href={CONTATO.instagram} target="_blank" rel="noopener noreferrer" className="text-[var(--text-secondary)] transition-colors hover:text-[var(--navy)]">Instagram</a>
+            <a href={CONTATO.facebook} target="_blank" rel="noopener noreferrer" className="text-[var(--text-secondary)] transition-colors hover:text-[var(--navy)]">Facebook</a>
             <a href={`mailto:${CONTATO.email}`} className="text-[var(--text-secondary)] transition-colors hover:text-[var(--navy)]">{CONTATO.email}</a>
             <Link href="/vitrine" className="text-[var(--text-secondary)] transition-colors hover:text-[var(--navy)]">Serviços avulsos →</Link>
             <Link href="/auth/signin" className="text-[var(--text-secondary)] transition-colors hover:text-[var(--navy)]">Área do cliente →</Link>
