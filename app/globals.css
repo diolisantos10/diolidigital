@@ -1,4 +1,8 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
 
 :root {
   /* ── HUMANTECH Design System — Dioli Digital ─────────────────────────── */
@@ -12,7 +16,7 @@
   --bg:           #F5F5F3;   /* main background — warm off-white */
   --bg-elevated:  #FAFAF8;   /* slightly lighter — cards, panels */
   --card:         #FFFFFF;
-  --sidebar:      #070A1F;
+  --sidebar:      #070A1F;   /* navy — real sidebar bg */
 
   /* Text */
   --text-primary:   #1A1A1A;
@@ -25,7 +29,7 @@
   --border-strong:  #C8C8C4;
 
   /* Semantic */
-  --accent:       #070A1F;
+  --accent:       #F0F0ED;   /* shadcn "accent" = subtle hover surface */
   --accent-light: #E6FBFA;
   --success:      #16A34A;
   --success-bg:   #DCFCE7;
@@ -51,6 +55,38 @@
   /* Motion */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --duration: 140ms;
+
+  /* ── shadcn/ui semantic tokens — mapped to the Dioli brand ──────────────
+     These drive every shadcn component. Values reference the brand palette
+     above so shadcn components render on-brand (navy / cyan / graphite).   */
+  --background:               #F5F5F3;   /* = --bg */
+  --foreground:               #1A1A1A;   /* = --text-primary */
+  --card-foreground:          #1A1A1A;
+  --popover:                  #FFFFFF;
+  --popover-foreground:       #1A1A1A;
+  --primary:                  #070A1F;   /* navy — default buttons */
+  --primary-foreground:       #FFFFFF;
+  --secondary:                #F0F0ED;
+  --secondary-foreground:     #1A1A1A;
+  --muted:                    #FAFAF8;   /* = --bg-elevated */
+  --muted-foreground:         #6B6B65;   /* = --text-secondary */
+  --accent-foreground:        #1A1A1A;
+  --destructive:              #DC2626;   /* = --danger */
+  --input:                    #E5E5E2;   /* = --border */
+  --ring:                     #070A1F;   /* focus ring — navy */
+  --chart-1:                  #070A1F;   /* navy */
+  --chart-2:                  #2563EB;   /* info blue */
+  --chart-3:                  #16A34A;   /* success green */
+  --chart-4:                  #D97706;   /* warning amber */
+  --chart-5:                  #12B5AC;   /* deep cyan */
+  --radius:                   0.5rem;    /* 8px — matches brand card radius */
+  --sidebar-foreground:       #E8E8F0;   /* light text on navy */
+  --sidebar-primary:          #9AF5F0;   /* cyan — active item */
+  --sidebar-primary-foreground: #070A1F;
+  --sidebar-accent:           #0E1230;   /* navy hover surface */
+  --sidebar-accent-foreground:  #FFFFFF;
+  --sidebar-border:           rgba(255,255,255,0.08);
+  --sidebar-ring:             #9AF5F0;
 }
 
 * { box-sizing: border-box; }
@@ -127,3 +163,94 @@ h1, h2, h3, h4, .font-display {
   scrollbar-width: none;
 }
 .scrollbar-none::-webkit-scrollbar { display: none; }
+
+@theme inline {
+  --font-heading:    var(--font-display);
+  --font-sans:    var(--font-sans);
+  --font-mono:    var(--font-mono);
+  --color-sidebar-ring:    var(--sidebar-ring);
+  --color-sidebar-border:    var(--sidebar-border);
+  --color-sidebar-accent-foreground:    var(--sidebar-accent-foreground);
+  --color-sidebar-accent:    var(--sidebar-accent);
+  --color-sidebar-primary-foreground:    var(--sidebar-primary-foreground);
+  --color-sidebar-primary:    var(--sidebar-primary);
+  --color-sidebar-foreground:    var(--sidebar-foreground);
+  --color-sidebar:    var(--sidebar);
+  --color-chart-5:    var(--chart-5);
+  --color-chart-4:    var(--chart-4);
+  --color-chart-3:    var(--chart-3);
+  --color-chart-2:    var(--chart-2);
+  --color-chart-1:    var(--chart-1);
+  --color-ring:    var(--ring);
+  --color-input:    var(--input);
+  --color-border:    var(--border);
+  --color-destructive:    var(--destructive);
+  --color-accent-foreground:    var(--accent-foreground);
+  --color-accent:    var(--accent);
+  --color-muted-foreground:    var(--muted-foreground);
+  --color-muted:    var(--muted);
+  --color-secondary-foreground:    var(--secondary-foreground);
+  --color-secondary:    var(--secondary);
+  --color-primary-foreground:    var(--primary-foreground);
+  --color-primary:    var(--primary);
+  --color-popover-foreground:    var(--popover-foreground);
+  --color-popover:    var(--popover);
+  --color-card-foreground:    var(--card-foreground);
+  --color-card:    var(--card);
+  --color-foreground:    var(--foreground);
+  --color-background:    var(--background);
+  --radius-sm:    calc(var(--radius) * 0.6);
+  --radius-md:    calc(var(--radius) * 0.8);
+  --radius-lg:    var(--radius);
+  --radius-xl:    calc(var(--radius) * 1.4);
+  --radius-2xl:    calc(var(--radius) * 1.8);
+  --radius-3xl:    calc(var(--radius) * 2.2);
+  --radius-4xl:    calc(var(--radius) * 2.6);
+}
+
+.dark {
+  /* ── Dark theme — grounded in the navy brand world ────────────────────── */
+  --background:               #070A1F;   /* deep navy ground */
+  --foreground:               #F2F2EF;
+  --card:                     #0E1230;   /* elevated navy */
+  --card-foreground:          #F2F2EF;
+  --popover:                  #0E1230;
+  --popover-foreground:       #F2F2EF;
+  --primary:                  #9AF5F0;   /* cyan — primary action on dark */
+  --primary-foreground:       #070A1F;
+  --secondary:                #1A1F3D;
+  --secondary-foreground:     #E8E8F0;
+  --muted:                    #12173A;
+  --muted-foreground:         #9B9EB5;
+  --accent:                   #1A1F3D;
+  --accent-foreground:        #FFFFFF;
+  --destructive:              #F87171;
+  --border:                   rgba(255,255,255,0.10);
+  --input:                    rgba(255,255,255,0.14);
+  --ring:                     #9AF5F0;
+  --chart-1:                  #9AF5F0;
+  --chart-2:                  #60A5FA;
+  --chart-3:                  #4ADE80;
+  --chart-4:                  #FBBF24;
+  --chart-5:                  #22D3EE;
+  --sidebar:                  #05070F;
+  --sidebar-foreground:       #E8E8F0;
+  --sidebar-primary:          #9AF5F0;   /* cyan — active (was random purple) */
+  --sidebar-primary-foreground: #070A1F;
+  --sidebar-accent:           #12173A;
+  --sidebar-accent-foreground:  #FFFFFF;
+  --sidebar-border:           rgba(255,255,255,0.08);
+  --sidebar-ring:             #9AF5F0;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
