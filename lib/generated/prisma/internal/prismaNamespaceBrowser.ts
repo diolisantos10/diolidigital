@@ -155,6 +155,12 @@ export const ProjectScalarFieldEnum = {
   proposalScope: 'proposalScope',
   proposalSentAt: 'proposalSentAt',
   agents: 'agents',
+  executionStatus: 'executionStatus',
+  executionRequestedAt: 'executionRequestedAt',
+  executionStartedAt: 'executionStartedAt',
+  executionFinishedAt: 'executionFinishedAt',
+  executionAttempts: 'executionAttempts',
+  executionError: 'executionError',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

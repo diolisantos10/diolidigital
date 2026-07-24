@@ -89,6 +89,15 @@ model Project {
   proposalSentAt  String?
   // JSON-encoded string array of assigned agent IDs
   agents      String   @default("[]")
+  // Execução durável da produção (não depende mais do navegador): o motor marca
+  // o progresso no banco; um cron recupera projetos travados.
+  // executionStatus: idle | pending | running | done | failed
+  executionStatus      String    @default("idle")
+  executionRequestedAt DateTime?
+  executionStartedAt   DateTime?
+  executionFinishedAt  DateTime?
+  executionAttempts    Int       @default(0)
+  executionError       String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
