@@ -3,6 +3,8 @@ import Link from "next/link";
 import { DioliLogo } from "@/components/brand/DioliLogo";
 import { OrbitMotif } from "@/components/brand/OrbitMotif";
 import { AppMockup } from "@/components/brand/AppMockup";
+import { PlannerMockup } from "@/components/brand/PlannerMockup";
+import { PipelineMockup } from "@/components/brand/PipelineMockup";
 
 /* ═══════════════════════════════════════════════════════════════════════════
    ⚙️  EDITE AQUI — seus dados de contato (troque os valores entre aspas)
@@ -206,6 +208,38 @@ export default function SitePage() {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Galeria da plataforma (imagens de produto em código) ───────────────── */}
+      <section className="relative overflow-hidden border-b border-[var(--border)] bg-[var(--bg)]">
+        <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-28">
+          <div className="max-w-2xl">
+            <p className="text-[12.5px] font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">A plataforma por dentro</p>
+            <h2 className="mt-3 text-[30px] font-bold tracking-[-0.025em] text-[var(--navy)] md:text-[44px]">
+              Uma operação inteira <span className="text-gradient-cool">trabalhando por você.</span>
+            </h2>
+            <p className="mt-4 text-[15.5px] leading-relaxed text-[var(--text-secondary)]">
+              Estratégia, conteúdo e execução em um só lugar — com IA acelerando a produção e
+              você acompanhando tudo com clareza, do briefing à entrega.
+            </p>
+          </div>
+          <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
+            {[
+              { el: <AppMockup />, cap: "Dashboards e métricas em tempo real" },
+              { el: <PlannerMockup />, cap: "Conteúdo planejado — e gerado com IA" },
+              { el: <PipelineMockup />, cap: "Execução acompanhada no pipeline" },
+            ].map((m, i) => (
+              <figure key={i} className="flex flex-col">
+                <div className="rounded-[26px] bg-gradient-to-b from-[var(--card)] to-transparent p-1.5 shadow-[var(--shadow-lg)]">
+                  {m.el}
+                </div>
+                <figcaption className="mt-4 px-1 text-[13.5px] font-medium text-[var(--text-secondary)]">
+                  {m.cap}
+                </figcaption>
+              </figure>
+            ))}
           </div>
         </div>
       </section>
