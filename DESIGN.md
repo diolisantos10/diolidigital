@@ -12,15 +12,48 @@ não branco frio) e uma assinatura visual em **cyan**.
 
 ## 1. Fundamentos da marca
 
+> **Bíblia da identidade:** o [`Brand Book Dioli Digital v1`](docs/brand/Dioli_Digital_Brand_Book_v1.pdf)
+> é a fonte oficial da marca. Este `DESIGN.md` traduz o brand book para o código. Em caso
+> de conflito, **o brand book vence** — e este arquivo deve ser atualizado junto.
+
+Marca pública: **Dioli Digital** — *estúdio digital com IA*.
+Rota visual: **HUMANTECH** — "Estratégia humana. Execução inteligente."
+
+### Paleta oficial (brand book)
+
 | Papel | Cor | Hex | Uso |
 |---|---|---|---|
-| **Navy** | ⬛ | `#070A1F` | Ação primária, sidebar, títulos fortes, texto sobre claro |
-| **Cyan** | 🟦 | `#9AF5F0` | Assinatura visual — item ativo, destaques, foco (usar com parcimônia) |
-| **Graphite** | ⬛ | `#1A1A1A` | Texto primário |
-| **Off-white quente** | ⬜ | `#F5F5F3` | Fundo principal (nunca branco puro no fundo) |
+| **Navy** | ⬛ | `#070A1F` | Ação primária, sidebar, títulos fortes, fundos escuros |
+| **Cyan** (mint) | 🟦 | `#9AF5F0` | Assinatura visual — item ativo, destaques, foco (parcimônia) |
+| **Graphite** | ⬛ | `#1F2937` | Texto primário |
+| **Off-white** | ⬜ | `#F7F8FA` | Fundo principal (nunca branco puro no fundo) |
+| **White** | ⬜ | `#FFFFFF` | Cartões |
 
-**Regra de ouro do cyan:** é *tempero*, não *prato principal*. Use em estados ativos,
-foco e um ou outro destaque. Botão primário é **navy**, não cyan.
+### Família de azuis (amostrada do brand book — além dos swatches)
+
+| Token | Hex | Uso |
+|---|---|---|
+| `--cyan-bright` | `#2AE3F5` | Esfera / gradiente do eclipse |
+| `--azure` | `#1FB7E7` | Acento em **títulos display** (só texto grande — baixo contraste) |
+| `--electric` | `#0057FF` | Azul elétrico — ponto de órbita, acento raríssimo |
+
+**Regra de ouro do cyan:** é *tempero*, não *prato principal*. Botão primário é **navy**,
+não cyan. Brand book manda **evitar cyan em excesso** e **evitar fundo sempre escuro**
+(misturar claro e escuro com equilíbrio).
+
+### Símbolo e assinatura visual
+- **Logo** (`components/brand/DioliLogo.tsx`): dois círculos (eclipse) — anel grande +
+  disco menor + micro-satélite. **Monocromático** (navy no claro, branco no escuro). O
+  cyan **não** entra no logo.
+- **Órbita/eclipse** (`components/brand/OrbitMotif.tsx`): elipses tracejadas + esfera cyan
+  luminosa. Assinatura decorativa das telas de marca.
+
+### Tipografia oficial
+- **Sora** — títulos e destaques · **Inter** — textos e parágrafos.
+
+### Tom de voz
+Claro, acolhedor, estratégico, inteligente, prático, dedicado. *"A Dioli deve parecer
+sofisticada porque é clara, não porque é difícil de entender."* Evitar jargão técnico.
 
 ---
 

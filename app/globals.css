@@ -7,29 +7,34 @@
 :root {
   /* ── HUMANTECH Design System — Dioli Digital ─────────────────────────── */
 
-  /* Core Brand */
+  /* Core Brand — paleta oficial do Brand Book Dioli Digital v1 (docs/brand/) */
   --navy:    #070A1F;   /* primary action + sidebar bg */
-  --cyan:    #9AF5F0;   /* visual signature — active, highlights */
-  --graphite:#1A1A1A;   /* primary text */
+  --cyan:    #9AF5F0;   /* assinatura visual — mint oficial (tempero, não prato) */
+  --graphite:#1F2937;   /* primary text (brand book) */
 
-  /* Surfaces */
-  --bg:           #F5F5F3;   /* main background — warm off-white */
-  --bg-elevated:  #FAFAF8;   /* slightly lighter — cards, panels */
+  /* Família de azuis da marca (amostrada do brand book) */
+  --cyan-bright: #2AE3F5;   /* esfera / gradiente do eclipse */
+  --azure:       #1FB7E7;   /* acento em títulos display (usar só em texto grande) */
+  --electric:    #0057FF;   /* azul elétrico — ponto de órbita, acento raríssimo */
+
+  /* Surfaces — off-white oficial #F7F8FA + branco */
+  --bg:           #F7F8FA;   /* main background — off-white oficial */
+  --bg-elevated:  #FDFDFE;   /* levemente elevado — cards, panels */
   --card:         #FFFFFF;
   --sidebar:      #070A1F;   /* navy — real sidebar bg */
 
-  /* Text */
-  --text-primary:   #1A1A1A;
-  --text-secondary: #6B6B65;
-  --text-muted:     #9B9B95;
-  --text-subtle:    #C0C0BC;
+  /* Text — neutros frios coerentes com graphite/off-white do brand book */
+  --text-primary:   #1F2937;
+  --text-secondary: #55606E;
+  --text-muted:     #8B95A3;
+  --text-subtle:    #B8C0CA;
 
   /* Borders */
-  --border:         #E5E5E2;
-  --border-strong:  #C8C8C4;
+  --border:         #E6E9EE;
+  --border-strong:  #D2D7DE;
 
   /* Semantic */
-  --accent:       #F0F0ED;   /* shadcn "accent" = subtle hover surface */
+  --accent:       #EEF1F4;   /* shadcn "accent" = subtle hover surface */
   --accent-light: #E6FBFA;
   --success:      #16A34A;
   --success-bg:   #DCFCE7;
@@ -59,20 +64,20 @@
   /* ── shadcn/ui semantic tokens — mapped to the Dioli brand ──────────────
      These drive every shadcn component. Values reference the brand palette
      above so shadcn components render on-brand (navy / cyan / graphite).   */
-  --background:               #F5F5F3;   /* = --bg */
-  --foreground:               #1A1A1A;   /* = --text-primary */
-  --card-foreground:          #1A1A1A;
+  --background:               #F7F8FA;   /* = --bg */
+  --foreground:               #1F2937;   /* = --text-primary */
+  --card-foreground:          #1F2937;
   --popover:                  #FFFFFF;
-  --popover-foreground:       #1A1A1A;
+  --popover-foreground:       #1F2937;
   --primary:                  #070A1F;   /* navy — default buttons */
   --primary-foreground:       #FFFFFF;
-  --secondary:                #F0F0ED;
-  --secondary-foreground:     #1A1A1A;
-  --muted:                    #FAFAF8;   /* = --bg-elevated */
-  --muted-foreground:         #6B6B65;   /* = --text-secondary */
-  --accent-foreground:        #1A1A1A;
+  --secondary:                #EEF1F4;
+  --secondary-foreground:     #1F2937;
+  --muted:                    #FDFDFE;   /* = --bg-elevated */
+  --muted-foreground:         #55606E;   /* = --text-secondary */
+  --accent-foreground:        #1F2937;
   --destructive:              #DC2626;   /* = --danger */
-  --input:                    #E5E5E2;   /* = --border */
+  --input:                    #E6E9EE;   /* = --border */
   --ring:                     #070A1F;   /* focus ring — navy */
   --chart-1:                  #070A1F;   /* navy */
   --chart-2:                  #2563EB;   /* info blue */
