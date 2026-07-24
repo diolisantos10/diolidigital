@@ -46,7 +46,7 @@ export function OrbitMotif({
       />
 
       {/* glow da esfera */}
-      <circle cx="230" cy="150" r="30" fill="#9AF5F0" opacity="0.28" filter={`url(#${id}-glow)`} />
+      <circle cx="230" cy="150" r="30" fill="#9AF5F0" opacity="0.28" filter={`url(#${id}-glow)`} className="animate-glow" style={{ transformOrigin: "230px 150px" }} />
       {/* esfera central — execução inteligente */}
       <circle cx="230" cy="150" r="26" fill={`url(#${id}-sphere)`} />
       <circle cx="222" cy="142" r="7" fill="#FFFFFF" opacity="0.55" />
