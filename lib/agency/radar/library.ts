@@ -1,4 +1,4 @@
-// library.ts — a BIBLIOTECA VIVA do Radar de Ollie.
+// library.ts — a BIBLIOTECA VIVA do Radar Dioli.
 //
 // O acervo de tendências/atualizações de mercado que abastece TODOS os agentes
 // (insumo de produção) e as diretrizes da QUALIDADE. É a versão generalizada do
@@ -103,7 +103,7 @@ export function buildInsightBlock(insights: Array<{ title: string; guidance: str
     return `• [${tag}] ${i.title}: ${i.guidance}`;
   });
   return [
-    "━━━ RADAR DE OLLIE — o que está ATUAL no mercado (siga estas diretrizes) ━━━",
+    "━━━ RADAR DIOLI — o que está ATUAL no mercado (siga estas diretrizes) ━━━",
     ...lines,
     "━━━",
   ].join("\n");

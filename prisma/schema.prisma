@@ -619,7 +619,7 @@ model PortalAccess {
 }
 
 
-// ─── Radar de Ollie — biblioteca viva de tendências/atualizações de mercado ────
+// ─── Radar Dioli — biblioteca viva de tendências/atualizações de mercado ────
 // O acervo que abastece TODOS os agentes (insumo) e as diretrizes da Qualidade.
 // Governança: fonte "official" (a própria plataforma — Meta/TikTok/Google) entra
 // ATIVA sem validação; "trend" (não-oficial) entra PENDENTE até um humano aprovar.

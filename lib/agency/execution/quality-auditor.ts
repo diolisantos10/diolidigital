@@ -18,7 +18,7 @@ export async function auditDeliverable(input: {
   title: string;
   content: string;
   brandContext: string;
-  /** Diretrizes ATUAIS de mercado (Radar de Ollie) — a Qualidade audita contra elas. */
+  /** Diretrizes ATUAIS de mercado (Radar Dioli) — a Qualidade audita contra elas. */
   marketGuidelines?: string;
   workspaceId: string;
 }): Promise<QualityVerdict> {

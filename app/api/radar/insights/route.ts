@@ -1,4 +1,4 @@
-// Radar de Ollie — abastecer e listar a biblioteca.
+// Radar Dioli — abastecer e listar a biblioteca.
 //   POST — adiciona um insight. source "official" (Meta/TikTok/Google) entra ATIVO
 //          na hora; "trend" entra PENDENTE até validação humana.
 //   GET  — lista a fila de tendências PENDENTES (pra o humano validar).

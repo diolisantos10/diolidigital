@@ -14,7 +14,7 @@ beforeEach(() => {
   db.marketInsight.create.mockImplementation(async ({ data }: { data: { status: string } }) => ({ id: "i1", status: data.status }));
 });
 
-describe("Radar de Ollie — biblioteca (governança oficial vs tendência)", () => {
+describe("Radar Dioli — biblioteca (governança oficial vs tendência)", () => {
   it("fonte OFICIAL entra ATIVA na hora (sem validação) e supersede o tópico", async () => {
     const r = await addInsight({ workspaceId: "ws1", domain: "social", topic: "ig-algo", title: "Novo ranking IG", guidance: "priorizar reels de até 30s", source: "official", sourceName: "Meta" });
     expect(r.status).toBe("active");
@@ -57,6 +57,6 @@ describe("Radar de Ollie — biblioteca (governança oficial vs tendência)", ()
     ]);
     expect(block).toMatch(/OFICIAL \(Meta\)/);
     expect(block).toMatch(/tendência/);
-    expect(block).toContain("RADAR DE OLLIE");
+    expect(block).toContain("RADAR DIOLI");
   });
 });

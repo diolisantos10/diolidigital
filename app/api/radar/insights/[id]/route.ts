@@ -1,4 +1,4 @@
-// Radar de Ollie — validar uma tendência pendente.
+// Radar Dioli — validar uma tendência pendente.
 //   PATCH { action: "approve" | "reject" } — a validação humana. Aprovar coloca
 //   a tendência em vigor (e supersede o tópico); rejeitar a descarta.
 

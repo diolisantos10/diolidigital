@@ -32,7 +32,7 @@ interface DeptConfig {
   agentId: string;
   keywords: RegExp;
   deliverableType: string;
-  /** Domínio do Radar de Ollie que abastece este agente com tendências atuais. */
+  /** Domínio do Radar Dioli que abastece este agente com tendências atuais. */
   insightDomain: InsightDomain;
   needs?: { check: (ctx: Ctx) => boolean; ask: string };
   prompt: (ctx: Ctx) => string;
@@ -233,7 +233,7 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
         continue;
       }
 
-      // Radar de Ollie: as diretrizes ATUAIS de mercado do domínio viram insumo.
+      // Radar Dioli: as diretrizes ATUAIS de mercado do domínio viram insumo.
       const insights = await getActiveInsights(project.workspaceId, dept.insightDomain);
       const insightBlock = buildInsightBlock(insights);
 
