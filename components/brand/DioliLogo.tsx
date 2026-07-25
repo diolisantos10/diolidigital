@@ -25,17 +25,17 @@ export function DioliLogo({
 
   const mark = (
     <svg
-      width={markSize}
+      width={Math.round((markSize * 50) / 34)}
       height={markSize}
-      viewBox="0 0 40 40"
+      viewBox="0 0 50 34"
       fill="none"
       className="shrink-0"
       aria-hidden="true"
     >
       {/* anel grande */}
-      <circle cx="14.5" cy="20" r="10.5" stroke={ink} strokeWidth="3.2" fill="none" />
-      {/* anel pequeno (o "o") */}
-      <circle cx="30.5" cy="19" r="5.4" stroke={ink} strokeWidth="2.8" fill="none" />
+      <circle cx="13" cy="17" r="11" stroke={ink} strokeWidth="3" fill="none" />
+      {/* anel pequeno — separado, com respiro (o "o") */}
+      <circle cx="37.5" cy="13.5" r="6" stroke={ink} strokeWidth="2.8" fill="none" />
     </svg>
   );
 
