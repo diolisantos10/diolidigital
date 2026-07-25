@@ -371,22 +371,22 @@ export default function SitePage() {
           <div className="max-w-2xl">
             <p className="text-[12.5px] font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Para quem a gente trabalha</p>
             <h2 className="mt-3 text-[30px] font-bold tracking-[-0.025em] text-[var(--navy)] md:text-[44px]">
-              Negócios reais. <span className="text-gradient-cool">Gente real.</span>
+              Tecnologia de gente grande. <span className="text-gradient-cool">No seu tamanho.</span>
             </h2>
             <p className="mt-4 text-[15.5px] leading-relaxed text-[var(--text-secondary)]">
-              A gente trabalha para quem move o bairro — o pequeno empreendedor que faz tudo
-              acontecer. Tecnologia e estratégia de agência grande, com o pé no chão de quem
-              entende o seu dia a dia.
+              Do MEI à empresa em crescimento — estratégia, marca e tecnologia modernas, sem a
+              pompa (nem o preço) das grandes agências. Moderno de verdade, e acessível de
+              verdade.
             </p>
           </div>
           <div className="mt-12 grid grid-cols-2 gap-3.5 sm:gap-4 lg:grid-cols-3">
             {[
-              { img: "salao", label: "Salões e beleza" },
-              { img: "padaria", label: "Padarias e cafés" },
-              { img: "loja", label: "Lojas de bairro" },
-              { img: "atelie", label: "Ateliês e artesãos" },
-              { img: "foodtruck", label: "Food trucks" },
-              { img: "oficina", label: "Oficinas e serviços" },
+              { img: "estudio", label: "Estúdios e criadores" },
+              { img: "coworking", label: "Times em crescimento" },
+              { img: "loja", label: "Lojas e boutiques" },
+              { img: "fintech", label: "Gestão na palma da mão" },
+              { img: "cafe", label: "Comércio local" },
+              { img: "fachada", label: "Negócios de bairro" },
             ].map((p) => (
               <figure key={p.img} className="group relative overflow-hidden rounded-2xl">
                 <img

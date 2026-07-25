@@ -18,17 +18,20 @@ const OUT = "public/img/humanos";
 const URL = "https://api.openai.com/v1/images/generations";
 
 const BASE =
-  "Fotografia documental autêntica, luz natural de dia, cores realistas e suaves, " +
-  "aparência acessível e cotidiana (NÃO corporativa, NÃO glamourosa, sem cara de banco de imagem). " +
-  "Brasil, pequeno negócio real, pessoas diversas e naturais, momento espontâneo. ";
+  "Fotografia moderna, luminosa e limpa, estética contemporânea acessível — referência de marca " +
+  "fintech/startup (tipo Nubank): moderno, minimalista, caloroso e próximo. NÃO corporativo de " +
+  "arranha-céu, NÃO de luxo, mas também NÃO precário nem amador — um meio-termo classe média. " +
+  "Luz natural suave, cores realistas com leve tom limpo/frio, ambiente organizado e convidativo. " +
+  "Brasil, empreendedorismo real e moderno. FOCO no ambiente/lugar; pessoas só em contexto ao fundo, " +
+  "nunca retrato de atendimento em primeiro plano. ";
 
 const SHOTS = [
-  ["salao", "Uma cabeleireira dona de um pequeno salão de bairro atendendo uma cliente, sorrindo, ambiente simples e acolhedor."],
-  ["padaria", "Um casal dono de uma padaria de bairro atrás do balcão com pães e cafezinho, avental, atendimento caloroso."],
-  ["loja", "Uma pequena lojista conferindo o celular ao lado da maquininha de cartão no balcão da sua loja de roupas de bairro."],
-  ["atelie", "Uma costureira/artesã trabalhando em sua máquina de costura num ateliê pequeno e organizado, tecidos coloridos ao redor."],
-  ["foodtruck", "Um jovem empreendedor servindo um cliente na janela de um food truck de rua ao entardecer, clima descontraído."],
-  ["oficina", "Um mecânico dono de uma pequena oficina de bairro conversando com um cliente ao lado do carro, mãos de trabalho, ambiente real."],
+  ["estudio", "Um pequeno estúdio/escritório moderno e claro: mesa de madeira clara com notebook aberto, caderno e um café, plantas e luz natural pela janela. Sem pessoas em primeiro plano."],
+  ["coworking", "Interior de um coworking moderno e aconchegante: mesas de madeira, plantas, iluminação natural, uma ou duas pessoas desfocadas ao fundo trabalhando, clima descontraído e acessível."],
+  ["loja", "Interior de uma pequena loja/boutique moderna e bem organizada: prateleiras limpas, iluminação agradável, plantas, estética contemporânea e acolhedora — nem luxuosa, nem precária. Sem pessoas em primeiro plano."],
+  ["fintech", "Close moderno de mãos segurando um celular com um app de gestão/pagamentos na tela, sobre uma mesa clara com cartão e cafezinho ao lado — estética fintech acessível, luz suave e limpa."],
+  ["cafe", "Interior de uma cafeteria de bairro moderna e clara: balcão de madeira, quadro de menu minimalista, plantas e luz natural — convidativa e contemporânea. Sem pessoas em primeiro plano."],
+  ["fachada", "Fachada de um pequeno negócio de bairro moderno e convidativo, vista da calçada ao entardecer: vitrine de vidro limpa, plantas, luz quente por dentro, arquitetura contemporânea simples. Letreiro liso SEM nenhum texto ou palavra legível. Estética clean, atual e acessível — classe média, nem luxo, nem precário."],
 ];
 
 const SIZE = "1536x1024"; // landscape
