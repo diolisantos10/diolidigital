@@ -102,10 +102,25 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const scope = (() => { try { return JSON.parse(fullReq?.briefingJson ?? "{}")?.scope ?? {}; } catch { return {}; } })();
     const est = computeEstimate(scope as Parameters<typeof computeEstimate>[0]);
     const money = (n: number) => `R$ ${Math.round(n).toLocaleString("pt-BR")}`;
+    const wsId = fullReq?.workspaceId ?? (await prisma.agencyWorkspace.findFirst({ select: { id: true } }))?.id;
 
-    const deliverables = est.items.length
-      ? est.items.map((it) => `• ${it.label}${it.detail ? ` — ${it.detail}` : ""}`).join("\n")
-      : (proposal.tasks ?? []).slice(0, 8).map((t: { title: string }) => `• ${t.title}`).join("\n");
+    // Auto-explain: keep the technical term AND add a short plain-language
+    // meaning inline (e.g. "3 criativos/semana (3 artes novas por semana)"), so
+    // the proposal serves both audiences at once — no toggle, no clicking.
+    const baseItems = est.items.length
+      ? est.items.map((it) => `${it.label}${it.detail ? ` — ${it.detail}` : ""}`)
+      : (proposal.tasks ?? []).slice(0, 8).map((t: { title: string }) => t.title);
+    let friendlyItems = baseItems;
+    const explR = await generate({
+      system: "Você reescreve itens de uma proposta de marketing para uma cliente que NÃO é da área. REGRA: mantenha o termo técnico E acrescente, entre parênteses, uma explicação curta e simples do que significa (ex.: '3 criativos/semana (3 artes novas por semana)'). Não invente itens nem números. Responda SOMENTE JSON válido.",
+      user: `Itens da proposta:\n${baseItems.map((i) => `- ${i}`).join("\n")}\n\nReescreva cada item mantendo o termo + explicação simples entre parênteses. Mesma quantidade, mesma ordem.\nJSON: {"items": ["...", "..."]}`,
+      maxTokens: 700, workspaceId: wsId, preferredProvider: "claude",
+    });
+    if (explR.ok) {
+      const got = (explR.data as { items?: unknown }).items;
+      if (Array.isArray(got) && got.length) friendlyItems = got.map((x) => String(x));
+    }
+    const deliverables = friendlyItems.map((i) => `• ${i}`).join("\n");
     const valueLines = est.items.length
       ? est.items.map((it) => `• ${it.label}: ${money(it.minPrice)}${it.maxPrice > it.minPrice ? ` a ${money(it.maxPrice)}` : ""}${it.unit ? ` / ${it.unit}` : ""}`).join("\n")
       : "• A combinar";
@@ -141,7 +156,6 @@ Se estiver tudo certo, é só clicar em Aprovar aqui embaixo. Assim que você ap
     // WhatsApp trigger: a signal the Meta agent consumes to notify the client
     // ("sua proposta está no portal") with the link. The Meta agent owns the
     // actual send + its own dedupe/outbox; here we only emit the event + link.
-    const wsId = fullReq?.workspaceId ?? (await prisma.agencyWorkspace.findFirst({ select: { id: true } }))?.id;
     if (wsId) {
       await prisma.activityEvent.create({
         data: {
