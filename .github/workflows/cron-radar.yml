@@ -1,0 +1,24 @@
+name: Cron — Radar Dioli (tendências diárias)
+
+# Uma vez por dia, o Radar Dioli varre os domínios e PROPÕE tendências (entram
+# PENDENTES, pra validação humana). Requer o secret CRON_SECRET (mesmo do Railway).
+
+on:
+  schedule:
+    - cron: "0 9 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Rodar o Radar
+        run: |
+          if [ -z "${{ secrets.CRON_SECRET }}" ]; then
+            echo "CRON_SECRET não configurado — pulei."; exit 0
+          fi
+          code=$(curl -s -o /tmp/out.json -w "%{http_code}" -X POST \
+            "https://dioli-agency-os-1-production.up.railway.app/api/cron/radar" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}")
+          echo "HTTP $code"; cat /tmp/out.json || true
+          if [ "$code" != "200" ] && [ "$code" != "503" ]; then exit 1; fi
