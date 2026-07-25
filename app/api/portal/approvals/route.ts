@@ -14,6 +14,7 @@ import {
 } from "@/lib/agency/persistence/approval-service";
 import { createProjectFromRequest } from "@/lib/agency/execution/create-project-from-request";
 import { runProjectExecution } from "@/lib/agency/execution/run-execution";
+import { negotiateProposal } from "@/lib/agency/execution/negotiate-proposal";
 
 const ACTION_TO_STATUS: Record<string, ApprovalStatus> = {
   approve:          "approved",
@@ -121,6 +122,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       } catch (e) {
         console.error("[portal/approvals] proposal→project error", e);
       }
+    }
+
+    // Client rejected or asked to revise the proposal → the SDR re-engages to
+    // negotiate (within the budget agent's floor) and re-opens an offer.
+    if (approval.department === "proposal" && (status === "rejected" || status === "revision_requested") && approval.clientRequestId) {
+      try { await negotiateProposal(approval.clientRequestId, body.comment); }
+      catch (e) { console.error("[portal/approvals] negotiate error", e); }
     }
 
     return NextResponse.json({
