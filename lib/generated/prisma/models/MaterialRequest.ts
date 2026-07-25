@@ -403,10 +403,6 @@ export type MaterialRequestUncheckedUpdateManyWithoutProjectNestedInput = {
   deleteMany?: Prisma.MaterialRequestScalarWhereInput | Prisma.MaterialRequestScalarWhereInput[]
 }
 
-export type NullableDateTimeFieldUpdateOperationsInput = {
-  set?: Date | string | null
-}
-
 export type MaterialRequestCreateWithoutProjectInput = {
   id?: string
   type: string

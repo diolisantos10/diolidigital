@@ -6,6 +6,7 @@ import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-ser
 import { requireSession } from "@/lib/auth/api-guard";
 
 const CLIENT_SAFE_DEPARTMENTS: Record<string, string> = {
+  proposal:  "Proposta do projeto",
   strategy:  "Estratégia",
   social:    "Social Media",
   design:    "Design",

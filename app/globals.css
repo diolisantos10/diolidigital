@@ -1,31 +1,40 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
 
 :root {
   /* ── HUMANTECH Design System — Dioli Digital ─────────────────────────── */
 
-  /* Core Brand */
+  /* Core Brand — paleta oficial do Brand Book Dioli Digital v1 (docs/brand/) */
   --navy:    #070A1F;   /* primary action + sidebar bg */
-  --cyan:    #9AF5F0;   /* visual signature — active, highlights */
-  --graphite:#1A1A1A;   /* primary text */
+  --cyan:    #9AF5F0;   /* assinatura visual — mint oficial (tempero, não prato) */
+  --graphite:#1F2937;   /* primary text (brand book) */
 
-  /* Surfaces */
-  --bg:           #F5F5F3;   /* main background — warm off-white */
-  --bg-elevated:  #FAFAF8;   /* slightly lighter — cards, panels */
+  /* Família de azuis da marca (amostrada do brand book) */
+  --cyan-bright: #2AE3F5;   /* esfera / gradiente do eclipse */
+  --azure:       #1FB7E7;   /* acento em títulos display (usar só em texto grande) */
+  --electric:    #0057FF;   /* azul elétrico — ponto de órbita, acento raríssimo */
+
+  /* Surfaces — off-white oficial #F7F8FA + branco */
+  --bg:           #F7F8FA;   /* main background — off-white oficial */
+  --bg-elevated:  #FDFDFE;   /* levemente elevado — cards, panels */
   --card:         #FFFFFF;
-  --sidebar:      #070A1F;
+  --sidebar:      #070A1F;   /* navy — real sidebar bg */
 
-  /* Text */
-  --text-primary:   #1A1A1A;
-  --text-secondary: #6B6B65;
-  --text-muted:     #9B9B95;
-  --text-subtle:    #C0C0BC;
+  /* Text — neutros frios coerentes com graphite/off-white do brand book */
+  --text-primary:   #1F2937;
+  --text-secondary: #55606E;
+  --text-muted:     #8B95A3;
+  --text-subtle:    #B8C0CA;
 
   /* Borders */
-  --border:         #E5E5E2;
-  --border-strong:  #C8C8C4;
+  --border:         #E6E9EE;
+  --border-strong:  #D2D7DE;
 
   /* Semantic */
-  --accent:       #070A1F;
+  --accent:       #EEF1F4;   /* shadcn "accent" = subtle hover surface */
   --accent-light: #E6FBFA;
   --success:      #16A34A;
   --success-bg:   #DCFCE7;
@@ -51,6 +60,38 @@
   /* Motion */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --duration: 140ms;
+
+  /* ── shadcn/ui semantic tokens — mapped to the Dioli brand ──────────────
+     These drive every shadcn component. Values reference the brand palette
+     above so shadcn components render on-brand (navy / cyan / graphite).   */
+  --background:               #F7F8FA;   /* = --bg */
+  --foreground:               #1F2937;   /* = --text-primary */
+  --card-foreground:          #1F2937;
+  --popover:                  #FFFFFF;
+  --popover-foreground:       #1F2937;
+  --primary:                  #070A1F;   /* navy — default buttons */
+  --primary-foreground:       #FFFFFF;
+  --secondary:                #EEF1F4;
+  --secondary-foreground:     #1F2937;
+  --muted:                    #FDFDFE;   /* = --bg-elevated */
+  --muted-foreground:         #55606E;   /* = --text-secondary */
+  --accent-foreground:        #1F2937;
+  --destructive:              #DC2626;   /* = --danger */
+  --input:                    #E6E9EE;   /* = --border */
+  --ring:                     #070A1F;   /* focus ring — navy */
+  --chart-1:                  #070A1F;   /* navy */
+  --chart-2:                  #2563EB;   /* info blue */
+  --chart-3:                  #16A34A;   /* success green */
+  --chart-4:                  #D97706;   /* warning amber */
+  --chart-5:                  #12B5AC;   /* deep cyan */
+  --radius:                   0.5rem;    /* 8px — matches brand card radius */
+  --sidebar-foreground:       #E8E8F0;   /* light text on navy */
+  --sidebar-primary:          #9AF5F0;   /* cyan — active item */
+  --sidebar-primary-foreground: #070A1F;
+  --sidebar-accent:           #0E1230;   /* navy hover surface */
+  --sidebar-accent-foreground:  #FFFFFF;
+  --sidebar-border:           rgba(255,255,255,0.08);
+  --sidebar-ring:             #9AF5F0;
 }
 
 * { box-sizing: border-box; }
@@ -127,3 +168,163 @@ h1, h2, h3, h4, .font-display {
   scrollbar-width: none;
 }
 .scrollbar-none::-webkit-scrollbar { display: none; }
+
+/* ── Site público: linguagem visual "gelada" (Google × Apple) ─────────────────
+   Fundos com brilho frio, superfícies de vidro e movimento sutil. Tudo dentro da
+   paleta do brand book (navy / cyan / azul), sem fundo sempre escuro.           */
+
+/* Malha de gradiente gelado — herói e seções claras */
+.mesh-cool {
+  background:
+    radial-gradient(60% 55% at 82% 12%, rgba(154,245,240,0.28) 0%, transparent 60%),
+    radial-gradient(48% 50% at 15% 8%,  rgba(31,183,231,0.16)  0%, transparent 55%),
+    radial-gradient(50% 60% at 90% 90%, rgba(0,87,255,0.10)    0%, transparent 60%),
+    var(--bg);
+}
+/* Malha para seções escuras (navy) */
+.mesh-navy {
+  background:
+    radial-gradient(55% 60% at 85% 15%, rgba(42,227,245,0.20) 0%, transparent 62%),
+    radial-gradient(45% 55% at 8% 90%,  rgba(0,87,255,0.22)   0%, transparent 60%),
+    var(--navy);
+}
+
+/* Superfície de vidro (Apple) */
+.glass {
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(16px) saturate(1.3);
+  -webkit-backdrop-filter: blur(16px) saturate(1.3);
+  border: 1px solid rgba(255,255,255,0.9);
+  box-shadow: 0 24px 60px -18px rgba(7,10,31,0.30), 0 2px 8px rgba(7,10,31,0.06);
+}
+.glass-dark {
+  background: rgba(14,18,48,0.55);
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 30px 70px -20px rgba(0,0,0,0.55);
+}
+
+/* Movimento sutil */
+@keyframes float-y {
+  0%,100% { transform: translateY(0); }
+  50%     { transform: translateY(-12px); }
+}
+@keyframes pulse-glow {
+  0%,100% { opacity: 0.55; transform: scale(1); }
+  50%     { opacity: 0.9;  transform: scale(1.06); }
+}
+@keyframes spin-slow { to { transform: rotate(360deg); } }
+@keyframes rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-float  { animation: float-y 7s var(--ease-out) infinite; }
+.animate-glow   { animation: pulse-glow 5s ease-in-out infinite; }
+.animate-rise   { animation: rise 0.7s var(--ease-out) both; }
+.animate-rise-2 { animation: rise 0.7s var(--ease-out) 0.12s both; }
+.animate-rise-3 { animation: rise 0.7s var(--ease-out) 0.24s both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-float, .animate-glow, .animate-rise,
+  .animate-rise-2, .animate-rise-3 { animation: none; }
+}
+
+/* Gradiente de texto (assinatura) */
+.text-gradient-cool {
+  background: linear-gradient(100deg, #1FB7E7 0%, #22C7D8 45%, #0057FF 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@theme inline {
+  --font-heading:    var(--font-display);
+  --font-sans:    var(--font-sans);
+  --font-mono:    var(--font-mono);
+  --color-sidebar-ring:    var(--sidebar-ring);
+  --color-sidebar-border:    var(--sidebar-border);
+  --color-sidebar-accent-foreground:    var(--sidebar-accent-foreground);
+  --color-sidebar-accent:    var(--sidebar-accent);
+  --color-sidebar-primary-foreground:    var(--sidebar-primary-foreground);
+  --color-sidebar-primary:    var(--sidebar-primary);
+  --color-sidebar-foreground:    var(--sidebar-foreground);
+  --color-sidebar:    var(--sidebar);
+  --color-chart-5:    var(--chart-5);
+  --color-chart-4:    var(--chart-4);
+  --color-chart-3:    var(--chart-3);
+  --color-chart-2:    var(--chart-2);
+  --color-chart-1:    var(--chart-1);
+  --color-ring:    var(--ring);
+  --color-input:    var(--input);
+  --color-border:    var(--border);
+  --color-destructive:    var(--destructive);
+  --color-accent-foreground:    var(--accent-foreground);
+  --color-accent:    var(--accent);
+  --color-muted-foreground:    var(--muted-foreground);
+  --color-muted:    var(--muted);
+  --color-secondary-foreground:    var(--secondary-foreground);
+  --color-secondary:    var(--secondary);
+  --color-primary-foreground:    var(--primary-foreground);
+  --color-primary:    var(--primary);
+  --color-popover-foreground:    var(--popover-foreground);
+  --color-popover:    var(--popover);
+  --color-card-foreground:    var(--card-foreground);
+  --color-card:    var(--card);
+  --color-foreground:    var(--foreground);
+  --color-background:    var(--background);
+  --radius-sm:    calc(var(--radius) * 0.6);
+  --radius-md:    calc(var(--radius) * 0.8);
+  --radius-lg:    var(--radius);
+  --radius-xl:    calc(var(--radius) * 1.4);
+  --radius-2xl:    calc(var(--radius) * 1.8);
+  --radius-3xl:    calc(var(--radius) * 2.2);
+  --radius-4xl:    calc(var(--radius) * 2.6);
+}
+
+.dark {
+  /* ── Dark theme — grounded in the navy brand world ────────────────────── */
+  --background:               #070A1F;   /* deep navy ground */
+  --foreground:               #F2F2EF;
+  --card:                     #0E1230;   /* elevated navy */
+  --card-foreground:          #F2F2EF;
+  --popover:                  #0E1230;
+  --popover-foreground:       #F2F2EF;
+  --primary:                  #9AF5F0;   /* cyan — primary action on dark */
+  --primary-foreground:       #070A1F;
+  --secondary:                #1A1F3D;
+  --secondary-foreground:     #E8E8F0;
+  --muted:                    #12173A;
+  --muted-foreground:         #9B9EB5;
+  --accent:                   #1A1F3D;
+  --accent-foreground:        #FFFFFF;
+  --destructive:              #F87171;
+  --border:                   rgba(255,255,255,0.10);
+  --input:                    rgba(255,255,255,0.14);
+  --ring:                     #9AF5F0;
+  --chart-1:                  #9AF5F0;
+  --chart-2:                  #60A5FA;
+  --chart-3:                  #4ADE80;
+  --chart-4:                  #FBBF24;
+  --chart-5:                  #22D3EE;
+  --sidebar:                  #05070F;
+  --sidebar-foreground:       #E8E8F0;
+  --sidebar-primary:          #9AF5F0;   /* cyan — active (was random purple) */
+  --sidebar-primary-foreground: #070A1F;
+  --sidebar-accent:           #12173A;
+  --sidebar-accent-foreground:  #FFFFFF;
+  --sidebar-border:           rgba(255,255,255,0.08);
+  --sidebar-ring:             #9AF5F0;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}

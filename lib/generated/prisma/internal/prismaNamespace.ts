@@ -416,7 +416,8 @@ export const ModelName = {
   EvidenceItem: 'EvidenceItem',
   MetaConnection: 'MetaConnection',
   WhatsAppOutbox: 'WhatsAppOutbox',
-  PortalAccess: 'PortalAccess'
+  PortalAccess: 'PortalAccess',
+  MarketInsight: 'MarketInsight'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -432,7 +433,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "deliverable" | "materialRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "whatsAppOutbox" | "portalAccess"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "deliverable" | "materialRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "whatsAppOutbox" | "portalAccess" | "marketInsight"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2878,6 +2879,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    MarketInsight: {
+      payload: Prisma.$MarketInsightPayload<ExtArgs>
+      fields: Prisma.MarketInsightFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MarketInsightFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MarketInsightPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MarketInsightFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MarketInsightPayload>
+        }
+        findFirst: {
+          args: Prisma.MarketInsightFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MarketInsightPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MarketInsightFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MarketInsightPayload>
+        }
+        findMany: {
+          args: Prisma.MarketInsightFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MarketInsightPayload>[]
+        }
+        create: {
+          args: Prisma.MarketInsightCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MarketInsightPayload>
+        }
+        createMany: {
+          args: Prisma.MarketInsightCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MarketInsightCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MarketInsightPayload>[]
+        }
+        delete: {
+          args: Prisma.MarketInsightDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MarketInsightPayload>
+        }
+        update: {
+          args: Prisma.MarketInsightUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MarketInsightPayload>
+        }
+        deleteMany: {
+          args: Prisma.MarketInsightDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MarketInsightUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MarketInsightUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MarketInsightPayload>[]
+        }
+        upsert: {
+          args: Prisma.MarketInsightUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MarketInsightPayload>
+        }
+        aggregate: {
+          args: Prisma.MarketInsightAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMarketInsight>
+        }
+        groupBy: {
+          args: Prisma.MarketInsightGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MarketInsightGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MarketInsightCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MarketInsightCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -2971,6 +3046,12 @@ export const ProjectScalarFieldEnum = {
   proposalScope: 'proposalScope',
   proposalSentAt: 'proposalSentAt',
   agents: 'agents',
+  executionStatus: 'executionStatus',
+  executionRequestedAt: 'executionRequestedAt',
+  executionStartedAt: 'executionStartedAt',
+  executionFinishedAt: 'executionFinishedAt',
+  executionAttempts: 'executionAttempts',
+  executionError: 'executionError',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -3468,6 +3549,26 @@ export const PortalAccessScalarFieldEnum = {
 export type PortalAccessScalarFieldEnum = (typeof PortalAccessScalarFieldEnum)[keyof typeof PortalAccessScalarFieldEnum]
 
 
+export const MarketInsightScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  domain: 'domain',
+  topic: 'topic',
+  title: 'title',
+  guidance: 'guidance',
+  source: 'source',
+  sourceName: 'sourceName',
+  sourceUrl: 'sourceUrl',
+  status: 'status',
+  approvedBy: 'approvedBy',
+  approvedAt: 'approvedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MarketInsightScalarFieldEnum = (typeof MarketInsightScalarFieldEnum)[keyof typeof MarketInsightScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -3667,6 +3768,7 @@ export type GlobalOmitConfig = {
   metaConnection?: Prisma.MetaConnectionOmit
   whatsAppOutbox?: Prisma.WhatsAppOutboxOmit
   portalAccess?: Prisma.PortalAccessOmit
+  marketInsight?: Prisma.MarketInsightOmit
 }
 
 /* Types for Logging */

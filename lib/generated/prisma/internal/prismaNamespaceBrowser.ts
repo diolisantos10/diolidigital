@@ -83,7 +83,8 @@ export const ModelName = {
   EvidenceItem: 'EvidenceItem',
   MetaConnection: 'MetaConnection',
   WhatsAppOutbox: 'WhatsAppOutbox',
-  PortalAccess: 'PortalAccess'
+  PortalAccess: 'PortalAccess',
+  MarketInsight: 'MarketInsight'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -156,6 +157,12 @@ export const ProjectScalarFieldEnum = {
   proposalScope: 'proposalScope',
   proposalSentAt: 'proposalSentAt',
   agents: 'agents',
+  executionStatus: 'executionStatus',
+  executionRequestedAt: 'executionRequestedAt',
+  executionStartedAt: 'executionStartedAt',
+  executionFinishedAt: 'executionFinishedAt',
+  executionAttempts: 'executionAttempts',
+  executionError: 'executionError',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -651,6 +658,26 @@ export const PortalAccessScalarFieldEnum = {
 } as const
 
 export type PortalAccessScalarFieldEnum = (typeof PortalAccessScalarFieldEnum)[keyof typeof PortalAccessScalarFieldEnum]
+
+
+export const MarketInsightScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  domain: 'domain',
+  topic: 'topic',
+  title: 'title',
+  guidance: 'guidance',
+  source: 'source',
+  sourceName: 'sourceName',
+  sourceUrl: 'sourceUrl',
+  status: 'status',
+  approvedBy: 'approvedBy',
+  approvedAt: 'approvedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MarketInsightScalarFieldEnum = (typeof MarketInsightScalarFieldEnum)[keyof typeof MarketInsightScalarFieldEnum]
 
 
 export const SortOrder = {

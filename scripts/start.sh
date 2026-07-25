@@ -86,9 +86,25 @@ if [ "$IS_PRODUCTION" = "true" ]; then
   esac
 
   # 4. Apply pending migrations — additive only, never destructive.
-  #    Failure is fatal: booting with a mismatched schema corrupts behavior.
-  echo "▶ prisma migrate deploy"
-  "$PRISMA" migrate deploy
+  #    Retry on failure: when two deploys boot at the same time they race on the
+  #    SQLite volume DB ("database is locked"). A fatal exit here is exactly what
+  #    fired the Railway "Deploy Crashed" emails. Retrying lets the loser wait,
+  #    re-check, and find no pending migrations once the winner finishes.
+  echo "▶ prisma migrate deploy (com retry anti-lock)"
+  migrate_ok="false"
+  i=1
+  while [ "$i" -le 5 ]; do
+    if "$PRISMA" migrate deploy; then
+      migrate_ok="true"; break
+    fi
+    echo "⚠ migrate deploy falhou (tentativa $i/5) — provável lock de deploy concorrente; aguardando…"
+    sleep $((i * 3))
+    i=$((i + 1))
+  done
+  if [ "$migrate_ok" != "true" ]; then
+    echo "✗ FATAL: migrate deploy falhou após 5 tentativas."
+    exit 1
+  fi
 
   # 5. Seed initial workspace + users on every boot (idempotent).
   #    seed-db.mjs uses INSERT OR IGNORE throughout — a no-op on populated

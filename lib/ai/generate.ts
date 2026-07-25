@@ -139,6 +139,29 @@ export async function anyProviderConfigured(workspaceId?: string): Promise<boole
   return false;
 }
 
+// A transient failure is worth retrying (a momentary blip); a permanent one
+// (no key, bad request, auth) is not — retrying would just waste time.
+function isTransientError(error: string): boolean {
+  const e = error.toLowerCase();
+  if (/http (429|5\d\d)/.test(e)) return true;                 // rate-limit / server / overload (529)
+  if (e.includes("timeout") || e.includes("rede")) return true; // network / timeout
+  if (e.includes("vazia") || e.includes("json")) return true;   // one-off malformed/empty generation
+  return false;
+}
+
+// Retry a provider call on transient errors with escalating backoff. This is
+// what stops a momentary API blip from failing a deliverable — the same blip
+// that made one department report "IA indisponível" mid-execution.
+async function callWithRetry(fn: () => Promise<GenerateResult>, attempts = 3): Promise<GenerateResult> {
+  let last: GenerateResult = { ok: false, error: "sem tentativas" };
+  for (let i = 0; i < attempts; i++) {
+    last = await fn();
+    if (last.ok || !isTransientError(last.error)) return last;
+    if (i < attempts - 1) await new Promise((r) => setTimeout(r, 600 * (i + 1)));
+  }
+  return last;
+}
+
 // THE unified reasoning call. Picks the first provider with a key (respecting
 // preference), resolves the key, and calls it. options.preferredProvider forces
 // a specific vendor when given (e.g. an agent that only has a Claude prompt).
@@ -159,9 +182,9 @@ export async function generate(options: {
     if (!resolved) continue;
     const model = resolved.model ?? DEFAULT_MODEL[provider];
     const messages: OpenAIMessages = { system: options.system, user: options.user };
-    if (provider === "claude") return callClaude(resolved.apiKey, model, messages, maxTokens);
-    if (provider === "openai") return callOpenAI(resolved.apiKey, model, messages, maxTokens);
-    return callGemini(resolved.apiKey, model, messages, maxTokens);
+    if (provider === "claude") return callWithRetry(() => callClaude(resolved.apiKey, model, messages, maxTokens));
+    if (provider === "openai") return callWithRetry(() => callOpenAI(resolved.apiKey, model, messages, maxTokens));
+    return callWithRetry(() => callGemini(resolved.apiKey, model, messages, maxTokens));
   }
 
   return { ok: false, error: "Nenhuma IA conectada. Conecte uma chave em Integrações." };

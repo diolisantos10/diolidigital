@@ -206,3 +206,8 @@ export type WhatsAppOutbox = Prisma.WhatsAppOutboxModel
  * 
  */
 export type PortalAccess = Prisma.PortalAccessModel
+/**
+ * Model MarketInsight
+ * 
+ */
+export type MarketInsight = Prisma.MarketInsightModel

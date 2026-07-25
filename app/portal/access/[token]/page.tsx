@@ -628,6 +628,11 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
                     <span className="h-5 px-2 rounded-full bg-[#FEF3C7] text-[#9B7B2D] text-[10px] font-bold uppercase tracking-[0.04em]">Aguardando você</span>
                     <p className="text-[14px] font-semibold text-[#1A1A1A]">{ap.department}</p>
                   </div>
+                  {ap.reviewNote && (
+                    <div className="mb-3 rounded-[10px] bg-[#FAF9F7] border border-[#EDEBE6] p-3">
+                      <p className="text-[13px] text-[#3A3A38] leading-relaxed whitespace-pre-wrap">{ap.reviewNote}</p>
+                    </div>
+                  )}
                   <textarea
                     value={comments[ap.id] ?? ""}
                     onChange={(e) => setComments((c) => ({ ...c, [ap.id]: e.target.value }))}

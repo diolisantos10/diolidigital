@@ -49,6 +49,19 @@ async function resolveRecipient(
     ? await prisma.clientRequestDb.findUnique({ where: { id: payload.clientRequestId } })
     : null;
 
+  // 1b. Deterministic without a producer change: the portalPath carries the
+  //     PortalAccess token (/portal/access/<token>), and that row links to the
+  //     clientRequestId. This is how the current producer's events resolve.
+  if (!req && payload.portalPath) {
+    const token = payload.portalPath.split("/").filter(Boolean).pop();
+    if (token) {
+      const access = await prisma.portalAccess.findFirst({ where: { token } });
+      if (access?.clientRequestId) {
+        req = await prisma.clientRequestDb.findUnique({ where: { id: access.clientRequestId } });
+      }
+    }
+  }
+
   // 2. Fallback: match by clientId, then by businessName (least reliable).
   if (!req && eventClientId) {
     req = await prisma.clientRequestDb.findFirst({
