@@ -99,6 +99,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       data: { clientRequestId: target.id, authorRole: "team", authorName: "Equipe Dioli", body: msg, readByTeam: true },
     });
     const approval = await createApprovalRequest({ clientRequestId: target.id, department: "proposal", requestedBy: "Agência", clientVisible: true });
+    // Store the proposal content ON the approval so the client reads it right
+    // there on the approval card — not buried in the chat.
+    const proposalText = `${proposal.name}\n\nObjetivo: ${proposal.goal}\n\nO que vamos fazer:\n${scopeLines}`;
+    await prisma.approvalRequest.update({ where: { id: approval.id }, data: { reviewNote: proposalText } });
     await prisma.clientRequestDb.update({ where: { id: target.id }, data: { status: "scope_ready" } });
     // Ensure the client has portal access to read + approve the proposal.
     let portal = await prisma.portalAccess.findFirst({ where: { clientRequestId: target.id, revokedAt: null } });
