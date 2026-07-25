@@ -17,6 +17,7 @@ import { runProjectExecution } from "@/lib/agency/execution/run-execution";
 import { buildClientSnapshot } from "@/lib/dioli-brain/client-snapshot";
 import { orchestratePMReasoning } from "@/lib/dioli-brain/pm-orchestrator";
 import { createApprovalRequest } from "@/lib/agency/persistence/approval-service";
+import { generate } from "@/lib/ai/generate";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const secret = request.headers.get("x-admin-secret");
@@ -103,6 +104,24 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     let portal = await prisma.portalAccess.findFirst({ where: { clientRequestId: target.id, revokedAt: null } });
     if (!portal) portal = await prisma.portalAccess.create({ data: { clientRequestId: target.id, clientId: target.clientId ?? undefined } });
     return NextResponse.json({ ok: true, action: "send-proposal", businessName: target.businessName, approvalId: approval.id, proposalName: proposal.name, portalToken: portal.token });
+  }
+
+  // Diagnostic: reproduce the Social Media generation and compare token budgets.
+  // Reveals the REAL error (which run-execution swallows as "IA indisponível").
+  if (action === "diag-ai") {
+    const target = requests[0];
+    const ws = workspaceScope ?? (await prisma.agencyWorkspace.findFirst({ select: { id: true } }))?.id;
+    const sys = "Você é um agente sênior de uma agência de marketing brasileira. Produza conteúdo real, específico e pronto para o cliente. Responda SOMENTE com JSON válido.";
+    const socialPrompt = `Você é o agente de Social Media. Produza um pacote de 6 posts/stories para o negócio "${target.businessName}". Para cada peça: formato (story/feed/reel), headline, legenda completa (2 a 3 frases) e ideia de visual. Português do Brasil, específico.\nResponda em JSON: {"title":"...","summary":"...","items":[{"format":"...","headline":"...","caption":"...","visual":"..."}]}`;
+    const [a, b] = await Promise.all([
+      generate({ system: sys, user: socialPrompt, maxTokens: 1800, workspaceId: ws, preferredProvider: "claude" }),
+      generate({ system: sys, user: socialPrompt, maxTokens: 4096, workspaceId: ws, preferredProvider: "claude" }),
+    ]);
+    return NextResponse.json({
+      ok: true, action: "diag-ai", businessName: target.businessName,
+      at1800: a.ok ? { ok: true, items: Array.isArray((a.data as { items?: unknown[] })?.items) ? (a.data as { items: unknown[] }).items.length : null } : { ok: false, error: a.error },
+      at4096: b.ok ? { ok: true, items: Array.isArray((b.data as { items?: unknown[] })?.items) ? (b.data as { items: unknown[] }).items.length : null } : { ok: false, error: b.error },
+    });
   }
 
   // Fire the durable execution core for this business's project (must exist).
