@@ -365,6 +365,46 @@ export default function SitePage() {
         </div>
       </section>
 
+      {/* ── Negócios reais / gente real (humaniza) ─────────────────────────────── */}
+      <section className="border-y border-[var(--border)] bg-[var(--bg-elevated)]">
+        <div className="mx-auto w-full max-w-6xl px-5 py-20 md:px-8 md:py-28">
+          <div className="max-w-2xl">
+            <p className="text-[12.5px] font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Para quem a gente trabalha</p>
+            <h2 className="mt-3 text-[30px] font-bold tracking-[-0.025em] text-[var(--navy)] md:text-[44px]">
+              Negócios reais. <span className="text-gradient-cool">Gente real.</span>
+            </h2>
+            <p className="mt-4 text-[15.5px] leading-relaxed text-[var(--text-secondary)]">
+              A gente trabalha para quem move o bairro — o pequeno empreendedor que faz tudo
+              acontecer. Tecnologia e estratégia de agência grande, com o pé no chão de quem
+              entende o seu dia a dia.
+            </p>
+          </div>
+          <div className="mt-12 grid grid-cols-2 gap-3.5 sm:gap-4 lg:grid-cols-3">
+            {[
+              { img: "salao", label: "Salões e beleza" },
+              { img: "padaria", label: "Padarias e cafés" },
+              { img: "loja", label: "Lojas de bairro" },
+              { img: "atelie", label: "Ateliês e artesãos" },
+              { img: "foodtruck", label: "Food trucks" },
+              { img: "oficina", label: "Oficinas e serviços" },
+            ].map((p) => (
+              <figure key={p.img} className="group relative overflow-hidden rounded-2xl">
+                <img
+                  src={`/img/humanos/${p.img}.jpg`}
+                  alt={p.label}
+                  loading="lazy"
+                  className="aspect-[3/2] w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                />
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[var(--navy)]/70 via-transparent to-transparent" />
+                <figcaption className="absolute bottom-3 left-3.5 text-[12.5px] font-semibold text-white drop-shadow-sm md:text-[13.5px]">
+                  {p.label}
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── CTA final (navy mesh + órbita) ─────────────────────────────────────── */}
       <section className="mx-auto w-full max-w-6xl px-5 pb-20 md:px-8">
         <div className="mesh-navy relative overflow-hidden rounded-[32px] px-6 py-16 text-white md:px-14 md:py-24">
