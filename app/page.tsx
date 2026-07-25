@@ -186,7 +186,7 @@ export default function SitePage() {
       {/* ── Essência / ideia central (navy com mesh) ───────────────────────────── */}
       <section className="mesh-navy relative overflow-hidden text-white">
         <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-28">
-          <div className="grid gap-12 lg:grid-cols-[1.1fr_1fr] lg:items-center">
+          <div className="grid gap-12 lg:grid-cols-[1fr_0.85fr] lg:items-center">
             <div>
               <p className="text-[12.5px] font-semibold uppercase tracking-[0.16em] text-[var(--cyan)]">Nossa ideia central</p>
               <h2 className="mt-4 text-[30px] font-bold leading-[1.1] tracking-[-0.025em] md:text-[42px]">
@@ -197,16 +197,28 @@ export default function SitePage() {
                 Acreditamos que tecnologia sem estratégia é ruído — e criatividade sem dados é
                 intuição. Existimos para conectar o que importa: pessoas, tecnologia e propósito.
               </p>
+              <div className="mt-8 grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+                {["Mais clareza nas decisões", "Mais eficiência nas operações", "Mais presença no digital", "Mais crescimento com propósito"].map((t) => (
+                  <div key={t} className="flex items-center gap-2.5">
+                    <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[var(--cyan)]/15 text-[var(--cyan)]">
+                      <Icon.check className="h-3.5 w-3.5" />
+                    </span>
+                    <span className="text-[13.5px] font-medium text-white/85">{t}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {["Mais clareza nas decisões", "Mais eficiência nas operações", "Mais presença no digital", "Mais crescimento com propósito"].map((t) => (
-                <div key={t} className="glass-dark flex items-center gap-3 rounded-2xl px-4 py-4">
-                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[var(--cyan)]/15 text-[var(--cyan)]">
-                    <Icon.check className="h-4 w-4" />
-                  </span>
-                  <span className="text-[14px] font-medium text-white/90">{t}</span>
-                </div>
-              ))}
+            {/* foto em duotone frio */}
+            <div className="relative">
+              <div className="relative overflow-hidden rounded-[28px] shadow-[0_30px_70px_-20px_rgba(0,0,0,0.6)]">
+                <img src="/img/humanos/coworking.jpg" alt="Time trabalhando" loading="lazy" className="aspect-[4/3] w-full object-cover lg:aspect-[4/5]" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[var(--navy)] via-[var(--navy)]/25 to-transparent" />
+                <div className="absolute inset-0 bg-[var(--cyan)]/10 mix-blend-overlay" />
+              </div>
+              <div className="glass-dark absolute -bottom-4 -left-4 hidden items-center gap-2.5 rounded-2xl px-4 py-3 sm:flex">
+                <span className="h-2 w-2 animate-glow rounded-full bg-[var(--cyan)]" />
+                <span className="text-[12.5px] font-semibold text-white">Gente + tecnologia, lado a lado</span>
+              </div>
             </div>
           </div>
         </div>
@@ -291,6 +303,24 @@ export default function SitePage() {
             <Link href="/briefing" className="relative mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[var(--cyan)] px-5 text-[14px] font-semibold text-[var(--navy)] transition-transform hover:-translate-y-0.5">
               Começar briefing →
             </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Faixa full-bleed (assinatura sobre foto) ───────────────────────────── */}
+      <section className="relative overflow-hidden">
+        <img src="/img/humanos/cafe.jpg" alt="" aria-hidden="true" loading="lazy" className="h-[360px] w-full object-cover md:h-[440px]" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[var(--navy)] via-[var(--navy)]/85 to-[var(--navy)]/30" />
+        <div className="absolute inset-0 flex items-center">
+          <div className="mx-auto w-full max-w-6xl px-5 md:px-8">
+            <p className="text-[12.5px] font-semibold uppercase tracking-[0.16em] text-[var(--cyan)]">A Dioli em uma frase</p>
+            <h2 className="mt-3 max-w-2xl text-balance text-[30px] font-bold leading-[1.1] tracking-[-0.025em] text-white md:text-[48px]">
+              Estratégia humana. <span className="text-[var(--cyan)]">Execução inteligente.</span>
+            </h2>
+            <p className="mt-4 max-w-lg text-[15.5px] leading-relaxed text-white/75">
+              Pensamos com profundidade e executamos com precisão — para gerar impacto que se vê,
+              seja qual for o tamanho do seu negócio.
+            </p>
           </div>
         </div>
       </section>
@@ -380,22 +410,22 @@ export default function SitePage() {
               para todos.
             </p>
           </div>
-          <div className="mt-12 flex flex-wrap justify-center gap-3.5 sm:gap-4">
+          <div className="mt-12 grid grid-cols-2 gap-3.5 sm:gap-4 md:h-[560px] md:grid-cols-3 md:grid-rows-3">
             {[
-              { img: "estudio", label: "Criadores" },
-              { img: "coworking", label: "Empresas" },
-              { img: "loja", label: "Lojas & marcas" },
-              { img: "fintech", label: "Serviços" },
-              { img: "cafe", label: "Experiências" },
+              { img: "estudio", label: "Criadores", cls: "col-span-2 md:col-span-2 md:row-span-2" },
+              { img: "coworking", label: "Empresas", cls: "col-span-1" },
+              { img: "fintech", label: "Serviços", cls: "col-span-1" },
+              { img: "loja", label: "Lojas & marcas", cls: "col-span-1 md:col-span-2" },
+              { img: "cafe", label: "Experiências", cls: "col-span-1" },
             ].map((p) => (
-              <figure key={p.img} className="group relative w-[calc(50%-7px)] overflow-hidden rounded-2xl sm:w-[calc(50%-8px)] lg:w-[calc(33.333%-11px)]">
+              <figure key={p.img} className={`group relative overflow-hidden rounded-2xl md:h-full ${p.cls}`}>
                 <img
                   src={`/img/humanos/${p.img}.jpg`}
                   alt={p.label}
                   loading="lazy"
-                  className="aspect-[3/2] w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                  className="aspect-[3/2] w-full object-cover transition-transform duration-500 group-hover:scale-[1.04] md:aspect-auto md:h-full"
                 />
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[var(--navy)]/70 via-transparent to-transparent" />
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[var(--navy)]/75 via-transparent to-transparent" />
                 <figcaption className="absolute bottom-3 left-3.5 text-[12.5px] font-semibold text-white drop-shadow-sm md:text-[13.5px]">
                   {p.label}
                 </figcaption>
@@ -408,6 +438,8 @@ export default function SitePage() {
       {/* ── CTA final (navy mesh + órbita) ─────────────────────────────────────── */}
       <section className="mx-auto w-full max-w-6xl px-5 pb-20 md:px-8">
         <div className="mesh-navy relative overflow-hidden rounded-[32px] px-6 py-16 text-white md:px-14 md:py-24">
+          <img src="/img/humanos/estudio.jpg" alt="" aria-hidden="true" loading="lazy" className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-[0.14]" />
+          <div className="pointer-events-none absolute inset-0 bg-[var(--navy)]/70" />
           <OrbitMotif id="cta" className="pointer-events-none absolute right-[-12%] top-1/2 hidden w-[560px] -translate-y-1/2 text-white opacity-70 md:block" />
           <div className="relative max-w-xl">
             <h2 className="text-balance text-[30px] font-bold leading-[1.08] tracking-[-0.025em] md:text-[46px]">
@@ -418,7 +450,7 @@ export default function SitePage() {
               responde rápido, com um plano claro e sem enrolação.
             </p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-              <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className={`${btnPrimary} bg-[var(--cyan)] !text-[var(--navy)]`}>
+              <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[var(--cyan)] px-6 text-[15px] font-semibold text-[var(--navy)] shadow-[var(--shadow-md)] transition-transform hover:-translate-y-0.5">
                 <Icon.whats className="h-[18px] w-[18px]" />
                 Falar no WhatsApp
               </a>
