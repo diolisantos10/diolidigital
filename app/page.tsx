@@ -605,7 +605,7 @@ export default function SitePage() {
             <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="text-[var(--text-secondary)] transition-colors hover:text-[var(--navy)]">WhatsApp</a>
             <a href={CONTATO.instagram} target="_blank" rel="noopener noreferrer" className="text-[var(--text-secondary)] transition-colors hover:text-[var(--navy)]">Instagram</a>
             <a href={CONTATO.facebook} target="_blank" rel="noopener noreferrer" className="text-[var(--text-secondary)] transition-colors hover:text-[var(--navy)]">Facebook</a>
-            <Link href="/briefing" className="font-semibold text-[var(--navy)] transition-colors hover:text-[var(--azure)]">Fale com a gente →</Link>
+            <Link href="/contato" className="text-[var(--text-secondary)] transition-colors hover:text-[var(--navy)]">E-mail</Link>
             <Link href="/vitrine" className="text-[var(--text-secondary)] transition-colors hover:text-[var(--navy)]">Serviços avulsos →</Link>
             <Link href="/auth/signin" className="text-[var(--text-secondary)] transition-colors hover:text-[var(--navy)]">Área do cliente →</Link>
           </div>
