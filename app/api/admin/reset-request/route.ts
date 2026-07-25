@@ -18,6 +18,7 @@ import { buildClientSnapshot } from "@/lib/dioli-brain/client-snapshot";
 import { orchestratePMReasoning } from "@/lib/dioli-brain/pm-orchestrator";
 import { createApprovalRequest } from "@/lib/agency/persistence/approval-service";
 import { generate } from "@/lib/ai/generate";
+import { computeEstimate } from "@/lib/agency/live-calculator";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const secret = request.headers.get("x-admin-secret");
@@ -93,15 +94,45 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const snapshot = await buildClientSnapshot(target.id);
     if (!snapshot) return NextResponse.json({ ok: false, error: "Snapshot indisponível — briefing incompleto?" }, { status: 409 });
     const proposal = await orchestratePMReasoning(snapshot);
-    const scopeLines = (proposal.tasks ?? []).slice(0, 8).map((t: { title: string }) => `• ${t.title}`).join("\n");
-    const msg = `📋 ${target.businessName}, sua proposta está pronta!\n\n*${proposal.name}*\nObjetivo: ${proposal.goal}\n\nO que vamos fazer:\n${scopeLines}\n\nRevise e, se estiver tudo certo, é só aprovar aqui no portal que a equipe já começa. Se quiser ajustar algo, me diz. 🚀`;
+
+    // Real values from the budget agent (computeEstimate → the same numbers the
+    // SDR quotes). Plain language for a non-marketing business owner. Phase 1 is
+    // the FINANCIAL proposal; the detailed schedule is released after approval.
+    const fullReq = await prisma.clientRequestDb.findUnique({ where: { id: target.id }, select: { briefingJson: true } });
+    const scope = (() => { try { return JSON.parse(fullReq?.briefingJson ?? "{}")?.scope ?? {}; } catch { return {}; } })();
+    const est = computeEstimate(scope as Parameters<typeof computeEstimate>[0]);
+    const money = (n: number) => `R$ ${Math.round(n).toLocaleString("pt-BR")}`;
+
+    const deliverables = est.items.length
+      ? est.items.map((it) => `• ${it.label}${it.detail ? ` — ${it.detail}` : ""}`).join("\n")
+      : (proposal.tasks ?? []).slice(0, 8).map((t: { title: string }) => `• ${t.title}`).join("\n");
+    const valueLines = est.items.length
+      ? est.items.map((it) => `• ${it.label}: ${money(it.minPrice)}${it.maxPrice > it.minPrice ? ` a ${money(it.maxPrice)}` : ""}${it.unit ? ` / ${it.unit}` : ""}`).join("\n")
+      : "• A combinar";
+    const totalLine = est.totalMax > 0
+      ? `Total: ${money(est.totalMin)}${est.totalMax > est.totalMin ? ` a ${money(est.totalMax)}` : ""} / mês`
+      : "";
+
+    const proposalText =
+`${proposal.name}
+
+✨ O QUE VOCÊ RECEBE
+${deliverables}
+
+💰 INVESTIMENTO
+${valueLines}
+${totalLine}
+
+🤝 Como é uma parceria, esse valor fica por nossa conta — os números acima são a referência do quanto o serviço vale no mercado.
+
+✅ PRÓXIMO PASSO
+Se estiver tudo certo, é só clicar em Aprovar aqui embaixo. Assim que você aprovar, a gente libera o cronograma completo — o passo a passo, com datas, de como tudo vai acontecer.`;
+
+    const msg = `📋 ${target.businessName}, sua proposta já está aqui no portal! Abre a aba "Aprovações", dá uma olhada com calma e, se gostar, é só aprovar. Qualquer dúvida ou ajuste, me chama por aqui. 💛`;
     await prisma.portalMessage.create({
       data: { clientRequestId: target.id, authorRole: "team", authorName: "Equipe Dioli", body: msg, readByTeam: true },
     });
     const approval = await createApprovalRequest({ clientRequestId: target.id, department: "proposal", requestedBy: "Agência", clientVisible: true });
-    // Store the proposal content ON the approval so the client reads it right
-    // there on the approval card — not buried in the chat.
-    const proposalText = `${proposal.name}\n\nObjetivo: ${proposal.goal}\n\nO que vamos fazer:\n${scopeLines}`;
     await prisma.approvalRequest.update({ where: { id: approval.id }, data: { reviewNote: proposalText } });
     await prisma.clientRequestDb.update({ where: { id: target.id }, data: { status: "scope_ready" } });
     // Ensure the client has portal access to read + approve the proposal.
