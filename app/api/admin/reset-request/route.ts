@@ -98,7 +98,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Real values from the budget agent (computeEstimate → the same numbers the
     // SDR quotes). Plain language for a non-marketing business owner. Phase 1 is
     // the FINANCIAL proposal; the detailed schedule is released after approval.
-    const fullReq = await prisma.clientRequestDb.findUnique({ where: { id: target.id }, select: { briefingJson: true } });
+    const fullReq = await prisma.clientRequestDb.findUnique({ where: { id: target.id }, select: { briefingJson: true, workspaceId: true } });
     const scope = (() => { try { return JSON.parse(fullReq?.briefingJson ?? "{}")?.scope ?? {}; } catch { return {}; } })();
     const est = computeEstimate(scope as Parameters<typeof computeEstimate>[0]);
     const money = (n: number) => `R$ ${Math.round(n).toLocaleString("pt-BR")}`;
@@ -138,6 +138,20 @@ Se estiver tudo certo, é só clicar em Aprovar aqui embaixo. Assim que você ap
     // Ensure the client has portal access to read + approve the proposal.
     let portal = await prisma.portalAccess.findFirst({ where: { clientRequestId: target.id, revokedAt: null } });
     if (!portal) portal = await prisma.portalAccess.create({ data: { clientRequestId: target.id, clientId: target.clientId ?? undefined } });
+    // WhatsApp trigger: a signal the Meta agent consumes to notify the client
+    // ("sua proposta está no portal") with the link. The Meta agent owns the
+    // actual send + its own dedupe/outbox; here we only emit the event + link.
+    const wsId = fullReq?.workspaceId ?? (await prisma.agencyWorkspace.findFirst({ select: { id: true } }))?.id;
+    if (wsId) {
+      await prisma.activityEvent.create({
+        data: {
+          workspaceId: wsId,
+          clientId: target.clientId ?? null,
+          type: "whatsapp_notify",
+          message: JSON.stringify({ kind: "proposal_sent", businessName: target.businessName, portalPath: `/portal/access/${portal.token}` }),
+        },
+      });
+    }
     return NextResponse.json({ ok: true, action: "send-proposal", businessName: target.businessName, approvalId: approval.id, proposalName: proposal.name, portalToken: portal.token });
   }
 
