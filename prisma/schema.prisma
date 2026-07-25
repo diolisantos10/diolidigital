@@ -593,6 +593,25 @@ model MetaConnection {
   @@index([clientId])
 }
 
+// Outbox / dedupe ledger for WhatsApp notifications. One row per ActivityEvent
+// we act on, so the poller never sends the same "whatsapp_notify" twice. Owned
+// by the Meta integration (lib/integrations/meta/notifications.ts).
+model WhatsAppOutbox {
+  id              String   @id @default(cuid())
+  workspaceId     String
+  // The ActivityEvent this row was created for — unique so a re-run is a no-op.
+  activityEventId String   @unique
+  kind            String   @default("proposal_sent")
+  toPhone         String?
+  status          String   @default("sent") // sent | failed | skipped
+  externalMessageId String?
+  error           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([workspaceId, status])
+}
+
 // Granular, time-limited portal access per client request.
 model PortalAccess {
   id              String    @id @default(cuid())

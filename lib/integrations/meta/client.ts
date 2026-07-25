@@ -8,7 +8,7 @@
 //   await getInsights(connectionId)
 //   await sendWhatsAppMessage({ connectionId, to, text })
 
-import { graphGet, graphPost, GraphApiError } from "./graph";
+import { graphGet, graphPost, graphPostJson, GraphApiError } from "./graph";
 import { loadConnectionToken } from "./connections";
 import type {
   PublishInput,
@@ -196,23 +196,23 @@ export async function sendWhatsAppMessage(
   if (conn.platform !== "whatsapp") return { ok: false, error: "Conexão não é do WhatsApp" };
 
   try {
-    const body: Record<string, string> = {
+    // WhatsApp Cloud API requires a JSON body.
+    const body: Record<string, unknown> = {
       messaging_product: "whatsapp",
       to: input.to,
     };
     if (input.templateName) {
       body.type = "template";
-      // Graph accepts a JSON string for the `template` param via form encoding.
-      body.template = JSON.stringify({
+      body.template = {
         name: input.templateName,
         language: { code: input.templateLanguage ?? "pt_BR" },
         ...(input.templateComponents ? { components: input.templateComponents } : {}),
-      });
+      };
     } else {
       body.type = "text";
-      body.text = JSON.stringify({ body: input.text ?? "" });
+      body.text = { body: input.text ?? "" };
     }
-    const res = await graphPost<{ messages?: Array<{ id: string }> }>(
+    const res = await graphPostJson<{ messages?: Array<{ id: string }> }>(
       `${conn.externalId}/messages`,
       conn.token,
       body,
