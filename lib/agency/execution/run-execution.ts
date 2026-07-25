@@ -13,6 +13,7 @@ import { generate } from "@/lib/ai/generate";
 import { createApprovalRequest } from "@/lib/agency/persistence/approval-service";
 import { planProduction, type ProductionPlan } from "@/lib/agency/execution/pm-conductor";
 import { auditDeliverable } from "@/lib/agency/execution/quality-auditor";
+import { getActiveInsights, buildInsightBlock, type InsightDomain } from "@/lib/agency/radar/library";
 
 interface Ctx {
   businessName: string;
@@ -31,6 +32,8 @@ interface DeptConfig {
   agentId: string;
   keywords: RegExp;
   deliverableType: string;
+  /** Domínio do Radar de Ollie que abastece este agente com tendências atuais. */
+  insightDomain: InsightDomain;
   needs?: { check: (ctx: Ctx) => boolean; ask: string };
   prompt: (ctx: Ctx) => string;
 }
@@ -54,7 +57,7 @@ export const DEPARTMENTS: DeptConfig[] = [
   {
     id: "social-media", label: "Social Media", agentId: "a3",
     keywords: /social|stories?|reels?|instagram|conte[úu]do|redes|feed|post/i,
-    deliverableType: "social",
+    deliverableType: "social", insightDomain: "social",
     prompt: (c) => `Você é o agente de Social Media da Dioli Digital. Produza um PACOTE de conteúdo pronto para o cliente aprovar.
 
 CONTEXTO
@@ -67,7 +70,7 @@ Responda em JSON: {"title": "Pacote de Social Media — <negócio>", "summary": 
   {
     id: "design", label: "Design",  agentId: "a2",
     keywords: /design|identidade|visual|logo|marca|arte|pe[çc]a/i,
-    deliverableType: "design",
+    deliverableType: "design", insightDomain: "design",
     needs: {
       check: (c) => c.hasBrandAssets,
       ask: "Para começar as peças de design, precisamos dos materiais da sua marca: logo (se tiver), cores, fontes e alguma referência visual que você goste. Pode enviar por aqui? 🎨",
@@ -84,7 +87,7 @@ Responda em JSON: {"title": "Conceito Visual — <negócio>", "summary": "1 fras
   {
     id: "paid-traffic", label: "Tráfego Pago", agentId: "a4",
     keywords: /tr[áa]fego|ads|an[úu]ncio|m[íi]dia\s*paga|campanha|google|meta/i,
-    deliverableType: "campaign",
+    deliverableType: "campaign", insightDomain: "paid-traffic",
     prompt: (c) => `Você é o agente de Tráfego Pago da Dioli Digital. Produza um plano inicial de campanha para o cliente aprovar.
 
 CONTEXTO
@@ -97,7 +100,7 @@ Responda em JSON: {"title": "Plano de Tráfego — <negócio>", "summary": "1 fr
   {
     id: "analytics", label: "Analytics", agentId: "a5",
     keywords: /analytics|kpi|m[ée]trica|relat[óo]rio|resultado|performance|dados|indicador/i,
-    deliverableType: "analytics",
+    deliverableType: "analytics", insightDomain: "analytics",
     prompt: (c) => `Você é o agente de Analytics da Dioli Digital. Produza um PLANO DE MEDIÇÃO para o cliente aprovar — como vamos medir sucesso.
 
 CONTEXTO
@@ -230,9 +233,13 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
         continue;
       }
 
+      // Radar de Ollie: as diretrizes ATUAIS de mercado do domínio viram insumo.
+      const insights = await getActiveInsights(project.workspaceId, dept.insightDomain);
+      const insightBlock = buildInsightBlock(insights);
+
       const result = await generate({
         system: "Você é um agente sênior de uma agência de marketing brasileira. Produza conteúdo real, específico e pronto para o cliente. Responda SOMENTE com JSON válido.",
-        user: dept.prompt(context),
+        user: dept.prompt(context) + (insightBlock ? `\n\n${insightBlock}` : ""),
         maxTokens: 1800,
         workspaceId: project.workspaceId,
         preferredProvider: "claude",
@@ -261,7 +268,8 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
       // QUALIDADE (SOMBRA): audita e registra o parecer — NÃO bloqueia (o cliente
       // já vê a entrega). Serve pra medir o juízo da Qualidade antes de ligar o freio.
       const audit = await auditDeliverable({
-        deptLabel: dept.label, title, content: body, brandContext: ctxBlock(context), workspaceId: project.workspaceId,
+        deptLabel: dept.label, title, content: body, brandContext: ctxBlock(context),
+        marketGuidelines: insightBlock, workspaceId: project.workspaceId,
       });
       await prisma.deliverable.update({
         where: { id: created.id },

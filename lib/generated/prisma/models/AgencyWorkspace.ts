@@ -182,6 +182,7 @@ export type AgencyWorkspaceWhereInput = {
   activityEvents?: Prisma.ActivityEventListRelationFilter
   aiRunLogs?: Prisma.AIRunLogListRelationFilter
   metaConnections?: Prisma.MetaConnectionListRelationFilter
+  marketInsights?: Prisma.MarketInsightListRelationFilter
 }
 
 export type AgencyWorkspaceOrderByWithRelationInput = {
@@ -197,6 +198,7 @@ export type AgencyWorkspaceOrderByWithRelationInput = {
   activityEvents?: Prisma.ActivityEventOrderByRelationAggregateInput
   aiRunLogs?: Prisma.AIRunLogOrderByRelationAggregateInput
   metaConnections?: Prisma.MetaConnectionOrderByRelationAggregateInput
+  marketInsights?: Prisma.MarketInsightOrderByRelationAggregateInput
 }
 
 export type AgencyWorkspaceWhereUniqueInput = Prisma.AtLeast<{
@@ -215,6 +217,7 @@ export type AgencyWorkspaceWhereUniqueInput = Prisma.AtLeast<{
   activityEvents?: Prisma.ActivityEventListRelationFilter
   aiRunLogs?: Prisma.AIRunLogListRelationFilter
   metaConnections?: Prisma.MetaConnectionListRelationFilter
+  marketInsights?: Prisma.MarketInsightListRelationFilter
 }, "id" | "slug">
 
 export type AgencyWorkspaceOrderByWithAggregationInput = {
@@ -250,6 +253,7 @@ export type AgencyWorkspaceCreateInput = {
   activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionCreateNestedManyWithoutWorkspaceInput
+  marketInsights?: Prisma.MarketInsightCreateNestedManyWithoutWorkspaceInput
 }
 
 export type AgencyWorkspaceUncheckedCreateInput = {
@@ -265,6 +269,7 @@ export type AgencyWorkspaceUncheckedCreateInput = {
   activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogUncheckedCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionUncheckedCreateNestedManyWithoutWorkspaceInput
+  marketInsights?: Prisma.MarketInsightUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type AgencyWorkspaceUpdateInput = {
@@ -280,6 +285,7 @@ export type AgencyWorkspaceUpdateInput = {
   activityEvents?: Prisma.ActivityEventUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUpdateManyWithoutWorkspaceNestedInput
+  marketInsights?: Prisma.MarketInsightUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type AgencyWorkspaceUncheckedUpdateInput = {
@@ -295,6 +301,7 @@ export type AgencyWorkspaceUncheckedUpdateInput = {
   activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUncheckedUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUncheckedUpdateManyWithoutWorkspaceNestedInput
+  marketInsights?: Prisma.MarketInsightUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type AgencyWorkspaceCreateManyInput = {
@@ -464,6 +471,20 @@ export type AgencyWorkspaceUpdateOneRequiredWithoutMetaConnectionsNestedInput = 
   update?: Prisma.XOR<Prisma.XOR<Prisma.AgencyWorkspaceUpdateToOneWithWhereWithoutMetaConnectionsInput, Prisma.AgencyWorkspaceUpdateWithoutMetaConnectionsInput>, Prisma.AgencyWorkspaceUncheckedUpdateWithoutMetaConnectionsInput>
 }
 
+export type AgencyWorkspaceCreateNestedOneWithoutMarketInsightsInput = {
+  create?: Prisma.XOR<Prisma.AgencyWorkspaceCreateWithoutMarketInsightsInput, Prisma.AgencyWorkspaceUncheckedCreateWithoutMarketInsightsInput>
+  connectOrCreate?: Prisma.AgencyWorkspaceCreateOrConnectWithoutMarketInsightsInput
+  connect?: Prisma.AgencyWorkspaceWhereUniqueInput
+}
+
+export type AgencyWorkspaceUpdateOneRequiredWithoutMarketInsightsNestedInput = {
+  create?: Prisma.XOR<Prisma.AgencyWorkspaceCreateWithoutMarketInsightsInput, Prisma.AgencyWorkspaceUncheckedCreateWithoutMarketInsightsInput>
+  connectOrCreate?: Prisma.AgencyWorkspaceCreateOrConnectWithoutMarketInsightsInput
+  upsert?: Prisma.AgencyWorkspaceUpsertWithoutMarketInsightsInput
+  connect?: Prisma.AgencyWorkspaceWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.AgencyWorkspaceUpdateToOneWithWhereWithoutMarketInsightsInput, Prisma.AgencyWorkspaceUpdateWithoutMarketInsightsInput>, Prisma.AgencyWorkspaceUncheckedUpdateWithoutMarketInsightsInput>
+}
+
 export type AgencyWorkspaceCreateWithoutUsersInput = {
   id?: string
   name: string
@@ -476,6 +497,7 @@ export type AgencyWorkspaceCreateWithoutUsersInput = {
   activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionCreateNestedManyWithoutWorkspaceInput
+  marketInsights?: Prisma.MarketInsightCreateNestedManyWithoutWorkspaceInput
 }
 
 export type AgencyWorkspaceUncheckedCreateWithoutUsersInput = {
@@ -490,6 +512,7 @@ export type AgencyWorkspaceUncheckedCreateWithoutUsersInput = {
   activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogUncheckedCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionUncheckedCreateNestedManyWithoutWorkspaceInput
+  marketInsights?: Prisma.MarketInsightUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type AgencyWorkspaceCreateOrConnectWithoutUsersInput = {
@@ -520,6 +543,7 @@ export type AgencyWorkspaceUpdateWithoutUsersInput = {
   activityEvents?: Prisma.ActivityEventUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUpdateManyWithoutWorkspaceNestedInput
+  marketInsights?: Prisma.MarketInsightUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type AgencyWorkspaceUncheckedUpdateWithoutUsersInput = {
@@ -534,6 +558,7 @@ export type AgencyWorkspaceUncheckedUpdateWithoutUsersInput = {
   activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUncheckedUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUncheckedUpdateManyWithoutWorkspaceNestedInput
+  marketInsights?: Prisma.MarketInsightUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type AgencyWorkspaceCreateWithoutClientsInput = {
@@ -548,6 +573,7 @@ export type AgencyWorkspaceCreateWithoutClientsInput = {
   activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionCreateNestedManyWithoutWorkspaceInput
+  marketInsights?: Prisma.MarketInsightCreateNestedManyWithoutWorkspaceInput
 }
 
 export type AgencyWorkspaceUncheckedCreateWithoutClientsInput = {
@@ -562,6 +588,7 @@ export type AgencyWorkspaceUncheckedCreateWithoutClientsInput = {
   activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogUncheckedCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionUncheckedCreateNestedManyWithoutWorkspaceInput
+  marketInsights?: Prisma.MarketInsightUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type AgencyWorkspaceCreateOrConnectWithoutClientsInput = {
@@ -592,6 +619,7 @@ export type AgencyWorkspaceUpdateWithoutClientsInput = {
   activityEvents?: Prisma.ActivityEventUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUpdateManyWithoutWorkspaceNestedInput
+  marketInsights?: Prisma.MarketInsightUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type AgencyWorkspaceUncheckedUpdateWithoutClientsInput = {
@@ -606,6 +634,7 @@ export type AgencyWorkspaceUncheckedUpdateWithoutClientsInput = {
   activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUncheckedUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUncheckedUpdateManyWithoutWorkspaceNestedInput
+  marketInsights?: Prisma.MarketInsightUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type AgencyWorkspaceCreateWithoutProjectsInput = {
@@ -620,6 +649,7 @@ export type AgencyWorkspaceCreateWithoutProjectsInput = {
   activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionCreateNestedManyWithoutWorkspaceInput
+  marketInsights?: Prisma.MarketInsightCreateNestedManyWithoutWorkspaceInput
 }
 
 export type AgencyWorkspaceUncheckedCreateWithoutProjectsInput = {
@@ -634,6 +664,7 @@ export type AgencyWorkspaceUncheckedCreateWithoutProjectsInput = {
   activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogUncheckedCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionUncheckedCreateNestedManyWithoutWorkspaceInput
+  marketInsights?: Prisma.MarketInsightUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type AgencyWorkspaceCreateOrConnectWithoutProjectsInput = {
@@ -664,6 +695,7 @@ export type AgencyWorkspaceUpdateWithoutProjectsInput = {
   activityEvents?: Prisma.ActivityEventUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUpdateManyWithoutWorkspaceNestedInput
+  marketInsights?: Prisma.MarketInsightUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type AgencyWorkspaceUncheckedUpdateWithoutProjectsInput = {
@@ -678,6 +710,7 @@ export type AgencyWorkspaceUncheckedUpdateWithoutProjectsInput = {
   activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUncheckedUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUncheckedUpdateManyWithoutWorkspaceNestedInput
+  marketInsights?: Prisma.MarketInsightUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type AgencyWorkspaceCreateWithoutIntegrationConfigsInput = {
@@ -692,6 +725,7 @@ export type AgencyWorkspaceCreateWithoutIntegrationConfigsInput = {
   activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionCreateNestedManyWithoutWorkspaceInput
+  marketInsights?: Prisma.MarketInsightCreateNestedManyWithoutWorkspaceInput
 }
 
 export type AgencyWorkspaceUncheckedCreateWithoutIntegrationConfigsInput = {
@@ -706,6 +740,7 @@ export type AgencyWorkspaceUncheckedCreateWithoutIntegrationConfigsInput = {
   activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogUncheckedCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionUncheckedCreateNestedManyWithoutWorkspaceInput
+  marketInsights?: Prisma.MarketInsightUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type AgencyWorkspaceCreateOrConnectWithoutIntegrationConfigsInput = {
@@ -736,6 +771,7 @@ export type AgencyWorkspaceUpdateWithoutIntegrationConfigsInput = {
   activityEvents?: Prisma.ActivityEventUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUpdateManyWithoutWorkspaceNestedInput
+  marketInsights?: Prisma.MarketInsightUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type AgencyWorkspaceUncheckedUpdateWithoutIntegrationConfigsInput = {
@@ -750,6 +786,7 @@ export type AgencyWorkspaceUncheckedUpdateWithoutIntegrationConfigsInput = {
   activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUncheckedUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUncheckedUpdateManyWithoutWorkspaceNestedInput
+  marketInsights?: Prisma.MarketInsightUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type AgencyWorkspaceCreateWithoutAgentProviderConfigsInput = {
@@ -764,6 +801,7 @@ export type AgencyWorkspaceCreateWithoutAgentProviderConfigsInput = {
   activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionCreateNestedManyWithoutWorkspaceInput
+  marketInsights?: Prisma.MarketInsightCreateNestedManyWithoutWorkspaceInput
 }
 
 export type AgencyWorkspaceUncheckedCreateWithoutAgentProviderConfigsInput = {
@@ -778,6 +816,7 @@ export type AgencyWorkspaceUncheckedCreateWithoutAgentProviderConfigsInput = {
   activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogUncheckedCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionUncheckedCreateNestedManyWithoutWorkspaceInput
+  marketInsights?: Prisma.MarketInsightUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type AgencyWorkspaceCreateOrConnectWithoutAgentProviderConfigsInput = {
@@ -808,6 +847,7 @@ export type AgencyWorkspaceUpdateWithoutAgentProviderConfigsInput = {
   activityEvents?: Prisma.ActivityEventUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUpdateManyWithoutWorkspaceNestedInput
+  marketInsights?: Prisma.MarketInsightUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type AgencyWorkspaceUncheckedUpdateWithoutAgentProviderConfigsInput = {
@@ -822,6 +862,7 @@ export type AgencyWorkspaceUncheckedUpdateWithoutAgentProviderConfigsInput = {
   activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUncheckedUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUncheckedUpdateManyWithoutWorkspaceNestedInput
+  marketInsights?: Prisma.MarketInsightUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type AgencyWorkspaceCreateWithoutActivityEventsInput = {
@@ -836,6 +877,7 @@ export type AgencyWorkspaceCreateWithoutActivityEventsInput = {
   agentProviderConfigs?: Prisma.DbAgentProviderConfigCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionCreateNestedManyWithoutWorkspaceInput
+  marketInsights?: Prisma.MarketInsightCreateNestedManyWithoutWorkspaceInput
 }
 
 export type AgencyWorkspaceUncheckedCreateWithoutActivityEventsInput = {
@@ -850,6 +892,7 @@ export type AgencyWorkspaceUncheckedCreateWithoutActivityEventsInput = {
   agentProviderConfigs?: Prisma.DbAgentProviderConfigUncheckedCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogUncheckedCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionUncheckedCreateNestedManyWithoutWorkspaceInput
+  marketInsights?: Prisma.MarketInsightUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type AgencyWorkspaceCreateOrConnectWithoutActivityEventsInput = {
@@ -880,6 +923,7 @@ export type AgencyWorkspaceUpdateWithoutActivityEventsInput = {
   agentProviderConfigs?: Prisma.DbAgentProviderConfigUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUpdateManyWithoutWorkspaceNestedInput
+  marketInsights?: Prisma.MarketInsightUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type AgencyWorkspaceUncheckedUpdateWithoutActivityEventsInput = {
@@ -894,6 +938,7 @@ export type AgencyWorkspaceUncheckedUpdateWithoutActivityEventsInput = {
   agentProviderConfigs?: Prisma.DbAgentProviderConfigUncheckedUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUncheckedUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUncheckedUpdateManyWithoutWorkspaceNestedInput
+  marketInsights?: Prisma.MarketInsightUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type AgencyWorkspaceCreateWithoutAiRunLogsInput = {
@@ -908,6 +953,7 @@ export type AgencyWorkspaceCreateWithoutAiRunLogsInput = {
   agentProviderConfigs?: Prisma.DbAgentProviderConfigCreateNestedManyWithoutWorkspaceInput
   activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionCreateNestedManyWithoutWorkspaceInput
+  marketInsights?: Prisma.MarketInsightCreateNestedManyWithoutWorkspaceInput
 }
 
 export type AgencyWorkspaceUncheckedCreateWithoutAiRunLogsInput = {
@@ -922,6 +968,7 @@ export type AgencyWorkspaceUncheckedCreateWithoutAiRunLogsInput = {
   agentProviderConfigs?: Prisma.DbAgentProviderConfigUncheckedCreateNestedManyWithoutWorkspaceInput
   activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionUncheckedCreateNestedManyWithoutWorkspaceInput
+  marketInsights?: Prisma.MarketInsightUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type AgencyWorkspaceCreateOrConnectWithoutAiRunLogsInput = {
@@ -952,6 +999,7 @@ export type AgencyWorkspaceUpdateWithoutAiRunLogsInput = {
   agentProviderConfigs?: Prisma.DbAgentProviderConfigUpdateManyWithoutWorkspaceNestedInput
   activityEvents?: Prisma.ActivityEventUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUpdateManyWithoutWorkspaceNestedInput
+  marketInsights?: Prisma.MarketInsightUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type AgencyWorkspaceUncheckedUpdateWithoutAiRunLogsInput = {
@@ -966,6 +1014,7 @@ export type AgencyWorkspaceUncheckedUpdateWithoutAiRunLogsInput = {
   agentProviderConfigs?: Prisma.DbAgentProviderConfigUncheckedUpdateManyWithoutWorkspaceNestedInput
   activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUncheckedUpdateManyWithoutWorkspaceNestedInput
+  marketInsights?: Prisma.MarketInsightUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type AgencyWorkspaceCreateWithoutMetaConnectionsInput = {
@@ -980,6 +1029,7 @@ export type AgencyWorkspaceCreateWithoutMetaConnectionsInput = {
   agentProviderConfigs?: Prisma.DbAgentProviderConfigCreateNestedManyWithoutWorkspaceInput
   activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogCreateNestedManyWithoutWorkspaceInput
+  marketInsights?: Prisma.MarketInsightCreateNestedManyWithoutWorkspaceInput
 }
 
 export type AgencyWorkspaceUncheckedCreateWithoutMetaConnectionsInput = {
@@ -994,6 +1044,7 @@ export type AgencyWorkspaceUncheckedCreateWithoutMetaConnectionsInput = {
   agentProviderConfigs?: Prisma.DbAgentProviderConfigUncheckedCreateNestedManyWithoutWorkspaceInput
   activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogUncheckedCreateNestedManyWithoutWorkspaceInput
+  marketInsights?: Prisma.MarketInsightUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
 export type AgencyWorkspaceCreateOrConnectWithoutMetaConnectionsInput = {
@@ -1024,6 +1075,7 @@ export type AgencyWorkspaceUpdateWithoutMetaConnectionsInput = {
   agentProviderConfigs?: Prisma.DbAgentProviderConfigUpdateManyWithoutWorkspaceNestedInput
   activityEvents?: Prisma.ActivityEventUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUpdateManyWithoutWorkspaceNestedInput
+  marketInsights?: Prisma.MarketInsightUpdateManyWithoutWorkspaceNestedInput
 }
 
 export type AgencyWorkspaceUncheckedUpdateWithoutMetaConnectionsInput = {
@@ -1038,6 +1090,83 @@ export type AgencyWorkspaceUncheckedUpdateWithoutMetaConnectionsInput = {
   agentProviderConfigs?: Prisma.DbAgentProviderConfigUncheckedUpdateManyWithoutWorkspaceNestedInput
   activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUncheckedUpdateManyWithoutWorkspaceNestedInput
+  marketInsights?: Prisma.MarketInsightUncheckedUpdateManyWithoutWorkspaceNestedInput
+}
+
+export type AgencyWorkspaceCreateWithoutMarketInsightsInput = {
+  id?: string
+  name: string
+  slug: string
+  createdAt?: Date | string
+  users?: Prisma.UserCreateNestedManyWithoutWorkspaceInput
+  clients?: Prisma.ClientCreateNestedManyWithoutWorkspaceInput
+  projects?: Prisma.ProjectCreateNestedManyWithoutWorkspaceInput
+  integrationConfigs?: Prisma.DbIntegrationConfigCreateNestedManyWithoutWorkspaceInput
+  agentProviderConfigs?: Prisma.DbAgentProviderConfigCreateNestedManyWithoutWorkspaceInput
+  activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutWorkspaceInput
+  aiRunLogs?: Prisma.AIRunLogCreateNestedManyWithoutWorkspaceInput
+  metaConnections?: Prisma.MetaConnectionCreateNestedManyWithoutWorkspaceInput
+}
+
+export type AgencyWorkspaceUncheckedCreateWithoutMarketInsightsInput = {
+  id?: string
+  name: string
+  slug: string
+  createdAt?: Date | string
+  users?: Prisma.UserUncheckedCreateNestedManyWithoutWorkspaceInput
+  clients?: Prisma.ClientUncheckedCreateNestedManyWithoutWorkspaceInput
+  projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutWorkspaceInput
+  integrationConfigs?: Prisma.DbIntegrationConfigUncheckedCreateNestedManyWithoutWorkspaceInput
+  agentProviderConfigs?: Prisma.DbAgentProviderConfigUncheckedCreateNestedManyWithoutWorkspaceInput
+  activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutWorkspaceInput
+  aiRunLogs?: Prisma.AIRunLogUncheckedCreateNestedManyWithoutWorkspaceInput
+  metaConnections?: Prisma.MetaConnectionUncheckedCreateNestedManyWithoutWorkspaceInput
+}
+
+export type AgencyWorkspaceCreateOrConnectWithoutMarketInsightsInput = {
+  where: Prisma.AgencyWorkspaceWhereUniqueInput
+  create: Prisma.XOR<Prisma.AgencyWorkspaceCreateWithoutMarketInsightsInput, Prisma.AgencyWorkspaceUncheckedCreateWithoutMarketInsightsInput>
+}
+
+export type AgencyWorkspaceUpsertWithoutMarketInsightsInput = {
+  update: Prisma.XOR<Prisma.AgencyWorkspaceUpdateWithoutMarketInsightsInput, Prisma.AgencyWorkspaceUncheckedUpdateWithoutMarketInsightsInput>
+  create: Prisma.XOR<Prisma.AgencyWorkspaceCreateWithoutMarketInsightsInput, Prisma.AgencyWorkspaceUncheckedCreateWithoutMarketInsightsInput>
+  where?: Prisma.AgencyWorkspaceWhereInput
+}
+
+export type AgencyWorkspaceUpdateToOneWithWhereWithoutMarketInsightsInput = {
+  where?: Prisma.AgencyWorkspaceWhereInput
+  data: Prisma.XOR<Prisma.AgencyWorkspaceUpdateWithoutMarketInsightsInput, Prisma.AgencyWorkspaceUncheckedUpdateWithoutMarketInsightsInput>
+}
+
+export type AgencyWorkspaceUpdateWithoutMarketInsightsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  users?: Prisma.UserUpdateManyWithoutWorkspaceNestedInput
+  clients?: Prisma.ClientUpdateManyWithoutWorkspaceNestedInput
+  projects?: Prisma.ProjectUpdateManyWithoutWorkspaceNestedInput
+  integrationConfigs?: Prisma.DbIntegrationConfigUpdateManyWithoutWorkspaceNestedInput
+  agentProviderConfigs?: Prisma.DbAgentProviderConfigUpdateManyWithoutWorkspaceNestedInput
+  activityEvents?: Prisma.ActivityEventUpdateManyWithoutWorkspaceNestedInput
+  aiRunLogs?: Prisma.AIRunLogUpdateManyWithoutWorkspaceNestedInput
+  metaConnections?: Prisma.MetaConnectionUpdateManyWithoutWorkspaceNestedInput
+}
+
+export type AgencyWorkspaceUncheckedUpdateWithoutMarketInsightsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  users?: Prisma.UserUncheckedUpdateManyWithoutWorkspaceNestedInput
+  clients?: Prisma.ClientUncheckedUpdateManyWithoutWorkspaceNestedInput
+  projects?: Prisma.ProjectUncheckedUpdateManyWithoutWorkspaceNestedInput
+  integrationConfigs?: Prisma.DbIntegrationConfigUncheckedUpdateManyWithoutWorkspaceNestedInput
+  agentProviderConfigs?: Prisma.DbAgentProviderConfigUncheckedUpdateManyWithoutWorkspaceNestedInput
+  activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutWorkspaceNestedInput
+  aiRunLogs?: Prisma.AIRunLogUncheckedUpdateManyWithoutWorkspaceNestedInput
+  metaConnections?: Prisma.MetaConnectionUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
 
@@ -1054,6 +1183,7 @@ export type AgencyWorkspaceCountOutputType = {
   activityEvents: number
   aiRunLogs: number
   metaConnections: number
+  marketInsights: number
 }
 
 export type AgencyWorkspaceCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1065,6 +1195,7 @@ export type AgencyWorkspaceCountOutputTypeSelect<ExtArgs extends runtime.Types.E
   activityEvents?: boolean | AgencyWorkspaceCountOutputTypeCountActivityEventsArgs
   aiRunLogs?: boolean | AgencyWorkspaceCountOutputTypeCountAiRunLogsArgs
   metaConnections?: boolean | AgencyWorkspaceCountOutputTypeCountMetaConnectionsArgs
+  marketInsights?: boolean | AgencyWorkspaceCountOutputTypeCountMarketInsightsArgs
 }
 
 /**
@@ -1133,6 +1264,13 @@ export type AgencyWorkspaceCountOutputTypeCountMetaConnectionsArgs<ExtArgs exten
   where?: Prisma.MetaConnectionWhereInput
 }
 
+/**
+ * AgencyWorkspaceCountOutputType without action
+ */
+export type AgencyWorkspaceCountOutputTypeCountMarketInsightsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.MarketInsightWhereInput
+}
+
 
 export type AgencyWorkspaceSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1147,6 +1285,7 @@ export type AgencyWorkspaceSelect<ExtArgs extends runtime.Types.Extensions.Inter
   activityEvents?: boolean | Prisma.AgencyWorkspace$activityEventsArgs<ExtArgs>
   aiRunLogs?: boolean | Prisma.AgencyWorkspace$aiRunLogsArgs<ExtArgs>
   metaConnections?: boolean | Prisma.AgencyWorkspace$metaConnectionsArgs<ExtArgs>
+  marketInsights?: boolean | Prisma.AgencyWorkspace$marketInsightsArgs<ExtArgs>
   _count?: boolean | Prisma.AgencyWorkspaceCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["agencyWorkspace"]>
 
@@ -1181,6 +1320,7 @@ export type AgencyWorkspaceInclude<ExtArgs extends runtime.Types.Extensions.Inte
   activityEvents?: boolean | Prisma.AgencyWorkspace$activityEventsArgs<ExtArgs>
   aiRunLogs?: boolean | Prisma.AgencyWorkspace$aiRunLogsArgs<ExtArgs>
   metaConnections?: boolean | Prisma.AgencyWorkspace$metaConnectionsArgs<ExtArgs>
+  marketInsights?: boolean | Prisma.AgencyWorkspace$marketInsightsArgs<ExtArgs>
   _count?: boolean | Prisma.AgencyWorkspaceCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type AgencyWorkspaceIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -1197,6 +1337,7 @@ export type $AgencyWorkspacePayload<ExtArgs extends runtime.Types.Extensions.Int
     activityEvents: Prisma.$ActivityEventPayload<ExtArgs>[]
     aiRunLogs: Prisma.$AIRunLogPayload<ExtArgs>[]
     metaConnections: Prisma.$MetaConnectionPayload<ExtArgs>[]
+    marketInsights: Prisma.$MarketInsightPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1605,6 +1746,7 @@ export interface Prisma__AgencyWorkspaceClient<T, Null = never, ExtArgs extends 
   activityEvents<T extends Prisma.AgencyWorkspace$activityEventsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AgencyWorkspace$activityEventsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ActivityEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   aiRunLogs<T extends Prisma.AgencyWorkspace$aiRunLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AgencyWorkspace$aiRunLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AIRunLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   metaConnections<T extends Prisma.AgencyWorkspace$metaConnectionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AgencyWorkspace$metaConnectionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MetaConnectionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  marketInsights<T extends Prisma.AgencyWorkspace$marketInsightsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AgencyWorkspace$marketInsightsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MarketInsightPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2218,6 +2360,30 @@ export type AgencyWorkspace$metaConnectionsArgs<ExtArgs extends runtime.Types.Ex
   take?: number
   skip?: number
   distinct?: Prisma.MetaConnectionScalarFieldEnum | Prisma.MetaConnectionScalarFieldEnum[]
+}
+
+/**
+ * AgencyWorkspace.marketInsights
+ */
+export type AgencyWorkspace$marketInsightsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the MarketInsight
+   */
+  select?: Prisma.MarketInsightSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the MarketInsight
+   */
+  omit?: Prisma.MarketInsightOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.MarketInsightInclude<ExtArgs> | null
+  where?: Prisma.MarketInsightWhereInput
+  orderBy?: Prisma.MarketInsightOrderByWithRelationInput | Prisma.MarketInsightOrderByWithRelationInput[]
+  cursor?: Prisma.MarketInsightWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.MarketInsightScalarFieldEnum | Prisma.MarketInsightScalarFieldEnum[]
 }
 
 /**

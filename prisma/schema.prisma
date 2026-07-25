@@ -26,6 +26,7 @@ model AgencyWorkspace {
   activityEvents       ActivityEvent[]
   aiRunLogs            AIRunLog[]
   metaConnections      MetaConnection[]
+  marketInsights       MarketInsight[]
 }
 
 // ─── Users / Auth ─────────────────────────────────────────────────────────────
@@ -617,3 +618,35 @@ model PortalAccess {
   createdAt       DateTime  @default(now())
 }
 
+
+// ─── Radar de Ollie — biblioteca viva de tendências/atualizações de mercado ────
+// O acervo que abastece TODOS os agentes (insumo) e as diretrizes da Qualidade.
+// Governança: fonte "official" (a própria plataforma — Meta/TikTok/Google) entra
+// ATIVA sem validação; "trend" (não-oficial) entra PENDENTE até um humano aprovar.
+model MarketInsight {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   AgencyWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  // Domínio: social | design | paid-traffic | analytics | seo | general
+  domain      String
+  // Tópico — chave de versionamento: nova entrada do mesmo tópico arquiva a antiga
+  // (o "era assim → agora é assim").
+  topic       String
+  title       String
+  // A diretriz vigente ("agora é assim") — o insumo que os agentes usam.
+  guidance    String
+  // official = da própria plataforma → entra ATIVA sem validação humana.
+  // trend    = não-oficial → entra PENDENTE até validação humana.
+  source      String   @default("trend")
+  sourceName  String?
+  sourceUrl   String?
+  // active | pending | archived | rejected
+  status      String   @default("pending")
+  approvedBy  String?
+  approvedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([workspaceId, domain, status])
+  @@index([workspaceId, topic])
+}

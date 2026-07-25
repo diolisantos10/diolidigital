@@ -22,6 +22,11 @@ vi.mock("@/lib/agency/execution/pm-conductor", () => ({
 vi.mock("@/lib/agency/execution/quality-auditor", () => ({
   auditDeliverable: vi.fn(async () => ({ verdict: "pass", issues: [], note: "ok" })),
 }));
+// Biblioteca do Radar é testada à parte; aqui não injeta nada.
+vi.mock("@/lib/agency/radar/library", () => ({
+  getActiveInsights: vi.fn(async () => []),
+  buildInsightBlock: vi.fn(() => ""),
+}));
 
 import { runProjectExecution } from "@/lib/agency/execution/run-execution";
 

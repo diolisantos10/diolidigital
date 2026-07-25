@@ -177,3 +177,8 @@ export type MetaConnection = Prisma.MetaConnectionModel
  * 
  */
 export type PortalAccess = Prisma.PortalAccessModel
+/**
+ * Model MarketInsight
+ * 
+ */
+export type MarketInsight = Prisma.MarketInsightModel

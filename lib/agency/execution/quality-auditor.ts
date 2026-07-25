@@ -18,6 +18,8 @@ export async function auditDeliverable(input: {
   title: string;
   content: string;
   brandContext: string;
+  /** Diretrizes ATUAIS de mercado (Radar de Ollie) — a Qualidade audita contra elas. */
+  marketGuidelines?: string;
   workspaceId: string;
 }): Promise<QualityVerdict> {
   try {
@@ -28,8 +30,8 @@ ${input.content}
 
 CONTEXTO DA MARCA:
 ${input.brandContext}
-
-Verifique: (1) está no tom e no segmento certos? (2) tem promessa falsa ou garantia irreal? (3) inventa número/preço/dado que não foi fornecido? (4) tem clichê vazio ou erro grave?
+${input.marketGuidelines ? `\n${input.marketGuidelines}\n` : ""}
+Verifique: (1) está no tom e no segmento certos? (2) tem promessa falsa ou garantia irreal? (3) inventa número/preço/dado que não foi fornecido? (4) tem clichê vazio ou erro grave? (5) está alinhada às diretrizes ATUAIS de mercado acima (quando houver)?
 Responda JSON: {"verdict":"pass"|"flag","issues":["problema 1","problema 2"],"note":"1 frase de parecer"}. verdict="flag" só se houver problema real.`,
       maxTokens: 500,
       workspaceId: input.workspaceId,
