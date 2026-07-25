@@ -38,24 +38,28 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: "requestId ou businessName obrigatório" }, { status: 400 });
   }
 
-  const req = await prisma.clientRequestDb.findFirst({
+  // Thorough: ALL requests for this business (there may be duplicates), and ALL
+  // projects for the linked client(s) — including any orphaned/mislinked ones.
+  const requests = await prisma.clientRequestDb.findMany({
     where: {
       ...(workspaceScope ? { workspaceId: workspaceScope } : {}),
       ...(requestId ? { id: requestId } : { businessName: { contains: businessName } }),
     },
-    orderBy: { createdAt: "desc" },
+    select: { id: true, clientId: true, businessName: true },
   });
-  if (!req) return NextResponse.json({ error: "Solicitação não encontrada" }, { status: 404 });
+  if (requests.length === 0) return NextResponse.json({ error: "Solicitação não encontrada" }, { status: 404 });
 
-  // Projects created from this request — detach non-cascading refs, then delete
-  // (cascades tasks, deliverables, strategy rooms, material requests, etc.).
+  const reqIds = requests.map((r) => r.id);
+  const clientIds = [...new Set(requests.map((r) => r.clientId).filter((c): c is string => !!c))];
+
+  // Projects linked either by request OR by client (catches mislinked/orphaned).
   const projects = await prisma.project.findMany({
-    where: { clientRequestId: req.id },
+    where: { OR: [{ clientRequestId: { in: reqIds } }, ...(clientIds.length ? [{ clientId: { in: clientIds } }] : [])] },
     select: { id: true },
   });
   const projectIds = projects.map((p) => p.id);
 
-  const removed = { projects: projectIds.length, artifacts: 0, approvals: 0, messages: 0 };
+  const removed = { requests: reqIds.length, projects: projectIds.length, artifacts: 0, approvals: 0, messages: 0 };
 
   await prisma.$transaction(async (tx) => {
     if (projectIds.length) {
@@ -63,16 +67,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       await tx.aIRunLog.updateMany({ where: { projectId: { in: projectIds } }, data: { projectId: null } });
       await tx.project.deleteMany({ where: { id: { in: projectIds } } });
     }
-    removed.artifacts  = (await tx.brainArtifact.deleteMany({ where: { clientRequestId: req.id } })).count;
-    removed.approvals  = (await tx.approvalRequest.deleteMany({ where: { clientRequestId: req.id } })).count;
-    removed.messages   = (await tx.portalMessage.deleteMany({ where: { clientRequestId: req.id } })).count;
-    // Back to the post-SDR briefing stage.
-    await tx.clientRequestDb.update({ where: { id: req.id }, data: { status: "new" } });
+    removed.artifacts = (await tx.brainArtifact.deleteMany({ where: { clientRequestId: { in: reqIds } } })).count;
+    removed.approvals = (await tx.approvalRequest.deleteMany({ where: { clientRequestId: { in: reqIds } } })).count;
+    removed.messages  = (await tx.portalMessage.deleteMany({ where: { clientRequestId: { in: reqIds } } })).count;
+    // All matching requests back to the post-SDR briefing stage.
+    await tx.clientRequestDb.updateMany({ where: { id: { in: reqIds } }, data: { status: "new" } });
   });
 
   return NextResponse.json({
     ok: true,
-    businessName: req.businessName,
+    businessName: requests[0].businessName,
     resetTo: "new",
     removed,
   });
