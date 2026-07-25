@@ -11,6 +11,7 @@
 import { prisma } from "@/lib/db/client";
 import { generate } from "@/lib/ai/generate";
 import { createApprovalRequest } from "@/lib/agency/persistence/approval-service";
+import { planProduction, type ProductionPlan } from "@/lib/agency/execution/pm-conductor";
 
 interface Ctx {
   businessName: string;
@@ -116,6 +117,8 @@ export interface ExecutionResult {
   produced: string[];
   askedClient: string[];
   skipped: string[];
+  /** Como o PM regeu esta produção (ordem dos departamentos, objetivo). */
+  pmPlan?: { orderedDepartments: string[]; goal: string; pmMode: string };
   error?: string;
 }
 
@@ -178,9 +181,24 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
 
     const agents = (() => { try { return JSON.parse(project.agents ?? "[]"); } catch { return []; } })() as string[];
     const producedAgents = new Set(existing.map((d) => d.ownerAgentId).filter(Boolean));
-    const toRun = DEPARTMENTS.filter(
-      (d) => (services.some((s) => d.keywords.test(s)) || agents.includes(d.agentId)) && !producedAgents.has(d.agentId),
-    );
+
+    // ── O PM REGE: planeja quais departamentos e em QUE ORDEM (dependência) ──────
+    // Plano determinístico (sempre funciona); os produtores é que geram com IA.
+    const plan: ProductionPlan = await planProduction(clientRequestId, DEPARTMENTS.map((d) => d.id));
+    const byId = new Map(DEPARTMENTS.map((d) => [d.id, d]));
+    const orderedConfigs: DeptConfig[] = [];
+    const added = new Set<string>();
+    // 1) na ordem que o PM definiu;
+    for (const deptId of plan.orderedDepartments) {
+      const cfg = byId.get(deptId);
+      if (cfg && !added.has(cfg.id)) { orderedConfigs.push(cfg); added.add(cfg.id); }
+    }
+    // 2) robustez: departamentos atribuídos ao projeto ou por serviço que o PM não listou.
+    for (const d of DEPARTMENTS) {
+      if (added.has(d.id)) continue;
+      if (agents.includes(d.agentId) || services.some((s) => d.keywords.test(s))) { orderedConfigs.push(d); added.add(d.id); }
+    }
+    const toRun = orderedConfigs.filter((d) => !producedAgents.has(d.agentId));
 
     const produced: string[] = [];
     const askedClient: string[] = [];
@@ -235,7 +253,10 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
         executionError: allHandled ? null : `pendências: ${skipped.join("; ")}`,
       },
     });
-    return { ok: true, status: allHandled ? "done" : "failed", produced, askedClient, skipped };
+    return {
+      ok: true, status: allHandled ? "done" : "failed", produced, askedClient, skipped,
+      pmPlan: { orderedDepartments: plan.orderedDepartments, goal: plan.goal, pmMode: plan.pmMode },
+    };
   } catch (err) {
     const msg = err instanceof Error ? err.message.slice(0, 200) : "erro na execução";
     await prisma.project.update({

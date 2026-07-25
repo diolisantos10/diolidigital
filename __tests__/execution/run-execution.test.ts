@@ -14,6 +14,10 @@ const createApprovalRequest = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
 vi.mock("@/lib/ai/generate", () => ({ generate }));
 vi.mock("@/lib/agency/persistence/approval-service", () => ({ createApprovalRequest }));
+// O maestro (PM) é testado à parte — aqui devolve um plano fixo pra isolar o motor.
+vi.mock("@/lib/agency/execution/pm-conductor", () => ({
+  planProduction: vi.fn(async () => ({ orderedDepartments: ["social-media"], goal: "g", warnings: [], pmMode: "rule_based" })),
+}));
 
 import { runProjectExecution } from "@/lib/agency/execution/run-execution";
 
