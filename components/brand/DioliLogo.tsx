@@ -7,10 +7,10 @@
 type Variant = "full" | "mark";
 type Tone = "light" | "dark"; // light = para fundos escuros (branco); dark = fundo claro (navy)
 
-// Proporções reais dos arquivos (largura / altura)
+// Proporções reais dos arquivos oficiais (largura / altura)
 const ASPECT: Record<Variant, number> = {
-  full: 1577 / 440,
-  mark: 644 / 395,
+  full: 1331 / 338,
+  mark: 548 / 338,
 };
 
 export function DioliLogo({
