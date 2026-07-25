@@ -6,7 +6,7 @@ const db = vi.hoisted(() => ({
   clientRequestDb: { findUnique: vi.fn() },
   client: { findFirst: vi.fn() },
   brainArtifact: { findMany: vi.fn() },
-  deliverable: { findMany: vi.fn(), create: vi.fn() },
+  deliverable: { findMany: vi.fn(), create: vi.fn(), update: vi.fn() },
   portalMessage: { create: vi.fn() },
 }));
 const generate = vi.hoisted(() => vi.fn());
@@ -17,6 +17,10 @@ vi.mock("@/lib/agency/persistence/approval-service", () => ({ createApprovalRequ
 // O maestro (PM) é testado à parte — aqui devolve um plano fixo pra isolar o motor.
 vi.mock("@/lib/agency/execution/pm-conductor", () => ({
   planProduction: vi.fn(async () => ({ orderedDepartments: ["social-media"], goal: "g", warnings: [], pmMode: "rule_based" })),
+}));
+// Qualidade é testada à parte; aqui devolve parecer "pass" (sombra, não bloqueia).
+vi.mock("@/lib/agency/execution/quality-auditor", () => ({
+  auditDeliverable: vi.fn(async () => ({ verdict: "pass", issues: [], note: "ok" })),
 }));
 
 import { runProjectExecution } from "@/lib/agency/execution/run-execution";
@@ -33,7 +37,8 @@ beforeEach(() => {
   db.client.findFirst.mockResolvedValue({ id: "c1", name: "Loja X", brandBrain: null });
   db.brainArtifact.findMany.mockResolvedValue([]);
   db.deliverable.findMany.mockResolvedValue([]);
-  db.deliverable.create.mockResolvedValue({});
+  db.deliverable.create.mockResolvedValue({ id: "d1" });
+  db.deliverable.update.mockResolvedValue({});
   db.portalMessage.create.mockResolvedValue({});
   createApprovalRequest.mockResolvedValue({});
 });

@@ -12,6 +12,7 @@ import { prisma } from "@/lib/db/client";
 import { generate } from "@/lib/ai/generate";
 import { createApprovalRequest } from "@/lib/agency/persistence/approval-service";
 import { planProduction, type ProductionPlan } from "@/lib/agency/execution/pm-conductor";
+import { auditDeliverable } from "@/lib/agency/execution/quality-auditor";
 
 interface Ctx {
   businessName: string;
@@ -132,6 +133,8 @@ export interface ExecutionResult {
   skipped: string[];
   /** Como o PM regeu esta produção (ordem dos departamentos, objetivo). */
   pmPlan?: { orderedDepartments: string[]; goal: string; pmMode: string };
+  /** Parecer da Qualidade por entrega (SOMBRA — não bloqueia; só registra). */
+  qualityAudit?: Array<{ department: string; verdict: "pass" | "flag"; issues: string[] }>;
   error?: string;
 }
 
@@ -216,6 +219,7 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
     const produced: string[] = [];
     const askedClient: string[] = [];
     const skipped: string[] = [];
+    const qualityAudit: Array<{ department: string; verdict: "pass" | "flag"; issues: string[] }> = [];
 
     for (const dept of toRun) {
       if (dept.needs && !dept.needs.check(context)) {
@@ -241,7 +245,7 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
       // Gate de saída: nada vazio/curto demais chega ao cliente.
       if (!body || body.length < MIN_DELIVERABLE_CHARS) { skipped.push(`${dept.label} (resposta insuficiente)`); continue; }
 
-      await prisma.deliverable.create({
+      const created = await prisma.deliverable.create({
         data: { projectId, name: title, type: dept.deliverableType, status: "in_review", content: body, ownerAgentId: dept.agentId },
       });
       await createApprovalRequest({ clientRequestId, department: dept.id, requestedBy: `Agente de ${dept.label}`, clientVisible: true });
@@ -253,6 +257,17 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
         },
       });
       produced.push(dept.label);
+
+      // QUALIDADE (SOMBRA): audita e registra o parecer — NÃO bloqueia (o cliente
+      // já vê a entrega). Serve pra medir o juízo da Qualidade antes de ligar o freio.
+      const audit = await auditDeliverable({
+        deptLabel: dept.label, title, content: body, brandContext: ctxBlock(context), workspaceId: project.workspaceId,
+      });
+      await prisma.deliverable.update({
+        where: { id: created.id },
+        data: { revisionStatus: audit.verdict === "flag" ? "quality_flag" : "quality_ok", lastFeedback: audit.note || null },
+      }).catch(() => { /* parecer é sombra — nunca derruba a produção */ });
+      qualityAudit.push({ department: dept.label, verdict: audit.verdict, issues: audit.issues });
     }
 
     // "done" quando não restou nenhum departamento pendente de produção (o que
@@ -267,7 +282,7 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
       },
     });
     return {
-      ok: true, status: allHandled ? "done" : "failed", produced, askedClient, skipped,
+      ok: true, status: allHandled ? "done" : "failed", produced, askedClient, skipped, qualityAudit,
       pmPlan: { orderedDepartments: plan.orderedDepartments, goal: plan.goal, pmMode: plan.pmMode },
     };
   } catch (err) {
