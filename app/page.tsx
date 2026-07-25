@@ -71,6 +71,11 @@ const Icon = {
       <path d="M18 6L6 18M6 6l12 12" />
     </svg>
   ),
+  instagram: (p: IconProps) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  ),
   whats: (p: IconProps) => (
     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...p}>
       <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
@@ -130,6 +135,7 @@ export default function SitePage() {
           <DioliLogo variant="full" tone="dark" markSize={26} className="flex-1 text-[16px]" />
           <a href="#servicos" className="hidden text-[13.5px] font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--navy)] sm:block">Serviços</a>
           <a href="#jornada" className="hidden text-[13.5px] font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--navy)] md:block">Como funciona</a>
+          <a href="#trabalho" className="hidden text-[13.5px] font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--navy)] md:block">Trabalhos</a>
           <Link href="/auth/signin" className="hidden text-[13.5px] font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--navy)] sm:block">Área do cliente</Link>
           <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[var(--navy)] px-4 text-[13px] font-semibold text-white transition-transform hover:-translate-y-0.5">
             <Icon.whats className="h-4 w-4" />
@@ -468,6 +474,68 @@ export default function SitePage() {
                 </figcaption>
               </figure>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Nosso trabalho (Instagram como portfólio vivo) ─────────────────────── */}
+      <section id="trabalho" className="mesh-cool relative overflow-hidden border-y border-[var(--border)]">
+        <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-28">
+          <div className="grid gap-12 lg:grid-cols-[1fr_0.9fr] lg:items-center">
+            <div>
+              <p className="text-[12.5px] font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Nosso trabalho</p>
+              <h2 className="mt-3 text-[30px] font-bold tracking-[-0.025em] text-[var(--navy)] md:text-[44px]">
+                Nosso portfólio vive no <span className="text-gradient-cool">Instagram.</span>
+              </h2>
+              <p className="mt-4 max-w-lg text-[15.5px] leading-relaxed text-[var(--text-secondary)]">
+                Toda semana a gente compartilha entregas, bastidores e resultados dos nossos
+                clientes por lá. É o nosso portfólio — sempre atualizado, com trabalho de verdade.
+              </p>
+              <a
+                href={CONTATO.instagram}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-8 inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[var(--navy)] px-6 text-[15px] font-semibold text-white shadow-[var(--shadow-md)] transition-transform hover:-translate-y-0.5"
+              >
+                <Icon.instagram className="h-[18px] w-[18px]" />
+                Ver no @dioli.digital
+              </a>
+            </div>
+            {/* card estilo Instagram */}
+            <div className="glass mx-auto w-full max-w-[400px] rounded-[26px] p-5">
+              <div className="flex items-center gap-3 pb-4">
+                <span className="grid h-12 w-12 place-items-center rounded-full bg-[var(--navy)]">
+                  <DioliLogo variant="mark" tone="light" markSize={24} />
+                </span>
+                <div className="flex-1">
+                  <p className="text-[14px] font-bold text-[var(--navy)]">dioli.digital</p>
+                  <p className="text-[12px] text-[var(--text-muted)]">Estúdio digital com IA</p>
+                </div>
+                <Icon.instagram className="h-5 w-5 text-[var(--text-muted)]" />
+              </div>
+              <div className="grid grid-cols-3 gap-1.5">
+                {[
+                  "linear-gradient(140deg,#1FB7E7,#0057FF)",
+                  "linear-gradient(140deg,#22C7D8,#12B5AC)",
+                  "linear-gradient(140deg,#6D8BFF,#0057FF)",
+                  "linear-gradient(140deg,#12B5AC,#1FB7E7)",
+                  "linear-gradient(140deg,#0057FF,#070A1F)",
+                  "linear-gradient(140deg,#9AF5F0,#22C7D8)",
+                  "linear-gradient(140deg,#1FB7E7,#6D8BFF)",
+                  "linear-gradient(140deg,#070A1F,#12B5AC)",
+                  "linear-gradient(140deg,#22C7D8,#0057FF)",
+                ].map((g, i) => (
+                  <div key={i} className="relative aspect-square overflow-hidden rounded-md" style={{ background: g }}>
+                    <span className="absolute inset-0 grid place-items-center text-white/25">
+                      <Icon.instagram className="h-5 w-5" />
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-4 text-center text-[11.5px] text-[var(--text-muted)]">
+                Prévia — em breve com os posts reais dos clientes
+              </p>
+            </div>
           </div>
         </div>
       </section>
