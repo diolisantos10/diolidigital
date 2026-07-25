@@ -247,7 +247,7 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
         preferredProvider: "claude",
       });
 
-      if (!result.ok) { skipped.push(`${dept.label} (IA indisponível)`); continue; }
+      if (!result.ok) { skipped.push(`${dept.label} (IA: ${result.error})`); continue; }
       const data = result.data as Record<string, unknown>;
       let title = typeof data.title === "string" ? data.title : `${dept.label} — ${context.businessName}`;
       let body = deliverableMarkdown(data);
