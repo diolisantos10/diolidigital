@@ -93,6 +93,19 @@ Entregue: objetivo da campanha, público-alvo detalhado, plataformas recomendada
 
 Responda em JSON: {"title": "Plano de Tráfego — <negócio>", "summary": "1 frase", "items": [{"angle": "...", "headline": "...", "cta": "...", "audience": "..."}]}`,
   },
+  {
+    id: "analytics", label: "Analytics", agentId: "a5",
+    keywords: /analytics|kpi|m[ée]trica|relat[óo]rio|resultado|performance|dados|indicador/i,
+    deliverableType: "analytics",
+    prompt: (c) => `Você é o agente de Analytics da Dioli Digital. Produza um PLANO DE MEDIÇÃO para o cliente aprovar — como vamos medir sucesso.
+
+CONTEXTO
+${ctxBlock(c)}
+
+Defina de 3 a 5 KPIs primários adequados ao objetivo e ao segmento (com o que cada um mede e a meta de referência quando fizer sentido — sem inventar número que dependa de histórico que não temos), a cadência de relatório (semanal/mensal) e quais canais alimentam cada indicador. Nada genérico.
+
+Responda em JSON: {"title": "Plano de Métricas — <negócio>", "summary": "1 frase", "items": [{"headline": "<KPI>", "note": "o que mede + meta/cadência", "audience": "canal/fonte do dado"}]}`,
+  },
 ];
 
 function deliverableMarkdown(data: Record<string, unknown>): string {

@@ -7,7 +7,7 @@ vi.mock("@/lib/dioli-brain/client-snapshot", () => ({ buildClientSnapshot }));
 
 import { planProduction } from "@/lib/agency/execution/pm-conductor";
 
-const RUNNABLE = ["social-media", "design", "paid-traffic"];
+const RUNNABLE = ["social-media", "design", "paid-traffic", "analytics"];
 
 function snap(services: string[], missingFields: string[] = []) {
   return { businessName: "Loja X", services, objectives: ["vender mais"], missingFields };
@@ -19,9 +19,9 @@ describe("PM conductor — o PM rege a ordem da produção", () => {
   it("ordena por dependência: estratégia primeiro (fora dos runnable), depois produtores na ordem do PM", async () => {
     buildClientSnapshot.mockResolvedValue(snap(["social", "design", "tráfego"]));
     const plan = await planProduction("cr1", RUNNABLE);
-    // strategy/analytics não estão em RUNNABLE → ficam de fora; a ORDEM dos
-    // produtores segue o plano do PM (social → design → tráfego).
-    expect(plan.orderedDepartments).toEqual(["social-media", "design", "paid-traffic"]);
+    // strategy fica de fora (não é runnable no motor); a ORDEM segue o plano do PM:
+    // produtores primeiro, analytics por último (dependência).
+    expect(plan.orderedDepartments).toEqual(["social-media", "design", "paid-traffic", "analytics"]);
     expect(plan.goal).toBeTruthy();
     expect(plan.pmMode).toBe("rule_based");
   });
@@ -29,7 +29,8 @@ describe("PM conductor — o PM rege a ordem da produção", () => {
   it("só tráfego pedido → só tráfego entra (PM não infla o escopo)", async () => {
     buildClientSnapshot.mockResolvedValue(snap(["tráfego pago"]));
     const plan = await planProduction("cr1", RUNNABLE);
-    expect(plan.orderedDepartments).toEqual(["paid-traffic"]);
+    // tráfego pedido + analytics (que o PM sempre inclui, por último).
+    expect(plan.orderedDepartments).toEqual(["paid-traffic", "analytics"]);
   });
 
   it("sem serviço claro → cai em social (regra de fallback do PM)", async () => {
