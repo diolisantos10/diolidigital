@@ -173,9 +173,9 @@ export default function SitePage() {
       {/* ── Faixa de mensagens-chave (marquee estático) ────────────────────────── */}
       <div className="border-b border-[var(--border)] bg-[var(--card)]">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-8 gap-y-2 px-5 py-5 text-center text-[13px] font-medium text-[var(--text-muted)] md:px-8">
-          <span>Tecnologia que aproxima</span>
+          <span>Conectamos pessoas e empresas no universo digital</span>
           <span className="text-[var(--border-strong)]">•</span>
-          <span>Menos confusão. Mais direção.</span>
+          <span>Estratégia humana. Execução inteligente.</span>
           <span className="text-[var(--border-strong)]">•</span>
           <span>Clareza para decidir. Dados para crescer.</span>
           <span className="text-[var(--border-strong)]">•</span>
@@ -369,26 +369,26 @@ export default function SitePage() {
       <section className="border-y border-[var(--border)] bg-[var(--bg-elevated)]">
         <div className="mx-auto w-full max-w-6xl px-5 py-20 md:px-8 md:py-28">
           <div className="max-w-2xl">
-            <p className="text-[12.5px] font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Para quem a gente trabalha</p>
+            <p className="text-[12.5px] font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Nosso propósito</p>
             <h2 className="mt-3 text-[30px] font-bold tracking-[-0.025em] text-[var(--navy)] md:text-[44px]">
-              Tecnologia de gente grande. <span className="text-gradient-cool">No seu tamanho.</span>
+              Conectamos pessoas e empresas no <span className="text-gradient-cool">universo digital.</span>
             </h2>
             <p className="mt-4 text-[15.5px] leading-relaxed text-[var(--text-secondary)]">
-              Do MEI à empresa em crescimento — estratégia, marca e tecnologia modernas, sem a
-              pompa (nem o preço) das grandes agências. Moderno de verdade, e acessível de
-              verdade.
+              Esse é o nosso trabalho — e ele não tem tamanho nem endereço. Da marca
+              consolidada a quem está começando, da loja de roupa ao restaurante: se existe um
+              negócio, existe um lugar pra ele no digital. Sofisticado para todos. Acessível
+              para todos.
             </p>
           </div>
-          <div className="mt-12 grid grid-cols-2 gap-3.5 sm:gap-4 lg:grid-cols-3">
+          <div className="mt-12 flex flex-wrap justify-center gap-3.5 sm:gap-4">
             {[
-              { img: "estudio", label: "Estúdios e criadores" },
-              { img: "coworking", label: "Times em crescimento" },
-              { img: "loja", label: "Lojas e boutiques" },
-              { img: "fintech", label: "Gestão na palma da mão" },
-              { img: "cafe", label: "Comércio local" },
-              { img: "fachada", label: "Negócios de bairro" },
+              { img: "estudio", label: "Criadores" },
+              { img: "coworking", label: "Empresas" },
+              { img: "loja", label: "Lojas & marcas" },
+              { img: "fintech", label: "Serviços" },
+              { img: "cafe", label: "Experiências" },
             ].map((p) => (
-              <figure key={p.img} className="group relative overflow-hidden rounded-2xl">
+              <figure key={p.img} className="group relative w-[calc(50%-7px)] overflow-hidden rounded-2xl sm:w-[calc(50%-8px)] lg:w-[calc(33.333%-11px)]">
                 <img
                   src={`/img/humanos/${p.img}.jpg`}
                   alt={p.label}
