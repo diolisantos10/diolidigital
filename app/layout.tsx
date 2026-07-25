@@ -6,18 +6,21 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://diolidigital.com.br"),
   title: {
-    default: "Dioli Digital — Agência Digital com IA",
+    default: "Dioli Digital — Estúdio digital com IA",
     template: "%s · Dioli Digital",
   },
-  description: "Estratégia humana. Execução inteligente. Social media, tráfego pago e identidade visual potencializados por IA.",
+  description: "Estratégia humana. Execução inteligente. Estúdio digital com IA: marketing, automações, agentes e sistemas para crescer no digital.",
   applicationName: "Dioli Digital",
+  alternates: { canonical: "/" },
   openGraph: {
-    title: "Dioli Digital — Agência Digital com IA",
+    title: "Dioli Digital — Estúdio digital com IA",
     description: "Estratégia humana. Execução inteligente.",
     type: "website",
     locale: "pt_BR",
     siteName: "Dioli Digital",
+    url: "https://diolidigital.com.br",
   },
 };
 
