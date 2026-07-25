@@ -13,6 +13,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { getSession } from "@/lib/auth/session";
+import { runProjectExecution } from "@/lib/agency/execution/run-execution";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const secret = request.headers.get("x-admin-secret");
@@ -48,9 +49,44 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       ...(requestId ? { id: requestId } : { businessName: { contains: businessName } }),
     },
     orderBy: { createdAt: "desc" },
-    select: { id: true, clientId: true, businessName: true, createdAt: true },
+    select: { id: true, clientId: true, businessName: true, createdAt: true, status: true },
   });
   if (requests.length === 0) return NextResponse.json({ error: "Solicitação não encontrada" }, { status: 404 });
+
+  const action = typeof body.action === "string" ? body.action : "";
+  const reqIds0 = requests.map((r) => r.id);
+  const clientIds0 = [...new Set(requests.map((r) => r.clientId).filter((c): c is string => !!c))];
+  const projectWhere = { OR: [{ clientRequestId: { in: reqIds0 } }, ...(clientIds0.length ? [{ clientId: { in: clientIds0 } }] : [])] };
+
+  // Read-only: where is this business in the pipeline right now?
+  if (action === "status") {
+    const projects = await prisma.project.findMany({
+      where: projectWhere,
+      select: { id: true, name: true, stage: true, proposalStatus: true, executionStatus: true, executionError: true, createdAt: true },
+    });
+    const projectIds = projects.map((p) => p.id);
+    const [deliverables, approvals, messages, artifacts] = await Promise.all([
+      prisma.deliverable.count({ where: { projectId: { in: projectIds } } }),
+      prisma.approvalRequest.count({ where: { clientRequestId: { in: reqIds0 } } }),
+      prisma.portalMessage.count({ where: { clientRequestId: { in: reqIds0 } } }),
+      prisma.brainArtifact.count({ where: { clientRequestId: { in: reqIds0 } } }),
+    ]);
+    return NextResponse.json({
+      ok: true, action: "status", businessName: requests[0].businessName,
+      requests: requests.map((r) => ({ id: r.id, status: r.status, createdAt: r.createdAt })),
+      projects, counts: { deliverables, approvals, messages, artifacts },
+    });
+  }
+
+  // Fire the durable execution core for this business's project (must exist).
+  if (action === "fire") {
+    const project = await prisma.project.findFirst({ where: projectWhere, orderBy: { createdAt: "desc" }, select: { id: true } });
+    if (!project) {
+      return NextResponse.json({ ok: false, action: "fire", error: "Sem projeto — gere o escopo e aprove primeiro (ou marca parceira)." }, { status: 409 });
+    }
+    const result = await runProjectExecution(project.id);
+    return NextResponse.json({ ok: true, action: "fire", projectId: project.id, result });
+  }
 
   // Dedupe: keep the most recent request (index 0), delete the older duplicates
   // (cascades their artifacts/approvals/messages). The kept briefing stays.
