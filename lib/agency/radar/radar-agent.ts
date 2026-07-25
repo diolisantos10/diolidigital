@@ -13,6 +13,8 @@
 import { prisma } from "@/lib/db/client";
 import { generate } from "@/lib/ai/generate";
 import { addInsight, type InsightDomain } from "@/lib/agency/radar/library";
+import { getConfiguredSources, type RadarSource } from "@/lib/agency/radar/sources";
+import { fetchFeedItems } from "@/lib/agency/radar/fetcher";
 
 const SCAN_DOMAINS: InsightDomain[] = ["social", "design", "paid-traffic", "analytics", "seo"];
 const MAX_PER_DOMAIN = 3;
@@ -64,13 +66,59 @@ JSON: {"items":[{"topic":"...","title":"...","guidance":"..."}]}`,
   return count;
 }
 
-/** Roda o Radar num workspace: propõe tendências por domínio (tudo pendente). */
+/**
+ * FONTE AO VIVO (Fase 3): extrai insights ANCORADOS nos itens reais de um feed
+ * (não inventa). Fonte oficial → insights ATIVOS; qualquer outra → PENDENTES.
+ */
+async function scanSource(workspaceId: string, source: RadarSource): Promise<number> {
+  const items = await fetchFeedItems(source.url);
+  if (!items.length) return 0;
+
+  const existing = await prisma.marketInsight.findMany({
+    where: { workspaceId, domain: source.domain, status: { in: ["active", "pending"] } },
+    select: { topic: true },
+  });
+  const seen = new Set(existing.map((e) => e.topic.toLowerCase()));
+
+  const feedText = items.map((it, i) => `${i + 1}. ${it.title}${it.summary ? ` — ${it.summary}` : ""}`).join("\n");
+  const result = await generate({
+    system: "Você é o Radar Dioli. Extraia mudanças/atualizações ACIONÁVEIS SOMENTE a partir dos itens fornecidos — NÃO invente nada que não esteja neles. Responda SOMENTE JSON válido.",
+    user: `Fonte: ${source.name} (domínio: ${source.domain}). Itens recentes:\n${feedText}\n\nExtraia até 2 atualizações que uma agência deve aplicar já. Para cada: topic (slug estável), title (curto), guidance (o que fazer). Se os itens não trouxerem nada acionável, retorne items vazio.\nJSON: {"items":[{"topic":"...","title":"...","guidance":"..."}]}`,
+    maxTokens: 600, workspaceId, preferredProvider: "claude",
+  });
+  if (!result.ok) return 0;
+
+  const extracted = Array.isArray((result.data as { items?: unknown }).items) ? (result.data as { items: unknown[] }).items : [];
+  let count = 0;
+  for (const raw of extracted.slice(0, 2)) {
+    const it = raw as Record<string, unknown>;
+    const topic = String(it.topic ?? "").trim();
+    const title = String(it.title ?? "").trim();
+    const guidance = String(it.guidance ?? "").trim();
+    if (!topic || !title || !guidance || seen.has(topic.toLowerCase())) continue;
+    seen.add(topic.toLowerCase());
+    await addInsight({
+      workspaceId, domain: source.domain, topic, title, guidance,
+      source: source.official ? "official" : "trend", sourceName: source.name,
+    });
+    count++;
+  }
+  return count;
+}
+
+/** Roda o Radar num workspace: propõe tendências por domínio (IA) + puxa fontes ao vivo. */
 export async function runRadarScan(workspaceId: string): Promise<RadarScanResult> {
   const perDomain: Record<string, number> = {};
   let proposed = 0;
   for (const domain of SCAN_DOMAINS) {
     const n = await scanDomain(workspaceId, domain).catch(() => 0);
     perDomain[domain] = n;
+    proposed += n;
+  }
+  // Fontes ao vivo (se configuradas em RADAR_SOURCES). Desligado por padrão.
+  for (const source of getConfiguredSources()) {
+    const n = await scanSource(workspaceId, source).catch(() => 0);
+    perDomain[source.domain] = (perDomain[source.domain] ?? 0) + n;
     proposed += n;
   }
   return { proposed, perDomain };
