@@ -225,9 +225,28 @@ h1, h2, h3, h4, .font-display {
 .animate-rise-2 { animation: rise 0.7s var(--ease-out) 0.12s both; }
 .animate-rise-3 { animation: rise 0.7s var(--ease-out) 0.24s both; }
 
+/* Marquee horizontal infinito (faixa de mensagens-chave) */
+@keyframes marquee-x {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.marquee {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+          mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+.marquee-track {
+  display: flex;
+  width: max-content;
+  flex-wrap: nowrap;
+  animation: marquee-x 34s linear infinite;
+}
+.marquee:hover .marquee-track { animation-play-state: paused; }
+
 @media (prefers-reduced-motion: reduce) {
   .animate-float, .animate-glow, .animate-rise,
   .animate-rise-2, .animate-rise-3 { animation: none; }
+  .marquee-track { animation: none; }
 }
 
 /* Gradiente de texto (assinatura) */
