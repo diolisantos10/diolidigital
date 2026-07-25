@@ -38,6 +38,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: "requestId ou businessName obrigatório" }, { status: 400 });
   }
 
+  const keepMostRecent = body.keepMostRecent === true;
+
   // Thorough: ALL requests for this business (there may be duplicates), and ALL
   // projects for the linked client(s) — including any orphaned/mislinked ones.
   const requests = await prisma.clientRequestDb.findMany({
@@ -45,9 +47,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       ...(workspaceScope ? { workspaceId: workspaceScope } : {}),
       ...(requestId ? { id: requestId } : { businessName: { contains: businessName } }),
     },
-    select: { id: true, clientId: true, businessName: true },
+    orderBy: { createdAt: "desc" },
+    select: { id: true, clientId: true, businessName: true, createdAt: true },
   });
   if (requests.length === 0) return NextResponse.json({ error: "Solicitação não encontrada" }, { status: 404 });
+
+  // Dedupe: keep the most recent request (index 0), delete the older duplicates
+  // (cascades their artifacts/approvals/messages). The kept briefing stays.
+  if (keepMostRecent && requests.length > 1) {
+    const older = requests.slice(1).map((r) => r.id);
+    const del = await prisma.clientRequestDb.deleteMany({ where: { id: { in: older } } });
+    return NextResponse.json({
+      ok: true, action: "dedupe", businessName: requests[0].businessName,
+      kept: requests[0].id, keptCreatedAt: requests[0].createdAt, deletedDuplicates: del.count,
+    });
+  }
 
   const reqIds = requests.map((r) => r.id);
   const clientIds = [...new Set(requests.map((r) => r.clientId).filter((c): c is string => !!c))];
