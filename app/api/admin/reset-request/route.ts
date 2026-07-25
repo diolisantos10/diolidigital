@@ -14,6 +14,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { getSession } from "@/lib/auth/session";
 import { runProjectExecution } from "@/lib/agency/execution/run-execution";
+import { buildClientSnapshot } from "@/lib/dioli-brain/client-snapshot";
+import { orchestratePMReasoning } from "@/lib/dioli-brain/pm-orchestrator";
+import { createApprovalRequest } from "@/lib/agency/persistence/approval-service";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const secret = request.headers.get("x-admin-secret");
@@ -71,11 +74,35 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       prisma.portalMessage.count({ where: { clientRequestId: { in: reqIds0 } } }),
       prisma.brainArtifact.count({ where: { clientRequestId: { in: reqIds0 } } }),
     ]);
+    const pendingProposals = await prisma.approvalRequest.count({ where: { clientRequestId: { in: reqIds0 }, department: "proposal", status: "pending" } });
+    const portal = await prisma.portalAccess.findFirst({ where: { clientRequestId: { in: reqIds0 }, revokedAt: null }, select: { token: true } });
     return NextResponse.json({
       ok: true, action: "status", businessName: requests[0].businessName,
       requests: requests.map((r) => ({ id: r.id, status: r.status, createdAt: r.createdAt })),
-      projects, counts: { deliverables, approvals, messages, artifacts },
+      projects, counts: { deliverables, approvals, messages, artifacts, pendingProposals },
+      portalToken: portal?.token ?? null,
     });
+  }
+
+  // Agency sends the proposal to the client: generate it, drop a readable
+  // summary in the portal, and create a client-visible "proposal" approval.
+  // The CLIENT approving it (in the portal) is what creates the project.
+  if (action === "send-proposal") {
+    const target = requests[0];
+    const snapshot = await buildClientSnapshot(target.id);
+    if (!snapshot) return NextResponse.json({ ok: false, error: "Snapshot indisponível — briefing incompleto?" }, { status: 409 });
+    const proposal = await orchestratePMReasoning(snapshot);
+    const scopeLines = (proposal.tasks ?? []).slice(0, 8).map((t: { title: string }) => `• ${t.title}`).join("\n");
+    const msg = `📋 ${target.businessName}, sua proposta está pronta!\n\n*${proposal.name}*\nObjetivo: ${proposal.goal}\n\nO que vamos fazer:\n${scopeLines}\n\nRevise e, se estiver tudo certo, é só aprovar aqui no portal que a equipe já começa. Se quiser ajustar algo, me diz. 🚀`;
+    await prisma.portalMessage.create({
+      data: { clientRequestId: target.id, authorRole: "team", authorName: "Equipe Dioli", body: msg, readByTeam: true },
+    });
+    const approval = await createApprovalRequest({ clientRequestId: target.id, department: "proposal", requestedBy: "Agência", clientVisible: true });
+    await prisma.clientRequestDb.update({ where: { id: target.id }, data: { status: "scope_ready" } });
+    // Ensure the client has portal access to read + approve the proposal.
+    let portal = await prisma.portalAccess.findFirst({ where: { clientRequestId: target.id, revokedAt: null } });
+    if (!portal) portal = await prisma.portalAccess.create({ data: { clientRequestId: target.id, clientId: target.clientId ?? undefined } });
+    return NextResponse.json({ ok: true, action: "send-proposal", businessName: target.businessName, approvalId: approval.id, proposalName: proposal.name, portalToken: portal.token });
   }
 
   // Fire the durable execution core for this business's project (must exist).
