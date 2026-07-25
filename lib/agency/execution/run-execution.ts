@@ -40,6 +40,8 @@ interface DeptConfig {
 
 /** Conteúdo mínimo aceitável de uma entrega (gate de saída: nada vazio/lixo vai ao cliente). */
 const MIN_DELIVERABLE_CHARS = 40;
+/** Máximo de revisões que a Qualidade pede antes de publicar (bounded — sem loop infinito). */
+const MAX_QUALITY_REVISIONS = 1;
 
 function ctxBlock(c: Ctx): string {
   return [
@@ -247,13 +249,46 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
 
       if (!result.ok) { skipped.push(`${dept.label} (IA indisponível)`); continue; }
       const data = result.data as Record<string, unknown>;
-      const title = typeof data.title === "string" ? data.title : `${dept.label} — ${context.businessName}`;
-      const body = deliverableMarkdown(data);
+      let title = typeof data.title === "string" ? data.title : `${dept.label} — ${context.businessName}`;
+      let body = deliverableMarkdown(data);
       // Gate de saída: nada vazio/curto demais chega ao cliente.
       if (!body || body.length < MIN_DELIVERABLE_CHARS) { skipped.push(`${dept.label} (resposta insuficiente)`); continue; }
 
-      const created = await prisma.deliverable.create({
-        data: { projectId, name: title, type: dept.deliverableType, status: "in_review", content: body, ownerAgentId: dept.agentId },
+      // QUALIDADE ATIVA — o loop de correção (garante boa entrega ANTES do cliente):
+      // audita → se reprovar, o agente REVISA com o parecer → reentrega melhorada.
+      // O cliente sempre DECIDE; nós garantimos que o que chega já está bom.
+      let audit = await auditDeliverable({
+        deptLabel: dept.label, title, content: body, brandContext: ctxBlock(context),
+        marketGuidelines: insightBlock, workspaceId: project.workspaceId,
+      });
+      let revisions = 0;
+      while (audit.verdict === "flag" && revisions < MAX_QUALITY_REVISIONS) {
+        const fix = await generate({
+          system: "Você é um agente sênior de uma agência de marketing brasileira. A Qualidade apontou problemas na sua entrega — CORRIJA-OS e reentregue melhor. Responda SOMENTE com JSON válido no mesmo formato.",
+          user: `${dept.prompt(context)}${insightBlock ? `\n\n${insightBlock}` : ""}\n\nA Qualidade REPROVOU a versão anterior por: ${audit.issues.join("; ") || audit.note}. Refaça corrigindo exatamente esses pontos.`,
+          maxTokens: 1800, workspaceId: project.workspaceId, preferredProvider: "claude",
+        });
+        revisions++;
+        if (!fix.ok) break;
+        const fixedBody = deliverableMarkdown(fix.data as Record<string, unknown>);
+        if (!fixedBody || fixedBody.length < MIN_DELIVERABLE_CHARS) break;
+        body = fixedBody;
+        const fixedTitle = (fix.data as Record<string, unknown>).title;
+        if (typeof fixedTitle === "string" && fixedTitle.trim()) title = fixedTitle;
+        audit = await auditDeliverable({
+          deptLabel: dept.label, title, content: body, brandContext: ctxBlock(context),
+          marketGuidelines: insightBlock, workspaceId: project.workspaceId,
+        });
+      }
+
+      // Publica a MELHOR versão. Se mesmo após a revisão ainda estiver flag, vai
+      // ao cliente (ele decide) MAS marcado quality_flag pra a equipe olhar.
+      await prisma.deliverable.create({
+        data: {
+          projectId, name: title, type: dept.deliverableType, status: "in_review", content: body,
+          ownerAgentId: dept.agentId, revisionStatus: audit.verdict === "flag" ? "quality_flag" : "quality_ok",
+          lastFeedback: audit.note || null, version: revisions + 1,
+        },
       });
       await createApprovalRequest({ clientRequestId, department: dept.id, requestedBy: `Agente de ${dept.label}`, clientVisible: true });
       await prisma.portalMessage.create({
@@ -264,17 +299,6 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
         },
       });
       produced.push(dept.label);
-
-      // QUALIDADE (SOMBRA): audita e registra o parecer — NÃO bloqueia (o cliente
-      // já vê a entrega). Serve pra medir o juízo da Qualidade antes de ligar o freio.
-      const audit = await auditDeliverable({
-        deptLabel: dept.label, title, content: body, brandContext: ctxBlock(context),
-        marketGuidelines: insightBlock, workspaceId: project.workspaceId,
-      });
-      await prisma.deliverable.update({
-        where: { id: created.id },
-        data: { revisionStatus: audit.verdict === "flag" ? "quality_flag" : "quality_ok", lastFeedback: audit.note || null },
-      }).catch(() => { /* parecer é sombra — nunca derruba a produção */ });
       qualityAudit.push({ department: dept.label, verdict: audit.verdict, issues: audit.issues });
     }
 

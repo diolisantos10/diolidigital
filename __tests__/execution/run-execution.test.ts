@@ -29,6 +29,7 @@ vi.mock("@/lib/agency/radar/library", () => ({
 }));
 
 import { runProjectExecution } from "@/lib/agency/execution/run-execution";
+import { auditDeliverable } from "@/lib/agency/execution/quality-auditor";
 
 const baseProject = {
   id: "p1", workspaceId: "ws1", clientId: "c1", clientRequestId: "cr1",
@@ -61,6 +62,19 @@ describe("runProjectExecution — produção durável e confiável", () => {
     const statuses = db.project.update.mock.calls.map((c) => c[0].data.executionStatus);
     expect(statuses).toContain("running");
     expect(statuses).toContain("done");
+  });
+
+  it("Qualidade reprovou → agente REVISA e reentrega a MELHOR versão (loop de correção)", async () => {
+    db.project.findUnique.mockResolvedValue({ ...baseProject });
+    const auditMock = auditDeliverable as unknown as ReturnType<typeof vi.fn>;
+    auditMock.mockResolvedValueOnce({ verdict: "flag", issues: ["clichê vazio"], note: "revisar" })
+             .mockResolvedValueOnce({ verdict: "pass", issues: [], note: "melhorou" });
+    generate.mockResolvedValue({ ok: true, data: { title: "Pacote", summary: "s", items: [{ format: "feed", headline: "Oi", caption: "legenda bem completa aqui", visual: "foto" }] } });
+
+    const r = await runProjectExecution("p1");
+    expect(generate).toHaveBeenCalledTimes(2);          // geração original + 1 revisão
+    expect(db.deliverable.create).toHaveBeenCalledTimes(1); // publica só a melhor versão
+    expect(r.produced).toContain("Social Media");
   });
 
   it("IA indisponível → NÃO perde: marca 'failed' pra o cron re-tentar", async () => {
