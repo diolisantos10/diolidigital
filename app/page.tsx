@@ -99,6 +99,23 @@ const JORNADA = [
 const E = ["Estratégica e humana", "Guiada por dados e inteligência", "Focada em resultados reais", "Parceira de crescimento", "Criativa com propósito", "Clara, ágil e transparente"];
 const NAO_E = ["Apenas uma agência criativa", "Mais uma empresa de automação", "Focada só em ferramentas", "Genérica ou padronizada", "Promessa vazia ou superficial", "Complexa ou burocrática"];
 
+// Camada de confiança (razões pra acreditar — reais, sem inventar prova social)
+const DIFERENCIAIS = [
+  { icon: Icon.target, titulo: "Briefing gratuito", desc: "Você entende o que precisa — e recebe um plano claro — antes de gastar um real." },
+  { icon: Icon.spark, titulo: "Plataforma própria com IA", desc: "Não terceirizamos: estratégia, conteúdo e execução rodam na nossa tecnologia." },
+  { icon: Icon.layers, titulo: "Portal do cliente", desc: "Acompanhe e aprove cada entrega, do briefing ao resultado, em tempo real." },
+  { icon: Icon.check, titulo: "Sem contratos que prendem", desc: "Transparência e liberdade. Você continua porque quer, não porque assinou." },
+];
+
+const FAQ = [
+  { q: "Preciso assinar um contrato longo?", a: "Não. A gente trabalha sem fidelidade que prende — você continua porque está vendo resultado, não porque está preso a um papel." },
+  { q: "Nunca fiz nada no digital. Consigo acompanhar?", a: "Sim. A gente cuida de tudo e explica sem jargão. Você aprova cada etapa por um portal simples, no seu tempo." },
+  { q: "Quanto custa?", a: "Depende do que o seu negócio precisa — e é justamente pra isso que o briefing é gratuito: você recebe um escopo e uma proposta claros, sem surpresa." },
+  { q: "Vocês atendem o meu segmento?", a: "Sim. Da loja de roupa ao restaurante, da marca consolidada a quem está começando: se existe um negócio, a gente conecta ele ao digital." },
+  { q: "Em quanto tempo começamos?", a: "Rápido. A gente responde em poucas horas úteis e, a partir do briefing, o plano sai em poucos dias." },
+  { q: "O que a IA faz e o que é feito por gente?", a: "A estratégia é humana — pensada por quem entende o seu negócio. A IA acelera a execução (conteúdo, design, automações), com revisão humana em tudo." },
+];
+
 /* ── Botões (primário = navy, conforme brand book) ─────────────────────────── */
 const btnPrimary = "inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[var(--navy)] px-6 text-[15px] font-semibold text-white shadow-[var(--shadow-md)] transition-transform hover:-translate-y-0.5";
 const btnGhostDark = "inline-flex h-12 items-center justify-center rounded-full border border-white/25 px-6 text-[15px] font-semibold text-white transition-colors hover:bg-white/10";
@@ -182,6 +199,26 @@ export default function SitePage() {
           <span>Seu parceiro de transformação digital</span>
         </div>
       </div>
+
+      {/* ── Por que a Dioli (camada de confiança) ──────────────────────────────── */}
+      <section className="border-b border-[var(--border)] bg-[var(--bg)]">
+        <div className="mx-auto max-w-6xl px-5 py-14 md:px-8 md:py-16">
+          <div className="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
+            {DIFERENCIAIS.map((d) => {
+              const IconEl = d.icon;
+              return (
+                <div key={d.titulo}>
+                  <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[var(--accent)] text-[var(--navy)]">
+                    <IconEl className="h-[22px] w-[22px]" />
+                  </span>
+                  <h3 className="mt-4 text-[16px] font-semibold text-[var(--navy)]">{d.titulo}</h3>
+                  <p className="mt-1.5 text-[13.5px] leading-relaxed text-[var(--text-secondary)]">{d.desc}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
 
       {/* ── Essência / ideia central (navy com mesh) ───────────────────────────── */}
       <section className="mesh-navy relative overflow-hidden text-white">
@@ -430,6 +467,31 @@ export default function SitePage() {
                   {p.label}
                 </figcaption>
               </figure>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── FAQ (derruba objeção) ──────────────────────────────────────────────── */}
+      <section className="border-t border-[var(--border)] bg-[var(--bg)]">
+        <div className="mx-auto max-w-3xl px-5 py-20 md:px-8 md:py-28">
+          <div className="text-center">
+            <p className="text-[12.5px] font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Perguntas frequentes</p>
+            <h2 className="mt-3 text-[28px] font-bold tracking-[-0.025em] text-[var(--navy)] md:text-[38px]">
+              Tudo claro, do começo ao fim.
+            </h2>
+          </div>
+          <div className="mt-10 divide-y divide-[var(--border)] border-y border-[var(--border)]">
+            {FAQ.map((f) => (
+              <details key={f.q} className="group py-5">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-[15.5px] font-semibold text-[var(--navy)]">
+                  {f.q}
+                  <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-[var(--border-strong)] text-[var(--text-secondary)] transition-transform group-open:rotate-45">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+                  </span>
+                </summary>
+                <p className="mt-3 max-w-2xl text-[14.5px] leading-relaxed text-[var(--text-secondary)]">{f.a}</p>
+              </details>
             ))}
           </div>
         </div>
