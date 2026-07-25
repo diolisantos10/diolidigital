@@ -1,10 +1,10 @@
 // ─── Dioli Digital brand logo ─────────────────────────────────────────────────
 // Fonte única do símbolo da marca (sidebar, auth, briefing e site público).
 //
-// Brand Book v1 (docs/brand/): o símbolo são "dois círculos minimalistas — eclipse":
-// um anel grande (estratégia humana) + um disco menor (execução inteligente), com um
-// micro-satélite. O logo é MONOCROMÁTICO (navy no claro, branco no escuro) — o cyan
-// NÃO entra no logo, é assinatura de acento em outros lugares.
+// Brand Book v1 (docs/brand/): o símbolo são DOIS ANÉIS (círculos vazados) — "Oo" —
+// um grande + um menor à direita. SEM satélite e SEM disco preenchido (isso é
+// elemento gráfico da órbita, não da logo). MONOCROMÁTICO (navy no claro, branco no
+// escuro) — o cyan NÃO entra no logo.
 
 type Variant = "full" | "mark";
 type Tone = "light" | "dark"; // light = para fundos escuros; dark = para fundo claro
@@ -32,12 +32,10 @@ export function DioliLogo({
       className="shrink-0"
       aria-hidden="true"
     >
-      {/* anel grande — estratégia humana */}
-      <circle cx="16" cy="22" r="11.5" stroke={ink} strokeWidth="2.4" />
-      {/* disco menor — execução inteligente */}
-      <circle cx="30" cy="20" r="5" fill={ink} />
-      {/* micro-satélite */}
-      <circle cx="33.5" cy="10.5" r="2" fill={ink} />
+      {/* anel grande */}
+      <circle cx="14.5" cy="20" r="10.5" stroke={ink} strokeWidth="3.2" fill="none" />
+      {/* anel pequeno (o "o") */}
+      <circle cx="30.5" cy="19" r="5.4" stroke={ink} strokeWidth="2.8" fill="none" />
     </svg>
   );
 
