@@ -46,14 +46,14 @@ function ContextCard({ ctx, usedStrategyRoom }: { ctx: AgentClientContext; usedS
   const incomplete = ready < 5;
   return (
     <div className="space-y-2">
-      <div className={`rounded-[8px] border px-3 py-2.5 ${incomplete ? "bg-[#FFFBEB] border-[#FDE68A]" : "bg-[#ECFEFF] border-[#A5F3FC]"}`}>
+      <div className={`rounded-[8px] border px-3 py-2.5 ${incomplete ? "bg-[#FFFBEB] border-[#FDE68A]" : "bg-[#E6FBFA] border-[#C7EFEC]"}`}>
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-1.5">
             <span className={`text-[11px] font-bold`} style={{ color: incomplete ? "#D97706" : ACCENT }}>{incomplete ? "⚠" : "●"}</span>
             <span className="text-[11px] font-semibold text-[var(--text-primary)]">{incomplete ? "Brand Brain incompleto" : "Brand Brain ativo"}</span>
             <span className="text-[10px] text-[var(--text-muted)]">· {ctx.clientName}</span>
           </div>
-          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${ready === 10 ? "bg-[var(--success-bg)] text-[var(--success)]" : ready >= 5 ? "bg-[#CFFAFE] text-[#0E7490]" : "bg-[var(--accent)] text-[var(--text-muted)]"}`}>{ready}/10</span>
+          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${ready === 10 ? "bg-[var(--success-bg)] text-[var(--success)]" : ready >= 5 ? "bg-[#E6FBFA] text-[#0E7490]" : "bg-[var(--accent)] text-[var(--text-muted)]"}`}>{ready}/10</span>
         </div>
         {incomplete ? (
           <p className="text-[11px] text-[var(--warning)] leading-snug">Complete o Brand Brain no workspace do cliente para um plano de mídia totalmente específico.</p>
@@ -65,7 +65,7 @@ function ContextCard({ ctx, usedStrategyRoom }: { ctx: AgentClientContext; usedS
           </div>
         )}
       </div>
-      <div className={`flex items-center gap-1.5 rounded-[8px] border px-3 py-2 ${usedStrategyRoom ? "bg-[var(--accent-light)] border-[#C7C7F5]" : "bg-[var(--bg-elevated)] border-[var(--border)]"}`}>
+      <div className={`flex items-center gap-1.5 rounded-[8px] border px-3 py-2 ${usedStrategyRoom ? "bg-[var(--accent-light)] border-[#D6DEFF]" : "bg-[var(--bg-elevated)] border-[var(--border)]"}`}>
         <span className={`w-1.5 h-1.5 rounded-full ${usedStrategyRoom ? "bg-[var(--navy)]" : "bg-[var(--text-subtle)]"}`} />
         <span className={`text-[11px] font-medium ${usedStrategyRoom ? "text-[var(--navy)]" : "text-[var(--text-muted)]"}`}>
           {usedStrategyRoom ? "Strategy Room conectado" : "Strategy Room não gerado (opcional)"}
@@ -85,7 +85,7 @@ function ProposalGatePanel({ proposalStatus, linkedProject }: { proposalStatus: 
   const info = proposalStatus ? (statusMap[proposalStatus] ?? statusMap.draft) : statusMap.draft;
   return (
     <div className="bg-white rounded-[10px] border border-[#FDE68A] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-8 py-14 flex flex-col items-center text-center">
-      <div className="w-12 h-12 rounded-full bg-[#FFF4ED] flex items-center justify-center mb-5">
+      <div className="w-12 h-12 rounded-full bg-[#E6FBFA] flex items-center justify-center mb-5">
         <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
           <path d="M11 7v5M11 15h.01" stroke="#D97706" strokeWidth="1.8" strokeLinecap="round" />
           <circle cx="11" cy="11" r="9" stroke="#D97706" strokeWidth="1.5" />
@@ -242,7 +242,7 @@ export default function AdsAgentPage() {
       <div className="flex-1 p-6 max-w-[1200px] mx-auto w-full">
         {/* Badge row */}
         <div className="flex items-center gap-2 mb-6 flex-wrap">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-wide uppercase" style={{ backgroundColor: "#ECFEFF", color: ACCENT }}>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-wide uppercase" style={{ backgroundColor: "#E6FBFA", color: ACCENT }}>
             <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: ACCENT }} />
             Departamento de Tráfego Pago
           </span>
@@ -366,7 +366,7 @@ export default function AdsAgentPage() {
           {/* Idle — no project */}
           {agentState === "idle" && !linkedProject && (
             <div className="bg-white rounded-[10px] border border-dashed border-[var(--border)] px-8 py-16 text-center">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: "#ECFEFF" }}>
+              <div className="w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: "#E6FBFA" }}>
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                   <path d="M3 17V9M8 17V4M13 17v-6M18 17V7" stroke={ACCENT} strokeWidth="1.8" strokeLinecap="round" />
                 </svg>
@@ -384,7 +384,7 @@ export default function AdsAgentPage() {
           {/* Idle — ready */}
           {agentState === "idle" && linkedProject && !proposalBlocked && (
             <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-8 py-14 text-center">
-              <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-5" style={{ backgroundColor: "#ECFEFF" }}>
+              <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-5" style={{ backgroundColor: "#E6FBFA" }}>
                 <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
                   <path d="M3 19V10M9 19V5M15 19v-6M21 19V8" stroke={ACCENT} strokeWidth="1.8" strokeLinecap="round" />
                 </svg>
@@ -402,7 +402,7 @@ export default function AdsAgentPage() {
               <div className="max-w-md mx-auto space-y-3">
                 {STEPS.map((s, i) => (
                   <div key={i} className={`flex items-center gap-3 transition-opacity ${i <= stepIndex ? "opacity-100" : "opacity-30"}`}>
-                    <span className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${i < stepIndex ? "bg-[var(--success-bg)]" : i === stepIndex ? "" : "bg-[var(--accent)]"}`} style={i === stepIndex ? { backgroundColor: "#CFFAFE" } : {}}>
+                    <span className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${i < stepIndex ? "bg-[var(--success-bg)]" : i === stepIndex ? "" : "bg-[var(--accent)]"}`} style={i === stepIndex ? { backgroundColor: "#E6FBFA" } : {}}>
                       {i < stepIndex ? (
                         <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l2.5 2.5L9 1" stroke="#16A34A" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
                       ) : i === stepIndex ? (
@@ -466,7 +466,7 @@ export default function AdsAgentPage() {
                     <div key={i} className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
                       <div className="flex items-center justify-between mb-1.5">
                         <span className="text-[13px] font-semibold text-[var(--text-primary)]">{f.stage}</span>
-                        <span className="text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: "#ECFEFF", color: ACCENT }}>{f.platforms}</span>
+                        <span className="text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: "#E6FBFA", color: ACCENT }}>{f.platforms}</span>
                       </div>
                       <p className="text-[12px] text-[var(--text-secondary)] mb-2">{f.goal}</p>
                       <div className="flex flex-wrap gap-1">
@@ -507,7 +507,7 @@ export default function AdsAgentPage() {
                   {plan.adCopyIdeas.map((c, i) => (
                     <div key={i} className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: "#ECFEFF", color: ACCENT }}>{c.angle}</span>
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: "#E6FBFA", color: ACCENT }}>{c.angle}</span>
                       </div>
                       <p className="text-[13px] font-semibold text-[var(--text-primary)] mb-1">{c.headline}</p>
                       <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed mb-2">{c.primaryText}</p>

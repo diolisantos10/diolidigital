@@ -30,7 +30,7 @@ const ASSET_COLORS: Record<string, string> = {
   logo: "bg-[var(--accent-light)] text-[var(--navy)]",
   color_palette: "bg-[var(--warning-bg)] text-[var(--warning)]",
   typography: "bg-[#F0FDF4] text-[var(--success)]",
-  tone_of_voice: "bg-[#FFF7ED] text-[#C2410C]",
+  tone_of_voice: "bg-[#E6FBFA] text-[#0B655F]",
   visual_reference: "bg-[var(--accent)] text-[var(--text-secondary)]",
   guidelines: "bg-[var(--accent-light)] text-[var(--navy)]",
 };
@@ -439,7 +439,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                               title={stage}
                               className={`h-1.5 flex-1 rounded-full transition-colors ${
                                 current ? "bg-[var(--navy)]"
-                                : passed  ? "bg-[#C7C8F6]"
+                                : passed  ? "bg-[#D6DEFF]"
                                 :           "bg-[var(--accent)]"
                               }`}
                             />

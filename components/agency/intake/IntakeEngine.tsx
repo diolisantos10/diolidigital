@@ -41,7 +41,7 @@ export interface IntakeSummary {
   missingInformation: string[];
   recommendedNextQuestions: string[];
   readinessScore: number;
-  readinessLabel: "Not Ready" | "Partially Ready" | "Ready";
+  readinessLabel: "Não Pronto" | "Parcialmente Pronto" | "Pronto";
 }
 
 export interface IntakePrefill {
@@ -71,26 +71,26 @@ function resolveOptions(opts: string[] | Record<ClientLevel, string[]>, level: C
 const CLIENT_PROFILE_BLOCKS: IntakeBlock[] = [
   {
     id: "business",
-    title: "Your Business",
-    description: "Let's start with who you are and what you do.",
+    title: "Sua empresa",
+    description: "Vamos começar por quem você é e o que faz.",
     questions: [
       {
         id: "business_name",
-        internalLabel: "Business name & industry",
+        internalLabel: "Nome e segmento da empresa",
         question: {
-          beginner: "What's the name of your business, and what do you sell or offer?",
-          intermediate: "What is the business name and industry?",
-          advanced: "Business name and industry.",
+          beginner: "Qual é o nome da sua empresa e o que você vende ou oferece?",
+          intermediate: "Qual é o nome da empresa e o segmento?",
+          advanced: "Nome da empresa e segmento.",
         },
         hint: {
-          beginner: "Just the basics — we'll build from here.",
-          intermediate: "Include the sector if helpful (e.g. F&B, SaaS, fashion).",
+          beginner: "Só o básico — a gente constrói a partir daqui.",
+          intermediate: "Inclua o setor se ajudar (ex.: alimentação, SaaS, moda).",
           advanced: "",
         },
         placeholder: {
-          beginner: "e.g. Sushikasa — we're a Japanese restaurant in São Paulo",
-          intermediate: "e.g. Sushikasa — premium Japanese restaurant chain",
-          advanced: "e.g. Sushikasa / Food & Beverage / 5 locations",
+          beginner: "ex.: Sushikasa — somos um restaurante japonês em São Paulo",
+          intermediate: "ex.: Sushikasa — rede de restaurantes japoneses premium",
+          advanced: "ex.: Sushikasa / Alimentação / 5 unidades",
         },
         type: "text",
         required: true,
@@ -98,21 +98,21 @@ const CLIENT_PROFILE_BLOCKS: IntakeBlock[] = [
       },
       {
         id: "business_description",
-        internalLabel: "Business description",
+        internalLabel: "Descrição da empresa",
         question: {
-          beginner: "Tell us a bit about your business — what you do, who you help, and how long you've been running.",
-          intermediate: "Briefly describe what the business does, its market position, and size.",
-          advanced: "Business description: product/service, positioning, scale, maturity.",
+          beginner: "Conte um pouco sobre a sua empresa — o que você faz, quem você atende e há quanto tempo está no mercado.",
+          intermediate: "Descreva brevemente o que a empresa faz, seu posicionamento no mercado e o porte.",
+          advanced: "Descrição da empresa: produto/serviço, posicionamento, escala, maturidade.",
         },
         hint: {
-          beginner: "No need to be formal — describe it like you would to a new customer.",
-          intermediate: "2–3 sentences is enough.",
+          beginner: "Não precisa ser formal — descreva como você faria para um novo cliente.",
+          intermediate: "2 a 3 frases já bastam.",
           advanced: "",
         },
         placeholder: {
-          beginner: "e.g. We've been open for 3 years and serve premium Japanese food in São Paulo. People come for special occasions — the experience is what sets us apart.",
-          intermediate: "e.g. 5 premium restaurants in São Paulo, targeting high-income professionals. Expanding to Rio in Q3.",
-          advanced: "e.g. 5-location premium F&B brand, Series A, 40% YoY growth, B2C focused.",
+          beginner: "ex.: Estamos abertos há 3 anos e servimos comida japonesa premium em São Paulo. As pessoas vêm para ocasiões especiais — a experiência é o nosso diferencial.",
+          intermediate: "ex.: 5 restaurantes premium em São Paulo, focados em profissionais de alta renda. Expansão para o Rio no 3º trimestre.",
+          advanced: "ex.: Marca de alimentação premium com 5 unidades, Série A, crescimento de 40% ao ano, foco em B2C.",
         },
         type: "textarea",
         required: true,
@@ -122,26 +122,26 @@ const CLIENT_PROFILE_BLOCKS: IntakeBlock[] = [
   },
   {
     id: "brand",
-    title: "Your Brand",
-    description: "What does your brand look like, and how does it speak?",
+    title: "Sua marca",
+    description: "Como a sua marca se apresenta e como ela se comunica?",
     questions: [
       {
         id: "brand_tone",
-        internalLabel: "Brand tone of voice",
+        internalLabel: "Tom de voz da marca",
         question: {
-          beginner: "How do you want your brand to come across to customers? More serious, fun, elegant, approachable, or bold?",
-          intermediate: "How would you describe your brand's personality and tone of communication?",
-          advanced: "Brand tone of voice and communication guidelines.",
+          beginner: "Como você quer que a sua marca seja percebida pelos clientes? Mais séria, divertida, elegante, acessível ou ousada?",
+          intermediate: "Como você descreveria a personalidade e o tom de comunicação da sua marca?",
+          advanced: "Tom de voz da marca e diretrizes de comunicação.",
         },
         hint: {
-          beginner: "This helps us write and design in a style that feels natural for your business.",
-          intermediate: "Think in adjectives: refined, playful, bold, trustworthy, warm, etc.",
+          beginner: "Isso nos ajuda a escrever e criar em um estilo que combine naturalmente com o seu negócio.",
+          intermediate: "Pense em adjetivos: refinada, descontraída, ousada, confiável, acolhedora, etc.",
           advanced: "",
         },
         placeholder: {
-          beginner: "e.g. Elegant but warm — we want people to feel welcomed and special, not sold to",
-          intermediate: "e.g. Refined, premium, minimal — never loud or casual",
-          advanced: "e.g. Sophisticated, culturally aware, minimal; avoids corporate or promotional language",
+          beginner: "ex.: Elegante, mas acolhedora — queremos que as pessoas se sintam bem-vindas e especiais, não que estão sendo vendidas",
+          intermediate: "ex.: Refinada, premium, minimalista — nunca exagerada ou informal",
+          advanced: "ex.: Sofisticada, culturalmente atenta, minimalista; evita linguagem corporativa ou promocional",
         },
         type: "text",
         required: false,
@@ -149,21 +149,21 @@ const CLIENT_PROFILE_BLOCKS: IntakeBlock[] = [
       },
       {
         id: "brand_existing",
-        internalLabel: "Existing brand assets",
+        internalLabel: "Materiais de marca existentes",
         question: {
-          beginner: "Do you already have a logo or any visual materials? What do you have?",
-          intermediate: "What brand materials are already in place?",
-          advanced: "Existing brand assets (logo, visual identity, guidelines, photography).",
+          beginner: "Você já tem um logo ou algum material visual? O que você tem?",
+          intermediate: "Quais materiais de marca você já tem prontos?",
+          advanced: "Materiais de marca existentes (logo, identidade visual, manual, fotografia).",
         },
         hint: {
-          beginner: "Think: a logo file, professional photos, colors that are yours, anything a designer gave you.",
-          intermediate: "e.g. Logo, brand guidelines, color palette, photography library.",
+          beginner: "Pense: um arquivo de logo, fotos profissionais, cores que são da marca, qualquer coisa que um designer tenha entregue.",
+          intermediate: "ex.: Logo, manual de marca, paleta de cores, banco de fotos.",
           advanced: "",
         },
         placeholder: {
-          beginner: "e.g. Yes — we have a logo and professional photos from last year's campaign",
-          intermediate: "e.g. Full brand guidelines, logo in SVG, professional photography",
-          advanced: "e.g. Complete brand system: logo, guidelines, palette, photography library",
+          beginner: "ex.: Sim — temos um logo e fotos profissionais da campanha do ano passado",
+          intermediate: "ex.: Manual de marca completo, logo em SVG, fotografia profissional",
+          advanced: "ex.: Sistema de marca completo: logo, manual, paleta, banco de fotos",
         },
         type: "text",
         required: false,
@@ -173,26 +173,26 @@ const CLIENT_PROFILE_BLOCKS: IntakeBlock[] = [
   },
   {
     id: "audience",
-    title: "Who You're Talking To",
-    description: "Tell us about the people you want to reach.",
+    title: "Com quem você fala",
+    description: "Conte pra gente sobre as pessoas que você quer alcançar.",
     questions: [
       {
         id: "audience",
-        internalLabel: "Target audience",
+        internalLabel: "Público-alvo",
         question: {
-          beginner: "Who usually buys from you or uses your service? Describe this person in your own words.",
-          intermediate: "Describe your target audience: age, profession, lifestyle, and what they value.",
-          advanced: "Target audience profile: demographics, psychographics, platform behaviour, segmentation.",
+          beginner: "Quem costuma comprar de você ou usar o seu serviço? Descreva essa pessoa com as suas palavras.",
+          intermediate: "Descreva o seu público-alvo: idade, profissão, estilo de vida e o que valoriza.",
+          advanced: "Perfil do público-alvo: dados demográficos, psicográficos, comportamento nas plataformas, segmentação.",
         },
         hint: {
-          beginner: "Think about: how old are they, what do they do for work, what do they care about, how did they find you?",
+          beginner: "Pense: qual a idade, no que trabalham, com o que se importam, como te encontraram?",
           intermediate: "",
           advanced: "",
         },
         placeholder: {
-          beginner: "e.g. Mostly couples and professionals in their 30s and 40s looking for a special night out — they usually find us through Instagram or a friend's recommendation",
-          intermediate: "e.g. Urban professionals 30–45, high disposable income, value experiences. Active on Instagram and LinkedIn.",
-          advanced: "e.g. HR directors at 50–500 person companies, B2B, LinkedIn-first, decision-makers in People Ops.",
+          beginner: "ex.: Na maioria casais e profissionais na faixa dos 30 e 40 anos em busca de uma noite especial — costumam nos encontrar pelo Instagram ou por indicação de um amigo",
+          intermediate: "ex.: Profissionais urbanos de 30 a 45 anos, alto poder aquisitivo, valorizam experiências. Ativos no Instagram e no LinkedIn.",
+          advanced: "ex.: Diretores de RH em empresas de 50 a 500 pessoas, B2B, foco em LinkedIn, tomadores de decisão em People Ops.",
         },
         type: "textarea",
         required: true,
@@ -202,26 +202,26 @@ const CLIENT_PROFILE_BLOCKS: IntakeBlock[] = [
   },
   {
     id: "current_marketing",
-    title: "What You're Doing Today",
-    description: "Help us understand your current marketing situation.",
+    title: "O que você faz hoje",
+    description: "Ajude a gente a entender a sua situação atual de marketing.",
     questions: [
       {
         id: "current_channels",
-        internalLabel: "Current channels",
+        internalLabel: "Canais atuais",
         question: {
-          beginner: "Are you already posting or advertising anywhere? Where?",
-          intermediate: "Which marketing channels are you currently active on?",
-          advanced: "Current active channels and approximate performance.",
+          beginner: "Você já posta ou anuncia em algum lugar? Onde?",
+          intermediate: "Em quais canais de marketing você está ativo hoje?",
+          advanced: "Canais ativos atuais e desempenho aproximado.",
         },
         hint: {
-          beginner: "For example: Instagram, Google, flyers, email, word of mouth — anything counts.",
+          beginner: "Por exemplo: Instagram, Google, panfletos, email, boca a boca — tudo conta.",
           intermediate: "",
           advanced: "",
         },
         placeholder: {
-          beginner: "e.g. We post on Instagram sometimes, and we show up on Google Maps",
-          intermediate: "e.g. Instagram, email newsletter, occasional Google Ads",
-          advanced: "e.g. Meta (organic + paid), Google Ads, email CRM (Mailchimp, 12k list)",
+          beginner: "ex.: Postamos no Instagram de vez em quando e aparecemos no Google Maps",
+          intermediate: "ex.: Instagram, newsletter por email, Google Ads ocasional",
+          advanced: "ex.: Meta (orgânico + pago), Google Ads, CRM de email (Mailchimp, lista de 12 mil)",
         },
         type: "text",
         required: false,
@@ -229,21 +229,21 @@ const CLIENT_PROFILE_BLOCKS: IntakeBlock[] = [
       },
       {
         id: "what_works",
-        internalLabel: "What is working",
+        internalLabel: "O que está funcionando",
         question: {
-          beginner: "What has worked well for you in getting customers so far?",
-          intermediate: "What's working well in your current marketing?",
-          advanced: "High-performing tactics, channels, or creatives.",
+          beginner: "O que tem funcionado bem para conquistar clientes até agora?",
+          intermediate: "O que está funcionando bem no seu marketing atual?",
+          advanced: "Táticas, canais ou criativos de alto desempenho.",
         },
         hint: {
-          beginner: "Even small things count — a post that got lots of reactions, a promotion that filled the place, word of mouth.",
+          beginner: "Até as coisas pequenas contam — um post que bombou de reações, uma promoção que lotou o lugar, o boca a boca.",
           intermediate: "",
           advanced: "",
         },
         placeholder: {
-          beginner: "e.g. Our food photos on Instagram get a lot of messages asking for the address",
-          intermediate: "e.g. Instagram organic is strong, email open rate is 40%",
-          advanced: "e.g. Meta prospecting ROAS 3.8x, email 42% OR, organic LinkedIn strong for leads",
+          beginner: "ex.: Nossas fotos de comida no Instagram geram muitas mensagens perguntando o endereço",
+          intermediate: "ex.: O orgânico no Instagram é forte, a taxa de abertura de email é de 40%",
+          advanced: "ex.: ROAS de prospecção no Meta 3,8x, email com 42% de abertura, LinkedIn orgânico forte para leads",
         },
         type: "text",
         required: false,
@@ -251,21 +251,21 @@ const CLIENT_PROFILE_BLOCKS: IntakeBlock[] = [
       },
       {
         id: "what_fails",
-        internalLabel: "What is not working",
+        internalLabel: "O que não está funcionando",
         question: {
-          beginner: "Has anything you tried NOT worked — or felt like wasted money?",
-          intermediate: "What hasn't worked or hasn't delivered results?",
-          advanced: "Underperforming channels, wasted spend, or failed tactics.",
+          beginner: "Alguma coisa que você tentou NÃO funcionou — ou pareceu dinheiro jogado fora?",
+          intermediate: "O que não funcionou ou não trouxe resultados?",
+          advanced: "Canais de baixo desempenho, investimento desperdiçado ou táticas que falharam.",
         },
         hint: {
-          beginner: "This helps us avoid repeating the same mistakes.",
+          beginner: "Isso ajuda a gente a não repetir os mesmos erros.",
           intermediate: "",
           advanced: "",
         },
         placeholder: {
-          beginner: "e.g. We tried running Facebook ads once but got zero results and spent a lot",
-          intermediate: "e.g. Google Ads — no clear strategy, wasted budget last quarter",
-          advanced: "e.g. Google Search <1.5x ROAS, influencer collabs no measurable ROI",
+          beginner: "ex.: Tentamos anunciar no Facebook uma vez, mas não tivemos resultado nenhum e gastamos bastante",
+          intermediate: "ex.: Google Ads — sem estratégia clara, orçamento desperdiçado no último trimestre",
+          advanced: "ex.: Google Search com ROAS <1,5x, collabs com influenciadores sem ROI mensurável",
         },
         type: "text",
         required: false,
@@ -275,19 +275,19 @@ const CLIENT_PROFILE_BLOCKS: IntakeBlock[] = [
   },
   {
     id: "assets",
-    title: "What You Already Have",
-    description: "Let's see what materials are ready to use.",
+    title: "O que você já tem",
+    description: "Vamos ver quais materiais já estão prontos para usar.",
     questions: [
       {
         id: "available_assets",
-        internalLabel: "Available assets",
+        internalLabel: "Materiais disponíveis",
         question: {
-          beginner: "What do you already have that we could use? Select everything that applies.",
-          intermediate: "What brand or content assets are already available?",
-          advanced: "Available assets (select all that apply).",
+          beginner: "O que você já tem que a gente poderia usar? Selecione tudo o que se aplica.",
+          intermediate: "Quais materiais de marca ou conteúdo você já tem disponíveis?",
+          advanced: "Materiais disponíveis (selecione tudo o que se aplica).",
         },
         hint: {
-          beginner: "We'll use what you have and let you know what still needs to be created.",
+          beginner: "Vamos usar o que você tem e avisar o que ainda precisa ser criado.",
           intermediate: "",
           advanced: "",
         },
@@ -295,34 +295,34 @@ const CLIENT_PROFILE_BLOCKS: IntakeBlock[] = [
         placeholder: "",
         options: {
           beginner: [
-            "Logo and visual identity",
-            "Professional photos",
-            "Videos",
-            "Written texts or scripts",
-            "Product catalog or menu",
-            "Customer testimonials or reviews",
-            "Nothing yet — we start from scratch",
+            "Logo e identidade visual",
+            "Fotos profissionais",
+            "Vídeos",
+            "Textos ou roteiros",
+            "Catálogo de produtos ou cardápio",
+            "Depoimentos ou avaliações de clientes",
+            "Nada ainda — começamos do zero",
           ],
           intermediate: [
-            "Logo + brand guidelines",
-            "Photography",
-            "Video content",
-            "Copy / brand voice document",
-            "Product catalogue",
-            "Testimonials / reviews",
-            "Competitor analysis",
-            "Nothing yet",
+            "Logo + manual de marca",
+            "Fotografia",
+            "Conteúdo em vídeo",
+            "Copy / documento de tom de voz",
+            "Catálogo de produtos",
+            "Depoimentos / avaliações",
+            "Análise da concorrência",
+            "Nada ainda",
           ],
           advanced: [
-            "Logo + brand guidelines",
-            "Photography",
-            "Video content",
-            "Copy / brand voice document",
-            "Product catalogue",
-            "Testimonials / reviews",
-            "Competitor analysis",
-            "Previous campaign reports / performance data",
-            "Nothing yet",
+            "Logo + manual de marca",
+            "Fotografia",
+            "Conteúdo em vídeo",
+            "Copy / documento de tom de voz",
+            "Catálogo de produtos",
+            "Depoimentos / avaliações",
+            "Análise da concorrência",
+            "Relatórios de campanhas anteriores / dados de desempenho",
+            "Nada ainda",
           ],
         },
         required: false,
@@ -332,26 +332,26 @@ const CLIENT_PROFILE_BLOCKS: IntakeBlock[] = [
   },
   {
     id: "restrictions",
-    title: "Brand Rules & Constraints",
-    description: "Anything we should never do, say, or show for this client.",
+    title: "Regras e restrições da marca",
+    description: "Qualquer coisa que a gente nunca deve fazer, dizer ou mostrar para este cliente.",
     questions: [
       {
         id: "restrictions",
-        internalLabel: "Restrictions and constraints",
+        internalLabel: "Restrições e limitações",
         question: {
-          beginner: "Is there anything you absolutely don't want — a word, a color, a competitor to never mention?",
-          intermediate: "Are there any restrictions, brand rules, or things to avoid?",
-          advanced: "Restrictions, compliance requirements, brand constraints, or internal blockers.",
+          beginner: "Tem algo que você definitivamente não quer — uma palavra, uma cor, um concorrente que nunca deve ser citado?",
+          intermediate: "Existem restrições, regras de marca ou coisas a evitar?",
+          advanced: "Restrições, requisitos de compliance, limitações de marca ou impedimentos internos.",
         },
         hint: {
-          beginner: "For example: a color that doesn't feel like you, a tone that's too pushy, a competitor you never want us to reference.",
-          intermediate: "Include compliance requirements if relevant (e.g. LGPD, GDPR).",
+          beginner: "Por exemplo: uma cor que não tem a ver com você, um tom insistente demais, um concorrente que você nunca quer que a gente cite.",
+          intermediate: "Inclua requisitos de compliance se for relevante (ex.: LGPD, GDPR).",
           advanced: "",
         },
         placeholder: {
-          beginner: "e.g. Please don't use red — it doesn't feel like us. And never mention [competitor name].",
-          intermediate: "e.g. Avoid direct competitor references. Must comply with LGPD. No aggressive tone.",
-          advanced: "e.g. LGPD compliant. No mention of X brand. Legal: avoid specific performance claims.",
+          beginner: "ex.: Por favor, não usem vermelho — não combina com a gente. E nunca citem [nome do concorrente].",
+          intermediate: "ex.: Evitar referências diretas a concorrentes. Precisa estar em conformidade com a LGPD. Sem tom agressivo.",
+          advanced: "ex.: Em conformidade com a LGPD. Sem menção à marca X. Jurídico: evitar promessas específicas de desempenho.",
         },
         type: "textarea",
         required: false,
@@ -367,26 +367,26 @@ const CLIENT_PROFILE_BLOCKS: IntakeBlock[] = [
 const PROJECT_BRIEF_BLOCKS: IntakeBlock[] = [
   {
     id: "objective",
-    title: "What You Want to Achieve",
-    description: "What should this project actually do for the business?",
+    title: "O que você quer alcançar",
+    description: "O que este projeto deve, de fato, trazer para o negócio?",
     questions: [
       {
         id: "objective",
-        internalLabel: "Primary project objective",
+        internalLabel: "Objetivo principal do projeto",
         question: {
-          beginner: "What do you want this project to achieve? More orders, more people finding you, more messages, more followers?",
-          intermediate: "What is the primary goal of this project?",
-          advanced: "Primary objective and campaign goal.",
+          beginner: "O que você quer que este projeto alcance? Mais pedidos, mais gente te encontrando, mais mensagens, mais seguidores?",
+          intermediate: "Qual é o objetivo principal deste projeto?",
+          advanced: "Objetivo principal e meta da campanha.",
         },
         hint: {
-          beginner: "There's no wrong answer — we just want to understand what success looks like for you.",
-          intermediate: "Be specific — a concrete outcome is more useful than a general direction.",
+          beginner: "Não existe resposta errada — a gente só quer entender o que é sucesso para você.",
+          intermediate: "Seja específico — um resultado concreto ajuda mais do que uma direção genérica.",
           advanced: "",
         },
         placeholder: {
-          beginner: "e.g. I want more people to know we exist and come in to try us",
-          intermediate: "e.g. Generate 300 qualified leads from HR directors over 6 weeks",
-          advanced: "e.g. 300 MQLs in 6 weeks, CPL < €15, channel: LinkedIn + Google Ads",
+          beginner: "ex.: Quero que mais gente saiba que a gente existe e venha experimentar",
+          intermediate: "ex.: Gerar 300 leads qualificados de diretores de RH em 6 semanas",
+          advanced: "ex.: 300 MQLs em 6 semanas, CPL < €15, canal: LinkedIn + Google Ads",
         },
         type: "textarea",
         required: true,
@@ -394,21 +394,21 @@ const PROJECT_BRIEF_BLOCKS: IntakeBlock[] = [
       },
       {
         id: "success_criteria",
-        internalLabel: "Success criteria / KPIs",
+        internalLabel: "Critérios de sucesso / KPIs",
         question: {
-          beginner: "How will you know if it worked? Is there a number you're hoping to hit?",
-          intermediate: "What does success look like? Any specific numbers or metrics you're targeting?",
-          advanced: "Success criteria and KPIs (ROAS, CPL, engagement rate, growth targets).",
+          beginner: "Como você vai saber se deu certo? Tem algum número que você espera atingir?",
+          intermediate: "Como é o sucesso para você? Há números ou métricas específicas que você quer atingir?",
+          advanced: "Critérios de sucesso e KPIs (ROAS, CPL, taxa de engajamento, metas de crescimento).",
         },
         hint: {
-          beginner: "For example: 50 new bookings a month, twice the Instagram followers, 20% more website visits.",
-          intermediate: "Even rough targets help us prioritise.",
+          beginner: "Por exemplo: 50 novas reservas por mês, o dobro de seguidores no Instagram, 20% mais visitas no site.",
+          intermediate: "Mesmo metas aproximadas ajudam a gente a priorizar.",
           advanced: "",
         },
         placeholder: {
-          beginner: "e.g. I'd love to double the number of online reservations in 3 months",
-          intermediate: "e.g. 200 new followers/month, 5% engagement rate, 50 monthly form submissions",
-          advanced: "e.g. ROAS 4x, CPL < €12, 5% conversion on landing page",
+          beginner: "ex.: Adoraria dobrar o número de reservas online em 3 meses",
+          intermediate: "ex.: 200 novos seguidores/mês, 5% de engajamento, 50 formulários preenchidos por mês",
+          advanced: "ex.: ROAS 4x, CPL < €12, 5% de conversão na landing page",
         },
         type: "text",
         required: false,
@@ -418,19 +418,19 @@ const PROJECT_BRIEF_BLOCKS: IntakeBlock[] = [
   },
   {
     id: "services",
-    title: "What Help You Need",
-    description: "What kind of work does this project require?",
+    title: "Que tipo de ajuda você precisa",
+    description: "Que tipo de trabalho este projeto exige?",
     questions: [
       {
         id: "services",
-        internalLabel: "Services required",
+        internalLabel: "Serviços necessários",
         question: {
-          beginner: "What kind of help are you looking for? Select everything that sounds relevant.",
-          intermediate: "Which services are needed for this project?",
-          advanced: "Select all required services.",
+          beginner: "Que tipo de ajuda você está buscando? Selecione tudo o que fizer sentido.",
+          intermediate: "Quais serviços são necessários para este projeto?",
+          advanced: "Selecione todos os serviços necessários.",
         },
         hint: {
-          beginner: "Not sure what everything means? Pick what feels closest — we'll help you figure out the rest.",
+          beginner: "Não tem certeza do que cada coisa significa? Escolha o que parecer mais próximo — a gente ajuda com o resto.",
           intermediate: "",
           advanced: "",
         },
@@ -438,29 +438,29 @@ const PROJECT_BRIEF_BLOCKS: IntakeBlock[] = [
         placeholder: "",
         options: {
           beginner: [
-            "More visibility on social media",
-            "Paid ads to bring in more customers",
-            "Show up higher on Google",
-            "A new logo or visual identity",
-            "Written content and texts",
+            "Mais visibilidade nas redes sociais",
+            "Anúncios pagos para atrair mais clientes",
+            "Aparecer melhor no Google",
+            "Um novo logo ou identidade visual",
+            "Conteúdo e textos",
             "Email marketing",
-            "Understand what's working (analytics)",
+            "Entender o que está funcionando (analytics)",
           ],
           intermediate: [
-            "Social Media Management",
-            "Paid Advertising",
+            "Gestão de Redes Sociais",
+            "Anúncios Pagos",
             "SEO",
-            "Branding & Identity",
-            "Content Production",
+            "Branding e Identidade",
+            "Produção de Conteúdo",
             "Email Marketing",
-            "Analytics & Reporting",
+            "Análise e Relatórios",
           ],
           advanced: [
-            "Social Media",
-            "Paid Ads",
+            "Redes Sociais",
+            "Anúncios Pagos",
             "SEO",
             "Branding",
-            "Content Production",
+            "Produção de Conteúdo",
             "Email Marketing",
             "Analytics",
           ],
@@ -472,52 +472,52 @@ const PROJECT_BRIEF_BLOCKS: IntakeBlock[] = [
   },
   {
     id: "budget_timeline",
-    title: "Budget & Timeline",
-    description: "Help us scope what's realistic for this project.",
+    title: "Orçamento e Prazo",
+    description: "Ajude a gente a dimensionar o que é realista para este projeto.",
     questions: [
       {
         id: "budget",
-        internalLabel: "Budget range",
+        internalLabel: "Faixa de orçamento",
         question: {
-          beginner: "Roughly how much are you thinking of investing per month? Choose the range that feels closest.",
-          intermediate: "What is the approximate monthly budget for this project?",
-          advanced: "Budget range (monthly retainer or total project).",
+          beginner: "Mais ou menos quanto você pensa em investir por mês? Escolha a faixa mais próxima.",
+          intermediate: "Qual é o orçamento mensal aproximado para este projeto?",
+          advanced: "Faixa de orçamento (fee mensal ou projeto total).",
         },
         hint: {
-          beginner: "This helps us recommend what's actually possible with your investment.",
+          beginner: "Isso ajuda a gente a recomendar o que é realmente possível com o seu investimento.",
           intermediate: "",
           advanced: "",
         },
         type: "multiselect",
         placeholder: "",
         options: [
-          "Under €1,000",
-          "€1,000 – €3,000",
-          "€3,000 – €7,000",
-          "€7,000 – €15,000",
-          "€15,000+",
-          "Not defined yet",
+          "Menos de €1.000",
+          "€1.000 – €3.000",
+          "€3.000 – €7.000",
+          "€7.000 – €15.000",
+          "€15.000+",
+          "Ainda não definido",
         ],
         required: false,
         weight: 5,
       },
       {
         id: "deadline",
-        internalLabel: "Deadline or launch date",
+        internalLabel: "Prazo ou data de lançamento",
         question: {
-          beginner: "Is there a specific date you need things to be ready by?",
-          intermediate: "Is there a target launch date or hard deadline?",
-          advanced: "Hard deadline or launch date.",
+          beginner: "Existe uma data específica em que tudo precisa estar pronto?",
+          intermediate: "Há uma data de lançamento ou um prazo final?",
+          advanced: "Prazo final ou data de lançamento.",
         },
         hint: {
-          beginner: "For example: before a product launch, a seasonal event, or a month you have in mind.",
+          beginner: "Por exemplo: antes de um lançamento de produto, uma data sazonal ou um mês que você tem em mente.",
           intermediate: "",
           advanced: "",
         },
         placeholder: {
-          beginner: "e.g. We're launching a new menu in July — everything should be ready by end of June",
-          intermediate: "e.g. End of June, Q3 launch, 6 weeks from now",
-          advanced: "e.g. 2025-06-30 hard deadline / 6-week runway",
+          beginner: "ex.: Vamos lançar um novo cardápio em julho — tudo precisa estar pronto até o fim de junho",
+          intermediate: "ex.: Fim de junho, lançamento no 3º trimestre, daqui a 6 semanas",
+          advanced: "ex.: prazo final 2025-06-30 / janela de 6 semanas",
         },
         type: "text",
         required: false,
@@ -558,14 +558,14 @@ function computeIntakeSummary(answers: IntakeAnswers, clientId: string): IntakeS
   const projectObjective = typeof answers["objective"] === "string" ? answers["objective"] : "";
 
   const recommendedNextQuestions: string[] = [];
-  if (!answers["success_criteria"]) recommendedNextQuestions.push("How will success be measured? (target metrics / KPIs)");
-  if (!answers["current_channels"]) recommendedNextQuestions.push("Which channels are they currently active on?");
-  if (!(answers["budget"] as string[] | undefined)?.length) recommendedNextQuestions.push("What is the approximate budget?");
-  if (!answers["deadline"]) recommendedNextQuestions.push("Is there a deadline or launch date?");
-  if (!answers["brand_tone"]) recommendedNextQuestions.push("How should the brand communicate? (tone of voice)");
+  if (!answers["success_criteria"]) recommendedNextQuestions.push("Como o sucesso será medido? (métricas-alvo / KPIs)");
+  if (!answers["current_channels"]) recommendedNextQuestions.push("Em quais canais o cliente está ativo hoje?");
+  if (!(answers["budget"] as string[] | undefined)?.length) recommendedNextQuestions.push("Qual é o orçamento aproximado?");
+  if (!answers["deadline"]) recommendedNextQuestions.push("Há um prazo ou data de lançamento?");
+  if (!answers["brand_tone"]) recommendedNextQuestions.push("Como a marca deve se comunicar? (tom de voz)");
 
   const readinessLabel: IntakeSummary["readinessLabel"] =
-    score >= 70 ? "Ready" : score >= 40 ? "Partially Ready" : "Not Ready";
+    score >= 70 ? "Pronto" : score >= 40 ? "Parcialmente Pronto" : "Não Pronto";
 
   return {
     clientId,
@@ -582,23 +582,22 @@ function computeIntakeSummary(answers: IntakeAnswers, clientId: string): IntakeS
 // ─── Intake → orchestrator prefill ───────────────────────────────────────────
 
 const SERVICE_ID_MAP: Record<string, string> = {
-  "Social Media": "social_media",
-  "Paid Ads": "ads",
+  "Redes Sociais": "social_media",
+  "Anúncios Pagos": "ads",
   "SEO": "seo",
   "Branding": "branding",
-  "Content Production": "content",
+  "Produção de Conteúdo": "content",
   "Email Marketing": "content",
   "Analytics": "content",
-  "Social Media Management": "social_media",
-  "Paid Advertising": "ads",
-  "Branding & Identity": "branding",
-  "Analytics & Reporting": "content",
-  "More visibility on social media": "social_media",
-  "Paid ads to bring in more customers": "ads",
-  "Show up higher on Google": "seo",
-  "A new logo or visual identity": "branding",
-  "Written content and texts": "content",
-  "Understand what's working (analytics)": "content",
+  "Gestão de Redes Sociais": "social_media",
+  "Branding e Identidade": "branding",
+  "Análise e Relatórios": "content",
+  "Mais visibilidade nas redes sociais": "social_media",
+  "Anúncios pagos para atrair mais clientes": "ads",
+  "Aparecer melhor no Google": "seo",
+  "Um novo logo ou identidade visual": "branding",
+  "Conteúdo e textos": "content",
+  "Entender o que está funcionando (analytics)": "content",
 };
 
 export function intakeToPrefill(answers: IntakeAnswers, clientId: string): IntakePrefill {
@@ -682,11 +681,11 @@ function parseTextToAnswers(text: string): IntakeAnswers {
   if (bizSentence) parsed["business_description"] = bizSentence;
 
   const services: string[] = [];
-  if (/social\s+media|instagram|tiktok|facebook(?!\s+ads?)/i.test(lower)) services.push("Social Media");
-  if (/\bads?\b|paid\s+media|advertising|google\s+ads|meta\s+ads/i.test(lower)) services.push("Paid Ads");
+  if (/social\s+media|instagram|tiktok|facebook(?!\s+ads?)/i.test(lower)) services.push("Redes Sociais");
+  if (/\bads?\b|paid\s+media|advertising|google\s+ads|meta\s+ads/i.test(lower)) services.push("Anúncios Pagos");
   if (/\bseo\b|search\s+engine\s+optim/i.test(lower)) services.push("SEO");
   if (/\bbranding\b|\bbrand\s+identity|\blogo\b/i.test(lower)) services.push("Branding");
-  if (/content\s+strateg|content\s+plan|blog\s+posts?|copywriting/i.test(lower)) services.push("Content Production");
+  if (/content\s+strateg|content\s+plan|blog\s+posts?|copywriting/i.test(lower)) services.push("Produção de Conteúdo");
   if (/email\s+(?:marketing|campaign|newsletter)/i.test(lower)) services.push("Email Marketing");
   if (services.length) parsed["services"] = services;
 
@@ -786,9 +785,9 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
     ["guided", "free_brief", "existing_brief"];
 
   const MODE_LABELS: Record<IntakeMode, string> = {
-    guided: "Guided Interview",
-    free_brief: "Free Brief",
-    existing_brief: "Existing Brief",
+    guided: "Entrevista Guiada",
+    free_brief: "Briefing Livre",
+    existing_brief: "Briefing Pronto",
   };
 
   const handleLevelSelect = (lvl: ClientLevel) => {
@@ -872,7 +871,7 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
       <div className="max-w-2xl space-y-4">
         <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
           <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--border)] bg-[var(--bg-elevated)]">
-            <span className="text-[12px] font-semibold text-[var(--text-primary)] uppercase tracking-[0.05em]">Intake Summary</span>
+            <span className="text-[12px] font-semibold text-[var(--text-primary)] uppercase tracking-[0.05em]">Resumo da Captação</span>
             <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${color.badge}`}>
               {summary.readinessLabel}
             </span>
@@ -880,7 +879,7 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
 
           <div className="px-5 py-4 border-b border-[var(--border)]">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[12px] font-medium text-[var(--text-secondary)]">Readiness Score</span>
+              <span className="text-[12px] font-medium text-[var(--text-secondary)]">Nível de Prontidão</span>
               <span className={`text-[14px] font-bold tabular-nums ${color.text}`}>{summary.readinessScore}%</span>
             </div>
             <div className="h-2 bg-[var(--accent)] rounded-full overflow-hidden">
@@ -889,11 +888,11 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
           </div>
 
           <div className="divide-y divide-[var(--border)]">
-            <SummaryRow label="Client" value={summary.clientContext} />
-            <SummaryRow label="Objective" value={summary.projectObjective} />
+            <SummaryRow label="Cliente" value={summary.clientContext} />
+            <SummaryRow label="Objetivo" value={summary.projectObjective} />
             <div className="flex items-start gap-3 px-5 py-3">
               <span className="w-[140px] shrink-0 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] pt-0.5">
-                Services
+                Serviços
               </span>
               <div className="flex flex-wrap gap-1.5">
                 {summary.servicesRequested.length > 0 ? (
@@ -901,7 +900,7 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
                     <span key={s} className="h-5 px-2 rounded-full text-[11px] font-medium bg-[var(--accent-light)] text-[var(--navy)]">{s}</span>
                   ))
                 ) : (
-                  <span className="text-[12px] text-[var(--text-subtle)] italic">Not specified</span>
+                  <span className="text-[12px] text-[var(--text-subtle)] italic">Não especificado</span>
                 )}
               </div>
             </div>
@@ -911,7 +910,7 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
         {summary.missingInformation.length > 0 && (
           <div className="bg-[#FEE2E2] border border-[#FECACA] rounded-[10px] px-5 py-4">
             <div className="text-[11px] font-semibold text-[var(--danger)] uppercase tracking-[0.05em] mb-2.5">
-              Missing Required Information
+              Informações Obrigatórias Faltando
             </div>
             <ul className="space-y-1.5">
               {summary.missingInformation.map((item: string, i: number) => (
@@ -927,7 +926,7 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
         {summary.recommendedNextQuestions.length > 0 && (
           <div className="bg-[var(--warning-bg)] border border-[#FDE68A] rounded-[10px] px-5 py-4">
             <div className="text-[11px] font-semibold text-[var(--warning)] uppercase tracking-[0.05em] mb-2.5">
-              Recommended Follow-up Questions
+              Perguntas de Acompanhamento Recomendadas
             </div>
             <ul className="space-y-1.5">
               {summary.recommendedNextQuestions.map((q: string, i: number) => (
@@ -942,14 +941,14 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
 
         <div className="flex gap-2">
           <Button variant="ghost" size="sm" className="shrink-0" onClick={() => setSummary(null)}>
-            Revise Intake
+            Revisar Captação
           </Button>
           <button
             onClick={() => onComplete(summary, intakeToPrefill(answers, selectedClientId))}
             disabled={summary.missingInformation.length > 0}
             className="flex-1 h-9 bg-[var(--text-primary)] hover:bg-[var(--text-primary)] disabled:opacity-40 disabled:cursor-not-allowed text-white text-[13px] font-semibold rounded-[8px] transition-colors"
           >
-            Continue to Orchestrator →
+            Continuar para o Orquestrador →
           </button>
         </div>
       </div>
@@ -963,42 +962,42 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
       <div className="max-w-2xl">
         <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
           <div className="px-6 py-5 border-b border-[var(--border)]">
-            <h2 className="text-[15px] font-semibold text-[var(--text-primary)]">Client Intake</h2>
+            <h2 className="text-[15px] font-semibold text-[var(--text-primary)]">Captação de Cliente</h2>
             <p className="text-[13px] text-[var(--text-muted)] mt-1">
-              Before generating an execution plan, we gather and validate the project context. How experienced is this client with marketing?
+              Antes de gerar o plano de execução, reunimos e validamos o contexto do projeto. Qual a experiência deste cliente com marketing?
             </p>
           </div>
           <div className="px-6 py-5">
-            <div className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-3">Client Experience Level</div>
+            <div className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-3">Nível de experiência do cliente</div>
             <div className="grid grid-cols-3 gap-3">
               {(
                 [
                   {
                     level: "beginner" as ClientLevel,
-                    label: "Needs Guidance",
-                    desc: "Client isn't sure what they need. We guide the whole conversation.",
+                    label: "Precisa de orientação",
+                    desc: "O cliente não sabe ao certo o que precisa. Conduzimos toda a conversa.",
                     icon: "?",
                     hoverBg: "group-hover:bg-[var(--danger)]",
                     badge: "bg-[#FEE2E2] text-[var(--danger)]",
-                    modeNote: "Guided Interview only",
+                    modeNote: "Só entrevista guiada",
                   },
                   {
                     level: "intermediate" as ClientLevel,
-                    label: "Has a Rough Idea",
-                    desc: "Client has some direction but needs help structuring it.",
+                    label: "Tem uma ideia inicial",
+                    desc: "O cliente tem alguma direção, mas precisa de ajuda para estruturar.",
                     icon: "≈",
                     hoverBg: "group-hover:bg-[var(--warning)]",
                     badge: "bg-[var(--warning-bg)] text-[var(--warning)]",
-                    modeNote: "Interview or Free Brief",
+                    modeNote: "Entrevista ou briefing livre",
                   },
                   {
                     level: "advanced" as ClientLevel,
-                    label: "Has a Full Brief",
-                    desc: "Client knows exactly what they need and has materials ready.",
+                    label: "Já tem um briefing pronto",
+                    desc: "O cliente sabe exatamente o que precisa e já tem materiais prontos.",
                     icon: "✓",
                     hoverBg: "group-hover:bg-[var(--success)]",
                     badge: "bg-[var(--success-bg)] text-[var(--success)]",
-                    modeNote: "Any mode",
+                    modeNote: "Qualquer modo",
                   },
                 ] as const
               ).map(({ level, label, desc, icon, hoverBg, badge, modeNote }) => (
@@ -1029,19 +1028,19 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
   // ── Intake form screen ──────────────────────────────────────────────────────
 
   const LEVEL_CHIP: Record<ClientLevel, { label: string; style: string }> = {
-    beginner: { label: "Needs Guidance", style: "bg-[#FEE2E2] text-[var(--danger)]" },
-    intermediate: { label: "Has a Rough Idea", style: "bg-[var(--warning-bg)] text-[var(--warning)]" },
-    advanced: { label: "Has a Full Brief", style: "bg-[var(--success-bg)] text-[var(--success)]" },
+    beginner: { label: "Precisa de orientação", style: "bg-[#FEE2E2] text-[var(--danger)]" },
+    intermediate: { label: "Tem uma ideia inicial", style: "bg-[var(--warning-bg)] text-[var(--warning)]" },
+    advanced: { label: "Já tem um briefing pronto", style: "bg-[var(--success-bg)] text-[var(--success)]" },
   };
 
-  const stepLabel = level === "beginner" ? "Step" : "Block";
+  const stepLabel = level === "beginner" ? "Passo" : "Bloco";
 
   const nextBlockLabel =
     currentBlockIndex < activeBlocks.length - 1
-      ? `Next: ${activeBlocks[currentBlockIndex + 1]?.title}`
+      ? `Próximo: ${activeBlocks[currentBlockIndex + 1]?.title}`
       : intakePhase === "client"
-      ? "Continue to Project Brief →"
-      : "Generate Intake Summary";
+      ? "Continuar para o Briefing do Projeto →"
+      : "Gerar Resumo da Captação";
 
   return (
     <div className="grid grid-cols-[420px_1fr] gap-6">
@@ -1051,13 +1050,13 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
         {/* Level chip + change */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border)] bg-[var(--bg-elevated)]">
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Client</span>
+            <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Cliente</span>
             <span className={`h-5 px-2 rounded-full text-[11px] font-medium ${LEVEL_CHIP[level as ClientLevel].style}`}>
               {LEVEL_CHIP[level as ClientLevel].label}
             </span>
           </div>
           <button onClick={() => setClientLevel(null)} className="text-[11px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors">
-            Change
+            Trocar
           </button>
         </div>
 
@@ -1083,13 +1082,13 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
         <div className="px-5 py-5 space-y-4">
           {/* Client selector — auto-loads known profile data on selection */}
           <div>
-            <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5">Client *</label>
+            <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5">Cliente *</label>
             <select
               value={selectedClientId}
               onChange={(e) => handleClientSelect(e.target.value)}
               className="w-full h-8 px-3 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white"
             >
-              <option value="">Select client...</option>
+              <option value="">Selecionar cliente...</option>
               {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
@@ -1101,12 +1100,12 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
               <div className="flex items-center justify-between px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-[7px]">
                 <div>
                   <div className="text-[11px] font-semibold text-[var(--text-primary)]">
-                    {intakePhase === "client" ? "Phase 1 — Client Profile" : "Phase 2 — Project Brief"}
+                    {intakePhase === "client" ? "Fase 1 — Perfil do Cliente" : "Fase 2 — Briefing do Projeto"}
                   </div>
                   <div className="text-[10px] text-[var(--text-muted)] mt-0.5">
                     {intakePhase === "client"
-                      ? "Capture or confirm what we know about this client."
-                      : `What does ${selectedClient?.name ?? "this client"} want to do now?`}
+                      ? "Capture ou confirme o que já sabemos sobre este cliente."
+                      : `O que ${selectedClient?.name ?? "este cliente"} quer fazer agora?`}
                   </div>
                 </div>
                 {intakePhase === "project" && (
@@ -1114,7 +1113,7 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
                     onClick={() => { setIntakePhase("client"); setCurrentBlockIndex(0); }}
                     className="text-[11px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors whitespace-nowrap shrink-0 ml-3"
                   >
-                    ← Profile
+                    ← Perfil
                   </button>
                 )}
               </div>
@@ -1123,7 +1122,7 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
               {intakePhase === "project" && profileSaved && (
                 <div className="flex items-center gap-2 px-3 py-2 bg-[var(--success-bg)] border border-[#BBF7D0] rounded-[7px]">
                   <span className="text-[var(--success)] font-bold text-[11px]">✓</span>
-                  <span className="text-[12px] font-medium text-[#15803D]">Client profile updated</span>
+                  <span className="text-[12px] font-medium text-[#15803D]">Perfil do cliente atualizado</span>
                 </div>
               )}
 
@@ -1131,14 +1130,14 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
               {intakePhase === "client" && clientProfileComplete && selectedClientId && (
                 <div className="flex items-center justify-between gap-3 px-3 py-2.5 bg-[var(--success-bg)] border border-[#BBF7D0] rounded-[7px]">
                   <div>
-                    <div className="text-[12px] font-semibold text-[#15803D]">Profile is complete</div>
-                    <div className="text-[11px] text-[#166534]">All key client information is loaded.</div>
+                    <div className="text-[12px] font-semibold text-[#15803D]">Perfil completo</div>
+                    <div className="text-[11px] text-[#166534]">Todas as informações principais do cliente estão carregadas.</div>
                   </div>
                   <button
                     onClick={() => { saveClientProfile(answers, selectedClientId); setIntakePhase("project"); setCurrentBlockIndex(0); }}
                     className="h-7 px-3 text-[12px] font-semibold bg-[var(--success)] text-white rounded-[6px] hover:bg-[#15803D] transition-colors whitespace-nowrap shrink-0"
                   >
-                    Start Project Brief →
+                    Iniciar Briefing do Projeto →
                   </button>
                 </div>
               )}
@@ -1241,7 +1240,7 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
                       }
                     }}
                   >
-                    Back
+                    Voltar
                   </Button>
                 )}
                 <button
@@ -1264,15 +1263,15 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
             <div className="space-y-3.5">
               <div>
                 <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5">
-                  Describe the client and what they want to achieve
+                  Descreva o cliente e o que ele quer alcançar
                 </label>
                 <p className="text-[11px] text-[var(--text-muted)] mb-2">
-                  Include who the client is, what their business does, who they're targeting, what they want to achieve with this project, and what kind of help they need.
+                  Inclua quem é o cliente, o que a empresa faz, para quem ela se dirige, o que quer alcançar com este projeto e que tipo de ajuda precisa.
                 </p>
                 <textarea
                   value={freeText}
                   onChange={(e) => setFreeText(e.target.value)}
-                  placeholder={`e.g. "The client runs a Japanese restaurant in São Paulo. They want more people to discover them and visit — especially couples and professionals looking for a special experience. They're active on Instagram but have never run paid ads. Budget is around €2,000/month and they need to be ready before July."`}
+                  placeholder={`ex.: "O cliente tem um restaurante japonês em São Paulo. Quer que mais pessoas o descubram e visitem — especialmente casais e profissionais em busca de uma experiência especial. Está ativo no Instagram, mas nunca fez anúncios pagos. O orçamento é de cerca de €2.000/mês e precisa estar pronto antes de julho."`}
                   rows={9}
                   className="w-full px-3 py-2.5 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white resize-none leading-relaxed"
                 />
@@ -1282,7 +1281,7 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
                 disabled={!selectedClientId || freeText.trim().length < 20}
                 className="w-full h-9 bg-[var(--navy)] hover:bg-[#0D1230] disabled:opacity-40 disabled:cursor-not-allowed text-white text-[13px] font-semibold rounded-[8px] transition-colors"
               >
-                Parse & Generate Summary
+                Analisar e Gerar Resumo
               </button>
             </div>
           )}
@@ -1292,15 +1291,15 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
             <div className="space-y-3.5">
               <div>
                 <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5">
-                  Paste the client's existing brief
+                  Cole o briefing que o cliente já tem
                 </label>
                 <p className="text-[11px] text-[var(--text-muted)] mb-2">
-                  We'll extract client profile data and project objectives automatically. Review the summary before continuing.
+                  Vamos extrair automaticamente os dados do perfil do cliente e os objetivos do projeto. Revise o resumo antes de continuar.
                 </p>
                 <textarea
                   value={freeText}
                   onChange={(e) => setFreeText(e.target.value)}
-                  placeholder="Paste the full brief text here..."
+                  placeholder="Cole o texto completo do briefing aqui..."
                   rows={11}
                   className="w-full px-3 py-2.5 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white resize-none leading-relaxed font-mono"
                 />
@@ -1310,7 +1309,7 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
                 disabled={!selectedClientId || freeText.trim().length < 30}
                 className="w-full h-9 bg-[var(--navy)] hover:bg-[#0D1230] disabled:opacity-40 disabled:cursor-not-allowed text-white text-[13px] font-semibold rounded-[8px] transition-colors"
               >
-                Extract & Review
+                Extrair e Revisar
               </button>
             </div>
           )}
@@ -1326,7 +1325,7 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
               <>
                 <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
                   <div className="px-5 py-3 border-b border-[var(--border)]">
-                    <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Client Profile — Progress</span>
+                    <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Perfil do Cliente — Progresso</span>
                   </div>
                   <div className="divide-y divide-[var(--border)]">
                     {CLIENT_PROFILE_BLOCKS.map((block, i) => {
@@ -1361,17 +1360,17 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
                 {selectedClient && (
                   <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
                     <div className="px-5 py-3 border-b border-[var(--border)] bg-[var(--bg-elevated)]">
-                      <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Loaded from Client Hub</span>
+                      <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Carregado do Hub de Clientes</span>
                     </div>
                     <div className="divide-y divide-[var(--border)]">
-                      <ContextRow label="Name" value={selectedClient.name} />
-                      <ContextRow label="Industry" value={selectedClient.industry} />
-                      {selectedClient.website && <ContextRow label="Website" value={selectedClient.website} />}
-                      {selectedClient.description && <ContextRow label="About" value={selectedClient.description} />}
+                      <ContextRow label="Nome" value={selectedClient.name} />
+                      <ContextRow label="Segmento" value={selectedClient.industry} />
+                      {selectedClient.website && <ContextRow label="Site" value={selectedClient.website} />}
+                      {selectedClient.description && <ContextRow label="Sobre" value={selectedClient.description} />}
                     </div>
                     {missingProfileLabels.length > 0 && (
                       <div className="px-5 py-3 border-t border-[var(--border)] bg-[#FFFBEB]">
-                        <div className="text-[10px] font-semibold text-[var(--warning)] uppercase tracking-[0.05em] mb-1.5">Missing from profile</div>
+                        <div className="text-[10px] font-semibold text-[var(--warning)] uppercase tracking-[0.05em] mb-1.5">Faltando no perfil</div>
                         <div className="space-y-1">
                           {missingProfileLabels.map((label) => (
                             <div key={label} className="flex items-center gap-1.5 text-[11px] text-[#92400E]">
@@ -1393,18 +1392,18 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
                 {/* Client profile summary — read-only context */}
                 <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
                   <div className="px-5 py-3 border-b border-[var(--border)] bg-[var(--bg-elevated)]">
-                    <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Client Profile</span>
+                    <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Perfil do Cliente</span>
                   </div>
                   <div className="divide-y divide-[var(--border)]">
-                    {selectedClient && <ContextRow label="Client" value={`${selectedClient.name} · ${selectedClient.industry}`} />}
-                    {answers["business_description"] && <ContextRow label="About" value={answers["business_description"] as string} />}
-                    {answers["audience"] && <ContextRow label="Audience" value={answers["audience"] as string} />}
-                    {answers["brand_tone"] && <ContextRow label="Tone" value={answers["brand_tone"] as string} />}
-                    {answers["current_channels"] && <ContextRow label="Channels" value={answers["current_channels"] as string} />}
-                    {answers["restrictions"] && <ContextRow label="Constraints" value={answers["restrictions"] as string} />}
+                    {selectedClient && <ContextRow label="Cliente" value={`${selectedClient.name} · ${selectedClient.industry}`} />}
+                    {answers["business_description"] && <ContextRow label="Sobre" value={answers["business_description"] as string} />}
+                    {answers["audience"] && <ContextRow label="Audiência" value={answers["audience"] as string} />}
+                    {answers["brand_tone"] && <ContextRow label="Tom" value={answers["brand_tone"] as string} />}
+                    {answers["current_channels"] && <ContextRow label="Canais" value={answers["current_channels"] as string} />}
+                    {answers["restrictions"] && <ContextRow label="Restrições" value={answers["restrictions"] as string} />}
                     {!answers["business_description"] && !answers["audience"] && (
                       <div className="px-5 py-3">
-                        <p className="text-[12px] text-[var(--text-subtle)] italic">No profile data captured yet.</p>
+                        <p className="text-[12px] text-[var(--text-subtle)] italic">Nenhum dado de perfil capturado ainda.</p>
                       </div>
                     )}
                   </div>
@@ -1413,7 +1412,7 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
                 {/* Project brief block progress */}
                 <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
                   <div className="px-5 py-3 border-b border-[var(--border)]">
-                    <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Project Brief — Progress</span>
+                    <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Briefing do Projeto — Progresso</span>
                   </div>
                   <div className="divide-y divide-[var(--border)]">
                     {PROJECT_BRIEF_BLOCKS.map((block, i) => {
@@ -1452,10 +1451,10 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
         {(intakeMode === "free_brief" || intakeMode === "existing_brief") && (
           <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
             <div className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-2">
-              Client Profile
+              Perfil do Cliente
             </div>
             <ul className="space-y-1.5 mb-4">
-              {["Who the client is and what they do", "Their target audience", "Current marketing channels", "Brand tone and visual assets", "Brand rules or constraints"].map((item, i) => (
+              {["Quem é o cliente e o que faz", "O público-alvo", "Canais de marketing atuais", "Tom da marca e materiais visuais", "Regras ou restrições da marca"].map((item, i) => (
                 <li key={i} className="flex items-center gap-2 text-[12px] text-[var(--text-secondary)]">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#BBF7D0] shrink-0" />
                   {item}
@@ -1463,10 +1462,10 @@ export default function IntakeEngine({ clients, onComplete }: IntakeEngineProps)
               ))}
             </ul>
             <div className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-2">
-              Project Brief
+              Briefing do Projeto
             </div>
             <ul className="space-y-1.5">
-              {["What they want to achieve with this project", "Services needed", "Budget range", "Deadline or launch date"].map((item, i) => (
+              {["O que quer alcançar com este projeto", "Serviços necessários", "Faixa de orçamento", "Prazo ou data de lançamento"].map((item, i) => (
                 <li key={i} className="flex items-center gap-2 text-[12px] text-[var(--text-secondary)]">
                   <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-light)] shrink-0" />
                   {item}
@@ -1491,7 +1490,7 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
       {value ? (
         <p className="flex-1 text-[13px] text-[var(--text-primary)] leading-snug">{value}</p>
       ) : (
-        <p className="flex-1 text-[12px] text-[var(--text-subtle)] italic">Not provided</p>
+        <p className="flex-1 text-[12px] text-[var(--text-subtle)] italic">Não informado</p>
       )}
     </div>
   );

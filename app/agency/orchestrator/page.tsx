@@ -69,48 +69,48 @@ function briefingToTasks(b: Briefing, ctx: AgentClientContext | null): Orchestra
   const offset = (days: number) => new Date(d.getTime() - days * 86400000).toISOString().slice(0, 10);
 
   const brain = ctx?.brandBrain;
-  const audience = brain?.targetAudience || b.targetAudience || "the target audience";
-  const tone = brain?.toneOfVoice ? ` using a ${brain.toneOfVoice} tone` : "";
-  const positioning = brain?.positioning ? ` Positioning: ${brain.positioning}.` : "";
-  const products = brain?.productsToHighlight ? ` Highlight: ${brain.productsToHighlight}.` : "";
-  const channelHint = brain?.preferredChannels || b.channels.join(", ") || "selected channels";
+  const audience = brain?.targetAudience || b.targetAudience || "o público-alvo";
+  const tone = brain?.toneOfVoice ? ` com um tom ${brain.toneOfVoice}` : "";
+  const positioning = brain?.positioning ? ` Posicionamento: ${brain.positioning}.` : "";
+  const products = brain?.productsToHighlight ? ` Destaque: ${brain.productsToHighlight}.` : "";
+  const channelHint = brain?.preferredChannels || b.channels.join(", ") || "canais selecionados";
 
   const tasks: OrchestratorPlan["tasks"] = [];
 
   tasks.push({
     title: "Briefing e análise de contexto do projeto",
-    description: `Analyze client context, competitive landscape, and strategic opportunity for: ${b.objective || "defined objective"}. Target: ${audience}.${positioning}`,
+    description: `Analisar o contexto do cliente, o cenário competitivo e a oportunidade estratégica para: ${b.objective || "objetivo definido"}. Público: ${audience}.${positioning}`,
     agentId: "a6", stage: "diagnosis", dueDate: offset(22),
   });
 
   if (b.services.includes("branding")) {
-    tasks.push({ title: "Auditoria de marca e posicionamento", description: `Audit brand equity, map competitive landscape, and define positioning pillars.${positioning}`, agentId: "a6", stage: "diagnosis", dueDate: offset(19) });
-    tasks.push({ title: "Design de identidade visual", description: `Design logo, color palette, typography, and brand mark${brain?.visualStyle ? ` aligned with: ${brain.visualStyle}` : ""}.`, agentId: "a2", stage: "production", dueDate: offset(12) });
-    tasks.push({ title: "Tom de voz e mensagens da marca", description: `Define tone of voice, key messages, and language guidelines${tone}.${products}`, agentId: "a1", stage: "production", dueDate: offset(9) });
-    tasks.push({ title: "Documento de diretrizes da marca", description: "Compile all elements into comprehensive brand guidelines.", agentId: "a7", stage: "review", dueDate: offset(5) });
+    tasks.push({ title: "Auditoria de marca e posicionamento", description: `Auditar o brand equity, mapear o cenário competitivo e definir os pilares de posicionamento.${positioning}`, agentId: "a6", stage: "diagnosis", dueDate: offset(19) });
+    tasks.push({ title: "Design de identidade visual", description: `Criar logo, paleta de cores, tipografia e assinatura visual${brain?.visualStyle ? ` alinhados a: ${brain.visualStyle}` : ""}.`, agentId: "a2", stage: "production", dueDate: offset(12) });
+    tasks.push({ title: "Tom de voz e mensagens da marca", description: `Definir tom de voz, mensagens-chave e diretrizes de linguagem${tone}.${products}`, agentId: "a1", stage: "production", dueDate: offset(9) });
+    tasks.push({ title: "Documento de diretrizes da marca", description: "Reunir todos os elementos em um manual de marca completo.", agentId: "a7", stage: "review", dueDate: offset(5) });
   }
 
   if (b.services.includes("seo")) {
-    tasks.push({ title: "Auditoria de SEO e pesquisa de palavras-chave", description: `Full technical SEO audit and priority keyword identification for ${audience}.`, agentId: "a8", stage: "diagnosis", dueDate: offset(20) });
-    tasks.push({ title: "Estratégia de conteúdo e briefings", description: `Map keywords to content opportunities and write content briefs${tone}.${products}`, agentId: "a8", stage: "planning", dueDate: offset(14) });
-    tasks.push({ title: "Produção de conteúdo para SEO", description: `Write SEO-optimized articles and landing page copy${tone}.`, agentId: "a1", stage: "production", dueDate: offset(7) });
+    tasks.push({ title: "Auditoria de SEO e pesquisa de palavras-chave", description: `Auditoria técnica completa de SEO e identificação de palavras-chave prioritárias para ${audience}.`, agentId: "a8", stage: "diagnosis", dueDate: offset(20) });
+    tasks.push({ title: "Estratégia de conteúdo e briefings", description: `Mapear palavras-chave para oportunidades de conteúdo e escrever briefings de conteúdo${tone}.${products}`, agentId: "a8", stage: "planning", dueDate: offset(14) });
+    tasks.push({ title: "Produção de conteúdo para SEO", description: `Escrever artigos otimizados para SEO e textos de landing page${tone}.`, agentId: "a1", stage: "production", dueDate: offset(7) });
   }
 
   if (b.services.includes("ads")) {
-    tasks.push({ title: "Estratégia de mídia paga e configuração de audiência", description: `Define campaign structure, audience segments targeting ${audience}, bidding strategy, and ad placements across ${channelHint}.`, agentId: "a4", stage: "planning", dueDate: offset(16) });
-    tasks.push({ title: "Copy e ativos criativos dos anúncios", description: `Write all ad copy variants${tone} and design visual assets for all placements.${products}`, agentId: "a1", stage: "production", dueDate: offset(10) });
-    tasks.push({ title: "Configuração e lançamento da campanha", description: "Set up all ad accounts, tracking pixels, audiences, and launch campaigns.", agentId: "a4", stage: "production", dueDate: offset(6) });
+    tasks.push({ title: "Estratégia de mídia paga e configuração de audiência", description: `Definir estrutura de campanha, segmentos de público voltados a ${audience}, estratégia de lances e posicionamentos de anúncio em ${channelHint}.`, agentId: "a4", stage: "planning", dueDate: offset(16) });
+    tasks.push({ title: "Copy e ativos criativos dos anúncios", description: `Escrever todas as variações de copy dos anúncios${tone} e criar os ativos visuais para todos os posicionamentos.${products}`, agentId: "a1", stage: "production", dueDate: offset(10) });
+    tasks.push({ title: "Configuração e lançamento da campanha", description: "Configurar todas as contas de anúncio, pixels de rastreamento, públicos e lançar as campanhas.", agentId: "a4", stage: "production", dueDate: offset(6) });
   }
 
   if (b.services.includes("social_media")) {
-    tasks.push({ title: "Estratégia de redes sociais e calendário de conteúdo", description: `Define channel strategy for ${channelHint}, content themes for ${audience}, posting cadence, and 30-day content calendar.`, agentId: "a3", stage: "planning", dueDate: offset(17) });
-    tasks.push({ title: "Copy e legendas para redes sociais", description: `Write all social posts, captions, hashtags, and story scripts${tone}.${products}`, agentId: "a1", stage: "production", dueDate: offset(10) });
-    tasks.push({ title: "Ativos visuais para redes sociais", description: `Design all visual content: feed posts, stories, cover images${brain?.visualStyle ? ` in ${brain.visualStyle} style` : ""}.`, agentId: "a2", stage: "production", dueDate: offset(7) });
+    tasks.push({ title: "Estratégia de redes sociais e calendário de conteúdo", description: `Definir a estratégia de canais para ${channelHint}, temas de conteúdo para ${audience}, cadência de postagem e calendário de conteúdo de 30 dias.`, agentId: "a3", stage: "planning", dueDate: offset(17) });
+    tasks.push({ title: "Copy e legendas para redes sociais", description: `Escrever todos os posts, legendas, hashtags e roteiros de stories${tone}.${products}`, agentId: "a1", stage: "production", dueDate: offset(10) });
+    tasks.push({ title: "Ativos visuais para redes sociais", description: `Criar todo o conteúdo visual: posts de feed, stories, imagens de capa${brain?.visualStyle ? ` no estilo ${brain.visualStyle}` : ""}.`, agentId: "a2", stage: "production", dueDate: offset(7) });
   }
 
   if (b.services.includes("content")) {
-    tasks.push({ title: "Estratégia de conteúdo", description: `Define content pillars, formats for ${audience}, distribution across ${channelHint}, and editorial calendar.`, agentId: "a5", stage: "planning", dueDate: offset(16) });
-    tasks.push({ title: "Produção de conteúdo", description: `Write all content pieces: articles, landing pages, emails, and product copy${tone}.${products}`, agentId: "a1", stage: "production", dueDate: offset(8) });
+    tasks.push({ title: "Estratégia de conteúdo", description: `Definir pilares de conteúdo, formatos para ${audience}, distribuição em ${channelHint} e calendário editorial.`, agentId: "a5", stage: "planning", dueDate: offset(16) });
+    tasks.push({ title: "Produção de conteúdo", description: `Escrever todas as peças de conteúdo: artigos, landing pages, emails e textos de produto${tone}.${products}`, agentId: "a1", stage: "production", dueDate: offset(8) });
   }
 
   tasks.sort((a, c) => (a.dueDate < c.dueDate ? -1 : 1));
@@ -494,7 +494,7 @@ export default function OrchestratorPage() {
   const handleApprove = () => {
     if (!plan) return;
     const projType = briefingToProjectType(briefing);
-    const clientName = clients.find((c) => c.id === briefing.clientId)?.name ?? "Client";
+    const clientName = clients.find((c) => c.id === briefing.clientId)?.name ?? "Cliente";
     const deadline = briefing.deadline || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     const id = createProject({
       name: `${projType} — ${clientName}`,
@@ -519,23 +519,23 @@ export default function OrchestratorPage() {
 
     // Generate brand-aware proposal
     const serviceLabels: Record<string, string> = {
-      social_media: "Social Media Management", branding: "Brand Identity",
-      ads: "Paid Advertising", seo: "SEO", content: "Content Production", web: "Website",
+      social_media: "Gestão de Redes Sociais", branding: "Identidade de Marca",
+      ads: "Tráfego Pago", seo: "SEO", content: "Produção de Conteúdo", web: "Site",
     };
     const brain = agentCtx?.brandBrain;
     const scopeParts: string[] = [];
     if (briefing.objective) scopeParts.push(briefing.objective);
-    else scopeParts.push(`Full-service ${projType.toLowerCase()} engagement for ${clientName}.`);
-    if (brain?.positioning) scopeParts.push(`Scope is designed to reinforce ${clientName}'s positioning: ${brain.positioning}.`);
-    if (brain?.targetAudience || briefing.targetAudience) scopeParts.push(`Target audience: ${brain?.targetAudience || briefing.targetAudience}.`);
-    if (brain?.toneOfVoice) scopeParts.push(`All deliverables will use a ${brain.toneOfVoice} tone of voice.`);
-    if (brain?.productsToHighlight) scopeParts.push(`Key products/services to highlight: ${brain.productsToHighlight}.`);
+    else scopeParts.push(`Projeto full-service de ${projType.toLowerCase()} para ${clientName}.`);
+    if (brain?.positioning) scopeParts.push(`O escopo foi desenhado para reforçar o posicionamento de ${clientName}: ${brain.positioning}.`);
+    if (brain?.targetAudience || briefing.targetAudience) scopeParts.push(`Público-alvo: ${brain?.targetAudience || briefing.targetAudience}.`);
+    if (brain?.toneOfVoice) scopeParts.push(`Todas as entregas usarão um tom de voz ${brain.toneOfVoice}.`);
+    if (brain?.productsToHighlight) scopeParts.push(`Principais produtos/serviços a destacar: ${brain.productsToHighlight}.`);
     const proposal: ProjectProposal = {
       objective: briefing.objective || undefined,
       scope: scopeParts.join(" "),
       deliverables: briefing.services.map((s) => serviceLabels[s] ?? s),
-      timeline: deadline ? `Project delivery by ${deadline}` : "Timeline to be confirmed",
-      pricing: briefing.services.length <= 1 ? "€2,500 / month" : briefing.services.length <= 3 ? "€4,500 / month" : "€7,500 / month",
+      timeline: deadline ? `Entrega do projeto até ${deadline}` : "Cronograma a confirmar",
+      pricing: briefing.services.length <= 1 ? "€2.500 / mês" : briefing.services.length <= 3 ? "€4.500 / mês" : "€7.500 / mês",
       status: "draft",
     };
     updateProject(id, { proposal });
@@ -583,7 +583,7 @@ export default function OrchestratorPage() {
   return (
     <>
       <AgencyHeader
-        title="Orchestrator"
+        title="Orquestrador"
         subtitle={intakePhase === "intake" ? "Passo 1 de 2 — Capture e valide o contexto do cliente antes de gerar o plano de execução." : "Passo 2 de 2 — Revise o plano de execução e aprove para criar o projeto."}
       />
 
@@ -605,13 +605,13 @@ export default function OrchestratorPage() {
               <path d="M1 3.5l2 2 4-4" stroke="white" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </span>
-          <span className="text-[12px] font-medium text-[#15803D]">Intake concluído — briefing pré-preenchido da sua sessão de intake.</span>
+          <span className="text-[12px] font-medium text-[#15803D]">Captação concluída — briefing pré-preenchido da sua sessão de captação.</span>
         </div>
         <button
           onClick={() => { setIntakePhase("intake"); setState("idle"); setPlan(null); setBriefing(EMPTY_BRIEFING); }}
           className="text-[11px] text-[#15803D] hover:text-[#166534] font-medium transition-colors"
         >
-          ← Revisar Intake
+          ← Revisar captação
         </button>
       </div>
 

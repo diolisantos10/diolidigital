@@ -106,7 +106,7 @@ function OrchestratePanel({ requestId, onApplied }: { requestId: string; onAppli
   // proposed | applying — render the inline draft proposal for approval.
   if (!proposal) return null;
   return (
-    <div className="w-full mt-2 rounded-[8px] border border-[var(--cyan)] bg-[#FBFAFF] p-3 space-y-2">
+    <div className="w-full mt-2 rounded-[8px] border border-[var(--cyan)] bg-[#F5F8FF] p-3 space-y-2">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-[12px] font-semibold text-[var(--text-primary)]">{proposal.name}</span>
         <span className="h-4 px-1.5 rounded-[3px] bg-[var(--navy)] text-white text-[9px] font-semibold leading-4">
@@ -192,8 +192,8 @@ function SDRHandoffPanel({ handoff }: { handoff: SDRHandoff }) {
         {brain ? (
           <>
             <div>
-              <p className="text-[10px] font-semibold text-[#5B21B6] mb-1">Diagnóstico Brain</p>
-              <p className="text-[11px] text-[#4C1D95] leading-relaxed">{brain.intentionDetected}</p>
+              <p className="text-[10px] font-semibold text-[#1E3A8A] mb-1">Diagnóstico Brain</p>
+              <p className="text-[11px] text-[#1E3A8A] leading-relaxed">{brain.intentionDetected}</p>
               <div className="flex items-center gap-1.5 mt-1">
                 <span className="text-[9px] text-[var(--text-muted)]">Confiança:</span>
                 <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${
@@ -209,10 +209,10 @@ function SDRHandoffPanel({ handoff }: { handoff: SDRHandoff }) {
             {/* Known facts */}
             {brain.knownFacts.length > 0 && (
               <div>
-                <p className="text-[10px] font-semibold text-[#5B21B6] mb-1">Fatos Conhecidos</p>
+                <p className="text-[10px] font-semibold text-[#1E3A8A] mb-1">Fatos Conhecidos</p>
                 <div className="flex flex-wrap gap-1">
                   {brain.knownFacts.map((f, i) => (
-                    <span key={i} className="h-5 px-2 rounded-[4px] bg-[#EDE9FE] text-[#5B21B6] text-[10px]">{f}</span>
+                    <span key={i} className="h-5 px-2 rounded-[4px] bg-[#E9EFFF] text-[#1E3A8A] text-[10px]">{f}</span>
                   ))}
                 </div>
               </div>
@@ -251,17 +251,17 @@ function SDRHandoffPanel({ handoff }: { handoff: SDRHandoff }) {
             {/* Recommended dept/services */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="text-[10px] font-semibold text-[#5B21B6] mb-0.5">Departamento recomendado</p>
-                <span className="h-5 px-2 rounded-full bg-[#EDE9FE] text-[var(--navy)] text-[10px] font-medium">
+                <p className="text-[10px] font-semibold text-[#1E3A8A] mb-0.5">Departamento recomendado</p>
+                <span className="h-5 px-2 rounded-full bg-[#E9EFFF] text-[var(--navy)] text-[10px] font-medium">
                   {brain.recommendedDepartment}
                 </span>
               </div>
               {brain.recommendedServices.length > 0 && (
                 <div>
-                  <p className="text-[10px] font-semibold text-[#5B21B6] mb-0.5">Serviços recomendados</p>
+                  <p className="text-[10px] font-semibold text-[#1E3A8A] mb-0.5">Serviços recomendados</p>
                   <div className="flex flex-wrap gap-1">
                     {brain.recommendedServices.map((s, i) => (
-                      <span key={i} className="h-5 px-2 rounded-full bg-[#EDE9FE] text-[var(--navy)] text-[10px]">{s}</span>
+                      <span key={i} className="h-5 px-2 rounded-full bg-[#E9EFFF] text-[var(--navy)] text-[10px]">{s}</span>
                     ))}
                   </div>
                 </div>
@@ -271,20 +271,20 @@ function SDRHandoffPanel({ handoff }: { handoff: SDRHandoff }) {
         ) : (
           <>
             <div>
-              <p className="text-[10px] font-semibold text-[#5B21B6] mb-0.5">Diagnóstico</p>
-              <p className="text-[11px] text-[#4C1D95] leading-relaxed">{handoff.diagnosis}</p>
+              <p className="text-[10px] font-semibold text-[#1E3A8A] mb-0.5">Diagnóstico</p>
+              <p className="text-[11px] text-[#1E3A8A] leading-relaxed">{handoff.diagnosis}</p>
             </div>
             <div>
-              <p className="text-[10px] font-semibold text-[#5B21B6] mb-0.5">Budget</p>
-              <p className="text-[11px] text-[#4C1D95]">{handoff.budgetFit}</p>
+              <p className="text-[10px] font-semibold text-[#1E3A8A] mb-0.5">Orçamento</p>
+              <p className="text-[11px] text-[#1E3A8A]">{handoff.budgetFit}</p>
             </div>
           </>
         )}
 
         {/* Recommended PM action */}
-        <div className="bg-[#EDE9FE] rounded-[6px] px-3 py-2">
-          <p className="text-[10px] font-semibold text-[#5B21B6] mb-0.5">Ação recomendada para o PM</p>
-          <p className="text-[11px] text-[#4C1D95] leading-relaxed">
+        <div className="bg-[#E9EFFF] rounded-[6px] px-3 py-2">
+          <p className="text-[10px] font-semibold text-[#1E3A8A] mb-0.5">Ação recomendada para o PM</p>
+          <p className="text-[11px] text-[#1E3A8A] leading-relaxed">
             {brain?.nextAction ?? handoff.recommendedPMAction}
           </p>
         </div>
@@ -292,12 +292,12 @@ function SDRHandoffPanel({ handoff }: { handoff: SDRHandoff }) {
 
       {/* Cognitive Flow Summary */}
       {flow && (
-        <div className="bg-[#F0F0FF] border border-[#C7C7FF] rounded-[8px] px-4 py-3">
+        <div className="bg-[#EFF4FF] border border-[#D6DEFF] rounded-[8px] px-4 py-3">
           <div className="flex items-center justify-between mb-2">
             <p className="text-[10px] font-semibold text-[var(--navy)] uppercase tracking-[0.06em]">Fluxo Cognitivo</p>
             <span className="text-[11px] font-bold text-[var(--navy)]">{flow.stepsCompleted}/{flow.totalSteps} passos · {flow.completionRate}%</span>
           </div>
-          <div className="w-full bg-[#E0E0F8] rounded-full h-1.5 mb-2">
+          <div className="w-full bg-[#E6EEFF] rounded-full h-1.5 mb-2">
             <div
               className="bg-[var(--navy)] h-1.5 rounded-full transition-all"
               style={{ width: `${flow.completionRate}%` }}
@@ -351,17 +351,17 @@ function SDRHandoffPanel({ handoff }: { handoff: SDRHandoff }) {
         <div className="bg-[var(--accent-light)] border border-[var(--cyan)] rounded-[8px] px-4 py-3 space-y-2">
           {handoff.objectionsHandled.length > 0 && (
             <div>
-              <p className="text-[10px] font-semibold text-[#5B21B6] mb-0.5">Objeções tratadas</p>
+              <p className="text-[10px] font-semibold text-[#1E3A8A] mb-0.5">Objeções tratadas</p>
               {handoff.objectionsHandled.map((o, i) => (
-                <p key={i} className="text-[11px] text-[#4C1D95]">• {o}</p>
+                <p key={i} className="text-[11px] text-[#1E3A8A]">• {o}</p>
               ))}
             </div>
           )}
           {handoff.tradeoffsAccepted.length > 0 && (
             <div>
-              <p className="text-[10px] font-semibold text-[#5B21B6] mb-0.5">Concessões aceitas</p>
+              <p className="text-[10px] font-semibold text-[#1E3A8A] mb-0.5">Concessões aceitas</p>
               {handoff.tradeoffsAccepted.map((t, i) => (
-                <p key={i} className="text-[11px] text-[#4C1D95]">• {t}</p>
+                <p key={i} className="text-[11px] text-[#1E3A8A]">• {t}</p>
               ))}
             </div>
           )}
@@ -1119,7 +1119,7 @@ export default function AgencyRequestsPage() {
                       </span>
                     )}
                     {req.sdrHandoff && (
-                      <span className="h-5 px-2 rounded-full bg-[#EDE9FE] text-[var(--navy)] text-[10px] font-semibold">
+                      <span className="h-5 px-2 rounded-full bg-[#E9EFFF] text-[var(--navy)] text-[10px] font-semibold">
                         ✦ SDR
                       </span>
                     )}

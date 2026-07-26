@@ -14,7 +14,7 @@ import type { BrandExtraction } from "@/lib/types/brand-extraction";
 // Client-level (not project-level) — selects a client, not a project.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const ACCENT = "#C2530A"; // orange — Brand Hub color
+const ACCENT = "#0E7C75"; // orange — Brand Hub color
 
 type AgentState = "idle" | "generating" | "output_ready";
 type OutputTab = "overview" | "strengths" | "gaps" | "suggestions";
@@ -67,7 +67,7 @@ const MOCK_ANALYSIS: BrandAnalysis = {
 function HealthBadge({ score, label }: { score: number; label: string }) {
   const color =
     score >= 8 ? { bg: "#DCFCE7", text: "#16A34A", dot: "#16A34A" } :
-    score >= 5 ? { bg: "#FFF7ED", text: "#C2530A", dot: "#C2530A" } :
+    score >= 5 ? { bg: "#E6FBFA", text: "#0E7C75", dot: "#0E7C75" } :
                  { bg: "#FEE2E2", text: "#DC2626", dot: "#DC2626" };
   return (
     <div className="flex items-center gap-3">
@@ -165,7 +165,7 @@ export default function BrandHubAgentPage() {
 
     await createDeliverable({
       projectId: targetProject.id,
-      name: `Brand Health Report — ${linkedClient?.name ?? "Cliente"}`,
+      name: `Relatório de Saúde de Marca — ${linkedClient?.name ?? "Cliente"}`,
       type: "document",
       status: "in_review",
     });
@@ -220,11 +220,11 @@ export default function BrandHubAgentPage() {
       <div className="flex-1 p-6 max-w-[1200px] mx-auto w-full">
         {/* Badge row */}
         <div className="flex items-center gap-2 mb-6 flex-wrap">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-wide uppercase" style={{ backgroundColor: "#FFF7ED", color: ACCENT }}>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-wide uppercase" style={{ backgroundColor: "#E6FBFA", color: ACCENT }}>
             <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: ACCENT }} />
             Departamento de Marca
           </span>
-          <span className="text-[12px] text-[var(--text-muted)]">v1 · brand health report</span>
+          <span className="text-[12px] text-[var(--text-muted)]">v1 · relatório de saúde de marca</span>
           {linkedClient && (
             <Link href={`/agency/clients/${linkedClient.id}`} className="text-[12px] text-[var(--navy)] hover:underline">
               ← {linkedClient.name}
@@ -259,19 +259,19 @@ export default function BrandHubAgentPage() {
               <p className="text-[13px] font-semibold text-[var(--text-primary)]">Importar Brand Book</p>
               <p className="text-[12px] text-[var(--text-muted)] mt-0.5">Envie qualquer arquivo — PDF, imagem, DOCX ou PPTX — e Claude extrai a identidade da marca automaticamente.</p>
             </div>
-            <span className="text-[11px] px-2.5 py-1 rounded-full font-medium" style={{ backgroundColor: "#FFF7ED", color: ACCENT }}>PDF · PPT · DOCX · Imagem</span>
+            <span className="text-[11px] px-2.5 py-1 rounded-full font-medium" style={{ backgroundColor: "#E6FBFA", color: ACCENT }}>PDF · PPT · DOCX · Imagem</span>
           </div>
 
           <div className="px-5 py-4">
             {/* Drop zone */}
             {!bbExtraction && !bbUploading && (
               <div
-                className="border-2 border-dashed border-[var(--border)] rounded-[8px] px-6 py-8 text-center cursor-pointer hover:border-[#C2530A]/40 hover:bg-[#FFF7ED]/40 transition-all"
+                className="border-2 border-dashed border-[var(--border)] rounded-[8px] px-6 py-8 text-center cursor-pointer hover:border-[#0E7C75]/40 hover:bg-[#E6FBFA]/40 transition-all"
                 onClick={() => bbInputRef.current?.click()}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleBrandBookUpload(f); }}
               >
-                <div className="w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: "#FFF7ED" }}>
+                <div className="w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: "#E6FBFA" }}>
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                     <path d="M10 13V4M7 7l3-3 3 3" stroke={ACCENT} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                     <path d="M4 14v1a2 2 0 002 2h8a2 2 0 002-2v-1" stroke={ACCENT} strokeWidth="1.5" strokeLinecap="round"/>
@@ -291,7 +291,7 @@ export default function BrandHubAgentPage() {
 
             {/* Uploading */}
             {bbUploading && (
-              <div className="flex items-center gap-4 px-4 py-5 rounded-[8px] bg-[#FFF7ED] border border-[#FDBA74]">
+              <div className="flex items-center gap-4 px-4 py-5 rounded-[8px] bg-[#E6FBFA] border border-[#FDBA74]">
                 <span className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin shrink-0" style={{ borderColor: ACCENT, borderTopColor: "transparent" }} />
                 <div>
                   <p className="text-[13px] font-medium text-[var(--text-primary)]">Analisando {bbFile?.name}…</p>
@@ -394,7 +394,7 @@ export default function BrandHubAgentPage() {
 
               {/* Brand Brain status */}
               {linkedClient && (
-                <div className={`rounded-[8px] border px-3 py-2.5 ${brandBrainReadiness < 5 ? "bg-[#FFFBEB] border-[#FDE68A]" : "bg-[#FFF7ED] border-[#FDBA74]"}`}>
+                <div className={`rounded-[8px] border px-3 py-2.5 ${brandBrainReadiness < 5 ? "bg-[#FFFBEB] border-[#FDE68A]" : "bg-[#E6FBFA] border-[#FDBA74]"}`}>
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-1.5">
                       <span className="text-[11px] font-bold" style={{ color: ACCENT }}>●</span>
@@ -402,7 +402,7 @@ export default function BrandHubAgentPage() {
                         {brandBrainReadiness < 5 ? "Brand Brain incompleto" : "Brand Brain ativo"}
                       </span>
                     </div>
-                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: "#FFF7ED", color: ACCENT }}>
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: "#E6FBFA", color: ACCENT }}>
                       {brandBrainReadiness}/13
                     </span>
                   </div>
@@ -443,7 +443,7 @@ export default function BrandHubAgentPage() {
                 <div className="rounded-[8px] border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-3">
                   <p className="text-[11px] font-semibold text-[var(--text-secondary)] uppercase tracking-[0.05em] mb-2">Será gerado</p>
                   <ul className="space-y-1">
-                    {["Health Score da marca", "Pontos fortes identificados", "Lacunas e gaps", "Sugestões concretas", "Alertas de consistência", "Avaliação do tom de voz"].map((item) => (
+                    {["Nota de saúde da marca", "Pontos fortes identificados", "Lacunas e gaps", "Sugestões concretas", "Alertas de consistência", "Avaliação do tom de voz"].map((item) => (
                       <li key={item} className="flex items-center gap-2 text-[12px] text-[var(--text-primary)]">
                         <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: ACCENT }} />
                         {item}
@@ -461,7 +461,7 @@ export default function BrandHubAgentPage() {
                   className="w-full h-9 rounded-[7px] text-[13px] font-medium text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:opacity-90"
                   style={{ backgroundColor: linkedClient ? ACCENT : "#9CA3AF" }}
                 >
-                  {!linkedClient ? "Selecione um cliente para começar" : "Gerar Brand Health Report"}
+                  {!linkedClient ? "Selecione um cliente para começar" : "Gerar Relatório de Saúde de Marca"}
                 </button>
               )}
               {agentState === "generating" && (
@@ -483,7 +483,7 @@ export default function BrandHubAgentPage() {
           {/* Idle — no client */}
           {agentState === "idle" && !linkedClient && (
             <div className="bg-white rounded-[10px] border border-dashed border-[var(--border)] px-8 py-16 text-center">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: "#FFF7ED" }}>
+              <div className="w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: "#E6FBFA" }}>
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                   <circle cx="10" cy="10" r="7" stroke={ACCENT} strokeWidth="1.8" />
                   <path d="M7 10c0-1.65 1.35-3 3-3s3 1.35 3 3-1.35 3-3 3" stroke={ACCENT} strokeWidth="1.8" strokeLinecap="round" />
@@ -498,7 +498,7 @@ export default function BrandHubAgentPage() {
           {/* Idle — ready */}
           {agentState === "idle" && linkedClient && (
             <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-8 py-14 text-center">
-              <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-5" style={{ backgroundColor: "#FFF7ED" }}>
+              <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-5" style={{ backgroundColor: "#E6FBFA" }}>
                 <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
                   <circle cx="11" cy="11" r="8" stroke={ACCENT} strokeWidth="1.8" />
                   <path d="M8 11c0-1.65 1.35-3 3-3s3 1.35 3 3-1.35 3-3 3" stroke={ACCENT} strokeWidth="1.8" strokeLinecap="round" />
@@ -518,7 +518,7 @@ export default function BrandHubAgentPage() {
               <div className="max-w-md mx-auto space-y-3">
                 {STEPS.map((s, i) => (
                   <div key={i} className={`flex items-center gap-3 transition-opacity ${i <= stepIndex ? "opacity-100" : "opacity-30"}`}>
-                    <span className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${i < stepIndex ? "bg-[var(--success-bg)]" : i === stepIndex ? "" : "bg-[var(--accent)]"}`} style={i === stepIndex ? { backgroundColor: "#FFF7ED" } : {}}>
+                    <span className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${i < stepIndex ? "bg-[var(--success-bg)]" : i === stepIndex ? "" : "bg-[var(--accent)]"}`} style={i === stepIndex ? { backgroundColor: "#E6FBFA" } : {}}>
                       {i < stepIndex ? (
                         <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l2.5 2.5L9 1" stroke="#16A34A" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
                       ) : i === stepIndex ? (

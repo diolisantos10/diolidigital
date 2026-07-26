@@ -591,11 +591,11 @@ export default function SocialMediaAgentPage() {
   }
 
   function saveDeliverablesForProject(result: SocialOutput, projectId: string, brand: string) {
-    void createDeliverable({ projectId, name: `Social Strategy — ${brand}`,                     type: "Content Strategy",  status: "in_review" });
-    void createDeliverable({ projectId, name: `Content Calendar — ${brand}`,                    type: "Content Calendar",  status: "in_review" });
-    void createDeliverable({ projectId, name: `Post Package — ${brand} (${result.posts.length} posts)`, type: "Posts",  status: "in_review" });
-    void createDeliverable({ projectId, name: `Story Package — ${brand} (${result.stories.length} stories)`, type: "Stories", status: "in_review" });
-    void createDeliverable({ projectId, name: `Design Requests — ${brand}`,                     type: "Design Requests",   status: "in_review" });
+    void createDeliverable({ projectId, name: `Estratégia Social — ${brand}`,                     type: "Content Strategy",  status: "in_review" });
+    void createDeliverable({ projectId, name: `Calendário de Conteúdo — ${brand}`,                    type: "Content Calendar",  status: "in_review" });
+    void createDeliverable({ projectId, name: `Pacote de Posts — ${brand} (${result.posts.length} posts)`, type: "Posts",  status: "in_review" });
+    void createDeliverable({ projectId, name: `Pacote de Stories — ${brand} (${result.stories.length} stories)`, type: "Stories", status: "in_review" });
+    void createDeliverable({ projectId, name: `Solicitações de Design — ${brand}`,                     type: "Design Requests",   status: "in_review" });
   }
 
   function handleSaveToProject() {
@@ -795,7 +795,7 @@ export default function SocialMediaAgentPage() {
                   type="text"
                   value={form.brandName}
                   onChange={(e) => setForm({ ...form, brandName: e.target.value })}
-                  placeholder="e.g. Sushikasa"
+                  placeholder="ex.: Sushikasa"
                   className="w-full h-8 px-3 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white"
                 />
               </div>
@@ -1040,7 +1040,7 @@ export default function SocialMediaAgentPage() {
                             <span className="px-2 py-0.5 rounded-full bg-[var(--accent-light)] text-[var(--navy)] text-[10px] font-semibold">{pillar.percentage}%</span>
                           </div>
                           <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed mb-2">{pillar.description}</p>
-                          <p className="text-[11px] text-[var(--text-muted)] italic">e.g. {pillar.example}</p>
+                          <p className="text-[11px] text-[var(--text-muted)] italic">ex.: {pillar.example}</p>
                         </div>
                       ))}
                     </div>
@@ -1126,7 +1126,7 @@ export default function SocialMediaAgentPage() {
                     </div>
                     <div className="px-5 py-4 grid grid-cols-7 gap-2">
                       {output.calendar.map((day) => (
-                        <div key={day.day} className={`rounded-[8px] border overflow-hidden ${day.active ? "border-[var(--navy)] bg-[#FAFAFE]" : "border-[var(--border)] bg-white"}`}>
+                        <div key={day.day} className={`rounded-[8px] border overflow-hidden ${day.active ? "border-[var(--navy)] bg-[#F5F8FF]" : "border-[var(--border)] bg-white"}`}>
                           <div className={`px-2 py-1.5 text-center border-b ${day.active ? "bg-[var(--accent-light)] border-[var(--navy)]" : "bg-[var(--bg)] border-[var(--border)]"}`}>
                             <p className={`text-[11px] font-semibold ${day.active ? "text-[var(--navy)]" : "text-[var(--text-secondary)]"}`}>{day.day}</p>
                           </div>
@@ -1331,7 +1331,7 @@ export default function SocialMediaAgentPage() {
                       <p className="text-[12px] text-[var(--text-muted)] mt-0.5">Passe o contrato de design completo para o Agente de Design produzir os assets.</p>
                     </div>
                     <button onClick={handleSendToDesignAgent}
-                      className="h-8 px-4 rounded-[7px] text-[12px] font-medium bg-[#C2530A] text-white hover:bg-[#A8460A] transition-colors flex items-center gap-1.5 shrink-0">
+                      className="h-8 px-4 rounded-[7px] text-[12px] font-medium bg-[#0E7C75] text-white hover:bg-[#0B655F] transition-colors flex items-center gap-1.5 shrink-0">
                       <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6h8M6.5 2.5L10 6l-3.5 3.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>
                       Enviar para Agente de Design
                     </button>
