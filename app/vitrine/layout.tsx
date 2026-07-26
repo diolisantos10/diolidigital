@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 
 export default function VitrineLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-[#F7F7F6] flex flex-col">
+    <div className="min-h-screen bg-[var(--bg)] flex flex-col">
       {children}
     </div>
   );

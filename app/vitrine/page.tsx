@@ -74,29 +74,29 @@ function OrderModal({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-[16px] border border-[#E5E5E2] shadow-[0_16px_50px_rgba(0,0,0,0.18)] w-full max-w-[480px]"
+        className="bg-white rounded-[16px] border border-[var(--border)] shadow-[0_16px_50px_rgba(0,0,0,0.18)] w-full max-w-[480px]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-6 pt-5 pb-4 border-b border-[#F0F0ED]">
+        <div className="px-6 pt-5 pb-4 border-b border-[var(--border)]">
           <div className="flex items-start justify-between">
             <div>
               <span className={`inline-flex h-5 px-2 rounded-full text-[10px] font-semibold ${cat.bg} ${cat.text} mb-1.5`}>
                 {CATEGORY_LABEL[service.category]}
               </span>
-              <h2 className="text-[17px] font-semibold text-[#1A1A1A]">{service.label}</h2>
-              <p className="text-[13px] text-[#6B6B65] mt-0.5">{service.description}</p>
+              <h2 className="text-[17px] font-semibold text-[var(--text-primary)]">{service.label}</h2>
+              <p className="text-[13px] text-[var(--text-secondary)] mt-0.5">{service.description}</p>
             </div>
             <button
               onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center rounded-full text-[#9B9B95] hover:bg-[#F0F0ED] hover:text-[#1A1A1A] transition-colors shrink-0 ml-3 text-[18px] leading-none"
+              className="w-8 h-8 flex items-center justify-center rounded-full text-[var(--text-muted)] hover:bg-[var(--accent)] hover:text-[var(--text-primary)] transition-colors shrink-0 ml-3 text-[18px] leading-none"
             >
               ×
             </button>
           </div>
           <div className="mt-3 flex items-baseline gap-1.5">
             <span className="text-[22px] font-bold text-[#070A1F]">{brlFixed(service.price)}</span>
-            <span className="text-[13px] text-[#9B9B95]">· entrega em {service.deliveryDays} dias úteis</span>
+            <span className="text-[13px] text-[var(--text-muted)]">· entrega em {service.deliveryDays} dias úteis</span>
           </div>
         </div>
 
@@ -128,48 +128,48 @@ function OrderModal({
             </div>
           ) : (
             <>
-              <p className="text-[12px] text-[#6B6B65]">Preencha seus dados para continuar. Entraremos em contato com a confirmação do pedido.</p>
+              <p className="text-[12px] text-[var(--text-secondary)]">Preencha seus dados para continuar. Entraremos em contato com a confirmação do pedido.</p>
 
               <div className="space-y-3">
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#6B6B65] mb-1">Nome completo *</label>
+                  <label className="block text-[11px] font-semibold text-[var(--text-secondary)] mb-1">Nome completo *</label>
                   <input
                     type="text"
                     autoFocus
                     value={form.name}
                     onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
                     placeholder="Maria Santos"
-                    className="w-full h-10 rounded-[8px] border border-[#E5E5E2] bg-[#F7F7F6] px-3 text-[13px] text-[#1A1A1A] placeholder:text-[#C0C0BC] outline-none focus:border-[#070A1F] focus:bg-white transition-colors"
+                    className="w-full h-10 rounded-[8px] border border-[var(--border)] bg-[var(--bg)] px-3 text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] outline-none focus:border-[#070A1F] focus:bg-white transition-colors"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#6B6B65] mb-1">E-mail *</label>
+                  <label className="block text-[11px] font-semibold text-[var(--text-secondary)] mb-1">E-mail *</label>
                   <input
                     type="email"
                     value={form.email}
                     onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
                     placeholder="maria@empresa.com"
-                    className="w-full h-10 rounded-[8px] border border-[#E5E5E2] bg-[#F7F7F6] px-3 text-[13px] text-[#1A1A1A] placeholder:text-[#C0C0BC] outline-none focus:border-[#070A1F] focus:bg-white transition-colors"
+                    className="w-full h-10 rounded-[8px] border border-[var(--border)] bg-[var(--bg)] px-3 text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] outline-none focus:border-[#070A1F] focus:bg-white transition-colors"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#6B6B65] mb-1">WhatsApp *</label>
+                  <label className="block text-[11px] font-semibold text-[var(--text-secondary)] mb-1">WhatsApp *</label>
                   <input
                     type="tel"
                     value={form.phone}
                     onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
                     placeholder="(11) 99999-9999"
-                    className="w-full h-10 rounded-[8px] border border-[#E5E5E2] bg-[#F7F7F6] px-3 text-[13px] text-[#1A1A1A] placeholder:text-[#C0C0BC] outline-none focus:border-[#070A1F] focus:bg-white transition-colors"
+                    className="w-full h-10 rounded-[8px] border border-[var(--border)] bg-[var(--bg)] px-3 text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] outline-none focus:border-[#070A1F] focus:bg-white transition-colors"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#6B6B65] mb-1">Observação (opcional)</label>
+                  <label className="block text-[11px] font-semibold text-[var(--text-secondary)] mb-1">Observação (opcional)</label>
                   <textarea
                     value={form.note}
                     onChange={(e) => setForm((p) => ({ ...p, note: e.target.value }))}
                     placeholder="Conte um pouco sobre o seu negócio ou o que precisa comunicar…"
                     rows={3}
-                    className="w-full rounded-[8px] border border-[#E5E5E2] bg-[#F7F7F6] px-3 py-2.5 text-[12px] text-[#1A1A1A] placeholder:text-[#C0C0BC] outline-none focus:border-[#070A1F] focus:bg-white transition-colors resize-none leading-relaxed"
+                    className="w-full rounded-[8px] border border-[var(--border)] bg-[var(--bg)] px-3 py-2.5 text-[12px] text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] outline-none focus:border-[#070A1F] focus:bg-white transition-colors resize-none leading-relaxed"
                   />
                 </div>
               </div>
@@ -187,7 +187,7 @@ function OrderModal({
               >
                 {status === "loading" ? "Processando…" : `Contratar — ${brlFixed(service.price)}`}
               </button>
-              <p className="text-[10px] text-center text-[#C0C0BC]">
+              <p className="text-[10px] text-center text-[var(--text-subtle)]">
                 Ao continuar, você concorda com nossos termos. Pagamento via Pix ou cartão após confirmação.
               </p>
             </>
@@ -209,7 +209,7 @@ function ServiceCard({
 }) {
   const cat = CATEGORY_COLOR[service.category];
   return (
-    <div className="bg-white rounded-[14px] border border-[#E5E5E2] hover:border-[#9B9B95] hover:shadow-[0_4px_20px_rgba(0,0,0,0.08)] transition-all overflow-hidden flex flex-col">
+    <div className="bg-white rounded-[14px] border border-[var(--border)] hover:border-[var(--text-muted)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.08)] transition-all overflow-hidden flex flex-col">
       <div className="px-5 pt-5 pb-4 flex-1">
         <div className="flex items-start justify-between gap-2 mb-3">
           <span className={`inline-flex h-5 px-2 rounded-full text-[10px] font-semibold items-center ${cat.bg} ${cat.text}`}>
@@ -221,21 +221,21 @@ function ServiceCard({
             </span>
           )}
         </div>
-        <h3 className="text-[15px] font-semibold text-[#1A1A1A] mb-1">{service.label}</h3>
-        <p className="text-[12px] text-[#6B6B65] leading-relaxed mb-4">{service.description}</p>
+        <h3 className="text-[15px] font-semibold text-[var(--text-primary)] mb-1">{service.label}</h3>
+        <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed mb-4">{service.description}</p>
         <ul className="space-y-1.5">
           {service.deliverables.map((d) => (
-            <li key={d} className="flex items-start gap-2 text-[11px] text-[#4A4A44]">
+            <li key={d} className="flex items-start gap-2 text-[11px] text-[var(--text-secondary)]">
               <span className={`w-1.5 h-1.5 rounded-full ${cat.dot} shrink-0 mt-1`} />
               {d}
             </li>
           ))}
         </ul>
       </div>
-      <div className="px-5 pb-5 pt-4 border-t border-[#F0F0ED] flex items-center justify-between gap-3">
+      <div className="px-5 pb-5 pt-4 border-t border-[var(--border)] flex items-center justify-between gap-3">
         <div>
           <span className="text-[20px] font-bold text-[#070A1F]">{brlFixed(service.price)}</span>
-          <span className="text-[11px] text-[#9B9B95] ml-1.5">{service.deliveryDays}d úteis</span>
+          <span className="text-[11px] text-[var(--text-muted)] ml-1.5">{service.deliveryDays}d úteis</span>
         </div>
         <button
           onClick={() => onOrder(service)}
@@ -278,19 +278,19 @@ export default function VitrinePage() {
         <h1 className="text-[28px] md:text-[34px] font-bold leading-tight max-w-[540px] mx-auto">
           Serviços digitais com entrega rápida
         </h1>
-        <p className="text-[14px] text-[#9B9B95] mt-3 max-w-[420px] mx-auto leading-relaxed">
+        <p className="text-[14px] text-[var(--text-muted)] mt-3 max-w-[420px] mx-auto leading-relaxed">
           Compre avulso, sem contratos longos. Design, social media, vídeo e tráfego pago — feito pela Dioli, entregue rápido.
         </p>
       </div>
 
       {/* Filter tabs */}
-      <div className="sticky top-0 z-10 bg-[#F7F7F6] border-b border-[#E5E5E2] px-6 py-3 flex items-center gap-2 overflow-x-auto scrollbar-none">
+      <div className="sticky top-0 z-10 bg-[var(--bg)] border-b border-[var(--border)] px-6 py-3 flex items-center gap-2 overflow-x-auto scrollbar-none">
         <button
           onClick={() => setCatFilter("all")}
           className={`h-8 px-4 rounded-full text-[12px] font-semibold shrink-0 transition-colors ${
             catFilter === "all"
               ? "bg-[#070A1F] text-white"
-              : "bg-white border border-[#E5E5E2] text-[#6B6B65] hover:border-[#9B9B95]"
+              : "bg-white border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--text-muted)]"
           }`}
         >
           Todos
@@ -302,7 +302,7 @@ export default function VitrinePage() {
             className={`h-8 px-4 rounded-full text-[12px] font-semibold shrink-0 transition-colors ${
               catFilter === cat
                 ? "bg-[#070A1F] text-white"
-                : "bg-white border border-[#E5E5E2] text-[#6B6B65] hover:border-[#9B9B95]"
+                : "bg-white border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--text-muted)]"
             }`}
           >
             {CATEGORY_LABEL[cat]}
@@ -320,10 +320,10 @@ export default function VitrinePage() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-[#E5E5E2] px-6 py-6 text-center">
-        <p className="text-[11px] text-[#C0C0BC]">
+      <footer className="border-t border-[var(--border)] px-6 py-6 text-center">
+        <p className="text-[11px] text-[var(--text-subtle)]">
           Dioli Digital · Agência Digital com IA ·{" "}
-          <a href="/briefing" className="underline hover:text-[#6B6B65] transition-colors">
+          <a href="/briefing" className="underline hover:text-[var(--text-secondary)] transition-colors">
             Precisa de algo maior? Faça um briefing completo →
           </a>
         </p>
