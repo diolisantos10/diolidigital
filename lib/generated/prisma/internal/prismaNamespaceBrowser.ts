@@ -82,6 +82,7 @@ export const ModelName = {
   ApprovalComment: 'ApprovalComment',
   EvidenceItem: 'EvidenceItem',
   MetaConnection: 'MetaConnection',
+  WhatsAppMessage: 'WhatsAppMessage',
   WhatsAppOutbox: 'WhatsAppOutbox',
   PortalAccess: 'PortalAccess',
   MarketInsight: 'MarketInsight'
@@ -626,6 +627,24 @@ export const MetaConnectionScalarFieldEnum = {
 } as const
 
 export type MetaConnectionScalarFieldEnum = (typeof MetaConnectionScalarFieldEnum)[keyof typeof MetaConnectionScalarFieldEnum]
+
+
+export const WhatsAppMessageScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  phoneNumberId: 'phoneNumberId',
+  contactWaId: 'contactWaId',
+  contactName: 'contactName',
+  direction: 'direction',
+  type: 'type',
+  body: 'body',
+  externalId: 'externalId',
+  status: 'status',
+  clientRequestId: 'clientRequestId',
+  timestamp: 'timestamp'
+} as const
+
+export type WhatsAppMessageScalarFieldEnum = (typeof WhatsAppMessageScalarFieldEnum)[keyof typeof WhatsAppMessageScalarFieldEnum]
 
 
 export const WhatsAppOutboxScalarFieldEnum = {
