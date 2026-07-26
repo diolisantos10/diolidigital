@@ -14,7 +14,7 @@ export default function ContatoPage() {
       <header className="border-b border-[var(--border)] bg-[var(--bg)]/70 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-5xl items-center px-5 md:px-8">
           <Link href="/" aria-label="Voltar para a home">
-            <DioliLogo variant="full" tone="dark" markSize={34} className="text-[19px]" />
+            <DioliLogo variant="full" tone="dark" markSize={32} />
           </Link>
         </div>
       </header>

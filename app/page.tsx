@@ -127,13 +127,22 @@ const btnPrimaryStyle = { backgroundColor: "#070A1F", color: "#FFFFFF" } as cons
 const btnGhostDark = "inline-flex h-12 items-center justify-center rounded-full border border-white/25 px-6 text-[15px] font-semibold text-white transition-colors hover:bg-white/10";
 const btnGhostLight = "inline-flex h-12 items-center justify-center rounded-full border border-[var(--border-strong)] bg-[var(--card)] px-6 text-[15px] font-semibold text-[var(--navy)] transition-colors hover:bg-[var(--accent)]";
 
+const keyMessages = [
+  "Conectamos pessoas e empresas no universo digital",
+  "Estratégia humana. Execução inteligente.",
+  "Clareza para decidir. Dados para crescer.",
+  "Seu parceiro de transformação digital",
+];
+
 export default function SitePage() {
   return (
     <div className="flex min-h-screen flex-col bg-[var(--bg)] text-[var(--text-primary)]">
       {/* ── Navbar ─────────────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--bg)]/70 backdrop-blur-xl">
         <nav className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-5 md:px-8">
-          <DioliLogo variant="full" tone="dark" markSize={38} className="flex-1 text-[21px]" />
+          <div className="flex-1">
+            <DioliLogo variant="full" tone="dark" markSize={34} />
+          </div>
           <a href="#servicos" className="hidden text-[13.5px] font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--navy)] sm:block">Serviços</a>
           <a href="#jornada" className="hidden text-[13.5px] font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--navy)] md:block">Como funciona</a>
           <a href="#trabalho" className="hidden text-[13.5px] font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--navy)] md:block">Trabalhos</a>
@@ -194,16 +203,19 @@ export default function SitePage() {
         </div>
       </section>
 
-      {/* ── Faixa de mensagens-chave (marquee estático) ────────────────────────── */}
-      <div className="border-b border-[var(--border)] bg-[var(--card)]">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-8 gap-y-2 px-5 py-5 text-center text-[13px] font-medium text-[var(--text-muted)] md:px-8">
-          <span>Conectamos pessoas e empresas no universo digital</span>
-          <span className="text-[var(--border-strong)]">•</span>
-          <span>Estratégia humana. Execução inteligente.</span>
-          <span className="text-[var(--border-strong)]">•</span>
-          <span>Clareza para decidir. Dados para crescer.</span>
-          <span className="text-[var(--border-strong)]">•</span>
-          <span>Seu parceiro de transformação digital</span>
+      {/* ── Faixa de mensagens-chave (marquee infinito) ────────────────────────── */}
+      <div className="marquee border-b border-[var(--border)] bg-[var(--card)] py-5">
+        <div className="marquee-track text-[13px] font-medium text-[var(--text-muted)]">
+          {[0, 1].map((copy) => (
+            <div key={copy} className="flex shrink-0 items-center" aria-hidden={copy === 1}>
+              {keyMessages.map((msg, i) => (
+                <span key={i} className="flex shrink-0 items-center">
+                  <span className="px-6">{msg}</span>
+                  <span className="text-[var(--border-strong)]">•</span>
+                </span>
+              ))}
+            </div>
+          ))}
         </div>
       </div>
 
@@ -595,7 +607,7 @@ export default function SitePage() {
       <footer className="mt-auto border-t border-[var(--border)] bg-[var(--card)]">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-5 py-12 md:flex-row md:items-start md:justify-between md:px-8">
           <div className="max-w-xs">
-            <DioliLogo variant="full" tone="dark" markSize={32} className="text-[19px]" />
+            <DioliLogo variant="full" tone="dark" markSize={30} />
             <p className="mt-3 text-[14px] font-medium text-[var(--navy)]">Estratégia humana. Execução inteligente.</p>
             <p className="mt-3 text-[12.5px] leading-relaxed text-[var(--text-muted)]">
               Clareza para alinhar direção. Consistência para gerar confiança. Conexão para crescer.
