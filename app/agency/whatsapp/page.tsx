@@ -76,47 +76,47 @@ export default function WhatsAppInboxPage() {
   return (
     <div className="max-w-[960px] mx-auto px-4 py-6">
       <div className="mb-4">
-        <h1 className="text-[18px] font-semibold text-[#1C1C1A]">WhatsApp — Caixa de Entrada</h1>
-        <p className="text-[12px] text-[#9B9B95] mt-0.5">Um número só. Converse com os clientes por aqui.</p>
+        <h1 className="text-[18px] font-semibold text-[var(--text-primary)]">WhatsApp — Caixa de Entrada</h1>
+        <p className="text-[12px] text-[var(--text-muted)] mt-0.5">Um número só. Converse com os clientes por aqui.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-3 h-[70vh] min-h-[420px]">
         {/* Threads */}
-        <div className={`border border-[#E8E8E4] rounded-[10px] bg-white overflow-y-auto ${active ? "hidden md:block" : ""}`}>
+        <div className={`border border-[var(--border)] rounded-[10px] bg-white overflow-y-auto ${active ? "hidden md:block" : ""}`}>
           {threads.length === 0 ? (
-            <div className="p-4 text-[12px] text-[#9B9B95]">Nenhuma conversa ainda.</div>
+            <div className="p-4 text-[12px] text-[var(--text-muted)]">Nenhuma conversa ainda.</div>
           ) : threads.map((t) => (
             <button
               key={t.contactWaId}
               onClick={() => setActive(t.contactWaId)}
-              className={`w-full text-left px-4 py-3 border-b border-[#F4F4F0] hover:bg-[#FAFAF9] ${active === t.contactWaId ? "bg-[#F0FDF4]" : ""}`}
+              className={`w-full text-left px-4 py-3 border-b border-[var(--accent)] hover:bg-[var(--bg-elevated)] ${active === t.contactWaId ? "bg-[#F0FDF4]" : ""}`}
             >
-              <div className="text-[13px] font-semibold text-[#1C1C1A] truncate">{t.contactName || t.contactWaId}</div>
-              <div className="text-[11px] text-[#6B6B65] truncate">{t.lastDirection === "out" ? "Você: " : ""}{t.lastBody}</div>
+              <div className="text-[13px] font-semibold text-[var(--text-primary)] truncate">{t.contactName || t.contactWaId}</div>
+              <div className="text-[11px] text-[var(--text-secondary)] truncate">{t.lastDirection === "out" ? "Você: " : ""}{t.lastBody}</div>
             </button>
           ))}
         </div>
 
         {/* Conversation */}
-        <div className={`border border-[#E8E8E4] rounded-[10px] bg-white flex flex-col ${active ? "" : "hidden md:flex"}`}>
+        <div className={`border border-[var(--border)] rounded-[10px] bg-white flex flex-col ${active ? "" : "hidden md:flex"}`}>
           {!active ? (
-            <div className="flex-1 flex items-center justify-center text-[12px] text-[#9B9B95]">Selecione uma conversa</div>
+            <div className="flex-1 flex items-center justify-center text-[12px] text-[var(--text-muted)]">Selecione uma conversa</div>
           ) : (
             <>
-              <div className="px-4 py-2.5 border-b border-[#F0F0ED] flex items-center gap-2">
-                <button onClick={() => setActive(null)} className="md:hidden text-[#6B6B65] text-[16px]">←</button>
-                <div className="text-[13px] font-semibold text-[#1C1C1A]">
+              <div className="px-4 py-2.5 border-b border-[var(--border)] flex items-center gap-2">
+                <button onClick={() => setActive(null)} className="md:hidden text-[var(--text-secondary)] text-[16px]">←</button>
+                <div className="text-[13px] font-semibold text-[var(--text-primary)]">
                   {threads.find((t) => t.contactWaId === active)?.contactName || active}
                 </div>
               </div>
-              <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2 bg-[#FAFAF9]">
+              <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2 bg-[var(--bg-elevated)]">
                 {messages.map((m) => (
                   <div key={m.id} className={`flex ${m.direction === "out" ? "justify-end" : "justify-start"}`}>
                     <div className={`max-w-[75%] px-3 py-2 rounded-[10px] text-[13px] ${
-                      m.direction === "out" ? "bg-[#DCF8C6] text-[#1C1C1A]" : "bg-white border border-[#E8E8E4] text-[#1C1C1A]"
+                      m.direction === "out" ? "bg-[#DCF8C6] text-[var(--text-primary)]" : "bg-white border border-[var(--border)] text-[var(--text-primary)]"
                     }`}>
                       <div className="whitespace-pre-wrap break-words">{m.body}</div>
-                      <div className="text-[9px] text-[#9B9B95] mt-1 text-right">
+                      <div className="text-[9px] text-[var(--text-muted)] mt-1 text-right">
                         {new Date(m.at).toLocaleString("pt-BR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" })}
                         {m.direction === "out" && m.status ? ` · ${m.status}` : ""}
                       </div>
@@ -126,13 +126,13 @@ export default function WhatsAppInboxPage() {
                 <div ref={endRef} />
               </div>
               {err && <div className="px-4 py-1.5 text-[11px] text-[#DC2626] bg-[#FFF5F5]">{err}</div>}
-              <div className="p-3 border-t border-[#F0F0ED] flex items-center gap-2">
+              <div className="p-3 border-t border-[var(--border)] flex items-center gap-2">
                 <input
                   value={reply}
                   onChange={(e) => setReply(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void handleSend(); } }}
                   placeholder="Escreva uma resposta…"
-                  className="flex-1 border border-[#E8E8E4] rounded-[8px] px-3 py-2 text-[13px] focus:outline-none focus:ring-2"
+                  className="flex-1 border border-[var(--border)] rounded-[8px] px-3 py-2 text-[13px] focus:outline-none focus:ring-2"
                   style={{ ["--tw-ring-color" as string]: `${ACCENT}40` }}
                 />
                 <button
@@ -149,7 +149,7 @@ export default function WhatsAppInboxPage() {
         </div>
       </div>
 
-      <p className="text-[10px] text-[#9B9B95] mt-3">
+      <p className="text-[10px] text-[var(--text-muted)] mt-3">
         Respostas livres só valem dentro de 24h após a última mensagem do cliente (regra da Meta). Fora disso, use um template.
       </p>
     </div>
