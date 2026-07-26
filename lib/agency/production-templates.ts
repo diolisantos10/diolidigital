@@ -109,7 +109,7 @@ export const PRODUCTION_TEMPLATES: ProductionTemplate[] = [
       { type: "references", description: "Referências visuais e de marca que o cliente gosta" },
     ],
     agents: ["a3", "a2", "a4"],
-    color: "#7C3AED",
+    color: "#0057FF",
   },
 ];
 

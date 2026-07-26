@@ -121,7 +121,7 @@ export const CATEGORY_LABEL: Record<SelfServeCategory, string> = {
 
 export const CATEGORY_COLOR: Record<SelfServeCategory, { bg: string; text: string; dot: string }> = {
   social:  { bg: "bg-[#E6FBFA]", text: "text-[#070A1F]", dot: "bg-[#9AF5F0]" },
-  video:   { bg: "bg-[#EDE9FE]", text: "text-[#5B21B6]", dot: "bg-[#8B5CF6]" },
+  video:   { bg: "bg-[#E9EFFF]", text: "text-[#1E3A8A]", dot: "bg-[#8B5CF6]" },
   design:  { bg: "bg-[#FEF3C7]", text: "text-[#92400E]", dot: "bg-[#F59E0B]" },
   traffic: { bg: "bg-[#DCFCE7]", text: "text-[#166534]", dot: "bg-[#16A34A]" },
 };

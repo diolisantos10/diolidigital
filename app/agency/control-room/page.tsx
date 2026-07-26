@@ -38,9 +38,9 @@ export default function ControlRoomPage() {
       />
 
       {active.length === 0 ? (
-        <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-8 py-16 text-center">
-          <p className="text-[14px] font-medium text-[#1A1A1A]">Nenhum projeto ativo</p>
-          <p className="text-[13px] text-[#9B9B95] mt-1">Crie um projeto a partir de uma solicitação para ver os agentes trabalhando aqui.</p>
+        <div className="bg-white rounded-[12px] border border-[var(--border)] px-8 py-16 text-center">
+          <p className="text-[14px] font-medium text-[var(--text-primary)]">Nenhum projeto ativo</p>
+          <p className="text-[13px] text-[var(--text-muted)] mt-1">Crie um projeto a partir de uma solicitação para ver os agentes trabalhando aqui.</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -51,12 +51,12 @@ export default function ControlRoomPage() {
             );
 
             return (
-              <div key={project.id} className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+              <div key={project.id} className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
                 {/* Project header */}
-                <div className="flex items-center gap-4 px-5 py-4 bg-[#070A1F]">
+                <div className="flex items-center gap-4 px-5 py-4 bg-[var(--navy)]">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Link href={`/agency/projects/${project.id}`} className="text-[14px] font-semibold text-white hover:text-[#9AF5F0] transition-colors">
+                      <Link href={`/agency/projects/${project.id}`} className="text-[14px] font-semibold text-white hover:text-[var(--cyan)] transition-colors">
                         {project.name}
                       </Link>
                       <span className="text-white/40">·</span>
@@ -72,14 +72,14 @@ export default function ControlRoomPage() {
                   <div className="flex items-center gap-2 shrink-0">
                     {pendingPortal.length > 0 && (
                       <SecurePortalLinkButton clientId={project.clientId}>
-                        <span className="h-6 px-2.5 rounded-full bg-[#FEF3C7] text-[#D97706] text-[10px] font-semibold inline-flex items-center gap-1">
+                        <span className="h-6 px-2.5 rounded-full bg-[var(--warning-bg)] text-[var(--warning)] text-[10px] font-semibold inline-flex items-center gap-1">
                           ⚠ {pendingPortal.length} pendente{pendingPortal.length !== 1 ? "s" : ""} no portal
                         </span>
                       </SecurePortalLinkButton>
                     )}
                     <button
                       onClick={() => runAll(project.id)}
-                      className="h-7 px-3 rounded-[6px] bg-[#9AF5F0] text-[#070A1F] text-[11px] font-semibold hover:bg-[#7DEDE7] transition-colors"
+                      className="h-7 px-3 rounded-[6px] bg-[var(--cyan)] text-[var(--navy)] text-[11px] font-semibold hover:bg-[#7DEDE7] transition-colors"
                     >
                       ✦ Rodar todos os agentes
                     </button>
@@ -87,7 +87,7 @@ export default function ControlRoomPage() {
                 </div>
 
                 {/* Department grid */}
-                <div className="grid grid-cols-5 divide-x divide-[#F0F0ED]">
+                <div className="grid grid-cols-5 divide-x divide-[var(--border)]">
                   {DEPTS.map((dept) => {
                     const deptDeliverables = deliverables.filter(
                       (d) => d.projectId === project.id && d.ownerAgentId
@@ -100,28 +100,28 @@ export default function ControlRoomPage() {
                       <div key={dept.id} className="px-4 py-4">
                         <div className="flex items-center gap-1.5 mb-2">
                           <span className="text-[12px]">{dept.icon}</span>
-                          <span className="text-[11px] font-semibold text-[#1A1A1A]">{dept.label}</span>
+                          <span className="text-[11px] font-semibold text-[var(--text-primary)]">{dept.label}</span>
                         </div>
                         <div className="flex items-center gap-1.5 mb-3">
                           <span className={`h-4 px-1.5 rounded-[3px] text-[9px] font-semibold ${
-                            mode === "full_ai" ? "bg-[#070A1F] text-white"
-                            : mode === "hybrid" ? "bg-[#DCFCE7] text-[#16A34A]"
-                            : "bg-[#F0F0ED] text-[#9B9B95]"
+                            mode === "full_ai" ? "bg-[var(--navy)] text-white"
+                            : mode === "hybrid" ? "bg-[var(--success-bg)] text-[var(--success)]"
+                            : "bg-[var(--accent)] text-[var(--text-muted)]"
                           }`}>
                             {mode === "full_ai" ? "100% IA" : mode === "hybrid" ? "Híbrido" : "Humano"}
                           </span>
                         </div>
                         {hasContent ? (
                           <div>
-                            <p className="text-[11px] text-[#16A34A] font-medium">✓ {count} entrega{count !== 1 ? "s" : ""}</p>
+                            <p className="text-[11px] text-[var(--success)] font-medium">✓ {count} entrega{count !== 1 ? "s" : ""}</p>
                           </div>
                         ) : (
-                          <p className="text-[11px] text-[#C0C0BC]">Aguardando…</p>
+                          <p className="text-[11px] text-[var(--text-subtle)]">Aguardando…</p>
                         )}
                         {mode !== "full_human" && (
                           <button
                             onClick={() => void runDepartmentIntelligenceWithProvider(dept.id, project.id)}
-                            className="mt-2 h-6 px-2 rounded-[5px] border border-[#E5E5E2] text-[10px] text-[#6B6B65] hover:border-[#070A1F] hover:text-[#070A1F] transition-colors w-full"
+                            className="mt-2 h-6 px-2 rounded-[5px] border border-[var(--border)] text-[10px] text-[var(--text-secondary)] hover:border-[var(--navy)] hover:text-[var(--navy)] transition-colors w-full"
                           >
                             Rodar
                           </button>

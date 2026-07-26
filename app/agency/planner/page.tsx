@@ -251,7 +251,7 @@ export default function PlannerPage() {
         <div className="flex items-center rounded-[8px] overflow-hidden" style={{ border: "1px solid #E7E7E2" }}>
           <button
             onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}
-            className="h-9 w-9 flex items-center justify-center text-[#6B6B65] hover:bg-[#F7F7F4]"
+            className="h-9 w-9 flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg)]"
             aria-label="Mês anterior"
           >‹</button>
           <button
@@ -259,16 +259,16 @@ export default function PlannerPage() {
               const n = new Date();
               setCursor(new Date(n.getFullYear(), n.getMonth(), 1));
             }}
-            className="h-9 px-3 text-[12px] font-medium text-[#6B6B65] border-x hover:bg-[#F7F7F4]"
+            className="h-9 px-3 text-[12px] font-medium text-[var(--text-secondary)] border-x hover:bg-[var(--bg)]"
             style={{ borderColor: "#E7E7E2" }}
           >Hoje</button>
           <button
             onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}
-            className="h-9 w-9 flex items-center justify-center text-[#6B6B65] hover:bg-[#F7F7F4]"
+            className="h-9 w-9 flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg)]"
             aria-label="Próximo mês"
           >›</button>
         </div>
-        <div className="text-[15px] font-semibold text-[#1A1A1A] min-w-[150px]">
+        <div className="text-[15px] font-semibold text-[var(--text-primary)] min-w-[150px]">
           {MONTHS[cursor.getMonth()]} {cursor.getFullYear()}
         </div>
 
@@ -285,7 +285,7 @@ export default function PlannerPage() {
         <select
           value={clientFilter}
           onChange={(e) => setClientFilter(e.target.value)}
-          className="h-9 px-3 rounded-[8px] text-[12.5px] text-[#1A1A1A] outline-none"
+          className="h-9 px-3 rounded-[8px] text-[12.5px] text-[var(--text-primary)] outline-none"
           style={{ border: "1px solid #E7E7E2", background: "#fff" }}
         >
           <option value="all">Todos os clientes</option>
@@ -311,13 +311,13 @@ export default function PlannerPage() {
       </div>
 
       {loading && posts.length === 0 ? (
-        <div className="text-[13px] text-[#9B9B95] py-16 text-center">Carregando planner…</div>
+        <div className="text-[13px] text-[var(--text-muted)] py-16 text-center">Carregando planner…</div>
       ) : view === "calendar" ? (
         <div className="rounded-[12px] overflow-hidden" style={{ border: "1px solid #E7E7E2" }}>
           {/* Weekday header */}
           <div className="grid grid-cols-7" style={{ background: "#F7F7F4", borderBottom: "1px solid #E7E7E2" }}>
             {WEEKDAYS.map((d) => (
-              <div key={d} className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-[#9B9B95]">
+              <div key={d} className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
                 {d}
               </div>
             ))}
@@ -349,7 +349,7 @@ export default function PlannerPage() {
                       </span>
                       <button
                         onClick={() => openNew(k)}
-                        className="opacity-0 group-hover:opacity-100 w-5 h-5 flex items-center justify-center rounded text-[#9B9B95] hover:bg-[#F0F0ED] transition-opacity"
+                        className="opacity-0 group-hover:opacity-100 w-5 h-5 flex items-center justify-center rounded text-[var(--text-muted)] hover:bg-[var(--accent)] transition-opacity"
                         aria-label="Adicionar post neste dia"
                       >+</button>
                     </div>
@@ -358,7 +358,7 @@ export default function PlannerPage() {
                         <PostChip key={p.id} post={p} onClick={() => openEdit(p)} />
                       ))}
                       {dayPosts.length > 3 && (
-                        <div className="text-[10px] text-[#9B9B95] px-1">+{dayPosts.length - 3} mais</div>
+                        <div className="text-[10px] text-[var(--text-muted)] px-1">+{dayPosts.length - 3} mais</div>
                       )}
                     </div>
                   </div>
@@ -382,25 +382,25 @@ export default function PlannerPage() {
               <button
                 key={p.id}
                 onClick={() => openEdit(p)}
-                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#FBFBF9] transition-colors"
+                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[var(--bg-elevated)] transition-colors"
                 style={{ borderTop: i > 0 ? "1px solid #EFEFEA" : "none" }}
               >
                 <div className="w-[52px] shrink-0 text-center">
-                  <div className="text-[16px] font-bold text-[#1A1A1A] leading-none">
+                  <div className="text-[16px] font-bold text-[var(--text-primary)] leading-none">
                     {p.scheduledFor ? new Date(p.scheduledFor).getDate() : "—"}
                   </div>
-                  <div className="text-[10px] uppercase text-[#9B9B95] mt-0.5">
+                  <div className="text-[10px] uppercase text-[var(--text-muted)] mt-0.5">
                     {p.scheduledFor ? MONTHS[new Date(p.scheduledFor).getMonth()].slice(0, 3) : ""}
                   </div>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-[13px] font-medium text-[#1A1A1A] truncate">
-                    {p.caption || <span className="text-[#9B9B95] italic">Sem legenda</span>}
+                  <div className="text-[13px] font-medium text-[var(--text-primary)] truncate">
+                    {p.caption || <span className="text-[var(--text-muted)] italic">Sem legenda</span>}
                   </div>
                   <div className="flex items-center gap-1.5 mt-1">
-                    <span className="text-[11px] text-[#9B9B95]">{clientName(p.clientId)}</span>
-                    <span className="text-[#D7D7D2]">·</span>
-                    <span className="text-[11px] text-[#9B9B95] capitalize">{p.format}</span>
+                    <span className="text-[11px] text-[var(--text-muted)]">{clientName(p.clientId)}</span>
+                    <span className="text-[var(--border-strong)]">·</span>
+                    <span className="text-[11px] text-[var(--text-muted)] capitalize">{p.format}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
@@ -635,8 +635,8 @@ function Composer({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sticky top-0 bg-white px-5 py-4 flex items-center justify-between z-10" style={{ borderBottom: "1px solid #EFEFEA" }}>
-          <h2 className="text-[16px] font-semibold text-[#1A1A1A]">{post ? "Editar post" : "Novo post"}</h2>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full text-[#9B9B95] hover:bg-[#F0F0ED]">✕</button>
+          <h2 className="text-[16px] font-semibold text-[var(--text-primary)]">{post ? "Editar post" : "Novo post"}</h2>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full text-[var(--text-muted)] hover:bg-[var(--accent)]">✕</button>
         </div>
 
         <div className="px-5 py-4 space-y-4">
@@ -664,7 +664,7 @@ function Composer({
 
           <div>
             <div className="flex items-baseline justify-between mb-1.5">
-              <label className="text-[12px] font-semibold text-[#1A1A1A]">Legenda</label>
+              <label className="text-[12px] font-semibold text-[var(--text-primary)]">Legenda</label>
               <button
                 onClick={generateCaption}
                 disabled={generating}
@@ -679,7 +679,7 @@ function Composer({
               onChange={(e) => setCaption(e.target.value)}
               rows={5}
               placeholder="Escreva a legenda — ou digite uma ideia curta e toque em ✨ Gerar com IA."
-              className="w-full rounded-[8px] px-3 py-2 text-[13px] text-[#1A1A1A] outline-none resize-y"
+              className="w-full rounded-[8px] px-3 py-2 text-[13px] text-[var(--text-primary)] outline-none resize-y"
               style={{ border: "1px solid #E7E7E2" }}
             />
           </div>
@@ -690,7 +690,7 @@ function Composer({
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-1.5">
                   <span className="text-[13px]">🎬</span>
-                  <span className="text-[12px] font-semibold text-[#1A1A1A]">Roteiro de vídeo</span>
+                  <span className="text-[12px] font-semibold text-[var(--text-primary)]">Roteiro de vídeo</span>
                 </div>
                 <button
                   onClick={generateScript}
@@ -701,36 +701,36 @@ function Composer({
                 </button>
               </div>
               {!script ? (
-                <p className="text-[11.5px] text-[#9B9B95]">A IA escreve um roteiro filmável — ganchos, cenas, texto na tela, áudio e CTA — pronto para gravar.</p>
+                <p className="text-[11.5px] text-[var(--text-muted)]">A IA escreve um roteiro filmável — ganchos, cenas, texto na tela, áudio e CTA — pronto para gravar.</p>
               ) : (
                 <div className="space-y-3 mt-2">
                   {script.hooks.length > 0 && (
                     <div>
-                      <p className="text-[10.5px] font-semibold uppercase tracking-wide text-[#9B9B95] mb-1">Ganchos (teste A/B)</p>
+                      <p className="text-[10.5px] font-semibold uppercase tracking-wide text-[var(--text-muted)] mb-1">Ganchos (teste A/B)</p>
                       <ul className="space-y-1">
                         {script.hooks.map((h, i) => (
-                          <li key={i} className="text-[12px] text-[#3A3A38] flex gap-1.5"><span className="text-[#12B5AC]">›</span>{h}</li>
+                          <li key={i} className="text-[12px] text-[var(--text-secondary)] flex gap-1.5"><span className="text-[#12B5AC]">›</span>{h}</li>
                         ))}
                       </ul>
                     </div>
                   )}
                   <div>
-                    <p className="text-[10.5px] font-semibold uppercase tracking-wide text-[#9B9B95] mb-1.5">Cenas</p>
+                    <p className="text-[10.5px] font-semibold uppercase tracking-wide text-[var(--text-muted)] mb-1.5">Cenas</p>
                     <div className="space-y-2">
                       {script.scenes.map((s, i) => (
                         <div key={i} className="rounded-[8px] bg-white p-2.5" style={{ border: "1px solid #EFEFEA" }}>
                           <div className="flex items-center gap-1.5 mb-1">
                             <span className="w-4 h-4 rounded-full bg-[#0B0F2A] text-white text-[9px] font-bold flex items-center justify-center">{i + 1}</span>
-                            <span className="text-[11px] font-semibold text-[#1A1A1A]">{s.visual || "Cena"}</span>
+                            <span className="text-[11px] font-semibold text-[var(--text-primary)]">{s.visual || "Cena"}</span>
                           </div>
-                          {s.voiceover && <p className="text-[11.5px] text-[#3A3A38]"><span className="text-[#9B9B95]">🎙 </span>{s.voiceover}</p>}
-                          {s.onScreen && <p className="text-[11.5px] text-[#0E5F5A] mt-0.5"><span className="text-[#9B9B95]">▦ </span>{s.onScreen}</p>}
+                          {s.voiceover && <p className="text-[11.5px] text-[var(--text-secondary)]"><span className="text-[var(--text-muted)]">🎙 </span>{s.voiceover}</p>}
+                          {s.onScreen && <p className="text-[11.5px] text-[#0E5F5A] mt-0.5"><span className="text-[var(--text-muted)]">▦ </span>{s.onScreen}</p>}
                         </div>
                       ))}
                     </div>
                   </div>
-                  {script.audio && <p className="text-[11.5px] text-[#3A3A38]"><span className="font-semibold">Áudio:</span> {script.audio}</p>}
-                  {script.cta && <p className="text-[11.5px] text-[#3A3A38]"><span className="font-semibold">CTA:</span> {script.cta}</p>}
+                  {script.audio && <p className="text-[11.5px] text-[var(--text-secondary)]"><span className="font-semibold">Áudio:</span> {script.audio}</p>}
+                  {script.cta && <p className="text-[11.5px] text-[var(--text-secondary)]"><span className="font-semibold">CTA:</span> {script.cta}</p>}
 
                   {/* Ready-to-paste generation prompt for Runway / Pika */}
                   <div className="rounded-[8px] p-2.5" style={{ background: "#0B0F2A" }}>
@@ -747,7 +747,7 @@ function Composer({
                     <p className="text-[10.5px] leading-relaxed" style={{ color: "#8C93AE" }}>Cole no Runway ou Pika para gerar o vídeo. Quando você assinar um deles, a geração automática entra aqui neste mesmo prompt.</p>
                   </div>
 
-                  <button onClick={() => setScript(null)} className="text-[11px] text-[#9B9B95] hover:text-[#DC2626]">Remover roteiro</button>
+                  <button onClick={() => setScript(null)} className="text-[11px] text-[var(--text-muted)] hover:text-[var(--danger)]">Remover roteiro</button>
                 </div>
               )}
             </div>
@@ -755,12 +755,12 @@ function Composer({
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Formato">
-              <select value={format} onChange={(e) => setFormat(e.target.value)} className="w-full h-9 px-3 rounded-[8px] text-[13px] text-[#1A1A1A] outline-none" style={{ border: "1px solid #E7E7E2", background: "#fff" }}>
+              <select value={format} onChange={(e) => setFormat(e.target.value)} className="w-full h-9 px-3 rounded-[8px] text-[13px] text-[var(--text-primary)] outline-none" style={{ border: "1px solid #E7E7E2", background: "#fff" }}>
                 {FORMATS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
               </select>
             </Field>
             <Field label="Status">
-              <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full h-9 px-3 rounded-[8px] text-[13px] text-[#1A1A1A] outline-none" style={{ border: "1px solid #E7E7E2", background: "#fff" }}>
+              <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full h-9 px-3 rounded-[8px] text-[13px] text-[var(--text-primary)] outline-none" style={{ border: "1px solid #E7E7E2", background: "#fff" }}>
                 <option value="draft">Rascunho</option>
                 <option value="scheduled">Agendado</option>
                 <option value="published">Publicado</option>
@@ -770,7 +770,7 @@ function Composer({
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Cliente">
-              <select value={clientId} onChange={(e) => setClientId(e.target.value)} className="w-full h-9 px-3 rounded-[8px] text-[13px] text-[#1A1A1A] outline-none" style={{ border: "1px solid #E7E7E2", background: "#fff" }}>
+              <select value={clientId} onChange={(e) => setClientId(e.target.value)} className="w-full h-9 px-3 rounded-[8px] text-[13px] text-[var(--text-primary)] outline-none" style={{ border: "1px solid #E7E7E2", background: "#fff" }}>
                 <option value="">Sem cliente</option>
                 {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
@@ -780,7 +780,7 @@ function Composer({
                 type="datetime-local"
                 value={when}
                 onChange={(e) => setWhen(e.target.value)}
-                className="w-full h-9 px-3 rounded-[8px] text-[13px] text-[#1A1A1A] outline-none"
+                className="w-full h-9 px-3 rounded-[8px] text-[13px] text-[var(--text-primary)] outline-none"
                 style={{ border: "1px solid #E7E7E2", background: "#fff" }}
               />
             </Field>
@@ -792,7 +792,7 @@ function Composer({
                 value={pillar}
                 onChange={(e) => setPillar(e.target.value)}
                 placeholder="Pilar editorial"
-                className="w-full h-9 px-3 rounded-[8px] text-[13px] text-[#1A1A1A] outline-none"
+                className="w-full h-9 px-3 rounded-[8px] text-[13px] text-[var(--text-primary)] outline-none"
                 style={{ border: "1px solid #E7E7E2" }}
               />
             </Field>
@@ -801,23 +801,23 @@ function Composer({
                 value={mediaUrl}
                 onChange={(e) => setMediaUrl(e.target.value)}
                 placeholder="https://…"
-                className="w-full h-9 px-3 rounded-[8px] text-[13px] text-[#1A1A1A] outline-none"
+                className="w-full h-9 px-3 rounded-[8px] text-[13px] text-[var(--text-primary)] outline-none"
                 style={{ border: "1px solid #E7E7E2" }}
               />
             </Field>
           </div>
 
-          {error && <div className="text-[12px] text-[#DC2626] bg-[#FEF2F2] rounded-[8px] px-3 py-2">{error}</div>}
+          {error && <div className="text-[12px] text-[var(--danger)] bg-[var(--danger-bg)] rounded-[8px] px-3 py-2">{error}</div>}
         </div>
 
         <div className="sticky bottom-0 bg-white px-5 py-3.5 flex items-center gap-2" style={{ borderTop: "1px solid #EFEFEA" }}>
           {onDelete && (
-            <button onClick={onDelete} className="h-9 px-3 rounded-[8px] text-[12.5px] font-medium text-[#DC2626] hover:bg-[#FEF2F2]">
+            <button onClick={onDelete} className="h-9 px-3 rounded-[8px] text-[12.5px] font-medium text-[var(--danger)] hover:bg-[var(--danger-bg)]">
               Excluir
             </button>
           )}
           <div className="flex-1" />
-          <button onClick={onClose} className="h-9 px-4 rounded-[8px] text-[12.5px] font-medium text-[#6B6B65] hover:bg-[#F0F0ED]">
+          <button onClick={onClose} className="h-9 px-4 rounded-[8px] text-[12.5px] font-medium text-[var(--text-secondary)] hover:bg-[var(--accent)]">
             Cancelar
           </button>
           <button
@@ -876,10 +876,10 @@ function IdeasPanel({
       <div className="bg-white w-full sm:max-w-[560px] max-h-[92vh] overflow-y-auto rounded-t-[16px] sm:rounded-[16px] shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="sticky top-0 bg-white px-5 py-4 flex items-center justify-between z-10" style={{ borderBottom: "1px solid #EFEFEA" }}>
           <div>
-            <h2 className="text-[16px] font-semibold text-[#1A1A1A]">✨ Ideias de conteúdo</h2>
-            <p className="text-[11.5px] text-[#9B9B95] mt-0.5">Para {clientName}</p>
+            <h2 className="text-[16px] font-semibold text-[var(--text-primary)]">✨ Ideias de conteúdo</h2>
+            <p className="text-[11.5px] text-[var(--text-muted)] mt-0.5">Para {clientName}</p>
           </div>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full text-[#9B9B95] hover:bg-[#F0F0ED]">✕</button>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full text-[var(--text-muted)] hover:bg-[var(--accent)]">✕</button>
         </div>
 
         <div className="px-5 py-4 space-y-4">
@@ -889,7 +889,7 @@ function IdeasPanel({
               onChange={(e) => setBrief(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !loading) run(); }}
               placeholder="Direcionamento (opcional): ex. lançamento, datas comemorativas…"
-              className="flex-1 h-9 px-3 rounded-[8px] text-[13px] text-[#1A1A1A] outline-none"
+              className="flex-1 h-9 px-3 rounded-[8px] text-[13px] text-[var(--text-primary)] outline-none"
               style={{ border: "1px solid #E7E7E2" }}
             />
             <button
@@ -902,24 +902,24 @@ function IdeasPanel({
             </button>
           </div>
 
-          {error && <div className="text-[12px] text-[#DC2626] bg-[#FEF2F2] rounded-[8px] px-3 py-2">{error}</div>}
+          {error && <div className="text-[12px] text-[var(--danger)] bg-[var(--danger-bg)] rounded-[8px] px-3 py-2">{error}</div>}
 
           {ideas.length === 0 && !loading && !error && (
-            <div className="text-[13px] text-[#9B9B95] text-center py-8">
+            <div className="text-[13px] text-[var(--text-muted)] text-center py-8">
               Toque em <span className="font-semibold text-[#0E5F5A]">Gerar ideias</span> e a IA sugere pautas específicas para este cliente.
             </div>
           )}
 
           <div className="space-y-2">
             {ideas.map((idea, i) => (
-              <div key={i} className="rounded-[12px] border border-[#ECEBE7] px-3.5 py-3 hover:border-[#C7EFEC] transition-colors">
+              <div key={i} className="rounded-[12px] border border-[var(--border)] px-3.5 py-3 hover:border-[#C7EFEC] transition-colors">
                 <div className="flex items-start gap-2">
                   <div className="min-w-0 flex-1">
-                    <p className="text-[13px] font-semibold text-[#1A1A1A]">{idea.title}</p>
-                    {idea.angle && <p className="text-[12px] text-[#6B6B65] mt-0.5 leading-snug">{idea.angle}</p>}
+                    <p className="text-[13px] font-semibold text-[var(--text-primary)]">{idea.title}</p>
+                    {idea.angle && <p className="text-[12px] text-[var(--text-secondary)] mt-0.5 leading-snug">{idea.angle}</p>}
                     <div className="flex items-center gap-1.5 mt-1.5">
-                      <span className="h-[18px] px-2 rounded-full bg-[#F0F0ED] text-[#6B6B65] text-[10px] font-medium capitalize flex items-center">{idea.format}</span>
-                      {idea.pillar && <span className="h-[18px] px-2 rounded-full bg-[#E6FBFA] text-[#0E5F5A] text-[10px] font-medium flex items-center">{idea.pillar}</span>}
+                      <span className="h-[18px] px-2 rounded-full bg-[var(--accent)] text-[var(--text-secondary)] text-[10px] font-medium capitalize flex items-center">{idea.format}</span>
+                      {idea.pillar && <span className="h-[18px] px-2 rounded-full bg-[var(--accent-light)] text-[#0E5F5A] text-[10px] font-medium flex items-center">{idea.pillar}</span>}
                     </div>
                   </div>
                   <button
@@ -943,8 +943,8 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
   return (
     <div>
       <div className="flex items-baseline justify-between mb-1.5">
-        <label className="text-[12px] font-semibold text-[#1A1A1A]">{label}</label>
-        {hint && <span className="text-[10.5px] text-[#9B9B95]">{hint}</span>}
+        <label className="text-[12px] font-semibold text-[var(--text-primary)]">{label}</label>
+        {hint && <span className="text-[10.5px] text-[var(--text-muted)]">{hint}</span>}
       </div>
       {children}
     </div>

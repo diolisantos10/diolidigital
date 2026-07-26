@@ -60,8 +60,8 @@ export function BrainPipelinePortalSection({ clientId }: { clientId: string }) {
   return (
     <div className="mt-8">
       <div className="flex items-center gap-2 mb-4">
-        <h2 className="text-[15px] font-semibold text-[#1A1A1A]">Acompanhamento de Projeto</h2>
-        <span className="h-5 px-2 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[10px] font-semibold flex items-center">
+        <h2 className="text-[15px] font-semibold text-[var(--text-primary)]">Acompanhamento de Projeto</h2>
+        <span className="h-5 px-2 rounded-full bg-[var(--accent-light)] text-[var(--navy)] text-[10px] font-semibold flex items-center">
           ✦ Dioli Brain
         </span>
       </div>
@@ -72,19 +72,19 @@ export function BrainPipelinePortalSection({ clientId }: { clientId: string }) {
           const statusLabel = STATUS_LABEL[req.status] ?? req.status;
 
           return (
-            <div key={req.id} className="bg-white border border-[#E5E5E2] rounded-[12px] overflow-hidden">
-              <div className="px-4 py-3 border-b border-[#F0F0ED] flex items-center justify-between gap-3">
+            <div key={req.id} className="bg-white border border-[var(--border)] rounded-[12px] overflow-hidden">
+              <div className="px-4 py-3 border-b border-[var(--border)] flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-[13px] font-semibold text-[#1A1A1A]">{req.businessName}</p>
-                  <p className="text-[11px] text-[#6B6B65] mt-0.5">{statusLabel}</p>
+                  <p className="text-[13px] font-semibold text-[var(--text-primary)]">{req.businessName}</p>
+                  <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">{statusLabel}</p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-[11px] text-[#9B9B95]">
+                  <p className="text-[11px] text-[var(--text-muted)]">
                     {doneCount}/{DEPT_ORDER.length} etapas
                   </p>
-                  <div className="w-20 h-1.5 bg-[#F0F0ED] rounded-full mt-1 overflow-hidden">
+                  <div className="w-20 h-1.5 bg-[var(--accent)] rounded-full mt-1 overflow-hidden">
                     <div
-                      className="h-full bg-[#070A1F] rounded-full transition-all"
+                      className="h-full bg-[var(--navy)] rounded-full transition-all"
                       style={{ width: `${(doneCount / DEPT_ORDER.length) * 100}%` }}
                     />
                   </div>
@@ -97,15 +97,15 @@ export function BrainPipelinePortalSection({ clientId }: { clientId: string }) {
                   return (
                     <div key={key} className="flex items-center gap-2.5">
                       <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 ${
-                        done ? "bg-[#DCFCE7] text-[#16A34A]" : "bg-[#F0F0ED] text-[#9B9B95]"
+                        done ? "bg-[var(--success-bg)] text-[var(--success)]" : "bg-[var(--accent)] text-[var(--text-muted)]"
                       }`}>
                         {done ? "✓" : idx + 1}
                       </div>
-                      <span className={`text-[12px] ${done ? "text-[#1A1A1A]" : "text-[#9B9B95]"}`}>
+                      <span className={`text-[12px] ${done ? "text-[var(--text-primary)]" : "text-[var(--text-muted)]"}`}>
                         {DEPT_NAMES[key] ?? key}
                       </span>
                       {step?.approvedAt && (
-                        <span className="ml-auto text-[10px] text-[#9B9B95] shrink-0">
+                        <span className="ml-auto text-[10px] text-[var(--text-muted)] shrink-0">
                           {new Date(step.approvedAt).toLocaleDateString("pt-BR")}
                         </span>
                       )}

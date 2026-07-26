@@ -7,11 +7,11 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const VARIANTS: Record<string, string> = {
-  primary:   "bg-[#070A1F] text-white hover:bg-[#0E1333] active:bg-[#161B3D] shadow-[0_1px_2px_rgba(0,0,0,0.2)]",
-  secondary: "bg-white text-[#1A1A1A] border border-[#E5E5E2] hover:bg-[#F5F5F3] hover:border-[#C8C8C4] active:bg-[#EEEEEC] shadow-[0_1px_2px_rgba(0,0,0,0.06)]",
-  ghost:     "bg-transparent text-[#6B6B65] hover:bg-[#F0F0ED] hover:text-[#1A1A1A] active:bg-[#E8E8E5]",
-  danger:    "bg-[#FEE2E2] text-[#DC2626] border border-[#FECACA] hover:bg-[#FECACA] active:bg-[#FCA5A5]",
-  cyan:      "bg-[#9AF5F0] text-[#070A1F] hover:bg-[#7DEDE7] active:bg-[#60E0DB] shadow-[0_1px_2px_rgba(0,0,0,0.1)]",
+  primary:   "bg-[var(--navy)] text-white hover:bg-[#0E1333] active:bg-[#161B3D] shadow-[0_1px_2px_rgba(0,0,0,0.2)]",
+  secondary: "bg-white text-[var(--text-primary)] border border-[var(--border)] hover:bg-[var(--bg)] hover:border-[var(--text-subtle)] active:bg-[var(--border)] shadow-[0_1px_2px_rgba(0,0,0,0.06)]",
+  ghost:     "bg-transparent text-[var(--text-secondary)] hover:bg-[var(--accent)] hover:text-[var(--text-primary)] active:bg-[var(--border)]",
+  danger:    "bg-[#FEE2E2] text-[var(--danger)] border border-[#FECACA] hover:bg-[#FECACA] active:bg-[#FCA5A5]",
+  cyan:      "bg-[var(--cyan)] text-[var(--navy)] hover:bg-[#7DEDE7] active:bg-[#60E0DB] shadow-[0_1px_2px_rgba(0,0,0,0.1)]",
 };
 
 const SIZES: Record<string, string> = {

@@ -248,14 +248,14 @@ const DEPT_DEFS: Array<{ key: string; name: string; types: string[]; color: stri
     key: "design",
     name: "Design",
     types: ["Design", "Visual Identity", "Brand Assets"],
-    color: "bg-[#FFF4ED] text-[#C2530A]",
-    accentHex: "#C2530A",
+    color: "bg-[#E6FBFA] text-[#0E7C75]",
+    accentHex: "#0E7C75",
   },
   {
     key: "ads",
     name: "Tráfego Pago",
     types: ["Ads Strategy", "Campaign Structure", "Audience Plan", "Ad Copy", "Creative Requirements", "Optimization Notes"],
-    color: "bg-[#ECFEFF] text-[#0E7490]",
+    color: "bg-[#E6FBFA] text-[#0E7490]",
     accentHex: "#0E7490",
   },
 ];
@@ -622,7 +622,7 @@ export interface TimelineWeek {
 }
 
 const TL_SOCIAL = "#070A1F";
-const TL_DESIGN = "#C2530A";
+const TL_DESIGN = "#0E7C75";
 const TL_ADS = "#0E7490";
 
 export function getPilotTimeline(project: Project): TimelineWeek[] {

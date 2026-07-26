@@ -15,10 +15,10 @@ function SourceBadge({ source }: { source: "db" | "local" }) {
   return (
     <span className={`inline-flex items-center gap-1 h-5 px-2 rounded-full text-[10px] font-semibold ${
       source === "db"
-        ? "bg-[#DCFCE7] text-[#16A34A]"
-        : "bg-[#F0F0ED] text-[#9B9B95]"
+        ? "bg-[var(--success-bg)] text-[var(--success)]"
+        : "bg-[var(--accent)] text-[var(--text-muted)]"
     }`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${source === "db" ? "bg-[#16A34A]" : "bg-[#9B9B95]"}`} />
+      <span className={`w-1.5 h-1.5 rounded-full ${source === "db" ? "bg-[var(--success)]" : "bg-[var(--text-muted)]"}`} />
       {source === "db" ? "DB" : "Local"}
     </span>
   );
@@ -61,7 +61,7 @@ export default function ClientsPage() {
         meta={
           <div className="flex items-center gap-2">
             {loading ? (
-              <span className="text-[11px] text-[#9B9B95]">Carregando…</span>
+              <span className="text-[11px] text-[var(--text-muted)]">Carregando…</span>
             ) : (
               <SourceBadge source={source} />
             )}
@@ -80,7 +80,7 @@ export default function ClientsPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar clientes..."
-          className="h-8 px-3 text-[13px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] placeholder:text-[#9B9B95] w-64"
+          className="h-8 px-3 text-[13px] bg-white border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] placeholder:text-[var(--text-muted)] w-64"
         />
         <div className="flex items-center gap-1.5">
           {(["all", "active", "inactive", "prospect"] as const).map((s) => (
@@ -88,7 +88,7 @@ export default function ClientsPage() {
               key={s}
               onClick={() => setStatusFilter(s)}
               className={`h-7 px-3 text-[12px] font-medium rounded-[6px] transition-colors ${
-                statusFilter === s ? "bg-[#1A1A1A] text-white" : "bg-white border border-[#E5E5E2] text-[#6B6B65] hover:bg-[#F0F0ED]"
+                statusFilter === s ? "bg-[var(--text-primary)] text-white" : "bg-white border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--accent)]"
               }`}
             >
               {s === "all" ? "Todos" : s === "active" ? "Ativo" : s === "inactive" ? "Inativo" : "Prospect"}
@@ -105,46 +105,46 @@ export default function ClientsPage() {
           action={<Button variant="primary" onClick={() => setModalOpen(true)}>Adicionar Cliente</Button>}
         />
       ) : (
-        <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+        <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-[#F0F0ED]">
-                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Cliente</th>
-                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Setor</th>
-                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Status</th>
-                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Projetos</th>
-                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Desde</th>
+              <tr className="border-b border-[var(--border)]">
+                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Cliente</th>
+                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Setor</th>
+                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Status</th>
+                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Projetos</th>
+                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Desde</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((client, i) => (
                 <tr
                   key={client.id}
-                  className={`group hover:bg-[#FAFAF9] transition-colors ${i > 0 ? "border-t border-[#F0F0ED]" : ""}`}
+                  className={`group hover:bg-[var(--bg-elevated)] transition-colors ${i > 0 ? "border-t border-[var(--border)]" : ""}`}
                 >
                   <td className="px-5 py-3.5">
                     <Link href={`/agency/clients/${client.id}`} className="block">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-[8px] bg-[#F0F0ED] flex items-center justify-center text-[12px] font-semibold text-[#6B6B65] shrink-0">
+                        <div className="w-8 h-8 rounded-[8px] bg-[var(--accent)] flex items-center justify-center text-[12px] font-semibold text-[var(--text-secondary)] shrink-0">
                           {client.name.slice(0, 2).toUpperCase()}
                         </div>
                         <div>
-                          <div className="text-[13px] font-medium text-[#1A1A1A] group-hover:text-[#070A1F] transition-colors">
+                          <div className="text-[13px] font-medium text-[var(--text-primary)] group-hover:text-[var(--navy)] transition-colors">
                             {client.name}
                           </div>
                           {client.website && (
-                            <div className="text-[11px] text-[#9B9B95]">{client.website}</div>
+                            <div className="text-[11px] text-[var(--text-muted)]">{client.website}</div>
                           )}
                         </div>
                       </div>
                     </Link>
                   </td>
-                  <td className="px-5 py-3.5 text-[13px] text-[#6B6B65]">{client.industry}</td>
+                  <td className="px-5 py-3.5 text-[13px] text-[var(--text-secondary)]">{client.industry}</td>
                   <td className="px-5 py-3.5">
                     <Badge variant={client.status} />
                   </td>
-                  <td className="px-5 py-3.5 text-[13px] text-[#6B6B65] mono-num">{getProjectCount(client.id)}</td>
-                  <td className="px-5 py-3.5 text-[13px] text-[#9B9B95]">{client.createdAt.slice(0, 7)}</td>
+                  <td className="px-5 py-3.5 text-[13px] text-[var(--text-secondary)] mono-num">{getProjectCount(client.id)}</td>
+                  <td className="px-5 py-3.5 text-[13px] text-[var(--text-muted)]">{client.createdAt.slice(0, 7)}</td>
                 </tr>
               ))}
             </tbody>
@@ -156,30 +156,30 @@ export default function ClientsPage() {
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Novo Cliente">
         <div className="space-y-4">
           <div>
-            <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Nome *</label>
+            <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5">Nome *</label>
             <input
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               placeholder="ex.: Sushikasa"
-              className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
+              className="w-full h-8 px-3 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white"
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Setor</label>
+              <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5">Setor</label>
               <input
                 value={form.industry}
                 onChange={(e) => setForm({ ...form, industry: e.target.value })}
                 placeholder="ex.: Alimentação"
-                className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
+                className="w-full h-8 px-3 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white"
               />
             </div>
             <div>
-              <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Status</label>
+              <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5">Status</label>
               <select
                 value={form.status}
                 onChange={(e) => setForm({ ...form, status: e.target.value as ClientStatus })}
-                className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
+                className="w-full h-8 px-3 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white"
               >
                 <option value="active">Ativo</option>
                 <option value="inactive">Inativo</option>
@@ -188,22 +188,22 @@ export default function ClientsPage() {
             </div>
           </div>
           <div>
-            <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Site</label>
+            <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5">Site</label>
             <input
               value={form.website}
               onChange={(e) => setForm({ ...form, website: e.target.value })}
               placeholder="ex.: exemplo.com.br"
-              className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
+              className="w-full h-8 px-3 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white"
             />
           </div>
           <div>
-            <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Descrição</label>
+            <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5">Descrição</label>
             <textarea
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               placeholder="Breve descrição do cliente..."
               rows={3}
-              className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white resize-none"
+              className="w-full px-3 py-2 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white resize-none"
             />
           </div>
           <div className="flex justify-end gap-2.5 pt-1">

@@ -11,9 +11,9 @@ interface AgencyHeaderProps {
 
 export default function AgencyHeader({ title, eyebrow, subtitle, actions, meta, tone = "light" }: AgencyHeaderProps) {
   const isDark = tone === "dark";
-  const titleColor    = isDark ? "text-white" : "text-[#1A1A1A]";
-  const subtitleColor = isDark ? "text-[#9B9B95]" : "text-[#6B6B65]";
-  const eyebrowColor  = isDark ? "text-[#6B6B65]" : "text-[#9B9B95]";
+  const titleColor    = isDark ? "text-white" : "text-[var(--text-primary)]";
+  const subtitleColor = isDark ? "text-[var(--text-muted)]" : "text-[var(--text-secondary)]";
+  const eyebrowColor  = isDark ? "text-[var(--text-secondary)]" : "text-[var(--text-muted)]";
 
   return (
     <div className="flex items-start justify-between gap-4 mb-7">

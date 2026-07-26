@@ -69,10 +69,10 @@ interface ActionItem {
 }
 
 const TYPE_STYLES: Record<ActionType, { bg: string; text: string }> = {
-  unblock:   { bg: "bg-[#FEE2E2]", text: "text-[#DC2626]" },
-  review:    { bg: "bg-[#FEF3C7]", text: "text-[#D97706]" },
-  execution: { bg: "bg-[#E6FBFA]", text: "text-[#070A1F]" },
-  planning:  { bg: "bg-[#F0F0ED]", text: "text-[#6B6B65]" },
+  unblock:   { bg: "bg-[#FEE2E2]", text: "text-[var(--danger)]" },
+  review:    { bg: "bg-[var(--warning-bg)]", text: "text-[var(--warning)]" },
+  execution: { bg: "bg-[var(--accent-light)]", text: "text-[var(--navy)]" },
+  planning:  { bg: "bg-[var(--accent)]", text: "text-[var(--text-secondary)]" },
 };
 
 // Maps agent IDs to dedicated agent pages (only agents with a page get direct execution)
@@ -111,16 +111,16 @@ function scoreAction(
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 const DOCTOR_STATUS_COLOR = {
-  healthy:  { bg: "bg-[#DCFCE7]", text: "text-[#16A34A]", dot: "bg-[#16A34A]", label: "Sistema saudável" },
-  degraded: { bg: "bg-[#FEF3C7]", text: "text-[#D97706]", dot: "bg-[#D97706]", label: "Atenção necessária" },
-  critical: { bg: "bg-[#FEE2E2]", text: "text-[#DC2626]", dot: "bg-[#DC2626]", label: "Falha crítica" },
+  healthy:  { bg: "bg-[var(--success-bg)]", text: "text-[var(--success)]", dot: "bg-[var(--success)]", label: "Sistema saudável" },
+  degraded: { bg: "bg-[var(--warning-bg)]", text: "text-[var(--warning)]", dot: "bg-[var(--warning)]", label: "Atenção necessária" },
+  critical: { bg: "bg-[#FEE2E2]", text: "text-[var(--danger)]", dot: "bg-[var(--danger)]", label: "Falha crítica" },
 };
 
 const URGENCY_STYLE: Record<PMUrgency, { bg: string; text: string; label: string }> = {
-  critical: { bg: "bg-[#FEE2E2]", text: "text-[#DC2626]", label: "Crítico" },
-  high:     { bg: "bg-[#FEF3C7]", text: "text-[#D97706]", label: "Alto" },
-  normal:   { bg: "bg-[#E6FBFA]", text: "text-[#070A1F]", label: "Normal" },
-  low:      { bg: "bg-[#F0F0ED]", text: "text-[#9B9B95]", label: "Baixo" },
+  critical: { bg: "bg-[#FEE2E2]", text: "text-[var(--danger)]", label: "Crítico" },
+  high:     { bg: "bg-[var(--warning-bg)]", text: "text-[var(--warning)]", label: "Alto" },
+  normal:   { bg: "bg-[var(--accent-light)]", text: "text-[var(--navy)]", label: "Normal" },
+  low:      { bg: "bg-[var(--accent)]", text: "text-[var(--text-muted)]", label: "Baixo" },
 };
 
 export default function DashboardPage() {
@@ -422,11 +422,11 @@ export default function DashboardPage() {
     <div>
       {/* ── Hero header ─────────────────────────────────────────────────────── */}
       <div className="mb-7">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#9B9B95] mb-1.5">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)] mb-1.5">
           {mounted ? new Date().toLocaleDateString("pt-BR", { weekday: "long", month: "long", day: "numeric" }) : "\u00a0"}
         </p>
         <div className="flex items-end justify-between gap-4 mb-5">
-          <h1 className="text-[26px] font-semibold tracking-[-0.03em] text-[#1A1A1A] leading-tight">
+          <h1 className="text-[26px] font-semibold tracking-[-0.03em] text-[var(--text-primary)] leading-tight">
             {t.dashboard.title}
           </h1>
           <Link
@@ -445,11 +445,11 @@ export default function DashboardPage() {
             { label: "Entregas pendentes",  value: deliverables.filter((d) => d.status === "draft" || d.status === "in_review").length, sub: `${deliverables.filter((d) => d.status === "approved").length} aprovadas`, color: "#16A34A" },
             { label: "Atenção necessária",  value: totalAttention, sub: totalAttention === 0 ? "tudo em dia" : "itens pendentes", color: totalAttention > 0 ? "#DC2626" : "#16A34A" },
           ].map((kpi) => (
-            <div key={kpi.label} className="bg-white rounded-[12px] border border-[#E5E5E2] px-4 py-3.5" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-              <div className="text-[11px] font-medium text-[#9B9B95] mb-1 truncate">{kpi.label}</div>
+            <div key={kpi.label} className="bg-white rounded-[12px] border border-[var(--border)] px-4 py-3.5" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+              <div className="text-[11px] font-medium text-[var(--text-muted)] mb-1 truncate">{kpi.label}</div>
               <div className="flex items-baseline gap-2">
                 <span className="text-[24px] font-bold leading-none mono-num" style={{ color: kpi.color }}>{kpi.value}</span>
-                <span className="text-[11px] text-[#C0C0BC] truncate">{kpi.sub}</span>
+                <span className="text-[11px] text-[var(--text-subtle)] truncate">{kpi.sub}</span>
               </div>
             </div>
           ))}
@@ -457,60 +457,60 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Centro de Comando ─────────────────────────────────────────────── */}
-      <div className="bg-white rounded-[12px] border border-[#E5E5E2] overflow-hidden mb-4">
-        <div className="flex items-center justify-between px-5 py-3 border-b border-[#F0F0ED]">
+      <div className="bg-white rounded-[12px] border border-[var(--border)] overflow-hidden mb-4">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border)]">
           <div className="flex items-center gap-2">
-            <h2 className="text-[13px] font-semibold text-[#1A1A1A]">Centro de Comando</h2>
-            <span className="text-[11px] text-[#9B9B95]">O que precisa da sua atenção agora?</span>
+            <h2 className="text-[13px] font-semibold text-[var(--text-primary)]">Centro de Comando</h2>
+            <span className="text-[11px] text-[var(--text-muted)]">O que precisa da sua atenção agora?</span>
           </div>
-          <Link href="/agency/approvals" className="text-[11px] text-[#070A1F] font-medium hover:underline">
-            Ver aprovações {totalAttention > 0 && <span className="ml-1 bg-[#D97706] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">{totalAttention}</span>}
+          <Link href="/agency/approvals" className="text-[11px] text-[var(--navy)] font-medium hover:underline">
+            Ver aprovações {totalAttention > 0 && <span className="ml-1 bg-[var(--warning)] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">{totalAttention}</span>}
           </Link>
         </div>
 
         {/* Attention chips row */}
         {totalAttention > 0 ? (
-          <div className="flex items-center gap-2 px-5 py-3 flex-wrap border-b border-[#F0F0ED]">
+          <div className="flex items-center gap-2 px-5 py-3 flex-wrap border-b border-[var(--border)]">
             {attentionCounts.sentProposals > 0 && (
-              <Link href="/agency/approvals" className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#E6FBFA] hover:bg-[#E5E7FF] transition-colors">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#070A1F]" />
-                <span className="text-[11px] font-semibold text-[#070A1F]">{attentionCounts.sentProposals} proposta{attentionCounts.sentProposals !== 1 ? "s" : ""} aguardando</span>
+              <Link href="/agency/approvals" className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--accent-light)] hover:bg-[#E6EEFF] transition-colors">
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--navy)]" />
+                <span className="text-[11px] font-semibold text-[var(--navy)]">{attentionCounts.sentProposals} proposta{attentionCounts.sentProposals !== 1 ? "s" : ""} aguardando</span>
               </Link>
             )}
             {attentionCounts.inReviewDelivs > 0 && (
-              <Link href="/agency/approvals" className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#FEF3C7] hover:bg-[#FDE68A] transition-colors">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#D97706]" />
-                <span className="text-[11px] font-semibold text-[#D97706]">{attentionCounts.inReviewDelivs} entrega{attentionCounts.inReviewDelivs !== 1 ? "s" : ""} em revisão</span>
+              <Link href="/agency/approvals" className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--warning-bg)] hover:bg-[#FDE68A] transition-colors">
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--warning)]" />
+                <span className="text-[11px] font-semibold text-[var(--warning)]">{attentionCounts.inReviewDelivs} entrega{attentionCounts.inReviewDelivs !== 1 ? "s" : ""} em revisão</span>
               </Link>
             )}
             {attentionCounts.revisionNeeded > 0 && (
               <Link href="/agency/approvals" className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#FEE2E2] hover:bg-[#FECACA] transition-colors">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#DC2626]" />
-                <span className="text-[11px] font-semibold text-[#DC2626]">{attentionCounts.revisionNeeded} revis{attentionCounts.revisionNeeded !== 1 ? "ões" : "ão"} solicitada{attentionCounts.revisionNeeded !== 1 ? "s" : ""}</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--danger)]" />
+                <span className="text-[11px] font-semibold text-[var(--danger)]">{attentionCounts.revisionNeeded} revis{attentionCounts.revisionNeeded !== 1 ? "ões" : "ão"} solicitada{attentionCounts.revisionNeeded !== 1 ? "s" : ""}</span>
               </Link>
             )}
             {attentionCounts.pendingBrand > 0 && (
-              <Link href="/agency/approvals" className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#EDE9FE] hover:bg-[#9AF5F0] transition-colors">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#070A1F]" />
-                <span className="text-[11px] font-semibold text-[#070A1F]">{attentionCounts.pendingBrand} sugestão{attentionCounts.pendingBrand !== 1 ? "" : ""} de marca</span>
+              <Link href="/agency/approvals" className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#E9EFFF] hover:bg-[var(--cyan)] transition-colors">
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--navy)]" />
+                <span className="text-[11px] font-semibold text-[var(--navy)]">{attentionCounts.pendingBrand} sugestão{attentionCounts.pendingBrand !== 1 ? "" : ""} de marca</span>
               </Link>
             )}
             {attentionCounts.pendingMaterials > 0 && (
-              <Link href="/agency/approvals" className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#E0F2FE] hover:bg-[#BAE6FD] transition-colors">
+              <Link href="/agency/approvals" className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#E6FBFA] hover:bg-[#C7EFEC] transition-colors">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#0891B2]" />
                 <span className="text-[11px] font-semibold text-[#0891B2]">{attentionCounts.pendingMaterials} material(is) pendente{attentionCounts.pendingMaterials !== 1 ? "s" : ""}</span>
               </Link>
             )}
           </div>
         ) : (
-          <div className="px-5 py-3 border-b border-[#F0F0ED]">
-            <span className="text-[12px] text-[#16A34A] font-medium">✓ Nenhuma aprovação pendente</span>
+          <div className="px-5 py-3 border-b border-[var(--border)]">
+            <span className="text-[12px] text-[var(--success)] font-medium">✓ Nenhuma aprovação pendente</span>
           </div>
         )}
 
         {/* PM Agent directives per project */}
         {pmDirectives.length > 0 ? (
-          <div className="divide-y divide-[#F7F7F6]">
+          <div className="divide-y divide-[var(--border)]">
             {pmDirectives.slice(0, 4).map((d) => {
               const style = URGENCY_STYLE[d.urgency];
               return (
@@ -519,19 +519,19 @@ export default function DashboardPage() {
                     {style.label}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[12px] font-medium text-[#1A1A1A] leading-snug">
-                      <span className="text-[#9B9B95] font-normal">{d.projectName} · </span>
+                    <p className="text-[12px] font-medium text-[var(--text-primary)] leading-snug">
+                      <span className="text-[var(--text-muted)] font-normal">{d.projectName} · </span>
                       {d.nextAction}
                     </p>
-                    <p className="text-[11px] text-[#9B9B95] mt-0.5">{d.reason}</p>
+                    <p className="text-[11px] text-[var(--text-muted)] mt-0.5">{d.reason}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     {d.blocker && (
-                      <span className="text-[10px] font-semibold text-[#DC2626] bg-[#FEE2E2] px-1.5 py-0.5 rounded">Bloqueio</span>
+                      <span className="text-[10px] font-semibold text-[var(--danger)] bg-[#FEE2E2] px-1.5 py-0.5 rounded">Bloqueio</span>
                     )}
                     <Link
                       href={d.route}
-                      className="h-6 px-2.5 rounded-[5px] text-[11px] font-medium border border-[#E5E5E2] text-[#6B6B65] hover:border-[#070A1F] hover:text-[#070A1F] transition-colors whitespace-nowrap inline-flex items-center"
+                      className="h-6 px-2.5 rounded-[5px] text-[11px] font-medium border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--navy)] hover:text-[var(--navy)] transition-colors whitespace-nowrap inline-flex items-center"
                     >
                       {d.role} →
                     </Link>
@@ -541,24 +541,24 @@ export default function DashboardPage() {
             })}
           </div>
         ) : (
-          <div className="px-5 py-4 text-center text-[13px] text-[#9B9B95]">
+          <div className="px-5 py-4 text-center text-[13px] text-[var(--text-muted)]">
             Nenhum projeto ativo encontrado.
           </div>
         )}
       </div>
 
       {/* System Doctor compact card */}
-      <div className="bg-white rounded-[12px] border border-[#E5E5E2] overflow-hidden mb-4">
-        <div className="flex items-center justify-between px-5 py-3 border-b border-[#F0F0ED]">
+      <div className="bg-white rounded-[12px] border border-[var(--border)] overflow-hidden mb-4">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border)]">
           <div className="flex items-center gap-2">
             <span className={`w-2 h-2 rounded-full shrink-0 ${docMeta.dot}`} />
-            <span className="text-[12px] font-semibold text-[#1A1A1A]">System Doctor</span>
+            <span className="text-[12px] font-semibold text-[var(--text-primary)]">System Doctor</span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-[10px] text-[#9B9B95]">
+            <span className="text-[10px] text-[var(--text-muted)]">
               {doctorReport.pass} ok · {doctorReport.warning} atenção · {doctorReport.fail} falha
             </span>
-            <Link href="/agency/settings" className="text-[11px] text-[#070A1F] hover:underline font-medium">
+            <Link href="/agency/settings" className="text-[11px] text-[var(--navy)] hover:underline font-medium">
               Ver diagnóstico →
             </Link>
           </div>
@@ -572,35 +572,35 @@ export default function DashboardPage() {
           <div className="flex-1 min-w-0">
             <div className={`text-[12px] font-semibold mb-0.5 ${docMeta.text}`}>{docMeta.label}</div>
             {(doctorReport.fail > 0 || doctorReport.warning > 0) && (
-              <p className="text-[11px] text-[#6B6B65] truncate leading-snug">{doctorReport.topAction}</p>
+              <p className="text-[11px] text-[var(--text-secondary)] truncate leading-snug">{doctorReport.topAction}</p>
             )}
           </div>
         </div>
       </div>
 
       {/* TODAY PANEL */}
-      <div className="bg-white rounded-[12px] border border-[#E5E5E2] overflow-hidden mb-6">
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F0ED]">
+      <div className="bg-white rounded-[12px] border border-[var(--border)] overflow-hidden mb-6">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--border)]">
           <div className="flex items-center gap-2">
-            <h2 className="text-[13px] font-semibold text-[#1A1A1A]">{t.dashboard.today}</h2>
+            <h2 className="text-[13px] font-semibold text-[var(--text-primary)]">{t.dashboard.today}</h2>
             {sortedActions.length > 0 && (
-              <span className="w-5 h-5 rounded-full bg-[#070A1F] text-white text-[10px] font-bold flex items-center justify-center">
+              <span className="w-5 h-5 rounded-full bg-[var(--navy)] text-white text-[10px] font-bold flex items-center justify-center">
                 {sortedActions.length}
               </span>
             )}
           </div>
           {confirmMsg
-            ? <span className="text-[11px] font-medium text-[#16A34A] transition-opacity">{confirmMsg}</span>
-            : <span className="text-[11px] text-[#9B9B95]">{t.dashboard.derivedFrom}</span>
+            ? <span className="text-[11px] font-medium text-[var(--success)] transition-opacity">{confirmMsg}</span>
+            : <span className="text-[11px] text-[var(--text-muted)]">{t.dashboard.derivedFrom}</span>
           }
         </div>
         {sortedActions.length === 0 ? (
           <div className="px-5 py-8 text-center">
-            <p className="text-[13px] font-medium text-[#1A1A1A]">{t.dashboard.allClear}</p>
-            <p className="text-[12px] text-[#9B9B95] mt-1">{t.dashboard.allClearSub}</p>
+            <p className="text-[13px] font-medium text-[var(--text-primary)]">{t.dashboard.allClear}</p>
+            <p className="text-[12px] text-[var(--text-muted)] mt-1">{t.dashboard.allClearSub}</p>
           </div>
         ) : (
-          <div className="divide-y divide-[#F7F7F6]">
+          <div className="divide-y divide-[var(--border)]">
             {sortedActions.map((item) => {
               const ts = TYPE_STYLES[item.type];
               return (
@@ -611,18 +611,18 @@ export default function DashboardPage() {
                   </span>
                   {/* Content */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-medium text-[#1A1A1A] leading-snug">{item.label}</p>
-                    <p className="text-[11px] text-[#9B9B95] mt-0.5">
+                    <p className="text-[13px] font-medium text-[var(--text-primary)] leading-snug">{item.label}</p>
+                    <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
                       {item.reason}
                       {item.agentName && (
-                        <> · <span className="text-[#6B6B65]">{item.agentName}</span></>
+                        <> · <span className="text-[var(--text-secondary)]">{item.agentName}</span></>
                       )}
                     </p>
                   </div>
                   {/* CTA */}
                   <button
                     onClick={() => handleAction(item)}
-                    className="shrink-0 h-6 px-2.5 rounded-[5px] text-[11px] font-medium border border-[#E5E5E2] text-[#6B6B65] hover:border-[#070A1F] hover:text-[#070A1F] transition-colors whitespace-nowrap"
+                    className="shrink-0 h-6 px-2.5 rounded-[5px] text-[11px] font-medium border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--navy)] hover:text-[var(--navy)] transition-colors whitespace-nowrap"
                   >
                     {item.cta} →
                   </button>
@@ -635,35 +635,35 @@ export default function DashboardPage() {
 
       {/* ── Orchestration Summary ─────────────────────────────────────────── */}
       {(orchSummary.criticalBlockerCount > 0 || orchSummary.stalledApprovals.length > 0 || orchSummary.departments.some((d) => d.isIdle || d.isOverloaded)) && (
-        <div className="bg-white rounded-[12px] border border-[#E5E5E2] overflow-hidden mb-4">
-          <div className="flex items-center justify-between px-5 py-3 border-b border-[#F0F0ED]">
+        <div className="bg-white rounded-[12px] border border-[var(--border)] overflow-hidden mb-4">
+          <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border)]">
             <div className="flex items-center gap-2">
-              <h2 className="text-[13px] font-semibold text-[#1A1A1A]">Orquestração</h2>
-              <span className="text-[11px] text-[#9B9B95]">{orchSummary.topQuestion}</span>
+              <h2 className="text-[13px] font-semibold text-[var(--text-primary)]">Orquestração</h2>
+              <span className="text-[11px] text-[var(--text-muted)]">{orchSummary.topQuestion}</span>
             </div>
             {orchSummary.criticalBlockerCount > 0 && (
-              <span className="text-[10px] font-bold bg-[#FEE2E2] text-[#DC2626] px-2 py-0.5 rounded-full">
+              <span className="text-[10px] font-bold bg-[#FEE2E2] text-[var(--danger)] px-2 py-0.5 rounded-full">
                 {orchSummary.criticalBlockerCount} bloqueio{orchSummary.criticalBlockerCount !== 1 ? "s" : ""} crítico{orchSummary.criticalBlockerCount !== 1 ? "s" : ""}
               </span>
             )}
           </div>
-          <div className="divide-y divide-[#F7F7F6]">
+          <div className="divide-y divide-[var(--border)]">
             {orchSummary.blockers.slice(0, 4).map((b, i) => (
-              <Link key={i} href={b.route} className="flex items-center gap-3 px-5 py-2.5 hover:bg-[#FAFAF9] transition-colors">
-                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${b.severity === "critical" ? "bg-[#DC2626]" : b.severity === "high" ? "bg-[#D97706]" : "bg-[#9B9B95]"}`} />
-                <span className="text-[11px] text-[#9B9B95] font-medium shrink-0 w-[110px] truncate">{b.projectName}</span>
-                <span className="text-[12px] text-[#1A1A1A] flex-1">{b.message}</span>
-                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${b.severity === "critical" ? "bg-[#FEE2E2] text-[#DC2626]" : b.severity === "high" ? "bg-[#FEF3C7] text-[#D97706]" : "bg-[#F0F0ED] text-[#9B9B95]"}`}>
+              <Link key={i} href={b.route} className="flex items-center gap-3 px-5 py-2.5 hover:bg-[var(--bg-elevated)] transition-colors">
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${b.severity === "critical" ? "bg-[var(--danger)]" : b.severity === "high" ? "bg-[var(--warning)]" : "bg-[var(--text-muted)]"}`} />
+                <span className="text-[11px] text-[var(--text-muted)] font-medium shrink-0 w-[110px] truncate">{b.projectName}</span>
+                <span className="text-[12px] text-[var(--text-primary)] flex-1">{b.message}</span>
+                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${b.severity === "critical" ? "bg-[#FEE2E2] text-[var(--danger)]" : b.severity === "high" ? "bg-[var(--warning-bg)] text-[var(--warning)]" : "bg-[var(--accent)] text-[var(--text-muted)]"}`}>
                   {b.severity === "critical" ? "Crítico" : b.severity === "high" ? "Alto" : "Médio"}
                 </span>
               </Link>
             ))}
             {orchSummary.stalledApprovals.slice(0, 2).map((s, i) => (
-              <Link key={`stall-${i}`} href="/agency/approvals" className="flex items-center gap-3 px-5 py-2.5 hover:bg-[#FAFAF9] transition-colors">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#070A1F] shrink-0" />
-                <span className="text-[11px] text-[#9B9B95] font-medium shrink-0 w-[110px] truncate">{s.projectName}</span>
-                <span className="text-[12px] text-[#1A1A1A] flex-1">"{s.deliverableName}" parada há {s.daysSent} dias</span>
-                <span className="text-[9px] font-bold bg-[#EDE9FE] text-[#070A1F] px-1.5 py-0.5 rounded shrink-0">Parada</span>
+              <Link key={`stall-${i}`} href="/agency/approvals" className="flex items-center gap-3 px-5 py-2.5 hover:bg-[var(--bg-elevated)] transition-colors">
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--navy)] shrink-0" />
+                <span className="text-[11px] text-[var(--text-muted)] font-medium shrink-0 w-[110px] truncate">{s.projectName}</span>
+                <span className="text-[12px] text-[var(--text-primary)] flex-1">"{s.deliverableName}" parada há {s.daysSent} dias</span>
+                <span className="text-[9px] font-bold bg-[#E9EFFF] text-[var(--navy)] px-1.5 py-0.5 rounded shrink-0">Parada</span>
               </Link>
             ))}
           </div>
@@ -672,33 +672,33 @@ export default function DashboardPage() {
 
       {/* ── Auto Tasks (PM-generated) ─────────────────────────────────────── */}
       {autoTasks.length > 0 && (
-        <div className="bg-white rounded-[12px] border border-[#E5E5E2] overflow-hidden mb-4">
-          <div className="flex items-center justify-between px-5 py-3 border-b border-[#F0F0ED]">
+        <div className="bg-white rounded-[12px] border border-[var(--border)] overflow-hidden mb-4">
+          <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border)]">
             <div className="flex items-center gap-2">
-              <h2 className="text-[13px] font-semibold text-[#1A1A1A]">Tarefas Automáticas</h2>
-              <span className="w-5 h-5 rounded-full bg-[#070A1F] text-white text-[10px] font-bold flex items-center justify-center">{Math.min(autoTasks.length, 6)}</span>
-              <span className="text-[11px] text-[#9B9B95]">geradas pelo PM Engine</span>
+              <h2 className="text-[13px] font-semibold text-[var(--text-primary)]">Tarefas Automáticas</h2>
+              <span className="w-5 h-5 rounded-full bg-[var(--navy)] text-white text-[10px] font-bold flex items-center justify-center">{Math.min(autoTasks.length, 6)}</span>
+              <span className="text-[11px] text-[var(--text-muted)]">geradas pelo PM Engine</span>
             </div>
-            <Link href="/agency/tasks" className="text-[11px] text-[#070A1F] font-medium hover:underline">
+            <Link href="/agency/tasks" className="text-[11px] text-[var(--navy)] font-medium hover:underline">
               Ver todas →
             </Link>
           </div>
-          <div className="divide-y divide-[#F7F7F6]">
+          <div className="divide-y divide-[var(--border)]">
             {autoTasks.slice(0, 6).map((task) => {
               const ps = AUTO_TASK_PRIORITY_STYLE[task.priority];
               return (
-                <Link key={task.id} href={task.route} className="flex items-start gap-3 px-5 py-3 hover:bg-[#FAFAF9] transition-colors">
+                <Link key={task.id} href={task.route} className="flex items-start gap-3 px-5 py-3 hover:bg-[var(--bg-elevated)] transition-colors">
                   <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-[4px] shrink-0 mt-0.5 ${ps.bg} ${ps.text}`}>
                     {ps.label}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[12px] font-medium text-[#1A1A1A] leading-snug">
-                      <span className="text-[#9B9B95] font-normal">{task.projectName} · </span>
+                    <p className="text-[12px] font-medium text-[var(--text-primary)] leading-snug">
+                      <span className="text-[var(--text-muted)] font-normal">{task.projectName} · </span>
                       {task.title}
                     </p>
-                    <p className="text-[11px] text-[#9B9B95] truncate mt-0.5">{task.description}</p>
+                    <p className="text-[11px] text-[var(--text-muted)] truncate mt-0.5">{task.description}</p>
                   </div>
-                  <span className="text-[10px] font-medium text-[#9B9B95] shrink-0 mt-0.5">{task.owner} →</span>
+                  <span className="text-[10px] font-medium text-[var(--text-muted)] shrink-0 mt-0.5">{task.owner} →</span>
                 </Link>
               );
             })}
@@ -707,46 +707,46 @@ export default function DashboardPage() {
       )}
 
       {/* ── Department Health ─────────────────────────────────────────────── */}
-      <div className="bg-white rounded-[12px] border border-[#E5E5E2] overflow-hidden mb-6">
-        <div className="px-5 py-3 border-b border-[#F0F0ED] flex items-center gap-2">
-          <h2 className="text-[13px] font-semibold text-[#1A1A1A]">Saúde dos Departamentos</h2>
+      <div className="bg-white rounded-[12px] border border-[var(--border)] overflow-hidden mb-6">
+        <div className="px-5 py-3 border-b border-[var(--border)] flex items-center gap-2">
+          <h2 className="text-[13px] font-semibold text-[var(--text-primary)]">Saúde dos Departamentos</h2>
           {workspaceHealth.mostOverloaded && (
-            <span className="text-[10px] font-semibold text-[#DC2626] bg-[#FEE2E2] px-2 py-0.5 rounded-full">
+            <span className="text-[10px] font-semibold text-[var(--danger)] bg-[#FEE2E2] px-2 py-0.5 rounded-full">
               {workspaceHealth.mostOverloaded.label} sobrecarregado
             </span>
           )}
           {workspaceHealth.mostIdle && !workspaceHealth.mostOverloaded && (
-            <span className="text-[10px] font-semibold text-[#9B9B95] bg-[#F0F0ED] px-2 py-0.5 rounded-full">
+            <span className="text-[10px] font-semibold text-[var(--text-muted)] bg-[var(--accent)] px-2 py-0.5 rounded-full">
               {workspaceHealth.mostIdle.label} ocioso
             </span>
           )}
         </div>
-        <div className="grid grid-cols-1 divide-y sm:grid-cols-3 sm:divide-x sm:divide-y-0 divide-[#F0F0ED]">
+        <div className="grid grid-cols-1 divide-y sm:grid-cols-3 sm:divide-x sm:divide-y-0 divide-[var(--border)]">
           {workspaceHealth.departments.map((dept) => {
             const style = DEPT_HEALTH_STYLE[dept.level];
             return (
               <div key={dept.dept} className="px-5 py-4">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[12px] font-semibold text-[#1A1A1A]" style={{ color: dept.accentHex }}>{dept.label}</span>
+                  <span className="text-[12px] font-semibold text-[var(--text-primary)]" style={{ color: dept.accentHex }}>{dept.label}</span>
                   <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-[4px] ${style.bg} ${style.text}`}>{style.label}</span>
                 </div>
-                <p className="text-[11px] text-[#6B6B65] leading-snug mb-3">{dept.statusText}</p>
+                <p className="text-[11px] text-[var(--text-secondary)] leading-snug mb-3">{dept.statusText}</p>
                 <div className="grid grid-cols-3 gap-2">
                   <div className="text-center">
-                    <p className="text-[16px] font-bold text-[#1A1A1A] mono-num">{dept.metrics.generated}</p>
-                    <p className="text-[9px] text-[#9B9B95]">geradas</p>
+                    <p className="text-[16px] font-bold text-[var(--text-primary)] mono-num">{dept.metrics.generated}</p>
+                    <p className="text-[9px] text-[var(--text-muted)]">geradas</p>
                   </div>
                   <div className="text-center">
-                    <p className={`text-[16px] font-bold mono-num ${dept.metrics.revisionsOpen > 0 ? "text-[#DC2626]" : "text-[#1A1A1A]"}`}>{dept.metrics.revisionsOpen}</p>
-                    <p className="text-[9px] text-[#9B9B95]">revisões</p>
+                    <p className={`text-[16px] font-bold mono-num ${dept.metrics.revisionsOpen > 0 ? "text-[var(--danger)]" : "text-[var(--text-primary)]"}`}>{dept.metrics.revisionsOpen}</p>
+                    <p className="text-[9px] text-[var(--text-muted)]">revisões</p>
                   </div>
                   <div className="text-center">
-                    <p className={`text-[16px] font-bold mono-num ${dept.metrics.approved > 0 ? "text-[#16A34A]" : "text-[#9B9B95]"}`}>{dept.metrics.approved}</p>
-                    <p className="text-[9px] text-[#9B9B95]">aprovadas</p>
+                    <p className={`text-[16px] font-bold mono-num ${dept.metrics.approved > 0 ? "text-[var(--success)]" : "text-[var(--text-muted)]"}`}>{dept.metrics.approved}</p>
+                    <p className="text-[9px] text-[var(--text-muted)]">aprovadas</p>
                   </div>
                 </div>
                 {dept.recommendation && (
-                  <p className="text-[10px] text-[#D97706] mt-2 leading-snug">{dept.recommendation}</p>
+                  <p className="text-[10px] text-[var(--warning)] mt-2 leading-snug">{dept.recommendation}</p>
                 )}
               </div>
             );
@@ -756,12 +756,12 @@ export default function DashboardPage() {
 
       {/* ── Execution Pipeline (per project) ─────────────────────────────── */}
       {activeProjects.length > 0 && (
-        <div className="bg-white rounded-[12px] border border-[#E5E5E2] overflow-hidden mb-6">
-          <div className="flex items-center justify-between px-5 py-3 border-b border-[#F0F0ED]">
-            <h2 className="text-[13px] font-semibold text-[#1A1A1A]">Pipeline de Execução</h2>
-            <Link href="/agency/pipeline" className="text-[11px] text-[#070A1F] font-medium hover:underline">Ver quadro →</Link>
+        <div className="bg-white rounded-[12px] border border-[var(--border)] overflow-hidden mb-6">
+          <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border)]">
+            <h2 className="text-[13px] font-semibold text-[var(--text-primary)]">Pipeline de Execução</h2>
+            <Link href="/agency/pipeline" className="text-[11px] text-[var(--navy)] font-medium hover:underline">Ver quadro →</Link>
           </div>
-          <div className="divide-y divide-[#F0F0ED]">
+          <div className="divide-y divide-[var(--border)]">
             {activeProjects.slice(0, 5).map((project) => {
               const client = getClient(project.clientId);
               const pipeline = evaluateProjectPipeline({
@@ -773,10 +773,10 @@ export default function DashboardPage() {
               });
               const relevant = pipeline.filter((s) => s.status !== "not_applicable").slice(0, 7);
               return (
-                <Link key={project.id} href={`/agency/projects/${project.id}`} className="flex items-center gap-4 px-5 py-3 hover:bg-[#FAFAF9] transition-colors">
+                <Link key={project.id} href={`/agency/projects/${project.id}`} className="flex items-center gap-4 px-5 py-3 hover:bg-[var(--bg-elevated)] transition-colors">
                   <div className="w-[160px] shrink-0">
-                    <p className="text-[12px] font-medium text-[#1A1A1A] truncate">{project.name}</p>
-                    <p className="text-[10px] text-[#9B9B95]">{client?.name ?? "—"}</p>
+                    <p className="text-[12px] font-medium text-[var(--text-primary)] truncate">{project.name}</p>
+                    <p className="text-[10px] text-[var(--text-muted)]">{client?.name ?? "—"}</p>
                   </div>
                   <div className="flex items-center gap-1.5 flex-1 min-w-0 flex-wrap">
                     {relevant.map((stage) => {
@@ -802,15 +802,15 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
         {/* LEFT — Active Projects with pipeline */}
         <div className="space-y-6">
-          <div className="bg-white rounded-[12px] border border-[#E5E5E2] overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F0ED]">
-              <h2 className="text-[13px] font-semibold text-[#1A1A1A]">{t.dashboard.activeProjects}</h2>
-              <Link href="/agency/projects" className="text-[12px] text-[#070A1F] hover:underline font-medium">{t.common.viewAll}</Link>
+          <div className="bg-white rounded-[12px] border border-[var(--border)] overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--border)]">
+              <h2 className="text-[13px] font-semibold text-[var(--text-primary)]">{t.dashboard.activeProjects}</h2>
+              <Link href="/agency/projects" className="text-[12px] text-[var(--navy)] hover:underline font-medium">{t.common.viewAll}</Link>
             </div>
             {activeProjects.length === 0 ? (
-              <div className="px-5 py-8 text-center text-[13px] text-[#9B9B95]">{t.dashboard.noActiveProjects}</div>
+              <div className="px-5 py-8 text-center text-[13px] text-[var(--text-muted)]">{t.dashboard.noActiveProjects}</div>
             ) : (
-              <div className="divide-y divide-[#F0F0ED]">
+              <div className="divide-y divide-[var(--border)]">
                 {activeProjects.slice(0, 7).map((project) => {
                   const client = getClient(project.clientId);
                   const dl = daysLeft(project.deadline);
@@ -820,19 +820,19 @@ export default function DashboardPage() {
                     <Link
                       key={project.id}
                       href={`/agency/projects/${project.id}`}
-                      className="flex items-center gap-4 px-5 py-3.5 hover:bg-[#FAFAF9] transition-colors group"
+                      className="flex items-center gap-4 px-5 py-3.5 hover:bg-[var(--bg-elevated)] transition-colors group"
                     >
                       {/* Name + client */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
-                          <span className="text-[13px] font-medium text-[#1A1A1A] truncate">{project.name}</span>
-                          {dl < 0 && <span className="text-[10px] font-bold text-[#DC2626] bg-[#FEE2E2] px-1.5 py-0.5 rounded shrink-0">{t.project.status.overdue}</span>}
-                          {dl >= 0 && dl <= 3 && <span className="text-[10px] font-bold text-[#D97706] bg-[#FEF3C7] px-1.5 py-0.5 rounded shrink-0">{t.project.status.urgent}</span>}
+                          <span className="text-[13px] font-medium text-[var(--text-primary)] truncate">{project.name}</span>
+                          {dl < 0 && <span className="text-[10px] font-bold text-[var(--danger)] bg-[#FEE2E2] px-1.5 py-0.5 rounded shrink-0">{t.project.status.overdue}</span>}
+                          {dl >= 0 && dl <= 3 && <span className="text-[10px] font-bold text-[var(--warning)] bg-[var(--warning-bg)] px-1.5 py-0.5 rounded shrink-0">{t.project.status.urgent}</span>}
                         </div>
-                        <div className="flex items-center gap-2 text-[11px] text-[#9B9B95]">
+                        <div className="flex items-center gap-2 text-[11px] text-[var(--text-muted)]">
                           <span>{client?.name ?? "—"}</span>
                           <span>·</span>
-                          <span className={mounted && dl < 0 ? "text-[#DC2626]" : mounted && dl <= 3 ? "text-[#D97706]" : ""}>
+                          <span className={mounted && dl < 0 ? "text-[var(--danger)]" : mounted && dl <= 3 ? "text-[var(--warning)]" : ""}>
                             {mounted ? (dl < 0 ? t.project.labels.daysOverdue(dl) : t.project.labels.daysLeft(dl)) : "—"}
                           </span>
                         </div>
@@ -850,10 +850,10 @@ export default function DashboardPage() {
                               title={MOCK_AGENTS.find(a => a.id === agentId)?.name}
                               className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-[3px] ${
                                 isDone
-                                  ? "bg-[#DCFCE7] text-[#16A34A]"
+                                  ? "bg-[var(--success-bg)] text-[var(--success)]"
                                   : isActive
-                                  ? "bg-[#FFF4ED] text-[#C2530A]"
-                                  : "bg-[#F0F0ED] text-[#9B9B95]"
+                                  ? "bg-[#E6FBFA] text-[#0E7C75]"
+                                  : "bg-[var(--accent)] text-[var(--text-muted)]"
                               }`}
                             >
                               {AGENT_SHORT[agentId] ?? agentId}
@@ -863,7 +863,7 @@ export default function DashboardPage() {
                       </div>
 
                       {/* Stage */}
-                      <span className="shrink-0 text-[11px] font-medium text-[#6B6B65] bg-[#F7F7F6] border border-[#E5E5E2] px-2 py-0.5 rounded-full capitalize">
+                      <span className="shrink-0 text-[11px] font-medium text-[var(--text-secondary)] bg-[var(--bg)] border border-[var(--border)] px-2 py-0.5 rounded-full capitalize">
                         {t.project.stages[project.stage as keyof typeof t.project.stages] ?? project.stage}
                       </span>
                     </Link>
@@ -874,27 +874,27 @@ export default function DashboardPage() {
           </div>
 
           {/* Project Health — operational status */}
-          <div className="bg-white rounded-[12px] border border-[#E5E5E2] overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F0ED]">
+          <div className="bg-white rounded-[12px] border border-[var(--border)] overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--border)]">
               <div>
-                <h2 className="text-[13px] font-semibold text-[#1A1A1A]">{ops.healthTitle}</h2>
-                <p className="text-[11px] text-[#9B9B95] mt-0.5">{ops.healthSub}</p>
+                <h2 className="text-[13px] font-semibold text-[var(--text-primary)]">{ops.healthTitle}</h2>
+                <p className="text-[11px] text-[var(--text-muted)] mt-0.5">{ops.healthSub}</p>
               </div>
             </div>
             {projectHealth.length === 0 ? (
-              <div className="px-5 py-8 text-center text-[13px] text-[#9B9B95]">{ops.noProjects}</div>
+              <div className="px-5 py-8 text-center text-[13px] text-[var(--text-muted)]">{ops.noProjects}</div>
             ) : (
-              <div className="divide-y divide-[#F0F0ED]">
+              <div className="divide-y divide-[var(--border)]">
                 {projectHealth.map(({ project, health, client }) => (
                   <Link
                     key={project.id}
                     href={`/agency/projects/${project.id}?tab=report`}
-                    className="flex items-center gap-3 px-5 py-3 hover:bg-[#FAFAF9] transition-colors"
+                    className="flex items-center gap-3 px-5 py-3 hover:bg-[var(--bg-elevated)] transition-colors"
                   >
                     <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: health.dotColor }} />
                     <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-medium text-[#1A1A1A] truncate">{project.name}</p>
-                      <p className="text-[11px] text-[#9B9B95] truncate">{client?.name ?? "—"}</p>
+                      <p className="text-[13px] font-medium text-[var(--text-primary)] truncate">{project.name}</p>
+                      <p className="text-[11px] text-[var(--text-muted)] truncate">{client?.name ?? "—"}</p>
                     </div>
                     <span className={`shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full ${health.color}`}>
                       {health.label}
@@ -910,30 +910,30 @@ export default function DashboardPage() {
         <div className="space-y-5">
 
           {/* Outputs Ready */}
-          <div className="bg-white rounded-[12px] border border-[#E5E5E2] overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F0ED]">
-              <h2 className="text-[13px] font-semibold text-[#1A1A1A]">{t.dashboard.outputs}</h2>
-              <Link href="/agency/deliverables" className="text-[12px] text-[#070A1F] hover:underline">{t.dashboard.allDeliverables}</Link>
+          <div className="bg-white rounded-[12px] border border-[var(--border)] overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--border)]">
+              <h2 className="text-[13px] font-semibold text-[var(--text-primary)]">{t.dashboard.outputs}</h2>
+              <Link href="/agency/deliverables" className="text-[12px] text-[var(--navy)] hover:underline">{t.dashboard.allDeliverables}</Link>
             </div>
             {readyOutputs.length === 0 ? (
-              <div className="px-5 py-6 text-center text-[12px] text-[#9B9B95]">{t.dashboard.noOutputs}</div>
+              <div className="px-5 py-6 text-center text-[12px] text-[var(--text-muted)]">{t.dashboard.noOutputs}</div>
             ) : (
-              <div className="divide-y divide-[#F0F0ED]">
+              <div className="divide-y divide-[var(--border)]">
                 {readyOutputs.map((d) => {
                   const p = projects.find((pr) => pr.id === d.projectId);
                   const statusColor =
-                    d.status === "approved" ? "text-[#16A34A] bg-[#DCFCE7]"
-                    : d.status === "in_review" ? "text-[#D97706] bg-[#FEF3C7]"
-                    : "text-[#9B9B95] bg-[#F0F0ED]";
+                    d.status === "approved" ? "text-[var(--success)] bg-[var(--success-bg)]"
+                    : d.status === "in_review" ? "text-[var(--warning)] bg-[var(--warning-bg)]"
+                    : "text-[var(--text-muted)] bg-[var(--accent)]";
                   return (
                     <Link
                       key={d.id}
                       href={`/agency/projects/${d.projectId}`}
-                      className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#FAFAF9] transition-colors"
+                      className="flex items-center gap-3 px-4 py-2.5 hover:bg-[var(--bg-elevated)] transition-colors"
                     >
                       <div className="flex-1 min-w-0">
-                        <p className="text-[12px] font-medium text-[#1A1A1A] truncate">{d.name}</p>
-                        <p className="text-[10px] text-[#9B9B95]">{p?.name ?? "—"} · {d.type}</p>
+                        <p className="text-[12px] font-medium text-[var(--text-primary)] truncate">{d.name}</p>
+                        <p className="text-[10px] text-[var(--text-muted)]">{p?.name ?? "—"} · {d.type}</p>
                       </div>
                       <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-[3px] shrink-0 ${statusColor}`}>
                         {STATUS_LABELS[d.status] ?? d.status}
@@ -946,27 +946,27 @@ export default function DashboardPage() {
           </div>
 
           {/* Blocks & Alerts */}
-          <div className="bg-white rounded-[12px] border border-[#E5E5E2] overflow-hidden">
-            <div className="px-5 py-3.5 border-b border-[#F0F0ED] flex items-center gap-2">
-              <h2 className="text-[13px] font-semibold text-[#1A1A1A]">{t.dashboard.alerts}</h2>
+          <div className="bg-white rounded-[12px] border border-[var(--border)] overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-[var(--border)] flex items-center gap-2">
+              <h2 className="text-[13px] font-semibold text-[var(--text-primary)]">{t.dashboard.alerts}</h2>
               {blocks.length > 0 && (
-                <span className="w-4 h-4 rounded-full bg-[#FEE2E2] text-[#DC2626] text-[9px] font-bold flex items-center justify-center">
+                <span className="w-4 h-4 rounded-full bg-[#FEE2E2] text-[var(--danger)] text-[9px] font-bold flex items-center justify-center">
                   {blocks.length}
                 </span>
               )}
             </div>
             {blocks.length === 0 ? (
-              <div className="px-5 py-6 text-center text-[12px] text-[#9B9B95]">{t.dashboard.allClearAlerts}</div>
+              <div className="px-5 py-6 text-center text-[12px] text-[var(--text-muted)]">{t.dashboard.allClearAlerts}</div>
             ) : (
-              <div className="divide-y divide-[#F0F0ED]">
+              <div className="divide-y divide-[var(--border)]">
                 {blocks.slice(0, 5).map((b) => (
                   <Link
                     key={b.id}
                     href={b.href}
-                    className="flex items-start gap-2.5 px-4 py-2.5 hover:bg-[#FAFAF9] transition-colors"
+                    className="flex items-start gap-2.5 px-4 py-2.5 hover:bg-[var(--bg-elevated)] transition-colors"
                   >
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${b.level === "high" ? "bg-[#DC2626]" : "bg-[#D97706]"}`} />
-                    <p className="text-[12px] text-[#1A1A1A] leading-snug flex-1">{b.message}</p>
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${b.level === "high" ? "bg-[var(--danger)]" : "bg-[var(--warning)]"}`} />
+                    <p className="text-[12px] text-[var(--text-primary)] leading-snug flex-1">{b.message}</p>
                   </Link>
                 ))}
               </div>
@@ -974,23 +974,23 @@ export default function DashboardPage() {
           </div>
 
           {/* Recent Activity */}
-          <div className="bg-white rounded-[12px] border border-[#E5E5E2] overflow-hidden">
-            <div className="px-5 py-3.5 border-b border-[#F0F0ED]">
-              <h2 className="text-[13px] font-semibold text-[#1A1A1A]">{t.dashboard.recentActivity}</h2>
+          <div className="bg-white rounded-[12px] border border-[var(--border)] overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-[var(--border)]">
+              <h2 className="text-[13px] font-semibold text-[var(--text-primary)]">{t.dashboard.recentActivity}</h2>
             </div>
-            <div className="divide-y divide-[#F0F0ED]">
+            <div className="divide-y divide-[var(--border)]">
               {activity.slice(0, 8).map((event) => (
                 <div key={event.id} className="flex items-start gap-3 px-4 py-2.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#D0D0CC] shrink-0 mt-1.5" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--border-strong)] shrink-0 mt-1.5" />
                   <div className="min-w-0 flex-1">
-                    <p className="text-[11px] text-[#6B6B65] font-medium">{EVENT_LABELS[event.type] ?? event.type}</p>
-                    <p className="text-[11px] text-[#9B9B95] truncate">{event.message}</p>
+                    <p className="text-[11px] text-[var(--text-secondary)] font-medium">{EVENT_LABELS[event.type] ?? event.type}</p>
+                    <p className="text-[11px] text-[var(--text-muted)] truncate">{event.message}</p>
                   </div>
-                  <span className="text-[10px] text-[#C0C0BC] shrink-0">{mounted ? timeAgo(event.timestamp, ops) : isoShortDate(event.timestamp)}</span>
+                  <span className="text-[10px] text-[var(--text-subtle)] shrink-0">{mounted ? timeAgo(event.timestamp, ops) : isoShortDate(event.timestamp)}</span>
                 </div>
               ))}
               {activity.length === 0 && (
-                <div className="px-5 py-6 text-center text-[12px] text-[#9B9B95]">{t.dashboard.noActivity}</div>
+                <div className="px-5 py-6 text-center text-[12px] text-[var(--text-muted)]">{t.dashboard.noActivity}</div>
               )}
             </div>
           </div>

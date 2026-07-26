@@ -56,9 +56,9 @@ const MODE_STYLE: Record<DepartmentOperationMode, { active: string; activeText: 
 };
 
 const MODE_BADGE_STYLE: Record<DepartmentOperationMode, string> = {
-  full_ai:    "bg-[#E6FBFA] text-[#070A1F] border border-[#9AF5F0]",
-  hybrid:     "bg-[#DCFCE7] text-[#166534] border border-[#86EFAC]",
-  full_human: "bg-[#FEF3C7] text-[#92400E] border border-[#FDE68A]",
+  full_ai:    "bg-[var(--accent-light)] text-[var(--navy)] border border-[var(--cyan)]",
+  hybrid:     "bg-[var(--success-bg)] text-[#166534] border border-[#86EFAC]",
+  full_human: "bg-[var(--warning-bg)] text-[#92400E] border border-[#FDE68A]",
 };
 
 export function DeptModeBadge({ mode }: { mode: DepartmentOperationMode }) {
@@ -82,9 +82,9 @@ export default function DeptModeSelector({
   const current = MODES.find((m) => m.id === mode) ?? MODES[1];
 
   return (
-    <div className="rounded-[12px] border border-[#E8E8E3] bg-white px-5 py-4 mb-5">
+    <div className="rounded-[12px] border border-[var(--border)] bg-white px-5 py-4 mb-5">
       <div className="flex items-center gap-2 mb-3">
-        <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#9B9B95]">
+        <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]">
           Modo de operação
         </span>
         <DeptModeBadge mode={mode} />
@@ -116,7 +116,7 @@ export default function DeptModeSelector({
             >
               <span className={`text-[15px] ${active ? "opacity-100" : "opacity-60"}`}>{m.icon}</span>
               <span className="text-[12px] font-semibold leading-tight">{m.shortLabel}</span>
-              <span className={`text-[10px] leading-snug ${active ? "opacity-80" : "text-[#9B9B95]"}`}>
+              <span className={`text-[10px] leading-snug ${active ? "opacity-80" : "text-[var(--text-muted)]"}`}>
                 {m.description}
               </span>
               {active && (
@@ -129,7 +129,7 @@ export default function DeptModeSelector({
           );
         })}
       </div>
-      <p className="text-[11px] text-[#9B9B95] mt-2.5 leading-relaxed">
+      <p className="text-[11px] text-[var(--text-muted)] mt-2.5 leading-relaxed">
         {current.description}
         {mode === "full_ai" && " Audite os resultados periodicamente em Qualidade."}
         {mode === "full_human" && " Os botões de IA ficam ocultos neste departamento."}

@@ -46,28 +46,28 @@ function ContextCard({ ctx, usedStrategyRoom }: { ctx: AgentClientContext; usedS
   const incomplete = ready < 5;
   return (
     <div className="space-y-2">
-      <div className={`rounded-[8px] border px-3 py-2.5 ${incomplete ? "bg-[#FFFBEB] border-[#FDE68A]" : "bg-[#ECFEFF] border-[#A5F3FC]"}`}>
+      <div className={`rounded-[8px] border px-3 py-2.5 ${incomplete ? "bg-[#FFFBEB] border-[#FDE68A]" : "bg-[#E6FBFA] border-[#C7EFEC]"}`}>
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-1.5">
             <span className={`text-[11px] font-bold`} style={{ color: incomplete ? "#D97706" : ACCENT }}>{incomplete ? "⚠" : "●"}</span>
-            <span className="text-[11px] font-semibold text-[#1A1A1A]">{incomplete ? "Brand Brain incompleto" : "Brand Brain ativo"}</span>
-            <span className="text-[10px] text-[#9B9B95]">· {ctx.clientName}</span>
+            <span className="text-[11px] font-semibold text-[var(--text-primary)]">{incomplete ? "Brand Brain incompleto" : "Brand Brain ativo"}</span>
+            <span className="text-[10px] text-[var(--text-muted)]">· {ctx.clientName}</span>
           </div>
-          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${ready === 10 ? "bg-[#DCFCE7] text-[#16A34A]" : ready >= 5 ? "bg-[#CFFAFE] text-[#0E7490]" : "bg-[#F0F0ED] text-[#9B9B95]"}`}>{ready}/10</span>
+          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${ready === 10 ? "bg-[var(--success-bg)] text-[var(--success)]" : ready >= 5 ? "bg-[#E6FBFA] text-[#0E7490]" : "bg-[var(--accent)] text-[var(--text-muted)]"}`}>{ready}/10</span>
         </div>
         {incomplete ? (
-          <p className="text-[11px] text-[#D97706] leading-snug">Complete o Brand Brain no workspace do cliente para um plano de mídia totalmente específico.</p>
+          <p className="text-[11px] text-[var(--warning)] leading-snug">Complete o Brand Brain no workspace do cliente para um plano de mídia totalmente específico.</p>
         ) : (
           <div className="space-y-0.5 mt-1">
-            {ctx.brandBrain?.preferredChannels && <div className="flex gap-2"><span className="text-[10px] text-[#9B9B95] w-14 shrink-0">Canais</span><span className="text-[11px] text-[#1A1A1A] truncate">{ctx.brandBrain.preferredChannels}</span></div>}
-            {ctx.brandBrain?.targetAudience && <div className="flex gap-2"><span className="text-[10px] text-[#9B9B95] w-14 shrink-0">Público</span><span className="text-[11px] text-[#1A1A1A] truncate">{ctx.brandBrain.targetAudience}</span></div>}
-            {ctx.brandBrain?.positioning && <div className="flex gap-2"><span className="text-[10px] text-[#9B9B95] w-14 shrink-0">Posição</span><span className="text-[11px] text-[#1A1A1A] truncate">{ctx.brandBrain.positioning}</span></div>}
+            {ctx.brandBrain?.preferredChannels && <div className="flex gap-2"><span className="text-[10px] text-[var(--text-muted)] w-14 shrink-0">Canais</span><span className="text-[11px] text-[var(--text-primary)] truncate">{ctx.brandBrain.preferredChannels}</span></div>}
+            {ctx.brandBrain?.targetAudience && <div className="flex gap-2"><span className="text-[10px] text-[var(--text-muted)] w-14 shrink-0">Público</span><span className="text-[11px] text-[var(--text-primary)] truncate">{ctx.brandBrain.targetAudience}</span></div>}
+            {ctx.brandBrain?.positioning && <div className="flex gap-2"><span className="text-[10px] text-[var(--text-muted)] w-14 shrink-0">Posição</span><span className="text-[11px] text-[var(--text-primary)] truncate">{ctx.brandBrain.positioning}</span></div>}
           </div>
         )}
       </div>
-      <div className={`flex items-center gap-1.5 rounded-[8px] border px-3 py-2 ${usedStrategyRoom ? "bg-[#E6FBFA] border-[#C7C7F5]" : "bg-[#FAFAF9] border-[#F0F0ED]"}`}>
-        <span className={`w-1.5 h-1.5 rounded-full ${usedStrategyRoom ? "bg-[#070A1F]" : "bg-[#C0C0BC]"}`} />
-        <span className={`text-[11px] font-medium ${usedStrategyRoom ? "text-[#070A1F]" : "text-[#9B9B95]"}`}>
+      <div className={`flex items-center gap-1.5 rounded-[8px] border px-3 py-2 ${usedStrategyRoom ? "bg-[var(--accent-light)] border-[#D6DEFF]" : "bg-[var(--bg-elevated)] border-[var(--border)]"}`}>
+        <span className={`w-1.5 h-1.5 rounded-full ${usedStrategyRoom ? "bg-[var(--navy)]" : "bg-[var(--text-subtle)]"}`} />
+        <span className={`text-[11px] font-medium ${usedStrategyRoom ? "text-[var(--navy)]" : "text-[var(--text-muted)]"}`}>
           {usedStrategyRoom ? "Strategy Room conectado" : "Strategy Room não gerado (opcional)"}
         </span>
       </div>
@@ -77,22 +77,22 @@ function ContextCard({ ctx, usedStrategyRoom }: { ctx: AgentClientContext; usedS
 
 function ProposalGatePanel({ proposalStatus, linkedProject }: { proposalStatus: string | undefined; linkedProject: { id: string; name: string } | null }) {
   const statusMap: Record<string, { label: string; color: string; bg: string }> = {
-    draft:             { label: "Rascunho — não enviado ao cliente",   color: "text-[#6B6B65]", bg: "bg-[#F7F7F6]" },
-    sent:              { label: "Aguardando aprovação do cliente",     color: "text-[#070A1F]", bg: "bg-[#E6FBFA]" },
-    rejected:          { label: "Rejeitado pelo cliente",              color: "text-[#DC2626]", bg: "bg-[#FEF2F2]" },
-    changes_requested: { label: "Alterações solicitadas pelo cliente", color: "text-[#D97706]", bg: "bg-[#FFFBEB]" },
+    draft:             { label: "Rascunho — não enviado ao cliente",   color: "text-[var(--text-secondary)]", bg: "bg-[var(--bg)]" },
+    sent:              { label: "Aguardando aprovação do cliente",     color: "text-[var(--navy)]", bg: "bg-[var(--accent-light)]" },
+    rejected:          { label: "Rejeitado pelo cliente",              color: "text-[var(--danger)]", bg: "bg-[var(--danger-bg)]" },
+    changes_requested: { label: "Alterações solicitadas pelo cliente", color: "text-[var(--warning)]", bg: "bg-[#FFFBEB]" },
   };
   const info = proposalStatus ? (statusMap[proposalStatus] ?? statusMap.draft) : statusMap.draft;
   return (
     <div className="bg-white rounded-[10px] border border-[#FDE68A] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-8 py-14 flex flex-col items-center text-center">
-      <div className="w-12 h-12 rounded-full bg-[#FFF4ED] flex items-center justify-center mb-5">
+      <div className="w-12 h-12 rounded-full bg-[#E6FBFA] flex items-center justify-center mb-5">
         <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
           <path d="M11 7v5M11 15h.01" stroke="#D97706" strokeWidth="1.8" strokeLinecap="round" />
           <circle cx="11" cy="11" r="9" stroke="#D97706" strokeWidth="1.5" />
         </svg>
       </div>
-      <p className="text-[15px] font-semibold text-[#1A1A1A] mb-2">Execução bloqueada</p>
-      <p className="text-[13px] text-[#6B6B65] max-w-sm leading-relaxed mb-5">
+      <p className="text-[15px] font-semibold text-[var(--text-primary)] mb-2">Execução bloqueada</p>
+      <p className="text-[13px] text-[var(--text-secondary)] max-w-sm leading-relaxed mb-5">
         O Agente de Tráfego Pago só roda após a aprovação da proposta pelo cliente.
         Assim, todo o planejamento de mídia é comercialmente autorizado antes de começar.
       </p>
@@ -100,7 +100,7 @@ function ProposalGatePanel({ proposalStatus, linkedProject }: { proposalStatus: 
         <span className={`text-[12px] font-semibold ${info.color}`}>Status da proposta: {info.label}</span>
       </div>
       {linkedProject && (
-        <Link href={`/agency/projects/${linkedProject.id}?tab=proposal`} className="h-8 px-4 rounded-[7px] bg-[#1A1A1A] hover:bg-[#111111] text-white text-[12px] font-medium transition-colors">
+        <Link href={`/agency/projects/${linkedProject.id}?tab=proposal`} className="h-8 px-4 rounded-[7px] bg-[var(--text-primary)] hover:bg-[var(--text-primary)] text-white text-[12px] font-medium transition-colors">
           Ver Proposta →
         </Link>
       )}
@@ -109,9 +109,9 @@ function ProposalGatePanel({ proposalStatus, linkedProject }: { proposalStatus: 
 }
 
 const AUDIENCE_COLOR: Record<string, string> = {
-  fria: "bg-[#E6FBFA] text-[#070A1F]",
-  morna: "bg-[#FEF3C7] text-[#D97706]",
-  quente: "bg-[#FEE2E2] text-[#DC2626]",
+  fria: "bg-[var(--accent-light)] text-[var(--navy)]",
+  morna: "bg-[var(--warning-bg)] text-[var(--warning)]",
+  quente: "bg-[#FEE2E2] text-[var(--danger)]",
 };
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -233,7 +233,7 @@ export default function AdsAgentPage() {
   ];
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F7F7F6]">
+    <div className="flex flex-col min-h-screen bg-[var(--bg)]">
       <AgencyHeader
         title="Agente de Tráfego Pago"
         subtitle="Departamento de Mídia Paga — arquiteta campanhas, audiências e criativos a partir do Brand Brain e do Strategy Room. Planejamento, não publicação."
@@ -242,20 +242,20 @@ export default function AdsAgentPage() {
       <div className="flex-1 p-6 max-w-[1200px] mx-auto w-full">
         {/* Badge row */}
         <div className="flex items-center gap-2 mb-6 flex-wrap">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-wide uppercase" style={{ backgroundColor: "#ECFEFF", color: ACCENT }}>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-wide uppercase" style={{ backgroundColor: "#E6FBFA", color: ACCENT }}>
             <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: ACCENT }} />
             Departamento de Tráfego Pago
           </span>
-          <span className="text-[12px] text-[#9B9B95]">v1 · planejamento (sem API)</span>
+          <span className="text-[12px] text-[var(--text-muted)]">v1 · planejamento (sem API)</span>
           {linkedProject && (
-            <Link href={`/agency/projects/${linkedProject.id}`} className="text-[12px] text-[#070A1F] hover:underline">
+            <Link href={`/agency/projects/${linkedProject.id}`} className="text-[12px] text-[var(--navy)] hover:underline">
               ← {linkedProject.name}
             </Link>
           )}
           {agentState === "output_ready" && linkedProjectId && (
             <div className="ml-auto flex items-center gap-2">
               {saved ? (
-                <span className="flex items-center gap-1.5 h-7 px-3 rounded-[6px] text-[12px] font-medium bg-[#DCFCE7] text-[#16A34A] border border-[#BBF7D0]">
+                <span className="flex items-center gap-1.5 h-7 px-3 rounded-[6px] text-[12px] font-medium bg-[var(--success-bg)] text-[var(--success)] border border-[#BBF7D0]">
                   <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M2 5.5l2.5 2.5 4.5-4.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
                   Salvo — 6 entregas em revisão
                 </span>
@@ -275,23 +275,23 @@ export default function AdsAgentPage() {
         {/* 2-col layout */}
         <div className="grid grid-cols-[380px_1fr] gap-6 items-start">
           {/* ── LEFT: Setup ── */}
-          <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-            <div className="px-5 py-4 border-b border-[#E5E5E2]">
-              <p className="text-[13px] font-semibold text-[#1A1A1A]">Briefing de Mídia</p>
-              <p className="text-[12px] text-[#9B9B95] mt-0.5">Selecione um projeto aprovado para arquitetar o plano de tráfego pago.</p>
+          <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+            <div className="px-5 py-4 border-b border-[var(--border)]">
+              <p className="text-[13px] font-semibold text-[var(--text-primary)]">Briefing de Mídia</p>
+              <p className="text-[12px] text-[var(--text-muted)] mt-0.5">Selecione um projeto aprovado para arquitetar o plano de tráfego pago.</p>
             </div>
 
             <div className="px-5 py-5 space-y-4">
               {/* Project selector */}
               <div>
-                <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">
-                  Projeto <span className="text-[#DC2626]">*</span>
+                <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5">
+                  Projeto <span className="text-[var(--danger)]">*</span>
                 </label>
                 <select
                   value={linkedProjectId ?? ""}
                   onChange={(e) => { setLinkedProjectId(e.target.value || null); setPlan(null); setSaved(false); setAgentState("idle"); }}
                   disabled={agentState === "generating"}
-                  className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:bg-white transition-colors disabled:opacity-50"
+                  className="w-full h-8 px-3 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:bg-white transition-colors disabled:opacity-50"
                 >
                   <option value="">— selecione um projeto —</option>
                   {projects.map((p) => (
@@ -310,24 +310,24 @@ export default function AdsAgentPage() {
                     <path d="M7 4.5V7M7 9.5h.01" stroke="#D97706" strokeWidth="1.4" strokeLinecap="round" />
                     <circle cx="7" cy="7" r="6" stroke="#D97706" strokeWidth="1.2" />
                   </svg>
-                  <p className="text-[12px] text-[#D97706] leading-snug">A proposta deve estar aprovada antes de rodar o Agente de Tráfego Pago.</p>
+                  <p className="text-[12px] text-[var(--warning)] leading-snug">A proposta deve estar aprovada antes de rodar o Agente de Tráfego Pago.</p>
                 </div>
               )}
 
               {/* Already-generated note */}
               {isReady && existingAdsDeliverables.length > 0 && (
-                <div className="rounded-[7px] bg-[#FAFAFA] border border-[#F0F0ED] px-3 py-2">
-                  <p className="text-[11px] text-[#9B9B95]">{existingAdsDeliverables.length} entrega(s) de Ads já salva(s) neste projeto. Gerar novamente cria uma nova versão.</p>
+                <div className="rounded-[7px] bg-[var(--bg-elevated)] border border-[var(--border)] px-3 py-2">
+                  <p className="text-[11px] text-[var(--text-muted)]">{existingAdsDeliverables.length} entrega(s) de Ads já salva(s) neste projeto. Gerar novamente cria uma nova versão.</p>
                 </div>
               )}
 
               {/* What gets generated */}
               {isReady && (
-                <div className="rounded-[8px] border border-[#E5E5E2] bg-[#FAFAF9] px-3 py-3">
-                  <p className="text-[11px] font-semibold text-[#6B6B65] uppercase tracking-[0.05em] mb-2">Será gerado</p>
+                <div className="rounded-[8px] border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-3">
+                  <p className="text-[11px] font-semibold text-[var(--text-secondary)] uppercase tracking-[0.05em] mb-2">Será gerado</p>
                   <ul className="space-y-1">
                     {ADS_DELIVERABLE_TYPES.map((t) => (
-                      <li key={t} className="flex items-center gap-2 text-[12px] text-[#1A1A1A]">
+                      <li key={t} className="flex items-center gap-2 text-[12px] text-[var(--text-primary)]">
                         <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: ACCENT }} />
                         {t}
                       </li>
@@ -354,7 +354,7 @@ export default function AdsAgentPage() {
                 </button>
               )}
               {agentState === "output_ready" && (
-                <button onClick={handleReset} className="w-full h-9 rounded-[7px] text-[13px] font-medium bg-transparent border border-[#E5E5E2] text-[#6B6B65] hover:bg-[#F7F7F6] transition-all">
+                <button onClick={handleReset} className="w-full h-9 rounded-[7px] text-[13px] font-medium bg-transparent border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg)] transition-all">
                   Reiniciar
                 </button>
               )}
@@ -365,14 +365,14 @@ export default function AdsAgentPage() {
 
           {/* Idle — no project */}
           {agentState === "idle" && !linkedProject && (
-            <div className="bg-white rounded-[10px] border border-dashed border-[#E5E5E2] px-8 py-16 text-center">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: "#ECFEFF" }}>
+            <div className="bg-white rounded-[10px] border border-dashed border-[var(--border)] px-8 py-16 text-center">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: "#E6FBFA" }}>
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                   <path d="M3 17V9M8 17V4M13 17v-6M18 17V7" stroke={ACCENT} strokeWidth="1.8" strokeLinecap="round" />
                 </svg>
               </div>
-              <p className="text-[14px] font-semibold text-[#1A1A1A] mb-1">Departamento de Tráfego Pago</p>
-              <p className="text-[13px] text-[#9B9B95] max-w-sm mx-auto">Selecione um projeto com proposta aprovada para arquitetar a estratégia de campanha, audiências, copy e criativos.</p>
+              <p className="text-[14px] font-semibold text-[var(--text-primary)] mb-1">Departamento de Tráfego Pago</p>
+              <p className="text-[13px] text-[var(--text-muted)] max-w-sm mx-auto">Selecione um projeto com proposta aprovada para arquitetar a estratégia de campanha, audiências, copy e criativos.</p>
             </div>
           )}
 
@@ -383,14 +383,14 @@ export default function AdsAgentPage() {
 
           {/* Idle — ready */}
           {agentState === "idle" && linkedProject && !proposalBlocked && (
-            <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-8 py-14 text-center">
-              <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-5" style={{ backgroundColor: "#ECFEFF" }}>
+            <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-8 py-14 text-center">
+              <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-5" style={{ backgroundColor: "#E6FBFA" }}>
                 <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
                   <path d="M3 19V10M9 19V5M15 19v-6M21 19V8" stroke={ACCENT} strokeWidth="1.8" strokeLinecap="round" />
                 </svg>
               </div>
-              <p className="text-[15px] font-semibold text-[#1A1A1A] mb-2">Pronto para arquitetar</p>
-              <p className="text-[13px] text-[#6B6B65] max-w-sm mx-auto leading-relaxed">
+              <p className="text-[15px] font-semibold text-[var(--text-primary)] mb-2">Pronto para arquitetar</p>
+              <p className="text-[13px] text-[var(--text-secondary)] max-w-sm mx-auto leading-relaxed">
                 {linkedClient?.name} · proposta aprovada. O agente usa o Brand Brain{strategyRoom ? " e o Strategy Room" : ""} para gerar um plano de mídia completo em 6 entregas.
               </p>
             </div>
@@ -398,20 +398,20 @@ export default function AdsAgentPage() {
 
           {/* Generating */}
           {agentState === "generating" && (
-            <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-8 py-12">
+            <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-8 py-12">
               <div className="max-w-md mx-auto space-y-3">
                 {STEPS.map((s, i) => (
                   <div key={i} className={`flex items-center gap-3 transition-opacity ${i <= stepIndex ? "opacity-100" : "opacity-30"}`}>
-                    <span className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${i < stepIndex ? "bg-[#DCFCE7]" : i === stepIndex ? "" : "bg-[#F0F0ED]"}`} style={i === stepIndex ? { backgroundColor: "#CFFAFE" } : {}}>
+                    <span className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${i < stepIndex ? "bg-[var(--success-bg)]" : i === stepIndex ? "" : "bg-[var(--accent)]"}`} style={i === stepIndex ? { backgroundColor: "#E6FBFA" } : {}}>
                       {i < stepIndex ? (
                         <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l2.5 2.5L9 1" stroke="#16A34A" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
                       ) : i === stepIndex ? (
                         <span className="w-2.5 h-2.5 border-2 rounded-full animate-spin" style={{ borderColor: ACCENT, borderTopColor: "transparent" }} />
                       ) : (
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#C0C0BC]" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-subtle)]" />
                       )}
                     </span>
-                    <span className={`text-[13px] ${i <= stepIndex ? "text-[#1A1A1A]" : "text-[#9B9B95]"}`}>{s}</span>
+                    <span className={`text-[13px] ${i <= stepIndex ? "text-[var(--text-primary)]" : "text-[var(--text-muted)]"}`}>{s}</span>
                   </div>
                 ))}
               </div>
@@ -422,12 +422,12 @@ export default function AdsAgentPage() {
           {agentState === "output_ready" && plan && (
             <div className="space-y-4">
               {/* Tab bar */}
-              <div className="flex items-center gap-1 bg-white border border-[#E5E5E2] rounded-[8px] p-1 overflow-x-auto">
+              <div className="flex items-center gap-1 bg-white border border-[var(--border)] rounded-[8px] p-1 overflow-x-auto">
                 {OUTPUT_TABS.map((t) => (
                   <button
                     key={t.id}
                     onClick={() => setActiveTab(t.id)}
-                    className={`h-7 px-3 rounded-[5px] text-[12px] font-medium whitespace-nowrap transition-all ${activeTab === t.id ? "text-white" : "text-[#6B6B65] hover:bg-[#F7F7F6]"}`}
+                    className={`h-7 px-3 rounded-[5px] text-[12px] font-medium whitespace-nowrap transition-all ${activeTab === t.id ? "text-white" : "text-[var(--text-secondary)] hover:bg-[var(--bg)]"}`}
                     style={activeTab === t.id ? { backgroundColor: ACCENT } : {}}
                   >
                     {t.label}
@@ -437,23 +437,23 @@ export default function AdsAgentPage() {
 
               {/* Strategy */}
               {activeTab === "strategy" && (
-                <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 space-y-4">
+                <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 space-y-4">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="h-6 px-2.5 rounded-full text-[11px] font-semibold text-white flex items-center" style={{ backgroundColor: ACCENT }}>{plan.platform}</span>
-                    {plan.usedStrategyRoom && <span className="h-6 px-2.5 rounded-full text-[11px] font-semibold bg-[#E6FBFA] text-[#070A1F] flex items-center">Baseado no Strategy Room</span>}
-                    <span className="h-6 px-2.5 rounded-full text-[11px] font-semibold bg-[#F0F0ED] text-[#6B6B65] flex items-center">Brand Brain {plan.brandBrainReadiness}/10</span>
+                    {plan.usedStrategyRoom && <span className="h-6 px-2.5 rounded-full text-[11px] font-semibold bg-[var(--accent-light)] text-[var(--navy)] flex items-center">Baseado no Strategy Room</span>}
+                    <span className="h-6 px-2.5 rounded-full text-[11px] font-semibold bg-[var(--accent)] text-[var(--text-secondary)] flex items-center">Brand Brain {plan.brandBrainReadiness}/10</span>
                   </div>
                   <Field label="Objetivo da campanha" value={plan.campaignObjective} />
                   <Field label="Recomendação de plataforma" value={plan.platformRationale} />
                   <Field label="Ângulo de oferta" value={plan.offerAngle} />
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-[#FAFAF9] rounded-[8px] border border-[#F0F0ED] px-3 py-2.5">
-                      <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-0.5">Budget sugerido</div>
-                      <div className="text-[13px] font-semibold text-[#1A1A1A]">{plan.budgetSuggestion}</div>
+                    <div className="bg-[var(--bg-elevated)] rounded-[8px] border border-[var(--border)] px-3 py-2.5">
+                      <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-0.5">Budget sugerido</div>
+                      <div className="text-[13px] font-semibold text-[var(--text-primary)]">{plan.budgetSuggestion}</div>
                     </div>
-                    <div className="bg-[#FAFAF9] rounded-[8px] border border-[#F0F0ED] px-3 py-2.5">
-                      <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-0.5">Distribuição</div>
-                      <div className="text-[12px] text-[#6B6B65] leading-snug">{plan.budgetRationale}</div>
+                    <div className="bg-[var(--bg-elevated)] rounded-[8px] border border-[var(--border)] px-3 py-2.5">
+                      <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-0.5">Distribuição</div>
+                      <div className="text-[12px] text-[var(--text-secondary)] leading-snug">{plan.budgetRationale}</div>
                     </div>
                   </div>
                 </div>
@@ -463,15 +463,15 @@ export default function AdsAgentPage() {
               {activeTab === "structure" && (
                 <div className="space-y-3">
                   {plan.funnel.map((f, i) => (
-                    <div key={i} className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
+                    <div key={i} className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
                       <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-[13px] font-semibold text-[#1A1A1A]">{f.stage}</span>
-                        <span className="text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: "#ECFEFF", color: ACCENT }}>{f.platforms}</span>
+                        <span className="text-[13px] font-semibold text-[var(--text-primary)]">{f.stage}</span>
+                        <span className="text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: "#E6FBFA", color: ACCENT }}>{f.platforms}</span>
                       </div>
-                      <p className="text-[12px] text-[#6B6B65] mb-2">{f.goal}</p>
+                      <p className="text-[12px] text-[var(--text-secondary)] mb-2">{f.goal}</p>
                       <div className="flex flex-wrap gap-1">
                         {f.formats.map((fmt) => (
-                          <span key={fmt} className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-[#F0F0ED] text-[#6B6B65]">{fmt}</span>
+                          <span key={fmt} className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-[var(--accent)] text-[var(--text-secondary)]">{fmt}</span>
                         ))}
                       </div>
                     </div>
@@ -482,19 +482,19 @@ export default function AdsAgentPage() {
               {/* Audience */}
               {activeTab === "audience" && (
                 <div className="space-y-3">
-                  <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
-                    <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1">Estratégia de audiência</div>
-                    <p className="text-[13px] text-[#1A1A1A] leading-relaxed">{plan.audienceStrategy}</p>
+                  <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
+                    <div className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1">Estratégia de audiência</div>
+                    <p className="text-[13px] text-[var(--text-primary)] leading-relaxed">{plan.audienceStrategy}</p>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     {plan.audienceSegments.map((s, i) => (
-                      <div key={i} className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-4 py-3">
+                      <div key={i} className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-4 py-3">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-[12px] font-semibold text-[#1A1A1A]">{s.name}</span>
+                          <span className="text-[12px] font-semibold text-[var(--text-primary)]">{s.name}</span>
                           <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${AUDIENCE_COLOR[s.type]}`}>{s.type}</span>
                         </div>
-                        <p className="text-[11px] text-[#6B6B65] mb-1.5">{s.description}</p>
-                        <p className="text-[11px] text-[#9B9B95] leading-snug">{s.targeting}</p>
+                        <p className="text-[11px] text-[var(--text-secondary)] mb-1.5">{s.description}</p>
+                        <p className="text-[11px] text-[var(--text-muted)] leading-snug">{s.targeting}</p>
                       </div>
                     ))}
                   </div>
@@ -505,13 +505,13 @@ export default function AdsAgentPage() {
               {activeTab === "copy" && (
                 <div className="space-y-3">
                   {plan.adCopyIdeas.map((c, i) => (
-                    <div key={i} className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
+                    <div key={i} className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: "#ECFEFF", color: ACCENT }}>{c.angle}</span>
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: "#E6FBFA", color: ACCENT }}>{c.angle}</span>
                       </div>
-                      <p className="text-[13px] font-semibold text-[#1A1A1A] mb-1">{c.headline}</p>
-                      <p className="text-[12px] text-[#6B6B65] leading-relaxed mb-2">{c.primaryText}</p>
-                      <span className="inline-flex text-[11px] font-medium px-2 py-0.5 rounded-[5px] bg-[#1A1A1A] text-white">CTA: {c.cta}</span>
+                      <p className="text-[13px] font-semibold text-[var(--text-primary)] mb-1">{c.headline}</p>
+                      <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed mb-2">{c.primaryText}</p>
+                      <span className="inline-flex text-[11px] font-medium px-2 py-0.5 rounded-[5px] bg-[var(--text-primary)] text-white">CTA: {c.cta}</span>
                     </div>
                   ))}
                 </div>
@@ -521,13 +521,13 @@ export default function AdsAgentPage() {
               {activeTab === "creative" && (
                 <div className="grid grid-cols-2 gap-3">
                   {plan.creativeRequirements.map((c, i) => (
-                    <div key={i} className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-4 py-3">
+                    <div key={i} className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-4 py-3">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-[12px] font-semibold text-[#1A1A1A]">{c.asset}</span>
-                        <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-[#F0F0ED] text-[#6B6B65]">{c.format}</span>
+                        <span className="text-[12px] font-semibold text-[var(--text-primary)]">{c.asset}</span>
+                        <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-[var(--accent)] text-[var(--text-secondary)]">{c.format}</span>
                       </div>
-                      <p className="text-[11px] text-[#6B6B65] mb-1">{c.spec}</p>
-                      <p className="text-[11px] text-[#9B9B95] leading-snug">{c.direction}</p>
+                      <p className="text-[11px] text-[var(--text-secondary)] mb-1">{c.spec}</p>
+                      <p className="text-[11px] text-[var(--text-muted)] leading-snug">{c.direction}</p>
                     </div>
                   ))}
                 </div>
@@ -537,21 +537,21 @@ export default function AdsAgentPage() {
               {activeTab === "optimization" && (
                 <div className="space-y-3">
                   <div className="bg-white rounded-[10px] border border-[#FECACA] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
-                    <div className="text-[11px] font-semibold text-[#DC2626] uppercase tracking-[0.05em] mb-2">Riscos da campanha</div>
+                    <div className="text-[11px] font-semibold text-[var(--danger)] uppercase tracking-[0.05em] mb-2">Riscos da campanha</div>
                     <ul className="space-y-1.5">
                       {plan.campaignRisks.map((r, i) => (
-                        <li key={i} className="flex items-start gap-2 text-[12px] text-[#6B6B65]">
-                          <span className="mt-[5px] w-1.5 h-1.5 rounded-full bg-[#DC2626] shrink-0" />{r}
+                        <li key={i} className="flex items-start gap-2 text-[12px] text-[var(--text-secondary)]">
+                          <span className="mt-[5px] w-1.5 h-1.5 rounded-full bg-[var(--danger)] shrink-0" />{r}
                         </li>
                       ))}
                     </ul>
                   </div>
                   <div className="bg-white rounded-[10px] border border-[#BBF7D0] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
-                    <div className="text-[11px] font-semibold text-[#16A34A] uppercase tracking-[0.05em] mb-2">Sugestões de otimização</div>
+                    <div className="text-[11px] font-semibold text-[var(--success)] uppercase tracking-[0.05em] mb-2">Sugestões de otimização</div>
                     <ul className="space-y-1.5">
                       {plan.optimizationSuggestions.map((s, i) => (
-                        <li key={i} className="flex items-start gap-2 text-[12px] text-[#6B6B65]">
-                          <span className="mt-[5px] w-1.5 h-1.5 rounded-full bg-[#16A34A] shrink-0" />{s}
+                        <li key={i} className="flex items-start gap-2 text-[12px] text-[var(--text-secondary)]">
+                          <span className="mt-[5px] w-1.5 h-1.5 rounded-full bg-[var(--success)] shrink-0" />{s}
                         </li>
                       ))}
                     </ul>
@@ -560,13 +560,13 @@ export default function AdsAgentPage() {
               )}
 
               {/* Save footer */}
-              <div className="flex items-center justify-between bg-[#F7F7F6] rounded-[12px] border border-[#E5E5E2] px-5 py-3">
+              <div className="flex items-center justify-between bg-[var(--bg)] rounded-[12px] border border-[var(--border)] px-5 py-3">
                 <div>
-                  <p className="text-[13px] font-medium text-[#1A1A1A]">Salvar plano como entregas revisáveis</p>
-                  <p className="text-[12px] text-[#9B9B95]">6 entregas agrupadas vão para revisão do cliente no portal.</p>
+                  <p className="text-[13px] font-medium text-[var(--text-primary)]">Salvar plano como entregas revisáveis</p>
+                  <p className="text-[12px] text-[var(--text-muted)]">6 entregas agrupadas vão para revisão do cliente no portal.</p>
                 </div>
                 {saved ? (
-                  <span className="flex items-center gap-1.5 h-9 px-4 rounded-[8px] text-[13px] font-medium bg-[#DCFCE7] text-[#16A34A]">
+                  <span className="flex items-center gap-1.5 h-9 px-4 rounded-[8px] text-[13px] font-medium bg-[var(--success-bg)] text-[var(--success)]">
                     <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l2.5 2.5L10 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
                     Salvo no projeto
                   </span>
@@ -587,8 +587,8 @@ export default function AdsAgentPage() {
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-0.5">{label}</div>
-      <p className="text-[13px] text-[#1A1A1A] leading-relaxed">{value}</p>
+      <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-0.5">{label}</div>
+      <p className="text-[13px] text-[var(--text-primary)] leading-relaxed">{value}</p>
     </div>
   );
 }

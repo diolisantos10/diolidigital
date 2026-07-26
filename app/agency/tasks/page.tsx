@@ -19,10 +19,10 @@ function SourceBadge({ source }: { source: "db" | "local" }) {
   return (
     <span className={`inline-flex items-center gap-1 h-5 px-2 rounded-full text-[10px] font-semibold ${
       source === "db"
-        ? "bg-[#DCFCE7] text-[#16A34A]"
-        : "bg-[#F0F0ED] text-[#9B9B95]"
+        ? "bg-[var(--success-bg)] text-[var(--success)]"
+        : "bg-[var(--accent)] text-[var(--text-muted)]"
     }`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${source === "db" ? "bg-[#16A34A]" : "bg-[#9B9B95]"}`} />
+      <span className={`w-1.5 h-1.5 rounded-full ${source === "db" ? "bg-[var(--success)]" : "bg-[var(--text-muted)]"}`} />
       {source === "db" ? "DB" : "Local"}
     </span>
   );
@@ -200,7 +200,7 @@ export default function TasksPage() {
         meta={
           <div className="flex items-center gap-2">
             {loading ? (
-              <span className="text-[11px] text-[#9B9B95]">Carregando…</span>
+              <span className="text-[11px] text-[var(--text-muted)]">Carregando…</span>
             ) : (
               <SourceBadge source={source} />
             )}
@@ -209,21 +209,21 @@ export default function TasksPage() {
       />
 
       {/* Tabs */}
-      <div className="flex items-center gap-0 border-b border-[#E5E5E2] mb-6 -mt-2">
+      <div className="flex items-center gap-0 border-b border-[var(--border)] mb-6 -mt-2">
         {TABS.map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`flex items-center gap-1.5 h-9 px-4 text-[13px] font-medium border-b-2 transition-colors ${
               tab === t
-                ? "border-[#070A1F] text-[#070A1F]"
-                : "border-transparent text-[#6B6B65] hover:text-[#1A1A1A]"
+                ? "border-[var(--navy)] text-[var(--navy)]"
+                : "border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
             }`}
           >
             {TAB_LABELS[t]}
             {counts[t] > 0 && (
               <span className={`inline-flex items-center justify-center min-w-[16px] h-[16px] px-1 rounded-full text-[10px] font-bold leading-none ${
-                tab === t ? "bg-[#070A1F] text-white" : "bg-[#F0F0ED] text-[#9B9B95]"
+                tab === t ? "bg-[var(--navy)] text-white" : "bg-[var(--accent)] text-[var(--text-muted)]"
               }`}>
                 {counts[t]}
               </span>
@@ -238,12 +238,12 @@ export default function TasksPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar tarefas…"
-          className="h-8 px-3 text-[13px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] placeholder:text-[#9B9B95] w-52"
+          className="h-8 px-3 text-[13px] bg-white border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] placeholder:text-[var(--text-muted)] w-52"
         />
         <select
           value={projectFilter}
           onChange={(e) => setProjectFilter(e.target.value)}
-          className="h-8 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] text-[#6B6B65]"
+          className="h-8 px-3 text-[12px] bg-white border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] text-[var(--text-secondary)]"
         >
           <option value="all">Todos os projetos</option>
           {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -251,7 +251,7 @@ export default function TasksPage() {
         <select
           value={priorityFilter}
           onChange={(e) => setPriorityFilter(e.target.value as AutoTaskPriority | "all")}
-          className="h-8 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] text-[#6B6B65]"
+          className="h-8 px-3 text-[12px] bg-white border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] text-[var(--text-secondary)]"
         >
           <option value="all">Toda prioridade</option>
           <option value="critical">Crítico</option>
@@ -262,7 +262,7 @@ export default function TasksPage() {
         <select
           value={ownerFilter}
           onChange={(e) => setOwnerFilter(e.target.value)}
-          className="h-8 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] text-[#6B6B65]"
+          className="h-8 px-3 text-[12px] bg-white border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] text-[var(--text-secondary)]"
         >
           <option value="all">Todo responsável</option>
           <option value="PM">PM</option>
@@ -273,7 +273,7 @@ export default function TasksPage() {
         {hasActiveFilters && (
           <button
             onClick={() => { setProjectFilter("all"); setPriorityFilter("all"); setOwnerFilter("all"); setSearch(""); }}
-            className="h-8 px-3 text-[12px] text-[#6B6B65] hover:text-[#1A1A1A] transition-colors"
+            className="h-8 px-3 text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
           >
             Limpar
           </button>
@@ -284,18 +284,18 @@ export default function TasksPage() {
       {filtered.length === 0 ? (
         <EmptyState title="Nenhuma tarefa encontrada" description="Ajuste os filtros ou crie novas tarefas." />
       ) : (
-        <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+        <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-[#F0F0ED]">
+              <tr className="border-b border-[var(--border)]">
                 <th className="w-8 px-4 py-3" />
-                <th className="text-left px-3 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Tarefa</th>
-                <th className="text-left px-4 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Projeto · Cliente</th>
-                <th className="text-left px-4 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Resp.</th>
-                <th className="text-left px-4 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Prioridade</th>
-                <th className="text-left px-4 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Status</th>
-                <th className="text-left px-4 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Prazo</th>
-                <th className="text-left px-4 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Origem</th>
+                <th className="text-left px-3 py-3 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Tarefa</th>
+                <th className="text-left px-4 py-3 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Projeto · Cliente</th>
+                <th className="text-left px-4 py-3 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Resp.</th>
+                <th className="text-left px-4 py-3 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Prioridade</th>
+                <th className="text-left px-4 py-3 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Status</th>
+                <th className="text-left px-4 py-3 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Prazo</th>
+                <th className="text-left px-4 py-3 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Origem</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -308,8 +308,8 @@ export default function TasksPage() {
                 return (
                   <tr
                     key={task.id}
-                    className={`transition-colors ${i > 0 ? "border-t border-[#F0F0ED]" : ""} ${
-                      task.storeStatus === "done" ? "opacity-50" : "hover:bg-[#FAFAF9]"
+                    className={`transition-colors ${i > 0 ? "border-t border-[var(--border)]" : ""} ${
+                      task.storeStatus === "done" ? "opacity-50" : "hover:bg-[var(--bg-elevated)]"
                     }`}
                   >
                     {/* Indicator */}
@@ -319,12 +319,12 @@ export default function TasksPage() {
                           onClick={() => task.storeStatus && updateTaskStatus(task.id, TASK_CYCLE[task.storeStatus])}
                           className={`w-4 h-4 rounded-[4px] border flex items-center justify-center transition-colors ${
                             task.storeStatus === "done"
-                              ? "bg-[#070A1F] border-[#070A1F]"
+                              ? "bg-[var(--navy)] border-[var(--navy)]"
                               : task.storeStatus === "blocked"
-                              ? "bg-[#FEE2E2] border-[#DC2626]"
+                              ? "bg-[#FEE2E2] border-[var(--danger)]"
                               : task.storeStatus === "in_progress"
-                              ? "border-[#070A1F] bg-[#E6FBFA]"
-                              : "border-[#D0D0CC] hover:border-[#070A1F]"
+                              ? "border-[var(--navy)] bg-[var(--accent-light)]"
+                              : "border-[var(--border-strong)] hover:border-[var(--navy)]"
                           }`}
                         >
                           {task.storeStatus === "done" && (
@@ -334,7 +334,7 @@ export default function TasksPage() {
                           )}
                         </button>
                       ) : (
-                        <span className="w-4 h-4 rounded-[4px] bg-[#E6FBFA] border border-[#070A1F]/30 flex items-center justify-center text-[7px] text-[#070A1F] font-bold leading-none">
+                        <span className="w-4 h-4 rounded-[4px] bg-[var(--accent-light)] border border-[var(--navy)]/30 flex items-center justify-center text-[7px] text-[var(--navy)] font-bold leading-none">
                           PM
                         </span>
                       )}
@@ -342,21 +342,21 @@ export default function TasksPage() {
 
                     {/* Title */}
                     <td className="px-3 py-3.5 min-w-[200px] max-w-[280px]">
-                      <div className={`text-[13px] font-medium ${task.storeStatus === "done" ? "line-through text-[#9B9B95]" : "text-[#1A1A1A]"}`}>
+                      <div className={`text-[13px] font-medium ${task.storeStatus === "done" ? "line-through text-[var(--text-muted)]" : "text-[var(--text-primary)]"}`}>
                         {task.title}
                       </div>
-                      <div className="text-[11px] text-[#9B9B95] mt-0.5 line-clamp-1">{task.description}</div>
+                      <div className="text-[11px] text-[var(--text-muted)] mt-0.5 line-clamp-1">{task.description}</div>
                     </td>
 
                     {/* Project · Client */}
                     <td className="px-4 py-3.5 min-w-[140px]">
                       <Link
                         href={`/agency/projects/${task.projectId}`}
-                        className="text-[12px] font-medium text-[#1A1A1A] hover:text-[#070A1F] transition-colors block truncate max-w-[160px]"
+                        className="text-[12px] font-medium text-[var(--text-primary)] hover:text-[var(--navy)] transition-colors block truncate max-w-[160px]"
                       >
                         {task.projectName}
                       </Link>
-                      <div className="text-[11px] text-[#9B9B95] truncate max-w-[160px]">{task.clientName}</div>
+                      <div className="text-[11px] text-[var(--text-muted)] truncate max-w-[160px]">{task.clientName}</div>
                     </td>
 
                     {/* Owner */}
@@ -377,10 +377,10 @@ export default function TasksPage() {
                     <td className="px-4 py-3.5">
                       {task.kind === "store" && task.storeStatus ? (
                         <span className={`inline-flex h-5 px-2 rounded-full text-[10px] font-semibold items-center ${
-                          task.storeStatus === "done"        ? "bg-[#DCFCE7] text-[#16A34A]"
-                          : task.storeStatus === "blocked"   ? "bg-[#FEE2E2] text-[#DC2626]"
-                          : task.storeStatus === "in_progress" ? "bg-[#FEF3C7] text-[#D97706]"
-                          : "bg-[#F0F0ED] text-[#9B9B95]"
+                          task.storeStatus === "done"        ? "bg-[var(--success-bg)] text-[var(--success)]"
+                          : task.storeStatus === "blocked"   ? "bg-[#FEE2E2] text-[var(--danger)]"
+                          : task.storeStatus === "in_progress" ? "bg-[var(--warning-bg)] text-[var(--warning)]"
+                          : "bg-[var(--accent)] text-[var(--text-muted)]"
                         }`}>
                           {task.storeStatus === "done"        ? "Concluída"
                             : task.storeStatus === "blocked"  ? "Bloqueada"
@@ -388,7 +388,7 @@ export default function TasksPage() {
                             : "Pendente"}
                         </span>
                       ) : (
-                        <span className="inline-flex h-5 px-2 rounded-full text-[10px] font-semibold items-center bg-[#E6FBFA] text-[#070A1F]">
+                        <span className="inline-flex h-5 px-2 rounded-full text-[10px] font-semibold items-center bg-[var(--accent-light)] text-[var(--navy)]">
                           Sugerida
                         </span>
                       )}
@@ -397,17 +397,17 @@ export default function TasksPage() {
                     {/* Due date */}
                     <td className="px-4 py-3.5">
                       {task.dueDate ? (
-                        <span className={`text-[12px] ${isOverdue ? "text-[#DC2626] font-semibold" : "text-[#9B9B95]"}`}>
+                        <span className={`text-[12px] ${isOverdue ? "text-[var(--danger)] font-semibold" : "text-[var(--text-muted)]"}`}>
                           {isOverdue && "⚑ "}{task.dueDate.slice(5)}
                         </span>
                       ) : (
-                        <span className="text-[12px] text-[#C0C0BC]">—</span>
+                        <span className="text-[12px] text-[var(--text-subtle)]">—</span>
                       )}
                     </td>
 
                     {/* Source */}
                     <td className="px-4 py-3.5">
-                      <span className="text-[11px] text-[#9B9B95]">
+                      <span className="text-[11px] text-[var(--text-muted)]">
                         {SOURCE_LABELS[task.source] ?? task.source}
                       </span>
                     </td>
@@ -419,21 +419,21 @@ export default function TasksPage() {
                           <>
                             <button
                               onClick={() => updateTaskStatus(task.id, "done")}
-                              className="h-6 px-2 rounded-[5px] text-[10px] font-medium border border-[#E5E5E2] text-[#16A34A] hover:bg-[#F0FDF4] transition-colors"
+                              className="h-6 px-2 rounded-[5px] text-[10px] font-medium border border-[var(--border)] text-[var(--success)] hover:bg-[#F0FDF4] transition-colors"
                             >
                               Concluir
                             </button>
                             {task.storeStatus !== "blocked" ? (
                               <button
                                 onClick={() => updateTaskStatus(task.id, "blocked")}
-                                className="h-6 px-2 rounded-[5px] text-[10px] font-medium border border-[#E5E5E2] text-[#DC2626] hover:bg-[#FEF2F2] transition-colors"
+                                className="h-6 px-2 rounded-[5px] text-[10px] font-medium border border-[var(--border)] text-[var(--danger)] hover:bg-[var(--danger-bg)] transition-colors"
                               >
                                 Bloquear
                               </button>
                             ) : (
                               <button
                                 onClick={() => updateTaskStatus(task.id, "pending")}
-                                className="h-6 px-2 rounded-[5px] text-[10px] font-medium border border-[#E5E5E2] text-[#D97706] hover:bg-[#FFFBEB] transition-colors"
+                                className="h-6 px-2 rounded-[5px] text-[10px] font-medium border border-[var(--border)] text-[var(--warning)] hover:bg-[#FFFBEB] transition-colors"
                               >
                                 Reabrir
                               </button>
@@ -444,7 +444,7 @@ export default function TasksPage() {
                           <button
                             onClick={() => { const at = autoTaskById[task.id]; if (at) handleSaveAutoTask(at); }}
                             disabled={savingAutoId === task.id}
-                            className="h-6 px-2 rounded-[5px] text-[10px] font-medium border border-[#E5E5E2] text-[#070A1F] hover:bg-[#E6FBFA] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="h-6 px-2 rounded-[5px] text-[10px] font-medium border border-[var(--border)] text-[var(--navy)] hover:bg-[var(--accent-light)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {savingAutoId === task.id ? "…" : "Salvar no DB"}
                           </button>
@@ -452,7 +452,7 @@ export default function TasksPage() {
                         {task.route && (
                           <Link
                             href={task.route}
-                            className="h-6 w-6 flex items-center justify-center rounded-[5px] border border-[#E5E5E2] text-[#6B6B65] hover:border-[#070A1F] hover:text-[#070A1F] transition-colors text-[12px]"
+                            className="h-6 w-6 flex items-center justify-center rounded-[5px] border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--navy)] hover:text-[var(--navy)] transition-colors text-[12px]"
                           >
                             →
                           </Link>

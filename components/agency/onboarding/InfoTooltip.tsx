@@ -51,7 +51,7 @@ export default function InfoTooltip({
           setOpen((v) => !v);
         }}
         className={`inline-flex items-center justify-center w-[14px] h-[14px] rounded-full transition-colors ${
-          open ? "text-[#070A1F]" : "text-[#C0C0BC] hover:text-[#070A1F]"
+          open ? "text-[var(--navy)]" : "text-[var(--text-subtle)] hover:text-[var(--navy)]"
         }`}
       >
         <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
@@ -62,7 +62,7 @@ export default function InfoTooltip({
       </button>
 
       {open && (
-        <span className="absolute z-[60] top-full left-1/2 -translate-x-1/2 mt-1.5 w-[240px] bg-[#1A1A1A] text-white rounded-[8px] px-3 py-2.5 shadow-[0_8px_24px_rgba(0,0,0,0.25)]">
+        <span className="absolute z-[60] top-full left-1/2 -translate-x-1/2 mt-1.5 w-[240px] bg-[var(--text-primary)] text-white rounded-[8px] px-3 py-2.5 shadow-[0_8px_24px_rgba(0,0,0,0.25)]">
           {title && (
             <span className="block text-[10px] font-bold uppercase tracking-[0.05em] text-white/60 mb-1">
               {title}
