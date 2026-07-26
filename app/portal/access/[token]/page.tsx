@@ -114,7 +114,7 @@ const STATUS_LABEL: Record<string, string> = {
   waiting_quality: "Revisão final", in_progress: "Em execução", completed: "Concluído",
 };
 const ACTION_LABEL: Record<string, string> = {
-  approve: "Aprovar", request_revision: "Pedir revisão", reject: "Rejeitar",
+  approve: "Aprovar", request_revision: "Pedir ajuste", reject: "Rejeitar",
 };
 
 // Marketing-agency integrations the client connects so the agency can pull data
@@ -180,12 +180,12 @@ function DioliMark({ light = true }: { light?: boolean }) {
 
 function MetricTile({ label, value, hint, locked }: { label: string; value: string; hint?: string; locked?: boolean }) {
   return (
-    <div className="bg-white rounded-[14px] border border-[#ECEBE7] px-4 py-3.5 shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
-      <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em]">{label}</div>
-      <div className={`text-[24px] font-bold mt-1 tabular-nums ${locked ? "text-[#D0D0CC]" : "text-[#1A1A1A]"}`}>
+    <div className="bg-white rounded-[14px] border border-[var(--border)] px-4 py-3.5 shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
+      <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em]">{label}</div>
+      <div className={`text-[24px] font-bold mt-1 tabular-nums ${locked ? "text-[var(--border-strong)]" : "text-[var(--text-primary)]"}`}>
         {value}
       </div>
-      {hint && <div className="text-[10px] text-[#B7B7B1] mt-0.5">{hint}</div>}
+      {hint && <div className="text-[10px] text-[var(--text-subtle)] mt-0.5">{hint}</div>}
     </div>
   );
 }
@@ -266,10 +266,10 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
   // ── Error / loading gates ──────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FAF9F7]">
+      <div className="min-h-screen flex items-center justify-center bg-[var(--bg-elevated)]">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 rounded-full border-2 border-[#E5E5E2] border-t-[#070A1F] animate-spin" />
-          <p className="text-[13px] text-[#9B9B95]">Abrindo seu portal…</p>
+          <div className="w-8 h-8 rounded-full border-2 border-[var(--border)] border-t-[#070A1F] animate-spin" />
+          <p className="text-[13px] text-[var(--text-muted)]">Abrindo seu portal…</p>
         </div>
       </div>
     );
@@ -283,11 +283,11 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
     };
     const msg = messages[error ?? "invalid"] ?? messages.invalid;
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FAF9F7] px-4">
+      <div className="min-h-screen flex items-center justify-center bg-[var(--bg-elevated)] px-4">
         <div className="max-w-sm text-center">
           <div className="w-12 h-12 rounded-full bg-[#FEF3C7] flex items-center justify-center mx-auto mb-4 text-xl">⚠</div>
-          <h1 className="text-[18px] font-semibold text-[#1A1A1A] mb-2">{msg.title}</h1>
-          <p className="text-[13px] text-[#6B6B65] leading-relaxed">{msg.body}</p>
+          <h1 className="text-[18px] font-semibold text-[var(--text-primary)] mb-2">{msg.title}</h1>
+          <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">{msg.body}</p>
         </div>
       </div>
     );
@@ -313,7 +313,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
 
   // ── Shell ──────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#FAF9F7]">
+    <div className="min-h-screen bg-[var(--bg-elevated)]">
       {/* Branded header */}
       <header className="relative overflow-hidden" style={{ background: "linear-gradient(135deg, #0B0F2A 0%, #070A1F 55%, #0A0E24 100%)" }}>
         <div className="absolute inset-0 opacity-[0.15]" style={{ background: "radial-gradient(600px 200px at 80% -20%, #9AF5F0, transparent)" }} />
@@ -351,7 +351,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
       </header>
 
       {/* Section nav (sticky, mobile-scrollable) */}
-      <div className="sticky top-0 z-20 bg-[#FAF9F7]/90 backdrop-blur border-b border-[#ECEBE7] -mt-10 sm:-mt-12">
+      <div className="sticky top-0 z-20 bg-[var(--bg-elevated)]/90 backdrop-blur border-b border-[var(--border)] -mt-10 sm:-mt-12">
         <div className="max-w-[860px] mx-auto px-3">
           <div className="flex gap-1 overflow-x-auto no-scrollbar py-2.5">
             {navTabs.map((s) => {
@@ -362,11 +362,11 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
                   key={s.id}
                   onClick={() => setSection(s.id)}
                   className={`shrink-0 h-9 px-3.5 rounded-[9px] text-[13px] font-semibold transition-colors flex items-center gap-1.5 ${
-                    active ? "bg-[#070A1F] text-white shadow-[0_2px_8px_rgba(7,10,31,0.2)]" : "text-[#6B6B65] hover:bg-[#F0EFEB]"
+                    active ? "bg-[#070A1F] text-white shadow-[0_2px_8px_rgba(7,10,31,0.2)]" : "text-[var(--text-secondary)] hover:bg-[#F0EFEB]"
                   }`}
                   style={{ touchAction: "manipulation" }}
                 >
-                  <span className={active ? "text-[#9AF5F0]" : "text-[#B7B7B1]"}>{s.icon}</span>
+                  <span className={active ? "text-[#9AF5F0]" : "text-[var(--text-subtle)]"}>{s.icon}</span>
                   {s.label}
                   {badge > 0 && (
                     <span className="ml-0.5 inline-flex items-center justify-center min-w-[17px] h-[17px] px-1 rounded-full text-[10px] font-bold bg-[#F59E0B] text-white">{badge}</span>
@@ -387,7 +387,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
             {/* Results */}
             <section>
               <div className="flex items-center justify-between mb-2.5">
-                <h2 className="text-[14px] font-bold text-[#1A1A1A]">Seus resultados</h2>
+                <h2 className="text-[14px] font-bold text-[var(--text-primary)]">Seus resultados</h2>
                 <button onClick={() => setSection("integrations")} className="text-[11px] font-semibold text-[#12B5AC] hover:underline">
                   Conectar contas →
                 </button>
@@ -409,9 +409,9 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
             </section>
 
             {/* Delivery pipeline */}
-            <section className="bg-white rounded-[14px] border border-[#ECEBE7] p-5 shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
+            <section className="bg-white rounded-[14px] border border-[var(--border)] p-5 shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-[14px] font-bold text-[#1A1A1A]">Andamento da entrega</h2>
+                <h2 className="text-[14px] font-bold text-[var(--text-primary)]">Andamento da entrega</h2>
                 <span className="text-[12px] font-semibold text-[#12B5AC] tabular-nums">{progress}%</span>
               </div>
               <div className="h-1.5 rounded-full bg-[#F0EFEB] overflow-hidden mb-4">
@@ -423,11 +423,11 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
                   const done = completedDepts.has(key);
                   return (
                     <div key={key} className="flex items-center gap-3">
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${done ? "bg-[#DCFCE7] text-[#16A34A]" : "bg-[#F0EFEB] text-[#B7B7B1]"}`}>
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${done ? "bg-[#DCFCE7] text-[#16A34A]" : "bg-[#F0EFEB] text-[var(--text-subtle)]"}`}>
                         {done ? "✓" : idx + 1}
                       </div>
-                      <span className={`text-[13px] ${done ? "text-[#1A1A1A] font-medium" : "text-[#9B9B95]"}`}>{DEPT_NAMES[key] ?? key}</span>
-                      {step?.approvedAt && <span className="ml-auto text-[11px] text-[#B7B7B1]">{new Date(step.approvedAt).toLocaleDateString("pt-BR")}</span>}
+                      <span className={`text-[13px] ${done ? "text-[var(--text-primary)] font-medium" : "text-[var(--text-muted)]"}`}>{DEPT_NAMES[key] ?? key}</span>
+                      {step?.approvedAt && <span className="ml-auto text-[11px] text-[var(--text-subtle)]">{new Date(step.approvedAt).toLocaleDateString("pt-BR")}</span>}
                     </div>
                   );
                 })}
@@ -437,10 +437,10 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
             {/* Services */}
             {data.services.length > 0 && (
               <section>
-                <h2 className="text-[14px] font-bold text-[#1A1A1A] mb-2.5">Serviços contratados</h2>
+                <h2 className="text-[14px] font-bold text-[var(--text-primary)] mb-2.5">Serviços contratados</h2>
                 <div className="flex flex-wrap gap-2">
                   {data.services.map((s, i) => (
-                    <span key={i} className="h-8 px-3.5 rounded-[9px] bg-white border border-[#ECEBE7] text-[#1A1A1A] text-[12px] font-medium flex items-center shadow-[0_1px_2px_rgba(7,10,31,0.03)]">{s}</span>
+                    <span key={i} className="h-8 px-3.5 rounded-[9px] bg-white border border-[var(--border)] text-[var(--text-primary)] text-[12px] font-medium flex items-center shadow-[0_1px_2px_rgba(7,10,31,0.03)]">{s}</span>
                   ))}
                 </div>
               </section>
@@ -448,27 +448,27 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
 
             {/* Sobre o negócio — o que a Dioli entendeu do cliente */}
             {(data.segment || data.targetAudience || data.objectives.length > 0) && (
-              <section className="bg-white rounded-[14px] border border-[#ECEBE7] p-5 shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
-                <h2 className="text-[14px] font-bold text-[#1A1A1A] mb-3">Sobre o seu negócio</h2>
+              <section className="bg-white rounded-[14px] border border-[var(--border)] p-5 shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
+                <h2 className="text-[14px] font-bold text-[var(--text-primary)] mb-3">Sobre o seu negócio</h2>
                 <div className="space-y-3">
                   {data.segment && (
                     <div>
-                      <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em]">Segmento</div>
-                      <p className="text-[13px] text-[#1A1A1A] mt-0.5">{data.segment}</p>
+                      <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em]">Segmento</div>
+                      <p className="text-[13px] text-[var(--text-primary)] mt-0.5">{data.segment}</p>
                     </div>
                   )}
                   {data.targetAudience && (
                     <div>
-                      <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em]">Público-alvo</div>
-                      <p className="text-[13px] text-[#1A1A1A] mt-0.5">{data.targetAudience}</p>
+                      <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em]">Público-alvo</div>
+                      <p className="text-[13px] text-[var(--text-primary)] mt-0.5">{data.targetAudience}</p>
                     </div>
                   )}
                   {data.objectives.length > 0 && (
                     <div>
-                      <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em]">Objetivos</div>
+                      <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em]">Objetivos</div>
                       <div className="flex flex-wrap gap-1.5 mt-1.5">
                         {data.objectives.map((o, i) => (
-                          <span key={i} className="h-7 px-3 rounded-full bg-[#F0EFEB] text-[#3A3A38] text-[11px] font-medium flex items-center">{o}</span>
+                          <span key={i} className="h-7 px-3 rounded-full bg-[#F0EFEB] text-[var(--text-secondary)] text-[11px] font-medium flex items-center">{o}</span>
                         ))}
                       </div>
                     </div>
@@ -496,14 +496,14 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
           return (
             <div key={tab.id} className="space-y-6">
               <div>
-                <h2 className="text-[18px] font-bold text-[#1A1A1A]">{tab.label}</h2>
-                <p className="text-[13px] text-[#6B6B65] mt-0.5">Métricas, plano e entregas de {tab.label.toLowerCase()} num só lugar.</p>
+                <h2 className="text-[18px] font-bold text-[var(--text-primary)]">{tab.label}</h2>
+                <p className="text-[13px] text-[var(--text-secondary)] mt-0.5">Métricas, plano e entregas de {tab.label.toLowerCase()} num só lugar.</p>
               </div>
 
               {tab.metrics.length > 0 && (
                 <section>
                   <div className="flex items-center justify-between mb-2.5">
-                    <h3 className="text-[14px] font-bold text-[#1A1A1A]">Resultados</h3>
+                    <h3 className="text-[14px] font-bold text-[var(--text-primary)]">Resultados</h3>
                     <button onClick={() => setSection("integrations")} className="text-[11px] font-semibold text-[#12B5AC] hover:underline">Conectar contas →</button>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
@@ -515,15 +515,15 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
               {/* Contracted networks — each ready to connect (Social tab) */}
               {tab.id === "social" && (data.socialPlatforms?.length ?? 0) > 0 && (
                 <section>
-                  <h3 className="text-[14px] font-bold text-[#1A1A1A] mb-2.5">Suas redes</h3>
+                  <h3 className="text-[14px] font-bold text-[var(--text-primary)] mb-2.5">Suas redes</h3>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                     {data.socialPlatforms!.map((p) => {
                       const m = platformMeta(p);
                       return (
-                        <div key={p} className="bg-white rounded-[12px] border border-[#ECEBE7] px-3.5 py-3 flex items-center gap-2.5 shadow-[0_1px_2px_rgba(7,10,31,0.03)]">
+                        <div key={p} className="bg-white rounded-[12px] border border-[var(--border)] px-3.5 py-3 flex items-center gap-2.5 shadow-[0_1px_2px_rgba(7,10,31,0.03)]">
                           <span className="w-8 h-8 rounded-[9px] flex items-center justify-center text-white text-[11px] font-bold shrink-0" style={{ background: m.color }}>{m.initials}</span>
                           <div className="min-w-0 flex-1">
-                            <p className="text-[13px] font-semibold text-[#1A1A1A] truncate">{m.label}</p>
+                            <p className="text-[13px] font-semibold text-[var(--text-primary)] truncate">{m.label}</p>
                             <button onClick={() => setSection("integrations")} className="text-[11px] font-medium text-[#12B5AC] hover:underline">Conectar</button>
                           </div>
                         </div>
@@ -536,10 +536,10 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
               {/* Editorial calendar — what's coming up (Social tab) */}
               {tab.id === "social" && (
                 <section>
-                  <h3 className="text-[14px] font-bold text-[#1A1A1A] mb-2.5">Calendário editorial</h3>
+                  <h3 className="text-[14px] font-bold text-[var(--text-primary)] mb-2.5">Calendário editorial</h3>
                   {posts.length === 0 ? (
-                    <div className="bg-white rounded-[12px] border border-[#ECEBE7] px-4 py-6 text-center">
-                      <p className="text-[13px] text-[#9B9B95]">Seu calendário está sendo montado — em breve você verá aqui os posts programados.</p>
+                    <div className="bg-white rounded-[12px] border border-[var(--border)] px-4 py-6 text-center">
+                      <p className="text-[13px] text-[var(--text-muted)]">Seu calendário está sendo montado — em breve você verá aqui os posts programados.</p>
                     </div>
                   ) : (
                     <div className="space-y-2">
@@ -547,20 +547,20 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
                         .sort((a, b) => (a.scheduledFor ?? "").localeCompare(b.scheduledFor ?? ""))
                         .slice(0, 12)
                         .map((p) => (
-                          <div key={p.id} className="bg-white rounded-[12px] border border-[#ECEBE7] px-3.5 py-3 flex items-center gap-3 shadow-[0_1px_2px_rgba(7,10,31,0.03)]">
+                          <div key={p.id} className="bg-white rounded-[12px] border border-[var(--border)] px-3.5 py-3 flex items-center gap-3 shadow-[0_1px_2px_rgba(7,10,31,0.03)]">
                             <div className="w-[46px] shrink-0 text-center">
                               {p.scheduledFor ? (
                                 <>
-                                  <div className="text-[15px] font-bold text-[#1A1A1A] leading-none">{new Date(p.scheduledFor).getDate()}</div>
-                                  <div className="text-[9px] uppercase text-[#9B9B95] mt-0.5">{PT_MONTHS[new Date(p.scheduledFor).getMonth()]}</div>
+                                  <div className="text-[15px] font-bold text-[var(--text-primary)] leading-none">{new Date(p.scheduledFor).getDate()}</div>
+                                  <div className="text-[9px] uppercase text-[var(--text-muted)] mt-0.5">{PT_MONTHS[new Date(p.scheduledFor).getMonth()]}</div>
                                 </>
                               ) : <div className="text-[11px] text-[#C7C7C0]">—</div>}
                             </div>
                             <div className="min-w-0 flex-1">
-                              <p className="text-[13px] font-medium text-[#1A1A1A] truncate">{p.caption || <span className="italic text-[#9B9B95]">Conteúdo programado</span>}</p>
+                              <p className="text-[13px] font-medium text-[var(--text-primary)] truncate">{p.caption || <span className="italic text-[var(--text-muted)]">Conteúdo programado</span>}</p>
                               <div className="flex items-center gap-1.5 mt-1">
-                                <span className="text-[11px] text-[#9B9B95] capitalize">{p.format}</span>
-                                {p.pillar && <><span className="text-[#D7D7D2]">·</span><span className="text-[11px] text-[#9B9B95]">{p.pillar}</span></>}
+                                <span className="text-[11px] text-[var(--text-muted)] capitalize">{p.format}</span>
+                                {p.pillar && <><span className="text-[#D7D7D2]">·</span><span className="text-[11px] text-[var(--text-muted)]">{p.pillar}</span></>}
                               </div>
                             </div>
                             <div className="flex items-center gap-1 shrink-0">
@@ -580,24 +580,24 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
                 </section>
               )}
 
-              <section className="bg-white rounded-[14px] border border-[#ECEBE7] p-5 shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
+              <section className="bg-white rounded-[14px] border border-[var(--border)] p-5 shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
                 <div className="flex items-center justify-between mb-2.5">
-                  <h3 className="text-[14px] font-bold text-[#1A1A1A]">{tab.planTitle}</h3>
+                  <h3 className="text-[14px] font-bold text-[var(--text-primary)]">{tab.planTitle}</h3>
                   {dept && <span className="h-5 px-2 rounded-full bg-[#DCFCE7] text-[#16A34A] text-[10px] font-semibold flex items-center">✓ Aprovado</span>}
                 </div>
                 {dept && (dept.headline || dept.bullets.length > 0) ? (
                   <>
-                    {dept.headline && <p className="text-[13px] text-[#3A3A38] leading-relaxed mb-2">{dept.headline}</p>}
+                    {dept.headline && <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed mb-2">{dept.headline}</p>}
                     {dept.bullets.length > 0 && (
                       <ul className="space-y-1.5">
                         {dept.bullets.map((b, i) => (
-                          <li key={i} className="flex items-start gap-2 text-[12px] text-[#6B6B65]"><span className="text-[#12B5AC] mt-0.5 shrink-0">•</span>{b}</li>
+                          <li key={i} className="flex items-start gap-2 text-[12px] text-[var(--text-secondary)]"><span className="text-[#12B5AC] mt-0.5 shrink-0">•</span>{b}</li>
                         ))}
                       </ul>
                     )}
                   </>
                 ) : (
-                  <p className="text-[13px] text-[#9B9B95]">A equipe está preparando seu plano de {tab.label.toLowerCase()} — em breve aparece aqui.</p>
+                  <p className="text-[13px] text-[var(--text-muted)]">A equipe está preparando seu plano de {tab.label.toLowerCase()} — em breve aparece aqui.</p>
                 )}
               </section>
 
@@ -614,48 +614,61 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
         {/* ── APROVAÇÕES ── */}
         {section === "approvals" && (
           <div className="space-y-4">
-            <h2 className="text-[16px] font-bold text-[#1A1A1A]">Aprovações</h2>
+            <h2 className="text-[16px] font-bold text-[var(--text-primary)]">Aprovações</h2>
             {pendingApprovals.length === 0 ? (
-              <div className="bg-white rounded-[14px] border border-[#ECEBE7] p-8 text-center">
+              <div className="bg-white rounded-[14px] border border-[var(--border)] p-8 text-center">
                 <div className="w-11 h-11 rounded-full bg-[#DCFCE7] text-[#16A34A] text-xl flex items-center justify-center mx-auto mb-3">✓</div>
-                <p className="text-[14px] font-semibold text-[#1A1A1A]">Tudo aprovado</p>
-                <p className="text-[12px] text-[#9B9B95] mt-1">Nenhum material aguardando sua revisão no momento.</p>
+                <p className="text-[14px] font-semibold text-[var(--text-primary)]">Tudo aprovado</p>
+                <p className="text-[12px] text-[var(--text-muted)] mt-1">Nenhum material aguardando sua revisão no momento.</p>
               </div>
             ) : (
               pendingApprovals.map((ap) => (
                 <div key={ap.id} className="bg-white rounded-[14px] border border-[#E5C76B] p-4 shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="h-5 px-2 rounded-full bg-[#FEF3C7] text-[#9B7B2D] text-[10px] font-bold uppercase tracking-[0.04em]">Aguardando você</span>
-                    <p className="text-[14px] font-semibold text-[#1A1A1A]">{ap.department}</p>
+                    <p className="text-[14px] font-semibold text-[var(--text-primary)]">{ap.department}</p>
                   </div>
+                  <p className="text-[12.5px] text-[var(--text-secondary)] mb-3 leading-relaxed">A equipe finalizou esta entrega e precisa do seu ok para seguir. Se algo não ficou como você queria, é só pedir ajuste.</p>
                   {ap.reviewNote && (
-                    <div className="mb-3 rounded-[10px] bg-[#FAF9F7] border border-[#EDEBE6] p-3">
-                      <p className="text-[13px] text-[#3A3A38] leading-relaxed whitespace-pre-wrap">{ap.reviewNote}</p>
+                    <div className="mb-3 rounded-[10px] bg-[var(--bg-elevated)] border border-[var(--border)] p-3">
+                      <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed whitespace-pre-wrap">{ap.reviewNote}</p>
                     </div>
                   )}
                   <textarea
                     value={comments[ap.id] ?? ""}
                     onChange={(e) => setComments((c) => ({ ...c, [ap.id]: e.target.value }))}
-                    placeholder="Comentário (opcional)…"
+                    placeholder="Quer deixar um comentário para a equipe? (opcional)"
                     rows={2}
-                    className="w-full px-3 py-2 text-[13px] bg-[#FAF9F7] border border-[#E5E5E2] rounded-[9px] outline-none focus:border-[#9B7B2D] resize-none mb-2.5"
+                    className="w-full px-3 py-2 text-[13px] bg-[var(--bg-elevated)] border border-[var(--border)] rounded-[9px] outline-none focus:border-[#9B7B2D] resize-none mb-2.5"
                     style={{ fontSize: "16px" }}
                   />
-                  <div className="flex flex-wrap gap-2">
-                    {(["approve", "request_revision", "reject"] as const).map((action) => (
-                      <button
-                        key={action}
-                        disabled={submitting === ap.id}
-                        onClick={() => void handleDecision(ap.id, action)}
-                        style={{ touchAction: "manipulation" }}
-                        className={`h-9 px-4 rounded-[8px] text-[13px] font-semibold transition-opacity disabled:opacity-50 ${
-                          action === "approve" ? "bg-[#16A34A] text-white hover:opacity-90"
-                          : action === "request_revision" ? "bg-[#F0F0ED] text-[#1A1A1A] hover:bg-[#E5E5E2]"
-                          : "bg-white border border-[#FCA5A5] text-[#DC2626] hover:bg-[#FEF2F2]"}`}
-                      >
-                        {submitting === ap.id ? "Enviando…" : ACTION_LABEL[action]}
-                      </button>
-                    ))}
+                  {/* Ação principal — clara e sem ambiguidade */}
+                  <button
+                    disabled={submitting === ap.id}
+                    onClick={() => void handleDecision(ap.id, "approve")}
+                    style={{ touchAction: "manipulation" }}
+                    className="w-full h-11 rounded-[10px] text-[14px] font-semibold bg-[#16A34A] text-white hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-1.5"
+                  >
+                    {submitting === ap.id ? "Enviando…" : "✓ Aprovar"}
+                  </button>
+                  {/* Alternativas — secundárias */}
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      disabled={submitting === ap.id}
+                      onClick={() => void handleDecision(ap.id, "request_revision")}
+                      style={{ touchAction: "manipulation" }}
+                      className="flex-1 h-9 rounded-[8px] text-[13px] font-semibold bg-[var(--accent)] text-[var(--text-primary)] hover:bg-[var(--border)] transition-colors disabled:opacity-50"
+                    >
+                      Pedir ajuste
+                    </button>
+                    <button
+                      disabled={submitting === ap.id}
+                      onClick={() => void handleDecision(ap.id, "reject")}
+                      style={{ touchAction: "manipulation" }}
+                      className="flex-1 h-9 rounded-[8px] text-[13px] font-semibold bg-white border border-[#FCA5A5] text-[#DC2626] hover:bg-[#FEF2F2] transition-colors disabled:opacity-50"
+                    >
+                      Rejeitar
+                    </button>
                   </div>
                 </div>
               ))
@@ -663,14 +676,14 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
             {actionError && <p className="text-[12px] text-[#DC2626]">{actionError}</p>}
 
             {allComments.length > 0 && (
-              <div className="bg-white rounded-[14px] border border-[#ECEBE7] p-5">
-                <h3 className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Histórico da equipe</h3>
+              <div className="bg-white rounded-[14px] border border-[var(--border)] p-5">
+                <h3 className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-3">Histórico da equipe</h3>
                 <div className="space-y-3">
                   {allComments.map((c) => (
-                    <div key={c.id} className="border-l-2 border-[#E5E5E2] pl-3">
-                      <p className="text-[12px] font-semibold text-[#1A1A1A]">{c.authorName}</p>
-                      <p className="text-[12px] text-[#6B6B65] mt-0.5">{c.body}</p>
-                      <p className="text-[10px] text-[#B7B7B1] mt-1">{new Date(c.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}</p>
+                    <div key={c.id} className="border-l-2 border-[var(--border)] pl-3">
+                      <p className="text-[12px] font-semibold text-[var(--text-primary)]">{c.authorName}</p>
+                      <p className="text-[12px] text-[var(--text-secondary)] mt-0.5">{c.body}</p>
+                      <p className="text-[10px] text-[var(--text-subtle)] mt-1">{new Date(c.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}</p>
                     </div>
                   ))}
                 </div>
@@ -682,23 +695,23 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
         {/* ── MATERIAIS ── */}
         {section === "materials" && (
           <div className="space-y-4">
-            <h2 className="text-[16px] font-bold text-[#1A1A1A]">Materiais</h2>
-            <p className="text-[13px] text-[#6B6B65] -mt-1">O que a equipe precisa de você para avançar. A forma mais fácil é conectar seu Google Drive — a gente acessa a pasta e você não precisa reenviar nada.</p>
-            <div className="bg-white rounded-[14px] border border-[#ECEBE7] p-5 shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
+            <h2 className="text-[16px] font-bold text-[var(--text-primary)]">Materiais</h2>
+            <p className="text-[13px] text-[var(--text-secondary)] -mt-1">O que a equipe precisa de você para avançar. A forma mais fácil é conectar seu Google Drive — a gente acessa a pasta e você não precisa reenviar nada.</p>
+            <div className="bg-white rounded-[14px] border border-[var(--border)] p-5 shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
               <div className="flex items-start gap-3">
                 <span className="w-10 h-10 rounded-[10px] flex items-center justify-center text-white text-[13px] font-bold shrink-0" style={{ background: "#1FA463" }}>GD</span>
                 <div className="flex-1">
-                  <p className="text-[14px] font-semibold text-[#1A1A1A]">Conecte seu Google Drive</p>
-                  <p className="text-[12px] text-[#6B6B65] mt-0.5 leading-snug">Crie uma pasta "Dioli Digital" e conecte aqui. A equipe acessa fotos, vídeos e documentos direto — sem uploads manuais.</p>
+                  <p className="text-[14px] font-semibold text-[var(--text-primary)]">Conecte seu Google Drive</p>
+                  <p className="text-[12px] text-[var(--text-secondary)] mt-0.5 leading-snug">Crie uma pasta "Dioli Digital" e conecte aqui. A equipe acessa fotos, vídeos e documentos direto — sem uploads manuais.</p>
                   <button onClick={() => setSection("integrations")} className="mt-2.5 h-9 px-4 rounded-[8px] bg-[#070A1F] text-white text-[13px] font-semibold hover:bg-[#0D1230] transition-colors">
                     Conectar Drive →
                   </button>
                 </div>
               </div>
             </div>
-            <div className="bg-white rounded-[14px] border border-[#ECEBE7] p-5">
-              <h3 className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">Enviar por link</h3>
-              <p className="text-[12px] text-[#6B6B65]">Prefere mandar um link (WeTransfer, Drive, Dropbox)? <button onClick={() => setChatOpen(true)} className="text-[#12B5AC] font-semibold hover:underline">Fale com a equipe</button> e anexe o link direto no chat.</p>
+            <div className="bg-white rounded-[14px] border border-[var(--border)] p-5">
+              <h3 className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-2">Enviar por link</h3>
+              <p className="text-[12px] text-[var(--text-secondary)]">Prefere mandar um link (WeTransfer, Drive, Dropbox)? <button onClick={() => setChatOpen(true)} className="text-[#12B5AC] font-semibold hover:underline">Fale com a equipe</button> e anexe o link direto no chat.</p>
             </div>
           </div>
         )}
@@ -706,21 +719,21 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
         {/* ── INTEGRAÇÕES ── */}
         {section === "integrations" && (
           <div className="space-y-4">
-            <h2 className="text-[16px] font-bold text-[#1A1A1A]">Integrações</h2>
-            <p className="text-[13px] text-[#6B6B65] -mt-1">Conecte suas contas para a Dioli acessar materiais e trazer seus resultados em tempo real para este portal. Você controla o acesso e pode revogar quando quiser.</p>
+            <h2 className="text-[16px] font-bold text-[var(--text-primary)]">Integrações</h2>
+            <p className="text-[13px] text-[var(--text-secondary)] -mt-1">Conecte suas contas para a Dioli acessar materiais e trazer seus resultados em tempo real para este portal. Você controla o acesso e pode revogar quando quiser.</p>
             <div className="grid sm:grid-cols-2 gap-3">
               {INTEGRATIONS.map((it) => (
-                <div key={it.key} className="bg-white rounded-[14px] border border-[#ECEBE7] p-4 shadow-[0_1px_3px_rgba(7,10,31,0.04)] flex items-start gap-3">
+                <div key={it.key} className="bg-white rounded-[14px] border border-[var(--border)] p-4 shadow-[0_1px_3px_rgba(7,10,31,0.04)] flex items-start gap-3">
                   <span className="w-10 h-10 rounded-[10px] flex items-center justify-center text-white text-[12px] font-bold shrink-0" style={{ background: it.color }}>{it.initials}</span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-[14px] font-semibold text-[#1A1A1A]">{it.name}</p>
-                      <span className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.04em] bg-[#F0EFEB] rounded px-1.5 py-0.5">{it.category}</span>
+                      <p className="text-[14px] font-semibold text-[var(--text-primary)]">{it.name}</p>
+                      <span className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.04em] bg-[#F0EFEB] rounded px-1.5 py-0.5">{it.category}</span>
                     </div>
-                    <p className="text-[12px] text-[#6B6B65] mt-0.5 leading-snug">{it.desc}</p>
+                    <p className="text-[12px] text-[var(--text-secondary)] mt-0.5 leading-snug">{it.desc}</p>
                     <button
                       disabled
-                      className="mt-2.5 h-8 px-3.5 rounded-[8px] border border-[#E5E5E2] text-[#9B9B95] text-[12px] font-semibold cursor-not-allowed"
+                      className="mt-2.5 h-8 px-3.5 rounded-[8px] border border-[var(--border)] text-[var(--text-muted)] text-[12px] font-semibold cursor-not-allowed"
                       title="Disponível em breve"
                     >
                       Conectar · em breve
@@ -729,14 +742,14 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
                 </div>
               ))}
             </div>
-            <p className="text-[11px] text-[#B7B7B1] text-center">🔒 Conexões seguras via OAuth. A Dioli nunca vê suas senhas.</p>
+            <p className="text-[11px] text-[var(--text-subtle)] text-center">🔒 Conexões seguras via OAuth. A Dioli nunca vê suas senhas.</p>
           </div>
         )}
 
       </main>
 
       <footer className="max-w-[860px] mx-auto px-5 pb-8 text-center">
-        <p className="text-[10px] text-[#C0C0BC]">Acesso seguro via link único · Dioli Digital</p>
+        <p className="text-[10px] text-[var(--text-subtle)]">Acesso seguro via link único · Dioli Digital</p>
       </footer>
 
       {/* One chat entry — opened from the header button */}
