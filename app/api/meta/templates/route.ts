@@ -11,20 +11,26 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { getSession } from "@/lib/auth/session";
 import { loadConnectionToken } from "@/lib/integrations/meta/connections";
+import { resolveWhatsAppEnv } from "@/lib/integrations/meta/config";
 import { ALL_TEMPLATES, createTemplate, listTemplates } from "@/lib/integrations/meta/templates";
 
-// Find the WhatsApp connection + its WABA id + decrypted token for a workspace.
+// Find the WABA id + token for a workspace: a stored connection wins, else the
+// env-var sender (META_WHATSAPP_WABA_ID / META_WHATSAPP_TOKEN).
 async function whatsappContext(workspaceId: string) {
   const conn = await prisma.metaConnection.findFirst({
     where: { workspaceId, platform: "whatsapp", status: "connected" },
     orderBy: { connectedAt: "desc" },
   });
-  if (!conn) return null;
-  const loaded = await loadConnectionToken(workspaceId, conn.id);
-  if (!loaded) return null;
-  const wabaId = (loaded.metaJson.wabaId as string) || "";
-  if (!wabaId) return null;
-  return { token: loaded.token, wabaId };
+  if (conn) {
+    const loaded = await loadConnectionToken(workspaceId, conn.id);
+    if (loaded) {
+      const wabaId = (loaded.metaJson.wabaId as string) || "";
+      if (wabaId) return { token: loaded.token, wabaId };
+    }
+  }
+  const env = resolveWhatsAppEnv();
+  if (env?.wabaId) return { token: env.token, wabaId: env.wabaId };
+  return null;
 }
 
 export async function GET(): Promise<NextResponse> {

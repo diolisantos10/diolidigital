@@ -603,6 +603,30 @@ model MetaConnection {
   @@index([clientId])
 }
 
+// WhatsApp conversation log — the single-inbox history. One row per message,
+// inbound (client → agency) or outbound (agency → client), so the agency can
+// read + reply from inside the system using ONE number. Populated inbound by
+// the webhook and outbound by the reply endpoint.
+model WhatsAppMessage {
+  id             String   @id @default(cuid())
+  workspaceId    String
+  // The API phone-number-id this conversation belongs to (our number).
+  phoneNumberId  String   @default("")
+  // The client's WhatsApp id (their phone in wa_id form).
+  contactWaId    String
+  contactName    String?
+  direction      String   // "in" | "out"
+  type           String   @default("text") // text | template | image | ...
+  body           String   @default("")
+  externalId     String?  // Meta message id (wamid…) — for dedupe + status
+  status         String?  // sent | delivered | read | failed (outbound)
+  clientRequestId String?
+  timestamp      DateTime @default(now())
+
+  @@index([workspaceId, contactWaId, timestamp])
+  @@index([externalId])
+}
+
 // Outbox / dedupe ledger for WhatsApp notifications. One row per ActivityEvent
 // we act on, so the poller never sends the same "whatsapp_notify" twice. Owned
 // by the Meta integration (lib/integrations/meta/notifications.ts).
