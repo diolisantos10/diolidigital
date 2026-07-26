@@ -6,7 +6,8 @@
 // app/api/meta/dispatch/route.ts.
 
 import { prisma } from "@/lib/db/client";
-import { sendWhatsAppMessage } from "./client";
+import { sendWhatsAppMessage, sendWhatsAppDirect } from "./client";
+import { resolveWhatsAppEnv } from "./config";
 import { PROPOSAL_SENT_TEMPLATE } from "./templates";
 
 const BASE_URL =
@@ -140,11 +141,12 @@ export async function dispatchWhatsAppNotifications(
       });
     };
 
-    // Need a connected WhatsApp number for this workspace.
+    // Need a WhatsApp sender: a stored connection (wins) or env-var creds.
     const waConn = await prisma.metaConnection.findFirst({
       where: { workspaceId: ev.workspaceId, platform: "whatsapp", status: "connected" },
     });
-    if (!waConn) {
+    const waEnv = waConn ? null : resolveWhatsAppEnv();
+    if (!waConn && !waEnv) {
       result.skipped++;
       result.details.push({ eventId: ev.id, status: "skipped", reason: "no_whatsapp_connection" });
       await record("skipped", { error: "no_whatsapp_connection" });
@@ -164,8 +166,8 @@ export async function dispatchWhatsAppNotifications(
       : BASE_URL;
 
     // Send via the approved template (business-initiated, outside 24h window).
-    const send = await sendWhatsAppMessage(ev.workspaceId, {
-      connectionId: waConn.id,
+    const messageInput = {
+      connectionId: waConn?.id ?? "",
       to: recipient.phone,
       templateName: PROPOSAL_SENT_TEMPLATE.name,
       templateLanguage: PROPOSAL_SENT_TEMPLATE.language,
@@ -178,7 +180,10 @@ export async function dispatchWhatsAppNotifications(
           ],
         },
       ],
-    });
+    };
+    const send = waConn
+      ? await sendWhatsAppMessage(ev.workspaceId, messageInput)
+      : await sendWhatsAppDirect(waEnv!.phoneNumberId, waEnv!.token, messageInput);
 
     if (send.ok) {
       result.sent++;

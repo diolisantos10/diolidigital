@@ -79,6 +79,23 @@ export async function isMetaConfigured(workspaceId?: string): Promise<boolean> {
   return (await resolveMetaAppCredentials(workspaceId)) !== null;
 }
 
+// WhatsApp Cloud API sender resolved from environment variables. This is the
+// zero-UI path: set META_WHATSAPP_PHONE_ID / META_WHATSAPP_TOKEN (+ optional
+// META_WHATSAPP_WABA_ID) in Railway and the notifier + template tools work
+// without a stored MetaConnection row. A DB connection (when present) wins.
+export interface WhatsAppEnvSender {
+  phoneNumberId: string;
+  token: string;
+  wabaId: string;
+}
+export function resolveWhatsAppEnv(): WhatsAppEnvSender | null {
+  const phoneNumberId = process.env.META_WHATSAPP_PHONE_ID?.trim();
+  const token = process.env.META_WHATSAPP_TOKEN?.trim();
+  const wabaId = process.env.META_WHATSAPP_WABA_ID?.trim() ?? "";
+  if (phoneNumberId && token) return { phoneNumberId, token, wabaId };
+  return null;
+}
+
 // The verify token used to validate webhook subscription (GET challenge).
 // Falls back to a stable default derived from nothing sensitive; set
 // META_WEBHOOK_VERIFY_TOKEN in Railway to a value you also paste in the Meta

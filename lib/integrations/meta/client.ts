@@ -187,6 +187,41 @@ export async function getInsights(
 
 // ─── Public: sendWhatsAppMessage ─────────────────────────────────────────────
 
+function buildWhatsAppBody(input: WhatsAppMessageInput): Record<string, unknown> {
+  const body: Record<string, unknown> = { messaging_product: "whatsapp", to: input.to };
+  if (input.templateName) {
+    body.type = "template";
+    body.template = {
+      name: input.templateName,
+      language: { code: input.templateLanguage ?? "pt_BR" },
+      ...(input.templateComponents ? { components: input.templateComponents } : {}),
+    };
+  } else {
+    body.type = "text";
+    body.text = { body: input.text ?? "" };
+  }
+  return body;
+}
+
+// Low-level send: post to /{phoneNumberId}/messages with a token. Used by both
+// the stored-connection path and the env-var path.
+export async function sendWhatsAppDirect(
+  phoneNumberId: string,
+  token: string,
+  input: WhatsAppMessageInput,
+): Promise<PublishResult> {
+  try {
+    const res = await graphPostJson<{ messages?: Array<{ id: string }> }>(
+      `${phoneNumberId}/messages`,
+      token,
+      buildWhatsAppBody(input),
+    );
+    return { ok: true, externalPostId: res.messages?.[0]?.id };
+  } catch (e) {
+    return { ok: false, error: errMessage(e) };
+  }
+}
+
 export async function sendWhatsAppMessage(
   workspaceId: string,
   input: WhatsAppMessageInput,
@@ -194,31 +229,5 @@ export async function sendWhatsAppMessage(
   const conn = await loadConnectionToken(workspaceId, input.connectionId);
   if (!conn) return { ok: false, error: "Conexão WhatsApp não encontrada ou token inválido" };
   if (conn.platform !== "whatsapp") return { ok: false, error: "Conexão não é do WhatsApp" };
-
-  try {
-    // WhatsApp Cloud API requires a JSON body.
-    const body: Record<string, unknown> = {
-      messaging_product: "whatsapp",
-      to: input.to,
-    };
-    if (input.templateName) {
-      body.type = "template";
-      body.template = {
-        name: input.templateName,
-        language: { code: input.templateLanguage ?? "pt_BR" },
-        ...(input.templateComponents ? { components: input.templateComponents } : {}),
-      };
-    } else {
-      body.type = "text";
-      body.text = { body: input.text ?? "" };
-    }
-    const res = await graphPostJson<{ messages?: Array<{ id: string }> }>(
-      `${conn.externalId}/messages`,
-      conn.token,
-      body,
-    );
-    return { ok: true, externalPostId: res.messages?.[0]?.id };
-  } catch (e) {
-    return { ok: false, error: errMessage(e) };
-  }
+  return sendWhatsAppDirect(conn.externalId, conn.token, input);
 }

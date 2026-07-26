@@ -7,6 +7,7 @@ export {
   publishPost,
   getInsights,
   sendWhatsAppMessage,
+  sendWhatsAppDirect,
 } from "./client";
 
 export {
