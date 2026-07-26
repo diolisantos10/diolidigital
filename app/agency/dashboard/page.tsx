@@ -472,7 +472,7 @@ export default function DashboardPage() {
         {totalAttention > 0 ? (
           <div className="flex items-center gap-2 px-5 py-3 flex-wrap border-b border-[var(--border)]">
             {attentionCounts.sentProposals > 0 && (
-              <Link href="/agency/approvals" className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--accent-light)] hover:bg-[#E5E7FF] transition-colors">
+              <Link href="/agency/approvals" className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--accent-light)] hover:bg-[#E6EEFF] transition-colors">
                 <span className="w-1.5 h-1.5 rounded-full bg-[var(--navy)]" />
                 <span className="text-[11px] font-semibold text-[var(--navy)]">{attentionCounts.sentProposals} proposta{attentionCounts.sentProposals !== 1 ? "s" : ""} aguardando</span>
               </Link>
@@ -490,13 +490,13 @@ export default function DashboardPage() {
               </Link>
             )}
             {attentionCounts.pendingBrand > 0 && (
-              <Link href="/agency/approvals" className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#EDE9FE] hover:bg-[var(--cyan)] transition-colors">
+              <Link href="/agency/approvals" className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#E9EFFF] hover:bg-[var(--cyan)] transition-colors">
                 <span className="w-1.5 h-1.5 rounded-full bg-[var(--navy)]" />
                 <span className="text-[11px] font-semibold text-[var(--navy)]">{attentionCounts.pendingBrand} sugestão{attentionCounts.pendingBrand !== 1 ? "" : ""} de marca</span>
               </Link>
             )}
             {attentionCounts.pendingMaterials > 0 && (
-              <Link href="/agency/approvals" className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#E0F2FE] hover:bg-[#BAE6FD] transition-colors">
+              <Link href="/agency/approvals" className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#E6FBFA] hover:bg-[#C7EFEC] transition-colors">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#0891B2]" />
                 <span className="text-[11px] font-semibold text-[#0891B2]">{attentionCounts.pendingMaterials} material(is) pendente{attentionCounts.pendingMaterials !== 1 ? "s" : ""}</span>
               </Link>
@@ -663,7 +663,7 @@ export default function DashboardPage() {
                 <span className="w-1.5 h-1.5 rounded-full bg-[var(--navy)] shrink-0" />
                 <span className="text-[11px] text-[var(--text-muted)] font-medium shrink-0 w-[110px] truncate">{s.projectName}</span>
                 <span className="text-[12px] text-[var(--text-primary)] flex-1">"{s.deliverableName}" parada há {s.daysSent} dias</span>
-                <span className="text-[9px] font-bold bg-[#EDE9FE] text-[var(--navy)] px-1.5 py-0.5 rounded shrink-0">Parada</span>
+                <span className="text-[9px] font-bold bg-[#E9EFFF] text-[var(--navy)] px-1.5 py-0.5 rounded shrink-0">Parada</span>
               </Link>
             ))}
           </div>
@@ -852,7 +852,7 @@ export default function DashboardPage() {
                                 isDone
                                   ? "bg-[var(--success-bg)] text-[var(--success)]"
                                   : isActive
-                                  ? "bg-[#FFF4ED] text-[#C2530A]"
+                                  ? "bg-[#E6FBFA] text-[#0E7C75]"
                                   : "bg-[var(--accent)] text-[var(--text-muted)]"
                               }`}
                             >

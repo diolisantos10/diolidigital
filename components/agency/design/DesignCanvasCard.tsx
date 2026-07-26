@@ -20,11 +20,11 @@ const ASSET_STATUS_STYLE: Record<DesignAssetStatus, { bg: string; text: string; 
   in_progress: { bg: "bg-[var(--accent-light)]",  text: "text-[var(--navy)]", label: "Em produção" },
   review:      { bg: "bg-[var(--warning-bg)]",  text: "text-[var(--warning)]", label: "Em revisão" },
   approved:    { bg: "bg-[var(--success-bg)]",  text: "text-[var(--success)]", label: "Aprovado" },
-  published:   { bg: "bg-[#FDF2F8]",  text: "text-[#DB2777]", label: "Publicado" },
+  published:   { bg: "bg-[#E9EFFF]",  text: "text-[#0057FF]", label: "Publicado" },
 };
 
 const PRIORITY_STYLE: Record<string, string> = {
-  alta:  "bg-[#FDF2F8] text-[#DB2777]",
+  alta:  "bg-[#E9EFFF] text-[#0057FF]",
   media: "bg-[var(--warning-bg)] text-[var(--warning)]",
   baixa: "bg-[var(--accent)] text-[var(--text-secondary)]",
 };
@@ -156,7 +156,7 @@ export function DesignCanvasCard({
 
           {/* Brand Consistency Rules */}
           <Section title="Regras de Marca">
-            <BulletList items={canvas.brandConsistencyRules} markerClass="text-[#EA580C]" />
+            <BulletList items={canvas.brandConsistencyRules} markerClass="text-[#0891B2]" />
           </Section>
 
           {/* Creative Briefs */}
@@ -368,7 +368,7 @@ export function DesignCanvasCard({
                   className={`text-[11px] font-medium px-3 py-1.5 rounded-[6px] transition-colors ${
                     brainChangeCreated
                       ? "bg-[var(--accent-light)] text-[var(--text-muted)] cursor-default"
-                      : "bg-[var(--accent-light)] text-[var(--navy)] hover:bg-[#E0E3FF]"
+                      : "bg-[var(--accent-light)] text-[var(--navy)] hover:bg-[#E6EEFF]"
                   }`}
                 >
                   {brainChangeCreated ? "Brain Change criado ✓" : "Propor ao Brain"}

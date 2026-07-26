@@ -69,7 +69,7 @@ export default function ExplainScreenDrawer({
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
-          <p className="text-[12px] text-[#3730A3] leading-relaxed bg-[var(--accent-light)] border border-[#C7D2FE] rounded-[8px] px-3 py-2.5">
+          <p className="text-[12px] text-[#1E40AF] leading-relaxed bg-[var(--accent-light)] border border-[#C7D8FE] rounded-[8px] px-3 py-2.5">
             {explanation.summary}
           </p>
 

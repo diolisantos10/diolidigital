@@ -187,7 +187,7 @@ export function QualityAuditCard({ canvas, onApprove, onReject, onProposeBrainCh
                     <div className="flex items-start gap-2 mb-1">
                       <span className={`h-4 px-1.5 rounded-[3px] text-[9px] font-semibold border ${PRIORITY_COLORS[r.priority]}`}>{r.priority}</span>
                       <span className="text-[10px] text-[var(--text-muted)] font-medium">{DEPT_LABELS[r.department] ?? r.department}</span>
-                      {r.brainChangeCandidate && <span className="ml-auto h-4 px-1.5 rounded-[3px] bg-[var(--accent-light)] text-[var(--navy)] text-[9px] font-semibold border border-[#C7C7F5]">Brain Change</span>}
+                      {r.brainChangeCandidate && <span className="ml-auto h-4 px-1.5 rounded-[3px] bg-[var(--accent-light)] text-[var(--navy)] text-[9px] font-semibold border border-[#D6DEFF]">Brain Change</span>}
                     </div>
                     <p className="text-[11px] font-medium text-[var(--text-primary)] mb-0.5">{r.issue}</p>
                     <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">{r.recommendation}</p>

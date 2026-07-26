@@ -410,17 +410,17 @@ function RunDetail({ run, onClose }: { run: SimulationRun; onClose: () => void }
       </div>
 
       {run.scenarioOrigin === "dynamic" && run.scenarioMetadata && (
-        <div className="bg-[var(--accent-light)] border border-[#C7D2FE] rounded-[8px] px-3 py-2.5 space-y-2">
+        <div className="bg-[var(--accent-light)] border border-[#C7D8FE] rounded-[8px] px-3 py-2.5 space-y-2">
           <p className="text-[9px] font-semibold text-[var(--navy)] uppercase tracking-[0.06em]">Dimensões do cenário gerado</p>
           <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[10px]">
             {Object.entries(run.scenarioMetadata).map(([k, v]) => (
               <div key={k} className="flex items-center gap-1.5">
-                <span className="text-[#818CF8] w-[100px] shrink-0 capitalize">{k.replace(/([A-Z])/g, " $1").toLowerCase()}</span>
-                <span className="text-[#3730A3] font-medium truncate">{v}</span>
+                <span className="text-[#6D8BFF] w-[100px] shrink-0 capitalize">{k.replace(/([A-Z])/g, " $1").toLowerCase()}</span>
+                <span className="text-[#1E40AF] font-medium truncate">{v}</span>
               </div>
             ))}
           </div>
-          {run.scenarioSeed && <p className="text-[9px] text-[#818CF8] font-mono">seed: {run.scenarioSeed}</p>}
+          {run.scenarioSeed && <p className="text-[9px] text-[#6D8BFF] font-mono">seed: {run.scenarioSeed}</p>}
         </div>
       )}
 
@@ -662,11 +662,11 @@ function ServerTrainingPanel() {
   const lastBatch = status?.lastBatchSummary;
 
   return (
-    <div className="border border-[#C7D2FE] rounded-[10px] bg-[var(--accent-light)]/20 overflow-hidden">
+    <div className="border border-[#C7D8FE] rounded-[10px] bg-[var(--accent-light)]/20 overflow-hidden">
 
       {/* Header */}
-      <div className="px-5 py-4 flex items-center gap-3 border-b border-[#C7D2FE]/50 flex-wrap">
-        <h3 className="text-[13px] font-semibold text-[#3730A3]">Treino 24h — Servidor</h3>
+      <div className="px-5 py-4 flex items-center gap-3 border-b border-[#C7D8FE]/50 flex-wrap">
+        <h3 className="text-[13px] font-semibold text-[#1E40AF]">Treino 24h — Servidor</h3>
         <InfoTooltip title="Treino 24h">
           Batches executados no servidor via cron, independentes da aba aberta. Resultados, sugestões e alertas são persistidos no banco de dados.
         </InfoTooltip>
@@ -762,14 +762,14 @@ function ServerTrainingPanel() {
               <input
                 type="number" min={1} max={100} value={serverCount}
                 onChange={(e) => setServerCount(Math.min(100, Math.max(1, Number(e.target.value))))}
-                className="h-8 w-20 px-2 rounded-[6px] border border-[var(--border)] bg-white text-[12px] text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[#C7D2FE]"
+                className="h-8 w-20 px-2 rounded-[6px] border border-[var(--border)] bg-white text-[12px] text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[#C7D8FE]"
               />
             </div>
             <div className="pt-4">
               <button
                 onClick={runServerBatch}
                 disabled={isServerRunning || loadError}
-                className="h-8 px-4 rounded-[7px] bg-[var(--accent-light)] border border-[#C7D2FE] text-[var(--navy)] text-[12px] font-semibold hover:bg-[#E0E7FF] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="h-8 px-4 rounded-[7px] bg-[var(--accent-light)] border border-[#C7D8FE] text-[var(--navy)] text-[12px] font-semibold hover:bg-[#E6EEFF] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {isServerRunning ? "Rodando…" : "Rodar batch no servidor agora"}
               </button>
@@ -875,7 +875,7 @@ function ServerTrainingPanel() {
 
         {/* Setup instructions */}
         {configStatus === "unconfigured" && (
-          <div className="border border-dashed border-[#C7D2FE] rounded-[8px] px-4 py-3 space-y-2">
+          <div className="border border-dashed border-[#C7D8FE] rounded-[8px] px-4 py-3 space-y-2">
             <p className="text-[11px] font-semibold text-[var(--navy)]">Para ativar o worker 24h:</p>
             <div className="space-y-1 text-[11px] text-[var(--text-secondary)]">
               <p>1. Adicione <code className="bg-[var(--accent-light)] text-[var(--navy)] px-1 rounded text-[10px]">CRON_SECRET=&lt;valor&gt;</code> e <code className="bg-[var(--accent-light)] text-[var(--navy)] px-1 rounded text-[10px]">TRAINING_ENABLED=true</code> nas Railway Variables</p>
@@ -1005,7 +1005,7 @@ export default function TrainingPage() {
   const BTN_DARK   = `${BTN} bg-[var(--text-primary)] border-[var(--text-primary)] text-white hover:bg-[var(--text-primary)]`;
   const BTN_LIGHT  = `${BTN} bg-white border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--text-muted)] hover:text-[var(--text-primary)]`;
   const BTN_YELLOW = `${BTN} bg-[var(--warning-bg)] border-[#FDE68A] text-[var(--warning)] hover:bg-[#FEF08A]`;
-  const BTN_BLUE   = `${BTN} bg-[var(--accent-light)] border-[#C7D2FE] text-[var(--navy)] hover:bg-[#E0E7FF]`;
+  const BTN_BLUE   = `${BTN} bg-[var(--accent-light)] border-[#C7D8FE] text-[var(--navy)] hover:bg-[#E6EEFF]`;
 
   const modeDesc = MODE_OPTIONS.find((m) => m.id === trainingMode)?.desc ?? "";
 
@@ -1184,7 +1184,7 @@ export default function TrainingPage() {
               <p className="text-[12px] font-semibold text-[#15803D] leading-snug">
                 Estas sugestões foram aprovadas, mas ainda não foram aplicadas automaticamente ao brain do SDR.
               </p>
-              <span className="inline-flex items-center gap-1.5 mt-2 text-[10px] font-semibold text-[var(--navy)] bg-[var(--accent-light)] border border-[#C7D2FE] px-2 py-1 rounded-[4px]">
+              <span className="inline-flex items-center gap-1.5 mt-2 text-[10px] font-semibold text-[var(--navy)] bg-[var(--accent-light)] border border-[#C7D8FE] px-2 py-1 rounded-[4px]">
                 ⏳ aguardando aplicação futura
               </span>
             </div>

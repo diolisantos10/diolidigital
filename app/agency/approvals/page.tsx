@@ -304,7 +304,7 @@ export default function ApprovalsPage() {
                       <div className="flex items-center gap-2 shrink-0">
                         <button
                           onClick={() => applyBrandUpdate(u.id)}
-                          className="px-3 py-1.5 bg-[#EDE9FE] text-[var(--navy)] text-[12px] font-medium rounded-[6px] hover:bg-[var(--cyan)] transition-colors"
+                          className="px-3 py-1.5 bg-[#E9EFFF] text-[var(--navy)] text-[12px] font-medium rounded-[6px] hover:bg-[var(--cyan)] transition-colors"
                         >
                           Aplicar ao Brand Hub
                         </button>
@@ -338,7 +338,7 @@ export default function ApprovalsPage() {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-[13px] font-semibold text-[var(--text-primary)] truncate">{r.title}</span>
-                          <span className="text-[10px] bg-[#E0F2FE] text-[#0891B2] px-1.5 py-0.5 rounded font-medium">Aguardando</span>
+                          <span className="text-[10px] bg-[#E6FBFA] text-[#0891B2] px-1.5 py-0.5 rounded font-medium">Aguardando</span>
                         </div>
                         {project && (
                           <div className="text-[12px] text-[var(--text-muted)]">{project.name}</div>
@@ -350,7 +350,7 @@ export default function ApprovalsPage() {
                       <div className="flex items-center gap-2 shrink-0">
                         <button
                           onClick={() => updateMaterialRequestStatus(r.id, "received")}
-                          className="px-3 py-1.5 bg-[#E0F2FE] text-[#0891B2] text-[12px] font-medium rounded-[6px] hover:bg-[#BAE6FD] transition-colors"
+                          className="px-3 py-1.5 bg-[#E6FBFA] text-[#0891B2] text-[12px] font-medium rounded-[6px] hover:bg-[#C7EFEC] transition-colors"
                         >
                           Marcar como recebido
                         </button>

@@ -19,11 +19,11 @@ const ENTRY_STATUS_STYLE: Record<ContentStatus, { bg: string; text: string; labe
   draft:     { bg: "bg-[var(--accent)]", text: "text-[var(--text-secondary)]", label: "Rascunho" },
   planned:   { bg: "bg-[var(--accent-light)]", text: "text-[var(--navy)]", label: "Planejado" },
   approved:  { bg: "bg-[var(--success-bg)]", text: "text-[var(--success)]", label: "Aprovado" },
-  published: { bg: "bg-[#FDF2F8]", text: "text-[#DB2777]", label: "Publicado" },
+  published: { bg: "bg-[#E9EFFF]", text: "text-[#0057FF]", label: "Publicado" },
 };
 
 const IMPORTANCE_STYLE: Record<string, string> = {
-  alta:  "bg-[#FDF2F8] text-[#DB2777]",
+  alta:  "bg-[#E9EFFF] text-[#0057FF]",
   media: "bg-[var(--warning-bg)] text-[var(--warning)]",
   baixa: "bg-[var(--accent)] text-[var(--text-secondary)]",
 };
@@ -167,8 +167,8 @@ export function SocialCanvasCard({
           <Section title="Pilares Editoriais">
             <div className="space-y-1.5">
               {canvas.editorialPillars.map((p) => (
-                <div key={p.id} className="flex items-start gap-3 bg-[#FDF2F8] border border-[#FBCFE8] rounded-[8px] px-3 py-2">
-                  <span className="w-5 h-5 rounded-full bg-[#DB2777] text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                <div key={p.id} className="flex items-start gap-3 bg-[#E9EFFF] border border-[#C7D8FE] rounded-[8px] px-3 py-2">
+                  <span className="w-5 h-5 rounded-full bg-[#0057FF] text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
                     {p.priority}
                   </span>
                   <div className="flex-1 min-w-0">
@@ -189,7 +189,7 @@ export function SocialCanvasCard({
               <p className="text-[12px] text-[var(--text-primary)] font-medium">{canvas.recommendedFrequency}</p>
             </Section>
             <Section title="Formatos">
-              <TagList items={canvas.recommendedFormats} color="bg-[#FDF2F8] text-[#DB2777]" />
+              <TagList items={canvas.recommendedFormats} color="bg-[#E9EFFF] text-[#0057FF]" />
             </Section>
             <Section title="Canais Prioritários">
               <TagList items={canvas.priorityChannels} />
@@ -218,14 +218,14 @@ export function SocialCanvasCard({
           </div>
 
           {/* Monthly + weekly direction */}
-          <div className="bg-[#FDF2F8] border border-[#FBCFE8] rounded-[8px] px-4 py-3">
-            <div className="text-[9px] font-semibold text-[#DB2777] uppercase tracking-[0.06em] mb-1">
+          <div className="bg-[#E9EFFF] border border-[#C7D8FE] rounded-[8px] px-4 py-3">
+            <div className="text-[9px] font-semibold text-[#0057FF] uppercase tracking-[0.06em] mb-1">
               Direção Mensal
             </div>
-            <p className="text-[12px] text-[#831843] leading-relaxed font-medium">{canvas.monthlyDirection}</p>
+            <p className="text-[12px] text-[#1E3A8A] leading-relaxed font-medium">{canvas.monthlyDirection}</p>
             <div className="mt-2 space-y-0.5">
               {canvas.weeklyDirection.map((w, i) => (
-                <p key={i} className="text-[11px] text-[#9D174D] leading-relaxed">{w}</p>
+                <p key={i} className="text-[11px] text-[#1E3A8A] leading-relaxed">{w}</p>
               ))}
             </div>
           </div>
@@ -248,7 +248,7 @@ export function SocialCanvasCard({
           {/* Publishing recommendations + success indicators */}
           <div className="grid grid-cols-2 gap-4">
             <Section title="Recomendações de Publicação">
-              <BulletList items={canvas.publishingRecommendations} marker="→" markerClass="text-[#DB2777]" />
+              <BulletList items={canvas.publishingRecommendations} marker="→" markerClass="text-[#0057FF]" />
             </Section>
             <Section title="Indicadores de Sucesso">
               <BulletList items={canvas.successIndicators} marker="◎" markerClass="text-[var(--success)]" />
@@ -330,7 +330,7 @@ export function SocialCanvasCard({
           </div>
 
           {/* Cognitive Flow trace */}
-          <div className="bg-[#F0F0FF] border border-[#C7C7FF] rounded-[8px] px-4 py-3">
+          <div className="bg-[#EFF4FF] border border-[#D6DEFF] rounded-[8px] px-4 py-3">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[10px] font-semibold text-[var(--navy)] uppercase tracking-[0.06em]">
                 Fluxo Cognitivo
@@ -373,7 +373,7 @@ export function SocialCanvasCard({
                 onChange={(e) => setReviewNote(e.target.value)}
                 placeholder="Nota de revisão (opcional)…"
                 rows={2}
-                className="w-full px-3 py-2 text-[12px] bg-[var(--bg)] border border-[var(--border)] rounded-[8px] outline-none focus:border-[#DB2777] focus:bg-white transition-all resize-none"
+                className="w-full px-3 py-2 text-[12px] bg-[var(--bg)] border border-[var(--border)] rounded-[8px] outline-none focus:border-[#0057FF] focus:bg-white transition-all resize-none"
               />
               <div className="flex items-center gap-2">
                 {onApprove && (
@@ -407,7 +407,7 @@ export function SocialCanvasCard({
               ) : (
                 <button
                   onClick={onProposeBrainChange}
-                  className="h-8 px-4 rounded-[7px] border border-[#DB2777] text-[#DB2777] hover:bg-[#FDF2F8] text-[12px] font-medium transition-colors"
+                  className="h-8 px-4 rounded-[7px] border border-[#0057FF] text-[#0057FF] hover:bg-[#E9EFFF] text-[12px] font-medium transition-colors"
                 >
                   ✦ Propor melhoria ao Brain
                 </button>

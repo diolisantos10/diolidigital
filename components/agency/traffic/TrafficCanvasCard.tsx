@@ -21,7 +21,7 @@ const CHANNEL_LABELS: Record<string, string> = {
 };
 
 const PRIORITY_STYLE: Record<string, string> = {
-  alta:  "bg-[#FDF2F8] text-[#DB2777]",
+  alta:  "bg-[#E9EFFF] text-[#0057FF]",
   media: "bg-[var(--warning-bg)] text-[var(--warning)]",
   baixa: "bg-[var(--accent)] text-[var(--text-secondary)]",
 };
@@ -74,7 +74,7 @@ export function TrafficCanvasCard({
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full text-white ${qgStyle.badge}`}>
               QG {qg.overall} {qg.passCount}/{qg.items.length}
             </span>
-            <span className="text-[10px] bg-[#F0F9FF] text-[#0284C7] px-2 py-0.5 rounded-full">
+            <span className="text-[10px] bg-[#F0FBFE] text-[#0891B2] px-2 py-0.5 rounded-full">
               R$ {ba.mediaBudgetBRL.toLocaleString("pt-BR")}/mês
             </span>
             {canvas.source === "simulation" && (
@@ -85,7 +85,7 @@ export function TrafficCanvasCard({
             {canvas.segment} · {canvas.budgetScenario} · {canvas.recommendedChannels.map((c) => CHANNEL_LABELS[c]).join(", ")}
           </p>
         </div>
-        <button onClick={() => setExpanded(!expanded)} className="shrink-0 text-[11px] text-[#0284C7] hover:underline">
+        <button onClick={() => setExpanded(!expanded)} className="shrink-0 text-[11px] text-[#0891B2] hover:underline">
           {expanded ? "Fechar" : "Ver canvas"}
         </button>
       </div>
@@ -123,21 +123,21 @@ export function TrafficCanvasCard({
           <Section title="Canais Recomendados">
             <div className="flex gap-2 flex-wrap mb-1">
               {canvas.recommendedChannels.map((ch) => (
-                <span key={ch} className="text-[10px] bg-[#F0F9FF] text-[#0284C7] px-2 py-0.5 rounded-full">{CHANNEL_LABELS[ch]}</span>
+                <span key={ch} className="text-[10px] bg-[#F0FBFE] text-[#0891B2] px-2 py-0.5 rounded-full">{CHANNEL_LABELS[ch]}</span>
               ))}
             </div>
             <p className="text-[11px] text-[var(--text-secondary)]">{canvas.channelRationale}</p>
           </Section>
 
           <Section title={`Budget — ${canvas.budgetScenario.toUpperCase()}`}>
-            <div className="rounded-[8px] border border-[var(--border)] bg-[#F0F9FF]/40 p-3 space-y-2">
+            <div className="rounded-[8px] border border-[var(--border)] bg-[#F0FBFE]/40 p-3 space-y-2">
               <div className="flex items-center justify-between text-[11px]">
                 <span className="text-[var(--text-secondary)]">Total mensal</span>
                 <span className="font-semibold">R$ {ba.totalMonthlyBRL.toLocaleString("pt-BR")}</span>
               </div>
               <div className="flex items-center justify-between text-[11px]">
                 <span className="text-[var(--text-secondary)]">Budget de mídia ({100 - ba.managementFeePercent}%)</span>
-                <span className="font-semibold text-[#0284C7]">R$ {ba.mediaBudgetBRL.toLocaleString("pt-BR")}</span>
+                <span className="font-semibold text-[#0891B2]">R$ {ba.mediaBudgetBRL.toLocaleString("pt-BR")}</span>
               </div>
               <div className="flex items-center justify-between text-[11px]">
                 <span className="text-[var(--text-secondary)]">Management fee ({ba.managementFeePercent}%)</span>
@@ -162,7 +162,7 @@ export function TrafficCanvasCard({
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${PRIORITY_STYLE[camp.priority]}`}>{camp.priority}</span>
                       <span className="font-medium text-[var(--text-primary)]">{camp.name}</span>
-                      <span className="text-[10px] text-[var(--text-muted)] bg-[#F0F9FF] px-1.5 py-0.5 rounded">{CHANNEL_LABELS[camp.channel]}</span>
+                      <span className="text-[10px] text-[var(--text-muted)] bg-[#F0FBFE] px-1.5 py-0.5 rounded">{CHANNEL_LABELS[camp.channel]}</span>
                     </div>
                     <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
                       {camp.budgetAllocation}% — R$ {camp.budgetBRL.toLocaleString("pt-BR")} | CAC: {camp.expectedCPA} | ROAS: {camp.expectedROAS}
@@ -196,7 +196,7 @@ export function TrafficCanvasCard({
                     <span className="font-medium text-[var(--text-primary)]">{offer.name}</span>
                     <p className="text-[10px] text-[var(--text-muted)]">{offer.funnelStage} · urgência {offer.urgencyLevel} · destino: {offer.landingPage}</p>
                   </div>
-                  <span className="text-[10px] bg-[#0284C7] text-white px-2 py-0.5 rounded-full shrink-0">{offer.cta}</span>
+                  <span className="text-[10px] bg-[#0891B2] text-white px-2 py-0.5 rounded-full shrink-0">{offer.cta}</span>
                 </div>
               ))}
             </div>
@@ -209,8 +209,8 @@ export function TrafficCanvasCard({
                 { label: "CAC",       value: canvas.projectedCAC },
                 { label: "ROAS",      value: canvas.projectedROAS },
               ].map((m) => (
-                <div key={m.label} className="rounded-[6px] bg-[#F0F9FF] px-2 py-2">
-                  <div className="text-[12px] font-semibold text-[#0284C7]">{m.value}</div>
+                <div key={m.label} className="rounded-[6px] bg-[#F0FBFE] px-2 py-2">
+                  <div className="text-[12px] font-semibold text-[#0891B2]">{m.value}</div>
                   <div className="text-[9px] text-[var(--text-muted)] mt-0.5">{m.label}</div>
                 </div>
               ))}
@@ -259,7 +259,7 @@ export function TrafficCanvasCard({
         <div className="px-4 py-3 flex items-center gap-2 flex-wrap bg-[var(--bg-elevated)]">
           {showNoteInput ? (
             <div className="flex-1 flex items-center gap-2">
-              <input className="flex-1 text-[11px] border border-[var(--border)] rounded-[6px] px-2 py-1.5 outline-none focus:border-[#0284C7]"
+              <input className="flex-1 text-[11px] border border-[var(--border)] rounded-[6px] px-2 py-1.5 outline-none focus:border-[#0891B2]"
                 placeholder={showNoteInput === "approve" ? "Nota (opcional)" : "Motivo da rejeição"}
                 value={note} onChange={(e) => setNote(e.target.value)} />
               <button onClick={() => submitNote(showNoteInput)}
@@ -284,7 +284,7 @@ export function TrafficCanvasCard({
               )}
               {onProposeBrainChange && isReviewed && (
                 <button onClick={onProposeBrainChange} disabled={brainChangeCreated}
-                  className={`text-[11px] font-medium px-3 py-1.5 rounded-[6px] ${brainChangeCreated ? "bg-[var(--accent-light)] text-[var(--text-muted)] cursor-default" : "bg-[var(--accent-light)] text-[var(--navy)] hover:bg-[#E0E3FF]"}`}>
+                  className={`text-[11px] font-medium px-3 py-1.5 rounded-[6px] ${brainChangeCreated ? "bg-[var(--accent-light)] text-[var(--text-muted)] cursor-default" : "bg-[var(--accent-light)] text-[var(--navy)] hover:bg-[#E6EEFF]"}`}>
                   {brainChangeCreated ? "Brain Change criado ✓" : "Propor ao Brain"}
                 </button>
               )}

@@ -1389,7 +1389,7 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
               onClick={() => setShowMaterials((v) => !v)}
               className={`h-6 px-2.5 rounded-[5px] text-[10px] font-medium border transition-colors flex items-center gap-1.5 ${
                 showMaterials
-                  ? "bg-[var(--accent-light)] border-[#C7C7FF] text-[var(--navy)]"
+                  ? "bg-[var(--accent-light)] border-[#D6DEFF] text-[var(--navy)]"
                   : "bg-white border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--text-muted)]"
               }`}
             >

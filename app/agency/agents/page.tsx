@@ -11,8 +11,8 @@ export default function AgentsPage() {
   return (
     <>
       <AgencyHeader
-        title="Agent Registry"
-        subtitle={`${MOCK_AGENTS.length} agents — ${active.length} currently active`}
+        title="Central de Agentes"
+        subtitle={`${MOCK_AGENTS.length} agentes — ${active.length} ativos agora`}
       />
 
       <div className="space-y-6">
@@ -20,7 +20,7 @@ export default function AgentsPage() {
         <div>
           <div className="flex items-center gap-2 mb-3">
             <div className="w-2 h-2 rounded-full bg-[var(--success)]" />
-            <span className="text-[12px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Active</span>
+            <span className="text-[12px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Ativos</span>
           </div>
           <div className="grid grid-cols-2 gap-3">
             {active.map((agent) => <AgentCard key={agent.id} agent={agent} />)}
@@ -31,7 +31,7 @@ export default function AgentsPage() {
         <div>
           <div className="flex items-center gap-2 mb-3">
             <div className="w-2 h-2 rounded-full bg-[var(--border-strong)]" />
-            <span className="text-[12px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Available</span>
+            <span className="text-[12px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Disponíveis</span>
           </div>
           <div className="grid grid-cols-2 gap-3">
             {available.map((agent) => <AgentCard key={agent.id} agent={agent} />)}
@@ -62,7 +62,7 @@ function AgentCard({ agent }: { agent: typeof MOCK_AGENTS[0] }) {
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1.5">Inputs</div>
+          <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1.5">Entradas</div>
           <div className="space-y-0.5">
             {agent.inputs.slice(0, 3).map((input) => (
               <div key={input} className="flex items-center gap-1.5">
@@ -73,7 +73,7 @@ function AgentCard({ agent }: { agent: typeof MOCK_AGENTS[0] }) {
           </div>
         </div>
         <div>
-          <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1.5">Outputs</div>
+          <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1.5">Saídas</div>
           <div className="space-y-0.5">
             {agent.outputs.slice(0, 3).map((output) => (
               <div key={output} className="flex items-center gap-1.5">

@@ -160,7 +160,7 @@ export function StrategyCanvasCard({
             <div className="text-[9px] font-semibold text-[var(--navy)] uppercase tracking-[0.06em] mb-1">
               Declaração de Posicionamento
             </div>
-            <p className="text-[12px] text-[#4C1D95] leading-relaxed font-medium">{canvas.positioningStatement}</p>
+            <p className="text-[12px] text-[#1E3A8A] leading-relaxed font-medium">{canvas.positioningStatement}</p>
           </div>
 
           <Section title="Direção de Comunicação">
@@ -227,7 +227,7 @@ export function StrategyCanvasCard({
           </div>
 
           {/* Cognitive Flow trace */}
-          <div className="bg-[#F0F0FF] border border-[#C7C7FF] rounded-[8px] px-4 py-3">
+          <div className="bg-[#EFF4FF] border border-[#D6DEFF] rounded-[8px] px-4 py-3">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[10px] font-semibold text-[var(--navy)] uppercase tracking-[0.06em]">
                 Fluxo Cognitivo

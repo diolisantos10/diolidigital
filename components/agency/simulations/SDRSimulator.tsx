@@ -534,22 +534,22 @@ function SimulationResult({ handoff, onReset }: { handoff: SDRHandoff; onReset: 
           { title: "Budget",        value: handoff.budgetFit },
         ].map(({ title, value }) => (
           <div key={title}>
-            <p className="text-[10px] font-semibold text-[#5B21B6] mb-0.5">{title}</p>
-            <p className="text-[12px] text-[#4C1D95] leading-relaxed">{value}</p>
+            <p className="text-[10px] font-semibold text-[#1E3A8A] mb-0.5">{title}</p>
+            <p className="text-[12px] text-[#1E3A8A] leading-relaxed">{value}</p>
           </div>
         ))}
 
         {handoff.objectionsHandled.length > 0 && (
           <div>
-            <p className="text-[10px] font-semibold text-[#5B21B6] mb-0.5">Objeções tratadas</p>
-            {handoff.objectionsHandled.map((o, i) => <p key={i} className="text-[12px] text-[#4C1D95]">• {o}</p>)}
+            <p className="text-[10px] font-semibold text-[#1E3A8A] mb-0.5">Objeções tratadas</p>
+            {handoff.objectionsHandled.map((o, i) => <p key={i} className="text-[12px] text-[#1E3A8A]">• {o}</p>)}
           </div>
         )}
 
         {handoff.tradeoffsAccepted.length > 0 && (
           <div>
-            <p className="text-[10px] font-semibold text-[#5B21B6] mb-0.5">Concessões aceitas</p>
-            {handoff.tradeoffsAccepted.map((t, i) => <p key={i} className="text-[12px] text-[#4C1D95]">• {t}</p>)}
+            <p className="text-[10px] font-semibold text-[#1E3A8A] mb-0.5">Concessões aceitas</p>
+            {handoff.tradeoffsAccepted.map((t, i) => <p key={i} className="text-[12px] text-[#1E3A8A]">• {t}</p>)}
           </div>
         )}
 
@@ -560,9 +560,9 @@ function SimulationResult({ handoff, onReset }: { handoff: SDRHandoff; onReset: 
           </div>
         )}
 
-        <div className="bg-[#EDE9FE] rounded-[6px] px-3 py-2.5">
-          <p className="text-[10px] font-semibold text-[#5B21B6] mb-0.5">Ação recomendada para o PM</p>
-          <p className="text-[12px] text-[#4C1D95] leading-relaxed">{handoff.recommendedPMAction}</p>
+        <div className="bg-[#E9EFFF] rounded-[6px] px-3 py-2.5">
+          <p className="text-[10px] font-semibold text-[#1E3A8A] mb-0.5">Ação recomendada para o PM</p>
+          <p className="text-[12px] text-[#1E3A8A] leading-relaxed">{handoff.recommendedPMAction}</p>
         </div>
       </div>
     </div>
@@ -693,7 +693,7 @@ export function SDRSimulator() {
               <div className="text-[14px] font-semibold text-[var(--text-primary)] mt-0.5">SDR Agent — Briefing Room</div>
             </div>
             <div className="flex items-center gap-2">
-              <span className="h-5 px-2.5 rounded-full bg-[#EDE9FE] text-[var(--navy)] text-[9px] font-semibold">
+              <span className="h-5 px-2.5 rounded-full bg-[#E9EFFF] text-[var(--navy)] text-[9px] font-semibold">
                 ✦ Interno
               </span>
               <span className="h-2 w-2 rounded-full bg-[var(--success)]" />

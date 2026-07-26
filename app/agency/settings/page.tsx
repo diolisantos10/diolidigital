@@ -465,7 +465,7 @@ export default function SettingsPage() {
             </div>
 
             {/* Integrations shortcut */}
-            <div className="flex items-center justify-between bg-[#F0F0FE] rounded-[8px] px-4 py-3 border border-[#DDDDFB] mt-1">
+            <div className="flex items-center justify-between bg-[#EFF4FF] rounded-[8px] px-4 py-3 border border-[#E6EEFF] mt-1">
               <div>
                 <div className="text-[13px] font-semibold text-[var(--navy)]">Ferramentas &amp; Integrações</div>
                 <div className="text-[11px] text-[var(--text-secondary)] mt-0.5">Gerenciar ferramentas, IAs dos agentes e conexões.</div>

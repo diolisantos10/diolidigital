@@ -253,7 +253,7 @@ export const AUTO_TASK_PRIORITY_STYLE: Record<AutoTaskPriority, { bg: string; te
 export const AUTO_TASK_OWNER_STYLE: Record<AutoTaskOwner, { color: string }> = {
   PM:      { color: "#1A1A1A" },
   Social:  { color: "#070A1F" },
-  Design:  { color: "#C2530A" },
+  Design:  { color: "#0E7C75" },
   Ads:     { color: "#0E7490" },
-  Cliente: { color: "#7C3AED" },
+  Cliente: { color: "#0057FF" },
 };

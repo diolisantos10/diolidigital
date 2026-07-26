@@ -17,7 +17,7 @@ export default function PilotPlaybook({ playbook }: { playbook: OperatorPlaybook
       </div>
 
       {/* What next */}
-      <div className="px-5 py-3 bg-[var(--accent-light)] border-b border-[#E0E3FB]">
+      <div className="px-5 py-3 bg-[var(--accent-light)] border-b border-[#E6EEFF]">
         <span className="text-[10px] font-semibold uppercase tracking-[0.05em] text-[var(--navy)]">O que fazer agora</span>
         <p className="text-[13px] font-medium text-[var(--text-primary)] leading-snug">{playbook.nextAction}</p>
       </div>
@@ -25,7 +25,7 @@ export default function PilotPlaybook({ playbook }: { playbook: OperatorPlaybook
       {/* Phases */}
       <div className="divide-y divide-[var(--border)]">
         {playbook.phases.map((phase, idx) => (
-          <div key={phase.key} className={`px-5 py-3 ${phase.current ? "bg-[#FAFAFE]" : ""}`}>
+          <div key={phase.key} className={`px-5 py-3 ${phase.current ? "bg-[#F5F8FF]" : ""}`}>
             <div className="flex items-center gap-2 mb-2">
               <span className={`w-5 h-5 rounded-full shrink-0 flex items-center justify-center text-[10px] font-bold ${
                 phase.complete ? "bg-[var(--success-bg)] text-[var(--success)]" : phase.current ? "bg-[var(--navy)] text-white" : "bg-[var(--accent)] text-[var(--text-muted)]"

@@ -56,7 +56,7 @@ const DEPT_DEFS = [
     dept: "design",
     label: "Design",
     agentId: "a2",
-    accentHex: "#C2530A",
+    accentHex: "#0E7C75",
     types: ["Design", "Visual Identity", "Brand Assets"],
   },
   {

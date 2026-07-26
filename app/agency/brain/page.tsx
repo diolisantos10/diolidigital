@@ -369,9 +369,9 @@ function SocialDepartmentPanel() {
   ];
 
   return (
-    <div className="rounded-[10px] border border-[#DB2777]/30 bg-[#DB2777]/[0.04] p-5 space-y-4">
+    <div className="rounded-[10px] border border-[#0057FF]/30 bg-[#0057FF]/[0.04] p-5 space-y-4">
       <div className="flex items-center justify-between">
-        <div className="text-[11px] font-semibold text-[#DB2777] uppercase tracking-[0.08em]">
+        <div className="text-[11px] font-semibold text-[#0057FF] uppercase tracking-[0.08em]">
           Terceiro Departamento — Social Media (primeiro de execução)
         </div>
         <div className="flex items-center gap-2">
@@ -397,7 +397,7 @@ function SocialDepartmentPanel() {
             key={s.label}
             className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${
               s.active
-                ? "text-[#DB2777] bg-[#DB2777]/10 border-[#DB2777]/20"
+                ? "text-[#0057FF] bg-[#0057FF]/10 border-[#0057FF]/20"
                 : "text-[var(--text-secondary)] bg-white/[0.03] border-white/[0.06]"
             }`}
           >
@@ -410,7 +410,7 @@ function SocialDepartmentPanel() {
       <div className="grid grid-cols-2 gap-1.5">
         {maturity.criteria.map((c) => (
           <div key={c.id} className="flex items-center gap-1.5 text-[10px]">
-            <span className={c.met ? "text-[#DB2777]" : "text-[var(--text-secondary)]"}>
+            <span className={c.met ? "text-[#0057FF]" : "text-[var(--text-secondary)]"}>
               {c.met ? "✓" : "○"}
             </span>
             <span className={c.met ? "text-[var(--text-muted)]" : "text-[var(--text-secondary)]"}>{c.label}</span>
@@ -419,7 +419,7 @@ function SocialDepartmentPanel() {
       </div>
 
       {/* Social Scorecard */}
-      <div className="border-t border-[#DB2777]/20 pt-3">
+      <div className="border-t border-[#0057FF]/20 pt-3">
         <div className="text-[10px] font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em] mb-2">
           Scorecard Social
         </div>
@@ -482,9 +482,9 @@ function DesignDepartmentPanel() {
   ];
 
   return (
-    <div className="rounded-[10px] border border-[#EA580C]/30 bg-[#EA580C]/[0.04] p-5 space-y-4">
+    <div className="rounded-[10px] border border-[#0891B2]/30 bg-[#0891B2]/[0.04] p-5 space-y-4">
       <div className="flex items-center justify-between">
-        <div className="text-[11px] font-semibold text-[#EA580C] uppercase tracking-[0.08em]">
+        <div className="text-[11px] font-semibold text-[#0891B2] uppercase tracking-[0.08em]">
           Quarto Departamento — Design (segundo de execução)
         </div>
         <div className="flex items-center gap-2">
@@ -510,7 +510,7 @@ function DesignDepartmentPanel() {
             key={s.label}
             className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${
               s.active
-                ? "text-[#EA580C] bg-[#EA580C]/10 border-[#EA580C]/20"
+                ? "text-[#0891B2] bg-[#0891B2]/10 border-[#0891B2]/20"
                 : "text-[var(--text-secondary)] bg-white/[0.03] border-white/[0.06]"
             }`}
           >
@@ -523,7 +523,7 @@ function DesignDepartmentPanel() {
       <div className="grid grid-cols-2 gap-1.5">
         {maturity.criteria.map((c) => (
           <div key={c.id} className="flex items-center gap-1.5 text-[10px]">
-            <span className={c.met ? "text-[#EA580C]" : "text-[var(--text-secondary)]"}>
+            <span className={c.met ? "text-[#0891B2]" : "text-[var(--text-secondary)]"}>
               {c.met ? "✓" : "○"}
             </span>
             <span className={c.met ? "text-[var(--text-muted)]" : "text-[var(--text-secondary)]"}>{c.label}</span>
@@ -532,7 +532,7 @@ function DesignDepartmentPanel() {
       </div>
 
       {/* Design Scorecard */}
-      <div className="border-t border-[#EA580C]/20 pt-3">
+      <div className="border-t border-[#0891B2]/20 pt-3">
         <div className="text-[10px] font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em] mb-2">
           Scorecard Design
         </div>
@@ -595,9 +595,9 @@ function TrafficDepartmentPanel() {
   ];
 
   return (
-    <div className="rounded-[10px] border border-[#0284C7]/30 bg-[#0284C7]/[0.04] p-5 space-y-4">
+    <div className="rounded-[10px] border border-[#0891B2]/30 bg-[#0891B2]/[0.04] p-5 space-y-4">
       <div className="flex items-center justify-between">
-        <div className="text-[11px] font-semibold text-[#0284C7] uppercase tracking-[0.08em]">
+        <div className="text-[11px] font-semibold text-[#0891B2] uppercase tracking-[0.08em]">
           Quinto Departamento — Tráfego Pago (terceiro de execução)
         </div>
         <div className="flex items-center gap-2">
@@ -623,7 +623,7 @@ function TrafficDepartmentPanel() {
             key={s.label}
             className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${
               s.active
-                ? "text-[#0284C7] bg-[#0284C7]/10 border-[#0284C7]/20"
+                ? "text-[#0891B2] bg-[#0891B2]/10 border-[#0891B2]/20"
                 : "text-[var(--text-secondary)] bg-white/[0.03] border-white/[0.06]"
             }`}
           >
@@ -636,7 +636,7 @@ function TrafficDepartmentPanel() {
       <div className="grid grid-cols-2 gap-1.5">
         {maturity.criteria.map((c) => (
           <div key={c.id} className="flex items-center gap-1.5 text-[10px]">
-            <span className={c.met ? "text-[#0284C7]" : "text-[var(--text-secondary)]"}>
+            <span className={c.met ? "text-[#0891B2]" : "text-[var(--text-secondary)]"}>
               {c.met ? "✓" : "○"}
             </span>
             <span className={c.met ? "text-[var(--text-muted)]" : "text-[var(--text-secondary)]"}>{c.label}</span>
@@ -645,7 +645,7 @@ function TrafficDepartmentPanel() {
       </div>
 
       {/* Traffic Scorecard */}
-      <div className="border-t border-[#0284C7]/20 pt-3">
+      <div className="border-t border-[#0891B2]/20 pt-3">
         <div className="text-[10px] font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em] mb-2">
           Scorecard Tráfego Pago
         </div>
@@ -981,9 +981,9 @@ function DepartmentPipelineSection() {
   const PIPELINE_STEPS = [
     { step: 1, dept: "SDR",       status: "waiting_strategy", label: "Atendimento / SDR",  color: "#070A1F", href: "/agency/requests" },
     { step: 2, dept: "Strategy",  status: "waiting_social",   label: "Estratégia",         color: "#070A1F", href: "/agency/strategy" },
-    { step: 3, dept: "Social",    status: "waiting_design",   label: "Social Media",       color: "#DB2777", href: "/agency/social" },
-    { step: 4, dept: "Design",    status: "waiting_traffic",  label: "Design",             color: "#EA580C", href: "/agency/design" },
-    { step: 5, dept: "Traffic",   status: "waiting_analytics",label: "Tráfego Pago",       color: "#0284C7", href: "/agency/traffic" },
+    { step: 3, dept: "Social",    status: "waiting_design",   label: "Social Media",       color: "#0057FF", href: "/agency/social" },
+    { step: 4, dept: "Design",    status: "waiting_traffic",  label: "Design",             color: "#0891B2", href: "/agency/design" },
+    { step: 5, dept: "Traffic",   status: "waiting_analytics",label: "Tráfego Pago",       color: "#0891B2", href: "/agency/traffic" },
     { step: 6, dept: "Analytics", status: "waiting_quality",  label: "Analytics",          color: "#16A34A", href: "/agency/analytics" },
     { step: 7, dept: "Quality",   status: "in_progress",      label: "Quality",            color: "#070A1F", href: "/agency/quality" },
   ];
@@ -1385,7 +1385,7 @@ function TrainingTab() {
         )}
         <a
           href="/agency/simulations/training"
-          className="inline-block mt-4 text-[12px] text-[var(--navy)] hover:text-[#7C7CE8] transition-colors"
+          className="inline-block mt-4 text-[12px] text-[var(--navy)] hover:text-[#6D8BFF] transition-colors"
         >
           Abrir Training Center completo →
         </a>

@@ -22,7 +22,7 @@ const CATEGORY_LABEL: Record<string, string> = {
 };
 
 const CATEGORY_COLOR: Record<string, string> = {
-  business: "#070A1F", content: "#DB2777", traffic: "#0284C7", brand: "#EA580C", cross_dept: "#070A1F",
+  business: "#070A1F", content: "#0057FF", traffic: "#0891B2", brand: "#0891B2", cross_dept: "#070A1F",
 };
 
 const EFFORT_LABEL: Record<string, string>   = { baixo: "Baixo", medio: "Médio", alto: "Alto" };
@@ -48,7 +48,7 @@ export function AnalyticsCanvasCard({
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <span className="text-[14px] font-semibold text-[var(--text-primary)]">{canvas.clientName}</span>
             <span className={`h-5 px-2 rounded-full text-[10px] font-semibold ${status.bg} ${status.text}`}>{status.label}</span>
-            <span className="h-5 px-2 rounded-full bg-[#E0F2FE] text-[#0284C7] text-[10px] font-semibold">Analytics</span>
+            <span className="h-5 px-2 rounded-full bg-[#E6FBFA] text-[#0891B2] text-[10px] font-semibold">Analytics</span>
             {canvas.source === "simulation" && (
               <span className="h-5 px-1.5 rounded-full bg-[var(--accent)] text-[var(--text-muted)] text-[9px] font-bold">SIM</span>
             )}
@@ -104,7 +104,7 @@ export function AnalyticsCanvasCard({
                 <div key={tp.id} className="rounded-[7px] border border-[var(--border)] bg-[var(--bg)] px-3 py-2">
                   <div className="flex items-center justify-between mb-0.5">
                     <span className="text-[11px] font-medium text-[var(--text-primary)]">{tp.channel}</span>
-                    <span className="text-[11px] font-bold text-[#0284C7]">{tp.estimatedContribution}%</span>
+                    <span className="text-[11px] font-bold text-[#0891B2]">{tp.estimatedContribution}%</span>
                   </div>
                   <p className="text-[10px] text-[var(--text-muted)]">{tp.role}</p>
                 </div>
@@ -115,7 +115,7 @@ export function AnalyticsCanvasCard({
                 <div className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1">Setup necessário</div>
                 <div className="flex flex-wrap gap-1">
                   {canvas.attributionLayer.analyticsSetupRequired.map((s, i) => (
-                    <span key={i} className="text-[10px] px-2 py-0.5 rounded-[4px] bg-[#E0F2FE] text-[#0284C7]">{s}</span>
+                    <span key={i} className="text-[10px] px-2 py-0.5 rounded-[4px] bg-[#E6FBFA] text-[#0891B2]">{s}</span>
                   ))}
                 </div>
               </div>
@@ -207,7 +207,7 @@ export function AnalyticsCanvasCard({
                 {canvas.deptSummaries.map((d, i) => (
                   <div key={i} className="rounded-[7px] border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-2">
                     <div className="text-[10px] font-semibold text-[var(--text-primary)] mb-0.5">{d.department}</div>
-                    <div className="text-[11px] font-bold text-[#0284C7]">{d.keyMetricValue}</div>
+                    <div className="text-[11px] font-bold text-[#0891B2]">{d.keyMetricValue}</div>
                     <div className="text-[9px] text-[var(--text-muted)]">{d.keyMetric}</div>
                   </div>
                 ))}
@@ -222,7 +222,7 @@ export function AnalyticsCanvasCard({
               <div className="space-y-1">
                 {canvas.keyInsights.map((insight, i) => (
                   <div key={i} className="flex items-start gap-2 text-[11px] text-[var(--text-primary)]">
-                    <span className="text-[#0284C7] shrink-0 mt-0.5">→</span>
+                    <span className="text-[#0891B2] shrink-0 mt-0.5">→</span>
                     <span>{insight}</span>
                   </div>
                 ))}
@@ -269,8 +269,8 @@ export function AnalyticsCanvasCard({
             <div className="grid grid-cols-3 gap-1 sm:grid-cols-4">
               {canvas.cognitiveFlowTrace.map((step) => (
                 <div key={step.stepId} className="flex items-start gap-1 text-[9px]" title={step.summary}>
-                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 mt-0.5 ${step.completed ? "bg-[#0284C7]" : "bg-[var(--border-strong)]"}`} />
-                  <span className={step.completed ? "text-[#0284C7]" : "text-[var(--text-subtle)]"}>
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 mt-0.5 ${step.completed ? "bg-[#0891B2]" : "bg-[var(--border-strong)]"}`} />
+                  <span className={step.completed ? "text-[#0891B2]" : "text-[var(--text-subtle)]"}>
                     {step.order}. {step.label.split(" ")[0]}
                   </span>
                 </div>
@@ -297,7 +297,7 @@ export function AnalyticsCanvasCard({
                   onChange={(e) => setNote(e.target.value)}
                   placeholder="Nota de revisão (opcional)"
                   rows={2}
-                  className="w-full px-3 py-2 text-[12px] border border-[var(--border)] rounded-[7px] outline-none focus:border-[#0284C7] resize-none"
+                  className="w-full px-3 py-2 text-[12px] border border-[var(--border)] rounded-[7px] outline-none focus:border-[#0891B2] resize-none"
                 />
               )}
               <div className="flex items-center gap-2 flex-wrap">

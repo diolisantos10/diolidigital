@@ -154,7 +154,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   };
   const STATUS_COLOR: Record<"not_started" | "in_progress" | "done", string> = {
     not_started: "bg-[var(--accent)] text-[var(--text-muted)]",
-    in_progress: "bg-[#FFF4ED] text-[#C2530A]",
+    in_progress: "bg-[#E6FBFA] text-[#0E7C75]",
     done: "bg-[var(--success-bg)] text-[var(--success)]",
   };
 
@@ -266,7 +266,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             </div>
             {/* Audit warnings */}
             {ovAudit.warnings.length > 0 && (
-              <div className="border-t border-[var(--border)] px-5 py-3 bg-[#FFFCF5]">
+              <div className="border-t border-[var(--border)] px-5 py-3 bg-[#F0FBFE]">
                 <div className="text-[10px] font-semibold uppercase tracking-[0.05em] text-[var(--text-muted)] mb-2">
                   Avisos de prontidão ({ovAudit.warnings.length})
                 </div>
@@ -551,10 +551,10 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   <div className="space-y-1.5">
                     {deptItems.map(({ label, done }) => (
                       <div key={label} className="flex items-center gap-2">
-                        <span className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${done ? "bg-[#FFF4ED]" : "bg-[var(--accent)]"}`}>
+                        <span className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${done ? "bg-[#E6FBFA]" : "bg-[var(--accent)]"}`}>
                           {done ? (
                             <svg width="8" height="6" viewBox="0 0 8 6" fill="none">
-                              <path d="M1 3L3 5L7 1" stroke="#C2530A" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M1 3L3 5L7 1" stroke="#0E7C75" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>
                           ) : (
                             <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-subtle)]" />
@@ -616,7 +616,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   <div className="space-y-1.5">
                     {deptItems.map(({ label, done }) => (
                       <div key={label} className="flex items-center gap-2">
-                        <span className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${done ? "bg-[#ECFEFF]" : "bg-[var(--accent)]"}`}>
+                        <span className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${done ? "bg-[#E6FBFA]" : "bg-[var(--accent)]"}`}>
                           {done ? (
                             <svg width="8" height="6" viewBox="0 0 8 6" fill="none">
                               <path d="M1 3L3 5L7 1" stroke="#0E7490" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
@@ -815,7 +815,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   return (
                     <div key={agentId} className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 flex items-center gap-4">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold shrink-0 ${
-                        status === "done" ? "bg-[var(--success-bg)] text-[var(--success)]" : status === "in_progress" ? "bg-[#FFF4ED] text-[#C2530A]" : "bg-[var(--accent-light)] text-[var(--navy)]"
+                        status === "done" ? "bg-[var(--success-bg)] text-[var(--success)]" : status === "in_progress" ? "bg-[#E6FBFA] text-[#0E7C75]" : "bg-[var(--accent-light)] text-[var(--navy)]"
                       }`}>
                         {idx + 1}
                       </div>
@@ -913,7 +913,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               const isActive = project.stage === stage;
               const isDone = STAGES.indexOf(stage) < STAGES.indexOf(project.stage);
               return (
-                <div key={stage} className={`flex items-center gap-4 px-6 py-4 ${isActive ? "bg-[#FAFAFE]" : ""}`}>
+                <div key={stage} className={`flex items-center gap-4 px-6 py-4 ${isActive ? "bg-[#F5F8FF]" : ""}`}>
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${
                     isActive ? "bg-[var(--navy)] text-white" : isDone ? "bg-[var(--success-bg)] text-[var(--success)]" : "bg-[var(--accent)] text-[var(--text-muted)]"
                   }`}>
@@ -1160,7 +1160,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           strat: "BS", social: "SM", creative: "CD", paid: "PM", growth: "GS", ceo: "CE",
         };
         const SPECIALIST_COLOR: Record<string, string> = {
-          strat: "bg-[var(--navy)]", social: "bg-[#0E7490]", creative: "bg-[#C2530A]",
+          strat: "bg-[var(--navy)]", social: "bg-[#0E7490]", creative: "bg-[#0E7C75]",
           paid: "bg-[var(--success)]", growth: "bg-[var(--navy)]", ceo: "bg-[var(--text-primary)]",
         };
 
@@ -1193,7 +1193,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               </p>
               <button
                 onClick={() => { generateStrategyRoom(id); setStratViewTab("specialists"); }}
-                className="inline-flex items-center gap-2 h-9 px-5 rounded-[8px] bg-[var(--navy)] text-white text-[13px] font-medium hover:bg-[#4747c2] transition-colors"
+                className="inline-flex items-center gap-2 h-9 px-5 rounded-[8px] bg-[var(--navy)] text-white text-[13px] font-medium hover:bg-[#1E40AF] transition-colors"
               >
                 Gerar Strategy Room
               </button>
@@ -1224,7 +1224,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 ) : (
                   <button
                     onClick={applyEntireStrategy}
-                    className="h-8 px-4 rounded-[7px] bg-[var(--navy)] text-white text-[12px] font-medium hover:bg-[#4747c2] transition-colors"
+                    className="h-8 px-4 rounded-[7px] bg-[var(--navy)] text-white text-[12px] font-medium hover:bg-[#1E40AF] transition-colors"
                   >
                     Aplicar Estratégia Completa
                   </button>
@@ -1260,7 +1260,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     <p className="text-[12px] text-[var(--border)] leading-snug">{exec.biggestRisk}</p>
                   </div>
                   <div className="bg-[var(--navy)]/20 rounded-[8px] px-3 py-2.5 border border-[var(--navy)]/30">
-                    <div className="text-[9px] font-semibold uppercase tracking-[0.06em] text-[#8B8BF0] mb-1">Ação Recomendada</div>
+                    <div className="text-[9px] font-semibold uppercase tracking-[0.06em] text-[#6D8BFF] mb-1">Ação Recomendada</div>
                     <p className="text-[12px] text-[var(--border)] leading-snug">{exec.recommendedAction}</p>
                   </div>
                 </div>
@@ -1381,7 +1381,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     <p className="px-5 py-4 text-[12px] text-[var(--text-muted)] italic">Nenhum debate gerado. Regere o Strategy Room para ativar o modo debate.</p>
                   ) : (
                     debate.map((turn: DebateTurn, idx: number) => (
-                      <div key={idx} className={`px-5 py-4 ${turn.type === "consensus" ? "bg-[#FAFAFE]" : ""}`}>
+                      <div key={idx} className={`px-5 py-4 ${turn.type === "consensus" ? "bg-[#F5F8FF]" : ""}`}>
                         <div className="flex items-start gap-3">
                           <div className={`w-8 h-8 rounded-full ${SPECIALIST_COLOR[turn.specialistId] ?? "bg-[var(--navy)]"} text-white text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5`}>
                             {SPECIALIST_AVATAR[turn.specialistId] ?? turn.specialistName.slice(0, 2).toUpperCase()}
@@ -1503,7 +1503,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     </div>
                     <button
                       onClick={applyEntireStrategy}
-                      className="h-9 px-5 rounded-[8px] bg-[var(--navy)] text-white text-[13px] font-medium hover:bg-[#4747c2] transition-colors shrink-0"
+                      className="h-9 px-5 rounded-[8px] bg-[var(--navy)] text-white text-[13px] font-medium hover:bg-[#1E40AF] transition-colors shrink-0"
                     >
                       Aplicar Estratégia Completa →
                     </button>
@@ -1516,7 +1516,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             {stratViewTab === "consensus" && !consensus && (
               <div className="bg-white rounded-[12px] border border-[var(--border)] px-6 py-8 text-center">
                 <p className="text-[13px] text-[var(--text-muted)]">Consenso não disponível. Regere o Strategy Room para ativar o V2.</p>
-                <button onClick={() => { clearStrategyRoom(id); generateStrategyRoom(id); }} className="mt-3 h-8 px-4 rounded-[7px] bg-[var(--navy)] text-white text-[12px] font-medium hover:bg-[#4747c2] transition-colors">
+                <button onClick={() => { clearStrategyRoom(id); generateStrategyRoom(id); }} className="mt-3 h-8 px-4 rounded-[7px] bg-[var(--navy)] text-white text-[12px] font-medium hover:bg-[#1E40AF] transition-colors">
                   Regerar Strategy Room V2
                 </button>
               </div>
@@ -1533,7 +1533,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             const p = project.proposal!;
             const banners: Record<string, { bg: string; border: string; text: string; label: string }> = {
               draft:             { bg: "bg-[var(--bg)]",  border: "border-[var(--border)]",  text: "text-[var(--text-secondary)]",  label: "Rascunho — ainda não enviado ao cliente" },
-              sent:              { bg: "bg-[var(--accent-light)]",  border: "border-[#C7C7F5]",  text: "text-[var(--navy)]",  label: "Enviado — aguardando aprovação do cliente" },
+              sent:              { bg: "bg-[var(--accent-light)]",  border: "border-[#D6DEFF]",  text: "text-[var(--navy)]",  label: "Enviado — aguardando aprovação do cliente" },
               approved:          { bg: "bg-[var(--success-bg)]",  border: "border-[#BBF7D0]",  text: "text-[var(--success)]",  label: "Aprovado — execução liberada" },
               rejected:          { bg: "bg-[var(--danger-bg)]",  border: "border-[#FECACA]",  text: "text-[var(--danger)]",  label: "Reprovado — revise e reenvie" },
               changes_requested: { bg: "bg-[#FFFBEB]",  border: "border-[#FDE68A]",  text: "text-[var(--warning)]",  label: "Alterações solicitadas pelo cliente" },
@@ -1560,7 +1560,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
           {/* Strategy Room summary banner */}
           {strategyRoom && (
-            <div className="flex items-center justify-between px-4 py-3 rounded-[8px] border border-[#C7C7F5] bg-[var(--accent-light)]">
+            <div className="flex items-center justify-between px-4 py-3 rounded-[8px] border border-[#D6DEFF] bg-[var(--accent-light)]">
               <div>
                 <p className="text-[13px] font-medium text-[var(--navy)]">Strategy Room completo · Score {strategyRoom.finalSynthesis.strategicScore}/10</p>
                 <p className="text-[12px] text-[var(--text-secondary)] mt-0.5 truncate max-w-lg">{strategyRoom.finalSynthesis.recommendedStrategy.slice(0, 120)}…</p>
@@ -1948,8 +1948,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   { title: "O que funcionou", icon: "✓", items: opsReport.whatWorked, accent: "#16A34A", bg: "bg-[#F0FDF4]", border: "border-[#BBF7D0]" },
                   { title: "Fricção de UX", icon: "⚠", items: opsReport.uxFriction, accent: "#D97706", bg: "bg-[#FFFBEB]", border: "border-[#FDE68A]" },
                   { title: "Informações faltando", icon: "?", items: opsReport.missingInfo, accent: "#DC2626", bg: "bg-[var(--danger-bg)]", border: "border-[#FECACA]" },
-                  { title: "Automações ausentes", icon: "⚡", items: opsReport.missingAutomation, accent: "#070A1F", bg: "bg-[var(--accent-light)]", border: "border-[#C7D2FE]" },
-                  { title: "Pain points do operador", icon: "!", items: opsReport.operatorPainPoints, accent: "#C2530A", bg: "bg-[#FFF4ED]", border: "border-[#FED7AA]" },
+                  { title: "Automações ausentes", icon: "⚡", items: opsReport.missingAutomation, accent: "#070A1F", bg: "bg-[var(--accent-light)]", border: "border-[#C7D8FE]" },
+                  { title: "Pain points do operador", icon: "!", items: opsReport.operatorPainPoints, accent: "#0E7C75", bg: "bg-[#E6FBFA]", border: "border-[#FED7AA]" },
                 ] as const
               ).map((section) => (
                 <div key={section.title} className={`mx-5 my-3 rounded-[8px] border ${section.border} ${section.bg} overflow-hidden`}>
@@ -1995,7 +1995,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 const pStyle = {
                   P0: { bg: "bg-[var(--danger-bg)]", border: "border-[#FECACA]", label: "bg-[#FEE2E2] text-[var(--danger)]", desc: "Bloqueador — corrigir antes do primeiro cliente externo" },
                   P1: { bg: "bg-[#FFFBEB]", border: "border-[#FDE68A]", label: "bg-[var(--warning-bg)] text-[var(--warning)]", desc: "Importante — pode embarcar cliente, mas corrigir em seguida" },
-                  P2: { bg: "bg-[var(--accent-light)]", border: "border-[#C7D2FE]", label: "bg-[var(--accent-light)] text-[var(--navy)]", desc: "Melhoria — backlog de otimização pós-piloto" },
+                  P2: { bg: "bg-[var(--accent-light)]", border: "border-[#C7D8FE]", label: "bg-[var(--accent-light)] text-[var(--navy)]", desc: "Melhoria — backlog de otimização pós-piloto" },
                 }[priority];
                 return (
                   <div key={priority} className={`mx-5 my-3 rounded-[8px] border ${pStyle.border} ${pStyle.bg} overflow-hidden`}>
@@ -2121,7 +2121,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             {!advice.isAligned && advice.recommendedStage && (
               <div className={`rounded-[10px] border px-5 py-4 flex items-start gap-3 ${
                 advice.confidence === "high"
-                  ? "bg-[var(--accent-light)] border-[#C7D2FE]"
+                  ? "bg-[var(--accent-light)] border-[#C7D8FE]"
                   : "bg-[#FFFBEB] border-[#FDE68A]"
               }`}>
                 <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${

@@ -10,7 +10,7 @@ const ASSET_COLORS: Record<AssetType, string> = {
   logo: "bg-[var(--accent-light)] text-[var(--navy)]",
   color_palette: "bg-[var(--warning-bg)] text-[var(--warning)]",
   typography: "bg-[#F0FDF4] text-[var(--success)]",
-  tone_of_voice: "bg-[#FFF7ED] text-[#C2410C]",
+  tone_of_voice: "bg-[#E6FBFA] text-[#0B655F]",
   visual_reference: "bg-[var(--accent)] text-[var(--text-secondary)]",
   guidelines: "bg-[var(--accent-light)] text-[var(--navy)]",
 };
@@ -32,8 +32,8 @@ export default function BrandAssetsPage() {
   return (
     <>
       <AgencyHeader
-        title="Brand Assets"
-        subtitle="Per-client brand materials — logos, colors, typography, voice guidelines"
+        title="Ativos de Marca"
+        subtitle="Materiais de marca por cliente — logos, cores, tipografia e diretrizes de voz"
       />
 
       {/* Client filter */}

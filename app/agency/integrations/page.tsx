@@ -300,7 +300,7 @@ function ConfigPanel({ integration, onClose }: ConfigPanelProps) {
           )}
 
           {/* Security notice */}
-          <div className="bg-[#F0F4FF] border border-[#DDDDFB] rounded-[8px] px-4 py-3 flex items-start gap-2">
+          <div className="bg-[#EFF4FF] border border-[#E6EEFF] rounded-[8px] px-4 py-3 flex items-start gap-2">
             <span className="text-[14px] shrink-0">🔒</span>
             <p className="text-[11px] text-[var(--navy)]">
               Chaves reais serão armazenadas com segurança quando o backend estiver ativo.
