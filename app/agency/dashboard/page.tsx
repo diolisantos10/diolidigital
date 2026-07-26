@@ -445,8 +445,8 @@ export default function DashboardPage() {
             { label: "Entregas pendentes",  value: deliverables.filter((d) => d.status === "draft" || d.status === "in_review").length, sub: `${deliverables.filter((d) => d.status === "approved").length} aprovadas`, color: "#16A34A" },
             { label: "Atenção necessária",  value: totalAttention, sub: totalAttention === 0 ? "tudo em dia" : "itens pendentes", color: totalAttention > 0 ? "#DC2626" : "#16A34A" },
           ].map((kpi) => (
-            <div key={kpi.label} className="bg-white rounded-[12px] border border-[var(--border)] px-4 py-3.5" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-              <div className="text-[11px] font-medium text-[var(--text-muted)] mb-1 truncate">{kpi.label}</div>
+            <div key={kpi.label} className="bg-white rounded-[12px] border border-[var(--border)] px-4 py-3.5" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.05)", borderLeft: `3px solid ${kpi.color}` }}>
+              <div className="text-[10.5px] font-semibold uppercase tracking-[0.06em] text-[var(--text-muted)] mb-1.5 truncate">{kpi.label}</div>
               <div className="flex items-baseline gap-2">
                 <span className="text-[24px] font-bold leading-none mono-num" style={{ color: kpi.color }}>{kpi.value}</span>
                 <span className="text-[11px] text-[var(--text-subtle)] truncate">{kpi.sub}</span>
@@ -460,7 +460,7 @@ export default function DashboardPage() {
       <div className="bg-white rounded-[12px] border border-[var(--border)] overflow-hidden mb-4">
         <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border)]">
           <div className="flex items-center gap-2">
-            <h2 className="text-[13px] font-semibold text-[var(--text-primary)]">Centro de Comando</h2>
+            <h2 className="text-[14.5px] font-semibold tracking-[-0.015em] text-[var(--text-primary)]">Centro de Comando</h2>
             <span className="text-[11px] text-[var(--text-muted)]">O que precisa da sua atenção agora?</span>
           </div>
           <Link href="/agency/approvals" className="text-[11px] text-[var(--navy)] font-medium hover:underline">
@@ -582,7 +582,7 @@ export default function DashboardPage() {
       <div className="bg-white rounded-[12px] border border-[var(--border)] overflow-hidden mb-6">
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--border)]">
           <div className="flex items-center gap-2">
-            <h2 className="text-[13px] font-semibold text-[var(--text-primary)]">{t.dashboard.today}</h2>
+            <h2 className="text-[14.5px] font-semibold tracking-[-0.015em] text-[var(--text-primary)]">{t.dashboard.today}</h2>
             {sortedActions.length > 0 && (
               <span className="w-5 h-5 rounded-full bg-[var(--navy)] text-white text-[10px] font-bold flex items-center justify-center">
                 {sortedActions.length}
@@ -638,7 +638,7 @@ export default function DashboardPage() {
         <div className="bg-white rounded-[12px] border border-[var(--border)] overflow-hidden mb-4">
           <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border)]">
             <div className="flex items-center gap-2">
-              <h2 className="text-[13px] font-semibold text-[var(--text-primary)]">Orquestração</h2>
+              <h2 className="text-[14.5px] font-semibold tracking-[-0.015em] text-[var(--text-primary)]">Orquestração</h2>
               <span className="text-[11px] text-[var(--text-muted)]">{orchSummary.topQuestion}</span>
             </div>
             {orchSummary.criticalBlockerCount > 0 && (
@@ -675,7 +675,7 @@ export default function DashboardPage() {
         <div className="bg-white rounded-[12px] border border-[var(--border)] overflow-hidden mb-4">
           <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border)]">
             <div className="flex items-center gap-2">
-              <h2 className="text-[13px] font-semibold text-[var(--text-primary)]">Tarefas Automáticas</h2>
+              <h2 className="text-[14.5px] font-semibold tracking-[-0.015em] text-[var(--text-primary)]">Tarefas Automáticas</h2>
               <span className="w-5 h-5 rounded-full bg-[var(--navy)] text-white text-[10px] font-bold flex items-center justify-center">{Math.min(autoTasks.length, 6)}</span>
               <span className="text-[11px] text-[var(--text-muted)]">geradas pelo PM Engine</span>
             </div>
@@ -709,7 +709,7 @@ export default function DashboardPage() {
       {/* ── Department Health ─────────────────────────────────────────────── */}
       <div className="bg-white rounded-[12px] border border-[var(--border)] overflow-hidden mb-6">
         <div className="px-5 py-3 border-b border-[var(--border)] flex items-center gap-2">
-          <h2 className="text-[13px] font-semibold text-[var(--text-primary)]">Saúde dos Departamentos</h2>
+          <h2 className="text-[14.5px] font-semibold tracking-[-0.015em] text-[var(--text-primary)]">Saúde dos Departamentos</h2>
           {workspaceHealth.mostOverloaded && (
             <span className="text-[10px] font-semibold text-[var(--danger)] bg-[#FEE2E2] px-2 py-0.5 rounded-full">
               {workspaceHealth.mostOverloaded.label} sobrecarregado
@@ -758,7 +758,7 @@ export default function DashboardPage() {
       {activeProjects.length > 0 && (
         <div className="bg-white rounded-[12px] border border-[var(--border)] overflow-hidden mb-6">
           <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border)]">
-            <h2 className="text-[13px] font-semibold text-[var(--text-primary)]">Pipeline de Execução</h2>
+            <h2 className="text-[14.5px] font-semibold tracking-[-0.015em] text-[var(--text-primary)]">Pipeline de Execução</h2>
             <Link href="/agency/pipeline" className="text-[11px] text-[var(--navy)] font-medium hover:underline">Ver quadro →</Link>
           </div>
           <div className="divide-y divide-[var(--border)]">
@@ -804,7 +804,7 @@ export default function DashboardPage() {
         <div className="space-y-6">
           <div className="bg-white rounded-[12px] border border-[var(--border)] overflow-hidden">
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--border)]">
-              <h2 className="text-[13px] font-semibold text-[var(--text-primary)]">{t.dashboard.activeProjects}</h2>
+              <h2 className="text-[14.5px] font-semibold tracking-[-0.015em] text-[var(--text-primary)]">{t.dashboard.activeProjects}</h2>
               <Link href="/agency/projects" className="text-[12px] text-[var(--navy)] hover:underline font-medium">{t.common.viewAll}</Link>
             </div>
             {activeProjects.length === 0 ? (
@@ -877,7 +877,7 @@ export default function DashboardPage() {
           <div className="bg-white rounded-[12px] border border-[var(--border)] overflow-hidden">
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--border)]">
               <div>
-                <h2 className="text-[13px] font-semibold text-[var(--text-primary)]">{ops.healthTitle}</h2>
+                <h2 className="text-[14.5px] font-semibold tracking-[-0.015em] text-[var(--text-primary)]">{ops.healthTitle}</h2>
                 <p className="text-[11px] text-[var(--text-muted)] mt-0.5">{ops.healthSub}</p>
               </div>
             </div>
@@ -912,7 +912,7 @@ export default function DashboardPage() {
           {/* Outputs Ready */}
           <div className="bg-white rounded-[12px] border border-[var(--border)] overflow-hidden">
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--border)]">
-              <h2 className="text-[13px] font-semibold text-[var(--text-primary)]">{t.dashboard.outputs}</h2>
+              <h2 className="text-[14.5px] font-semibold tracking-[-0.015em] text-[var(--text-primary)]">{t.dashboard.outputs}</h2>
               <Link href="/agency/deliverables" className="text-[12px] text-[var(--navy)] hover:underline">{t.dashboard.allDeliverables}</Link>
             </div>
             {readyOutputs.length === 0 ? (
@@ -948,7 +948,7 @@ export default function DashboardPage() {
           {/* Blocks & Alerts */}
           <div className="bg-white rounded-[12px] border border-[var(--border)] overflow-hidden">
             <div className="px-5 py-3.5 border-b border-[var(--border)] flex items-center gap-2">
-              <h2 className="text-[13px] font-semibold text-[var(--text-primary)]">{t.dashboard.alerts}</h2>
+              <h2 className="text-[14.5px] font-semibold tracking-[-0.015em] text-[var(--text-primary)]">{t.dashboard.alerts}</h2>
               {blocks.length > 0 && (
                 <span className="w-4 h-4 rounded-full bg-[#FEE2E2] text-[var(--danger)] text-[9px] font-bold flex items-center justify-center">
                   {blocks.length}
@@ -976,7 +976,7 @@ export default function DashboardPage() {
           {/* Recent Activity */}
           <div className="bg-white rounded-[12px] border border-[var(--border)] overflow-hidden">
             <div className="px-5 py-3.5 border-b border-[var(--border)]">
-              <h2 className="text-[13px] font-semibold text-[var(--text-primary)]">{t.dashboard.recentActivity}</h2>
+              <h2 className="text-[14.5px] font-semibold tracking-[-0.015em] text-[var(--text-primary)]">{t.dashboard.recentActivity}</h2>
             </div>
             <div className="divide-y divide-[var(--border)]">
               {activity.slice(0, 8).map((event) => (
