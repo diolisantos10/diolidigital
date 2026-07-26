@@ -49,7 +49,7 @@ function CopyLinkButton({ path, dark = false }: { path: string; dark?: boolean }
       className={`h-9 px-4 rounded-[8px] text-[13px] font-semibold transition-colors whitespace-nowrap shrink-0 ${
         dark
           ? "border border-white/20 bg-white/5 text-white hover:bg-white/10"
-          : "h-7 px-3 rounded-[6px] border border-[#E5E5E2] bg-white text-[11px] font-medium text-[#6B6B65] hover:border-[#9B9B95] hover:text-[#1A1A1A]"
+          : "h-7 px-3 rounded-[6px] border border-[var(--border)] bg-white text-[11px] font-medium text-[var(--text-secondary)] hover:border-[var(--text-muted)] hover:text-[var(--text-primary)]"
       }`}
     >
       {copied ? "Copiado!" : "Copiar link"}
@@ -64,9 +64,9 @@ function CopyLinkButton({ path, dark = false }: { path: string; dark?: boolean }
 
 const PRIORITY_STYLE: Record<string, string> = {
   critical: "bg-[#FEE2E2] text-[#991B1B]",
-  high:     "bg-[#FEF3C7] text-[#92400E]",
-  medium:   "bg-[#E6FBFA] text-[#070A1F]",
-  low:      "bg-[#F0F0ED] text-[#6B6B65]",
+  high:     "bg-[var(--warning-bg)] text-[#92400E]",
+  medium:   "bg-[var(--accent-light)] text-[var(--navy)]",
+  low:      "bg-[var(--accent)] text-[var(--text-secondary)]",
 };
 
 function OrchestratePanel({ requestId, onApplied }: { requestId: string; onApplied: () => void }) {
@@ -76,17 +76,17 @@ function OrchestratePanel({ requestId, onApplied }: { requestId: string; onAppli
     return (
       <button
         onClick={propose}
-        className="h-8 px-4 rounded-[7px] border border-[#070A1F] text-[#070A1F] hover:bg-[#E6FBFA] text-[12px] font-medium transition-colors shrink-0"
+        className="h-8 px-4 rounded-[7px] border border-[var(--navy)] text-[var(--navy)] hover:bg-[var(--accent-light)] text-[12px] font-medium transition-colors shrink-0"
       >
         ✦ Orquestrar
       </button>
     );
   }
   if (status === "proposing") {
-    return <span className="text-[11px] text-[#9B9B95] shrink-0">Raciocinando…</span>;
+    return <span className="text-[11px] text-[var(--text-muted)] shrink-0">Raciocinando…</span>;
   }
   if (status === "disabled") {
-    return <span className="text-[11px] text-[#9B9B95] shrink-0">PM Autopilot desativado</span>;
+    return <span className="text-[11px] text-[var(--text-muted)] shrink-0">PM Autopilot desativado</span>;
   }
   if (status === "done") {
     return (
@@ -99,22 +99,22 @@ function OrchestratePanel({ requestId, onApplied }: { requestId: string; onAppli
     return (
       <div className="flex items-center gap-2 shrink-0">
         <span className="text-[11px] text-[#991B1B]">{error}</span>
-        <button onClick={reset} className="text-[11px] underline text-[#6B6B65]">Tentar de novo</button>
+        <button onClick={reset} className="text-[11px] underline text-[var(--text-secondary)]">Tentar de novo</button>
       </div>
     );
   }
   // proposed | applying — render the inline draft proposal for approval.
   if (!proposal) return null;
   return (
-    <div className="w-full mt-2 rounded-[8px] border border-[#9AF5F0] bg-[#FBFAFF] p-3 space-y-2">
+    <div className="w-full mt-2 rounded-[8px] border border-[var(--cyan)] bg-[#FBFAFF] p-3 space-y-2">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-[12px] font-semibold text-[#1A1A1A]">{proposal.name}</span>
-        <span className="h-4 px-1.5 rounded-[3px] bg-[#070A1F] text-white text-[9px] font-semibold leading-4">
+        <span className="text-[12px] font-semibold text-[var(--text-primary)]">{proposal.name}</span>
+        <span className="h-4 px-1.5 rounded-[3px] bg-[var(--navy)] text-white text-[9px] font-semibold leading-4">
           {proposal.reasoningMode === "openai" ? "AI" : "RULE-BASED"}
         </span>
-        <span className="text-[11px] text-[#9B9B95]">DRAFT — nada foi criado ainda</span>
+        <span className="text-[11px] text-[var(--text-muted)]">DRAFT — nada foi criado ainda</span>
       </div>
-      <p className="text-[11px] text-[#6B6B65]">{proposal.goal}</p>
+      <p className="text-[11px] text-[var(--text-secondary)]">{proposal.goal}</p>
       {proposal.warnings.length > 0 && (
         <ul className="text-[10px] text-[#92400E] list-disc pl-4">
           {proposal.warnings.map((w, i) => <li key={i}>{w}</li>)}
@@ -122,7 +122,7 @@ function OrchestratePanel({ requestId, onApplied }: { requestId: string; onAppli
       )}
       <table className="w-full text-[11px]">
         <thead>
-          <tr className="text-[#9B9B95] text-left">
+          <tr className="text-[var(--text-muted)] text-left">
             <th className="font-medium py-1">Tarefa</th>
             <th className="font-medium py-1">Depto</th>
             <th className="font-medium py-1">Prioridade</th>
@@ -132,14 +132,14 @@ function OrchestratePanel({ requestId, onApplied }: { requestId: string; onAppli
         <tbody>
           {proposal.tasks.map((t, i) => (
             <tr key={i} className="border-t border-[#EEE]">
-              <td className="py-1 pr-2 text-[#1A1A1A]">{t.title}</td>
-              <td className="py-1 pr-2 text-[#6B6B65]">{t.department}</td>
+              <td className="py-1 pr-2 text-[var(--text-primary)]">{t.title}</td>
+              <td className="py-1 pr-2 text-[var(--text-secondary)]">{t.department}</td>
               <td className="py-1 pr-2">
                 <span className={`px-1.5 py-0.5 rounded-[3px] text-[9px] font-semibold ${PRIORITY_STYLE[t.priority] ?? ""}`}>
                   {t.priority}
                 </span>
               </td>
-              <td className="py-1 text-[#6B6B65]">{t.estimatedDays}</td>
+              <td className="py-1 text-[var(--text-secondary)]">{t.estimatedDays}</td>
             </tr>
           ))}
         </tbody>
@@ -148,11 +148,11 @@ function OrchestratePanel({ requestId, onApplied }: { requestId: string; onAppli
         <button
           onClick={async () => { await apply(proposal); onApplied(); }}
           disabled={status === "applying"}
-          className="h-8 px-4 rounded-[7px] bg-[#070A1F] hover:bg-[#0D1230] disabled:opacity-50 text-white text-[12px] font-medium transition-colors"
+          className="h-8 px-4 rounded-[7px] bg-[var(--navy)] hover:bg-[#0D1230] disabled:opacity-50 text-white text-[12px] font-medium transition-colors"
         >
           {status === "applying" ? "Criando…" : "Aprovar & Criar projeto"}
         </button>
-        <button onClick={reset} className="h-8 px-3 text-[12px] text-[#6B6B65] hover:text-[#1A1A1A]">
+        <button onClick={reset} className="h-8 px-3 text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
           Descartar
         </button>
       </div>
@@ -168,17 +168,17 @@ function SDRHandoffPanel({ handoff }: { handoff: SDRHandoff }) {
   const qg    = handoff.qualityGateResult;
 
   const qgColors = {
-    PASS:    { bg: "bg-[#DCFCE7]", border: "border-[#86EFAC]", text: "text-[#166534]", badge: "bg-[#16A34A]" },
-    WARNING: { bg: "bg-[#FEF3C7]", border: "border-[#FDE68A]", text: "text-[#92400E]", badge: "bg-[#D97706]" },
-    FAIL:    { bg: "bg-[#FEE2E2]", border: "border-[#FECACA]", text: "text-[#991B1B]", badge: "bg-[#DC2626]" },
+    PASS:    { bg: "bg-[var(--success-bg)]", border: "border-[#86EFAC]", text: "text-[#166534]", badge: "bg-[var(--success)]" },
+    WARNING: { bg: "bg-[var(--warning-bg)]", border: "border-[#FDE68A]", text: "text-[#92400E]", badge: "bg-[var(--warning)]" },
+    FAIL:    { bg: "bg-[#FEE2E2]", border: "border-[#FECACA]", text: "text-[#991B1B]", badge: "bg-[var(--danger)]" },
   } as const;
 
   return (
     <div className="space-y-3">
       {/* Brain Review Panel header */}
-      <div className="bg-[#E6FBFA] border border-[#9AF5F0] rounded-[8px] px-4 py-3.5 space-y-2.5">
+      <div className="bg-[var(--accent-light)] border border-[var(--cyan)] rounded-[8px] px-4 py-3.5 space-y-2.5">
         <div className="flex items-center justify-between">
-          <div className="text-[9px] font-semibold text-[#070A1F] uppercase tracking-[0.06em]">
+          <div className="text-[9px] font-semibold text-[var(--navy)] uppercase tracking-[0.06em]">
             ✦ Brain Review Panel — SDR Agent
           </div>
           {qg && (
@@ -195,11 +195,11 @@ function SDRHandoffPanel({ handoff }: { handoff: SDRHandoff }) {
               <p className="text-[10px] font-semibold text-[#5B21B6] mb-1">Diagnóstico Brain</p>
               <p className="text-[11px] text-[#4C1D95] leading-relaxed">{brain.intentionDetected}</p>
               <div className="flex items-center gap-1.5 mt-1">
-                <span className="text-[9px] text-[#9B9B95]">Confiança:</span>
+                <span className="text-[9px] text-[var(--text-muted)]">Confiança:</span>
                 <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${
-                  brain.confidenceLevel === "high" ? "bg-[#DCFCE7] text-[#16A34A]"
-                  : brain.confidenceLevel === "medium" ? "bg-[#E6FBFA] text-[#070A1F]"
-                  : "bg-[#FEF3C7] text-[#D97706]"
+                  brain.confidenceLevel === "high" ? "bg-[var(--success-bg)] text-[var(--success)]"
+                  : brain.confidenceLevel === "medium" ? "bg-[var(--accent-light)] text-[var(--navy)]"
+                  : "bg-[var(--warning-bg)] text-[var(--warning)]"
                 }`}>
                   {brain.confidenceLevel === "high" ? "Alta" : brain.confidenceLevel === "medium" ? "Média" : "Baixa"}
                 </span>
@@ -221,7 +221,7 @@ function SDRHandoffPanel({ handoff }: { handoff: SDRHandoff }) {
             {/* Unknown facts */}
             {brain.unknownFacts.length > 0 && (
               <div>
-                <p className="text-[10px] font-semibold text-[#D97706] mb-0.5">Incógnitas</p>
+                <p className="text-[10px] font-semibold text-[var(--warning)] mb-0.5">Incógnitas</p>
                 {brain.unknownFacts.slice(0, 4).map((u, i) => (
                   <p key={i} className="text-[11px] text-[#92400E]">? {u}</p>
                 ))}
@@ -230,8 +230,8 @@ function SDRHandoffPanel({ handoff }: { handoff: SDRHandoff }) {
 
             {/* Risks */}
             {brain.risks.length > 0 && (
-              <div className="bg-[#FEF3C7] border border-[#FDE68A] rounded-[6px] px-3 py-2">
-                <p className="text-[10px] font-semibold text-[#D97706] mb-0.5">Riscos</p>
+              <div className="bg-[var(--warning-bg)] border border-[#FDE68A] rounded-[6px] px-3 py-2">
+                <p className="text-[10px] font-semibold text-[var(--warning)] mb-0.5">Riscos</p>
                 {brain.risks.map((r, i) => (
                   <p key={i} className="text-[11px] text-[#92400E]">⚠ {r}</p>
                 ))}
@@ -241,7 +241,7 @@ function SDRHandoffPanel({ handoff }: { handoff: SDRHandoff }) {
             {/* Opportunities */}
             {brain.opportunities.length > 0 && (
               <div>
-                <p className="text-[10px] font-semibold text-[#16A34A] mb-0.5">Oportunidades</p>
+                <p className="text-[10px] font-semibold text-[var(--success)] mb-0.5">Oportunidades</p>
                 {brain.opportunities.map((o, i) => (
                   <p key={i} className="text-[11px] text-[#166534]">✓ {o}</p>
                 ))}
@@ -252,7 +252,7 @@ function SDRHandoffPanel({ handoff }: { handoff: SDRHandoff }) {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <p className="text-[10px] font-semibold text-[#5B21B6] mb-0.5">Departamento recomendado</p>
-                <span className="h-5 px-2 rounded-full bg-[#EDE9FE] text-[#070A1F] text-[10px] font-medium">
+                <span className="h-5 px-2 rounded-full bg-[#EDE9FE] text-[var(--navy)] text-[10px] font-medium">
                   {brain.recommendedDepartment}
                 </span>
               </div>
@@ -261,7 +261,7 @@ function SDRHandoffPanel({ handoff }: { handoff: SDRHandoff }) {
                   <p className="text-[10px] font-semibold text-[#5B21B6] mb-0.5">Serviços recomendados</p>
                   <div className="flex flex-wrap gap-1">
                     {brain.recommendedServices.map((s, i) => (
-                      <span key={i} className="h-5 px-2 rounded-full bg-[#EDE9FE] text-[#070A1F] text-[10px]">{s}</span>
+                      <span key={i} className="h-5 px-2 rounded-full bg-[#EDE9FE] text-[var(--navy)] text-[10px]">{s}</span>
                     ))}
                   </div>
                 </div>
@@ -294,12 +294,12 @@ function SDRHandoffPanel({ handoff }: { handoff: SDRHandoff }) {
       {flow && (
         <div className="bg-[#F0F0FF] border border-[#C7C7FF] rounded-[8px] px-4 py-3">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-[10px] font-semibold text-[#070A1F] uppercase tracking-[0.06em]">Fluxo Cognitivo</p>
-            <span className="text-[11px] font-bold text-[#070A1F]">{flow.stepsCompleted}/{flow.totalSteps} passos · {flow.completionRate}%</span>
+            <p className="text-[10px] font-semibold text-[var(--navy)] uppercase tracking-[0.06em]">Fluxo Cognitivo</p>
+            <span className="text-[11px] font-bold text-[var(--navy)]">{flow.stepsCompleted}/{flow.totalSteps} passos · {flow.completionRate}%</span>
           </div>
           <div className="w-full bg-[#E0E0F8] rounded-full h-1.5 mb-2">
             <div
-              className="bg-[#070A1F] h-1.5 rounded-full transition-all"
+              className="bg-[var(--navy)] h-1.5 rounded-full transition-all"
               style={{ width: `${flow.completionRate}%` }}
             />
           </div>
@@ -307,9 +307,9 @@ function SDRHandoffPanel({ handoff }: { handoff: SDRHandoff }) {
             {flow.steps.map((step) => (
               <div key={step.stepId} className="flex items-center gap-1 text-[9px]">
                 <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                  step.completed ? "bg-[#070A1F]" : "bg-[#D0D0CC]"
+                  step.completed ? "bg-[var(--navy)]" : "bg-[var(--border-strong)]"
                 }`} />
-                <span className={step.completed ? "text-[#070A1F]" : "text-[#C0C0BC]"} title={step.summary}>
+                <span className={step.completed ? "text-[var(--navy)]" : "text-[var(--text-subtle)]"} title={step.summary}>
                   {step.order}. {step.label.split(" ")[0]}
                 </span>
               </div>
@@ -325,7 +325,7 @@ function SDRHandoffPanel({ handoff }: { handoff: SDRHandoff }) {
             <p className={`text-[10px] font-semibold uppercase tracking-[0.06em] ${qgColors[qg.overall].text}`}>
               Quality Gate SDR — {qg.overall}
             </p>
-            <span className="text-[10px] text-[#6B6B65]">
+            <span className="text-[10px] text-[var(--text-secondary)]">
               {qg.passCount} pass · {qg.warningCount} warn · {qg.failCount} fail
             </span>
           </div>
@@ -333,13 +333,13 @@ function SDRHandoffPanel({ handoff }: { handoff: SDRHandoff }) {
             {qg.items.map((item) => (
               <div key={item.id} className="flex items-start gap-1 text-[10px]" title={item.detail}>
                 <span className={`shrink-0 font-bold ${
-                  item.status === "PASS" ? "text-[#16A34A]"
-                  : item.status === "WARNING" ? "text-[#D97706]"
-                  : "text-[#DC2626]"
+                  item.status === "PASS" ? "text-[var(--success)]"
+                  : item.status === "WARNING" ? "text-[var(--warning)]"
+                  : "text-[var(--danger)]"
                 }`}>
                   {item.status === "PASS" ? "✓" : item.status === "WARNING" ? "!" : "✗"}
                 </span>
-                <span className="text-[#6B6B65] leading-tight">{item.label}</span>
+                <span className="text-[var(--text-secondary)] leading-tight">{item.label}</span>
               </div>
             ))}
           </div>
@@ -348,7 +348,7 @@ function SDRHandoffPanel({ handoff }: { handoff: SDRHandoff }) {
 
       {/* Legacy fields: objections + tradeoffs */}
       {(handoff.objectionsHandled.length > 0 || handoff.tradeoffsAccepted.length > 0 || handoff.unresolvedRisks.length > 0) && (
-        <div className="bg-[#E6FBFA] border border-[#9AF5F0] rounded-[8px] px-4 py-3 space-y-2">
+        <div className="bg-[var(--accent-light)] border border-[var(--cyan)] rounded-[8px] px-4 py-3 space-y-2">
           {handoff.objectionsHandled.length > 0 && (
             <div>
               <p className="text-[10px] font-semibold text-[#5B21B6] mb-0.5">Objeções tratadas</p>
@@ -366,8 +366,8 @@ function SDRHandoffPanel({ handoff }: { handoff: SDRHandoff }) {
             </div>
           )}
           {handoff.unresolvedRisks.length > 0 && (
-            <div className="bg-[#FEF3C7] border border-[#FDE68A] rounded-[6px] px-3 py-2">
-              <p className="text-[10px] font-semibold text-[#D97706] mb-0.5">Riscos não resolvidos</p>
+            <div className="bg-[var(--warning-bg)] border border-[#FDE68A] rounded-[6px] px-3 py-2">
+              <p className="text-[10px] font-semibold text-[var(--warning)] mb-0.5">Riscos não resolvidos</p>
               {handoff.unresolvedRisks.map((r, i) => (
                 <p key={i} className="text-[11px] text-[#92400E]">• {r}</p>
               ))}
@@ -844,14 +844,14 @@ export default function AgencyRequestsPage() {
     <div className="space-y-6">
       {/* ── DB Pipeline — briefings reais (ClientRequestDb) ── */}
       {!dbLoading && !dbError && dbRequests.length > 0 && (
-        <div className="bg-white rounded-[10px] border border-[#9AF5F0] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-          <div className="flex items-center gap-2 px-5 py-3 bg-[#E6FBFA] border-b border-[#9AF5F0]">
-            <h2 className="text-[14px] font-semibold text-[#1A1A1A]">Pipeline DB — Briefings reais</h2>
-            <span className="h-5 px-2 rounded-full bg-white text-[#070A1F] text-[10px] font-semibold flex items-center border border-[#9AF5F0]">
+        <div className="bg-white rounded-[10px] border border-[var(--cyan)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+          <div className="flex items-center gap-2 px-5 py-3 bg-[var(--accent-light)] border-b border-[var(--cyan)]">
+            <h2 className="text-[14px] font-semibold text-[var(--text-primary)]">Pipeline DB — Briefings reais</h2>
+            <span className="h-5 px-2 rounded-full bg-white text-[var(--navy)] text-[10px] font-semibold flex items-center border border-[var(--cyan)]">
               {dbRequests.filter(r => r.status === "new").length} novo{dbRequests.filter(r => r.status === "new").length !== 1 ? "s" : ""}
             </span>
             {dbRequests.some(r => r.status === "scope_ready") && (
-              <span className="h-5 px-2 rounded-full bg-[#FEF3C7] text-[#92400E] text-[10px] font-semibold flex items-center">
+              <span className="h-5 px-2 rounded-full bg-[var(--warning-bg)] text-[#92400E] text-[10px] font-semibold flex items-center">
                 {dbRequests.filter(r => r.status === "scope_ready").length} para revisar
               </span>
             )}
@@ -860,7 +860,7 @@ export default function AgencyRequestsPage() {
                 {dbRequests.filter(r => r.status === "needs_revision").length} revisão
               </span>
             )}
-            <span className="h-5 px-2 rounded-full bg-[#070A1F] text-white text-[10px] font-semibold flex items-center">
+            <span className="h-5 px-2 rounded-full bg-[var(--navy)] text-white text-[10px] font-semibold flex items-center">
               ✦ Dioli Brain
             </span>
           </div>
@@ -869,13 +869,13 @@ export default function AgencyRequestsPage() {
               <p className="text-[11px] text-[#991B1B]">{dbSendError}</p>
             </div>
           )}
-          <div className="divide-y divide-[#F0F0ED]">
+          <div className="divide-y divide-[var(--border)]">
             {dbRequests.map((req) => {
               const services = parseJson<string[]>(req.services, []);
               const isGenerating = dbGenerating === req.id;
               const STATUS_BADGE: Record<string, string> = {
-                new: "bg-[#E6FBFA] text-[#070A1F]",
-                scope_ready: "bg-[#FEF3C7] text-[#92400E]",
+                new: "bg-[var(--accent-light)] text-[var(--navy)]",
+                scope_ready: "bg-[var(--warning-bg)] text-[#92400E]",
                 needs_revision: "bg-[#FEE2E2] text-[#991B1B]",
               };
               const STATUS_LABEL: Record<string, string> = {
@@ -888,28 +888,28 @@ export default function AgencyRequestsPage() {
                   <div className="flex items-center gap-3 flex-wrap">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[13px] font-semibold text-[#1A1A1A]">{req.businessName}</span>
+                        <span className="text-[13px] font-semibold text-[var(--text-primary)]">{req.businessName}</span>
                         {req.segment && (
-                          <span className="h-5 px-2 rounded-full bg-[#F0F0ED] text-[#6B6B65] text-[10px] font-medium">
+                          <span className="h-5 px-2 rounded-full bg-[var(--accent)] text-[var(--text-secondary)] text-[10px] font-medium">
                             {req.segment}
                           </span>
                         )}
-                        <span className={`h-5 px-2 rounded-full text-[10px] font-semibold ${STATUS_BADGE[req.status] ?? "bg-[#F0F0ED] text-[#6B6B65]"}`}>
+                        <span className={`h-5 px-2 rounded-full text-[10px] font-semibold ${STATUS_BADGE[req.status] ?? "bg-[var(--accent)] text-[var(--text-secondary)]"}`}>
                           {STATUS_LABEL[req.status] ?? req.status}
                         </span>
                       </div>
                       {services.length > 0 && (
-                        <p className="text-[11px] text-[#9B9B95] mt-0.5 truncate">{services.join(", ")}</p>
+                        <p className="text-[11px] text-[var(--text-muted)] mt-0.5 truncate">{services.join(", ")}</p>
                       )}
-                      <p className="text-[10.5px] text-[#B7B7B1] mt-0.5">
+                      <p className="text-[10.5px] text-[var(--text-subtle)] mt-0.5">
                         Recebido {formatShort(req.createdAt)} · {timeAgo(req.createdAt)}
                       </p>
                     </div>
 
                     {/* Per-status action buttons */}
                     {req.status === "new" && (
-                      <span className="inline-flex items-center gap-1.5 h-8 px-4 rounded-[7px] bg-[#F0F0ED] text-[#6B6B65] text-[12px] font-medium shrink-0">
-                        <span className="w-3 h-3 rounded-full border-2 border-[#9B9B95] border-t-transparent animate-spin" />
+                      <span className="inline-flex items-center gap-1.5 h-8 px-4 rounded-[7px] bg-[var(--accent)] text-[var(--text-secondary)] text-[12px] font-medium shrink-0">
+                        <span className="w-3 h-3 rounded-full border-2 border-[var(--text-muted)] border-t-transparent animate-spin" />
                         Gerando escopo…
                       </span>
                     )}
@@ -917,7 +917,7 @@ export default function AgencyRequestsPage() {
                     {req.status === "scope_ready" && (
                       <a
                         href={`/agency/requests/${req.id}/scope`}
-                        className="h-8 px-4 rounded-[7px] bg-[#9AF5F0] hover:bg-[#7DEDE7] text-[#070A1F] text-[12px] font-semibold transition-colors shrink-0 inline-flex items-center gap-1"
+                        className="h-8 px-4 rounded-[7px] bg-[var(--cyan)] hover:bg-[#7DEDE7] text-[var(--navy)] text-[12px] font-semibold transition-colors shrink-0 inline-flex items-center gap-1"
                       >
                         Ver escopo →
                       </a>
@@ -927,7 +927,7 @@ export default function AgencyRequestsPage() {
                       <button
                         onClick={() => handleAutoScope(req)}
                         disabled={isGenerating}
-                        className="h-8 px-4 rounded-[7px] border border-[#F59E0B] bg-[#FEF3C7] hover:bg-[#FDE68A] disabled:opacity-50 text-[#92400E] text-[12px] font-semibold transition-colors shrink-0 inline-flex items-center gap-1.5"
+                        className="h-8 px-4 rounded-[7px] border border-[#F59E0B] bg-[var(--warning-bg)] hover:bg-[#FDE68A] disabled:opacity-50 text-[#92400E] text-[12px] font-semibold transition-colors shrink-0 inline-flex items-center gap-1.5"
                       >
                         {isGenerating ? (
                           <>
@@ -945,10 +945,10 @@ export default function AgencyRequestsPage() {
                         onClick={() => handleDeleteDbRequest(req)}
                         disabled={dbDeleting === req.id}
                         title="Excluir briefing permanentemente"
-                        className="h-8 w-8 rounded-[7px] border border-[#FCA5A5] bg-white hover:bg-[#FEF2F2] text-[#DC2626] disabled:opacity-50 transition-colors shrink-0 inline-flex items-center justify-center"
+                        className="h-8 w-8 rounded-[7px] border border-[#FCA5A5] bg-white hover:bg-[var(--danger-bg)] text-[var(--danger)] disabled:opacity-50 transition-colors shrink-0 inline-flex items-center justify-center"
                       >
                         {dbDeleting === req.id ? (
-                          <span className="w-3.5 h-3.5 rounded-full border-2 border-[#DC2626] border-t-transparent animate-spin" />
+                          <span className="w-3.5 h-3.5 rounded-full border-2 border-[var(--danger)] border-t-transparent animate-spin" />
                         ) : (
                           <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
                             <path d="M3 4.5h10M6.5 4.5V3.5a1 1 0 011-1h1a1 1 0 011 1v1M5 4.5l.5 8a1 1 0 001 1h3a1 1 0 001-1l.5-8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
@@ -973,17 +973,17 @@ export default function AgencyRequestsPage() {
             {isMaster && demoRequestCount > 0 && (
               <button
                 onClick={() => setShowDemoReset(true)}
-                className="h-7 px-3 rounded-[6px] border border-[#FCA5A5] bg-[#FEF2F2] text-[#DC2626] hover:border-[#F87171] text-[11px] font-semibold transition-colors inline-flex items-center gap-1.5"
+                className="h-7 px-3 rounded-[6px] border border-[#FCA5A5] bg-[var(--danger-bg)] text-[var(--danger)] hover:border-[#F87171] text-[11px] font-semibold transition-colors inline-flex items-center gap-1.5"
                 title="Apaga apenas as solicitações de demonstração"
               >
                 <span className="text-[10px]">⟲</span>
                 Limpar solicitações de demonstração ({demoRequestCount})
-                <span className="h-3.5 px-1 rounded-[3px] bg-[#DC2626] text-white text-[8px] font-bold leading-[14px]">ADMIN</span>
+                <span className="h-3.5 px-1 rounded-[3px] bg-[var(--danger)] text-white text-[8px] font-bold leading-[14px]">ADMIN</span>
               </button>
             )}
             {newCount > 0 && (
-              <span className="flex items-center gap-1.5 h-7 px-3 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[12px] font-medium">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#070A1F]" />
+              <span className="flex items-center gap-1.5 h-7 px-3 rounded-full bg-[var(--accent-light)] text-[var(--navy)] text-[12px] font-medium">
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--navy)]" />
                 {newCount} nova{newCount !== 1 ? "s" : ""}
               </span>
             )}
@@ -992,8 +992,8 @@ export default function AgencyRequestsPage() {
       />
 
       {/* Public briefing link — entry point to onboard the first client */}
-      <div className="flex items-center gap-4 bg-[#070A1F] rounded-[12px] px-5 py-4">
-        <div className="w-10 h-10 rounded-[10px] bg-[#9AF5F0]/15 flex items-center justify-center shrink-0">
+      <div className="flex items-center gap-4 bg-[var(--navy)] rounded-[12px] px-5 py-4">
+        <div className="w-10 h-10 rounded-[10px] bg-[var(--cyan)]/15 flex items-center justify-center shrink-0">
           <svg width="20" height="20" viewBox="0 0 16 16" fill="none">
             <path d="M9.5 2H4a1 1 0 00-1 1v10a1 1 0 001 1h8a1 1 0 001-1V6.5L9.5 2z" stroke="#9AF5F0" strokeWidth="1.3" strokeLinejoin="round"/>
             <path d="M9 2v4h4" stroke="#9AF5F0" strokeWidth="1.3" strokeLinejoin="round"/>
@@ -1002,14 +1002,14 @@ export default function AgencyRequestsPage() {
         </div>
         <div className="flex-1 min-w-0">
           <div className="text-[14px] font-semibold text-white">Adicionar primeiro cliente</div>
-          <p className="text-[12px] text-[#9AF5F0]/80 mt-0.5">
+          <p className="text-[12px] text-[var(--cyan)]/80 mt-0.5">
             Envie o link de briefing <code className="font-mono text-white">/briefing</code> ao cliente — ou preencha você mesmo para começar.
           </p>
         </div>
         <Link
           href="/briefing"
           target="_blank"
-          className="h-9 px-4 rounded-[8px] bg-[#9AF5F0] text-[#070A1F] hover:bg-[#7DEDE7] text-[13px] font-semibold transition-colors shrink-0 inline-flex items-center gap-1.5"
+          className="h-9 px-4 rounded-[8px] bg-[var(--cyan)] text-[var(--navy)] hover:bg-[#7DEDE7] text-[13px] font-semibold transition-colors shrink-0 inline-flex items-center gap-1.5"
         >
           Abrir briefing →
         </Link>
@@ -1029,8 +1029,8 @@ export default function AgencyRequestsPage() {
             onClick={() => setSourceFilter(opt.value)}
             className={`h-7 px-3 rounded-[6px] text-[12px] font-medium transition-colors ${
               sourceFilter === opt.value
-                ? "bg-[#1A1A1A] text-white"
-                : "bg-[#F0F0ED] text-[#6B6B65] hover:bg-[#E5E5E2]"
+                ? "bg-[var(--text-primary)] text-white"
+                : "bg-[var(--accent)] text-[var(--text-secondary)] hover:bg-[var(--border)]"
             }`}
           >
             {opt.label}
@@ -1048,8 +1048,8 @@ export default function AgencyRequestsPage() {
               onClick={() => setActiveFilter(f.value)}
               className={`h-7 px-3 rounded-[6px] text-[12px] font-medium transition-colors ${
                 activeFilter === f.value
-                  ? "bg-[#1A1A1A] text-white"
-                  : "bg-[#F0F0ED] text-[#6B6B65] hover:bg-[#E5E5E2]"
+                  ? "bg-[var(--text-primary)] text-white"
+                  : "bg-[var(--accent)] text-[var(--text-secondary)] hover:bg-[var(--border)]"
               }`}
             >
               {f.label}{count > 0 && <span className="opacity-60 ml-0.5"> ({count})</span>}
@@ -1060,9 +1060,9 @@ export default function AgencyRequestsPage() {
 
       {/* Empty state */}
       {filtered.length === 0 && (
-        <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-8 py-14 text-center">
-          <p className="text-[14px] font-medium text-[#1A1A1A]">Nenhuma solicitação</p>
-          <p className="text-[13px] text-[#9B9B95] mt-1.5">
+        <div className="bg-white rounded-[12px] border border-[var(--border)] px-8 py-14 text-center">
+          <p className="text-[14px] font-medium text-[var(--text-primary)]">Nenhuma solicitação</p>
+          <p className="text-[13px] text-[var(--text-muted)] mt-1.5">
             {activeFilter === "all"
               ? "Solicitações dos clientes aparecerão aqui quando enviadas pelo portal."
               : "Nenhuma solicitação com esse status."}
@@ -1084,93 +1084,93 @@ export default function AgencyRequestsPage() {
           return (
             <div
               key={req.id}
-              className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden"
+              className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden"
             >
               {/* ── Header row ── */}
               <div
-                className="flex items-center gap-4 px-5 py-4 cursor-pointer hover:bg-[#F7F7F6] transition-colors"
+                className="flex items-center gap-4 px-5 py-4 cursor-pointer hover:bg-[var(--bg)] transition-colors"
                 onClick={() => {
                   if (isConverting) return;
                   setExpandedId(isExpanded ? null : req.id);
                 }}
               >
                 {req.status === "new" && (
-                  <span className="w-2 h-2 rounded-full bg-[#070A1F] shrink-0" />
+                  <span className="w-2 h-2 rounded-full bg-[var(--navy)] shrink-0" />
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[13px] font-semibold text-[#1A1A1A]">{req.title}</span>
+                    <span className="text-[13px] font-semibold text-[var(--text-primary)]">{req.title}</span>
                     <span className={`h-5 px-2 rounded-full text-[10px] font-semibold ${style.bg} ${style.text}`}>
                       {REQUEST_STATUS_LABEL[req.status]}
                     </span>
                     {createdProjectId && (
-                      <span className="h-5 px-2 rounded-full bg-[#DCFCE7] text-[#16A34A] text-[10px] font-semibold">
+                      <span className="h-5 px-2 rounded-full bg-[var(--success-bg)] text-[var(--success)] text-[10px] font-semibold">
                         Projeto criado
                       </span>
                     )}
                     {req.v2Scope && (
-                      <span className="h-5 px-2 rounded-full bg-[#F0F0ED] text-[#6B6B65] text-[10px] font-semibold">
+                      <span className="h-5 px-2 rounded-full bg-[var(--accent)] text-[var(--text-secondary)] text-[10px] font-semibold">
                         V2 conversacional
                       </span>
                     )}
                     {req.source === "public_briefing" && (
-                      <span className="h-5 px-2 rounded-full bg-[#EFF6FF] text-[#2563EB] text-[10px] font-semibold">
+                      <span className="h-5 px-2 rounded-full bg-[var(--info-bg)] text-[var(--info)] text-[10px] font-semibold">
                         briefing público
                       </span>
                     )}
                     {req.sdrHandoff && (
-                      <span className="h-5 px-2 rounded-full bg-[#EDE9FE] text-[#070A1F] text-[10px] font-semibold">
+                      <span className="h-5 px-2 rounded-full bg-[#EDE9FE] text-[var(--navy)] text-[10px] font-semibold">
                         ✦ SDR
                       </span>
                     )}
                     {req.attachments.length > 0 && (
-                      <span className="h-5 px-2 rounded-full bg-[#F0F0ED] text-[#6B6B65] text-[10px] font-semibold">
+                      <span className="h-5 px-2 rounded-full bg-[var(--accent)] text-[var(--text-secondary)] text-[10px] font-semibold">
                         {req.attachments.length} arquivo{req.attachments.length !== 1 ? "s" : ""}
                       </span>
                     )}
                   </div>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[12px] text-[#6B6B65] font-medium">{clientName}</span>
+                    <span className="text-[12px] text-[var(--text-secondary)] font-medium">{clientName}</span>
                     {req.extractedSummary.services.length > 0 && (
                       <>
-                        <span className="text-[#D0D0CC]">·</span>
-                        <span className="text-[12px] text-[#9B9B95]">
+                        <span className="text-[var(--border-strong)]">·</span>
+                        <span className="text-[12px] text-[var(--text-muted)]">
                           {req.extractedSummary.services.slice(0, 2).join(", ")}
                         </span>
                       </>
                     )}
-                    <span className="text-[#D0D0CC]">·</span>
-                    <span className="text-[11px] text-[#C0C0BC]">
+                    <span className="text-[var(--border-strong)]">·</span>
+                    <span className="text-[11px] text-[var(--text-subtle)]">
                       {new Date(req.createdAt).toLocaleDateString("pt-BR")}
                     </span>
                   </div>
                 </div>
                 {req.missingInfo.length > 0 && (
-                  <span className="h-5 px-2 rounded-full bg-[#FEF3C7] text-[#D97706] text-[10px] font-semibold shrink-0">
+                  <span className="h-5 px-2 rounded-full bg-[var(--warning-bg)] text-[var(--warning)] text-[10px] font-semibold shrink-0">
                     {req.missingInfo.length} info{req.missingInfo.length !== 1 ? "s" : ""} ausente{req.missingInfo.length !== 1 ? "s" : ""}
                   </span>
                 )}
-                <span className="text-[#C0C0BC] text-[12px] shrink-0">{isExpanded ? "▲" : "▼"}</span>
+                <span className="text-[var(--text-subtle)] text-[12px] shrink-0">{isExpanded ? "▲" : "▼"}</span>
               </div>
 
               {/* ── Expanded detail ── */}
               {isExpanded && !isConverting && !createdProjectId && (
-                <div className="border-t border-[#F0F0ED] px-5 py-5 space-y-5">
+                <div className="border-t border-[var(--border)] px-5 py-5 space-y-5">
                   {/* Raw text — collapsible when analysis exists */}
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Texto original</div>
+                      <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Texto original</div>
                       {req.analysis && (
                         <button
                           onClick={() => setRawOpenId(rawOpenId === req.id ? null : req.id)}
-                          className="text-[10px] text-[#070A1F] hover:underline font-medium"
+                          className="text-[10px] text-[var(--navy)] hover:underline font-medium"
                         >
                           {rawOpenId === req.id ? "▲ Ocultar" : "▼ Ver briefing completo"}
                         </button>
                       )}
                     </div>
                     {(!req.analysis || rawOpenId === req.id) && (
-                      <p className="text-[13px] text-[#1A1A1A] leading-relaxed whitespace-pre-wrap bg-[#F7F7F6] rounded-[8px] px-4 py-3 max-h-[200px] overflow-y-auto">
+                      <p className="text-[13px] text-[var(--text-primary)] leading-relaxed whitespace-pre-wrap bg-[var(--bg)] rounded-[8px] px-4 py-3 max-h-[200px] overflow-y-auto">
                         {req.rawText}
                       </p>
                     )}
@@ -1178,8 +1178,8 @@ export default function AgencyRequestsPage() {
 
                   {/* Prospect contact info */}
                   {req.source === "public_briefing" && (
-                    <div className="bg-[#EFF6FF] border border-[#BFDBFE] rounded-[8px] px-4 py-3">
-                      <div className="text-[10px] font-semibold text-[#2563EB] uppercase tracking-[0.05em] mb-2">
+                    <div className="bg-[var(--info-bg)] border border-[#BFDBFE] rounded-[8px] px-4 py-3">
+                      <div className="text-[10px] font-semibold text-[var(--info)] uppercase tracking-[0.05em] mb-2">
                         Dados do prospect
                       </div>
                       <div className="grid grid-cols-2 gap-x-4 gap-y-1">
@@ -1212,7 +1212,7 @@ export default function AgencyRequestsPage() {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={(e) => { e.stopPropagation(); openProposalEdit(req); }}
-                            className="h-7 px-3 rounded-[6px] border border-[#070A1F] text-[#070A1F] hover:bg-[#E6FBFA] text-[11px] font-semibold transition-colors inline-flex items-center gap-1.5"
+                            className="h-7 px-3 rounded-[6px] border border-[var(--navy)] text-[var(--navy)] hover:bg-[var(--accent-light)] text-[11px] font-semibold transition-colors inline-flex items-center gap-1.5"
                           >
                             <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
                               <path d="M11 2a1.414 1.414 0 012 2L5 12l-3 1 1-3L11 2z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
@@ -1220,7 +1220,7 @@ export default function AgencyRequestsPage() {
                             Editar proposta
                           </button>
                           {proposalDrafts[req.id]?.sentAt && (
-                            <span className="h-5 px-2 rounded-full bg-[#DCFCE7] text-[#16A34A] text-[9px] font-semibold flex items-center gap-1">
+                            <span className="h-5 px-2 rounded-full bg-[var(--success-bg)] text-[var(--success)] text-[9px] font-semibold flex items-center gap-1">
                               ✓ Proposta enviada {new Date(proposalDrafts[req.id].sentAt!).toLocaleDateString("pt-BR")}
                             </span>
                           )}
@@ -1243,38 +1243,38 @@ export default function AgencyRequestsPage() {
                       <div className="grid grid-cols-2 gap-4">
                         {req.extractedSummary.services.length > 0 && (
                           <div>
-                            <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Serviços</div>
+                            <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1.5">Serviços</div>
                             <div className="flex flex-wrap gap-1.5">
                               {req.extractedSummary.services.map((s) => (
-                                <span key={s} className="h-5 px-2 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[11px] font-medium">{s}</span>
+                                <span key={s} className="h-5 px-2 rounded-full bg-[var(--accent-light)] text-[var(--navy)] text-[11px] font-medium">{s}</span>
                               ))}
                             </div>
                           </div>
                         )}
                         {req.extractedSummary.channels.length > 0 && (
                           <div>
-                            <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Canais</div>
+                            <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1.5">Canais</div>
                             <div className="flex flex-wrap gap-1.5">
                               {req.extractedSummary.channels.map((c) => (
-                                <span key={c} className="h-5 px-2 rounded-full bg-[#F0F0ED] text-[#6B6B65] text-[11px] font-medium">{c}</span>
+                                <span key={c} className="h-5 px-2 rounded-full bg-[var(--accent)] text-[var(--text-secondary)] text-[11px] font-medium">{c}</span>
                               ))}
                             </div>
                           </div>
                         )}
                         {req.extractedSummary.objectives.length > 0 && (
                           <div>
-                            <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Objetivos</div>
+                            <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1.5">Objetivos</div>
                             <div className="flex flex-wrap gap-1.5">
                               {req.extractedSummary.objectives.map((o) => (
-                                <span key={o} className="h-5 px-2 rounded-full bg-[#DCFCE7] text-[#16A34A] text-[11px] font-medium">{o}</span>
+                                <span key={o} className="h-5 px-2 rounded-full bg-[var(--success-bg)] text-[var(--success)] text-[11px] font-medium">{o}</span>
                               ))}
                             </div>
                           </div>
                         )}
                         {req.extractedSummary.urgency && (
                           <div>
-                            <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Urgência</div>
-                            <span className="h-5 px-2 rounded-full bg-[#FEE2E2] text-[#DC2626] text-[11px] font-medium inline-block">
+                            <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1.5">Urgência</div>
+                            <span className="h-5 px-2 rounded-full bg-[#FEE2E2] text-[var(--danger)] text-[11px] font-medium inline-block">
                               {req.extractedSummary.urgency}
                             </span>
                           </div>
@@ -1284,7 +1284,7 @@ export default function AgencyRequestsPage() {
                       {/* Missing info */}
                       {req.missingInfo.length > 0 && (
                         <div className="bg-[#FFFBEB] border border-[#FDE68A] rounded-[8px] px-4 py-3">
-                          <div className="text-[10px] font-semibold text-[#D97706] uppercase tracking-[0.05em] mb-1.5">Informações ausentes</div>
+                          <div className="text-[10px] font-semibold text-[var(--warning)] uppercase tracking-[0.05em] mb-1.5">Informações ausentes</div>
                           <ul className="space-y-0.5">
                             {req.missingInfo.map((m) => (
                               <li key={m} className="text-[12px] text-[#92400E] flex items-center gap-1.5">
@@ -1300,18 +1300,18 @@ export default function AgencyRequestsPage() {
                   {/* Attachments */}
                   {req.attachments.length > 0 && (
                     <div>
-                      <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">
+                      <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-2">
                         Arquivos anexados ({req.attachments.length})
                       </div>
                       <div className="space-y-1.5">
                         {req.attachments.map((att) => (
-                          <div key={att.id} className="flex items-center gap-3 bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] px-3 py-2">
-                            <div className="w-7 h-7 rounded-[5px] bg-white border border-[#E5E5E2] flex items-center justify-center shrink-0">
-                              <span className="text-[7px] font-bold text-[#6B6B65]">{att.fileType}</span>
+                          <div key={att.id} className="flex items-center gap-3 bg-[var(--bg)] border border-[var(--border)] rounded-[7px] px-3 py-2">
+                            <div className="w-7 h-7 rounded-[5px] bg-white border border-[var(--border)] flex items-center justify-center shrink-0">
+                              <span className="text-[7px] font-bold text-[var(--text-secondary)]">{att.fileType}</span>
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-[11px] font-medium text-[#1A1A1A] truncate">{att.fileName}</p>
-                              <p className="text-[10px] text-[#9B9B95]">
+                              <p className="text-[11px] font-medium text-[var(--text-primary)] truncate">{att.fileName}</p>
+                              <p className="text-[10px] text-[var(--text-muted)]">
                                 {att.sizeBytes < 1024 * 1024
                                   ? `${(att.sizeBytes / 1024).toFixed(1)} KB`
                                   : `${(att.sizeBytes / (1024 * 1024)).toFixed(1)} MB`}
@@ -1323,12 +1323,12 @@ export default function AgencyRequestsPage() {
                                 href={att.previewUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="h-5 px-2 rounded-[4px] border border-[#070A1F] text-[#070A1F] text-[9px] font-semibold hover:bg-[#E6FBFA] transition-colors shrink-0"
+                                className="h-5 px-2 rounded-[4px] border border-[var(--navy)] text-[var(--navy)] text-[9px] font-semibold hover:bg-[var(--accent-light)] transition-colors shrink-0"
                               >
                                 Visualizar
                               </a>
                             ) : (
-                              <span className="h-5 px-2 rounded-[4px] bg-[#F0F0ED] text-[#9B9B95] text-[9px] font-semibold shrink-0">
+                              <span className="h-5 px-2 rounded-[4px] bg-[var(--accent)] text-[var(--text-muted)] text-[9px] font-semibold shrink-0">
                                 local
                               </span>
                             )}
@@ -1336,7 +1336,7 @@ export default function AgencyRequestsPage() {
                         ))}
                       </div>
                       {req.attachments.some((a) => a.storageStatus === "local_only") && (
-                        <p className="text-[10px] text-[#C0C0BC] mt-1.5">
+                        <p className="text-[10px] text-[var(--text-subtle)] mt-1.5">
                           Arquivo registrado localmente nesta sessão. Upload permanente será conectado ao storage.
                         </p>
                       )}
@@ -1344,20 +1344,20 @@ export default function AgencyRequestsPage() {
                   )}
 
                   {/* Actions */}
-                  <div className="flex items-center gap-2 pt-1 border-t border-[#F0F0ED] flex-wrap">
+                  <div className="flex items-center gap-2 pt-1 border-t border-[var(--border)] flex-wrap">
                     <button
                       onClick={(e) => { e.stopPropagation(); openConversion(req); }}
-                      className="h-8 px-4 rounded-[7px] bg-[#1A1A1A] hover:bg-[#111111] text-white text-[12px] font-medium transition-colors"
+                      className="h-8 px-4 rounded-[7px] bg-[var(--text-primary)] hover:bg-[var(--text-primary)] text-white text-[12px] font-medium transition-colors"
                     >
                       Criar projeto
                     </button>
                     {isMaster && (
                       <button
                         onClick={(e) => { e.stopPropagation(); openDeleteModal(req); }}
-                        className="ml-auto h-8 px-4 rounded-[7px] border border-[#FCA5A5] text-[#DC2626] hover:bg-[#FEF2F2] text-[12px] font-medium transition-colors inline-flex items-center gap-1.5"
+                        className="ml-auto h-8 px-4 rounded-[7px] border border-[#FCA5A5] text-[var(--danger)] hover:bg-[var(--danger-bg)] text-[12px] font-medium transition-colors inline-flex items-center gap-1.5"
                       >
                         Apagar solicitação
-                        <span className="h-3.5 px-1 rounded-[3px] bg-[#DC2626] text-white text-[8px] font-bold leading-[14px]">ADMIN</span>
+                        <span className="h-3.5 px-1 rounded-[3px] bg-[var(--danger)] text-white text-[8px] font-bold leading-[14px]">ADMIN</span>
                       </button>
                     )}
                   </div>
@@ -1397,14 +1397,14 @@ export default function AgencyRequestsPage() {
           onClick={() => { setDeleteTarget(null); setDeleteConfirm(""); }}
         >
           <div
-            className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_8px_30px_rgba(0,0,0,0.12)] w-full max-w-[460px] p-6"
+            className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_8px_30px_rgba(0,0,0,0.12)] w-full max-w-[460px] p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2.5 mb-3">
-              <div className="w-9 h-9 rounded-full bg-[#FEF2F2] flex items-center justify-center text-[#DC2626] text-[16px] shrink-0">⚠</div>
-              <h2 className="text-[16px] font-semibold text-[#1A1A1A]">Apagar solicitação definitivamente?</h2>
+              <div className="w-9 h-9 rounded-full bg-[var(--danger-bg)] flex items-center justify-center text-[var(--danger)] text-[16px] shrink-0">⚠</div>
+              <h2 className="text-[16px] font-semibold text-[var(--text-primary)]">Apagar solicitação definitivamente?</h2>
             </div>
-            <p className="text-[13px] text-[#6B6B65] leading-relaxed mb-3">
+            <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed mb-3">
               Esta ação remove a solicitação, briefing, conversa, escopo, estimativa, anexos
               registrados e histórico associado a esta solicitação. Esta ação não pode ser desfeita.
             </p>
@@ -1415,14 +1415,14 @@ export default function AgencyRequestsPage() {
                 </p>
               </div>
             )}
-            <div className="bg-[#F7F7F6] rounded-[8px] px-3 py-2 mb-4">
-              <p className="text-[12px] text-[#6B6B65]">
-                <span className="font-semibold text-[#1A1A1A]">{deleteTarget.title}</span>
+            <div className="bg-[var(--bg)] rounded-[8px] px-3 py-2 mb-4">
+              <p className="text-[12px] text-[var(--text-secondary)]">
+                <span className="font-semibold text-[var(--text-primary)]">{deleteTarget.title}</span>
                 {" · "}{getClient(deleteTarget.clientId)?.name ?? deleteTarget.clientId}
               </p>
             </div>
-            <label className="block text-[11px] font-medium text-[#6B6B65] mb-1.5">
-              Digite <span className="font-bold text-[#DC2626]">APAGAR</span> para confirmar
+            <label className="block text-[11px] font-medium text-[var(--text-secondary)] mb-1.5">
+              Digite <span className="font-bold text-[var(--danger)]">APAGAR</span> para confirmar
             </label>
             <input
               autoFocus
@@ -1430,19 +1430,19 @@ export default function AgencyRequestsPage() {
               onChange={(e) => setDeleteConfirm(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") confirmDelete(); }}
               placeholder="APAGAR"
-              className="w-full h-9 px-3 text-[13px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#DC2626] mb-4"
+              className="w-full h-9 px-3 text-[13px] bg-white border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--danger)] mb-4"
             />
             <div className="flex items-center justify-end gap-2">
               <button
                 onClick={() => { setDeleteTarget(null); setDeleteConfirm(""); }}
-                className="h-9 px-4 rounded-[7px] border border-[#E5E5E2] text-[#6B6B65] hover:bg-[#F7F7F6] text-[13px] font-medium transition-colors"
+                className="h-9 px-4 rounded-[7px] border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg)] text-[13px] font-medium transition-colors"
               >
                 Cancelar
               </button>
               <button
                 onClick={confirmDelete}
                 disabled={deleteConfirm.trim().toUpperCase() !== "APAGAR"}
-                className="h-9 px-4 rounded-[7px] bg-[#DC2626] hover:bg-[#B91C1C] disabled:opacity-40 disabled:cursor-not-allowed text-white text-[13px] font-medium transition-colors"
+                className="h-9 px-4 rounded-[7px] bg-[var(--danger)] hover:bg-[#B91C1C] disabled:opacity-40 disabled:cursor-not-allowed text-white text-[13px] font-medium transition-colors"
               >
                 Apagar definitivamente
               </button>
@@ -1476,27 +1476,27 @@ export default function AgencyRequestsPage() {
           onClick={() => setShowDemoReset(false)}
         >
           <div
-            className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_8px_30px_rgba(0,0,0,0.12)] w-full max-w-[440px] p-6"
+            className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_8px_30px_rgba(0,0,0,0.12)] w-full max-w-[440px] p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2.5 mb-3">
-              <div className="w-9 h-9 rounded-full bg-[#FEF2F2] flex items-center justify-center text-[#DC2626] text-[16px] shrink-0">⟲</div>
-              <h2 className="text-[16px] font-semibold text-[#1A1A1A]">Limpar solicitações de demonstração?</h2>
+              <div className="w-9 h-9 rounded-full bg-[var(--danger-bg)] flex items-center justify-center text-[var(--danger)] text-[16px] shrink-0">⟲</div>
+              <h2 className="text-[16px] font-semibold text-[var(--text-primary)]">Limpar solicitações de demonstração?</h2>
             </div>
-            <p className="text-[13px] text-[#6B6B65] leading-relaxed mb-4">
+            <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed mb-4">
               Isso apagará apenas as solicitações de demonstração
               {" "}({demoRequestCount}). Clientes, projetos e demais dados não serão afetados.
             </p>
             <div className="flex items-center justify-end gap-2">
               <button
                 onClick={() => setShowDemoReset(false)}
-                className="h-9 px-4 rounded-[7px] border border-[#E5E5E2] text-[#6B6B65] hover:bg-[#F7F7F6] text-[13px] font-medium transition-colors"
+                className="h-9 px-4 rounded-[7px] border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg)] text-[13px] font-medium transition-colors"
               >
                 Cancelar
               </button>
               <button
                 onClick={runDemoReset}
-                className="h-9 px-4 rounded-[7px] bg-[#DC2626] hover:bg-[#B91C1C] text-white text-[13px] font-medium transition-colors"
+                className="h-9 px-4 rounded-[7px] bg-[var(--danger)] hover:bg-[#B91C1C] text-white text-[13px] font-medium transition-colors"
               >
                 Apagar solicitações de teste
               </button>
@@ -1517,69 +1517,69 @@ function V2ScopePanel({ scope, estimate }: { scope: BriefingScope; estimate?: Li
     low: "Estimativa inicial", medium: "Estimativa aprox.", high: "Estimativa confiável",
   };
   const CONF_STYLE: Record<string, string> = {
-    low: "bg-[#FEF3C7] text-[#D97706]",
-    medium: "bg-[#E6FBFA] text-[#070A1F]",
-    high: "bg-[#DCFCE7] text-[#16A34A]",
+    low: "bg-[var(--warning-bg)] text-[var(--warning)]",
+    medium: "bg-[var(--accent-light)] text-[var(--navy)]",
+    high: "bg-[var(--success-bg)] text-[var(--success)]",
   };
 
   return (
-    <div className="bg-[#F7F7F6] border border-[#E5E5E2] rounded-[10px] px-4 py-4 space-y-4">
+    <div className="bg-[var(--bg)] border border-[var(--border)] rounded-[10px] px-4 py-4 space-y-4">
       <div className="flex items-center gap-2">
-        <span className="text-[12px] font-semibold text-[#1A1A1A]">Escopo V2 — Briefing conversacional</span>
-        <span className="h-5 px-2 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[9px] font-semibold">automático</span>
+        <span className="text-[12px] font-semibold text-[var(--text-primary)]">Escopo V2 — Briefing conversacional</span>
+        <span className="h-5 px-2 rounded-full bg-[var(--accent-light)] text-[var(--navy)] text-[9px] font-semibold">automático</span>
       </div>
 
       {/* Services + quantities grid */}
       <div className="grid grid-cols-2 gap-4">
         {scope.wantsSocialMedia && (
           <div>
-            <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Social Media</div>
-            <div className="space-y-0.5 text-[11px] text-[#1A1A1A]">
+            <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1.5">Social Media</div>
+            <div className="space-y-0.5 text-[11px] text-[var(--text-primary)]">
               {scope.social?.platforms.length
-                ? <div><span className="text-[#9B9B95]">Canais:</span> {scope.social.platforms.join(", ")}</div>
+                ? <div><span className="text-[var(--text-muted)]">Canais:</span> {scope.social.platforms.join(", ")}</div>
                 : null}
               {scope.social?.postsPerWeek !== undefined
-                ? <div><span className="text-[#9B9B95]">Posts:</span> {scope.social.postsPerWeek * 4}/mês</div>
+                ? <div><span className="text-[var(--text-muted)]">Posts:</span> {scope.social.postsPerWeek * 4}/mês</div>
                 : null}
               {scope.social?.storiesPerWeek !== undefined && scope.social.storiesPerWeek > 0
-                ? <div><span className="text-[#9B9B95]">Stories:</span> {scope.social.storiesPerWeek * 4}/mês</div>
+                ? <div><span className="text-[var(--text-muted)]">Stories:</span> {scope.social.storiesPerWeek * 4}/mês</div>
                 : null}
               {scope.social?.reelsPerMonth !== undefined && scope.social.reelsPerMonth > 0
-                ? <div><span className="text-[#9B9B95]">Reels:</span> {scope.social.reelsPerMonth}/mês</div>
+                ? <div><span className="text-[var(--text-muted)]">Reels:</span> {scope.social.reelsPerMonth}/mês</div>
                 : null}
               {scope.social?.hasPhotos !== undefined
-                ? <div><span className="text-[#9B9B95]">Fotos:</span> {scope.social.hasPhotos ? "Disponíveis" : "Sem produção"}</div>
+                ? <div><span className="text-[var(--text-muted)]">Fotos:</span> {scope.social.hasPhotos ? "Disponíveis" : "Sem produção"}</div>
                 : null}
               {scope.social?.needsCopy !== undefined
-                ? <div><span className="text-[#9B9B95]">Copy:</span> {scope.social.needsCopy ? "Pela Dioli" : "Pelo cliente"}</div>
+                ? <div><span className="text-[var(--text-muted)]">Copy:</span> {scope.social.needsCopy ? "Pela Dioli" : "Pelo cliente"}</div>
                 : null}
             </div>
           </div>
         )}
         {scope.wantsPaidTraffic && (
           <div>
-            <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Tráfego Pago</div>
-            <div className="space-y-0.5 text-[11px] text-[#1A1A1A]">
+            <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1.5">Tráfego Pago</div>
+            <div className="space-y-0.5 text-[11px] text-[var(--text-primary)]">
               {scope.traffic?.monthlyAdBudget
-                ? <div><span className="text-[#9B9B95]">Verba:</span> {scope.traffic.monthlyAdBudget}</div>
-                : <div className="text-[#9B9B95]">Verba não informada</div>}
+                ? <div><span className="text-[var(--text-muted)]">Verba:</span> {scope.traffic.monthlyAdBudget}</div>
+                : <div className="text-[var(--text-muted)]">Verba não informada</div>}
             </div>
           </div>
         )}
         {scope.branding.requested && (
           <div>
-            <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Identidade Visual</div>
+            <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1.5">Identidade Visual</div>
             {scope.branding.wantsRebrand
-              ? <div className="text-[11px] text-[#1A1A1A]">Rebranding solicitado</div>
-              : <div className="text-[11px] text-[#1A1A1A]">Criação de marca</div>}
+              ? <div className="text-[11px] text-[var(--text-primary)]">Rebranding solicitado</div>
+              : <div className="text-[11px] text-[var(--text-primary)]">Criação de marca</div>}
           </div>
         )}
         {scope.objectives.length > 0 && (
           <div>
-            <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Objetivos</div>
+            <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1.5">Objetivos</div>
             <div className="flex flex-wrap gap-1">
               {scope.objectives.map((o) => (
-                <span key={o} className="h-5 px-2 rounded-full bg-[#DCFCE7] text-[#16A34A] text-[10px] font-medium">{o}</span>
+                <span key={o} className="h-5 px-2 rounded-full bg-[var(--success-bg)] text-[var(--success)] text-[10px] font-medium">{o}</span>
               ))}
             </div>
           </div>
@@ -1589,26 +1589,26 @@ function V2ScopePanel({ scope, estimate }: { scope: BriefingScope; estimate?: Li
       {/* Meta row */}
       <div className="flex flex-wrap gap-3 text-[11px]">
         {scope.serviceMode && (
-          <span className="text-[#9B9B95]">
-            Modalidade: <strong className="text-[#1A1A1A]">{scope.serviceMode === "monthly" ? "Mensal" : scope.serviceMode === "one_off" ? "Pontual" : "A definir"}</strong>
+          <span className="text-[var(--text-muted)]">
+            Modalidade: <strong className="text-[var(--text-primary)]">{scope.serviceMode === "monthly" ? "Mensal" : scope.serviceMode === "one_off" ? "Pontual" : "A definir"}</strong>
           </span>
         )}
         {scope.branding.hasBrandBook && (
-          <span className="text-[#9B9B95]">Brand Book: <strong className="text-[#1A1A1A]">Disponível</strong></span>
+          <span className="text-[var(--text-muted)]">Brand Book: <strong className="text-[var(--text-primary)]">Disponível</strong></span>
         )}
         {scope.budgetRange && (
-          <span className="text-[#9B9B95]">Orçamento: <strong className="text-[#1A1A1A]">{scope.budgetRange}</strong></span>
+          <span className="text-[var(--text-muted)]">Orçamento: <strong className="text-[var(--text-primary)]">{scope.budgetRange}</strong></span>
         )}
         {scope.deadline && (
-          <span className="text-[#9B9B95]">Prazo: <strong className="text-[#1A1A1A]">{scope.deadline}</strong></span>
+          <span className="text-[var(--text-muted)]">Prazo: <strong className="text-[var(--text-primary)]">{scope.deadline}</strong></span>
         )}
       </div>
 
       {/* Estimate */}
       {estimate && estimate.confidence !== "none" && (
-        <div className="border-t border-[#E5E5E2] pt-3">
+        <div className="border-t border-[var(--border)] pt-3">
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Estimativa live</span>
+            <span className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Estimativa live</span>
             <span className={`h-4 px-1.5 rounded-[3px] text-[9px] font-semibold ${CONF_STYLE[estimate.confidence] ?? ""}`}>
               {CONF_LABEL[estimate.confidence]}
             </span>
@@ -1616,15 +1616,15 @@ function V2ScopePanel({ scope, estimate }: { scope: BriefingScope; estimate?: Li
           <div className="space-y-1">
             {estimate.items.map((item, i) => (
               <div key={i} className="flex items-center justify-between text-[11px]">
-                <span className="text-[#6B6B65]">{item.label}</span>
-                <span className="text-[#1A1A1A] font-medium">
+                <span className="text-[var(--text-secondary)]">{item.label}</span>
+                <span className="text-[var(--text-primary)] font-medium">
                   {fmtBRL(item.minPrice)}–{fmtBRL(item.maxPrice)}/{item.unit}
                 </span>
               </div>
             ))}
-            <div className="flex items-center justify-between pt-1 border-t border-[#E5E5E2] text-[11px]">
-              <span className="font-semibold text-[#1A1A1A]">Total estimado</span>
-              <span className="font-semibold text-[#1A1A1A]">
+            <div className="flex items-center justify-between pt-1 border-t border-[var(--border)] text-[11px]">
+              <span className="font-semibold text-[var(--text-primary)]">Total estimado</span>
+              <span className="font-semibold text-[var(--text-primary)]">
                 {fmtBRL(estimate.totalMin)} – {fmtBRL(estimate.totalMax)}
               </span>
             </div>
@@ -1645,92 +1645,92 @@ function AnalysisPanel({ analysis }: { analysis: BriefingAnalysis }) {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center gap-2">
-        <span className="text-[12px] font-semibold text-[#1A1A1A]">Análise do briefing</span>
-        <span className="text-[10px] text-[#9B9B95]">
+        <span className="text-[12px] font-semibold text-[var(--text-primary)]">Análise do briefing</span>
+        <span className="text-[10px] text-[var(--text-muted)]">
           Processado em {new Date(analysis.processedAt).toLocaleDateString("pt-BR")}
         </span>
       </div>
 
       {/* Executive summary */}
-      <div className="bg-[#F7F7F6] rounded-[8px] px-4 py-3">
-        <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1">O que entendemos</div>
-        <p className="text-[12px] text-[#1A1A1A] leading-relaxed">{analysis.executiveSummary}</p>
+      <div className="bg-[var(--bg)] rounded-[8px] px-4 py-3">
+        <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1">O que entendemos</div>
+        <p className="text-[12px] text-[var(--text-primary)] leading-relaxed">{analysis.executiveSummary}</p>
       </div>
 
       {/* 2-col: goal + needs */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Objetivo principal</div>
-          <p className="text-[12px] text-[#1A1A1A] leading-relaxed">{analysis.clientGoal}</p>
+          <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1.5">Objetivo principal</div>
+          <p className="text-[12px] text-[var(--text-primary)] leading-relaxed">{analysis.clientGoal}</p>
         </div>
         <div>
-          <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Necessidades diagnosticadas</div>
+          <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1.5">Necessidades diagnosticadas</div>
           <ul className="space-y-0.5">
             {analysis.diagnosedNeeds.map((n) => (
-              <li key={n} className="text-[11px] text-[#1A1A1A] flex items-start gap-1.5">
-                <span className="w-1 h-1 rounded-full bg-[#070A1F] shrink-0 mt-1.5" />{n}
+              <li key={n} className="text-[11px] text-[var(--text-primary)] flex items-start gap-1.5">
+                <span className="w-1 h-1 rounded-full bg-[var(--navy)] shrink-0 mt-1.5" />{n}
               </li>
             ))}
           </ul>
         </div>
         <div>
-          <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Serviços recomendados</div>
+          <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1.5">Serviços recomendados</div>
           <div className="flex flex-wrap gap-1.5">
             {analysis.recommendedServices.map((s) => (
-              <span key={s} className="h-5 px-2 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[11px] font-medium">{s}</span>
+              <span key={s} className="h-5 px-2 rounded-full bg-[var(--accent-light)] text-[var(--navy)] text-[11px] font-medium">{s}</span>
             ))}
           </div>
         </div>
         <div>
-          <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Prazo estimado</div>
-          <span className="text-[12px] font-semibold text-[#1A1A1A]">{analysis.estimatedTimeline}</span>
+          <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1.5">Prazo estimado</div>
+          <span className="text-[12px] font-semibold text-[var(--text-primary)]">{analysis.estimatedTimeline}</span>
         </div>
       </div>
 
       {/* Deliverables */}
       <div>
-        <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Entregáveis sugeridos</div>
+        <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1.5">Entregáveis sugeridos</div>
         <div className="grid grid-cols-2 gap-x-4 gap-y-1">
           {analysis.suggestedDeliverables.map((d) => (
-            <div key={d} className="flex items-start gap-1.5 text-[11px] text-[#1A1A1A]">
-              <span className="text-[#16A34A] shrink-0">✓</span>{d}
+            <div key={d} className="flex items-start gap-1.5 text-[11px] text-[var(--text-primary)]">
+              <span className="text-[var(--success)] shrink-0">✓</span>{d}
             </div>
           ))}
         </div>
       </div>
 
       {/* Investment */}
-      <div className="bg-[#F7F7F6] rounded-[8px] px-4 py-3">
-        <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">Faixa de investimento</div>
+      <div className="bg-[var(--bg)] rounded-[8px] px-4 py-3">
+        <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-2">Faixa de investimento</div>
         <div className="flex items-baseline gap-1.5 mb-2.5">
-          <span className="text-[17px] font-bold text-[#1A1A1A]">{fmt(analysis.priceRange.min)}</span>
-          <span className="text-[13px] text-[#9B9B95]">–</span>
-          <span className="text-[17px] font-bold text-[#1A1A1A]">{fmt(analysis.priceRange.max)}</span>
-          <span className="text-[11px] text-[#9B9B95] ml-1">estimado</span>
+          <span className="text-[17px] font-bold text-[var(--text-primary)]">{fmt(analysis.priceRange.min)}</span>
+          <span className="text-[13px] text-[var(--text-muted)]">–</span>
+          <span className="text-[17px] font-bold text-[var(--text-primary)]">{fmt(analysis.priceRange.max)}</span>
+          <span className="text-[11px] text-[var(--text-muted)] ml-1">estimado</span>
         </div>
-        <div className="space-y-1.5 border-t border-[#E5E5E2] pt-2.5">
+        <div className="space-y-1.5 border-t border-[var(--border)] pt-2.5">
           {analysis.lineItems.map((item) => (
             <div key={item.service} className="flex items-center justify-between gap-4 text-[11px]">
-              <div className="text-[#6B6B65]">
-                <span className="font-medium text-[#1A1A1A]">{item.service}</span>
+              <div className="text-[var(--text-secondary)]">
+                <span className="font-medium text-[var(--text-primary)]">{item.service}</span>
                 {" — "}{item.description}
               </div>
-              <span className="text-[#1A1A1A] font-medium shrink-0">
+              <span className="text-[var(--text-primary)] font-medium shrink-0">
                 {fmt(item.minPrice)}–{fmt(item.maxPrice)}/{item.unit}
               </span>
             </div>
           ))}
         </div>
-        <p className="text-[9px] text-[#C0C0BC] mt-2">*Valores estimados. Sujeitos a detalhamento de escopo.</p>
+        <p className="text-[9px] text-[var(--text-subtle)] mt-2">*Valores estimados. Sujeitos a detalhamento de escopo.</p>
       </div>
 
       {/* Missing info */}
       {analysis.missingInfo.length > 0 && (
         <div className="bg-[#FFFBEB] border border-[#FDE68A] rounded-[8px] px-4 py-3">
-          <div className="text-[10px] font-semibold text-[#D97706] uppercase tracking-[0.05em] mb-1.5">Informações faltantes</div>
+          <div className="text-[10px] font-semibold text-[var(--warning)] uppercase tracking-[0.05em] mb-1.5">Informações faltantes</div>
           <div className="flex flex-wrap gap-1.5">
             {analysis.missingInfo.map((m) => (
-              <span key={m} className="h-5 px-2 rounded-full bg-[#FEF3C7] text-[#92400E] text-[10px] font-medium">{m}</span>
+              <span key={m} className="h-5 px-2 rounded-full bg-[var(--warning-bg)] text-[#92400E] text-[10px] font-medium">{m}</span>
             ))}
           </div>
         </div>
@@ -1739,11 +1739,11 @@ function AnalysisPanel({ analysis }: { analysis: BriefingAnalysis }) {
       {/* Next questions */}
       {analysis.nextQuestions.length > 0 && (
         <div>
-          <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Próximas perguntas para o cliente</div>
+          <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1.5">Próximas perguntas para o cliente</div>
           <ol className="space-y-1">
             {analysis.nextQuestions.map((q, i) => (
-              <li key={i} className="flex items-start gap-2 text-[12px] text-[#1A1A1A]">
-                <span className="text-[#070A1F] font-semibold shrink-0 w-4">{i + 1}.</span>{q}
+              <li key={i} className="flex items-start gap-2 text-[12px] text-[var(--text-primary)]">
+                <span className="text-[var(--navy)] font-semibold shrink-0 w-4">{i + 1}.</span>{q}
               </li>
             ))}
           </ol>
@@ -1751,22 +1751,22 @@ function AnalysisPanel({ analysis }: { analysis: BriefingAnalysis }) {
       )}
 
       {/* Proposal draft collapsible */}
-      <div className="border border-[#E5E5E2] rounded-[8px] overflow-hidden">
+      <div className="border border-[var(--border)] rounded-[8px] overflow-hidden">
         <button
           onClick={() => setProposalOpen((o) => !o)}
-          className="w-full flex items-center justify-between px-4 py-3 bg-[#F7F7F6] hover:bg-[#F0F0ED] transition-colors text-left"
+          className="w-full flex items-center justify-between px-4 py-3 bg-[var(--bg)] hover:bg-[var(--accent)] transition-colors text-left"
         >
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[12px] font-semibold text-[#1A1A1A]">Rascunho de proposta</span>
-            <span className="h-5 px-2 rounded-full bg-[#FEF3C7] text-[#D97706] text-[9px] font-semibold">
+            <span className="text-[12px] font-semibold text-[var(--text-primary)]">Rascunho de proposta</span>
+            <span className="h-5 px-2 rounded-full bg-[var(--warning-bg)] text-[var(--warning)] text-[9px] font-semibold">
               PM deve revisar antes de enviar
             </span>
           </div>
-          <span className="text-[12px] text-[#9B9B95] shrink-0 ml-4">{proposalOpen ? "▲" : "▼"}</span>
+          <span className="text-[12px] text-[var(--text-muted)] shrink-0 ml-4">{proposalOpen ? "▲" : "▼"}</span>
         </button>
         {proposalOpen && (
           <div className="bg-white px-4 py-3">
-            <pre className="text-[11px] text-[#1A1A1A] leading-relaxed whitespace-pre-wrap font-mono overflow-y-auto max-h-[400px]">
+            <pre className="text-[11px] text-[var(--text-primary)] leading-relaxed whitespace-pre-wrap font-mono overflow-y-auto max-h-[400px]">
               {analysis.proposalDraft}
             </pre>
           </div>
@@ -1814,18 +1814,18 @@ function ConversionPanel({
   }
 
   return (
-    <div className="border-t border-[#E5E5E2] bg-[#F7F7F6] px-5 py-5 space-y-5">
+    <div className="border-t border-[var(--border)] bg-[var(--bg)] px-5 py-5 space-y-5">
       {/* Panel header */}
       <div className="flex items-center justify-between">
         <div>
-          <div className="text-[13px] font-semibold text-[#1A1A1A]">Criar projeto</div>
-          <p className="text-[11px] text-[#9B9B95] mt-0.5">
+          <div className="text-[13px] font-semibold text-[var(--text-primary)]">Criar projeto</div>
+          <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
             Baseado em: {req.title} · {clientName}
           </p>
         </div>
         <button
           onClick={onCancel}
-          className="text-[12px] text-[#9B9B95] hover:text-[#6B6B65] transition-colors"
+          className="text-[12px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
         >
           Cancelar
         </button>
@@ -1834,24 +1834,24 @@ function ConversionPanel({
       {/* Row 1: name + priority + deadline */}
       <div className="grid grid-cols-3 gap-3">
         <div className="col-span-1">
-          <label className="block text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1">
+          <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1">
             Nome do projeto
           </label>
           <input
             type="text"
             value={form.projectName}
             onChange={(e) => onPatch({ projectName: e.target.value })}
-            className="w-full h-9 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] transition-colors"
+            className="w-full h-9 px-3 text-[12px] bg-white border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] transition-colors"
           />
         </div>
         <div>
-          <label className="block text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1">
+          <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1">
             Prioridade
           </label>
           <select
             value={form.priority}
             onChange={(e) => onPatch({ priority: e.target.value as Priority })}
-            className="w-full h-9 px-2 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F]"
+            className="w-full h-9 px-2 text-[12px] bg-white border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)]"
           >
             <option value="high">Alta</option>
             <option value="medium">Média</option>
@@ -1859,21 +1859,21 @@ function ConversionPanel({
           </select>
         </div>
         <div>
-          <label className="block text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1">
+          <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1">
             Prazo
           </label>
           <input
             type="date"
             value={form.deadline}
             onChange={(e) => onPatch({ deadline: e.target.value })}
-            className="w-full h-9 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F]"
+            className="w-full h-9 px-3 text-[12px] bg-white border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)]"
           />
         </div>
       </div>
 
       {/* Goal */}
       <div>
-        <label className="block text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1">
+        <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1">
           Objetivo do projeto
         </label>
         <input
@@ -1881,13 +1881,13 @@ function ConversionPanel({
           value={form.goal}
           onChange={(e) => onPatch({ goal: e.target.value })}
           placeholder="Ex.: ganhar novos clientes e aumentar vendas"
-          className="w-full h-9 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] transition-colors"
+          className="w-full h-9 px-3 text-[12px] bg-white border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] transition-colors"
         />
       </div>
 
       {/* Departments */}
       <div>
-        <label className="block text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">
+        <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-2">
           Departamentos envolvidos
         </label>
         <div className="flex flex-wrap gap-2">
@@ -1899,8 +1899,8 @@ function ConversionPanel({
                 onClick={() => toggleDept(d)}
                 className={`h-7 px-3 rounded-[6px] text-[12px] font-medium border transition-colors ${
                   checked
-                    ? "bg-[#1A1A1A] border-[#1A1A1A] text-white"
-                    : "bg-white border-[#E5E5E2] text-[#6B6B65] hover:border-[#9B9B95]"
+                    ? "bg-[var(--text-primary)] border-[var(--text-primary)] text-white"
+                    : "bg-white border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--text-muted)]"
                 }`}
               >
                 {checked ? "✓ " : ""}{DEPT_LABELS[d]}
@@ -1912,29 +1912,29 @@ function ConversionPanel({
 
       {/* Scope */}
       <div>
-        <label className="block text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1">
+        <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1">
           Escopo inicial (vai para o briefing)
         </label>
         <textarea
           value={form.scope}
           onChange={(e) => onPatch({ scope: e.target.value })}
           rows={3}
-          className="w-full px-3 py-2 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] resize-none leading-relaxed"
+          className="w-full px-3 py-2 text-[12px] bg-white border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] resize-none leading-relaxed"
         />
       </div>
 
       {/* Material requests */}
       <div>
-        <label className="block text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">
+        <label className="block text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-2">
           Materiais necessários do cliente
         </label>
         <div className="space-y-1.5 mb-2">
           {form.materials.map((m, i) => (
-            <div key={i} className="flex items-center gap-2 bg-white border border-[#E5E5E2] rounded-[7px] px-3 py-1.5">
-              <span className="flex-1 text-[12px] text-[#1A1A1A]">{m}</span>
+            <div key={i} className="flex items-center gap-2 bg-white border border-[var(--border)] rounded-[7px] px-3 py-1.5">
+              <span className="flex-1 text-[12px] text-[var(--text-primary)]">{m}</span>
               <button
                 onClick={() => removeMaterial(i)}
-                className="text-[#C0C0BC] hover:text-[#DC2626] text-[11px] transition-colors shrink-0"
+                className="text-[var(--text-subtle)] hover:text-[var(--danger)] text-[11px] transition-colors shrink-0"
               >
                 ×
               </button>
@@ -1948,12 +1948,12 @@ function ConversionPanel({
             onChange={(e) => onPatch({ newMaterial: e.target.value })}
             onKeyDown={(e) => e.key === "Enter" && addMaterial()}
             placeholder="Adicionar material (Enter para confirmar)..."
-            className="flex-1 h-8 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] transition-colors"
+            className="flex-1 h-8 px-3 text-[12px] bg-white border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] transition-colors"
           />
           <button
             onClick={addMaterial}
             disabled={!form.newMaterial.trim()}
-            className="h-8 px-3 rounded-[7px] border border-[#E5E5E2] text-[#6B6B65] hover:border-[#070A1F] hover:text-[#070A1F] text-[12px] disabled:opacity-40 transition-colors"
+            className="h-8 px-3 rounded-[7px] border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--navy)] hover:text-[var(--navy)] text-[12px] disabled:opacity-40 transition-colors"
           >
             + Add
           </button>
@@ -1961,11 +1961,11 @@ function ConversionPanel({
       </div>
 
       {/* Confirm action */}
-      <div className="flex items-center gap-3 pt-1 border-t border-[#E5E5E2]">
+      <div className="flex items-center gap-3 pt-1 border-t border-[var(--border)]">
         <button
           onClick={handleConfirm}
           disabled={!form.projectName.trim() || !form.deadline || submitting}
-          className="h-9 px-5 rounded-[8px] bg-[#1A1A1A] hover:bg-[#111111] disabled:opacity-40 disabled:cursor-not-allowed text-white text-[12px] font-medium transition-colors inline-flex items-center gap-2"
+          className="h-9 px-5 rounded-[8px] bg-[var(--text-primary)] hover:bg-[var(--text-primary)] disabled:opacity-40 disabled:cursor-not-allowed text-white text-[12px] font-medium transition-colors inline-flex items-center gap-2"
         >
           {submitting ? (
             <>
@@ -1976,11 +1976,11 @@ function ConversionPanel({
         </button>
         <button
           onClick={onCancel}
-          className="h-9 px-4 rounded-[8px] border border-[#E5E5E2] text-[#6B6B65] hover:text-[#1A1A1A] text-[12px] font-medium transition-colors"
+          className="h-9 px-4 rounded-[8px] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-[12px] font-medium transition-colors"
         >
           Cancelar
         </button>
-        <p className="text-[11px] text-[#C0C0BC] ml-auto">
+        <p className="text-[11px] text-[var(--text-subtle)] ml-auto">
           Cria projeto + briefing + {form.materials.length} material(is) + tarefa PM
         </p>
       </div>
@@ -2001,16 +2001,16 @@ function SuccessPanel({
   return (
     <div className="border-t border-[#BBF7D0] bg-[#F0FDF4] px-5 py-5 space-y-4">
       <div className="flex items-start gap-3">
-        <div className="w-8 h-8 rounded-full bg-[#DCFCE7] flex items-center justify-center shrink-0 text-[#16A34A] font-bold text-[14px]">
+        <div className="w-8 h-8 rounded-full bg-[var(--success-bg)] flex items-center justify-center shrink-0 text-[var(--success)] font-bold text-[14px]">
           ✓
         </div>
         <div className="flex-1">
           <div className="text-[13px] font-semibold text-[#15803D] mb-0.5">Projeto criado e proposta enviada ao portal!</div>
-          <p className="text-[12px] text-[#16A34A]">{projectName}</p>
+          <p className="text-[12px] text-[var(--success)]">{projectName}</p>
           <div className="flex flex-wrap gap-2 mt-3">
             <Link
               href={`/agency/projects/${projectId}`}
-              className="h-7 px-3 rounded-[6px] bg-[#1A1A1A] hover:bg-[#111111] text-white text-[11px] font-medium transition-colors inline-flex items-center"
+              className="h-7 px-3 rounded-[6px] bg-[var(--text-primary)] hover:bg-[var(--text-primary)] text-white text-[11px] font-medium transition-colors inline-flex items-center"
             >
               Ver projeto →
             </Link>
@@ -2032,15 +2032,15 @@ function SuccessPanel({
 
       {/* Portal link — the most important thing to share with the client */}
       <div className="bg-white border border-[#BBF7D0] rounded-[10px] px-4 py-3">
-        <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">
+        <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1.5">
           Link do portal do cliente — envie por WhatsApp ou e-mail
         </p>
         <SecurePortalLinkButton
           clientId={clientId}
           label="Gerar e copiar link seguro →"
-          className="w-full h-9 rounded-[8px] bg-[#1A1A1A] hover:bg-[#111111] disabled:opacity-60 text-white text-[12px] font-semibold transition-colors"
+          className="w-full h-9 rounded-[8px] bg-[var(--text-primary)] hover:bg-[var(--text-primary)] disabled:opacity-60 text-white text-[12px] font-semibold transition-colors"
         />
-        <p className="text-[10px] text-[#9B9B95] mt-1.5">
+        <p className="text-[10px] text-[var(--text-muted)] mt-1.5">
           O cliente vê a proposta, aprova, e os agentes começam automaticamente.
         </p>
       </div>
@@ -2108,20 +2108,20 @@ function ProposalEditModal({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-[14px] border border-[#E5E5E2] shadow-[0_12px_40px_rgba(0,0,0,0.16)] w-full max-w-[640px] mt-8 mb-8"
+        className="bg-white rounded-[14px] border border-[var(--border)] shadow-[0_12px_40px_rgba(0,0,0,0.16)] w-full max-w-[640px] mt-8 mb-8"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-[#F0F0ED]">
+        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-[var(--border)]">
           <div>
-            <h2 className="text-[16px] font-semibold text-[#1A1A1A]">Editar proposta</h2>
-            <p className="text-[12px] text-[#9B9B95] mt-0.5">Para: <span className="font-medium text-[#1A1A1A]">{clientLabel}</span>
-              {clientEmail && <span className="text-[#9B9B95]"> · {clientEmail}</span>}
+            <h2 className="text-[16px] font-semibold text-[var(--text-primary)]">Editar proposta</h2>
+            <p className="text-[12px] text-[var(--text-muted)] mt-0.5">Para: <span className="font-medium text-[var(--text-primary)]">{clientLabel}</span>
+              {clientEmail && <span className="text-[var(--text-muted)]"> · {clientEmail}</span>}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full hover:bg-[#F0F0ED] flex items-center justify-center text-[#9B9B95] hover:text-[#1A1A1A] transition-colors text-[16px]"
+            className="w-8 h-8 rounded-full hover:bg-[var(--accent)] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors text-[16px]"
           >
             ×
           </button>
@@ -2130,7 +2130,7 @@ function ProposalEditModal({
         <div className="px-6 py-5 space-y-5">
           {/* Role badge */}
           <div className="flex items-center gap-2">
-            <span className="h-5 px-2 rounded-full bg-[#FEF3C7] text-[#D97706] text-[9px] font-semibold">
+            <span className="h-5 px-2 rounded-full bg-[var(--warning-bg)] text-[var(--warning)] text-[9px] font-semibold">
               Revisão obrigatória antes de enviar ao cliente
             </span>
           </div>
@@ -2138,17 +2138,17 @@ function ProposalEditModal({
           {/* Line items table */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Itens da proposta</span>
+              <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Itens da proposta</span>
               <button
                 onClick={addItem}
-                className="h-6 px-2.5 rounded-[5px] border border-[#E5E5E2] text-[10px] font-semibold text-[#6B6B65] hover:border-[#070A1F] hover:text-[#070A1F] transition-colors"
+                className="h-6 px-2.5 rounded-[5px] border border-[var(--border)] text-[10px] font-semibold text-[var(--text-secondary)] hover:border-[var(--navy)] hover:text-[var(--navy)] transition-colors"
               >
                 + Adicionar item
               </button>
             </div>
-            <div className="border border-[#E5E5E2] rounded-[8px] overflow-hidden divide-y divide-[#F0F0ED]">
+            <div className="border border-[var(--border)] rounded-[8px] overflow-hidden divide-y divide-[var(--border)]">
               {items.length === 0 && (
-                <div className="px-4 py-3 text-[12px] text-[#9B9B95] text-center">Nenhum item. Adicione um acima.</div>
+                <div className="px-4 py-3 text-[12px] text-[var(--text-muted)] text-center">Nenhum item. Adicione um acima.</div>
               )}
               {items.map((it) => (
                 <div key={it._key} className="px-4 py-3 space-y-2">
@@ -2157,11 +2157,11 @@ function ProposalEditModal({
                       value={it.label}
                       onChange={(e) => patchItem(it._key, { label: e.target.value })}
                       placeholder="Nome do serviço"
-                      className="flex-1 text-[13px] font-medium text-[#1A1A1A] bg-transparent border-b border-transparent hover:border-[#E5E5E2] focus:border-[#070A1F] outline-none py-0.5 transition-colors"
+                      className="flex-1 text-[13px] font-medium text-[var(--text-primary)] bg-transparent border-b border-transparent hover:border-[var(--border)] focus:border-[var(--navy)] outline-none py-0.5 transition-colors"
                     />
                     <button
                       onClick={() => removeItem(it._key)}
-                      className="shrink-0 w-6 h-6 rounded-full text-[#9B9B95] hover:bg-[#FEF2F2] hover:text-[#DC2626] flex items-center justify-center transition-colors text-[14px]"
+                      className="shrink-0 w-6 h-6 rounded-full text-[var(--text-muted)] hover:bg-[var(--danger-bg)] hover:text-[var(--danger)] flex items-center justify-center transition-colors text-[14px]"
                     >
                       ×
                     </button>
@@ -2170,33 +2170,33 @@ function ProposalEditModal({
                     value={it.detail}
                     onChange={(e) => patchItem(it._key, { detail: e.target.value })}
                     placeholder="Descrição (opcional)"
-                    className="w-full text-[11px] text-[#6B6B65] bg-transparent border-b border-transparent hover:border-[#E5E5E2] focus:border-[#070A1F] outline-none py-0.5 transition-colors"
+                    className="w-full text-[11px] text-[var(--text-secondary)] bg-transparent border-b border-transparent hover:border-[var(--border)] focus:border-[var(--navy)] outline-none py-0.5 transition-colors"
                   />
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-1.5 text-[11px]">
-                      <span className="text-[#9B9B95] shrink-0">Mín R$</span>
+                      <span className="text-[var(--text-muted)] shrink-0">Mín R$</span>
                       <input
                         type="number"
                         value={it.minPrice}
                         onChange={(e) => patchItem(it._key, { minPrice: Number(e.target.value) })}
-                        className="w-20 text-[12px] font-semibold text-[#1A1A1A] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[5px] px-2 py-1 outline-none focus:border-[#070A1F]"
+                        className="w-20 text-[12px] font-semibold text-[var(--text-primary)] bg-[var(--bg)] border border-[var(--border)] rounded-[5px] px-2 py-1 outline-none focus:border-[var(--navy)]"
                       />
                     </div>
                     <div className="flex items-center gap-1.5 text-[11px]">
-                      <span className="text-[#9B9B95] shrink-0">Máx R$</span>
+                      <span className="text-[var(--text-muted)] shrink-0">Máx R$</span>
                       <input
                         type="number"
                         value={it.maxPrice}
                         onChange={(e) => patchItem(it._key, { maxPrice: Number(e.target.value) })}
-                        className="w-20 text-[12px] font-semibold text-[#1A1A1A] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[5px] px-2 py-1 outline-none focus:border-[#070A1F]"
+                        className="w-20 text-[12px] font-semibold text-[var(--text-primary)] bg-[var(--bg)] border border-[var(--border)] rounded-[5px] px-2 py-1 outline-none focus:border-[var(--navy)]"
                       />
                     </div>
                     <div className="flex items-center gap-1.5 text-[11px]">
-                      <span className="text-[#9B9B95] shrink-0">/</span>
+                      <span className="text-[var(--text-muted)] shrink-0">/</span>
                       <input
                         value={it.unit}
                         onChange={(e) => patchItem(it._key, { unit: e.target.value })}
-                        className="w-16 text-[11px] text-[#6B6B65] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[5px] px-2 py-1 outline-none focus:border-[#070A1F]"
+                        className="w-16 text-[11px] text-[var(--text-secondary)] bg-[var(--bg)] border border-[var(--border)] rounded-[5px] px-2 py-1 outline-none focus:border-[var(--navy)]"
                       />
                     </div>
                   </div>
@@ -2207,8 +2207,8 @@ function ProposalEditModal({
             {/* Total */}
             {items.length > 0 && (
               <div className="flex items-center justify-between mt-2 px-1">
-                <span className="text-[12px] font-semibold text-[#1A1A1A]">Total estimado</span>
-                <span className="text-[13px] font-bold text-[#070A1F]">
+                <span className="text-[12px] font-semibold text-[var(--text-primary)]">Total estimado</span>
+                <span className="text-[13px] font-bold text-[var(--navy)]">
                   {fmtBRL(totalMin)} – {fmtBRL(totalMax)}
                 </span>
               </div>
@@ -2217,7 +2217,7 @@ function ProposalEditModal({
 
           {/* Note to client */}
           <div>
-            <label className="block text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">
+            <label className="block text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1.5">
               Mensagem personalizada para o cliente (opcional)
             </label>
             <textarea
@@ -2225,14 +2225,14 @@ function ProposalEditModal({
               onChange={(e) => setNote(e.target.value)}
               placeholder="Ex: Olá, [Nome]! Com base no briefing que nos enviou, preparamos duas opções de proposta…"
               rows={4}
-              className="w-full text-[12px] text-[#1A1A1A] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[8px] px-3 py-2.5 outline-none focus:border-[#070A1F] resize-none leading-relaxed"
+              className="w-full text-[12px] text-[var(--text-primary)] bg-[var(--bg)] border border-[var(--border)] rounded-[8px] px-3 py-2.5 outline-none focus:border-[var(--navy)] resize-none leading-relaxed"
             />
           </div>
 
           {/* Send feedback */}
           {sent && (
-            <div className="bg-[#DCFCE7] border border-[#86EFAC] rounded-[8px] px-4 py-3 flex items-center gap-2.5">
-              <span className="text-[#16A34A] font-bold text-[16px]">✓</span>
+            <div className="bg-[var(--success-bg)] border border-[#86EFAC] rounded-[8px] px-4 py-3 flex items-center gap-2.5">
+              <span className="text-[var(--success)] font-bold text-[16px]">✓</span>
               <div>
                 <p className="text-[12px] font-semibold text-[#15803D]">Proposta marcada como enviada</p>
                 <p className="text-[11px] text-[#166534] mt-0.5">
@@ -2247,24 +2247,24 @@ function ProposalEditModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-[#F0F0ED] bg-[#FAFAF9] rounded-b-[14px]">
+        <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-[var(--border)] bg-[var(--bg-elevated)] rounded-b-[14px]">
           <button
             onClick={onClose}
-            className="h-9 px-4 rounded-[8px] border border-[#E5E5E2] text-[#6B6B65] hover:bg-[#F0F0ED] text-[13px] font-medium transition-colors"
+            className="h-9 px-4 rounded-[8px] border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--accent)] text-[13px] font-medium transition-colors"
           >
             Fechar
           </button>
           <div className="flex items-center gap-2">
             <button
               onClick={handleSave}
-              className="h-9 px-4 rounded-[8px] border border-[#070A1F] text-[#070A1F] hover:bg-[#E6FBFA] text-[13px] font-medium transition-colors"
+              className="h-9 px-4 rounded-[8px] border border-[var(--navy)] text-[var(--navy)] hover:bg-[var(--accent-light)] text-[13px] font-medium transition-colors"
             >
               Salvar rascunho
             </button>
             <button
               onClick={handleSend}
               disabled={sent || items.length === 0}
-              className="h-9 px-5 rounded-[8px] bg-[#070A1F] hover:bg-[#0D1230] disabled:opacity-50 disabled:cursor-not-allowed text-white text-[13px] font-semibold transition-colors inline-flex items-center gap-2"
+              className="h-9 px-5 rounded-[8px] bg-[var(--navy)] hover:bg-[#0D1230] disabled:opacity-50 disabled:cursor-not-allowed text-white text-[13px] font-semibold transition-colors inline-flex items-center gap-2"
             >
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
                 <path d="M2 8l12-6-6 12-1.5-5.5L2 8z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>

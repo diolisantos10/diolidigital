@@ -4,15 +4,15 @@ import { useState } from "react";
 import type { TrafficCanvas } from "@/lib/dioli-brain/traffic-canvas";
 
 const STATUS_STYLE: Record<TrafficCanvas["status"], { bg: string; text: string; label: string }> = {
-  draft:    { bg: "bg-[#F0F0ED]", text: "text-[#6B6B65]", label: "Rascunho" },
-  approved: { bg: "bg-[#DCFCE7]", text: "text-[#16A34A]", label: "Aprovado" },
-  rejected: { bg: "bg-[#FEE2E2]", text: "text-[#DC2626]", label: "Rejeitado" },
+  draft:    { bg: "bg-[var(--accent)]", text: "text-[var(--text-secondary)]", label: "Rascunho" },
+  approved: { bg: "bg-[var(--success-bg)]", text: "text-[var(--success)]", label: "Aprovado" },
+  rejected: { bg: "bg-[#FEE2E2]", text: "text-[var(--danger)]", label: "Rejeitado" },
 };
 
 const QG_STYLE = {
-  PASS:    { badge: "bg-[#16A34A]", bg: "bg-[#DCFCE7]", border: "border-[#86EFAC]", text: "text-[#166534]" },
-  WARNING: { badge: "bg-[#D97706]", bg: "bg-[#FEF3C7]", border: "border-[#FDE68A]", text: "text-[#92400E]" },
-  FAIL:    { badge: "bg-[#DC2626]", bg: "bg-[#FEE2E2]", border: "border-[#FECACA]", text: "text-[#991B1B]" },
+  PASS:    { badge: "bg-[var(--success)]", bg: "bg-[var(--success-bg)]", border: "border-[#86EFAC]", text: "text-[#166534]" },
+  WARNING: { badge: "bg-[var(--warning)]", bg: "bg-[var(--warning-bg)]", border: "border-[#FDE68A]", text: "text-[#92400E]" },
+  FAIL:    { badge: "bg-[var(--danger)]", bg: "bg-[#FEE2E2]", border: "border-[#FECACA]", text: "text-[#991B1B]" },
 } as const;
 
 const CHANNEL_LABELS: Record<string, string> = {
@@ -22,14 +22,14 @@ const CHANNEL_LABELS: Record<string, string> = {
 
 const PRIORITY_STYLE: Record<string, string> = {
   alta:  "bg-[#FDF2F8] text-[#DB2777]",
-  media: "bg-[#FEF3C7] text-[#D97706]",
-  baixa: "bg-[#F0F0ED] text-[#6B6B65]",
+  media: "bg-[var(--warning-bg)] text-[var(--warning)]",
+  baixa: "bg-[var(--accent)] text-[var(--text-secondary)]",
 };
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <div className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1">{title}</div>
+      <div className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em] mb-1">{title}</div>
       {children}
     </div>
   );
@@ -64,12 +64,12 @@ export function TrafficCanvasCard({
   const ba = canvas.budgetAllocation;
 
   return (
-    <div className="rounded-[10px] border border-[#E8E8E2] bg-white overflow-hidden">
+    <div className="rounded-[10px] border border-[var(--border)] bg-white overflow-hidden">
       {/* Header */}
-      <div className="px-4 py-3 flex items-start justify-between gap-3 bg-[#FAFAF8]">
+      <div className="px-4 py-3 flex items-start justify-between gap-3 bg-[var(--bg-elevated)]">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[13px] font-semibold text-[#1A1A1A] truncate">{canvas.clientName}</span>
+            <span className="text-[13px] font-semibold text-[var(--text-primary)] truncate">{canvas.clientName}</span>
             <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${st.bg} ${st.text}`}>{st.label}</span>
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full text-white ${qgStyle.badge}`}>
               QG {qg.overall} {qg.passCount}/{qg.items.length}
@@ -78,10 +78,10 @@ export function TrafficCanvasCard({
               R$ {ba.mediaBudgetBRL.toLocaleString("pt-BR")}/mês
             </span>
             {canvas.source === "simulation" && (
-              <span className="text-[10px] text-[#9B9B95] bg-[#F0F0ED] px-2 py-0.5 rounded-full">Simulação</span>
+              <span className="text-[10px] text-[var(--text-muted)] bg-[var(--accent)] px-2 py-0.5 rounded-full">Simulação</span>
             )}
           </div>
-          <p className="text-[11px] text-[#6B6B65] mt-0.5">
+          <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">
             {canvas.segment} · {canvas.budgetScenario} · {canvas.recommendedChannels.map((c) => CHANNEL_LABELS[c]).join(", ")}
           </p>
         </div>
@@ -97,7 +97,7 @@ export function TrafficCanvasCard({
       )}
 
       {/* Quick summary */}
-      <div className="px-4 py-3 grid grid-cols-3 gap-x-4 gap-y-2 sm:grid-cols-6 border-b border-[#E8E8E2]">
+      <div className="px-4 py-3 grid grid-cols-3 gap-x-4 gap-y-2 sm:grid-cols-6 border-b border-[var(--border)]">
         {[
           { label: "Campanhas",  value: canvas.campaigns.length },
           { label: "Públicos",   value: canvas.audiences.length },
@@ -107,17 +107,17 @@ export function TrafficCanvasCard({
           { label: "QG Pass",    value: `${qg.passCount}/${qg.items.length}` },
         ].map((m) => (
           <div key={m.label} className="text-center">
-            <div className="text-[13px] font-semibold text-[#1A1A1A]">{m.value}</div>
-            <div className="text-[9px] text-[#9B9B95] mt-0.5">{m.label}</div>
+            <div className="text-[13px] font-semibold text-[var(--text-primary)]">{m.value}</div>
+            <div className="text-[9px] text-[var(--text-muted)] mt-0.5">{m.label}</div>
           </div>
         ))}
       </div>
 
       {expanded && (
-        <div className="px-4 py-4 space-y-5 border-b border-[#E8E8E2]">
+        <div className="px-4 py-4 space-y-5 border-b border-[var(--border)]">
           <Section title="Objetivo e Contexto">
-            <p className="text-[11px] text-[#1A1A1A]">{canvas.mainObjective}</p>
-            <p className="text-[11px] text-[#6B6B65] mt-1">{canvas.offerContext}</p>
+            <p className="text-[11px] text-[var(--text-primary)]">{canvas.mainObjective}</p>
+            <p className="text-[11px] text-[var(--text-secondary)] mt-1">{canvas.offerContext}</p>
           </Section>
 
           <Section title="Canais Recomendados">
@@ -126,27 +126,27 @@ export function TrafficCanvasCard({
                 <span key={ch} className="text-[10px] bg-[#F0F9FF] text-[#0284C7] px-2 py-0.5 rounded-full">{CHANNEL_LABELS[ch]}</span>
               ))}
             </div>
-            <p className="text-[11px] text-[#6B6B65]">{canvas.channelRationale}</p>
+            <p className="text-[11px] text-[var(--text-secondary)]">{canvas.channelRationale}</p>
           </Section>
 
           <Section title={`Budget — ${canvas.budgetScenario.toUpperCase()}`}>
-            <div className="rounded-[8px] border border-[#E8E8E2] bg-[#F0F9FF]/40 p-3 space-y-2">
+            <div className="rounded-[8px] border border-[var(--border)] bg-[#F0F9FF]/40 p-3 space-y-2">
               <div className="flex items-center justify-between text-[11px]">
-                <span className="text-[#6B6B65]">Total mensal</span>
+                <span className="text-[var(--text-secondary)]">Total mensal</span>
                 <span className="font-semibold">R$ {ba.totalMonthlyBRL.toLocaleString("pt-BR")}</span>
               </div>
               <div className="flex items-center justify-between text-[11px]">
-                <span className="text-[#6B6B65]">Budget de mídia ({100 - ba.managementFeePercent}%)</span>
+                <span className="text-[var(--text-secondary)]">Budget de mídia ({100 - ba.managementFeePercent}%)</span>
                 <span className="font-semibold text-[#0284C7]">R$ {ba.mediaBudgetBRL.toLocaleString("pt-BR")}</span>
               </div>
               <div className="flex items-center justify-between text-[11px]">
-                <span className="text-[#6B6B65]">Management fee ({ba.managementFeePercent}%)</span>
-                <span className="font-semibold text-[#D97706]">R$ {ba.managementFeeBRL.toLocaleString("pt-BR")}</span>
+                <span className="text-[var(--text-secondary)]">Management fee ({ba.managementFeePercent}%)</span>
+                <span className="font-semibold text-[var(--warning)]">R$ {ba.managementFeeBRL.toLocaleString("pt-BR")}</span>
               </div>
-              <div className="border-t border-[#E8E8E2] pt-2 space-y-1">
+              <div className="border-t border-[var(--border)] pt-2 space-y-1">
                 {ba.channelBreakdown.map((ch) => (
                   <div key={ch.channel} className="flex items-center justify-between text-[10px]">
-                    <span className="text-[#9B9B95]">{CHANNEL_LABELS[ch.channel]}</span>
+                    <span className="text-[var(--text-muted)]">{CHANNEL_LABELS[ch.channel]}</span>
                     <span>{ch.percent}% — R$ {ch.brl.toLocaleString("pt-BR")}</span>
                   </div>
                 ))}
@@ -157,14 +157,14 @@ export function TrafficCanvasCard({
           <Section title={`Campanhas (${canvas.campaigns.length})`}>
             <div className="space-y-2">
               {canvas.campaigns.map((camp) => (
-                <div key={camp.id} className="rounded-[6px] border border-[#E8E8E2] px-3 py-2 flex items-center justify-between gap-2 text-[11px]">
+                <div key={camp.id} className="rounded-[6px] border border-[var(--border)] px-3 py-2 flex items-center justify-between gap-2 text-[11px]">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${PRIORITY_STYLE[camp.priority]}`}>{camp.priority}</span>
-                      <span className="font-medium text-[#1A1A1A]">{camp.name}</span>
-                      <span className="text-[10px] text-[#9B9B95] bg-[#F0F9FF] px-1.5 py-0.5 rounded">{CHANNEL_LABELS[camp.channel]}</span>
+                      <span className="font-medium text-[var(--text-primary)]">{camp.name}</span>
+                      <span className="text-[10px] text-[var(--text-muted)] bg-[#F0F9FF] px-1.5 py-0.5 rounded">{CHANNEL_LABELS[camp.channel]}</span>
                     </div>
-                    <p className="text-[10px] text-[#9B9B95] mt-0.5">
+                    <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
                       {camp.budgetAllocation}% — R$ {camp.budgetBRL.toLocaleString("pt-BR")} | CAC: {camp.expectedCPA} | ROAS: {camp.expectedROAS}
                     </p>
                   </div>
@@ -176,13 +176,13 @@ export function TrafficCanvasCard({
           <Section title={`Audiências (${canvas.audiences.length})`}>
             <div className="space-y-2">
               {canvas.audiences.map((aud) => (
-                <div key={aud.id} className="rounded-[6px] bg-[#FAFAF8] px-3 py-2 text-[11px]">
+                <div key={aud.id} className="rounded-[6px] bg-[var(--bg-elevated)] px-3 py-2 text-[11px]">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <span className="font-medium text-[#1A1A1A]">{aud.name}</span>
-                    <span className="text-[10px] bg-[#E6FBFA] text-[#070A1F] px-1.5 py-0.5 rounded-full">{aud.funnelStage}</span>
-                    <span className="text-[10px] text-[#9B9B95]">{aud.estimatedReach}</span>
+                    <span className="font-medium text-[var(--text-primary)]">{aud.name}</span>
+                    <span className="text-[10px] bg-[var(--accent-light)] text-[var(--navy)] px-1.5 py-0.5 rounded-full">{aud.funnelStage}</span>
+                    <span className="text-[10px] text-[var(--text-muted)]">{aud.estimatedReach}</span>
                   </div>
-                  <p className="text-[10px] text-[#6B6B65]">{aud.description}</p>
+                  <p className="text-[10px] text-[var(--text-secondary)]">{aud.description}</p>
                 </div>
               ))}
             </div>
@@ -191,10 +191,10 @@ export function TrafficCanvasCard({
           <Section title="Mapeamento de Ofertas">
             <div className="space-y-2">
               {canvas.offerMappings.map((offer) => (
-                <div key={offer.id} className="rounded-[6px] bg-[#FAFAF8] px-3 py-2 text-[11px] flex items-center justify-between">
+                <div key={offer.id} className="rounded-[6px] bg-[var(--bg-elevated)] px-3 py-2 text-[11px] flex items-center justify-between">
                   <div>
-                    <span className="font-medium text-[#1A1A1A]">{offer.name}</span>
-                    <p className="text-[10px] text-[#9B9B95]">{offer.funnelStage} · urgência {offer.urgencyLevel} · destino: {offer.landingPage}</p>
+                    <span className="font-medium text-[var(--text-primary)]">{offer.name}</span>
+                    <p className="text-[10px] text-[var(--text-muted)]">{offer.funnelStage} · urgência {offer.urgencyLevel} · destino: {offer.landingPage}</p>
                   </div>
                   <span className="text-[10px] bg-[#0284C7] text-white px-2 py-0.5 rounded-full shrink-0">{offer.cta}</span>
                 </div>
@@ -211,7 +211,7 @@ export function TrafficCanvasCard({
               ].map((m) => (
                 <div key={m.label} className="rounded-[6px] bg-[#F0F9FF] px-2 py-2">
                   <div className="text-[12px] font-semibold text-[#0284C7]">{m.value}</div>
-                  <div className="text-[9px] text-[#9B9B95] mt-0.5">{m.label}</div>
+                  <div className="text-[9px] text-[var(--text-muted)] mt-0.5">{m.label}</div>
                 </div>
               ))}
             </div>
@@ -226,10 +226,10 @@ export function TrafficCanvasCard({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
                 {qg.items.map((item) => (
                   <div key={item.id} className="flex items-start gap-1.5 text-[10px]">
-                    <span className={item.status === "PASS" ? "text-[#16A34A] shrink-0" : item.status === "WARNING" ? "text-[#D97706] shrink-0" : "text-[#DC2626] shrink-0"}>
+                    <span className={item.status === "PASS" ? "text-[var(--success)] shrink-0" : item.status === "WARNING" ? "text-[var(--warning)] shrink-0" : "text-[var(--danger)] shrink-0"}>
                       {item.status === "PASS" ? "✓" : item.status === "WARNING" ? "⚠" : "✗"}
                     </span>
-                    <span className="text-[#1A1A1A]">{item.label}</span>
+                    <span className="text-[var(--text-primary)]">{item.label}</span>
                   </div>
                 ))}
               </div>
@@ -240,7 +240,7 @@ export function TrafficCanvasCard({
             <div className="flex flex-wrap gap-1">
               {canvas.cognitiveFlowTrace.map((step) => (
                 <span key={step.stepId} title={step.summary}
-                  className="text-[9px] px-2 py-0.5 rounded-full bg-[#DCFCE7] text-[#166534] border border-[#86EFAC]">
+                  className="text-[9px] px-2 py-0.5 rounded-full bg-[var(--success-bg)] text-[#166534] border border-[#86EFAC]">
                   {step.order}. {step.label}
                 </span>
               ))}
@@ -249,42 +249,42 @@ export function TrafficCanvasCard({
 
           {canvas.reviewNote && (
             <Section title="Nota de Revisão">
-              <p className="text-[11px] text-[#1A1A1A] bg-[#FEF3C7] rounded-[6px] px-3 py-2">{canvas.reviewNote}</p>
+              <p className="text-[11px] text-[var(--text-primary)] bg-[var(--warning-bg)] rounded-[6px] px-3 py-2">{canvas.reviewNote}</p>
             </Section>
           )}
         </div>
       )}
 
       {(onApprove || onReject || onProposeBrainChange) && (
-        <div className="px-4 py-3 flex items-center gap-2 flex-wrap bg-[#FAFAF8]">
+        <div className="px-4 py-3 flex items-center gap-2 flex-wrap bg-[var(--bg-elevated)]">
           {showNoteInput ? (
             <div className="flex-1 flex items-center gap-2">
-              <input className="flex-1 text-[11px] border border-[#E8E8E2] rounded-[6px] px-2 py-1.5 outline-none focus:border-[#0284C7]"
+              <input className="flex-1 text-[11px] border border-[var(--border)] rounded-[6px] px-2 py-1.5 outline-none focus:border-[#0284C7]"
                 placeholder={showNoteInput === "approve" ? "Nota (opcional)" : "Motivo da rejeição"}
                 value={note} onChange={(e) => setNote(e.target.value)} />
               <button onClick={() => submitNote(showNoteInput)}
-                className={`text-[11px] font-medium px-3 py-1.5 rounded-[6px] ${showNoteInput === "approve" ? "bg-[#16A34A] text-white" : "bg-[#DC2626] text-white"}`}>
+                className={`text-[11px] font-medium px-3 py-1.5 rounded-[6px] ${showNoteInput === "approve" ? "bg-[var(--success)] text-white" : "bg-[var(--danger)] text-white"}`}>
                 Confirmar
               </button>
-              <button onClick={() => setShowNoteInput(null)} className="text-[11px] text-[#6B6B65]">Cancelar</button>
+              <button onClick={() => setShowNoteInput(null)} className="text-[11px] text-[var(--text-secondary)]">Cancelar</button>
             </div>
           ) : (
             <>
               {onApprove && canvas.status === "draft" && (
                 <button disabled={qg.overall === "FAIL"} onClick={() => setShowNoteInput("approve")}
-                  className={`text-[11px] font-medium px-3 py-1.5 rounded-[6px] ${qg.overall === "FAIL" ? "bg-[#F0F0ED] text-[#9B9B95] cursor-not-allowed" : "bg-[#16A34A] text-white hover:bg-[#15803D]"}`}>
+                  className={`text-[11px] font-medium px-3 py-1.5 rounded-[6px] ${qg.overall === "FAIL" ? "bg-[var(--accent)] text-[var(--text-muted)] cursor-not-allowed" : "bg-[var(--success)] text-white hover:bg-[#15803D]"}`}>
                   {qg.overall === "FAIL" ? "Aprovação bloqueada" : "Aprovar"}
                 </button>
               )}
               {onReject && canvas.status === "draft" && (
                 <button onClick={() => setShowNoteInput("reject")}
-                  className="text-[11px] font-medium px-3 py-1.5 rounded-[6px] bg-[#FEE2E2] text-[#DC2626] hover:bg-[#FECACA]">
+                  className="text-[11px] font-medium px-3 py-1.5 rounded-[6px] bg-[#FEE2E2] text-[var(--danger)] hover:bg-[#FECACA]">
                   Rejeitar
                 </button>
               )}
               {onProposeBrainChange && isReviewed && (
                 <button onClick={onProposeBrainChange} disabled={brainChangeCreated}
-                  className={`text-[11px] font-medium px-3 py-1.5 rounded-[6px] ${brainChangeCreated ? "bg-[#E6FBFA] text-[#9B9B95] cursor-default" : "bg-[#E6FBFA] text-[#070A1F] hover:bg-[#E0E3FF]"}`}>
+                  className={`text-[11px] font-medium px-3 py-1.5 rounded-[6px] ${brainChangeCreated ? "bg-[var(--accent-light)] text-[var(--text-muted)] cursor-default" : "bg-[var(--accent-light)] text-[var(--navy)] hover:bg-[#E0E3FF]"}`}>
                   {brainChangeCreated ? "Brain Change criado ✓" : "Propor ao Brain"}
                 </button>
               )}

@@ -149,8 +149,8 @@ export function FileUploadZone({ clientId, onChange }: FileUploadZoneProps) {
         onClick={() => inputRef.current?.click()}
         className={`border-2 border-dashed rounded-[10px] px-5 py-6 text-center cursor-pointer transition-all select-none ${
           isDragOver
-            ? "border-[#070A1F] bg-[#E6FBFA]"
-            : "border-[#E5E5E2] bg-white hover:border-[#9B9B95] hover:bg-[#F7F7F6]"
+            ? "border-[var(--navy)] bg-[var(--accent-light)]"
+            : "border-[var(--border)] bg-white hover:border-[var(--text-muted)] hover:bg-[var(--bg)]"
         }`}
       >
         <input
@@ -164,28 +164,28 @@ export function FileUploadZone({ clientId, onChange }: FileUploadZoneProps) {
         />
         <svg
           width="22" height="22" viewBox="0 0 24 24" fill="none"
-          className={`mx-auto mb-2 ${isDragOver ? "text-[#070A1F]" : "text-[#9B9B95]"}`}
+          className={`mx-auto mb-2 ${isDragOver ? "text-[var(--navy)]" : "text-[var(--text-muted)]"}`}
         >
           <path d="M21 15V19A2 2 0 0119 21H5A2 2 0 013 19V15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           <polyline points="17 8 12 3 7 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           <line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
-        <p className={`text-[13px] font-medium ${isDragOver ? "text-[#070A1F]" : "text-[#1A1A1A]"}`}>
+        <p className={`text-[13px] font-medium ${isDragOver ? "text-[var(--navy)]" : "text-[var(--text-primary)]"}`}>
           {isDragOver ? "Solte os arquivos aqui" : "Arraste arquivos ou clique para selecionar"}
         </p>
-        <p className="text-[11px] text-[#9B9B95] mt-1">
+        <p className="text-[11px] text-[var(--text-muted)] mt-1">
           Envie brand book, logo, fotos, cardápio, referências ou qualquer material útil para o briefing.
         </p>
-        <p className="text-[10px] text-[#C0C0BC] mt-0.5">
+        <p className="text-[10px] text-[var(--text-subtle)] mt-0.5">
           PDF, DOC, DOCX, PPT, PPTX, PNG, JPG, WEBP, SVG, ZIP · máx. 25 MB por arquivo · até {MAX_FILES} arquivos
         </p>
       </div>
 
       {/* Validation errors */}
       {errors.length > 0 && (
-        <div className="bg-[#FEF2F2] border border-[#FECACA] rounded-[8px] px-3 py-2.5 space-y-0.5">
+        <div className="bg-[var(--danger-bg)] border border-[#FECACA] rounded-[8px] px-3 py-2.5 space-y-0.5">
           {errors.map((err, i) => (
-            <p key={i} className="text-[12px] text-[#DC2626]">{err}</p>
+            <p key={i} className="text-[12px] text-[var(--danger)]">{err}</p>
           ))}
         </div>
       )}
@@ -196,23 +196,23 @@ export function FileUploadZone({ clientId, onChange }: FileUploadZoneProps) {
           {entries.map(({ attachment }) => (
             <div
               key={attachment.id}
-              className="flex items-center gap-3 bg-white border border-[#E5E5E2] rounded-[8px] px-3 py-2.5"
+              className="flex items-center gap-3 bg-white border border-[var(--border)] rounded-[8px] px-3 py-2.5"
             >
               {/* Type badge */}
-              <div className="w-8 h-8 rounded-[6px] bg-[#F0F0ED] flex items-center justify-center shrink-0">
-                <span className="text-[8px] font-bold text-[#6B6B65] leading-none">
+              <div className="w-8 h-8 rounded-[6px] bg-[var(--accent)] flex items-center justify-center shrink-0">
+                <span className="text-[8px] font-bold text-[var(--text-secondary)] leading-none">
                   {attachment.fileType}
                 </span>
               </div>
 
               {/* Info */}
               <div className="flex-1 min-w-0">
-                <p className="text-[12px] font-medium text-[#1A1A1A] truncate">{attachment.fileName}</p>
-                <p className="text-[10px] text-[#9B9B95]">{formatBytes(attachment.sizeBytes)}</p>
+                <p className="text-[12px] font-medium text-[var(--text-primary)] truncate">{attachment.fileName}</p>
+                <p className="text-[10px] text-[var(--text-muted)]">{formatBytes(attachment.sizeBytes)}</p>
               </div>
 
               {/* Status */}
-              <span className="h-4 px-1.5 rounded-[3px] bg-[#DCFCE7] text-[9px] font-semibold text-[#16A34A] shrink-0 whitespace-nowrap">
+              <span className="h-4 px-1.5 rounded-[3px] bg-[var(--success-bg)] text-[9px] font-semibold text-[var(--success)] shrink-0 whitespace-nowrap">
                 Anexado
               </span>
 
@@ -221,14 +221,14 @@ export function FileUploadZone({ clientId, onChange }: FileUploadZoneProps) {
                 type="button"
                 onClick={(e) => { e.stopPropagation(); remove(attachment.id); }}
                 aria-label={`Remover ${attachment.fileName}`}
-                className="text-[#C0C0BC] hover:text-[#DC2626] transition-colors shrink-0 text-[18px] leading-none pb-0.5"
+                className="text-[var(--text-subtle)] hover:text-[var(--danger)] transition-colors shrink-0 text-[18px] leading-none pb-0.5"
               >
                 ×
               </button>
             </div>
           ))}
 
-          <p className="text-[11px] text-[#9B9B95]">
+          <p className="text-[11px] text-[var(--text-muted)]">
             {entries.length} arquivo{entries.length !== 1 ? "s" : ""} anexado{entries.length !== 1 ? "s" : ""} — Materiais anexados ao briefing.
           </p>
         </div>
@@ -316,7 +316,7 @@ export function MaterialsLinkField({ clientId, onChange }: MaterialsLinkFieldPro
 
   return (
     <div className="space-y-2.5">
-      <p className="text-[11px] text-[#6B6B65]">
+      <p className="text-[11px] text-[var(--text-secondary)]">
         Compartilhe materiais como brand book, logo ou referências via link.
         Google Drive, Dropbox, Figma, Notion e WhatsApp são aceitos.
       </p>
@@ -329,20 +329,20 @@ export function MaterialsLinkField({ clientId, onChange }: MaterialsLinkFieldPro
           onChange={(e) => { setInput(e.target.value); setError(""); }}
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
           placeholder="https://drive.google.com/…"
-          className="flex-1 px-3 py-2 text-[12px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[8px] outline-none focus:border-[#1A1A1A] focus:bg-white transition-all placeholder:text-[#C0C0BC]"
+          className="flex-1 px-3 py-2 text-[12px] bg-[var(--bg)] border border-[var(--border)] rounded-[8px] outline-none focus:border-[var(--text-primary)] focus:bg-white transition-all placeholder:text-[var(--text-subtle)]"
         />
         <button
           type="button"
           onClick={add}
           disabled={!input.trim()}
-          className="px-3 py-2 rounded-[8px] bg-[#1A1A1A] hover:bg-[#111111] disabled:opacity-40 disabled:cursor-not-allowed text-white text-[11px] font-semibold transition-colors shrink-0"
+          className="px-3 py-2 rounded-[8px] bg-[var(--text-primary)] hover:bg-[var(--text-primary)] disabled:opacity-40 disabled:cursor-not-allowed text-white text-[11px] font-semibold transition-colors shrink-0"
         >
           Adicionar
         </button>
       </div>
 
       {error && (
-        <p className="text-[11px] text-[#DC2626]">{error}</p>
+        <p className="text-[11px] text-[var(--danger)]">{error}</p>
       )}
 
       {/* Link list */}
@@ -351,9 +351,9 @@ export function MaterialsLinkField({ clientId, onChange }: MaterialsLinkFieldPro
           {links.map((l) => (
             <div
               key={l.id}
-              className="flex items-center gap-3 bg-white border border-[#E5E5E2] rounded-[8px] px-3 py-2.5"
+              className="flex items-center gap-3 bg-white border border-[var(--border)] rounded-[8px] px-3 py-2.5"
             >
-              <div className="w-8 h-8 rounded-[6px] bg-[#E6FBFA] flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-[6px] bg-[var(--accent-light)] flex items-center justify-center shrink-0">
                 <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
                   <path d="M5.5 8.5L8.5 5.5" stroke="#070A1F" strokeWidth="1.3" strokeLinecap="round"/>
                   <path d="M7.5 3.5L9 2A2.12 2.12 0 0112 5L10.5 6.5" stroke="#070A1F" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
@@ -361,20 +361,20 @@ export function MaterialsLinkField({ clientId, onChange }: MaterialsLinkFieldPro
                 </svg>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[12px] font-medium text-[#1A1A1A] truncate">{l.fileName}</p>
-                <p className="text-[10px] text-[#9B9B95] truncate">{l.previewUrl}</p>
+                <p className="text-[12px] font-medium text-[var(--text-primary)] truncate">{l.fileName}</p>
+                <p className="text-[10px] text-[var(--text-muted)] truncate">{l.previewUrl}</p>
               </div>
               <button
                 type="button"
                 onClick={() => remove(l.id)}
                 aria-label={`Remover link ${l.fileName}`}
-                className="text-[#C0C0BC] hover:text-[#DC2626] transition-colors shrink-0 text-[18px] leading-none pb-0.5"
+                className="text-[var(--text-subtle)] hover:text-[var(--danger)] transition-colors shrink-0 text-[18px] leading-none pb-0.5"
               >
                 ×
               </button>
             </div>
           ))}
-          <p className="text-[11px] text-[#9B9B95]">
+          <p className="text-[11px] text-[var(--text-muted)]">
             {links.length} link{links.length !== 1 ? "s" : ""} adicionado{links.length !== 1 ? "s" : ""}.
           </p>
         </div>

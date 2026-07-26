@@ -121,7 +121,7 @@ function MessageBubble({ msg }: { msg: ConvMessage }) {
   if (msg.role === "system") {
     return (
       <div className="text-center">
-        <span className="inline-block text-[10px] text-[#9B9B95] bg-[#F7F7F6] px-3 py-1 rounded-full">
+        <span className="inline-block text-[10px] text-[var(--text-muted)] bg-[var(--bg)] px-3 py-1 rounded-full">
           {msg.text}
         </span>
       </div>
@@ -131,7 +131,7 @@ function MessageBubble({ msg }: { msg: ConvMessage }) {
   return (
     <div className={`flex ${isAssistant ? "justify-start" : "justify-end"}`}>
       {isAssistant && (
-        <div className="w-6 h-6 rounded-full bg-[#1A1A1A] flex items-center justify-center shrink-0 mr-2 mt-0.5">
+        <div className="w-6 h-6 rounded-full bg-[var(--text-primary)] flex items-center justify-center shrink-0 mr-2 mt-0.5">
           <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
             <circle cx="4" cy="4" r="2.5" fill="white" fillOpacity="0.9"/>
           </svg>
@@ -140,8 +140,8 @@ function MessageBubble({ msg }: { msg: ConvMessage }) {
       <div
         className={`max-w-[85%] px-3.5 py-2.5 rounded-[12px] text-[13px] leading-relaxed ${
           isAssistant
-            ? "bg-[#F7F7F6] text-[#1A1A1A] rounded-tl-[4px]"
-            : "bg-[#1A1A1A] text-white rounded-tr-[4px]"
+            ? "bg-[var(--bg)] text-[var(--text-primary)] rounded-tl-[4px]"
+            : "bg-[var(--text-primary)] text-white rounded-tr-[4px]"
         }`}
       >
         <MsgText text={msg.text} />
@@ -153,11 +153,11 @@ function MessageBubble({ msg }: { msg: ConvMessage }) {
 // ── Package badge ─────────────────────────────────────────────────────────────
 
 const PKG_STYLE: Record<string, { bg: string; text: string }> = {
-  essencial: { bg: "bg-[#F0F0ED]", text: "text-[#6B6B65]" },
-  starter:   { bg: "bg-[#F0F0ED]", text: "text-[#6B6B65]" },
-  growth:    { bg: "bg-[#E6FBFA]", text: "text-[#070A1F]" },
-  pro:       { bg: "bg-[#E6FBFA]", text: "text-[#070A1F]" },
-  premium:   { bg: "bg-[#070A1F]", text: "text-white" },
+  essencial: { bg: "bg-[var(--accent)]", text: "text-[var(--text-secondary)]" },
+  starter:   { bg: "bg-[var(--accent)]", text: "text-[var(--text-secondary)]" },
+  growth:    { bg: "bg-[var(--accent-light)]", text: "text-[var(--navy)]" },
+  pro:       { bg: "bg-[var(--accent-light)]", text: "text-[var(--navy)]" },
+  premium:   { bg: "bg-[var(--navy)]", text: "text-white" },
 };
 
 // ── Scope section ─────────────────────────────────────────────────────────────
@@ -235,7 +235,7 @@ function ScopeSection({ scope }: { scope: BriefingScope }) {
     <div className="space-y-2">
       {pkgLabel && pkgStyle && (
         <div className="flex items-center gap-2 mb-1">
-          <span className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em]">Plano</span>
+          <span className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em]">Plano</span>
           <span className={`h-5 px-2.5 rounded-full text-[10px] font-semibold ${pkgStyle.bg} ${pkgStyle.text}`}>
             {pkgLabel}
           </span>
@@ -243,8 +243,8 @@ function ScopeSection({ scope }: { scope: BriefingScope }) {
       )}
       {rows.map((r, i) => (
         <div key={i} className="flex items-start gap-2 text-[11px]">
-          <span className="text-[#9B9B95] shrink-0 w-[68px]">{r.label}</span>
-          <span className={r.dim ? "text-[#C0C0BC]" : "text-[#1A1A1A] font-medium"}>{r.value}</span>
+          <span className="text-[var(--text-muted)] shrink-0 w-[68px]">{r.label}</span>
+          <span className={r.dim ? "text-[var(--text-subtle)]" : "text-[var(--text-primary)] font-medium"}>{r.value}</span>
         </div>
       ))}
     </div>
@@ -255,17 +255,17 @@ function ScopeSection({ scope }: { scope: BriefingScope }) {
 
 const CONFIDENCE_CFG = {
   none:   { label: "",                     bg: "",               text: "" },
-  low:    { label: "Estimativa inicial",   bg: "bg-[#FEF3C7]",  text: "text-[#D97706]" },
-  medium: { label: "Estimativa aprox.",    bg: "bg-[#E6FBFA]",  text: "text-[#070A1F]" },
-  high:   { label: "Estimativa confiável", bg: "bg-[#DCFCE7]",  text: "text-[#16A34A]" },
+  low:    { label: "Estimativa inicial",   bg: "bg-[var(--warning-bg)]",  text: "text-[var(--warning)]" },
+  medium: { label: "Estimativa aprox.",    bg: "bg-[var(--accent-light)]",  text: "text-[var(--navy)]" },
+  high:   { label: "Estimativa confiável", bg: "bg-[var(--success-bg)]",  text: "text-[var(--success)]" },
 };
 
 function EstimateSection({ estimate }: { estimate: LiveEstimate }) {
   const cfg = CONFIDENCE_CFG[estimate.confidence];
   return (
-    <div className="border-t border-[#F0F0ED] pt-3 space-y-1.5">
+    <div className="border-t border-[var(--border)] pt-3 space-y-1.5">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em]">Estimativa mensal</span>
+        <span className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em]">Estimativa mensal</span>
         {estimate.confidence !== "none" && (
           <span className={`h-4 px-1.5 rounded-[3px] text-[9px] font-semibold ${cfg.bg} ${cfg.text}`}>
             {cfg.label}
@@ -274,37 +274,37 @@ function EstimateSection({ estimate }: { estimate: LiveEstimate }) {
       </div>
       {estimate.items.map((item, i) => (
         <div key={i} className="flex items-start gap-2 text-[11px]">
-          <span className="text-[#9B9B95] flex-1 leading-relaxed">{item.label}</span>
-          <span className="text-[#6B6B65] shrink-0 text-right">
+          <span className="text-[var(--text-muted)] flex-1 leading-relaxed">{item.label}</span>
+          <span className="text-[var(--text-secondary)] shrink-0 text-right">
             {fmtBRL(item.minPrice)}–{fmtBRL(item.maxPrice)}
-            <span className="text-[#C0C0BC]">/{item.unit}</span>
+            <span className="text-[var(--text-subtle)]">/{item.unit}</span>
           </span>
         </div>
       ))}
       {estimate.discountPct && estimate.discountedMin !== undefined ? (
         <>
-          <div className="flex items-center justify-between pt-1.5 border-t border-[#F0F0ED]">
-            <span className="text-[10px] text-[#9B9B95]">Subtotal</span>
-            <span className="text-[11px] text-[#9B9B95] line-through">
+          <div className="flex items-center justify-between pt-1.5 border-t border-[var(--border)]">
+            <span className="text-[10px] text-[var(--text-muted)]">Subtotal</span>
+            <span className="text-[11px] text-[var(--text-muted)] line-through">
               {fmtBRL(estimate.totalMin)} – {fmtBRL(estimate.totalMax)}
             </span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-medium text-[#16A34A]">
+            <span className="text-[10px] font-medium text-[var(--success)]">
               Desconto {estimate.discountPct}%{estimate.discountReason ? ` · ${estimate.discountReason}` : ""}
             </span>
           </div>
-          <div className="flex items-center justify-between pt-1 border-t border-[#F0F0ED]">
-            <span className="text-[11px] font-semibold text-[#1A1A1A]">Total com desconto</span>
-            <span className="text-[13px] font-bold text-[#16A34A]">
+          <div className="flex items-center justify-between pt-1 border-t border-[var(--border)]">
+            <span className="text-[11px] font-semibold text-[var(--text-primary)]">Total com desconto</span>
+            <span className="text-[13px] font-bold text-[var(--success)]">
               {fmtBRL(estimate.discountedMin)} – {fmtBRL(estimate.discountedMax ?? estimate.discountedMin)}
             </span>
           </div>
         </>
       ) : (
-        <div className="flex items-center justify-between pt-1.5 border-t border-[#F0F0ED]">
-          <span className="text-[11px] font-semibold text-[#1A1A1A]">Total</span>
-          <span className="text-[13px] font-bold text-[#1A1A1A]">
+        <div className="flex items-center justify-between pt-1.5 border-t border-[var(--border)]">
+          <span className="text-[11px] font-semibold text-[var(--text-primary)]">Total</span>
+          <span className="text-[13px] font-bold text-[var(--text-primary)]">
             {fmtBRL(estimate.totalMin)} – {fmtBRL(estimate.totalMax)}
           </span>
         </div>
@@ -425,10 +425,10 @@ function GoogleSignInButton({
 
   if (state === "waiting" || state === "opening") {
     return (
-      <button disabled className="w-full h-11 rounded-[8px] bg-[#F7F7F6] border border-[#E5E5E2] text-[#9B9B95] text-[13px] font-medium flex items-center justify-center gap-2 cursor-not-allowed">
-        <span className="w-1.5 h-1.5 rounded-full bg-[#9B9B95] animate-bounce" style={{ animationDelay: "0ms" }} />
-        <span className="w-1.5 h-1.5 rounded-full bg-[#9B9B95] animate-bounce" style={{ animationDelay: "150ms" }} />
-        <span className="w-1.5 h-1.5 rounded-full bg-[#9B9B95] animate-bounce" style={{ animationDelay: "300ms" }} />
+      <button disabled className="w-full h-11 rounded-[8px] bg-[var(--bg)] border border-[var(--border)] text-[var(--text-muted)] text-[13px] font-medium flex items-center justify-center gap-2 cursor-not-allowed">
+        <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)] animate-bounce" style={{ animationDelay: "0ms" }} />
+        <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)] animate-bounce" style={{ animationDelay: "150ms" }} />
+        <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)] animate-bounce" style={{ animationDelay: "300ms" }} />
       </button>
     );
   }
@@ -439,7 +439,7 @@ function GoogleSignInButton({
         onClick={handleClick}
         disabled={loading}
         style={{ touchAction: "manipulation" }}
-        className="w-full h-11 rounded-[8px] bg-white border border-[#E5E5E2] hover:border-[#9B9B95] hover:bg-[#FAFAF9] text-[#1A1A1A] text-[13px] font-semibold transition-colors flex items-center justify-center gap-2.5 disabled:opacity-50"
+        className="w-full h-11 rounded-[8px] bg-white border border-[var(--border)] hover:border-[var(--text-muted)] hover:bg-[var(--bg-elevated)] text-[var(--text-primary)] text-[13px] font-semibold transition-colors flex items-center justify-center gap-2.5 disabled:opacity-50"
       >
         {/* Google "G" logo */}
         <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -451,7 +451,7 @@ function GoogleSignInButton({
         Continuar com Google para ver a proposta
       </button>
       {state === "error" && (
-        <p className="text-[10px] text-[#DC2626] text-center">
+        <p className="text-[10px] text-[var(--danger)] text-center">
           Erro ao autenticar com Google{errorCode ? ` (${errorCode})` : ""}. Use o formulário abaixo.
         </p>
       )}
@@ -472,14 +472,14 @@ function EmailFallbackForm({ onSubmit, loading }: { onSubmit: (email: string) =>
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         placeholder="seu@email.com"
-        className="w-full px-3 py-2.5 border border-[#E5E5E2] rounded-[8px] outline-none focus:border-[#1A1A1A] transition-colors"
+        className="w-full px-3 py-2.5 border border-[var(--border)] rounded-[8px] outline-none focus:border-[var(--text-primary)] transition-colors"
         style={{ fontSize: "16px" }}
       />
       <button
         onClick={() => valid && onSubmit(email)}
         disabled={!valid || loading}
         style={{ touchAction: "manipulation" }}
-        className="w-full h-11 rounded-[8px] bg-[#1A1A1A] hover:bg-[#111111] disabled:opacity-40 text-white text-[13px] font-semibold transition-colors"
+        className="w-full h-11 rounded-[8px] bg-[var(--text-primary)] hover:bg-[var(--text-primary)] disabled:opacity-40 text-white text-[13px] font-semibold transition-colors"
       >
         {loading ? "Enviando…" : "Enviar proposta para análise →"}
       </button>
@@ -503,7 +503,7 @@ function EmailContactForm({ onSubmit, loading }: { onSubmit: (email: string, nam
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="Seu nome completo"
-        className="w-full px-3 py-2.5 border border-[#E5E5E2] rounded-[8px] outline-none focus:border-[#1A1A1A] transition-colors"
+        className="w-full px-3 py-2.5 border border-[var(--border)] rounded-[8px] outline-none focus:border-[var(--text-primary)] transition-colors"
         style={{ fontSize: "16px" }}
       />
       <input
@@ -511,14 +511,14 @@ function EmailContactForm({ onSubmit, loading }: { onSubmit: (email: string, nam
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         placeholder="seu@email.com"
-        className="w-full px-3 py-2.5 border border-[#E5E5E2] rounded-[8px] outline-none focus:border-[#1A1A1A] transition-colors"
+        className="w-full px-3 py-2.5 border border-[var(--border)] rounded-[8px] outline-none focus:border-[var(--text-primary)] transition-colors"
         style={{ fontSize: "16px" }}
       />
       <button
         onClick={() => valid && onSubmit(email, name.trim())}
         disabled={!valid || loading}
         style={{ touchAction: "manipulation" }}
-        className="w-full h-11 rounded-[8px] bg-[#1A1A1A] hover:bg-[#111111] disabled:opacity-40 text-white text-[13px] font-semibold transition-colors"
+        className="w-full h-11 rounded-[8px] bg-[var(--text-primary)] hover:bg-[var(--text-primary)] disabled:opacity-40 text-white text-[13px] font-semibold transition-colors"
       >
         {loading ? "Enviando…" : "Enviar por e-mail →"}
       </button>
@@ -557,9 +557,9 @@ function ProposalCard({
   return (
     <div className="space-y-3">
       {/* Banner */}
-      <div className="bg-[#DCFCE7] border border-[#86EFAC] rounded-[8px] px-3 py-2.5">
+      <div className="bg-[var(--success-bg)] border border-[#86EFAC] rounded-[8px] px-3 py-2.5">
         <p className="text-[11px] font-semibold text-[#166534]">Proposta inicial pronta para revisão</p>
-        <p className="text-[10px] text-[#16A34A] mt-0.5">
+        <p className="text-[10px] text-[var(--success)] mt-0.5">
           Revise o escopo abaixo e envie para análise da Dioli.
         </p>
       </div>
@@ -567,35 +567,35 @@ function ProposalCard({
       {/* Plano recomendado */}
       {pkgDesc && (
         <div>
-          <div className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1">Plano recomendado</div>
-          <p className="text-[11px] text-[#1A1A1A] font-medium">{pkgDesc}</p>
+          <div className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em] mb-1">Plano recomendado</div>
+          <p className="text-[11px] text-[var(--text-primary)] font-medium">{pkgDesc}</p>
         </div>
       )}
 
       {/* Investimento */}
       {estimate.totalMin > 0 && (
         <div>
-          <div className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1">Investimento estimado</div>
+          <div className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em] mb-1">Investimento estimado</div>
           {estimate.discountPct && estimate.discountedMin !== undefined ? (
             <>
-              <p className="text-[11px] text-[#9B9B95] line-through">
+              <p className="text-[11px] text-[var(--text-muted)] line-through">
                 {fmtBRL(estimate.totalMin)} – {fmtBRL(estimate.totalMax)}/mês
               </p>
-              <p className="text-[14px] font-bold text-[#16A34A]">
+              <p className="text-[14px] font-bold text-[var(--success)]">
                 {fmtBRL(estimate.discountedMin)} – {fmtBRL(estimate.discountedMax ?? estimate.discountedMin)}
-                <span className="text-[11px] font-normal text-[#9B9B95] ml-1">/mês</span>
+                <span className="text-[11px] font-normal text-[var(--text-muted)] ml-1">/mês</span>
               </p>
-              <p className="text-[9px] text-[#16A34A] mt-0.5">
+              <p className="text-[9px] text-[var(--success)] mt-0.5">
                 {estimate.discountPct}% de desconto{estimate.discountReason ? ` · ${estimate.discountReason}` : ""}
               </p>
             </>
           ) : (
             <>
-              <p className="text-[14px] font-bold text-[#1A1A1A]">
+              <p className="text-[14px] font-bold text-[var(--text-primary)]">
                 {fmtBRL(estimate.totalMin)} – {fmtBRL(estimate.totalMax)}
-                <span className="text-[11px] font-normal text-[#9B9B95] ml-1">/mês</span>
+                <span className="text-[11px] font-normal text-[var(--text-muted)] ml-1">/mês</span>
               </p>
-              <p className="text-[9px] text-[#C0C0BC] mt-0.5">*Sujeito a detalhamento no escopo final</p>
+              <p className="text-[9px] text-[var(--text-subtle)] mt-0.5">*Sujeito a detalhamento no escopo final</p>
             </>
           )}
         </div>
@@ -603,17 +603,17 @@ function ProposalCard({
 
       {/* Prazo */}
       <div>
-        <div className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1">Prazo de início</div>
-        <p className="text-[11px] text-[#1A1A1A]">{scope.deadline ?? timeline}</p>
+        <div className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em] mb-1">Prazo de início</div>
+        <p className="text-[11px] text-[var(--text-primary)]">{scope.deadline ?? timeline}</p>
       </div>
 
       {/* Incluso */}
       {incl.length > 0 && (
         <div>
-          <div className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1">O que está incluso</div>
+          <div className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em] mb-1">O que está incluso</div>
           {incl.map((item, i) => (
-            <div key={i} className="flex items-start gap-1.5 text-[10px] text-[#1A1A1A] py-0.5">
-              <span className="text-[#16A34A] shrink-0 font-bold">✓</span>
+            <div key={i} className="flex items-start gap-1.5 text-[10px] text-[var(--text-primary)] py-0.5">
+              <span className="text-[var(--success)] shrink-0 font-bold">✓</span>
               {item}
             </div>
           ))}
@@ -623,9 +623,9 @@ function ProposalCard({
       {/* Não incluso */}
       {excl.length > 0 && (
         <div>
-          <div className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1">Não incluso</div>
+          <div className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em] mb-1">Não incluso</div>
           {excl.map((item, i) => (
-            <div key={i} className="flex items-start gap-1.5 text-[10px] text-[#9B9B95] py-0.5">
+            <div key={i} className="flex items-start gap-1.5 text-[10px] text-[var(--text-muted)] py-0.5">
               <span className="shrink-0">–</span>
               {item}
             </div>
@@ -634,9 +634,9 @@ function ProposalCard({
       )}
 
       {/* Próximos passos */}
-      <div className="bg-[#F7F7F6] rounded-[8px] px-3 py-2.5">
-        <div className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1">Próximos passos</div>
-        <p className="text-[10px] text-[#6B6B65] leading-relaxed">
+      <div className="bg-[var(--bg)] rounded-[8px] px-3 py-2.5">
+        <div className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em] mb-1">Próximos passos</div>
+        <p className="text-[10px] text-[var(--text-secondary)] leading-relaxed">
           Após o envio, nossa equipe revisa o escopo, prepara uma proposta formal e entra em contato em até 24h úteis.
         </p>
       </div>
@@ -894,7 +894,7 @@ function BriefingFileUpload({
         onDragLeave={(e) => { e.preventDefault(); setDragOver(false); }}
         onDrop={(e) => { e.preventDefault(); setDragOver(false); onPick(Array.from(e.dataTransfer.files)); }}
         className={`border-2 border-dashed rounded-[10px] px-4 py-5 text-center cursor-pointer transition-all select-none ${
-          dragOver ? "border-[#070A1F] bg-[#E6FBFA]" : "border-[#E5E5E2] bg-white hover:border-[#9B9B95] hover:bg-[#F7F7F6]"
+          dragOver ? "border-[var(--navy)] bg-[var(--accent-light)]" : "border-[var(--border)] bg-white hover:border-[var(--text-muted)] hover:bg-[var(--bg)]"
         }`}
       >
         <input
@@ -906,43 +906,43 @@ function BriefingFileUpload({
           className="hidden"
           aria-label="Selecionar arquivos do briefing"
         />
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className={`mx-auto mb-1.5 ${dragOver ? "text-[#070A1F]" : "text-[#9B9B95]"}`}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className={`mx-auto mb-1.5 ${dragOver ? "text-[var(--navy)]" : "text-[var(--text-muted)]"}`}>
           <path d="M21 15V19A2 2 0 0119 21H5A2 2 0 013 19V15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           <polyline points="17 8 12 3 7 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           <line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
-        <p className={`text-[12px] font-medium ${dragOver ? "text-[#070A1F]" : "text-[#1A1A1A]"}`}>
+        <p className={`text-[12px] font-medium ${dragOver ? "text-[var(--navy)]" : "text-[var(--text-primary)]"}`}>
           {dragOver ? "Solte aqui" : "Arraste ou clique para enviar"}
         </p>
-        <p className="text-[10px] text-[#9B9B95] mt-0.5">
+        <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
           Briefing em Word/PDF, fotos, cardápio, referências. A Dioli lê o documento automaticamente.
         </p>
-        <p className="text-[9px] text-[#C0C0BC] mt-0.5">PDF, DOC, DOCX, PPT, PNG, JPG, SVG, TXT · máx. 20 MB</p>
+        <p className="text-[9px] text-[var(--text-subtle)] mt-0.5">PDF, DOC, DOCX, PPT, PNG, JPG, SVG, TXT · máx. 20 MB</p>
       </div>
 
       {items.length > 0 && (
         <div className="space-y-1.5">
           {items.map((it) => (
-            <div key={it.id} className="flex items-center gap-2.5 bg-white border border-[#E5E5E2] rounded-[8px] px-2.5 py-2">
-              <div className="w-7 h-7 rounded-[6px] bg-[#F0F0ED] flex items-center justify-center shrink-0">
-                <span className="text-[8px] font-bold text-[#6B6B65] leading-none">{it.attachment.fileType}</span>
+            <div key={it.id} className="flex items-center gap-2.5 bg-white border border-[var(--border)] rounded-[8px] px-2.5 py-2">
+              <div className="w-7 h-7 rounded-[6px] bg-[var(--accent)] flex items-center justify-center shrink-0">
+                <span className="text-[8px] font-bold text-[var(--text-secondary)] leading-none">{it.attachment.fileType}</span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[12px] font-medium text-[#1A1A1A] truncate">{it.attachment.fileName}</p>
-                <p className="text-[10px] text-[#9B9B95]">{fmtBytes(it.attachment.sizeBytes)}</p>
+                <p className="text-[12px] font-medium text-[var(--text-primary)] truncate">{it.attachment.fileName}</p>
+                <p className="text-[10px] text-[var(--text-muted)]">{fmtBytes(it.attachment.sizeBytes)}</p>
               </div>
               {it.status === "uploading" && (
-                <span className="h-4 px-1.5 rounded-[3px] bg-[#FEF3C7] text-[9px] font-semibold text-[#D97706] shrink-0 whitespace-nowrap">
+                <span className="h-4 px-1.5 rounded-[3px] bg-[var(--warning-bg)] text-[9px] font-semibold text-[var(--warning)] shrink-0 whitespace-nowrap">
                   Lendo…
                 </span>
               )}
               {it.status === "done" && (
-                <span className="h-4 px-1.5 rounded-[3px] bg-[#DCFCE7] text-[9px] font-semibold text-[#16A34A] shrink-0 whitespace-nowrap">
+                <span className="h-4 px-1.5 rounded-[3px] bg-[var(--success-bg)] text-[9px] font-semibold text-[var(--success)] shrink-0 whitespace-nowrap">
                   Anexado
                 </span>
               )}
               {it.status === "error" && (
-                <span className="h-4 px-1.5 rounded-[3px] bg-[#FEE2E2] text-[9px] font-semibold text-[#DC2626] shrink-0 whitespace-nowrap">
+                <span className="h-4 px-1.5 rounded-[3px] bg-[#FEE2E2] text-[9px] font-semibold text-[var(--danger)] shrink-0 whitespace-nowrap">
                   Falhou
                 </span>
               )}
@@ -950,7 +950,7 @@ function BriefingFileUpload({
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onRemove(it.id); }}
                 aria-label={`Remover ${it.attachment.fileName}`}
-                className="text-[#C0C0BC] hover:text-[#DC2626] transition-colors shrink-0 text-[16px] leading-none"
+                className="text-[var(--text-subtle)] hover:text-[var(--danger)] transition-colors shrink-0 text-[16px] leading-none"
               >
                 ×
               </button>
@@ -1257,17 +1257,17 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">
 
       {/* ── Left: Chat ───────────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden flex flex-col">
+      <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden flex flex-col">
 
         {/* Chat header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0F0ED]">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
           <div>
-            <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em]">Consultora de Orçamento</div>
-            <div className="text-[14px] font-semibold text-[#1A1A1A] mt-0.5">Conversa com a Dioli Studio</div>
+            <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em]">Consultora de Orçamento</div>
+            <div className="text-[14px] font-semibold text-[var(--text-primary)] mt-0.5">Conversa com a Dioli Studio</div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-[#16A34A]" />
-            <span className="text-[11px] text-[#9B9B95]">Online</span>
+            <span className="h-2 w-2 rounded-full bg-[var(--success)]" />
+            <span className="text-[11px] text-[var(--text-muted)]">Online</span>
           </div>
         </div>
 
@@ -1278,13 +1278,13 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
           ))}
           {aiThinking && (
             <div className="flex items-center gap-2.5">
-              <div className="w-5 h-5 rounded-full bg-[#1A1A1A] flex items-center justify-center shrink-0">
+              <div className="w-5 h-5 rounded-full bg-[var(--text-primary)] flex items-center justify-center shrink-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-white" />
               </div>
-              <div className="flex items-center gap-1 px-3 py-2.5 rounded-[12px] bg-[#F0F0ED]">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#9B9B95] animate-bounce" style={{ animationDelay: "0ms" }} />
-                <span className="w-1.5 h-1.5 rounded-full bg-[#9B9B95] animate-bounce" style={{ animationDelay: "150ms" }} />
-                <span className="w-1.5 h-1.5 rounded-full bg-[#9B9B95] animate-bounce" style={{ animationDelay: "300ms" }} />
+              <div className="flex items-center gap-1 px-3 py-2.5 rounded-[12px] bg-[var(--accent)]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)] animate-bounce" style={{ animationDelay: "0ms" }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)] animate-bounce" style={{ animationDelay: "150ms" }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)] animate-bounce" style={{ animationDelay: "300ms" }} />
               </div>
             </div>
           )}
@@ -1293,22 +1293,22 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
 
         {/* Materials panel (toggled): file upload + cloud links */}
         {showMaterials && (
-          <div className="px-5 pb-3 border-t border-[#F0F0ED] pt-3 space-y-4">
+          <div className="px-5 pb-3 border-t border-[var(--border)] pt-3 space-y-4">
             {/* File upload */}
             <div>
-              <div className="text-[11px] font-semibold text-[#1A1A1A] mb-2">Enviar arquivo do briefing</div>
+              <div className="text-[11px] font-semibold text-[var(--text-primary)] mb-2">Enviar arquivo do briefing</div>
               <BriefingFileUpload items={fileItems} onPick={handleFilesPicked} onRemove={removeFileItem} />
             </div>
             {/* Cloud links */}
             <div>
-              <div className="text-[11px] font-semibold text-[#1A1A1A] mb-2">Ou compartilhar por link</div>
+              <div className="text-[11px] font-semibold text-[var(--text-primary)] mb-2">Ou compartilhar por link</div>
               <MaterialsLinkField clientId={tempClientId} onChange={setLinkAtts} />
             </div>
           </div>
         )}
 
         {/* Input */}
-        <div className="border-t border-[#F0F0ED] px-4 py-3">
+        <div className="border-t border-[var(--border)] px-4 py-3">
           <div className="flex gap-2">
             <textarea
               ref={textareaRef}
@@ -1321,13 +1321,13 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
                   : "Digite sua resposta…"
               }
               rows={2}
-              className="flex-1 px-3 py-2.5 bg-[#F7F7F6] border border-[#E5E5E2] rounded-[8px] outline-none focus:border-[#1A1A1A] focus:bg-white transition-all resize-none leading-relaxed placeholder:text-[#C0C0BC]"
+              className="flex-1 px-3 py-2.5 bg-[var(--bg)] border border-[var(--border)] rounded-[8px] outline-none focus:border-[var(--text-primary)] focus:bg-white transition-all resize-none leading-relaxed placeholder:text-[var(--text-subtle)]"
               style={{ fontSize: "16px", touchAction: "manipulation" }}
             />
             <button
               onClick={handleSend}
               disabled={!inputText.trim() || aiThinking}
-              className="w-[52px] rounded-[8px] bg-[#1A1A1A] hover:bg-[#111111] disabled:opacity-40 disabled:cursor-not-allowed text-white flex items-center justify-center transition-colors shrink-0"
+              className="w-[52px] rounded-[8px] bg-[var(--text-primary)] hover:bg-[var(--text-primary)] disabled:opacity-40 disabled:cursor-not-allowed text-white flex items-center justify-center transition-colors shrink-0"
               style={{ touchAction: "manipulation" }}
               aria-label="Enviar"
             >
@@ -1343,13 +1343,13 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
                 <button
                   type="button"
                   disabled
-                  className="h-6 px-2.5 rounded-[5px] text-[10px] font-medium border bg-[#F0F0ED] border-[#E5E5E2] text-[#9B9B95] flex items-center gap-1.5 cursor-not-allowed"
+                  className="h-6 px-2.5 rounded-[5px] text-[10px] font-medium border bg-[var(--accent)] border-[var(--border)] text-[var(--text-muted)] flex items-center gap-1.5 cursor-not-allowed"
                   style={{ touchAction: "manipulation" }}
                   title="Transcrevendo áudio…"
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#9B9B95] animate-bounce" style={{ animationDelay: "0ms" }} />
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#9B9B95] animate-bounce" style={{ animationDelay: "150ms" }} />
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#9B9B95] animate-bounce" style={{ animationDelay: "300ms" }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)] animate-bounce" style={{ animationDelay: "0ms" }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)] animate-bounce" style={{ animationDelay: "150ms" }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)] animate-bounce" style={{ animationDelay: "300ms" }} />
                   <span className="ml-0.5">Transcrevendo…</span>
                 </button>
               ) : (
@@ -1358,14 +1358,14 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
                   onClick={isListening ? stopListening : startListening}
                   className={`h-6 px-2.5 rounded-[5px] text-[10px] font-medium border transition-colors flex items-center gap-1.5 ${
                     isListening
-                      ? "bg-[#FEE2E2] border-[#FECACA] text-[#DC2626]"
-                      : "bg-white border-[#E5E5E2] text-[#9B9B95] hover:border-[#9B9B95]"
+                      ? "bg-[#FEE2E2] border-[#FECACA] text-[var(--danger)]"
+                      : "bg-white border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--text-muted)]"
                   }`}
                   style={{ touchAction: "manipulation" }}
                   title={isListening ? "Parar gravação" : "Ditar por voz"}
                 >
                   {isListening ? (
-                    <><span className="w-1.5 h-1.5 rounded-full bg-[#DC2626] animate-pulse" />Parar</>
+                    <><span className="w-1.5 h-1.5 rounded-full bg-[var(--danger)] animate-pulse" />Parar</>
                   ) : (
                     <>
                       <svg width="9" height="12" viewBox="0 0 9 12" fill="none">
@@ -1379,7 +1379,7 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
                 </button>
               )
             ) : (
-              <span className="text-[10px] text-[#C0C0BC]" title="Seu navegador não suporta transcrição por voz.">
+              <span className="text-[10px] text-[var(--text-subtle)]" title="Seu navegador não suporta transcrição por voz.">
                 Microfone indisponível
               </span>
             )}
@@ -1389,8 +1389,8 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
               onClick={() => setShowMaterials((v) => !v)}
               className={`h-6 px-2.5 rounded-[5px] text-[10px] font-medium border transition-colors flex items-center gap-1.5 ${
                 showMaterials
-                  ? "bg-[#E6FBFA] border-[#C7C7FF] text-[#070A1F]"
-                  : "bg-white border-[#E5E5E2] text-[#9B9B95] hover:border-[#9B9B95]"
+                  ? "bg-[var(--accent-light)] border-[#C7C7FF] text-[var(--navy)]"
+                  : "bg-white border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--text-muted)]"
               }`}
             >
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
@@ -1402,13 +1402,13 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
                 ? `${attachments.length} anexo${attachments.length !== 1 ? "s" : ""}`
                 : "Anexar briefing / materiais"}
             </button>
-            <span className="text-[10px] text-[#C0C0BC] ml-auto hidden sm:block">
+            <span className="text-[10px] text-[var(--text-subtle)] ml-auto hidden sm:block">
               Enter para enviar · Shift+Enter nova linha
             </span>
           </div>
           {/* Microphone error feedback */}
           {micError && (
-            <p className="text-[10px] text-[#DC2626] mt-1">
+            <p className="text-[10px] text-[var(--danger)] mt-1">
               Não consegui acessar o microfone. Verifique a permissão do navegador.
             </p>
           )}
@@ -1417,18 +1417,18 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
 
       {/* ── Right: Request panel ──────────────────────────────────────────────── */}
       <div ref={panelRef} className="lg:sticky lg:top-6 scroll-mt-4">
-        <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
+        <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
 
           {/* Header */}
-          <div className="px-4 py-3.5 border-b border-[#F0F0ED]">
-            <div className="text-[11px] font-semibold text-[#1A1A1A] uppercase tracking-[0.05em]">
+          <div className="px-4 py-3.5 border-b border-[var(--border)]">
+            <div className="text-[11px] font-semibold text-[var(--text-primary)] uppercase tracking-[0.05em]">
               {canSubmit && confirmStep === "confirmed"
                 ? "Quase lá!"
                 : canSubmit
                 ? "Confirme seu pedido"
                 : "O que você está pedindo"}
             </div>
-            <p className="text-[10px] text-[#9B9B95] mt-0.5">
+            <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
               {canSubmit && confirmStep === "confirmed"
                 ? "Faça login para gerar seu orçamento"
                 : canSubmit
@@ -1446,20 +1446,20 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
                 { label: "Negócio", value: scope.businessName },
               ].map((row) => (
                 <div key={row.label} className="flex items-center gap-2 text-[11px] py-0.5">
-                  <span className="text-[#9B9B95] w-16 shrink-0">{row.label}</span>
+                  <span className="text-[var(--text-muted)] w-16 shrink-0">{row.label}</span>
                   {row.value
-                    ? <span className="text-[#1A1A1A] font-medium">{row.value}</span>
-                    : <span className="text-[#D0D0CC]">aguardando…</span>}
+                    ? <span className="text-[var(--text-primary)] font-medium">{row.value}</span>
+                    : <span className="text-[var(--border-strong)]">aguardando…</span>}
                 </div>
               ))}
-              <p className="text-[10px] text-[#C0C0BC] mt-3 leading-relaxed">
+              <p className="text-[10px] text-[var(--text-subtle)] mt-3 leading-relaxed">
                 O que você precisar vai aparecer aqui conforme a conversa avança.
               </p>
             </div>
           ) : confirmStep === "confirmed" ? (
             /* ── Auth step: Google or e-mail ── */
             <div className="px-4 py-4 space-y-3">
-              <p className="text-[11px] text-[#6B6B65] leading-relaxed">
+              <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
                 Ótimo! Identifique-se para receber seu orçamento personalizado.
               </p>
               <GoogleSignInButton
@@ -1468,9 +1468,9 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
                 loading={submitting}
               />
               <div className="flex items-center gap-2">
-                <div className="flex-1 h-px bg-[#F0F0ED]" />
-                <span className="text-[10px] text-[#C0C0BC]">ou</span>
-                <div className="flex-1 h-px bg-[#F0F0ED]" />
+                <div className="flex-1 h-px bg-[var(--accent)]" />
+                <span className="text-[10px] text-[var(--text-subtle)]">ou</span>
+                <div className="flex-1 h-px bg-[var(--accent)]" />
               </div>
               <EmailContactForm
                 onSubmit={(email, name) => handleSubmitWithContact(email, name)}
@@ -1485,13 +1485,13 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
               {/* Quick-adjust chips — only while still building */}
               {!canSubmit && visibleActions.length > 0 && (
                 <div>
-                  <div className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1.5">Ajustar</div>
+                  <div className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em] mb-1.5">Ajustar</div>
                   <div className="flex flex-wrap gap-1.5">
                     {visibleActions.map((qa) => (
                       <button
                         key={qa.label}
                         onClick={() => sendAction(qa.text)}
-                        className="h-6 px-2.5 rounded-[5px] border border-[#E5E5E2] bg-white text-[#6B6B65] hover:border-[#9B9B95] hover:text-[#1A1A1A] text-[10px] font-medium transition-colors"
+                        className="h-6 px-2.5 rounded-[5px] border border-[var(--border)] bg-white text-[var(--text-secondary)] hover:border-[var(--text-muted)] hover:text-[var(--text-primary)] text-[10px] font-medium transition-colors"
                       >
                         {qa.label}
                       </button>
@@ -1505,7 +1505,7 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
                 <button
                   onClick={() => setConfirmStep("confirmed")}
                   style={{ touchAction: "manipulation" }}
-                  className="w-full h-11 rounded-[8px] bg-[#1A1A1A] hover:bg-[#111111] text-white text-[13px] font-semibold transition-colors"
+                  className="w-full h-11 rounded-[8px] bg-[var(--text-primary)] hover:bg-[var(--text-primary)] text-white text-[13px] font-semibold transition-colors"
                 >
                   Sim, quero meu orçamento →
                 </button>
@@ -1515,11 +1515,11 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
 
           {/* Attachments */}
           {attachments.length > 0 && (
-            <div className="px-4 pb-3 border-t border-[#F0F0ED] pt-3">
-              <div className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1.5">Materiais</div>
+            <div className="px-4 pb-3 border-t border-[var(--border)] pt-3">
+              <div className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em] mb-1.5">Materiais</div>
               {attachments.map((a) => (
-                <div key={a.id} className="flex items-center gap-1.5 text-[10px] text-[#6B6B65] py-0.5">
-                  <span className="w-1 h-1 rounded-full bg-[#070A1F] shrink-0" />
+                <div key={a.id} className="flex items-center gap-1.5 text-[10px] text-[var(--text-secondary)] py-0.5">
+                  <span className="w-1 h-1 rounded-full bg-[var(--navy)] shrink-0" />
                   <span className="truncate">{a.fileName}</span>
                 </div>
               ))}
@@ -1529,7 +1529,7 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
           {/* "Keep talking" hint while scope is incomplete */}
           {!canSubmit && hasScope && (
             <div className="px-4 pb-4 pt-0">
-              <p className="text-[10px] text-[#C0C0BC] leading-relaxed">
+              <p className="text-[10px] text-[var(--text-subtle)] leading-relaxed">
                 {blockReason ?? "Continue a conversa — o botão aparece quando tivermos tudo."}
               </p>
             </div>
@@ -1541,14 +1541,14 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
       {/* Mobile sticky confirm — on phones the summary panel sits BELOW the chat,
           so surface the CTA in a fixed bar that's always reachable with a thumb. */}
       {canSubmit && confirmStep === "pending" && (
-        <div className="lg:hidden fixed inset-x-0 bottom-0 z-30 bg-white/95 backdrop-blur border-t border-[#E5E5E2] px-4 py-3 shadow-[0_-2px_12px_rgba(0,0,0,0.08)]">
+        <div className="lg:hidden fixed inset-x-0 bottom-0 z-30 bg-white/95 backdrop-blur border-t border-[var(--border)] px-4 py-3 shadow-[0_-2px_12px_rgba(0,0,0,0.08)]">
           <button
             onClick={() => {
               setConfirmStep("confirmed");
               setTimeout(() => panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
             }}
             style={{ touchAction: "manipulation" }}
-            className="w-full h-12 rounded-[10px] bg-[#1A1A1A] hover:bg-[#111111] text-white text-[14px] font-semibold transition-colors"
+            className="w-full h-12 rounded-[10px] bg-[var(--text-primary)] hover:bg-[var(--text-primary)] text-white text-[14px] font-semibold transition-colors"
           >
             Sim, quero meu orçamento →
           </button>

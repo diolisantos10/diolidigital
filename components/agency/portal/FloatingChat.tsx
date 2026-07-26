@@ -28,7 +28,7 @@ export function ChatDrawer({ open, onClose, token, clientRequestId, authorName, 
         </span>
         <div className="flex-1 min-w-0">
           <p className="text-[14px] font-semibold text-white leading-tight">{teamLabel}</p>
-          <p className="text-[11px] text-[#9AF5F0] flex items-center gap-1.5 leading-tight mt-0.5">
+          <p className="text-[11px] text-[var(--cyan)] flex items-center gap-1.5 leading-tight mt-0.5">
             <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E]" /> online · responde rápido
           </p>
         </div>

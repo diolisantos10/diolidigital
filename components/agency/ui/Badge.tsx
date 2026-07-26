@@ -30,40 +30,40 @@ type Variant =
   | "available";
 
 const STYLES: Record<Variant, string> = {
-  default: "bg-[#F0F0ED] text-[#6B6B65]",
+  default: "bg-[var(--accent)] text-[var(--text-secondary)]",
   // Client status
-  active: "bg-[#DCFCE7] text-[#16A34A]",
-  inactive: "bg-[#F0F0ED] text-[#9B9B95]",
-  prospect: "bg-[#E6FBFA] text-[#070A1F]",
+  active: "bg-[var(--success-bg)] text-[var(--success)]",
+  inactive: "bg-[var(--accent)] text-[var(--text-muted)]",
+  prospect: "bg-[var(--accent-light)] text-[var(--navy)]",
   // Priority
-  high: "bg-[#FEE2E2] text-[#DC2626]",
-  medium: "bg-[#FEF3C7] text-[#D97706]",
-  low: "bg-[#F0F0ED] text-[#6B6B65]",
+  high: "bg-[#FEE2E2] text-[var(--danger)]",
+  medium: "bg-[var(--warning-bg)] text-[var(--warning)]",
+  low: "bg-[var(--accent)] text-[var(--text-secondary)]",
   // Pipeline stages
-  briefing: "bg-[#F0F0ED] text-[#6B6B65]",
-  proposal_sent: "bg-[#E6FBFA] text-[#070A1F]",
-  diagnosis: "bg-[#E6FBFA] text-[#070A1F]",
+  briefing: "bg-[var(--accent)] text-[var(--text-secondary)]",
+  proposal_sent: "bg-[var(--accent-light)] text-[var(--navy)]",
+  diagnosis: "bg-[var(--accent-light)] text-[var(--navy)]",
   planning: "bg-[#E0E7FF] text-[#4338CA]",
-  production: "bg-[#FEF3C7] text-[#D97706]",
+  production: "bg-[var(--warning-bg)] text-[var(--warning)]",
   review: "bg-[#FFE4E6] text-[#E11D48]",
-  delivery: "bg-[#DCFCE7] text-[#16A34A]",
+  delivery: "bg-[var(--success-bg)] text-[var(--success)]",
   ongoing: "bg-[#F0FDF4] text-[#15803D]",
-  completed: "bg-[#F0F0ED] text-[#9B9B95]",
+  completed: "bg-[var(--accent)] text-[var(--text-muted)]",
   // Task status
-  pending: "bg-[#F0F0ED] text-[#6B6B65]",
-  in_progress: "bg-[#E6FBFA] text-[#070A1F]",
-  done: "bg-[#DCFCE7] text-[#16A34A]",
-  blocked: "bg-[#FEE2E2] text-[#DC2626]",
+  pending: "bg-[var(--accent)] text-[var(--text-secondary)]",
+  in_progress: "bg-[var(--accent-light)] text-[var(--navy)]",
+  done: "bg-[var(--success-bg)] text-[var(--success)]",
+  blocked: "bg-[#FEE2E2] text-[var(--danger)]",
   // Deliverable status
-  draft: "bg-[#F0F0ED] text-[#6B6B65]",
-  in_review: "bg-[#FEF3C7] text-[#D97706]",
-  approved: "bg-[#DCFCE7] text-[#16A34A]",
-  delivered: "bg-[#E6FBFA] text-[#070A1F]",
+  draft: "bg-[var(--accent)] text-[var(--text-secondary)]",
+  in_review: "bg-[var(--warning-bg)] text-[var(--warning)]",
+  approved: "bg-[var(--success-bg)] text-[var(--success)]",
+  delivered: "bg-[var(--accent-light)] text-[var(--navy)]",
   // Briefing status
-  pending_analysis: "bg-[#FEF3C7] text-[#D97706]",
-  analyzed: "bg-[#E6FBFA] text-[#070A1F]",
+  pending_analysis: "bg-[var(--warning-bg)] text-[var(--warning)]",
+  analyzed: "bg-[var(--accent-light)] text-[var(--navy)]",
   // Agent
-  available: "bg-[#F0F0ED] text-[#6B6B65]",
+  available: "bg-[var(--accent)] text-[var(--text-secondary)]",
 };
 
 const LABELS: Partial<Record<Variant, string>> = {

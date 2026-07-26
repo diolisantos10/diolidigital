@@ -33,16 +33,16 @@ const STATUS_LABEL: Record<CheckStatus, string> = {
 };
 
 const STATUS_COLOR: Record<CheckStatus, { dot: string; badge: string; border: string }> = {
-  pass:    { dot: "bg-[#16A34A]", badge: "bg-[#DCFCE7] text-[#16A34A]", border: "border-[#DCFCE7]" },
-  warning: { dot: "bg-[#D97706]", badge: "bg-[#FEF3C7] text-[#D97706]", border: "border-[#FEF3C7]" },
-  fail:    { dot: "bg-[#DC2626]", badge: "bg-[#FEE2E2] text-[#DC2626]", border: "border-[#FEE2E2]" },
-  info:    { dot: "bg-[#070A1F]", badge: "bg-[#E6FBFA] text-[#070A1F]", border: "border-[#E6FBFA]" },
+  pass:    { dot: "bg-[var(--success)]", badge: "bg-[var(--success-bg)] text-[var(--success)]", border: "border-[var(--success-bg)]" },
+  warning: { dot: "bg-[var(--warning)]", badge: "bg-[var(--warning-bg)] text-[var(--warning)]", border: "border-[var(--warning-bg)]" },
+  fail:    { dot: "bg-[var(--danger)]", badge: "bg-[#FEE2E2] text-[var(--danger)]", border: "border-[#FEE2E2]" },
+  info:    { dot: "bg-[var(--navy)]", badge: "bg-[var(--accent-light)] text-[var(--navy)]", border: "border-[var(--accent-light)]" },
 };
 
 const OVERALL_COLOR: Record<DiagnosticReport["overallStatus"], { ring: string; score: string; label: string; labelColor: string }> = {
-  healthy:  { ring: "stroke-[#16A34A]", score: "text-[#16A34A]", label: "Sistema saudável",  labelColor: "text-[#16A34A]" },
-  degraded: { ring: "stroke-[#D97706]", score: "text-[#D97706]", label: "Atenção necessária", labelColor: "text-[#D97706]" },
-  critical: { ring: "stroke-[#DC2626]", score: "text-[#DC2626]", label: "Falha crítica",      labelColor: "text-[#DC2626]" },
+  healthy:  { ring: "stroke-[var(--success)]", score: "text-[var(--success)]", label: "Sistema saudável",  labelColor: "text-[var(--success)]" },
+  degraded: { ring: "stroke-[var(--warning)]", score: "text-[var(--warning)]", label: "Atenção necessária", labelColor: "text-[var(--warning)]" },
+  critical: { ring: "stroke-[var(--danger)]", score: "text-[var(--danger)]", label: "Falha crítica",      labelColor: "text-[var(--danger)]" },
 };
 
 function ScoreRing({ score, status }: { score: number; status: DiagnosticReport["overallStatus"] }) {
@@ -53,7 +53,7 @@ function ScoreRing({ score, status }: { score: number; status: DiagnosticReport[
   return (
     <div className="relative w-[72px] h-[72px] shrink-0">
       <svg className="w-full h-full -rotate-90" viewBox="0 0 72 72">
-        <circle cx="36" cy="36" r={r} fill="none" strokeWidth="5" className="stroke-[#F0F0ED]" />
+        <circle cx="36" cy="36" r={r} fill="none" strokeWidth="5" className="stroke-[var(--text-subtle)]" />
         <circle
           cx="36" cy="36" r={r} fill="none" strokeWidth="5"
           strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
@@ -71,26 +71,26 @@ function ScoreRing({ score, status }: { score: number; status: DiagnosticReport[
 function CollapsibleSection({ title, badge, children }: { title: string; badge?: string; children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+    <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
       <button
-        className="w-full flex items-center justify-between px-6 py-4 hover:bg-[#FAFAFA] transition-colors text-left"
+        className="w-full flex items-center justify-between px-6 py-4 hover:bg-[var(--bg-elevated)] transition-colors text-left"
         onClick={() => setOpen((v) => !v)}
       >
         <div className="flex items-center gap-2.5">
-          <span className="text-[13px] font-semibold text-[#1A1A1A]">{title}</span>
+          <span className="text-[13px] font-semibold text-[var(--text-primary)]">{title}</span>
           {badge && (
-            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-[4px] bg-[#F0F0ED] text-[#6B6B65]">{badge}</span>
+            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-[4px] bg-[var(--accent)] text-[var(--text-secondary)]">{badge}</span>
           )}
         </div>
         <svg
           width="12" height="12" viewBox="0 0 12 12" fill="none"
-          className={`shrink-0 text-[#9B9B95] transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+          className={`shrink-0 text-[var(--text-muted)] transition-transform duration-200 ${open ? "rotate-180" : ""}`}
         >
           <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
       {open && (
-        <div className="border-t border-[#F0F0ED]">
+        <div className="border-t border-[var(--border)]">
           {children}
         </div>
       )}
@@ -152,36 +152,36 @@ function PendingBrainUpdates() {
   }
 
   return (
-    <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-      <div className="px-6 py-4 border-b border-[#F0F0ED] flex items-center justify-between">
-        <span className="text-[13px] font-semibold text-[#1A1A1A]">Atualizações de Brain pendentes</span>
-        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-[4px] bg-[#E6FBFA] text-[#070A1F]">
+    <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+      <div className="px-6 py-4 border-b border-[var(--border)] flex items-center justify-between">
+        <span className="text-[13px] font-semibold text-[var(--text-primary)]">Atualizações de Brain pendentes</span>
+        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-[4px] bg-[var(--accent-light)] text-[var(--navy)]">
           ✦ Learning loop
         </span>
       </div>
       <div className="px-6 py-4 space-y-2">
-        {loading && <p className="text-[12px] text-[#9B9B95]">Carregando…</p>}
+        {loading && <p className="text-[12px] text-[var(--text-muted)]">Carregando…</p>}
         {error && <p className="text-[12px] text-[#991B1B]">{error}</p>}
         {!loading && !error && updates.length === 0 && (
-          <p className="text-[12px] text-[#9B9B95]">Nenhuma atualização pendente. O Brain propõe mudanças a partir de entregas aprovadas.</p>
+          <p className="text-[12px] text-[var(--text-muted)]">Nenhuma atualização pendente. O Brain propõe mudanças a partir de entregas aprovadas.</p>
         )}
         {updates.map((u) => (
-          <div key={u.id} className="flex items-start gap-3 border border-[#F0F0ED] rounded-[8px] px-3 py-2.5">
+          <div key={u.id} className="flex items-start gap-3 border border-[var(--border)] rounded-[8px] px-3 py-2.5">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[12px] font-semibold text-[#1A1A1A]">{u.fieldChanged}</span>
-                <span className="h-4 px-1.5 rounded-[3px] bg-[#F0F0ED] text-[#6B6B65] text-[9px] font-medium leading-4">{u.department}</span>
-                <span className="h-4 px-1.5 rounded-[3px] bg-[#E6FBFA] text-[#070A1F] text-[9px] font-medium leading-4">{u.source}</span>
+                <span className="text-[12px] font-semibold text-[var(--text-primary)]">{u.fieldChanged}</span>
+                <span className="h-4 px-1.5 rounded-[3px] bg-[var(--accent)] text-[var(--text-secondary)] text-[9px] font-medium leading-4">{u.department}</span>
+                <span className="h-4 px-1.5 rounded-[3px] bg-[var(--accent-light)] text-[var(--navy)] text-[9px] font-medium leading-4">{u.source}</span>
               </div>
               {u.previousValue && (
-                <p className="text-[11px] text-[#9B9B95] mt-0.5 line-through truncate">{u.previousValue}</p>
+                <p className="text-[11px] text-[var(--text-muted)] mt-0.5 line-through truncate">{u.previousValue}</p>
               )}
-              <p className="text-[11px] text-[#1A1A1A] mt-0.5 truncate">{u.proposedValue}</p>
+              <p className="text-[11px] text-[var(--text-primary)] mt-0.5 truncate">{u.proposedValue}</p>
             </div>
             <button
               onClick={() => apply(u.id)}
               disabled={applying === u.id}
-              className="h-7 px-3 rounded-[6px] bg-[#070A1F] hover:bg-[#0D1230] disabled:opacity-50 text-white text-[11px] font-medium transition-colors shrink-0"
+              className="h-7 px-3 rounded-[6px] bg-[var(--navy)] hover:bg-[#0D1230] disabled:opacity-50 text-white text-[11px] font-medium transition-colors shrink-0"
             >
               {applying === u.id ? "Aplicando…" : "Aplicar"}
             </button>
@@ -300,36 +300,36 @@ export default function SettingsPage() {
         <PendingBrainUpdates />
 
         {/* ── SECTION 1: Saúde do Sistema ──────────────────────────────────────── */}
-        <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-          <div className="px-6 py-4 border-b border-[#F0F0ED] flex items-center justify-between">
-            <span className="text-[13px] font-semibold text-[#1A1A1A]">Saúde do Sistema</span>
-            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-[4px] bg-[#E6FBFA] text-[#070A1F]">
+        <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+          <div className="px-6 py-4 border-b border-[var(--border)] flex items-center justify-between">
+            <span className="text-[13px] font-semibold text-[var(--text-primary)]">Saúde do Sistema</span>
+            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-[4px] bg-[var(--accent-light)] text-[var(--navy)]">
               Interno · Tempo real
             </span>
           </div>
 
           {/* Score summary */}
-          <div className="px-6 py-5 border-b border-[#F7F7F6]">
+          <div className="px-6 py-5 border-b border-[var(--border)]">
             <div className="flex items-center gap-5">
               <ScoreRing score={score} status={overallStatus} />
               <div className="flex-1 min-w-0">
                 <div className={`text-[15px] font-semibold mb-1 ${oc.labelColor}`}>{oc.label}</div>
                 <div className="flex items-center gap-3 mb-2.5">
-                  <span className="text-[12px] text-[#6B6B65] mono-num">
-                    <span className="font-semibold text-[#16A34A]">{pass}</span> ok ·{" "}
-                    <span className="font-semibold text-[#D97706]">{warning}</span> atenção ·{" "}
-                    <span className="font-semibold text-[#DC2626]">{fail}</span> falha ·{" "}
-                    <span className="font-semibold text-[#070A1F]">{info}</span> info
+                  <span className="text-[12px] text-[var(--text-secondary)] mono-num">
+                    <span className="font-semibold text-[var(--success)]">{pass}</span> ok ·{" "}
+                    <span className="font-semibold text-[var(--warning)]">{warning}</span> atenção ·{" "}
+                    <span className="font-semibold text-[var(--danger)]">{fail}</span> falha ·{" "}
+                    <span className="font-semibold text-[var(--navy)]">{info}</span> info
                   </span>
                 </div>
                 {(fail > 0 || warning > 0) && (
-                  <div className="flex items-start gap-2 bg-[#F7F7F6] rounded-[7px] px-3 py-2">
-                    <svg className="w-3.5 h-3.5 text-[#D97706] shrink-0 mt-0.5" viewBox="0 0 16 16" fill="none">
+                  <div className="flex items-start gap-2 bg-[var(--bg)] rounded-[7px] px-3 py-2">
+                    <svg className="w-3.5 h-3.5 text-[var(--warning)] shrink-0 mt-0.5" viewBox="0 0 16 16" fill="none">
                       <path d="M8 2L1 14h14L8 2z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
                       <path d="M8 7v3M8 11.5v.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
                     </svg>
-                    <p className="text-[11px] text-[#6B6B65] leading-relaxed flex-1">
-                      <span className="font-medium text-[#1A1A1A]">Ação recomendada:</span>{" "}{topAction}
+                    <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed flex-1">
+                      <span className="font-medium text-[var(--text-primary)]">Ação recomendada:</span>{" "}{topAction}
                     </p>
                   </div>
                 )}
@@ -338,7 +338,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Grouped checks */}
-          <div className="divide-y divide-[#F7F7F6]">
+          <div className="divide-y divide-[var(--border)]">
             {grouped.map(({ group, checks: gChecks }) => {
               const isOpen = expandedGroup === group;
               const groupFail = gChecks.filter((c) => c.status === "fail").length;
@@ -350,37 +350,37 @@ export default function SettingsPage() {
               return (
                 <div key={group}>
                   <button
-                    className="w-full flex items-center gap-3 px-6 py-3 hover:bg-[#FAFAFA] transition-colors text-left"
+                    className="w-full flex items-center gap-3 px-6 py-3 hover:bg-[var(--bg-elevated)] transition-colors text-left"
                     onClick={() => setExpandedGroup(isOpen ? null : group)}
                   >
                     <span className={`w-2 h-2 rounded-full shrink-0 ${STATUS_COLOR[groupSummaryStatus].dot}`} />
-                    <span className="flex-1 text-[13px] font-medium text-[#1A1A1A]">{group}</span>
+                    <span className="flex-1 text-[13px] font-medium text-[var(--text-primary)]">{group}</span>
                     <div className="flex items-center gap-1.5">
                       {groupFail > 0 && (
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] bg-[#FEE2E2] text-[#DC2626]">
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] bg-[#FEE2E2] text-[var(--danger)]">
                           {groupFail} falha{groupFail > 1 ? "s" : ""}
                         </span>
                       )}
                       {groupWarn > 0 && (
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] bg-[#FEF3C7] text-[#D97706]">
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] bg-[var(--warning-bg)] text-[var(--warning)]">
                           {groupWarn} atenção
                         </span>
                       )}
                       {groupFail === 0 && groupWarn === 0 && (
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] bg-[#DCFCE7] text-[#16A34A]">
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] bg-[var(--success-bg)] text-[var(--success)]">
                           {groupPass} ok
                         </span>
                       )}
                     </div>
                     <svg
                       width="12" height="12" viewBox="0 0 12 12" fill="none"
-                      className={`shrink-0 text-[#9B9B95] transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                      className={`shrink-0 text-[var(--text-muted)] transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
                     >
                       <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </button>
                   {isOpen && (
-                    <div className="bg-[#FAFAFA] border-t border-[#F0F0ED] divide-y divide-[#F0F0ED]">
+                    <div className="bg-[var(--bg-elevated)] border-t border-[var(--border)] divide-y divide-[var(--border)]">
                       {gChecks.map((check) => {
                         const sc = STATUS_COLOR[check.status];
                         return (
@@ -389,23 +389,23 @@ export default function SettingsPage() {
                               <span className={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${sc.dot}`} />
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="text-[13px] font-medium text-[#1A1A1A]">{check.label}</span>
+                                  <span className="text-[13px] font-medium text-[var(--text-primary)]">{check.label}</span>
                                   <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] ${sc.badge}`}>
                                     {STATUS_LABEL[check.status]}
                                   </span>
                                 </div>
-                                <p className="text-[12px] text-[#6B6B65] mt-1 leading-relaxed">{check.explanation}</p>
+                                <p className="text-[12px] text-[var(--text-secondary)] mt-1 leading-relaxed">{check.explanation}</p>
                                 {check.status !== "pass" && check.status !== "info" && (
                                   <div className="mt-1.5 flex items-start gap-1.5">
-                                    <span className="text-[11px] text-[#9B9B95] font-medium shrink-0">→</span>
-                                    <p className="text-[11px] text-[#070A1F] leading-relaxed">{check.action}</p>
+                                    <span className="text-[11px] text-[var(--text-muted)] font-medium shrink-0">→</span>
+                                    <p className="text-[11px] text-[var(--navy)] leading-relaxed">{check.action}</p>
                                   </div>
                                 )}
                               </div>
                               {check.route && (
                                 <Link
                                   href={check.route}
-                                  className="shrink-0 text-[11px] text-[#9B9B95] hover:text-[#070A1F] underline whitespace-nowrap"
+                                  className="shrink-0 text-[11px] text-[var(--text-muted)] hover:text-[var(--navy)] underline whitespace-nowrap"
                                 >
                                   Ir →
                                 </Link>
@@ -423,9 +423,9 @@ export default function SettingsPage() {
         </div>
 
         {/* ── SECTION 2: Status do Workspace ───────────────────────────────────── */}
-        <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-          <div className="px-6 py-4 border-b border-[#F0F0ED]">
-            <span className="text-[13px] font-semibold text-[#1A1A1A]">Status do Workspace</span>
+        <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+          <div className="px-6 py-4 border-b border-[var(--border)]">
+            <span className="text-[13px] font-semibold text-[var(--text-primary)]">Status do Workspace</span>
           </div>
           <div className="px-6 py-5 space-y-4">
             {/* Primary stats */}
@@ -438,41 +438,41 @@ export default function SettingsPage() {
                 { label: t.settings.labels.tasks, value: tasks.length },
               ].map(({ label, value }) => (
                 <div key={label} className="text-center">
-                  <div className="text-[22px] font-semibold text-[#1A1A1A] mono-num">{value}</div>
-                  <div className="text-[11px] text-[#9B9B95] mt-0.5">{label}</div>
+                  <div className="text-[22px] font-semibold text-[var(--text-primary)] mono-num">{value}</div>
+                  <div className="text-[11px] text-[var(--text-muted)] mt-0.5">{label}</div>
                 </div>
               ))}
             </div>
 
             {/* Operational indicators */}
             <div className="grid grid-cols-3 gap-3">
-              <div className="bg-[#FAFAF9] rounded-[8px] px-3 py-2.5 border border-[#F0F0ED]">
-                <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-0.5">Revisões pendentes</div>
-                <div className={`text-[18px] font-bold mono-num ${inReviewCount > 0 ? "text-[#D97706]" : "text-[#1A1A1A]"}`}>
+              <div className="bg-[var(--bg-elevated)] rounded-[8px] px-3 py-2.5 border border-[var(--border)]">
+                <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-0.5">Revisões pendentes</div>
+                <div className={`text-[18px] font-bold mono-num ${inReviewCount > 0 ? "text-[var(--warning)]" : "text-[var(--text-primary)]"}`}>
                   {inReviewCount}
                 </div>
               </div>
-              <div className="bg-[#FAFAF9] rounded-[8px] px-3 py-2.5 border border-[#F0F0ED]">
-                <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-0.5">Brand updates pendentes</div>
-                <div className={`text-[18px] font-bold mono-num ${pendingBrandUpdates > 0 ? "text-[#070A1F]" : "text-[#1A1A1A]"}`}>
+              <div className="bg-[var(--bg-elevated)] rounded-[8px] px-3 py-2.5 border border-[var(--border)]">
+                <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-0.5">Brand updates pendentes</div>
+                <div className={`text-[18px] font-bold mono-num ${pendingBrandUpdates > 0 ? "text-[var(--navy)]" : "text-[var(--text-primary)]"}`}>
                   {pendingBrandUpdates}
                 </div>
               </div>
-              <div className="bg-[#FAFAF9] rounded-[8px] px-3 py-2.5 border border-[#F0F0ED]">
-                <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-0.5">Última atividade</div>
-                <div className="text-[14px] font-semibold text-[#1A1A1A] mono-num">{lastActivity}</div>
+              <div className="bg-[var(--bg-elevated)] rounded-[8px] px-3 py-2.5 border border-[var(--border)]">
+                <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-0.5">Última atividade</div>
+                <div className="text-[14px] font-semibold text-[var(--text-primary)] mono-num">{lastActivity}</div>
               </div>
             </div>
 
             {/* Integrations shortcut */}
             <div className="flex items-center justify-between bg-[#F0F0FE] rounded-[8px] px-4 py-3 border border-[#DDDDFB] mt-1">
               <div>
-                <div className="text-[13px] font-semibold text-[#070A1F]">Ferramentas &amp; Integrações</div>
-                <div className="text-[11px] text-[#6B6B65] mt-0.5">Gerenciar ferramentas, IAs dos agentes e conexões.</div>
+                <div className="text-[13px] font-semibold text-[var(--navy)]">Ferramentas &amp; Integrações</div>
+                <div className="text-[11px] text-[var(--text-secondary)] mt-0.5">Gerenciar ferramentas, IAs dos agentes e conexões.</div>
               </div>
               <Link
                 href="/agency/integrations"
-                className="shrink-0 px-3 py-1.5 bg-[#070A1F] text-white text-[12px] font-medium rounded-[6px] hover:bg-[#0D1230] transition-colors"
+                className="shrink-0 px-3 py-1.5 bg-[var(--navy)] text-white text-[12px] font-medium rounded-[6px] hover:bg-[#0D1230] transition-colors"
               >
                 Gerenciar →
               </Link>
@@ -484,10 +484,10 @@ export default function SettingsPage() {
         <CollapsibleSection title="Ferramentas Avançadas" badge="Dados e idioma">
           <div className="px-6 py-5 space-y-0">
             {/* Load pilot data */}
-            <div className="flex items-center justify-between py-3.5 border-b border-[#F0F0ED]">
+            <div className="flex items-center justify-between py-3.5 border-b border-[var(--border)]">
               <div className="pr-4">
-                <div className="text-[13px] font-medium text-[#1A1A1A]">Carregar solicitação — Dioli Digital (Instagram)</div>
-                <div className="text-[12px] text-[#9B9B95] mt-0.5">
+                <div className="text-[13px] font-medium text-[var(--text-primary)]">Carregar solicitação — Dioli Digital (Instagram)</div>
+                <div className="text-[12px] text-[var(--text-muted)] mt-0.5">
                   Adiciona o cliente Dioli Digital e uma solicitação pronta (1 post/dia no Instagram) na fila de Solicitações — pronta para o Comercial converter.
                 </div>
               </div>
@@ -502,17 +502,17 @@ export default function SettingsPage() {
             </div>
 
             {/* Language */}
-            <div className="flex items-center justify-between py-3.5 border-b border-[#F0F0ED]">
-              <p className="text-[13px] text-[#6B6B65] pr-4">{t.settings.languageDesc}</p>
-              <div className="flex items-center gap-1.5 bg-[#F7F7F6] rounded-[7px] p-1 shrink-0">
+            <div className="flex items-center justify-between py-3.5 border-b border-[var(--border)]">
+              <p className="text-[13px] text-[var(--text-secondary)] pr-4">{t.settings.languageDesc}</p>
+              <div className="flex items-center gap-1.5 bg-[var(--bg)] rounded-[7px] p-1 shrink-0">
                 {LOCALES.map((loc) => (
                   <button
                     key={loc.value}
                     onClick={() => setLocale(loc.value)}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[5px] text-[12px] font-medium transition-all ${
                       locale === loc.value
-                        ? "bg-white shadow-[0_1px_3px_rgba(0,0,0,0.08)] text-[#1A1A1A]"
-                        : "text-[#9B9B95] hover:text-[#6B6B65]"
+                        ? "bg-white shadow-[0_1px_3px_rgba(0,0,0,0.08)] text-[var(--text-primary)]"
+                        : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
                     }`}
                   >
                     <span>{loc.flag}</span>
@@ -523,10 +523,10 @@ export default function SettingsPage() {
             </div>
 
             {/* Reset to factory */}
-            <div className="flex items-center justify-between py-3.5 border-b border-[#F0F0ED]">
+            <div className="flex items-center justify-between py-3.5 border-b border-[var(--border)]">
               <div className="pr-4">
-                <div className="text-[13px] font-medium text-[#1A1A1A]">{t.settings.resetData}</div>
-                <div className="text-[12px] text-[#9B9B95] mt-0.5">{t.settings.resetDataDesc}</div>
+                <div className="text-[13px] font-medium text-[var(--text-primary)]">{t.settings.resetData}</div>
+                <div className="text-[12px] text-[var(--text-muted)] mt-0.5">{t.settings.resetDataDesc}</div>
               </div>
               {!confirmReset ? (
                 <Button variant="secondary" size="sm" onClick={() => setConfirmReset(true)}>
@@ -534,7 +534,7 @@ export default function SettingsPage() {
                 </Button>
               ) : (
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-[12px] text-[#6B6B65] font-medium">Restaurar dados de fábrica?</span>
+                  <span className="text-[12px] text-[var(--text-secondary)] font-medium">Restaurar dados de fábrica?</span>
                   <Button variant="primary" size="sm" onClick={handleReset}>{t.common.confirm}</Button>
                   <Button variant="ghost" size="sm" onClick={() => setConfirmReset(false)}>{t.common.cancel}</Button>
                 </div>
@@ -544,8 +544,8 @@ export default function SettingsPage() {
             {/* Clear all */}
             <div className="flex items-center justify-between py-3.5">
               <div className="pr-4">
-                <div className="text-[13px] font-medium text-[#1A1A1A]">Limpar todos os dados locais</div>
-                <div className="text-[12px] text-[#9B9B95] mt-0.5">
+                <div className="text-[13px] font-medium text-[var(--text-primary)]">Limpar todos os dados locais</div>
+                <div className="text-[12px] text-[var(--text-muted)] mt-0.5">
                   Remove clientes, projetos, tarefas e entregas deste navegador. Ação irreversível.
                 </div>
               </div>
@@ -555,7 +555,7 @@ export default function SettingsPage() {
                 </Button>
               ) : (
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-[12px] text-[#DC2626] font-medium">Apagar tudo definitivamente?</span>
+                  <span className="text-[12px] text-[var(--danger)] font-medium">Apagar tudo definitivamente?</span>
                   <Button variant="danger" size="sm" onClick={handleClear}>{t.common.confirm}</Button>
                   <Button variant="ghost" size="sm" onClick={() => setConfirmClear(false)}>{t.common.cancel}</Button>
                 </div>
@@ -576,15 +576,15 @@ export default function SettingsPage() {
                 { label: "Persistência", value: persisted ? "✓ Ativa — dados gravados" : "⚠ Sem dados gravados ainda" },
               ].map(({ label, value }) => (
                 <div key={label} className="flex justify-between items-center">
-                  <span className="text-[12px] text-[#9B9B95]">{label}</span>
-                  <span className={`text-[12px] font-medium ${label === "Persistência" && !persisted ? "text-[#D97706]" : "text-[#1A1A1A]"}`}>
+                  <span className="text-[12px] text-[var(--text-muted)]">{label}</span>
+                  <span className={`text-[12px] font-medium ${label === "Persistência" && !persisted ? "text-[var(--warning)]" : "text-[var(--text-primary)]"}`}>
                     {value}
                   </span>
                 </div>
               ))}
             </div>
-            <div className="pt-1 border-t border-[#F0F0ED]">
-              <p className="text-[11px] text-[#9B9B95] leading-relaxed">
+            <div className="pt-1 border-t border-[var(--border)]">
+              <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
                 {t.settings.persistenceDesc}
               </p>
             </div>

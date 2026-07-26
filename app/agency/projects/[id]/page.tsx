@@ -153,15 +153,15 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     done: "Concluído",
   };
   const STATUS_COLOR: Record<"not_started" | "in_progress" | "done", string> = {
-    not_started: "bg-[#F0F0ED] text-[#9B9B95]",
+    not_started: "bg-[var(--accent)] text-[var(--text-muted)]",
     in_progress: "bg-[#FFF4ED] text-[#C2530A]",
-    done: "bg-[#DCFCE7] text-[#16A34A]",
+    done: "bg-[var(--success-bg)] text-[var(--success)]",
   };
 
   return (
     <>
       <div className="mb-2">
-        <Link href="/agency/projects" className="text-[12px] text-[#9B9B95] hover:text-[#1A1A1A] transition-colors">
+        <Link href="/agency/projects" className="text-[12px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
           ← Projetos
         </Link>
       </div>
@@ -173,7 +173,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           <div className="flex items-center gap-2">
             <Badge variant={project.stage} size="md" />
             <Badge variant={project.priority} size="md" />
-            <span className="text-[12px] text-[#9B9B95]">Due {project.deadline.slice(5)}</span>
+            <span className="text-[12px] text-[var(--text-muted)]">Due {project.deadline.slice(5)}</span>
           </div>
         }
         actions={<Button variant="secondary" onClick={() => setEditOpen(true)}>Editar Projeto</Button>}
@@ -182,24 +182,24 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       {/* Progress bar */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[12px] text-[#9B9B95]">Progresso das tarefas</span>
-          <span className="text-[12px] text-[#6B6B65] font-medium mono-num">{doneTasks}/{projectTasks.length} tarefas concluídas</span>
+          <span className="text-[12px] text-[var(--text-muted)]">Progresso das tarefas</span>
+          <span className="text-[12px] text-[var(--text-secondary)] font-medium mono-num">{doneTasks}/{projectTasks.length} tarefas concluídas</span>
         </div>
-        <div className="h-1.5 bg-[#F0F0ED] rounded-full overflow-hidden">
-          <div className="h-full bg-[#070A1F] rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
+        <div className="h-1.5 bg-[var(--accent)] rounded-full overflow-hidden">
+          <div className="h-full bg-[var(--navy)] rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-0 border-b border-[#E5E5E2] mb-6 -mt-2">
+      <div className="flex items-center gap-0 border-b border-[var(--border)] mb-6 -mt-2">
         {TABS.map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`h-9 px-4 text-[13px] font-medium border-b-2 transition-colors ${
               tab === t
-                ? "border-[#070A1F] text-[#070A1F]"
-                : "border-transparent text-[#6B6B65] hover:text-[#1A1A1A]"
+                ? "border-[var(--navy)] text-[var(--navy)]"
+                : "border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
             }`}
           >
             {TAB_LABELS[t]}
@@ -220,19 +220,19 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         return (
         <div className="space-y-6">
           {/* ── COMMAND CENTER — unified operational summary ── */}
-          <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F0ED]">
+          <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--border)]">
               <div className="flex items-center gap-2.5">
-                <h2 className="text-[13px] font-semibold text-[#1A1A1A]">Centro de Comando</h2>
+                <h2 className="text-[13px] font-semibold text-[var(--text-primary)]">Centro de Comando</h2>
                 <span className={`flex items-center gap-1.5 h-6 px-2.5 rounded-full text-[11px] font-semibold ${ovHealth.color}`}>
                   <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: ovHealth.dotColor }} />
                   {ovHealth.label}
                 </span>
               </div>
-              <span className="text-[11px] text-[#9B9B95]">Prontidão {ovProgress.readinessScore}%</span>
+              <span className="text-[11px] text-[var(--text-muted)]">Prontidão {ovProgress.readinessScore}%</span>
             </div>
             {/* Stat row */}
-            <div className="grid grid-cols-5 divide-x divide-[#F0F0ED] border-b border-[#F0F0ED]">
+            <div className="grid grid-cols-5 divide-x divide-[var(--border)] border-b border-[var(--border)]">
               {[
                 { label: "Proposta", value: PROPOSAL_TEXT[ovProgress.proposalStatus ?? "draft"] ?? "—", onClick: () => setTab("proposal"), warn: !ovProgress.proposalApproved },
                 { label: "Aprovações pend.", value: String(ovProgress.inReview), onClick: () => setTab("deliverables"), warn: ovProgress.inReview > 0 },
@@ -240,43 +240,43 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 { label: "Entregas pend.", value: String(pendingCount), onClick: () => setTab("deliverables"), warn: pendingCount > 0 },
                 { label: "Materiais pend.", value: String(ovProgress.pendingMaterialRequests), onClick: () => setTab("briefing"), warn: ovProgress.pendingMaterialRequests > 0 },
               ].map((s) => (
-                <button key={s.label} onClick={s.onClick} className="px-4 py-3 text-left hover:bg-[#FAFAF9] transition-colors">
-                  <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.04em] mb-1">{s.label}</div>
-                  <div className={`text-[16px] font-bold mono-num leading-none ${s.warn ? "text-[#D97706]" : "text-[#1A1A1A]"}`}>{s.value}</div>
+                <button key={s.label} onClick={s.onClick} className="px-4 py-3 text-left hover:bg-[var(--bg-elevated)] transition-colors">
+                  <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.04em] mb-1">{s.label}</div>
+                  <div className={`text-[16px] font-bold mono-num leading-none ${s.warn ? "text-[var(--warning)]" : "text-[var(--text-primary)]"}`}>{s.value}</div>
                 </button>
               ))}
             </div>
             {/* Next action + quick actions */}
             <div className="px-5 py-3.5 flex items-center justify-between gap-4 flex-wrap">
               <div className="min-w-0 flex-1">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.05em] text-[#9B9B95]">Próxima ação</span>
-                <p className="text-[13px] font-medium text-[#1A1A1A] leading-snug">{ovProgress.nextAction}</p>
+                <span className="text-[10px] font-semibold uppercase tracking-[0.05em] text-[var(--text-muted)]">Próxima ação</span>
+                <p className="text-[13px] font-medium text-[var(--text-primary)] leading-snug">{ovProgress.nextAction}</p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 {!strategyRoom && (
-                  <button onClick={() => setTab("strategy")} className="h-7 px-3 rounded-[6px] text-[12px] font-medium border border-[#E5E5E2] text-[#6B6B65] hover:border-[#070A1F] hover:text-[#070A1F] transition-colors">Gerar Estratégia</button>
+                  <button onClick={() => setTab("strategy")} className="h-7 px-3 rounded-[6px] text-[12px] font-medium border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--navy)] hover:text-[var(--navy)] transition-colors">Gerar Estratégia</button>
                 )}
                 <SecurePortalLinkButton
                   clientId={portalClientId}
                   label="Portal do cliente ↗"
-                  className="h-7 px-3 rounded-[6px] text-[12px] font-medium border border-[#E5E5E2] text-[#6B6B65] hover:border-[#070A1F] hover:text-[#070A1F] transition-colors flex items-center disabled:opacity-60"
+                  className="h-7 px-3 rounded-[6px] text-[12px] font-medium border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--navy)] hover:text-[var(--navy)] transition-colors flex items-center disabled:opacity-60"
                 />
-                <button onClick={goToReport} className="h-7 px-3 rounded-[6px] text-[12px] font-medium bg-[#070A1F] text-white hover:opacity-90 transition-opacity">Ver Relatório</button>
+                <button onClick={goToReport} className="h-7 px-3 rounded-[6px] text-[12px] font-medium bg-[var(--navy)] text-white hover:opacity-90 transition-opacity">Ver Relatório</button>
               </div>
             </div>
             {/* Audit warnings */}
             {ovAudit.warnings.length > 0 && (
-              <div className="border-t border-[#F0F0ED] px-5 py-3 bg-[#FFFCF5]">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.05em] text-[#9B9B95] mb-2">
+              <div className="border-t border-[var(--border)] px-5 py-3 bg-[#FFFCF5]">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.05em] text-[var(--text-muted)] mb-2">
                   Avisos de prontidão ({ovAudit.warnings.length})
                 </div>
                 <div className="space-y-1.5">
                   {ovAudit.warnings.map((w, i) => (
                     <div key={i} className="flex items-start gap-2">
                       <span className={`mt-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-[3px] shrink-0 ${
-                        w.severity === "high" ? "bg-[#FEE2E2] text-[#DC2626]" : w.severity === "medium" ? "bg-[#FEF3C7] text-[#D97706]" : "bg-[#F0F0ED] text-[#6B6B65]"
+                        w.severity === "high" ? "bg-[#FEE2E2] text-[var(--danger)]" : w.severity === "medium" ? "bg-[var(--warning-bg)] text-[var(--warning)]" : "bg-[var(--accent)] text-[var(--text-secondary)]"
                       }`}>{w.area}</span>
-                      <span className="text-[12px] text-[#6B6B65] leading-snug">{w.message}</span>
+                      <span className="text-[12px] text-[var(--text-secondary)] leading-snug">{w.message}</span>
                     </div>
                   ))}
                 </div>
@@ -295,40 +295,40 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               const reworkAgentId  = project.agents.find((a) => ["a2", "a1", "a3"].includes(a)) ?? project.agents[0];
               const reworkAgent    = reworkAgentId ? getAgent(reworkAgentId) : null;
               return (
-                <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                  <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Aprovação do Cliente</div>
+                <div className="bg-white rounded-[12px] border border-[var(--border)] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                  <div className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-3">Aprovação do Cliente</div>
                   <div className="flex items-center gap-2 flex-wrap">
                     {awaitingReview > 0 && (
                       <button
                         onClick={() => setTab("deliverables")}
-                        className="flex items-center gap-1.5 h-7 px-3 rounded-full bg-[#FEF3C7] text-[#D97706] text-[12px] font-medium hover:opacity-80 transition-opacity"
+                        className="flex items-center gap-1.5 h-7 px-3 rounded-full bg-[var(--warning-bg)] text-[var(--warning)] text-[12px] font-medium hover:opacity-80 transition-opacity"
                       >
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#D97706]" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--warning)]" />
                         {awaitingReview} aguardando revisão
                       </button>
                     )}
                     {revisionNeeded > 0 && (
                       <button
                         onClick={() => setTab("deliverables")}
-                        className="flex items-center gap-1.5 h-7 px-3 rounded-full bg-[#FEE2E2] text-[#DC2626] text-[12px] font-medium hover:opacity-80 transition-opacity"
+                        className="flex items-center gap-1.5 h-7 px-3 rounded-full bg-[#FEE2E2] text-[var(--danger)] text-[12px] font-medium hover:opacity-80 transition-opacity"
                       >
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#DC2626]" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--danger)]" />
                         {revisionNeeded} revisão necessária
                       </button>
                     )}
                     {approvedCount > 0 && (
                       <button
                         onClick={() => setTab("deliverables")}
-                        className="flex items-center gap-1.5 h-7 px-3 rounded-full bg-[#DCFCE7] text-[#16A34A] text-[12px] font-medium hover:opacity-80 transition-opacity"
+                        className="flex items-center gap-1.5 h-7 px-3 rounded-full bg-[var(--success-bg)] text-[var(--success)] text-[12px] font-medium hover:opacity-80 transition-opacity"
                       >
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#16A34A]" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--success)]" />
                         {approvedCount} aprovado(s)
                       </button>
                     )}
                   </div>
                   {revisionNeeded > 0 && reworkAgent && (
-                    <p className="text-[12px] text-[#9B9B95] mt-2.5">
-                      Próxima ação: <span className="text-[#1A1A1A] font-medium">{reworkAgent.name}</span> deve revisar a entrega sinalizada.
+                    <p className="text-[12px] text-[var(--text-muted)] mt-2.5">
+                      Próxima ação: <span className="text-[var(--text-primary)] font-medium">{reworkAgent.name}</span> deve revisar a entrega sinalizada.
                     </p>
                   )}
                 </div>
@@ -377,21 +377,21 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
               return (
                 <div className={`bg-white rounded-[10px] border shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 ${
-                  isApproved ? "border-[#BBF7D0]" : executionBlocked ? "border-[#FDE68A]" : "border-[#E5E5E2]"
+                  isApproved ? "border-[#BBF7D0]" : executionBlocked ? "border-[#FDE68A]" : "border-[var(--border)]"
                 }`}>
                   <div className="flex items-center justify-between mb-3">
-                    <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Gerente de Projeto</div>
+                    <div className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Gerente de Projeto</div>
                     <button
                       onClick={() => setTab("proposal")}
-                      className="text-[12px] text-[#070A1F] hover:underline"
+                      className="text-[12px] text-[var(--navy)] hover:underline"
                     >
                       {prop ? "Ver Proposta" : "Criar Proposta"} →
                     </button>
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2.5">
-                      <span className={`w-2 h-2 rounded-full shrink-0 ${isApproved ? "bg-[#16A34A]" : "bg-[#D97706]"}`} />
-                      <span className="text-[13px] font-medium text-[#1A1A1A]">
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${isApproved ? "bg-[var(--success)]" : "bg-[var(--warning)]"}`} />
+                      <span className="text-[13px] font-medium text-[var(--text-primary)]">
                         {isApproved ? "Proposta aprovada — execução liberada" : executionBlocked ? "Execução bloqueada — proposta não aprovada" : ""}
                       </span>
                     </div>
@@ -403,7 +403,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                         >
                           Marca parceira — liberar sem custo
                         </button>
-                        <p className="text-[11px] text-[#9B9B95] mt-1 leading-snug">
+                        <p className="text-[11px] text-[var(--text-muted)] mt-1 leading-snug">
                           Cliente que não paga (parceria): libera a execução direto, sem proposta.
                         </p>
                       </div>
@@ -411,9 +411,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     {prop && (
                       <div className="flex items-center gap-2 flex-wrap pl-4">
                         {[
-                          { label: "Proposta", value: prop.status === "draft" ? "Rascunho" : prop.status === "sent" ? "Enviada ao cliente" : prop.status === "approved" ? "Aprovada" : prop.status === "rejected" ? "Reprovada" : "Alterações solicitadas", color: isApproved ? "bg-[#DCFCE7] text-[#16A34A]" : isSent ? "bg-[#E6FBFA] text-[#070A1F]" : isRejected ? "bg-[#FEE2E2] text-[#DC2626]" : "bg-[#FEF3C7] text-[#D97706]" },
-                          ...(pendingRequests > 0 ? [{ label: "Materiais do cliente", value: `${pendingRequests} pendente(s)`, color: "bg-[#FEF3C7] text-[#D97706]" }] : []),
-                          ...(blockedTasks > 0 ? [{ label: "Tarefas bloqueadas", value: `${blockedTasks}`, color: "bg-[#FEE2E2] text-[#DC2626]" }] : []),
+                          { label: "Proposta", value: prop.status === "draft" ? "Rascunho" : prop.status === "sent" ? "Enviada ao cliente" : prop.status === "approved" ? "Aprovada" : prop.status === "rejected" ? "Reprovada" : "Alterações solicitadas", color: isApproved ? "bg-[var(--success-bg)] text-[var(--success)]" : isSent ? "bg-[var(--accent-light)] text-[var(--navy)]" : isRejected ? "bg-[#FEE2E2] text-[var(--danger)]" : "bg-[var(--warning-bg)] text-[var(--warning)]" },
+                          ...(pendingRequests > 0 ? [{ label: "Materiais do cliente", value: `${pendingRequests} pendente(s)`, color: "bg-[var(--warning-bg)] text-[var(--warning)]" }] : []),
+                          ...(blockedTasks > 0 ? [{ label: "Tarefas bloqueadas", value: `${blockedTasks}`, color: "bg-[#FEE2E2] text-[var(--danger)]" }] : []),
                         ].map((item) => (
                           <span key={item.label} className={`h-5 px-2 rounded-full text-[10px] font-semibold ${item.color}`}>
                             {item.label}: {item.value}
@@ -422,7 +422,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                         {strategyRoom && (
                           <button
                             onClick={() => setTab("strategy")}
-                            className="h-5 px-2 rounded-full text-[10px] font-semibold bg-[#E6FBFA] text-[#070A1F] hover:opacity-80 transition-opacity"
+                            className="h-5 px-2 rounded-full text-[10px] font-semibold bg-[var(--accent-light)] text-[var(--navy)] hover:opacity-80 transition-opacity"
                           >
                             Strategy Room completo
                           </button>
@@ -430,8 +430,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                       </div>
                     )}
                     {nextAction && (
-                      <p className="text-[12px] text-[#6B6B65] pl-4 leading-relaxed">
-                        <span className="font-medium text-[#1A1A1A]">Próximo: </span>{nextAction}
+                      <p className="text-[12px] text-[var(--text-secondary)] pl-4 leading-relaxed">
+                        <span className="font-medium text-[var(--text-primary)]">Próximo: </span>{nextAction}
                       </p>
                     )}
                     {/* Deliverable review summary */}
@@ -440,7 +440,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                         {awaitingApproval > 0 && (
                           <button
                             onClick={() => setTab("deliverables")}
-                            className="h-5 px-2 rounded-full text-[10px] font-semibold bg-[#FEF3C7] text-[#D97706] hover:opacity-80 transition-opacity"
+                            className="h-5 px-2 rounded-full text-[10px] font-semibold bg-[var(--warning-bg)] text-[var(--warning)] hover:opacity-80 transition-opacity"
                           >
                             {awaitingApproval} aguardando aprovação
                           </button>
@@ -448,7 +448,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                         {revisionNeeded > 0 && (
                           <button
                             onClick={() => setTab("deliverables")}
-                            className="h-5 px-2 rounded-full text-[10px] font-semibold bg-[#FEE2E2] text-[#DC2626] hover:opacity-80 transition-opacity"
+                            className="h-5 px-2 rounded-full text-[10px] font-semibold bg-[#FEE2E2] text-[var(--danger)] hover:opacity-80 transition-opacity"
                           >
                             {revisionNeeded} em revisão{revisionAgents.length > 0 ? ` · ${revisionAgents.join(", ")}` : ""}
                           </button>
@@ -481,40 +481,40 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               ];
 
               return (
-                <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
+                <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
                   <div className="flex items-center justify-between mb-3">
-                    <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Departamento de Redes Sociais</div>
-                    <button onClick={() => setTab("deliverables")} className="text-[12px] text-[#070A1F] hover:underline">
+                    <div className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Departamento de Redes Sociais</div>
+                    <button onClick={() => setTab("deliverables")} className="text-[12px] text-[var(--navy)] hover:underline">
                       Ver entregas →
                     </button>
                   </div>
                   <div className="space-y-1.5">
                     {deptItems.map(({ label, done }) => (
                       <div key={label} className="flex items-center gap-2">
-                        <span className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${done ? "bg-[#DCFCE7]" : "bg-[#F0F0ED]"}`}>
+                        <span className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${done ? "bg-[var(--success-bg)]" : "bg-[var(--accent)]"}`}>
                           {done ? (
                             <svg width="8" height="6" viewBox="0 0 8 6" fill="none">
                               <path d="M1 3L3 5L7 1" stroke="#16A34A" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>
                           ) : (
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#C0C0BC]" />
+                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-subtle)]" />
                           )}
                         </span>
-                        <span className={`text-[13px] ${done ? "text-[#1A1A1A]" : "text-[#9B9B95]"}`}>{label}</span>
+                        <span className={`text-[13px] ${done ? "text-[var(--text-primary)]" : "text-[var(--text-muted)]"}`}>{label}</span>
                       </div>
                     ))}
                   </div>
                   {(pendingApproval > 0 || approvedCount > 0) && (
-                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[#F0F0ED] flex-wrap">
+                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[var(--border)] flex-wrap">
                       {pendingApproval > 0 && (
-                        <span className="flex items-center gap-1.5 h-6 px-2.5 rounded-full bg-[#FEF3C7] text-[#D97706] text-[11px] font-semibold">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#D97706]" />
+                        <span className="flex items-center gap-1.5 h-6 px-2.5 rounded-full bg-[var(--warning-bg)] text-[var(--warning)] text-[11px] font-semibold">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[var(--warning)]" />
                           {pendingApproval} aguardando aprovação
                         </span>
                       )}
                       {approvedCount > 0 && (
-                        <span className="flex items-center gap-1.5 h-6 px-2.5 rounded-full bg-[#DCFCE7] text-[#16A34A] text-[11px] font-semibold">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#16A34A]" />
+                        <span className="flex items-center gap-1.5 h-6 px-2.5 rounded-full bg-[var(--success-bg)] text-[var(--success)] text-[11px] font-semibold">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[var(--success)]" />
                           {approvedCount} aprovado(s)
                         </span>
                       )}
@@ -541,43 +541,43 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               ];
 
               return (
-                <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
+                <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
                   <div className="flex items-center justify-between mb-3">
-                    <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Departamento de Design</div>
-                    <button onClick={() => setTab("deliverables")} className="text-[12px] text-[#070A1F] hover:underline">
+                    <div className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Departamento de Design</div>
+                    <button onClick={() => setTab("deliverables")} className="text-[12px] text-[var(--navy)] hover:underline">
                       Ver entregas →
                     </button>
                   </div>
                   <div className="space-y-1.5">
                     {deptItems.map(({ label, done }) => (
                       <div key={label} className="flex items-center gap-2">
-                        <span className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${done ? "bg-[#FFF4ED]" : "bg-[#F0F0ED]"}`}>
+                        <span className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${done ? "bg-[#FFF4ED]" : "bg-[var(--accent)]"}`}>
                           {done ? (
                             <svg width="8" height="6" viewBox="0 0 8 6" fill="none">
                               <path d="M1 3L3 5L7 1" stroke="#C2530A" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>
                           ) : (
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#C0C0BC]" />
+                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-subtle)]" />
                           )}
                         </span>
-                        <span className={`text-[13px] ${done ? "text-[#1A1A1A]" : "text-[#9B9B95]"}`}>{label}</span>
+                        <span className={`text-[13px] ${done ? "text-[var(--text-primary)]" : "text-[var(--text-muted)]"}`}>{label}</span>
                         {label === "Briefs Gerados" && totalDesigns > 0 && (
-                          <span className="text-[11px] text-[#9B9B95]">({totalDesigns})</span>
+                          <span className="text-[11px] text-[var(--text-muted)]">({totalDesigns})</span>
                         )}
                       </div>
                     ))}
                   </div>
                   {(pendingApproval > 0 || approvedCount > 0) && (
-                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[#F0F0ED] flex-wrap">
+                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[var(--border)] flex-wrap">
                       {pendingApproval > 0 && (
-                        <span className="flex items-center gap-1.5 h-6 px-2.5 rounded-full bg-[#FEF3C7] text-[#D97706] text-[11px] font-semibold">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#D97706]" />
+                        <span className="flex items-center gap-1.5 h-6 px-2.5 rounded-full bg-[var(--warning-bg)] text-[var(--warning)] text-[11px] font-semibold">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[var(--warning)]" />
                           {pendingApproval} aguardando aprovação
                         </span>
                       )}
                       {approvedCount > 0 && (
-                        <span className="flex items-center gap-1.5 h-6 px-2.5 rounded-full bg-[#DCFCE7] text-[#16A34A] text-[11px] font-semibold">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#16A34A]" />
+                        <span className="flex items-center gap-1.5 h-6 px-2.5 rounded-full bg-[var(--success-bg)] text-[var(--success)] text-[11px] font-semibold">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[var(--success)]" />
                           {approvedCount} aprovado(s)
                         </span>
                       )}
@@ -606,40 +606,40 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               ];
 
               return (
-                <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
+                <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
                   <div className="flex items-center justify-between mb-3">
-                    <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Departamento de Tráfego Pago</div>
-                    <button onClick={() => setTab("deliverables")} className="text-[12px] text-[#070A1F] hover:underline">
+                    <div className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Departamento de Tráfego Pago</div>
+                    <button onClick={() => setTab("deliverables")} className="text-[12px] text-[var(--navy)] hover:underline">
                       Ver entregas →
                     </button>
                   </div>
                   <div className="space-y-1.5">
                     {deptItems.map(({ label, done }) => (
                       <div key={label} className="flex items-center gap-2">
-                        <span className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${done ? "bg-[#ECFEFF]" : "bg-[#F0F0ED]"}`}>
+                        <span className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${done ? "bg-[#ECFEFF]" : "bg-[var(--accent)]"}`}>
                           {done ? (
                             <svg width="8" height="6" viewBox="0 0 8 6" fill="none">
                               <path d="M1 3L3 5L7 1" stroke="#0E7490" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>
                           ) : (
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#C0C0BC]" />
+                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-subtle)]" />
                           )}
                         </span>
-                        <span className={`text-[13px] ${done ? "text-[#1A1A1A]" : "text-[#9B9B95]"}`}>{label}</span>
+                        <span className={`text-[13px] ${done ? "text-[var(--text-primary)]" : "text-[var(--text-muted)]"}`}>{label}</span>
                       </div>
                     ))}
                   </div>
                   {(pendingApproval > 0 || approvedCount > 0) && (
-                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[#F0F0ED] flex-wrap">
+                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[var(--border)] flex-wrap">
                       {pendingApproval > 0 && (
-                        <span className="flex items-center gap-1.5 h-6 px-2.5 rounded-full bg-[#FEF3C7] text-[#D97706] text-[11px] font-semibold">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#D97706]" />
+                        <span className="flex items-center gap-1.5 h-6 px-2.5 rounded-full bg-[var(--warning-bg)] text-[var(--warning)] text-[11px] font-semibold">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[var(--warning)]" />
                           {pendingApproval} aguardando aprovação do cliente
                         </span>
                       )}
                       {approvedCount > 0 && (
-                        <span className="flex items-center gap-1.5 h-6 px-2.5 rounded-full bg-[#DCFCE7] text-[#16A34A] text-[11px] font-semibold">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#16A34A]" />
+                        <span className="flex items-center gap-1.5 h-6 px-2.5 rounded-full bg-[var(--success-bg)] text-[var(--success)] text-[11px] font-semibold">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[var(--success)]" />
                           {approvedCount} aprovado(s)
                         </span>
                       )}
@@ -650,34 +650,34 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             })()}
 
             {/* Goal */}
-            <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-              <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">Objetivo</div>
-              <p className="text-[14px] text-[#1A1A1A] leading-relaxed">{project.goal}</p>
+            <div className="bg-white rounded-[12px] border border-[var(--border)] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              <div className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-2">Objetivo</div>
+              <p className="text-[14px] text-[var(--text-primary)] leading-relaxed">{project.goal}</p>
             </div>
 
             {/* Tasks snapshot */}
-            <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-              <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F0ED]">
-                <div className="text-[13px] font-semibold text-[#1A1A1A]">Tarefas</div>
-                <button onClick={() => setTab("tasks")} className="text-[12px] text-[#070A1F] hover:underline">Ver todas</button>
+            <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--border)]">
+                <div className="text-[13px] font-semibold text-[var(--text-primary)]">Tarefas</div>
+                <button onClick={() => setTab("tasks")} className="text-[12px] text-[var(--navy)] hover:underline">Ver todas</button>
               </div>
               {projectTasks.slice(0, 4).map((task, i) => (
-                <div key={task.id} className={`flex items-center gap-3 px-5 py-3 ${i > 0 ? "border-t border-[#F0F0ED]" : ""}`}>
+                <div key={task.id} className={`flex items-center gap-3 px-5 py-3 ${i > 0 ? "border-t border-[var(--border)]" : ""}`}>
                   <button
                     onClick={() => updateTaskStatus(task.id, TASK_CYCLE[task.status])}
                     className={`w-4 h-4 rounded-[4px] border flex items-center justify-center shrink-0 transition-colors ${
                       task.status === "done"
-                        ? "bg-[#070A1F] border-[#070A1F]"
+                        ? "bg-[var(--navy)] border-[var(--navy)]"
                         : task.status === "blocked"
-                        ? "bg-[#FEE2E2] border-[#DC2626]"
-                        : "border-[#D0D0CC] hover:border-[#070A1F]"
+                        ? "bg-[#FEE2E2] border-[var(--danger)]"
+                        : "border-[var(--border-strong)] hover:border-[var(--navy)]"
                     }`}
                   >
                     {task.status === "done" && (
                       <svg width="9" height="7" viewBox="0 0 9 7" fill="none"><path d="M1 3.5L3.5 6L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     )}
                   </button>
-                  <span className={`text-[13px] flex-1 ${task.status === "done" ? "line-through text-[#9B9B95]" : "text-[#1A1A1A]"}`}>
+                  <span className={`text-[13px] flex-1 ${task.status === "done" ? "line-through text-[var(--text-muted)]" : "text-[var(--text-primary)]"}`}>
                     {task.title}
                   </span>
                   <Badge variant={task.status} />
@@ -687,25 +687,25 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
             {/* Deliverables snapshot */}
             {projectDeliverables.length > 0 && (
-              <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-                <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F0ED]">
-                  <div className="text-[13px] font-semibold text-[#1A1A1A]">Entregas</div>
-                  <button onClick={() => setTab("deliverables")} className="text-[12px] text-[#070A1F] hover:underline">Ver todas</button>
+              <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--border)]">
+                  <div className="text-[13px] font-semibold text-[var(--text-primary)]">Entregas</div>
+                  <button onClick={() => setTab("deliverables")} className="text-[12px] text-[var(--navy)] hover:underline">Ver todas</button>
                 </div>
                 {projectDeliverables.map((d, i) => (
                   <div
                     key={d.id}
                     onClick={() => setDetailId(d.id)}
-                    className={`group flex items-center justify-between px-5 py-3 cursor-pointer hover:bg-[#FAFAF9] transition-colors ${i > 0 ? "border-t border-[#F0F0ED]" : ""}`}
+                    className={`group flex items-center justify-between px-5 py-3 cursor-pointer hover:bg-[var(--bg-elevated)] transition-colors ${i > 0 ? "border-t border-[var(--border)]" : ""}`}
                   >
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-[13px] font-medium text-[#1A1A1A] group-hover:text-[#070A1F] transition-colors">{d.name}</span>
+                        <span className="text-[13px] font-medium text-[var(--text-primary)] group-hover:text-[var(--navy)] transition-colors">{d.name}</span>
                         {needsRevision(d) && (
-                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#D97706]">Revisão</span>
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[var(--warning-bg)] text-[var(--warning)]">Revisão</span>
                         )}
                       </div>
-                      <div className="text-[11px] text-[#9B9B95]">{d.type} · v{getVersion(d)} · {getOwner(d).name}</div>
+                      <div className="text-[11px] text-[var(--text-muted)]">{d.type} · v{getVersion(d)} · {getOwner(d).name}</div>
                     </div>
                     <button
                       onClick={(e) => { e.stopPropagation(); updateDeliverableStatus(d.id, DELIVERABLE_CYCLE[d.status]); }}
@@ -721,8 +721,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
           {/* Sidebar info */}
           <div className="space-y-4">
-            <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-              <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Detalhes</div>
+            <div className="bg-white rounded-[12px] border border-[var(--border)] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              <div className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-3">Detalhes</div>
               <div className="space-y-2.5">
                 {[
                   { label: "Cliente", value: client?.name ?? "—" },
@@ -732,26 +732,26 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   { label: "Tarefas", value: `${doneTasks} / ${projectTasks.length} concluídas` },
                 ].map(({ label, value }) => (
                   <div key={label} className="flex justify-between">
-                    <span className="text-[12px] text-[#9B9B95]">{label}</span>
-                    <span className="text-[12px] font-medium text-[#1A1A1A]">{value}</span>
+                    <span className="text-[12px] text-[var(--text-muted)]">{label}</span>
+                    <span className="text-[12px] font-medium text-[var(--text-primary)]">{value}</span>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Agents */}
-            <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-              <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Agentes Atribuídos</div>
+            <div className="bg-white rounded-[12px] border border-[var(--border)] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              <div className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-3">Agentes Atribuídos</div>
               <div className="space-y-2">
                 {project.agents.map((agentId) => {
                   const agent = getAgent(agentId);
                   if (!agent) return null;
                   return (
                     <div key={agentId} className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-[#E6FBFA] flex items-center justify-center text-[10px] font-bold text-[#070A1F]">
+                      <div className="w-6 h-6 rounded-full bg-[var(--accent-light)] flex items-center justify-center text-[10px] font-bold text-[var(--navy)]">
                         {agent.name.slice(0, 1)}
                       </div>
-                      <span className="text-[12px] text-[#1A1A1A]">{agent.name}</span>
+                      <span className="text-[12px] text-[var(--text-primary)]">{agent.name}</span>
                     </div>
                   );
                 })}
@@ -768,8 +768,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         <div className="space-y-6">
 
           {/* Stage Control */}
-          <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
-            <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Controle de Etapa</div>
+          <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
+            <div className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-3">Controle de Etapa</div>
             <div className="flex items-center gap-1 flex-wrap">
               {STAGES.map((stage, i) => {
                 const isActive = project.stage === stage;
@@ -780,16 +780,16 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                       onClick={() => moveProjectStage(id, stage)}
                       className={`h-7 px-3 rounded-full text-[12px] font-medium transition-all ${
                         isActive
-                          ? "bg-[#070A1F] text-white"
+                          ? "bg-[var(--navy)] text-white"
                           : isDone
-                          ? "bg-[#F0F0ED] text-[#6B6B65] hover:bg-[#E8E8E5]"
-                          : "bg-[#F7F7F6] text-[#9B9B95] border border-[#E5E5E2] hover:border-[#070A1F] hover:text-[#070A1F]"
+                          ? "bg-[var(--accent)] text-[var(--text-secondary)] hover:bg-[var(--border)]"
+                          : "bg-[var(--bg)] text-[var(--text-muted)] border border-[var(--border)] hover:border-[var(--navy)] hover:text-[var(--navy)]"
                       }`}
                     >
-                      {isDone && <span className="mr-1 text-[#16A34A]">✓</span>}
+                      {isDone && <span className="mr-1 text-[var(--success)]">✓</span>}
                       {stage.charAt(0).toUpperCase() + stage.slice(1)}
                     </button>
-                    {i < STAGES.length - 1 && <span className="text-[#D0D0CC] text-[11px]">›</span>}
+                    {i < STAGES.length - 1 && <span className="text-[var(--border-strong)] text-[11px]">›</span>}
                   </div>
                 );
               })}
@@ -798,10 +798,10 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
           {/* Agent Pipeline */}
           <div>
-            <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Pipeline de Agentes</div>
+            <div className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-3">Pipeline de Agentes</div>
             {project.agents.length === 0 ? (
-              <div className="bg-white rounded-[10px] border border-dashed border-[#E5E5E2] px-5 py-8 text-center">
-                <p className="text-[13px] text-[#9B9B95]">Nenhum agente atribuído. Edite o projeto para atribuir agentes.</p>
+              <div className="bg-white rounded-[10px] border border-dashed border-[var(--border)] px-5 py-8 text-center">
+                <p className="text-[13px] text-[var(--text-muted)]">Nenhum agente atribuído. Edite o projeto para atribuir agentes.</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -813,22 +813,22 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   const agentTasks = projectTasks.filter((t) => t.agentId === agentId);
                   const doneTasks = agentTasks.filter((t) => t.status === "done").length;
                   return (
-                    <div key={agentId} className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 flex items-center gap-4">
+                    <div key={agentId} className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 flex items-center gap-4">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold shrink-0 ${
-                        status === "done" ? "bg-[#DCFCE7] text-[#16A34A]" : status === "in_progress" ? "bg-[#FFF4ED] text-[#C2530A]" : "bg-[#E6FBFA] text-[#070A1F]"
+                        status === "done" ? "bg-[var(--success-bg)] text-[var(--success)]" : status === "in_progress" ? "bg-[#FFF4ED] text-[#C2530A]" : "bg-[var(--accent-light)] text-[var(--navy)]"
                       }`}>
                         {idx + 1}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
-                          <p className="text-[13px] font-semibold text-[#1A1A1A]">{agent.name}</p>
+                          <p className="text-[13px] font-semibold text-[var(--text-primary)]">{agent.name}</p>
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${STATUS_COLOR[status]}`}>
                             {STATUS_LABEL[status]}
                           </span>
                         </div>
-                        <p className="text-[11px] text-[#9B9B95] truncate">{agent.role}</p>
+                        <p className="text-[11px] text-[var(--text-muted)] truncate">{agent.role}</p>
                         {agentTasks.length > 0 && (
-                          <p className="text-[11px] text-[#6B6B65] mt-1">
+                          <p className="text-[11px] text-[var(--text-secondary)] mt-1">
                             {doneTasks}/{agentTasks.length} tarefas concluídas
                           </p>
                         )}
@@ -845,7 +845,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                             });
                             router.push(runUrl);
                           }}
-                          className="shrink-0 h-7 px-3 rounded-[6px] text-[12px] font-medium border border-[#E5E5E2] text-[#1A1A1A] hover:bg-[#F7F7F6] hover:border-[#070A1F] hover:text-[#070A1F] transition-colors flex items-center gap-1.5"
+                          className="shrink-0 h-7 px-3 rounded-[6px] text-[12px] font-medium border border-[var(--border)] text-[var(--text-primary)] hover:bg-[var(--bg)] hover:border-[var(--navy)] hover:text-[var(--navy)] transition-colors flex items-center gap-1.5"
                         >
                           Executar
                           <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
@@ -853,7 +853,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                           </svg>
                         </button>
                       ) : (
-                        <span className="shrink-0 h-7 px-3 rounded-[6px] text-[12px] font-medium border border-[#E5E5E2] text-[#C0C0BC] cursor-not-allowed flex items-center">
+                        <span className="shrink-0 h-7 px-3 rounded-[6px] text-[12px] font-medium border border-[var(--border)] text-[var(--text-subtle)] cursor-not-allowed flex items-center">
                           Sem página
                         </span>
                       )}
@@ -866,28 +866,28 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
           {/* Deliverables by category */}
           <div>
-            <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Entregas</div>
+            <div className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-3">Entregas</div>
             <div className="grid grid-cols-3 gap-4">
               {(["posts", "design", "campaigns"] as const).map((cat) => {
                 const catLabels = { posts: "Posts & Copy", design: "Ativos de Design", campaigns: "Campanhas & Anúncios" };
                 const catDeliverables = projectDeliverables.filter((d) => getDeliverableCategory(d.type) === cat);
                 return (
-                  <div key={cat} className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-                    <div className="px-4 py-3 border-b border-[#F0F0ED] flex items-center justify-between">
-                      <p className="text-[12px] font-semibold text-[#1A1A1A]">{catLabels[cat]}</p>
-                      <span className="text-[11px] text-[#9B9B95]">{catDeliverables.length}</span>
+                  <div key={cat} className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+                    <div className="px-4 py-3 border-b border-[var(--border)] flex items-center justify-between">
+                      <p className="text-[12px] font-semibold text-[var(--text-primary)]">{catLabels[cat]}</p>
+                      <span className="text-[11px] text-[var(--text-muted)]">{catDeliverables.length}</span>
                     </div>
                     {catDeliverables.length === 0 ? (
                       <div className="px-4 py-6 text-center">
-                        <p className="text-[11px] text-[#C0C0BC]">Nenhuma entrega ainda</p>
+                        <p className="text-[11px] text-[var(--text-subtle)]">Nenhuma entrega ainda</p>
                       </div>
                     ) : (
-                      <div className="divide-y divide-[#F0F0ED]">
+                      <div className="divide-y divide-[var(--border)]">
                         {catDeliverables.map((d) => (
                           <div key={d.id} className="px-4 py-2.5 flex items-center justify-between gap-2">
                             <div className="min-w-0">
-                              <p className="text-[12px] font-medium text-[#1A1A1A] truncate">{d.name}</p>
-                              <p className="text-[10px] text-[#9B9B95]">v{d.version}</p>
+                              <p className="text-[12px] font-medium text-[var(--text-primary)] truncate">{d.name}</p>
+                              <p className="text-[10px] text-[var(--text-muted)]">v{d.version}</p>
                             </div>
                             <button onClick={() => updateDeliverableStatus(d.id, DELIVERABLE_CYCLE[d.status])}>
                               <Badge variant={d.status} size="sm" />
@@ -907,24 +907,24 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
       {/* Tab: Pipeline */}
       {tab === "pipeline" && (
-        <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-          <div className="divide-y divide-[#F0F0ED]">
+        <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+          <div className="divide-y divide-[var(--border)]">
             {STAGES.map((stage, i) => {
               const isActive = project.stage === stage;
               const isDone = STAGES.indexOf(stage) < STAGES.indexOf(project.stage);
               return (
                 <div key={stage} className={`flex items-center gap-4 px-6 py-4 ${isActive ? "bg-[#FAFAFE]" : ""}`}>
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${
-                    isActive ? "bg-[#070A1F] text-white" : isDone ? "bg-[#DCFCE7] text-[#16A34A]" : "bg-[#F0F0ED] text-[#9B9B95]"
+                    isActive ? "bg-[var(--navy)] text-white" : isDone ? "bg-[var(--success-bg)] text-[var(--success)]" : "bg-[var(--accent)] text-[var(--text-muted)]"
                   }`}>
                     {isDone ? "✓" : i + 1}
                   </div>
                   <div className="flex-1">
-                    <div className={`text-[13px] font-medium ${isActive ? "text-[#070A1F]" : isDone ? "text-[#6B6B65]" : "text-[#9B9B95]"}`}>
+                    <div className={`text-[13px] font-medium ${isActive ? "text-[var(--navy)]" : isDone ? "text-[var(--text-secondary)]" : "text-[var(--text-muted)]"}`}>
                       {stage.charAt(0).toUpperCase() + stage.slice(1)}
                     </div>
                     {isActive && (
-                      <div className="text-[12px] text-[#9B9B95] mt-0.5">Etapa atual</div>
+                      <div className="text-[12px] text-[var(--text-muted)] mt-0.5">Etapa atual</div>
                     )}
                   </div>
                   {isActive && <Badge variant="in_progress" size="md">Atual</Badge>}
@@ -932,7 +932,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   {!isActive && (
                     <button
                       onClick={() => moveProjectStage(id, stage)}
-                      className="h-6 px-2.5 rounded-[5px] text-[11px] font-medium border border-[#E5E5E2] text-[#6B6B65] hover:border-[#070A1F] hover:text-[#070A1F] transition-colors"
+                      className="h-6 px-2.5 rounded-[5px] text-[11px] font-medium border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--navy)] hover:text-[var(--navy)] transition-colors"
                     >
                       Mover aqui
                     </button>
@@ -946,37 +946,37 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
       {/* Tab: Tasks */}
       {tab === "tasks" && (
-        <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+        <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
           {projectTasks.length === 0 ? (
             <div className="px-5 py-16 text-center">
-              <p className="text-[14px] font-medium text-[#1A1A1A]">Nenhuma tarefa encontrada.</p>
-              <p className="text-[13px] text-[#9B9B95] mt-1.5">Execute o Orchestrator para gerar um plano de tarefas para este projeto.</p>
+              <p className="text-[14px] font-medium text-[var(--text-primary)]">Nenhuma tarefa encontrada.</p>
+              <p className="text-[13px] text-[var(--text-muted)] mt-1.5">Execute o Orchestrator para gerar um plano de tarefas para este projeto.</p>
             </div>
           ) : (
             <table className="w-full">
               <thead>
-                <tr className="border-b border-[#F0F0ED]">
+                <tr className="border-b border-[var(--border)]">
                   <th className="w-8 px-5 py-3"></th>
-                  <th className="text-left px-3 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Tarefa</th>
-                  <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Agente</th>
-                  <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Status</th>
-                  <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Prazo</th>
+                  <th className="text-left px-3 py-3 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Tarefa</th>
+                  <th className="text-left px-5 py-3 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Agente</th>
+                  <th className="text-left px-5 py-3 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Status</th>
+                  <th className="text-left px-5 py-3 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Prazo</th>
                 </tr>
               </thead>
               <tbody>
                 {projectTasks.map((task, i) => {
                   const agent = getAgent(task.agentId);
                   return (
-                    <tr key={task.id} className={`hover:bg-[#FAFAF9] transition-colors ${i > 0 ? "border-t border-[#F0F0ED]" : ""}`}>
+                    <tr key={task.id} className={`hover:bg-[var(--bg-elevated)] transition-colors ${i > 0 ? "border-t border-[var(--border)]" : ""}`}>
                       <td className="px-5 py-3.5">
                         <button
                           onClick={() => updateTaskStatus(task.id, TASK_CYCLE[task.status])}
                           className={`w-4 h-4 rounded-[4px] border flex items-center justify-center transition-colors ${
                             task.status === "done"
-                              ? "bg-[#070A1F] border-[#070A1F]"
+                              ? "bg-[var(--navy)] border-[var(--navy)]"
                               : task.status === "blocked"
-                              ? "bg-[#FEE2E2] border-[#DC2626]"
-                              : "border-[#D0D0CC] hover:border-[#070A1F]"
+                              ? "bg-[#FEE2E2] border-[var(--danger)]"
+                              : "border-[var(--border-strong)] hover:border-[var(--navy)]"
                           }`}
                         >
                           {task.status === "done" && (
@@ -985,14 +985,14 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                         </button>
                       </td>
                       <td className="px-3 py-3.5">
-                        <div className={`text-[13px] font-medium ${task.status === "done" ? "line-through text-[#9B9B95]" : "text-[#1A1A1A]"}`}>
+                        <div className={`text-[13px] font-medium ${task.status === "done" ? "line-through text-[var(--text-muted)]" : "text-[var(--text-primary)]"}`}>
                           {task.title}
                         </div>
-                        <div className="text-[11px] text-[#9B9B95] mt-0.5 line-clamp-1">{task.description}</div>
+                        <div className="text-[11px] text-[var(--text-muted)] mt-0.5 line-clamp-1">{task.description}</div>
                       </td>
-                      <td className="px-5 py-3.5 text-[12px] text-[#6B6B65]">{agent?.name ?? "—"}</td>
+                      <td className="px-5 py-3.5 text-[12px] text-[var(--text-secondary)]">{agent?.name ?? "—"}</td>
                       <td className="px-5 py-3.5"><Badge variant={task.status} /></td>
-                      <td className="px-5 py-3.5 text-[12px] text-[#9B9B95]">{task.dueDate.slice(5)}</td>
+                      <td className="px-5 py-3.5 text-[12px] text-[var(--text-muted)]">{task.dueDate.slice(5)}</td>
                     </tr>
                   );
                 })}
@@ -1004,21 +1004,21 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
       {/* Tab: Deliverables */}
       {tab === "deliverables" && (
-        <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+        <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
           {projectDeliverables.length === 0 ? (
             <div className="px-5 py-16 text-center">
-              <p className="text-[14px] font-medium text-[#1A1A1A]">Nenhuma entrega salva ainda.</p>
-              <p className="text-[13px] text-[#9B9B95] mt-1.5">As entregas são criadas conforme os agentes concluem suas tarefas.</p>
+              <p className="text-[14px] font-medium text-[var(--text-primary)]">Nenhuma entrega salva ainda.</p>
+              <p className="text-[13px] text-[var(--text-muted)] mt-1.5">As entregas são criadas conforme os agentes concluem suas tarefas.</p>
             </div>
           ) : (
             <table className="w-full">
               <thead>
-                <tr className="border-b border-[#F0F0ED]">
-                  <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Nome</th>
-                  <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Responsável</th>
-                  <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Versão</th>
-                  <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Status</th>
-                  <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Data</th>
+                <tr className="border-b border-[var(--border)]">
+                  <th className="text-left px-5 py-3 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Nome</th>
+                  <th className="text-left px-5 py-3 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Responsável</th>
+                  <th className="text-left px-5 py-3 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Versão</th>
+                  <th className="text-left px-5 py-3 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Status</th>
+                  <th className="text-left px-5 py-3 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Data</th>
                 </tr>
               </thead>
               <tbody>
@@ -1030,28 +1030,28 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     <tr
                       key={d.id}
                       onClick={() => setDetailId(d.id)}
-                      className={`group hover:bg-[#FAFAF9] transition-colors cursor-pointer ${i > 0 ? "border-t border-[#F0F0ED]" : ""}`}
+                      className={`group hover:bg-[var(--bg-elevated)] transition-colors cursor-pointer ${i > 0 ? "border-t border-[var(--border)]" : ""}`}
                     >
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-2">
-                          <span className="text-[13px] font-medium text-[#1A1A1A] group-hover:text-[#070A1F] transition-colors">{d.name}</span>
-                          <span className="text-[11px] text-[#9B9B95] bg-[#F0F0ED] px-1.5 py-0.5 rounded-[4px]">{d.type}</span>
+                          <span className="text-[13px] font-medium text-[var(--text-primary)] group-hover:text-[var(--navy)] transition-colors">{d.name}</span>
+                          <span className="text-[11px] text-[var(--text-muted)] bg-[var(--accent)] px-1.5 py-0.5 rounded-[4px]">{d.type}</span>
                           {revision && (
-                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#D97706]">Revisão necessária</span>
+                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[var(--warning-bg)] text-[var(--warning)]">Revisão necessária</span>
                           )}
                         </div>
                         {excerpt && (
-                          <div className="text-[11px] text-[#9B9B95] mt-0.5 italic truncate max-w-[360px]">“{excerpt}”</div>
+                          <div className="text-[11px] text-[var(--text-muted)] mt-0.5 italic truncate max-w-[360px]">“{excerpt}”</div>
                         )}
                       </td>
-                      <td className="px-5 py-3.5 text-[13px] text-[#6B6B65]">{owner.name}</td>
-                      <td className="px-5 py-3.5 text-[13px] text-[#9B9B95] mono-num">v{getVersion(d)}</td>
+                      <td className="px-5 py-3.5 text-[13px] text-[var(--text-secondary)]">{owner.name}</td>
+                      <td className="px-5 py-3.5 text-[13px] text-[var(--text-muted)] mono-num">v{getVersion(d)}</td>
                       <td className="px-5 py-3.5">
                         <button onClick={(e) => { e.stopPropagation(); updateDeliverableStatus(d.id, DELIVERABLE_CYCLE[d.status]); }}>
                           <Badge variant={d.status} />
                         </button>
                       </td>
-                      <td className="px-5 py-3.5 text-[12px] text-[#9B9B95]">{d.createdAt.slice(5)}</td>
+                      <td className="px-5 py-3.5 text-[12px] text-[var(--text-muted)]">{d.createdAt.slice(5)}</td>
                     </tr>
                   );
                 })}
@@ -1068,11 +1068,11 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           social_media: "Social Media", ads: "Ads", seo: "SEO", branding: "Branding", content: "Content",
         };
         const Row = ({ label, value }: { label: string; value: string }) => (
-          <div className="flex items-start gap-4 py-4 border-b border-[#F7F7F6] last:border-0">
+          <div className="flex items-start gap-4 py-4 border-b border-[var(--border)] last:border-0">
             <div className="w-[160px] shrink-0 pt-0.5">
-              <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">{label}</span>
+              <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">{label}</span>
             </div>
-            <p className={`flex-1 text-[13px] leading-relaxed ${value ? "text-[#1A1A1A]" : "text-[#C0C0BC] italic"}`}>
+            <p className={`flex-1 text-[13px] leading-relaxed ${value ? "text-[var(--text-primary)]" : "text-[var(--text-subtle)] italic"}`}>
               {value || "Não especificado"}
             </p>
           </div>
@@ -1080,14 +1080,14 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
         if (!ob) {
           return (
-            <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-8 py-12 text-center shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-              <div className="w-10 h-10 rounded-full bg-[#F0F0ED] flex items-center justify-center mx-auto mb-4">
+            <div className="bg-white rounded-[12px] border border-[var(--border)] px-8 py-12 text-center shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              <div className="w-10 h-10 rounded-full bg-[var(--accent)] flex items-center justify-center mx-auto mb-4">
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                   <path d="M3 5h12M3 9h8M3 13h5" stroke="#9B9B95" strokeWidth="1.4" strokeLinecap="round"/>
                 </svg>
               </div>
-              <p className="text-[14px] font-medium text-[#1A1A1A]">Sem dados de briefing</p>
-              <p className="text-[13px] text-[#9B9B95] mt-1.5 max-w-xs mx-auto">
+              <p className="text-[14px] font-medium text-[var(--text-primary)]">Sem dados de briefing</p>
+              <p className="text-[13px] text-[var(--text-muted)] mt-1.5 max-w-xs mx-auto">
                 Este projeto não foi criado via Orchestrator. Dados de briefing estão disponíveis para projetos gerados a partir de um brief analisado.
               </p>
             </div>
@@ -1095,25 +1095,25 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         }
 
         return (
-          <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-3.5 border-b border-[#F0F0ED] bg-[#FAFAF9]">
-              <span className="text-[12px] font-semibold text-[#1A1A1A] uppercase tracking-[0.05em]">Briefing Original</span>
-              <span className="text-[11px] text-[#9B9B95]">Capturado na criação do projeto · somente leitura</span>
+          <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-3.5 border-b border-[var(--border)] bg-[var(--bg-elevated)]">
+              <span className="text-[12px] font-semibold text-[var(--text-primary)] uppercase tracking-[0.05em]">Briefing Original</span>
+              <span className="text-[11px] text-[var(--text-muted)]">Capturado na criação do projeto · somente leitura</span>
             </div>
             <div className="px-6">
               {/* Services */}
-              <div className="flex items-start gap-4 py-4 border-b border-[#F7F7F6]">
+              <div className="flex items-start gap-4 py-4 border-b border-[var(--border)]">
                 <div className="w-[160px] shrink-0 pt-1">
-                  <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Serviços</span>
+                  <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Serviços</span>
                 </div>
                 <div className="flex flex-wrap gap-1.5 flex-1">
                   {ob.services.length > 0
                     ? ob.services.map((s) => (
-                        <span key={s} className="h-6 px-2.5 rounded-full text-[11px] font-medium bg-[#E6FBFA] text-[#070A1F]">
+                        <span key={s} className="h-6 px-2.5 rounded-full text-[11px] font-medium bg-[var(--accent-light)] text-[var(--navy)]">
                           {SERVICE_LABELS[s] ?? s}
                         </span>
                       ))
-                    : <span className="text-[13px] text-[#C0C0BC] italic">Não especificado</span>
+                    : <span className="text-[13px] text-[var(--text-subtle)] italic">Não especificado</span>
                   }
                 </div>
               </div>
@@ -1121,11 +1121,11 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               <Row label="Descrição do Negócio" value={ob.businessDescription} />
               <Row label="Público-alvo"      value={ob.targetAudience} />
               {/* Channels */}
-              <div className="flex items-start gap-4 py-4 border-b border-[#F7F7F6]">
+              <div className="flex items-start gap-4 py-4 border-b border-[var(--border)]">
                 <div className="w-[160px] shrink-0 pt-0.5">
-                  <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Canais</span>
+                  <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Canais</span>
                 </div>
-                <p className={`flex-1 text-[13px] leading-relaxed ${ob.channels.length > 0 ? "text-[#1A1A1A]" : "text-[#C0C0BC] italic"}`}>
+                <p className={`flex-1 text-[13px] leading-relaxed ${ob.channels.length > 0 ? "text-[var(--text-primary)]" : "text-[var(--text-subtle)] italic"}`}>
                   {ob.channels.length > 0 ? ob.channels.join(" · ") : "Não especificado"}
                 </p>
               </div>
@@ -1139,9 +1139,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       {/* Tab: Strategy Room V2 */}
       {tab === "strategy" && (() => {
         const PRIORITY_COLOR: Record<string, string> = {
-          high: "bg-[#FEE2E2] text-[#DC2626]",
-          medium: "bg-[#FEF3C7] text-[#D97706]",
-          low: "bg-[#DCFCE7] text-[#16A34A]",
+          high: "bg-[#FEE2E2] text-[var(--danger)]",
+          medium: "bg-[var(--warning-bg)] text-[var(--warning)]",
+          low: "bg-[var(--success-bg)] text-[var(--success)]",
         };
         const PRIORITY_LABEL: Record<string, string> = {
           high: "Alta", medium: "Média", low: "Baixa",
@@ -1150,18 +1150,18 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           opening: "Abertura", critique: "Crítica", addition: "Adição", risk: "Risco", consensus: "Consenso",
         };
         const DEBATE_TYPE_COLOR: Record<string, string> = {
-          opening: "bg-[#E6FBFA] text-[#070A1F]",
-          critique: "bg-[#FEE2E2] text-[#DC2626]",
-          addition: "bg-[#DCFCE7] text-[#16A34A]",
-          risk: "bg-[#FEF3C7] text-[#D97706]",
-          consensus: "bg-[#070A1F] text-white",
+          opening: "bg-[var(--accent-light)] text-[var(--navy)]",
+          critique: "bg-[#FEE2E2] text-[var(--danger)]",
+          addition: "bg-[var(--success-bg)] text-[var(--success)]",
+          risk: "bg-[var(--warning-bg)] text-[var(--warning)]",
+          consensus: "bg-[var(--navy)] text-white",
         };
         const SPECIALIST_AVATAR: Record<string, string> = {
           strat: "BS", social: "SM", creative: "CD", paid: "PM", growth: "GS", ceo: "CE",
         };
         const SPECIALIST_COLOR: Record<string, string> = {
-          strat: "bg-[#070A1F]", social: "bg-[#0E7490]", creative: "bg-[#C2530A]",
-          paid: "bg-[#16A34A]", growth: "bg-[#070A1F]", ceo: "bg-[#1A1A1A]",
+          strat: "bg-[var(--navy)]", social: "bg-[#0E7490]", creative: "bg-[#C2530A]",
+          paid: "bg-[var(--success)]", growth: "bg-[var(--navy)]", ceo: "bg-[var(--text-primary)]",
         };
 
         const applyEntireStrategy = () => {
@@ -1181,19 +1181,19 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
         if (!strategyRoom) {
           return (
-            <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-6 py-10 text-center">
-              <div className="w-12 h-12 rounded-full bg-[#E6FBFA] flex items-center justify-center mx-auto mb-4">
+            <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-6 py-10 text-center">
+              <div className="w-12 h-12 rounded-full bg-[var(--accent-light)] flex items-center justify-center mx-auto mb-4">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#070A1F" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
                 </svg>
               </div>
-              <p className="text-[15px] font-semibold text-[#1A1A1A] mb-1">Strategy Room V2</p>
-              <p className="text-[13px] text-[#9B9B95] max-w-sm mx-auto mb-5">
+              <p className="text-[15px] font-semibold text-[var(--text-primary)] mb-1">Strategy Room V2</p>
+              <p className="text-[13px] text-[var(--text-muted)] max-w-sm mx-auto mb-5">
                 Seis especialistas analisam o cliente e debatem entre si — Brand Strategist, Social Media Director, Creative Director, Paid Media Director, Growth Strategist e Agency CEO — para produzir uma estratégia consolidada com consenso e resumo executivo.
               </p>
               <button
                 onClick={() => { generateStrategyRoom(id); setStratViewTab("specialists"); }}
-                className="inline-flex items-center gap-2 h-9 px-5 rounded-[8px] bg-[#070A1F] text-white text-[13px] font-medium hover:bg-[#4747c2] transition-colors"
+                className="inline-flex items-center gap-2 h-9 px-5 rounded-[8px] bg-[var(--navy)] text-white text-[13px] font-medium hover:bg-[#4747c2] transition-colors"
               >
                 Gerar Strategy Room
               </button>
@@ -1210,28 +1210,28 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             {/* Header bar */}
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2.5">
-                <span className="text-[13px] font-semibold text-[#1A1A1A]">Strategy Room</span>
-                <span className="h-5 px-2 rounded-full bg-[#DCFCE7] text-[#16A34A] text-[10px] font-semibold">V2 · Pronto</span>
-                <span className="text-[11px] text-[#9B9B95]">
+                <span className="text-[13px] font-semibold text-[var(--text-primary)]">Strategy Room</span>
+                <span className="h-5 px-2 rounded-full bg-[var(--success-bg)] text-[var(--success)] text-[10px] font-semibold">V2 · Pronto</span>
+                <span className="text-[11px] text-[var(--text-muted)]">
                   {new Date(strategyRoom.generatedAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 {stratApplied ? (
-                  <span className="h-8 px-4 rounded-[7px] bg-[#DCFCE7] text-[#16A34A] text-[12px] font-semibold flex items-center">
+                  <span className="h-8 px-4 rounded-[7px] bg-[var(--success-bg)] text-[var(--success)] text-[12px] font-semibold flex items-center">
                     ✓ Aplicado! Abra Proposta ou Agentes
                   </span>
                 ) : (
                   <button
                     onClick={applyEntireStrategy}
-                    className="h-8 px-4 rounded-[7px] bg-[#070A1F] text-white text-[12px] font-medium hover:bg-[#4747c2] transition-colors"
+                    className="h-8 px-4 rounded-[7px] bg-[var(--navy)] text-white text-[12px] font-medium hover:bg-[#4747c2] transition-colors"
                   >
                     Aplicar Estratégia Completa
                   </button>
                 )}
                 <button
                   onClick={() => clearStrategyRoom(id)}
-                  className="h-8 px-3 rounded-[7px] border border-[#E5E5E2] text-[#9B9B95] text-[12px] hover:text-[#DC2626] transition-colors"
+                  className="h-8 px-3 rounded-[7px] border border-[var(--border)] text-[var(--text-muted)] text-[12px] hover:text-[var(--danger)] transition-colors"
                 >
                   Limpar
                 </button>
@@ -1240,42 +1240,42 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
             {/* Executive Summary (always visible) */}
             {exec && (
-              <div className="bg-[#1A1A1A] rounded-[10px] px-5 py-4 text-white">
+              <div className="bg-[var(--text-primary)] rounded-[10px] px-5 py-4 text-white">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.07em] text-[#9B9B95]">Resumo Executivo · 30 segundos</span>
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--text-muted)]">Resumo Executivo · 30 segundos</span>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] text-[#9B9B95]">Confiança</span>
-                    <span className={`h-6 w-6 rounded-full text-[11px] font-bold flex items-center justify-center ${exec.confidenceScore >= 8 ? "bg-[#16A34A]" : exec.confidenceScore >= 6 ? "bg-[#D97706]" : "bg-[#DC2626]"}`}>
+                    <span className="text-[11px] text-[var(--text-muted)]">Confiança</span>
+                    <span className={`h-6 w-6 rounded-full text-[11px] font-bold flex items-center justify-center ${exec.confidenceScore >= 8 ? "bg-[var(--success)]" : exec.confidenceScore >= 6 ? "bg-[var(--warning)]" : "bg-[var(--danger)]"}`}>
                       {exec.confidenceScore}
                     </span>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <div className="bg-white/5 rounded-[8px] px-3 py-2.5">
-                    <div className="text-[9px] font-semibold uppercase tracking-[0.06em] text-[#16A34A] mb-1">Maior Oportunidade</div>
-                    <p className="text-[12px] text-[#E5E5E2] leading-snug">{exec.biggestOpportunity}</p>
+                    <div className="text-[9px] font-semibold uppercase tracking-[0.06em] text-[var(--success)] mb-1">Maior Oportunidade</div>
+                    <p className="text-[12px] text-[var(--border)] leading-snug">{exec.biggestOpportunity}</p>
                   </div>
                   <div className="bg-white/5 rounded-[8px] px-3 py-2.5">
                     <div className="text-[9px] font-semibold uppercase tracking-[0.06em] text-[#EF4444] mb-1">Maior Risco</div>
-                    <p className="text-[12px] text-[#E5E5E2] leading-snug">{exec.biggestRisk}</p>
+                    <p className="text-[12px] text-[var(--border)] leading-snug">{exec.biggestRisk}</p>
                   </div>
-                  <div className="bg-[#070A1F]/20 rounded-[8px] px-3 py-2.5 border border-[#070A1F]/30">
+                  <div className="bg-[var(--navy)]/20 rounded-[8px] px-3 py-2.5 border border-[var(--navy)]/30">
                     <div className="text-[9px] font-semibold uppercase tracking-[0.06em] text-[#8B8BF0] mb-1">Ação Recomendada</div>
-                    <p className="text-[12px] text-[#E5E5E2] leading-snug">{exec.recommendedAction}</p>
+                    <p className="text-[12px] text-[var(--border)] leading-snug">{exec.recommendedAction}</p>
                   </div>
                 </div>
               </div>
             )}
 
             {/* Sub-navigation */}
-            <div className="flex items-center gap-1 bg-[#F7F7F6] rounded-[8px] p-1">
+            <div className="flex items-center gap-1 bg-[var(--bg)] rounded-[8px] p-1">
               {(["specialists", "debate", "consensus"] as const).map((v) => {
                 const LABELS = { specialists: "Especialistas", debate: "Debate", consensus: "Consenso" };
                 return (
                   <button
                     key={v}
                     onClick={() => setStratViewTab(v)}
-                    className={`flex-1 h-7 rounded-[6px] text-[12px] font-medium transition-colors ${stratViewTab === v ? "bg-white text-[#1A1A1A] shadow-[0_1px_2px_rgba(0,0,0,0.08)]" : "text-[#9B9B95] hover:text-[#1A1A1A]"}`}
+                    className={`flex-1 h-7 rounded-[6px] text-[12px] font-medium transition-colors ${stratViewTab === v ? "bg-white text-[var(--text-primary)] shadow-[0_1px_2px_rgba(0,0,0,0.08)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}
                   >
                     {LABELS[v]}
                   </button>
@@ -1287,42 +1287,42 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             {stratViewTab === "specialists" && (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {strategyRoom.specialists.map((sp: StrategyRoomSpecialist) => (
-                  <div key={sp.specialistId} className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
+                  <div key={sp.specialistId} className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
                     {/* Specialist header */}
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-2.5">
-                        <div className={`w-8 h-8 rounded-full ${SPECIALIST_COLOR[sp.specialistId] ?? "bg-[#070A1F]"} text-white text-[11px] font-bold flex items-center justify-center shrink-0`}>
+                        <div className={`w-8 h-8 rounded-full ${SPECIALIST_COLOR[sp.specialistId] ?? "bg-[var(--navy)]"} text-white text-[11px] font-bold flex items-center justify-center shrink-0`}>
                           {SPECIALIST_AVATAR[sp.specialistId] ?? sp.specialistName.slice(0, 2).toUpperCase()}
                         </div>
                         <div>
-                          <div className="text-[13px] font-semibold text-[#1A1A1A] leading-tight">{sp.specialistName}</div>
-                          <div className="text-[11px] text-[#9B9B95]">{sp.role}</div>
+                          <div className="text-[13px] font-semibold text-[var(--text-primary)] leading-tight">{sp.specialistName}</div>
+                          <div className="text-[11px] text-[var(--text-muted)]">{sp.role}</div>
                         </div>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
                         <span className={`h-5 px-2 rounded-full text-[10px] font-semibold ${PRIORITY_COLOR[sp.priority]}`}>
                           {PRIORITY_LABEL[sp.priority]}
                         </span>
-                        <span className="h-5 px-2 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[10px] font-semibold">
+                        <span className="h-5 px-2 rounded-full bg-[var(--accent-light)] text-[var(--navy)] text-[10px] font-semibold">
                           {sp.confidence}/10
                         </span>
                       </div>
                     </div>
                     {/* Mission & perspective */}
                     {sp.mission && (
-                      <div className="mb-2 bg-[#FAFAF9] rounded-[7px] px-3 py-2 border border-[#F0F0ED]">
-                        <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-0.5">Missão</div>
-                        <p className="text-[11px] text-[#6B6B65] leading-snug">{sp.mission}</p>
+                      <div className="mb-2 bg-[var(--bg-elevated)] rounded-[7px] px-3 py-2 border border-[var(--border)]">
+                        <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-0.5">Missão</div>
+                        <p className="text-[11px] text-[var(--text-secondary)] leading-snug">{sp.mission}</p>
                       </div>
                     )}
                     {/* Priorities */}
                     {sp.priorities && sp.priorities.length > 0 && (
                       <div className="mb-2">
-                        <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1">Prioridades</div>
+                        <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1">Prioridades</div>
                         <ol className="space-y-0.5">
                           {sp.priorities.map((p, i) => (
-                            <li key={i} className="flex items-start gap-1.5 text-[11px] text-[#6B6B65]">
-                              <span className="mt-[1px] w-4 h-4 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[9px] font-bold flex items-center justify-center shrink-0">{i + 1}</span>
+                            <li key={i} className="flex items-start gap-1.5 text-[11px] text-[var(--text-secondary)]">
+                              <span className="mt-[1px] w-4 h-4 rounded-full bg-[var(--accent-light)] text-[var(--navy)] text-[9px] font-bold flex items-center justify-center shrink-0">{i + 1}</span>
                               {p}
                             </li>
                           ))}
@@ -1331,22 +1331,22 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     )}
                     {/* Main insight */}
                     <div className="mb-2">
-                      <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-0.5">Insight principal</div>
-                      <p className="text-[12px] text-[#1A1A1A] leading-relaxed">{sp.mainInsight}</p>
+                      <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-0.5">Insight principal</div>
+                      <p className="text-[12px] text-[var(--text-primary)] leading-relaxed">{sp.mainInsight}</p>
                     </div>
                     {/* Recommended direction */}
                     <div className="mb-2">
-                      <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-0.5">Direção recomendada</div>
-                      <p className="text-[12px] text-[#6B6B65] leading-relaxed">{sp.recommendedDirection}</p>
+                      <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-0.5">Direção recomendada</div>
+                      <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed">{sp.recommendedDirection}</p>
                     </div>
                     {/* Concerns */}
                     {sp.concerns && sp.concerns.length > 0 && (
                       <div className="mb-2">
-                        <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1">Preocupações</div>
+                        <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1">Preocupações</div>
                         <ul className="space-y-0.5">
                           {sp.concerns.map((c, i) => (
-                            <li key={i} className="flex items-start gap-1.5 text-[11px] text-[#9B9B95]">
-                              <span className="mt-[3px] w-1 h-1 rounded-full bg-[#DC2626] shrink-0" />
+                            <li key={i} className="flex items-start gap-1.5 text-[11px] text-[var(--text-muted)]">
+                              <span className="mt-[3px] w-1 h-1 rounded-full bg-[var(--danger)] shrink-0" />
                               {c}
                             </li>
                           ))}
@@ -1356,10 +1356,10 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     {/* Suggested deliverables */}
                     {sp.suggestedDeliverables.length > 0 && (
                       <div>
-                        <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1">Entregas sugeridas</div>
+                        <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1">Entregas sugeridas</div>
                         <div className="flex flex-wrap gap-1">
                           {sp.suggestedDeliverables.map((d: string) => (
-                            <span key={d} className="h-5 px-2 rounded-full bg-[#F0F0ED] text-[#6B6B65] text-[10px] font-medium">{d}</span>
+                            <span key={d} className="h-5 px-2 rounded-full bg-[var(--accent)] text-[var(--text-secondary)] text-[10px] font-medium">{d}</span>
                           ))}
                         </div>
                       </div>
@@ -1371,32 +1371,32 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
             {/* ── Debate view ─── */}
             {stratViewTab === "debate" && (
-              <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-                <div className="px-5 py-3.5 border-b border-[#F0F0ED]">
-                  <h3 className="text-[13px] font-semibold text-[#1A1A1A]">Debate entre Especialistas</h3>
-                  <p className="text-[11px] text-[#9B9B95] mt-0.5">Discussão sequencial — cada especialista responde, critica e adiciona perspectiva</p>
+              <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-[var(--border)]">
+                  <h3 className="text-[13px] font-semibold text-[var(--text-primary)]">Debate entre Especialistas</h3>
+                  <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Discussão sequencial — cada especialista responde, critica e adiciona perspectiva</p>
                 </div>
-                <div className="divide-y divide-[#F0F0ED]">
+                <div className="divide-y divide-[var(--border)]">
                   {debate.length === 0 ? (
-                    <p className="px-5 py-4 text-[12px] text-[#9B9B95] italic">Nenhum debate gerado. Regere o Strategy Room para ativar o modo debate.</p>
+                    <p className="px-5 py-4 text-[12px] text-[var(--text-muted)] italic">Nenhum debate gerado. Regere o Strategy Room para ativar o modo debate.</p>
                   ) : (
                     debate.map((turn: DebateTurn, idx: number) => (
                       <div key={idx} className={`px-5 py-4 ${turn.type === "consensus" ? "bg-[#FAFAFE]" : ""}`}>
                         <div className="flex items-start gap-3">
-                          <div className={`w-8 h-8 rounded-full ${SPECIALIST_COLOR[turn.specialistId] ?? "bg-[#070A1F]"} text-white text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5`}>
+                          <div className={`w-8 h-8 rounded-full ${SPECIALIST_COLOR[turn.specialistId] ?? "bg-[var(--navy)]"} text-white text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5`}>
                             {SPECIALIST_AVATAR[turn.specialistId] ?? turn.specialistName.slice(0, 2).toUpperCase()}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap mb-1.5">
-                              <span className="text-[12px] font-semibold text-[#1A1A1A]">{turn.specialistName}</span>
+                              <span className="text-[12px] font-semibold text-[var(--text-primary)]">{turn.specialistName}</span>
                               <span className={`h-4 px-1.5 rounded-full text-[9px] font-semibold ${DEBATE_TYPE_COLOR[turn.type]}`}>
                                 {DEBATE_TYPE_LABEL[turn.type]}
                               </span>
                               {turn.replyTo && (
-                                <span className="text-[10px] text-[#9B9B95]">↳ respondendo {turn.replyTo}</span>
+                                <span className="text-[10px] text-[var(--text-muted)]">↳ respondendo {turn.replyTo}</span>
                               )}
                             </div>
-                            <p className={`text-[12px] leading-relaxed ${turn.type === "consensus" ? "text-[#1A1A1A] font-medium" : "text-[#6B6B65]"}`}>
+                            <p className={`text-[12px] leading-relaxed ${turn.type === "consensus" ? "text-[var(--text-primary)] font-medium" : "text-[var(--text-secondary)]"}`}>
                               {turn.content}
                             </p>
                           </div>
@@ -1412,40 +1412,40 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             {stratViewTab === "consensus" && consensus && (
               <div className="space-y-4">
                 {/* Consensus layer */}
-                <div className="bg-white rounded-[10px] border border-[#070A1F] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
+                <div className="bg-white rounded-[10px] border border-[var(--navy)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
                   <div className="flex items-center justify-between mb-4">
-                    <div className="text-[13px] font-semibold text-[#1A1A1A]">Consenso Estratégico</div>
-                    <span className="h-5 px-2 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[10px] font-semibold">
+                    <div className="text-[13px] font-semibold text-[var(--text-primary)]">Consenso Estratégico</div>
+                    <span className="h-5 px-2 rounded-full bg-[var(--accent-light)] text-[var(--navy)] text-[10px] font-semibold">
                       Score {strategyRoom.finalSynthesis.strategicScore}/10
                     </span>
                   </div>
                   <div className="space-y-4">
                     <div>
-                      <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1">Posicionamento consolidado</div>
-                      <p className="text-[13px] text-[#1A1A1A] leading-relaxed">{consensus.positioning}</p>
+                      <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1">Posicionamento consolidado</div>
+                      <p className="text-[13px] text-[var(--text-primary)] leading-relaxed">{consensus.positioning}</p>
                     </div>
                     <div>
-                      <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1">Estratégia de execução</div>
-                      <p className="text-[13px] text-[#6B6B65] leading-relaxed">{consensus.strategy}</p>
+                      <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1">Estratégia de execução</div>
+                      <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">{consensus.strategy}</p>
                     </div>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <div>
-                        <div className="text-[10px] font-semibold text-[#16A34A] uppercase tracking-[0.05em] mb-1.5">Oportunidades</div>
+                        <div className="text-[10px] font-semibold text-[var(--success)] uppercase tracking-[0.05em] mb-1.5">Oportunidades</div>
                         <ul className="space-y-1">
                           {consensus.opportunities.map((o, i) => (
-                            <li key={i} className="flex items-start gap-1.5 text-[12px] text-[#6B6B65]">
-                              <span className="mt-[4px] w-1.5 h-1.5 rounded-full bg-[#16A34A] shrink-0" />
+                            <li key={i} className="flex items-start gap-1.5 text-[12px] text-[var(--text-secondary)]">
+                              <span className="mt-[4px] w-1.5 h-1.5 rounded-full bg-[var(--success)] shrink-0" />
                               {o}
                             </li>
                           ))}
                         </ul>
                       </div>
                       <div>
-                        <div className="text-[10px] font-semibold text-[#D97706] uppercase tracking-[0.05em] mb-1.5">Riscos</div>
+                        <div className="text-[10px] font-semibold text-[var(--warning)] uppercase tracking-[0.05em] mb-1.5">Riscos</div>
                         <ul className="space-y-1">
                           {consensus.risks.map((r, i) => (
-                            <li key={i} className="flex items-start gap-1.5 text-[12px] text-[#6B6B65]">
-                              <span className="mt-[4px] w-1.5 h-1.5 rounded-full bg-[#D97706] shrink-0" />
+                            <li key={i} className="flex items-start gap-1.5 text-[12px] text-[var(--text-secondary)]">
+                              <span className="mt-[4px] w-1.5 h-1.5 rounded-full bg-[var(--warning)] shrink-0" />
                               {r}
                             </li>
                           ))}
@@ -1453,24 +1453,24 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                       </div>
                     </div>
                     <div>
-                      <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1">Pacote recomendado</div>
-                      <span className="inline-flex h-6 px-3 rounded-full bg-[#070A1F] text-white text-[11px] font-semibold items-center">
+                      <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1">Pacote recomendado</div>
+                      <span className="inline-flex h-6 px-3 rounded-full bg-[var(--navy)] text-white text-[11px] font-semibold items-center">
                         {consensus.recommendedPackage}
                       </span>
                     </div>
                     <div>
-                      <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Canais recomendados</div>
+                      <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1.5">Canais recomendados</div>
                       <div className="flex flex-wrap gap-1.5">
                         {consensus.recommendedChannels.map((ch) => (
-                          <span key={ch} className="h-5 px-2 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[10px] font-semibold">{ch}</span>
+                          <span key={ch} className="h-5 px-2 rounded-full bg-[var(--accent-light)] text-[var(--navy)] text-[10px] font-semibold">{ch}</span>
                         ))}
                       </div>
                     </div>
                     <div>
-                      <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Entregas recomendadas</div>
+                      <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1.5">Entregas recomendadas</div>
                       <div className="flex flex-wrap gap-1">
                         {consensus.recommendedDeliverables.map((d) => (
-                          <span key={d} className="h-5 px-2 rounded-full bg-[#F0F0ED] text-[#6B6B65] text-[10px] font-medium">{d}</span>
+                          <span key={d} className="h-5 px-2 rounded-full bg-[var(--accent)] text-[var(--text-secondary)] text-[10px] font-medium">{d}</span>
                         ))}
                       </div>
                     </div>
@@ -1479,9 +1479,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
                 {/* Apply CTA */}
                 {stratApplied ? (
-                  <div className="rounded-[10px] border border-[#DCFCE7] bg-[#F0FDF4] px-5 py-4">
-                    <p className="text-[13px] font-semibold text-[#16A34A] mb-1">✓ Estratégia aplicada com sucesso!</p>
-                    <p className="text-[12px] text-[#6B6B65] mb-3">Proposta atualizada. Abra os agentes abaixo para continuar com a execução.</p>
+                  <div className="rounded-[10px] border border-[var(--success-bg)] bg-[#F0FDF4] px-5 py-4">
+                    <p className="text-[13px] font-semibold text-[var(--success)] mb-1">✓ Estratégia aplicada com sucesso!</p>
+                    <p className="text-[12px] text-[var(--text-secondary)] mb-3">Proposta atualizada. Abra os agentes abaixo para continuar com a execução.</p>
                     <div className="flex flex-wrap gap-2">
                       {[
                         { label: "Abrir Proposta", action: () => setTab("proposal") },
@@ -1489,21 +1489,21 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                         { label: "Agente Design →", action: () => { setPendingAgentInput({ projectId: id, projectName: project.name, clientName: client?.name ?? "", goal: project.goal, projectType: project.type }); router.push("/agency/design-agent"); } },
                         { label: "Agente Tráfego Pago →", action: () => { setPendingAgentInput({ projectId: id, projectName: project.name, clientName: client?.name ?? "", goal: project.goal, projectType: project.type }); router.push("/agency/ads-agent"); } },
                       ].map(({ label, action }) => (
-                        <button key={label} onClick={action} className="h-8 px-4 rounded-[7px] bg-white border border-[#E5E5E2] text-[#1A1A1A] text-[12px] font-medium hover:border-[#070A1F] hover:text-[#070A1F] transition-colors">
+                        <button key={label} onClick={action} className="h-8 px-4 rounded-[7px] bg-white border border-[var(--border)] text-[var(--text-primary)] text-[12px] font-medium hover:border-[var(--navy)] hover:text-[var(--navy)] transition-colors">
                           {label}
                         </button>
                       ))}
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-between bg-[#F7F7F6] rounded-[12px] border border-[#E5E5E2] px-5 py-3.5">
+                  <div className="flex items-center justify-between bg-[var(--bg)] rounded-[12px] border border-[var(--border)] px-5 py-3.5">
                     <div>
-                      <p className="text-[13px] font-medium text-[#1A1A1A]">Pronto para executar a estratégia?</p>
-                      <p className="text-[12px] text-[#9B9B95]">Popula a Proposta + prepara links para os 3 agentes em um clique.</p>
+                      <p className="text-[13px] font-medium text-[var(--text-primary)]">Pronto para executar a estratégia?</p>
+                      <p className="text-[12px] text-[var(--text-muted)]">Popula a Proposta + prepara links para os 3 agentes em um clique.</p>
                     </div>
                     <button
                       onClick={applyEntireStrategy}
-                      className="h-9 px-5 rounded-[8px] bg-[#070A1F] text-white text-[13px] font-medium hover:bg-[#4747c2] transition-colors shrink-0"
+                      className="h-9 px-5 rounded-[8px] bg-[var(--navy)] text-white text-[13px] font-medium hover:bg-[#4747c2] transition-colors shrink-0"
                     >
                       Aplicar Estratégia Completa →
                     </button>
@@ -1514,9 +1514,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
             {/* Consensus placeholder when not generated */}
             {stratViewTab === "consensus" && !consensus && (
-              <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-6 py-8 text-center">
-                <p className="text-[13px] text-[#9B9B95]">Consenso não disponível. Regere o Strategy Room para ativar o V2.</p>
-                <button onClick={() => { clearStrategyRoom(id); generateStrategyRoom(id); }} className="mt-3 h-8 px-4 rounded-[7px] bg-[#070A1F] text-white text-[12px] font-medium hover:bg-[#4747c2] transition-colors">
+              <div className="bg-white rounded-[12px] border border-[var(--border)] px-6 py-8 text-center">
+                <p className="text-[13px] text-[var(--text-muted)]">Consenso não disponível. Regere o Strategy Room para ativar o V2.</p>
+                <button onClick={() => { clearStrategyRoom(id); generateStrategyRoom(id); }} className="mt-3 h-8 px-4 rounded-[7px] bg-[var(--navy)] text-white text-[12px] font-medium hover:bg-[#4747c2] transition-colors">
                   Regerar Strategy Room V2
                 </button>
               </div>
@@ -1532,21 +1532,21 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           {project.proposal && (() => {
             const p = project.proposal!;
             const banners: Record<string, { bg: string; border: string; text: string; label: string }> = {
-              draft:             { bg: "bg-[#F7F7F6]",  border: "border-[#E5E5E2]",  text: "text-[#6B6B65]",  label: "Rascunho — ainda não enviado ao cliente" },
-              sent:              { bg: "bg-[#E6FBFA]",  border: "border-[#C7C7F5]",  text: "text-[#070A1F]",  label: "Enviado — aguardando aprovação do cliente" },
-              approved:          { bg: "bg-[#DCFCE7]",  border: "border-[#BBF7D0]",  text: "text-[#16A34A]",  label: "Aprovado — execução liberada" },
-              rejected:          { bg: "bg-[#FEF2F2]",  border: "border-[#FECACA]",  text: "text-[#DC2626]",  label: "Reprovado — revise e reenvie" },
-              changes_requested: { bg: "bg-[#FFFBEB]",  border: "border-[#FDE68A]",  text: "text-[#D97706]",  label: "Alterações solicitadas pelo cliente" },
+              draft:             { bg: "bg-[var(--bg)]",  border: "border-[var(--border)]",  text: "text-[var(--text-secondary)]",  label: "Rascunho — ainda não enviado ao cliente" },
+              sent:              { bg: "bg-[var(--accent-light)]",  border: "border-[#C7C7F5]",  text: "text-[var(--navy)]",  label: "Enviado — aguardando aprovação do cliente" },
+              approved:          { bg: "bg-[var(--success-bg)]",  border: "border-[#BBF7D0]",  text: "text-[var(--success)]",  label: "Aprovado — execução liberada" },
+              rejected:          { bg: "bg-[var(--danger-bg)]",  border: "border-[#FECACA]",  text: "text-[var(--danger)]",  label: "Reprovado — revise e reenvie" },
+              changes_requested: { bg: "bg-[#FFFBEB]",  border: "border-[#FDE68A]",  text: "text-[var(--warning)]",  label: "Alterações solicitadas pelo cliente" },
             };
             const b = banners[p.status];
             return (
               <div className={`flex items-center justify-between px-4 py-2.5 rounded-[8px] border ${b.bg} ${b.border}`}>
                 <span className={`text-[13px] font-medium ${b.text}`}>{b.label}</span>
                 {p.status === "changes_requested" && p.requestedChanges && (
-                  <span className="text-[12px] text-[#6B6B65] max-w-xs truncate">{p.requestedChanges}</span>
+                  <span className="text-[12px] text-[var(--text-secondary)] max-w-xs truncate">{p.requestedChanges}</span>
                 )}
                 {p.status === "rejected" && p.rejectionReason && (
-                  <span className="text-[12px] text-[#6B6B65] max-w-xs truncate">{p.rejectionReason}</span>
+                  <span className="text-[12px] text-[var(--text-secondary)] max-w-xs truncate">{p.rejectionReason}</span>
                 )}
               </div>
             );
@@ -1554,20 +1554,20 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
           {!project.proposal && (
             <div className="px-4 py-3 rounded-[8px] border border-[#FDE68A] bg-[#FFFBEB]">
-              <p className="text-[13px] text-[#D97706]">Nenhuma proposta criada ainda. Use o formulário abaixo — ela não será visível para o cliente até você enviá-la.</p>
+              <p className="text-[13px] text-[var(--warning)]">Nenhuma proposta criada ainda. Use o formulário abaixo — ela não será visível para o cliente até você enviá-la.</p>
             </div>
           )}
 
           {/* Strategy Room summary banner */}
           {strategyRoom && (
-            <div className="flex items-center justify-between px-4 py-3 rounded-[8px] border border-[#C7C7F5] bg-[#E6FBFA]">
+            <div className="flex items-center justify-between px-4 py-3 rounded-[8px] border border-[#C7C7F5] bg-[var(--accent-light)]">
               <div>
-                <p className="text-[13px] font-medium text-[#070A1F]">Strategy Room completo · Score {strategyRoom.finalSynthesis.strategicScore}/10</p>
-                <p className="text-[12px] text-[#6B6B65] mt-0.5 truncate max-w-lg">{strategyRoom.finalSynthesis.recommendedStrategy.slice(0, 120)}…</p>
+                <p className="text-[13px] font-medium text-[var(--navy)]">Strategy Room completo · Score {strategyRoom.finalSynthesis.strategicScore}/10</p>
+                <p className="text-[12px] text-[var(--text-secondary)] mt-0.5 truncate max-w-lg">{strategyRoom.finalSynthesis.recommendedStrategy.slice(0, 120)}…</p>
               </div>
               <button
                 onClick={() => setTab("strategy")}
-                className="text-[12px] text-[#070A1F] hover:underline shrink-0 ml-4"
+                className="text-[12px] text-[var(--navy)] hover:underline shrink-0 ml-4"
               >
                 Ver estratégia →
               </button>
@@ -1575,75 +1575,75 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           )}
 
           {/* Proposal editor */}
-          <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-            <div className="px-5 py-3.5 border-b border-[#F0F0ED] flex items-center justify-between">
-              <span className="text-[13px] font-semibold text-[#1A1A1A]">Editor de Proposta</span>
+          <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-[var(--border)] flex items-center justify-between">
+              <span className="text-[13px] font-semibold text-[var(--text-primary)]">Editor de Proposta</span>
               {proposalDirty && (
-                <span className="text-[11px] text-[#D97706]">Alterações não salvas</span>
+                <span className="text-[11px] text-[var(--warning)]">Alterações não salvas</span>
               )}
             </div>
             <div className="px-5 py-4 space-y-4">
               <div>
-                <label className="block text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.04em] mb-1.5">OBJETIVO</label>
+                <label className="block text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.04em] mb-1.5">OBJETIVO</label>
                 <input
                   value={proposalForm.objective ?? ""}
                   onChange={(e) => { setProposalForm((f) => ({ ...f, objective: e.target.value })); setProposalDirty(true); }}
                   placeholder="O que este projeto pretende alcançar?"
-                  className="w-full h-9 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
+                  className="w-full h-9 px-3 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white"
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.04em] mb-1.5">ESCOPO</label>
+                <label className="block text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.04em] mb-1.5">ESCOPO</label>
                 <textarea
                   value={proposalForm.scope ?? ""}
                   onChange={(e) => { setProposalForm((f) => ({ ...f, scope: e.target.value })); setProposalDirty(true); }}
                   placeholder="Descreva o escopo completo do trabalho…"
                   rows={4}
-                  className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white resize-none"
+                  className="w-full px-3 py-2 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white resize-none"
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.04em] mb-1.5">ENTREGAS <span className="font-normal text-[#9B9B95] normal-case">(uma por linha)</span></label>
+                <label className="block text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.04em] mb-1.5">ENTREGAS <span className="font-normal text-[var(--text-muted)] normal-case">(uma por linha)</span></label>
                 <textarea
                   value={deliverablesText}
                   onChange={(e) => { setDeliverablesText(e.target.value); setProposalDirty(true); }}
                   placeholder={"Gestão de Redes Sociais\nCalendário de Conteúdo\nRelatório Mensal"}
                   rows={4}
-                  className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white resize-none font-mono"
+                  className="w-full px-3 py-2 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white resize-none font-mono"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.04em] mb-1.5">CRONOGRAMA</label>
+                  <label className="block text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.04em] mb-1.5">CRONOGRAMA</label>
                   <input
                     value={proposalForm.timeline ?? ""}
                     onChange={(e) => { setProposalForm((f) => ({ ...f, timeline: e.target.value })); setProposalDirty(true); }}
                     placeholder="ex.: entrega do projeto até 01/08/2026"
-                    className="w-full h-9 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
+                    className="w-full h-9 px-3 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.04em] mb-1.5">INVESTIMENTO</label>
+                  <label className="block text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.04em] mb-1.5">INVESTIMENTO</label>
                   <input
                     value={proposalForm.pricing ?? ""}
                     onChange={(e) => { setProposalForm((f) => ({ ...f, pricing: e.target.value })); setProposalDirty(true); }}
                     placeholder="ex.: R$ 4.500 / mês"
-                    className="w-full h-9 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
+                    className="w-full h-9 px-3 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white"
                   />
                 </div>
               </div>
               {/* Pricing validation — block sending without a real price */}
               {!pricingValid && (
-                <div className="flex items-start gap-2 rounded-[8px] border border-[#FECACA] bg-[#FEF2F2] px-4 py-3">
-                  <span className="mt-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-[3px] bg-[#FEE2E2] text-[#DC2626] shrink-0">INVESTIMENTO</span>
-                  <span className="text-[12px] text-[#DC2626] font-medium leading-snug">{INVALID_PRICING_MESSAGE}</span>
+                <div className="flex items-start gap-2 rounded-[8px] border border-[#FECACA] bg-[var(--danger-bg)] px-4 py-3">
+                  <span className="mt-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-[3px] bg-[#FEE2E2] text-[var(--danger)] shrink-0">INVESTIMENTO</span>
+                  <span className="text-[12px] text-[var(--danger)] font-medium leading-snug">{INVALID_PRICING_MESSAGE}</span>
                 </div>
               )}
               <div className="flex items-center gap-2 pt-1">
                 <button
                   onClick={handleSaveProposal}
                   disabled={!proposalDirty && !!project.proposal}
-                  className="h-8 px-4 rounded-[7px] border border-[#E5E5E2] text-[#1A1A1A] text-[12px] font-medium hover:border-[#070A1F] hover:text-[#070A1F] transition-colors disabled:opacity-40"
+                  className="h-8 px-4 rounded-[7px] border border-[var(--border)] text-[var(--text-primary)] text-[12px] font-medium hover:border-[var(--navy)] hover:text-[var(--navy)] transition-colors disabled:opacity-40"
                 >
                   Salvar Rascunho
                 </button>
@@ -1652,16 +1652,16 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     onClick={handleSendProposal}
                     disabled={!pricingValid}
                     title={!pricingValid ? INVALID_PRICING_MESSAGE : undefined}
-                    className="h-8 px-4 rounded-[7px] bg-[#1A1A1A] hover:bg-[#111111] text-white text-[12px] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-[#1A1A1A]"
+                    className="h-8 px-4 rounded-[7px] bg-[var(--text-primary)] hover:bg-[var(--text-primary)] text-white text-[12px] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-[var(--text-primary)]"
                   >
                     Enviar ao Cliente
                   </button>
                 )}
                 {project.proposal?.status === "sent" && (
-                  <span className="text-[12px] text-[#070A1F] font-medium">Proposta aguardando aprovação — edições não atualizam a versão enviada até reenvio.</span>
+                  <span className="text-[12px] text-[var(--navy)] font-medium">Proposta aguardando aprovação — edições não atualizam a versão enviada até reenvio.</span>
                 )}
                 {project.proposal?.status === "approved" && (
-                  <span className="text-[12px] text-[#16A34A] font-medium">Proposta aprovada. Edição bloqueada.</span>
+                  <span className="text-[12px] text-[var(--success)] font-medium">Proposta aprovada. Edição bloqueada.</span>
                 )}
               </div>
             </div>
@@ -1669,19 +1669,19 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
           {/* Client material requests */}
           {projectMaterialRequests.length > 0 && (
-            <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-              <div className="px-5 py-3.5 border-b border-[#F0F0ED]">
-                <span className="text-[13px] font-semibold text-[#1A1A1A]">Solicitado ao Cliente</span>
+            <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-[var(--border)]">
+                <span className="text-[13px] font-semibold text-[var(--text-primary)]">Solicitado ao Cliente</span>
               </div>
-              <div className="divide-y divide-[#F0F0ED]">
+              <div className="divide-y divide-[var(--border)]">
                 {projectMaterialRequests.map((req) => (
                   <div key={req.id} className="flex items-start justify-between px-5 py-3.5 gap-4">
                     <div className="min-w-0">
-                      <div className="text-[13px] font-medium text-[#1A1A1A]">{req.title}</div>
-                      {req.description && <p className="text-[12px] text-[#6B6B65] mt-0.5 leading-relaxed">{req.description}</p>}
+                      <div className="text-[13px] font-medium text-[var(--text-primary)]">{req.title}</div>
+                      {req.description && <p className="text-[12px] text-[var(--text-secondary)] mt-0.5 leading-relaxed">{req.description}</p>}
                     </div>
                     <span className={`h-5 px-2 rounded-full text-[10px] font-semibold shrink-0 whitespace-nowrap ${
-                      req.status === "received" ? "bg-[#DCFCE7] text-[#16A34A]" : req.status === "cancelled" ? "bg-[#F0F0ED] text-[#9B9B95]" : "bg-[#FEF3C7] text-[#D97706]"
+                      req.status === "received" ? "bg-[var(--success-bg)] text-[var(--success)]" : req.status === "cancelled" ? "bg-[var(--accent)] text-[var(--text-muted)]" : "bg-[var(--warning-bg)] text-[var(--warning)]"
                     }`}>
                       {req.status === "received" ? "Recebido" : req.status === "cancelled" ? "Cancelado" : "Pendente"}
                     </span>
@@ -1698,18 +1698,18 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       {tab === "report" && (() => {
         const progress = getProjectProgress(project, projectDeliverables, projectTasks, projectMaterialRequests, strategyRooms);
         const HEALTH_STYLE = {
-          on_track:         { bg: "bg-[#DCFCE7]", text: "text-[#16A34A]", label: "No Prazo" },
-          needs_attention:  { bg: "bg-[#FEF3C7]", text: "text-[#D97706]", label: "Atenção Necessária" },
-          at_risk:          { bg: "bg-[#FEE2E2]", text: "text-[#DC2626]", label: "Em Risco" },
+          on_track:         { bg: "bg-[var(--success-bg)]", text: "text-[var(--success)]", label: "No Prazo" },
+          needs_attention:  { bg: "bg-[var(--warning-bg)]", text: "text-[var(--warning)]", label: "Atenção Necessária" },
+          at_risk:          { bg: "bg-[#FEE2E2]", text: "text-[var(--danger)]", label: "Em Risco" },
         };
         const PROPOSAL_LABEL: Record<string, string> = {
           draft: "Rascunho", sent: "Enviada", approved: "Aprovada",
           rejected: "Rejeitada", changes_requested: "Alterações Solicitadas",
         };
         const PROPOSAL_COLOR: Record<string, string> = {
-          draft: "bg-[#F0F0ED] text-[#6B6B65]", sent: "bg-[#E6FBFA] text-[#070A1F]",
-          approved: "bg-[#DCFCE7] text-[#16A34A]", rejected: "bg-[#FEE2E2] text-[#DC2626]",
-          changes_requested: "bg-[#FEF3C7] text-[#D97706]",
+          draft: "bg-[var(--accent)] text-[var(--text-secondary)]", sent: "bg-[var(--accent-light)] text-[var(--navy)]",
+          approved: "bg-[var(--success-bg)] text-[var(--success)]", rejected: "bg-[#FEE2E2] text-[var(--danger)]",
+          changes_requested: "bg-[var(--warning-bg)] text-[var(--warning)]",
         };
         const health = HEALTH_STYLE[progress.healthStatus];
         const projectHealth = getProjectHealth(project, progress);
@@ -1735,15 +1735,15 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             {/* Header row */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-[13px] font-semibold text-[#1A1A1A]">Relatório de Progresso</span>
+                <span className="text-[13px] font-semibold text-[var(--text-primary)]">Relatório de Progresso</span>
                 <span className={`h-5 px-2 rounded-full text-[10px] font-semibold ${health.bg} ${health.text}`}>{health.label}</span>
               </div>
               <button
                 onClick={handleCopyReport}
                 className={`flex items-center gap-1.5 h-8 px-3 rounded-[7px] text-[12px] font-medium border transition-colors ${
                   reportCopied
-                    ? "bg-[#DCFCE7] border-[#BBF7D0] text-[#16A34A]"
-                    : "bg-white border-[#E5E5E2] text-[#6B6B65] hover:bg-[#F7F7F6]"
+                    ? "bg-[var(--success-bg)] border-[#BBF7D0] text-[var(--success)]"
+                    : "bg-white border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg)]"
                 }`}
               >
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
@@ -1762,25 +1762,25 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 { label: "Entregas Aprovadas",   value: `${progress.approved + progress.delivered}/${progress.totalDeliverables}`, sub: "Aprovadas + entregues" },
                 { label: "Em Revisão do Cliente", value: String(progress.inReview),            sub: "Aguardando aprovação do cliente" },
               ].map(({ label, value, sub, color }) => (
-                <div key={label} className="bg-white rounded-[12px] border border-[#E5E5E2] px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                  <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1">{label}</div>
+                <div key={label} className="bg-white rounded-[12px] border border-[var(--border)] px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                  <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1">{label}</div>
                   {color ? (
                     <span className={`inline-flex h-5 px-2 rounded-full text-[10px] font-semibold items-center ${color}`}>{value}</span>
                   ) : (
-                    <div className="text-[20px] font-bold text-[#1A1A1A] mono-num leading-none">{value}</div>
+                    <div className="text-[20px] font-bold text-[var(--text-primary)] mono-num leading-none">{value}</div>
                   )}
-                  <div className="text-[10px] text-[#9B9B95] mt-1">{sub}</div>
+                  <div className="text-[10px] text-[var(--text-muted)] mt-1">{sub}</div>
                 </div>
               ))}
             </div>
 
             {/* Progress bar */}
-            <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+            <div className="bg-white rounded-[12px] border border-[var(--border)] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Prontidão do Projeto</span>
-                <span className="text-[12px] font-semibold text-[#1A1A1A]">{progress.readinessScore}%</span>
+                <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Prontidão do Projeto</span>
+                <span className="text-[12px] font-semibold text-[var(--text-primary)]">{progress.readinessScore}%</span>
               </div>
-              <div className="h-2 rounded-full bg-[#F0F0ED] overflow-hidden">
+              <div className="h-2 rounded-full bg-[var(--accent)] overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all duration-500"
                   style={{ width: `${progress.readinessScore}%`, backgroundColor: progress.readinessScore >= 75 ? "#16A34A" : progress.readinessScore >= 40 ? "#D97706" : "#DC2626" }}
@@ -1795,48 +1795,48 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   { label: "Materiais recebidos", done: progress.pendingMaterialRequests === 0 },
                 ].map(({ label, done }) => (
                   <div key={label} className="flex items-center gap-1">
-                    <span className={`w-3 h-3 rounded-full flex items-center justify-center ${done ? "bg-[#DCFCE7]" : "bg-[#F0F0ED]"}`}>
+                    <span className={`w-3 h-3 rounded-full flex items-center justify-center ${done ? "bg-[var(--success-bg)]" : "bg-[var(--accent)]"}`}>
                       {done && <svg width="7" height="5" viewBox="0 0 7 5" fill="none"><path d="M1 2.5l1.5 1.5 3.5-3" stroke="#16A34A" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                     </span>
-                    <span className={`text-[10px] ${done ? "text-[#16A34A]" : "text-[#9B9B95]"}`}>{label}</span>
+                    <span className={`text-[10px] ${done ? "text-[var(--success)]" : "text-[var(--text-muted)]"}`}>{label}</span>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Deliverable breakdown */}
-            <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-              <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Entregas por Status</div>
+            <div className="bg-white rounded-[12px] border border-[var(--border)] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              <div className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-3">Entregas por Status</div>
               <div className="grid grid-cols-5 gap-2">
                 {[
-                  { label: "Rascunho",        value: progress.draft,          color: "bg-[#F0F0ED] text-[#6B6B65]" },
-                  { label: "Em Revisão",       value: progress.inReview,       color: "bg-[#FEF3C7] text-[#D97706]" },
-                  { label: "Em Revisão Int.", value: progress.revisionNeeded,  color: "bg-[#FEE2E2] text-[#DC2626]" },
-                  { label: "Aprovadas",        value: progress.approved,       color: "bg-[#DCFCE7] text-[#16A34A]" },
-                  { label: "Entregues",        value: progress.delivered,      color: "bg-[#E6FBFA] text-[#070A1F]" },
+                  { label: "Rascunho",        value: progress.draft,          color: "bg-[var(--accent)] text-[var(--text-secondary)]" },
+                  { label: "Em Revisão",       value: progress.inReview,       color: "bg-[var(--warning-bg)] text-[var(--warning)]" },
+                  { label: "Em Revisão Int.", value: progress.revisionNeeded,  color: "bg-[#FEE2E2] text-[var(--danger)]" },
+                  { label: "Aprovadas",        value: progress.approved,       color: "bg-[var(--success-bg)] text-[var(--success)]" },
+                  { label: "Entregues",        value: progress.delivered,      color: "bg-[var(--accent-light)] text-[var(--navy)]" },
                 ].map(({ label, value, color }) => (
                   <div key={label} className="text-center">
                     <div className={`rounded-[8px] px-2 py-2 mb-1 ${color}`}>
                       <span className="text-[18px] font-bold mono-num">{value}</span>
                     </div>
-                    <span className="text-[10px] text-[#9B9B95]">{label}</span>
+                    <span className="text-[10px] text-[var(--text-muted)]">{label}</span>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Department breakdown */}
-            <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-              <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Por Departamento</div>
+            <div className="bg-white rounded-[12px] border border-[var(--border)] px-5 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              <div className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-3">Por Departamento</div>
               <div className="space-y-3">
                 {progress.departments.map((dept) => (
-                  <div key={dept.key} className={`rounded-[8px] border px-4 py-3 ${dept.active ? "border-[#E5E5E2] bg-[#FAFAF9]" : "border-[#F0F0ED] bg-[#F7F7F6] opacity-50"}`}>
+                  <div key={dept.key} className={`rounded-[8px] border px-4 py-3 ${dept.active ? "border-[var(--border)] bg-[var(--bg-elevated)]" : "border-[var(--border)] bg-[var(--bg)] opacity-50"}`}>
                     <div className="flex items-center justify-between mb-1.5">
                       <div className="flex items-center gap-2">
                         <span className={`h-5 px-2 rounded-full text-[10px] font-semibold ${dept.color}`}>{dept.name}</span>
-                        {!dept.active && <span className="text-[10px] text-[#9B9B95]">sem entregas</span>}
+                        {!dept.active && <span className="text-[10px] text-[var(--text-muted)]">sem entregas</span>}
                       </div>
-                      {dept.active && <span className="text-[11px] text-[#9B9B95]">{dept.total} entrega(s)</span>}
+                      {dept.active && <span className="text-[11px] text-[var(--text-muted)]">{dept.total} entrega(s)</span>}
                     </div>
                     {dept.active && (
                       <div className="flex items-center gap-3 flex-wrap">
@@ -1847,7 +1847,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                           { label: "revisão interna", value: dept.revisionNeeded, show: dept.revisionNeeded > 0, green: false },
                           { label: "rascunho", value: dept.draft, show: dept.draft > 0, green: false },
                         ].filter((x) => x.show).map((x) => (
-                          <span key={x.label} className={`text-[11px] font-medium ${x.green ? "text-[#16A34A]" : "text-[#D97706]"}`}>
+                          <span key={x.label} className={`text-[11px] font-medium ${x.green ? "text-[var(--success)]" : "text-[var(--warning)]"}`}>
                             {x.value} {x.label}
                           </span>
                         ))}
@@ -1860,28 +1860,28 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
             {/* Additional signals */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">Tarefas</div>
+              <div className="bg-white rounded-[12px] border border-[var(--border)] px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                <div className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-2">Tarefas</div>
                 <div className="flex items-center gap-3">
                   <div className="text-center">
-                    <div className="text-[18px] font-bold mono-num text-[#1A1A1A]">{progress.doneTasks}</div>
-                    <div className="text-[10px] text-[#9B9B95]">concluídas</div>
+                    <div className="text-[18px] font-bold mono-num text-[var(--text-primary)]">{progress.doneTasks}</div>
+                    <div className="text-[10px] text-[var(--text-muted)]">concluídas</div>
                   </div>
-                  <span className="text-[#E5E5E2]">/</span>
+                  <span className="text-[var(--border)]">/</span>
                   <div className="text-center">
-                    <div className="text-[18px] font-bold mono-num text-[#1A1A1A]">{progress.totalTasks}</div>
-                    <div className="text-[10px] text-[#9B9B95]">total</div>
+                    <div className="text-[18px] font-bold mono-num text-[var(--text-primary)]">{progress.totalTasks}</div>
+                    <div className="text-[10px] text-[var(--text-muted)]">total</div>
                   </div>
                   {progress.blockedTasks > 0 && (
-                    <span className="ml-auto h-5 px-2 rounded-full bg-[#FEE2E2] text-[#DC2626] text-[10px] font-semibold">{progress.blockedTasks} bloqueada(s)</span>
+                    <span className="ml-auto h-5 px-2 rounded-full bg-[#FEE2E2] text-[var(--danger)] text-[10px] font-semibold">{progress.blockedTasks} bloqueada(s)</span>
                   )}
                 </div>
               </div>
-              <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">Materiais do Cliente</div>
+              <div className="bg-white rounded-[12px] border border-[var(--border)] px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                <div className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-2">Materiais do Cliente</div>
                 <div className="flex items-center gap-2">
-                  <div className="text-[18px] font-bold mono-num text-[#1A1A1A]">{progress.pendingMaterialRequests}</div>
-                  <div className={`text-[11px] ${progress.pendingMaterialRequests > 0 ? "text-[#D97706]" : "text-[#9B9B95]"}`}>
+                  <div className="text-[18px] font-bold mono-num text-[var(--text-primary)]">{progress.pendingMaterialRequests}</div>
+                  <div className={`text-[11px] ${progress.pendingMaterialRequests > 0 ? "text-[var(--warning)]" : "text-[var(--text-muted)]"}`}>
                     {progress.pendingMaterialRequests > 0 ? "pendente(s) — aguardar" : "tudo recebido"}
                   </div>
                 </div>
@@ -1890,38 +1890,38 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
             {/* Next action */}
             <div className={`rounded-[10px] border px-5 py-4 ${
-              progress.healthStatus === "at_risk" ? "bg-[#FEF2F2] border-[#FECACA]"
+              progress.healthStatus === "at_risk" ? "bg-[var(--danger-bg)] border-[#FECACA]"
               : progress.healthStatus === "needs_attention" ? "bg-[#FFFBEB] border-[#FDE68A]"
               : "bg-[#F0FDF4] border-[#BBF7D0]"
             }`}>
-              <div className="text-[10px] font-semibold uppercase tracking-[0.05em] mb-0.5 text-[#9B9B95]">Próxima Ação Recomendada</div>
+              <div className="text-[10px] font-semibold uppercase tracking-[0.05em] mb-0.5 text-[var(--text-muted)]">Próxima Ação Recomendada</div>
               <p className={`text-[13px] font-medium ${
-                progress.healthStatus === "at_risk" ? "text-[#DC2626]"
-                : progress.healthStatus === "needs_attention" ? "text-[#D97706]"
-                : "text-[#16A34A]"
+                progress.healthStatus === "at_risk" ? "text-[var(--danger)]"
+                : progress.healthStatus === "needs_attention" ? "text-[var(--warning)]"
+                : "text-[var(--success)]"
               }`}>{progress.nextAction}</p>
             </div>
 
             {/* Project Health Score */}
-            <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-              <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F0ED]">
-                <h3 className="text-[13px] font-semibold text-[#1A1A1A]">Saúde do Projeto</h3>
+            <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--border)]">
+                <h3 className="text-[13px] font-semibold text-[var(--text-primary)]">Saúde do Projeto</h3>
                 <span className={`flex items-center gap-1.5 h-6 px-2.5 rounded-full text-[11px] font-semibold ${projectHealth.color}`}>
                   <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: projectHealth.dotColor }} />
                   {projectHealth.label}
                 </span>
               </div>
-              <div className="px-5 py-3 divide-y divide-[#F7F7F6]">
+              <div className="px-5 py-3 divide-y divide-[var(--border)]">
                 {projectHealth.signals.map((sig) => (
                   <div key={sig.label} className="flex items-center justify-between py-2">
                     <div className="flex items-center gap-2.5">
                       <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                        sig.status === "ok" ? "bg-[#16A34A]" : sig.status === "warn" ? "bg-[#D97706]" : "bg-[#DC2626]"
+                        sig.status === "ok" ? "bg-[var(--success)]" : sig.status === "warn" ? "bg-[var(--warning)]" : "bg-[var(--danger)]"
                       }`} />
-                      <span className="text-[12px] font-medium text-[#1A1A1A]">{sig.label}</span>
+                      <span className="text-[12px] font-medium text-[var(--text-primary)]">{sig.label}</span>
                     </div>
                     <span className={`text-[11px] ${
-                      sig.status === "ok" ? "text-[#9B9B95]" : sig.status === "warn" ? "text-[#D97706]" : "text-[#DC2626]"
+                      sig.status === "ok" ? "text-[var(--text-muted)]" : sig.status === "warn" ? "text-[var(--warning)]" : "text-[var(--danger)]"
                     }`}>{sig.detail}</span>
                   </div>
                 ))}
@@ -1938,17 +1938,17 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             <PilotChecklist checklist={checklist} />
 
             {/* ── PART 4 — Pilot Operations Report ── */}
-            <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-              <div className="px-5 py-3.5 border-b border-[#F0F0ED]">
-                <h3 className="text-[13px] font-semibold text-[#1A1A1A]">Relatório de Operações do Piloto</h3>
-                <p className="text-[11px] text-[#9B9B95] mt-0.5">Análise de execução baseada nos dados reais do piloto</p>
+            <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-[var(--border)]">
+                <h3 className="text-[13px] font-semibold text-[var(--text-primary)]">Relatório de Operações do Piloto</h3>
+                <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Análise de execução baseada nos dados reais do piloto</p>
               </div>
               {(
                 [
                   { title: "O que funcionou", icon: "✓", items: opsReport.whatWorked, accent: "#16A34A", bg: "bg-[#F0FDF4]", border: "border-[#BBF7D0]" },
                   { title: "Fricção de UX", icon: "⚠", items: opsReport.uxFriction, accent: "#D97706", bg: "bg-[#FFFBEB]", border: "border-[#FDE68A]" },
-                  { title: "Informações faltando", icon: "?", items: opsReport.missingInfo, accent: "#DC2626", bg: "bg-[#FEF2F2]", border: "border-[#FECACA]" },
-                  { title: "Automações ausentes", icon: "⚡", items: opsReport.missingAutomation, accent: "#070A1F", bg: "bg-[#E6FBFA]", border: "border-[#C7D2FE]" },
+                  { title: "Informações faltando", icon: "?", items: opsReport.missingInfo, accent: "#DC2626", bg: "bg-[var(--danger-bg)]", border: "border-[#FECACA]" },
+                  { title: "Automações ausentes", icon: "⚡", items: opsReport.missingAutomation, accent: "#070A1F", bg: "bg-[var(--accent-light)]", border: "border-[#C7D2FE]" },
                   { title: "Pain points do operador", icon: "!", items: opsReport.operatorPainPoints, accent: "#C2530A", bg: "bg-[#FFF4ED]", border: "border-[#FED7AA]" },
                 ] as const
               ).map((section) => (
@@ -1964,9 +1964,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                         <span className="shrink-0 mt-0.5 h-4 px-1.5 rounded-[3px] text-[9px] font-bold" style={{ backgroundColor: `${section.accent}20`, color: section.accent }}>
                           {obs.area}
                         </span>
-                        <span className="text-[12px] text-[#1A1A1A] leading-snug">{obs.finding}</span>
+                        <span className="text-[12px] text-[var(--text-primary)] leading-snug">{obs.finding}</span>
                         <span className={`ml-auto shrink-0 h-4 px-1.5 rounded-full text-[9px] font-semibold ${
-                          obs.impact === "high" ? "bg-[#FEE2E2] text-[#DC2626]" : obs.impact === "medium" ? "bg-[#FEF3C7] text-[#D97706]" : "bg-[#F0F0ED] text-[#9B9B95]"
+                          obs.impact === "high" ? "bg-[#FEE2E2] text-[var(--danger)]" : obs.impact === "medium" ? "bg-[var(--warning-bg)] text-[var(--warning)]" : "bg-[var(--accent)] text-[var(--text-muted)]"
                         }`}>{obs.impact}</span>
                       </div>
                     ))}
@@ -1977,43 +1977,43 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             </div>
 
             {/* ── PART 5 — P0/P1/P2 Findings ── */}
-            <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-              <div className="px-5 py-3.5 border-b border-[#F0F0ED] flex items-center justify-between">
+            <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-[var(--border)] flex items-center justify-between">
                 <div>
-                  <h3 className="text-[13px] font-semibold text-[#1A1A1A]">Priorização do Piloto</h3>
-                  <p className="text-[11px] text-[#9B9B95] mt-0.5">Findings classificados por prioridade operacional</p>
+                  <h3 className="text-[13px] font-semibold text-[var(--text-primary)]">Priorização do Piloto</h3>
+                  <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Findings classificados por prioridade operacional</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  {finalReport.p0Count > 0 && <span className="h-5 px-2 rounded-full bg-[#FEE2E2] text-[#DC2626] text-[10px] font-bold">{finalReport.p0Count} P0</span>}
-                  {finalReport.p1Count > 0 && <span className="h-5 px-2 rounded-full bg-[#FEF3C7] text-[#D97706] text-[10px] font-bold">{finalReport.p1Count} P1</span>}
-                  {finalReport.p2Count > 0 && <span className="h-5 px-2 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[10px] font-bold">{finalReport.p2Count} P2</span>}
+                  {finalReport.p0Count > 0 && <span className="h-5 px-2 rounded-full bg-[#FEE2E2] text-[var(--danger)] text-[10px] font-bold">{finalReport.p0Count} P0</span>}
+                  {finalReport.p1Count > 0 && <span className="h-5 px-2 rounded-full bg-[var(--warning-bg)] text-[var(--warning)] text-[10px] font-bold">{finalReport.p1Count} P1</span>}
+                  {finalReport.p2Count > 0 && <span className="h-5 px-2 rounded-full bg-[var(--accent-light)] text-[var(--navy)] text-[10px] font-bold">{finalReport.p2Count} P2</span>}
                 </div>
               </div>
               {(["P0", "P1", "P2"] as const).map((priority) => {
                 const pFindings = findings.filter((f) => f.priority === priority);
                 if (pFindings.length === 0) return null;
                 const pStyle = {
-                  P0: { bg: "bg-[#FEF2F2]", border: "border-[#FECACA]", label: "bg-[#FEE2E2] text-[#DC2626]", desc: "Bloqueador — corrigir antes do primeiro cliente externo" },
-                  P1: { bg: "bg-[#FFFBEB]", border: "border-[#FDE68A]", label: "bg-[#FEF3C7] text-[#D97706]", desc: "Importante — pode embarcar cliente, mas corrigir em seguida" },
-                  P2: { bg: "bg-[#E6FBFA]", border: "border-[#C7D2FE]", label: "bg-[#E6FBFA] text-[#070A1F]", desc: "Melhoria — backlog de otimização pós-piloto" },
+                  P0: { bg: "bg-[var(--danger-bg)]", border: "border-[#FECACA]", label: "bg-[#FEE2E2] text-[var(--danger)]", desc: "Bloqueador — corrigir antes do primeiro cliente externo" },
+                  P1: { bg: "bg-[#FFFBEB]", border: "border-[#FDE68A]", label: "bg-[var(--warning-bg)] text-[var(--warning)]", desc: "Importante — pode embarcar cliente, mas corrigir em seguida" },
+                  P2: { bg: "bg-[var(--accent-light)]", border: "border-[#C7D2FE]", label: "bg-[var(--accent-light)] text-[var(--navy)]", desc: "Melhoria — backlog de otimização pós-piloto" },
                 }[priority];
                 return (
                   <div key={priority} className={`mx-5 my-3 rounded-[8px] border ${pStyle.border} ${pStyle.bg} overflow-hidden`}>
                     <div className="px-4 py-2 flex items-center gap-2 border-b border-current border-opacity-10">
                       <span className={`h-5 px-2 rounded-full text-[10px] font-bold ${pStyle.label}`}>{priority}</span>
-                      <span className="text-[11px] text-[#6B6B65]">{pStyle.desc}</span>
+                      <span className="text-[11px] text-[var(--text-secondary)]">{pStyle.desc}</span>
                     </div>
                     <div className="divide-y divide-current divide-opacity-10">
                       {pFindings.map((f) => (
                         <div key={f.id} className="px-4 py-3">
                           <div className="flex items-start gap-2 mb-1">
-                            <span className="shrink-0 mt-0.5 h-4 px-1.5 rounded-[3px] bg-black/5 text-[9px] font-bold text-[#6B6B65]">{f.area}</span>
-                            <span className="text-[12px] font-semibold text-[#1A1A1A] leading-snug">{f.title}</span>
+                            <span className="shrink-0 mt-0.5 h-4 px-1.5 rounded-[3px] bg-black/5 text-[9px] font-bold text-[var(--text-secondary)]">{f.area}</span>
+                            <span className="text-[12px] font-semibold text-[var(--text-primary)] leading-snug">{f.title}</span>
                           </div>
-                          <p className="text-[11px] text-[#6B6B65] leading-relaxed ml-0 mb-1.5">{f.description}</p>
+                          <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed ml-0 mb-1.5">{f.description}</p>
                           <div className="flex items-start gap-1.5">
-                            <span className="text-[9px] font-bold text-[#9B9B95] uppercase mt-0.5 shrink-0">Ação:</span>
-                            <span className="text-[11px] text-[#070A1F] leading-snug">{f.recommendation}</span>
+                            <span className="text-[9px] font-bold text-[var(--text-muted)] uppercase mt-0.5 shrink-0">Ação:</span>
+                            <span className="text-[11px] text-[var(--navy)] leading-snug">{f.recommendation}</span>
                           </div>
                         </div>
                       ))}
@@ -2025,21 +2025,21 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             </div>
 
             {/* ── PART 6 — Pilot Final Report ── */}
-            <div className="bg-[#1A1A1A] rounded-[10px] border border-[#2A2A2A] shadow-[0_1px_3px_rgba(0,0,0,0.12)] overflow-hidden">
-              <div className="px-5 py-4 border-b border-[#2A2A2A] flex items-center justify-between">
+            <div className="bg-[var(--text-primary)] rounded-[10px] border border-[var(--text-primary)] shadow-[0_1px_3px_rgba(0,0,0,0.12)] overflow-hidden">
+              <div className="px-5 py-4 border-b border-[var(--text-primary)] flex items-center justify-between">
                 <div>
                   <h3 className="text-[13px] font-semibold text-white">Avaliação Final do Piloto</h3>
-                  <p className="text-[11px] text-[#9B9B95] mt-0.5">Score consolidado e recomendação de próximos passos</p>
+                  <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Score consolidado e recomendação de próximos passos</p>
                 </div>
                 <div className="text-right">
                   <div className="text-[32px] font-bold text-white mono-num leading-none">{finalReport.pilotScore}</div>
-                  <div className="text-[10px] text-[#9B9B95]">/100</div>
+                  <div className="text-[10px] text-[var(--text-muted)]">/100</div>
                 </div>
               </div>
 
               {/* Score bar */}
-              <div className="px-5 py-3 border-b border-[#2A2A2A]">
-                <div className="h-2 rounded-full bg-[#2A2A2A] overflow-hidden mb-2">
+              <div className="px-5 py-3 border-b border-[var(--text-primary)]">
+                <div className="h-2 rounded-full bg-[var(--text-primary)] overflow-hidden mb-2">
                   <div
                     className="h-full rounded-full transition-all duration-700"
                     style={{
@@ -2052,34 +2052,34 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   {finalReport.scoreSignals.map((sig) => (
                     <div key={sig.label} className="flex items-center justify-between text-[11px]">
                       <div className="flex items-center gap-1.5">
-                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${sig.met ? "bg-[#16A34A]" : "bg-[#4A4A4A]"}`} />
-                        <span className={sig.met ? "text-[#9B9B95]" : "text-[#4A4A4A]"}>{sig.label}</span>
+                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${sig.met ? "bg-[var(--success)]" : "bg-[var(--text-secondary)]"}`} />
+                        <span className={sig.met ? "text-[var(--text-muted)]" : "text-[var(--text-secondary)]"}>{sig.label}</span>
                       </div>
-                      <span className={`font-semibold mono-num ${sig.met ? "text-white" : "text-[#4A4A4A]"}`}>{sig.score}/{sig.max}</span>
+                      <span className={`font-semibold mono-num ${sig.met ? "text-white" : "text-[var(--text-secondary)]"}`}>{sig.score}/{sig.max}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
               {/* Recommendation */}
-              <div className="px-5 py-4 border-b border-[#2A2A2A]">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.05em] text-[#6B6B65] mb-1">Recomendação</div>
+              <div className="px-5 py-4 border-b border-[var(--text-primary)]">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.05em] text-[var(--text-secondary)] mb-1">Recomendação</div>
                 <div className={`inline-flex h-6 px-3 rounded-full text-[11px] font-bold items-center mb-2 ${
-                  finalReport.recommendation === "ready_for_external_client" ? "bg-[#16A34A] text-white"
-                  : finalReport.recommendation === "continue" ? "bg-[#D97706] text-white"
-                  : "bg-[#DC2626] text-white"
+                  finalReport.recommendation === "ready_for_external_client" ? "bg-[var(--success)] text-white"
+                  : finalReport.recommendation === "continue" ? "bg-[var(--warning)] text-white"
+                  : "bg-[var(--danger)] text-white"
                 }`}>{finalReport.recommendationLabel}</div>
-                <p className="text-[12px] text-[#9B9B95] leading-relaxed">{finalReport.recommendationReason}</p>
+                <p className="text-[12px] text-[var(--text-muted)] leading-relaxed">{finalReport.recommendationReason}</p>
               </div>
 
               {/* Top 10 Findings */}
               <div className="px-5 py-4">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.05em] text-[#6B6B65] mb-3">Top 10 Findings</div>
+                <div className="text-[10px] font-semibold uppercase tracking-[0.05em] text-[var(--text-secondary)] mb-3">Top 10 Findings</div>
                 <div className="space-y-2">
                   {finalReport.topFindings.map((finding, i) => (
                     <div key={i} className="flex items-start gap-2.5">
-                      <span className="w-4 h-4 rounded-full bg-[#2A2A2A] text-[9px] font-bold text-[#6B6B65] flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
-                      <span className="text-[12px] text-[#9B9B95] leading-snug">{finding}</span>
+                      <span className="w-4 h-4 rounded-full bg-[var(--text-primary)] text-[9px] font-bold text-[var(--text-secondary)] flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
+                      <span className="text-[12px] text-[var(--text-muted)] leading-snug">{finding}</span>
                     </div>
                   ))}
                 </div>
@@ -2121,11 +2121,11 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             {!advice.isAligned && advice.recommendedStage && (
               <div className={`rounded-[10px] border px-5 py-4 flex items-start gap-3 ${
                 advice.confidence === "high"
-                  ? "bg-[#E6FBFA] border-[#C7D2FE]"
+                  ? "bg-[var(--accent-light)] border-[#C7D2FE]"
                   : "bg-[#FFFBEB] border-[#FDE68A]"
               }`}>
                 <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
-                  advice.confidence === "high" ? "bg-[#070A1F]" : "bg-[#D97706]"
+                  advice.confidence === "high" ? "bg-[var(--navy)]" : "bg-[var(--warning)]"
                 }`}>
                   <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
                     <path d="M5 1v4M5 7.5v1" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
@@ -2133,19 +2133,19 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className={`text-[12px] font-semibold mb-0.5 ${
-                    advice.confidence === "high" ? "text-[#070A1F]" : "text-[#D97706]"
+                    advice.confidence === "high" ? "text-[var(--navy)]" : "text-[var(--warning)]"
                   }`}>
                     Estágio recomendado: <span className="uppercase">{advice.recommendedStage}</span>
                     <span className="ml-2 text-[10px] font-normal opacity-70">(atual: {advice.currentStage})</span>
                   </div>
-                  <p className="text-[12px] text-[#6B6B65]">{advice.reason}</p>
+                  <p className="text-[12px] text-[var(--text-secondary)]">{advice.reason}</p>
                 </div>
                 <button
                   onClick={() => moveProjectStage(id, advice.recommendedStage as Parameters<typeof moveProjectStage>[1])}
                   className={`shrink-0 h-7 px-3 rounded-[6px] text-[11px] font-medium border transition-colors ${
                     advice.confidence === "high"
-                      ? "border-[#070A1F] text-[#070A1F] hover:bg-[#070A1F] hover:text-white"
-                      : "border-[#D97706] text-[#D97706] hover:bg-[#D97706] hover:text-white"
+                      ? "border-[var(--navy)] text-[var(--navy)] hover:bg-[var(--navy)] hover:text-white"
+                      : "border-[var(--warning)] text-[var(--warning)] hover:bg-[var(--warning)] hover:text-white"
                   }`}
                 >
                   Aplicar
@@ -2154,32 +2154,32 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             )}
             {advice.isAligned && (
               <div className="rounded-[10px] border border-[#BBF7D0] bg-[#F0FDF4] px-5 py-3 flex items-center gap-2">
-                <span className="w-4 h-4 rounded-full bg-[#16A34A] flex items-center justify-center shrink-0">
+                <span className="w-4 h-4 rounded-full bg-[var(--success)] flex items-center justify-center shrink-0">
                   <svg width="8" height="6" viewBox="0 0 8 6" fill="none"><path d="M1 3l2 2 4-4" stroke="white" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 </span>
-                <span className="text-[12px] text-[#16A34A] font-medium">Pipeline alinhado — fase atual correta para o estado do projeto.</span>
+                <span className="text-[12px] text-[var(--success)] font-medium">Pipeline alinhado — fase atual correta para o estado do projeto.</span>
               </div>
             )}
 
             {/* PM auto-tasks */}
             {projectAutoTasks.length > 0 && (
-              <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-                <div className="px-5 py-3.5 border-b border-[#F0F0ED] flex items-center justify-between">
-                  <span className="text-[13px] font-semibold text-[#1A1A1A]">Ações Recomendadas pelo PM</span>
-                  <span className="text-[11px] text-[#9B9B95]">{projectAutoTasks.length} item(ns)</span>
+              <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-[var(--border)] flex items-center justify-between">
+                  <span className="text-[13px] font-semibold text-[var(--text-primary)]">Ações Recomendadas pelo PM</span>
+                  <span className="text-[11px] text-[var(--text-muted)]">{projectAutoTasks.length} item(ns)</span>
                 </div>
-                <div className="divide-y divide-[#F0F0ED]">
+                <div className="divide-y divide-[var(--border)]">
                   {projectAutoTasks.map((at) => {
                     const pStyle = AUTO_TASK_PRIORITY_STYLE[at.priority];
                     const oColor = (AUTO_TASK_OWNER_STYLE as Record<string, { color: string }>)[at.owner]?.color ?? "#6B6B65";
                     return (
-                      <div key={at.id} className="flex items-start gap-3 px-5 py-3 hover:bg-[#FAFAF9]">
+                      <div key={at.id} className="flex items-start gap-3 px-5 py-3 hover:bg-[var(--bg-elevated)]">
                         <span className={`shrink-0 mt-0.5 h-5 px-2 rounded-full text-[10px] font-semibold flex items-center ${pStyle.bg} ${pStyle.text}`}>
                           {pStyle.label}
                         </span>
                         <div className="flex-1 min-w-0">
-                          <p className="text-[13px] font-medium text-[#1A1A1A]">{at.title}</p>
-                          <p className="text-[11px] text-[#9B9B95] mt-0.5">{at.description}</p>
+                          <p className="text-[13px] font-medium text-[var(--text-primary)]">{at.title}</p>
+                          <p className="text-[11px] text-[var(--text-muted)] mt-0.5">{at.description}</p>
                         </div>
                         <span className="shrink-0 text-[11px] font-medium" style={{ color: oColor }}>{at.owner}</span>
                       </div>
@@ -2190,20 +2190,20 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             )}
 
             {/* Timeline events */}
-            <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-              <div className="px-5 py-3.5 border-b border-[#F0F0ED] flex items-center justify-between">
-                <span className="text-[13px] font-semibold text-[#1A1A1A]">Histórico do Projeto</span>
-                <span className="text-[11px] text-[#9B9B95]">{timelineEvents.length} evento(s)</span>
+            <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-[var(--border)] flex items-center justify-between">
+                <span className="text-[13px] font-semibold text-[var(--text-primary)]">Histórico do Projeto</span>
+                <span className="text-[11px] text-[var(--text-muted)]">{timelineEvents.length} evento(s)</span>
               </div>
               {timelineEvents.length === 0 ? (
                 <div className="px-5 py-10 text-center">
-                  <p className="text-[13px] text-[#9B9B95]">Nenhum evento registrado ainda.</p>
+                  <p className="text-[13px] text-[var(--text-muted)]">Nenhum evento registrado ainda.</p>
                 </div>
               ) : (
                 <div className="px-5 py-4">
                   <div className="relative">
                     {/* Vertical line */}
-                    <div className="absolute left-[7px] top-2 bottom-2 w-px bg-[#E5E5E2]" />
+                    <div className="absolute left-[7px] top-2 bottom-2 w-px bg-[var(--border)]" />
                     <div className="space-y-4">
                       {timelineEvents.map((ev) => {
                         const dStyle = TIMELINE_DEPT_STYLE[ev.dept];
@@ -2218,16 +2218,16 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                             {/* Content */}
                             <div className="flex-1 min-w-0 pb-1">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-[13px] font-medium text-[#1A1A1A]">{ev.label}</span>
+                                <span className="text-[13px] font-medium text-[var(--text-primary)]">{ev.label}</span>
                                 <span className="h-4 px-1.5 rounded-full text-[9px] font-semibold"
                                   style={{ backgroundColor: `${dStyle.dot}20`, color: dStyle.dot }}>
                                   {dStyle.label}
                                 </span>
                               </div>
                               {ev.detail && (
-                                <p className="text-[11px] text-[#9B9B95] mt-0.5">{ev.detail}</p>
+                                <p className="text-[11px] text-[var(--text-muted)] mt-0.5">{ev.detail}</p>
                               )}
-                              <p className="text-[10px] text-[#C0C0BC] mt-0.5">{dateStr}</p>
+                              <p className="text-[10px] text-[var(--text-subtle)] mt-0.5">{dateStr}</p>
                             </div>
                           </div>
                         );
@@ -2245,46 +2245,46 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Editar Projeto">
         <div className="space-y-4">
           <div>
-            <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Nome do Projeto</label>
+            <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5">Nome do Projeto</label>
             <input
               value={editForm.name}
               onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-              className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
+              className="w-full h-8 px-3 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white"
             />
           </div>
           <div>
-            <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Objetivo</label>
+            <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5">Objetivo</label>
             <textarea
               value={editForm.goal}
               onChange={(e) => setEditForm({ ...editForm, goal: e.target.value })}
               rows={3}
-              className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white resize-none"
+              className="w-full px-3 py-2 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white resize-none"
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Tipo</label>
+              <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5">Tipo</label>
               <input
                 value={editForm.type}
                 onChange={(e) => setEditForm({ ...editForm, type: e.target.value })}
-                className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
+                className="w-full h-8 px-3 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white"
               />
             </div>
             <div>
-              <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Prazo</label>
+              <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5">Prazo</label>
               <input
                 type="date"
                 value={editForm.deadline}
                 onChange={(e) => setEditForm({ ...editForm, deadline: e.target.value })}
-                className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
+                className="w-full h-8 px-3 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white"
               />
             </div>
             <div>
-              <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Prioridade</label>
+              <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5">Prioridade</label>
               <select
                 value={editForm.priority}
                 onChange={(e) => setEditForm({ ...editForm, priority: e.target.value as Priority })}
-                className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
+                className="w-full h-8 px-3 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white"
               >
                 <option value="high">Alta</option>
                 <option value="medium">Média</option>
@@ -2292,11 +2292,11 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               </select>
             </div>
             <div>
-              <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Etapa</label>
+              <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5">Etapa</label>
               <select
                 value={editForm.stage}
                 onChange={(e) => setEditForm({ ...editForm, stage: e.target.value as ProjectStage })}
-                className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
+                className="w-full h-8 px-3 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white"
               >
                 {STAGES.map((s) => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
               </select>

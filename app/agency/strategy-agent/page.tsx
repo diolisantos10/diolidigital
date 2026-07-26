@@ -141,7 +141,7 @@ export default function StrategyAgentPage() {
   const qg = canvas?.qualityGateResult;
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F7F7F6]">
+    <div className="flex flex-col min-h-screen bg-[var(--bg)]">
       <AgencyHeader
         title="Agente de Estratégia"
         subtitle="Departamento de Estratégia — diagnóstico, posicionamento e roadmap a partir do Brand Brain. Primeiro elo da cadeia de produção."
@@ -155,9 +155,9 @@ export default function StrategyAgentPage() {
             <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: ACCENT }} />
             Departamento de Estratégia
           </span>
-          <span className="text-[12px] text-[#9B9B95]">v1 · ✦ Dioli Brain</span>
+          <span className="text-[12px] text-[var(--text-muted)]">v1 · ✦ Dioli Brain</span>
           {linkedProject && (
-            <Link href={`/agency/projects/${linkedProject.id}`} className="text-[12px] text-[#070A1F] hover:underline">
+            <Link href={`/agency/projects/${linkedProject.id}`} className="text-[12px] text-[var(--navy)] hover:underline">
               ← {linkedProject.name}
             </Link>
           )}
@@ -168,7 +168,7 @@ export default function StrategyAgentPage() {
                 {mode === "openai" ? `✦ IA · ${aiModel}` : "motor rule-based"}
               </span>
               {saved ? (
-                <span className="flex items-center gap-1.5 h-7 px-3 rounded-[6px] text-[12px] font-medium bg-[#DCFCE7] text-[#16A34A] border border-[#BBF7D0]">
+                <span className="flex items-center gap-1.5 h-7 px-3 rounded-[6px] text-[12px] font-medium bg-[var(--success-bg)] text-[var(--success)] border border-[#BBF7D0]">
                   <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
                     <path d="M2 5.5l2.5 2.5 4.5-4.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
@@ -188,17 +188,17 @@ export default function StrategyAgentPage() {
         {/* 2-col layout */}
         <div className="grid grid-cols-[360px_1fr] gap-6 items-start">
           {/* ── LEFT ── */}
-          <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-            <div className="px-5 py-4 border-b border-[#E5E5E2]">
-              <p className="text-[13px] font-semibold text-[#1A1A1A]">Briefing Estratégico</p>
-              <p className="text-[12px] text-[#9B9B95] mt-0.5">Selecione um projeto para gerar o Strategy Canvas com IA.</p>
+          <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+            <div className="px-5 py-4 border-b border-[var(--border)]">
+              <p className="text-[13px] font-semibold text-[var(--text-primary)]">Briefing Estratégico</p>
+              <p className="text-[12px] text-[var(--text-muted)] mt-0.5">Selecione um projeto para gerar o Strategy Canvas com IA.</p>
             </div>
 
             <div className="px-5 py-5 space-y-4">
               {/* Project selector */}
               <div>
-                <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">
-                  Projeto <span className="text-[#DC2626]">*</span>
+                <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5">
+                  Projeto <span className="text-[var(--danger)]">*</span>
                 </label>
                 <select
                   value={linkedProjectId ?? ""}
@@ -210,7 +210,7 @@ export default function StrategyAgentPage() {
                     setRunError(null);
                   }}
                   disabled={agentState === "generating"}
-                  className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:bg-white transition-colors disabled:opacity-50"
+                  className="w-full h-8 px-3 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:bg-white transition-colors disabled:opacity-50"
                 >
                   <option value="">— selecione um projeto —</option>
                   {projects.map((p) => (
@@ -221,31 +221,31 @@ export default function StrategyAgentPage() {
 
               {/* Brand Brain readiness */}
               {agentCtx && (
-                <div className={`rounded-[8px] border px-3 py-2.5 ${agentCtx.brandBrainReadiness < 5 ? "bg-[#FFFBEB] border-[#FDE68A]" : "bg-[#E6FBFA] border-[#9AF5F0]"}`}>
+                <div className={`rounded-[8px] border px-3 py-2.5 ${agentCtx.brandBrainReadiness < 5 ? "bg-[#FFFBEB] border-[#FDE68A]" : "bg-[var(--accent-light)] border-[var(--cyan)]"}`}>
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-1.5">
                       <span className="text-[11px] font-bold" style={{ color: agentCtx.brandBrainReadiness < 5 ? "#D97706" : ACCENT }}>
                         {agentCtx.brandBrainReadiness < 5 ? "⚠" : "●"}
                       </span>
-                      <span className="text-[11px] font-semibold text-[#1A1A1A]">
+                      <span className="text-[11px] font-semibold text-[var(--text-primary)]">
                         {agentCtx.brandBrainReadiness < 5 ? "Brand Brain incompleto" : "Brand Brain ativo"}
                       </span>
-                      <span className="text-[10px] text-[#9B9B95]">· {agentCtx.clientName}</span>
+                      <span className="text-[10px] text-[var(--text-muted)]">· {agentCtx.clientName}</span>
                     </div>
-                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${agentCtx.brandBrainReadiness === 10 ? "bg-[#DCFCE7] text-[#16A34A]" : agentCtx.brandBrainReadiness >= 5 ? "bg-[#E6FBFA] text-[#070A1F]" : "bg-[#F0F0ED] text-[#9B9B95]"}`}>
+                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${agentCtx.brandBrainReadiness === 10 ? "bg-[var(--success-bg)] text-[var(--success)]" : agentCtx.brandBrainReadiness >= 5 ? "bg-[var(--accent-light)] text-[var(--navy)]" : "bg-[var(--accent)] text-[var(--text-muted)]"}`}>
                       {agentCtx.brandBrainReadiness}/10
                     </span>
                   </div>
                   {agentCtx.brandBrain?.positioning && (
-                    <p className="text-[11px] text-[#6B6B65] leading-snug truncate">{agentCtx.brandBrain.positioning}</p>
+                    <p className="text-[11px] text-[var(--text-secondary)] leading-snug truncate">{agentCtx.brandBrain.positioning}</p>
                   )}
                 </div>
               )}
 
               {/* Existing deliverables note */}
               {existingStrategyDelivs.length > 0 && (
-                <div className="rounded-[7px] bg-[#FAFAFA] border border-[#F0F0ED] px-3 py-2">
-                  <p className="text-[11px] text-[#9B9B95]">
+                <div className="rounded-[7px] bg-[var(--bg-elevated)] border border-[var(--border)] px-3 py-2">
+                  <p className="text-[11px] text-[var(--text-muted)]">
                     {existingStrategyDelivs.length} strategy canvas já salvo neste projeto. Gerar novamente cria nova versão.
                   </p>
                 </div>
@@ -253,11 +253,11 @@ export default function StrategyAgentPage() {
 
               {/* What gets generated */}
               {linkedProject && (
-                <div className="rounded-[8px] border border-[#9AF5F0] bg-[#E6FBFA] px-3 py-3">
+                <div className="rounded-[8px] border border-[var(--cyan)] bg-[var(--accent-light)] px-3 py-3">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.05em] mb-2" style={{ color: ACCENT }}>Será gerado</p>
                   <ul className="space-y-1">
                     {["Diagnóstico de negócio", "Posicionamento estratégico", "Público-alvo definido", "Canais e serviços prioritários", "Roadmap de execução", "Quality Gate (8 critérios)"].map((item) => (
-                      <li key={item} className="flex items-center gap-2 text-[12px] text-[#1A1A1A]">
+                      <li key={item} className="flex items-center gap-2 text-[12px] text-[var(--text-primary)]">
                         <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: ACCENT }} />
                         {item}
                       </li>
@@ -268,8 +268,8 @@ export default function StrategyAgentPage() {
 
               {/* Error */}
               {runError && (
-                <div className="rounded-[7px] bg-[#FEF2F2] border border-[#FECACA] px-3 py-2">
-                  <p className="text-[11px] text-[#DC2626]">{runError}</p>
+                <div className="rounded-[7px] bg-[var(--danger-bg)] border border-[#FECACA] px-3 py-2">
+                  <p className="text-[11px] text-[var(--danger)]">{runError}</p>
                 </div>
               )}
 
@@ -291,7 +291,7 @@ export default function StrategyAgentPage() {
                 </button>
               )}
               {agentState === "output_ready" && (
-                <button onClick={handleReset} className="w-full h-9 rounded-[7px] text-[13px] font-medium bg-transparent border border-[#E5E5E2] text-[#6B6B65] hover:bg-[#F7F7F6] transition-all">
+                <button onClick={handleReset} className="w-full h-9 rounded-[7px] text-[13px] font-medium bg-transparent border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg)] transition-all">
                   Reiniciar
                 </button>
               )}
@@ -301,39 +301,39 @@ export default function StrategyAgentPage() {
           {/* ── RIGHT ── */}
 
           {agentState === "idle" && !linkedProject && (
-            <div className="bg-white rounded-[10px] border border-dashed border-[#E5E5E2] px-8 py-16 text-center">
+            <div className="bg-white rounded-[10px] border border-dashed border-[var(--border)] px-8 py-16 text-center">
               <div className="w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: "#E6FBFA" }}>
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                   <circle cx="10" cy="10" r="8" stroke={ACCENT} strokeWidth="1.5"/>
                   <path d="M12.5 7.5L11 11l-3.5 1.5L9 9l3.5-1.5z" stroke={ACCENT} strokeWidth="1.5" strokeLinejoin="round"/>
                 </svg>
               </div>
-              <p className="text-[14px] font-semibold text-[#1A1A1A] mb-1">Departamento de Estratégia</p>
-              <p className="text-[13px] text-[#9B9B95] max-w-sm mx-auto">Selecione um projeto para que o Dioli Brain gere o Strategy Canvas — diagnóstico, posicionamento e roadmap em segundos.</p>
+              <p className="text-[14px] font-semibold text-[var(--text-primary)] mb-1">Departamento de Estratégia</p>
+              <p className="text-[13px] text-[var(--text-muted)] max-w-sm mx-auto">Selecione um projeto para que o Dioli Brain gere o Strategy Canvas — diagnóstico, posicionamento e roadmap em segundos.</p>
             </div>
           )}
 
           {agentState === "idle" && linkedProject && (
-            <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-8 py-14 text-center">
+            <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-8 py-14 text-center">
               <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-5" style={{ backgroundColor: "#E6FBFA" }}>
                 <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
                   <circle cx="11" cy="11" r="9" stroke={ACCENT} strokeWidth="1.5"/>
                   <path d="M14 8L12 12.5l-4 1.5L10 9.5 14 8z" stroke={ACCENT} strokeWidth="1.5" strokeLinejoin="round"/>
                 </svg>
               </div>
-              <p className="text-[15px] font-semibold text-[#1A1A1A] mb-2">Pronto para raciocinar</p>
-              <p className="text-[13px] text-[#6B6B65] max-w-sm mx-auto leading-relaxed">
+              <p className="text-[15px] font-semibold text-[var(--text-primary)] mb-2">Pronto para raciocinar</p>
+              <p className="text-[13px] text-[var(--text-secondary)] max-w-sm mx-auto leading-relaxed">
                 {linkedClient?.name} · o Dioli Brain vai analisar o contexto do cliente e gerar um Strategy Canvas completo com diagnóstico, posicionamento e roadmap.
               </p>
             </div>
           )}
 
           {agentState === "generating" && (
-            <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-8 py-12">
+            <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-8 py-12">
               <div className="max-w-md mx-auto space-y-3">
                 {STEPS.map((s, i) => (
                   <div key={i} className={`flex items-center gap-3 transition-opacity ${i <= stepIndex ? "opacity-100" : "opacity-30"}`}>
-                    <span className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${i < stepIndex ? "bg-[#DCFCE7]" : i === stepIndex ? "" : "bg-[#F0F0ED]"}`}
+                    <span className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${i < stepIndex ? "bg-[var(--success-bg)]" : i === stepIndex ? "" : "bg-[var(--accent)]"}`}
                       style={i === stepIndex ? { backgroundColor: "#E6FBFA" } : {}}>
                       {i < stepIndex ? (
                         <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
@@ -342,10 +342,10 @@ export default function StrategyAgentPage() {
                       ) : i === stepIndex ? (
                         <span className="w-2.5 h-2.5 border-2 rounded-full animate-spin" style={{ borderColor: ACCENT, borderTopColor: "transparent" }} />
                       ) : (
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#C0C0BC]" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-subtle)]" />
                       )}
                     </span>
-                    <span className={`text-[13px] ${i <= stepIndex ? "text-[#1A1A1A]" : "text-[#9B9B95]"}`}>{s}</span>
+                    <span className={`text-[13px] ${i <= stepIndex ? "text-[var(--text-primary)]" : "text-[var(--text-muted)]"}`}>{s}</span>
                   </div>
                 ))}
               </div>
@@ -358,20 +358,20 @@ export default function StrategyAgentPage() {
               {warnings.length > 0 && (
                 <div className="bg-[#FFFBEB] border border-[#FDE68A] rounded-[8px] px-4 py-2.5 space-y-1">
                   {warnings.map((w, i) => (
-                    <p key={i} className="text-[11px] text-[#D97706]">{w}</p>
+                    <p key={i} className="text-[11px] text-[var(--warning)]">{w}</p>
                   ))}
                 </div>
               )}
 
               {/* Tab bar */}
-              <div className="flex items-center gap-1 bg-white border border-[#E5E5E2] rounded-[8px] p-1 overflow-x-auto">
+              <div className="flex items-center gap-1 bg-white border border-[var(--border)] rounded-[8px] p-1 overflow-x-auto">
                 {OUTPUT_TABS.map((t) => (
                   <button key={t.id} onClick={() => setActiveTab(t.id)}
-                    className={`h-7 px-3 rounded-[5px] text-[12px] font-medium whitespace-nowrap transition-all ${activeTab === t.id ? "text-white" : "text-[#6B6B65] hover:bg-[#F7F7F6]"}`}
+                    className={`h-7 px-3 rounded-[5px] text-[12px] font-medium whitespace-nowrap transition-all ${activeTab === t.id ? "text-white" : "text-[var(--text-secondary)] hover:bg-[var(--bg)]"}`}
                     style={activeTab === t.id ? { backgroundColor: ACCENT } : {}}>
                     {t.label}
                     {t.id === "quality" && qg && (
-                      <span className={`ml-1.5 text-[10px] font-bold ${qg.overall === "PASS" ? "text-[#16A34A]" : qg.overall === "WARNING" ? "text-[#D97706]" : "text-[#DC2626]"}`}>
+                      <span className={`ml-1.5 text-[10px] font-bold ${qg.overall === "PASS" ? "text-[var(--success)]" : qg.overall === "WARNING" ? "text-[var(--warning)]" : "text-[var(--danger)]"}`}>
                         {qg.overall}
                       </span>
                     )}
@@ -381,15 +381,15 @@ export default function StrategyAgentPage() {
 
               {/* Diagnóstico */}
               {activeTab === "diagnostico" && (
-                <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 space-y-4">
+                <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 space-y-4">
                   <Field label="Diagnóstico de negócio" value={canvas.businessSummary} />
                   <Field label="Objetivo principal" value={canvas.mainObjective} />
                   {canvas.secondaryObjectives.length > 0 && (
                     <div>
-                      <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Objetivos secundários</div>
+                      <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1.5">Objetivos secundários</div>
                       <ul className="space-y-1">
                         {canvas.secondaryObjectives.map((o, i) => (
-                          <li key={i} className="flex items-start gap-2 text-[12px] text-[#6B6B65]">
+                          <li key={i} className="flex items-start gap-2 text-[12px] text-[var(--text-secondary)]">
                             <span className="mt-[5px] w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: ACCENT }} />{o}
                           </li>
                         ))}
@@ -398,10 +398,10 @@ export default function StrategyAgentPage() {
                   )}
                   {canvas.differentiators.length > 0 && (
                     <div>
-                      <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Diferenciais</div>
+                      <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1.5">Diferenciais</div>
                       <div className="flex flex-wrap gap-1.5">
                         {canvas.differentiators.map((d) => (
-                          <span key={d} className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#E6FBFA]" style={{ color: ACCENT }}>{d}</span>
+                          <span key={d} className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-[var(--accent-light)]" style={{ color: ACCENT }}>{d}</span>
                         ))}
                       </div>
                     </div>
@@ -411,17 +411,17 @@ export default function StrategyAgentPage() {
 
               {/* Posição & Público */}
               {activeTab === "posicao" && (
-                <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 space-y-4">
+                <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 space-y-4">
                   <Field label="Posicionamento" value={canvas.positioningStatement} />
                   <Field label="Público-alvo" value={canvas.audience} />
                   <Field label="Direção de comunicação" value={canvas.communicationDirection} />
                   {canvas.painPoints.length > 0 && (
                     <div>
-                      <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Dores do público</div>
+                      <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1.5">Dores do público</div>
                       <ul className="space-y-1">
                         {canvas.painPoints.map((p, i) => (
-                          <li key={i} className="flex items-start gap-2 text-[12px] text-[#6B6B65]">
-                            <span className="mt-[5px] w-1.5 h-1.5 rounded-full bg-[#DC2626] shrink-0" />{p}
+                          <li key={i} className="flex items-start gap-2 text-[12px] text-[var(--text-secondary)]">
+                            <span className="mt-[5px] w-1.5 h-1.5 rounded-full bg-[var(--danger)] shrink-0" />{p}
                           </li>
                         ))}
                       </ul>
@@ -429,11 +429,11 @@ export default function StrategyAgentPage() {
                   )}
                   {canvas.competitiveAdvantages.length > 0 && (
                     <div>
-                      <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Vantagens competitivas</div>
+                      <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1.5">Vantagens competitivas</div>
                       <ul className="space-y-1">
                         {canvas.competitiveAdvantages.map((a, i) => (
-                          <li key={i} className="flex items-start gap-2 text-[12px] text-[#6B6B65]">
-                            <span className="mt-[5px] w-1.5 h-1.5 rounded-full bg-[#16A34A] shrink-0" />{a}
+                          <li key={i} className="flex items-start gap-2 text-[12px] text-[var(--text-secondary)]">
+                            <span className="mt-[5px] w-1.5 h-1.5 rounded-full bg-[var(--success)] shrink-0" />{a}
                           </li>
                         ))}
                       </ul>
@@ -445,29 +445,29 @@ export default function StrategyAgentPage() {
               {/* Canais & Serviços */}
               {activeTab === "canais" && (
                 <div className="space-y-3">
-                  <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
-                    <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">Canais prioritários</div>
+                  <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
+                    <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-2">Canais prioritários</div>
                     <div className="flex flex-wrap gap-2">
                       {canvas.priorityChannels.map((ch) => (
                         <span key={ch} className="px-3 py-1 rounded-full text-[12px] font-semibold text-white" style={{ backgroundColor: ACCENT }}>{ch}</span>
                       ))}
                     </div>
                   </div>
-                  <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
-                    <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">Serviços recomendados</div>
+                  <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
+                    <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-2">Serviços recomendados</div>
                     <ul className="space-y-1">
                       {canvas.recommendedServices.map((s, i) => (
-                        <li key={i} className="flex items-center gap-2 text-[13px] text-[#1A1A1A]">
+                        <li key={i} className="flex items-center gap-2 text-[13px] text-[var(--text-primary)]">
                           <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: ACCENT }} />{s}
                         </li>
                       ))}
                     </ul>
                   </div>
-                  <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
-                    <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">Territórios de conteúdo</div>
+                  <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
+                    <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-2">Territórios de conteúdo</div>
                     <div className="flex flex-wrap gap-2">
                       {canvas.contentTerritories.map((t) => (
-                        <span key={t} className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-[#E6FBFA]" style={{ color: ACCENT }}>{t}</span>
+                        <span key={t} className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-[var(--accent-light)]" style={{ color: ACCENT }}>{t}</span>
                       ))}
                     </div>
                   </div>
@@ -478,17 +478,17 @@ export default function StrategyAgentPage() {
               {activeTab === "roadmap" && (
                 <div className="space-y-3">
                   {canvas.recommendedRoadmap.map((phase, i) => (
-                    <div key={i} className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
+                    <div key={i} className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
                       <div className="flex items-center justify-between mb-1.5">
                         <div className="flex items-center gap-2">
                           <span className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0" style={{ backgroundColor: ACCENT }}>{i + 1}</span>
-                          <span className="text-[13px] font-semibold text-[#1A1A1A]">{phase.phase}</span>
+                          <span className="text-[13px] font-semibold text-[var(--text-primary)]">{phase.phase}</span>
                         </div>
-                        <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-[#E6FBFA]" style={{ color: ACCENT }}>
+                        <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-[var(--accent-light)]" style={{ color: ACCENT }}>
                           {phase.durationWeeks} {phase.durationWeeks === 1 ? "semana" : "semanas"}
                         </span>
                       </div>
-                      <p className="text-[12px] text-[#6B6B65] leading-relaxed">{phase.focus}</p>
+                      <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed">{phase.focus}</p>
                     </div>
                   ))}
                 </div>
@@ -498,21 +498,21 @@ export default function StrategyAgentPage() {
               {activeTab === "riscos" && (
                 <div className="space-y-3">
                   <div className="bg-white rounded-[10px] border border-[#FECACA] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
-                    <div className="text-[11px] font-semibold text-[#DC2626] uppercase tracking-[0.05em] mb-2">Riscos identificados</div>
+                    <div className="text-[11px] font-semibold text-[var(--danger)] uppercase tracking-[0.05em] mb-2">Riscos identificados</div>
                     <ul className="space-y-1.5">
                       {canvas.risks.map((r, i) => (
-                        <li key={i} className="flex items-start gap-2 text-[12px] text-[#6B6B65]">
-                          <span className="mt-[5px] w-1.5 h-1.5 rounded-full bg-[#DC2626] shrink-0" />{r}
+                        <li key={i} className="flex items-start gap-2 text-[12px] text-[var(--text-secondary)]">
+                          <span className="mt-[5px] w-1.5 h-1.5 rounded-full bg-[var(--danger)] shrink-0" />{r}
                         </li>
                       ))}
                     </ul>
                   </div>
                   <div className="bg-white rounded-[10px] border border-[#BBF7D0] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
-                    <div className="text-[11px] font-semibold text-[#16A34A] uppercase tracking-[0.05em] mb-2">Oportunidades</div>
+                    <div className="text-[11px] font-semibold text-[var(--success)] uppercase tracking-[0.05em] mb-2">Oportunidades</div>
                     <ul className="space-y-1.5">
                       {canvas.opportunities.map((o, i) => (
-                        <li key={i} className="flex items-start gap-2 text-[12px] text-[#6B6B65]">
-                          <span className="mt-[5px] w-1.5 h-1.5 rounded-full bg-[#16A34A] shrink-0" />{o}
+                        <li key={i} className="flex items-start gap-2 text-[12px] text-[var(--text-secondary)]">
+                          <span className="mt-[5px] w-1.5 h-1.5 rounded-full bg-[var(--success)] shrink-0" />{o}
                         </li>
                       ))}
                     </ul>
@@ -523,24 +523,24 @@ export default function StrategyAgentPage() {
               {/* Quality Gate */}
               {activeTab === "quality" && qg && (
                 <div className="space-y-3">
-                  <div className={`rounded-[10px] border px-5 py-4 flex items-center justify-between ${qg.overall === "PASS" ? "bg-[#F0FDF4] border-[#BBF7D0]" : qg.overall === "WARNING" ? "bg-[#FFFBEB] border-[#FDE68A]" : "bg-[#FEF2F2] border-[#FECACA]"}`}>
+                  <div className={`rounded-[10px] border px-5 py-4 flex items-center justify-between ${qg.overall === "PASS" ? "bg-[#F0FDF4] border-[#BBF7D0]" : qg.overall === "WARNING" ? "bg-[#FFFBEB] border-[#FDE68A]" : "bg-[var(--danger-bg)] border-[#FECACA]"}`}>
                     <div>
-                      <p className="text-[14px] font-semibold text-[#1A1A1A]">Veredito: {qg.overall}</p>
-                      <p className="text-[12px] text-[#6B6B65] mt-0.5">{qg.passCount} pass · {qg.warningCount} warning · {qg.failCount} fail</p>
+                      <p className="text-[14px] font-semibold text-[var(--text-primary)]">Veredito: {qg.overall}</p>
+                      <p className="text-[12px] text-[var(--text-secondary)] mt-0.5">{qg.passCount} pass · {qg.warningCount} warning · {qg.failCount} fail</p>
                     </div>
-                    <span className={`text-[20px] font-black ${qg.overall === "PASS" ? "text-[#16A34A]" : qg.overall === "WARNING" ? "text-[#D97706]" : "text-[#DC2626]"}`}>
+                    <span className={`text-[20px] font-black ${qg.overall === "PASS" ? "text-[var(--success)]" : qg.overall === "WARNING" ? "text-[var(--warning)]" : "text-[var(--danger)]"}`}>
                       {qg.overall === "PASS" ? "✓" : qg.overall === "WARNING" ? "⚠" : "✗"}
                     </span>
                   </div>
                   <div className="space-y-2">
                     {qg.items.map((item) => (
-                      <div key={item.id} className="bg-white rounded-[8px] border border-[#E5E5E2] px-4 py-3 flex items-start gap-3">
-                        <span className={`mt-0.5 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0 ${item.status === "PASS" ? "bg-[#16A34A]" : item.status === "WARNING" ? "bg-[#D97706]" : "bg-[#DC2626]"}`}>
+                      <div key={item.id} className="bg-white rounded-[8px] border border-[var(--border)] px-4 py-3 flex items-start gap-3">
+                        <span className={`mt-0.5 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0 ${item.status === "PASS" ? "bg-[var(--success)]" : item.status === "WARNING" ? "bg-[var(--warning)]" : "bg-[var(--danger)]"}`}>
                           {item.status === "PASS" ? "✓" : item.status === "WARNING" ? "!" : "✗"}
                         </span>
                         <div>
-                          <p className="text-[12px] font-semibold text-[#1A1A1A]">{item.label}</p>
-                          <p className="text-[11px] text-[#9B9B95] leading-snug">{item.detail}</p>
+                          <p className="text-[12px] font-semibold text-[var(--text-primary)]">{item.label}</p>
+                          <p className="text-[11px] text-[var(--text-muted)] leading-snug">{item.detail}</p>
                         </div>
                       </div>
                     ))}
@@ -549,13 +549,13 @@ export default function StrategyAgentPage() {
               )}
 
               {/* Save footer */}
-              <div className="flex items-center justify-between bg-[#F7F7F6] rounded-[12px] border border-[#E5E5E2] px-5 py-3">
+              <div className="flex items-center justify-between bg-[var(--bg)] rounded-[12px] border border-[var(--border)] px-5 py-3">
                 <div>
-                  <p className="text-[13px] font-medium text-[#1A1A1A]">Salvar Strategy Canvas como entrega</p>
-                  <p className="text-[12px] text-[#9B9B95]">Vai para revisão como "strategy_document" no projeto.</p>
+                  <p className="text-[13px] font-medium text-[var(--text-primary)]">Salvar Strategy Canvas como entrega</p>
+                  <p className="text-[12px] text-[var(--text-muted)]">Vai para revisão como "strategy_document" no projeto.</p>
                 </div>
                 {saved ? (
-                  <span className="flex items-center gap-1.5 h-9 px-4 rounded-[8px] text-[13px] font-medium bg-[#DCFCE7] text-[#16A34A]">
+                  <span className="flex items-center gap-1.5 h-9 px-4 rounded-[8px] text-[13px] font-medium bg-[var(--success-bg)] text-[var(--success)]">
                     <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                       <path d="M2 6l2.5 2.5L10 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
@@ -579,8 +579,8 @@ export default function StrategyAgentPage() {
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-0.5">{label}</div>
-      <p className="text-[13px] text-[#1A1A1A] leading-relaxed">{value}</p>
+      <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-0.5">{label}</div>
+      <p className="text-[13px] text-[var(--text-primary)] leading-relaxed">{value}</p>
     </div>
   );
 }

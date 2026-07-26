@@ -462,16 +462,16 @@ function BrandBrainBadge({ ctx }: { ctx: AgentClientContext }) {
     <div className={`rounded-[8px] border px-3 py-2.5 ${incomplete ? "bg-[#FFFBEB] border-[#FDE68A]" : "bg-[#F0FDF4] border-[#BBF7D0]"}`}>
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-1.5">
-          <span className={`text-[11px] font-bold ${incomplete ? "text-[#D97706]" : "text-[#16A34A]"}`}>{incomplete ? "⚠" : "●"}</span>
-          <span className="text-[11px] font-semibold text-[#1A1A1A]">{incomplete ? "Brand Brain incompleto" : "Brand Brain ativo"}</span>
+          <span className={`text-[11px] font-bold ${incomplete ? "text-[var(--warning)]" : "text-[var(--success)]"}`}>{incomplete ? "⚠" : "●"}</span>
+          <span className="text-[11px] font-semibold text-[var(--text-primary)]">{incomplete ? "Brand Brain incompleto" : "Brand Brain ativo"}</span>
         </div>
-        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${ready === 10 ? "bg-[#DCFCE7] text-[#16A34A]" : ready >= 5 ? "bg-[#FEF3C7] text-[#D97706]" : "bg-[#F0F0ED] text-[#9B9B95]"}`}>{ready}/10</span>
+        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${ready === 10 ? "bg-[var(--success-bg)] text-[var(--success)]" : ready >= 5 ? "bg-[var(--warning-bg)] text-[var(--warning)]" : "bg-[var(--accent)] text-[var(--text-muted)]"}`}>{ready}/10</span>
       </div>
       {incomplete
-        ? <p className="text-[11px] text-[#D97706] leading-snug">Complete o Brand Brain no workspace do cliente para outputs totalmente específicos da marca.</p>
+        ? <p className="text-[11px] text-[var(--warning)] leading-snug">Complete o Brand Brain no workspace do cliente para outputs totalmente específicos da marca.</p>
         : <div className="flex gap-3 flex-wrap mt-1">
-            {ctx.brandBrain?.toneOfVoice    && <span className="text-[10px] text-[#6B6B65]">Tone: <span className="text-[#1A1A1A] font-medium">{ctx.brandBrain.toneOfVoice.slice(0,40)}</span></span>}
-            {ctx.brandBrain?.targetAudience && <span className="text-[10px] text-[#6B6B65]">Audience: <span className="text-[#1A1A1A] font-medium">{ctx.brandBrain.targetAudience.slice(0,40)}</span></span>}
+            {ctx.brandBrain?.toneOfVoice    && <span className="text-[10px] text-[var(--text-secondary)]">Tone: <span className="text-[var(--text-primary)] font-medium">{ctx.brandBrain.toneOfVoice.slice(0,40)}</span></span>}
+            {ctx.brandBrain?.targetAudience && <span className="text-[10px] text-[var(--text-secondary)]">Audience: <span className="text-[var(--text-primary)] font-medium">{ctx.brandBrain.targetAudience.slice(0,40)}</span></span>}
           </div>
       }
     </div>
@@ -660,23 +660,23 @@ export default function SocialMediaAgentPage() {
   // ── Blocked panel (proposal gate) ─────────────────────────────────────────
   const ProposalGatePanel = () => {
     const statusLabels: Record<string, { label: string; color: string; bg: string }> = {
-      draft:             { label: "Rascunho — não enviado", color: "text-[#6B6B65]", bg: "bg-[#F7F7F6]" },
-      sent:              { label: "Aguardando aprovação do cliente", color: "text-[#070A1F]", bg: "bg-[#E6FBFA]" },
-      rejected:          { label: "Rejeitado pelo cliente", color: "text-[#DC2626]", bg: "bg-[#FEF2F2]" },
-      changes_requested: { label: "Alterações solicitadas", color: "text-[#D97706]", bg: "bg-[#FFFBEB]" },
+      draft:             { label: "Rascunho — não enviado", color: "text-[var(--text-secondary)]", bg: "bg-[var(--bg)]" },
+      sent:              { label: "Aguardando aprovação do cliente", color: "text-[var(--navy)]", bg: "bg-[var(--accent-light)]" },
+      rejected:          { label: "Rejeitado pelo cliente", color: "text-[var(--danger)]", bg: "bg-[var(--danger-bg)]" },
+      changes_requested: { label: "Alterações solicitadas", color: "text-[var(--warning)]", bg: "bg-[#FFFBEB]" },
     };
     const statusInfo = proposalStatus ? (statusLabels[proposalStatus] ?? statusLabels.draft) : statusLabels.draft;
 
     return (
       <div className="bg-white rounded-[10px] border border-[#FDE68A] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-8 py-14 flex flex-col items-center text-center">
-        <div className="w-12 h-12 rounded-full bg-[#FEF3C7] flex items-center justify-center mb-5">
+        <div className="w-12 h-12 rounded-full bg-[var(--warning-bg)] flex items-center justify-center mb-5">
           <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
             <path d="M11 7v5M11 15h.01" stroke="#D97706" strokeWidth="1.8" strokeLinecap="round"/>
             <circle cx="11" cy="11" r="9" stroke="#D97706" strokeWidth="1.5"/>
           </svg>
         </div>
-        <p className="text-[15px] font-semibold text-[#1A1A1A] mb-2">Execução bloqueada</p>
-        <p className="text-[13px] text-[#6B6B65] max-w-sm leading-relaxed mb-5">
+        <p className="text-[15px] font-semibold text-[var(--text-primary)] mb-2">Execução bloqueada</p>
+        <p className="text-[13px] text-[var(--text-secondary)] max-w-sm leading-relaxed mb-5">
           O Agente de Redes Sociais só pode ser executado após a aprovação da proposta pelo cliente.
           Isso garante que todo o trabalho seja comercialmente autorizado antes da execução.
         </p>
@@ -688,26 +688,26 @@ export default function SocialMediaAgentPage() {
         {linkedProject && (
           <Link
             href={`/agency/projects/${linkedProject.id}?tab=proposal`}
-            className="h-8 px-4 rounded-[7px] bg-[#1A1A1A] hover:bg-[#111111] text-white text-[12px] font-medium transition-colors"
+            className="h-8 px-4 rounded-[7px] bg-[var(--text-primary)] hover:bg-[var(--text-primary)] text-white text-[12px] font-medium transition-colors"
           >
             Ver Proposta →
           </Link>
         )}
         {proposalStatus === "draft" && (
-          <p className="text-[11px] text-[#9B9B95] mt-3">Rascunho → Enviar ao cliente → Aguardar aprovação → Executar agente</p>
+          <p className="text-[11px] text-[var(--text-muted)] mt-3">Rascunho → Enviar ao cliente → Aguardar aprovação → Executar agente</p>
         )}
         {proposalStatus === "sent" && (
-          <p className="text-[11px] text-[#9B9B95] mt-3">Compartilhe o link do portal do cliente para {linkedClient?.name} aprovar.</p>
+          <p className="text-[11px] text-[var(--text-muted)] mt-3">Compartilhe o link do portal do cliente para {linkedClient?.name} aprovar.</p>
         )}
         {proposalStatus === "rejected" && (
-          <p className="text-[11px] text-[#9B9B95] mt-3">Revise e reenvie a proposta, depois aguarde a aprovação do cliente.</p>
+          <p className="text-[11px] text-[var(--text-muted)] mt-3">Revise e reenvie a proposta, depois aguarde a aprovação do cliente.</p>
         )}
       </div>
     );
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F7F7F6]">
+    <div className="flex flex-col min-h-screen bg-[var(--bg)]">
       <AgencyHeader
         title="Agente de Redes Sociais"
         subtitle="Estratégia alinhada à marca, calendário de conteúdo, posts e stories — prontos para revisão do cliente."
@@ -716,13 +716,13 @@ export default function SocialMediaAgentPage() {
       <div className="flex-1 p-6 max-w-[1200px] mx-auto w-full">
         {/* Top bar */}
         <div className="flex items-center gap-2 mb-6">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[11px] font-semibold tracking-wide uppercase">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#070A1F]" />
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--accent-light)] text-[var(--navy)] text-[11px] font-semibold tracking-wide uppercase">
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--navy)]" />
             Departamento de Redes Sociais
           </span>
-          <span className="text-[12px] text-[#9B9B95]">v1</span>
+          <span className="text-[12px] text-[var(--text-muted)]">v1</span>
           {sourceProject && (
-            <Link href={`/agency/projects/${sourceProject.projectId}`} className="text-[12px] text-[#070A1F] hover:underline">
+            <Link href={`/agency/projects/${sourceProject.projectId}`} className="text-[12px] text-[var(--navy)] hover:underline">
               ← {sourceProject.projectName}
             </Link>
           )}
@@ -730,17 +730,17 @@ export default function SocialMediaAgentPage() {
             <div className="ml-auto flex items-center gap-2">
               {sourceProject && (
                 savedToProject ? (
-                  <span className="flex items-center gap-1.5 h-7 px-3 rounded-[6px] text-[12px] font-medium bg-[#DCFCE7] text-[#16A34A] border border-[#BBF7D0]">
+                  <span className="flex items-center gap-1.5 h-7 px-3 rounded-[6px] text-[12px] font-medium bg-[var(--success-bg)] text-[var(--success)] border border-[#BBF7D0]">
                     <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M2 5.5l2.5 2.5 4.5-4.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     Salvo — {sourceProject.projectName}
                   </span>
                 ) : (
-                  <button onClick={handleSaveToProject} className="h-7 px-3 rounded-[6px] text-[12px] font-medium bg-[#070A1F] text-white hover:bg-[#0D1230] transition-colors">
+                  <button onClick={handleSaveToProject} className="h-7 px-3 rounded-[6px] text-[12px] font-medium bg-[var(--navy)] text-white hover:bg-[#0D1230] transition-colors">
                     Salvar no projeto
                   </button>
                 )
               )}
-              <button onClick={handleExport} className="h-7 px-3 rounded-[6px] text-[12px] font-medium border border-[#E5E5E2] bg-white text-[#1A1A1A] hover:bg-[#F7F7F6] transition-colors">
+              <button onClick={handleExport} className="h-7 px-3 rounded-[6px] text-[12px] font-medium border border-[var(--border)] bg-white text-[var(--text-primary)] hover:bg-[var(--bg)] transition-colors">
                 Exportar Pacote
               </button>
             </div>
@@ -751,18 +751,18 @@ export default function SocialMediaAgentPage() {
         <div className="grid grid-cols-[360px_1fr] gap-6 items-start">
 
           {/* LEFT — form */}
-          <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-            <div className="px-5 py-4 border-b border-[#E5E5E2]">
-              <p className="text-[13px] font-semibold text-[#1A1A1A]">Briefing</p>
-              <p className="text-[12px] text-[#9B9B95] mt-0.5">Vincule um projeto e descreva o que precisa ser feito.</p>
+          <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+            <div className="px-5 py-4 border-b border-[var(--border)]">
+              <p className="text-[13px] font-semibold text-[var(--text-primary)]">Briefing</p>
+              <p className="text-[12px] text-[var(--text-muted)] mt-0.5">Vincule um projeto e descreva o que precisa ser feito.</p>
             </div>
             <div className="px-5 py-5 space-y-4">
 
               {/* Project link */}
               {!sourceProject ? (
                 <div>
-                  <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">
-                    Vincular ao projeto <span className="text-[#DC2626]">*</span>
+                  <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5">
+                    Vincular ao projeto <span className="text-[var(--danger)]">*</span>
                   </label>
                   <select
                     value=""
@@ -770,7 +770,7 @@ export default function SocialMediaAgentPage() {
                       const p = projects.find((x) => x.id === e.target.value);
                       if (p) setSourceProject({ projectId: p.id, projectName: p.name });
                     }}
-                    className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
+                    className="w-full h-8 px-3 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white"
                   >
                     <option value="">— selecione um projeto —</option>
                     {projects.map((p) => (
@@ -779,54 +779,54 @@ export default function SocialMediaAgentPage() {
                   </select>
                 </div>
               ) : (
-                <div className="flex items-center justify-between py-1.5 px-3 rounded-[7px] bg-[#F7F7F6] border border-[#E5E5E2]">
+                <div className="flex items-center justify-between py-1.5 px-3 rounded-[7px] bg-[var(--bg)] border border-[var(--border)]">
                   <div className="flex items-center gap-2">
-                    <span className={`w-2 h-2 rounded-full ${proposalApproved ? "bg-[#16A34A]" : proposalBlocked ? "bg-[#D97706]" : "bg-[#9B9B95]"}`} />
-                    <span className="text-[12px] font-medium text-[#1A1A1A] truncate max-w-[160px]">{sourceProject.projectName}</span>
+                    <span className={`w-2 h-2 rounded-full ${proposalApproved ? "bg-[var(--success)]" : proposalBlocked ? "bg-[var(--warning)]" : "bg-[var(--text-muted)]"}`} />
+                    <span className="text-[12px] font-medium text-[var(--text-primary)] truncate max-w-[160px]">{sourceProject.projectName}</span>
                   </div>
-                  <button onClick={() => { setSourceProject(null); setSavedToProject(false); }} className="text-[11px] text-[#9B9B95] hover:text-[#DC2626] transition-colors">✕</button>
+                  <button onClick={() => { setSourceProject(null); setSavedToProject(false); }} className="text-[11px] text-[var(--text-muted)] hover:text-[var(--danger)] transition-colors">✕</button>
                 </div>
               )}
 
               {/* Brand name */}
               <div>
-                <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Nome da marca <span className="text-[#DC2626]">*</span></label>
+                <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5">Nome da marca <span className="text-[var(--danger)]">*</span></label>
                 <input
                   type="text"
                   value={form.brandName}
                   onChange={(e) => setForm({ ...form, brandName: e.target.value })}
                   placeholder="e.g. Sushikasa"
-                  className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
+                  className="w-full h-8 px-3 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white"
                 />
               </div>
 
               {/* Brand summary */}
               <div>
-                <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Resumo da marca</label>
+                <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5">Resumo da marca</label>
                 <textarea
                   value={form.brandSummary}
                   onChange={(e) => setForm({ ...form, brandSummary: e.target.value })}
                   placeholder="O que a marca faz, para quem é..."
                   rows={2}
-                  className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white resize-none"
+                  className="w-full px-3 py-2 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white resize-none"
                 />
               </div>
 
               {/* Objective */}
               <div>
-                <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Objetivo principal <span className="text-[#DC2626]">*</span></label>
+                <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5">Objetivo principal <span className="text-[var(--danger)]">*</span></label>
                 <input
                   type="text"
                   value={form.objective}
                   onChange={(e) => setForm({ ...form, objective: e.target.value })}
                   placeholder="ex.: Aumentar reconhecimento da marca e gerar contato direto"
-                  className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white"
+                  className="w-full h-8 px-3 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white"
                 />
               </div>
 
               {/* Channels */}
               <div>
-                <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Plataformas</label>
+                <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5">Plataformas</label>
                 <div className="flex flex-wrap gap-1.5">
                   {CHANNEL_OPTIONS.map((ch) => {
                     const active = form.channels.includes(ch);
@@ -841,7 +841,7 @@ export default function SocialMediaAgentPage() {
                           });
                         }}
                         className={`h-6 px-2.5 rounded-full text-[11px] font-medium transition-all ${
-                          active ? "bg-[#1A1A1A] text-white" : "bg-[#F0F0ED] text-[#6B6B65] hover:bg-[#E5E5E2]"
+                          active ? "bg-[var(--text-primary)] text-white" : "bg-[var(--accent)] text-[var(--text-secondary)] hover:bg-[var(--border)]"
                         }`}
                       >
                         {ch}
@@ -854,16 +854,16 @@ export default function SocialMediaAgentPage() {
               {/* Frequency + Tone row */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Frequência de posts</label>
+                  <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5">Frequência de posts</label>
                   <select value={form.frequency} onChange={(e) => setForm({ ...form, frequency: e.target.value })}
-                    className="w-full h-8 px-3 text-[12px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white">
+                    className="w-full h-8 px-3 text-[12px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white">
                     {FREQUENCY_OPTIONS.map((f) => <option key={f}>{f}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Tom de voz</label>
+                  <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5">Tom de voz</label>
                   <select value={form.toneOfVoice} onChange={(e) => setForm({ ...form, toneOfVoice: e.target.value })}
-                    className="w-full h-8 px-3 text-[12px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white">
+                    className="w-full h-8 px-3 text-[12px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white">
                     {TONE_OPTIONS.map((t) => <option key={t}>{t}</option>)}
                   </select>
                 </div>
@@ -871,22 +871,22 @@ export default function SocialMediaAgentPage() {
 
               {/* Visual style */}
               <div>
-                <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Estilo visual</label>
+                <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5">Estilo visual</label>
                 <select value={form.visualStyle} onChange={(e) => setForm({ ...form, visualStyle: e.target.value })}
-                  className="w-full h-8 px-3 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white">
+                  className="w-full h-8 px-3 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white">
                   {VISUAL_OPTIONS.map((v) => <option key={v}>{v}</option>)}
                 </select>
               </div>
 
               {/* Notes */}
               <div>
-                <label className="block text-[12px] font-medium text-[#6B6B65] mb-1.5">Notas adicionais</label>
+                <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-1.5">Notas adicionais</label>
                 <textarea
                   value={form.notes}
                   onChange={(e) => setForm({ ...form, notes: e.target.value })}
                   placeholder="Campanhas, lançamentos, restrições..."
                   rows={2}
-                  className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white resize-none"
+                  className="w-full px-3 py-2 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white resize-none"
                 />
               </div>
 
@@ -901,24 +901,24 @@ export default function SocialMediaAgentPage() {
                       <path d="M7 4.5V7M7 9.5h.01" stroke="#D97706" strokeWidth="1.4" strokeLinecap="round"/>
                       <circle cx="7" cy="7" r="6" stroke="#D97706" strokeWidth="1.2"/>
                     </svg>
-                    <p className="text-[12px] text-[#D97706] leading-snug">A proposta deve ser aprovada antes de executar o agente.</p>
+                    <p className="text-[12px] text-[var(--warning)] leading-snug">A proposta deve ser aprovada antes de executar o agente.</p>
                   </div>
                 ) : (
                   <button disabled={!isReady} onClick={handleRun}
-                    className="w-full h-9 rounded-[7px] text-[13px] font-medium bg-[#070A1F] text-white hover:bg-[#0D1230] active:bg-[#161B3D] disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+                    className="w-full h-9 rounded-[7px] text-[13px] font-medium bg-[var(--navy)] text-white hover:bg-[#0D1230] active:bg-[#161B3D] disabled:opacity-40 disabled:cursor-not-allowed transition-all">
                     Executar Agente de Redes Sociais
                   </button>
                 )
               )}
               {agentState === "generating" && (
-                <button disabled className="w-full h-9 rounded-[7px] text-[13px] font-medium bg-[#070A1F] text-white opacity-70 cursor-not-allowed flex items-center justify-center gap-2">
+                <button disabled className="w-full h-9 rounded-[7px] text-[13px] font-medium bg-[var(--navy)] text-white opacity-70 cursor-not-allowed flex items-center justify-center gap-2">
                   <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   Gerando…
                 </button>
               )}
               {agentState === "output_ready" && (
                 <button onClick={handleReset}
-                  className="w-full h-9 rounded-[7px] text-[13px] font-medium bg-transparent border border-[#E5E5E2] text-[#6B6B65] hover:bg-[#F7F7F6] transition-all">
+                  className="w-full h-9 rounded-[7px] text-[13px] font-medium bg-transparent border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg)] transition-all">
                   Reiniciar
                 </button>
               )}
@@ -928,36 +928,36 @@ export default function SocialMediaAgentPage() {
           {/* RIGHT — output */}
           {agentState === "idle" ? (
             proposalBlocked ? <ProposalGatePanel /> : (
-              <div className="bg-white rounded-[10px] border border-dashed border-[#E5E5E2] px-8 py-16 text-center">
-                <div className="w-10 h-10 rounded-full bg-[#E6FBFA] flex items-center justify-center mx-auto mb-4">
+              <div className="bg-white rounded-[10px] border border-dashed border-[var(--border)] px-8 py-16 text-center">
+                <div className="w-10 h-10 rounded-full bg-[var(--accent-light)] flex items-center justify-center mx-auto mb-4">
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                     <circle cx="10" cy="10" r="7" stroke="#070A1F" strokeWidth="1.3"/>
                     <path d="M7 10h6M10 7v6" stroke="#070A1F" strokeWidth="1.3" strokeLinecap="round"/>
                   </svg>
                 </div>
-                <p className="text-[14px] font-medium text-[#1A1A1A]">Pronto para gerar</p>
-                <p className="text-[13px] text-[#9B9B95] mt-1.5 max-w-xs mx-auto">
+                <p className="text-[14px] font-medium text-[var(--text-primary)]">Pronto para gerar</p>
+                <p className="text-[13px] text-[var(--text-muted)] mt-1.5 max-w-xs mx-auto">
                   Vincule um projeto com proposta aprovada, preencha o briefing e execute o agente.
                 </p>
               </div>
             )
           ) : agentState === "generating" ? (
-            <div className="bg-white rounded-[12px] border border-[#E5E5E2] px-8 py-16 text-center shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-              <div className="w-10 h-10 rounded-full bg-[#E6FBFA] flex items-center justify-center mx-auto mb-5">
-                <span className="w-5 h-5 border-2 border-[#070A1F] border-t-transparent rounded-full animate-spin" />
+            <div className="bg-white rounded-[12px] border border-[var(--border)] px-8 py-16 text-center shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              <div className="w-10 h-10 rounded-full bg-[var(--accent-light)] flex items-center justify-center mx-auto mb-5">
+                <span className="w-5 h-5 border-2 border-[var(--navy)] border-t-transparent rounded-full animate-spin" />
               </div>
-              <p className="text-[14px] font-semibold text-[#1A1A1A] mb-6">Construindo pacote de redes sociais…</p>
+              <p className="text-[14px] font-semibold text-[var(--text-primary)] mb-6">Construindo pacote de redes sociais…</p>
               <div className="max-w-[260px] mx-auto space-y-2.5">
                 {STEPS.map((label, i) => (
                   <div key={label} className={`flex items-center gap-2.5 transition-opacity ${i <= stepIndex ? "opacity-100" : "opacity-25"}`}>
-                    <span className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${i < stepIndex ? "bg-[#070A1F]" : i === stepIndex ? "bg-[#E6FBFA] border border-[#070A1F]" : "bg-[#F0F0ED]"}`}>
+                    <span className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${i < stepIndex ? "bg-[var(--navy)]" : i === stepIndex ? "bg-[var(--accent-light)] border border-[var(--navy)]" : "bg-[var(--accent)]"}`}>
                       {i < stepIndex && (
                         <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
                           <path d="M1.5 4l1.8 1.8L6.5 2.5" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
                       )}
                     </span>
-                    <span className={`text-[12px] text-left ${i <= stepIndex ? "text-[#1A1A1A]" : "text-[#9B9B95]"}`}>{label}</span>
+                    <span className={`text-[12px] text-left ${i <= stepIndex ? "text-[var(--text-primary)]" : "text-[var(--text-muted)]"}`}>{label}</span>
                   </div>
                 ))}
               </div>
@@ -967,7 +967,7 @@ export default function SocialMediaAgentPage() {
 
               {/* Saved banner */}
               {savedToProject && sourceProject && (
-                <div className="flex items-center justify-between px-4 py-2.5 bg-[#DCFCE7] border border-[#BBF7D0] rounded-[8px]">
+                <div className="flex items-center justify-between px-4 py-2.5 bg-[var(--success-bg)] border border-[#BBF7D0] rounded-[8px]">
                   <div className="flex items-center gap-2">
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2.5 7l3 3 6-6" stroke="#16A34A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     <span className="text-[12px] font-medium text-[#15803D]">
@@ -981,11 +981,11 @@ export default function SocialMediaAgentPage() {
               )}
 
               {/* Output tabs */}
-              <div className="flex items-center gap-1 bg-white border border-[#E5E5E2] rounded-[9px] p-1 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              <div className="flex items-center gap-1 bg-white border border-[var(--border)] rounded-[9px] p-1 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
                 {(["strategy", "calendar", "posts", "stories", "design"] as OutputTab[]).map((tab) => (
                   <button key={tab} onClick={() => setActiveTab(tab)}
                     className={`flex-1 h-7 rounded-[6px] text-[12px] font-medium transition-all ${
-                      activeTab === tab ? "bg-[#1A1A1A] text-white" : "text-[#6B6B65] hover:text-[#1A1A1A] hover:bg-[#F0F0ED]"
+                      activeTab === tab ? "bg-[var(--text-primary)] text-white" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--accent)]"
                     }`}>
                     {TAB_LABELS[tab]}
                   </button>
@@ -997,74 +997,74 @@ export default function SocialMediaAgentPage() {
                 <div className="space-y-4">
 
                   {/* Social Strategy */}
-                  <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                    <div className="px-5 py-3.5 border-b border-[#E5E5E2] flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[10px] font-bold flex items-center justify-center">1</span>
-                      <p className="text-[13px] font-semibold text-[#1A1A1A]">Estratégia de Redes Sociais</p>
+                  <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                    <div className="px-5 py-3.5 border-b border-[var(--border)] flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-full bg-[var(--accent-light)] text-[var(--navy)] text-[10px] font-bold flex items-center justify-center">1</span>
+                      <p className="text-[13px] font-semibold text-[var(--text-primary)]">Estratégia de Redes Sociais</p>
                     </div>
                     <div className="px-5 py-4 space-y-4">
                       <div className="grid grid-cols-2 gap-3">
-                        <div className="rounded-[8px] bg-[#F7F7F6] border border-[#E5E5E2] p-3">
-                          <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-2">Objetivo Social</p>
-                          <p className="text-[12px] text-[#1A1A1A] leading-relaxed">{output.strategy.socialObjective}</p>
+                        <div className="rounded-[8px] bg-[var(--bg)] border border-[var(--border)] p-3">
+                          <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-2">Objetivo Social</p>
+                          <p className="text-[12px] text-[var(--text-primary)] leading-relaxed">{output.strategy.socialObjective}</p>
                         </div>
-                        <div className="rounded-[8px] bg-[#F7F7F6] border border-[#E5E5E2] p-3">
-                          <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-2">Posicionamento de Conteúdo</p>
-                          <p className="text-[12px] text-[#1A1A1A] leading-relaxed">{output.strategy.contentPositioning}</p>
+                        <div className="rounded-[8px] bg-[var(--bg)] border border-[var(--border)] p-3">
+                          <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-2">Posicionamento de Conteúdo</p>
+                          <p className="text-[12px] text-[var(--text-primary)] leading-relaxed">{output.strategy.contentPositioning}</p>
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-3">
-                        <div className="rounded-[8px] bg-[#F7F7F6] border border-[#E5E5E2] p-3">
-                          <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-2">Frequência de Postagem</p>
-                          <p className="text-[12px] font-semibold text-[#1A1A1A]">{output.strategy.postingFrequency}</p>
+                        <div className="rounded-[8px] bg-[var(--bg)] border border-[var(--border)] p-3">
+                          <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-2">Frequência de Postagem</p>
+                          <p className="text-[12px] font-semibold text-[var(--text-primary)]">{output.strategy.postingFrequency}</p>
                         </div>
-                        <div className="rounded-[8px] bg-[#F7F7F6] border border-[#E5E5E2] p-3">
-                          <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-2">Justificativa Estratégica</p>
-                          <p className="text-[12px] text-[#1A1A1A] leading-relaxed">{output.strategy.strategicRationale}</p>
+                        <div className="rounded-[8px] bg-[var(--bg)] border border-[var(--border)] p-3">
+                          <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-2">Justificativa Estratégica</p>
+                          <p className="text-[12px] text-[var(--text-primary)] leading-relaxed">{output.strategy.strategicRationale}</p>
                         </div>
                       </div>
                     </div>
                   </div>
 
                   {/* Content Pillars */}
-                  <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                    <div className="px-5 py-3.5 border-b border-[#E5E5E2] flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[10px] font-bold flex items-center justify-center">2</span>
-                      <p className="text-[13px] font-semibold text-[#1A1A1A]">Pilares de Conteúdo</p>
+                  <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                    <div className="px-5 py-3.5 border-b border-[var(--border)] flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-full bg-[var(--accent-light)] text-[var(--navy)] text-[10px] font-bold flex items-center justify-center">2</span>
+                      <p className="text-[13px] font-semibold text-[var(--text-primary)]">Pilares de Conteúdo</p>
                     </div>
                     <div className="px-5 py-4 grid grid-cols-2 gap-3">
                       {output.strategy.contentPillars.map((pillar) => (
-                        <div key={pillar.name} className="rounded-[8px] bg-[#F7F7F6] border border-[#E5E5E2] p-3">
+                        <div key={pillar.name} className="rounded-[8px] bg-[var(--bg)] border border-[var(--border)] p-3">
                           <div className="flex items-center justify-between mb-2">
-                            <p className="text-[12px] font-semibold text-[#1A1A1A]">{pillar.name}</p>
-                            <span className="px-2 py-0.5 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[10px] font-semibold">{pillar.percentage}%</span>
+                            <p className="text-[12px] font-semibold text-[var(--text-primary)]">{pillar.name}</p>
+                            <span className="px-2 py-0.5 rounded-full bg-[var(--accent-light)] text-[var(--navy)] text-[10px] font-semibold">{pillar.percentage}%</span>
                           </div>
-                          <p className="text-[12px] text-[#6B6B65] leading-relaxed mb-2">{pillar.description}</p>
-                          <p className="text-[11px] text-[#9B9B95] italic">e.g. {pillar.example}</p>
+                          <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed mb-2">{pillar.description}</p>
+                          <p className="text-[11px] text-[var(--text-muted)] italic">e.g. {pillar.example}</p>
                         </div>
                       ))}
                     </div>
                   </div>
 
                   {/* Channel Recommendations */}
-                  <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                    <div className="px-5 py-3.5 border-b border-[#E5E5E2] flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[10px] font-bold flex items-center justify-center">3</span>
-                      <p className="text-[13px] font-semibold text-[#1A1A1A]">Recomendações de Canal</p>
+                  <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                    <div className="px-5 py-3.5 border-b border-[var(--border)] flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-full bg-[var(--accent-light)] text-[var(--navy)] text-[10px] font-bold flex items-center justify-center">3</span>
+                      <p className="text-[13px] font-semibold text-[var(--text-primary)]">Recomendações de Canal</p>
                     </div>
                     <div className="px-5 py-4 space-y-3">
                       {output.strategy.channelRecommendations.map((rec) => (
-                        <div key={rec.channel} className="rounded-[8px] bg-[#F7F7F6] border border-[#E5E5E2] p-3">
+                        <div key={rec.channel} className="rounded-[8px] bg-[var(--bg)] border border-[var(--border)] p-3">
                           <div className="flex items-center gap-2 mb-2">
-                            <p className="text-[12px] font-semibold text-[#1A1A1A]">{rec.channel}</p>
-                            <span className={`h-5 px-2 rounded-full text-[10px] font-semibold ${rec.priority === "primary" ? "bg-[#E6FBFA] text-[#070A1F]" : "bg-[#F0F0ED] text-[#6B6B65]"}`}>
+                            <p className="text-[12px] font-semibold text-[var(--text-primary)]">{rec.channel}</p>
+                            <span className={`h-5 px-2 rounded-full text-[10px] font-semibold ${rec.priority === "primary" ? "bg-[var(--accent-light)] text-[var(--navy)]" : "bg-[var(--accent)] text-[var(--text-secondary)]"}`}>
                               {rec.priority === "primary" ? "Primário" : "Secundário"}
                             </span>
                           </div>
-                          <p className="text-[12px] text-[#6B6B65] leading-relaxed mb-2">{rec.rationale}</p>
+                          <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed mb-2">{rec.rationale}</p>
                           <div className="flex gap-1.5 flex-wrap">
                             {rec.formats.map((f) => (
-                              <span key={f} className="h-5 px-2 rounded-full bg-white border border-[#E5E5E2] text-[10px] text-[#6B6B65]">{f}</span>
+                              <span key={f} className="h-5 px-2 rounded-full bg-white border border-[var(--border)] text-[10px] text-[var(--text-secondary)]">{f}</span>
                             ))}
                           </div>
                         </div>
@@ -1073,36 +1073,36 @@ export default function SocialMediaAgentPage() {
                   </div>
 
                   {/* Brand interpretation */}
-                  <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                    <div className="px-5 py-3.5 border-b border-[#E5E5E2] flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[10px] font-bold flex items-center justify-center">4</span>
-                      <p className="text-[13px] font-semibold text-[#1A1A1A]">Interpretação da Marca</p>
+                  <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                    <div className="px-5 py-3.5 border-b border-[var(--border)] flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-full bg-[var(--accent-light)] text-[var(--navy)] text-[10px] font-bold flex items-center justify-center">4</span>
+                      <p className="text-[13px] font-semibold text-[var(--text-primary)]">Interpretação da Marca</p>
                     </div>
                     <div className="px-5 py-4 grid grid-cols-2 gap-3">
-                      <div className="rounded-[8px] bg-[#F7F7F6] border border-[#E5E5E2] p-3">
-                        <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-2">Entendimento</p>
-                        <p className="text-[12px] text-[#1A1A1A] leading-relaxed">{output.brandInterpretation.practicalUnderstanding}</p>
+                      <div className="rounded-[8px] bg-[var(--bg)] border border-[var(--border)] p-3">
+                        <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-2">Entendimento</p>
+                        <p className="text-[12px] text-[var(--text-primary)] leading-relaxed">{output.brandInterpretation.practicalUnderstanding}</p>
                       </div>
-                      <div className="rounded-[8px] bg-[#F7F7F6] border border-[#E5E5E2] p-3">
-                        <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-2">Estilo de Comunicação</p>
-                        <p className="text-[12px] text-[#1A1A1A] leading-relaxed">{output.brandInterpretation.communicationStyle}</p>
+                      <div className="rounded-[8px] bg-[var(--bg)] border border-[var(--border)] p-3">
+                        <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-2">Estilo de Comunicação</p>
+                        <p className="text-[12px] text-[var(--text-primary)] leading-relaxed">{output.brandInterpretation.communicationStyle}</p>
                       </div>
-                      <div className="rounded-[8px] bg-[#F7F7F6] border border-[#E5E5E2] p-3">
-                        <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-2">Reforçar</p>
+                      <div className="rounded-[8px] bg-[var(--bg)] border border-[var(--border)] p-3">
+                        <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-2">Reforçar</p>
                         <ul className="space-y-1">
                           {output.brandInterpretation.toReinforce.map((item) => (
-                            <li key={item} className="flex items-start gap-1.5 text-[12px] text-[#1A1A1A]">
-                              <span className="mt-1 w-1.5 h-1.5 rounded-full bg-[#070A1F] shrink-0" />{item}
+                            <li key={item} className="flex items-start gap-1.5 text-[12px] text-[var(--text-primary)]">
+                              <span className="mt-1 w-1.5 h-1.5 rounded-full bg-[var(--navy)] shrink-0" />{item}
                             </li>
                           ))}
                         </ul>
                       </div>
-                      <div className="rounded-[8px] bg-[#F7F7F6] border border-[#E5E5E2] p-3">
-                        <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-2">Evitar</p>
+                      <div className="rounded-[8px] bg-[var(--bg)] border border-[var(--border)] p-3">
+                        <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-2">Evitar</p>
                         <ul className="space-y-1">
                           {output.brandInterpretation.toAvoid.map((item) => (
-                            <li key={item} className="flex items-start gap-1.5 text-[12px] text-[#6B6B65]">
-                              <span className="mt-1 w-1.5 h-1.5 rounded-full bg-[#DC2626] shrink-0" />{item}
+                            <li key={item} className="flex items-start gap-1.5 text-[12px] text-[var(--text-secondary)]">
+                              <span className="mt-1 w-1.5 h-1.5 rounded-full bg-[var(--danger)] shrink-0" />{item}
                             </li>
                           ))}
                         </ul>
@@ -1116,31 +1116,31 @@ export default function SocialMediaAgentPage() {
               {activeTab === "calendar" && (
                 <div className="space-y-4">
                   {/* Week grid */}
-                  <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                    <div className="px-5 py-3.5 border-b border-[#E5E5E2] flex items-center justify-between">
+                  <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                    <div className="px-5 py-3.5 border-b border-[var(--border)] flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="w-5 h-5 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[10px] font-bold flex items-center justify-center">5</span>
-                        <p className="text-[13px] font-semibold text-[#1A1A1A]">Calendário de Conteúdo Semanal</p>
+                        <span className="w-5 h-5 rounded-full bg-[var(--accent-light)] text-[var(--navy)] text-[10px] font-bold flex items-center justify-center">5</span>
+                        <p className="text-[13px] font-semibold text-[var(--text-primary)]">Calendário de Conteúdo Semanal</p>
                       </div>
-                      <span className="text-[11px] text-[#9B9B95]">{output.calendar.filter((d) => d.active).length} dias ativos · {form.frequency}</span>
+                      <span className="text-[11px] text-[var(--text-muted)]">{output.calendar.filter((d) => d.active).length} dias ativos · {form.frequency}</span>
                     </div>
                     <div className="px-5 py-4 grid grid-cols-7 gap-2">
                       {output.calendar.map((day) => (
-                        <div key={day.day} className={`rounded-[8px] border overflow-hidden ${day.active ? "border-[#070A1F] bg-[#FAFAFE]" : "border-[#E5E5E2] bg-white"}`}>
-                          <div className={`px-2 py-1.5 text-center border-b ${day.active ? "bg-[#E6FBFA] border-[#070A1F]" : "bg-[#F7F7F6] border-[#E5E5E2]"}`}>
-                            <p className={`text-[11px] font-semibold ${day.active ? "text-[#070A1F]" : "text-[#6B6B65]"}`}>{day.day}</p>
+                        <div key={day.day} className={`rounded-[8px] border overflow-hidden ${day.active ? "border-[var(--navy)] bg-[#FAFAFE]" : "border-[var(--border)] bg-white"}`}>
+                          <div className={`px-2 py-1.5 text-center border-b ${day.active ? "bg-[var(--accent-light)] border-[var(--navy)]" : "bg-[var(--bg)] border-[var(--border)]"}`}>
+                            <p className={`text-[11px] font-semibold ${day.active ? "text-[var(--navy)]" : "text-[var(--text-secondary)]"}`}>{day.day}</p>
                           </div>
                           <div className="p-2 min-h-[110px] space-y-1">
                             {day.active ? (
                               <>
-                                <p className="text-[10px] font-semibold text-[#1A1A1A] leading-tight">{day.format}</p>
-                                <p className="text-[10px] text-[#070A1F] font-medium">{day.pillar}</p>
-                                <p className="text-[9.5px] text-[#6B6B65] leading-tight">{day.theme}</p>
-                                <p className="text-[9px] text-[#9B9B95] leading-tight italic">{day.objective}</p>
-                                <span className="inline-block mt-1 px-1.5 py-0.5 rounded-[3px] bg-[#F0F0ED] text-[9px] text-[#6B6B65]">{day.channel}</span>
+                                <p className="text-[10px] font-semibold text-[var(--text-primary)] leading-tight">{day.format}</p>
+                                <p className="text-[10px] text-[var(--navy)] font-medium">{day.pillar}</p>
+                                <p className="text-[9.5px] text-[var(--text-secondary)] leading-tight">{day.theme}</p>
+                                <p className="text-[9px] text-[var(--text-muted)] leading-tight italic">{day.objective}</p>
+                                <span className="inline-block mt-1 px-1.5 py-0.5 rounded-[3px] bg-[var(--accent)] text-[9px] text-[var(--text-secondary)]">{day.channel}</span>
                               </>
                             ) : (
-                              <p className="text-[10px] text-[#C0C0BC]">Descanso</p>
+                              <p className="text-[10px] text-[var(--text-subtle)]">Descanso</p>
                             )}
                           </div>
                         </div>
@@ -1149,39 +1149,39 @@ export default function SocialMediaAgentPage() {
                   </div>
 
                   {/* Calendar detail list */}
-                  <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-                    <div className="px-5 py-3 border-b border-[#E5E5E2]">
-                      <p className="text-[12px] font-semibold text-[#1A1A1A]">Detalhe do Plano de Conteúdo</p>
+                  <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+                    <div className="px-5 py-3 border-b border-[var(--border)]">
+                      <p className="text-[12px] font-semibold text-[var(--text-primary)]">Detalhe do Plano de Conteúdo</p>
                     </div>
-                    <div className="divide-y divide-[#F0F0ED]">
+                    <div className="divide-y divide-[var(--border)]">
                       {output.calendar.filter((d) => d.active).map((day) => (
                         <div key={day.day} className="grid grid-cols-[40px_90px_90px_1fr_90px_90px] items-center px-5 py-3 gap-3">
-                          <span className="text-[11px] font-semibold text-[#070A1F]">{day.day}</span>
-                          <span className="text-[11px] font-medium text-[#1A1A1A]">{day.format}</span>
-                          <span className="text-[11px] text-[#6B6B65]">{day.pillar}</span>
-                          <span className="text-[11px] text-[#1A1A1A]">{day.theme}</span>
-                          <span className="text-[11px] text-[#9B9B95]">{day.objective}</span>
-                          <span className="text-[11px] font-medium text-[#070A1F] text-right">{day.channel}</span>
+                          <span className="text-[11px] font-semibold text-[var(--navy)]">{day.day}</span>
+                          <span className="text-[11px] font-medium text-[var(--text-primary)]">{day.format}</span>
+                          <span className="text-[11px] text-[var(--text-secondary)]">{day.pillar}</span>
+                          <span className="text-[11px] text-[var(--text-primary)]">{day.theme}</span>
+                          <span className="text-[11px] text-[var(--text-muted)]">{day.objective}</span>
+                          <span className="text-[11px] font-medium text-[var(--navy)] text-right">{day.channel}</span>
                         </div>
                       ))}
                     </div>
                   </div>
 
                   {/* Content ideas */}
-                  <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-                    <div className="px-5 py-3.5 border-b border-[#E5E5E2] flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[10px] font-bold flex items-center justify-center">6</span>
-                      <p className="text-[13px] font-semibold text-[#1A1A1A]">Banco de Ideias de Conteúdo</p>
+                  <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+                    <div className="px-5 py-3.5 border-b border-[var(--border)] flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-full bg-[var(--accent-light)] text-[var(--navy)] text-[10px] font-bold flex items-center justify-center">6</span>
+                      <p className="text-[13px] font-semibold text-[var(--text-primary)]">Banco de Ideias de Conteúdo</p>
                     </div>
-                    <div className="divide-y divide-[#F0F0ED]">
+                    <div className="divide-y divide-[var(--border)]">
                       {output.contentIdeas.map((idea, i) => (
                         <div key={idea.title} className="flex items-center gap-3 px-5 py-3">
-                          <span className="text-[11px] font-semibold text-[#9B9B95] w-4 shrink-0">{i + 1}</span>
+                          <span className="text-[11px] font-semibold text-[var(--text-muted)] w-4 shrink-0">{i + 1}</span>
                           <div className="flex-1 min-w-0">
-                            <p className="text-[12px] font-medium text-[#1A1A1A] truncate">{idea.title}</p>
-                            <p className="text-[11px] text-[#9B9B95]">{idea.pillar}</p>
+                            <p className="text-[12px] font-medium text-[var(--text-primary)] truncate">{idea.title}</p>
+                            <p className="text-[11px] text-[var(--text-muted)]">{idea.pillar}</p>
                           </div>
-                          <span className="px-2 py-0.5 rounded-full bg-[#F0F0ED] text-[#6B6B65] text-[10px] font-medium shrink-0">{idea.format}</span>
+                          <span className="px-2 py-0.5 rounded-full bg-[var(--accent)] text-[var(--text-secondary)] text-[10px] font-medium shrink-0">{idea.format}</span>
                         </div>
                       ))}
                     </div>
@@ -1193,49 +1193,49 @@ export default function SocialMediaAgentPage() {
               {activeTab === "posts" && (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between px-1">
-                    <p className="text-[12px] text-[#9B9B95]">{output.posts.length} ideias de post — prontas para revisão do cliente</p>
+                    <p className="text-[12px] text-[var(--text-muted)]">{output.posts.length} ideias de post — prontas para revisão do cliente</p>
                     <button
                       onClick={() => handleCopy("all-captions", output.posts.map((p) => `POST ${p.id} — ${p.title}\n${p.caption}\n\nCTA: ${p.cta}`).join("\n\n---\n\n"))}
-                      className="h-6 px-2.5 rounded-[5px] text-[11px] border border-[#E5E5E2] text-[#6B6B65] hover:bg-[#F7F7F6] transition-colors">
+                      className="h-6 px-2.5 rounded-[5px] text-[11px] border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg)] transition-colors">
                       {copiedKey === "all-captions" ? "Copiado" : "Copiar Todas as Legendas"}
                     </button>
                   </div>
                   {output.posts.map((post) => (
-                    <div key={post.id} className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                      <div className="px-5 py-3.5 border-b border-[#E5E5E2] flex items-center justify-between">
+                    <div key={post.id} className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                      <div className="px-5 py-3.5 border-b border-[var(--border)] flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <span className="text-[11px] font-semibold text-[#9B9B95]">#{post.id}</span>
-                          <p className="text-[13px] font-semibold text-[#1A1A1A]">{post.title}</p>
-                          <span className="px-2 py-0.5 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[10px] font-medium">{post.pillar}</span>
+                          <span className="text-[11px] font-semibold text-[var(--text-muted)]">#{post.id}</span>
+                          <p className="text-[13px] font-semibold text-[var(--text-primary)]">{post.title}</p>
+                          <span className="px-2 py-0.5 rounded-full bg-[var(--accent-light)] text-[var(--navy)] text-[10px] font-medium">{post.pillar}</span>
                         </div>
                         <div className="flex items-center gap-1.5">
-                          <span className="px-2 py-0.5 rounded-full bg-[#F0F0ED] text-[#6B6B65] text-[10px] font-medium">{post.format}</span>
+                          <span className="px-2 py-0.5 rounded-full bg-[var(--accent)] text-[var(--text-secondary)] text-[10px] font-medium">{post.format}</span>
                           <button onClick={() => handleCopy(`post-${post.id}`, `${post.title}\n\n${post.caption}\n\nCTA: ${post.cta}`)}
-                            className="h-6 px-2 rounded-[5px] text-[10px] border border-[#E5E5E2] text-[#6B6B65] hover:bg-[#F7F7F6] transition-colors">
+                            className="h-6 px-2 rounded-[5px] text-[10px] border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg)] transition-colors">
                             {copiedKey === `post-${post.id}` ? "Copiado" : "Copiar"}
                           </button>
                         </div>
                       </div>
                       <div className="px-5 py-4 grid grid-cols-2 gap-x-6 gap-y-3">
                         <div>
-                          <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-1">Objetivo</p>
-                          <p className="text-[12px] text-[#1A1A1A]">{post.objective}</p>
+                          <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-1">Objetivo</p>
+                          <p className="text-[12px] text-[var(--text-primary)]">{post.objective}</p>
                         </div>
                         <div>
-                          <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-1">CTA</p>
-                          <p className="text-[12px] text-[#1A1A1A]">{post.cta}</p>
+                          <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-1">CTA</p>
+                          <p className="text-[12px] text-[var(--text-primary)]">{post.cta}</p>
                         </div>
                         <div className="col-span-2">
-                          <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-1">Legenda</p>
-                          <p className="text-[12px] text-[#1A1A1A] leading-relaxed whitespace-pre-line">{post.caption}</p>
+                          <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-1">Legenda</p>
+                          <p className="text-[12px] text-[var(--text-primary)] leading-relaxed whitespace-pre-line">{post.caption}</p>
                         </div>
                         <div className="col-span-2">
-                          <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-1">Direção criativa</p>
-                          <p className="text-[12px] text-[#6B6B65] leading-relaxed">{post.creativeDirection}</p>
+                          <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-1">Direção criativa</p>
+                          <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed">{post.creativeDirection}</p>
                         </div>
-                        <div className="col-span-2 rounded-[7px] bg-[#F7F7F6] border border-[#E5E5E2] px-3 py-2.5">
-                          <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-1">Notas de design</p>
-                          <p className="text-[12px] text-[#6B6B65]">{post.designNotes}</p>
+                        <div className="col-span-2 rounded-[7px] bg-[var(--bg)] border border-[var(--border)] px-3 py-2.5">
+                          <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-1">Notas de design</p>
+                          <p className="text-[12px] text-[var(--text-secondary)]">{post.designNotes}</p>
                         </div>
                       </div>
                     </div>
@@ -1247,40 +1247,40 @@ export default function SocialMediaAgentPage() {
               {activeTab === "stories" && (
                 <div className="space-y-3">
                   <div className="px-1">
-                    <p className="text-[12px] text-[#9B9B95]">{output.stories.length} ideias de stories — formatos curtos e de alto engajamento</p>
+                    <p className="text-[12px] text-[var(--text-muted)]">{output.stories.length} ideias de stories — formatos curtos e de alto engajamento</p>
                   </div>
                   {output.stories.map((story) => (
-                    <div key={story.id} className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                      <div className="px-5 py-3.5 border-b border-[#E5E5E2] flex items-center justify-between">
+                    <div key={story.id} className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                      <div className="px-5 py-3.5 border-b border-[var(--border)] flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <span className="text-[11px] font-semibold text-[#9B9B95]">Story {story.id}</span>
-                          <p className="text-[13px] font-semibold text-[#1A1A1A]">{story.title}</p>
-                          <span className="px-2 py-0.5 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[10px] font-medium">{story.pillar}</span>
+                          <span className="text-[11px] font-semibold text-[var(--text-muted)]">Story {story.id}</span>
+                          <p className="text-[13px] font-semibold text-[var(--text-primary)]">{story.title}</p>
+                          <span className="px-2 py-0.5 rounded-full bg-[var(--accent-light)] text-[var(--navy)] text-[10px] font-medium">{story.pillar}</span>
                         </div>
                         <div className="flex items-center gap-1.5">
-                          <span className="px-2 py-0.5 rounded-full bg-[#F0F0ED] text-[#6B6B65] text-[10px]">{story.slideCount} slides</span>
+                          <span className="px-2 py-0.5 rounded-full bg-[var(--accent)] text-[var(--text-secondary)] text-[10px]">{story.slideCount} slides</span>
                           <button onClick={() => handleCopy(`story-${story.id}`, `${story.title}\n\n${story.caption}\n\nCTA: ${story.cta}`)}
-                            className="h-6 px-2 rounded-[5px] text-[10px] border border-[#E5E5E2] text-[#6B6B65] hover:bg-[#F7F7F6] transition-colors">
+                            className="h-6 px-2 rounded-[5px] text-[10px] border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg)] transition-colors">
                             {copiedKey === `story-${story.id}` ? "Copiado" : "Copiar"}
                           </button>
                         </div>
                       </div>
                       <div className="px-5 py-4 grid grid-cols-2 gap-x-6 gap-y-3">
                         <div>
-                          <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-1">Objetivo</p>
-                          <p className="text-[12px] text-[#1A1A1A]">{story.objective}</p>
+                          <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-1">Objetivo</p>
+                          <p className="text-[12px] text-[var(--text-primary)]">{story.objective}</p>
                         </div>
                         <div>
-                          <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-1">CTA</p>
-                          <p className="text-[12px] text-[#1A1A1A]">{story.cta}</p>
+                          <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-1">CTA</p>
+                          <p className="text-[12px] text-[var(--text-primary)]">{story.cta}</p>
                         </div>
                         <div className="col-span-2">
-                          <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-1">Legenda / Roteiro</p>
-                          <p className="text-[12px] text-[#1A1A1A] leading-relaxed whitespace-pre-line">{story.caption}</p>
+                          <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-1">Legenda / Roteiro</p>
+                          <p className="text-[12px] text-[var(--text-primary)] leading-relaxed whitespace-pre-line">{story.caption}</p>
                         </div>
-                        <div className="col-span-2 rounded-[7px] bg-[#F7F7F6] border border-[#E5E5E2] px-3 py-2.5">
-                          <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-wide mb-1">Notas de design</p>
-                          <p className="text-[12px] text-[#6B6B65]">{story.designNotes}</p>
+                        <div className="col-span-2 rounded-[7px] bg-[var(--bg)] border border-[var(--border)] px-3 py-2.5">
+                          <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-1">Notas de design</p>
+                          <p className="text-[12px] text-[var(--text-secondary)]">{story.designNotes}</p>
                         </div>
                       </div>
                     </div>
@@ -1292,32 +1292,32 @@ export default function SocialMediaAgentPage() {
               {activeTab === "design" && (
                 <div className="space-y-4">
                   {/* Handoff block */}
-                  <div className="bg-[#111111] rounded-[10px] border border-[#2A2A2A] overflow-hidden">
-                    <div className="px-5 py-3.5 border-b border-[#2A2A2A] flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-[#070A1F]" />
+                  <div className="bg-[var(--text-primary)] rounded-[10px] border border-[var(--text-primary)] overflow-hidden">
+                    <div className="px-5 py-3.5 border-b border-[var(--text-primary)] flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-[var(--navy)]" />
                       <p className="text-[12px] font-semibold text-white">Handoff de Design</p>
-                      <span className="text-[11px] text-[#6B6B65]">— pronto para o Agente de Design</span>
+                      <span className="text-[11px] text-[var(--text-secondary)]">— pronto para o Agente de Design</span>
                       <button onClick={() => handleCopy("handoff-all", formatHandoffAsText(output.handoff))}
-                        className="ml-auto h-6 px-2.5 rounded-[5px] text-[11px] border border-[#2A2A2A] text-[#9B9B95] hover:border-[#070A1F] hover:text-white transition-colors">
+                        className="ml-auto h-6 px-2.5 rounded-[5px] text-[11px] border border-[var(--text-primary)] text-[var(--text-muted)] hover:border-[var(--navy)] hover:text-white transition-colors">
                         {copiedKey === "handoff-all" ? "Copiado" : "Copiar Tudo"}
                       </button>
                     </div>
                     <div className="px-5 py-4 space-y-3">
                       {output.handoff.map((h) => (
-                        <div key={h.postId} className="rounded-[8px] border border-[#2A2A2A] bg-[#1A1A1A] p-3">
+                        <div key={h.postId} className="rounded-[8px] border border-[var(--text-primary)] bg-[var(--text-primary)] p-3">
                           <div className="flex items-center gap-2 mb-3">
-                            <span className="text-[11px] font-semibold text-[#070A1F] font-mono">POST_{String(h.postId).padStart(2, "0")}</span>
-                            <span className="text-[11px] text-[#6B6B65]">{h.title}</span>
+                            <span className="text-[11px] font-semibold text-[var(--navy)] font-mono">POST_{String(h.postId).padStart(2, "0")}</span>
+                            <span className="text-[11px] text-[var(--text-secondary)]">{h.title}</span>
                             <button onClick={() => handleCopy(`h-${h.postId}`, `POST_${String(h.postId).padStart(2,"0")} — ${h.title}\nformat: ${h.format}\nkey_copy: ${h.keyCopy}\nvisual_direction: ${h.visualDirection}\nprompt: ${h.prompt}\ndesign_notes: ${h.designNotes}`)}
-                              className="ml-auto h-5 px-2 rounded-[4px] text-[10px] border border-[#2A2A2A] text-[#6B6B65] hover:border-[#070A1F] hover:text-white transition-colors">
+                              className="ml-auto h-5 px-2 rounded-[4px] text-[10px] border border-[var(--text-primary)] text-[var(--text-secondary)] hover:border-[var(--navy)] hover:text-white transition-colors">
                               {copiedKey === `h-${h.postId}` ? "Copiado" : "Copiar"}
                             </button>
                           </div>
                           <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                            <div><p className="text-[10px] font-mono text-[#6B6B65] mb-0.5">format</p><p className="text-[11px] text-white">{h.format}</p></div>
-                            <div><p className="text-[10px] font-mono text-[#6B6B65] mb-0.5">key_copy</p><p className="text-[11px] text-white truncate">{h.keyCopy}</p></div>
-                            <div className="col-span-2"><p className="text-[10px] font-mono text-[#6B6B65] mb-0.5">visual_direction</p><p className="text-[11px] text-[#C0C0BC] leading-relaxed">{h.visualDirection}</p></div>
-                            <div className="col-span-2"><p className="text-[10px] font-mono text-[#6B6B65] mb-0.5">design_notes</p><p className="text-[11px] text-[#C0C0BC]">{h.designNotes}</p></div>
+                            <div><p className="text-[10px] font-mono text-[var(--text-secondary)] mb-0.5">format</p><p className="text-[11px] text-white">{h.format}</p></div>
+                            <div><p className="text-[10px] font-mono text-[var(--text-secondary)] mb-0.5">key_copy</p><p className="text-[11px] text-white truncate">{h.keyCopy}</p></div>
+                            <div className="col-span-2"><p className="text-[10px] font-mono text-[var(--text-secondary)] mb-0.5">visual_direction</p><p className="text-[11px] text-[var(--text-subtle)] leading-relaxed">{h.visualDirection}</p></div>
+                            <div className="col-span-2"><p className="text-[10px] font-mono text-[var(--text-secondary)] mb-0.5">design_notes</p><p className="text-[11px] text-[var(--text-subtle)]">{h.designNotes}</p></div>
                           </div>
                         </div>
                       ))}
@@ -1325,10 +1325,10 @@ export default function SocialMediaAgentPage() {
                   </div>
 
                   {/* Send to Design Agent */}
-                  <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 flex items-center justify-between">
+                  <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 flex items-center justify-between">
                     <div>
-                      <p className="text-[13px] font-semibold text-[#1A1A1A]">Enviar para Agente de Design</p>
-                      <p className="text-[12px] text-[#9B9B95] mt-0.5">Passe o contrato de design completo para o Agente de Design produzir os assets.</p>
+                      <p className="text-[13px] font-semibold text-[var(--text-primary)]">Enviar para Agente de Design</p>
+                      <p className="text-[12px] text-[var(--text-muted)] mt-0.5">Passe o contrato de design completo para o Agente de Design produzir os assets.</p>
                     </div>
                     <button onClick={handleSendToDesignAgent}
                       className="h-8 px-4 rounded-[7px] text-[12px] font-medium bg-[#C2530A] text-white hover:bg-[#A8460A] transition-colors flex items-center gap-1.5 shrink-0">
@@ -1340,19 +1340,19 @@ export default function SocialMediaAgentPage() {
                   {/* Contracts */}
                   <div className="space-y-3">
                     {output.contracts.map((c) => (
-                      <div key={c.postId} className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-                        <div className="px-5 py-3 bg-[#FAFAFA] border-b border-[#E5E5E2] flex items-center justify-between">
+                      <div key={c.postId} className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+                        <div className="px-5 py-3 bg-[var(--bg-elevated)] border-b border-[var(--border)] flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <span className="font-mono text-[11px] font-semibold text-[#070A1F] bg-[#E6FBFA] px-2 py-0.5 rounded-[4px]">CONTRACT_{String(c.postId).padStart(2,"0")}</span>
-                            <p className="text-[13px] font-semibold text-[#1A1A1A]">{c.title}</p>
-                            <span className="px-2 py-0.5 rounded-full bg-[#F0F0ED] text-[#6B6B65] text-[10px]">{c.format}</span>
+                            <span className="font-mono text-[11px] font-semibold text-[var(--navy)] bg-[var(--accent-light)] px-2 py-0.5 rounded-[4px]">CONTRACT_{String(c.postId).padStart(2,"0")}</span>
+                            <p className="text-[13px] font-semibold text-[var(--text-primary)]">{c.title}</p>
+                            <span className="px-2 py-0.5 rounded-full bg-[var(--accent)] text-[var(--text-secondary)] text-[10px]">{c.format}</span>
                           </div>
                           <button onClick={() => handleCopy(`c-${c.postId}`, formatContractAsText([c]))}
-                            className="h-6 px-2.5 rounded-[5px] text-[11px] border border-[#E5E5E2] text-[#6B6B65] hover:bg-[#F7F7F6] transition-colors">
+                            className="h-6 px-2.5 rounded-[5px] text-[11px] border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg)] transition-colors">
                             {copiedKey === `c-${c.postId}` ? "Copiado" : "Copiar"}
                           </button>
                         </div>
-                        <div className="divide-y divide-[#F0F0ED]">
+                        <div className="divide-y divide-[var(--border)]">
                           {([
                             { label: "content_objective", value: c.contentObjective },
                             { label: "key_copy",           value: c.keyCopy },
@@ -1362,8 +1362,8 @@ export default function SocialMediaAgentPage() {
                             { label: "design_notes",       value: c.designNotes },
                           ] as { label: string; value: string; mono?: boolean }[]).map(({ label, value, mono }) => (
                             <div key={label} className="px-5 py-3 grid grid-cols-[160px_1fr] gap-4 items-start">
-                              <p className="text-[11px] font-mono font-medium text-[#9B9B95] pt-px">{label}</p>
-                              <p className={`text-[12px] leading-relaxed text-[#1A1A1A] ${mono ? "font-mono text-[#6B6B65]" : ""}`}>{value}</p>
+                              <p className="text-[11px] font-mono font-medium text-[var(--text-muted)] pt-px">{label}</p>
+                              <p className={`text-[12px] leading-relaxed text-[var(--text-primary)] ${mono ? "font-mono text-[var(--text-secondary)]" : ""}`}>{value}</p>
                             </div>
                           ))}
                         </div>

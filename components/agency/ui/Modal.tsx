@@ -26,17 +26,17 @@ export default function Modal({ open, onClose, title, children, width = "max-w-l
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-[#070A1F]/40 backdrop-blur-[3px]"
+        className="absolute inset-0 bg-[var(--navy)]/40 backdrop-blur-[3px]"
         onClick={onClose}
       />
       {/* Panel */}
       <div className={`relative bg-white rounded-[14px] shadow-[0_24px_70px_rgba(7,10,31,0.22)] w-full mx-4 ${width} overflow-hidden animate-fade-up`}>
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#E5E5E2]">
-          <h2 className="text-[15px] font-semibold text-[#1A1A1A] tracking-[-0.01em]">{title}</h2>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)]">
+          <h2 className="text-[15px] font-semibold text-[var(--text-primary)] tracking-[-0.01em]">{title}</h2>
           <button
             onClick={onClose}
-            className="w-7 h-7 rounded-[6px] flex items-center justify-center text-[#9B9B95] hover:bg-[#F0F0ED] hover:text-[#1A1A1A] transition-colors"
+            className="w-7 h-7 rounded-[6px] flex items-center justify-center text-[var(--text-muted)] hover:bg-[var(--accent)] hover:text-[var(--text-primary)] transition-colors"
           >
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
               <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>

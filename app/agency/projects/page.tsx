@@ -23,9 +23,9 @@ const STAGE_LABELS: Record<ProjectStage, string> = {
 
 function SourceBadge({ source }: { source: "db" | "local" | "mixed" }) {
   const config = {
-    db:    { bg: "bg-[#DCFCE7] text-[#16A34A]", dot: "bg-[#16A34A]", label: "DB" },
-    local: { bg: "bg-[#F0F0ED] text-[#9B9B95]", dot: "bg-[#9B9B95]", label: "Local" },
-    mixed: { bg: "bg-[#FEF3C7] text-[#D97706]", dot: "bg-[#D97706]", label: "DB + Local" },
+    db:    { bg: "bg-[var(--success-bg)] text-[var(--success)]", dot: "bg-[var(--success)]", label: "DB" },
+    local: { bg: "bg-[var(--accent)] text-[var(--text-muted)]", dot: "bg-[var(--text-muted)]", label: "Local" },
+    mixed: { bg: "bg-[var(--warning-bg)] text-[var(--warning)]", dot: "bg-[var(--warning)]", label: "DB + Local" },
   }[source];
   return (
     <span className={`inline-flex items-center gap-1 h-5 px-2 rounded-full text-[10px] font-semibold ${config.bg}`}>
@@ -93,7 +93,7 @@ export default function ProjectsPage() {
         meta={
           <div className="flex items-center gap-2">
             {loading ? (
-              <span className="text-[11px] text-[#9B9B95]">Carregando…</span>
+              <span className="text-[11px] text-[var(--text-muted)]">Carregando…</span>
             ) : (
               <SourceBadge source={source} />
             )}
@@ -107,12 +107,12 @@ export default function ProjectsPage() {
                   if (!confirm(`Apagar todos os ${projects.length} projetos locais? Esta ação não pode ser desfeita.`)) return;
                   projects.forEach((p) => deleteProject(p.id));
                 }}
-                className="h-8 px-3 rounded-[7px] border border-[#FCA5A5] bg-[#FEF2F2] text-[#DC2626] hover:border-[#F87171] text-[11px] font-semibold transition-colors inline-flex items-center gap-1.5"
+                className="h-8 px-3 rounded-[7px] border border-[#FCA5A5] bg-[var(--danger-bg)] text-[var(--danger)] hover:border-[#F87171] text-[11px] font-semibold transition-colors inline-flex items-center gap-1.5"
                 title="Apaga todos os projetos do localStorage"
               >
                 <span className="text-[10px]">⟲</span>
                 Limpar projetos locais ({projects.length})
-                <span className="h-3.5 px-1 rounded-[3px] bg-[#DC2626] text-white text-[8px] font-bold leading-[14px]">ADMIN</span>
+                <span className="h-3.5 px-1 rounded-[3px] bg-[var(--danger)] text-white text-[8px] font-bold leading-[14px]">ADMIN</span>
               </button>
             )}
             <Link href="/agency/orchestrator">
@@ -128,12 +128,12 @@ export default function ProjectsPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar projetos..."
-          className="h-8 px-3 text-[13px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] placeholder:text-[#9B9B95] w-56"
+          className="h-8 px-3 text-[13px] bg-white border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] placeholder:text-[var(--text-muted)] w-56"
         />
         <select
           value={clientFilter}
           onChange={(e) => setClientFilter(e.target.value)}
-          className="h-8 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] text-[#6B6B65]"
+          className="h-8 px-3 text-[12px] bg-white border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] text-[var(--text-secondary)]"
         >
           <option value="all">Todos os clientes</option>
           {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -141,7 +141,7 @@ export default function ProjectsPage() {
         <select
           value={stageFilter}
           onChange={(e) => setStageFilter(e.target.value as ProjectStage | "all")}
-          className="h-8 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] text-[#6B6B65]"
+          className="h-8 px-3 text-[12px] bg-white border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] text-[var(--text-secondary)]"
         >
           <option value="all">Todas as etapas</option>
           {(["briefing","diagnosis","planning","production","review","delivery","ongoing","completed"] as const).map((s) => (
@@ -151,7 +151,7 @@ export default function ProjectsPage() {
         <select
           value={priorityFilter}
           onChange={(e) => setPriorityFilter(e.target.value as Priority | "all")}
-          className="h-8 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] text-[#6B6B65]"
+          className="h-8 px-3 text-[12px] bg-white border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] text-[var(--text-secondary)]"
         >
           <option value="all">Todas as prioridades</option>
           <option value="high">Alta</option>
@@ -161,14 +161,14 @@ export default function ProjectsPage() {
         <select
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value as SortKey)}
-          className="h-8 px-3 text-[12px] bg-white border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] text-[#6B6B65]"
+          className="h-8 px-3 text-[12px] bg-white border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] text-[var(--text-secondary)]"
         >
           <option value="deadline">Ordenar: Prazo</option>
           <option value="priority">Ordenar: Prioridade</option>
           <option value="name">Ordenar: Nome</option>
         </select>
         {hasFilters && (
-          <button onClick={clearFilters} className="h-8 px-3 text-[12px] text-[#6B6B65] hover:text-[#1A1A1A] transition-colors">
+          <button onClick={clearFilters} className="h-8 px-3 text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
             Limpar filtros
           </button>
         )}
@@ -181,16 +181,16 @@ export default function ProjectsPage() {
           action={<Link href="/agency/orchestrator"><Button variant="primary">Abrir Orquestrador</Button></Link>}
         />
       ) : (
-        <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+        <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-[#F0F0ED]">
-                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Projeto</th>
-                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Cliente</th>
-                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Etapa</th>
-                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Prioridade</th>
-                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Progresso</th>
-                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em]">Prazo</th>
+              <tr className="border-b border-[var(--border)]">
+                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Projeto</th>
+                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Cliente</th>
+                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Etapa</th>
+                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Prioridade</th>
+                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Progresso</th>
+                <th className="text-left px-5 py-3 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Prazo</th>
                 <th className="px-5 py-3" />
               </tr>
             </thead>
@@ -203,21 +203,21 @@ export default function ProjectsPage() {
                   : null;
                 const overdue = daysLeft !== null && daysLeft < 0;
                 return (
-                  <tr key={project.id} className={`group hover:bg-[#FAFAF9] transition-colors ${i > 0 ? "border-t border-[#F0F0ED]" : ""}`}>
+                  <tr key={project.id} className={`group hover:bg-[var(--bg-elevated)] transition-colors ${i > 0 ? "border-t border-[var(--border)]" : ""}`}>
                     <td className="px-5 py-3.5">
                       <Link href={`/agency/projects/${project.id}`}>
-                        <div className="text-[13px] font-medium text-[#1A1A1A] group-hover:text-[#070A1F] transition-colors">
+                        <div className="text-[13px] font-medium text-[var(--text-primary)] group-hover:text-[var(--navy)] transition-colors">
                           {project.name}
                         </div>
-                        <div className="text-[11px] text-[#9B9B95]">{project.type}</div>
-                        <div className="text-[10.5px] text-[#B7B7B1] mt-0.5">
+                        <div className="text-[11px] text-[var(--text-muted)]">{project.type}</div>
+                        <div className="text-[10.5px] text-[var(--text-subtle)] mt-0.5">
                           Criado {formatShort(project.createdAt)} · {timeAgo(project.createdAt)}
                         </div>
                       </Link>
                     </td>
                     <td className="px-5 py-3.5">
                       {client && (
-                        <Link href={`/agency/clients/${client.id}`} className="text-[13px] text-[#6B6B65] hover:text-[#1A1A1A] transition-colors">
+                        <Link href={`/agency/clients/${client.id}`} className="text-[13px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
                           {client.name}
                         </Link>
                       )}
@@ -226,17 +226,17 @@ export default function ProjectsPage() {
                     <td className="px-5 py-3.5"><Badge variant={project.priority} /></td>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-2">
-                        <div className="w-16 h-1.5 bg-[#F0F0ED] rounded-full overflow-hidden">
-                          <div className="h-full bg-[#070A1F] rounded-full" style={{ width: `${pct}%` }} />
+                        <div className="w-16 h-1.5 bg-[var(--accent)] rounded-full overflow-hidden">
+                          <div className="h-full bg-[var(--navy)] rounded-full" style={{ width: `${pct}%` }} />
                         </div>
-                        <span className="text-[11px] text-[#9B9B95] mono-num">{done}/{total}</span>
+                        <span className="text-[11px] text-[var(--text-muted)] mono-num">{done}/{total}</span>
                       </div>
                     </td>
                     <td className="px-5 py-3.5">
                       {daysLeft === null ? (
-                        <span className="text-[12px] text-[#9B9B95]">—</span>
+                        <span className="text-[12px] text-[var(--text-muted)]">—</span>
                       ) : (
-                        <span className={`text-[12px] mono-num font-medium ${overdue ? "text-[#DC2626]" : daysLeft <= 7 ? "text-[#D97706]" : "text-[#6B6B65]"}`}>
+                        <span className={`text-[12px] mono-num font-medium ${overdue ? "text-[var(--danger)]" : daysLeft <= 7 ? "text-[var(--warning)]" : "text-[var(--text-secondary)]"}`}>
                           {overdue ? "Atrasado" : `${daysLeft}d`}
                         </span>
                       )}
@@ -246,13 +246,13 @@ export default function ProjectsPage() {
                           <div className="flex items-center gap-1.5">
                             <button
                               onClick={() => handleDelete(project.id)}
-                              className="h-6 px-2 rounded-[5px] bg-[#DC2626] text-white text-[10px] font-semibold hover:bg-[#B91C1C] transition-colors"
+                              className="h-6 px-2 rounded-[5px] bg-[var(--danger)] text-white text-[10px] font-semibold hover:bg-[#B91C1C] transition-colors"
                             >
                               Confirmar
                             </button>
                             <button
                               onClick={() => setDeleteTarget(null)}
-                              className="h-6 px-2 rounded-[5px] border border-[#E5E5E2] text-[#6B6B65] text-[10px] hover:bg-[#F0F0ED] transition-colors"
+                              className="h-6 px-2 rounded-[5px] border border-[var(--border)] text-[var(--text-secondary)] text-[10px] hover:bg-[var(--accent)] transition-colors"
                             >
                               Cancelar
                             </button>
@@ -261,7 +261,7 @@ export default function ProjectsPage() {
                           <button
                             onClick={() => setDeleteTarget(project.id)}
                             title="Excluir projeto"
-                            className="opacity-60 group-hover:opacity-100 h-7 w-7 rounded-[6px] border border-[#FCA5A5] text-[#DC2626] hover:bg-[#FEF2F2] flex items-center justify-center transition-all"
+                            className="opacity-60 group-hover:opacity-100 h-7 w-7 rounded-[6px] border border-[#FCA5A5] text-[var(--danger)] hover:bg-[var(--danger-bg)] flex items-center justify-center transition-all"
                           >
                             <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
                               <path d="M3 4.5h10M6.5 4.5V3.5a1 1 0 011-1h1a1 1 0 011 1v1M5 4.5l.5 8a1 1 0 001 1h3a1 1 0 001-1l.5-8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>

@@ -92,7 +92,7 @@ export default function RoleGuide({
         <div className="px-6 pt-6 pb-5 shrink-0" style={{ background: "#070A1F" }}>
           <div className="flex items-start justify-between gap-3">
             <div>
-              <div className="inline-flex items-center gap-1.5 h-5 px-2 rounded-full bg-[#9AF5F0]/15 text-[#9AF5F0] text-[10px] font-semibold mb-2">
+              <div className="inline-flex items-center gap-1.5 h-5 px-2 rounded-full bg-[var(--cyan)]/15 text-[var(--cyan)] text-[10px] font-semibold mb-2">
                 ✦ Dioli Brain · Guia
               </div>
               <h2 className="text-[19px] font-semibold text-white leading-tight">{guide.title}</h2>
@@ -107,24 +107,24 @@ export default function RoleGuide({
               </svg>
             </button>
           </div>
-          <p className="text-[13px] text-[#9AF5F0]/80 leading-relaxed mt-2">{guide.mission}</p>
+          <p className="text-[13px] text-[var(--cyan)]/80 leading-relaxed mt-2">{guide.mission}</p>
         </div>
 
         {/* Steps */}
         <div className="px-6 py-5 overflow-y-auto space-y-3">
           {guide.steps.map((step, i) => (
             <div key={i} className="flex gap-3">
-              <div className="shrink-0 w-7 h-7 rounded-full bg-[#E6FBFA] text-[#070A1F] text-[13px] font-bold flex items-center justify-center">
+              <div className="shrink-0 w-7 h-7 rounded-full bg-[var(--accent-light)] text-[var(--navy)] text-[13px] font-bold flex items-center justify-center">
                 {step.icon}
               </div>
               <div className="flex-1 min-w-0 pb-1">
-                <h3 className="text-[14px] font-semibold text-[#1A1A1A] mb-0.5">{step.title}</h3>
-                <p className="text-[12.5px] text-[#6B6B65] leading-relaxed">{step.body}</p>
+                <h3 className="text-[14px] font-semibold text-[var(--text-primary)] mb-0.5">{step.title}</h3>
+                <p className="text-[12.5px] text-[var(--text-secondary)] leading-relaxed">{step.body}</p>
                 {step.href && (
                   <Link
                     href={step.href}
                     onClick={onClose}
-                    className="inline-flex items-center gap-1 mt-1.5 h-7 px-3 rounded-[7px] bg-[#E6FBFA] text-[#070A1F] text-[11px] font-semibold hover:bg-[#CFF8F5] transition-colors"
+                    className="inline-flex items-center gap-1 mt-1.5 h-7 px-3 rounded-[7px] bg-[var(--accent-light)] text-[var(--navy)] text-[11px] font-semibold hover:bg-[#CFF8F5] transition-colors"
                   >
                     {step.cta ?? "Abrir"} →
                   </Link>
@@ -135,11 +135,11 @@ export default function RoleGuide({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-[#F0F0ED] shrink-0 flex items-center justify-between">
-          <span className="text-[11px] text-[#9B9B95]">Você pode reabrir este guia pelo menu lateral.</span>
+        <div className="px-6 py-4 border-t border-[var(--border)] shrink-0 flex items-center justify-between">
+          <span className="text-[11px] text-[var(--text-muted)]">Você pode reabrir este guia pelo menu lateral.</span>
           <button
             onClick={onClose}
-            className="h-9 px-5 rounded-[8px] bg-[#070A1F] text-white text-[12px] font-semibold hover:bg-[#0D1230] transition-colors"
+            className="h-9 px-5 rounded-[8px] bg-[var(--navy)] text-white text-[12px] font-semibold hover:bg-[#0D1230] transition-colors"
           >
             Entendi, começar
           </button>

@@ -196,7 +196,7 @@ export default function OperationsAgentPage() {
     : { bg: "#F0FDF4", border: "#BBF7D0", dot: "#16A34A", text: "#15803D" };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F7F7F6]">
+    <div className="flex flex-col min-h-screen bg-[var(--bg)]">
       <AgencyHeader
         title="Operations Agent — System Doctor"
         subtitle="Departamento de Operações — diagnóstico da saúde operacional da agência com IA."
@@ -209,20 +209,20 @@ export default function OperationsAgentPage() {
             <span className="w-1.5 h-1.5 rounded-full bg-[#059669]" />
             Operações & Sistema
           </span>
-          <span className="text-[12px] text-[#9B9B95]">v1 · ✦ Dioli Brain</span>
+          <span className="text-[12px] text-[var(--text-muted)]">v1 · ✦ Dioli Brain</span>
         </div>
 
         <div className="grid grid-cols-[360px_1fr] gap-6 items-start">
           {/* ── LEFT ── */}
-          <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-            <div className="px-5 py-4 border-b border-[#E5E5E2]">
-              <p className="text-[13px] font-semibold text-[#1A1A1A]">Diagnóstico Operacional</p>
-              <p className="text-[12px] text-[#9B9B95] mt-0.5">O System Doctor analisa a agência inteira — não um projeto.</p>
+          <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+            <div className="px-5 py-4 border-b border-[var(--border)]">
+              <p className="text-[13px] font-semibold text-[var(--text-primary)]">Diagnóstico Operacional</p>
+              <p className="text-[12px] text-[var(--text-muted)] mt-0.5">O System Doctor analisa a agência inteira — não um projeto.</p>
             </div>
             <div className="px-5 py-5 space-y-4">
               {/* Live metrics snapshot */}
-              <div className="rounded-[8px] bg-[#F7F7F6] border border-[#E5E5E2] px-3 py-3 space-y-1.5">
-                <p className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1">Estado atual</p>
+              <div className="rounded-[8px] bg-[var(--bg)] border border-[var(--border)] px-3 py-3 space-y-1.5">
+                <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1">Estado atual</p>
                 {[
                   ["Clientes", metrics.clientCount],
                   ["Projetos", metrics.projectCount],
@@ -233,22 +233,22 @@ export default function OperationsAgentPage() {
                   ["Projetos atrasados", metrics.overdueProjects],
                 ].map(([label, val]) => (
                   <div key={label} className="flex items-center justify-between">
-                    <span className="text-[11px] text-[#6B6B65]">{label}</span>
-                    <span className="text-[11px] font-semibold text-[#1A1A1A]">{val}</span>
+                    <span className="text-[11px] text-[var(--text-secondary)]">{label}</span>
+                    <span className="text-[11px] font-semibold text-[var(--text-primary)]">{val}</span>
                   </div>
                 ))}
               </div>
 
               {/* AI connection status */}
-              <div className={`rounded-[8px] border px-3 py-2.5 ${aiConnected ? "bg-[#F0FDF4] border-[#BBF7D0]" : aiConnected === false ? "bg-[#FFFBEB] border-[#FDE68A]" : "bg-[#F7F7F6] border-[#E5E5E2]"}`}>
+              <div className={`rounded-[8px] border px-3 py-2.5 ${aiConnected ? "bg-[#F0FDF4] border-[#BBF7D0]" : aiConnected === false ? "bg-[#FFFBEB] border-[#FDE68A]" : "bg-[var(--bg)] border-[var(--border)]"}`}>
                 <div className="flex items-center gap-2">
-                  <span className={`w-1.5 h-1.5 rounded-full ${aiConnected ? "bg-[#16A34A]" : aiConnected === false ? "bg-[#D97706]" : "bg-[#9B9B95]"}`} />
-                  <span className="text-[11px] font-medium text-[#1A1A1A]">
+                  <span className={`w-1.5 h-1.5 rounded-full ${aiConnected ? "bg-[var(--success)]" : aiConnected === false ? "bg-[var(--warning)]" : "bg-[var(--text-muted)]"}`} />
+                  <span className="text-[11px] font-medium text-[var(--text-primary)]">
                     {aiConnected == null ? "Verificando IA…" : aiConnected ? "IA conectada" : "Nenhuma IA conectada"}
                   </span>
                 </div>
                 {aiConnected === false && (
-                  <Link href="/agency/integrations" className="text-[11px] text-[#D97706] hover:underline mt-1 inline-block">
+                  <Link href="/agency/integrations" className="text-[11px] text-[var(--warning)] hover:underline mt-1 inline-block">
                     Conectar agora →
                   </Link>
                 )}
@@ -268,7 +268,7 @@ export default function OperationsAgentPage() {
                 </button>
               )}
               {agentState === "output_ready" && (
-                <button onClick={handleReset} className="w-full h-9 rounded-[7px] text-[13px] font-medium bg-transparent border border-[#E5E5E2] text-[#6B6B65] hover:bg-[#F7F7F6] transition-all">
+                <button onClick={handleReset} className="w-full h-9 rounded-[7px] text-[13px] font-medium bg-transparent border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg)] transition-all">
                   Rodar de novo
                 </button>
               )}
@@ -277,26 +277,26 @@ export default function OperationsAgentPage() {
 
           {/* ── RIGHT ── */}
           {agentState === "idle" && (
-            <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-8 py-14 text-center">
+            <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-8 py-14 text-center">
               <div className="w-12 h-12 rounded-full bg-[#ECFDF5] flex items-center justify-center mx-auto mb-5">
                 <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
                   <path d="M11 2a4 4 0 00-4 4v1a4 4 0 108 0V6a4 4 0 00-4-4z" stroke="#059669" strokeWidth="1.5"/>
                   <path d="M4 20c0-3.3 3.1-6 7-6s7 2.7 7 6" stroke="#059669" strokeWidth="1.5" strokeLinecap="round"/>
                 </svg>
               </div>
-              <p className="text-[15px] font-semibold text-[#1A1A1A] mb-2">System Doctor pronto</p>
-              <p className="text-[13px] text-[#6B6B65] max-w-sm mx-auto leading-relaxed">
+              <p className="text-[15px] font-semibold text-[var(--text-primary)] mb-2">System Doctor pronto</p>
+              <p className="text-[13px] text-[var(--text-secondary)] max-w-sm mx-auto leading-relaxed">
                 Rode o diagnóstico para avaliar a saúde operacional da agência — gargalos, alertas de sistema, capacidade e ações prioritárias.
               </p>
             </div>
           )}
 
           {agentState === "generating" && (
-            <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-8 py-12">
+            <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-8 py-12">
               <div className="max-w-md mx-auto space-y-3">
                 {STEPS.map((s, i) => (
                   <div key={i} className={`flex items-center gap-3 transition-opacity ${i <= stepIndex ? "opacity-100" : "opacity-30"}`}>
-                    <span className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-[#F0F0ED]">
+                    <span className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-[var(--accent)]">
                       {i < stepIndex ? (
                         <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
                           <path d="M1 4l2.5 2.5L9 1" stroke="#16A34A" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
@@ -304,10 +304,10 @@ export default function OperationsAgentPage() {
                       ) : i === stepIndex ? (
                         <span className="w-2.5 h-2.5 border-2 border-[#059669] border-t-transparent rounded-full animate-spin" />
                       ) : (
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#C0C0BC]" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-subtle)]" />
                       )}
                     </span>
-                    <span className={`text-[13px] ${i <= stepIndex ? "text-[#1A1A1A]" : "text-[#9B9B95]"}`}>{s}</span>
+                    <span className={`text-[13px] ${i <= stepIndex ? "text-[var(--text-primary)]" : "text-[var(--text-muted)]"}`}>{s}</span>
                   </div>
                 ))}
               </div>
@@ -327,10 +327,10 @@ export default function OperationsAgentPage() {
               )}
 
               {/* Tab bar */}
-              <div className="flex items-center gap-1 bg-white border border-[#E5E5E2] rounded-[8px] p-1 overflow-x-auto">
+              <div className="flex items-center gap-1 bg-white border border-[var(--border)] rounded-[8px] p-1 overflow-x-auto">
                 {OUTPUT_TABS.map((t) => (
                   <button key={t.id} onClick={() => setActiveTab(t.id)}
-                    className={`h-7 px-3 rounded-[5px] text-[12px] font-medium whitespace-nowrap transition-all ${activeTab === t.id ? "text-white" : "text-[#6B6B65] hover:bg-[#F7F7F6]"}`}
+                    className={`h-7 px-3 rounded-[5px] text-[12px] font-medium whitespace-nowrap transition-all ${activeTab === t.id ? "text-white" : "text-[var(--text-secondary)] hover:bg-[var(--bg)]"}`}
                     style={activeTab === t.id ? { backgroundColor: ACCENT } : {}}>
                     {t.label}
                   </button>
@@ -339,26 +339,26 @@ export default function OperationsAgentPage() {
 
               {/* Overview */}
               {activeTab === "overview" && (
-                <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 space-y-4">
-                  <div className="flex items-center gap-4 pb-3 border-b border-[#F0F0ED]">
+                <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 space-y-4">
+                  <div className="flex items-center gap-4 pb-3 border-b border-[var(--border)]">
                     <div className="w-14 h-14 rounded-full flex items-center justify-center border-4" style={{ borderColor: healthColor }}>
                       <span className="text-[20px] font-black" style={{ color: healthColor }}>{assessment.healthScore}</span>
                     </div>
                     <div>
-                      <p className="text-[14px] font-semibold text-[#1A1A1A]">{assessment.healthLabel}</p>
-                      <p className="text-[11px] text-[#9B9B95]">Health Score Operacional · {assessment.healthScore}/10</p>
+                      <p className="text-[14px] font-semibold text-[var(--text-primary)]">{assessment.healthLabel}</p>
+                      <p className="text-[11px] text-[var(--text-muted)]">Health Score Operacional · {assessment.healthScore}/10</p>
                     </div>
                   </div>
                   <div>
-                    <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1">Diagnóstico</div>
-                    <p className="text-[13px] text-[#1A1A1A] leading-relaxed">{assessment.summary}</p>
+                    <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1">Diagnóstico</div>
+                    <p className="text-[13px] text-[var(--text-primary)] leading-relaxed">{assessment.summary}</p>
                   </div>
                   <div>
-                    <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1">Capacidade</div>
-                    <p className="text-[13px] text-[#6B6B65] leading-relaxed">{assessment.capacityNote}</p>
+                    <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1">Capacidade</div>
+                    <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">{assessment.capacityNote}</p>
                   </div>
                   <div>
-                    <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1.5">Recomendação</div>
+                    <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1.5">Recomendação</div>
                     <div className="bg-[#ECFDF5] rounded-[8px] border border-[#BBF7D0] px-4 py-3">
                       <p className="text-[13px] font-medium text-[#065F46]">{assessment.recommendation}</p>
                     </div>
@@ -368,12 +368,12 @@ export default function OperationsAgentPage() {
 
               {/* Bottlenecks */}
               {activeTab === "bottlenecks" && (
-                <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 space-y-2">
-                  <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Gargalos operacionais</div>
+                <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 space-y-2">
+                  <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-3">Gargalos operacionais</div>
                   {assessment.bottlenecks.map((b, i) => (
-                    <div key={i} className="flex items-start gap-3 bg-[#F7F7F6] rounded-[8px] border border-[#E5E5E2] px-4 py-3">
-                      <span className="mt-[5px] w-1.5 h-1.5 rounded-full bg-[#D97706] shrink-0" />
-                      <p className="text-[13px] text-[#1A1A1A] leading-relaxed">{b}</p>
+                    <div key={i} className="flex items-start gap-3 bg-[var(--bg)] rounded-[8px] border border-[var(--border)] px-4 py-3">
+                      <span className="mt-[5px] w-1.5 h-1.5 rounded-full bg-[var(--warning)] shrink-0" />
+                      <p className="text-[13px] text-[var(--text-primary)] leading-relaxed">{b}</p>
                     </div>
                   ))}
                 </div>
@@ -400,12 +400,12 @@ export default function OperationsAgentPage() {
 
               {/* Actions */}
               {activeTab === "actions" && (
-                <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 space-y-2">
-                  <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-3">Ações recomendadas</div>
+                <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4 space-y-2">
+                  <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-3">Ações recomendadas</div>
                   {assessment.actionItems.map((a, i) => (
-                    <div key={i} className="flex items-start gap-3 bg-[#F7F7F6] rounded-[8px] border border-[#E5E5E2] px-4 py-3">
+                    <div key={i} className="flex items-start gap-3 bg-[var(--bg)] rounded-[8px] border border-[var(--border)] px-4 py-3">
                       <span className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0" style={{ backgroundColor: ACCENT }}>{i + 1}</span>
-                      <p className="text-[13px] text-[#1A1A1A] leading-relaxed">{a}</p>
+                      <p className="text-[13px] text-[var(--text-primary)] leading-relaxed">{a}</p>
                     </div>
                   ))}
                 </div>

@@ -53,7 +53,7 @@ export default function BrainPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white">
+    <div className="min-h-screen bg-[var(--text-primary)] text-white">
       {/* Header */}
       <div className="border-b border-white/[0.06] px-8 py-6">
         <AgencyHeader
@@ -62,18 +62,18 @@ export default function BrainPage() {
           subtitle={BRAIN_IDENTITY.tagline}
           meta={
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-[7px] bg-[#9AF5F0]/15 flex items-center justify-center shrink-0">
-                <BrainIcon size={16} className="text-[#9AF5F0]" />
+              <div className="w-8 h-8 rounded-[7px] bg-[var(--cyan)]/15 flex items-center justify-center shrink-0">
+                <BrainIcon size={16} className="text-[var(--cyan)]" />
               </div>
-              <span className="text-[11px] font-mono text-[#9AF5F0] bg-[#9AF5F0]/10 px-2 py-0.5 rounded-full border border-[#9AF5F0]/20">
+              <span className="text-[11px] font-mono text-[var(--cyan)] bg-[var(--cyan)]/10 px-2 py-0.5 rounded-full border border-[var(--cyan)]/20">
                 v{BRAIN_VERSION}
               </span>
             </div>
           }
           actions={
             <div className="text-right">
-              <div className="text-[11px] text-[#6B6B65] mb-1">Piloto ativo</div>
-              <div className="text-[13px] font-medium text-[#9AF5F0]">Atendimento / SDR</div>
+              <div className="text-[11px] text-[var(--text-secondary)] mb-1">Piloto ativo</div>
+              <div className="text-[13px] font-medium text-[var(--cyan)]">Atendimento / SDR</div>
             </div>
           }
         />
@@ -87,12 +87,12 @@ export default function BrainPage() {
               className={`px-3 py-1.5 rounded-[6px] text-[12px] font-medium transition-all flex items-center gap-1.5 ${
                 activeTab === tab
                   ? "bg-white/[0.08] text-white"
-                  : "text-[#6B6B65] hover:text-[#C0C0BA]"
+                  : "text-[var(--text-secondary)] hover:text-[var(--text-subtle)]"
               }`}
             >
               {TAB_LABELS[tab]}
               {tab === "director" && pendingCount != null && pendingCount > 0 && (
-                <span className="inline-flex items-center justify-center min-w-[16px] h-[16px] px-1 rounded-full bg-[#D97706] text-white text-[9px] font-bold leading-none">
+                <span className="inline-flex items-center justify-center min-w-[16px] h-[16px] px-1 rounded-full bg-[var(--warning)] text-white text-[9px] font-bold leading-none">
                   {pendingCount}
                 </span>
               )}
@@ -154,9 +154,9 @@ function SDRPilotPanel() {
   ];
 
   return (
-    <div className="rounded-[10px] border border-[#16A34A]/30 bg-[#16A34A]/[0.04] p-5 space-y-4">
+    <div className="rounded-[10px] border border-[var(--success)]/30 bg-[var(--success)]/[0.04] p-5 space-y-4">
       <div className="flex items-center justify-between">
-        <div className="text-[11px] font-semibold text-[#16A34A] uppercase tracking-[0.08em]">
+        <div className="text-[11px] font-semibold text-[var(--success)] uppercase tracking-[0.08em]">
           Primeiro Piloto — Atendimento / SDR
         </div>
         <div className="flex items-center gap-2">
@@ -166,7 +166,7 @@ function SDRPilotPanel() {
           >
             {MATURITY_LABELS[maturity.current]}
           </span>
-          <span className="text-[10px] text-[#4A4A44]">{maturity.completionPct}% maturidade</span>
+          <span className="text-[10px] text-[var(--text-secondary)]">{maturity.completionPct}% maturidade</span>
         </div>
       </div>
 
@@ -177,8 +177,8 @@ function SDRPilotPanel() {
             key={s.label}
             className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${
               s.active
-                ? "text-[#16A34A] bg-[#16A34A]/10 border-[#16A34A]/20"
-                : "text-[#4A4A44] bg-white/[0.03] border-white/[0.06]"
+                ? "text-[var(--success)] bg-[var(--success)]/10 border-[var(--success)]/20"
+                : "text-[var(--text-secondary)] bg-white/[0.03] border-white/[0.06]"
             }`}
           >
             {s.active ? "✓ " : "○ "}{s.label}
@@ -190,24 +190,24 @@ function SDRPilotPanel() {
       <div className="grid grid-cols-2 gap-1.5">
         {maturity.criteria.map((c) => (
           <div key={c.id} className="flex items-center gap-1.5 text-[10px]">
-            <span className={c.met ? "text-[#16A34A]" : "text-[#4A4A44]"}>
+            <span className={c.met ? "text-[var(--success)]" : "text-[var(--text-secondary)]"}>
               {c.met ? "✓" : "○"}
             </span>
-            <span className={c.met ? "text-[#8A8A84]" : "text-[#4A4A44]"}>{c.label}</span>
+            <span className={c.met ? "text-[var(--text-muted)]" : "text-[var(--text-secondary)]"}>{c.label}</span>
           </div>
         ))}
       </div>
 
       {/* SDR Scorecard */}
-      <div className="border-t border-[#16A34A]/20 pt-3">
-        <div className="text-[10px] font-semibold text-[#4A4A44] uppercase tracking-[0.06em] mb-2">
+      <div className="border-t border-[var(--success)]/20 pt-3">
+        <div className="text-[10px] font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em] mb-2">
           Scorecard SDR
         </div>
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
           {scorecardMetrics.map((m) => (
             <div key={m.label} className="text-center">
               <div className="text-[15px] font-bold text-white">{m.value}</div>
-              <div className="text-[9px] text-[#4A4A44] mt-0.5">{m.label}</div>
+              <div className="text-[9px] text-[var(--text-secondary)] mt-0.5">{m.label}</div>
             </div>
           ))}
         </div>
@@ -258,9 +258,9 @@ function StrategyDepartmentPanel() {
   ];
 
   return (
-    <div className="rounded-[10px] border border-[#070A1F]/30 bg-[#070A1F]/[0.04] p-5 space-y-4">
+    <div className="rounded-[10px] border border-[var(--navy)]/30 bg-[var(--navy)]/[0.04] p-5 space-y-4">
       <div className="flex items-center justify-between">
-        <div className="text-[11px] font-semibold text-[#070A1F] uppercase tracking-[0.08em]">
+        <div className="text-[11px] font-semibold text-[var(--navy)] uppercase tracking-[0.08em]">
           Segundo Departamento — Estratégia
         </div>
         <div className="flex items-center gap-2">
@@ -270,11 +270,11 @@ function StrategyDepartmentPanel() {
           >
             {MATURITY_LABELS[maturity.current]}
           </span>
-          <span className="text-[10px] text-[#4A4A44]">{maturity.completionPct}% maturidade</span>
+          <span className="text-[10px] text-[var(--text-secondary)]">{maturity.completionPct}% maturidade</span>
         </div>
       </div>
 
-      <p className="text-[12px] text-[#8A8A84] leading-relaxed">
+      <p className="text-[12px] text-[var(--text-muted)] leading-relaxed">
         Transforma clientes qualificados pelo SDR em direção estratégica: posicionamento, territórios de
         conteúdo, direção de comunicação e roadmap. Não cria criativos finais nem lança campanhas.
       </p>
@@ -286,8 +286,8 @@ function StrategyDepartmentPanel() {
             key={s.label}
             className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${
               s.active
-                ? "text-[#070A1F] bg-[#070A1F]/10 border-[#070A1F]/20"
-                : "text-[#4A4A44] bg-white/[0.03] border-white/[0.06]"
+                ? "text-[var(--navy)] bg-[var(--navy)]/10 border-[var(--navy)]/20"
+                : "text-[var(--text-secondary)] bg-white/[0.03] border-white/[0.06]"
             }`}
           >
             {s.active ? "✓ " : "○ "}{s.label}
@@ -299,24 +299,24 @@ function StrategyDepartmentPanel() {
       <div className="grid grid-cols-2 gap-1.5">
         {maturity.criteria.map((c) => (
           <div key={c.id} className="flex items-center gap-1.5 text-[10px]">
-            <span className={c.met ? "text-[#070A1F]" : "text-[#4A4A44]"}>
+            <span className={c.met ? "text-[var(--navy)]" : "text-[var(--text-secondary)]"}>
               {c.met ? "✓" : "○"}
             </span>
-            <span className={c.met ? "text-[#8A8A84]" : "text-[#4A4A44]"}>{c.label}</span>
+            <span className={c.met ? "text-[var(--text-muted)]" : "text-[var(--text-secondary)]"}>{c.label}</span>
           </div>
         ))}
       </div>
 
       {/* Strategy Scorecard */}
-      <div className="border-t border-[#070A1F]/20 pt-3">
-        <div className="text-[10px] font-semibold text-[#4A4A44] uppercase tracking-[0.06em] mb-2">
+      <div className="border-t border-[var(--navy)]/20 pt-3">
+        <div className="text-[10px] font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em] mb-2">
           Scorecard Estratégia
         </div>
         <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
           {scorecardMetrics.map((m) => (
             <div key={m.label} className="text-center">
               <div className="text-[15px] font-bold text-white">{m.value}</div>
-              <div className="text-[9px] text-[#4A4A44] mt-0.5">{m.label}</div>
+              <div className="text-[9px] text-[var(--text-secondary)] mt-0.5">{m.label}</div>
             </div>
           ))}
         </div>
@@ -381,11 +381,11 @@ function SocialDepartmentPanel() {
           >
             {MATURITY_LABELS[maturity.current]}
           </span>
-          <span className="text-[10px] text-[#4A4A44]">{maturity.completionPct}% maturidade</span>
+          <span className="text-[10px] text-[var(--text-secondary)]">{maturity.completionPct}% maturidade</span>
         </div>
       </div>
 
-      <p className="text-[12px] text-[#8A8A84] leading-relaxed">
+      <p className="text-[12px] text-[var(--text-muted)] leading-relaxed">
         Transforma estratégia aprovada em operação de conteúdo: pilares editoriais, plano mensal e calendário.
         Nunca produz sem estratégia, não altera posicionamento, marca ou o Brain.
       </p>
@@ -398,7 +398,7 @@ function SocialDepartmentPanel() {
             className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${
               s.active
                 ? "text-[#DB2777] bg-[#DB2777]/10 border-[#DB2777]/20"
-                : "text-[#4A4A44] bg-white/[0.03] border-white/[0.06]"
+                : "text-[var(--text-secondary)] bg-white/[0.03] border-white/[0.06]"
             }`}
           >
             {s.active ? "✓ " : "○ "}{s.label}
@@ -410,24 +410,24 @@ function SocialDepartmentPanel() {
       <div className="grid grid-cols-2 gap-1.5">
         {maturity.criteria.map((c) => (
           <div key={c.id} className="flex items-center gap-1.5 text-[10px]">
-            <span className={c.met ? "text-[#DB2777]" : "text-[#4A4A44]"}>
+            <span className={c.met ? "text-[#DB2777]" : "text-[var(--text-secondary)]"}>
               {c.met ? "✓" : "○"}
             </span>
-            <span className={c.met ? "text-[#8A8A84]" : "text-[#4A4A44]"}>{c.label}</span>
+            <span className={c.met ? "text-[var(--text-muted)]" : "text-[var(--text-secondary)]"}>{c.label}</span>
           </div>
         ))}
       </div>
 
       {/* Social Scorecard */}
       <div className="border-t border-[#DB2777]/20 pt-3">
-        <div className="text-[10px] font-semibold text-[#4A4A44] uppercase tracking-[0.06em] mb-2">
+        <div className="text-[10px] font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em] mb-2">
           Scorecard Social
         </div>
         <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
           {scorecardMetrics.map((m) => (
             <div key={m.label} className="text-center">
               <div className="text-[15px] font-bold text-white">{m.value}</div>
-              <div className="text-[9px] text-[#4A4A44] mt-0.5">{m.label}</div>
+              <div className="text-[9px] text-[var(--text-secondary)] mt-0.5">{m.label}</div>
             </div>
           ))}
         </div>
@@ -494,11 +494,11 @@ function DesignDepartmentPanel() {
           >
             {MATURITY_LABELS[maturity.current]}
           </span>
-          <span className="text-[10px] text-[#4A4A44]">{maturity.completionPct}% maturidade</span>
+          <span className="text-[10px] text-[var(--text-secondary)]">{maturity.completionPct}% maturidade</span>
         </div>
       </div>
 
-      <p className="text-[12px] text-[#8A8A84] leading-relaxed">
+      <p className="text-[12px] text-[var(--text-muted)] leading-relaxed">
         Transforma planos de conteúdo em direção visual: conceito, briefs criativos, prompts de imagem e
         requisitos de assets. Nunca produz sem Social Canvas aprovado. Não altera posicionamento nem estratégia.
       </p>
@@ -511,7 +511,7 @@ function DesignDepartmentPanel() {
             className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${
               s.active
                 ? "text-[#EA580C] bg-[#EA580C]/10 border-[#EA580C]/20"
-                : "text-[#4A4A44] bg-white/[0.03] border-white/[0.06]"
+                : "text-[var(--text-secondary)] bg-white/[0.03] border-white/[0.06]"
             }`}
           >
             {s.active ? "✓ " : "○ "}{s.label}
@@ -523,24 +523,24 @@ function DesignDepartmentPanel() {
       <div className="grid grid-cols-2 gap-1.5">
         {maturity.criteria.map((c) => (
           <div key={c.id} className="flex items-center gap-1.5 text-[10px]">
-            <span className={c.met ? "text-[#EA580C]" : "text-[#4A4A44]"}>
+            <span className={c.met ? "text-[#EA580C]" : "text-[var(--text-secondary)]"}>
               {c.met ? "✓" : "○"}
             </span>
-            <span className={c.met ? "text-[#8A8A84]" : "text-[#4A4A44]"}>{c.label}</span>
+            <span className={c.met ? "text-[var(--text-muted)]" : "text-[var(--text-secondary)]"}>{c.label}</span>
           </div>
         ))}
       </div>
 
       {/* Design Scorecard */}
       <div className="border-t border-[#EA580C]/20 pt-3">
-        <div className="text-[10px] font-semibold text-[#4A4A44] uppercase tracking-[0.06em] mb-2">
+        <div className="text-[10px] font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em] mb-2">
           Scorecard Design
         </div>
         <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
           {scorecardMetrics.map((m) => (
             <div key={m.label} className="text-center">
               <div className="text-[15px] font-bold text-white">{m.value}</div>
-              <div className="text-[9px] text-[#4A4A44] mt-0.5">{m.label}</div>
+              <div className="text-[9px] text-[var(--text-secondary)] mt-0.5">{m.label}</div>
             </div>
           ))}
         </div>
@@ -607,11 +607,11 @@ function TrafficDepartmentPanel() {
           >
             {MATURITY_LABELS[maturity.current]}
           </span>
-          <span className="text-[10px] text-[#4A4A44]">{maturity.completionPct}% maturidade</span>
+          <span className="text-[10px] text-[var(--text-secondary)]">{maturity.completionPct}% maturidade</span>
         </div>
       </div>
 
-      <p className="text-[12px] text-[#8A8A84] leading-relaxed">
+      <p className="text-[12px] text-[var(--text-muted)] leading-relaxed">
         Transforma estratégia em planos de campanhas pagas: estrutura de campanha, audiências, budget (fee separado),
         mapeamento de ofertas e projeções de CAC/ROAS. Nunca lança campanha sem Traffic Canvas aprovado.
       </p>
@@ -624,7 +624,7 @@ function TrafficDepartmentPanel() {
             className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${
               s.active
                 ? "text-[#0284C7] bg-[#0284C7]/10 border-[#0284C7]/20"
-                : "text-[#4A4A44] bg-white/[0.03] border-white/[0.06]"
+                : "text-[var(--text-secondary)] bg-white/[0.03] border-white/[0.06]"
             }`}
           >
             {s.active ? "✓ " : "○ "}{s.label}
@@ -636,24 +636,24 @@ function TrafficDepartmentPanel() {
       <div className="grid grid-cols-2 gap-1.5">
         {maturity.criteria.map((c) => (
           <div key={c.id} className="flex items-center gap-1.5 text-[10px]">
-            <span className={c.met ? "text-[#0284C7]" : "text-[#4A4A44]"}>
+            <span className={c.met ? "text-[#0284C7]" : "text-[var(--text-secondary)]"}>
               {c.met ? "✓" : "○"}
             </span>
-            <span className={c.met ? "text-[#8A8A84]" : "text-[#4A4A44]"}>{c.label}</span>
+            <span className={c.met ? "text-[var(--text-muted)]" : "text-[var(--text-secondary)]"}>{c.label}</span>
           </div>
         ))}
       </div>
 
       {/* Traffic Scorecard */}
       <div className="border-t border-[#0284C7]/20 pt-3">
-        <div className="text-[10px] font-semibold text-[#4A4A44] uppercase tracking-[0.06em] mb-2">
+        <div className="text-[10px] font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em] mb-2">
           Scorecard Tráfego Pago
         </div>
         <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
           {scorecardMetrics.map((m) => (
             <div key={m.label} className="text-center">
               <div className="text-[15px] font-bold text-white">{m.value}</div>
-              <div className="text-[9px] text-[#4A4A44] mt-0.5">{m.label}</div>
+              <div className="text-[9px] text-[var(--text-secondary)] mt-0.5">{m.label}</div>
             </div>
           ))}
         </div>
@@ -708,9 +708,9 @@ function AnalyticsDepartmentPanel() {
   ];
 
   return (
-    <div className="rounded-[10px] border border-[#16A34A]/30 bg-[#16A34A]/[0.04] p-5 space-y-4">
+    <div className="rounded-[10px] border border-[var(--success)]/30 bg-[var(--success)]/[0.04] p-5 space-y-4">
       <div className="flex items-center justify-between">
-        <div className="text-[11px] font-semibold text-[#16A34A] uppercase tracking-[0.08em]">
+        <div className="text-[11px] font-semibold text-[var(--success)] uppercase tracking-[0.08em]">
           Sexto Departamento — Analytics (mensuração e inteligência)
         </div>
         <div className="flex items-center gap-2">
@@ -720,11 +720,11 @@ function AnalyticsDepartmentPanel() {
           >
             {MATURITY_LABELS[maturity.current]}
           </span>
-          <span className="text-[10px] text-[#4A4A44]">{maturity.completionPct}% maturidade</span>
+          <span className="text-[10px] text-[var(--text-secondary)]">{maturity.completionPct}% maturidade</span>
         </div>
       </div>
 
-      <p className="text-[12px] text-[#8A8A84] leading-relaxed">
+      <p className="text-[12px] text-[var(--text-muted)] leading-relaxed">
         Transforma dados de performance em inteligência mensurável: framework de KPIs, modelo de atribuição por canal,
         gaps de performance, recomendações cross-departamento e thresholds de alerta. Consome Strategy, Social, Design e Traffic.
       </p>
@@ -735,8 +735,8 @@ function AnalyticsDepartmentPanel() {
             key={s.label}
             className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${
               s.active
-                ? "text-[#16A34A] bg-[#16A34A]/10 border-[#16A34A]/20"
-                : "text-[#4A4A44] bg-white/[0.03] border-white/[0.06]"
+                ? "text-[var(--success)] bg-[var(--success)]/10 border-[var(--success)]/20"
+                : "text-[var(--text-secondary)] bg-white/[0.03] border-white/[0.06]"
             }`}
           >
             {s.active ? "✓ " : "○ "}{s.label}
@@ -747,23 +747,23 @@ function AnalyticsDepartmentPanel() {
       <div className="grid grid-cols-2 gap-1.5">
         {maturity.criteria.map((c) => (
           <div key={c.id} className="flex items-center gap-1.5 text-[10px]">
-            <span className={c.met ? "text-[#16A34A]" : "text-[#4A4A44]"}>
+            <span className={c.met ? "text-[var(--success)]" : "text-[var(--text-secondary)]"}>
               {c.met ? "✓" : "○"}
             </span>
-            <span className={c.met ? "text-[#8A8A84]" : "text-[#4A4A44]"}>{c.label}</span>
+            <span className={c.met ? "text-[var(--text-muted)]" : "text-[var(--text-secondary)]"}>{c.label}</span>
           </div>
         ))}
       </div>
 
-      <div className="border-t border-[#16A34A]/20 pt-3">
-        <div className="text-[10px] font-semibold text-[#4A4A44] uppercase tracking-[0.06em] mb-2">
+      <div className="border-t border-[var(--success)]/20 pt-3">
+        <div className="text-[10px] font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em] mb-2">
           Scorecard Analytics
         </div>
         <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
           {scorecardMetrics.map((m) => (
             <div key={m.label} className="text-center">
               <div className="text-[15px] font-bold text-white">{m.value}</div>
-              <div className="text-[9px] text-[#4A4A44] mt-0.5">{m.label}</div>
+              <div className="text-[9px] text-[var(--text-secondary)] mt-0.5">{m.label}</div>
             </div>
           ))}
         </div>
@@ -816,9 +816,9 @@ function QualityDepartmentPanel() {
   ];
 
   return (
-    <div className="rounded-[10px] border border-[#070A1F]/30 bg-[#070A1F]/[0.04] p-5 space-y-4">
+    <div className="rounded-[10px] border border-[var(--navy)]/30 bg-[var(--navy)]/[0.04] p-5 space-y-4">
       <div className="flex items-center justify-between">
-        <div className="text-[11px] font-semibold text-[#070A1F] uppercase tracking-[0.08em]">
+        <div className="text-[11px] font-semibold text-[var(--navy)] uppercase tracking-[0.08em]">
           Sétimo Departamento — Quality (auditoria e padrões)
         </div>
         <div className="flex items-center gap-2">
@@ -828,11 +828,11 @@ function QualityDepartmentPanel() {
           >
             {MATURITY_LABELS[maturity.current]}
           </span>
-          <span className="text-[10px] text-[#4A4A44]">{maturity.completionPct}% maturidade</span>
+          <span className="text-[10px] text-[var(--text-secondary)]">{maturity.completionPct}% maturidade</span>
         </div>
       </div>
 
-      <p className="text-[12px] text-[#8A8A84] leading-relaxed">
+      <p className="text-[12px] text-[var(--text-muted)] leading-relaxed">
         Executa auditorias cross-departamento completas: Quality Gate global + departamental, detecção de padrões de
         força e risco, candidatos a evidência e sinais de treinamento. Consome todos os canvases upstream.
       </p>
@@ -843,8 +843,8 @@ function QualityDepartmentPanel() {
             key={s.label}
             className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${
               s.active
-                ? "text-[#070A1F] bg-[#070A1F]/10 border-[#070A1F]/20"
-                : "text-[#4A4A44] bg-white/[0.03] border-white/[0.06]"
+                ? "text-[var(--navy)] bg-[var(--navy)]/10 border-[var(--navy)]/20"
+                : "text-[var(--text-secondary)] bg-white/[0.03] border-white/[0.06]"
             }`}
           >
             {s.active ? "✓ " : "○ "}{s.label}
@@ -855,23 +855,23 @@ function QualityDepartmentPanel() {
       <div className="grid grid-cols-2 gap-1.5">
         {maturity.criteria.map((c) => (
           <div key={c.id} className="flex items-center gap-1.5 text-[10px]">
-            <span className={c.met ? "text-[#070A1F]" : "text-[#4A4A44]"}>
+            <span className={c.met ? "text-[var(--navy)]" : "text-[var(--text-secondary)]"}>
               {c.met ? "✓" : "○"}
             </span>
-            <span className={c.met ? "text-[#8A8A84]" : "text-[#4A4A44]"}>{c.label}</span>
+            <span className={c.met ? "text-[var(--text-muted)]" : "text-[var(--text-secondary)]"}>{c.label}</span>
           </div>
         ))}
       </div>
 
-      <div className="border-t border-[#070A1F]/20 pt-3">
-        <div className="text-[10px] font-semibold text-[#4A4A44] uppercase tracking-[0.06em] mb-2">
+      <div className="border-t border-[var(--navy)]/20 pt-3">
+        <div className="text-[10px] font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em] mb-2">
           Scorecard Quality
         </div>
         <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
           {scorecardMetrics.map((m) => (
             <div key={m.label} className="text-center">
               <div className="text-[15px] font-bold text-white">{m.value}</div>
-              <div className="text-[9px] text-[#4A4A44] mt-0.5">{m.label}</div>
+              <div className="text-[9px] text-[var(--text-secondary)] mt-0.5">{m.label}</div>
             </div>
           ))}
         </div>
@@ -891,12 +891,12 @@ function OverviewTab() {
   return (
     <div className="space-y-6 max-w-5xl">
       {/* Thesis */}
-      <div className="rounded-[10px] border border-[#070A1F]/30 bg-[#070A1F]/[0.04] p-5">
-        <div className="text-[11px] font-semibold text-[#070A1F] uppercase tracking-[0.08em] mb-3">Tese Central</div>
+      <div className="rounded-[10px] border border-[var(--navy)]/30 bg-[var(--navy)]/[0.04] p-5">
+        <div className="text-[11px] font-semibold text-[var(--navy)] uppercase tracking-[0.08em] mb-3">Tese Central</div>
         <p className="text-[15px] font-medium text-white leading-relaxed">
           A IA não é o produto. O Brain é o produto.
         </p>
-        <p className="text-[13px] text-[#8A8A84] mt-2 leading-relaxed">
+        <p className="text-[13px] text-[var(--text-muted)] mt-2 leading-relaxed">
           Modelos de IA são motores — intercambiáveis, melhoráveis, substituíveis.
           O Dioli Brain é a inteligência operacional que permanece constante independente de qual motor é usado.
           Departamentos são escopos profissionais. Agentes não são brains independentes.
@@ -917,7 +917,7 @@ function OverviewTab() {
         <SectionTitle>Camadas de Arquitetura</SectionTitle>
         <div className="grid grid-cols-3 gap-3">
           {ARCHITECTURE_LAYERS.map((layer) => (
-            <div key={layer.id} className="rounded-[8px] border border-white/[0.06] bg-[#111111] p-4">
+            <div key={layer.id} className="rounded-[8px] border border-white/[0.06] bg-[var(--text-primary)] p-4">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-6 h-6 rounded-[5px] flex items-center justify-center text-[14px]"
                   style={{ background: `${layer.color}15` }}>
@@ -925,7 +925,7 @@ function OverviewTab() {
                 </div>
                 <span className="text-[12px] font-semibold text-white">{layer.name}</span>
               </div>
-              <p className="text-[11px] text-[#6B6B65] leading-relaxed">{layer.description}</p>
+              <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">{layer.description}</p>
             </div>
           ))}
         </div>
@@ -936,8 +936,8 @@ function OverviewTab() {
         <SectionTitle>Regras Fundamentais</SectionTitle>
         <div className="space-y-2">
           {BRAIN_RULES.map((rule, i) => (
-            <div key={i} className="flex items-start gap-2.5 text-[12px] text-[#8A8A84]">
-              <span className="text-[#070A1F] mt-0.5 shrink-0">—</span>
+            <div key={i} className="flex items-start gap-2.5 text-[12px] text-[var(--text-muted)]">
+              <span className="text-[var(--navy)] mt-0.5 shrink-0">—</span>
               <span>{rule}</span>
             </div>
           ))}
@@ -989,8 +989,8 @@ function DepartmentPipelineSection() {
   ];
 
   return (
-    <div className="rounded-[10px] border border-white/[0.06] bg-[#111111] p-5">
-      <div className="text-[11px] font-semibold text-[#4A4A44] uppercase tracking-[0.08em] mb-4">
+    <div className="rounded-[10px] border border-white/[0.06] bg-[var(--text-primary)] p-5">
+      <div className="text-[11px] font-semibold text-[var(--text-secondary)] uppercase tracking-[0.08em] mb-4">
         Pipeline de Departamentos — Fase 1 Completa
       </div>
       <div className="flex items-start gap-0 overflow-x-auto pb-1">
@@ -1004,15 +1004,15 @@ function DepartmentPipelineSection() {
                 {s.step}
               </div>
               <div className="text-[10px] font-semibold text-white text-center leading-tight">{s.label}</div>
-              <div className="text-[9px] text-[#4A4A44] text-center leading-tight font-mono">{s.status}</div>
+              <div className="text-[9px] text-[var(--text-secondary)] text-center leading-tight font-mono">{s.status}</div>
             </div>
             {i < PIPELINE_STEPS.length - 1 && (
-              <div className="w-6 h-px bg-[#2A2A2A] shrink-0 mb-5" />
+              <div className="w-6 h-px bg-[var(--text-primary)] shrink-0 mb-5" />
             )}
           </div>
         ))}
       </div>
-      <div className="mt-3 pt-3 border-t border-white/[0.04] text-[11px] text-[#4A4A44]">
+      <div className="mt-3 pt-3 border-t border-white/[0.04] text-[11px] text-[var(--text-secondary)]">
         Cada departamento gera um Canvas aprovado antes de avançar para o próximo. Quality encerra o loop Brain.
       </div>
     </div>
@@ -1033,7 +1033,7 @@ function SystemMapSection() {
         {CURRENT_SYSTEM_MAP.map((m) => {
           const color = statusColors[m.status];
           return (
-            <div key={m.moduleId} className="rounded-[8px] border border-white/[0.06] bg-[#111111] p-3.5">
+            <div key={m.moduleId} className="rounded-[8px] border border-white/[0.06] bg-[var(--text-primary)] p-3.5">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
@@ -1045,11 +1045,11 @@ function SystemMapSection() {
                       {statusLabels[m.status]}
                     </span>
                   </div>
-                  <div className="text-[10px] font-mono text-[#4A4A44] mb-1">{m.currentPath}</div>
-                  <p className="text-[11px] text-[#6B6B65]">{m.notes}</p>
+                  <div className="text-[10px] font-mono text-[var(--text-secondary)] mb-1">{m.currentPath}</div>
+                  <p className="text-[11px] text-[var(--text-secondary)]">{m.notes}</p>
                 </div>
                 {m.brainDepartmentId && (
-                  <span className="text-[10px] text-[#070A1F] bg-[#070A1F]/10 px-1.5 py-0.5 rounded border border-[#070A1F]/20 shrink-0">
+                  <span className="text-[10px] text-[var(--navy)] bg-[var(--navy)]/10 px-1.5 py-0.5 rounded border border-[var(--navy)]/20 shrink-0">
                     {m.brainDepartmentId}
                   </span>
                 )}
@@ -1101,15 +1101,15 @@ function PilotReadinessChecklist() {
   return (
     <div>
       <SectionTitle>Prontidão para Piloto</SectionTitle>
-      <div className="rounded-[10px] border border-white/[0.06] bg-[#111111] p-4 mb-3">
+      <div className="rounded-[10px] border border-white/[0.06] bg-[var(--text-primary)] p-4 mb-3">
         <div className="flex items-center gap-4 mb-3">
-          <span className="text-[11px] text-[#6B6B65]">
-            <span className="text-[#16A34A] font-bold">{done}</span> concluídos ·{" "}
-            <span className="text-[#D97706] font-bold">{partial}</span> parciais ·{" "}
-            <span className="text-[#DC2626] font-bold">{blocked}</span> bloqueados
+          <span className="text-[11px] text-[var(--text-secondary)]">
+            <span className="text-[var(--success)] font-bold">{done}</span> concluídos ·{" "}
+            <span className="text-[var(--warning)] font-bold">{partial}</span> parciais ·{" "}
+            <span className="text-[var(--danger)] font-bold">{blocked}</span> bloqueados
           </span>
           <span className={`ml-auto h-6 px-3 rounded-full text-[10px] font-semibold flex items-center ${
-            blocked > 0 ? "bg-[#FEE2E2] text-[#DC2626]" : partial > 0 ? "bg-[#FEF3C7] text-[#D97706]" : "bg-[#DCFCE7] text-[#16A34A]"
+            blocked > 0 ? "bg-[#FEE2E2] text-[var(--danger)]" : partial > 0 ? "bg-[var(--warning-bg)] text-[var(--warning)]" : "bg-[var(--success-bg)] text-[var(--success)]"
           }`}>
             {blocked > 0 ? "NÃO PRONTO" : partial > 0 ? "QUASE PRONTO" : "PRONTO"}
           </span>
@@ -1126,9 +1126,9 @@ function PilotReadinessChecklist() {
                   {s.icon}
                 </div>
                 <div>
-                  <p className="text-[11px] text-[#C0C0BC] leading-tight">{item.label}</p>
+                  <p className="text-[11px] text-[var(--text-subtle)] leading-tight">{item.label}</p>
                   {item.note && (
-                    <p className="text-[10px] text-[#6B6B65] mt-0.5 italic">{item.note}</p>
+                    <p className="text-[10px] text-[var(--text-secondary)] mt-0.5 italic">{item.note}</p>
                   )}
                 </div>
               </div>
@@ -1146,26 +1146,26 @@ function FlowTab() {
   return (
     <div className="max-w-3xl">
       <SectionTitle>Fluxo Cognitivo Obrigatório</SectionTitle>
-      <p className="text-[13px] text-[#6B6B65] mb-5">
+      <p className="text-[13px] text-[var(--text-secondary)] mb-5">
         Todo departamento usa o mesmo fluxo de raciocínio. O escopo e as ferramentas diferem; a lógica não.
       </p>
       <div className="space-y-3">
         {DIOLI_COGNITIVE_FLOW.map((step) => (
-          <div key={step.id} className="rounded-[8px] border border-white/[0.06] bg-[#111111] p-4">
+          <div key={step.id} className="rounded-[8px] border border-white/[0.06] bg-[var(--text-primary)] p-4">
             <div className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full bg-[#070A1F]/10 border border-[#070A1F]/20 flex items-center justify-center shrink-0 mt-0.5">
-                <span className="text-[10px] font-bold text-[#070A1F]">{step.order}</span>
+              <div className="w-6 h-6 rounded-full bg-[var(--navy)]/10 border border-[var(--navy)]/20 flex items-center justify-center shrink-0 mt-0.5">
+                <span className="text-[10px] font-bold text-[var(--navy)]">{step.order}</span>
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-[13px] font-semibold text-white mb-0.5">{step.label}</div>
-                <div className="text-[12px] text-[#6B6B65] italic mb-2">{step.guidingQuestion}</div>
-                <div className="text-[11px] text-[#070A1F]">
+                <div className="text-[12px] text-[var(--text-secondary)] italic mb-2">{step.guidingQuestion}</div>
+                <div className="text-[11px] text-[var(--navy)]">
                   Output: <span className="font-mono">{step.output}</span>
                 </div>
                 {step.riskFlags.length > 0 && (
                   <div className="flex gap-1 mt-1.5 flex-wrap">
                     {step.riskFlags.map((f) => (
-                      <span key={f} className="text-[10px] text-[#D97706] bg-[#D97706]/10 px-1.5 py-0.5 rounded border border-[#D97706]/20">
+                      <span key={f} className="text-[10px] text-[var(--warning)] bg-[var(--warning)]/10 px-1.5 py-0.5 rounded border border-[var(--warning)]/20">
                         {f}
                       </span>
                     ))}
@@ -1174,7 +1174,7 @@ function FlowTab() {
                 {step.humanApprovalTriggers.length > 0 && (
                   <div className="flex gap-1 mt-1 flex-wrap">
                     {step.humanApprovalTriggers.map((t) => (
-                      <span key={t} className="text-[10px] text-[#DC2626] bg-[#DC2626]/10 px-1.5 py-0.5 rounded border border-[#DC2626]/20">
+                      <span key={t} className="text-[10px] text-[var(--danger)] bg-[var(--danger)]/10 px-1.5 py-0.5 rounded border border-[var(--danger)]/20">
                         ✋ {t}
                       </span>
                     ))}
@@ -1195,7 +1195,7 @@ function DepartmentsTab() {
   return (
     <div className="max-w-5xl">
       <SectionTitle>Departamentos como Escopos Profissionais</SectionTitle>
-      <p className="text-[13px] text-[#6B6B65] mb-5">
+      <p className="text-[13px] text-[var(--text-secondary)] mb-5">
         A lógica do Brain é compartilhada. Departamentos definem escopo, permissões, ferramentas e tipos de entregável.
       </p>
       <div className="grid grid-cols-2 gap-4">
@@ -1203,7 +1203,7 @@ function DepartmentsTab() {
           const statusColor = BRAIN_STATUS_COLORS[dept.firstVersionStatus];
           const statusLabel = BRAIN_STATUS_LABELS[dept.firstVersionStatus];
           return (
-            <div key={dept.id} className="rounded-[8px] border border-white/[0.06] bg-[#111111] p-4">
+            <div key={dept.id} className="rounded-[8px] border border-white/[0.06] bg-[var(--text-primary)] p-4">
               <div className="flex items-start justify-between mb-2">
                 <div className="text-[13px] font-semibold text-white">{dept.name}</div>
                 <span
@@ -1213,24 +1213,24 @@ function DepartmentsTab() {
                   {statusLabel}
                 </span>
               </div>
-              <p className="text-[11px] text-[#6B6B65] mb-3 leading-relaxed">{dept.mission}</p>
-              <div className="text-[10px] font-semibold text-[#4A4A44] uppercase tracking-[0.06em] mb-1.5">
+              <p className="text-[11px] text-[var(--text-secondary)] mb-3 leading-relaxed">{dept.mission}</p>
+              <div className="text-[10px] font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em] mb-1.5">
                 Quality Gate ({dept.qualityGate.length} checks)
               </div>
               <div className="space-y-0.5">
                 {dept.qualityGate.slice(0, 3).map((check) => (
-                  <div key={check} className="flex items-center gap-1.5 text-[11px] text-[#8A8A84]">
-                    <span className="text-[#070A1F]">·</span>
+                  <div key={check} className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
+                    <span className="text-[var(--navy)]">·</span>
                     {check}
                   </div>
                 ))}
                 {dept.qualityGate.length > 3 && (
-                  <div className="text-[10px] text-[#4A4A44]">+{dept.qualityGate.length - 3} mais</div>
+                  <div className="text-[10px] text-[var(--text-secondary)]">+{dept.qualityGate.length - 3} mais</div>
                 )}
               </div>
               {dept.simulator && (
                 <div className="mt-2 pt-2 border-t border-white/[0.04]">
-                  <span className="text-[10px] text-[#16A34A] bg-[#16A34A]/10 px-1.5 py-0.5 rounded border border-[#16A34A]/20">
+                  <span className="text-[10px] text-[var(--success)] bg-[var(--success)]/10 px-1.5 py-0.5 rounded border border-[var(--success)]/20">
                     Simulador ativo
                   </span>
                 </div>
@@ -1243,12 +1243,12 @@ function DepartmentsTab() {
       {/* Engine Router */}
       <div className="mt-8">
         <SectionTitle>AI Engine Router</SectionTitle>
-        <p className="text-[13px] text-[#6B6B65] mb-4">
+        <p className="text-[13px] text-[var(--text-secondary)] mb-4">
           O modelo pode mudar. O Brain não pode. Configuração de roteamento por departamento.
         </p>
         <div className="space-y-2">
           {ENGINE_ROUTES.map((route) => (
-            <div key={route.departmentId} className="rounded-[8px] border border-white/[0.06] bg-[#111111] p-3.5">
+            <div key={route.departmentId} className="rounded-[8px] border border-white/[0.06] bg-[var(--text-primary)] p-3.5">
               <div className="flex items-center justify-between mb-2">
                 <div className="text-[12px] font-semibold text-white">{route.departmentId}</div>
                 <div className="flex gap-1.5">
@@ -1257,10 +1257,10 @@ function DepartmentsTab() {
                   <Chip label={route.qualityTier} color="#070A1F" />
                 </div>
               </div>
-              <div className="flex gap-4 text-[11px] text-[#6B6B65]">
+              <div className="flex gap-4 text-[11px] text-[var(--text-secondary)]">
                 <span>Preferido: <span className="text-white font-mono">{route.preferredProvider}</span></span>
                 <span>Fallback: <span className="text-white font-mono">{route.fallbackProvider}</span></span>
-                <span>Capacidade: <span className="text-[#070A1F]">{route.capabilityRequired}</span></span>
+                <span>Capacidade: <span className="text-[var(--navy)]">{route.capabilityRequired}</span></span>
               </div>
             </div>
           ))}
@@ -1276,39 +1276,39 @@ function KnowledgeTab() {
   return (
     <div className="max-w-4xl">
       <SectionTitle>Base de Conhecimento</SectionTitle>
-      <p className="text-[13px] text-[#6B6B65] mb-5">
+      <p className="text-[13px] text-[var(--text-secondary)] mb-5">
         Memória institucional da agência. Estruturada, controlada por acesso e atualizável.
       </p>
       <div className="space-y-2">
         {KNOWLEDGE_SOURCES.map((src) => (
-          <div key={src.sourceId} className="rounded-[8px] border border-white/[0.06] bg-[#111111] p-3.5">
+          <div key={src.sourceId} className="rounded-[8px] border border-white/[0.06] bg-[var(--text-primary)] p-3.5">
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-0.5">
                   <span className="text-[12px] font-semibold text-white">{src.label}</span>
                   <span className={`text-[10px] px-1.5 py-0.5 rounded border ${
                     src.sensitivity === "confidential"
-                      ? "text-[#DC2626] bg-[#DC2626]/10 border-[#DC2626]/20"
+                      ? "text-[var(--danger)] bg-[var(--danger)]/10 border-[var(--danger)]/20"
                       : src.sensitivity === "internal"
-                      ? "text-[#D97706] bg-[#D97706]/10 border-[#D97706]/20"
-                      : "text-[#6B6B65] bg-white/[0.04] border-white/[0.08]"
+                      ? "text-[var(--warning)] bg-[var(--warning)]/10 border-[var(--warning)]/20"
+                      : "text-[var(--text-secondary)] bg-white/[0.04] border-white/[0.08]"
                   }`}>
                     {src.sensitivity}
                   </span>
                 </div>
-                <p className="text-[11px] text-[#6B6B65]">{src.description}</p>
+                <p className="text-[11px] text-[var(--text-secondary)]">{src.description}</p>
               </div>
               <div className="text-right shrink-0">
-                <div className="text-[10px] text-[#4A4A44]">{src.owner}</div>
-                <div className="text-[10px] text-[#4A4A44] mt-0.5">
+                <div className="text-[10px] text-[var(--text-secondary)]">{src.owner}</div>
+                <div className="text-[10px] text-[var(--text-secondary)] mt-0.5">
                   {src.currentSystemMapping
-                    ? <span className="text-[#16A34A]">mapeado</span>
-                    : <span className="text-[#D97706]">pendente</span>}
+                    ? <span className="text-[var(--success)]">mapeado</span>
+                    : <span className="text-[var(--warning)]">pendente</span>}
                 </div>
               </div>
             </div>
             {src.currentSystemMapping && (
-              <div className="mt-2 text-[10px] font-mono text-[#4A4A44] bg-[#0A0A0A] px-2 py-1 rounded">
+              <div className="mt-2 text-[10px] font-mono text-[var(--text-secondary)] bg-[var(--text-primary)] px-2 py-1 rounded">
                 {src.currentSystemMapping}
               </div>
             )}
@@ -1346,70 +1346,70 @@ function TrainingTab() {
     <div className="max-w-4xl space-y-6">
       <div>
         <SectionTitle>Training Center</SectionTitle>
-        <p className="text-[13px] text-[#6B6B65] mb-4">
+        <p className="text-[13px] text-[var(--text-secondary)] mb-4">
           Loop de aprendizado do Brain. Simulações → Sugestões → BrainChangeRequest → revisão do Brain Director.
         </p>
       </div>
 
       {/* Worker status */}
-      <div className="rounded-[10px] border border-white/[0.06] bg-[#111111] p-5">
+      <div className="rounded-[10px] border border-white/[0.06] bg-[var(--text-primary)] p-5">
         <div className="flex items-center justify-between mb-4">
           <span className="text-[12px] font-semibold text-white">Worker 24h — SDR (piloto)</span>
           {status ? (
             status.workerActive ? (
-              <span className="text-[10px] font-semibold text-[#16A34A] bg-[#16A34A]/10 px-2 py-0.5 rounded-full border border-[#16A34A]/20">ATIVO</span>
+              <span className="text-[10px] font-semibold text-[var(--success)] bg-[var(--success)]/10 px-2 py-0.5 rounded-full border border-[var(--success)]/20">ATIVO</span>
             ) : (
-              <span className="text-[10px] font-semibold text-[#D97706] bg-[#D97706]/10 px-2 py-0.5 rounded-full border border-[#D97706]/20">CONFIGURAR</span>
+              <span className="text-[10px] font-semibold text-[var(--warning)] bg-[var(--warning)]/10 px-2 py-0.5 rounded-full border border-[var(--warning)]/20">CONFIGURAR</span>
             )
           ) : (
-            <span className="text-[10px] text-[#4A4A44]">{loadFailed ? "indisponível" : "carregando…"}</span>
+            <span className="text-[10px] text-[var(--text-secondary)]">{loadFailed ? "indisponível" : "carregando…"}</span>
           )}
         </div>
         {status && (
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <div className="text-[18px] font-bold text-white">{status.runsToday}<span className="text-[12px] text-[#4A4A44] font-normal"> / {status.dailyCap}</span></div>
-              <div className="text-[11px] text-[#6B6B65]">runs hoje / cap diário</div>
+              <div className="text-[18px] font-bold text-white">{status.runsToday}<span className="text-[12px] text-[var(--text-secondary)] font-normal"> / {status.dailyCap}</span></div>
+              <div className="text-[11px] text-[var(--text-secondary)]">runs hoje / cap diário</div>
             </div>
             <div>
-              <div className="text-[18px] font-bold text-[#D97706]">{status.pendingSuggestions}</div>
-              <div className="text-[11px] text-[#6B6B65]">sugestões pendentes</div>
+              <div className="text-[18px] font-bold text-[var(--warning)]">{status.pendingSuggestions}</div>
+              <div className="text-[11px] text-[var(--text-secondary)]">sugestões pendentes</div>
             </div>
             <div>
               <div className="text-[13px] font-medium text-white mt-1">
                 {status.lastBatchAt ? new Date(status.lastBatchAt).toLocaleString("pt-BR") : "—"}
               </div>
-              <div className="text-[11px] text-[#6B6B65]">último batch</div>
+              <div className="text-[11px] text-[var(--text-secondary)]">último batch</div>
             </div>
           </div>
         )}
         <a
           href="/agency/simulations/training"
-          className="inline-block mt-4 text-[12px] text-[#070A1F] hover:text-[#7C7CE8] transition-colors"
+          className="inline-block mt-4 text-[12px] text-[var(--navy)] hover:text-[#7C7CE8] transition-colors"
         >
           Abrir Training Center completo →
         </a>
       </div>
 
       {/* Pipeline explanation */}
-      <div className="rounded-[10px] border border-[#070A1F]/20 bg-[#070A1F]/[0.03] p-5">
-        <div className="text-[11px] font-semibold text-[#070A1F] uppercase tracking-[0.08em] mb-3">
+      <div className="rounded-[10px] border border-[var(--navy)]/20 bg-[var(--navy)]/[0.03] p-5">
+        <div className="text-[11px] font-semibold text-[var(--navy)] uppercase tracking-[0.08em] mb-3">
           Pipeline de Governança
         </div>
-        <div className="flex items-center gap-2 text-[12px] text-[#8A8A84] flex-wrap">
+        <div className="flex items-center gap-2 text-[12px] text-[var(--text-muted)] flex-wrap">
           <span className="text-white font-medium">Simulação</span>
-          <span className="text-[#4A4A44]">→</span>
+          <span className="text-[var(--text-secondary)]">→</span>
           <span className="text-white font-medium">Sugestão (pending)</span>
-          <span className="text-[#4A4A44]">→</span>
+          <span className="text-[var(--text-secondary)]">→</span>
           <span className="text-white font-medium">Aprovação manual</span>
-          <span className="text-[#4A4A44]">→</span>
-          <span className="text-[#070A1F] font-medium">BrainChangeRequest</span>
-          <span className="text-[#4A4A44]">→</span>
+          <span className="text-[var(--text-secondary)]">→</span>
+          <span className="text-[var(--navy)] font-medium">BrainChangeRequest</span>
+          <span className="text-[var(--text-secondary)]">→</span>
           <span className="text-white font-medium">Brain Director</span>
-          <span className="text-[#4A4A44]">→</span>
-          <span className="text-[#16A34A] font-medium">Aplicado + versão</span>
+          <span className="text-[var(--text-secondary)]">→</span>
+          <span className="text-[var(--success)] font-medium">Aplicado + versão</span>
         </div>
-        <p className="text-[11px] text-[#6B6B65] mt-3">
+        <p className="text-[11px] text-[var(--text-secondary)] mt-3">
           Sugestões aprovadas criam automaticamente um BrainChangeRequest em status pending_review.
           Nada é aplicado automaticamente — a aplicação é uma transição explícita e separada, feita pelo Brain Director.
         </p>
@@ -1420,8 +1420,8 @@ function TrainingTab() {
         <SectionTitle>Política de Treinamento</SectionTitle>
         <div className="space-y-2">
           {TRAINING_RULES.map((rule, i) => (
-            <div key={i} className="flex items-start gap-2.5 text-[12px] text-[#8A8A84]">
-              <span className="text-[#070A1F] mt-0.5 shrink-0">—</span>
+            <div key={i} className="flex items-start gap-2.5 text-[12px] text-[var(--text-muted)]">
+              <span className="text-[var(--navy)] mt-0.5 shrink-0">—</span>
               <span>{rule}</span>
             </div>
           ))}
@@ -1443,15 +1443,15 @@ function QualityTab() {
     <div className="max-w-4xl space-y-6">
       <div>
         <SectionTitle>Quality Gates</SectionTitle>
-        <p className="text-[13px] text-[#6B6B65] mb-4">
+        <p className="text-[13px] text-[var(--text-secondary)] mb-4">
           O gate global se aplica a toda saída de departamento. Gates por departamento adicionam checks de escopo.
           Enforcement em runtime virá em fase futura — esta é a definição de governança.
         </p>
       </div>
 
       {/* Global gate */}
-      <div className="rounded-[10px] border border-[#070A1F]/20 bg-[#070A1F]/[0.03] p-5">
-        <div className="text-[11px] font-semibold text-[#070A1F] uppercase tracking-[0.08em] mb-3">
+      <div className="rounded-[10px] border border-[var(--navy)]/20 bg-[var(--navy)]/[0.03] p-5">
+        <div className="text-[11px] font-semibold text-[var(--navy)] uppercase tracking-[0.08em] mb-3">
           Gate Global — todos os departamentos
         </div>
         <div className="space-y-2">
@@ -1459,14 +1459,14 @@ function QualityTab() {
             <div key={check.id} className="flex items-start gap-2.5">
               <span className={`text-[10px] mt-0.5 px-1.5 py-0.5 rounded border shrink-0 ${
                 check.blocking
-                  ? "text-[#DC2626] bg-[#DC2626]/10 border-[#DC2626]/20"
-                  : "text-[#6B6B65] bg-white/[0.04] border-white/[0.08]"
+                  ? "text-[var(--danger)] bg-[var(--danger)]/10 border-[var(--danger)]/20"
+                  : "text-[var(--text-secondary)] bg-white/[0.04] border-white/[0.08]"
               }`}>
                 {check.blocking ? "bloqueante" : "advisory"}
               </span>
               <div>
                 <span className="text-[12px] font-medium text-white">{check.label}</span>
-                <p className="text-[11px] text-[#6B6B65]">{check.description}</p>
+                <p className="text-[11px] text-[var(--text-secondary)]">{check.description}</p>
               </div>
             </div>
           ))}
@@ -1476,14 +1476,14 @@ function QualityTab() {
       {/* Department gates */}
       <div className="grid grid-cols-2 gap-4">
         {deptGateEntries.map(([deptId, checks]) => (
-          <div key={deptId} className="rounded-[8px] border border-white/[0.06] bg-[#111111] p-4">
+          <div key={deptId} className="rounded-[8px] border border-white/[0.06] bg-[var(--text-primary)] p-4">
             <div className="text-[12px] font-semibold text-white mb-2">
               {deptNames[deptId] ?? deptId}
             </div>
             <div className="space-y-1.5">
               {checks.map((check) => (
-                <div key={check.id} className="flex items-start gap-1.5 text-[11px] text-[#8A8A84]">
-                  <span className={check.blocking ? "text-[#DC2626] shrink-0" : "text-[#4A4A44] shrink-0"}>
+                <div key={check.id} className="flex items-start gap-1.5 text-[11px] text-[var(--text-muted)]">
+                  <span className={check.blocking ? "text-[var(--danger)] shrink-0" : "text-[var(--text-secondary)] shrink-0"}>
                     {check.blocking ? "●" : "○"}
                   </span>
                   {check.label}
@@ -1597,21 +1597,21 @@ function DirectorTab({ onCountsChange }: { onCountsChange: (n: number) => void }
       <div className="flex items-start justify-between">
         <div>
           <SectionTitle>Brain Director — Fila de Governança</SectionTitle>
-          <p className="text-[13px] text-[#6B6B65]">
+          <p className="text-[13px] text-[var(--text-secondary)]">
             Nada modifica o Brain diretamente. Toda mudança passa por esta fila:
             pending_review → aprovado → aplicado (versiona o Brain).
           </p>
         </div>
         {data && (
           <div className="text-right shrink-0">
-            <div className="text-[11px] text-[#4A4A44] mb-1">Versão atual do Brain</div>
-            <div className="text-[16px] font-mono font-bold text-[#070A1F]">v{data.currentVersion}</div>
+            <div className="text-[11px] text-[var(--text-secondary)] mb-1">Versão atual do Brain</div>
+            <div className="text-[16px] font-mono font-bold text-[var(--navy)]">v{data.currentVersion}</div>
           </div>
         )}
       </div>
 
       {error && (
-        <div className="rounded-[8px] border border-[#DC2626]/30 bg-[#DC2626]/[0.06] px-4 py-3 text-[12px] text-[#FCA5A5]">
+        <div className="rounded-[8px] border border-[var(--danger)]/30 bg-[var(--danger)]/[0.06] px-4 py-3 text-[12px] text-[#FCA5A5]">
           {error}
         </div>
       )}
@@ -1631,11 +1631,11 @@ function DirectorTab({ onCountsChange }: { onCountsChange: (n: number) => void }
               className={`px-3 py-1.5 rounded-[6px] text-[12px] font-medium transition-all flex items-center gap-1.5 ${
                 filter === f.id
                   ? "bg-white/[0.08] text-white border border-white/[0.12]"
-                  : "text-[#6B6B65] hover:text-[#C0C0BA] border border-transparent"
+                  : "text-[var(--text-secondary)] hover:text-[var(--text-subtle)] border border-transparent"
               }`}
             >
               {f.label}
-              <span className="text-[10px] text-[#4A4A44]">{count}</span>
+              <span className="text-[10px] text-[var(--text-secondary)]">{count}</span>
             </button>
           );
         })}
@@ -1643,12 +1643,12 @@ function DirectorTab({ onCountsChange }: { onCountsChange: (n: number) => void }
 
       {/* Request list */}
       {!data ? (
-        <div className="text-[12px] text-[#4A4A44] py-8 text-center">Carregando fila de governança…</div>
+        <div className="text-[12px] text-[var(--text-secondary)] py-8 text-center">Carregando fila de governança…</div>
       ) : filtered.length === 0 ? (
-        <div className="rounded-[8px] border border-white/[0.06] bg-[#111111] py-10 text-center">
-          <div className="text-[13px] text-[#6B6B65]">Nenhum BrainChangeRequest neste status.</div>
+        <div className="rounded-[8px] border border-white/[0.06] bg-[var(--text-primary)] py-10 text-center">
+          <div className="text-[13px] text-[var(--text-secondary)]">Nenhum BrainChangeRequest neste status.</div>
           {filter === "pending_review" && (
-            <div className="text-[11px] text-[#4A4A44] mt-1">
+            <div className="text-[11px] text-[var(--text-secondary)] mt-1">
               Sugestões aprovadas no Training Center aparecem aqui automaticamente.
             </div>
           )}
@@ -1661,7 +1661,7 @@ function DirectorTab({ onCountsChange }: { onCountsChange: (n: number) => void }
             const sourceLabel = (BRAIN_CHANGE_SOURCE_LABELS as Record<string, string>)[req.source] ?? req.source;
             const statusLabel = (BRAIN_CHANGE_STATUS_LABELS as Record<string, string>)[req.status] ?? req.status;
             return (
-              <div key={req.id} className="rounded-[8px] border border-white/[0.06] bg-[#111111]">
+              <div key={req.id} className="rounded-[8px] border border-white/[0.06] bg-[var(--text-primary)]">
                 {/* Header row */}
                 <button
                   onClick={() => setExpandedId(expanded ? null : req.id)}
@@ -1685,10 +1685,10 @@ function DirectorTab({ onCountsChange }: { onCountsChange: (n: number) => void }
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <div className="text-[10px] text-[#4A4A44]">
+                      <div className="text-[10px] text-[var(--text-secondary)]">
                         {new Date(req.createdAt).toLocaleDateString("pt-BR")}
                       </div>
-                      <div className="text-[10px] text-[#4A4A44] mt-0.5">{req.requestedBy}</div>
+                      <div className="text-[10px] text-[var(--text-secondary)] mt-0.5">{req.requestedBy}</div>
                     </div>
                   </div>
                 </button>
@@ -1713,10 +1713,10 @@ function DirectorTab({ onCountsChange }: { onCountsChange: (n: number) => void }
                     </div>
 
                     <div>
-                      <div className="text-[10px] font-semibold text-[#4A4A44] uppercase tracking-[0.06em] mb-1">
+                      <div className="text-[10px] font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em] mb-1">
                         Mudança Proposta
                       </div>
-                      <div className="text-[12px] text-[#C0C0BA] bg-[#0A0A0A] rounded-[6px] px-3 py-2.5 leading-relaxed">
+                      <div className="text-[12px] text-[var(--text-subtle)] bg-[var(--text-primary)] rounded-[6px] px-3 py-2.5 leading-relaxed">
                         {req.proposedChange}
                       </div>
                     </div>
@@ -1726,7 +1726,7 @@ function DirectorTab({ onCountsChange }: { onCountsChange: (n: number) => void }
                     )}
 
                     <div>
-                      <div className="text-[10px] font-semibold text-[#4A4A44] uppercase tracking-[0.06em] mb-1">
+                      <div className="text-[10px] font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em] mb-1">
                         Aprovação requerida de
                       </div>
                       <div className="flex gap-1.5">
@@ -1796,16 +1796,16 @@ function DirectorTab({ onCountsChange }: { onCountsChange: (n: number) => void }
         <div>
           <SectionTitle>Histórico de Versões do Brain</SectionTitle>
           {data.versions.length === 0 ? (
-            <div className="text-[12px] text-[#4A4A44]">
+            <div className="text-[12px] text-[var(--text-secondary)]">
               Nenhuma mudança aplicada ainda. O Brain está em v{BRAIN_VERSION} (base).
             </div>
           ) : (
             <div className="space-y-2">
               {data.versions.map((v) => (
-                <div key={v.id} className="flex items-center gap-3 rounded-[8px] border border-white/[0.06] bg-[#111111] px-4 py-2.5">
-                  <span className="text-[12px] font-mono font-bold text-[#070A1F] shrink-0">v{v.version}</span>
-                  <span className="text-[12px] text-[#C0C0BA] flex-1 truncate">{v.summary}</span>
-                  <span className="text-[10px] text-[#4A4A44] shrink-0">
+                <div key={v.id} className="flex items-center gap-3 rounded-[8px] border border-white/[0.06] bg-[var(--text-primary)] px-4 py-2.5">
+                  <span className="text-[12px] font-mono font-bold text-[var(--navy)] shrink-0">v{v.version}</span>
+                  <span className="text-[12px] text-[var(--text-subtle)] flex-1 truncate">{v.summary}</span>
+                  <span className="text-[10px] text-[var(--text-secondary)] shrink-0">
                     {new Date(v.createdAt).toLocaleString("pt-BR")}
                   </span>
                 </div>
@@ -1821,7 +1821,7 @@ function DirectorTab({ onCountsChange }: { onCountsChange: (n: number) => void }
 function ReviewField({ label, value, color }: { label: string; value: string; color?: string }) {
   return (
     <div>
-      <div className="text-[10px] font-semibold text-[#4A4A44] uppercase tracking-[0.06em] mb-1">{label}</div>
+      <div className="text-[10px] font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em] mb-1">{label}</div>
       <div className="text-[12px] leading-relaxed" style={{ color: color ?? "#C0C0BA" }}>{value}</div>
     </div>
   );
@@ -1850,12 +1850,12 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 
 function StatCard({ label, value, total, color }: { label: string; value: number; total: number; color: string }) {
   return (
-    <div className="rounded-[8px] border border-white/[0.06] bg-[#111111] p-4">
+    <div className="rounded-[8px] border border-white/[0.06] bg-[var(--text-primary)] p-4">
       <div className="text-[24px] font-bold tracking-[-0.02em]" style={{ color }}>
         {value}
-        <span className="text-[14px] text-[#4A4A44] font-normal ml-1">/ {total}</span>
+        <span className="text-[14px] text-[var(--text-secondary)] font-normal ml-1">/ {total}</span>
       </div>
-      <div className="text-[11px] text-[#6B6B65] mt-1">{label}</div>
+      <div className="text-[11px] text-[var(--text-secondary)] mt-1">{label}</div>
     </div>
   );
 }

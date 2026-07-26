@@ -116,7 +116,7 @@ function MessageBubble({ msg }: { msg: ConvMessage }) {
   if (msg.role === "system") {
     return (
       <div className="text-center">
-        <span className="inline-block text-[10px] text-[#9B9B95] bg-[#F7F7F6] px-3 py-1 rounded-full">
+        <span className="inline-block text-[10px] text-[var(--text-muted)] bg-[var(--bg)] px-3 py-1 rounded-full">
           {msg.text}
         </span>
       </div>
@@ -126,7 +126,7 @@ function MessageBubble({ msg }: { msg: ConvMessage }) {
   return (
     <div className={`flex ${isAssistant ? "justify-start" : "justify-end"}`}>
       {isAssistant && (
-        <div className="w-6 h-6 rounded-full bg-[#070A1F] flex items-center justify-center shrink-0 mr-2 mt-0.5">
+        <div className="w-6 h-6 rounded-full bg-[var(--navy)] flex items-center justify-center shrink-0 mr-2 mt-0.5">
           <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
             <circle cx="4" cy="4" r="2.5" fill="white" fillOpacity="0.9"/>
           </svg>
@@ -135,8 +135,8 @@ function MessageBubble({ msg }: { msg: ConvMessage }) {
       <div
         className={`max-w-[85%] px-3.5 py-2.5 rounded-[12px] text-[13px] leading-relaxed ${
           isAssistant
-            ? "bg-[#F7F7F6] text-[#1A1A1A] rounded-tl-[4px]"
-            : "bg-[#1A1A1A] text-white rounded-tr-[4px]"
+            ? "bg-[var(--bg)] text-[var(--text-primary)] rounded-tl-[4px]"
+            : "bg-[var(--text-primary)] text-white rounded-tr-[4px]"
         }`}
       >
         <MsgText text={msg.text} />
@@ -148,9 +148,9 @@ function MessageBubble({ msg }: { msg: ConvMessage }) {
 // ── Package badge ─────────────────────────────────────────────────────────────
 
 const PKG_STYLE: Record<string, { bg: string; text: string }> = {
-  starter: { bg: "bg-[#F0F0ED]",  text: "text-[#6B6B65]"  },
-  growth:  { bg: "bg-[#E6FBFA]",  text: "text-[#070A1F]"  },
-  pro:     { bg: "bg-[#E6FBFA]",  text: "text-[#070A1F]"  },
+  starter: { bg: "bg-[var(--accent)]",  text: "text-[var(--text-secondary)]"  },
+  growth:  { bg: "bg-[var(--accent-light)]",  text: "text-[var(--navy)]"  },
+  pro:     { bg: "bg-[var(--accent-light)]",  text: "text-[var(--navy)]"  },
 };
 
 // ── Scope section ─────────────────────────────────────────────────────────────
@@ -218,7 +218,7 @@ function ScopeSection({ scope }: { scope: BriefingScope }) {
     <div className="space-y-2">
       {pkgLabel && pkgStyle && (
         <div className="flex items-center gap-2 mb-1">
-          <span className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em]">Plano</span>
+          <span className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em]">Plano</span>
           <span className={`h-5 px-2.5 rounded-full text-[10px] font-semibold ${pkgStyle.bg} ${pkgStyle.text}`}>
             {pkgLabel}
           </span>
@@ -226,8 +226,8 @@ function ScopeSection({ scope }: { scope: BriefingScope }) {
       )}
       {rows.map((r, i) => (
         <div key={i} className="flex items-start gap-2 text-[11px]">
-          <span className="text-[#9B9B95] shrink-0 w-[68px]">{r.label}</span>
-          <span className={r.dim ? "text-[#C0C0BC]" : "text-[#1A1A1A] font-medium"}>{r.value}</span>
+          <span className="text-[var(--text-muted)] shrink-0 w-[68px]">{r.label}</span>
+          <span className={r.dim ? "text-[var(--text-subtle)]" : "text-[var(--text-primary)] font-medium"}>{r.value}</span>
         </div>
       ))}
     </div>
@@ -238,17 +238,17 @@ function ScopeSection({ scope }: { scope: BriefingScope }) {
 
 const CONFIDENCE_CFG = {
   none:   { label: "",                     bg: "",               text: "" },
-  low:    { label: "Estimativa inicial",   bg: "bg-[#FEF3C7]",  text: "text-[#D97706]" },
-  medium: { label: "Estimativa aprox.",    bg: "bg-[#E6FBFA]",  text: "text-[#070A1F]" },
-  high:   { label: "Estimativa confiável", bg: "bg-[#DCFCE7]",  text: "text-[#16A34A]" },
+  low:    { label: "Estimativa inicial",   bg: "bg-[var(--warning-bg)]",  text: "text-[var(--warning)]" },
+  medium: { label: "Estimativa aprox.",    bg: "bg-[var(--accent-light)]",  text: "text-[var(--navy)]" },
+  high:   { label: "Estimativa confiável", bg: "bg-[var(--success-bg)]",  text: "text-[var(--success)]" },
 };
 
 function EstimateSection({ estimate }: { estimate: LiveEstimate }) {
   const cfg = CONFIDENCE_CFG[estimate.confidence];
   return (
-    <div className="border-t border-[#F0F0ED] pt-3 space-y-1.5">
+    <div className="border-t border-[var(--border)] pt-3 space-y-1.5">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em]">Estimativa mensal</span>
+        <span className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em]">Estimativa mensal</span>
         {estimate.confidence !== "none" && (
           <span className={`h-4 px-1.5 rounded-[3px] text-[9px] font-semibold ${cfg.bg} ${cfg.text}`}>
             {cfg.label}
@@ -257,16 +257,16 @@ function EstimateSection({ estimate }: { estimate: LiveEstimate }) {
       </div>
       {estimate.items.map((item, i) => (
         <div key={i} className="flex items-start gap-2 text-[11px]">
-          <span className="text-[#9B9B95] flex-1 leading-relaxed">{item.label}</span>
-          <span className="text-[#6B6B65] shrink-0 text-right">
+          <span className="text-[var(--text-muted)] flex-1 leading-relaxed">{item.label}</span>
+          <span className="text-[var(--text-secondary)] shrink-0 text-right">
             {fmtBRL(item.minPrice)}–{fmtBRL(item.maxPrice)}
-            <span className="text-[#C0C0BC]">/{item.unit}</span>
+            <span className="text-[var(--text-subtle)]">/{item.unit}</span>
           </span>
         </div>
       ))}
-      <div className="flex items-center justify-between pt-1.5 border-t border-[#F0F0ED]">
-        <span className="text-[11px] font-semibold text-[#1A1A1A]">Total</span>
-        <span className="text-[13px] font-bold text-[#1A1A1A]">
+      <div className="flex items-center justify-between pt-1.5 border-t border-[var(--border)]">
+        <span className="text-[11px] font-semibold text-[var(--text-primary)]">Total</span>
+        <span className="text-[13px] font-bold text-[var(--text-primary)]">
           {fmtBRL(estimate.totalMin)} – {fmtBRL(estimate.totalMax)}
         </span>
       </div>
@@ -340,9 +340,9 @@ function ProposalCard({
   return (
     <div className="space-y-3">
       {/* Banner */}
-      <div className="bg-[#DCFCE7] border border-[#86EFAC] rounded-[8px] px-3 py-2.5">
+      <div className="bg-[var(--success-bg)] border border-[#86EFAC] rounded-[8px] px-3 py-2.5">
         <p className="text-[11px] font-semibold text-[#166534]">✓ Proposta inicial pronta para revisão</p>
-        <p className="text-[10px] text-[#16A34A] mt-0.5">
+        <p className="text-[10px] text-[var(--success)] mt-0.5">
           Revise o escopo abaixo e envie para análise da Dioli.
         </p>
       </div>
@@ -350,36 +350,36 @@ function ProposalCard({
       {/* Plano recomendado */}
       {pkgDesc && (
         <div>
-          <div className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1">Plano recomendado</div>
-          <p className="text-[11px] text-[#1A1A1A] font-medium">{pkgDesc}</p>
+          <div className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em] mb-1">Plano recomendado</div>
+          <p className="text-[11px] text-[var(--text-primary)] font-medium">{pkgDesc}</p>
         </div>
       )}
 
       {/* Investimento */}
       {estimate.totalMin > 0 && (
         <div>
-          <div className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1">Investimento estimado</div>
-          <p className="text-[14px] font-bold text-[#1A1A1A]">
+          <div className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em] mb-1">Investimento estimado</div>
+          <p className="text-[14px] font-bold text-[var(--text-primary)]">
             {fmtBRL(estimate.totalMin)} – {fmtBRL(estimate.totalMax)}
-            <span className="text-[11px] font-normal text-[#9B9B95] ml-1">/mês</span>
+            <span className="text-[11px] font-normal text-[var(--text-muted)] ml-1">/mês</span>
           </p>
-          <p className="text-[9px] text-[#C0C0BC] mt-0.5">*Sujeito a detalhamento no escopo final</p>
+          <p className="text-[9px] text-[var(--text-subtle)] mt-0.5">*Sujeito a detalhamento no escopo final</p>
         </div>
       )}
 
       {/* Prazo */}
       <div>
-        <div className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1">Prazo de início</div>
-        <p className="text-[11px] text-[#1A1A1A]">{scope.deadline ?? timeline}</p>
+        <div className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em] mb-1">Prazo de início</div>
+        <p className="text-[11px] text-[var(--text-primary)]">{scope.deadline ?? timeline}</p>
       </div>
 
       {/* Incluso */}
       {incl.length > 0 && (
         <div>
-          <div className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1">O que está incluso</div>
+          <div className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em] mb-1">O que está incluso</div>
           {incl.map((item, i) => (
-            <div key={i} className="flex items-start gap-1.5 text-[10px] text-[#1A1A1A] py-0.5">
-              <span className="text-[#16A34A] shrink-0 font-bold">✓</span>
+            <div key={i} className="flex items-start gap-1.5 text-[10px] text-[var(--text-primary)] py-0.5">
+              <span className="text-[var(--success)] shrink-0 font-bold">✓</span>
               {item}
             </div>
           ))}
@@ -389,9 +389,9 @@ function ProposalCard({
       {/* Não incluso */}
       {excl.length > 0 && (
         <div>
-          <div className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1">Não incluso</div>
+          <div className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em] mb-1">Não incluso</div>
           {excl.map((item, i) => (
-            <div key={i} className="flex items-start gap-1.5 text-[10px] text-[#9B9B95] py-0.5">
+            <div key={i} className="flex items-start gap-1.5 text-[10px] text-[var(--text-muted)] py-0.5">
               <span className="shrink-0">–</span>
               {item}
             </div>
@@ -400,9 +400,9 @@ function ProposalCard({
       )}
 
       {/* Próximos passos */}
-      <div className="bg-[#F7F7F6] rounded-[8px] px-3 py-2.5">
-        <div className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1">Próximos passos</div>
-        <p className="text-[10px] text-[#6B6B65] leading-relaxed">
+      <div className="bg-[var(--bg)] rounded-[8px] px-3 py-2.5">
+        <div className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em] mb-1">Próximos passos</div>
+        <p className="text-[10px] text-[var(--text-secondary)] leading-relaxed">
           Após o envio, nossa equipe revisa o escopo, prepara uma proposta formal e entra em contato em até 24h úteis.
         </p>
       </div>
@@ -410,7 +410,7 @@ function ProposalCard({
       {/* Submit CTA */}
       <button
         onClick={onSubmit}
-        className="w-full h-11 rounded-[8px] bg-[#1A1A1A] hover:bg-[#111111] text-white text-[13px] font-semibold transition-colors"
+        className="w-full h-11 rounded-[8px] bg-[var(--text-primary)] hover:bg-[var(--text-primary)] text-white text-[13px] font-semibold transition-colors"
       >
         Enviar solicitação para análise →
       </button>
@@ -495,26 +495,26 @@ export function BriefingRoomV2({
     <div className="grid grid-cols-[1fr_300px] gap-6 items-start">
 
       {/* ── Left: Chat ───────────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden flex flex-col">
+      <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden flex flex-col">
 
         {/* Chat header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0F0ED]">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
           <div>
-            <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em]">Growth Room</div>
-            <div className="text-[14px] font-semibold text-[#1A1A1A] mt-0.5">Conversa com a Dioli</div>
+            <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em]">Growth Room</div>
+            <div className="text-[14px] font-semibold text-[var(--text-primary)] mt-0.5">Conversa com a Dioli</div>
           </div>
           <div className="flex items-center gap-2">
             {showDemoButton && exampleText && conv.isFirstMessage && (
               <button
                 onClick={handleExample}
-                className="h-7 px-3 rounded-[6px] border border-[#FDE68A] bg-[#FFFBEB] text-[#D97706] hover:border-[#F59E0B] text-[10px] font-semibold transition-colors whitespace-nowrap"
+                className="h-7 px-3 rounded-[6px] border border-[#FDE68A] bg-[#FFFBEB] text-[var(--warning)] hover:border-[#F59E0B] text-[10px] font-semibold transition-colors whitespace-nowrap"
               >
                 ✦ Preencher exemplo
               </button>
             )}
             <button
               onClick={onCancel}
-              className="h-7 px-3 rounded-[6px] border border-[#E5E5E2] text-[#9B9B95] hover:text-[#6B6B65] text-[11px] transition-colors"
+              className="h-7 px-3 rounded-[6px] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] text-[11px] transition-colors"
             >
               Cancelar
             </button>
@@ -531,13 +531,13 @@ export function BriefingRoomV2({
 
         {/* File upload (toggled) */}
         {showFileUpload && (
-          <div className="px-5 pb-3 border-t border-[#F0F0ED] pt-3">
+          <div className="px-5 pb-3 border-t border-[var(--border)] pt-3">
             <FileUploadZone clientId={clientId} onChange={setAttachments} />
           </div>
         )}
 
         {/* Input */}
-        <div className="border-t border-[#F0F0ED] px-4 py-3">
+        <div className="border-t border-[var(--border)] px-4 py-3">
           <div className="flex gap-2">
             <textarea
               ref={textareaRef}
@@ -550,12 +550,12 @@ export function BriefingRoomV2({
                   : "Digite sua resposta…"
               }
               rows={2}
-              className="flex-1 px-3 py-2.5 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[8px] outline-none focus:border-[#070A1F] focus:bg-white transition-all resize-none leading-relaxed placeholder:text-[#C0C0BC]"
+              className="flex-1 px-3 py-2.5 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[8px] outline-none focus:border-[var(--navy)] focus:bg-white transition-all resize-none leading-relaxed placeholder:text-[var(--text-subtle)]"
             />
             <button
               onClick={handleSend}
               disabled={!inputText.trim()}
-              className="w-[52px] rounded-[8px] bg-[#1A1A1A] hover:bg-[#111111] disabled:opacity-40 disabled:cursor-not-allowed text-white flex items-center justify-center transition-colors shrink-0"
+              className="w-[52px] rounded-[8px] bg-[var(--text-primary)] hover:bg-[var(--text-primary)] disabled:opacity-40 disabled:cursor-not-allowed text-white flex items-center justify-center transition-colors shrink-0"
               aria-label="Enviar"
             >
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -570,12 +570,12 @@ export function BriefingRoomV2({
                 onClick={isListening ? stopListening : startListening}
                 className={`h-6 px-2.5 rounded-[5px] text-[10px] font-medium border transition-colors flex items-center gap-1.5 ${
                   isListening
-                    ? "bg-[#FEE2E2] border-[#FECACA] text-[#DC2626]"
-                    : "bg-white border-[#E5E5E2] text-[#9B9B95] hover:border-[#9B9B95]"
+                    ? "bg-[#FEE2E2] border-[#FECACA] text-[var(--danger)]"
+                    : "bg-white border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--text-muted)]"
                 }`}
               >
                 {isListening ? (
-                  <><span className="w-1.5 h-1.5 rounded-full bg-[#DC2626] animate-pulse" />Parar</>
+                  <><span className="w-1.5 h-1.5 rounded-full bg-[var(--danger)] animate-pulse" />Parar</>
                 ) : (
                   <>
                     <svg width="9" height="12" viewBox="0 0 9 12" fill="none">
@@ -593,8 +593,8 @@ export function BriefingRoomV2({
               onClick={() => setShowFileUpload((v) => !v)}
               className={`h-6 px-2.5 rounded-[5px] text-[10px] font-medium border transition-colors flex items-center gap-1.5 ${
                 showFileUpload
-                  ? "bg-[#E6FBFA] border-[#C7C7FF] text-[#070A1F]"
-                  : "bg-white border-[#E5E5E2] text-[#9B9B95] hover:border-[#9B9B95]"
+                  ? "bg-[var(--accent-light)] border-[#C7C7FF] text-[var(--navy)]"
+                  : "bg-white border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--text-muted)]"
               }`}
             >
               <svg width="10" height="11" viewBox="0 0 10 11" fill="none">
@@ -603,24 +603,24 @@ export function BriefingRoomV2({
               </svg>
               {attachments.length > 0 ? `${attachments.length} arquivo${attachments.length !== 1 ? "s" : ""}` : "Anexar"}
             </button>
-            <span className="text-[10px] text-[#C0C0BC] ml-auto hidden sm:block">
+            <span className="text-[10px] text-[var(--text-subtle)] ml-auto hidden sm:block">
               Enter para enviar · Shift+Enter nova linha
             </span>
           </div>
-          {micError && <p className="text-[10px] text-[#DC2626] mt-1">{micError}</p>}
+          {micError && <p className="text-[10px] text-[var(--danger)] mt-1">{micError}</p>}
         </div>
       </div>
 
       {/* ── Right: Proposal in progress ──────────────────────────────────────── */}
       <div className="sticky top-6">
-        <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
+        <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
 
           {/* Header */}
-          <div className="px-4 py-3.5 border-b border-[#F0F0ED]">
-            <div className="text-[11px] font-semibold text-[#1A1A1A] uppercase tracking-[0.05em]">
+          <div className="px-4 py-3.5 border-b border-[var(--border)]">
+            <div className="text-[11px] font-semibold text-[var(--text-primary)] uppercase tracking-[0.05em]">
               {conv.canSubmit ? "Sua proposta" : "Sua proposta em construção"}
             </div>
-            <p className="text-[10px] text-[#9B9B95] mt-0.5">
+            <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
               {conv.canSubmit ? "Pronta para envio" : "Atualizada conforme você responde"}
             </p>
           </div>
@@ -633,7 +633,7 @@ export function BriefingRoomV2({
             </div>
           ) : !hasScope ? (
             <div className="px-4 py-10 text-center">
-              <p className="text-[11px] text-[#C0C0BC] leading-relaxed">
+              <p className="text-[11px] text-[var(--text-subtle)] leading-relaxed">
                 O escopo e estimativa de preço aparecerão aqui conforme você conversa.
               </p>
             </div>
@@ -648,7 +648,7 @@ export function BriefingRoomV2({
 
               {estimate.missingForEstimate.length > 0 && (
                 <div className="bg-[#FFFBEB] border border-[#FDE68A] rounded-[8px] px-3 py-2.5">
-                  <div className="text-[9px] font-semibold text-[#D97706] uppercase tracking-[0.06em] mb-1.5">
+                  <div className="text-[9px] font-semibold text-[var(--warning)] uppercase tracking-[0.06em] mb-1.5">
                     Preciso saber ainda
                   </div>
                   <ul className="space-y-0.5">
@@ -663,10 +663,10 @@ export function BriefingRoomV2({
 
               {estimate.notIncluded.length > 0 && (
                 <div>
-                  <div className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1">Não incluso</div>
+                  <div className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em] mb-1">Não incluso</div>
                   {estimate.notIncluded.slice(0, 3).map((ni) => (
-                    <div key={ni} className="flex items-start gap-1.5 text-[10px] text-[#9B9B95] py-0.5">
-                      <span className="mt-1.5 w-1 h-1 rounded-full bg-[#D0D0CC] shrink-0" />{ni}
+                    <div key={ni} className="flex items-start gap-1.5 text-[10px] text-[var(--text-muted)] py-0.5">
+                      <span className="mt-1.5 w-1 h-1 rounded-full bg-[var(--border-strong)] shrink-0" />{ni}
                     </div>
                   ))}
                 </div>
@@ -675,7 +675,7 @@ export function BriefingRoomV2({
               {/* Quick actions */}
               {visibleActions.length > 0 && (
                 <div>
-                  <div className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1.5">
+                  <div className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em] mb-1.5">
                     Ajustar escopo
                   </div>
                   <div className="flex flex-wrap gap-1.5">
@@ -683,7 +683,7 @@ export function BriefingRoomV2({
                       <button
                         key={qa.label}
                         onClick={() => sendAction(qa.text)}
-                        className="h-6 px-2.5 rounded-[5px] border border-[#E5E5E2] bg-white text-[#6B6B65] hover:border-[#9B9B95] hover:text-[#1A1A1A] text-[10px] font-medium transition-colors"
+                        className="h-6 px-2.5 rounded-[5px] border border-[var(--border)] bg-white text-[var(--text-secondary)] hover:border-[var(--text-muted)] hover:text-[var(--text-primary)] text-[10px] font-medium transition-colors"
                       >
                         {qa.label}
                       </button>
@@ -696,13 +696,13 @@ export function BriefingRoomV2({
 
           {/* Attachments */}
           {attachments.length > 0 && (
-            <div className="px-4 pb-3 border-t border-[#F0F0ED] pt-3">
-              <div className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1.5">
+            <div className="px-4 pb-3 border-t border-[var(--border)] pt-3">
+              <div className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em] mb-1.5">
                 Materiais anexados
               </div>
               {attachments.map((a) => (
-                <div key={a.id} className="flex items-center gap-1.5 text-[10px] text-[#6B6B65] py-0.5">
-                  <span className="w-1 h-1 rounded-full bg-[#9B9B95] shrink-0" />
+                <div key={a.id} className="flex items-center gap-1.5 text-[10px] text-[var(--text-secondary)] py-0.5">
+                  <span className="w-1 h-1 rounded-full bg-[var(--text-muted)] shrink-0" />
                   <span className="truncate">{a.fileName}</span>
                 </div>
               ))}
@@ -711,10 +711,10 @@ export function BriefingRoomV2({
 
           {/* Submit (only when not yet canSubmit) */}
           {!conv.canSubmit && (
-            <div className="px-4 pb-4 pt-3 border-t border-[#F0F0ED]">
+            <div className="px-4 pb-4 pt-3 border-t border-[var(--border)]">
               <button
                 disabled
-                className="w-full h-10 rounded-[8px] bg-[#F0F0ED] text-[#C0C0BC] text-[12px] cursor-not-allowed"
+                className="w-full h-10 rounded-[8px] bg-[var(--accent)] text-[var(--text-subtle)] text-[12px] cursor-not-allowed"
               >
                 Continue a conversa para enviar
               </button>
@@ -724,19 +724,19 @@ export function BriefingRoomV2({
 
         {/* Packages reference */}
         {!conv.canSubmit && !hasScope && (
-          <div className="mt-3 bg-[#F7F7F6] rounded-[12px] border border-[#E5E5E2] px-4 py-3">
-            <div className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-2">
+          <div className="mt-3 bg-[var(--bg)] rounded-[12px] border border-[var(--border)] px-4 py-3">
+            <div className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em] mb-2">
               Planos Social Media
             </div>
             {SOCIAL_PACKAGES.map((pkg) => (
               <div key={pkg.id} className="flex items-center justify-between py-1 text-[10px]">
                 <div>
-                  <span className={`font-semibold ${PKG_STYLE[pkg.id]?.text ?? "text-[#6B6B65]"}`}>
+                  <span className={`font-semibold ${PKG_STYLE[pkg.id]?.text ?? "text-[var(--text-secondary)]"}`}>
                     {pkg.label}
                   </span>
-                  <span className="text-[#9B9B95] ml-1">{pkg.description.split("—")[0].trim()}</span>
+                  <span className="text-[var(--text-muted)] ml-1">{pkg.description.split("—")[0].trim()}</span>
                 </div>
-                <span className="text-[#6B6B65] shrink-0 ml-2">
+                <span className="text-[var(--text-secondary)] shrink-0 ml-2">
                   R$ {pkg.minPrice.toLocaleString("pt-BR")}–{pkg.maxPrice.toLocaleString("pt-BR")}
                 </span>
               </div>

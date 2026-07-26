@@ -11,16 +11,16 @@ function CheckRow({ item }: { item: ChecklistItem }) {
     <div className="flex items-start gap-2.5 py-1.5">
       <span
         className={`mt-0.5 w-4 h-4 rounded-[5px] shrink-0 flex items-center justify-center text-[10px] font-bold ${
-          item.done ? "bg-[#DCFCE7] text-[#16A34A]" : "border border-[#D0D0CC] text-transparent"
+          item.done ? "bg-[var(--success-bg)] text-[var(--success)]" : "border border-[var(--border-strong)] text-transparent"
         }`}
       >
         {item.done ? "✓" : ""}
       </span>
       <div className="min-w-0">
-        <p className={`text-[12px] font-medium leading-snug ${item.done ? "text-[#1A1A1A]" : "text-[#6B6B65]"}`}>
+        <p className={`text-[12px] font-medium leading-snug ${item.done ? "text-[var(--text-primary)]" : "text-[var(--text-secondary)]"}`}>
           {item.label}
         </p>
-        {!item.done && <p className="text-[11px] text-[#9B9B95] mt-0.5">{item.hint}</p>}
+        {!item.done && <p className="text-[11px] text-[var(--text-muted)] mt-0.5">{item.hint}</p>}
       </div>
     </div>
   );
@@ -41,12 +41,12 @@ function Phase({
 }) {
   const doneCount = items.filter((i) => i.done).length;
   return (
-    <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F0ED]">
-        <h3 className="text-[13px] font-semibold text-[#1A1A1A]">{title}</h3>
+    <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+      <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--border)]">
+        <h3 className="text-[13px] font-semibold text-[var(--text-primary)]">{title}</h3>
         <span
           className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-            ready ? "bg-[#DCFCE7] text-[#16A34A]" : "bg-[#FEF3C7] text-[#D97706]"
+            ready ? "bg-[var(--success-bg)] text-[var(--success)]" : "bg-[var(--warning-bg)] text-[var(--warning)]"
           }`}
         >
           {ready ? readyLabel : `${doneCount}/${items.length} — ${pendingLabel}`}
@@ -65,8 +65,8 @@ export default function PilotChecklist({ checklist }: { checklist: PilotChecklis
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-[15px] font-semibold text-[#1A1A1A]">Checklist do Primeiro Cliente</h2>
-        <p className="text-[12px] text-[#9B9B95] mt-0.5">
+        <h2 className="text-[15px] font-semibold text-[var(--text-primary)]">Checklist do Primeiro Cliente</h2>
+        <p className="text-[12px] text-[var(--text-muted)] mt-0.5">
           Prontidão operacional antes de executar e antes de entregar. Uso interno.
         </p>
       </div>
