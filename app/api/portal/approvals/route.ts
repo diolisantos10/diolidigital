@@ -15,6 +15,7 @@ import {
 import { createProjectFromRequest } from "@/lib/agency/execution/create-project-from-request";
 import { runProjectExecution } from "@/lib/agency/execution/run-execution";
 import { negotiateProposal } from "@/lib/agency/execution/negotiate-proposal";
+import { assessResources } from "@/lib/agency/execution/assess-resources";
 
 const ACTION_TO_STATUS: Record<string, ApprovalStatus> = {
   approve:          "approved",
@@ -117,7 +118,24 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         const created = await createProjectFromRequest(approval.clientRequestId, `client:${clientIdentity}`);
         if (created.ok) {
           projectId = created.projectId;
-          void runProjectExecution(created.projectId).catch(() => {});
+          // Resource gate: do we have everything to create what the client asked
+          // for? YES → produce. NO → request exactly what's missing and hold.
+          const gate = await assessResources(approval.clientRequestId);
+          if (gate.sufficient) {
+            void runProjectExecution(created.projectId).catch(() => {});
+          } else {
+            for (const m of gate.missing) {
+              await prisma.materialRequest.create({ data: { projectId: created.projectId, type: m.type, description: m.description } });
+            }
+            const list = gate.missing.map((m) => `• ${m.description}`).join("\n");
+            await prisma.portalMessage.create({
+              data: {
+                clientRequestId: approval.clientRequestId, authorRole: "team", authorName: "Equipe Dioli",
+                body: `Seu projeto foi aprovado! 🎉 Pra gente começar a produzir com qualidade, só precisamos de alguns materiais seus:\n\n${list}\n\nÉ só enviar na aba "Materiais" aqui do portal — assim que chegarem, os agentes começam na hora. 💛`,
+                readByTeam: false,
+              },
+            });
+          }
         }
       } catch (e) {
         console.error("[portal/approvals] proposal→project error", e);
