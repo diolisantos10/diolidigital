@@ -126,6 +126,30 @@ export async function GET(
       });
     }
 
+    // Surface what the AGENTS actually PRODUCED (Deliverable table) — the real
+    // work, with its content, not just the scope. This is what was invisible.
+    const produced = await prisma.deliverable.findMany({
+      where: { projectId: project.id },
+      orderBy: { createdAt: "asc" },
+      select: { name: true, type: true, content: true, ownerAgentId: true, status: true },
+    });
+    const AGENT_DEPT: Record<string, string> = { a3: "social", a2: "design", a4: "traffic" };
+    for (const dv of produced) {
+      const dept = (dv.ownerAgentId && AGENT_DEPT[dv.ownerAgentId]) || dv.type || "entrega";
+      const lines = (dv.content ?? "").split("\n").map((l) => l.trim()).filter(Boolean);
+      const headline = lines.find((l) => !l.startsWith("•") && !l.startsWith("*")) ?? dv.name;
+      const bullets = lines.filter((l) => l.startsWith("•")).map((l) => l.replace(/^•\s*/, "")).slice(0, 6);
+      departments.push({
+        department: `produced:${dept}`,
+        label: `📦 ${dv.name}`,
+        status: dv.status === "in_review" ? "aguardando aprovação do cliente" : dv.status,
+        gate: null,
+        approvedAt: null,
+        headline,
+        bullets: bullets.length ? bullets : lines.slice(1, 6),
+      });
+    }
+
     return NextResponse.json({
       project: {
         id: project.id,
