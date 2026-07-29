@@ -63,6 +63,7 @@ model Client {
   updatedAt   DateTime @updatedAt
 
   projects     Project[]
+  notices      ClientNotice[]
   brandBrain   BrandBrain?
   brandUpdates BrandUpdate[]
 }
@@ -158,6 +159,54 @@ model Cycle {
 
   @@unique([projectId, reference])
   @@index([projectId, status])
+}
+
+// ─── Avisos ao cliente ────────────────────────────────────────────────────────
+
+/// O AVISO — a ponte entre "a esteira precisa de algo" e "o cliente ficou sabendo".
+///
+/// A esteira escreve no portal, mas o portal só existe se o cliente abrir. Sem
+/// esta tabela, um pedido de material podia ficar semanas parado porque ninguém
+/// avisou que ele existia — o projeto travado e a agência achando que a bola
+/// estava com o cliente.
+///
+/// A regra: o aviso NUNCA se perde. Se houver canal automático configurado, ele
+/// sai sozinho e o registro fica como comprovante. Se não houver, o aviso vira
+/// FILA para o time disparar à mão — com o texto e o link já prontos, para não
+/// depender de alguém escrever bem às pressas.
+///
+/// Isso resolve a restrição real do WhatsApp: fora da janela de 24h a Meta só
+/// aceita template aprovado, e aprovação leva dias. Até lá o aviso sai pela mão
+/// de gente, mas sai — e o sistema sabe se saiu.
+model ClientNotice {
+  id          String   @id @default(cuid())
+  workspaceId String
+  clientId    String
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  projectId   String?
+
+  /// direcao | material | entrega | ciclo
+  kind        String
+  /// O que o cliente precisa saber, já redigido para ser lido por ele.
+  body        String
+  /// O link do portal que resolve este aviso.
+  link        String?
+
+  /// pendente | enviado | falhou | dispensado
+  status      String   @default("pendente")
+  /// whatsapp | email | manual | nenhum
+  channel     String   @default("nenhum")
+  /// Por que não saiu sozinho — para a equipe entender sem adivinhar.
+  failReason  String?
+  sentAt      DateTime?
+  /// Quem disparou, quando foi à mão.
+  sentBy      String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([workspaceId, status])
+  @@index([clientId, status])
 }
 
 // ─── Deliverables ─────────────────────────────────────────────────────────────

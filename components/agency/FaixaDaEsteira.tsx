@@ -57,6 +57,13 @@ export default function FaixaDaEsteira({
 }: FaixaProps) {
   const c = CORES[semaforo];
   const paraCliente = publico === "cliente";
+  // Normalmente existe exatamente uma etapa "atual". Quando não existe — projeto
+  // concluído, trilha inteira marcada como feita — cair na PRIMEIRA seria dizer
+  // "etapa 1 de 9" num projeto 100% entregue. O certo é a última percorrida.
+  const marcada = trilha.findIndex((t) => t.estado === "atual");
+  const ultimaFeita = trilha.map((t) => t.estado).lastIndexOf("feito");
+  const indiceAtual = marcada >= 0 ? marcada : Math.max(0, ultimaFeita);
+  const etapaAtual = trilha[indiceAtual];
 
   return (
     <section
@@ -126,7 +133,15 @@ export default function FaixaDaEsteira({
             />
           ))}
         </div>
-        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+        {/* No celular, nove rótulos viram duas linhas de sopa — ruído, não
+            informação. Lá mostramos só onde o projeto está; a lista inteira
+            aparece a partir do tablet, onde cabe numa linha e ajuda de verdade. */}
+        <p className="mt-2 text-[12px] text-[#1A1A1A] sm:hidden">
+          <span className="font-semibold">{etapaAtual?.etapa ?? ""}</span>
+          <span className="text-[#6B6B65]"> · etapa {indiceAtual + 1} de {trilha.length}</span>
+        </p>
+
+        <div className="mt-2 hidden flex-wrap items-center gap-x-3 gap-y-1 sm:flex">
           {trilha.map((t, i) => (
             <span
               key={i}

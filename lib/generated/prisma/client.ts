@@ -73,6 +73,25 @@ export type Project = Prisma.ProjectModel
  */
 export type Cycle = Prisma.CycleModel
 /**
+ * Model ClientNotice
+ * O AVISO — a ponte entre "a esteira precisa de algo" e "o cliente ficou sabendo".
+ * 
+ * A esteira escreve no portal, mas o portal só existe se o cliente abrir. Sem
+ * esta tabela, um pedido de material podia ficar semanas parado porque ninguém
+ * avisou que ele existia — o projeto travado e a agência achando que a bola
+ * estava com o cliente.
+ * 
+ * A regra: o aviso NUNCA se perde. Se houver canal automático configurado, ele
+ * sai sozinho e o registro fica como comprovante. Se não houver, o aviso vira
+ * FILA para o time disparar à mão — com o texto e o link já prontos, para não
+ * depender de alguém escrever bem às pressas.
+ * 
+ * Isso resolve a restrição real do WhatsApp: fora da janela de 24h a Meta só
+ * aceita template aprovado, e aprovação leva dias. Até lá o aviso sai pela mão
+ * de gente, mas sai — e o sistema sabe se saiu.
+ */
+export type ClientNotice = Prisma.ClientNoticeModel
+/**
  * Model Deliverable
  * 
  */

@@ -15,6 +15,7 @@
 
 import { prisma } from "@/lib/db/client";
 import { runProjectExecution, type ExecutionResult } from "@/lib/agency/execution/run-execution";
+import { avisarCliente, type TipoDeAviso } from "@/lib/agency/esteira/avisos";
 
 export interface ResultadoDoMarco {
   ok: boolean;
@@ -29,23 +30,46 @@ async function carregar(projectId: string) {
   return prisma.project.findUnique({
     where: { id: projectId },
     select: {
-      id: true, name: true, clientRequestId: true,
+      id: true, name: true, clientRequestId: true, workspaceId: true, clientId: true,
       directionApprovedAt: true, presentedAt: true, clientApprovedAt: true,
     },
   });
 }
 
-async function falarComOCliente(clientRequestId: string | null, corpo: string): Promise<boolean> {
-  if (!clientRequestId) return false;
+/**
+ * Fala com o cliente: escreve no portal E dispara o aviso.
+ *
+ * Os dois passos são um só de propósito. Escrever no portal sem avisar é o que
+ * fazia o projeto parar em silêncio — a mensagem existia, o cliente não sabia.
+ * Quem chama não deveria precisar lembrar das duas coisas.
+ */
+async function falarComOCliente(
+  projeto: { clientRequestId: string | null; workspaceId?: string; clientId?: string; id?: string },
+  corpo: string,
+  tipo: TipoDeAviso,
+): Promise<boolean> {
+  if (!projeto.clientRequestId) return false;
   try {
     await prisma.portalMessage.create({
-      data: { clientRequestId, authorRole: "team", authorName: "Gerente de projeto", body: corpo, readByTeam: true },
+      data: { clientRequestId: projeto.clientRequestId, authorRole: "team", authorName: "Gerente de projeto", body: corpo, readByTeam: true },
     });
-    return true;
   } catch (e) {
     console.warn("[esteira] não consegui falar com o cliente:", e instanceof Error ? e.message : e);
     return false;
   }
+
+  // O aviso é best-effort e nunca derruba o marco: perder o aviso é ruim,
+  // perder o registro do que foi combinado é pior.
+  if (projeto.workspaceId && projeto.clientId) {
+    await avisarCliente({
+      workspaceId: projeto.workspaceId,
+      clientId: projeto.clientId,
+      ...(projeto.id ? { projectId: projeto.id } : {}),
+      tipo,
+      texto: corpo,
+    }).catch(() => undefined);
+  }
+  return true;
 }
 
 /**
@@ -81,7 +105,7 @@ export async function pedirDirecao(projectId: string): Promise<ResultadoDoMarco>
     "Se quiser mudar algo, agora é a melhor hora — mudar o rumo aqui é rápido; depois da produção, custa bem mais.",
   ];
 
-  const avisou = await falarComOCliente(projeto.clientRequestId, linhas.join("\n"));
+  const avisou = await falarComOCliente(projeto, linhas.join("\n"), "direcao");
   return { ok: true, avisouCliente: avisou };
 }
 
@@ -114,8 +138,9 @@ export async function aprovarDirecao(projectId: string, opts: { produzirAgora?: 
   });
 
   const avisou = await falarComOCliente(
-    projeto.clientRequestId,
+    projeto,
     "Direção aprovada — obrigado! 🎯 A produção já começou. Assim que estiver tudo pronto, eu te apresento o pacote completo de uma vez.",
+    "direcao",
   );
 
   if (opts.produzirAgora === false) return { ok: true, avisouCliente: avisou };
@@ -178,7 +203,7 @@ export async function apresentar(projectId: string, opts: { mesmoComRessalva?: b
     linhas.push("", `Só uma observação: ainda faltam ${pendentes} material(is) seu(s) que pedi antes. Nada trava sua análise, mas vamos precisar deles para colocar tudo no ar.`);
   }
 
-  const avisou = await falarComOCliente(projeto.clientRequestId, linhas.join("\n"));
+  const avisou = await falarComOCliente(projeto, linhas.join("\n"), "entrega");
   return { ok: true, avisouCliente: avisou };
 }
 
@@ -212,8 +237,9 @@ export async function aprovarPacote(projectId: string): Promise<ResultadoDoMarco
   await abrirCiclo(projectId, agora);
 
   const avisou = await falarComOCliente(
-    projeto.clientRequestId,
+    projeto,
     "Aprovado! ✅ Vamos colocar tudo no ar. A partir de agora você acompanha por aqui: toda semana eu te trago o que foi publicado e como está performando.",
+    "ciclo",
   );
 
   return { ok: true, avisouCliente: avisou };

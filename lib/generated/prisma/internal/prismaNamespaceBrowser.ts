@@ -56,6 +56,7 @@ export const ModelName = {
   Client: 'Client',
   Project: 'Project',
   Cycle: 'Cycle',
+  ClientNotice: 'ClientNotice',
   Deliverable: 'Deliverable',
   MaterialRequest: 'MaterialRequest',
   BrandBrain: 'BrandBrain',
@@ -189,6 +190,26 @@ export const CycleScalarFieldEnum = {
 } as const
 
 export type CycleScalarFieldEnum = (typeof CycleScalarFieldEnum)[keyof typeof CycleScalarFieldEnum]
+
+
+export const ClientNoticeScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  clientId: 'clientId',
+  projectId: 'projectId',
+  kind: 'kind',
+  body: 'body',
+  link: 'link',
+  status: 'status',
+  channel: 'channel',
+  failReason: 'failReason',
+  sentAt: 'sentAt',
+  sentBy: 'sentBy',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ClientNoticeScalarFieldEnum = (typeof ClientNoticeScalarFieldEnum)[keyof typeof ClientNoticeScalarFieldEnum]
 
 
 export const DeliverableScalarFieldEnum = {

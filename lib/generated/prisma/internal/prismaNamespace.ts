@@ -389,6 +389,7 @@ export const ModelName = {
   Client: 'Client',
   Project: 'Project',
   Cycle: 'Cycle',
+  ClientNotice: 'ClientNotice',
   Deliverable: 'Deliverable',
   MaterialRequest: 'MaterialRequest',
   BrandBrain: 'BrandBrain',
@@ -433,7 +434,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "cycle" | "deliverable" | "materialRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "portalAccess" | "marketInsight"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "cycle" | "clientNotice" | "deliverable" | "materialRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "portalAccess" | "marketInsight"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -804,6 +805,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.CycleCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.CycleCountAggregateOutputType> | number
+        }
+      }
+    }
+    ClientNotice: {
+      payload: Prisma.$ClientNoticePayload<ExtArgs>
+      fields: Prisma.ClientNoticeFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ClientNoticeFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientNoticePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ClientNoticeFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientNoticePayload>
+        }
+        findFirst: {
+          args: Prisma.ClientNoticeFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientNoticePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ClientNoticeFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientNoticePayload>
+        }
+        findMany: {
+          args: Prisma.ClientNoticeFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientNoticePayload>[]
+        }
+        create: {
+          args: Prisma.ClientNoticeCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientNoticePayload>
+        }
+        createMany: {
+          args: Prisma.ClientNoticeCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ClientNoticeCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientNoticePayload>[]
+        }
+        delete: {
+          args: Prisma.ClientNoticeDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientNoticePayload>
+        }
+        update: {
+          args: Prisma.ClientNoticeUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientNoticePayload>
+        }
+        deleteMany: {
+          args: Prisma.ClientNoticeDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ClientNoticeUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ClientNoticeUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientNoticePayload>[]
+        }
+        upsert: {
+          args: Prisma.ClientNoticeUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientNoticePayload>
+        }
+        aggregate: {
+          args: Prisma.ClientNoticeAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateClientNotice>
+        }
+        groupBy: {
+          args: Prisma.ClientNoticeGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ClientNoticeGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ClientNoticeCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ClientNoticeCountAggregateOutputType> | number
         }
       }
     }
@@ -3080,6 +3155,26 @@ export const CycleScalarFieldEnum = {
 export type CycleScalarFieldEnum = (typeof CycleScalarFieldEnum)[keyof typeof CycleScalarFieldEnum]
 
 
+export const ClientNoticeScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  clientId: 'clientId',
+  projectId: 'projectId',
+  kind: 'kind',
+  body: 'body',
+  link: 'link',
+  status: 'status',
+  channel: 'channel',
+  failReason: 'failReason',
+  sentAt: 'sentAt',
+  sentBy: 'sentBy',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ClientNoticeScalarFieldEnum = (typeof ClientNoticeScalarFieldEnum)[keyof typeof ClientNoticeScalarFieldEnum]
+
+
 export const DeliverableScalarFieldEnum = {
   id: 'id',
   projectId: 'projectId',
@@ -3748,6 +3843,7 @@ export type GlobalOmitConfig = {
   client?: Prisma.ClientOmit
   project?: Prisma.ProjectOmit
   cycle?: Prisma.CycleOmit
+  clientNotice?: Prisma.ClientNoticeOmit
   deliverable?: Prisma.DeliverableOmit
   materialRequest?: Prisma.MaterialRequestOmit
   brandBrain?: Prisma.BrandBrainOmit
