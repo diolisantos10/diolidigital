@@ -6,6 +6,7 @@ import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import { useAgencyStore } from "@/store/agency-store";
 import { useDbDeliverables } from "@/lib/hooks/useDbDeliverables";
 import type { PmAssessment } from "@/app/api/agents/pm/generate/route";
+import { comoTexto, temSubstancia } from "@/lib/agency/esteira/conteudo";
 
 const ACCENT = "#1A1A1A";
 
@@ -128,11 +129,14 @@ export default function PmAgentPage() {
 
   async function handleSave() {
     if (!linkedProjectId || !assessment || saved) return;
+    const nome = `PM Assessment — ${linkedProject?.name ?? "Projeto"}`;
+    const content = comoTexto(assessment, { titulo: nome });
     await createDeliverable({
       projectId: linkedProjectId,
-      name:      `PM Assessment — ${linkedProject?.name ?? "Projeto"}`,
+      name:      nome,
       type:      "planning",
       status:    "in_review",
+      ...(temSubstancia(content) ? { content } : {}),
     });
     setSaved(true);
   }

@@ -7,6 +7,7 @@ import { useAgencyStore } from "@/store/agency-store";
 import { useDbDeliverables } from "@/lib/hooks/useDbDeliverables";
 import { getClientAgentContext } from "@/lib/agency/workspace";
 import type { StrategyCanvas } from "@/lib/dioli-brain/strategy-canvas";
+import { comoTexto, temSubstancia } from "@/lib/agency/esteira/conteudo";
 
 const ACCENT = "#070A1F";
 
@@ -120,11 +121,15 @@ export default function StrategyAgentPage() {
 
   async function handleSave() {
     if (!linkedProjectId || !canvas || saved) return;
+    // A estratégia inteira fica gravada — é o documento que guia todo o resto.
+    const nome = `Strategy Canvas — ${canvas.clientName}`;
+    const content = comoTexto(canvas, { titulo: nome });
     await createDeliverable({
       projectId: linkedProjectId,
-      name:      `Strategy Canvas — ${canvas.clientName}`,
+      name:      nome,
       type:      "strategy_document",
       status:    "in_review",
+      ...(temSubstancia(content) ? { content } : {}),
     });
     setSaved(true);
   }

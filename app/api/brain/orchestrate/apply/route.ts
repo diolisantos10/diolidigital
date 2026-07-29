@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth/api-guard";
 import { prisma } from "@/lib/db/client";
 import { getDepartmentDef, type DepartmentId } from "@/lib/agency/departments";
+import { pedirDirecao } from "@/lib/agency/esteira/marcos";
 
 const AGENCY_ROLES = ["master", "project_manager"] as const;
 // Reasoning departments accepted in a proposal. "analytics" is a reasoning dept
@@ -108,6 +109,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       data: {
         workspaceId: session.workspaceId,
         clientId,
+        // SEM ISTO O PROJETO NASCE MUDO: o motor recusa produzir num projeto que
+        // não sabe de que solicitação veio — é dela que sai o briefing. Faltava,
+        // e era uma das razões de a produção nunca começar.
+        clientRequestId,
         name: proposal.name,
         goal: proposal.goal,
         stage: proposal.stage,
@@ -131,7 +136,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       .update({ where: { id: clientRequestId }, data: { status: "in_progress" } })
       .catch((e) => console.error("[brain/orchestrate/apply] status advance failed", e));
 
-    return NextResponse.json({ ok: true, projectId: project.id, taskCount: proposal.tasks.length }, { status: 201 });
+    // A ESTEIRA ANDA SOZINHA: o projeto nasce e o cliente já recebe a direção
+    // para avalizar. Aprovou, a produção dispara. Antes, o projeto era criado e
+    // ficava parado esperando alguém que nunca vinha.
+    const direcao = await pedirDirecao(project.id).catch(() => ({ ok: false, avisouCliente: false }));
+
+    return NextResponse.json(
+      { ok: true, projectId: project.id, taskCount: proposal.tasks.length, direcaoEnviada: direcao.avisouCliente === true },
+      { status: 201 },
+    );
   } catch (e) {
     console.error("[brain/orchestrate/apply] POST error", e);
     return NextResponse.json({ error: "DB unavailable" }, { status: 503 });

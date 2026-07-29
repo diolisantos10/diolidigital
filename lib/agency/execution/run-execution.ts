@@ -14,6 +14,8 @@ import { createApprovalRequest } from "@/lib/agency/persistence/approval-service
 import { planProduction, type ProductionPlan } from "@/lib/agency/execution/pm-conductor";
 import { auditDeliverable } from "@/lib/agency/execution/quality-auditor";
 import { getActiveInsights, buildInsightBlock, type InsightDomain } from "@/lib/agency/radar/library";
+import { moverTarefasDoAgente, marcarEntregue } from "@/lib/agency/esteira/tarefas";
+import { abrirPedido, cobrarCliente } from "@/lib/agency/esteira/pedidos";
 
 interface Ctx {
   businessName: string;
@@ -140,6 +142,8 @@ export interface ExecutionResult {
   pmPlan?: { orderedDepartments: string[]; goal: string; pmMode: string };
   /** Parecer da Qualidade por entrega (SOMBRA — não bloqueia; só registra). */
   qualityAudit?: Array<{ department: string; verdict: "pass" | "flag"; issues: string[] }>;
+  /** Quantos pedidos de material o PM cobrou do cliente nesta passada. */
+  pedidosCobrados?: number;
   error?: string;
 }
 
@@ -158,6 +162,21 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
   // Trava anti-concorrência: se já está rodando há pouco, não roda de novo.
   if (project.executionStatus === "running" && project.executionStartedAt && Date.now() - project.executionStartedAt.getTime() < 10 * 60_000) {
     return { ok: true, status: "skipped_running", produced: [], askedClient: [], skipped: [], error: "já em execução" };
+  }
+
+  // ── O PORTÃO DE DIREÇÃO ────────────────────────────────────────────────────
+  // A produção inteira só roda depois que o cliente avaliza o caminho. Aprovar
+  // uma direção custa uma conversa; refazer um mês de produção custa o mês.
+  // Sem este portão, a agência descobre que errou o rumo depois de gastar tudo.
+  if (!project.directionApprovedAt) {
+    await prisma.project.update({
+      where: { id: projectId },
+      data: { executionStatus: "idle", executionError: null },
+    }).catch(() => { /* best-effort */ });
+    return {
+      ok: true, status: "skipped_running", produced: [], askedClient: [], skipped: [],
+      error: "aguardando o cliente aprovar a direção — a produção não começa antes disso",
+    };
   }
 
   await prisma.project.update({
@@ -228,12 +247,19 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
 
     for (const dept of toRun) {
       if (dept.needs && !dept.needs.check(context)) {
-        await prisma.portalMessage.create({
-          data: { clientRequestId, authorRole: "team", authorName: `Agente de ${dept.label}`, body: dept.needs.ask, readByTeam: true },
+        // UMA VOZ: o agente ABRE o pedido, não fala com o cliente. O gerente de
+        // projeto junta tudo numa mensagem só no fim desta passada.
+        await abrirPedido({
+          projectId, tipo: dept.id, descricao: dept.needs.ask,
+          agentId: dept.agentId, agenteLabel: dept.label,
         });
+        await moverTarefasDoAgente(projectId, dept.agentId, "blocked");
         askedClient.push(dept.label);
         continue;
       }
+
+      // A tarefa passa a contar a verdade no MESMO instante do trabalho.
+      await moverTarefasDoAgente(projectId, dept.agentId, "in_progress");
 
       // Radar Dioli: as diretrizes ATUAIS de mercado do domínio viram insumo.
       const insights = await getActiveInsights(project.workspaceId, dept.insightDomain);
@@ -247,12 +273,23 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
         preferredProvider: "claude",
       });
 
-      if (!result.ok) { skipped.push(`${dept.label} (IA indisponível)`); continue; }
+      if (!result.ok) {
+        skipped.push(`${dept.label} (IA indisponível)`);
+        await moverTarefasDoAgente(projectId, dept.agentId, "pending");
+        continue;
+      }
       const data = result.data as Record<string, unknown>;
       let title = typeof data.title === "string" ? data.title : `${dept.label} — ${context.businessName}`;
       let body = deliverableMarkdown(data);
       // Gate de saída: nada vazio/curto demais chega ao cliente.
-      if (!body || body.length < MIN_DELIVERABLE_CHARS) { skipped.push(`${dept.label} (resposta insuficiente)`); continue; }
+      if (!body || body.length < MIN_DELIVERABLE_CHARS) {
+        skipped.push(`${dept.label} (resposta insuficiente)`);
+        await moverTarefasDoAgente(projectId, dept.agentId, "pending");
+        continue;
+      }
+
+      // Produziu: sai de "produzindo" e entra em revisão — é onde a Qualidade age.
+      await moverTarefasDoAgente(projectId, dept.agentId, "review");
 
       // QUALIDADE ATIVA — o loop de correção (garante boa entrega ANTES do cliente):
       // audita → se reprovar, o agente REVISA com o parecer → reentrega melhorada.
@@ -283,23 +320,31 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
 
       // Publica a MELHOR versão. Se mesmo após a revisão ainda estiver flag, vai
       // ao cliente (ele decide) MAS marcado quality_flag pra a equipe olhar.
-      await prisma.deliverable.create({
+      const entregavel = await prisma.deliverable.create({
         data: {
           projectId, name: title, type: dept.deliverableType, status: "in_review", content: body,
           ownerAgentId: dept.agentId, revisionStatus: audit.verdict === "flag" ? "quality_flag" : "quality_ok",
           lastFeedback: audit.note || null, version: revisions + 1,
         },
+        select: { id: true },
       });
-      await createApprovalRequest({ clientRequestId, department: dept.id, requestedBy: `Agente de ${dept.label}`, clientVisible: true });
-      await prisma.portalMessage.create({
-        data: {
-          clientRequestId, authorRole: "team", authorName: `Agente de ${dept.label}`,
-          body: `Sua entrega de ${dept.label} está pronta! Dê uma olhada na aba de aprovações e me diga se posso seguir. ✅`,
-          readByTeam: true,
-        },
-      });
+      // A tarefa fecha ligada ao entregável que a cumpriu — no quadro dá para
+      // clicar e ver o que foi feito, em vez de um "concluído" sem lastro.
+      await marcarEntregue(projectId, dept.agentId, entregavel.id);
+
+      // A aprovação é registrada, mas NÃO é mostrada ao cliente peça por peça:
+      // quem apresenta é o gerente de projeto, de uma vez, quando tudo estiver
+      // pronto. Cinco entregas pingando no portal é o que faz o cliente sentir
+      // que a agência é desorganizada mesmo entregando bem.
+      await createApprovalRequest({ clientRequestId, department: dept.id, requestedBy: `Agente de ${dept.label}`, clientVisible: false });
       produced.push(dept.label);
       qualityAudit.push({ department: dept.label, verdict: audit.verdict, issues: audit.issues });
+    }
+
+    // ── UMA VOZ: o PM junta tudo que travou e cobra numa mensagem só ─────────
+    let pedidosCobrados = 0;
+    if (askedClient.length > 0) {
+      pedidosCobrados = await cobrarCliente({ projectId, clientRequestId, nomeDoNegocio: context.businessName });
     }
 
     // "done" quando não restou nenhum departamento pendente de produção (o que
@@ -315,6 +360,7 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
     });
     return {
       ok: true, status: allHandled ? "done" : "failed", produced, askedClient, skipped, qualityAudit,
+      pedidosCobrados,
       pmPlan: { orderedDepartments: plan.orderedDepartments, goal: plan.goal, pmMode: plan.pmMode },
     };
   } catch (err) {

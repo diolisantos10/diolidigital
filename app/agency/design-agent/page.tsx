@@ -7,6 +7,7 @@ import { useAgencyStore } from "@/store/agency-store";
 import { useDbDeliverables } from "@/lib/hooks/useDbDeliverables";
 import { getClientAgentContext } from "@/lib/agency/workspace";
 import type { AgentClientContext } from "@/lib/agency/workspace";
+import { comoTexto, temSubstancia } from "@/lib/agency/esteira/conteudo";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -530,11 +531,15 @@ export default function DesignAgentPage() {
   function handleSaveAllBriefs() {
     if (!linkedProjectId || !briefs.length || briefsSaved) return;
     briefs.forEach((b) => {
+      // O brief inteiro vai junto — antes só o nome era guardado.
+      const nome = `Design Brief — ${b.title} (${b.format})`;
+      const content = comoTexto(b, { titulo: nome });
       void createDeliverable({
         projectId: linkedProjectId,
-        name:      `Design Brief — ${b.title} (${b.format})`,
+        name:      nome,
         type:      "Design",
         status:    "in_review",
+        ...(temSubstancia(content) ? { content } : {}),
       });
     });
     setBriefsSaved(true);

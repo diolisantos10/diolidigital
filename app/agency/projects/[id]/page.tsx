@@ -22,6 +22,7 @@ import PilotTimeline from "@/components/agency/PilotTimeline";
 import { buildProjectTimeline, TIMELINE_DEPT_STYLE } from "@/lib/agency/orchestration/timeline";
 import { computeRecommendedStage } from "@/lib/agency/orchestration/pipeline-advance";
 import { generateAutoTasksForProject, AUTO_TASK_PRIORITY_STYLE, AUTO_TASK_OWNER_STYLE } from "@/lib/agency/orchestration/auto-tasks";
+import EsteiraDoProjeto from "@/components/agency/EsteiraDoProjeto";
 
 const STAGES: ProjectStage[] = ["briefing","diagnosis","planning","production","review","delivery","ongoing","completed"];
 const TASK_CYCLE: Record<TaskStatus, TaskStatus> = {
@@ -283,6 +284,13 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               </div>
             )}
           </div>
+
+        {/* A ESTEIRA — a primeira coisa que se lê ao abrir o projeto. Em que
+            etapa está, quem tem a bola, o que trava e o que fazer agora. Antes
+            desta faixa era preciso caçar a resposta em cinco painéis. */}
+        <div className="mb-6">
+          <EsteiraDoProjeto projectId={id} />
+        </div>
 
         <div className="grid grid-cols-[1fr_280px] gap-6">
           <div className="space-y-5">

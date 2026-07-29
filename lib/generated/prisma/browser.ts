@@ -38,13 +38,30 @@ export type Client = Prisma.ClientModel
  */
 export type Project = Prisma.ProjectModel
 /**
+ * Model Cycle
+ * O CICLO MENSAL — onde a relação vitalícia acontece.
+ * 
+ * Um projeto que nunca fecha não é medível: nada é entregue de fato, nada é
+ * comparado, o painel nunca fica verde. Por isso a operação contínua não é um
+ * projeto infinito — é uma sequência de ciclos que nascem, entregam, medem e
+ * fecham. É o que permite dizer "agosto foi melhor que julho", e é isso que
+ * segura um cliente por anos.
+ */
+export type Cycle = Prisma.CycleModel
+/**
  * Model Deliverable
  * 
  */
 export type Deliverable = Prisma.DeliverableModel
 /**
  * Model MaterialRequest
+ * O pedido de material que um agente faz ao cliente.
  * 
+ * Regra da casa: o agente ABRE o pedido, o gerente de projeto CONSOLIDA e fala.
+ * O cliente recebe uma mensagem só, com tudo que falta — nunca cinco agentes
+ * pedindo coisas soltas em horários diferentes. Por isso o pedido guarda quem
+ * pediu (para a equipe saber quem está travado) e quando foi enviado ao cliente
+ * (para o PM não cobrar a mesma coisa duas vezes).
  */
 export type MaterialRequest = Prisma.MaterialRequestModel
 /**

@@ -388,6 +388,7 @@ export const ModelName = {
   User: 'User',
   Client: 'Client',
   Project: 'Project',
+  Cycle: 'Cycle',
   Deliverable: 'Deliverable',
   MaterialRequest: 'MaterialRequest',
   BrandBrain: 'BrandBrain',
@@ -432,7 +433,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "deliverable" | "materialRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "portalAccess" | "marketInsight"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "cycle" | "deliverable" | "materialRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "portalAccess" | "marketInsight"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -729,6 +730,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.ProjectCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.ProjectCountAggregateOutputType> | number
+        }
+      }
+    }
+    Cycle: {
+      payload: Prisma.$CyclePayload<ExtArgs>
+      fields: Prisma.CycleFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CycleFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CyclePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CycleFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CyclePayload>
+        }
+        findFirst: {
+          args: Prisma.CycleFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CyclePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CycleFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CyclePayload>
+        }
+        findMany: {
+          args: Prisma.CycleFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CyclePayload>[]
+        }
+        create: {
+          args: Prisma.CycleCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CyclePayload>
+        }
+        createMany: {
+          args: Prisma.CycleCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CycleCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CyclePayload>[]
+        }
+        delete: {
+          args: Prisma.CycleDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CyclePayload>
+        }
+        update: {
+          args: Prisma.CycleUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CyclePayload>
+        }
+        deleteMany: {
+          args: Prisma.CycleDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CycleUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CycleUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CyclePayload>[]
+        }
+        upsert: {
+          args: Prisma.CycleUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CyclePayload>
+        }
+        aggregate: {
+          args: Prisma.CycleAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCycle>
+        }
+        groupBy: {
+          args: Prisma.CycleGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CycleGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CycleCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CycleCountAggregateOutputType> | number
         }
       }
     }
@@ -2977,11 +3052,32 @@ export const ProjectScalarFieldEnum = {
   executionFinishedAt: 'executionFinishedAt',
   executionAttempts: 'executionAttempts',
   executionError: 'executionError',
+  directionApprovedAt: 'directionApprovedAt',
+  presentedAt: 'presentedAt',
+  clientApprovedAt: 'clientApprovedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
 export type ProjectScalarFieldEnum = (typeof ProjectScalarFieldEnum)[keyof typeof ProjectScalarFieldEnum]
+
+
+export const CycleScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  reference: 'reference',
+  status: 'status',
+  startsOn: 'startsOn',
+  endsOn: 'endsOn',
+  planJson: 'planJson',
+  resultsJson: 'resultsJson',
+  summary: 'summary',
+  closedAt: 'closedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CycleScalarFieldEnum = (typeof CycleScalarFieldEnum)[keyof typeof CycleScalarFieldEnum]
 
 
 export const DeliverableScalarFieldEnum = {
@@ -3010,6 +3106,9 @@ export const MaterialRequestScalarFieldEnum = {
   type: 'type',
   description: 'description',
   status: 'status',
+  requestedByAgentId: 'requestedByAgentId',
+  requestedByLabel: 'requestedByLabel',
+  askedClientAt: 'askedClientAt',
   requestedAt: 'requestedAt',
   resolvedAt: 'resolvedAt'
 } as const
@@ -3648,6 +3747,7 @@ export type GlobalOmitConfig = {
   user?: Prisma.UserOmit
   client?: Prisma.ClientOmit
   project?: Prisma.ProjectOmit
+  cycle?: Prisma.CycleOmit
   deliverable?: Prisma.DeliverableOmit
   materialRequest?: Prisma.MaterialRequestOmit
   brandBrain?: Prisma.BrandBrainOmit

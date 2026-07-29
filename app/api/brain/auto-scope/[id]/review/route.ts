@@ -9,6 +9,7 @@ import { prisma } from "@/lib/db/client";
 import { buildClientSnapshot } from "@/lib/dioli-brain/client-snapshot";
 import { orchestratePMReasoning } from "@/lib/dioli-brain/pm-orchestrator";
 import { getDepartmentDef, type DepartmentId } from "@/lib/agency/departments";
+import { pedirDirecao } from "@/lib/agency/esteira/marcos";
 
 const AGENCY_ROLES = ["master", "project_manager"] as const;
 
@@ -128,7 +129,16 @@ export async function POST(
         data: { status: "in_progress" },
       });
 
-      return NextResponse.json({ ok: true, action: "approved_all", projectId: project.id }, { status: 201 });
+      // A ESTEIRA ANDA SOZINHA: nasce o projeto, o cliente já recebe a direção
+      // para avalizar. Aprovou, a produção dispara. Mesmo caminho do outro
+      // criador de projeto — dois caminhos com comportamentos diferentes é
+      // exatamente como nasce sistema imprevisível.
+      const direcao = await pedirDirecao(project.id).catch(() => ({ ok: false, avisouCliente: false }));
+
+      return NextResponse.json(
+        { ok: true, action: "approved_all", projectId: project.id, direcaoEnviada: direcao.avisouCliente === true },
+        { status: 201 },
+      );
     } else {
       // Mark revision artifacts and update request status.
       await prisma.brainArtifact.updateMany({

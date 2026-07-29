@@ -9,6 +9,7 @@ import { getClientAgentContext } from "@/lib/agency/workspace";
 import type { AgentClientContext } from "@/lib/agency/workspace";
 import { generateAdsPlan, buildAdsDeliverables, ADS_DELIVERABLE_TYPES } from "@/lib/agency/ads-agent";
 import type { AdsPlan } from "@/lib/agency/ads-agent";
+import { comoTexto, temSubstancia } from "@/lib/agency/esteira/conteudo";
 
 // ─── Ads Agent — Paid Traffic Department ────────────────────────────────────────
 //
@@ -205,11 +206,15 @@ export default function AdsAgentPage() {
     if (!linkedProjectId || !plan || saved) return;
     const drafts = buildAdsDeliverables(plan, linkedProject?.name ?? "Projeto");
     drafts.forEach((d) => {
+      // O entregável leva o CONTEÚDO. Salvar só o título fazia o cliente abrir
+      // o portal e encontrar cartões vazios.
+      const content = comoTexto(d, { titulo: d.name });
       void createDeliverable({
         projectId: linkedProjectId,
         name: d.name,
         type: d.type,
         status: "in_review",
+        ...(temSubstancia(content) ? { content } : {}),
       });
     });
     setSaved(true);

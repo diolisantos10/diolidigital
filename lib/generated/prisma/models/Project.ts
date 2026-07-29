@@ -56,6 +56,9 @@ export type ProjectMinAggregateOutputType = {
   executionFinishedAt: Date | null
   executionAttempts: number | null
   executionError: string | null
+  directionApprovedAt: Date | null
+  presentedAt: Date | null
+  clientApprovedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -82,6 +85,9 @@ export type ProjectMaxAggregateOutputType = {
   executionFinishedAt: Date | null
   executionAttempts: number | null
   executionError: string | null
+  directionApprovedAt: Date | null
+  presentedAt: Date | null
+  clientApprovedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -108,6 +114,9 @@ export type ProjectCountAggregateOutputType = {
   executionFinishedAt: number
   executionAttempts: number
   executionError: number
+  directionApprovedAt: number
+  presentedAt: number
+  clientApprovedAt: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -144,6 +153,9 @@ export type ProjectMinAggregateInputType = {
   executionFinishedAt?: true
   executionAttempts?: true
   executionError?: true
+  directionApprovedAt?: true
+  presentedAt?: true
+  clientApprovedAt?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -170,6 +182,9 @@ export type ProjectMaxAggregateInputType = {
   executionFinishedAt?: true
   executionAttempts?: true
   executionError?: true
+  directionApprovedAt?: true
+  presentedAt?: true
+  clientApprovedAt?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -196,6 +211,9 @@ export type ProjectCountAggregateInputType = {
   executionFinishedAt?: true
   executionAttempts?: true
   executionError?: true
+  directionApprovedAt?: true
+  presentedAt?: true
+  clientApprovedAt?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -309,6 +327,9 @@ export type ProjectGroupByOutputType = {
   executionFinishedAt: Date | null
   executionAttempts: number
   executionError: string | null
+  directionApprovedAt: Date | null
+  presentedAt: Date | null
+  clientApprovedAt: Date | null
   createdAt: Date
   updatedAt: Date
   _count: ProjectCountAggregateOutputType | null
@@ -358,6 +379,9 @@ export type ProjectWhereInput = {
   executionFinishedAt?: Prisma.DateTimeNullableFilter<"Project"> | Date | string | null
   executionAttempts?: Prisma.IntFilter<"Project"> | number
   executionError?: Prisma.StringNullableFilter<"Project"> | string | null
+  directionApprovedAt?: Prisma.DateTimeNullableFilter<"Project"> | Date | string | null
+  presentedAt?: Prisma.DateTimeNullableFilter<"Project"> | Date | string | null
+  clientApprovedAt?: Prisma.DateTimeNullableFilter<"Project"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Project"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Project"> | Date | string
   workspace?: Prisma.XOR<Prisma.AgencyWorkspaceScalarRelationFilter, Prisma.AgencyWorkspaceWhereInput>
@@ -369,6 +393,7 @@ export type ProjectWhereInput = {
   tasks?: Prisma.TaskListRelationFilter
   timelineEvents?: Prisma.TimelineEventListRelationFilter
   briefings?: Prisma.BriefingListRelationFilter
+  cycles?: Prisma.CycleListRelationFilter
 }
 
 export type ProjectOrderByWithRelationInput = {
@@ -393,6 +418,9 @@ export type ProjectOrderByWithRelationInput = {
   executionFinishedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   executionAttempts?: Prisma.SortOrder
   executionError?: Prisma.SortOrderInput | Prisma.SortOrder
+  directionApprovedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  presentedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  clientApprovedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   workspace?: Prisma.AgencyWorkspaceOrderByWithRelationInput
@@ -404,6 +432,7 @@ export type ProjectOrderByWithRelationInput = {
   tasks?: Prisma.TaskOrderByRelationAggregateInput
   timelineEvents?: Prisma.TimelineEventOrderByRelationAggregateInput
   briefings?: Prisma.BriefingOrderByRelationAggregateInput
+  cycles?: Prisma.CycleOrderByRelationAggregateInput
 }
 
 export type ProjectWhereUniqueInput = Prisma.AtLeast<{
@@ -431,6 +460,9 @@ export type ProjectWhereUniqueInput = Prisma.AtLeast<{
   executionFinishedAt?: Prisma.DateTimeNullableFilter<"Project"> | Date | string | null
   executionAttempts?: Prisma.IntFilter<"Project"> | number
   executionError?: Prisma.StringNullableFilter<"Project"> | string | null
+  directionApprovedAt?: Prisma.DateTimeNullableFilter<"Project"> | Date | string | null
+  presentedAt?: Prisma.DateTimeNullableFilter<"Project"> | Date | string | null
+  clientApprovedAt?: Prisma.DateTimeNullableFilter<"Project"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Project"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Project"> | Date | string
   workspace?: Prisma.XOR<Prisma.AgencyWorkspaceScalarRelationFilter, Prisma.AgencyWorkspaceWhereInput>
@@ -442,6 +474,7 @@ export type ProjectWhereUniqueInput = Prisma.AtLeast<{
   tasks?: Prisma.TaskListRelationFilter
   timelineEvents?: Prisma.TimelineEventListRelationFilter
   briefings?: Prisma.BriefingListRelationFilter
+  cycles?: Prisma.CycleListRelationFilter
 }, "id">
 
 export type ProjectOrderByWithAggregationInput = {
@@ -466,6 +499,9 @@ export type ProjectOrderByWithAggregationInput = {
   executionFinishedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   executionAttempts?: Prisma.SortOrder
   executionError?: Prisma.SortOrderInput | Prisma.SortOrder
+  directionApprovedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  presentedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  clientApprovedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.ProjectCountOrderByAggregateInput
@@ -500,6 +536,9 @@ export type ProjectScalarWhereWithAggregatesInput = {
   executionFinishedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Project"> | Date | string | null
   executionAttempts?: Prisma.IntWithAggregatesFilter<"Project"> | number
   executionError?: Prisma.StringNullableWithAggregatesFilter<"Project"> | string | null
+  directionApprovedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Project"> | Date | string | null
+  presentedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Project"> | Date | string | null
+  clientApprovedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Project"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Project"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Project"> | Date | string
 }
@@ -524,6 +563,9 @@ export type ProjectCreateInput = {
   executionFinishedAt?: Date | string | null
   executionAttempts?: number
   executionError?: string | null
+  directionApprovedAt?: Date | string | null
+  presentedAt?: Date | string | null
+  clientApprovedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutProjectsInput
@@ -535,6 +577,7 @@ export type ProjectCreateInput = {
   tasks?: Prisma.TaskCreateNestedManyWithoutProjectInput
   timelineEvents?: Prisma.TimelineEventCreateNestedManyWithoutProjectInput
   briefings?: Prisma.BriefingCreateNestedManyWithoutProjectInput
+  cycles?: Prisma.CycleCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateInput = {
@@ -559,6 +602,9 @@ export type ProjectUncheckedCreateInput = {
   executionFinishedAt?: Date | string | null
   executionAttempts?: number
   executionError?: string | null
+  directionApprovedAt?: Date | string | null
+  presentedAt?: Date | string | null
+  clientApprovedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   deliverables?: Prisma.DeliverableUncheckedCreateNestedManyWithoutProjectInput
@@ -568,6 +614,7 @@ export type ProjectUncheckedCreateInput = {
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutProjectInput
   timelineEvents?: Prisma.TimelineEventUncheckedCreateNestedManyWithoutProjectInput
   briefings?: Prisma.BriefingUncheckedCreateNestedManyWithoutProjectInput
+  cycles?: Prisma.CycleUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUpdateInput = {
@@ -590,6 +637,9 @@ export type ProjectUpdateInput = {
   executionFinishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   executionAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   executionError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  directionApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  presentedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clientApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutProjectsNestedInput
@@ -601,6 +651,7 @@ export type ProjectUpdateInput = {
   tasks?: Prisma.TaskUpdateManyWithoutProjectNestedInput
   timelineEvents?: Prisma.TimelineEventUpdateManyWithoutProjectNestedInput
   briefings?: Prisma.BriefingUpdateManyWithoutProjectNestedInput
+  cycles?: Prisma.CycleUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateInput = {
@@ -625,6 +676,9 @@ export type ProjectUncheckedUpdateInput = {
   executionFinishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   executionAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   executionError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  directionApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  presentedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clientApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deliverables?: Prisma.DeliverableUncheckedUpdateManyWithoutProjectNestedInput
@@ -634,6 +688,7 @@ export type ProjectUncheckedUpdateInput = {
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutProjectNestedInput
   timelineEvents?: Prisma.TimelineEventUncheckedUpdateManyWithoutProjectNestedInput
   briefings?: Prisma.BriefingUncheckedUpdateManyWithoutProjectNestedInput
+  cycles?: Prisma.CycleUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateManyInput = {
@@ -658,6 +713,9 @@ export type ProjectCreateManyInput = {
   executionFinishedAt?: Date | string | null
   executionAttempts?: number
   executionError?: string | null
+  directionApprovedAt?: Date | string | null
+  presentedAt?: Date | string | null
+  clientApprovedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -682,6 +740,9 @@ export type ProjectUpdateManyMutationInput = {
   executionFinishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   executionAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   executionError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  directionApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  presentedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clientApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -708,6 +769,9 @@ export type ProjectUncheckedUpdateManyInput = {
   executionFinishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   executionAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   executionError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  directionApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  presentedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clientApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -744,6 +808,9 @@ export type ProjectCountOrderByAggregateInput = {
   executionFinishedAt?: Prisma.SortOrder
   executionAttempts?: Prisma.SortOrder
   executionError?: Prisma.SortOrder
+  directionApprovedAt?: Prisma.SortOrder
+  presentedAt?: Prisma.SortOrder
+  clientApprovedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -774,6 +841,9 @@ export type ProjectMaxOrderByAggregateInput = {
   executionFinishedAt?: Prisma.SortOrder
   executionAttempts?: Prisma.SortOrder
   executionError?: Prisma.SortOrder
+  directionApprovedAt?: Prisma.SortOrder
+  presentedAt?: Prisma.SortOrder
+  clientApprovedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -800,6 +870,9 @@ export type ProjectMinOrderByAggregateInput = {
   executionFinishedAt?: Prisma.SortOrder
   executionAttempts?: Prisma.SortOrder
   executionError?: Prisma.SortOrder
+  directionApprovedAt?: Prisma.SortOrder
+  presentedAt?: Prisma.SortOrder
+  clientApprovedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -912,6 +985,20 @@ export type IntFieldUpdateOperationsInput = {
   decrement?: number
   multiply?: number
   divide?: number
+}
+
+export type ProjectCreateNestedOneWithoutCyclesInput = {
+  create?: Prisma.XOR<Prisma.ProjectCreateWithoutCyclesInput, Prisma.ProjectUncheckedCreateWithoutCyclesInput>
+  connectOrCreate?: Prisma.ProjectCreateOrConnectWithoutCyclesInput
+  connect?: Prisma.ProjectWhereUniqueInput
+}
+
+export type ProjectUpdateOneRequiredWithoutCyclesNestedInput = {
+  create?: Prisma.XOR<Prisma.ProjectCreateWithoutCyclesInput, Prisma.ProjectUncheckedCreateWithoutCyclesInput>
+  connectOrCreate?: Prisma.ProjectCreateOrConnectWithoutCyclesInput
+  upsert?: Prisma.ProjectUpsertWithoutCyclesInput
+  connect?: Prisma.ProjectWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ProjectUpdateToOneWithWhereWithoutCyclesInput, Prisma.ProjectUpdateWithoutCyclesInput>, Prisma.ProjectUncheckedUpdateWithoutCyclesInput>
 }
 
 export type ProjectCreateNestedOneWithoutDeliverablesInput = {
@@ -1034,6 +1121,9 @@ export type ProjectCreateWithoutWorkspaceInput = {
   executionFinishedAt?: Date | string | null
   executionAttempts?: number
   executionError?: string | null
+  directionApprovedAt?: Date | string | null
+  presentedAt?: Date | string | null
+  clientApprovedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   client: Prisma.ClientCreateNestedOneWithoutProjectsInput
@@ -1044,6 +1134,7 @@ export type ProjectCreateWithoutWorkspaceInput = {
   tasks?: Prisma.TaskCreateNestedManyWithoutProjectInput
   timelineEvents?: Prisma.TimelineEventCreateNestedManyWithoutProjectInput
   briefings?: Prisma.BriefingCreateNestedManyWithoutProjectInput
+  cycles?: Prisma.CycleCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutWorkspaceInput = {
@@ -1067,6 +1158,9 @@ export type ProjectUncheckedCreateWithoutWorkspaceInput = {
   executionFinishedAt?: Date | string | null
   executionAttempts?: number
   executionError?: string | null
+  directionApprovedAt?: Date | string | null
+  presentedAt?: Date | string | null
+  clientApprovedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   deliverables?: Prisma.DeliverableUncheckedCreateNestedManyWithoutProjectInput
@@ -1076,6 +1170,7 @@ export type ProjectUncheckedCreateWithoutWorkspaceInput = {
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutProjectInput
   timelineEvents?: Prisma.TimelineEventUncheckedCreateNestedManyWithoutProjectInput
   briefings?: Prisma.BriefingUncheckedCreateNestedManyWithoutProjectInput
+  cycles?: Prisma.CycleUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutWorkspaceInput = {
@@ -1128,6 +1223,9 @@ export type ProjectScalarWhereInput = {
   executionFinishedAt?: Prisma.DateTimeNullableFilter<"Project"> | Date | string | null
   executionAttempts?: Prisma.IntFilter<"Project"> | number
   executionError?: Prisma.StringNullableFilter<"Project"> | string | null
+  directionApprovedAt?: Prisma.DateTimeNullableFilter<"Project"> | Date | string | null
+  presentedAt?: Prisma.DateTimeNullableFilter<"Project"> | Date | string | null
+  clientApprovedAt?: Prisma.DateTimeNullableFilter<"Project"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Project"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Project"> | Date | string
 }
@@ -1152,6 +1250,9 @@ export type ProjectCreateWithoutClientInput = {
   executionFinishedAt?: Date | string | null
   executionAttempts?: number
   executionError?: string | null
+  directionApprovedAt?: Date | string | null
+  presentedAt?: Date | string | null
+  clientApprovedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutProjectsInput
@@ -1162,6 +1263,7 @@ export type ProjectCreateWithoutClientInput = {
   tasks?: Prisma.TaskCreateNestedManyWithoutProjectInput
   timelineEvents?: Prisma.TimelineEventCreateNestedManyWithoutProjectInput
   briefings?: Prisma.BriefingCreateNestedManyWithoutProjectInput
+  cycles?: Prisma.CycleCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutClientInput = {
@@ -1185,6 +1287,9 @@ export type ProjectUncheckedCreateWithoutClientInput = {
   executionFinishedAt?: Date | string | null
   executionAttempts?: number
   executionError?: string | null
+  directionApprovedAt?: Date | string | null
+  presentedAt?: Date | string | null
+  clientApprovedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   deliverables?: Prisma.DeliverableUncheckedCreateNestedManyWithoutProjectInput
@@ -1194,6 +1299,7 @@ export type ProjectUncheckedCreateWithoutClientInput = {
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutProjectInput
   timelineEvents?: Prisma.TimelineEventUncheckedCreateNestedManyWithoutProjectInput
   briefings?: Prisma.BriefingUncheckedCreateNestedManyWithoutProjectInput
+  cycles?: Prisma.CycleUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutClientInput = {
@@ -1221,6 +1327,166 @@ export type ProjectUpdateManyWithWhereWithoutClientInput = {
   data: Prisma.XOR<Prisma.ProjectUpdateManyMutationInput, Prisma.ProjectUncheckedUpdateManyWithoutClientInput>
 }
 
+export type ProjectCreateWithoutCyclesInput = {
+  id?: string
+  clientRequestId?: string | null
+  name: string
+  goal?: string | null
+  type?: string | null
+  stage?: string
+  priority?: string
+  deadline?: string | null
+  proposalStatus?: string | null
+  proposalPricing?: string | null
+  proposalScope?: string | null
+  proposalSentAt?: string | null
+  agents?: string
+  executionStatus?: string
+  executionRequestedAt?: Date | string | null
+  executionStartedAt?: Date | string | null
+  executionFinishedAt?: Date | string | null
+  executionAttempts?: number
+  executionError?: string | null
+  directionApprovedAt?: Date | string | null
+  presentedAt?: Date | string | null
+  clientApprovedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutProjectsInput
+  client: Prisma.ClientCreateNestedOneWithoutProjectsInput
+  deliverables?: Prisma.DeliverableCreateNestedManyWithoutProjectInput
+  materialRequests?: Prisma.MaterialRequestCreateNestedManyWithoutProjectInput
+  strategyRooms?: Prisma.StrategyRoomCreateNestedManyWithoutProjectInput
+  activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutProjectInput
+  tasks?: Prisma.TaskCreateNestedManyWithoutProjectInput
+  timelineEvents?: Prisma.TimelineEventCreateNestedManyWithoutProjectInput
+  briefings?: Prisma.BriefingCreateNestedManyWithoutProjectInput
+}
+
+export type ProjectUncheckedCreateWithoutCyclesInput = {
+  id?: string
+  workspaceId: string
+  clientId: string
+  clientRequestId?: string | null
+  name: string
+  goal?: string | null
+  type?: string | null
+  stage?: string
+  priority?: string
+  deadline?: string | null
+  proposalStatus?: string | null
+  proposalPricing?: string | null
+  proposalScope?: string | null
+  proposalSentAt?: string | null
+  agents?: string
+  executionStatus?: string
+  executionRequestedAt?: Date | string | null
+  executionStartedAt?: Date | string | null
+  executionFinishedAt?: Date | string | null
+  executionAttempts?: number
+  executionError?: string | null
+  directionApprovedAt?: Date | string | null
+  presentedAt?: Date | string | null
+  clientApprovedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deliverables?: Prisma.DeliverableUncheckedCreateNestedManyWithoutProjectInput
+  materialRequests?: Prisma.MaterialRequestUncheckedCreateNestedManyWithoutProjectInput
+  strategyRooms?: Prisma.StrategyRoomUncheckedCreateNestedManyWithoutProjectInput
+  activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutProjectInput
+  tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutProjectInput
+  timelineEvents?: Prisma.TimelineEventUncheckedCreateNestedManyWithoutProjectInput
+  briefings?: Prisma.BriefingUncheckedCreateNestedManyWithoutProjectInput
+}
+
+export type ProjectCreateOrConnectWithoutCyclesInput = {
+  where: Prisma.ProjectWhereUniqueInput
+  create: Prisma.XOR<Prisma.ProjectCreateWithoutCyclesInput, Prisma.ProjectUncheckedCreateWithoutCyclesInput>
+}
+
+export type ProjectUpsertWithoutCyclesInput = {
+  update: Prisma.XOR<Prisma.ProjectUpdateWithoutCyclesInput, Prisma.ProjectUncheckedUpdateWithoutCyclesInput>
+  create: Prisma.XOR<Prisma.ProjectCreateWithoutCyclesInput, Prisma.ProjectUncheckedCreateWithoutCyclesInput>
+  where?: Prisma.ProjectWhereInput
+}
+
+export type ProjectUpdateToOneWithWhereWithoutCyclesInput = {
+  where?: Prisma.ProjectWhereInput
+  data: Prisma.XOR<Prisma.ProjectUpdateWithoutCyclesInput, Prisma.ProjectUncheckedUpdateWithoutCyclesInput>
+}
+
+export type ProjectUpdateWithoutCyclesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  goal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  stage?: Prisma.StringFieldUpdateOperationsInput | string
+  priority?: Prisma.StringFieldUpdateOperationsInput | string
+  deadline?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposalStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposalPricing?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposalScope?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposalSentAt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agents?: Prisma.StringFieldUpdateOperationsInput | string
+  executionStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  executionRequestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  executionStartedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  executionFinishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  executionAttempts?: Prisma.IntFieldUpdateOperationsInput | number
+  executionError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  directionApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  presentedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clientApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutProjectsNestedInput
+  client?: Prisma.ClientUpdateOneRequiredWithoutProjectsNestedInput
+  deliverables?: Prisma.DeliverableUpdateManyWithoutProjectNestedInput
+  materialRequests?: Prisma.MaterialRequestUpdateManyWithoutProjectNestedInput
+  strategyRooms?: Prisma.StrategyRoomUpdateManyWithoutProjectNestedInput
+  activityEvents?: Prisma.ActivityEventUpdateManyWithoutProjectNestedInput
+  tasks?: Prisma.TaskUpdateManyWithoutProjectNestedInput
+  timelineEvents?: Prisma.TimelineEventUpdateManyWithoutProjectNestedInput
+  briefings?: Prisma.BriefingUpdateManyWithoutProjectNestedInput
+}
+
+export type ProjectUncheckedUpdateWithoutCyclesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
+  clientId?: Prisma.StringFieldUpdateOperationsInput | string
+  clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  goal?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  stage?: Prisma.StringFieldUpdateOperationsInput | string
+  priority?: Prisma.StringFieldUpdateOperationsInput | string
+  deadline?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposalStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposalPricing?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposalScope?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  proposalSentAt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agents?: Prisma.StringFieldUpdateOperationsInput | string
+  executionStatus?: Prisma.StringFieldUpdateOperationsInput | string
+  executionRequestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  executionStartedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  executionFinishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  executionAttempts?: Prisma.IntFieldUpdateOperationsInput | number
+  executionError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  directionApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  presentedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clientApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deliverables?: Prisma.DeliverableUncheckedUpdateManyWithoutProjectNestedInput
+  materialRequests?: Prisma.MaterialRequestUncheckedUpdateManyWithoutProjectNestedInput
+  strategyRooms?: Prisma.StrategyRoomUncheckedUpdateManyWithoutProjectNestedInput
+  activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutProjectNestedInput
+  tasks?: Prisma.TaskUncheckedUpdateManyWithoutProjectNestedInput
+  timelineEvents?: Prisma.TimelineEventUncheckedUpdateManyWithoutProjectNestedInput
+  briefings?: Prisma.BriefingUncheckedUpdateManyWithoutProjectNestedInput
+}
+
 export type ProjectCreateWithoutDeliverablesInput = {
   id?: string
   clientRequestId?: string | null
@@ -1241,6 +1507,9 @@ export type ProjectCreateWithoutDeliverablesInput = {
   executionFinishedAt?: Date | string | null
   executionAttempts?: number
   executionError?: string | null
+  directionApprovedAt?: Date | string | null
+  presentedAt?: Date | string | null
+  clientApprovedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutProjectsInput
@@ -1251,6 +1520,7 @@ export type ProjectCreateWithoutDeliverablesInput = {
   tasks?: Prisma.TaskCreateNestedManyWithoutProjectInput
   timelineEvents?: Prisma.TimelineEventCreateNestedManyWithoutProjectInput
   briefings?: Prisma.BriefingCreateNestedManyWithoutProjectInput
+  cycles?: Prisma.CycleCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutDeliverablesInput = {
@@ -1275,6 +1545,9 @@ export type ProjectUncheckedCreateWithoutDeliverablesInput = {
   executionFinishedAt?: Date | string | null
   executionAttempts?: number
   executionError?: string | null
+  directionApprovedAt?: Date | string | null
+  presentedAt?: Date | string | null
+  clientApprovedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   materialRequests?: Prisma.MaterialRequestUncheckedCreateNestedManyWithoutProjectInput
@@ -1283,6 +1556,7 @@ export type ProjectUncheckedCreateWithoutDeliverablesInput = {
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutProjectInput
   timelineEvents?: Prisma.TimelineEventUncheckedCreateNestedManyWithoutProjectInput
   briefings?: Prisma.BriefingUncheckedCreateNestedManyWithoutProjectInput
+  cycles?: Prisma.CycleUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutDeliverablesInput = {
@@ -1321,6 +1595,9 @@ export type ProjectUpdateWithoutDeliverablesInput = {
   executionFinishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   executionAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   executionError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  directionApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  presentedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clientApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutProjectsNestedInput
@@ -1331,6 +1608,7 @@ export type ProjectUpdateWithoutDeliverablesInput = {
   tasks?: Prisma.TaskUpdateManyWithoutProjectNestedInput
   timelineEvents?: Prisma.TimelineEventUpdateManyWithoutProjectNestedInput
   briefings?: Prisma.BriefingUpdateManyWithoutProjectNestedInput
+  cycles?: Prisma.CycleUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutDeliverablesInput = {
@@ -1355,6 +1633,9 @@ export type ProjectUncheckedUpdateWithoutDeliverablesInput = {
   executionFinishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   executionAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   executionError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  directionApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  presentedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clientApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   materialRequests?: Prisma.MaterialRequestUncheckedUpdateManyWithoutProjectNestedInput
@@ -1363,6 +1644,7 @@ export type ProjectUncheckedUpdateWithoutDeliverablesInput = {
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutProjectNestedInput
   timelineEvents?: Prisma.TimelineEventUncheckedUpdateManyWithoutProjectNestedInput
   briefings?: Prisma.BriefingUncheckedUpdateManyWithoutProjectNestedInput
+  cycles?: Prisma.CycleUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateWithoutMaterialRequestsInput = {
@@ -1385,6 +1667,9 @@ export type ProjectCreateWithoutMaterialRequestsInput = {
   executionFinishedAt?: Date | string | null
   executionAttempts?: number
   executionError?: string | null
+  directionApprovedAt?: Date | string | null
+  presentedAt?: Date | string | null
+  clientApprovedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutProjectsInput
@@ -1395,6 +1680,7 @@ export type ProjectCreateWithoutMaterialRequestsInput = {
   tasks?: Prisma.TaskCreateNestedManyWithoutProjectInput
   timelineEvents?: Prisma.TimelineEventCreateNestedManyWithoutProjectInput
   briefings?: Prisma.BriefingCreateNestedManyWithoutProjectInput
+  cycles?: Prisma.CycleCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutMaterialRequestsInput = {
@@ -1419,6 +1705,9 @@ export type ProjectUncheckedCreateWithoutMaterialRequestsInput = {
   executionFinishedAt?: Date | string | null
   executionAttempts?: number
   executionError?: string | null
+  directionApprovedAt?: Date | string | null
+  presentedAt?: Date | string | null
+  clientApprovedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   deliverables?: Prisma.DeliverableUncheckedCreateNestedManyWithoutProjectInput
@@ -1427,6 +1716,7 @@ export type ProjectUncheckedCreateWithoutMaterialRequestsInput = {
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutProjectInput
   timelineEvents?: Prisma.TimelineEventUncheckedCreateNestedManyWithoutProjectInput
   briefings?: Prisma.BriefingUncheckedCreateNestedManyWithoutProjectInput
+  cycles?: Prisma.CycleUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutMaterialRequestsInput = {
@@ -1465,6 +1755,9 @@ export type ProjectUpdateWithoutMaterialRequestsInput = {
   executionFinishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   executionAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   executionError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  directionApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  presentedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clientApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutProjectsNestedInput
@@ -1475,6 +1768,7 @@ export type ProjectUpdateWithoutMaterialRequestsInput = {
   tasks?: Prisma.TaskUpdateManyWithoutProjectNestedInput
   timelineEvents?: Prisma.TimelineEventUpdateManyWithoutProjectNestedInput
   briefings?: Prisma.BriefingUpdateManyWithoutProjectNestedInput
+  cycles?: Prisma.CycleUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutMaterialRequestsInput = {
@@ -1499,6 +1793,9 @@ export type ProjectUncheckedUpdateWithoutMaterialRequestsInput = {
   executionFinishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   executionAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   executionError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  directionApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  presentedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clientApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deliverables?: Prisma.DeliverableUncheckedUpdateManyWithoutProjectNestedInput
@@ -1507,6 +1804,7 @@ export type ProjectUncheckedUpdateWithoutMaterialRequestsInput = {
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutProjectNestedInput
   timelineEvents?: Prisma.TimelineEventUncheckedUpdateManyWithoutProjectNestedInput
   briefings?: Prisma.BriefingUncheckedUpdateManyWithoutProjectNestedInput
+  cycles?: Prisma.CycleUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateWithoutStrategyRoomsInput = {
@@ -1529,6 +1827,9 @@ export type ProjectCreateWithoutStrategyRoomsInput = {
   executionFinishedAt?: Date | string | null
   executionAttempts?: number
   executionError?: string | null
+  directionApprovedAt?: Date | string | null
+  presentedAt?: Date | string | null
+  clientApprovedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutProjectsInput
@@ -1539,6 +1840,7 @@ export type ProjectCreateWithoutStrategyRoomsInput = {
   tasks?: Prisma.TaskCreateNestedManyWithoutProjectInput
   timelineEvents?: Prisma.TimelineEventCreateNestedManyWithoutProjectInput
   briefings?: Prisma.BriefingCreateNestedManyWithoutProjectInput
+  cycles?: Prisma.CycleCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutStrategyRoomsInput = {
@@ -1563,6 +1865,9 @@ export type ProjectUncheckedCreateWithoutStrategyRoomsInput = {
   executionFinishedAt?: Date | string | null
   executionAttempts?: number
   executionError?: string | null
+  directionApprovedAt?: Date | string | null
+  presentedAt?: Date | string | null
+  clientApprovedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   deliverables?: Prisma.DeliverableUncheckedCreateNestedManyWithoutProjectInput
@@ -1571,6 +1876,7 @@ export type ProjectUncheckedCreateWithoutStrategyRoomsInput = {
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutProjectInput
   timelineEvents?: Prisma.TimelineEventUncheckedCreateNestedManyWithoutProjectInput
   briefings?: Prisma.BriefingUncheckedCreateNestedManyWithoutProjectInput
+  cycles?: Prisma.CycleUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutStrategyRoomsInput = {
@@ -1609,6 +1915,9 @@ export type ProjectUpdateWithoutStrategyRoomsInput = {
   executionFinishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   executionAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   executionError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  directionApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  presentedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clientApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutProjectsNestedInput
@@ -1619,6 +1928,7 @@ export type ProjectUpdateWithoutStrategyRoomsInput = {
   tasks?: Prisma.TaskUpdateManyWithoutProjectNestedInput
   timelineEvents?: Prisma.TimelineEventUpdateManyWithoutProjectNestedInput
   briefings?: Prisma.BriefingUpdateManyWithoutProjectNestedInput
+  cycles?: Prisma.CycleUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutStrategyRoomsInput = {
@@ -1643,6 +1953,9 @@ export type ProjectUncheckedUpdateWithoutStrategyRoomsInput = {
   executionFinishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   executionAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   executionError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  directionApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  presentedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clientApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deliverables?: Prisma.DeliverableUncheckedUpdateManyWithoutProjectNestedInput
@@ -1651,6 +1964,7 @@ export type ProjectUncheckedUpdateWithoutStrategyRoomsInput = {
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutProjectNestedInput
   timelineEvents?: Prisma.TimelineEventUncheckedUpdateManyWithoutProjectNestedInput
   briefings?: Prisma.BriefingUncheckedUpdateManyWithoutProjectNestedInput
+  cycles?: Prisma.CycleUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateWithoutBriefingsInput = {
@@ -1673,6 +1987,9 @@ export type ProjectCreateWithoutBriefingsInput = {
   executionFinishedAt?: Date | string | null
   executionAttempts?: number
   executionError?: string | null
+  directionApprovedAt?: Date | string | null
+  presentedAt?: Date | string | null
+  clientApprovedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutProjectsInput
@@ -1683,6 +2000,7 @@ export type ProjectCreateWithoutBriefingsInput = {
   activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutProjectInput
   tasks?: Prisma.TaskCreateNestedManyWithoutProjectInput
   timelineEvents?: Prisma.TimelineEventCreateNestedManyWithoutProjectInput
+  cycles?: Prisma.CycleCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutBriefingsInput = {
@@ -1707,6 +2025,9 @@ export type ProjectUncheckedCreateWithoutBriefingsInput = {
   executionFinishedAt?: Date | string | null
   executionAttempts?: number
   executionError?: string | null
+  directionApprovedAt?: Date | string | null
+  presentedAt?: Date | string | null
+  clientApprovedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   deliverables?: Prisma.DeliverableUncheckedCreateNestedManyWithoutProjectInput
@@ -1715,6 +2036,7 @@ export type ProjectUncheckedCreateWithoutBriefingsInput = {
   activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutProjectInput
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutProjectInput
   timelineEvents?: Prisma.TimelineEventUncheckedCreateNestedManyWithoutProjectInput
+  cycles?: Prisma.CycleUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutBriefingsInput = {
@@ -1753,6 +2075,9 @@ export type ProjectUpdateWithoutBriefingsInput = {
   executionFinishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   executionAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   executionError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  directionApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  presentedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clientApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutProjectsNestedInput
@@ -1763,6 +2088,7 @@ export type ProjectUpdateWithoutBriefingsInput = {
   activityEvents?: Prisma.ActivityEventUpdateManyWithoutProjectNestedInput
   tasks?: Prisma.TaskUpdateManyWithoutProjectNestedInput
   timelineEvents?: Prisma.TimelineEventUpdateManyWithoutProjectNestedInput
+  cycles?: Prisma.CycleUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutBriefingsInput = {
@@ -1787,6 +2113,9 @@ export type ProjectUncheckedUpdateWithoutBriefingsInput = {
   executionFinishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   executionAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   executionError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  directionApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  presentedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clientApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deliverables?: Prisma.DeliverableUncheckedUpdateManyWithoutProjectNestedInput
@@ -1795,6 +2124,7 @@ export type ProjectUncheckedUpdateWithoutBriefingsInput = {
   activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutProjectNestedInput
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutProjectNestedInput
   timelineEvents?: Prisma.TimelineEventUncheckedUpdateManyWithoutProjectNestedInput
+  cycles?: Prisma.CycleUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateWithoutTasksInput = {
@@ -1817,6 +2147,9 @@ export type ProjectCreateWithoutTasksInput = {
   executionFinishedAt?: Date | string | null
   executionAttempts?: number
   executionError?: string | null
+  directionApprovedAt?: Date | string | null
+  presentedAt?: Date | string | null
+  clientApprovedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutProjectsInput
@@ -1827,6 +2160,7 @@ export type ProjectCreateWithoutTasksInput = {
   activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutProjectInput
   timelineEvents?: Prisma.TimelineEventCreateNestedManyWithoutProjectInput
   briefings?: Prisma.BriefingCreateNestedManyWithoutProjectInput
+  cycles?: Prisma.CycleCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutTasksInput = {
@@ -1851,6 +2185,9 @@ export type ProjectUncheckedCreateWithoutTasksInput = {
   executionFinishedAt?: Date | string | null
   executionAttempts?: number
   executionError?: string | null
+  directionApprovedAt?: Date | string | null
+  presentedAt?: Date | string | null
+  clientApprovedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   deliverables?: Prisma.DeliverableUncheckedCreateNestedManyWithoutProjectInput
@@ -1859,6 +2196,7 @@ export type ProjectUncheckedCreateWithoutTasksInput = {
   activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutProjectInput
   timelineEvents?: Prisma.TimelineEventUncheckedCreateNestedManyWithoutProjectInput
   briefings?: Prisma.BriefingUncheckedCreateNestedManyWithoutProjectInput
+  cycles?: Prisma.CycleUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutTasksInput = {
@@ -1897,6 +2235,9 @@ export type ProjectUpdateWithoutTasksInput = {
   executionFinishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   executionAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   executionError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  directionApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  presentedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clientApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutProjectsNestedInput
@@ -1907,6 +2248,7 @@ export type ProjectUpdateWithoutTasksInput = {
   activityEvents?: Prisma.ActivityEventUpdateManyWithoutProjectNestedInput
   timelineEvents?: Prisma.TimelineEventUpdateManyWithoutProjectNestedInput
   briefings?: Prisma.BriefingUpdateManyWithoutProjectNestedInput
+  cycles?: Prisma.CycleUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutTasksInput = {
@@ -1931,6 +2273,9 @@ export type ProjectUncheckedUpdateWithoutTasksInput = {
   executionFinishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   executionAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   executionError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  directionApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  presentedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clientApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deliverables?: Prisma.DeliverableUncheckedUpdateManyWithoutProjectNestedInput
@@ -1939,6 +2284,7 @@ export type ProjectUncheckedUpdateWithoutTasksInput = {
   activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutProjectNestedInput
   timelineEvents?: Prisma.TimelineEventUncheckedUpdateManyWithoutProjectNestedInput
   briefings?: Prisma.BriefingUncheckedUpdateManyWithoutProjectNestedInput
+  cycles?: Prisma.CycleUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateWithoutTimelineEventsInput = {
@@ -1961,6 +2307,9 @@ export type ProjectCreateWithoutTimelineEventsInput = {
   executionFinishedAt?: Date | string | null
   executionAttempts?: number
   executionError?: string | null
+  directionApprovedAt?: Date | string | null
+  presentedAt?: Date | string | null
+  clientApprovedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutProjectsInput
@@ -1971,6 +2320,7 @@ export type ProjectCreateWithoutTimelineEventsInput = {
   activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutProjectInput
   tasks?: Prisma.TaskCreateNestedManyWithoutProjectInput
   briefings?: Prisma.BriefingCreateNestedManyWithoutProjectInput
+  cycles?: Prisma.CycleCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutTimelineEventsInput = {
@@ -1995,6 +2345,9 @@ export type ProjectUncheckedCreateWithoutTimelineEventsInput = {
   executionFinishedAt?: Date | string | null
   executionAttempts?: number
   executionError?: string | null
+  directionApprovedAt?: Date | string | null
+  presentedAt?: Date | string | null
+  clientApprovedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   deliverables?: Prisma.DeliverableUncheckedCreateNestedManyWithoutProjectInput
@@ -2003,6 +2356,7 @@ export type ProjectUncheckedCreateWithoutTimelineEventsInput = {
   activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutProjectInput
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutProjectInput
   briefings?: Prisma.BriefingUncheckedCreateNestedManyWithoutProjectInput
+  cycles?: Prisma.CycleUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutTimelineEventsInput = {
@@ -2041,6 +2395,9 @@ export type ProjectUpdateWithoutTimelineEventsInput = {
   executionFinishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   executionAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   executionError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  directionApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  presentedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clientApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutProjectsNestedInput
@@ -2051,6 +2408,7 @@ export type ProjectUpdateWithoutTimelineEventsInput = {
   activityEvents?: Prisma.ActivityEventUpdateManyWithoutProjectNestedInput
   tasks?: Prisma.TaskUpdateManyWithoutProjectNestedInput
   briefings?: Prisma.BriefingUpdateManyWithoutProjectNestedInput
+  cycles?: Prisma.CycleUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutTimelineEventsInput = {
@@ -2075,6 +2433,9 @@ export type ProjectUncheckedUpdateWithoutTimelineEventsInput = {
   executionFinishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   executionAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   executionError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  directionApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  presentedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clientApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deliverables?: Prisma.DeliverableUncheckedUpdateManyWithoutProjectNestedInput
@@ -2083,6 +2444,7 @@ export type ProjectUncheckedUpdateWithoutTimelineEventsInput = {
   activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutProjectNestedInput
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutProjectNestedInput
   briefings?: Prisma.BriefingUncheckedUpdateManyWithoutProjectNestedInput
+  cycles?: Prisma.CycleUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateWithoutActivityEventsInput = {
@@ -2105,6 +2467,9 @@ export type ProjectCreateWithoutActivityEventsInput = {
   executionFinishedAt?: Date | string | null
   executionAttempts?: number
   executionError?: string | null
+  directionApprovedAt?: Date | string | null
+  presentedAt?: Date | string | null
+  clientApprovedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutProjectsInput
@@ -2115,6 +2480,7 @@ export type ProjectCreateWithoutActivityEventsInput = {
   tasks?: Prisma.TaskCreateNestedManyWithoutProjectInput
   timelineEvents?: Prisma.TimelineEventCreateNestedManyWithoutProjectInput
   briefings?: Prisma.BriefingCreateNestedManyWithoutProjectInput
+  cycles?: Prisma.CycleCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutActivityEventsInput = {
@@ -2139,6 +2505,9 @@ export type ProjectUncheckedCreateWithoutActivityEventsInput = {
   executionFinishedAt?: Date | string | null
   executionAttempts?: number
   executionError?: string | null
+  directionApprovedAt?: Date | string | null
+  presentedAt?: Date | string | null
+  clientApprovedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   deliverables?: Prisma.DeliverableUncheckedCreateNestedManyWithoutProjectInput
@@ -2147,6 +2516,7 @@ export type ProjectUncheckedCreateWithoutActivityEventsInput = {
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutProjectInput
   timelineEvents?: Prisma.TimelineEventUncheckedCreateNestedManyWithoutProjectInput
   briefings?: Prisma.BriefingUncheckedCreateNestedManyWithoutProjectInput
+  cycles?: Prisma.CycleUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutActivityEventsInput = {
@@ -2185,6 +2555,9 @@ export type ProjectUpdateWithoutActivityEventsInput = {
   executionFinishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   executionAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   executionError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  directionApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  presentedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clientApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutProjectsNestedInput
@@ -2195,6 +2568,7 @@ export type ProjectUpdateWithoutActivityEventsInput = {
   tasks?: Prisma.TaskUpdateManyWithoutProjectNestedInput
   timelineEvents?: Prisma.TimelineEventUpdateManyWithoutProjectNestedInput
   briefings?: Prisma.BriefingUpdateManyWithoutProjectNestedInput
+  cycles?: Prisma.CycleUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutActivityEventsInput = {
@@ -2219,6 +2593,9 @@ export type ProjectUncheckedUpdateWithoutActivityEventsInput = {
   executionFinishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   executionAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   executionError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  directionApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  presentedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clientApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deliverables?: Prisma.DeliverableUncheckedUpdateManyWithoutProjectNestedInput
@@ -2227,6 +2604,7 @@ export type ProjectUncheckedUpdateWithoutActivityEventsInput = {
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutProjectNestedInput
   timelineEvents?: Prisma.TimelineEventUncheckedUpdateManyWithoutProjectNestedInput
   briefings?: Prisma.BriefingUncheckedUpdateManyWithoutProjectNestedInput
+  cycles?: Prisma.CycleUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateManyWorkspaceInput = {
@@ -2250,6 +2628,9 @@ export type ProjectCreateManyWorkspaceInput = {
   executionFinishedAt?: Date | string | null
   executionAttempts?: number
   executionError?: string | null
+  directionApprovedAt?: Date | string | null
+  presentedAt?: Date | string | null
+  clientApprovedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -2274,6 +2655,9 @@ export type ProjectUpdateWithoutWorkspaceInput = {
   executionFinishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   executionAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   executionError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  directionApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  presentedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clientApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   client?: Prisma.ClientUpdateOneRequiredWithoutProjectsNestedInput
@@ -2284,6 +2668,7 @@ export type ProjectUpdateWithoutWorkspaceInput = {
   tasks?: Prisma.TaskUpdateManyWithoutProjectNestedInput
   timelineEvents?: Prisma.TimelineEventUpdateManyWithoutProjectNestedInput
   briefings?: Prisma.BriefingUpdateManyWithoutProjectNestedInput
+  cycles?: Prisma.CycleUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutWorkspaceInput = {
@@ -2307,6 +2692,9 @@ export type ProjectUncheckedUpdateWithoutWorkspaceInput = {
   executionFinishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   executionAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   executionError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  directionApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  presentedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clientApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deliverables?: Prisma.DeliverableUncheckedUpdateManyWithoutProjectNestedInput
@@ -2316,6 +2704,7 @@ export type ProjectUncheckedUpdateWithoutWorkspaceInput = {
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutProjectNestedInput
   timelineEvents?: Prisma.TimelineEventUncheckedUpdateManyWithoutProjectNestedInput
   briefings?: Prisma.BriefingUncheckedUpdateManyWithoutProjectNestedInput
+  cycles?: Prisma.CycleUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateManyWithoutWorkspaceInput = {
@@ -2339,6 +2728,9 @@ export type ProjectUncheckedUpdateManyWithoutWorkspaceInput = {
   executionFinishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   executionAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   executionError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  directionApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  presentedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clientApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -2364,6 +2756,9 @@ export type ProjectCreateManyClientInput = {
   executionFinishedAt?: Date | string | null
   executionAttempts?: number
   executionError?: string | null
+  directionApprovedAt?: Date | string | null
+  presentedAt?: Date | string | null
+  clientApprovedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -2388,6 +2783,9 @@ export type ProjectUpdateWithoutClientInput = {
   executionFinishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   executionAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   executionError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  directionApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  presentedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clientApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutProjectsNestedInput
@@ -2398,6 +2796,7 @@ export type ProjectUpdateWithoutClientInput = {
   tasks?: Prisma.TaskUpdateManyWithoutProjectNestedInput
   timelineEvents?: Prisma.TimelineEventUpdateManyWithoutProjectNestedInput
   briefings?: Prisma.BriefingUpdateManyWithoutProjectNestedInput
+  cycles?: Prisma.CycleUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutClientInput = {
@@ -2421,6 +2820,9 @@ export type ProjectUncheckedUpdateWithoutClientInput = {
   executionFinishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   executionAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   executionError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  directionApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  presentedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clientApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deliverables?: Prisma.DeliverableUncheckedUpdateManyWithoutProjectNestedInput
@@ -2430,6 +2832,7 @@ export type ProjectUncheckedUpdateWithoutClientInput = {
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutProjectNestedInput
   timelineEvents?: Prisma.TimelineEventUncheckedUpdateManyWithoutProjectNestedInput
   briefings?: Prisma.BriefingUncheckedUpdateManyWithoutProjectNestedInput
+  cycles?: Prisma.CycleUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateManyWithoutClientInput = {
@@ -2453,6 +2856,9 @@ export type ProjectUncheckedUpdateManyWithoutClientInput = {
   executionFinishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   executionAttempts?: Prisma.IntFieldUpdateOperationsInput | number
   executionError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  directionApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  presentedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clientApprovedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -2470,6 +2876,7 @@ export type ProjectCountOutputType = {
   tasks: number
   timelineEvents: number
   briefings: number
+  cycles: number
 }
 
 export type ProjectCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2480,6 +2887,7 @@ export type ProjectCountOutputTypeSelect<ExtArgs extends runtime.Types.Extension
   tasks?: boolean | ProjectCountOutputTypeCountTasksArgs
   timelineEvents?: boolean | ProjectCountOutputTypeCountTimelineEventsArgs
   briefings?: boolean | ProjectCountOutputTypeCountBriefingsArgs
+  cycles?: boolean | ProjectCountOutputTypeCountCyclesArgs
 }
 
 /**
@@ -2541,6 +2949,13 @@ export type ProjectCountOutputTypeCountBriefingsArgs<ExtArgs extends runtime.Typ
   where?: Prisma.BriefingWhereInput
 }
 
+/**
+ * ProjectCountOutputType without action
+ */
+export type ProjectCountOutputTypeCountCyclesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.CycleWhereInput
+}
+
 
 export type ProjectSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -2564,6 +2979,9 @@ export type ProjectSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   executionFinishedAt?: boolean
   executionAttempts?: boolean
   executionError?: boolean
+  directionApprovedAt?: boolean
+  presentedAt?: boolean
+  clientApprovedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   workspace?: boolean | Prisma.AgencyWorkspaceDefaultArgs<ExtArgs>
@@ -2575,6 +2993,7 @@ export type ProjectSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   tasks?: boolean | Prisma.Project$tasksArgs<ExtArgs>
   timelineEvents?: boolean | Prisma.Project$timelineEventsArgs<ExtArgs>
   briefings?: boolean | Prisma.Project$briefingsArgs<ExtArgs>
+  cycles?: boolean | Prisma.Project$cyclesArgs<ExtArgs>
   _count?: boolean | Prisma.ProjectCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["project"]>
 
@@ -2600,6 +3019,9 @@ export type ProjectSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   executionFinishedAt?: boolean
   executionAttempts?: boolean
   executionError?: boolean
+  directionApprovedAt?: boolean
+  presentedAt?: boolean
+  clientApprovedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   workspace?: boolean | Prisma.AgencyWorkspaceDefaultArgs<ExtArgs>
@@ -2628,6 +3050,9 @@ export type ProjectSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   executionFinishedAt?: boolean
   executionAttempts?: boolean
   executionError?: boolean
+  directionApprovedAt?: boolean
+  presentedAt?: boolean
+  clientApprovedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   workspace?: boolean | Prisma.AgencyWorkspaceDefaultArgs<ExtArgs>
@@ -2656,11 +3081,14 @@ export type ProjectSelectScalar = {
   executionFinishedAt?: boolean
   executionAttempts?: boolean
   executionError?: boolean
+  directionApprovedAt?: boolean
+  presentedAt?: boolean
+  clientApprovedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type ProjectOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "clientId" | "clientRequestId" | "name" | "goal" | "type" | "stage" | "priority" | "deadline" | "proposalStatus" | "proposalPricing" | "proposalScope" | "proposalSentAt" | "agents" | "executionStatus" | "executionRequestedAt" | "executionStartedAt" | "executionFinishedAt" | "executionAttempts" | "executionError" | "createdAt" | "updatedAt", ExtArgs["result"]["project"]>
+export type ProjectOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "clientId" | "clientRequestId" | "name" | "goal" | "type" | "stage" | "priority" | "deadline" | "proposalStatus" | "proposalPricing" | "proposalScope" | "proposalSentAt" | "agents" | "executionStatus" | "executionRequestedAt" | "executionStartedAt" | "executionFinishedAt" | "executionAttempts" | "executionError" | "directionApprovedAt" | "presentedAt" | "clientApprovedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["project"]>
 export type ProjectInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   workspace?: boolean | Prisma.AgencyWorkspaceDefaultArgs<ExtArgs>
   client?: boolean | Prisma.ClientDefaultArgs<ExtArgs>
@@ -2671,6 +3099,7 @@ export type ProjectInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs
   tasks?: boolean | Prisma.Project$tasksArgs<ExtArgs>
   timelineEvents?: boolean | Prisma.Project$timelineEventsArgs<ExtArgs>
   briefings?: boolean | Prisma.Project$briefingsArgs<ExtArgs>
+  cycles?: boolean | Prisma.Project$cyclesArgs<ExtArgs>
   _count?: boolean | Prisma.ProjectCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type ProjectIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2694,6 +3123,7 @@ export type $ProjectPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     tasks: Prisma.$TaskPayload<ExtArgs>[]
     timelineEvents: Prisma.$TimelineEventPayload<ExtArgs>[]
     briefings: Prisma.$BriefingPayload<ExtArgs>[]
+    cycles: Prisma.$CyclePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -2717,6 +3147,9 @@ export type $ProjectPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     executionFinishedAt: Date | null
     executionAttempts: number
     executionError: string | null
+    directionApprovedAt: Date | null
+    presentedAt: Date | null
+    clientApprovedAt: Date | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["project"]>
@@ -3122,6 +3555,7 @@ export interface Prisma__ProjectClient<T, Null = never, ExtArgs extends runtime.
   tasks<T extends Prisma.Project$tasksArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Project$tasksArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TaskPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   timelineEvents<T extends Prisma.Project$timelineEventsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Project$timelineEventsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TimelineEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   briefings<T extends Prisma.Project$briefingsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Project$briefingsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BriefingPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  cycles<T extends Prisma.Project$cyclesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Project$cyclesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CyclePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -3172,6 +3606,9 @@ export interface ProjectFieldRefs {
   readonly executionFinishedAt: Prisma.FieldRef<"Project", 'DateTime'>
   readonly executionAttempts: Prisma.FieldRef<"Project", 'Int'>
   readonly executionError: Prisma.FieldRef<"Project", 'String'>
+  readonly directionApprovedAt: Prisma.FieldRef<"Project", 'DateTime'>
+  readonly presentedAt: Prisma.FieldRef<"Project", 'DateTime'>
+  readonly clientApprovedAt: Prisma.FieldRef<"Project", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"Project", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Project", 'DateTime'>
 }
@@ -3738,6 +4175,30 @@ export type Project$briefingsArgs<ExtArgs extends runtime.Types.Extensions.Inter
   take?: number
   skip?: number
   distinct?: Prisma.BriefingScalarFieldEnum | Prisma.BriefingScalarFieldEnum[]
+}
+
+/**
+ * Project.cycles
+ */
+export type Project$cyclesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Cycle
+   */
+  select?: Prisma.CycleSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Cycle
+   */
+  omit?: Prisma.CycleOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CycleInclude<ExtArgs> | null
+  where?: Prisma.CycleWhereInput
+  orderBy?: Prisma.CycleOrderByWithRelationInput | Prisma.CycleOrderByWithRelationInput[]
+  cursor?: Prisma.CycleWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.CycleScalarFieldEnum | Prisma.CycleScalarFieldEnum[]
 }
 
 /**
