@@ -24,7 +24,7 @@ function brl(n: number) {
 
 function MarginBadge({ pct }: { pct: number }) {
   const tone =
-    pct >= 60 ? "bg-[#DCFCE7] text-[#16A34A]" : pct >= 45 ? "bg-[#FEF3C7] text-[#D97706]" : "bg-[#FEE2E2] text-[#DC2626]";
+    pct >= 60 ? "bg-[var(--success-bg)] text-[var(--success)]" : pct >= 45 ? "bg-[var(--warning-bg)] text-[var(--warning)]" : "bg-[#FEE2E2] text-[var(--danger)]";
   return <span className={`h-5 px-2 rounded-full text-[10px] font-bold ${tone}`}>{pct}%</span>;
 }
 
@@ -42,15 +42,15 @@ function Row({
   const marginAtList = marginPct(list, profile.costBasis);
   const marginAtTarget = marginPct(profile.targetPrice, profile.costBasis);
   return (
-    <tr className="border-t border-[#F0F0ED]">
+    <tr className="border-t border-[var(--border)]">
       <td className="p-3">
-        <div className="text-[13px] font-medium text-[#1A1A1A]">{label}</div>
-        <div className="text-[10px] text-[#9B9B95]">{detail}</div>
+        <div className="text-[13px] font-medium text-[var(--text-primary)]">{label}</div>
+        <div className="text-[10px] text-[var(--text-muted)]">{detail}</div>
       </td>
-      <td className="p-3 text-center text-[12px] text-[#6B6B65] mono-num">{brl(profile.costBasis)}</td>
-      <td className="p-3 text-center text-[12px] font-semibold text-[#DC2626] mono-num">{brl(profile.floorPrice)}</td>
-      <td className="p-3 text-center text-[12px] text-[#1A1A1A] mono-num">{brl(list)}</td>
-      <td className="p-3 text-center text-[12px] text-[#070A1F] mono-num">{brl(profile.targetPrice)}</td>
+      <td className="p-3 text-center text-[12px] text-[var(--text-secondary)] mono-num">{brl(profile.costBasis)}</td>
+      <td className="p-3 text-center text-[12px] font-semibold text-[var(--danger)] mono-num">{brl(profile.floorPrice)}</td>
+      <td className="p-3 text-center text-[12px] text-[var(--text-primary)] mono-num">{brl(list)}</td>
+      <td className="p-3 text-center text-[12px] text-[var(--navy)] mono-num">{brl(profile.targetPrice)}</td>
       <td className="p-3 text-center"><MarginBadge pct={marginAtList} /></td>
       <td className="p-3 text-center"><MarginBadge pct={marginAtTarget} /></td>
     </tr>
@@ -67,7 +67,7 @@ export default function MarginIntelligencePanel() {
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-[15px] font-semibold text-white">Inteligência de Margem</h2>
-            <span className="h-5 px-2 rounded-full bg-[#DC2626]/20 text-[#FCA5A5] text-[10px] font-bold flex items-center">
+            <span className="h-5 px-2 rounded-full bg-[var(--danger)]/20 text-[#FCA5A5] text-[10px] font-bold flex items-center">
               MASTER · INTERNO
             </span>
           </div>
@@ -117,7 +117,7 @@ export default function MarginIntelligencePanel() {
             <div key={l.id} className="bg-[#11151F] border border-[#1F2433] rounded-[8px] px-3.5 py-2.5">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-[12px] font-semibold text-white">{l.label}</span>
-                <span className="h-5 px-2 rounded-full bg-[#16A34A]/15 text-[#4ADE80] text-[10px] font-bold shrink-0">
+                <span className="h-5 px-2 rounded-full bg-[var(--success)]/15 text-[#4ADE80] text-[10px] font-bold shrink-0">
                   até {l.maxPct}%
                 </span>
               </div>

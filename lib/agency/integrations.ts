@@ -688,7 +688,7 @@ export const STATUS_LABELS: Record<IntegrationStatus, string> = {
 export const STATUS_COLORS: Record<IntegrationStatus, { bg: string; text: string; dot: string }> = {
   active:      { bg: "bg-[#DCFCE7]", text: "text-[#16A34A]", dot: "bg-[#16A34A]" },
   configured:  { bg: "bg-[#E6FBFA]", text: "text-[#070A1F]", dot: "bg-[#070A1F]" },
-  available:   { bg: "bg-[#E0F2FE]", text: "text-[#0891B2]", dot: "bg-[#0891B2]" },
+  available:   { bg: "bg-[#E6FBFA]", text: "text-[#0891B2]", dot: "bg-[#0891B2]" },
   planned:     { bg: "bg-[#F4F4F0]", text: "text-[#9B9B95]", dot: "bg-[#C0C0BA]" },
   unavailable: { bg: "bg-[#FEF3C7]", text: "text-[#D97706]", dot: "bg-[#D97706]" },
   error:       { bg: "bg-[#FEE2E2]", text: "text-[#DC2626]", dot: "bg-[#DC2626]" },

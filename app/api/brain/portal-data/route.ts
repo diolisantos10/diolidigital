@@ -6,6 +6,7 @@ import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-ser
 import { requireSession } from "@/lib/auth/api-guard";
 
 const CLIENT_SAFE_DEPARTMENTS: Record<string, string> = {
+  proposal:  "Proposta do projeto",
   strategy:  "Estratégia",
   social:    "Social Media",
   design:    "Design",
@@ -139,6 +140,25 @@ async function buildPortalData(clientRequestId: string) {
 
   if (!clientRequest) return null;
 
+  // The agents produce deliverables into their own table (with the full content).
+  // Surface that content on the approval card so it isn't empty — match a
+  // deliverable approval to its deliverable by owner-agent, falling back to order.
+  const project = await prisma.project.findFirst({ where: { clientRequestId }, select: { id: true } });
+  const deliverables = project
+    ? await prisma.deliverable.findMany({ where: { projectId: project.id }, orderBy: { createdAt: "asc" }, select: { name: true, content: true, ownerAgentId: true } })
+    : [];
+  const AGENT_TO_DEPT: Record<string, string> = { a3: "social-media", a2: "design", a4: "paid-traffic" };
+  const contentByDept = new Map<string, string>();
+  const leftoverContent: string[] = [];
+  for (const dv of deliverables) {
+    const dept = dv.ownerAgentId ? AGENT_TO_DEPT[dv.ownerAgentId] : undefined;
+    const body = dv.content ? `${dv.name}\n\n${dv.content}` : dv.name;
+    if (dept && !contentByDept.has(dept)) contentByDept.set(dept, body);
+    else leftoverContent.push(body);
+  }
+  const deliverableContentFor = (deptRaw: string): string | null =>
+    contentByDept.get(deptRaw) ?? (leftoverContent.length ? leftoverContent.shift()! : null);
+
   const services = (() => { try { return JSON.parse(clientRequest.services); } catch { return []; } })();
   const objectives = (() => { try { return JSON.parse(clientRequest.objectives); } catch { return []; } })();
   const scope = (() => {
@@ -184,7 +204,8 @@ async function buildPortalData(clientRequestId: string) {
       department: CLIENT_SAFE_DEPARTMENTS[ap.department] ?? ap.department,
       status:     ap.status,
       reviewedAt: ap.reviewedAt,
-      reviewNote: ap.reviewNote,
+      // Deliverable approvals show the produced content; the proposal keeps its own note.
+      reviewNote: ap.reviewNote || (ap.department !== "proposal" ? deliverableContentFor(ap.department) : null),
       comments:   ap.comments,
     })),
   };

@@ -62,13 +62,13 @@ export default function MetaConnectManager() {
   }, [load]);
 
   return (
-    <div className="bg-white border border-[#E5E5E2] rounded-[10px] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden mb-6">
-      <div className="px-5 py-3.5 border-b border-[#F0F0ED]">
+    <div className="bg-white border border-[var(--border)] rounded-[10px] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden mb-6">
+      <div className="px-5 py-3.5 border-b border-[var(--border)]">
         <div className="flex items-center gap-2">
-          <h2 className="text-[14px] font-semibold text-[#1C1C1A]">Meta — Instagram · Facebook · WhatsApp</h2>
-          <span className="text-[10px] bg-[#DCFCE7] text-[#16A34A] px-2 py-0.5 rounded font-bold">TOKENS CRIPTOGRAFADOS</span>
+          <h2 className="text-[14px] font-semibold text-[var(--text-primary)]">Meta — Instagram · Facebook · WhatsApp</h2>
+          <span className="text-[10px] bg-[var(--success-bg)] text-[var(--success)] px-2 py-0.5 rounded font-bold">TOKENS CRIPTOGRAFADOS</span>
         </div>
-        <p className="text-[11px] text-[#9B9B95] mt-0.5">
+        <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
           Conecte as contas da agência e dos clientes. As credenciais e tokens são guardados com segurança (criptografados) e usados para publicar e ler métricas.
         </p>
       </div>
@@ -139,22 +139,22 @@ function AppCredentialsRow({
   }
 
   return (
-    <div className="border border-[#F0F0ED] rounded-[8px] p-4 bg-[#FAFAFB]">
+    <div className="border border-[var(--border)] rounded-[8px] p-4 bg-[#FAFAFB]">
       <div className="flex items-center justify-between mb-2">
-        <div className="text-[12px] font-semibold text-[#1C1C1A]">1. App &ldquo;Dioli Digital&rdquo; (App ID + App Secret)</div>
+        <div className="text-[12px] font-semibold text-[var(--text-primary)]">1. App &ldquo;Dioli Digital&rdquo; (App ID + App Secret)</div>
         {!loading && configured && (
-          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] bg-[#DCFCE7] text-[#16A34A]">
+          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] bg-[var(--success-bg)] text-[var(--success)]">
             ● Configurado{config?.source === "env" ? " (ambiente)" : ""}
           </span>
         )}
       </div>
 
       {loading ? (
-        <div className="text-[12px] text-[#9B9B95]">Carregando…</div>
+        <div className="text-[12px] text-[var(--text-muted)]">Carregando…</div>
       ) : showInput ? (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <label className="text-[11px] font-semibold text-[#6B6B65]">Credenciais do app</label>
+            <label className="text-[11px] font-semibold text-[var(--text-secondary)]">Credenciais do app</label>
             <a
               href="https://developers.facebook.com/apps"
               target="_blank"
@@ -170,7 +170,7 @@ function AppCredentialsRow({
             value={appId}
             onChange={(e) => setAppId(e.target.value)}
             placeholder="App ID (ex.: 1824373765214116)"
-            className="w-full border border-[#E8E8E4] rounded-[7px] px-3 py-2 text-[13px] text-[#1C1C1A] bg-white focus:outline-none focus:ring-2"
+            className="w-full border border-[var(--border)] rounded-[7px] px-3 py-2 text-[13px] text-[var(--text-primary)] bg-white focus:outline-none focus:ring-2"
             style={{ ["--tw-ring-color" as string]: `${ACCENT}40` }}
           />
           <input
@@ -178,10 +178,10 @@ function AppCredentialsRow({
             value={appSecret}
             onChange={(e) => setAppSecret(e.target.value)}
             placeholder="App Secret (Configurações → Básico → Mostrar)"
-            className="w-full border border-[#E8E8E4] rounded-[7px] px-3 py-2 text-[13px] text-[#1C1C1A] bg-white focus:outline-none focus:ring-2"
+            className="w-full border border-[var(--border)] rounded-[7px] px-3 py-2 text-[13px] text-[var(--text-primary)] bg-white focus:outline-none focus:ring-2"
             style={{ ["--tw-ring-color" as string]: `${ACCENT}40` }}
           />
-          <p className="text-[10px] text-[#9B9B95]">
+          <p className="text-[10px] text-[var(--text-muted)]">
             Onde encontrar: developers.facebook.com → app &ldquo;Dioli Digital&rdquo; → Configurações → Básico.
           </p>
           <div className="flex items-center gap-2 pt-1">
@@ -196,7 +196,7 @@ function AppCredentialsRow({
             {configured && (
               <button
                 onClick={() => { setEditing(false); setAppId(""); setAppSecret(""); setMsg(null); }}
-                className="px-3 py-1.5 text-[12px] text-[#6B6B65] hover:text-[#1C1C1A]"
+                className="px-3 py-1.5 text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
               >
                 Cancelar
               </button>
@@ -205,14 +205,14 @@ function AppCredentialsRow({
         </div>
       ) : (
         <div className="flex items-center justify-between gap-3">
-          <div className="text-[12px] text-[#6B6B65]">
-            <span className="font-medium text-[#1C1C1A]">App ID:</span>{" "}
+          <div className="text-[12px] text-[var(--text-secondary)]">
+            <span className="font-medium text-[var(--text-primary)]">App ID:</span>{" "}
             <span className="font-mono">{config?.appId}</span>
-            {config?.secretHint && <span className="text-[#9B9B95]"> · secret {config.secretHint}</span>}
+            {config?.secretHint && <span className="text-[var(--text-muted)]"> · secret {config.secretHint}</span>}
           </div>
           <button
             onClick={() => setEditing(true)}
-            className="px-3 py-1.5 text-[12px] font-medium text-[#6B6B65] hover:text-[#1C1C1A] shrink-0"
+            className="px-3 py-1.5 text-[12px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] shrink-0"
           >
             Trocar
           </button>
@@ -221,7 +221,7 @@ function AppCredentialsRow({
 
       {msg && (
         <div className={`mt-2 text-[11px] px-3 py-1.5 rounded-[6px] ${
-          msg.ok ? "bg-[#F0FDF4] text-[#16A34A]" : "bg-[#FFF5F5] text-[#DC2626]"
+          msg.ok ? "bg-[#F0FDF4] text-[var(--success)]" : "bg-[#FFF5F5] text-[var(--danger)]"
         }`}>
           {msg.ok ? "✓ " : "✗ "}{msg.text}
         </div>
@@ -296,7 +296,7 @@ function ConnectionsSection({
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <div className="text-[12px] font-semibold text-[#1C1C1A]">2. Contas conectadas</div>
+        <div className="text-[12px] font-semibold text-[var(--text-primary)]">2. Contas conectadas</div>
         <button
           onClick={openConnectPopup}
           disabled={!canConnect || connecting}
@@ -309,30 +309,30 @@ function ConnectionsSection({
       </div>
 
       {!canConnect && (
-        <p className="text-[11px] text-[#D97706]">⚠ Salve o App ID e o App Secret acima para poder conectar contas.</p>
+        <p className="text-[11px] text-[var(--warning)]">⚠ Salve o App ID e o App Secret acima para poder conectar contas.</p>
       )}
 
       {loading ? (
-        <div className="text-[12px] text-[#9B9B95]">Carregando…</div>
+        <div className="text-[12px] text-[var(--text-muted)]">Carregando…</div>
       ) : connections.length === 0 ? (
-        <p className="text-[11px] text-[#9B9B95]">Nenhuma conta conectada ainda.</p>
+        <p className="text-[11px] text-[var(--text-muted)]">Nenhuma conta conectada ainda.</p>
       ) : (
         <div className="space-y-1.5">
           {connections.map((c) => {
             const pm = PLATFORM_META[c.platform];
             return (
-              <div key={c.id} className="flex items-center gap-3 border border-[#F0F0ED] rounded-[7px] px-3 py-2">
+              <div key={c.id} className="flex items-center gap-3 border border-[var(--border)] rounded-[7px] px-3 py-2">
                 <span className="text-[16px]">{pm.emoji}</span>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[12px] font-medium text-[#1C1C1A] truncate">
-                    {c.name} <span className="text-[10px] text-[#9B9B95]">· {pm.label}</span>
+                  <div className="text-[12px] font-medium text-[var(--text-primary)] truncate">
+                    {c.name} <span className="text-[10px] text-[var(--text-muted)]">· {pm.label}</span>
                   </div>
-                  <div className="text-[10px] text-[#9B9B95] font-mono">id {c.externalId}</div>
+                  <div className="text-[10px] text-[var(--text-muted)] font-mono">id {c.externalId}</div>
                 </div>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] bg-[#DCFCE7] text-[#16A34A]">● {c.status}</span>
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] bg-[var(--success-bg)] text-[var(--success)]">● {c.status}</span>
                 <button
                   onClick={() => handleDisconnect(c.id, c.name)}
-                  className="text-[11px] font-medium text-[#DC2626] hover:bg-[#FEE2E2] px-2 py-1 rounded-[6px]"
+                  className="text-[11px] font-medium text-[var(--danger)] hover:bg-[#FEE2E2] px-2 py-1 rounded-[6px]"
                 >
                   Desconectar
                 </button>
@@ -344,7 +344,7 @@ function ConnectionsSection({
 
       {msg && (
         <div className={`mt-2 text-[11px] px-3 py-1.5 rounded-[6px] ${
-          msg.ok ? "bg-[#F0FDF4] text-[#16A34A]" : "bg-[#FFF5F5] text-[#DC2626]"
+          msg.ok ? "bg-[#F0FDF4] text-[var(--success)]" : "bg-[#FFF5F5] text-[var(--danger)]"
         }`}>
           {msg.ok ? "✓ " : "✗ "}{msg.text}
         </div>

@@ -45,8 +45,8 @@ export default function DeliverableDetailModal({ deliverableId, onClose }: Props
     brandBrainComplete: getBrandBrainScore(client).complete,
     strategyRoomReady,
   });
-  const QUALITY_COLOR = quality.level === "high" ? "text-[#16A34A]" : quality.level === "medium" ? "text-[#D97706]" : "text-[#DC2626]";
-  const QUALITY_BAR = quality.level === "high" ? "bg-[#16A34A]" : quality.level === "medium" ? "bg-[#D97706]" : "bg-[#DC2626]";
+  const QUALITY_COLOR = quality.level === "high" ? "text-[var(--success)]" : quality.level === "medium" ? "text-[var(--warning)]" : "text-[var(--danger)]";
+  const QUALITY_BAR = quality.level === "high" ? "bg-[var(--success)]" : quality.level === "medium" ? "bg-[var(--warning)]" : "bg-[var(--danger)]";
   const owner = getOwner(d);
   const version = getVersion(d);
   const history = getRevisionHistory(d);
@@ -75,40 +75,40 @@ export default function DeliverableDetailModal({ deliverableId, onClose }: Props
             { label: "Responsável", value: owner.name },
             { label: "Versão", value: `v${version}` },
           ].map(({ label, value }) => (
-            <div key={label} className="bg-[#FAFAF9] rounded-[8px] px-3 py-2 border border-[#F0F0ED]">
-              <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-0.5">{label}</div>
-              <div className="text-[12px] font-medium text-[#1A1A1A] truncate">{value}</div>
+            <div key={label} className="bg-[var(--bg-elevated)] rounded-[8px] px-3 py-2 border border-[var(--border)]">
+              <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-0.5">{label}</div>
+              <div className="text-[12px] font-medium text-[var(--text-primary)] truncate">{value}</div>
             </div>
           ))}
-          <div className="bg-[#FAFAF9] rounded-[8px] px-3 py-2 border border-[#F0F0ED]">
-            <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1">Status</div>
+          <div className="bg-[var(--bg-elevated)] rounded-[8px] px-3 py-2 border border-[var(--border)]">
+            <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1">Status</div>
             <Badge variant={d.status} />
           </div>
         </div>
 
         {/* Next action */}
-        <div className={`rounded-[8px] px-4 py-3 border ${revision ? "bg-[#FFFBEB] border-[#FDE68A]" : "bg-[#F7F7F6] border-[#E5E5E2]"}`}>
-          <div className="text-[10px] font-semibold uppercase tracking-[0.05em] mb-0.5 text-[#9B9B95]">Próxima ação</div>
-          <div className={`text-[13px] font-medium ${revision ? "text-[#B45309]" : "text-[#1A1A1A]"}`}>{nextAction}</div>
+        <div className={`rounded-[8px] px-4 py-3 border ${revision ? "bg-[#FFFBEB] border-[#FDE68A]" : "bg-[var(--bg)] border-[var(--border)]"}`}>
+          <div className="text-[10px] font-semibold uppercase tracking-[0.05em] mb-0.5 text-[var(--text-muted)]">Próxima ação</div>
+          <div className={`text-[13px] font-medium ${revision ? "text-[#B45309]" : "text-[var(--text-primary)]"}`}>{nextAction}</div>
         </div>
 
         {/* Quality score (internal only) */}
-        <div className="rounded-[8px] px-4 py-3 border border-[#E5E5E2] bg-white">
+        <div className="rounded-[8px] px-4 py-3 border border-[var(--border)] bg-white">
           <div className="flex items-center justify-between mb-2">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.05em] text-[#9B9B95]">Qualidade da Entrega · interno</div>
-            <span className={`text-[16px] font-bold mono-num ${QUALITY_COLOR}`}>{quality.score}<span className="text-[11px] text-[#9B9B95] font-medium">/100</span></span>
+            <div className="text-[10px] font-semibold uppercase tracking-[0.05em] text-[var(--text-muted)]">Qualidade da Entrega · interno</div>
+            <span className={`text-[16px] font-bold mono-num ${QUALITY_COLOR}`}>{quality.score}<span className="text-[11px] text-[var(--text-muted)] font-medium">/100</span></span>
           </div>
-          <div className="h-1.5 bg-[#F0F0ED] rounded-full overflow-hidden mb-2.5">
+          <div className="h-1.5 bg-[var(--accent)] rounded-full overflow-hidden mb-2.5">
             <div className={`h-full rounded-full ${QUALITY_BAR}`} style={{ width: `${quality.score}%` }} />
           </div>
           <div className="space-y-1">
             {quality.signals.map((sig) => (
               <div key={sig.label} className="flex items-center justify-between text-[11px]">
                 <span className="flex items-center gap-1.5">
-                  <span className={`w-1.5 h-1.5 rounded-full ${sig.met ? "bg-[#16A34A]" : "bg-[#D0D0CC]"}`} />
-                  <span className="text-[#6B6B65]">{sig.label}</span>
+                  <span className={`w-1.5 h-1.5 rounded-full ${sig.met ? "bg-[var(--success)]" : "bg-[var(--border-strong)]"}`} />
+                  <span className="text-[var(--text-secondary)]">{sig.label}</span>
                 </span>
-                <span className="text-[#9B9B95] mono-num">{sig.points}/{sig.max}</span>
+                <span className="text-[var(--text-muted)] mono-num">{sig.points}/{sig.max}</span>
               </div>
             ))}
           </div>
@@ -117,22 +117,22 @@ export default function DeliverableDetailModal({ deliverableId, onClose }: Props
         {/* Client feedback */}
         {lastFeedback && (
           <div className="rounded-[8px] px-4 py-3 bg-[#FFFBEB] border border-[#FDE68A]">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.04em] mb-0.5 text-[#D97706]">Feedback do cliente</div>
-            <p className="text-[12px] text-[#6B6B65] leading-relaxed">{lastFeedback}</p>
+            <div className="text-[10px] font-semibold uppercase tracking-[0.04em] mb-0.5 text-[var(--warning)]">Feedback do cliente</div>
+            <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed">{lastFeedback}</p>
           </div>
         )}
 
         {/* Content / preview */}
         <div>
-          <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">Conteúdo da Entrega</div>
+          <div className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-2">Conteúdo da Entrega</div>
           {d.previewContent ? (
             <DeliverablePreview deliverable={d} mode="internal" />
           ) : d.link ? (
-            <a href={d.link} target="_blank" rel="noreferrer" className="text-[13px] text-[#070A1F] hover:underline break-all">
+            <a href={d.link} target="_blank" rel="noreferrer" className="text-[13px] text-[var(--navy)] hover:underline break-all">
               {d.link}
             </a>
           ) : (
-            <p className="text-[12px] text-[#9B9B95] italic">
+            <p className="text-[12px] text-[var(--text-muted)] italic">
               Conteúdo ainda não disponível — entrega pendente do agente responsável.
             </p>
           )}
@@ -140,26 +140,26 @@ export default function DeliverableDetailModal({ deliverableId, onClose }: Props
 
         {/* Revision history */}
         <div>
-          <div className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-2">Histórico de Revisões</div>
+          <div className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-2">Histórico de Revisões</div>
           {history.length === 0 ? (
-            <p className="text-[12px] text-[#9B9B95] italic">Nenhuma revisão registrada ainda.</p>
+            <p className="text-[12px] text-[var(--text-muted)] italic">Nenhuma revisão registrada ainda.</p>
           ) : (
             <div className="relative pl-4">
-              <div className="absolute left-[5px] top-1 bottom-1 w-[1px] bg-[#F0F0ED]" />
+              <div className="absolute left-[5px] top-1 bottom-1 w-[1px] bg-[var(--accent)]" />
               <div className="space-y-3">
                 {[...history].reverse().map((h, i) => (
                   <div key={i} className="relative">
-                    <div className="absolute -left-4 top-1 w-[11px] h-[11px] rounded-full bg-[#E6FBFA] border-2 border-[#070A1F]" />
+                    <div className="absolute -left-4 top-1 w-[11px] h-[11px] rounded-full bg-[var(--accent-light)] border-2 border-[var(--navy)]" />
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[12px] font-medium text-[#1A1A1A]">v{h.version}</span>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#F0F0ED] text-[#6B6B65] font-medium">
+                      <span className="text-[12px] font-medium text-[var(--text-primary)]">v{h.version}</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--accent)] text-[var(--text-secondary)] font-medium">
                         {REVISION_AUTHOR_LABEL[h.author]}
                       </span>
-                      <span className="text-[11px] text-[#9B9B95]">{formatTimestamp(h.timestamp)}</span>
+                      <span className="text-[11px] text-[var(--text-muted)]">{formatTimestamp(h.timestamp)}</span>
                     </div>
-                    <div className="text-[12px] text-[#6B6B65] mt-0.5">{h.note}</div>
+                    <div className="text-[12px] text-[var(--text-secondary)] mt-0.5">{h.note}</div>
                     {h.feedback && (
-                      <div className="text-[11px] text-[#9B9B95] mt-0.5 italic leading-relaxed">“{h.feedback}”</div>
+                      <div className="text-[11px] text-[var(--text-muted)] mt-0.5 italic leading-relaxed">“{h.feedback}”</div>
                     )}
                   </div>
                 ))}
@@ -169,7 +169,7 @@ export default function DeliverableDetailModal({ deliverableId, onClose }: Props
         </div>
 
         {/* Owner actions */}
-        <div className="flex flex-wrap gap-2 border-t border-[#F0F0ED] mt-1 pt-4">
+        <div className="flex flex-wrap gap-2 border-t border-[var(--border)] mt-1 pt-4">
           {revision && d.revisionStatus !== "in_revision" && (
             <Button variant="secondary" onClick={() => startDeliverableRevision(d.id)}>
               Iniciar revisão
@@ -205,7 +205,7 @@ export default function DeliverableDetailModal({ deliverableId, onClose }: Props
         {/* Resolve note (only relevant when a revision is open) */}
         {revision && (
           <div>
-            <label className="block text-[11px] font-medium text-[#6B6B65] mb-1.5">
+            <label className="block text-[11px] font-medium text-[var(--text-secondary)] mb-1.5">
               Nota da nova versão (opcional)
             </label>
             <textarea
@@ -213,7 +213,7 @@ export default function DeliverableDetailModal({ deliverableId, onClose }: Props
               onChange={(e) => setResolveNote(e.target.value)}
               placeholder="O que mudou nesta versão?"
               rows={2}
-              className="w-full px-3 py-2 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[7px] outline-none focus:border-[#070A1F] focus:bg-white resize-none"
+              className="w-full px-3 py-2 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] focus:bg-white resize-none"
             />
           </div>
         )}

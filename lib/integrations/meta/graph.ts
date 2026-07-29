@@ -74,6 +74,26 @@ export async function graphGet<T = unknown>(
   return parse<T>(res);
 }
 
+// POST a JSON body — required by the WhatsApp Cloud API (/{phone}/messages),
+// which does not accept form-encoded params for nested structures like
+// `template.components`.
+export async function graphPostJson<T = unknown>(
+  path: string,
+  accessToken: string,
+  body: Record<string, unknown>,
+): Promise<T> {
+  const url = path.startsWith("http") ? path : `${GRAPH_BASE}/${path.replace(/^\//, "")}`;
+  const res = await fetchWithTimeout(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(body),
+  });
+  return parse<T>(res);
+}
+
 // POST to a Graph node/edge. Body params are form-encoded (Graph convention).
 export async function graphPost<T = unknown>(
   path: string,

@@ -18,13 +18,13 @@ export default function OnboardingActions({
     <div className="flex items-center gap-1.5">
       <button
         onClick={onStartTour}
-        className="h-7 px-2.5 rounded-[6px] border border-[#E5E5E2] bg-white text-[11px] font-medium text-[#6B6B65] hover:border-[#9B9B95] hover:text-[#1A1A1A] transition-colors"
+        className="h-7 px-2.5 rounded-[6px] border border-[var(--border)] bg-white text-[11px] font-medium text-[var(--text-secondary)] hover:border-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
       >
         Rever tour
       </button>
       <button
         onClick={onExplain}
-        className="h-7 px-2.5 rounded-[6px] border border-[#C7D2FE] bg-[#E6FBFA] text-[11px] font-semibold text-[#070A1F] hover:bg-[#E0E7FF] transition-colors flex items-center gap-1"
+        className="h-7 px-2.5 rounded-[6px] border border-[#C7D8FE] bg-[var(--accent-light)] text-[11px] font-semibold text-[var(--navy)] hover:bg-[#E6EEFF] transition-colors flex items-center gap-1"
       >
         <svg width="11" height="11" viewBox="0 0 16 16" fill="none">
           <path

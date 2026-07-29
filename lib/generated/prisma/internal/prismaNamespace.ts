@@ -417,6 +417,8 @@ export const ModelName = {
   ApprovalComment: 'ApprovalComment',
   EvidenceItem: 'EvidenceItem',
   MetaConnection: 'MetaConnection',
+  WhatsAppMessage: 'WhatsAppMessage',
+  WhatsAppOutbox: 'WhatsAppOutbox',
   PortalAccess: 'PortalAccess',
   MarketInsight: 'MarketInsight'
 } as const
@@ -434,7 +436,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "cycle" | "clientNotice" | "deliverable" | "materialRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "portalAccess" | "marketInsight"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "cycle" | "clientNotice" | "deliverable" | "materialRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2880,6 +2882,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    WhatsAppMessage: {
+      payload: Prisma.$WhatsAppMessagePayload<ExtArgs>
+      fields: Prisma.WhatsAppMessageFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.WhatsAppMessageFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppMessagePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.WhatsAppMessageFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppMessagePayload>
+        }
+        findFirst: {
+          args: Prisma.WhatsAppMessageFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppMessagePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.WhatsAppMessageFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppMessagePayload>
+        }
+        findMany: {
+          args: Prisma.WhatsAppMessageFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppMessagePayload>[]
+        }
+        create: {
+          args: Prisma.WhatsAppMessageCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppMessagePayload>
+        }
+        createMany: {
+          args: Prisma.WhatsAppMessageCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.WhatsAppMessageCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppMessagePayload>[]
+        }
+        delete: {
+          args: Prisma.WhatsAppMessageDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppMessagePayload>
+        }
+        update: {
+          args: Prisma.WhatsAppMessageUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppMessagePayload>
+        }
+        deleteMany: {
+          args: Prisma.WhatsAppMessageDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.WhatsAppMessageUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.WhatsAppMessageUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppMessagePayload>[]
+        }
+        upsert: {
+          args: Prisma.WhatsAppMessageUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppMessagePayload>
+        }
+        aggregate: {
+          args: Prisma.WhatsAppMessageAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateWhatsAppMessage>
+        }
+        groupBy: {
+          args: Prisma.WhatsAppMessageGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.WhatsAppMessageGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.WhatsAppMessageCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.WhatsAppMessageCountAggregateOutputType> | number
+        }
+      }
+    }
+    WhatsAppOutbox: {
+      payload: Prisma.$WhatsAppOutboxPayload<ExtArgs>
+      fields: Prisma.WhatsAppOutboxFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.WhatsAppOutboxFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppOutboxPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.WhatsAppOutboxFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppOutboxPayload>
+        }
+        findFirst: {
+          args: Prisma.WhatsAppOutboxFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppOutboxPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.WhatsAppOutboxFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppOutboxPayload>
+        }
+        findMany: {
+          args: Prisma.WhatsAppOutboxFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppOutboxPayload>[]
+        }
+        create: {
+          args: Prisma.WhatsAppOutboxCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppOutboxPayload>
+        }
+        createMany: {
+          args: Prisma.WhatsAppOutboxCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.WhatsAppOutboxCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppOutboxPayload>[]
+        }
+        delete: {
+          args: Prisma.WhatsAppOutboxDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppOutboxPayload>
+        }
+        update: {
+          args: Prisma.WhatsAppOutboxUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppOutboxPayload>
+        }
+        deleteMany: {
+          args: Prisma.WhatsAppOutboxDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.WhatsAppOutboxUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.WhatsAppOutboxUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppOutboxPayload>[]
+        }
+        upsert: {
+          args: Prisma.WhatsAppOutboxUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WhatsAppOutboxPayload>
+        }
+        aggregate: {
+          args: Prisma.WhatsAppOutboxAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateWhatsAppOutbox>
+        }
+        groupBy: {
+          args: Prisma.WhatsAppOutboxGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.WhatsAppOutboxGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.WhatsAppOutboxCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.WhatsAppOutboxCountAggregateOutputType> | number
+        }
+      }
+    }
     PortalAccess: {
       payload: Prisma.$PortalAccessPayload<ExtArgs>
       fields: Prisma.PortalAccessFieldRefs
@@ -3636,6 +3786,40 @@ export const MetaConnectionScalarFieldEnum = {
 export type MetaConnectionScalarFieldEnum = (typeof MetaConnectionScalarFieldEnum)[keyof typeof MetaConnectionScalarFieldEnum]
 
 
+export const WhatsAppMessageScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  phoneNumberId: 'phoneNumberId',
+  contactWaId: 'contactWaId',
+  contactName: 'contactName',
+  direction: 'direction',
+  type: 'type',
+  body: 'body',
+  externalId: 'externalId',
+  status: 'status',
+  clientRequestId: 'clientRequestId',
+  timestamp: 'timestamp'
+} as const
+
+export type WhatsAppMessageScalarFieldEnum = (typeof WhatsAppMessageScalarFieldEnum)[keyof typeof WhatsAppMessageScalarFieldEnum]
+
+
+export const WhatsAppOutboxScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  activityEventId: 'activityEventId',
+  kind: 'kind',
+  toPhone: 'toPhone',
+  status: 'status',
+  externalMessageId: 'externalMessageId',
+  error: 'error',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type WhatsAppOutboxScalarFieldEnum = (typeof WhatsAppOutboxScalarFieldEnum)[keyof typeof WhatsAppOutboxScalarFieldEnum]
+
+
 export const PortalAccessScalarFieldEnum = {
   id: 'id',
   token: 'token',
@@ -3871,6 +4055,8 @@ export type GlobalOmitConfig = {
   approvalComment?: Prisma.ApprovalCommentOmit
   evidenceItem?: Prisma.EvidenceItemOmit
   metaConnection?: Prisma.MetaConnectionOmit
+  whatsAppMessage?: Prisma.WhatsAppMessageOmit
+  whatsAppOutbox?: Prisma.WhatsAppOutboxOmit
   portalAccess?: Prisma.PortalAccessOmit
   marketInsight?: Prisma.MarketInsightOmit
 }

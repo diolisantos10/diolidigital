@@ -161,39 +161,39 @@ export default function GuidedTour({
         aria-label={step.title}
       >
         <div className="flex items-center justify-between mb-2">
-          <span className="text-[10px] font-bold text-[#070A1F] bg-[#E6FBFA] px-2 py-0.5 rounded-full">
+          <span className="text-[10px] font-bold text-[var(--navy)] bg-[var(--accent-light)] px-2 py-0.5 rounded-full">
             {stepIndex + 1} de {tour.steps.length}
           </span>
           <button
             onClick={onClose}
-            className="text-[11px] text-[#9B9B95] hover:text-[#1A1A1A] transition-colors"
+            className="text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
           >
             Pular tour
           </button>
         </div>
 
-        <h3 className="text-[14px] font-semibold text-[#1A1A1A] mb-1">{step.title}</h3>
-        <p className="text-[12px] text-[#6B6B65] leading-relaxed mb-3.5">{step.body}</p>
+        <h3 className="text-[14px] font-semibold text-[var(--text-primary)] mb-1">{step.title}</h3>
+        <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed mb-3.5">{step.body}</p>
 
         <div className="flex items-center justify-between">
           <button
             onClick={() => setStepIndex((i) => Math.max(0, i - 1))}
             disabled={isFirst}
-            className="h-7 px-3 rounded-[6px] border border-[#E5E5E2] text-[11px] font-medium text-[#6B6B65] hover:border-[#9B9B95] hover:text-[#1A1A1A] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="h-7 px-3 rounded-[6px] border border-[var(--border)] text-[11px] font-medium text-[var(--text-secondary)] hover:border-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Voltar
           </button>
           {isLast ? (
             <button
               onClick={onClose}
-              className="h-7 px-3.5 rounded-[6px] bg-[#16A34A] text-white text-[11px] font-semibold hover:bg-[#15803D] transition-colors"
+              className="h-7 px-3.5 rounded-[6px] bg-[var(--success)] text-white text-[11px] font-semibold hover:bg-[#15803D] transition-colors"
             >
               Concluir
             </button>
           ) : (
             <button
               onClick={() => setStepIndex((i) => i + 1)}
-              className="h-7 px-3.5 rounded-[6px] bg-[#070A1F] text-white text-[11px] font-semibold hover:bg-[#0D1230] transition-colors"
+              className="h-7 px-3.5 rounded-[6px] bg-[var(--navy)] text-white text-[11px] font-semibold hover:bg-[#0D1230] transition-colors"
             >
               Próximo
             </button>

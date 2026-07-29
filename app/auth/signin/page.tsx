@@ -54,13 +54,13 @@ function SignInForm() {
           <DioliLogo variant="full" tone="light" markSize={28} className="text-[15px]" />
         </div>
 
-        <div className="bg-white rounded-[14px] border border-[#E5E5E2] shadow-[0_20px_60px_rgba(0,0,0,0.25)] p-8">
-          <h1 className="text-[18px] font-semibold text-[#1A1A1A] mb-1">Entrar</h1>
-          <p className="text-[13px] text-[#9B9B95] mb-6">Acesse o painel da agência</p>
+        <div className="bg-white rounded-[14px] border border-[var(--border)] shadow-[0_20px_60px_rgba(0,0,0,0.25)] p-8">
+          <h1 className="text-[18px] font-semibold text-[var(--text-primary)] mb-1">Entrar</h1>
+          <p className="text-[13px] text-[var(--text-muted)] mb-6">Acesse o painel da agência</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-[12px] font-semibold text-[#6B6B65] mb-1.5">
+              <label htmlFor="email" className="block text-[12px] font-semibold text-[var(--text-secondary)] mb-1.5">
                 E-mail
               </label>
               <input
@@ -71,11 +71,11 @@ function SignInForm() {
                 required
                 autoComplete="email"
                 placeholder="seu@email.com"
-                className="w-full border border-[#E8E8E4] rounded-[8px] px-3 py-2.5 text-[13px] text-[#1A1A1A] bg-white focus:outline-none focus:ring-2 focus:ring-[#9AF5F0]/40 placeholder:text-[#C0C0BA]"
+                className="w-full border border-[var(--border)] rounded-[8px] px-3 py-2.5 text-[13px] text-[var(--text-primary)] bg-white focus:outline-none focus:ring-2 focus:ring-[#9AF5F0]/40 placeholder:text-[var(--text-subtle)]"
               />
             </div>
             <div>
-              <label htmlFor="password" className="block text-[12px] font-semibold text-[#6B6B65] mb-1.5">
+              <label htmlFor="password" className="block text-[12px] font-semibold text-[var(--text-secondary)] mb-1.5">
                 Senha
               </label>
               <input
@@ -86,7 +86,7 @@ function SignInForm() {
                 required
                 autoComplete="current-password"
                 placeholder="••••••••"
-                className="w-full border border-[#E8E8E4] rounded-[8px] px-3 py-2.5 text-[13px] text-[#1A1A1A] bg-white focus:outline-none focus:ring-2 focus:ring-[#9AF5F0]/40 placeholder:text-[#C0C0BA]"
+                className="w-full border border-[var(--border)] rounded-[8px] px-3 py-2.5 text-[13px] text-[var(--text-primary)] bg-white focus:outline-none focus:ring-2 focus:ring-[#9AF5F0]/40 placeholder:text-[var(--text-subtle)]"
               />
             </div>
 

@@ -7,6 +7,7 @@ export {
   publishPost,
   getInsights,
   sendWhatsAppMessage,
+  sendWhatsAppDirect,
 } from "./client";
 
 export {
@@ -25,6 +26,16 @@ export {
 } from "./connections";
 
 export { verifyWebhookSignature } from "./webhooks";
+
+export { dispatchWhatsAppNotifications } from "./notifications";
+export type { DispatchResult } from "./notifications";
+
+export {
+  ALL_TEMPLATES,
+  PROPOSAL_SENT_TEMPLATE,
+  createTemplate,
+  listTemplates,
+} from "./templates";
 
 export type {
   MetaPlatform,

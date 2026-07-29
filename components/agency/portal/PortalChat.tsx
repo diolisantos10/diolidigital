@@ -47,7 +47,7 @@ function LinkifiedBody({ text, mine }: { text: string; mine: boolean }) {
       {parts.map((p, i) =>
         /^https?:\/\//.test(p) ? (
           <a key={i} href={p} target="_blank" rel="noopener noreferrer"
-             className={`underline break-all ${mine ? "text-[#9AF5F0]" : "text-[#12B5AC]"}`}>
+             className={`underline break-all ${mine ? "text-[var(--cyan)]" : "text-[#12B5AC]"}`}>
             {p.length > 42 ? p.slice(0, 42) + "…" : p}
           </a>
         ) : (
@@ -189,17 +189,17 @@ export function PortalChat({ token, clientRequestId, suggestContext, authorName,
   }
 
   return (
-    <div className={`flex flex-col bg-white overflow-hidden ${bare ? "flex-1 min-h-0" : "rounded-[12px] border border-[#E5E5E2]"}`}>
+    <div className={`flex flex-col bg-white overflow-hidden ${bare ? "flex-1 min-h-0" : "rounded-[12px] border border-[var(--border)]"}`}>
       <div
         className="px-4 py-3 overflow-y-auto space-y-3"
         style={bare ? { flex: 1, minHeight: 0 } : { height }}
       >
         {loading ? (
-          <p className="text-[12px] text-[#9B9B95] text-center py-8">Carregando conversa…</p>
+          <p className="text-[12px] text-[var(--text-muted)] text-center py-8">Carregando conversa…</p>
         ) : messages.length === 0 ? (
           <div className="text-center py-10">
-            <p className="text-[13px] text-[#6B6B65] font-medium">Comece a conversa</p>
-            <p className="text-[11px] text-[#9B9B95] mt-1">
+            <p className="text-[13px] text-[var(--text-secondary)] font-medium">Comece a conversa</p>
+            <p className="text-[11px] text-[var(--text-muted)] mt-1">
               Tire dúvidas, mande referências e fale direto com a equipe por aqui.
             </p>
           </div>
@@ -208,18 +208,18 @@ export function PortalChat({ token, clientRequestId, suggestContext, authorName,
             <div key={m.id} className={`flex ${m.mine ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[80%] ${m.mine ? "items-end" : "items-start"} flex flex-col`}>
                 {!m.mine && m.authorName && (
-                  <span className="text-[10px] text-[#9B9B95] mb-0.5 px-1">{m.authorName}</span>
+                  <span className="text-[10px] text-[var(--text-muted)] mb-0.5 px-1">{m.authorName}</span>
                 )}
                 <div
                   className={`px-3.5 py-2 rounded-[12px] text-[13px] leading-relaxed whitespace-pre-wrap ${
                     m.mine
-                      ? "bg-[#1A1A1A] text-white rounded-tr-[4px]"
-                      : "bg-[#F0F0ED] text-[#1A1A1A] rounded-tl-[4px]"
+                      ? "bg-[var(--text-primary)] text-white rounded-tr-[4px]"
+                      : "bg-[var(--accent)] text-[var(--text-primary)] rounded-tl-[4px]"
                   }`}
                 >
                   <LinkifiedBody text={m.body} mine={m.mine} />
                 </div>
-                <span className="text-[9px] text-[#C0C0BC] mt-0.5 px-1">{timeLabel(m.createdAt)}</span>
+                <span className="text-[9px] text-[var(--text-subtle)] mt-0.5 px-1">{timeLabel(m.createdAt)}</span>
               </div>
             </div>
           ))
@@ -228,29 +228,29 @@ export function PortalChat({ token, clientRequestId, suggestContext, authorName,
       </div>
 
       {error && (
-        <p className="text-[10px] text-[#DC2626] px-4 pb-1">{error}</p>
+        <p className="text-[10px] text-[var(--danger)] px-4 pb-1">{error}</p>
       )}
 
       {/* Attach a link (Drive, WeTransfer, image URL…) — reliable without file storage */}
       {attachOpen && (
-        <div className="border-t border-[#F0F0ED] px-2.5 pt-2.5 flex gap-2 items-center">
+        <div className="border-t border-[var(--border)] px-2.5 pt-2.5 flex gap-2 items-center">
           <input
             value={linkDraft}
             onChange={(e) => setLinkDraft(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addLink(); } }}
             placeholder="Cole um link (Drive, WeTransfer, imagem…)"
             autoFocus
-            className="flex-1 px-3 py-2 bg-[#F7F7F6] border border-[#E5E5E2] rounded-[8px] outline-none focus:border-[#1A1A1A] text-[13px]"
+            className="flex-1 px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-[8px] outline-none focus:border-[var(--text-primary)] text-[13px]"
             style={{ fontSize: "16px" }}
           />
           <button onClick={addLink} disabled={!linkDraft.trim()} className="h-9 px-3 rounded-[8px] bg-[#12B5AC] disabled:opacity-40 text-white text-[12px] font-semibold shrink-0">Anexar</button>
-          <button onClick={() => { setAttachOpen(false); setLinkDraft(""); }} className="h-9 px-2 text-[#9B9B95] text-[12px] shrink-0">✕</button>
+          <button onClick={() => { setAttachOpen(false); setLinkDraft(""); }} className="h-9 px-2 text-[var(--text-muted)] text-[12px] shrink-0">✕</button>
         </div>
       )}
 
       {/* Team side: AI drafts the message; PM reviews, tweaks and sends. */}
       {isTeam && (
-        <div className="border-t border-[#F0F0ED] px-2.5 pt-2 -mb-1 flex items-center">
+        <div className="border-t border-[var(--border)] px-2.5 pt-2 -mb-1 flex items-center">
           <button
             type="button"
             onClick={suggestMessage}
@@ -264,13 +264,13 @@ export function PortalChat({ token, clientRequestId, suggestContext, authorName,
         </div>
       )}
 
-      <div className="border-t border-[#F0F0ED] p-2.5 flex items-end gap-2">
+      <div className="border-t border-[var(--border)] p-2.5 flex items-end gap-2">
         <button
           type="button"
           onClick={() => setAttachOpen((v) => !v)}
           title="Anexar link / material"
           style={{ touchAction: "manipulation" }}
-          className={`w-10 h-10 rounded-full shrink-0 flex items-center justify-center transition-colors ${attachOpen ? "bg-[#E6FBFA] text-[#0E9E96]" : "bg-[#F0F0ED] text-[#6B6B65] hover:bg-[#E5E5E2]"}`}
+          className={`w-10 h-10 rounded-full shrink-0 flex items-center justify-center transition-colors ${attachOpen ? "bg-[var(--accent-light)] text-[#0E9E96]" : "bg-[var(--accent)] text-[var(--text-secondary)] hover:bg-[var(--border)]"}`}
         >
           <svg width="17" height="17" viewBox="0 0 20 20" fill="none">
             <path d="M13 7l-5.5 5.5a2 2 0 002.83 2.83L16 9.66a3.5 3.5 0 00-4.95-4.95L5.4 10.3a5 5 0 007.07 7.07L17 12.83" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
@@ -284,15 +284,15 @@ export function PortalChat({ token, clientRequestId, suggestContext, authorName,
             title={isListening ? "Parar gravação" : "Gravar áudio"}
             style={{ touchAction: "manipulation" }}
             className={`w-10 h-10 rounded-full shrink-0 flex items-center justify-center transition-colors ${
-              isListening ? "bg-[#DC2626] text-white animate-pulse"
-              : isTranscribing ? "bg-[#F0F0ED] text-[#9B9B95]"
-              : "bg-[#F0F0ED] text-[#6B6B65] hover:bg-[#E5E5E2]"}`}
+              isListening ? "bg-[var(--danger)] text-white animate-pulse"
+              : isTranscribing ? "bg-[var(--accent)] text-[var(--text-muted)]"
+              : "bg-[var(--accent)] text-[var(--text-secondary)] hover:bg-[var(--border)]"}`}
           >
             {isTranscribing ? (
               <span className="flex gap-0.5">
-                <span className="w-1 h-1 rounded-full bg-[#9B9B95] animate-bounce" style={{ animationDelay: "0ms" }} />
-                <span className="w-1 h-1 rounded-full bg-[#9B9B95] animate-bounce" style={{ animationDelay: "150ms" }} />
-                <span className="w-1 h-1 rounded-full bg-[#9B9B95] animate-bounce" style={{ animationDelay: "300ms" }} />
+                <span className="w-1 h-1 rounded-full bg-[var(--text-muted)] animate-bounce" style={{ animationDelay: "0ms" }} />
+                <span className="w-1 h-1 rounded-full bg-[var(--text-muted)] animate-bounce" style={{ animationDelay: "150ms" }} />
+                <span className="w-1 h-1 rounded-full bg-[var(--text-muted)] animate-bounce" style={{ animationDelay: "300ms" }} />
               </span>
             ) : (
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -309,7 +309,7 @@ export function PortalChat({ token, clientRequestId, suggestContext, authorName,
           onKeyDown={onKeyDown}
           placeholder={isListening ? "Gravando… fale agora" : "Escreva ou grave um áudio…"}
           rows={1}
-          className="flex-1 px-3 py-2.5 bg-[#F7F7F6] border border-[#E5E5E2] rounded-[10px] outline-none focus:border-[#1A1A1A] focus:bg-white transition-all resize-none leading-relaxed"
+          className="flex-1 px-3 py-2.5 bg-[var(--bg)] border border-[var(--border)] rounded-[10px] outline-none focus:border-[var(--text-primary)] focus:bg-white transition-all resize-none leading-relaxed"
           style={{ fontSize: "16px" }}
         />
         <button

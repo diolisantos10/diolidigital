@@ -91,7 +91,7 @@ function MessageBubble({ msg }: { msg: ConvMessage }) {
   if (msg.role === "system") {
     return (
       <div className="text-center">
-        <span className="inline-block text-[10px] text-[#9B9B95] bg-[#F7F7F6] px-3 py-1 rounded-full">
+        <span className="inline-block text-[10px] text-[var(--text-muted)] bg-[var(--bg)] px-3 py-1 rounded-full">
           {msg.text}
         </span>
       </div>
@@ -101,7 +101,7 @@ function MessageBubble({ msg }: { msg: ConvMessage }) {
   return (
     <div className={`flex ${isAssistant ? "justify-start" : "justify-end"}`}>
       {isAssistant && (
-        <div className="w-6 h-6 rounded-full bg-[#1A1A1A] flex items-center justify-center shrink-0 mr-2 mt-0.5">
+        <div className="w-6 h-6 rounded-full bg-[var(--text-primary)] flex items-center justify-center shrink-0 mr-2 mt-0.5">
           <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
             <circle cx="4" cy="4" r="2.5" fill="white" fillOpacity="0.9" />
           </svg>
@@ -110,8 +110,8 @@ function MessageBubble({ msg }: { msg: ConvMessage }) {
       <div
         className={`max-w-[85%] px-3.5 py-2.5 rounded-[12px] text-[13px] leading-relaxed ${
           isAssistant
-            ? "bg-[#F7F7F6] text-[#1A1A1A] rounded-tl-[4px]"
-            : "bg-[#1A1A1A] text-white rounded-tr-[4px]"
+            ? "bg-[var(--bg)] text-[var(--text-primary)] rounded-tl-[4px]"
+            : "bg-[var(--text-primary)] text-white rounded-tr-[4px]"
         }`}
       >
         <MsgText text={msg.text} />
@@ -123,9 +123,9 @@ function MessageBubble({ msg }: { msg: ConvMessage }) {
 // ── Cart panel (scope + estimate) ─────────────────────────────────────────────
 
 const PKG_STYLE: Record<string, { bg: string; text: string }> = {
-  starter: { bg: "bg-[#F0F0ED]", text: "text-[#6B6B65]" },
-  growth:  { bg: "bg-[#E6FBFA]", text: "text-[#070A1F]" },
-  pro:     { bg: "bg-[#E6FBFA]", text: "text-[#070A1F]" },
+  starter: { bg: "bg-[var(--accent)]", text: "text-[var(--text-secondary)]" },
+  growth:  { bg: "bg-[var(--accent-light)]", text: "text-[var(--navy)]" },
+  pro:     { bg: "bg-[var(--accent-light)]", text: "text-[var(--navy)]" },
 };
 
 function CartPanel({
@@ -181,26 +181,26 @@ function CartPanel({
 
   const CONFIDENCE_STYLE: Record<string, { bg: string; text: string; label: string }> = {
     none:   { bg: "", text: "", label: "" },
-    low:    { bg: "bg-[#FEF3C7]", text: "text-[#D97706]", label: "Estimativa inicial" },
-    medium: { bg: "bg-[#E6FBFA]", text: "text-[#070A1F]", label: "Estimativa aprox." },
-    high:   { bg: "bg-[#DCFCE7]", text: "text-[#16A34A]", label: "Confiável" },
+    low:    { bg: "bg-[var(--warning-bg)]", text: "text-[var(--warning)]", label: "Estimativa inicial" },
+    medium: { bg: "bg-[var(--accent-light)]", text: "text-[var(--navy)]", label: "Estimativa aprox." },
+    high:   { bg: "bg-[var(--success-bg)]", text: "text-[var(--success)]", label: "Confiável" },
   };
   const conf = CONFIDENCE_STYLE[estimate.confidence];
 
   return (
-    <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
-      <div className="px-4 py-3.5 border-b border-[#F0F0ED]">
-        <div className="text-[11px] font-semibold text-[#1A1A1A] uppercase tracking-[0.05em]">
+    <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
+      <div className="px-4 py-3.5 border-b border-[var(--border)]">
+        <div className="text-[11px] font-semibold text-[var(--text-primary)] uppercase tracking-[0.05em]">
           {canSubmit ? "Proposta pronta" : "Proposta em construção"}
         </div>
-        <p className="text-[10px] text-[#9B9B95] mt-0.5">Simulada — nenhum dado salvo</p>
+        <p className="text-[10px] text-[var(--text-muted)] mt-0.5">Simulada — nenhum dado salvo</p>
       </div>
 
       <div className="px-4 py-4 space-y-3">
         {/* Package badge */}
         {pkgLabel && pkgId && (
           <div className="flex items-center gap-2">
-            <span className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em]">Plano</span>
+            <span className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em]">Plano</span>
             <span className={`h-5 px-2.5 rounded-full text-[10px] font-semibold ${PKG_STYLE[pkgId]?.bg ?? ""} ${PKG_STYLE[pkgId]?.text ?? ""}`}>
               {pkgLabel}
             </span>
@@ -212,8 +212,8 @@ function CartPanel({
           <div className="space-y-1.5">
             {rows.map((r, i) => (
               <div key={i} className="flex items-start gap-2 text-[11px]">
-                <span className="text-[#9B9B95] shrink-0 w-[68px]">{r.label}</span>
-                <span className={r.dim ? "text-[#C0C0BC]" : "text-[#1A1A1A] font-medium"}>{r.value}</span>
+                <span className="text-[var(--text-muted)] shrink-0 w-[68px]">{r.label}</span>
+                <span className={r.dim ? "text-[var(--text-subtle)]" : "text-[var(--text-primary)] font-medium"}>{r.value}</span>
               </div>
             ))}
           </div>
@@ -221,9 +221,9 @@ function CartPanel({
 
         {/* Estimate */}
         {estimate.totalMin > 0 && (
-          <div className="border-t border-[#F0F0ED] pt-3 space-y-1.5">
+          <div className="border-t border-[var(--border)] pt-3 space-y-1.5">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em]">Estimativa</span>
+              <span className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em]">Estimativa</span>
               {estimate.confidence !== "none" && (
                 <span className={`h-4 px-1.5 rounded-[3px] text-[9px] font-semibold ${conf.bg} ${conf.text}`}>
                   {conf.label}
@@ -232,16 +232,16 @@ function CartPanel({
             </div>
             {estimate.items.map((item, i) => (
               <div key={i} className="flex items-start gap-2 text-[11px]">
-                <span className="text-[#9B9B95] flex-1">{item.label}</span>
-                <span className="text-[#6B6B65] shrink-0">
+                <span className="text-[var(--text-muted)] flex-1">{item.label}</span>
+                <span className="text-[var(--text-secondary)] shrink-0">
                   {fmtBRL(item.minPrice)}–{fmtBRL(item.maxPrice)}
-                  <span className="text-[#C0C0BC]">/{item.unit}</span>
+                  <span className="text-[var(--text-subtle)]">/{item.unit}</span>
                 </span>
               </div>
             ))}
-            <div className="flex items-center justify-between pt-1.5 border-t border-[#F0F0ED]">
-              <span className="text-[11px] font-semibold text-[#1A1A1A]">Total</span>
-              <span className="text-[13px] font-bold text-[#1A1A1A]">
+            <div className="flex items-center justify-between pt-1.5 border-t border-[var(--border)]">
+              <span className="text-[11px] font-semibold text-[var(--text-primary)]">Total</span>
+              <span className="text-[13px] font-bold text-[var(--text-primary)]">
                 {fmtBRL(estimate.totalMin)} – {fmtBRL(estimate.totalMax)}
               </span>
             </div>
@@ -250,22 +250,22 @@ function CartPanel({
 
         {/* SDR indicators */}
         {sdr.budgetSignal.fitStatus === "fits" && sdr.budgetSignal.amount && (
-          <div className="bg-[#DCFCE7] border border-[#86EFAC] rounded-[8px] px-3 py-2">
+          <div className="bg-[var(--success-bg)] border border-[#86EFAC] rounded-[8px] px-3 py-2">
             <p className="text-[10px] font-semibold text-[#166534]">Orçamento confirmado</p>
             <p className="text-[9px] text-[#15803D] mt-0.5">R$ {sdr.budgetSignal.amount.toLocaleString("pt-BR")} — dentro da estimativa.</p>
           </div>
         )}
         {(sdr.budgetSignal.fitStatus === "above_budget" || sdr.budgetSignal.fitStatus === "below_recommended") && (
-          <div className="bg-[#FEF3C7] border border-[#FDE68A] rounded-[8px] px-3 py-2">
-            <p className="text-[10px] font-semibold text-[#D97706]">Orçamento abaixo da estimativa</p>
+          <div className="bg-[var(--warning-bg)] border border-[#FDE68A] rounded-[8px] px-3 py-2">
+            <p className="text-[10px] font-semibold text-[var(--warning)]">Orçamento abaixo da estimativa</p>
             {sdr.budgetSignal.amount && (
               <p className="text-[9px] text-[#92400E] mt-0.5">R$ {sdr.budgetSignal.amount.toLocaleString("pt-BR")} mencionado</p>
             )}
           </div>
         )}
         {sdr.objection.active && (
-          <div className="bg-[#FEF3C7] border border-[#FDE68A] rounded-[8px] px-3 py-2">
-            <p className="text-[10px] font-semibold text-[#D97706]">Ponto em aberto</p>
+          <div className="bg-[var(--warning-bg)] border border-[#FDE68A] rounded-[8px] px-3 py-2">
+            <p className="text-[10px] font-semibold text-[var(--warning)]">Ponto em aberto</p>
             <p className="text-[9px] text-[#92400E] mt-0.5">Continue a conversa para resolver antes de enviar.</p>
           </div>
         )}
@@ -273,13 +273,13 @@ function CartPanel({
         {/* Quick actions */}
         {QUICK_ACTIONS.length > 0 && (
           <div>
-            <div className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-1.5">Ajustar escopo</div>
+            <div className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em] mb-1.5">Ajustar escopo</div>
             <div className="flex flex-wrap gap-1.5">
               {QUICK_ACTIONS.map((qa) => (
                 <button
                   key={qa.label}
                   onClick={() => onSendAction(qa.text)}
-                  className="h-6 px-2.5 rounded-[5px] border border-[#E5E5E2] bg-white text-[#6B6B65] hover:border-[#9B9B95] hover:text-[#1A1A1A] text-[10px] font-medium transition-colors"
+                  className="h-6 px-2.5 rounded-[5px] border border-[var(--border)] bg-white text-[var(--text-secondary)] hover:border-[var(--text-muted)] hover:text-[var(--text-primary)] text-[10px] font-medium transition-colors"
                 >
                   {qa.label}
                 </button>
@@ -292,24 +292,24 @@ function CartPanel({
         {canSubmit ? (
           <button
             onClick={onSubmit}
-            className="w-full h-10 rounded-[8px] bg-[#1A1A1A] hover:bg-[#111111] text-white text-[12px] font-semibold transition-colors"
+            className="w-full h-10 rounded-[8px] bg-[var(--text-primary)] hover:bg-[var(--text-primary)] text-white text-[12px] font-semibold transition-colors"
           >
             Finalizar simulação →
           </button>
         ) : (
-          <button disabled className="w-full h-10 rounded-[8px] bg-[#F0F0ED] text-[#C0C0BC] text-[12px] cursor-not-allowed">
+          <button disabled className="w-full h-10 rounded-[8px] bg-[var(--accent)] text-[var(--text-subtle)] text-[12px] cursor-not-allowed">
             {blockReason ?? "Continue a conversa para enviar"}
           </button>
         )}
 
         {/* Empty plan reference */}
         {!scope.wantsSocialMedia && !scope.wantsPaidTraffic && !scope.branding.requested && (
-          <div className="border-t border-[#F0F0ED] pt-3">
-            <div className="text-[9px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em] mb-2">Planos Social Media</div>
+          <div className="border-t border-[var(--border)] pt-3">
+            <div className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em] mb-2">Planos Social Media</div>
             {SOCIAL_PACKAGES.map((pkg) => (
               <div key={pkg.id} className="flex items-center justify-between py-0.5 text-[10px]">
-                <span className={`font-semibold ${PKG_STYLE[pkg.id]?.text ?? "text-[#6B6B65]"}`}>{pkg.label}</span>
-                <span className="text-[#9B9B95]">R$ {pkg.minPrice.toLocaleString("pt-BR")}–{pkg.maxPrice.toLocaleString("pt-BR")}</span>
+                <span className={`font-semibold ${PKG_STYLE[pkg.id]?.text ?? "text-[var(--text-secondary)]"}`}>{pkg.label}</span>
+                <span className="text-[var(--text-muted)]">R$ {pkg.minPrice.toLocaleString("pt-BR")}–{pkg.maxPrice.toLocaleString("pt-BR")}</span>
               </div>
             ))}
           </div>
@@ -351,16 +351,16 @@ function DebugPanel({
   function Row({ label, value, valueClass }: { label: string; value: string; valueClass?: string }) {
     return (
       <div className="flex items-start gap-2 py-[2px]">
-        <span className="text-[#4A4A44] shrink-0 w-[68px]">{label}</span>
-        <span className={valueClass ?? "text-[#9B9B95]"}>{value}</span>
+        <span className="text-[var(--text-secondary)] shrink-0 w-[68px]">{label}</span>
+        <span className={valueClass ?? "text-[var(--text-muted)]"}>{value}</span>
       </div>
     );
   }
 
   return (
-    <div className="bg-[#0E0E0E] rounded-[12px] border border-[#1E1E1E] overflow-hidden flex flex-col h-full">
-      <div className="px-4 py-3 border-b border-[#1E1E1E] shrink-0">
-        <div className="text-[10px] font-semibold text-[#070A1F] uppercase tracking-[0.06em]">
+    <div className="bg-[var(--text-primary)] rounded-[12px] border border-[var(--text-primary)] overflow-hidden flex flex-col h-full">
+      <div className="px-4 py-3 border-b border-[var(--text-primary)] shrink-0">
+        <div className="text-[10px] font-semibold text-[var(--navy)] uppercase tracking-[0.06em]">
           ✦ Debug — Estado do Agente
         </div>
       </div>
@@ -369,17 +369,17 @@ function DebugPanel({
 
         {/* Phase */}
         <section>
-          <div className="text-[9px] font-semibold text-[#3A3A3A] uppercase tracking-[0.06em] mb-1.5">Fase</div>
+          <div className="text-[9px] font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em] mb-1.5">Fase</div>
           <div className="flex flex-wrap gap-1.5">
-            <span className="h-5 px-2 rounded-[3px] bg-[#070A1F]/20 text-[#070A1F] text-[9px] font-semibold flex items-center">
+            <span className="h-5 px-2 rounded-[3px] bg-[var(--navy)]/20 text-[var(--navy)] text-[9px] font-semibold flex items-center">
               {STAGE_LABELS[sdr.negotiationStage] ?? sdr.negotiationStage}
             </span>
             {sdr.isRestaurant && (
-              <span className="h-5 px-2 rounded-[3px] bg-[#D97706]/20 text-[#D97706] text-[9px] font-semibold flex items-center">
+              <span className="h-5 px-2 rounded-[3px] bg-[var(--warning)]/20 text-[var(--warning)] text-[9px] font-semibold flex items-center">
                 Restaurante
               </span>
             )}
-            <span className="h-5 px-2 rounded-[3px] bg-[#2A2A2A] text-[#6B6B65] text-[9px] font-semibold flex items-center">
+            <span className="h-5 px-2 rounded-[3px] bg-[var(--text-primary)] text-[var(--text-secondary)] text-[9px] font-semibold flex items-center">
               Score {sdr.qualificationScore}/10
             </span>
           </div>
@@ -387,27 +387,27 @@ function DebugPanel({
 
         {/* Identity */}
         <section>
-          <div className="text-[9px] font-semibold text-[#3A3A3A] uppercase tracking-[0.06em] mb-1.5">Identidade</div>
-          <Row label="Nome"     value={scope.prospectName  ?? "—"} valueClass={scope.prospectName  ? "text-[#9B9B95]" : "text-[#2A2A2A]"} />
-          <Row label="Negócio"  value={scope.businessName  ?? "—"} valueClass={scope.businessName  ? "text-[#9B9B95]" : "text-[#2A2A2A]"} />
-          <Row label="Segmento" value={scope.segment       ?? "—"} valueClass={scope.segment       ? "text-[#9B9B95]" : "text-[#2A2A2A]"} />
-          <Row label="E-mail"   value={scope.prospectEmail ?? "—"} valueClass={scope.prospectEmail ? "text-[#9B9B95]" : "text-[#2A2A2A]"} />
-          <Row label="WhatsApp" value={scope.prospectPhone ?? "—"} valueClass={scope.prospectPhone ? "text-[#9B9B95]" : "text-[#2A2A2A]"} />
+          <div className="text-[9px] font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em] mb-1.5">Identidade</div>
+          <Row label="Nome"     value={scope.prospectName  ?? "—"} valueClass={scope.prospectName  ? "text-[var(--text-muted)]" : "text-[var(--text-primary)]"} />
+          <Row label="Negócio"  value={scope.businessName  ?? "—"} valueClass={scope.businessName  ? "text-[var(--text-muted)]" : "text-[var(--text-primary)]"} />
+          <Row label="Segmento" value={scope.segment       ?? "—"} valueClass={scope.segment       ? "text-[var(--text-muted)]" : "text-[var(--text-primary)]"} />
+          <Row label="E-mail"   value={scope.prospectEmail ?? "—"} valueClass={scope.prospectEmail ? "text-[var(--text-muted)]" : "text-[var(--text-primary)]"} />
+          <Row label="WhatsApp" value={scope.prospectPhone ?? "—"} valueClass={scope.prospectPhone ? "text-[var(--text-muted)]" : "text-[var(--text-primary)]"} />
         </section>
 
         {/* Answered QIDs */}
         <section>
-          <div className="text-[9px] font-semibold text-[#3A3A3A] uppercase tracking-[0.06em] mb-1.5">
+          <div className="text-[9px] font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em] mb-1.5">
             Perguntas respondidas ({conv.answeredQIds.length})
           </div>
           {conv.answeredQIds.length === 0 ? (
-            <span className="text-[#2A2A2A]">nenhuma</span>
+            <span className="text-[var(--text-primary)]">nenhuma</span>
           ) : (
             <div className="space-y-0.5">
               {conv.answeredQIds.map((id) => (
                 <div key={id} className="flex items-center gap-1.5">
-                  <span className="text-[#16A34A] text-[9px]">✓</span>
-                  <span className="text-[#6B6B65] font-mono text-[10px]">{id}</span>
+                  <span className="text-[var(--success)] text-[9px]">✓</span>
+                  <span className="text-[var(--text-secondary)] font-mono text-[10px]">{id}</span>
                 </div>
               ))}
             </div>
@@ -416,71 +416,71 @@ function DebugPanel({
 
         {/* Budget */}
         <section>
-          <div className="text-[9px] font-semibold text-[#3A3A3A] uppercase tracking-[0.06em] mb-1.5">Budget</div>
+          <div className="text-[9px] font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em] mb-1.5">Budget</div>
           <Row
             label="Valor"
             value={sdr.budgetSignal.amount ? fmtBRL(sdr.budgetSignal.amount) : "—"}
-            valueClass={sdr.budgetSignal.amount ? "text-[#9B9B95]" : "text-[#2A2A2A]"}
+            valueClass={sdr.budgetSignal.amount ? "text-[var(--text-muted)]" : "text-[var(--text-primary)]"}
           />
           <Row
             label="Status"
             value={sdr.budgetSignal.fitStatus}
             valueClass={
-              sdr.budgetSignal.fitStatus === "fits"    ? "text-[#16A34A]" :
-              sdr.budgetSignal.fitStatus === "unknown" ? "text-[#2A2A2A]" :
-              "text-[#D97706]"
+              sdr.budgetSignal.fitStatus === "fits"    ? "text-[var(--success)]" :
+              sdr.budgetSignal.fitStatus === "unknown" ? "text-[var(--text-primary)]" :
+              "text-[var(--warning)]"
             }
           />
         </section>
 
         {/* Objection */}
         <section>
-          <div className="text-[9px] font-semibold text-[#3A3A3A] uppercase tracking-[0.06em] mb-1.5">Objeção</div>
+          <div className="text-[9px] font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em] mb-1.5">Objeção</div>
           <Row
             label="Ativa"
             value={sdr.objection.active ? "Sim" : "Não"}
-            valueClass={sdr.objection.active ? "text-[#DC2626]" : "text-[#16A34A]"}
+            valueClass={sdr.objection.active ? "text-[var(--danger)]" : "text-[var(--success)]"}
           />
           {sdr.objection.types.length > 0 && (
             <div className="flex items-start gap-2 py-[2px]">
-              <span className="text-[#4A4A44] w-[68px] shrink-0">Tipos</span>
+              <span className="text-[var(--text-secondary)] w-[68px] shrink-0">Tipos</span>
               <div className="flex flex-wrap gap-1 flex-1">
                 {sdr.objection.types.map((t) => (
-                  <span key={t} className="text-[8px] bg-[#DC2626]/20 text-[#DC2626] px-1.5 py-0.5 rounded-[3px]">{t}</span>
+                  <span key={t} className="text-[8px] bg-[var(--danger)]/20 text-[var(--danger)] px-1.5 py-0.5 rounded-[3px]">{t}</span>
                 ))}
               </div>
             </div>
           )}
           {sdr.objection.resolvedAt && (
-            <Row label="Resolvida" value="Sim" valueClass="text-[#16A34A]" />
+            <Row label="Resolvida" value="Sim" valueClass="text-[var(--success)]" />
           )}
         </section>
 
         {/* Estimate */}
         <section>
-          <div className="text-[9px] font-semibold text-[#3A3A3A] uppercase tracking-[0.06em] mb-1.5">Estimativa</div>
+          <div className="text-[9px] font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em] mb-1.5">Estimativa</div>
           {pkgLabel && <Row label="Plano" value={pkgLabel} />}
           <Row
             label="Total"
             value={estimate.totalMin > 0 ? `${fmtBRL(estimate.totalMin)} – ${fmtBRL(estimate.totalMax)}` : "—"}
-            valueClass={estimate.totalMin > 0 ? "text-[#9B9B95]" : "text-[#2A2A2A]"}
+            valueClass={estimate.totalMin > 0 ? "text-[var(--text-muted)]" : "text-[var(--text-primary)]"}
           />
           <Row
             label="Confiança"
             value={estimate.confidence}
             valueClass={
-              estimate.confidence === "high"   ? "text-[#16A34A]" :
-              estimate.confidence === "medium" ? "text-[#070A1F]" :
-              estimate.confidence === "low"    ? "text-[#D97706]" :
-              "text-[#2A2A2A]"
+              estimate.confidence === "high"   ? "text-[var(--success)]" :
+              estimate.confidence === "medium" ? "text-[var(--navy)]" :
+              estimate.confidence === "low"    ? "text-[var(--warning)]" :
+              "text-[var(--text-primary)]"
             }
           />
           {estimate.missingForEstimate.length > 0 && (
             <div className="mt-1 space-y-0.5">
               {estimate.missingForEstimate.map((m) => (
                 <div key={m} className="flex items-start gap-1.5">
-                  <span className="text-[#D97706] shrink-0">·</span>
-                  <span className="text-[#D97706] text-[10px]">{m}</span>
+                  <span className="text-[var(--warning)] shrink-0">·</span>
+                  <span className="text-[var(--warning)] text-[10px]">{m}</span>
                 </div>
               ))}
             </div>
@@ -489,14 +489,14 @@ function DebugPanel({
 
         {/* canSubmit */}
         <section>
-          <div className="text-[9px] font-semibold text-[#3A3A3A] uppercase tracking-[0.06em] mb-1.5">Envio</div>
+          <div className="text-[9px] font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em] mb-1.5">Envio</div>
           <div className="flex items-center gap-2">
-            <span className={`h-4 px-2 rounded-[3px] text-[9px] font-bold ${canSubmit ? "bg-[#16A34A]/20 text-[#16A34A]" : "bg-[#DC2626]/20 text-[#DC2626]"}`}>
+            <span className={`h-4 px-2 rounded-[3px] text-[9px] font-bold ${canSubmit ? "bg-[var(--success)]/20 text-[var(--success)]" : "bg-[var(--danger)]/20 text-[var(--danger)]"}`}>
               {canSubmit ? "canSubmit: true" : "canSubmit: false"}
             </span>
           </div>
           {blockReason && (
-            <p className="text-[10px] text-[#D97706] mt-1 leading-relaxed">{blockReason}</p>
+            <p className="text-[10px] text-[var(--warning)] mt-1 leading-relaxed">{blockReason}</p>
           )}
         </section>
 
@@ -509,24 +509,24 @@ function DebugPanel({
 
 function SimulationResult({ handoff, onReset }: { handoff: SDRHandoff; onReset: () => void }) {
   return (
-    <div className="mt-4 bg-white border border-[#E5E5E2] rounded-[12px] p-5 space-y-4">
+    <div className="mt-4 bg-white border border-[var(--border)] rounded-[12px] p-5 space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <div className="h-5 px-2.5 rounded-full bg-[#DCFCE7] text-[#16A34A] text-[10px] font-semibold inline-flex items-center mb-1.5">
+          <div className="h-5 px-2.5 rounded-full bg-[var(--success-bg)] text-[var(--success)] text-[10px] font-semibold inline-flex items-center mb-1.5">
             Simulação concluída — nenhum dado foi salvo
           </div>
-          <p className="text-[14px] font-semibold text-[#1A1A1A]">Prévia do Handoff para o PM</p>
+          <p className="text-[14px] font-semibold text-[var(--text-primary)]">Prévia do Handoff para o PM</p>
         </div>
         <button
           onClick={onReset}
-          className="h-8 px-4 rounded-[7px] border border-[#E5E5E2] text-[12px] text-[#6B6B65] hover:border-[#9B9B95] hover:text-[#1A1A1A] transition-colors"
+          className="h-8 px-4 rounded-[7px] border border-[var(--border)] text-[12px] text-[var(--text-secondary)] hover:border-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
         >
           Nova simulação
         </button>
       </div>
 
-      <div className="bg-[#E6FBFA] border border-[#9AF5F0] rounded-[10px] px-4 py-4 space-y-3">
-        <div className="text-[9px] font-semibold text-[#070A1F] uppercase tracking-[0.06em]">✦ SDR Handoff</div>
+      <div className="bg-[var(--accent-light)] border border-[var(--cyan)] rounded-[10px] px-4 py-4 space-y-3">
+        <div className="text-[9px] font-semibold text-[var(--navy)] uppercase tracking-[0.06em]">✦ SDR Handoff</div>
 
         {[
           { title: "Diagnóstico",   value: handoff.diagnosis },
@@ -534,35 +534,35 @@ function SimulationResult({ handoff, onReset }: { handoff: SDRHandoff; onReset: 
           { title: "Budget",        value: handoff.budgetFit },
         ].map(({ title, value }) => (
           <div key={title}>
-            <p className="text-[10px] font-semibold text-[#5B21B6] mb-0.5">{title}</p>
-            <p className="text-[12px] text-[#4C1D95] leading-relaxed">{value}</p>
+            <p className="text-[10px] font-semibold text-[#1E3A8A] mb-0.5">{title}</p>
+            <p className="text-[12px] text-[#1E3A8A] leading-relaxed">{value}</p>
           </div>
         ))}
 
         {handoff.objectionsHandled.length > 0 && (
           <div>
-            <p className="text-[10px] font-semibold text-[#5B21B6] mb-0.5">Objeções tratadas</p>
-            {handoff.objectionsHandled.map((o, i) => <p key={i} className="text-[12px] text-[#4C1D95]">• {o}</p>)}
+            <p className="text-[10px] font-semibold text-[#1E3A8A] mb-0.5">Objeções tratadas</p>
+            {handoff.objectionsHandled.map((o, i) => <p key={i} className="text-[12px] text-[#1E3A8A]">• {o}</p>)}
           </div>
         )}
 
         {handoff.tradeoffsAccepted.length > 0 && (
           <div>
-            <p className="text-[10px] font-semibold text-[#5B21B6] mb-0.5">Concessões aceitas</p>
-            {handoff.tradeoffsAccepted.map((t, i) => <p key={i} className="text-[12px] text-[#4C1D95]">• {t}</p>)}
+            <p className="text-[10px] font-semibold text-[#1E3A8A] mb-0.5">Concessões aceitas</p>
+            {handoff.tradeoffsAccepted.map((t, i) => <p key={i} className="text-[12px] text-[#1E3A8A]">• {t}</p>)}
           </div>
         )}
 
         {handoff.unresolvedRisks.length > 0 && (
-          <div className="bg-[#FEF3C7] border border-[#FDE68A] rounded-[6px] px-3 py-2.5">
-            <p className="text-[10px] font-semibold text-[#D97706] mb-0.5">Riscos não resolvidos</p>
+          <div className="bg-[var(--warning-bg)] border border-[#FDE68A] rounded-[6px] px-3 py-2.5">
+            <p className="text-[10px] font-semibold text-[var(--warning)] mb-0.5">Riscos não resolvidos</p>
             {handoff.unresolvedRisks.map((r, i) => <p key={i} className="text-[12px] text-[#92400E]">• {r}</p>)}
           </div>
         )}
 
-        <div className="bg-[#EDE9FE] rounded-[6px] px-3 py-2.5">
-          <p className="text-[10px] font-semibold text-[#5B21B6] mb-0.5">Ação recomendada para o PM</p>
-          <p className="text-[12px] text-[#4C1D95] leading-relaxed">{handoff.recommendedPMAction}</p>
+        <div className="bg-[#E9EFFF] rounded-[6px] px-3 py-2.5">
+          <p className="text-[10px] font-semibold text-[#1E3A8A] mb-0.5">Ação recomendada para o PM</p>
+          <p className="text-[12px] text-[#1E3A8A] leading-relaxed">{handoff.recommendedPMAction}</p>
         </div>
       </div>
     </div>
@@ -649,15 +649,15 @@ export function SDRSimulator() {
     <div>
       {/* ── Preset bar ── */}
       <div className="flex items-center gap-3 mb-5 flex-wrap">
-        <span className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em]">Cenários:</span>
+        <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em]">Cenários:</span>
         {PRESETS.map((preset) => (
           <div key={preset.id} className="flex items-center gap-1">
             <button
               onClick={() => loadPreset(preset)}
               className={`h-7 px-3 rounded-l-[6px] border text-[11px] font-medium transition-colors ${
                 activePreset === preset.id
-                  ? "bg-[#1A1A1A] border-[#1A1A1A] text-white"
-                  : "border-[#E5E5E2] bg-white text-[#6B6B65] hover:border-[#9B9B95] hover:text-[#1A1A1A]"
+                  ? "bg-[var(--text-primary)] border-[var(--text-primary)] text-white"
+                  : "border-[var(--border)] bg-white text-[var(--text-secondary)] hover:border-[var(--text-muted)] hover:text-[var(--text-primary)]"
               }`}
               title={preset.tag}
             >
@@ -666,7 +666,7 @@ export function SDRSimulator() {
             {preset.scenario && (
               <button
                 onClick={() => autoRunScenario(preset)}
-                className="h-7 px-2.5 rounded-r-[6px] border border-l-0 border-[#E5E5E2] bg-white text-[10px] text-[#9B9B95] hover:border-[#9B9B95] hover:text-[#070A1F] transition-colors"
+                className="h-7 px-2.5 rounded-r-[6px] border border-l-0 border-[var(--border)] bg-white text-[10px] text-[var(--text-muted)] hover:border-[var(--text-muted)] hover:text-[var(--navy)] transition-colors"
                 title={`Auto-run: ${preset.scenario.length} mensagens`}
               >
                 ▶ Auto
@@ -676,7 +676,7 @@ export function SDRSimulator() {
         ))}
         <button
           onClick={handleReset}
-          className="h-7 px-3 rounded-[6px] border border-[#E5E5E2] bg-white text-[11px] text-[#9B9B95] hover:border-[#DC2626] hover:text-[#DC2626] transition-colors ml-auto"
+          className="h-7 px-3 rounded-[6px] border border-[var(--border)] bg-white text-[11px] text-[var(--text-muted)] hover:border-[var(--danger)] hover:text-[var(--danger)] transition-colors ml-auto"
         >
           Resetar
         </button>
@@ -686,18 +686,18 @@ export function SDRSimulator() {
       <div className="grid gap-5" style={{ gridTemplateColumns: "1fr 260px 290px" }}>
 
         {/* ── Chat ── */}
-        <div className="bg-white rounded-[12px] border border-[#E5E5E2] shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden flex flex-col">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0F0ED]">
+        <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden flex flex-col">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
             <div>
-              <div className="text-[10px] font-semibold text-[#9B9B95] uppercase tracking-[0.06em]">Simulador</div>
-              <div className="text-[14px] font-semibold text-[#1A1A1A] mt-0.5">SDR Agent — Briefing Room</div>
+              <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em]">Simulador</div>
+              <div className="text-[14px] font-semibold text-[var(--text-primary)] mt-0.5">SDR Agent — Briefing Room</div>
             </div>
             <div className="flex items-center gap-2">
-              <span className="h-5 px-2.5 rounded-full bg-[#EDE9FE] text-[#070A1F] text-[9px] font-semibold">
+              <span className="h-5 px-2.5 rounded-full bg-[#E9EFFF] text-[var(--navy)] text-[9px] font-semibold">
                 ✦ Interno
               </span>
-              <span className="h-2 w-2 rounded-full bg-[#16A34A]" />
-              <span className="text-[11px] text-[#9B9B95]">Simulando</span>
+              <span className="h-2 w-2 rounded-full bg-[var(--success)]" />
+              <span className="text-[11px] text-[var(--text-muted)]">Simulando</span>
             </div>
           </div>
 
@@ -709,7 +709,7 @@ export function SDRSimulator() {
           </div>
 
           {!simulationDone && (
-            <div className="border-t border-[#F0F0ED] px-4 py-3">
+            <div className="border-t border-[var(--border)] px-4 py-3">
               <div className="flex gap-2">
                 <textarea
                   ref={textareaRef}
@@ -718,12 +718,12 @@ export function SDRSimulator() {
                   onKeyDown={handleKeyDown}
                   placeholder={conv.isFirstMessage ? "Diga seu nome e negócio para começar…" : "Digite sua resposta…"}
                   rows={2}
-                  className="flex-1 px-3 py-2.5 text-[13px] bg-[#F7F7F6] border border-[#E5E5E2] rounded-[8px] outline-none focus:border-[#1A1A1A] focus:bg-white transition-all resize-none leading-relaxed placeholder:text-[#C0C0BC]"
+                  className="flex-1 px-3 py-2.5 text-[13px] bg-[var(--bg)] border border-[var(--border)] rounded-[8px] outline-none focus:border-[var(--text-primary)] focus:bg-white transition-all resize-none leading-relaxed placeholder:text-[var(--text-subtle)]"
                 />
                 <button
                   onClick={handleSend}
                   disabled={!inputText.trim()}
-                  className="w-[52px] rounded-[8px] bg-[#1A1A1A] hover:bg-[#111111] disabled:opacity-40 disabled:cursor-not-allowed text-white flex items-center justify-center transition-colors shrink-0"
+                  className="w-[52px] rounded-[8px] bg-[var(--text-primary)] hover:bg-[var(--text-primary)] disabled:opacity-40 disabled:cursor-not-allowed text-white flex items-center justify-center transition-colors shrink-0"
                   aria-label="Enviar"
                 >
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -731,13 +731,13 @@ export function SDRSimulator() {
                   </svg>
                 </button>
               </div>
-              <p className="text-[10px] text-[#C0C0BC] mt-2">Enter para enviar · Shift+Enter nova linha</p>
+              <p className="text-[10px] text-[var(--text-subtle)] mt-2">Enter para enviar · Shift+Enter nova linha</p>
             </div>
           )}
 
           {simulationDone && (
-            <div className="border-t border-[#F0F0ED] px-4 py-3 text-center">
-              <p className="text-[11px] text-[#9B9B95]">Simulação encerrada. Clique em <strong>Nova simulação</strong> para recomeçar.</p>
+            <div className="border-t border-[var(--border)] px-4 py-3 text-center">
+              <p className="text-[11px] text-[var(--text-muted)]">Simulação encerrada. Clique em <strong>Nova simulação</strong> para recomeçar.</p>
             </div>
           )}
         </div>

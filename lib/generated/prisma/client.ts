@@ -233,6 +233,16 @@ export type EvidenceItem = Prisma.EvidenceItemModel
  */
 export type MetaConnection = Prisma.MetaConnectionModel
 /**
+ * Model WhatsAppMessage
+ * 
+ */
+export type WhatsAppMessage = Prisma.WhatsAppMessageModel
+/**
+ * Model WhatsAppOutbox
+ * 
+ */
+export type WhatsAppOutbox = Prisma.WhatsAppOutboxModel
+/**
  * Model PortalAccess
  * 
  */

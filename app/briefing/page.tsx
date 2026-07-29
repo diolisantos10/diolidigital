@@ -64,22 +64,22 @@ export default function BriefingPage() {
         <div className="w-14 h-14 rounded-full bg-[#DCFCE7] flex items-center justify-center mx-auto mb-5 text-[#16A34A] text-[22px] font-bold">
           ✓
         </div>
-        <h1 className="text-[22px] font-semibold text-[#1A1A1A] mb-3">
+        <h1 className="text-[22px] font-semibold text-[var(--text-primary)] mb-3">
           Recebemos seu briefing.
         </h1>
-        <p className="text-[14px] text-[#6B6B65] leading-relaxed max-w-[400px] mx-auto mb-6">
+        <p className="text-[14px] text-[var(--text-secondary)] leading-relaxed max-w-[400px] mx-auto mb-6">
           Nossa equipe vai revisar a proposta inicial e retornar com os próximos passos em breve.
         </p>
-        <div className="bg-[#F7F7F6] border border-[#E5E5E2] rounded-[10px] px-5 py-4 mb-8 text-left">
-          <p className="text-[11px] font-semibold text-[#9B9B95] uppercase tracking-[0.05em] mb-1">O que acontece agora</p>
+        <div className="bg-[var(--bg)] border border-[var(--border)] rounded-[10px] px-5 py-4 mb-8 text-left">
+          <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1">O que acontece agora</p>
           <ol className="space-y-1.5">
             {[
               "Nossa equipe analisa o escopo enviado",
               "Preparamos uma proposta formal detalhada",
               "Entramos em contato pelo e-mail informado em até 1 dia útil",
             ].map((s, i) => (
-              <li key={i} className="flex items-start gap-2 text-[12px] text-[#6B6B65]">
-                <span className="w-4 h-4 rounded-full bg-[#1A1A1A] text-white text-[9px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+              <li key={i} className="flex items-start gap-2 text-[12px] text-[var(--text-secondary)]">
+                <span className="w-4 h-4 rounded-full bg-[var(--text-primary)] text-white text-[9px] font-bold flex items-center justify-center shrink-0 mt-0.5">
                   {i + 1}
                 </span>
                 {s}
@@ -90,19 +90,19 @@ export default function BriefingPage() {
         <div className="flex items-center justify-center gap-3 flex-wrap">
           <button
             onClick={() => { setSubmitted(false); setSubmittedId(null); }}
-            className="h-9 px-5 rounded-[8px] border border-[#E5E5E2] text-[#6B6B65] hover:bg-[#F7F7F6] text-[13px] font-medium transition-colors"
+            className="h-9 px-5 rounded-[8px] border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg)] text-[13px] font-medium transition-colors"
           >
             Voltar ao início
           </button>
           <a
             href="https://wa.me/5511989400692"
-            className="h-9 px-5 rounded-[8px] bg-[#1A1A1A] hover:bg-[#111111] text-white text-[13px] font-medium transition-colors inline-flex items-center"
+            className="h-9 px-5 rounded-[8px] bg-[var(--text-primary)] hover:bg-[var(--text-primary)] text-white text-[13px] font-medium transition-colors inline-flex items-center"
           >
             Falar com a Dioli no WhatsApp
           </a>
         </div>
         {submittedId && (
-          <p className="mt-6 text-[10px] text-[#C0C0BC]">Referência: {submittedId}</p>
+          <p className="mt-6 text-[10px] text-[var(--text-subtle)]">Referência: {submittedId}</p>
         )}
       </div>
     );
@@ -111,8 +111,8 @@ export default function BriefingPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-[22px] font-semibold text-[#1A1A1A]">Vamos entender seu projeto</h1>
-        <p className="text-[14px] text-[#6B6B65] mt-1 leading-relaxed max-w-[540px]">
+        <h1 className="text-[22px] font-semibold text-[var(--text-primary)]">Vamos entender seu projeto</h1>
+        <p className="text-[14px] text-[var(--text-secondary)] mt-1 leading-relaxed max-w-[540px]">
           Converse com a Dioli, conte o que você precisa e receba uma estimativa inicial de escopo, prazo e investimento.
         </p>
       </div>

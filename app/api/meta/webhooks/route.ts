@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveMetaAppCredentials, webhookVerifyToken } from "@/lib/integrations/meta/config";
 import { verifyWebhookSignature } from "@/lib/integrations/meta/webhooks";
+import { recordInbound, updateMessageStatus, resolveWorkspaceForPhone } from "@/lib/integrations/meta/inbox";
 
 // Webhooks are request-time and must never be cached/prerendered.
 export const dynamic = "force-dynamic";
@@ -54,11 +55,61 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return new NextResponse("Bad payload", { status: 400 });
   }
 
-  // Log the event shape. Deeper routing (persisting comments/DMs, replying via
-  // the Social Agent) plugs in here as those consumers come online.
-  const entries = Array.isArray(payload.entry) ? payload.entry.length : 0;
-  console.log(`[meta/webhooks] verified event object=${payload.object ?? "?"} entries=${entries}`);
+  // Persist WhatsApp messages + statuses into the single inbox. Best-effort:
+  // never throw back to Meta (that would trigger re-delivery storms).
+  try {
+    await handleWhatsAppPayload(payload);
+  } catch (e) {
+    console.error("[meta/webhooks] processing error:", e instanceof Error ? e.message : e);
+  }
 
-  // Meta requires a fast 200 to avoid ret/re-delivery.
+  // Meta requires a fast 200 to avoid re-delivery.
   return new NextResponse("EVENT_RECEIVED", { status: 200 });
+}
+
+// Parse a WhatsApp Cloud API webhook payload: store inbound messages and apply
+// delivery-status updates to outbound ones. Comments/DMs from IG/FB land under
+// object!="whatsapp_business_account" and are ignored here for now.
+interface WaValue {
+  metadata?: { phone_number_id?: string };
+  contacts?: Array<{ wa_id?: string; profile?: { name?: string } }>;
+  messages?: Array<{ id?: string; from?: string; timestamp?: string; type?: string; text?: { body?: string } }>;
+  statuses?: Array<{ id?: string; status?: string }>;
+}
+
+async function handleWhatsAppPayload(payload: { object?: string; entry?: unknown[] }): Promise<void> {
+  if (payload.object !== "whatsapp_business_account") return;
+  for (const entryRaw of payload.entry ?? []) {
+    const entry = entryRaw as { changes?: Array<{ value?: WaValue }> };
+    for (const change of entry.changes ?? []) {
+      const value = change.value;
+      if (!value) continue;
+      const phoneNumberId = value.metadata?.phone_number_id ?? "";
+      const workspaceId = await resolveWorkspaceForPhone(phoneNumberId);
+      if (!workspaceId) continue;
+
+      const nameByWaId = new Map<string, string>();
+      for (const c of value.contacts ?? []) {
+        if (c.wa_id) nameByWaId.set(c.wa_id, c.profile?.name ?? "");
+      }
+
+      for (const m of value.messages ?? []) {
+        if (!m.from) continue;
+        await recordInbound({
+          workspaceId,
+          phoneNumberId,
+          contactWaId: m.from,
+          contactName: nameByWaId.get(m.from) || undefined,
+          type: m.type ?? "text",
+          body: m.text?.body ?? "",
+          externalId: m.id,
+          timestamp: m.timestamp ? new Date(Number(m.timestamp) * 1000) : undefined,
+        });
+      }
+
+      for (const s of value.statuses ?? []) {
+        if (s.id && s.status) await updateMessageStatus(s.id, s.status);
+      }
+    }
+  }
 }

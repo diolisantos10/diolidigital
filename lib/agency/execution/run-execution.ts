@@ -274,7 +274,7 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
       });
 
       if (!result.ok) {
-        skipped.push(`${dept.label} (IA indisponível)`);
+        skipped.push(`${dept.label} (IA: ${result.error})`);
         await moverTarefasDoAgente(projectId, dept.agentId, "pending");
         continue;
       }
