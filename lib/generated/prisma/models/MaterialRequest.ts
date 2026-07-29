@@ -14,7 +14,13 @@ import type * as Prisma from "../internal/prismaNamespace"
 
 /**
  * Model MaterialRequest
+ * O pedido de material que um agente faz ao cliente.
  * 
+ * Regra da casa: o agente ABRE o pedido, o gerente de projeto CONSOLIDA e fala.
+ * O cliente recebe uma mensagem só, com tudo que falta — nunca cinco agentes
+ * pedindo coisas soltas em horários diferentes. Por isso o pedido guarda quem
+ * pediu (para a equipe saber quem está travado) e quando foi enviado ao cliente
+ * (para o PM não cobrar a mesma coisa duas vezes).
  */
 export type MaterialRequestModel = runtime.Types.Result.DefaultSelection<Prisma.$MaterialRequestPayload>
 
@@ -30,6 +36,9 @@ export type MaterialRequestMinAggregateOutputType = {
   type: string | null
   description: string | null
   status: string | null
+  requestedByAgentId: string | null
+  requestedByLabel: string | null
+  askedClientAt: Date | null
   requestedAt: Date | null
   resolvedAt: Date | null
 }
@@ -40,6 +49,9 @@ export type MaterialRequestMaxAggregateOutputType = {
   type: string | null
   description: string | null
   status: string | null
+  requestedByAgentId: string | null
+  requestedByLabel: string | null
+  askedClientAt: Date | null
   requestedAt: Date | null
   resolvedAt: Date | null
 }
@@ -50,6 +62,9 @@ export type MaterialRequestCountAggregateOutputType = {
   type: number
   description: number
   status: number
+  requestedByAgentId: number
+  requestedByLabel: number
+  askedClientAt: number
   requestedAt: number
   resolvedAt: number
   _all: number
@@ -62,6 +77,9 @@ export type MaterialRequestMinAggregateInputType = {
   type?: true
   description?: true
   status?: true
+  requestedByAgentId?: true
+  requestedByLabel?: true
+  askedClientAt?: true
   requestedAt?: true
   resolvedAt?: true
 }
@@ -72,6 +90,9 @@ export type MaterialRequestMaxAggregateInputType = {
   type?: true
   description?: true
   status?: true
+  requestedByAgentId?: true
+  requestedByLabel?: true
+  askedClientAt?: true
   requestedAt?: true
   resolvedAt?: true
 }
@@ -82,6 +103,9 @@ export type MaterialRequestCountAggregateInputType = {
   type?: true
   description?: true
   status?: true
+  requestedByAgentId?: true
+  requestedByLabel?: true
+  askedClientAt?: true
   requestedAt?: true
   resolvedAt?: true
   _all?: true
@@ -165,6 +189,9 @@ export type MaterialRequestGroupByOutputType = {
   type: string
   description: string
   status: string
+  requestedByAgentId: string | null
+  requestedByLabel: string | null
+  askedClientAt: Date | null
   requestedAt: Date
   resolvedAt: Date | null
   _count: MaterialRequestCountAggregateOutputType | null
@@ -196,6 +223,9 @@ export type MaterialRequestWhereInput = {
   type?: Prisma.StringFilter<"MaterialRequest"> | string
   description?: Prisma.StringFilter<"MaterialRequest"> | string
   status?: Prisma.StringFilter<"MaterialRequest"> | string
+  requestedByAgentId?: Prisma.StringNullableFilter<"MaterialRequest"> | string | null
+  requestedByLabel?: Prisma.StringNullableFilter<"MaterialRequest"> | string | null
+  askedClientAt?: Prisma.DateTimeNullableFilter<"MaterialRequest"> | Date | string | null
   requestedAt?: Prisma.DateTimeFilter<"MaterialRequest"> | Date | string
   resolvedAt?: Prisma.DateTimeNullableFilter<"MaterialRequest"> | Date | string | null
   project?: Prisma.XOR<Prisma.ProjectScalarRelationFilter, Prisma.ProjectWhereInput>
@@ -207,6 +237,9 @@ export type MaterialRequestOrderByWithRelationInput = {
   type?: Prisma.SortOrder
   description?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  requestedByAgentId?: Prisma.SortOrderInput | Prisma.SortOrder
+  requestedByLabel?: Prisma.SortOrderInput | Prisma.SortOrder
+  askedClientAt?: Prisma.SortOrderInput | Prisma.SortOrder
   requestedAt?: Prisma.SortOrder
   resolvedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   project?: Prisma.ProjectOrderByWithRelationInput
@@ -221,6 +254,9 @@ export type MaterialRequestWhereUniqueInput = Prisma.AtLeast<{
   type?: Prisma.StringFilter<"MaterialRequest"> | string
   description?: Prisma.StringFilter<"MaterialRequest"> | string
   status?: Prisma.StringFilter<"MaterialRequest"> | string
+  requestedByAgentId?: Prisma.StringNullableFilter<"MaterialRequest"> | string | null
+  requestedByLabel?: Prisma.StringNullableFilter<"MaterialRequest"> | string | null
+  askedClientAt?: Prisma.DateTimeNullableFilter<"MaterialRequest"> | Date | string | null
   requestedAt?: Prisma.DateTimeFilter<"MaterialRequest"> | Date | string
   resolvedAt?: Prisma.DateTimeNullableFilter<"MaterialRequest"> | Date | string | null
   project?: Prisma.XOR<Prisma.ProjectScalarRelationFilter, Prisma.ProjectWhereInput>
@@ -232,6 +268,9 @@ export type MaterialRequestOrderByWithAggregationInput = {
   type?: Prisma.SortOrder
   description?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  requestedByAgentId?: Prisma.SortOrderInput | Prisma.SortOrder
+  requestedByLabel?: Prisma.SortOrderInput | Prisma.SortOrder
+  askedClientAt?: Prisma.SortOrderInput | Prisma.SortOrder
   requestedAt?: Prisma.SortOrder
   resolvedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.MaterialRequestCountOrderByAggregateInput
@@ -248,6 +287,9 @@ export type MaterialRequestScalarWhereWithAggregatesInput = {
   type?: Prisma.StringWithAggregatesFilter<"MaterialRequest"> | string
   description?: Prisma.StringWithAggregatesFilter<"MaterialRequest"> | string
   status?: Prisma.StringWithAggregatesFilter<"MaterialRequest"> | string
+  requestedByAgentId?: Prisma.StringNullableWithAggregatesFilter<"MaterialRequest"> | string | null
+  requestedByLabel?: Prisma.StringNullableWithAggregatesFilter<"MaterialRequest"> | string | null
+  askedClientAt?: Prisma.DateTimeNullableWithAggregatesFilter<"MaterialRequest"> | Date | string | null
   requestedAt?: Prisma.DateTimeWithAggregatesFilter<"MaterialRequest"> | Date | string
   resolvedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"MaterialRequest"> | Date | string | null
 }
@@ -257,6 +299,9 @@ export type MaterialRequestCreateInput = {
   type: string
   description: string
   status?: string
+  requestedByAgentId?: string | null
+  requestedByLabel?: string | null
+  askedClientAt?: Date | string | null
   requestedAt?: Date | string
   resolvedAt?: Date | string | null
   project: Prisma.ProjectCreateNestedOneWithoutMaterialRequestsInput
@@ -268,6 +313,9 @@ export type MaterialRequestUncheckedCreateInput = {
   type: string
   description: string
   status?: string
+  requestedByAgentId?: string | null
+  requestedByLabel?: string | null
+  askedClientAt?: Date | string | null
   requestedAt?: Date | string
   resolvedAt?: Date | string | null
 }
@@ -277,6 +325,9 @@ export type MaterialRequestUpdateInput = {
   type?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  requestedByAgentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  requestedByLabel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  askedClientAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   requestedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   resolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   project?: Prisma.ProjectUpdateOneRequiredWithoutMaterialRequestsNestedInput
@@ -288,6 +339,9 @@ export type MaterialRequestUncheckedUpdateInput = {
   type?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  requestedByAgentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  requestedByLabel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  askedClientAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   requestedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   resolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -298,6 +352,9 @@ export type MaterialRequestCreateManyInput = {
   type: string
   description: string
   status?: string
+  requestedByAgentId?: string | null
+  requestedByLabel?: string | null
+  askedClientAt?: Date | string | null
   requestedAt?: Date | string
   resolvedAt?: Date | string | null
 }
@@ -307,6 +364,9 @@ export type MaterialRequestUpdateManyMutationInput = {
   type?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  requestedByAgentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  requestedByLabel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  askedClientAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   requestedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   resolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -317,6 +377,9 @@ export type MaterialRequestUncheckedUpdateManyInput = {
   type?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  requestedByAgentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  requestedByLabel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  askedClientAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   requestedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   resolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -337,6 +400,9 @@ export type MaterialRequestCountOrderByAggregateInput = {
   type?: Prisma.SortOrder
   description?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  requestedByAgentId?: Prisma.SortOrder
+  requestedByLabel?: Prisma.SortOrder
+  askedClientAt?: Prisma.SortOrder
   requestedAt?: Prisma.SortOrder
   resolvedAt?: Prisma.SortOrder
 }
@@ -347,6 +413,9 @@ export type MaterialRequestMaxOrderByAggregateInput = {
   type?: Prisma.SortOrder
   description?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  requestedByAgentId?: Prisma.SortOrder
+  requestedByLabel?: Prisma.SortOrder
+  askedClientAt?: Prisma.SortOrder
   requestedAt?: Prisma.SortOrder
   resolvedAt?: Prisma.SortOrder
 }
@@ -357,6 +426,9 @@ export type MaterialRequestMinOrderByAggregateInput = {
   type?: Prisma.SortOrder
   description?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  requestedByAgentId?: Prisma.SortOrder
+  requestedByLabel?: Prisma.SortOrder
+  askedClientAt?: Prisma.SortOrder
   requestedAt?: Prisma.SortOrder
   resolvedAt?: Prisma.SortOrder
 }
@@ -408,6 +480,9 @@ export type MaterialRequestCreateWithoutProjectInput = {
   type: string
   description: string
   status?: string
+  requestedByAgentId?: string | null
+  requestedByLabel?: string | null
+  askedClientAt?: Date | string | null
   requestedAt?: Date | string
   resolvedAt?: Date | string | null
 }
@@ -417,6 +492,9 @@ export type MaterialRequestUncheckedCreateWithoutProjectInput = {
   type: string
   description: string
   status?: string
+  requestedByAgentId?: string | null
+  requestedByLabel?: string | null
+  askedClientAt?: Date | string | null
   requestedAt?: Date | string
   resolvedAt?: Date | string | null
 }
@@ -455,6 +533,9 @@ export type MaterialRequestScalarWhereInput = {
   type?: Prisma.StringFilter<"MaterialRequest"> | string
   description?: Prisma.StringFilter<"MaterialRequest"> | string
   status?: Prisma.StringFilter<"MaterialRequest"> | string
+  requestedByAgentId?: Prisma.StringNullableFilter<"MaterialRequest"> | string | null
+  requestedByLabel?: Prisma.StringNullableFilter<"MaterialRequest"> | string | null
+  askedClientAt?: Prisma.DateTimeNullableFilter<"MaterialRequest"> | Date | string | null
   requestedAt?: Prisma.DateTimeFilter<"MaterialRequest"> | Date | string
   resolvedAt?: Prisma.DateTimeNullableFilter<"MaterialRequest"> | Date | string | null
 }
@@ -464,6 +545,9 @@ export type MaterialRequestCreateManyProjectInput = {
   type: string
   description: string
   status?: string
+  requestedByAgentId?: string | null
+  requestedByLabel?: string | null
+  askedClientAt?: Date | string | null
   requestedAt?: Date | string
   resolvedAt?: Date | string | null
 }
@@ -473,6 +557,9 @@ export type MaterialRequestUpdateWithoutProjectInput = {
   type?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  requestedByAgentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  requestedByLabel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  askedClientAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   requestedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   resolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -482,6 +569,9 @@ export type MaterialRequestUncheckedUpdateWithoutProjectInput = {
   type?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  requestedByAgentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  requestedByLabel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  askedClientAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   requestedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   resolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -491,6 +581,9 @@ export type MaterialRequestUncheckedUpdateManyWithoutProjectInput = {
   type?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
+  requestedByAgentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  requestedByLabel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  askedClientAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   requestedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   resolvedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -503,6 +596,9 @@ export type MaterialRequestSelect<ExtArgs extends runtime.Types.Extensions.Inter
   type?: boolean
   description?: boolean
   status?: boolean
+  requestedByAgentId?: boolean
+  requestedByLabel?: boolean
+  askedClientAt?: boolean
   requestedAt?: boolean
   resolvedAt?: boolean
   project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
@@ -514,6 +610,9 @@ export type MaterialRequestSelectCreateManyAndReturn<ExtArgs extends runtime.Typ
   type?: boolean
   description?: boolean
   status?: boolean
+  requestedByAgentId?: boolean
+  requestedByLabel?: boolean
+  askedClientAt?: boolean
   requestedAt?: boolean
   resolvedAt?: boolean
   project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
@@ -525,6 +624,9 @@ export type MaterialRequestSelectUpdateManyAndReturn<ExtArgs extends runtime.Typ
   type?: boolean
   description?: boolean
   status?: boolean
+  requestedByAgentId?: boolean
+  requestedByLabel?: boolean
+  askedClientAt?: boolean
   requestedAt?: boolean
   resolvedAt?: boolean
   project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
@@ -536,11 +638,14 @@ export type MaterialRequestSelectScalar = {
   type?: boolean
   description?: boolean
   status?: boolean
+  requestedByAgentId?: boolean
+  requestedByLabel?: boolean
+  askedClientAt?: boolean
   requestedAt?: boolean
   resolvedAt?: boolean
 }
 
-export type MaterialRequestOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "projectId" | "type" | "description" | "status" | "requestedAt" | "resolvedAt", ExtArgs["result"]["materialRequest"]>
+export type MaterialRequestOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "projectId" | "type" | "description" | "status" | "requestedByAgentId" | "requestedByLabel" | "askedClientAt" | "requestedAt" | "resolvedAt", ExtArgs["result"]["materialRequest"]>
 export type MaterialRequestInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
 }
@@ -562,6 +667,18 @@ export type $MaterialRequestPayload<ExtArgs extends runtime.Types.Extensions.Int
     type: string
     description: string
     status: string
+    /**
+     * Qual agente travou por falta deste material (a3, a2…).
+     */
+    requestedByAgentId: string | null
+    /**
+     * Nome legível de quem pediu — vai no resumo que o PM manda.
+     */
+    requestedByLabel: string | null
+    /**
+     * Quando o PM incluiu este pedido na mensagem consolidada ao cliente.
+     */
+    askedClientAt: Date | null
     requestedAt: Date
     resolvedAt: Date | null
   }, ExtArgs["result"]["materialRequest"]>
@@ -993,6 +1110,9 @@ export interface MaterialRequestFieldRefs {
   readonly type: Prisma.FieldRef<"MaterialRequest", 'String'>
   readonly description: Prisma.FieldRef<"MaterialRequest", 'String'>
   readonly status: Prisma.FieldRef<"MaterialRequest", 'String'>
+  readonly requestedByAgentId: Prisma.FieldRef<"MaterialRequest", 'String'>
+  readonly requestedByLabel: Prisma.FieldRef<"MaterialRequest", 'String'>
+  readonly askedClientAt: Prisma.FieldRef<"MaterialRequest", 'DateTime'>
   readonly requestedAt: Prisma.FieldRef<"MaterialRequest", 'DateTime'>
   readonly resolvedAt: Prisma.FieldRef<"MaterialRequest", 'DateTime'>
 }

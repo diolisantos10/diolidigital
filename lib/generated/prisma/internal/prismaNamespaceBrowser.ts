@@ -55,6 +55,8 @@ export const ModelName = {
   User: 'User',
   Client: 'Client',
   Project: 'Project',
+  Cycle: 'Cycle',
+  ClientNotice: 'ClientNotice',
   Deliverable: 'Deliverable',
   MaterialRequest: 'MaterialRequest',
   BrandBrain: 'BrandBrain',
@@ -164,11 +166,52 @@ export const ProjectScalarFieldEnum = {
   executionFinishedAt: 'executionFinishedAt',
   executionAttempts: 'executionAttempts',
   executionError: 'executionError',
+  directionApprovedAt: 'directionApprovedAt',
+  presentedAt: 'presentedAt',
+  clientApprovedAt: 'clientApprovedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
 export type ProjectScalarFieldEnum = (typeof ProjectScalarFieldEnum)[keyof typeof ProjectScalarFieldEnum]
+
+
+export const CycleScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  reference: 'reference',
+  status: 'status',
+  startsOn: 'startsOn',
+  endsOn: 'endsOn',
+  planJson: 'planJson',
+  resultsJson: 'resultsJson',
+  summary: 'summary',
+  closedAt: 'closedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CycleScalarFieldEnum = (typeof CycleScalarFieldEnum)[keyof typeof CycleScalarFieldEnum]
+
+
+export const ClientNoticeScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  clientId: 'clientId',
+  projectId: 'projectId',
+  kind: 'kind',
+  body: 'body',
+  link: 'link',
+  status: 'status',
+  channel: 'channel',
+  failReason: 'failReason',
+  sentAt: 'sentAt',
+  sentBy: 'sentBy',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ClientNoticeScalarFieldEnum = (typeof ClientNoticeScalarFieldEnum)[keyof typeof ClientNoticeScalarFieldEnum]
 
 
 export const DeliverableScalarFieldEnum = {
@@ -197,6 +240,9 @@ export const MaterialRequestScalarFieldEnum = {
   type: 'type',
   description: 'description',
   status: 'status',
+  requestedByAgentId: 'requestedByAgentId',
+  requestedByLabel: 'requestedByLabel',
+  askedClientAt: 'askedClientAt',
   requestedAt: 'requestedAt',
   resolvedAt: 'resolvedAt'
 } as const

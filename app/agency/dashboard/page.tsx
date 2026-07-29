@@ -12,6 +12,7 @@ import { computeAllDirectives, computeOrchestrationSummary, PMUrgency } from "@/
 import { generateAllAutoTasks, AUTO_TASK_PRIORITY_STYLE } from "@/lib/agency/orchestration/auto-tasks";
 import { computeWorkspaceHealth, DEPT_HEALTH_STYLE } from "@/lib/agency/orchestration/department-health";
 import { evaluateProjectPipeline, STAGE_STATUS_STYLE } from "@/lib/agency/orchestration/pipeline";
+import FilaDeAvisos from "@/components/agency/FilaDeAvisos";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -420,6 +421,14 @@ export default function DashboardPage() {
 
   return (
     <div>
+      {/* A FILA DE AVISOS — o que o cliente ainda não sabe. Vem antes de tudo
+          porque é o único item do painel que representa um projeto PARADO
+          esperando alguém que nem sabe que precisa agir. Some sozinha quando
+          está vazia: caixa vazia treina o time a ignorar a tela. */}
+      <div className="mb-6">
+        <FilaDeAvisos />
+      </div>
+
       {/* ── Hero header ─────────────────────────────────────────────────────── */}
       <div className="mb-7">
         <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)] mb-1.5">

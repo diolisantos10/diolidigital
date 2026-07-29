@@ -8,6 +8,7 @@ import { useDbDeliverables } from "@/lib/hooks/useDbDeliverables";
 import { getClientAgentContext } from "@/lib/agency/workspace";
 import type { AgentClientContext } from "@/lib/agency/workspace";
 import Link from "next/link";
+import { comoTexto, temSubstancia } from "@/lib/agency/esteira/conteudo";
 
 // ─── Form ────────────────────────────────────────────────────────────────────
 
@@ -590,12 +591,20 @@ export default function SocialMediaAgentPage() {
     }
   }
 
+  // O entregável leva o CONTEÚDO, não só o título. Antes salvava o nome e jogava
+  // o material fora — o cliente abria o portal e via cartões vazios.
   function saveDeliverablesForProject(result: SocialOutput, projectId: string, brand: string) {
-    void createDeliverable({ projectId, name: `Estratégia Social — ${brand}`,                     type: "Content Strategy",  status: "in_review" });
-    void createDeliverable({ projectId, name: `Calendário de Conteúdo — ${brand}`,                    type: "Content Calendar",  status: "in_review" });
-    void createDeliverable({ projectId, name: `Pacote de Posts — ${brand} (${result.posts.length} posts)`, type: "Posts",  status: "in_review" });
-    void createDeliverable({ projectId, name: `Pacote de Stories — ${brand} (${result.stories.length} stories)`, type: "Stories", status: "in_review" });
-    void createDeliverable({ projectId, name: `Solicitações de Design — ${brand}`,                     type: "Design Requests",   status: "in_review" });
+    const salvar = (name: string, type: string, dados: unknown) => {
+      const content = comoTexto(dados, { titulo: name });
+      if (!temSubstancia(content)) return;   // cartão vazio não vira entrega
+      void createDeliverable({ projectId, name, type, status: "in_review", content });
+    };
+
+    salvar(`Estratégia Social — ${brand}`,      "Content Strategy", result.strategy);
+    salvar(`Calendário de Conteúdo — ${brand}`, "Content Calendar", result.calendar);
+    salvar(`Pacote de Posts — ${brand} (${result.posts.length} posts)`,        "Posts",   result.posts);
+    salvar(`Pacote de Stories — ${brand} (${result.stories.length} stories)`,  "Stories", result.stories);
+    salvar(`Solicitações de Design — ${brand}`, "Design Requests",  result.contracts);
   }
 
   function handleSaveToProject() {

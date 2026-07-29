@@ -38,13 +38,49 @@ export type Client = Prisma.ClientModel
  */
 export type Project = Prisma.ProjectModel
 /**
+ * Model Cycle
+ * O CICLO MENSAL — onde a relação vitalícia acontece.
+ * 
+ * Um projeto que nunca fecha não é medível: nada é entregue de fato, nada é
+ * comparado, o painel nunca fica verde. Por isso a operação contínua não é um
+ * projeto infinito — é uma sequência de ciclos que nascem, entregam, medem e
+ * fecham. É o que permite dizer "agosto foi melhor que julho", e é isso que
+ * segura um cliente por anos.
+ */
+export type Cycle = Prisma.CycleModel
+/**
+ * Model ClientNotice
+ * O AVISO — a ponte entre "a esteira precisa de algo" e "o cliente ficou sabendo".
+ * 
+ * A esteira escreve no portal, mas o portal só existe se o cliente abrir. Sem
+ * esta tabela, um pedido de material podia ficar semanas parado porque ninguém
+ * avisou que ele existia — o projeto travado e a agência achando que a bola
+ * estava com o cliente.
+ * 
+ * A regra: o aviso NUNCA se perde. Se houver canal automático configurado, ele
+ * sai sozinho e o registro fica como comprovante. Se não houver, o aviso vira
+ * FILA para o time disparar à mão — com o texto e o link já prontos, para não
+ * depender de alguém escrever bem às pressas.
+ * 
+ * Isso resolve a restrição real do WhatsApp: fora da janela de 24h a Meta só
+ * aceita template aprovado, e aprovação leva dias. Até lá o aviso sai pela mão
+ * de gente, mas sai — e o sistema sabe se saiu.
+ */
+export type ClientNotice = Prisma.ClientNoticeModel
+/**
  * Model Deliverable
  * 
  */
 export type Deliverable = Prisma.DeliverableModel
 /**
  * Model MaterialRequest
+ * O pedido de material que um agente faz ao cliente.
  * 
+ * Regra da casa: o agente ABRE o pedido, o gerente de projeto CONSOLIDA e fala.
+ * O cliente recebe uma mensagem só, com tudo que falta — nunca cinco agentes
+ * pedindo coisas soltas em horários diferentes. Por isso o pedido guarda quem
+ * pediu (para a equipe saber quem está travado) e quando foi enviado ao cliente
+ * (para o PM não cobrar a mesma coisa duas vezes).
  */
 export type MaterialRequest = Prisma.MaterialRequestModel
 /**

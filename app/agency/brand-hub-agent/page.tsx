@@ -7,6 +7,7 @@ import { useAgencyStore } from "@/store/agency-store";
 import { useDbDeliverables } from "@/lib/hooks/useDbDeliverables";
 import { getClientAgentContext } from "@/lib/agency/workspace";
 import type { BrandExtraction } from "@/lib/types/brand-extraction";
+import { comoTexto, temSubstancia } from "@/lib/agency/esteira/conteudo";
 
 // ─── Brand Hub Agent — Brand Intelligence Department ──────────────────────────
 //
@@ -163,11 +164,14 @@ export default function BrandHubAgentPage() {
       return;
     }
 
+    const nome = `Relatório de Saúde de Marca — ${linkedClient?.name ?? "Cliente"}`;
+    const content = comoTexto(analysis, { titulo: nome });
     await createDeliverable({
       projectId: targetProject.id,
-      name: `Relatório de Saúde de Marca — ${linkedClient?.name ?? "Cliente"}`,
+      name: nome,
       type: "document",
       status: "in_review",
+      ...(temSubstancia(content) ? { content } : {}),
     });
     setSaved(true);
   }

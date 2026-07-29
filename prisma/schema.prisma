@@ -63,6 +63,7 @@ model Client {
   updatedAt   DateTime @updatedAt
 
   projects     Project[]
+  notices      ClientNotice[]
   brandBrain   BrandBrain?
   brandUpdates BrandUpdate[]
 }
@@ -99,6 +100,21 @@ model Project {
   executionFinishedAt  DateTime?
   executionAttempts    Int       @default(0)
   executionError       String?
+
+  // ── A ESTEIRA: os três carimbos que fazem o projeto andar ──────────────────
+  // São DECISÕES, por isso ficam gravadas. O resto da fase é DERIVADO do dado
+  // real (lib/agency/esteira/fases.ts) — campo de status escrito à mão mente em
+  // duas semanas. Estes três não são status: são momentos que aconteceram.
+  //
+  // O portão de direção: a produção inteira só dispara depois que o cliente
+  // avaliza o caminho. Aprovar direção é barato; refazer um mês de produção não.
+  directionApprovedAt  DateTime?
+  // O PM apresentou o pacote de UMA vez. Antes disso o cliente não recebe
+  // entrega solta — agência com cinco bocas parece desorganizada.
+  presentedAt          DateTime?
+  // O aval final do cliente. A partir daqui, implementação e ciclo mensal.
+  clientApprovedAt     DateTime?
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -109,6 +125,88 @@ model Project {
   tasks            Task[]
   timelineEvents   TimelineEvent[]
   briefings        Briefing[]
+  cycles           Cycle[]
+}
+
+// ─── Ciclos ───────────────────────────────────────────────────────────────────
+
+/// O CICLO MENSAL — onde a relação vitalícia acontece.
+///
+/// Um projeto que nunca fecha não é medível: nada é entregue de fato, nada é
+/// comparado, o painel nunca fica verde. Por isso a operação contínua não é um
+/// projeto infinito — é uma sequência de ciclos que nascem, entregam, medem e
+/// fecham. É o que permite dizer "agosto foi melhor que julho", e é isso que
+/// segura um cliente por anos.
+model Cycle {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  /// Competência do ciclo, sempre AAAA-MM. Um por mês, por projeto.
+  reference   String
+  /// aberto | entregue | fechado
+  status      String   @default("aberto")
+  startsOn    String
+  endsOn      String
+  /// O que este ciclo se comprometeu a entregar (JSON), congelado na abertura.
+  planJson    String   @default("[]")
+  /// Números do fechamento (JSON): o que foi medido no fim.
+  resultsJson String   @default("{}")
+  /// A leitura do ciclo em uma frase — o que melhorou, o que não.
+  summary     String?
+  closedAt    DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([projectId, reference])
+  @@index([projectId, status])
+}
+
+// ─── Avisos ao cliente ────────────────────────────────────────────────────────
+
+/// O AVISO — a ponte entre "a esteira precisa de algo" e "o cliente ficou sabendo".
+///
+/// A esteira escreve no portal, mas o portal só existe se o cliente abrir. Sem
+/// esta tabela, um pedido de material podia ficar semanas parado porque ninguém
+/// avisou que ele existia — o projeto travado e a agência achando que a bola
+/// estava com o cliente.
+///
+/// A regra: o aviso NUNCA se perde. Se houver canal automático configurado, ele
+/// sai sozinho e o registro fica como comprovante. Se não houver, o aviso vira
+/// FILA para o time disparar à mão — com o texto e o link já prontos, para não
+/// depender de alguém escrever bem às pressas.
+///
+/// Isso resolve a restrição real do WhatsApp: fora da janela de 24h a Meta só
+/// aceita template aprovado, e aprovação leva dias. Até lá o aviso sai pela mão
+/// de gente, mas sai — e o sistema sabe se saiu.
+model ClientNotice {
+  id          String   @id @default(cuid())
+  workspaceId String
+  clientId    String
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  projectId   String?
+
+  /// direcao | material | entrega | ciclo
+  kind        String
+  /// O que o cliente precisa saber, já redigido para ser lido por ele.
+  body        String
+  /// O link do portal que resolve este aviso.
+  link        String?
+
+  /// pendente | enviado | falhou | dispensado
+  status      String   @default("pendente")
+  /// whatsapp | email | manual | nenhum
+  channel     String   @default("nenhum")
+  /// Por que não saiu sozinho — para a equipe entender sem adivinhar.
+  failReason  String?
+  sentAt      DateTime?
+  /// Quem disparou, quando foi à mão.
+  sentBy      String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([workspaceId, status])
+  @@index([clientId, status])
 }
 
 // ─── Deliverables ─────────────────────────────────────────────────────────────
@@ -134,6 +232,13 @@ model Deliverable {
 
 // ─── Material Requests ────────────────────────────────────────────────────────
 
+/// O pedido de material que um agente faz ao cliente.
+///
+/// Regra da casa: o agente ABRE o pedido, o gerente de projeto CONSOLIDA e fala.
+/// O cliente recebe uma mensagem só, com tudo que falta — nunca cinco agentes
+/// pedindo coisas soltas em horários diferentes. Por isso o pedido guarda quem
+/// pediu (para a equipe saber quem está travado) e quando foi enviado ao cliente
+/// (para o PM não cobrar a mesma coisa duas vezes).
 model MaterialRequest {
   id          String    @id @default(cuid())
   projectId   String
@@ -141,8 +246,16 @@ model MaterialRequest {
   type        String
   description String
   status      String    @default("pending")
+  /// Qual agente travou por falta deste material (a3, a2…).
+  requestedByAgentId String?
+  /// Nome legível de quem pediu — vai no resumo que o PM manda.
+  requestedByLabel   String?
+  /// Quando o PM incluiu este pedido na mensagem consolidada ao cliente.
+  askedClientAt      DateTime?
   requestedAt DateTime  @default(now())
   resolvedAt  DateTime?
+
+  @@index([projectId, status])
 }
 
 // ─── Brand Brain ─────────────────────────────────────────────────────────────

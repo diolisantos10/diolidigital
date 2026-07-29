@@ -8,6 +8,7 @@
 
 import { use, useCallback, useEffect, useState } from "react";
 import { ChatDrawer } from "@/components/agency/portal/FloatingChat";
+import EsteiraDoCliente from "@/components/agency/portal/EsteiraDoCliente";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -384,6 +385,12 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
         {/* ── VISÃO GERAL ── */}
         {section === "overview" && (
           <div className="space-y-6">
+            {/* A ESTEIRA — a primeira coisa que o cliente lê. Em que pé está o
+                trabalho dele e se a bola está com ele ou com a gente. Vem antes
+                dos números de propósito: métrica sem contexto não explica nada
+                a quem não vive o processo. */}
+            <EsteiraDoCliente token={token} />
+
             {/* Results */}
             <section>
               <div className="flex items-center justify-between mb-2.5">
