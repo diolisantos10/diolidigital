@@ -267,6 +267,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                   label="Portal do cliente ↗"
                   className="h-7 px-3 rounded-[6px] text-[12px] font-medium border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--navy)] hover:text-[var(--navy)] transition-colors flex items-center disabled:opacity-60"
                 />
+                <button onClick={() => setTab("intelligence")} className="h-7 px-3 rounded-[6px] text-[12px] font-medium border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--navy)] hover:text-[var(--navy)] transition-colors">Inteligência de Marketing</button>
                 <button onClick={goToReport} className="h-7 px-3 rounded-[6px] text-[12px] font-medium bg-[var(--navy)] text-white hover:opacity-90 transition-opacity">Ver Relatório</button>
               </div>
             </div>
