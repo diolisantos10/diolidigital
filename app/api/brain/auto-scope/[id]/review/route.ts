@@ -82,7 +82,7 @@ export async function POST(
       const snapshot = await buildClientSnapshot(clientRequestId);
       if (!snapshot) return NextResponse.json({ error: "Snapshot unavailable" }, { status: 503 });
 
-      const proposal = await orchestratePMReasoning(snapshot);
+      const proposal = await orchestratePMReasoning(snapshot, session.workspaceId);
 
       let clientId = req.clientId ?? undefined;
       if (!clientId) {

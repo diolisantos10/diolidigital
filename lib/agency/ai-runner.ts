@@ -3,7 +3,7 @@
 // and POST /api/ai/run (legacy store path). This module provides the metadata
 // type and the provider-resolution helper used by the UI store.
 
-export type AIProvider = "rule_based" | "openai" | "gemini" | "claude" | "perplexity";
+export type AIProvider = "rule_based" | "openai" | "gemini" | "claude" | "perplexity" | "deepseek";
 
 export interface AIRunMeta {
   provider: AIProvider;

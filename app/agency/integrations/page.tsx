@@ -105,6 +105,7 @@ function ConfigPanel({ integration, onClose }: ConfigPanelProps) {
     "int-openai-images": ["dall-e-3", "dall-e-2"],
     "int-gemini":        ["gemini-1.5-pro", "gemini-1.5-flash", "gemini-pro"],
     "int-claude":        ["claude-sonnet-4-6", "claude-opus-4-8", "claude-haiku-4-5"],
+    "int-deepseek":      ["deepseek-v4-flash", "deepseek-v4-pro"],
     "int-perplexity":    ["llama-3.1-sonar-large", "llama-3.1-sonar-small"],
   };
   const modelOptions = AI_MODELS[integration.id] ?? [];

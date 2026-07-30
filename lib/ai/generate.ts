@@ -8,7 +8,7 @@
 // key pasted in the UI immediately powers every department's reasoning.
 
 import type { OpenAIMessages } from "@/lib/agency/intelligence/openai-schemas";
-import { resolveProviderKey, type AiProvider } from "@/lib/ai/resolve-key";
+import { resolveProviderKey, isAiProvider, type AiProvider } from "@/lib/ai/resolve-key";
 
 export type GenerateResult =
   | { ok: true; data: unknown; model: string; provider: AiProvider }
@@ -17,11 +17,16 @@ export type GenerateResult =
 const TIMEOUT_MS = 60_000;
 
 // Provider preference: an explicit BRAIN_AI_PROVIDER wins, then Claude → OpenAI
-// → Gemini. The first one with a resolvable key is used.
+// → Gemini → DeepSeek. The first one with a resolvable key is used.
+//
+// Why DeepSeek sits last by default: the order is a QUALITY ranking, not a cost
+// one, and the client-facing copy is the product. Whoever wants DeepSeek in
+// front says so explicitly (BRAIN_AI_PROVIDER=deepseek) — a cheap provider
+// should never quietly promote itself just because a key showed up.
 function preferenceOrder(): AiProvider[] {
   const env = (process.env.BRAIN_AI_PROVIDER ?? "").trim().toLowerCase();
-  const base: AiProvider[] = ["claude", "openai", "gemini"];
-  if (env === "openai" || env === "gemini" || env === "claude") {
+  const base: AiProvider[] = ["claude", "openai", "gemini", "deepseek"];
+  if (isAiProvider(env)) {
     return [env, ...base.filter((p) => p !== env)];
   }
   return base;
@@ -69,10 +74,26 @@ async function callClaude(apiKey: string, model: string, m: OpenAIMessages, maxT
   }
 }
 
-async function callOpenAI(apiKey: string, model: string, m: OpenAIMessages, maxTokens: number): Promise<GenerateResult> {
+// OpenAI's chat-completions shape is a de-facto standard: DeepSeek serves the
+// exact same request and response body at its own host. One function covers
+// both — a second hand-rolled copy would be a second place for a bug to hide,
+// and the two would drift the first time either of them needed a fix.
+const OPENAI_COMPATIBLE: Record<"openai" | "deepseek", { url: string; label: string }> = {
+  openai:   { url: "https://api.openai.com/v1/chat/completions", label: "OpenAI" },
+  deepseek: { url: "https://api.deepseek.com/chat/completions",  label: "DeepSeek" },
+};
+
+async function callOpenAICompatible(
+  provider: "openai" | "deepseek",
+  apiKey: string,
+  model: string,
+  m: OpenAIMessages,
+  maxTokens: number,
+): Promise<GenerateResult> {
+  const { url, label } = OPENAI_COMPATIBLE[provider];
   const { signal, clear } = withTimeout();
   try {
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
@@ -84,12 +105,12 @@ async function callOpenAI(apiKey: string, model: string, m: OpenAIMessages, maxT
       }),
       signal,
     });
-    if (!res.ok) return { ok: false, error: `OpenAI HTTP ${res.status}` };
+    if (!res.ok) return { ok: false, error: `${label} HTTP ${res.status}` };
     const json = (await res.json()) as { choices?: { message?: { content?: string } }[] };
     const content = json.choices?.[0]?.message?.content;
-    if (!content) return { ok: false, error: "Resposta OpenAI vazia" };
+    if (!content) return { ok: false, error: `Resposta ${label} vazia` };
     const data = extractJson(content);
-    return data ? { ok: true, data, model, provider: "openai" } : { ok: false, error: "JSON inválido (OpenAI)" };
+    return data ? { ok: true, data, model, provider } : { ok: false, error: `JSON inválido (${label})` };
   } catch (err) {
     return { ok: false, error: err instanceof Error && err.name === "AbortError" ? "timeout" : "erro de rede" };
   } finally {
@@ -128,6 +149,9 @@ const DEFAULT_MODEL: Record<AiProvider, string> = {
   claude: process.env.CLAUDE_MODEL?.trim() || "claude-haiku-4-5-20251001",
   openai: process.env.OPENAI_MODEL?.trim() || "gpt-4o-mini",
   gemini: "gemini-1.5-flash",
+  // Flash is the cheap tier and the sane default; deepseek-v4-pro is the same
+  // API with a bigger bill, so it is opt-in through the model field in the UI.
+  deepseek: process.env.DEEPSEEK_MODEL?.trim() || "deepseek-v4-flash",
 };
 
 // Is ANY provider connected (UI key or env)? Used to decide whether the central
@@ -162,9 +186,36 @@ async function callWithRetry(fn: () => Promise<GenerateResult>, attempts = 3): P
   return last;
 }
 
-// THE unified reasoning call. Picks the first provider with a key (respecting
-// preference), resolves the key, and calls it. options.preferredProvider forces
-// a specific vendor when given (e.g. an agent that only has a Claude prompt).
+function callProvider(
+  provider: AiProvider,
+  apiKey: string,
+  model: string,
+  messages: OpenAIMessages,
+  maxTokens: number,
+  attempts: number,
+): Promise<GenerateResult> {
+  if (provider === "claude") return callWithRetry(() => callClaude(apiKey, model, messages, maxTokens), attempts);
+  if (provider === "openai" || provider === "deepseek") {
+    return callWithRetry(() => callOpenAICompatible(provider, apiKey, model, messages, maxTokens), attempts);
+  }
+  return callWithRetry(() => callGemini(apiKey, model, messages, maxTokens), attempts);
+}
+
+// THE unified reasoning call. Walks the preference order and uses the first
+// provider that has a key; options.preferredProvider puts a specific vendor at
+// the front (e.g. an agent whose prompt was written for Claude).
+//
+// AND IT DOES NOT STOP AT THE FIRST ONE THAT FAILS. If the chosen provider is
+// down, rate-limited, out of credit or answering garbage after its retries, the
+// next connected provider takes the job. That is the whole point of having more
+// than one key: a vendor having a bad afternoon should cost nothing, instead of
+// costing a deliverable — which is exactly what used to happen, since a failed
+// first provider returned the failure and the other keys sat there unused.
+//
+// The budget is deliberately lopsided: the preferred provider gets the full
+// retry treatment (a blip on the good model is worth waiting out), while each
+// backup gets one shot. Otherwise four connected keys could turn one request
+// into a minute of stubborn retrying.
 export async function generate(options: {
   system: string;
   user: string;
@@ -176,15 +227,34 @@ export async function generate(options: {
   const order = options.preferredProvider
     ? [options.preferredProvider, ...preferenceOrder().filter((p) => p !== options.preferredProvider)]
     : preferenceOrder();
+  const messages: OpenAIMessages = { system: options.system, user: options.user };
+
+  let firstFailure: string | null = null;
+  const tried: string[] = [];
 
   for (const provider of order) {
     const resolved = await resolveProviderKey(provider, options.workspaceId);
-    if (!resolved) continue;
+    if (!resolved) continue;                       // sem chave não é falha, é ausência
+
     const model = resolved.model ?? DEFAULT_MODEL[provider];
-    const messages: OpenAIMessages = { system: options.system, user: options.user };
-    if (provider === "claude") return callWithRetry(() => callClaude(resolved.apiKey, model, messages, maxTokens));
-    if (provider === "openai") return callWithRetry(() => callOpenAI(resolved.apiKey, model, messages, maxTokens));
-    return callWithRetry(() => callGemini(resolved.apiKey, model, messages, maxTokens));
+    const attempts = tried.length === 0 ? 3 : 1;
+    const result = await callProvider(provider, resolved.apiKey, model, messages, maxTokens, attempts);
+
+    if (result.ok) {
+      if (tried.length > 0) {
+        console.warn(`[generate] ${tried.join(", ")} falhou — entregue por ${provider} (${model})`);
+      }
+      return result;
+    }
+
+    firstFailure ??= result.error;
+    tried.push(`${provider} (${result.error})`);
+  }
+
+  if (tried.length > 0) {
+    // Reporta a PRIMEIRA falha, não a última: a primeira é a do provedor que
+    // devia ter atendido, e é a que a pessoa precisa investigar.
+    return { ok: false, error: `IA indisponível: ${firstFailure}${tried.length > 1 ? ` (reservas também falharam: ${tried.length - 1})` : ""}` };
   }
 
   return { ok: false, error: "Nenhuma IA conectada. Conecte uma chave em Integrações." };

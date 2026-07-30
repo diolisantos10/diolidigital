@@ -19,7 +19,7 @@ export interface OrchestratorProposal {
   goal: string;
   stage: string;
   tasks: OrchestratorTask[];
-  reasoningMode: "openai" | "rule_based";
+  reasoningMode: "ai" | "rule_based";
   model: string;
   warnings: string[];
 }

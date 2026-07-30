@@ -17,7 +17,7 @@ export interface ProductionPlan {
   goal: string;
   /** Avisos do PM (ex.: Brand Brain incompleto). */
   warnings: string[];
-  pmMode: "openai" | "rule_based";
+  pmMode: "ai" | "rule_based";
 }
 
 /**

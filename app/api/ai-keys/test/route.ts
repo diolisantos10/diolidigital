@@ -5,12 +5,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { getSession } from "@/lib/auth/session";
-import { resolveProviderKey, PROVIDER_INTEGRATION_ID, type AiProvider } from "@/lib/ai/resolve-key";
+import { resolveProviderKey, PROVIDER_INTEGRATION_ID, isAiProvider } from "@/lib/ai/resolve-key";
 
-const PROVIDERS: AiProvider[] = ["openai", "claude", "gemini"];
-function isProvider(v: string): v is AiProvider {
-  return (PROVIDERS as string[]).includes(v);
-}
+const isProvider = isAiProvider;
 
 const TIMEOUT_MS = 15_000;
 
@@ -40,6 +37,19 @@ async function testOpenAI(apiKey: string): Promise<{ ok: boolean; message: strin
   if (res.ok) return { ok: true, message: "Conexão com OpenAI OK" };
   if (res.status === 401) return { ok: false, message: "Chave inválida (401)" };
   return { ok: false, message: `OpenAI respondeu HTTP ${res.status}` };
+}
+
+// DeepSeek mirrors OpenAI's API, including GET /models with a Bearer token —
+// the cheapest possible "is this key real?" check: no tokens billed, no
+// generation, and a 401 that means exactly one thing.
+async function testDeepSeek(apiKey: string): Promise<{ ok: boolean; message: string }> {
+  const res = await fetchWithTimeout("https://api.deepseek.com/models", {
+    headers: { Authorization: `Bearer ${apiKey}` },
+  });
+  if (res.ok) return { ok: true, message: "Conexão com DeepSeek OK" };
+  if (res.status === 401) return { ok: false, message: "Chave inválida (401)" };
+  if (res.status === 402) return { ok: false, message: "Chave válida, mas sem saldo na conta DeepSeek (402)" };
+  return { ok: false, message: `DeepSeek respondeu HTTP ${res.status}` };
 }
 
 async function testGemini(apiKey: string): Promise<{ ok: boolean; message: string }> {
@@ -79,6 +89,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     if (provider === "claude") result = await testClaude(resolved.apiKey);
     else if (provider === "openai") result = await testOpenAI(resolved.apiKey);
+    else if (provider === "deepseek") result = await testDeepSeek(resolved.apiKey);
     else result = await testGemini(resolved.apiKey);
   } catch (err) {
     const reason = err instanceof Error && err.name === "AbortError" ? "timeout" : "erro de rede";

@@ -4,7 +4,7 @@
 // orchestratePMReasoning NEVER mutates state (Law 2). Applying is a separate,
 // explicitly-approved route.
 
-import { getActiveProvider } from "@/lib/ai/provider-registry";
+import { generate } from "@/lib/ai/generate";
 import {
   buildPMOrchestratorMessages,
   validatePMOrchestratorOutput,
@@ -24,14 +24,26 @@ export interface ProjectProposal {
   goal: string;
   stage: string;
   tasks: TaskProposal[];
-  reasoningMode: "openai" | "rule_based";
+  // "ai" e não "openai": o texto pode vir de Claude, OpenAI, Gemini ou DeepSeek.
+  // Quem produziu de fato está em `model`.
+  reasoningMode: "ai" | "rule_based";
   model: string;
   warnings: string[];
 }
 
+// A chave conectada É o consentimento. BRAIN_AI_DEPARTMENTS agora só serve para
+// DESLIGAR: sem a variável, o PM raciocina com IA.
+//
+// Antes era o contrário, e o efeito era o pior possível: quem conectava a chave
+// pela tela via tudo verde e continuava recebendo plano feito por regras fixas,
+// sem uma linha na tela dizendo por quê. Um interruptor invisível que faz o
+// produto piorar em silêncio não é segurança, é armadilha — e a proteção real
+// (cair no rule-based quando a IA falha) continua de pé logo abaixo.
 function isPmAiEnabled(): boolean {
-  const flag = process.env.BRAIN_AI_DEPARTMENTS ?? "";
+  const flag = (process.env.BRAIN_AI_DEPARTMENTS ?? "").trim();
+  if (flag === "") return true;
   const depts = flag.split(",").map((s) => s.trim().toLowerCase());
+  if (depts.includes("none")) return false;
   return depts.includes("all") || depts.includes("project-management") || depts.includes("pm");
 }
 
@@ -128,12 +140,12 @@ export function proposeProjectRuleBased(snapshot: ClientKnowledgeSnapshot): Proj
 
 export async function orchestratePMReasoning(
   snapshot: ClientKnowledgeSnapshot,
+  workspaceId?: string,
 ): Promise<ProjectProposal> {
   const ruleBased = proposeProjectRuleBased(snapshot);
 
-  const provider = getActiveProvider();
-  if (!provider.isConfigured() || !isPmAiEnabled()) {
-    return ruleBased;
+  if (!isPmAiEnabled()) {
+    return { ...ruleBased, warnings: [...ruleBased.warnings, "IA do PM desligada por configuração (BRAIN_AI_DEPARTMENTS)."] };
   }
 
   const messages = buildPMOrchestratorMessages({
@@ -146,14 +158,24 @@ export async function orchestratePMReasoning(
     missingFields: snapshot.missingFields,
   });
 
-  const result = await provider.call(messages);
+  // generate() resolve a chave pela tela de Integrações primeiro e só depois pelo
+  // ambiente — é por isso que este caminho trocou de lugar. Antes o PM só via
+  // variável de ambiente: com a chave salva pela tela, ele voltava rule-based
+  // calado, enquanto todos os outros departamentos raciocinavam com IA.
+  const result = await generate({
+    system: messages.system,
+    user: messages.user,
+    maxTokens: 2048,
+    workspaceId,
+  });
+
   if (!result.ok) {
-    return { ...ruleBased, warnings: [...ruleBased.warnings, `AI indisponível (${result.error}) — proposta rule-based preservada.`] };
+    return { ...ruleBased, warnings: [...ruleBased.warnings, `IA indisponível (${result.error}) — proposta rule-based preservada.`] };
   }
 
   const validated = validatePMOrchestratorOutput(result.data);
   if (!validated) {
-    return { ...ruleBased, warnings: [...ruleBased.warnings, "AI output inválido — proposta rule-based preservada."] };
+    return { ...ruleBased, warnings: [...ruleBased.warnings, "Resposta da IA inválida — proposta rule-based preservada."] };
   }
 
   return {
@@ -161,8 +183,8 @@ export async function orchestratePMReasoning(
     goal: validated.goal,
     stage: validated.stage,
     tasks: validated.tasks,
-    reasoningMode: "openai",
-    model: provider.modelId(),
+    reasoningMode: "ai",
+    model: result.model,
     warnings: [],
   };
 }
