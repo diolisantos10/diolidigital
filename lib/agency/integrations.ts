@@ -164,6 +164,27 @@ export const MOCK_INTEGRATIONS: Integration[] = [
     ],
   },
   {
+    id: "int-deepseek",
+    name: "DeepSeek",
+    provider: "DeepSeek",
+    category: "ai_provider",
+    assignedAgents: ["strategy_room", "project_manager", "social", "design", "ads"],
+    purpose: "Raciocínio e texto a custo baixo — reserva quando outro provedor cai ou fica caro",
+    status: "available",
+    priority: "p2",
+    costHint: "~$0,14 por milhão de tokens de entrada (V4-Flash) — o mais barato da casa",
+    setupNotes: "Cole a chave em Chaves de IA (platform.deepseek.com → API keys). API compatível com OpenAI.",
+    capabilities: [
+      "Contexto de 1M tokens",
+      "Saída em JSON (usada por todos os agentes)",
+      "Custo ~10x menor que os provedores de topo",
+    ],
+    limitations: [
+      "Sem geração de imagens",
+      "Não é a primeira escolha para texto que vai direto ao cliente",
+    ],
+  },
+  {
     id: "int-perplexity",
     name: "Perplexity",
     provider: "Perplexity AI",
@@ -586,7 +607,7 @@ export function computeIntegrationReadiness(integrations: Integration[]): Integr
 
 // ─── V2 Operational Config ────────────────────────────────────────────────────
 
-export type ProviderOption = "rule_based" | "openai" | "gemini" | "claude" | "perplexity";
+export type ProviderOption = "rule_based" | "openai" | "gemini" | "claude" | "perplexity" | "deepseek";
 export type TestStatus = "pass" | "fail" | "not_run";
 
 export interface IntegrationConfig {
@@ -616,6 +637,7 @@ export const PROVIDER_OPTIONS: { value: ProviderOption; label: string }[] = [
   { value: "openai",     label: "OpenAI (GPT-4o)" },
   { value: "gemini",     label: "Google Gemini" },
   { value: "claude",     label: "Claude (Anthropic)" },
+  { value: "deepseek",   label: "DeepSeek (mais barato)" },
   { value: "perplexity", label: "Perplexity AI" },
 ];
 
@@ -624,6 +646,7 @@ export const PROVIDER_INTEGRATION_MAP: Record<ProviderOption, string | null> = {
   openai:      "int-openai",
   gemini:      "int-gemini",
   claude:      "int-claude",
+  deepseek:    "int-deepseek",
   perplexity:  "int-perplexity",
 };
 

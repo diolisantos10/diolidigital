@@ -5,16 +5,16 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 import type { ClientKnowledgeSnapshot } from "@/lib/dioli-brain/client-snapshot";
 
-// ── Active provider mock (pluggable registry, Phase 4) ─────────────────────────
-const callOpenAI = vi.fn();
-const isOpenAIConfigured = vi.fn(() => false);
-vi.mock("@/lib/ai/provider-registry", () => ({
-  getActiveProvider: () => ({
-    isConfigured: () => isOpenAIConfigured(),
-    call: (...a: unknown[]) => callOpenAI(...a),
-    modelId: () => "gpt-4o-mini",
-  }),
+// ── Mock do gerador unificado ───────────────────────────────────────────────────
+// O PM passou a raciocinar por generate(), que resolve a chave pela tela de
+// Integrações ANTES do ambiente. Antes ele lia só variável de ambiente, e quem
+// colava a chave na tela recebia plano de regras fixas sem nenhum aviso.
+const generate = vi.fn();
+vi.mock("@/lib/ai/generate", () => ({
+  generate: (...a: unknown[]) => generate(...a),
 }));
+
+const SEM_CHAVE = { ok: false, error: "Nenhuma IA conectada. Conecte uma chave em Integrações." };
 
 // ── Prisma mock (for the apply route) ───────────────────────────────────────────
 const findUniqueRequest = vi.fn();
@@ -65,9 +65,8 @@ function applyReq(body: unknown): NextRequest {
 }
 
 beforeEach(() => {
-  callOpenAI.mockReset();
-  isOpenAIConfigured.mockReset();
-  isOpenAIConfigured.mockReturnValue(false);
+  generate.mockReset();
+  generate.mockResolvedValue(SEM_CHAVE);
   findUniqueRequest.mockReset();
   createClient.mockReset();
   updateRequest.mockReset();
@@ -76,8 +75,23 @@ beforeEach(() => {
   delete process.env.BRAIN_AI_DEPARTMENTS;
 });
 
+const PLANO_DA_IA = {
+  ok: true,
+  model: "deepseek-v4-flash",
+  provider: "deepseek",
+  data: {
+    name: "Lançamento Digital Aurora",
+    goal: "Estabelecer presença digital e vendas locais.",
+    stage: "briefing",
+    tasks: [
+      { title: "Strategy Room", description: "Definir posicionamento.", department: "strategy", priority: "critical", estimatedDays: 3 },
+      { title: "Calendário editorial", description: "Plano de conteúdo.", department: "social-media", priority: "high", estimatedDays: 4 },
+    ],
+  },
+};
+
 describe("orchestratePMReasoning", () => {
-  it("AI off → valid rule-based proposal with department-distributed tasks", async () => {
+  it("sem nenhuma IA conectada → proposta por regras, com tarefas distribuídas por departamento", async () => {
     const p = await orchestratePMReasoning(snapshot);
     expect(p.reasoningMode).toBe("rule_based");
     expect(p.tasks.length).toBeGreaterThanOrEqual(2);
@@ -86,7 +100,11 @@ describe("orchestratePMReasoning", () => {
     expect(depts).toContain("paid-traffic"); // wantsTraffic
     // Missing brand fields → alignment task, not invented data.
     expect(p.tasks.some((t) => t.department === "project-management")).toBe(true);
-    expect(callOpenAI).not.toHaveBeenCalled();
+  });
+
+  it("cair para regras nunca é silencioso — o motivo vai num aviso", async () => {
+    const p = await orchestratePMReasoning(snapshot);
+    expect(p.warnings.some((w) => w.toLowerCase().includes("indisponível"))).toBe(true);
   });
 
   it("rule-based proposal always references the real business name", () => {
@@ -95,35 +113,44 @@ describe("orchestratePMReasoning", () => {
     expect(p.goal).toContain("Aumentar vendas locais");
   });
 
-  it("AI on + valid mock → AI proposal used", async () => {
-    isOpenAIConfigured.mockReturnValue(true);
-    process.env.BRAIN_AI_DEPARTMENTS = "project-management";
-    callOpenAI.mockResolvedValue({
-      ok: true,
-      model: "gpt-4o-mini",
-      data: {
-        name: "Lançamento Digital Aurora",
-        goal: "Estabelecer presença digital e vendas locais.",
-        stage: "briefing",
-        tasks: [
-          { title: "Strategy Room", description: "Definir posicionamento.", department: "strategy", priority: "critical", estimatedDays: 3 },
-          { title: "Calendário editorial", description: "Plano de conteúdo.", department: "social-media", priority: "high", estimatedDays: 4 },
-        ],
-      },
-    });
+  it("IA responde um plano válido → o plano da IA é usado, com o modelo que produziu", async () => {
+    generate.mockResolvedValue(PLANO_DA_IA);
     const p = await orchestratePMReasoning(snapshot);
-    expect(p.reasoningMode).toBe("openai");
+    expect(p.reasoningMode).toBe("ai");
+    expect(p.model).toBe("deepseek-v4-flash");
     expect(p.name).toBe("Lançamento Digital Aurora");
     expect(p.tasks).toHaveLength(2);
   });
 
-  it("AI on but bad output → falls back to rule-based", async () => {
-    isOpenAIConfigured.mockReturnValue(true);
-    process.env.BRAIN_AI_DEPARTMENTS = "project-management";
-    callOpenAI.mockResolvedValue({ ok: true, model: "gpt-4o-mini", data: { nope: true } });
+  // O bug que este teste guarda: sem BRAIN_AI_DEPARTMENTS o PM ficava rule-based
+  // para sempre, mesmo com chave salva. A chave conectada é o consentimento.
+  it("sem BRAIN_AI_DEPARTMENTS o PM AINDA tenta a IA — a chave é que decide", async () => {
+    delete process.env.BRAIN_AI_DEPARTMENTS;
+    generate.mockResolvedValue(PLANO_DA_IA);
+    const p = await orchestratePMReasoning(snapshot);
+    expect(generate).toHaveBeenCalled();
+    expect(p.reasoningMode).toBe("ai");
+  });
+
+  it("o workspace é repassado, senão a chave da tela de Integrações não é encontrada", async () => {
+    generate.mockResolvedValue(PLANO_DA_IA);
+    await orchestratePMReasoning(snapshot, "ws-da-dioli");
+    expect(generate.mock.calls[0][0]).toMatchObject({ workspaceId: "ws-da-dioli" });
+  });
+
+  it("BRAIN_AI_DEPARTMENTS=none desliga de propósito, e a tela fica sabendo", async () => {
+    process.env.BRAIN_AI_DEPARTMENTS = "none";
+    const p = await orchestratePMReasoning(snapshot);
+    expect(generate).not.toHaveBeenCalled();
+    expect(p.reasoningMode).toBe("rule_based");
+    expect(p.warnings.some((w) => w.includes("desligada"))).toBe(true);
+  });
+
+  it("IA responde algo fora do formato → volta para regras, avisando", async () => {
+    generate.mockResolvedValue({ ok: true, model: "deepseek-v4-flash", provider: "deepseek", data: { nope: true } });
     const p = await orchestratePMReasoning(snapshot);
     expect(p.reasoningMode).toBe("rule_based");
-    expect(p.warnings.some((w) => w.includes("inválido"))).toBe(true);
+    expect(p.warnings.some((w) => w.includes("inválida"))).toBe(true);
   });
 });
 

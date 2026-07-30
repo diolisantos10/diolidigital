@@ -9,13 +9,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { getSession } from "@/lib/auth/session";
 import { encryptSecret, keyHint } from "@/lib/security/crypto";
-import { PROVIDER_INTEGRATION_ID, type AiProvider } from "@/lib/ai/resolve-key";
+import { PROVIDER_INTEGRATION_ID, ALL_PROVIDERS, isAiProvider } from "@/lib/ai/resolve-key";
 
-const PROVIDERS: AiProvider[] = ["openai", "claude", "gemini"];
-
-function isProvider(v: string): v is AiProvider {
-  return (PROVIDERS as string[]).includes(v);
-}
+// Both taken from resolve-key so a new provider appears here the moment it is
+// supported — no local list to forget to update.
+const PROVIDERS = ALL_PROVIDERS;
+const isProvider = isAiProvider;
 
 // GET — provider configuration status. No secrets ever leave the server.
 export async function GET(): Promise<NextResponse> {

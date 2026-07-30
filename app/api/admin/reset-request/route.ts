@@ -93,7 +93,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const target = requests[0];
     const snapshot = await buildClientSnapshot(target.id);
     if (!snapshot) return NextResponse.json({ ok: false, error: "Snapshot indisponível — briefing incompleto?" }, { status: 409 });
-    const proposal = await orchestratePMReasoning(snapshot);
+    const proposal = await orchestratePMReasoning(snapshot, workspaceScope);
 
     // Real values from the budget agent (computeEstimate → the same numbers the
     // SDR quotes). Plain language for a non-marketing business owner. Phase 1 is

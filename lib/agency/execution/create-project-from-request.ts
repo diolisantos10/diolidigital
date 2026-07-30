@@ -37,7 +37,7 @@ export async function createProjectFromRequest(clientRequestId: string, approved
 
   const snapshot = await buildClientSnapshot(clientRequestId);
   if (!snapshot) return { ok: false, error: "Snapshot indisponível" };
-  const proposal = await orchestratePMReasoning(snapshot);
+  const proposal = await orchestratePMReasoning(snapshot, workspaceId);
 
   let clientId = req.clientId ?? undefined;
   if (!clientId) {

@@ -110,7 +110,7 @@ function OrchestratePanel({ requestId, onApplied }: { requestId: string; onAppli
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-[12px] font-semibold text-[var(--text-primary)]">{proposal.name}</span>
         <span className="h-4 px-1.5 rounded-[3px] bg-[var(--navy)] text-white text-[9px] font-semibold leading-4">
-          {proposal.reasoningMode === "openai" ? "AI" : "RULE-BASED"}
+          {proposal.reasoningMode === "ai" ? "IA" : "REGRAS LOCAIS"}
         </span>
         <span className="text-[11px] text-[var(--text-muted)]">DRAFT — nada foi criado ainda</span>
       </div>

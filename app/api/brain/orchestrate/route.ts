@@ -50,6 +50,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: "ClientRequest not found" }, { status: 404 });
   }
 
-  const proposal = await orchestratePMReasoning(snapshot);
+  const proposal = await orchestratePMReasoning(snapshot, session.workspaceId);
   return NextResponse.json({ ok: true, enabled: true, proposal });
 }
