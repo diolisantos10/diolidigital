@@ -11,6 +11,7 @@ import Button from "@/components/agency/ui/Button";
 import Modal from "@/components/agency/ui/Modal";
 import DeliverableDetailModal from "@/components/agency/deliverables/DeliverableDetailModal";
 import { SecurePortalLinkButton } from "@/components/agency/portal/SecurePortalLinkButton";
+import MarketingIntelligence from "@/components/agency/MarketingIntelligence";
 import Link from "next/link";
 import { TaskStatus, DeliverableStatus, Priority, ProjectStage, MOCK_AGENTS, ProjectProposal, StrategyRoomSpecialist, DebateTurn } from "@/lib/agency/mock-data";
 import { getOwner, getVersion, needsRevision, getFeedbackExcerpt } from "@/lib/agency/deliverables";
@@ -39,12 +40,12 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const { projects, clients, tasks, deliverables, briefings, materialRequests, updateTaskStatus, updateDeliverableStatus, updateProject, updateProposal, sendProposal, markPartnerProject, moveProjectStage, setPendingAgentInput } = useAgencyStore();
   const { strategyRooms, generate: generateStrategyRoom, clear: clearStrategyRoom } = useDbStrategyRooms();
 
-  type TabId = "overview" | "proposal" | "execution" | "pipeline" | "tasks" | "deliverables" | "briefing" | "strategy" | "report" | "timeline";
+  type TabId = "overview" | "proposal" | "execution" | "pipeline" | "tasks" | "deliverables" | "briefing" | "strategy" | "intelligence" | "report" | "timeline";
   // Every tab remains reachable (deep-links + in-page buttons), but the tab BAR
   // shows only the five that matter day-to-day. Dead stubs (assets, history)
   // were removed entirely.
-  const VALID_TABS: TabId[] = ["overview", "proposal", "execution", "pipeline", "tasks", "deliverables", "briefing", "strategy", "report", "timeline"];
-  const BAR_TABS: TabId[] = ["overview", "proposal", "tasks", "deliverables", "strategy"];
+  const VALID_TABS: TabId[] = ["overview", "proposal", "execution", "pipeline", "tasks", "deliverables", "briefing", "strategy", "intelligence", "report", "timeline"];
+  const BAR_TABS: TabId[] = ["overview", "proposal", "tasks", "deliverables", "strategy", "intelligence"];
   const [tab, setTab] = useState<TabId>(() => {
     const t = searchParams.get("tab") as TabId | null;
     return t && VALID_TABS.includes(t) ? t : "overview";
@@ -120,6 +121,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     deliverables: "Entregas",
     briefing: "Briefing",
     strategy: "Estratégia",
+    intelligence: "Inteligência",
     report: "Relatório",
     timeline: "Linha do Tempo",
   };
@@ -207,6 +209,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           </button>
         ))}
       </div>
+
+      {/* Tab: Inteligência de Marketing */}
+      {tab === "intelligence" && <MarketingIntelligence projectId={id} projectName={project.name} />}
 
       {/* Tab: Overview */}
       {tab === "overview" && (() => {
