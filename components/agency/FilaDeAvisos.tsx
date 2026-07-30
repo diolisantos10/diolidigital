@@ -96,16 +96,16 @@ export default function FilaDeAvisos() {
         {avisos.map((a) => (
           <li key={a.id} className="rounded-xl border border-[#F0DCB4] bg-white/80 p-3.5">
             <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-              <span className="text-[14px] font-semibold text-[#1A1A1A]">{a.cliente}</span>
-              <span className="text-[12px] text-[#6B6B65]">— {ROTULO_DO_TIPO[a.tipo]}</span>
-              <span className="text-[11px] text-[#9B9B95]">esperando {esperandoHa(a.esperandoDesde)}</span>
+              <span className="text-[14px] font-semibold text-[var(--text-primary)]">{a.cliente}</span>
+              <span className="text-[12px] text-[var(--text-secondary)]">— {ROTULO_DO_TIPO[a.tipo]}</span>
+              <span className="text-[11px] text-[var(--text-muted)]">esperando {esperandoHa(a.esperandoDesde)}</span>
             </div>
 
             {a.porQueNaoSaiuSozinho ? (
               <p className="mt-1 text-[11px] text-[#9A7328]">Não saiu sozinho: {a.porQueNaoSaiuSozinho}</p>
             ) : null}
 
-            <pre className="mt-2.5 max-h-32 overflow-y-auto whitespace-pre-wrap rounded-lg bg-[#F7F7F6] px-3 py-2.5 font-sans text-[12px] leading-relaxed text-[#1A1A1A]">
+            <pre className="mt-2.5 max-h-32 overflow-y-auto whitespace-pre-wrap rounded-lg bg-[var(--bg)] px-3 py-2.5 font-sans text-[12px] leading-relaxed text-[var(--text-primary)]">
               {a.textoParaEnviar}
             </pre>
 
@@ -113,21 +113,21 @@ export default function FilaDeAvisos() {
               <button
                 type="button"
                 onClick={() => void copiar(a)}
-                className="rounded-lg bg-[#070A1F] px-3 py-1.5 text-[12px] font-medium text-white transition hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#070A1F] focus-visible:ring-offset-2"
+                className="rounded-lg bg-[var(--navy)] px-3 py-1.5 text-[12px] font-medium text-white transition hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--navy)] focus-visible:ring-offset-2"
               >
                 {copiado === a.id ? "Copiado ✓" : "Copiar mensagem"}
               </button>
               <button
                 type="button"
                 onClick={() => void marcar(a.id, "enviei")}
-                className="rounded-lg border border-[#D8D8D4] bg-white px-3 py-1.5 text-[12px] font-medium text-[#1A1A1A] transition hover:bg-[#F7F7F6] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#070A1F] focus-visible:ring-offset-2"
+                className="rounded-lg border border-[var(--border-strong)] bg-white px-3 py-1.5 text-[12px] font-medium text-[var(--text-primary)] transition hover:bg-[var(--bg)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--navy)] focus-visible:ring-offset-2"
               >
                 Já mandei
               </button>
               <button
                 type="button"
                 onClick={() => void marcar(a.id, "dispensar")}
-                className="rounded-lg px-3 py-1.5 text-[12px] text-[#6B6B65] transition hover:text-[#1A1A1A] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#070A1F] focus-visible:ring-offset-2"
+                className="rounded-lg px-3 py-1.5 text-[12px] text-[var(--text-secondary)] transition hover:text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--navy)] focus-visible:ring-offset-2"
               >
                 Não precisa
               </button>

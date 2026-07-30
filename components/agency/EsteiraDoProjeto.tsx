@@ -68,10 +68,10 @@ export default function EsteiraDoProjeto({ projectId }: { projectId: string }) {
 
   if (carregando) {
     return (
-      <section aria-busy className="rounded-2xl border border-[#E5E5E2] bg-[#F7F7F6] p-6">
-        <div className="h-3 w-32 animate-pulse rounded-full bg-[#E5E5E2]" />
-        <div className="mt-3 h-6 w-2/3 animate-pulse rounded-lg bg-[#E5E5E2]" />
-        <div className="mt-2 h-4 w-full max-w-md animate-pulse rounded-lg bg-[#E5E5E2]" />
+      <section aria-busy className="rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-6">
+        <div className="h-3 w-32 animate-pulse rounded-full bg-[var(--border)]" />
+        <div className="mt-3 h-6 w-2/3 animate-pulse rounded-lg bg-[var(--border)]" />
+        <div className="mt-2 h-4 w-full max-w-md animate-pulse rounded-lg bg-[var(--border)]" />
       </section>
     );
   }

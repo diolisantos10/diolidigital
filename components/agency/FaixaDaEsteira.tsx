@@ -84,7 +84,7 @@ export default function FaixaDaEsteira({
           </span>
         </span>
 
-        <span className="text-[11px] text-[#6B6B65]">
+        <span className="text-[11px] text-[var(--text-secondary)]">
           {paraCliente && responsavel === "Você" ? "Sua vez" : `Com ${responsavel.toLowerCase()}`}
         </span>
       </div>
@@ -93,12 +93,12 @@ export default function FaixaDaEsteira({
       <h2 style={{ color: c.texto }} className="mt-3 text-[20px] sm:text-[22px] font-semibold leading-tight text-balance">
         {titulo}
       </h2>
-      <p className="mt-1.5 max-w-[62ch] text-[14px] leading-relaxed text-[#1A1A1A]">{agora}</p>
+      <p className="mt-1.5 max-w-[62ch] text-[14px] leading-relaxed text-[var(--text-primary)]">{agora}</p>
 
       {destaque ? (
         <p
           style={{ borderColor: c.borda }}
-          className="mt-3 max-w-[62ch] rounded-xl border bg-white/70 px-3.5 py-2.5 text-[13px] leading-relaxed text-[#1A1A1A]"
+          className="mt-3 max-w-[62ch] rounded-xl border bg-white/70 px-3.5 py-2.5 text-[13px] leading-relaxed text-[var(--text-primary)]"
         >
           <strong className="font-semibold">{paraCliente ? "O que precisamos de você: " : "Próximo passo: "}</strong>
           {destaque}
@@ -113,7 +113,7 @@ export default function FaixaDaEsteira({
           </p>
           <ul className="mt-1.5 space-y-1">
             {pendencias.map((p, i) => (
-              <li key={i} className="text-[13px] leading-snug text-[#1A1A1A]">— {p}</li>
+              <li key={i} className="text-[13px] leading-snug text-[var(--text-primary)]">— {p}</li>
             ))}
           </ul>
         </div>
@@ -136,9 +136,9 @@ export default function FaixaDaEsteira({
         {/* No celular, nove rótulos viram duas linhas de sopa — ruído, não
             informação. Lá mostramos só onde o projeto está; a lista inteira
             aparece a partir do tablet, onde cabe numa linha e ajuda de verdade. */}
-        <p className="mt-2 text-[12px] text-[#1A1A1A] sm:hidden">
+        <p className="mt-2 text-[12px] text-[var(--text-primary)] sm:hidden">
           <span className="font-semibold">{etapaAtual?.etapa ?? ""}</span>
-          <span className="text-[#6B6B65]"> · etapa {indiceAtual + 1} de {trilha.length}</span>
+          <span className="text-[var(--text-secondary)]"> · etapa {indiceAtual + 1} de {trilha.length}</span>
         </p>
 
         <div className="mt-2 hidden flex-wrap items-center gap-x-3 gap-y-1 sm:flex">
@@ -147,17 +147,17 @@ export default function FaixaDaEsteira({
               key={i}
               className={
                 t.estado === "atual"
-                  ? "text-[11px] font-semibold text-[#1A1A1A]"
+                  ? "text-[11px] font-semibold text-[var(--text-primary)]"
                   : t.estado === "feito"
-                    ? "text-[11px] text-[#6B6B65]"
-                    : "text-[11px] text-[#9B9B95]"
+                    ? "text-[11px] text-[var(--text-secondary)]"
+                    : "text-[11px] text-[var(--text-muted)]"
               }
             >
               {t.estado === "feito" ? "✓ " : ""}{t.etapa}
             </span>
           ))}
         </div>
-        <p className="mt-2 text-[11px] tabular-nums text-[#6B6B65]">{progresso}% do caminho até a entrega</p>
+        <p className="mt-2 text-[11px] tabular-nums text-[var(--text-secondary)]">{progresso}% do caminho até a entrega</p>
       </div>
 
       {/* Linha 5 — o que dá para fazer agora */}
@@ -171,8 +171,8 @@ export default function FaixaDaEsteira({
               disabled={a.carregando}
               className={
                 a.primaria
-                  ? "rounded-xl bg-[#070A1F] px-4 py-2 text-[13px] font-medium text-white transition hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#070A1F] focus-visible:ring-offset-2 disabled:opacity-50"
-                  : "rounded-xl border border-[#D8D8D4] bg-white px-4 py-2 text-[13px] font-medium text-[#1A1A1A] transition hover:bg-[#F7F7F6] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#070A1F] focus-visible:ring-offset-2 disabled:opacity-50"
+                  ? "rounded-xl bg-[var(--navy)] px-4 py-2 text-[13px] font-medium text-white transition hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--navy)] focus-visible:ring-offset-2 disabled:opacity-50"
+                  : "rounded-xl border border-[var(--border-strong)] bg-white px-4 py-2 text-[13px] font-medium text-[var(--text-primary)] transition hover:bg-[var(--bg)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--navy)] focus-visible:ring-offset-2 disabled:opacity-50"
               }
             >
               {a.carregando ? "Um instante…" : a.rotulo}

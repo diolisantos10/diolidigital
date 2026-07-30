@@ -75,18 +75,18 @@ export default function EsteiraDoCliente({ token }: { token: string }) {
 
   if (carregando) {
     return (
-      <section aria-busy className="rounded-2xl border border-[#E5E5E2] bg-[#F7F7F6] p-6">
-        <div className="h-6 w-2/3 animate-pulse rounded-lg bg-[#E5E5E2]" />
-        <div className="mt-2 h-4 w-full max-w-md animate-pulse rounded-lg bg-[#E5E5E2]" />
+      <section aria-busy className="rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-6">
+        <div className="h-6 w-2/3 animate-pulse rounded-lg bg-[var(--border)]" />
+        <div className="mt-2 h-4 w-full max-w-md animate-pulse rounded-lg bg-[var(--border)]" />
       </section>
     );
   }
 
   if (!estado?.ok) {
     return (
-      <section className="rounded-2xl border border-[#E5E5E2] bg-[#F7F7F6] p-6">
-        <h2 className="text-[18px] font-semibold text-[#1A1A1A]">Não consegui carregar agora</h2>
-        <p className="mt-1 text-[14px] text-[#6B6B65]">
+      <section className="rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-6">
+        <h2 className="text-[18px] font-semibold text-[var(--text-primary)]">Não consegui carregar agora</h2>
+        <p className="mt-1 text-[14px] text-[var(--text-secondary)]">
           Tente atualizar a página. Se continuar assim, fale com a gente pela conversa aqui do portal.
         </p>
       </section>
@@ -95,9 +95,9 @@ export default function EsteiraDoCliente({ token }: { token: string }) {
 
   if (!estado.temProjeto) {
     return (
-      <section className="rounded-2xl border border-[#E5E5E2] bg-[#F7F7F6] p-6">
-        <h2 className="text-[20px] font-semibold text-[#1A1A1A]">{estado.titulo ?? "Estamos organizando tudo"}</h2>
-        <p className="mt-1.5 max-w-[60ch] text-[14px] text-[#6B6B65]">{estado.agora}</p>
+      <section className="rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-6">
+        <h2 className="text-[20px] font-semibold text-[var(--text-primary)]">{estado.titulo ?? "Estamos organizando tudo"}</h2>
+        <p className="mt-1.5 max-w-[60ch] text-[14px] text-[var(--text-secondary)]">{estado.agora}</p>
       </section>
     );
   }
@@ -136,7 +136,7 @@ export default function EsteiraDoCliente({ token }: { token: string }) {
       />
 
       {estado.ciclo ? (
-        <p className="px-1 text-[12px] text-[#6B6B65]">
+        <p className="px-1 text-[12px] text-[var(--text-secondary)]">
           Acompanhamento de {estado.ciclo.referencia}
           {estado.ciclo.resumo ? ` — ${estado.ciclo.resumo}` : ""}
         </p>
