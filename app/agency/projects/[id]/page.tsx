@@ -497,7 +497,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               return (
                 <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
                   <div className="flex items-center justify-between mb-3">
-                    <div className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Departamento de Redes Sociais</div>
+                    <button onClick={() => setTab("intelligence")} className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] hover:text-[var(--navy)] transition-colors" title="Ver inteligência de marketing">Departamento de Redes Sociais →</button>
                     <button onClick={() => setTab("deliverables")} className="text-[12px] text-[var(--navy)] hover:underline">
                       Ver entregas →
                     </button>
@@ -557,7 +557,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               return (
                 <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
                   <div className="flex items-center justify-between mb-3">
-                    <div className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Departamento de Design</div>
+                    <button onClick={() => setTab("intelligence")} className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] hover:text-[var(--navy)] transition-colors" title="Ver inteligência de marketing">Departamento de Design →</button>
                     <button onClick={() => setTab("deliverables")} className="text-[12px] text-[var(--navy)] hover:underline">
                       Ver entregas →
                     </button>
@@ -622,7 +622,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               return (
                 <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] px-5 py-4">
                   <div className="flex items-center justify-between mb-3">
-                    <div className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Departamento de Tráfego Pago</div>
+                    <button onClick={() => setTab("intelligence")} className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] hover:text-[var(--navy)] transition-colors" title="Ver inteligência de marketing">Departamento de Tráfego Pago →</button>
                     <button onClick={() => setTab("deliverables")} className="text-[12px] text-[var(--navy)] hover:underline">
                       Ver entregas →
                     </button>
