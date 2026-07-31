@@ -16,29 +16,52 @@ Leitura obrigatória antes de mexer em `lib/dioli-brain/`:
 | `docs/06-incidentes.md` | As histórias que produziram cada regra — leia antes de simplificar qualquer uma |
 | `docs/07-memoria-de-agente.md` | As duas camadas de agente |
 
-## O perfil de risco DESTA casa (não é o do Foocci)
+## O perfil de risco DESTA casa: 100% IA, sem revisão humana
 
-O kit foi extraído do Foocci, onde o agente fala **ao vivo com o cliente final** e
-um erro às 21h de sábado não é visto por ninguém. **Aqui é diferente:** os
-departamentos produzem entregáveis (canvas, post, peça) que **um humano aprova
-antes de chegar ao cliente**. O humano é o portão.
+**Decisão do CEO (31/07/2026): o piloto roda 100% IA. Não existe checagem humana
+antes do entregável chegar ao cliente.**
 
-Consequência prática, para não plantar cerimônia à toa:
+Isso põe esta casa **no mesmo perfil de risco do Foocci** — na verdade, num mais
+exposto: lá o erro é uma frase numa conversa; aqui é uma peça, um plano de mídia
+ou um post publicado em nome de um cliente pagante. **O kit inteiro vale aqui, e
+vale agora.**
 
-- **Aplique** os princípios de verdade ancorada, ausência-de-informação-não-é-
-  informação, trava-vs-aviso e "agente nunca muda as próprias regras".
-- **Não** replique aqui a maquinaria de tempo real do Foocci (crítico por
-  mensagem, escada de liberação por telefone, simulação noturna de conversa) sem
-  antes existir um agente que fale direto com o cliente, sem revisão humana.
-- **Se algum dia um agente daqui falar direto com o cliente final**, o perfil de
-  risco vira o do Foocci e o kit inteiro passa a valer. Trate como mudança
-  estrutural: aprovação do CEO.
+Em particular, os quatro que não são opcionais:
 
-> **Estado conhecido dos quality gates (31/07/2026):** das 31 checagens em
-> `lib/dioli-brain/quality-gates.ts`, **3 rodam sozinhas e 28 são item de
-> checklist humano** (`autoCheckable: false`). Isso é aceitável enquanto um humano
-> aprova todo entregável — mas precisa ser uma **decisão conhecida**, não um
-> acidente. Se a revisão humana afrouxar, os 28 viram buraco.
+1. **Verdade ancorada + ausência de informação não é informação.** Sem o dado do
+   cliente, o departamento escreve "preciso confirmar" e escala — nunca preenche
+   por inferência. Sem revisor humano, um dado inventado vira entregável.
+2. **Sem gate = reprovado.** Checagem não executável não protege nada.
+3. **Trava, não aviso.** Para o que causa dano real (nome de cliente, número,
+   promessa comercial), exija mecanismo — prompt é sugestão.
+4. **A escada.** Departamento novo nasce em SOMBRA e sobe com evidência. Rodar
+   100% IA **não** significa pular a escada: significa que a escada é a única
+   proteção que sobrou.
+
+> ### ⚠️ Buraco aberto e conhecido — prioridade do piloto
+>
+> **Os quality gates não protegem nada hoje.** Das 31 checagens em
+> `lib/dioli-brain/quality-gates.ts`, **28 são `autoCheckable: false`** — texto
+> descrevendo o que um humano deveria conferir. **Só 3 rodam.**
+>
+> Com revisão humana isso era um checklist. **Sem revisão humana é decoração:**
+> "sem alucinação", "respeita a marca", "corresponde ao briefing" e "riscos
+> verificados" são exatamente as falhas que chegam no cliente, e nenhuma delas é
+> verificada por código.
+>
+> **Além disso:** a ancoragem de verdade ainda depende de contexto montado no
+> cliente (ver o cabeçalho de `lib/dioli-brain/reason.ts` — "Phase 2 will add
+> ClientKnowledgeSnapshot"). Enquanto o servidor não ler a verdade do banco por
+> conta própria, o raciocínio confia no que lhe entregam.
+>
+> **O que precisa existir antes de o piloto rodar sem gente olhando:**
+> 1. Piso determinístico: afirmação contra `ClientKnowledgeSnapshot`
+>    (nome, número, prazo, serviço contratado) — o equivalente do
+>    claim-vs-snapshot do Foocci;
+> 2. LLM-judge para os subjetivos (marca, briefing, valor ao cliente), com
+>    reprovação bloqueante e indisponibilidade não-bloqueante;
+> 3. Default do registry invertido: departamento sem gate executável = REPROVADO;
+> 4. Escada por departamento — sombra até haver evidência.
 
 # 🎨 Regras permanentes de design (interface / UX / UI)
 
