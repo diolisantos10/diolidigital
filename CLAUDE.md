@@ -42,6 +42,25 @@
 | `DESIGN.md` | O design system |
 | `docs/arquivo/` | Chats exportados e já minerados — **perícia, não leitura** |
 
+### 🥇 REGRA DE OURO DO RELATO — como se fala com o CEO
+
+**Decidida pelo CEO em 01/08/2026. Não é preferência de estilo, é obrigação.**
+
+**Toda resposta ao CEO termina em bullets curtos.** Ele não tem tempo de ler
+texto corrido — se tiver dúvida, ele pergunta.
+
+- **Bullets, poucas palavras.** Conclusão primeiro, linguagem de negócio.
+- **O resumo é o entregável**, não um apêndice. Se ele só ler os bullets, tem que
+  saber o que aconteceu, o que quebrou e o que você precisa dele.
+- **Separe sempre:** o que foi feito · o que exige decisão dele · o que vem a seguir.
+- **Detalhe técnico só se ele pedir.** Nunca despeje código, log ou caminho de
+  arquivo para cima sem ser perguntado.
+- **Nunca esconda má notícia na entrelinha.** Erro, risco e furo entram como
+  bullet próprio, com todas as letras.
+
+> Por que virou regra: um relato longo que o CEO não lê é o mesmo que não relatar
+> — com o agravante de parecer que ele foi informado.
+
 ### Convenções operacionais
 
 - **Branch padrão:** `claude/dioli-agency-os-architecture-kk7kp`.
