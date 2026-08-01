@@ -162,3 +162,105 @@ multi-tenant, entrega mensagem de um cliente no workspace errado.** Trocar por
 resolução explícita antes de vender para o segundo.
 
 — promovido em 2026-08-01 pelo PM · origem: `HANDOFF.md` §f (commit `7116cbb`)
+
+---
+
+## "Deploy Crashed" no Railway é quase sempre FALSO POSITIVO
+
+Os e-mails de deploy quebrado vêm de **SIGTERM no container antigo durante a troca
+de deploy** — churn normal de vários agentes publicando na mesma branch.
+
+**Não persiga OOM.** Foi investigado: a memória estava tranquila, pico de ~193 MB.
+A causa real, quando havia crash de verdade, era a **corrida pelo lock do SQLite no
+volume** com dois deploys simultâneos — o `set -e` matava o container. O
+`start.sh` agora tem **retry no `prisma migrate deploy`** e sobrevive ao lock.
+
+— promovido em 2026-08-01 pelo PM · origem: `HANDOFF.md` rev.2 §B7 e §C (commit `465cf05`)
+
+---
+
+## "IA indisponível" era blip transitório — não truncamento nem rate-limit
+
+Diagnóstico refutado por teste: a geração funciona a 1800 tokens, e 12 chamadas
+Claude concorrentes passaram todas.
+
+Era **soluço momentâneo da API**. Por isso `lib/ai/generate.ts` re-tenta erro
+transitório (429/5xx/529/timeout) até 3 vezes com backoff; erro permanente passa
+direto.
+
+**Não assuma truncamento ou rate-limit sem testar.** E `run-execution.ts` engolia o
+erro real da IA como "IA indisponível" — hoje loga o erro de verdade. **Se
+reverterem isso, diagnosticar falha volta a custar uma hora.**
+
+— promovido em 2026-08-01 pelo PM · origem: `HANDOFF.md` rev.2 §B6, §C e §E6 (commit `465cf05`)
+
+---
+
+## As chaves de IA NÃO são variáveis de ambiente
+
+Ficam **criptografadas no banco** (`DbIntegrationConfig.apiKeyEncrypted`), setadas
+pela tela de Integrações. `lib/ai/resolve-key.ts` checa o banco primeiro, o
+ambiente depois.
+
+**Um Railway sem env de IA NÃO significa "sem IA".** Confira a tela de Integrações
+antes de concluir que falta chave.
+
+— promovido em 2026-08-01 pelo PM · origem: `HANDOFF.md` rev.2 §F2 (commit `465cf05`)
+
+---
+
+## O seed roda em TODO boot — e rotaciona senha se a env estiver setada
+
+Faz `INSERT OR IGNORE` (não toca usuário existente), mas **rotaciona a senha do
+master/staff sempre que `SEED_MASTER_PASSWORD` ou `SEED_STAFF_PASSWORD` estiverem
+no ambiente**.
+
+Para resetar a senha do master: setar a variável e re-deployar. **Deixá-la setada
+depois disso rotaciona a senha em todo deploy** — remova após usar.
+
+— promovido em 2026-08-01 pelo PM · origem: `HANDOFF.md` rev.2 §E3 (commit `465cf05`)
+
+---
+
+## `currentRole` (o "Visualizar como") ≠ papel da sessão
+
+`currentRole` é o seletor do Zustand para simular papéis. **Não é o papel real.**
+
+Ação de admin gateada em `currentRole` **desaparece para um master de verdade** se
+o papel simulado não for "master". O botão de excluir projeto já foi desamarrado
+disso; **ainda existe em outros lugares**.
+
+— promovido em 2026-08-01 pelo PM · origem: `HANDOFF.md` rev.2 §E4 (commit `465cf05`)
+
+---
+
+## Vários agentes escrevem na MESMA branch — sempre `fetch` + `rebase` antes do push
+
+O sistema é construído por **várias sessões Claude em paralelo**, todas commitando
+em `claude/dioli-agency-os-architecture-kk7kp`. As fronteiras aproximadas:
+
+| Sessão | Território |
+|---|---|
+| **chat da agência** | proposta, negociação pós-briefing, gatilhos de execução, `portal-data`, portão de recursos |
+| **Brain-mestre** | `lib/dioli-brain/*`, refactor do `run-execution`, PM conductor, quality auditor, Radar, esteira, DeepSeek |
+| **design/UX** | telas do cliente, portal, tokenização |
+| **Meta** | `app/api/meta/*` e `lib/integrations/meta/*` — **já mergeado nesta branch** |
+
+**Só um agente deve mexer no mesmo arquivo por vez.** Isso explica o churn de
+deploys e por que o `git fetch` + `rebase` antes do push não é opcional aqui.
+
+*Não confirmado:* os limites exatos de cada sessão — inferidos pelos commits.
+
+— promovido em 2026-08-01 pelo PM · origem: `HANDOFF.md` rev.2 §F1 e §E7 (commit `465cf05`)
+
+---
+
+## `/api/projects/[id]/execution` lê o ESCOPO, não o PRODUZIDO
+
+A rota lê `BrainArtifact` (o escopo), não `Deliverable` (o que foi produzido). Os
+deliverables foram **anexados ali de propósito** para dar visibilidade.
+
+**Se alguém "limpar" isso achando que é duplicação, o trabalho dos agentes some da
+tela de execução de novo.**
+
+— promovido em 2026-08-01 pelo PM · origem: `HANDOFF.md` rev.2 §E5 (commit `465cf05`)

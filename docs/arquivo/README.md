@@ -28,6 +28,20 @@ conversa. Para isso, o que estava só no chat precisa descer para cá — uma ve
 
 ## O protocolo, em três passos
 
+> ### ⚠️ Um arquivo por sessão. NUNCA um `HANDOFF.md` compartilhado.
+>
+> Aconteceu em 01/08/2026: quatro sessões trabalham nesta mesma branch, duas
+> escreveram no mesmo `HANDOFF.md` da raiz, e a segunda **apagou 248 linhas da
+> primeira** — de 365 para 117. Nenhuma das duas percebeu.
+>
+> **Nada foi perdido porque o PM já tinha minerado a primeira** para o corredor e
+> para as vitrines. É a prova de que minerar vence guardar: o documento sumiu, o
+> conhecimento não.
+>
+> **A regra:** cada sessão escreve `HANDOFF-<assunto>.md` (ex.:
+> `HANDOFF-design.md`, `HANDOFF-meta.md`). Nome genérico em repositório com vários
+> agentes é colisão garantida.
+
 ```
 1. EXPORTAR   o CEO baixa a conversa e a joga aqui como
               docs/arquivo/AAAA-MM-DD-<assunto>.md
