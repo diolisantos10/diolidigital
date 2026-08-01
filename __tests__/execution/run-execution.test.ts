@@ -48,8 +48,12 @@ const baseProject = {
   directionApprovedAt: new Date("2026-08-01"),
 };
 
+// O que o cliente ainda deve — cada teste ajusta se precisar.
+let materiaisPendentes: Array<Record<string, unknown>> = [];
+
 beforeEach(() => {
   vi.clearAllMocks();
+  materiaisPendentes = [];
   db.project.update.mockResolvedValue({});
   db.clientRequestDb.findUnique.mockResolvedValue({ id: "cr1", businessName: "Loja X", services: JSON.stringify(["social"]), objectives: "[]", briefingJson: "{}" });
   db.client.findFirst.mockResolvedValue({ id: "c1", name: "Loja X", brandBrain: null });
@@ -61,7 +65,14 @@ beforeEach(() => {
   db.task.updateMany.mockResolvedValue({ count: 1 });
   db.materialRequest.findFirst.mockResolvedValue(null);
   db.materialRequest.create.mockResolvedValue({ id: "mr1" });
-  db.materialRequest.findMany.mockResolvedValue([]);
+  // Duas perguntas diferentes usam este mesmo findMany: "o que o cliente já
+  // entregou?" (status != pending) e "o que está pendente para eu cobrar?".
+  // Responder a mesma lista para as duas faria o teste mentir.
+  db.materialRequest.findMany.mockImplementation(async (args?: { where?: { status?: unknown } }) => {
+    const status = args?.where?.status;
+    const perguntaOQueJaVeio = typeof status === "object" && status !== null && "not" in status;
+    return perguntaOQueJaVeio ? [] : materiaisPendentes;
+  });
   db.materialRequest.updateMany.mockResolvedValue({ count: 0 });
   createApprovalRequest.mockResolvedValue({});
   db.activityEvent.create.mockResolvedValue({});
@@ -226,9 +237,9 @@ describe("uma voz para o cliente", () => {
   it("o agente ABRE pedido — não manda mensagem por conta própria", async () => {
     db.project.findUnique.mockResolvedValue({ ...baseProject, agents: JSON.stringify(["a2"]) });
     db.client.findFirst.mockResolvedValue({ id: "c1", name: "Loja X", brandBrain: null });
-    db.materialRequest.findMany.mockResolvedValue([
+    materiaisPendentes = [
       { id: "mr1", type: "design", description: "precisamos do logo e das cores", requestedByLabel: "Design", askedClientAt: null },
-    ]);
+    ];
 
     const r = await runProjectExecution("p1");
     expect(db.materialRequest.create).toHaveBeenCalled();
@@ -238,9 +249,9 @@ describe("uma voz para o cliente", () => {
   it("quem fala com o cliente é o gerente de projeto, uma vez só", async () => {
     db.project.findUnique.mockResolvedValue({ ...baseProject, agents: JSON.stringify(["a2"]) });
     db.client.findFirst.mockResolvedValue({ id: "c1", name: "Loja X", brandBrain: null });
-    db.materialRequest.findMany.mockResolvedValue([
+    materiaisPendentes = [
       { id: "mr1", type: "design", description: "precisamos do logo e das cores", requestedByLabel: "Design", askedClientAt: null },
-    ]);
+    ];
 
     await runProjectExecution("p1");
     const mensagens = db.portalMessage.create.mock.calls.map((c) => c[0].data);

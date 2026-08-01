@@ -38,6 +38,14 @@ export interface Ctx {
   /** O cliente manda foto/vídeo bruto? Perguntado pelo SDR no briefing. Muda o
    *  trabalho do vídeo por inteiro: roteiro para filmar vs. roteiro para editar. */
   hasRawMaterial: boolean;
+  /** Tipos de material que o cliente JÁ entregou (ex.: "design").
+   *
+   *  Existe para impedir um laço cruel: o agente pede o logo, o cliente manda,
+   *  a produção retoma, a marca no banco continua vazia — e o agente pede o
+   *  logo DE NOVO. O cliente é cobrado para sempre por algo que ele já enviou.
+   *  Quem já respondeu não é cobrado outra vez: o especialista trabalha com o
+   *  que tem e marca o que faltar como "PRECISO CONFIRMAR". */
+  materiaisEntregues: string[];
 }
 
 /** Qual IA faz melhor este trabalho. Vazio = a preferência global da casa. */
@@ -204,7 +212,8 @@ ${formato("Roteiros de Vídeo — <negócio>", `"headline": "título do vídeo",
         deliverableType: "design",
         provedor: "claude",
         precisaDe: {
-          tem: (c) => c.hasBrandAssets,
+          // Tem material de marca gravado OU o cliente já respondeu ao pedido.
+          tem: (c) => c.hasBrandAssets || c.materiaisEntregues.includes("design"),
           pedido: "Para começar as peças de design, precisamos dos materiais da sua marca: logo (se tiver), cores, fontes e alguma referência visual que você goste. Pode enviar por aqui? 🎨",
         },
         prompt: (c) => `Você é o especialista de IDENTIDADE VISUAL da Dioli Digital. Defina a direção de arte da marca.

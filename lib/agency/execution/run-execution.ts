@@ -111,11 +111,17 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
 
   const clientRequestId = project.clientRequestId;
   try {
-    const [req, client, artifacts, existing] = await Promise.all([
+    const [req, client, artifacts, existing, materiaisResolvidos] = await Promise.all([
       prisma.clientRequestDb.findUnique({ where: { id: clientRequestId } }),
       prisma.client.findFirst({ where: { id: project.clientId }, include: { brandBrain: true } }),
       prisma.brainArtifact.findMany({ where: { clientRequestId, status: "approved" }, select: { department: true, canvasJson: true } }),
       prisma.deliverable.findMany({ where: { projectId }, select: { ownerAgentId: true } }),
+      // O que o cliente já entregou. Sem isto, quem depende de material seria
+      // cobrado para sempre — inclusive depois de o cliente ter respondido.
+      prisma.materialRequest.findMany({
+        where: { projectId, status: { not: "pending" } },
+        select: { type: true },
+      }),
     ]);
     if (!req) throw new Error("Solicitação não encontrada");
 
@@ -139,6 +145,7 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
       // Perguntado pelo SDR no briefing. Ausente = NÃO — e "não" aqui é a
       // resposta segura: o roteiro sai para o cliente gravar, em vez de assumir
       // um acervo que talvez não exista.
+      materiaisEntregues: [...new Set(materiaisResolvidos.map((m) => m.type))],
       hasRawMaterial: (() => {
         const v = (scope as Record<string, unknown>).hasRawMaterial ?? (scope as Record<string, unknown>).materialBruto;
         return v === true || v === "sim" || v === "yes";

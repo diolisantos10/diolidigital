@@ -11,6 +11,7 @@ const ctx: Ctx = {
   strategyHeadline: "Premium acessível",
   hasBrandAssets: true,
   hasRawMaterial: false,
+  materiaisEntregues: [],
 };
 
 describe("o organograma da agência", () => {
@@ -97,6 +98,17 @@ describe("quem precisa de insumo não inventa — abre pedido", () => {
     expect(identidade.precisaDe).toBeDefined();
     expect(identidade.precisaDe!.tem({ ...ctx, hasBrandAssets: false })).toBe(false);
     expect(identidade.precisaDe!.tem({ ...ctx, hasBrandAssets: true })).toBe(true);
+  });
+
+  it("o cliente que JÁ mandou o material não é cobrado outra vez", () => {
+    // O laço cruel que isto impede: o agente pede o logo, o cliente manda, a
+    // produção retoma, a marca no banco continua vazia — e o agente pede o logo
+    // de novo. Para sempre.
+    const design = DEPARTAMENTOS.find((d) => d.id === "design")!;
+    const identidade = design.especialistas.find((e) => e.id === "a2")!;
+    expect(
+      identidade.precisaDe!.tem({ ...ctx, hasBrandAssets: false, materiaisEntregues: ["design"] }),
+    ).toBe(true);
   });
 });
 
