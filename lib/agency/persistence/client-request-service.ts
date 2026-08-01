@@ -66,7 +66,37 @@ export interface UpdateClientRequestInput {
   workspaceId?: string;
 }
 
+/**
+ * A quem esta solicitação pertence.
+ *
+ * O briefing público é preenchido por quem NÃO está logado — o prospect não tem
+ * como saber o workspace, e o formulário não manda. O resultado, até 01/08/2026:
+ * 6 das 7 solicitações em produção nasceram órfãs, e toda rota que filtrava por
+ * workspace respondia "não encontrada" para briefings que existiam e apareciam
+ * na tela. O sintoma engana — parece dado inexistente, e é dado escondido.
+ *
+ * Com uma agência só, o servidor resolve sozinho: existe um workspace, é aquele.
+ * Quando houver mais de um, a escolha passa a ser obrigatória e explícita (por
+ * link, subdomínio ou token do formulário) — adivinhar entre dois seria pior que
+ * o nulo, porque mandaria o cliente de um para a caixa de entrada de outro.
+ */
+async function resolverWorkspace(informado?: string): Promise<string | undefined> {
+  if (informado) return informado;
+  try {
+    const todos = await prisma.agencyWorkspace.findMany({ select: { id: true }, take: 2 });
+    if (todos.length === 1) return todos[0]!.id;
+    if (todos.length > 1) {
+      console.warn("[client-request] mais de um workspace — a solicitação nasce sem dono até o formulário dizer qual");
+    }
+  } catch {
+    // Banco indisponível na leitura: seguir sem workspace é melhor que perder
+    // o briefing do prospect. A rota de admin aceita o nulo.
+  }
+  return undefined;
+}
+
 export async function createClientRequest(input: CreateClientRequestInput): Promise<NormalizedClientRequest> {
+  const workspaceId = await resolverWorkspace(input.workspaceId);
   const raw = await prisma.clientRequestDb.create({
     data: {
       businessName:    input.businessName,
@@ -75,7 +105,7 @@ export async function createClientRequest(input: CreateClientRequestInput): Prom
       objectives:      JSON.stringify(input.objectives  ?? []),
       rawContext:      input.rawContext       ?? "",
       source:          input.source          ?? "briefing",
-      workspaceId:     input.workspaceId,
+      workspaceId,
       clientId:        input.clientId,
       briefingJson:    input.briefingJson    ? JSON.stringify(input.briefingJson)    : null,
       sdrHandoffJson:  input.sdrHandoffJson  ? JSON.stringify(input.sdrHandoffJson)  : null,

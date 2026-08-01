@@ -38,6 +38,25 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   try { body = await request.json(); } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
+  const action = typeof body.action === "string" ? body.action : "";
+
+  // Adotar as solicitações órfãs: dar dono às que nasceram sem workspace.
+  //
+  // O conserto de raiz está no serviço de criação (toda solicitação nova já
+  // nasce com dono). Isto aqui é para as que já existiam antes — sem elas,
+  // continuariam dependendo do remendo de leitura para sempre.
+  //
+  // Não é destrutivo e é idempotente: rodar de novo não muda mais nada.
+  if (action === "adotar-orfas") {
+    const destino = workspaceScope ?? (await prisma.agencyWorkspace.findFirst({ select: { id: true } }))?.id;
+    if (!destino) return NextResponse.json({ ok: false, error: "Nenhum workspace para adotar" }, { status: 409 });
+    const r = await prisma.clientRequestDb.updateMany({
+      where: { workspaceId: null },
+      data: { workspaceId: destino },
+    });
+    return NextResponse.json({ ok: true, action: "adotar-orfas", workspaceId: destino, adotadas: r.count });
+  }
+
   const requestId = typeof body.requestId === "string" ? body.requestId : "";
   const businessName = typeof body.businessName === "string" ? body.businessName.trim() : "";
   if (!requestId && !businessName) {
@@ -48,7 +67,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   // Thorough: ALL requests for this business (there may be duplicates), and ALL
   // projects for the linked client(s) — including any orphaned/mislinked ones.
-  // A solicitação que chega pelo briefing público nasce SEM workspace — quem
+  //
+  // Sobre o escopo por workspace: a solicitação que chega pelo briefing público
+  // nascia SEM workspace — quem
   // preenche o formulário não está logado e não tem como saber qual é. Na
   // produção de 01/08/2026, 6 das 7 solicitações estavam com `workspaceId`
   // nulo, e o filtro por workspace as escondia por completo: `status`, `fire`,
@@ -68,12 +89,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   });
   if (requests.length === 0) return NextResponse.json({ error: "Solicitação não encontrada" }, { status: 404 });
 
-  const action = typeof body.action === "string" ? body.action : "";
   const reqIds0 = requests.map((r) => r.id);
   const clientIds0 = [...new Set(requests.map((r) => r.clientId).filter((c): c is string => !!c))];
   const projectWhere = { OR: [{ clientRequestId: { in: reqIds0 } }, ...(clientIds0.length ? [{ clientId: { in: clientIds0 } }] : [])] };
 
-  // Read-only: where is this business in the pipeline right now?
   // Apagar a solicitação INTEIRA — a única operação aqui que não tem volta.
   //
   // Existe porque a porta de entrada acumula lixo de teste ("UI Bridge Test
@@ -126,6 +145,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     });
   }
 
+  // Somente leitura: onde este negócio está no pipeline agora?
   if (action === "status") {
     const projects = await prisma.project.findMany({
       where: projectWhere,
