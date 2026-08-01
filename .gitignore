@@ -41,7 +41,8 @@ yarn-error.log*
 next-env.d.ts
 
 # Claude Code
-.claude/
+.claude/*
+!.claude/agents/
 
 # Prisma generated client — committed so Railway build has it without needing prisma generate
 # Run: prisma generate (already in npm run build) to regenerate after schema changes
