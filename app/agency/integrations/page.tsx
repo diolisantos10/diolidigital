@@ -10,6 +10,8 @@ import {
   MOCK_INTEGRATIONS,
   AGENT_AI_CONFIGS,
   CATEGORY_LABELS,
+  integracoesDaAgencia,
+  integracoesDoCliente,
   CATEGORY_ORDER,
   STATUS_LABELS,
   STATUS_COLORS,
@@ -24,8 +26,6 @@ import {
   computeIntegrationReadiness,
   type IntegrationCategory,
   type Integration,
-  type AgentId,
-  type AssignedAgent,
 } from "@/lib/agency/integrations";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -553,14 +553,22 @@ export default function IntegrationsPage() {
   });
   const readiness = computeIntegrationReadiness(liveIntegrations);
 
+  // ESTA TELA É DA AGÊNCIA. Só aparecem aqui as ferramentas cuja conta é da
+  // Dioli — uma assinatura que serve todos os clientes. Instagram, Google Ads e
+  // Analytics são contas DO CLIENTE: conectá-las aqui não teria significado
+  // ("Analytics de quem?") e uma conexão global só atenderia um cliente.
+  const daAgencia = integracoesDaAgencia(MOCK_INTEGRATIONS);
+  const doCliente = integracoesDoCliente(MOCK_INTEGRATIONS);
+  const categoriasDaAgencia = CATEGORY_ORDER.filter((cat) => daAgencia.some((i) => i.category === cat));
+
   const filteredIntegrations =
     activeCategory === "all"
-      ? MOCK_INTEGRATIONS
-      : MOCK_INTEGRATIONS.filter((i) => i.category === activeCategory);
+      ? daAgencia
+      : daAgencia.filter((i) => i.category === activeCategory);
 
-  const groupedByCategory = CATEGORY_ORDER.map((cat) => ({
+  const groupedByCategory = categoriasDaAgencia.map((cat) => ({
     category: cat,
-    integrations: MOCK_INTEGRATIONS.filter((i) => i.category === cat),
+    integrations: daAgencia.filter((i) => i.category === cat),
   }));
 
   const panelIntegration = configPanelId
@@ -622,6 +630,45 @@ export default function IntegrationsPage() {
       {/* Real AI key connection — paste, test, done */}
       <AiKeyManager />
 
+      {/* As ferramentas DO CLIENTE — não se conectam aqui, e a tela precisa dizer
+          isso. Some-las sem explicação faria parecer que a função foi perdida. */}
+      <div className="bg-white border border-[var(--border)] rounded-[10px] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden mb-6">
+        <div className="px-5 py-3.5 border-b border-[var(--border)]">
+          <h2 className="text-[14px] font-semibold text-[var(--text-primary)]">Ferramentas do cliente</h2>
+          <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
+            {doCliente.length} integrações · a conta é <strong>de cada cliente</strong>, não da agência — conectam-se no painel dele
+          </p>
+        </div>
+        <div className="p-4">
+          <div className="mb-3 rounded-[8px] border border-[var(--border)] bg-[var(--accent)] px-3.5 py-2.5">
+            <p className="text-[12px] leading-relaxed text-[var(--text-secondary)]">
+              Estas não aparecem para conectar aqui de propósito. Não existe &ldquo;o Google Analytics da
+              agência&rdquo; — existe o do <em>Sushi Cazza</em> e o da <em>Beatriz</em>. Uma conexão só
+              atenderia um cliente, e a autorização de acessar as contas dele é dele, não nossa.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 gap-2">
+            {doCliente.map((int) => (
+              <div
+                key={int.id}
+                className="flex items-center justify-between gap-3 rounded-[8px] border border-[var(--border)] px-3.5 py-3"
+              >
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <CategoryIcon cat={int.category} />
+                    <span className="text-[13px] font-medium text-[var(--text-primary)]">{int.name}</span>
+                  </div>
+                  <p className="mt-0.5 truncate text-[11px] text-[var(--text-muted)]">{int.purpose}</p>
+                </div>
+                <span className="shrink-0 rounded-full bg-[var(--accent)] px-2.5 py-1 text-[10.5px] font-medium text-[var(--text-secondary)]">
+                  no painel do cliente
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* Meta (Instagram / Facebook / WhatsApp) — connect real accounts via OAuth */}
       <MetaConnectManager />
 
@@ -631,8 +678,10 @@ export default function IntegrationsPage() {
       {/* Integration Cards */}
       <div className="bg-white border border-[var(--border)] rounded-[10px] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden mb-6">
         <div className="px-5 py-3.5 border-b border-[var(--border)]">
-          <h2 className="text-[14px] font-semibold text-[var(--text-primary)]">Ferramentas Conectáveis</h2>
-          <p className="text-[11px] text-[var(--text-muted)] mt-0.5">{MOCK_INTEGRATIONS.length} integrações · configure, teste e gerencie cada uma</p>
+          <h2 className="text-[14px] font-semibold text-[var(--text-primary)]">Ferramentas da agência</h2>
+          <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
+            {daAgencia.length} integrações · contas da Dioli, uma assinatura que serve todos os clientes
+          </p>
         </div>
 
         {/* Category filter tabs */}
@@ -643,10 +692,10 @@ export default function IntegrationsPage() {
               activeCategory === "all" ? "bg-[var(--text-primary)] text-white" : "text-[var(--text-secondary)] hover:bg-[var(--accent)]"
             }`}
           >
-            Todos ({MOCK_INTEGRATIONS.length})
+            Todos ({daAgencia.length})
           </button>
-          {CATEGORY_ORDER.map((cat) => {
-            const count = MOCK_INTEGRATIONS.filter((i) => i.category === cat).length;
+          {categoriasDaAgencia.map((cat) => {
+            const count = daAgencia.filter((i) => i.category === cat).length;
             return (
               <button
                 key={cat}

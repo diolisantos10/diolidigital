@@ -24,6 +24,50 @@ export type IntegrationStatus =
 
 export type IntegrationPriority = "p0" | "p1" | "p2" | "future";
 
+/**
+ * DE QUEM É A CONTA que esta integração conecta. É a distinção que faltava, e
+ * ela não é organizacional — é operacional.
+ *
+ * `agencia` — uma assinatura da Dioli que serve TODOS os clientes: os provedores
+ *   de IA, o Canva, o Drive, o Zapier. Conectar uma vez basta.
+ *
+ * `cliente` — a conta DAQUELE cliente: o Instagram dele, o Google Ads dele, o
+ *   Analytics dele. Uma por cliente, autorizada e revogável por ele.
+ *
+ * Por que misturar os dois quebra: a pergunta do CEO em 01/08/2026 —
+ * *"o que eu vou conectar aqui o Google Analytics? De quem?"* — não tem
+ * resposta numa tela global. Uma conexão global de Analytics só consegue
+ * atender UM cliente, e com cinco entrando isso quebra no segundo. Além disso,
+ * autorizar o acesso às contas dele é direito do cliente, não da agência.
+ */
+export type IntegrationScope = "agencia" | "cliente";
+
+/** A categoria já diz de quem é a conta — não há caso ambíguo entre elas. */
+const ESCOPO_POR_CATEGORIA: Record<IntegrationCategory, IntegrationScope> = {
+  ai_provider: "agencia",
+  design_tool: "agencia",
+  storage:     "agencia",
+  automation:  "agencia",
+  ads_platform: "cliente",
+  analytics:    "cliente",
+  publishing:   "cliente",
+};
+
+export function escopoDaIntegracao(categoria: IntegrationCategory): IntegrationScope {
+  return ESCOPO_POR_CATEGORIA[categoria];
+}
+
+/** As que devem ser conectadas na tela da AGÊNCIA. */
+export function integracoesDaAgencia(todas: Integration[]): Integration[] {
+  return todas.filter((i) => escopoDaIntegracao(i.category) === "agencia");
+}
+
+/** As que devem ser conectadas no painel DE CADA CLIENTE — e, idealmente, pelo
+ *  próprio cliente, no portal dele. */
+export function integracoesDoCliente(todas: Integration[]): Integration[] {
+  return todas.filter((i) => escopoDaIntegracao(i.category) === "cliente");
+}
+
 export type AssignedAgent =
   | "strategy_room"
   | "project_manager"
