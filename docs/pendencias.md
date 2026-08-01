@@ -237,6 +237,55 @@ Apagadas: `Diego` (Restaurante, 28/07), `Diego` (Agência, 23/06) e
 
 ---
 
+## 🧪 O PRIMEIRO PROJETO RODOU DE PONTA A PONTA — 01/08/2026
+
+Rodado em **produção**, com a própria Dioli como cliente. Não é simulação: é o
+caminho inteiro, com IA de verdade, no banco de verdade.
+
+**O que funcionou sozinho, sem ninguém clicar:**
+
+| # | Etapa | Resultado |
+|---|---|---|
+| 1 | Agência envia a proposta | ✅ proposta gerada com IA, portal criado, aviso na fila |
+| 2 | Cliente aprova no portal | ✅ **projeto criado e produção disparada automaticamente** |
+| 3 | Portão de direção | ✅ segurou a produção até o cliente avalizar — como desenhado |
+| 4 | Cliente aprova a direção | ✅ produção rodou |
+| 5 | Produção | ✅ **6 entregas** por 6 especialistas de 3 departamentos |
+| 6 | Qualidade audita | ✅ 4 aprovadas, **2 reprovadas com crítica específica e justa** |
+| 7 | Apresentar ao cliente | ⛔ **BARRADO pela Qualidade** — e registrado |
+
+**O freio funcionou.** As duas ressalvas não são implicância: *"operacionalização
+fraca, nomenclatura imprecisa"* e *"carece de profundidade técnica, fontes
+documentadas"*. Um humano assinaria embaixo.
+
+### 🔴 O buraco que isto revelou — e é o último antes do cliente pagante
+
+**O pacote está travado e ninguém sabe.**
+
+- A Qualidade barrou, o bloqueio virou `ActivityEvent`… e **nenhuma tela mostra
+  isso**. Conferido: nenhum componente lê `apresentacao_bloqueada` nem
+  `quality_flag`.
+- **Nada tenta resolver.** O motor é idempotente: re-rodar pula quem já produziu,
+  então a entrega reprovada nunca é refeita. O despertador também não mexe nela.
+- Resultado: o projeto fica **vivo no papel e parado na prática**, exatamente o
+  mesmo padrão do buraco do material que fechamos hoje de manhã — só que um
+  passo adiante na esteira.
+
+**As três saídas possíveis, e é decisão do CEO:**
+
+1. **Refazer sozinho** — o especialista reescreve com a crítica da Qualidade na
+   mão, até N tentativas. Automático de verdade; gasta mais IA.
+2. **Escalar para o Diretor** — o pacote travado aparece num painel e o CEO
+   decide. Mantém o freio, mas exige gente.
+3. **Apresentar com ressalva** — vai ao cliente marcado. **Não recomendo:**
+   anula o único freio que a casa tem.
+
+> **Recomendação do Diretor:** (1) com teto de 2 tentativas, e (2) como saída
+> quando as tentativas acabam. Assim a agência resolve sozinha o caso comum e só
+> chama gente no caso raro — que é a definição de automático que serve.
+
+---
+
 ## 🟡 Fila normal
 
 | O que | Por que importa |
