@@ -114,20 +114,18 @@ roda antes, não roda depois, e não tem freio.
   protocolo. **Nenhum chat é fechado antes de exportado e minerado.**
 - **Definir se o piloto sobe antes ou depois do P0 acima.** É decisão do CEO, e
   hoje a resposta honesta é: sem os gates, sobe sem proteção.
-- **Definir `SEED_MASTER_PASSWORD` no Railway — é o único jeito de entrar como
-  master.** Conferido em 01/08/2026: a senha `dioli2025` que está nos scripts do
-  repositório é **rejeitada** pela produção. O `scripts/seed-db.mjs` gera senha
-  **aleatória a cada boot** quando a env não está definida (correto — nunca há
-  credencial pública), e o `INSERT OR IGNORE` não toca um usuário que já existe.
-  Some-se a isso que **não existe fluxo de redefinição de senha** no sistema
-  (`app/api/auth/` só tem `signin`, `signout` e o Google do briefing — que nem
-  cria sessão), e o resultado é: **hoje ninguém consegue entrar como master em
-  produção.**
+- **A senha do master mora no Railway — e é o único lugar onde ela existe.**
+  Conferido no painel em 01/08/2026: `SEED_MASTER_PASSWORD` e `SEED_STAFF_PASSWORD`
+  **estão definidas** em produção, e o login com elas funciona. A senha `dioli2025`
+  dos scripts do repositório é rejeitada — ela não vale nada, e quem tentar por ali
+  vai concluir errado que perdeu o acesso.
 
-  **A saída** (é limpa e já está implementada): definir `SEED_MASTER_PASSWORD` nas
-  variáveis do Railway e reiniciar. O seed roda a cada boot e, com a env definida,
-  executa um `UPDATE` do hash da senha do master — não é `INSERT OR IGNORE`, então
-  funciona em base já povoada. Mesma coisa para o time via `SEED_STAFF_PASSWORD`.
+  Vale saber por quê, porque é frágil: o `seed-db.mjs` usa `INSERT OR IGNORE` (não
+  toca usuário existente) e gera senha **aleatória a cada boot** quando a env não
+  está definida. Se alguém apagar essas duas variáveis, a única via de recuperação
+  é redefini-las e reiniciar — **não existe fluxo de "esqueci minha senha"** no
+  sistema (`app/api/auth/` só tem `signin`, `signout` e o Google do briefing, que
+  nem cria sessão).
 
   > A mensagem que o próprio seed imprime — *"use o fluxo de redefinição de
   > senha"* — **está errada**: esse fluxo não existe. Corrigir a mensagem, ou

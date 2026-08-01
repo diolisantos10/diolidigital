@@ -8,14 +8,20 @@
 //
 // DELETE /api/admin/reset
 //   Requer: ALLOW_PRODUCTION_RESET=true + sessão master
-//   Body:   { confirm: "DELETE_ALL_OPERATIONAL_DATA", mode?: "keep-requests" | "everything" }
+//   Body:   { confirm: "DELETE_ALL_OPERATIONAL_DATA",
+//             mode?: "keep-clients" | "keep-requests" | "everything" }
 //   Devolve: { mode, before, after, tablesCleared, requestsPreserved }
 //
-// Os dois modos, e por que existem dois:
+// Os três modos, do mais conservador ao mais radical:
 //
-//   "keep-requests" (PADRÃO) — apaga cliente, projeto e tudo que veio depois,
-//     mas PRESERVA as solicitações de novos clientes e as devolve ao estado
-//     "new", desligadas do cliente que foi apagado. É o zero de quem vai
+//   "keep-clients" (PADRÃO) — apaga a PRODUÇÃO: projetos, entregas, tarefas,
+//     aprovações, artefatos e conversas do portal. PRESERVA o cadastro do
+//     cliente e o cérebro de marca (cores, tom de voz, público — o que o
+//     sistema aprendeu sobre ele) e as solicitações, que voltam a "new".
+//     É o "refazer o trabalho sem perder quem é o cliente".
+//
+//   "keep-requests" — apaga também o cliente e o cérebro de marca. Sobram só as
+//     solicitações, desligadas de qualquer cliente. É o zero de quem vai
 //     recomeçar a operação A PARTIR das solicitações que já chegaram.
 //
 //   "everything" — apaga as solicitações também. Zero absoluto, sem porta de
@@ -33,7 +39,9 @@ import { getSession } from "@/lib/auth/session";
 
 const CONFIRM_PHRASE = "DELETE_ALL_OPERATIONAL_DATA";
 
-type Mode = "keep-requests" | "everything";
+type Mode = "keep-clients" | "keep-requests" | "everything";
+
+const MODES: Mode[] = ["keep-clients", "keep-requests", "everything"];
 
 /** Contagem do que é dado de cliente/projeto — o que o reset alcança. */
 async function countOperational() {
@@ -157,7 +165,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  const mode: Mode = body.mode === "everything" ? "everything" : "keep-requests";
+  const mode: Mode = MODES.includes(body.mode as Mode) ? (body.mode as Mode) : "keep-clients";
 
   const before = { ...(await countOperational()), clientRequests: (await countRequests()).total };
 
@@ -182,15 +190,23 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
     // Projeto cascateia: Deliverable, MaterialRequest, Task, TimelineEvent,
     // Briefing, StrategyRoom, Cycle.
     await tx.project.deleteMany({});
-    // Cliente cascateia: ClientNotice, BrandBrain, BrandUpdate.
-    await tx.client.deleteMany({});
+    // O aviso ao cliente é operacional ("falta o logo") — some junto com a
+    // produção que o gerou, em qualquer modo. O cadastro é que decide abaixo.
+    await tx.clientNotice.deleteMany({});
+
+    if (mode !== "keep-clients") {
+      // Cliente cascateia: BrandBrain, BrandUpdate.
+      await tx.client.deleteMany({});
+    }
 
     if (mode === "everything") {
       await tx.clientRequestDb.deleteMany({});
     } else {
-      // A porta de entrada fica de pé — mas limpa: sem vínculo com o cliente
-      // que acabou de ser apagado, e de volta ao começo da esteira.
-      await tx.clientRequestDb.updateMany({ data: { status: "new", clientId: null } });
+      // A porta de entrada fica de pé, de volta ao começo da esteira. No modo
+      // que apaga clientes, o vínculo também cai — apontaria para um fantasma.
+      await tx.clientRequestDb.updateMany({
+        data: mode === "keep-clients" ? { status: "new" } : { status: "new", clientId: null },
+      });
     }
   });
 
@@ -204,9 +220,13 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
       "approvalComment", "approvalRequest", "brainUpdate", "socialPost",
       "whatsAppOutbox", "whatsAppMessage", "aIRunLog", "activityEvent",
       "project (+ deliverable, materialRequest, task, timelineEvent, briefing, strategyRoom, cycle)",
-      "client (+ clientNotice, brandBrain, brandUpdate)",
+      "clientNotice",
+      ...(mode === "keep-clients" ? [] : ["client (+ brandBrain, brandUpdate)"]),
       ...(mode === "everything" ? ["clientRequestDb"] : []),
     ],
+    preserved: mode === "keep-clients"
+      ? "cadastro do cliente + cérebro de marca + solicitações"
+      : mode === "keep-requests" ? "solicitações" : "nada de dado de cliente",
     requestsPreserved: mode === "keep-requests" ? after.clientRequests : 0,
     before,
     after,
