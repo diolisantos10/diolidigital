@@ -10,6 +10,7 @@ const db = vi.hoisted(() => ({
   portalMessage: { create: vi.fn() },
   task: { updateMany: vi.fn() },
   materialRequest: { findFirst: vi.fn(), create: vi.fn(), findMany: vi.fn(), updateMany: vi.fn() },
+  activityEvent: { create: vi.fn() },
 }));
 const generate = vi.hoisted(() => vi.fn());
 const createApprovalRequest = vi.hoisted(() => vi.fn());
@@ -25,6 +26,11 @@ vi.mock("@/lib/agency/execution/quality-auditor", () => ({
   auditDeliverable: vi.fn(async () => ({ verdict: "pass", issues: [], note: "ok" })),
 }));
 // Biblioteca do Radar é testada à parte; aqui não injeta nada.
+// A apresentação automática é testada aqui pelo CONTRATO (foi chamada? foi
+// barrada?); o conteúdo da apresentação é testado em marcos/jornada-real.
+vi.mock("@/lib/agency/esteira/marcos", () => ({
+  apresentar: vi.fn(async () => ({ ok: true })),
+}));
 vi.mock("@/lib/agency/radar/library", () => ({
   getActiveInsights: vi.fn(async () => []),
   buildInsightBlock: vi.fn(() => ""),
@@ -32,6 +38,7 @@ vi.mock("@/lib/agency/radar/library", () => ({
 
 import { runProjectExecution } from "@/lib/agency/execution/run-execution";
 import { auditDeliverable } from "@/lib/agency/execution/quality-auditor";
+import * as marcos from "@/lib/agency/esteira/marcos";
 
 const baseProject = {
   id: "p1", workspaceId: "ws1", clientId: "c1", clientRequestId: "cr1",
@@ -57,6 +64,8 @@ beforeEach(() => {
   db.materialRequest.findMany.mockResolvedValue([]);
   db.materialRequest.updateMany.mockResolvedValue({ count: 0 });
   createApprovalRequest.mockResolvedValue({});
+  db.activityEvent.create.mockResolvedValue({});
+  (marcos.apresentar as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: true });
 });
 
 describe("runProjectExecution — produção durável e confiável", () => {
@@ -245,5 +254,55 @@ describe("uma voz para o cliente", () => {
     await runProjectExecution("p1");
     expect(db.portalMessage.create).not.toHaveBeenCalled();
     expect(createApprovalRequest.mock.calls[0][0].clientVisible).toBe(false);
+  });
+});
+
+// O elo que fechou a agência 24h: a produção acabou, quem apresenta é o próprio
+// PM. Antes disso o pacote ficava pronto DENTRO da agência esperando um clique.
+describe("o PM apresenta sozinho quando o pacote fecha", () => {
+  it("pacote inteiro e sem ressalva → apresenta sem ninguém clicar", async () => {
+    db.project.findUnique.mockResolvedValue({ ...baseProject });
+    generate.mockResolvedValue({ ok: true, data: { title: "T", summary: "s", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] } });
+
+    const r = await runProjectExecution("p1");
+    expect(r.apresentado?.ok).toBe(true);
+    expect(marcos.apresentar).toHaveBeenCalledWith("p1");
+  });
+
+  it("a Qualidade barrou → NÃO apresenta, e o bloqueio fica registrado", async () => {
+    // O freio que faltava. Peça que a própria casa sabe que está torta não
+    // chega ao cliente só porque não havia ninguém olhando.
+    db.project.findUnique.mockResolvedValue({ ...baseProject });
+    generate.mockResolvedValue({ ok: true, data: { title: "T", summary: "s", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] } });
+    (marcos.apresentar as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ok: false, erro: "2 entrega(s) com ressalva da Qualidade" });
+
+    const r = await runProjectExecution("p1");
+    expect(r.apresentado?.ok).toBe(false);
+    // Retorno de função ninguém lê. O bloqueio precisa existir no banco.
+    expect(db.activityEvent.create).toHaveBeenCalled();
+    const ev = db.activityEvent.create.mock.calls.at(-1)?.[0].data;
+    expect(ev.type).toBe("apresentacao_bloqueada");
+    expect(ev.message).toMatch(/ressalva/i);
+  });
+
+  it("faltando material do cliente → NÃO apresenta metade do pacote", async () => {
+    // "Eu te mostro tudo de uma vez" é promessa. Apresentar o que ficou pronto
+    // enquanto o resto espera material quebra a promessa e confunde o cliente.
+    db.project.findUnique.mockResolvedValue({ ...baseProject, agents: JSON.stringify(["a2"]) });
+    db.client.findFirst.mockResolvedValue({ id: "c1", name: "Loja X", brandBrain: null });
+    generate.mockResolvedValue({ ok: true, data: { title: "T", summary: "s", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] } });
+
+    const r = await runProjectExecution("p1");
+    expect(r.askedClient.length).toBeGreaterThan(0);
+    expect(r.apresentado).toBeUndefined();
+    expect(marcos.apresentar).not.toHaveBeenCalled();
+  });
+
+  it("IA fora do ar → não apresenta pacote furado", async () => {
+    db.project.findUnique.mockResolvedValue({ ...baseProject });
+    generate.mockResolvedValue({ ok: false });
+    const r = await runProjectExecution("p1");
+    expect(r.apresentado).toBeUndefined();
+    expect(marcos.apresentar).not.toHaveBeenCalled();
   });
 });

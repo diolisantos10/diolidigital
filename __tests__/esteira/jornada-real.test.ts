@@ -57,7 +57,7 @@ vi.mock("@/lib/agency/radar/library", () => ({
 
 import { prisma } from "@/lib/db/client";
 import { runProjectExecution } from "@/lib/agency/execution/run-execution";
-import { pedirDirecao, aprovarDirecao, apresentar, aprovarPacote } from "@/lib/agency/esteira/marcos";
+import { pedirDirecao, aprovarDirecao, aprovarPacote } from "@/lib/agency/esteira/marcos";
 import { statusDoProjeto } from "@/lib/agency/esteira/retrato";
 
 let workspaceId = "";
@@ -168,34 +168,30 @@ describe("a esteira, de ponta a ponta, com banco real", () => {
     expect(tarefa?.deliverableId).toBe(social!.id);
   });
 
-  it("5. a entrega pronta NÃO pinga sozinha no portal", async () => {
+  it("5. nenhuma entrega pingou peça por peça — o cliente recebeu UMA apresentação", async () => {
+    // A regra da UMA VOZ continua valendo. O que mudou é QUEM aperta o botão:
+    // antes era uma pessoa, agora é o próprio PM assim que o pacote fecha.
+    const msgs = await prisma.portalMessage.findMany({ where: { clientRequestId }, orderBy: { createdAt: "asc" } });
+    const apresentacoes = msgs.filter((m) => m.body.includes("Terminamos"));
+    expect(apresentacoes, "o cliente deve receber UMA apresentação, não uma por entrega").toHaveLength(1);
+  });
+
+  it("6. o PM apresentou SOZINHO — ninguém clicou em nada", async () => {
+    // Este é o elo que faltava para a agência rodar 24h: a produção terminava
+    // e o pacote ficava parado dentro de casa esperando alguém lembrar.
+    const projeto = await prisma.project.findUnique({ where: { id: projectId } });
+    expect(projeto?.presentedAt, "o pacote ficou pronto e não foi apresentado").toBeTruthy();
+
     const aprovacoes = await prisma.approvalRequest.findMany({ where: { clientRequestId } });
     expect(aprovacoes.length).toBeGreaterThan(0);
-    expect(aprovacoes.every((a) => a.clientVisible === false)).toBe(true);
-
-    // Só a mensagem de direção existe até aqui — nada de entrega solta.
-    const msgs = await prisma.portalMessage.findMany({ where: { clientRequestId } });
-    expect(msgs.filter((m) => m.body.includes("está pronta"))).toHaveLength(0);
-  });
-
-  it("6. com tudo pronto, a esteira aponta para o PM apresentar", async () => {
-    const status = await statusDoProjeto(projectId);
-    expect(status?.leitura.fase).toBe("revisao_interna");
-    expect(status?.leitura.responsavel).toBe("pm");
-  });
-
-  it("7. o PM apresenta de uma vez, e aí o cliente enxerga", async () => {
-    const r = await apresentar(projectId);
-    expect(r.ok).toBe(true);
-
-    const aprovacoes = await prisma.approvalRequest.findMany({ where: { clientRequestId } });
     expect(aprovacoes.every((a) => a.clientVisible === true)).toBe(true);
 
     const msgs = await prisma.portalMessage.findMany({ where: { clientRequestId }, orderBy: { createdAt: "asc" } });
     const apresentacao = msgs.at(-1)!;
     expect(apresentacao.authorName).toBe("Gerente de projeto");
-    expect(apresentacao.body).toContain("Pacote de conteúdo");
+  });
 
+  it("7. a bola passou para o cliente — a esteira sabe disso sem ninguém avisar", async () => {
     const status = await statusDoProjeto(projectId);
     expect(status?.leitura.fase).toBe("aprovacao_cliente");
     expect(status?.leitura.paraCliente.oQueEsperamosDeVoce.length).toBeGreaterThan(10);

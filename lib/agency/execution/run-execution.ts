@@ -54,7 +54,16 @@ export interface ExecutionResult {
   qualityAudit?: Array<{ department: string; verdict: "pass" | "flag"; issues: string[] }>;
   /** Quantos pedidos de material o PM cobrou do cliente nesta passada. */
   pedidosCobrados?: number;
+  /** O PM tentou apresentar o pacote ao cliente sozinho? Ausente = nem tentou
+   *  (pacote incompleto). `ok: false` = tentou e foi BARRADO — quase sempre
+   *  pela Qualidade, e é exatamente para isso que o freio existe. */
+  apresentado?: ApresentacaoAutomatica;
   error?: string;
+}
+
+export interface ApresentacaoAutomatica {
+  ok: boolean;
+  motivo?: string;
 }
 
 /**
@@ -291,9 +300,51 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
         executionError: allHandled ? null : `pendências: ${skipped.join("; ")}`,
       },
     });
+
+    // ── O PM APRESENTA SOZINHO ────────────────────────────────────────────────
+    // O elo que faltava. A produção terminava e o pacote ficava parado DENTRO da
+    // agência esperando uma pessoa clicar "apresentar" — trabalho pronto, cliente
+    // sem saber. Numa agência que roda sem gente olhando, isso é o mesmo que não
+    // ter produzido.
+    //
+    // Só apresenta quando o pacote está INTEIRO: nada pulado por falha de IA e
+    // nada travado esperando material do cliente. Apresentar metade é pior que
+    // esperar — quebra a promessa de "eu te mostro tudo de uma vez".
+    //
+    // A própria `apresentar` recusa se a Qualidade deixou ressalva. Isso é
+    // deliberado e é o freio que faltava: peça marcada como torta NÃO chega ao
+    // cliente sozinha. Ela para aqui e vira um alerta para a equipe.
+    //
+    // O import é dinâmico de propósito: `marcos.ts` já importa este arquivo
+    // (para disparar a produção quando a direção é aprovada). Um import estático
+    // aqui fecharia o ciclo entre os dois módulos.
+    let apresentado: ApresentacaoAutomatica | undefined;
+    if (allHandled && askedClient.length === 0 && produced.length > 0) {
+      try {
+        const { apresentar } = await import("@/lib/agency/esteira/marcos");
+        const r = await apresentar(projectId);
+        apresentado = { ok: r.ok, motivo: r.erro };
+        if (!r.ok) {
+          // Nenhum humano vai ler um retorno de função. O bloqueio precisa
+          // existir no banco para aparecer no painel e no relatório do Diretor.
+          await prisma.activityEvent.create({
+            data: {
+              workspaceId: project.workspaceId,
+              projectId,
+              clientId: project.clientId,
+              type: "apresentacao_bloqueada",
+              message: `O pacote de ${context.businessName} ficou pronto mas NÃO foi apresentado: ${r.erro ?? "motivo não informado"}`,
+            },
+          }).catch(() => { /* best-effort: o bloqueio não pode derrubar a produção */ });
+        }
+      } catch {
+        apresentado = { ok: false, motivo: "falha ao apresentar" };
+      }
+    }
+
     return {
       ok: true, status: allHandled ? "done" : "failed", produced, askedClient, skipped, qualityAudit,
-      pedidosCobrados,
+      pedidosCobrados, apresentado,
       pmPlan: { orderedDepartments: plan.orderedDepartments, goal: plan.goal, pmMode: plan.pmMode },
     };
   } catch (err) {
