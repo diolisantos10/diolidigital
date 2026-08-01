@@ -1,6 +1,6 @@
 # HANDOFF — Dioli Agency OS
 
-> **Repositório:** `diolisantos10/dioli-agency-os-1` (confirmado via `git remote -v`)
+> **Repositório:** o `git remote -v` (via proxy do ambiente) aponta para `diolisantos10/dioli-agency-os-1`, **mas o GitHub avisa no push que o repo FOI RENOMEADO/MOVIDO para `diolisantos10/diolidigital`** — esse é o nome canônico atual. Se for reclonar, use `diolidigital`. *(O remote antigo ainda redireciona.)*
 > **Branch de trabalho:** `claude/dioli-agency-os-architecture-kk7kp` (é onde este documento foi commitado)
 > **Deploy:** Railway → `dioli-agency-os-1-production.up.railway.app`
 > **Escrito por:** sessão "chat da agência" (uma de várias — ver seção F), Jul–Ago/2026.
