@@ -174,6 +174,52 @@ tudo numa lista só.
 
 ---
 
+## 🧩 A solicitação do briefing público nasce órfã de workspace
+
+Descoberto em 01/08/2026 ao tentar apagar as solicitações de teste: **6 das 7
+solicitações em produção estavam com `workspaceId` NULO.**
+
+**Por que acontece, e é legítimo:** quem preenche o briefing público não está
+logado e não tem como saber a que workspace pertence. A solicitação entra sem
+dono.
+
+**O que isso quebrava, e era bem maior que a limpeza:** as rotas de admin
+filtravam por workspace e respondiam *"Solicitação não encontrada"* para
+briefings que **existiam e apareciam na tela** — atingindo `status`, `fire`,
+`send-proposal`, `diag-ai` e `delete`. Um briefing real ficava invisível para
+quem tentasse agir sobre ele pelo caminho administrativo.
+
+**Remendo aplicado** (commit `e1fa120`): a rota aceita `workspaceId` nulo junto
+com o da sessão. Não afrouxa o escopo — solicitação órfã não pertence a *outro*
+workspace, ela não pertence a nenhum.
+
+**O conserto de raiz ainda está aberto:**
+
+1. O briefing público deve gravar o workspace de destino no momento em que a
+   solicitação nasce (há um só hoje; quando houver mais, a escolha precisa ser
+   explícita — por link, subdomínio ou token do formulário).
+2. As órfãs existentes devem ser adotadas por esse workspace.
+3. Enquanto isso não for feito, **toda rota nova que filtrar por workspace vai
+   reproduzir o mesmo sumiço** — e o sintoma engana, porque parece dado
+   inexistente, não dado escondido.
+
+---
+
+## ✅ Solicitações de teste apagadas — 01/08/2026
+
+Ordem do CEO. Sobraram **4**, todas em `new`: Beatriz, Camila Pereira,
+Dioli Digital Studio e Sushi Cazza.
+
+Apagadas: `Diego` (Restaurante, 28/07), `Diego` (Agência, 23/06) e
+`UI Bridge Test 1781835336580`. Nenhuma tinha projeto, entrega ou tarefa.
+
+> **Decisão junto:** a própria agência entra como **cliente normal**, sem caso
+> especial. Caso especial vira segundo caminho no código, e o menos testado
+> quebra primeiro. De quebra, a Dioli passa pela própria esteira — se o pacote
+> que ela produz para si é ruim, isso aparece antes de um cliente pagante ver.
+
+---
+
 ## 🟡 Fila normal
 
 | O que | Por que importa |
