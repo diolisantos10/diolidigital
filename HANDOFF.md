@@ -4,8 +4,10 @@
 > **Branch de trabalho:** `claude/dioli-agency-os-architecture-kk7kp` (é onde este documento foi commitado)
 > **Deploy:** Railway → `dioli-agency-os-1-production.up.railway.app`
 > **Escrito por:** sessão "chat da agência" (uma de várias — ver seção F), Jul–Ago/2026.
+> **Revisão 2 (Ago/2026):** atualizado depois que a **camada Meta foi mergeada** nesta branch e os **secrets expostos foram revogados**. Ver D1 (WhatsApp: RESOLVIDO) e a nota de segurança abaixo. Doc canônico de pendências abertas do projeto: **`docs/pendencias.md`**.
 
 > ⚠️ **SEM SEGREDOS AQUI.** Este arquivo pode ser público. Nenhuma chave, token, senha, telefone, e-mail ou nome de cliente real está escrito. Onde algo sensível seria citado, use `<em variável de ambiente>`.
+> **Segurança:** os secrets que transitaram em texto durante as sessões (senha do master, tokens do Railway, App Secret da Meta) **já foram revogados/regenerados** — detalhe em `docs/pendencias.md`.
 
 ---
 
@@ -68,7 +70,7 @@ Stack (confirmada no `package.json`):
 
 ## D) O QUE FICOU ABERTO (com "o que quebra se ninguém mexer")
 
-1. **Envio real do WhatsApp** — o gatilho já existe (emito um `ActivityEvent` com `type = "whatsapp_notify"` contendo o link do portal), mas **nada envia**. *Se ninguém construir:* o cliente nunca recebe o aviso "sua proposta está no portal". Dono: **agente da Meta** (chat/branch separado `claude/meta-integration`). Contrato: consumir esse ActivityEvent, pegar o telefone do briefing, enviar, e controlar já-enviados num outbox próprio.
+1. ~~**Envio real do WhatsApp**~~ — **RESOLVIDO (Ago/2026, camada Meta).** O gatilho (`ActivityEvent type="whatsapp_notify"`, emitido em `app/api/admin/reset-request` ao enviar a proposta) **agora É consumido**: `lib/integrations/meta/notifications.ts` monta a mensagem e o cron `POST /api/meta/dispatch` varre os eventos e envia, com **outbox** (não duplica). O contrato desenhado por esta sessão funcionou. *A verificar:* que o cron está agendado de fato e que o telefone (`prospectPhone`) chega do briefing — depende do item 3 abaixo.
 
 2. **"Material chegou → produz sozinho"** — o portão de recursos (decisão B4) **segura** a produção quando falta material, mas **não há gatilho** que retome a produção quando o cliente envia os materiais (aba "Materiais"). *Se ninguém wirar:* projetos com material faltante ficam **travados pra sempre**.
 
@@ -78,7 +80,7 @@ Stack (confirmada no `package.json`):
 
 5. **Datas nas entregas (calendário editorial)** — as entregas não têm data de postagem. O **Planner** existe (`/agency/planner`, modelo `SocialPost`) mas o conteúdo produzido não o alimenta com datas. *Se ninguém ligar:* o cliente recebe conteúdo sem "quando vai ao ar".
 
-6. **Admin headless** — o endpoint `app/api/admin/reset-request` aceita sessão master OU um header-secret (`ADMIN_TASK_SECRET`). O secret **foi removido do Railway** no fim da sessão. *Se alguém re-adicionar:* vira um backdoor que apaga/dispara dados de produção — trate como sensível.
+6. **Admin headless** — o endpoint `app/api/admin/reset-request` aceita sessão master OU um header-secret (`ADMIN_TASK_SECRET`). O secret **foi removido do Railway** no fim da sessão. *Se alguém re-adicionar:* vira um backdoor que apaga/dispara dados de produção — trate como sensível. (Os secrets expostos em chat já foram revogados — ver nota de segurança no topo + `docs/pendencias.md`.)
 
 ---
 
@@ -100,7 +102,7 @@ Stack (confirmada no `package.json`):
    - **"Chat da agência"** (esta sessão): proposta, negociação pós-briefing do SDR, gatilhos de execução, `portal-data`, portão de recursos, visibilidade das entregas.
    - **"Brain-mestre"**: o núcleo de raciocínio (`lib/dioli-brain/*`), o refactor do `run-execution` (PM conductor, quality auditor, Radar/insights, esteira, DeepSeek), commits "Fase 0–6" e "Merge #N".
    - **Agente de "design/UX"**: as telas do cliente (portal, páginas de projeto, "tokeniza páginas").
-   - **Agente da "Meta"** (branch separada `claude/meta-integration`): Instagram/Facebook/WhatsApp.
+   - **Agente da "Meta"**: Instagram/Facebook/WhatsApp. **Já mergeado nesta branch** (não é mais só branch separada) — existe em `app/api/meta/*` (config, connect, connections, publish, templates, whatsapp, dispatch, webhooks, callback) e `lib/integrations/meta/*` (oauth, graph, notifications, connections, inbox, client, discovery, config, templates).
    *Não confirmado:* os nomes/limites exatos de cada sessão — inferido pelos commits.
 
 2. **As chaves de IA NÃO são variáveis de ambiente.** Ficam **criptografadas no banco** (`DbIntegrationConfig.apiKeyEncrypted`), setadas pela tela de Integrações. `lib/ai/resolve-key.ts` checa o banco primeiro, o ambiente depois. **Um Railway sem env de IA NÃO significa "sem IA" — cheque as Integrações.**
