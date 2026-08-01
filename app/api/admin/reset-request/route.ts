@@ -64,6 +64,58 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const projectWhere = { OR: [{ clientRequestId: { in: reqIds0 } }, ...(clientIds0.length ? [{ clientId: { in: clientIds0 } }] : [])] };
 
   // Read-only: where is this business in the pipeline right now?
+  // Apagar a solicitação INTEIRA — a única operação aqui que não tem volta.
+  //
+  // Existe porque a porta de entrada acumula lixo de teste ("UI Bridge Test
+  // 1781835336580") e duplicata, e a alternativa era o reset global no modo
+  // "everything", que levaria junto as solicitações boas. Apagar uma de cada
+  // vez, por id, é o oposto disso.
+  //
+  // Duas travas, e as duas existem porque um `businessName` parcial casa com
+  // mais do que se espera — "Diego" casa com dois cadastros diferentes:
+  //   1. exige `requestId` explícito; nome não serve para apagar;
+  //   2. exige a frase de confirmação, como o reset global.
+  if (action === "delete") {
+    if (!requestId) {
+      return NextResponse.json(
+        { error: "Para apagar é obrigatório o requestId — nome de negócio casa com mais de uma solicitação" },
+        { status: 400 },
+      );
+    }
+    if (body.confirm !== "DELETE_REQUEST") {
+      return NextResponse.json({ error: 'confirm obrigatório: "DELETE_REQUEST"' }, { status: 400 });
+    }
+    const alvo = requests[0];
+    const projetos = await prisma.project.findMany({ where: projectWhere, select: { id: true } });
+    const projectIds = projetos.map((p) => p.id);
+
+    const removido = { projetos: projectIds.length, entregas: 0, tarefas: 0 };
+    await prisma.$transaction(async (tx) => {
+      if (projectIds.length) {
+        // Estes dois apontam para o projeto sem cascata — soltar antes de apagar.
+        await tx.activityEvent.updateMany({ where: { projectId: { in: projectIds } }, data: { projectId: null } });
+        await tx.aIRunLog.updateMany({ where: { projectId: { in: projectIds } }, data: { projectId: null } });
+        removido.entregas = await tx.deliverable.count({ where: { projectId: { in: projectIds } } });
+        removido.tarefas = await tx.task.count({ where: { projectId: { in: projectIds } } });
+        // Projeto cascateia entregas, tarefas, briefings, salas, ciclos.
+        await tx.project.deleteMany({ where: { id: { in: projectIds } } });
+      }
+      // Sem cascata a partir da solicitação — explícitos.
+      await tx.evidenceItem.deleteMany({ where: { clientRequestId: alvo.id } });
+      await tx.portalAccess.deleteMany({ where: { clientRequestId: alvo.id } });
+      await tx.brainUpdate.deleteMany({ where: { clientRequestId: alvo.id } });
+      await tx.socialPost.deleteMany({ where: { clientRequestId: alvo.id } });
+      // A solicitação cascateia artefatos, aprovações, comentários e conversas.
+      await tx.clientRequestDb.delete({ where: { id: alvo.id } });
+    });
+
+    return NextResponse.json({
+      ok: true, action: "delete",
+      apagada: { id: alvo.id, businessName: alvo.businessName, createdAt: alvo.createdAt },
+      removido,
+    });
+  }
+
   if (action === "status") {
     const projects = await prisma.project.findMany({
       where: projectWhere,
