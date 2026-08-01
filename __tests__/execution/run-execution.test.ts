@@ -6,7 +6,7 @@ const db = vi.hoisted(() => ({
   clientRequestDb: { findUnique: vi.fn() },
   client: { findFirst: vi.fn() },
   brainArtifact: { findMany: vi.fn() },
-  deliverable: { findMany: vi.fn(), create: vi.fn(), update: vi.fn() },
+  deliverable: { findMany: vi.fn(), create: vi.fn(), update: vi.fn(), count: vi.fn() },
   portalMessage: { create: vi.fn() },
   task: { updateMany: vi.fn() },
   materialRequest: { findFirst: vi.fn(), create: vi.fn(), findMany: vi.fn(), updateMany: vi.fn() },
@@ -60,6 +60,7 @@ beforeEach(() => {
   db.brainArtifact.findMany.mockResolvedValue([]);
   db.deliverable.findMany.mockResolvedValue([]);
   db.deliverable.create.mockResolvedValue({ id: "d1" });
+  db.deliverable.count.mockResolvedValue(0);
   db.deliverable.update.mockResolvedValue({});
   db.portalMessage.create.mockResolvedValue({});
   db.task.updateMany.mockResolvedValue({ count: 1 });
@@ -371,5 +372,36 @@ describe("o piso de verdade barra dado inventado antes do cliente", () => {
     // pedida, porque o telefone era o de verdade. É isto que separa um freio
     // útil de um que reprova tudo e acaba desligado.
     expect(generate).toHaveBeenCalledTimes(r.produced.length);
+  });
+});
+
+// Achado em produção: depois do destravamento, a passada seguinte não produz
+// nada (tudo já existe) e o pacote PRONTO não era apresentado. Exigir produção
+// nova fazia a apresentação depender de coincidência.
+describe("o pacote pronto é apresentado mesmo sem produção nova", () => {
+  it("tudo já produzido antes → apresenta assim mesmo", async () => {
+    db.project.findUnique.mockResolvedValue({ ...baseProject });
+    // Todos os especialistas de Social já entregaram numa passada anterior.
+    db.deliverable.findMany.mockResolvedValue([
+      { ownerAgentId: "a3" }, { ownerAgentId: "social-copy" }, { ownerAgentId: "social-roteiro-video" },
+    ]);
+    db.deliverable.count.mockResolvedValue(3);
+
+    const r = await runProjectExecution("p1");
+    expect(r.produced).toHaveLength(0);
+    expect(marcos.apresentar, "o pacote está pronto — tem que ir").toHaveBeenCalledWith("p1");
+    expect(r.apresentado?.ok).toBe(true);
+  });
+
+  it("projeto sem entrega nenhuma → não apresenta pacote vazio", async () => {
+    db.project.findUnique.mockResolvedValue({ ...baseProject, agents: JSON.stringify(["zzz"]) });
+    db.deliverable.findMany.mockResolvedValue([
+      { ownerAgentId: "a3" }, { ownerAgentId: "social-copy" }, { ownerAgentId: "social-roteiro-video" },
+    ]);
+    db.deliverable.count.mockResolvedValue(0);
+
+    const r = await runProjectExecution("p1");
+    expect(r.apresentado).toBeUndefined();
+    expect(marcos.apresentar).not.toHaveBeenCalled();
   });
 });

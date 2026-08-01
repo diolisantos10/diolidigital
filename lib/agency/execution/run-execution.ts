@@ -407,8 +407,17 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
     // O import é dinâmico de propósito: `marcos.ts` já importa este arquivo
     // (para disparar a produção quando a direção é aprovada). Um import estático
     // aqui fecharia o ciclo entre os dois módulos.
+    // A condição é "o pacote está INTEIRO", não "algo foi produzido agora".
+    // A diferença apareceu em produção: depois que o destravamento refez as
+    // entregas reprovadas, a passada seguinte não produziu nada — todas já
+    // existiam — e o pacote pronto não era apresentado. Exigir produção nova
+    // fazia a apresentação depender de coincidência.
+    const jaEntregues = produced.length > 0
+      ? produced.length
+      : await prisma.deliverable.count({ where: { projectId } });
+
     let apresentado: ApresentacaoAutomatica | undefined;
-    if (allHandled && askedClient.length === 0 && produced.length > 0) {
+    if (allHandled && askedClient.length === 0 && jaEntregues > 0) {
       try {
         const { apresentar } = await import("@/lib/agency/esteira/marcos");
         const r = await apresentar(projectId);
