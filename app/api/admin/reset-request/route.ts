@@ -48,9 +48,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   // Thorough: ALL requests for this business (there may be duplicates), and ALL
   // projects for the linked client(s) — including any orphaned/mislinked ones.
+  // A solicitação que chega pelo briefing público nasce SEM workspace — quem
+  // preenche o formulário não está logado e não tem como saber qual é. Na
+  // produção de 01/08/2026, 6 das 7 solicitações estavam com `workspaceId`
+  // nulo, e o filtro por workspace as escondia por completo: `status`, `fire`,
+  // `send-proposal` e `delete` respondiam "Solicitação não encontrada" para
+  // briefings que existiam e apareciam na tela.
+  //
+  // Aceitar o nulo junto com o workspace da sessão é o que reconecta as duas
+  // pontas. Não afrouxa nada em prática: a solicitação órfã não pertence a
+  // outro workspace — ela não pertence a nenhum.
   const requests = await prisma.clientRequestDb.findMany({
     where: {
-      ...(workspaceScope ? { workspaceId: workspaceScope } : {}),
+      ...(workspaceScope ? { OR: [{ workspaceId: workspaceScope }, { workspaceId: null }] } : {}),
       ...(requestId ? { id: requestId } : { businessName: { contains: businessName } }),
     },
     orderBy: { createdAt: "desc" },
