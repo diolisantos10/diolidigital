@@ -68,3 +68,42 @@ repositório **na mesma sessão**.
 **O que muda para todos:** nenhum aprendizado durável pode existir só na conversa.
 E **nenhum chat antigo é fechado antes de exportado e minerado** — ver
 `docs/arquivo/README.md`. Conversa apagada não volta.
+
+---
+
+## Dado real ou estado honesto — nunca número inventado
+
+**Decidido em** 2026-08-01 · **por** PM da sessão de design · **origem:**
+`HANDOFF.md` §5.1 (commit `3f888f1`)
+
+A Inteligência de Marketing devolve `null` ou vazio e a tela mostra *"não
+informado"* / *"conecte"* em vez de preencher com estimativa. Motivo: é um painel
+de **decisão de marketing** — número inventado é pior que ausência, porque ausência
+o dono vê e corrige, e número inventado ele usa.
+
+**O que muda para todos:** vale em toda superfície que mostra dado de cliente, não
+só nessa aba. Campo ausente vira estado honesto na UI, nunca preenchimento.
+
+> **Proposto ao Diretor Geral como regra de companhia.** É a contraparte de
+> interface do guardrail "ausência de informação não é informação" — o mesmo
+> princípio, aplicado à tela em vez da conversa.
+
+---
+
+## Verdade se lê no servidor, não se monta no cliente
+
+**Decidido em** 2026-08-01 · **por** PM da sessão de design · **origem:**
+`HANDOFF.md` §5.2
+
+O endpoint de marketing faz o fan-out no backend (`Promise.all` sobre request,
+artifacts, brandBrain, connections, posts) e entrega um shape já normalizado. O
+componente fica burro e testável, e o parsing de JSON fica num lugar só.
+
+**O que muda para todos:** esta decisão é a **mesma** do P0 aberto em
+`docs/pendencias.md` — *"a verdade do cliente é montada no cliente"* em
+`reason.ts`. O padrão certo já existe e já está em produção num endpoint. Quem for
+fechar aquele P0 deve copiar este desenho, não inventar outro.
+
+Registrar isso aqui é o ponto do corredor: sem ele, o especialista `cerebro`
+resolveria de um jeito e o `esteira` de outro, e em um mês haveria dois padrões
+brigando.
