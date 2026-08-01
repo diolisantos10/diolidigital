@@ -15,11 +15,20 @@ pendentes do Brain, 2 eventos de atividade.
 **Preservado:** os 2 cadastros de cliente, as **7 solicitações** (todas de volta
 ao status `new`), os 182 insights do Radar, as 3 integrações e o login.
 
-**Observação de quem executou:** não havia **nenhum** `BrandBrain` em produção —
-o que a Opção A prometia preservar de mais valioso (cores, tom de voz, público
-aprendidos) simplesmente não existia. Ou seja: **o sistema nunca gravou marca de
-cliente nenhum.** Vale investigar por que, porque o motor de produção lê dali
-(`run-execution.ts:211-219`) e cai para vazio sem avisar.
+**Observação de quem executou — e virou conserto no mesmo dia:** não havia
+**nenhum** `BrandBrain` em produção. O que a Opção A prometia preservar de mais
+valioso (cores, tom de voz, público) simplesmente não existia: **o sistema nunca
+gravou marca de cliente nenhum.**
+
+A causa: o `BrandBrain` só era escrito por formulário manual da agência ou por
+aprendizado que alguém precisava aprovar — e numa agência sem gente olhando,
+isso significa nunca. O motor lia a marca, encontrava vazio, **não avisava nada**
+e produzia peça genérica.
+
+✅ **Resolvido em `42d284d`:** o briefing do cliente vira `BrandBrain` no momento
+em que o projeto nasce. Nunca sobrescreve ajuste manual, e nunca inventa — campo
+que o cliente não contou fica vazio, e vazio é o que faz o especialista pedir o
+material em vez de chutar.
 
 **Duas das 7 solicitações preservadas são lixo de teste** —
 `UI Bridge Test 1781835336580` e `Dioli Digital Studio` (a própria agência).
@@ -128,7 +137,7 @@ que continua sendo o P0 da casa.
 
 ---
 
-## 🔌 A tela de integrações mistura duas coisas que não se misturam
+## 🔌 Integrações: escopo separado ✅ · tela do cliente ainda aberta
 
 Levantado pelo CEO em 01/08/2026, e conferido no catálogo: **das 17 integrações,
 5 estão na tela errada.**
@@ -158,14 +167,20 @@ já tem `clientId` (nulo = conta da própria agência, preenchido = conta do
 cliente). O desenho de dados já previa a separação; a interface é que juntou
 tudo numa lista só.
 
-**O que precisa ser feito:**
+**Feito** (commit `e7b2c37`):
 
-1. Separar o catálogo em dois escopos explícitos: `agencia` e `cliente`.
-2. As 5 de escopo `cliente` saem de `/agency/integrations` e passam a viver na
-   página do cliente — e no **portal**, para que ele mesmo autorize.
-3. Guardar `clientId` em toda conexão de escopo `cliente` (a Meta já guarda; as
-   de Google ainda não existem).
-4. Na tela da agência, mostrar por cliente **o que falta conectar** — hoje não
+1. ✅ `IntegrationScope` separa `agencia` de `cliente`, derivado da categoria.
+2. ✅ A tela da agência mostra só as 12 dela; as 5 do cliente aparecem em seção
+   própria, marcadas "no painel do cliente", **com a explicação do porquê** —
+   sumir sem dizer nada faria a próxima pessoa procurar função perdida.
+3. ✅ Teste de regressão: nada com "google ads", "analytics", "search console"
+   ou "meta ads" no nome pode cair na lista da agência.
+
+**Ainda aberto:**
+
+4. As 5 do cliente **têm o lugar certo marcado, mas ainda não têm a tela** no
+   painel dele — nem a autorização pelo próprio portal, que é o desenho certo.
+5. Na tela da agência, mostrar por cliente **o que falta conectar** — hoje não
    há como saber que o cliente X está sem GA4 até alguém procurar.
 
 > Google Ads, GA4 e Search Console **ainda não têm código de conexão nenhum** —
@@ -174,7 +189,7 @@ tudo numa lista só.
 
 ---
 
-## 🧩 A solicitação do briefing público nasce órfã de workspace
+## ✅ A solicitação órfã de workspace — RESOLVIDA em 01/08/2026
 
 Descoberto em 01/08/2026 ao tentar apagar as solicitações de teste: **6 das 7
 solicitações em produção estavam com `workspaceId` NULO.**
@@ -193,15 +208,17 @@ quem tentasse agir sobre ele pelo caminho administrativo.
 com o da sessão. Não afrouxa o escopo — solicitação órfã não pertence a *outro*
 workspace, ela não pertence a nenhum.
 
-**O conserto de raiz ainda está aberto:**
+**Conserto de raiz feito** (commit `99e93c6`):
 
-1. O briefing público deve gravar o workspace de destino no momento em que a
-   solicitação nasce (há um só hoje; quando houver mais, a escolha precisa ser
-   explícita — por link, subdomínio ou token do formulário).
-2. As órfãs existentes devem ser adotadas por esse workspace.
-3. Enquanto isso não for feito, **toda rota nova que filtrar por workspace vai
-   reproduzir o mesmo sumiço** — e o sintoma engana, porque parece dado
-   inexistente, não dado escondido.
+1. ✅ O serviço de criação resolve o workspace quando o formulário não informa —
+   com uma agência só, existe um e é aquele. **Quando houver mais de uma, a
+   escolha volta a ser obrigatória e explícita** (link, subdomínio ou token do
+   formulário): adivinhar entre duas seria pior que o nulo, porque mandaria o
+   briefing de um cliente para a caixa de entrada de outra agência.
+2. ✅ As 3 órfãs que restavam foram adotadas em produção. As 4 solicitações vivas
+   têm dono.
+3. Fica o alerta para quem vier: **rota nova que filtre por workspace deve
+   lembrar que o sintoma engana** — parece dado inexistente, e é dado escondido.
 
 ---
 
