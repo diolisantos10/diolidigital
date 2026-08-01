@@ -107,3 +107,29 @@ fechar aquele P0 deve copiar este desenho, não inventar outro.
 Registrar isso aqui é o ponto do corredor: sem ele, o especialista `cerebro`
 resolveria de um jeito e o `esteira` de outro, e em um mês haveria dois padrões
 brigando.
+
+---
+
+## O reset da casa preserva a porta de entrada
+
+**Decidido em** 2026-08-01 · **por** CEO, na sessão do PM · **origem:** pedido
+direto de "começar do zero"
+
+Zerar a operação apaga cliente, projeto, entregas, aprovações, portal e o cérebro
+de marca — mas **não** apaga as solicitações de novos clientes. Elas voltam ao
+estado `new`, desligadas do cliente que foi apagado, e são o ponto de partida da
+operação seguinte.
+
+Motivo: a solicitação é a única coisa no banco que **veio de fora**. Cliente,
+projeto e entrega o sistema refaz sozinho a partir dela; a solicitação, não —
+quem a escreveu foi um prospect, e ela não se reconstrói.
+
+**O que muda para todos:** `DELETE /api/admin/reset` passa a ter dois modos, e o
+**padrão é preservar** (`keep-requests`). Apagar a porta de entrada exige pedir
+`mode: "everything"` de propósito. Junto veio um `GET /api/admin/reset` — auditoria
+somente-leitura que mostra o que seria apagado e o que seria preservado, **sem
+apagar nada**. Regra: nunca se roda o reset sem rodar a auditoria antes.
+
+O que nenhum modo toca: workspace, usuários e login, chaves de IA e integrações,
+contas conectadas da Meta, o Radar de mercado, a governança do Brain e o histórico
+de treino do SDR. Isso é a agência, não é dado de cliente.
