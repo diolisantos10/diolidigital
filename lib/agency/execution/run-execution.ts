@@ -20,11 +20,19 @@ import {
   DEPARTAMENTOS, ctxBlock,
   type Ctx, type Departamento, type Especialista,
 } from "@/lib/agency/execution/especialistas";
+import {
+  conferirPisoDeVerdade, resumirViolacoes,
+  type VerdadeDoCliente,
+} from "@/lib/agency/execution/piso-de-verdade";
 
 /** Conteúdo mínimo aceitável de uma entrega (gate de saída: nada vazio/lixo vai ao cliente). */
 const MIN_DELIVERABLE_CHARS = 40;
 /** Máximo de revisões que a Qualidade pede antes de publicar (bounded — sem loop infinito). */
 const MAX_QUALITY_REVISIONS = 1;
+/** Tentativas de corrigir dado inventado antes de barrar a peça de vez. Uma é
+ *  suficiente: se o modelo repetiu a invenção com o parecer na mão, insistir só
+ *  gasta tokens — e a peça não pode ir ao cliente de qualquer forma. */
+const MAX_CORRECOES_DE_PISO = 1;
 
 function deliverableMarkdown(data: Record<string, unknown>): string {
   const items = Array.isArray(data.items) ? data.items : [];
@@ -58,7 +66,16 @@ export interface ExecutionResult {
    *  (pacote incompleto). `ok: false` = tentou e foi BARRADO — quase sempre
    *  pela Qualidade, e é exatamente para isso que o freio existe. */
   apresentado?: ApresentacaoAutomatica;
+  /** Peças que afirmaram dado que a agência não sustenta e NÃO foram publicadas.
+   *  Diferente do parecer da Qualidade: isto é fato objetivo, e bloqueia. */
+  barradosNoPiso?: BarradoNoPiso[];
   error?: string;
+}
+
+export interface BarradoNoPiso {
+  especialista: string;
+  violacoes: string[];
+  parecer: string;
 }
 
 export interface ApresentacaoAutomatica {
@@ -152,6 +169,24 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
       })(),
     };
 
+    // ── A VERDADE ANCORADA DO CLIENTE ────────────────────────────────────────
+    // O que a agência SABE. Tudo que a peça afirmar além disto é invenção, e é
+    // o piso determinístico que reprova — sem depender de IA nenhuma.
+    const verdade: VerdadeDoCliente = {
+      businessName: context.businessName,
+      telefones: [client?.phone, (scope as Record<string, unknown>).prospectPhone, (scope as Record<string, unknown>).phone]
+        .filter((v): v is string => typeof v === "string" && v.trim().length > 0),
+      emails: [client?.email, (scope as Record<string, unknown>).prospectEmail, (scope as Record<string, unknown>).email]
+        .filter((v): v is string => typeof v === "string" && v.trim().length > 0),
+      servicos: services,
+      valores: [
+        (scope as Record<string, unknown>).monthlyBudget,
+        (scope as Record<string, unknown>).adsBudget,
+        (scope as Record<string, unknown>).budget,
+      ].map((v) => (typeof v === "number" ? v : Number(String(v ?? "").replace(/[^\d.,]/g, "").replace(/\./g, "").replace(",", "."))))
+       .filter((n) => Number.isFinite(n) && n > 0),
+    };
+
     const agents = (() => { try { return JSON.parse(project.agents ?? "[]"); } catch { return []; } })() as string[];
     const producedAgents = new Set(existing.map((d) => d.ownerAgentId).filter(Boolean));
 
@@ -189,6 +224,7 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
     const askedClient: string[] = [];
     const skipped: string[] = [];
     const qualityAudit: Array<{ department: string; verdict: "pass" | "flag"; issues: string[] }> = [];
+    const barradosNoPiso: BarradoNoPiso[] = [];
 
     for (const { dept, esp } of toRun) {
       // Como este trabalho se chama no relatório e no portal: casa · especialista.
@@ -239,6 +275,52 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
 
       // Produziu: sai de "produzindo" e entra em revisão — é onde a Qualidade age.
       await moverTarefasDoAgente(projectId, esp.id, "review");
+
+      // ── O PISO DE VERDADE — o freio que NÃO depende de IA ────────────────
+      // Roda ANTES do juiz de IA e é bloqueante. Um LLM julgando outro LLM tem
+      // o mesmo ponto cego dos dois: telefone inventado plausível parece
+      // plausível para o juiz também. Este confere contra a verdade conhecida
+      // do cliente, em código, sem rede — e por isso nunca fica "indisponível".
+      //
+      // Não julga qualidade nem gosto: responde só se a peça afirma FATO que a
+      // agência não tem como sustentar. Reprovou, o especialista refaz com o
+      // parecer na mão; reprovou de novo, a peça NÃO é publicada.
+      let piso = conferirPisoDeVerdade(body, verdade);
+      let correcoesDePiso = 0;
+      while (!piso.aprovado && correcoesDePiso < MAX_CORRECOES_DE_PISO) {
+        const parecer = resumirViolacoes(piso.violacoes);
+        const refeito = await generate({
+          system: "Você é um agente sênior de uma agência de marketing brasileira. Sua entrega afirmou dados que a agência NÃO tem como sustentar. Corrija removendo ou substituindo por \"PRECISO CONFIRMAR: <o quê>\". NUNCA troque um dado inventado por outro inventado. Responda SOMENTE JSON válido no mesmo formato.",
+          user: `${esp.prompt(context)}\n\nA VERIFICAÇÃO DE VERDADE REPROVOU a versão anterior: ${parecer}\n\nRefaça sem esses dados. Onde faltar informação do cliente, escreva "PRECISO CONFIRMAR: <o quê>".`,
+          maxTokens: 1800, workspaceId: project.workspaceId, preferredProvider: esp.provedor ?? "claude",
+        });
+        correcoesDePiso++;
+        if (!refeito.ok) break;
+        const corrigido = deliverableMarkdown(refeito.data as Record<string, unknown>);
+        if (!corrigido || corrigido.length < MIN_DELIVERABLE_CHARS) break;
+        body = corrigido;
+        const t = (refeito.data as Record<string, unknown>).title;
+        if (typeof t === "string" && t.trim()) title = t;
+        piso = conferirPisoDeVerdade(body, verdade);
+      }
+
+      if (!piso.aprovado) {
+        // NÃO PUBLICA. Este é o ponto em que a casa deixa de ser 100% "sai de
+        // qualquer jeito": dado inventado que sobreviveu à correção não vira
+        // entrega. Fica registrado para a equipe, e o cliente não vê.
+        const parecer = resumirViolacoes(piso.violacoes);
+        skipped.push(`${nome} (reprovado no piso de verdade: ${piso.violacoes.map((v) => v.id).join(", ")})`);
+        barradosNoPiso.push({ especialista: nome, violacoes: piso.violacoes.map((v) => v.id), parecer });
+        await moverTarefasDoAgente(projectId, esp.id, "pending");
+        await prisma.activityEvent.create({
+          data: {
+            workspaceId: project.workspaceId, projectId, clientId: project.clientId,
+            type: "piso_de_verdade_barrou",
+            message: `${nome} para ${context.businessName}: ${parecer}`.slice(0, 900),
+          },
+        }).catch(() => { /* best-effort: o registro não pode derrubar a produção */ });
+        continue;
+      }
 
       // QUALIDADE ATIVA — o loop de correção (garante boa entrega ANTES do cliente):
       // audita → se reprovar, o agente REVISA com o parecer → reentrega melhorada.
@@ -351,7 +433,7 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
 
     return {
       ok: true, status: allHandled ? "done" : "failed", produced, askedClient, skipped, qualityAudit,
-      pedidosCobrados, apresentado,
+      pedidosCobrados, apresentado, barradosNoPiso,
       pmPlan: { orderedDepartments: plan.orderedDepartments, goal: plan.goal, pmMode: plan.pmMode },
     };
   } catch (err) {

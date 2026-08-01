@@ -317,3 +317,59 @@ describe("o PM apresenta sozinho quando o pacote fecha", () => {
     expect(marcos.apresentar).not.toHaveBeenCalled();
   });
 });
+
+// O P0 da casa: até aqui, "nada impedia uma peça errada de sair". O piso de
+// verdade é o primeiro freio que roda em código, não depende de IA e BLOQUEIA.
+describe("o piso de verdade barra dado inventado antes do cliente", () => {
+  it("telefone inventado → o especialista refaz, e a versão limpa é publicada", async () => {
+    db.project.findUnique.mockResolvedValue({ ...baseProject, agents: JSON.stringify(["a5"]) });
+    generate
+      .mockResolvedValueOnce({ ok: true, data: { title: "T", summary: "s", items: [{ headline: "Reserve", caption: "Ligue (11) 91234-5678 e reserve sua mesa hoje mesmo." }] } })
+      .mockResolvedValue({ ok: true, data: { title: "T", summary: "s", items: [{ headline: "Reserve", caption: "Reserve sua mesa pelo canal oficial da casa, sem complicação." }] } });
+
+    const r = await runProjectExecution("p1");
+    expect(db.deliverable.create).toHaveBeenCalled();
+    const publicado = db.deliverable.create.mock.calls[0]![0].data.content as string;
+    expect(publicado, "o telefone inventado não pode sobreviver").not.toMatch(/91234-5678/);
+    expect(r.barradosNoPiso ?? []).toHaveLength(0);
+  });
+
+  it("insistiu na invenção → NÃO publica, e o bloqueio fica registrado", async () => {
+    // Este é o ponto exato em que a casa deixa de ser "sai de qualquer jeito".
+    db.project.findUnique.mockResolvedValue({ ...baseProject, agents: JSON.stringify(["a5"]) });
+    generate.mockResolvedValue({ ok: true, data: { title: "T", summary: "s", items: [{ headline: "Reserve", caption: "Garantimos 80% mais vendas já no primeiro mês, sem esforço nenhum." }] } });
+
+    const r = await runProjectExecution("p1");
+    expect(db.deliverable.create).not.toHaveBeenCalled();
+    expect(r.barradosNoPiso!.length).toBeGreaterThan(0);
+    expect(r.barradosNoPiso![0]!.violacoes).toContain("promessa_de_resultado");
+
+    const ev = db.activityEvent.create.mock.calls.map((c) => c[0].data.type);
+    expect(ev, "bloqueio precisa existir no banco, não só no retorno").toContain("piso_de_verdade_barrou");
+  });
+
+  it("peça barrada não conta como pronta — o pacote não é apresentado", async () => {
+    db.project.findUnique.mockResolvedValue({ ...baseProject, agents: JSON.stringify(["a5"]) });
+    generate.mockResolvedValue({ ok: true, data: { title: "T", summary: "s", items: [{ headline: "X", caption: "Nosso CNPJ é 12.345.678/0001-90, fale com a gente quando quiser." }] } });
+
+    const r = await runProjectExecution("p1");
+    expect(r.status).toBe("failed");
+    expect(marcos.apresentar).not.toHaveBeenCalled();
+  });
+
+  it("o dado REAL do cliente passa sem revisão — o piso não atrapalha o trabalho", async () => {
+    db.clientRequestDb.findUnique.mockResolvedValue({
+      id: "cr1", businessName: "Loja X", services: JSON.stringify(["social"]), objectives: "[]",
+      briefingJson: JSON.stringify({ scope: { prospectPhone: "(11) 98940-0692" } }),
+    });
+    db.project.findUnique.mockResolvedValue({ ...baseProject, agents: JSON.stringify(["a5"]) });
+    generate.mockResolvedValue({ ok: true, data: { title: "T", summary: "s", items: [{ headline: "Fale", caption: "Chame no WhatsApp (11) 98940-0692 e a gente responde rapidinho." }] } });
+
+    const r = await runProjectExecution("p1");
+    expect(r.barradosNoPiso ?? []).toHaveLength(0);
+    // Uma chamada de IA por especialista e MAIS NENHUMA: nenhuma correção foi
+    // pedida, porque o telefone era o de verdade. É isto que separa um freio
+    // útil de um que reprova tudo e acaba desligado.
+    expect(generate).toHaveBeenCalledTimes(r.produced.length);
+  });
+});
