@@ -168,8 +168,8 @@ function CartPanel({
       rows.push({ label: "Reels", value: scope.social.reelsPerMonth > 0 ? `${scope.social.reelsPerMonth}/mês` : "Não incluído", dim: scope.social.reelsPerMonth === 0 });
   }
   if (scope.wantsPaidTraffic) rows.push({ label: "Serviço", value: "Tráfego Pago" });
-  if (scope.branding.requested) rows.push({ label: "Serviço", value: "Identidade Visual" });
-  if (scope.branding.hasBrandBook) rows.push({ label: "Brand Book", value: "Disponível" });
+  if (scope.branding?.requested) rows.push({ label: "Serviço", value: "Identidade Visual" });
+  if (scope.branding?.hasBrandBook) rows.push({ label: "Brand Book", value: "Disponível" });
 
   const QUICK_ACTIONS = [
     { label: "Plano Starter", text: "Quero começar com um plano mais simples e barato", show: scope.wantsSocialMedia && (scope.social?.postsPerWeek ?? 0) * 4 > 8 },
@@ -303,7 +303,7 @@ function CartPanel({
         )}
 
         {/* Empty plan reference */}
-        {!scope.wantsSocialMedia && !scope.wantsPaidTraffic && !scope.branding.requested && (
+        {!scope.wantsSocialMedia && !scope.wantsPaidTraffic && !scope.branding?.requested && (
           <div className="border-t border-[var(--border)] pt-3">
             <div className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em] mb-2">Planos Social Media</div>
             {SOCIAL_PACKAGES.map((pkg) => (

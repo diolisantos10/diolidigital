@@ -65,7 +65,13 @@ export interface BriefingScope {
   social?: SocialScope;
   wantsPaidTraffic?: boolean;
   traffic?: TrafficScope;
-  branding: BrandingScope;
+  /** OPCIONAL, e a correção não é cosmética: o briefing que não fala de
+   *  identidade visual simplesmente não traz este bloco. O tipo declarava
+   *  obrigatório, o dado real vinha sem, e o `as` no meio do caminho escondia a
+   *  diferença — até a proposta quebrar em produção com "Cannot read properties
+   *  of undefined". Tipo que mente sobre o dado é pior que tipo ausente: dá a
+   *  falsa segurança de que o compilador conferiu. */
+  branding?: BrandingScope;
   budgetRange?: string;
   deadline?: string;
   // Qualification depth
@@ -116,6 +122,13 @@ export interface ConvState {
 }
 
 // ── Constructors ──────────────────────────────────────────────────────────────
+/** O bloco de identidade visual completo, com os padrões da casa.
+ *
+ *  Ganhou importância quando `branding` virou opcional no escopo: o bloco pode
+ *  não existir, mas os três booleanos dele NÃO são opcionais — quem preenche,
+ *  preenche inteiro. Use isto como base ao montar um `branding` parcial, em vez
+ *  de espalhar `?? false` por aí: cada lugar que inventa o próprio default é um
+ *  lugar que um dia vai inventar diferente. */
 export function emptyBrandingScope(): BrandingScope {
   return { requested: false, hasBrandBook: false, wantsRebrand: false };
 }

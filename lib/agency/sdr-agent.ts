@@ -214,7 +214,7 @@ export function detectNegotiationStage(
 ): NegotiationStage {
   if (sdr.objection.active) return "objection_handling";
   const identityDone = !!scope.prospectEmail && !!scope.prospectPhone;
-  const hasService = scope.wantsSocialMedia || !!scope.wantsPaidTraffic || scope.branding.requested;
+  const hasService = scope.wantsSocialMedia || !!scope.wantsPaidTraffic || scope.branding?.requested;
   if (!identityDone) return "discovery";
   if (!hasService) return "qualification";
   if (estimate.confidence === "none") return "pricing";
@@ -325,7 +325,7 @@ export function buildBudgetQuestion(scope: BriefingScope, _estimate: LiveEstimat
 export function canSubmitProposal(conv: ConvState, sdr: SDRAgentState): boolean {
   const scope = conv.scope;
   if (!scope.prospectName || !scope.businessName) return false;
-  const hasService = scope.wantsSocialMedia || !!scope.wantsPaidTraffic || scope.branding.requested;
+  const hasService = scope.wantsSocialMedia || !!scope.wantsPaidTraffic || scope.branding?.requested;
   if (!hasService || sdr.objection.active) return false;
   // Full protocol must be complete — no substantive question left to ask.
   if (remainingRequiredQuestions(conv).length > 0) return false;
@@ -336,7 +336,7 @@ export function getSubmissionBlockReason(conv: ConvState, sdr: SDRAgentState): s
   const scope = conv.scope;
   if (!scope.prospectName || !scope.businessName)
     return "Me diga seu nome e o nome do seu negócio para começar.";
-  if (!scope.wantsSocialMedia && !scope.wantsPaidTraffic && !scope.branding.requested)
+  if (!scope.wantsSocialMedia && !scope.wantsPaidTraffic && !scope.branding?.requested)
     return "Conte o que você precisa para montarmos seu pedido.";
   if (sdr.objection.active)
     return "Resolva o ponto em aberto antes de continuar.";
@@ -353,7 +353,7 @@ export function computeQualificationScore(scope: BriefingScope, sdr: SDRAgentSta
   if (scope.businessName)    score += 1;
   if (scope.prospectEmail)   score += 2;
   if (scope.prospectPhone)   score += 2;
-  if (scope.wantsSocialMedia || scope.wantsPaidTraffic || scope.branding.requested) score += 1;
+  if (scope.wantsSocialMedia || scope.wantsPaidTraffic || scope.branding?.requested) score += 1;
   if (scope.serviceMode)     score += 1;
   if (sdr.budgetSignal.fitStatus !== "unknown") score += 1;
   if (scope.objectives.length > 0) score += 1;
@@ -390,9 +390,9 @@ export function runSDRQualityGate(conv: ConvState, sdr: SDRAgentState): SDRQuali
     {
       id: "service",
       label: "Pelo menos 1 serviço selecionado",
-      status: (s.wantsSocialMedia || s.wantsPaidTraffic || s.branding.requested) ? "PASS" : "FAIL",
-      detail: (s.wantsSocialMedia || s.wantsPaidTraffic || s.branding.requested)
-        ? [s.wantsSocialMedia && "Social Media", s.wantsPaidTraffic && "Tráfego Pago", s.branding.requested && "Identidade Visual"].filter(Boolean).join(", ")
+      status: (s.wantsSocialMedia || s.wantsPaidTraffic || s.branding?.requested) ? "PASS" : "FAIL",
+      detail: (s.wantsSocialMedia || s.wantsPaidTraffic || s.branding?.requested)
+        ? [s.wantsSocialMedia && "Social Media", s.wantsPaidTraffic && "Tráfego Pago", s.branding?.requested && "Identidade Visual"].filter(Boolean).join(", ")
         : "Nenhum serviço definido.",
     },
     {
@@ -482,10 +482,10 @@ export function buildCognitiveFlowSummary(conv: ConvState, sdr: SDRAgentState): 
   const steps: CognitiveFlowStepResult[] = [
     {
       stepId: "01_intention", order: 1, label: "Intenção Detectada",
-      completed: s.wantsSocialMedia || !!s.wantsPaidTraffic || s.branding.requested,
-      confidence: (s.wantsSocialMedia || !!s.wantsPaidTraffic || s.branding.requested) ? "high" : null,
-      summary: (s.wantsSocialMedia || !!s.wantsPaidTraffic || s.branding.requested)
-        ? `Serviços: ${[s.wantsSocialMedia && "Social Media", s.wantsPaidTraffic && "Tráfego Pago", s.branding.requested && "ID Visual"].filter(Boolean).join(", ")}`
+      completed: s.wantsSocialMedia || !!s.wantsPaidTraffic || !!s.branding?.requested,
+      confidence: (s.wantsSocialMedia || !!s.wantsPaidTraffic || s.branding?.requested) ? "high" : null,
+      summary: (s.wantsSocialMedia || !!s.wantsPaidTraffic || s.branding?.requested)
+        ? `Serviços: ${[s.wantsSocialMedia && "Social Media", s.wantsPaidTraffic && "Tráfego Pago", s.branding?.requested && "ID Visual"].filter(Boolean).join(", ")}`
         : "Nenhum serviço detectado.",
     },
     {
@@ -512,13 +512,13 @@ export function buildCognitiveFlowSummary(conv: ConvState, sdr: SDRAgentState): 
     },
     {
       stepId: "05_routing", order: 5, label: "Roteamento de Departamento",
-      completed: s.wantsSocialMedia || !!s.wantsPaidTraffic || s.branding.requested,
+      completed: s.wantsSocialMedia || !!s.wantsPaidTraffic || !!s.branding?.requested,
       confidence: "high",
       summary: (() => {
         const depts: string[] = [];
         if (s.wantsSocialMedia) depts.push("Social Media", "Design");
         if (s.wantsPaidTraffic) depts.push("Tráfego Pago");
-        if (s.branding.requested) depts.push("Identidade Visual");
+        if (s.branding?.requested) depts.push("Identidade Visual");
         return depts.length > 0 ? depts.join(", ") : "Departamento não determinado.";
       })(),
     },
@@ -532,10 +532,10 @@ export function buildCognitiveFlowSummary(conv: ConvState, sdr: SDRAgentState): 
     },
     {
       stepId: "07_brand", order: 7, label: "Contexto de Marca",
-      completed: s.branding.hasBrandBook || s.branding.requested || !!s.segment,
-      confidence: s.branding.hasBrandBook ? "high" : (s.branding.requested || !!s.segment) ? "medium" : null,
-      summary: s.branding.hasBrandBook ? "Brand Book disponível."
-        : s.branding.requested ? "Identidade Visual solicitada."
+      completed: s.branding?.hasBrandBook || s.branding?.requested || !!s.segment,
+      confidence: s.branding?.hasBrandBook ? "high" : (s.branding?.requested || !!s.segment) ? "medium" : null,
+      summary: s.branding?.hasBrandBook ? "Brand Book disponível."
+        : s.branding?.requested ? "Identidade Visual solicitada."
         : s.segment ? `Segmento: ${s.segment}.`
         : "Contexto de marca não capturado.",
     },
@@ -607,12 +607,12 @@ export function buildBrainReasoningOutput(
   const services: string[] = [];
   if (s.wantsSocialMedia) services.push("Social Media");
   if (s.wantsPaidTraffic) services.push("Tráfego Pago");
-  if (s.branding.requested) services.push("Identidade Visual");
+  if (s.branding?.requested) services.push("Identidade Visual");
 
   const depts: string[] = [];
   if (s.wantsSocialMedia) { depts.push("social-media"); depts.push("design"); }
   if (s.wantsPaidTraffic) depts.push("paid-traffic");
-  if (s.branding.requested) depts.push("brand-hub");
+  if (s.branding?.requested) depts.push("brand-hub");
 
   const knownFacts: string[] = [];
   if (s.prospectName) knownFacts.push(`Prospect: ${s.prospectName}`);
@@ -691,7 +691,7 @@ export function buildHandoffSummary(conv: ConvState, sdr: SDRAgentState): SDRHan
     serviceList.push(`Social Media${ppm > 0 ? ` (${ppm} posts/mês)` : ""}`);
   }
   if (scope.wantsPaidTraffic) serviceList.push("Tráfego Pago");
-  if (scope.branding.requested) serviceList.push("Identidade Visual");
+  if (scope.branding?.requested) serviceList.push("Identidade Visual");
 
   const modeStr = scope.serviceMode && scope.serviceMode !== "unsure"
     ? ` ${engagementLabel(scope.serviceMode)}.` : "";

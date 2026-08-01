@@ -29,7 +29,7 @@ function evalIdentityCaptured(run: SimulationRun): CriterionResult {
 
 function evalServiceIdentified(run: SimulationRun): CriterionResult {
   const scope = run.finalScope;
-  const pass = !!(scope?.wantsSocialMedia || scope?.wantsPaidTraffic || scope?.branding.requested);
+  const pass = !!(scope?.wantsSocialMedia || scope?.wantsPaidTraffic || scope?.branding?.requested);
   return {
     id: "service_identified",
     pass,

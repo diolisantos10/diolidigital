@@ -76,7 +76,7 @@ describe("SDR discovery protocol — complete before closing", () => {
     // Branding-specific discovery must appear.
     expect(t).toMatch(/identidade|logo/);
     expect(t).toMatch(/paleta|tipografia|manual|do zero/);
-    expect(state.conv.scope.branding.requested).toBe(true);
+    expect(state.conv.scope.branding?.requested).toBe(true);
   });
 });
 
@@ -89,7 +89,7 @@ describe("SDR intake fixes — Os 3 and Negócio≠Nome", () => {
     const sc = s.conv.scope;
     expect(sc.wantsSocialMedia).toBe(true);
     expect(sc.wantsPaidTraffic).toBe(true);
-    expect(sc.branding.requested).toBe(true);
+    expect(sc.branding?.requested).toBe(true);
   });
 
   it("a bare multi-word person name never becomes the business name", () => {
@@ -97,5 +97,34 @@ describe("SDR intake fixes — Os 3 and Negócio≠Nome", () => {
     s = processProspectMessage("Beatriz Souza Gimenes", s);   // person's full name
     expect(s.conv.scope.prospectName).toBe("Beatriz Souza Gimenes");
     expect(s.conv.scope.businessName).not.toBe("Beatriz Souza Gimenes");
+  });
+});
+
+// O briefing SEM bloco de identidade visual é o caso COMUM, não a exceção — e
+// era o que derrubava a proposta inteira em produção com "Cannot read
+// properties of undefined". O tipo dizia obrigatório, o dado real vinha sem.
+describe("briefing sem bloco de identidade visual não derruba nada", () => {
+  it("calcular a proposta NÃO explode quando branding não veio", async () => {
+    // A garantia é esta: não lançar. Antes, `scope.branding.requested` sem
+    // proteção derrubava a rota inteira com 500 e a proposta nunca chegava ao
+    // cliente — independente do valor calculado.
+    const { computeEstimate } = await import("@/lib/agency/live-calculator");
+    const chamada = () => computeEstimate({
+      objectives: ["Vender mais"],
+      wantsSocialMedia: true,
+      // branding: ausente de propósito — é assim que chega do briefing real
+    } as Parameters<typeof computeEstimate>[0]);
+    expect(chamada).not.toThrow();
+    expect(chamada().items).toBeInstanceOf(Array);
+  });
+
+  it("branding presente e pedido continua sendo cobrado", async () => {
+    const { computeEstimate } = await import("@/lib/agency/live-calculator");
+    const est = computeEstimate({
+      objectives: [],
+      wantsSocialMedia: false,
+      branding: { requested: true, hasBrandBook: false, wantsRebrand: false },
+    } as Parameters<typeof computeEstimate>[0]);
+    expect(est.items.some((i) => i.label.includes("Identidade"))).toBe(true);
   });
 });

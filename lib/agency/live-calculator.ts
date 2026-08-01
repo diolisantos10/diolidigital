@@ -246,7 +246,12 @@ export function computeEstimate(scope: BriefingScope): LiveEstimate {
   }
 
   // ── Visual Identity (separate department) — only if requested ───────────────
-  if (scope.branding.requested) {
+  // `branding` é opcional no escopo: um briefing que não fala de identidade
+  // visual simplesmente não traz o bloco. Sem o `?.`, a proposta INTEIRA
+  // quebrava com "Cannot read properties of undefined" — e o briefing sem
+  // branding é o caso comum, não a exceção. Encontrado ao rodar o primeiro
+  // projeto de verdade em produção, não em teste.
+  if (scope.branding?.requested) {
     const bp = scope.branding.wantsRebrand ? P.brandingFull : P.branding;
     items.push({
       label:    "Identidade Visual",

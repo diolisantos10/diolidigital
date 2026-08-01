@@ -50,7 +50,7 @@ function buildExtractedSummary(scope: BriefingScope): ExtractedRequestSummary {
   const depts: string[] = [];
   if (scope.wantsSocialMedia)   { services.push("Social Media"); depts.push("social-media", "design"); }
   if (scope.wantsPaidTraffic)   { services.push("Tráfego Pago"); depts.push("paid-traffic"); }
-  if (scope.branding.requested) { services.push("Identidade Visual"); depts.push("brand-hub"); }
+  if (scope.branding?.requested) { services.push("Identidade Visual"); depts.push("brand-hub"); }
 
   const s = scope.social;
   const quantities: string[] = [];
@@ -84,7 +84,7 @@ function buildTitle(scope: BriefingScope): string {
     }
   }
   if (scope.wantsPaidTraffic)   services.push("Tráfego Pago");
-  if (scope.branding.requested) services.push("Identidade Visual");
+  if (scope.branding?.requested) services.push("Identidade Visual");
   const serviceStr = services.length > 0 ? ` — ${services.join(", ")}` : "";
   return `Orçamento — ${biz}${serviceStr}`;
 }
@@ -220,9 +220,9 @@ function ScopeSection({ scope }: { scope: BriefingScope }) {
       rows.push({ label: "Verba ads", value: scope.traffic.monthlyAdBudget });
   }
 
-  if (scope.branding.requested)
+  if (scope.branding?.requested)
     rows.push({ label: "Serviço", value: "Identidade Visual" });
-  if (scope.branding.hasBrandBook)
+  if (scope.branding?.hasBrandBook)
     rows.push({ label: "Brand Book", value: "Disponível — como referência" });
   if (scope.objectives.length)
     rows.push({ label: "Objetivos", value: scope.objectives.join(", ") });
@@ -820,10 +820,10 @@ function mergeScopeGaps(base: BriefingScope, patch: Record<string, unknown>): Br
   const pb = pb0;
   if (pb && typeof pb === "object") {
     out.branding = {
-      requested:    out.branding.requested    || pb.requested === true,
-      hasBrandBook: out.branding.hasBrandBook || pb.hasBrandBook === true,
-      wantsRebrand: out.branding.wantsRebrand || pb.wantsRebrand === true,
-      deliverables: out.branding.deliverables ?? (typeof pb.deliverables === "string" ? pb.deliverables.trim() : undefined),
+      requested:    out.branding?.requested    || pb.requested === true,
+      hasBrandBook: out.branding?.hasBrandBook || pb.hasBrandBook === true,
+      wantsRebrand: out.branding?.wantsRebrand || pb.wantsRebrand === true,
+      deliverables: out.branding?.deliverables ?? (typeof pb.deliverables === "string" ? pb.deliverables.trim() : undefined),
     };
   }
 
@@ -1247,7 +1247,7 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
 
   const scope    = conv.scope;
   const estimate = conv.estimate;
-  const hasScope = scope.wantsSocialMedia || !!scope.wantsPaidTraffic || scope.branding.requested;
+  const hasScope = scope.wantsSocialMedia || !!scope.wantsPaidTraffic || scope.branding?.requested;
   const canSubmit    = canSubmitProposal(conv, sdr);
   const blockReason  = getSubmissionBlockReason(conv, sdr);
 

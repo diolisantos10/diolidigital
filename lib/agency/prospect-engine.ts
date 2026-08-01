@@ -397,7 +397,7 @@ export function processProspectMessage(
   let replyText: string;
 
   if (conv.isFirstMessage) {
-    const hasService = newScope.wantsSocialMedia || !!newScope.wantsPaidTraffic || newScope.branding.requested;
+    const hasService = newScope.wantsSocialMedia || !!newScope.wantsPaidTraffic || !!newScope.branding?.requested;
     let ack = hasService ? buildAcknowledgment(newScope) : "";
     if (ack && newSdr.isRestaurant) {
       ack = ack.replace(

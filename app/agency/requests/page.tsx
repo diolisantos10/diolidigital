@@ -719,7 +719,7 @@ export default function AgencyRequestsPage() {
       ? [
           ...(scope.wantsSocialMedia ? ["Gestão de Social Media"] : []),
           ...(scope.wantsPaidTraffic ? ["Tráfego Pago"] : []),
-          ...(scope.branding.requested ? ["Identidade Visual / Branding"] : []),
+          ...(scope.branding?.requested ? ["Identidade Visual / Branding"] : []),
           ...services.filter((s) => !/social|tráfego|ads|brand/i.test(s)),
         ]
       : services;
@@ -1566,10 +1566,10 @@ function V2ScopePanel({ scope, estimate }: { scope: BriefingScope; estimate?: Li
             </div>
           </div>
         )}
-        {scope.branding.requested && (
+        {scope.branding?.requested && (
           <div>
             <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1.5">Identidade Visual</div>
-            {scope.branding.wantsRebrand
+            {scope.branding?.wantsRebrand
               ? <div className="text-[11px] text-[var(--text-primary)]">Rebranding solicitado</div>
               : <div className="text-[11px] text-[var(--text-primary)]">Criação de marca</div>}
           </div>
@@ -1593,7 +1593,7 @@ function V2ScopePanel({ scope, estimate }: { scope: BriefingScope; estimate?: Li
             Modalidade: <strong className="text-[var(--text-primary)]">{scope.serviceMode === "monthly" ? "Mensal" : scope.serviceMode === "one_off" ? "Pontual" : "A definir"}</strong>
           </span>
         )}
-        {scope.branding.hasBrandBook && (
+        {scope.branding?.hasBrandBook && (
           <span className="text-[var(--text-muted)]">Brand Book: <strong className="text-[var(--text-primary)]">Disponível</strong></span>
         )}
         {scope.budgetRange && (

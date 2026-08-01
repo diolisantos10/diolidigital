@@ -116,7 +116,7 @@ export function parseInitialMessage(text: string): Partial<BriefingScope> {
 // Which question IDs can be skipped because the scope already has that data?
 export function inferAnsweredQIds(scope: BriefingScope): string[] {
   const a: string[] = [];
-  if (scope.wantsSocialMedia || scope.wantsPaidTraffic !== undefined || scope.branding.requested)
+  if (scope.wantsSocialMedia || scope.wantsPaidTraffic !== undefined || scope.branding?.requested)
     a.push("detect_service");
   if (scope.objectives.length)                      a.push("main_objective");
   if (scope.targetAudience)                         a.push("target_audience");
@@ -131,7 +131,7 @@ export function inferAnsweredQIds(scope: BriefingScope): string[] {
   if (scope.wantsPaidTraffic !== undefined)         a.push("wants_traffic");
   if (scope.traffic?.platforms.length)              a.push("traffic_platforms");
   if (scope.traffic?.monthlyAdBudget)               a.push("ad_budget");
-  if (scope.branding.deliverables)                  a.push("branding_deliverables");
+  if (scope.branding?.deliverables)                  a.push("branding_deliverables");
   if (scope.competitors?.length)                    a.push("competitors_refs");
   if (scope.budgetRange)                            a.push("budget_range");
   if (scope.deadline)                               a.push("deadline");
@@ -153,7 +153,7 @@ const QUESTIONS: QuestionDef[] = [
   // Q0 — detect service (if nothing was understood from initial message)
   {
     id: "detect_service",
-    when: (s) => !s.scope.wantsSocialMedia && s.scope.wantsPaidTraffic === undefined && !s.scope.branding.requested,
+    when: (s) => !s.scope.wantsSocialMedia && s.scope.wantsPaidTraffic === undefined && !s.scope.branding?.requested,
     text: () => "Pode me contar mais? Você está buscando gestão de redes sociais, tráfego pago, criação de identidade visual — ou uma combinação?",
     parse: (answer) => {
       // "os 3", "todos", "as três", "tudo", "uma combinação" → the client wants
@@ -302,22 +302,22 @@ const QUESTIONS: QuestionDef[] = [
   // Q9.1 — BRANDING: is there a current identity? (only if branding requested)
   {
     id: "branding_current",
-    when: (s) => s.scope.branding.requested,
+    when: (s) => !!s.scope.branding?.requested,
     text: () => "Sobre a identidade visual: você **já tem logo/identidade** hoje, ou vamos criar **do zero**?",
     parse: (answer, s) => {
       const t = answer.toLowerCase();
       const fromScratch = /do zero|zero|não tenho|nao tenho|nenhum|criar|nova\b|nao\b|não\b/.test(t) && !/tenho|temos|j[áa]/.test(t);
       const rebrand     = /rebrand|reposicion|renovar|atualizar|refazer|modernizar|melhorar/.test(t);
-      return { branding: { ...s.scope.branding, hasBrandBook: !fromScratch && /tenho|temos|j[áa]|possu|atual|existe/.test(t), wantsRebrand: rebrand } };
+      return { branding: { ...{ ...emptyBrandingScope(), ...s.scope.branding }, hasBrandBook: !fromScratch && /tenho|temos|j[áa]|possu|atual|existe/.test(t), wantsRebrand: rebrand } };
     },
   },
 
   // Q9.2 — BRANDING: what deliverables (only if branding requested)
   {
     id: "branding_deliverables",
-    when: (s) => s.scope.branding.requested && !s.scope.branding.deliverables,
+    when: (s) => !!s.scope.branding?.requested && !s.scope.branding?.deliverables,
     text: () => "O que você precisa na identidade: **logo, paleta de cores, tipografia, manual de marca completo**? Pode listar o que tiver em mente.",
-    parse: (answer, s) => ({ branding: { ...s.scope.branding, deliverables: answer.trim() } }),
+    parse: (answer, s) => ({ branding: { ...{ ...emptyBrandingScope(), ...s.scope.branding }, deliverables: answer.trim() } }),
   },
 
   // Q9.3 — UNIVERSAL: competitors / references
@@ -383,7 +383,7 @@ export function buildAcknowledgment(scope: BriefingScope): string {
     svcs.push(`social media${plat.length ? " para " + plat.join(" e ") : ""}`);
   }
   if (scope.wantsPaidTraffic) svcs.push("tráfego pago");
-  if (scope.branding.requested) svcs.push("identidade visual");
+  if (scope.branding?.requested) svcs.push("identidade visual");
   if (svcs.length) parts.push(`Vejo que você quer ${svcs.join(" e ")}.`);
 
   if (scope.objectives.length) {
@@ -391,7 +391,7 @@ export function buildAcknowledgment(scope: BriefingScope): string {
   }
 
   // Critical: brand book presence ≠ branding service request
-  if (scope.branding.hasBrandBook && !scope.branding.requested) {
+  if (scope.branding?.hasBrandBook && !scope.branding?.requested) {
     parts.push("Vi que você já tem um Brand Book — ótimo! Vou usá-lo como referência para o projeto. Não vou incluir criação de identidade visual no escopo por padrão.");
   }
 
