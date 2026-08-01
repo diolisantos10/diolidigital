@@ -83,3 +83,23 @@ Decorrências verdadeiras hoje:
   protocolo. **Nenhum chat é fechado antes de exportado e minerado.**
 - **Definir se o piloto sobe antes ou depois do P0 acima.** É decisão do CEO, e
   hoje a resposta honesta é: sem os gates, sobe sem proteção.
+
+---
+
+## ⏳ Aguardando terceiro — nada a configurar
+
+### HTTPS do domínio raiz `diolidigital.com.br`
+O `www` está no ar e responde HTTP/2 200. O **apex** (sem www) depende do Railway
+emitir o certificado Let's Encrypt, o que é automático depois de o DNS estabilizar.
+
+Já feito no painel de DNS: `A` do apex → `69.46.46.22`, `MX` legado **removido**,
+`TXT` de verificação adicionado, `CNAME` `www` → `g68qzvs8.up.railway.app`.
+
+**Como confirmar** — de uma máquina normal, **não de dentro de um ambiente de
+agente**: abrir `https://diolidigital.com.br` e ver o cadeado, ou
+`curl -I https://diolidigital.com.br` devolver `HTTP/2 200`.
+
+Se passar de ~2h, conferir no painel do Railway se o apex e o `www` estão listados
+como **duas entradas separadas** de custom domain.
+
+> Origem: `HANDOFF.md` §7.1 e §8.1 (commit `3f888f1`), minerado em 01/08/2026.
