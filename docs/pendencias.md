@@ -4,11 +4,11 @@
 
 ---
 
-## 🚨 AÇÃO DE SEGURANÇA — hoje, não amanhã
+## ✅ AÇÃO DE SEGURANÇA — RESOLVIDA em 01/08/2026
 
-**Três credenciais reais transitaram em texto num chat** durante a sessão de
-integração com a Meta (01/08/2026). Elas **não** estão reproduzidas em documento
-nenhum, mas passaram por conversa e devem ser tratadas como expostas:
+**As três credenciais expostas foram revogadas pelo CEO** — confirmado no
+`HANDOFF.md` rev.2 (commit `465cf05`). Fica o registro do que aconteceu e do que
+foi rotacionado:
 
 | Credencial | Onde regenerar | Urgência |
 |---|---|---|
@@ -145,3 +145,29 @@ ligação e aprovação de terceiro.
 > **Armadilha que engana:** hoje tudo aponta para o **número de teste** da Meta,
 > que só envia para destinatários pré-cadastrados no painel. O disparo "funciona"
 > e não chega em ninguém de fora da lista.
+
+---
+
+## 🔧 A esteira comercial — o que está construído e o que trava
+
+Minerado do `HANDOFF.md` rev.2 (commit `465cf05`), da sessão "chat da agência",
+em 01/08/2026.
+
+**O fluxo completo já existe ponta a ponta:**
+`SDR briefing → auto-scope → agência envia proposta → cliente aprova no portal →
+createProjectFromRequest → PORTÃO DE RECURSOS → runProjectExecution → entregas no
+portal → cronograma`
+
+| Aberto | O que quebra se ninguém mexer |
+|---|---|
+| **"Material chegou → produz sozinho" não existe** | O portão segura a produção quando falta material, mas **nada retoma** quando o cliente envia. Projeto com material faltante fica **travado para sempre** |
+| **O SDR está sendo refeito pelo Brain-mestre** | Se for reescrito sem cuidado, somem 3 regras já implantadas: espelhar a linguagem do cliente, perguntar recursos por serviço, e capturar canal + telefone. O front já grava `preferredChannel`/`prospectPhone` |
+| **Aba "Entregas" lê do Zustand, não do banco** | Em `app/agency/projects/[id]/page.tsx`. Para projeto real de banco a aba aparece **vazia** — o trabalho existe e só é visto em `/agency/execution/[projectId]`. `/api/deliverables?projectId=` já devolve o conteúdo certo |
+| **Entregas sem data — o Planner não é alimentado** | `/agency/planner` e o modelo `SocialPost` existem, mas o conteúdo produzido não entra com data. O cliente recebe conteúdo sem saber **quando vai ao ar** |
+| **`ADMIN_TASK_SECRET` foi removido do Railway** | Está certo assim. **Se alguém re-adicionar, vira backdoor** que apaga e dispara dados de produção sem sessão |
+
+**✅ Resolvido no caminho:** o envio real do WhatsApp. O gatilho
+`ActivityEvent type="whatsapp_notify"` desenhado por esta sessão **agora é
+consumido** pela camada Meta (`lib/integrations/meta/notifications.ts` + cron
+`POST /api/meta/dispatch`, com outbox anti-duplicata). Falta só confirmar que o
+cron está agendado de fato e que o telefone chega do briefing.
