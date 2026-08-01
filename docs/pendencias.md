@@ -114,12 +114,25 @@ roda antes, não roda depois, e não tem freio.
   protocolo. **Nenhum chat é fechado antes de exportado e minerado.**
 - **Definir se o piloto sobe antes ou depois do P0 acima.** É decisão do CEO, e
   hoje a resposta honesta é: sem os gates, sobe sem proteção.
-- **Ninguém sabe a senha do master em produção.** O `scripts/seed-db.mjs` gera uma
-  senha **aleatória a cada boot** quando `SEED_MASTER_PASSWORD` não está definida
-  — está certo assim (nunca há credencial pública), mas a consequência é real: a
-  senha que está nos scripts do repositório é **rejeitada** pela produção, e
-  qualquer operação administrativa lá depende de definir `SEED_MASTER_PASSWORD` no
-  Railway e rebootar, ou usar o fluxo de redefinição de senha.
+- **Definir `SEED_MASTER_PASSWORD` no Railway — é o único jeito de entrar como
+  master.** Conferido em 01/08/2026: a senha `dioli2025` que está nos scripts do
+  repositório é **rejeitada** pela produção. O `scripts/seed-db.mjs` gera senha
+  **aleatória a cada boot** quando a env não está definida (correto — nunca há
+  credencial pública), e o `INSERT OR IGNORE` não toca um usuário que já existe.
+  Some-se a isso que **não existe fluxo de redefinição de senha** no sistema
+  (`app/api/auth/` só tem `signin`, `signout` e o Google do briefing — que nem
+  cria sessão), e o resultado é: **hoje ninguém consegue entrar como master em
+  produção.**
+
+  **A saída** (é limpa e já está implementada): definir `SEED_MASTER_PASSWORD` nas
+  variáveis do Railway e reiniciar. O seed roda a cada boot e, com a env definida,
+  executa um `UPDATE` do hash da senha do master — não é `INSERT OR IGNORE`, então
+  funciona em base já povoada. Mesma coisa para o time via `SEED_STAFF_PASSWORD`.
+
+  > A mensagem que o próprio seed imprime — *"use o fluxo de redefinição de
+  > senha"* — **está errada**: esse fluxo não existe. Corrigir a mensagem, ou
+  > construir o fluxo, é fila normal; sem isso a próxima pessoa perde uma hora
+  > procurando uma tela que não está lá.
 
 ---
 
