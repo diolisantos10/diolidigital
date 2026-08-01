@@ -3,7 +3,13 @@
 > Documento de transferência de sessão. Escrito para que **outra instância do Claude**
 > (ou qualquer dev) continue o trabalho **sem precisar de explicação prévia**.
 >
-> - **Repositório:** `diolisantos10/dioli-agency-os-1`
+> - **Repositório (canônico):** `diolisantos10/diolidigital` — confirmado pelo próprio
+>   GitHub. O repositório **foi renomeado** de `dioli-agency-os-1` para `diolidigital`;
+>   o GitHub redireciona o nome antigo, então clones/remotes antigos continuam funcionando,
+>   mas o correto é usar o novo. **Se o seu `origin` local ainda apontar para o nome antigo,
+>   corrija na sua máquina:** `git remote set-url origin https://github.com/diolisantos10/diolidigital.git`
+>   (⚠️ dentro do sandbox de execução do Claude o `origin` é um proxy local
+>   `http://…/git/diolisantos10/dioli-agency-os-1` — ali **não** se troca, senão o push quebra).
 > - **Branch de trabalho:** `claude/design-ux-ui-mfkhyl`
 > - **Data:** 2026-08-01
 > - **Marca pública:** Dioli Digital — *estúdio digital com IA* (sistema de design "HUMANTECH")
@@ -263,7 +269,90 @@ aec6e6a Deploy Fase 6 (QA final + tokeniza páginas de cliente)
 
 ---
 
-## 10. Onde procurar cada coisa (mapa rápido)
+## 10. O que foi TENTADO e NÃO funcionou (becos sem saída)
+
+> Isto quase nunca é escrito e é o que mais economiza tempo. Não repita estes caminhos.
+> (Escopo: caminhos observados **nesta janela de trabalho**. Becos das fases de design/IA
+> anteriores foram compactados no meu contexto e **não estão registrados** aqui — *não confirmado*.)
+
+1. **`dig` para inspecionar DNS** → o binário **não existe** neste ambiente (`command not found`).
+   **O que funcionou:** DNS-over-HTTPS via `curl "https://cloudflare-dns.com/dns-query?name=<dom>&type=<tipo>" -H "accept: application/dns-json"`.
+
+2. **Inspecionar o certificado do apex com `curl`/`openssl s_client` de dentro do ambiente**
+   → **enganoso e abandonado.** O proxy de egress do sandbox faz **MITM do TLS** (o cert
+   observado tem issuer "Anthropic Egress Gateway"). O erro
+   `SSL: no alternative certificate subject name matches target host name` que aparece aqui
+   **NÃO prova** que o Railway está sem certificado no apex — é artefato do proxy.
+   **O que funcionou como sinal confiável:** comparar `www` (responde 200 pelo mesmo proxy)
+   vs `apex` (falha) e olhar os headers `x-railway`/redirect 301. A validação real do cert
+   do apex só vale **fora deste ambiente** (navegador do dono, ou máquina sem o proxy).
+
+3. **`git diff main...HEAD` / `origin/main...HEAD` para listar os arquivos da branch**
+   → voltou **vazio**: não há `main` local e a base não está disponível no clone do sandbox.
+   **O que funcionou:** `git show --stat --oneline -N HEAD` para reconstruir os arquivos tocados.
+
+4. **Agendar um lembrete automático (`send_later`/wakeup) para reverificar o apex**
+   → **interrompido pelo usuário e abandonado.** Não insisti. Se isso reflete uma recusa
+   geral a automações/agendamentos ou foi só timing daquele momento: **não confirmado** —
+   ver seção 11.
+
+5. **Reproduzir a transcrição literal do chat a partir do meu contexto** (o dono pediu o
+   histórico "desde o início") → **impossível:** o começo da conversa foi resumido/compactado
+   no meu contexto; não tenho o texto exato. **Encaminhamento dado ao dono:** exportação
+   oficial em claude.ai → Settings → Privacy → Export data (chega por e-mail). Este HANDOFF
+   e o `registro-sessao.md` que gerei são **reconstruções**, não transcrição.
+
+---
+
+## 11. O que EU SEI e NÃO está escrito em lugar nenhum
+
+> Contexto que morre quando esta aba fechar: preferências do dono, o que ele recusou,
+> contexto de negócio, o porquê por trás de pedidos. Cada item marcado **[confirmado]**
+> (observei diretamente nesta sessão) ou **[não confirmado]** (inferência/suposição —
+> valide antes de construir em cima).
+
+**Sobre a marca e o produto**
+- **[confirmado]** O GitHub repo foi **renomeado** `dioli-agency-os-1` → **`diolidigital`**,
+  e o produto está sendo **consolidado sob a marca pública "Dioli Digital"** / domínio
+  **`diolidigital.com.br`**. A direção é claramente "unificar tudo sob Dioli Digital".
+- **[não confirmado]** Há uma possível distinção **estúdio interno vs. marca pública**: o
+  login-seed é `master@dioli.studio` (domínio `dioli.studio`) enquanto a marca pública é
+  `diolidigital.com.br`. Se `dioli.studio` é intencionalmente o backstage e `diolidigital.com.br`
+  a fachada do cliente — **não confirmado**, mas o padrão sugere isso.
+- **[não confirmado]** O princípio "**nunca inventar número** na Inteligência de Marketing"
+  (dado real ou estado honesto) está codificado nos comentários do `route.ts`. Se foi um
+  pedido **explícito** do dono ou uma decisão de design minha — **não confirmado**. O
+  provável motivo de negócio: é um painel de decisão de marketing, e número inventado
+  destrói confiança do cliente. Trate como **valor de produto forte** de qualquer forma.
+
+**Sobre o dono (como trabalhar com ele)**
+- **[confirmado]** Comunica em **português do Brasil**, mensagens **curtas e diretas**
+  ("Pendências.", "deu certio?"). Espera respostas objetivas e acionáveis.
+- **[confirmado]** Tem **forte preocupação em não perder contexto/histórico**: pediu o
+  histórico completo do chat **várias vezes** e um handoff para "outra instância continuar
+  **sem eu explicar nada**". **Implicação prática:** ele **não quer reexplicar** — documente
+  proativamente, preserve decisões, e prefira deixar registro versionado no repo a deixar
+  conhecimento só no chat.
+- **[confirmado]** **Prioriza mobile** (também está no `CLAUDE.md`: "a maioria acessa pelo
+  celular"). Mobile 375px é prioridade, não sobra.
+- **[não confirmado]** Interrompeu quando tentei **agendar um check-in automático** do apex.
+  Pode indicar preferência por **não** ter automações/lembretes agendados rodando — ou só
+  não ser o momento. Na dúvida, **pergunte antes** de criar rotinas/triggers automáticos.
+
+**Sobre infraestrutura (operacional, fora do código)**
+- **[confirmado]** Hospedagem em **Railway** (via `railway.json` + headers `x-railway`).
+  `www.diolidigital.com.br` → CNAME `g68qzvs8.up.railway.app`.
+- **[confirmado]** O **dono gerencia o DNS pessoalmente** num painel de registrador (domínio
+  `.com.br`). **[não confirmado]** Qual registrador/provedor de DNS ele usa — nunca foi dito.
+- **[não confirmado]** O apex `diolidigital.com.br` foi apontado para o **A `69.46.46.22`**
+  (valor que apareceu no painel do dono; o tráfego chega ao Railway — header `x-railway` no
+  301). Se `69.46.46.22` é o **IP oficial de apex do Railway** ou algo específico da conta
+  dele — **não confirmado**. Se o cert do apex demorar, verificar no painel do Railway se
+  `diolidigital.com.br` (sem www) está adicionado como *custom domain* separado do `www`.
+
+---
+
+## 12. Onde procurar cada coisa (mapa rápido)
 
 - **Inteligência de Marketing:** `app/api/projects/[id]/marketing/route.ts` +
   `components/agency/MarketingIntelligence.tsx` + aba em `app/agency/projects/[id]/page.tsx`.
