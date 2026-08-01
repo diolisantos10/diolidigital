@@ -109,18 +109,22 @@ Tráfego e Analytics produzem com IA (`lib/agency/execution/run-execution.ts:268
 gravada e a tarefa fecha ligada a ela. Faltando material, o agente abre o pedido e
 o PM cobra o cliente numa mensagem só.
 
-**Os cinco furos que impedem o "100% automático":**
+**Três dos cinco furos foram FECHADOS em 01/08/2026** (ver commits `0c78044`,
+`d1cbbe2`, `4b0e953`). O que sobrou e o que caiu:
 
-| # | Furo | Onde se comprova |
+| # | Furo | Estado |
 |---|---|---|
-| 1 | **A peça pronta não chega ao cliente sozinha.** A aprovação nasce com `clientVisible: false` de propósito — quem apresenta é o PM, de uma vez. Só que esse PM é uma pessoa. A agência produz automático e o trabalho **fica parado dentro de casa**. | `run-execution.ts:339` |
-| 2 | **"Material chegou → produz sozinho" não existe.** O `MaterialRequest` só muda por ação da agência e **nada redispara a produção** quando é atendido. Projeto travado por material fica travado para sempre. | `app/api/material-requests/[id]/route.ts` — nenhum `runProjectExecution` |
-| 3 | **A rede de segurança está armada e ninguém puxa o gatilho.** `CRON_SECRET` **está** definida no Railway (conferido no painel em 01/08) — o endpoint responde. O que não existe é o **agendador**: `cronSchedule` do serviço está vazio, não há serviço de cron, e o `railway.json` não agenda nada. **O que falha na primeira passada nunca é re-tentado.** | `app/api/cron/execute/route.ts:18` + painel Railway |
-| 4 | **A produção não começa sem alguém aprovar a direção.** É proteção deliberada e boa — mas é um passo humano. | `run-execution.ts:171` |
-| 5 | **Nada impede uma peça errada de sair.** O auditor que roda **não bloqueia**: reprovou depois da revisão, publica assim mesmo com etiqueta `quality_flag`. Somado aos 28 de 31 portões desligados do P0 acima, a operação não tem freio. | `run-execution.ts:321-327` |
+| 1 | **A peça pronta não chegava ao cliente sozinha.** O pacote ficava pronto dentro da agência esperando alguém clicar. | ✅ **FECHADO** — `runProjectExecution` chama `apresentar` quando o pacote fecha. Só apresenta o pacote inteiro; metade não vai. |
+| 2 | **"Material chegou → produz sozinho" não existia.** | ✅ **FECHADO** — `lib/agency/esteira/materiais.ts`. "Recebido" re-enfileira a produção, zera o contador de tentativas, e o cliente nunca é cobrado duas vezes pelo mesmo material. |
+| 3 | **A rede de segurança estava desligada.** Nada re-tentava o que falhava. | ✅ **FECHADO** — o despertador (`lib/agency/despertador.ts`), ligado pelo `instrumentation.ts`, roda dentro do app a cada 5 min. Sobe junto com o deploy. |
+| 4 | **A produção não começa sem alguém aprovar a direção** (`run-execution.ts`). | 🟡 **ABERTO POR ESCOLHA** — é proteção deliberada. Aprovar direção é barato; refazer um mês, não. Só vira furo se o CEO decidir que o cliente não precisa avalizar o rumo. |
+| 5 | **Nada impedia uma peça errada de sair.** | 🟠 **METADE FECHADA** — a apresentação automática agora é **barrada** quando a Qualidade deixa ressalva, e o bloqueio vira `ActivityEvent`. Mas os 31 portões formais seguem com 28 desligados (P0 acima), e o auditor continua sendo um LLM sem piso determinístico. |
 
-**Veredito:** roda sozinha de *"cliente aprovou"* até *"peça pronta na mesa"*. Não
-roda antes, não roda depois, e não tem freio.
+**Veredito novo (01/08, fim do dia):** a agência roda sozinha de *"cliente
+aprovou a direção"* até *"pacote apresentado no portal do cliente"*, 24h, se
+recuperando de falhas e destravando quando o material chega. O que ainda exige
+gente é **antes** (avalizar a direção — de propósito) e o **piso de qualidade**,
+que continua sendo o P0 da casa.
 
 ---
 
