@@ -1,9 +1,30 @@
 # Pendências — o que está aberto
 
-> Última atualização: 01/08/2026, na montagem do PM.
+> Última atualização: 01/08/2026.
+
+---
+
+## 🚨 AÇÃO DE SEGURANÇA — hoje, não amanhã
+
+**Três credenciais reais transitaram em texto num chat** durante a sessão de
+integração com a Meta (01/08/2026). Elas **não** estão reproduzidas em documento
+nenhum, mas passaram por conversa e devem ser tratadas como expostas:
+
+| Credencial | Onde regenerar | Urgência |
+|---|---|---|
+| **App Secret da Meta** | painel Meta for Developers → Configurações básicas | **alta** — assina os webhooks |
+| **Token de projeto do Railway** | Railway → Account Settings → Tokens | **alta** — dá acesso ao deploy e às envs |
+| **Token do WhatsApp** (número de teste) | painel Meta → WhatsApp → API Setup | média — expira sozinho em ~24h |
+
+Depois de regenerar, atualizar as variáveis `META_*` no Railway.
+
+> Por que isso é grave e não burocracia: o App Secret é o que valida a assinatura
+> dos webhooks. Quem o tiver pode forjar evento entrando no sistema como se fosse
+> a Meta. O token do Railway dá acesso ao deploy e a todas as variáveis de
+> ambiente — inclusive às outras credenciais.
 >
-> Lista curta e viva. Cada linha diz **o que quebra se ninguém mexer** — não só o
-> nome da tarefa. Atualize ao concluir ou repriorizar.
+> Origem: `HANDOFF.md` §f da branch `claude/meta-integration-axrlf3`
+> (commit `7116cbb`).
 
 ---
 
@@ -90,7 +111,7 @@ Decorrências verdadeiras hoje:
 
 ### HTTPS do domínio raiz `diolidigital.com.br`
 O `www` está no ar e responde HTTP/2 200. O **apex** (sem www) depende do Railway
-emitir o certificado Let's Encrypt, o que é automático depois de o DNS estabilizar.
+emitir o certificado Let's Encrypt, automático depois de o DNS estabilizar.
 
 Já feito no painel de DNS: `A` do apex → `69.46.46.22`, `MX` legado **removido**,
 `TXT` de verificação adicionado, `CNAME` `www` → `g68qzvs8.up.railway.app`.
@@ -103,3 +124,24 @@ Se passar de ~2h, conferir no painel do Railway se o apex e o `www` estão lista
 como **duas entradas separadas** de custom domain.
 
 > Origem: `HANDOFF.md` §7.1 e §8.1 (commit `3f888f1`), minerado em 01/08/2026.
+
+---
+
+## 📡 Integração com a Meta — nada dispara sozinho hoje
+
+Minerado do `HANDOFF.md` da branch `claude/meta-integration-axrlf3`
+(commit `7116cbb`), em 01/08/2026. A camada está construída; o que falta é
+ligação e aprovação de terceiro.
+
+| Aberto | O que quebra se ninguém mexer |
+|---|---|
+| **Template `proposta_pronta` PENDENTE na Meta** | Aviso de proposta **não é enviado** — o WhatsApp bloqueia mensagem proativa sem template aprovado |
+| **Não há agendador chamando `/api/meta/dispatch`; `CRON_SECRET` não está setado** | Mesmo com template aprovado, o poll **nunca roda sozinho** e nada sai |
+| **Token do WhatsApp é do número de teste, expira em ~24h** | O envio para de funcionar quando vencer. Para valer: token permanente de System User |
+| **OAuth de IG/FB construído e NÃO testado ponta a ponta** | Publicação em IG/FB segue não verificada em produção |
+| **App da Meta sem App Review nem verificação de negócio** | Só funciona com contas do próprio admin e com limite baixo. Falta ícone 1024×1024, URL de política de privacidade e categoria |
+| **Número real da agência ainda não migrado para a API** | A caixa de entrada está pronta e vazia. **Decisão do dono** — migrar o número o remove do app do celular |
+
+> **Armadilha que engana:** hoje tudo aponta para o **número de teste** da Meta,
+> que só envia para destinatários pré-cadastrados no painel. O disparo "funciona"
+> e não chega em ninguém de fora da lista.
