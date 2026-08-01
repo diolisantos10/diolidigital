@@ -4,6 +4,32 @@
 
 ---
 
+## 🧹 Limpeza executada em produção — 01/08/2026
+
+A casa foi zerada a pedido do CEO, no modo **Opção A** (`keep-clients`).
+
+**Apagado:** 1 projeto, 2 entregas, 4 tarefas, 26 artefatos, 11 aprovações,
+14 evidências, 10 acessos de portal, 4 conversas do portal, 4 aprendizados
+pendentes do Brain, 2 eventos de atividade.
+
+**Preservado:** os 2 cadastros de cliente, as **7 solicitações** (todas de volta
+ao status `new`), os 182 insights do Radar, as 3 integrações e o login.
+
+**Observação de quem executou:** não havia **nenhum** `BrandBrain` em produção —
+o que a Opção A prometia preservar de mais valioso (cores, tom de voz, público
+aprendidos) simplesmente não existia. Ou seja: **o sistema nunca gravou marca de
+cliente nenhum.** Vale investigar por que, porque o motor de produção lê dali
+(`run-execution.ts:211-219`) e cai para vazio sem avisar.
+
+**Duas das 7 solicitações preservadas são lixo de teste** —
+`UI Bridge Test 1781835336580` e `Dioli Digital Studio` (a própria agência).
+Ficaram de pé porque a ordem foi preservar as solicitações; apagá-las é decisão
+do CEO, e o modo `everything` ou uma exclusão pontual resolve.
+
+`ALLOW_PRODUCTION_RESET` foi ligada para a operação e **desligada em seguida**.
+
+---
+
 ## ✅ AÇÃO DE SEGURANÇA — RESOLVIDA em 01/08/2026
 
 **As três credenciais expostas foram revogadas pelo CEO** — confirmado no
@@ -89,7 +115,7 @@ o PM cobra o cliente numa mensagem só.
 |---|---|---|
 | 1 | **A peça pronta não chega ao cliente sozinha.** A aprovação nasce com `clientVisible: false` de propósito — quem apresenta é o PM, de uma vez. Só que esse PM é uma pessoa. A agência produz automático e o trabalho **fica parado dentro de casa**. | `run-execution.ts:339` |
 | 2 | **"Material chegou → produz sozinho" não existe.** O `MaterialRequest` só muda por ação da agência e **nada redispara a produção** quando é atendido. Projeto travado por material fica travado para sempre. | `app/api/material-requests/[id]/route.ts` — nenhum `runProjectExecution` |
-| 3 | **A rede de segurança está desligada.** O cron que recupera produção travada devolve 503 sem `CRON_SECRET`, que não está setado; o `railway.json` não agenda nada. **O que falha na primeira passada nunca é re-tentado.** | `app/api/cron/execute/route.ts:18` |
+| 3 | **A rede de segurança está armada e ninguém puxa o gatilho.** `CRON_SECRET` **está** definida no Railway (conferido no painel em 01/08) — o endpoint responde. O que não existe é o **agendador**: `cronSchedule` do serviço está vazio, não há serviço de cron, e o `railway.json` não agenda nada. **O que falha na primeira passada nunca é re-tentado.** | `app/api/cron/execute/route.ts:18` + painel Railway |
 | 4 | **A produção não começa sem alguém aprovar a direção.** É proteção deliberada e boa — mas é um passo humano. | `run-execution.ts:171` |
 | 5 | **Nada impede uma peça errada de sair.** O auditor que roda **não bloqueia**: reprovou depois da revisão, publica assim mesmo com etiqueta `quality_flag`. Somado aos 28 de 31 portões desligados do P0 acima, a operação não tem freio. | `run-execution.ts:321-327` |
 
@@ -163,7 +189,7 @@ ligação e aprovação de terceiro.
 | Aberto | O que quebra se ninguém mexer |
 |---|---|
 | **Template `proposta_pronta` PENDENTE na Meta** | Aviso de proposta **não é enviado** — o WhatsApp bloqueia mensagem proativa sem template aprovado |
-| **Não há agendador chamando `/api/meta/dispatch`; `CRON_SECRET` não está setado** | Mesmo com template aprovado, o poll **nunca roda sozinho** e nada sai |
+| **Não há agendador chamando `/api/meta/dispatch`** (o `CRON_SECRET` **está** setado — conferido no Railway em 01/08; o que falta é quem chame) | Mesmo com template aprovado, o poll **nunca roda sozinho** e nada sai |
 | **Token do WhatsApp é do número de teste, expira em ~24h** | O envio para de funcionar quando vencer. Para valer: token permanente de System User |
 | **OAuth de IG/FB construído e NÃO testado ponta a ponta** | Publicação em IG/FB segue não verificada em produção |
 | **App da Meta sem App Review nem verificação de negócio** | Só funciona com contas do próprio admin e com limite baixo. Falta ícone 1024×1024, URL de política de privacidade e categoria |
