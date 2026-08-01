@@ -24,6 +24,7 @@
 import { prisma } from "@/lib/db/client";
 import { runProjectExecution } from "@/lib/agency/execution/run-execution";
 import { dispatchWhatsAppNotifications } from "@/lib/integrations/meta/notifications";
+import { destravarPacote, pacotesTravados } from "@/lib/agency/esteira/pacote-travado";
 
 /** De quanto em quanto tempo a agência olha se tem trabalho parado. */
 const INTERVALO_MS = Number(process.env.DESPERTADOR_INTERVALO_MS ?? 5 * 60_000);
@@ -81,15 +82,54 @@ async function retomarProducao(): Promise<number> {
   return retomados;
 }
 
+/**
+ * Destrava os pacotes que a própria Qualidade barrou.
+ *
+ * Sem isto o freio vira armadilha: a Qualidade reprova, o pacote não vai ao
+ * cliente — correto — e ninguém nunca refaz a peça, porque o motor é
+ * idempotente e pula quem já produziu. Foi o que aconteceu no primeiro projeto
+ * real: 2 de 6 entregas reprovadas e o projeto parado, invisível.
+ */
+async function destravarPacotesBarrados(): Promise<number> {
+  const travados = await pacotesTravados();
+  let corrigidas = 0;
+  // Poucos por rodada, e os mais antigos primeiro: refazer entrega é chamada de
+  // IA cara, e um pacote travado não é urgência de segundos.
+  for (const t of travados.filter((p) => !p.esperandoDecisao).slice(0, MAX_POR_RODADA)) {
+    try {
+      const r = await destravarPacote(t.projectId);
+      corrigidas += r.corrigidas.length;
+      // Voltou a ter peça boa? A produção é re-enfileirada para que o fluxo
+      // normal (auditoria + apresentação automática) siga daqui.
+      if (r.corrigidas.length > 0 && !r.escalado) {
+        await prisma.project.update({
+          where: { id: t.projectId },
+          data: { executionStatus: "pending", executionRequestedAt: new Date(), executionAttempts: 0 },
+        }).catch(() => { /* best-effort */ });
+      }
+    } catch (err) {
+      log(`pacote ${t.projectId} falhou ao destravar: ${err instanceof Error ? err.message : "erro"}`);
+    }
+  }
+  return corrigidas;
+}
+
 /** Uma batida do relógio. Nunca lança — o relógio não pode morrer. */
-export async function baterORelogio(): Promise<{ retomados: number; avisos: number }> {
+export async function baterORelogio(): Promise<{ retomados: number; avisos: number; destravadas: number }> {
   let retomados = 0;
   let avisos = 0;
+  let destravadas = 0;
 
   try {
     retomados = await retomarProducao();
   } catch (err) {
     log(`retomada falhou: ${err instanceof Error ? err.message : "erro"}`);
+  }
+
+  try {
+    destravadas = await destravarPacotesBarrados();
+  } catch (err) {
+    log(`destravamento falhou: ${err instanceof Error ? err.message : "erro"}`);
   }
 
   try {
@@ -99,8 +139,10 @@ export async function baterORelogio(): Promise<{ retomados: number; avisos: numb
     log(`disparo de avisos falhou: ${err instanceof Error ? err.message : "erro"}`);
   }
 
-  if (retomados > 0 || avisos > 0) log(`rodada: ${retomados} produção(ões) retomada(s), ${avisos} aviso(s) enviado(s)`);
-  return { retomados, avisos };
+  if (retomados > 0 || avisos > 0 || destravadas > 0) {
+    log(`rodada: ${retomados} produção(ões) retomada(s), ${destravadas} entrega(s) refeita(s), ${avisos} aviso(s) enviado(s)`);
+  }
+  return { retomados, avisos, destravadas };
 }
 
 /**

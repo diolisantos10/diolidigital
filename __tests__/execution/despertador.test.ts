@@ -1,12 +1,15 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-const db = vi.hoisted(() => ({ project: { findMany: vi.fn() } }));
+const db = vi.hoisted(() => ({ project: { findMany: vi.fn(), update: vi.fn() } }));
 const runProjectExecution = vi.hoisted(() => vi.fn());
 const dispatchWhatsAppNotifications = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
 vi.mock("@/lib/agency/execution/run-execution", () => ({ runProjectExecution }));
 vi.mock("@/lib/integrations/meta/notifications", () => ({ dispatchWhatsAppNotifications }));
+const destravarPacote = vi.hoisted(() => vi.fn());
+const pacotesTravados = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/agency/esteira/pacote-travado", () => ({ destravarPacote, pacotesTravados }));
 
 import { baterORelogio } from "@/lib/agency/despertador";
 
@@ -15,6 +18,9 @@ beforeEach(() => {
   db.project.findMany.mockResolvedValue([]);
   runProjectExecution.mockResolvedValue({ ok: true, status: "done", produced: ["X"], askedClient: [], skipped: [] });
   dispatchWhatsAppNotifications.mockResolvedValue({ scanned: 0, sent: 0, failed: 0, skipped: 0, details: [] });
+  db.project.update.mockResolvedValue({});
+  pacotesTravados.mockResolvedValue([]);
+  destravarPacote.mockResolvedValue({ projectId: "p1", corrigidas: [], persistentes: [], escalado: false });
 });
 
 describe("o despertador — o que faz a agência trabalhar às 3 da manhã", () => {
@@ -91,5 +97,43 @@ describe("o relógio nunca pode morrer", () => {
     const r = await baterORelogio();
     expect(r.retomados).toBe(1);
     expect(r.avisos).toBe(0);
+  });
+});
+
+// A Qualidade barrar e ninguem refazer foi o buraco encontrado no primeiro
+// projeto real. O relogio e quem fecha esse ciclo agora.
+describe("o relógio destrava o que a Qualidade barrou", () => {
+  it("refaz as entregas reprovadas e re-enfileira o projeto", async () => {
+    pacotesTravados.mockResolvedValue([{ projectId: "p9", esperandoDecisao: false }]);
+    destravarPacote.mockResolvedValue({ projectId: "p9", corrigidas: ["Analytics · Plano"], persistentes: [], escalado: false });
+
+    const r = await baterORelogio();
+    expect(r.destravadas).toBe(1);
+    // Voltou a ter peca boa: a producao segue pelo fluxo normal (auditoria +
+    // apresentacao automatica), nao por um atalho deste modulo.
+    expect(db.project.update.mock.calls[0]![0].data.executionStatus).toBe("pending");
+  });
+
+  it("pacote esperando decisão do Diretor NÃO é mexido pela máquina", async () => {
+    // Depois do teto de tentativas, insistir e queimar IA num problema que o
+    // modelo ja mostrou que nao resolve.
+    pacotesTravados.mockResolvedValue([{ projectId: "p9", esperandoDecisao: true }]);
+    await baterORelogio();
+    expect(destravarPacote).not.toHaveBeenCalled();
+  });
+
+  it("escalou → não re-enfileira, porque a bola é do Diretor", async () => {
+    pacotesTravados.mockResolvedValue([{ projectId: "p9", esperandoDecisao: false }]);
+    destravarPacote.mockResolvedValue({ projectId: "p9", corrigidas: ["X"], persistentes: ["Y"], escalado: true });
+    await baterORelogio();
+    expect(db.project.update).not.toHaveBeenCalled();
+  });
+
+  it("destravamento explodindo não impede a produção nem os avisos", async () => {
+    pacotesTravados.mockRejectedValue(new Error("banco fora"));
+    db.project.findMany.mockResolvedValue([{ id: "p1" }]);
+    const r = await baterORelogio();
+    expect(r.retomados).toBe(1);
+    expect(r.destravadas).toBe(0);
   });
 });
