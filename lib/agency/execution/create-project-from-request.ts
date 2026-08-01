@@ -10,6 +10,7 @@ import { buildClientSnapshot } from "@/lib/dioli-brain/client-snapshot";
 import { orchestratePMReasoning } from "@/lib/dioli-brain/pm-orchestrator";
 import { getDepartmentDef, type DepartmentId } from "@/lib/agency/departments";
 import { generate } from "@/lib/ai/generate";
+import { semearMarcaDoBriefing } from "@/lib/agency/execution/semear-marca";
 
 const DEPT_TO_DEF: Record<string, DepartmentId> = {
   strategy: "strategy", social: "social-media", design: "design",
@@ -45,6 +46,13 @@ export async function createProjectFromRequest(clientRequestId: string, approved
     clientId = client.id;
     await prisma.clientRequestDb.update({ where: { id: clientRequestId }, data: { clientId, workspaceId } });
   }
+
+  // O CÉREBRO DE MARCA NASCE AQUI. Antes disto, o cliente contava cor, tom de
+  // voz e público no briefing e nada daquilo era gravado — os especialistas
+  // produziam sem saber de quem era a marca. Semeia só o que o cliente contou;
+  // o que ele não contou continua vazio e vira pedido de material.
+  await semearMarcaDoBriefing(clientId, clientRequestId)
+    .catch((e) => console.error("[projeto] não consegui semear a marca:", e));
 
   const project = await prisma.project.create({
     data: { workspaceId, clientId, clientRequestId, name: proposal.name, goal: proposal.goal, stage: "planning", priority: "medium" },
