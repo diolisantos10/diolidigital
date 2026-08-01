@@ -41,7 +41,7 @@ export interface Ctx {
 }
 
 /** Qual IA faz melhor este trabalho. Vazio = a preferência global da casa. */
-export type ProvedorPreferido = "claude" | "openai" | "gemini" | "deepseek";
+export type ProvedorPreferido = "claude" | "openai" | "gemini" | "deepseek" | "perplexity";
 
 export interface Especialista {
   /** ownerAgentId no banco. Único na agência, imutável. */
@@ -92,6 +92,50 @@ function formato(titulo: string, campos: string): string {
 }
 
 export const DEPARTAMENTOS: Departamento[] = [
+  // ── ESTRATÉGIA ────────────────────────────────────────────────────────────
+  // Vem primeiro de propósito: é a casa que decide o caminho que as outras
+  // seguem. A concorrência é o único trabalho da agência que EXIGE olhar para
+  // fora — por isso é o único especialista que usa uma IA de pesquisa.
+  {
+    id: "strategy",
+    label: "Estratégia",
+    keywords: /estrat[ée]gia|posicionamento|concorr[êe]ncia|diagn[óo]stico|marca/i,
+    insightDomain: "general",
+    especialistas: [
+      {
+        id: "strategy-posicionamento",
+        label: "Posicionamento",
+        deliverableType: "strategy",
+        provedor: "claude",
+        prompt: (c) => `Você é o especialista de POSICIONAMENTO da Dioli Digital.
+
+CONTEXTO
+${ctxBlock(c)}
+
+Entregue: o posicionamento em uma frase, o público que ele serve, as 3 mensagens-chave que toda peça deve reforçar, e o tom de voz da marca em uma linha.
+${REGRA}
+${formato("Posicionamento — <negócio>", `"headline": "...", "note": "o que sustenta esta escolha", "audience": "para quem"`)}`,
+      },
+      {
+        id: "strategy-concorrencia",
+        label: "Pesquisa de concorrência",
+        deliverableType: "strategy",
+        // A ÚNICA IA de pesquisa da casa. Concorrente é fato verificável do
+        // mundo real: um modelo criativo INVENTA concorrente, e inventar
+        // concorrente é o erro mais caro que a Estratégia pode cometer.
+        provedor: "perplexity",
+        prompt: (c) => `Você é o especialista de CONCORRÊNCIA da Dioli Digital. Pesquise a concorrência REAL deste negócio.
+
+CONTEXTO
+${ctxBlock(c)}
+
+Pesquise e liste de 3 a 5 concorrentes REAIS do mesmo segmento e região. Para cada um: como ele se posiciona, o que ele faz bem, e a brecha que ele deixa aberta. **Cite a fonte de cada afirmação.** Se não encontrar informação confiável sobre um ponto, escreva "PRECISO CONFIRMAR" — concorrente inventado é o erro mais caro desta casa.
+${REGRA}
+${formato("Concorrência — <negócio>", `"headline": "nome do concorrente", "note": "como se posiciona + a brecha que deixa", "audience": "fonte"`)}`,
+      },
+    ],
+  },
+
   // ── CONTEÚDO / SOCIAL ─────────────────────────────────────────────────────
   {
     id: "social-media",

@@ -99,3 +99,22 @@ describe("quem precisa de insumo não inventa — abre pedido", () => {
     expect(identidade.precisaDe!.tem({ ...ctx, hasBrandAssets: true })).toBe(true);
   });
 });
+
+describe("cada especialista usa a IA que faz melhor o trabalho dele", () => {
+  it("a concorrência usa uma IA de PESQUISA — concorrente inventado é o erro mais caro", () => {
+    const conc = TODOS_OS_ESPECIALISTAS.find((e) => e.id === "strategy-concorrencia")!;
+    expect(conc.provedor).toBe("perplexity");
+    expect(conc.prompt(ctx)).toMatch(/cite a fonte/i);
+  });
+
+  it("nenhum outro especialista usa a IA de pesquisa — ela não é redatora", () => {
+    const pesquisa = TODOS_OS_ESPECIALISTAS.filter((e) => e.provedor === "perplexity");
+    expect(pesquisa.map((e) => e.id)).toEqual(["strategy-concorrencia"]);
+  });
+
+  it("todo especialista declara seu provedor — escolha explícita, não sorte do padrão", () => {
+    for (const e of TODOS_OS_ESPECIALISTAS) {
+      expect(e.provedor, `${e.id} sem provedor declarado`).toBeDefined();
+    }
+  });
+});

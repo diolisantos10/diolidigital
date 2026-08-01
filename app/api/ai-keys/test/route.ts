@@ -52,6 +52,21 @@ async function testDeepSeek(apiKey: string): Promise<{ ok: boolean; message: str
   return { ok: false, message: `DeepSeek respondeu HTTP ${res.status}` };
 }
 
+// Perplexity também espelha a OpenAI, mas NÃO expõe GET /models. O teste mais
+// barato que existe é a menor geração possível: 1 token. Custa quase nada e
+// responde a única pergunta que importa — a chave é real e tem saldo?
+async function testPerplexity(apiKey: string): Promise<{ ok: boolean; message: string }> {
+  const res = await fetchWithTimeout("https://api.perplexity.ai/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({ model: "sonar", messages: [{ role: "user", content: "ok" }], max_tokens: 1 }),
+  });
+  if (res.ok) return { ok: true, message: "Conexão com Perplexity OK" };
+  if (res.status === 401) return { ok: false, message: "Chave inválida (401)" };
+  if (res.status === 402 || res.status === 429) return { ok: false, message: "Chave válida, mas sem saldo ou no limite (Perplexity)" };
+  return { ok: false, message: `Perplexity respondeu HTTP ${res.status}` };
+}
+
 async function testGemini(apiKey: string): Promise<{ ok: boolean; message: string }> {
   const res = await fetchWithTimeout(
     `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`,
@@ -90,6 +105,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (provider === "claude") result = await testClaude(resolved.apiKey);
     else if (provider === "openai") result = await testOpenAI(resolved.apiKey);
     else if (provider === "deepseek") result = await testDeepSeek(resolved.apiKey);
+    else if (provider === "perplexity") result = await testPerplexity(resolved.apiKey);
     else result = await testGemini(resolved.apiKey);
   } catch (err) {
     const reason = err instanceof Error && err.name === "AbortError" ? "timeout" : "erro de rede";

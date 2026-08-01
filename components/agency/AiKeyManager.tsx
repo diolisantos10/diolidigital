@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from "react";
 
-type Provider = "claude" | "openai" | "gemini" | "deepseek";
+type Provider = "claude" | "openai" | "gemini" | "deepseek" | "perplexity";
 
 interface ProviderStatus {
   provider: Provider;
@@ -56,6 +56,15 @@ const META: Record<Provider, ProviderMeta> = {
     models: ["gemini-1.5-pro", "gemini-1.5-flash", "gemini-2.0-flash"],
     accent: "#2563EB",
   },
+  perplexity: {
+    name: "Perplexity",
+    tagline: "Perplexity · pesquisa na web com fonte citada",
+    emoji: "🔎",
+    keyUrl: "https://www.perplexity.ai/settings/api",
+    keyHelp: "perplexity.ai → Settings → API → Generate API key",
+    models: ["sonar", "sonar-pro", "sonar-reasoning"],
+    accent: "#20808D",
+  },
   deepseek: {
     name: "DeepSeek",
     tagline: "DeepSeek · texto e raciocínio, custo baixo",
@@ -70,7 +79,7 @@ const META: Record<Provider, ProviderMeta> = {
 // Ordem da tela = ordem de preferência do sistema, para a pessoa que conecta ver
 // quem entra na frente de quem. DeepSeek fica por último: é a reserva barata,
 // não a primeira escolha para texto que vai na mão do cliente.
-const ORDER: Provider[] = ["claude", "openai", "gemini", "deepseek"];
+const ORDER: Provider[] = ["claude", "openai", "gemini", "deepseek", "perplexity"];
 
 export default function AiKeyManager() {
   const [statuses, setStatuses] = useState<Record<Provider, ProviderStatus> | null>(null);

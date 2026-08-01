@@ -9,7 +9,7 @@
 import { prisma } from "@/lib/db/client";
 import { decryptSecret } from "@/lib/security/crypto";
 
-export type AiProvider = "openai" | "claude" | "gemini" | "deepseek";
+export type AiProvider = "openai" | "claude" | "gemini" | "deepseek" | "perplexity";
 
 // Provider → integrationId used as the row key in DbIntegrationConfig.
 export const PROVIDER_INTEGRATION_ID: Record<AiProvider, string> = {
@@ -17,6 +17,7 @@ export const PROVIDER_INTEGRATION_ID: Record<AiProvider, string> = {
   claude: "int-claude",
   gemini: "int-gemini",
   deepseek: "int-deepseek",
+  perplexity: "int-perplexity",
 };
 
 // Provider → environment variable fallback.
@@ -25,13 +26,14 @@ const PROVIDER_ENV: Record<AiProvider, string> = {
   claude: "ANTHROPIC_API_KEY",
   gemini: "GEMINI_API_KEY",
   deepseek: "DEEPSEEK_API_KEY",
+  perplexity: "PERPLEXITY_API_KEY",
 };
 
 // Every provider the agency can reason through — the ONE list. The key routes
 // and the UI iterate this instead of each keeping its own copy: a provider
 // missing from one copy is a key that saves but is never used (or is used and
 // can't be tested), and nothing on screen says so.
-export const ALL_PROVIDERS: AiProvider[] = ["claude", "openai", "gemini", "deepseek"];
+export const ALL_PROVIDERS: AiProvider[] = ["claude", "openai", "gemini", "deepseek", "perplexity"];
 
 export function isAiProvider(value: string): value is AiProvider {
   return (ALL_PROVIDERS as string[]).includes(value);
