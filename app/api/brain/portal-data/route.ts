@@ -5,14 +5,24 @@ import { prisma } from "@/lib/db/client";
 import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-service";
 import { requireSession } from "@/lib/auth/api-guard";
 
+// O nome que o CLIENTE vê. Precisa cobrir os dois vocabulários: o do Brain
+// (`social`, `traffic`) e o do motor de produção (`social-media`,
+// `paid-traffic`) — que são os ids gravados por `createApprovalRequest`.
+//
+// Faltava a metade do motor aqui: um cliente que recebia trabalho de tráfego
+// via a palavra "paid-traffic" no portal dele. Jargão interno vazando é
+// exatamente o que o teste do portal existe para impedir.
 const CLIENT_SAFE_DEPARTMENTS: Record<string, string> = {
-  proposal:  "Proposta do projeto",
-  strategy:  "Estratégia",
-  social:    "Social Media",
-  design:    "Design",
-  traffic:   "Tráfego Pago",
-  analytics: "Analytics",
-  quality:   "Revisão de Qualidade",
+  proposal:        "Proposta do projeto",
+  strategy:        "Estratégia",
+  social:          "Social Media",
+  "social-media":  "Social Media",
+  design:          "Design",
+  traffic:         "Tráfego Pago",
+  "paid-traffic":  "Tráfego Pago",
+  analytics:       "Analytics",
+  financeiro:      "Financeiro",
+  quality:         "Revisão de Qualidade",
 };
 
 export async function GET(request: NextRequest): Promise<NextResponse> {

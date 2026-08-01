@@ -147,7 +147,7 @@ describe("a esteira, de ponta a ponta, com banco real", () => {
   it("4. o aval dispara a produção, e a tarefa anda junto", async () => {
     const r = await aprovarDirecao(projectId);
     expect(r.ok).toBe(true);
-    expect(r.execucao?.produced).toContain("Social Media");
+    expect(r.execucao?.produced).toContain("Social Media \u00b7 Pauta do m\u00eas");
 
     // O PM decide QUANTOS departamentos entram — aqui ele pode ter puxado mais
     // de um. O que importa é que TODA entrega produzida carregue conteúdo.

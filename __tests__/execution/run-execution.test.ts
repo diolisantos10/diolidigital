@@ -66,7 +66,9 @@ describe("runProjectExecution — produção durável e confiável", () => {
 
     const r = await runProjectExecution("p1");
     expect(r.ok).toBe(true);
-    expect(r.produced).toContain("Social Media");
+    // O rótulo agora diz a casa E o especialista — é isso que o CEO lê no relatório.
+    expect(r.produced).toContain("Social Media \u00b7 Pauta do m\u00eas");
+    expect(r.produced).toContain("Social Media \u00b7 Roteiro de v\u00eddeo");
     expect(db.deliverable.create).toHaveBeenCalled();
     // marcou running no começo e done no fim
     const statuses = db.project.update.mock.calls.map((c) => c[0].data.executionStatus);
@@ -82,9 +84,11 @@ describe("runProjectExecution — produção durável e confiável", () => {
     generate.mockResolvedValue({ ok: true, data: { title: "Pacote", summary: "s", items: [{ format: "feed", headline: "Oi", caption: "legenda bem completa aqui", visual: "foto" }] } });
 
     const r = await runProjectExecution("p1");
-    expect(generate).toHaveBeenCalledTimes(2);          // geração original + 1 revisão
-    expect(db.deliverable.create).toHaveBeenCalledTimes(1); // publica só a melhor versão
-    expect(r.produced).toContain("Social Media");
+    // Social Media tem 3 especialistas: 3 gerações + 1 revisão do que foi reprovado.
+    expect(generate).toHaveBeenCalledTimes(4);
+    // Cada especialista publica UMA peça — a melhor versão dele, nunca as duas.
+    expect(db.deliverable.create).toHaveBeenCalledTimes(3);
+    expect(r.produced).toHaveLength(3);
   });
 
   it("IA indisponível → NÃO perde: marca 'failed' pra o cron re-tentar", async () => {
@@ -105,9 +109,26 @@ describe("runProjectExecution — produção durável e confiável", () => {
     expect(r.skipped.join(" ")).toMatch(/insuficiente/);
   });
 
-  it("idempotente: departamento já produzido é pulado", async () => {
+  it("idempotente POR ESPECIALISTA: quem já entregou é pulado, os colegas continuam", async () => {
+    // Esta é a diferença que a estrutura departamento-equipe trouxe. Se a
+    // idempotência continuasse por departamento, o primeiro especialista a
+    // entregar calaria os outros dois — e o cliente receberia um terço do
+    // trabalho achando que recebeu tudo.
     db.project.findUnique.mockResolvedValue({ ...baseProject });
-    db.deliverable.findMany.mockResolvedValue([{ ownerAgentId: "a3" }]); // social já feito
+    db.deliverable.findMany.mockResolvedValue([{ ownerAgentId: "a3" }]); // só a Pauta já foi feita
+    generate.mockResolvedValue({ ok: true, data: { title: "T", summary: "s", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] } });
+
+    const r = await runProjectExecution("p1");
+    expect(r.produced).not.toContain("Social Media \u00b7 Pauta do m\u00eas");
+    expect(r.produced).toContain("Social Media \u00b7 Copy dos posts");
+    expect(r.produced).toContain("Social Media \u00b7 Roteiro de v\u00eddeo");
+  });
+
+  it("idempotente: departamento inteiro já entregue → ninguém reproduz", async () => {
+    db.project.findUnique.mockResolvedValue({ ...baseProject });
+    db.deliverable.findMany.mockResolvedValue([
+      { ownerAgentId: "a3" }, { ownerAgentId: "social-copy" }, { ownerAgentId: "social-roteiro-video" },
+    ]);
     const r = await runProjectExecution("p1");
     expect(generate).not.toHaveBeenCalled();
     expect(r.produced).toHaveLength(0);
@@ -153,7 +174,7 @@ describe("o portão de direção", () => {
     db.project.findUnique.mockResolvedValue({ ...baseProject });
     generate.mockResolvedValue({ ok: true, data: { title: "T", summary: "resumo", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] } });
     const r = await runProjectExecution("p1");
-    expect(r.produced).toContain("Social Media");
+    expect(r.produced).toContain("Social Media \u00b7 Pauta do m\u00eas");
   });
 });
 
@@ -164,7 +185,13 @@ describe("a tarefa segue a produção", () => {
     await runProjectExecution("p1");
 
     const estados = db.task.updateMany.mock.calls.map((c) => c[0].data.status);
-    expect(estados).toEqual(["in_progress", "review", "done"]);
+    // Cada especialista percorre o mesmo caminho, um depois do outro. Três
+    // especialistas em Social Media = a sequência repetida três vezes.
+    expect(estados).toEqual([
+      "in_progress", "review", "done",
+      "in_progress", "review", "done",
+      "in_progress", "review", "done",
+    ]);
 
     const fechamento = db.task.updateMany.mock.calls.at(-1)?.[0].data;
     expect(fechamento.deliverableId).toBe("d1");
@@ -196,7 +223,7 @@ describe("uma voz para o cliente", () => {
 
     const r = await runProjectExecution("p1");
     expect(db.materialRequest.create).toHaveBeenCalled();
-    expect(r.askedClient).toContain("Design");
+    expect(r.askedClient).toContain("Design \u00b7 Identidade visual");
   });
 
   it("quem fala com o cliente é o gerente de projeto, uma vez só", async () => {
