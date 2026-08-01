@@ -55,16 +55,44 @@ async function testDeepSeek(apiKey: string): Promise<{ ok: boolean; message: str
 // Perplexity também espelha a OpenAI, mas NÃO expõe GET /models. O teste mais
 // barato que existe é a menor geração possível: 1 token. Custa quase nada e
 // responde a única pergunta que importa — a chave é real e tem saldo?
-async function testPerplexity(apiKey: string): Promise<{ ok: boolean; message: string }> {
+async function testPerplexity(apiKey: string, model?: string | null): Promise<{ ok: boolean; message: string }> {
   const res = await fetchWithTimeout("https://api.perplexity.ai/chat/completions", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify({ model: "sonar", messages: [{ role: "user", content: "ok" }], max_tokens: 1 }),
+    body: JSON.stringify({
+      // O modelo ESCOLHIDO na tela, não um chute fixo. Um nome de modelo que a
+      // conta não tem devolve 400 — e 400 lido como "chave ruim" manda a pessoa
+      // trocar uma chave que estava perfeita.
+      model: (model ?? "").trim() || "sonar",
+      messages: [{ role: "user", content: "ok" }],
+      // 1 token é aceito por uns provedores e recusado por outros. 16 é barato
+      // e não corre esse risco.
+      max_tokens: 16,
+    }),
   });
   if (res.ok) return { ok: true, message: "Conexão com Perplexity OK" };
   if (res.status === 401) return { ok: false, message: "Chave inválida (401)" };
   if (res.status === 402 || res.status === 429) return { ok: false, message: "Chave válida, mas sem saldo ou no limite (Perplexity)" };
-  return { ok: false, message: `Perplexity respondeu HTTP ${res.status}` };
+  // Qualquer outra coisa: DIZER O QUE A API DISSE. "HTTP 400" sozinho não conta
+  // nada a quem está tentando resolver — e foi exatamente o que aconteceu aqui.
+  return { ok: false, message: `Perplexity recusou o pedido (HTTP ${res.status}): ${await erroDaApi(res)}` };
+}
+
+/** O motivo que a API deu, em uma linha legível. Vale para qualquer provedor:
+ *  a mensagem deles é sempre mais útil que o nosso número de status. */
+async function erroDaApi(res: Response): Promise<string> {
+  try {
+    const txt = (await res.text()).slice(0, 600);
+    try {
+      const j = JSON.parse(txt) as { error?: { message?: string } | string; message?: string; detail?: unknown };
+      const e = j.error;
+      const msg = typeof e === "string" ? e : e?.message ?? j.message ?? (j.detail ? JSON.stringify(j.detail) : "");
+      if (msg) return String(msg).slice(0, 300);
+    } catch { /* não era JSON — devolve o texto cru */ }
+    return txt || "sem detalhe";
+  } catch {
+    return "sem detalhe";
+  }
 }
 
 async function testGemini(apiKey: string): Promise<{ ok: boolean; message: string }> {
@@ -105,7 +133,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (provider === "claude") result = await testClaude(resolved.apiKey);
     else if (provider === "openai") result = await testOpenAI(resolved.apiKey);
     else if (provider === "deepseek") result = await testDeepSeek(resolved.apiKey);
-    else if (provider === "perplexity") result = await testPerplexity(resolved.apiKey);
+    else if (provider === "perplexity") result = await testPerplexity(resolved.apiKey, resolved.model);
     else result = await testGemini(resolved.apiKey);
   } catch (err) {
     const reason = err instanceof Error && err.name === "AbortError" ? "timeout" : "erro de rede";
