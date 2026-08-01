@@ -52,3 +52,7 @@ next-env.d.ts
 *.db
 *.db-shm
 *.db-wal
+
+# Banco local — nunca versionar (contém dado de cliente)
+*.db
+*.db-journal

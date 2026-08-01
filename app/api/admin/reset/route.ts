@@ -1,14 +1,31 @@
-// Admin operational data reset — clears test/pilot records from all
-// operational tables while preserving workspace, users, auth, and migrations.
+// Reset operacional — devolve a casa ao ZERO sem perder a porta de entrada.
+//
+// GET /api/admin/reset
+//   Auditoria SOMENTE LEITURA. Não apaga nada. Devolve a contagem de tudo que
+//   SERIA apagado e de tudo que SERIA preservado, em cada modo. É o "olhar antes
+//   de apagar" — rode isto primeiro, sempre.
+//   Requer: sessão master. (Não exige ALLOW_PRODUCTION_RESET — ler é seguro.)
 //
 // DELETE /api/admin/reset
-//   Requires: ALLOW_PRODUCTION_RESET=true env var (disabled by default in production)
-//   Requires: master role session
-//   Body:     { confirm: "DELETE_ALL_OPERATIONAL_DATA" }
-//   Returns:  { before, after, tablesCleared }
+//   Requer: ALLOW_PRODUCTION_RESET=true + sessão master
+//   Body:   { confirm: "DELETE_ALL_OPERATIONAL_DATA", mode?: "keep-requests" | "everything" }
+//   Devolve: { mode, before, after, tablesCleared, requestsPreserved }
 //
-// To enable on Railway: set ALLOW_PRODUCTION_RESET=true in environment variables.
-// Remove or leave unset once real clients are onboarded.
+// Os dois modos, e por que existem dois:
+//
+//   "keep-requests" (PADRÃO) — apaga cliente, projeto e tudo que veio depois,
+//     mas PRESERVA as solicitações de novos clientes e as devolve ao estado
+//     "new", desligadas do cliente que foi apagado. É o zero de quem vai
+//     recomeçar a operação A PARTIR das solicitações que já chegaram.
+//
+//   "everything" — apaga as solicitações também. Zero absoluto, sem porta de
+//     entrada. Só faça isto se as solicitações atuais forem lixo de teste.
+//
+// O que NENHUM dos modos toca: workspace, usuários e login, chaves de IA e
+// integrações, contas conectadas da Meta, o Radar de mercado, a governança do
+// Brain e o histórico de treino do SDR. Isso é a agência, não é dado de cliente.
+//
+// Para habilitar no Railway: ALLOW_PRODUCTION_RESET=true. Remova depois.
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
@@ -16,17 +33,117 @@ import { getSession } from "@/lib/auth/session";
 
 const CONFIRM_PHRASE = "DELETE_ALL_OPERATIONAL_DATA";
 
+type Mode = "keep-requests" | "everything";
+
+/** Contagem do que é dado de cliente/projeto — o que o reset alcança. */
+async function countOperational() {
+  const [
+    clients, projects, deliverables, tasks, materialRequests, timelineEvents,
+    briefings, strategyRooms, cycles, clientNotices, brandBrains, brandUpdates,
+    artifacts, approvals, comments, evidence, portalAccess, portalMessages,
+    brainUpdates, socialPosts, activityEvents, aiRunLogs, waMessages, waOutbox,
+  ] = await Promise.all([
+    prisma.client.count(),
+    prisma.project.count(),
+    prisma.deliverable.count(),
+    prisma.task.count(),
+    prisma.materialRequest.count(),
+    prisma.timelineEvent.count(),
+    prisma.briefing.count(),
+    prisma.strategyRoom.count(),
+    prisma.cycle.count(),
+    prisma.clientNotice.count(),
+    prisma.brandBrain.count(),
+    prisma.brandUpdate.count(),
+    prisma.brainArtifact.count(),
+    prisma.approvalRequest.count(),
+    prisma.approvalComment.count(),
+    prisma.evidenceItem.count(),
+    prisma.portalAccess.count(),
+    prisma.portalMessage.count(),
+    prisma.brainUpdate.count(),
+    prisma.socialPost.count(),
+    prisma.activityEvent.count(),
+    prisma.aIRunLog.count(),
+    prisma.whatsAppMessage.count(),
+    prisma.whatsAppOutbox.count(),
+  ]);
+  return {
+    clients, projects, deliverables, tasks, materialRequests, timelineEvents,
+    briefings, strategyRooms, cycles, clientNotices, brandBrains, brandUpdates,
+    artifacts, approvals, comments, evidence, portalAccess, portalMessages,
+    brainUpdates, socialPosts, activityEvents, aiRunLogs, waMessages, waOutbox,
+  };
+}
+
+/** Contagem do que sobrevive a qualquer modo — a agência em si. */
+async function countPreserved() {
+  const [workspaces, users, integrationConfigs, providerConfigs, metaConnections,
+         marketInsights, brainChangeRequests, brainVersions, trainingBatches] = await Promise.all([
+    prisma.agencyWorkspace.count(),
+    prisma.user.count(),
+    prisma.dbIntegrationConfig.count(),
+    prisma.dbAgentProviderConfig.count(),
+    prisma.metaConnection.count(),
+    prisma.marketInsight.count(),
+    prisma.brainChangeRequest.count(),
+    prisma.brainVersion.count(),
+    prisma.trainingBatch.count(),
+  ]);
+  return { workspaces, users, integrationConfigs, providerConfigs, metaConnections,
+           marketInsights, brainChangeRequests, brainVersions, trainingBatches };
+}
+
+async function countRequests() {
+  const [total, byStatus] = await Promise.all([
+    prisma.clientRequestDb.count(),
+    prisma.clientRequestDb.groupBy({ by: ["status"], _count: { _all: true } }),
+  ]);
+  return { total, byStatus: byStatus.map((s) => ({ status: s.status, count: s._count._all })) };
+}
+
+async function requireMaster() {
+  const session = await getSession();
+  if (!session) return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
+  if (session.role !== "master")
+    return { error: NextResponse.json({ error: "Forbidden — master role required" }, { status: 403 }) };
+  return { session };
+}
+
+// ─── Auditoria (não apaga nada) ──────────────────────────────────────────────
+
+export async function GET(): Promise<NextResponse> {
+  const guard = await requireMaster();
+  if (guard.error) return guard.error;
+
+  const [operational, preserved, requests] = await Promise.all([
+    countOperational(), countPreserved(), countRequests(),
+  ]);
+
+  return NextResponse.json({
+    ok: true,
+    action: "audit",
+    resetEnabled: process.env.ALLOW_PRODUCTION_RESET === "true",
+    willDelete: operational,
+    willPreserve: preserved,
+    clientRequests: {
+      ...requests,
+      note: 'Preservadas no modo "keep-requests" (voltam ao status "new"); apagadas no modo "everything".',
+    },
+  });
+}
+
+// ─── Execução ────────────────────────────────────────────────────────────────
+
 export async function DELETE(request: NextRequest): Promise<NextResponse> {
-  // Disabled unless explicitly enabled via environment variable.
-  // Returns 404 to avoid revealing endpoint existence in production.
+  // Desligado a menos que explicitamente habilitado. Devolve 404 para não
+  // revelar que o endpoint existe em produção.
   if (process.env.ALLOW_PRODUCTION_RESET !== "true") {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.role !== "master")
-    return NextResponse.json({ error: "Forbidden — master role required" }, { status: 403 });
+  const guard = await requireMaster();
+  if (guard.error) return guard.error;
 
   let body: Record<string, unknown>;
   try { body = await request.json(); } catch {
@@ -40,56 +157,57 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  // Count before
-  const [
-    clientRequests, artifacts, approvals, comments, evidence, portalAccess,
-    clients, projects, brainUpdates,
-  ] = await Promise.all([
-    prisma.clientRequestDb.count(),
-    prisma.brainArtifact.count(),
-    prisma.approvalRequest.count(),
-    prisma.approvalComment.count(),
-    prisma.evidenceItem.count(),
-    prisma.portalAccess.count(),
-    prisma.client.count(),
-    prisma.project.count(),
-    prisma.brainUpdate.count(),
-  ]);
+  const mode: Mode = body.mode === "everything" ? "everything" : "keep-requests";
 
-  const before = { clientRequests, artifacts, approvals, comments, evidence, portalAccess, clients, projects, brainUpdates };
+  const before = { ...(await countOperational()), clientRequests: (await countRequests()).total };
 
-  // Delete order: children without cascade first, then parents (which cascade the rest)
-  await prisma.evidenceItem.deleteMany({});
-  await prisma.portalAccess.deleteMany({});
-  // BrainUpdate has no FK cascade from clientRequestDb — must be explicit
-  await prisma.brainUpdate.deleteMany({});
-  // clientRequestDb cascades → BrainArtifact, ApprovalRequest → ApprovalComment
-  await prisma.clientRequestDb.deleteMany({});
-  // client cascades → Project → Deliverable, MaterialRequest, Task, TimelineEvent, Briefing, StrategyRoom
-  // also cascades → BrandBrain, BrandUpdate
-  await prisma.client.deleteMany({});
+  // Ordem de exclusão: primeiro os filhos que NÃO caem por cascata (porque a
+  // ClientRequestDb, que seria a mãe deles, é justamente a que fica de pé no
+  // modo padrão), depois os projetos e por último os clientes — que cascateiam
+  // entregas, tarefas, briefings, ciclos, avisos e o cérebro de marca.
+  await prisma.$transaction(async (tx) => {
+    await tx.evidenceItem.deleteMany({});
+    await tx.portalAccess.deleteMany({});
+    await tx.portalMessage.deleteMany({});
+    await tx.brainArtifact.deleteMany({});
+    await tx.approvalComment.deleteMany({});
+    await tx.approvalRequest.deleteMany({});
+    await tx.brainUpdate.deleteMany({});
+    await tx.socialPost.deleteMany({});
+    await tx.whatsAppOutbox.deleteMany({});
+    await tx.whatsAppMessage.deleteMany({});
+    await tx.aIRunLog.deleteMany({});
+    await tx.activityEvent.deleteMany({});
 
-  // Count after
-  const [
-    clientRequestsA, artifactsA, approvalsA, commentsA, evidenceA, portalAccessA,
-    clientsA, projectsA, brainUpdatesA,
-  ] = await Promise.all([
-    prisma.clientRequestDb.count(),
-    prisma.brainArtifact.count(),
-    prisma.approvalRequest.count(),
-    prisma.approvalComment.count(),
-    prisma.evidenceItem.count(),
-    prisma.portalAccess.count(),
-    prisma.client.count(),
-    prisma.project.count(),
-    prisma.brainUpdate.count(),
-  ]);
+    // Projeto cascateia: Deliverable, MaterialRequest, Task, TimelineEvent,
+    // Briefing, StrategyRoom, Cycle.
+    await tx.project.deleteMany({});
+    // Cliente cascateia: ClientNotice, BrandBrain, BrandUpdate.
+    await tx.client.deleteMany({});
 
-  const after = { clientRequests: clientRequestsA, artifacts: artifactsA, approvals: approvalsA, comments: commentsA, evidence: evidenceA, portalAccess: portalAccessA, clients: clientsA, projects: projectsA, brainUpdates: brainUpdatesA };
+    if (mode === "everything") {
+      await tx.clientRequestDb.deleteMany({});
+    } else {
+      // A porta de entrada fica de pé — mas limpa: sem vínculo com o cliente
+      // que acabou de ser apagado, e de volta ao começo da esteira.
+      await tx.clientRequestDb.updateMany({ data: { status: "new", clientId: null } });
+    }
+  });
+
+  const after = { ...(await countOperational()), clientRequests: (await countRequests()).total };
 
   return NextResponse.json({
     ok: true,
-    tablesCleared: ["evidenceItem", "portalAccess", "brainUpdate", "clientRequestDb", "client"],
+    mode,
+    tablesCleared: [
+      "evidenceItem", "portalAccess", "portalMessage", "brainArtifact",
+      "approvalComment", "approvalRequest", "brainUpdate", "socialPost",
+      "whatsAppOutbox", "whatsAppMessage", "aIRunLog", "activityEvent",
+      "project (+ deliverable, materialRequest, task, timelineEvent, briefing, strategyRoom, cycle)",
+      "client (+ clientNotice, brandBrain, brandUpdate)",
+      ...(mode === "everything" ? ["clientRequestDb"] : []),
+    ],
+    requestsPreserved: mode === "keep-requests" ? after.clientRequests : 0,
     before,
     after,
   });

@@ -68,23 +68,33 @@ sobrou.
 
 ---
 
-## 🟠 O pipeline quebra no meio
+## 🟠 A agência NÃO roda 100% no automático — auditoria de 01/08/2026
 
-Documentado em `BACKLOG.md` e ainda aberto:
+Pergunta do CEO, respondida contra o código (não contra este documento). O
+diagnóstico antigo do `BACKLOG.md` — *"a tarefa não aciona o agente"* — **está
+desatualizado**: o motor existe, produz com IA de verdade e dispara sozinho.
+O problema mudou de lugar.
 
-```
-Briefing → Proposta → Projeto + Tarefas          ✅ conectado
-   → [QUEBRA] a tarefa não aciona o agente
-   → o canvas não vira deliverable
-   → o portal do cliente fica vazio               ❌
-```
+**O trecho que roda sozinho, hoje, de verdade:**
+cliente aprova a proposta no portal → `app/api/portal/approvals/route.ts:125`
+dispara `runProjectExecution` → o PM ordena os departamentos → Social, Design,
+Tráfego e Analytics produzem com IA (`lib/agency/execution/run-execution.ts:268`)
+→ um auditor LLM lê cada peça e manda refazer uma vez se reprovar → a entrega é
+gravada e a tarefa fecha ligada a ela. Faltando material, o agente abre o pedido e
+o PM cobra o cliente numa mensagem só.
 
-Decorrências verdadeiras hoje:
+**Os cinco furos que impedem o "100% automático":**
 
-- O portal **só** mostra conteúdo se alguém criou o Deliverable **na mão**
-- O fluxo aprovar → publicar no portal **nunca foi testado ponta a ponta**
-- Vários departamentos produzem por **template, com zero IA**. O que existe de IA
-  real é a extração do briefing e a geração de imagem no Design
+| # | Furo | Onde se comprova |
+|---|---|---|
+| 1 | **A peça pronta não chega ao cliente sozinha.** A aprovação nasce com `clientVisible: false` de propósito — quem apresenta é o PM, de uma vez. Só que esse PM é uma pessoa. A agência produz automático e o trabalho **fica parado dentro de casa**. | `run-execution.ts:339` |
+| 2 | **"Material chegou → produz sozinho" não existe.** O `MaterialRequest` só muda por ação da agência e **nada redispara a produção** quando é atendido. Projeto travado por material fica travado para sempre. | `app/api/material-requests/[id]/route.ts` — nenhum `runProjectExecution` |
+| 3 | **A rede de segurança está desligada.** O cron que recupera produção travada devolve 503 sem `CRON_SECRET`, que não está setado; o `railway.json` não agenda nada. **O que falha na primeira passada nunca é re-tentado.** | `app/api/cron/execute/route.ts:18` |
+| 4 | **A produção não começa sem alguém aprovar a direção.** É proteção deliberada e boa — mas é um passo humano. | `run-execution.ts:171` |
+| 5 | **Nada impede uma peça errada de sair.** O auditor que roda **não bloqueia**: reprovou depois da revisão, publica assim mesmo com etiqueta `quality_flag`. Somado aos 28 de 31 portões desligados do P0 acima, a operação não tem freio. | `run-execution.ts:321-327` |
+
+**Veredito:** roda sozinha de *"cliente aprovou"* até *"peça pronta na mesa"*. Não
+roda antes, não roda depois, e não tem freio.
 
 ---
 
@@ -104,6 +114,12 @@ Decorrências verdadeiras hoje:
   protocolo. **Nenhum chat é fechado antes de exportado e minerado.**
 - **Definir se o piloto sobe antes ou depois do P0 acima.** É decisão do CEO, e
   hoje a resposta honesta é: sem os gates, sobe sem proteção.
+- **Ninguém sabe a senha do master em produção.** O `scripts/seed-db.mjs` gera uma
+  senha **aleatória a cada boot** quando `SEED_MASTER_PASSWORD` não está definida
+  — está certo assim (nunca há credencial pública), mas a consequência é real: a
+  senha que está nos scripts do repositório é **rejeitada** pela produção, e
+  qualquer operação administrativa lá depende de definir `SEED_MASTER_PASSWORD` no
+  Railway e rebootar, ou usar o fluxo de redefinição de senha.
 
 ---
 
