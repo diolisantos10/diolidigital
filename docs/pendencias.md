@@ -128,6 +128,52 @@ que continua sendo o P0 da casa.
 
 ---
 
+## 🔌 A tela de integrações mistura duas coisas que não se misturam
+
+Levantado pelo CEO em 01/08/2026, e conferido no catálogo: **das 17 integrações,
+5 estão na tela errada.**
+
+A pergunta dele resume o problema: *"o que eu vou conectar aqui o Google
+Analytics? De quem?"*
+
+**Existem dois grupos, e eles não têm o mesmo dono:**
+
+| Grupo | Quem é o dono da conta | Onde deve ser conectado |
+|---|---|---|
+| **Ferramentas DA AGÊNCIA** — provedores de IA (6), Canva/Gamma/CapCut (3), Drive (1), Zapier/Make (2) | a Dioli, uma assinatura só, serve todos os clientes | ✅ onde está hoje: `/agency/integrations` |
+| **Ferramentas DO CLIENTE** — Meta Ads, Google Ads, Instagram/Facebook, GA4, Search Console | **cada cliente**, com a conta dele | ❌ hoje estão na tela da agência; deveriam estar **no painel daquele cliente** |
+
+**Por que isto não é organização de tela — é impedimento operacional:**
+
+- Conectar "Google Analytics" numa tela global **não tem significado**: analytics
+  de qual negócio? A tela pede uma credencial que não existe em nível de agência.
+- Com 5 clientes entrando, cada um tem o próprio Instagram, o próprio Google Ads
+  e o próprio GA4. Uma conexão global só consegue atender **um** deles.
+- O cliente precisa poder **autorizar e revogar** o acesso da agência às contas
+  dele. Isso é exigência da Meta e do Google, e é o mínimo de respeito com quem
+  paga: a autorização é dele, não nossa.
+
+**A boa notícia — o banco já está certo, só a tela não está.** `MetaConnection`
+já tem `clientId` (nulo = conta da própria agência, preenchido = conta do
+cliente). O desenho de dados já previa a separação; a interface é que juntou
+tudo numa lista só.
+
+**O que precisa ser feito:**
+
+1. Separar o catálogo em dois escopos explícitos: `agencia` e `cliente`.
+2. As 5 de escopo `cliente` saem de `/agency/integrations` e passam a viver na
+   página do cliente — e no **portal**, para que ele mesmo autorize.
+3. Guardar `clientId` em toda conexão de escopo `cliente` (a Meta já guarda; as
+   de Google ainda não existem).
+4. Na tela da agência, mostrar por cliente **o que falta conectar** — hoje não
+   há como saber que o cliente X está sem GA4 até alguém procurar.
+
+> Google Ads, GA4 e Search Console **ainda não têm código de conexão nenhum** —
+> estão no catálogo como intenção. Meta é a única do grupo do cliente que está
+> realmente construída.
+
+---
+
 ## 🟡 Fila normal
 
 | O que | Por que importa |
