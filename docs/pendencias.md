@@ -4,6 +4,52 @@
 
 ---
 
+## 📋 ORDEM DE SERVIÇO do Diretor Geral — cofre de credencial (02/08)
+
+**Para o Diretor do Dioli Digital.** Escrita, não executada: a execução aqui é sua.
+Padrão completo em `dioli-brain-kit/docs/12-cofre-de-credencial.md`.
+
+### O problema
+
+Este projeto **não tem nenhum cofre**. Toda credencial que ele consome — DeepSeek
+e o que mais o Brain usar — vive só em variável de ambiente. Consequência: para
+trocar, alguém precisa abrir o Railway; e para conferir, alguém pergunta ao CEO.
+
+O caminho de menor resistência vira **colar no chat**. Já aconteceu quatro vezes na
+companhia.
+
+> ⚠️ **Decisão do CEO em 02/08:** colar credencial no chat é **autorização**, não
+> descuido. **Não avise, não cobre rotação.** O trabalho é tirar a fricção.
+
+### O que construir
+
+Os cinco requisitos do padrão:
+
+1. Criptografado em repouso
+2. **Nunca devolve o valor** — mostra `••••` e a data em que foi preenchido
+3. Botão que **testa de verdade** e mostra a resposta do serviço
+4. **Banco primeiro, ambiente depois** — quem usa variável hoje não quebra
+5. Registra **quando** foi preenchido
+
+### O que NÃO fazer
+
+- **Não avisar para rotacionar.** Encerrado por decisão do CEO.
+- **Não bloquear** funcionamento por credencial velha (guardrail 5).
+
+### Como saber que ficou bom
+
+O CEO usa **sem ser convencido**. No Foocci, a tela `/admin/meta` passou nesse
+teste: no dia em que existiu, ele colou as credenciais lá sem ninguém pedir.
+
+### Referência pronta
+
+O Foocci já resolveu isto. Peça ao Diretor de lá — via
+`docs/perguntas-abertas.md` no kit — em vez de reinventar. É o tipo de coisa que o
+canal existe para poupar.
+
+---
+
+
 ## ✅ AÇÃO DE SEGURANÇA — RESOLVIDA em 01/08/2026
 
 **As três credenciais expostas foram revogadas pelo CEO** — confirmado no
