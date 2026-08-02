@@ -7,6 +7,7 @@
 // client's business name under the Dioli brand.
 
 import { use, useCallback, useEffect, useState } from "react";
+import { CalendarioDoMes } from "@/components/portal/CalendarioDoMes";
 import { EnvioDeMaterial } from "@/components/portal/EnvioDeMaterial";
 import { ChatDrawer } from "@/components/agency/portal/FloatingChat";
 import EsteiraDoCliente from "@/components/agency/portal/EsteiraDoCliente";
@@ -114,6 +115,10 @@ const STATUS_LABEL: Record<string, string> = {
   waiting_social: "Planejamento de conteúdo", waiting_design: "Desenvolvimento visual",
   waiting_traffic: "Configuração de tráfego", waiting_analytics: "Configuração de analytics",
   waiting_quality: "Revisão final", in_progress: "Em execução", completed: "Concluído",
+  // Estes três faltavam, e o fallback mostrava o nome CRU do banco no topo do
+  // portal — o cliente lia "in_production" em inglês e snake_case, na primeira
+  // coisa que ele vê da agência.
+  in_production: "Em produção", accepted: "Proposta aceita", quoted: "Proposta enviada",
 };
 const ACTION_LABEL: Record<string, string> = {
   approve: "Aprovar", request_revision: "Pedir ajuste", reject: "Rejeitar",
@@ -296,7 +301,10 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
   }
 
   const completedDepts = new Set(data.pipeline.map((p) => p.departmentKey));
-  const currentStatus = STATUS_LABEL[data.status] ?? data.status;
+  // Sem fallback para o valor cru: um status novo no banco não pode vazar em
+  // inglês para a tela do cliente. Desconhecido vira uma frase que serve
+  // sempre, e o buraco aparece para nós, não para ele.
+  const currentStatus = STATUS_LABEL[data.status] ?? "Em andamento";
   const progress = Math.round((completedDepts.size / DEPT_ORDER.length) * 100);
   const pendingApprovals = data.approvals.filter((a) => a.status === "pending");
   const allComments = data.approvals.flatMap((a) => a.comments);
@@ -308,6 +316,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
   const navTabs = [
     { id: "overview", label: "Visão Geral", icon: "◎" },
     ...serviceTabs.map((t) => ({ id: t.id, label: t.label, icon: t.icon })),
+    { id: "calendario", label: "Calendário", icon: "▦" },
     { id: "approvals", label: "Aprovações", icon: "✓" },
     { id: "materials", label: "Materiais", icon: "↑" },
     { id: "integrations", label: "Integrações", icon: "⚡" },
@@ -541,50 +550,13 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
                 </section>
               )}
 
-              {/* Editorial calendar — what's coming up (Social tab) */}
+              {/* O calendário do mês. Vive na aba própria — ver a seção
+                  "calendario" abaixo — e aparece aqui também quando o cliente
+                  está justamente na aba de social. */}
               {tab.id === "social" && (
                 <section>
                   <h3 className="text-[14px] font-bold text-[var(--text-primary)] mb-2.5">Calendário editorial</h3>
-                  {posts.length === 0 ? (
-                    <div className="bg-white rounded-[12px] border border-[var(--border)] px-4 py-6 text-center">
-                      <p className="text-[13px] text-[var(--text-muted)]">Seu calendário está sendo montado — em breve você verá aqui os posts programados.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {[...posts]
-                        .sort((a, b) => (a.scheduledFor ?? "").localeCompare(b.scheduledFor ?? ""))
-                        .slice(0, 12)
-                        .map((p) => (
-                          <div key={p.id} className="bg-white rounded-[12px] border border-[var(--border)] px-3.5 py-3 flex items-center gap-3 shadow-[0_1px_2px_rgba(7,10,31,0.03)]">
-                            <div className="w-[46px] shrink-0 text-center">
-                              {p.scheduledFor ? (
-                                <>
-                                  <div className="text-[15px] font-bold text-[var(--text-primary)] leading-none">{new Date(p.scheduledFor).getDate()}</div>
-                                  <div className="text-[9px] uppercase text-[var(--text-muted)] mt-0.5">{PT_MONTHS[new Date(p.scheduledFor).getMonth()]}</div>
-                                </>
-                              ) : <div className="text-[11px] text-[#C7C7C0]">—</div>}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="text-[13px] font-medium text-[var(--text-primary)] truncate">{p.caption || <span className="italic text-[var(--text-muted)]">Conteúdo programado</span>}</p>
-                              <div className="flex items-center gap-1.5 mt-1">
-                                <span className="text-[11px] text-[var(--text-muted)] capitalize">{p.format}</span>
-                                {p.pillar && <><span className="text-[#D7D7D2]">·</span><span className="text-[11px] text-[var(--text-muted)]">{p.pillar}</span></>}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-1 shrink-0">
-                              {p.networks.slice(0, 4).map((n) => {
-                                const m = platformMeta(n);
-                                return <span key={n} className="w-[18px] h-[18px] rounded-full text-white text-[8px] font-bold flex items-center justify-center" style={{ background: m.color }} title={m.label}>{m.initials}</span>;
-                              })}
-                            </div>
-                            <span className="shrink-0 h-[20px] px-2 rounded-full text-[10px] font-semibold flex items-center"
-                                  style={p.status === "published" ? { background: "#DCFCE7", color: "#16A34A" } : { background: "#DBEAFE", color: "#1D4ED8" }}>
-                              {p.status === "published" ? "Publicado" : "Programado"}
-                            </span>
-                          </div>
-                        ))}
-                    </div>
-                  )}
+                  <CalendarioDoMes pecas={posts} token={token} />
                 </section>
               )}
 
@@ -620,6 +592,22 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
         })}
 
         {/* ── APROVAÇÕES ── */}
+        {/* ── O CALENDÁRIO, EM ABA PRÓPRIA ─────────────────────────────────
+            Estava enterrado dentro da aba de Social e limitado a 12 itens. O
+            cliente aprovava peça por peça sem nunca ver o CONJUNTO — e o
+            conjunto é justamente o que ele comprou. */}
+        {section === "calendario" && (
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-[16px] font-bold text-[var(--text-primary)]">Seu mês</h2>
+              <p className="mt-0.5 text-[12.5px] text-[var(--text-secondary)]">
+                Tudo o que está programado, com data, imagem e formato.
+              </p>
+            </div>
+            <CalendarioDoMes pecas={posts} token={token} />
+          </div>
+        )}
+
         {section === "approvals" && (
           <div className="space-y-4">
             <h2 className="text-[16px] font-bold text-[var(--text-primary)]">Aprovações</h2>
