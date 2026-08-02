@@ -149,6 +149,50 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       catch (e) { console.error("[portal/approvals] negotiate error", e); }
     }
 
+    // ── O CLIENTE FALOU SOBRE UMA ENTREGA ─────────────────────────────────────
+    // Até 02/08/2026 nada acontecia aqui. Os três botões existiam no portal e
+    // só o de proposta fazia efeito: o clique numa ENTREGA gravava um status e
+    // acabava ali. Nada refeito, ninguém avisado, e a tela do cliente dizia
+    // "revisão solicitada" para sempre. Ele acreditava que tinha pedido; a
+    // agência não sabia que fora pedido.
+    //
+    // Best-effort de propósito: a resposta ao clique do cliente nunca depende
+    // de uma chamada de IA dar certo.
+    if (approval.department !== "proposal" && approval.clientRequestId) {
+      if (status === "rejected" || status === "revision_requested") {
+        try {
+          const { refazerPorPedidoDoCliente } = await import("@/lib/agency/esteira/refacao");
+          await refazerPorPedidoDoCliente({
+            clientRequestId: approval.clientRequestId,
+            department: approval.department,
+            comentario: body.comment,
+          });
+        } catch (e) { console.error("[portal/approvals] refação error", e); }
+      }
+
+      // Aprovou a última pendência? Então ele aprovou o pacote — e é isso que
+      // abre a operação contínua. Sem esta ponte, `aprovarPacote` só era
+      // alcançável por alguém da agência clicando por ele.
+      if (status === "approved") {
+        try {
+          const restantes = await prisma.approvalRequest.count({
+            where: { clientRequestId: approval.clientRequestId, status: "pending", clientVisible: true },
+          });
+          if (restantes === 0) {
+            const projeto = await prisma.project.findFirst({
+              where: { clientRequestId: approval.clientRequestId, clientApprovedAt: null, presentedAt: { not: null } },
+              select: { id: true },
+              orderBy: { createdAt: "desc" },
+            });
+            if (projeto) {
+              const { aprovarPacote } = await import("@/lib/agency/esteira/marcos");
+              await aprovarPacote(projeto.id);
+            }
+          }
+        } catch (e) { console.error("[portal/approvals] aprovarPacote error", e); }
+      }
+    }
+
     return NextResponse.json({
       id:         updated.id,
       status:     updated.status,
