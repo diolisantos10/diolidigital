@@ -32,6 +32,41 @@ Detalhe em `docs/plano-90.md`.
 **Novo:** `/api/capacidades` diz se esta instância consegue trabalhar — ffmpeg,
 chave de imagem, domínio público. `/api/health` só diz se está viva.
 
+### ✅ As três pendências do CEO — medidas em produção (02/08, manhã)
+
+**1. Chave de imagem — NÃO ERA PENDÊNCIA. Erro meu.**
+A chave da OpenAI já existia (no cofre cifrado do banco, não no env — por isso
+não apareceu na listagem de variáveis do Railway). Testada em produção via
+`POST /api/generate-image`: **gerou a arte em 20s**, 1024×1024, sem texto na
+imagem. O Design está funcionando hoje.
+
+**2. Meta — a causa do "ineligible for submission" foi encontrada.**
+Perguntando ao próprio app pela Graph (`GET /{app-id}`), com app access token:
+
+| Campo | Estado |
+|---|---|
+| ícone, logo | ✅ preenchidos |
+| `privacy_policy_url` | ❌ vazio |
+| `terms_of_service_url` | ❌ aponta para facebook.com |
+| `website_url`, `app_domains`, `user_support_email` | ❌ vazios |
+
+As páginas legais **já existem e respondem 200** (`/privacidade`, `/termos`,
+`/exclusao-de-dados`). Só não foram coladas no painel.
+Tentei preencher por API e a Meta recusou:
+`(#10) Changing app settings through API calls has been disabled for this app`.
+→ **Um toggle em Configurações → Avançado libera, e aí eu preencho tudo.**
+
+**3. Domínio sem `www` — diagnóstico exato.**
+O Railway espera um CNAME na **raiz** apontando para `wu7600kq.up.railway.app`,
+e o valor atual está **vazio** — o registro não existe. O `www` está correto e
+propagado. É criar um registro no DNS; CNAME na raiz exige ALIAS/ANAME (ou
+redirecionar apex → www no registrador).
+
+**Novo:** agente dedicado à Meta recriado em `.claude/agents/meta.md`, a pedido
+do CEO, com o estado real do app documentado.
+
+---
+
 ### ⚠️ Dois achados que só apareceram CONFERINDO o deploy
 
 **1. O Railway constrói com RAILPACK, não com Nixpacks.**
