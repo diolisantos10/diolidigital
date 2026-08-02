@@ -1,6 +1,30 @@
 # Pendências — o que está aberto
 
-> Última atualização: 02/08/2026 (madrugada).
+> Última atualização: 02/08/2026 (tarde).
+
+---
+
+## ✅ Itens 8 a 11 do backlog — entregues em 02/08/2026
+
+| # | O que era | O que ficou |
+|---|---|---|
+| 8 | Carrossel não existia | Formato completo: fluxo próprio na Meta, **uma arte por tela** |
+| 9 | Story não existia | Nasce **vertical**, com prompt que protege as bordas da interface |
+| 10 | Só existia Meta | **Google Meu Negócio**: locais, posts e avaliações |
+| 11 | Calendário enterrado na aba de Social | **Aba própria**, com miniatura, agrupado por mês |
+
+**A regra que mais importa no item 10:** elogio a agência responde sozinha;
+**reclamação, nunca.** Resposta automática a cliente irritado é lida como
+deboche por quem está com raiva, é pública, permanente, e notifica a pessoa na
+hora. 4–5 estrelas sai sozinho; 1–3 vira rascunho pronto e escalado.
+
+**Dois defeitos achados conferindo a tela nos 3 tamanhos** (regra da casa):
+- `capitalize` do CSS escrevia "Julho **De** 2026" — errado em português.
+- O topo do portal mostrava **`in_production` cru** ao cliente. Faltavam três
+  rótulos e o fallback vazava o nome do banco.
+
+**Ainda depende do Google:** a API do Meu Negócio exige aprovação, como o App
+Review da Meta. O código está pronto e o erro já vem traduzido.
 
 ---
 
