@@ -258,9 +258,9 @@ caminho inteiro, com IA de verdade, no banco de verdade.
 fraca, nomenclatura imprecisa"* e *"carece de profundidade técnica, fontes
 documentadas"*. Um humano assinaria embaixo.
 
-### 🔴 O buraco que isto revelou — e é o último antes do cliente pagante
+### ✅ O buraco que isto revelou — FECHADO no mesmo dia
 
-**O pacote está travado e ninguém sabe.**
+**Era: o pacote travado e ninguém sabia.**
 
 - A Qualidade barrou, o bloqueio virou `ActivityEvent`… e **nenhuma tela mostra
   isso**. Conferido: nenhum componente lê `apresentacao_bloqueada` nem
@@ -271,18 +271,33 @@ documentadas"*. Um humano assinaria embaixo.
   mesmo padrão do buraco do material que fechamos hoje de manhã — só que um
   passo adiante na esteira.
 
-**As três saídas possíveis, e é decisão do CEO:**
+**Decidido pelo CEO em 01/08/2026: refaz sozinha até 2 tentativas, depois chama.**
+As outras duas saídas foram recusadas com motivo — chamar direto põe o CEO no
+caminho de todo projeto (com 5 clientes, é ele olhando pacote todo dia), e
+apresentar com ressalva anula o único freio da casa.
 
-1. **Refazer sozinho** — o especialista reescreve com a crítica da Qualidade na
-   mão, até N tentativas. Automático de verdade; gasta mais IA.
-2. **Escalar para o Diretor** — o pacote travado aparece num painel e o CEO
-   decide. Mantém o freio, mas exige gente.
-3. **Apresentar com ressalva** — vai ao cliente marcado. **Não recomendo:**
-   anula o único freio que a casa tem.
+Construído em `lib/agency/esteira/pacote-travado.ts` + `GET /api/pacotes-travados`,
+rodando pelo despertador.
 
-> **Recomendação do Diretor:** (1) com teto de 2 tentativas, e (2) como saída
-> quando as tentativas acabam. Assim a agência resolve sozinha o caso comum e só
-> chama gente no caso raro — que é a definição de automático que serve.
+**E o destravamento revelou mais um furo, também fechado:** com as peças
+refeitas, a passada seguinte **não produzia nada** (tudo já existia, o motor é
+idempotente) — e a apresentação exigia "algo produzido nesta passada". O pacote
+ficava pronto e mudo. A pergunta certa não é *"produzi agora?"*, é *"o pacote
+está inteiro?"*.
+
+### 🏁 O ciclo fechou — verificado em produção
+
+Estado final do projeto piloto, conferido no banco:
+
+- 6 entregas, **todas aprovadas pela Qualidade** (as 2 reprovadas foram refeitas
+  sozinhas e passaram na versão 3)
+- **`presentedAt` preenchido**, execução `done`
+- O cliente vê **7 itens no portal** e recebeu a mensagem do gerente:
+  *"Terminamos! 🎉 Preparei as suas 6 entregas e revisei tudo antes de te mostrar"*
+- **Zero pacotes travados**
+
+**Do briefing ao pacote no portal do cliente, sem um clique humano no meio** —
+exceto os dois avais que o cliente dá de propósito (proposta e direção).
 
 ---
 
