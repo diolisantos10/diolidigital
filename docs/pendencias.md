@@ -301,6 +301,63 @@ exceto os dois avais que o cliente dá de propósito (proposta e direção).
 
 ---
 
+## 📡 A camada Meta: orgânico pronto, ANÚNCIOS não existem
+
+Auditado em 02/08/2026 a pedido do CEO, que perguntou se a integração está
+completa dos dois lados. **Está pela metade — e a metade que falta é tráfego
+pago, que é justamente onde o dinheiro do cliente passa.**
+
+### ✅ O que está construído e funciona
+
+| Frente | Estado |
+|---|---|
+| **Login pelo Facebook (OAuth)** | ✅ com troca por token de longa duração |
+| **Conexão POR CLIENTE** | ✅ `?clientId=` → o token é salvo **cifrado** e amarrado àquele cliente. O desenho já é multi-cliente. |
+| **Descobrir páginas do usuário** | ✅ |
+| **Publicar no Instagram e Facebook** | ✅ (`publishPost`) |
+| **Métricas ORGÂNICAS** | ✅ (`getInsights`) |
+| **WhatsApp** | ✅ enviar, receber, caixa de entrada, webhooks, criar template |
+
+### ❌ O que NÃO existe — e não é detalhe
+
+**Anúncios (Meta Ads) são impossíveis hoje. Dois motivos somados:**
+
+1. **As permissões nunca foram pedidas.** A lista em `DEFAULT_SCOPES`
+   (`lib/integrations/meta/config.ts`) tem páginas, Instagram, business_management
+   e WhatsApp — **não tem `ads_management` nem `ads_read`**. Sem elas a Meta
+   recusa qualquer chamada de anúncio, com token válido e tudo.
+2. **Não há uma linha de código da Marketing API.** Zero ocorrências de conta de
+   anúncio, campanha, conjunto ou verba em `lib/integrations/meta/`. O
+   `getInsights` que existe lê desempenho **orgânico**, não de campanha.
+
+**A consequência prática, e ela é séria:** o departamento de Tráfego Pago produz
+o *plano* de campanha — estrutura, públicos, ângulos, copy — e **a agência não
+consegue criar, pausar, ler nem otimizar campanha nenhuma**. Alguém sobe tudo à
+mão no Gerenciador de Anúncios. Vender tráfego pago prometendo automação, hoje,
+seria vender o que a casa não tem.
+
+### ⚠️ Outros dois pontos honestos
+
+- **Quem conecta é a agência, não o cliente.** A rota exige sessão `master`
+  (`app/api/meta/connect/route.ts`). O cliente não autoriza pelo portal dele — é
+  o dono da agência que conecta em nome dele. Funciona (é o padrão do Business
+  Manager), mas contradiz o desenho de "a autorização é do cliente" registrado na
+  seção de integrações acima.
+- **Nunca testado ponta a ponta em produção.** Publicação em IG/FB segue não
+  verificada com conta real — só o WhatsApp foi exercitado.
+
+### O que precisa ser feito, na ordem
+
+1. Somar `ads_management` e `ads_read` aos escopos. **Muda o App Review** — é
+   permissão avançada, exige justificativa e vídeo de demonstração.
+2. Construir a camada de Marketing API: conta de anúncio, campanha, conjunto,
+   anúncio, verba e métricas de campanha.
+3. Testar publicação orgânica ponta a ponta com uma conta real.
+4. Decidir se o cliente autoriza pelo portal dele ou se a agência segue
+   conectando por ele.
+
+---
+
 ## 🟡 Fila normal
 
 | O que | Por que importa |
