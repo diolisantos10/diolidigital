@@ -31,11 +31,17 @@ beforeAll(async () => {
   temFfmpeg = await ffmpegDisponivel();
   if (!temFfmpeg) return;
   dir = await mkdtemp(path.join(tmpdir(), "dioli-teste-video-"));
-  // Um "vídeo de celular": vertical, 12s, e com o áudio baixíssimo — que é
-  // exatamente o defeito que mais chega da dona do salão.
+  // Um "vídeo de celular": vertical, com o áudio baixíssimo — que é exatamente
+  // o defeito que mais chega da dona do salão.
+  //
+  // Curto e a 15 fps DE PROPÓSITO. Codificar 12s a 30fps disputa CPU com os
+  // outros arquivos de teste, que rodam em paralelo, e derrubou a suíte uma vez
+  // em 02/08/2026. Teste que falha às vezes é pior que teste nenhum: ensina o
+  // time a ignorar vermelho. Nenhuma asserção depende da duração — só de ela
+  // ser maior que MIN_SEGUNDOS_REEL.
   await rodar("ffmpeg", [
-    "-y", "-f", "lavfi", "-i", "testsrc=size=720x1280:rate=30:duration=12",
-    "-f", "lavfi", "-i", "sine=frequency=440:duration=12",
+    "-y", "-f", "lavfi", "-i", "testsrc=size=720x1280:rate=15:duration=6",
+    "-f", "lavfi", "-i", "sine=frequency=440:duration=6",
     "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac",
     "-filter:a", "volume=0.05", path.join(dir, "bruto.mp4"),
   ]);
