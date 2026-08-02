@@ -153,6 +153,10 @@ model Cycle {
   resultsJson String    @default("{}")
   /// A leitura do ciclo em uma frase — o que melhorou, o que não.
   summary     String?
+  /// Quando o pacote DESTE ciclo foi mostrado ao cliente. Por ciclo, não por
+  /// projeto: o carimbo do projeto só serve ao pacote inicial, e sem este a
+  /// entrega do mês 2 nunca chegaria a ser apresentada.
+  presentedAt DateTime?
   closedAt    DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -223,11 +227,18 @@ model Deliverable {
   clientFeedback  String?
   lastFeedback    String?
   ownerAgentId    String?
+  /// De que ciclo mensal esta entrega é. NULO = entrega do pacote inicial (o
+  /// projeto, antes de virar rotina). É a chave que faz o mês 2 existir: sem
+  /// ela a idempotência por especialista vale para sempre e a agência entrega
+  /// uma vez só na vida do cliente.
+  cycleId         String?
   version         Int      @default(1)
   // JSON-encoded revision history
   revisionHistory String   @default("[]")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+
+  @@index([projectId, cycleId])
 }
 
 // ─── Material Requests ────────────────────────────────────────────────────────

@@ -40,6 +40,7 @@ export type CycleMinAggregateOutputType = {
   planJson: string | null
   resultsJson: string | null
   summary: string | null
+  presentedAt: Date | null
   closedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -55,6 +56,7 @@ export type CycleMaxAggregateOutputType = {
   planJson: string | null
   resultsJson: string | null
   summary: string | null
+  presentedAt: Date | null
   closedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -70,6 +72,7 @@ export type CycleCountAggregateOutputType = {
   planJson: number
   resultsJson: number
   summary: number
+  presentedAt: number
   closedAt: number
   createdAt: number
   updatedAt: number
@@ -87,6 +90,7 @@ export type CycleMinAggregateInputType = {
   planJson?: true
   resultsJson?: true
   summary?: true
+  presentedAt?: true
   closedAt?: true
   createdAt?: true
   updatedAt?: true
@@ -102,6 +106,7 @@ export type CycleMaxAggregateInputType = {
   planJson?: true
   resultsJson?: true
   summary?: true
+  presentedAt?: true
   closedAt?: true
   createdAt?: true
   updatedAt?: true
@@ -117,6 +122,7 @@ export type CycleCountAggregateInputType = {
   planJson?: true
   resultsJson?: true
   summary?: true
+  presentedAt?: true
   closedAt?: true
   createdAt?: true
   updatedAt?: true
@@ -205,6 +211,7 @@ export type CycleGroupByOutputType = {
   planJson: string
   resultsJson: string
   summary: string | null
+  presentedAt: Date | null
   closedAt: Date | null
   createdAt: Date
   updatedAt: Date
@@ -241,6 +248,7 @@ export type CycleWhereInput = {
   planJson?: Prisma.StringFilter<"Cycle"> | string
   resultsJson?: Prisma.StringFilter<"Cycle"> | string
   summary?: Prisma.StringNullableFilter<"Cycle"> | string | null
+  presentedAt?: Prisma.DateTimeNullableFilter<"Cycle"> | Date | string | null
   closedAt?: Prisma.DateTimeNullableFilter<"Cycle"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Cycle"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Cycle"> | Date | string
@@ -257,6 +265,7 @@ export type CycleOrderByWithRelationInput = {
   planJson?: Prisma.SortOrder
   resultsJson?: Prisma.SortOrder
   summary?: Prisma.SortOrderInput | Prisma.SortOrder
+  presentedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   closedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -277,6 +286,7 @@ export type CycleWhereUniqueInput = Prisma.AtLeast<{
   planJson?: Prisma.StringFilter<"Cycle"> | string
   resultsJson?: Prisma.StringFilter<"Cycle"> | string
   summary?: Prisma.StringNullableFilter<"Cycle"> | string | null
+  presentedAt?: Prisma.DateTimeNullableFilter<"Cycle"> | Date | string | null
   closedAt?: Prisma.DateTimeNullableFilter<"Cycle"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Cycle"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Cycle"> | Date | string
@@ -293,6 +303,7 @@ export type CycleOrderByWithAggregationInput = {
   planJson?: Prisma.SortOrder
   resultsJson?: Prisma.SortOrder
   summary?: Prisma.SortOrderInput | Prisma.SortOrder
+  presentedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   closedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -314,6 +325,7 @@ export type CycleScalarWhereWithAggregatesInput = {
   planJson?: Prisma.StringWithAggregatesFilter<"Cycle"> | string
   resultsJson?: Prisma.StringWithAggregatesFilter<"Cycle"> | string
   summary?: Prisma.StringNullableWithAggregatesFilter<"Cycle"> | string | null
+  presentedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Cycle"> | Date | string | null
   closedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Cycle"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Cycle"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Cycle"> | Date | string
@@ -328,6 +340,7 @@ export type CycleCreateInput = {
   planJson?: string
   resultsJson?: string
   summary?: string | null
+  presentedAt?: Date | string | null
   closedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -344,6 +357,7 @@ export type CycleUncheckedCreateInput = {
   planJson?: string
   resultsJson?: string
   summary?: string | null
+  presentedAt?: Date | string | null
   closedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -358,6 +372,7 @@ export type CycleUpdateInput = {
   planJson?: Prisma.StringFieldUpdateOperationsInput | string
   resultsJson?: Prisma.StringFieldUpdateOperationsInput | string
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  presentedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -374,6 +389,7 @@ export type CycleUncheckedUpdateInput = {
   planJson?: Prisma.StringFieldUpdateOperationsInput | string
   resultsJson?: Prisma.StringFieldUpdateOperationsInput | string
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  presentedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -389,6 +405,7 @@ export type CycleCreateManyInput = {
   planJson?: string
   resultsJson?: string
   summary?: string | null
+  presentedAt?: Date | string | null
   closedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -403,6 +420,7 @@ export type CycleUpdateManyMutationInput = {
   planJson?: Prisma.StringFieldUpdateOperationsInput | string
   resultsJson?: Prisma.StringFieldUpdateOperationsInput | string
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  presentedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -418,6 +436,7 @@ export type CycleUncheckedUpdateManyInput = {
   planJson?: Prisma.StringFieldUpdateOperationsInput | string
   resultsJson?: Prisma.StringFieldUpdateOperationsInput | string
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  presentedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -448,6 +467,7 @@ export type CycleCountOrderByAggregateInput = {
   planJson?: Prisma.SortOrder
   resultsJson?: Prisma.SortOrder
   summary?: Prisma.SortOrder
+  presentedAt?: Prisma.SortOrder
   closedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -463,6 +483,7 @@ export type CycleMaxOrderByAggregateInput = {
   planJson?: Prisma.SortOrder
   resultsJson?: Prisma.SortOrder
   summary?: Prisma.SortOrder
+  presentedAt?: Prisma.SortOrder
   closedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -478,6 +499,7 @@ export type CycleMinOrderByAggregateInput = {
   planJson?: Prisma.SortOrder
   resultsJson?: Prisma.SortOrder
   summary?: Prisma.SortOrder
+  presentedAt?: Prisma.SortOrder
   closedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -534,6 +556,7 @@ export type CycleCreateWithoutProjectInput = {
   planJson?: string
   resultsJson?: string
   summary?: string | null
+  presentedAt?: Date | string | null
   closedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -548,6 +571,7 @@ export type CycleUncheckedCreateWithoutProjectInput = {
   planJson?: string
   resultsJson?: string
   summary?: string | null
+  presentedAt?: Date | string | null
   closedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -591,6 +615,7 @@ export type CycleScalarWhereInput = {
   planJson?: Prisma.StringFilter<"Cycle"> | string
   resultsJson?: Prisma.StringFilter<"Cycle"> | string
   summary?: Prisma.StringNullableFilter<"Cycle"> | string | null
+  presentedAt?: Prisma.DateTimeNullableFilter<"Cycle"> | Date | string | null
   closedAt?: Prisma.DateTimeNullableFilter<"Cycle"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Cycle"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Cycle"> | Date | string
@@ -605,6 +630,7 @@ export type CycleCreateManyProjectInput = {
   planJson?: string
   resultsJson?: string
   summary?: string | null
+  presentedAt?: Date | string | null
   closedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -619,6 +645,7 @@ export type CycleUpdateWithoutProjectInput = {
   planJson?: Prisma.StringFieldUpdateOperationsInput | string
   resultsJson?: Prisma.StringFieldUpdateOperationsInput | string
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  presentedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -633,6 +660,7 @@ export type CycleUncheckedUpdateWithoutProjectInput = {
   planJson?: Prisma.StringFieldUpdateOperationsInput | string
   resultsJson?: Prisma.StringFieldUpdateOperationsInput | string
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  presentedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -647,6 +675,7 @@ export type CycleUncheckedUpdateManyWithoutProjectInput = {
   planJson?: Prisma.StringFieldUpdateOperationsInput | string
   resultsJson?: Prisma.StringFieldUpdateOperationsInput | string
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  presentedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -664,6 +693,7 @@ export type CycleSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   planJson?: boolean
   resultsJson?: boolean
   summary?: boolean
+  presentedAt?: boolean
   closedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -680,6 +710,7 @@ export type CycleSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   planJson?: boolean
   resultsJson?: boolean
   summary?: boolean
+  presentedAt?: boolean
   closedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -696,6 +727,7 @@ export type CycleSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   planJson?: boolean
   resultsJson?: boolean
   summary?: boolean
+  presentedAt?: boolean
   closedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -712,12 +744,13 @@ export type CycleSelectScalar = {
   planJson?: boolean
   resultsJson?: boolean
   summary?: boolean
+  presentedAt?: boolean
   closedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type CycleOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "projectId" | "reference" | "status" | "startsOn" | "endsOn" | "planJson" | "resultsJson" | "summary" | "closedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["cycle"]>
+export type CycleOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "projectId" | "reference" | "status" | "startsOn" | "endsOn" | "planJson" | "resultsJson" | "summary" | "presentedAt" | "closedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["cycle"]>
 export type CycleInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
 }
@@ -758,6 +791,12 @@ export type $CyclePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
      * A leitura do ciclo em uma frase — o que melhorou, o que não.
      */
     summary: string | null
+    /**
+     * Quando o pacote DESTE ciclo foi mostrado ao cliente. Por ciclo, não por
+     * projeto: o carimbo do projeto só serve ao pacote inicial, e sem este a
+     * entrega do mês 2 nunca chegaria a ser apresentada.
+     */
+    presentedAt: Date | null
     closedAt: Date | null
     createdAt: Date
     updatedAt: Date
@@ -1194,6 +1233,7 @@ export interface CycleFieldRefs {
   readonly planJson: Prisma.FieldRef<"Cycle", 'String'>
   readonly resultsJson: Prisma.FieldRef<"Cycle", 'String'>
   readonly summary: Prisma.FieldRef<"Cycle", 'String'>
+  readonly presentedAt: Prisma.FieldRef<"Cycle", 'DateTime'>
   readonly closedAt: Prisma.FieldRef<"Cycle", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"Cycle", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Cycle", 'DateTime'>

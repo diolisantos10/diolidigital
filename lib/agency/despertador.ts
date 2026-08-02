@@ -26,6 +26,7 @@ import { runProjectExecution } from "@/lib/agency/execution/run-execution";
 import { dispatchWhatsAppNotifications } from "@/lib/integrations/meta/notifications";
 import { destravarPacote, pacotesTravados } from "@/lib/agency/esteira/pacote-travado";
 import { publicarAgendados } from "@/lib/agency/esteira/publicacao";
+import { virarOsMesesVencidos } from "@/lib/agency/esteira/mes";
 
 /** De quanto em quanto tempo a agência olha se tem trabalho parado. */
 const INTERVALO_MS = Number(process.env.DESPERTADOR_INTERVALO_MS ?? 5 * 60_000);
@@ -121,11 +122,26 @@ export async function baterORelogio(): Promise<{
   avisos: number;
   destravadas: number;
   publicados: number;
+  mesesVirados: number;
 }> {
   let retomados = 0;
   let avisos = 0;
   let destravadas = 0;
   let publicados = 0;
+  let mesesVirados = 0;
+
+  // A virada vem ANTES da retomada de propósito: ela é quem abre o mês novo e
+  // marca o projeto como "pending". Assim o mês nasce e já é produzido na mesma
+  // rodada, em vez de esperar mais cinco minutos.
+  try {
+    const viradas = await virarOsMesesVencidos();
+    mesesVirados = viradas.length;
+    for (const v of viradas) {
+      log(`${v.projectId}: ciclo ${v.referenciaFechada} fechado${v.relatorioEntregue ? " com relatório" : " SEM relatório"}${v.proximaReferencia ? ` → ${v.proximaReferencia}` : ""}`);
+    }
+  } catch (err) {
+    log(`virada do mês falhou: ${err instanceof Error ? err.message : "erro"}`);
+  }
 
   try {
     retomados = await retomarProducao();
@@ -156,10 +172,10 @@ export async function baterORelogio(): Promise<{
     log(`disparo de avisos falhou: ${err instanceof Error ? err.message : "erro"}`);
   }
 
-  if (retomados > 0 || avisos > 0 || destravadas > 0 || publicados > 0) {
-    log(`rodada: ${retomados} produção(ões) retomada(s), ${destravadas} entrega(s) refeita(s), ${publicados} post(s) publicado(s), ${avisos} aviso(s) enviado(s)`);
+  if (retomados > 0 || avisos > 0 || destravadas > 0 || publicados > 0 || mesesVirados > 0) {
+    log(`rodada: ${mesesVirados} mês(es) virado(s), ${retomados} produção(ões) retomada(s), ${destravadas} entrega(s) refeita(s), ${publicados} post(s) publicado(s), ${avisos} aviso(s) enviado(s)`);
   }
-  return { retomados, avisos, destravadas, publicados };
+  return { retomados, avisos, destravadas, publicados, mesesVirados };
 }
 
 /**

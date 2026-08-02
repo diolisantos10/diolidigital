@@ -11,6 +11,7 @@ const db = vi.hoisted(() => ({
   task: { updateMany: vi.fn() },
   materialRequest: { findFirst: vi.fn(), create: vi.fn(), findMany: vi.fn(), updateMany: vi.fn() },
   activityEvent: { create: vi.fn() },
+  cycle: { findFirst: vi.fn() },
 }));
 const generate = vi.hoisted(() => vi.fn());
 const createApprovalRequest = vi.hoisted(() => vi.fn());
@@ -31,6 +32,9 @@ vi.mock("@/lib/agency/execution/quality-auditor", () => ({
 vi.mock("@/lib/agency/esteira/marcos", () => ({
   apresentar: vi.fn(async () => ({ ok: true })),
 }));
+vi.mock("@/lib/agency/esteira/mes", () => ({
+  apresentarCiclo: vi.fn(async () => ({ ok: true })),
+}));
 vi.mock("@/lib/agency/radar/library", () => ({
   getActiveInsights: vi.fn(async () => []),
   buildInsightBlock: vi.fn(() => ""),
@@ -39,6 +43,7 @@ vi.mock("@/lib/agency/radar/library", () => ({
 import { runProjectExecution } from "@/lib/agency/execution/run-execution";
 import { auditDeliverable } from "@/lib/agency/execution/quality-auditor";
 import * as marcos from "@/lib/agency/esteira/marcos";
+import * as mes from "@/lib/agency/esteira/mes";
 
 const baseProject = {
   id: "p1", workspaceId: "ws1", clientId: "c1", clientRequestId: "cr1",
@@ -59,6 +64,7 @@ beforeEach(() => {
   db.client.findFirst.mockResolvedValue({ id: "c1", name: "Loja X", brandBrain: null });
   db.brainArtifact.findMany.mockResolvedValue([]);
   db.deliverable.findMany.mockResolvedValue([]);
+  db.cycle.findFirst.mockResolvedValue(null);
   db.deliverable.create.mockResolvedValue({ id: "d1" });
   db.deliverable.count.mockResolvedValue(0);
   db.deliverable.update.mockResolvedValue({});
@@ -445,5 +451,50 @@ describe("o motor entende o que o briefing REALMENTE grava sobre material", () =
     comEscopo({});
     await runProjectExecution("p1");
     expect(promptDoVideo()).toMatch(/GRAVAR/);
+  });
+});
+
+describe("o mês 2 existe — a idempotência é por CICLO, não pela vida inteira", () => {
+  // O furo mais caro da casa: a chave era `ownerAgentId` por PROJETO e valia
+  // para sempre. O cliente vitalício pagava todo mês e recebia uma entrega na
+  // vida — no mês 2 o motor via "todos já produziram" e não fazia nada. Cada
+  // peça passava no seu teste; a operação contínua é que não existia.
+  it("procura entregas do ciclo ABERTO, não do projeto inteiro", async () => {
+    db.cycle.findFirst.mockResolvedValue({
+      id: "cy2", reference: "2026-09", status: "aberto",
+      startsOn: "2026-09-01", endsOn: "2026-09-30", planJson: "[]", summary: null,
+    });
+    await runProjectExecution("p1");
+    const consulta = db.deliverable.findMany.mock.calls.find((c) => c[0]?.select?.ownerAgentId);
+    expect(consulta![0].where.cycleId).toBe("cy2");
+  });
+
+  it("entrega do mês 1 não impede a produção do mês 2", async () => {
+    db.cycle.findFirst.mockResolvedValue({
+      id: "cy2", reference: "2026-09", status: "aberto",
+      startsOn: "2026-09-01", endsOn: "2026-09-30", planJson: "[]", summary: null,
+    });
+    // O ciclo novo está vazio — o mês 1 ficou carimbado em cy1.
+    db.deliverable.findMany.mockResolvedValue([]);
+    await runProjectExecution("p1");
+    expect(db.deliverable.create).toHaveBeenCalled();
+    expect(db.deliverable.create.mock.calls[0]![0].data.cycleId).toBe("cy2");
+  });
+
+  it("dentro de um ciclo, quem apresenta é o CICLO — o carimbo do projeto já foi usado", async () => {
+    db.cycle.findFirst.mockResolvedValue({
+      id: "cy2", reference: "2026-09", status: "aberto",
+      startsOn: "2026-09-01", endsOn: "2026-09-30", planJson: "[]", summary: null,
+    });
+    await runProjectExecution("p1");
+    expect(mes.apresentarCiclo).toHaveBeenCalledWith("p1", "cy2");
+    expect(marcos.apresentar).not.toHaveBeenCalled();
+  });
+
+  it("no pacote inicial (sem ciclo) quem apresenta continua sendo o projeto", async () => {
+    db.cycle.findFirst.mockResolvedValue(null);
+    await runProjectExecution("p1");
+    expect(marcos.apresentar).toHaveBeenCalledWith("p1");
+    expect(mes.apresentarCiclo).not.toHaveBeenCalled();
   });
 });

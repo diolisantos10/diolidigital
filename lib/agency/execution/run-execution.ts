@@ -152,11 +152,29 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
 
   const clientRequestId = project.clientRequestId;
   try {
+    // Qual ciclo está aberto agora. NULO no pacote inicial — o projeto ainda não
+    // virou rotina, e as entregas dele nascem sem ciclo (é o que `aprovarPacote`
+    // depois carimba como sendo do ciclo 1).
+    const cicloDoMomento = (await import("@/lib/agency/esteira/ciclos"))
+      .cicloAberto(projectId)
+      .then((c) => c?.id ?? null)
+      .catch(() => null);
+    const cicloId = await cicloDoMomento;
+
     const [req, client, artifacts, existing, materiaisResolvidos] = await Promise.all([
       prisma.clientRequestDb.findUnique({ where: { id: clientRequestId } }),
       prisma.client.findFirst({ where: { id: project.clientId }, include: { brandBrain: true } }),
       prisma.brainArtifact.findMany({ where: { clientRequestId, status: "approved" }, select: { department: true, canvasJson: true } }),
-      prisma.deliverable.findMany({ where: { projectId }, select: { ownerAgentId: true } }),
+      // ── A FOLHA EM BRANCO DO MÊS ─────────────────────────────────────────
+      // A idempotência é por especialista DENTRO DO CICLO. Era por projeto, e
+      // valia para sempre: o cliente vitalício recebia uma entrega na vida —
+      // no mês 2 o motor via "todos já produziram" e não fazia nada. Nenhum
+      // teste pegava, porque cada peça estava certa; a operação contínua é que
+      // não existia.
+      prisma.deliverable.findMany({
+        where: { projectId, cycleId: cicloId },
+        select: { ownerAgentId: true },
+      }),
       // O que o cliente já entregou. Sem isto, quem depende de material seria
       // cobrado para sempre — inclusive depois de o cliente ter respondido.
       prisma.materialRequest.findMany({
@@ -391,7 +409,8 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
       const entregavel = await prisma.deliverable.create({
         data: {
           projectId, name: title, type: esp.deliverableType, status: "in_review", content: body,
-          ownerAgentId: esp.id, revisionStatus: audit.verdict === "flag" ? "quality_flag" : "quality_ok",
+          ownerAgentId: esp.id, cycleId: cicloId,
+          revisionStatus: audit.verdict === "flag" ? "quality_flag" : "quality_ok",
           lastFeedback: audit.note || null, version: revisions + 1,
         },
         select: { id: true },
@@ -451,13 +470,18 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
     // fazia a apresentação depender de coincidência.
     const jaEntregues = produced.length > 0
       ? produced.length
-      : await prisma.deliverable.count({ where: { projectId } });
+      : await prisma.deliverable.count({ where: { projectId, cycleId: cicloId } });
 
     let apresentado: ApresentacaoAutomatica | undefined;
     if (allHandled && askedClient.length === 0 && jaEntregues > 0) {
       try {
         const { apresentar } = await import("@/lib/agency/esteira/marcos");
-        const r = await apresentar(projectId);
+        // Dentro de um ciclo, quem apresenta é o ciclo: o carimbo do projeto já
+        // foi usado no pacote inicial e recusaria a entrega de todo mês 2 em
+        // diante com "já apresentado".
+        const r = cicloId
+          ? await (await import("@/lib/agency/esteira/mes")).apresentarCiclo(projectId, cicloId)
+          : await apresentar(projectId);
         apresentado = { ok: r.ok, motivo: r.erro };
         if (!r.ok) {
           // Nenhum humano vai ler um retorno de função. O bloqueio precisa

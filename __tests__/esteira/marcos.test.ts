@@ -3,11 +3,11 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 const db = vi.hoisted(() => ({
   project: { findUnique: vi.fn(), update: vi.fn() },
   task: { findMany: vi.fn() },
-  deliverable: { findMany: vi.fn() },
+  deliverable: { findMany: vi.fn(), updateMany: vi.fn() },
   materialRequest: { count: vi.fn() },
   approvalRequest: { updateMany: vi.fn() },
   portalMessage: { create: vi.fn() },
-  cycle: { findUnique: vi.fn(), findFirst: vi.fn(), create: vi.fn() },
+  cycle: { findUnique: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
 }));
 const runProjectExecution = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
@@ -26,6 +26,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   db.project.findUnique.mockResolvedValue({ ...PROJETO });
   db.project.update.mockResolvedValue({});
+  db.deliverable.updateMany.mockResolvedValue({});
+  db.cycle.update.mockResolvedValue({});
   db.task.findMany.mockResolvedValue([{ title: "Pacote de social" }, { title: "Conceito visual" }]);
   db.deliverable.findMany.mockResolvedValue([{ id: "d1", name: "Pacote Social", revisionStatus: "quality_ok" }]);
   db.materialRequest.count.mockResolvedValue(0);

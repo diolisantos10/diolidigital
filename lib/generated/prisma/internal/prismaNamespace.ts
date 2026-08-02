@@ -3372,6 +3372,7 @@ export const CycleScalarFieldEnum = {
   planJson: 'planJson',
   resultsJson: 'resultsJson',
   summary: 'summary',
+  presentedAt: 'presentedAt',
   closedAt: 'closedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -3411,6 +3412,7 @@ export const DeliverableScalarFieldEnum = {
   clientFeedback: 'clientFeedback',
   lastFeedback: 'lastFeedback',
   ownerAgentId: 'ownerAgentId',
+  cycleId: 'cycleId',
   version: 'version',
   revisionHistory: 'revisionHistory',
   createdAt: 'createdAt',

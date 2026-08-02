@@ -43,7 +43,7 @@ async function carregar(projectId: string) {
  * fazia o projeto parar em silêncio — a mensagem existia, o cliente não sabia.
  * Quem chama não deveria precisar lembrar das duas coisas.
  */
-async function falarComOCliente(
+export async function falarComOCliente(
   projeto: { clientRequestId: string | null; workspaceId?: string; clientId?: string; id?: string },
   corpo: string,
   tipo: TipoDeAviso,
@@ -242,7 +242,21 @@ export async function aprovarPacote(projectId: string): Promise<ResultadoDoMarco
   }
 
   const { abrirCiclo } = await import("@/lib/agency/esteira/ciclos");
-  await abrirCiclo(projectId, agora);
+  const ciclo = await abrirCiclo(projectId, agora);
+
+  // O pacote inicial passa a pertencer ao ciclo 1. Sem este carimbo, o motor
+  // olharia o ciclo recém-aberto, veria zero entregas e produziria tudo de novo
+  // no minuto seguinte à aprovação — cobrando IA por trabalho já feito.
+  if (ciclo) {
+    await prisma.deliverable.updateMany({
+      where: { projectId, cycleId: null },
+      data: { cycleId: ciclo.id },
+    }).catch(() => { /* best-effort */ });
+    await prisma.cycle.update({
+      where: { id: ciclo.id },
+      data: { presentedAt: projeto.presentedAt ?? agora },
+    }).catch(() => { /* best-effort */ });
+  }
 
   // A aprovação do pacote É o consentimento para publicar. Só aqui o calendário
   // sai de rascunho — antes disto nenhum post desta casa vai ao ar.

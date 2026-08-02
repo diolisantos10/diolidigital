@@ -45,6 +45,7 @@ export type DeliverableMinAggregateOutputType = {
   clientFeedback: string | null
   lastFeedback: string | null
   ownerAgentId: string | null
+  cycleId: string | null
   version: number | null
   revisionHistory: string | null
   createdAt: Date | null
@@ -62,6 +63,7 @@ export type DeliverableMaxAggregateOutputType = {
   clientFeedback: string | null
   lastFeedback: string | null
   ownerAgentId: string | null
+  cycleId: string | null
   version: number | null
   revisionHistory: string | null
   createdAt: Date | null
@@ -79,6 +81,7 @@ export type DeliverableCountAggregateOutputType = {
   clientFeedback: number
   lastFeedback: number
   ownerAgentId: number
+  cycleId: number
   version: number
   revisionHistory: number
   createdAt: number
@@ -106,6 +109,7 @@ export type DeliverableMinAggregateInputType = {
   clientFeedback?: true
   lastFeedback?: true
   ownerAgentId?: true
+  cycleId?: true
   version?: true
   revisionHistory?: true
   createdAt?: true
@@ -123,6 +127,7 @@ export type DeliverableMaxAggregateInputType = {
   clientFeedback?: true
   lastFeedback?: true
   ownerAgentId?: true
+  cycleId?: true
   version?: true
   revisionHistory?: true
   createdAt?: true
@@ -140,6 +145,7 @@ export type DeliverableCountAggregateInputType = {
   clientFeedback?: true
   lastFeedback?: true
   ownerAgentId?: true
+  cycleId?: true
   version?: true
   revisionHistory?: true
   createdAt?: true
@@ -244,6 +250,7 @@ export type DeliverableGroupByOutputType = {
   clientFeedback: string | null
   lastFeedback: string | null
   ownerAgentId: string | null
+  cycleId: string | null
   version: number
   revisionHistory: string
   createdAt: Date
@@ -284,6 +291,7 @@ export type DeliverableWhereInput = {
   clientFeedback?: Prisma.StringNullableFilter<"Deliverable"> | string | null
   lastFeedback?: Prisma.StringNullableFilter<"Deliverable"> | string | null
   ownerAgentId?: Prisma.StringNullableFilter<"Deliverable"> | string | null
+  cycleId?: Prisma.StringNullableFilter<"Deliverable"> | string | null
   version?: Prisma.IntFilter<"Deliverable"> | number
   revisionHistory?: Prisma.StringFilter<"Deliverable"> | string
   createdAt?: Prisma.DateTimeFilter<"Deliverable"> | Date | string
@@ -302,6 +310,7 @@ export type DeliverableOrderByWithRelationInput = {
   clientFeedback?: Prisma.SortOrderInput | Prisma.SortOrder
   lastFeedback?: Prisma.SortOrderInput | Prisma.SortOrder
   ownerAgentId?: Prisma.SortOrderInput | Prisma.SortOrder
+  cycleId?: Prisma.SortOrderInput | Prisma.SortOrder
   version?: Prisma.SortOrder
   revisionHistory?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -323,6 +332,7 @@ export type DeliverableWhereUniqueInput = Prisma.AtLeast<{
   clientFeedback?: Prisma.StringNullableFilter<"Deliverable"> | string | null
   lastFeedback?: Prisma.StringNullableFilter<"Deliverable"> | string | null
   ownerAgentId?: Prisma.StringNullableFilter<"Deliverable"> | string | null
+  cycleId?: Prisma.StringNullableFilter<"Deliverable"> | string | null
   version?: Prisma.IntFilter<"Deliverable"> | number
   revisionHistory?: Prisma.StringFilter<"Deliverable"> | string
   createdAt?: Prisma.DateTimeFilter<"Deliverable"> | Date | string
@@ -341,6 +351,7 @@ export type DeliverableOrderByWithAggregationInput = {
   clientFeedback?: Prisma.SortOrderInput | Prisma.SortOrder
   lastFeedback?: Prisma.SortOrderInput | Prisma.SortOrder
   ownerAgentId?: Prisma.SortOrderInput | Prisma.SortOrder
+  cycleId?: Prisma.SortOrderInput | Prisma.SortOrder
   version?: Prisma.SortOrder
   revisionHistory?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -366,6 +377,7 @@ export type DeliverableScalarWhereWithAggregatesInput = {
   clientFeedback?: Prisma.StringNullableWithAggregatesFilter<"Deliverable"> | string | null
   lastFeedback?: Prisma.StringNullableWithAggregatesFilter<"Deliverable"> | string | null
   ownerAgentId?: Prisma.StringNullableWithAggregatesFilter<"Deliverable"> | string | null
+  cycleId?: Prisma.StringNullableWithAggregatesFilter<"Deliverable"> | string | null
   version?: Prisma.IntWithAggregatesFilter<"Deliverable"> | number
   revisionHistory?: Prisma.StringWithAggregatesFilter<"Deliverable"> | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Deliverable"> | Date | string
@@ -382,6 +394,7 @@ export type DeliverableCreateInput = {
   clientFeedback?: string | null
   lastFeedback?: string | null
   ownerAgentId?: string | null
+  cycleId?: string | null
   version?: number
   revisionHistory?: string
   createdAt?: Date | string
@@ -400,6 +413,7 @@ export type DeliverableUncheckedCreateInput = {
   clientFeedback?: string | null
   lastFeedback?: string | null
   ownerAgentId?: string | null
+  cycleId?: string | null
   version?: number
   revisionHistory?: string
   createdAt?: Date | string
@@ -416,6 +430,7 @@ export type DeliverableUpdateInput = {
   clientFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ownerAgentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cycleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   version?: Prisma.IntFieldUpdateOperationsInput | number
   revisionHistory?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -434,6 +449,7 @@ export type DeliverableUncheckedUpdateInput = {
   clientFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ownerAgentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cycleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   version?: Prisma.IntFieldUpdateOperationsInput | number
   revisionHistory?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -451,6 +467,7 @@ export type DeliverableCreateManyInput = {
   clientFeedback?: string | null
   lastFeedback?: string | null
   ownerAgentId?: string | null
+  cycleId?: string | null
   version?: number
   revisionHistory?: string
   createdAt?: Date | string
@@ -467,6 +484,7 @@ export type DeliverableUpdateManyMutationInput = {
   clientFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ownerAgentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cycleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   version?: Prisma.IntFieldUpdateOperationsInput | number
   revisionHistory?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -484,6 +502,7 @@ export type DeliverableUncheckedUpdateManyInput = {
   clientFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ownerAgentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cycleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   version?: Prisma.IntFieldUpdateOperationsInput | number
   revisionHistory?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -511,6 +530,7 @@ export type DeliverableCountOrderByAggregateInput = {
   clientFeedback?: Prisma.SortOrder
   lastFeedback?: Prisma.SortOrder
   ownerAgentId?: Prisma.SortOrder
+  cycleId?: Prisma.SortOrder
   version?: Prisma.SortOrder
   revisionHistory?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -532,6 +552,7 @@ export type DeliverableMaxOrderByAggregateInput = {
   clientFeedback?: Prisma.SortOrder
   lastFeedback?: Prisma.SortOrder
   ownerAgentId?: Prisma.SortOrder
+  cycleId?: Prisma.SortOrder
   version?: Prisma.SortOrder
   revisionHistory?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -549,6 +570,7 @@ export type DeliverableMinOrderByAggregateInput = {
   clientFeedback?: Prisma.SortOrder
   lastFeedback?: Prisma.SortOrder
   ownerAgentId?: Prisma.SortOrder
+  cycleId?: Prisma.SortOrder
   version?: Prisma.SortOrder
   revisionHistory?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -611,6 +633,7 @@ export type DeliverableCreateWithoutProjectInput = {
   clientFeedback?: string | null
   lastFeedback?: string | null
   ownerAgentId?: string | null
+  cycleId?: string | null
   version?: number
   revisionHistory?: string
   createdAt?: Date | string
@@ -627,6 +650,7 @@ export type DeliverableUncheckedCreateWithoutProjectInput = {
   clientFeedback?: string | null
   lastFeedback?: string | null
   ownerAgentId?: string | null
+  cycleId?: string | null
   version?: number
   revisionHistory?: string
   createdAt?: Date | string
@@ -672,6 +696,7 @@ export type DeliverableScalarWhereInput = {
   clientFeedback?: Prisma.StringNullableFilter<"Deliverable"> | string | null
   lastFeedback?: Prisma.StringNullableFilter<"Deliverable"> | string | null
   ownerAgentId?: Prisma.StringNullableFilter<"Deliverable"> | string | null
+  cycleId?: Prisma.StringNullableFilter<"Deliverable"> | string | null
   version?: Prisma.IntFilter<"Deliverable"> | number
   revisionHistory?: Prisma.StringFilter<"Deliverable"> | string
   createdAt?: Prisma.DateTimeFilter<"Deliverable"> | Date | string
@@ -688,6 +713,7 @@ export type DeliverableCreateManyProjectInput = {
   clientFeedback?: string | null
   lastFeedback?: string | null
   ownerAgentId?: string | null
+  cycleId?: string | null
   version?: number
   revisionHistory?: string
   createdAt?: Date | string
@@ -704,6 +730,7 @@ export type DeliverableUpdateWithoutProjectInput = {
   clientFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ownerAgentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cycleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   version?: Prisma.IntFieldUpdateOperationsInput | number
   revisionHistory?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -720,6 +747,7 @@ export type DeliverableUncheckedUpdateWithoutProjectInput = {
   clientFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ownerAgentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cycleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   version?: Prisma.IntFieldUpdateOperationsInput | number
   revisionHistory?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -736,6 +764,7 @@ export type DeliverableUncheckedUpdateManyWithoutProjectInput = {
   clientFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ownerAgentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cycleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   version?: Prisma.IntFieldUpdateOperationsInput | number
   revisionHistory?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -755,6 +784,7 @@ export type DeliverableSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   clientFeedback?: boolean
   lastFeedback?: boolean
   ownerAgentId?: boolean
+  cycleId?: boolean
   version?: boolean
   revisionHistory?: boolean
   createdAt?: boolean
@@ -773,6 +803,7 @@ export type DeliverableSelectCreateManyAndReturn<ExtArgs extends runtime.Types.E
   clientFeedback?: boolean
   lastFeedback?: boolean
   ownerAgentId?: boolean
+  cycleId?: boolean
   version?: boolean
   revisionHistory?: boolean
   createdAt?: boolean
@@ -791,6 +822,7 @@ export type DeliverableSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.E
   clientFeedback?: boolean
   lastFeedback?: boolean
   ownerAgentId?: boolean
+  cycleId?: boolean
   version?: boolean
   revisionHistory?: boolean
   createdAt?: boolean
@@ -809,13 +841,14 @@ export type DeliverableSelectScalar = {
   clientFeedback?: boolean
   lastFeedback?: boolean
   ownerAgentId?: boolean
+  cycleId?: boolean
   version?: boolean
   revisionHistory?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type DeliverableOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "projectId" | "name" | "type" | "status" | "revisionStatus" | "content" | "clientFeedback" | "lastFeedback" | "ownerAgentId" | "version" | "revisionHistory" | "createdAt" | "updatedAt", ExtArgs["result"]["deliverable"]>
+export type DeliverableOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "projectId" | "name" | "type" | "status" | "revisionStatus" | "content" | "clientFeedback" | "lastFeedback" | "ownerAgentId" | "cycleId" | "version" | "revisionHistory" | "createdAt" | "updatedAt", ExtArgs["result"]["deliverable"]>
 export type DeliverableInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
 }
@@ -842,6 +875,13 @@ export type $DeliverablePayload<ExtArgs extends runtime.Types.Extensions.Interna
     clientFeedback: string | null
     lastFeedback: string | null
     ownerAgentId: string | null
+    /**
+     * De que ciclo mensal esta entrega é. NULO = entrega do pacote inicial (o
+     * projeto, antes de virar rotina). É a chave que faz o mês 2 existir: sem
+     * ela a idempotência por especialista vale para sempre e a agência entrega
+     * uma vez só na vida do cliente.
+     */
+    cycleId: string | null
     version: number
     revisionHistory: string
     createdAt: Date
@@ -1280,6 +1320,7 @@ export interface DeliverableFieldRefs {
   readonly clientFeedback: Prisma.FieldRef<"Deliverable", 'String'>
   readonly lastFeedback: Prisma.FieldRef<"Deliverable", 'String'>
   readonly ownerAgentId: Prisma.FieldRef<"Deliverable", 'String'>
+  readonly cycleId: Prisma.FieldRef<"Deliverable", 'String'>
   readonly version: Prisma.FieldRef<"Deliverable", 'Int'>
   readonly revisionHistory: Prisma.FieldRef<"Deliverable", 'String'>
   readonly createdAt: Prisma.FieldRef<"Deliverable", 'DateTime'>
