@@ -43,6 +43,9 @@ export interface MedicaoDoMes {
   impressoes: number | null;
   seguidores: number | null;
   engajamento: number | null;
+  /** Tráfego pago no período. `null` = não havia campanha, ou não consegui ler.
+   *  Nunca zeros: zero gasto é notícia, "não medi" é outra coisa. */
+  pago: { gastoBRL: number; cliques: number; alcance: number; cpcBRL: number | null } | null;
   /** Por que não mediu, quando não mediu. */
   porQueNaoMediu: string | null;
 }
@@ -58,7 +61,7 @@ export async function medirOMes(projectId: string, ciclo: CicloResumido): Promis
   const medicao: MedicaoDoMes = {
     postsPublicados: 0, postsAgendadosNaoPublicados: 0,
     alcance: null, impressoes: null, seguidores: null, engajamento: null,
-    porQueNaoMediu: null,
+    pago: null, porQueNaoMediu: null,
   };
 
   const projeto = await prisma.project.findUnique({
@@ -81,6 +84,14 @@ export async function medirOMes(projectId: string, ciclo: CicloResumido): Promis
     ]);
     medicao.postsPublicados = publicados;
     medicao.postsAgendadosNaoPublicados = agendados;
+  }
+
+  // Tráfego pago: lido à parte, porque ele existe ou não existe independente
+  // de o Instagram estar conectado.
+  const { desempenhoPagoDoPeriodo } = await import("@/lib/agency/esteira/trafego");
+  const pago = await desempenhoPagoDoPeriodo(projectId, { desde: ciclo.comeca, ate: ciclo.termina }).catch(() => null);
+  if (pago) {
+    medicao.pago = { gastoBRL: pago.gastoBRL, cliques: pago.cliques, alcance: pago.alcance, cpcBRL: pago.cpcBRL };
   }
 
   const conexao = await prisma.metaConnection.findFirst({
@@ -128,6 +139,10 @@ export async function escreverRelatorio(input: {
     input.medicao.impressoes !== null ? `- Impressões: ${input.medicao.impressoes}` : null,
     input.medicao.seguidores !== null ? `- Seguidores: ${input.medicao.seguidores}` : null,
     input.medicao.engajamento !== null ? `- Engajamento: ${input.medicao.engajamento}` : null,
+    input.medicao.pago ? `- Anúncios — investido: R$ ${input.medicao.pago.gastoBRL.toFixed(2)}` : null,
+    input.medicao.pago ? `- Anúncios — cliques: ${input.medicao.pago.cliques}` : null,
+    input.medicao.pago ? `- Anúncios — alcance: ${input.medicao.pago.alcance}` : null,
+    input.medicao.pago?.cpcBRL !== null && input.medicao.pago ? `- Anúncios — custo por clique: R$ ${input.medicao.pago.cpcBRL}` : null,
   ].filter(Boolean).join("\n");
 
   const semMedicao = input.medicao.porQueNaoMediu

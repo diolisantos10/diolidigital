@@ -137,6 +137,43 @@ model Project {
 /// projeto infinito — é uma sequência de ciclos que nascem, entregam, medem e
 /// fecham. É o que permite dizer "agosto foi melhor que julho", e é isso que
 /// segura um cliente por anos.
+/// Uma campanha de tráfego pago que ESTA agência criou na conta do cliente.
+///
+/// Existe porque dinheiro precisa de rastro. Sem esta tabela, "quem mandou
+/// gastar R$ 40 por dia na conta da padaria?" não teria resposta — só um id
+/// solto dentro da Meta. Aqui ficam o teto que o cliente aprovou, quem
+/// autorizou ligar e quando.
+model AdCampaign {
+  id             String    @id @default(cuid())
+  workspaceId    String
+  clientId       String?
+  projectId      String?
+  /// Conexão Meta usada. É por ela que se descobre em qual conta isto vive.
+  connectionId   String
+  /// "act_..." — a conta de anúncio do cliente.
+  adAccountId    String
+  /// O id da campanha dentro da Meta.
+  externalId     String
+  name           String
+  objective      String
+  dailyBudgetBRL Float
+  /// O teto que o cliente aprovou POR ESCRITO, congelado no momento da criação.
+  /// Congelado de propósito: se o teto mudar depois, o que foi criado ontem
+  /// continua julgável pelo que valia ontem.
+  approvedCapBRL Float
+  /// paused | active | ended
+  status         String    @default("paused")
+  /// Quem mandou ligar. Nulo enquanto nunca foi ativada.
+  activatedBy    String?
+  activatedAt    DateTime?
+  lastError      String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([workspaceId, status])
+  @@index([projectId])
+}
+
 model Cycle {
   id          String    @id @default(cuid())
   projectId   String

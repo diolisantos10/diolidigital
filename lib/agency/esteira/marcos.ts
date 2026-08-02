@@ -265,6 +265,13 @@ export async function aprovarPacote(projectId: string): Promise<ResultadoDoMarco
     await aprovarCalendario(projectId);
   } catch { /* best-effort: a aprovação não pode falhar por causa do calendário */ }
 
+  // Tráfego pago é o caso em que "automático" significa PREPARAR, não fazer: a
+  // campanha nasce pausada e espera o cliente ligar. Dinheiro gasto não volta.
+  try {
+    const { prepararCampanha } = await import("@/lib/agency/esteira/trafego");
+    await prepararCampanha(projectId);
+  } catch { /* best-effort */ }
+
   const avisou = await falarComOCliente(
     projeto,
     "Aprovado! ✅ Vamos colocar tudo no ar. A partir de agora você acompanha por aqui: toda semana eu te trago o que foi publicado e como está performando.",

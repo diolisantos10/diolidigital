@@ -14,13 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace"
 
 /**
  * Model Cycle
- * O CICLO MENSAL — onde a relação vitalícia acontece.
  * 
- * Um projeto que nunca fecha não é medível: nada é entregue de fato, nada é
- * comparado, o painel nunca fica verde. Por isso a operação contínua não é um
- * projeto infinito — é uma sequência de ciclos que nascem, entregam, medem e
- * fecham. É o que permite dizer "agosto foi melhor que julho", e é isso que
- * segura um cliente por anos.
  */
 export type CycleModel = runtime.Types.Result.DefaultSelection<Prisma.$CyclePayload>
 

@@ -55,6 +55,7 @@ export const ModelName = {
   User: 'User',
   Client: 'Client',
   Project: 'Project',
+  AdCampaign: 'AdCampaign',
   Cycle: 'Cycle',
   ClientNotice: 'ClientNotice',
   Deliverable: 'Deliverable',
@@ -175,6 +176,29 @@ export const ProjectScalarFieldEnum = {
 } as const
 
 export type ProjectScalarFieldEnum = (typeof ProjectScalarFieldEnum)[keyof typeof ProjectScalarFieldEnum]
+
+
+export const AdCampaignScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  clientId: 'clientId',
+  projectId: 'projectId',
+  connectionId: 'connectionId',
+  adAccountId: 'adAccountId',
+  externalId: 'externalId',
+  name: 'name',
+  objective: 'objective',
+  dailyBudgetBRL: 'dailyBudgetBRL',
+  approvedCapBRL: 'approvedCapBRL',
+  status: 'status',
+  activatedBy: 'activatedBy',
+  activatedAt: 'activatedAt',
+  lastError: 'lastError',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AdCampaignScalarFieldEnum = (typeof AdCampaignScalarFieldEnum)[keyof typeof AdCampaignScalarFieldEnum]
 
 
 export const CycleScalarFieldEnum = {

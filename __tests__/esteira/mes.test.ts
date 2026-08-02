@@ -5,6 +5,7 @@ const db = vi.hoisted(() => ({
   cycle: { findMany: vi.fn(), findUnique: vi.fn(), findFirst: vi.fn(), update: vi.fn(), create: vi.fn() },
   socialPost: { count: vi.fn(), findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn() },
   metaConnection: { findFirst: vi.fn() },
+  adCampaign: { findMany: vi.fn() },
   deliverable: { findMany: vi.fn(), create: vi.fn() },
   approvalRequest: { updateMany: vi.fn() },
   portalMessage: { create: vi.fn() },
@@ -43,6 +44,7 @@ beforeEach(() => {
   db.project.update.mockResolvedValue({});
   db.socialPost.count.mockResolvedValue(8);
   db.metaConnection.findFirst.mockResolvedValue({ id: "mc1" });
+  db.adCampaign.findMany.mockResolvedValue([]);
   db.deliverable.create.mockResolvedValue({ id: "d9" });
   db.cycle.update.mockResolvedValue({});
   getInsights.mockResolvedValue({ ok: true, reach: 4200, impressions: 9100, followers: 812, engagement: 310 });
@@ -87,7 +89,7 @@ describe("o relatório só pode usar o que foi medido", () => {
   const medicao = {
     postsPublicados: 8, postsAgendadosNaoPublicados: 0,
     alcance: 4200, impressoes: 9100, seguidores: 812, engajamento: 310,
-    porQueNaoMediu: null,
+    pago: null, porQueNaoMediu: null,
   };
 
   it("os números entregues à IA são exatamente os medidos", async () => {

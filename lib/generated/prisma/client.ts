@@ -62,7 +62,7 @@ export type Client = Prisma.ClientModel
  */
 export type Project = Prisma.ProjectModel
 /**
- * Model Cycle
+ * Model AdCampaign
  * O CICLO MENSAL — onde a relação vitalícia acontece.
  * 
  * Um projeto que nunca fecha não é medível: nada é entregue de fato, nada é
@@ -70,6 +70,17 @@ export type Project = Prisma.ProjectModel
  * projeto infinito — é uma sequência de ciclos que nascem, entregam, medem e
  * fecham. É o que permite dizer "agosto foi melhor que julho", e é isso que
  * segura um cliente por anos.
+ * Uma campanha de tráfego pago que ESTA agência criou na conta do cliente.
+ * 
+ * Existe porque dinheiro precisa de rastro. Sem esta tabela, "quem mandou
+ * gastar R$ 40 por dia na conta da padaria?" não teria resposta — só um id
+ * solto dentro da Meta. Aqui ficam o teto que o cliente aprovou, quem
+ * autorizou ligar e quando.
+ */
+export type AdCampaign = Prisma.AdCampaignModel
+/**
+ * Model Cycle
+ * 
  */
 export type Cycle = Prisma.CycleModel
 /**

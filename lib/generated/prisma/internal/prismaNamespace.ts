@@ -388,6 +388,7 @@ export const ModelName = {
   User: 'User',
   Client: 'Client',
   Project: 'Project',
+  AdCampaign: 'AdCampaign',
   Cycle: 'Cycle',
   ClientNotice: 'ClientNotice',
   Deliverable: 'Deliverable',
@@ -437,7 +438,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "cycle" | "clientNotice" | "deliverable" | "materialRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "cycle" | "clientNotice" | "deliverable" | "materialRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -734,6 +735,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.ProjectCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.ProjectCountAggregateOutputType> | number
+        }
+      }
+    }
+    AdCampaign: {
+      payload: Prisma.$AdCampaignPayload<ExtArgs>
+      fields: Prisma.AdCampaignFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AdCampaignFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AdCampaignPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AdCampaignFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AdCampaignPayload>
+        }
+        findFirst: {
+          args: Prisma.AdCampaignFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AdCampaignPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AdCampaignFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AdCampaignPayload>
+        }
+        findMany: {
+          args: Prisma.AdCampaignFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AdCampaignPayload>[]
+        }
+        create: {
+          args: Prisma.AdCampaignCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AdCampaignPayload>
+        }
+        createMany: {
+          args: Prisma.AdCampaignCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AdCampaignCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AdCampaignPayload>[]
+        }
+        delete: {
+          args: Prisma.AdCampaignDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AdCampaignPayload>
+        }
+        update: {
+          args: Prisma.AdCampaignUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AdCampaignPayload>
+        }
+        deleteMany: {
+          args: Prisma.AdCampaignDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AdCampaignUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AdCampaignUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AdCampaignPayload>[]
+        }
+        upsert: {
+          args: Prisma.AdCampaignUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AdCampaignPayload>
+        }
+        aggregate: {
+          args: Prisma.AdCampaignAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAdCampaign>
+        }
+        groupBy: {
+          args: Prisma.AdCampaignGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AdCampaignGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AdCampaignCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AdCampaignCountAggregateOutputType> | number
         }
       }
     }
@@ -3362,6 +3437,29 @@ export const ProjectScalarFieldEnum = {
 export type ProjectScalarFieldEnum = (typeof ProjectScalarFieldEnum)[keyof typeof ProjectScalarFieldEnum]
 
 
+export const AdCampaignScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  clientId: 'clientId',
+  projectId: 'projectId',
+  connectionId: 'connectionId',
+  adAccountId: 'adAccountId',
+  externalId: 'externalId',
+  name: 'name',
+  objective: 'objective',
+  dailyBudgetBRL: 'dailyBudgetBRL',
+  approvedCapBRL: 'approvedCapBRL',
+  status: 'status',
+  activatedBy: 'activatedBy',
+  activatedAt: 'activatedAt',
+  lastError: 'lastError',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AdCampaignScalarFieldEnum = (typeof AdCampaignScalarFieldEnum)[keyof typeof AdCampaignScalarFieldEnum]
+
+
 export const CycleScalarFieldEnum = {
   id: 'id',
   projectId: 'projectId',
@@ -4001,16 +4099,16 @@ export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'In
 
 
 /**
- * Reference to a field of type 'Boolean'
+ * Reference to a field of type 'Float'
  */
-export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
+export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
     
 
 
 /**
- * Reference to a field of type 'Float'
+ * Reference to a field of type 'Boolean'
  */
-export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
+export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
     
 
 /**
@@ -4127,6 +4225,7 @@ export type GlobalOmitConfig = {
   user?: Prisma.UserOmit
   client?: Prisma.ClientOmit
   project?: Prisma.ProjectOmit
+  adCampaign?: Prisma.AdCampaignOmit
   cycle?: Prisma.CycleOmit
   clientNotice?: Prisma.ClientNoticeOmit
   deliverable?: Prisma.DeliverableOmit
