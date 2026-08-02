@@ -405,3 +405,45 @@ describe("o pacote pronto é apresentado mesmo sem produção nova", () => {
     expect(marcos.apresentar).not.toHaveBeenCalled();
   });
 });
+
+// O bug invisivel: o motor lia `scope.hasRawMaterial`, campo que NENHUM codigo
+// escreve. O briefing guarda a mesma coisa dentro de `social`, com outro nome.
+// Resultado: a dona do salao dizia que tinha os videos e a agencia mandava ela
+// gravar os videos que ela ja tinha.
+describe("o motor entende o que o briefing REALMENTE grava sobre material", () => {
+  function comEscopo(social: Record<string, unknown>) {
+    db.clientRequestDb.findUnique.mockResolvedValue({
+      id: "cr1", businessName: "Salão da Bia", services: JSON.stringify(["social"]), objectives: "[]",
+      briefingJson: JSON.stringify({ scope: { social } }),
+    });
+    db.project.findUnique.mockResolvedValue({ ...baseProject });
+    generate.mockResolvedValue({ ok: true, data: { title: "T", summary: "s", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] } });
+  }
+  const promptDoVideo = () =>
+    (generate.mock.calls.map((c) => c[0].user as string).find((u) => u.includes("ROTEIRO DE VÍDEO")) ?? "");
+
+  it("cliente disse que TEM fotos/vídeos → roteiro de EDIÇÃO do material dela", async () => {
+    comEscopo({ hasPhotos: true });
+    await runProjectExecution("p1");
+    expect(promptDoVideo(), "ela mandou o material — não peça para ela gravar").toMatch(/EDIÇÃO/);
+  });
+
+  it("cliente TEM quem grave → também conta como material próprio", async () => {
+    comEscopo({ hasVideomaker: true });
+    await runProjectExecution("p1");
+    expect(promptDoVideo()).toMatch(/EDIÇÃO/);
+  });
+
+  it("cliente pediu que a Dioli produza → roteiro para GRAVAR, e essa resposta ganha", async () => {
+    // Resposta explícita do cliente vence qualquer outro sinal.
+    comEscopo({ hasPhotos: true, needsVideoProduction: true });
+    await runProjectExecution("p1");
+    expect(promptDoVideo()).toMatch(/GRAVAR/);
+  });
+
+  it("briefing sem nada sobre material → assume que não tem, que é o seguro", async () => {
+    comEscopo({});
+    await runProjectExecution("p1");
+    expect(promptDoVideo()).toMatch(/GRAVAR/);
+  });
+});

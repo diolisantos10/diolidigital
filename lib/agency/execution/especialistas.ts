@@ -38,6 +38,14 @@ export interface Ctx {
   /** O cliente manda foto/vídeo bruto? Perguntado pelo SDR no briefing. Muda o
    *  trabalho do vídeo por inteiro: roteiro para filmar vs. roteiro para editar. */
   hasRawMaterial: boolean;
+  /** O serviço contratado É criar a identidade visual (o cliente não tem marca).
+   *
+   *  Existe para desfazer um deadlock que travava exatamente o cliente que mais
+   *  precisa da agência: o especialista de identidade exigia material de marca
+   *  para produzir, e quem contrata identidade visual contrata **porque não
+   *  tem** marca. Ele pedia ao cliente o que o cliente pagou para receber, e o
+   *  pacote nunca era apresentado. */
+  criandoIdentidade: boolean;
   /** Tipos de material que o cliente JÁ entregou (ex.: "design").
    *
    *  Existe para impedir um laço cruel: o agente pede o logo, o cliente manda,
@@ -212,14 +220,21 @@ ${formato("Roteiros de Vídeo — <negócio>", `"headline": "título do vídeo",
         deliverableType: "design",
         provedor: "claude",
         precisaDe: {
-          // Tem material de marca gravado OU o cliente já respondeu ao pedido.
-          tem: (c) => c.hasBrandAssets || c.materiaisEntregues.includes("design"),
+          // Três formas de estar apto a produzir, e a terceira é a que faltava:
+          //   1. já existe material de marca gravado;
+          //   2. o cliente respondeu ao pedido de material;
+          //   3. **o serviço contratado É criar a marca** — aqui não existe
+          //      material para pedir, e exigi-lo trava o cliente para sempre.
+          tem: (c) => c.criandoIdentidade || c.hasBrandAssets || c.materiaisEntregues.includes("design"),
           pedido: "Para começar as peças de design, precisamos dos materiais da sua marca: logo (se tiver), cores, fontes e alguma referência visual que você goste. Pode enviar por aqui? 🎨",
         },
         prompt: (c) => `Você é o especialista de IDENTIDADE VISUAL da Dioli Digital. Defina a direção de arte da marca.
 
 CONTEXTO
 ${ctxBlock(c)}
+${c.criandoIdentidade
+  ? "SITUAÇÃO: a marca está sendo criada DO ZERO. O cliente não tem logo, cor nem tipografia — é exatamente isso que ele contratou. NÃO peça material de marca: proponha, justificando cada escolha pelo segmento e pelo público."
+  : "SITUAÇÃO: a marca já existe. Trabalhe A PARTIR do material que a empresa tem, sem reinventar o que já está consolidado."}
 
 Entregue: paleta (com o papel de cada cor), tipografia (título e texto), estilo de fotografia, e 3 regras do que NUNCA usar nesta marca.
 ${REGRA}

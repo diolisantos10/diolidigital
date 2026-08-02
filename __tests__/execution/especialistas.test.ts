@@ -12,6 +12,7 @@ const ctx: Ctx = {
   hasBrandAssets: true,
   hasRawMaterial: false,
   materiaisEntregues: [],
+  criandoIdentidade: false,
 };
 
 describe("o organograma da agência", () => {
@@ -98,6 +99,31 @@ describe("quem precisa de insumo não inventa — abre pedido", () => {
     expect(identidade.precisaDe).toBeDefined();
     expect(identidade.precisaDe!.tem({ ...ctx, hasBrandAssets: false })).toBe(false);
     expect(identidade.precisaDe!.tem({ ...ctx, hasBrandAssets: true })).toBe(true);
+  });
+
+  it("quem contratou CRIAR a marca não é cobrado por ela — era um deadlock", () => {
+    // O especialista pedia ao cliente o que o cliente pagou para receber. Quem
+    // contrata identidade visual contrata porque NÃO tem marca; o pacote nunca
+    // era apresentado, e travava justamente o cliente que mais precisa.
+    const design = DEPARTAMENTOS.find((d) => d.id === "design")!;
+    const identidade = design.especialistas.find((e) => e.id === "a2")!;
+    expect(
+      identidade.precisaDe!.tem({ ...ctx, hasBrandAssets: false, criandoIdentidade: true }),
+    ).toBe(true);
+  });
+
+  it("criando do zero, o prompt manda PROPOR a marca em vez de pedir material", () => {
+    const design = DEPARTAMENTOS.find((d) => d.id === "design")!;
+    const identidade = design.especialistas.find((e) => e.id === "a2")!;
+    const p = identidade.prompt({ ...ctx, criandoIdentidade: true });
+    expect(p).toMatch(/DO ZERO/);
+    expect(p).toMatch(/NÃO peça material/i);
+  });
+
+  it("marca que já existe → trabalha a partir dela, sem reinventar", () => {
+    const design = DEPARTAMENTOS.find((d) => d.id === "design")!;
+    const identidade = design.especialistas.find((e) => e.id === "a2")!;
+    expect(identidade.prompt({ ...ctx, criandoIdentidade: false })).toMatch(/já existe/i);
   });
 
   it("o cliente que JÁ mandou o material não é cobrado outra vez", () => {

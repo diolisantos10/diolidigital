@@ -308,7 +308,7 @@ const QUESTIONS: QuestionDef[] = [
       const t = answer.toLowerCase();
       const fromScratch = /do zero|zero|não tenho|nao tenho|nenhum|criar|nova\b|nao\b|não\b/.test(t) && !/tenho|temos|j[áa]/.test(t);
       const rebrand     = /rebrand|reposicion|renovar|atualizar|refazer|modernizar|melhorar/.test(t);
-      return { branding: { ...{ ...emptyBrandingScope(), ...s.scope.branding }, hasBrandBook: !fromScratch && /tenho|temos|j[áa]|possu|atual|existe/.test(t), wantsRebrand: rebrand } };
+      return { branding: { ...{ ...emptyBrandingScope(), ...s.scope.branding }, hasBrandBook: !fromScratch && /tenho|temos|j[áa]|possu|atual|existe/.test(t), wantsRebrand: rebrand, fromScratch } };
     },
   },
 

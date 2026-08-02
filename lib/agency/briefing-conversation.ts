@@ -36,6 +36,16 @@ export interface BrandingScope {
   requested: boolean;    // user explicitly asked for branding / logo / identity
   hasBrandBook: boolean; // user HAS a brand book — does NOT imply wanting branding
   wantsRebrand: boolean;
+  /** O cliente está criando a marca DO ZERO (não tem nada hoje).
+   *
+   *  O SDR já calculava isto (`question-engine.ts`, Q9.1) e **jogava fora** — o
+   *  valor não tinha onde morar. A consequência era um deadlock: o especialista
+   *  de identidade exigia material de marca para produzir, e o cliente que veio
+   *  justamente porque não tem marca travava para sempre, sem receber nada.
+   *
+   *  Também deveria mexer no preço, e hoje não mexe: criar do zero dá mais
+   *  trabalho que ajustar, e cai na faixa mais barata. Registrado para o CEO. */
+  fromScratch?: boolean;
   deliverables?: string; // what they need: logo, paleta, tipografia, manual…
 }
 

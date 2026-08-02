@@ -84,6 +84,30 @@ export interface ApresentacaoAutomatica {
 }
 
 /**
+ * O cliente já tem foto/vídeo próprio para a agência usar?
+ *
+ * É função com nome, e não leitura solta no meio do contexto, porque a resposta
+ * mora em TRÊS campos que o briefing escreve com nomes diferentes — e nenhum
+ * deles se chama "material próprio". Um `scope.hasRawMaterial` solto parece
+ * certo, compila, roda, e está sempre falso.
+ *
+ * A ordem importa: `needsVideoProduction === true` é resposta EXPLÍCITA do
+ * cliente ("a Dioli produz o vídeo") e ganha de qualquer outro sinal.
+ */
+function temMaterialProprio(scope: Record<string, unknown>): boolean {
+  const social = (scope.social ?? {}) as Record<string, unknown>;
+  if (social.needsVideoProduction === true) return false;
+  return (
+    social.hasPhotos === true ||
+    social.hasVideomaker === true ||
+    social.creativesReady === true ||
+    // Compatibilidade com briefing preenchido por outra via.
+    scope.hasRawMaterial === true ||
+    scope.materialBruto === true
+  );
+}
+
+/**
  * Roda a produção de um projeto de ponta a ponta, com estado durável no banco.
  * Sem sessão — a rota HTTP já autentica; o cron chama direto. Idempotente.
  */
@@ -159,14 +183,27 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
       tone: brand?.tone ?? "",
       services, objectives, strategyHeadline,
       hasBrandAssets: !!(brand && (brand.primaryColor || brand.typography || brand.tagline)),
-      // Perguntado pelo SDR no briefing. Ausente = NÃO — e "não" aqui é a
-      // resposta segura: o roteiro sai para o cliente gravar, em vez de assumir
-      // um acervo que talvez não exista.
-      materiaisEntregues: [...new Set(materiaisResolvidos.map((m) => m.type))],
-      hasRawMaterial: (() => {
-        const v = (scope as Record<string, unknown>).hasRawMaterial ?? (scope as Record<string, unknown>).materialBruto;
-        return v === true || v === "sim" || v === "yes";
+      // Contratou identidade visual? Então não há marca para pedir — há marca
+      // para criar. Lê tanto o bloco do briefing quanto o serviço contratado,
+      // porque um cliente pode pedir "identidade visual" sem o SDR ter chegado
+      // à pergunta do bloco.
+      criandoIdentidade: (() => {
+        const b = (scope.branding ?? {}) as Record<string, unknown>;
+        if (b.fromScratch === true) return true;
+        if (b.requested === true && b.hasBrandBook !== true) return true;
+        return services.some((s) => /identidade|logo|marca|branding/i.test(s));
       })(),
+      materiaisEntregues: [...new Set(materiaisResolvidos.map((m) => m.type))],
+      // O cliente tem material próprio (foto/vídeo) para a agência usar?
+      //
+      // ESTA LINHA JÁ ESTEVE ERRADA e o erro era invisível: lia
+      // `scope.hasRawMaterial`, um campo que **nenhum código deste repositório
+      // escreve**. O briefing guarda a mesma informação com outro nome, dentro
+      // de `social`. O `?? false` transformava "não sei" em "não tem" — sem
+      // erro, sem log e sem teste vermelho — e o especialista de vídeo mandava
+      // a dona do salão GRAVAR os vídeos que ela já tinha, e que ela já tinha
+      // dito que tinha. Cada peça passava no seu teste; a junta arrebentava.
+      hasRawMaterial: temMaterialProprio(scope),
     };
 
     // ── A VERDADE ANCORADA DO CLIENTE ────────────────────────────────────────
