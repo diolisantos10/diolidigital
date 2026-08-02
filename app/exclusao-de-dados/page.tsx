@@ -12,13 +12,41 @@ export const metadata: Metadata = {
 
 const ul = "list-disc space-y-1.5 pl-5";
 
-export default function ExclusaoDeDadosPage() {
+export default async function ExclusaoDeDadosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ codigo?: string }>;
+}) {
+  // A Meta manda o usuário para cá com o código do pedido dela, e CONFERE na
+  // revisão se a página mostra o status daquele código. Uma página que ignora
+  // o parâmetro reprova o callback — ela quer ver a pessoa acompanhando o
+  // pedido, não uma página institucional genérica.
+  const { codigo } = await searchParams;
+
   return (
     <PaginaLegal
       titulo="Exclusão de dados"
       resumo="Como pedir para apagarmos seus dados — inclusive os que vieram do Instagram, Facebook ou WhatsApp. Sem formulário complicado e sem custo."
       atualizadoEm="1º de agosto de 2026"
     >
+      {codigo ? (
+        <Secao titulo="Seu pedido foi recebido">
+          <p>
+            Recebemos seu pedido de exclusão vindo da Meta e ele está em processamento.
+          </p>
+          <p className="rounded-[10px] bg-[#F7F7F6] px-4 py-3 font-mono text-[13px] break-all">
+            Código do pedido: <strong>{codigo}</strong>
+          </p>
+          <p>
+            Guarde este código. Se quiser saber em que pé está, escreva para{" "}
+            <a className="font-medium text-[var(--navy)] underline" href={`mailto:agenciadioli@gmail.com?subject=Exclus%C3%A3o%20de%20dados%20-%20${encodeURIComponent(codigo)}`}>
+              agenciadioli@gmail.com
+            </a>{" "}
+            citando ele. Concluímos em até 15 dias.
+          </p>
+        </Secao>
+      ) : null}
+
       <Secao titulo="Como pedir">
         <p>
           Escreva para{" "}
