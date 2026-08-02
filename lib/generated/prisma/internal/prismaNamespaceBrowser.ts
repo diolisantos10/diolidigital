@@ -186,6 +186,9 @@ export const AdCampaignScalarFieldEnum = {
   connectionId: 'connectionId',
   adAccountId: 'adAccountId',
   externalId: 'externalId',
+  adSetId: 'adSetId',
+  adId: 'adId',
+  audience: 'audience',
   name: 'name',
   objective: 'objective',
   dailyBudgetBRL: 'dailyBudgetBRL',
@@ -193,6 +196,8 @@ export const AdCampaignScalarFieldEnum = {
   status: 'status',
   activatedBy: 'activatedBy',
   activatedAt: 'activatedAt',
+  pausedByGuardAt: 'pausedByGuardAt',
+  pausedReason: 'pausedReason',
   lastError: 'lastError',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'

@@ -28,6 +28,7 @@ import { destravarPacote, pacotesTravados } from "@/lib/agency/esteira/pacote-tr
 import { publicarAgendados } from "@/lib/agency/esteira/publicacao";
 import { virarOsMesesVencidos } from "@/lib/agency/esteira/mes";
 import { produzirArtesPendentes } from "@/lib/agency/execution/artes";
+import { guardarAVerba } from "@/lib/agency/esteira/trafego";
 
 /** De quanto em quanto tempo a agência olha se tem trabalho parado. */
 const INTERVALO_MS = Number(process.env.DESPERTADOR_INTERVALO_MS ?? 5 * 60_000);
@@ -125,6 +126,7 @@ export async function baterORelogio(): Promise<{
   publicados: number;
   mesesVirados: number;
   artes: number;
+  campanhasFreadas: number;
 }> {
   let retomados = 0;
   let avisos = 0;
@@ -132,6 +134,7 @@ export async function baterORelogio(): Promise<{
   let publicados = 0;
   let mesesVirados = 0;
   let artes = 0;
+  let campanhasFreadas = 0;
 
   // A virada vem ANTES da retomada de propósito: ela é quem abre o mês novo e
   // marca o projeto como "pending". Assim o mês nasce e já é produzido na mesma
@@ -179,6 +182,17 @@ export async function baterORelogio(): Promise<{
     log(`publicação falhou: ${err instanceof Error ? err.message : "erro"}`);
   }
 
+  // O GUARDIÃO DE VERBA. Freia sozinho a campanha que gasta sem entregar —
+  // antes de a fatura contar a história. É o que separa gestão de tráfego de
+  // "criei e esqueci".
+  try {
+    const r = await guardarAVerba();
+    campanhasFreadas = r.pausadas.length;
+    for (const p of r.pausadas) log(`campanha ${p.campanhaId} freada: ${p.motivo}`);
+  } catch (err) {
+    log(`guardião de verba falhou: ${err instanceof Error ? err.message : "erro"}`);
+  }
+
   try {
     const r = await dispatchWhatsAppNotifications();
     avisos = typeof r?.sent === "number" ? r.sent : 0;
@@ -186,10 +200,10 @@ export async function baterORelogio(): Promise<{
     log(`disparo de avisos falhou: ${err instanceof Error ? err.message : "erro"}`);
   }
 
-  if (retomados > 0 || avisos > 0 || destravadas > 0 || publicados > 0 || mesesVirados > 0 || artes > 0) {
-    log(`rodada: ${mesesVirados} mês(es) virado(s), ${retomados} produção(ões) retomada(s), ${destravadas} entrega(s) refeita(s), ${artes} arte(s) produzida(s), ${publicados} post(s) publicado(s), ${avisos} aviso(s) enviado(s)`);
+  if (retomados > 0 || avisos > 0 || destravadas > 0 || publicados > 0 || mesesVirados > 0 || artes > 0 || campanhasFreadas > 0) {
+    log(`rodada: ${mesesVirados} mês(es) virado(s), ${retomados} produção(ões) retomada(s), ${destravadas} entrega(s) refeita(s), ${artes} arte(s) produzida(s), ${publicados} post(s) publicado(s), ${campanhasFreadas} campanha(s) freada(s), ${avisos} aviso(s) enviado(s)`);
   }
-  return { retomados, avisos, destravadas, publicados, mesesVirados, artes };
+  return { retomados, avisos, destravadas, publicados, mesesVirados, artes, campanhasFreadas };
 }
 
 /**

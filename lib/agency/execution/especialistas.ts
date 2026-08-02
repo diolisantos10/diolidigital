@@ -293,6 +293,29 @@ ${REGRA}
 ${formato("Estrutura de Campanha — <negócio>", `"headline": "nome da campanha", "audience": "público e critério", "note": "objetivo e como medimos", "cta": "..."`)}`,
       },
       {
+        // O especialista que faltava para a campanha SAIR DO PAPEL. Os outros
+        // dois descrevem a campanha em prosa; este devolve os campos que a
+        // Marketing API exige para criar o conjunto de anúncios. Sem ele, a
+        // agência escrevia "público: mulheres do bairro, 25 a 45" e nenhum
+        // código sabia transformar isso em segmentação de verdade.
+        id: "traffic-segmentacao",
+        label: "Segmentação",
+        deliverableType: "campaign",
+        provedor: "claude",
+        prompt: (c) => `Você é o especialista de SEGMENTAÇÃO da Dioli Digital. Sua saída NÃO é um texto: são os parâmetros exatos que vão para dentro da conta de anúncios do cliente.
+
+CONTEXTO
+${ctxBlock(c)}
+
+Defina UM público principal. Regras que valem mais que a sua opinião:
+- CIDADE: escreva apenas a cidade e o estado, como no endereço do cliente ("Campinas, SP"). Se o briefing não disser a cidade, escreva "PRECISO CONFIRMAR: cidade" — negócio local anunciado no país inteiro é dinheiro queimado.
+- RAIO: em km, entre 1 e 50. Comércio de bairro (padaria, salão, pet shop) vive entre 3 e 8 km. Só passe de 15 km se o cliente atende a região inteira.
+- IDADE: faixa realista para quem COMPRA, não para quem curte.
+- INTERESSES: no máximo 4, escritos como a Meta os nomeia ("Culinária", "Pequenas empresas"). Se não houver interesse óbvio, devolva lista vazia — segmentar por palpite é pior que não segmentar.
+${REGRA}
+Responda em JSON: {"title": "Segmentação — <negócio>", "summary": "1 frase justificando o público", "items": [{"headline": "Público principal", "cidade": "Cidade, UF", "raioKm": 5, "idadeMin": 25, "idadeMax": 55, "interesses": ["...", "..."], "note": "por que este público compra"}]}`,
+      },
+      {
         id: "traffic-copy-anuncio",
         label: "Copy de anúncio",
         deliverableType: "campaign",

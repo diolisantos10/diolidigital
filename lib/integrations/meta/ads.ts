@@ -173,6 +173,231 @@ export async function criarCampanhaPausada(
   }
 }
 
+export interface PublicoDoConjunto {
+  /** Cidade em texto — a Meta resolve para o id dela. Ex.: "Campinas, SP". */
+  cidade: string | null;
+  /** Raio em km ao redor da cidade. O caso do padeiro é 5 km, não o Brasil. */
+  raioKm: number;
+  idadeMin: number;
+  idadeMax: number;
+  /** Ids de interesse da Meta, já resolvidos. Vazio = sem segmentação por
+   *  interesse, que é melhor do que segmentar por um palpite. */
+  interesses: Array<{ id: string; name: string }>;
+}
+
+/** Raio máximo. Acima disto não é "o bairro do padeiro" — é dinheiro jogado em
+ *  gente que nunca vai atravessar a cidade para comprar pão. */
+export const RAIO_MAX_KM = 50;
+export const RAIO_MIN_KM = 1;
+
+/**
+ * Resolve uma cidade em id da Meta. Sem chute: se a Meta não encontrar, a
+ * segmentação geográfica é OMITIDA e o conjunto entrega no país inteiro — o que
+ * o chamador precisa saber, e por isso o retorno diz quando não achou.
+ */
+export async function buscarCidade(
+  workspaceId: string,
+  connectionId: string,
+  termo: string,
+): Promise<ResultadoDeAnuncio<{ key: string; name: string }>> {
+  const conn = await loadConnectionToken(workspaceId, connectionId);
+  if (!conn) return { ok: false, motivo: "sem_conexao", erro: "Conexão Meta não encontrada" };
+  try {
+    const r = await graphGet<{ data?: Array<{ key: string; name: string; country_code?: string }> }>(
+      "search", conn.token,
+      { type: "adgeolocation", location_types: '["city"]', q: termo.slice(0, 100), limit: 5 },
+    );
+    const br = r.data?.find((c) => c.country_code === "BR") ?? r.data?.[0];
+    if (!br) return { ok: false, motivo: "sem_conta", erro: `A Meta não conhece a cidade "${termo}"` };
+    return { ok: true, dados: { key: br.key, name: br.name } };
+  } catch (e) {
+    return traduzirErro(e);
+  }
+}
+
+/** Interesses reais da Meta a partir de palavras do briefing. Só entra no
+ *  conjunto o que a Meta confirmou existir — interesse inventado é rejeitado
+ *  pela API e derruba a criação inteira. */
+export async function buscarInteresses(
+  workspaceId: string,
+  connectionId: string,
+  termos: string[],
+): Promise<Array<{ id: string; name: string }>> {
+  const conn = await loadConnectionToken(workspaceId, connectionId);
+  if (!conn) return [];
+  const achados: Array<{ id: string; name: string }> = [];
+  for (const termo of termos.slice(0, 5)) {
+    try {
+      const r = await graphGet<{ data?: Array<{ id: string; name: string }> }>(
+        "search", conn.token, { type: "adinterest", q: termo.slice(0, 80), limit: 1 },
+      );
+      const i = r.data?.[0];
+      if (i && !achados.some((a) => a.id === i.id)) achados.push({ id: i.id, name: i.name });
+    } catch { /* um termo que a Meta não conhece simplesmente não entra */ }
+  }
+  return achados;
+}
+
+/**
+ * Cria o CONJUNTO DE ANÚNCIOS — pausado, como tudo aqui.
+ *
+ * Sem conjunto, a campanha não entrega nada: ela é só um envelope com verba.
+ * Foi exatamente o buraco do raio-X de 02/08/2026 — a casa criava a campanha,
+ * dizia "tráfego pago pronto", e nada rodava.
+ *
+ * O orçamento NÃO vai aqui. Ele mora na campanha (CBO) de propósito: orçamento
+ * por conjunto multiplica o gasto pelo número de conjuntos, e é o jeito mais
+ * fácil de estourar o teto sem ninguém perceber.
+ */
+export async function criarConjuntoPausado(
+  workspaceId: string,
+  connectionId: string,
+  input: {
+    contaId: string;
+    campaignId: string;
+    nome: string;
+    objetivo: PlanoDeCampanha["objetivo"];
+    publico: PublicoDoConjunto;
+    /** Id da página do Facebook — obrigatório para os objetivos de conversa. */
+    pageId?: string;
+  },
+): Promise<ResultadoDeAnuncio<{ adSetId: string; segmentouGeografia: boolean }>> {
+  const conn = await loadConnectionToken(workspaceId, connectionId);
+  if (!conn) return { ok: false, motivo: "sem_conexao", erro: "Conexão Meta não encontrada" };
+
+  const p = input.publico;
+  const raio = Math.max(RAIO_MIN_KM, Math.min(RAIO_MAX_KM, Math.round(p.raioKm || 10)));
+
+  let geo: Record<string, unknown> = { countries: ["BR"] };
+  let segmentouGeografia = false;
+  if (p.cidade) {
+    const cidade = await buscarCidade(workspaceId, connectionId, p.cidade);
+    if (cidade.ok && cidade.dados) {
+      geo = { cities: [{ key: cidade.dados.key, radius: raio, distance_unit: "kilometer" }] };
+      segmentouGeografia = true;
+    }
+    // Cidade não resolvida: cai no país. Não inventamos coordenada.
+  }
+
+  const targeting: Record<string, unknown> = {
+    geo_locations: geo,
+    age_min: Math.max(18, Math.min(65, p.idadeMin || 18)),
+    age_max: Math.max(18, Math.min(65, p.idadeMax || 65)),
+    ...(p.interesses.length > 0
+      ? { flexible_spec: [{ interests: p.interesses.map((i) => ({ id: i.id, name: i.name })) }] }
+      : {}),
+  };
+
+  const corpo: Record<string, string> = {
+    name: input.nome.slice(0, 200),
+    campaign_id: input.campaignId,
+    status: "PAUSED",
+    billing_event: "IMPRESSIONS",
+    optimization_goal: METAS[input.objetivo],
+    targeting: JSON.stringify(targeting),
+  };
+  if (input.objetivo === "conversas" && input.pageId) {
+    corpo.destination_type = "MESSENGER";
+    corpo.promoted_object = JSON.stringify({ page_id: input.pageId });
+  }
+
+  try {
+    const r = await graphPost<{ id: string }>(`${input.contaId}/adsets`, conn.token, corpo);
+    return { ok: true, dados: { adSetId: r.id, segmentouGeografia } };
+  } catch (e) {
+    return traduzirErro(e);
+  }
+}
+
+const METAS: Record<PlanoDeCampanha["objetivo"], string> = {
+  trafego: "LINK_CLICKS",
+  alcance: "REACH",
+  engajamento: "POST_ENGAGEMENT",
+  conversas: "CONVERSATIONS",
+  leads: "LEAD_GENERATION",
+};
+
+/**
+ * Cria o ANÚNCIO: o criativo e o anúncio que o aponta. Pausado.
+ *
+ * `imagemUrl` precisa ser alcançável pelos servidores da Meta — é o mesmo link
+ * assinado que a publicação orgânica usa.
+ */
+export async function criarAnuncioPausado(
+  workspaceId: string,
+  connectionId: string,
+  input: {
+    contaId: string;
+    adSetId: string;
+    pageId: string;
+    nome: string;
+    imagemUrl: string;
+    /** Texto principal — o que aparece acima da imagem. */
+    texto: string;
+    titulo: string;
+    descricao?: string;
+    /** Para onde o clique leva. Sem destino não há tráfego a comprar. */
+    link: string;
+    cta?: string;
+  },
+): Promise<ResultadoDeAnuncio<{ adId: string; creativeId: string }>> {
+  const conn = await loadConnectionToken(workspaceId, connectionId);
+  if (!conn) return { ok: false, motivo: "sem_conexao", erro: "Conexão Meta não encontrada" };
+  if (!input.imagemUrl || !input.link) {
+    return { ok: false, motivo: "orcamento_invalido", erro: "anúncio sem imagem ou sem destino não é anúncio" };
+  }
+
+  try {
+    const criativo = await graphPost<{ id: string }>(`${input.contaId}/adcreatives`, conn.token, {
+      name: `${input.nome} — criativo`.slice(0, 200),
+      object_story_spec: JSON.stringify({
+        page_id: input.pageId,
+        link_data: {
+          picture: input.imagemUrl,
+          link: input.link,
+          message: input.texto.slice(0, 2000),
+          name: input.titulo.slice(0, 100),
+          ...(input.descricao ? { description: input.descricao.slice(0, 200) } : {}),
+          call_to_action: { type: CTA_VALIDOS.includes(input.cta ?? "") ? input.cta : "LEARN_MORE" },
+        },
+      }),
+    });
+
+    const anuncio = await graphPost<{ id: string }>(`${input.contaId}/ads`, conn.token, {
+      name: input.nome.slice(0, 200),
+      adset_id: input.adSetId,
+      creative: JSON.stringify({ creative_id: criativo.id }),
+      status: "PAUSED",
+    });
+
+    return { ok: true, dados: { adId: anuncio.id, creativeId: criativo.id } };
+  } catch (e) {
+    return traduzirErro(e);
+  }
+}
+
+/** Os CTAs que a Meta aceita e que fazem sentido para os clientes desta casa.
+ *  Lista fechada: CTA inválido derruba a criação inteira do criativo. */
+export const CTA_VALIDOS = [
+  "LEARN_MORE", "SHOP_NOW", "BOOK_TRAVEL", "CONTACT_US", "MESSAGE_PAGE",
+  "WHATSAPP_MESSAGE", "CALL_NOW", "GET_QUOTE", "SIGN_UP", "SUBSCRIBE",
+];
+
+/** Sobe conjunto e anúncio para ACTIVE junto com a campanha. Uma campanha ativa
+ *  com conjunto pausado não entrega — e a conta parece "ligada" para quem olha. */
+export async function ativarFilhos(
+  workspaceId: string,
+  connectionId: string,
+  ids: { adSetId?: string | null; adId?: string | null },
+): Promise<void> {
+  const conn = await loadConnectionToken(workspaceId, connectionId);
+  if (!conn) return;
+  for (const id of [ids.adSetId, ids.adId]) {
+    if (!id) continue;
+    await graphPost(id, conn.token, { status: "ACTIVE" }).catch(() => { /* best-effort */ });
+  }
+}
+
 /**
  * Ativa uma campanha. É a única função deste arquivo que faz dinheiro sair.
  *

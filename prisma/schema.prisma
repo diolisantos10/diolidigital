@@ -154,6 +154,14 @@ model AdCampaign {
   adAccountId    String
   /// O id da campanha dentro da Meta.
   externalId     String
+  /// O conjunto e o anúncio. Uma campanha SEM estes dois não entrega nada — é
+  /// um envelope com verba. Ficam aqui porque ativar a campanha sem subir os
+  /// filhos junto deixa a conta com cara de ligada e gastando zero.
+  adSetId        String?
+  adId           String?
+  /// Resumo legível do público, para o painel e o relatório. Nunca é a fonte
+  /// da verdade da segmentação — essa vive dentro da Meta.
+  audience       String?
   name           String
   objective      String
   dailyBudgetBRL Float
@@ -166,6 +174,10 @@ model AdCampaign {
   /// Quem mandou ligar. Nulo enquanto nunca foi ativada.
   activatedBy    String?
   activatedAt    DateTime?
+  /// Quando o guardião de verba freou sozinho, e por quê. Campanha que gasta
+  /// sem entregar é o erro que ninguém percebe até a fatura chegar.
+  pausedByGuardAt DateTime?
+  pausedReason   String?
   lastError      String?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt

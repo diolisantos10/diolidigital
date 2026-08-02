@@ -4,11 +4,18 @@ const db = vi.hoisted(() => ({
   project: { findUnique: vi.fn() },
   clientRequestDb: { findUnique: vi.fn() },
   metaConnection: { findFirst: vi.fn() },
+  deliverable: { findFirst: vi.fn() },
+  socialPost: { findFirst: vi.fn() },
+  activityEvent: { create: vi.fn() },
   adCampaign: { findFirst: vi.fn(), findUnique: vi.fn(), findMany: vi.fn(), create: vi.fn(), update: vi.fn() },
   portalMessage: { create: vi.fn() },
 }));
 const ads = vi.hoisted(() => ({
   criarCampanhaPausada: vi.fn(),
+  criarConjuntoPausado: vi.fn(),
+  criarAnuncioPausado: vi.fn(),
+  ativarFilhos: vi.fn(),
+  buscarInteresses: vi.fn(),
   ativarCampanha: vi.fn(),
   pausarCampanha: vi.fn(),
   lerDesempenho: vi.fn(),
@@ -20,7 +27,10 @@ vi.mock("@/lib/integrations/meta/ads", async (orig) => ({
   ...ads,
 }));
 
-import { prepararCampanha, ligarCampanha, desligarCampanha, desempenhoPagoDoPeriodo } from "@/lib/agency/esteira/trafego";
+import {
+  prepararCampanha, ligarCampanha, desligarCampanha, desempenhoPagoDoPeriodo,
+  guardarAVerba, GASTO_MINIMO_PARA_JULGAR_BRL, CPC_ABSURDO_BRL,
+} from "@/lib/agency/esteira/trafego";
 
 const BRIEFING = JSON.stringify({ scope: { adsBudget: 900, objetivo: "quero mais gente na loja" } });
 
@@ -28,16 +38,24 @@ beforeEach(() => {
   vi.clearAllMocks();
   db.project.findUnique.mockResolvedValue({
     id: "p1", name: "Tráfego local", workspaceId: "ws1", clientId: "c1", clientRequestId: "cr1",
-    client: { name: "Padaria do João" },
+    client: { name: "Padaria do João", website: null, phone: "(19) 99999-9999" },
   });
   db.clientRequestDb.findUnique.mockResolvedValue({ businessName: "Padaria do João", briefingJson: BRIEFING });
-  db.metaConnection.findFirst.mockResolvedValue({ id: "mc1" });
+  db.metaConnection.findFirst.mockResolvedValue({ id: "mc1", externalId: "page_1" });
   db.adCampaign.findFirst.mockResolvedValue(null);
   db.adCampaign.create.mockResolvedValue({ id: "ac1" });
   db.adCampaign.update.mockResolvedValue({});
   db.portalMessage.create.mockResolvedValue({});
   ads.listarContasDeAnuncio.mockResolvedValue({ ok: true, dados: [{ id: "act_1", nome: "Padaria", moeda: "BRL", status: 1 }] });
   ads.criarCampanhaPausada.mockResolvedValue({ ok: true, dados: { campaignId: "camp_1" } });
+  ads.criarConjuntoPausado.mockResolvedValue({ ok: true, dados: { adSetId: "adset_1", segmentouGeografia: true } });
+  ads.criarAnuncioPausado.mockResolvedValue({ ok: true, dados: { adId: "ad_1", creativeId: "cre_1" } });
+  ads.buscarInteresses.mockResolvedValue([]);
+  ads.ativarFilhos.mockResolvedValue(undefined);
+  db.deliverable = { findFirst: vi.fn().mockResolvedValue(null) };
+  db.socialPost = { findFirst: vi.fn().mockResolvedValue({ mediaUrl: "/api/media/m1" }) };
+  process.env.PUBLIC_BASE_URL = "https://app.dioli.studio";
+  process.env.JWT_SECRET = "test-secret";
   ads.ativarCampanha.mockResolvedValue({ ok: true, dados: { ativada: true } });
   ads.pausarCampanha.mockResolvedValue({ ok: true, dados: { pausada: true } });
 });
@@ -93,6 +111,7 @@ describe("ligar é a única coisa que faz dinheiro sair — e tem dono", () => {
   beforeEach(() => {
     db.adCampaign.findUnique.mockResolvedValue({
       id: "ac1", workspaceId: "ws1", connectionId: "mc1", externalId: "camp_1",
+      adSetId: "adset_1", adId: "ad_1",
       dailyBudgetBRL: 30, approvedCapBRL: 30, status: "paused",
     });
   });
@@ -112,11 +131,30 @@ describe("ligar é a única coisa que faz dinheiro sair — e tem dono", () => {
   it("o teto é reconferido NA ATIVAÇÃO — o registro pode ter mudado desde a criação", async () => {
     db.adCampaign.findUnique.mockResolvedValue({
       id: "ac1", workspaceId: "ws1", connectionId: "mc1", externalId: "camp_1",
+      adSetId: "adset_1", adId: "ad_1",
       dailyBudgetBRL: 900, approvedCapBRL: 30, status: "paused",
     });
     const r = await ligarCampanha("ac1", "cliente:João");
     expect(r.ok).toBe(false);
     expect(ads.ativarCampanha).not.toHaveBeenCalled();
+  });
+
+  it("campanha SEM conjunto ou SEM anúncio não liga — ligaria e não entregaria nada", async () => {
+    // O cliente veria a conta 'ativa', zero resultado, e concluiria que anúncio
+    // não funciona para o negócio dele. Recusar é mais honesto.
+    db.adCampaign.findUnique.mockResolvedValue({
+      id: "ac1", workspaceId: "ws1", connectionId: "mc1", externalId: "camp_1",
+      adSetId: null, adId: null, dailyBudgetBRL: 30, approvedCapBRL: 30, status: "paused",
+    });
+    const r = await ligarCampanha("ac1", "cliente:João");
+    expect(r.ok).toBe(false);
+    expect(r.erro).toMatch(/sem conjunto/);
+    expect(ads.ativarCampanha).not.toHaveBeenCalled();
+  });
+
+  it("ligar sobe o conjunto e o anúncio junto — campanha ativa com filho pausado entrega zero", async () => {
+    await ligarCampanha("ac1", "cliente:João");
+    expect(ads.ativarFilhos).toHaveBeenCalledWith("ws1", "mc1", { adSetId: "adset_1", adId: "ad_1" });
   });
 
   it("desligar não exige nada — freio com burocracia não é freio", async () => {
@@ -151,5 +189,79 @@ describe("desempenho pago no relatório: 'não medi' nunca vira zero", () => {
     db.adCampaign.findMany.mockResolvedValue([{ workspaceId: "ws1", connectionId: "mc1", externalId: "camp_1" }]);
     ads.lerDesempenho.mockResolvedValue({ ok: false, erro: "sem dados" });
     expect(await desempenhoPagoDoPeriodo("p1", { desde: "2026-08-01", ate: "2026-08-31" })).toBeNull();
+  });
+});
+
+describe("a campanha só é anunciada ao cliente quando está COMPLETA", () => {
+  it("conjunto e anúncio criados são gravados junto da campanha", async () => {
+    await prepararCampanha("p1");
+    const d = db.adCampaign.create.mock.calls[0]![0].data;
+    expect(d.adSetId).toBe("adset_1");
+    expect(d.adId).toBe("ad_1");
+    expect(d.lastError).toBeNull();
+  });
+
+  it("conjunto que a Meta recusou vira pendência visível, não campanha 'pronta'", async () => {
+    ads.criarConjuntoPausado.mockResolvedValue({ ok: false, erro: "targeting inválido" });
+    const r = await prepararCampanha("p1");
+    expect(r.pendencia).toMatch(/conjunto não criado/);
+    expect(db.portalMessage.create).not.toHaveBeenCalled();
+  });
+
+  it("sem página do Facebook conectada não há anúncio — e o cliente não é avisado à toa", async () => {
+    db.metaConnection.findFirst.mockImplementation(async (q: Record<string, unknown>) => {
+      const w = q.where as Record<string, unknown>;
+      return w.platform === "facebook" ? null : { id: "mc1", externalId: "page_1" };
+    });
+    const r = await prepararCampanha("p1");
+    expect(r.pendencia).toMatch(/anúncio não criado/);
+  });
+});
+
+describe("o guardião de verba — o que separa gestão de 'criei e esqueci'", () => {
+  const ATIVA = {
+    id: "ac1", workspaceId: "ws1", clientId: "c1", projectId: "p1",
+    connectionId: "mc1", externalId: "camp_1", name: "Padaria", status: "active",
+  };
+
+  beforeEach(() => {
+    db.adCampaign.findMany.mockResolvedValue([{ ...ATIVA }]);
+    db.activityEvent.create.mockResolvedValue({});
+  });
+
+  it("gastou e não teve um clique → freia sozinho", async () => {
+    ads.lerDesempenho.mockResolvedValue({ ok: true, dados: { gastoBRL: 120, impressoes: 5000, cliques: 0, alcance: 4000, cpcBRL: null } });
+    const r = await guardarAVerba();
+    expect(r.pausadas[0]!.motivo).toMatch(/não teve UM clique/);
+    expect(ads.pausarCampanha).toHaveBeenCalled();
+  });
+
+  it("CPC absurdo → freia", async () => {
+    ads.lerDesempenho.mockResolvedValue({ ok: true, dados: { gastoBRL: 200, impressoes: 5000, cliques: 10, alcance: 4000, cpcBRL: CPC_ABSURDO_BRL + 1 } });
+    expect((await guardarAVerba()).pausadas).toHaveLength(1);
+  });
+
+  it("número pequeno demais para julgar NÃO freia — R$ 8 gastos é ruído, não diagnóstico", async () => {
+    ads.lerDesempenho.mockResolvedValue({ ok: true, dados: { gastoBRL: GASTO_MINIMO_PARA_JULGAR_BRL - 1, impressoes: 100, cliques: 0, alcance: 90, cpcBRL: null } });
+    expect((await guardarAVerba()).pausadas).toHaveLength(0);
+  });
+
+  it("não consegui medir NÃO é motivo para frear — cegueira própria não tira campanha do ar", async () => {
+    ads.lerDesempenho.mockResolvedValue({ ok: false, erro: "token expirado" });
+    const r = await guardarAVerba();
+    expect(r.pausadas).toHaveLength(0);
+    expect(r.avaliadas).toBe(0);
+  });
+
+  it("campanha saudável continua rodando", async () => {
+    ads.lerDesempenho.mockResolvedValue({ ok: true, dados: { gastoBRL: 200, impressoes: 9000, cliques: 300, alcance: 6000, cpcBRL: 0.67 } });
+    expect((await guardarAVerba()).pausadas).toHaveLength(0);
+  });
+
+  it("freou → o time fica sabendo. Campanha que se pausa em silêncio é o mesmo bug com outra cara", async () => {
+    ads.lerDesempenho.mockResolvedValue({ ok: true, dados: { gastoBRL: 120, impressoes: 5000, cliques: 0, alcance: 4000, cpcBRL: null } });
+    await guardarAVerba();
+    expect(db.activityEvent.create.mock.calls[0]![0].data.type).toBe("campanha_pausada_pelo_guardiao");
+    expect(db.adCampaign.update.mock.calls[0]![0].data.pausedByGuardAt).toBeInstanceOf(Date);
   });
 });

@@ -56,6 +56,9 @@ export type AdCampaignMinAggregateOutputType = {
   connectionId: string | null
   adAccountId: string | null
   externalId: string | null
+  adSetId: string | null
+  adId: string | null
+  audience: string | null
   name: string | null
   objective: string | null
   dailyBudgetBRL: number | null
@@ -63,6 +66,8 @@ export type AdCampaignMinAggregateOutputType = {
   status: string | null
   activatedBy: string | null
   activatedAt: Date | null
+  pausedByGuardAt: Date | null
+  pausedReason: string | null
   lastError: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -76,6 +81,9 @@ export type AdCampaignMaxAggregateOutputType = {
   connectionId: string | null
   adAccountId: string | null
   externalId: string | null
+  adSetId: string | null
+  adId: string | null
+  audience: string | null
   name: string | null
   objective: string | null
   dailyBudgetBRL: number | null
@@ -83,6 +91,8 @@ export type AdCampaignMaxAggregateOutputType = {
   status: string | null
   activatedBy: string | null
   activatedAt: Date | null
+  pausedByGuardAt: Date | null
+  pausedReason: string | null
   lastError: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -96,6 +106,9 @@ export type AdCampaignCountAggregateOutputType = {
   connectionId: number
   adAccountId: number
   externalId: number
+  adSetId: number
+  adId: number
+  audience: number
   name: number
   objective: number
   dailyBudgetBRL: number
@@ -103,6 +116,8 @@ export type AdCampaignCountAggregateOutputType = {
   status: number
   activatedBy: number
   activatedAt: number
+  pausedByGuardAt: number
+  pausedReason: number
   lastError: number
   createdAt: number
   updatedAt: number
@@ -128,6 +143,9 @@ export type AdCampaignMinAggregateInputType = {
   connectionId?: true
   adAccountId?: true
   externalId?: true
+  adSetId?: true
+  adId?: true
+  audience?: true
   name?: true
   objective?: true
   dailyBudgetBRL?: true
@@ -135,6 +153,8 @@ export type AdCampaignMinAggregateInputType = {
   status?: true
   activatedBy?: true
   activatedAt?: true
+  pausedByGuardAt?: true
+  pausedReason?: true
   lastError?: true
   createdAt?: true
   updatedAt?: true
@@ -148,6 +168,9 @@ export type AdCampaignMaxAggregateInputType = {
   connectionId?: true
   adAccountId?: true
   externalId?: true
+  adSetId?: true
+  adId?: true
+  audience?: true
   name?: true
   objective?: true
   dailyBudgetBRL?: true
@@ -155,6 +178,8 @@ export type AdCampaignMaxAggregateInputType = {
   status?: true
   activatedBy?: true
   activatedAt?: true
+  pausedByGuardAt?: true
+  pausedReason?: true
   lastError?: true
   createdAt?: true
   updatedAt?: true
@@ -168,6 +193,9 @@ export type AdCampaignCountAggregateInputType = {
   connectionId?: true
   adAccountId?: true
   externalId?: true
+  adSetId?: true
+  adId?: true
+  audience?: true
   name?: true
   objective?: true
   dailyBudgetBRL?: true
@@ -175,6 +203,8 @@ export type AdCampaignCountAggregateInputType = {
   status?: true
   activatedBy?: true
   activatedAt?: true
+  pausedByGuardAt?: true
+  pausedReason?: true
   lastError?: true
   createdAt?: true
   updatedAt?: true
@@ -275,6 +305,9 @@ export type AdCampaignGroupByOutputType = {
   connectionId: string
   adAccountId: string
   externalId: string
+  adSetId: string | null
+  adId: string | null
+  audience: string | null
   name: string
   objective: string
   dailyBudgetBRL: number
@@ -282,6 +315,8 @@ export type AdCampaignGroupByOutputType = {
   status: string
   activatedBy: string | null
   activatedAt: Date | null
+  pausedByGuardAt: Date | null
+  pausedReason: string | null
   lastError: string | null
   createdAt: Date
   updatedAt: Date
@@ -318,6 +353,9 @@ export type AdCampaignWhereInput = {
   connectionId?: Prisma.StringFilter<"AdCampaign"> | string
   adAccountId?: Prisma.StringFilter<"AdCampaign"> | string
   externalId?: Prisma.StringFilter<"AdCampaign"> | string
+  adSetId?: Prisma.StringNullableFilter<"AdCampaign"> | string | null
+  adId?: Prisma.StringNullableFilter<"AdCampaign"> | string | null
+  audience?: Prisma.StringNullableFilter<"AdCampaign"> | string | null
   name?: Prisma.StringFilter<"AdCampaign"> | string
   objective?: Prisma.StringFilter<"AdCampaign"> | string
   dailyBudgetBRL?: Prisma.FloatFilter<"AdCampaign"> | number
@@ -325,6 +363,8 @@ export type AdCampaignWhereInput = {
   status?: Prisma.StringFilter<"AdCampaign"> | string
   activatedBy?: Prisma.StringNullableFilter<"AdCampaign"> | string | null
   activatedAt?: Prisma.DateTimeNullableFilter<"AdCampaign"> | Date | string | null
+  pausedByGuardAt?: Prisma.DateTimeNullableFilter<"AdCampaign"> | Date | string | null
+  pausedReason?: Prisma.StringNullableFilter<"AdCampaign"> | string | null
   lastError?: Prisma.StringNullableFilter<"AdCampaign"> | string | null
   createdAt?: Prisma.DateTimeFilter<"AdCampaign"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"AdCampaign"> | Date | string
@@ -338,6 +378,9 @@ export type AdCampaignOrderByWithRelationInput = {
   connectionId?: Prisma.SortOrder
   adAccountId?: Prisma.SortOrder
   externalId?: Prisma.SortOrder
+  adSetId?: Prisma.SortOrderInput | Prisma.SortOrder
+  adId?: Prisma.SortOrderInput | Prisma.SortOrder
+  audience?: Prisma.SortOrderInput | Prisma.SortOrder
   name?: Prisma.SortOrder
   objective?: Prisma.SortOrder
   dailyBudgetBRL?: Prisma.SortOrder
@@ -345,6 +388,8 @@ export type AdCampaignOrderByWithRelationInput = {
   status?: Prisma.SortOrder
   activatedBy?: Prisma.SortOrderInput | Prisma.SortOrder
   activatedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  pausedByGuardAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  pausedReason?: Prisma.SortOrderInput | Prisma.SortOrder
   lastError?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -361,6 +406,9 @@ export type AdCampaignWhereUniqueInput = Prisma.AtLeast<{
   connectionId?: Prisma.StringFilter<"AdCampaign"> | string
   adAccountId?: Prisma.StringFilter<"AdCampaign"> | string
   externalId?: Prisma.StringFilter<"AdCampaign"> | string
+  adSetId?: Prisma.StringNullableFilter<"AdCampaign"> | string | null
+  adId?: Prisma.StringNullableFilter<"AdCampaign"> | string | null
+  audience?: Prisma.StringNullableFilter<"AdCampaign"> | string | null
   name?: Prisma.StringFilter<"AdCampaign"> | string
   objective?: Prisma.StringFilter<"AdCampaign"> | string
   dailyBudgetBRL?: Prisma.FloatFilter<"AdCampaign"> | number
@@ -368,6 +416,8 @@ export type AdCampaignWhereUniqueInput = Prisma.AtLeast<{
   status?: Prisma.StringFilter<"AdCampaign"> | string
   activatedBy?: Prisma.StringNullableFilter<"AdCampaign"> | string | null
   activatedAt?: Prisma.DateTimeNullableFilter<"AdCampaign"> | Date | string | null
+  pausedByGuardAt?: Prisma.DateTimeNullableFilter<"AdCampaign"> | Date | string | null
+  pausedReason?: Prisma.StringNullableFilter<"AdCampaign"> | string | null
   lastError?: Prisma.StringNullableFilter<"AdCampaign"> | string | null
   createdAt?: Prisma.DateTimeFilter<"AdCampaign"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"AdCampaign"> | Date | string
@@ -381,6 +431,9 @@ export type AdCampaignOrderByWithAggregationInput = {
   connectionId?: Prisma.SortOrder
   adAccountId?: Prisma.SortOrder
   externalId?: Prisma.SortOrder
+  adSetId?: Prisma.SortOrderInput | Prisma.SortOrder
+  adId?: Prisma.SortOrderInput | Prisma.SortOrder
+  audience?: Prisma.SortOrderInput | Prisma.SortOrder
   name?: Prisma.SortOrder
   objective?: Prisma.SortOrder
   dailyBudgetBRL?: Prisma.SortOrder
@@ -388,6 +441,8 @@ export type AdCampaignOrderByWithAggregationInput = {
   status?: Prisma.SortOrder
   activatedBy?: Prisma.SortOrderInput | Prisma.SortOrder
   activatedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  pausedByGuardAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  pausedReason?: Prisma.SortOrderInput | Prisma.SortOrder
   lastError?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -409,6 +464,9 @@ export type AdCampaignScalarWhereWithAggregatesInput = {
   connectionId?: Prisma.StringWithAggregatesFilter<"AdCampaign"> | string
   adAccountId?: Prisma.StringWithAggregatesFilter<"AdCampaign"> | string
   externalId?: Prisma.StringWithAggregatesFilter<"AdCampaign"> | string
+  adSetId?: Prisma.StringNullableWithAggregatesFilter<"AdCampaign"> | string | null
+  adId?: Prisma.StringNullableWithAggregatesFilter<"AdCampaign"> | string | null
+  audience?: Prisma.StringNullableWithAggregatesFilter<"AdCampaign"> | string | null
   name?: Prisma.StringWithAggregatesFilter<"AdCampaign"> | string
   objective?: Prisma.StringWithAggregatesFilter<"AdCampaign"> | string
   dailyBudgetBRL?: Prisma.FloatWithAggregatesFilter<"AdCampaign"> | number
@@ -416,6 +474,8 @@ export type AdCampaignScalarWhereWithAggregatesInput = {
   status?: Prisma.StringWithAggregatesFilter<"AdCampaign"> | string
   activatedBy?: Prisma.StringNullableWithAggregatesFilter<"AdCampaign"> | string | null
   activatedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"AdCampaign"> | Date | string | null
+  pausedByGuardAt?: Prisma.DateTimeNullableWithAggregatesFilter<"AdCampaign"> | Date | string | null
+  pausedReason?: Prisma.StringNullableWithAggregatesFilter<"AdCampaign"> | string | null
   lastError?: Prisma.StringNullableWithAggregatesFilter<"AdCampaign"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"AdCampaign"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"AdCampaign"> | Date | string
@@ -429,6 +489,9 @@ export type AdCampaignCreateInput = {
   connectionId: string
   adAccountId: string
   externalId: string
+  adSetId?: string | null
+  adId?: string | null
+  audience?: string | null
   name: string
   objective: string
   dailyBudgetBRL: number
@@ -436,6 +499,8 @@ export type AdCampaignCreateInput = {
   status?: string
   activatedBy?: string | null
   activatedAt?: Date | string | null
+  pausedByGuardAt?: Date | string | null
+  pausedReason?: string | null
   lastError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -449,6 +514,9 @@ export type AdCampaignUncheckedCreateInput = {
   connectionId: string
   adAccountId: string
   externalId: string
+  adSetId?: string | null
+  adId?: string | null
+  audience?: string | null
   name: string
   objective: string
   dailyBudgetBRL: number
@@ -456,6 +524,8 @@ export type AdCampaignUncheckedCreateInput = {
   status?: string
   activatedBy?: string | null
   activatedAt?: Date | string | null
+  pausedByGuardAt?: Date | string | null
+  pausedReason?: string | null
   lastError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -469,6 +539,9 @@ export type AdCampaignUpdateInput = {
   connectionId?: Prisma.StringFieldUpdateOperationsInput | string
   adAccountId?: Prisma.StringFieldUpdateOperationsInput | string
   externalId?: Prisma.StringFieldUpdateOperationsInput | string
+  adSetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  adId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  audience?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   objective?: Prisma.StringFieldUpdateOperationsInput | string
   dailyBudgetBRL?: Prisma.FloatFieldUpdateOperationsInput | number
@@ -476,6 +549,8 @@ export type AdCampaignUpdateInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   activatedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   activatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pausedByGuardAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pausedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -489,6 +564,9 @@ export type AdCampaignUncheckedUpdateInput = {
   connectionId?: Prisma.StringFieldUpdateOperationsInput | string
   adAccountId?: Prisma.StringFieldUpdateOperationsInput | string
   externalId?: Prisma.StringFieldUpdateOperationsInput | string
+  adSetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  adId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  audience?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   objective?: Prisma.StringFieldUpdateOperationsInput | string
   dailyBudgetBRL?: Prisma.FloatFieldUpdateOperationsInput | number
@@ -496,6 +574,8 @@ export type AdCampaignUncheckedUpdateInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   activatedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   activatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pausedByGuardAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pausedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -509,6 +589,9 @@ export type AdCampaignCreateManyInput = {
   connectionId: string
   adAccountId: string
   externalId: string
+  adSetId?: string | null
+  adId?: string | null
+  audience?: string | null
   name: string
   objective: string
   dailyBudgetBRL: number
@@ -516,6 +599,8 @@ export type AdCampaignCreateManyInput = {
   status?: string
   activatedBy?: string | null
   activatedAt?: Date | string | null
+  pausedByGuardAt?: Date | string | null
+  pausedReason?: string | null
   lastError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -529,6 +614,9 @@ export type AdCampaignUpdateManyMutationInput = {
   connectionId?: Prisma.StringFieldUpdateOperationsInput | string
   adAccountId?: Prisma.StringFieldUpdateOperationsInput | string
   externalId?: Prisma.StringFieldUpdateOperationsInput | string
+  adSetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  adId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  audience?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   objective?: Prisma.StringFieldUpdateOperationsInput | string
   dailyBudgetBRL?: Prisma.FloatFieldUpdateOperationsInput | number
@@ -536,6 +624,8 @@ export type AdCampaignUpdateManyMutationInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   activatedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   activatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pausedByGuardAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pausedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -549,6 +639,9 @@ export type AdCampaignUncheckedUpdateManyInput = {
   connectionId?: Prisma.StringFieldUpdateOperationsInput | string
   adAccountId?: Prisma.StringFieldUpdateOperationsInput | string
   externalId?: Prisma.StringFieldUpdateOperationsInput | string
+  adSetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  adId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  audience?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   name?: Prisma.StringFieldUpdateOperationsInput | string
   objective?: Prisma.StringFieldUpdateOperationsInput | string
   dailyBudgetBRL?: Prisma.FloatFieldUpdateOperationsInput | number
@@ -556,6 +649,8 @@ export type AdCampaignUncheckedUpdateManyInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   activatedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   activatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pausedByGuardAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  pausedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -569,6 +664,9 @@ export type AdCampaignCountOrderByAggregateInput = {
   connectionId?: Prisma.SortOrder
   adAccountId?: Prisma.SortOrder
   externalId?: Prisma.SortOrder
+  adSetId?: Prisma.SortOrder
+  adId?: Prisma.SortOrder
+  audience?: Prisma.SortOrder
   name?: Prisma.SortOrder
   objective?: Prisma.SortOrder
   dailyBudgetBRL?: Prisma.SortOrder
@@ -576,6 +674,8 @@ export type AdCampaignCountOrderByAggregateInput = {
   status?: Prisma.SortOrder
   activatedBy?: Prisma.SortOrder
   activatedAt?: Prisma.SortOrder
+  pausedByGuardAt?: Prisma.SortOrder
+  pausedReason?: Prisma.SortOrder
   lastError?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -594,6 +694,9 @@ export type AdCampaignMaxOrderByAggregateInput = {
   connectionId?: Prisma.SortOrder
   adAccountId?: Prisma.SortOrder
   externalId?: Prisma.SortOrder
+  adSetId?: Prisma.SortOrder
+  adId?: Prisma.SortOrder
+  audience?: Prisma.SortOrder
   name?: Prisma.SortOrder
   objective?: Prisma.SortOrder
   dailyBudgetBRL?: Prisma.SortOrder
@@ -601,6 +704,8 @@ export type AdCampaignMaxOrderByAggregateInput = {
   status?: Prisma.SortOrder
   activatedBy?: Prisma.SortOrder
   activatedAt?: Prisma.SortOrder
+  pausedByGuardAt?: Prisma.SortOrder
+  pausedReason?: Prisma.SortOrder
   lastError?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -614,6 +719,9 @@ export type AdCampaignMinOrderByAggregateInput = {
   connectionId?: Prisma.SortOrder
   adAccountId?: Prisma.SortOrder
   externalId?: Prisma.SortOrder
+  adSetId?: Prisma.SortOrder
+  adId?: Prisma.SortOrder
+  audience?: Prisma.SortOrder
   name?: Prisma.SortOrder
   objective?: Prisma.SortOrder
   dailyBudgetBRL?: Prisma.SortOrder
@@ -621,6 +729,8 @@ export type AdCampaignMinOrderByAggregateInput = {
   status?: Prisma.SortOrder
   activatedBy?: Prisma.SortOrder
   activatedAt?: Prisma.SortOrder
+  pausedByGuardAt?: Prisma.SortOrder
+  pausedReason?: Prisma.SortOrder
   lastError?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -649,6 +759,9 @@ export type AdCampaignSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   connectionId?: boolean
   adAccountId?: boolean
   externalId?: boolean
+  adSetId?: boolean
+  adId?: boolean
+  audience?: boolean
   name?: boolean
   objective?: boolean
   dailyBudgetBRL?: boolean
@@ -656,6 +769,8 @@ export type AdCampaignSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   status?: boolean
   activatedBy?: boolean
   activatedAt?: boolean
+  pausedByGuardAt?: boolean
+  pausedReason?: boolean
   lastError?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -669,6 +784,9 @@ export type AdCampaignSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   connectionId?: boolean
   adAccountId?: boolean
   externalId?: boolean
+  adSetId?: boolean
+  adId?: boolean
+  audience?: boolean
   name?: boolean
   objective?: boolean
   dailyBudgetBRL?: boolean
@@ -676,6 +794,8 @@ export type AdCampaignSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   status?: boolean
   activatedBy?: boolean
   activatedAt?: boolean
+  pausedByGuardAt?: boolean
+  pausedReason?: boolean
   lastError?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -689,6 +809,9 @@ export type AdCampaignSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   connectionId?: boolean
   adAccountId?: boolean
   externalId?: boolean
+  adSetId?: boolean
+  adId?: boolean
+  audience?: boolean
   name?: boolean
   objective?: boolean
   dailyBudgetBRL?: boolean
@@ -696,6 +819,8 @@ export type AdCampaignSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   status?: boolean
   activatedBy?: boolean
   activatedAt?: boolean
+  pausedByGuardAt?: boolean
+  pausedReason?: boolean
   lastError?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -709,6 +834,9 @@ export type AdCampaignSelectScalar = {
   connectionId?: boolean
   adAccountId?: boolean
   externalId?: boolean
+  adSetId?: boolean
+  adId?: boolean
+  audience?: boolean
   name?: boolean
   objective?: boolean
   dailyBudgetBRL?: boolean
@@ -716,12 +844,14 @@ export type AdCampaignSelectScalar = {
   status?: boolean
   activatedBy?: boolean
   activatedAt?: boolean
+  pausedByGuardAt?: boolean
+  pausedReason?: boolean
   lastError?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type AdCampaignOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "clientId" | "projectId" | "connectionId" | "adAccountId" | "externalId" | "name" | "objective" | "dailyBudgetBRL" | "approvedCapBRL" | "status" | "activatedBy" | "activatedAt" | "lastError" | "createdAt" | "updatedAt", ExtArgs["result"]["adCampaign"]>
+export type AdCampaignOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "clientId" | "projectId" | "connectionId" | "adAccountId" | "externalId" | "adSetId" | "adId" | "audience" | "name" | "objective" | "dailyBudgetBRL" | "approvedCapBRL" | "status" | "activatedBy" | "activatedAt" | "pausedByGuardAt" | "pausedReason" | "lastError" | "createdAt" | "updatedAt", ExtArgs["result"]["adCampaign"]>
 
 export type $AdCampaignPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "AdCampaign"
@@ -743,6 +873,18 @@ export type $AdCampaignPayload<ExtArgs extends runtime.Types.Extensions.Internal
      * O id da campanha dentro da Meta.
      */
     externalId: string
+    /**
+     * O conjunto e o anúncio. Uma campanha SEM estes dois não entrega nada — é
+     * um envelope com verba. Ficam aqui porque ativar a campanha sem subir os
+     * filhos junto deixa a conta com cara de ligada e gastando zero.
+     */
+    adSetId: string | null
+    adId: string | null
+    /**
+     * Resumo legível do público, para o painel e o relatório. Nunca é a fonte
+     * da verdade da segmentação — essa vive dentro da Meta.
+     */
+    audience: string | null
     name: string
     objective: string
     dailyBudgetBRL: number
@@ -761,6 +903,12 @@ export type $AdCampaignPayload<ExtArgs extends runtime.Types.Extensions.Internal
      */
     activatedBy: string | null
     activatedAt: Date | null
+    /**
+     * Quando o guardião de verba freou sozinho, e por quê. Campanha que gasta
+     * sem entregar é o erro que ninguém percebe até a fatura chegar.
+     */
+    pausedByGuardAt: Date | null
+    pausedReason: string | null
     lastError: string | null
     createdAt: Date
     updatedAt: Date
@@ -1194,6 +1342,9 @@ export interface AdCampaignFieldRefs {
   readonly connectionId: Prisma.FieldRef<"AdCampaign", 'String'>
   readonly adAccountId: Prisma.FieldRef<"AdCampaign", 'String'>
   readonly externalId: Prisma.FieldRef<"AdCampaign", 'String'>
+  readonly adSetId: Prisma.FieldRef<"AdCampaign", 'String'>
+  readonly adId: Prisma.FieldRef<"AdCampaign", 'String'>
+  readonly audience: Prisma.FieldRef<"AdCampaign", 'String'>
   readonly name: Prisma.FieldRef<"AdCampaign", 'String'>
   readonly objective: Prisma.FieldRef<"AdCampaign", 'String'>
   readonly dailyBudgetBRL: Prisma.FieldRef<"AdCampaign", 'Float'>
@@ -1201,6 +1352,8 @@ export interface AdCampaignFieldRefs {
   readonly status: Prisma.FieldRef<"AdCampaign", 'String'>
   readonly activatedBy: Prisma.FieldRef<"AdCampaign", 'String'>
   readonly activatedAt: Prisma.FieldRef<"AdCampaign", 'DateTime'>
+  readonly pausedByGuardAt: Prisma.FieldRef<"AdCampaign", 'DateTime'>
+  readonly pausedReason: Prisma.FieldRef<"AdCampaign", 'String'>
   readonly lastError: Prisma.FieldRef<"AdCampaign", 'String'>
   readonly createdAt: Prisma.FieldRef<"AdCampaign", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"AdCampaign", 'DateTime'>

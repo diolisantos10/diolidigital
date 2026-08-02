@@ -14,7 +14,8 @@ vi.mock("@/lib/integrations/meta/connections", () => ({ loadConnectionToken }));
 import {
   conferirOrcamento, criarCampanhaPausada, ativarCampanha, pausarCampanha,
   listarContasDeAnuncio, lerDesempenho,
-  PISO_DIARIO_BRL, TETO_DIARIO_ABSOLUTO_BRL,
+  criarConjuntoPausado, criarAnuncioPausado,
+  PISO_DIARIO_BRL, TETO_DIARIO_ABSOLUTO_BRL, RAIO_MAX_KM,
 } from "@/lib/integrations/meta/ads";
 
 const PLANO = {
@@ -147,5 +148,86 @@ describe("desempenho pago: 'não medi' nunca vira zero", () => {
     const r = await lerDesempenho("ws1", "mc1", "camp_1", { desde: "2026-08-01", ate: "2026-08-31" });
     expect(r.ok).toBe(false);
     expect(r.dados).toBeUndefined();
+  });
+});
+
+describe("o conjunto de anúncios — sem ele a campanha é um envelope com verba", () => {
+  const PUBLICO = {
+    cidade: "Campinas, SP", raioKm: 5, idadeMin: 25, idadeMax: 55,
+    interesses: [{ id: "6003", name: "Culinária" }],
+  };
+  const BASE = { contaId: "act_123", campaignId: "camp_1", nome: "Padaria", objetivo: "trafego" as const };
+
+  beforeEach(() => {
+    graphGet.mockResolvedValue({ data: [{ key: "2429", name: "Campinas", country_code: "BR" }] });
+    graphPost.mockResolvedValue({ id: "adset_1" });
+  });
+
+  it("nasce pausado, como tudo aqui", async () => {
+    await criarConjuntoPausado("ws1", "mc1", { ...BASE, publico: PUBLICO });
+    expect(graphPost.mock.calls[0]![2].status).toBe("PAUSED");
+  });
+
+  it("o raio do bairro vira segmentação de verdade, em km", async () => {
+    const r = await criarConjuntoPausado("ws1", "mc1", { ...BASE, publico: PUBLICO });
+    const t = JSON.parse(graphPost.mock.calls[0]![2].targeting);
+    expect(t.geo_locations.cities[0]).toMatchObject({ key: "2429", radius: 5, distance_unit: "kilometer" });
+    expect(r.dados!.segmentouGeografia).toBe(true);
+  });
+
+  it("cidade que a Meta não conhece NÃO vira coordenada inventada", async () => {
+    // Cai no país inteiro e avisa. Inventar lat/long poria o anúncio do padeiro
+    // num lugar que ninguém escolheu.
+    graphGet.mockResolvedValue({ data: [] });
+    const r = await criarConjuntoPausado("ws1", "mc1", { ...BASE, publico: PUBLICO });
+    const t = JSON.parse(graphPost.mock.calls[0]![2].targeting);
+    expect(t.geo_locations.countries).toEqual(["BR"]);
+    expect(r.dados!.segmentouGeografia).toBe(false);
+  });
+
+  it("raio absurdo é aparado — 500 km não é 'o bairro do padeiro'", async () => {
+    await criarConjuntoPausado("ws1", "mc1", { ...BASE, publico: { ...PUBLICO, raioKm: 500 } });
+    const t = JSON.parse(graphPost.mock.calls[0]![2].targeting);
+    expect(t.geo_locations.cities[0].radius).toBe(RAIO_MAX_KM);
+  });
+
+  it("sem interesse confirmado, não segmenta por interesse — palpite é pior que nada", async () => {
+    await criarConjuntoPausado("ws1", "mc1", { ...BASE, publico: { ...PUBLICO, interesses: [] } });
+    const t = JSON.parse(graphPost.mock.calls[0]![2].targeting);
+    expect(t.flexible_spec).toBeUndefined();
+  });
+
+  it("o orçamento NÃO vai no conjunto — só na campanha", async () => {
+    await criarConjuntoPausado("ws1", "mc1", { ...BASE, publico: PUBLICO });
+    expect(graphPost.mock.calls[0]![2].daily_budget).toBeUndefined();
+  });
+});
+
+describe("o anúncio", () => {
+  const AD = {
+    contaId: "act_123", adSetId: "adset_1", pageId: "page_1", nome: "Padaria",
+    imagemUrl: "https://app.dioli.studio/api/media/m1?sig=x",
+    texto: "Pão quentinho todo dia às 6h.", titulo: "Pão de verdade",
+    link: "https://wa.me/5519999999999", cta: "WHATSAPP_MESSAGE",
+  };
+
+  it("cria criativo e anúncio, ambos pausados", async () => {
+    graphPost.mockResolvedValueOnce({ id: "cre_1" }).mockResolvedValueOnce({ id: "ad_1" });
+    const r = await criarAnuncioPausado("ws1", "mc1", AD);
+    expect(r.dados).toEqual({ adId: "ad_1", creativeId: "cre_1" });
+    expect(graphPost.mock.calls[1]![2].status).toBe("PAUSED");
+  });
+
+  it("anúncio sem imagem ou sem destino não é anúncio", async () => {
+    expect((await criarAnuncioPausado("ws1", "mc1", { ...AD, imagemUrl: "" })).ok).toBe(false);
+    expect((await criarAnuncioPausado("ws1", "mc1", { ...AD, link: "" })).ok).toBe(false);
+    expect(graphPost).not.toHaveBeenCalled();
+  });
+
+  it("CTA inválido não derruba a criação — cai no padrão", async () => {
+    graphPost.mockResolvedValueOnce({ id: "cre_1" }).mockResolvedValueOnce({ id: "ad_1" });
+    await criarAnuncioPausado("ws1", "mc1", { ...AD, cta: "INVENTADO" });
+    const spec = JSON.parse(graphPost.mock.calls[0]![2].object_story_spec);
+    expect(spec.link_data.call_to_action.type).toBe("LEARN_MORE");
   });
 });
