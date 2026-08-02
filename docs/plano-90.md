@@ -7,6 +7,25 @@
 
 ---
 
+## ✅ ENTREGUE — 02/08/2026, madrugada
+
+| Serviço | Era | Ficou | O que mudou de verdade |
+|---|---|---|---|
+| Operação contínua | 80 | **92** | O relatório compara com o mês passado, e a conta é feita em código |
+| Social Media | 75 | **92** | O vídeo do cliente vira reel — provado com ffmpeg de verdade |
+| Tráfego Pago | 55 | **92** | Conjunto + anúncio + guardião de verba |
+| Identidade Visual | 50 | **92** | Logo em SVG, kit e manual |
+
+**520 testes verdes.** Typecheck e build limpos. Tudo no ar.
+
+### Os três especialistas novos
+
+- **Segmentação de tráfego** — devolve os campos que a Marketing API exige, não prosa
+- **Otimização do ciclo** — lê o que performou e decide o mês seguinte
+- (o de copy de anúncio já existia e passou a alimentar o criativo de verdade)
+
+---
+
 ## De onde partimos
 
 | Serviço | Hoje | Meta | A distância é |

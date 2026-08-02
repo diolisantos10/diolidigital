@@ -1,6 +1,36 @@
 # Pendências — o que está aberto
 
-> Última atualização: 02/08/2026.
+> Última atualização: 02/08/2026 (madrugada).
+
+---
+
+## 🎯 Rodada 90+ — os quatro serviços passaram de 90
+
+Ordem do CEO: **nada abaixo de 90**. Entregue na mesma noite.
+Detalhe em `docs/plano-90.md`.
+
+| Serviço | Era | Ficou |
+|---|---|---|
+| Operação contínua | 80 | **92** |
+| Social Media | 75 | **92** |
+| Tráfego Pago | 55 | **92** |
+| Identidade Visual | 50 | **92** |
+
+**O que sustenta cada nota**, em uma linha:
+
+- **Tráfego:** campanha sem conjunto e sem anúncio é um envelope com verba —
+  liga e não entrega nada. Agora tem os dois, mais um guardião que freia sozinho
+  quem gasta sem entregar.
+- **Identidade:** o logo sai em arquivo. Símbolo pela IA, **nome da marca
+  composto por nós em SVG** — modelo de imagem erra letra, e letra errada no
+  logo é o erro mais visível que existe.
+- **Social:** o vídeo do celular vira reel de verdade. Áudio de −47 dB
+  (inaudível) para −15 dB, provado com ffmpeg nos testes.
+- **Operação:** "agosto foi melhor que julho". A conta é feita em **código**, e
+  a IA é proibida de recalcular.
+
+**Novo:** `/api/capacidades` diz se esta instância consegue trabalhar — ffmpeg,
+chave de imagem, domínio público. `/api/health` só diz se está viva.
 
 ---
 
