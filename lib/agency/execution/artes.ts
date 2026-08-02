@@ -18,7 +18,7 @@
 
 import { prisma } from "@/lib/db/client";
 import { generateDesign } from "@/lib/ai/design-engine";
-import { guardarArquivo } from "@/lib/agency/media/armazenamento";
+import { guardarArquivo, lerArquivo } from "@/lib/agency/media/armazenamento";
 
 /** Quantas artes por rodada. Cada uma é uma chamada cara de modelo de imagem —
  *  um calendário de 12 posts custaria 12 de uma vez se não houvesse teto. */
@@ -54,14 +54,28 @@ export async function produzirArtesPendentes(): Promise<ArtesFeitas> {
   if (pendentes.length === 0) return saida;
 
   for (const post of pendentes) {
-    // Reels e stories são vídeo. Gerar uma imagem estática e publicá-la como
-    // reel entregaria ao cliente algo que ele não comprou.
+    const tentativas = contarTentativas(post.lastError);
+
+    // ── REEL: o vídeo do CLIENTE, editado ────────────────────────────────────
+    // Gerar imagem estática e publicá-la como reel entregaria algo que ele não
+    // comprou. O que a casa faz é EDITAR o material bruto que ele mandou — que
+    // até 02/08/2026 ficava parado no armazenamento, sem ninguém tocar.
     if (post.format === "reel" || post.format === "video") {
-      saida.desistiram.push(post.id);
+      if (tentativas >= MAX_TENTATIVAS_POR_PECA) { saida.desistiram.push(post.id); continue; }
+      const r = await montarReel(post);
+      if (r.ok) { saida.produzidas++; continue; }
+      saida.falhas.push({ postId: post.id, erro: r.erro });
+      if (r.semMaterial) {
+        // Não é falha da máquina: falta material do cliente. Gastar tentativa
+        // aqui esgotaria o teto esperando algo que só ele pode resolver.
+        saida.desistiram.push(post.id);
+        await marcarErro(post.id, `aguardando vídeo do cliente — ${r.erro}`, null);
+      } else {
+        await marcarErro(post.id, r.erro, tentativas + 1);
+      }
       continue;
     }
 
-    const tentativas = contarTentativas(post.lastError);
     if (tentativas >= MAX_TENTATIVAS_POR_PECA) {
       saida.desistiram.push(post.id);
       continue;
@@ -85,10 +99,7 @@ export async function produzirArtesPendentes(): Promise<ArtesFeitas> {
     if (!r.ok || !r.url) {
       const erro = r.error ?? "o gerador de imagem não devolveu nada";
       saida.falhas.push({ postId: post.id, erro });
-      await prisma.socialPost.update({
-        where: { id: post.id },
-        data: { lastError: `[arte ${tentativas + 1}/${MAX_TENTATIVAS_POR_PECA}] ${erro}`.slice(0, 500) },
-      }).catch(() => { /* best-effort */ });
+      await marcarErro(post.id, erro, tentativas + 1);
       continue;
     }
 
@@ -191,4 +202,72 @@ async function baixarImagem(url: string): Promise<Buffer | null> {
   const res = await fetch(url);
   if (!res.ok) return null;
   return Buffer.from(await res.arrayBuffer());
+}
+
+/**
+ * Monta o reel a partir do vídeo que o CLIENTE mandou.
+ *
+ * `semMaterial: true` distingue as duas naturezas de falha, e a distinção
+ * importa: sem vídeo, nenhuma tentativa a mais resolve — quem resolve é ele.
+ * Contar isso como tentativa esgotaria o teto esperando algo que a máquina não
+ * pode produzir.
+ */
+async function montarReel(post: {
+  id: string; workspaceId: string; clientId: string | null; clientRequestId: string | null;
+}): Promise<{ ok: boolean; erro: string; semMaterial?: boolean }> {
+  // O material bruto do cliente: vídeo que ELE enviou e que ainda não virou peça.
+  const bruto = await prisma.mediaAsset.findFirst({
+    where: {
+      kind: "inbound",
+      mimeType: { startsWith: "video/" },
+      OR: [
+        ...(post.clientId ? [{ clientId: post.clientId }] : []),
+        ...(post.clientRequestId ? [{ clientRequestId: post.clientRequestId }] : []),
+      ],
+    },
+    orderBy: { createdAt: "desc" },
+  }).catch(() => null);
+
+  if (!bruto) {
+    return { ok: false, semMaterial: true, erro: "o cliente ainda não enviou nenhum vídeo para editarmos" };
+  }
+
+  const bytes = await lerArquivo(bruto.storagePath);
+  if (!bytes) return { ok: false, erro: "o vídeo do cliente não está mais no armazenamento" };
+
+  const { editarParaReel } = await import("@/lib/agency/media/video");
+  const editado = await editarParaReel(bytes);
+  if (!editado.ok || !editado.bytes) {
+    return { ok: false, erro: editado.erro ?? "não consegui editar o vídeo" };
+  }
+
+  const guardado = await guardarArquivo({
+    bytes: editado.bytes,
+    fileName: `reel-${post.id}.mp4`,
+    mimeType: "video/mp4",
+    workspaceId: post.workspaceId,
+    clientId: post.clientId,
+    clientRequestId: post.clientRequestId,
+    kind: "generated",
+    uploadedBy: "design",
+  });
+  if (!guardado.ok) return { ok: false, erro: guardado.motivo };
+
+  await prisma.socialPost.update({
+    where: { id: post.id },
+    data: { mediaUrl: `/api/media/${guardado.arquivo.id}`, lastError: null },
+  });
+  return { ok: true, erro: "" };
+}
+
+/** Grava a falha de forma legível. `tentativa` nulo = não gasta o teto — a
+ *  causa está fora do alcance da máquina. */
+async function marcarErro(postId: string, erro: string, tentativa: number | null): Promise<void> {
+  const texto = tentativa === null
+    ? erro
+    : `[arte ${tentativa}/${MAX_TENTATIVAS_POR_PECA}] ${erro}`;
+  await prisma.socialPost.update({
+    where: { id: postId },
+    data: { lastError: texto.slice(0, 500) },
+  }).catch(() => { /* best-effort */ });
 }

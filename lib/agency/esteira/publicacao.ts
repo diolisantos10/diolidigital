@@ -209,15 +209,19 @@ export async function publicarAgendados(): Promise<PublicacaoFeita> {
       continue;
     }
 
-    // O Instagram exige mídia em TODO formato. Enquanto o Design não produzir a
-    // imagem, a legenda sozinha não vira post — e isso precisa aparecer como
-    // pendência, não como sucesso silencioso.
+    // O Instagram exige mídia em TODO formato. Sem peça, a legenda sozinha não
+    // vira post — e isso precisa aparecer como pendência, não como sucesso
+    // silencioso. A mensagem muda com o formato porque a AÇÃO muda: falta arte
+    // é problema nosso; falta vídeo é material que só o cliente tem.
+    const ehVideo = normalizarFormato(post.format) === "reel";
     const mediaUrl = await urlPublicaDaMidia(post.mediaUrl);
     if (!mediaUrl) {
       await falhar(
         post.mediaUrl
           ? "não consegui gerar link público da mídia (falta domínio público configurado)"
-          : "a peça ainda não tem imagem — o Instagram não aceita post só com legenda",
+          : ehVideo
+            ? "a peça ainda não tem vídeo — falta o material bruto do cliente para editarmos"
+            : "a peça ainda não tem imagem — o Instagram não aceita post só com legenda",
       );
       continue;
     }
