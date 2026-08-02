@@ -186,6 +186,72 @@ model AdCampaign {
   @@index([projectId])
 }
 
+/// A conta do Google Meu Negócio de um cliente.
+///
+/// Existe separada da `MetaConnection` de propósito: o ciclo de vida é outro.
+/// O token do Google EXPIRA em 1h e se renova por refresh token; o da Meta dura
+/// 60 dias e não se renova sozinho. Enfiar os dois na mesma tabela obrigaria
+/// todo leitor a saber de qual provedor aquela linha é antes de usá-la — e é
+/// exatamente aí que se publica na conta errada.
+model GoogleConnection {
+  id                    String    @id @default(cuid())
+  workspaceId           String
+  /// Nulo = a conta da própria Dioli. Preenchido = a conta de um cliente.
+  clientId              String?
+  /// "locations/123456" — o id do local dentro do Google.
+  locationName          String
+  /// "accounts/987654" — a conta que administra o local.
+  accountName           String
+  /// Nome legível: "Padaria do João — Centro".
+  title                 String    @default("")
+  accessTokenEncrypted  String
+  /// O refresh token é o que sustenta a conexão viva. Sem ele, a conta cai em
+  /// uma hora e alguém precisa reconectar à mão — o oposto de automático.
+  refreshTokenEncrypted String?
+  tokenExpiresAt        DateTime?
+  status                String    @default("connected") // connected | expired | revoked | error
+  /// Até quando já lemos avaliações. Sem isto, cada rodada reprocessaria o
+  /// histórico inteiro e responderia avaliação de dois anos atrás.
+  reviewsSyncedAt       DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@unique([workspaceId, locationName])
+  @@index([clientId])
+}
+
+/// Uma avaliação do Google e o que a agência fez com ela.
+///
+/// Fica no banco porque responder avaliação é PÚBLICO e PERMANENTE: precisa de
+/// rastro de quem respondeu o quê e quando, e de uma trava para não responder
+/// duas vezes a mesma avaliação.
+model GoogleReview {
+  id             String    @id @default(cuid())
+  workspaceId    String
+  clientId       String?
+  connectionId   String
+  /// O id da avaliação no Google. É a chave de idempotência.
+  externalId     String
+  reviewerName   String    @default("")
+  starRating     Int       @default(0)
+  comment        String    @default("")
+  createdAtGoogle DateTime?
+  /// pendente | respondida | escalada | ignorada
+  status         String    @default("pendente")
+  /// A resposta que a agência escreveu. Guardada mesmo quando escalada — é o
+  /// rascunho que a gente mostra a quem vai decidir.
+  reply          String?
+  repliedAt      DateTime?
+  /// Por que virou assunto de gente. Avaliação negativa nunca é respondida
+  /// sozinha: resposta errada a cliente irritado é pública e permanente.
+  escalatedReason String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([connectionId, externalId])
+  @@index([workspaceId, status])
+}
+
 model Cycle {
   id          String    @id @default(cuid())
   projectId   String

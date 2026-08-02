@@ -79,6 +79,26 @@ export type Project = Prisma.ProjectModel
  */
 export type AdCampaign = Prisma.AdCampaignModel
 /**
+ * Model GoogleConnection
+ * A conta do Google Meu Negócio de um cliente.
+ * 
+ * Existe separada da `MetaConnection` de propósito: o ciclo de vida é outro.
+ * O token do Google EXPIRA em 1h e se renova por refresh token; o da Meta dura
+ * 60 dias e não se renova sozinho. Enfiar os dois na mesma tabela obrigaria
+ * todo leitor a saber de qual provedor aquela linha é antes de usá-la — e é
+ * exatamente aí que se publica na conta errada.
+ */
+export type GoogleConnection = Prisma.GoogleConnectionModel
+/**
+ * Model GoogleReview
+ * Uma avaliação do Google e o que a agência fez com ela.
+ * 
+ * Fica no banco porque responder avaliação é PÚBLICO e PERMANENTE: precisa de
+ * rastro de quem respondeu o quê e quando, e de uma trava para não responder
+ * duas vezes a mesma avaliação.
+ */
+export type GoogleReview = Prisma.GoogleReviewModel
+/**
  * Model Cycle
  * 
  */

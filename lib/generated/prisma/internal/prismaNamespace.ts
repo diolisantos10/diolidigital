@@ -389,6 +389,8 @@ export const ModelName = {
   Client: 'Client',
   Project: 'Project',
   AdCampaign: 'AdCampaign',
+  GoogleConnection: 'GoogleConnection',
+  GoogleReview: 'GoogleReview',
   Cycle: 'Cycle',
   ClientNotice: 'ClientNotice',
   Deliverable: 'Deliverable',
@@ -438,7 +440,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "cycle" | "clientNotice" | "deliverable" | "materialRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "cycle" | "clientNotice" | "deliverable" | "materialRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -809,6 +811,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.AdCampaignCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.AdCampaignCountAggregateOutputType> | number
+        }
+      }
+    }
+    GoogleConnection: {
+      payload: Prisma.$GoogleConnectionPayload<ExtArgs>
+      fields: Prisma.GoogleConnectionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.GoogleConnectionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleConnectionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.GoogleConnectionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleConnectionPayload>
+        }
+        findFirst: {
+          args: Prisma.GoogleConnectionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleConnectionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.GoogleConnectionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleConnectionPayload>
+        }
+        findMany: {
+          args: Prisma.GoogleConnectionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleConnectionPayload>[]
+        }
+        create: {
+          args: Prisma.GoogleConnectionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleConnectionPayload>
+        }
+        createMany: {
+          args: Prisma.GoogleConnectionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.GoogleConnectionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleConnectionPayload>[]
+        }
+        delete: {
+          args: Prisma.GoogleConnectionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleConnectionPayload>
+        }
+        update: {
+          args: Prisma.GoogleConnectionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleConnectionPayload>
+        }
+        deleteMany: {
+          args: Prisma.GoogleConnectionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.GoogleConnectionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.GoogleConnectionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleConnectionPayload>[]
+        }
+        upsert: {
+          args: Prisma.GoogleConnectionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleConnectionPayload>
+        }
+        aggregate: {
+          args: Prisma.GoogleConnectionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateGoogleConnection>
+        }
+        groupBy: {
+          args: Prisma.GoogleConnectionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.GoogleConnectionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.GoogleConnectionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.GoogleConnectionCountAggregateOutputType> | number
+        }
+      }
+    }
+    GoogleReview: {
+      payload: Prisma.$GoogleReviewPayload<ExtArgs>
+      fields: Prisma.GoogleReviewFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.GoogleReviewFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleReviewPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.GoogleReviewFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleReviewPayload>
+        }
+        findFirst: {
+          args: Prisma.GoogleReviewFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleReviewPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.GoogleReviewFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleReviewPayload>
+        }
+        findMany: {
+          args: Prisma.GoogleReviewFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleReviewPayload>[]
+        }
+        create: {
+          args: Prisma.GoogleReviewCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleReviewPayload>
+        }
+        createMany: {
+          args: Prisma.GoogleReviewCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.GoogleReviewCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleReviewPayload>[]
+        }
+        delete: {
+          args: Prisma.GoogleReviewDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleReviewPayload>
+        }
+        update: {
+          args: Prisma.GoogleReviewUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleReviewPayload>
+        }
+        deleteMany: {
+          args: Prisma.GoogleReviewDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.GoogleReviewUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.GoogleReviewUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleReviewPayload>[]
+        }
+        upsert: {
+          args: Prisma.GoogleReviewUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleReviewPayload>
+        }
+        aggregate: {
+          args: Prisma.GoogleReviewAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateGoogleReview>
+        }
+        groupBy: {
+          args: Prisma.GoogleReviewGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.GoogleReviewGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.GoogleReviewCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.GoogleReviewCountAggregateOutputType> | number
         }
       }
     }
@@ -3465,6 +3615,46 @@ export const AdCampaignScalarFieldEnum = {
 export type AdCampaignScalarFieldEnum = (typeof AdCampaignScalarFieldEnum)[keyof typeof AdCampaignScalarFieldEnum]
 
 
+export const GoogleConnectionScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  clientId: 'clientId',
+  locationName: 'locationName',
+  accountName: 'accountName',
+  title: 'title',
+  accessTokenEncrypted: 'accessTokenEncrypted',
+  refreshTokenEncrypted: 'refreshTokenEncrypted',
+  tokenExpiresAt: 'tokenExpiresAt',
+  status: 'status',
+  reviewsSyncedAt: 'reviewsSyncedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type GoogleConnectionScalarFieldEnum = (typeof GoogleConnectionScalarFieldEnum)[keyof typeof GoogleConnectionScalarFieldEnum]
+
+
+export const GoogleReviewScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  clientId: 'clientId',
+  connectionId: 'connectionId',
+  externalId: 'externalId',
+  reviewerName: 'reviewerName',
+  starRating: 'starRating',
+  comment: 'comment',
+  createdAtGoogle: 'createdAtGoogle',
+  status: 'status',
+  reply: 'reply',
+  repliedAt: 'repliedAt',
+  escalatedReason: 'escalatedReason',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type GoogleReviewScalarFieldEnum = (typeof GoogleReviewScalarFieldEnum)[keyof typeof GoogleReviewScalarFieldEnum]
+
+
 export const CycleScalarFieldEnum = {
   id: 'id',
   projectId: 'projectId',
@@ -4233,6 +4423,8 @@ export type GlobalOmitConfig = {
   client?: Prisma.ClientOmit
   project?: Prisma.ProjectOmit
   adCampaign?: Prisma.AdCampaignOmit
+  googleConnection?: Prisma.GoogleConnectionOmit
+  googleReview?: Prisma.GoogleReviewOmit
   cycle?: Prisma.CycleOmit
   clientNotice?: Prisma.ClientNoticeOmit
   deliverable?: Prisma.DeliverableOmit

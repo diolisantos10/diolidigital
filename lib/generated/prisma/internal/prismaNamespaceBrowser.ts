@@ -56,6 +56,8 @@ export const ModelName = {
   Client: 'Client',
   Project: 'Project',
   AdCampaign: 'AdCampaign',
+  GoogleConnection: 'GoogleConnection',
+  GoogleReview: 'GoogleReview',
   Cycle: 'Cycle',
   ClientNotice: 'ClientNotice',
   Deliverable: 'Deliverable',
@@ -204,6 +206,46 @@ export const AdCampaignScalarFieldEnum = {
 } as const
 
 export type AdCampaignScalarFieldEnum = (typeof AdCampaignScalarFieldEnum)[keyof typeof AdCampaignScalarFieldEnum]
+
+
+export const GoogleConnectionScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  clientId: 'clientId',
+  locationName: 'locationName',
+  accountName: 'accountName',
+  title: 'title',
+  accessTokenEncrypted: 'accessTokenEncrypted',
+  refreshTokenEncrypted: 'refreshTokenEncrypted',
+  tokenExpiresAt: 'tokenExpiresAt',
+  status: 'status',
+  reviewsSyncedAt: 'reviewsSyncedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type GoogleConnectionScalarFieldEnum = (typeof GoogleConnectionScalarFieldEnum)[keyof typeof GoogleConnectionScalarFieldEnum]
+
+
+export const GoogleReviewScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  clientId: 'clientId',
+  connectionId: 'connectionId',
+  externalId: 'externalId',
+  reviewerName: 'reviewerName',
+  starRating: 'starRating',
+  comment: 'comment',
+  createdAtGoogle: 'createdAtGoogle',
+  status: 'status',
+  reply: 'reply',
+  repliedAt: 'repliedAt',
+  escalatedReason: 'escalatedReason',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type GoogleReviewScalarFieldEnum = (typeof GoogleReviewScalarFieldEnum)[keyof typeof GoogleReviewScalarFieldEnum]
 
 
 export const CycleScalarFieldEnum = {

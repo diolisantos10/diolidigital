@@ -29,6 +29,7 @@ import { publicarAgendados } from "@/lib/agency/esteira/publicacao";
 import { virarOsMesesVencidos } from "@/lib/agency/esteira/mes";
 import { produzirArtesPendentes } from "@/lib/agency/execution/artes";
 import { guardarAVerba } from "@/lib/agency/esteira/trafego";
+import { cuidarDasAvaliacoes } from "@/lib/agency/esteira/avaliacoes";
 
 /** De quanto em quanto tempo a agência olha se tem trabalho parado. */
 const INTERVALO_MS = Number(process.env.DESPERTADOR_INTERVALO_MS ?? 5 * 60_000);
@@ -127,6 +128,7 @@ export async function baterORelogio(): Promise<{
   mesesVirados: number;
   artes: number;
   campanhasFreadas: number;
+  avaliacoes: number;
 }> {
   let retomados = 0;
   let avisos = 0;
@@ -135,6 +137,7 @@ export async function baterORelogio(): Promise<{
   let mesesVirados = 0;
   let artes = 0;
   let campanhasFreadas = 0;
+  let avaliacoes = 0;
 
   // A virada vem ANTES da retomada de propósito: ela é quem abre o mês novo e
   // marca o projeto como "pending". Assim o mês nasce e já é produzido na mesma
@@ -193,6 +196,17 @@ export async function baterORelogio(): Promise<{
     log(`guardião de verba falhou: ${err instanceof Error ? err.message : "erro"}`);
   }
 
+  // As avaliações do Google. Responder em 24h vale muito mais que responder
+  // bonito em duas semanas — e é o serviço de maior retorno para negócio local.
+  try {
+    const r = await cuidarDasAvaliacoes();
+    avaliacoes = r.respondidas + r.escaladas;
+    if (r.escaladas > 0) log(`${r.escaladas} avaliação(ões) negativa(s) esperando decisão`);
+    for (const f of r.falhas) log(`avaliações: ${f}`);
+  } catch (err) {
+    log(`avaliações falharam: ${err instanceof Error ? err.message : "erro"}`);
+  }
+
   try {
     const r = await dispatchWhatsAppNotifications();
     avisos = typeof r?.sent === "number" ? r.sent : 0;
@@ -200,10 +214,10 @@ export async function baterORelogio(): Promise<{
     log(`disparo de avisos falhou: ${err instanceof Error ? err.message : "erro"}`);
   }
 
-  if (retomados > 0 || avisos > 0 || destravadas > 0 || publicados > 0 || mesesVirados > 0 || artes > 0 || campanhasFreadas > 0) {
-    log(`rodada: ${mesesVirados} mês(es) virado(s), ${retomados} produção(ões) retomada(s), ${destravadas} entrega(s) refeita(s), ${artes} arte(s) produzida(s), ${publicados} post(s) publicado(s), ${campanhasFreadas} campanha(s) freada(s), ${avisos} aviso(s) enviado(s)`);
+  if (retomados > 0 || avisos > 0 || destravadas > 0 || publicados > 0 || mesesVirados > 0 || artes > 0 || campanhasFreadas > 0 || avaliacoes > 0) {
+    log(`rodada: ${mesesVirados} mês(es) virado(s), ${retomados} produção(ões) retomada(s), ${destravadas} entrega(s) refeita(s), ${artes} arte(s) produzida(s), ${publicados} post(s) publicado(s), ${campanhasFreadas} campanha(s) freada(s), ${avaliacoes} avaliação(ões) tratada(s), ${avisos} aviso(s) enviado(s)`);
   }
-  return { retomados, avisos, destravadas, publicados, mesesVirados, artes, campanhasFreadas };
+  return { retomados, avisos, destravadas, publicados, mesesVirados, artes, campanhasFreadas, avaliacoes };
 }
 
 /**
