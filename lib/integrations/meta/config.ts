@@ -24,24 +24,54 @@ export const GRAPH_BASE = `https://graph.facebook.com/${GRAPH_VERSION}`;
 // OAuth authorize endpoint (Facebook Login).
 export const FB_OAUTH_DIALOG = `https://www.facebook.com/${GRAPH_VERSION}/dialog/oauth`;
 
-// Default scopes we request. These cover Instagram publishing + insights,
-// Facebook page management, and WhatsApp messaging. The app must have these
-// permissions approved in the Meta App Review for production (non-test) use.
+// As permissões que pedimos ao cliente na hora de conectar. Cobrem publicação e
+// métricas do Instagram, gestão de páginas do Facebook, WhatsApp e — desde
+// 02/08/2026 — ANÚNCIOS.
+//
+// Por que os dois de anúncio entram AGORA, antes de existir código que os use:
+// `ads_management` e `ads_read` são permissões AVANÇADAS. A Meta só as libera
+// via App Review, com justificativa e vídeo de demonstração, e a análise leva
+// dias. Pedir depois de o código estar pronto significaria construir tudo e
+// esperar. Pedindo já, a espera da Meta corre em paralelo com o trabalho.
+//
+// A consequência de NÃO ter estes dois é absoluta e não tem contorno: sem eles
+// a Meta recusa qualquer chamada de anúncio — com token válido, conta conectada
+// e tudo no lugar. Não existe gestão de tráfego pago sem esta linha.
 export const DEFAULT_SCOPES = [
   "public_profile",
   "email",
+  // Facebook — páginas
   "pages_show_list",
   "pages_read_engagement",
   "pages_manage_posts",
   "pages_manage_metadata",
   "business_management",
+  // Instagram — publicar, medir, moderar
   "instagram_basic",
   "instagram_content_publish",
   "instagram_manage_insights",
   "instagram_manage_comments",
   "read_insights",
+  // WhatsApp — atendimento
   "whatsapp_business_management",
   "whatsapp_business_messaging",
+  // Anúncios — criar/pausar campanha e ler desempenho pago.
+  // AVANÇADAS: exigem App Review aprovado para funcionar fora das contas do
+  // próprio administrador do app.
+  "ads_management",
+  "ads_read",
+];
+
+/** As permissões que a Meta classifica como AVANÇADAS — só funcionam depois do
+ *  App Review aprovado. Existe como lista para a tela poder dizer ao operador
+ *  "isto aqui ainda depende da Meta", em vez de a conexão falhar sem explicação. */
+export const SCOPES_QUE_EXIGEM_APP_REVIEW = [
+  "ads_management",
+  "ads_read",
+  "instagram_content_publish",
+  "instagram_manage_insights",
+  "whatsapp_business_messaging",
+  "business_management",
 ];
 
 // Resolves the Meta App credentials for a workspace. Returns null when neither
