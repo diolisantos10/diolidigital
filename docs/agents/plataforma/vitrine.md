@@ -1,6 +1,6 @@
 # Vitrine — plataforma
 
-> Curada pelo PM. Qualquer agente lê; **só o PM escreve**.
+> Curada pelo Diretor. Qualquer agente lê; **só o Diretor escreve**.
 > Toda entrada carrega proveniência. Se não couber em duas telas, não é vitrine.
 
 ---
@@ -16,13 +16,13 @@ O padrão correto está em `app/api/projects/[id]/marketing/route.ts`. Copie de 
 Antes de escrever qualquer rota nova, leia o guia em `node_modules/next/dist/docs/`.
 O `AGENTS.md` avisa isso na primeira linha do repositório por este motivo.
 
-— promovido em 2026-08-01 pelo PM · origem: `HANDOFF.md` §0 e §5.5 (commit `3f888f1`)
+— promovido em 2026-08-01 pelo Diretor · origem: `HANDOFF.md` §0 e §5.5 (commit `3f888f1`)
 
 ---
 
 ## A chave de IA da tela é a fonte de verdade, não a variável de ambiente
 
-O PM/orchestrator resolve a chave via `lib/ai/resolve-key.ts`, a partir do que o
+O Diretor/orchestrator resolve a chave via `lib/ai/resolve-key.ts`, a partir do que o
 usuário configurou em `AiKeyManager.tsx`. **Não de env hardcoded.**
 
 Isso existe porque houve um furo real: a chave era salva na tela e o orquestrador
@@ -31,7 +31,7 @@ mensagem de erro.
 
 Vale para todo provedor, inclusive o DeepSeek.
 
-— promovido em 2026-08-01 pelo PM · origem: `HANDOFF.md` §4.4 (commit `3f888f1`)
+— promovido em 2026-08-01 pelo Diretor · origem: `HANDOFF.md` §4.4 (commit `3f888f1`)
 
 ---
 
@@ -49,7 +49,7 @@ configuração. Confirme pelos headers `x-railway` e por DNS-over-HTTPS
 
 Verificação de verdade se faz de uma máquina sem o proxy.
 
-— promovido em 2026-08-01 pelo PM · origem: `HANDOFF.md` §7.1 (commit `3f888f1`)
+— promovido em 2026-08-01 pelo Diretor · origem: `HANDOFF.md` §7.1 (commit `3f888f1`)
 
 ---
 
@@ -62,7 +62,7 @@ Editar `schema.prisma` e rodar só `db push` faz **o build passar e a produção
 quebrar em runtime** — tabela ou coluna que não existe, com o erro aparecendo longe
 da causa. Sempre `npx prisma migrate dev --name ...` e commite a migração.
 
-— promovido em 2026-08-01 pelo PM · origem: `HANDOFF.md` §e.1 (commit `7116cbb`)
+— promovido em 2026-08-01 pelo Diretor · origem: `HANDOFF.md` §e.1 (commit `7116cbb`)
 
 ---
 
@@ -78,7 +78,7 @@ segurança e é perda de dado.
 Se for endurecer: **re-criptografar os segredos existentes** na mesma operação,
 nunca só setar a env.
 
-— promovido em 2026-08-01 pelo PM · origem: `HANDOFF.md` §e.3 (commit `7116cbb`)
+— promovido em 2026-08-01 pelo Diretor · origem: `HANDOFF.md` §e.3 (commit `7116cbb`)
 
 ---
 
@@ -89,7 +89,7 @@ nunca só setar a env.
 
 Não "conserte" trocando por Postgres — quebra o boot.
 
-— promovido em 2026-08-01 pelo PM · origem: `HANDOFF.md` §e.4 (commit `7116cbb`)
+— promovido em 2026-08-01 pelo Diretor · origem: `HANDOFF.md` §e.4 (commit `7116cbb`)
 
 ---
 
@@ -102,7 +102,7 @@ Trocar por `request.json()` primeiro **destrói o corpo cru** e torna a verifica
 de assinatura impossível — o endpoint passa a aceitar evento forjado. Parece
 refatoração inocente e é a remoção da única trava de autenticidade do webhook.
 
-— promovido em 2026-08-01 pelo PM · origem: `HANDOFF.md` §e.5 (commit `7116cbb`)
+— promovido em 2026-08-01 pelo Diretor · origem: `HANDOFF.md` §e.5 (commit `7116cbb`)
 
 ---
 
@@ -114,7 +114,7 @@ refatoração inocente e é a remoção da única trava de autenticidade do webh
 - **Um número existe no app WhatsApp Business OU na Cloud API, nunca nos dois.**
   Migrar o número real para a API **o remove do celular**. É decisão do dono.
 
-— promovido em 2026-08-01 pelo PM · origem: `HANDOFF.md` §e.6 e §e.7 (commit `7116cbb`)
+— promovido em 2026-08-01 pelo Diretor · origem: `HANDOFF.md` §e.6 e §e.7 (commit `7116cbb`)
 
 ---
 
@@ -135,7 +135,7 @@ nomes repetidos colidem.
 **É um acoplamento entre duas frentes escritas por agentes diferentes.** Quem mexer
 num lado precisa saber do outro.
 
-— promovido em 2026-08-01 pelo PM · origem: `HANDOFF.md` §f (commit `7116cbb`)
+— promovido em 2026-08-01 pelo Diretor · origem: `HANDOFF.md` §f (commit `7116cbb`)
 
 ---
 
@@ -148,7 +148,7 @@ foram postos pela **API do Railway**, não pela UI. Quem for depurar "por que es
 pegando essa credencial" precisa saber que a env só vence quando não há linha no
 banco.
 
-— promovido em 2026-08-01 pelo PM · origem: `HANDOFF.md` §f (commit `7116cbb`)
+— promovido em 2026-08-01 pelo Diretor · origem: `HANDOFF.md` §f (commit `7116cbb`)
 
 ---
 
@@ -161,7 +161,7 @@ Está ok enquanto houver uma agência só — o caso de hoje. **No dia em que vi
 multi-tenant, entrega mensagem de um cliente no workspace errado.** Trocar por
 resolução explícita antes de vender para o segundo.
 
-— promovido em 2026-08-01 pelo PM · origem: `HANDOFF.md` §f (commit `7116cbb`)
+— promovido em 2026-08-01 pelo Diretor · origem: `HANDOFF.md` §f (commit `7116cbb`)
 
 ---
 
@@ -175,7 +175,7 @@ A causa real, quando havia crash de verdade, era a **corrida pelo lock do SQLite
 volume** com dois deploys simultâneos — o `set -e` matava o container. O
 `start.sh` agora tem **retry no `prisma migrate deploy`** e sobrevive ao lock.
 
-— promovido em 2026-08-01 pelo PM · origem: `HANDOFF.md` rev.2 §B7 e §C (commit `465cf05`)
+— promovido em 2026-08-01 pelo Diretor · origem: `HANDOFF.md` rev.2 §B7 e §C (commit `465cf05`)
 
 ---
 
@@ -192,7 +192,7 @@ direto.
 erro real da IA como "IA indisponível" — hoje loga o erro de verdade. **Se
 reverterem isso, diagnosticar falha volta a custar uma hora.**
 
-— promovido em 2026-08-01 pelo PM · origem: `HANDOFF.md` rev.2 §B6, §C e §E6 (commit `465cf05`)
+— promovido em 2026-08-01 pelo Diretor · origem: `HANDOFF.md` rev.2 §B6, §C e §E6 (commit `465cf05`)
 
 ---
 
@@ -205,7 +205,7 @@ ambiente depois.
 **Um Railway sem env de IA NÃO significa "sem IA".** Confira a tela de Integrações
 antes de concluir que falta chave.
 
-— promovido em 2026-08-01 pelo PM · origem: `HANDOFF.md` rev.2 §F2 (commit `465cf05`)
+— promovido em 2026-08-01 pelo Diretor · origem: `HANDOFF.md` rev.2 §F2 (commit `465cf05`)
 
 ---
 
@@ -218,7 +218,7 @@ no ambiente**.
 Para resetar a senha do master: setar a variável e re-deployar. **Deixá-la setada
 depois disso rotaciona a senha em todo deploy** — remova após usar.
 
-— promovido em 2026-08-01 pelo PM · origem: `HANDOFF.md` rev.2 §E3 (commit `465cf05`)
+— promovido em 2026-08-01 pelo Diretor · origem: `HANDOFF.md` rev.2 §E3 (commit `465cf05`)
 
 ---
 
@@ -230,7 +230,7 @@ Ação de admin gateada em `currentRole` **desaparece para um master de verdade*
 o papel simulado não for "master". O botão de excluir projeto já foi desamarrado
 disso; **ainda existe em outros lugares**.
 
-— promovido em 2026-08-01 pelo PM · origem: `HANDOFF.md` rev.2 §E4 (commit `465cf05`)
+— promovido em 2026-08-01 pelo Diretor · origem: `HANDOFF.md` rev.2 §E4 (commit `465cf05`)
 
 ---
 
@@ -242,7 +242,7 @@ em `claude/dioli-agency-os-architecture-kk7kp`. As fronteiras aproximadas:
 | Sessão | Território |
 |---|---|
 | **chat da agência** | proposta, negociação pós-briefing, gatilhos de execução, `portal-data`, portão de recursos |
-| **Brain-mestre** | `lib/dioli-brain/*`, refactor do `run-execution`, PM conductor, quality auditor, Radar, esteira, DeepSeek |
+| **Brain-mestre** | `lib/dioli-brain/*`, refactor do `run-execution`, Diretor conductor, quality auditor, Radar, esteira, DeepSeek |
 | **design/UX** | telas do cliente, portal, tokenização |
 | **Meta** | `app/api/meta/*` e `lib/integrations/meta/*` — **já mergeado nesta branch** |
 
@@ -251,7 +251,7 @@ deploys e por que o `git fetch` + `rebase` antes do push não é opcional aqui.
 
 *Não confirmado:* os limites exatos de cada sessão — inferidos pelos commits.
 
-— promovido em 2026-08-01 pelo PM · origem: `HANDOFF.md` rev.2 §F1 e §E7 (commit `465cf05`)
+— promovido em 2026-08-01 pelo Diretor · origem: `HANDOFF.md` rev.2 §F1 e §E7 (commit `465cf05`)
 
 ---
 
@@ -263,4 +263,4 @@ deliverables foram **anexados ali de propósito** para dar visibilidade.
 **Se alguém "limpar" isso achando que é duplicação, o trabalho dos agentes some da
 tela de execução de novo.**
 
-— promovido em 2026-08-01 pelo PM · origem: `HANDOFF.md` rev.2 §E5 (commit `465cf05`)
+— promovido em 2026-08-01 pelo Diretor · origem: `HANDOFF.md` rev.2 §E5 (commit `465cf05`)

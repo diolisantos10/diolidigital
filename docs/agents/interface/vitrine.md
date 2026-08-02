@@ -1,6 +1,6 @@
 # Vitrine — interface
 
-> Curada pelo PM. Qualquer agente lê; **só o PM escreve**.
+> Curada pelo Diretor. Qualquer agente lê; **só o Diretor escreve**.
 > Toda entrada carrega proveniência. Se não couber em duas telas, não é vitrine.
 
 ---
@@ -19,7 +19,7 @@ As Fases 1–6 do redesign terminaram justamente com uma passada de tokenizaçã
 páginas de cliente (login, briefing, vitrine) — trabalho que não existiria se elas
 tivessem nascido certas.
 
-— promovido em 2026-08-01 pelo PM · origem: `HANDOFF.md` §4.1, §4.2 e §5.3
+— promovido em 2026-08-01 pelo Diretor · origem: `HANDOFF.md` §4.1, §4.2 e §5.3
 (commit `3f888f1`)
 
 ---
@@ -37,7 +37,7 @@ Isso torna o estado vazio um dos três estados obrigatórios com peso de requisi
 não de acabamento — especialmente no **portal do cliente**, onde tela vazia é o
 cliente achando que não recebeu nada.
 
-— promovido em 2026-08-01 pelo PM · origem: `HANDOFF.md` §4.3 e §5.1
+— promovido em 2026-08-01 pelo Diretor · origem: `HANDOFF.md` §4.3 e §5.1
 (commit `3f888f1`) · decisão registrada em `docs/decisoes.md`
 
 ---
@@ -51,4 +51,4 @@ componentes, estados) — mas onde os dois divergirem sobre marca, vale o brand 
 Marca pública: **Dioli Digital** — *estúdio digital com IA*, sistema de design
 "HUMANTECH".
 
-— promovido em 2026-08-01 pelo PM · origem: `HANDOFF.md` §0 (commit `3f888f1`)
+— promovido em 2026-08-01 pelo Diretor · origem: `HANDOFF.md` §0 (commit `3f888f1`)

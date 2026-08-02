@@ -1,6 +1,6 @@
 # Vitrine — esteira
 
-> Curada pelo PM. Qualquer agente lê; **só o PM escreve**.
+> Curada pelo Diretor. Qualquer agente lê; **só o Diretor escreve**.
 
 ---
 
@@ -15,7 +15,7 @@ cliente."*
 **Custo de desfazer:** devolver a aprovação para o lado da agência quebra o modelo
 inteiro. Não é uma tela — é a tese do produto.
 
-— promovido em 2026-08-01 pelo PM · origem: `HANDOFF.md` rev.2 §B1 (commit `465cf05`)
+— promovido em 2026-08-01 pelo Diretor · origem: `HANDOFF.md` rev.2 §B1 (commit `465cf05`)
 
 ---
 
@@ -31,7 +31,7 @@ A explicação é **inline e automática**, nunca toggle ou acordeão — o CEO 
 essa solução ("coisa dos anos 90"). Exemplo: *"3 criativos/semana (3 artes novas
 por semana)"*. Serve os dois públicos de uma vez, sem clique.
 
-— promovido em 2026-08-01 pelo PM · origem: `HANDOFF.md` rev.2 §B2 e §B3 (commit `465cf05`)
+— promovido em 2026-08-01 pelo Diretor · origem: `HANDOFF.md` rev.2 §B2 e §B3 (commit `465cf05`)
 
 ---
 
@@ -47,7 +47,7 @@ confusa chegando ao cliente.
 > **Buraco conhecido:** não existe gatilho que **retome** a produção quando o
 > material chega. Projeto travado fica travado para sempre. Ver `pendencias.md`.
 
-— promovido em 2026-08-01 pelo PM · origem: `HANDOFF.md` rev.2 §B4 (commit `465cf05`)
+— promovido em 2026-08-01 pelo Diretor · origem: `HANDOFF.md` rev.2 §B4 (commit `465cf05`)
 
 ---
 
@@ -62,7 +62,7 @@ ordem de produção desalinha conteúdo e aprovação, silenciosamente.
 
 Um link real (`artifactId`/`deliverableId`) seria o conserto.
 
-— promovido em 2026-08-01 pelo PM · origem: `HANDOFF.md` rev.2 §F4 (commit `465cf05`)
+— promovido em 2026-08-01 pelo Diretor · origem: `HANDOFF.md` rev.2 §F4 (commit `465cf05`)
 
 ---
 
@@ -77,4 +77,4 @@ dois projetos idênticos.
 **Não confirmado:** se o caminho (a) ainda é usado pela UI depois da decisão de que
 quem aprova é o cliente. **Confirme antes de remover qualquer um dos dois.**
 
-— promovido em 2026-08-01 pelo PM · origem: `HANDOFF.md` rev.2 §F5 (commit `465cf05`)
+— promovido em 2026-08-01 pelo Diretor · origem: `HANDOFF.md` rev.2 §F5 (commit `465cf05`)
