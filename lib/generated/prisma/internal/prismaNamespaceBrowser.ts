@@ -610,6 +610,8 @@ export const SocialPostScalarFieldEnum = {
   format: 'format',
   pillar: 'pillar',
   mediaUrl: 'mediaUrl',
+  mediaUrlsJson: 'mediaUrlsJson',
+  scenesJson: 'scenesJson',
   scriptJson: 'scriptJson',
   scheduledFor: 'scheduledFor',
   status: 'status',

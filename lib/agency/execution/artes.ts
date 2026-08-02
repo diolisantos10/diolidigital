@@ -48,6 +48,9 @@ export async function produzirArtesPendentes(): Promise<ArtesFeitas> {
 
   const pendentes = await prisma.socialPost.findMany({
     where: { mediaUrl: null, status: { in: ["draft", "scheduled", "approved"] } },
+    // `mediaUrl: null` cobre o carrossel também: ele só recebe a capa quando
+    // TODAS as telas ficam prontas, então um carrossel pela metade continua
+    // aparecendo como pendente na rodada seguinte.
     orderBy: { scheduledFor: "asc" },
     take: MAX_ARTES_POR_RODADA,
   }).catch(() => []);
@@ -82,6 +85,22 @@ export async function produzirArtesPendentes(): Promise<ArtesFeitas> {
     }
 
     const marca = await lerMarca(post.clientId);
+
+    // ── CARROSSEL: uma arte POR TELA ─────────────────────────────────────────
+    // Gerar uma imagem só e repetir seria entregar cinco vezes a mesma coisa.
+    // Cada tela é uma ideia, e a arte tem que acompanhar a ideia dela.
+    if (post.format === "carousel" || post.format === "carrossel") {
+      const r = await montarCarrossel(post, marca);
+      if (r.ok) { saida.produzidas++; continue; }
+      saida.falhas.push({ postId: post.id, erro: r.erro });
+      await marcarErro(post.id, r.erro, tentativas + 1);
+      continue;
+    }
+
+    // Story é VERTICAL. Gerar quadrado e publicar como story corta a peça no
+    // meio — e o cliente vê o próprio conteúdo mutilado no perfil dele.
+    const proporcao = post.format === "story" ? "portrait" : "square";
+
     const r = await generateDesign({
       prompt: montarPrompt({
         legenda: post.caption,
@@ -90,8 +109,9 @@ export async function produzirArtesPendentes(): Promise<ArtesFeitas> {
         segmento: marca.segmento,
         cores: marca.cores,
         tom: marca.tom,
+        formato: post.format,
       }),
-      size: "square",
+      size: proporcao,
       quality: "high",
       workspaceId: post.workspaceId,
     }).catch((e) => ({ ok: false as const, error: e instanceof Error ? e.message : "erro" }));
@@ -178,15 +198,21 @@ export function montarPrompt(input: {
   segmento: string;
   cores: string[];
   tom: string;
+  formato?: string;
 }): string {
+  const vertical = input.formato === "story";
   const partes = [
-    "Fotografia publicitária profissional para redes sociais, formato quadrado, alta qualidade.",
+    `Fotografia publicitária profissional para redes sociais, formato ${vertical ? "vertical 9:16 (story de celular)" : "quadrado"}, alta qualidade.`,
     input.segmento ? `Negócio: ${input.segmento}${input.negocio ? ` (${input.negocio})` : ""}.` : "",
     input.pilar ? `Tema da peça: ${input.pilar}.` : "",
     `Cena a retratar: ${input.legenda.slice(0, 500)}`,
     input.cores.length > 0 ? `Paleta da marca, para a ambientação e os objetos: ${input.cores.join(", ")}.` : "",
     input.tom ? `Clima: ${input.tom}.` : "",
-    "Iluminação natural, composição limpa, espaço negativo para respiro.",
+    vertical
+      // Story é lido de celular na mão, em segundos, e o topo e a base ficam
+      // sob os elementos da interface do Instagram.
+      ? "Assunto centralizado no terço do meio, com margem generosa em cima e embaixo. Iluminação natural, composição limpa."
+      : "Iluminação natural, composição limpa, espaço negativo para respiro.",
     // Repetido de propósito — ver o cabeçalho do arquivo.
     "IMPORTANTE: a imagem NÃO pode conter nenhum texto, letra, número, palavra, logotipo, marca d'água, placa ou etiqueta escrita. Apenas a cena visual, sem tipografia de nenhum tipo.",
   ];
@@ -270,4 +296,72 @@ async function marcarErro(postId: string, erro: string, tentativa: number | null
     where: { id: postId },
     data: { lastError: texto.slice(0, 500) },
   }).catch(() => { /* best-effort */ });
+}
+
+/**
+ * Monta as artes de um carrossel — uma por tela.
+ *
+ * Tudo ou nada: se uma tela falhar, NADA é gravado. Um carrossel com buracos
+ * publica uma sequência que perde o sentido no meio, e é pior do que não
+ * publicar. Por isso as artes só são amarradas ao post quando todas existem.
+ */
+async function montarCarrossel(
+  post: { id: string; workspaceId: string; clientId: string | null; clientRequestId: string | null; caption: string; pillar: string | null; scenesJson?: string },
+  marca: { nome: string; segmento: string; cores: string[]; tom: string },
+): Promise<{ ok: boolean; erro: string }> {
+  let cenas: string[] = [];
+  try {
+    const v = JSON.parse(post.scenesJson ?? "[]");
+    if (Array.isArray(v)) cenas = v.filter((x): x is string => typeof x === "string");
+  } catch { /* corrompido = sem cenas */ }
+
+  if (cenas.length < 2) return { ok: false, erro: "o carrossel não tem telas descritas para desenhar" };
+
+  const urls: string[] = [];
+  for (const [i, cena] of cenas.entries()) {
+    const r = await generateDesign({
+      prompt: montarPrompt({
+        // A CENA é o assunto, não a legenda: a legenda é a mesma para o
+        // carrossel inteiro, e usá-la geraria N variações da mesma imagem.
+        legenda: cena,
+        pilar: post.pillar,
+        negocio: marca.nome,
+        segmento: marca.segmento,
+        cores: marca.cores,
+        tom: marca.tom,
+      }),
+      size: "square",
+      quality: "high",
+      workspaceId: post.workspaceId,
+    }).catch(() => ({ ok: false as const, url: undefined }));
+
+    if (!r.ok || !r.url) return { ok: false, erro: `não consegui gerar a tela ${i + 1} de ${cenas.length}` };
+
+    const bytes = await baixarImagem(r.url).catch(() => null);
+    if (!bytes) return { ok: false, erro: `não consegui baixar a tela ${i + 1}` };
+
+    const g = await guardarArquivo({
+      bytes,
+      fileName: `carrossel-${post.id}-${i + 1}.png`,
+      mimeType: "image/png",
+      workspaceId: post.workspaceId,
+      clientId: post.clientId,
+      clientRequestId: post.clientRequestId,
+      kind: "generated",
+      uploadedBy: "design",
+    });
+    if (!g.ok) return { ok: false, erro: g.motivo };
+    urls.push(`/api/media/${g.arquivo.id}`);
+  }
+
+  await prisma.socialPost.update({
+    where: { id: post.id },
+    data: {
+      mediaUrlsJson: JSON.stringify(urls),
+      // A capa também vai em `mediaUrl`: é o que o portal mostra como miniatura.
+      mediaUrl: urls[0],
+      lastError: null,
+    },
+  });
+  return { ok: true, erro: "" };
 }

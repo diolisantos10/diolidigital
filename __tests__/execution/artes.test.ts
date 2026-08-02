@@ -158,3 +158,80 @@ describe("o reel: o vídeo do CLIENTE, editado — não uma imagem parada", () =
     expect(guardarArquivo.mock.calls[0]![0].mimeType).toBe("video/mp4");
   });
 });
+
+describe("carrossel: uma arte POR TELA — repetir a mesma imagem 5x não é carrossel", () => {
+  const POST_CARROSSEL = {
+    ...POST, id: "sp3", format: "carousel",
+    scenesJson: JSON.stringify(["O forno aceso às 4h", "A massa descansando", "O pão saindo"]),
+  };
+
+  beforeEach(() => {
+    db.socialPost.findMany.mockResolvedValue([{ ...POST_CARROSSEL }]);
+    let n = 0;
+    guardarArquivo.mockImplementation(async (i: { fileName: string }) => ({
+      ok: true, arquivo: { id: `m${++n}`, fileName: i.fileName, sizeBytes: 10, url: `/api/media/m${n}` },
+    }));
+  });
+
+  it("gera uma imagem para cada tela", async () => {
+    const r = await produzirArtesPendentes();
+    expect(generateDesign).toHaveBeenCalledTimes(3);
+    expect(r.produzidas).toBe(1);
+  });
+
+  it("cada tela vira o ASSUNTO da sua imagem — não a legenda repetida", async () => {
+    await produzirArtesPendentes();
+    const prompts = generateDesign.mock.calls.map((c) => c[0].prompt as string);
+    expect(prompts[0]).toContain("O forno aceso às 4h");
+    expect(prompts[1]).toContain("A massa descansando");
+    expect(prompts[2]).toContain("O pão saindo");
+  });
+
+  it("as telas são gravadas em ordem, e a capa vira a miniatura do portal", async () => {
+    await produzirArtesPendentes();
+    const d = db.socialPost.update.mock.calls[0]![0].data;
+    expect(JSON.parse(d.mediaUrlsJson)).toEqual(["/api/media/m1", "/api/media/m2", "/api/media/m3"]);
+    expect(d.mediaUrl).toBe("/api/media/m1");
+  });
+
+  it("uma tela falhou → NADA é gravado. Carrossel com buraco perde o sentido no meio", async () => {
+    generateDesign
+      .mockResolvedValueOnce({ ok: true, url: PNG })
+      .mockResolvedValueOnce({ ok: false, error: "recusado" });
+    const r = await produzirArtesPendentes();
+    expect(r.produzidas).toBe(0);
+    expect(r.falhas[0]!.erro).toMatch(/tela 2 de 3/);
+    expect(db.socialPost.update.mock.calls[0]![0].data.mediaUrlsJson).toBeUndefined();
+  });
+
+  it("sem telas descritas não vira carrossel", async () => {
+    db.socialPost.findMany.mockResolvedValue([{ ...POST_CARROSSEL, scenesJson: "[]" }]);
+    const r = await produzirArtesPendentes();
+    expect(generateDesign).not.toHaveBeenCalled();
+    expect(r.falhas[0]!.erro).toMatch(/telas descritas/);
+  });
+});
+
+describe("story é VERTICAL — quadrado publicado como story corta a peça no meio", () => {
+  beforeEach(() => {
+    db.socialPost.findMany.mockResolvedValue([{ ...POST, id: "sp4", format: "story" }]);
+  });
+
+  it("pede a imagem em retrato", async () => {
+    await produzirArtesPendentes();
+    expect(generateDesign.mock.calls[0]![0].size).toBe("portrait");
+  });
+
+  it("o prompt sabe que é story e protege as bordas da interface do Instagram", async () => {
+    await produzirArtesPendentes();
+    const p = generateDesign.mock.calls[0]![0].prompt as string;
+    expect(p).toContain("vertical 9:16");
+    expect(p).toMatch(/margem generosa/);
+  });
+
+  it("feed continua quadrado", async () => {
+    db.socialPost.findMany.mockResolvedValue([{ ...POST }]);
+    await produzirArtesPendentes();
+    expect(generateDesign.mock.calls[0]![0].size).toBe("square");
+  });
+});

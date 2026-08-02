@@ -42,7 +42,7 @@ function deliverableMarkdown(data: Record<string, unknown>): string {
     const it = raw as Record<string, unknown>;
     const head = (it.headline ?? it.angle ?? it.direction ?? `Item ${i + 1}`) as string;
     lines.push(`**${i + 1}. ${head}**`);
-    for (const [k, label] of [["format", "Formato"], ["caption", "Legenda"], ["visual", "Visual"], ["direction", "Direção"], ["palette", "Paleta"], ["cta", "CTA"], ["audience", "Público"], ["note", "Obs"]] as const) {
+    for (const [k, label] of [["format", "Formato"], ["caption", "Legenda"], ["cenas", "Cenas"], ["visual", "Visual"], ["direction", "Direção"], ["palette", "Paleta"], ["cta", "CTA"], ["audience", "Público"], ["note", "Obs"]] as const) {
       if (typeof it[k] === "string" && (it[k] as string).trim()) lines.push(`- ${label}: ${it[k]}`);
     }
     lines.push("");

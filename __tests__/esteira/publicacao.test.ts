@@ -238,3 +238,76 @@ describe("o leitor de peças erra para menos", () => {
     expect(extrairPecas("prosa solta sem estrutura nenhuma aqui", "social")).toHaveLength(0);
   });
 });
+
+describe("carrossel e story no leitor de peças", () => {
+  it("telas descritas viram carrossel, mesmo se o especialista escreveu 'feed'", () => {
+    // A estrutura do conteúdo manda mais que o rótulo que o modelo digitou.
+    const t = `**1. Como escolher seu pão**
+- Formato: Feed
+- Cenas: 1) O trigo · 2) A fermentação · 3) O forno
+- Legenda: Três coisas que mudam tudo no pão que você leva pra casa.`;
+    const p = extrairPecas(t, "social")[0]!;
+    expect(p.formato).toBe("carousel");
+    expect(p.cenas).toEqual(["O trigo", "A fermentação", "O forno"]);
+  });
+
+  it("carrossel com UMA tela vira feed — não publica com o nome errado", () => {
+    const t = `**1. X**
+- Formato: Carrossel
+- Cenas: 1) Só uma tela aqui
+- Legenda: Uma legenda longa o suficiente para virar post de verdade.`;
+    expect(extrairPecas(t, "social")[0]!.formato).toBe("feed");
+  });
+
+  it("story continua story", () => {
+    const t = `**1. X**
+- Formato: Story
+- Legenda: Bastidor de hoje: o forno já está quente desde as quatro da manhã.`;
+    expect(extrairPecas(t, "social")[0]!.formato).toBe("story");
+  });
+
+  it("peça normal não ganha cenas do nada", () => {
+    const t = `**1. X**
+- Formato: Feed
+- Legenda: Saiu do forno agora, passa aqui que a gente te espera com café.`;
+    const p = extrairPecas(t, "social")[0]!;
+    expect(p.formato).toBe("feed");
+    expect(p.cenas).toEqual([]);
+  });
+});
+
+describe("publicar carrossel", () => {
+  const CARROSSEL = {
+    id: "sp9", workspaceId: "ws1", clientId: "c1", caption: "Três coisas que mudam tudo.",
+    format: "carousel", mediaUrl: "/api/media/m1", status: "scheduled",
+    mediaUrlsJson: JSON.stringify(["/api/media/m1", "/api/media/m2", "/api/media/m3"]),
+  };
+
+  beforeEach(() => {
+    process.env.PUBLIC_BASE_URL = "https://app.dioli.studio";
+    db.socialPost.findMany.mockResolvedValue([{ ...CARROSSEL }]);
+    db.metaConnection.findFirst.mockResolvedValue({ id: "mc1" });
+  });
+
+  it("manda as três telas, não uma imagem só", async () => {
+    const r = await publicarAgendados();
+    expect(r.publicados).toBe(1);
+    const arg = publishPost.mock.calls[0]![1];
+    expect(arg.format).toBe("carousel");
+    expect(arg.mediaUrls).toHaveLength(3);
+    expect(arg.mediaUrl).toBeUndefined();
+  });
+
+  it("carrossel incompleto NÃO vai ao ar — sequência com buraco perde o sentido", async () => {
+    db.socialPost.findMany.mockResolvedValue([{ ...CARROSSEL, mediaUrlsJson: JSON.stringify(["/api/media/m1"]) }]);
+    const r = await publicarAgendados();
+    expect(r.publicados).toBe(0);
+    expect(publishPost).not.toHaveBeenCalled();
+  });
+
+  it("JSON corrompido não derruba a rodada — vira pendência legível", async () => {
+    db.socialPost.findMany.mockResolvedValue([{ ...CARROSSEL, mediaUrlsJson: "{quebrado" }]);
+    const r = await publicarAgendados();
+    expect(r.falhas[0]!.erro).toMatch(/ainda não tem as artes/);
+  });
+});

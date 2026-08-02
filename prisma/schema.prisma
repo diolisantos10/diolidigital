@@ -664,6 +664,13 @@ model SocialPost {
   format          String    @default("feed") // feed|reel|story|carousel|video
   pillar          String? // content pillar
   mediaUrl        String? // link to the creative (Drive/etc.) until native storage
+  /// As telas do CARROSSEL, em JSON. Uma peça só com várias imagens — por isso
+  /// não cabe em `mediaUrl`. Fica vazio em todo formato que não é carrossel.
+  mediaUrlsJson   String  @default("[]")
+  /// As telas descritas pelo especialista, uma por linha. É o que o gerador de
+  /// arte usa para desenhar CADA tela — sem isso, um carrossel de 5 imagens
+  /// sairia com 5 variações da mesma cena.
+  scenesJson      String  @default("[]")
   scriptJson      String? // AI video/reel script (hook, scenes, cta, audio)
   scheduledFor    DateTime?
   status          String    @default("draft") // draft|scheduled|approved|published|failed

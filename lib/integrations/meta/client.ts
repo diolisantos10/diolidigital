@@ -50,6 +50,48 @@ async function publishInstagram(
 ): Promise<PublishResult> {
   const format = input.format ?? "feed";
 
+  // ── CARROSSEL ─────────────────────────────────────────────────────────────
+  // Fluxo próprio, e não um `if` a mais no de baixo: o carrossel exige criar um
+  // container POR IMAGEM (cada um com `is_carousel_item`), esperar todos, e só
+  // então criar o container-pai. Legenda vai só no pai — repetir nos filhos faz
+  // a Meta recusar.
+  if (format === "carousel") {
+    const urls = (input.mediaUrls ?? []).filter(Boolean);
+    // A Meta aceita de 2 a 10. Publicar "carrossel" com uma imagem só é
+    // entregar um post de feed com nome errado.
+    if (urls.length < 2) return { ok: false, error: "carrossel precisa de pelo menos 2 imagens" };
+    if (urls.length > 10) urls.length = 10;
+
+    const filhos: string[] = [];
+    for (const url of urls) {
+      const filho = await graphPost<{ id: string }>(`${igUserId}/media`, token, {
+        image_url: url,
+        is_carousel_item: "true",
+      });
+      filhos.push(filho.id);
+    }
+    // Cada filho precisa estar processado ANTES de o pai ser criado. Criar o
+    // pai com um filho ainda em processamento derruba o carrossel inteiro.
+    for (const id of filhos) await waitForContainer(id, token);
+
+    const pai = await graphPost<{ id: string }>(`${igUserId}/media`, token, {
+      media_type: "CAROUSEL",
+      children: filhos.join(","),
+      ...(input.caption ? { caption: input.caption } : {}),
+    });
+    await waitForContainer(pai.id, token);
+    const publicado = await graphPost<{ id: string }>(`${igUserId}/media_publish`, token, {
+      creation_id: pai.id,
+    });
+
+    let link: string | undefined;
+    try {
+      const m = await graphGet<{ permalink?: string }>(publicado.id, token, { fields: "permalink" });
+      link = m.permalink;
+    } catch { /* non-fatal */ }
+    return { ok: true, externalPostId: publicado.id, permalink: link };
+  }
+
   // 1. Create the media container.
   const containerParams: Record<string, string> = {};
   if (input.caption) containerParams.caption = input.caption;
@@ -62,8 +104,14 @@ async function publishInstagram(
   } else if (format === "story") {
     if (!input.mediaUrl) return { ok: false, error: "mediaUrl obrigatório para stories" };
     containerParams.media_type = "STORIES";
-    // stories accept image_url or video_url; assume image unless it's a video url
-    containerParams.image_url = input.mediaUrl;
+    // Story aceita imagem OU vídeo, e o parâmetro é diferente para cada um.
+    // Mandar um .mp4 em `image_url` faz a Meta aceitar o container e falhar na
+    // publicação — erro que aparece tarde e sem explicação.
+    if (/\.(mp4|mov|webm)(\?|$)/i.test(input.mediaUrl)) {
+      containerParams.video_url = input.mediaUrl;
+    } else {
+      containerParams.image_url = input.mediaUrl;
+    }
   } else {
     if (!input.mediaUrl) return { ok: false, error: "mediaUrl obrigatório para feed" };
     containerParams.image_url = input.mediaUrl;

@@ -46,7 +46,12 @@ beforeAll(async () => {
     "-filter:a", "volume=0.05", path.join(dir, "bruto.mp4"),
   ]);
   bruto = await readFile(path.join(dir, "bruto.mp4"));
-});
+  // Timeout explícito: o padrão do vitest é 5s, e codificar com ffmpeg sob
+  // carga (os outros arquivos rodam em paralelo) passa disso. Sem esta linha o
+  // `beforeAll` estoura e o ARQUIVO INTEIRO cai — foi o que fez a suíte ficar
+  // vermelha duas vezes em 02/08/2026, com sintoma enganoso ("13 skipped"),
+  // parecendo problema do código que estava sendo testado.
+}, 120_000);
 
 describe("os argumentos do corte — a parte que precisa estar certa", () => {
   const args = argumentosDeEdicao({ entrada: "in.mp4", saida: "out.mp4", duracao: 200 });

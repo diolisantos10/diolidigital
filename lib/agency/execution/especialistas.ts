@@ -189,9 +189,12 @@ ${formato("Pauta do Mês — <negócio>", `"headline": "Semana N — tema", "not
 CONTEXTO
 ${ctxBlock(c)}
 
-Escreva de 4 a 6 peças. Para cada uma: formato (feed/story/reel), headline, legenda completa (2 a 3 frases, pronta para copiar e colar) e a ideia de visual que acompanha.
+Escreva de 6 a 8 peças, com a MISTURA de formatos que funciona para negócio local — não faça tudo feed:
+- 1 a 2 CARROSSEL: o formato que mais segura atenção. Use quando o assunto tem PASSOS ou LISTA ("3 sinais de que...", "como escolher..."). No campo "cenas", descreva de 3 a 6 telas, uma por linha, começando com "1)", "2)"... Cada tela é uma ideia só.
+- 2 a 3 STORY: assunto do dia, bastidor, enquete. Story é vertical e vive 24h — nada que precise durar.
+- 2 a 3 FEED: o que fica no perfil e representa a marca.
 ${REGRA}
-${formato("Legendas Prontas — <negócio>", `"format": "feed|story|reel", "headline": "...", "caption": "legenda pronta", "visual": "o que aparece na imagem"`)}`,
+${formato("Legendas Prontas — <negócio>", `"format": "feed|story|reel|carrossel", "headline": "...", "caption": "legenda pronta", "visual": "o que aparece na imagem", "cenas": "só para carrossel: 1) tela 1 · 2) tela 2 · 3) ..."`)}`,
       },
       {
         id: "social-roteiro-video",

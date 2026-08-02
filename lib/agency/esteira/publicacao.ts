@@ -106,6 +106,7 @@ export async function agendarPostsDaEntrega(projectId: string): Promise<Agendame
           networks: JSON.stringify(["instagram"]),
           format: peca.formato,
           pillar: peca.pilar,
+          scenesJson: JSON.stringify(peca.cenas),
           scheduledFor: new Date(cursor),
           // "draft", não "scheduled": a data está proposta, e quem aprova o
           // calendário é o cliente. Nascer já agendado publicaria sem aval.
@@ -213,9 +214,29 @@ export async function publicarAgendados(): Promise<PublicacaoFeita> {
     // vira post — e isso precisa aparecer como pendência, não como sucesso
     // silencioso. A mensagem muda com o formato porque a AÇÃO muda: falta arte
     // é problema nosso; falta vídeo é material que só o cliente tem.
-    const ehVideo = normalizarFormato(post.format) === "reel";
+    const formato = normalizarFormato(post.format);
+    const ehVideo = formato === "reel";
+
+    // ── CARROSSEL: várias imagens, e todas precisam de link público ──────────
+    // Publicar um carrossel incompleto entregaria ao seguidor uma sequência
+    // que perde o sentido no meio.
+    let carrossel: string[] = [];
+    if (formato === "carousel") {
+      const guardadas = lerLista(post.mediaUrlsJson);
+      carrossel = (await Promise.all(guardadas.map((u) => urlPublicaDaMidia(u))))
+        .filter((u): u is string => !!u);
+      if (carrossel.length < 2) {
+        await falhar(
+          guardadas.length === 0
+            ? "o carrossel ainda não tem as artes das telas"
+            : `só ${carrossel.length} de ${guardadas.length} telas do carrossel têm link público`,
+        );
+        continue;
+      }
+    }
+
     const mediaUrl = await urlPublicaDaMidia(post.mediaUrl);
-    if (!mediaUrl) {
+    if (formato !== "carousel" && !mediaUrl) {
       await falhar(
         post.mediaUrl
           ? "não consegui gerar link público da mídia (falta domínio público configurado)"
@@ -231,9 +252,9 @@ export async function publicarAgendados(): Promise<PublicacaoFeita> {
       r = await publishPost(post.workspaceId, {
         connectionId: conexao.id,
         platform: "instagram",
-        format: normalizarFormato(post.format),
+        format: formato,
         caption: post.caption,
-        mediaUrl,
+        ...(formato === "carousel" ? { mediaUrls: carrossel } : { mediaUrl }),
       });
     } catch (err) {
       await falhar(err instanceof Error ? err.message : "erro ao falar com a Meta");
@@ -292,10 +313,22 @@ async function proximaDataLivre(workspaceId: string, clientId: string | null): P
   return depois > base ? depois : base;
 }
 
-function normalizarFormato(f: string): "feed" | "reel" | "story" {
+function normalizarFormato(f: string): "feed" | "reel" | "story" | "carousel" {
   if (f === "reel" || f === "video") return "reel";
   if (f === "story") return "story";
+  if (f === "carousel" || f === "carrossel") return "carousel";
   return "feed";
+}
+
+/** Lê uma lista guardada como JSON. Campo corrompido vira lista vazia — nunca
+ *  exceção: um JSON quebrado não pode derrubar a rodada de publicação. */
+function lerLista(bruto: string | null | undefined): string[] {
+  try {
+    const v = JSON.parse(bruto ?? "[]");
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
 }
 
 /**
@@ -319,6 +352,8 @@ interface PecaExtraida {
   legenda: string;
   formato: string;
   pilar: string | null;
+  /** As telas do carrossel, uma por item. Vazio nos outros formatos. */
+  cenas: string[];
 }
 
 /**
@@ -341,13 +376,37 @@ export function extrairPecas(conteudo: string, tipo: string): PecaExtraida[] {
     // a agência ler, não para o seguidor do cliente ler.
     if (/PRECISO CONFIRMAR/i.test(legenda)) continue;
     const formatoBruto = (capturar(bloco, "Formato") ?? "").toLowerCase();
+    const cenas = lerCenas(capturar(bloco, "Cenas"));
+    // A ordem dos testes importa. Carrossel primeiro: uma peça com telas
+    // descritas É um carrossel, mesmo que o especialista tenha escrito "feed"
+    // no campo formato — a estrutura do conteúdo manda mais que o rótulo.
     const formato =
-      formatoBruto.includes("reel") || tipo === "video" ? "reel"
+      cenas.length >= 2 || formatoBruto.includes("carross") || formatoBruto.includes("carousel") ? "carousel"
+      : formatoBruto.includes("reel") || tipo === "video" ? "reel"
       : formatoBruto.includes("story") ? "story"
       : "feed";
-    pecas.push({ legenda: legenda.slice(0, 2000), formato, pilar: capturar(bloco, "Pilar") });
+    // Carrossel sem telas suficientes não é carrossel — vira feed, em vez de
+    // ser publicado com uma imagem só e o nome errado.
+    const formatoFinal = formato === "carousel" && cenas.length < 2 ? "feed" : formato;
+    pecas.push({ legenda: legenda.slice(0, 2000), formato: formatoFinal, pilar: capturar(bloco, "Pilar"), cenas });
   }
   return pecas;
+}
+
+/**
+ * Lê as telas do carrossel. O especialista escreve "1) tela · 2) tela · 3) ..."
+ * — numa linha só ou em várias, porque modelo não é consistente nisso.
+ *
+ * Teto de 10 porque é o limite da Meta. Cortar aqui é melhor do que a Meta
+ * recusar o carrossel inteiro na hora de publicar.
+ */
+function lerCenas(bruto: string | null): string[] {
+  if (!bruto) return [];
+  return bruto
+    .split(/\s*(?:·|\||\n|(?<=[.!?])\s)?\s*\d+\)\s*/)
+    .map((t) => t.replace(/^[·|\-\s]+/, "").trim())
+    .filter((t) => t.length > 3)
+    .slice(0, 10);
 }
 
 function capturar(bloco: string, campo: string): string | null {
