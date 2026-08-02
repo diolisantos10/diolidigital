@@ -35,8 +35,13 @@ import { prisma } from "@/lib/db/client";
 export const MAX_BYTES_POR_ARQUIVO = 120 * 1024 * 1024;
 
 /** Teto por workspace. É a trava que impede o primeiro cliente que mandar dez
- *  vídeos de derrubar o banco — que vive no mesmo volume. */
-export const COTA_BYTES_POR_WORKSPACE = Number(process.env.MEDIA_COTA_BYTES ?? 3 * 1024 * 1024 * 1024);
+ *  vídeos de derrubar o banco — que vive no mesmo volume.
+ *
+ *  2 GB, e o número não é redondo por acaso: em 02/08/2026 o volume do Railway
+ *  foi medido em **4,6 GB** (`df` no start.sh do deploy `7f08e819`). Deixar a
+ *  cota em 3 GB dava ao primeiro workspace dois terços do disco — e o banco
+ *  mora ali junto. Se o volume crescer, isto sobe por variável, sem deploy. */
+export const COTA_BYTES_POR_WORKSPACE = Number(process.env.MEDIA_COTA_BYTES ?? 2 * 1024 * 1024 * 1024);
 
 /** O que a agência aceita receber. Lista fechada: MIME que não está aqui é
  *  recusado na porta, não sanitizado depois. */

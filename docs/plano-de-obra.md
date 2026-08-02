@@ -107,8 +107,11 @@ Nada abaixo é código. É tudo decisão, credencial ou dinheiro.
 
 1. **App Review da Meta** — permissões de anúncio, verificação de negócio, ícone
    e URLs (o ícone e as páginas legais já estão prontos, faltam ser colados).
-2. **Tamanho do volume no Railway** — o repositório não sabe qual é, e mídia sem
-   cota derruba o banco junto.
+2. ~~**Tamanho do volume no Railway**~~ — **respondido em 02/08/2026: 4,6 GB**
+   (medido no deploy `7f08e819`, 892 KB em uso). A cota por workspace foi
+   ajustada para 2 GB por causa disso — 3 GB dariam ao primeiro cliente dois
+   terços do disco, e o banco mora no mesmo volume. Decisão que sobra ao CEO:
+   se 4,6 GB bastam para o número de clientes que ele pretende ter.
 3. **Backup** — não existe rotina de backup nenhuma hoje, nem do banco. Colocar
    mídia no volume aumenta o que se perde sem aumentar a proteção.
 4. **Decisão de preço** — o calculador cobra igual de quem manda material e de
