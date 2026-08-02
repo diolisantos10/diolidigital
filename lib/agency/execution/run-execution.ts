@@ -434,7 +434,21 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
     // identidade DIFERENTE. Criava a marca e esquecia dela.
     try {
       const { colherIdentidadeDaEntrega } = await import("@/lib/agency/execution/colher-identidade");
-      await colherIdentidadeDaEntrega(projectId, project.clientId);
+      const colhida = await colherIdentidadeDaEntrega(projectId, project.clientId);
+
+      // ── O LOGO EM ARQUIVO ──────────────────────────────────────────────────
+      // Só depois de colher: o kit usa a paleta e a tipografia que o
+      // especialista definiu. Gerar antes produziria um logo preto e branco
+      // ignorando a marca que a própria casa acabou de criar.
+      //
+      // Quem contratou identidade recebe ARQUIVO. Até 02/08/2026 o pet shop
+      // sem logo pagava por identidade visual e recebia um texto descrevendo
+      // a marca — meio serviço cobrado inteiro.
+      if (colhida.encontrouEntrega && context.criandoIdentidade) {
+        const { produzirKitDeMarca } = await import("@/lib/agency/execution/logo");
+        const kit = await produzirKitDeMarca(projectId, project.clientId, project.workspaceId);
+        if (kit.arquivos.length > 0) await entregarKit(projectId, cicloId, context.businessName, project.clientId, kit.arquivos);
+      }
     } catch { /* best-effort: colher a marca não pode derrubar a produção */ }
 
     // ── UMA VOZ: o PM junta tudo que travou e cobra numa mensagem só ─────────
@@ -523,4 +537,49 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
     }).catch(() => { /* best-effort */ });
     return { ok: false, status: "failed", produced: [], askedClient: [], skipped: [], error: msg };
   }
+}
+
+/**
+ * Registra o kit de marca como ENTREGA, não como arquivo solto no storage.
+ *
+ * A diferença importa: arquivo no armazenamento é invisível para o cliente. O
+ * que ele vê no portal são entregas — e um logo que ninguém encontra é o mesmo
+ * que um logo que não existe.
+ */
+async function entregarKit(
+  projectId: string,
+  cycleId: string | null,
+  negocio: string,
+  clientId: string | null,
+  arquivos: Array<{ id: string; nome: string; para: string }>,
+): Promise<void> {
+  const cliente = clientId
+    ? await prisma.client.findUnique({ where: { id: clientId }, select: { brandBrain: true, industry: true } }).catch(() => null)
+    : null;
+  const b = cliente?.brandBrain;
+
+  const { montarManual, corValida } = await import("@/lib/agency/execution/logo");
+  const manual = montarManual({
+    negocio,
+    primaria: corValida(b?.primaryColor) ?? b?.primaryColor ?? "não definida",
+    secundaria: corValida(b?.secondaryColor) ?? b?.secondaryColor ?? "não definida",
+    tipografia: b?.typography ?? "não definida",
+    tagline: b?.tagline ?? null,
+    arquivos: arquivos.map((a) => ({ nome: a.nome, para: a.para })),
+  });
+
+  const corpo = [
+    manual,
+    "",
+    "**5. Baixe seus arquivos**",
+    ...arquivos.map((a, i) => `- Arquivo ${i + 1}: ${a.nome} — /api/media/${a.id}`),
+  ].join("\n");
+
+  await prisma.deliverable.create({
+    data: {
+      projectId, name: `Kit de marca — ${negocio}`, type: "brand-kit",
+      status: "in_review", content: corpo, ownerAgentId: "design-kit-de-marca",
+      cycleId, revisionStatus: "quality_ok",
+    },
+  }).catch(() => { /* best-effort */ });
 }

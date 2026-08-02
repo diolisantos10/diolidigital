@@ -61,8 +61,10 @@ describe("o cliente finalmente consegue mandar arquivo", () => {
 });
 
 describe("as travas que impedem o volume de derrubar o banco", () => {
-  it("SVG é recusado — servido do nosso domínio, ele vira XSS", async () => {
-    const r = await guardarArquivo({ ...base, mimeType: "image/svg+xml" });
+  it("SVG de UPLOAD é recusado — servido do nosso domínio, ele vira XSS", async () => {
+    // A regra afrouxou em 02/08/2026 só para o que a CASA gera (logo vetorial).
+    // O que chega de fora continua recusado na porta.
+    const r = await guardarArquivo({ ...base, mimeType: "image/svg+xml", kind: "inbound" });
     expect(r.ok).toBe(false);
   });
 
@@ -100,5 +102,35 @@ describe("o erro é escrito para a dona do salão, não para um programador", ()
     if (r.ok) return;
     expect(r.motivo).toMatch(/MB/);
     expect(r.motivo).toMatch(/vídeo|menor|dividido/i);
+  });
+});
+
+describe("SVG é a única exceção — e o que a torna segura é como SERVIMOS", () => {
+  it("SVG que a casa gera é aceito — logo sem vetor não é logo", async () => {
+    const r = await guardarArquivo({
+      bytes: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"></svg>'),
+      fileName: "logo.svg", mimeType: "image/svg+xml",
+      workspaceId: "ws1", kind: "deliverable",
+    });
+    expect(r.ok).toBe(true);
+  });
+
+  it("SVG enviado DE FORA é recusado na porta — vem de máquina que não controlamos", async () => {
+    const r = await guardarArquivo({
+      bytes: Buffer.from('<svg onload="alert(1)"></svg>'),
+      fileName: "malicioso.svg", mimeType: "image/svg+xml",
+      workspaceId: "ws1", kind: "inbound",
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.motivo).toMatch(/SVG/);
+  });
+});
+
+describe("a permissão de SVG é default-deny", () => {
+  it("sem kind informado, SVG é recusado — o esquecimento não pode abrir a porta", async () => {
+    const r = await guardarArquivo({
+      bytes: Buffer.from("<svg/>"), fileName: "x.svg", mimeType: "image/svg+xml", workspaceId: "ws1",
+    });
+    expect(r.ok).toBe(false);
   });
 });

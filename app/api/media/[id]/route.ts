@@ -16,7 +16,12 @@ import { lerArquivo, assinaturaValida } from "@/lib/agency/media/armazenamento";
 export const dynamic = "force-dynamic";
 
 /** Imagem o navegador pode desenhar na tela. O resto vai como download — um
- *  arquivo servido "inline" do nosso domínio é superfície de ataque. */
+ *  arquivo servido "inline" do nosso domínio é superfície de ataque.
+ *
+ *  `image/svg+xml` está fora DE PROPÓSITO, mesmo sendo imagem e mesmo sendo
+ *  gerado por nós: SVG é XML com `<script>` permitido. Baixado, é um arquivo
+ *  que o cliente abre no Illustrator; aberto inline, seria script executando
+ *  com a nossa origem e a sessão do usuário logado. */
 const PODE_ABRIR_NA_TELA = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
 
 export async function GET(

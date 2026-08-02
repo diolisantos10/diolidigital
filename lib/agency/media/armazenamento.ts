@@ -60,7 +60,21 @@ export const MIMES_ACEITOS: Record<string, string> = {
   "application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
   "text/plain": "txt",
   "text/csv": "csv",
+  // SVG entrou em 02/08/2026 e é a ÚNICA exceção à regra de "MIME que o
+  // navegador executa não entra". Motivo: um logo sem vetor não é um logo — o
+  // cliente precisa dele para gravar em fachada, camiseta e cardápio.
+  //
+  // O que torna isso seguro é o modo de SERVIR, não o de aceitar: SVG nunca é
+  // devolvido `inline` (ver PODE_ABRIR_NA_TELA em app/api/media/[id]), sempre
+  // como download, sempre com nosniff. Um SVG baixado é um arquivo; um SVG
+  // aberto no nosso domínio seria script rodando com a nossa origem.
+  "image/svg+xml": "svg",
 };
+
+/** SVG só pode ser aceito quando FOMOS NÓS que geramos (kind "generated" ou
+ *  "deliverable"). Upload de SVG do cliente continua recusado na porta: o
+ *  arquivo dele vem de uma máquina que não controlamos. */
+export const MIMES_SO_INTERNOS = new Set(["image/svg+xml"]);
 
 // SVG está FORA de propósito. Ele é aceito hoje no fluxo de briefing, e no
 // momento em que passar a ser SERVIDO pelo nosso domínio vira XSS: um SVG
@@ -120,6 +134,18 @@ export async function guardarArquivo(input: {
       ok: false,
       erro: "mime_recusado",
       motivo: `Não aceitamos esse tipo de arquivo (${input.mimeType || "desconhecido"}). Mande foto, vídeo, PDF ou documento.`,
+    };
+  }
+  // O que a casa gera pode ser SVG; o que chega de fora, não. A distinção é o
+  // que permite entregar logo vetorial sem abrir upload de SVG do cliente.
+  // Default-deny: a permissão exige `kind` EXPLICITAMENTE interno. Testar
+  // `kind === "inbound"` deixaria passar quem esquecesse de informar o campo —
+  // e o esquecimento é justamente o caminho por onde um SVG de fora entraria.
+  if (MIMES_SO_INTERNOS.has(input.mimeType) && input.kind !== "generated" && input.kind !== "deliverable") {
+    return {
+      ok: false,
+      erro: "mime_recusado",
+      motivo: "Não aceitamos arquivo SVG enviado de fora. Mande em PNG, JPG ou PDF.",
     };
   }
   if (input.bytes.length === 0) {
