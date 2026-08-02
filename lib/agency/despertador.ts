@@ -27,6 +27,7 @@ import { dispatchWhatsAppNotifications } from "@/lib/integrations/meta/notificat
 import { destravarPacote, pacotesTravados } from "@/lib/agency/esteira/pacote-travado";
 import { publicarAgendados } from "@/lib/agency/esteira/publicacao";
 import { virarOsMesesVencidos } from "@/lib/agency/esteira/mes";
+import { produzirArtesPendentes } from "@/lib/agency/execution/artes";
 
 /** De quanto em quanto tempo a agência olha se tem trabalho parado. */
 const INTERVALO_MS = Number(process.env.DESPERTADOR_INTERVALO_MS ?? 5 * 60_000);
@@ -123,12 +124,14 @@ export async function baterORelogio(): Promise<{
   destravadas: number;
   publicados: number;
   mesesVirados: number;
+  artes: number;
 }> {
   let retomados = 0;
   let avisos = 0;
   let destravadas = 0;
   let publicados = 0;
   let mesesVirados = 0;
+  let artes = 0;
 
   // A virada vem ANTES da retomada de propósito: ela é quem abre o mês novo e
   // marca o projeto como "pending". Assim o mês nasce e já é produzido na mesma
@@ -155,6 +158,17 @@ export async function baterORelogio(): Promise<{
     log(`destravamento falhou: ${err instanceof Error ? err.message : "erro"}`);
   }
 
+  // A arte vem ANTES da publicação, e por um motivo prático: o Instagram exige
+  // mídia em todo formato. Post sem imagem não vai ao ar — produzir depois
+  // significaria perder a data agendada e só publicar na rodada seguinte.
+  try {
+    const r = await produzirArtesPendentes();
+    artes = r.produzidas;
+    for (const f of r.falhas) log(`arte do post ${f.postId} falhou: ${f.erro}`);
+  } catch (err) {
+    log(`produção de artes falhou: ${err instanceof Error ? err.message : "erro"}`);
+  }
+
   // O que o cliente aprovou e chegou a hora vai ao ar. É a última perna da
   // esteira: sem ela a agência produz, apresenta e nunca publica.
   try {
@@ -172,10 +186,10 @@ export async function baterORelogio(): Promise<{
     log(`disparo de avisos falhou: ${err instanceof Error ? err.message : "erro"}`);
   }
 
-  if (retomados > 0 || avisos > 0 || destravadas > 0 || publicados > 0 || mesesVirados > 0) {
-    log(`rodada: ${mesesVirados} mês(es) virado(s), ${retomados} produção(ões) retomada(s), ${destravadas} entrega(s) refeita(s), ${publicados} post(s) publicado(s), ${avisos} aviso(s) enviado(s)`);
+  if (retomados > 0 || avisos > 0 || destravadas > 0 || publicados > 0 || mesesVirados > 0 || artes > 0) {
+    log(`rodada: ${mesesVirados} mês(es) virado(s), ${retomados} produção(ões) retomada(s), ${destravadas} entrega(s) refeita(s), ${artes} arte(s) produzida(s), ${publicados} post(s) publicado(s), ${avisos} aviso(s) enviado(s)`);
   }
-  return { retomados, avisos, destravadas, publicados, mesesVirados };
+  return { retomados, avisos, destravadas, publicados, mesesVirados, artes };
 }
 
 /**
