@@ -22,6 +22,14 @@
 // cliente não sabe dizer "isso está com aspect ratio errado", mas sabe dizer
 // "ficou estranho" — e devolve a peça.
 
+// ── DE ONDE VEM O ffmpeg EM PRODUÇÃO ───────────────────────────────────────
+// De `railpack.json` → `deploy.aptPackages`. Este projeto é construído pelo
+// RAILPACK, não pelo Nixpacks: um `nixpacks.toml` é ignorado sem nenhum aviso
+// no log, e foi assim que a primeira tentativa falhou em 02/08/2026 — o build
+// passou, o app subiu, e o editor teria devolvido "ffmpeg não disponível" para
+// todo cliente, em silêncio. `scripts/start.sh` agora imprime a presença dele
+// em todo boot, e `/api/capacidades` responde a mesma coisa por HTTP.
+
 import { spawn } from "node:child_process";
 import { mkdtemp, writeFile, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";

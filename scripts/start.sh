@@ -119,6 +119,20 @@ if [ "$IS_PRODUCTION" = "true" ]; then
     df -h "$RAILWAY_VOLUME_MOUNT_PATH" 2>/dev/null | tail -1 | awk '{print "▶ Volume: " $3 " usados de " $2 " (" $5 " cheio)"}'
   fi
 
+  # 4.6 ffmpeg: o editor de vídeo depende dele, e a falta NÃO derruba o deploy
+  #     — ela só faz o reel do cliente nunca ser produzido, em silêncio. Por
+  #     isso é dito aqui, alto, no log de todo boot.
+  #
+  #     Vem de `railpack.json` (deploy.aptPackages). ATENÇÃO: este projeto é
+  #     construído pelo RAILPACK, não pelo Nixpacks — um `nixpacks.toml` é
+  #     ignorado sem aviso, e foi exatamente assim que a primeira tentativa
+  #     falhou em 02/08/2026.
+  if command -v ffmpeg >/dev/null 2>&1; then
+    echo "▶ ffmpeg presente ($(ffmpeg -version 2>/dev/null | head -1 | cut -d' ' -f3)) — edição de vídeo habilitada"
+  else
+    echo "⚠ ffmpeg AUSENTE — reels não serão produzidos. Confira deploy.aptPackages em railpack.json"
+  fi
+
   # 5. Seed initial workspace + users on every boot (idempotent).
   #    seed-db.mjs uses INSERT OR IGNORE throughout — a no-op on populated
   #    databases, so this is safe to run on every restart. Ensures a fresh
