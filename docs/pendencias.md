@@ -32,6 +32,24 @@ Detalhe em `docs/plano-90.md`.
 **Novo:** `/api/capacidades` diz se esta instância consegue trabalhar — ffmpeg,
 chave de imagem, domínio público. `/api/health` só diz se está viva.
 
+### ⚠️ Dois achados que só apareceram CONFERINDO o deploy
+
+**1. O Railway constrói com RAILPACK, não com Nixpacks.**
+Escrevi um `nixpacks.toml` para instalar o ffmpeg. Ele foi **ignorado sem um
+único aviso no log**: o build passou, o app subiu, os testes ficaram verdes — e
+o editor de vídeo teria devolvido "ffmpeg não disponível" para todo cliente, em
+silêncio. Corrigido com `railpack.json` (`deploy.aptPackages`), e confirmado no
+boot: `▶ ffmpeg presente (5.1.9)`.
+*Lição registrada no código:* arquivo de configuração que diz fazer algo e não
+faz é pior do que arquivo nenhum. Por isso `start.sh` agora imprime a presença
+do ffmpeg em todo boot.
+
+**2. `diolidigital.com.br` (sem www) devolve 404 — PENDÊNCIA DO CEO.**
+- `www.diolidigital.com.br` → **200, funcionando**
+- `diolidigital.com.br` → **404 "Application not found"** do edge do Railway
+- É configuração de DNS/domínio no painel, não código. Quem digitar o endereço
+  sem `www` não acha a agência.
+
 ---
 
 ## 🏗️ Obra concluída — 02/08/2026: os 7 blocos do plano

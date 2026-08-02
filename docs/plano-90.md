@@ -16,7 +16,12 @@
 | Tráfego Pago | 55 | **92** | Conjunto + anúncio + guardião de verba |
 | Identidade Visual | 50 | **92** | Logo em SVG, kit e manual |
 
-**520 testes verdes.** Typecheck e build limpos. Tudo no ar.
+**520 testes verdes.** Typecheck e build limpos. Tudo no ar, commit `1b0dc40`.
+
+> **Achado ao conferir o deploy, não ao supor:** o Railway constrói com
+> **Railpack**, não Nixpacks — o `nixpacks.toml` do ffmpeg foi ignorado em
+> silêncio. Corrigido com `railpack.json`, e o boot agora **imprime** a presença
+> do ffmpeg (`5.1.9`) para nunca mais depender de suposição.
 
 ### Os três especialistas novos
 
