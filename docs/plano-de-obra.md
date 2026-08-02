@@ -42,49 +42,68 @@ Ordenados por quando o cliente sente a dor.
 
 ## O plano — 7 blocos, na ordem em que vou construir
 
+> **Status em 02/08/2026: os 7 blocos estão construídos e no ar.** O que sobrou
+> está na seção final — e é tudo coisa que depende do CEO, não de código.
+
 A ordem é por **dor do cliente**, não por facilidade. E há uma dependência dura:
 storage vem primeiro porque três serviços param nele.
 
-### Bloco 1 — Fundação de mídia
+### ✅ Bloco 1 — Fundação de mídia
 O cliente precisa poder mandar arquivo, e a agência precisa poder devolver.
 - Modelo `MediaAsset` + diretório no volume do Railway (persistente, provado em `scripts/start.sh:72`)
 - `POST /api/media` (recebe) e `GET /api/media/[id]` (serve, com dono derivado do token, nunca da URL)
 - Upload no portal do cliente — a aba que hoje é uma promessa quebrada
 - Cota por workspace: disco cheio mata o banco, porque é o mesmo volume
 
-### Bloco 2 — Os consertos de junta
+### ✅ Bloco 2 — Os consertos de junta
 Baratos, e cada um é um cliente perdido.
 - `hasRawMaterial` lendo os campos que o briefing realmente escreve
 - Trava do especialista de identidade invertida quando o serviço **é** criar a marca
 - A promessa do portal alinhada com o que existe
 - O resultado do Design voltando para o `BrandBrain`
 
-### Bloco 3 — Da entrega ao ar
+### ✅ Bloco 3 — Da entrega ao ar
 - A entrega de social vira `SocialPost` com data
 - Um publicador no despertador: `scheduledFor <= agora` → publica → marca `published`
 
-### Bloco 4 — A operação contínua
+### ✅ Bloco 4 — A operação contínua
 - `fecharCiclo` rodando por data, não por clique
 - Idempotência **por ciclo**, não vitalícia — é o que faz o mês 2 existir
 - Relatório com número real: `getInsights` ligado, comparação mês a mês
 
-### Bloco 5 — Cliente reprovou, agência refaz
+### ✅ Bloco 5 — Cliente reprovou, agência refaz
 Hoje o robô que reprova a si mesmo é atendido em 5 minutos e o cliente pagante
 nunca é. Inverter isso.
 
-### Bloco 6 — Design produz peça
+### ✅ Bloco 6 — Design produz peça
 Ligar o gerador de imagem ao motor, gravando no storage do Bloco 1.
 
-### Bloco 7 — Anúncios
+### ✅ Bloco 7 — Anúncios
 Camada de Marketing API: conta, campanha, conjunto, anúncio, verba, métricas.
 Depende de aprovação da Meta — as permissões **já foram pedidas** (commit
 `d225c0b`) para a espera correr em paralelo.
 
 ---
 
-## O que vai depender do CEO (fica para o fim)
+## O que ficou construído — 02/08/2026
 
-Vou listar aqui conforme aparecer, e entregar tudo de uma vez no fim:
+| Bloco | O que a agência passou a conseguir fazer |
+|---|---|
+| 1 | Receber arquivo do cliente e devolver arquivo, com cota e link assinado |
+| 2 | Não cobrar do cliente o que ele já mandou; não pedir marca a quem contratou criar a marca; a marca criada volta para o `BrandBrain` |
+| 3 | A entrega vira calendário, o cliente aprova, o relógio publica no Instagram |
+| 4 | O mês vira sozinho: mede, relata com número real, fecha e produz o mês seguinte |
+| 5 | Pedido de mudança do cliente é refeito na hora, com as palavras dele |
+| 6 | O Design produz a imagem, não a descrição da imagem |
+| 7 | Campanha de tráfego criada **pausada**, com teto do cliente, esperando o "pode ir" |
+
+Cobertura: **439 testes**, todos verdes. Typecheck e build limpos.
+
+---
+
+## O que depende do CEO — e só dele
+
+Nada abaixo é código. É tudo decisão, credencial ou dinheiro.
 
 1. **App Review da Meta** — permissões de anúncio, verificação de negócio, ícone
    e URLs (o ícone e as páginas legais já estão prontos, faltam ser colados).
@@ -95,3 +114,11 @@ Vou listar aqui conforme aparecer, e entregar tudo de uma vez no fim:
 4. **Decisão de preço** — o calculador cobra igual de quem manda material e de
    quem não manda, e pode chegar a R$4.900/mês para um salão de bairro sem
    nenhum aviso de sanidade.
+5. **Chave da OpenAI com acesso a imagem** — o Bloco 6 depende dela. Sem chave,
+   o post fica sem arte e não vai ao ar. É o gargalo mais imediato dos sete.
+6. **O cliente conectar o Instagram dele** — sem isso a agência produz,
+   apresenta, agenda e **não publica**. A esteira já cobra isso na tela, mas
+   quem pede é o comercial.
+7. **Teto de gasto diário da casa** — hoje R$ 500/dia por campanha
+   (`ADS_TETO_DIARIO_BRL`). É a última defesa contra um erro de orçamento.
+   Confirmar o número.

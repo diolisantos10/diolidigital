@@ -428,6 +428,15 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
       qualityAudit.push({ department: nome, verdict: audit.verdict, issues: audit.issues });
     }
 
+    // ── A MARCA CRIADA VIRA A MARCA USADA ────────────────────────────────────
+    // Sem isto, a agência definia a paleta do cliente num entregável e no mês
+    // seguinte lia a marca, encontrava nulo, escrevia genérico e propunha uma
+    // identidade DIFERENTE. Criava a marca e esquecia dela.
+    try {
+      const { colherIdentidadeDaEntrega } = await import("@/lib/agency/execution/colher-identidade");
+      await colherIdentidadeDaEntrega(projectId, project.clientId);
+    } catch { /* best-effort: colher a marca não pode derrubar a produção */ }
+
     // ── UMA VOZ: o PM junta tudo que travou e cobra numa mensagem só ─────────
     let pedidosCobrados = 0;
     if (askedClient.length > 0) {

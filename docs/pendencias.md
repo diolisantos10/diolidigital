@@ -1,6 +1,38 @@
 # Pendências — o que está aberto
 
-> Última atualização: 01/08/2026.
+> Última atualização: 02/08/2026.
+
+---
+
+## 🏗️ Obra concluída — 02/08/2026: os 7 blocos do plano
+
+Os sete blocos de `docs/plano-de-obra.md` estão construídos, testados e no ar.
+439 testes verdes, typecheck e build limpos, migrações conferidas contra o
+schema.
+
+**O que a agência passou a conseguir fazer, e não conseguia antes:**
+
+| Antes | Agora |
+|---|---|
+| O cliente não tinha como mandar arquivo (a aba prometia "em breve") | Upload real no portal, com cota e link assinado |
+| A entrega virava texto e morria ali | Vira calendário com data, o cliente aprova, o relógio publica |
+| **Não existia mês 2** — a idempotência era vitalícia | O mês vira sozinho: mede, relata, fecha e produz o próximo |
+| Reprovação do cliente gravava um status e mais nada | Refaz na hora, com as palavras dele |
+| O Design entregava a *descrição* da peça | Entrega a imagem, guardada no mesmo storage |
+| Tráfego pago parava no plano de mídia | Campanha criada **pausada**, com teto do cliente |
+
+**Os três achados que só apareceram construindo:**
+
+1. `fecharCiclo` existia e **não tinha um único chamador automático** no
+   repositório inteiro. O ciclo de agosto ficava aberto em dezembro.
+2. A esteira dizia a todo cliente com ciclo aberto *"Seu conteúdo está no ar"* —
+   inclusive a quem nunca conectou uma rede. Falso por construção, e o cliente
+   não tinha como saber.
+3. O portal tinha os três botões de aprovação e **só o de proposta fazia
+   efeito**. O cliente pedia revisão e ninguém ficava sabendo.
+
+**O que sobrou depende do CEO** — está listado no fim de
+`docs/plano-de-obra.md`. Nada ali é código.
 
 ---
 
