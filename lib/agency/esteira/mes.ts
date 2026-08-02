@@ -30,6 +30,7 @@ import { getInsights } from "@/lib/integrations/meta/client";
 import { fecharCiclo, type CicloResumido } from "@/lib/agency/esteira/ciclos";
 import { falarComOCliente } from "@/lib/agency/esteira/marcos";
 import { conferirPisoDeVerdade, resumirViolacoes, type VerdadeDoCliente } from "@/lib/agency/execution/piso-de-verdade";
+import { lerEvolucao } from "@/lib/agency/esteira/comparacao";
 
 /** Quantos ciclos viram por rodada do relógio. Cada virada é uma chamada de IA
  *  e várias à Meta — vinte de uma vez viraria enxurrada no dia 1º. */
@@ -116,6 +117,29 @@ export async function medirOMes(projectId: string, ciclo: CicloResumido): Promis
 }
 
 /**
+ * A medição reduzida às métricas comparáveis mês a mês.
+ *
+ * Só entra o que faz sentido comparar: contagem de posts publicados, alcance,
+ * seguidores, e o desempenho pago. "Posts agendados que não foram ao ar" é
+ * estado, não resultado — comparar isso não diz nada ao cliente.
+ */
+export function numerosComparaveis(m: MedicaoDoMes): Record<string, number | null> {
+  return {
+    "posts publicados": m.postsPublicados,
+    alcance: m.alcance,
+    seguidores: m.seguidores,
+    engajamento: m.engajamento,
+    ...(m.pago
+      ? {
+          investido: m.pago.gastoBRL,
+          cliques: m.pago.cliques,
+          "custo por clique": m.pago.cpcBRL,
+        }
+      : {}),
+  };
+}
+
+/**
  * Escreve o relatório do mês — só com o que foi medido.
  *
  * O prompt entrega os números prontos e proíbe qualquer outro. É o mesmo
@@ -129,6 +153,10 @@ export async function escreverRelatorio(input: {
   medicao: MedicaoDoMes;
   planoDoMes: string[];
   verdade: VerdadeDoCliente;
+  /** Os números do ciclo anterior. `null` = primeiro mês do cliente, e o
+   *  relatório DIZ isso em vez de inventar uma evolução. */
+  mesAnterior?: Record<string, number | null> | null;
+  referenciaAnterior?: string | null;
 }): Promise<{ titulo: string; corpo: string } | null> {
   const numeros = [
     `- Posts publicados no período: ${input.medicao.postsPublicados}`,
@@ -144,6 +172,17 @@ export async function escreverRelatorio(input: {
     input.medicao.pago ? `- Anúncios — alcance: ${input.medicao.pago.alcance}` : null,
     input.medicao.pago?.cpcBRL !== null && input.medicao.pago ? `- Anúncios — custo por clique: R$ ${input.medicao.pago.cpcBRL}` : null,
   ].filter(Boolean).join("\n");
+
+  // A COMPARAÇÃO É FEITA EM CÓDIGO, e a IA recebe o resultado pronto. Se ela
+  // calculasse, poderia escrever "crescemos 30%" a partir de números que dão
+  // 12% — e o percentual é exatamente onde o cliente presta atenção.
+  const evolucao = lerEvolucao(numerosComparaveis(input.medicao), input.mesAnterior ?? null);
+  const blocoEvolucao = evolucao.temBase
+    ? `\n\nCOMPARAÇÃO COM ${input.referenciaAnterior ?? "o mês anterior"} (já calculada — use EXATAMENTE estes números e percentuais, é PROIBIDO recalcular ou arredondar):\n${evolucao.linhas.join("\n")}` +
+      (evolucao.pioraram.length > 0
+        ? `\n\nO QUE PIOROU: ${evolucao.pioraram.join("; ")}. Diga isto com todas as letras numa seção própria e proponha o que faremos a respeito. Esconder queda é o jeito mais rápido de perder a confiança do cliente.`
+        : "")
+    : "\n\nNÃO há mês anterior para comparar — este é o primeiro ciclo medido. Diga isso e explique que a comparação começa no mês que vem. NÃO invente evolução nem compare com médias de mercado.";
 
   const semMedicao = input.medicao.porQueNaoMediu
     ? `\n\nATENÇÃO: as métricas do Instagram NÃO foram medidas neste mês. Motivo: ${input.medicao.porQueNaoMediu}. Escreva isto com todas as letras no relatório, como uma seção própria, e diga o que precisa acontecer para medir no mês que vem. NÃO estime, NÃO compare com médias de mercado, NÃO diga que "o desempenho foi bom".`
@@ -161,6 +200,7 @@ export async function escreverRelatorio(input: {
       `Relatório de ${input.referencia} para ${input.nomeDoNegocio}.\n\n` +
       `O QUE FOI MEDIDO (é tudo o que você tem):\n${numeros || "- nada foi medido neste período"}\n\n` +
       `O QUE ESTAVA PLANEJADO PARA O MÊS:\n${input.planoDoMes.map((p) => `- ${p}`).join("\n") || "- plano não registrado"}` +
+      blocoEvolucao +
       semMedicao +
       "\n\nEscreva em português do Brasil, direto, sem jargão de agência. " +
       "Se um número não está acima, ele não existe para você.",
@@ -224,6 +264,23 @@ export async function virarOMes(projectId: string, ciclo: CicloResumido): Promis
 
   const medicao = await medirOMes(projectId, ciclo);
 
+  // ── O MÊS PASSADO ─────────────────────────────────────────────────────────
+  // Sem isto o relatório descreve e não compara — e "está melhorando?" é a
+  // pergunta que o cliente faz quando olha a fatura.
+  const anterior = await prisma.cycle.findFirst({
+    where: { projectId, status: "fechado", reference: { lt: ciclo.referencia } },
+    orderBy: { reference: "desc" },
+    select: { reference: true, resultsJson: true },
+  }).catch(() => null);
+  const numerosAnteriores = anterior
+    ? (() => {
+        try {
+          const m = JSON.parse(anterior.resultsJson) as MedicaoDoMes;
+          return numerosComparaveis(m);
+        } catch { return null; }
+      })()
+    : null;
+
   const nome = projeto.client?.name ?? "o cliente";
   const relatorio = await escreverRelatorio({
     workspaceId: projeto.workspaceId,
@@ -231,6 +288,8 @@ export async function virarOMes(projectId: string, ciclo: CicloResumido): Promis
     referencia: ciclo.referencia,
     medicao,
     planoDoMes: ciclo.itens.map((i) => i.titulo),
+    mesAnterior: numerosAnteriores,
+    referenciaAnterior: anterior?.reference ?? null,
     verdade: {
       businessName: nome,
       telefones: [projeto.client?.phone].filter((v): v is string => !!v),
@@ -249,6 +308,20 @@ export async function virarOMes(projectId: string, ciclo: CicloResumido): Promis
       },
     }).catch(() => null);
     saida.relatorioEntregue = true;
+  }
+
+  // ── ALERTA DE QUEDA ───────────────────────────────────────────────────────
+  // O time precisa saber ANTES do cliente. Uma queda que só aparece quando ele
+  // reclama já custou a relação.
+  const evolucao = lerEvolucao(numerosComparaveis(medicao), numerosAnteriores);
+  if (evolucao.pioraram.length > 0) {
+    await prisma.activityEvent.create({
+      data: {
+        workspaceId: projeto.workspaceId, clientId: projeto.clientId, projectId,
+        type: "queda_no_ciclo",
+        message: `${nome} — ${ciclo.referencia} piorou em: ${evolucao.pioraram.join("; ")}. O relatório vai dizer isso ao cliente.`.slice(0, 900),
+      },
+    }).catch(() => { /* best-effort */ });
   }
 
   const resumo = relatorio?.corpo.slice(0, 400)

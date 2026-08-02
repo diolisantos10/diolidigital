@@ -156,3 +156,52 @@ describe("cada especialista usa a IA que faz melhor o trabalho dele", () => {
     }
   });
 });
+
+describe("os especialistas novos da rodada 90+", () => {
+  it("existe o de SEGMENTAÇÃO — era o elo que faltava entre prosa e Marketing API", () => {
+    const e = TODOS_OS_ESPECIALISTAS.find((x) => x.id === "traffic-segmentacao")!;
+    expect(e).toBeDefined();
+    const p = e.prompt(ctx);
+    // A saída dele não é texto: são os campos que criam o conjunto de anúncios.
+    expect(p).toMatch(/"raioKm"/);
+    expect(p).toMatch(/"idadeMin"/);
+    expect(p).toMatch(/"cidade"/);
+  });
+
+  it("a segmentação proíbe anunciar no país inteiro por falta de cidade", () => {
+    // Negócio local anunciado no Brasil inteiro é dinheiro queimado.
+    const p = TODOS_OS_ESPECIALISTAS.find((x) => x.id === "traffic-segmentacao")!.prompt(ctx);
+    expect(p).toMatch(/PRECISO CONFIRMAR: cidade/);
+    expect(p).toMatch(/dinheiro queimado/);
+  });
+
+  it("a segmentação prefere NÃO segmentar a segmentar por palpite", () => {
+    const p = TODOS_OS_ESPECIALISTAS.find((x) => x.id === "traffic-segmentacao")!.prompt(ctx);
+    expect(p).toMatch(/lista vazia/);
+  });
+
+  it("existe o de OTIMIZAÇÃO — sem ele o mês 2 era o mês 1 com datas novas", () => {
+    const e = TODOS_OS_ESPECIALISTAS.find((x) => x.id === "analytics-otimizacao")!;
+    expect(e).toBeDefined();
+  });
+
+  it("sem ciclo anterior, a otimização é PROIBIDA de inventar desempenho passado", () => {
+    const p = TODOS_OS_ESPECIALISTAS.find((x) => x.id === "analytics-otimizacao")!
+      .prompt({ ...ctx, resultadoDoCicloAnterior: undefined });
+    expect(p).toMatch(/AINDA NÃO HÁ CICLO ANTERIOR/);
+    expect(p).toMatch(/Não invente desempenho passado/);
+  });
+
+  it("com ciclo anterior, os números reais entram no prompt", () => {
+    const p = TODOS_OS_ESPECIALISTAS.find((x) => x.id === "analytics-otimizacao")!
+      .prompt({ ...ctx, resultadoDoCicloAnterior: "- Alcance: 4200\n- Posts publicados: 8" });
+    expect(p).toContain("Alcance: 4200");
+    expect(p).toMatch(/use SOMENTE estes/);
+  });
+
+  it("mudança sem número que a sustente não entra — palpite não é otimização", () => {
+    const p = TODOS_OS_ESPECIALISTAS.find((x) => x.id === "analytics-otimizacao")!.prompt(ctx);
+    expect(p).toMatch(/Palpite não entra/);
+    expect(p).toMatch(/Escalar o que não funciona/);
+  });
+});

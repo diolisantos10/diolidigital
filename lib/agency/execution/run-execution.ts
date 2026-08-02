@@ -212,6 +212,10 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
         return services.some((s) => /identidade|logo|marca|branding/i.test(s));
       })(),
       materiaisEntregues: [...new Set(materiaisResolvidos.map((m) => m.type))],
+      // O que aconteceu no mês passado, para o especialista de otimização
+      // decidir o que muda. Vazio no primeiro ciclo — e o prompt dele proíbe
+      // inventar desempenho passado quando isto está vazio.
+      resultadoDoCicloAnterior: await resultadoDoCicloAnterior(projectId, cicloId),
       // O cliente tem material próprio (foto/vídeo) para a agência usar?
       //
       // ESTA LINHA JÁ ESTEVE ERRADA e o erro era invisível: lia
@@ -582,4 +586,37 @@ async function entregarKit(
       cycleId, revisionStatus: "quality_ok",
     },
   }).catch(() => { /* best-effort */ });
+}
+
+/**
+ * Os números do último ciclo FECHADO, em texto pronto para o prompt.
+ *
+ * Devolve string vazia quando não há ciclo anterior. Vazio é o sinal que faz o
+ * especialista de otimização dizer "a otimização começa quando houver o
+ * primeiro mês medido" em vez de inventar um desempenho que nunca existiu.
+ */
+async function resultadoDoCicloAnterior(projectId: string, cicloAtualId: string | null): Promise<string> {
+  const anterior = await prisma.cycle.findFirst({
+    where: { projectId, status: "fechado", ...(cicloAtualId ? { id: { not: cicloAtualId } } : {}) },
+    orderBy: { reference: "desc" },
+    select: { reference: true, resultsJson: true },
+  }).catch(() => null);
+  if (!anterior) return "";
+
+  try {
+    const r = JSON.parse(anterior.resultsJson) as Record<string, unknown>;
+    const pago = r.pago as Record<string, number> | null;
+    const linhas = [
+      `Competência: ${anterior.reference}`,
+      `- Posts publicados: ${r.postsPublicados ?? 0}`,
+      r.alcance != null ? `- Alcance: ${r.alcance}` : null,
+      r.seguidores != null ? `- Seguidores: ${r.seguidores}` : null,
+      r.engajamento != null ? `- Engajamento: ${r.engajamento}` : null,
+      pago ? `- Anúncios: R$ ${pago.gastoBRL} investidos, ${pago.cliques} cliques, CPC R$ ${pago.cpcBRL ?? "não medido"}` : null,
+      r.porQueNaoMediu ? `- ATENÇÃO: as métricas não foram medidas neste ciclo (${r.porQueNaoMediu})` : null,
+    ].filter(Boolean);
+    return linhas.join("\n");
+  } catch {
+    return "";
+  }
 }

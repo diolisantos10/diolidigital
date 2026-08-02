@@ -46,6 +46,10 @@ export interface Ctx {
    *  tem** marca. Ele pedia ao cliente o que o cliente pagou para receber, e o
    *  pacote nunca era apresentado. */
   criandoIdentidade: boolean;
+  /** Os números do ciclo fechado anterior, em texto pronto. Vazio no primeiro
+   *  mês — e aí o especialista de otimização é PROIBIDO de inventar desempenho
+   *  passado, que é a forma mais fácil de um relatório virar ficção. */
+  resultadoDoCicloAnterior?: string;
   /** Tipos de material que o cliente JÁ entregou (ex.: "design").
    *
    *  Existe para impedir um laço cruel: o agente pede o logo, o cliente manda,
@@ -352,6 +356,32 @@ ${ctxBlock(c)}
 Defina de 3 a 5 indicadores adequados ao objetivo e ao segmento: o que cada um mede, de onde vem o dado, e a cadência do relatório. NÃO invente meta que dependa de histórico que não temos — escreva "PRECISO CONFIRMAR: número atual" quando for o caso.
 ${REGRA}
 ${formato("Plano de Medição — <negócio>", `"headline": "<indicador>", "note": "o que mede + cadência", "audience": "de onde vem o dado"`)}`,
+      },
+      {
+        // O especialista que transforma CICLO em APRENDIZADO. Sem ele, o mês 2
+        // era uma cópia do mês 1 com datas novas: a agência media, relatava, e
+        // no mês seguinte produzia exatamente a mesma coisa. Ciclo sem
+        // aprendizado é rotina cara, não operação contínua.
+        id: "analytics-otimizacao",
+        label: "Otimização do próximo ciclo",
+        deliverableType: "analytics",
+        provedor: "claude",
+        prompt: (c) => `Você é o especialista de OTIMIZAÇÃO da Dioli Digital. Sua entrega decide o que muda no mês que vem.
+
+CONTEXTO
+${ctxBlock(c)}
+
+${c.resultadoDoCicloAnterior
+  ? `O QUE ACONTECEU NO CICLO ANTERIOR (números reais, medidos — use SOMENTE estes):\n${c.resultadoDoCicloAnterior}`
+  : "AINDA NÃO HÁ CICLO ANTERIOR MEDIDO. Não invente desempenho passado: proponha o plano de partida e diga explicitamente que a otimização começa quando houver o primeiro mês medido."}
+
+Decida de 3 a 5 mudanças para o próximo ciclo. Para cada uma: o que muda, POR QUE (ancorado num número acima — se não houver número que sustente, não proponha), e como saberemos se deu certo.
+Regras que valem mais que a sua opinião:
+- Mudança sem número que a sustente é palpite. Palpite não entra.
+- Se algo caiu, a primeira mudança tem que endereçar a queda — não desviar o assunto para o que foi bem.
+- Não proponha aumentar verba sem que o custo por resultado esteja bom. Escalar o que não funciona só gasta mais rápido.
+${REGRA}
+${formato("Otimização do próximo ciclo — <negócio>", `"headline": "o que muda", "note": "por que — cite o número", "cta": "como saberemos se deu certo"`)}`,
       },
     ],
   },

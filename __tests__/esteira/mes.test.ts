@@ -6,6 +6,7 @@ const db = vi.hoisted(() => ({
   socialPost: { count: vi.fn(), findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn() },
   metaConnection: { findFirst: vi.fn() },
   adCampaign: { findMany: vi.fn() },
+  activityEvent: { create: vi.fn() },
   deliverable: { findMany: vi.fn(), create: vi.fn() },
   approvalRequest: { updateMany: vi.fn() },
   portalMessage: { create: vi.fn() },
@@ -45,6 +46,8 @@ beforeEach(() => {
   db.socialPost.count.mockResolvedValue(8);
   db.metaConnection.findFirst.mockResolvedValue({ id: "mc1" });
   db.adCampaign.findMany.mockResolvedValue([]);
+  db.cycle.findFirst.mockResolvedValue(null);
+  db.activityEvent.create.mockResolvedValue({});
   db.deliverable.create.mockResolvedValue({ id: "d9" });
   db.cycle.update.mockResolvedValue({});
   getInsights.mockResolvedValue({ ok: true, reach: 4200, impressions: 9100, followers: 812, engagement: 310 });
@@ -198,5 +201,77 @@ describe("apresentar o pacote do mês", () => {
     db.deliverable.findMany.mockResolvedValue([]);
     const r = await apresentarCiclo("p1", "cy2");
     expect(r.ok).toBe(false);
+  });
+});
+
+describe("'agosto foi melhor que julho' — a frase que segura cliente por anos", () => {
+  const medicao = {
+    postsPublicados: 8, postsAgendadosNaoPublicados: 0,
+    alcance: 5200, impressoes: 9100, seguidores: 812, engajamento: 310,
+    pago: null, porQueNaoMediu: null,
+  };
+
+  it("a comparação chega à IA JÁ CALCULADA, e ela é proibida de recalcular", async () => {
+    await escreverRelatorio({
+      workspaceId: "ws1", nomeDoNegocio: "Padaria do João", referencia: "2026-08",
+      medicao, planoDoMes: [], verdade: VERDADE,
+      mesAnterior: { alcance: 4000, "posts publicados": 8, seguidores: 800, engajamento: 300 },
+      referenciaAnterior: "2026-07",
+    });
+    const prompt = generate.mock.calls[0]![0].user as string;
+    expect(prompt).toContain("+30%");
+    expect(prompt).toMatch(/PROIBIDO recalcular/);
+  });
+
+  it("primeiro ciclo diz que não há base — não inventa evolução", async () => {
+    await escreverRelatorio({
+      workspaceId: "ws1", nomeDoNegocio: "Padaria do João", referencia: "2026-07",
+      medicao, planoDoMes: [], verdade: VERDADE, mesAnterior: null,
+    });
+    const prompt = generate.mock.calls[0]![0].user as string;
+    expect(prompt).toMatch(/NÃO há mês anterior/);
+    expect(prompt).toMatch(/NÃO invente evolução/);
+  });
+
+  it("o que piorou é mandado dizer com todas as letras", async () => {
+    await escreverRelatorio({
+      workspaceId: "ws1", nomeDoNegocio: "Padaria do João", referencia: "2026-08",
+      medicao: { ...medicao, alcance: 2000 }, planoDoMes: [], verdade: VERDADE,
+      mesAnterior: { alcance: 4000 }, referenciaAnterior: "2026-07",
+    });
+    const prompt = generate.mock.calls[0]![0].user as string;
+    expect(prompt).toMatch(/O QUE PIOROU/);
+    expect(prompt).toMatch(/Esconder queda/);
+  });
+});
+
+describe("a virada busca o mês passado e alerta o time", () => {
+  beforeEach(() => {
+    db.cycle.findFirst.mockResolvedValue({
+      reference: "2026-06",
+      resultsJson: JSON.stringify({ postsPublicados: 8, alcance: 9000, seguidores: 900, engajamento: 400, pago: null }),
+    });
+    db.activityEvent = { create: vi.fn().mockResolvedValue({}) };
+  });
+
+  it("lê os resultados do ciclo fechado anterior", async () => {
+    await virarOMes("p1", CICLO);
+    expect(db.cycle.findFirst.mock.calls[0]![0].where.status).toBe("fechado");
+    const prompt = generate.mock.calls[0]![0].user as string;
+    expect(prompt).toContain("2026-06");
+  });
+
+  it("queda vira alerta interno — o time sabe ANTES do cliente reclamar", async () => {
+    // Alcance de 9000 (junho) para 4200 (julho, do getInsights mockado).
+    await virarOMes("p1", CICLO);
+    const evento = db.activityEvent.create.mock.calls[0]![0].data;
+    expect(evento.type).toBe("queda_no_ciclo");
+    expect(evento.message).toMatch(/Alcance/);
+  });
+
+  it("sem ciclo anterior, nenhum alerta falso é disparado", async () => {
+    db.cycle.findFirst.mockResolvedValue(null);
+    await virarOMes("p1", CICLO);
+    expect(db.activityEvent.create).not.toHaveBeenCalled();
   });
 });
