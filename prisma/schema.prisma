@@ -32,24 +32,24 @@ model AgencyWorkspace {
 // ─── Users / Auth ─────────────────────────────────────────────────────────────
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
+  id           String          @id @default(cuid())
+  email        String          @unique
   name         String
   passwordHash String
   // Roles: master | project_manager | social_staff | design_staff | ads_staff | client
-  role         String   @default("master")
+  role         String          @default("master")
   workspaceId  String
   workspace    AgencyWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   // For client users only — links to the Client they may access
   clientId     String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
 }
 
 // ─── Clients ──────────────────────────────────────────────────────────────────
 
 model Client {
-  id          String   @id @default(cuid())
+  id          String          @id @default(cuid())
   workspaceId String
   workspace   AgencyWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   name        String
@@ -58,9 +58,9 @@ model Client {
   phone       String?
   website     String?
   // Secure token for client portal access — replaces raw client ID in portal URL
-  portalToken String   @unique @default(cuid())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  portalToken String          @unique @default(cuid())
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
 
   projects     Project[]
   notices      ClientNotice[]
@@ -71,34 +71,34 @@ model Client {
 // ─── Projects ─────────────────────────────────────────────────────────────────
 
 model Project {
-  id          String   @id @default(cuid())
-  workspaceId String
-  workspace   AgencyWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  clientId    String
-  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  id                   String          @id @default(cuid())
+  workspaceId          String
+  workspace            AgencyWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  clientId             String
+  client               Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
   // Links a project back to the Brain request it was created from, so the
   // execution view can load the approved department canvases (BrainArtifact).
-  clientRequestId String?
-  name        String
-  goal        String?
-  type        String?
-  stage       String   @default("briefing")
-  priority    String   @default("medium")
-  deadline    String?
-  proposalStatus  String?
-  proposalPricing String?
-  proposalScope   String?
-  proposalSentAt  String?
+  clientRequestId      String?
+  name                 String
+  goal                 String?
+  type                 String?
+  stage                String          @default("briefing")
+  priority             String          @default("medium")
+  deadline             String?
+  proposalStatus       String?
+  proposalPricing      String?
+  proposalScope        String?
+  proposalSentAt       String?
   // JSON-encoded string array of assigned agent IDs
-  agents      String   @default("[]")
+  agents               String          @default("[]")
   // Execução durável da produção (não depende mais do navegador): o motor marca
   // o progresso no banco; um cron recupera projetos travados.
   // executionStatus: idle | pending | running | done | failed
-  executionStatus      String    @default("idle")
+  executionStatus      String          @default("idle")
   executionRequestedAt DateTime?
   executionStartedAt   DateTime?
   executionFinishedAt  DateTime?
-  executionAttempts    Int       @default(0)
+  executionAttempts    Int             @default(0)
   executionError       String?
 
   // ── A ESTEIRA: os três carimbos que fazem o projeto andar ──────────────────
@@ -108,15 +108,15 @@ model Project {
   //
   // O portão de direção: a produção inteira só dispara depois que o cliente
   // avaliza o caminho. Aprovar direção é barato; refazer um mês de produção não.
-  directionApprovedAt  DateTime?
+  directionApprovedAt DateTime?
   // O PM apresentou o pacote de UMA vez. Antes disso o cliente não recebe
   // entrega solta — agência com cinco bocas parece desorganizada.
-  presentedAt          DateTime?
+  presentedAt         DateTime?
   // O aval final do cliente. A partir daqui, implementação e ciclo mensal.
-  clientApprovedAt     DateTime?
+  clientApprovedAt    DateTime?
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   deliverables     Deliverable[]
   materialRequests MaterialRequest[]
@@ -138,24 +138,24 @@ model Project {
 /// fecham. É o que permite dizer "agosto foi melhor que julho", e é isso que
 /// segura um cliente por anos.
 model Cycle {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   projectId   String
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   /// Competência do ciclo, sempre AAAA-MM. Um por mês, por projeto.
   reference   String
   /// aberto | entregue | fechado
-  status      String   @default("aberto")
+  status      String    @default("aberto")
   startsOn    String
   endsOn      String
   /// O que este ciclo se comprometeu a entregar (JSON), congelado na abertura.
-  planJson    String   @default("[]")
+  planJson    String    @default("[]")
   /// Números do fechamento (JSON): o que foi medido no fim.
-  resultsJson String   @default("{}")
+  resultsJson String    @default("{}")
   /// A leitura do ciclo em uma frase — o que melhorou, o que não.
   summary     String?
   closedAt    DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@unique([projectId, reference])
   @@index([projectId, status])
@@ -179,31 +179,31 @@ model Cycle {
 /// aceita template aprovado, e aprovação leva dias. Até lá o aviso sai pela mão
 /// de gente, mas sai — e o sistema sabe se saiu.
 model ClientNotice {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   workspaceId String
   clientId    String
-  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client      Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
   projectId   String?
 
   /// direcao | material | entrega | ciclo
-  kind        String
+  kind String
   /// O que o cliente precisa saber, já redigido para ser lido por ele.
-  body        String
+  body String
   /// O link do portal que resolve este aviso.
-  link        String?
+  link String?
 
   /// pendente | enviado | falhou | dispensado
-  status      String   @default("pendente")
+  status     String    @default("pendente")
   /// whatsapp | email | manual | nenhum
-  channel     String   @default("nenhum")
+  channel    String    @default("nenhum")
   /// Por que não saiu sozinho — para a equipe entender sem adivinhar.
-  failReason  String?
-  sentAt      DateTime?
+  failReason String?
+  sentAt     DateTime?
   /// Quem disparou, quando foi à mão.
-  sentBy      String?
+  sentBy     String?
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([workspaceId, status])
   @@index([clientId, status])
@@ -240,20 +240,20 @@ model Deliverable {
 /// pediu (para a equipe saber quem está travado) e quando foi enviado ao cliente
 /// (para o PM não cobrar a mesma coisa duas vezes).
 model MaterialRequest {
-  id          String    @id @default(cuid())
-  projectId   String
-  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  type        String
-  description String
-  status      String    @default("pending")
+  id                 String    @id @default(cuid())
+  projectId          String
+  project            Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type               String
+  description        String
+  status             String    @default("pending")
   /// Qual agente travou por falta deste material (a3, a2…).
   requestedByAgentId String?
   /// Nome legível de quem pediu — vai no resumo que o PM manda.
   requestedByLabel   String?
   /// Quando o PM incluiu este pedido na mensagem consolidada ao cliente.
   askedClientAt      DateTime?
-  requestedAt DateTime  @default(now())
-  resolvedAt  DateTime?
+  requestedAt        DateTime  @default(now())
+  resolvedAt         DateTime?
 
   @@index([projectId, status])
 }
@@ -334,26 +334,26 @@ model BrandUpdate {
 // brand-field queue) — this captures the Brain's own learning signal.
 
 model BrainUpdate {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   clientRequestId String
   department      String
-  fieldChanged    String   // which brand brain field
+  fieldChanged    String // which brand brain field
   previousValue   String?
   proposedValue   String
-  source          String   // "approved_delivery" | "quality_review" | "human_edit"
-  status          String   @default("pending") // "pending" | "applied" | "rejected"
-  createdAt       DateTime @default(now())
+  source          String // "approved_delivery" | "quality_review" | "human_edit"
+  status          String    @default("pending") // "pending" | "applied" | "rejected"
+  createdAt       DateTime  @default(now())
   appliedAt       DateTime?
 }
 
 // ─── Integration Configs ──────────────────────────────────────────────────────
 
 model DbIntegrationConfig {
-  id               String    @id @default(cuid())
+  id               String          @id @default(cuid())
   workspaceId      String
   workspace        AgencyWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   integrationId    String
-  configured       Boolean   @default(false)
+  configured       Boolean         @default(false)
   selectedModel    String?
   configWorkspace  String?
   accountId        String?
@@ -363,7 +363,7 @@ model DbIntegrationConfig {
   // apiKeyHint is a non-sensitive display string e.g. "sk-ant-…a1b2".
   apiKeyEncrypted  String?
   apiKeyHint       String?
-  lastTestStatus   String    @default("not_run")
+  lastTestStatus   String          @default("not_run")
   lastTestAt       DateTime?
   lastTestMessage  String?
   lastConfiguredAt DateTime?
@@ -372,11 +372,11 @@ model DbIntegrationConfig {
 }
 
 model DbAgentProviderConfig {
-  id               String  @id @default(cuid())
+  id               String          @id @default(cuid())
   workspaceId      String
   workspace        AgencyWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   agentId          String
-  selectedProvider String  @default("rule_based")
+  selectedProvider String          @default("rule_based")
   selectedModel    String?
 
   @@unique([workspaceId, agentId])
@@ -385,44 +385,44 @@ model DbAgentProviderConfig {
 // ─── Tasks ────────────────────────────────────────────────────────────────────
 
 model Task {
-  id          String   @id @default(cuid())
-  projectId   String
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  title       String
-  description String?
-  agentId     String?
-  status      String   @default("pending")
-  dueDate     String?
+  id            String   @id @default(cuid())
+  projectId     String
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title         String
+  description   String?
+  agentId       String?
+  status        String   @default("pending")
+  dueDate       String?
   deliverableId String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 // ─── Timeline Events ──────────────────────────────────────────────────────────
 
 model TimelineEvent {
-  id          String   @id @default(cuid())
-  projectId   String
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  type        String
-  label       String
-  dept        String   @default("pm")
-  detail      String?
-  timestamp   DateTime @default(now())
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type      String
+  label     String
+  dept      String   @default("pm")
+  detail    String?
+  timestamp DateTime @default(now())
 }
 
 // ─── Activity Events ─────────────────────────────────────────────────────────
 
 model ActivityEvent {
-  id          String   @id @default(cuid())
+  id          String          @id @default(cuid())
   workspaceId String
   workspace   AgencyWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   projectId   String?
-  project     Project? @relation(fields: [projectId], references: [id])
+  project     Project?        @relation(fields: [projectId], references: [id])
   type        String
   message     String
   clientId    String?
-  timestamp   DateTime @default(now())
+  timestamp   DateTime        @default(now())
 }
 
 // ─── AI Run Logs ──────────────────────────────────────────────────────────────
@@ -449,7 +449,7 @@ model AIRunLog {
 // ─── Continuous SDR Training V3 ───────────────────────────────────────────────
 
 model TrainingBatch {
-  id           String            @id @default(cuid())
+  id           String   @id @default(cuid())
   mode         String
   triggeredBy  String
   totalRuns    Int
@@ -458,9 +458,9 @@ model TrainingBatch {
   failCount    Int
   averageScore Int
   durationMs   Int
-  createdAt    DateTime          @default(now())
+  createdAt    DateTime @default(now())
 
-  runs         DbSimulationRun[]
+  runs DbSimulationRun[]
 }
 
 model DbSimulationRun {
@@ -578,15 +578,15 @@ model ClientRequestDb {
 // client sees in their portal). authorRole distinguishes who wrote it; the
 // read flags drive unread badges on each side.
 model PortalMessage {
-  id              String   @id @default(cuid())
+  id              String          @id @default(cuid())
   clientRequestId String
   clientRequest   ClientRequestDb @relation(fields: [clientRequestId], references: [id], onDelete: Cascade)
-  authorRole      String   // "client" | "team"
-  authorName      String   @default("")
+  authorRole      String // "client" | "team"
+  authorName      String          @default("")
   body            String
-  readByTeam      Boolean  @default(false)
-  readByClient    Boolean  @default(false)
-  createdAt       DateTime @default(now())
+  readByTeam      Boolean         @default(false)
+  readByClient    Boolean         @default(false)
+  createdAt       DateTime        @default(now())
 
   @@index([clientRequestId, createdAt])
 }
@@ -595,20 +595,20 @@ model PortalMessage {
 // composed once, targeting many networks, scheduled to a date. Surfaces on the
 // agency planner (edit) and the client portal Social tab (read-only calendar).
 model SocialPost {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   workspaceId     String
   clientId        String?
-  clientRequestId String?  // links it to the client's portal thread
-  caption         String   @default("")
-  networks        String   @default("[]")   // JSON array: instagram|facebook|tiktok|linkedin|youtube|pinterest
-  format          String   @default("feed")  // feed|reel|story|carousel|video
-  pillar          String?                     // content pillar
-  mediaUrl        String?                     // link to the creative (Drive/etc.) until native storage
-  scriptJson      String?                     // AI video/reel script (hook, scenes, cta, audio)
+  clientRequestId String? // links it to the client's portal thread
+  caption         String    @default("")
+  networks        String    @default("[]") // JSON array: instagram|facebook|tiktok|linkedin|youtube|pinterest
+  format          String    @default("feed") // feed|reel|story|carousel|video
+  pillar          String? // content pillar
+  mediaUrl        String? // link to the creative (Drive/etc.) until native storage
+  scriptJson      String? // AI video/reel script (hook, scenes, cta, audio)
   scheduledFor    DateTime?
-  status          String   @default("draft")  // draft|scheduled|approved|published
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  status          String    @default("draft") // draft|scheduled|approved|published
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   @@index([workspaceId, scheduledFor])
   @@index([clientRequestId])
@@ -616,7 +616,7 @@ model SocialPost {
 
 // One record per department approval — persists canvas payload + gate + trace.
 model BrainArtifact {
-  id                String   @id @default(cuid())
+  id                String          @id @default(cuid())
   clientRequestId   String
   clientRequest     ClientRequestDb @relation(fields: [clientRequestId], references: [id], onDelete: Cascade)
   department        String
@@ -624,56 +624,56 @@ model BrainArtifact {
   canvasJson        String
   qualityGateJson   String?
   cognitiveFlowJson String?
-  version           Int      @default(1)
-  status            String   @default("approved")
-  approvedAt        DateTime @default(now())
-  approvedBy        String   @default("internal")
-  createdAt         DateTime @default(now())
+  version           Int             @default(1)
+  status            String          @default("approved")
+  approvedAt        DateTime        @default(now())
+  approvedBy        String          @default("internal")
+  createdAt         DateTime        @default(now())
 }
 
 // Formal approval flow — one record per department review cycle.
 model ApprovalRequest {
-  id              String   @id @default(cuid())
+  id              String          @id @default(cuid())
   clientRequestId String
   clientRequest   ClientRequestDb @relation(fields: [clientRequestId], references: [id], onDelete: Cascade)
   artifactId      String?
   department      String
-  requestedBy     String   @default("internal")
-  status          String   @default("pending")
+  requestedBy     String          @default("internal")
+  status          String          @default("pending")
   reviewedBy      String?
   reviewedAt      DateTime?
   expiresAt       DateTime?
   reviewNote      String?
-  clientVisible   Boolean  @default(false)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  clientVisible   Boolean         @default(false)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
   comments ApprovalComment[]
 }
 
 model ApprovalComment {
-  id                String   @id @default(cuid())
+  id                String          @id @default(cuid())
   approvalRequestId String
   approvalRequest   ApprovalRequest @relation(fields: [approvalRequestId], references: [id], onDelete: Cascade)
   authorName        String
-  authorRole        String   @default("internal")
+  authorRole        String          @default("internal")
   body              String
-  isClientVisible   Boolean  @default(false)
-  createdAt         DateTime @default(now())
+  isClientVisible   Boolean         @default(false)
+  createdAt         DateTime        @default(now())
 }
 
 // Evidence items tied to a request or artifact — persisted to DB.
 model EvidenceItem {
-  id              String   @id @default(cuid())
+  id              String           @id @default(cuid())
   clientRequestId String?
   clientRequest   ClientRequestDb? @relation(fields: [clientRequestId], references: [id])
   artifactId      String?
   department      String
   type            String
   label           String
-  valueJson       String   @default("{}")
+  valueJson       String           @default("{}")
   sourceUrl       String?
-  createdAt       DateTime @default(now())
+  createdAt       DateTime         @default(now())
 }
 
 // ─── Meta (Instagram / Facebook / WhatsApp) connected accounts ──────────────────
@@ -683,33 +683,33 @@ model EvidenceItem {
 // like AI keys in DbIntegrationConfig. The Meta APP credentials (App ID / App
 // Secret) live in DbIntegrationConfig (integrationId "int-meta"), NOT here.
 model MetaConnection {
-  id            String   @id @default(cuid())
-  workspaceId   String
-  workspace     AgencyWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  id                   String          @id @default(cuid())
+  workspaceId          String
+  workspace            AgencyWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   // Optional: a connection can belong to a specific client, or to the agency
   // itself (clientId null = the agency's own accounts).
-  clientId      String?
+  clientId             String?
   // instagram | facebook | whatsapp
-  platform      String
+  platform             String
   // Human-readable label: IG handle, Page name, or WhatsApp display name.
-  name          String   @default("")
+  name                 String          @default("")
   // The platform's native id: IG Business Account id, FB Page id, or WABA
   // phone-number id — the id the Graph API publish/insights calls target.
-  externalId    String
+  externalId           String
   // Long-lived access token — ENCRYPTED (iv:tag:ciphertext). Page tokens for
   // FB/IG do not expire; user tokens last ~60 days (see tokenExpiresAt).
   accessTokenEncrypted String
-  tokenHint     String?
-  tokenExpiresAt DateTime?
+  tokenHint            String?
+  tokenExpiresAt       DateTime?
   // Granted scopes/permissions (JSON array) and any extra platform metadata
   // (e.g. linked page id, business id) as JSON — avoids new columns per field.
-  scopes        String   @default("[]")
-  metaJson      String   @default("{}")
-  status        String   @default("connected") // connected | expired | revoked | error
-  connectedAt   DateTime @default(now())
-  lastSyncedAt  DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  scopes               String          @default("[]")
+  metaJson             String          @default("{}")
+  status               String          @default("connected") // connected | expired | revoked | error
+  connectedAt          DateTime        @default(now())
+  lastSyncedAt         DateTime?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
 
   @@unique([workspaceId, platform, externalId])
   @@index([workspaceId, platform])
@@ -721,20 +721,20 @@ model MetaConnection {
 // read + reply from inside the system using ONE number. Populated inbound by
 // the webhook and outbound by the reply endpoint.
 model WhatsAppMessage {
-  id             String   @id @default(cuid())
-  workspaceId    String
+  id              String   @id @default(cuid())
+  workspaceId     String
   // The API phone-number-id this conversation belongs to (our number).
-  phoneNumberId  String   @default("")
+  phoneNumberId   String   @default("")
   // The client's WhatsApp id (their phone in wa_id form).
-  contactWaId    String
-  contactName    String?
-  direction      String   // "in" | "out"
-  type           String   @default("text") // text | template | image | ...
-  body           String   @default("")
-  externalId     String?  // Meta message id (wamid…) — for dedupe + status
-  status         String?  // sent | delivered | read | failed (outbound)
+  contactWaId     String
+  contactName     String?
+  direction       String // "in" | "out"
+  type            String   @default("text") // text | template | image | ...
+  body            String   @default("")
+  externalId      String? // Meta message id (wamid…) — for dedupe + status
+  status          String? // sent | delivered | read | failed (outbound)
   clientRequestId String?
-  timestamp      DateTime @default(now())
+  timestamp       DateTime @default(now())
 
   @@index([workspaceId, contactWaId, timestamp])
   @@index([externalId])
@@ -744,43 +744,42 @@ model WhatsAppMessage {
 // we act on, so the poller never sends the same "whatsapp_notify" twice. Owned
 // by the Meta integration (lib/integrations/meta/notifications.ts).
 model WhatsAppOutbox {
-  id              String   @id @default(cuid())
-  workspaceId     String
+  id                String   @id @default(cuid())
+  workspaceId       String
   // The ActivityEvent this row was created for — unique so a re-run is a no-op.
-  activityEventId String   @unique
-  kind            String   @default("proposal_sent")
-  toPhone         String?
-  status          String   @default("sent") // sent | failed | skipped
+  activityEventId   String   @unique
+  kind              String   @default("proposal_sent")
+  toPhone           String?
+  status            String   @default("sent") // sent | failed | skipped
   externalMessageId String?
-  error           String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  error             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   @@index([workspaceId, status])
 }
 
 // Granular, time-limited portal access per client request.
 model PortalAccess {
-  id              String    @id @default(cuid())
-  token           String    @unique @default(cuid())
+  id              String           @id @default(cuid())
+  token           String           @unique @default(cuid())
   clientRequestId String?
   clientRequest   ClientRequestDb? @relation(fields: [clientRequestId], references: [id])
   clientId        String?
-  grantedAt       DateTime  @default(now())
+  grantedAt       DateTime         @default(now())
   expiresAt       DateTime?
   revokedAt       DateTime?
   lastAccessedAt  DateTime?
-  accessCount     Int       @default(0)
-  createdAt       DateTime  @default(now())
+  accessCount     Int              @default(0)
+  createdAt       DateTime         @default(now())
 }
-
 
 // ─── Radar Dioli — biblioteca viva de tendências/atualizações de mercado ────
 // O acervo que abastece TODOS os agentes (insumo) e as diretrizes da Qualidade.
 // Governança: fonte "official" (a própria plataforma — Meta/TikTok/Google) entra
 // ATIVA sem validação; "trend" (não-oficial) entra PENDENTE até um humano aprovar.
 model MarketInsight {
-  id          String   @id @default(cuid())
+  id          String          @id @default(cuid())
   workspaceId String
   workspace   AgencyWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   // Domínio: social | design | paid-traffic | analytics | seo | general
@@ -793,16 +792,63 @@ model MarketInsight {
   guidance    String
   // official = da própria plataforma → entra ATIVA sem validação humana.
   // trend    = não-oficial → entra PENDENTE até validação humana.
-  source      String   @default("trend")
+  source      String          @default("trend")
   sourceName  String?
   sourceUrl   String?
   // active | pending | archived | rejected
-  status      String   @default("pending")
+  status      String          @default("pending")
   approvedBy  String?
   approvedAt  DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
 
   @@index([workspaceId, domain, status])
   @@index([workspaceId, topic])
+}
+
+// ─── Mídia ────────────────────────────────────────────────────────────────────
+
+/// O ARQUIVO. Foi o buraco mais caro encontrado no raio-X de 02/08/2026: até
+/// aqui, nenhum byte de mídia era gravado em lugar nenhum — nem de entrada
+/// (o vídeo que o cliente manda) nem de saída (a arte que a IA gera).
+///
+/// O que isso quebrava, em três serviços de uma vez: a dona do salão não tinha
+/// por onde mandar os vídeos dela; o pet shop não tinha por onde mandar o logo;
+/// e a imagem gerada pelo Design virava base64 dentro de uma coluna de texto do
+/// banco (megabytes por peça) ou uma URL da OpenAI que expira em ~1 hora.
+///
+/// Desenho: o BYTE mora no volume persistente do Railway — o mesmo que já
+/// guarda o banco, e que o `scripts/start.sh` trata como armazenamento durável.
+/// Aqui mora só o registro. Nenhuma coluna guarda conteúdo binário.
+///
+/// A segurança é por DERIVAÇÃO, não por comparação: o dono é gravado aqui, e a
+/// rota de download resolve o dono a partir do token do portal — nunca da URL.
+/// O caminho em disco é derivado do id, nunca do nome que o cliente enviou, o
+/// que mata travessia de diretório por construção.
+model MediaAsset {
+  id              String   @id @default(cuid())
+  workspaceId     String
+  /// O dono. Um dos dois sempre presente — é o que a rota de download confere.
+  clientRequestId String?
+  clientId        String?
+  projectId       String?
+  /// inbound = o cliente mandou · generated = a IA produziu · deliverable = vai ao cliente
+  kind            String   @default("inbound")
+  /// Nome original. É PII em potencial ("orcamento-joao-silva.pdf") — fica aqui,
+  /// nunca em log.
+  fileName        String
+  mimeType        String
+  sizeBytes       Int
+  /// Impressão digital do conteúdo: permite detectar reenvio do mesmo arquivo.
+  sha256          String
+  /// Caminho relativo dentro do diretório de mídia. Derivado do id, nunca do
+  /// nome enviado.
+  storagePath     String
+  /// Quem enviou, em linguagem de gente ("cliente", "Agente de Design").
+  uploadedBy      String   @default("cliente")
+  createdAt       DateTime @default(now())
+
+  @@index([clientRequestId, createdAt])
+  @@index([workspaceId, kind])
+  @@index([sha256])
 }

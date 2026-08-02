@@ -106,6 +106,19 @@ if [ "$IS_PRODUCTION" = "true" ]; then
     exit 1
   fi
 
+  # 4.5 Diretório de mídia, no MESMO volume persistente do banco.
+  #     O byte do arquivo do cliente (vídeo, logo, foto) mora aqui. `public/`
+  #     NÃO serve: é copiado no build, então o que for escrito lá em runtime
+  #     some no próximo deploy.
+  #     Atenção operacional: é o mesmo volume do banco — disco cheio derruba os
+  #     dois. A cota por workspace vive em lib/agency/media/armazenamento.ts.
+  MEDIA_DIR="$RAILWAY_VOLUME_MOUNT_PATH/media"
+  if [ -n "$RAILWAY_VOLUME_MOUNT_PATH" ]; then
+    mkdir -p "$MEDIA_DIR"
+    echo "▶ Mídia em $MEDIA_DIR ($(du -sh "$MEDIA_DIR" 2>/dev/null | cut -f1) usados)"
+    df -h "$RAILWAY_VOLUME_MOUNT_PATH" 2>/dev/null | tail -1 | awk '{print "▶ Volume: " $3 " usados de " $2 " (" $5 " cheio)"}'
+  fi
+
   # 5. Seed initial workspace + users on every boot (idempotent).
   #    seed-db.mjs uses INSERT OR IGNORE throughout — a no-op on populated
   #    databases, so this is safe to run on every restart. Ensures a fresh

@@ -7,6 +7,7 @@
 // client's business name under the Dioli brand.
 
 import { use, useCallback, useEffect, useState } from "react";
+import { EnvioDeMaterial } from "@/components/portal/EnvioDeMaterial";
 import { ChatDrawer } from "@/components/agency/portal/FloatingChat";
 import EsteiraDoCliente from "@/components/agency/portal/EsteiraDoCliente";
 
@@ -703,22 +704,17 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
         {section === "materials" && (
           <div className="space-y-4">
             <h2 className="text-[16px] font-bold text-[var(--text-primary)]">Materiais</h2>
-            <p className="text-[13px] text-[var(--text-secondary)] -mt-1">O que a equipe precisa de você para avançar. A forma mais fácil é conectar seu Google Drive — a gente acessa a pasta e você não precisa reenviar nada.</p>
-            <div className="bg-white rounded-[14px] border border-[var(--border)] p-5 shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
-              <div className="flex items-start gap-3">
-                <span className="w-10 h-10 rounded-[10px] flex items-center justify-center text-white text-[13px] font-bold shrink-0" style={{ background: "#1FA463" }}>GD</span>
-                <div className="flex-1">
-                  <p className="text-[14px] font-semibold text-[var(--text-primary)]">Conecte seu Google Drive</p>
-                  <p className="text-[12px] text-[var(--text-secondary)] mt-0.5 leading-snug">Crie uma pasta "Dioli Digital" e conecte aqui. A equipe acessa fotos, vídeos e documentos direto — sem uploads manuais.</p>
-                  <button onClick={() => setSection("integrations")} className="mt-2.5 h-9 px-4 rounded-[8px] bg-[#070A1F] text-white text-[13px] font-semibold hover:bg-[#0D1230] transition-colors">
-                    Conectar Drive →
-                  </button>
-                </div>
-              </div>
-            </div>
+            <p className="text-[13px] text-[var(--text-secondary)] -mt-1">O que a equipe precisa de você para avançar. Mande direto por aqui — sem criar conta em lugar nenhum.</p>
+
+            {/* O envio de verdade. Esta aba já prometia por escrito, na mensagem
+                automática da agência, um upload que não existia — só havia um
+                botão "Conectar Drive" desabilitado. Agora a promessa e a tela
+                dizem a mesma coisa. */}
+            <EnvioDeMaterial token={token} />
+
             <div className="bg-white rounded-[14px] border border-[var(--border)] p-5">
-              <h3 className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-2">Enviar por link</h3>
-              <p className="text-[12px] text-[var(--text-secondary)]">Prefere mandar um link (WeTransfer, Drive, Dropbox)? <button onClick={() => setChatOpen(true)} className="text-[#12B5AC] font-semibold hover:underline">Fale com a equipe</button> e anexe o link direto no chat.</p>
+              <h3 className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-2">Arquivo muito grande?</h3>
+              <p className="text-[12px] text-[var(--text-secondary)]">Se passar de 120 MB, mande um link (WeTransfer, Drive, Dropbox): <button onClick={() => setChatOpen(true)} className="text-[#12B5AC] font-semibold hover:underline">fale com a equipe</button> e cole o link no chat.</p>
             </div>
           </div>
         )}

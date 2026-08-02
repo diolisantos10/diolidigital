@@ -87,7 +87,8 @@ export const ModelName = {
   WhatsAppMessage: 'WhatsAppMessage',
   WhatsAppOutbox: 'WhatsAppOutbox',
   PortalAccess: 'PortalAccess',
-  MarketInsight: 'MarketInsight'
+  MarketInsight: 'MarketInsight',
+  MediaAsset: 'MediaAsset'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -743,6 +744,25 @@ export const MarketInsightScalarFieldEnum = {
 } as const
 
 export type MarketInsightScalarFieldEnum = (typeof MarketInsightScalarFieldEnum)[keyof typeof MarketInsightScalarFieldEnum]
+
+
+export const MediaAssetScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  clientRequestId: 'clientRequestId',
+  clientId: 'clientId',
+  projectId: 'projectId',
+  kind: 'kind',
+  fileName: 'fileName',
+  mimeType: 'mimeType',
+  sizeBytes: 'sizeBytes',
+  sha256: 'sha256',
+  storagePath: 'storagePath',
+  uploadedBy: 'uploadedBy',
+  createdAt: 'createdAt'
+} as const
+
+export type MediaAssetScalarFieldEnum = (typeof MediaAssetScalarFieldEnum)[keyof typeof MediaAssetScalarFieldEnum]
 
 
 export const SortOrder = {

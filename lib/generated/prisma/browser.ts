@@ -228,3 +228,24 @@ export type PortalAccess = Prisma.PortalAccessModel
  * 
  */
 export type MarketInsight = Prisma.MarketInsightModel
+/**
+ * Model MediaAsset
+ * O ARQUIVO. Foi o buraco mais caro encontrado no raio-X de 02/08/2026: até
+ * aqui, nenhum byte de mídia era gravado em lugar nenhum — nem de entrada
+ * (o vídeo que o cliente manda) nem de saída (a arte que a IA gera).
+ * 
+ * O que isso quebrava, em três serviços de uma vez: a dona do salão não tinha
+ * por onde mandar os vídeos dela; o pet shop não tinha por onde mandar o logo;
+ * e a imagem gerada pelo Design virava base64 dentro de uma coluna de texto do
+ * banco (megabytes por peça) ou uma URL da OpenAI que expira em ~1 hora.
+ * 
+ * Desenho: o BYTE mora no volume persistente do Railway — o mesmo que já
+ * guarda o banco, e que o `scripts/start.sh` trata como armazenamento durável.
+ * Aqui mora só o registro. Nenhuma coluna guarda conteúdo binário.
+ * 
+ * A segurança é por DERIVAÇÃO, não por comparação: o dono é gravado aqui, e a
+ * rota de download resolve o dono a partir do token do portal — nunca da URL.
+ * O caminho em disco é derivado do id, nunca do nome que o cliente enviou, o
+ * que mata travessia de diretório por construção.
+ */
+export type MediaAsset = Prisma.MediaAssetModel
