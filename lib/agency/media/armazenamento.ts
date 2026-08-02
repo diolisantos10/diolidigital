@@ -24,7 +24,7 @@
 // rotas e o modelo continuam iguais — é por isso que este é o desenho mínimo
 // certo, e não apenas o mais barato.
 
-import { createHash } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { mkdir, writeFile, readFile, stat, unlink } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
@@ -228,4 +228,52 @@ function paraArquivo(r: { id: string; fileName: string; mimeType: string; sizeBy
 function sanitizarPasta(bruto: string): string {
   const limpo = bruto.replace(/[^a-zA-Z0-9_-]/g, "");
   return limpo.length > 0 ? limpo.slice(0, 60) : "sem-dono";
+}
+
+
+// ─── Link público assinado ──────────────────────────────────────────────────
+//
+// A Meta NÃO recebe o arquivo: ela recebe uma URL e vai buscar o conteúdo com
+// os servidores dela. Isso quebra a regra normal da casa — a rota de mídia
+// exige token do portal, e a Meta não tem token nenhum.
+//
+// A saída não é abrir o arquivo para o mundo. É um link ASSINADO e com PRAZO:
+// só quem tem a assinatura acessa, e só durante a janela da publicação. Sem o
+// prazo, a URL vazada numa aba aberta viraria acesso permanente ao material do
+// cliente.
+
+/** Janela do link público. 30 min cobre com folga o tempo de a Meta buscar a
+ *  mídia e publicar, e é curta o bastante para um link vazado não servir. */
+const VALIDADE_DO_LINK_MS = 30 * 60_000;
+
+function segredoDeAssinatura(): string {
+  // O mesmo segredo da sessão. Se ele não existir, NÃO assinamos nada: um link
+  // "assinado" com segredo previsível é pior que nenhum, porque aparenta
+  // proteção.
+  const s = process.env.AUTH_SECRET?.trim() || process.env.JWT_SECRET?.trim();
+  if (!s) throw new Error("AUTH_SECRET ausente — não é possível assinar link de mídia");
+  return s;
+}
+
+function assinar(id: string, expiraEm: number): string {
+  return createHmac("sha256", segredoDeAssinatura()).update(`${id}.${expiraEm}`).digest("hex");
+}
+
+/** O caminho assinado, relativo. Quem chama concatena com o domínio público. */
+export function caminhoPublicoAssinado(id: string, validadeMs = VALIDADE_DO_LINK_MS): string {
+  const expiraEm = Date.now() + validadeMs;
+  return `/api/media/${id}?exp=${expiraEm}&sig=${assinar(id, expiraEm)}`;
+}
+
+/** Confere a assinatura. Comparação em tempo constante — comparar string de
+ *  assinatura com `===` vaza, byte a byte, qual era a assinatura certa. */
+export function assinaturaValida(id: string, exp: string | null, sig: string | null): boolean {
+  if (!exp || !sig) return false;
+  const expiraEm = Number(exp);
+  if (!Number.isFinite(expiraEm) || expiraEm < Date.now()) return false;
+  let esperada: string;
+  try { esperada = assinar(id, expiraEm); } catch { return false; }
+  const a = Buffer.from(esperada, "utf8");
+  const b = Buffer.from(sig, "utf8");
+  return a.length === b.length && timingSafeEqual(a, b);
 }

@@ -203,6 +203,14 @@ export async function apresentar(projectId: string, opts: { mesmoComRessalva?: b
     linhas.push("", `Só uma observação: ainda faltam ${pendentes} material(is) seu(s) que pedi antes. Nada trava sua análise, mas vamos precisar deles para colocar tudo no ar.`);
   }
 
+  // O pacote apresentado vira calendário na mesma hora. Nasce em rascunho: o
+  // cliente vê as datas junto com as peças e aprova as duas coisas de uma vez.
+  // Import dinâmico pelo mesmo motivo dos outros: publicacao.ts fala com a Meta.
+  try {
+    const { agendarPostsDaEntrega } = await import("@/lib/agency/esteira/publicacao");
+    await agendarPostsDaEntrega(projectId);
+  } catch { /* best-effort: o calendário não pode impedir a apresentação */ }
+
   const avisou = await falarComOCliente(projeto, linhas.join("\n"), "entrega");
   return { ok: true, avisouCliente: avisou };
 }
@@ -235,6 +243,13 @@ export async function aprovarPacote(projectId: string): Promise<ResultadoDoMarco
 
   const { abrirCiclo } = await import("@/lib/agency/esteira/ciclos");
   await abrirCiclo(projectId, agora);
+
+  // A aprovação do pacote É o consentimento para publicar. Só aqui o calendário
+  // sai de rascunho — antes disto nenhum post desta casa vai ao ar.
+  try {
+    const { aprovarCalendario } = await import("@/lib/agency/esteira/publicacao");
+    await aprovarCalendario(projectId);
+  } catch { /* best-effort: a aprovação não pode falhar por causa do calendário */ }
 
   const avisou = await falarComOCliente(
     projeto,

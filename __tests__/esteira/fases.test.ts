@@ -192,3 +192,38 @@ describe("a trilha desenhada", () => {
     }
   });
 });
+
+describe("a esteira não diz ao cliente que está publicando quando não está", () => {
+  // Até 02/08/2026 todo cliente com ciclo aberto lia "Seu conteúdo está no ar" —
+  // inclusive quem nunca conectou uma rede. Mentira por construção, e o cliente
+  // não tinha como saber.
+  const emCiclo = { propostaAceita: true, aprovadoPeloClienteEm: "2026-08-12", cicloAberto: true };
+
+  it("sem rede conectada, o ciclo cobra a conexão em vez de fingir publicação", () => {
+    const f = lerFase(retrato({ ...emCiclo, redesConectadas: false, postsPublicados: 0 }));
+    expect(f.fase).toBe("ciclo");
+    expect(f.responsavel).toBe("cliente");
+    expect(f.paraCliente.agora).not.toMatch(/no ar/i);
+    expect(f.paraCliente.oQueEsperamosDeVoce).toMatch(/Instagram/);
+  });
+
+  it("rede conectada mas nada publicado ainda → diz agendado, não 'no ar'", () => {
+    const f = lerFase(retrato({ ...emCiclo, redesConectadas: true, postsPublicados: 0, postsAgendados: 8 }));
+    expect(f.semaforo).toBe("andando");
+    expect(f.paraCliente.agora).toMatch(/agendad/i);
+    expect(f.paraCliente.agora).not.toMatch(/está no ar/i);
+  });
+
+  it("com post publicado, aí sim 'no ar' — e a equipe vê o número", () => {
+    const f = lerFase(retrato({ ...emCiclo, redesConectadas: true, postsPublicados: 3, postsAgendados: 5 }));
+    expect(f.paraCliente.agora).toMatch(/no ar/i);
+    expect(f.paraEquipe.agora).toContain("3 post(s) no ar");
+  });
+
+  it("aprovado sem rede conectada: o último passo é do cliente, e ele é avisado", () => {
+    const f = lerFase(retrato({ propostaAceita: true, aprovadoPeloClienteEm: "2026-08-12", redesConectadas: false }));
+    expect(f.fase).toBe("implementacao");
+    expect(f.responsavel).toBe("cliente");
+    expect(f.paraCliente.oQueEsperamosDeVoce).toMatch(/Conecte/);
+  });
+});

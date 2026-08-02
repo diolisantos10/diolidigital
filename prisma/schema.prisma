@@ -606,11 +606,24 @@ model SocialPost {
   mediaUrl        String? // link to the creative (Drive/etc.) until native storage
   scriptJson      String? // AI video/reel script (hook, scenes, cta, audio)
   scheduledFor    DateTime?
-  status          String    @default("draft") // draft|scheduled|approved|published
+  status          String    @default("draft") // draft|scheduled|approved|published|failed
+  // Quem gerou esta peça (o `Deliverable`) — é a chave de idempotência do
+  // agendamento: entrega que já virou calendário não vira de novo.
+  deliverableId   String?
+  // Preenchidos na publicação. `externalPostId` é o que o relatório mensal usa
+  // para pedir métricas à Meta; sem ele o report vira chute.
+  externalPostId  String?
+  permalink       String?
+  publishedAt     DateTime?
+  // Último motivo de falha, em linguagem de gente. Fica visível ao time em vez
+  // de morrer no log do servidor.
+  lastError       String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
   @@index([workspaceId, scheduledFor])
+  @@index([deliverableId])
+  @@index([status, scheduledFor])
   @@index([clientRequestId])
 }
 

@@ -25,6 +25,7 @@ import { prisma } from "@/lib/db/client";
 import { runProjectExecution } from "@/lib/agency/execution/run-execution";
 import { dispatchWhatsAppNotifications } from "@/lib/integrations/meta/notifications";
 import { destravarPacote, pacotesTravados } from "@/lib/agency/esteira/pacote-travado";
+import { publicarAgendados } from "@/lib/agency/esteira/publicacao";
 
 /** De quanto em quanto tempo a agência olha se tem trabalho parado. */
 const INTERVALO_MS = Number(process.env.DESPERTADOR_INTERVALO_MS ?? 5 * 60_000);
@@ -115,10 +116,16 @@ async function destravarPacotesBarrados(): Promise<number> {
 }
 
 /** Uma batida do relógio. Nunca lança — o relógio não pode morrer. */
-export async function baterORelogio(): Promise<{ retomados: number; avisos: number; destravadas: number }> {
+export async function baterORelogio(): Promise<{
+  retomados: number;
+  avisos: number;
+  destravadas: number;
+  publicados: number;
+}> {
   let retomados = 0;
   let avisos = 0;
   let destravadas = 0;
+  let publicados = 0;
 
   try {
     retomados = await retomarProducao();
@@ -132,6 +139,16 @@ export async function baterORelogio(): Promise<{ retomados: number; avisos: numb
     log(`destravamento falhou: ${err instanceof Error ? err.message : "erro"}`);
   }
 
+  // O que o cliente aprovou e chegou a hora vai ao ar. É a última perna da
+  // esteira: sem ela a agência produz, apresenta e nunca publica.
+  try {
+    const r = await publicarAgendados();
+    publicados = r.publicados;
+    for (const f of r.falhas) log(`post ${f.postId} não foi ao ar: ${f.erro}`);
+  } catch (err) {
+    log(`publicação falhou: ${err instanceof Error ? err.message : "erro"}`);
+  }
+
   try {
     const r = await dispatchWhatsAppNotifications();
     avisos = typeof r?.sent === "number" ? r.sent : 0;
@@ -139,10 +156,10 @@ export async function baterORelogio(): Promise<{ retomados: number; avisos: numb
     log(`disparo de avisos falhou: ${err instanceof Error ? err.message : "erro"}`);
   }
 
-  if (retomados > 0 || avisos > 0 || destravadas > 0) {
-    log(`rodada: ${retomados} produção(ões) retomada(s), ${destravadas} entrega(s) refeita(s), ${avisos} aviso(s) enviado(s)`);
+  if (retomados > 0 || avisos > 0 || destravadas > 0 || publicados > 0) {
+    log(`rodada: ${retomados} produção(ões) retomada(s), ${destravadas} entrega(s) refeita(s), ${publicados} post(s) publicado(s), ${avisos} aviso(s) enviado(s)`);
   }
-  return { retomados, avisos, destravadas };
+  return { retomados, avisos, destravadas, publicados };
 }
 
 /**

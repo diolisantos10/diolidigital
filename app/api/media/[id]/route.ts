@@ -11,7 +11,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { getSession } from "@/lib/auth/session";
 import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-service";
-import { lerArquivo } from "@/lib/agency/media/armazenamento";
+import { lerArquivo, assinaturaValida } from "@/lib/agency/media/armazenamento";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +31,15 @@ export async function GET(
 
   // ── O dono ────────────────────────────────────────────────────────────────
   let autorizado = false;
-  if (token) {
+
+  // Link assinado: o único caminho sem sessão nem token de portal. Existe porque
+  // a Meta busca a mídia com os servidores DELA, e não tem como carregar um
+  // token nosso. É assinado e expira em minutos — não é arquivo aberto ao mundo.
+  const exp = request.nextUrl.searchParams.get("exp");
+  const sig = request.nextUrl.searchParams.get("sig");
+  if (sig && assinaturaValida(id, exp, sig)) {
+    autorizado = true;
+  } else if (token) {
     const v = await validatePortalAccess(token);
     if (v.valid && v.record) {
       const acesso = v.record;

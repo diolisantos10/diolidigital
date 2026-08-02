@@ -3767,6 +3767,11 @@ export const SocialPostScalarFieldEnum = {
   scriptJson: 'scriptJson',
   scheduledFor: 'scheduledFor',
   status: 'status',
+  deliverableId: 'deliverableId',
+  externalPostId: 'externalPostId',
+  permalink: 'permalink',
+  publishedAt: 'publishedAt',
+  lastError: 'lastError',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

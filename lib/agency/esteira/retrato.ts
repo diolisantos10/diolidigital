@@ -41,12 +41,13 @@ export async function statusDoProjeto(projectId: string): Promise<StatusDoProjet
     select: {
       id: true, name: true, clientRequestId: true, stage: true,
       executionStatus: true, directionApprovedAt: true, presentedAt: true, clientApprovedAt: true,
+      workspaceId: true, clientId: true,
       client: { select: { name: true } },
     },
   }).catch(() => null);
   if (!projeto) return null;
 
-  const [tarefas, pendencias, ciclo, entregaveis, solicitacao] = await Promise.all([
+  const [tarefas, pendencias, ciclo, entregaveis, solicitacao, posts, conexoes] = await Promise.all([
     contarTarefas(projectId),
     pedidosAbertos(projectId),
     cicloAberto(projectId),
@@ -58,7 +59,22 @@ export async function statusDoProjeto(projectId: string): Promise<StatusDoProjet
     projeto.clientRequestId
       ? prisma.clientRequestDb.findUnique({ where: { id: projeto.clientRequestId }, select: { status: true } }).catch(() => null)
       : Promise.resolve(null),
+    // O que já foi ao ar de verdade. É isto que autoriza a esteira a dizer
+    // "publicando" — contagem, não suposição.
+    projeto.clientRequestId
+      ? prisma.socialPost.groupBy({
+          by: ["status"],
+          where: { clientRequestId: projeto.clientRequestId },
+          _count: { _all: true },
+        }).catch(() => [] as Array<{ status: string; _count: { _all: number } }>)
+      : Promise.resolve([] as Array<{ status: string; _count: { _all: number } }>),
+    prisma.metaConnection.count({
+      where: { workspaceId: projeto.workspaceId, clientId: projeto.clientId, status: "connected" },
+    }).catch(() => 0),
   ]);
+
+  const contarPosts = (status: string) =>
+    posts.find((p) => p.status === status)?._count._all ?? 0;
 
   let total = 0, emRevisao = 0, comRessalva = 0, aprovados = 0;
   for (const linha of entregaveis) {
@@ -87,6 +103,9 @@ export async function statusDoProjeto(projectId: string): Promise<StatusDoProjet
     entregaveis: { total, emRevisao, comRessalva, aprovados },
     pedidosAbertos: pendencias.length,
     cicloAberto: ciclo !== null,
+    redesConectadas: conexoes > 0,
+    postsPublicados: contarPosts("published"),
+    postsAgendados: contarPosts("scheduled"),
   };
 
   const leitura = lerFase(numeros);

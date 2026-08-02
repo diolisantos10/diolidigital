@@ -57,6 +57,13 @@ export interface RetratoDoProjeto {
   pedidosAbertos: number;
   /** Existe ciclo mensal em andamento? */
   cicloAberto?: boolean;
+  /** O cliente já conectou o Instagram? Sem isso a agência não publica nada — e
+   *  dizer que está publicando seria mentira na cara do cliente. */
+  redesConectadas?: boolean;
+  /** Quantos posts já foram efetivamente ao ar neste projeto. */
+  postsPublicados?: number;
+  /** Posts aprovados esperando a data chegar. */
+  postsAgendados?: number;
 }
 
 export interface LeituraDaFase {
@@ -144,23 +151,54 @@ export function lerFase(r: RetratoDoProjeto): LeituraDaFase {
   });
 
   // ── Operação contínua: o cliente aprovou e a relação virou rotina ──────────
+  //
+  // As frases daqui para baixo NÃO afirmam publicação sem que ela tenha
+  // acontecido. Até 02/08/2026 o sistema dizia "publicando, medindo e
+  // reportando" e "seu conteúdo está no ar" para todo cliente com ciclo aberto
+  // — inclusive os que nunca tinham conectado uma rede. Era falso por
+  // construção, e o cliente não tem como saber que é falso.
+  const noAr = (r.postsPublicados ?? 0) > 0;
+  const semRede = r.redesConectadas === false;
+
   if (r.cicloAberto) {
+    if (semRede && !noAr) {
+      return montar("ciclo", "esperando", "cliente",
+        { titulo: "Operação parada na conexão",
+          agora: "O ciclo está aberto, mas nenhuma rede do cliente está conectada — nada pode ir ao ar.",
+          proximoPasso: "Cobrar a conexão do Instagram. Sem ela, o ciclo não produz resultado." },
+        { titulo: "Falta conectar seu Instagram",
+          agora: "Seu conteúdo está pronto e aprovado, mas ainda não conseguimos publicar.",
+          oQueEsperamosDeVoce: "Conecte seu Instagram no portal para a gente começar a publicar." });
+    }
     return montar("ciclo", "andando", "agentes",
       { titulo: "Operação em andamento",
-        agora: "O ciclo do mês está rodando: publicando, medindo e reportando.",
+        agora: noAr
+          ? `Ciclo rodando: ${r.postsPublicados} post(s) no ar${(r.postsAgendados ?? 0) > 0 ? `, ${r.postsAgendados} agendado(s)` : ""}.`
+          : "Ciclo aberto. Ainda nada publicado — o calendário está agendado e esperando a data.",
         proximoPasso: "Fechar o ciclo com o relatório e abrir o próximo." },
       { titulo: "Acompanhamento",
-        agora: "Seu conteúdo está no ar e a gente está medindo os resultados.",
+        agora: noAr
+          ? "Seu conteúdo está no ar e a gente está medindo os resultados."
+          : "Seu calendário está aprovado e agendado. Assim que a primeira data chegar, começamos a publicar.",
         oQueEsperamosDeVoce: "" });
   }
 
   if (preenchido(r.aprovadoPeloClienteEm)) {
+    if (semRede) {
+      return montar("implementacao", "esperando", "cliente",
+        { titulo: "Aprovado, mas sem onde publicar",
+          agora: "O cliente aprovou e nenhuma rede está conectada.",
+          proximoPasso: "Cobrar a conexão do Instagram antes da primeira data do calendário." },
+        { titulo: "Falta conectar seu Instagram",
+          agora: "Tudo aprovado! Só falta uma coisa para colocarmos no ar.",
+          oQueEsperamosDeVoce: "Conecte seu Instagram no portal — é o último passo." });
+    }
     return montar("implementacao", "andando", "agentes",
       { titulo: "Implementação",
-        agora: "O cliente aprovou. As entregas estão indo para o ar.",
+        agora: noAr ? "O cliente aprovou. As entregas já começaram a ir ao ar." : "O cliente aprovou. O calendário está agendado.",
         proximoPasso: "Publicar tudo e abrir o primeiro ciclo mensal." },
       { titulo: "Colocando no ar",
-        agora: "Tudo aprovado! Estamos publicando o que você aprovou.",
+        agora: noAr ? "Tudo aprovado! Já começamos a publicar." : "Tudo aprovado! Seu calendário está montado e as publicações começam na primeira data.",
         oQueEsperamosDeVoce: "" });
   }
 
