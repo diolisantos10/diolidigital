@@ -4,6 +4,33 @@
 
 ---
 
+## 🔴 03/08/2026 (meio-dia) — Meta RESTRINGIU a conta de anúncios "Dioli Agencia"
+
+E-mail da Meta às 11:32: conta `act_3416644181895443` desativada
+(`account_status 2`, motivo: integridade — "criada ou usada com uma automação
+que não segue nossas regras"). **Gatilho mais provável: a minha própria
+operação por API** — campanha de teste criada e apagada + 36 uploads + campanha
+em sequência rápida, num app em modo de desenvolvimento. Responsabilidade do
+Diretor, registrada com todas as letras.
+
+**Estado no momento da restrição:** campanha Foocci PAUSADA já criada
+(`120251488825740613`), conjunto único BR criado, 36 imagens carregadas.
+Anúncios ainda não criados (bloqueio anterior: app em modo dev).
+
+**Caminho de recuperação (ação do CEO):** botão "Corrigir problema" do e-mail
+ou Qualidade da Conta (business.facebook.com/accountquality) → Solicitar
+análise. Falso positivo costuma voltar em horas/dias.
+
+**Decisão de prudência:** NÃO repetir automação em outra conta de anúncios
+enquanto a análise corre — flag em cadeia derrubaria as contas dos clientes.
+Posts orgânicos não são afetados.
+
+**Lição para o kit (proposta ao Diretor Geral):** operação de Marketing API em
+conta nova exige aquecimento — sem create/delete de sondagem, ritmo lento,
+app em modo Ativo antes do primeiro objeto real.
+
+---
+
 ## 🟢 03/08/2026 — TRÁFEGO PAGO DESTRAVADO (fim da novela do OAuth)
 
 O popup de OAuth da Meta recusou o admin do app o dia inteiro ("domínio não
