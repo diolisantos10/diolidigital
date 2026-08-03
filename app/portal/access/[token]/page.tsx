@@ -72,6 +72,16 @@ interface EstadoEsteira {
   ciclo?: { referencia: string; resumo: string | null } | null;
 }
 
+// O projeto como a rota /api/portal/projetos entrega: por clientId, já na
+// linguagem do cliente (etapa legível, sem nada interno).
+interface ProjetoDoPortal {
+  id: string;
+  nome: string;
+  objetivo: string | null;
+  etapa: string;
+  criadoEm: string | null;
+}
+
 interface ConexaoView { id: string; platform: string; name: string; status: string }
 
 type SecaoId = "inicio" | "projetos" | "aprovacoes" | "resultados" | "arquivos" | "conta";
@@ -190,6 +200,9 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
   const [esteira, setEsteira] = useState<EstadoEsteira | null>(null);
   const [conexoes, setConexoes] = useState<ConexaoView[]>([]);
   const [posts, setPosts] = useState<PortalPost[]>([]);
+  const [projetos, setProjetos] = useState<ProjetoDoPortal[]>([]);
+  const [calendarioPorCliente, setCalendarioPorCliente] = useState<PortalPost[]>([]);
+  const [erroProjetos, setErroProjetos] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -297,6 +310,24 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
     })();
   }, [q]);
 
+  // Projetos + calendário POR clientId — o caminho que funciona também para o
+  // cliente criado direto (sem solicitação de briefing). Foi o buraco da
+  // Foocci: projeto e posts existiam por clientId e a aba aparecia vazia.
+  useEffect(() => {
+    void (async () => {
+      try {
+        const res = await fetch(`/api/portal/projetos${q}`, { cache: "no-store" });
+        if (!res.ok) { setErroProjetos(true); return; }
+        const json = await res.json();
+        setProjetos(Array.isArray(json.projetos) ? json.projetos : []);
+        setCalendarioPorCliente(Array.isArray(json.calendario) ? json.calendario : []);
+        setErroProjetos(false);
+      } catch {
+        setErroProjetos(true);
+      }
+    })();
+  }, [q]);
+
   async function decidir(approvalId: string, action: AcaoDeAprovacao, comment?: string): Promise<boolean> {
     if (enviando) return false;
     setEnviando(true);
@@ -367,6 +398,9 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
   const currentStatus = STATUS_LABEL[data.status] ?? "Em andamento";
 
   const modulosAtivos = MODULOS_DE_SERVICO.filter((m) => data.services.some((s) => m.match.test(s)));
+  // A fonte do calendário: a rota por solicitação quando ela responde; senão a
+  // rota por clientId — que enxerga os posts agendados sem clientRequestId.
+  const pecasDoCalendario = posts.length > 0 ? posts : calendarioPorCliente;
   const entregasRecentes = [...data.pipeline]
     .sort((a, b) => (b.approvedAt ?? "").localeCompare(a.approvedAt ?? ""))
     .slice(0, 3);
@@ -572,6 +606,28 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
 
             <EsteiraDoCliente token={token} />
 
+            {/* Cartões de projeto — vêm por clientId, então aparecem também
+                para o cliente criado direto (a correção do "onde eu vejo o
+                projeto?" do lançamento da Foocci). */}
+            {projetos.map((p) => (
+              <section key={p.id} className="bg-white rounded-[14px] border border-[var(--border)] p-5 shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h3 className="text-[15px] font-bold text-[var(--text-primary)] leading-snug">{p.nome}</h3>
+                    {p.objetivo && (
+                      <p className="text-[12.5px] text-[var(--text-secondary)] mt-1 leading-relaxed">{p.objetivo}</p>
+                    )}
+                  </div>
+                  <span className="shrink-0 h-6 px-2.5 rounded-full bg-[#EFF6FF] text-[#1D4ED8] text-[11px] font-semibold flex items-center">
+                    {p.etapa}
+                  </span>
+                </div>
+                {p.criadoEm && (
+                  <p className="text-[11.5px] text-[var(--text-muted)] mt-2.5">Aberto em {dataCurta(p.criadoEm)}</p>
+                )}
+              </section>
+            ))}
+
             {data.services.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {data.services.map((s, i) => (
@@ -610,14 +666,30 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
                   {mod.id === "social" && (
                     <div className="mt-4">
                       <h4 className="text-[13px] font-bold text-[var(--text-primary)] mb-2">Calendário do mês</h4>
-                      <CalendarioDoMes pecas={posts} token={token} />
+                      <CalendarioDoMes pecas={pecasDoCalendario} token={token} />
                     </div>
                   )}
                 </section>
               );
             })}
 
-            {modulosAtivos.length === 0 && (
+            {/* Cliente direto não tem módulo de serviço ativo, mas tem
+                calendário: o mês agendado não pode ficar invisível. */}
+            {!modulosAtivos.some((m) => m.id === "social") && pecasDoCalendario.length > 0 && (
+              <section className="bg-white rounded-[14px] border border-[var(--border)] p-5 shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
+                <h3 className="text-[14px] font-bold text-[var(--text-primary)] mb-2">Calendário do mês</h3>
+                <CalendarioDoMes pecas={pecasDoCalendario} token={token} />
+              </section>
+            )}
+
+            {erroProjetos && projetos.length === 0 && (
+              <div className="bg-white rounded-[14px] border border-[var(--border)] p-7 text-center">
+                <p className="text-[13.5px] font-semibold text-[var(--text-primary)]">Não consegui carregar agora</p>
+                <p className="text-[12px] text-[var(--text-muted)] mt-1">Tente atualizar a página. Se continuar assim, fale com a gente pela conversa aqui do portal.</p>
+              </div>
+            )}
+
+            {!erroProjetos && modulosAtivos.length === 0 && projetos.length === 0 && pecasDoCalendario.length === 0 && (
               <div className="bg-white rounded-[14px] border border-[var(--border)] p-7 text-center">
                 <p className="text-[13.5px] font-semibold text-[var(--text-primary)]">Seu projeto está sendo montado</p>
                 <p className="text-[12px] text-[var(--text-muted)] mt-1">Assim que os módulos do seu plano forem definidos, cada um aparece aqui.</p>
