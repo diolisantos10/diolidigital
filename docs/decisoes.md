@@ -8,6 +8,22 @@
 
 ---
 
+## Todo orçamento é precificado — inclusive o de parceiro interno
+
+**Decidido em** 2026-08-03 · **por** CEO
+
+Nenhum projeto roda "de graça invisível". Projeto de parceiro interno (Foocci
+é o primeiro) recebe preço pela tabela da casa e entra **contabilizado como
+A FATURAR** — "fica como se estivesse devendo" — para prestação de contas ao
+financeiro. Onde mora: `Project.proposalPricing` (itens, fonte da tabela,
+total) + `proposalStatus: aprovada_interna_a_faturar`.
+
+**O que muda para todos:** projeto sem preço registrado não é aprovado.
+Primeiro aplicado: Foocci a R$ 2.050/mês (social ritmo profissional R$ 1.200 +
+gestão de tráfego R$ 850, pontos médios da tabela), sujeito a ajuste do CEO.
+
+---
+
 ## O modelo de contas na Meta: agência recebe parceiros, verba roda no cliente
 
 **Decidido em** 2026-08-03 · **por** CEO (reiterado — a instrução era esta desde
