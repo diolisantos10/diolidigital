@@ -18,18 +18,33 @@ export interface LongLivedToken {
 }
 
 // Build the Facebook Login dialog URL the user is redirected to.
+//
+// "Login do Facebook para EMPRESAS" (o único produto de login que a Meta
+// oferece a apps tipo Business, como o nosso) NÃO usa `scope`: usa uma
+// CONFIGURAÇÃO criada no painel, passada como `config_id`. Mandar `scope` num
+// app desses faz o diálogo recusar o usuário com mensagens enganosas — foi uma
+// tarde inteira do lançamento da Foocci (03/08/2026) perdida nisso.
+//
+// `META_LOGIN_CONFIG_ID` vem do painel: Login do Facebook para Empresas →
+// Configurações (a tabela de configurações), coluna ID. Com ela presente, o
+// diálogo vai por config_id; sem ela, cai no fluxo clássico de `scope` — que
+// continua certo para apps tipo Consumer.
 export function buildLoginUrl(opts: {
   appId: string;
   redirectUri: string;
   state: string;
   scopes: string[];
+  configId?: string;
 }): string {
+  const configId = opts.configId ?? process.env.META_LOGIN_CONFIG_ID?.trim();
   const params = new URLSearchParams({
     client_id: opts.appId,
     redirect_uri: opts.redirectUri,
     state: opts.state,
     response_type: "code",
-    scope: opts.scopes.join(","),
+    ...(configId
+      ? { config_id: configId }
+      : { scope: opts.scopes.join(",") }),
   });
   return `${FB_OAUTH_DIALOG}?${params.toString()}`;
 }
