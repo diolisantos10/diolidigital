@@ -8,6 +8,27 @@
 
 ---
 
+## Especialistas-trava de plataforma: Meta, Google e TikTok
+
+**Decidido em** 2026-08-03 · **por** CEO · **origem:** restrição da conta de
+anúncios da agência pela Meta, no dia do lançamento da Foocci
+
+Três especialistas fixos — `meta`, `google`, `tiktok` — "como se fossem
+funcionários dessas empresas dentro da agência". O papel deles não é
+consultoria: é **trava**. Nenhuma escrita em nenhuma das três plataformas sem
+parecer prévio (PODE / NÃO PODE / PODE COM AJUSTE).
+
+**O que muda para todos:**
+- O parecer cita a **biblioteca capturada** em `docs/plataformas/` — documentos
+  oficiais das plataformas, com data, URL e hash — ou declara a lacuna. Parecer
+  de memória não vale.
+- A biblioteca é **recapturada diariamente** por rotina agendada; mudança vira
+  linha no `docs/plataformas/CHANGELOG.md` e ajuste na cartilha.
+- A trava vale para o Diretor. O ban de 03/08 foi ação do próprio Diretor sem
+  ninguém no papel de dizer "isso derruba conta".
+
+---
+
 ## O piloto roda 100% IA, sem revisão humana
 
 **Decidido em** 2026-07-31 · **por** CEO

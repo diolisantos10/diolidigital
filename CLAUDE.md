@@ -45,6 +45,23 @@ audita cada especialista e responde pelo resultado inteiro.
 | `esteira` | briefing → proposta → projeto → deliverable → portal |
 | `interface` | as quatro telas, dono do `DESIGN.md` |
 | `plataforma` | auth, banco, segurança, integrações, deploy, provedores de IA |
+| `meta` · `google` · `tiktok` | **os especialistas-trava das plataformas** — ver regra abaixo |
+
+### 🔒 REGRA DA TRAVA DE PLATAFORMA — decidida pelo CEO em 03/08/2026
+
+**Nenhuma ação de ESCRITA em Meta, Google ou TikTok — anúncio, post, campanha,
+upload em massa, mudança de app, resposta automática — acontece sem parecer
+prévio do especialista da plataforma** (`meta`, `google`, `tiktok`). O parecer
+é PODE / NÃO PODE / PODE COM AJUSTE, e cita a biblioteca capturada em
+`docs/plataformas/` (ou declara a lacuna). Vale para o Diretor também —
+**principalmente** para o Diretor.
+
+> Por que virou regra: em 03/08/2026, dia do lançamento da Foocci, a Meta
+> restringiu a conta de anúncios da agência por "automação que não segue as
+> regras" — operação por API em ritmo de máquina, sem ninguém no papel de
+> dizer "isso vai dar ban". A trava é o papel. A biblioteca
+> (`docs/plataformas/`, recapturada diariamente por rotina) é o que impede o
+> parecer de ser opinião de memória.
 
 ### Documentos-fonte
 
