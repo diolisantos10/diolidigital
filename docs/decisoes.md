@@ -8,6 +8,25 @@
 
 ---
 
+## O modelo de contas na Meta: agência recebe parceiros, verba roda no cliente
+
+**Decidido em** 2026-08-03 · **por** CEO (reiterado — a instrução era esta desde
+o primeiro momento; a execução do Diretor no lançamento a violou)
+
+- O **Business (portfólio) da agência** é a casa que **recebe os parceiros**:
+  cada cliente conecta o negócio dele como parceiro da agência.
+- **Campanha de cliente roda na conta de anúncios DO CLIENTE** — verba, cartão
+  e histórico no nome dele. A Foocci é a primeira.
+- A **conta de anúncios da própria agência** serve para UMA coisa: publicidade
+  da própria Dioli. Nunca para veicular campanha de cliente.
+
+**Por que ficou registrado com esta ênfase:** em 03/08, o Diretor montou a
+campanha da Foocci na conta de anúncios da agência — contrariando a instrução —
+e a conta da agência foi restringida no mesmo dia. O modelo do CEO também é o
+que isola o dano: restrição num lado não derruba o outro.
+
+---
+
 ## Especialistas-trava de plataforma: Meta, Google e TikTok
 
 **Decidido em** 2026-08-03 · **por** CEO · **origem:** restrição da conta de
