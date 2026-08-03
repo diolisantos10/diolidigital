@@ -32,6 +32,24 @@ obrigatório antes de escrita externa) é o próximo degrau, a decidir com o CEO
 
 ---
 
+## 🔴 03/08/2026 (noite) — Recurso NEGADO; restrição mantida e se espalhando
+
+- "Análise concluída — **Não removemos as restrições**" no mesmo dia: decisão
+  automatizada, mantida. Pela fonte da biblioteca
+  (`docs/plataformas/meta/fontes/recorrer-de-restricao.md`), o número de
+  recursos é limitado e a decisão pode ser definitiva.
+- **Efeito em cadeia confirmado:** o painel lista "The Face Store" (conta que
+  nem aparecia na nossa listagem por API) como **Restrito** no mesmo
+  portfólio — exatamente o risco que motivou a regra de não repetir automação.
+- **Caminho limpo de hoje:** tráfego da Foocci MANUAL, por gente, na conta
+  própria da Foocci (decisão que o CEO já tinha tomado). **NUNCA criar conta
+  nova para contornar** — "contornar sistemas" é violação literal e derruba o
+  portfólio inteiro.
+- Recuperação de longo prazo da conta da agência: verificação de negócio +
+  App Review + operação humana-primeiro; reavaliar com o especialista `meta`.
+
+---
+
 ## 🔴 03/08/2026 (meio-dia) — Meta RESTRINGIU a conta de anúncios "Dioli Agencia"
 
 E-mail da Meta às 11:32: conta `act_3416644181895443` desativada
