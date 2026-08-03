@@ -1,3 +1,92 @@
 [
-  { "slug": "ads-praticas-enganosas", "titulo": "TikTok Advertising Policies — Deceptive Practices", "url": "https://ads.tiktok.com/help/article/tiktok-ads-policy-deceptive-practices" }
+  {
+    "slug": "cg-visao-geral",
+    "titulo": "Diretrizes da Comunidade do TikTok — Visão geral (pt-BR)",
+    "url": "https://www.tiktok.com/community-guidelines/pt-br/overview"
+  },
+  {
+    "slug": "cg-integridade-autenticidade",
+    "titulo": "Diretrizes da Comunidade — Integridade e autenticidade (spam, engajamento falso, comportamento enganoso) (pt-BR)",
+    "url": "https://www.tiktok.com/community-guidelines/pt-br/integrity-authenticity"
+  },
+  {
+    "slug": "ads-criativos-landing-page",
+    "titulo": "TikTok Advertising Policies — Ad Creatives and Landing Page (hoje um ÍNDICE dos artigos de política)",
+    "url": "https://ads.tiktok.com/help/article?aid=6684149081637388293"
+  },
+  {
+    "slug": "ads-industrias-visao-geral",
+    "titulo": "TikTok Advertising Policies — Industry Entry (Overview; índice dos artigos por indústria)",
+    "url": "https://ads.tiktok.com/help/article/tiktok-advertising-policies-industry-entry?redirected=2"
+  },
+  {
+    "slug": "ads-industrias-america-latina",
+    "titulo": "TikTok Advertising Policies — Industry Entry: Latin America (inclui Brasil; índice)",
+    "url": "https://ads.tiktok.com/help/article/tiktok-advertising-policies-industry-entry-latin-america?redirected=2"
+  },
+  {
+    "slug": "ads-politica-de-veiculacao",
+    "titulo": "TikTok Ad Serving Policy",
+    "url": "https://ads.tiktok.com/help/article/ad-serving-policy?lang=en"
+  },
+  {
+    "slug": "ads-revisao-faq",
+    "titulo": "TikTok Ad Review FAQ (revisão e recurso)",
+    "url": "https://ads.tiktok.com/help/article/ad-review-faq?lang=en"
+  },
+  {
+    "slug": "ads-conteudo-enganoso-falso",
+    "titulo": "TikTok Advertising Policies — Misleading and False Content",
+    "url": "https://ads.tiktok.com/help/article/tiktok-ads-policy-misleading-and-false-content?lang=en"
+  },
+  {
+    "slug": "ads-formato-funcionalidade",
+    "titulo": "TikTok Advertising Policies — Ad Format and Functionality",
+    "url": "https://ads.tiktok.com/help/article/tiktok-ads-policy-ad-format-and-functionality?lang=en"
+  },
+  {
+    "slug": "ads-landing-page-checklist",
+    "titulo": "Best Practices for your landing page (Ad Review Checklist)",
+    "url": "https://ads.tiktok.com/help/article/ad-review-checklist-landing-page?lang=en"
+  },
+  {
+    "slug": "ads-praticas-enganosas",
+    "titulo": "TikTok Advertising Policies — Deceptive Practices (LACUNA: timeout persistente no headless)",
+    "url": "https://ads.tiktok.com/help/article/tiktok-ads-policy-deceptive-practices"
+  },
+  {
+    "slug": "musica-biblioteca-comercial",
+    "titulo": "About the Commercial Music Library",
+    "url": "https://ads.tiktok.com/help/article/commercial-music-library?lang=en"
+  },
+  {
+    "slug": "musica-como-usar",
+    "titulo": "How to use the Commercial Music Library",
+    "url": "https://ads.tiktok.com/help/article/how-to-use-the-commercial-music-library?lang=en"
+  },
+  {
+    "slug": "conta-comercial",
+    "titulo": "Account types on TikTok — pessoal x Business (LACUNA: support.tiktok.com só entrega o menu ao headless)",
+    "url": "https://support.tiktok.com/en/using-tiktok/growing-your-audience/account-types-on-tiktok"
+  },
+  {
+    "slug": "dev-content-posting-inicio",
+    "titulo": "Content Posting API — Get Started (TikTok for Developers)",
+    "url": "https://developers.tiktok.com/doc/content-posting-api-get-started"
+  },
+  {
+    "slug": "dev-content-sharing-diretrizes",
+    "titulo": "Content Sharing Guidelines — auditoria de app e restrições (TikTok for Developers)",
+    "url": "https://developers.tiktok.com/doc/content-sharing-guidelines"
+  },
+  {
+    "slug": "dev-diretrizes-desenvolvedor",
+    "titulo": "Developer Guidelines (TikTok for Developers)",
+    "url": "https://developers.tiktok.com/doc/our-guidelines-developer-guidelines"
+  },
+  {
+    "slug": "business-api-marketing-inicio",
+    "titulo": "Get started for Marketing API (LACUNA: portal business-api.tiktok.com devolve página vazia ao headless)",
+    "url": "https://business-api.tiktok.com/portal/docs/marketing-api-get-started/v1.3"
+  }
 ]
