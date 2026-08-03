@@ -31,8 +31,18 @@ const RAIZ = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..",
 const BASE = path.join(RAIZ, "docs", "plataformas");
 
 /** Abaixo disso a captura é considerada FALHA: página de erro, casca de JS ou
- *  bloqueio de robô. Guardar isso como "fonte" seria pior que não guardar. */
-const MINIMO_DE_CARACTERES = 1500;
+ *  bloqueio de robô. Guardar isso como "fonte" seria pior que não guardar.
+ *
+ *  A medida é de CONTEÚDO ÚTIL, não de tamanho bruto: menu de navegação vem em
+ *  linhas curtas, uma por item, e uma página que é só menu somava caracteres
+ *  suficientes para passar (achado da auditoria de 03/08/2026 — a página de
+ *  música do TikTok passou com ~1.100 caracteres de documento real). Linha
+ *  parágrafo-de-verdade tem mais de 60 caracteres. */
+const MINIMO_DE_CARACTERES_UTEIS = 1200;
+function caracteresUteis(texto) {
+  return texto.split("\n").filter((l) => l.trim().length > 60)
+    .reduce((n, l) => n + l.length, 0);
+}
 
 const soDiff = process.argv.includes("--diff");
 const alvo = process.argv[2] && !process.argv[2].startsWith("--") ? [process.argv[2]] : null;
@@ -98,8 +108,9 @@ for (const plat of plataformas) {
     await pagina.close();
 
     texto = texto.replace(/\n{3,}/g, "\n\n").trim();
-    if (texto.length < MINIMO_DE_CARACTERES) {
-      console.error(`✗ ${plat}/${fonte.slug}: capturou só ${texto.length} caracteres — página vazia, bloqueio ou URL errada. NÃO gravado.`);
+    const uteis = caracteresUteis(texto);
+    if (uteis < MINIMO_DE_CARACTERES_UTEIS) {
+      console.error(`✗ ${plat}/${fonte.slug}: só ${uteis} caracteres ÚTEIS (${texto.length} brutos) — menu, casca ou bloqueio. NÃO gravado.`);
       falhas++;
       continue;
     }

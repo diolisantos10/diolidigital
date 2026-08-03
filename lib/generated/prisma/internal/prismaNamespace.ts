@@ -3627,6 +3627,7 @@ export const GoogleConnectionScalarFieldEnum = {
   tokenExpiresAt: 'tokenExpiresAt',
   status: 'status',
   reviewsSyncedAt: 'reviewsSyncedAt',
+  autoReplyConsentAt: 'autoReplyConsentAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

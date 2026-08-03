@@ -21,6 +21,9 @@ const CONEXAO = {
   id: "gc1", workspaceId: "ws1", clientId: "c1",
   title: "Padaria do João", locationName: "locations/1", accountName: "accounts/1",
   status: "connected",
+  // A trava de consentimento (política da API do Google): sem esta data,
+  // nem elogio sai sozinho. Os testes de resposta automática a preenchem.
+  autoReplyConsentAt: new Date("2026-08-01"),
 };
 
 const ELOGIO = {
@@ -153,5 +156,27 @@ describe("quando o Google recusa", () => {
     const r = await cuidarDasAvaliacoes();
     expect(r.novas).toBe(0);
     expect(r.falhas[0]).toMatch(/não liberou o acesso/);
+  });
+});
+
+describe("A TRAVA DE CONSENTIMENTO — política da API do Google", () => {
+  // A política do Business Profile proíbe automatizar resposta a avaliação
+  // "sem o consentimento prévio e específico do usuário". Achado da auditoria
+  // de 03/08/2026: sem esta trava, a única proteção era o 403 do Google.
+  it("sem consentimento registrado, NEM ELOGIO sai sozinho — vira rascunho escalado", async () => {
+    db.googleConnection.findMany.mockResolvedValue([{ ...CONEXAO, autoReplyConsentAt: null }]);
+    const r = await cuidarDasAvaliacoes();
+    expect(r.respondidas).toBe(0);
+    expect(r.escaladas).toBe(1);
+    expect(responderAvaliacao).not.toHaveBeenCalled();
+    const d = db.googleReview.update.mock.calls[0]![0].data;
+    expect(d.status).toBe("escalada");
+    expect(d.escalatedReason).toMatch(/consentimento/);
+    expect(d.reply).toBeTruthy(); // o trabalho não se perde
+  });
+
+  it("com consentimento registrado, o elogio volta a sair sozinho", async () => {
+    const r = await cuidarDasAvaliacoes();
+    expect(r.respondidas).toBe(1);
   });
 });

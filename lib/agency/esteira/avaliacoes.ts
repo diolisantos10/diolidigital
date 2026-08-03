@@ -114,6 +114,21 @@ export async function cuidarDasAvaliacoes(): Promise<RodadaDeAvaliacoes> {
         continue;
       }
 
+      // ── A TRAVA DE CONSENTIMENTO ───────────────────────────────────────────
+      // A política da API do Business Profile proíbe automatizar resposta a
+      // avaliação "sem o consentimento prévio e específico do usuário"
+      // (docs/plataformas/google/fontes/business-profile-api-politicas.md).
+      // Sem a data registrada, NADA sai sozinho — nem elogio. O rascunho vira
+      // escalada, e o motivo diz exatamente o que falta. Achado da auditoria
+      // de 03/08/2026: até então a única coisa entre este código e a violação
+      // era o 403 do Google — proteção por acidente não é proteção.
+      if (!conexao.autoReplyConsentAt) {
+        await escalar(registro.id, texto, a, conexao,
+          "sem consentimento registrado do cliente para resposta automática — exigência da política do Google");
+        saida.escaladas++;
+        continue;
+      }
+
       const envio = await responderAvaliacao(conexao.id, a.externalId, texto);
       if (!envio.ok) {
         // Guardamos o rascunho mesmo assim: o trabalho não se perde, e alguém
@@ -202,13 +217,14 @@ async function escalar(
   rascunho: string,
   a: { autor: string; estrelas: number; comentario: string },
   conexao: { workspaceId: string; clientId: string | null; title: string; locationName: string },
+  motivo?: string,
 ): Promise<void> {
   await prisma.googleReview.update({
     where: { id: reviewId },
     data: {
       reply: rascunho,
       status: "escalada",
-      escalatedReason: `${a.estrelas} estrela(s) — resposta a reclamação nunca sai sozinha`,
+      escalatedReason: motivo ?? `${a.estrelas} estrela(s) — resposta a reclamação nunca sai sozinha`,
     },
   }).catch(() => { /* best-effort */ });
 

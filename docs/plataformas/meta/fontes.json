@@ -83,5 +83,20 @@
     "slug": "recorrer-de-restricao",
     "titulo": "Central de Ajuda — Solicitar análise de restrição de publicidade",
     "url": "https://www.facebook.com/business/help/530209463124901"
+  },
+  {
+    "slug": "pi-de-terceiros",
+    "titulo": "Padrões de Publicidade — Violação de PI de terceiros (LACUNA: fora da 1ª rodada; recaptura deve tentar)",
+    "url": "https://transparency.meta.com/pt-br/policies/ad-standards/intellectual-property-infringement/third-party-infringement/"
+  },
+  {
+    "slug": "app-review-processo",
+    "titulo": "App Review — processo e requisitos (LACUNA: não capturado na 1ª rodada)",
+    "url": "https://developers.facebook.com/docs/resp-plat-initiatives/app-review/"
+  },
+  {
+    "slug": "whatsapp-diretrizes-de-mensagens",
+    "titulo": "WhatsApp Business Messaging Guidelines (LACUNA: não capturado na 1ª rodada)",
+    "url": "https://business.whatsapp.com/policy"
   }
 ]

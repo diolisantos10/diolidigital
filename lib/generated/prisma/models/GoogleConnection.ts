@@ -42,6 +42,7 @@ export type GoogleConnectionMinAggregateOutputType = {
   tokenExpiresAt: Date | null
   status: string | null
   reviewsSyncedAt: Date | null
+  autoReplyConsentAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -58,6 +59,7 @@ export type GoogleConnectionMaxAggregateOutputType = {
   tokenExpiresAt: Date | null
   status: string | null
   reviewsSyncedAt: Date | null
+  autoReplyConsentAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -74,6 +76,7 @@ export type GoogleConnectionCountAggregateOutputType = {
   tokenExpiresAt: number
   status: number
   reviewsSyncedAt: number
+  autoReplyConsentAt: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -92,6 +95,7 @@ export type GoogleConnectionMinAggregateInputType = {
   tokenExpiresAt?: true
   status?: true
   reviewsSyncedAt?: true
+  autoReplyConsentAt?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -108,6 +112,7 @@ export type GoogleConnectionMaxAggregateInputType = {
   tokenExpiresAt?: true
   status?: true
   reviewsSyncedAt?: true
+  autoReplyConsentAt?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -124,6 +129,7 @@ export type GoogleConnectionCountAggregateInputType = {
   tokenExpiresAt?: true
   status?: true
   reviewsSyncedAt?: true
+  autoReplyConsentAt?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -213,6 +219,7 @@ export type GoogleConnectionGroupByOutputType = {
   tokenExpiresAt: Date | null
   status: string
   reviewsSyncedAt: Date | null
+  autoReplyConsentAt: Date | null
   createdAt: Date
   updatedAt: Date
   _count: GoogleConnectionCountAggregateOutputType | null
@@ -250,6 +257,7 @@ export type GoogleConnectionWhereInput = {
   tokenExpiresAt?: Prisma.DateTimeNullableFilter<"GoogleConnection"> | Date | string | null
   status?: Prisma.StringFilter<"GoogleConnection"> | string
   reviewsSyncedAt?: Prisma.DateTimeNullableFilter<"GoogleConnection"> | Date | string | null
+  autoReplyConsentAt?: Prisma.DateTimeNullableFilter<"GoogleConnection"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"GoogleConnection"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"GoogleConnection"> | Date | string
 }
@@ -266,6 +274,7 @@ export type GoogleConnectionOrderByWithRelationInput = {
   tokenExpiresAt?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   reviewsSyncedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  autoReplyConsentAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -286,6 +295,7 @@ export type GoogleConnectionWhereUniqueInput = Prisma.AtLeast<{
   tokenExpiresAt?: Prisma.DateTimeNullableFilter<"GoogleConnection"> | Date | string | null
   status?: Prisma.StringFilter<"GoogleConnection"> | string
   reviewsSyncedAt?: Prisma.DateTimeNullableFilter<"GoogleConnection"> | Date | string | null
+  autoReplyConsentAt?: Prisma.DateTimeNullableFilter<"GoogleConnection"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"GoogleConnection"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"GoogleConnection"> | Date | string
 }, "id" | "workspaceId_locationName">
@@ -302,6 +312,7 @@ export type GoogleConnectionOrderByWithAggregationInput = {
   tokenExpiresAt?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   reviewsSyncedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  autoReplyConsentAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.GoogleConnectionCountOrderByAggregateInput
@@ -324,6 +335,7 @@ export type GoogleConnectionScalarWhereWithAggregatesInput = {
   tokenExpiresAt?: Prisma.DateTimeNullableWithAggregatesFilter<"GoogleConnection"> | Date | string | null
   status?: Prisma.StringWithAggregatesFilter<"GoogleConnection"> | string
   reviewsSyncedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"GoogleConnection"> | Date | string | null
+  autoReplyConsentAt?: Prisma.DateTimeNullableWithAggregatesFilter<"GoogleConnection"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"GoogleConnection"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"GoogleConnection"> | Date | string
 }
@@ -340,6 +352,7 @@ export type GoogleConnectionCreateInput = {
   tokenExpiresAt?: Date | string | null
   status?: string
   reviewsSyncedAt?: Date | string | null
+  autoReplyConsentAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -356,6 +369,7 @@ export type GoogleConnectionUncheckedCreateInput = {
   tokenExpiresAt?: Date | string | null
   status?: string
   reviewsSyncedAt?: Date | string | null
+  autoReplyConsentAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -372,6 +386,7 @@ export type GoogleConnectionUpdateInput = {
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   reviewsSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  autoReplyConsentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -388,6 +403,7 @@ export type GoogleConnectionUncheckedUpdateInput = {
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   reviewsSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  autoReplyConsentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -404,6 +420,7 @@ export type GoogleConnectionCreateManyInput = {
   tokenExpiresAt?: Date | string | null
   status?: string
   reviewsSyncedAt?: Date | string | null
+  autoReplyConsentAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -420,6 +437,7 @@ export type GoogleConnectionUpdateManyMutationInput = {
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   reviewsSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  autoReplyConsentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -436,6 +454,7 @@ export type GoogleConnectionUncheckedUpdateManyInput = {
   tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   reviewsSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  autoReplyConsentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -457,6 +476,7 @@ export type GoogleConnectionCountOrderByAggregateInput = {
   tokenExpiresAt?: Prisma.SortOrder
   status?: Prisma.SortOrder
   reviewsSyncedAt?: Prisma.SortOrder
+  autoReplyConsentAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -473,6 +493,7 @@ export type GoogleConnectionMaxOrderByAggregateInput = {
   tokenExpiresAt?: Prisma.SortOrder
   status?: Prisma.SortOrder
   reviewsSyncedAt?: Prisma.SortOrder
+  autoReplyConsentAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -489,6 +510,7 @@ export type GoogleConnectionMinOrderByAggregateInput = {
   tokenExpiresAt?: Prisma.SortOrder
   status?: Prisma.SortOrder
   reviewsSyncedAt?: Prisma.SortOrder
+  autoReplyConsentAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -507,6 +529,7 @@ export type GoogleConnectionSelect<ExtArgs extends runtime.Types.Extensions.Inte
   tokenExpiresAt?: boolean
   status?: boolean
   reviewsSyncedAt?: boolean
+  autoReplyConsentAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["googleConnection"]>
@@ -523,6 +546,7 @@ export type GoogleConnectionSelectCreateManyAndReturn<ExtArgs extends runtime.Ty
   tokenExpiresAt?: boolean
   status?: boolean
   reviewsSyncedAt?: boolean
+  autoReplyConsentAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["googleConnection"]>
@@ -539,6 +563,7 @@ export type GoogleConnectionSelectUpdateManyAndReturn<ExtArgs extends runtime.Ty
   tokenExpiresAt?: boolean
   status?: boolean
   reviewsSyncedAt?: boolean
+  autoReplyConsentAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["googleConnection"]>
@@ -555,11 +580,12 @@ export type GoogleConnectionSelectScalar = {
   tokenExpiresAt?: boolean
   status?: boolean
   reviewsSyncedAt?: boolean
+  autoReplyConsentAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type GoogleConnectionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "clientId" | "locationName" | "accountName" | "title" | "accessTokenEncrypted" | "refreshTokenEncrypted" | "tokenExpiresAt" | "status" | "reviewsSyncedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["googleConnection"]>
+export type GoogleConnectionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "clientId" | "locationName" | "accountName" | "title" | "accessTokenEncrypted" | "refreshTokenEncrypted" | "tokenExpiresAt" | "status" | "reviewsSyncedAt" | "autoReplyConsentAt" | "createdAt" | "updatedAt", ExtArgs["result"]["googleConnection"]>
 
 export type $GoogleConnectionPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "GoogleConnection"
@@ -596,6 +622,14 @@ export type $GoogleConnectionPayload<ExtArgs extends runtime.Types.Extensions.In
      * histórico inteiro e responderia avaliação de dois anos atrás.
      */
     reviewsSyncedAt: Date | null
+    /**
+     * A política da API do Business Profile PROÍBE resposta automatizada a
+     * avaliação "sem o consentimento prévio e específico do usuário"
+     * (docs/plataformas/google/fontes/business-profile-api-politicas.md).
+     * Nulo = sem consentimento registrado → NENHUMA resposta sai sozinha,
+     * tudo vira rascunho escalado. Preenchido = quando o cliente autorizou.
+     */
+    autoReplyConsentAt: Date | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["googleConnection"]>
@@ -1032,6 +1066,7 @@ export interface GoogleConnectionFieldRefs {
   readonly tokenExpiresAt: Prisma.FieldRef<"GoogleConnection", 'DateTime'>
   readonly status: Prisma.FieldRef<"GoogleConnection", 'String'>
   readonly reviewsSyncedAt: Prisma.FieldRef<"GoogleConnection", 'DateTime'>
+  readonly autoReplyConsentAt: Prisma.FieldRef<"GoogleConnection", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"GoogleConnection", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"GoogleConnection", 'DateTime'>
 }

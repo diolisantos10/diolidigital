@@ -93,5 +93,15 @@
     "slug": "analytics-uso-de-dados",
     "titulo": "Google Analytics — política de uso de dados enviados",
     "url": "https://support.google.com/analytics/answer/2838984?hl=pt-BR"
+  },
+  {
+    "slug": "analytics-politicas-hub",
+    "titulo": "Políticas do Google Analytics — hub (LACUNA: página-índice <1500 chars; recaptura deve tentar)",
+    "url": "https://support.google.com/analytics/answer/4597324?hl=pt-BR"
+  },
+  {
+    "slug": "maps-conteudo-proibido",
+    "titulo": "Maps — Conteúdo proibido e restrito nas contribuições (LACUNA: seções recolhidas <1500 chars)",
+    "url": "https://support.google.com/contributionpolicy/answer/7400114?hl=pt-BR"
   }
 ]

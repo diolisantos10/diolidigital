@@ -213,6 +213,12 @@ model GoogleConnection {
   /// Até quando já lemos avaliações. Sem isto, cada rodada reprocessaria o
   /// histórico inteiro e responderia avaliação de dois anos atrás.
   reviewsSyncedAt       DateTime?
+  /// A política da API do Business Profile PROÍBE resposta automatizada a
+  /// avaliação "sem o consentimento prévio e específico do usuário"
+  /// (docs/plataformas/google/fontes/business-profile-api-politicas.md).
+  /// Nulo = sem consentimento registrado → NENHUMA resposta sai sozinha,
+  /// tudo vira rascunho escalado. Preenchido = quando o cliente autorizou.
+  autoReplyConsentAt    DateTime?
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
