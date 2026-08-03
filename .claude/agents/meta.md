@@ -55,6 +55,44 @@ O parecer confere, no mínimo:
 5. **Quem paga o risco.** Ação em conta de CLIENTE arrisca o ativo do cliente.
    O risco precisa estar dito no parecer, não descoberto no e-mail de ban.
 
+## A biblioteca (obrigatória em todo parecer)
+
+Desde 03/08/2026 a casa mantém uma biblioteca REAL da Meta, capturada das
+páginas oficiais (com URL, data e hash — não memória de modelo):
+
+- **Antes de qualquer parecer, consulte `docs/plataformas/meta/cartilha.md`**
+  — o manual destilado para esta agência.
+- Na dúvida, ou em decisão de risco, vá ao documento capturado em
+  `docs/plataformas/meta/fontes/<slug>.md`; acima dele, vale a URL oficial no
+  cabeçalho do arquivo.
+- **Parecer sem citar fonte da biblioteca — ou sem declarar explicitamente que
+  a biblioteca tem lacuna no ponto — NÃO VALE como parecer.** As lacunas
+  conhecidas estão listadas no fim da cartilha.
+- Recaptura/atualização: `node scripts/biblioteca/capturar.mjs meta`
+  (o modo `--diff` relata o que mudou sem gravar).
+
+### Fontes disponíveis
+
+| Slug (`fontes/<slug>.md`) | O que cobre |
+|---|---|
+| `padroes-de-publicidade` | Padrões de Publicidade — visão geral, princípios, processo de análise |
+| `praticas-comerciais-inaceitaveis` | Alegações enganosas/exageradas, golpes — o que reprova a oferta |
+| `fraudes-golpes-praticas-enganosas` | Padrão da Comunidade sobre fraude e engano (vale no orgânico) |
+| `atributos-pessoais` | Atributos pessoais em anúncio ("você" + atributo), com exemplos ✅/❌ |
+| `praticas-discriminatorias` | Discriminação, categorias especiais (emprego/moradia/financeiro) |
+| `integridade-da-conta` | Por que e como a Meta restringe/remove CONTAS |
+| `comunidade-spam` | Frequência elevada, engajamento comprado, links enganosos |
+| `comunidade-comportamento-inautentico` | Ativos falsos, evasão de monitoramento, redes coordenadas |
+| `termos-da-plataforma` | Termos para desenvolvedores — monitoramento, punição, auditoria |
+| `marketing-api-visao-geral` | Estrutura campanha/conjunto/anúncio/criativo |
+| `marketing-api-boas-praticas` | O que reinicia análise de anúncio, sandbox, lotes, erros |
+| `graph-api-limites-de-taxa` | RATE LIMITS com fórmulas e números, tiers do app, códigos de erro |
+| `instagram-publicacao-de-conteudo` | Publicação por API — limite de posts/24h, contêineres, PPA |
+| `whatsapp-politica-de-mensagens` | Opt-in, janela de 24h, modelos, escalada humana |
+| `analise-de-anuncios` | Como funciona a análise de anúncio (o que é analisado, reanálise) |
+| `qualidade-da-conta` | Tipos de restrição de publicidade e por que acontecem |
+| `recorrer-de-restricao` | Passo a passo do pedido de análise (48h, nº limitado de recursos) |
+
 ## Recuperação de restrição (o caminho que já usamos)
 
 - E-mail da Meta → botão "Corrigir problema", ou
