@@ -8,6 +8,7 @@
 
 import { use, useCallback, useEffect, useState } from "react";
 import { CalendarioDoMes } from "@/components/portal/CalendarioDoMes";
+import { ConexoesDoCliente } from "@/components/portal/ConexoesDoCliente";
 import { EnvioDeMaterial } from "@/components/portal/EnvioDeMaterial";
 import { ChatDrawer } from "@/components/agency/portal/FloatingChat";
 import EsteiraDoCliente from "@/components/agency/portal/EsteiraDoCliente";
@@ -319,6 +320,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
     { id: "calendario", label: "Calendário", icon: "▦" },
     { id: "approvals", label: "Aprovações", icon: "✓" },
     { id: "materials", label: "Materiais", icon: "↑" },
+    { id: "conexoes", label: "Conexões", icon: "⇄" },
     { id: "integrations", label: "Integrações", icon: "⚡" },
   ];
 
@@ -706,6 +708,12 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
             </div>
           </div>
         )}
+
+        {/* ── CONEXÕES — o parceiro conecta o Facebook DELE ── */}
+        {/* Modelo de parceria (03/08/2026): o Business da agência recebe os
+            parceiros, e cada parceiro conecta a própria conta Meta por aqui,
+            autenticado só pelo token do portal. */}
+        {section === "conexoes" && <ConexoesDoCliente token={token} />}
 
         {/* ── INTEGRAÇÕES ── */}
         {section === "integrations" && (

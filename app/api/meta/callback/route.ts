@@ -8,6 +8,7 @@
 
 import { NextRequest } from "next/server";
 import { getSession } from "@/lib/auth/session";
+import { resolvePortalClient } from "@/lib/agency/persistence/portal-access-service";
 import { resolveMetaAppCredentials, DEFAULT_SCOPES } from "@/lib/integrations/meta/config";
 import { exchangeCodeForToken, exchangeForLongLivedToken } from "@/lib/integrations/meta/oauth";
 import { discoverPages } from "@/lib/integrations/meta/discovery";
@@ -62,14 +63,37 @@ export async function GET(req: NextRequest): Promise<Response> {
     return popupHtml({ type: "meta_auth_error", error: "state_mismatch" });
   }
 
-  // The popup carries the same session cookie — resolve the workspace from it.
-  const session = await getSession();
-  if (!session) return popupHtml({ type: "meta_auth_error", error: "sessão expirada" });
+  // Dois donos possíveis para este retorno:
+  //   • PARCEIRO — veio de /api/meta/connect-parceiro, sem sessão. O cookie
+  //     `_meta_oauth_portal` carrega o token do portal, e o clientId/workspace
+  //     são DERIVADOS dele de novo aqui (derivação, não comparação — o cookie
+  //     `_meta_oauth_client` só serve de conferência de que nada mudou no meio).
+  //   • MASTER — o fluxo original, inalterado: sessão master no popup.
+  let workspaceId: string;
+  let clientId: string | null;
 
-  const creds = await resolveMetaAppCredentials(session.workspaceId);
+  const portalToken = req.cookies.get("_meta_oauth_portal")?.value;
+  if (portalToken) {
+    const dono = await resolvePortalClient(portalToken);
+    if (!dono) return popupHtml({ type: "meta_auth_error", error: "acesso do portal inválido ou expirado" });
+    // O clientId vem SEMPRE do token do portal. Se o cookie de cliente divergir,
+    // algo mexeu nos cookies no meio do fluxo — aborta.
+    const cookieClient = req.cookies.get("_meta_oauth_client")?.value || null;
+    if (cookieClient && cookieClient !== dono.clientId) {
+      return popupHtml({ type: "meta_auth_error", error: "client_mismatch" });
+    }
+    workspaceId = dono.workspaceId;
+    clientId = dono.clientId;
+  } else {
+    // The popup carries the same session cookie — resolve the workspace from it.
+    const session = await getSession();
+    if (!session) return popupHtml({ type: "meta_auth_error", error: "sessão expirada" });
+    workspaceId = session.workspaceId;
+    clientId = req.cookies.get("_meta_oauth_client")?.value || null;
+  }
+
+  const creds = await resolveMetaAppCredentials(workspaceId);
   if (!creds) return popupHtml({ type: "meta_auth_error", error: "app_not_configured" });
-
-  const clientId = req.cookies.get("_meta_oauth_client")?.value || null;
 
   const proto = req.headers.get("x-forwarded-proto") ?? "https";
   const host = req.headers.get("host") ?? "localhost:3000";
@@ -104,11 +128,11 @@ export async function GET(req: NextRequest): Promise<Response> {
     // Fica como conexão de plataforma "user": é o mesmo cofre cifrado, com o
     // mesmo ciclo de vida, e nenhum leitor de Página o confunde com uma.
     await saveConnection({
-      workspaceId: session.workspaceId,
+      workspaceId,
       clientId,
       platform: "user",
       name: "Acesso da conta Meta",
-      externalId: `user:${session.workspaceId}${clientId ? `:${clientId}` : ""}`,
+      externalId: `user:${workspaceId}${clientId ? `:${clientId}` : ""}`,
       accessToken: userToken,
       tokenExpiresAt: userTokenExpiry,
       scopes: DEFAULT_SCOPES,
@@ -124,7 +148,7 @@ export async function GET(req: NextRequest): Promise<Response> {
     const names: string[] = [];
     for (const page of pages) {
       await saveConnection({
-        workspaceId: session.workspaceId,
+        workspaceId,
         clientId,
         platform: "facebook",
         name: page.name,
@@ -139,7 +163,7 @@ export async function GET(req: NextRequest): Promise<Response> {
 
       if (page.instagram) {
         await saveConnection({
-          workspaceId: session.workspaceId,
+          workspaceId,
           clientId,
           platform: "instagram",
           name: page.instagram.username ? `@${page.instagram.username}` : `IG ${page.instagram.id}`,

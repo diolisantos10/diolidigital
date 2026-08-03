@@ -41,6 +41,38 @@ export async function validatePortalAccess(token: string) {
   return { valid: true, record };
 }
 
+// ── Derivação do DONO a partir do token ──────────────────────────────────────
+// Regra da casa (decisão do CEO, 03/08/2026 — modelo de parceria): em qualquer
+// caminho público (portal/parceiro), o clientId vem SEMPRE do token — derivação,
+// não comparação. Nunca aceite clientId de query/corpo nesses caminhos.
+//
+// Devolve o cliente e o workspace dele, ou null quando o token é inválido,
+// revogado, expirado, ou não está vinculado a nenhum cliente.
+export async function resolvePortalClient(
+  token: string,
+): Promise<{ clientId: string; workspaceId: string } | null> {
+  const acesso = await validatePortalAccess(token);
+  if (!acesso.valid || !acesso.record) return null;
+
+  let clientId = acesso.record.clientId ?? null;
+  if (!clientId && acesso.record.clientRequestId) {
+    const solicitacao = await prisma.clientRequestDb.findUnique({
+      where: { id: acesso.record.clientRequestId },
+      select: { clientId: true },
+    });
+    clientId = solicitacao?.clientId ?? null;
+  }
+  if (!clientId) return null;
+
+  const cliente = await prisma.client.findUnique({
+    where: { id: clientId },
+    select: { id: true, workspaceId: true },
+  });
+  if (!cliente) return null;
+
+  return { clientId: cliente.id, workspaceId: cliente.workspaceId };
+}
+
 export async function revokePortalAccess(token: string) {
   return prisma.portalAccess.update({
     where: { token },
