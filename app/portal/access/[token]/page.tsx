@@ -131,17 +131,13 @@ function dataCurta(iso: string | null): string | null {
 // ── Marca ────────────────────────────────────────────────────────────────────
 
 function DioliMark() {
+  // O logo OFICIAL, não uma recomposição em texto — o CEO pegou a marca errada
+  // no ar em 03/08/2026. O arquivo horizontal branco é o certo para o
+  // cabeçalho escuro do portal.
   return (
-    <div className="flex items-center gap-2">
-      <span className="inline-flex items-center justify-center w-6 h-6 rounded-[7px]" style={{ background: "rgba(154,245,240,0.15)" }}>
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-          <circle cx="6" cy="6" r="3.4" stroke="#9AF5F0" strokeWidth="1.4" />
-          <circle cx="6" cy="6" r="1" fill="#9AF5F0" />
-        </svg>
-      </span>
-      <span className="text-[14px] font-bold tracking-tight text-white">
-        Dioli<span style={{ color: "#9AF5F0" }}>Digital</span>
-      </span>
+    <div className="flex items-center">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/brand/dioli-logo-h-white.png" alt="Dioli Digital" className="h-6 w-auto" />
     </div>
   );
 }

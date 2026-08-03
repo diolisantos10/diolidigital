@@ -22,7 +22,7 @@ import { aprovarDirecao, aprovarPacote } from "@/lib/agency/esteira/marcos";
 export const maxDuration = 300;
 
 /** Resolve a solicitação do cliente a partir do token. Único caminho público. */
-async function solicitacaoDoToken(token: string): Promise<{ id: string } | { erro: string; codigo: number }> {
+async function solicitacaoDoToken(token: string): Promise<{ id: string } | { erro: string; codigo: number; clientId?: string }> {
   const acesso = await validatePortalAccess(token);
   if (!acesso.valid) return { erro: "Acesso negado", codigo: 403 };
 
@@ -37,8 +37,53 @@ async function solicitacaoDoToken(token: string): Promise<{ id: string } | { err
     orderBy: { createdAt: "desc" },
     select: { id: true },
   });
-  if (!ultima) return { erro: "Ainda não há projeto para acompanhar", codigo: 404 };
+  if (!ultima) return { erro: "Ainda não há projeto para acompanhar", codigo: 404, clientId };
   return { id: ultima.id };
+}
+
+/**
+ * Cliente que entrou DIRETO (sem passar pelo briefing público) não tem
+ * solicitação — mas pode ter projeto. Foi o caso da Foocci no lançamento: o
+ * portal respondia "não consegui carregar" para um projeto que existia e
+ * estava andando. A trilha aqui é derivada dos três carimbos do Project — os
+ * momentos que aconteceram — nunca de um status escrito à mão.
+ */
+async function trilhaDoProjetoDireto(clientId: string) {
+  const p = await prisma.project.findFirst({
+    where: { clientId },
+    orderBy: { createdAt: "desc" },
+    select: { name: true, presentedAt: true, clientApprovedAt: true, directionApprovedAt: true },
+  });
+  if (!p) return null;
+
+  const etapas = [
+    { etapa: "Projeto aberto", feito: true },
+    { etapa: "Produção", feito: Boolean(p.presentedAt) },
+    { etapa: "Sua aprovação", feito: Boolean(p.clientApprovedAt) },
+    { etapa: "No ar", feito: false },
+  ];
+  const atual = etapas.findIndex((e) => !e.feito);
+  const trilha = etapas.map((e, i) => ({
+    etapa: e.etapa,
+    estado: (i < atual || atual === -1 ? "feito" : i === atual ? "atual" : "futuro") as "feito" | "atual" | "futuro",
+  }));
+
+  const aguardandoCliente = Boolean(p.presentedAt && !p.clientApprovedAt);
+  return {
+    ok: true,
+    temProjeto: true,
+    projeto: p.name,
+    etapa: aguardandoCliente ? "Esperando a sua aprovação" : "Em produção",
+    agora: aguardandoCliente
+      ? "O pacote está pronto — dê uma olhada na aba Aprovações."
+      : "A equipe está produzindo. Quando algo precisar de você, aparece nas pendências.",
+    oQueEsperamosDeVoce: aguardandoCliente ? "Aprovar ou pedir ajustes na aba Aprovações." : null,
+    aBolaEstaComVoce: aguardandoCliente,
+    progresso: Math.round(((atual === -1 ? etapas.length : atual) / etapas.length) * 100),
+    trilha,
+    pendencias: [],
+    ciclo: null,
+  };
 }
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
@@ -47,7 +92,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   if (!token) return NextResponse.json({ error: "token é obrigatório" }, { status: 400 });
 
   const alvo = await solicitacaoDoToken(token);
-  if ("erro" in alvo) return NextResponse.json({ error: alvo.erro }, { status: alvo.codigo });
+  if ("erro" in alvo) {
+    // Sem solicitação de briefing, mas com projeto? A trilha vem do projeto.
+    if ("clientId" in alvo && alvo.clientId) {
+      const direto = await trilhaDoProjetoDireto(alvo.clientId);
+      if (direto) return NextResponse.json(direto);
+    }
+    return NextResponse.json({ error: alvo.erro }, { status: alvo.codigo });
+  }
 
   const status = await statusPelaSolicitacao(alvo.id);
   if (!status) {
