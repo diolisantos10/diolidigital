@@ -12,12 +12,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { gravarCookieDoPortal } from "@/lib/agency/persistence/portal-cookie";
 
+/** Atrás do proxy do Railway, `request.url` carrega o host INTERNO
+ *  (0.0.0.0:8080) — um redirect montado com ele manda o cliente para um
+ *  endereço que não existe. O host verdadeiro vem nos cabeçalhos forwarded,
+ *  como já faz /api/meta/connect. */
+function urlPublica(request: NextRequest, caminho: string): URL {
+  const proto = request.headers.get("x-forwarded-proto") ?? "https";
+  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+  return host ? new URL(`${proto}://${host}${caminho}`) : new URL(caminho, request.url);
+}
+
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const token = request.nextUrl.searchParams.get("token")?.trim();
   if (!token) {
-    return NextResponse.redirect(new URL("/portal/invalid", request.url));
+    return NextResponse.redirect(urlPublica(request, "/portal/invalid"));
   }
-  const response = NextResponse.redirect(new URL("/portal/access/me", request.url));
+  const response = NextResponse.redirect(urlPublica(request, "/portal/access/me"));
   gravarCookieDoPortal(response, request, token);
   return response;
 }
