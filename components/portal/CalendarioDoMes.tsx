@@ -124,7 +124,7 @@ export function CalendarioDoMes({ pecas, token }: { pecas: PecaDoCalendario[]; t
                         // resto da mídia: o token do portal é quem autoriza.
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
-                          src={`${p.mediaUrl}${p.mediaUrl.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`}
+                          src={token ? `${p.mediaUrl}${p.mediaUrl.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}` : p.mediaUrl}
                           alt=""
                           loading="lazy"
                           className="h-full w-full object-cover"

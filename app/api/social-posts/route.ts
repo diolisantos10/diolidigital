@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { requireSession } from "@/lib/auth/api-guard";
 import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-service";
+import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
 
 interface DbPost {
   id: string; clientId: string | null; clientRequestId: string | null;
@@ -52,7 +53,8 @@ async function resolveTokenRequestId(token: string): Promise<string | null | fal
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const { searchParams } = new URL(request.url);
-  const token = searchParams.get("token");
+  // A4: query (compatibilidade) ou cookie httpOnly da sessão de portal.
+  const token = tokenDoPortal(request, searchParams.get("token"));
 
   if (token) {
     const reqId = await resolveTokenRequestId(token);

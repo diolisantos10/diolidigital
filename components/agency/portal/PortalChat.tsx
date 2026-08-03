@@ -70,6 +70,8 @@ export function PortalChat({ token, clientRequestId, suggestContext, authorName,
   const endRef = useRef<HTMLDivElement>(null);
 
   // Team side only: draft a message with AI, drop it in the box for review.
+  // Cliente pode chegar sem token (A4, modo cookie): equipe é só quem traz
+  // clientRequestId com sessão.
   const isTeam = !token && !!clientRequestId;
   async function suggestMessage() {
     if (suggesting || !clientRequestId) return;
@@ -113,11 +115,13 @@ export function PortalChat({ token, clientRequestId, suggestContext, authorName,
 
   const query = token
     ? `token=${encodeURIComponent(token)}`
-    : `clientRequestId=${encodeURIComponent(clientRequestId ?? "")}`;
+    : clientRequestId
+      ? `clientRequestId=${encodeURIComponent(clientRequestId)}`
+      : ""; // A4: modo cookie — o httpOnly do portal autentica sozinho
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch(`/api/portal/messages?${query}`);
+      const res = await fetch(query ? `/api/portal/messages?${query}` : "/api/portal/messages");
       if (!res.ok) {
         if (loading) setError("Não foi possível carregar a conversa.");
         return;
@@ -152,7 +156,7 @@ export function PortalChat({ token, clientRequestId, suggestContext, authorName,
     // Optimistic append.
     const optimistic: ChatMessage = {
       id: "tmp-" + Date.now(),
-      authorRole: token ? "client" : "team",
+      authorRole: clientRequestId && !token ? "team" : "client",
       authorName: authorName ?? "",
       body: text,
       createdAt: new Date().toISOString(),

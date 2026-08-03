@@ -15,6 +15,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-service";
+import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
 import { statusPelaSolicitacao } from "@/lib/agency/esteira/retrato";
 import { aprovarDirecao, aprovarPacote } from "@/lib/agency/esteira/marcos";
 
@@ -41,7 +42,8 @@ async function solicitacaoDoToken(token: string): Promise<{ id: string } | { err
 }
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const token = new URL(request.url).searchParams.get("token");
+  // A4: query (compatibilidade) ou cookie httpOnly da sessão de portal.
+  const token = tokenDoPortal(request, new URL(request.url).searchParams.get("token"));
   if (!token) return NextResponse.json({ error: "token é obrigatório" }, { status: 400 });
 
   const alvo = await solicitacaoDoToken(token);
@@ -78,7 +80,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   let body: { token?: string; decisao?: string };
   try { body = await request.json(); } catch { return NextResponse.json({ error: "JSON inválido" }, { status: 400 }); }
 
-  const token = body.token;
+  const token = tokenDoPortal(request, body.token);
   if (!token) return NextResponse.json({ error: "token é obrigatório" }, { status: 400 });
 
   const alvo = await solicitacaoDoToken(token);

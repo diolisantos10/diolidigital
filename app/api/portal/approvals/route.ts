@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-service";
+import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
 import {
   updateApprovalStatus,
   addApprovalComment,
@@ -45,7 +46,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { token, approvalRequestId, action } = body;
+  // A4: o token pode vir no corpo (links antigos) ou no cookie httpOnly de
+  // sessão do portal — o cookie é o caminho novo, o corpo é compatibilidade.
+  const token = tokenDoPortal(request, body.token);
+  const { approvalRequestId, action } = body;
   if (!token || !approvalRequestId || !action) {
     return NextResponse.json(
       { error: "token, approvalRequestId, action required" },

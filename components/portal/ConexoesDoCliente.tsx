@@ -38,7 +38,8 @@ export function ConexoesDoCliente({ token }: { token: string }) {
   const load = useCallback(async () => {
     try {
       setError(null);
-      const res = await fetch(`/api/portal/conexoes?token=${encodeURIComponent(token)}`);
+      // A4: sem token na mão (URL limpa), o cookie httpOnly autentica sozinho.
+      const res = await fetch(token ? `/api/portal/conexoes?token=${encodeURIComponent(token)}` : "/api/portal/conexoes");
       if (!res.ok) {
         setError("Não foi possível carregar suas conexões. Tente novamente em instantes.");
         return;
@@ -72,7 +73,11 @@ export function ConexoesDoCliente({ token }: { token: string }) {
 
   function abrirPopup() {
     setPopupMsg(null);
-    const url = `/api/meta/connect-parceiro?token=${encodeURIComponent(token)}`;
+    // Em modo cookie (A4) o navegador não conhece o token — a ponte
+    // /api/portal/conectar-meta lê o cookie e repassa ao fluxo OAuth existente.
+    const url = token
+      ? `/api/meta/connect-parceiro?token=${encodeURIComponent(token)}`
+      : "/api/portal/conectar-meta";
     window.open(url, "meta_oauth", "width=620,height=760,menubar=no,toolbar=no");
   }
 

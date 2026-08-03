@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-service";
+import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
 import { requireSession } from "@/lib/auth/api-guard";
 
 // O nome que o CLIENTE vê. Precisa cobrir os dois vocabulários: o do Brain
@@ -27,9 +28,12 @@ const CLIENT_SAFE_DEPARTMENTS: Record<string, string> = {
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const { searchParams } = new URL(request.url);
-  const token           = searchParams.get("token");
   const clientRequestId = searchParams.get("clientRequestId");
   const clientId        = searchParams.get("clientId");
+  // A4: o cookie httpOnly vale como o token — mas só quando a chamada não é o
+  // caminho interno (sessão + clientRequestId/clientId explícitos).
+  const token = searchParams.get("token")
+    ?? (clientRequestId || clientId ? null : tokenDoPortal(request));
 
   // Token-based access — the only public path. Everything else needs a session.
   if (token) {
@@ -244,6 +248,9 @@ async function buildPortalData(clientRequestId: string) {
       department: CLIENT_SAFE_DEPARTMENTS[ap.department] ?? ap.department,
       status:     ap.status,
       reviewedAt: ap.reviewedAt,
+      // Prazo do card (spec 1.1, conteúdo obrigatório) — a derivação "expirada"
+      // é feita na leitura, nunca gravada (T6).
+      expiresAt:  ap.expiresAt,
       // "Dúvida aberta" (caminho C): o prazo está pausado e a bola com a agência.
       questionOpen: ap.questionOpenedAt != null,
       // Qual versão o cliente está decidindo — v1 preservada, v2 na mesa.

@@ -44,7 +44,8 @@ export default function EsteiraDoCliente({ token }: { token: string }) {
 
   const buscar = useCallback(async () => {
     try {
-      const r = await fetch(`/api/portal/esteira?token=${encodeURIComponent(token)}`, { cache: "no-store" });
+      // A4: token vazio = modo cookie — o httpOnly autentica sozinho.
+      const r = await fetch(token ? `/api/portal/esteira?token=${encodeURIComponent(token)}` : "/api/portal/esteira", { cache: "no-store" });
       setEstado(await r.json());
     } catch {
       setEstado(null);
@@ -61,7 +62,7 @@ export default function EsteiraDoCliente({ token }: { token: string }) {
       const r = await fetch("/api/portal/esteira", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, decisao }),
+        body: JSON.stringify(token ? { token, decisao } : { decisao }),
       });
       const dados = await r.json();
       setRecado(dados.mensagem ?? null);

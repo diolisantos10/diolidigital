@@ -1,19 +1,35 @@
 "use client";
 
-// ── Client Portal — the agency ↔ client communication room ──────────────────
-// A premium, branded, mobile-first space where the client sees results, tracks
-// delivery, approves materials, connects their tools (Drive, Meta, Analytics…),
-// and talks to the team. Token-authenticated (no login), personalised with the
-// client's business name under the Dioli brand.
+// ── Portal do Cliente — Hub v1 (Fase 3 → Lote 2) ─────────────────────────────
+// A tela do cliente inteira montada com os 6 blocos da spec
+// (docs/projetos/hub/02-blocos-fluxos-navegacao.md) e EXATAMENTE 6 itens de
+// navegação: Início · Projetos · Aprovações · Resultados · Arquivos · Conta.
+// As ~10 abas antigas viraram estados internos — nada sumiu, mudou de casa.
+//
+// Regras que esta tela cumpre e que não são estilo, são contrato:
+//   • Início abre com "O que depende de você" — pendência ACIMA de qualquer
+//     métrica (o desenho antigo era o inverso: banner de aprovação no fim).
+//   • Métrica sem meta + comparação + ação NÃO renderiza. Os 4 tiles "—"
+//     morreram; Resultados mostra o estado honesto até o 1º ciclo fechar.
+//   • Aprovação tem os 3 caminhos (Aprovar / Solicitar ajustes / Tenho uma
+//     dúvida) — componente AprovacoesDoCliente.
+//   • Chat com o PM em todas as telas (adição do CEO, 03/08/2026): o cliente
+//     nunca fala com um departamento direto — fala com o PM, a ponte.
+//   • A4: o token sai da URL no primeiro acesso (cookie httpOnly + URL limpa).
 
-import { use, useCallback, useEffect, useState } from "react";
+import { use, useCallback, useEffect, useRef, useState } from "react";
 import { CalendarioDoMes } from "@/components/portal/CalendarioDoMes";
 import { ConexoesDoCliente } from "@/components/portal/ConexoesDoCliente";
 import { EnvioDeMaterial } from "@/components/portal/EnvioDeMaterial";
+import {
+  AprovacoesDoCliente,
+  type AprovacaoDoPortal,
+  type AcaoDeAprovacao,
+} from "@/components/portal/AprovacoesDoCliente";
 import { ChatDrawer } from "@/components/agency/portal/FloatingChat";
 import EsteiraDoCliente from "@/components/agency/portal/EsteiraDoCliente";
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// ── Tipos ────────────────────────────────────────────────────────────────────
 
 interface PipelineStep {
   id: string;
@@ -21,14 +37,6 @@ interface PipelineStep {
   department: string;
   approvedAt: string;
   version: number;
-}
-interface PortalApproval {
-  id: string;
-  department: string;
-  status: string;
-  reviewedAt: string | null;
-  reviewNote: string | null;
-  comments: Array<{ id: string; authorName: string; body: string; createdAt: string }>;
 }
 interface DeptContent { label: string; headline: string | null; bullets: string[]; approvedAt: string | null }
 interface PortalData {
@@ -43,7 +51,7 @@ interface PortalData {
   departments?: Record<string, DeptContent>;
   createdAt: string | null;
   pipeline: PipelineStep[];
-  approvals: PortalApproval[];
+  approvals: AprovacaoDoPortal[];
 }
 
 interface PortalPost {
@@ -57,45 +65,57 @@ interface PortalPost {
   status: string;
 }
 
-type SectionId = string;
-
-// A contracted service → its dedicated tab. Matches on keywords in the service
-// label, maps to the department canvas that feeds its content, and defines the
-// service-specific metric tiles (live once the client connects the accounts).
-interface ServiceTab {
-  id: string; label: string; icon: string; match: RegExp; deptKey: string;
-  metrics: { label: string; hint: string }[];
-  planTitle: string;
+interface EstadoEsteira {
+  ok: boolean;
+  temProjeto: boolean;
+  pendencias?: string[];
+  ciclo?: { referencia: string; resumo: string | null } | null;
 }
-const SERVICE_TABS: ServiceTab[] = [
-  {
-    id: "social", label: "Social Media", icon: "◆", match: /social|redes|instagram|conte[úu]do/i, deptKey: "social",
-    metrics: [
-      { label: "Alcance", hint: "Conecte o Instagram" },
-      { label: "Seguidores", hint: "Conecte o Instagram" },
-      { label: "Engajamento", hint: "Conecte o Instagram" },
-      { label: "Stories/sem", hint: "Conecte o Instagram" },
-    ],
-    planTitle: "Seu plano de conteúdo",
-  },
-  {
-    id: "traffic", label: "Tráfego Pago", icon: "▲", match: /tr[áa]fego|ads|an[úu]ncio|m[íi]dia\s*paga/i, deptKey: "traffic",
-    metrics: [
-      { label: "Investimento", hint: "Conecte o Meta Ads" },
-      { label: "Cliques", hint: "Conecte o Meta Ads" },
-      { label: "Conversões", hint: "Conecte o Meta/Analytics" },
-      { label: "CTR", hint: "Conecte o Meta Ads" },
-    ],
-    planTitle: "Sua estratégia de anúncios",
-  },
-  {
-    id: "design", label: "Identidade Visual", icon: "✦", match: /identidade|design|marca|logo|visual/i, deptKey: "design",
-    metrics: [],
-    planTitle: "Direção visual da sua marca",
-  },
+
+interface ConexaoView { id: string; platform: string; name: string; status: string }
+
+type SecaoId = "inicio" | "projetos" | "aprovacoes" | "resultados" | "arquivos" | "conta";
+
+// ── Config ───────────────────────────────────────────────────────────────────
+
+// Os 6 itens — teto do briefing: nenhum entra sem remover outro.
+const NAV: { id: SecaoId; label: string }[] = [
+  { id: "inicio",     label: "Início" },
+  { id: "projetos",   label: "Projetos" },
+  { id: "aprovacoes", label: "Aprovações" },
+  { id: "resultados", label: "Resultados" },
+  { id: "arquivos",   label: "Arquivos" },
+  { id: "conta",      label: "Conta" },
 ];
 
-// ── Token sanitiser (paste artifacts) ────────────────────────────────────────
+// Serviço contratado → módulo dentro de Projetos (as antigas abas dinâmicas).
+const MODULOS_DE_SERVICO: { id: string; label: string; match: RegExp; deptKeys: string[] }[] = [
+  { id: "social",  label: "Social Media",      match: /social|redes|instagram|conte[úu]do/i, deptKeys: ["social", "social-media"] },
+  { id: "traffic", label: "Tráfego Pago",      match: /tr[áa]fego|ads|an[úu]ncio|m[íi]dia\s*paga/i, deptKeys: ["traffic", "paid-traffic"] },
+  { id: "design",  label: "Identidade Visual", match: /identidade|design|marca|logo|visual/i, deptKeys: ["design"] },
+];
+
+const STATUS_LABEL: Record<string, string> = {
+  new: "Recebido", waiting_strategy: "Diagnóstico estratégico",
+  waiting_social: "Planejamento de conteúdo", waiting_design: "Desenvolvimento visual",
+  waiting_traffic: "Configuração de tráfego", waiting_analytics: "Configuração de analytics",
+  waiting_quality: "Revisão final", in_progress: "Em execução", completed: "Concluído",
+  in_production: "Em produção", accepted: "Proposta aceita", quoted: "Proposta enviada",
+};
+
+const DECISAO_LABEL: Record<string, string> = {
+  approved: "aprovado por você",
+  revision_requested: "ajustes solicitados por você",
+  rejected: "recusado por você",
+};
+
+// Integrações futuras (além da Meta, que já é real em Conexões).
+const INTEGRACOES_FUTURAS: { key: string; name: string; desc: string; color: string; initials: string }[] = [
+  { key: "gdrive",     name: "Google Drive",     desc: "Repositório de fotos, vídeos e materiais", color: "#1FA463", initials: "GD" },
+  { key: "gads",       name: "Google Ads",       desc: "Campanhas e desempenho de anúncios",       color: "#4285F4", initials: "GA" },
+  { key: "ganalytics", name: "Google Analytics", desc: "Tráfego e conversões do site",             color: "#E8710A", initials: "GA" },
+  { key: "tiktok",     name: "TikTok",           desc: "Visualizações, seguidores e engajamento",  color: "#010101", initials: "TT" },
+];
 
 function sanitizePortalToken(raw: string): string {
   let t = raw.trim().replace(/^`+|`+$/g, "").trim();
@@ -103,175 +123,214 @@ function sanitizePortalToken(raw: string): string {
   return t;
 }
 
-// ── Config ───────────────────────────────────────────────────────────────────
-
-const DEPT_ORDER = ["strategy", "social", "design", "traffic", "analytics", "quality"];
-const DEPT_NAMES: Record<string, string> = {
-  strategy: "Estratégia", social: "Social Media", design: "Design",
-  traffic: "Tráfego Pago", analytics: "Analytics", quality: "Revisão de Qualidade",
-};
-
-const STATUS_LABEL: Record<string, string> = {
-  new: "Recebido", waiting_strategy: "Diagnóstico estratégico",
-  waiting_social: "Planejamento de conteúdo", waiting_design: "Desenvolvimento visual",
-  waiting_traffic: "Configuração de tráfego", waiting_analytics: "Configuração de analytics",
-  waiting_quality: "Revisão final", in_progress: "Em execução", completed: "Concluído",
-  // Estes três faltavam, e o fallback mostrava o nome CRU do banco no topo do
-  // portal — o cliente lia "in_production" em inglês e snake_case, na primeira
-  // coisa que ele vê da agência.
-  in_production: "Em produção", accepted: "Proposta aceita", quoted: "Proposta enviada",
-};
-const ACTION_LABEL: Record<string, string> = {
-  approve: "Aprovar", request_revision: "Pedir ajuste", reject: "Rejeitar",
-};
-
-// Marketing-agency integrations the client connects so the agency can pull data
-// and materials. `href` opens the OAuth flow when configured; otherwise the card
-// shows a "em breve" state. Google sign-in already exists, so Drive is first.
-const INTEGRATIONS: {
-  key: string; name: string; desc: string; category: string; color: string; initials: string; href?: string;
-}[] = [
-  { key: "gdrive",    name: "Google Drive",     desc: "Repositório de fotos, vídeos e materiais", category: "Arquivos", color: "#1FA463", initials: "GD" },
-  { key: "onedrive",  name: "OneDrive",         desc: "Alternativa de repositório (Microsoft)", category: "Arquivos", color: "#0364B8", initials: "OD" },
-  { key: "instagram", name: "Instagram",        desc: "Alcance, seguidores e engajamento", category: "Social", color: "#E1306C", initials: "IG" },
-  { key: "facebook",  name: "Facebook",         desc: "Página, alcance e engajamento", category: "Social", color: "#1877F2", initials: "FB" },
-  { key: "tiktok",    name: "TikTok",           desc: "Visualizações, seguidores e engajamento", category: "Social", color: "#010101", initials: "TT" },
-  { key: "linkedin",  name: "LinkedIn",         desc: "Página da empresa e engajamento B2B", category: "Social", color: "#0A66C2", initials: "IN" },
-  { key: "youtube",   name: "YouTube",          desc: "Inscritos, visualizações e retenção", category: "Social", color: "#FF0000", initials: "YT" },
-  { key: "pinterest", name: "Pinterest",        desc: "Pins, alcance e tráfego", category: "Social", color: "#E60023", initials: "PT" },
-  { key: "meta",      name: "Meta Business",    desc: "Facebook + Instagram Ads e páginas", category: "Tráfego", color: "#0668E1", initials: "MB" },
-  { key: "gads",      name: "Google Ads",       desc: "Campanhas e desempenho de anúncios", category: "Tráfego", color: "#4285F4", initials: "GA" },
-  { key: "tiktokads", name: "TikTok Ads",       desc: "Campanhas de mídia no TikTok", category: "Tráfego", color: "#010101", initials: "TA" },
-  { key: "ganalytics",name: "Google Analytics", desc: "Tráfego e conversões do site", category: "Analytics", color: "#E8710A", initials: "GA" },
-];
-
-// Visual metadata for every social network the client might run — so a
-// contracted platform always renders with its colour/initials, ready to connect.
-const PLATFORM_META: Record<string, { label: string; color: string; initials: string }> = {
-  instagram: { label: "Instagram", color: "#E1306C", initials: "IG" },
-  facebook:  { label: "Facebook",  color: "#1877F2", initials: "FB" },
-  tiktok:    { label: "TikTok",    color: "#010101", initials: "TT" },
-  linkedin:  { label: "LinkedIn",  color: "#0A66C2", initials: "IN" },
-  youtube:   { label: "YouTube",   color: "#FF0000", initials: "YT" },
-  pinterest: { label: "Pinterest", color: "#E60023", initials: "PT" },
-  twitter:   { label: "X (Twitter)", color: "#111", initials: "X" },
-  threads:   { label: "Threads",   color: "#111", initials: "@" },
-};
-const PT_MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-
-function platformMeta(name: string) {
-  const key = name.toLowerCase().replace(/[^a-z]/g, "");
-  for (const k of Object.keys(PLATFORM_META)) if (key.includes(k)) return PLATFORM_META[k];
-  return { label: name, color: "#6B6B65", initials: name.slice(0, 2).toUpperCase() };
+function dataCurta(iso: string | null): string | null {
+  if (!iso) return null;
+  return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
 }
 
-// ── Brand mark ───────────────────────────────────────────────────────────────
+// ── Marca ────────────────────────────────────────────────────────────────────
 
-function DioliMark({ light = true }: { light?: boolean }) {
+function DioliMark() {
   return (
     <div className="flex items-center gap-2">
-      <span className="inline-flex items-center justify-center w-6 h-6 rounded-[7px]"
-            style={{ background: light ? "rgba(154,245,240,0.15)" : "#070A1F" }}>
+      <span className="inline-flex items-center justify-center w-6 h-6 rounded-[7px]" style={{ background: "rgba(154,245,240,0.15)" }}>
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-          <circle cx="6" cy="6" r="3.4" stroke={light ? "#9AF5F0" : "#fff"} strokeWidth="1.4" />
-          <circle cx="6" cy="6" r="1" fill={light ? "#9AF5F0" : "#fff"} />
+          <circle cx="6" cy="6" r="3.4" stroke="#9AF5F0" strokeWidth="1.4" />
+          <circle cx="6" cy="6" r="1" fill="#9AF5F0" />
         </svg>
       </span>
-      <span className="text-[14px] font-bold tracking-tight" style={{ color: light ? "#fff" : "#070A1F" }}>
+      <span className="text-[14px] font-bold tracking-tight text-white">
         Dioli<span style={{ color: "#9AF5F0" }}>Digital</span>
       </span>
     </div>
   );
 }
 
-// ── Metric tile ──────────────────────────────────────────────────────────────
+// ── Blocos de apoio ──────────────────────────────────────────────────────────
 
-function MetricTile({ label, value, hint, locked }: { label: string; value: string; hint?: string; locked?: boolean }) {
+function TituloDeBloco({ n, children }: { n: number; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-[14px] border border-[var(--border)] px-4 py-3.5 shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
-      <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em]">{label}</div>
-      <div className={`text-[24px] font-bold mt-1 tabular-nums ${locked ? "text-[var(--border-strong)]" : "text-[var(--text-primary)]"}`}>
-        {value}
-      </div>
-      {hint && <div className="text-[10px] text-[var(--text-subtle)] mt-0.5">{hint}</div>}
-    </div>
+    <h2 className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--text-muted)] mb-2.5">
+      <span aria-hidden className="w-[18px] h-[18px] rounded-[6px] bg-[#070A1F] text-white text-[10px] font-mono flex items-center justify-center">{n}</span>
+      {children}
+    </h2>
   );
 }
 
-// ── Main ─────────────────────────────────────────────────────────────────────
+function LinhaDePendencia({
+  icone, fundo, titulo, porque, meta, onClick,
+}: {
+  icone: string; fundo: string; titulo: string; porque: string; meta: string; onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      style={{ touchAction: "manipulation" }}
+      className="w-full flex items-start gap-3 px-4 py-3.5 text-left border-t border-[var(--border)] first:border-t-0 hover:bg-[var(--bg-elevated)] transition-colors"
+    >
+      <span aria-hidden className="shrink-0 w-9 h-9 rounded-[9px] flex items-center justify-center text-[15px]" style={{ background: fundo }}>{icone}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[13.5px] font-semibold text-[var(--text-primary)] leading-snug">{titulo}</span>
+        <span className="block text-[12.5px] text-[var(--text-secondary)] mt-0.5 leading-snug">{porque}</span>
+        <span className="block text-[11.5px] text-[var(--text-muted)] mt-1">{meta}</span>
+      </span>
+      <span aria-hidden className="self-center text-[var(--text-subtle)]">›</span>
+    </button>
+  );
+}
+
+// ── Página ───────────────────────────────────────────────────────────────────
 
 export default function ClientPortalPage({ params }: { params: Promise<{ token: string }> }) {
   const { token: rawToken } = use(params);
-  const token = sanitizePortalToken(rawToken);
+  const tokenDaUrl = sanitizePortalToken(rawToken);
+  // "me" é a URL limpa da correção A4: sem token no caminho, o cookie httpOnly
+  // autentica cada chamada. Token real no caminho = link antigo (compatível).
+  const modoCookie = tokenDaUrl === "me";
+  const token = modoCookie ? "" : tokenDaUrl;
+  const q = token ? `?token=${encodeURIComponent(token)}` : "";
 
   const [data, setData] = useState<PortalData | null>(null);
+  const [esteira, setEsteira] = useState<EstadoEsteira | null>(null);
+  const [conexoes, setConexoes] = useState<ConexaoView[]>([]);
+  const [posts, setPosts] = useState<PortalPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [section, setSection] = useState<SectionId>("overview");
 
-  const [comments, setComments] = useState<Record<string, string>>({});
-  const [submitting, setSubmitting] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const [secao, setSecao] = useState<SecaoId>("inicio");
+  const [aprovacaoAberta, setAprovacaoAberta] = useState<string | null>(null);
+  const [enviando, setEnviando] = useState(false);
+  const [erroDecisao, setErroDecisao] = useState<string | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
-  const [posts, setPosts] = useState<PortalPost[]>([]);
+  const trocouUrl = useRef(false);
+
+  // A4: chegou com token no CAMINHO → troca por cookie e limpa a URL sem
+  // recarregar. O token em memória continua servindo esta visita; a próxima já
+  // nasce limpa.
+  useEffect(() => {
+    if (modoCookie || trocouUrl.current || !token) return;
+    trocouUrl.current = true;
+    void (async () => {
+      try {
+        const res = await fetch("/api/portal/session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token }),
+        });
+        if (res.ok) {
+          const limpa = `/portal/access/me${window.location.search}${window.location.hash}`;
+          window.history.replaceState(null, "", limpa);
+        }
+      } catch { /* sem cookie a visita segue pelo token — nada quebra */ }
+    })();
+  }, [modoCookie, token]);
+
+  // Deep-link de seção (?secao=aprovacoes&aprovacao=<id>) — é o que permite a
+  // pendência do Início apontar direto para o card certo.
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    const s = sp.get("secao") as SecaoId | null;
+    if (s && NAV.some((n) => n.id === s)) setSecao(s);
+    const ap = sp.get("aprovacao");
+    if (ap) { setSecao("aprovacoes"); setAprovacaoAberta(ap); }
+  }, []);
+
+  function irPara(s: SecaoId, aprovacaoId?: string | null) {
+    setSecao(s);
+    setAprovacaoAberta(aprovacaoId ?? null);
+    setErroDecisao(null);
+    const sp = new URLSearchParams(window.location.search);
+    sp.set("secao", s);
+    if (aprovacaoId) sp.set("aprovacao", aprovacaoId); else sp.delete("aprovacao");
+    window.history.replaceState(null, "", `${window.location.pathname}?${sp.toString()}`);
+    window.scrollTo({ top: 0 });
+  }
 
   const loadData = useCallback(async () => {
-    if (!token) return;
     try {
-      const res = await fetch(`/api/brain/portal-data?token=${encodeURIComponent(token)}`);
+      const res = await fetch(`/api/brain/portal-data${q}`);
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));
         setError(json.reason === "expired" ? "expired" : json.reason === "revoked" ? "revoked" : "invalid");
         return;
       }
       setData(await res.json());
+      setError(null);
     } catch {
       setError("network");
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [q]);
 
   useEffect(() => { void loadData(); }, [loadData]);
 
-  // Editorial calendar — the posts the agency programmed for this client.
-  // Read-only here; the agency edits them in the Planner.
+  // Pendências de material e ciclo — mesma fonte da trilha (esteira).
   useEffect(() => {
-    if (!token) return;
     void (async () => {
       try {
-        const res = await fetch(`/api/social-posts?token=${encodeURIComponent(token)}`);
+        const res = await fetch(`/api/portal/esteira${q}`, { cache: "no-store" });
+        if (res.ok) setEsteira(await res.json());
+      } catch { /* o Início ainda funciona sem a esteira */ }
+    })();
+  }, [q]);
+
+  // Conexões — para a pendência "conta quebrada" do Início.
+  useEffect(() => {
+    void (async () => {
+      try {
+        const res = await fetch(`/api/portal/conexoes${q}`);
+        if (res.ok) {
+          const json = await res.json();
+          setConexoes(Array.isArray(json.conexoes) ? json.conexoes : []);
+        }
+      } catch { /* sem conexões o bloco só não lista essa pendência */ }
+    })();
+  }, [q]);
+
+  // Calendário editorial (módulo Social dentro de Projetos).
+  useEffect(() => {
+    void (async () => {
+      try {
+        const res = await fetch(`/api/social-posts${q}`);
         if (res.ok) {
           const json = await res.json();
           setPosts(Array.isArray(json.posts) ? json.posts : []);
         }
-      } catch { /* portal still works without the calendar */ }
+      } catch { /* portal funciona sem o calendário */ }
     })();
-  }, [token]);
+  }, [q]);
 
-  async function handleDecision(approvalId: string, action: "approve" | "request_revision" | "reject") {
-    if (submitting) return;
-    setSubmitting(approvalId);
-    setActionError(null);
+  async function decidir(approvalId: string, action: AcaoDeAprovacao, comment?: string): Promise<boolean> {
+    if (enviando) return false;
+    setEnviando(true);
+    setErroDecisao(null);
     try {
       const res = await fetch("/api/portal/approvals", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, approvalRequestId: approvalId, action, comment: comments[approvalId]?.trim() || undefined }),
+        body: JSON.stringify({
+          ...(token ? { token } : {}),
+          approvalRequestId: approvalId,
+          action,
+          comment: comment?.trim() || undefined,
+        }),
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({} as { error?: string }));
         throw new Error(j.error ?? `Falha HTTP ${res.status}`);
       }
       await loadData();
+      return true;
     } catch (e) {
-      setActionError(e instanceof Error ? e.message : "Erro ao registrar decisão.");
+      setErroDecisao(e instanceof Error ? e.message : "Erro ao registrar. Tente novamente.");
+      return false;
     } finally {
-      setSubmitting(null);
+      setEnviando(false);
     }
   }
 
-  // ── Error / loading gates ──────────────────────────────────────────────────
+  // ── Portões de carregamento / erro ────────────────────────────────────────
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--bg-elevated)]">
@@ -301,86 +360,78 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
     );
   }
 
-  const completedDepts = new Set(data.pipeline.map((p) => p.departmentKey));
-  // Sem fallback para o valor cru: um status novo no banco não pode vazar em
-  // inglês para a tela do cliente. Desconhecido vira uma frase que serve
-  // sempre, e o buraco aparece para nós, não para ele.
+  // ── Derivações ────────────────────────────────────────────────────────────
+  const pendentes = data.approvals.filter((a) => a.status === "pending");
+  const decididas = data.approvals
+    .filter((a) => a.status !== "pending" && a.reviewedAt)
+    .sort((a, b) => (b.reviewedAt ?? "").localeCompare(a.reviewedAt ?? ""));
+  const materiaisPedidos = esteira?.pendencias ?? [];
+  const conexoesQuebradas = conexoes.filter((c) => ["expired", "revoked", "error"].includes(c.status));
+  const totalPendencias = pendentes.length + materiaisPedidos.length + conexoesQuebradas.length;
   const currentStatus = STATUS_LABEL[data.status] ?? "Em andamento";
-  const progress = Math.round((completedDepts.size / DEPT_ORDER.length) * 100);
-  const pendingApprovals = data.approvals.filter((a) => a.status === "pending");
-  const allComments = data.approvals.flatMap((a) => a.comments);
 
-  // A dedicated tab for each contracted service, in order, deduped.
-  const activeServiceTabs = SERVICE_TABS.filter((t) => data.services.some((s) => t.match.test(s)));
-  const seenSvc = new Set<string>();
-  const serviceTabs = activeServiceTabs.filter((t) => (seenSvc.has(t.id) ? false : (seenSvc.add(t.id), true)));
-  const navTabs = [
-    { id: "overview", label: "Visão Geral", icon: "◎" },
-    ...serviceTabs.map((t) => ({ id: t.id, label: t.label, icon: t.icon })),
-    { id: "calendario", label: "Calendário", icon: "▦" },
-    { id: "approvals", label: "Aprovações", icon: "✓" },
-    { id: "materials", label: "Materiais", icon: "↑" },
-    { id: "conexoes", label: "Conexões", icon: "⇄" },
-    { id: "integrations", label: "Integrações", icon: "⚡" },
-  ];
+  const modulosAtivos = MODULOS_DE_SERVICO.filter((m) => data.services.some((s) => m.match.test(s)));
+  const entregasRecentes = [...data.pipeline]
+    .sort((a, b) => (b.approvedAt ?? "").localeCompare(a.approvedAt ?? ""))
+    .slice(0, 3);
+  // A ORDEM dos blocos é fixa (spec 3.2); o NÚMERO exibido é sequencial sobre
+  // o que renderiza — bloco oculto não deixa buraco na contagem ("1, 2, 4"
+  // parece bug para quem lê).
+  const numeroEntregas = 3;
+  const numeroDecisoes = entregasRecentes.length > 0 ? 4 : 3;
 
-  // ── Shell ──────────────────────────────────────────────────────────────────
+  const tituloDaAprovacao = (ap: AprovacaoDoPortal) => {
+    const primeira = ap.reviewNote?.split("\n")[0]?.trim();
+    return primeira && primeira.length <= 90 ? primeira : ap.department;
+  };
+
+  // ── Shell ─────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-[var(--bg-elevated)]">
-      {/* Branded header */}
+      {/* Cabeçalho de marca */}
       <header className="relative overflow-hidden" style={{ background: "linear-gradient(135deg, #0B0F2A 0%, #070A1F 55%, #0A0E24 100%)" }}>
         <div className="absolute inset-0 opacity-[0.15]" style={{ background: "radial-gradient(600px 200px at 80% -20%, #9AF5F0, transparent)" }} />
-        <div className="relative max-w-[860px] mx-auto px-5 pt-5 pb-16 sm:pb-20">
+        <div className="relative max-w-[860px] mx-auto px-5 pt-5 pb-12 sm:pb-14">
           <div className="flex items-center justify-between">
             <DioliMark />
             <span className="text-[11px] font-medium text-white/45">Portal do Cliente</span>
           </div>
-          <div className="mt-7 sm:mt-9 flex items-end justify-between gap-4">
-            <div className="min-w-0">
-              <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full text-[11px] font-semibold"
-                    style={{ background: "rgba(154,245,240,0.12)", color: "#9AF5F0" }}>
-                <span className="w-1.5 h-1.5 rounded-full bg-[#9AF5F0] animate-pulse" /> {currentStatus}
-              </span>
-              <h1 className="text-[26px] sm:text-[32px] font-bold text-white mt-2.5 tracking-tight leading-tight truncate">
-                {data.businessName}
-              </h1>
-              <p className="text-[13px] text-white/55 mt-1">Sua central de projeto com a Dioli — resultados, aprovações e comunicação num só lugar.</p>
-            </div>
-            {/* Single chat entry — talk to the team by text, voice or attachment */}
-            <button
-              onClick={() => setChatOpen(true)}
-              aria-label="Falar com a equipe"
-              style={{ touchAction: "manipulation", background: "rgba(154,245,240,0.14)", border: "1px solid rgba(154,245,240,0.22)" }}
-              className="shrink-0 inline-flex items-center gap-2 h-11 pl-3.5 pr-4 rounded-full text-white font-semibold text-[13px] transition-transform hover:scale-[1.03]"
-            >
-              <svg width="17" height="17" viewBox="0 0 20 20" fill="none">
-                <path d="M4 4h12a1 1 0 011 1v8a1 1 0 01-1 1H8l-3.5 3V14H4a1 1 0 01-1-1V5a1 1 0 011-1z" stroke="#9AF5F0" strokeWidth="1.4" strokeLinejoin="round" />
-              </svg>
-              <span className="hidden sm:block">Falar com a equipe</span>
-              <span className="w-2 h-2 rounded-full bg-[#22C55E]" />
-            </button>
+          <div className="mt-6 sm:mt-8">
+            <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full text-[11px] font-semibold" style={{ background: "rgba(154,245,240,0.12)", color: "#9AF5F0" }}>
+              <span className="w-1.5 h-1.5 rounded-full bg-[#9AF5F0] animate-pulse" /> {currentStatus}
+            </span>
+            <h1 className="text-[24px] sm:text-[30px] font-bold text-white mt-2.5 tracking-tight leading-tight truncate">
+              {data.businessName}
+            </h1>
+            <p className="text-[13px] text-white/55 mt-1">
+              {totalPendencias === 0
+                ? "Nada pendente com você agora."
+                : totalPendencias === 1
+                  ? "1 pendência espera por você."
+                  : `${totalPendencias} pendências esperam por você.`}
+            </p>
           </div>
         </div>
       </header>
 
-      {/* Section nav (sticky, mobile-scrollable) */}
-      <div className="sticky top-0 z-20 bg-[var(--bg-elevated)]/90 backdrop-blur border-b border-[var(--border)] -mt-10 sm:-mt-12">
+      {/* Navegação — exatamente 6 itens */}
+      <nav aria-label="Navegação do portal" className="sticky top-0 z-20 bg-[var(--bg-elevated)]/92 backdrop-blur border-b border-[var(--border)] -mt-7 sm:-mt-8">
         <div className="max-w-[860px] mx-auto px-3">
           <div className="flex gap-1 overflow-x-auto no-scrollbar py-2.5">
-            {navTabs.map((s) => {
-              const active = section === s.id;
-              const badge = s.id === "approvals" ? pendingApprovals.length : 0;
+            {NAV.map((item) => {
+              const active = secao === item.id;
+              const badge = item.id === "aprovacoes" ? pendentes.length : 0;
               return (
                 <button
-                  key={s.id}
-                  onClick={() => setSection(s.id)}
+                  key={item.id}
+                  onClick={() => irPara(item.id)}
+                  aria-current={active ? "page" : undefined}
+                  style={{ touchAction: "manipulation" }}
                   className={`shrink-0 h-9 px-3.5 rounded-[9px] text-[13px] font-semibold transition-colors flex items-center gap-1.5 ${
                     active ? "bg-[#070A1F] text-white shadow-[0_2px_8px_rgba(7,10,31,0.2)]" : "text-[var(--text-secondary)] hover:bg-[#F0EFEB]"
                   }`}
-                  style={{ touchAction: "manipulation" }}
                 >
-                  <span className={active ? "text-[#9AF5F0]" : "text-[var(--text-subtle)]"}>{s.icon}</span>
-                  {s.label}
+                  {item.label}
                   {badge > 0 && (
                     <span className="ml-0.5 inline-flex items-center justify-center min-w-[17px] h-[17px] px-1 rounded-full text-[10px] font-bold bg-[#F59E0B] text-white">{badge}</span>
                   )}
@@ -389,86 +440,294 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
             })}
           </div>
         </div>
-      </div>
+      </nav>
 
-      {/* Content */}
-      <main className="max-w-[860px] mx-auto px-4 sm:px-5 py-6 pb-24">
+      <main className="max-w-[860px] mx-auto px-4 sm:px-5 py-6 pb-28">
 
-        {/* ── VISÃO GERAL ── */}
-        {section === "overview" && (
-          <div className="space-y-6">
-            {/* A ESTEIRA — a primeira coisa que o cliente lê. Em que pé está o
-                trabalho dele e se a bola está com ele ou com a gente. Vem antes
-                dos números de propósito: métrica sem contexto não explica nada
-                a quem não vive o processo. */}
-            <EsteiraDoCliente token={token} />
-
-            {/* Results */}
+        {/* ══ INÍCIO — ordem inegociável: pendência acima de tudo ══ */}
+        {secao === "inicio" && (
+          <div className="space-y-7">
+            {/* 1 · O que depende de você */}
             <section>
-              <div className="flex items-center justify-between mb-2.5">
-                <h2 className="text-[14px] font-bold text-[var(--text-primary)]">Seus resultados</h2>
-                <button onClick={() => setSection("integrations")} className="text-[11px] font-semibold text-[#12B5AC] hover:underline">
-                  Conectar contas →
-                </button>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                <MetricTile label="Alcance" value="—" hint="Conecte o Instagram" locked />
-                <MetricTile label="Seguidores" value="—" hint="Conecte o Instagram" locked />
-                <MetricTile label="Engajamento" value="—" hint="Conecte o Instagram" locked />
-                <MetricTile label="Progresso" value={`${progress}%`} hint={`${completedDepts.size}/${DEPT_ORDER.length} etapas`} />
-              </div>
-              <div className="mt-2.5 bg-gradient-to-r from-[#E6FBFA] to-[#F0FDFC] border border-[#C7EFEC] rounded-[12px] px-4 py-3 flex items-center justify-between gap-3">
-                <p className="text-[12px] text-[#0E5F5A] leading-snug">
-                  <span className="font-semibold">Veja seus números em tempo real.</span> Conecte suas redes e o Analytics para acompanhar alcance, engajamento e conversões aqui.
-                </p>
-                <button onClick={() => setSection("integrations")} className="shrink-0 h-8 px-3 rounded-[8px] bg-[#0E5F5A] text-white text-[12px] font-semibold hover:bg-[#0B4E4A] transition-colors">
-                  Conectar
-                </button>
-              </div>
+              <TituloDeBloco n={1}>O que depende de você</TituloDeBloco>
+              {totalPendencias === 0 ? (
+                <div className="bg-white rounded-[14px] border border-[var(--border)] p-6 text-center shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
+                  <p className="text-[13.5px] font-semibold text-[var(--text-primary)]">✅ Nada depende de você agora</p>
+                  <p className="text-[12px] text-[var(--text-muted)] mt-1">A equipe está trabalhando — quando precisarmos de você, aparece aqui primeiro.</p>
+                </div>
+              ) : (
+                <div className="bg-white rounded-[14px] border border-[var(--border)] overflow-hidden shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
+                  {pendentes.map((ap) => {
+                    const vencida = !ap.questionOpen && ap.expiresAt != null && new Date(ap.expiresAt) < new Date();
+                    return (
+                      <LinhaDePendencia
+                        key={ap.id}
+                        icone="✍️" fundo="#FEF3C7"
+                        titulo={`${tituloDaAprovacao(ap)} aguarda sua aprovação`}
+                        porque="Enquanto você não decide, a próxima etapa fica em espera."
+                        meta={ap.questionOpen
+                          ? "Prazo pausado — dúvida aguardando a agência"
+                          : vencida
+                            ? `O prazo venceu em ${dataCurta(ap.expiresAt)} — a entrega está aguardando você`
+                            : dataCurta(ap.expiresAt) ? `Prazo: ${dataCurta(ap.expiresAt)}` : "Decida em Aprovações"}
+                        onClick={() => irPara("aprovacoes", ap.id)}
+                      />
+                    );
+                  })}
+                  {materiaisPedidos.map((m, i) => (
+                    <LinhaDePendencia
+                      key={`mat-${i}`}
+                      icone="📤" fundo="#EFF6FF"
+                      titulo={m}
+                      porque="Sem este material, a produção fica parada."
+                      meta="Enviar em Arquivos"
+                      onClick={() => irPara("arquivos")}
+                    />
+                  ))}
+                  {conexoesQuebradas.map((c) => (
+                    <LinhaDePendencia
+                      key={c.id}
+                      icone="🔌" fundo="#FEF2F2"
+                      titulo={`${c.name || c.platform} desconectado — reconecte a conta`}
+                      porque="Sem a conexão, os posts aprovados não podem ser publicados."
+                      meta="Resolver em Conta"
+                      onClick={() => irPara("conta")}
+                    />
+                  ))}
+                </div>
+              )}
             </section>
 
-            {/* Delivery pipeline */}
-            <section className="bg-white rounded-[14px] border border-[var(--border)] p-5 shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-[14px] font-bold text-[var(--text-primary)]">Andamento da entrega</h2>
-                <span className="text-[12px] font-semibold text-[#12B5AC] tabular-nums">{progress}%</span>
-              </div>
-              <div className="h-1.5 rounded-full bg-[#F0EFEB] overflow-hidden mb-4">
-                <div className="h-full rounded-full transition-all" style={{ width: `${progress}%`, background: "linear-gradient(90deg,#12B5AC,#9AF5F0)" }} />
-              </div>
-              <div className="space-y-2.5">
-                {DEPT_ORDER.map((key, idx) => {
-                  const step = data.pipeline.find((p) => p.departmentKey === key);
-                  const done = completedDepts.has(key);
-                  return (
-                    <div key={key} className="flex items-center gap-3">
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${done ? "bg-[#DCFCE7] text-[#16A34A]" : "bg-[#F0EFEB] text-[var(--text-subtle)]"}`}>
-                        {done ? "✓" : idx + 1}
-                      </div>
-                      <span className={`text-[13px] ${done ? "text-[var(--text-primary)] font-medium" : "text-[var(--text-muted)]"}`}>{DEPT_NAMES[key] ?? key}</span>
-                      {step?.approvedAt && <span className="ml-auto text-[11px] text-[var(--text-subtle)]">{new Date(step.approvedAt).toLocaleDateString("pt-BR")}</span>}
-                    </div>
-                  );
-                })}
-              </div>
+            {/* 2 · Onde estamos */}
+            <section>
+              <TituloDeBloco n={2}>Onde estamos e o que vem</TituloDeBloco>
+              <EsteiraDoCliente token={token} />
             </section>
 
-            {/* Services */}
-            {data.services.length > 0 && (
+            {/* 3 · Entregas recentes — só renderiza quando existe entrega */}
+            {entregasRecentes.length > 0 && (
               <section>
-                <h2 className="text-[14px] font-bold text-[var(--text-primary)] mb-2.5">Serviços contratados</h2>
-                <div className="flex flex-wrap gap-2">
-                  {data.services.map((s, i) => (
-                    <span key={i} className="h-8 px-3.5 rounded-[9px] bg-white border border-[var(--border)] text-[var(--text-primary)] text-[12px] font-medium flex items-center shadow-[0_1px_2px_rgba(7,10,31,0.03)]">{s}</span>
+                <TituloDeBloco n={numeroEntregas}>Entregas recentes</TituloDeBloco>
+                <div className="bg-white rounded-[14px] border border-[var(--border)] overflow-hidden shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
+                  {entregasRecentes.map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => irPara("projetos")}
+                      style={{ touchAction: "manipulation" }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left border-t border-[var(--border)] first:border-t-0 hover:bg-[var(--bg-elevated)] transition-colors"
+                    >
+                      <span aria-hidden className="shrink-0 w-9 h-9 rounded-[9px] bg-[var(--accent)] flex items-center justify-center text-[15px]">🎨</span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[13.5px] font-semibold text-[var(--text-primary)]">{p.department}</span>
+                        <span className="text-[12px] text-[var(--text-secondary)]">v{p.version}</span>
+                      </span>
+                      <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full text-[11px] font-semibold bg-[#DCFCE7] text-[#16A34A] shrink-0">
+                        Aprovado {dataCurta(p.approvedAt)}
+                      </span>
+                    </button>
                   ))}
                 </div>
               </section>
             )}
 
-            {/* Sobre o negócio — o que a Dioli entendeu do cliente */}
+            {/* 4 · Decisões registradas — lista vazia não renderiza */}
+            {decididas.length > 0 && (
+              <section>
+                <TituloDeBloco n={numeroDecisoes}>Decisões registradas</TituloDeBloco>
+                <div className="bg-white rounded-[14px] border border-[var(--border)] overflow-hidden shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
+                  {decididas.slice(0, 3).map((d) => (
+                    <button
+                      key={d.id}
+                      onClick={() => irPara("aprovacoes", d.id)}
+                      style={{ touchAction: "manipulation" }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left border-t border-[var(--border)] first:border-t-0 hover:bg-[var(--bg-elevated)] transition-colors"
+                    >
+                      <span aria-hidden className="shrink-0 w-9 h-9 rounded-[9px] bg-[var(--accent)] flex items-center justify-center text-[15px]">📌</span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[13.5px] font-semibold text-[var(--text-primary)] truncate">
+                          {tituloDaAprovacao(d)}{d.version != null ? ` (v${d.version})` : ""} — {DECISAO_LABEL[d.status] ?? d.status}
+                        </span>
+                        <span className="text-[12px] text-[var(--text-secondary)]">Registrada em {dataCurta(d.reviewedAt)}</span>
+                      </span>
+                    </button>
+                  ))}
+                  <div className="px-4 py-2.5 border-t border-[var(--border)]">
+                    <button onClick={() => irPara("aprovacoes")} className="text-[12.5px] font-semibold text-[#12B5AC] hover:underline" style={{ touchAction: "manipulation" }}>
+                      Ver todas as decisões →
+                    </button>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* 5 · Resultado do ciclo — SÓ com meta + comparação + ação.
+                Sem ciclo fechado com dado completo, o bloco simplesmente não
+                existe: os tiles "—" morreram e não voltam como placeholder. */}
+          </div>
+        )}
+
+        {/* ══ PROJETOS — as abas de serviço viraram estados daqui ══ */}
+        {secao === "projetos" && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-[18px] font-bold text-[var(--text-primary)]">Projetos</h2>
+              <p className="text-[12.5px] text-[var(--text-secondary)] mt-0.5">O que a Dioli está construindo para você.</p>
+            </div>
+
+            <EsteiraDoCliente token={token} />
+
+            {data.services.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {data.services.map((s, i) => (
+                  <span key={i} className="h-8 px-3.5 rounded-[9px] bg-white border border-[var(--border)] text-[var(--text-primary)] text-[12px] font-medium flex items-center shadow-[0_1px_2px_rgba(7,10,31,0.03)]">{s}</span>
+                ))}
+              </div>
+            )}
+
+            {modulosAtivos.map((mod) => {
+              const dept = mod.deptKeys.map((k) => data.departments?.[k]).find(Boolean);
+              return (
+                <section key={mod.id} className="bg-white rounded-[14px] border border-[var(--border)] p-5 shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
+                  <div className="flex items-center justify-between mb-2.5">
+                    <h3 className="text-[14px] font-bold text-[var(--text-primary)]">{mod.label}</h3>
+                    {dept?.approvedAt && (
+                      <span className="h-5 px-2 rounded-full bg-[#DCFCE7] text-[#16A34A] text-[10px] font-semibold flex items-center">✓ Plano aprovado</span>
+                    )}
+                  </div>
+                  {dept && (dept.headline || dept.bullets.length > 0) ? (
+                    <>
+                      {dept.headline && <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed mb-2">{dept.headline}</p>}
+                      {dept.bullets.length > 0 && (
+                        <ul className="space-y-1.5">
+                          {dept.bullets.map((b, i) => (
+                            <li key={i} className="flex items-start gap-2 text-[12.5px] text-[var(--text-secondary)]"><span aria-hidden className="text-[#12B5AC] mt-0.5 shrink-0">•</span>{b}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-[13px] text-[var(--text-muted)]">A equipe está preparando o plano de {mod.label.toLowerCase()} — em breve aparece aqui.</p>
+                  )}
+
+                  {/* O calendário vive DENTRO do módulo Social — é um recorte do
+                      projeto, não um destino de topo (spec 3.1). */}
+                  {mod.id === "social" && (
+                    <div className="mt-4">
+                      <h4 className="text-[13px] font-bold text-[var(--text-primary)] mb-2">Calendário do mês</h4>
+                      <CalendarioDoMes pecas={posts} token={token} />
+                    </div>
+                  )}
+                </section>
+              );
+            })}
+
+            {modulosAtivos.length === 0 && (
+              <div className="bg-white rounded-[14px] border border-[var(--border)] p-7 text-center">
+                <p className="text-[13.5px] font-semibold text-[var(--text-primary)]">Seu projeto está sendo montado</p>
+                <p className="text-[12px] text-[var(--text-muted)] mt-1">Assim que os módulos do seu plano forem definidos, cada um aparece aqui.</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ══ APROVAÇÕES — lista + detalhe com os 3 caminhos ══ */}
+        {secao === "aprovacoes" && (
+          <AprovacoesDoCliente
+            aprovacoes={data.approvals}
+            abertaId={aprovacaoAberta}
+            onAbrir={(id) => irPara("aprovacoes", id)}
+            enviando={enviando}
+            erro={erroDecisao}
+            onDecidir={decidir}
+          />
+        )}
+
+        {/* ══ RESULTADOS — regra dura: métrica sem meta+comparação+ação não entra ══ */}
+        {secao === "resultados" && (
+          <div className="space-y-5">
+            <div>
+              <h2 className="text-[18px] font-bold text-[var(--text-primary)]">Resultados</h2>
+              <p className="text-[12.5px] text-[var(--text-secondary)] mt-0.5">
+                Só entra aqui métrica com meta, comparação e ação recomendada — número solto não informa nada.
+              </p>
+            </div>
+            {/* Estado honesto: nenhum ciclo fechado com dado completo ainda.
+                Um parágrafo, não tiles (spec 1.4 — sentença de morte dos "—"). */}
+            <div className="bg-white rounded-[14px] border border-[var(--border)] p-8 text-center shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
+              <div aria-hidden className="text-[22px] mb-2">⏳</div>
+              <p className="text-[14px] font-semibold text-[var(--text-primary)]">Resultados chegam no fechamento do 1º ciclo</p>
+              <p className="text-[12.5px] text-[var(--text-secondary)] mt-1.5 max-w-[46ch] mx-auto leading-relaxed">
+                {esteira?.ciclo
+                  ? `O ciclo ${esteira.ciclo.referencia} está em andamento. No fechamento, você vê cada número com a meta do ciclo, a comparação e o que faremos a respeito.`
+                  : "Quando o primeiro ciclo do seu projeto fechar, você vê cada número com a meta, a comparação com o período anterior e a ação recomendada."}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ══ ARQUIVOS (antiga Materiais) ══ */}
+        {secao === "arquivos" && (
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-[18px] font-bold text-[var(--text-primary)]">Arquivos</h2>
+              <p className="text-[12.5px] text-[var(--text-secondary)] mt-0.5">O que a equipe precisa de você — mande direto por aqui, sem criar conta em lugar nenhum.</p>
+            </div>
+
+            {materiaisPedidos.length > 0 && (
+              <div className="bg-[#FFFBEB] border border-[#FCE7A0] rounded-[12px] px-4 py-3">
+                <p className="text-[12.5px] font-semibold text-[#9B7B2D] mb-1">A produção está esperando:</p>
+                <ul className="space-y-1">
+                  {materiaisPedidos.map((m, i) => (
+                    <li key={i} className="flex items-start gap-2 text-[12.5px] text-[#B08D3E]"><span aria-hidden className="mt-0.5 shrink-0">•</span>{m}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <EnvioDeMaterial token={token} />
+
+            <div className="bg-white rounded-[14px] border border-[var(--border)] p-5">
+              <h3 className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-2">Arquivo muito grande?</h3>
+              <p className="text-[12px] text-[var(--text-secondary)]">
+                Se passar de 120 MB, mande um link (WeTransfer, Drive, Dropbox):{" "}
+                <button onClick={() => setChatOpen(true)} className="text-[#12B5AC] font-semibold hover:underline" style={{ touchAction: "manipulation" }}>fale com seu PM</button>{" "}
+                e cole o link na conversa.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ══ CONTA — conexões + integrações (fundidas) + contexto do negócio ══ */}
+        {secao === "conta" && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-[18px] font-bold text-[var(--text-primary)]">Conta</h2>
+              <p className="text-[12.5px] text-[var(--text-secondary)] mt-0.5">Suas conexões, seu plano e seu acesso.</p>
+            </div>
+
+            {/* Checklist de integrações — Conexões e Integrações eram duas abas
+                para a mesma ideia; agora são uma seção (spec 3.1). */}
+            <ConexoesDoCliente token={token} />
+
+            <section>
+              <h3 className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em] mb-2">Em breve</h3>
+              <div className="grid sm:grid-cols-2 gap-2.5">
+                {INTEGRACOES_FUTURAS.map((it) => (
+                  <div key={it.key} className="bg-white rounded-[12px] border border-[var(--border)] p-3.5 flex items-center gap-3">
+                    <span aria-hidden className="w-9 h-9 rounded-[9px] flex items-center justify-center text-white text-[11px] font-bold shrink-0" style={{ background: it.color }}>{it.initials}</span>
+                    <div className="min-w-0">
+                      <p className="text-[13px] font-semibold text-[var(--text-primary)]">{it.name}</p>
+                      <p className="text-[11.5px] text-[var(--text-secondary)] leading-snug">{it.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[11px] text-[var(--text-subtle)] mt-2.5">🔒 Toda conexão é feita pela autorização oficial da plataforma (OAuth). Você nunca digita senha aqui, e tokens nunca aparecem.</p>
+            </section>
+
             {(data.segment || data.targetAudience || data.objectives.length > 0) && (
               <section className="bg-white rounded-[14px] border border-[var(--border)] p-5 shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
-                <h2 className="text-[14px] font-bold text-[var(--text-primary)] mb-3">Sobre o seu negócio</h2>
+                <h3 className="text-[14px] font-bold text-[var(--text-primary)] mb-3">Sobre o seu negócio</h3>
                 <div className="space-y-3">
                   {data.segment && (
                     <div>
@@ -496,252 +755,14 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
               </section>
             )}
 
-            {pendingApprovals.length > 0 && (
-              <button onClick={() => setSection("approvals")} className="w-full bg-[#FFFBEB] border border-[#FCE7A0] rounded-[12px] px-4 py-3 flex items-center justify-between text-left hover:bg-[#FEF9E0] transition-colors">
-                <div>
-                  <p className="text-[13px] font-semibold text-[#9B7B2D]">{pendingApprovals.length} {pendingApprovals.length === 1 ? "item aguarda" : "itens aguardam"} sua aprovação</p>
-                  <p className="text-[11px] text-[#B08D3E] mt-0.5">Toque para revisar e aprovar</p>
-                </div>
-                <span className="text-[#9B7B2D] text-[18px]">→</span>
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* ── ABAS POR SERVIÇO (dinâmicas) ── */}
-        {serviceTabs.map((tab) => {
-          if (section !== tab.id) return null;
-          const dept = data.departments?.[tab.deptKey];
-          return (
-            <div key={tab.id} className="space-y-6">
-              <div>
-                <h2 className="text-[18px] font-bold text-[var(--text-primary)]">{tab.label}</h2>
-                <p className="text-[13px] text-[var(--text-secondary)] mt-0.5">Métricas, plano e entregas de {tab.label.toLowerCase()} num só lugar.</p>
-              </div>
-
-              {tab.metrics.length > 0 && (
-                <section>
-                  <div className="flex items-center justify-between mb-2.5">
-                    <h3 className="text-[14px] font-bold text-[var(--text-primary)]">Resultados</h3>
-                    <button onClick={() => setSection("integrations")} className="text-[11px] font-semibold text-[#12B5AC] hover:underline">Conectar contas →</button>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                    {tab.metrics.map((m) => <MetricTile key={m.label} label={m.label} value="—" hint={m.hint} locked />)}
-                  </div>
-                </section>
-              )}
-
-              {/* Contracted networks — each ready to connect (Social tab) */}
-              {tab.id === "social" && (data.socialPlatforms?.length ?? 0) > 0 && (
-                <section>
-                  <h3 className="text-[14px] font-bold text-[var(--text-primary)] mb-2.5">Suas redes</h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                    {data.socialPlatforms!.map((p) => {
-                      const m = platformMeta(p);
-                      return (
-                        <div key={p} className="bg-white rounded-[12px] border border-[var(--border)] px-3.5 py-3 flex items-center gap-2.5 shadow-[0_1px_2px_rgba(7,10,31,0.03)]">
-                          <span className="w-8 h-8 rounded-[9px] flex items-center justify-center text-white text-[11px] font-bold shrink-0" style={{ background: m.color }}>{m.initials}</span>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-[13px] font-semibold text-[var(--text-primary)] truncate">{m.label}</p>
-                            <button onClick={() => setSection("integrations")} className="text-[11px] font-medium text-[#12B5AC] hover:underline">Conectar</button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </section>
-              )}
-
-              {/* O calendário do mês. Vive na aba própria — ver a seção
-                  "calendario" abaixo — e aparece aqui também quando o cliente
-                  está justamente na aba de social. */}
-              {tab.id === "social" && (
-                <section>
-                  <h3 className="text-[14px] font-bold text-[var(--text-primary)] mb-2.5">Calendário editorial</h3>
-                  <CalendarioDoMes pecas={posts} token={token} />
-                </section>
-              )}
-
-              <section className="bg-white rounded-[14px] border border-[var(--border)] p-5 shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
-                <div className="flex items-center justify-between mb-2.5">
-                  <h3 className="text-[14px] font-bold text-[var(--text-primary)]">{tab.planTitle}</h3>
-                  {dept && <span className="h-5 px-2 rounded-full bg-[#DCFCE7] text-[#16A34A] text-[10px] font-semibold flex items-center">✓ Aprovado</span>}
-                </div>
-                {dept && (dept.headline || dept.bullets.length > 0) ? (
-                  <>
-                    {dept.headline && <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed mb-2">{dept.headline}</p>}
-                    {dept.bullets.length > 0 && (
-                      <ul className="space-y-1.5">
-                        {dept.bullets.map((b, i) => (
-                          <li key={i} className="flex items-start gap-2 text-[12px] text-[var(--text-secondary)]"><span className="text-[#12B5AC] mt-0.5 shrink-0">•</span>{b}</li>
-                        ))}
-                      </ul>
-                    )}
-                  </>
-                ) : (
-                  <p className="text-[13px] text-[var(--text-muted)]">A equipe está preparando seu plano de {tab.label.toLowerCase()} — em breve aparece aqui.</p>
-                )}
-              </section>
-
-              {tab.metrics.length > 0 && (
-                <div className="bg-gradient-to-r from-[#E6FBFA] to-[#F0FDFC] border border-[#C7EFEC] rounded-[12px] px-4 py-3 flex items-center justify-between gap-3">
-                  <p className="text-[12px] text-[#0E5F5A] leading-snug"><span className="font-semibold">Quer ver seus números aqui?</span> Conecte suas contas e acompanhe {tab.label.toLowerCase()} em tempo real.</p>
-                  <button onClick={() => setSection("integrations")} className="shrink-0 h-8 px-3 rounded-[8px] bg-[#0E5F5A] text-white text-[12px] font-semibold hover:bg-[#0B4E4A] transition-colors">Conectar</button>
-                </div>
-              )}
-            </div>
-          );
-        })}
-
-        {/* ── APROVAÇÕES ── */}
-        {/* ── O CALENDÁRIO, EM ABA PRÓPRIA ─────────────────────────────────
-            Estava enterrado dentro da aba de Social e limitado a 12 itens. O
-            cliente aprovava peça por peça sem nunca ver o CONJUNTO — e o
-            conjunto é justamente o que ele comprou. */}
-        {section === "calendario" && (
-          <div className="space-y-4">
-            <div>
-              <h2 className="text-[16px] font-bold text-[var(--text-primary)]">Seu mês</h2>
-              <p className="mt-0.5 text-[12.5px] text-[var(--text-secondary)]">
-                Tudo o que está programado, com data, imagem e formato.
+            <section className="bg-white rounded-[14px] border border-[var(--border)] p-5">
+              <h3 className="text-[14px] font-bold text-[var(--text-primary)] mb-1.5">Seu acesso</h3>
+              <p className="text-[12.5px] text-[var(--text-secondary)] leading-relaxed">
+                Você entra por um link único e seguro, sem senha. O link some da barra de endereço
+                depois do primeiro acesso — o navegador guarda a chave num cookie protegido.
+                Perdeu o link? Peça um novo ao seu PM pela conversa aqui do portal.
               </p>
-            </div>
-            <CalendarioDoMes pecas={posts} token={token} />
-          </div>
-        )}
-
-        {section === "approvals" && (
-          <div className="space-y-4">
-            <h2 className="text-[16px] font-bold text-[var(--text-primary)]">Aprovações</h2>
-            {pendingApprovals.length === 0 ? (
-              <div className="bg-white rounded-[14px] border border-[var(--border)] p-8 text-center">
-                <div className="w-11 h-11 rounded-full bg-[#DCFCE7] text-[#16A34A] text-xl flex items-center justify-center mx-auto mb-3">✓</div>
-                <p className="text-[14px] font-semibold text-[var(--text-primary)]">Tudo aprovado</p>
-                <p className="text-[12px] text-[var(--text-muted)] mt-1">Nenhum material aguardando sua revisão no momento.</p>
-              </div>
-            ) : (
-              pendingApprovals.map((ap) => (
-                <div key={ap.id} className="bg-white rounded-[14px] border border-[#E5C76B] p-4 shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="h-5 px-2 rounded-full bg-[#FEF3C7] text-[#9B7B2D] text-[10px] font-bold uppercase tracking-[0.04em]">Aguardando você</span>
-                    <p className="text-[14px] font-semibold text-[var(--text-primary)]">{ap.department}</p>
-                  </div>
-                  <p className="text-[12.5px] text-[var(--text-secondary)] mb-3 leading-relaxed">A equipe finalizou esta entrega e precisa do seu ok para seguir. Se algo não ficou como você queria, é só pedir ajuste.</p>
-                  {ap.reviewNote && (
-                    <div className="mb-3 rounded-[10px] bg-[var(--bg-elevated)] border border-[var(--border)] p-3">
-                      <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed whitespace-pre-wrap">{ap.reviewNote}</p>
-                    </div>
-                  )}
-                  <textarea
-                    value={comments[ap.id] ?? ""}
-                    onChange={(e) => setComments((c) => ({ ...c, [ap.id]: e.target.value }))}
-                    placeholder="Quer deixar um comentário para a equipe? (opcional)"
-                    rows={2}
-                    className="w-full px-3 py-2 text-[13px] bg-[var(--bg-elevated)] border border-[var(--border)] rounded-[9px] outline-none focus:border-[#9B7B2D] resize-none mb-2.5"
-                    style={{ fontSize: "16px" }}
-                  />
-                  {/* Ação principal — clara e sem ambiguidade */}
-                  <button
-                    disabled={submitting === ap.id}
-                    onClick={() => void handleDecision(ap.id, "approve")}
-                    style={{ touchAction: "manipulation" }}
-                    className="w-full h-11 rounded-[10px] text-[14px] font-semibold bg-[#16A34A] text-white hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-1.5"
-                  >
-                    {submitting === ap.id ? "Enviando…" : "✓ Aprovar"}
-                  </button>
-                  {/* Alternativas — secundárias */}
-                  <div className="flex gap-2 mt-2">
-                    <button
-                      disabled={submitting === ap.id}
-                      onClick={() => void handleDecision(ap.id, "request_revision")}
-                      style={{ touchAction: "manipulation" }}
-                      className="flex-1 h-9 rounded-[8px] text-[13px] font-semibold bg-[var(--accent)] text-[var(--text-primary)] hover:bg-[var(--border)] transition-colors disabled:opacity-50"
-                    >
-                      Pedir ajuste
-                    </button>
-                    <button
-                      disabled={submitting === ap.id}
-                      onClick={() => void handleDecision(ap.id, "reject")}
-                      style={{ touchAction: "manipulation" }}
-                      className="flex-1 h-9 rounded-[8px] text-[13px] font-semibold bg-white border border-[#FCA5A5] text-[#DC2626] hover:bg-[#FEF2F2] transition-colors disabled:opacity-50"
-                    >
-                      Rejeitar
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-            {actionError && <p className="text-[12px] text-[#DC2626]">{actionError}</p>}
-
-            {allComments.length > 0 && (
-              <div className="bg-white rounded-[14px] border border-[var(--border)] p-5">
-                <h3 className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-3">Histórico da equipe</h3>
-                <div className="space-y-3">
-                  {allComments.map((c) => (
-                    <div key={c.id} className="border-l-2 border-[var(--border)] pl-3">
-                      <p className="text-[12px] font-semibold text-[var(--text-primary)]">{c.authorName}</p>
-                      <p className="text-[12px] text-[var(--text-secondary)] mt-0.5">{c.body}</p>
-                      <p className="text-[10px] text-[var(--text-subtle)] mt-1">{new Date(c.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── MATERIAIS ── */}
-        {section === "materials" && (
-          <div className="space-y-4">
-            <h2 className="text-[16px] font-bold text-[var(--text-primary)]">Materiais</h2>
-            <p className="text-[13px] text-[var(--text-secondary)] -mt-1">O que a equipe precisa de você para avançar. Mande direto por aqui — sem criar conta em lugar nenhum.</p>
-
-            {/* O envio de verdade. Esta aba já prometia por escrito, na mensagem
-                automática da agência, um upload que não existia — só havia um
-                botão "Conectar Drive" desabilitado. Agora a promessa e a tela
-                dizem a mesma coisa. */}
-            <EnvioDeMaterial token={token} />
-
-            <div className="bg-white rounded-[14px] border border-[var(--border)] p-5">
-              <h3 className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-2">Arquivo muito grande?</h3>
-              <p className="text-[12px] text-[var(--text-secondary)]">Se passar de 120 MB, mande um link (WeTransfer, Drive, Dropbox): <button onClick={() => setChatOpen(true)} className="text-[#12B5AC] font-semibold hover:underline">fale com a equipe</button> e cole o link no chat.</p>
-            </div>
-          </div>
-        )}
-
-        {/* ── CONEXÕES — o parceiro conecta o Facebook DELE ── */}
-        {/* Modelo de parceria (03/08/2026): o Business da agência recebe os
-            parceiros, e cada parceiro conecta a própria conta Meta por aqui,
-            autenticado só pelo token do portal. */}
-        {section === "conexoes" && <ConexoesDoCliente token={token} />}
-
-        {/* ── INTEGRAÇÕES ── */}
-        {section === "integrations" && (
-          <div className="space-y-4">
-            <h2 className="text-[16px] font-bold text-[var(--text-primary)]">Integrações</h2>
-            <p className="text-[13px] text-[var(--text-secondary)] -mt-1">Conecte suas contas para a Dioli acessar materiais e trazer seus resultados em tempo real para este portal. Você controla o acesso e pode revogar quando quiser.</p>
-            <div className="grid sm:grid-cols-2 gap-3">
-              {INTEGRATIONS.map((it) => (
-                <div key={it.key} className="bg-white rounded-[14px] border border-[var(--border)] p-4 shadow-[0_1px_3px_rgba(7,10,31,0.04)] flex items-start gap-3">
-                  <span className="w-10 h-10 rounded-[10px] flex items-center justify-center text-white text-[12px] font-bold shrink-0" style={{ background: it.color }}>{it.initials}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-[14px] font-semibold text-[var(--text-primary)]">{it.name}</p>
-                      <span className="text-[9px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.04em] bg-[#F0EFEB] rounded px-1.5 py-0.5">{it.category}</span>
-                    </div>
-                    <p className="text-[12px] text-[var(--text-secondary)] mt-0.5 leading-snug">{it.desc}</p>
-                    <button
-                      disabled
-                      className="mt-2.5 h-8 px-3.5 rounded-[8px] border border-[var(--border)] text-[var(--text-muted)] text-[12px] font-semibold cursor-not-allowed"
-                      title="Disponível em breve"
-                    >
-                      Conectar · em breve
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <p className="text-[11px] text-[var(--text-subtle)] text-center">🔒 Conexões seguras via OAuth. A Dioli nunca vê suas senhas.</p>
+            </section>
           </div>
         )}
 
@@ -751,8 +772,31 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
         <p className="text-[10px] text-[var(--text-subtle)]">Acesso seguro via link único · Dioli Digital</p>
       </footer>
 
-      {/* One chat entry — opened from the header button */}
-      <ChatDrawer open={chatOpen} onClose={() => setChatOpen(false)} token={token} authorName={data.businessName} />
+      {/* Chat com o PM — botão flutuante em TODAS as telas (adição do CEO).
+          O PM é a ponte única: o cliente nunca fala com um departamento direto. */}
+      {!chatOpen && (
+        <button
+          onClick={() => setChatOpen(true)}
+          aria-label="Fale com seu PM"
+          style={{ touchAction: "manipulation", background: "linear-gradient(135deg,#0B0F2A,#070A1F)" }}
+          className="fixed bottom-5 right-5 z-40 inline-flex items-center gap-2 h-12 pl-4 pr-5 rounded-full text-white font-semibold text-[13px] shadow-[0_8px_24px_rgba(7,10,31,0.35)] border border-white/10 transition-transform hover:scale-[1.03]"
+        >
+          <svg width="17" height="17" viewBox="0 0 20 20" fill="none" aria-hidden>
+            <path d="M4 4h12a1 1 0 011 1v8a1 1 0 01-1 1H8l-3.5 3V14H4a1 1 0 01-1-1V5a1 1 0 011-1z" stroke="#9AF5F0" strokeWidth="1.4" strokeLinejoin="round" />
+          </svg>
+          Fale com seu PM
+          <span aria-hidden className="w-2 h-2 rounded-full bg-[#22C55E]" />
+        </button>
+      )}
+
+      <ChatDrawer
+        open={chatOpen}
+        onClose={() => setChatOpen(false)}
+        token={token}
+        authorName={data.businessName}
+        teamLabel="Fale com seu PM"
+        subtitle="a ponte com todos os departamentos"
+      />
 
       <style jsx global>{`
         .no-scrollbar::-webkit-scrollbar { display: none; }

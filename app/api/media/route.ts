@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { getSession } from "@/lib/auth/session";
 import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-service";
+import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
 import { guardarArquivo, MAX_BYTES_POR_ARQUIVO } from "@/lib/agency/media/armazenamento";
 import { rateLimited } from "@/lib/security/rate-limit";
 
@@ -38,7 +39,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: `Arquivo maior que ${mb} MB` }, { status: 413 });
   }
 
-  const token = typeof form.get("token") === "string" ? String(form.get("token")) : "";
+  // A4: campo do form (compatibilidade) ou cookie httpOnly da sessão de portal.
+  const token = tokenDoPortal(
+    request,
+    typeof form.get("token") === "string" ? String(form.get("token")) : "",
+  ) ?? "";
 
   // ── Quem está enviando, e de quem é o arquivo ──────────────────────────────
   let workspaceId: string | null = null;

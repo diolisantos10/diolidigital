@@ -13,9 +13,13 @@ interface ChatDrawerProps {
   clientRequestId?: string;
   authorName?: string;
   teamLabel?: string;
+  /** Linha sob o título — o portal usa para dizer o PAPEL do PM ("a ponte com
+   *  todos os departamentos", adição do CEO em 03/08/2026), não só que está
+   *  online. */
+  subtitle?: string;
 }
 
-export function ChatDrawer({ open, onClose, token, clientRequestId, authorName, teamLabel = "Equipe Dioli" }: ChatDrawerProps) {
+export function ChatDrawer({ open, onClose, token, clientRequestId, authorName, teamLabel = "Equipe Dioli", subtitle }: ChatDrawerProps) {
   if (!open) return null;
   return (
     <div className="fixed inset-0 sm:inset-auto sm:bottom-5 sm:right-5 z-50 flex flex-col bg-white sm:w-[400px] sm:h-[580px] sm:max-h-[85vh] sm:rounded-[18px] overflow-hidden shadow-[0_16px_50px_rgba(7,10,31,0.4)] border border-black/5">
@@ -29,7 +33,7 @@ export function ChatDrawer({ open, onClose, token, clientRequestId, authorName, 
         <div className="flex-1 min-w-0">
           <p className="text-[14px] font-semibold text-white leading-tight">{teamLabel}</p>
           <p className="text-[11px] text-[var(--cyan)] flex items-center gap-1.5 leading-tight mt-0.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E]" /> online · responde rápido
+            <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E] shrink-0" /> {subtitle ?? "online · responde rápido"}
           </p>
         </div>
         <button

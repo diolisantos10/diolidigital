@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-service";
+import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
 import { requireSession } from "@/lib/auth/api-guard";
 
 // Resolve which request thread a portal token points at. Mirrors portal-data:
@@ -58,7 +59,10 @@ function toDTO(
 // ── GET: list the thread ────────────────────────────────────────────────────
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const { searchParams } = new URL(request.url);
-  const token = searchParams.get("token");
+  // A4: sem token na query e sem clientRequestId (lado da equipe), o cookie
+  // httpOnly do portal vale como credencial do cliente.
+  const token = searchParams.get("token")
+    ?? (searchParams.get("clientRequestId") ? null : tokenDoPortal(request));
 
   let clientRequestId: string | null;
   let viewer: "client" | "team";
@@ -126,8 +130,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   let authorRole: "client" | "team";
   let authorName: string;
 
-  if (body.token) {
-    const r = await resolveTokenRequestId(body.token);
+  // A4: corpo (compatibilidade) ou cookie httpOnly — cliente; senão, sessão.
+  const tokenCliente = tokenDoPortal(request, body.token) ?? undefined;
+  if (tokenCliente && !body.clientRequestId) {
+    const r = await resolveTokenRequestId(tokenCliente);
     if (!r.ok) return NextResponse.json({ error: "Access denied", reason: r.reason }, { status: r.status });
     clientRequestId = r.clientRequestId;
     authorRole = "client";

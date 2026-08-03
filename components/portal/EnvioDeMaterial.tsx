@@ -53,7 +53,8 @@ export function EnvioDeMaterial({
     for (const arquivo of arquivos) {
       const form = new FormData();
       form.append("file", arquivo);
-      form.append("token", token);
+      // A4: sem token (URL limpa), o cookie httpOnly vai junto do fetch.
+      if (token) form.append("token", token);
       try {
         const res = await fetch("/api/media", { method: "POST", body: form });
         const dados = await res.json();

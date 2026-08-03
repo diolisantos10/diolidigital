@@ -9,9 +9,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { resolvePortalClient } from "@/lib/agency/persistence/portal-access-service";
+import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
-  const token = req.nextUrl.searchParams.get("token")?.trim() ?? "";
+  // A4: query (compatibilidade) ou cookie httpOnly da sessão de portal.
+  const token = tokenDoPortal(req, req.nextUrl.searchParams.get("token")) ?? "";
   if (!token) return NextResponse.json({ error: "Acesso negado" }, { status: 401 });
 
   const dono = await resolvePortalClient(token);
