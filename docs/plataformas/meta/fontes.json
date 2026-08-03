@@ -1,3 +1,87 @@
 [
-  { "slug": "padroes-de-publicidade", "titulo": "Padrões de Publicidade da Meta (visão geral)", "url": "https://transparency.meta.com/pt-br/policies/ad-standards/" }
+  {
+    "slug": "padroes-de-publicidade",
+    "titulo": "Padrões de Publicidade da Meta (visão geral)",
+    "url": "https://transparency.meta.com/pt-br/policies/ad-standards/"
+  },
+  {
+    "slug": "praticas-comerciais-inaceitaveis",
+    "titulo": "Padrões de Publicidade — Práticas comerciais inaceitáveis",
+    "url": "https://transparency.meta.com/pt-br/policies/ad-standards/fraud-scams/unacceptable-business-practices/"
+  },
+  {
+    "slug": "fraudes-golpes-praticas-enganosas",
+    "titulo": "Padrões da Comunidade — Fraude, golpes e práticas enganosas",
+    "url": "https://transparency.meta.com/pt-br/policies/community-standards/fraud-and-scams/"
+  },
+  {
+    "slug": "atributos-pessoais",
+    "titulo": "Padrões de Publicidade — Violações de privacidade e atributos pessoais",
+    "url": "https://transparency.meta.com/pt-br/policies/ad-standards/objectionable-content/privacy-violations-personal-attributes/"
+  },
+  {
+    "slug": "integridade-da-conta",
+    "titulo": "Padrões da Comunidade — Integridade da conta (norma citada pelos Padrões de Publicidade)",
+    "url": "https://transparency.meta.com/pt-br/policies/community-standards/account-integrity"
+  },
+  {
+    "slug": "comunidade-spam",
+    "titulo": "Padrões da Comunidade — Spam",
+    "url": "https://transparency.meta.com/pt-br/policies/community-standards/spam/"
+  },
+  {
+    "slug": "comunidade-comportamento-inautentico",
+    "titulo": "Padrões da Comunidade — Comportamento inautêntico",
+    "url": "https://transparency.meta.com/pt-br/policies/community-standards/inauthentic-behavior/"
+  },
+  {
+    "slug": "termos-da-plataforma",
+    "titulo": "Termos da Plataforma Meta (desenvolvedores)",
+    "url": "https://developers.facebook.com/terms/"
+  },
+  {
+    "slug": "marketing-api-visao-geral",
+    "titulo": "Marketing API — visão geral",
+    "url": "https://developers.facebook.com/docs/marketing-api/overview"
+  },
+  {
+    "slug": "marketing-api-boas-praticas",
+    "titulo": "Marketing API — boas práticas",
+    "url": "https://developers.facebook.com/docs/marketing-api/best-practices/"
+  },
+  {
+    "slug": "graph-api-limites-de-taxa",
+    "titulo": "Graph API — limites de taxa (rate limiting)",
+    "url": "https://developers.facebook.com/docs/graph-api/overview/rate-limiting"
+  },
+  {
+    "slug": "instagram-publicacao-de-conteudo",
+    "titulo": "Instagram Platform — publicação de conteúdo por API",
+    "url": "https://developers.facebook.com/docs/instagram-platform/content-publishing"
+  },
+  {
+    "slug": "whatsapp-politica-de-mensagens",
+    "titulo": "WhatsApp Business — política de mensagens",
+    "url": "https://business.whatsapp.com/policy"
+  },
+  {
+    "slug": "analise-de-anuncios",
+    "titulo": "Central de Ajuda — processo de análise de anúncios",
+    "url": "https://www.facebook.com/business/help/204798856225114"
+  },
+  {
+    "slug": "qualidade-da-conta",
+    "titulo": "Central de Ajuda — Restrições de publicidade e Qualidade da Conta",
+    "url": "https://www.facebook.com/business/help/975570072950669"
+  },
+  {
+    "slug": "praticas-discriminatorias",
+    "titulo": "Padrões de Publicidade — Práticas discriminatórias",
+    "url": "https://transparency.meta.com/pt-br/policies/ad-standards/unacceptable-content/discriminatory-practices/"
+  },
+  {
+    "slug": "recorrer-de-restricao",
+    "titulo": "Central de Ajuda — Solicitar análise de restrição de publicidade",
+    "url": "https://www.facebook.com/business/help/530209463124901"
+  }
 ]
