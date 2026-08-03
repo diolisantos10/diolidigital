@@ -26,6 +26,9 @@ export async function PATCH(request: NextRequest, ctx: { params: Promise<Params>
   if (body.script === null) data.scriptJson = null;
   else if (body.script && typeof body.script === "object") data.scriptJson = JSON.stringify(body.script);
   if (typeof body.status === "string") data.status = body.status;
+  // A equipe decide o que o cliente vê. Só os dois valores do contrato de
+  // visibilidade — qualquer outro cai fora (fail-closed).
+  if (body.visibility === "compartilhado" || body.visibility === "interno") data.visibility = body.visibility;
   if (body.scheduledFor === null) data.scheduledFor = null;
   else if (typeof body.scheduledFor === "string" && body.scheduledFor) data.scheduledFor = new Date(body.scheduledFor);
 
