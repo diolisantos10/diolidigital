@@ -4,6 +4,34 @@
 
 ---
 
+## ✅ 03/08/2026 (tarde) — Os três especialistas-trava entregues e auditados
+
+Ordem do CEO cumprida: `meta`, `google` e `tiktok` integrados com biblioteca
+REAL capturada das plataformas — **51 documentos oficiais** (Meta 17, Google
+19, TikTok 15), cada um com URL, data e hash; cartilha por plataforma com
+citação afirmação-por-afirmação; recaptura diária agendada (rotina às 06:00
+BRT: recaptura → diff → CHANGELOG → commit). Auditoria adversarial da
+qualidade: **APROVADO** — 51/51 hashes íntegros, nenhuma afirmação inventada,
+o agente meta barraria o incidente de hoje com 4 âncoras citáveis.
+
+**As 3 correções obrigatórias da auditoria — feitas na mesma tarde:**
+1. **Trava mecânica de consentimento em `avaliacoes.ts`**: a política da API
+   do Business Profile proíbe resposta automática a avaliação sem
+   "consentimento prévio e específico do usuário". Nova coluna
+   `autoReplyConsentAt` na conexão; nula → nem elogio sai sozinho, tudo vira
+   rascunho escalado. Testes provam os dois lados. **Pendência do CEO: o
+   consentimento precisa entrar no contrato/onboarding do cliente** e ser
+   registrado na conexão antes de ligar resposta automática.
+2. Lacunas de meta/google registradas nos manifestos (recaptura tenta fechá-las).
+3. Piso do capturador mede conteúdo útil, não tamanho bruto.
+
+**Fragilidade declarada (não escondida):** a trava dos especialistas é
+procedural — regra no manual de bordo, não mecanismo no código. Nada impede
+`ads.ts`/`publishPost` de rodarem sem parecer. Mecanizar o parecer (registro
+obrigatório antes de escrita externa) é o próximo degrau, a decidir com o CEO.
+
+---
+
 ## 🔴 03/08/2026 (meio-dia) — Meta RESTRINGIU a conta de anúncios "Dioli Agencia"
 
 E-mail da Meta às 11:32: conta `act_3416644181895443` desativada
