@@ -1,6 +1,37 @@
 # Pendências — o que está aberto
 
-> Última atualização: 02/08/2026 (tarde).
+> Última atualização: 03/08/2026 (dia do lançamento da Foocci).
+
+---
+
+## 🟢 03/08/2026 — TRÁFEGO PAGO DESTRAVADO (fim da novela do OAuth)
+
+O popup de OAuth da Meta recusou o admin do app o dia inteiro ("domínio não
+incluído") mesmo com tudo gravado. Saída: **Plano B — token do Graph API
+Explorer colado pelo CEO** no `POST /api/meta/token` (rota criada para isso,
+com as três fechaduras: `debug_token` prova que é do nosso app, `is_valid`,
+só o master cola; o token nunca volta na resposta).
+
+**Provado em produção, na sequência, tudo por API:**
+1. Token validado — todos os 6 escopos concedidos (`ads_management`,
+   `business_management` etc.) — e trocado por um de **60 dias (até 02/10)**.
+2. **25 conexões descobertas e salvas** (páginas FB + Instagram), incluindo
+   FB Foocci e @foocci_.
+3. **13 contas de anúncio visíveis**; "Dioli Agencia" (`act_3416644181895443`)
+   ativa, BRL, cartão vinculado.
+4. **Escrita provada**: campanha de teste criada PAUSADA na conta da agência e
+   apagada em seguida (`120251488279600613`). Modo dev + admin dispensa App
+   Review para operar.
+
+**Nota honesta:** o edge `/{app-id}/authorized_adaccounts` recusou o POST
+("Unsupported post request") — e **não fez falta**: a escrita direta funciona.
+A rota `/api/meta/contas-de-anuncio` precisa dessa correção quando sobrar tempo.
+
+**Falta para a campanha da Foocci rodar (insumos do CEO):** verba/mês,
+cidade+raio, destino (site ou wa.me). Campanha nasce PAUSADA; ele liga.
+
+**Renovação:** token expira 02/10 — colar um novo antes disso (2 min) ou
+destravar o OAuth de vez (config_id do Login para Empresas).
 
 ---
 
