@@ -432,6 +432,14 @@ export async function apresentarCiclo(
     }).catch(() => { /* best-effort */ });
   }
 
+  // Mesma regra do pacote inicial (marcos.ts): apresentar o ciclo é o ato que
+  // torna as entregas DELE "compartilhado" — antes disso o portal, que filtra
+  // por `visibility` fail-closed, não as mostra.
+  await prisma.deliverable.updateMany({
+    where: { projectId, cycleId },
+    data: { visibility: "compartilhado" },
+  }).catch(() => { /* best-effort */ });
+
   const avisou = await falarComOCliente(projeto, [
     `O material de ${ciclo.reference} está pronto! 🎉`,
     "",

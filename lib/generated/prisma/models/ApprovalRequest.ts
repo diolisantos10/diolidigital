@@ -34,8 +34,10 @@ export type ApprovalRequestMinAggregateOutputType = {
   reviewedBy: string | null
   reviewedAt: Date | null
   expiresAt: Date | null
+  questionOpenedAt: Date | null
   reviewNote: string | null
   clientVisible: boolean | null
+  deliverableVersionId: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -50,8 +52,10 @@ export type ApprovalRequestMaxAggregateOutputType = {
   reviewedBy: string | null
   reviewedAt: Date | null
   expiresAt: Date | null
+  questionOpenedAt: Date | null
   reviewNote: string | null
   clientVisible: boolean | null
+  deliverableVersionId: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -66,8 +70,10 @@ export type ApprovalRequestCountAggregateOutputType = {
   reviewedBy: number
   reviewedAt: number
   expiresAt: number
+  questionOpenedAt: number
   reviewNote: number
   clientVisible: number
+  deliverableVersionId: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -84,8 +90,10 @@ export type ApprovalRequestMinAggregateInputType = {
   reviewedBy?: true
   reviewedAt?: true
   expiresAt?: true
+  questionOpenedAt?: true
   reviewNote?: true
   clientVisible?: true
+  deliverableVersionId?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -100,8 +108,10 @@ export type ApprovalRequestMaxAggregateInputType = {
   reviewedBy?: true
   reviewedAt?: true
   expiresAt?: true
+  questionOpenedAt?: true
   reviewNote?: true
   clientVisible?: true
+  deliverableVersionId?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -116,8 +126,10 @@ export type ApprovalRequestCountAggregateInputType = {
   reviewedBy?: true
   reviewedAt?: true
   expiresAt?: true
+  questionOpenedAt?: true
   reviewNote?: true
   clientVisible?: true
+  deliverableVersionId?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -205,8 +217,10 @@ export type ApprovalRequestGroupByOutputType = {
   reviewedBy: string | null
   reviewedAt: Date | null
   expiresAt: Date | null
+  questionOpenedAt: Date | null
   reviewNote: string | null
   clientVisible: boolean
+  deliverableVersionId: string | null
   createdAt: Date
   updatedAt: Date
   _count: ApprovalRequestCountAggregateOutputType | null
@@ -242,11 +256,14 @@ export type ApprovalRequestWhereInput = {
   reviewedBy?: Prisma.StringNullableFilter<"ApprovalRequest"> | string | null
   reviewedAt?: Prisma.DateTimeNullableFilter<"ApprovalRequest"> | Date | string | null
   expiresAt?: Prisma.DateTimeNullableFilter<"ApprovalRequest"> | Date | string | null
+  questionOpenedAt?: Prisma.DateTimeNullableFilter<"ApprovalRequest"> | Date | string | null
   reviewNote?: Prisma.StringNullableFilter<"ApprovalRequest"> | string | null
   clientVisible?: Prisma.BoolFilter<"ApprovalRequest"> | boolean
+  deliverableVersionId?: Prisma.StringNullableFilter<"ApprovalRequest"> | string | null
   createdAt?: Prisma.DateTimeFilter<"ApprovalRequest"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ApprovalRequest"> | Date | string
   clientRequest?: Prisma.XOR<Prisma.ClientRequestDbScalarRelationFilter, Prisma.ClientRequestDbWhereInput>
+  deliverableVersion?: Prisma.XOR<Prisma.DeliverableVersionNullableScalarRelationFilter, Prisma.DeliverableVersionWhereInput> | null
   comments?: Prisma.ApprovalCommentListRelationFilter
 }
 
@@ -260,11 +277,14 @@ export type ApprovalRequestOrderByWithRelationInput = {
   reviewedBy?: Prisma.SortOrderInput | Prisma.SortOrder
   reviewedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   expiresAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  questionOpenedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   reviewNote?: Prisma.SortOrderInput | Prisma.SortOrder
   clientVisible?: Prisma.SortOrder
+  deliverableVersionId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   clientRequest?: Prisma.ClientRequestDbOrderByWithRelationInput
+  deliverableVersion?: Prisma.DeliverableVersionOrderByWithRelationInput
   comments?: Prisma.ApprovalCommentOrderByRelationAggregateInput
 }
 
@@ -281,11 +301,14 @@ export type ApprovalRequestWhereUniqueInput = Prisma.AtLeast<{
   reviewedBy?: Prisma.StringNullableFilter<"ApprovalRequest"> | string | null
   reviewedAt?: Prisma.DateTimeNullableFilter<"ApprovalRequest"> | Date | string | null
   expiresAt?: Prisma.DateTimeNullableFilter<"ApprovalRequest"> | Date | string | null
+  questionOpenedAt?: Prisma.DateTimeNullableFilter<"ApprovalRequest"> | Date | string | null
   reviewNote?: Prisma.StringNullableFilter<"ApprovalRequest"> | string | null
   clientVisible?: Prisma.BoolFilter<"ApprovalRequest"> | boolean
+  deliverableVersionId?: Prisma.StringNullableFilter<"ApprovalRequest"> | string | null
   createdAt?: Prisma.DateTimeFilter<"ApprovalRequest"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ApprovalRequest"> | Date | string
   clientRequest?: Prisma.XOR<Prisma.ClientRequestDbScalarRelationFilter, Prisma.ClientRequestDbWhereInput>
+  deliverableVersion?: Prisma.XOR<Prisma.DeliverableVersionNullableScalarRelationFilter, Prisma.DeliverableVersionWhereInput> | null
   comments?: Prisma.ApprovalCommentListRelationFilter
 }, "id">
 
@@ -299,8 +322,10 @@ export type ApprovalRequestOrderByWithAggregationInput = {
   reviewedBy?: Prisma.SortOrderInput | Prisma.SortOrder
   reviewedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   expiresAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  questionOpenedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   reviewNote?: Prisma.SortOrderInput | Prisma.SortOrder
   clientVisible?: Prisma.SortOrder
+  deliverableVersionId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.ApprovalRequestCountOrderByAggregateInput
@@ -321,8 +346,10 @@ export type ApprovalRequestScalarWhereWithAggregatesInput = {
   reviewedBy?: Prisma.StringNullableWithAggregatesFilter<"ApprovalRequest"> | string | null
   reviewedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"ApprovalRequest"> | Date | string | null
   expiresAt?: Prisma.DateTimeNullableWithAggregatesFilter<"ApprovalRequest"> | Date | string | null
+  questionOpenedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"ApprovalRequest"> | Date | string | null
   reviewNote?: Prisma.StringNullableWithAggregatesFilter<"ApprovalRequest"> | string | null
   clientVisible?: Prisma.BoolWithAggregatesFilter<"ApprovalRequest"> | boolean
+  deliverableVersionId?: Prisma.StringNullableWithAggregatesFilter<"ApprovalRequest"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"ApprovalRequest"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"ApprovalRequest"> | Date | string
 }
@@ -336,11 +363,13 @@ export type ApprovalRequestCreateInput = {
   reviewedBy?: string | null
   reviewedAt?: Date | string | null
   expiresAt?: Date | string | null
+  questionOpenedAt?: Date | string | null
   reviewNote?: string | null
   clientVisible?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   clientRequest: Prisma.ClientRequestDbCreateNestedOneWithoutApprovalsInput
+  deliverableVersion?: Prisma.DeliverableVersionCreateNestedOneWithoutApprovalsInput
   comments?: Prisma.ApprovalCommentCreateNestedManyWithoutApprovalRequestInput
 }
 
@@ -354,8 +383,10 @@ export type ApprovalRequestUncheckedCreateInput = {
   reviewedBy?: string | null
   reviewedAt?: Date | string | null
   expiresAt?: Date | string | null
+  questionOpenedAt?: Date | string | null
   reviewNote?: string | null
   clientVisible?: boolean
+  deliverableVersionId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   comments?: Prisma.ApprovalCommentUncheckedCreateNestedManyWithoutApprovalRequestInput
@@ -370,11 +401,13 @@ export type ApprovalRequestUpdateInput = {
   reviewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  questionOpenedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   reviewNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientVisible?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   clientRequest?: Prisma.ClientRequestDbUpdateOneRequiredWithoutApprovalsNestedInput
+  deliverableVersion?: Prisma.DeliverableVersionUpdateOneWithoutApprovalsNestedInput
   comments?: Prisma.ApprovalCommentUpdateManyWithoutApprovalRequestNestedInput
 }
 
@@ -388,8 +421,10 @@ export type ApprovalRequestUncheckedUpdateInput = {
   reviewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  questionOpenedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   reviewNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientVisible?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  deliverableVersionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   comments?: Prisma.ApprovalCommentUncheckedUpdateManyWithoutApprovalRequestNestedInput
@@ -405,8 +440,10 @@ export type ApprovalRequestCreateManyInput = {
   reviewedBy?: string | null
   reviewedAt?: Date | string | null
   expiresAt?: Date | string | null
+  questionOpenedAt?: Date | string | null
   reviewNote?: string | null
   clientVisible?: boolean
+  deliverableVersionId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -420,6 +457,7 @@ export type ApprovalRequestUpdateManyMutationInput = {
   reviewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  questionOpenedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   reviewNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientVisible?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -436,8 +474,10 @@ export type ApprovalRequestUncheckedUpdateManyInput = {
   reviewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  questionOpenedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   reviewNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientVisible?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  deliverableVersionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -462,8 +502,10 @@ export type ApprovalRequestCountOrderByAggregateInput = {
   reviewedBy?: Prisma.SortOrder
   reviewedAt?: Prisma.SortOrder
   expiresAt?: Prisma.SortOrder
+  questionOpenedAt?: Prisma.SortOrder
   reviewNote?: Prisma.SortOrder
   clientVisible?: Prisma.SortOrder
+  deliverableVersionId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -478,8 +520,10 @@ export type ApprovalRequestMaxOrderByAggregateInput = {
   reviewedBy?: Prisma.SortOrder
   reviewedAt?: Prisma.SortOrder
   expiresAt?: Prisma.SortOrder
+  questionOpenedAt?: Prisma.SortOrder
   reviewNote?: Prisma.SortOrder
   clientVisible?: Prisma.SortOrder
+  deliverableVersionId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -494,8 +538,10 @@ export type ApprovalRequestMinOrderByAggregateInput = {
   reviewedBy?: Prisma.SortOrder
   reviewedAt?: Prisma.SortOrder
   expiresAt?: Prisma.SortOrder
+  questionOpenedAt?: Prisma.SortOrder
   reviewNote?: Prisma.SortOrder
   clientVisible?: Prisma.SortOrder
+  deliverableVersionId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -503,6 +549,48 @@ export type ApprovalRequestMinOrderByAggregateInput = {
 export type ApprovalRequestScalarRelationFilter = {
   is?: Prisma.ApprovalRequestWhereInput
   isNot?: Prisma.ApprovalRequestWhereInput
+}
+
+export type ApprovalRequestCreateNestedManyWithoutDeliverableVersionInput = {
+  create?: Prisma.XOR<Prisma.ApprovalRequestCreateWithoutDeliverableVersionInput, Prisma.ApprovalRequestUncheckedCreateWithoutDeliverableVersionInput> | Prisma.ApprovalRequestCreateWithoutDeliverableVersionInput[] | Prisma.ApprovalRequestUncheckedCreateWithoutDeliverableVersionInput[]
+  connectOrCreate?: Prisma.ApprovalRequestCreateOrConnectWithoutDeliverableVersionInput | Prisma.ApprovalRequestCreateOrConnectWithoutDeliverableVersionInput[]
+  createMany?: Prisma.ApprovalRequestCreateManyDeliverableVersionInputEnvelope
+  connect?: Prisma.ApprovalRequestWhereUniqueInput | Prisma.ApprovalRequestWhereUniqueInput[]
+}
+
+export type ApprovalRequestUncheckedCreateNestedManyWithoutDeliverableVersionInput = {
+  create?: Prisma.XOR<Prisma.ApprovalRequestCreateWithoutDeliverableVersionInput, Prisma.ApprovalRequestUncheckedCreateWithoutDeliverableVersionInput> | Prisma.ApprovalRequestCreateWithoutDeliverableVersionInput[] | Prisma.ApprovalRequestUncheckedCreateWithoutDeliverableVersionInput[]
+  connectOrCreate?: Prisma.ApprovalRequestCreateOrConnectWithoutDeliverableVersionInput | Prisma.ApprovalRequestCreateOrConnectWithoutDeliverableVersionInput[]
+  createMany?: Prisma.ApprovalRequestCreateManyDeliverableVersionInputEnvelope
+  connect?: Prisma.ApprovalRequestWhereUniqueInput | Prisma.ApprovalRequestWhereUniqueInput[]
+}
+
+export type ApprovalRequestUpdateManyWithoutDeliverableVersionNestedInput = {
+  create?: Prisma.XOR<Prisma.ApprovalRequestCreateWithoutDeliverableVersionInput, Prisma.ApprovalRequestUncheckedCreateWithoutDeliverableVersionInput> | Prisma.ApprovalRequestCreateWithoutDeliverableVersionInput[] | Prisma.ApprovalRequestUncheckedCreateWithoutDeliverableVersionInput[]
+  connectOrCreate?: Prisma.ApprovalRequestCreateOrConnectWithoutDeliverableVersionInput | Prisma.ApprovalRequestCreateOrConnectWithoutDeliverableVersionInput[]
+  upsert?: Prisma.ApprovalRequestUpsertWithWhereUniqueWithoutDeliverableVersionInput | Prisma.ApprovalRequestUpsertWithWhereUniqueWithoutDeliverableVersionInput[]
+  createMany?: Prisma.ApprovalRequestCreateManyDeliverableVersionInputEnvelope
+  set?: Prisma.ApprovalRequestWhereUniqueInput | Prisma.ApprovalRequestWhereUniqueInput[]
+  disconnect?: Prisma.ApprovalRequestWhereUniqueInput | Prisma.ApprovalRequestWhereUniqueInput[]
+  delete?: Prisma.ApprovalRequestWhereUniqueInput | Prisma.ApprovalRequestWhereUniqueInput[]
+  connect?: Prisma.ApprovalRequestWhereUniqueInput | Prisma.ApprovalRequestWhereUniqueInput[]
+  update?: Prisma.ApprovalRequestUpdateWithWhereUniqueWithoutDeliverableVersionInput | Prisma.ApprovalRequestUpdateWithWhereUniqueWithoutDeliverableVersionInput[]
+  updateMany?: Prisma.ApprovalRequestUpdateManyWithWhereWithoutDeliverableVersionInput | Prisma.ApprovalRequestUpdateManyWithWhereWithoutDeliverableVersionInput[]
+  deleteMany?: Prisma.ApprovalRequestScalarWhereInput | Prisma.ApprovalRequestScalarWhereInput[]
+}
+
+export type ApprovalRequestUncheckedUpdateManyWithoutDeliverableVersionNestedInput = {
+  create?: Prisma.XOR<Prisma.ApprovalRequestCreateWithoutDeliverableVersionInput, Prisma.ApprovalRequestUncheckedCreateWithoutDeliverableVersionInput> | Prisma.ApprovalRequestCreateWithoutDeliverableVersionInput[] | Prisma.ApprovalRequestUncheckedCreateWithoutDeliverableVersionInput[]
+  connectOrCreate?: Prisma.ApprovalRequestCreateOrConnectWithoutDeliverableVersionInput | Prisma.ApprovalRequestCreateOrConnectWithoutDeliverableVersionInput[]
+  upsert?: Prisma.ApprovalRequestUpsertWithWhereUniqueWithoutDeliverableVersionInput | Prisma.ApprovalRequestUpsertWithWhereUniqueWithoutDeliverableVersionInput[]
+  createMany?: Prisma.ApprovalRequestCreateManyDeliverableVersionInputEnvelope
+  set?: Prisma.ApprovalRequestWhereUniqueInput | Prisma.ApprovalRequestWhereUniqueInput[]
+  disconnect?: Prisma.ApprovalRequestWhereUniqueInput | Prisma.ApprovalRequestWhereUniqueInput[]
+  delete?: Prisma.ApprovalRequestWhereUniqueInput | Prisma.ApprovalRequestWhereUniqueInput[]
+  connect?: Prisma.ApprovalRequestWhereUniqueInput | Prisma.ApprovalRequestWhereUniqueInput[]
+  update?: Prisma.ApprovalRequestUpdateWithWhereUniqueWithoutDeliverableVersionInput | Prisma.ApprovalRequestUpdateWithWhereUniqueWithoutDeliverableVersionInput[]
+  updateMany?: Prisma.ApprovalRequestUpdateManyWithWhereWithoutDeliverableVersionInput | Prisma.ApprovalRequestUpdateManyWithWhereWithoutDeliverableVersionInput[]
+  deleteMany?: Prisma.ApprovalRequestScalarWhereInput | Prisma.ApprovalRequestScalarWhereInput[]
 }
 
 export type ApprovalRequestCreateNestedManyWithoutClientRequestInput = {
@@ -561,6 +649,88 @@ export type ApprovalRequestUpdateOneRequiredWithoutCommentsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.ApprovalRequestUpdateToOneWithWhereWithoutCommentsInput, Prisma.ApprovalRequestUpdateWithoutCommentsInput>, Prisma.ApprovalRequestUncheckedUpdateWithoutCommentsInput>
 }
 
+export type ApprovalRequestCreateWithoutDeliverableVersionInput = {
+  id?: string
+  artifactId?: string | null
+  department: string
+  requestedBy?: string
+  status?: string
+  reviewedBy?: string | null
+  reviewedAt?: Date | string | null
+  expiresAt?: Date | string | null
+  questionOpenedAt?: Date | string | null
+  reviewNote?: string | null
+  clientVisible?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  clientRequest: Prisma.ClientRequestDbCreateNestedOneWithoutApprovalsInput
+  comments?: Prisma.ApprovalCommentCreateNestedManyWithoutApprovalRequestInput
+}
+
+export type ApprovalRequestUncheckedCreateWithoutDeliverableVersionInput = {
+  id?: string
+  clientRequestId: string
+  artifactId?: string | null
+  department: string
+  requestedBy?: string
+  status?: string
+  reviewedBy?: string | null
+  reviewedAt?: Date | string | null
+  expiresAt?: Date | string | null
+  questionOpenedAt?: Date | string | null
+  reviewNote?: string | null
+  clientVisible?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  comments?: Prisma.ApprovalCommentUncheckedCreateNestedManyWithoutApprovalRequestInput
+}
+
+export type ApprovalRequestCreateOrConnectWithoutDeliverableVersionInput = {
+  where: Prisma.ApprovalRequestWhereUniqueInput
+  create: Prisma.XOR<Prisma.ApprovalRequestCreateWithoutDeliverableVersionInput, Prisma.ApprovalRequestUncheckedCreateWithoutDeliverableVersionInput>
+}
+
+export type ApprovalRequestCreateManyDeliverableVersionInputEnvelope = {
+  data: Prisma.ApprovalRequestCreateManyDeliverableVersionInput | Prisma.ApprovalRequestCreateManyDeliverableVersionInput[]
+}
+
+export type ApprovalRequestUpsertWithWhereUniqueWithoutDeliverableVersionInput = {
+  where: Prisma.ApprovalRequestWhereUniqueInput
+  update: Prisma.XOR<Prisma.ApprovalRequestUpdateWithoutDeliverableVersionInput, Prisma.ApprovalRequestUncheckedUpdateWithoutDeliverableVersionInput>
+  create: Prisma.XOR<Prisma.ApprovalRequestCreateWithoutDeliverableVersionInput, Prisma.ApprovalRequestUncheckedCreateWithoutDeliverableVersionInput>
+}
+
+export type ApprovalRequestUpdateWithWhereUniqueWithoutDeliverableVersionInput = {
+  where: Prisma.ApprovalRequestWhereUniqueInput
+  data: Prisma.XOR<Prisma.ApprovalRequestUpdateWithoutDeliverableVersionInput, Prisma.ApprovalRequestUncheckedUpdateWithoutDeliverableVersionInput>
+}
+
+export type ApprovalRequestUpdateManyWithWhereWithoutDeliverableVersionInput = {
+  where: Prisma.ApprovalRequestScalarWhereInput
+  data: Prisma.XOR<Prisma.ApprovalRequestUpdateManyMutationInput, Prisma.ApprovalRequestUncheckedUpdateManyWithoutDeliverableVersionInput>
+}
+
+export type ApprovalRequestScalarWhereInput = {
+  AND?: Prisma.ApprovalRequestScalarWhereInput | Prisma.ApprovalRequestScalarWhereInput[]
+  OR?: Prisma.ApprovalRequestScalarWhereInput[]
+  NOT?: Prisma.ApprovalRequestScalarWhereInput | Prisma.ApprovalRequestScalarWhereInput[]
+  id?: Prisma.StringFilter<"ApprovalRequest"> | string
+  clientRequestId?: Prisma.StringFilter<"ApprovalRequest"> | string
+  artifactId?: Prisma.StringNullableFilter<"ApprovalRequest"> | string | null
+  department?: Prisma.StringFilter<"ApprovalRequest"> | string
+  requestedBy?: Prisma.StringFilter<"ApprovalRequest"> | string
+  status?: Prisma.StringFilter<"ApprovalRequest"> | string
+  reviewedBy?: Prisma.StringNullableFilter<"ApprovalRequest"> | string | null
+  reviewedAt?: Prisma.DateTimeNullableFilter<"ApprovalRequest"> | Date | string | null
+  expiresAt?: Prisma.DateTimeNullableFilter<"ApprovalRequest"> | Date | string | null
+  questionOpenedAt?: Prisma.DateTimeNullableFilter<"ApprovalRequest"> | Date | string | null
+  reviewNote?: Prisma.StringNullableFilter<"ApprovalRequest"> | string | null
+  clientVisible?: Prisma.BoolFilter<"ApprovalRequest"> | boolean
+  deliverableVersionId?: Prisma.StringNullableFilter<"ApprovalRequest"> | string | null
+  createdAt?: Prisma.DateTimeFilter<"ApprovalRequest"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"ApprovalRequest"> | Date | string
+}
+
 export type ApprovalRequestCreateWithoutClientRequestInput = {
   id?: string
   artifactId?: string | null
@@ -570,10 +740,12 @@ export type ApprovalRequestCreateWithoutClientRequestInput = {
   reviewedBy?: string | null
   reviewedAt?: Date | string | null
   expiresAt?: Date | string | null
+  questionOpenedAt?: Date | string | null
   reviewNote?: string | null
   clientVisible?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  deliverableVersion?: Prisma.DeliverableVersionCreateNestedOneWithoutApprovalsInput
   comments?: Prisma.ApprovalCommentCreateNestedManyWithoutApprovalRequestInput
 }
 
@@ -586,8 +758,10 @@ export type ApprovalRequestUncheckedCreateWithoutClientRequestInput = {
   reviewedBy?: string | null
   reviewedAt?: Date | string | null
   expiresAt?: Date | string | null
+  questionOpenedAt?: Date | string | null
   reviewNote?: string | null
   clientVisible?: boolean
+  deliverableVersionId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   comments?: Prisma.ApprovalCommentUncheckedCreateNestedManyWithoutApprovalRequestInput
@@ -618,25 +792,6 @@ export type ApprovalRequestUpdateManyWithWhereWithoutClientRequestInput = {
   data: Prisma.XOR<Prisma.ApprovalRequestUpdateManyMutationInput, Prisma.ApprovalRequestUncheckedUpdateManyWithoutClientRequestInput>
 }
 
-export type ApprovalRequestScalarWhereInput = {
-  AND?: Prisma.ApprovalRequestScalarWhereInput | Prisma.ApprovalRequestScalarWhereInput[]
-  OR?: Prisma.ApprovalRequestScalarWhereInput[]
-  NOT?: Prisma.ApprovalRequestScalarWhereInput | Prisma.ApprovalRequestScalarWhereInput[]
-  id?: Prisma.StringFilter<"ApprovalRequest"> | string
-  clientRequestId?: Prisma.StringFilter<"ApprovalRequest"> | string
-  artifactId?: Prisma.StringNullableFilter<"ApprovalRequest"> | string | null
-  department?: Prisma.StringFilter<"ApprovalRequest"> | string
-  requestedBy?: Prisma.StringFilter<"ApprovalRequest"> | string
-  status?: Prisma.StringFilter<"ApprovalRequest"> | string
-  reviewedBy?: Prisma.StringNullableFilter<"ApprovalRequest"> | string | null
-  reviewedAt?: Prisma.DateTimeNullableFilter<"ApprovalRequest"> | Date | string | null
-  expiresAt?: Prisma.DateTimeNullableFilter<"ApprovalRequest"> | Date | string | null
-  reviewNote?: Prisma.StringNullableFilter<"ApprovalRequest"> | string | null
-  clientVisible?: Prisma.BoolFilter<"ApprovalRequest"> | boolean
-  createdAt?: Prisma.DateTimeFilter<"ApprovalRequest"> | Date | string
-  updatedAt?: Prisma.DateTimeFilter<"ApprovalRequest"> | Date | string
-}
-
 export type ApprovalRequestCreateWithoutCommentsInput = {
   id?: string
   artifactId?: string | null
@@ -646,11 +801,13 @@ export type ApprovalRequestCreateWithoutCommentsInput = {
   reviewedBy?: string | null
   reviewedAt?: Date | string | null
   expiresAt?: Date | string | null
+  questionOpenedAt?: Date | string | null
   reviewNote?: string | null
   clientVisible?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   clientRequest: Prisma.ClientRequestDbCreateNestedOneWithoutApprovalsInput
+  deliverableVersion?: Prisma.DeliverableVersionCreateNestedOneWithoutApprovalsInput
 }
 
 export type ApprovalRequestUncheckedCreateWithoutCommentsInput = {
@@ -663,8 +820,10 @@ export type ApprovalRequestUncheckedCreateWithoutCommentsInput = {
   reviewedBy?: string | null
   reviewedAt?: Date | string | null
   expiresAt?: Date | string | null
+  questionOpenedAt?: Date | string | null
   reviewNote?: string | null
   clientVisible?: boolean
+  deliverableVersionId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -694,11 +853,13 @@ export type ApprovalRequestUpdateWithoutCommentsInput = {
   reviewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  questionOpenedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   reviewNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientVisible?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   clientRequest?: Prisma.ClientRequestDbUpdateOneRequiredWithoutApprovalsNestedInput
+  deliverableVersion?: Prisma.DeliverableVersionUpdateOneWithoutApprovalsNestedInput
 }
 
 export type ApprovalRequestUncheckedUpdateWithoutCommentsInput = {
@@ -711,6 +872,78 @@ export type ApprovalRequestUncheckedUpdateWithoutCommentsInput = {
   reviewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  questionOpenedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reviewNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  clientVisible?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  deliverableVersionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type ApprovalRequestCreateManyDeliverableVersionInput = {
+  id?: string
+  clientRequestId: string
+  artifactId?: string | null
+  department: string
+  requestedBy?: string
+  status?: string
+  reviewedBy?: string | null
+  reviewedAt?: Date | string | null
+  expiresAt?: Date | string | null
+  questionOpenedAt?: Date | string | null
+  reviewNote?: string | null
+  clientVisible?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type ApprovalRequestUpdateWithoutDeliverableVersionInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  artifactId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  department?: Prisma.StringFieldUpdateOperationsInput | string
+  requestedBy?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  reviewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  questionOpenedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reviewNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  clientVisible?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  clientRequest?: Prisma.ClientRequestDbUpdateOneRequiredWithoutApprovalsNestedInput
+  comments?: Prisma.ApprovalCommentUpdateManyWithoutApprovalRequestNestedInput
+}
+
+export type ApprovalRequestUncheckedUpdateWithoutDeliverableVersionInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  clientRequestId?: Prisma.StringFieldUpdateOperationsInput | string
+  artifactId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  department?: Prisma.StringFieldUpdateOperationsInput | string
+  requestedBy?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  reviewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  questionOpenedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reviewNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  clientVisible?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  comments?: Prisma.ApprovalCommentUncheckedUpdateManyWithoutApprovalRequestNestedInput
+}
+
+export type ApprovalRequestUncheckedUpdateManyWithoutDeliverableVersionInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  clientRequestId?: Prisma.StringFieldUpdateOperationsInput | string
+  artifactId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  department?: Prisma.StringFieldUpdateOperationsInput | string
+  requestedBy?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  reviewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  questionOpenedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   reviewNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientVisible?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -726,8 +959,10 @@ export type ApprovalRequestCreateManyClientRequestInput = {
   reviewedBy?: string | null
   reviewedAt?: Date | string | null
   expiresAt?: Date | string | null
+  questionOpenedAt?: Date | string | null
   reviewNote?: string | null
   clientVisible?: boolean
+  deliverableVersionId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -741,10 +976,12 @@ export type ApprovalRequestUpdateWithoutClientRequestInput = {
   reviewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  questionOpenedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   reviewNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientVisible?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deliverableVersion?: Prisma.DeliverableVersionUpdateOneWithoutApprovalsNestedInput
   comments?: Prisma.ApprovalCommentUpdateManyWithoutApprovalRequestNestedInput
 }
 
@@ -757,8 +994,10 @@ export type ApprovalRequestUncheckedUpdateWithoutClientRequestInput = {
   reviewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  questionOpenedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   reviewNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientVisible?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  deliverableVersionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   comments?: Prisma.ApprovalCommentUncheckedUpdateManyWithoutApprovalRequestNestedInput
@@ -773,8 +1012,10 @@ export type ApprovalRequestUncheckedUpdateManyWithoutClientRequestInput = {
   reviewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  questionOpenedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   reviewNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientVisible?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  deliverableVersionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -820,11 +1061,14 @@ export type ApprovalRequestSelect<ExtArgs extends runtime.Types.Extensions.Inter
   reviewedBy?: boolean
   reviewedAt?: boolean
   expiresAt?: boolean
+  questionOpenedAt?: boolean
   reviewNote?: boolean
   clientVisible?: boolean
+  deliverableVersionId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   clientRequest?: boolean | Prisma.ClientRequestDbDefaultArgs<ExtArgs>
+  deliverableVersion?: boolean | Prisma.ApprovalRequest$deliverableVersionArgs<ExtArgs>
   comments?: boolean | Prisma.ApprovalRequest$commentsArgs<ExtArgs>
   _count?: boolean | Prisma.ApprovalRequestCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["approvalRequest"]>
@@ -839,11 +1083,14 @@ export type ApprovalRequestSelectCreateManyAndReturn<ExtArgs extends runtime.Typ
   reviewedBy?: boolean
   reviewedAt?: boolean
   expiresAt?: boolean
+  questionOpenedAt?: boolean
   reviewNote?: boolean
   clientVisible?: boolean
+  deliverableVersionId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   clientRequest?: boolean | Prisma.ClientRequestDbDefaultArgs<ExtArgs>
+  deliverableVersion?: boolean | Prisma.ApprovalRequest$deliverableVersionArgs<ExtArgs>
 }, ExtArgs["result"]["approvalRequest"]>
 
 export type ApprovalRequestSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -856,11 +1103,14 @@ export type ApprovalRequestSelectUpdateManyAndReturn<ExtArgs extends runtime.Typ
   reviewedBy?: boolean
   reviewedAt?: boolean
   expiresAt?: boolean
+  questionOpenedAt?: boolean
   reviewNote?: boolean
   clientVisible?: boolean
+  deliverableVersionId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   clientRequest?: boolean | Prisma.ClientRequestDbDefaultArgs<ExtArgs>
+  deliverableVersion?: boolean | Prisma.ApprovalRequest$deliverableVersionArgs<ExtArgs>
 }, ExtArgs["result"]["approvalRequest"]>
 
 export type ApprovalRequestSelectScalar = {
@@ -873,29 +1123,35 @@ export type ApprovalRequestSelectScalar = {
   reviewedBy?: boolean
   reviewedAt?: boolean
   expiresAt?: boolean
+  questionOpenedAt?: boolean
   reviewNote?: boolean
   clientVisible?: boolean
+  deliverableVersionId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type ApprovalRequestOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "clientRequestId" | "artifactId" | "department" | "requestedBy" | "status" | "reviewedBy" | "reviewedAt" | "expiresAt" | "reviewNote" | "clientVisible" | "createdAt" | "updatedAt", ExtArgs["result"]["approvalRequest"]>
+export type ApprovalRequestOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "clientRequestId" | "artifactId" | "department" | "requestedBy" | "status" | "reviewedBy" | "reviewedAt" | "expiresAt" | "questionOpenedAt" | "reviewNote" | "clientVisible" | "deliverableVersionId" | "createdAt" | "updatedAt", ExtArgs["result"]["approvalRequest"]>
 export type ApprovalRequestInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   clientRequest?: boolean | Prisma.ClientRequestDbDefaultArgs<ExtArgs>
+  deliverableVersion?: boolean | Prisma.ApprovalRequest$deliverableVersionArgs<ExtArgs>
   comments?: boolean | Prisma.ApprovalRequest$commentsArgs<ExtArgs>
   _count?: boolean | Prisma.ApprovalRequestCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type ApprovalRequestIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   clientRequest?: boolean | Prisma.ClientRequestDbDefaultArgs<ExtArgs>
+  deliverableVersion?: boolean | Prisma.ApprovalRequest$deliverableVersionArgs<ExtArgs>
 }
 export type ApprovalRequestIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   clientRequest?: boolean | Prisma.ClientRequestDbDefaultArgs<ExtArgs>
+  deliverableVersion?: boolean | Prisma.ApprovalRequest$deliverableVersionArgs<ExtArgs>
 }
 
 export type $ApprovalRequestPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "ApprovalRequest"
   objects: {
     clientRequest: Prisma.$ClientRequestDbPayload<ExtArgs>
+    deliverableVersion: Prisma.$DeliverableVersionPayload<ExtArgs> | null
     comments: Prisma.$ApprovalCommentPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
@@ -908,8 +1164,22 @@ export type $ApprovalRequestPayload<ExtArgs extends runtime.Types.Extensions.Int
     reviewedBy: string | null
     reviewedAt: Date | null
     expiresAt: Date | null
+    /**
+     * A dúvida do cliente NÃO é decisão (Fase 2, caminho C): o status continua
+     * "pending", mas o relógio do prazo não pode correr contra ele enquanto a
+     * bola está com a agência. Preenchido = dúvida aberta, prazo pausado; a
+     * resposta da agência devolve o tempo pausado ao `expiresAt` e limpa o campo
+     * (approval-service.addApprovalComment).
+     */
+    questionOpenedAt: Date | null
     reviewNote: string | null
     clientVisible: boolean
+    /**
+     * QUAL versão está sendo decidida — "aprovei a v3" não era registrável
+     * (Fase 1, 1.10) e o cliente podia aprovar lendo conteúdo de outra entrega
+     * (achado A2). O vínculo por FK mata o casamento heurístico por ordem.
+     */
+    deliverableVersionId: string | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["approvalRequest"]>
@@ -1307,6 +1577,7 @@ readonly fields: ApprovalRequestFieldRefs;
 export interface Prisma__ApprovalRequestClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   clientRequest<T extends Prisma.ClientRequestDbDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ClientRequestDbDefaultArgs<ExtArgs>>): Prisma.Prisma__ClientRequestDbClient<runtime.Types.Result.GetResult<Prisma.$ClientRequestDbPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  deliverableVersion<T extends Prisma.ApprovalRequest$deliverableVersionArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ApprovalRequest$deliverableVersionArgs<ExtArgs>>): Prisma.Prisma__DeliverableVersionClient<runtime.Types.Result.GetResult<Prisma.$DeliverableVersionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   comments<T extends Prisma.ApprovalRequest$commentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ApprovalRequest$commentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ApprovalCommentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -1346,8 +1617,10 @@ export interface ApprovalRequestFieldRefs {
   readonly reviewedBy: Prisma.FieldRef<"ApprovalRequest", 'String'>
   readonly reviewedAt: Prisma.FieldRef<"ApprovalRequest", 'DateTime'>
   readonly expiresAt: Prisma.FieldRef<"ApprovalRequest", 'DateTime'>
+  readonly questionOpenedAt: Prisma.FieldRef<"ApprovalRequest", 'DateTime'>
   readonly reviewNote: Prisma.FieldRef<"ApprovalRequest", 'String'>
   readonly clientVisible: Prisma.FieldRef<"ApprovalRequest", 'Boolean'>
+  readonly deliverableVersionId: Prisma.FieldRef<"ApprovalRequest", 'String'>
   readonly createdAt: Prisma.FieldRef<"ApprovalRequest", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"ApprovalRequest", 'DateTime'>
 }
@@ -1746,6 +2019,25 @@ export type ApprovalRequestDeleteManyArgs<ExtArgs extends runtime.Types.Extensio
    * Limit how many ApprovalRequests to delete.
    */
   limit?: number
+}
+
+/**
+ * ApprovalRequest.deliverableVersion
+ */
+export type ApprovalRequest$deliverableVersionArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the DeliverableVersion
+   */
+  select?: Prisma.DeliverableVersionSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the DeliverableVersion
+   */
+  omit?: Prisma.DeliverableVersionOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DeliverableVersionInclude<ExtArgs> | null
+  where?: Prisma.DeliverableVersionWhereInput
 }
 
 /**

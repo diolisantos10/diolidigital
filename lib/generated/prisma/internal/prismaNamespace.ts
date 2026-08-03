@@ -394,6 +394,7 @@ export const ModelName = {
   Cycle: 'Cycle',
   ClientNotice: 'ClientNotice',
   Deliverable: 'Deliverable',
+  DeliverableVersion: 'DeliverableVersion',
   MaterialRequest: 'MaterialRequest',
   BrandBrain: 'BrandBrain',
   StrategyRoom: 'StrategyRoom',
@@ -440,7 +441,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "cycle" | "clientNotice" | "deliverable" | "materialRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1181,6 +1182,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.DeliverableCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.DeliverableCountAggregateOutputType> | number
+        }
+      }
+    }
+    DeliverableVersion: {
+      payload: Prisma.$DeliverableVersionPayload<ExtArgs>
+      fields: Prisma.DeliverableVersionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.DeliverableVersionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DeliverableVersionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.DeliverableVersionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DeliverableVersionPayload>
+        }
+        findFirst: {
+          args: Prisma.DeliverableVersionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DeliverableVersionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.DeliverableVersionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DeliverableVersionPayload>
+        }
+        findMany: {
+          args: Prisma.DeliverableVersionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DeliverableVersionPayload>[]
+        }
+        create: {
+          args: Prisma.DeliverableVersionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DeliverableVersionPayload>
+        }
+        createMany: {
+          args: Prisma.DeliverableVersionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.DeliverableVersionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DeliverableVersionPayload>[]
+        }
+        delete: {
+          args: Prisma.DeliverableVersionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DeliverableVersionPayload>
+        }
+        update: {
+          args: Prisma.DeliverableVersionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DeliverableVersionPayload>
+        }
+        deleteMany: {
+          args: Prisma.DeliverableVersionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.DeliverableVersionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.DeliverableVersionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DeliverableVersionPayload>[]
+        }
+        upsert: {
+          args: Prisma.DeliverableVersionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DeliverableVersionPayload>
+        }
+        aggregate: {
+          args: Prisma.DeliverableVersionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateDeliverableVersion>
+        }
+        groupBy: {
+          args: Prisma.DeliverableVersionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DeliverableVersionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.DeliverableVersionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DeliverableVersionCountAggregateOutputType> | number
         }
       }
     }
@@ -3702,6 +3777,7 @@ export const DeliverableScalarFieldEnum = {
   type: 'type',
   status: 'status',
   revisionStatus: 'revisionStatus',
+  visibility: 'visibility',
   content: 'content',
   clientFeedback: 'clientFeedback',
   lastFeedback: 'lastFeedback',
@@ -3714,6 +3790,20 @@ export const DeliverableScalarFieldEnum = {
 } as const
 
 export type DeliverableScalarFieldEnum = (typeof DeliverableScalarFieldEnum)[keyof typeof DeliverableScalarFieldEnum]
+
+
+export const DeliverableVersionScalarFieldEnum = {
+  id: 'id',
+  deliverableId: 'deliverableId',
+  number: 'number',
+  content: 'content',
+  mediaAssetIds: 'mediaAssetIds',
+  createdBy: 'createdBy',
+  note: 'note',
+  createdAt: 'createdAt'
+} as const
+
+export type DeliverableVersionScalarFieldEnum = (typeof DeliverableVersionScalarFieldEnum)[keyof typeof DeliverableVersionScalarFieldEnum]
 
 
 export const MaterialRequestScalarFieldEnum = {
@@ -4063,6 +4153,7 @@ export const SocialPostScalarFieldEnum = {
   mediaUrlsJson: 'mediaUrlsJson',
   scenesJson: 'scenesJson',
   scriptJson: 'scriptJson',
+  visibility: 'visibility',
   scheduledFor: 'scheduledFor',
   status: 'status',
   deliverableId: 'deliverableId',
@@ -4105,8 +4196,10 @@ export const ApprovalRequestScalarFieldEnum = {
   reviewedBy: 'reviewedBy',
   reviewedAt: 'reviewedAt',
   expiresAt: 'expiresAt',
+  questionOpenedAt: 'questionOpenedAt',
   reviewNote: 'reviewNote',
   clientVisible: 'clientVisible',
+  deliverableVersionId: 'deliverableVersionId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -4119,6 +4212,7 @@ export const ApprovalCommentScalarFieldEnum = {
   approvalRequestId: 'approvalRequestId',
   authorName: 'authorName',
   authorRole: 'authorRole',
+  kind: 'kind',
   body: 'body',
   isClientVisible: 'isClientVisible',
   createdAt: 'createdAt'
@@ -4429,6 +4523,7 @@ export type GlobalOmitConfig = {
   cycle?: Prisma.CycleOmit
   clientNotice?: Prisma.ClientNoticeOmit
   deliverable?: Prisma.DeliverableOmit
+  deliverableVersion?: Prisma.DeliverableVersionOmit
   materialRequest?: Prisma.MaterialRequestOmit
   brandBrain?: Prisma.BrandBrainOmit
   strategyRoom?: Prisma.StrategyRoomOmit

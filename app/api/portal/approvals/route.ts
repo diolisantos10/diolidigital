@@ -23,6 +23,14 @@ const ACTION_TO_STATUS: Record<string, ApprovalStatus> = {
   reject:           "rejected",
 };
 
+// "Tenho uma dúvida" (Fase 2, caminho C) não está no mapa acima de propósito:
+// dúvida NÃO é decisão — o status permanece "pending" e o prazo pausa.
+const ACTION_QUESTION = "question";
+
+// Ajuste e rejeição sem comentário não ensinam nada à refação — a spec manda
+// 400 no backend (Fase 2, T3/T4). "Tenho uma dúvida" sem texto é um card mudo.
+const ACTIONS_REQUIRING_COMMENT = new Set(["request_revision", "reject", ACTION_QUESTION]);
+
 export async function POST(request: NextRequest): Promise<NextResponse> {
   let body: {
     token?: string;
@@ -46,9 +54,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   const status = ACTION_TO_STATUS[action];
-  if (!status) {
+  if (!status && action !== ACTION_QUESTION) {
     return NextResponse.json(
-      { error: `Invalid action. Valid: ${Object.keys(ACTION_TO_STATUS).join(", ")}` },
+      { error: `Invalid action. Valid: ${[...Object.keys(ACTION_TO_STATUS), ACTION_QUESTION].join(", ")}` },
+      { status: 400 },
+    );
+  }
+
+  // Validado ANTES de qualquer efeito: até 03/08/2026 o código aceitava
+  // "solicitar ajustes" sem uma palavra — e a refação, sem as palavras do
+  // cliente, refazia no escuro (Fase 1, 1.10). A UI reforça; a trava é aqui.
+  if (ACTIONS_REQUIRING_COMMENT.has(action) && !body.comment?.trim()) {
+    return NextResponse.json(
+      { error: "Comentário obrigatório: conte o que precisa mudar (ou qual é a dúvida) para a equipe agir." },
       { status: 400 },
     );
   }
@@ -88,11 +106,38 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // 3. Apply the decision. reviewedBy records the client identity.
     const clientIdentity = body.authorName?.trim() || `portal:${token.slice(0, 8)}…`;
+
+    // ── CAMINHO C — "TENHO UMA DÚVIDA" ────────────────────────────────────────
+    // Não decide nada: o status continua "pending", a dúvida fica PRESA ao card
+    // (ApprovalComment kind "question", não numa thread geral) e o relógio do
+    // prazo pausa — não pode correr contra o cliente enquanto a bola está com
+    // a agência (Fase 2, T5). A resposta da agência despausa
+    // (approval-service.addApprovalComment).
+    if (action === ACTION_QUESTION) {
+      await addApprovalComment({
+        approvalRequestId,
+        authorName:      clientIdentity,
+        authorRole:      "client",
+        kind:            "question",
+        body:            body.comment!.trim(),
+        isClientVisible: true,
+      });
+      if (!approval.questionOpenedAt) {
+        await prisma.approvalRequest.update({
+          where: { id: approvalRequestId },
+          data: { questionOpenedAt: new Date() },
+        });
+      }
+      return NextResponse.json({ id: approvalRequestId, status: "pending", questionOpen: true });
+    }
+
+    // 3. Apply the decision. reviewedBy records the client identity.
+    // (`status` é garantido aqui: a única ação sem status é "question", que já
+    // retornou acima.)
     const updated = await updateApprovalStatus(
       approvalRequestId,
-      status,
+      status!,
       `client:${clientIdentity}`,
       body.comment?.trim() || undefined,
     );

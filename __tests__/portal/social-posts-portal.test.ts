@@ -1,0 +1,73 @@
+// A fronteira do portal no calendário (achados A3 e visibilidade, Hub).
+//
+// A3: o `scriptJson` é material de trabalho interno da IA (hook, cenas, áudio,
+// observações do agente) e saía INTEIRO no ramo token. Se um roteiro contiver
+// instrução interna ou observação sobre o cliente, chegava nele.
+// Visibilidade: post "interno" nunca sai por rota de portal — fail-closed.
+
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { NextRequest } from "next/server";
+
+const db = vi.hoisted(() => ({
+  socialPost: { findMany: vi.fn() },
+  clientRequestDb: { findFirst: vi.fn() },
+}));
+const validatePortalAccess = vi.hoisted(() => vi.fn());
+const requireSession = vi.hoisted(() => vi.fn());
+
+vi.mock("@/lib/db/client", () => ({ prisma: db }));
+vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ validatePortalAccess }));
+vi.mock("@/lib/auth/api-guard", () => ({ requireSession }));
+
+import { GET } from "@/app/api/social-posts/route";
+
+const POST_NO_BANCO = {
+  id: "sp1", clientId: "c1", clientRequestId: "cr1",
+  caption: "Pão quentinho saindo!", networks: '["instagram"]', format: "reel", pillar: "produto",
+  mediaUrl: null, mediaUrlsJson: "[]", scenesJson: "[]",
+  scriptJson: '{"hook":"abre no forno","obs":"cliente é difícil, evitar close no rosto"}',
+  visibility: "compartilhado",
+  scheduledFor: new Date("2026-08-10T12:00:00Z"), status: "scheduled",
+  createdAt: new Date(), updatedAt: new Date(),
+};
+
+function req(url: string): NextRequest {
+  return new NextRequest(url);
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: null } });
+  db.socialPost.findMany.mockResolvedValue([POST_NO_BANCO]);
+});
+
+describe("GET /api/social-posts com token — o que o cliente recebe", () => {
+  it("A3: o roteiro interno da IA NÃO sai no payload do portal", async () => {
+    const res = await GET(req("http://localhost/api/social-posts?token=tok-1"));
+    const json = await res.json();
+    expect(json.posts).toHaveLength(1);
+    // Nem a chave existe — ausência, não null: null ainda confirma que o campo existe.
+    expect(Object.keys(json.posts[0])).not.toContain("script");
+    expect(JSON.stringify(json)).not.toContain("evitar close no rosto");
+  });
+
+  it("o ramo de SESSÃO da agência continua vendo o script — a trava é só na fronteira do cliente", async () => {
+    requireSession.mockResolvedValue({ session: { workspaceId: "ws1" }, error: null });
+    const res = await GET(req("http://localhost/api/social-posts"));
+    const json = await res.json();
+    expect(json.posts[0].script).toMatchObject({ hook: "abre no forno" });
+  });
+
+  it("a consulta do token filtra por visibilidade 'compartilhado' — interno não sai nem por engano", async () => {
+    await GET(req("http://localhost/api/social-posts?token=tok-1"));
+    const where = db.socialPost.findMany.mock.calls[0]![0].where;
+    expect(where).toMatchObject({ clientRequestId: "cr1", visibility: "compartilhado" });
+  });
+
+  it("token inválido continua barrado antes de qualquer consulta", async () => {
+    validatePortalAccess.mockResolvedValue({ valid: false });
+    const res = await GET(req("http://localhost/api/social-posts?token=tok-roubado"));
+    expect(res.status).toBe(403);
+    expect(db.socialPost.findMany).not.toHaveBeenCalled();
+  });
+});

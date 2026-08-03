@@ -20,6 +20,9 @@ export interface AddCommentInput {
   approvalRequestId: string;
   authorName: string;
   authorRole?: "internal" | "client";
+  /** "comment" (default) · "question" (dúvida do cliente, presa ao card) ·
+   *  "answer" (resposta da agência à dúvida). */
+  kind?: "comment" | "question" | "answer";
   body: string;
   isClientVisible?: boolean;
 }
@@ -56,15 +59,42 @@ export async function updateApprovalStatus(
 }
 
 export async function addApprovalComment(input: AddCommentInput) {
-  return prisma.approvalComment.create({
+  const comment = await prisma.approvalComment.create({
     data: {
       approvalRequestId: input.approvalRequestId,
       authorName:        input.authorName,
       authorRole:        input.authorRole ?? "internal",
+      kind:              input.kind ?? "comment",
       body:              input.body,
       isClientVisible:   input.isClientVisible ?? false,
     },
   });
+
+  // ── DESPAUSA DO PRAZO (Fase 2, T5b) ──────────────────────────────────────
+  // Dúvida aberta pausa o `expiresAt`: o relógio não corre contra o cliente
+  // enquanto a bola está com a agência. Quando a agência responde no card
+  // (comentário interno visível ao cliente), o tempo que ficou pausado é
+  // DEVOLVIDO ao prazo — despausar sem devolver seria punir quem perguntou.
+  if ((input.authorRole ?? "internal") !== "client" && (input.isClientVisible ?? false)) {
+    const approval = await prisma.approvalRequest.findUnique({
+      where: { id: input.approvalRequestId },
+      select: { questionOpenedAt: true, expiresAt: true },
+    });
+    if (approval?.questionOpenedAt) {
+      const pausadoMs = Date.now() - approval.questionOpenedAt.getTime();
+      await prisma.approvalRequest.update({
+        where: { id: input.approvalRequestId },
+        data: {
+          questionOpenedAt: null,
+          ...(approval.expiresAt
+            ? { expiresAt: new Date(approval.expiresAt.getTime() + Math.max(0, pausadoMs)) }
+            : {}),
+        },
+      });
+    }
+  }
+
+  return comment;
 }
 
 export async function setApprovalVisibility(id: string, clientVisible: boolean) {

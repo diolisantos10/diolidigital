@@ -104,6 +104,19 @@ export type ClientNotice = Prisma.ClientNoticeModel
  */
 export type Deliverable = Prisma.DeliverableModel
 /**
+ * Model DeliverableVersion
+ * Versão de entregável como registro de primeira classe (Hub, Fase 1, 1.9).
+ * 
+ * Existe porque a exigência "gera nova versão sem apagar a anterior" era
+ * incumprível: a refação sobrescrevia `Deliverable.content` e o histórico JSON
+ * guardava notas, não o corpo — o cliente pedia ajuste e a v1 sumia do mundo.
+ * A regra: cada versão é IMUTÁVEL depois de criada; `Deliverable.content` passa
+ * a ser cache da versão corrente (leitura sempre pode reconstruir pela versão).
+ * O retrofit é preguiçoso de propósito: a versão N nasce com o conteúdo atual
+ * no primeiro momento em que alguém vai sobrescrevê-lo (esteira/versoes.ts).
+ */
+export type DeliverableVersion = Prisma.DeliverableVersionModel
+/**
  * Model MaterialRequest
  * O pedido de material que um agente faz ao cliente.
  * 

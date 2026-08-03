@@ -15,6 +15,7 @@
 import { prisma } from "@/lib/db/client";
 import { generate } from "@/lib/ai/generate";
 import { TODOS_OS_ESPECIALISTAS } from "@/lib/agency/execution/especialistas";
+import { preservarVersaoAtual, registrarNovaVersao } from "@/lib/agency/esteira/versoes";
 
 /** Quantas vezes o especialista refaz antes de o pacote virar problema do CEO.
  *  Duas: se o modelo errou duas vezes COM a crítica na mão, a terceira
@@ -103,17 +104,30 @@ export async function destravarPacote(projectId: string): Promise<ResultadoDoDes
       continue;
     }
 
+    // Antes de sobrescrever, a versão reprovada vira registro imutável — mesmo
+    // uma versão que o cliente nunca viu faz parte da história da peça
+    // ("quantas vezes a Qualidade barrou isto?" só é respondível com o registro).
+    await preservarVersaoAtual(entrega);
+
+    const novoCorpo = renderizar(dados);
     await prisma.deliverable.update({
       where: { id: entrega.id },
       data: {
         name: typeof dados.title === "string" && dados.title.trim() ? dados.title : entrega.name,
-        content: renderizar(dados),
+        content: novoCorpo,
         version: { increment: 1 },
         // Volta para "boa" — a próxima auditoria decide de novo. Marcar como
         // aprovada aqui seria a produção se auto-absolvendo.
         revisionStatus: "quality_ok",
         lastFeedback: `Refeita após reprovação da Qualidade: ${entrega.lastFeedback ?? ""}`.slice(0, 500),
       },
+    });
+    await registrarNovaVersao({
+      deliverableId: entrega.id,
+      number: entrega.version + 1,
+      content: novoCorpo,
+      createdBy: entrega.ownerAgentId,
+      note: `Refeita após reprovação da Qualidade: ${(entrega.lastFeedback ?? "").slice(0, 300)}`,
     });
     saida.corrigidas.push(quemFez);
   }

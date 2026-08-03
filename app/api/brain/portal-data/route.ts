@@ -90,10 +90,27 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 // Defensive, client-safe canvas summariser — pulls a headline + a few highlight
 // bullets across the varied department canvas shapes, and strips anything that
 // looks like a price (the portal never shows values).
+//
+// ⚠️ Achado A1 da auditoria do Hub: filtro léxico é HEURÍSTICA, não trava. A
+// correção completa (campo de visibilidade no dado do canvas, curadoria na
+// escrita) fica para o próximo lote; até lá o deny-list abaixo é o mínimo
+// seguro — fail-closed: na dúvida entre esconder um bullet inocente e vazar
+// custo interno na tela do cliente, esconde-se o bullet.
+const PADROES_DE_VALOR_INTERNO: RegExp[] = [
+  /r\$\s*\d/i,                                            // R$ 500
+  /\b(usd|eur|us\$|u\$s?)\s*\d/i,                          // USD 500 (passava)
+  /\d+\s*(reais|d[óo]lares|euros)\b/i,                     // 500 reais
+  /\d+\s*\/\s*m[êe]s/i,                                    // 2.000/mês
+  /\b\d{1,3}(\.\d{3})+(,\d{2})?\b/,                        // 2.400 / 1.234,56
+  /\b\d+(?:[.,]\d+)?\s*k\b/i,                              // 3k (passava)
+  /\b(custo|or[çc]amento|margem|honor[áa]rio|mensalidade|investimento|verba|fee)\b[^.]{0,40}\d/i,
+];
+function noPrice(s: string): boolean {
+  return !PADROES_DE_VALOR_INTERNO.some((re) => re.test(s));
+}
 function summarizeCanvas(canvas: unknown): { headline: string | null; bullets: string[] } {
   if (!canvas || typeof canvas !== "object") return { headline: null, bullets: [] };
   const c = canvas as Record<string, unknown>;
-  const noPrice = (s: string) => !/r\$\s*\d|\d+\s*(reais|\/m[êe]s)/i.test(s);
 
   const HEAD = ["executiveSummary","summary","businessSummary","mainObjective","contentObjective","visualConcept","positioning","targetAudience","recommendation","diagnosis","overview","visualTone","contentRole"];
   let headline: string | null = null;
@@ -142,7 +159,12 @@ async function buildPortalData(clientRequestId: string) {
         comments: {
           where: { isClientVisible: true },
           orderBy: { createdAt: "asc" },
-          select: { id: true, authorName: true, authorRole: true, body: true, createdAt: true },
+          select: { id: true, authorName: true, authorRole: true, kind: true, body: true, createdAt: true },
+        },
+        // O vínculo por FK à versão decidida (Fase 2, 2.2) — quando existe, é
+        // ELE que dá o corpo do card, nunca casamento por ordem.
+        deliverableVersion: {
+          select: { number: true, content: true, deliverable: { select: { name: true } } },
         },
       },
     }),
@@ -151,23 +173,31 @@ async function buildPortalData(clientRequestId: string) {
   if (!clientRequest) return null;
 
   // The agents produce deliverables into their own table (with the full content).
-  // Surface that content on the approval card so it isn't empty — match a
-  // deliverable approval to its deliverable by owner-agent, falling back to order.
+  // Surface that content on the approval card so it isn't empty.
+  //
+  // Achado A2 (auditoria do Hub): o fallback `leftoverContent.shift()` casava
+  // conteúdo por SOBRA DE FILA — o cliente podia aprovar um card lendo o texto
+  // de outra entrega. Morreu. Agora o casamento é determinístico (agente dono →
+  // departamento) e, sem casamento, o card fica sem corpo — integridade acima
+  // de completude (Fase 2, 2.2). O filtro de `visibility` é a outra metade:
+  // entrega "interno" nunca abastece card de portal, mesmo do próprio cliente.
   const project = await prisma.project.findFirst({ where: { clientRequestId }, select: { id: true } });
   const deliverables = project
-    ? await prisma.deliverable.findMany({ where: { projectId: project.id }, orderBy: { createdAt: "asc" }, select: { name: true, content: true, ownerAgentId: true } })
+    ? await prisma.deliverable.findMany({
+        where: { projectId: project.id, visibility: "compartilhado" },
+        orderBy: { createdAt: "asc" },
+        select: { name: true, content: true, ownerAgentId: true },
+      })
     : [];
   const AGENT_TO_DEPT: Record<string, string> = { a3: "social-media", a2: "design", a4: "paid-traffic" };
   const contentByDept = new Map<string, string>();
-  const leftoverContent: string[] = [];
   for (const dv of deliverables) {
     const dept = dv.ownerAgentId ? AGENT_TO_DEPT[dv.ownerAgentId] : undefined;
     const body = dv.content ? `${dv.name}\n\n${dv.content}` : dv.name;
     if (dept && !contentByDept.has(dept)) contentByDept.set(dept, body);
-    else leftoverContent.push(body);
   }
   const deliverableContentFor = (deptRaw: string): string | null =>
-    contentByDept.get(deptRaw) ?? (leftoverContent.length ? leftoverContent.shift()! : null);
+    contentByDept.get(deptRaw) ?? null;
 
   const services = (() => { try { return JSON.parse(clientRequest.services); } catch { return []; } })();
   const objectives = (() => { try { return JSON.parse(clientRequest.objectives); } catch { return []; } })();
@@ -214,8 +244,18 @@ async function buildPortalData(clientRequestId: string) {
       department: CLIENT_SAFE_DEPARTMENTS[ap.department] ?? ap.department,
       status:     ap.status,
       reviewedAt: ap.reviewedAt,
-      // Deliverable approvals show the produced content; the proposal keeps its own note.
-      reviewNote: ap.reviewNote || (ap.department !== "proposal" ? deliverableContentFor(ap.department) : null),
+      // "Dúvida aberta" (caminho C): o prazo está pausado e a bola com a agência.
+      questionOpen: ap.questionOpenedAt != null,
+      // Qual versão o cliente está decidindo — v1 preservada, v2 na mesa.
+      version: ap.deliverableVersion?.number ?? null,
+      // Corpo do card: 1º a versão vinculada por FK (a fonte de verdade); 2º a
+      // nota própria; 3º o casamento determinístico por departamento. Nunca sobra.
+      reviewNote:
+        (ap.deliverableVersion
+          ? `${ap.deliverableVersion.deliverable.name}\n\n${ap.deliverableVersion.content ?? ""}`.trim()
+          : null)
+        || ap.reviewNote
+        || (ap.department !== "proposal" ? deliverableContentFor(ap.department) : null),
       comments:   ap.comments,
     })),
   };

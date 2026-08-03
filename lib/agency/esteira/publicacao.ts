@@ -111,6 +111,11 @@ export async function agendarPostsDaEntrega(projectId: string): Promise<Agendame
           // "draft", não "scheduled": a data está proposta, e quem aprova o
           // calendário é o cliente. Nascer já agendado publicaria sem aval.
           status: "draft",
+          // O calendário existe PARA o cliente ver e aprovar — e só é montado
+          // depois da apresentação (checagem de `presentedAt` acima). Por isso
+          // o post nasce "compartilhado" aqui, por decisão explícita, e não
+          // pelo default do modelo (que é "interno", fail-closed).
+          visibility: "compartilhado",
         },
       });
       saida.criados++;

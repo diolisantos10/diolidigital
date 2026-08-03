@@ -41,6 +41,7 @@ export type DeliverableMinAggregateOutputType = {
   type: string | null
   status: string | null
   revisionStatus: string | null
+  visibility: string | null
   content: string | null
   clientFeedback: string | null
   lastFeedback: string | null
@@ -59,6 +60,7 @@ export type DeliverableMaxAggregateOutputType = {
   type: string | null
   status: string | null
   revisionStatus: string | null
+  visibility: string | null
   content: string | null
   clientFeedback: string | null
   lastFeedback: string | null
@@ -77,6 +79,7 @@ export type DeliverableCountAggregateOutputType = {
   type: number
   status: number
   revisionStatus: number
+  visibility: number
   content: number
   clientFeedback: number
   lastFeedback: number
@@ -105,6 +108,7 @@ export type DeliverableMinAggregateInputType = {
   type?: true
   status?: true
   revisionStatus?: true
+  visibility?: true
   content?: true
   clientFeedback?: true
   lastFeedback?: true
@@ -123,6 +127,7 @@ export type DeliverableMaxAggregateInputType = {
   type?: true
   status?: true
   revisionStatus?: true
+  visibility?: true
   content?: true
   clientFeedback?: true
   lastFeedback?: true
@@ -141,6 +146,7 @@ export type DeliverableCountAggregateInputType = {
   type?: true
   status?: true
   revisionStatus?: true
+  visibility?: true
   content?: true
   clientFeedback?: true
   lastFeedback?: true
@@ -246,6 +252,7 @@ export type DeliverableGroupByOutputType = {
   type: string
   status: string
   revisionStatus: string | null
+  visibility: string
   content: string | null
   clientFeedback: string | null
   lastFeedback: string | null
@@ -287,6 +294,7 @@ export type DeliverableWhereInput = {
   type?: Prisma.StringFilter<"Deliverable"> | string
   status?: Prisma.StringFilter<"Deliverable"> | string
   revisionStatus?: Prisma.StringNullableFilter<"Deliverable"> | string | null
+  visibility?: Prisma.StringFilter<"Deliverable"> | string
   content?: Prisma.StringNullableFilter<"Deliverable"> | string | null
   clientFeedback?: Prisma.StringNullableFilter<"Deliverable"> | string | null
   lastFeedback?: Prisma.StringNullableFilter<"Deliverable"> | string | null
@@ -297,6 +305,7 @@ export type DeliverableWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"Deliverable"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Deliverable"> | Date | string
   project?: Prisma.XOR<Prisma.ProjectScalarRelationFilter, Prisma.ProjectWhereInput>
+  versions?: Prisma.DeliverableVersionListRelationFilter
 }
 
 export type DeliverableOrderByWithRelationInput = {
@@ -306,6 +315,7 @@ export type DeliverableOrderByWithRelationInput = {
   type?: Prisma.SortOrder
   status?: Prisma.SortOrder
   revisionStatus?: Prisma.SortOrderInput | Prisma.SortOrder
+  visibility?: Prisma.SortOrder
   content?: Prisma.SortOrderInput | Prisma.SortOrder
   clientFeedback?: Prisma.SortOrderInput | Prisma.SortOrder
   lastFeedback?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -316,6 +326,7 @@ export type DeliverableOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   project?: Prisma.ProjectOrderByWithRelationInput
+  versions?: Prisma.DeliverableVersionOrderByRelationAggregateInput
 }
 
 export type DeliverableWhereUniqueInput = Prisma.AtLeast<{
@@ -328,6 +339,7 @@ export type DeliverableWhereUniqueInput = Prisma.AtLeast<{
   type?: Prisma.StringFilter<"Deliverable"> | string
   status?: Prisma.StringFilter<"Deliverable"> | string
   revisionStatus?: Prisma.StringNullableFilter<"Deliverable"> | string | null
+  visibility?: Prisma.StringFilter<"Deliverable"> | string
   content?: Prisma.StringNullableFilter<"Deliverable"> | string | null
   clientFeedback?: Prisma.StringNullableFilter<"Deliverable"> | string | null
   lastFeedback?: Prisma.StringNullableFilter<"Deliverable"> | string | null
@@ -338,6 +350,7 @@ export type DeliverableWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"Deliverable"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Deliverable"> | Date | string
   project?: Prisma.XOR<Prisma.ProjectScalarRelationFilter, Prisma.ProjectWhereInput>
+  versions?: Prisma.DeliverableVersionListRelationFilter
 }, "id">
 
 export type DeliverableOrderByWithAggregationInput = {
@@ -347,6 +360,7 @@ export type DeliverableOrderByWithAggregationInput = {
   type?: Prisma.SortOrder
   status?: Prisma.SortOrder
   revisionStatus?: Prisma.SortOrderInput | Prisma.SortOrder
+  visibility?: Prisma.SortOrder
   content?: Prisma.SortOrderInput | Prisma.SortOrder
   clientFeedback?: Prisma.SortOrderInput | Prisma.SortOrder
   lastFeedback?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -373,6 +387,7 @@ export type DeliverableScalarWhereWithAggregatesInput = {
   type?: Prisma.StringWithAggregatesFilter<"Deliverable"> | string
   status?: Prisma.StringWithAggregatesFilter<"Deliverable"> | string
   revisionStatus?: Prisma.StringNullableWithAggregatesFilter<"Deliverable"> | string | null
+  visibility?: Prisma.StringWithAggregatesFilter<"Deliverable"> | string
   content?: Prisma.StringNullableWithAggregatesFilter<"Deliverable"> | string | null
   clientFeedback?: Prisma.StringNullableWithAggregatesFilter<"Deliverable"> | string | null
   lastFeedback?: Prisma.StringNullableWithAggregatesFilter<"Deliverable"> | string | null
@@ -390,6 +405,7 @@ export type DeliverableCreateInput = {
   type: string
   status?: string
   revisionStatus?: string | null
+  visibility?: string
   content?: string | null
   clientFeedback?: string | null
   lastFeedback?: string | null
@@ -400,6 +416,7 @@ export type DeliverableCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   project: Prisma.ProjectCreateNestedOneWithoutDeliverablesInput
+  versions?: Prisma.DeliverableVersionCreateNestedManyWithoutDeliverableInput
 }
 
 export type DeliverableUncheckedCreateInput = {
@@ -409,6 +426,7 @@ export type DeliverableUncheckedCreateInput = {
   type: string
   status?: string
   revisionStatus?: string | null
+  visibility?: string
   content?: string | null
   clientFeedback?: string | null
   lastFeedback?: string | null
@@ -418,6 +436,7 @@ export type DeliverableUncheckedCreateInput = {
   revisionHistory?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  versions?: Prisma.DeliverableVersionUncheckedCreateNestedManyWithoutDeliverableInput
 }
 
 export type DeliverableUpdateInput = {
@@ -426,6 +445,7 @@ export type DeliverableUpdateInput = {
   type?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   revisionStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  visibility?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -436,6 +456,7 @@ export type DeliverableUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   project?: Prisma.ProjectUpdateOneRequiredWithoutDeliverablesNestedInput
+  versions?: Prisma.DeliverableVersionUpdateManyWithoutDeliverableNestedInput
 }
 
 export type DeliverableUncheckedUpdateInput = {
@@ -445,6 +466,7 @@ export type DeliverableUncheckedUpdateInput = {
   type?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   revisionStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  visibility?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -454,6 +476,7 @@ export type DeliverableUncheckedUpdateInput = {
   revisionHistory?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  versions?: Prisma.DeliverableVersionUncheckedUpdateManyWithoutDeliverableNestedInput
 }
 
 export type DeliverableCreateManyInput = {
@@ -463,6 +486,7 @@ export type DeliverableCreateManyInput = {
   type: string
   status?: string
   revisionStatus?: string | null
+  visibility?: string
   content?: string | null
   clientFeedback?: string | null
   lastFeedback?: string | null
@@ -480,6 +504,7 @@ export type DeliverableUpdateManyMutationInput = {
   type?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   revisionStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  visibility?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -498,6 +523,7 @@ export type DeliverableUncheckedUpdateManyInput = {
   type?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   revisionStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  visibility?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -526,6 +552,7 @@ export type DeliverableCountOrderByAggregateInput = {
   type?: Prisma.SortOrder
   status?: Prisma.SortOrder
   revisionStatus?: Prisma.SortOrder
+  visibility?: Prisma.SortOrder
   content?: Prisma.SortOrder
   clientFeedback?: Prisma.SortOrder
   lastFeedback?: Prisma.SortOrder
@@ -548,6 +575,7 @@ export type DeliverableMaxOrderByAggregateInput = {
   type?: Prisma.SortOrder
   status?: Prisma.SortOrder
   revisionStatus?: Prisma.SortOrder
+  visibility?: Prisma.SortOrder
   content?: Prisma.SortOrder
   clientFeedback?: Prisma.SortOrder
   lastFeedback?: Prisma.SortOrder
@@ -566,6 +594,7 @@ export type DeliverableMinOrderByAggregateInput = {
   type?: Prisma.SortOrder
   status?: Prisma.SortOrder
   revisionStatus?: Prisma.SortOrder
+  visibility?: Prisma.SortOrder
   content?: Prisma.SortOrder
   clientFeedback?: Prisma.SortOrder
   lastFeedback?: Prisma.SortOrder
@@ -579,6 +608,11 @@ export type DeliverableMinOrderByAggregateInput = {
 
 export type DeliverableSumOrderByAggregateInput = {
   version?: Prisma.SortOrder
+}
+
+export type DeliverableScalarRelationFilter = {
+  is?: Prisma.DeliverableWhereInput
+  isNot?: Prisma.DeliverableWhereInput
 }
 
 export type DeliverableCreateNestedManyWithoutProjectInput = {
@@ -623,12 +657,27 @@ export type DeliverableUncheckedUpdateManyWithoutProjectNestedInput = {
   deleteMany?: Prisma.DeliverableScalarWhereInput | Prisma.DeliverableScalarWhereInput[]
 }
 
+export type DeliverableCreateNestedOneWithoutVersionsInput = {
+  create?: Prisma.XOR<Prisma.DeliverableCreateWithoutVersionsInput, Prisma.DeliverableUncheckedCreateWithoutVersionsInput>
+  connectOrCreate?: Prisma.DeliverableCreateOrConnectWithoutVersionsInput
+  connect?: Prisma.DeliverableWhereUniqueInput
+}
+
+export type DeliverableUpdateOneRequiredWithoutVersionsNestedInput = {
+  create?: Prisma.XOR<Prisma.DeliverableCreateWithoutVersionsInput, Prisma.DeliverableUncheckedCreateWithoutVersionsInput>
+  connectOrCreate?: Prisma.DeliverableCreateOrConnectWithoutVersionsInput
+  upsert?: Prisma.DeliverableUpsertWithoutVersionsInput
+  connect?: Prisma.DeliverableWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.DeliverableUpdateToOneWithWhereWithoutVersionsInput, Prisma.DeliverableUpdateWithoutVersionsInput>, Prisma.DeliverableUncheckedUpdateWithoutVersionsInput>
+}
+
 export type DeliverableCreateWithoutProjectInput = {
   id?: string
   name: string
   type: string
   status?: string
   revisionStatus?: string | null
+  visibility?: string
   content?: string | null
   clientFeedback?: string | null
   lastFeedback?: string | null
@@ -638,6 +687,7 @@ export type DeliverableCreateWithoutProjectInput = {
   revisionHistory?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  versions?: Prisma.DeliverableVersionCreateNestedManyWithoutDeliverableInput
 }
 
 export type DeliverableUncheckedCreateWithoutProjectInput = {
@@ -646,6 +696,7 @@ export type DeliverableUncheckedCreateWithoutProjectInput = {
   type: string
   status?: string
   revisionStatus?: string | null
+  visibility?: string
   content?: string | null
   clientFeedback?: string | null
   lastFeedback?: string | null
@@ -655,6 +706,7 @@ export type DeliverableUncheckedCreateWithoutProjectInput = {
   revisionHistory?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  versions?: Prisma.DeliverableVersionUncheckedCreateNestedManyWithoutDeliverableInput
 }
 
 export type DeliverableCreateOrConnectWithoutProjectInput = {
@@ -692,6 +744,7 @@ export type DeliverableScalarWhereInput = {
   type?: Prisma.StringFilter<"Deliverable"> | string
   status?: Prisma.StringFilter<"Deliverable"> | string
   revisionStatus?: Prisma.StringNullableFilter<"Deliverable"> | string | null
+  visibility?: Prisma.StringFilter<"Deliverable"> | string
   content?: Prisma.StringNullableFilter<"Deliverable"> | string | null
   clientFeedback?: Prisma.StringNullableFilter<"Deliverable"> | string | null
   lastFeedback?: Prisma.StringNullableFilter<"Deliverable"> | string | null
@@ -703,12 +756,105 @@ export type DeliverableScalarWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"Deliverable"> | Date | string
 }
 
+export type DeliverableCreateWithoutVersionsInput = {
+  id?: string
+  name: string
+  type: string
+  status?: string
+  revisionStatus?: string | null
+  visibility?: string
+  content?: string | null
+  clientFeedback?: string | null
+  lastFeedback?: string | null
+  ownerAgentId?: string | null
+  cycleId?: string | null
+  version?: number
+  revisionHistory?: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  project: Prisma.ProjectCreateNestedOneWithoutDeliverablesInput
+}
+
+export type DeliverableUncheckedCreateWithoutVersionsInput = {
+  id?: string
+  projectId: string
+  name: string
+  type: string
+  status?: string
+  revisionStatus?: string | null
+  visibility?: string
+  content?: string | null
+  clientFeedback?: string | null
+  lastFeedback?: string | null
+  ownerAgentId?: string | null
+  cycleId?: string | null
+  version?: number
+  revisionHistory?: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type DeliverableCreateOrConnectWithoutVersionsInput = {
+  where: Prisma.DeliverableWhereUniqueInput
+  create: Prisma.XOR<Prisma.DeliverableCreateWithoutVersionsInput, Prisma.DeliverableUncheckedCreateWithoutVersionsInput>
+}
+
+export type DeliverableUpsertWithoutVersionsInput = {
+  update: Prisma.XOR<Prisma.DeliverableUpdateWithoutVersionsInput, Prisma.DeliverableUncheckedUpdateWithoutVersionsInput>
+  create: Prisma.XOR<Prisma.DeliverableCreateWithoutVersionsInput, Prisma.DeliverableUncheckedCreateWithoutVersionsInput>
+  where?: Prisma.DeliverableWhereInput
+}
+
+export type DeliverableUpdateToOneWithWhereWithoutVersionsInput = {
+  where?: Prisma.DeliverableWhereInput
+  data: Prisma.XOR<Prisma.DeliverableUpdateWithoutVersionsInput, Prisma.DeliverableUncheckedUpdateWithoutVersionsInput>
+}
+
+export type DeliverableUpdateWithoutVersionsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  revisionStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  visibility?: Prisma.StringFieldUpdateOperationsInput | string
+  content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  clientFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  ownerAgentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cycleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  version?: Prisma.IntFieldUpdateOperationsInput | number
+  revisionHistory?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  project?: Prisma.ProjectUpdateOneRequiredWithoutDeliverablesNestedInput
+}
+
+export type DeliverableUncheckedUpdateWithoutVersionsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  projectId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  revisionStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  visibility?: Prisma.StringFieldUpdateOperationsInput | string
+  content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  clientFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  ownerAgentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cycleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  version?: Prisma.IntFieldUpdateOperationsInput | number
+  revisionHistory?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
 export type DeliverableCreateManyProjectInput = {
   id?: string
   name: string
   type: string
   status?: string
   revisionStatus?: string | null
+  visibility?: string
   content?: string | null
   clientFeedback?: string | null
   lastFeedback?: string | null
@@ -726,6 +872,7 @@ export type DeliverableUpdateWithoutProjectInput = {
   type?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   revisionStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  visibility?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -735,6 +882,7 @@ export type DeliverableUpdateWithoutProjectInput = {
   revisionHistory?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  versions?: Prisma.DeliverableVersionUpdateManyWithoutDeliverableNestedInput
 }
 
 export type DeliverableUncheckedUpdateWithoutProjectInput = {
@@ -743,6 +891,7 @@ export type DeliverableUncheckedUpdateWithoutProjectInput = {
   type?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   revisionStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  visibility?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -752,6 +901,7 @@ export type DeliverableUncheckedUpdateWithoutProjectInput = {
   revisionHistory?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  versions?: Prisma.DeliverableVersionUncheckedUpdateManyWithoutDeliverableNestedInput
 }
 
 export type DeliverableUncheckedUpdateManyWithoutProjectInput = {
@@ -760,6 +910,7 @@ export type DeliverableUncheckedUpdateManyWithoutProjectInput = {
   type?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   revisionStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  visibility?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   clientFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastFeedback?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -771,6 +922,35 @@ export type DeliverableUncheckedUpdateManyWithoutProjectInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
+
+/**
+ * Count Type DeliverableCountOutputType
+ */
+
+export type DeliverableCountOutputType = {
+  versions: number
+}
+
+export type DeliverableCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  versions?: boolean | DeliverableCountOutputTypeCountVersionsArgs
+}
+
+/**
+ * DeliverableCountOutputType without action
+ */
+export type DeliverableCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the DeliverableCountOutputType
+   */
+  select?: Prisma.DeliverableCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * DeliverableCountOutputType without action
+ */
+export type DeliverableCountOutputTypeCountVersionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.DeliverableVersionWhereInput
+}
 
 
 export type DeliverableSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -780,6 +960,7 @@ export type DeliverableSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   type?: boolean
   status?: boolean
   revisionStatus?: boolean
+  visibility?: boolean
   content?: boolean
   clientFeedback?: boolean
   lastFeedback?: boolean
@@ -790,6 +971,8 @@ export type DeliverableSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   createdAt?: boolean
   updatedAt?: boolean
   project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
+  versions?: boolean | Prisma.Deliverable$versionsArgs<ExtArgs>
+  _count?: boolean | Prisma.DeliverableCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["deliverable"]>
 
 export type DeliverableSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -799,6 +982,7 @@ export type DeliverableSelectCreateManyAndReturn<ExtArgs extends runtime.Types.E
   type?: boolean
   status?: boolean
   revisionStatus?: boolean
+  visibility?: boolean
   content?: boolean
   clientFeedback?: boolean
   lastFeedback?: boolean
@@ -818,6 +1002,7 @@ export type DeliverableSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.E
   type?: boolean
   status?: boolean
   revisionStatus?: boolean
+  visibility?: boolean
   content?: boolean
   clientFeedback?: boolean
   lastFeedback?: boolean
@@ -837,6 +1022,7 @@ export type DeliverableSelectScalar = {
   type?: boolean
   status?: boolean
   revisionStatus?: boolean
+  visibility?: boolean
   content?: boolean
   clientFeedback?: boolean
   lastFeedback?: boolean
@@ -848,9 +1034,11 @@ export type DeliverableSelectScalar = {
   updatedAt?: boolean
 }
 
-export type DeliverableOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "projectId" | "name" | "type" | "status" | "revisionStatus" | "content" | "clientFeedback" | "lastFeedback" | "ownerAgentId" | "cycleId" | "version" | "revisionHistory" | "createdAt" | "updatedAt", ExtArgs["result"]["deliverable"]>
+export type DeliverableOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "projectId" | "name" | "type" | "status" | "revisionStatus" | "visibility" | "content" | "clientFeedback" | "lastFeedback" | "ownerAgentId" | "cycleId" | "version" | "revisionHistory" | "createdAt" | "updatedAt", ExtArgs["result"]["deliverable"]>
 export type DeliverableInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
+  versions?: boolean | Prisma.Deliverable$versionsArgs<ExtArgs>
+  _count?: boolean | Prisma.DeliverableCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type DeliverableIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
@@ -863,6 +1051,7 @@ export type $DeliverablePayload<ExtArgs extends runtime.Types.Extensions.Interna
   name: "Deliverable"
   objects: {
     project: Prisma.$ProjectPayload<ExtArgs>
+    versions: Prisma.$DeliverableVersionPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -871,6 +1060,14 @@ export type $DeliverablePayload<ExtArgs extends runtime.Types.Extensions.Interna
     type: string
     status: string
     revisionStatus: string | null
+    /**
+     * Contrato de visibilidade do Hub (interno | aguardando_publicacao |
+     * compartilhado). Nasce "interno" de propósito: a auditoria do Hub provou
+     * que o padrão fail-open ("o que a rota esquecer de filtrar, vaza") é o
+     * maior risco do portal. Vira "compartilhado" no ato de apresentar ao
+     * cliente (esteira/marcos.ts, esteira/mes.ts) — nunca por omissão.
+     */
+    visibility: string
     content: string | null
     clientFeedback: string | null
     lastFeedback: string | null
@@ -1281,6 +1478,7 @@ readonly fields: DeliverableFieldRefs;
 export interface Prisma__DeliverableClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   project<T extends Prisma.ProjectDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ProjectDefaultArgs<ExtArgs>>): Prisma.Prisma__ProjectClient<runtime.Types.Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  versions<T extends Prisma.Deliverable$versionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Deliverable$versionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DeliverableVersionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1316,6 +1514,7 @@ export interface DeliverableFieldRefs {
   readonly type: Prisma.FieldRef<"Deliverable", 'String'>
   readonly status: Prisma.FieldRef<"Deliverable", 'String'>
   readonly revisionStatus: Prisma.FieldRef<"Deliverable", 'String'>
+  readonly visibility: Prisma.FieldRef<"Deliverable", 'String'>
   readonly content: Prisma.FieldRef<"Deliverable", 'String'>
   readonly clientFeedback: Prisma.FieldRef<"Deliverable", 'String'>
   readonly lastFeedback: Prisma.FieldRef<"Deliverable", 'String'>
@@ -1721,6 +1920,30 @@ export type DeliverableDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.I
    * Limit how many Deliverables to delete.
    */
   limit?: number
+}
+
+/**
+ * Deliverable.versions
+ */
+export type Deliverable$versionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the DeliverableVersion
+   */
+  select?: Prisma.DeliverableVersionSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the DeliverableVersion
+   */
+  omit?: Prisma.DeliverableVersionOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DeliverableVersionInclude<ExtArgs> | null
+  where?: Prisma.DeliverableVersionWhereInput
+  orderBy?: Prisma.DeliverableVersionOrderByWithRelationInput | Prisma.DeliverableVersionOrderByWithRelationInput[]
+  cursor?: Prisma.DeliverableVersionWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.DeliverableVersionScalarFieldEnum | Prisma.DeliverableVersionScalarFieldEnum[]
 }
 
 /**

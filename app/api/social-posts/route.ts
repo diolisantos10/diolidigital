@@ -27,6 +27,16 @@ function toDTO(p: DbPost) {
   };
 }
 
+// O que o CLIENTE recebe. Sem `script`: o roteiro é material de trabalho
+// interno da IA (hook, cenas, áudio, observações do agente) e saía inteiro no
+// ramo token — achado A3 da auditoria do Hub. Se um roteiro contiver instrução
+// interna ou observação sobre o cliente, chegava nele. Conteúdo não curado
+// não atravessa a fronteira do portal.
+function toPortalDTO(p: DbPost) {
+  const { script: _interno, ...dto } = toDTO(p);
+  return dto;
+}
+
 async function resolveTokenRequestId(token: string): Promise<string | null | false> {
   const access = await validatePortalAccess(token);
   if (!access.valid || !access.record) return false;
@@ -48,10 +58,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const reqId = await resolveTokenRequestId(token);
     if (reqId === false) return NextResponse.json({ error: "Access denied" }, { status: 403 });
     if (!reqId) return NextResponse.json({ posts: [] });
+    // Filtro por contrato de visibilidade, não por convenção de rota: só o que
+    // foi explicitamente compartilhado sai pelo token. "interno" NUNCA — é a
+    // regra fail-closed da Fase 1 (2.2) virando código.
     const posts = await prisma.socialPost.findMany({
-      where: { clientRequestId: reqId }, orderBy: { scheduledFor: "asc" },
+      where: { clientRequestId: reqId, visibility: "compartilhado" },
+      orderBy: { scheduledFor: "asc" },
     });
-    return NextResponse.json({ posts: posts.map(toDTO) });
+    return NextResponse.json({ posts: posts.map(toPortalDTO) });
   }
 
   const { session, error } = await requireSession();
@@ -102,6 +116,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         scriptJson:      body.script && typeof body.script === "object" ? JSON.stringify(body.script) : null,
         scheduledFor:    typeof body.scheduledFor === "string" && body.scheduledFor ? new Date(body.scheduledFor) : null,
         status:          typeof body.status === "string" ? body.status : "scheduled",
+        // A intenção declarada desta rota é "o post aparece no portal do
+        // cliente" (resolução do clientRequestId acima) — então o vínculo à
+        // solicitação é a decisão de compartilhar. Post sem cliente é interno.
+        visibility:      clientRequestId ? "compartilhado" : "interno",
       },
     });
     return NextResponse.json(toDTO(post), { status: 201 });

@@ -67,6 +67,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         approvalRequestId: body.approvalRequestId as string,
         authorName: (body.authorName as string) ?? "internal",
         authorRole: (body.authorRole as "internal" | "client") ?? "internal",
+        // "answer" marca a resposta da agência a uma dúvida do cliente — é o
+        // que o card usa para mostrar o par pergunta→resposta (Fase 2, T5b).
+        kind: (body.kind as "comment" | "question" | "answer") ?? "comment",
         body: body.body as string,
         isClientVisible: Boolean(body.isClientVisible),
       });

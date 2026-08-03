@@ -7,7 +7,7 @@ const db = vi.hoisted(() => ({
   metaConnection: { findFirst: vi.fn() },
   adCampaign: { findMany: vi.fn() },
   activityEvent: { create: vi.fn() },
-  deliverable: { findMany: vi.fn(), create: vi.fn() },
+  deliverable: { findMany: vi.fn(), create: vi.fn(), updateMany: vi.fn() },
   approvalRequest: { updateMany: vi.fn() },
   portalMessage: { create: vi.fn() },
   task: { findMany: vi.fn() },
@@ -49,6 +49,7 @@ beforeEach(() => {
   db.cycle.findFirst.mockResolvedValue(null);
   db.activityEvent.create.mockResolvedValue({});
   db.deliverable.create.mockResolvedValue({ id: "d9" });
+  db.deliverable.updateMany.mockResolvedValue({});
   db.cycle.update.mockResolvedValue({});
   getInsights.mockResolvedValue({ ok: true, reach: 4200, impressions: 9100, followers: 812, engagement: 310 });
   fecharCiclo.mockResolvedValue({ fechado: true, proximo: { referencia: "2026-08", id: "cy2" } });
@@ -181,6 +182,16 @@ describe("apresentar o pacote do mês", () => {
     const r = await apresentarCiclo("p1", "cy2");
     expect(r.ok).toBe(true);
     expect(db.cycle.update.mock.calls[0]![0].data.presentedAt).toBeInstanceOf(Date);
+  });
+
+  it("apresentar É o ato de compartilhar: as entregas do ciclo viram 'compartilhado'", async () => {
+    // Sem este carimbo o portal, que agora filtra por `visibility` fail-closed,
+    // mostraria o card de aprovação sem o corpo da entrega (Hub, Lote 1).
+    await apresentarCiclo("p1", "cy2");
+    expect(db.deliverable.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { projectId: "p1", cycleId: "cy2" },
+      data: { visibility: "compartilhado" },
+    }));
   });
 
   it("ciclo já apresentado não apresenta de novo", async () => {

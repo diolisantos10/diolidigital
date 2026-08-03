@@ -108,6 +108,17 @@ describe("MARCO 2 — apresentar, de uma vez", () => {
     expect(db.approvalRequest.updateMany.mock.calls[0][0].data.clientVisible).toBe(true);
   });
 
+  it("apresentar carimba as entregas como 'compartilhado' — antes disso o portal não as mostra", async () => {
+    // Hub, Lote 1: `visibility` nasce "interno" (fail-closed) e a apresentação
+    // é o ato explícito de publicação. Sem o carimbo, o card fica sem corpo.
+    db.project.findUnique.mockResolvedValue({ ...PROJETO, directionApprovedAt: new Date() });
+    await apresentar("p1");
+    expect(db.deliverable.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { projectId: "p1" },
+      data: { visibility: "compartilhado" },
+    }));
+  });
+
   it("lista as entregas numa mensagem só, do gerente de projeto", async () => {
     db.project.findUnique.mockResolvedValue({ ...PROJETO, directionApprovedAt: new Date() });
     db.deliverable.findMany.mockResolvedValue([

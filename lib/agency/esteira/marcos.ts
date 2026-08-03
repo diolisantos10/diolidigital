@@ -192,6 +192,15 @@ export async function apresentar(projectId: string, opts: { mesmoComRessalva?: b
     }).catch(() => { /* best-effort: a apresentação não pode falhar por isto */ });
   }
 
+  // Apresentar É o ato de publicação do contrato de visibilidade (Hub, Fase 1,
+  // 2.2): as entregas nascem "interno" e só aqui viram "compartilhado". Sem
+  // este carimbo, o portal (que agora filtra por `visibility`, fail-closed)
+  // mostraria o card de aprovação sem o corpo da entrega.
+  await prisma.deliverable.updateMany({
+    where: { projectId },
+    data: { visibility: "compartilhado" },
+  }).catch(() => { /* best-effort */ });
+
   const linhas = [
     `Terminamos! 🎉 Preparei ${entregaveis.length === 1 ? "a sua entrega" : `as suas ${entregaveis.length} entregas`} e revisei tudo antes de te mostrar:`,
     "",

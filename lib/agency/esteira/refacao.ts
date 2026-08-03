@@ -22,6 +22,7 @@ import { prisma } from "@/lib/db/client";
 import { generate } from "@/lib/ai/generate";
 import { TODOS_OS_ESPECIALISTAS } from "@/lib/agency/execution/especialistas";
 import { conferirPisoDeVerdade, resumirViolacoes, type VerdadeDoCliente } from "@/lib/agency/execution/piso-de-verdade";
+import { preservarVersaoAtual, registrarNovaVersao } from "@/lib/agency/esteira/versoes";
 
 /** Quantas vezes a máquina refaz por pedido do CLIENTE antes de virar gente. */
 export const MAX_REFACOES_DO_CLIENTE = 2;
@@ -29,6 +30,9 @@ export const MAX_REFACOES_DO_CLIENTE = 2;
 export interface RefacaoFeita {
   /** Entregas efetivamente refeitas, pelo nome. */
   refeitas: string[];
+  /** Ids das `DeliverableVersion` recém-nascidas — a rodada nova de aprovação
+   *  precisa registrar QUAL versão será decidida (Fase 2, T3/T7). */
+  versoesNovas: string[];
   /** Virou assunto de gente — e por quê. */
   escalado: boolean;
   motivo?: string;
@@ -47,7 +51,7 @@ export async function refazerPorPedidoDoCliente(input: {
   department: string;
   comentario?: string;
 }): Promise<RefacaoFeita> {
-  const saida: RefacaoFeita = { refeitas: [], escalado: false, avisouCliente: false };
+  const saida: RefacaoFeita = { refeitas: [], versoesNovas: [], escalado: false, avisouCliente: false };
 
   const projeto = await prisma.project.findFirst({
     where: { clientRequestId: input.clientRequestId },
@@ -165,6 +169,11 @@ export async function refazerPorPedidoDoCliente(input: {
       continue;
     }
 
+    // A versão que o cliente estava vendo vira registro imutável ANTES da
+    // sobrescrita — era exatamente aqui que a v1 sumia do mundo (Hub, Fase 1,
+    // 1.9). `content` continua sendo gravado, mas agora como cache da corrente.
+    await preservarVersaoAtual(entrega);
+
     await prisma.deliverable.update({
       where: { id: entrega.id },
       data: {
@@ -176,15 +185,33 @@ export async function refazerPorPedidoDoCliente(input: {
         lastFeedback: `Refeita a pedido do cliente: ${comentario}`.slice(0, 500),
       },
     });
+
+    const novaVersao = await registrarNovaVersao({
+      deliverableId: entrega.id,
+      number: entrega.version + 1,
+      content: corpo,
+      createdBy: entrega.ownerAgentId,
+      note: `Refeita a pedido do cliente: "${comentario.slice(0, 300)}"`,
+    });
+    if (novaVersao) saida.versoesNovas.push(novaVersao.id);
     saida.refeitas.push(entrega.name);
   }
 
   if (saida.refeitas.length > 0) {
     // A aprovação volta a ficar pendente: a peça mudou, e o "sim" anterior não
-    // vale para uma versão que o cliente ainda não viu.
+    // vale para uma versão que o cliente ainda não viu. A rodada nova aponta
+    // para a versão recém-nascida — quando a refação produziu UMA versão; com
+    // várias entregas no mesmo departamento o vínculo 1:1 não é decidível aqui
+    // (o card de aprovação é por departamento) e fica nulo, que é o estado
+    // honesto: sem vínculo, o portal não mostra corpo (regra anti-A2).
     await prisma.approvalRequest.updateMany({
       where: { clientRequestId: input.clientRequestId, department: input.department },
-      data: { status: "pending", clientVisible: true, reviewedAt: null, reviewedBy: null },
+      data: {
+        status: "pending", clientVisible: true, reviewedAt: null, reviewedBy: null,
+        // Dúvida aberta era sobre a versão anterior; a rodada nova zera o relógio.
+        questionOpenedAt: null,
+        deliverableVersionId: saida.versoesNovas.length === 1 ? saida.versoesNovas[0] : null,
+      },
     }).catch(() => { /* best-effort */ });
 
     saida.avisouCliente = await escreverNoPortal(input.clientRequestId, [

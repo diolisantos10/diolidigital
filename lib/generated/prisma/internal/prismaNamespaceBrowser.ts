@@ -61,6 +61,7 @@ export const ModelName = {
   Cycle: 'Cycle',
   ClientNotice: 'ClientNotice',
   Deliverable: 'Deliverable',
+  DeliverableVersion: 'DeliverableVersion',
   MaterialRequest: 'MaterialRequest',
   BrandBrain: 'BrandBrain',
   StrategyRoom: 'StrategyRoom',
@@ -295,6 +296,7 @@ export const DeliverableScalarFieldEnum = {
   type: 'type',
   status: 'status',
   revisionStatus: 'revisionStatus',
+  visibility: 'visibility',
   content: 'content',
   clientFeedback: 'clientFeedback',
   lastFeedback: 'lastFeedback',
@@ -307,6 +309,20 @@ export const DeliverableScalarFieldEnum = {
 } as const
 
 export type DeliverableScalarFieldEnum = (typeof DeliverableScalarFieldEnum)[keyof typeof DeliverableScalarFieldEnum]
+
+
+export const DeliverableVersionScalarFieldEnum = {
+  id: 'id',
+  deliverableId: 'deliverableId',
+  number: 'number',
+  content: 'content',
+  mediaAssetIds: 'mediaAssetIds',
+  createdBy: 'createdBy',
+  note: 'note',
+  createdAt: 'createdAt'
+} as const
+
+export type DeliverableVersionScalarFieldEnum = (typeof DeliverableVersionScalarFieldEnum)[keyof typeof DeliverableVersionScalarFieldEnum]
 
 
 export const MaterialRequestScalarFieldEnum = {
@@ -656,6 +672,7 @@ export const SocialPostScalarFieldEnum = {
   mediaUrlsJson: 'mediaUrlsJson',
   scenesJson: 'scenesJson',
   scriptJson: 'scriptJson',
+  visibility: 'visibility',
   scheduledFor: 'scheduledFor',
   status: 'status',
   deliverableId: 'deliverableId',
@@ -698,8 +715,10 @@ export const ApprovalRequestScalarFieldEnum = {
   reviewedBy: 'reviewedBy',
   reviewedAt: 'reviewedAt',
   expiresAt: 'expiresAt',
+  questionOpenedAt: 'questionOpenedAt',
   reviewNote: 'reviewNote',
   clientVisible: 'clientVisible',
+  deliverableVersionId: 'deliverableVersionId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -712,6 +731,7 @@ export const ApprovalCommentScalarFieldEnum = {
   approvalRequestId: 'approvalRequestId',
   authorName: 'authorName',
   authorRole: 'authorRole',
+  kind: 'kind',
   body: 'body',
   isClientVisible: 'isClientVisible',
   createdAt: 'createdAt'

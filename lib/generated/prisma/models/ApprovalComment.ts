@@ -29,6 +29,7 @@ export type ApprovalCommentMinAggregateOutputType = {
   approvalRequestId: string | null
   authorName: string | null
   authorRole: string | null
+  kind: string | null
   body: string | null
   isClientVisible: boolean | null
   createdAt: Date | null
@@ -39,6 +40,7 @@ export type ApprovalCommentMaxAggregateOutputType = {
   approvalRequestId: string | null
   authorName: string | null
   authorRole: string | null
+  kind: string | null
   body: string | null
   isClientVisible: boolean | null
   createdAt: Date | null
@@ -49,6 +51,7 @@ export type ApprovalCommentCountAggregateOutputType = {
   approvalRequestId: number
   authorName: number
   authorRole: number
+  kind: number
   body: number
   isClientVisible: number
   createdAt: number
@@ -61,6 +64,7 @@ export type ApprovalCommentMinAggregateInputType = {
   approvalRequestId?: true
   authorName?: true
   authorRole?: true
+  kind?: true
   body?: true
   isClientVisible?: true
   createdAt?: true
@@ -71,6 +75,7 @@ export type ApprovalCommentMaxAggregateInputType = {
   approvalRequestId?: true
   authorName?: true
   authorRole?: true
+  kind?: true
   body?: true
   isClientVisible?: true
   createdAt?: true
@@ -81,6 +86,7 @@ export type ApprovalCommentCountAggregateInputType = {
   approvalRequestId?: true
   authorName?: true
   authorRole?: true
+  kind?: true
   body?: true
   isClientVisible?: true
   createdAt?: true
@@ -164,6 +170,7 @@ export type ApprovalCommentGroupByOutputType = {
   approvalRequestId: string
   authorName: string
   authorRole: string
+  kind: string
   body: string
   isClientVisible: boolean
   createdAt: Date
@@ -195,6 +202,7 @@ export type ApprovalCommentWhereInput = {
   approvalRequestId?: Prisma.StringFilter<"ApprovalComment"> | string
   authorName?: Prisma.StringFilter<"ApprovalComment"> | string
   authorRole?: Prisma.StringFilter<"ApprovalComment"> | string
+  kind?: Prisma.StringFilter<"ApprovalComment"> | string
   body?: Prisma.StringFilter<"ApprovalComment"> | string
   isClientVisible?: Prisma.BoolFilter<"ApprovalComment"> | boolean
   createdAt?: Prisma.DateTimeFilter<"ApprovalComment"> | Date | string
@@ -206,6 +214,7 @@ export type ApprovalCommentOrderByWithRelationInput = {
   approvalRequestId?: Prisma.SortOrder
   authorName?: Prisma.SortOrder
   authorRole?: Prisma.SortOrder
+  kind?: Prisma.SortOrder
   body?: Prisma.SortOrder
   isClientVisible?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -220,6 +229,7 @@ export type ApprovalCommentWhereUniqueInput = Prisma.AtLeast<{
   approvalRequestId?: Prisma.StringFilter<"ApprovalComment"> | string
   authorName?: Prisma.StringFilter<"ApprovalComment"> | string
   authorRole?: Prisma.StringFilter<"ApprovalComment"> | string
+  kind?: Prisma.StringFilter<"ApprovalComment"> | string
   body?: Prisma.StringFilter<"ApprovalComment"> | string
   isClientVisible?: Prisma.BoolFilter<"ApprovalComment"> | boolean
   createdAt?: Prisma.DateTimeFilter<"ApprovalComment"> | Date | string
@@ -231,6 +241,7 @@ export type ApprovalCommentOrderByWithAggregationInput = {
   approvalRequestId?: Prisma.SortOrder
   authorName?: Prisma.SortOrder
   authorRole?: Prisma.SortOrder
+  kind?: Prisma.SortOrder
   body?: Prisma.SortOrder
   isClientVisible?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -247,6 +258,7 @@ export type ApprovalCommentScalarWhereWithAggregatesInput = {
   approvalRequestId?: Prisma.StringWithAggregatesFilter<"ApprovalComment"> | string
   authorName?: Prisma.StringWithAggregatesFilter<"ApprovalComment"> | string
   authorRole?: Prisma.StringWithAggregatesFilter<"ApprovalComment"> | string
+  kind?: Prisma.StringWithAggregatesFilter<"ApprovalComment"> | string
   body?: Prisma.StringWithAggregatesFilter<"ApprovalComment"> | string
   isClientVisible?: Prisma.BoolWithAggregatesFilter<"ApprovalComment"> | boolean
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"ApprovalComment"> | Date | string
@@ -256,6 +268,7 @@ export type ApprovalCommentCreateInput = {
   id?: string
   authorName: string
   authorRole?: string
+  kind?: string
   body: string
   isClientVisible?: boolean
   createdAt?: Date | string
@@ -267,6 +280,7 @@ export type ApprovalCommentUncheckedCreateInput = {
   approvalRequestId: string
   authorName: string
   authorRole?: string
+  kind?: string
   body: string
   isClientVisible?: boolean
   createdAt?: Date | string
@@ -276,6 +290,7 @@ export type ApprovalCommentUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   authorName?: Prisma.StringFieldUpdateOperationsInput | string
   authorRole?: Prisma.StringFieldUpdateOperationsInput | string
+  kind?: Prisma.StringFieldUpdateOperationsInput | string
   body?: Prisma.StringFieldUpdateOperationsInput | string
   isClientVisible?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -287,6 +302,7 @@ export type ApprovalCommentUncheckedUpdateInput = {
   approvalRequestId?: Prisma.StringFieldUpdateOperationsInput | string
   authorName?: Prisma.StringFieldUpdateOperationsInput | string
   authorRole?: Prisma.StringFieldUpdateOperationsInput | string
+  kind?: Prisma.StringFieldUpdateOperationsInput | string
   body?: Prisma.StringFieldUpdateOperationsInput | string
   isClientVisible?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -297,6 +313,7 @@ export type ApprovalCommentCreateManyInput = {
   approvalRequestId: string
   authorName: string
   authorRole?: string
+  kind?: string
   body: string
   isClientVisible?: boolean
   createdAt?: Date | string
@@ -306,6 +323,7 @@ export type ApprovalCommentUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   authorName?: Prisma.StringFieldUpdateOperationsInput | string
   authorRole?: Prisma.StringFieldUpdateOperationsInput | string
+  kind?: Prisma.StringFieldUpdateOperationsInput | string
   body?: Prisma.StringFieldUpdateOperationsInput | string
   isClientVisible?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -316,6 +334,7 @@ export type ApprovalCommentUncheckedUpdateManyInput = {
   approvalRequestId?: Prisma.StringFieldUpdateOperationsInput | string
   authorName?: Prisma.StringFieldUpdateOperationsInput | string
   authorRole?: Prisma.StringFieldUpdateOperationsInput | string
+  kind?: Prisma.StringFieldUpdateOperationsInput | string
   body?: Prisma.StringFieldUpdateOperationsInput | string
   isClientVisible?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -336,6 +355,7 @@ export type ApprovalCommentCountOrderByAggregateInput = {
   approvalRequestId?: Prisma.SortOrder
   authorName?: Prisma.SortOrder
   authorRole?: Prisma.SortOrder
+  kind?: Prisma.SortOrder
   body?: Prisma.SortOrder
   isClientVisible?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -346,6 +366,7 @@ export type ApprovalCommentMaxOrderByAggregateInput = {
   approvalRequestId?: Prisma.SortOrder
   authorName?: Prisma.SortOrder
   authorRole?: Prisma.SortOrder
+  kind?: Prisma.SortOrder
   body?: Prisma.SortOrder
   isClientVisible?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -356,6 +377,7 @@ export type ApprovalCommentMinOrderByAggregateInput = {
   approvalRequestId?: Prisma.SortOrder
   authorName?: Prisma.SortOrder
   authorRole?: Prisma.SortOrder
+  kind?: Prisma.SortOrder
   body?: Prisma.SortOrder
   isClientVisible?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -407,6 +429,7 @@ export type ApprovalCommentCreateWithoutApprovalRequestInput = {
   id?: string
   authorName: string
   authorRole?: string
+  kind?: string
   body: string
   isClientVisible?: boolean
   createdAt?: Date | string
@@ -416,6 +439,7 @@ export type ApprovalCommentUncheckedCreateWithoutApprovalRequestInput = {
   id?: string
   authorName: string
   authorRole?: string
+  kind?: string
   body: string
   isClientVisible?: boolean
   createdAt?: Date | string
@@ -454,6 +478,7 @@ export type ApprovalCommentScalarWhereInput = {
   approvalRequestId?: Prisma.StringFilter<"ApprovalComment"> | string
   authorName?: Prisma.StringFilter<"ApprovalComment"> | string
   authorRole?: Prisma.StringFilter<"ApprovalComment"> | string
+  kind?: Prisma.StringFilter<"ApprovalComment"> | string
   body?: Prisma.StringFilter<"ApprovalComment"> | string
   isClientVisible?: Prisma.BoolFilter<"ApprovalComment"> | boolean
   createdAt?: Prisma.DateTimeFilter<"ApprovalComment"> | Date | string
@@ -463,6 +488,7 @@ export type ApprovalCommentCreateManyApprovalRequestInput = {
   id?: string
   authorName: string
   authorRole?: string
+  kind?: string
   body: string
   isClientVisible?: boolean
   createdAt?: Date | string
@@ -472,6 +498,7 @@ export type ApprovalCommentUpdateWithoutApprovalRequestInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   authorName?: Prisma.StringFieldUpdateOperationsInput | string
   authorRole?: Prisma.StringFieldUpdateOperationsInput | string
+  kind?: Prisma.StringFieldUpdateOperationsInput | string
   body?: Prisma.StringFieldUpdateOperationsInput | string
   isClientVisible?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -481,6 +508,7 @@ export type ApprovalCommentUncheckedUpdateWithoutApprovalRequestInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   authorName?: Prisma.StringFieldUpdateOperationsInput | string
   authorRole?: Prisma.StringFieldUpdateOperationsInput | string
+  kind?: Prisma.StringFieldUpdateOperationsInput | string
   body?: Prisma.StringFieldUpdateOperationsInput | string
   isClientVisible?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -490,6 +518,7 @@ export type ApprovalCommentUncheckedUpdateManyWithoutApprovalRequestInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   authorName?: Prisma.StringFieldUpdateOperationsInput | string
   authorRole?: Prisma.StringFieldUpdateOperationsInput | string
+  kind?: Prisma.StringFieldUpdateOperationsInput | string
   body?: Prisma.StringFieldUpdateOperationsInput | string
   isClientVisible?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -502,6 +531,7 @@ export type ApprovalCommentSelect<ExtArgs extends runtime.Types.Extensions.Inter
   approvalRequestId?: boolean
   authorName?: boolean
   authorRole?: boolean
+  kind?: boolean
   body?: boolean
   isClientVisible?: boolean
   createdAt?: boolean
@@ -513,6 +543,7 @@ export type ApprovalCommentSelectCreateManyAndReturn<ExtArgs extends runtime.Typ
   approvalRequestId?: boolean
   authorName?: boolean
   authorRole?: boolean
+  kind?: boolean
   body?: boolean
   isClientVisible?: boolean
   createdAt?: boolean
@@ -524,6 +555,7 @@ export type ApprovalCommentSelectUpdateManyAndReturn<ExtArgs extends runtime.Typ
   approvalRequestId?: boolean
   authorName?: boolean
   authorRole?: boolean
+  kind?: boolean
   body?: boolean
   isClientVisible?: boolean
   createdAt?: boolean
@@ -535,12 +567,13 @@ export type ApprovalCommentSelectScalar = {
   approvalRequestId?: boolean
   authorName?: boolean
   authorRole?: boolean
+  kind?: boolean
   body?: boolean
   isClientVisible?: boolean
   createdAt?: boolean
 }
 
-export type ApprovalCommentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "approvalRequestId" | "authorName" | "authorRole" | "body" | "isClientVisible" | "createdAt", ExtArgs["result"]["approvalComment"]>
+export type ApprovalCommentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "approvalRequestId" | "authorName" | "authorRole" | "kind" | "body" | "isClientVisible" | "createdAt", ExtArgs["result"]["approvalComment"]>
 export type ApprovalCommentInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   approvalRequest?: boolean | Prisma.ApprovalRequestDefaultArgs<ExtArgs>
 }
@@ -561,6 +594,11 @@ export type $ApprovalCommentPayload<ExtArgs extends runtime.Types.Extensions.Int
     approvalRequestId: string
     authorName: string
     authorRole: string
+    /**
+     * "comment" | "question" | "answer". A dúvida fica PRESA ao card (Fase 2,
+     * caminho C) — não numa thread geral desconectada, que era o problema.
+     */
+    kind: string
     body: string
     isClientVisible: boolean
     createdAt: Date
@@ -992,6 +1030,7 @@ export interface ApprovalCommentFieldRefs {
   readonly approvalRequestId: Prisma.FieldRef<"ApprovalComment", 'String'>
   readonly authorName: Prisma.FieldRef<"ApprovalComment", 'String'>
   readonly authorRole: Prisma.FieldRef<"ApprovalComment", 'String'>
+  readonly kind: Prisma.FieldRef<"ApprovalComment", 'String'>
   readonly body: Prisma.FieldRef<"ApprovalComment", 'String'>
   readonly isClientVisible: Prisma.FieldRef<"ApprovalComment", 'Boolean'>
   readonly createdAt: Prisma.FieldRef<"ApprovalComment", 'DateTime'>
