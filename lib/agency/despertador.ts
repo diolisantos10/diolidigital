@@ -30,6 +30,7 @@ import { virarOsMesesVencidos } from "@/lib/agency/esteira/mes";
 import { produzirArtesPendentes } from "@/lib/agency/execution/artes";
 import { guardarAVerba } from "@/lib/agency/esteira/trafego";
 import { cuidarDasAvaliacoes } from "@/lib/agency/esteira/avaliacoes";
+import { fazerBackup, estadoDoBackup } from "@/lib/agency/backup";
 
 /** De quanto em quanto tempo a agência olha se tem trabalho parado. */
 const INTERVALO_MS = Number(process.env.DESPERTADOR_INTERVALO_MS ?? 5 * 60_000);
@@ -129,6 +130,7 @@ export async function baterORelogio(): Promise<{
   artes: number;
   campanhasFreadas: number;
   avaliacoes: number;
+  backup: boolean;
 }> {
   let retomados = 0;
   let avisos = 0;
@@ -138,6 +140,7 @@ export async function baterORelogio(): Promise<{
   let artes = 0;
   let campanhasFreadas = 0;
   let avaliacoes = 0;
+  let backup = false;
 
   // A virada vem ANTES da retomada de propósito: ela é quem abre o mês novo e
   // marca o projeto como "pending". Assim o mês nasce e já é produzido na mesma
@@ -207,6 +210,25 @@ export async function baterORelogio(): Promise<{
     log(`avaliações falharam: ${err instanceof Error ? err.message : "erro"}`);
   }
 
+  // ── O BACKUP ──────────────────────────────────────────────────────────────
+  // Uma vez por dia. Não é o relógio que decide a frequência: ele bate a cada
+  // 5 min, e é o estado no disco que diz se já passou 24h. Assim um restart do
+  // servidor não dispara backup a mais, e um servidor parado por horas faz o
+  // backup atrasado assim que volta.
+  try {
+    const e = await estadoDoBackup();
+    if (e.horasDesdeOUltimo === null || e.horasDesdeOUltimo >= 24) {
+      const r = await fazerBackup();
+      backup = r.ok;
+      if (r.ok) log(`backup ok — ${Math.round((r.bytes ?? 0) / 1024)} KB, ${JSON.stringify(r.conferencia)}`);
+      // Backup que falha em silêncio é pior que backup nenhum: dá a sensação
+      // de estar protegido.
+      else log(`⚠ BACKUP FALHOU: ${r.erro}`);
+    }
+  } catch (err) {
+    log(`⚠ BACKUP FALHOU: ${err instanceof Error ? err.message : "erro"}`);
+  }
+
   try {
     const r = await dispatchWhatsAppNotifications();
     avisos = typeof r?.sent === "number" ? r.sent : 0;
@@ -217,7 +239,7 @@ export async function baterORelogio(): Promise<{
   if (retomados > 0 || avisos > 0 || destravadas > 0 || publicados > 0 || mesesVirados > 0 || artes > 0 || campanhasFreadas > 0 || avaliacoes > 0) {
     log(`rodada: ${mesesVirados} mês(es) virado(s), ${retomados} produção(ões) retomada(s), ${destravadas} entrega(s) refeita(s), ${artes} arte(s) produzida(s), ${publicados} post(s) publicado(s), ${campanhasFreadas} campanha(s) freada(s), ${avaliacoes} avaliação(ões) tratada(s), ${avisos} aviso(s) enviado(s)`);
   }
-  return { retomados, avisos, destravadas, publicados, mesesVirados, artes, campanhasFreadas, avaliacoes };
+  return { retomados, avisos, destravadas, publicados, mesesVirados, artes, campanhasFreadas, avaliacoes, backup };
 }
 
 /**

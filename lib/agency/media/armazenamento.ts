@@ -17,7 +17,10 @@
 //     a cota abaixo não é enfeite, é o que separa "acabou o espaço" de
 //     "perdemos o cliente".
 //   • Não há CDN: todo byte passa pelo processo Node.
-//   • Não há backup — nem do banco, hoje. Guardar mídia aqui aumenta o que se
+//   • Backup do BANCO existe desde 03/08/2026 (lib/agency/backup.ts), diário e
+//     conferido. A MÍDIA continua sem cópia: são gigabytes, e copiar dentro do
+//     mesmo volume não protegeria de nada.
+//   • (histórico) Não havia backup — nem do banco. Guardar mídia aqui aumenta o que se
 //     perde se o volume morrer, sem aumentar a proteção. Está na lista do CEO.
 //
 // Quando migrar para armazenamento externo, só `caminhoAbsoluto` muda. As
