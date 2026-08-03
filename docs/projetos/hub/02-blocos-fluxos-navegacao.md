@@ -521,3 +521,18 @@ perguntas espontâneas do CEO fora da tarefa 5).
    teste com clientes reais antes de código de produção.
 
 _Fase 2 do Hub do Cliente · 03/08/2026 · fontes: `docs/projetos/hub-do-cliente-briefing.md`, `docs/projetos/hub/00-auditoria.md`, `docs/projetos/hub/01-modelo-e-visibilidade.md`, `prisma/schema.prisma`, `app/api/portal/`, `app/portal/access/[token]/page.tsx`, `app/agency/{tasks,clients,control-room,pipeline,dashboard}/`, `lib/agency/esteira/`, `lib/integrations/meta/connections.ts`._
+
+---
+
+## Devolutiva do CEO — 03/08/2026 (teste do protótipo)
+
+**APROVADO** ("achei ótimo... gostei bastante desse layout, pode seguir"),
+com UMA adição obrigatória:
+
+- **Chat com o PM no portal do cliente** — gaveta lateral, sempre acessível,
+  para dúvidas e assuntos gerais. O PM é a ponte única entre o cliente e todos
+  os departamentos: o cliente nunca fala com um departamento direto, fala com
+  o PM (que na prática é a IA da casa, com escalada ao humano quando preciso).
+  Entra na construção como parte do Lote de portal, com as regras da casa:
+  resposta ancorada em verdade, sem prometer prazo/valor sem fonte, e
+  mensagem que exija decisão vira Pendência.
