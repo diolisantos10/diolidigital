@@ -230,6 +230,89 @@ function AppCredentialsRow({
   );
 }
 
+/**
+ * O caminho que NÃO depende do popup da Meta. Existe porque no dia do
+ * lançamento da Foocci (03/08/2026) o diálogo de OAuth recusou o próprio admin
+ * do app — e a operação parou. Colar um token do Graph API Explorer resolve em
+ * dois minutos: a rota /api/meta/token valida que o token é DESTE app, troca
+ * por um de longa duração e descobre as Páginas/Instagram sozinha.
+ */
+function TokenPasteRow({ onChanged }: { onChanged: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [token, setToken] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  async function handlePaste() {
+    setBusy(true);
+    setMsg(null);
+    try {
+      const res = await fetch("/api/meta/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: token.trim() }),
+      });
+      const data = (await res.json()) as { ok?: boolean; contas?: number; aviso?: string; error?: string };
+      if (res.ok && data.ok) {
+        setMsg({ ok: true, text: `${data.contas ?? 0} conta(s) conectada(s).${data.aviso ? ` ${data.aviso}` : ""}` });
+        setToken("");
+        setOpen(false);
+        onChanged();
+      } else {
+        setMsg({ ok: false, text: data.error ?? "Falha ao conectar o token." });
+      }
+    } catch {
+      setMsg({ ok: false, text: "Falha de rede ao enviar o token." });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mb-3">
+      {!open ? (
+        <button
+          onClick={() => setOpen(true)}
+          className="text-[11px] text-[var(--text-muted)] underline underline-offset-2 hover:text-[var(--text-primary)]"
+        >
+          O popup não abriu? Conectar colando um token
+        </button>
+      ) : (
+        <div className="border border-[var(--border)] rounded-[7px] p-3 space-y-2">
+          <p className="text-[11px] text-[var(--text-muted)]">
+            Gere um token de usuário no Graph API Explorer (developers.facebook.com/tools/explorer),
+            com o app da agência selecionado, e cole aqui. Ele é validado, trocado por um de 60 dias
+            e guardado criptografado — nunca aparece de novo.
+          </p>
+          <textarea
+            value={token}
+            onChange={(e) => setToken(e.target.value)}
+            rows={2}
+            placeholder="EAA…"
+            className="w-full text-[11px] font-mono border border-[var(--border)] rounded-[6px] px-2.5 py-1.5 focus:outline-none focus:border-[var(--text-muted)]"
+          />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handlePaste}
+              disabled={busy || token.trim().length < 30}
+              className="px-3 py-1.5 text-white text-[12px] font-semibold rounded-[7px] disabled:opacity-40"
+              style={{ backgroundColor: ACCENT }}
+            >
+              {busy ? "Validando…" : "Conectar token"}
+            </button>
+            <button onClick={() => { setOpen(false); setMsg(null); }} className="text-[11px] text-[var(--text-muted)] underline underline-offset-2">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+      {msg && (
+        <p className={`text-[11px] mt-1.5 ${msg.ok ? "text-[var(--success)]" : "text-[var(--danger)]"}`}>{msg.text}</p>
+      )}
+    </div>
+  );
+}
+
 function ConnectionsSection({
   config,
   connections,
@@ -311,6 +394,8 @@ function ConnectionsSection({
       {!canConnect && (
         <p className="text-[11px] text-[var(--warning)]">⚠ Salve o App ID e o App Secret acima para poder conectar contas.</p>
       )}
+
+      {canConnect && <TokenPasteRow onChanged={onChanged} />}
 
       {loading ? (
         <div className="text-[12px] text-[var(--text-muted)]">Carregando…</div>
