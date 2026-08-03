@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 const db = vi.hoisted(() => ({
   project: { findUnique: vi.fn() },
   clientRequestDb: { findUnique: vi.fn() },
-  metaConnection: { findFirst: vi.fn() },
+  metaConnection: { findFirst: vi.fn(), count: vi.fn() },
   deliverable: { findFirst: vi.fn() },
   socialPost: { findFirst: vi.fn() },
   activityEvent: { create: vi.fn() },
@@ -42,6 +42,7 @@ beforeEach(() => {
   });
   db.clientRequestDb.findUnique.mockResolvedValue({ businessName: "Padaria do João", briefingJson: BRIEFING });
   db.metaConnection.findFirst.mockResolvedValue({ id: "mc1", externalId: "page_1" });
+  db.metaConnection.count.mockResolvedValue(0);
   db.adCampaign.findFirst.mockResolvedValue(null);
   db.adCampaign.create.mockResolvedValue({ id: "ac1" });
   db.adCampaign.update.mockResolvedValue({});
@@ -88,8 +89,24 @@ describe("a agência PREPARA a campanha; o cliente é quem liga", () => {
 
   it("sem conta Meta conectada, para antes e diz o que falta", async () => {
     db.metaConnection.findFirst.mockResolvedValue(null);
+    db.metaConnection.count.mockResolvedValue(0);
     const r = await prepararCampanha("p1");
     expect(r.pendencia).toMatch(/não conectou/);
+  });
+
+  it("usa a conexão de USUÁRIO — token de Página não serve para anúncio", async () => {
+    // `me/adaccounts` responde "(#102) A user access token is required".
+    // Pegar "qualquer conexão conectada" parecia certo e falharia sempre, com
+    // um erro da Meta que não diz que o problema é o tipo do token.
+    await prepararCampanha("p1");
+    expect(db.metaConnection.findFirst.mock.calls[0]![0].where.platform).toBe("user");
+  });
+
+  it("cliente que conectou ANTES do acesso de anúncios é mandado reconectar", async () => {
+    db.metaConnection.findFirst.mockResolvedValue(null);
+    db.metaConnection.count.mockResolvedValue(2);
+    const r = await prepararCampanha("p1");
+    expect(r.pendencia).toMatch(/reconectar/);
   });
 
   it("não cria duas campanhas para o mesmo projeto — duplicar é duplicar o gasto", async () => {

@@ -82,12 +82,26 @@ export async function prepararCampanha(projectId: string): Promise<CampanhaPrepa
     };
   }
 
+  // ── A CONEXÃO PRECISA SER A DE USUÁRIO ────────────────────────────────────
+  // `me/adaccounts` e a Marketing API respondem "(#102) A user access token is
+  // required": token de PÁGINA não serve. Pegar "qualquer conexão conectada"
+  // parecia certo e falharia sempre — com um erro da Meta que não diz que o
+  // problema é o tipo do token.
   const conexao = await prisma.metaConnection.findFirst({
-    where: { workspaceId: projeto.workspaceId, clientId: projeto.clientId, status: "connected" },
+    where: { workspaceId: projeto.workspaceId, clientId: projeto.clientId, platform: "user", status: "connected" },
     select: { id: true },
+    orderBy: { connectedAt: "desc" },
   }).catch(() => null);
   if (!conexao) {
-    return { ok: false, pendencia: "o cliente ainda não conectou a conta Meta dele" };
+    const temAlguma = await prisma.metaConnection.count({
+      where: { workspaceId: projeto.workspaceId, clientId: projeto.clientId, status: "connected" },
+    }).catch(() => 0);
+    return {
+      ok: false,
+      pendencia: temAlguma > 0
+        ? "o cliente conectou a Meta antes de o acesso de anúncios existir — precisa reconectar para liberar o tráfego pago"
+        : "o cliente ainda não conectou a conta Meta dele",
+    };
   }
 
   const { listarContasDeAnuncio } = await import("@/lib/integrations/meta/ads");

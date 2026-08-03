@@ -2,7 +2,10 @@
 // SERVER-ONLY types are fine to import from client components (types are erased
 // at build), but the modules that USE them (graph, oauth, client) are server-only.
 
-export type MetaPlatform = "instagram" | "facebook" | "whatsapp";
+export type MetaPlatform = "instagram" | "facebook" | "whatsapp" | "user";
+/** "user" NÃO é uma rede social: é o acesso da PESSOA que conectou, guardado
+ *  porque `me/adaccounts`, a autorização de conta de anúncio e a Marketing API
+ *  exigem token de usuário — token de Página não serve. */
 
 export const META_PLATFORMS: MetaPlatform[] = ["instagram", "facebook", "whatsapp"];
 

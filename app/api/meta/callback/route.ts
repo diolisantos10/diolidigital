@@ -94,6 +94,27 @@ export async function GET(req: NextRequest): Promise<Response> {
       ? new Date(Date.now() + longTok.expires_in * 1000)
       : null;
 
+    // ── O TOKEN DE USUÁRIO PRECISA SOBREVIVER ────────────────────────────────
+    // Até 02/08/2026 ele era usado para descobrir as Páginas e DESCARTADO. Só
+    // que várias coisas da Meta exigem token de USUÁRIO, não de Página:
+    // `me/adaccounts`, autorizar conta de anúncio no app, e a Marketing API
+    // inteira. Sem guardá-lo, o único caminho para tráfego pago era alguém
+    // colar id de conta à mão no painel da Meta.
+    //
+    // Fica como conexão de plataforma "user": é o mesmo cofre cifrado, com o
+    // mesmo ciclo de vida, e nenhum leitor de Página o confunde com uma.
+    await saveConnection({
+      workspaceId: session.workspaceId,
+      clientId,
+      platform: "user",
+      name: "Acesso da conta Meta",
+      externalId: `user:${session.workspaceId}${clientId ? `:${clientId}` : ""}`,
+      accessToken: userToken,
+      tokenExpiresAt: userTokenExpiry,
+      scopes: DEFAULT_SCOPES,
+      meta: { tipo: "user_token" },
+    }).catch(() => { /* best-effort: perder isto não pode derrubar a conexão das Páginas */ });
+
     // 3. Discover Pages + linked Instagram accounts.
     const pages = await discoverPages(userToken);
 
