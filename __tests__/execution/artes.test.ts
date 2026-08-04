@@ -136,10 +136,10 @@ describe("o prompt da arte", () => {
 // O pedido do CEO chegando à ARTE: "os nossos carrosséis têm a ver com os que
 // eles fizeram lá?" — a peça nova precisa pertencer à família visual do perfil.
 describe("a arte segue o estilo OBSERVADO no feed real do cliente", () => {
-  it("lê o estilo da síntese PERSISTIDA (por clientRequestId) e o põe no prompt", async () => {
+  it("lê o estilo da síntese PERSISTIDA (pelo CLIENTE) e o põe no prompt", async () => {
     estiloVisualPersistido.mockResolvedValue("bastidor real com luz natural");
     await produzirArtesPendentes();
-    expect(estiloVisualPersistido).toHaveBeenCalledWith("cr1");
+    expect(estiloVisualPersistido).toHaveBeenCalledWith("c1");
     expect(generateDesign.mock.calls[0]![0].prompt as string).toContain("bastidor real com luz natural");
   });
 
@@ -150,8 +150,20 @@ describe("a arte segue o estilo OBSERVADO no feed real do cliente", () => {
     expect(generateDesign.mock.calls[0]![0].prompt as string).not.toMatch(/feed real/i);
   });
 
-  it("post sem clientRequestId não consulta a síntese", async () => {
+  // O FURO: a chave era `clientRequestId`, e o post de cliente DIRETO nasce com
+  // ele NULO (publicacao.ts). No cliente-piloto — o único criado direto — a
+  // Onda 2a inteira devolvia "" em silêncio. Nenhum teste pegava: todos usavam
+  // "cr1". A chave passa a ser o cliente, que existe nos dois mundos.
+  it("cliente DIRETO (clientRequestId nulo) continua consultando a síntese pelo clientId", async () => {
     db.socialPost.findMany.mockResolvedValue([{ ...POST, clientRequestId: null }]);
+    estiloVisualPersistido.mockResolvedValue("bastidor real com luz natural");
+    await produzirArtesPendentes();
+    expect(estiloVisualPersistido).toHaveBeenCalledWith("c1");
+    expect(generateDesign.mock.calls[0]![0].prompt as string).toContain("bastidor real com luz natural");
+  });
+
+  it("post órfão (sem cliente) não consulta a síntese", async () => {
+    db.socialPost.findMany.mockResolvedValue([{ ...POST, clientId: null, clientRequestId: null }]);
     await produzirArtesPendentes();
     expect(estiloVisualPersistido).not.toHaveBeenCalled();
   });

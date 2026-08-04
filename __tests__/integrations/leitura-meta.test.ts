@@ -31,6 +31,9 @@ import {
   lerMetricasDosPosts,
   limparCacheDeLeitura,
   LIMITE_MAXIMO_DO_FEED,
+  ROTULO_DO_ALCANCE,
+  TETO_DE_CHAMADAS_POR_HORA,
+  FRASE_DO_TETO,
 } from "@/lib/integrations/meta/leitura";
 
 const CONEXAO_VIVA = {
@@ -205,6 +208,138 @@ describe("métricas da conta — série e totais, sem inventar", () => {
     const r2 = await lerMetricasDaConta("ws1", "c1", { desde: "2026-08-01", ate: "2026-08-02" });
     expect(r2.ok).toBe(true);
     expect(graphGet.mock.calls.length).toBe(chamadas);
+  });
+});
+
+// ── O ALCANCE NÃO PODE SER UM NÚMERO AMBÍGUO ───────────────────────────────
+// Somar 28 dias de reach conta a mesma pessoa até 28 vezes. Chamar isso de
+// "contas únicas alcançadas" é falso — e é o número que o cliente lê.
+describe("alcance: de onde veio o número decide como ele se chama", () => {
+  it("com total_value, o alcance é DEDUPLICADO e o rótulo diz isso", async () => {
+    graphGet.mockImplementation(async (path: string, _tk: string, params: Record<string, unknown> = {}) => {
+      if (path === "ig9") return { followers_count: 812, media_count: 96 };
+      if (params.metric_type === "time_series") {
+        return { data: [{ name: "reach", values: [
+          { value: 100, end_time: "2026-08-01T07:00:00+0000" },
+          { value: 90, end_time: "2026-08-02T07:00:00+0000" },
+        ] }] };
+      }
+      return { data: [
+        { name: "reach", total_value: { value: 150 } },   // ≠ 190: dedup de verdade
+        { name: "views", total_value: { value: 900 } },
+        { name: "total_interactions", total_value: { value: 55 } },
+      ] };
+    });
+    const r = await lerMetricasDaConta("ws1", "c1", { desde: "2026-08-01", ate: "2026-08-02" });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.totais.alcance).toBe(150);
+      expect(r.alcanceOrigem).toBe("unicas_no_periodo");
+      expect(r.rotuloDoAlcance).toBe(ROTULO_DO_ALCANCE.unicas_no_periodo);
+      // A série continua existindo — ela é o GRÁFICO, não o total.
+      expect(r.serie).toHaveLength(2);
+    }
+    // O reach total NÃO custa chamada extra: vai junto no GET de totais.
+    expect(graphGet.mock.calls.filter((c) => String(c[0]).endsWith("/insights"))).toHaveLength(2);
+  });
+
+  it("sem total_value, a soma da série entra COM outro nome — nunca 'contas únicas'", async () => {
+    graphGet.mockImplementation(async (path: string, _tk: string, params: Record<string, unknown> = {}) => {
+      if (path === "ig9") return { followers_count: 812, media_count: 96 };
+      if (params.metric_type === "time_series") {
+        return { data: [{ name: "reach", values: [
+          { value: 100, end_time: "2026-08-01T07:00:00+0000" },
+          { value: 50, end_time: "2026-08-02T07:00:00+0000" },
+        ] }] };
+      }
+      return { data: [{ name: "views", total_value: { value: 900 } }] };
+    });
+    const r = await lerMetricasDaConta("ws1", "c1", { desde: "2026-08-01", ate: "2026-08-02" });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.totais.alcance).toBe(150);
+      expect(r.alcanceOrigem).toBe("soma_diaria");
+      expect(r.rotuloDoAlcance).toBe(ROTULO_DO_ALCANCE.soma_diaria);
+      expect(r.rotuloDoAlcance).not.toMatch(/únicas/);
+    }
+  });
+});
+
+// ── DIA SEM DADO É DIA SEM DADO ────────────────────────────────────────────
+// A Meta devolve 6 de 28 dias em conta pequena. Antes, isso passava como se
+// fosse o período inteiro e o card somava só os 6.
+describe("a série não pode mentir sobre os dias que faltam", () => {
+  function serieCom(dias: Array<{ value: number; dia: string }>) {
+    graphGet.mockImplementation(async (path: string, _tk: string, params: Record<string, unknown> = {}) => {
+      if (path === "ig9") return { followers_count: 40, media_count: 4 };
+      if (params.metric_type === "time_series") {
+        return { data: [{ name: "reach", values: dias.map((d) => ({ value: d.value, end_time: `${d.dia}T07:00:00+0000` })) }] };
+      }
+      return { data: [{ name: "views", total_value: { value: 10 } }] };
+    });
+  }
+
+  it("série com buraco → aviso dizendo em quantos dias de quantos foi medido", async () => {
+    serieCom([{ value: 10, dia: "2026-07-01" }, { value: 12, dia: "2026-07-05" }]);
+    const r = await lerMetricasDaConta("ws1", "c1", { desde: "2026-07-01", ate: "2026-07-07" });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.aviso).toContain("alcance medido em 2 de 7 dias do período");
+  });
+
+  it("série completa → nenhum aviso inventado", async () => {
+    serieCom([
+      { value: 10, dia: "2026-07-01" }, { value: 12, dia: "2026-07-02" }, { value: 9, dia: "2026-07-03" },
+    ]);
+    const r = await lerMetricasDaConta("ws1", "c1", { desde: "2026-07-01", ate: "2026-07-03" });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.aviso).toBeUndefined();
+  });
+});
+
+// ── O TETO DE RITMO ────────────────────────────────────────────────────────
+// `desde`/`ate` são livres e entram na chave do cache: varrer janelas era
+// centenas de GETs em segundos na mesma conta — a assinatura exata do que
+// restringiu a conta da agência em 03/08/2026.
+describe("teto de ritmo por conexão: o cache não protege janela livre", () => {
+  beforeEach(() => {
+    graphGet.mockImplementation(async (path: string) => {
+      if (path === "ig9") return { followers_count: 10, media_count: 1 };
+      return { data: [] };
+    });
+  });
+
+  it("janela no futuro cai no MESMO balde de hoje — não vira chave nova por dia", async () => {
+    const amanha = new Date(Date.now() + 5 * 86_400_000).toISOString().slice(0, 10);
+    const depois = new Date(Date.now() + 9 * 86_400_000).toISOString().slice(0, 10);
+    await lerMetricasDaConta("ws1", "c1", { ate: amanha });
+    const chamadas = graphGet.mock.calls.length;
+    const r = await lerMetricasDaConta("ws1", "c1", { ate: depois });
+    expect(r.ok).toBe(true);
+    expect(graphGet.mock.calls.length).toBe(chamadas); // veio do cache
+  });
+
+  it("varredura de janelas bate no teto e recebe a frase de ritmo — não mais GETs", async () => {
+    let ultima;
+    // Cada leitura de conta custa 3 chamadas; o teto é por conexão por hora.
+    for (let i = 0; i < TETO_DE_CHAMADAS_POR_HORA; i++) {
+      // Janelas realmente distintas (e todas no passado): é o cenário de quem
+      // varre o seletor de datas — cada uma fura o cache por definição.
+      const ate = new Date(Date.UTC(2026, 0, 2) + i * 86_400_000).toISOString().slice(0, 10);
+      ultima = await lerMetricasDaConta("ws1", "c1", { desde: "2026-01-01", ate });
+      if (!ultima.ok) break;
+    }
+    expect(ultima!.ok).toBe(false);
+    if (!ultima!.ok) expect((ultima as { error: string }).error).toBe(FRASE_DO_TETO);
+    // E o teto é DURO: passar dele não gasta mais nenhuma chamada com a Meta.
+    const gastas = graphGet.mock.calls.length;
+    await lerMetricasDaConta("ws1", "c1", { desde: "2026-04-01", ate: "2026-04-10" });
+    expect(graphGet.mock.calls.length).toBe(gastas);
+  });
+
+  it("limpar o cache zera o contador — senão um teste envenenaria o outro", async () => {
+    limparCacheDeLeitura();
+    const r = await lerMetricasDaConta("ws1", "c1", { desde: "2026-03-01", ate: "2026-03-10" });
+    expect(r.ok).toBe(true);
   });
 });
 
