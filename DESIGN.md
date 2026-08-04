@@ -199,6 +199,29 @@ nada de ruído visual.
 - Conteúdo largo (tabelas, código) rola dentro do próprio container (`overflow-x-auto`) —
   a página nunca rola horizontalmente.
 
+### 6.1 Elemento fixo obriga espaço reservado — e quem reserva é o layout
+
+Todo elemento `fixed` sobre uma área rolável (botão flutuante, barra de ação
+colada embaixo, toast persistente) **não empurra nada**: ele cobre o fim do
+conteúdo. A regra:
+
+1. **O layout reserva o espaço, não o componente.** Quem sabe que o elemento
+   fixo existe é o container da tela. Padding remendado componente a componente
+   sempre esquece um — foi assim que o botão "Fale com seu PM" cobriu o eixo de
+   datas do gráfico de alcance, a legenda da peça e o rodapé do portal (375px).
+2. **A conta é altura + deslocamento + respiro + `env(safe-area-inset-bottom)`.**
+   No iPhone, o traço de home come ~34px que nenhuma medida em `px` prevê.
+3. **O próprio elemento fixo também se ancora acima da safe-area**, a partir das
+   mesmas variáveis — para as duas medidas nunca saírem de sincronia.
+
+Referência de implementação: `.portal-shell` em `app/globals.css`
+(`--fab-inset` · `--fab-altura` · `--fab-respiro` · `--fab-safe`), aplicada em
+`app/portal/layout.tsx`.
+
+**Como provar:** rolar até o fim e medir o retângulo — o botão não pode cruzar
+nenhum elemento de conteúdo. Screenshot de página inteira **não** prova isso:
+ele desenha o elemento fixo numa posição só.
+
 ---
 
 ## 7. Estados obrigatórios
