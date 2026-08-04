@@ -25,6 +25,7 @@
 // responde, ele diz que não mediu, em vez de estimar.
 
 import { prisma } from "@/lib/db/client";
+import { buildVerdadeOperacional } from "@/lib/dioli-brain/client-snapshot";
 import { generate } from "@/lib/ai/generate";
 import { lerMetricasDaConta } from "@/lib/integrations/meta/leitura";
 import { fecharCiclo, type CicloResumido } from "@/lib/agency/esteira/ciclos";
@@ -485,6 +486,12 @@ export async function virarOMes(projectId: string, ciclo: CicloResumido): Promis
       emails: [projeto.client?.email].filter((v): v is string => !!v),
       servicos: [],
       valores: [],
+      // O relatório fala com o cliente sobre a operação dele ("continuamos
+      // divulgando o delivery em Moema"). Sem a verdade operacional do banco,
+      // o piso leria isso como afirmação não sustentada e reprovaria o mês.
+      operacao: projeto.clientRequestId
+        ? (await buildVerdadeOperacional(projeto.clientRequestId)) ?? undefined
+        : undefined,
     },
   }).catch(() => null);
 

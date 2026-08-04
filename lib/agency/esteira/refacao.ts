@@ -19,6 +19,7 @@
 // vira gente.
 
 import { prisma } from "@/lib/db/client";
+import { buildVerdadeOperacional } from "@/lib/dioli-brain/client-snapshot";
 import { generate } from "@/lib/ai/generate";
 import { TODOS_OS_ESPECIALISTAS } from "@/lib/agency/execution/especialistas";
 import { conferirPisoDeVerdade, resumirViolacoes, type VerdadeDoCliente } from "@/lib/agency/execution/piso-de-verdade";
@@ -113,6 +114,11 @@ export async function refazerPorPedidoDoCliente(input: {
     telefones: [projeto.client?.phone].filter((v): v is string => !!v),
     emails: [projeto.client?.email].filter((v): v is string => !!v),
     servicos: [], valores: [],
+    // Sem a verdade operacional lida do banco, o piso trata toda classe como
+    // "não informada" e barra a refação que apenas repete o horário ou o canal
+    // que o cliente já tinha contado. Fail-closed é o default certo; deixar de
+    // ligar a fiação transforma isso em falso positivo.
+    operacao: (await buildVerdadeOperacional(input.clientRequestId)) ?? undefined,
   };
 
   for (const entrega of alvos) {

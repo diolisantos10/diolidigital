@@ -3,38 +3,84 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 const generate = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/ai/generate", () => ({ generate }));
 
-import { auditDeliverable } from "@/lib/agency/execution/quality-auditor";
+import {
+  auditDeliverable, revisionStatusDoVeredito,
+  foiAprovadaPelaQualidade, ficouSemArbitro, AUDIT_TIMEOUT_MS,
+} from "@/lib/agency/execution/quality-auditor";
 
 const base = { deptLabel: "Social Media", title: "Pacote", content: "conteúdo da entrega", brandContext: "marca X", workspaceId: "ws1" };
 
 beforeEach(() => vi.clearAllMocks());
 
-describe("quality-auditor — Qualidade audita (sombra)", () => {
-  it("entrega boa → verdict pass", async () => {
+// ── TRÊS ESTADOS ────────────────────────────────────────────────────────────
+// O bug consertado em 04/08/2026: `pass` significava três coisas diferentes —
+// "olhei e aprovei", "a IA caiu" e "a IA respondeu lixo". As duas últimas viravam
+// `quality_ok` no banco e a peça ia ao cliente como se um árbitro tivesse dito
+// sim. Cada teste abaixo existe para que uma dessas confusões não volte.
+describe("quality-auditor — três estados: aprovado · reprovado · nao_auditado", () => {
+  it("entrega boa → aprovado", async () => {
     generate.mockResolvedValue({ ok: true, data: { verdict: "pass", issues: [], note: "no tom, sem problemas" } });
     const v = await auditDeliverable(base);
-    expect(v.verdict).toBe("pass");
+    expect(v.verdict).toBe("aprovado");
     expect(v.note).toMatch(/tom/);
+    expect(revisionStatusDoVeredito(v.verdict)).toBe("quality_ok");
   });
 
-  it("entrega com problema → verdict flag + issues", async () => {
+  it("entrega com problema → reprovado + issues (é o que bloqueia)", async () => {
     generate.mockResolvedValue({ ok: true, data: { verdict: "flag", issues: ["promete resultado garantido", "inventa preço"], note: "revisar" } });
     const v = await auditDeliverable(base);
-    expect(v.verdict).toBe("flag");
+    expect(v.verdict).toBe("reprovado");
     expect(v.issues.length).toBe(2);
+    expect(revisionStatusDoVeredito(v.verdict)).toBe("quality_flag");
   });
 
-  it("IA da auditoria indisponível → fail-open (passa em sombra, nunca trava a produção)", async () => {
+  it("IA da auditoria indisponível → nao_auditado (NUNCA aprovado)", async () => {
     generate.mockResolvedValue({ ok: false });
     const v = await auditDeliverable(base);
-    expect(v.verdict).toBe("pass");
-    expect(v.note).toMatch(/indispon/i);
+    expect(v.verdict).toBe("nao_auditado");
+    expect(v.motivo).toBe("ia_indisponivel");
+    expect(foiAprovadaPelaQualidade(v.verdict)).toBe(false);
+    expect(revisionStatusDoVeredito(v.verdict)).toBe("quality_nao_auditado");
+    expect(v.note).toMatch(/NÃO AUDITADA/);
   });
 
-  it("erro inesperado → fail-open", async () => {
+  it("erro inesperado → nao_auditado, não aprovado", async () => {
     generate.mockRejectedValue(new Error("boom"));
     const v = await auditDeliverable(base);
-    expect(v.verdict).toBe("pass");
+    expect(v.verdict).toBe("nao_auditado");
+    expect(v.motivo).toBe("erro");
+    expect(foiAprovadaPelaQualidade(v.verdict)).toBe(false);
+  });
+
+  it("timeout do provedor → nao_auditado (a produção não fica pendurada)", async () => {
+    vi.useFakeTimers();
+    generate.mockImplementation(() => new Promise(() => { /* nunca resolve */ }));
+    const p = auditDeliverable(base);
+    await vi.advanceTimersByTimeAsync(AUDIT_TIMEOUT_MS + 10);
+    const v = await p;
+    vi.useRealTimers();
+    expect(v.verdict).toBe("nao_auditado");
+    expect(v.motivo).toBe("timeout");
+    expect(ficouSemArbitro(v.verdict)).toBe(true);
+  });
+
+  it("resposta ilegível do juiz NÃO é aprovação — era o `? :` que virava pass", async () => {
+    for (const lixo of [{}, { verdict: null }, { verdict: "talvez" }, { verdict: 7 }]) {
+      generate.mockResolvedValue({ ok: true, data: lixo });
+      const v = await auditDeliverable(base);
+      expect(v.verdict).toBe("nao_auditado");
+      expect(v.motivo).toBe("resposta_invalida");
+    }
+  });
+
+  it("nenhum veredito além de 'aprovado' conta como aprovado", () => {
+    expect(foiAprovadaPelaQualidade("aprovado")).toBe(true);
+    expect(foiAprovadaPelaQualidade("reprovado")).toBe(false);
+    expect(foiAprovadaPelaQualidade("nao_auditado")).toBe(false);
+    // Os três estados têm três `revisionStatus` distintos — se dois colidirem,
+    // um deles está sendo lido como o outro em alguma tela.
+    const status = (["aprovado", "reprovado", "nao_auditado"] as const).map(revisionStatusDoVeredito);
+    expect(new Set(status).size).toBe(3);
   });
 });
 

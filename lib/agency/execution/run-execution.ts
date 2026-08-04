@@ -9,10 +9,15 @@
 // cliente pelo portal.
 
 import { prisma } from "@/lib/db/client";
+import { buildVerdadeOperacional } from "@/lib/dioli-brain/client-snapshot";
 import { generate } from "@/lib/ai/generate";
 import { createApprovalRequest } from "@/lib/agency/persistence/approval-service";
 import { planProduction, type ProductionPlan } from "@/lib/agency/execution/pm-conductor";
-import { auditDeliverable } from "@/lib/agency/execution/quality-auditor";
+import {
+  auditDeliverable, revisionStatusDoVeredito,
+  foiReprovadaPelaQualidade, ficouSemArbitro,
+  type VereditoDaQualidade,
+} from "@/lib/agency/execution/quality-auditor";
 import { getActiveInsights, buildInsightBlock } from "@/lib/agency/radar/library";
 import { moverTarefasDoAgente, marcarEntregue } from "@/lib/agency/esteira/tarefas";
 import { abrirPedido, cobrarCliente } from "@/lib/agency/esteira/pedidos";
@@ -63,8 +68,16 @@ export interface ExecutionResult {
   skipped: string[];
   /** Como o PM regeu esta produção (ordem dos departamentos, objetivo). */
   pmPlan?: { orderedDepartments: string[]; goal: string; pmMode: string };
-  /** Parecer da Qualidade por entrega (SOMBRA — não bloqueia; só registra). */
-  qualityAudit?: Array<{ department: string; verdict: "pass" | "flag"; issues: string[] }>;
+  /** Parecer da Qualidade por entrega. TRÊS estados — `nao_auditado` não é
+   *  aprovação, é ausência de árbitro (ver `quality-auditor.ts`). */
+  qualityAudit?: Array<{ department: string; verdict: VereditoDaQualidade; issues: string[] }>;
+  /** Peças que a Qualidade REPROVOU e que sobreviveram às revisões. Não são
+   *  apresentadas ao cliente: `apresentar`/`apresentarCiclo` recusam enquanto
+   *  existir `quality_flag`, e `pacote-travado.ts` refaz até escalar. */
+  reprovadosPelaQualidade?: ReprovadoPelaQualidade[];
+  /** Peças que foram ao cliente SEM árbitro (IA da Qualidade fora do ar, timeout
+   *  ou resposta ilegível). Não bloqueiam — mas nunca contam como aprovadas. */
+  naoAuditados?: NaoAuditado[];
   /** Quantos pedidos de material o PM cobrou do cliente nesta passada. */
   pedidosCobrados?: number;
   /** O PM tentou apresentar o pacote ao cliente sozinho? Ausente = nem tentou
@@ -81,6 +94,20 @@ export interface BarradoNoPiso {
   especialista: string;
   violacoes: string[];
   parecer: string;
+}
+
+export interface ReprovadoPelaQualidade {
+  especialista: string;
+  deliverableId: string;
+  issues: string[];
+  parecer: string;
+}
+
+export interface NaoAuditado {
+  especialista: string;
+  deliverableId: string;
+  /** Por que ninguém olhou: `ia_indisponivel` | `timeout` | `erro` | `resposta_invalida`. */
+  motivo: string;
 }
 
 export interface ApresentacaoAutomatica {
@@ -257,6 +284,12 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
         (scope as Record<string, unknown>).budget,
       ].map((v) => (typeof v === "number" ? v : Number(String(v ?? "").replace(/[^\d.,]/g, "").replace(/\./g, "").replace(",", "."))))
        .filter((n) => Number.isFinite(n) && n > 0),
+      // A verdade OPERACIONAL — horário, área de entrega, pagamento, oferta,
+      // canal e prazo — o servidor lê do que o cliente escreveu, não de quem
+      // chama. Sem ela, o piso trata TODA classe como "não informada" e (por
+      // ser fail-closed, de propósito) barraria qualquer peça com CTA de canal
+      // ou horário. Não é opcional: é a fiação que faz o piso ser piso.
+      operacao: (await buildVerdadeOperacional(clientRequestId)) ?? undefined,
     };
 
     const agents = (() => { try { return JSON.parse(project.agents ?? "[]"); } catch { return []; } })() as string[];
@@ -295,8 +328,10 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
     const produced: string[] = [];
     const askedClient: string[] = [];
     const skipped: string[] = [];
-    const qualityAudit: Array<{ department: string; verdict: "pass" | "flag"; issues: string[] }> = [];
+    const qualityAudit: Array<{ department: string; verdict: VereditoDaQualidade; issues: string[] }> = [];
     const barradosNoPiso: BarradoNoPiso[] = [];
+    const reprovadosPelaQualidade: ReprovadoPelaQualidade[] = [];
+    const naoAuditados: NaoAuditado[] = [];
 
     for (const { dept, esp } of toRun) {
       // Como este trabalho se chama no relatório e no portal: casa · especialista.
@@ -405,7 +440,10 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
         feed: { lida: feedDoCliente.lida, posts: feedDoCliente.posts },
       });
       let revisions = 0;
-      while (audit.verdict === "flag" && revisions < MAX_QUALITY_REVISIONS) {
+      // Só REPROVAÇÃO manda refazer. `nao_auditado` não é parecer — pedir ao
+      // especialista que "corrija" o que ninguém apontou é queimar IA para
+      // reescrever uma peça possivelmente boa às cegas.
+      while (foiReprovadaPelaQualidade(audit.verdict) && revisions < MAX_QUALITY_REVISIONS) {
         const fix = await generate({
           system: "Você é um agente sênior de uma agência de marketing brasileira. A Qualidade apontou problemas na sua entrega — CORRIJA-OS e reentregue melhor. Responda SOMENTE com JSON válido no mesmo formato.",
           user: `${esp.prompt(context)}${insightBlock ? `\n\n${insightBlock}` : ""}\n\nA Qualidade REPROVOU a versão anterior por: ${audit.issues.join("; ") || audit.note}. Refaça corrigindo exatamente esses pontos.`,
@@ -425,17 +463,51 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
         });
       }
 
-      // Publica a MELHOR versão. Se mesmo após a revisão ainda estiver flag, vai
-      // ao cliente (ele decide) MAS marcado quality_flag pra a equipe olhar.
+      // Grava a MELHOR versão, com o veredito REAL da Qualidade — três estados,
+      // nunca um "ok" que quer dizer "não consegui olhar".
+      //
+      // Reprovada continua sendo GRAVADA de propósito: é o registro em
+      // `quality_flag` que faz `pacote-travado.ts` encontrá-la, refazer até 2
+      // tentativas e escalar. O que a reprovação bloqueia é a APRESENTAÇÃO —
+      // `marcos.apresentar` e `mes.apresentarCiclo` recusam enquanto houver uma
+      // peça em `quality_flag`, e o bloqueio vira `ActivityEvent` no fim desta
+      // passada. Apagar a peça aqui mataria o caminho de conserto.
       const entregavel = await prisma.deliverable.create({
         data: {
           projectId, name: title, type: esp.deliverableType, status: "in_review", content: body,
           ownerAgentId: esp.id, cycleId: cicloId,
-          revisionStatus: audit.verdict === "flag" ? "quality_flag" : "quality_ok",
+          revisionStatus: revisionStatusDoVeredito(audit.verdict),
           lastFeedback: audit.note || null, version: revisions + 1,
         },
         select: { id: true },
       });
+
+      if (foiReprovadaPelaQualidade(audit.verdict)) {
+        const parecer = audit.issues.join("; ") || audit.note || "qualidade insuficiente";
+        reprovadosPelaQualidade.push({ especialista: nome, deliverableId: entregavel.id, issues: audit.issues, parecer });
+        // O bloqueio precisa ser VISÍVEL, não um campo que ninguém abre. Sem
+        // este registro, "a Qualidade reprovou" só existiria dentro de um
+        // retorno de função que nenhum humano lê.
+        await prisma.activityEvent.create({
+          data: {
+            workspaceId: project.workspaceId, projectId, clientId: project.clientId,
+            type: "qualidade_reprovou",
+            message: `${nome} para ${context.businessName}: REPROVADA pela Qualidade após ${revisions} revisão(ões) — ${parecer}. NÃO será apresentada ao cliente.`.slice(0, 900),
+          },
+        }).catch(() => { /* best-effort: o registro não pode derrubar a produção */ });
+      } else if (ficouSemArbitro(audit.verdict)) {
+        // NÃO bloqueia — a operação não pode parar porque um provedor caiu. Mas
+        // fica declarado com todas as letras, para ser possível responder depois
+        // "quantas peças foram ao cliente sem árbitro?".
+        naoAuditados.push({ especialista: nome, deliverableId: entregavel.id, motivo: audit.motivo ?? "erro" });
+        await prisma.activityEvent.create({
+          data: {
+            workspaceId: project.workspaceId, projectId, clientId: project.clientId,
+            type: "qualidade_nao_auditou",
+            message: `${nome} para ${context.businessName}: SEM AUDITORIA (${audit.motivo ?? "erro"}) — a peça segue para o cliente sem parecer da Qualidade. Isto NÃO é uma aprovação.`.slice(0, 900),
+          },
+        }).catch(() => { /* best-effort */ });
+      }
       // A tarefa fecha ligada ao entregável que a cumpriu — no quadro dá para
       // clicar e ver o que foi feito, em vez de um "concluído" sem lastro.
       await marcarEntregue(projectId, esp.id, entregavel.id);
@@ -547,7 +619,7 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
 
     return {
       ok: true, status: allHandled ? "done" : "failed", produced, askedClient, skipped, qualityAudit,
-      pedidosCobrados, apresentado, barradosNoPiso,
+      pedidosCobrados, apresentado, barradosNoPiso, reprovadosPelaQualidade, naoAuditados,
       pmPlan: { orderedDepartments: plan.orderedDepartments, goal: plan.goal, pmMode: plan.pmMode },
     };
   } catch (err) {
@@ -600,7 +672,12 @@ async function entregarKit(
     data: {
       projectId, name: `Kit de marca — ${negocio}`, type: "brand-kit",
       status: "in_review", content: corpo, ownerAgentId: "design-kit-de-marca",
-      cycleId, revisionStatus: "quality_ok",
+      cycleId,
+      // O kit NÃO passa pelo auditor (é arquivo montado em código, não texto de
+      // IA). Marcá-lo `quality_ok` era declarar uma aprovação que nunca houve —
+      // o mesmo bug do fail-open, com outra roupa. `quality_nao_auditado` diz a
+      // verdade e, como não bloqueia, o kit continua chegando ao cliente.
+      revisionStatus: revisionStatusDoVeredito("nao_auditado"),
     },
   }).catch(() => { /* best-effort */ });
 }

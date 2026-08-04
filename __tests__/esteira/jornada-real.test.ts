@@ -45,8 +45,11 @@ vi.mock("@/lib/ai/generate", () => ({
 }));
 
 // A Qualidade aprova de primeira — o loop de correção tem teste próprio.
-vi.mock("@/lib/agency/execution/quality-auditor", () => ({
-  auditDeliverable: vi.fn(async () => ({ verdict: "pass", issues: [], note: "ok" })),
+// Só o juiz é dublê: o mapa veredito → `revisionStatus` é REGRA da casa e vem
+// do módulo real (dublar a tradução deixaria o teste concordar com um bug).
+vi.mock("@/lib/agency/execution/quality-auditor", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/agency/execution/quality-auditor")>()),
+  auditDeliverable: vi.fn(async () => ({ verdict: "aprovado", issues: [], note: "ok" })),
 }));
 
 // O Radar não injeta tendência aqui — é insumo, não parte da esteira.

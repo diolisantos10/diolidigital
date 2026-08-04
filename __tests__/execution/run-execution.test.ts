@@ -22,9 +22,12 @@ vi.mock("@/lib/agency/persistence/approval-service", () => ({ createApprovalRequ
 vi.mock("@/lib/agency/execution/pm-conductor", () => ({
   planProduction: vi.fn(async () => ({ orderedDepartments: ["social-media"], goal: "g", warnings: [], pmMode: "rule_based" })),
 }));
-// Qualidade é testada à parte; aqui devolve parecer "pass" (sombra, não bloqueia).
-vi.mock("@/lib/agency/execution/quality-auditor", () => ({
-  auditDeliverable: vi.fn(async () => ({ verdict: "pass", issues: [], note: "ok" })),
+// Qualidade: só o JUIZ é dublê. A tradução veredito → `revisionStatus` vem do
+// módulo real de propósito — é a regra que impede "não auditado" de virar
+// "aprovado", e dublá-la faria o teste passar mesmo com o bug de volta.
+vi.mock("@/lib/agency/execution/quality-auditor", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/agency/execution/quality-auditor")>()),
+  auditDeliverable: vi.fn(async () => ({ verdict: "aprovado", issues: [], note: "ok" })),
 }));
 // Biblioteca do Radar é testada à parte; aqui não injeta nada.
 // A apresentação automática é testada aqui pelo CONTRATO (foi chamada? foi
@@ -122,8 +125,8 @@ describe("runProjectExecution — produção durável e confiável", () => {
   it("Qualidade reprovou → agente REVISA e reentrega a MELHOR versão (loop de correção)", async () => {
     db.project.findUnique.mockResolvedValue({ ...baseProject });
     const auditMock = auditDeliverable as unknown as ReturnType<typeof vi.fn>;
-    auditMock.mockResolvedValueOnce({ verdict: "flag", issues: ["clichê vazio"], note: "revisar" })
-             .mockResolvedValueOnce({ verdict: "pass", issues: [], note: "melhorou" });
+    auditMock.mockResolvedValueOnce({ verdict: "reprovado", issues: ["clichê vazio"], note: "revisar" })
+             .mockResolvedValueOnce({ verdict: "aprovado", issues: [], note: "melhorou" });
     generate.mockResolvedValue({ ok: true, data: { title: "Pacote", summary: "s", items: [{ format: "feed", headline: "Oi", caption: "legenda bem completa aqui", visual: "foto" }] } });
 
     const r = await runProjectExecution("p1");
@@ -338,6 +341,112 @@ describe("o PM apresenta sozinho quando o pacote fecha", () => {
     const r = await runProjectExecution("p1");
     expect(r.apresentado).toBeUndefined();
     expect(marcos.apresentar).not.toHaveBeenCalled();
+  });
+});
+
+// ── AS DUAS METADES DO FREIO (04/08/2026) ───────────────────────────────────
+// Reprovação BLOQUEIA · indisponibilidade NÃO bloqueia, mas fica declarada.
+// Antes, as duas eram o mesmo `pass`: o árbitro dizia "sim" na dúvida e o "não"
+// dele não parava nada.
+describe("reprovação bloqueia, indisponibilidade não", () => {
+  const PECA_BOA = { ok: true, data: { title: "T", summary: "s", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] } };
+  const auditMock = () => auditDeliverable as unknown as ReturnType<typeof vi.fn>;
+
+  /** Dublê fiel de `marcos.apresentar`: recusa enquanto existir `quality_flag`
+   *  gravado — que é literalmente a regra de `marcos.ts:175`. Um dublê que
+   *  sempre diz "ok" testaria o freio contra nada. */
+  function apresentarComOGateReal() {
+    (marcos.apresentar as ReturnType<typeof vi.fn>).mockImplementation(async () => {
+      const flags = db.deliverable.create.mock.calls.filter((c) => c[0]?.data?.revisionStatus === "quality_flag");
+      return flags.length > 0
+        ? { ok: false, erro: `${flags.length} entrega(s) com ressalva da Qualidade. Resolva antes de mostrar ao cliente.` }
+        : { ok: true };
+    });
+  }
+
+  it("REPROVADA depois de esgotar as revisões → grava quality_flag, NÃO apresenta e registra o bloqueio", async () => {
+    db.project.findUnique.mockResolvedValue({ ...baseProject });
+    generate.mockResolvedValue(PECA_BOA);
+    // Reprova sempre: a revisão acontece e o juiz continua reprovando.
+    auditMock().mockResolvedValue({ verdict: "reprovado", issues: ["promete resultado garantido"], note: "revisar" });
+    apresentarComOGateReal();
+
+    const r = await runProjectExecution("p1");
+
+    // A peça CONTINUA sendo gravada — é o registro em quality_flag que faz
+    // `pacote-travado.ts` achá-la, refazer e escalar. O que trava é a vitrine.
+    const criadas = db.deliverable.create.mock.calls.map((c) => c[0].data);
+    expect(criadas.length).toBeGreaterThan(0);
+    expect(criadas.every((d) => d.revisionStatus === "quality_flag")).toBe(true);
+
+    // O bloqueio é REAL: o cliente não vê.
+    expect(r.apresentado?.ok).toBe(false);
+    expect(r.reprovadosPelaQualidade?.length).toBe(criadas.length);
+
+    // E é VISÍVEL: dois registros no banco, não um campo que ninguém abre.
+    const tipos = db.activityEvent.create.mock.calls.map((c) => c[0].data.type);
+    expect(tipos).toContain("qualidade_reprovou");
+    expect(tipos).toContain("apresentacao_bloqueada");
+    // Nenhuma peça reprovada pode aparecer como aprovada em contagem nenhuma.
+    expect(r.qualityAudit?.some((q) => q.verdict === "aprovado")).toBe(false);
+  });
+
+  it("APROVADA → apresenta normalmente (a trava não pode matar o fluxo bom)", async () => {
+    db.project.findUnique.mockResolvedValue({ ...baseProject });
+    generate.mockResolvedValue(PECA_BOA);
+    auditMock().mockResolvedValue({ verdict: "aprovado", issues: [], note: "ok" });
+    apresentarComOGateReal();
+
+    const r = await runProjectExecution("p1");
+    const criadas = db.deliverable.create.mock.calls.map((c) => c[0].data);
+    expect(criadas.every((d) => d.revisionStatus === "quality_ok")).toBe(true);
+    expect(r.apresentado?.ok).toBe(true);
+    expect(r.reprovadosPelaQualidade).toEqual([]);
+    expect(r.naoAuditados).toEqual([]);
+    const tipos = db.activityEvent.create.mock.calls.map((c) => c[0].data.type);
+    expect(tipos).not.toContain("qualidade_reprovou");
+    expect(tipos).not.toContain("qualidade_nao_auditou");
+  });
+
+  it.each([["ia_indisponivel"], ["timeout"], ["erro"], ["resposta_invalida"]])(
+    "IA da Qualidade %s → nao_auditado: a peça SEGUE, o estado fica declarado e NADA conta como aprovado",
+    async (motivo) => {
+      db.project.findUnique.mockResolvedValue({ ...baseProject });
+      generate.mockResolvedValue(PECA_BOA);
+      auditMock().mockResolvedValue({ verdict: "nao_auditado", issues: [], note: "NÃO AUDITADA", motivo });
+      apresentarComOGateReal();
+
+      const r = await runProjectExecution("p1");
+      const criadas = db.deliverable.create.mock.calls.map((c) => c[0].data);
+
+      // A operação não para porque um provedor caiu.
+      expect(criadas.length).toBeGreaterThan(0);
+      expect(r.apresentado?.ok).toBe(true);
+
+      // Mas "não auditado" NUNCA é "aprovado" — nem no banco, nem no retorno.
+      expect(criadas.some((d) => d.revisionStatus === "quality_ok")).toBe(false);
+      expect(criadas.every((d) => d.revisionStatus === "quality_nao_auditado")).toBe(true);
+      expect(r.qualityAudit?.some((q) => q.verdict === "aprovado")).toBe(false);
+      expect(r.naoAuditados?.length).toBe(criadas.length);
+      expect(r.naoAuditados?.every((n) => n.motivo === motivo)).toBe(true);
+
+      // Declarado no banco: é assim que se responde depois "quantas peças
+      // foram ao cliente sem árbitro?".
+      const eventos = db.activityEvent.create.mock.calls.map((c) => c[0].data);
+      expect(eventos.filter((e) => e.type === "qualidade_nao_auditou").length).toBe(criadas.length);
+      expect(eventos.find((e) => e.type === "qualidade_nao_auditou")?.message).toMatch(/NÃO é uma aprovação/);
+    },
+  );
+
+  it("não auditado NÃO manda o especialista refazer — não há parecer para corrigir", async () => {
+    db.project.findUnique.mockResolvedValue({ ...baseProject });
+    generate.mockResolvedValue(PECA_BOA);
+    auditMock().mockResolvedValue({ verdict: "nao_auditado", issues: [], note: "n/a", motivo: "erro" });
+
+    await runProjectExecution("p1");
+    // 3 especialistas de Social Media = 3 gerações. Nenhuma revisão extra.
+    expect(generate).toHaveBeenCalledTimes(3);
+    expect(auditDeliverable).toHaveBeenCalledTimes(3);
   });
 });
 

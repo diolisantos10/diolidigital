@@ -11,6 +11,13 @@ const db = vi.hoisted(() => ({
   approvalRequest: { updateMany: vi.fn() },
   portalMessage: { create: vi.fn() },
   task: { findMany: vi.fn() },
+  // A virada do mês lê a verdade OPERACIONAL do cliente (horário, área de
+  // entrega, canal) para o piso poder conferir o que o relatório afirma. Sem
+  // estes três no mock, `virarOMes` estourava antes de medir — e o teste
+  // acusaria "a virada quebrou" quando o que faltava era o dublê.
+  clientRequestDb: { findUnique: vi.fn() },
+  client: { findUnique: vi.fn() },
+  brandBrain: { findUnique: vi.fn() },
 }));
 const generate = vi.hoisted(() => vi.fn());
 const lerMetricasDaConta = vi.hoisted(() => vi.fn());
@@ -47,6 +54,13 @@ beforeEach(() => {
     client: { name: "Padaria do João", phone: null, email: null },
   });
   db.project.update.mockResolvedValue({});
+  // Cliente sem verdade operacional gravada: o piso trata tudo como "não
+  // informado" e barra quem AFIRMAR horário/área/canal. O relatório genérico
+  // destes testes não afirma nada disso — e é essa a metade que prova que a
+  // trava não mata o fluxo bom.
+  db.clientRequestDb.findUnique.mockResolvedValue(null);
+  db.client.findUnique.mockResolvedValue(null);
+  db.brandBrain.findUnique.mockResolvedValue(null);
   db.socialPost.count.mockResolvedValue(8);
   db.metaConnection.findFirst.mockResolvedValue({ id: "mc1" });
   db.adCampaign.findMany.mockResolvedValue([]);

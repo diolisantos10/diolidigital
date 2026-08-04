@@ -7,6 +7,12 @@
 // No PII keys (email/phone) are ever copied into the snapshot.
 
 import { prisma } from "@/lib/db/client";
+import {
+  extrairVerdadeOperacional,
+  operacaoVazia,
+  type VerdadeDoCliente,
+  type VerdadeOperacional,
+} from "@/lib/agency/execution/piso-de-verdade";
 
 export interface ClientKnowledgeSnapshot {
   clientRequestId: string;
@@ -25,6 +31,17 @@ export interface ClientKnowledgeSnapshot {
   fonts?: string;
   thingsToAvoid?: string;
   productsToHighlight?: string;
+  /**
+   * A verdade OPERACIONAL do cliente — horário, área de entrega, pagamento,
+   * oferta, canal e prazo — extraída das palavras que ELE escreveu (briefing,
+   * contexto bruto, Brand Brain). É o que o piso determinístico usa para
+   * conferir afirmação de peça.
+   *
+   * Opcional no tipo só para não obrigar quem monta snapshot em teste; o
+   * servidor sempre preenche. Lista vazia dentro dela significa "o cliente não
+   * contou", e "não contou" é motivo de reprovação, não permissão.
+   */
+  operacao?: VerdadeOperacional;
   // Presence flags
   brandBrainComplete: boolean;
   missingFields: string[];
@@ -49,6 +66,67 @@ function clean(v: string | null | undefined): string | undefined {
   if (typeof v !== "string") return undefined;
   const t = v.trim();
   return t.length > 0 ? t : undefined;
+}
+
+// ─── As palavras do cliente ──────────────────────────────────────────────────
+//
+// A verdade operacional não tem coluna no banco: não existe campo "horário de
+// funcionamento" nem "raio de entrega". Ela está onde o cliente escreveu — o
+// contexto bruto do briefing, o escopo que o SDR extraiu da conversa dele, e o
+// que ele registrou de marca. Este bloco junta essas fontes e passa ao
+// extrator; **nada é inferido**, só reconhecido no que ele mesmo disse.
+
+/** Tira PII antes de a frase virar snapshot: e-mail e sequência longa de dígitos
+ *  (telefone/documento). Hora ("18h") e valor ("R$ 2.500") sobrevivem — o corte
+ *  é por comprimento de dígitos, não por qualquer número. */
+function semPii(texto: string): string {
+  return texto
+    .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, " ")
+    .replace(/(?:\+?\d[\d\s().-]{9,})/g, (m) => (m.replace(/\D/g, "").length >= 8 ? " " : m));
+}
+
+/** Achata o briefing (BriefingScope serializado) em texto, sem inventar rótulo:
+ *  o valor entra como o cliente informou, precedido da chave, para que o
+ *  extrator veja "budgetRange R$ 2000" e "deadline 30 dias". */
+function achatar(valor: unknown, profundidade = 0): string {
+  if (profundidade > 3 || valor == null) return "";
+  if (typeof valor === "string" || typeof valor === "number") return String(valor);
+  if (typeof valor === "boolean") return "";
+  if (Array.isArray(valor)) return valor.map((v) => achatar(v, profundidade + 1)).filter(Boolean).join("\n");
+  if (typeof valor === "object") {
+    return Object.entries(valor as Record<string, unknown>)
+      .filter(([k]) => !/email|phone|telefone|cpf|cnpj/i.test(k))
+      .map(([k, v]) => {
+        const t = achatar(v, profundidade + 1);
+        return t ? `${k}: ${t}` : "";
+      })
+      .filter(Boolean)
+      .join("\n");
+  }
+  return "";
+}
+
+/** Tudo que o cliente contou, em texto, pronto para o extrator. */
+function palavrasDoCliente(input: {
+  rawContext: string;
+  briefingJson?: string | null;
+  sdrHandoffJson?: string | null;
+  brand?: string[];
+  website?: string | null;
+}): string {
+  const partes: string[] = [input.rawContext];
+  for (const bruto of [input.briefingJson, input.sdrHandoffJson]) {
+    if (!bruto) continue;
+    try {
+      partes.push(achatar(JSON.parse(bruto)));
+    } catch {
+      partes.push(bruto);
+    }
+  }
+  for (const b of input.brand ?? []) if (b) partes.push(b);
+  // O site cadastrado é canal atestado — o cliente o informou no cadastro.
+  if (input.website) partes.push(`site ${input.website}`);
+  return semPii(partes.filter(Boolean).join("\n"));
 }
 
 export async function buildClientSnapshot(
@@ -94,6 +172,20 @@ export async function buildClientSnapshot(
     objectives = [];
   }
 
+  const operacao = extrairVerdadeOperacional(
+    palavrasDoCliente({
+      rawContext: request.rawContext,
+      briefingJson: request.briefingJson,
+      sdrHandoffJson: request.sdrHandoffJson,
+      brand: [
+        clean(brandBrain?.positioning) ?? "",
+        clean(brandBrain?.targetAudience) ?? "",
+        clean(brandBrain?.tagline) ?? "",
+      ],
+    }),
+    request.businessName,
+  );
+
   return {
     clientRequestId: request.id,
     businessName: request.businessName,
@@ -110,9 +202,125 @@ export async function buildClientSnapshot(
     fonts: mapped.fonts,
     thingsToAvoid: mapped.thingsToAvoid,
     productsToHighlight: mapped.productsToHighlight,
+    operacao,
     brandBrainComplete: missingFields.length === 0,
     missingFields,
   };
+}
+
+// ─── A VERDADE DO CLIENTE, LIDA PELO SERVIDOR ────────────────────────────────
+//
+// O buraco que isto fecha: até aqui, quem chamava o piso determinístico montava
+// a `VerdadeDoCliente` à mão, com o que tinha em mãos naquele ponto do código.
+// Ancoragem de verdade que depende de quem chama não é ancoragem — quem entrega
+// pode estar errado, incompleto ou (num fluxo vindo do navegador) adulterado.
+// Aqui o SERVIDOR lê a verdade do banco por conta própria, uma vez, e é essa a
+// régua contra a qual a peça é conferida.
+//
+// Campo que o cliente não contou fica VAZIO. Vazio é vazio: o piso trata
+// ausência como motivo de reprovação, nunca como permissão.
+
+/**
+ * Monta a verdade do cliente a partir do banco, para um `clientRequestId`.
+ * Determinístico, sem IA. Devolve `null` quando a solicitação não existe —
+ * quem chama deve tratar "não sei quem é o cliente" como bloqueio, jamais
+ * seguir com uma verdade vazia inventada na hora.
+ */
+export async function buildVerdadeDoCliente(clientRequestId: string): Promise<VerdadeDoCliente | null> {
+  // NUNCA LANÇA — e isto não é conveniência, é desenho. Esta função é chamada
+  // no caminho da produção, da refação e da VIRADA DO MÊS. Uma exceção aqui
+  // (banco fora do ar, modelo ausente) derrubaria o fechamento inteiro do
+  // ciclo por causa de uma leitura auxiliar. Falha vira `null`, `null` vira
+  // "não sei nada sobre a operação dele", e o piso é fail-closed a partir daí:
+  // a peça que AFIRMAR horário, área ou canal é barrada; a que não afirmar nada
+  // segue. Perde-se a checagem, nunca a operação — e nunca em silêncio para
+  // quem lê o código, porque a direção do erro está escrita aqui.
+  const request = await prisma.clientRequestDb
+    .findUnique({ where: { id: clientRequestId } })
+    .catch((e: unknown) => {
+      console.warn(`[client-snapshot] não consegui ler a verdade de ${clientRequestId}: ${String(e)}`);
+      return null;
+    });
+  if (!request) return null;
+
+  const client = request.clientId
+    ? await prisma.client.findUnique({ where: { id: request.clientId } }).catch(() => null)
+    : null;
+  const brandBrain = request.clientId
+    ? await prisma.brandBrain.findUnique({ where: { clientId: request.clientId } }).catch(() => null)
+    : null;
+
+  let services: string[] = [];
+  try {
+    const parsed = JSON.parse(request.services) as unknown;
+    services = Array.isArray(parsed) ? parsed.map(String) : [];
+  } catch {
+    services = [];
+  }
+
+  const briefing = (() => {
+    if (!request.briefingJson) return {} as Record<string, unknown>;
+    try {
+      return (JSON.parse(request.briefingJson) ?? {}) as Record<string, unknown>;
+    } catch {
+      return {} as Record<string, unknown>;
+    }
+  })();
+
+  const texto = palavrasDoCliente({
+    rawContext: request.rawContext,
+    briefingJson: request.briefingJson,
+    sdrHandoffJson: request.sdrHandoffJson,
+    brand: [clean(brandBrain?.positioning) ?? "", clean(brandBrain?.targetAudience) ?? "", clean(brandBrain?.tagline) ?? ""],
+    website: clean(client?.website),
+  });
+
+  const operacao = extrairVerdadeOperacional(texto, request.businessName);
+  // O site do cadastro é canal e endereço atestados — veio do cliente, não de
+  // uma dedução do texto.
+  const site = clean(client?.website);
+  if (site) {
+    const dominio = site.replace(/^https?:\/\//i, "").replace(/^www\./i, "").replace(/\/.*$/, "").toLowerCase();
+    if (dominio && !operacao.handles.includes(dominio)) operacao.handles.push(dominio);
+    if (!operacao.canais.includes("site")) operacao.canais.push("site");
+  }
+
+  return {
+    businessName: request.businessName || client?.name || "",
+    telefones: [clean(client?.phone), clean(briefing.prospectPhone as string | undefined), clean(briefing.phone as string | undefined)]
+      .filter((v): v is string => !!v),
+    emails: [clean(client?.email), clean(briefing.prospectEmail as string | undefined), clean(briefing.email as string | undefined)]
+      .filter((v): v is string => !!v),
+    servicos: services,
+    valores: valoresInformados(briefing),
+    operacao,
+  };
+}
+
+/** Os valores que o CLIENTE informou. Faixa ("R$ 1.500 a R$ 3.000") vira os dois
+ *  extremos: ele informou os dois. O que não é número não vira número. */
+function valoresInformados(briefing: Record<string, unknown>): number[] {
+  const out = new Set<number>();
+  const push = (n: number) => {
+    if (Number.isFinite(n) && n > 0) out.add(n);
+  };
+  for (const chave of ["monthlyBudget", "adsBudget", "budget", "budgetRange", "valor", "price"]) {
+    const v = briefing[chave];
+    if (typeof v === "number") push(v);
+    if (typeof v === "string") {
+      for (const m of v.matchAll(/(\d{1,3}(?:\.\d{3})+(?:,\d{2})?|\d+(?:,\d{2})?)/g)) {
+        push(Number(m[1]!.replace(/\./g, "").replace(",", ".")));
+      }
+    }
+  }
+  return [...out];
+}
+
+/** A verdade operacional que o servidor conhece, para quem só precisa dela.
+ *  Nunca devolve `null` disfarçado de vazio: cliente inexistente é `null`. */
+export async function buildVerdadeOperacional(clientRequestId: string): Promise<VerdadeOperacional | null> {
+  const verdade = await buildVerdadeDoCliente(clientRequestId);
+  return verdade ? verdade.operacao ?? operacaoVazia() : null;
 }
 
 // Builds the brandBrain Record used by AIRunContext from a snapshot — only
