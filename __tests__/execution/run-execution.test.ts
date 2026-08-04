@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterAll, vi } from "vitest";
 
 // Mocks das dependências do núcleo.
 const db = vi.hoisted(() => ({
@@ -54,6 +54,7 @@ import { runProjectExecution } from "@/lib/agency/execution/run-execution";
 import { auditDeliverable } from "@/lib/agency/execution/quality-auditor";
 import * as marcos from "@/lib/agency/esteira/marcos";
 import * as mes from "@/lib/agency/esteira/mes";
+import { planProduction } from "@/lib/agency/execution/pm-conductor";
 
 const baseProject = {
   id: "p1", workspaceId: "ws1", clientId: "c1", clientRequestId: "cr1",
@@ -572,6 +573,15 @@ describe("o mês 2 existe — a idempotência é por CICLO, não pela vida intei
 describe("número de ciclo medido noutra base não entra no prompt de otimização", () => {
   const promptDeOtimizacao = () =>
     (generate.mock.calls.map((c) => c[0].user as string).find((u) => u.includes("CICLO ANTERIOR")) ?? "");
+
+  // O plano fixo do arquivo é ["social-media"]; aqui ele é trocado por
+  // ["analytics"]. `clearAllMocks` NÃO desfaz implementação — devolver o padrão
+  // no fim é o que impede este bloco de contaminar quem vier depois dele.
+  afterAll(() => {
+    (planProduction as ReturnType<typeof vi.fn>).mockResolvedValue({
+      orderedDepartments: ["social-media"], goal: "g", warnings: [], pmMode: "rule_based",
+    });
+  });
 
   /** O ciclo aberto de hoje e o ciclo fechado do mês passado vêm do MESMO
    *  findFirst — o que muda é o `where.status`. */
