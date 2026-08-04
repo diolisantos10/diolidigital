@@ -267,6 +267,30 @@ export function ressalvaDeBaseParaOCliente(metricas: string[]): string {
   );
 }
 
+/**
+ * Corta o corpo para caber num limite E garante que a ressalva sobreviva ao
+ * corte — anexando-a DEPOIS de cortar, nunca antes.
+ *
+ * Por que existe: a ressalva mora no fim do relatório, e a mensagem ao cliente
+ * levava `corpo.slice(0, 900)`. Num relatório de tamanho normal o corte caía no
+ * meio do texto e a ressalva ficava de fora — o Deliverable avisava, a mensagem
+ * não. Quem lê a mensagem e tem o relatório do mês passado na mão faz a conta
+ * errada sozinho, que é exatamente o que a ressalva existe para impedir.
+ *
+ * É a mesma lição de `blocoComGuarda` em `execution/leitura-do-cliente.ts`:
+ * frase de guarda no fim de um texto que será truncado é frase que some. Aqui
+ * ela reapareceu em outro arquivo — a lição não atravessa o corredor sozinha.
+ */
+export function trechoComRessalva(corpo: string, ressalva: string | null, limite: number): string {
+  if (!ressalva) return corpo.slice(0, limite);
+  const cauda = `\n\n---\n\n${ressalva}`;
+  // A ressalva já está no fim do corpo (escreverRelatorio a anexou). Corta o
+  // texto ANTES dela e recoloca-a inteira: o cliente perde miolo, nunca o aviso.
+  const semRessalva = corpo.endsWith(cauda) ? corpo.slice(0, -cauda.length) : corpo;
+  const espacoParaOCorpo = Math.max(0, limite - cauda.length);
+  return `${semRessalva.slice(0, espacoParaOCorpo)}${cauda}`;
+}
+
 /** Como o alcance é apresentado no relatório, conforme a origem do número. */
 const QUALIFICADOR_DO_ALCANCE: Record<string, string> = {
   unicas_no_periodo: " (contas únicas alcançadas no período)",
@@ -505,7 +529,7 @@ export async function virarOMes(projectId: string, ciclo: CicloResumido): Promis
   if (relatorio) {
     await falarComOCliente(
       projeto,
-      `Fechamos ${ciclo.referencia}. 📊\n\n${relatorio.corpo.slice(0, 900)}\n\nO plano do mês novo já está sendo montado — te mostro assim que estiver pronto.`,
+      `Fechamos ${ciclo.referencia}. 📊\n\n${trechoComRessalva(relatorio.corpo, par.ressalvaDeBase, 900)}\n\nO plano do mês novo já está sendo montado — te mostro assim que estiver pronto.`,
       "ciclo",
     ).catch(() => false);
   }

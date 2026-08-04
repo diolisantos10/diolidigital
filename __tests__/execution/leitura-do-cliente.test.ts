@@ -41,12 +41,20 @@ const FEED = {
   ],
 };
 
+// A resposta típica do modelo: parte é eco do que o cliente escreveu, parte é
+// invenção plausível. Os termos foram REESCRITOS na terceira auditoria
+// (04/08/2026), quando o piso passou a exigir 100% dos tokens com lastro:
+// "produto artesanal" e "bastidor da produção" tinham só METADE ("artesanal",
+// "bastidor") e entravam no bloco sob o rótulo OBSERVADO carregando "produto" e
+// "produção", que não estão em legenda nenhuma. O que ficou é eco de verdade —
+// e o termo inventado ("fotos quentes de produto em close") continua no estilo
+// de propósito, para que a fixture padrão exercite o corte a cada teste.
 const QUALITATIVA = {
   ok: true,
   data: {
-    temas: ["produto artesanal", "bastidor da produção"],
+    temas: ["pão artesanal", "bastidor da madrugada"],
     tom: "próximo e cotidiano, fala direto com o freguês",
-    estiloVisual: "fotos quentes de produto em close, luz de forno, bastidor real",
+    estiloVisual: "fotos quentes de produto em close, luz de forno, bastidor da madrugada",
     ausencias: ["promoção com preço", "depoimento de cliente"],
   },
 };
@@ -66,7 +74,11 @@ describe("a síntese do feed real — o que os especialistas veem", () => {
     expect(s.lida).toBe(true);
     expect(s.texto).toContain("FEED REAL DO CLIENTE");
     expect(s.texto).toMatch(/carrossel/);
-    expect(s.texto).toContain("produto artesanal");
+    // O tema ANCORADO entra ("artesanal" está na legenda do post m2)…
+    expect(s.texto).toContain("pão artesanal");
+    // …e o estilo do bloco é só o que tem eco no que o cliente escreveu.
+    expect(s.texto).toContain("- Estilo visual observado: luz de forno, bastidor da madrugada");
+    expect(s.texto).not.toMatch(/fotos quentes de produto/);
     expect(s.texto).toContain("Não aparece no feed");
     expect(s.texto).toMatch(/CONVERSAR com este feed/);
   });
@@ -287,31 +299,33 @@ describe("piso de ancoragem — estilo sem lastro nas legendas NÃO vira afirma�
     expect(canvas.estiloVisual).toBe("");
   });
 
-  // ATUALIZADO na re-auditoria de 04/08/2026. Antes, este teste provava que
-  // "fotos quentes de produto em close" sobrevivia inteiro — e ele sobrevivia
-  // porque UM token ("quentes") bastava. Era o mesmo mecanismo que deixava
-  // passar "…com paleta pastel tipografia serifada e bancada de mármore".
-  // Agora o termo precisa de METADE dos tokens com lastro: "fotos", "produto" e
-  // "close" não estão em legenda nenhuma, então o termo cai — e o que fica é o
-  // que é eco de verdade.
-  it("DEIXA PASSAR: o termo com lastro na MAIORIA dos seus tokens sobrevive", async () => {
-    // Legendas da padaria: "Pão quentinho saindo do forno", "Bastidor da madrugada".
+  // REESCRITO na TERCEIRA auditoria de 04/08/2026. Este teste já foi ajustado
+  // duas vezes para baixo do bug: primeiro provava que "fotos quentes de produto
+  // em close" sobrevivia inteiro (bastava UM token, "quentes"); depois, sob a
+  // cobertura de 0,5, que "bastidor real" sobrevivia com 1 de 2 — e "real"
+  // saía como coisa OBSERVADA no perfil do cliente sem nunca ter sido escrita.
+  // Sob 100%, o caso legítimo é o termo cujos tokens de conteúdo TODOS ecoam.
+  it("DEIXA PASSAR: o termo cujos tokens TODOS têm eco nas legendas sobrevive", async () => {
+    // Legendas da padaria: "Pão quentinho saindo do forno", "3 sinais de que seu
+    // pão é artesanal", "Bastidor da madrugada".
     const s = await sinteseDoFeedDoCliente("ws1", "c1", "cr1");
-    expect(s.estiloVisual).toMatch(/luz de forno/);      // 1 de 1 token com lastro
-    expect(s.estiloVisual).toMatch(/bastidor real/);     // 1 de 2 — exatamente o piso
+    // "luz de forno": "luz" é curta demais para afirmar nada, "forno" é literal.
+    // "bastidor da madrugada": os dois tokens estão na legenda do m3.
+    expect(s.estiloVisual).toBe("luz de forno, bastidor da madrugada");
     expect(s.texto).toMatch(/- Estilo visual observado: /);
-    // E o termo carregado por um único token de álibi some.
-    expect(s.estiloVisual).not.toMatch(/fotos quentes de produto/);
+    // E o termo carregado por um único token de álibi some inteiro.
+    expect(s.estiloVisual).not.toMatch(/fotos|produto|close/i);
   });
 
-  it("plural e diminutivo continuam ancorando quando o termo é majoritariamente eco", async () => {
+  it("plural e diminutivo continuam ancorando — a tolerância não foi jogada fora", async () => {
     generate.mockResolvedValue({ ok: true, data: {
       ...QUALITATIVA.data,
-      estiloVisual: "pães quentes do forno, estúdio fotográfico profissional",
+      estiloVisual: "fornos quentes, estúdio fotográfico profissional",
     } });
     const s = await sinteseDoFeedDoCliente("ws1", "c1", "cr1");
-    // "quentes" acha lema em "quentinho" e "forno" é literal: 2 de 3.
-    expect(s.estiloVisual).toMatch(/quentes do forno/);
+    // "fornos" ↔ "forno" (plural) e "quentes" ↔ "quentinho" (mesmo lema
+    // "quent"): 2 de 2. O piso de 100% NÃO exige a palavra idêntica.
+    expect(s.estiloVisual).toBe("fornos quentes");
     // O estúdio que ninguém viu: 0 de 3.
     expect(s.estiloVisual).not.toMatch(/estúdio/i);
   });
@@ -319,20 +333,20 @@ describe("piso de ancoragem — estilo sem lastro nas legendas NÃO vira afirma�
   it("CORTA PELO MEIO: o termo com lastro fica, o inventado sai da mesma frase", async () => {
     generate.mockResolvedValue({ ok: true, data: {
       ...QUALITATIVA.data,
-      estiloVisual: "close de pão artesanal, fundos de mármore rosa",
+      estiloVisual: "bastidor da madrugada, fundos de mármore rosa",
     } });
     const s = await sinteseDoFeedDoCliente("ws1", "c1", "cr1");
-    expect(s.estiloVisual).toMatch(/pão artesanal/);
+    expect(s.estiloVisual).toBe("bastidor da madrugada");
     expect(s.estiloVisual).not.toMatch(/mármore/i);
   });
 
   it("os temas são filtrados um a um — o ancorado fica, o inventado some", async () => {
     generate.mockResolvedValue({ ok: true, data: {
       ...QUALITATIVA.data,
-      temas: ["bastidor da produção", "consultoria financeira premium"],
+      temas: ["bastidor da madrugada", "consultoria financeira premium"],
     } });
     const s = await sinteseDoFeedDoCliente("ws1", "c1", "cr1");
-    expect(s.texto).toMatch(/Temas recorrentes: bastidor da produção/);
+    expect(s.texto).toMatch(/Temas recorrentes: bastidor da madrugada/);
     expect(s.texto).not.toMatch(/consultoria financeira/);
   });
 
@@ -343,9 +357,14 @@ describe("piso de ancoragem — estilo sem lastro nas legendas NÃO vira afirma�
   });
 
   it("o rótulo de formato calculado por CÓDIGO também dá lastro", async () => {
-    generate.mockResolvedValue({ ok: true, data: { ...QUALITATIVA.data, estiloVisual: "carrossel vertical com telas numeradas" } });
+    // "carrossel" não está em legenda nenhuma — vem de `rotuloDeFormato`, que o
+    // código apurou do m2 (CAROUSEL_ALBUM). Número e formato saem de código, e
+    // o que sai de código também ancora.
+    generate.mockResolvedValue({ ok: true, data: { ...QUALITATIVA.data, estiloVisual: "carrossel de padaria com telas numeradas" } });
     const s = await sinteseDoFeedDoCliente("ws1", "c1", "cr1");
-    expect(s.estiloVisual).toMatch(/carrossel/);
+    expect(s.estiloVisual).toBe("carrossel de padaria");
+    // "telas numeradas" não tem eco em lugar nenhum: cai.
+    expect(s.estiloVisual).not.toMatch(/telas|numeradas/i);
   });
 });
 

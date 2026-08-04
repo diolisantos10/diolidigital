@@ -289,11 +289,21 @@ const TAMANHO_MINIMO_DO_LEMA = 5;
  *
  * É ESTA a trava contra a frase corrida. Com "pelo menos um token", a frase
  * "Fotos de produto saindo do forno com paleta pastel tipografia serifada e
- * bancada de mármore italiano" passava inteira por causa de "forno". Metade é
- * a linha que separa "o texto ecoa o que o cliente escreveu" de "há uma palavra
- * do cliente ali dentro servindo de álibi".
+ * bancada de mármore italiano" passava inteira por causa de "forno".
+ *
+ * E com METADE ainda passava: a terceira auditoria (04/08/2026) calibrou o
+ * enchimento em uma tentativa — "padaria de forno de marmore italiano" tem
+ * cobertura 0,5 e sai inteira; basta um token verdadeiro por token inventado,
+ * e quanto maior o feed do cliente, mais barato fica. A razão era a fração de
+ * texto sem lastro que a agência entregava sob o rótulo "observado".
+ *
+ * Regra que mede um trecho tem de emitir só o que mediu. Como aqui se emite o
+ * SEGMENTO INTEIRO, o único limiar honesto é 1: todo token de conteúdo precisa
+ * ter eco no que o cliente escreveu. O custo é falso positivo — descartar
+ * descrição legítima —, e essa é a direção de erro que esta casa escolhe: o
+ * campo esvazia, a lacuna é declarada, e outro agente a preenche.
  */
-export const COBERTURA_MINIMA_DE_LASTRO = 0.5;
+export const COBERTURA_MINIMA_DE_LASTRO = 1;
 
 /** Sufixos de diminutivo/aumentativo — flexão, não palavra nova. */
 const SUFIXOS_DE_GRAU = ["zinhos", "zinhas", "zinho", "zinha", "inhos", "inhas", "inho", "inha"];
@@ -403,8 +413,9 @@ export function coberturaDeLastro(termo: string, c: CorpusDoFeed): number | null
   return ts.filter((t) => comLastro(t, c)).length / ts.length;
 }
 
-/** Um TERMO passa quando pelo menos metade dos seus tokens de conteúdo tem
- *  lastro. Um token de álibi não carrega mais a frase. */
+/** Um TERMO passa quando TODOS os seus tokens de conteúdo têm lastro. Como o
+ *  termo é emitido inteiro, qualquer fração sem lastro seria texto que o
+ *  cliente nunca escreveu, entregue como coisa observada no perfil dele. */
 export function termoAncorado(termo: string, c: CorpusDoFeed): boolean {
   const cobertura = coberturaDeLastro(termo, c);
   return cobertura !== null && cobertura >= COBERTURA_MINIMA_DE_LASTRO;
@@ -468,18 +479,28 @@ export function filtrarPorLastro(termos: string[], c: CorpusDoFeed): FiltroDeLas
 /**
  * O piso. Mantém apenas os termos com lastro no feed real.
  *
- * REJEITA (legendas de horário e cardápio):
+ * Com legendas de padaria ("Pão quentinho saindo do forno", "Bastidor da
+ * madrugada na padaria"):
+ *
+ * REJEITA (nada disso está nas legendas):
  *   "paleta pastel, tipografia serifada, fundos de mármore" → "".
- * REJEITA TAMBÉM (o furo da re-auditoria — frase corrida, sem vírgula, com um
- * token de álibi e o resto inventado):
+ * REJEITA A FRASE CORRIDA COM TOKEN DE ÁLIBI (o furo da re-auditoria):
  *   "Fotos de produto saindo do forno com paleta pastel tipografia serifada e
- *    bancada de mármore italiano" → só "Fotos de produto saindo do forno"
- *   sobrevive (2 de 4 tokens com lastro); o pastel, a serifada e o mármore
- *   italiano caem em 0 de 4 e 0 de 3.
- * DEIXA PASSAR:
- *   "luz de forno, bastidor da madrugada" — cada termo é eco do texto real.
+ *    bancada de mármore italiano" → "". Nem o primeiro segmento sobrevive:
+ *   "fotos" e "produto" não estão em legenda nenhuma.
+ * REJEITA O ENCHIMENTO CALIBRADO (o furo da TERCEIRA auditoria — um token
+ * verdadeiro para cada inventado, o que bastava sob a cobertura de 0,5):
+ *   "padaria de forno de marmore italiano" → "" (cobertura 0,50).
+ *   "forno marmore" → "" (cobertura 0,50).
+ *   E o enchimento fica MAIS barato quanto maior o feed: com as 24 legendas do
+ *   piloto, "padaria de forno de croissant de bolo de cafe de salgados de
+ *   marmore italiano" chega a 0,75 — e morre igual.
+ * DEIXA PASSAR (todo token de conteúdo é eco do texto real):
+ *   "bastidor do forno" → "bastidor do forno".
+ *   "luz de forno, bastidor da madrugada" → inteiro.
+ *   "fornos quentes" → inteiro (plural e diminutivo continuam ancorando).
  * CORTA PELO MEIO:
- *   "close de pão artesanal, fundos de mármore" → "close de pão artesanal".
+ *   "bastidor da madrugada, fundos de mármore" → "bastidor da madrugada".
  */
 export function apenasAncorado(frase: string, c: CorpusDoFeed): string {
   return filtrarPorLastro(segmentar(frase), c).mantidos.join(", ");
@@ -505,7 +526,7 @@ export function registrarDescarte(
       mantidos: filtro.mantidos.length,
       descartados: filtro.descartados.slice(0, 8),
       coberturaMinima: COBERTURA_MINIMA_DE_LASTRO,
-      motivo: "menos da metade dos tokens de conteúdo tem lastro no que o cliente publicou",
+      motivo: "algum token de conteúdo do termo NÃO tem lastro no que o cliente publicou",
     })}`,
   );
 }

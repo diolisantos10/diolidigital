@@ -30,7 +30,7 @@ vi.mock("@/lib/integrations/meta/leitura", () => ({ lerFeedDoCliente, lerMetrica
 
 import {
   sinteseDoFeedDoCliente,
-  corpusDoFeed, apenasAncorado, comLastro, coberturaDeLastro, lemasDoToken,
+  corpusDoFeed, apenasAncorado, comLastro, coberturaDeLastro, termoAncorado, lemasDoToken,
   COBERTURA_MINIMA_DE_LASTRO,
 } from "@/lib/agency/execution/leitura-do-cliente";
 
@@ -38,6 +38,40 @@ import {
 const LEGENDAS_DA_AUDITORA = [
   "Pão quentinho saindo do forno todo dia as 6h",
   "Bastidor da madrugada na padaria",
+];
+
+/**
+ * O volume REAL do piloto: 24 legendas de padaria, só horário e cardápio.
+ *
+ * É o corpus que torna o enchimento BARATO — quanto mais o cliente escreveu,
+ * mais palavra comum tem lastro, e mais fácil fica compor um termo meio
+ * verdadeiro meio inventado. É por isso que o piso não pode ser uma fração.
+ */
+const LEGENDAS_DO_PILOTO = [
+  "Pão quentinho saindo do forno todo dia as 6h",
+  "Bastidor da madrugada na padaria",
+  "Estamos abertos hoje das 8h às 18h",
+  "Cardápio do dia atualizado no perfil",
+  "Bolo de cenoura com cobertura saiu agora",
+  "Café fresquinho passado na hora",
+  "Salgados assados a partir das 11h",
+  "Croissant folhado do jeito que você gosta",
+  "Encomendas para o fim de semana já abertas",
+  "Sonho de creme voltou ao balcão",
+  "Pão de queijo quentinho a tarde toda",
+  "Domingo abrimos das 7h às 13h",
+  "Torta salgada nova no cardápio",
+  "Fermentação natural de 24 horas",
+  "Baguete crocante saindo agora",
+  "Delivery pelo whatsapp da loja",
+  "Combo café da manhã com dois pães",
+  "Bolo de fubá acompanha o café",
+  "Feriado abrimos em horario especial",
+  "Sanduiche natural para o almoço",
+  "Rosca doce da vovó no balcão",
+  "Trabalhamos de segunda a sabado",
+  "Panetone de fim de ano em pre venda",
+  "Obrigado por mais um ano com a gente",
 ];
 
 function post(id: string, caption: string) {
@@ -52,6 +86,11 @@ function post(id: string, caption: string) {
 const FEED_DA_AUDITORA = {
   ok: true as const,
   posts: LEGENDAS_DA_AUDITORA.map((c, i) => post(`a${i}`, c)),
+};
+
+const FEED_DO_PILOTO = {
+  ok: true as const,
+  posts: LEGENDAS_DO_PILOTO.map((c, i) => post(`b${i}`, c)),
 };
 
 /** A saída REAL que o modelo devolveu na re-auditoria. Sem uma vírgula. */
@@ -85,11 +124,51 @@ describe("quem escolhe a segmentação é o ADVERSÁRIO, não o teste", () => {
     expect(canvas.estiloVisual).not.toMatch(/pastel|serifad|m[áa]rmore|italiano/i);
   });
 
-  it("o pedaço que sobrevive é SÓ o eco do que o cliente escreveu", async () => {
+  // REESCRITO na TERCEIRA auditoria (04/08/2026). Antes este teste afirmava que
+  // "Fotos de produto saindo do forno" sobrevivia — 2 de 4 tokens com lastro,
+  // "exatamente o piso". Era o próprio bug escrito como expectativa: "fotos" e
+  // "produto" não aparecem em legenda nenhuma, e saíam sob o rótulo OBSERVADO.
+  // Sob a cobertura de 100%, o segmento inteiro cai e o campo esvazia.
+  it("nem o pedaço com token de álibi sobrevive: metade inventada é invenção", async () => {
     const s = await sinteseDoFeedDoCliente("ws1", "c1", "cr1");
-    // "Fotos de produto saindo do forno" — 2 de 4 tokens de conteúdo com lastro
-    // ("saindo", "forno"), exatamente o piso. É o único trecho que fica.
-    expect(s.estiloVisual).toBe("Fotos de produto saindo do forno");
+    // "fotos" e "produto" não têm lastro — o segmento inteiro morre com eles.
+    expect(s.estiloVisual).toBe("");
+    expect(s.texto).not.toMatch(/fotos de produto/i);
+    // E o vazio é DECLARADO, nunca silêncio: silêncio outro agente preenche.
+    expect(s.texto).toMatch(/Estilo visual: NÃO foi possível observar/);
+    expect(s.texto).not.toMatch(/- Estilo visual observado/);
+  });
+
+  // A CALIBRAGEM DA TERCEIRA AUDITORIA. Sob a cobertura de 0,5, bastava um token
+  // verdadeiro por token inventado — e a auditora acertou o enchimento na
+  // PRIMEIRA tentativa. Cada um destes passava inteiro; nenhum passa mais.
+  it("o enchimento calibrado em 0,5 — um token verdadeiro por inventado — morre", () => {
+    const c = corpusDoFeed(FEED_DA_AUDITORA.posts);
+    // "padaria" ✓ "forno" ✓ | "marmore" ✗ "italiano" ✗ → 0,50 exatos.
+    expect(coberturaDeLastro("padaria de forno de marmore italiano", c)).toBe(0.5);
+    expect(apenasAncorado("padaria de forno de marmore italiano", c)).toBe("");
+    // O caso mínimo: 2 tokens, 1 ancorado. Também 0,50.
+    expect(coberturaDeLastro("forno marmore", c)).toBe(0.5);
+    expect(apenasAncorado("forno marmore", c)).toBe("");
+  });
+
+  it("DILUIÇÃO: muitos tokens verdadeiros carregando um falso não compram o falso", () => {
+    const c = corpusDoFeed(FEED_DO_PILOTO.posts);
+    const diluido = "padaria de forno de croissant de bolo de cafe de salgados de marmore italiano";
+    // Com o corpus grande do piloto a cobertura sobe para 0,75 — o enchimento
+    // fica MAIS barato quanto mais o cliente escreve. É por isso que o único
+    // limiar honesto é 1.
+    expect(coberturaDeLastro(diluido, c)).toBe(0.75);
+    expect(termoAncorado(diluido, c)).toBe(false);
+    expect(apenasAncorado(diluido, c)).toBe("");
+  });
+
+  it("o corpus grande do piloto não abre a porta: o mármore continua fora", async () => {
+    lerFeedDoCliente.mockResolvedValue(FEED_DO_PILOTO);
+    const s = await sinteseDoFeedDoCliente("ws1", "c1", "cr1");
+    expect(s.estiloVisual).toBe("");
+    expect(s.texto).not.toMatch(/pastel|serifad|m[áa]rmore|italiano|bancada/i);
+    expect(s.texto).toMatch(/Estilo visual: NÃO foi possível observar/);
   });
 
   it("um único token de álibi numa frase inventada NÃO carrega mais a frase", () => {
@@ -101,14 +180,31 @@ describe("quem escolhe a segmentação é o ADVERSÁRIO, não o teste", () => {
     expect(apenasAncorado("paleta pastel tipografia serifada bancada de marmore italiano", c)).toBe("");
   });
 
-  it("a metade que DEIXA PASSAR: frase corrida majoritariamente ancorada sobrevive", () => {
+  // A metade que DEIXA PASSAR — RECONSTRUÍDA para a regra de 100%, não removida.
+  // Um piso que só barra é indistinguível de um campo desligado: sem esta
+  // metade, ninguém sabe se o detector detecta ou se apenas carimba "vazio".
+  it("a metade que DEIXA PASSAR: termo cujos tokens TODOS ecoam o feed sobrevive", () => {
     const c = corpusDoFeed(FEED_DA_AUDITORA.posts);
-    // padaria ✓, madrugada ✓, forno ✓, quentes ✓ (lema de "quentinho").
-    const ancorada = "bastidor da padaria de madrugada no forno com paes quentes";
-    expect(apenasAncorado(ancorada, c)).toBe("bastidor da padaria de madrugada no forno, paes quentes");
-    // Uma frase corrida SEM pontuação nenhuma, toda ela eco do feed: passa.
+    // Corpus: "forno" e "bastidor" estão lá — o termo composto pelos dois passa.
+    expect(apenasAncorado("bastidor do forno", c)).toBe("bastidor do forno");
+    // Frase corrida, SEM pontuação nenhuma, inteira feita de eco: passa inteira.
+    const ancorada = "bastidor da padaria de madrugada no forno";
+    expect(coberturaDeLastro(ancorada, c)).toBe(1);
+    expect(apenasAncorado(ancorada, c)).toBe(ancorada);
+    // E a segmentação por conjunção não é um picador: os dois lados sobrevivem
+    // quando os dois lados têm lastro.
     expect(apenasAncorado("padaria de madrugada com forno quentinho", c))
       .toBe("padaria de madrugada, forno quentinho");
+  });
+
+  it("plural e diminutivo continuam ancorando — a tolerância NÃO caiu junto com o piso", () => {
+    const c = corpusDoFeed(FEED_DA_AUDITORA.posts);
+    // "quentinho" (legenda) ↔ "quentes" (termo): mesmo lema "quent".
+    expect(comLastro("quentes", c)).toBe(true);
+    expect(comLastro("fornos", c)).toBe(true);
+    // Logo um termo inteiro de plurais/diminutivos sobrevive a 100%.
+    expect(coberturaDeLastro("fornos quentes", c)).toBe(1);
+    expect(apenasAncorado("fornos quentes", c)).toBe("fornos quentes");
   });
 
   it("o corte não é só a pontuação: conjunção e preposição de ligação também separam", () => {
@@ -124,7 +220,13 @@ describe("quem escolhe a segmentação é o ADVERSÁRIO, não o teste", () => {
     expect(coberturaDeLastro("bastidor da madrugada", c)).toBe(1);
     // Termo só de palavra vazia: null, "não há o que ancorar".
     expect(coberturaDeLastro("muito bem", c)).toBeNull();
-    expect(COBERTURA_MINIMA_DE_LASTRO).toBe(0.5);
+    // O LIMIAR. A regra mede um trecho e EMITE o trecho inteiro; com qualquer
+    // fração < 1, essa fração de texto sai como "observado" sem nunca ter sido
+    // escrita pelo cliente. Baixar isto reabre o furo das três auditorias.
+    expect(COBERTURA_MINIMA_DE_LASTRO).toBe(1);
+    // E o limiar é aplicado, não decorativo: 0,99 de cobertura não passa.
+    expect(termoAncorado("bastidor da madrugada", c)).toBe(true);
+    expect(termoAncorado("bastidor da madrugada italiana", c)).toBe(false);
   });
 });
 
@@ -250,7 +352,20 @@ describe("o piso deixa rastro do que descartou", () => {
     expect(estilo).toBeTruthy();
     expect(estilo.clientId).toBe("c1");
     expect(JSON.stringify(estilo.descartados)).toMatch(/pastel/i);
-    expect(estilo.descartados[0].cobertura).toBeLessThan(0.5);
+    // Nada sobrou: os TRÊS segmentos da frase adversarial foram descartados.
+    expect(estilo.mantidos).toBe(0);
+    expect(estilo.descartados).toHaveLength(3);
+    // O rastro registra a cobertura REAL de cada corte — e o primeiro é
+    // justamente o de 0,50, o enchimento que a auditora calibrou. Sem este
+    // número no log, ninguém consegue distinguir, na operação, um detector
+    // calibrado de um que descarta tudo.
+    expect(estilo.descartados[0].termo).toBe("Fotos de produto saindo do forno");
+    expect(estilo.descartados[0].cobertura).toBe(0.5);
+    expect(estilo.coberturaMinima).toBe(1);
+    // O motivo tem de descrever a regra que roda HOJE, não a anterior: log que
+    // mente sobre o próprio critério é pior que log ausente.
+    expect(estilo.motivo).toMatch(/algum token de conteúdo do termo NÃO tem lastro/);
+    expect(estilo.motivo).not.toMatch(/metade/i);
     warn.mockRestore();
   });
 
