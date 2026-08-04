@@ -337,6 +337,49 @@ describe("portal-data (sessão) — leitura por id explícito exige o workspace 
     expect(db.clientRequestDb.findUnique).not.toHaveBeenCalled();
   });
 
+  it("solicitação ÓRFÃ (workspaceId nulo) COM cliente do MEU workspace → 200", async () => {
+    // A outra metade da regra da órfã: ela CONCEDE quando o Client é meu. Sem
+    // este teste, a guarda poderia virar "órfã nunca passa" — fail-closed que
+    // some com o briefing público legítimo (o formulário não conhece workspace).
+    db.clientRequestDb.findFirst.mockResolvedValue({ id: "cr-orfa", workspaceId: null, clientId: "cli-foocci" });
+    db.client.findFirst.mockResolvedValue({ id: "cli-foocci" });
+    db.clientRequestDb.findUnique.mockResolvedValue({
+      id: "cr-orfa", clientId: "cli-foocci", businessName: "Foocci", status: "in_production",
+      services: "[]", objectives: "[]", briefingJson: "{}", segment: "", createdAt: new Date(),
+    });
+    db.brainArtifact.findMany.mockResolvedValue([]);
+    db.project.findFirst.mockResolvedValue(null);
+    const res = await portalData(reqPorId("cr-orfa"));
+    expect(res.status).toBe(200);
+    expect((await res.json()).businessName).toBe("Foocci");
+    // Passou pelo dono do Client, não por adivinhação de workspace único.
+    expect(db.client.findFirst.mock.calls[0]![0].where).toMatchObject({ id: "cli-foocci", workspaceId: "ws1" });
+    expect(db.agencyWorkspace.findMany).not.toHaveBeenCalled();
+  });
+
+  it("órfã SEM cliente com base de UM workspace → 200 (o piloto de hoje)", async () => {
+    db.clientRequestDb.findFirst.mockResolvedValue({ id: "cr-orfa", workspaceId: null, clientId: null });
+    db.agencyWorkspace.findMany.mockResolvedValue([{ id: "ws1" }]);
+    db.clientRequestDb.findUnique.mockResolvedValue({
+      id: "cr-orfa", clientId: null, businessName: "Foocci", status: "in_production",
+      services: "[]", objectives: "[]", briefingJson: "{}", segment: "", createdAt: new Date(),
+    });
+    db.brainArtifact.findMany.mockResolvedValue([]);
+    db.project.findFirst.mockResolvedValue(null);
+    expect((await portalData(reqPorId("cr-orfa"))).status).toBe(200);
+  });
+
+  it("órfã SEM cliente com base de DOIS workspaces → 404: adivinhar é vazar", async () => {
+    // O dia em que a agência tiver o segundo workspace, a órfã anônima deixa de
+    // ter dono dedutível. Nenhum teste rodava com 2 — a guarda era verdadeira
+    // por leitura de código, não por prova.
+    db.clientRequestDb.findFirst.mockResolvedValue({ id: "cr-orfa", workspaceId: null, clientId: null });
+    db.agencyWorkspace.findMany.mockResolvedValue([{ id: "ws1" }, { id: "ws2" }]);
+    const res = await portalData(reqPorId("cr-orfa"));
+    expect(res.status).toBe(404);
+    expect(db.clientRequestDb.findUnique).not.toHaveBeenCalled();
+  });
+
   it("clientId de outro workspace → 404 antes de qualquer leitura de solicitação", async () => {
     db.client.findFirst.mockResolvedValue(null);
     const res = await portalData(new NextRequest("http://localhost/api/brain/portal-data?clientId=cli-outro"));
