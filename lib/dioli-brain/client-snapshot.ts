@@ -10,6 +10,7 @@ import { prisma } from "@/lib/db/client";
 import {
   extrairVerdadeOperacional,
   operacaoVazia,
+  separarValoresInformados,
   type VerdadeDoCliente,
   type VerdadeOperacional,
 } from "@/lib/agency/execution/piso-de-verdade";
@@ -311,7 +312,10 @@ async function lerVerdadeDoCliente(clientRequestId: string): Promise<VerdadeDoCl
     emails: [clean(client?.email), clean(briefing.prospectEmail as string | undefined), clean(briefing.email as string | undefined)]
       .filter((v): v is string => !!v),
     servicos: services,
-    valores: valoresInformados(briefing, texto),
+    ...(() => {
+      const { precos, verbas } = separarValoresInformados(briefing, texto);
+      return { valores: precos, verbas };
+    })(),
     operacao,
   };
 }
@@ -330,27 +334,8 @@ async function lerVerdadeDoCliente(clientRequestId: string): Promise<VerdadeDoCl
  * O que NÃO mudou: número que não está no texto do cliente continua sendo
  * invenção. Aqui só se reconhece o que ele mesmo escreveu.
  */
-function valoresInformados(briefing: Record<string, unknown>, textoDoCliente = ""): number[] {
-  const out = new Set<number>();
-  const push = (n: number) => {
-    if (Number.isFinite(n) && n > 0) out.add(n);
-  };
-  const numeros = (v: string) => {
-    for (const m of v.matchAll(/(\d{1,3}(?:\.\d{3})+(?:,\d{2})?|\d+(?:,\d{2})?)/g)) {
-      push(Number(m[1]!.replace(/\./g, "").replace(",", ".")));
-    }
-  };
-  for (const chave of ["monthlyBudget", "adsBudget", "budget", "budgetRange", "valor", "price"]) {
-    const v = briefing[chave];
-    if (typeof v === "number") push(v);
-    if (typeof v === "string") numeros(v);
-  }
-  // Preço escrito em prosa. Exige o "R$" grudado no número: sem ele, "atendemos
-  // 30 clientes por dia" viraria "R$ 30 informado" e o piso passaria a aceitar
-  // qualquer preço de dois dígitos.
-  for (const m of textoDoCliente.matchAll(/R\$\s?([\d.]+(?:,\d{2})?)/g)) numeros(m[1]!);
-  return [...out];
-}
+/** A classificação verba-vs-preço mora no piso (`separarValoresInformados`) —
+ *  é regra de ancoragem, não de banco, e lá ela é testável sem Prisma. */
 
 /** A verdade operacional que o servidor conhece, para quem só precisa dela.
  *  Nunca devolve `null` disfarçado de vazio: cliente inexistente é `null`. */

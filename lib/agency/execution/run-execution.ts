@@ -26,7 +26,7 @@ import {
   type Ctx, type Departamento, type Especialista,
 } from "@/lib/agency/execution/especialistas";
 import {
-  conferirPisoDeVerdade, resumirViolacoes,
+  conferirPisoDeVerdade, resumirViolacoes, separarValoresInformados,
   type VerdadeDoCliente,
 } from "@/lib/agency/execution/piso-de-verdade";
 import { sinteseDoFeedDoCliente } from "@/lib/agency/execution/leitura-do-cliente";
@@ -278,12 +278,15 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
       emails: [client?.email, (scope as Record<string, unknown>).prospectEmail, (scope as Record<string, unknown>).email]
         .filter((v): v is string => typeof v === "string" && v.trim().length > 0),
       servicos: services,
-      valores: [
-        (scope as Record<string, unknown>).monthlyBudget,
-        (scope as Record<string, unknown>).adsBudget,
-        (scope as Record<string, unknown>).budget,
-      ].map((v) => (typeof v === "number" ? v : Number(String(v ?? "").replace(/[^\d.,]/g, "").replace(/\./g, "").replace(",", "."))))
-       .filter((n) => Number.isFinite(n) && n > 0),
+      // PREÇO e VERBA são números diferentes e não podem morar no mesmo campo.
+      // `monthlyBudget`/`adsBudget` é o que o cliente paga À AGÊNCIA; preço é o
+      // que ele cobra dos clientes DELE. Enquanto os dois eram um só, "Pacote
+      // noiva por R$ 1.000" passava porque R$ 1.000 era a verba de mídia — a
+      // peça de vitrine imprimia um preço que ninguém informou.
+      ...(() => {
+        const { precos, verbas } = separarValoresInformados(scope as Record<string, unknown>, req?.rawContext ?? "");
+        return { valores: precos, verbas };
+      })(),
       // A verdade OPERACIONAL — horário, área de entrega, pagamento, oferta,
       // canal e prazo — o servidor lê do que o cliente escreveu, não de quem
       // chama. Sem ela, o piso trata TODA classe como "não informada" e (por

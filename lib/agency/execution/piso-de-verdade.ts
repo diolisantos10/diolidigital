@@ -32,8 +32,22 @@ export interface VerdadeDoCliente {
   emails: string[];
   /** Serviços realmente contratados. */
   servicos: string[];
-  /** Valores que o cliente informou (verba, mensalidade). Em reais. */
+  /** PREÇOS que o cliente informou — o que o negócio DELE cobra. Em reais.
+   *  Só isto pode virar preço numa peça publicada. */
   valores: number[];
+  /**
+   * A VERBA que ele informou para pagar a agência / a mídia. Separada de
+   * `valores` porque a lista única era cega: a verba de R$ 1.000 que o cliente
+   * destinou a anúncios cabia como "valor informado" e virava
+   * **"Pacote noiva por R$ 1.000,00"** numa peça de vitrine — um preço que ele
+   * nunca cobrou de ninguém, impresso como oferta ao público dele.
+   *
+   * Verba só passa dentro da moldura de prestação de contas (verbo de gasto
+   * realizado + termo de mídia). Ausente = comportamento antigo, em que
+   * `valores` serve dos dois lados; só o caminho do servidor
+   * (`buildVerdadeDoCliente`) separa hoje.
+   */
+  verbas?: number[];
   /**
    * O que o cliente contou sobre a OPERAÇÃO dele — horário, área de entrega,
    * pagamento, oferta, canal e prazo. Montado pelo servidor a partir do banco
@@ -67,10 +81,29 @@ export type ClasseDeFato =
 export interface VerdadeOperacional {
   /** Horas de funcionamento atestadas: "09:00", "23:00" ou "24h" (sempre aberto). */
   horarios: string[];
+  /**
+   * As JANELAS de funcionamento, "HH:MM-HH:MM". "Das 8h às 19h" atesta o
+   * expediente inteiro, não só os dois extremos — exatamente como "de segunda a
+   * sábado" atesta os seis dias.
+   *
+   * Opcional para não obrigar quem monta `VerdadeOperacional` à mão; ausente
+   * significa "nenhuma janela conhecida", nunca "qualquer hora vale".
+   */
+  janelas?: string[];
   /** Dias atestados: seg…dom, "todos", "uteis", "fds", "feriado". */
   dias: string[];
   /** Cidades / bairros / regiões atendidos, normalizados (minúsculo, sem acento). */
   areas: string[];
+  /**
+   * Os lugares que o cliente disse EXPLICITAMENTE não atender.
+   *
+   * Não deixar de atestar já bastaria para a maioria dos casos, mas não para
+   * este: "Não instalamos no litoral" e "Não entregamos em Osasco" são a palavra
+   * mais dura que um cliente escreve num briefing, e o piso precisa reprovar a
+   * peça que a inverte — não apenas "não confirmar". É o pior dano por
+   * ocorrência da lista: afirmar cobertura onde ele disse que não vai.
+   */
+  areasNegadas?: string[];
   /** Raio de entrega em km, se o cliente informou. */
   raioEntregaKm?: number;
   /** Formas de pagamento: pix | credito | debito | cartao | dinheiro | boleto | vale. */
@@ -88,7 +121,7 @@ export interface VerdadeOperacional {
 }
 
 export function operacaoVazia(): VerdadeOperacional {
-  return { horarios: [], dias: [], areas: [], pagamentos: [], canais: [], handles: [], ofertas: [], prazos: [] };
+  return { horarios: [], janelas: [], dias: [], areas: [], areasNegadas: [], pagamentos: [], canais: [], handles: [], ofertas: [], prazos: [] };
 }
 
 export interface Violacao {
@@ -157,6 +190,25 @@ function paraNumero(bruto: string): number {
 const RE_FRAME_GASTO =
   /\b(investimos|investidos?|aplicamos|aplicad[oa]s?|gastamos|veiculamos|verba utilizada|verba aplicada|valor investido|investimento realizado)\b/;
 
+/**
+ * O OBJETO do gasto. Sem isto, `RE_FRAME_GASTO` era colagem: bastava um verbo de
+ * gasto aparecer ANTES do número na mesma linha para qualquer preço caber no
+ * teto da verba. Medido no corpus da 6ª auditoria, e a regressão foi minha:
+ *
+ *   "Investimos R$ 1.999,00 no seu combo executivo por pessoa."  → PASSAVA
+ *   "Investimos R$ 780,00 no seu pacote de beleza."              → PASSAVA
+ *
+ * As duas somam a mesma falha em duas camadas: `verdade.valores` é cego de
+ * propósito (não distingue verba de preço), então a verba que o cliente informou
+ * para PAGAR A AGÊNCIA virava preço de vitrine válido — um número que ele nunca
+ * cobrou de ninguém, impresso como oferta ao público dele.
+ *
+ * A prestação de contas continua passando porque relatório de mídia SEMPRE
+ * nomeia a mídia: "investimos R$ 1.200 em anúncios". Peça comercial não nomeia.
+ */
+const RE_TERMO_DE_MIDIA =
+  /\b(anuncios?|campanhas?|impulsionament\w*|trafego|midia|ads|publicidade|veiculacao|patrocinad\w+|adsets?|criativos?)\b/;
+
 /** A janela de texto imediatamente ANTES de uma posição, sem cruzar linha.
  *  Não dá para usar `frases()` aqui: o separador de frase é o ponto, e
  *  "R$ 5.000,00" tem ponto no meio — partir por frase quebraria o próprio
@@ -166,6 +218,16 @@ function janelaAntes(texto: string, indice: number, tamanho = 90): string {
   const janela = texto.slice(inicio, indice);
   const corte = Math.max(janela.lastIndexOf("\n"), janela.lastIndexOf("•"), janela.lastIndexOf("|"));
   return corte >= 0 ? janela.slice(corte + 1) : janela;
+}
+
+/** A linha inteira em volta de uma posição — o antes e o DEPOIS. O objeto do
+ *  gasto costuma vir depois do número ("investimos R$ 1.200 em anúncios"), e
+ *  olhar só para trás foi exatamente o que deixou a colagem passar. */
+function linhaEmVolta(texto: string, indice: number): string {
+  const antes = janelaAntes(texto, indice, 120);
+  const resto = texto.slice(indice, indice + 120);
+  const fim = resto.search(/[\n•|]/);
+  return antes + (fim >= 0 ? resto.slice(0, fim) : resto);
 }
 
 /** O texto sem os trechos em que o especialista ADMITE não saber. "PRECISO
@@ -218,7 +280,31 @@ const pad = (n: number) => String(n).padStart(2, "0");
 // ── Horário ───────────────────────────────────────────────────────────────────
 /** Só é afirmação de horário o que vem num quadro de funcionamento. Sem isto,
  *  "o pão leva 18 horas de fermentação" viraria alegação de expediente. */
-const RE_FRAME_HORARIO = /\b(abert\w*|abrimos|abre|abrem|fechad\w*|fechamos|fecha|funcion\w*|atendemos|atendimento|horario|expediente|plantao|servimos)\b/;
+// O vocabulário do EXPEDIENTE, e ele não é só de comércio. Faltavam as palavras
+// com que serviço agendado descreve o próprio funcionamento — *aulas, turmas,
+// consultas, sessões, festas* — e "horário" só casava no singular
+// (`\bhorario\b` não pega "horários"). Efeito medido: um estúdio de pilates que
+// atende seg-sex podia anunciar "Aulas todos os dias, inclusive domingo" e o
+// piso não olhava, porque a frase não tinha nenhuma palavra de comércio.
+// Moldura estreita no conferidor não é rigor — é buraco.
+const RE_FRAME_HORARIO =
+  /\b(abert\w*|abrimos|abre|abrem|fechad\w*|fechamos|fecha|funcion\w*|atendemos|atendimento|horarios?|expediente|plantao|plantoes|servimos|aulas?|turmas?|consultas?|sessao|sessoes|festas?|agenda|agendamos|acesso|acessos|loja)\b/;
+
+/**
+ * O frame do horário LIDO NO BRIEFING. Além do vocabulário acima, a JANELA
+ * sozinha basta: "das 8h às 18h" não tem outra leitura possível em português —
+ * é expediente, com ou sem verbo.
+ *
+ * Sem isto, o cliente que escreve "Acesso das 7h às 22h" ou "Sábado das 9h às
+ * 14h" — substantivo em vez de verbo, que é como briefing em bullet é escrito —
+ * não tinha horário NENHUM registrado, e toda peça que citasse hora era barrada
+ * como `horario_nao_informado`. Listar substantivos um a um não escala: a
+ * moldura estreita vira buraco dos dois lados, e o lado do falso positivo é o
+ * que treina o time a desligar o alarme.
+ */
+function fraseDeHorarioDoCliente(n: string, frase: string): boolean {
+  return RE_FRAME_HORARIO.test(n) || janelasDeHora(frase).length > 0;
+}
 
 /**
  * As horas de uma frase, normalizadas em "HH:MM".
@@ -248,6 +334,54 @@ function tokensDeHora(frase: string): string[] {
     else if (h <= 23) out.add(`${pad(h)}:${min ?? "00"}`);
   }
   return [...out];
+}
+
+/**
+ * As JANELAS de funcionamento de uma frase: "das 8h às 19h" → "08:00-19:00".
+ *
+ * Este é o MESMO defeito do intervalo de dias, no outro eixo, e ficou de pé uma
+ * rodada inteira depois de o de dias ser consertado: a conferência comparava a
+ * hora da peça contra o CONJUNTO DE EXTREMOS. Num cliente que abre 18h e fecha
+ * 23h, "Abrimos às 20h" e "Atendimento até as 21h30" viravam
+ * `horario_contradiz` — qualquer post que citasse hora DENTRO do expediente
+ * morria. Falso positivo dessa frequência é o que treina o time a ignorar o
+ * alarme, e alarme ignorado é o mesmo que alarme desligado.
+ */
+// O `(?:\d{2})?` é opcional de verdade. `\d{2}?` — que é o que eu tinha escrito —
+// é "dois dígitos, lazy": EXIGE os minutos, e com ele "das 8h às 19h" não
+// formava janela nenhuma. A correção silenciosamente não corrigia nada.
+const H_BRUTA = String.raw`(?:\d{1,2}\s*:\s*\d{2}|\d{1,2}\s*(?:horas?|hs|h)\s?(?:\d{2})?(?!\d)|meia[- ]noite|meio[- ]dia)`;
+const RE_JANELA_DE_HORA = new RegExp(`(${H_BRUTA})\\s*(?:as|ate|ao|a|-|–|—)\\s*(${H_BRUTA})`, "g");
+
+function janelasDeHora(frase: string): string[] {
+  const n = semAcento(frase);
+  const out: string[] = [];
+  for (const m of n.matchAll(RE_JANELA_DE_HORA)) {
+    const ini = tokensDeHora(m[1]!)[0];
+    const fim = tokensDeHora(m[2]!)[0];
+    // "24h" não é ponto no relógio — não delimita janela.
+    if (!ini || !fim || ini === "24h" || fim === "24h") continue;
+    out.push(`${ini}-${fim}`);
+  }
+  return out;
+}
+
+const emMinutos = (hhmm: string): number => {
+  const [h, m] = hhmm.split(":");
+  return Number(h) * 60 + Number(m);
+};
+
+/** A hora cabe em alguma janela atestada? A semana do relógio dá a volta: quem
+ *  atende "das 18h às 2h" atesta a madrugada. */
+function dentroDeAlgumaJanela(hora: string, janelas: string[] | undefined): boolean {
+  if (hora === "24h" || !janelas || janelas.length === 0) return false;
+  const t = emMinutos(hora);
+  return janelas.some((j) => {
+    const [a, b] = j.split("-");
+    if (!a || !b) return false;
+    const ini = emMinutos(a), fim = emMinutos(b);
+    return ini <= fim ? t >= ini && t <= fim : t >= ini || t <= fim;
+  });
 }
 
 const DIAS: Array<[RegExp, string]> = [
@@ -303,12 +437,35 @@ function tokensDeDia(frase: string): string[] {
 }
 
 // ── Área de atendimento / entrega ─────────────────────────────────────────────
-const RE_FRAME_AREA = /\b(entreg\w+|delivery|atendemos|atendimento|levamos|cobrimos|raio|retirada|buscamos)\b/;
+// Além do verbo de ENTREGA, o vocabulário da PRESENÇA. `RE_FRAME_AREA` exigia
+// verbo de entrega, então o anúncio de filial escapava inteiro: "Nova unidade em
+// Diadema!" e "Agora também em Mauá" não eram nem olhados. Anunciar endereço que
+// não existe manda o cliente do cliente para uma porta que não abre — é o mesmo
+// dano do telefone inventado, com outra roupa.
+const RE_FRAME_AREA =
+  /\b(entreg\w+|delivery|atendemos|atendimento|levamos|cobrimos|raio|retirada|buscamos|coleta|coletamos|instalamos|instalacao|montamos|montagem|nova unidade|novas unidades|nova loja|nova filial|filial|filiais|unidades|inaugur\w+|chegamos|agora tambem|estamos tambem|abrimos em|cobertura)\b/;
+
+/** A NEGAÇÃO explícita do cliente. Sem isto, "Não entregamos em Osasco" fazia
+ *  Osasco virar área ATESTADA — o piso lia a palavra do cliente e registrava o
+ *  contrário dela. É o pior dano por ocorrência da lista: a peça passava a poder
+ *  afirmar entrega exatamente onde ele disse que não entrega.
+ *
+ *  O recorte é a frase (`frases()` já quebra por `.;•|` e quebra de linha).
+ *  Dívida assumida e medida: "Não entregamos em Osasco, mas entregamos em
+ *  Pinheiros" perde Pinheiros também, porque a vírgula não separa frase. O erro
+ *  passa a ser na direção segura — deixa de atestar, nunca atesta ao contrário. */
+const RE_NEGACAO_DE_AREA =
+  /\b(nao|nunca|jamais)\s+(?:\w+\s+){0,2}?(entreg\w+|atend\w+|cobr\w+|lev\w+|faz\w+|instal\w+|mont\w+|buscamos|coletamos|vamos|temos)\b|\bexceto\b/;
+// "fora de" e "menos em" saíram do padrão: são AMBÍGUOS de direção. No briefing,
+// "não atendemos fora da capital" é negação; na PEÇA, "atendemos fora da
+// capital" é afirmação de cobertura — e como o padrão casava os dois, a peça que
+// invertia a palavra do cliente era tratada como se estivesse negando junto e
+// escapava da conferência. A negação agora exige a palavra explícita.
 /** O quantificador universal é o pior caso: "toda a cidade" nunca é confirmável
  *  por acaso, e é a frase que faz o cliente perder pedido em bairro que ele não
  *  atende. */
 const RE_AREA_UNIVERSAL =
-  /\btod[oa]s?\s+(?:a|o|os|as)\s+(cidade|regiao|regioes|bairros?|estado|pais|zona \w+|grande \w+)\b|\btodo o brasil\b|\bpara todo o brasil\b|\bqualquer (bairro|lugar|regiao|cidade|endereco)\b|\bem todo lugar\b/;
+  /\btod[oa]s?\s+(?:a|o|os|as)\s+(cidade|capital|regiao|regioes|bairros?|estado|pais|litoral|interior|centro(?: \w+)?|zona \w+|grande \w+|regiao \w+)\b|\btodo o brasil\b|\bpara todo o brasil\b|\bqualquer (bairro|lugar|regiao|cidade|endereco)\b|\bem todo lugar\b/;
 
 /** Palavras que parecem nome de lugar mas não são — evita que "Atendimento no
  *  Instagram" vire alegação de cobertura geográfica. */
@@ -336,12 +493,26 @@ const LIGACOES = new Set(["de", "do", "da", "dos", "das"]);
 function lugaresAfirmados(frase: string, businessName: string): string[] {
   const nome = new Set(semAcento(businessName).split(" ").filter(Boolean));
   const out: string[] = [];
-  const re = /\b(?:em|para|no|na|nos|nas|ate)\s+((?:a |o |as |os )?[A-ZÁÉÍÓÚÂÊÔÃÕÀÇ][^.;!?\n]{1,80})/g;
+  const re =
+    /\b(?:em|para|no|na|nos|nas|ate)\s+((?:(?:a|o|as|os)\s+|tod[oa]s?\s+(?:o|a|os|as)\s+)?[A-ZÁÉÍÓÚÂÊÔÃÕÀÇ][^.;!?\n]{1,80})/g;
   for (const m of frase.matchAll(re)) {
     const segmento = m[1]!.replace(/^(?:a|o|as|os)\s+/i, "");
     for (const cru of segmento.split(/\s+e\s+|,/)) {
       // "Santana e no Tucuruvi": o segundo item chega com a preposição colada.
-      const bruto = cru.trim().replace(/^(?:a|o|as|os|no|na|nos|nas|em|para)\s+/i, "");
+      // E "entregamos em Vila Formosa": o segmento chega com o VERBO colado, e
+      // era aí que o bairro real sumia — o laço de nome próprio abaixo morria na
+      // primeira palavra minúscula e o bairro nunca era atestado. Depois,
+      // "Entregamos em Vila Formosa" na peça virava `area_contradiz` contra o
+      // próprio briefing do cliente. Irmã do bug da vírgula: mesmo defeito,
+      // outra fronteira. Aqui o segmento é recortado a partir da ÚLTIMA
+      // preposição que precede um nome próprio.
+      let bruto = cru.trim().replace(/^(?:a|o|as|os|no|na|nos|nas|em|para)\s+/i, "");
+      const interna = bruto.match(/^.*\b(?:em|para|no|na|nos|nas|ate)\s+(?=[A-ZÁÉÍÓÚÂÊÔÃÕÀÇ])/);
+      if (interna) bruto = bruto.slice(interna[0].length);
+      // "em todo o ABC", "para toda a Grande São Paulo": o quantificador
+      // universal antecede o nome próprio. Se sobrar substantivo comum
+      // ("toda a cidade"), o laço abaixo morre e quem julga é RE_AREA_UNIVERSAL.
+      bruto = bruto.replace(/^tod[oa]s?\s+(?:o|a|os|as)\s+/i, "");
       // Do candidato, só a sequência inicial de nomes próprios: em "Moema com
       // atendimento rápido", o lugar é "Moema".
       const palavras: string[] = [];
@@ -359,6 +530,44 @@ function lugaresAfirmados(frase: string, businessName: string): string[] {
     }
   }
   return out;
+}
+
+/**
+ * Os lugares de uma frase com o filtro de nome próprio RELAXADO — aceita também
+ * substantivo comum minúsculo depois da preposição.
+ *
+ * Só é usado nos DOIS lados da negação, e é por isso que pode ser relaxado sem
+ * abrir buraco: o token só vira reprovação se o cliente tiver dito "não" sobre
+ * exatamente ele. "Não instalamos no litoral" precisa disto — "litoral" nunca
+ * seria capturado pelo filtro de nome próprio, e sem ele a peça "Instalamos no
+ * litoral" passava batida.
+ */
+const PALAVRAS_SEM_LUGAR = new Set([
+  "caso", "casos", "feriado", "feriados", "estoque", "falta", "hipotese", "nenhuma",
+  "nenhum", "cima", "baixo", "frente", "todo", "toda", "todos", "todas", "casa",
+]);
+
+function lugaresRelaxados(frase: string, businessName: string): string[] {
+  const out = new Set(lugaresAfirmados(frase, businessName));
+  const nome = new Set(semAcento(businessName).split(" ").filter(Boolean));
+  const n = semAcento(frase);
+  // "a" e "ao" entram na lista de preposições: "não atendemos A DOMICÍLIO" é
+  // negação de cobertura tanto quanto "não entregamos EM Osasco". Só é seguro
+  // porque este relaxamento serve exclusivamente à negação — o token só vira
+  // reprovação se o cliente tiver escrito "não" sobre exatamente ele.
+  // `d[ao]s?` também: a negação de recorte vem com "de" ("não atendemos FORA DA
+  // capital", "não entregamos ALÉM DO centro"), e sem ela o lugar negado não era
+  // capturado nem no briefing nem na peça — a negação era detectada e vinha
+  // vazia, que é o pior dos mundos: parece protegido e não está.
+  for (const m of n.matchAll(/\b(?:em|para|no|na|nos|nas|ao?|d[ao]s?)\s+(?:o\s+|a\s+)?([a-z]{4,}(?:\s+(?:de\s+|do\s+|da\s+)?[a-z]{4,})?)/g)) {
+    const t = m[1]!.trim();
+    const cabeca = t.split(" ")[0]!;
+    if (PALAVRAS_SEM_LUGAR.has(cabeca) || NAO_E_LUGAR.has(cabeca)) continue;
+    if (t.split(" ").every((p) => nome.has(p))) continue;
+    out.add(t);
+    if (t !== cabeca) out.add(cabeca);
+  }
+  return [...out];
 }
 
 // ── Pagamento ────────────────────────────────────────────────────────────────
@@ -430,7 +639,14 @@ function tokensDeCanal(frase: string): string[] {
 
 /** Perfil social. O `(?<![\w.])` impede que o domínio de um e-mail vire "perfil". */
 const RE_HANDLE = /(?<![\w.])@[a-z0-9._]{3,30}\b/gi;
-const RE_DOMINIO = /\b(?:https?:\/\/)?(?:www\.)?([a-z0-9][a-z0-9-]{1,}\.(?:com|net|org|io|app|shop|store|me|co|dev|blog)(?:\.br)?)\b/gi;
+// O sufixo é GULOSO — `(?:\.[a-z]{2,3})*` e não `(?:\.br)?`. Com o sufixo fixo,
+// "doceencanto.com.br.br" era lido como o domínio atestado "doceencanto.com.br"
+// com a sobra ignorada: o piso via o endereço certo dentro de um endereço errado
+// e aprovava. Capturando o domínio inteiro, o malformado deixa de casar com o
+// atestado e é reprovado. O `*` não engole ponto final de frase, que não tem
+// letra depois.
+const RE_DOMINIO =
+  /\b(?:https?:\/\/)?(?:www\.)?([a-z0-9][a-z0-9-]{1,}\.(?:com|net|org|io|app|shop|store|me|co|dev|blog)(?:\.[a-z]{2,3})*)\b/gi;
 
 function tokensDeEndereco(texto: string): string[] {
   const out = new Set<string>();
@@ -474,8 +690,61 @@ function palavrasDeConteudo(s: string): string[] {
 /** Verbo conjugado, não infinitivo: "entregamos em 30 minutos" é promessa ao
  *  cliente final; "entregar 12 posts em 30 dias" é planejamento interno da
  *  agência e não afirma nada sobre a operação do cliente. */
-const RE_FRAME_PRAZO = /\b(entregamos|entregas|entrega|entregue|pronto|prontinho|respondemos|resposta|retorno|prazo|chega|receba|enviamos|envio|fica pronto)\b/;
+// `pront\w+` no lugar de `pronto|prontinho`. A auditoria mediu o efeito e ele é
+// grotesco: **concordância de gênero derrubava a checagem inteira.** "Sua
+// matrícula fica PRONTA em 2 horas" passava; "fica PRONTO" barrava. O modelo não
+// escolhe o gênero da frase — quem escolhe é o substantivo do cliente —, então
+// metade dos negócios do país ficava sem trava por acidente de morfologia.
+// `cheg\w+` e não `chega`: "Chegamos em 10 minutos" não casava `\bchega\b`, e o
+// briefing do cliente dizia 30 minutos. Mais uma trava perdida por flexão.
+const RE_FRAME_PRAZO =
+  /\b(entregamos|entregas|entrega|entregue|pront\w+|respondemos|resposta|retorno|prazo|cheg\w+|receba|enviamos|envio|liberad\w+|agendad\w+)\b/;
+
+/**
+ * O mesmo frame, LIDO NO BRIEFING — e mais generoso, pelo mesmo motivo já
+ * assumido no pagamento: o cliente escreve em bullet, sem verbo conjugado
+ * ("Banner sai em 24 horas", "Orçamento fechado em 3 dias", "Análise de crédito
+ * em 2 dias"). Sem isto, o prazo REAL dele não era registrado e a peça que
+ * apenas o repetia era barrada como invenção — o piso reprovando a peça por
+ * dizer exatamente o que o cliente escreveu.
+ *
+ * Ler o cliente com generosidade e a peça com rigor é o único desequilíbrio
+ * seguro; o inverso é a mordaça.
+ */
+/**
+ * O frame do prazo LIDO NO BRIEFING. Aqui a **preposição** é a marca, não o
+ * verbo: em português, "em 2 horas", "em 15 dias", "dentro de 3 dias" só
+ * significam prazo.
+ *
+ * Tentei antes listar os substantivos do entregável (encomenda, medição,
+ * instalação…) e o holdout mostrou o que era óbvio: essa lista é infinita.
+ * "Pedido separado em 2 horas", "Carteira de vacinação emitida em 1 dia",
+ * "Fotos tratadas entregues em 15 dias" — cada vertical traz um substantivo
+ * novo, e cada um que falta vira o piso barrando a peça por repetir o prazo que
+ * o próprio cliente escreveu. Moldura estreita é buraco também deste lado.
+ *
+ * DÍVIDA MEDIDA E ACEITA: o texto do cliente inclui o escopo da agência
+ * achatado, então "12 posts em 30 dias" passa a atestar o prazo "30 dia" —
+ * a peça poderia prometer 30 dias sem o cliente ter dito. É prazo INTERNO
+ * virando prazo do cliente. Escolhi este erro em vez do inverso: o outro
+ * barrava peça legítima em 3 de 4 verticais do holdout.
+ */
+const RE_PREPOSICAO_DE_PRAZO = /\b(?:em|ate|dentro de|apos|no prazo de|com)\s*$/;
+
+function fraseDePrazoDoCliente(n: string): boolean {
+  if (RE_FRAME_PRAZO.test(n)) return true;
+  for (const m of n.matchAll(RE_QUANTIDADE_DE_TEMPO)) {
+    if (RE_PREPOSICAO_DE_PRAZO.test(n.slice(0, m.index ?? 0))) return true;
+  }
+  return RE_PRAZO_IMEDIATO.test(n);
+}
+
 const RE_QUANTIDADE_DE_TEMPO = /\b(\d{1,3})\s*(minutos?|horas?|dias?|semanas?|mes(?:es)?)\b/g;
+/** Prazo sem número. "Entrega no mesmo dia" é promessa tão concreta quanto
+ *  "em 24 horas" — e não tinha token nenhum, logo não era conferida. */
+// "na hora" e "em minutos" ficaram de fora: casam "na hora do almoço" e
+// "em minutos de conversa" — falso positivo comprado sem necessidade.
+const RE_PRAZO_IMEDIATO = /\b(no mesmo dia|na mesma hora|imediatamente|em instantes|em tempo real)\b/;
 
 function tokensDePrazo(frase: string): string[] {
   const n = semAcento(frase);
@@ -484,6 +753,7 @@ function tokensDePrazo(frase: string): string[] {
     const unidade = m[2]!.replace(/s$/, "").replace(/^mese$/, "mes");
     out.add(`${Number(m[1])} ${unidade}`);
   }
+  if (RE_PRAZO_IMEDIATO.test(n)) out.add("imediato");
   return [...out];
 }
 
@@ -501,16 +771,44 @@ export function extrairVerdadeOperacional(textoDoCliente: string, businessName =
   const op = operacaoVazia();
   if (!textoDoCliente || textoDoCliente.trim().length === 0) return op;
 
-  const horarios = new Set<string>(), dias = new Set<string>(), areas = new Set<string>();
+  const horarios = new Set<string>(), janelas = new Set<string>(), dias = new Set<string>();
+  const areas = new Set<string>(), negadas = new Set<string>();
   const pagamentos = new Set<string>(), canais = new Set<string>(), prazos = new Set<string>();
 
   for (const frase of frases(textoDoCliente)) {
     const n = semAcento(frase);
-    if (RE_FRAME_HORARIO.test(n)) {
+    if (fraseDeHorarioDoCliente(n, frase)) {
       for (const t of tokensDeHora(frase)) horarios.add(t);
+      for (const t of janelasDeHora(frase)) janelas.add(t);
       for (const t of tokensDeDia(frase)) dias.add(t);
     }
-    if (RE_FRAME_AREA.test(n)) {
+    // A frase em que o cliente NEGA cobertura não atesta nada. Ler "Não
+    // entregamos em Osasco" e registrar Osasco como área atendida inverte a
+    // palavra explícita dele.
+    // A NEGAÇÃO é registrada SEM exigir frame de área. O frame existe para não
+    // transformar qualquer frase em alegação de cobertura; aqui não há esse
+    // risco, porque o cliente escreveu "não" com todas as letras. Sem isto,
+    // "Socorro na estrada: não fazemos em rodovia" não registrava nada — o verbo
+    // era "fazemos", que não é (e não deve ser) frame de área.
+    const negacao = n.match(RE_NEGACAO_DE_AREA);
+    if (negacao) {
+      // O alcance da negação PARA no conectivo adversativo. Sem este corte,
+      // "Não entregamos em Osasco, mas entregamos em Pinheiros e no Butantã"
+      // registrava Pinheiros e Butantã como NEGADOS — o piso não apenas perdia
+      // os bairros reais, ele inventava uma proibição que o cliente nunca
+      // escreveu, e depois reprovava a peça legítima citando "o cliente disse
+      // que não atende Pinheiros". Errar contra a palavra do cliente na direção
+      // oposta não é o lado seguro: é a mesma mentira com o sinal trocado.
+      const inicio = negacao.index ?? 0;
+      const resto = frase.slice(inicio);
+      const adversativo = semAcento(resto).search(/\b(mas|porem|contudo|entretanto|todavia|so que)\b/);
+      const trechoNegado = adversativo >= 0 ? resto.slice(0, adversativo) : resto;
+      const trechoAfirmado = frase.slice(0, inicio) + (adversativo >= 0 ? resto.slice(adversativo) : "");
+      for (const l of lugaresRelaxados(trechoNegado, businessName)) negadas.add(l);
+      if (RE_FRAME_AREA.test(semAcento(trechoAfirmado))) {
+        for (const l of lugaresAfirmados(trechoAfirmado, businessName)) areas.add(l);
+      }
+    } else if (RE_FRAME_AREA.test(n)) {
       const universal = n.match(RE_AREA_UNIVERSAL);
       if (universal) areas.add(semAcento(universal[0]));
       for (const l of lugaresAfirmados(frase, businessName)) areas.add(l);
@@ -525,18 +823,92 @@ export function extrairVerdadeOperacional(textoDoCliente: string, businessName =
     // Canal e prazo o cliente costuma informar SEM verbo de chamada ("WhatsApp:
     // (11) 9...", "prazo de 30 dias"), então aqui o dicionário basta.
     for (const t of tokensDeCanal(frase)) canais.add(t);
-    if (RE_FRAME_PRAZO.test(n)) for (const t of tokensDePrazo(frase)) prazos.add(t);
+    if (fraseDePrazoDoCliente(n)) for (const t of tokensDePrazo(frase)) prazos.add(t);
   }
 
   op.horarios = [...horarios];
+  op.janelas = [...janelas];
   op.dias = [...dias];
   op.areas = [...areas];
+  op.areasNegadas = [...negadas];
   op.pagamentos = [...pagamentos];
   op.canais = [...canais];
   op.prazos = [...prazos];
   op.handles = tokensDeEndereco(textoDoCliente);
   op.ofertas = [...new Set(palavrasDeConteudo(textoDoCliente))];
   return op;
+}
+
+// ── Verba não é preço ────────────────────────────────────────────────────────
+
+/**
+ * A moldura que marca um número como VERBA — o que o cliente paga à agência /
+ * à mídia — e não como preço do negócio dele.
+ *
+ * Confundir os dois foi a regressão mais cara desta rodada: numa lista única,
+ * "verba de mídia R$ 1.000" autorizava a peça a anunciar
+ * **"Pacote noiva por R$ 1.000,00"** — um preço que ele nunca cobrou de
+ * ninguém, impresso como oferta ao público dele.
+ */
+const RE_MOLDURA_DE_VERBA =
+  /\b(verba|budget|orcamento de midia|investimento mensal|investimento em (?:midia|anuncios|trafego)|midia|trafego|anuncios?|campanhas?|impulsionamento|mensalidade da agencia|honorarios?)\b/;
+
+/** As chaves de briefing que são verba POR DEFINIÇÃO: quem as preenche é o SDR
+ *  registrando quanto o cliente tem para gastar, nunca o preço dele. */
+const CHAVES_DE_VERBA = ["monthlyBudget", "adsBudget", "budget", "budgetRange"];
+const CHAVES_DE_PRECO = ["valor", "price"];
+
+/**
+ * Separa o que o cliente informou em PREÇO (o que ele cobra; pode virar preço
+ * numa peça) e VERBA (o que ele paga; só passa dentro da moldura de prestação
+ * de contas).
+ *
+ * Na dúvida — número em prosa sem moldura de verba — é PREÇO. É o uso legítimo
+ * mais comum em peça de comércio, e o custo do engano nessa direção é reprovar
+ * uma prestação de contas, não publicar preço inventado.
+ */
+export function separarValoresInformados(
+  briefing: Record<string, unknown>,
+  textoDoCliente = "",
+): { precos: number[]; verbas: number[] } {
+  const precos = new Set<number>();
+  const verbas = new Set<number>();
+  const push = (destino: Set<number>, n: number) => {
+    if (Number.isFinite(n) && n > 0) destino.add(n);
+  };
+  const numeros = (destino: Set<number>, v: string) => {
+    for (const m of v.matchAll(/(\d{1,3}(?:\.\d{3})+(?:,\d{2})?|\d+(?:,\d{2})?)/g)) {
+      push(destino, Number(m[1]!.replace(/\./g, "").replace(",", ".")));
+    }
+  };
+  for (const chave of CHAVES_DE_VERBA) {
+    const v = briefing[chave];
+    if (typeof v === "number") push(verbas, v);
+    if (typeof v === "string") numeros(verbas, v);
+  }
+  for (const chave of CHAVES_DE_PRECO) {
+    const v = briefing[chave];
+    if (typeof v === "number") push(precos, v);
+    if (typeof v === "string") numeros(precos, v);
+  }
+  // Preço escrito em prosa. Exige o "R$" grudado no número: sem ele, "atendemos
+  // 30 clientes por dia" viraria "R$ 30 informado" e o piso passaria a aceitar
+  // qualquer preço de dois dígitos.
+  //
+  // A janela de moldura é CURTA (40 caracteres) e cortada no fim da oração
+  // anterior. Linha inteira não serve: briefing real vem em prosa corrida, e
+  // "Verba de mídia R$ 900. Mensalidade a partir de R$ 320,00" traz os dois na
+  // mesma linha — com janela larga o preço do cliente seria engolido pela
+  // moldura da verba e ele ficaria proibido de anunciar o próprio preço.
+  const n = semAcento(textoDoCliente);
+  for (const m of n.matchAll(/r\$\s?([\d.]+(?:,\d{2})?)/g)) {
+    const i = m.index ?? 0;
+    let antes = n.slice(Math.max(0, i - 40), i);
+    const corte = antes.search(/[.:\n\r•|;]\s*[^.:\n\r•|;]*$/);
+    if (corte >= 0) antes = antes.slice(corte + 1);
+    numeros(RE_MOLDURA_DE_VERBA.test(antes) ? verbas : precos, m[1]!);
+  }
+  return { precos: [...precos], verbas: [...verbas] };
 }
 
 /** As classes sobre as quais o cliente não contou NADA — o que a agência precisa
@@ -563,7 +935,15 @@ function conferirOperacao(texto: string, verdade: VerdadeDoCliente): Violacao[] 
   const op = verdade.operacao ?? operacaoVazia();
   const v: Violacao[] = [];
   const corta = (f: string) => f.trim().slice(0, 120);
-  const atestado = (e: string) => op.handles.some((h) => h === e || h.endsWith(e) || e.endsWith(h));
+  // O sufixo SÓ vale em fronteira de ponto — subdomínio legítimo
+  // (`loja.pontocerto.com.br`) continua atestado, e a colagem morre. Com o
+  // `endsWith` cru, **"graficapontocerto.com.br" era aceito por
+  // "pontocerto.com.br"**: bastava prefixar qualquer coisa no domínio do cliente
+  // para inventar um endereço aprovado. Era o buraco mais fácil de explorar do
+  // módulo inteiro, e não exigia má-fé — o modelo prefixa o nome do negócio
+  // sozinho o tempo todo.
+  const atestado = (e: string) =>
+    op.handles.some((h) => h === e || h.endsWith(`.${e}`) || e.endsWith(`.${h}`));
 
   // Perfil e domínio são conferidos no TEXTO INTEIRO, não frase a frase: o ponto
   // de "sushicazza.com.br" é fim de frase para o separador e parte do endereço
@@ -592,16 +972,30 @@ function conferirOperacao(texto: string, verdade: VerdadeDoCliente): Violacao[] 
           v.push({ id: "horario_nao_informado", trecho: corta(frase), motivo: `Horário de funcionamento. ${NAO_CONTOU}` });
         } else {
           for (const h of horas) {
-            if (!op.horarios.includes(h)) {
+            // Ponto exato atestado OU ponto DENTRO de uma janela atestada. A
+            // segunda metade faltava, e era o falso positivo mais frequente do
+            // piso inteiro (7 dos 10 medidos no corpus de 8 verticais novos).
+            // "24h" atestado = sempre aberto: nenhuma hora contradiz. Sem isto,
+            // um chaveiro 24 horas era reprovado por dizer "atendemos às 14h".
+            if (op.horarios.includes("24h")) continue;
+            if (!op.horarios.includes(h) && !dentroDeAlgumaJanela(h, op.janelas)) {
               v.push({
                 id: "horario_contradiz",
                 trecho: corta(frase),
-                motivo: `Horário "${h}" não bate com o que o cliente informou (${op.horarios.join(", ") || "nenhum horário"}). Cliente na porta fechada é dano direto ao negócio dele.`,
+                motivo: `Horário "${h}" está fora do expediente que o cliente informou (${(op.janelas?.length ? op.janelas : op.horarios).join(", ") || "nenhum horário"}). Cliente na porta fechada é dano direto ao negócio dele.`,
               });
             }
           }
+          // "todos os dias" é coberto quando o cliente atesta a semana inteira,
+          // mesmo que ele a tenha escrito como intervalo ("de segunda a
+          // domingo"). Sem isto, o cliente que abre os 7 dias não podia dizer
+          // que abre os 7 dias — a assimetria de novo, agora no quantificador.
+          const semanaInteira = SEMANA.every((d) => op.dias.includes(d));
           for (const d of diasDitos) {
-            const cobre = op.dias.includes(d) || (op.dias.includes("todos") && d !== "todos");
+            const cobre =
+              op.dias.includes(d) ||
+              (op.dias.includes("todos") && d !== "todos") ||
+              (semanaInteira && (d === "todos" || d === "uteis" || d === "fds"));
             if (!cobre) {
               v.push({
                 id: "horario_contradiz",
@@ -615,6 +1009,23 @@ function conferirOperacao(texto: string, verdade: VerdadeDoCliente): Violacao[] 
     }
 
     // 2. ÁREA DE ATENDIMENTO / ENTREGA.
+    // A NEGAÇÃO do cliente é conferida FORA do frame de área e não admite
+    // atenuante: afirmar cobertura onde ele escreveu "não" inverte a palavra
+    // explícita dele — o pior dano por ocorrência deste módulo. Frase que também
+    // nega ("não instalamos no litoral", numa peça honesta) não é afirmação e
+    // não entra aqui.
+    const negadas = op.areasNegadas ?? [];
+    if (negadas.length > 0 && !RE_NEGACAO_DE_AREA.test(n)) {
+      for (const l of lugaresRelaxados(frase, verdade.businessName)) {
+        if (!negadas.includes(l)) continue;
+        v.push({
+          id: "area_negada_pelo_cliente",
+          trecho: corta(frase),
+          motivo: `O cliente disse EXPRESSAMENTE que não atende "${l}". A peça afirma o contrário — é a palavra dele invertida numa publicação em nome dele.`,
+        });
+      }
+    }
+
     if (RE_FRAME_AREA.test(n)) {
       const universal = n.match(RE_AREA_UNIVERSAL);
       const lugares = lugaresAfirmados(frase, verdade.businessName);
@@ -694,7 +1105,12 @@ function conferirOperacao(texto: string, verdade: VerdadeDoCliente): Violacao[] 
       const objeto = (m[1] ?? "").trim();
       const palavras = palavrasDeConteudo(objeto);
       if (palavras.length === 0) continue;
-      const atestado = palavras.some((p) => op.ofertas.some((o) => o === p || o.startsWith(p) || p.startsWith(o)));
+      // TODAS as palavras de conteúdo precisam estar no vocabulário do cliente,
+      // não uma delas. Com `some`, "Também fazemos exame de audiometria" passava
+      // numa ótica só porque ela faz "exame de vista": uma palavra em comum
+      // liberava o serviço inteiro. O núcleo da extensão é justamente a palavra
+      // que o cliente NUNCA disse — é ela que precisa ancorar.
+      const atestado = palavras.every((p) => op.ofertas.some((o) => o === p || o.startsWith(p) || p.startsWith(o)));
       if (atestado) continue;
       v.push({
         id: op.ofertas.length === 0 ? "oferta_nao_informada" : "oferta_contradiz",
@@ -738,8 +1154,9 @@ function conferirOperacao(texto: string, verdade: VerdadeDoCliente): Violacao[] 
         });
       }
     }
-    // 6. PRAZO.
-    if (RE_FRAME_PRAZO.test(n)) {
+    // 6. PRAZO. O prazo IMEDIATO dispensa frame: "no mesmo dia" já é, sozinho,
+    //    promessa de prazo — não existe leitura em que não seja.
+    if (RE_FRAME_PRAZO.test(n) || RE_PRAZO_IMEDIATO.test(n)) {
       for (const t of tokensDePrazo(frase)) {
         if (op.prazos.includes(t)) continue;
         v.push({
@@ -796,7 +1213,10 @@ export function conferirPisoDeVerdade(conteudo: string, verdade: VerdadeDoClient
 
   // 3. Valor que o cliente nunca informou. É promessa comercial: o cliente lê
   //    "R$ 2.000/mês" e passa a cobrar isso da agência.
-  const tetoInformado = verdade.valores.length > 0 ? Math.max(...verdade.valores) : undefined;
+  // O teto do GASTO abrange preço e verba; o que pode virar PREÇO na peça é só
+  // `valores`. A distinção é o que impede a verba de virar oferta.
+  const paraTeto = [...verdade.valores, ...(verdade.verbas ?? [])];
+  const tetoInformado = paraTeto.length > 0 ? Math.max(...paraTeto) : undefined;
   for (const m of texto.matchAll(RE_VALOR)) {
     const n = paraNumero(m[1]!);
     if (!Number.isFinite(n)) continue;
@@ -804,16 +1224,18 @@ export function conferirPisoDeVerdade(conteudo: string, verdade: VerdadeDoClient
     // O RELATÓRIO MENSAL: "Investimos R$ 1.200 em anúncios" é gasto MEDIDO pela
     // própria casa, não promessa feita ao cliente — e barrá-lo tornava
     // impossível prestar contas do que se gastou. A relaxação é estreita de
-    // propósito: exige verbo de gasto REALIZADO na mesma frase E que o número
-    // caiba dentro da maior verba que o cliente informou. Nunca se promete mais
-    // do que ele autorizou, e sem verba informada nada disso vale — segue
-    // fail-closed. O que ela NÃO faz é conferir se o gasto foi mesmo esse: isso
-    // é medição, não ancoragem, e não é trabalho deste piso.
+    // propósito: exige verbo de gasto REALIZADO antes do número, TERMO DE MÍDIA
+    // na mesma linha, e que o número caiba dentro da maior verba informada.
+    // Nunca se promete mais do que ele autorizou, e sem verba informada nada
+    // disso vale — segue fail-closed. O que ela NÃO faz é conferir se o gasto
+    // foi mesmo esse: isso é medição, não ancoragem.
+    const linha = semAcento(linhaEmVolta(texto, m.index ?? 0));
     const gastoDaCasa =
       !informado &&
       tetoInformado !== undefined &&
       n <= tetoInformado &&
-      RE_FRAME_GASTO.test(semAcento(janelaAntes(texto, m.index ?? 0)));
+      RE_FRAME_GASTO.test(semAcento(janelaAntes(texto, m.index ?? 0))) &&
+      RE_TERMO_DE_MIDIA.test(linha);
     if (!informado && !gastoDaCasa) {
       violacoes.push({
         id: "valor_inventado",
