@@ -43,6 +43,9 @@ function statusLegivel(s: string): string {
     case "published": return "No ar";
     case "scheduled": return "Programado";
     case "failed":    return "Com problema";
+    // A decisão do cliente propagada pelo card de calendário volta legível.
+    case "approved":  return "Aprovado por você";
+    case "revision_requested": return "Em ajuste";
     default:          return "Esperando você";
   }
 }

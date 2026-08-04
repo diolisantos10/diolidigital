@@ -32,6 +32,17 @@ const ACTION_QUESTION = "question";
 // 400 no backend (Fase 2, T3/T4). "Tenho uma dúvida" sem texto é um card mudo.
 const ACTIONS_REQUIRING_COMMENT = new Set(["request_revision", "reject", ACTION_QUESTION]);
 
+/** Lê os ids de post de um card de calendário. JSON quebrado vira lista vazia —
+ *  nunca exceção: um campo corrompido não pode engolir a decisão do cliente. */
+function lerListaDeIds(bruto: string | null | undefined): string[] {
+  try {
+    const v = JSON.parse(bruto ?? "[]");
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
 export async function POST(request: NextRequest): Promise<NextResponse> {
   let body: {
     token?: string;
@@ -91,11 +102,25 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "Approval not found" }, { status: 404 });
     }
 
+    // Posse por OR: a aprovação pode pertencer ao token pela SOLICITAÇÃO
+    // (fluxo Brain) ou pelo CLIENTE direto (`ApprovalRequest.clientId` —
+    // caso Foocci, sem ClientRequestDb). Dono sempre derivado do token; a
+    // derivação por clientId só roda quando a chave de solicitação não bateu.
     const tokenRequestId = access.record.clientRequestId;
-    const tokenClientId  = access.record.clientId;
-    const belongsToToken =
-      (tokenRequestId && approval.clientRequestId === tokenRequestId) ||
-      (!tokenRequestId && tokenClientId && approval.clientRequest?.clientId === tokenClientId);
+    let belongsToToken = !!tokenRequestId && approval.clientRequestId === tokenRequestId;
+    if (!belongsToToken) {
+      let tokenClientId = access.record.clientId;
+      if (!tokenClientId && tokenRequestId) {
+        const solicitacao = await prisma.clientRequestDb.findUnique({
+          where: { id: tokenRequestId }, select: { clientId: true },
+        });
+        tokenClientId = solicitacao?.clientId ?? null;
+      }
+      belongsToToken = !!tokenClientId && (
+        approval.clientId === tokenClientId ||
+        approval.clientRequest?.clientId === tokenClientId
+      );
+    }
     if (!belongsToToken) {
       return NextResponse.json({ error: "Approval not accessible with this token" }, { status: 403 });
     }
@@ -136,6 +161,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ id: approvalRequestId, status: "pending", questionOpen: true });
     }
 
+    // Card de CALENDÁRIO (origem: /api/social-posts/aprovacao): o reviewNote é
+    // o corpo que o cliente leu — a decisão não pode reescrevê-lo com o
+    // comentário (que já fica registrado como ApprovalComment logo abaixo).
+    const postsDoCard = lerListaDeIds(approval.sourcePostIdsJson);
+
     // 3. Apply the decision. reviewedBy records the client identity.
     // (`status` é garantido aqui: a única ação sem status é "question", que já
     // retornou acima.)
@@ -143,7 +173,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       approvalRequestId,
       status!,
       `client:${clientIdentity}`,
-      body.comment?.trim() || undefined,
+      postsDoCard.length > 0 ? undefined : (body.comment?.trim() || undefined),
     );
 
     // 4. Persist the comment as a client-visible ApprovalComment.
@@ -155,6 +185,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         body:            body.comment.trim(),
         isClientVisible: true,
       });
+    }
+
+    // ── A DECISÃO PROPAGA AOS POSTS DO CARD ───────────────────────────────────
+    // É o fechamento do circuito do Lote 1: o clique do cliente nunca pode
+    // "gravar um status e acabar ali". Aprovar → as peças viram "approved"
+    // (prontas para o agendamento); pedir ajuste ou recusar → viram
+    // "revision_requested", e o comentário (obrigatório nas duas) já está no
+    // registro do card como ApprovalComment. Filtro por clientId do CARD: um id
+    // de post de outro cliente dentro do JSON não seria tocado.
+    if (postsDoCard.length > 0 && approval.clientId) {
+      const statusDosPosts = status === "approved" ? "approved" : "revision_requested";
+      await prisma.socialPost.updateMany({
+        where: { id: { in: postsDoCard }, clientId: approval.clientId },
+        data: { status: statusDosPosts },
+      }).catch((e) => console.error("[portal/approvals] propagação aos posts falhou", e));
     }
 
     // The client approving a PROPOSAL is what creates the project and sets the

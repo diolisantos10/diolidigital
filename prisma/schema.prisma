@@ -828,8 +828,16 @@ model BrainArtifact {
 // Formal approval flow — one record per department review cycle.
 model ApprovalRequest {
   id              String          @id @default(cuid())
-  clientRequestId String
-  clientRequest   ClientRequestDb @relation(fields: [clientRequestId], references: [id], onDelete: Cascade)
+  /// Nulo para cliente criado DIRETO (sem briefing público). No lançamento da
+  /// Foocci (03/08/2026) TODA aprovação exigia ClientRequestDb — cliente direto
+  /// não tinha como aprovar nada: o portal dizia "Esperando você" e a aba de
+  /// Aprovações ficava vazia. A posse passa a ser: clientRequestId OU clientId.
+  clientRequestId String?
+  clientRequest   ClientRequestDb? @relation(fields: [clientRequestId], references: [id], onDelete: Cascade)
+  /// O dono quando não há solicitação — mesmo par de chaves do SocialPost.
+  /// Nunca vem de query/corpo no caminho público: deriva do token (regra da
+  /// casa, 03/08/2026).
+  clientId        String?
   artifactId      String?
   department      String
   requestedBy     String          @default("internal")
@@ -850,10 +858,17 @@ model ApprovalRequest {
   /// (achado A2). O vínculo por FK mata o casamento heurístico por ordem.
   deliverableVersionId String?
   deliverableVersion   DeliverableVersion? @relation(fields: [deliverableVersionId], references: [id])
+  /// Posts do calendário que ESTE card decide (JSON de ids de SocialPost).
+  /// Preenchido = a origem é o calendário (rota /api/social-posts/aprovacao);
+  /// a decisão do cliente propaga o status a estes posts (aprovar → "approved",
+  /// ajuste/recusa → "revision_requested"). Vazio = aprovação do fluxo Brain.
+  sourcePostIdsJson String        @default("[]")
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 
   comments ApprovalComment[]
+
+  @@index([clientId])
 }
 
 model ApprovalComment {

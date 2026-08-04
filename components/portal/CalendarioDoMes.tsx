@@ -19,6 +19,7 @@
 //    mais precisa dele e o único que ele pode destravar.
 
 import { useMemo } from "react";
+import { urlDeMidiaDoPortal } from "@/lib/agency/portal/midia";
 
 export interface PecaDoCalendario {
   id: string;
@@ -34,13 +35,22 @@ const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julh
 const DIAS = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
 
 /** O estado como o CLIENTE entende. O nome técnico não diz a ele o que fazer. */
-function estado(s: string): { texto: string; fundo: string; cor: string } {
+function estado(s: string, temAprovacaoPendente: boolean): { texto: string; fundo: string; cor: string } {
   switch (s) {
     case "published": return { texto: "No ar", fundo: "#DCFCE7", cor: "#16A34A" };
     case "scheduled": return { texto: "Programado", fundo: "#DBEAFE", cor: "#1D4ED8" };
     case "failed":    return { texto: "Com problema", fundo: "#FEE2E2", cor: "#B91C1C" };
-    // "draft" é o único estado que depende DELE — e por isso é o que fala mais alto.
-    default:          return { texto: "Esperando você", fundo: "#FEF3C7", cor: "#B45309" };
+    // A decisão do cliente propaga ao post (card de calendário) — e a tela
+    // devolve a decisão a ele, em vez de continuar dizendo "esperando você".
+    case "approved":  return { texto: "Aprovado por você", fundo: "#DCFCE7", cor: "#16A34A" };
+    case "revision_requested": return { texto: "Em ajuste", fundo: "#EFF6FF", cor: "#1D4ED8" };
+    // "draft" só diz "esperando você" quando existe uma APROVAÇÃO PENDENTE de
+    // verdade — a mesma fonte do Início. Rascunho sem card aberto está com a
+    // AGÊNCIA: dizer "esperando você" aqui era a contradição do lançamento da
+    // Foocci (a tela cobrava o cliente por algo que ele não tinha como decidir).
+    default: return temAprovacaoPendente
+      ? { texto: "Esperando você", fundo: "#FEF3C7", cor: "#B45309" }
+      : { texto: "Em preparação", fundo: "#F2F2EF", cor: "#6B7280" };
   }
 }
 
@@ -55,7 +65,20 @@ function rotuloDeFormato(f: string): string {
   return "Feed";
 }
 
-export function CalendarioDoMes({ pecas, token }: { pecas: PecaDoCalendario[]; token: string }) {
+export function CalendarioDoMes({
+  pecas,
+  token,
+  aprovacoesPendentes = 0,
+}: {
+  pecas: PecaDoCalendario[];
+  /** Vazio em modo cookie: a miniatura sai SEM ?token= no DOM (A4) — a rota de
+   *  mídia autentica pelo cookie httpOnly. */
+  token: string;
+  /** Quantas APROVAÇÕES reais aguardam o cliente — a MESMA fonte da pendência
+   *  do Início (`portal-data.approvals` pendentes). O banner deriva daqui:
+   *  sem aprovação criada, ele não promete uma aba de Aprovações vazia. */
+  aprovacoesPendentes?: number;
+}) {
   const porMes = useMemo(() => {
     const mapa = new Map<string, PecaDoCalendario[]>();
     for (const p of [...pecas].sort((a, b) => (a.scheduledFor ?? "").localeCompare(b.scheduledFor ?? ""))) {
@@ -78,14 +101,17 @@ export function CalendarioDoMes({ pecas, token }: { pecas: PecaDoCalendario[]; t
     );
   }
 
-  const esperando = pecas.filter((p) => p.status === "draft").length;
+  // A MESMA fonte do Início: aprovações pendentes REAIS, não a contagem de
+  // rascunhos. Contar rascunho aqui fazia o banner prometer uma aba de
+  // Aprovações vazia enquanto o Início dizia "nada depende de você".
+  const esperando = aprovacoesPendentes;
 
   return (
     <div className="space-y-5">
       {esperando > 0 && (
         <div className="rounded-[12px] bg-[#FFFBEB] border border-[#FDE68A] px-4 py-3">
           <p className="text-[13px] font-semibold text-[#92400E]">
-            {esperando} {esperando === 1 ? "peça espera" : "peças esperam"} sua aprovação
+            {esperando === 1 ? "1 aprovação espera" : `${esperando} aprovações esperam`} por você
           </p>
           <p className="mt-0.5 text-[12px] text-[#B45309]">
             Nada vai ao ar antes de você aprovar. É só dar uma olhada na aba de aprovações.
@@ -111,20 +137,22 @@ export function CalendarioDoMes({ pecas, token }: { pecas: PecaDoCalendario[]; t
 
             <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
               {doMes.map((p) => {
-                const e = estado(p.status);
+                const e = estado(p.status, aprovacoesPendentes > 0);
                 const d = p.scheduledFor ? new Date(p.scheduledFor) : null;
+                const capa = urlDeMidiaDoPortal(p.mediaUrl, token);
                 return (
                   <article
                     key={p.id}
                     className="overflow-hidden rounded-[12px] border border-[var(--border)] bg-white shadow-[0_1px_2px_rgba(7,10,31,0.03)]"
                   >
                     <div className="relative aspect-square bg-[#F2F2EF]">
-                      {p.mediaUrl ? (
+                      {capa ? (
                         // A miniatura passa pelo mesmo endereço protegido do
-                        // resto da mídia: o token do portal é quem autoriza.
+                        // resto da mídia. Em modo cookie a URL sai SEM token —
+                        // credencial não fica no DOM (A4, urlDeMidiaDoPortal).
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
-                          src={token ? `${p.mediaUrl}${p.mediaUrl.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}` : p.mediaUrl}
+                          src={capa}
                           alt=""
                           loading="lazy"
                           className="h-full w-full object-cover"

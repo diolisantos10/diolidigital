@@ -12,6 +12,8 @@ import { NextRequest } from "next/server";
 
 const db = vi.hoisted(() => ({
   approvalRequest: { findUnique: vi.fn(), update: vi.fn(), count: vi.fn() },
+  clientRequestDb: { findUnique: vi.fn() },
+  socialPost: { updateMany: vi.fn() },
   project: { findFirst: vi.fn() },
   materialRequest: { create: vi.fn() },
   portalMessage: { create: vi.fn() },
@@ -128,7 +130,14 @@ describe("tenho uma dúvida — não decide, pausa o prazo", () => {
   });
 
   it("posse antes de tudo: dúvida em aprovação de outro dono não passa", async () => {
-    db.approvalRequest.findUnique.mockResolvedValue({ ...APROVACAO, clientRequestId: "cr-DE-OUTRO" });
+    // Outro dono DE VERDADE: outra solicitação E outro cliente. (A posse agora
+    // é por OR — solicitação OU clientId derivado — então o fixture precisa
+    // divergir nas duas chaves para ser "de outro".)
+    db.approvalRequest.findUnique.mockResolvedValue({
+      ...APROVACAO, clientRequestId: "cr-DE-OUTRO", clientId: null,
+      clientRequest: { id: "cr-DE-OUTRO", clientId: "c-DE-OUTRO" },
+    });
+    db.clientRequestDb.findUnique.mockResolvedValue({ clientId: "c1" });
     const res = await POST(req({ action: "question", comment: "dúvida" }));
     expect(res.status).toBe(403);
     expect(addApprovalComment).not.toHaveBeenCalled();

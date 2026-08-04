@@ -51,11 +51,16 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       });
       reqId = latest?.id ?? null;
       if (!reqId) {
-        // Valid token, but no Brain request yet — empty portal state.
+        // Valid token, but no Brain request yet — cliente criado DIRETO.
+        // As aprovações dele vivem por `clientId` (cards do calendário): sem
+        // esta busca, o Início dizia "nada depende de você" com 6 peças
+        // esperando — a contradição do lançamento da Foocci.
         const client = await prisma.client.findUnique({ where: { id: access.record.clientId } });
+        const approvals = await buscarAprovacoes({ clientId: access.record.clientId, clientVisible: true });
         return NextResponse.json({
           id: null, businessName: client?.name ?? "Cliente", status: "new",
-          services: [], objectives: [], createdAt: null, pipeline: [], approvals: [],
+          services: [], objectives: [], createdAt: null, pipeline: [],
+          approvals: approvals.map((ap) => mapearAprovacao(ap, () => null)),
         });
       }
     }
@@ -145,9 +150,64 @@ function summarizeCanvas(canvas: unknown): { headline: string | null; bullets: s
   return { headline, bullets };
 }
 
+// A consulta e o mapeamento do card de aprovação num lugar só: os DOIS estados
+// do portal (com solicitação e cliente direto) precisam falar a mesma língua —
+// era a divergência entre eles que fazia o Início prometer uma aba vazia.
+type FiltroDeAprovacao =
+  | { clientId: string; clientVisible: true }
+  | { clientVisible: true; OR: Array<{ clientRequestId: string } | { clientId: string }> };
+
+function buscarAprovacoes(where: FiltroDeAprovacao) {
+  return prisma.approvalRequest.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+    include: {
+      comments: {
+        where: { isClientVisible: true },
+        orderBy: { createdAt: "asc" },
+        select: { id: true, authorName: true, authorRole: true, kind: true, body: true, createdAt: true },
+      },
+      // O vínculo por FK à versão decidida (Fase 2, 2.2) — quando existe, é
+      // ELE que dá o corpo do card, nunca casamento por ordem.
+      deliverableVersion: {
+        select: { number: true, content: true, deliverable: { select: { name: true } } },
+      },
+    },
+  });
+}
+
+type AprovacaoDb = Awaited<ReturnType<typeof buscarAprovacoes>>[number];
+
+function mapearAprovacao(ap: AprovacaoDb, deliverableContentFor: (dept: string) => string | null) {
+  return {
+    id:         ap.id,
+    department: CLIENT_SAFE_DEPARTMENTS[ap.department] ?? ap.department,
+    status:     ap.status,
+    reviewedAt: ap.reviewedAt,
+    // Prazo do card (spec 1.1, conteúdo obrigatório) — a derivação "expirada"
+    // é feita na leitura, nunca gravada (T6).
+    expiresAt:  ap.expiresAt,
+    // "Dúvida aberta" (caminho C): o prazo está pausado e a bola com a agência.
+    questionOpen: ap.questionOpenedAt != null,
+    // Qual versão o cliente está decidindo — v1 preservada, v2 na mesa.
+    version: ap.deliverableVersion?.number ?? null,
+    // Corpo do card: 1º a versão vinculada por FK (a fonte de verdade); 2º a
+    // nota própria; 3º o casamento determinístico por departamento. Nunca sobra.
+    reviewNote:
+      (ap.deliverableVersion
+        ? `${ap.deliverableVersion.deliverable.name}\n\n${ap.deliverableVersion.content ?? ""}`.trim()
+        : null)
+      || ap.reviewNote
+      || (ap.department !== "proposal" ? deliverableContentFor(ap.department) : null),
+    comments:   ap.comments,
+  };
+}
+
 async function buildPortalData(clientRequestId: string) {
-  const [clientRequest, artifacts, approvals] = await Promise.all([
-    prisma.clientRequestDb.findUnique({ where: { id: clientRequestId } }),
+  const clientRequest = await prisma.clientRequestDb.findUnique({ where: { id: clientRequestId } });
+  if (!clientRequest) return null;
+
+  const [artifacts, approvals] = await Promise.all([
     prisma.brainArtifact.findMany({
       where: { clientRequestId, status: "approved" },
       orderBy: { approvedAt: "asc" },
@@ -156,25 +216,16 @@ async function buildPortalData(clientRequestId: string) {
         version: true, status: true, approvedAt: true,
       },
     }),
-    prisma.approvalRequest.findMany({
-      where: { clientRequestId, clientVisible: true },
-      orderBy: { createdAt: "desc" },
-      include: {
-        comments: {
-          where: { isClientVisible: true },
-          orderBy: { createdAt: "asc" },
-          select: { id: true, authorName: true, authorRole: true, kind: true, body: true, createdAt: true },
-        },
-        // O vínculo por FK à versão decidida (Fase 2, 2.2) — quando existe, é
-        // ELE que dá o corpo do card, nunca casamento por ordem.
-        deliverableVersion: {
-          select: { number: true, content: true, deliverable: { select: { name: true } } },
-        },
-      },
+    // Por OR: as aprovações da solicitação (fluxo Brain) E as do cliente
+    // direto (cards de calendário por `clientId`) — um dono só, duas chaves.
+    buscarAprovacoes({
+      clientVisible: true,
+      OR: [
+        { clientRequestId },
+        ...(clientRequest.clientId ? [{ clientId: clientRequest.clientId }] : []),
+      ],
     }),
   ]);
-
-  if (!clientRequest) return null;
 
   // The agents produce deliverables into their own table (with the full content).
   // Surface that content on the approval card so it isn't empty.
@@ -243,27 +294,6 @@ async function buildPortalData(clientRequestId: string) {
       approvedAt:   a.approvedAt,
       version:      a.version,
     })),
-    approvals: approvals.map((ap) => ({
-      id:         ap.id,
-      department: CLIENT_SAFE_DEPARTMENTS[ap.department] ?? ap.department,
-      status:     ap.status,
-      reviewedAt: ap.reviewedAt,
-      // Prazo do card (spec 1.1, conteúdo obrigatório) — a derivação "expirada"
-      // é feita na leitura, nunca gravada (T6).
-      expiresAt:  ap.expiresAt,
-      // "Dúvida aberta" (caminho C): o prazo está pausado e a bola com a agência.
-      questionOpen: ap.questionOpenedAt != null,
-      // Qual versão o cliente está decidindo — v1 preservada, v2 na mesa.
-      version: ap.deliverableVersion?.number ?? null,
-      // Corpo do card: 1º a versão vinculada por FK (a fonte de verdade); 2º a
-      // nota própria; 3º o casamento determinístico por departamento. Nunca sobra.
-      reviewNote:
-        (ap.deliverableVersion
-          ? `${ap.deliverableVersion.deliverable.name}\n\n${ap.deliverableVersion.content ?? ""}`.trim()
-          : null)
-        || ap.reviewNote
-        || (ap.department !== "proposal" ? deliverableContentFor(ap.department) : null),
-      comments:   ap.comments,
-    })),
+    approvals: approvals.map((ap) => mapearAprovacao(ap, deliverableContentFor)),
   };
 }

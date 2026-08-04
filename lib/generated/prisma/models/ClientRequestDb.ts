@@ -604,10 +604,12 @@ export type ClientRequestDbCreateNestedOneWithoutApprovalsInput = {
   connect?: Prisma.ClientRequestDbWhereUniqueInput
 }
 
-export type ClientRequestDbUpdateOneRequiredWithoutApprovalsNestedInput = {
+export type ClientRequestDbUpdateOneWithoutApprovalsNestedInput = {
   create?: Prisma.XOR<Prisma.ClientRequestDbCreateWithoutApprovalsInput, Prisma.ClientRequestDbUncheckedCreateWithoutApprovalsInput>
   connectOrCreate?: Prisma.ClientRequestDbCreateOrConnectWithoutApprovalsInput
   upsert?: Prisma.ClientRequestDbUpsertWithoutApprovalsInput
+  disconnect?: Prisma.ClientRequestDbWhereInput | boolean
+  delete?: Prisma.ClientRequestDbWhereInput | boolean
   connect?: Prisma.ClientRequestDbWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.ClientRequestDbUpdateToOneWithWhereWithoutApprovalsInput, Prisma.ClientRequestDbUpdateWithoutApprovalsInput>, Prisma.ClientRequestDbUncheckedUpdateWithoutApprovalsInput>
 }

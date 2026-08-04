@@ -4189,6 +4189,7 @@ export type BrainArtifactScalarFieldEnum = (typeof BrainArtifactScalarFieldEnum)
 export const ApprovalRequestScalarFieldEnum = {
   id: 'id',
   clientRequestId: 'clientRequestId',
+  clientId: 'clientId',
   artifactId: 'artifactId',
   department: 'department',
   requestedBy: 'requestedBy',
@@ -4200,6 +4201,7 @@ export const ApprovalRequestScalarFieldEnum = {
   reviewNote: 'reviewNote',
   clientVisible: 'clientVisible',
   deliverableVersionId: 'deliverableVersionId',
+  sourcePostIdsJson: 'sourcePostIdsJson',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

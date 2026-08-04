@@ -8,12 +8,22 @@ export type ApprovalStatus =
   | "cancelled";
 
 export interface CreateApprovalRequestInput {
-  clientRequestId: string;
+  /** A solicitação (fluxo Brain). Opcional desde 04/08/2026: cliente criado
+   *  DIRETO não tem ClientRequestDb — a posse passa a ser este campo OU
+   *  `clientId`. Pelo menos um é obrigatório. */
+  clientRequestId?: string;
+  /** O dono quando não há solicitação (cliente direto — caso Foocci). */
+  clientId?: string;
   department: string;
   artifactId?: string;
   requestedBy?: string;
   clientVisible?: boolean;
   expiresAt?: Date;
+  /** O corpo do card como o portal renderiza: "Título\n\nconteúdo". */
+  reviewNote?: string;
+  /** Posts do calendário que este card decide — marca a ORIGEM calendário e é
+   *  o que a decisão do cliente propaga (aprovar/ajustar). */
+  sourcePostIds?: string[];
 }
 
 export interface AddCommentInput {
@@ -28,14 +38,22 @@ export interface AddCommentInput {
 }
 
 export async function createApprovalRequest(input: CreateApprovalRequestInput) {
+  // Aprovação sem dono é card órfão: ninguém consegue vê-lo nem decidi-lo.
+  // Falhar aqui, alto, é melhor do que gravar um registro invisível.
+  if (!input.clientRequestId && !input.clientId) {
+    throw new Error("createApprovalRequest: informe clientRequestId ou clientId — aprovação precisa de dono");
+  }
   return prisma.approvalRequest.create({
     data: {
-      clientRequestId: input.clientRequestId,
+      clientRequestId: input.clientRequestId ?? null,
+      clientId:        input.clientId ?? null,
       department:      input.department,
       artifactId:      input.artifactId,
       requestedBy:     input.requestedBy  ?? "internal",
       clientVisible:   input.clientVisible ?? false,
       expiresAt:       input.expiresAt,
+      reviewNote:      input.reviewNote,
+      sourcePostIdsJson: JSON.stringify(input.sourcePostIds ?? []),
       status:          "pending",
     },
   });
@@ -53,7 +71,10 @@ export async function updateApprovalStatus(
       status,
       reviewedBy: reviewedBy ?? null,
       reviewedAt: new Date(),
-      reviewNote: reviewNote ?? null,
+      // Sem nota nova, a existente FICA: no card de calendário o reviewNote é o
+      // corpo que o cliente leu — apagá-lo no "aprovar" deixaria a decisão
+      // registrada sem dizer o que foi decidido.
+      ...(reviewNote !== undefined ? { reviewNote } : {}),
     },
   });
 }

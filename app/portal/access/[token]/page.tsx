@@ -211,6 +211,10 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
   const [enviando, setEnviando] = useState(false);
   const [erroDecisao, setErroDecisao] = useState<string | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
+  // A4: com o cookie httpOnly gravado, o token NÃO entra mais em URL de mídia —
+  // <img src="…?token=…"> deixava a credencial inteira no DOM. Nasce true no
+  // modo cookie; vira true no modo link assim que a troca por cookie dá certo.
+  const [cookiePronto, setCookiePronto] = useState(modoCookie);
   const trocouUrl = useRef(false);
 
   // A4: chegou com token no CAMINHO → troca por cookie e limpa a URL sem
@@ -229,6 +233,8 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
         if (res.ok) {
           const limpa = `/portal/access/me${window.location.search}${window.location.hash}`;
           window.history.replaceState(null, "", limpa);
+          // Daqui em diante a mídia autentica pelo cookie — token fora do DOM.
+          setCookiePronto(true);
         }
       } catch { /* sem cookie a visita segue pelo token — nada quebra */ }
     })();
@@ -395,7 +401,16 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
   const materiaisPedidos = esteira?.pendencias ?? [];
   const conexoesQuebradas = conexoes.filter((c) => ["expired", "revoked", "error"].includes(c.status));
   const totalPendencias = pendentes.length + materiaisPedidos.length + conexoesQuebradas.length;
-  const currentStatus = STATUS_LABEL[data.status] ?? "Em andamento";
+  // O chip do cabeçalho: o cliente DIRETO não tem solicitação Brain — o
+  // portal-data devolve o estado vazio ("new" → "Recebido") mesmo com projeto
+  // em produção. Quando /api/portal/projetos enxerga projeto, a etapa DELE é a
+  // verdade que o cliente deve ler — nunca "Recebido" para trabalho em curso.
+  const currentStatus =
+    (data.id === null || data.status === "new") && projetos.length > 0
+      ? projetos[0].etapa
+      : STATUS_LABEL[data.status] ?? "Em andamento";
+  // Em modo cookie o token some das URLs de mídia (A4) — o cookie autentica.
+  const tokenDeMidia = cookiePronto ? "" : token;
 
   const modulosAtivos = MODULOS_DE_SERVICO.filter((m) => data.services.some((s) => m.match.test(s)));
   // A fonte do calendário: a rota por solicitação quando ela responde; senão a
@@ -666,7 +681,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
                   {mod.id === "social" && (
                     <div className="mt-4">
                       <h4 className="text-[13px] font-bold text-[var(--text-primary)] mb-2">Calendário do mês</h4>
-                      <CalendarioDoMes pecas={pecasDoCalendario} token={token} />
+                      <CalendarioDoMes pecas={pecasDoCalendario} token={tokenDeMidia} aprovacoesPendentes={pendentes.length} />
                     </div>
                   )}
                 </section>
@@ -678,7 +693,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
             {!modulosAtivos.some((m) => m.id === "social") && pecasDoCalendario.length > 0 && (
               <section className="bg-white rounded-[14px] border border-[var(--border)] p-5 shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
                 <h3 className="text-[14px] font-bold text-[var(--text-primary)] mb-2">Calendário do mês</h3>
-                <CalendarioDoMes pecas={pecasDoCalendario} token={token} />
+                <CalendarioDoMes pecas={pecasDoCalendario} token={tokenDeMidia} aprovacoesPendentes={pendentes.length} />
               </section>
             )}
 
