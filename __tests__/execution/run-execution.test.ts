@@ -34,6 +34,11 @@ vi.mock("@/lib/agency/esteira/marcos", () => ({
 }));
 vi.mock("@/lib/agency/esteira/mes", () => ({
   apresentarCiclo: vi.fn(async () => ({ ok: true })),
+  // A versão da base de medição é REGRA, não mock: o motor precisa dela para
+  // decidir se o número do mês passado ainda quer dizer a mesma coisa.
+  VERSAO_DA_MEDICAO: 2,
+  versaoDaMedicao: (m: { schemaVersao?: number } | null | undefined) =>
+    (typeof m?.schemaVersao === "number" && Number.isFinite(m.schemaVersao) ? m.schemaVersao : 1),
 }));
 vi.mock("@/lib/agency/radar/library", () => ({
   getActiveInsights: vi.fn(async () => []),
@@ -550,5 +555,67 @@ describe("o mês 2 existe — a idempotência é por CICLO, não pela vida intei
     await runProjectExecution("p1");
     expect(marcos.apresentar).toHaveBeenCalledWith("p1");
     expect(mes.apresentarCiclo).not.toHaveBeenCalled();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// O RESÍDUO DE OUTRA BASE DE MEDIÇÃO (re-auditoria de 04/08/2026).
+//
+// `alcance` e `engajamento` mudaram de SIGNIFICADO em 04/08/2026 (mes.ts,
+// VERSAO_DA_MEDICAO): na v1, `alcance` era o reach de UM DIA. O prompt de
+// otimização recebia o número cru sob o rótulo "números reais, medidos — use
+// SOMENTE estes" e mandava CITAR o número. No mês 2, a peça diria ao cliente
+// "no mês passado alcançamos 340 pessoas" para um mês em que 340 era um dia —
+// subestimado ~30x — e TODAS as recomendações ficariam ancoradas nisso.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("número de ciclo medido noutra base não entra no prompt de otimização", () => {
+  const promptDeOtimizacao = () =>
+    (generate.mock.calls.map((c) => c[0].user as string).find((u) => u.includes("CICLO ANTERIOR")) ?? "");
+
+  /** O ciclo aberto de hoje e o ciclo fechado do mês passado vêm do MESMO
+   *  findFirst — o que muda é o `where.status`. */
+  function comCicloAnterior(results: Record<string, unknown>) {
+    db.project.findUnique.mockResolvedValue({ ...baseProject });
+    (planProduction as ReturnType<typeof vi.fn>).mockResolvedValue({
+      orderedDepartments: ["analytics"], goal: "g", warnings: [], pmMode: "rule_based",
+    });
+    generate.mockResolvedValue({ ok: true, data: { title: "Otimização", summary: "resumo", items: [{ format: "feed", headline: "Oi", caption: "legenda bem completa aqui", visual: "foto" }] } });
+    db.cycle.findFirst.mockImplementation(async (args?: { where?: { status?: string } }) =>
+      args?.where?.status === "fechado"
+        ? { reference: "2026-07", resultsJson: JSON.stringify(results) }
+        : { id: "cy2", reference: "2026-08", status: "aberto", startsOn: "2026-08-01", endsOn: "2026-08-31", planJson: "[]", summary: null },
+    );
+  }
+
+  it("ciclo anterior na base ANTIGA (v1) → alcance e engajamento OMITIDOS, com a lacuna declarada", async () => {
+    comCicloAnterior({ postsPublicados: 8, alcance: 340, engajamento: 51, seguidores: 1200 });
+    await runProjectExecution("p1");
+    const p = promptDeOtimizacao();
+    expect(p).toBeTruthy();
+    // O número de outra base NÃO chega ao especialista.
+    expect(p).not.toMatch(/Alcance: 340/);
+    expect(p).not.toMatch(/Engajamento: 51/);
+    // O que não depende da base continua — o piso não é uma tesoura cega.
+    expect(p).toMatch(/Posts publicados: 8/);
+    expect(p).toMatch(/Seguidores: 1200/);
+    // E a ausência é DECLARADA: vazio é vazio, silêncio outro agente preenche.
+    expect(p).toMatch(/OMITIDOS porque foram medidos noutra base \(v1, hoje v2\)/);
+    expect(p).toMatch(/NÃO cite, NÃO compare e NÃO estime alcance ou engajamento/);
+  });
+
+  it("ciclo anterior na base ATUAL (v2) → os números entram normalmente", async () => {
+    comCicloAnterior({ schemaVersao: 2, postsPublicados: 8, alcance: 9500, engajamento: 780, seguidores: 1200 });
+    await runProjectExecution("p1");
+    const p = promptDeOtimizacao();
+    expect(p).toMatch(/Alcance: 9500/);
+    expect(p).toMatch(/Engajamento: 780/);
+    expect(p).not.toMatch(/OMITIDOS/);
+  });
+
+  it("ciclo v1 que nem tinha esses números → nenhuma linha de ATENÇÃO inventada", async () => {
+    comCicloAnterior({ postsPublicados: 8, seguidores: 1200 });
+    await runProjectExecution("p1");
+    expect(promptDeOtimizacao()).not.toMatch(/OMITIDOS/);
   });
 });

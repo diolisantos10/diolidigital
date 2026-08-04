@@ -25,6 +25,10 @@ import {
   type VerdadeDoCliente,
 } from "@/lib/agency/execution/piso-de-verdade";
 import { sinteseDoFeedDoCliente } from "@/lib/agency/execution/leitura-do-cliente";
+import {
+  VERSAO_DA_MEDICAO, versaoDaMedicao,
+  type MedicaoDoMes,
+} from "@/lib/agency/esteira/mes";
 
 /** Conteúdo mínimo aceitável de uma entrega (gate de saída: nada vazio/lixo vai ao cliente). */
 const MIN_DELIVERABLE_CHARS = 40;
@@ -619,12 +623,26 @@ async function resultadoDoCicloAnterior(projectId: string, cicloAtualId: string 
   try {
     const r = JSON.parse(anterior.resultsJson) as Record<string, unknown>;
     const pago = r.pago as Record<string, number> | null;
+    // ── RESÍDUO DE OUTRA BASE DE MEDIÇÃO ─────────────────────────────────────
+    // `alcance` e `engajamento` mudaram de SIGNIFICADO em 04/08/2026 (mes.ts:
+    // VERSAO_DA_MEDICAO). Na v1, `alcance` era o reach de UM DIA. Injetar
+    // "- Alcance: 340" sob o rótulo "números reais, medidos — use SOMENTE
+    // estes", com o prompt mandando citar o número, faria a peça de otimização
+    // do mês 2 dizer ao cliente "no mês passado alcançamos 340 pessoas" — um
+    // mês inteiro subestimado ~30x — e ancoraria TODAS as recomendações nisso.
+    // Base velha: o número não entra, e a ausência é declarada (vazio é vazio).
+    const versaoAnterior = versaoDaMedicao(r as unknown as MedicaoDoMes);
+    const baseComparavel = versaoAnterior >= VERSAO_DA_MEDICAO;
+    const tinhaNumerosDeBase = r.alcance != null || r.engajamento != null;
     const linhas = [
       `Competência: ${anterior.reference}`,
       `- Posts publicados: ${r.postsPublicados ?? 0}`,
-      r.alcance != null ? `- Alcance: ${r.alcance}` : null,
+      baseComparavel && r.alcance != null ? `- Alcance: ${r.alcance}` : null,
       r.seguidores != null ? `- Seguidores: ${r.seguidores}` : null,
-      r.engajamento != null ? `- Engajamento: ${r.engajamento}` : null,
+      baseComparavel && r.engajamento != null ? `- Engajamento: ${r.engajamento}` : null,
+      !baseComparavel && tinhaNumerosDeBase
+        ? `- ATENÇÃO: alcance e engajamento do ciclo anterior foram OMITIDOS porque foram medidos noutra base (v${versaoAnterior}, hoje v${VERSAO_DA_MEDICAO}) e significam outra coisa. NÃO cite, NÃO compare e NÃO estime alcance ou engajamento do período anterior — diga que a comparação começa no primeiro mês medido na base atual.`
+        : null,
       pago ? `- Anúncios: R$ ${pago.gastoBRL} investidos, ${pago.cliques} cliques, CPC R$ ${pago.cpcBRL ?? "não medido"}` : null,
       r.porQueNaoMediu ? `- ATENÇÃO: as métricas não foram medidas neste ciclo (${r.porQueNaoMediu})` : null,
     ].filter(Boolean);

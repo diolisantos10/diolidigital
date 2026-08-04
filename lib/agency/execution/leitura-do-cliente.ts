@@ -37,13 +37,45 @@
 // jurou ter visto no perfil dele e que ninguém viu.
 //
 // Agora existe um PISO DETERMINÍSTICO (`apenasAncorado`, abaixo): cada termo de
-// conteúdo de `estiloVisual` e cada tema precisa de LASTRO — pelo menos um
-// token não-trivial presente no corpus das legendas reais ou entre os rótulos
-// de formato calculados por código. Termo sem lastro é descartado; frase sem
-// nenhum termo com lastro vira campo VAZIO e a linha "Estilo visual observado"
-// NÃO é escrita — no lugar dela entra a lacuna declarada. Nenhuma IA participa
-// dessa decisão, de propósito: o auditor de qualidade é sombra e fail-open, e
-// um piso que depende de juiz não é piso.
+// conteúdo de `estiloVisual` e cada tema precisa de LASTRO no corpus das
+// legendas reais ou entre os rótulos de formato calculados por código. Termo sem
+// lastro é descartado; frase sem nenhum termo com lastro vira campo VAZIO e a
+// linha "Estilo visual observado" NÃO é escrita — no lugar dela entra a lacuna
+// declarada. Nenhuma IA participa dessa decisão, de propósito: o auditor de
+// qualidade é sombra e fail-open, e um piso que depende de juiz não é piso.
+//
+// ─── O MESMO FURO, REPRODUZIDO VERBATIM PELA RE-AUDITORIA (04/08/2026) ──────
+//
+// A primeira versão do piso trabalhava por TERMO, e quem escolhia a segmentação
+// era o modelo: `apenasAncorado` cortava em `[,;.·•\n]`, mas o prompt pede "1 a
+// 2 frases". O adversário simplesmente não escreve a vírgula. Com as legendas
+// "Pão quentinho saindo do forno todo dia as 6h" e "Bastidor da madrugada na
+// padaria", o fluxo real devolvia, persistia e mandava ao gerador de imagem:
+//
+//   "Fotos de produto saindo do forno com paleta pastel tipografia serifada e
+//    bancada de mármore italiano"
+//
+// UM token com lastro ("forno") carregava a frase inteira — o mesmo incidente
+// que o parágrafo acima diz ter fechado. O teste "CORTA PELO MEIO" passava só
+// porque O TESTE escrevia a vírgula.
+//
+// Três travas, nesta ordem de importância:
+//
+//   1. RAZÃO DE COBERTURA (a principal). Um termo só sobrevive se pelo menos
+//      metade dos seus tokens de conteúdo tiver lastro. É o que separa "eco do
+//      que o cliente escreveu" de "uma palavra de álibi carregando a invenção".
+//   2. SEGMENTAÇÃO TAMBÉM POR CONJUNÇÃO/PREPOSIÇÃO ("com", "e", "ou", "mas"),
+//      porque o modelo não é obrigado a pontuar. Ajuda; não é a trava.
+//   3. LASTRO POR LEMA CONSERVADOR, não por prefixo de 5 letras. O prefixo de 5
+//      fazia "pastéis" (comida de padaria) ancorar "paleta pastel" (cor) e
+//      "naturais" ancorar "luz natural difusa". Agora plural e diminutivo caem
+//      por sufixo e o que sobra tem de bater INTEIRO — "quentinho"/"quentes"
+//      continuam se ancorando, "pastéis"/"pastel" não.
+//
+// E o descarte deixou de ser mudo: cada corte vira `console.warn` estruturado
+// com prefixo `[piso-de-ancoragem]`. Sem telemetria o piloto não produz a
+// evidência que a escada exige — não dá para distinguir um detector que dispara
+// sempre (falso positivo) de um que nunca dispara (carimbo).
 
 import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/db/client";
@@ -98,7 +130,7 @@ const CAP_HASHTAGS = 140;
 
 /** A última linha do bloco, sempre. É a que diz o que fazer com o resto. */
 const GUARDA_COM_ANALISE =
-  "As peças novas devem CONVERSAR com este feed — mesma família de tom e de formato — sem copiá-lo. NÃO afirme nada sobre este perfil que não esteja escrito acima.";
+  "As peças novas devem CONVERSAR com este feed — mesma família de tom e de formato — sem copiá-lo. As linhas de formato, cadência, engajamento, hashtags, temas e estilo são OBSERVADAS (medidas ou com lastro no texto que o cliente publicou); a linha de tom é LEITURA INTERPRETATIVA — use como hipótese de escrita e NUNCA a repita ao cliente como fato sobre o perfil dele. NÃO afirme nada sobre este perfil que não esteja escrito acima.";
 const GUARDA_SEM_ANALISE =
   "- Análise qualitativa indisponível nesta leitura: use SOMENTE os números acima e não afirme tom ou tema que não está medido.";
 
@@ -249,13 +281,58 @@ const PALAVRAS_VAZIAS = new Set([
   "geral", "coisa", "coisas", "tipo", "algo", "bem", "forma", "modo", "parte",
 ]);
 const TAMANHO_MINIMO_DO_TOKEN = 4;
-/** Comprimento da raiz usada para tolerar plural e diminutivo ("quentinho" dá
- *  lastro a "quentes"; "marmore" NÃO dá lastro a "marmita"). */
-const TAMANHO_DA_RAIZ = 5;
+/** Tamanho mínimo do LEMA. Abaixo disso não se corta sufixo nenhum: encurtar
+ *  palavra curta transforma lastro em coincidência. */
+const TAMANHO_MINIMO_DO_LEMA = 5;
+/**
+ * A fração dos tokens de conteúdo de um termo que precisa ter lastro.
+ *
+ * É ESTA a trava contra a frase corrida. Com "pelo menos um token", a frase
+ * "Fotos de produto saindo do forno com paleta pastel tipografia serifada e
+ * bancada de mármore italiano" passava inteira por causa de "forno". Metade é
+ * a linha que separa "o texto ecoa o que o cliente escreveu" de "há uma palavra
+ * do cliente ali dentro servindo de álibi".
+ */
+export const COBERTURA_MINIMA_DE_LASTRO = 0.5;
+
+/** Sufixos de diminutivo/aumentativo — flexão, não palavra nova. */
+const SUFIXOS_DE_GRAU = ["zinhos", "zinhas", "zinho", "zinha", "inhos", "inhas", "inho", "inha"];
 
 export interface CorpusDoFeed {
   exatos: Set<string>;
-  raizes: Set<string>;
+  /** Todos os lemas possíveis de cada token do corpus (ver `lemasDoToken`). */
+  lemas: Set<string>;
+  /** Prefixos de 5 letras — a regra FROUXA, usada SÓ para o negativo. */
+  prefixos: Set<string>;
+}
+
+/**
+ * Os lemas possíveis de um token: tira grau e plural, e SÓ isso.
+ *
+ * Devolve um conjunto porque a desinência é ambígua em português: "ingredientes"
+ * pode vir de "ingrediente" (tira "s") ou de "ingredient" (tira "es"), e a
+ * gente não sabe qual — então guarda as duas e casa por interseção.
+ *
+ * NÃO faz alternância vocálica de propósito ("pastéis"→"pastel",
+ * "naturais"→"natural"): era exatamente por aí que a raiz de 5 letras deixava
+ * "pastéis" (a comida que uma padaria vende) ancorar "paleta pastel" (a cor) e
+ * "naturais" ancorar "luz natural difusa". Perder o lastro de um plural
+ * irregular é um falso NEGATIVO do piso — ele descarta um termo que TALVEZ
+ * pudesse ficar. Errar para o outro lado é afirmar ao cliente, como observado,
+ * algo que ninguém viu no perfil dele. Os dois erros não custam o mesmo.
+ */
+export function lemasDoToken(token: string): string[] {
+  const bases = new Set<string>();
+  const adicionar = (s: string) => { if (s.length >= TAMANHO_MINIMO_DO_LEMA) bases.add(s); };
+  adicionar(token);
+  for (const suf of SUFIXOS_DE_GRAU) {
+    if (token.endsWith(suf)) { adicionar(token.slice(0, -suf.length)); break; }
+  }
+  for (const base of [...bases]) {
+    if (base.endsWith("es")) adicionar(base.slice(0, -2));
+    if (base.endsWith("s")) adicionar(base.slice(0, -1));
+  }
+  return [...bases];
 }
 
 function semAcento(s: string): string {
@@ -280,49 +357,157 @@ function tokensDeConteudo(s: string): string[] {
  *  própria prova. */
 export function corpusDoFeed(posts: PostDoFeed[]): CorpusDoFeed {
   const exatos = new Set<string>();
-  const raizes = new Set<string>();
+  const lemas = new Set<string>();
+  const prefixos = new Set<string>();
   const fontes = [...posts.map((p) => semFrasesDeInstrucao(p.caption ?? "")), ...posts.map(rotuloDeFormato)];
   for (const f of fontes) {
     for (const t of tokens(f)) {
       exatos.add(t);
-      if (t.length >= TAMANHO_DA_RAIZ) raizes.add(t.slice(0, TAMANHO_DA_RAIZ));
+      for (const l of lemasDoToken(t)) lemas.add(l);
+      if (t.length >= 5) prefixos.add(t.slice(0, 5));
     }
   }
-  return { exatos, raizes };
+  return { exatos, lemas, prefixos };
 }
 
-function comLastro(token: string, c: CorpusDoFeed): boolean {
+/** O lastro ESTRITO — o que autoriza uma AFIRMAÇÃO sobre o feed. */
+export function comLastro(token: string, c: CorpusDoFeed): boolean {
   if (c.exatos.has(token)) return true;
-  return token.length >= TAMANHO_DA_RAIZ && c.raizes.has(token.slice(0, TAMANHO_DA_RAIZ));
+  return lemasDoToken(token).some((l) => c.lemas.has(l));
 }
 
-/** Um TERMO passa se ao menos um token de conteúdo dele aparece no corpus.
- *  Termo só de palavra vazia não passa: não há o que ancorar, logo não há o
- *  que afirmar. */
-export function termoAncorado(termo: string, c: CorpusDoFeed): boolean {
+/**
+ * O eco FROUXO — usado só para DERRUBAR afirmações negativas.
+ *
+ * Aqui a assimetria é de propósito e vale ao contrário: um falso positivo só
+ * apaga um item de "não aparece no feed" (custo: uma linha a menos), enquanto
+ * um falso negativo faz a agência dizer ao cliente "você não posta promoção"
+ * sobre um feed que tem promoção. Por isso o negativo usa o prefixo de 5
+ * letras, que casa "promoções" com "promoção" — a mesma frouxidão que seria
+ * inaceitável para afirmar.
+ */
+export function ecoNoCorpus(token: string, c: CorpusDoFeed): boolean {
+  if (comLastro(token, c)) return true;
+  return token.length >= 5 && c.prefixos.has(token.slice(0, 5));
+}
+
+/**
+ * A COBERTURA de um termo: quanto dele o cliente realmente escreveu.
+ *
+ * `null` quando não há token de conteúdo nenhum — termo só de palavra vazia
+ * ("muito bem feito") não tem o que ancorar, logo não há o que afirmar.
+ */
+export function coberturaDeLastro(termo: string, c: CorpusDoFeed): number | null {
   const ts = tokensDeConteudo(termo);
-  if (ts.length === 0) return false;
-  return ts.some((t) => comLastro(t, c));
+  if (ts.length === 0) return null;
+  return ts.filter((t) => comLastro(t, c)).length / ts.length;
+}
+
+/** Um TERMO passa quando pelo menos metade dos seus tokens de conteúdo tem
+ *  lastro. Um token de álibi não carrega mais a frase. */
+export function termoAncorado(termo: string, c: CorpusDoFeed): boolean {
+  const cobertura = coberturaDeLastro(termo, c);
+  return cobertura !== null && cobertura >= COBERTURA_MINIMA_DE_LASTRO;
+}
+
+/** Existe ALGUM eco do termo no corpus? É o teste do NEGATIVO (`ausencias`):
+ *  para dizer "isto não aparece no feed", um único eco já é contradição. */
+export function algumTokenComLastro(termo: string, c: CorpusDoFeed): boolean {
+  return tokensDeConteudo(termo).some((t) => ecoNoCorpus(t, c));
+}
+
+/**
+ * Onde o termo termina — e por que não é só a pontuação.
+ *
+ * O prompt pede "1 a 2 frases"; o modelo não é obrigado a pontuar, e quem
+ * escolhia a segmentação era ELE. Cortar também em conjunção e preposição de
+ * ligação ("com", "e", "ou", "mas", "além de") tira do adversário a chance de
+ * emendar a invenção na observação com um espaço. Não cortamos em "de": "luz de
+ * forno" é um termo só, e quebrá-lo transformaria o piso em picador de frases.
+ */
+const SEPARADOR_DE_TERMO = /[,;.·•\n]+|\s+(?:com|e|ou|mas|porem|alem\s+de|junto\s+(?:de|com))\s+/gi;
+
+function segmentar(frase: string): string[] {
+  // A separação roda sobre o texto SEM acento para que "porém"/"além" também
+  // cortem, mas o que volta é a fatia do texto original (com acento e caixa).
+  const semAc = semAcento(frase);
+  const cortes: Array<[number, number]> = [];
+  SEPARADOR_DE_TERMO.lastIndex = 0;
+  let m: RegExpExecArray | null;
+  while ((m = SEPARADOR_DE_TERMO.exec(semAc)) !== null) {
+    cortes.push([m.index, m.index + m[0].length]);
+    if (m[0].length === 0) SEPARADOR_DE_TERMO.lastIndex += 1;
+  }
+  const partes: string[] = [];
+  let inicio = 0;
+  for (const [a, b] of cortes) {
+    partes.push(frase.slice(inicio, a));
+    inicio = b;
+  }
+  partes.push(frase.slice(inicio));
+  return partes.map((t) => t.trim()).filter(Boolean);
+}
+
+export interface FiltroDeLastro {
+  mantidos: string[];
+  descartados: Array<{ termo: string; cobertura: number | null }>;
+}
+
+/** O piso, com o rastro do que caiu — é o filtro que a telemetria publica. */
+export function filtrarPorLastro(termos: string[], c: CorpusDoFeed): FiltroDeLastro {
+  const mantidos: string[] = [];
+  const descartados: FiltroDeLastro["descartados"] = [];
+  for (const t of termos) {
+    const cobertura = coberturaDeLastro(t, c);
+    if (cobertura !== null && cobertura >= COBERTURA_MINIMA_DE_LASTRO) mantidos.push(t);
+    else descartados.push({ termo: t.slice(0, 120), cobertura });
+  }
+  return { mantidos, descartados };
 }
 
 /**
  * O piso. Mantém apenas os termos com lastro no feed real.
  *
- * REJEITA (24 legendas de horário e cardápio):
- *   "paleta pastel, tipografia serifada, fundos de mármore" → "" (nenhum token
- *   dessas frases foi escrito pelo cliente nem calculado pelo código).
- * DEIXA PASSAR (legendas de padaria: "Pão quentinho saindo do forno",
- * "Bastidor da madrugada"):
- *   "fotos quentes de produto em close, luz de forno, bastidor real" inteiro —
- *   "quentes" acha raiz em "quentinho", "forno" e "bastidor" são literais.
+ * REJEITA (legendas de horário e cardápio):
+ *   "paleta pastel, tipografia serifada, fundos de mármore" → "".
+ * REJEITA TAMBÉM (o furo da re-auditoria — frase corrida, sem vírgula, com um
+ * token de álibi e o resto inventado):
+ *   "Fotos de produto saindo do forno com paleta pastel tipografia serifada e
+ *    bancada de mármore italiano" → só "Fotos de produto saindo do forno"
+ *   sobrevive (2 de 4 tokens com lastro); o pastel, a serifada e o mármore
+ *   italiano caem em 0 de 4 e 0 de 3.
+ * DEIXA PASSAR:
+ *   "luz de forno, bastidor da madrugada" — cada termo é eco do texto real.
  * CORTA PELO MEIO:
- *   "close de pão artesanal, fundos de mármore" → "close de pão artesanal"
- *   (o mármore não tem lastro e sai; o pão fica).
+ *   "close de pão artesanal, fundos de mármore" → "close de pão artesanal".
  */
 export function apenasAncorado(frase: string, c: CorpusDoFeed): string {
-  const termos = frase.split(/[,;.·•\n]+/).map((t) => t.trim()).filter(Boolean);
-  const sobreviventes = termos.filter((t) => termoAncorado(t, c));
-  return sobreviventes.join(", ");
+  return filtrarPorLastro(segmentar(frase), c).mantidos.join(", ");
+}
+
+/**
+ * A telemetria do piso (P2 da re-auditoria).
+ *
+ * O descarte era MUDO: não dava para saber, olhando a operação, se o detector
+ * dispara sempre (falso positivo, e a agência ficou cega) ou nunca (carimbo, e
+ * a trava é decorativa). A escada exige evidência; evidência exige registro.
+ */
+export function registrarDescarte(
+  campo: string,
+  clientId: string | null,
+  filtro: FiltroDeLastro,
+): void {
+  if (filtro.descartados.length === 0) return;
+  console.warn(
+    `[piso-de-ancoragem] ${JSON.stringify({
+      campo,
+      clientId,
+      mantidos: filtro.mantidos.length,
+      descartados: filtro.descartados.slice(0, 8),
+      coberturaMinima: COBERTURA_MINIMA_DE_LASTRO,
+      motivo: "menos da metade dos tokens de conteúdo tem lastro no que o cliente publicou",
+    })}`,
+  );
 }
 
 // ─── A parte qualitativa: UMA chamada de IA, presa às legendas reais ────────
@@ -517,13 +702,44 @@ export async function sinteseDoFeedDoCliente(
     // de virar texto. Sem lastro no que o cliente escreveu, não sai da função.
     const corpus = corpusDoFeed(feed.posts);
     const cruEstilo = qual?.estiloVisual && !/não identificável/i.test(qual.estiloVisual) ? qual.estiloVisual : "";
-    const estiloVisual = apenasAncorado(cruEstilo, corpus).slice(0, CAP_ESTILO);
-    const temas = (qual?.temas ?? []).filter((t) => termoAncorado(t, corpus)).join("; ").slice(0, CAP_TEMAS);
+    const filtroEstilo = filtrarPorLastro(segmentar(cruEstilo), corpus);
+    registrarDescarte("estiloVisual", clientId, filtroEstilo);
+    const estiloVisual = filtroEstilo.mantidos.join(", ").slice(0, CAP_ESTILO);
+
+    const filtroTemas = filtrarPorLastro(qual?.temas ?? [], corpus);
+    registrarDescarte("temas", clientId, filtroTemas);
+    const temas = filtroTemas.mantidos.join("; ").slice(0, CAP_TEMAS);
+
+    // `tom` NÃO passa pelo piso: tom é INTERPRETAÇÃO ("próximo e cotidiano"),
+    // não um objeto que se possa procurar no texto. A decisão continua; o que
+    // faltava era a consequência dela. A guarda do bloco diz "não afirme nada
+    // que não esteja escrito acima" — ou seja, ela AUTORIZA tudo que está no
+    // bloco, e um tom inventado ("sofisticado, público premium") virava fato
+    // licenciado para toda a copy. Agora a linha se declara interpretativa e a
+    // guarda separa o observado da hipótese.
     const tom = (qual?.tom ?? "").slice(0, CAP_TOM);
-    // `ausencias` afirma o que NÃO está no feed — a ancoragem por presença é
-    // logicamente impossível aqui, e a afirmação negativa não alimenta o
-    // gerador de imagem. Fica, com o teto de sempre. (Decisão registrada.)
-    const ausencias = (qual?.ausencias ?? []).join("; ").slice(0, CAP_AUSENCIAS);
+
+    // `ausencias` afirma o NEGATIVO, e ancorar o negativo por presença é
+    // logicamente impossível — não dá para provar que algo não está lá. O que
+    // dá para fechar é o PIOR CASO: o termo que ESTÁ ancorado no corpus não
+    // pode ser listado como ausente. Sem isto, um feed com "Promoção: 20% off"
+    // podia sair como "Não aparece no feed: promoções", e o especialista
+    // escreveria ao cliente "vamos começar a mostrar promoções, que hoje você
+    // não faz" — sobre um feed que tem promoção.
+    const contraditorias = (qual?.ausencias ?? []).filter((a) => algumTokenComLastro(a, corpus));
+    if (contraditorias.length > 0) {
+      console.warn(
+        `[piso-de-ancoragem] ${JSON.stringify({
+          campo: "ausencias",
+          clientId,
+          descartados: contraditorias.slice(0, 8).map((termo) => ({ termo: termo.slice(0, 120) })),
+          motivo: "afirmado como ausente, mas com lastro no próprio corpus do feed",
+        })}`,
+      );
+    }
+    const ausencias = (qual?.ausencias ?? [])
+      .filter((a) => !algumTokenComLastro(a, corpus))
+      .join("; ").slice(0, CAP_AUSENCIAS);
 
     const cabecalho = `${ROTULO}, ${feed.posts.length} posts lidos em ${new Date().toISOString().slice(0, 10)}):`;
     const meio = [
@@ -531,8 +747,11 @@ export async function sinteseDoFeedDoCliente(
       linhaDeCadencia(feed.posts),
       linhaDeEngajamento(feed.posts, metricas),
       linhaDeHashtags(feed.posts),
-      temas ? `- Temas recorrentes: ${temas}` : null,
-      tom ? `- Tom das legendas: ${tom}` : null,
+      temas
+        ? `- Temas recorrentes: ${temas}`
+        : (qual ? "- Temas recorrentes: NENHUM tema com lastro nas legendas reais. PROIBIDO afirmar sobre o que este perfil costuma publicar." : null),
+      // Marcado como INTERPRETAÇÃO de propósito — ver o comentário do `tom`.
+      tom ? `- Tom das legendas (LEITURA INTERPRETATIVA, sem lastro verificado): ${tom}` : null,
       // A linha de estilo é uma AFIRMAÇÃO DE FATO ("observado"). Só existe com
       // lastro. Sem lastro, entra a lacuna declarada no lugar — nunca o silêncio,
       // que outro agente preencheria por conta própria.

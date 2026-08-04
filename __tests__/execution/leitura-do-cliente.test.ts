@@ -287,14 +287,33 @@ describe("piso de ancoragem — estilo sem lastro nas legendas NÃO vira afirma�
     expect(canvas.estiloVisual).toBe("");
   });
 
-  it("DEIXA PASSAR: estilo ANCORADO nas legendas reais sobrevive inteiro", async () => {
+  // ATUALIZADO na re-auditoria de 04/08/2026. Antes, este teste provava que
+  // "fotos quentes de produto em close" sobrevivia inteiro — e ele sobrevivia
+  // porque UM token ("quentes") bastava. Era o mesmo mecanismo que deixava
+  // passar "…com paleta pastel tipografia serifada e bancada de mármore".
+  // Agora o termo precisa de METADE dos tokens com lastro: "fotos", "produto" e
+  // "close" não estão em legenda nenhuma, então o termo cai — e o que fica é o
+  // que é eco de verdade.
+  it("DEIXA PASSAR: o termo com lastro na MAIORIA dos seus tokens sobrevive", async () => {
     // Legendas da padaria: "Pão quentinho saindo do forno", "Bastidor da madrugada".
     const s = await sinteseDoFeedDoCliente("ws1", "c1", "cr1");
-    expect(s.estiloVisual).toMatch(/luz de forno/);
-    expect(s.estiloVisual).toMatch(/bastidor real/);
-    // "quentes" acha raiz em "quentinho" — plural e diminutivo não derrubam lastro.
-    expect(s.estiloVisual).toMatch(/quentes/);
+    expect(s.estiloVisual).toMatch(/luz de forno/);      // 1 de 1 token com lastro
+    expect(s.estiloVisual).toMatch(/bastidor real/);     // 1 de 2 — exatamente o piso
     expect(s.texto).toMatch(/- Estilo visual observado: /);
+    // E o termo carregado por um único token de álibi some.
+    expect(s.estiloVisual).not.toMatch(/fotos quentes de produto/);
+  });
+
+  it("plural e diminutivo continuam ancorando quando o termo é majoritariamente eco", async () => {
+    generate.mockResolvedValue({ ok: true, data: {
+      ...QUALITATIVA.data,
+      estiloVisual: "pães quentes do forno, estúdio fotográfico profissional",
+    } });
+    const s = await sinteseDoFeedDoCliente("ws1", "c1", "cr1");
+    // "quentes" acha lema em "quentinho" e "forno" é literal: 2 de 3.
+    expect(s.estiloVisual).toMatch(/quentes do forno/);
+    // O estúdio que ninguém viu: 0 de 3.
+    expect(s.estiloVisual).not.toMatch(/estúdio/i);
   });
 
   it("CORTA PELO MEIO: o termo com lastro fica, o inventado sai da mesma frase", async () => {
