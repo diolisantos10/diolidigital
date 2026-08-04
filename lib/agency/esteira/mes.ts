@@ -177,8 +177,8 @@ export function numerosComparaveis(
         }
       : {}),
   };
-  if (contra && !mesmaBaseDeMedicao(m, contra)) {
-    for (const metrica of METRICAS_DEPENDENTES_DA_BASE) numeros[metrica] = null;
+  if (contra) {
+    for (const metrica of metricasForaDaComparacao(m, contra)) numeros[metrica] = null;
   }
   return numeros;
 }
@@ -189,15 +189,40 @@ export function versaoDaMedicao(m: MedicaoDoMes | null | undefined): number {
   return typeof v === "number" && Number.isFinite(v) ? v : 1;
 }
 
-/** Dois ciclos são comparáveis nas métricas de base quando têm a MESMA versão
- *  e o alcance veio da mesma origem. `soma_diaria` e `unicas_no_periodo` são
- *  números diferentes mesmo dentro da v2. */
-export function mesmaBaseDeMedicao(a: MedicaoDoMes, b: MedicaoDoMes): boolean {
-  if (versaoDaMedicao(a) !== versaoDaMedicao(b)) return false;
+/**
+ * QUAIS métricas saem da comparação — não "se" sai alguma.
+ *
+ * A régua é DIFERENTE por métrica, e tratar as duas como um bloco só reprovava
+ * comparação legítima: `alcanceOrigem` descreve SÓ o alcance (`soma_diaria` vs.
+ * `unicas_no_periodo`), enquanto `engajamento` é `total_interactions` nas duas
+ * origens — a régua dele não muda quando a origem do alcance muda. Dois meses
+ * v2, um com total deduplicado e outro sem, tinham o engajamento derrubado sem
+ * motivo, e o cliente lia que "a forma de medir mudou" para uma métrica cuja
+ * forma de medir não mudou. Portão que reprova o legítimo custa tão caro quanto
+ * o que deixa passar o ilegítimo.
+ *
+ *   engajamento → só a VERSÃO da base importa (v1 nem media engajamento).
+ *   alcance     → versão E origem.
+ */
+export function metricasForaDaComparacao(
+  a: MedicaoDoMes,
+  b: MedicaoDoMes,
+): Array<(typeof METRICAS_DEPENDENTES_DA_BASE)[number]> {
+  const fora: Array<(typeof METRICAS_DEPENDENTES_DA_BASE)[number]> = [];
+  const versaoDivergente = versaoDaMedicao(a) !== versaoDaMedicao(b);
   // Origem só existe na v2. Quando um dos lados não mediu alcance, não há o que
   // divergir — a própria métrica já sai como null na comparação.
-  if (a.alcance === null || b.alcance === null) return true;
-  return (a.alcanceOrigem ?? null) === (b.alcanceOrigem ?? null);
+  const origemDivergente =
+    a.alcance !== null && b.alcance !== null &&
+    (a.alcanceOrigem ?? null) !== (b.alcanceOrigem ?? null);
+  if (versaoDivergente || origemDivergente) fora.push("alcance");
+  if (versaoDivergente) fora.push("engajamento");
+  return fora;
+}
+
+/** Atalho: nenhuma métrica de base ficou de fora. */
+export function mesmaBaseDeMedicao(a: MedicaoDoMes, b: MedicaoDoMes): boolean {
+  return metricasForaDaComparacao(a, b).length === 0;
 }
 
 /**
@@ -215,14 +240,31 @@ export function compararComOMesAnterior(
   if (!anterior) {
     return { atual: numerosComparaveis(atual), anterior: null, ressalvaDeBase: null };
   }
-  const mesmaBase = mesmaBaseDeMedicao(atual, anterior);
+  const fora = metricasForaDaComparacao(atual, anterior);
   return {
     atual: numerosComparaveis(atual, anterior),
     anterior: numerosComparaveis(anterior, atual),
-    ressalvaDeBase: mesmaBase
-      ? null
-      : `${METRICAS_DEPENDENTES_DA_BASE.join(" e ")} não entram na comparação: a forma de medir mudou e o mês anterior foi medido em outra base. Este é o primeiro mês medido nesta base — a comparação dessas duas começa no mês que vem.`,
+    ressalvaDeBase: fora.length === 0 ? null : ressalvaDeBaseParaOCliente(fora),
   };
+}
+
+/**
+ * A FRASE QUE VAI AO CLIENTE, palavra por palavra.
+ *
+ * Ela não é instrução de prompt: `escreverRelatorio` a concatena ao corpo do
+ * relatório EM CÓDIGO. Sem ela, o cliente que tem o relatório do mês passado na
+ * mão faz a conta sozinho — 340 em julho, 9.500 em agosto, "+2694%" na cabeça
+ * dele — e a agência nunca desmentiu. Prompt é sugestão; isto é trava.
+ */
+export function ressalvaDeBaseParaOCliente(metricas: string[]): string {
+  const plural = metricas.length > 1;
+  return (
+    `Observação sobre a comparação: ${metricas.join(" e ")} ${plural ? "não entram" : "não entra"} ` +
+    `na comparação com o mês anterior. A forma de medir ${plural ? "essas métricas" : "essa métrica"} mudou ` +
+    `e o mês anterior foi medido em outra base — os números não são comparáveis entre si, ` +
+    `e por isso não calculamos variação percentual ${plural ? "delas" : "dela"} neste relatório. ` +
+    `A comparação ${plural ? "dessas métricas" : "dessa métrica"} começa no mês que vem.`
+  );
 }
 
 /** Como o alcance é apresentado no relatório, conforme a origem do número. */
@@ -250,9 +292,12 @@ export async function escreverRelatorio(input: {
    *  relatório DIZ isso em vez de inventar uma evolução. */
   mesAnterior?: Record<string, number | null> | null;
   referenciaAnterior?: string | null;
-  /** Os números DESTE mês já filtrados pela base de medição (vindos de
-   *  `compararComOMesAnterior`). Sem isto, cai nos números crus. */
-  mesAtual?: Record<string, number | null> | null;
+  /** Os números DESTE mês JÁ filtrados pela base de medição — sempre vindos de
+   *  `compararComOMesAnterior`. OBRIGATÓRIO de propósito: quando tinha default
+   *  (`?? numerosComparaveis(medicao)`), o chamador que esquecesse caía nos
+   *  números crus em silêncio, e o silêncio aprovava justamente a comparação
+   *  entre bases diferentes que esta trava existe para barrar. */
+  mesAtual: Record<string, number | null>;
   /** Por que uma métrica ficou de fora da comparação (mudança de base). */
   ressalvaDeBase?: string | null;
 }): Promise<{ titulo: string; corpo: string } | null> {
@@ -279,10 +324,7 @@ export async function escreverRelatorio(input: {
   // A COMPARAÇÃO É FEITA EM CÓDIGO, e a IA recebe o resultado pronto. Se ela
   // calculasse, poderia escrever "crescemos 30%" a partir de números que dão
   // 12% — e o percentual é exatamente onde o cliente presta atenção.
-  const evolucao = lerEvolucao(
-    input.mesAtual ?? numerosComparaveis(input.medicao),
-    input.mesAnterior ?? null,
-  );
+  const evolucao = lerEvolucao(input.mesAtual, input.mesAnterior ?? null);
   const blocoEvolucao = evolucao.temBase
     ? `\n\nCOMPARAÇÃO COM ${input.referenciaAnterior ?? "o mês anterior"} (já calculada — use EXATAMENTE estes números e percentuais, é PROIBIDO recalcular ou arredondar):\n${evolucao.linhas.join("\n")}` +
       (input.ressalvaDeBase
@@ -330,16 +372,26 @@ export async function escreverRelatorio(input: {
   ].join("\n").trim();
   if (corpo.length < 80) return null;
 
+  // ── A RESSALVA VAI NO ENTREGÁVEL, NÃO NO PROMPT ───────────────────────────
+  // O prompt acima MANDA a IA dizer isto; mandar não é garantir. O que protege
+  // o cliente é a frase estar no documento que ele lê, e nada além de código
+  // pode garantir isso. Se a IA já disse (por qualquer aproximação), o texto
+  // canônico entra assim mesmo: repetir a ressalva não faz mal a ninguém;
+  // omiti-la deixa o cliente calculando "+2694%" sozinho.
+  const corpoFinal = input.ressalvaDeBase
+    ? `${corpo}\n\n---\n\n${input.ressalvaDeBase}`
+    : corpo;
+
   // O piso determinístico vale aqui como em qualquer peça — e aqui é onde ele
   // mais importa: telefone, valor ou promessa inventada num relatório é o que
   // destrói a relação de uma vez.
-  const piso = conferirPisoDeVerdade(corpo, input.verdade);
+  const piso = conferirPisoDeVerdade(corpoFinal, input.verdade);
   if (!piso.aprovado) {
     console.warn(`[mes] relatório reprovado no piso de verdade: ${resumirViolacoes(piso.violacoes)}`);
     return null;
   }
 
-  return { titulo, corpo };
+  return { titulo, corpo: corpoFinal };
 }
 
 export interface ViradaFeita {

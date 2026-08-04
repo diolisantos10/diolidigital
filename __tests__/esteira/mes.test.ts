@@ -29,7 +29,7 @@ vi.mock("@/lib/agency/esteira/ciclos", async (orig) => ({
 import {
   medirOMes, escreverRelatorio, virarOMes, apresentarCiclo,
   numerosComparaveis, compararComOMesAnterior, mesmaBaseDeMedicao, versaoDaMedicao,
-  VERSAO_DA_MEDICAO,
+  metricasForaDaComparacao, VERSAO_DA_MEDICAO,
 } from "@/lib/agency/esteira/mes";
 
 const CICLO = {
@@ -112,6 +112,7 @@ describe("o relatório só pode usar o que foi medido", () => {
     await escreverRelatorio({
       workspaceId: "ws1", nomeDoNegocio: "Padaria do João", referencia: "2026-07",
       medicao, planoDoMes: ["Pacote de social"], verdade: VERDADE,
+      mesAtual: numerosComparaveis(medicao),
     });
     const prompt = generate.mock.calls[0]![0].user as string;
     expect(prompt).toContain("Alcance: 4200");
@@ -122,7 +123,7 @@ describe("o relatório só pode usar o que foi medido", () => {
     await escreverRelatorio({
       workspaceId: "ws1", nomeDoNegocio: "Padaria do João", referencia: "2026-07",
       medicao: { ...medicao, alcance: null, visualizacoes: null, seguidores: null, engajamento: null, porQueNaoMediu: "token expirado" },
-      planoDoMes: [], verdade: VERDADE,
+      planoDoMes: [], verdade: VERDADE, mesAtual: numerosComparaveis({ ...medicao, alcance: null }),
     });
     const prompt = generate.mock.calls[0]![0].user as string;
     expect(prompt).toMatch(/NÃO foram medidas/);
@@ -139,7 +140,7 @@ describe("o relatório só pode usar o que foi medido", () => {
     });
     const r = await escreverRelatorio({
       workspaceId: "ws1", nomeDoNegocio: "Padaria do João", referencia: "2026-07",
-      medicao, planoDoMes: [], verdade: VERDADE,
+      medicao, planoDoMes: [], verdade: VERDADE, mesAtual: numerosComparaveis(medicao),
     });
     expect(r).toBeNull();
   });
@@ -237,7 +238,7 @@ describe("'agosto foi melhor que julho' — a frase que segura cliente por anos"
   it("a comparação chega à IA JÁ CALCULADA, e ela é proibida de recalcular", async () => {
     await escreverRelatorio({
       workspaceId: "ws1", nomeDoNegocio: "Padaria do João", referencia: "2026-08",
-      medicao, planoDoMes: [], verdade: VERDADE,
+      medicao, planoDoMes: [], verdade: VERDADE, mesAtual: numerosComparaveis(medicao),
       mesAnterior: { alcance: 4000, "posts publicados": 8, seguidores: 800, engajamento: 300 },
       referenciaAnterior: "2026-07",
     });
@@ -250,6 +251,7 @@ describe("'agosto foi melhor que julho' — a frase que segura cliente por anos"
     await escreverRelatorio({
       workspaceId: "ws1", nomeDoNegocio: "Padaria do João", referencia: "2026-07",
       medicao, planoDoMes: [], verdade: VERDADE, mesAnterior: null,
+      mesAtual: numerosComparaveis(medicao),
     });
     const prompt = generate.mock.calls[0]![0].user as string;
     expect(prompt).toMatch(/NÃO há mês anterior/);
@@ -260,6 +262,7 @@ describe("'agosto foi melhor que julho' — a frase que segura cliente por anos"
     await escreverRelatorio({
       workspaceId: "ws1", nomeDoNegocio: "Padaria do João", referencia: "2026-08",
       medicao: { ...medicao, alcance: 2000 }, planoDoMes: [], verdade: VERDADE,
+      mesAtual: numerosComparaveis({ ...medicao, alcance: 2000 }),
       mesAnterior: { alcance: 4000 }, referenciaAnterior: "2026-07",
     });
     const prompt = generate.mock.calls[0]![0].user as string;
@@ -331,12 +334,36 @@ describe("versão da medição: o mês passado medido noutra régua NÃO vira pe
     expect(blocoDaComparacao).not.toMatch(/Engajamento:.*%/);
   });
 
-  it("e a IA é MANDADA dizer por que a comparação não existe neste mês", async () => {
+  it("a IA é mandada dizer por que a comparação não existe — mas mandar não é garantir", async () => {
     db.cycle.findFirst.mockResolvedValue({ reference: "2026-06", resultsJson: v1 });
     await virarOMes("p1", CICLO);
     const prompt = generate.mock.calls[0]![0].user as string;
     expect(prompt).toMatch(/MÉTRICAS FORA DA COMPARAÇÃO/);
-    expect(prompt).toMatch(/primeiro mês medido nesta base/);
+  });
+
+  // ESTE é o teste que importa: a IA IGNORA a instrução (o mock devolve um
+  // texto que não fala em base de medição nenhuma) e a ressalva TEM que estar
+  // no documento que o cliente lê. Sem ela, ele tem o relatório de julho na
+  // mão, vê 9.500 em agosto e faz o "+2694%" na própria cabeça — e a agência
+  // nunca desmentiu.
+  it("a ressalva está no ENTREGÁVEL mesmo quando a IA não a escreve", async () => {
+    db.cycle.findFirst.mockResolvedValue({ reference: "2026-06", resultsJson: v1 });
+    generate.mockResolvedValue({
+      ok: true,
+      data: {
+        title: "Relatório de julho",
+        summary: "Foi um mês de bom volume de publicações e o alcance cresceu bastante em relação ao período anterior.",
+        items: [{ headline: "Alcance", note: "4.200 contas alcançadas no mês, um salto forte." }],
+      },
+    });
+    await virarOMes("p1", CICLO);
+
+    const corpo = String(db.deliverable.create.mock.calls[0]![0].data.content);
+    expect(corpo).toContain("alcance e engajamento não entram na comparação");
+    expect(corpo).toMatch(/não são comparáveis entre si/);
+    expect(corpo).toMatch(/começa no mês que vem/);
+    // E a mensagem que vai ao cliente sai do mesmo corpo.
+    expect(String(falarComOCliente.mock.calls[0]![1])).toContain("não entram na comparação");
   });
 
   it("base diferente não dispara alerta de queda — o time não liga para o cliente por causa de régua", async () => {
@@ -364,6 +391,41 @@ describe("versão da medição: o mês passado medido noutra régua NÃO vira pe
     expect(mesmaBaseDeMedicao(unicas, somaDiaria)).toBe(false);
     expect(numerosComparaveis(unicas, somaDiaria).alcance).toBeNull();
     expect(numerosComparaveis(unicas, unicas).alcance).toBe(4200);
+  });
+
+  // A METADE QUE PASSA. `alcanceOrigem` descreve SÓ o alcance; `engajamento` é
+  // `total_interactions` nas duas origens — a régua dele não mudou. Derrubar o
+  // engajamento aqui reprovava comparação legítima E dizia ao cliente que "a
+  // forma de medir mudou" para uma métrica cuja forma de medir não mudou.
+  it("origem do alcance divergente derruba SÓ o alcance — o engajamento continua comparando", async () => {
+    const base = {
+      schemaVersao: 2, postsPublicados: 8, postsAgendadosNaoPublicados: 0,
+      visualizacoes: null, seguidores: 900, pago: null, porQueNaoMediu: null,
+    };
+    const atual = { ...base, alcanceOrigem: "unicas_no_periodo" as const, alcance: 4200, engajamento: 310 };
+    const anterior = { ...base, alcanceOrigem: "soma_diaria" as const, alcance: 9000, engajamento: 300 };
+
+    expect(metricasForaDaComparacao(atual, anterior)).toEqual(["alcance"]);
+
+    const par = compararComOMesAnterior(atual, anterior);
+    expect(par.atual.alcance).toBeNull();
+    expect(par.anterior!.alcance).toBeNull();
+    expect(par.atual.engajamento).toBe(310);
+    expect(par.anterior!.engajamento).toBe(300);
+    // A ressalva fala no singular e NÃO cita engajamento.
+    expect(par.ressalvaDeBase).toContain("alcance não entra na comparação");
+    expect(par.ressalvaDeBase).not.toContain("engajamento");
+  });
+
+  it("versão diferente derruba as duas — v1 não media engajamento nenhum", () => {
+    const v2 = {
+      schemaVersao: 2, alcanceOrigem: "unicas_no_periodo" as const,
+      postsPublicados: 8, postsAgendadosNaoPublicados: 0,
+      alcance: 4200, visualizacoes: null, seguidores: 900, engajamento: 310,
+      pago: null, porQueNaoMediu: null,
+    };
+    const antigo = { ...v2, schemaVersao: undefined, alcanceOrigem: null, alcance: 340, engajamento: null };
+    expect(metricasForaDaComparacao(v2, antigo)).toEqual(["alcance", "engajamento"]);
   });
 
   it("mesma base segue comparando normalmente — a trava não pode matar a comparação boa", async () => {

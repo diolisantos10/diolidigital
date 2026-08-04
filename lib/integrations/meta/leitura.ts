@@ -78,8 +78,25 @@ export function limparCacheDeLeitura(): void {
 // é miss garantido. Varrer 30 janelas numa conta é ~90 GETs em segundos — a
 // assinatura exata do que restringiu a conta da agência em 03/08/2026
 // ("automação que não segue nossas regras"; fontes/integridade-da-conta.md).
-// Por isso existe um teto DURO de chamadas à Graph por conexão por hora, que
-// não depende do cache ter acertado.
+// Por isso existe um teto de chamadas à Graph por conexão por hora, que não
+// depende do cache ter acertado.
+//
+// ⚠️ LIMITAÇÃO CONHECIDA, COM TODAS AS LETRAS: este teto é POR PROCESSO, não
+// por conexão. O contador é um Map em MEMÓRIA (`ritmoPorConexao`), e memória
+// não é compartilhada entre instâncias nem sobrevive a um deploy. Consequências
+// que precisam estar ditas aqui, e não descobertas num e-mail de restrição:
+//   • com N instâncias no ar, o teto efetivo na MESMA conta da Meta é N × 200
+//     por hora — e o incidente de 03/08/2026 foi restrição de CONTA, que é
+//     exatamente o eixo em que este teto NÃO soma;
+//   • cada redeploy/reinício zera o contador de todo mundo;
+//   • em serverless (uma instância por requisição, no limite) o teto pode
+//     virar decoração.
+// O certo é contador compartilhado (linha por conexão+hora no banco, com
+// incremento atômico). NÃO foi feito nesta rodada, de propósito: exige modelo
+// e migração novos e põe UMA ESCRITA no banco em todo GET do caminho de
+// leitura — mudança de raio maior que o desta frente. Enquanto não existir,
+// o que segura o ritmo de verdade é a instância única do deploy atual mais o
+// cache; tratar este teto como garantia de conta é otimismo, não engenharia.
 
 /** Chamadas à Graph que uma conexão pode gastar por hora. Um dashboard inteiro
  *  com métricas por post custa ~28; o teto deixa passar o uso humano e barra a
@@ -92,7 +109,9 @@ export const FRASE_DO_TETO = "a Meta limitou nosso ritmo — tente daqui a pouco
 const ritmoPorConexao = new Map<string, { hora: number; gastas: number }>();
 
 /** Reserva `custo` chamadas para a conexão nesta hora. `false` = estourou.
- *  Reserva ANTES de chamar: contar depois deixaria a rajada acontecer. */
+ *  Reserva ANTES de chamar: contar depois deixaria a rajada acontecer.
+ *  ATENÇÃO: contador em memória — vale por PROCESSO. Ver a limitação declarada
+ *  no cabeçalho desta seção antes de confiar nele como proteção de conta. */
 function reservarChamadas(connectionId: string, custo: number): boolean {
   const hora = Math.floor(Date.now() / 3_600_000);
   const atual = ritmoPorConexao.get(connectionId);
