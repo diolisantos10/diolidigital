@@ -105,6 +105,50 @@ describe("pedido de mudança do cliente é refeito na hora", () => {
   });
 });
 
+// ── A REPROVAÇÃO DA QUALIDADE NÃO SE APAGA POR AQUI (6ª auditoria, 04/08/2026)
+//
+// Este caminho grava `quality_nao_auditado`. Numa peça `quality_flag` isso é
+// ABSOLVIÇÃO: a ressalva some e `apresentar` (que só barra `quality_flag`)
+// passa a mostrar ao cliente a peça que a própria casa reprovou. O gatilho é
+// alcançável sem má-fé — o card de aprovação é por DEPARTAMENTO e fica visível
+// mesmo sendo de ciclo anterior, então um clique legítimo em "pedir revisão"
+// levava a peça barrada de carona.
+//
+// "Aqui o árbitro é o cliente" não cobre esta peça: ela nunca foi apresentada,
+// logo ele não a viu e não pode arbitrar sobre ela.
+describe("peça reprovada pela Qualidade não é absolvida pelo pedido do cliente", () => {
+  const BARRADA = { ...ENTREGA, id: "d2", name: "Post reprovado", revisionStatus: "quality_flag" };
+
+  it("a peça em quality_flag NÃO é refeita nem tem o status sobrescrito", async () => {
+    db.deliverable.findMany.mockResolvedValue([{ ...BARRADA }]);
+    const r = await refazerPorPedidoDoCliente({ clientRequestId: "cr1", department: "social-media", comentario: "muda o tom" });
+    expect(r.refeitas).toHaveLength(0);
+    expect(db.deliverable.update, "sobrescrever o status é a absolvição").not.toHaveBeenCalled();
+    expect(generate).not.toHaveBeenCalled();
+  });
+
+  it("de carona não passa: a boa é refeita, a barrada continua barrada", async () => {
+    db.deliverable.findMany.mockResolvedValue([{ ...ENTREGA }, { ...BARRADA }]);
+    const r = await refazerPorPedidoDoCliente({ clientRequestId: "cr1", department: "social-media", comentario: "muda o tom" });
+    expect(r.refeitas).toEqual(["Calendário de conteúdo"]);
+    const tocados = db.deliverable.update.mock.calls.map((c) => c[0].where.id as string);
+    expect(tocados).toEqual(["d1"]);
+    // E gente fica sabendo que o pedido dele também toca a peça barrada.
+    const eventos = db.activityEvent.create.mock.calls.map((c) => c[0].data.message as string);
+    expect(eventos.some((m) => m.includes("Post reprovado"))).toBe(true);
+  });
+
+  it("departamento inteiro barrado: o cliente NÃO ouve 'não achei sua entrega'", async () => {
+    db.deliverable.findMany.mockResolvedValue([{ ...BARRADA }]);
+    const r = await refazerPorPedidoDoCliente({ clientRequestId: "cr1", department: "social-media", comentario: "muda o tom" });
+    expect(r.escalado).toBe(true);
+    expect(r.motivo).toMatch(/reprovada pela Qualidade/);
+    const corpo = db.portalMessage.create.mock.calls[0]![0].data.body as string;
+    expect(corpo, "a entrega existe — dizer que não achei é mentira").toMatch(/em revisão aqui com a equipe/);
+    expect(corpo).not.toMatch(/não achei|não encontrei/i);
+  });
+});
+
 describe("o que a máquina NÃO deve tentar adivinhar", () => {
   it("pedido sem palavras: pergunta, em vez de refazer no escuro", async () => {
     // Refazer sem saber o quê produz outra peça errada e queima uma tentativa.

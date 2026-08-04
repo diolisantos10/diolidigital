@@ -591,6 +591,25 @@ export async function virarOMes(projectId: string, ciclo: CicloResumido): Promis
       `Fechamos ${ciclo.referencia}. 📊\n\n${trechoComRessalva(relatorio.corpo, par.ressalvaDeBase, 900)}\n\nO plano do mês novo já está sendo montado — te mostro assim que estiver pronto.`,
       "ciclo",
     ).catch(() => false);
+  } else {
+    // ── O MÊS FECHA FALANDO, SEMPRE (6ª auditoria, 04/08/2026) ──────────────
+    //
+    // Antes, relatório reprovado (ou inexistente) pulava a conversa inteira: o
+    // ciclo do cliente virava sem UMA mensagem. Esta casa já aprendeu duas
+    // vezes que silêncio é lido como descaso — é o bug de abertura do
+    // `refacao.ts`. Segurar o texto barrado é certo; sumir é outra coisa.
+    //
+    // A frase é neutra de propósito: não repete número que a Qualidade não
+    // chancelou, não promete data e não confessa problema interno que não é do
+    // cliente. Diz o que é verdade: o mês fechou, o relatório está em revisão,
+    // ele recebe em seguida.
+    await falarComOCliente(
+      projeto,
+      `Fechamos ${ciclo.referencia}. 📊\n\n${relatorioReprovado
+        ? "O relatório do mês está em revisão final aqui com a equipe"
+        : "O relatório do mês ainda está sendo finalizado"} — te mando assim que estiver pronto. O plano do mês novo já começou.`,
+      "ciclo",
+    ).catch(() => false);
   }
 
   // A folha em branco: o motor produz o mês novo porque o ciclo mudou e a

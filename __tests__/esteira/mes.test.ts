@@ -197,10 +197,17 @@ describe("a virada do mês — sem ela o cliente vitalício recebia uma entrega 
     expect(r.proximaReferencia).toBe("2026-08");
   });
 
-  it("sem relatório, o cliente não recebe mensagem de fechamento vazia", async () => {
+  // 6ª auditoria (04/08/2026): antes, sem relatório o cliente não recebia NADA.
+  // Segurar o texto é certo; sumir o mês inteiro é o bug de silêncio que esta
+  // casa já pagou duas vezes. A frase neutra não afirma número nenhum.
+  it("sem relatório, o cliente recebe uma frase neutra — não o silêncio", async () => {
     generate.mockResolvedValue({ ok: false, error: "sem provedor" });
     await virarOMes("p1", CICLO);
-    expect(falarComOCliente).not.toHaveBeenCalled();
+    expect(falarComOCliente).toHaveBeenCalledOnce();
+    const corpo = falarComOCliente.mock.calls[0]![1] as string;
+    expect(corpo).toContain("2026-07");
+    expect(corpo).toMatch(/sendo finalizado/);
+    expect(corpo, "frase neutra não afirma resultado").not.toMatch(/\d{1,3}\.\d{3}|cresc/i);
   });
 });
 
@@ -227,13 +234,20 @@ describe("o relatório mensal é AUDITADO de verdade — não se auto-aprova", (
     expect(falarComOCliente).toHaveBeenCalled();
   });
 
-  it("METADE 2 — REPROVADO pelo árbitro → NÃO vai ao cliente, nem em trecho", async () => {
+  it("METADE 2 — REPROVADO pelo árbitro → o TEXTO não vai ao cliente, nem em trecho", async () => {
     auditDeliverable.mockResolvedValue({ verdict: "reprovado", issues: ["afirma crescimento que os números não mostram"], note: "" });
     const r = await virarOMes("p1", CICLO);
 
     expect(db.deliverable.create.mock.calls[0]![0].data.revisionStatus).toBe("quality_flag");
     expect(r.relatorioEntregue, "reprovado não é entregue").toBe(false);
-    expect(falarComOCliente, "o freio existe justamente para esta peça").not.toHaveBeenCalled();
+
+    // O freio é sobre o TEXTO barrado, não sobre a existência da conversa.
+    // Sumir o mês inteiro (6ª auditoria, 04/08/2026) trocava um erro por outro:
+    // o cliente pagante fecharia o mês sem uma palavra da agência.
+    const corpo = falarComOCliente.mock.calls[0]![1] as string;
+    expect(corpo, "nem um trecho do relatório barrado").not.toMatch(/4\.200|8 posts/);
+    expect(corpo, "nem a briga interna").not.toMatch(/reprovad|Qualidade/i);
+    expect(corpo).toMatch(/revisão final/);
   });
 
   it("reprovado CHAMA GENTE — barrar em silêncio seria o mesmo buraco de antes", async () => {

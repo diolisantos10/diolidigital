@@ -92,22 +92,66 @@ export async function refazerPorPedidoDoCliente(input: {
     .filter((e) => e.departamentoId === input.department)
     .map((e) => e.id);
 
-  const alvos = await prisma.deliverable.findMany({
+  const candidatas = await prisma.deliverable.findMany({
     where: {
       projectId: projeto.id,
       ...(cicloAtual ? { cycleId: cicloAtual.id } : {}),
       ...(idsDoDepartamento.length > 0 ? { ownerAgentId: { in: idsDoDepartamento } } : {}),
     },
-    select: { id: true, name: true, content: true, ownerAgentId: true, version: true, clientFeedback: true },
+    select: { id: true, name: true, content: true, ownerAgentId: true, version: true, clientFeedback: true, revisionStatus: true },
   });
 
+  // ── A PEÇA REPROVADA PELA QUALIDADE NÃO ENTRA AQUI (6ª auditoria, 04/08/2026)
+  //
+  // Este caminho grava `quality_nao_auditado` por cima do estado anterior. Numa
+  // peça `quality_flag` isso é ABSOLVIÇÃO: a ressalva some, e `apresentar`
+  // (marcos.ts) — que só barra `quality_flag` — passa a mostrar ao cliente a
+  // peça que a própria casa reprovou. E o gatilho é alcançável sem má-fé: o
+  // card de aprovação é POR DEPARTAMENTO e fica visível mesmo sendo de ciclo
+  // anterior, então um clique legítimo em "pedir revisão" levava a peça barrada
+  // de carona.
+  //
+  // O argumento "aqui o árbitro é o cliente" não cobre esta peça: ela NUNCA foi
+  // apresentada, logo o cliente não a viu e não pode arbitrar sobre ela. Peça
+  // reprovada é assunto do `pacote-travado`, que refaz COM o parecer da
+  // Qualidade na mão e REAUDITA antes de liberar.
+  //
+  // A exclusão é feita aqui, e não no `where`, de propósito: `revisionStatus` é
+  // anulável, e `{ not: "quality_flag" }` depende da semântica de NULL do ORM
+  // para não descartar silenciosamente toda peça sem status. Filtrar em memória
+  // é decidível pela leitura — e ainda me deixa contar as barradas, que é o que
+  // permite falar a verdade certa ao cliente logo abaixo.
+  const barradas = candidatas.filter((d) => d.revisionStatus === "quality_flag");
+  const alvos = candidatas.filter((d) => d.revisionStatus !== "quality_flag");
+
   if (alvos.length === 0) {
-    // Sem saber que peça mexer, a máquina não deve chutar — mas o cliente NÃO
-    // pode ficar no silêncio, que era exatamente o bug.
-    await escalar(projeto, negocio, `pedido de mudança do cliente sem entrega correspondente (departamento "${input.department}")`, comentario);
-    const avisou = await escreverNoPortal(input.clientRequestId,
-      "Recebi seu pedido de ajuste e já passei para a equipe olhar. Te retorno em breve com a mudança feita. 💛");
-    return { ...saida, escalado: true, motivo: "sem entrega correspondente", avisouCliente: avisou };
+    // Duas ausências diferentes, duas frases diferentes. Dizer "não achei sua
+    // entrega" quando a entrega EXISTE e está barrada é mentira — e das que o
+    // cliente descobre sozinho no mês seguinte.
+    const tudoBarrado = barradas.length > 0;
+    const motivo = tudoBarrado
+      ? "entrega do departamento está reprovada pela Qualidade — o pedido do cliente precisa entrar na refação dela"
+      : "sem entrega correspondente";
+    await escalar(
+      projeto, negocio,
+      tudoBarrado
+        ? `pedido de mudança do cliente sobre entrega BARRADA pela Qualidade (${barradas.map((d) => d.name).join(", ")}) — junte o que ele pediu à correção antes de apresentar`
+        : `pedido de mudança do cliente sem entrega correspondente (departamento "${input.department}")`,
+      comentario,
+    );
+    const avisou = await escreverNoPortal(input.clientRequestId, tudoBarrado
+      ? "Recebi seu pedido de ajuste! Essa entrega ainda está em revisão aqui com a equipe — vou juntar o que você pediu na versão nova e te aviso assim que ela ficar pronta. 💛"
+      : "Recebi seu pedido de ajuste e já passei para a equipe olhar. Te retorno em breve com a mudança feita. 💛");
+    return { ...saida, escalado: true, motivo, avisouCliente: avisou };
+  }
+
+  // Parcial: o cliente pediu ajuste num departamento onde ALGUMA peça está
+  // barrada. As boas seguem refeitas abaixo; a barrada continua com a Qualidade,
+  // mas o pedido dele não pode se perder no caminho — vira registro para gente.
+  if (barradas.length > 0) {
+    await escalar(projeto, negocio,
+      `o pedido do cliente também toca entrega(s) barrada(s) pela Qualidade (${barradas.map((d) => d.name).join(", ")}) — essas não foram refeitas por aqui`,
+      comentario);
   }
 
   const verdade: VerdadeDoCliente = {
