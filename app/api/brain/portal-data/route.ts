@@ -57,10 +57,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         // esperando — a contradição do lançamento da Foocci.
         const client = await prisma.client.findUnique({ where: { id: access.record.clientId } });
         const approvals = await buscarAprovacoes({ clientId: access.record.clientId, clientVisible: true });
+        const pecasPorCard = await montarPecas(approvals);
         return NextResponse.json({
           id: null, businessName: client?.name ?? "Cliente", status: "new",
           services: [], objectives: [], createdAt: null, pipeline: [],
-          approvals: approvals.map((ap) => mapearAprovacao(ap, () => null)),
+          approvals: approvals.map((ap) => mapearAprovacao(ap, () => null, pecasPorCard.get(ap.id) ?? [])),
         });
       }
     }
@@ -169,8 +170,9 @@ function buscarAprovacoes(where: FiltroDeAprovacao) {
       },
       // O vínculo por FK à versão decidida (Fase 2, 2.2) — quando existe, é
       // ELE que dá o corpo do card, nunca casamento por ordem.
+      // `mediaAssetIds` entra para o fallback visual das peças (montarPecas).
       deliverableVersion: {
-        select: { number: true, content: true, deliverable: { select: { name: true } } },
+        select: { number: true, content: true, mediaAssetIds: true, deliverable: { select: { name: true } } },
       },
     },
   });
@@ -178,7 +180,105 @@ function buscarAprovacoes(where: FiltroDeAprovacao) {
 
 type AprovacaoDb = Awaited<ReturnType<typeof buscarAprovacoes>>[number];
 
-function mapearAprovacao(ap: AprovacaoDb, deliverableContentFor: (dept: string) => string | null) {
+/** Parse defensivo de uma lista JSON de strings — JSON quebrado vira []. */
+function lerLista(bruto: string | null | undefined): string[] {
+  try {
+    const v = JSON.parse(bruto ?? "[]");
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Uma peça do card de aprovação, ESTRUTURADA — imagem + legenda, como no
+ *  planner da Meta. O reviewNote textual continua como resumo/fallback para
+ *  cards antigos; a UI nova renderiza daqui. */
+type PecaDoCard = {
+  id: string;
+  caption: string;
+  format: string;
+  pillar: string | null;
+  scheduledFor: string | null;
+  /** A miniatura (mediaUrl do post — a capa do carrossel). */
+  capa: string | null;
+  /** TODAS as telas do carrossel (mediaUrlsJson), na ordem de publicação. */
+  telas: string[];
+};
+
+/**
+ * Monta as peças estruturadas de cada card a partir de `sourcePostIdsJson`
+ * (a única ponte Approval→SocialPost — antes só usada na escrita).
+ *
+ * Fronteira do portal, fail-closed:
+ *   • só post com visibility "compartilhado" entra (a consulta já filtra);
+ *   • só post do MESMO dono do card entra (clientId, ou clientRequestId quando
+ *     o card não tem clientId) — id de post de outro cliente num card não
+ *     abre porta para o conteúdo dele.
+ *
+ * Fallback: card sem posts mas com versão vinculada por FK e mídias
+ * (`DeliverableVersion.mediaAssetIds`, nunca lido até hoje) vira UMA peça com
+ * as URLs `/api/media/<id>`.
+ */
+async function montarPecas(aprovacoes: AprovacaoDb[]): Promise<Map<string, PecaDoCard[]>> {
+  const resultado = new Map<string, PecaDoCard[]>();
+  const todosIds = [...new Set(aprovacoes.flatMap((ap) => lerLista(ap.sourcePostIdsJson)))];
+  const posts = todosIds.length
+    ? await prisma.socialPost.findMany({
+        where: { id: { in: todosIds }, visibility: "compartilhado" },
+        select: {
+          id: true, clientId: true, clientRequestId: true, caption: true, format: true,
+          pillar: true, scheduledFor: true, mediaUrl: true, mediaUrlsJson: true,
+        },
+      })
+    : [];
+  const porId = new Map(posts.map((p) => [p.id, p]));
+
+  for (const ap of aprovacoes) {
+    const pecas: PecaDoCard[] = [];
+    // A ordem do card é a ordem gravada em sourcePostIdsJson (data proposta).
+    for (const postId of lerLista(ap.sourcePostIdsJson)) {
+      const p = porId.get(postId);
+      if (!p) continue;
+      const mesmoDono = ap.clientId
+        ? p.clientId === ap.clientId
+        : !!ap.clientRequestId && p.clientRequestId === ap.clientRequestId;
+      if (!mesmoDono) continue;
+      pecas.push({
+        id: p.id,
+        caption: p.caption,
+        format: p.format,
+        pillar: p.pillar,
+        scheduledFor: p.scheduledFor ? p.scheduledFor.toISOString() : null,
+        capa: p.mediaUrl,
+        telas: lerLista(p.mediaUrlsJson),
+      });
+    }
+
+    if (pecas.length === 0 && ap.deliverableVersion) {
+      const midias = lerLista(ap.deliverableVersion.mediaAssetIds).map((id) => `/api/media/${id}`);
+      if (midias.length > 0) {
+        pecas.push({
+          id: `${ap.id}-versao`,
+          caption: ap.deliverableVersion.content ?? "",
+          format: "arquivo",
+          pillar: null,
+          scheduledFor: null,
+          capa: midias[0] ?? null,
+          telas: midias,
+        });
+      }
+    }
+
+    resultado.set(ap.id, pecas);
+  }
+  return resultado;
+}
+
+function mapearAprovacao(
+  ap: AprovacaoDb,
+  deliverableContentFor: (dept: string) => string | null,
+  pecas: PecaDoCard[] = [],
+) {
   return {
     id:         ap.id,
     department: CLIENT_SAFE_DEPARTMENTS[ap.department] ?? ap.department,
@@ -199,6 +299,9 @@ function mapearAprovacao(ap: AprovacaoDb, deliverableContentFor: (dept: string) 
         : null)
       || ap.reviewNote
       || (ap.department !== "proposal" ? deliverableContentFor(ap.department) : null),
+    // As peças ESTRUTURADAS (imagem + legenda + telas do carrossel) — a UI
+    // nova renderiza daqui; o reviewNote acima vira resumo/fallback.
+    pecas,
     comments:   ap.comments,
   };
 }
@@ -226,6 +329,10 @@ async function buildPortalData(clientRequestId: string) {
       ],
     }),
   ]);
+
+  // As peças estruturadas dos cards (imagem + legenda), nos DOIS ramos — o
+  // mesmo dono, as mesmas peças, com ou sem solicitação Brain.
+  const pecasPorCard = await montarPecas(approvals);
 
   // The agents produce deliverables into their own table (with the full content).
   // Surface that content on the approval card so it isn't empty.
@@ -294,6 +401,6 @@ async function buildPortalData(clientRequestId: string) {
       approvedAt:   a.approvedAt,
       version:      a.version,
     })),
-    approvals: approvals.map((ap) => mapearAprovacao(ap, deliverableContentFor)),
+    approvals: approvals.map((ap) => mapearAprovacao(ap, deliverableContentFor, pecasPorCard.get(ap.id) ?? [])),
   };
 }

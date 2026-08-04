@@ -26,7 +26,7 @@
 
 import { prisma } from "@/lib/db/client";
 import { generate } from "@/lib/ai/generate";
-import { getInsights } from "@/lib/integrations/meta/client";
+import { lerMetricasDaConta } from "@/lib/integrations/meta/leitura";
 import { fecharCiclo, type CicloResumido } from "@/lib/agency/esteira/ciclos";
 import { falarComOCliente } from "@/lib/agency/esteira/marcos";
 import { conferirPisoDeVerdade, resumirViolacoes, type VerdadeDoCliente } from "@/lib/agency/execution/piso-de-verdade";
@@ -41,9 +41,13 @@ export interface MedicaoDoMes {
   postsAgendadosNaoPublicados: number;
   /** Vazio quando a Meta não respondeu — e aí o relatório DIZ isso. */
   alcance: number | null;
-  impressoes: number | null;
+  /** `views` — a métrica que SUBSTITUIU "impressões" (a Meta descontinuou
+   *  `impressions` na v22.0 da Graph; leitura.ts documenta a fonte). */
+  visualizacoes: number | null;
   seguidores: number | null;
   engajamento: number | null;
+  /** Ressalva de medição parcial (ex.: janela encurtada pela Meta). */
+  ressalva?: string | null;
   /** Tráfego pago no período. `null` = não havia campanha, ou não consegui ler.
    *  Nunca zeros: zero gasto é notícia, "não medi" é outra coisa. */
   pago: { gastoBRL: number; cliques: number; alcance: number; cpcBRL: number | null } | null;
@@ -61,7 +65,7 @@ export interface MedicaoDoMes {
 export async function medirOMes(projectId: string, ciclo: CicloResumido): Promise<MedicaoDoMes> {
   const medicao: MedicaoDoMes = {
     postsPublicados: 0, postsAgendadosNaoPublicados: 0,
-    alcance: null, impressoes: null, seguidores: null, engajamento: null,
+    alcance: null, visualizacoes: null, seguidores: null, engajamento: null,
     pago: null, porQueNaoMediu: null,
   };
 
@@ -95,24 +99,26 @@ export async function medirOMes(projectId: string, ciclo: CicloResumido): Promis
     medicao.pago = { gastoBRL: pago.gastoBRL, cliques: pago.cliques, alcance: pago.alcance, cpcBRL: pago.cpcBRL };
   }
 
-  const conexao = await prisma.metaConnection.findFirst({
-    where: { workspaceId: projeto.workspaceId, clientId: projeto.clientId, platform: "instagram", status: "connected" },
-    select: { id: true },
-  }).catch(() => null);
-  if (!conexao) {
-    medicao.porQueNaoMediu = "o cliente ainda não conectou o Instagram";
+  // A resolução cliente→conexão e os estados "não conectou" / "reconecte"
+  // moram na camada de leitura (leitura.ts) — aqui só se traduz em medição.
+  if (!projeto.clientId) {
+    medicao.porQueNaoMediu = "projeto sem cliente definido — não sei qual Instagram medir";
     return medicao;
   }
-
-  const r = await getInsights(projeto.workspaceId, conexao.id).catch(() => null);
+  const r = await lerMetricasDaConta(projeto.workspaceId, projeto.clientId, {
+    desde: ciclo.comeca, ate: ciclo.termina,
+  }).catch(() => null);
   if (!r?.ok) {
     medicao.porQueNaoMediu = r?.error ?? "não consegui falar com o Instagram";
     return medicao;
   }
-  medicao.alcance = r.reach ?? null;
-  medicao.impressoes = r.impressions ?? null;
-  medicao.seguidores = r.followers ?? null;
-  medicao.engajamento = r.engagement ?? null;
+  medicao.alcance = r.totais.alcance;
+  medicao.visualizacoes = r.totais.visualizacoes;
+  medicao.seguidores = r.perfil.seguidores;
+  // "Engajamento" do relatório = total_interactions (curtidas + comentários +
+  // salvamentos + compartilhamentos), a métrica vigente da Meta para isso.
+  medicao.engajamento = r.totais.interacoes;
+  medicao.ressalva = r.aviso ?? null;
   return medicao;
 }
 
@@ -164,7 +170,8 @@ export async function escreverRelatorio(input: {
       ? `- Posts agendados que ainda não foram ao ar: ${input.medicao.postsAgendadosNaoPublicados}`
       : null,
     input.medicao.alcance !== null ? `- Alcance: ${input.medicao.alcance}` : null,
-    input.medicao.impressoes !== null ? `- Impressões: ${input.medicao.impressoes}` : null,
+    input.medicao.visualizacoes !== null ? `- Visualizações: ${input.medicao.visualizacoes}` : null,
+    input.medicao.ressalva ? `- Observação da medição (diga ao cliente): ${input.medicao.ressalva}` : null,
     input.medicao.seguidores !== null ? `- Seguidores: ${input.medicao.seguidores}` : null,
     input.medicao.engajamento !== null ? `- Engajamento: ${input.medicao.engajamento}` : null,
     input.medicao.pago ? `- Anúncios — investido: R$ ${input.medicao.pago.gastoBRL.toFixed(2)}` : null,

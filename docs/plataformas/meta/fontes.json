@@ -98,5 +98,15 @@
     "slug": "whatsapp-diretrizes-de-mensagens",
     "titulo": "WhatsApp Business Messaging Guidelines (LACUNA: não capturado na 1ª rodada)",
     "url": "https://business.whatsapp.com/policy"
+  },
+  {
+    "slug": "instagram-insights-de-usuario",
+    "titulo": "Instagram API — IG User Insights (métricas de conta vigentes; LACUNA: conferido ao vivo em 04/08/2026, não capturado)",
+    "url": "https://developers.facebook.com/docs/instagram-api/reference/ig-user/insights"
+  },
+  {
+    "slug": "instagram-insights-de-midia",
+    "titulo": "Instagram API — IG Media Insights (métricas por post/reel/story; LACUNA: conferido ao vivo em 04/08/2026, não capturado)",
+    "url": "https://developers.facebook.com/docs/instagram-api/reference/ig-media/insights"
   }
 ]

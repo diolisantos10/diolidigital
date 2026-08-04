@@ -8,8 +8,10 @@ const db = vi.hoisted(() => ({
   activityEvent: { create: vi.fn() },
 }));
 const publishPost = vi.hoisted(() => vi.fn());
+const conexaoDoCliente = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
 vi.mock("@/lib/integrations/meta/client", () => ({ publishPost }));
+vi.mock("@/lib/integrations/meta/connections", () => ({ conexaoDoCliente }));
 vi.mock("@/lib/agency/media/armazenamento", () => ({
   caminhoPublicoAssinado: (id: string) => `/api/media/${id}?exp=1&sig=abc`,
 }));
@@ -46,7 +48,7 @@ beforeEach(() => {
   db.socialPost.findFirst.mockResolvedValue(null);
   db.socialPost.create.mockResolvedValue({});
   db.socialPost.update.mockResolvedValue({});
-  db.metaConnection.findFirst.mockResolvedValue({ id: "mc1" });
+  conexaoDoCliente.mockResolvedValue({ id: "mc1", status: "connected" });
   db.activityEvent.create.mockResolvedValue({});
   publishPost.mockResolvedValue({ ok: true, externalPostId: "ig_1", permalink: "https://insta/p/1" });
 });
@@ -190,11 +192,20 @@ describe("o relógio publica o que está agendado", () => {
 
   it("posta na conta DO CLIENTE, nunca na da agência", async () => {
     await publicarAgendados();
-    expect(db.metaConnection.findFirst.mock.calls[0]![0].where.clientId).toBe("c1");
+    // A resolução mora em conexaoDoCliente — e leva o clientId do post.
+    expect(conexaoDoCliente).toHaveBeenCalledWith("ws1", "c1", "instagram");
+  });
+
+  it("conexão com token vencido pede RECONEXÃO — não 'conecte', nem publica", async () => {
+    conexaoDoCliente.mockResolvedValue({ id: "mc1", status: "expired" });
+    const r = await publicarAgendados();
+    expect(r.publicados).toBe(0);
+    expect(r.falhas[0]!.erro).toMatch(/precisa ser refeita/);
+    expect(publishPost).not.toHaveBeenCalled();
   });
 
   it("cliente sem Instagram conectado não é erro do sistema — é pendência visível", async () => {
-    db.metaConnection.findFirst.mockResolvedValue(null);
+    conexaoDoCliente.mockResolvedValue(null);
     const r = await publicarAgendados();
     expect(r.publicados).toBe(0);
     expect(r.falhas[0]!.erro).toMatch(/não conectou o Instagram/);
@@ -286,7 +297,7 @@ describe("publicar carrossel", () => {
   beforeEach(() => {
     process.env.PUBLIC_BASE_URL = "https://app.dioli.studio";
     db.socialPost.findMany.mockResolvedValue([{ ...CARROSSEL }]);
-    db.metaConnection.findFirst.mockResolvedValue({ id: "mc1" });
+    conexaoDoCliente.mockResolvedValue({ id: "mc1", status: "connected" });
   });
 
   it("manda as três telas, não uma imagem só", async () => {

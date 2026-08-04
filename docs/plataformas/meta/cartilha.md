@@ -259,3 +259,13 @@ O que a cartilha **não** cobre com documento capturado:
 5. **Tradução automática:** as páginas de developers.facebook.com em pt-BR
    avisam que foram traduzidas por IA; em decisão crítica, conferir a versão
    em inglês na URL original.
+6. **Referência de MÉTRICAS de Instagram Insights (conta e mídia)** — não há
+   documento capturado. Conferido AO VIVO na fonte oficial em 04/08/2026 (o
+   especialista Meta, ao construir a camada de leitura): `impressions` está
+   DESCONTINUADA na conta (v22.0; todas as versões em 21/04/2025) e na mídia
+   criada após 02/07/2024; as vigentes são `reach` (única de conta com
+   `time_series`), `views` (substituta de impressions), `accounts_engaged` e
+   `total_interactions`; por mídia, REELS ganha `ig_reels_avg_watch_time` e
+   STORY tem set próprio (`replies`, `navigation`, `profile_visits`).
+   Entradas adicionadas ao manifesto (`instagram-insights-de-usuario`,
+   `instagram-insights-de-midia`) para a próxima recaptura.

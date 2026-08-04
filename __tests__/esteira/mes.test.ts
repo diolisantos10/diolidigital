@@ -13,13 +13,13 @@ const db = vi.hoisted(() => ({
   task: { findMany: vi.fn() },
 }));
 const generate = vi.hoisted(() => vi.fn());
-const getInsights = vi.hoisted(() => vi.fn());
+const lerMetricasDaConta = vi.hoisted(() => vi.fn());
 const fecharCiclo = vi.hoisted(() => vi.fn());
 const falarComOCliente = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
 vi.mock("@/lib/ai/generate", () => ({ generate }));
-vi.mock("@/lib/integrations/meta/client", () => ({ getInsights }));
+vi.mock("@/lib/integrations/meta/leitura", () => ({ lerMetricasDaConta }));
 vi.mock("@/lib/agency/esteira/marcos", () => ({ falarComOCliente }));
 vi.mock("@/lib/agency/esteira/ciclos", async (orig) => ({
   ...(await orig<Record<string, unknown>>()),
@@ -51,7 +51,13 @@ beforeEach(() => {
   db.deliverable.create.mockResolvedValue({ id: "d9" });
   db.deliverable.updateMany.mockResolvedValue({});
   db.cycle.update.mockResolvedValue({});
-  getInsights.mockResolvedValue({ ok: true, reach: 4200, impressions: 9100, followers: 812, engagement: 310 });
+  lerMetricasDaConta.mockResolvedValue({
+    ok: true,
+    perfil: { seguidores: 812, totalDePosts: 96 },
+    periodo: { desde: "2026-07-01", ate: "2026-07-31" },
+    totais: { alcance: 4200, visualizacoes: 9100, contasComEngajamento: 250, interacoes: 310 },
+    serie: [{ data: "2026-07-01", alcance: 4200 }],
+  });
   fecharCiclo.mockResolvedValue({ fechado: true, proximo: { referencia: "2026-08", id: "cy2" } });
   falarComOCliente.mockResolvedValue(true);
   generate.mockResolvedValue({
@@ -73,7 +79,8 @@ describe("medir o mês: null é 'não sei', zero é 'medi e deu zero'", () => {
   });
 
   it("sem Instagram conectado, não mede — e diz por quê", async () => {
-    db.metaConnection.findFirst.mockResolvedValue(null);
+    // O estado vem da camada de leitura, que resolve cliente→conexão.
+    lerMetricasDaConta.mockResolvedValue({ ok: false, error: "o cliente ainda não conectou o Instagram", semConexao: true });
     const m = await medirOMes("p1", CICLO);
     expect(m.alcance).toBeNull();
     expect(m.porQueNaoMediu).toMatch(/não conectou/);
@@ -82,7 +89,7 @@ describe("medir o mês: null é 'não sei', zero é 'medi e deu zero'", () => {
   it("Meta fora do ar não vira zero — vira 'não medido'", async () => {
     // Confundir os dois é o começo de um relatório que mente: zero alcance é
     // uma notícia terrível, "não medi" é um problema técnico.
-    getInsights.mockResolvedValue({ ok: false, error: "token expirado" });
+    lerMetricasDaConta.mockResolvedValue({ ok: false, error: "token expirado", precisaReconectar: true });
     const m = await medirOMes("p1", CICLO);
     expect(m.alcance).toBeNull();
     expect(m.porQueNaoMediu).toBe("token expirado");
@@ -92,7 +99,7 @@ describe("medir o mês: null é 'não sei', zero é 'medi e deu zero'", () => {
 describe("o relatório só pode usar o que foi medido", () => {
   const medicao = {
     postsPublicados: 8, postsAgendadosNaoPublicados: 0,
-    alcance: 4200, impressoes: 9100, seguidores: 812, engajamento: 310,
+    alcance: 4200, visualizacoes: 9100, seguidores: 812, engajamento: 310,
     pago: null, porQueNaoMediu: null,
   };
 
@@ -109,7 +116,7 @@ describe("o relatório só pode usar o que foi medido", () => {
   it("quando não mediu, a IA é mandada dizer isso — e proibida de estimar", async () => {
     await escreverRelatorio({
       workspaceId: "ws1", nomeDoNegocio: "Padaria do João", referencia: "2026-07",
-      medicao: { ...medicao, alcance: null, impressoes: null, seguidores: null, engajamento: null, porQueNaoMediu: "token expirado" },
+      medicao: { ...medicao, alcance: null, visualizacoes: null, seguidores: null, engajamento: null, porQueNaoMediu: "token expirado" },
       planoDoMes: [], verdade: VERDADE,
     });
     const prompt = generate.mock.calls[0]![0].user as string;
@@ -218,7 +225,7 @@ describe("apresentar o pacote do mês", () => {
 describe("'agosto foi melhor que julho' — a frase que segura cliente por anos", () => {
   const medicao = {
     postsPublicados: 8, postsAgendadosNaoPublicados: 0,
-    alcance: 5200, impressoes: 9100, seguidores: 812, engajamento: 310,
+    alcance: 5200, visualizacoes: 9100, seguidores: 812, engajamento: 310,
     pago: null, porQueNaoMediu: null,
   };
 
@@ -273,7 +280,7 @@ describe("a virada busca o mês passado e alerta o time", () => {
   });
 
   it("queda vira alerta interno — o time sabe ANTES do cliente reclamar", async () => {
-    // Alcance de 9000 (junho) para 4200 (julho, do getInsights mockado).
+    // Alcance de 9000 (junho) para 4200 (julho, do lerMetricasDaConta mockado).
     await virarOMes("p1", CICLO);
     const evento = db.activityEvent.create.mock.calls[0]![0].data;
     expect(evento.type).toBe("queda_no_ciclo");

@@ -110,6 +110,70 @@ export async function loadConnectionToken(
   return { token, externalId: row.externalId, platform: row.platform as MetaPlatform, metaJson };
 }
 
+// ─── Resolução cliente → conexão ────────────────────────────────────────────
+// A pergunta que meia casa fazia com findFirst inline: "qual é a conexão de
+// Instagram DESTE cliente?". Centralizada aqui porque a resposta tem nuance:
+// `clientId` nulo numa conexão significa "conta da própria agência" — buscar
+// sem o clientId publicaria/leria o perfil errado. E uma conexão pode existir
+// com status "expired"/"revoked": isso NÃO é "sem conexão", é "reconecte" —
+// dois estados que o portal precisa distinguir.
+
+export interface ConexaoResolvida {
+  id: string;
+  platform: MetaPlatform;
+  externalId: string;
+  /** "connected" | "expired" | "revoked" — quem lê decide o que fazer. */
+  status: string;
+  tokenExpiresAt: Date | null;
+  metaJson: Record<string, unknown>;
+  /** null quando o token não decifra (chave trocada) — trate como reconectar. */
+  token: string | null;
+}
+
+/**
+ * A conexão da plataforma para ESTE cliente (ou da agência, com clientId null).
+ * Prefere a conectada; na falta, devolve a mais recente em qualquer status —
+ * para o chamador poder dizer "precisa reconectar" em vez de "não existe".
+ */
+export async function conexaoDoCliente(
+  workspaceId: string,
+  clientId: string | null,
+  platform: MetaPlatform,
+): Promise<ConexaoResolvida | null> {
+  const where = { workspaceId, clientId, platform };
+  const row =
+    (await prisma.metaConnection.findFirst({
+      where: { ...where, status: "connected" },
+      orderBy: { connectedAt: "desc" },
+    })) ??
+    (await prisma.metaConnection.findFirst({ where, orderBy: { connectedAt: "desc" } }));
+  if (!row) return null;
+
+  let metaJson: Record<string, unknown> = {};
+  try { metaJson = JSON.parse(row.metaJson) as Record<string, unknown>; } catch { /* ignore */ }
+  return {
+    id: row.id,
+    platform: row.platform as MetaPlatform,
+    externalId: row.externalId,
+    status: row.status,
+    tokenExpiresAt: row.tokenExpiresAt,
+    metaJson,
+    token: decryptSecret(row.accessTokenEncrypted),
+  };
+}
+
+/**
+ * Carimba a conexão como expirada quando a Graph responde OAuth 190.
+ * Best-effort: é o que faz o portal dizer "reconecte" na PRÓXIMA visita em vez
+ * de tentar de novo com um token que a Meta já recusou.
+ */
+export async function marcarConexaoExpirada(connectionId: string): Promise<void> {
+  await prisma.metaConnection.update({
+    where: { id: connectionId },
+    data: { status: "expired" },
+  }).catch(() => { /* best-effort */ });
+}
+
 export async function deleteConnection(workspaceId: string, connectionId: string): Promise<boolean> {
   const row = await prisma.metaConnection.findUnique({ where: { id: connectionId } });
   if (!row || row.workspaceId !== workspaceId) return false;

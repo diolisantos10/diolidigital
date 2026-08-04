@@ -19,6 +19,7 @@
 
 import { prisma } from "@/lib/db/client";
 import { publishPost } from "@/lib/integrations/meta/client";
+import { conexaoDoCliente } from "@/lib/integrations/meta/connections";
 import { caminhoPublicoAssinado } from "@/lib/agency/media/armazenamento";
 
 /** Quantos posts publicamos por rodada do relógio. Publicação é irreversível e
@@ -202,16 +203,17 @@ export async function publicarAgendados(): Promise<PublicacaoFeita> {
       await falhar("post sem cliente definido — não sei em qual perfil postar");
       continue;
     }
-    const conexao = await prisma.metaConnection.findFirst({
-      where: {
-        workspaceId: post.workspaceId,
-        platform: "instagram",
-        status: "connected",
-        clientId: post.clientId,
-      },
-    });
+    const conexao = await conexaoDoCliente(post.workspaceId, post.clientId, "instagram")
+      .catch(() => null);
     if (!conexao) {
       await falhar("o cliente ainda não conectou o Instagram");
+      continue;
+    }
+    // Conexão existe mas o token morreu: é OUTRA pendência — "reconecte", não
+    // "conecte". O helper devolve a mais recente em qualquer status justamente
+    // para esta frase ser verdadeira.
+    if (conexao.status !== "connected") {
+      await falhar("a conexão com o Instagram precisa ser refeita (token vencido ou revogado)");
       continue;
     }
 

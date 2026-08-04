@@ -11,9 +11,21 @@ import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
 interface DbPost {
   id: string; clientId: string | null; clientRequestId: string | null;
   caption: string; networks: string; format: string; pillar: string | null;
-  mediaUrl: string | null; scriptJson: string | null; scheduledFor: Date | null; status: string;
+  mediaUrl: string | null; mediaUrlsJson: string | null; scriptJson: string | null;
+  scheduledFor: Date | null; status: string;
   createdAt: Date; updatedAt: Date;
 }
+
+/** Parse defensivo de uma lista JSON de strings — JSON quebrado vira []. */
+function lerLista(bruto: string | null | undefined): string[] {
+  try {
+    const v = JSON.parse(bruto ?? "[]");
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
 function toDTO(p: DbPost) {
   let networks: string[] = [];
   try { networks = JSON.parse(p.networks); } catch { /* [] */ }
@@ -22,7 +34,13 @@ function toDTO(p: DbPost) {
   return {
     id: p.id, clientId: p.clientId, clientRequestId: p.clientRequestId,
     caption: p.caption, networks, format: p.format, pillar: p.pillar,
-    mediaUrl: p.mediaUrl, script,
+    mediaUrl: p.mediaUrl,
+    // As telas do carrossel (mediaUrlsJson). O cliente aprova a IMAGEM, não a
+    // descrição dela — sem este campo o portal só tinha a miniatura da capa.
+    // NÃO confundir com scenesJson (descrições internas): estas são as URLs
+    // das artes prontas, material que o cliente pode ver.
+    telas: lerLista(p.mediaUrlsJson),
+    script,
     scheduledFor: p.scheduledFor ? p.scheduledFor.toISOString() : null,
     status: p.status,
   };

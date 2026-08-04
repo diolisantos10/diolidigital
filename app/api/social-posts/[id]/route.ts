@@ -23,6 +23,14 @@ export async function PATCH(request: NextRequest, ctx: { params: Promise<Params>
   if (typeof body.format === "string") data.format = body.format;
   if (typeof body.pillar === "string" || body.pillar === null) data.pillar = body.pillar;
   if (typeof body.mediaUrl === "string" || body.mediaUrl === null) data.mediaUrl = body.mediaUrl;
+  // As telas do carrossel: aceita SOMENTE array de strings e normaliza para
+  // JSON — necessário para backfill e ajustes pela API. Qualquer outro tipo é
+  // ignorado (não zera o que existe por engano); array vazio limpa de propósito.
+  if (Array.isArray(body.mediaUrlsJson)) {
+    data.mediaUrlsJson = JSON.stringify(
+      (body.mediaUrlsJson as unknown[]).filter((x): x is string => typeof x === "string" && !!x.trim()),
+    );
+  }
   if (body.script === null) data.scriptJson = null;
   else if (body.script && typeof body.script === "object") data.scriptJson = JSON.stringify(body.script);
   if (typeof body.status === "string") data.status = body.status;

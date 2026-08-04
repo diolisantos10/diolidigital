@@ -77,7 +77,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         orderBy: { scheduledFor: "asc" },
         select: {
           id: true, caption: true, networks: true, format: true, pillar: true,
-          mediaUrl: true, scheduledFor: true, status: true,
+          mediaUrl: true, mediaUrlsJson: true, scheduledFor: true, status: true,
         },
       }),
     ]);
@@ -98,6 +98,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         format: p.format,
         pillar: p.pillar,
         mediaUrl: p.mediaUrl,
+        // As telas do carrossel — o cliente clica no post agendado e vê a peça
+        // INTEIRA, não só a miniatura da capa. Parse defensivo: JSON quebrado
+        // vira lista vazia, nunca 500. (São artes prontas; o scenesJson —
+        // descrição interna — continua fora da fronteira.)
+        telas: (() => { try { const v = JSON.parse(p.mediaUrlsJson ?? "[]"); return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : []; } catch { return []; } })(),
         scheduledFor: p.scheduledFor ? p.scheduledFor.toISOString() : null,
         // O cru para o componente agrupar; o legível para quem consome direto.
         status: p.status,
