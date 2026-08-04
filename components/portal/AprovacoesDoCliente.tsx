@@ -65,6 +65,17 @@ function corpoDaPeca(ap: AprovacaoDoPortal): string | null {
   return semTitulo || ap.reviewNote;
 }
 
+/** O reviewNote chega com negrito em markdown (**assim**) — o cliente não pode
+ *  ver asterisco cru. Só negrito: qualquer outra marca passa como texto. */
+function ComNegrito({ texto }: { texto: string }) {
+  const partes = texto.split(/\*\*([^*]+)\*\*/g);
+  return (
+    <>
+      {partes.map((p, i) => (i % 2 === 1 ? <b key={i}>{p}</b> : <span key={i}>{p}</span>))}
+    </>
+  );
+}
+
 function dataCurta(iso: string | null): string | null {
   if (!iso) return null;
   return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
@@ -157,7 +168,7 @@ function DetalheDaAprovacao({
 
         {corpo && (
           <div className="mt-4 rounded-[10px] bg-[var(--bg-elevated)] border border-[var(--border)] p-4">
-            <p className="text-[13px] text-[var(--text-primary)] leading-relaxed whitespace-pre-wrap">{corpo}</p>
+            <p className="text-[13px] text-[var(--text-primary)] leading-relaxed whitespace-pre-wrap"><ComNegrito texto={corpo} /></p>
           </div>
         )}
 
