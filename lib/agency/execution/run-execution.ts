@@ -396,6 +396,9 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
       let audit = await auditDeliverable({
         deptLabel: nome, title, content: body, brandContext: ctxBlock(context),
         marketGuidelines: insightBlock, workspaceId: project.workspaceId,
+        // O estado da leitura vai como DADO, não como substring para o auditor
+        // farejar no contexto — ver o comentário dos três estados lá.
+        feed: { lida: feedDoCliente.lida, posts: feedDoCliente.posts },
       });
       let revisions = 0;
       while (audit.verdict === "flag" && revisions < MAX_QUALITY_REVISIONS) {
@@ -414,6 +417,7 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
         audit = await auditDeliverable({
           deptLabel: dept.label, title, content: body, brandContext: ctxBlock(context),
           marketGuidelines: insightBlock, workspaceId: project.workspaceId,
+          feed: { lida: feedDoCliente.lida, posts: feedDoCliente.posts },
         });
       }
 

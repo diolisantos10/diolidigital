@@ -36,7 +36,33 @@ import { lerEvolucao } from "@/lib/agency/esteira/comparacao";
  *  e várias à Meta — vinte de uma vez viraria enxurrada no dia 1º. */
 const MAX_VIRADAS_POR_RODADA = 5;
 
+/**
+ * A VERSÃO DA BASE DE MEDIÇÃO. Sobe toda vez que uma métrica muda de
+ * SIGNIFICADO — não de valor.
+ *
+ * v1 (até 04/08/2026): `alcance` era o reach de UM DIA (a chamada antiga pedia
+ *   reach sem janela e lia `values[0]`); `engajamento` não existia (sempre null).
+ * v2 (a partir de 04/08/2026): `alcance` é o reach do CICLO INTEIRO e
+ *   `engajamento` é `total_interactions` do ciclo.
+ *
+ * Por que isto virou código e não uma nota de rodapé: julho gravou 340 (um dia),
+ * agosto gravaria 9.500 (31 dias), e o relatório entregue a um cliente pagante
+ * anunciaria "+2694%". Sem revisão humana, isso chega nele. Comparar números de
+ * bases diferentes não é um erro de arredondamento — é uma mentira com gráfico.
+ */
+export const VERSAO_DA_MEDICAO = 2;
+
+/** Métricas cujo SIGNIFICADO depende da versão da base — só comparáveis entre
+ *  ciclos medidos na MESMA base. */
+export const METRICAS_DEPENDENTES_DA_BASE = ["alcance", "engajamento"] as const;
+
 export interface MedicaoDoMes {
+  /** A base em que este ciclo foi medido. Ausente = ciclo antigo, v1. */
+  schemaVersao?: number;
+  /** De onde veio `alcance` (ver leitura.ts): `unicas_no_periodo` (reach
+   *  deduplicado) ou `soma_diaria` (soma do reach diário — repete quem viu em
+   *  mais de um dia). São números DIFERENTES; comparar entre si também mente. */
+  alcanceOrigem?: "unicas_no_periodo" | "soma_diaria" | null;
   postsPublicados: number;
   postsAgendadosNaoPublicados: number;
   /** Vazio quando a Meta não respondeu — e aí o relatório DIZ isso. */
@@ -64,6 +90,7 @@ export interface MedicaoDoMes {
  */
 export async function medirOMes(projectId: string, ciclo: CicloResumido): Promise<MedicaoDoMes> {
   const medicao: MedicaoDoMes = {
+    schemaVersao: VERSAO_DA_MEDICAO, alcanceOrigem: null,
     postsPublicados: 0, postsAgendadosNaoPublicados: 0,
     alcance: null, visualizacoes: null, seguidores: null, engajamento: null,
     pago: null, porQueNaoMediu: null,
@@ -113,6 +140,7 @@ export async function medirOMes(projectId: string, ciclo: CicloResumido): Promis
     return medicao;
   }
   medicao.alcance = r.totais.alcance;
+  medicao.alcanceOrigem = r.alcanceOrigem ?? null;
   medicao.visualizacoes = r.totais.visualizacoes;
   medicao.seguidores = r.perfil.seguidores;
   // "Engajamento" do relatório = total_interactions (curtidas + comentários +
@@ -129,8 +157,14 @@ export async function medirOMes(projectId: string, ciclo: CicloResumido): Promis
  * seguidores, e o desempenho pago. "Posts agendados que não foram ao ar" é
  * estado, não resultado — comparar isso não diz nada ao cliente.
  */
-export function numerosComparaveis(m: MedicaoDoMes): Record<string, number | null> {
-  return {
+export function numerosComparaveis(
+  m: MedicaoDoMes,
+  /** O outro ciclo da comparação. Quando ele foi medido noutra BASE, as métricas
+   *  dependentes da base saem como `null` — "não tenho com o que comparar" — em
+   *  vez de virarem um percentual entre coisas diferentes. */
+  contra?: MedicaoDoMes | null,
+): Record<string, number | null> {
+  const numeros: Record<string, number | null> = {
     "posts publicados": m.postsPublicados,
     alcance: m.alcance,
     seguidores: m.seguidores,
@@ -143,7 +177,60 @@ export function numerosComparaveis(m: MedicaoDoMes): Record<string, number | nul
         }
       : {}),
   };
+  if (contra && !mesmaBaseDeMedicao(m, contra)) {
+    for (const metrica of METRICAS_DEPENDENTES_DA_BASE) numeros[metrica] = null;
+  }
+  return numeros;
 }
+
+/** A versão de um ciclo gravado. Ciclo velho não tem o campo — é v1. */
+export function versaoDaMedicao(m: MedicaoDoMes | null | undefined): number {
+  const v = m?.schemaVersao;
+  return typeof v === "number" && Number.isFinite(v) ? v : 1;
+}
+
+/** Dois ciclos são comparáveis nas métricas de base quando têm a MESMA versão
+ *  e o alcance veio da mesma origem. `soma_diaria` e `unicas_no_periodo` são
+ *  números diferentes mesmo dentro da v2. */
+export function mesmaBaseDeMedicao(a: MedicaoDoMes, b: MedicaoDoMes): boolean {
+  if (versaoDaMedicao(a) !== versaoDaMedicao(b)) return false;
+  // Origem só existe na v2. Quando um dos lados não mediu alcance, não há o que
+  // divergir — a própria métrica já sai como null na comparação.
+  if (a.alcance === null || b.alcance === null) return true;
+  return (a.alcanceOrigem ?? null) === (b.alcanceOrigem ?? null);
+}
+
+/**
+ * O par pronto para `lerEvolucao`, já com as métricas incomparáveis fora — e a
+ * frase que explica ao cliente por que elas ficaram de fora.
+ */
+export function compararComOMesAnterior(
+  atual: MedicaoDoMes,
+  anterior: MedicaoDoMes | null,
+): {
+  atual: Record<string, number | null>;
+  anterior: Record<string, number | null> | null;
+  ressalvaDeBase: string | null;
+} {
+  if (!anterior) {
+    return { atual: numerosComparaveis(atual), anterior: null, ressalvaDeBase: null };
+  }
+  const mesmaBase = mesmaBaseDeMedicao(atual, anterior);
+  return {
+    atual: numerosComparaveis(atual, anterior),
+    anterior: numerosComparaveis(anterior, atual),
+    ressalvaDeBase: mesmaBase
+      ? null
+      : `${METRICAS_DEPENDENTES_DA_BASE.join(" e ")} não entram na comparação: a forma de medir mudou e o mês anterior foi medido em outra base. Este é o primeiro mês medido nesta base — a comparação dessas duas começa no mês que vem.`,
+  };
+}
+
+/** Como o alcance é apresentado no relatório, conforme a origem do número. */
+const QUALIFICADOR_DO_ALCANCE: Record<string, string> = {
+  unicas_no_periodo: " (contas únicas alcançadas no período)",
+  soma_diaria: " (soma do alcance diário — repete quem viu em mais de um dia)",
+  desconhecido: "",
+};
 
 /**
  * Escreve o relatório do mês — só com o que foi medido.
@@ -163,13 +250,22 @@ export async function escreverRelatorio(input: {
    *  relatório DIZ isso em vez de inventar uma evolução. */
   mesAnterior?: Record<string, number | null> | null;
   referenciaAnterior?: string | null;
+  /** Os números DESTE mês já filtrados pela base de medição (vindos de
+   *  `compararComOMesAnterior`). Sem isto, cai nos números crus. */
+  mesAtual?: Record<string, number | null> | null;
+  /** Por que uma métrica ficou de fora da comparação (mudança de base). */
+  ressalvaDeBase?: string | null;
 }): Promise<{ titulo: string; corpo: string } | null> {
   const numeros = [
     `- Posts publicados no período: ${input.medicao.postsPublicados}`,
     input.medicao.postsAgendadosNaoPublicados > 0
       ? `- Posts agendados que ainda não foram ao ar: ${input.medicao.postsAgendadosNaoPublicados}`
       : null,
-    input.medicao.alcance !== null ? `- Alcance: ${input.medicao.alcance}` : null,
+    // O qualificador do alcance vai JUNTO do número: "soma do alcance diário"
+    // não é "contas únicas", e o cliente lê o rótulo, não o código.
+    input.medicao.alcance !== null
+      ? `- Alcance${QUALIFICADOR_DO_ALCANCE[input.medicao.alcanceOrigem ?? "desconhecido"]}: ${input.medicao.alcance}`
+      : null,
     input.medicao.visualizacoes !== null ? `- Visualizações: ${input.medicao.visualizacoes}` : null,
     input.medicao.ressalva ? `- Observação da medição (diga ao cliente): ${input.medicao.ressalva}` : null,
     input.medicao.seguidores !== null ? `- Seguidores: ${input.medicao.seguidores}` : null,
@@ -183,9 +279,15 @@ export async function escreverRelatorio(input: {
   // A COMPARAÇÃO É FEITA EM CÓDIGO, e a IA recebe o resultado pronto. Se ela
   // calculasse, poderia escrever "crescemos 30%" a partir de números que dão
   // 12% — e o percentual é exatamente onde o cliente presta atenção.
-  const evolucao = lerEvolucao(numerosComparaveis(input.medicao), input.mesAnterior ?? null);
+  const evolucao = lerEvolucao(
+    input.mesAtual ?? numerosComparaveis(input.medicao),
+    input.mesAnterior ?? null,
+  );
   const blocoEvolucao = evolucao.temBase
     ? `\n\nCOMPARAÇÃO COM ${input.referenciaAnterior ?? "o mês anterior"} (já calculada — use EXATAMENTE estes números e percentuais, é PROIBIDO recalcular ou arredondar):\n${evolucao.linhas.join("\n")}` +
+      (input.ressalvaDeBase
+        ? `\n\nATENÇÃO — MÉTRICAS FORA DA COMPARAÇÃO: ${input.ressalvaDeBase} Diga isso ao cliente com todas as letras e NÃO calcule nem cite variação percentual dessas métricas. Inventar essa comparação é o erro mais caro que este relatório pode conter.`
+        : "") +
       (evolucao.pioraram.length > 0
         ? `\n\nO QUE PIOROU: ${evolucao.pioraram.join("; ")}. Diga isto com todas as letras numa seção própria e proponha o que faremos a respeito. Esconder queda é o jeito mais rápido de perder a confiança do cliente.`
         : "")
@@ -279,14 +381,16 @@ export async function virarOMes(projectId: string, ciclo: CicloResumido): Promis
     orderBy: { reference: "desc" },
     select: { reference: true, resultsJson: true },
   }).catch(() => null);
-  const numerosAnteriores = anterior
+  const medicaoAnterior = anterior
     ? (() => {
-        try {
-          const m = JSON.parse(anterior.resultsJson) as MedicaoDoMes;
-          return numerosComparaveis(m);
-        } catch { return null; }
+        try { return JSON.parse(anterior.resultsJson) as MedicaoDoMes; }
+        catch { return null; }
       })()
     : null;
+  // AQUI mora a trava do P0: se o mês passado foi medido noutra base, alcance e
+  // engajamento saem da comparação em vez de virarem um percentual inventado.
+  const par = compararComOMesAnterior(medicao, medicaoAnterior);
+  const numerosAnteriores = par.anterior;
 
   const nome = projeto.client?.name ?? "o cliente";
   const relatorio = await escreverRelatorio({
@@ -296,6 +400,8 @@ export async function virarOMes(projectId: string, ciclo: CicloResumido): Promis
     medicao,
     planoDoMes: ciclo.itens.map((i) => i.titulo),
     mesAnterior: numerosAnteriores,
+    mesAtual: par.atual,
+    ressalvaDeBase: par.ressalvaDeBase,
     referenciaAnterior: anterior?.reference ?? null,
     verdade: {
       businessName: nome,
@@ -320,7 +426,9 @@ export async function virarOMes(projectId: string, ciclo: CicloResumido): Promis
   // ── ALERTA DE QUEDA ───────────────────────────────────────────────────────
   // O time precisa saber ANTES do cliente. Uma queda que só aparece quando ele
   // reclama já custou a relação.
-  const evolucao = lerEvolucao(numerosComparaveis(medicao), numerosAnteriores);
+  // Mesma base filtrada do relatório: alertar o time de uma "queda" que é só
+  // mudança de régua faria o time ligar para o cliente por causa de nada.
+  const evolucao = lerEvolucao(par.atual, numerosAnteriores);
   if (evolucao.pioraram.length > 0) {
     await prisma.activityEvent.create({
       data: {

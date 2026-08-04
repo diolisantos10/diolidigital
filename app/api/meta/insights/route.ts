@@ -68,6 +68,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       perfil: conta.perfil,
       periodo: conta.periodo,
       totais: conta.totais,
+      // O rótulo do alcance vem do servidor: quem sabe se o número é "contas
+      // únicas" ou "soma diária" é quem o calculou. A tela usa esta string.
+      alcanceOrigem: conta.alcanceOrigem,
+      rotuloDoAlcance: conta.rotuloDoAlcance,
       ...(conta.aviso ? { aviso: conta.aviso } : {}),
     },
     serie: conta.serie,

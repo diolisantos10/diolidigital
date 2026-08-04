@@ -810,9 +810,19 @@ model SocialPost {
 
 // One record per department approval — persists canvas payload + gate + trace.
 model BrainArtifact {
-  id                String          @id @default(cuid())
-  clientRequestId   String
-  clientRequest     ClientRequestDb @relation(fields: [clientRequestId], references: [id], onDelete: Cascade)
+  id                String           @id @default(cuid())
+  /// Nulo para cliente criado DIRETO (sem briefing público) — mesmo par de
+  /// chaves do SocialPost e do ApprovalRequest. Era obrigatório, e por isso a
+  /// memória de LEITURA DO FEED (department "leitura-do-cliente") não tinha
+  /// onde nascer justamente no cliente-piloto: post direto tem clientId e
+  /// clientRequestId NULO, então a síntese nunca era gravada nem lida e o
+  /// estilo do feed voltava vazio em silêncio.
+  clientRequestId   String?
+  clientRequest     ClientRequestDb? @relation(fields: [clientRequestId], references: [id], onDelete: Cascade)
+  /// O dono quando não há solicitação. Sem FK, pelo mesmo motivo do
+  /// ApprovalRequest: a limpeza total (`/api/admin/reset`) já apaga a tabela
+  /// inteira, e um FK novo redefiniria a tabela para todo mundo.
+  clientId          String?
   department        String
   canvasId          String
   canvasJson        String
@@ -821,8 +831,10 @@ model BrainArtifact {
   version           Int             @default(1)
   status            String          @default("approved")
   approvedAt        DateTime        @default(now())
-  approvedBy        String          @default("internal")
-  createdAt         DateTime        @default(now())
+  approvedBy        String           @default("internal")
+  createdAt         DateTime         @default(now())
+
+  @@index([clientId, department])
 }
 
 // Formal approval flow — one record per department review cycle.

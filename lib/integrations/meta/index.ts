@@ -1,11 +1,14 @@
 // Public surface of the Meta integration — the "contrato de encaixe".
 // The Planner, Social Agent, autonomous engine and portal import from here.
 //
-//   import { publishPost, getInsights, sendWhatsAppMessage } from "@/lib/integrations/meta";
+//   import { publishPost, sendWhatsAppMessage } from "@/lib/integrations/meta";
+//
+// LEITURA de métricas NÃO sai daqui: é `@/lib/integrations/meta/leitura`
+// (`lerMetricasDaConta`, `lerFeedDoCliente`, `lerMetricasDosPosts`).
+// `getInsights` foi removido em 04/08/2026 — pedia métrica descontinuada (impressions) e lia o valor de um dia.
 
 export {
   publishPost,
-  getInsights,
   sendWhatsAppMessage,
   sendWhatsAppDirect,
 } from "./client";
@@ -43,6 +46,5 @@ export type {
   MetaAppCredentials,
   PublishInput,
   PublishResult,
-  InsightsResult,
   WhatsAppMessageInput,
 } from "./types";

@@ -590,10 +590,12 @@ export type ClientRequestDbCreateNestedOneWithoutArtifactsInput = {
   connect?: Prisma.ClientRequestDbWhereUniqueInput
 }
 
-export type ClientRequestDbUpdateOneRequiredWithoutArtifactsNestedInput = {
+export type ClientRequestDbUpdateOneWithoutArtifactsNestedInput = {
   create?: Prisma.XOR<Prisma.ClientRequestDbCreateWithoutArtifactsInput, Prisma.ClientRequestDbUncheckedCreateWithoutArtifactsInput>
   connectOrCreate?: Prisma.ClientRequestDbCreateOrConnectWithoutArtifactsInput
   upsert?: Prisma.ClientRequestDbUpsertWithoutArtifactsInput
+  disconnect?: Prisma.ClientRequestDbWhereInput | boolean
+  delete?: Prisma.ClientRequestDbWhereInput | boolean
   connect?: Prisma.ClientRequestDbWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.ClientRequestDbUpdateToOneWithWhereWithoutArtifactsInput, Prisma.ClientRequestDbUpdateWithoutArtifactsInput>, Prisma.ClientRequestDbUncheckedUpdateWithoutArtifactsInput>
 }

@@ -5,15 +5,22 @@
 // read insights, send WhatsApp). SERVER-ONLY.
 //
 //   await publishPost({ connectionId, platform, format, caption, mediaUrl })
-//   await getInsights(connectionId)
 //   await sendWhatsAppMessage({ connectionId, to, text })
+//
+// LEITURA NÃO MORA MAIS AQUI. `getInsights` foi REMOVIDO em 04/08/2026: ele
+// pedia `metric: "reach,impressions"` — `impressions` está DESCONTINUADA na
+// conta (v22.0; todas as versões em 21/04/2025) — e lia `values[0]`, o valor de
+// UM DIA, chamando isso de alcance do mês. Não tinha chamador vivo, mas o nome
+// certo num código errado é armadilha: o próximo a precisar de métrica o
+// encontraria primeiro. Quem lê a Meta agora é `./leitura.ts`
+// (`lerMetricasDaConta`, `lerFeedDoCliente`, `lerMetricasDosPosts`), que tem
+// janela, série, teto de ritmo e rótulo honesto do alcance.
 
 import { graphGet, graphPost, graphPostJson, GraphApiError } from "./graph";
 import { loadConnectionToken } from "./connections";
 import type {
   PublishInput,
   PublishResult,
-  InsightsResult,
   WhatsAppMessageInput,
 } from "./types";
 
@@ -174,60 +181,6 @@ export async function publishPost(
       return await publishFacebook(conn.externalId, conn.token, input);
     }
     return { ok: false, error: `Publicação não suportada para ${conn.platform}` };
-  } catch (e) {
-    return { ok: false, error: errMessage(e) };
-  }
-}
-
-// ─── Public: getInsights ────────────────────────────────────────────────────
-
-export async function getInsights(
-  workspaceId: string,
-  connectionId: string,
-): Promise<InsightsResult> {
-  const conn = await loadConnectionToken(workspaceId, connectionId);
-  if (!conn) return { ok: false, error: "Conexão Meta não encontrada ou token inválido" };
-
-  try {
-    if (conn.platform === "instagram") {
-      const profile = await graphGet<{ followers_count?: number; media_count?: number }>(
-        conn.externalId,
-        conn.token,
-        { fields: "followers_count,media_count" },
-      );
-      let reach: number | undefined;
-      let impressions: number | undefined;
-      try {
-        const ins = await graphGet<{ data?: Array<{ name: string; values?: Array<{ value: number }> }> }>(
-          `${conn.externalId}/insights`,
-          conn.token,
-          { metric: "reach,impressions", period: "day" },
-        );
-        for (const m of ins.data ?? []) {
-          const v = m.values?.[0]?.value;
-          if (m.name === "reach") reach = v;
-          if (m.name === "impressions") impressions = v;
-        }
-      } catch { /* insights may need extra permissions — non-fatal */ }
-      return {
-        ok: true,
-        followers: profile.followers_count,
-        reach,
-        impressions,
-        raw: profile,
-      };
-    }
-
-    if (conn.platform === "facebook") {
-      const page = await graphGet<{ fan_count?: number; followers_count?: number }>(
-        conn.externalId,
-        conn.token,
-        { fields: "fan_count,followers_count" },
-      );
-      return { ok: true, followers: page.followers_count ?? page.fan_count, raw: page };
-    }
-
-    return { ok: false, error: `Insights não suportado para ${conn.platform}` };
   } catch (e) {
     return { ok: false, error: errMessage(e) };
   }

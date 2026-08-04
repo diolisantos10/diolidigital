@@ -59,6 +59,11 @@ export interface PublishResult {
   error?: string;
 }
 
+/**
+ * @deprecated Órfão desde 04/08/2026, quando `getInsights` foi removido de
+ * `client.ts`. `impressions` está DESCONTINUADA na Graph e este shape não
+ * distingue "não medi" de "deu zero". Use `MetricasDaConta` de `./leitura`.
+ */
 export interface InsightsResult {
   ok: boolean;
   // Normalized headline metrics for the portal. Raw payload kept under `raw`.

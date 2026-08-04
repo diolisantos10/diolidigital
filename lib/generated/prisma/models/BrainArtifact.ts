@@ -37,6 +37,7 @@ export type BrainArtifactSumAggregateOutputType = {
 export type BrainArtifactMinAggregateOutputType = {
   id: string | null
   clientRequestId: string | null
+  clientId: string | null
   department: string | null
   canvasId: string | null
   canvasJson: string | null
@@ -52,6 +53,7 @@ export type BrainArtifactMinAggregateOutputType = {
 export type BrainArtifactMaxAggregateOutputType = {
   id: string | null
   clientRequestId: string | null
+  clientId: string | null
   department: string | null
   canvasId: string | null
   canvasJson: string | null
@@ -67,6 +69,7 @@ export type BrainArtifactMaxAggregateOutputType = {
 export type BrainArtifactCountAggregateOutputType = {
   id: number
   clientRequestId: number
+  clientId: number
   department: number
   canvasId: number
   canvasJson: number
@@ -92,6 +95,7 @@ export type BrainArtifactSumAggregateInputType = {
 export type BrainArtifactMinAggregateInputType = {
   id?: true
   clientRequestId?: true
+  clientId?: true
   department?: true
   canvasId?: true
   canvasJson?: true
@@ -107,6 +111,7 @@ export type BrainArtifactMinAggregateInputType = {
 export type BrainArtifactMaxAggregateInputType = {
   id?: true
   clientRequestId?: true
+  clientId?: true
   department?: true
   canvasId?: true
   canvasJson?: true
@@ -122,6 +127,7 @@ export type BrainArtifactMaxAggregateInputType = {
 export type BrainArtifactCountAggregateInputType = {
   id?: true
   clientRequestId?: true
+  clientId?: true
   department?: true
   canvasId?: true
   canvasJson?: true
@@ -223,7 +229,8 @@ export type BrainArtifactGroupByArgs<ExtArgs extends runtime.Types.Extensions.In
 
 export type BrainArtifactGroupByOutputType = {
   id: string
-  clientRequestId: string
+  clientRequestId: string | null
+  clientId: string | null
   department: string
   canvasId: string
   canvasJson: string
@@ -261,7 +268,8 @@ export type BrainArtifactWhereInput = {
   OR?: Prisma.BrainArtifactWhereInput[]
   NOT?: Prisma.BrainArtifactWhereInput | Prisma.BrainArtifactWhereInput[]
   id?: Prisma.StringFilter<"BrainArtifact"> | string
-  clientRequestId?: Prisma.StringFilter<"BrainArtifact"> | string
+  clientRequestId?: Prisma.StringNullableFilter<"BrainArtifact"> | string | null
+  clientId?: Prisma.StringNullableFilter<"BrainArtifact"> | string | null
   department?: Prisma.StringFilter<"BrainArtifact"> | string
   canvasId?: Prisma.StringFilter<"BrainArtifact"> | string
   canvasJson?: Prisma.StringFilter<"BrainArtifact"> | string
@@ -272,12 +280,13 @@ export type BrainArtifactWhereInput = {
   approvedAt?: Prisma.DateTimeFilter<"BrainArtifact"> | Date | string
   approvedBy?: Prisma.StringFilter<"BrainArtifact"> | string
   createdAt?: Prisma.DateTimeFilter<"BrainArtifact"> | Date | string
-  clientRequest?: Prisma.XOR<Prisma.ClientRequestDbScalarRelationFilter, Prisma.ClientRequestDbWhereInput>
+  clientRequest?: Prisma.XOR<Prisma.ClientRequestDbNullableScalarRelationFilter, Prisma.ClientRequestDbWhereInput> | null
 }
 
 export type BrainArtifactOrderByWithRelationInput = {
   id?: Prisma.SortOrder
-  clientRequestId?: Prisma.SortOrder
+  clientRequestId?: Prisma.SortOrderInput | Prisma.SortOrder
+  clientId?: Prisma.SortOrderInput | Prisma.SortOrder
   department?: Prisma.SortOrder
   canvasId?: Prisma.SortOrder
   canvasJson?: Prisma.SortOrder
@@ -296,7 +305,8 @@ export type BrainArtifactWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.BrainArtifactWhereInput | Prisma.BrainArtifactWhereInput[]
   OR?: Prisma.BrainArtifactWhereInput[]
   NOT?: Prisma.BrainArtifactWhereInput | Prisma.BrainArtifactWhereInput[]
-  clientRequestId?: Prisma.StringFilter<"BrainArtifact"> | string
+  clientRequestId?: Prisma.StringNullableFilter<"BrainArtifact"> | string | null
+  clientId?: Prisma.StringNullableFilter<"BrainArtifact"> | string | null
   department?: Prisma.StringFilter<"BrainArtifact"> | string
   canvasId?: Prisma.StringFilter<"BrainArtifact"> | string
   canvasJson?: Prisma.StringFilter<"BrainArtifact"> | string
@@ -307,12 +317,13 @@ export type BrainArtifactWhereUniqueInput = Prisma.AtLeast<{
   approvedAt?: Prisma.DateTimeFilter<"BrainArtifact"> | Date | string
   approvedBy?: Prisma.StringFilter<"BrainArtifact"> | string
   createdAt?: Prisma.DateTimeFilter<"BrainArtifact"> | Date | string
-  clientRequest?: Prisma.XOR<Prisma.ClientRequestDbScalarRelationFilter, Prisma.ClientRequestDbWhereInput>
+  clientRequest?: Prisma.XOR<Prisma.ClientRequestDbNullableScalarRelationFilter, Prisma.ClientRequestDbWhereInput> | null
 }, "id">
 
 export type BrainArtifactOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
-  clientRequestId?: Prisma.SortOrder
+  clientRequestId?: Prisma.SortOrderInput | Prisma.SortOrder
+  clientId?: Prisma.SortOrderInput | Prisma.SortOrder
   department?: Prisma.SortOrder
   canvasId?: Prisma.SortOrder
   canvasJson?: Prisma.SortOrder
@@ -335,7 +346,8 @@ export type BrainArtifactScalarWhereWithAggregatesInput = {
   OR?: Prisma.BrainArtifactScalarWhereWithAggregatesInput[]
   NOT?: Prisma.BrainArtifactScalarWhereWithAggregatesInput | Prisma.BrainArtifactScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"BrainArtifact"> | string
-  clientRequestId?: Prisma.StringWithAggregatesFilter<"BrainArtifact"> | string
+  clientRequestId?: Prisma.StringNullableWithAggregatesFilter<"BrainArtifact"> | string | null
+  clientId?: Prisma.StringNullableWithAggregatesFilter<"BrainArtifact"> | string | null
   department?: Prisma.StringWithAggregatesFilter<"BrainArtifact"> | string
   canvasId?: Prisma.StringWithAggregatesFilter<"BrainArtifact"> | string
   canvasJson?: Prisma.StringWithAggregatesFilter<"BrainArtifact"> | string
@@ -350,6 +362,7 @@ export type BrainArtifactScalarWhereWithAggregatesInput = {
 
 export type BrainArtifactCreateInput = {
   id?: string
+  clientId?: string | null
   department: string
   canvasId: string
   canvasJson: string
@@ -360,12 +373,13 @@ export type BrainArtifactCreateInput = {
   approvedAt?: Date | string
   approvedBy?: string
   createdAt?: Date | string
-  clientRequest: Prisma.ClientRequestDbCreateNestedOneWithoutArtifactsInput
+  clientRequest?: Prisma.ClientRequestDbCreateNestedOneWithoutArtifactsInput
 }
 
 export type BrainArtifactUncheckedCreateInput = {
   id?: string
-  clientRequestId: string
+  clientRequestId?: string | null
+  clientId?: string | null
   department: string
   canvasId: string
   canvasJson: string
@@ -380,6 +394,7 @@ export type BrainArtifactUncheckedCreateInput = {
 
 export type BrainArtifactUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   department?: Prisma.StringFieldUpdateOperationsInput | string
   canvasId?: Prisma.StringFieldUpdateOperationsInput | string
   canvasJson?: Prisma.StringFieldUpdateOperationsInput | string
@@ -390,12 +405,13 @@ export type BrainArtifactUpdateInput = {
   approvedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   approvedBy?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  clientRequest?: Prisma.ClientRequestDbUpdateOneRequiredWithoutArtifactsNestedInput
+  clientRequest?: Prisma.ClientRequestDbUpdateOneWithoutArtifactsNestedInput
 }
 
 export type BrainArtifactUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  clientRequestId?: Prisma.StringFieldUpdateOperationsInput | string
+  clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   department?: Prisma.StringFieldUpdateOperationsInput | string
   canvasId?: Prisma.StringFieldUpdateOperationsInput | string
   canvasJson?: Prisma.StringFieldUpdateOperationsInput | string
@@ -410,7 +426,8 @@ export type BrainArtifactUncheckedUpdateInput = {
 
 export type BrainArtifactCreateManyInput = {
   id?: string
-  clientRequestId: string
+  clientRequestId?: string | null
+  clientId?: string | null
   department: string
   canvasId: string
   canvasJson: string
@@ -425,6 +442,7 @@ export type BrainArtifactCreateManyInput = {
 
 export type BrainArtifactUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   department?: Prisma.StringFieldUpdateOperationsInput | string
   canvasId?: Prisma.StringFieldUpdateOperationsInput | string
   canvasJson?: Prisma.StringFieldUpdateOperationsInput | string
@@ -439,7 +457,8 @@ export type BrainArtifactUpdateManyMutationInput = {
 
 export type BrainArtifactUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  clientRequestId?: Prisma.StringFieldUpdateOperationsInput | string
+  clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   department?: Prisma.StringFieldUpdateOperationsInput | string
   canvasId?: Prisma.StringFieldUpdateOperationsInput | string
   canvasJson?: Prisma.StringFieldUpdateOperationsInput | string
@@ -465,6 +484,7 @@ export type BrainArtifactOrderByRelationAggregateInput = {
 export type BrainArtifactCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   clientRequestId?: Prisma.SortOrder
+  clientId?: Prisma.SortOrder
   department?: Prisma.SortOrder
   canvasId?: Prisma.SortOrder
   canvasJson?: Prisma.SortOrder
@@ -484,6 +504,7 @@ export type BrainArtifactAvgOrderByAggregateInput = {
 export type BrainArtifactMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   clientRequestId?: Prisma.SortOrder
+  clientId?: Prisma.SortOrder
   department?: Prisma.SortOrder
   canvasId?: Prisma.SortOrder
   canvasJson?: Prisma.SortOrder
@@ -499,6 +520,7 @@ export type BrainArtifactMaxOrderByAggregateInput = {
 export type BrainArtifactMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   clientRequestId?: Prisma.SortOrder
+  clientId?: Prisma.SortOrder
   department?: Prisma.SortOrder
   canvasId?: Prisma.SortOrder
   canvasJson?: Prisma.SortOrder
@@ -559,6 +581,7 @@ export type BrainArtifactUncheckedUpdateManyWithoutClientRequestNestedInput = {
 
 export type BrainArtifactCreateWithoutClientRequestInput = {
   id?: string
+  clientId?: string | null
   department: string
   canvasId: string
   canvasJson: string
@@ -573,6 +596,7 @@ export type BrainArtifactCreateWithoutClientRequestInput = {
 
 export type BrainArtifactUncheckedCreateWithoutClientRequestInput = {
   id?: string
+  clientId?: string | null
   department: string
   canvasId: string
   canvasJson: string
@@ -615,7 +639,8 @@ export type BrainArtifactScalarWhereInput = {
   OR?: Prisma.BrainArtifactScalarWhereInput[]
   NOT?: Prisma.BrainArtifactScalarWhereInput | Prisma.BrainArtifactScalarWhereInput[]
   id?: Prisma.StringFilter<"BrainArtifact"> | string
-  clientRequestId?: Prisma.StringFilter<"BrainArtifact"> | string
+  clientRequestId?: Prisma.StringNullableFilter<"BrainArtifact"> | string | null
+  clientId?: Prisma.StringNullableFilter<"BrainArtifact"> | string | null
   department?: Prisma.StringFilter<"BrainArtifact"> | string
   canvasId?: Prisma.StringFilter<"BrainArtifact"> | string
   canvasJson?: Prisma.StringFilter<"BrainArtifact"> | string
@@ -630,6 +655,7 @@ export type BrainArtifactScalarWhereInput = {
 
 export type BrainArtifactCreateManyClientRequestInput = {
   id?: string
+  clientId?: string | null
   department: string
   canvasId: string
   canvasJson: string
@@ -644,6 +670,7 @@ export type BrainArtifactCreateManyClientRequestInput = {
 
 export type BrainArtifactUpdateWithoutClientRequestInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   department?: Prisma.StringFieldUpdateOperationsInput | string
   canvasId?: Prisma.StringFieldUpdateOperationsInput | string
   canvasJson?: Prisma.StringFieldUpdateOperationsInput | string
@@ -658,6 +685,7 @@ export type BrainArtifactUpdateWithoutClientRequestInput = {
 
 export type BrainArtifactUncheckedUpdateWithoutClientRequestInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   department?: Prisma.StringFieldUpdateOperationsInput | string
   canvasId?: Prisma.StringFieldUpdateOperationsInput | string
   canvasJson?: Prisma.StringFieldUpdateOperationsInput | string
@@ -672,6 +700,7 @@ export type BrainArtifactUncheckedUpdateWithoutClientRequestInput = {
 
 export type BrainArtifactUncheckedUpdateManyWithoutClientRequestInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   department?: Prisma.StringFieldUpdateOperationsInput | string
   canvasId?: Prisma.StringFieldUpdateOperationsInput | string
   canvasJson?: Prisma.StringFieldUpdateOperationsInput | string
@@ -689,6 +718,7 @@ export type BrainArtifactUncheckedUpdateManyWithoutClientRequestInput = {
 export type BrainArtifactSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   clientRequestId?: boolean
+  clientId?: boolean
   department?: boolean
   canvasId?: boolean
   canvasJson?: boolean
@@ -699,12 +729,13 @@ export type BrainArtifactSelect<ExtArgs extends runtime.Types.Extensions.Interna
   approvedAt?: boolean
   approvedBy?: boolean
   createdAt?: boolean
-  clientRequest?: boolean | Prisma.ClientRequestDbDefaultArgs<ExtArgs>
+  clientRequest?: boolean | Prisma.BrainArtifact$clientRequestArgs<ExtArgs>
 }, ExtArgs["result"]["brainArtifact"]>
 
 export type BrainArtifactSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   clientRequestId?: boolean
+  clientId?: boolean
   department?: boolean
   canvasId?: boolean
   canvasJson?: boolean
@@ -715,12 +746,13 @@ export type BrainArtifactSelectCreateManyAndReturn<ExtArgs extends runtime.Types
   approvedAt?: boolean
   approvedBy?: boolean
   createdAt?: boolean
-  clientRequest?: boolean | Prisma.ClientRequestDbDefaultArgs<ExtArgs>
+  clientRequest?: boolean | Prisma.BrainArtifact$clientRequestArgs<ExtArgs>
 }, ExtArgs["result"]["brainArtifact"]>
 
 export type BrainArtifactSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   clientRequestId?: boolean
+  clientId?: boolean
   department?: boolean
   canvasId?: boolean
   canvasJson?: boolean
@@ -731,12 +763,13 @@ export type BrainArtifactSelectUpdateManyAndReturn<ExtArgs extends runtime.Types
   approvedAt?: boolean
   approvedBy?: boolean
   createdAt?: boolean
-  clientRequest?: boolean | Prisma.ClientRequestDbDefaultArgs<ExtArgs>
+  clientRequest?: boolean | Prisma.BrainArtifact$clientRequestArgs<ExtArgs>
 }, ExtArgs["result"]["brainArtifact"]>
 
 export type BrainArtifactSelectScalar = {
   id?: boolean
   clientRequestId?: boolean
+  clientId?: boolean
   department?: boolean
   canvasId?: boolean
   canvasJson?: boolean
@@ -749,25 +782,39 @@ export type BrainArtifactSelectScalar = {
   createdAt?: boolean
 }
 
-export type BrainArtifactOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "clientRequestId" | "department" | "canvasId" | "canvasJson" | "qualityGateJson" | "cognitiveFlowJson" | "version" | "status" | "approvedAt" | "approvedBy" | "createdAt", ExtArgs["result"]["brainArtifact"]>
+export type BrainArtifactOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "clientRequestId" | "clientId" | "department" | "canvasId" | "canvasJson" | "qualityGateJson" | "cognitiveFlowJson" | "version" | "status" | "approvedAt" | "approvedBy" | "createdAt", ExtArgs["result"]["brainArtifact"]>
 export type BrainArtifactInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  clientRequest?: boolean | Prisma.ClientRequestDbDefaultArgs<ExtArgs>
+  clientRequest?: boolean | Prisma.BrainArtifact$clientRequestArgs<ExtArgs>
 }
 export type BrainArtifactIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  clientRequest?: boolean | Prisma.ClientRequestDbDefaultArgs<ExtArgs>
+  clientRequest?: boolean | Prisma.BrainArtifact$clientRequestArgs<ExtArgs>
 }
 export type BrainArtifactIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  clientRequest?: boolean | Prisma.ClientRequestDbDefaultArgs<ExtArgs>
+  clientRequest?: boolean | Prisma.BrainArtifact$clientRequestArgs<ExtArgs>
 }
 
 export type $BrainArtifactPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "BrainArtifact"
   objects: {
-    clientRequest: Prisma.$ClientRequestDbPayload<ExtArgs>
+    clientRequest: Prisma.$ClientRequestDbPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
-    clientRequestId: string
+    /**
+     * Nulo para cliente criado DIRETO (sem briefing público) — mesmo par de
+     * chaves do SocialPost e do ApprovalRequest. Era obrigatório, e por isso a
+     * memória de LEITURA DO FEED (department "leitura-do-cliente") não tinha
+     * onde nascer justamente no cliente-piloto: post direto tem clientId e
+     * clientRequestId NULO, então a síntese nunca era gravada nem lida e o
+     * estilo do feed voltava vazio em silêncio.
+     */
+    clientRequestId: string | null
+    /**
+     * O dono quando não há solicitação. Sem FK, pelo mesmo motivo do
+     * ApprovalRequest: a limpeza total (`/api/admin/reset`) já apaga a tabela
+     * inteira, e um FK novo redefiniria a tabela para todo mundo.
+     */
+    clientId: string | null
     department: string
     canvasId: string
     canvasJson: string
@@ -1172,7 +1219,7 @@ readonly fields: BrainArtifactFieldRefs;
  */
 export interface Prisma__BrainArtifactClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  clientRequest<T extends Prisma.ClientRequestDbDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ClientRequestDbDefaultArgs<ExtArgs>>): Prisma.Prisma__ClientRequestDbClient<runtime.Types.Result.GetResult<Prisma.$ClientRequestDbPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  clientRequest<T extends Prisma.BrainArtifact$clientRequestArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BrainArtifact$clientRequestArgs<ExtArgs>>): Prisma.Prisma__ClientRequestDbClient<runtime.Types.Result.GetResult<Prisma.$ClientRequestDbPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1204,6 +1251,7 @@ export interface Prisma__BrainArtifactClient<T, Null = never, ExtArgs extends ru
 export interface BrainArtifactFieldRefs {
   readonly id: Prisma.FieldRef<"BrainArtifact", 'String'>
   readonly clientRequestId: Prisma.FieldRef<"BrainArtifact", 'String'>
+  readonly clientId: Prisma.FieldRef<"BrainArtifact", 'String'>
   readonly department: Prisma.FieldRef<"BrainArtifact", 'String'>
   readonly canvasId: Prisma.FieldRef<"BrainArtifact", 'String'>
   readonly canvasJson: Prisma.FieldRef<"BrainArtifact", 'String'>
@@ -1610,6 +1658,25 @@ export type BrainArtifactDeleteManyArgs<ExtArgs extends runtime.Types.Extensions
    * Limit how many BrainArtifacts to delete.
    */
   limit?: number
+}
+
+/**
+ * BrainArtifact.clientRequest
+ */
+export type BrainArtifact$clientRequestArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ClientRequestDb
+   */
+  select?: Prisma.ClientRequestDbSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ClientRequestDb
+   */
+  omit?: Prisma.ClientRequestDbOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ClientRequestDbInclude<ExtArgs> | null
+  where?: Prisma.ClientRequestDbWhereInput
 }
 
 /**

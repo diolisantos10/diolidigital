@@ -61,14 +61,19 @@ export async function produzirArtesPendentes(): Promise<ArtesFeitas> {
   // persistida (leitura-do-cliente.ts) — esta rodada dispara a cada 5 minutos
   // pelo despertador, e bater na Graph aqui seria rajada no rate limit da
   // Meta. Sem síntese fresca, vazio — e vazio é vazio: o prompt não menciona
-  // o feed. Memoizado por pedido para não repetir a consulta a cada peça.
+  // o feed. Memoizado por CLIENTE para não repetir a consulta a cada peça.
+  //
+  // A chave é `clientId`, não `clientRequestId`: o post de cliente DIRETO nasce
+  // com clientRequestId nulo (publicacao.ts), e chavear pela solicitação
+  // devolvia "" para sempre — em silêncio, sem erro e sem teste vermelho —
+  // justamente no cliente-piloto, que é o único criado direto.
   const estilosDoFeed = new Map<string, string>();
-  const estiloDoFeedDe = async (clientRequestId: string | null): Promise<string> => {
-    if (!clientRequestId) return "";
-    if (!estilosDoFeed.has(clientRequestId)) {
-      estilosDoFeed.set(clientRequestId, await estiloVisualPersistido(clientRequestId).catch(() => ""));
+  const estiloDoFeedDe = async (clientId: string | null): Promise<string> => {
+    if (!clientId) return "";
+    if (!estilosDoFeed.has(clientId)) {
+      estilosDoFeed.set(clientId, await estiloVisualPersistido(clientId).catch(() => ""));
     }
-    return estilosDoFeed.get(clientRequestId) ?? "";
+    return estilosDoFeed.get(clientId) ?? "";
   };
 
   for (const post of pendentes) {
@@ -100,7 +105,7 @@ export async function produzirArtesPendentes(): Promise<ArtesFeitas> {
     }
 
     const marca = await lerMarca(post.clientId);
-    const estiloDoFeed = await estiloDoFeedDe(post.clientRequestId);
+    const estiloDoFeed = await estiloDoFeedDe(post.clientId);
 
     // ── CARROSSEL: uma arte POR TELA ─────────────────────────────────────────
     // Gerar uma imagem só e repetir seria entregar cinco vezes a mesma coisa.

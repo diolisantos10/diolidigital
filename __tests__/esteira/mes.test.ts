@@ -26,7 +26,11 @@ vi.mock("@/lib/agency/esteira/ciclos", async (orig) => ({
   fecharCiclo,
 }));
 
-import { medirOMes, escreverRelatorio, virarOMes, apresentarCiclo } from "@/lib/agency/esteira/mes";
+import {
+  medirOMes, escreverRelatorio, virarOMes, apresentarCiclo,
+  numerosComparaveis, compararComOMesAnterior, mesmaBaseDeMedicao, versaoDaMedicao,
+  VERSAO_DA_MEDICAO,
+} from "@/lib/agency/esteira/mes";
 
 const CICLO = {
   id: "cy1", referencia: "2026-07", status: "aberto" as const,
@@ -56,6 +60,7 @@ beforeEach(() => {
     perfil: { seguidores: 812, totalDePosts: 96 },
     periodo: { desde: "2026-07-01", ate: "2026-07-31" },
     totais: { alcance: 4200, visualizacoes: 9100, contasComEngajamento: 250, interacoes: 310 },
+    alcanceOrigem: "unicas_no_periodo",
     serie: [{ data: "2026-07-01", alcance: 4200 }],
   });
   fecharCiclo.mockResolvedValue({ fechado: true, proximo: { referencia: "2026-08", id: "cy2" } });
@@ -267,7 +272,12 @@ describe("a virada busca o mês passado e alerta o time", () => {
   beforeEach(() => {
     db.cycle.findFirst.mockResolvedValue({
       reference: "2026-06",
-      resultsJson: JSON.stringify({ postsPublicados: 8, alcance: 9000, seguidores: 900, engajamento: 400, pago: null }),
+      // MESMA base de medição do mês atual (v2, alcance deduplicado) — é o que
+      // torna a comparação legítima. O caso de bases diferentes tem teste próprio.
+      resultsJson: JSON.stringify({
+        schemaVersao: 2, alcanceOrigem: "unicas_no_periodo",
+        postsPublicados: 8, alcance: 9000, seguidores: 900, engajamento: 400, pago: null,
+      }),
     });
     db.activityEvent = { create: vi.fn().mockResolvedValue({}) };
   });
@@ -291,5 +301,80 @@ describe("a virada busca o mês passado e alerta o time", () => {
     db.cycle.findFirst.mockResolvedValue(null);
     await virarOMes("p1", CICLO);
     expect(db.activityEvent.create).not.toHaveBeenCalled();
+  });
+});
+
+// ── A TRAVA DO "+2694%" ─────────────────────────────────────────────────────
+// Até 04/08/2026 `alcance` era o reach de UM DIA; virou o reach do CICLO
+// INTEIRO. Julho gravou 340 (um dia), agosto gravaria 9.500 (31 dias), e o
+// relatório entregue a um cliente pagante anunciaria "+2694%" — sem revisão
+// humana, isso chega nele. Comparar bases diferentes é mentir com gráfico.
+describe("versão da medição: o mês passado medido noutra régua NÃO vira percentual", () => {
+  const v1 = JSON.stringify({
+    // ciclo antigo: nenhum `schemaVersao` gravado — é v1 por definição
+    postsPublicados: 8, alcance: 340, seguidores: 900, engajamento: null, pago: null,
+  });
+
+  it("medição nova nasce carimbada com a versão da base", async () => {
+    const m = await medirOMes("p1", CICLO);
+    expect(versaoDaMedicao(m)).toBe(VERSAO_DA_MEDICAO);
+    expect(m.alcanceOrigem).toBe("unicas_no_periodo");
+  });
+
+  it("ciclo anterior v1 + atual v2 → NENHUMA linha de percentual de alcance", async () => {
+    db.cycle.findFirst.mockResolvedValue({ reference: "2026-06", resultsJson: v1 });
+    await virarOMes("p1", CICLO);
+    const prompt = generate.mock.calls[0]![0].user as string;
+    const blocoDaComparacao = prompt.slice(prompt.indexOf("COMPARAÇÃO COM"));
+    expect(blocoDaComparacao).not.toMatch(/Alcance:.*%/);
+    expect(blocoDaComparacao).not.toContain("1135.3%"); // 340 → 4200
+    expect(blocoDaComparacao).not.toMatch(/Engajamento:.*%/);
+  });
+
+  it("e a IA é MANDADA dizer por que a comparação não existe neste mês", async () => {
+    db.cycle.findFirst.mockResolvedValue({ reference: "2026-06", resultsJson: v1 });
+    await virarOMes("p1", CICLO);
+    const prompt = generate.mock.calls[0]![0].user as string;
+    expect(prompt).toMatch(/MÉTRICAS FORA DA COMPARAÇÃO/);
+    expect(prompt).toMatch(/primeiro mês medido nesta base/);
+  });
+
+  it("base diferente não dispara alerta de queda — o time não liga para o cliente por causa de régua", async () => {
+    // v1 gravou 9.000 (um dia bom); v2 mede 4.200 no ciclo. Isso NÃO é queda.
+    db.cycle.findFirst.mockResolvedValue({
+      reference: "2026-06",
+      resultsJson: JSON.stringify({ postsPublicados: 8, alcance: 9000, seguidores: 812, engajamento: 400, pago: null }),
+    });
+    await virarOMes("p1", CICLO);
+    const alertas = db.activityEvent.create.mock.calls
+      .map((c) => String(c[0].data.message));
+    expect(alertas.join(" ")).not.toMatch(/Alcance/);
+  });
+
+  it("mesma versão, mas alcance de origem diferente, também não compara", async () => {
+    // `soma_diaria` (soma do reach de cada dia) e `unicas_no_periodo` (reach
+    // deduplicado) são números diferentes mesmo dentro da v2.
+    const somaDiaria = {
+      schemaVersao: 2, alcanceOrigem: "soma_diaria" as const,
+      postsPublicados: 8, postsAgendadosNaoPublicados: 0,
+      alcance: 9000, visualizacoes: null, seguidores: 900, engajamento: 400,
+      pago: null, porQueNaoMediu: null,
+    };
+    const unicas = { ...somaDiaria, alcanceOrigem: "unicas_no_periodo" as const, alcance: 4200 };
+    expect(mesmaBaseDeMedicao(unicas, somaDiaria)).toBe(false);
+    expect(numerosComparaveis(unicas, somaDiaria).alcance).toBeNull();
+    expect(numerosComparaveis(unicas, unicas).alcance).toBe(4200);
+  });
+
+  it("mesma base segue comparando normalmente — a trava não pode matar a comparação boa", async () => {
+    const par = compararComOMesAnterior(
+      { schemaVersao: 2, alcanceOrigem: "unicas_no_periodo", postsPublicados: 8, postsAgendadosNaoPublicados: 0,
+        alcance: 5200, visualizacoes: null, seguidores: 812, engajamento: 310, pago: null, porQueNaoMediu: null },
+      { schemaVersao: 2, alcanceOrigem: "unicas_no_periodo", postsPublicados: 8, postsAgendadosNaoPublicados: 0,
+        alcance: 4000, visualizacoes: null, seguidores: 800, engajamento: 300, pago: null, porQueNaoMediu: null },
+    );
+    expect(par.ressalvaDeBase).toBeNull();
+    expect(par.atual.alcance).toBe(5200);
+    expect(par.anterior!.alcance).toBe(4000);
   });
 });

@@ -5,7 +5,11 @@
 // produzir. Como é leitura pura, a trava de plataforma não é acionada — mas as
 // regras de ritmo valem do mesmo jeito: o rate limit de Insights/Instagram é
 // por CONTA e por caso de uso (BUC), e estourar num endpoint bloqueia todos
-// (docs/plataformas/meta/fontes/graph-api-limites-de-taxa.md). Daí o cache.
+// (docs/plataformas/meta/fontes/graph-api-limites-de-taxa.md). Daí o cache —
+// e, desde 04/08/2026, daí também o TETO DE CHAMADAS POR CONEXÃO POR HORA:
+// `desde`/`ate` vêm da query, cada janela distinta fura o cache, e varrer
+// janelas era rajada de GET na mesma conta — a assinatura exata do que
+// restringiu a conta da agência em 03/08 (fontes/integridade-da-conta.md).
 //
 // MÉTRICAS — por que estas e não outras:
 //   `impressions` foi DESCONTINUADA na conta (v22.0; todas as versões em
@@ -66,6 +70,41 @@ function guardarNoCache(chave: string, valor: unknown): void {
 /** Para testes e para depois de reconectar uma conta. */
 export function limparCacheDeLeitura(): void {
   cache.clear();
+  ritmoPorConexao.clear();
+}
+
+// ─── Teto de ritmo por conexão ──────────────────────────────────────────────
+// O cache sozinho NÃO protege: `desde`/`ate` vêm da query e cada janela distinta
+// é miss garantido. Varrer 30 janelas numa conta é ~90 GETs em segundos — a
+// assinatura exata do que restringiu a conta da agência em 03/08/2026
+// ("automação que não segue nossas regras"; fontes/integridade-da-conta.md).
+// Por isso existe um teto DURO de chamadas à Graph por conexão por hora, que
+// não depende do cache ter acertado.
+
+/** Chamadas à Graph que uma conexão pode gastar por hora. Um dashboard inteiro
+ *  com métricas por post custa ~28; o teto deixa passar o uso humano e barra a
+ *  varredura de máquina. */
+export const TETO_DE_CHAMADAS_POR_HORA = 200;
+
+/** A frase que a UI mostra quando o teto estoura. */
+export const FRASE_DO_TETO = "a Meta limitou nosso ritmo — tente daqui a pouco";
+
+const ritmoPorConexao = new Map<string, { hora: number; gastas: number }>();
+
+/** Reserva `custo` chamadas para a conexão nesta hora. `false` = estourou.
+ *  Reserva ANTES de chamar: contar depois deixaria a rajada acontecer. */
+function reservarChamadas(connectionId: string, custo: number): boolean {
+  const hora = Math.floor(Date.now() / 3_600_000);
+  const atual = ritmoPorConexao.get(connectionId);
+  const contador = atual && atual.hora === hora ? atual : { hora, gastas: 0 };
+  ritmoPorConexao.set(connectionId, contador);
+  if (contador.gastas + custo > TETO_DE_CHAMADAS_POR_HORA) return false;
+  contador.gastas += custo;
+  return true;
+}
+
+function erroDeTeto(): ErroDeLeitura {
+  return { ok: false, error: FRASE_DO_TETO };
 }
 
 // ─── Erro da Graph em frase de gente (regra da casa nº 2) ───────────────────
@@ -207,6 +246,9 @@ async function lerFeedPorConta(
   const emCache = doCache<{ posts: PostDoFeed[] }>(chave);
   if (emCache) return { ok: true, ...emCache };
 
+  // Custo: uma chamada por página de 25.
+  if (!reservarChamadas(conta.conexao.id, Math.ceil(limite / TAMANHO_DA_PAGINA))) return erroDeTeto();
+
   const posts: PostDoFeed[] = [];
   try {
     // Primeira página pelo caminho normal; as seguintes pela URL `paging.next`
@@ -291,7 +333,8 @@ export interface MetricasDaConta {
    *  a Meta limita a 30 dias por chamada; quando encolher, `aviso` diz. */
   periodo: { desde: string; ate: string };
   totais: {
-    /** reach — contas únicas alcançadas no período (soma da série diária). */
+    /** reach do período. O SIGNIFICADO depende de `alcanceOrigem` — leia lá
+     *  antes de rotular isto na tela. */
     alcance: number | null;
     /** views — a métrica que SUBSTITUIU impressions (descontinuada v22.0). */
     visualizacoes: number | null;
@@ -300,12 +343,32 @@ export interface MetricasDaConta {
     /** total_interactions — curtidas+comentários+salvos+compart.+respostas. */
     interacoes: number | null;
   };
+  /**
+   * De ONDE veio `totais.alcance`. Sem isto o número é ambíguo, e a ambiguidade
+   * já produziu um relatório errado:
+   *   `unicas_no_periodo` → `reach` com metric_type=total_value: contas ÚNICAS,
+   *      deduplicadas na janela inteira. É o número honesto.
+   *   `soma_diaria`       → a Meta não devolveu o total; somamos a série diária.
+   *      Somar 28 dias conta a MESMA pessoa até 28 vezes: NÃO é "contas únicas".
+   *   `null`              → não medi.
+   */
+  alcanceOrigem: "unicas_no_periodo" | "soma_diaria" | null;
+  /** O rótulo EXATO que a tela deve usar para `totais.alcance`. Vem do servidor
+   *  de propósito: quem calcula o número é quem sabe como chamá-lo. */
+  rotuloDoAlcance: string;
   /** Diária, SÓ de alcance: `reach` é a única métrica de conta com
    *  metric_type=time_series na API vigente. As demais só têm total. */
   serie: PontoDaSerie[];
   /** Ressalva honesta quando algo foi medido parcialmente. */
   aviso?: string;
 }
+
+/** Os rótulos possíveis para `totais.alcance`. A UI NÃO deve inventar o dela. */
+export const ROTULO_DO_ALCANCE = {
+  unicas_no_periodo: "Contas únicas alcançadas no período",
+  soma_diaria: "Soma do alcance diário (repete quem viu em mais de um dia)",
+  naoMedido: "Alcance (não medido)",
+} as const;
 
 /** A Meta recusa janelas de insights de conta maiores que 30 dias. */
 const JANELA_MAXIMA_DIAS = 30;
@@ -315,6 +378,48 @@ function dataISO(d: Date): string {
 }
 function emSegundos(dataAAAA_MM_DD: string, fimDoDia = false): number {
   return Math.floor(Date.parse(`${dataAAAA_MM_DD}T${fimDoDia ? "23:59:59" : "00:00:00"}.000Z`) / 1000);
+}
+function diasEntre(desde: string, ate: string): number {
+  return Math.round((Date.parse(ate) - Date.parse(desde)) / 86_400_000) + 1;
+}
+
+/**
+ * A janela pedida, reduzida a uma FORMA CANÔNICA antes de virar chave de cache.
+ *
+ * A chave do cache é composta com o resultado disto — e é o que impede que
+ * `?ate=2027-01-01`, `?ate=2027-01-02`, ... virem N misses e N rajadas de GET
+ * numa conta que a Meta já pontua por ritmo.
+ *
+ * Três normalizações, todas honestas:
+ *   1. tudo cai no bucket DIÁRIO (hora/fuso descartados);
+ *   2. janela invertida é desinvertida em vez de virar uma janela vazia nova;
+ *   3. `ate` no futuro vira hoje — a Meta não tem dado de amanhã, e deixar o
+ *      futuro passar é criar chave de cache infinita de graça.
+ * A janela ainda é aparada em 30 dias (teto da Meta) logo depois.
+ */
+export function normalizarJanela(
+  janela: { desde?: string; ate?: string },
+  hoje: Date = new Date(),
+): { desde: string; ate: string; avisos: string[] } {
+  const avisos: string[] = [];
+  const hojeISO = dataISO(hoje);
+  const dia = (v: string | undefined): string | null => {
+    if (!v) return null;
+    const t = Date.parse(v.length > 10 ? v : `${v}T00:00:00.000Z`);
+    return Number.isFinite(t) ? dataISO(new Date(t)) : null;
+  };
+
+  let ate = dia(janela.ate) ?? hojeISO;
+  if (ate > hojeISO) ate = hojeISO;
+  let desde = dia(janela.desde) ?? dataISO(new Date(Date.parse(ate) - 27 * 86_400_000));
+  if (desde > ate) [desde, ate] = [ate, desde];
+
+  if (diasEntre(desde, ate) > JANELA_MAXIMA_DIAS) {
+    const desdePedido = desde;
+    desde = dataISO(new Date(Date.parse(ate) - (JANELA_MAXIMA_DIAS - 1) * 86_400_000));
+    avisos.push(`a Meta só permite janelas de ${JANELA_MAXIMA_DIAS} dias — medi de ${desde} a ${ate} (pedido: desde ${desdePedido})`);
+  }
+  return { desde, ate, avisos };
 }
 
 interface RespostaDeInsights {
@@ -338,28 +443,25 @@ export async function lerMetricasDaConta(
   const conta = await contaDoCliente(workspaceId, clientId);
   if ("ok" in conta) return conta;
 
-  // Janela: default últimos 28 dias; nunca mais que 30 (teto da Meta).
-  const hoje = new Date();
-  const ate = janela.ate ?? dataISO(hoje);
-  let desde = janela.desde ?? dataISO(new Date(hoje.getTime() - 27 * 86_400_000));
-  let avisoDeJanela: string | undefined;
-  const dias = Math.round((Date.parse(ate) - Date.parse(desde)) / 86_400_000) + 1;
-  if (Number.isFinite(dias) && dias > JANELA_MAXIMA_DIAS) {
-    const desdePedido = desde;
-    desde = dataISO(new Date(Date.parse(ate) - (JANELA_MAXIMA_DIAS - 1) * 86_400_000));
-    avisoDeJanela = `a Meta só permite janelas de ${JANELA_MAXIMA_DIAS} dias — medi de ${desde} a ${ate} (pedido: desde ${desdePedido})`;
-  }
+  // Janela: canônica (bucket diário) ANTES da chave de cache; nunca mais que
+  // 30 dias (teto da Meta).
+  const { desde, ate, avisos: avisosDeJanela } = normalizarJanela(janela);
 
   const chave = `conta:${conta.conexao.id}:${desde}:${ate}`;
   const emCache = doCache<MetricasDaConta>(chave);
   if (emCache) return { ok: true, ...emCache };
 
+  // Custo: perfil + série + totais = 3 chamadas.
+  if (!reservarChamadas(conta.conexao.id, 3)) return erroDeTeto();
+
   const resultado: MetricasDaConta = {
     perfil: { seguidores: null, totalDePosts: null },
     periodo: { desde, ate },
     totais: { alcance: null, visualizacoes: null, contasComEngajamento: null, interacoes: null },
+    alcanceOrigem: null,
+    rotuloDoAlcance: ROTULO_DO_ALCANCE.naoMedido,
     serie: [],
-    ...(avisoDeJanela ? { aviso: avisoDeJanela } : {}),
+    ...(avisosDeJanela.length > 0 ? { aviso: avisosDeJanela.join("; ") } : {}),
   };
 
   // 1. Perfil. Se ISTO falhar, a conexão inteira está ruim — erro de verdade.
@@ -375,10 +477,14 @@ export async function lerMetricasDaConta(
     return comoErro(e, conta.conexao.id);
   }
 
-  const avisos: string[] = avisoDeJanela ? [avisoDeJanela] : [];
+  const avisos: string[] = [...avisosDeJanela];
   const params = { period: "day", since: emSegundos(desde), until: emSegundos(ate, true) };
+  const diasDaJanela = diasEntre(desde, ate);
 
+  let serieLida = false;
   // 2. A série de alcance — `reach` é a única métrica de conta com time_series.
+  //    Ela serve ao GRÁFICO. O total NÃO sai daqui quando dá para pedir o
+  //    total_value: somar reach diário conta a mesma pessoa uma vez por dia.
   try {
     const r = await graphGet<RespostaDeInsights>(`${conta.igUserId}/insights`, conta.token, {
       ...params, metric: "reach", metric_type: "time_series",
@@ -387,23 +493,29 @@ export async function lerMetricasDaConta(
     resultado.serie = valores
       .filter((v) => typeof v.value === "number")
       .map((v) => ({ data: (v.end_time ?? "").slice(0, 10), alcance: v.value as number }));
-    if (resultado.serie.length > 0) {
-      resultado.totais.alcance = resultado.serie.reduce((s, p) => s + p.alcance, 0);
-    }
+    serieLida = true;
   } catch (e) {
     const f = frasearErroDeLeitura(e);
     if (f.precisaReconectar) return comoErro(e, conta.conexao.id);
     avisos.push(`alcance não medido: ${f.error}`);
   }
 
-  // 3. Os totais sem série (a API só dá total_value para estas).
+  // 3. Os totais. `reach` entra AQUI com metric_type=total_value — conferido na
+  //    referência oficial de IG User Insights em 04/08/2026 (a biblioteca local
+  //    tem LACUNA declarada neste ponto, item 6 da cartilha): `reach` aceita
+  //    total_value E time_series; as demais, só total_value. Custa ZERO chamada
+  //    extra (mesmo GET) e devolve o número deduplicado do período.
   try {
     const r = await graphGet<RespostaDeInsights>(`${conta.igUserId}/insights`, conta.token, {
-      ...params, metric: "views,accounts_engaged,total_interactions", metric_type: "total_value",
+      ...params, metric: "reach,views,accounts_engaged,total_interactions", metric_type: "total_value",
     });
     for (const m of r.data ?? []) {
       const v = m.total_value?.value ?? m.values?.[0]?.value;
       if (typeof v !== "number") continue;
+      if (m.name === "reach") {
+        resultado.totais.alcance = v;
+        resultado.alcanceOrigem = "unicas_no_periodo";
+      }
       if (m.name === "views") resultado.totais.visualizacoes = v;
       if (m.name === "accounts_engaged") resultado.totais.contasComEngajamento = v;
       if (m.name === "total_interactions") resultado.totais.interacoes = v;
@@ -412,6 +524,26 @@ export async function lerMetricasDaConta(
     const f = frasearErroDeLeitura(e);
     if (f.precisaReconectar) return comoErro(e, conta.conexao.id);
     avisos.push(`visualizações/engajamento não medidos: ${f.error}`);
+  }
+
+  // 4. Sem total deduplicado, a soma da série é o que sobra — mas ela vira um
+  //    número com OUTRO significado, e isso viaja no `alcanceOrigem` para não
+  //    ser comparado com um mês medido na outra base.
+  if (resultado.totais.alcance === null && resultado.serie.length > 0) {
+    resultado.totais.alcance = resultado.serie.reduce((s, p) => s + p.alcance, 0);
+    resultado.alcanceOrigem = "soma_diaria";
+  }
+  resultado.rotuloDoAlcance = resultado.alcanceOrigem
+    ? ROTULO_DO_ALCANCE[resultado.alcanceOrigem]
+    : ROTULO_DO_ALCANCE.naoMedido;
+
+  // 5. A série mentia por omissão: conta pequena recebe 6 de 28 dias e o
+  //    gráfico (e, na origem `soma_diaria`, o próprio total) passava como se
+  //    fosse o período inteiro. Dia sem dado agora é dito.
+  //    (quando a chamada da série falhou, o aviso do erro já foi dado acima —
+  //    repetir a cobertura aqui seria dizer duas vezes a mesma coisa)
+  if (serieLida && resultado.serie.length < diasDaJanela) {
+    avisos.push(`alcance medido em ${resultado.serie.length} de ${diasDaJanela} dias do período`);
   }
 
   if (avisos.length > 0) resultado.aviso = avisos.join("; ");
@@ -465,6 +597,9 @@ export async function lerMetricasDosPosts(
   const chave = `posts:${conta.conexao.id}:${[...ids].sort().join(",")}`;
   const emCache = doCache<{ posts: MetricasDoPost[] }>(chave);
   if (emCache) return { ok: true, ...emCache };
+
+  // Custo: 2 chamadas por post (tipo da mídia + insights).
+  if (!reservarChamadas(conta.conexao.id, ids.length * 2)) return erroDeTeto();
 
   const posts: MetricasDoPost[] = [];
   for (const mediaId of ids) {

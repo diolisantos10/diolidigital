@@ -690,6 +690,7 @@ export type SocialPostScalarFieldEnum = (typeof SocialPostScalarFieldEnum)[keyof
 export const BrainArtifactScalarFieldEnum = {
   id: 'id',
   clientRequestId: 'clientRequestId',
+  clientId: 'clientId',
   department: 'department',
   canvasId: 'canvasId',
   canvasJson: 'canvasJson',

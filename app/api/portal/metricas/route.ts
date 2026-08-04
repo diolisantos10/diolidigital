@@ -50,6 +50,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         perfil: conta.perfil,
         periodo: conta.periodo,
         totais: conta.totais,
+        // Mesmo shape de /api/meta/insights: o rótulo do alcance é decidido no
+        // servidor, porque "soma do alcance diário" não é "contas únicas".
+        alcanceOrigem: conta.alcanceOrigem,
+        rotuloDoAlcance: conta.rotuloDoAlcance,
         ...(conta.aviso ? { aviso: conta.aviso } : {}),
       },
       serie: conta.serie,
