@@ -8,6 +8,7 @@ import { useDbBrandUpdates } from "@/lib/hooks/useDbBrandUpdates";
 import { notFound } from "next/navigation";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import RedesDoCliente from "@/components/agency/clients/RedesDoCliente";
+import ReconciliarCarrosseis from "@/components/agency/clients/ReconciliarCarrosseis";
 import Badge from "@/components/agency/ui/Badge";
 import Button from "@/components/agency/ui/Button";
 import Modal from "@/components/agency/ui/Modal";
@@ -487,6 +488,9 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
 
           {/* ── Redes (métricas reais da Meta) ───────────────────────────────── */}
           <RedesDoCliente clientId={id} />
+
+          {/* ── Reconciliar telas dos carrosséis (só Master — a rota também exige) ── */}
+          {currentRole === "master" && <ReconciliarCarrosseis clientId={id} />}
 
           {/* ── Client Tasks ──────────────────────────────────────────────────── */}
           <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
