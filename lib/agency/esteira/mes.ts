@@ -32,6 +32,9 @@ import { fecharCiclo, type CicloResumido } from "@/lib/agency/esteira/ciclos";
 import { falarComOCliente } from "@/lib/agency/esteira/marcos";
 import { conferirPisoDeVerdade, resumirViolacoes, type VerdadeDoCliente } from "@/lib/agency/execution/piso-de-verdade";
 import { lerEvolucao } from "@/lib/agency/esteira/comparacao";
+import {
+  auditDeliverable, revisionStatusDoVeredito, foiReprovadaPelaQualidade,
+} from "@/lib/agency/execution/quality-auditor";
 
 /** Quantos ciclos viram por rodada do relógio. Cada virada é uma chamada de IA
  *  e várias à Meta — vinte de uma vez viraria enxurrada no dia 1º. */
@@ -495,15 +498,59 @@ export async function virarOMes(projectId: string, ciclo: CicloResumido): Promis
     },
   }).catch(() => null);
 
-  if (relatorio) {
+  // ── O RELATÓRIO PASSA POR ÁRBITRO. DE VERDADE. ────────────────────────────
+  //
+  // Até 04/08/2026 esta peça nascia `quality_ok` sem nunca ter sido auditada.
+  // De todas as portas dos fundos encontradas pela auditoria adversarial, esta
+  // era a menos defensável: o relatório mensal é a peça que o cliente MAIS lê e
+  // a única com a qual ele decide se continua pagando. Ela afirma números, faz
+  // comparação com o mês anterior e explica queda. É exatamente o tipo de peça
+  // para a qual o árbitro existe — e era a única que não passava por ele.
+  //
+  // Custo: UMA chamada de IA por projeto por MÊS. Não há argumento de custo.
+  //
+  // Reprovado BLOQUEIA: o texto não é mandado ao cliente, o time é chamado. O
+  // ciclo fecha do mesmo jeito — a operação nunca para por causa de um texto.
+  let vereditoDoRelatorio = relatorio
+    ? await auditDeliverable({
+        deptLabel: "Relatório mensal",
+        title: relatorio.titulo,
+        content: relatorio.corpo,
+        brandContext: [
+          `Negócio: ${nome}`,
+          `Documento: relatório de resultados do mês ${ciclo.referencia}, escrito para o cliente que paga a mensalidade.`,
+          "Todo número deste relatório foi medido, não estimado. Reprove se o texto afirmar resultado, comparação ou causa que os números não sustentam.",
+        ].join("\n"),
+        workspaceId: projeto.workspaceId,
+      }).catch(() => null)
+    : null;
+  // `auditDeliverable` já é fail-safe, mas a virada do mês não pode morrer por
+  // uma leitura auxiliar: erro aqui vira "ninguém olhou", nunca "está bom".
+  if (relatorio && !vereditoDoRelatorio) {
+    vereditoDoRelatorio = { verdict: "nao_auditado", issues: [], note: "a auditoria do relatório falhou", motivo: "erro" };
+  }
+  const relatorioReprovado = vereditoDoRelatorio ? foiReprovadaPelaQualidade(vereditoDoRelatorio.verdict) : false;
+
+  if (relatorio && vereditoDoRelatorio) {
     await prisma.deliverable.create({
       data: {
         projectId, name: relatorio.titulo, type: "report", status: "in_review",
         content: relatorio.corpo, ownerAgentId: "relatorio-mensal", cycleId: ciclo.id,
-        revisionStatus: "quality_ok",
+        revisionStatus: revisionStatusDoVeredito(vereditoDoRelatorio.verdict),
+        lastFeedback: (vereditoDoRelatorio.issues.join("; ") || vereditoDoRelatorio.note).slice(0, 500),
       },
     }).catch(() => null);
-    saida.relatorioEntregue = true;
+    saida.relatorioEntregue = !relatorioReprovado;
+    if (relatorioReprovado) {
+      saida.motivo = `relatório de ${ciclo.referencia} reprovado pela Qualidade — não foi enviado ao cliente`;
+      await prisma.activityEvent.create({
+        data: {
+          workspaceId: projeto.workspaceId, clientId: projeto.clientId, projectId,
+          type: "relatorio_reprovado",
+          message: `${nome} — o relatório de ${ciclo.referencia} foi REPROVADO pela Qualidade e NÃO foi enviado: ${vereditoDoRelatorio.issues.join("; ") || vereditoDoRelatorio.note}. Precisa de gente.`.slice(0, 900),
+        },
+      }).catch(() => { /* best-effort */ });
+    }
   }
 
   // ── ALERTA DE QUEDA ───────────────────────────────────────────────────────
@@ -522,8 +569,11 @@ export async function virarOMes(projectId: string, ciclo: CicloResumido): Promis
     }).catch(() => { /* best-effort */ });
   }
 
-  const resumo = relatorio?.corpo.slice(0, 400)
-    ?? `Ciclo fechado sem relatório escrito. ${medicao.postsPublicados} post(s) publicado(s).`;
+  // O resumo do ciclo é lido por telas dos DOIS lados. Texto reprovado pela
+  // Qualidade não vira resumo de nada: o ciclo fecha com os números crus.
+  const resumo = relatorio && !relatorioReprovado
+    ? relatorio.corpo.slice(0, 400)
+    : `Ciclo fechado ${relatorioReprovado ? "com o relatório barrado pela Qualidade" : "sem relatório escrito"}. ${medicao.postsPublicados} post(s) publicado(s).`;
 
   const { proximo } = await fecharCiclo({
     projectId,
@@ -533,7 +583,9 @@ export async function virarOMes(projectId: string, ciclo: CicloResumido): Promis
   });
   saida.proximaReferencia = proximo?.referencia ?? null;
 
-  if (relatorio) {
+  // Reprovado pela Qualidade NÃO vai ao cliente — nem em trecho. O ciclo já
+  // fechou com os números crus acima; o texto espera gente.
+  if (relatorio && !relatorioReprovado) {
     await falarComOCliente(
       projeto,
       `Fechamos ${ciclo.referencia}. 📊\n\n${trechoComRessalva(relatorio.corpo, par.ressalvaDeBase, 900)}\n\nO plano do mês novo já está sendo montado — te mostro assim que estiver pronto.`,

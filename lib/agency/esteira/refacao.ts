@@ -24,6 +24,7 @@ import { generate } from "@/lib/ai/generate";
 import { TODOS_OS_ESPECIALISTAS } from "@/lib/agency/execution/especialistas";
 import { conferirPisoDeVerdade, resumirViolacoes, type VerdadeDoCliente } from "@/lib/agency/execution/piso-de-verdade";
 import { preservarVersaoAtual, registrarNovaVersao } from "@/lib/agency/esteira/versoes";
+import { revisionStatusDoVeredito } from "@/lib/agency/execution/quality-auditor";
 
 /** Quantas vezes a máquina refaz por pedido do CLIENTE antes de virar gente. */
 export const MAX_REFACOES_DO_CLIENTE = 2;
@@ -186,7 +187,22 @@ export async function refazerPorPedidoDoCliente(input: {
         name: typeof dados.title === "string" && dados.title.trim() ? dados.title : entrega.name,
         content: corpo,
         version: { increment: 1 },
-        revisionStatus: "quality_ok",
+        // ── NINGUÉM DA QUALIDADE OLHOU ESTA VERSÃO — e é assim que fica escrito.
+        //
+        // Até 04/08/2026 gravávamos `quality_ok` aqui. Era mentira de estado:
+        // a peça passou pelo piso determinístico (acima) e por mais nada. Piso
+        // é chão, não é parecer — ele barra dado inventado, não julga tom,
+        // promessa ou aderência ao briefing.
+        //
+        // Por que NÃO chamamos o auditor aqui, ao contrário do relatório mensal
+        // e do pacote reprovado: neste caminho o árbitro é o CLIENTE. Ele pediu
+        // a mudança com as palavras dele, e logo abaixo a aprovação volta a
+        // ficar PENDENTE para ele decidir a versão nova. Um auditor que
+        // reprovasse o que o cliente pediu explicitamente colocaria a máquina
+        // contra o dono do briefing — e o briefing do cliente manda. O que
+        // devíamos ao sistema não era um juiz a mais; era parar de afirmar um
+        // veredito que não existe.
+        revisionStatus: revisionStatusDoVeredito("nao_auditado"),
         clientFeedback: comentario.slice(0, 500),
         lastFeedback: `Refeita a pedido do cliente: ${comentario}`.slice(0, 500),
       },

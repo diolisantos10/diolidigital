@@ -178,8 +178,16 @@ describe("o servidor lê a verdade do cliente e ela vira tokens comparáveis", (
     expect(op.parcelasMax).toBe(3);
     expect(op.canais).toEqual(expect.arrayContaining(["whatsapp", "ifood"]));
     expect(op.prazos).toContain("45 minuto");
-    // O que ele NÃO disse não aparece: nunca houve "sábado", nunca houve boleto.
-    expect(op.dias).not.toContain("sab");
+    // CORRIGIDO na 5ª auditoria (04/08/2026): esta linha afirmava que "sab" NÃO
+    // estava atestado — e era o bug escrito como expectativa. O cliente escreveu
+    // "de terça a domingo"; **sábado está dentro do intervalo que ele disse**. O
+    // extrator não expandia intervalo, então os dias do meio ficavam PROIBIDOS e
+    // todo post de "hoje é sábado, vem!" morria como `horario_contradiz`. Quem
+    // diz "de terça a domingo" disse os seis dias.
+    expect(op.dias).toEqual(expect.arrayContaining(["ter", "qua", "qui", "sex", "sab", "dom"]));
+    // O que ele NÃO disse continua fora: segunda não está no intervalo, e boleto
+    // nunca foi citado.
+    expect(op.dias).not.toContain("seg");
     expect(op.pagamentos).not.toContain("boleto");
   });
 

@@ -23,7 +23,14 @@ const generate = vi.hoisted(() => vi.fn());
 const lerMetricasDaConta = vi.hoisted(() => vi.fn());
 const fecharCiclo = vi.hoisted(() => vi.fn());
 const falarComOCliente = vi.hoisted(() => vi.fn());
+const auditDeliverable = vi.hoisted(() => vi.fn());
 
+// O relatório mensal passa por ÁRBITRO desde 04/08/2026. O tradutor
+// veredito→banco (`revisionStatusDoVeredito`) fica REAL de propósito.
+vi.mock("@/lib/agency/execution/quality-auditor", async (orig) => ({
+  ...(await orig<typeof import("@/lib/agency/execution/quality-auditor")>()),
+  auditDeliverable,
+}));
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
 vi.mock("@/lib/ai/generate", () => ({ generate }));
 vi.mock("@/lib/integrations/meta/leitura", () => ({ lerMetricasDaConta }));
@@ -79,6 +86,7 @@ beforeEach(() => {
   });
   fecharCiclo.mockResolvedValue({ fechado: true, proximo: { referencia: "2026-08", id: "cy2" } });
   falarComOCliente.mockResolvedValue(true);
+  auditDeliverable.mockResolvedValue({ verdict: "aprovado", issues: [], note: "números sustentados" });
   generate.mockResolvedValue({
     ok: true,
     data: {
@@ -193,6 +201,75 @@ describe("a virada do mês — sem ela o cliente vitalício recebia uma entrega 
     generate.mockResolvedValue({ ok: false, error: "sem provedor" });
     await virarOMes("p1", CICLO);
     expect(falarComOCliente).not.toHaveBeenCalled();
+  });
+});
+
+// ── O RELATÓRIO MENSAL PASSA POR ÁRBITRO (5ª auditoria, 04/08/2026) ─────────
+//
+// Esta peça nascia `quality_ok` sem NUNCA ter sido auditada. É a peça que o
+// cliente mais lê e a única com a qual ele decide se continua pagando — afirma
+// números, compara com o mês anterior e explica queda. Era a peça mais exposta
+// da casa e a única fora do alcance do juiz. Custo do conserto: uma chamada de
+// IA por projeto por mês.
+describe("o relatório mensal é AUDITADO de verdade — não se auto-aprova", () => {
+  it("o árbitro é chamado com o relatório inteiro, não com um resumo", async () => {
+    await virarOMes("p1", CICLO);
+    expect(auditDeliverable).toHaveBeenCalledTimes(1);
+    const pedido = auditDeliverable.mock.calls[0]![0];
+    expect(pedido.content).toContain("4.200");
+    expect(pedido.brandContext, "o juiz precisa saber que todo número aqui foi medido").toMatch(/medido, não estimado/);
+  });
+
+  it("METADE 1 — aprovado pelo árbitro → `quality_ok` e o cliente recebe", async () => {
+    const r = await virarOMes("p1", CICLO);
+    expect(db.deliverable.create.mock.calls[0]![0].data.revisionStatus).toBe("quality_ok");
+    expect(r.relatorioEntregue).toBe(true);
+    expect(falarComOCliente).toHaveBeenCalled();
+  });
+
+  it("METADE 2 — REPROVADO pelo árbitro → NÃO vai ao cliente, nem em trecho", async () => {
+    auditDeliverable.mockResolvedValue({ verdict: "reprovado", issues: ["afirma crescimento que os números não mostram"], note: "" });
+    const r = await virarOMes("p1", CICLO);
+
+    expect(db.deliverable.create.mock.calls[0]![0].data.revisionStatus).toBe("quality_flag");
+    expect(r.relatorioEntregue, "reprovado não é entregue").toBe(false);
+    expect(falarComOCliente, "o freio existe justamente para esta peça").not.toHaveBeenCalled();
+  });
+
+  it("reprovado CHAMA GENTE — barrar em silêncio seria o mesmo buraco de antes", async () => {
+    auditDeliverable.mockResolvedValue({ verdict: "reprovado", issues: ["número sem base"], note: "" });
+    await virarOMes("p1", CICLO);
+    const eventos = db.activityEvent.create.mock.calls.map((c) => c[0].data.type as string);
+    expect(eventos).toContain("relatorio_reprovado");
+  });
+
+  it("reprovado NÃO trava a operação: o ciclo fecha e o mês novo nasce", async () => {
+    auditDeliverable.mockResolvedValue({ verdict: "reprovado", issues: ["x"], note: "" });
+    const r = await virarOMes("p1", CICLO);
+    expect(fecharCiclo).toHaveBeenCalledOnce();
+    expect(r.proximaReferencia).toBe("2026-08");
+  });
+
+  it("texto reprovado também não vira o resumo do ciclo — as telas leem isso", async () => {
+    auditDeliverable.mockResolvedValue({ verdict: "reprovado", issues: ["x"], note: "" });
+    await virarOMes("p1", CICLO);
+    expect(fecharCiclo.mock.calls[0]![0].resumo).toMatch(/barrado pela Qualidade/);
+  });
+
+  it("árbitro INDISPONÍVEL: entrega, mas gravada como `quality_nao_auditado` — nunca como aprovada", async () => {
+    // Indisponibilidade não bloqueia (a operação não pode parar porque um
+    // provedor caiu), mas o estado fica declarado e contável.
+    auditDeliverable.mockResolvedValue({ verdict: "nao_auditado", issues: [], note: "NÃO AUDITADA: a IA caiu.", motivo: "ia_indisponivel" });
+    const r = await virarOMes("p1", CICLO);
+    expect(db.deliverable.create.mock.calls[0]![0].data.revisionStatus).toBe("quality_nao_auditado");
+    expect(r.relatorioEntregue).toBe(true);
+  });
+
+  it("auditoria que ESTOURA vira 'ninguém olhou', jamais 'está bom'", async () => {
+    auditDeliverable.mockRejectedValue(new Error("boom"));
+    await virarOMes("p1", CICLO);
+    expect(db.deliverable.create.mock.calls[0]![0].data.revisionStatus).toBe("quality_nao_auditado");
+    expect(fecharCiclo, "e a virada do mês não cai por causa disso").toHaveBeenCalledOnce();
   });
 });
 

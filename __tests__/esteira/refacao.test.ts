@@ -63,6 +63,29 @@ describe("pedido de mudança do cliente é refeito na hora", () => {
     expect(db.deliverable.update).toHaveBeenCalledOnce();
   });
 
+  // ── O ESTADO NÃO MENTE (5ª auditoria, 04/08/2026) ───────────────────────
+  //
+  // Gravávamos `quality_ok` aqui. A peça tinha passado pelo PISO e por mais
+  // nada — piso é chão, não é parecer: ele barra dado inventado, não julga
+  // tom, promessa nem aderência ao briefing. Nenhum auditor olhou esta versão,
+  // e é assim que fica escrito. Quem julga neste caminho é o CLIENTE, na
+  // rodada de aprovação reaberta logo abaixo.
+  it("METADE 1 — a versão nova NÃO se declara aprovada pela Qualidade", async () => {
+    await refazerPorPedidoDoCliente({ clientRequestId: "cr1", department: "social-media", comentario: "muda o tom" });
+    const gravado = db.deliverable.update.mock.calls[0]![0].data.revisionStatus;
+    expect(gravado).not.toBe("quality_ok");
+    expect(gravado).toBe("quality_nao_auditado");
+  });
+
+  it("METADE 2 — e mesmo assim a peça SEGUE: não auditada não é bloqueio", async () => {
+    // Quem pediu a mudança foi o dono do briefing. Um juiz que reprovasse o
+    // que o cliente pediu explicitamente poria a máquina contra ele.
+    const r = await refazerPorPedidoDoCliente({ clientRequestId: "cr1", department: "social-media", comentario: "muda o tom" });
+    expect(r.refeitas).toHaveLength(1);
+    expect(r.escalado).toBe(false);
+    expect(db.approvalRequest.updateMany.mock.calls[0]![0].data.clientVisible).toBe(true);
+  });
+
   it("a aprovação volta a pendente — o 'sim' antigo não vale para a versão nova", async () => {
     await refazerPorPedidoDoCliente({ clientRequestId: "cr1", department: "social-media", comentario: "muda o tom" });
     expect(db.approvalRequest.updateMany.mock.calls[0]![0].data.status).toBe("pending");

@@ -201,8 +201,37 @@ export async function apresentar(projectId: string, opts: { mesmoComRessalva?: b
     data: { visibility: "compartilhado" },
   }).catch(() => { /* best-effort */ });
 
+  // ── A FRASE SÓ AFIRMA A REVISÃO QUE EXISTIU ───────────────────────────────
+  //
+  // A mensagem dizia "revisei tudo antes de te mostrar" SEMPRE — inclusive
+  // quando o pacote inteiro estava `quality_nao_auditado`, ou seja, quando a
+  // casa sabia que nenhum árbitro tinha olhado. Afirmar ao cliente exatamente
+  // a revisão que o próprio código se recusa a declarar é a pior forma da
+  // mentira: ela é dita pela agência, por escrito, no portal dele.
+  //
+  // Só `quality_ok` conta como revisada — `!== "quality_flag"` seria o mesmo
+  // bug com outra roupa. E o texto alternativo NÃO alarma: ele simplesmente
+  // não afirma o que não houve. Quem precisa saber do buraco é o time, e para
+  // isso existe o evento logo abaixo — não a mensagem ao cliente.
+  const revisadas = entregaveis.filter((d) => d.revisionStatus === "quality_ok").length;
+  const semArbitro = entregaveis.filter((d) => d.revisionStatus === "quality_nao_auditado");
+  const tudoRevisado = revisadas === entregaveis.length;
+  const quantas = entregaveis.length === 1 ? "a sua entrega" : `as suas ${entregaveis.length} entregas`;
+
+  if (semArbitro.length > 0) {
+    await prisma.activityEvent.create({
+      data: {
+        workspaceId: projeto.workspaceId, projectId, clientId: projeto.clientId,
+        type: "apresentado_sem_auditoria",
+        message: `${projeto.name}: ${semArbitro.length} de ${entregaveis.length} entrega(s) foram ao cliente SEM auditoria da Qualidade — ${semArbitro.map((d) => d.name).join("; ")}.`.slice(0, 900),
+      },
+    }).catch(() => { /* best-effort: o registro não pode impedir a apresentação */ });
+  }
+
   const linhas = [
-    `Terminamos! 🎉 Preparei ${entregaveis.length === 1 ? "a sua entrega" : `as suas ${entregaveis.length} entregas`} e revisei tudo antes de te mostrar:`,
+    tudoRevisado
+      ? `Terminamos! 🎉 Preparei ${quantas} e revisei tudo antes de te mostrar:`
+      : `Terminamos! 🎉 Preparei ${quantas} para você ver:`,
     "",
     ...entregaveis.map((d) => `• ${d.name}`),
     "",

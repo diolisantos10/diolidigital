@@ -76,13 +76,20 @@ export async function statusDoProjeto(projectId: string): Promise<StatusDoProjet
   const contarPosts = (status: string) =>
     posts.find((p) => p.status === status)?._count._all ?? 0;
 
-  let total = 0, emRevisao = 0, comRessalva = 0, aprovados = 0;
+  let total = 0, emRevisao = 0, comRessalva = 0, aprovados = 0, semAuditoria = 0;
   for (const linha of entregaveis) {
     const n = linha._count._all;
     total += n;
     if (linha.status === "in_review") emRevisao += n;
     if (linha.status === "approved") aprovados += n;
     if (linha.revisionStatus === "quality_flag") comRessalva += n;
+    // O terceiro estado da Qualidade (04/08/2026): ninguém olhou a peça. Não
+    // bloqueia — a operação não pode parar porque um provedor caiu — mas
+    // precisava ser CONTÁVEL. Até aqui só `quality_flag` era contado, e
+    // "quantas foram ao cliente sem árbitro?" não tinha resposta em lugar
+    // nenhum do sistema, embora o dado estivesse gravado no banco desde o
+    // primeiro dia do estado novo.
+    if (linha.revisionStatus === "quality_nao_auditado") semAuditoria += n;
   }
 
   const statusSolicitacao = solicitacao?.status ?? null;
@@ -100,7 +107,7 @@ export async function statusDoProjeto(projectId: string): Promise<StatusDoProjet
     aprovadoPeloClienteEm: projeto.clientApprovedAt,
     execucao: projeto.executionStatus,
     tarefas,
-    entregaveis: { total, emRevisao, comRessalva, aprovados },
+    entregaveis: { total, emRevisao, comRessalva, aprovados, semAuditoria },
     pedidosAbertos: pendencias.length,
     cicloAberto: ciclo !== null,
     redesConectadas: conexoes > 0,

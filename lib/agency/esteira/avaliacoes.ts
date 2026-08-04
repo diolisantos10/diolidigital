@@ -21,6 +21,7 @@
 
 import { prisma } from "@/lib/db/client";
 import { generate } from "@/lib/ai/generate";
+import { buildVerdadeOperacional } from "@/lib/dioli-brain/client-snapshot";
 import { listarAvaliacoes, responderAvaliacao } from "@/lib/integrations/google/client";
 import { conferirPisoDeVerdade, resumirViolacoes, type VerdadeDoCliente } from "@/lib/agency/execution/piso-de-verdade";
 
@@ -65,6 +66,30 @@ export async function cuidarDasAvaliacoes(): Promise<RodadaDeAvaliacoes> {
         }).catch(() => null))
       : null;
 
+    // ── A VERDADE OPERACIONAL, LIDA DO BANCO ──────────────────────────────────
+    //
+    // Este era o 4º ponto do código que montava `VerdadeDoCliente` à mão e
+    // esquecia `operacao`. Sem ela o piso é fail-closed sobre o vazio: toda
+    // classe operacional conta como "não informada" e a resposta é barrada por
+    // repetir o que o próprio cliente já contou. Medido: "estamos abertos de
+    // segunda a sábado das 9h às 19h" caía em `horario_nao_informado`, e "chama
+    // no WhatsApp que a gente agenda" em `canal_nao_informado`. Fail-closed é o
+    // default certo; deixar de ligar a fiação transforma isso em falso
+    // positivo, e falso positivo aqui vira avaliação de 5 estrelas sem resposta.
+    //
+    // A conexão do Google guarda `clientId`, não `clientRequestId` — a verdade
+    // mora na solicitação. Pegamos a mais recente do cliente.
+    const solicitacao = conexao.clientId
+      ? await prisma.clientRequestDb.findFirst({
+          where: { clientId: conexao.clientId },
+          orderBy: { createdAt: "desc" },
+          select: { id: true },
+        }).catch(() => null)
+      : null;
+    const operacao = solicitacao
+      ? (await buildVerdadeOperacional(solicitacao.id).catch(() => null)) ?? undefined
+      : undefined;
+
     for (const a of r.dados.slice(0, MAX_POR_RODADA)) {
       // O Google já diz quando a avaliação tem resposta. Registrar como
       // respondida evita que a agência escreva por cima do que o próprio dono
@@ -87,7 +112,7 @@ export async function cuidarDasAvaliacoes(): Promise<RodadaDeAvaliacoes> {
       }).catch(() => null);
       if (!registro || a.jaRespondida) continue;
 
-      const texto = await escreverResposta({
+      const redacao = await redigirResposta({
         workspaceId: conexao.workspaceId,
         negocio: negocio?.name ?? conexao.title,
         tom: (negocio?.brandBrain?.tone ?? "") as string,
@@ -99,11 +124,28 @@ export async function cuidarDasAvaliacoes(): Promise<RodadaDeAvaliacoes> {
           telefones: [negocio?.phone].filter((v): v is string => !!v),
           emails: [negocio?.email].filter((v): v is string => !!v),
           servicos: [], valores: [],
+          operacao,
         },
       });
+      const texto = redacao.texto;
 
+      // ── DESCARTE NÃO É SILÊNCIO ───────────────────────────────────────────
+      //
+      // Antes, quando a resposta não saía — IA fora do ar ou piso barrando —
+      // o código só empilhava uma linha em `falhas`, que ninguém lê, e seguia.
+      // A avaliação ficava `pendente` no banco PARA SEMPRE: a guarda de
+      // idempotência (`jaExiste`) impede que ela seja processada de novo, então
+      // não havia segunda chance nem gente avisada. Uma avaliação de 5 estrelas
+      // do cliente do cliente morria em silêncio.
+      //
+      // Agora vira ESCALAÇÃO: entra em `avaliacoesEsperando`, aparece no painel
+      // e alguém escreve à mão. Nenhum estado prende trabalho para sempre.
+      // O rascunho barrado pelo piso NÃO é guardado — ele inventou dado, e
+      // guardá-lo como `reply` é convidar alguém a publicá-lo com um clique.
       if (!texto) {
-        saida.falhas.push(`não consegui escrever a resposta para a avaliação de ${a.autor || "um cliente"}`);
+        await escalar(registro.id, null, a, conexao, redacao.motivo, "avaliacao_sem_resposta");
+        saida.escaladas++;
+        saida.falhas.push(`avaliação de ${a.autor || "um cliente"}: ${redacao.motivo}`);
         continue;
       }
 
@@ -161,7 +203,17 @@ export async function cuidarDasAvaliacoes(): Promise<RodadaDeAvaliacoes> {
  * aqui com um agravante: isto vai para um perfil público, embaixo do nome do
  * cliente, e não sai mais de lá.
  */
-export async function escreverResposta(input: {
+export interface RedacaoDeResposta {
+  /** O texto pronto para publicar, ou `null` quando não há resposta publicável. */
+  texto: string | null;
+  /** Por que não saiu. Em português, para virar motivo de escalada legível por
+   *  gente — nunca um código que só o programador entende. */
+  motivo: string;
+}
+
+/** A versão que DIZ POR QUE não saiu. `escreverResposta` é o atalho para quem
+ *  só quer o texto; quem precisa escalar (ou seja, o fluxo real) usa esta. */
+export async function redigirResposta(input: {
   workspaceId: string;
   negocio: string;
   tom: string;
@@ -169,7 +221,7 @@ export async function escreverResposta(input: {
   estrelas: number;
   comentario: string;
   verdade: VerdadeDoCliente;
-}): Promise<string | null> {
+}): Promise<RedacaoDeResposta> {
   const positiva = input.estrelas >= ESTRELAS_PARA_RESPOSTA_AUTOMATICA;
 
   const r = await generate({
@@ -197,43 +249,56 @@ export async function escreverResposta(input: {
     maxTokens: 400,
     workspaceId: input.workspaceId,
   });
-  if (!r.ok) return null;
+  if (!r.ok) return { texto: null, motivo: "a IA que escreve a resposta estava indisponível" };
 
   const texto = String((r.data as Record<string, unknown>)?.resposta ?? "").trim();
-  if (texto.length < 15) return null;
+  if (texto.length < 15) return { texto: null, motivo: "a IA devolveu uma resposta vazia ou curta demais para publicar" };
 
   const piso = conferirPisoDeVerdade(texto, input.verdade);
   if (!piso.aprovado) {
-    console.warn(`[avaliacoes] resposta reprovada no piso: ${resumirViolacoes(piso.violacoes)}`);
-    return null;
+    const parecer = resumirViolacoes(piso.violacoes);
+    console.warn(`[avaliacoes] resposta reprovada no piso: ${parecer}`);
+    return { texto: null, motivo: `a resposta escrita afirmava o que o cliente não informou (${parecer}) — precisa ser escrita por gente` };
   }
-  return texto;
+  return { texto, motivo: "" };
+}
+
+/** Atalho de compatibilidade: só o texto, sem o motivo. */
+export async function escreverResposta(input: Parameters<typeof redigirResposta>[0]): Promise<string | null> {
+  return (await redigirResposta(input)).texto;
 }
 
 // ─── Internos ───────────────────────────────────────────────────────────────
 
 async function escalar(
   reviewId: string,
-  rascunho: string,
+  /** `null` quando NÃO há rascunho aproveitável — texto barrado pelo piso não
+   *  fica guardado como `reply`, para ninguém publicá-lo com um clique. */
+  rascunho: string | null,
   a: { autor: string; estrelas: number; comentario: string },
   conexao: { workspaceId: string; clientId: string | null; title: string; locationName: string },
   motivo?: string,
+  tipo: "avaliacao_negativa" | "avaliacao_sem_resposta" = "avaliacao_negativa",
 ): Promise<void> {
   await prisma.googleReview.update({
     where: { id: reviewId },
     data: {
-      reply: rascunho,
+      ...(rascunho ? { reply: rascunho } : {}),
       status: "escalada",
-      escalatedReason: motivo ?? `${a.estrelas} estrela(s) — resposta a reclamação nunca sai sozinha`,
+      escalatedReason: (motivo || `${a.estrelas} estrela(s) — resposta a reclamação nunca sai sozinha`).slice(0, 500),
     },
   }).catch(() => { /* best-effort */ });
+
+  const chamada = rascunho
+    ? "Rascunho de resposta pronto — precisa de aprovação."
+    : `A máquina NÃO conseguiu escrever a resposta: ${motivo || "motivo não registrado"}. Precisa de gente.`;
 
   await prisma.activityEvent.create({
     data: {
       workspaceId: conexao.workspaceId,
       clientId: conexao.clientId,
-      type: "avaliacao_negativa",
-      message: `${conexao.title || conexao.locationName} recebeu ${a.estrelas} estrela(s) de ${a.autor || "um cliente"}: "${a.comentario.slice(0, 200)}". Rascunho de resposta pronto — precisa de aprovação.`.slice(0, 900),
+      type: tipo,
+      message: `${conexao.title || conexao.locationName} recebeu ${a.estrelas} estrela(s) de ${a.autor || "um cliente"}: "${a.comentario.slice(0, 200)}". ${chamada}`.slice(0, 900),
     },
   }).catch(() => { /* best-effort */ });
 }

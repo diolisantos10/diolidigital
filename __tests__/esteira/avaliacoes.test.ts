@@ -4,18 +4,22 @@ const db = vi.hoisted(() => ({
   googleConnection: { findMany: vi.fn(), update: vi.fn() },
   googleReview: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn(), findMany: vi.fn() },
   client: { findUnique: vi.fn() },
+  clientRequestDb: { findFirst: vi.fn() },
   activityEvent: { create: vi.fn() },
 }));
 const generate = vi.hoisted(() => vi.fn());
 const listarAvaliacoes = vi.hoisted(() => vi.fn());
 const responderAvaliacao = vi.hoisted(() => vi.fn());
+const buildVerdadeOperacional = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
 vi.mock("@/lib/ai/generate", () => ({ generate }));
 vi.mock("@/lib/integrations/google/client", () => ({ listarAvaliacoes, responderAvaliacao }));
+vi.mock("@/lib/dioli-brain/client-snapshot", () => ({ buildVerdadeOperacional }));
 
 import {
-  cuidarDasAvaliacoes, escreverResposta, ESTRELAS_PARA_RESPOSTA_AUTOMATICA,
+  cuidarDasAvaliacoes, escreverResposta, redigirResposta, ESTRELAS_PARA_RESPOSTA_AUTOMATICA,
 } from "@/lib/agency/esteira/avaliacoes";
+import { extrairVerdadeOperacional } from "@/lib/agency/execution/piso-de-verdade";
 
 const CONEXAO = {
   id: "gc1", workspaceId: "ws1", clientId: "c1",
@@ -43,7 +47,9 @@ beforeEach(() => {
   db.googleReview.create.mockResolvedValue({ id: "r1" });
   db.googleReview.update.mockResolvedValue({});
   db.client.findUnique.mockResolvedValue({ name: "Padaria do João", phone: null, email: null, brandBrain: { tone: "acolhedor" } });
+  db.clientRequestDb.findFirst.mockResolvedValue({ id: "cr1" });
   db.activityEvent.create.mockResolvedValue({});
+  buildVerdadeOperacional.mockResolvedValue(null);
   listarAvaliacoes.mockResolvedValue({ ok: true, dados: [ELOGIO] });
   responderAvaliacao.mockResolvedValue({ ok: true, dados: { respondida: true } });
   generate.mockResolvedValue({ ok: true, data: { resposta: "Que alegria ler isso, Maria! A fermentação natural leva 24h e é por isso mesmo. Te esperamos." } });
@@ -138,6 +144,116 @@ describe("o texto da resposta — é público e não sai mais de lá", () => {
   it("IA fora do ar não vira resposta vazia no perfil do cliente", async () => {
     generate.mockResolvedValue({ ok: false, error: "sem provedor" });
     expect(await escreverResposta({ workspaceId: "ws1", negocio: "X", tom: "", autor: "A", estrelas: 5, comentario: "bom", verdade: VERDADE })).toBeNull();
+  });
+});
+
+// ── O 4º CALL SITE DA VERDADE (achado da 5ª auditoria, 04/08/2026) ──────────
+//
+// Este arquivo montava `VerdadeDoCliente` à mão e ESQUECIA `operacao`. Sem ela
+// o piso é fail-closed sobre o vazio: toda classe operacional conta como "não
+// informada", e a resposta é barrada por repetir o que o próprio cliente
+// contou. Fail-closed é o default certo; não ligar a fiação vira falso
+// positivo — e falso positivo aqui é elogio de 5 estrelas sem resposta.
+describe("a verdade OPERACIONAL do cliente chega ao piso", () => {
+  it("lê a verdade do BANCO — não a monta com o que estava por perto", async () => {
+    await cuidarDasAvaliacoes();
+    expect(db.clientRequestDb.findFirst).toHaveBeenCalled();
+    expect(buildVerdadeOperacional).toHaveBeenCalledWith("cr1");
+  });
+
+  it("METADE 1 — SEM a operação ligada, o horário que o cliente informou é barrado", async () => {
+    // O caso medido pela auditoria, com o piso REAL (não mock).
+    const texto = "Que bom que gostou! Estamos abertos de segunda a sábado das 9h às 19h, te esperamos.";
+    expect(
+      await escreverRespostaComOperacao(texto, undefined),
+      "é o falso positivo: o cliente disse isso, e a resposta some",
+    ).toBeNull();
+  });
+
+  it("METADE 2 — COM a operação lida do banco, a mesma resposta passa", async () => {
+    const contadoPeloCliente = extrairVerdadeOperacional(
+      "Atendemos de segunda a sábado, das 9h às 19h. Chama no WhatsApp que a gente agenda.",
+      "Padaria do João",
+    );
+    expect(
+      await escreverRespostaComOperacao("Que bom que gostou! Estamos abertos de segunda a sábado das 9h às 19h, te esperamos.", contadoPeloCliente),
+    ).toBeTruthy();
+  });
+
+  it("METADE 2b — o CTA de WhatsApp também sobrevive quando o cliente já o informou", async () => {
+    const contadoPeloCliente = extrairVerdadeOperacional(
+      "Atendemos de segunda a sábado, das 9h às 19h. Chama no WhatsApp que a gente agenda.",
+      "Padaria do João",
+    );
+    expect(
+      await escreverRespostaComOperacao("Obrigado, Maria! Chama no WhatsApp que a gente agenda seu próximo pedido.", contadoPeloCliente),
+    ).toBeTruthy();
+  });
+
+  it("e o piso continua barrando o que o cliente NUNCA contou", async () => {
+    const contadoPeloCliente = extrairVerdadeOperacional("Atendemos de segunda a sábado, das 9h às 19h.", "Padaria do João");
+    expect(
+      await escreverRespostaComOperacao("Obrigado! Entregamos em toda a zona sul em até 30 minutos.", contadoPeloCliente),
+      "ligar a fiação não pode virar porta aberta",
+    ).toBeNull();
+  });
+});
+
+async function escreverRespostaComOperacao(texto: string, operacao: unknown) {
+  generate.mockResolvedValue({ ok: true, data: { resposta: texto } });
+  return escreverResposta({
+    workspaceId: "ws1", negocio: "Padaria do João", tom: "", autor: "Maria", estrelas: 5,
+    comentario: "o pão é ótimo",
+    verdade: { ...VERDADE, operacao } as never,
+  });
+}
+
+// ── DESCARTE NÃO É SILÊNCIO ─────────────────────────────────────────────────
+//
+// Antes, a resposta que não saía virava uma linha em `falhas` e nada mais. A
+// avaliação ficava `pendente` no banco PARA SEMPRE: a guarda de idempotência
+// impede que ela seja processada de novo, então não havia segunda chance nem
+// gente avisada.
+describe("resposta que não sai VIRA ESCALAÇÃO, não silêncio", () => {
+  it("barrada pelo piso → escalada, com o motivo em português", async () => {
+    generate.mockResolvedValue({ ok: true, data: { resposta: "Obrigado! Liga no (11) 98888-7777 que a gente resolve." } });
+    const r = await cuidarDasAvaliacoes();
+
+    expect(r.escaladas, "ninguém fica esperando para sempre").toBe(1);
+    expect(r.respondidas).toBe(0);
+    const d = db.googleReview.update.mock.calls[0]![0].data;
+    expect(d.status).toBe("escalada");
+    expect(d.escalatedReason).toMatch(/não informou|precisa ser escrita por gente/);
+  });
+
+  it("o rascunho que INVENTOU dado não é guardado — ninguém publica isso com um clique", async () => {
+    generate.mockResolvedValue({ ok: true, data: { resposta: "Obrigado! Liga no (11) 98888-7777 que a gente resolve." } });
+    await cuidarDasAvaliacoes();
+    expect(db.googleReview.update.mock.calls[0]![0].data.reply).toBeUndefined();
+  });
+
+  it("IA fora do ar → também escala; a avaliação não morre em `pendente`", async () => {
+    generate.mockResolvedValue({ ok: false, error: "sem provedor" });
+    const r = await cuidarDasAvaliacoes();
+    expect(r.escaladas).toBe(1);
+    expect(db.googleReview.update.mock.calls[0]![0].data.status).toBe("escalada");
+  });
+
+  it("o time é chamado com todas as letras", async () => {
+    generate.mockResolvedValue({ ok: false, error: "sem provedor" });
+    await cuidarDasAvaliacoes();
+    const e = db.activityEvent.create.mock.calls[0]![0].data;
+    expect(e.type).toBe("avaliacao_sem_resposta");
+    expect(e.message).toMatch(/NÃO conseguiu escrever/);
+  });
+
+  it("`redigirResposta` diz POR QUE não saiu — motivo mudo não vira escalada legível", async () => {
+    generate.mockResolvedValue({ ok: false, error: "sem provedor" });
+    const r = await redigirResposta({
+      workspaceId: "ws1", negocio: "X", tom: "", autor: "A", estrelas: 5, comentario: "bom", verdade: VERDADE,
+    });
+    expect(r.texto).toBeNull();
+    expect(r.motivo).toMatch(/indisponível/);
   });
 });
 

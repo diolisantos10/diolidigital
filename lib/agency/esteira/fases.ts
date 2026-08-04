@@ -52,7 +52,18 @@ export interface RetratoDoProjeto {
   /** idle | pending | running | done | failed */
   execucao?: string | null;
   tarefas: { total: number; entregues: number; produzindo: number; bloqueadas: number };
-  entregaveis: { total: number; emRevisao: number; comRessalva: number; aprovados: number };
+  entregaveis: {
+    total: number;
+    emRevisao: number;
+    comRessalva: number;
+    aprovados: number;
+    /** Quantas foram gravadas SEM que nenhum árbitro as olhasse
+     *  (`quality_nao_auditado`). Estava no banco e não aparecia em lugar
+     *  nenhum: não dava para responder "quantas foram ao cliente sem árbitro?"
+     *  — que é a única pergunta que torna a indisponibilidade não-bloqueante
+     *  aceitável. Opcional só para não quebrar retrato montado à mão em teste. */
+    semAuditoria?: number;
+  };
   /** Pedidos de material abertos e ainda sem resposta do cliente. */
   pedidosAbertos: number;
   /** Existe ciclo mensal em andamento? */

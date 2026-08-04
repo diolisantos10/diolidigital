@@ -235,6 +235,25 @@ export async function buildVerdadeDoCliente(clientRequestId: string): Promise<Ve
   // a peça que AFIRMAR horário, área ou canal é barrada; a que não afirmar nada
   // segue. Perde-se a checagem, nunca a operação — e nunca em silêncio para
   // quem lê o código, porque a direção do erro está escrita aqui.
+  //
+  // A promessa era MENTIRA até 04/08/2026: só a rejeição da query estava
+  // coberta. Com o delegate ausente (`prisma.clientRequestDb` undefined — client
+  // desatualizado, mock incompleto, schema fora de sincronia) o `TypeError`
+  // estourava ANTES do `.catch`, no acesso à propriedade. Escolha feita:
+  // **a promessa vira verdade**, e não o contrário. Quem chama já trata `null`
+  // como "não sei quem é o cliente" e o piso já é duro nesse estado; degradar a
+  // checagem é caro, derrubar a virada do mês de todos os clientes por um
+  // delegate ausente é pior. Comentário que promete o que o código não cumpre é
+  // a pior das duas opções — quem lê para de conferir.
+  try {
+    return await lerVerdadeDoCliente(clientRequestId);
+  } catch (e) {
+    console.warn(`[client-snapshot] não consegui ler a verdade de ${clientRequestId}: ${String(e)}`);
+    return null;
+  }
+}
+
+async function lerVerdadeDoCliente(clientRequestId: string): Promise<VerdadeDoCliente | null> {
   const request = await prisma.clientRequestDb
     .findUnique({ where: { id: clientRequestId } })
     .catch((e: unknown) => {
@@ -292,27 +311,44 @@ export async function buildVerdadeDoCliente(clientRequestId: string): Promise<Ve
     emails: [clean(client?.email), clean(briefing.prospectEmail as string | undefined), clean(briefing.email as string | undefined)]
       .filter((v): v is string => !!v),
     servicos: services,
-    valores: valoresInformados(briefing),
+    valores: valoresInformados(briefing, texto),
     operacao,
   };
 }
 
-/** Os valores que o CLIENTE informou. Faixa ("R$ 1.500 a R$ 3.000") vira os dois
- *  extremos: ele informou os dois. O que não é número não vira número. */
-function valoresInformados(briefing: Record<string, unknown>): number[] {
+/**
+ * Os valores que o CLIENTE informou. Faixa ("R$ 1.500 a R$ 3.000") vira os dois
+ * extremos: ele informou os dois. O que não é número não vira número.
+ *
+ * Duas fontes, e a segunda faltava: as CHAVES DE VERBA do briefing **e os preços
+ * que ele escreveu no texto**. Sem a segunda, `valoresInformados` só conhecia
+ * quanto o cliente paga à agência — e qualquer preço do negócio DELE numa peça
+ * ("Escova a partir de R$ 60,00", que estava escrito no briefing dele) era
+ * barrado como `valor_inventado`. Peça de comércio sem preço quase não existe;
+ * na prática isso era uma mordaça no serviço inteiro.
+ *
+ * O que NÃO mudou: número que não está no texto do cliente continua sendo
+ * invenção. Aqui só se reconhece o que ele mesmo escreveu.
+ */
+function valoresInformados(briefing: Record<string, unknown>, textoDoCliente = ""): number[] {
   const out = new Set<number>();
   const push = (n: number) => {
     if (Number.isFinite(n) && n > 0) out.add(n);
   };
+  const numeros = (v: string) => {
+    for (const m of v.matchAll(/(\d{1,3}(?:\.\d{3})+(?:,\d{2})?|\d+(?:,\d{2})?)/g)) {
+      push(Number(m[1]!.replace(/\./g, "").replace(",", ".")));
+    }
+  };
   for (const chave of ["monthlyBudget", "adsBudget", "budget", "budgetRange", "valor", "price"]) {
     const v = briefing[chave];
     if (typeof v === "number") push(v);
-    if (typeof v === "string") {
-      for (const m of v.matchAll(/(\d{1,3}(?:\.\d{3})+(?:,\d{2})?|\d+(?:,\d{2})?)/g)) {
-        push(Number(m[1]!.replace(/\./g, "").replace(",", ".")));
-      }
-    }
+    if (typeof v === "string") numeros(v);
   }
+  // Preço escrito em prosa. Exige o "R$" grudado no número: sem ele, "atendemos
+  // 30 clientes por dia" viraria "R$ 30 informado" e o piso passaria a aceitar
+  // qualquer preço de dois dígitos.
+  for (const m of textoDoCliente.matchAll(/R\$\s?([\d.]+(?:,\d{2})?)/g)) numeros(m[1]!);
   return [...out];
 }
 

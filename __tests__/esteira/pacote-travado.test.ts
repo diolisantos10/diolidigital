@@ -7,8 +7,16 @@ const db = vi.hoisted(() => ({
   activityEvent: { create: vi.fn() },
 }));
 const generate = vi.hoisted(() => vi.fn());
+const auditDeliverable = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
 vi.mock("@/lib/ai/generate", () => ({ generate }));
+// O árbitro é mockado, o TRADUTOR não: `revisionStatusDoVeredito` é o único
+// ponto que converte veredito em estado de banco, e testar contra o real é o
+// que impede o mapeamento de voltar a ser string escrita à mão.
+vi.mock("@/lib/agency/execution/quality-auditor", async (original) => ({
+  ...(await original<typeof import("@/lib/agency/execution/quality-auditor")>()),
+  auditDeliverable,
+}));
 
 import { destravarPacote, pacotesTravados, MAX_TENTATIVAS_DE_REFAZER } from "@/lib/agency/esteira/pacote-travado";
 
@@ -30,7 +38,10 @@ beforeEach(() => {
     ok: true,
     data: { title: "Plano de Medição v2", summary: "Agora com fontes e cadência definidas.", items: [{ headline: "Alcance", note: "medido no Instagram, semanal" }] },
   });
+  auditDeliverable.mockResolvedValue({ verdict: "aprovado", issues: [], note: "ficou boa" });
 });
+
+const statusGravado = () => db.deliverable.update.mock.calls[0]?.[0].data.revisionStatus;
 
 describe("a agência refaz sozinha o que ela mesma reprovou", () => {
   it("refaz a entrega com a crítica da Qualidade na mão", async () => {
@@ -39,12 +50,65 @@ describe("a agência refaz sozinha o que ela mesma reprovou", () => {
     const prompt = generate.mock.calls[0]![0].user as string;
     expect(prompt, "o especialista precisa saber o que foi apontado").toContain("operacionalização fraca");
   });
+});
 
-  it("a peça refeita volta para 'boa' — a produção não se auto-absolve", async () => {
-    // Marcar como aprovada aqui seria a produção dando o próprio veredito. Ela
-    // volta ao estado normal e a auditoria decide de novo.
+// ── A PORTA DOS FUNDOS DO ÁRBITRO (achado da 5ª auditoria, 04/08/2026) ───────
+//
+// Este arquivo gravava `quality_ok` à mão na peça refeita, confiando numa
+// "próxima auditoria" que NÃO EXISTE neste caminho — `auditDeliverable` só roda
+// dentro de `run-execution`, e o motor é idempotente. Resultado: peça reprovada
+// pela Qualidade voltava a "aprovada" sem juiz, e `apresentar` (que só barra
+// `quality_flag`) a mandava ao cliente.
+describe("a peça refeita PASSA POR ÁRBITRO antes de voltar a ser 'boa'", () => {
+  it("reauditar não é opcional: o árbitro é chamado com o texto NOVO", async () => {
     await destravarPacote("p1");
-    expect(db.deliverable.update.mock.calls[0]![0].data.revisionStatus).toBe("quality_ok");
+    expect(auditDeliverable).toHaveBeenCalledTimes(1);
+    const pedido = auditDeliverable.mock.calls[0]![0];
+    expect(pedido.content, "auditar o texto velho seria auditoria de fachada").toContain("fontes e cadência");
+    expect(pedido.title).toBe("Plano de Medição v2");
+  });
+
+  it("METADE 1 — árbitro APROVOU → aí sim vira `quality_ok` e conta como corrigida", async () => {
+    const r = await destravarPacote("p1");
+    expect(statusGravado()).toBe("quality_ok");
+    expect(r.corrigidas).toHaveLength(1);
+    expect(r.reprovadasDeNovo).toHaveLength(0);
+  });
+
+  it("METADE 2 — árbitro REPROVOU de novo → NÃO sai como aprovada, segue barrada", async () => {
+    auditDeliverable.mockResolvedValue({ verdict: "reprovado", issues: ["ainda promete resultado"], note: "" });
+    const r = await destravarPacote("p1");
+    expect(statusGravado(), "aprovação sem juiz é a porta dos fundos").not.toBe("quality_ok");
+    expect(statusGravado()).toBe("quality_flag");
+    expect(r.corrigidas, "nada 'corrigido' sem árbitro dizendo que sim").toHaveLength(0);
+    expect(r.reprovadasDeNovo).toEqual(["Plano de Medição"]);
+  });
+
+  it("METADE 3 — árbitro INDISPONÍVEL não absolve: a reprovação anterior continua valendo", async () => {
+    // A regra "indisponibilidade não bloqueia" vale para peça que nunca teve
+    // juiz. Aqui a única opinião que existiu diz REPROVADA — e ausência de
+    // parecer novo não derruba parecer velho.
+    auditDeliverable.mockResolvedValue({ verdict: "nao_auditado", issues: [], note: "NÃO AUDITADA: a IA caiu.", motivo: "ia_indisponivel" });
+    const r = await destravarPacote("p1");
+    expect(statusGravado()).toBe("quality_flag");
+    expect(r.corrigidas).toHaveLength(0);
+    expect(r.semArbitro).toEqual(["Plano de Medição"]);
+  });
+
+  it("a peça segue barrada e por isso continua VISÍVEL como travada — nada some", async () => {
+    // `pacotesTravados` procura `quality_flag`. Se a reprovada refeita virasse
+    // `quality_ok` ou `quality_nao_auditado`, ela sairia da lista do Diretor
+    // sem ninguém ter decidido nada.
+    auditDeliverable.mockResolvedValue({ verdict: "reprovado", issues: ["x"], note: "" });
+    await destravarPacote("p1");
+    expect(db.deliverable.update.mock.calls[0]![0].data.version).toEqual({ increment: 1 });
+    expect(statusGravado(), "continua no radar do teto de tentativas").toBe("quality_flag");
+  });
+
+  it("o parecer do árbitro fica escrito na peça — 'por que barrou' precisa ser respondível", async () => {
+    auditDeliverable.mockResolvedValue({ verdict: "reprovado", issues: ["número sem fonte"], note: "" });
+    await destravarPacote("p1");
+    expect(db.deliverable.update.mock.calls[0]![0].data.lastFeedback).toContain("número sem fonte");
   });
 
   it("o especialista refeito é proibido de inventar para preencher", async () => {
