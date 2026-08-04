@@ -8,6 +8,109 @@
 
 ---
 
+## Regra que mede um TRECHO tem de emitir só o TRECHO que mediu
+
+**Decidido em** 2026-08-04 · **por** Diretor, após 3 reprovações da auditoria
+adversarial · **origem:** `lib/agency/execution/leitura-do-cliente.ts:311`
+(`COBERTURA_MINIMA_DE_LASTRO = 1`)
+
+O piso que separa "observei no feed do cliente" de "inventei" foi reprovado três
+vezes **pelo mesmo defeito de forma, não de regra**: ele conferia um pedaço do
+texto e publicava o texto inteiro em volta.
+
+**A consequência que faz disso regra de companhia:** limiar fracionário é fração
+de texto inventado entregue sob o rótulo de observado — e **o adversário calibra
+o enchimento na primeira tentativa**. Com meio de lastro exigido, escreve-se meia
+frase falsa de propósito. Hoje a exigência é total, pedaço por pedaço.
+
+**O que muda para todos:** qualquer trava que valide uma parte e libere o todo
+está errada por construção, em qualquer domínio — preço, prazo, nome de cliente,
+métrica. Ou a régua cobre o que sai, ou o que sai encolhe até caber na régua.
+
+**Corolários que vieram junto, no mesmo dia:**
+
+- **Todo teste de trava precisa de um caso em que o ADVERSÁRIO escolhe a
+  formatação da entrada.** O teste passava porque **o próprio teste escrevia as
+  vírgulas** que o modelo não escreve. Duas vezes o teste foi ajustado para baixo
+  do bug — o que é o mesmo que apagar o bug do relatório.
+- **Telemetria de trava é parte da trava.** O log do piso descrevia a regra
+  antiga; um operador lendo aquele log auditaria um mecanismo que não existia
+  mais (`leitura-do-cliente.ts:515`).
+- **Assimetria deliberada entre afirmar e negar.** Derrubar uma afirmação
+  negativa pode usar régua mais frouxa do que autorizar uma positiva. Não é
+  inconsistência — é o custo do erro sendo diferente nos dois sentidos.
+
+---
+
+## Frase de guarda no fim de um texto que será truncado é frase que some
+
+**Decidido em** 2026-08-04 · **por** Diretor · **origem:** `leitura-do-cliente.ts:665`
+(`blocoComGuarda`, de manhã) e `lib/agency/esteira/mes.ts:284`
+(`trechoComRessalva`, à tarde)
+
+A ressalva mora no fim do texto porque é ali que ela se lê. O corte para caber
+num limite começa pelo fim — **então o corte come exatamente a ressalva**. O
+documento interno avisava; a mensagem que chegava ao cliente, não.
+
+**O que muda para todos:** onde houver ressalva e limite de tamanho na mesma
+superfície, quem trunca reserva o espaço da guarda antes de cortar o corpo. Vale
+para portal, WhatsApp, card de aprovação e relatório.
+
+> **Proposto ao Diretor Geral do Cérebro como regra de companhia.** O motivo de
+> subir: a lição foi aprendida de manhã num arquivo e **repetida à tarde em
+> outro**, por outro caminho. Lição que não atravessa o corredor sozinha é lição
+> que precisa morar no kit — não escrita lá por conta própria.
+
+---
+
+## Métrica que muda de significado precisa mudar de nome ou de versão
+
+**Decidido em** 2026-08-04 · **por** Diretor · **origem:** `lib/agency/esteira/mes.ts:45`
+e `mes.ts:187` (`versaoDaMedicao`)
+
+O alcance passou de "um dia" para "o mês inteiro" **mantendo o campo, o rótulo e
+a linha de comparação**. O relatório teria anunciado **+2694%** ao primeiro
+cliente pagante — número tecnicamente calculado, comercialmente uma mentira.
+
+**O que muda para todos:** medição carrega versão. Comparar números de versões
+diferentes é proibido, e quando a base muda o cliente é avisado com todas as
+letras em vez de receber uma variação percentual bonita.
+
+---
+
+## Estar logado não é ser dono
+
+**Decidido em** 2026-08-04 · **por** Diretor · **origem:** auditoria da onda de
+métricas (`app/api/meta/insights/route.ts:40`)
+
+Rota que aceita um id por query string precisa checar **posse por workspace**,
+mesmo estando atrás de sessão. Sessão prova quem é; não prova de quem é a coisa
+pedida.
+
+**O que muda para todos:** vale para toda rota nova. O sintoma da falta engana —
+tudo funciona perfeitamente enquanto existir uma agência só.
+
+---
+
+## Sobra não é evidência de correspondência
+
+**Decidido em** 2026-08-04 · **por** Diretor · **origem:**
+`scripts/backfill-carrossel-foocci.mjs`
+
+Quando N arquivos sobram e N peças estão vazias, a tentação é casar por ordem.
+**Casamento posicional é decisão humana, atrás de flag explícita, nunca o
+default** — no caso real, o passe por ordem montaria carrossel com o logo e com
+material bruto dentro.
+
+**Corolário do mesmo achado:** o índice de "já tem dono" tem de ler **onde o dono
+realmente mora**. O logo não era referenciado por post nenhum e por isso entrava
+na fila de candidatos como se estivesse livre.
+
+**O que muda para todos:** todo script de backfill nasce com dry-run, imprime
+casados / excluídos / sobras, e só grava com `--apply` depois de alguém ler o log.
+
+---
+
 ## Todo orçamento é precificado — inclusive o de parceiro interno
 
 **Decidido em** 2026-08-03 · **por** CEO

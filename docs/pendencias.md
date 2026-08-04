@@ -1,6 +1,69 @@
 # Pendências — o que está aberto
 
-> Última atualização: 04/08/2026 (madrugada — V3 dos carrosséis no portal).
+> Última atualização: 04/08/2026 (tarde — portal visual, métricas reais e o piso
+> de ancoragem da leitura do cliente).
+
+---
+
+## 🔴 AÇÃO DO CEO — autorizar o backfill das 36 telas da Foocci
+
+**Sem isso, o carrossel no portal continua mostrando só a capa.** As 36 telas
+estão nos Arquivos do cliente; o que falta é ligá-las aos 6 posts.
+
+O protocolo é obrigatório e nesta ordem (`scripts/backfill-carrossel-foocci.mjs`):
+
+1. **dry-run** (sem flag nenhuma) — imprime o plano;
+2. **conferir o log**: quantas casaram, quantas foram excluídas e quantas sobraram;
+3. só então **`--apply`**.
+
+**Sem `--force`** (sobrescreve carrossel já montado) e **sem `--por-ordem`** (o
+passe posicional, que monta carrossel com logo e material bruto). Se o dry-run
+deixar sobra, a sobra é para o CEO olhar — não para o script resolver.
+
+---
+
+## 🟠 04/08/2026 (manhã e tarde) — Três pedidos do CEO entregues em 4 ondas
+
+O CEO pediu três coisas. As três estão no ar, depois de **4 auditorias
+adversariais — 3 delas reprovando o próprio trabalho**.
+
+**1. O card de aprovação virou visual.** O cliente vê imagem e legenda peça por
+peça, no estilo do planner da Meta, em vez de um bloco de texto. O calendário
+ficou clicável, e o carrossel abre num modal navegável.
+
+**2. A agência passou a mostrar resultado real.** Métricas vindas da Meta —
+alcance e engajamento da conta com série no tempo, e desempenho por post —
+aparecem na seção Resultados do portal e na ficha do cliente
+(`lib/integrations/meta/leitura.ts`).
+
+**3. Ninguém produz antes de ler o cliente.** Antes de qualquer especialista
+escrever uma linha, o sistema lê o Instagram real do cliente e sintetiza o que
+achou (`lib/agency/execution/leitura-do-cliente.ts`). Essa leitura entra no
+contexto de **todos** os especialistas e também do auditor.
+
+### O que a auditoria reprovou 3 vezes — e por quê importa
+
+O piso que impede a agência de afirmar ao cliente algo que ela não observou foi
+**reprovado três vezes pelo mesmo defeito**: ele media um pedaço do texto e
+publicava o texto inteiro. Na prática, bastava o cliente ter escrito uma palavra
+verdadeira para uma frase inventada em volta dela sair rotulada como *"observado
+no feed"*. Hoje a exigência é **total**: se um único pedaço do termo não estiver
+no texto real do cliente, o termo inteiro cai
+(`lib/agency/execution/leitura-do-cliente.ts:311`).
+
+**Isso construiu o item 1 dos 4 do P0 da casa** (o piso determinístico). Os
+outros três continuam abertos — ver a seção do P0 abaixo.
+
+### 🔴 A dívida que fica, com todas as letras
+
+| O que | Por que importa | Custo de fechar |
+|---|---|---|
+| **A trava confere PALAVRA, não FRASE** | Recombinar palavras verdadeiras do próprio cliente pode afirmar algo falso: *"bancada de mármore"* + *"bolo rosa"* → *"bancada de mármore rosa"*, entregue como observado. | Depende do LLM-judge que não existe. **Contenção barata já nomeada:** parar de rotular composição como "observado" — o mesmo tratamento que o `tom` já recebe (`leitura-do-cliente.ts:739`). |
+| **Excesso de rigor tem preço** | O tamanho mínimo de palavra é 5 (`leitura-do-cliente.ts:291`): "bolo", "pão", "café", "doce" no singular não casam com o plural, e sob exigência total um pedaço derruba o termo todo. **O piloto vai dizer "não consegui observar o estilo" com frequência alta.** | Baixar para 4 — **não para 3**, senão "coros" ancoraria "cor". Baixo risco, com os testes de colisão verdes. |
+| **O teto de chamadas à Meta é por PROCESSO, não por conta** | Com mais de uma instância o teto real multiplica; depois de um deploy, zera. Foi a Meta restringindo a conta em 03/08 que criou essa regra. (`lib/integrations/meta/leitura.ts:84` — a limitação está escrita no próprio código.) | Contador no banco. |
+| **O `tom` da síntese não tem piso** | Tom é interpretação, e hoje é declarado como hipótese **no prompt** — isso é sugestão, não trava. | Fica como resíduo da onda; `run-execution` já foi consertado. |
+| **Fail-open no TEXTO do card de aprovação** | A mídia foi fechada; o texto vindo de entrega interna ainda passa (`app/api/brain/portal-data/route.ts:218`). | O conserto seco apagaria o corpo de cards **já em voo** — precisa de um passe de dados antes. |
+| **A leitura do feed não é visual** | O "estilo" é lido das legendas, não dos pixels. Se o cliente não descreve o que fotografa, a agência não vê. | Exige provedor com visão. |
 
 ---
 
@@ -346,12 +409,18 @@ cliente: *sem alucinação*, *respeita a marca*, *corresponde ao briefing*, *ris
 verificados*.
 
 **O que precisa existir:**
-1. Piso determinístico — afirmação conferida contra `ClientKnowledgeSnapshot`
-   (nome, número, prazo, serviço contratado)
-2. LLM-judge para os subjetivos, com reprovação **bloqueante** e indisponibilidade
+1. ✅ **Construído em 04/08/2026** — piso determinístico: afirmação conferida
+   contra o texto real do cliente antes de virar "observado"
+   (`lib/agency/execution/leitura-do-cliente.ts`). **Confere palavra, não frase**
+   — ver a dívida no topo deste documento.
+2. 🔴 LLM-judge para os subjetivos, com reprovação **bloqueante** e indisponibilidade
    **não-bloqueante**
-3. Default do registry invertido — departamento sem gate executável = **REPROVADO**
-4. Escada por departamento — sombra até haver evidência
+3. 🔴 Default do registry invertido — departamento sem gate executável = **REPROVADO**
+4. 🔴 Escada por departamento — sombra até haver evidência
+
+> **As 28 checagens desligadas continuam desligadas.** Um dos quatro itens ficou
+> de pé; três não. Quem ler só o item 1 e concluir "o P0 andou" está lendo errado:
+> o piso protege *uma* afirmação de *uma* fonte, não o entregável.
 
 > **Nota de procedência:** esta pendência esteve arquivada por engano no
 > repositório do Foocci até 01/08/2026. Conferido: o Foocci não tem nenhuma
