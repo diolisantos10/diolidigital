@@ -29,7 +29,7 @@ vi.mock("@/lib/agency/esteira/ciclos", async (orig) => ({
 import {
   medirOMes, escreverRelatorio, virarOMes, apresentarCiclo,
   numerosComparaveis, compararComOMesAnterior, mesmaBaseDeMedicao, versaoDaMedicao,
-  metricasForaDaComparacao, VERSAO_DA_MEDICAO,
+  metricasForaDaComparacao, VERSAO_DA_MEDICAO, trechoComRessalva,
 } from "@/lib/agency/esteira/mes";
 
 const CICLO = {
@@ -364,6 +364,49 @@ describe("versão da medição: o mês passado medido noutra régua NÃO vira pe
     expect(corpo).toMatch(/começa no mês que vem/);
     // E a mensagem que vai ao cliente sai do mesmo corpo.
     expect(String(falarComOCliente.mock.calls[0]![1])).toContain("não entram na comparação");
+  });
+
+  // O bug que este teste existe para impedir: a ressalva mora no FIM do corpo,
+  // e a mensagem levava `corpo.slice(0, 900)`. Com relatório curto (o mock do
+  // teste acima) ela cabia e tudo parecia certo; com relatório de tamanho real
+  // o corte caía no miolo e a mensagem saía SEM o aviso — o documento avisava,
+  // a mensagem não. Quem lê a mensagem com o relatório do mês passado na mão é
+  // exatamente quem faz a conta errada.
+  it("com relatório de tamanho REAL, a ressalva sobrevive ao corte da mensagem", async () => {
+    db.cycle.findFirst.mockResolvedValue({ reference: "2026-06", resultsJson: v1 });
+    const secao = "Publicamos no ritmo combinado e o conteúdo de bastidor puxou conversa na caixa de entrada. ";
+    generate.mockResolvedValue({
+      ok: true,
+      data: {
+        title: "Relatório de julho",
+        summary: secao.repeat(12),
+        items: Array.from({ length: 5 }, (_, i) => ({
+          headline: `Frente ${i + 1}`,
+          note: secao.repeat(4),
+        })),
+      },
+    });
+    await virarOMes("p1", CICLO);
+
+    const mensagem = String(falarComOCliente.mock.calls[0]![1]);
+    expect(mensagem.length).toBeGreaterThan(900); // é um corpo grande de verdade
+    expect(mensagem).toContain("não entram na comparação");
+    expect(mensagem).toMatch(/começa no mês que vem/);
+  });
+
+  it("trechoComRessalva corta o miolo, nunca o aviso", () => {
+    const ressalva = "Observação sobre a comparação: alcance não entra na comparação com o mês anterior.";
+    const corpo = `${"miolo ".repeat(600)}\n\n---\n\n${ressalva}`;
+
+    const cortado = trechoComRessalva(corpo, ressalva, 900);
+    expect(cortado).toContain(ressalva);
+    expect(cortado.length).toBeLessThanOrEqual(900);
+
+    // Sem ressalva, é o corte simples de sempre.
+    expect(trechoComRessalva(corpo, null, 50)).toHaveLength(50);
+    // Corpo que não termina com a cauda (a IA não a escreveu): anexa uma vez só.
+    const semCauda = "so o miolo";
+    expect(trechoComRessalva(semCauda, ressalva, 900).match(/Observação sobre a comparação/g)).toHaveLength(1);
   });
 
   it("base diferente não dispara alerta de queda — o time não liga para o cliente por causa de régua", async () => {

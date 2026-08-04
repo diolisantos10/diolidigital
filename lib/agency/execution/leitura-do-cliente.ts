@@ -61,9 +61,14 @@
 //
 // Três travas, nesta ordem de importância:
 //
-//   1. RAZÃO DE COBERTURA (a principal). Um termo só sobrevive se pelo menos
-//      metade dos seus tokens de conteúdo tiver lastro. É o que separa "eco do
-//      que o cliente escreveu" de "uma palavra de álibi carregando a invenção".
+//   1. COBERTURA TOTAL (a principal). Um termo só sobrevive se TODOS os seus
+//      tokens de conteúdo tiverem lastro. Nasceu como "pelo menos metade", e a
+//      terceira auditoria derrubou essa versão em uma tentativa: como o termo é
+//      emitido INTEIRO, qualquer limiar fracionário é a fração de texto sem
+//      lastro que a agência entrega sob o rótulo "observado", e o adversário
+//      calibra o enchimento com tokens verdadeiros ("padaria de forno de
+//      marmore italiano" = 0,5, passava com o mármore junto). Regra que mede um
+//      trecho tem de emitir só o que mediu.
 //   2. SEGMENTAÇÃO TAMBÉM POR CONJUNÇÃO/PREPOSIÇÃO ("com", "e", "ou", "mas"),
 //      porque o modelo não é obrigado a pontuar. Ajuda; não é a trava.
 //   3. LASTRO POR LEMA CONSERVADOR, não por prefixo de 5 letras. O prefixo de 5
