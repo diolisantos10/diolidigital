@@ -62,3 +62,6 @@ next-env.d.ts
 
 # Arquivos de rascunho de sessão (não versionar)
 scratch-*
+
+# Testes de rascunho de auditoria (não versionar)
+__tests__/_scratch/
