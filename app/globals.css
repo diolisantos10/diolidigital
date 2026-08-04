@@ -169,6 +169,27 @@ h1, h2, h3, h4, .font-display {
 }
 .scrollbar-none::-webkit-scrollbar { display: none; }
 
+/* ── Portal do cliente: o espaço que o botão flutuante ocupa ──────────────────
+   O portal tem um botão FIXO no canto inferior direito ("Fale com seu PM").
+   Elemento fixo não empurra nada: sem espaço reservado, ele cobre o FIM do
+   conteúdo — o eixo de datas do gráfico de alcance, a legenda da primeira peça
+   e o rodapé. No celular ainda entra a safe-area do iOS (o traço de home), que
+   come mais uns 34px.
+
+   Quem sabe que o botão existe é o LAYOUT (`.portal-shell`), não cada aba:
+   remendo de padding componente a componente sempre esquece um. Toda medida
+   sai daqui — inclusive a do próprio botão, que se ancora acima da safe-area. */
+.portal-shell {
+  --fab-inset:   1.25rem;                     /* distância do botão até a borda */
+  --fab-altura:  3rem;                        /* altura do botão (h-12) */
+  --fab-respiro: 1.5rem;                      /* respiro entre botão e conteúdo */
+  --fab-safe:    env(safe-area-inset-bottom, 0px);
+  --fab-base:    calc(var(--fab-inset) + var(--fab-safe));
+  --fab-espaco:  calc(var(--fab-base) + var(--fab-altura) + var(--fab-respiro));
+
+  padding-bottom: var(--fab-espaco);
+}
+
 /* ── Site público: linguagem visual "gelada" (Google × Apple) ─────────────────
    Fundos com brilho frio, superfícies de vidro e movimento sutil. Tudo dentro da
    paleta do brand book (navy / cyan / azul), sem fundo sempre escuro.           */

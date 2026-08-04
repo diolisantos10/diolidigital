@@ -441,7 +441,10 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
 
   // ── Shell ─────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[var(--bg-elevated)]">
+    // Sem `min-h-screen` aqui: quem garante a altura e o fundo é o layout do
+    // portal (`.portal-shell`), que também reserva o espaço do botão flutuante.
+    // Dobrar o `min-h-screen` forçaria uma rolagem morta do tamanho da reserva.
+    <div className="bg-[var(--bg-elevated)]">
       {/* Cabeçalho de marca */}
       <header className="relative overflow-hidden" style={{ background: "linear-gradient(135deg, #0B0F2A 0%, #070A1F 55%, #0A0E24 100%)" }}>
         <div className="absolute inset-0 opacity-[0.15]" style={{ background: "radial-gradient(600px 200px at 80% -20%, #9AF5F0, transparent)" }} />
@@ -496,7 +499,9 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
         </div>
       </nav>
 
-      <main className="max-w-[860px] mx-auto px-4 sm:px-5 py-6 pb-28">
+      {/* `pb-10` é só o respiro do conteúdo até o rodapé. O espaço do botão
+          flutuante NÃO mora aqui — mora no layout (`.portal-shell`). */}
+      <main className="max-w-[860px] mx-auto px-4 sm:px-5 py-6 pb-10">
 
         {/* ══ INÍCIO — ordem inegociável: pendência acima de tudo ══ */}
         {secao === "inicio" && (
@@ -863,8 +868,11 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
         <button
           onClick={() => setChatOpen(true)}
           aria-label="Fale com seu PM"
-          style={{ touchAction: "manipulation", background: "linear-gradient(135deg,#0B0F2A,#070A1F)" }}
-          className="fixed bottom-5 right-5 z-40 inline-flex items-center gap-2 h-12 pl-4 pr-5 rounded-full text-white font-semibold text-[13px] shadow-[0_8px_24px_rgba(7,10,31,0.35)] border border-white/10 transition-transform hover:scale-[1.03]"
+          // `--fab-base` = deslocamento + safe-area do iOS: no iPhone o botão
+          // parava por baixo do traço de home. Mesma fonte de medida que o
+          // espaço reservado no layout — os dois nunca saem de sincronia.
+          style={{ touchAction: "manipulation", background: "linear-gradient(135deg,#0B0F2A,#070A1F)", bottom: "var(--fab-base, 1.25rem)" }}
+          className="fixed right-5 z-40 inline-flex items-center gap-2 h-12 pl-4 pr-5 rounded-full text-white font-semibold text-[13px] shadow-[0_8px_24px_rgba(7,10,31,0.35)] border border-white/10 transition-transform hover:scale-[1.03]"
         >
           <svg width="17" height="17" viewBox="0 0 20 20" fill="none" aria-hidden>
             <path d="M4 4h12a1 1 0 011 1v8a1 1 0 01-1 1H8l-3.5 3V14H4a1 1 0 01-1-1V5a1 1 0 011-1z" stroke="#9AF5F0" strokeWidth="1.4" strokeLinejoin="round" />
