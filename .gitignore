@@ -56,3 +56,6 @@ next-env.d.ts
 # Banco local — nunca versionar (contém dado de cliente)
 *.db
 *.db-journal
+
+# Mídia local de desenvolvimento (raizDaMidia fora do Railway) — nunca versionar
+.media/

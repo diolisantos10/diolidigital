@@ -7,6 +7,7 @@ import { useDbActivityEvents } from "@/lib/hooks/useDbActivityEvents";
 import { useDbBrandUpdates } from "@/lib/hooks/useDbBrandUpdates";
 import { notFound } from "next/navigation";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
+import RedesDoCliente from "@/components/agency/clients/RedesDoCliente";
 import Badge from "@/components/agency/ui/Badge";
 import Button from "@/components/agency/ui/Button";
 import Modal from "@/components/agency/ui/Modal";
@@ -337,7 +338,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
                 <span className={`w-1.5 h-1.5 rounded-full ${HEALTH.dot}`} />{HEALTH.label}
               </span>
             </div>
-            <div className="grid grid-cols-6 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
               {[
                 { label: "Projetos Ativos",         value: cp.activeProjects,              neutral: true },
                 { label: "Aguardando Aprovação",     value: cp.pendingApprovals,            warn: true },
@@ -355,7 +356,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
           </div>
         ) : null;
       })()}
-      <div className="grid grid-cols-5 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
         {[
           { label: "Projetos Ativos",  value: activeProjects.length,      alert: false },
           { label: "Em Andamento",     value: inProgressTasks.length,     alert: false },
@@ -379,7 +380,7 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
         ))}
       </div>
 
-      <div className="grid grid-cols-[1fr_300px] gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
 
         {/* ── LEFT COLUMN ─────────────────────────────────────────────────────── */}
         <div className="space-y-5">
@@ -483,6 +484,9 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
               </div>
             )}
           </div>
+
+          {/* ── Redes (métricas reais da Meta) ───────────────────────────────── */}
+          <RedesDoCliente clientId={id} />
 
           {/* ── Client Tasks ──────────────────────────────────────────────────── */}
           <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">

@@ -281,7 +281,10 @@ Levantamento de auditoria (Julho/2026). Prioridade: **P0** crítico → **P3** b
 - **I-15 · Vitrine sem prova social** (depoimentos, logos, portfólio) e sem CTA primário no hero.
 - **I-16 · Briefing esconde o preço** atrás do login (estimativa nunca é mostrada antes do gate).
   → *maior alavanca de conversão: mostrar a faixa de preço antes de pedir e-mail.*
-- **I-17 · Portal promete métricas** ("—" em tudo) mas todas as integrações estão desativadas.
+- **I-17 · ✅ Resolvida (04/08/2026).** O portal agora lê métricas REAIS da Meta
+  (`ResultadosDoCliente` + `/api/portal/metricas`), com os 3 estados de conexão
+  (sem rede / reconectar / medição parcial) e sem comparação inventada. A ficha do
+  cliente na agência tem o espelho (`RedesDoCliente` + `/api/meta/insights`).
 - **I-18 · Validações fracas** (e-mail com `includes("@")`), sem erro por campo.
 - **I-19 · Página de sucesso** sem número de pedido/referência.
 
@@ -299,4 +302,4 @@ _(Regras 4 e 5 estão fixadas no `CLAUDE.md`.)_
 
 ---
 
-_Última atualização: 2026-07-24 · mantenha este arquivo vivo._
+_Última atualização: 2026-08-04 · mantenha este arquivo vivo._

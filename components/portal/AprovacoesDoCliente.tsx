@@ -15,6 +15,8 @@
 // "aprovei a v2" que a Fase 1 apontou como não-registrável.
 
 import { useState } from "react";
+import { CarrosselDeTelas, rotuloDeFormatoDaPeca, type PecaAberta } from "@/components/portal/DetalheDaPeca";
+import { urlDeMidiaDoPortal } from "@/lib/agency/portal/midia";
 
 export interface AprovacaoDoPortal {
   id: string;
@@ -25,6 +27,9 @@ export interface AprovacaoDoPortal {
   version: number | null;
   questionOpen: boolean;
   expiresAt: string | null;
+  /** As peças ESTRUTURADAS do card (imagem + legenda + telas do carrossel).
+   *  Vazio = card antigo, só texto — o reviewNote continua sendo o corpo. */
+  pecas: PecaAberta[];
   comments: Array<{
     id: string;
     authorName: string;
@@ -81,6 +86,60 @@ function dataCurta(iso: string | null): string | null {
   return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
 }
 
+function dataProposta(iso: string | null): string | null {
+  if (!iso) return null;
+  return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "long" });
+}
+
+// ── A peça como o cliente vai vê-la no ar (planner da Meta) ──────────────────
+// Imagem grande + carrossel navegável + legenda completa + data proposta. O
+// cliente aprova O QUE VAI SER PUBLICADO — não um texto descrevendo.
+
+function PecaDoCard({ peca, indice, total, token }: { peca: PecaAberta; indice: number; total: number; token: string }) {
+  const telas = peca.telas.length > 0 ? peca.telas : peca.capa ? [peca.capa] : [];
+  const data = dataProposta(peca.scheduledFor);
+  return (
+    <article className="overflow-hidden rounded-[12px] border border-[var(--border)] bg-white">
+      <div className="flex items-center justify-between gap-2 px-3.5 py-2.5">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="rounded-[6px] bg-[var(--accent)] px-2 py-0.5 text-[11px] font-semibold text-[var(--text-secondary)] shrink-0">
+            {rotuloDeFormatoDaPeca(peca.format)}
+          </span>
+          {peca.pillar && (
+            <span className="truncate text-[11.5px] text-[var(--text-muted)]">{peca.pillar}</span>
+          )}
+        </div>
+        {total > 1 && (
+          <span className="shrink-0 text-[11px] font-medium text-[var(--text-muted)]">
+            Peça {indice + 1} de {total}
+          </span>
+        )}
+      </div>
+
+      {telas.length > 0 ? (
+        <CarrosselDeTelas telas={telas} token={token} alt={rotuloDeFormatoDaPeca(peca.format)} />
+      ) : (
+        <div className="flex aspect-square w-full items-center justify-center bg-[var(--accent)] px-6 text-center">
+          <span className="text-[12.5px] leading-relaxed text-[var(--text-muted)]">arte em produção</span>
+        </div>
+      )}
+
+      <div className="space-y-2 px-3.5 py-3">
+        {data && (
+          <p className="text-[11.5px] font-medium text-[var(--text-secondary)]">
+            📅 Programado para {data}
+          </p>
+        )}
+        {peca.caption ? (
+          <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-[var(--text-primary)]">{peca.caption}</p>
+        ) : (
+          <p className="text-[12.5px] italic text-[var(--text-muted)]">Legenda em produção.</p>
+        )}
+      </div>
+    </article>
+  );
+}
+
 function Badge({ status, questionOpen }: { status: string; questionOpen: boolean }) {
   if (status === "pending" && questionOpen) {
     return (
@@ -110,12 +169,14 @@ function TagVersao({ n }: { n: number | null }) {
 
 function DetalheDaAprovacao({
   ap,
+  token,
   enviando,
   erro,
   onDecidir,
   onVoltar,
 }: {
   ap: AprovacaoDoPortal;
+  token: string;
   enviando: boolean;
   erro: string | null;
   onDecidir: (acao: AcaoDeAprovacao, comentario?: string) => Promise<boolean>;
@@ -126,7 +187,10 @@ function DetalheDaAprovacao({
   const [erroLocal, setErroLocal] = useState<string | null>(null);
 
   const pendente = ap.status === "pending";
-  const corpo = corpoDaPeca(ap);
+  const temPecas = ap.pecas.length > 0;
+  // Com peças estruturadas, o reviewNote não renderiza: ele é o RESUMO em texto
+  // das mesmas legendas — mostrá-lo duplicaria tudo que a peça já mostra.
+  const corpo = temPecas ? null : corpoDaPeca(ap);
   const prazo = dataCurta(ap.expiresAt);
   const vencida = pendente && !ap.questionOpen && ap.expiresAt != null && new Date(ap.expiresAt) < new Date();
 
@@ -165,6 +229,17 @@ function DetalheDaAprovacao({
           </div>
           <Badge status={ap.status} questionOpen={ap.questionOpen} />
         </div>
+
+        {temPecas && (
+          // Largura de post, não de página: em tablet/desktop a peça capada em
+          // ~480px é o tamanho em que o cliente a verá no feed — imagem maior
+          // que isso vira banner e distorce o julgamento.
+          <div className="mt-4 space-y-3 sm:max-w-[480px]">
+            {ap.pecas.map((p, i) => (
+              <PecaDoCard key={p.id} peca={p} indice={i} total={ap.pecas.length} token={token} />
+            ))}
+          </div>
+        )}
 
         {corpo && (
           <div className="mt-4 rounded-[10px] bg-[var(--bg-elevated)] border border-[var(--border)] p-4">
@@ -313,6 +388,7 @@ function DetalheDaAprovacao({
 
 export function AprovacoesDoCliente({
   aprovacoes,
+  token,
   abertaId,
   onAbrir,
   enviando,
@@ -320,6 +396,8 @@ export function AprovacoesDoCliente({
   onDecidir,
 }: {
   aprovacoes: AprovacaoDoPortal[];
+  /** Token de mídia — vazio em modo cookie (A4): a URL sai limpa do DOM. */
+  token: string;
   abertaId: string | null;
   onAbrir: (id: string | null) => void;
   enviando: boolean;
@@ -331,6 +409,7 @@ export function AprovacoesDoCliente({
     return (
       <DetalheDaAprovacao
         ap={aberta}
+        token={token}
         enviando={enviando}
         erro={erro}
         onDecidir={(acao, comentario) => onDecidir(aberta.id, acao, comentario)}
@@ -342,6 +421,20 @@ export function AprovacoesDoCliente({
   const pendentes = aprovacoes.filter((a) => a.status === "pending");
   const decididas = aprovacoes.filter((a) => a.status !== "pending");
 
+  // A miniatura REAL da 1ª peça — a lista já mostra o que o cliente vai
+  // aprovar. Sem mídia, o ícone de sempre.
+  const miniatura = (ap: AprovacaoDoPortal) => {
+    const capa = ap.pecas.find((p) => p.capa)?.capa ?? null;
+    const url = urlDeMidiaDoPortal(capa, token);
+    if (!url) {
+      return <span aria-hidden className="shrink-0 w-11 h-11 rounded-[9px] bg-[var(--accent)] flex items-center justify-center text-[15px]">🖼️</span>;
+    }
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={url} alt="" loading="lazy" className="shrink-0 w-11 h-11 rounded-[9px] object-cover border border-[var(--border)]" />
+    );
+  };
+
   const linha = (ap: AprovacaoDoPortal) => (
     <button
       key={ap.id}
@@ -349,12 +442,15 @@ export function AprovacoesDoCliente({
       style={{ touchAction: "manipulation" }}
       className="w-full flex items-center gap-3 px-4 py-3.5 text-left border-t border-[var(--border)] first:border-t-0 hover:bg-[var(--bg-elevated)] transition-colors"
     >
-      <span aria-hidden className="shrink-0 w-9 h-9 rounded-[9px] bg-[var(--accent)] flex items-center justify-center text-[15px]">🖼️</span>
+      {miniatura(ap)}
       <span className="min-w-0 flex-1">
         <span className="block text-[13.5px] font-semibold text-[var(--text-primary)] leading-snug">{tituloDaPeca(ap)}</span>
         <span className="text-[12px] text-[var(--text-secondary)] flex items-center gap-1.5 mt-0.5 flex-wrap">
           {ap.department}
           <TagVersao n={ap.version} />
+          {ap.pecas.length > 0 && (
+            <span>· {ap.pecas.length} {ap.pecas.length === 1 ? "peça" : "peças"}</span>
+          )}
           {ap.status === "pending" && (ap.questionOpen
             ? <span>· prazo pausado</span>
             : dataCurta(ap.expiresAt) && <span>· prazo {dataCurta(ap.expiresAt)}</span>)}

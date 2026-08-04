@@ -26,6 +26,7 @@ import {
   type AprovacaoDoPortal,
   type AcaoDeAprovacao,
 } from "@/components/portal/AprovacoesDoCliente";
+import { ResultadosDoCliente } from "@/components/portal/ResultadosDoCliente";
 import { ChatDrawer } from "@/components/agency/portal/FloatingChat";
 import EsteiraDoCliente from "@/components/agency/portal/EsteiraDoCliente";
 
@@ -61,6 +62,8 @@ interface PortalPost {
   format: string;
   pillar: string | null;
   mediaUrl: string | null;
+  /** As telas do carrossel (ordem de publicação) — o clique abre a peça inteira. */
+  telas?: string[];
   scheduledFor: string | null;
   status: string;
 }
@@ -269,7 +272,13 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
         setError(json.reason === "expired" ? "expired" : json.reason === "revoked" ? "revoked" : "invalid");
         return;
       }
-      setData(await res.json());
+      const json = await res.json();
+      // Defesa barata: se um deploy antigo da API não mandar `pecas`, o card
+      // volta ao comportamento só-texto em vez de quebrar a tela inteira.
+      json.approvals = (Array.isArray(json.approvals) ? json.approvals : []).map(
+        (a: AprovacaoDoPortal) => ({ ...a, pecas: Array.isArray(a.pecas) ? a.pecas : [] }),
+      );
+      setData(json);
       setError(null);
     } catch {
       setError("network");
@@ -717,6 +726,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
         {secao === "aprovacoes" && (
           <AprovacoesDoCliente
             aprovacoes={data.approvals}
+            token={tokenDeMidia}
             abertaId={aprovacaoAberta}
             onAbrir={(id) => irPara("aprovacoes", id)}
             enviando={enviando}
@@ -725,26 +735,18 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
           />
         )}
 
-        {/* ══ RESULTADOS — regra dura: métrica sem meta+comparação+ação não entra ══ */}
+        {/* ══ RESULTADOS — os números reais das redes (pedido do CEO, 04/08).
+            Número SEM meta sai com o período visível; comparação inventada não
+            entra. Sem conexão / token vencido são tela, não erro. ══ */}
         {secao === "resultados" && (
           <div className="space-y-5">
             <div>
               <h2 className="text-[18px] font-bold text-[var(--text-primary)]">Resultados</h2>
               <p className="text-[12.5px] text-[var(--text-secondary)] mt-0.5">
-                Só entra aqui métrica com meta, comparação e ação recomendada — número solto não informa nada.
+                Os números do seu Instagram, direto da Meta — sem enfeite e sem estimativa.
               </p>
             </div>
-            {/* Estado honesto: nenhum ciclo fechado com dado completo ainda.
-                Um parágrafo, não tiles (spec 1.4 — sentença de morte dos "—"). */}
-            <div className="bg-white rounded-[14px] border border-[var(--border)] p-8 text-center shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
-              <div aria-hidden className="text-[22px] mb-2">⏳</div>
-              <p className="text-[14px] font-semibold text-[var(--text-primary)]">Resultados chegam no fechamento do 1º ciclo</p>
-              <p className="text-[12.5px] text-[var(--text-secondary)] mt-1.5 max-w-[46ch] mx-auto leading-relaxed">
-                {esteira?.ciclo
-                  ? `O ciclo ${esteira.ciclo.referencia} está em andamento. No fechamento, você vê cada número com a meta do ciclo, a comparação e o que faremos a respeito.`
-                  : "Quando o primeiro ciclo do seu projeto fechar, você vê cada número com a meta, a comparação com o período anterior e a ação recomendada."}
-              </p>
-            </div>
+            <ResultadosDoCliente token={token} onIrParaConta={() => irPara("conta")} />
           </div>
         )}
 

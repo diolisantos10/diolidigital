@@ -18,8 +18,9 @@
 //    "Esperando sua aprovação" e não "draft" — que é o estado em que a peça
 //    mais precisa dele e o único que ele pode destravar.
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { urlDeMidiaDoPortal } from "@/lib/agency/portal/midia";
+import { DetalheDaPeca } from "@/components/portal/DetalheDaPeca";
 
 export interface PecaDoCalendario {
   id: string;
@@ -27,6 +28,8 @@ export interface PecaDoCalendario {
   format: string;
   pillar: string | null;
   mediaUrl: string | null;
+  /** As telas do carrossel na ordem de publicação — vazio = só a capa. */
+  telas?: string[];
   scheduledFor: string | null;
   status: string;
 }
@@ -79,6 +82,10 @@ export function CalendarioDoMes({
    *  sem aprovação criada, ele não promete uma aba de Aprovações vazia. */
   aprovacoesPendentes?: number;
 }) {
+  // O post aberto — o clique no card mostra a peça INTEIRA (carrossel + legenda
+  // completa), não só a miniatura. Pedido literal do CEO em 04/08/2026.
+  const [abertaId, setAbertaId] = useState<string | null>(null);
+
   const porMes = useMemo(() => {
     const mapa = new Map<string, PecaDoCalendario[]>();
     for (const p of [...pecas].sort((a, b) => (a.scheduledFor ?? "").localeCompare(b.scheduledFor ?? ""))) {
@@ -141,9 +148,13 @@ export function CalendarioDoMes({
                 const d = p.scheduledFor ? new Date(p.scheduledFor) : null;
                 const capa = urlDeMidiaDoPortal(p.mediaUrl, token);
                 return (
-                  <article
+                  <button
                     key={p.id}
-                    className="overflow-hidden rounded-[12px] border border-[var(--border)] bg-white shadow-[0_1px_2px_rgba(7,10,31,0.03)]"
+                    type="button"
+                    onClick={() => setAbertaId(p.id)}
+                    aria-label={`Abrir peça: ${rotuloDeFormato(p.format)}${d ? ` de ${d.getDate()}` : ""} — ${p.caption ? p.caption.slice(0, 60) : "legenda em produção"}`}
+                    style={{ touchAction: "manipulation" }}
+                    className="overflow-hidden rounded-[12px] border border-[var(--border)] bg-white text-left shadow-[0_1px_2px_rgba(7,10,31,0.03)] transition-shadow hover:shadow-[0_2px_8px_rgba(7,10,31,0.08)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--navy)]"
                   >
                     <div className="relative aspect-square bg-[#F2F2EF]">
                       {capa ? (
@@ -193,13 +204,34 @@ export function CalendarioDoMes({
                         {p.caption || <span className="italic text-[var(--text-muted)]">Legenda em produção</span>}
                       </p>
                     </div>
-                  </article>
+                  </button>
                 );
               })}
             </div>
           </section>
         );
       })}
+
+      {(() => {
+        const aberta = abertaId ? pecas.find((p) => p.id === abertaId) : null;
+        if (!aberta) return null;
+        return (
+          <DetalheDaPeca
+            peca={{
+              id: aberta.id,
+              caption: aberta.caption,
+              format: aberta.format,
+              pillar: aberta.pillar,
+              scheduledFor: aberta.scheduledFor,
+              capa: aberta.mediaUrl,
+              telas: aberta.telas ?? [],
+            }}
+            token={token}
+            estado={estado(aberta.status, aprovacoesPendentes > 0)}
+            onFechar={() => setAbertaId(null)}
+          />
+        );
+      })()}
     </div>
   );
 }

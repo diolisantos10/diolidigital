@@ -1,0 +1,224 @@
+"use client";
+
+// ResultadosDoCliente — os números REAIS do Instagram do cliente, no portal.
+//
+// Substitui o placeholder "resultados chegam no fechamento do 1º ciclo": o
+// CEO pediu (04/08/2026) um dashboard com as métricas reais das redes. A fonte
+// é /api/portal/metricas (leitura pura da Meta, autenticada pelo token/cookie
+// do portal).
+//
+// Regras que esta tela cumpre:
+//  • número sem meta definida sai COM O PERÍODO ao lado — nunca com uma
+//    comparação inventada ("+12% vs…") que a fonte não deu;
+//  • `null` da Meta = "não medido" com todas as letras (contas pequenas não
+//    recebem seguidores/algumas métricas) — jamais um zero;
+//  • os três estados de conexão são tela, não erro: sem rede conectada,
+//    token vencido (reconectar) e medição parcial (aviso visível).
+
+import { useEffect, useState } from "react";
+import { GraficoDeAlcance } from "@/components/portal/GraficoDeAlcance";
+import {
+  formatarNumeroCompacto,
+  formatarPeriodo,
+  type PontoDeAlcance,
+} from "@/lib/agency/portal/resultados";
+
+interface ContaMedida {
+  perfil: { seguidores: number | null; totalDePosts: number | null };
+  periodo: { desde: string; ate: string };
+  totais: {
+    alcance: number | null;
+    visualizacoes: number | null;
+    contasComEngajamento: number | null;
+    interacoes: number | null;
+  };
+  aviso?: string;
+}
+
+type Estado =
+  | { fase: "carregando" }
+  | { fase: "sem-conexao" }
+  | { fase: "reconectar" }
+  | { fase: "erro"; mensagem: string }
+  | { fase: "ok"; conta: ContaMedida; serie: PontoDeAlcance[] };
+
+const METRICAS: { chave: keyof ContaMedida["totais"]; rotulo: string; explicacao: string }[] = [
+  { chave: "alcance",              rotulo: "Alcance",           explicacao: "contas alcançadas" },
+  { chave: "visualizacoes",        rotulo: "Visualizações",     explicacao: "vezes que seu conteúdo foi visto" },
+  { chave: "contasComEngajamento", rotulo: "Contas engajadas",  explicacao: "pessoas que interagiram" },
+  { chave: "interacoes",           rotulo: "Interações",        explicacao: "curtidas, comentários, salvos…" },
+];
+
+export function ResultadosDoCliente({
+  token,
+  onIrParaConta,
+}: {
+  /** Token de query (compatibilidade) — vazio em modo cookie. */
+  token: string;
+  /** Leva o cliente à seção Conta, onde a conexão se resolve. */
+  onIrParaConta: () => void;
+}) {
+  const [estado, setEstado] = useState<Estado>({ fase: "carregando" });
+  // O retry incrementa e o effect re-busca — o estado já nasce "carregando",
+  // então o effect nunca precisa setar estado de forma síncrona.
+  const [tentativa, setTentativa] = useState(0);
+
+  useEffect(() => {
+    let ativo = true;
+    const q = token ? `?token=${encodeURIComponent(token)}` : "";
+    void (async () => {
+      try {
+        const res = await fetch(`/api/portal/metricas${q}`, { cache: "no-store" });
+        const json = await res.json().catch(() => null);
+        if (!ativo) return;
+        if (!res.ok || !json) {
+          setEstado({ fase: "erro", mensagem: "Não consegui carregar os números agora." });
+          return;
+        }
+        if (!json.ok) {
+          if (json.semConexao) setEstado({ fase: "sem-conexao" });
+          else if (json.precisaReconectar) setEstado({ fase: "reconectar" });
+          else setEstado({ fase: "erro", mensagem: json.error ?? "Não consegui carregar os números agora." });
+          return;
+        }
+        setEstado({ fase: "ok", conta: json.conta, serie: Array.isArray(json.serie) ? json.serie : [] });
+      } catch {
+        if (ativo) setEstado({ fase: "erro", mensagem: "Sem conexão com o servidor. Tente novamente." });
+      }
+    })();
+    return () => { ativo = false; };
+  }, [token, tentativa]);
+
+  const tentarDeNovo = () => {
+    setEstado({ fase: "carregando" });
+    setTentativa((t) => t + 1);
+  };
+
+  // ── Carregando: esqueleto no formato do conteúdo ──────────────────────────
+  if (estado.fase === "carregando") {
+    return (
+      <div role="status" aria-live="polite" aria-label="Carregando resultados" className="space-y-3">
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="rounded-[12px] border border-[var(--border)] bg-white p-4">
+              <div className="h-3 w-16 animate-pulse rounded bg-[var(--accent)]" />
+              <div className="mt-3 h-6 w-12 animate-pulse rounded bg-[var(--accent)]" />
+            </div>
+          ))}
+        </div>
+        <div className="h-36 animate-pulse rounded-[12px] border border-[var(--border)] bg-white" />
+        <span className="sr-only">Carregando…</span>
+      </div>
+    );
+  }
+
+  // ── Sem rede conectada: o caminho está a um toque ─────────────────────────
+  if (estado.fase === "sem-conexao") {
+    return (
+      <div className="rounded-[14px] border border-[var(--border)] bg-white p-7 text-center shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
+        <div aria-hidden className="mx-auto mb-2.5 flex h-10 w-10 items-center justify-center rounded-full bg-[var(--accent)] text-lg">🔌</div>
+        <p className="text-[14px] font-semibold text-[var(--text-primary)]">Nenhuma rede conectada ainda</p>
+        <p className="mx-auto mt-1.5 max-w-[42ch] text-[12.5px] leading-relaxed text-[var(--text-secondary)]">
+          Conectando o Instagram do seu negócio, os números aparecem aqui — alcance,
+          visualizações e engajamento, direto da Meta.
+        </p>
+        <button
+          onClick={onIrParaConta}
+          style={{ touchAction: "manipulation" }}
+          className="mt-4 h-10 rounded-[10px] bg-[var(--navy)] px-5 text-[13px] font-semibold text-white transition-opacity hover:opacity-90"
+        >
+          Conectar em Conta
+        </button>
+      </div>
+    );
+  }
+
+  // ── Token vencido: reconectar ─────────────────────────────────────────────
+  if (estado.fase === "reconectar") {
+    return (
+      <div className="rounded-[14px] border border-[#FDE68A] bg-[#FFFBEB] p-6 text-center">
+        <p className="text-[14px] font-semibold text-[#92400E]">A conexão com o Instagram venceu</p>
+        <p className="mx-auto mt-1.5 max-w-[42ch] text-[12.5px] leading-relaxed text-[#B45309]">
+          É normal de tempos em tempos — a Meta pede uma nova autorização.
+          Reconecte em Conta e os números voltam sozinhos.
+        </p>
+        <button
+          onClick={onIrParaConta}
+          style={{ touchAction: "manipulation" }}
+          className="mt-4 h-10 rounded-[10px] bg-[var(--navy)] px-5 text-[13px] font-semibold text-white transition-opacity hover:opacity-90"
+        >
+          Reconectar em Conta
+        </button>
+      </div>
+    );
+  }
+
+  // ── Erro de leitura: dizer e oferecer o retry ─────────────────────────────
+  if (estado.fase === "erro") {
+    return (
+      <div role="alert" className="rounded-[14px] border border-[var(--border)] bg-white p-6 text-center">
+        <p className="text-[13.5px] font-semibold text-[var(--text-primary)]">{estado.mensagem}</p>
+        <p className="mt-1 text-[12px] text-[var(--text-muted)]">Pode ser instabilidade da Meta — costuma resolver em minutos.</p>
+        <button
+          onClick={tentarDeNovo}
+          style={{ touchAction: "manipulation" }}
+          className="mt-3.5 h-9 rounded-[9px] border border-[var(--border-strong)] bg-white px-4 text-[12.5px] font-semibold text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-elevated)]"
+        >
+          Tentar de novo
+        </button>
+      </div>
+    );
+  }
+
+  const { conta, serie } = estado;
+  const periodo = formatarPeriodo(conta.periodo.desde, conta.periodo.ate);
+  const seguidores = formatarNumeroCompacto(conta.perfil.seguidores);
+
+  return (
+    <div className="space-y-3">
+      {/* Medição parcial não fica em nota de rodapé — fica na cara da tela. */}
+      {conta.aviso && (
+        <div className="rounded-[12px] border border-[#FDE68A] bg-[#FFFBEB] px-4 py-2.5 text-[12px] text-[#92400E]">
+          <b>Medição parcial:</b> {conta.aviso}
+        </div>
+      )}
+
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="text-[12px] text-[var(--text-secondary)]">
+          Instagram · período <b className="text-[var(--text-primary)]">{periodo}</b>
+        </p>
+        {seguidores && (
+          <p className="text-[12px] text-[var(--text-secondary)]">
+            <b className="text-[var(--text-primary)]">{seguidores}</b> seguidores
+          </p>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+        {METRICAS.map(({ chave, rotulo, explicacao }) => {
+          const valor = formatarNumeroCompacto(conta.totais[chave]);
+          return (
+            <div key={chave} className="rounded-[12px] border border-[var(--border)] bg-white p-4 shadow-[0_1px_2px_rgba(7,10,31,0.03)]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--text-muted)]">{rotulo}</p>
+              {valor != null ? (
+                <p className="mono-num mt-1.5 text-[24px] font-bold leading-none text-[var(--text-primary)]">{valor}</p>
+              ) : (
+                <p className="mt-1.5 text-[13px] font-medium text-[var(--text-muted)]">não medido</p>
+              )}
+              <p className="mt-1.5 text-[11px] leading-snug text-[var(--text-muted)]">{explicacao}</p>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="rounded-[12px] border border-[var(--border)] bg-white p-4 shadow-[0_1px_2px_rgba(7,10,31,0.03)]">
+        <GraficoDeAlcance serie={serie} />
+      </div>
+
+      <p className="text-[11px] text-[var(--text-subtle)]">
+        Fonte: Meta (Instagram), leitura direta. Números sem meta definida aparecem com o
+        período — quando o seu ciclo tiver meta, a comparação entra aqui.
+      </p>
+    </div>
+  );
+}
