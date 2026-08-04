@@ -39,6 +39,11 @@ vi.mock("@/lib/agency/radar/library", () => ({
   getActiveInsights: vi.fn(async () => []),
   buildInsightBlock: vi.fn(() => ""),
 }));
+// A leitura do feed real é testada à parte (leitura-do-cliente.test.ts). Aqui o
+// contrato: o motor pede a síntese UMA vez e o texto dela entra no contexto de
+// todo especialista — inclusive a degradação declarada.
+const sinteseDoFeedDoCliente = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/agency/execution/leitura-do-cliente", () => ({ sinteseDoFeedDoCliente }));
 
 import { runProjectExecution } from "@/lib/agency/execution/run-execution";
 import { auditDeliverable } from "@/lib/agency/execution/quality-auditor";
@@ -83,6 +88,11 @@ beforeEach(() => {
   db.materialRequest.updateMany.mockResolvedValue({ count: 0 });
   createApprovalRequest.mockResolvedValue({});
   db.activityEvent.create.mockResolvedValue({});
+  sinteseDoFeedDoCliente.mockResolvedValue({
+    lida: false,
+    texto: "FEED REAL DO CLIENTE (Instagram): feed não lido: o cliente ainda não conectou o Instagram. PROIBIDO descrever o estilo atual do perfil.",
+    estiloVisual: "",
+  });
   (marcos.apresentar as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: true });
 });
 
@@ -409,6 +419,50 @@ describe("o pacote pronto é apresentado mesmo sem produção nova", () => {
     const r = await runProjectExecution("p1");
     expect(r.apresentado).toBeUndefined();
     expect(marcos.apresentar).not.toHaveBeenCalled();
+  });
+});
+
+// O pedido literal do CEO (04/08/2026): "você precisa ler a rede social, ver os
+// posts que estão lá, antes de fazer os carrosséis". A leitura acontece UMA vez
+// por execução e o resultado — síntese ou degradação — vai a TODOS.
+describe("a leitura minuciosa do cliente entra na produção", () => {
+  it("o motor pede a síntese UMA vez, com o trio workspace/cliente/solicitação", async () => {
+    db.project.findUnique.mockResolvedValue({ ...baseProject });
+    generate.mockResolvedValue({ ok: true, data: { title: "T", summary: "s", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] } });
+    await runProjectExecution("p1");
+    expect(sinteseDoFeedDoCliente).toHaveBeenCalledTimes(1);
+    expect(sinteseDoFeedDoCliente).toHaveBeenCalledWith("ws1", "c1", "cr1");
+  });
+
+  it("com o feed lido, a síntese entra no prompt de TODOS os especialistas", async () => {
+    sinteseDoFeedDoCliente.mockResolvedValue({
+      lida: true,
+      texto: "FEED REAL DO CLIENTE (Instagram, 24 posts lidos em 2026-08-04):\n- Formatos publicados: 50% carrossel\n- Tom das legendas: próximo e direto",
+      estiloVisual: "close de produto com luz quente",
+    });
+    db.project.findUnique.mockResolvedValue({ ...baseProject });
+    generate.mockResolvedValue({ ok: true, data: { title: "T", summary: "s", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] } });
+    await runProjectExecution("p1");
+    for (const call of generate.mock.calls) {
+      expect(call[0].user as string).toContain("FEED REAL DO CLIENTE");
+    }
+  });
+
+  it("sem conexão, a DEGRADAÇÃO declarada também vai — proibindo inferir estilo", async () => {
+    db.project.findUnique.mockResolvedValue({ ...baseProject });
+    generate.mockResolvedValue({ ok: true, data: { title: "T", summary: "s", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] } });
+    await runProjectExecution("p1");
+    const user = generate.mock.calls[0]![0].user as string;
+    expect(user).toContain("feed não lido");
+    expect(user).toMatch(/PROIBIDO/);
+  });
+
+  it("a falta de feed NUNCA trava a produção", async () => {
+    db.project.findUnique.mockResolvedValue({ ...baseProject });
+    generate.mockResolvedValue({ ok: true, data: { title: "T", summary: "s", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] } });
+    const r = await runProjectExecution("p1");
+    expect(r.ok).toBe(true);
+    expect(r.produced.length).toBeGreaterThan(0);
   });
 });
 

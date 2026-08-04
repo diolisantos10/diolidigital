@@ -24,6 +24,7 @@ import {
   conferirPisoDeVerdade, resumirViolacoes,
   type VerdadeDoCliente,
 } from "@/lib/agency/execution/piso-de-verdade";
+import { sinteseDoFeedDoCliente } from "@/lib/agency/execution/leitura-do-cliente";
 
 /** Conteúdo mínimo aceitável de uma entrega (gate de saída: nada vazio/lixo vai ao cliente). */
 const MIN_DELIVERABLE_CHARS = 40;
@@ -161,7 +162,7 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
       .catch(() => null);
     const cicloId = await cicloDoMomento;
 
-    const [req, client, artifacts, existing, materiaisResolvidos] = await Promise.all([
+    const [req, client, artifacts, existing, materiaisResolvidos, feedDoCliente] = await Promise.all([
       prisma.clientRequestDb.findUnique({ where: { id: clientRequestId } }),
       prisma.client.findFirst({ where: { id: project.clientId }, include: { brandBrain: true } }),
       prisma.brainArtifact.findMany({ where: { clientRequestId, status: "approved" }, select: { department: true, canvasJson: true } }),
@@ -181,6 +182,12 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
         where: { projectId, status: { not: "pending" } },
         select: { type: true },
       }),
+      // ── A LEITURA MINUCIOSA DO CLIENTE (pedido do CEO, 04/08/2026) ───────
+      // Uma vez por execução, ANTES de qualquer especialista produzir: o feed
+      // real do Instagram vira síntese e entra no contexto de TODOS. Nunca
+      // lança e nunca trava — sem conexão, devolve a degradação declarada
+      // ("feed não lido: <motivo>") que proíbe inferir estilo do nada.
+      sinteseDoFeedDoCliente(project.workspaceId, project.clientId, clientRequestId),
     ]);
     if (!req) throw new Error("Solicitação não encontrada");
 
@@ -216,6 +223,8 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
       // decidir o que muda. Vazio no primeiro ciclo — e o prompt dele proíbe
       // inventar desempenho passado quando isto está vazio.
       resultadoDoCicloAnterior: await resultadoDoCicloAnterior(projectId, cicloId),
+      // O que o cliente REALMENTE publica — síntese ou degradação declarada.
+      feedRealDoCliente: feedDoCliente.texto,
       // O cliente tem material próprio (foto/vídeo) para a agência usar?
       //
       // ESTA LINHA JÁ ESTEVE ERRADA e o erro era invisível: lia

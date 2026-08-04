@@ -50,6 +50,15 @@ export interface Ctx {
    *  mês — e aí o especialista de otimização é PROIBIDO de inventar desempenho
    *  passado, que é a forma mais fácil de um relatório virar ficção. */
   resultadoDoCicloAnterior?: string;
+  /** O bloco de síntese do feed REAL do cliente (leitura-do-cliente.ts).
+   *
+   *  Pedido literal do CEO (04/08/2026): "você precisa ler a rede social, ver
+   *  os posts que estão lá, antes de fazer os carrosséis". SEMPRE preenchido
+   *  pelo motor: com o feed lido, é a síntese; sem conexão, é a degradação
+   *  declarada ("feed não lido: <motivo>") que PROÍBE inferir estilo do nada —
+   *  o mesmo padrão do resultadoDoCicloAnterior. Opcional só para quem monta
+   *  Ctx fora do motor (testes, ferramentas). */
+  feedRealDoCliente?: string;
   /** Tipos de material que o cliente JÁ entregou (ex.: "design").
    *
    *  Existe para impedir um laço cruel: o agente pede o logo, o cliente manda,
@@ -94,6 +103,10 @@ function ctxBlock(c: Ctx): string {
     c.services.length && `Serviços contratados: ${c.services.join(", ")}`,
     c.objectives.length && `Objetivos: ${c.objectives.join(", ")}`,
     c.strategyHeadline && `Direção estratégica: ${c.strategyHeadline}`,
+    // O feed real por último e inteiro: é um bloco, não um campo. Vai para
+    // TODOS os especialistas — inclusive a degradação, que é instrução tanto
+    // quanto a síntese ("não descreva o que ninguém viu").
+    c.feedRealDoCliente,
   ].filter(Boolean).join("\n");
 }
 

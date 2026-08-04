@@ -13,6 +13,11 @@ vi.mock("@/lib/db/client", () => ({ prisma: db }));
 vi.mock("@/lib/ai/design-engine", () => ({ generateDesign }));
 vi.mock("@/lib/agency/media/armazenamento", () => ({ guardarArquivo, lerArquivo }));
 vi.mock("@/lib/agency/media/video", () => ({ editarParaReel }));
+// O estilo do feed real vem SÓ da síntese persistida — esta rodada dispara a
+// cada 5 min e nunca pode falar com a Graph. A leitura em si é testada em
+// leitura-do-cliente.test.ts; aqui, o contrato com o prompt da arte.
+const estiloVisualPersistido = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/agency/execution/leitura-do-cliente", () => ({ estiloVisualPersistido }));
 
 import { produzirArtesPendentes, montarPrompt } from "@/lib/agency/execution/artes";
 
@@ -36,6 +41,7 @@ beforeEach(() => {
   generateDesign.mockResolvedValue({ ok: true, url: PNG, model: "gpt-image-1" });
   guardarArquivo.mockResolvedValue({ ok: true, arquivo: { id: "m1", fileName: "arte.png", sizeBytes: 100, url: "/api/media/m1" } });
   db.mediaAsset.findFirst.mockResolvedValue(null);
+  estiloVisualPersistido.mockResolvedValue("");
 });
 
 describe("o Design passa a produzir imagem, não descrição de imagem", () => {
@@ -113,6 +119,55 @@ describe("o prompt da arte", () => {
   it("marca sem paleta não inventa cor", () => {
     const p = montarPrompt({ ...base, cores: [] });
     expect(p).not.toMatch(/Paleta da marca/);
+  });
+
+  it("o estilo do feed real entra no prompt quando foi observado", () => {
+    const p = montarPrompt({ ...base, estiloDoFeed: "close de produto com luz quente de forno" });
+    expect(p).toContain("close de produto com luz quente de forno");
+    expect(p).toMatch(/feed real deste cliente/);
+  });
+
+  it("sem feed lido, o prompt NÃO menciona feed — estilo não se inventa", () => {
+    const p = montarPrompt({ ...base, estiloDoFeed: "" });
+    expect(p).not.toMatch(/feed/i);
+  });
+});
+
+// O pedido do CEO chegando à ARTE: "os nossos carrosséis têm a ver com os que
+// eles fizeram lá?" — a peça nova precisa pertencer à família visual do perfil.
+describe("a arte segue o estilo OBSERVADO no feed real do cliente", () => {
+  it("lê o estilo da síntese PERSISTIDA (por clientRequestId) e o põe no prompt", async () => {
+    estiloVisualPersistido.mockResolvedValue("bastidor real com luz natural");
+    await produzirArtesPendentes();
+    expect(estiloVisualPersistido).toHaveBeenCalledWith("cr1");
+    expect(generateDesign.mock.calls[0]![0].prompt as string).toContain("bastidor real com luz natural");
+  });
+
+  it("sem síntese persistida → prompt sem bloco de feed, e a produção segue", async () => {
+    estiloVisualPersistido.mockResolvedValue("");
+    const r = await produzirArtesPendentes();
+    expect(r.produzidas).toBe(1);
+    expect(generateDesign.mock.calls[0]![0].prompt as string).not.toMatch(/feed real/i);
+  });
+
+  it("post sem clientRequestId não consulta a síntese", async () => {
+    db.socialPost.findMany.mockResolvedValue([{ ...POST, clientRequestId: null }]);
+    await produzirArtesPendentes();
+    expect(estiloVisualPersistido).not.toHaveBeenCalled();
+  });
+
+  it("o carrossel também herda o estilo do feed em TODAS as telas", async () => {
+    estiloVisualPersistido.mockResolvedValue("paleta quente e produto em close");
+    db.socialPost.findMany.mockResolvedValue([{
+      ...POST, id: "sp9", format: "carousel",
+      scenesJson: JSON.stringify(["O forno aceso", "A massa descansando"]),
+    }]);
+    let n = 0;
+    guardarArquivo.mockImplementation(async () => ({ ok: true, arquivo: { id: `m${++n}`, fileName: "a.png", sizeBytes: 10, url: `/api/media/m${n}` } }));
+    await produzirArtesPendentes();
+    for (const call of generateDesign.mock.calls) {
+      expect(call[0].prompt as string).toContain("paleta quente e produto em close");
+    }
   });
 });
 

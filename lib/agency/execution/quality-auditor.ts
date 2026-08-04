@@ -22,6 +22,19 @@ export async function auditDeliverable(input: {
   marketGuidelines?: string;
   workspaceId: string;
 }): Promise<QualityVerdict> {
+  // O critério do feed real (pedido do CEO, 04/08/2026) só existe quando o
+  // feed FOI lido: com o bloco presente no contexto, a Qualidade pergunta "isto
+  // conversa com o que o cliente realmente publica?". Com "feed não lido", o
+  // critério NÃO pontua — ausência de feed não é defeito da peça, e punir a
+  // peça por uma conexão que o cliente não fez seria inventar critério.
+  const feedLido = input.brandContext.includes("FEED REAL DO CLIENTE")
+    && !input.brandContext.includes("feed não lido");
+  const criterioDoFeed = feedLido
+    ? ` (6) a peça CONVERSA com o FEED REAL DO CLIENTE descrito no contexto — mesma família de tom, tema e formato do que ele já publica, sem destoar nem copiar?`
+    : "";
+  const avisoSemFeed = !feedLido && input.brandContext.includes("FEED REAL DO CLIENTE")
+    ? `\nATENÇÃO: o feed do cliente NÃO foi lido nesta produção. NÃO avalie aderência ao feed e NÃO penalize a peça por isso.`
+    : "";
   try {
     const result = await generate({
       system: "Você é o agente de Qualidade de uma agência de marketing brasileira. Audite a entrega abaixo com rigor — NÃO reescreva, só avalie. Responda SOMENTE com JSON válido.",
@@ -31,7 +44,7 @@ ${input.content}
 CONTEXTO DA MARCA:
 ${input.brandContext}
 ${input.marketGuidelines ? `\n${input.marketGuidelines}\n` : ""}
-Verifique: (1) está no tom e no segmento certos? (2) tem promessa falsa ou garantia irreal? (3) inventa número/preço/dado que não foi fornecido? (4) tem clichê vazio ou erro grave? (5) está alinhada às diretrizes ATUAIS de mercado acima (quando houver)?
+Verifique: (1) está no tom e no segmento certos? (2) tem promessa falsa ou garantia irreal? (3) inventa número/preço/dado que não foi fornecido? (4) tem clichê vazio ou erro grave? (5) está alinhada às diretrizes ATUAIS de mercado acima (quando houver)?${criterioDoFeed}${avisoSemFeed}
 Responda JSON: {"verdict":"pass"|"flag","issues":["problema 1","problema 2"],"note":"1 frase de parecer"}. verdict="flag" só se houver problema real.`,
       maxTokens: 500,
       workspaceId: input.workspaceId,

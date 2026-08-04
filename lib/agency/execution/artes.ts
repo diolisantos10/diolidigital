@@ -19,6 +19,7 @@
 import { prisma } from "@/lib/db/client";
 import { generateDesign } from "@/lib/ai/design-engine";
 import { guardarArquivo, lerArquivo } from "@/lib/agency/media/armazenamento";
+import { estiloVisualPersistido } from "@/lib/agency/execution/leitura-do-cliente";
 
 /** Quantas artes por rodada. Cada uma é uma chamada cara de modelo de imagem —
  *  um calendário de 12 posts custaria 12 de uma vez se não houvesse teto. */
@@ -56,6 +57,20 @@ export async function produzirArtesPendentes(): Promise<ArtesFeitas> {
   }).catch(() => []);
   if (pendentes.length === 0) return saida;
 
+  // O estilo visual observado no feed REAL do cliente. SÓ da síntese
+  // persistida (leitura-do-cliente.ts) — esta rodada dispara a cada 5 minutos
+  // pelo despertador, e bater na Graph aqui seria rajada no rate limit da
+  // Meta. Sem síntese fresca, vazio — e vazio é vazio: o prompt não menciona
+  // o feed. Memoizado por pedido para não repetir a consulta a cada peça.
+  const estilosDoFeed = new Map<string, string>();
+  const estiloDoFeedDe = async (clientRequestId: string | null): Promise<string> => {
+    if (!clientRequestId) return "";
+    if (!estilosDoFeed.has(clientRequestId)) {
+      estilosDoFeed.set(clientRequestId, await estiloVisualPersistido(clientRequestId).catch(() => ""));
+    }
+    return estilosDoFeed.get(clientRequestId) ?? "";
+  };
+
   for (const post of pendentes) {
     const tentativas = contarTentativas(post.lastError);
 
@@ -85,12 +100,13 @@ export async function produzirArtesPendentes(): Promise<ArtesFeitas> {
     }
 
     const marca = await lerMarca(post.clientId);
+    const estiloDoFeed = await estiloDoFeedDe(post.clientRequestId);
 
     // ── CARROSSEL: uma arte POR TELA ─────────────────────────────────────────
     // Gerar uma imagem só e repetir seria entregar cinco vezes a mesma coisa.
     // Cada tela é uma ideia, e a arte tem que acompanhar a ideia dela.
     if (post.format === "carousel" || post.format === "carrossel") {
-      const r = await montarCarrossel(post, marca);
+      const r = await montarCarrossel(post, marca, estiloDoFeed);
       if (r.ok) { saida.produzidas++; continue; }
       saida.falhas.push({ postId: post.id, erro: r.erro });
       await marcarErro(post.id, r.erro, tentativas + 1);
@@ -110,6 +126,7 @@ export async function produzirArtesPendentes(): Promise<ArtesFeitas> {
         cores: marca.cores,
         tom: marca.tom,
         formato: post.format,
+        estiloDoFeed,
       }),
       size: proporcao,
       quality: "high",
@@ -199,6 +216,10 @@ export function montarPrompt(input: {
   cores: string[];
   tom: string;
   formato?: string;
+  /** O estilo visual OBSERVADO no feed real do cliente (síntese persistida de
+   *  leitura-do-cliente.ts). Vazio quando o feed não foi lido — e aí o prompt
+   *  simplesmente não menciona feed nenhum: estilo não se inventa. */
+  estiloDoFeed?: string;
 }): string {
   const vertical = input.formato === "story";
   const partes = [
@@ -208,6 +229,10 @@ export function montarPrompt(input: {
     `Cena a retratar: ${input.legenda.slice(0, 500)}`,
     input.cores.length > 0 ? `Paleta da marca, para a ambientação e os objetos: ${input.cores.join(", ")}.` : "",
     input.tom ? `Clima: ${input.tom}.` : "",
+    // A peça nova precisa parecer do MESMO perfil que as que já estão lá —
+    // é o pedido literal do CEO ("os nossos carrosséis têm a ver com os que
+    // eles fizeram lá?").
+    input.estiloDoFeed ? `Estilo visual observado no feed real deste cliente — a peça deve pertencer à mesma família visual, sem copiar nenhum post: ${input.estiloDoFeed}` : "",
     vertical
       // Story é lido de celular na mão, em segundos, e o topo e a base ficam
       // sob os elementos da interface do Instagram.
@@ -308,6 +333,7 @@ async function marcarErro(postId: string, erro: string, tentativa: number | null
 async function montarCarrossel(
   post: { id: string; workspaceId: string; clientId: string | null; clientRequestId: string | null; caption: string; pillar: string | null; scenesJson?: string },
   marca: { nome: string; segmento: string; cores: string[]; tom: string },
+  estiloDoFeed = "",
 ): Promise<{ ok: boolean; erro: string }> {
   let cenas: string[] = [];
   try {
@@ -329,6 +355,7 @@ async function montarCarrossel(
         segmento: marca.segmento,
         cores: marca.cores,
         tom: marca.tom,
+        estiloDoFeed,
       }),
       size: "square",
       quality: "high",

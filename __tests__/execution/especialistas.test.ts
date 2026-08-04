@@ -205,3 +205,26 @@ describe("os especialistas novos da rodada 90+", () => {
     expect(p).toMatch(/Escalar o que não funciona/);
   });
 });
+
+// O pedido literal do CEO (04/08/2026): ler a rede social do cliente antes de
+// produzir. O bloco entra pelo ctxBlock — ou seja, em TODO especialista.
+describe("o feed real do cliente no contexto de todos", () => {
+  it("com a síntese, o bloco aparece no prompt de todo especialista", () => {
+    const comFeed = { ...ctx, feedRealDoCliente: "FEED REAL DO CLIENTE (Instagram, 24 posts lidos em 2026-08-04):\n- Tom das legendas: próximo" };
+    for (const e of TODOS_OS_ESPECIALISTAS) {
+      expect(e.prompt(comFeed), `${e.id} ignora o feed real`).toContain("FEED REAL DO CLIENTE");
+    }
+  });
+
+  it("a degradação declarada também vai — 'feed não lido' É instrução", () => {
+    const semFeed = { ...ctx, feedRealDoCliente: "FEED REAL DO CLIENTE (Instagram): feed não lido: sem conexão. PROIBIDO descrever o estilo do perfil." };
+    const p = TODOS_OS_ESPECIALISTAS[0]!.prompt(semFeed);
+    expect(p).toContain("feed não lido");
+    expect(p).toMatch(/PROIBIDO/);
+  });
+
+  it("Ctx sem o campo (fluxos e testes antigos) continua válido", () => {
+    const p = TODOS_OS_ESPECIALISTAS[0]!.prompt(ctx);
+    expect(p).not.toContain("FEED REAL DO CLIENTE");
+  });
+});
