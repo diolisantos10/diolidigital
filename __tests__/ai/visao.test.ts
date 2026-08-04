@@ -28,8 +28,10 @@ import {
   analisarImagens,
   visaoDisponivel,
   LIMITE_DE_IMAGENS,
+  MAXIMO_DE_SALTOS,
   TAMANHO_MAXIMO_POR_IMAGEM,
   PROVEDORES_COM_VISAO,
+  honraDetalhe,
 } from "@/lib/ai/visao";
 
 function conecta(provedor: string, model: string | null = null) {
@@ -50,6 +52,14 @@ function respostaDeImagem(bytes: Uint8Array = JPEG, contentType = "image/jpeg") 
 }
 function imagemMorta(status = 403) {
   return { ok: false, status, headers: new Headers(), arrayBuffer: async () => new ArrayBuffer(0) };
+}
+/** Um 302 de verdade: `redirect:"manual"` faz o fetch devolver isto, não seguir. */
+function redirecionaPara(destino: string, status = 302) {
+  return {
+    ok: false, status,
+    headers: new Headers({ location: destino }),
+    arrayBuffer: async () => new ArrayBuffer(0),
+  };
 }
 function openAiOk(texto: string) {
   return { ok: true, status: 200, json: async () => ({ choices: [{ message: { content: texto } }] }) };
@@ -295,6 +305,86 @@ describe("imagem inacessível", () => {
     expect(fetchMock.mock.calls.some((c: unknown[]) => String(c[0]).includes("169.254"))).toBe(false);
   });
 
+  // ── SSRF por redirecionamento ─────────────────────────────────────────────
+  // Estes quatro são o coração da trava. A URL vem do FEED DO CLIENTE, isto é,
+  // de terceiro: checar só o hostname original e depois seguir o 302 às cegas
+  // é exatamente o furo que leva ao metadata da nuvem, onde moram credenciais.
+
+  it("302 para host interno é RECUSADO — a checagem vale em cada salto, não só na URL original", async () => {
+    conecta("openai");
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url.includes("openai.com")) return openAiOk("ok");
+      if (url.includes("169.254")) throw new Error("NUNCA deveria ter buscado o metadata");
+      return redirecionaPara("http://169.254.169.254/latest/meta-data/iam/security-credentials/");
+    });
+
+    const r = await analisarImagens({
+      imagens: [{ tipo: "url", url: "https://cdn-publico.exemplo.com/foto.jpg", rotulo: "isca" }],
+      pergunta: "?",
+    });
+
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.motivo).toBe("nenhuma_imagem_lida");
+    expect(r.imagensIgnoradas?.[0].motivo).toContain("redirecionamento recusado");
+    expect(r.imagensIgnoradas?.[0].motivo).toContain("interno");
+    // O que realmente importa: o servidor NÃO tocou no endereço de metadados.
+    expect(fetchMock.mock.calls.some((c: unknown[]) => String(c[0]).includes("169.254"))).toBe(false);
+  });
+
+  it("redirecionamento legítimo (CDN → CDN) é seguido normalmente", async () => {
+    conecta("openai");
+    const visitadas: string[] = [];
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url.includes("openai.com")) return openAiOk("li a imagem redirecionada");
+      visitadas.push(url);
+      if (url.includes("scontent.cdninstagram.com")) {
+        return redirecionaPara("https://scontent-gru1.cdninstagram.com/v/t51/post1.jpg");
+      }
+      return respostaDeImagem();
+    });
+
+    const r = await analisarImagens({ imagens: [{ tipo: "url", url: URL_DO_FEED }], pergunta: "?" });
+
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.imagensLidas).toBe(1);
+    expect(r.imagensIgnoradas).toEqual([]);
+    expect(visitadas[1]).toContain("scontent-gru1.cdninstagram.com");
+  });
+
+  it("Location relativa é resolvida contra o salto ATUAL e também passa pelo porteiro", async () => {
+    conecta("openai");
+    const visitadas: string[] = [];
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url.includes("openai.com")) return openAiOk("ok");
+      visitadas.push(url);
+      return url.includes("/real/") ? respostaDeImagem() : redirecionaPara("/real/post1.jpg");
+    });
+
+    const r = await analisarImagens({ imagens: [{ tipo: "url", url: URL_DO_FEED }], pergunta: "?" });
+
+    expect(r.ok).toBe(true);
+    expect(visitadas[1]).toBe("https://scontent.cdninstagram.com/real/post1.jpg");
+  });
+
+  it("cadeia de redirecionamentos sem fim para no teto de saltos", async () => {
+    conecta("openai");
+    let buscas = 0;
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url.includes("openai.com")) return openAiOk("ok");
+      buscas++;
+      return redirecionaPara(`https://cdn.exemplo.com/salto-${buscas}.jpg`);
+    });
+
+    const r = await analisarImagens({ imagens: [{ tipo: "url", url: URL_DO_FEED }], pergunta: "?" });
+
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.imagensIgnoradas?.[0].motivo).toContain("redirecionamentos demais");
+    expect(buscas).toBe(MAXIMO_DE_SALTOS + 1); // a original + os saltos tolerados
+  });
+
   it("conteúdo que não é imagem é descartado", async () => {
     conecta("openai");
     fetchMock.mockImplementation(async (url: string) => {
@@ -350,6 +440,48 @@ describe("limites", () => {
     expect(r.ok).toBe(false);
     if (r.ok) return;
     expect(r.imagensIgnoradas?.[0].motivo).toContain("grande demais");
+  });
+
+  // ── O custo declarado tem que bater com o código ───────────────────────────
+  // `detalhe` é um botão da OpenAI, não um conceito da casa. Claude e Gemini
+  // cobram pela área em pixels. Como Claude é o PRIMEIRO da ordem, o caso
+  // padrão é justamente o que ignora `detalhe` — e isso é DITO no retorno.
+
+  it("na OpenAI o `detalhe` pega e é reportado como aplicado", async () => {
+    conecta("openai");
+    roteia(() => openAiOk("ok"));
+
+    const r = await analisarImagens({
+      imagens: [{ tipo: "url", url: URL_DO_FEED }], pergunta: "?", detalhe: "alto",
+    });
+
+    expect(r.ok && r.detalheAplicado).toBe(true);
+    const corpo = JSON.parse(fetchMock.mock.calls.find((c: unknown[]) => String(c[0]).includes("openai.com"))![1].body as string);
+    expect(corpo.messages[1].content[1].image_url.detail).toBe("high");
+  });
+
+  it("no Claude o `detalhe` NÃO existe — a imagem é cobrada inteira, e o retorno diz isso", async () => {
+    conecta("claude");
+    roteia(() => claudeOk("ok"));
+
+    const r = await analisarImagens({
+      imagens: [{ tipo: "url", url: URL_DO_FEED }], pergunta: "?", detalhe: "baixo",
+    });
+
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.provedor).toBe("claude");
+    expect(r.detalheAplicado).toBe(false); // o cabeçalho de CUSTO depende disto
+    // E o corpo não carrega nenhum campo de detalhe fingindo que carrega.
+    const corpo = fetchMock.mock.calls.find((c: unknown[]) => String(c[0]).includes("anthropic.com"))![1].body as string;
+    expect(corpo).not.toContain("detail");
+  });
+
+  it("o provedor PADRÃO (Claude, primeiro da ordem) é o que ignora `detalhe`", () => {
+    expect(PROVEDORES_COM_VISAO[0]).toBe("claude");
+    expect(honraDetalhe(PROVEDORES_COM_VISAO[0])).toBe(false);
+    expect(honraDetalhe("openai")).toBe(true);
+    expect(honraDetalhe("gemini")).toBe(false);
   });
 
   it("pergunta vazia ou lista vazia é pedido inválido, não chamada à IA", async () => {

@@ -33,17 +33,40 @@
 //
 // ── CUSTO (isto roda POR CLIENTE, POR CICLO — leia antes de aumentar o teto) ─
 // A imagem é cobrada como TOKEN DE ENTRADA, e o texto da pergunta é ruído perto
-// dela. Ordem de grandeza, estimada em 04/08/2026 (confira a tabela do
-// fornecedor antes de prometer número a alguém):
-//   • detalhe "baixo"  → ~1 tile por imagem: da ordem de US$ 0,0002–0,001 por
-//     imagem. Um ciclo de 8 imagens ≈ US$ 0,005. É o PADRÃO daqui: para ler
-//     paleta, enquadramento e clima de um feed, o tile de 512px basta.
-//   • detalhe "alto"   → a imagem é fatiada em tiles: 5 a 10× o custo acima.
-//     Um ciclo de 8 imagens ≈ US$ 0,02–0,05. Só peça quando precisar ler texto
-//     dentro da arte.
+// dela.
+//
+// ⚠️ `detalhe: "baixo"` SÓ EXISTE NA OPENAI. Não é um conceito da casa, é um
+// parâmetro do fornecedor (`image_url.detail`). Claude e Gemini NÃO têm esse
+// botão: eles cobram a imagem pela ÁREA EM PIXELS que você mandou, e mandar
+// "baixo" para eles não muda um centavo. Como CLAUDE É O PRIMEIRO DA ORDEM DE
+// PREFERÊNCIA, o caso PADRÃO desta camada é o caso que ignora `detalhe`.
+// O resultado devolve `detalheAplicado` dizendo se o pedido de barateamento
+// pegou ou não — degradação declarada, igual a `imagensIgnoradas`.
+//
+// Por que não reduzimos a imagem antes de enviar (que faria "baixo" valer em
+// todo provedor): exigiria um decodificador de imagem — `sharp` ou equivalente,
+// binário nativo — como DEPENDÊNCIA DECLARADA do projeto, mudando o build do
+// Railway. Está fora do território desta camada e não se paga: o ganho é da
+// ordem de US$ 0,01 por ciclo. Se um dia o volume mudar essa conta, o lugar da
+// redução é aqui, em `prepararImagens`, antes do base64.
+//
+// Ordem de grandeza por IMAGEM de feed típica (1024×1024), preços de 04/08/2026
+// — confira a tabela do fornecedor antes de prometer número a alguém:
+//   • openai gpt-4o-mini, detalhe "baixo" → 85 tokens de imagem (fatia única,
+//     independe do tamanho), com o multiplicador de imagem do mini ≈ 2,8k tokens
+//     faturados ≈ US$ 0,0004/imagem. Ciclo de 8 ≈ US$ 0,003.
+//   • openai gpt-4o-mini, detalhe "alto"  → a imagem é fatiada em tiles de 512px
+//     (~4 tiles aqui) ≈ 6 a 9× o custo acima. Ciclo de 8 ≈ US$ 0,02–0,03. Só
+//     peça quando precisar LER TEXTO dentro da arte.
+//   • claude haiku      → ≈ (largura × altura) / 750 tokens ≈ 1,4k tokens
+//     ≈ US$ 0,0014/imagem. Ciclo de 8 ≈ US$ 0,011. IGNORA `detalhe`.
+//   • gemini 1.5 flash  → 258 tokens até 384px; acima disso, fatias de 768px
+//     (~4 aqui) ≈ 1k tokens ≈ US$ 0,00008/imagem. Ciclo de 8 ≈ US$ 0,0006.
+//     IGNORA `detalhe`. É o mais barato dos três por uma ordem de grandeza.
 //   • CADA RETENTATIVA REENVIA AS IMAGENS e é cobrada de novo. Por isso a
 //     retentativa aqui é curta (2 tentativas no preferido, 1 na reserva) — bem
-//     menos que as 3 do generate(), que só reenvia texto.
+//     menos que as 3 do generate(), que só reenvia texto. O pior caso de uma
+//     chamada é 2× no preferido + 1× em cada reserva.
 // O teto de 8 imagens por chamada não é estético: é a diferença entre "custo de
 // um cafezinho por cliente por ciclo" e uma fatura que ninguém revisou.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -83,7 +106,12 @@ export interface PedidoDeVisao {
   sistema?: string;
   /** "json" pede JSON e tenta extrair para `dados`; `texto` vem sempre. */
   formato?: "texto" | "json";
-  /** "baixo" (padrão) = barato. "alto" só para ler texto dentro da imagem. */
+  /**
+   * "baixo" (padrão) = barato. "alto" só para ler texto dentro da imagem.
+   * ⚠️ SÓ TEM EFEITO NA OPENAI — Claude e Gemini cobram pela área em pixels e
+   * não expõem esse botão. Ver a seção de CUSTO no cabeçalho. O resultado
+   * informa em `detalheAplicado` se o pedido pegou.
+   */
   detalhe?: "baixo" | "alto";
   workspaceId?: string;
   maxTokens?: number;
@@ -100,6 +128,13 @@ export type ResultadoDeVisao =
       dados?: unknown;
       provedor: ProvedorComVisao;
       modelo: string;
+      /**
+       * O `detalhe` pedido chegou a ser aplicado? `false` quando o provedor que
+       * atendeu (Claude, Gemini) cobra pela área e ignora o campo — ou seja, a
+       * imagem foi cobrada INTEIRA mesmo com `detalhe: "baixo"`. Dito, nunca
+       * escondido: quem paga a fatura precisa saber. Ver CUSTO no cabeçalho.
+       */
+      detalheAplicado: boolean;
       imagensLidas: number;
       /** Vazio quando tudo foi lido. Leitura parcial é dita, nunca escondida. */
       imagensIgnoradas: ImagemIgnorada[];
@@ -191,6 +226,11 @@ function rotuloDe(img: ImagemDeEntrada, i: number): string {
  * interna e o metadata do provedor de nuvem. Sem esta trava, uma URL
  * envenenada vira leitura de host interno com a resposta devolvida na API.
  *
+ * VALE PARA CADA SALTO DE REDIRECIONAMENTO, não só para a URL original — ver
+ * `buscarSeguindoSaltos`. Checar só a primeira é a versão da trava que não
+ * protege nada: qualquer URL pública pode responder 302 para
+ * http://169.254.169.254/ e a trava seguiria feliz.
+ *
  * LIMITAÇÃO DITA COM TODAS AS LETRAS: isto barra o nome/IP literal, não
  * DNS-rebinding nem um domínio público que resolve para IP privado. A trava
  * completa exige resolver o DNS e checar o IP antes de conectar — não foi feito
@@ -207,18 +247,14 @@ function hospedeiroProibido(host: string): boolean {
   return false;
 }
 
-/**
- * Baixa a imagem da URL. As URLs do feed vêm do CDN da Meta e EXPIRAM (elas
- * carregam token e prazo na query) — por isso o download acontece aqui, na hora,
- * e não é delegado ao provedor de IA: entregar uma URL vencida à OpenAI devolve
- * um erro genérico do fornecedor, cobrado e sem dizer qual imagem morreu. Aqui,
- * uma URL vencida vira "imagem inacessível (HTTP 403)" com o rótulo certo, e as
- * outras imagens seguem.
- */
-async function baixar(url: string): Promise<{ ok: true; mime: string; bytes: Uint8Array } | { ok: false; motivo: string }> {
+/** Saltos de redirecionamento tolerados. CDN → CDN regional → objeto é 2; 3 sobra. */
+export const MAXIMO_DE_SALTOS = 3;
+
+/** O porteiro: protocolo e hospedeiro. Roda na URL original E em cada salto. */
+function urlPermitida(bruta: string | URL): { ok: true; alvo: URL } | { ok: false; motivo: string } {
   let alvo: URL;
   try {
-    alvo = new URL(url);
+    alvo = typeof bruta === "string" ? new URL(bruta) : bruta;
   } catch {
     return { ok: false, motivo: "URL inválida" };
   }
@@ -228,11 +264,67 @@ async function baixar(url: string): Promise<{ ok: true; mime: string; bytes: Uin
   if (hospedeiroProibido(alvo.hostname)) {
     return { ok: false, motivo: "endereço interno recusado" };
   }
+  return { ok: true, alvo };
+}
+
+/**
+ * Busca seguindo redirecionamento NA MÃO, revalidando cada salto.
+ *
+ * Por que não `redirect: "follow"`: com o follow automático, só o hostname
+ * ORIGINAL passa pelo porteiro. Uma URL pública — e estas URLs vêm do feed do
+ * cliente, ou seja, de terceiro — que responde 302 para
+ * http://169.254.169.254/latest/meta-data/iam/security-credentials/ seria
+ * seguida sem nova checagem, e o corpo voltaria como "imagem" para dentro da
+ * casa. Esse endereço é o metadata da nuvem: é onde moram credenciais.
+ *
+ * `redirect: "manual"` no fetch do Node (undici) devolve a resposta 3xx real,
+ * com o `location` legível. Isto é SERVER-ONLY — no browser viria opaca.
+ */
+async function buscarSeguindoSaltos(
+  primeira: URL,
+  signal: AbortSignal,
+): Promise<{ ok: true; res: Response } | { ok: false; motivo: string }> {
+  let atual = primeira;
+  for (let salto = 0; salto <= MAXIMO_DE_SALTOS; salto++) {
+    const res = await fetch(atual.toString(), { signal, redirect: "manual" });
+    if (res.status < 300 || res.status >= 400) return { ok: true, res };
+
+    const destino = res.headers.get("location");
+    if (!destino) return { ok: false, motivo: `redirecionamento sem destino (HTTP ${res.status})` };
+    // Location pode ser relativa; resolver contra a URL ATUAL, não a original.
+    let absoluta: URL;
+    try {
+      absoluta = new URL(destino, atual);
+    } catch {
+      return { ok: false, motivo: "redirecionamento para URL inválida" };
+    }
+    const proximo = urlPermitida(absoluta);
+    if (!proximo.ok) {
+      return { ok: false, motivo: `redirecionamento recusado: ${proximo.motivo}` };
+    }
+    atual = proximo.alvo;
+  }
+  return { ok: false, motivo: `redirecionamentos demais (limite de ${MAXIMO_DE_SALTOS})` };
+}
+
+/**
+ * Baixa a imagem da URL. As URLs do feed vêm do CDN da Meta e EXPIRAM (elas
+ * carregam token e prazo na query) — por isso o download acontece aqui, na hora,
+ * e não é delegado ao provedor de IA: entregar uma URL vencida à OpenAI devolve
+ * um erro genérico do fornecedor, cobrado e sem dizer qual imagem morreu. Aqui,
+ * uma URL vencida vira "imagem inacessível (HTTP 403)" com o rótulo certo, e as
+ * outras imagens seguem.
+ */
+async function baixar(url: string): Promise<{ ok: true; mime: string; bytes: Uint8Array } | { ok: false; motivo: string }> {
+  const inicial = urlPermitida(url);
+  if (!inicial.ok) return inicial;
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_DOWNLOAD_MS);
   try {
-    const res = await fetch(alvo.toString(), { signal: controller.signal, redirect: "follow" });
+    const busca = await buscarSeguindoSaltos(inicial.alvo, controller.signal);
+    if (!busca.ok) return busca;
+    const res = busca.res;
     if (!res.ok) {
       // 403/404 no CDN da Meta = link expirado ou mídia removida. É o caso
       // comum, não uma exceção: reler o feed produz URLs novas.
@@ -493,6 +585,15 @@ interface PedidoInterno {
   detalhe: "baixo" | "alto";
 }
 
+/**
+ * Este provedor honra `detalhe`? Só a OpenAI — é o único que tem o botão
+ * (`image_url.detail`). Claude e Gemini cobram pela área em pixels enviada.
+ * Não é esquecimento de implementação: não existe o parâmetro na API deles.
+ */
+export function honraDetalhe(p: ProvedorComVisao): boolean {
+  return p === "openai";
+}
+
 function chamar(p: ProvedorComVisao, apiKey: string, modelo: string, pedido: PedidoInterno): Promise<RespostaCrua> {
   if (p === "openai") return chamarOpenAI(apiKey, modelo, pedido);
   if (p === "claude") return chamarClaude(apiKey, modelo, pedido);
@@ -527,6 +628,9 @@ function extrairJson(texto: string): unknown | null {
  * Degradação declarada: sem nenhum provedor com visão conectado, devolve
  * `{ ok: false, motivo: "sem_provedor_com_visao" }` — o chamador segue o
  * trabalho SEM visão, não quebra.
+ *
+ * Custo dito: `detalheAplicado` no retorno diz se o `detalhe` pedido pegou —
+ * Claude e Gemini cobram a imagem inteira. Ver CUSTO no cabeçalho.
  *
  * Leitura parcial é dita: imagem que não baixou entra em `imagensIgnoradas` e
  * as demais são analisadas. Só quando NENHUMA imagem sobrevive é que a chamada
@@ -606,6 +710,7 @@ export async function analisarImagens(pedido: PedidoDeVisao): Promise<ResultadoD
           ...(dados !== null ? { dados } : {}),
           provedor,
           modelo,
+          detalheAplicado: honraDetalhe(provedor),
           imagensLidas: prontas.length,
           imagensIgnoradas: ignoradas,
         };
