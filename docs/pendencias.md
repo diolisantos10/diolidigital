@@ -1,6 +1,30 @@
 # Pendências — o que está aberto
 
-> Última atualização: 03/08/2026 (dia do lançamento da Foocci).
+> Última atualização: 04/08/2026 (madrugada — V3 dos carrosséis no portal).
+
+---
+
+## 🟠 04/08/2026 (madrugada) — Carrosséis V3 no portal, aguardando decisão do CEO
+
+CEO confirmou que o material está completo (briefing, brand book, IG de
+referência) e cobrou a entrega. Produzida a **V3 das 36 telas**, fiel ao
+padrão real do feed @foocci_ (V1/V2 reprovadas):
+
+- Sobre a V2: logo recortada com alpha (sem caixa cinza), TODAS as telas com
+  fotografia cinematográfica (6 fotos novas geradas pelo design engine de
+  produção), exposição corrigida, ícones SVG de linha no lugar de emoji,
+  **mockup de conversa WhatsApp** (assinatura do feed) em C2T3 e C4T5,
+  capitalização de frase como o feed usa.
+- Auto-revisão por amostragem (12/36 telas): ≥8 em hierarquia, tipografia,
+  espaçamento e consistência com o feed real.
+- Produção: capas dos 6 posts trocadas (mediaUrl novos, 200 confirmado no
+  portal) e as 36 telas subidas aos Arquivos do cliente Foocci.
+- **Aguardando: decisão do CEO no card "Carrosséis de lançamento — 6 peças"**
+  (Aprovar · Solicitar ajustes · Tenho uma dúvida) no portal.
+- Publicação continua MANUAL (trava de plataforma). Token de publicação
+  orgânica segue pendente com o CEO; nada sobe à Meta por API.
+- Corrigido de passagem no portal: o texto do card de aprovação renderiza
+  negrito de verdade (antes aparecia `**asterisco**` cru).
 
 ---
 
