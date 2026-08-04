@@ -72,16 +72,30 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 
   // Direct clientRequestId / clientId — internal use only (agency session).
-  const { error } = await requireSession();
+  //
+  // ⚠️ Estar logado NÃO é ser dono. Até aqui a sessão de qualquer workspace
+  // lia `?clientRequestId=<id alheio>` e recebia o pacote inteiro do cliente
+  // de outra agência — agora com URLs de mídia junto. Toda leitura por id
+  // explícito passa pela posse do workspace da sessão.
+  const { session, error } = await requireSession();
   if (error) return error;
 
   if (clientRequestId) {
+    if (!(await solicitacaoDoWorkspace(clientRequestId, session.workspaceId))) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
     return NextResponse.json(await buildPortalData(clientRequestId));
   }
 
   // clientId — return all requests for this client (portal by client ID)
   if (clientId) {
     try {
+      // O Client tem workspaceId obrigatório: a posse aqui é direta.
+      const dono = await prisma.client.findFirst({
+        where: { id: clientId, workspaceId: session.workspaceId },
+        select: { id: true },
+      });
+      if (!dono) return NextResponse.json({ error: "Not found" }, { status: 404 });
       const requests = await prisma.clientRequestDb.findMany({
         where: { clientId },
         orderBy: { createdAt: "desc" },
@@ -95,6 +109,34 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 
   return NextResponse.json({ error: "token, clientRequestId, or clientId required" }, { status: 400 });
+}
+
+/**
+ * A solicitação é do workspace de quem está pedindo?
+ *
+ * Fail-closed, com a única exceção que a realidade impõe: `ClientRequestDb.
+ * workspaceId` é NULO em briefings antigos (o formulário público não conhece
+ * o workspace — ver `client-request-service.ts`). Órfã não é de todos:
+ *   • tem workspaceId → tem que bater, ponto;
+ *   • órfã COM cliente → vale o workspace do Client (que é obrigatório);
+ *   • órfã SEM cliente → só passa se existir um único workspace na base.
+ *     Com dois, adivinhar é o mesmo que vazar.
+ */
+async function solicitacaoDoWorkspace(clientRequestId: string, workspaceId: string): Promise<boolean> {
+  const cr = await prisma.clientRequestDb.findFirst({
+    where: { id: clientRequestId, OR: [{ workspaceId }, { workspaceId: null }] },
+    select: { id: true, workspaceId: true, clientId: true },
+  });
+  if (!cr) return false;
+  if (cr.workspaceId === workspaceId) return true;
+  if (cr.clientId) {
+    const dono = await prisma.client.findFirst({
+      where: { id: cr.clientId, workspaceId }, select: { id: true },
+    });
+    return !!dono;
+  }
+  const workspaces = await prisma.agencyWorkspace.findMany({ select: { id: true }, take: 2 });
+  return workspaces.length === 1;
 }
 
 // Defensive, client-safe canvas summariser — pulls a headline + a few highlight
@@ -171,8 +213,16 @@ function buscarAprovacoes(where: FiltroDeAprovacao) {
       // O vínculo por FK à versão decidida (Fase 2, 2.2) — quando existe, é
       // ELE que dá o corpo do card, nunca casamento por ordem.
       // `mediaAssetIds` entra para o fallback visual das peças (montarPecas).
+      // `visibility` da ENTREGA entra no select porque a peça montada a partir
+      // de `mediaAssetIds` precisa dele: sem isso o ramo de mídia era
+      // fail-open — entrega nascida "interno" (o default do schema) virava
+      // arte na tela do cliente só porque alguém marcou a aprovação como
+      // clientVisible. Ver montarPecas.
       deliverableVersion: {
-        select: { number: true, content: true, mediaAssetIds: true, deliverable: { select: { name: true } } },
+        select: {
+          number: true, content: true, mediaAssetIds: true,
+          deliverable: { select: { name: true, visibility: true } },
+        },
       },
     },
   });
@@ -239,10 +289,22 @@ async function montarPecas(aprovacoes: AprovacaoDb[]): Promise<Map<string, PecaD
     for (const postId of lerLista(ap.sourcePostIdsJson)) {
       const p = porId.get(postId);
       if (!p) continue;
-      const mesmoDono = ap.clientId
-        ? p.clientId === ap.clientId
-        : !!ap.clientRequestId && p.clientRequestId === ap.clientRequestId;
-      if (!mesmoDono) continue;
+      // Posse por QUALQUER uma das duas chaves do card — fail-closed no fim.
+      // Antes era `clientId` OU `clientRequestId`, com o clientId ganhando
+      // exclusividade: como POST /api/social-posts aceita `clientId` nulo com
+      // `clientRequestId` resolvido, a peça legítima sumia do card em silêncio
+      // e o cliente aprovava 5 achando que eram 6. Agora casa por qualquer uma
+      // das duas; não casando em nenhuma, cai fora — e o log diz que caiu.
+      const porCliente    = !!ap.clientId        && p.clientId        === ap.clientId;
+      const porSolicitacao = !!ap.clientRequestId && p.clientRequestId === ap.clientRequestId;
+      if (!porCliente && !porSolicitacao) {
+        console.warn(
+          `[portal-data] peça descartada: post ${p.id} não pertence ao card ${ap.id} ` +
+          `(post: clientId=${p.clientId ?? "—"} clientRequestId=${p.clientRequestId ?? "—"} · ` +
+          `card: clientId=${ap.clientId ?? "—"} clientRequestId=${ap.clientRequestId ?? "—"})`,
+        );
+        continue;
+      }
       pecas.push({
         id: p.id,
         caption: p.caption,
@@ -254,7 +316,14 @@ async function montarPecas(aprovacoes: AprovacaoDb[]): Promise<Map<string, PecaD
       });
     }
 
-    if (pecas.length === 0 && ap.deliverableVersion) {
+    // Fallback por FK: só de entrega EXPLICITAMENTE compartilhada. O corpo do
+    // card já filtra `visibility` (deliverables, abaixo); o ramo de mídia não
+    // filtrava nada — e mídia é o que o cliente vê primeiro. Entrega "interno"
+    // ou "aguardando_publicacao" não vira arte no portal, nem com a aprovação
+    // marcada clientVisible.
+    const entregaCompartilhada =
+      ap.deliverableVersion?.deliverable.visibility === "compartilhado";
+    if (pecas.length === 0 && ap.deliverableVersion && entregaCompartilhada) {
       const midias = lerLista(ap.deliverableVersion.mediaAssetIds).map((id) => `/api/media/${id}`);
       if (midias.length > 0) {
         pecas.push({

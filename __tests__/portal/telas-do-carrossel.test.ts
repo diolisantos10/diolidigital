@@ -19,9 +19,10 @@ import { NextRequest, NextResponse } from "next/server";
 
 const db = vi.hoisted(() => ({
   socialPost: { findMany: vi.fn(), findFirst: vi.fn(), update: vi.fn() },
-  clientRequestDb: { findUnique: vi.fn(), findFirst: vi.fn() },
+  clientRequestDb: { findUnique: vi.fn(), findFirst: vi.fn(), findMany: vi.fn() },
   approvalRequest: { findMany: vi.fn() },
-  client: { findUnique: vi.fn() },
+  client: { findUnique: vi.fn(), findFirst: vi.fn() },
+  agencyWorkspace: { findMany: vi.fn() },
   brainArtifact: { findMany: vi.fn() },
   project: { findMany: vi.fn(), findFirst: vi.fn() },
   deliverable: { findMany: vi.fn() },
@@ -64,6 +65,7 @@ beforeEach(() => {
   db.socialPost.findMany.mockResolvedValue([postCarrossel()]);
   db.project.findMany.mockResolvedValue([]);
   db.approvalRequest.findMany.mockResolvedValue([]);
+  db.agencyWorkspace.findMany.mockResolvedValue([{ id: "ws1" }]);
 });
 
 // ── 1. GET /api/social-posts — telas no DTO ─────────────────────────────────
@@ -200,12 +202,69 @@ describe("portal-data — pecas estruturadas a partir de sourcePostIdsJson", () 
     expect((await res.json()).approvals[0].pecas).toEqual([]);
   });
 
+  it("peça legítima do card por clientRequestId PASSA — post com clientId nulo não some em silêncio", async () => {
+    // O caso que POST /api/social-posts produz: clientId nulo, clientRequestId
+    // resolvido. Antes, o card com clientId preenchido descartava esse post e o
+    // cliente aprovava 5 peças achando que eram 6.
+    db.approvalRequest.findMany.mockResolvedValue([
+      cardFoocci({ clientId: "cli-foocci", clientRequestId: "cr1" }),
+    ]);
+    db.socialPost.findMany.mockResolvedValue([
+      postCarrossel({ id: "sp1", clientId: null, clientRequestId: "cr1" }),
+      postCarrossel({ id: "sp2", clientId: "cli-foocci", clientRequestId: null, caption: "Peça 2" }),
+    ]);
+    const json = await (await portalData(req())).json();
+    // Uma casa pela solicitação, a outra pelo cliente — as duas entram.
+    expect(json.approvals[0].pecas.map((p: { id: string }) => p.id)).toEqual(["sp1", "sp2"]);
+  });
+
+  it("post que não casa por NENHUMA das duas chaves continua fora — fail-closed", async () => {
+    db.approvalRequest.findMany.mockResolvedValue([
+      cardFoocci({ clientId: "cli-foocci", clientRequestId: "cr1" }),
+    ]);
+    db.socialPost.findMany.mockResolvedValue([
+      postCarrossel({ id: "sp1" }),
+      postCarrossel({ id: "sp2", clientId: "cli-outro", clientRequestId: "cr-outro", caption: "segredo do outro" }),
+    ]);
+    const json = await (await portalData(req())).json();
+    expect(json.approvals[0].pecas).toHaveLength(1);
+    expect(JSON.stringify(json)).not.toContain("segredo do outro");
+  });
+
+  it("entrega INTERNA não vira peça, mesmo com a aprovação clientVisible", async () => {
+    // O fail-open corrigido: `visibility` nasce "interno" (schema) e o ramo de
+    // mídia não olhava para ele — bastava alguém apontar a ApprovalRequest para
+    // a versão e as artes de um entregável não liberado chegavam ao cliente.
+    db.approvalRequest.findMany.mockResolvedValue([cardFoocci({
+      sourcePostIdsJson: "[]",
+      deliverableVersion: {
+        number: 1, content: "rascunho não liberado", mediaAssetIds: JSON.stringify(["ma1", "ma2"]),
+        deliverable: { name: "Carrossel", visibility: "interno" },
+      },
+    })]);
+    const json = await (await portalData(req())).json();
+    expect(json.approvals[0].pecas).toEqual([]);
+    expect(JSON.stringify(json)).not.toContain("/api/media/ma1");
+  });
+
+  it("entrega 'aguardando_publicacao' também não vira peça — só 'compartilhado' abre", async () => {
+    db.approvalRequest.findMany.mockResolvedValue([cardFoocci({
+      sourcePostIdsJson: "[]",
+      deliverableVersion: {
+        number: 1, content: "quase lá", mediaAssetIds: JSON.stringify(["ma9"]),
+        deliverable: { name: "Carrossel", visibility: "aguardando_publicacao" },
+      },
+    })]);
+    const json = await (await portalData(req())).json();
+    expect(json.approvals[0].pecas).toEqual([]);
+  });
+
   it("fallback: card SEM posts mas com DeliverableVersion.mediaAssetIds vira UMA peça /api/media/<id>", async () => {
     db.approvalRequest.findMany.mockResolvedValue([cardFoocci({
       sourcePostIdsJson: "[]",
       deliverableVersion: {
         number: 2, content: "corpo da v2", mediaAssetIds: JSON.stringify(["ma1", "ma2"]),
-        deliverable: { name: "Carrossel" },
+        deliverable: { name: "Carrossel", visibility: "compartilhado" },
       },
     })]);
     const json = await (await portalData(req())).json();
@@ -227,6 +286,69 @@ describe("portal-data — pecas estruturadas a partir de sourcePostIdsJson", () 
     const json = await (await portalData(req())).json();
     expect(json.approvals[0].pecas).toHaveLength(2);
     expect(json.approvals[0].pecas[0].telas).toEqual(TELAS);
+  });
+});
+
+// ── 3B. portal-data pelo ramo de SESSÃO — posse do workspace ────────────────
+//
+// Estar logado não é ser dono: qualquer conta autenticada lia
+// `?clientRequestId=<id alheio>` e recebia o pacote inteiro do cliente de outro
+// workspace — agora com URLs de mídia junto.
+
+describe("portal-data (sessão) — leitura por id explícito exige o workspace da sessão", () => {
+  function reqPorId(id = "cr-alheio") {
+    return new NextRequest(`http://localhost/api/brain/portal-data?clientRequestId=${id}`);
+  }
+
+  it("solicitação de OUTRO workspace → 404 e nada de payload", async () => {
+    // O filtro por workspaceId não acha a solicitação alheia.
+    db.clientRequestDb.findFirst.mockResolvedValue(null);
+    const res = await portalData(reqPorId());
+    expect(res.status).toBe(404);
+    // A consulta de posse foi feita com o workspace da sessão.
+    expect(db.clientRequestDb.findFirst.mock.calls[0]![0].where).toMatchObject({
+      id: "cr-alheio",
+      OR: [{ workspaceId: "ws1" }, { workspaceId: null }],
+    });
+    // E o pacote nunca chegou a ser montado.
+    expect(db.clientRequestDb.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("solicitação do PRÓPRIO workspace → 200 com o pacote", async () => {
+    db.clientRequestDb.findFirst.mockResolvedValue({ id: "cr1", workspaceId: "ws1", clientId: "cli-foocci" });
+    db.clientRequestDb.findUnique.mockResolvedValue({
+      id: "cr1", clientId: "cli-foocci", businessName: "Foocci", status: "in_production",
+      services: "[]", objectives: "[]", briefingJson: "{}", segment: "", createdAt: new Date(),
+    });
+    db.brainArtifact.findMany.mockResolvedValue([]);
+    db.project.findFirst.mockResolvedValue(null);
+    const res = await portalData(reqPorId("cr1"));
+    expect(res.status).toBe(200);
+    expect((await res.json()).businessName).toBe("Foocci");
+  });
+
+  it("solicitação ÓRFÃ (workspaceId nulo) de cliente de outro workspace → 404", async () => {
+    // Órfã não é de todos: vale o workspace do Client dela.
+    db.clientRequestDb.findFirst.mockResolvedValue({ id: "cr-orfa", workspaceId: null, clientId: "cli-outro" });
+    db.client.findFirst.mockResolvedValue(null);
+    const res = await portalData(reqPorId("cr-orfa"));
+    expect(res.status).toBe(404);
+    expect(db.client.findFirst.mock.calls[0]![0].where).toMatchObject({ id: "cli-outro", workspaceId: "ws1" });
+    expect(db.clientRequestDb.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("clientId de outro workspace → 404 antes de qualquer leitura de solicitação", async () => {
+    db.client.findFirst.mockResolvedValue(null);
+    const res = await portalData(new NextRequest("http://localhost/api/brain/portal-data?clientId=cli-outro"));
+    expect(res.status).toBe(404);
+    expect(db.clientRequestDb.findMany).not.toHaveBeenCalled();
+  });
+
+  it("sem sessão → 401, sem tocar no banco", async () => {
+    requireSession.mockResolvedValue({ session: null, error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) });
+    const res = await portalData(reqPorId());
+    expect(res.status).toBe(401);
+    expect(db.clientRequestDb.findFirst).not.toHaveBeenCalled();
   });
 });
 
