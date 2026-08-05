@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080">
+  <rect width="1080" height="1080" fill="transparent"/>
+  <circle cx="540" cy="540" r="500" fill="#FFFFFF" stroke="#0D2B4D" stroke-width="10"/>
+  <text x="540" y="500" text-anchor="middle" fill="#0D2B4D" font-family="Arial Black, Arial, Helvetica, sans-serif" font-size="180" font-weight="900" letter-spacing="0">CITY</text>
+  <text x="540" y="705" text-anchor="middle" fill="#0D2B4D" font-family="Arial Black, Arial, Helvetica, sans-serif" font-size="210" font-weight="900" letter-spacing="0">JOBS</text>
+</svg>
