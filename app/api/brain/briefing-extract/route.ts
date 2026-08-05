@@ -14,7 +14,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimited } from "@/lib/security/rate-limit";
-import { resolveProviderKey } from "@/lib/ai/resolve-key";
+import { chaveDeRotaPublica } from "@/lib/ai/chave-publica";
 
 const CLAUDE_URL  = "https://api.anthropic.com/v1/messages";
 const MODEL       = "claude-haiku-4-5-20251001";
@@ -124,7 +124,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const _limited = rateLimited(req, "briefing-extract", 30, 60_000);
   if (_limited) return _limited as NextResponse;
 
-  const resolved = await resolveProviderKey("claude");
+  // A QUARTA porta da mesma família, que o raio-x não listou: esta rota também
+  // é pública (só teto de ritmo por IP) e também caía no `findFirst` global.
+  const resolved = await chaveDeRotaPublica("claude");
   if (!resolved) {
     // Not configured — tell client to rely on rule-based engine (not an error).
     return NextResponse.json({ ok: false, reason: "not_configured" });

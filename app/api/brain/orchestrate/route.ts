@@ -9,6 +9,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth/api-guard";
+import { naoEncontrado, solicitacaoDoWorkspace } from "@/lib/auth/posse-de-workspace";
 import { buildClientSnapshot } from "@/lib/dioli-brain/client-snapshot";
 import { orchestratePMReasoning } from "@/lib/dioli-brain/pm-orchestrator";
 
@@ -37,6 +38,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const clientRequestId = body.clientRequestId;
   if (!clientRequestId || typeof clientRequestId !== "string") {
     return NextResponse.json({ error: "clientRequestId required" }, { status: 400 });
+  }
+
+  // O snapshot é a VERDADE ANCORADA do cliente — briefing, marca, contexto
+  // cru. Devolver a proposta gerada a partir dele para quem não é dono é
+  // entregar o diagnóstico do cliente de outra agência pronto, em JSON.
+  if (!(await solicitacaoDoWorkspace(clientRequestId, session.workspaceId))) {
+    return naoEncontrado();
   }
 
   let snapshot;

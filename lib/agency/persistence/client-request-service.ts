@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db/client";
+import { apenasDoWorkspace, workspaceUnico } from "@/lib/auth/posse-de-workspace";
 
 // ── Normalization ─────────────────────────────────────────────────────────────
 // SQLite (via Prisma) stores JSON fields as raw strings. This normalizer parses
@@ -80,23 +81,20 @@ export interface UpdateClientRequestInput {
  * link, subdomínio ou token do formulário) — adivinhar entre dois seria pior que
  * o nulo, porque mandaria o cliente de um para a caixa de entrada de outro.
  */
-async function resolverWorkspace(informado?: string): Promise<string | undefined> {
+export async function resolverWorkspacePublico(informado?: string): Promise<string | undefined> {
   if (informado) return informado;
-  try {
-    const todos = await prisma.agencyWorkspace.findMany({ select: { id: true }, take: 2 });
-    if (todos.length === 1) return todos[0]!.id;
-    if (todos.length > 1) {
-      console.warn("[client-request] mais de um workspace — a solicitação nasce sem dono até o formulário dizer qual");
-    }
-  } catch {
-    // Banco indisponível na leitura: seguir sem workspace é melhor que perder
-    // o briefing do prospect. A rota de admin aceita o nulo.
+  // Banco indisponível devolve `{id:null, ambiguo:false}` — seguir sem workspace
+  // é melhor que perder o briefing do prospect. A rota de admin aceita o nulo.
+  const unico = await workspaceUnico();
+  if (unico.id) return unico.id;
+  if (unico.ambiguo) {
+    console.warn("[client-request] mais de um workspace — a solicitação nasce sem dono até o formulário dizer qual");
   }
   return undefined;
 }
 
 export async function createClientRequest(input: CreateClientRequestInput): Promise<NormalizedClientRequest> {
-  const workspaceId = await resolverWorkspace(input.workspaceId);
+  const workspaceId = await resolverWorkspacePublico(input.workspaceId);
   const raw = await prisma.clientRequestDb.create({
     data: {
       businessName:    input.businessName,
@@ -135,15 +133,24 @@ export async function listClientRequests(options?: {
       ? { status: statuses[0] }
       : { status: { in: statuses } };
   }
+  // O `workspaceId` entra na consulta como "meu OU órfão", e a órfã é decidida
+  // depois por `apenasDoWorkspace` (a política única). Filtrar só por
+  // `workspaceId` esconderia 6 das 7 solicitações reais; não filtrar nada
+  // listava a agência inteira do vizinho.
   const rows = await prisma.clientRequestDb.findMany({
     where: {
-      ...(options?.workspaceId ? { workspaceId: options.workspaceId } : {}),
+      ...(options?.workspaceId
+        ? { OR: [{ workspaceId: options.workspaceId }, { workspaceId: null }] }
+        : {}),
       ...statusFilter,
     },
     orderBy: { createdAt: "desc" },
     take: options?.limit ?? 100,
   });
-  return rows.map(normalizeClientRequest);
+  const visiveis = options?.workspaceId
+    ? await apenasDoWorkspace(rows, options.workspaceId)
+    : rows;
+  return visiveis.map(normalizeClientRequest);
 }
 
 export async function updateClientRequest(id: string, input: UpdateClientRequestInput): Promise<NormalizedClientRequest> {

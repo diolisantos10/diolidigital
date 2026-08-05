@@ -5,6 +5,11 @@ import { prisma } from "@/lib/db/client";
 import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-service";
 import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
 import { requireSession } from "@/lib/auth/api-guard";
+// A política de posse (inclusive a da solicitação órfã) mora inteira em
+// `lib/auth/posse-de-workspace.ts`. Ela NASCEU aqui, neste arquivo, e foi
+// copiada para outros dois lugares — onde já divergia. Uma trava de segurança
+// com três versões é três políticas com o mesmo nome.
+import { clienteDoWorkspace, solicitacaoDoWorkspace } from "@/lib/auth/posse-de-workspace";
 
 // O nome que o CLIENTE vê. Precisa cobrir os dois vocabulários: o do Brain
 // (`social`, `traffic`) e o do motor de produção (`social-media`,
@@ -91,11 +96,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   if (clientId) {
     try {
       // O Client tem workspaceId obrigatório: a posse aqui é direta.
-      const dono = await prisma.client.findFirst({
-        where: { id: clientId, workspaceId: session.workspaceId },
-        select: { id: true },
-      });
-      if (!dono) return NextResponse.json({ error: "Not found" }, { status: 404 });
+      if (!(await clienteDoWorkspace(clientId, session.workspaceId))) {
+        return NextResponse.json({ error: "Not found" }, { status: 404 });
+      }
       const requests = await prisma.clientRequestDb.findMany({
         where: { clientId },
         orderBy: { createdAt: "desc" },
@@ -109,34 +112,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 
   return NextResponse.json({ error: "token, clientRequestId, or clientId required" }, { status: 400 });
-}
-
-/**
- * A solicitação é do workspace de quem está pedindo?
- *
- * Fail-closed, com a única exceção que a realidade impõe: `ClientRequestDb.
- * workspaceId` é NULO em briefings antigos (o formulário público não conhece
- * o workspace — ver `client-request-service.ts`). Órfã não é de todos:
- *   • tem workspaceId → tem que bater, ponto;
- *   • órfã COM cliente → vale o workspace do Client (que é obrigatório);
- *   • órfã SEM cliente → só passa se existir um único workspace na base.
- *     Com dois, adivinhar é o mesmo que vazar.
- */
-async function solicitacaoDoWorkspace(clientRequestId: string, workspaceId: string): Promise<boolean> {
-  const cr = await prisma.clientRequestDb.findFirst({
-    where: { id: clientRequestId, OR: [{ workspaceId }, { workspaceId: null }] },
-    select: { id: true, workspaceId: true, clientId: true },
-  });
-  if (!cr) return false;
-  if (cr.workspaceId === workspaceId) return true;
-  if (cr.clientId) {
-    const dono = await prisma.client.findFirst({
-      where: { id: cr.clientId, workspaceId }, select: { id: true },
-    });
-    return !!dono;
-  }
-  const workspaces = await prisma.agencyWorkspace.findMany({ select: { id: true }, take: 2 });
-  return workspaces.length === 1;
 }
 
 // Defensive, client-safe canvas summariser — pulls a headline + a few highlight

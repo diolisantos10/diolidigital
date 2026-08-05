@@ -16,11 +16,15 @@ const db = vi.hoisted(() => ({
   portalMessage: { create: vi.fn() },
 }));
 const validatePortalAccess = vi.hoisted(() => vi.fn());
+// A porta de entrada passou a CONFERIR o token antes de gravar o cookie de 180
+// dias (achado 14 da 8ª auditoria) — antes ela gravava qualquer string da
+// query. A conferência é sem efeito colateral: não conta visita.
+const conferirTokenDoPortal = vi.hoisted(() => vi.fn());
 const updateApprovalStatus = vi.hoisted(() => vi.fn());
 const addApprovalComment = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
-vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ validatePortalAccess }));
+vi.mock("@/lib/agency/persistence/portal-access-service", () => ({ validatePortalAccess, conferirTokenDoPortal }));
 vi.mock("@/lib/agency/persistence/approval-service", () => ({ updateApprovalStatus, addApprovalComment }));
 vi.mock("@/lib/agency/execution/create-project-from-request", () => ({ createProjectFromRequest: vi.fn() }));
 vi.mock("@/lib/agency/execution/run-execution", () => ({ runProjectExecution: vi.fn() }));
@@ -36,6 +40,7 @@ import { PORTAL_COOKIE } from "@/lib/agency/persistence/portal-cookie";
 beforeEach(() => {
   vi.clearAllMocks();
   validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: null } });
+  conferirTokenDoPortal.mockResolvedValue(true);
 });
 
 describe("porta de entrada — /portal/access?token=", () => {

@@ -6,11 +6,23 @@
 // URL limpa (/portal/access/me), sem token no caminho nem na query. O token
 // original permanece válido para novos acessos (revalidação de dispositivo).
 //
-// Token inválido também redireciona: a página valida via API e mostra o erro
-// certo (expirado/revogado/inválido) — validar aqui duplicaria a mensagem.
+// ⚠️ SÓ SE GRAVA COOKIE DE TOKEN VÁLIDO. A rota irmã (POST /api/portal/session)
+// já dizia isso com todas as letras — "cookie de token podre é um bug que se
+// esconde por 180 dias" — e esta aqui gravava QUALQUER string que viesse na
+// query. O estrago não é acesso indevido (o token continua sendo conferido em
+// toda leitura de dado); é um cookie httpOnly de 180 dias, que o cliente não
+// enxerga e não sabe limpar, mandando lixo em cada requisição e mascarando o
+// link bom que ele receber depois: `tokenDoPortal` prefere o explícito, mas
+// qualquer chamada sem token na query passa a usar o cookie podre e o portal
+// "para de funcionar" sem motivo visível.
+//
+// Token inválido continua redirecionando para a tela do portal — é lá que a
+// página traduz o motivo (expirado/revogado/inválido) pela API. O que muda é
+// que ele não deixa rastro no navegador.
 
 import { NextRequest, NextResponse } from "next/server";
 import { gravarCookieDoPortal } from "@/lib/agency/persistence/portal-cookie";
+import { conferirTokenDoPortal } from "@/lib/agency/persistence/portal-access-service";
 
 /** Atrás do proxy do Railway, `request.url` carrega o host INTERNO
  *  (0.0.0.0:8080) — um redirect montado com ele manda o cliente para um
@@ -27,7 +39,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   if (!token) {
     return NextResponse.redirect(urlPublica(request, "/portal/invalid"));
   }
+
   const response = NextResponse.redirect(urlPublica(request, "/portal/access/me"));
-  gravarCookieDoPortal(response, request, token);
+  // Sem token válido, NADA é gravado — e o cookie que já existir também não é
+  // apagado: quem já tem acesso bom e clica num link velho não pode ser expulso
+  // por isso. O redirecionamento continua igual; a página mostra o erro.
+  if (await conferirTokenDoPortal(token)) {
+    gravarCookieDoPortal(response, request, token);
+  }
   return response;
 }

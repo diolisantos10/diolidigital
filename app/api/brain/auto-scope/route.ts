@@ -4,6 +4,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth/api-guard";
+import { naoEncontrado, solicitacaoDoWorkspace } from "@/lib/auth/posse-de-workspace";
 import { runAutoScope } from "@/lib/dioli-brain/run-auto-scope";
 import { buildClientSnapshot } from "@/lib/dioli-brain/client-snapshot";
 
@@ -24,6 +25,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const clientRequestId = body.clientRequestId;
   if (!clientRequestId || typeof clientRequestId !== "string") {
     return NextResponse.json({ error: "clientRequestId required" }, { status: 400 });
+  }
+
+  // Existir não basta: tem que ser SUA. Sem isto, um PM disparava a cadeia de 6
+  // motores sobre a solicitação de outra agência — sobrescrevendo os artefatos
+  // dela e gastando a chave de IA DESTE workspace com o briefing dela.
+  if (!(await solicitacaoDoWorkspace(clientRequestId, session.workspaceId))) {
+    return naoEncontrado();
   }
 
   // Verify the request exists before running engines.

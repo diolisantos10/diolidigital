@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth/api-guard";
+import { naoEncontrado, solicitacaoDoWorkspace } from "@/lib/auth/posse-de-workspace";
 import { prisma } from "@/lib/db/client";
 import { buildClientSnapshot } from "@/lib/dioli-brain/client-snapshot";
 import { orchestratePMReasoning } from "@/lib/dioli-brain/pm-orchestrator";
@@ -54,6 +55,12 @@ export async function POST(
   const allApproved = revisionDepts.length === 0;
 
   try {
+    // Mesma adoção do /orchestrate/apply, mesmo risco: aprovar o escopo de uma
+    // solicitação alheia criava Cliente, Projeto e Tarefas NESTE workspace a
+    // partir do briefing dela — e reescrevia o `workspaceId` dela para cá.
+    if (!(await solicitacaoDoWorkspace(clientRequestId, session.workspaceId))) {
+      return naoEncontrado();
+    }
     const req = await prisma.clientRequestDb.findUnique({ where: { id: clientRequestId } });
     if (!req) return NextResponse.json({ error: "ClientRequest not found" }, { status: 404 });
 

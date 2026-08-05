@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db/client";
 import { createClientRequest, listClientRequests, updateClientRequest, getClientRequest, deleteClientRequest } from "@/lib/agency/persistence/client-request-service";
 import { requireSession } from "@/lib/auth/api-guard";
+import {
+  clienteDoWorkspace,
+  naoEncontrado,
+  solicitacaoDoWorkspace,
+} from "@/lib/auth/posse-de-workspace";
 import { runAutoScope } from "@/lib/dioli-brain/run-auto-scope";
 import { rateLimited } from "@/lib/security/rate-limit";
 import { sendEmail } from "@/lib/email/send";
@@ -34,29 +38,41 @@ function sendBriefingConfirmation(body: Record<string, unknown>): void {
 // It can only create "new" requests (status/source are service-controlled).
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const { error } = await requireSession();
+  const { session, error } = await requireSession();
   if (error) return error;
 
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
 
   // Single-record fetch by id.
+  //
+  // ⚠️ O que este registro carrega: `rawContext`, o transcript do SDR e o
+  // `sdrHandoffJson` — a conversa crua do prospect, com nome, telefone e
+  // valores falados. Sem a posse, um id de outra agência devolvia tudo isso.
   if (id) {
     try {
+      if (!(await solicitacaoDoWorkspace(id, session.workspaceId))) return naoEncontrado();
       const record = await getClientRequest(id);
-      if (!record) return NextResponse.json({ error: "Not found" }, { status: 404 });
+      if (!record) return naoEncontrado();
       return NextResponse.json(record);
     } catch {
       return NextResponse.json({ error: "DB unavailable" }, { status: 503 });
     }
   }
 
-  const workspaceId = searchParams.get("workspaceId") ?? undefined;
+  // O `?workspaceId=` da query MORREU: OMITI-LO listava a base inteira, de
+  // todas as agências. O escopo da listagem é o da sessão, sempre — não é
+  // parâmetro, é fato. (As órfãs continuam aparecendo para o dono real: quem
+  // decide é `apenasDoWorkspace`, dentro do serviço.)
   const status      = searchParams.get("status") ?? undefined;
   const limit       = Math.min(parseInt(searchParams.get("limit") ?? "100", 10), 500);
 
   try {
-    const records = await listClientRequests({ workspaceId, status: status as never, limit });
+    const records = await listClientRequests({
+      workspaceId: session.workspaceId,
+      status: status as never,
+      limit,
+    });
     return NextResponse.json(records);
   } catch {
     return NextResponse.json({ error: "DB unavailable" }, { status: 503 });
@@ -88,8 +104,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       objectives:      Array.isArray(body.objectives)            ? body.objectives as string[] : [],
       rawContext:      typeof body.rawContext      === "string"   ? body.rawContext        : "",
       source:          typeof body.source         === "string"   ? body.source            : "briefing",
-      workspaceId:     typeof body.workspaceId    === "string"   ? body.workspaceId       : undefined,
-      clientId:        typeof body.clientId       === "string"   ? body.clientId          : undefined,
+      // `workspaceId`/`clientId` do CORPO não entram mais: esta rota é pública
+      // (é o submit do formulário /briefing) e aceitá-los deixava qualquer
+      // pessoa plantar uma solicitação dentro da caixa de entrada de uma
+      // agência escolhida a dedo — e disparar o auto-scope, que gasta a chave
+      // de IA DELA. Quem resolve o dono é o servidor
+      // (`resolverWorkspacePublico`); a adoção explícita é o PATCH, que tem
+      // sessão. Ver a regra da casa: no caminho público, o dono é DERIVADO,
+      // nunca informado.
       briefingJson:    body.briefingJson    != null              ? body.briefingJson as object : undefined,
       sdrHandoffJson:  body.sdrHandoffJson  != null              ? body.sdrHandoffJson as object : undefined,
       attachmentsJson: Array.isArray(body.attachmentsJson)       ? body.attachmentsJson as object[] : [],
@@ -113,7 +135,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 }
 
 export async function PATCH(request: NextRequest): Promise<NextResponse> {
-  const { error } = await requireSession();
+  const { session, error } = await requireSession();
   if (error) return error;
 
   const { searchParams } = new URL(request.url);
@@ -128,6 +150,24 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
+    if (!(await solicitacaoDoWorkspace(id, session.workspaceId))) return naoEncontrado();
+
+    // `workspaceId` e `clientId` do corpo eram gravados direto
+    // (`client-request-service:149`): dava para TRANSFERIR a solicitação de
+    // outra agência para a sua com um PATCH — e, no sentido inverso, empurrar
+    // a sua para fora. Adotar a órfã continua permitido (é o caminho legítimo
+    // do briefing público), mas só para o SEU workspace, e o cliente apontado
+    // tem que ser seu.
+    if (typeof body.workspaceId === "string" && body.workspaceId !== session.workspaceId) {
+      return NextResponse.json(
+        { error: "workspaceId não pode ser trocado por outro" },
+        { status: 403 },
+      );
+    }
+    if (typeof body.clientId === "string" && !(await clienteDoWorkspace(body.clientId, session.workspaceId))) {
+      return naoEncontrado();
+    }
+
     const record = await updateClientRequest(id, body as never);
     return NextResponse.json(record);
   } catch (e) {
@@ -137,7 +177,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
 }
 
 export async function DELETE(request: NextRequest): Promise<NextResponse> {
-  const { error } = await requireSession(["master", "project_manager"]);
+  const { session, error } = await requireSession(["master", "project_manager"]);
   if (error) return error;
 
   const { searchParams } = new URL(request.url);
@@ -145,6 +185,10 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
   try {
+    // O apagão em cascata (BrainArtifact, ApprovalRequest → ApprovalComment)
+    // é o motivo de esta conferência não ser negociável: sem ela, um id
+    // digitado destruía o histórico de aprovação de outra agência inteira.
+    if (!(await solicitacaoDoWorkspace(id, session.workspaceId))) return naoEncontrado();
     await deleteClientRequest(id);
     return NextResponse.json({ ok: true });
   } catch (e) {

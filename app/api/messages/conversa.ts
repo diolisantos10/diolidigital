@@ -131,24 +131,10 @@ export async function conversaDoToken(token: string): Promise<ResultadoDoToken> 
   return { ok: true, conversa: VAZIA };
 }
 
-/** Posse: o cliente é DESTE workspace? Estar logado não é ser dono. */
-export async function clienteDoWorkspace(clientId: string, workspaceId: string): Promise<boolean> {
-  const dono = await prisma.client.findFirst({
-    where: { id: clientId, workspaceId },
-    select: { id: true },
-  });
-  return !!dono;
-}
-
-/** Posse da solicitação — espelha `solicitacaoDoWorkspace` do portal-data:
- *  solicitação sem workspace (briefing público antigo) vale pelo cliente. */
-export async function solicitacaoDoWorkspace(clientRequestId: string, workspaceId: string): Promise<boolean> {
-  const cr = await prisma.clientRequestDb.findFirst({
-    where: { id: clientRequestId, OR: [{ workspaceId }, { workspaceId: null }] },
-    select: { id: true, workspaceId: true, clientId: true },
-  });
-  if (!cr) return false;
-  if (cr.workspaceId === workspaceId) return true;
-  if (cr.clientId) return clienteDoWorkspace(cr.clientId, workspaceId);
-  return false;
-}
+// Posse: "estar logado não é ser dono". A conferência vivia COPIADA aqui e
+// já tinha divergido da original (esta reprovava a solicitação órfã sem
+// cliente; a de `portal-data` a aprovava quando existe um workspace só) — duas
+// políticas de segurança com o mesmo nome, e nada na tela dizendo qual valia.
+// Agora as duas são a mesma, em `lib/auth/posse-de-workspace.ts`; o re-export
+// existe para não quebrar quem já importava daqui.
+export { clienteDoWorkspace, solicitacaoDoWorkspace } from "@/lib/auth/posse-de-workspace";

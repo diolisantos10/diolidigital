@@ -22,6 +22,26 @@ export async function createPortalAccess(input: CreatePortalAccessInput) {
   });
 }
 
+/**
+ * O token serve? — conferência SEM efeito colateral.
+ *
+ * `validatePortalAccess` incrementa `accessCount` e carimba `lastAccessedAt`:
+ * é a validação de quem está ABRINDO o portal. Quem só precisa decidir "gravo
+ * este cookie?" não pode contar como visita — senão todo acesso vira dois, e a
+ * contagem que a agência usa para saber se o cliente entrou passa a mentir.
+ */
+export async function conferirTokenDoPortal(token: string): Promise<boolean> {
+  try {
+    const record = await prisma.portalAccess.findUnique({ where: { token } });
+    if (!record || record.revokedAt) return false;
+    if (record.expiresAt && record.expiresAt < new Date()) return false;
+    return true;
+  } catch {
+    // Banco fora do ar: não grave credencial de 180 dias no escuro.
+    return false;
+  }
+}
+
 export async function validatePortalAccess(token: string) {
   const record = await prisma.portalAccess.findUnique({ where: { token } });
   if (!record) return { valid: false, reason: "not_found" as const };

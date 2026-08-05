@@ -3,6 +3,11 @@ import { createBrainArtifact, getArtifactsForRequest } from "@/lib/agency/persis
 import type { Department } from "@/lib/agency/persistence/brain-artifact-service";
 import { createEvidenceItem } from "@/lib/agency/persistence/evidence-service";
 import { requireSession } from "@/lib/auth/api-guard";
+import {
+  naoEncontrado,
+  posseDaSolicitacao,
+  solicitacaoDoWorkspace,
+} from "@/lib/auth/posse-de-workspace";
 import { prisma } from "@/lib/db/client";
 import { proposeBrainUpdate } from "@/lib/dioli-brain/brain-update";
 
@@ -28,7 +33,7 @@ const NEXT_STATUS_AFTER: Record<string, string> = {
 };
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const { error } = await requireSession();
+  const { session, error } = await requireSession();
   if (error) return error;
 
   const { searchParams } = new URL(request.url);
@@ -37,6 +42,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: "clientRequestId required" }, { status: 400 });
   }
   try {
+    if (!(await solicitacaoDoWorkspace(clientRequestId, session.workspaceId))) {
+      return naoEncontrado();
+    }
     const artifacts = await getArtifactsForRequest(clientRequestId);
     return NextResponse.json(artifacts);
   } catch {
@@ -74,6 +82,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
+    // ⚠️ O UPSERT ERA A PORTA. `upsert` por id do corpo faz as duas coisas de
+    // uma vez: se o id existe, ATINGE o registro (e as linhas abaixo avançam o
+    // `status` do pipeline dele); se não existe, CRIA. Sem posse, um id de
+    // outra agência entrava pelo primeiro ramo e um id inventado pelo segundo.
+    //
+    // A posse com três estados separa exatamente esses dois ramos:
+    //   • "alheia"      → 404, nada é criado e nada é tocado;
+    //   • "inexistente" → o stub do store legado pode nascer, MAS carimbado
+    //     com o workspace da sessão. Nascer órfão era o que alimentava a
+    //     população de solicitações sem dono que esta auditoria teve que tratar.
+    const posse = await posseDaSolicitacao(clientRequestId as string, session.workspaceId);
+    if (posse === "alheia") return naoEncontrado();
+
     // Requests created in the legacy Zustand store may not exist in the DB yet.
     // Upsert a stub so the FK holds and the approval is never lost.
     const canvasObj = canvas as { clientName?: string; segment?: string };
@@ -82,6 +103,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       update: {},
       create: {
         id:           clientRequestId as string,
+        workspaceId:  session.workspaceId,
         businessName: canvasObj.clientName ?? "Cliente (origem: store local)",
         segment:      canvasObj.segment ?? "",
         source:       "legacy_store",

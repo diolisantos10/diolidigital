@@ -8,9 +8,25 @@ import {
 } from "@/lib/agency/persistence/approval-service";
 import type { ApprovalStatus } from "@/lib/agency/persistence/approval-service";
 import { requireSession } from "@/lib/auth/api-guard";
+import {
+  aprovacaoDoWorkspace,
+  artefatoDoWorkspace,
+  naoEncontrado,
+  solicitacaoDoWorkspace,
+} from "@/lib/auth/posse-de-workspace";
+
+// A trava que o vizinho `app/api/brain/portal-data` já explicava num parágrafo
+// inteiro e que aqui nunca foi aplicada. O que passava sem ela:
+//   • GET   → todas as aprovações e comentários de qualquer solicitação;
+//   • PATCH → ligar/desligar `clientVisible` de card alheio (publicar ou sumir
+//     com uma peça no portal de outro inquilino);
+//   • POST  → comentário VISÍVEL AO CLIENTE no portal de outra agência,
+//     assinado como se fosse ela, e a decisão da aprovação dela.
+// O último é o pior: não é leitura de dado, é falar em nome de outra agência
+// com o cliente dela.
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const { error } = await requireSession();
+  const { session, error } = await requireSession();
   if (error) return error;
 
   const { searchParams } = new URL(request.url);
@@ -19,6 +35,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: "clientRequestId required" }, { status: 400 });
   }
   try {
+    if (!(await solicitacaoDoWorkspace(clientRequestId, session.workspaceId))) {
+      return naoEncontrado();
+    }
     const approvals = await getApprovalsForRequest(clientRequestId);
     return NextResponse.json(approvals);
   } catch {
@@ -27,7 +46,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 }
 
 export async function PATCH(request: NextRequest): Promise<NextResponse> {
-  const { error } = await requireSession();
+  const { session, error } = await requireSession();
   if (error) return error;
 
   let body: Record<string, unknown>;
@@ -43,6 +62,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
+    if (!(await aprovacaoDoWorkspace(id, session.workspaceId))) return naoEncontrado();
     const updated = await setApprovalVisibility(id, body.clientVisible);
     return NextResponse.json(updated);
   } catch {
@@ -51,7 +71,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const { error } = await requireSession();
+  const { session, error } = await requireSession();
   if (error) return error;
 
   let body: Record<string, unknown>;
@@ -63,8 +83,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   try {
     if (action === "comment") {
+      const approvalRequestId = body.approvalRequestId as string | undefined;
+      if (!approvalRequestId) {
+        return NextResponse.json({ error: "approvalRequestId required" }, { status: 400 });
+      }
+      if (!(await aprovacaoDoWorkspace(approvalRequestId, session.workspaceId))) {
+        return naoEncontrado();
+      }
       const comment = await addApprovalComment({
-        approvalRequestId: body.approvalRequestId as string,
+        approvalRequestId,
         authorName: (body.authorName as string) ?? "internal",
         authorRole: (body.authorRole as "internal" | "client") ?? "internal",
         // "answer" marca a resposta da agência a uma dúvida do cliente — é o
@@ -77,8 +104,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     if (action === "update_status") {
+      const alvo = body.id as string | undefined;
+      if (!alvo) return NextResponse.json({ error: "id required" }, { status: 400 });
+      if (!(await aprovacaoDoWorkspace(alvo, session.workspaceId))) return naoEncontrado();
       const updated = await updateApprovalStatus(
-        body.id as string,
+        alvo,
         body.status as ApprovalStatus,
         body.reviewedBy as string | undefined,
         body.reviewNote as string | undefined,
@@ -87,10 +117,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Default: create new approval request
+    const clientRequestId = body.clientRequestId as string | undefined;
+    if (!clientRequestId) {
+      return NextResponse.json({ error: "clientRequestId required" }, { status: 400 });
+    }
+    if (!(await solicitacaoDoWorkspace(clientRequestId, session.workspaceId))) {
+      return naoEncontrado();
+    }
+    // O artefato vinculado é a OUTRA porta do mesmo cômodo: um card meu
+    // apontando para o canvas do vizinho é o conteúdo dele entrando aqui.
+    const artifactId = body.artifactId as string | undefined;
+    if (artifactId && !(await artefatoDoWorkspace(artifactId, session.workspaceId))) {
+      return naoEncontrado();
+    }
     const approval = await createApprovalRequest({
-      clientRequestId: body.clientRequestId as string,
+      clientRequestId,
       department:      body.department as string,
-      artifactId:      body.artifactId as string | undefined,
+      artifactId,
       requestedBy:     (body.requestedBy as string) ?? "internal",
       clientVisible:   Boolean(body.clientVisible),
     });

@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth/api-guard";
+import { naoEncontrado, solicitacaoDoWorkspace } from "@/lib/auth/posse-de-workspace";
 import { prisma } from "@/lib/db/client";
 import { getDepartmentDef, type DepartmentId } from "@/lib/agency/departments";
 import { pedirDirecao } from "@/lib/agency/esteira/marcos";
@@ -84,6 +85,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
+    // A solicitação órfã é adotada aqui (`data: { clientId, workspaceId }`) —
+    // e era essa adoção, sem posse, que virava SEQUESTRO: bastava o id de uma
+    // solicitação de outra agência para ela mudar de dono junto com o projeto.
+    if (!(await solicitacaoDoWorkspace(clientRequestId, session.workspaceId))) {
+      return naoEncontrado();
+    }
     const req = await prisma.clientRequestDb.findUnique({ where: { id: clientRequestId } });
     if (!req) return NextResponse.json({ error: "ClientRequest not found" }, { status: 404 });
 

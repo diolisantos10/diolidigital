@@ -12,6 +12,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getSession, isAgencyRole } from "@/lib/auth/session";
+import { naoEncontrado, solicitacaoDoWorkspace } from "@/lib/auth/posse-de-workspace";
 import { generate, anyProviderConfigured } from "@/lib/ai/generate";
 import {
   buildBrainMessages,
@@ -131,6 +132,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // where they carry real data (never invented).
   let snapshot: ClientKnowledgeSnapshot | null = null;
   if (requestId) {
+    // O `requestId` vem do CORPO e é global: sem posse, mandar o id de outra
+    // agência fazia o servidor ancorar o raciocínio na verdade DELA — e
+    // devolver o canvas com o negócio, o público e o contexto cru dela dentro.
+    if (!(await solicitacaoDoWorkspace(requestId, session.workspaceId))) {
+      return naoEncontrado();
+    }
     try {
       snapshot = await buildClientSnapshot(requestId);
     } catch (e) {
