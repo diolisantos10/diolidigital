@@ -329,7 +329,10 @@ export default function OportunidadesPage() {
       </nav>
       )}
 
-      {/* ── Os três estados obrigatórios + a lista ───────────────────────────── */}
+      {/* ── Os três estados obrigatórios + a lista ─────────────────────────────
+          Sem as abas na tela, o espaço que elas davam some junto — por isso a
+          margem vem daqui quando elas não existem. */}
+      <div className={lista.length > 0 ? "" : "mt-5"}>
       {carregando ? (
         <ul className="space-y-2 list-none p-0 m-0" aria-busy="true">
           {[0, 1, 2].map((i) => (
@@ -392,6 +395,7 @@ export default function OportunidadesPage() {
           ))}
         </ul>
       )}
+      </div>
     </>
   );
 }
