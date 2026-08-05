@@ -28,6 +28,16 @@ jobs:
       - name: Prisma generate
         run: npx prisma generate
 
+      # O molde de marca prova NO PIXEL que o texto pedido saiu escrito na arte,
+      # e essa prova precisa de um navegador de verdade. Sem Chromium, o teste
+      # sentinela REPROVA a rodada de propósito (`__tests__/design/molde-render`)
+      # — verde sem prova é pior que vermelho. A saída certa é instalar o
+      # navegador aqui, não declarar a lacuna: declarar deixaria o CI verde para
+      # sempre com a prova nunca rodando, que é exatamente o buraco que o
+      # sentinela existe para fechar.
+      - name: Chromium para a prova do pixel
+        run: npx playwright install --with-deps chromium
+
       - name: Typecheck
         run: npx tsc --noEmit
 
