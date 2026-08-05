@@ -20,6 +20,7 @@ import {
   montarEmUso,
   ordenarPosts,
   decidirPassePosicional,
+  decidirGravacao,
   planejarBackfill,
   postsParaGravar,
 } from "@/lib/agency/media/backfill-carrossel.mjs";
@@ -357,8 +358,8 @@ describe("passe posicional no plano inteiro", () => {
     const plano = planejarBackfill({ postsRows, assetsRows, porOrdem: true });
     expect(plano.passe).toMatchObject({ rodou: true, porPost: 2 });
     expect(postsParaGravar(plano.posts)).toEqual([
-      { id: "sp1", urls: ["/api/media/m1", "/api/media/m2"] },
-      { id: "sp2", urls: ["/api/media/m3", "/api/media/m4"] },
+      { id: "sp1", urls: ["/api/media/m1", "/api/media/m2"], acao: "ligar", telasAtuais: 0 },
+      { id: "sp2", urls: ["/api/media/m3", "/api/media/m4"], acao: "ligar", telasAtuais: 0 },
     ]);
   });
 
@@ -408,14 +409,183 @@ describe("postsParaGravar — a última trava antes do UPDATE", () => {
     expect(postsParaGravar(plano.posts)).toEqual([]);
   });
 
-  it("⛔ post que JÁ tem telas é pulado; ✅ com force é sobrescrito", () => {
+  it("⛔ post que JÁ tem telas DIVERGENTES é pulado; ✅ com force é sobrescrito", () => {
+    // "antiga" não está no plano: trocar isso perderia a tela que alguém pôs à
+    // mão. Perda de dado exige decisão humana — é o que o --force é.
     const plano = planejarBackfill({
       postsRows: [post("sp1", { mediaUrlsJson: '["/api/media/antiga"]' })],
       assetsRows: [asset("m1", "carrossel-sp1-1.png"), asset("m2", "carrossel-sp1-2.png")],
     });
     expect(postsParaGravar(plano.posts)).toEqual([]);
     expect(postsParaGravar(plano.posts, { force: true })).toEqual([
-      { id: "sp1", urls: ["/api/media/m1", "/api/media/m2"] },
+      { id: "sp1", urls: ["/api/media/m1", "/api/media/m2"], acao: "sobrescrever", telasAtuais: 1 },
     ]);
+  });
+});
+
+// ── 8. A CAPA É A TELA 1, e o reparo do que já foi gravado sem ela ──────────
+//
+// O bug de produção de 05/08/2026: 6 carrosséis gravados com 5 telas cada,
+// começando pela SEGUNDA. Os nomes reais da V3 estão abaixo — e é com eles que
+// esta seção prova o conserto. Ver o cabeçalho de `backfill-carrossel.mjs`.
+
+describe("a capa do próprio post é a tela 1 dele", () => {
+  /** Os nomes REAIS de produção. Não invente outro padrão aqui. */
+  const capaV3 = (n: number) => `foocci-c${n}-v3-capa.png`;
+  const telaV3 = (n: number, m: number) => `carrossel-c${n}-tela-${m}-v3.png`;
+
+  /** Um carrossel completo como está em produção: capa + telas 2..6. */
+  function mundoV3() {
+    const postsRows = [
+      post("sp1", { mediaUrl: "/api/media/capa1", scheduledFor: "2026-08-11T00:00:00Z" }),
+      post("sp2", { mediaUrl: "/api/media/capa2", scheduledFor: "2026-08-12T00:00:00Z" }),
+    ];
+    const assetsRows = [
+      asset("capa1", capaV3(1)),
+      asset("capa2", capaV3(2)),
+      ...[2, 3, 4, 5, 6].map((m) => asset(`c1t${m}`, telaV3(1, m))),
+      ...[2, 3, 4, 5, 6].map((m) => asset(`c2t${m}`, telaV3(2, m))),
+      asset("m-logo", "logo-foocci.png"),
+    ];
+    // O índice como a produção o monta: a capa É referenciada pelo post.
+    const emUso = montarEmUso({
+      posts: postsRows.map((p) => ({ id: p.id, mediaUrl: p.mediaUrl, mediaUrlsJson: p.mediaUrlsJson })),
+      deliverables: [{ id: "d1", name: "Kit de marca — Foocci", content: "- logo — /api/media/m-logo" }],
+    });
+    return { postsRows, assetsRows, emUso };
+  }
+
+  it("✅ 6 telas por post, e o mediaUrlsJson COMEÇA pela capa", () => {
+    const { postsRows, assetsRows, emUso } = mundoV3();
+    const plano = planejarBackfill({ postsRows, assetsRows, emUso });
+    expect(plano.erro).toBeNull();
+
+    const sp1 = plano.posts.find((p) => p.id === "sp1")!;
+    expect(sp1.telas).toHaveLength(6);
+    expect(sp1.telas.map((t) => t.pos)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(sp1.telas[0]).toMatchObject({ pos: 1, assetId: "capa1", via: "capa" });
+    expect(sp1.telas.map((t) => t.fileName)).toEqual([
+      capaV3(1), telaV3(1, 2), telaV3(1, 3), telaV3(1, 4), telaV3(1, 5), telaV3(1, 6),
+    ]);
+
+    // O que vai para o banco: a capa em PRIMEIRO. `mediaUrl = urls[0]` é o
+    // contrato de `execution/artes.ts`, e `publicacao.ts` publica esta lista.
+    const gravar = postsParaGravar(plano.posts);
+    expect(gravar.find((p) => p.id === "sp1")!.urls[0]).toBe("/api/media/capa1");
+    expect(gravar.find((p) => p.id === "sp1")!.urls).toHaveLength(6);
+    expect(gravar.find((p) => p.id === "sp2")!.urls[0]).toBe("/api/media/capa2");
+  });
+
+  it("⛔ a capa NÃO aparece mais como excluída — mas o logo continua fora", () => {
+    const { postsRows, assetsRows, emUso } = mundoV3();
+    const plano = planejarBackfill({ postsRows, assetsRows, emUso });
+    expect(plano.excluidos.map((a) => a.assetId)).toEqual(["m-logo"]);
+    expect(JSON.stringify(postsParaGravar(plano.posts))).not.toContain("m-logo");
+  });
+
+  it("⛔ a capa de OUTRO post continua barrada — cada capa fica com o seu dono", () => {
+    const { postsRows, assetsRows, emUso } = mundoV3();
+    const plano = planejarBackfill({ postsRows, assetsRows, emUso });
+    const sp1 = plano.posts.find((p) => p.id === "sp1")!;
+    const sp2 = plano.posts.find((p) => p.id === "sp2")!;
+    expect(sp1.telas.map((t) => t.assetId)).not.toContain("capa2");
+    expect(sp2.telas.map((t) => t.assetId)).not.toContain("capa1");
+    // E nenhuma tela do carrossel 2 entrou no 1.
+    expect(sp1.telas.every((t) => t.fileName.includes("c1") || t.assetId === "capa1")).toBe(true);
+  });
+
+  it("⛔ capa com nome institucional NÃO vira tela — o logo não entra nem por essa porta", () => {
+    const plano = planejarBackfill({
+      postsRows: [post("sp1", { mediaUrl: "/api/media/m-logo" })],
+      assetsRows: [
+        asset("m-logo", "logo-foocci.png"),
+        asset("c1t2", "carrossel-c1-tela-2-v3.png"),
+        asset("c1t3", "carrossel-c1-tela-3-v3.png"),
+      ],
+    });
+    const sp1 = plano.posts[0]!;
+    expect(sp1.telas.map((t) => t.assetId)).toEqual(["c1t2", "c1t3"]);
+    expect(plano.excluidos[0]).toMatchObject({ assetId: "m-logo", motivo: expect.stringMatching(/institucional/) });
+  });
+
+  it("⛔ a capa não disputa a posição 1 quando o NOME já nomeou uma tela 1", () => {
+    const plano = planejarBackfill({
+      postsRows: [post("sp1", { mediaUrl: "/api/media/outra" })],
+      assetsRows: [
+        asset("outra", "abertura-do-carrossel.png"),
+        asset("m1", "carrossel-sp1-1.png"),
+        asset("m2", "carrossel-sp1-2.png"),
+      ],
+    });
+    const sp1 = plano.posts[0]!;
+    expect(sp1.telas.map((t) => t.assetId)).toEqual(["m1", "m2"]);
+    // E ela não vira sobra livre para o passe posicional dar a outro carrossel.
+    expect(plano.naoCasados).toEqual([]);
+    expect(plano.excluidos[0]).toMatchObject({
+      assetId: "outra",
+      motivo: "capa do próprio post (sp1) — reservada para ele",
+    });
+  });
+});
+
+describe("o REPARO do que já foi gravado incompleto", () => {
+  /** O estado exato dos 6 posts em produção: 5 telas, sem a capa. */
+  function planoDeProducao(telasGravadas: string[]) {
+    return planejarBackfill({
+      postsRows: [post("sp1", {
+        mediaUrl: "/api/media/capa1",
+        mediaUrlsJson: JSON.stringify(telasGravadas),
+      })],
+      assetsRows: [
+        asset("capa1", "foocci-c1-v3-capa.png"),
+        ...[2, 3, 4, 5, 6].map((m) => asset(`c1t${m}`, `carrossel-c1-tela-${m}-v3.png`)),
+      ],
+      emUso: montarEmUso({
+        posts: [{ id: "sp1", mediaUrl: "/api/media/capa1", mediaUrlsJson: JSON.stringify(telasGravadas) }],
+      }),
+    });
+  }
+
+  const CINCO = [2, 3, 4, 5, 6].map((m) => `/api/media/c1t${m}`);
+
+  it("✅ 5 telas gravadas sem a capa viram 6, com a capa em PRIMEIRO", () => {
+    const plano = planoDeProducao(CINCO);
+    const d = decidirGravacao(plano.posts[0]!);
+    expect(d).toMatchObject({ acao: "reparar", telasAtuais: 5, faltando: 1 });
+    expect(d.urls).toEqual(["/api/media/capa1", ...CINCO]);
+
+    expect(postsParaGravar(plano.posts)).toEqual([
+      { id: "sp1", urls: ["/api/media/capa1", ...CINCO], acao: "reparar", telasAtuais: 5 },
+    ]);
+  });
+
+  it("✅ rodar de novo depois do reparo não faz nada — a idempotência continua de pé", () => {
+    const plano = planoDeProducao(["/api/media/capa1", ...CINCO]);
+    expect(decidirGravacao(plano.posts[0]!).acao).toBe("ja-tem-telas");
+    expect(postsParaGravar(plano.posts)).toEqual([]);
+  });
+
+  it("⛔ o reparo NUNCA remove: telas gravadas que o plano não conhece travam tudo", () => {
+    const plano = planoDeProducao([...CINCO, "/api/media/posta-a-mao"]);
+    const d = decidirGravacao(plano.posts[0]!);
+    expect(d.acao).toBe("ja-tem-telas");
+    expect(postsParaGravar(plano.posts)).toEqual([]);
+    // Só a decisão humana do --force muda isso.
+    expect(postsParaGravar(plano.posts, { force: true })[0]!.acao).toBe("sobrescrever");
+  });
+
+  it("⛔ mesma lista em OUTRA ordem não é reparo — ordem posta à mão é decisão de alguém", () => {
+    const plano = planoDeProducao([...CINCO, "/api/media/capa1"]); // capa no fim
+    expect(decidirGravacao(plano.posts[0]!).acao).toBe("ja-tem-telas");
+    expect(postsParaGravar(plano.posts)).toEqual([]);
+  });
+
+  it("⛔ reparo que resultaria em 1 tela não grava — carrossel de uma imagem não é carrossel", () => {
+    const plano = planejarBackfill({
+      postsRows: [post("sp1", { mediaUrl: "/api/media/capa1", mediaUrlsJson: "[]" })],
+      assetsRows: [asset("capa1", "foocci-c1-v3-capa.png")],
+    });
+    expect(decidirGravacao(plano.posts[0]!).acao).toBe("sem-telas-suficientes");
+    expect(postsParaGravar(plano.posts)).toEqual([]);
   });
 });

@@ -275,6 +275,77 @@ describe("POST — a aplicação", () => {
   });
 });
 
+// ─── O reparo: a tela de master faz o MESMO que a tarefa de boot ─────────────
+//
+// As duas portas leem `decidirGravacao`. Este bloco existe para que a promessa
+// "elas não divergem" seja um teste, e não um comentário — com os nomes REAIS
+// de produção, que foram os que expuseram o buraco.
+
+describe("carrossel incompleto — o reparo por esta porta", () => {
+  const CAPA = "/api/media/capa1";
+  const CINCO = [2, 3, 4, 5, 6].map((m) => `/api/media/c1t${m}`);
+
+  /** O estado exato dos 6 posts em produção: 5 telas, faltando a capa. */
+  function mundoIncompleto(telasGravadas: string[]) {
+    const linha = {
+      id: "p1", caption: "Carrossel 1", mediaUrl: CAPA,
+      mediaUrlsJson: JSON.stringify(telasGravadas), scheduledFor: DATA("10"),
+    };
+    db.socialPost.findMany.mockImplementation(({ where }: { where: Record<string, unknown> }) =>
+      // O índice de uso do workspace enxerga o MESMO post — é dali que vinha a
+      // exclusão que barrava a capa.
+      Promise.resolve(where.format ? [linha] : [{ id: "p1", mediaUrl: CAPA, mediaUrlsJson: linha.mediaUrlsJson }]),
+    );
+    db.mediaAsset.findMany.mockResolvedValue([
+      { id: "capa1", fileName: "foocci-c1-v3-capa.png", mimeType: "image/png", createdAt: DATA("01") },
+      ...[2, 3, 4, 5, 6].map((m) => ({
+        id: `c1t${m}`, fileName: `carrossel-c1-tela-${m}-v3.png`, mimeType: "image/png", createdAt: DATA("01"),
+      })),
+      { id: "a9", fileName: "logo-foocci.png", mimeType: "image/png", createdAt: DATA("01") },
+    ]);
+  }
+
+  it("✅ o ensaio reconhece 'tem telas, mas falta a capa' e diz 5 → 6", async () => {
+    mundoIncompleto(CINCO);
+    const json = await (await GET(pedidoGet())).json();
+    expect(json.posts[0].acao).toBe("reparar");
+    expect(json.posts[0].telasAtuais).toBe(5);
+    expect(json.posts[0].telas).toHaveLength(6);
+    expect(json.posts[0].faltando).toBe(1);
+    expect(json.posts[0].telas[0]).toMatchObject({ pos: 1, via: "capa", url: CAPA });
+    expect(json.resumo.postsQueSeraoReparados).toBe(1);
+    expect(json.aplicavel).toBe(true);
+    // O logo continua fora; a capa NÃO aparece mais como excluída.
+    expect(json.excluidos.map((e: { fileName: string }) => e.fileName)).toEqual(["logo-foocci.png"]);
+  });
+
+  it("✅ o POST grava as 6 COM A CAPA EM PRIMEIRO e não troca a capa do post", async () => {
+    mundoIncompleto(CINCO);
+    const json = await (await POST(pedidoPost({ clientId: "cli", confirmar: "APLICAR" }))).json();
+    expect(json.postsAtualizados).toBe(1);
+    expect(json.postsReparados).toBe(1);
+    expect(json.detalhe[0]).toMatchObject({ id: "p1", acao: "reparar", de: 5, telas: 6 });
+
+    const data = db.socialPost.update.mock.calls[0][0].data;
+    expect(JSON.parse(data.mediaUrlsJson)).toEqual([CAPA, ...CINCO]);
+    expect(data.mediaUrl).toBeUndefined(); // capa posta à mão: intocada
+  });
+
+  it("⛔ depois do reparo, nada mais a aplicar — 409, sem escrita", async () => {
+    mundoIncompleto([CAPA, ...CINCO]);
+    const res = await POST(pedidoPost({ clientId: "cli", confirmar: "APLICAR" }));
+    expect(res.status).toBe(409);
+    expect(db.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("⛔ tela gravada que o plano não conhece NÃO é apagada — esta porta não tem --force", async () => {
+    mundoIncompleto([...CINCO, "/api/media/posta-a-mao"]);
+    const json = await (await GET(pedidoGet())).json();
+    expect(json.posts[0].acao).toBe("ja-tem-telas");
+    expect(json.aplicavel).toBe(false);
+  });
+});
+
 // ─── A trava do casamento por ORDEM ──────────────────────────────────────────
 
 describe("a trava do casamento posicional", () => {

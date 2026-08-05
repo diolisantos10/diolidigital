@@ -22,12 +22,20 @@
 // ⚠️ NÃO rodar contra produção sem dry-run primeiro e sem conferir o log:
 // o script lista o que casou, o que foi EXCLUÍDO (com motivo) e o que sobrou
 // antes de qualquer escrita.
+//
+// ── REPARO (05/08/2026), e por que ele NÃO é --force ────────────────────────
+// Post com carrossel INCOMPLETO — as telas gravadas são um subconjunto do plano
+// — é reparado sem flag nenhuma, e o log diz `reparado: 5 → 6 telas`. É aditivo:
+// nada do que já está ligado se perde, e a ordem do plano (capa primeiro) passa
+// a valer. `--force` continua sendo outra coisa: ele SUBSTITUI, inclusive telas
+// que o plano não conhece, e por isso continua exigindo decisão humana.
 
 import { createClient } from "@libsql/client";
 import {
   montarEmUso,
   planejarBackfill,
   postsParaGravar,
+  decidirGravacao,
 } from "../lib/agency/media/backfill-carrossel.mjs";
 
 const args = process.argv.slice(2);
@@ -151,9 +159,15 @@ async function main() {
   // ── 5. Relatório ───────────────────────────────────────────────────────────
   console.log("\n── O que casou ─────────────────────────────────────────────");
   for (const post of plano.posts) {
-    const jaTem = post.telasAtuais.length > 0;
+    const d = decidirGravacao(post, { force: FORCE });
     console.log(`\n▸ ${post.id} (#${post.idx}) — "${post.caption}…"`);
-    if (jaTem) console.log(`  já tem ${post.telasAtuais.length} telas em mediaUrlsJson${FORCE ? " (--force: será sobrescrito)" : " (será PULADO; use --force)"}`);
+    // O reparo (aditivo) é diferente de "pulado" e diferente de --force: ele
+    // acrescenta o que falta sem tocar no que já está lá. Ver `decidirGravacao`.
+    if (d.acao === "reparar") {
+      console.log(`  ⟳ INCOMPLETO — será reparado: ${d.telasAtuais} → ${d.urls.length} telas (${d.faltando} faltando)`);
+    } else if (post.telasAtuais.length > 0) {
+      console.log(`  já tem ${post.telasAtuais.length} telas em mediaUrlsJson${FORCE ? " (--force: será sobrescrito)" : " (será PULADO; use --force)"}`);
+    }
     if (post.telas.length === 0) {
       console.log("  ✗ NENHUMA tela casou");
       continue;
@@ -187,7 +201,11 @@ async function main() {
         args: [JSON.stringify(post.urls), post.urls[0], post.id],
       });
       gravados++;
-      console.log(`✓ na transação: ${post.id} ← ${post.urls.length} telas`);
+      console.log(
+        post.acao === "reparar"
+          ? `✓ na transação: ${post.id} reparado: ${post.telasAtuais} → ${post.urls.length} telas`
+          : `✓ na transação: ${post.id} ← ${post.urls.length} telas`,
+      );
     }
     await tx.commit();
   } catch (e) {

@@ -20,8 +20,12 @@
 //    flag E este runner ABORTA se, por qualquer caminho, o plano trouxer uma
 //    tela `via: "ordem"`. Casamento posicional monta carrossel com logo e
 //    material bruto;
-//  • `--force` não existe: post que já tem telas não é tocado, capa preenchida
-//    à mão não é trocada;
+//  • `--force` não existe: capa preenchida à mão não é trocada, e nada que já
+//    está gravado é perdido. O que MUDOU em 05/08/2026: post com carrossel
+//    INCOMPLETO (as telas gravadas são um subconjunto do plano) é REPARADO, e
+//    o log anuncia `reparado: 5 → 6 telas`. Sem isso, os 6 carrosséis que a
+//    primeira passada gravou sem a capa ficariam presos para sempre — e
+//    "presos para sempre" é o que esta casa chama de vazamento;
 //  • o ENSAIO COMPLETO é impresso ANTES de qualquer escrita. É a conferência
 //    tela por tela do CEO, feita pelo log do Railway.
 //
@@ -41,7 +45,7 @@
 // lê o log do deploy, confere e desliga.
 
 import { prisma } from "@/lib/db/client";
-import { postsParaGravar } from "@/lib/agency/media/backfill-carrossel.mjs";
+import { decidirGravacao, postsParaGravar } from "@/lib/agency/media/backfill-carrossel.mjs";
 import { montarPlanoDoCliente, type ContextoDoBackfill } from "@/lib/agency/media/backfill-contexto";
 import { reabrirAprovacoesDosPosts } from "@/lib/agency/esteira/reabrir-aprovacao";
 
@@ -94,7 +98,16 @@ export function linhasDoEnsaio(ctx: ContextoDoBackfill): string[] {
   for (const post of plano.posts) {
     const capa = post.mediaUrl ? `capa atual: ${post.mediaUrl} (mantida)` : "sem capa (a tela 1 vira capa)";
     linhas.push(`▸ ${post.id} (#${post.idx}) — "${post.caption}…" · ${capa}`);
-    if (post.telasAtuais.length > 0) {
+    const d = decidirGravacao(post, { force: false });
+    if (d.acao === "reparar") {
+      // O caso que a idempotência binária escondia: TEM telas e mesmo assim
+      // está incompleto. O log tem que dizer o número de antes e o de depois —
+      // "atualizado" sozinho não deixa ninguém conferir nada.
+      linhas.push(
+        `   ⟳ INCOMPLETO — será reparado: ${d.telasAtuais} → ${d.urls.length} telas ` +
+          `(${d.faltando} faltando; nada do que já está ligado se perde)`,
+      );
+    } else if (post.telasAtuais.length > 0) {
       linhas.push(`   já tem ${post.telasAtuais.length} tela(s) ligada(s) — NÃO será tocado`);
     }
     if (post.telas.length === 0) {
@@ -102,6 +115,8 @@ export function linhasDoEnsaio(ctx: ContextoDoBackfill): string[] {
       continue;
     }
     for (const t of post.telas) {
+      // A tela 1 vinda da capa sai marcada [capa]: é o método do casamento, e
+      // é ele que prova que `mediaUrlsJson` COMEÇA pela capa.
       linhas.push(`   tela ${t.pos}: ${t.fileName} [${t.via}] → /api/media/${t.assetId}`);
     }
   }
@@ -124,10 +139,16 @@ export function linhasDoEnsaio(ctx: ContextoDoBackfill): string[] {
 
   const aGravar = postsParaGravar(plano.posts, { force: false });
   const telas = aGravar.reduce((s, p) => s + p.urls.length, 0);
-  const jaTem = plano.posts.filter((p) => p.telasAtuais.length > 0).length;
+  const novos = aGravar.filter((p) => p.acao === "ligar").length;
+  const reparos = aGravar.filter((p) => p.acao === "reparar").length;
+  const emGravacao = new Set(aGravar.map((p) => p.id));
+  const jaTem = plano.posts.filter((p) => p.telasAtuais.length > 0 && !emGravacao.has(p.id)).length;
   const insuficientes = plano.posts.filter((p) => p.telasAtuais.length === 0 && p.telas.length < 2).length;
   linhas.push("── Resumo ────────────────────────────────────────────────");
-  linhas.push(`   ${aGravar.length} post(s) seriam atualizados · ${telas} tela(s) seriam ligadas`);
+  linhas.push(
+    `   ${aGravar.length} post(s) seriam atualizados (${novos} novo(s) · ${reparos} reparo(s)) · ` +
+      `${telas} tela(s) seriam ligadas`,
+  );
   linhas.push(`   ${jaTem} post(s) já com telas (intocados) · ${insuficientes} post(s) sem telas suficientes`);
   return linhas;
 }
@@ -214,8 +235,9 @@ export async function aplicarBackfill(ctx: ContextoDoBackfill): Promise<Resultad
     const nenhumaCasou = ctx.plano.posts.every((p) => p.telas.length === 0);
     log("✓ NADA A FAZER — nenhum post seria alterado. Nada foi gravado.");
     if (jaTem === ctx.plano.posts.length) {
-      log("  Todos os carrosséis JÁ têm telas ligadas (é o estado esperado depois de");
-      log(`  uma passada bem-sucedida). Pode remover ${VARIAVEL} do Railway.`);
+      log("  Todos os carrosséis JÁ têm telas ligadas e COMPLETAS — nenhum está faltando");
+      log("  tela nenhuma do plano (é o estado esperado depois de uma passada");
+      log(`  bem-sucedida). Pode remover ${VARIAVEL} do Railway.`);
     } else if (nenhumaCasou) {
       // O cenário que exige olho humano: o nome dos arquivos em produção não é
       // o que o reconhecedor espera. A lista acima É a resposta — e ela é o
@@ -233,12 +255,20 @@ export async function aplicarBackfill(ctx: ContextoDoBackfill): Promise<Resultad
 
   // 5. A ESCRITA — transação única, tudo ou nada.
   const capaAtual = new Map(ctx.plano.posts.map((p) => [p.id, p.mediaUrl]));
-  log(`▶ ESCREVENDO ${aGravar.length} post(s) numa transação única…`);
+  const reparos = aGravar.filter((p) => p.acao === "reparar").length;
+  log(
+    `▶ ESCREVENDO ${aGravar.length} post(s) numa transação única` +
+      `${reparos > 0 ? ` — ${reparos} deles são REPARO de carrossel incompleto` : ""}…`,
+  );
   await prisma.$transaction(
     aGravar.map((post) =>
       prisma.socialPost.update({
         where: { id: post.id },
         data: {
+          // `urls` já vem na ordem do plano — tela 1 primeiro. Quando a tela 1
+          // é a capa do post, `urls[0]` É a capa: o contrato de
+          // `execution/artes.ts` (`mediaUrl = urls[0]`) fica preservado, e a
+          // publicação no Instagram sai com o carrossel inteiro.
           mediaUrlsJson: JSON.stringify(post.urls),
           // Capa vazia é preenchida com a tela 1; capa posta à mão fica.
           ...(capaAtual.get(post.id) ? {} : { mediaUrl: post.urls[0] }),
@@ -248,6 +278,15 @@ export async function aplicarBackfill(ctx: ContextoDoBackfill): Promise<Resultad
   );
   const telasLigadas = aGravar.reduce((s, p) => s + p.urls.length, 0);
   log(`✅ ${aGravar.length} post(s) atualizados · ${telasLigadas} tela(s) ligadas.`);
+  // Post a post, com o número de antes e o de depois: é o que permite conferir
+  // um reparo sem abrir o banco.
+  for (const p of aGravar) {
+    log(
+      p.acao === "reparar"
+        ? `   ⟳ ${p.id} reparado: ${p.telasAtuais} → ${p.urls.length} telas`
+        : `   + ${p.id} ligado: ${p.urls.length} telas`,
+    );
+  }
 
   // 6. A APROVAÇÃO VOLTA PARA QUEM DECIDIU VENDO MENOS DO QUE EXISTE.
   //    Só os posts alterados AGORA entram — sem isso, todo boot reabriria o

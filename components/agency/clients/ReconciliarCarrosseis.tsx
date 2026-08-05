@@ -19,7 +19,7 @@ import { useState } from "react";
 
 // ─── O contrato com /api/admin/backfill-carrossel ────────────────────────────
 
-type Via = "esteira" | "nome-CnTm" | "ordem";
+type Via = "esteira" | "nome-CnTm" | "capa" | "ordem";
 
 interface TelaNaTela {
   pos: number;
@@ -34,7 +34,8 @@ interface PostNaTela {
   caption: string;
   telasAtuais: number;
   telas: TelaNaTela[];
-  acao: "atualizar" | "ja-tem-telas" | "sem-telas-suficientes";
+  acao: "atualizar" | "reparar" | "ja-tem-telas" | "sem-telas-suficientes";
+  faltando: number;
 }
 
 interface Ensaio {
@@ -45,6 +46,7 @@ interface Ensaio {
     imagens: number;
     midiasComDono: number;
     postsQueSeraoAtualizados: number;
+    postsQueSeraoReparados: number;
     postsJaComTelas: number;
     postsSemTelasSuficientes: number;
     telasCasadas: number;
@@ -91,6 +93,13 @@ const ROTULO_VIA: Record<Via, { texto: string; ajuda: string; classe: string }> 
     ajuda: "O arquivo diz de qual carrossel e de qual tela é (ex.: c2t3), na ordem do calendário.",
     classe: "bg-[var(--info-bg)] text-[var(--info)]",
   },
+  capa: {
+    texto: "capa do post",
+    ajuda:
+      "É a imagem que o próprio post já usa como capa — e a capa é a tela 1 do carrossel. " +
+      "Não há dúvida: o vínculo já existe no post.",
+    classe: "bg-[var(--success-bg)] text-[var(--success)]",
+  },
   ordem: {
     texto: "ordem de upload",
     ajuda: "Casamento posicional — sem nenhuma evidência no nome. Esta tela não aplica.",
@@ -100,6 +109,9 @@ const ROTULO_VIA: Record<Via, { texto: string; ajuda: string; classe: string }> 
 
 const ROTULO_ACAO: Record<PostNaTela["acao"], { texto: string; classe: string }> = {
   atualizar: { texto: "vai receber as telas", classe: "bg-[var(--success-bg)] text-[var(--success)]" },
+  // Carrossel incompleto (tipicamente sem a capa como tela 1) — o reparo só
+  // ACRESCENTA: nada do que já está ligado se perde.
+  reparar: { texto: "incompleto — vai ser reparado", classe: "bg-[var(--info-bg)] text-[var(--info)]" },
   "ja-tem-telas": { texto: "já tem telas — não muda", classe: "bg-[var(--accent-light)] text-[var(--text-secondary)]" },
   "sem-telas-suficientes": { texto: "nenhuma tela encontrada", classe: "bg-[var(--warning-bg)] text-[var(--warning)]" },
 };
@@ -365,7 +377,7 @@ export default function ReconciliarCarrosseis({ clientId }: { clientId: string }
               <p className="text-[13px] font-semibold text-[var(--text-primary)]">Não há o que aplicar</p>
               <p className="text-[13px] text-[var(--text-secondary)] mt-1.5 max-w-[62ch] leading-relaxed">
                 {ensaio.resumo.postsJaComTelas === ensaio.resumo.carrosseis
-                  ? "Todos os carrosséis já têm telas ligadas — o portal já mostra o conteúdo completo."
+                  ? "Todos os carrosséis já têm telas ligadas e completas — o portal já mostra o conteúdo inteiro."
                   : "Nenhum post ganharia telas novas. Carrossel precisa de pelo menos 2 telas reconhecidas pelo nome do arquivo."}
               </p>
             </div>
@@ -408,8 +420,16 @@ export default function ReconciliarCarrosseis({ clientId }: { clientId: string }
                         NÃO vai acontecer faz o leitor achar que vai. */}
                     {p.acao === "ja-tem-telas" && (
                       <p className="mt-1.5 text-[13px] text-[var(--text-muted)] leading-snug">
-                        Já tem {plural(p.telasAtuais, "tela ligada", "telas ligadas")}. Esta tela nunca
-                        sobrescreve telas existentes.
+                        Já tem {plural(p.telasAtuais, "tela ligada", "telas ligadas")} e nada falta —
+                        ou tem tela que este plano não reconhece. Esta tela acrescenta o que falta,
+                        mas nunca substitui nem apaga tela existente.
+                      </p>
+                    )}
+                    {p.acao === "reparar" && (
+                      <p className="mt-1.5 text-[13px] text-[var(--text-secondary)] leading-snug">
+                        Está ligado, mas incompleto: <b>{p.telasAtuais} → {p.telas.length} telas</b>{" "}
+                        ({plural(p.faltando, "tela faltando", "telas faltando")}). O reparo só acrescenta —
+                        nada do que já está ligado se perde.
                       </p>
                     )}
                     {p.acao === "sem-telas-suficientes" && (
@@ -418,7 +438,7 @@ export default function ReconciliarCarrosseis({ clientId }: { clientId: string }
                         carrossel.
                       </p>
                     )}
-                    {p.acao === "atualizar" && p.telas.length > 0 && (
+                    {(p.acao === "atualizar" || p.acao === "reparar") && p.telas.length > 0 && (
                       <ul className="mt-2 space-y-1">
                         {p.telas.map((t) => {
                           const via = ROTULO_VIA[t.via];
@@ -470,7 +490,9 @@ export default function ReconciliarCarrosseis({ clientId }: { clientId: string }
                   {plural(ensaio.resumo.postsQueSeraoAtualizados, "post será alterado", "posts serão alterados")}
                 </b>{" "}
                 e {plural(ensaio.resumo.telasQueSeraoLigadas, "tela ficará ligada", "telas ficarão ligadas")} a eles.
-                Posts que já têm telas não são tocados.
+                {ensaio.resumo.postsQueSeraoReparados > 0
+                  ? ` ${plural(ensaio.resumo.postsQueSeraoReparados, "deles é reparo", "deles são reparo")} de carrossel incompleto — o reparo só acrescenta.`
+                  : " Posts que já têm telas completas não são tocados."}
               </p>
               <button
                 onClick={() => aplicar(ensaio)}

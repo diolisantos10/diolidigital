@@ -31,11 +31,15 @@ export interface FontesDeUso {
   versoes?: Array<{ deliverableId?: string | null; content?: string | null; mediaAssetIds?: string | null }>;
 }
 
+/** Como esta tela foi reconhecida. `capa` = o `mediaUrl` do próprio post, que
+ *  pelo contrato de `execution/artes.ts` É a tela 1 (`mediaUrl = urls[0]`). */
+export type ViaDaTela = "esteira" | "nome-CnTm" | "capa" | "ordem";
+
 export interface Tela {
   pos: number;
   assetId: string;
   fileName: string;
-  via: "esteira" | "nome-CnTm" | "ordem";
+  via: ViaDaTela;
 }
 
 export interface PostPlanejado {
@@ -93,7 +97,30 @@ export declare function planejarBackfill(entrada?: {
   emUso?: IndiceDeUso;
   porOrdem?: boolean;
 }): Plano;
+/** O que o UPDATE faz com um post — a decisão que o gravador, o log do boot e
+ *  a tela de master compartilham. `reparar` é aditivo: só quando o plano contém
+ *  tudo o que já está gravado E mais. */
+export type AcaoDeGravacao =
+  | "ligar"
+  | "reparar"
+  | "sobrescrever"
+  | "ja-tem-telas"
+  | "sem-telas-suficientes";
+
+export interface Gravacao {
+  acao: AcaoDeGravacao;
+  urls: string[];
+  telasAtuais: number;
+  /** Quantas telas do plano ainda NÃO estão gravadas. */
+  faltando: number;
+}
+
+export declare function decidirGravacao(
+  post: Pick<PostPlanejado, "telas" | "telasAtuais">,
+  opcoes?: { force?: boolean },
+): Gravacao;
+
 export declare function postsParaGravar(
   posts: PostPlanejado[],
   opcoes?: { force?: boolean },
-): Array<{ id: string; urls: string[] }>;
+): Array<{ id: string; urls: string[]; acao: "ligar" | "reparar" | "sobrescrever"; telasAtuais: number }>;

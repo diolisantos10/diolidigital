@@ -15,6 +15,13 @@
 //    dry-run próprio — quem precisar roda o script à mão.
 //  • `--force` não é exposto: a tela nunca sobrescreve telas já ligadas.
 //
+// ── O que ela FAZ desde 05/08/2026: reparar carrossel incompleto ────────────
+// Idempotência binária ("tem telas → não toco") congelou 6 carrosséis de
+// produção com 5 das 6 telas, faltando a capa. O reparo é ADITIVO e vem da
+// mesma `decidirGravacao` que a tarefa de boot usa — as duas portas não podem
+// divergir. Ele só roda quando o plano contém TUDO o que já está gravado e mais
+// alguma coisa; divergência continua exigindo `--force`, que segue fora daqui.
+//
 // A REGRA que mantém isto honesto: o POST **recalcula o plano do zero no
 // servidor**. Nada do que o navegador manda vira escrita — o corpo só carrega o
 // cliente e a confirmação. Se o mundo mudou entre o ensaio e o clique, o POST
@@ -68,6 +75,7 @@ function corpoDoEnsaio(ctx: Contexto) {
       imagens: ctx.imagens,
       midiasComDono: ctx.midiasComDono,
       postsQueSeraoAtualizados: avaliacao.postsQueSeraoAtualizados,
+      postsQueSeraoReparados: avaliacao.postsQueSeraoReparados,
       postsJaComTelas: avaliacao.postsJaComTelas,
       postsSemTelasSuficientes: avaliacao.postsSemTelasSuficientes,
       telasCasadas: avaliacao.telasCasadas,
@@ -187,8 +195,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     acao: "aplicado",
     cliente: semWorkspace(ctx.cliente),
     postsAtualizados: aGravar.length,
+    postsReparados: aGravar.filter((p) => p.acao === "reparar").length,
     telasLigadas: aGravar.reduce((s, p) => s + p.urls.length, 0),
-    detalhe: aGravar.map((p) => ({ id: p.id, telas: p.urls.length })),
+    detalhe: aGravar.map((p) => ({
+      id: p.id,
+      telas: p.urls.length,
+      acao: p.acao,
+      // O "5 → 6" do reparo, para a tela dizer o mesmo que o log do boot diz.
+      de: p.telasAtuais,
+    })),
     ...(depois && !depois.plano.erro ? { depois: corpoDoEnsaio(depois) } : {}),
   });
 }

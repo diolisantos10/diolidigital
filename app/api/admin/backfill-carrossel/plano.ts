@@ -13,12 +13,19 @@
 // realmente precisar roda `scripts/backfill-carrossel-foocci.mjs --por-ordem`
 // na mão, lendo o log linha a linha.
 
-import type { Plano, PostPlanejado } from "@/lib/agency/media/backfill-carrossel.mjs";
+import { decidirGravacao } from "@/lib/agency/media/backfill-carrossel.mjs";
+import type { Plano, PostPlanejado, ViaDaTela } from "@/lib/agency/media/backfill-carrossel.mjs";
 
 /** O que vai acontecer com ESTE post quando o botão for apertado. */
 export type AcaoDoPost =
   /** Vai receber as telas: 2+ casadas e `mediaUrlsJson` ainda vazio. */
   | "atualizar"
+  /**
+   * Já tem telas, mas está INCOMPLETO: o plano contém todas as que estão
+   * gravadas e mais alguma (tipicamente a capa, que é a tela 1). Reparo é
+   * aditivo — nada do que já está lá se perde.
+   */
+  | "reparar"
   /** Já tem telas ligadas — a tela nunca sobrescreve (o `--force` não é exposto). */
   | "ja-tem-telas"
   /** Casou 0 ou 1 tela — carrossel de uma imagem só não é carrossel. */
@@ -27,7 +34,7 @@ export type AcaoDoPost =
 export interface TelaNaTela {
   pos: number;
   fileName: string;
-  via: "esteira" | "nome-CnTm" | "ordem";
+  via: ViaDaTela;
   url: string;
 }
 
@@ -39,12 +46,17 @@ export interface PostNaTela {
   telasAtuais: number;
   telas: TelaNaTela[];
   acao: AcaoDoPost;
+  /** Quantas telas do plano ainda não estão gravadas — o "5 → 6" do reparo. */
+  faltando: number;
 }
 
 export interface Avaliacao {
   postsNaTela: PostNaTela[];
-  /** Quantos posts o POST realmente alteraria. É o número que vai no botão. */
+  /** Quantos posts o POST realmente alteraria — novos MAIS reparos. É o número
+   *  que vai no botão, e ele tem que bater com `postsParaGravar`. */
   postsQueSeraoAtualizados: number;
+  /** Dos acima, quantos são reparo de carrossel incompleto. */
+  postsQueSeraoReparados: number;
   postsJaComTelas: number;
   postsSemTelasSuficientes: number;
   /** Todas as telas reconhecidas, inclusive as de posts que não serão tocados. */
@@ -62,10 +74,17 @@ export interface Avaliacao {
   motivoNaoAplicavel: string | null;
 }
 
-/** A ação de cada post, na mesma regra de `postsParaGravar` (sem `force`). */
+/**
+ * A ação de cada post — DELEGADA a `decidirGravacao`, a mesma função que o
+ * gravador usa. Reimplementar a regra aqui foi o que quase fez a tela e a
+ * tarefa de boot divergirem; agora a tela não tem regra própria, tem tradução.
+ */
 export function acaoDoPost(post: PostPlanejado): AcaoDoPost {
-  if (post.telasAtuais.length > 0) return "ja-tem-telas";
-  return post.telas.length >= 2 ? "atualizar" : "sem-telas-suficientes";
+  const d = decidirGravacao(post, { force: false });
+  if (d.acao === "ligar") return "atualizar";
+  if (d.acao === "reparar") return "reparar";
+  if (d.acao === "sem-telas-suficientes") return "sem-telas-suficientes";
+  return "ja-tem-telas"; // `sobrescrever` não existe nesta porta: sem `--force`.
 }
 
 /**
@@ -86,10 +105,12 @@ export function avaliarPlano(plano: Pick<Plano, "posts">): Avaliacao {
       url: `/api/media/${t.assetId}`,
     })),
     acao: acaoDoPost(p),
+    faltando: decidirGravacao(p, { force: false }).faltando,
   }));
 
   const conta = (a: AcaoDoPost) => postsNaTela.filter((p) => p.acao === a).length;
-  const postsQueSeraoAtualizados = conta("atualizar");
+  const postsQueSeraoReparados = conta("reparar");
+  const postsQueSeraoAtualizados = conta("atualizar") + postsQueSeraoReparados;
   const temCasamentoPorOrdem = postsNaTela.some((p) => p.telas.some((t) => t.via === "ordem"));
 
   let motivoNaoAplicavel: string | null = null;
@@ -104,11 +125,12 @@ export function avaliarPlano(plano: Pick<Plano, "posts">): Avaliacao {
   return {
     postsNaTela,
     postsQueSeraoAtualizados,
+    postsQueSeraoReparados,
     postsJaComTelas: conta("ja-tem-telas"),
     postsSemTelasSuficientes: conta("sem-telas-suficientes"),
     telasCasadas: postsNaTela.reduce((s, p) => s + p.telas.length, 0),
     telasQueSeraoLigadas: postsNaTela
-      .filter((p) => p.acao === "atualizar")
+      .filter((p) => p.acao === "atualizar" || p.acao === "reparar")
       .reduce((s, p) => s + p.telas.length, 0),
     temCasamentoPorOrdem,
     aplicavel: !temCasamentoPorOrdem && postsQueSeraoAtualizados > 0,
