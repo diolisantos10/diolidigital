@@ -21,13 +21,23 @@ interface MeAccountsResponse {
   paging?: { next?: string };
 }
 
+/**
+ * Teto de páginas de paginação. Eram 10 (até 1.000 Páginas) sem pausa nenhuma —
+ * uma rajada de GETs logo depois de conectar, que é exatamente quando a Meta
+ * está mais atenta a uma conta nova. Três páginas de 100 são 300 Páginas do
+ * Facebook: mais do que qualquer cliente desta agência tem, e o que passar
+ * disso é sinal de que a conta não é o que a gente pensa.
+ * O espaçamento entre as chamadas vem do balde em graph.ts.
+ */
+export const MAXIMO_DE_PAGINAS_DE_PAGINACAO = 3;
+
 // Fetch all Pages the user manages, including the linked IG business account.
 export async function discoverPages(userAccessToken: string): Promise<DiscoveredPage[]> {
   const pages: DiscoveredPage[] = [];
   let next: string | undefined;
 
   // Follow pagination up to a sane cap.
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < MAXIMO_DE_PAGINAS_DE_PAGINACAO; i++) {
     const res: MeAccountsResponse = next
       ? await graphGet<MeAccountsResponse>(next, userAccessToken)
       : await graphGet<MeAccountsResponse>("me/accounts", userAccessToken, {

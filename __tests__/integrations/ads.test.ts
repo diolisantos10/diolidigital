@@ -14,7 +14,7 @@ vi.mock("@/lib/integrations/meta/connections", () => ({ loadConnectionToken }));
 import {
   conferirOrcamento, criarCampanhaPausada, ativarCampanha, pausarCampanha,
   listarContasDeAnuncio, lerDesempenho,
-  criarConjuntoPausado, criarAnuncioPausado,
+  criarConjuntoPausado, criarAnuncioPausado, limparCacheDeDesempenho,
   PISO_DIARIO_BRL, TETO_DIARIO_ABSOLUTO_BRL, RAIO_MAX_KM,
 } from "@/lib/integrations/meta/ads";
 
@@ -25,6 +25,10 @@ const PLANO = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // `lerDesempenho` passou a ter cache de 15 min (a varredura da esteira batia
+  // na Meta a cada 5 minutos, por campanha). Cache que atravessa teste é teste
+  // medindo o teste anterior.
+  limparCacheDeDesempenho();
   loadConnectionToken.mockResolvedValue({ token: "tk", platform: "facebook", externalId: "1" });
   graphPost.mockResolvedValue({ id: "camp_1" });
   graphGet.mockResolvedValue({ data: [{ spend: "120.50", impressions: "8000", clicks: "241", reach: "5100" }] });

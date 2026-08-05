@@ -30,6 +30,7 @@
 // Confundir os dois manda o cliente "reconectar" uma conta que nunca existiu.
 
 import { graphGet, GraphApiError } from "./graph";
+import { TIPO_DE_RITMO_DA_CASA } from "./ritmo";
 import {
   conexaoDoCliente, loadConnectionToken, marcarConexaoExpirada,
   type ConexaoResolvida,
@@ -136,6 +137,12 @@ const CODIGOS_DE_RITMO = new Set([4, 17, 32, 613, 80000, 80001, 80002, 80004]);
 function frasearErroDeLeitura(e: unknown): { error: string; precisaReconectar?: boolean } {
   if (e instanceof GraphApiError) {
     const code = e.detail?.code;
+    // O freio da CASA (graph.ts/ritmo.ts) chega aqui carimbado. Dizer "a Meta
+    // limitou" quando fomos nós é mentira pequena que produz diagnóstico errado
+    // — a mensagem do balde já vem pronta e em português.
+    if (e.detail?.type === TIPO_DE_RITMO_DA_CASA) {
+      return { error: e.detail.message ?? FRASE_DO_TETO };
+    }
     if (code !== undefined && CODIGOS_DE_TOKEN.has(code)) {
       return { error: "o acesso ao Instagram venceu — é preciso reconectar a conta", precisaReconectar: true };
     }

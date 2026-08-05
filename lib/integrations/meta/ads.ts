@@ -23,6 +23,7 @@
 
 import { graphGet, graphPost, GraphApiError } from "./graph";
 import { loadConnectionToken } from "./connections";
+import { TIPO_DE_RITMO_DA_CASA } from "./ritmo";
 
 /** Teto absoluto da casa, em reais por dia, independente do que for pedido.
  *  É a última linha de defesa: se todo o resto falhar, o estrago é limitado. */
@@ -35,8 +36,10 @@ export interface ResultadoDeAnuncio<T = unknown> {
   ok: boolean;
   dados?: T;
   erro?: string;
-  /** `sem_permissao` = App Review pendente. É o caso mais comum, e é do CEO. */
-  motivo?: "sem_permissao" | "sem_conta" | "orcamento_invalido" | "erro_da_meta" | "sem_conexao";
+  /** `sem_permissao` = App Review pendente. É o caso mais comum, e é do CEO.
+   *  `ritmo` = a CASA freou antes de a Meta reclamar (ver ritmo.ts). Não é
+   *  defeito nem falta de permissão: é a trava de 03/08 funcionando. */
+  motivo?: "sem_permissao" | "sem_conta" | "orcamento_invalido" | "erro_da_meta" | "sem_conexao" | "ritmo";
 }
 
 export interface ContaDeAnuncio {
@@ -49,6 +52,11 @@ export interface ContaDeAnuncio {
 function traduzirErro<T>(e: unknown): ResultadoDeAnuncio<T> {
   if (e instanceof GraphApiError) {
     const msg = e.detail?.message ?? e.message;
+    // Freio da casa: chega carimbado por ritmo.ts, com a frase já pronta. Vem
+    // ANTES de tudo para não ser confundido com falta de permissão.
+    if (e.detail?.type === TIPO_DE_RITMO_DA_CASA) {
+      return { ok: false, motivo: "ritmo", erro: msg };
+    }
     // A Meta responde permissão faltando de várias formas; todas significam a
     // mesma coisa para quem opera: falta o App Review.
     if (/permission|ads_management|ads_read|not authorized|requires/i.test(msg)) {
@@ -450,19 +458,54 @@ export interface DesempenhoPago {
   cpcBRL: number | null;
 }
 
+// ─── Cache do desempenho ────────────────────────────────────────────────────
+// O motor da esteira varre as campanhas ATIVAS a cada 5 minutos e chama
+// `lerDesempenho` uma vez por campanha. Com 50 campanhas isso é 600 chamadas
+// por hora contra a MESMA conta de anúncios, no MESMO caso de uso — e o BUC da
+// Marketing API é por conta de anúncios, compartilhado por todos os endpoints
+// do caso de uso (fontes/graph-api-limites-de-taxa.md). É a assinatura exata do
+// que restringiu a conta da agência em 03/08/2026.
+//
+// Gasto de anúncio não muda de forma útil em cinco minutos — a própria Meta
+// consolida com atraso. Com 15 minutos de cache, três de cada quatro varreduras
+// não tocam a rede: 50 campanhas caem de 600 para 200 chamadas/hora, folgado
+// abaixo do piso de insights em development_access (600 + 400 × anúncios
+// ativos por hora, mesma fonte).
+//
+// ⚠️ Em memória, como o cache de leitura.ts: todo deploy esvazia, e é por
+// processo. Declarado aqui para não ser descoberto num e-mail de restrição.
+export const TTL_DO_DESEMPENHO_MS = 15 * 60_000;
+const cacheDeDesempenho = new Map<string, { validoAte: number; valor: DesempenhoPago }>();
+
+/** Para teste e para quando a campanha muda de estado. */
+export function limparCacheDeDesempenho(): void {
+  cacheDeDesempenho.clear();
+}
+
 /**
  * O que a campanha gastou e rendeu. É o número que entra no relatório mensal.
  *
  * Devolve `ok: false` quando não conseguiu ler, em vez de zeros: zero gasto é
  * uma informação (a campanha não entregou); "não consegui medir" é outra.
  * Confundir as duas num relatório de tráfego pago é o erro mais caro possível.
+ *
+ * Passa pelo balde de `graph.ts` como todo o resto — não existe mais caminho de
+ * anúncio que fale com a Meta sem ser contado.
  */
 export async function lerDesempenho(
   workspaceId: string,
   connectionId: string,
   campaignId: string,
   periodo: { desde: string; ate: string },
+  opts: { ignorarCache?: boolean } = {},
 ): Promise<ResultadoDeAnuncio<DesempenhoPago>> {
+  const chave = `${connectionId}:${campaignId}:${periodo.desde}:${periodo.ate}`;
+  if (!opts.ignorarCache) {
+    const hit = cacheDeDesempenho.get(chave);
+    if (hit && hit.validoAte > Date.now()) return { ok: true, dados: hit.valor };
+    if (hit) cacheDeDesempenho.delete(chave);
+  }
+
   const conn = await loadConnectionToken(workspaceId, connectionId);
   if (!conn) return { ok: false, motivo: "sem_conexao", erro: "Conexão Meta não encontrada ou token inválido" };
 
@@ -480,16 +523,17 @@ export async function lerDesempenho(
     }
     const gasto = Number(linha.spend ?? 0);
     const cliques = Number(linha.clicks ?? 0);
-    return {
-      ok: true,
-      dados: {
-        gastoBRL: gasto,
-        impressoes: Number(linha.impressions ?? 0),
-        cliques,
-        alcance: Number(linha.reach ?? 0),
-        cpcBRL: cliques > 0 ? Number((gasto / cliques).toFixed(2)) : null,
-      },
+    const dados: DesempenhoPago = {
+      gastoBRL: gasto,
+      impressoes: Number(linha.impressions ?? 0),
+      cliques,
+      alcance: Number(linha.reach ?? 0),
+      cpcBRL: cliques > 0 ? Number((gasto / cliques).toFixed(2)) : null,
     };
+    // Só sucesso entra no cache: guardar um erro por 15 min esconderia a
+    // reconexão ou a liberação da conta que acabou de acontecer.
+    cacheDeDesempenho.set(chave, { validoAte: Date.now() + TTL_DO_DESEMPENHO_MS, valor: dados });
+    return { ok: true, dados };
   } catch (e) {
     return traduzirErro(e);
   }

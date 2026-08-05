@@ -269,3 +269,23 @@ O que a cartilha **não** cobre com documento capturado:
    STORY tem set próprio (`replies`, `navigation`, `profile_visits`).
    Entradas adicionadas ao manifesto (`instagram-insights-de-usuario`,
    `instagram-insights-de-midia`) para a próxima recaptura.
+7. **Limite de RAJADA (pico de curto prazo)** — a Meta publica limites por
+   HORA (e por 24h no Instagram/Threads), e manda "espalhar as consultas de
+   maneira uniforme para evitar picos de tráfego"
+   (fontes/graph-api-limites-de-taxa.md), mas **não publica quantas chamadas
+   seguidas contam como rajada**. Foi rajada — e não estouro de cota — o que
+   restringiu a conta em 03/08/2026. Como não há número oficial, o balde desta
+   casa (`lib/integrations/meta/ritmo.ts`, 05/08/2026) usa uma capacidade de
+   rajada ESCOLHIDA POR NÓS (30 chamadas, calibrada pela interação humana mais
+   cara do produto: um dashboard de cliente custa ~28 chamadas) com espaçamento
+   de 2 chamadas/segundo depois disso. Os tetos por hora, esses sim, vêm da
+   fonte: 200/h por chave é o menor piso publicado entre os casos de uso que
+   tocamos (WhatsApp Business Management por WABA e plataforma por app), abaixo
+   do piso de Gerenciamento de Anúncios em `development_access` (300 + 40 ×
+   anúncios ativos/h) e do de Insights (600 + 400 × ativos/h).
+8. **Contador de ritmo compartilhado entre réplicas** — não é lacuna da
+   biblioteca, é lacuna NOSSA, e vale registrada junto: os contadores de
+   `ritmo.ts` e os caches de `leitura.ts`/`ads.ts` são memória de processo. Com
+   N réplicas, o teto efetivo na mesma conta da Meta é N × teto, e todo deploy
+   zera. O que reduz o dano hoje é a camada que lê `X-App-Usage` /
+   `X-Business-Use-Case-Usage` — o número é da Meta e é global de verdade.

@@ -102,10 +102,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   });
 
   // ── Páginas e Instagram, igual ao callback ────────────────────────────────
+  // TETO DE GRAVAÇÕES POR REQUISIÇÃO. Sem ele, uma conta com 30 Páginas virava
+  // 60 `saveConnection` sequenciais (cada uma cifrando um token) dentro de UM
+  // request HTTP, logo depois da rajada de GETs da descoberta. Vinte Páginas já
+  // é mais do que qualquer cliente desta agência tem; o que passar disso é
+  // dito na resposta em vez de ser gravado em silêncio.
+  const MAXIMO_DE_PAGINAS_GRAVADAS = 20;
   let paginas = 0;
   const nomes: string[] = [];
+  let sobraram = 0;
   try {
-    for (const page of await discoverPages(token)) {
+    const descobertas = await discoverPages(token);
+    sobraram = Math.max(0, descobertas.length - MAXIMO_DE_PAGINAS_GRAVADAS);
+    for (const page of descobertas.slice(0, MAXIMO_DE_PAGINAS_GRAVADAS)) {
       await saveConnection({
         workspaceId: session!.workspaceId, clientId,
         platform: "facebook", name: page.name, externalId: page.id,
@@ -127,13 +136,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
   } catch { /* sem pages_show_list ainda dá para rodar anúncio — não derruba */ }
 
+  const avisos: string[] = [];
+  if (faltando.length > 0) {
+    avisos.push(`O token veio sem: ${faltando.join(", ")}. Gere de novo marcando essas permissões para liberar tudo.`);
+  }
+  if (sobraram > 0) {
+    avisos.push(`Conectei as primeiras ${MAXIMO_DE_PAGINAS_GRAVADAS} Páginas; outras ${sobraram} ficaram de fora nesta rodada (conectamos por partes para não operar em ritmo de máquina).`);
+  }
+
   return NextResponse.json({
     ok: true,
     contas: paginas,
     nomes,
     validoAte: expiraEm,
-    ...(faltando.length > 0
-      ? { aviso: `O token veio sem: ${faltando.join(", ")}. Gere de novo marcando essas permissões para liberar tudo.` }
-      : {}),
+    ...(avisos.length > 0 ? { aviso: avisos.join(" ") } : {}),
   });
 }

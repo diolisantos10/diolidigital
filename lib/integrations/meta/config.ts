@@ -126,10 +126,16 @@ export function resolveWhatsAppEnv(): WhatsAppEnvSender | null {
   return null;
 }
 
-// The verify token used to validate webhook subscription (GET challenge).
-// Falls back to a stable default derived from nothing sensitive; set
-// META_WEBHOOK_VERIFY_TOKEN in Railway to a value you also paste in the Meta
-// dashboard's webhook config.
-export function webhookVerifyToken(): string {
-  return process.env.META_WEBHOOK_VERIFY_TOKEN?.trim() || "dioli-meta-webhook";
+// O token que valida a assinatura do webhook (o desafio do GET).
+//
+// ⚠️ NÃO TEM MAIS DEFAULT, e isso é o conserto. O valor caía em
+// "dioli-meta-webhook" quando a env faltava — um segredo publicado no
+// repositório, igual em qualquer clone, que permitiria a um terceiro assinar
+// nossa URL de webhook no app dele. Segredo com valor padrão no código não é
+// segredo: é uma senha compartilhada com quem lê o GitHub.
+//
+// Sem a env, devolve null e o desafio é recusado (403). Configuração faltando
+// vira porta FECHADA, nunca porta aberta.
+export function webhookVerifyToken(): string | null {
+  return process.env.META_WEBHOOK_VERIFY_TOKEN?.trim() || null;
 }

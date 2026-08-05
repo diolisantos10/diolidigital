@@ -7,16 +7,33 @@
 
 import { prisma } from "@/lib/db/client";
 
-// Resolve which workspace a WhatsApp number belongs to. A stored connection on
-// that phone-number-id wins; otherwise fall back to the (single) first
-// workspace — this app is one agency per deployment.
+// Resolve which workspace a WhatsApp number belongs to.
+//
+// ─── POR QUE O ATALHO ANTIGO ERA UM VAZAMENTO ───────────────────────────────
+// Era `agencyWorkspace.findFirst()`: sem conexão registrada para o
+// phone-number-id, a mensagem caía no PRIMEIRO workspace do banco. Mensagem de
+// WhatsApp é telefone + texto — dado pessoal de uma pessoa que escreveu para
+// OUTRA empresa. Com um inquilino só, o atalho era invisível; no segundo, é
+// PII de cliente aparecendo na caixa de entrada de quem não deveria vê-la, e
+// nada no sistema avisaria.
+//
+// Agora o palpite só vale quando não há palpite possível: se existe UM único
+// workspace no banco, "o primeiro" e "o certo" são a mesma coisa. A partir do
+// segundo, número desconhecido devolve `null` — e o webhook já sabe ignorar
+// (app/api/meta/webhooks/route.ts: `if (!workspaceId) continue`). Perder uma
+// mensagem de origem desconhecida é reversível; entregá-la ao inquilino errado
+// não é.
 export async function resolveWorkspaceForPhone(phoneNumberId: string): Promise<string | null> {
   const conn = await prisma.metaConnection.findFirst({
     where: { platform: "whatsapp", externalId: phoneNumberId },
   });
   if (conn) return conn.workspaceId;
-  const ws = await prisma.agencyWorkspace.findFirst({ select: { id: true } });
-  return ws?.id ?? null;
+
+  // Dois basta para saber que há ambiguidade — não precisamos contar o banco
+  // inteiro para decidir não adivinhar.
+  const workspaces = await prisma.agencyWorkspace.findMany({ select: { id: true }, take: 2 });
+  if (workspaces.length === 1) return workspaces[0].id;
+  return null;
 }
 
 interface InboundInput {

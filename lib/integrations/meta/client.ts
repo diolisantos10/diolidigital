@@ -30,20 +30,61 @@ function errMessage(e: unknown): string {
   return "erro desconhecido";
 }
 
+// ─── Espera de container: BACKOFF, não intervalo fixo ───────────────────────
+// O jeito antigo era `attempts: 12, delayMs: 2500`: doze GETs a cada 2,5s, POR
+// CONTAINER. Num carrossel de 10 imagens isso é até 120 GETs em rajada, mais o
+// pai, o publish e o permalink — ~130 chamadas por post. Com dez publicações
+// numa rodada, ~1.300 chamadas em minutos contra a mesma conta. É a assinatura
+// de máquina que restringiu a conta da agência em 03/08/2026, e é o oposto do
+// que a Meta manda fazer ("Espalhe as consultas de maneira uniforme para evitar
+// picos de tráfego" — fontes/graph-api-limites-de-taxa.md).
+//
+// Agora: a primeira conferência é imediata (imagem quase sempre já sai
+// FINISHED, e nesse caso é UMA chamada), e as seguintes espaçam com backoff
+// exponencial até o teto. Menos chamadas, mais espalhadas, e um ORÇAMENTO de
+// tempo em vez de um número mágico de tentativas.
+//
+// O jitter não é enfeite: intervalo perfeitamente regular é assinatura de bot, e
+// dez containers em paralelo com o mesmo intervalo batem na Meta em ondas.
+
+/** Espera inicial entre conferências, em ms. */
+const ESPERA_INICIAL_MS = 2_000;
+/** Multiplicador do backoff a cada conferência sem resposta. */
+const FATOR_DO_BACKOFF = 2;
+/** Teto da espera: acima disso o backoff não cresce mais. */
+const ESPERA_MAXIMA_MS = 15_000;
+/** Orçamento de tempo para uma imagem de carrossel (processa rápido). */
+export const ORCAMENTO_DE_IMAGEM_MS = 45_000;
+/** Orçamento de tempo para vídeo/reel/pai de carrossel (processa devagar). */
+export const ORCAMENTO_DE_VIDEO_MS = 120_000;
+
+function comJitter(ms: number): number {
+  return Math.round(ms * (0.8 + Math.random() * 0.4));
+}
+
 // Wait until an IG media container is ready to publish (videos/reels process
 // asynchronously). Images are usually FINISHED immediately.
 async function waitForContainer(
   containerId: string,
   token: string,
-  { attempts = 12, delayMs = 2500 }: { attempts?: number; delayMs?: number } = {},
+  { orcamentoMs = ORCAMENTO_DE_VIDEO_MS }: { orcamentoMs?: number } = {},
 ): Promise<void> {
-  for (let i = 0; i < attempts; i++) {
+  const limite = Date.now() + orcamentoMs;
+  let espera = ESPERA_INICIAL_MS;
+
+  for (;;) {
     const res = await graphGet<{ status_code?: string }>(containerId, token, {
       fields: "status_code",
     });
     if (res.status_code === "FINISHED") return;
     if (res.status_code === "ERROR") throw new Error("Falha ao processar a mídia (ERROR)");
-    await new Promise((r) => setTimeout(r, delayMs));
+
+    const pausa = comJitter(espera);
+    // Sem tempo para mais uma conferência: para aqui em vez de gastar uma
+    // chamada que já nasce fora do orçamento.
+    if (Date.now() + pausa >= limite) break;
+    await new Promise((r) => setTimeout(r, pausa));
+    espera = Math.min(ESPERA_MAXIMA_MS, espera * FATOR_DO_BACKOFF);
   }
   throw new Error("Tempo esgotado ao processar a mídia");
 }
@@ -79,7 +120,9 @@ async function publishInstagram(
     }
     // Cada filho precisa estar processado ANTES de o pai ser criado. Criar o
     // pai com um filho ainda em processamento derruba o carrossel inteiro.
-    for (const id of filhos) await waitForContainer(id, token);
+    // Sequencial e com orçamento de IMAGEM: filho de carrossel é foto, e foto
+    // costuma sair FINISHED na primeira conferência (uma chamada por filho).
+    for (const id of filhos) await waitForContainer(id, token, { orcamentoMs: ORCAMENTO_DE_IMAGEM_MS });
 
     const pai = await graphPost<{ id: string }>(`${igUserId}/media`, token, {
       media_type: "CAROUSEL",
@@ -126,8 +169,12 @@ async function publishInstagram(
 
   const container = await graphPost<{ id: string }>(`${igUserId}/media`, token, containerParams);
 
-  // 2. Wait for processing, then publish.
-  await waitForContainer(container.id, token);
+  // 2. Wait for processing, then publish. Foto tem orçamento curto: esperar
+  //    dois minutos por uma imagem é gastar conferência à toa.
+  const ehVideo = containerParams.media_type === "REELS" || Boolean(containerParams.video_url);
+  await waitForContainer(container.id, token, {
+    orcamentoMs: ehVideo ? ORCAMENTO_DE_VIDEO_MS : ORCAMENTO_DE_IMAGEM_MS,
+  });
   const published = await graphPost<{ id: string }>(`${igUserId}/media_publish`, token, {
     creation_id: container.id,
   });
