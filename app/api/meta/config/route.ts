@@ -38,9 +38,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (session.role !== "master") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const body = (await request.json()) as { appId?: string; appSecret?: string };
+  const body = (await request.json()) as { appId?: string; appSecret?: string; webhookToken?: string };
   const appId = (body.appId ?? "").trim();
   const appSecret = (body.appSecret ?? "").trim();
+  // O TOKEN DE VERIFICAÇÃO DO WEBHOOK, guardado com a integração.
+  // Antes ele só existia como variável de ambiente — ou seja, uma tela do
+  // produto ficava bloqueada por uma senha que mora fora do produto, e só quem
+  // tem acesso à hospedagem conseguia destravar. Configuração de integração
+  // pertence à integração.
+  const webhookToken = (body.webhookToken ?? "").trim();
+  if (webhookToken && webhookToken.length < 12) {
+    return NextResponse.json(
+      { error: "Token de verificação muito curto — use pelo menos 12 caracteres" },
+      { status: 400 },
+    );
+  }
 
   if (!/^\d{6,}$/.test(appId)) {
     return NextResponse.json({ error: "App ID inválido (deve ser numérico)" }, { status: 400 });
@@ -58,6 +70,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       accountId: appId, // App ID is public — stored plaintext.
       apiKeyEncrypted: encryptSecret(appSecret), // App Secret — encrypted.
       apiKeyHint: keyHint(appSecret),
+      // `webhookUrl` é a coluna que guarda este token (nome herdado; sem
+      // migration nova por um campo).
+      webhookUrl: webhookToken || null,
       lastTestStatus: "not_run",
       lastConfiguredAt: new Date(),
     },
@@ -66,6 +81,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       accountId: appId,
       apiKeyEncrypted: encryptSecret(appSecret),
       apiKeyHint: keyHint(appSecret),
+      ...(webhookToken ? { webhookUrl: webhookToken } : {}),
       lastConfiguredAt: new Date(),
     },
   });

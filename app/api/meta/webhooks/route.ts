@@ -9,7 +9,7 @@
 // verify token you set in META_WEBHOOK_VERIFY_TOKEN.
 
 import { NextRequest, NextResponse } from "next/server";
-import { resolveMetaAppCredentials, webhookVerifyToken } from "@/lib/integrations/meta/config";
+import { resolveMetaAppCredentials, resolverWebhookVerifyToken } from "@/lib/integrations/meta/config";
 import { verifyWebhookSignature } from "@/lib/integrations/meta/webhooks";
 import { segredoConfere } from "@/lib/security/crypto";
 import { recordInbound, updateMessageStatus, resolveWorkspaceForPhone } from "@/lib/integrations/meta/inbox";
@@ -26,7 +26,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   // `segredoConfere` também trata o caso "token não configurado": a função
   // devolve false para lado vazio, então uma instância sem
   // META_WEBHOOK_VERIFY_TOKEN não confirma assinatura de webhook para ninguém.
-  if (mode === "subscribe" && segredoConfere(token, webhookVerifyToken()) && challenge) {
+  const esperado = await resolverWebhookVerifyToken();
+  if (mode === "subscribe" && segredoConfere(token, esperado) && challenge) {
     // Meta expects the raw challenge echoed back as text/plain.
     return new NextResponse(challenge, { status: 200, headers: { "Content-Type": "text/plain" } });
   }

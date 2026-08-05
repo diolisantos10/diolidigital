@@ -139,3 +139,45 @@ export function resolveWhatsAppEnv(): WhatsAppEnvSender | null {
 export function webhookVerifyToken(): string | null {
   return process.env.META_WEBHOOK_VERIFY_TOKEN?.trim() || null;
 }
+
+/**
+ * O MESMO TOKEN, mas resolvido também pelo COFRE — para o segredo poder ser
+ * definido de dentro do nosso painel, sem depender do painel do provedor de
+ * hospedagem.
+ *
+ * Por que isto passou a existir em 05/08/2026: a verificação do webhook da Meta
+ * exigia uma variável de ambiente, e variável de ambiente só quem tem acesso ao
+ * Railway define. Resultado: uma tela do produto ficava bloqueada por uma senha
+ * que mora fora do produto. Configuração de integração pertence à integração.
+ *
+ * A ordem é deliberada: AMBIENTE primeiro, cofre depois. Quem tem acesso à
+ * infraestrutura manda mais do que quem tem acesso ao painel — e assim uma
+ * conta de painel comprometida não redireciona o webhook da casa.
+ *
+ * Sem nenhum dos dois, continua devolvendo null: configuração faltando é porta
+ * FECHADA, e o desafio da Meta é recusado com 403.
+ */
+export async function resolverWebhookVerifyToken(workspaceId?: string): Promise<string | null> {
+  const doAmbiente = process.env.META_WEBHOOK_VERIFY_TOKEN?.trim();
+  if (doAmbiente) return doAmbiente;
+
+  try {
+    // O webhook chega SEM sessão: sem workspace conhecido, vale a única
+    // configuração de Meta que existir na base. Com duas, não se adivinha.
+    const linhas = workspaceId
+      ? await prisma.dbIntegrationConfig.findMany({
+          where: { workspaceId, integrationId: META_INTEGRATION_ID, webhookUrl: { not: null } },
+          take: 2,
+        })
+      : await prisma.dbIntegrationConfig.findMany({
+          where: { integrationId: META_INTEGRATION_ID, webhookUrl: { not: null } },
+          take: 2,
+        });
+    if (linhas.length !== 1) return null;
+    // `webhookUrl` guarda o token de verificação: coluna já existente, sem
+    // migration nova. O nome vem de antes; o comentário evita a confusão.
+    return linhas[0]!.webhookUrl?.trim() || null;
+  } catch {
+    return null;
+  }
+}
