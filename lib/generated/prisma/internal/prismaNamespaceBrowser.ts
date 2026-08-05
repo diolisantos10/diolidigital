@@ -93,7 +93,8 @@ export const ModelName = {
   WhatsAppOutbox: 'WhatsAppOutbox',
   PortalAccess: 'PortalAccess',
   MarketInsight: 'MarketInsight',
-  MediaAsset: 'MediaAsset'
+  MediaAsset: 'MediaAsset',
+  Oportunidade: 'Oportunidade'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -896,6 +897,33 @@ export const MediaAssetScalarFieldEnum = {
 } as const
 
 export type MediaAssetScalarFieldEnum = (typeof MediaAssetScalarFieldEnum)[keyof typeof MediaAssetScalarFieldEnum]
+
+
+export const OportunidadeScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  plataforma: 'plataforma',
+  urlExterna: 'urlExterna',
+  titulo: 'titulo',
+  descricao: 'descricao',
+  categoria: 'categoria',
+  orcamentoInformado: 'orcamentoInformado',
+  prazoInformado: 'prazoInformado',
+  textoBruto: 'textoBruto',
+  impressaoDigital: 'impressaoDigital',
+  nota: 'nota',
+  servicoSugerido: 'servicoSugerido',
+  raciocinio: 'raciocinio',
+  status: 'status',
+  propostaTexto: 'propostaTexto',
+  valorSugerido: 'valorSugerido',
+  decididoPor: 'decididoPor',
+  decididoEm: 'decididoEm',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type OportunidadeScalarFieldEnum = (typeof OportunidadeScalarFieldEnum)[keyof typeof OportunidadeScalarFieldEnum]
 
 
 export const SortOrder = {

@@ -338,3 +338,23 @@ export type MarketInsight = Prisma.MarketInsightModel
  * que mata travessia de diretório por construção.
  */
 export type MediaAsset = Prisma.MediaAssetModel
+/**
+ * Model Oportunidade
+ * A OPORTUNIDADE captada em marketplace de freelancer (99Freelas, Workana,
+ * Upwork, Guru, PeoplePerHour, Freelancer.com).
+ * 
+ * DESENHO: o sistema NÃO navega em plataforma logada. Scraping de área logada é
+ * o caminho mais curto para conta banida — a mesma lição que produziu a trava de
+ * plataforma em 03/08/2026. A oportunidade entra por DUAS PORTAS, as duas de
+ * texto puro:
+ * (a) alguém COLA a URL/o texto do projeto no painel;
+ * (b) o e-mail de alerta que a plataforma já manda é ENCAMINHADO para
+ * `/api/agency/oportunidades/email`.
+ * As duas caem na MESMA função de ingestão (`lib/agency/comercial/oportunidade.ts`).
+ * 
+ * ⚠️ `textoBruto` é DADO NÃO CONFIÁVEL. É texto escrito por um desconhecido na
+ * internet. Ele descreve um pedido; ele NÃO dá ordem ao sistema. Nunca vai para
+ * dentro de prompt como instrução, nunca vai para log (pode carregar contato de
+ * terceiro — PII que não é nossa e que não pedimos).
+ */
+export type Oportunidade = Prisma.OportunidadeModel

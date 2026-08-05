@@ -426,7 +426,8 @@ export const ModelName = {
   WhatsAppOutbox: 'WhatsAppOutbox',
   PortalAccess: 'PortalAccess',
   MarketInsight: 'MarketInsight',
-  MediaAsset: 'MediaAsset'
+  MediaAsset: 'MediaAsset',
+  Oportunidade: 'Oportunidade'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -442,7 +443,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "oportunidade"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -3628,6 +3629,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    Oportunidade: {
+      payload: Prisma.$OportunidadePayload<ExtArgs>
+      fields: Prisma.OportunidadeFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.OportunidadeFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OportunidadePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.OportunidadeFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OportunidadePayload>
+        }
+        findFirst: {
+          args: Prisma.OportunidadeFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OportunidadePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.OportunidadeFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OportunidadePayload>
+        }
+        findMany: {
+          args: Prisma.OportunidadeFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OportunidadePayload>[]
+        }
+        create: {
+          args: Prisma.OportunidadeCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OportunidadePayload>
+        }
+        createMany: {
+          args: Prisma.OportunidadeCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.OportunidadeCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OportunidadePayload>[]
+        }
+        delete: {
+          args: Prisma.OportunidadeDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OportunidadePayload>
+        }
+        update: {
+          args: Prisma.OportunidadeUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OportunidadePayload>
+        }
+        deleteMany: {
+          args: Prisma.OportunidadeDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.OportunidadeUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.OportunidadeUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OportunidadePayload>[]
+        }
+        upsert: {
+          args: Prisma.OportunidadeUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OportunidadePayload>
+        }
+        aggregate: {
+          args: Prisma.OportunidadeAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateOportunidade>
+        }
+        groupBy: {
+          args: Prisma.OportunidadeGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.OportunidadeGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.OportunidadeCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.OportunidadeCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -4453,6 +4528,33 @@ export const MediaAssetScalarFieldEnum = {
 export type MediaAssetScalarFieldEnum = (typeof MediaAssetScalarFieldEnum)[keyof typeof MediaAssetScalarFieldEnum]
 
 
+export const OportunidadeScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  plataforma: 'plataforma',
+  urlExterna: 'urlExterna',
+  titulo: 'titulo',
+  descricao: 'descricao',
+  categoria: 'categoria',
+  orcamentoInformado: 'orcamentoInformado',
+  prazoInformado: 'prazoInformado',
+  textoBruto: 'textoBruto',
+  impressaoDigital: 'impressaoDigital',
+  nota: 'nota',
+  servicoSugerido: 'servicoSugerido',
+  raciocinio: 'raciocinio',
+  status: 'status',
+  propostaTexto: 'propostaTexto',
+  valorSugerido: 'valorSugerido',
+  decididoPor: 'decididoPor',
+  decididoEm: 'decididoEm',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type OportunidadeScalarFieldEnum = (typeof OportunidadeScalarFieldEnum)[keyof typeof OportunidadeScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -4662,6 +4764,7 @@ export type GlobalOmitConfig = {
   portalAccess?: Prisma.PortalAccessOmit
   marketInsight?: Prisma.MarketInsightOmit
   mediaAsset?: Prisma.MediaAssetOmit
+  oportunidade?: Prisma.OportunidadeOmit
 }
 
 /* Types for Logging */

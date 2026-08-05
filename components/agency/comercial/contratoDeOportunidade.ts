@@ -27,6 +27,15 @@ export interface Oportunidade {
   servicoSugerido: string | null;
   /** Já formatado para leitura (ex.: "R$ 2.400"). `null` = não estimado. */
   valorSugerido: string | null;
+  /**
+   * O orçamento que o ANUNCIANTE declarou — não é a nossa sugestão de preço, e
+   * por isso não compartilha campo com ela. Trocar um pelo outro na tela é a
+   * receita de proposta enviada com o preço do cliente.
+   */
+  orcamentoInformado: string | null;
+  /** Prazo declarado no anúncio, em texto. `null` = o anúncio não disse. */
+  prazoInformado: string | null;
+  categoria: string | null;
   /** O porquê da nota, em uma linha. */
   raciocinio: string | null;
   /** O texto do projeto como chegou da plataforma. */
@@ -45,7 +54,11 @@ export const PLATAFORMAS: { id: string; label: string }[] = [
   { id: "guru", label: "Guru" },
   { id: "peopleperhour", label: "PeoplePerHour" },
   { id: "freelancer", label: "Freelancer.com" },
-  { id: "outra", label: "Outra" },
+  // A chave é "desconhecida" porque o catálogo do backend
+  // (`lib/agency/comercial/oportunidade.ts`) é FECHADO — mandar "outra" daqui
+  // vira uma origem que nenhum agrupamento reconhece. O rótulo é que fala com
+  // o operador; a chave fala com o banco.
+  { id: "desconhecida", label: "Outra" },
 ];
 
 const ROTULO_POR_ID = new Map(PLATAFORMAS.map((p) => [p.id, p.label]));
@@ -53,6 +66,17 @@ const ROTULO_POR_ID = new Map(PLATAFORMAS.map((p) => [p.id, p.label]));
 /** Rótulo humano da plataforma. Chave desconhecida vira o próprio texto, nunca "undefined". */
 export function rotuloDaPlataforma(chave: string): string {
   return ROTULO_POR_ID.get(chave) ?? (chave.trim() || "Outra");
+}
+
+/**
+ * Texto colado que é SÓ um link. O backend usa `url` para deduzir a plataforma
+ * e para o time abrir o anúncio depois — mandar o campo separado é o que faz
+ * "colar o link" funcionar tão bem quanto "colar o texto".
+ */
+export function urlSolta(texto: string): string | null {
+  const t = texto.trim();
+  if (/\s/.test(t)) return null;
+  return /^https?:\/\/\S+$/i.test(t) ? t : null;
 }
 
 /** Normaliza a chave da plataforma vinda da API ("99Freelas", "FREELANCER.COM"…). */
@@ -132,10 +156,13 @@ export function normalizarOportunidade(bruta: unknown): Oportunidade | null {
     nota: notaLegivel(campo(o, "nota", "score", "pontuacao", "notaFit")),
     servicoSugerido: texto(campo(o, "servicoSugerido", "servico", "suggestedService", "service")),
     valorSugerido: valorLegivel(campo(o, "valorSugerido", "valor", "suggestedValue", "preco", "price")),
+    orcamentoInformado: valorLegivel(campo(o, "orcamentoInformado", "orcamento", "budget")),
+    prazoInformado: texto(campo(o, "prazoInformado", "prazo", "deadline")),
+    categoria: texto(campo(o, "categoria", "category")),
     raciocinio: texto(campo(o, "raciocinio", "reasoning", "justificativa", "porque", "rationale")),
     textoOriginal: texto(campo(o, "textoOriginal", "texto", "originalText", "descricao", "description", "conteudo")) ?? "",
-    proposta: texto(campo(o, "proposta", "propostaPronta", "proposal", "mensagem", "message")),
-    url: texto(campo(o, "url", "link", "sourceUrl")),
+    proposta: texto(campo(o, "propostaTexto", "proposta", "propostaPronta", "proposal", "mensagem")),
+    url: texto(campo(o, "url", "urlExterna", "link", "sourceUrl")),
     status: normalizarStatus(campo(o, "status", "situacao", "state")),
     criadaEm: texto(campo(o, "criadaEm", "createdAt", "created_at", "data")),
   };

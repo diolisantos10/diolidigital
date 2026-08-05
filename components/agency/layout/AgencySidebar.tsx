@@ -71,6 +71,11 @@ export default function AgencySidebar({ id, userInfo, mobileOpen = false, onMobi
       items: [
         { label: "Início", href: "/agency/dashboard", icon: HomeIcon },
         { label: "Solicitações", href: "/agency/requests", icon: FileTextIcon, badge: newRequestsCount },
+        // Radar de oportunidades entra AQUI, no bloco de entrada, e não em
+        // "Inteligência": ele não é relatório, é fila de decisão diária — chega
+        // um projeto de plataforma de freela, o Diretor aprova ou recusa. Mesmo
+        // gesto de Solicitações e Caixa de entrada, por isso mesma vizinhança.
+        { label: "Oportunidades", href: "/agency/oportunidades", icon: TargetIcon },
         // O cliente escrevia e ninguem lia: a mensagem gravava no banco e morria.
         // O badge soma conversa nao lida + pedido novo, sem contar duas vezes.
         { label: "Caixa de entrada", href: "/agency/inbox", icon: InboxIcon, badge: caixa.total },
@@ -305,6 +310,18 @@ function WhatsAppIcon({ size = 16, className = "" }: { size?: number; className?
     <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
       <path d="M2.6 13.4l.8-2.7A5.4 5.4 0 1113.4 8 5.4 5.4 0 015.3 12.6l-2.7.8z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
       <path d="M6 6.1c.2-.4.4-.4.6-.4h.4c.2 0 .3.2.4.4l.4.9-.5.5c.3.6.8 1.1 1.4 1.4l.5-.5.9.4c.2.1.4.2.4.4v.4c0 .2 0 .4-.4.6-.6.3-1.4.1-2.3-.5A6 6 0 016.1 8c-.5-.8-.5-1.5-.1-1.9z" fill="currentColor"/>
+    </svg>
+  );
+}
+
+// Mira: "oportunidade que a gente escolhe ir buscar". Diferente do RadarIcon
+// (varredura do mercado) para os dois itens não se confundirem na lateral.
+function TargetIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
+      <circle cx="8" cy="8" r="5.5" stroke="currentColor" strokeWidth="1.3"/>
+      <circle cx="8" cy="8" r="2" stroke="currentColor" strokeWidth="1.3"/>
+      <path d="M8 1.2v2M8 12.8v2M1.2 8h2M12.8 8h2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
     </svg>
   );
 }

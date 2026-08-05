@@ -32,7 +32,9 @@ export const AGENCY_ROLE_OPTIONS: { id: AgencyRole; label: string; description: 
 export const ROLE_NAV_ALLOWLIST: Record<AgencyRole, string[] | "all"> = {
   master:              "all",
   project_manager:     "all",
-  executivo_comercial: ["/agency/requests", "/agency/clients", "/agency/dashboard", "/agency/settings", "/agency/projects"],
+  // O Radar de oportunidades é a mesa de trabalho do Comercial — sem esta linha
+  // a tela existiria só para master/PM, que não é quem prospecta.
+  executivo_comercial: ["/agency/requests", "/agency/oportunidades", "/agency/clients", "/agency/dashboard", "/agency/settings", "/agency/projects"],
   social_staff:        ["/agency/dashboard", "/agency/approvals", "/agency/planner", "/agency/social-media-agent", "/agency/deliverables", "/agency/settings"],
   design_staff:        ["/agency/dashboard", "/agency/approvals", "/agency/design-agent",       "/agency/deliverables", "/agency/settings"],
   ads_staff:           ["/agency/dashboard", "/agency/approvals", "/agency/ads-agent",          "/agency/deliverables", "/agency/settings"],

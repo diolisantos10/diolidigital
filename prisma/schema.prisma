@@ -1315,4 +1315,9 @@ model Oportunidade {
   /// SQLite varre a tabela e ordena em memória — e varredura aqui segura o
   /// único lock de escrita do banco inteiro.
   @@index([workspaceId, nota, createdAt])
+  /// A segunda trava de dedup: o mesmo projeto chegando pelas duas portas com
+  /// textos diferentes (e-mail em HTML × texto colado do site) só é reconhecido
+  /// pelo LINK. Esta busca roda em TODA ingestão — sem índice, é varredura de
+  /// tabela a cada oportunidade que entra.
+  @@index([workspaceId, urlExterna])
 }
