@@ -77,6 +77,10 @@ export declare const PADRAO_CNTM: RegExp;
 export declare function lerLista(bruto: string | null | undefined): string[];
 export declare function idsDeMidiaEmTexto(texto: string | null | undefined): string[];
 export declare function montarEmUso(fontes?: FontesDeUso): IndiceDeUso;
+/** Milissegundos da data do post, ou `null` quando não há data legível.
+ *  `Date` (Prisma), string ISO (libsql) e epoch numérico caem todos aqui — foi
+ *  a divergência entre esses formatos que embaralhou o índice C<n>. */
+export declare function instanteDoPost(v: string | number | Date | null | undefined): number | null;
 export declare function ordenarPosts<T extends LinhaPost>(rows: T[]): { ordenados: T[]; semData: T[] };
 export declare function decidirPassePosicional(entrada: {
   postsSemTela: number;

@@ -133,6 +133,17 @@ if [ "$IS_PRODUCTION" = "true" ]; then
     echo "⚠ ffmpeg AUSENTE — reels não serão produzidos. Confira deploy.aptPackages em railpack.json"
   fi
 
+  # 4.7 Conserto de dado guardado por variável: o backfill das telas dos
+  #     carrosséis. Dito aqui, alto, pelo mesmo motivo do ffmpeg — a diferença
+  #     é que este PRECISA ser desligado depois. O trabalho de verdade (ensaio
+  #     completo no log, e só então a escrita) roda no boot do app, via
+  #     `instrumentation.ts` → `lib/agency/media/backfill-boot.ts`.
+  if [ -n "$BACKFILL_CARROSSEL_CLIENT_ID" ]; then
+    echo "▶ BACKFILL_CARROSSEL_CLIENT_ID=$BACKFILL_CARROSSEL_CLIENT_ID — a tarefa de backfill"
+    echo "  vai rodar UMA vez neste boot. Procure as linhas [backfill-boot] no log:"
+    echo "  o ensaio completo sai ANTES de qualquer escrita. REMOVA a variável depois."
+  fi
+
   # 5. Seed initial workspace + users on every boot (idempotent).
   #    seed-db.mjs uses INSERT OR IGNORE throughout — a no-op on populated
   #    databases, so this is safe to run on every restart. Ensures a fresh

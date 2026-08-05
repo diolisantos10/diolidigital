@@ -26,18 +26,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { getSession } from "@/lib/auth/session";
-import {
-  montarEmUso,
-  planejarBackfill,
-  postsParaGravar,
-} from "@/lib/agency/media/backfill-carrossel.mjs";
+import { postsParaGravar } from "@/lib/agency/media/backfill-carrossel.mjs";
 import type { Plano } from "@/lib/agency/media/backfill-carrossel.mjs";
+import {
+  montarPlanoDoCliente,
+  type ContextoDoBackfill,
+} from "@/lib/agency/media/backfill-contexto";
 import { avaliarPlano, explicarErro } from "./plano";
 
 const CONFIRMACAO = "APLICAR";
-
-/** Formatos que a casa grava para carrossel (o legado usa o termo em PT). */
-const FORMATOS_CARROSSEL = ["carousel", "carrossel"];
 
 async function requireMaster() {
   const session = await getSession();
@@ -47,80 +44,15 @@ async function requireMaster() {
   return { session };
 }
 
-/**
- * Lê o mundo e monta o plano. SOMENTE LEITURA — é o mesmo caminho usado pelo
- * ensaio e pela aplicação, para que os dois nunca divirjam.
- */
-interface Contexto {
-  cliente: { id: string; nome: string };
-  imagens: number;
-  midiasComDono: number;
-  plano: Plano;
-}
+// A leitura do mundo mora em `lib/agency/media/backfill-contexto.ts`: a tarefa
+// de boot (que roda quando ninguém pode clicar) aplica o MESMO plano, e dois
+// leitores do banco divergiriam com o tempo.
+const montarPlano = montarPlanoDoCliente;
+type Contexto = ContextoDoBackfill;
 
-async function montarPlano(clientId: string): Promise<Contexto | null> {
-  const cliente = await prisma.client.findUnique({
-    where: { id: clientId },
-    select: { id: true, name: true, workspaceId: true },
-  });
-  if (!cliente) return null;
-
-  const pedidos = await prisma.clientRequestDb.findMany({
-    where: { clientId },
-    select: { id: true },
-  });
-  const idsDePedido = pedidos.map((p) => p.id);
-
-  const [postsRows, assetsRows, usoPosts, usoEntregaveis, usoVersoes] = await Promise.all([
-    prisma.socialPost.findMany({
-      where: { clientId, format: { in: FORMATOS_CARROSSEL } },
-      select: { id: true, caption: true, mediaUrl: true, mediaUrlsJson: true, scheduledFor: true },
-    }),
-    prisma.mediaAsset.findMany({
-      where: {
-        mimeType: { startsWith: "image/" },
-        OR: [{ clientId }, ...(idsDePedido.length ? [{ clientRequestId: { in: idsDePedido } }] : [])],
-      },
-      select: { id: true, fileName: true, mimeType: true, createdAt: true },
-      orderBy: [{ createdAt: "asc" }, { fileName: "asc" }],
-    }),
-    // O índice de "já tem dono" olha o WORKSPACE inteiro, nas três fontes — foi
-    // o achado da auditoria: o logo não é citado por post nenhum, ele vive em
-    // Deliverable.content e em DeliverableVersion.mediaAssetIds.
-    prisma.socialPost.findMany({
-      where: { workspaceId: cliente.workspaceId },
-      select: { id: true, mediaUrl: true, mediaUrlsJson: true },
-    }),
-    prisma.deliverable.findMany({
-      where: { project: { workspaceId: cliente.workspaceId } },
-      select: { id: true, name: true, content: true },
-    }),
-    prisma.deliverableVersion.findMany({
-      where: { deliverable: { project: { workspaceId: cliente.workspaceId } } },
-      select: { deliverableId: true, content: true, mediaAssetIds: true },
-    }),
-  ]);
-
-  const emUso = montarEmUso({
-    posts: usoPosts,
-    deliverables: usoEntregaveis,
-    versoes: usoVersoes,
-  });
-
-  const plano = planejarBackfill({
-    postsRows,
-    assetsRows,
-    emUso,
-    // 🔒 NUNCA `true` aqui. Ver o cabeçalho e `plano.ts`.
-    porOrdem: false,
-  });
-
-  return {
-    cliente: { id: cliente.id, nome: cliente.name },
-    imagens: assetsRows.length,
-    midiasComDono: emUso.size,
-    plano,
-  };
+/** O cliente como a TELA o vê — sem o workspace, que é da leitura interna. */
+function semWorkspace(c: Contexto["cliente"]): { id: string; nome: string } {
+  return { id: c.id, nome: c.nome };
 }
 
 /** A resposta comum ao ensaio e ao pós-aplicação. */
@@ -129,7 +61,8 @@ function corpoDoEnsaio(ctx: Contexto) {
   const avaliacao = avaliarPlano(plano);
   return {
     ok: true as const,
-    cliente: ctx.cliente,
+    // Só id e nome: `workspaceId` é da leitura interna e não desce para a tela.
+    cliente: semWorkspace(ctx.cliente),
     resumo: {
       carrosseis: plano.posts.length,
       imagens: ctx.imagens,
@@ -183,7 +116,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   if (ctx.plano.erro) {
     // Aborto de DOMÍNIO (falta data, não há carrossel) não é falha de HTTP: a
     // tela precisa do texto explicativo, não de um erro cru.
-    return NextResponse.json(corpoDoErro(ctx.plano.erro, ctx.cliente));
+    return NextResponse.json(corpoDoErro(ctx.plano.erro, semWorkspace(ctx.cliente)));
   }
   return NextResponse.json({ ...corpoDoEnsaio(ctx), acao: "ensaio" });
 }
@@ -218,7 +151,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: "Cliente não encontrado" }, { status: 404 });
   }
   if (ctx.plano.erro) {
-    return NextResponse.json(corpoDoErro(ctx.plano.erro, ctx.cliente), { status: 409 });
+    return NextResponse.json(corpoDoErro(ctx.plano.erro, semWorkspace(ctx.cliente)), { status: 409 });
   }
 
   const avaliacao = avaliarPlano(ctx.plano);
@@ -252,7 +185,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   return NextResponse.json({
     ok: true,
     acao: "aplicado",
-    cliente: ctx.cliente,
+    cliente: semWorkspace(ctx.cliente),
     postsAtualizados: aGravar.length,
     telasLigadas: aGravar.reduce((s, p) => s + p.urls.length, 0),
     detalhe: aGravar.map((p) => ({ id: p.id, telas: p.urls.length })),

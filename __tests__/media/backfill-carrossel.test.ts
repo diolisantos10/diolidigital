@@ -120,6 +120,65 @@ describe("ordenarPosts — a ordem que define o C<n>", () => {
     const { semData } = ordenarPosts([post("a"), post("z", { scheduledFor: null })]);
     expect(semData.map((p) => p.id)).toEqual(["z"]);
   });
+
+  // ── O BUG DE JUNTA DE 05/08/2026 ──────────────────────────────────────────
+  // Todos os testes acima alimentam STRING ISO — o formato que o script recebe
+  // do libsql. A rota e a tarefa de boot leem pelo PRISMA, e ali `scheduledFor`
+  // é um objeto `Date`. A ordenação antiga comparava `String(valor)`, e
+  // `String(new Date(...))` é "Wed Aug 12 2026 …": ordenar isso como texto
+  // ordena por DIA DA SEMANA. O índice C<n> saía embaralhado e as telas iriam
+  // para o carrossel errado, em silêncio.
+  it("⛔ ordena Date (Prisma) por TEMPO, não por dia da semana", () => {
+    // Segunda a sábado, de propósito: por texto isto viraria Fri < Mon < Sat…
+    const { ordenados } = ordenarPosts([
+      post("qua", { scheduledFor: new Date("2026-08-12T13:00:00Z") }),
+      post("seg", { scheduledFor: new Date("2026-08-10T13:00:00Z") }),
+      post("sab", { scheduledFor: new Date("2026-08-15T13:00:00Z") }),
+      post("sex", { scheduledFor: new Date("2026-08-14T13:00:00Z") }),
+    ]);
+    expect(ordenados.map((p) => p.id)).toEqual(["seg", "qua", "sex", "sab"]);
+  });
+
+  it("os três formatos da casa (Date, ISO, epoch) convivem na mesma ordem", () => {
+    const { ordenados, semData } = ordenarPosts([
+      post("c", { scheduledFor: Date.parse("2026-08-14T13:00:00Z") }),
+      post("a", { scheduledFor: "2026-08-10T13:00:00Z" }),
+      post("b", { scheduledFor: new Date("2026-08-12T13:00:00Z") }),
+    ]);
+    expect(ordenados.map((p) => p.id)).toEqual(["a", "b", "c"]);
+    expect(semData).toHaveLength(0);
+  });
+
+  it("data ILEGÍVEL conta como sem data — ordem que não sei justificar aborta", () => {
+    const { semData } = ordenarPosts([post("a"), post("z", { scheduledFor: "quinta que vem" })]);
+    expect(semData.map((p) => p.id)).toEqual(["z"]);
+  });
+
+  it("Date inválido (new Date('x')) também é sem data — NaN não ordena nada", () => {
+    const { semData } = ordenarPosts([post("a"), post("z", { scheduledFor: new Date("x") })]);
+    expect(semData.map((p) => p.id)).toEqual(["z"]);
+  });
+
+  it("o C<n> das telas segue a data REAL, com Date do Prisma", () => {
+    // A prova de ponta: o carrossel de 10/08 é o #1 e leva as telas c1t*.
+    const plano = planejarBackfill({
+      postsRows: [
+        post("sp-sex", { scheduledFor: new Date("2026-08-14T13:00:00Z") }),
+        post("sp-seg", { scheduledFor: new Date("2026-08-10T13:00:00Z") }),
+      ],
+      assetsRows: [
+        asset("m1", "foocci-c1t1.png"), asset("m2", "foocci-c1t2.png"),
+        asset("m3", "foocci-c2t1.png"), asset("m4", "foocci-c2t2.png"),
+      ],
+    });
+    expect(plano.erro).toBeNull();
+    const primeiro = plano.posts.find((p) => p.idx === 1)!;
+    const segundo = plano.posts.find((p) => p.idx === 2)!;
+    expect(primeiro.id).toBe("sp-seg");
+    expect(primeiro.telas.map((t) => t.fileName)).toEqual(["foocci-c1t1.png", "foocci-c1t2.png"]);
+    expect(segundo.id).toBe("sp-sex");
+    expect(segundo.telas.map((t) => t.fileName)).toEqual(["foocci-c2t1.png", "foocci-c2t2.png"]);
+  });
 });
 
 describe("planejarBackfill — abortos", () => {

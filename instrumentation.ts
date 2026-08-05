@@ -12,4 +12,14 @@ export async function register(): Promise<void> {
 
   const { ligarDespertador } = await import("@/lib/agency/despertador");
   ligarDespertador();
+
+  // Conserto de dado guardado por variável de ambiente: roda UMA vez, quando
+  // `BACKFILL_CARROSSEL_CLIENT_ID` está definida, e imprime o ensaio inteiro no
+  // log antes de escrever qualquer coisa. Sem a variável, silêncio total.
+  //
+  // Por que aqui e não no despertador: é uma vez, não uma rotina. No relógio de
+  // 5 em 5 minutos o ensaio viraria ruído — e o log deste ensaio é justamente a
+  // conferência tela por tela de quem autorizou.
+  const { agendarBackfillDeBoot } = await import("@/lib/agency/media/backfill-boot");
+  agendarBackfillDeBoot();
 }
