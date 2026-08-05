@@ -180,3 +180,74 @@ rotas de API) **não tinham um único link na interface**. Ambos entram no menu.
    `__tests__/{brain,esteira,media,radar}` e **todas** exercitando `lib/**` —
    trabalho em voo de outras frentes. Nenhum dos meus arquivos é importado por
    elas. Typecheck limpo.
+
+---
+
+## 2026-08-05 · Radar de oportunidades — a mesa de decisão do comercial
+
+Território: `app/agency/oportunidades/page.tsx`, `components/agency/comercial/*`,
+o item de menu em `AgencySidebar.tsx` e uma linha em `lib/agency/roles.ts`.
+A frente de plataforma escrevia `lib/agency/comercial/oportunidade.ts` e
+`/api/agency/oportunidades` **ao mesmo tempo** — nenhum arquivo dela foi tocado.
+
+### O que a tela é
+
+Fila de triagem ordenada pela nota. Fechado, o cartão responde "vale a pena?"
+(nota 0–100 com faixa, serviço, valor, o porquê em uma linha); aberto, responde
+"o que eu mando?" (o anúncio de um lado, a **proposta pronta** do outro).
+
+**O produto da tela é o botão de copiar, não o cadastro.** Envio por robô em
+marketplace de freela é conta banida — a mesma lição que gerou a trava de
+plataforma da casa. Então a tela termina em "Copiado ✓" e o envio é da mão do
+operador, dentro do site deles. Por isso "Aprovar e copiar" é **uma** ação:
+separar em dois cliques é onde a proposta aprovada fica sem ser enviada.
+
+### Contrato lido com tolerância, escrito com rigor
+
+`components/agency/comercial/contratoDeOportunidade.ts` normaliza a leitura
+(apelidos de campo, `{oportunidades}` ou array, status em pt/en) e devolve **um**
+tipo. Com as duas frentes escrevendo em paralelo, ler `json.oportunidades[0].nota`
+direto significaria a tela inteira caindo por um nome de campo — e o operador
+veria "erro" onde havia trabalho pronto. Campo ausente vira `null`, e a tela diz
+"a definir": ausência de informação não é informação.
+
+Dois pontos onde a tolerância parou de propósito: a chave de plataforma "outra"
+virou **`desconhecida`**, porque o catálogo do backend é fechado; e
+`orcamentoInformado` (o que o anunciante declarou) tem campo **próprio**, nunca
+o de `valorSugerido` — trocar um pelo outro é proposta enviada com o preço do
+cliente.
+
+### Três achados de interface que valem além desta tela
+
+1. **`line-clamp-1` no celular é meia frase.** "O raciocínio em uma linha" é
+   verdade no desktop e mentira a 375px, onde uma linha são ~30 caracteres.
+   Ficou `line-clamp-2 lg:line-clamp-1`. *(E `block` na mesma classe cancela o
+   clamp: os dois disputam `display`.)*
+2. **Fade de rolagem só quando transborda — e transbordo se mede.** Fade fixo
+   desbota a última linha de uma proposta que estava inteira na tela, e o
+   operador acha que o sistema cortou o texto que ele vai mandar ao cliente.
+   `CaixaRolavel` mede com `ResizeObserver`.
+3. **Filtro zerado é controle morto.** Com a fila vazia (ou erro), as cinco abas
+   somem: cinco botões que não fazem nada logo acima da mensagem que importa.
+
+### Prova
+
+- 375 / 768 / 1440 nos cinco estados: cheio, cartão aberto, carregando, vazio,
+  erro — mais "Copiado ✓" com leitura real da área de transferência nos dois
+  extremos.
+- §6.2 medida a 375px, rolando de 200 em 200px com `behavior: "instant"`:
+  **0 recortes parciais** em 9 posições. A tela não introduz elemento fixo; a
+  reserva do `.agency-shell` continua bastando.
+- `npx tsc --noEmit` e `npx eslint` limpos nos arquivos desta frente.
+
+### O que ficou aberto
+
+1. **`valorSugerido`, `raciocinio` e `propostaTexto` ainda não são produzidos**
+   pelo motor — hoje a tela mostra "a definir" e "sem raciocínio registrado".
+   Honesto, mas metade do valor da tela depende disso existir.
+2. **Sem contador no menu.** "Oportunidades" entrou sem badge, porque o número
+   exigiria buscar a fila em toda página do painel. Quando o volume justificar,
+   segue o padrão de `useCaixaDeEntrada`.
+3. **Hex solto em borda de tint** (`#BBF7D0`, `#FCA5A5`, `#FDE68A`, `#BFEFEC`) —
+   os mesmos valores que `/agency/radar` já usava. Não existe token de *borda*
+   para os tints semânticos; criar um mexe em tela demais para caber aqui.

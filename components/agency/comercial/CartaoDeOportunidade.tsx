@@ -13,7 +13,7 @@
 // outro). São duas perguntas diferentes e por isso são dois níveis.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   faixaDaNota,
   rotuloDaPlataforma,
@@ -34,6 +34,57 @@ const ESTILO_DO_STATUS: Record<StatusDaOportunidade, string> = {
   recusada: "bg-[var(--accent)] text-[var(--text-muted)]",
   enviada: "bg-[var(--info-bg)] text-[var(--info)]",
 };
+
+/**
+ * Caixa de texto com teto de altura e rolagem própria.
+ *
+ * O fade no rodapé aparece SÓ quando o conteúdo de fato transborda — e essa
+ * condição é medida, não chutada. Fade fixo é pior que nenhum: sobre um texto
+ * curto, ele desbota a última linha de uma proposta que estava inteira na tela,
+ * e o operador acha que o sistema cortou o texto que ele vai mandar ao cliente.
+ */
+function CaixaRolavel({
+  children,
+  classe,
+  classeDoFade,
+}: {
+  children: React.ReactNode;
+  classe: string;
+  classeDoFade: string;
+}) {
+  const ref = useRef<HTMLPreElement>(null);
+  const [transborda, setTransborda] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const medir = () => setTransborda(el.scrollHeight - el.clientHeight > 4);
+    medir();
+    // A largura muda quando a coluna dupla vira coluna única (e quando o
+    // aparelho gira): a medida tem que acompanhar, não ficar do tamanho da
+    // primeira renderização.
+    const observador = new ResizeObserver(medir);
+    observador.observe(el);
+    return () => observador.disconnect();
+  }, [children]);
+
+  return (
+    <div className="relative">
+      <pre
+        ref={ref}
+        className={`max-h-[280px] overflow-y-auto whitespace-pre-wrap break-words rounded-[8px] border px-3 py-2.5 font-sans text-[13px] leading-relaxed ${classe}`}
+      >
+        {children}
+      </pre>
+      {transborda && (
+        <span
+          aria-hidden
+          className={`pointer-events-none absolute inset-x-px bottom-px h-6 rounded-b-[8px] bg-gradient-to-t to-transparent ${classeDoFade}`}
+        />
+      )}
+    </div>
+  );
+}
 
 interface Props {
   oportunidade: Oportunidade;
@@ -197,22 +248,16 @@ export default function CartaoDeOportunidade({
                   {[o.categoria, o.prazoInformado && `prazo: ${o.prazoInformado}`].filter(Boolean).join(" · ")}
                 </p>
               )}
-              {/* A caixa rola. Sem a borda esfumaçada embaixo, texto cortado no
-                  meio de uma frase parece defeito, não continuação — e no
-                  celular ninguém descobre que dá para rolar ali dentro. */}
-              <div className="relative">
-                <pre className="max-h-[280px] overflow-y-auto whitespace-pre-wrap break-words rounded-[8px] bg-[var(--bg)] border border-[var(--border)] px-3 py-2.5 font-sans text-[13px] leading-relaxed text-[var(--text-secondary)]">
-                  {/* O texto CRU do anúncio não sai da API de propósito: costuma
-                      trazer contato de terceiro (PII que não pedimos). Aqui vem a
-                      descrição extraída — e, quando nem ela veio, o cartão diz
-                      isso em vez de mostrar uma caixa vazia. */}
-                  {o.textoOriginal || "O anúncio não trouxe descrição. Abra o link na plataforma para ler o original."}
-                </pre>
-                <span
-                  aria-hidden
-                  className="pointer-events-none absolute inset-x-px bottom-px h-6 rounded-b-[8px] bg-gradient-to-t from-[var(--bg)] to-transparent"
-                />
-              </div>
+              {/* O texto CRU do anúncio não sai da API de propósito: costuma
+                  trazer contato de terceiro (PII que não pedimos). Aqui vem a
+                  descrição extraída — e, quando nem ela veio, o cartão diz isso
+                  em vez de mostrar uma caixa vazia. */}
+              <CaixaRolavel
+                classe="bg-[var(--bg)] border-[var(--border)] text-[var(--text-secondary)]"
+                classeDoFade="from-[var(--bg)]"
+              >
+                {o.textoOriginal || "O anúncio não trouxe descrição. Abra o link na plataforma para ler o original."}
+              </CaixaRolavel>
             </section>
 
             <section className="min-w-0">
@@ -229,24 +274,16 @@ export default function CartaoDeOportunidade({
                   {copiado === "painel" ? "Copiado ✓" : "Copiar"}
                 </button>
               </div>
-              <div className="relative">
-                <pre
-                  className={`max-h-[280px] overflow-y-auto whitespace-pre-wrap break-words rounded-[8px] px-3 py-2.5 font-sans text-[13px] leading-relaxed border ${
-                    temProposta
-                      ? "bg-[var(--accent-light)] border-[#BFEFEC] text-[var(--text-primary)]"
-                      : "bg-[var(--bg)] border-[var(--border)] text-[var(--text-muted)]"
-                  }`}
-                >
-                  {o.proposta ??
-                    "A proposta ainda não foi gerada. Analise a oportunidade de novo para produzi-la."}
-                </pre>
-                <span
-                  aria-hidden
-                  className={`pointer-events-none absolute inset-x-px bottom-px h-6 rounded-b-[8px] bg-gradient-to-t to-transparent ${
-                    temProposta ? "from-[var(--accent-light)]" : "from-[var(--bg)]"
-                  }`}
-                />
-              </div>
+              <CaixaRolavel
+                classe={
+                  temProposta
+                    ? "bg-[var(--accent-light)] border-[#BFEFEC] text-[var(--text-primary)]"
+                    : "bg-[var(--bg)] border-[var(--border)] text-[var(--text-muted)]"
+                }
+                classeDoFade={temProposta ? "from-[var(--accent-light)]" : "from-[var(--bg)]"}
+              >
+                {o.proposta ?? "A proposta ainda não foi gerada. Analise a oportunidade de novo para produzi-la."}
+              </CaixaRolavel>
             </section>
           </div>
 

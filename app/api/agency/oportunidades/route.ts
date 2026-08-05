@@ -17,6 +17,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { requireSession } from "@/lib/auth/api-guard";
+import { qualificarOportunidade } from "@/lib/agency/comercial/qualificar";
 import {
   registrarOportunidade,
   ehStatusValido,
@@ -102,6 +103,40 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   if (!resultado.ok) {
     return NextResponse.json({ error: resultado.detalhe, motivo: resultado.motivo }, { status: 400 });
+  }
+
+  // ── QUALIFICA NA HORA ────────────────────────────────────────────────────
+  // Sem isto, a fila mostra "a definir" e o botão de copiar copia o vazio — a
+  // tela existiria sem servir para nada. Falhar aqui NÃO perde a oportunidade:
+  // ela já está gravada, e a nota entra depois. Ausência de nota é declarada na
+  // tela, nunca substituída por um número inventado.
+  if (!resultado.jaExistia) {
+    const q = await qualificarOportunidade({
+      titulo: resultado.oportunidade.titulo,
+      descricao: resultado.oportunidade.descricao,
+      plataforma: resultado.oportunidade.plataforma,
+      orcamentoInformado: resultado.oportunidade.orcamentoInformado,
+      workspaceId: session.workspaceId,
+    }).catch((e: unknown) => ({ ok: false as const, motivo: e instanceof Error ? e.message : "falha" }));
+
+    if (q.ok) {
+      const atualizada = await prisma.oportunidade.update({
+        where: { id: resultado.oportunidade.id },
+        data: {
+          nota: q.qualificacao.nota,
+          servicoSugerido: q.qualificacao.servicoSugerido,
+          raciocinio: q.qualificacao.raciocinio,
+          valorSugerido: q.qualificacao.valorSugerido,
+          propostaTexto: q.qualificacao.propostaTexto,
+        },
+        select: CAMPOS_DE_LEITURA,
+      }).catch(() => null);
+      if (atualizada) {
+        return NextResponse.json({ ...resultado, oportunidade: atualizada }, { status: 201 });
+      }
+    } else {
+      console.warn("[oportunidades] qualificação não saiu:", q.motivo);
+    }
   }
 
   // 200 quando já existia (nada foi criado), 201 quando entrou de fato. O
