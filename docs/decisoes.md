@@ -292,3 +292,37 @@ apagar nada**. Regra: nunca se roda o reset sem rodar a auditoria antes.
 O que nenhum modo toca: workspace, usuários e login, chaves de IA e integrações,
 contas conectadas da Meta, o Radar de mercado, a governança do Brain e o histórico
 de treino do SDR. Isso é a agência, não é dado de cliente.
+
+---
+
+## O raio-x noturno vira mecanismo desta casa
+
+**Decidido em** 2026-08-05 · **por** CEO, como protocolo da companhia ·
+**origem:** `dioli-brain-kit`, `docs/16-raio-x-noturno.md`
+
+Todo projeto passa um raio-x no próprio sistema toda madrugada. **Cada Diretor
+faz no seu** — ninguém faz pelo outro, porque o valor está na tradução dos
+padrões para o código de cada produto, não no ritual.
+
+**O que muda aqui:** existe `npm run raio-x`. A coleta é código puro
+(`lib/raio-x/`), zero IA, persistida em `docs/raio-x/coletas/` e comparada com a
+noite anterior. A IA entra só depois, para ler a coleta e escrever o relatório do
+CEO.
+
+**As três regras que vieram junto, e que não são negociáveis:**
+
+1. **Pedido por padrão nomeado.** Nunca "veja o que dá para melhorar" — isso
+   volta com opinião de estilo. São cinco padrões, e cada um está traduzido para
+   este código em `docs/raio-x/README.md`.
+2. **A coleta não pode usar IA.** IA erra diferente toda noite, e aí "piorou
+   desde ontem" deixa de significar alguma coisa — e a comparação com ontem é
+   metade do valor.
+3. **Varredura que não rodou devolve "não sei", nunca "está tudo bem".**
+   Achado que sumiu porque a varredura quebrou entra em `desconhecidos`, nunca em
+   `resolvidos`.
+
+O raio-x é somente leitura, e isso é trava com teste
+(`__tests__/raio-x/raio-x-nao-escreve.test.ts`), não promessa em comentário.
+
+**O que NÃO muda:** o raio-x diagnostica; o conserto continua sendo uma frente
+com dono e verificação. Diagnóstico sem dono vira lista, e lista ninguém lê.
