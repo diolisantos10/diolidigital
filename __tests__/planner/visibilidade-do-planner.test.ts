@@ -15,7 +15,11 @@ import { NextRequest } from "next/server";
 
 const db = vi.hoisted(() => ({
   socialPost: { create: vi.fn(), findFirst: vi.fn(), update: vi.fn() },
-  clientRequestDb: { findFirst: vi.fn() },
+  clientRequestDb: { findFirst: vi.fn(), findUnique: vi.fn() },
+  // O `clientId` do corpo é CONFERIDO contra o workspace da sessão antes de ser
+  // gravado (auditoria 7, B2). Por padrão o cliente é do workspace da sessão —
+  // o teste do vizinho sobrescreve isto.
+  client: { findFirst: vi.fn(), findUnique: vi.fn() },
 }));
 const requireSession = vi.hoisted(() => vi.fn());
 
@@ -46,6 +50,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   requireSession.mockResolvedValue({ session: { workspaceId: "ws1", email: "a@b.c" }, error: null });
   db.clientRequestDb.findFirst.mockResolvedValue(null); // cliente DIRETO: sem solicitação
+  db.client.findFirst.mockResolvedValue({ id: "c1" }); // cliente do PRÓPRIO workspace
   db.socialPost.create.mockImplementation(({ data }: { data: Record<string, unknown> }) =>
     Promise.resolve({ ...CRIADO, ...data }));
 });

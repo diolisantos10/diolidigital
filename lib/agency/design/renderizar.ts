@@ -35,11 +35,13 @@
 // contrato de `lib/ai/visao.ts` e de `lib/integrations/meta/leitura.ts`.
 
 import { existsSync } from "node:fs";
+import { temCaractereInvisivel } from "./trava-de-texto";
 
 export type MotivoDeFalhaDeRender =
   | "sem_navegador"        // degradação declarada: não há Chromium para rasterizar
   | "pedido_invalido"
   | "texto_divergente"     // o DOM não tem exatamente o texto pedido
+  | "texto_invisivel"      // caractere de zero pixel / controle bidi no DOM
   | "texto_cortado"        // transbordou a caixa mesmo depois de encolher
   | "texto_na_zona_morta"  // caiu sob a interface do Instagram
   | "erro_do_navegador"
@@ -206,6 +208,24 @@ export async function renderizarHtml(p: PedidoDeRender): Promise<ResultadoDeRend
       zonaMorta: boolean;
       textosNoDom: string[];
     };
+
+    // ── PORTÃO 0: nenhum caractere invisível, nem no pedido nem no DOM ──────
+    //
+    // O ponto cego que a 7ª auditoria achou: `"Pao ‮oirartnoc‬ quentinho"` foi
+    // APROVADO — o DOM continha exatamente o que o chamador pediu, e o pixel
+    // mostrava a palavra invertida pelo override de direção (U+202E). Conferir
+    // igualdade não pega isso, porque os dois lados carregam o mesmo veneno.
+    // A trava de texto já higieniza na entrada; este portão é a segunda linha,
+    // para o chamador que montar HTML por fora dela.
+    for (const bruto of [...p.textosEsperados, ...ajuste.textosNoDom]) {
+      if (temCaractereInvisivel(bruto)) {
+        return {
+          ok: false,
+          motivo: "texto_invisivel",
+          erro: `há caractere invisível ou de controle de direção no texto da peça: "${bruto.slice(0, 60)}" — o DOM bate com o pedido e mesmo assim o pixel mostra outra coisa.`,
+        };
+      }
+    }
 
     // ── PORTÃO 1: a letra é a letra pedida ─────────────────────────────────
     const noDom = ajuste.textosNoDom.map((t) => t.replace(/\s+/g, " ").trim());

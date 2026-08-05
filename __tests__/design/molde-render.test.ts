@@ -1,5 +1,4 @@
-import { describe, it, expect, beforeAll } from "vitest";
-import { existsSync } from "node:fs";
+import { describe, it, expect } from "vitest";
 
 // ── A PROVA DE QUE A LETRA SAI CERTA ────────────────────────────────────────
 //
@@ -37,20 +36,43 @@ const FOTO = Buffer.from(
   "base64",
 );
 
-let temNavegador = false;
-beforeAll(async () => {
-  temNavegador = (await renderizadorDisponivel()).disponivel;
-  if (!temNavegador) {
-    // Não silencia: sem navegador, a prova da letra NÃO foi feita nesta
-    // máquina, e isso precisa aparecer no relatório da rodada.
-    console.warn("[molde-render] Chromium ausente — a prova de letra foi PULADA nesta máquina.");
-  }
+// ── S5: GATE QUE NÃO REGISTRA RESULTADO REPROVA ─────────────────────────────
+//
+// Até a 7ª auditoria, cada prova aqui era `it.runIf(existsSync("/opt/pw-browsers"))`:
+// numa máquina sem esse caminho os 7 testes SUMIAM e a suíte seguia verde.
+// Verde sem prova é pior que vermelho — é a regra da casa ("sem gate =
+// reprovado"), e valia contra o próprio gate que prova a razão de existir do
+// motor.
+//
+// O desenho novo:
+//   • quem decide é `renderizadorDisponivel()`, não um caminho de disco fixo;
+//   • quando não há navegador, a ausência tem de ser DECLARADA em
+//     `MOLDE_SEM_NAVEGADOR=1`. Sem a declaração, o teste-sentinela abaixo
+//     REPROVA a rodada em vez de deixá-la verde por omissão.
+const NAVEGADOR = await renderizadorDisponivel();
+const DECLARADO_SEM_NAVEGADOR = process.env.MOLDE_SEM_NAVEGADOR === "1";
+const provaDaLetra = NAVEGADOR.disponivel ? it : it.skip;
+
+describe("a prova da letra REGISTRA resultado — não some em silêncio", () => {
+  it("ou o Chromium está aqui, ou a ausência dele está declarada", () => {
+    expect(
+      NAVEGADOR.disponivel || DECLARADO_SEM_NAVEGADOR,
+      "Sem Chromium, a prova de que a letra sai certa no pixel NÃO foi feita nesta máquina. " +
+        "Isto não pode passar como verde: instale o navegador (`npx playwright install chromium`) " +
+        "ou declare a lacuna com MOLDE_SEM_NAVEGADOR=1 — e então a rodada registra que a prova não existiu.",
+    ).toBe(true);
+  });
+
+  it("o veredito do renderizador é uma resposta, não um palpite", () => {
+    expect(typeof NAVEGADOR.disponivel).toBe("boolean");
+    if (NAVEGADOR.disponivel) expect(NAVEGADOR.caminho).toBeTruthy();
+  });
 });
 
 const LEGENDA = "Todo dia às seis o pão sai do forno e a casa inteira cheira a manhã. Vem tomar café";
 
 describe("a letra sai certa — a razão de existir do motor de molde", () => {
-  it.runIf(existsSync("/opt/pw-browsers"))(
+  provaDaLetra(
     "o texto pedido é EXATAMENTE o texto renderizado, com acento e caractere especial",
     async () => {
       const titulo = 'Pão & "manteiga" às 6 — o café <de todo dia>';
@@ -74,7 +96,7 @@ describe("a letra sai certa — a razão de existir do motor de molde", () => {
     60_000,
   );
 
-  it.runIf(existsSync("/opt/pw-browsers"))(
+  provaDaLetra(
     "texto que o DOM não tem REPROVA a peça — o portão não avisa, ele barra",
     async () => {
       const html = montarHtmlDaPeca({ formato: "feed", titulo: "Pão quentinho" }, molde);
@@ -92,7 +114,7 @@ describe("a letra sai certa — a razão de existir do motor de molde", () => {
     60_000,
   );
 
-  it.runIf(existsSync("/opt/pw-browsers"))(
+  provaDaLetra(
     "TINTA NO PIXEL: título diferente produz imagem diferente; sem título, diferente das duas",
     async () => {
       const render = async (titulo: string) => {
@@ -117,7 +139,7 @@ describe("a letra sai certa — a razão de existir do motor de molde", () => {
     90_000,
   );
 
-  it.runIf(existsSync("/opt/pw-browsers"))(
+  provaDaLetra(
     "título gigante ENCOLHE para caber — texto cortado é texto errado",
     async () => {
       const gigante = "Todo dia às seis da manhã o pão sai do forno e a casa inteira cheira a manhã e a café passado na hora";
@@ -139,7 +161,7 @@ describe("a letra sai certa — a razão de existir do motor de molde", () => {
     60_000,
   );
 
-  it.runIf(existsSync("/opt/pw-browsers"))(
+  provaDaLetra(
     "story: o texto respeita a faixa da interface do Instagram",
     async () => {
       const r = await montarPeca({
@@ -162,7 +184,7 @@ describe("a letra sai certa — a razão de existir do motor de molde", () => {
     60_000,
   );
 
-  it.runIf(existsSync("/opt/pw-browsers"))(
+  provaDaLetra(
     "texto SEM lastro no conteúdo auditado não é pintado — a peça sai sem ele",
     async () => {
       const r = await montarPeca({
@@ -181,7 +203,7 @@ describe("a letra sai certa — a razão de existir do motor de molde", () => {
     60_000,
   );
 
-  it.runIf(existsSync("/opt/pw-browsers"))(
+  provaDaLetra(
     "um molde só serve os três formatos, e cada um sai na medida de publicação",
     async () => {
       for (const [formato, esperado] of [
@@ -205,6 +227,90 @@ describe("a letra sai certa — a razão de existir do motor de molde", () => {
       }
     },
     120_000,
+  );
+
+  // ── S3: O PONTO CEGO DO CONFERIDOR DE DOM ─────────────────────────────────
+  // "Pao ‮oirartnoc‬ quentinho" era APROVADO: DOM idêntico ao pedido, pixel
+  // mostrando a palavra invertida. Igualdade não pega veneno que está nos dois
+  // lados. Agora ele morre na entrada (trava) e, para quem montar HTML por
+  // fora dela, no portão 0 do renderizador.
+  provaDaLetra(
+    "controle de direção não sobrevive até o pixel",
+    async () => {
+      const sujo = "Pao ‮oirartnoc‬ quentinho";
+      const r = await montarPeca({
+        formato: "feed",
+        molde,
+        fundoBytes: FOTO,
+        titulo: sujo,
+        assinatura: "Padaria do João",
+        fonteAuditada: sujo,
+      });
+      expect(r.ok, r.ok ? "" : `${r.motivo}: ${r.erro}`).toBe(true);
+      if (!r.ok) return;
+      expect(r.textosPintados).toContain("Pao oirartnoc quentinho");
+      for (const t of r.textosPintados) expect(t).not.toMatch(/[‪-‮⁦-⁩​­]/);
+    },
+    60_000,
+  );
+
+  provaDaLetra(
+    "HTML montado FORA da trava, com bidi, é REPROVADO pelo renderizador",
+    async () => {
+      const sujo = "Pao ‮oirartnoc‬ quentinho";
+      const r = await renderizarHtml({
+        html: montarHtmlDaPeca({ formato: "feed", titulo: sujo, fundo: null }, molde),
+        largura: FORMATOS.feed.largura,
+        altura: FORMATOS.feed.altura,
+        textosEsperados: [sujo],
+      });
+      expect(r.ok).toBe(false);
+      if (!r.ok) expect(r.motivo).toBe("texto_invisivel");
+    },
+    60_000,
+  );
+
+  // ── S8: O MOLDE NEUTRO PRECISA SER DECLARADO PARA FORA ────────────────────
+  provaDaLetra(
+    "cliente sem marca: a peça sai cinza E carrega as lacunas para quem grava",
+    async () => {
+      const r = await montarPeca({
+        formato: "feed",
+        molde: moldeDoCliente(null),
+        fundoBytes: FOTO,
+        titulo: "Todo dia às seis o pão sai do forno",
+        assinatura: "Padaria do João",
+        fonteAuditada: LEGENDA,
+      });
+      expect(r.ok, r.ok ? "" : `${r.motivo}: ${r.erro}`).toBe(true);
+      if (!r.ok) return;
+      expect(r.origemDoMolde).toBe("neutro");
+      // Antes disto, `lacunas` não tinha um único consumidor fora de teste: o
+      // cliente recebia o cinza e nada dizia que o cinza era ausência de marca.
+      expect(r.lacunasDoMolde).toContain("cor primária da marca");
+    },
+    60_000,
+  );
+
+  // ── S2: o selo de LLM não pinta parágrafo no topo da peça ─────────────────
+  provaDaLetra(
+    "pilar de 90 caracteres NÃO vira selo — e a recusa fica registrada",
+    async () => {
+      const r = await montarPeca({
+        formato: "feed",
+        molde,
+        fundoBytes: FOTO,
+        titulo: "Todo dia às seis o pão sai do forno",
+        selo: "Pilar de conteúdo que a LLM escreveu inteiro como se fosse uma frase de briefing",
+        assinatura: "Padaria do João",
+        fonteAuditada: LEGENDA,
+      });
+      expect(r.ok, r.ok ? "" : `${r.motivo}: ${r.erro}`).toBe(true);
+      if (!r.ok) return;
+      expect(r.textosPintados.some((t) => t.startsWith("PILAR DE CONTEÚDO"))).toBe(false);
+      expect(r.textoRecusado.map((t) => t.papel)).toContain("selo");
+    },
+    60_000,
   );
 });
 

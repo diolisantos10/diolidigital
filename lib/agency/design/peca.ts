@@ -17,7 +17,10 @@
 
 import { FORMATOS, montarHtmlDaPeca, textosDaPeca, type FormatoDaPeca, type Molde, type PecaDoMolde } from "./molde";
 import { renderizarHtml, type MotivoDeFalhaDeRender } from "./renderizar";
-import { travaDeTextoNaArte, type MotivoDaTrava } from "./trava-de-texto";
+import {
+  travaDeTextoNaArte, travaDeRotuloNaArte, FORMA_DO_SELO, FORMA_DA_ASSINATURA,
+  type MotivoDaTrava,
+} from "./trava-de-texto";
 
 export interface PedidoDePeca {
   formato: FormatoDaPeca;
@@ -38,7 +41,7 @@ export interface PedidoDePeca {
 }
 
 export interface TextoRecusado {
-  papel: "titulo" | "apoio";
+  papel: "titulo" | "apoio" | "selo" | "assinatura";
   motivo: MotivoDaTrava;
   detalhe: string;
 }
@@ -57,6 +60,11 @@ export type ResultadoDaPeca =
       encolheu: boolean;
       /** O molde veio da marca do cliente ou é o neutro declarado? */
       origemDoMolde: Molde["origem"];
+      /** O que faltava no BrandBrain. Sobe junto com a peça de propósito: até a
+       *  7ª auditoria, `lacunas` não tinha um único consumidor fora de teste —
+       *  o cliente recebia a peça cinza e nada dizia que aquele cinza era
+       *  AUSÊNCIA de marca. Quem grava a peça grava isto. */
+      lacunasDoMolde: string[];
     }
   | { ok: false; erro: string; motivo: MotivoDeFalhaDeRender };
 
@@ -71,6 +79,7 @@ export async function montarPeca(p: PedidoDePeca): Promise<ResultadoDaPeca> {
   const recusados: TextoRecusado[] = [];
 
   const passar = (papel: "titulo" | "apoio", texto: string | null | undefined): string | null => {
+    // A trava devolve o texto HIGIENIZADO; é ele que vira pixel.
     const t = (texto ?? "").trim();
     if (!t) return null;
     const v = travaDeTextoNaArte(t, p.fonteAuditada);
@@ -82,16 +91,32 @@ export async function montarPeca(p: PedidoDePeca): Promise<ResultadoDaPeca> {
   const titulo = passar("titulo", p.titulo);
   const apoio = passar("apoio", p.apoio);
 
-  // O selo (pilar) e a assinatura (nome do cliente) NÃO passam pela trava de
-  // lastro de propósito: o pilar é rótulo interno da própria casa e o nome do
-  // cliente é dado de cadastro — nenhum dos dois é afirmação sobre o negócio
-  // dele. O que eles têm é a outra metade da trava, a de classe de fato: nome
-  // com número ou promessa dentro também não vira pixel.
-  const seloBruto = (p.selo ?? "").trim();
-  const selo = seloBruto && travaDeTextoNaArte(seloBruto, seloBruto).ok ? seloBruto : null;
-  const assinaturaBruta = (p.assinatura ?? "").trim();
-  const assinatura =
-    assinaturaBruta && travaDeTextoNaArte(assinaturaBruta, assinaturaBruta).ok ? assinaturaBruta : null;
+  // ── SELO E ASSINATURA: A TRAVA DE RÓTULO, COM O NOME DELA ─────────────────
+  //
+  // Antes, aqui rodava `travaDeTextoNaArte(selo, selo)` — fonte igual ao alvo,
+  // ou seja, `temLastroLiteral` sempre verdadeiro por construção: um `if (true)`
+  // disfarçado de conferência. E o selo é `post.pillar`, TEXTO LIVRE DE LLM: um
+  // pilar de 90 caracteres saía em caixa alta no topo da peça.
+  //
+  // A decisão (05/08/2026) foi NÃO fingir lastro que não existe. Rótulo não tem
+  // fonte auditada; o que ele tem é FORMA. `travaDeRotuloNaArte` exige tamanho,
+  // contagem de palavras e alfabeto de rótulo, mais a mesma metade de classe de
+  // fato de todo o resto. Pilar virado parágrafo não é rótulo, e não entra.
+  const passarRotulo = (
+    papel: "selo" | "assinatura",
+    texto: string | null | undefined,
+    forma: typeof FORMA_DO_SELO,
+  ): string | null => {
+    const bruto = (texto ?? "").trim();
+    if (!bruto) return null;
+    const v = travaDeRotuloNaArte(bruto, forma);
+    if (v.ok) return v.texto;
+    recusados.push({ papel, motivo: v.motivo, detalhe: v.detalhe });
+    return null;
+  };
+
+  const selo = passarRotulo("selo", p.selo, FORMA_DO_SELO);
+  const assinatura = passarRotulo("assinatura", p.assinatura, FORMA_DA_ASSINATURA);
 
   const mime = p.fundoMime ?? "image/png";
   const fundo =
@@ -131,5 +156,6 @@ export async function montarPeca(p: PedidoDePeca): Promise<ResultadoDaPeca> {
     textoRecusado: recusados,
     encolheu: r.conferencia.encolheu,
     origemDoMolde: p.molde.origem,
+    lacunasDoMolde: p.molde.lacunas,
   };
 }

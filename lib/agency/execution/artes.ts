@@ -314,9 +314,21 @@ interface PedidoDeComposicao {
  * quê. Nunca volta peça com texto que a trava reprovou.
  */
 async function comporComMolde(p: PedidoDeComposicao): Promise<{ bytes: Buffer; nota: string | null }> {
+  // ── O MOLDE NEUTRO PRECISA SER DECLARADO PARA FORA ────────────────────────
+  // Até a 7ª auditoria, `origem: "neutro"` e `lacunas` não tinham um único
+  // consumidor fora de teste: o cliente sem marca recebia a peça cinza e nada —
+  // nem `lastError`, nem portal, nem log — dizia que aquele cinza era AUSÊNCIA
+  // de marca. Vazio declarado só é declarado se alguém lê a declaração.
+  const avisoDeNeutro =
+    p.molde.origem === "neutro"
+      ? `[molde neutro] esta peça saiu SEM a identidade do cliente (cinza padrão, não a marca dele). Falta no cadastro: ${p.molde.lacunas.join(", ") || "cor primária da marca"}.`
+      : null;
+  const comAviso = (nota: string | null): string | null =>
+    [avisoDeNeutro, nota].filter(Boolean).join(" ").slice(0, 480) || null;
+
   const titulo = tituloDaFonte(p.fonteAuditada);
   if (!titulo) {
-    return { bytes: p.fotoBytes, nota: "[molde] peça entregue só com a foto: o conteúdo não tem uma frase utilizável como chamada." };
+    return { bytes: p.fotoBytes, nota: comAviso("[molde] peça entregue só com a foto: o conteúdo não tem uma frase utilizável como chamada.") };
   }
 
   const r = await montarPeca({
@@ -332,6 +344,9 @@ async function comporComMolde(p: PedidoDeComposicao): Promise<{ bytes: Buffer; n
   }).catch((e) => ({ ok: false as const, motivo: "erro_do_navegador" as const, erro: e instanceof Error ? e.message : "erro" }));
 
   if (!r.ok) {
+    // Sem camada de texto o molde nem foi aplicado — o aviso de neutro não
+    // descreveria esta peça, e uma nota que descreve o que não aconteceu é
+    // ruído. Aqui vale só o motivo real.
     return {
       bytes: p.fotoBytes,
       nota: `[molde] peça entregue só com a foto (sem camada de texto): ${r.motivo} — ${r.erro}`.slice(0, 480),
@@ -340,9 +355,9 @@ async function comporComMolde(p: PedidoDeComposicao): Promise<{ bytes: Buffer; n
   if (r.textoRecusado.length > 0) {
     // Aconteceu o caminho bom: a peça SAIU, e o que a trava barrou está dito.
     const barrado = r.textoRecusado.map((t) => `${t.papel}: ${t.detalhe}`).join(" · ");
-    return { bytes: r.bytes, nota: `[molde] texto barrado pela trava — ${barrado}`.slice(0, 480) };
+    return { bytes: r.bytes, nota: comAviso(`[molde] texto barrado pela trava — ${barrado}`) };
   }
-  return { bytes: r.bytes, nota: null };
+  return { bytes: r.bytes, nota: comAviso(null) };
 }
 
 /**
@@ -403,7 +418,13 @@ export async function reRenderizarTexto(
   if (!guardado.ok) return { ok: false, erro: guardado.motivo };
 
   const mediaUrl = `/api/media/${guardado.arquivo.id}`;
-  await prisma.socialPost.update({ where: { id: postId }, data: { mediaUrl, lastError: null } });
+  // O re-render também declara o molde neutro: a peça saiu com o cinza padrão,
+  // não com a marca do cliente, e limpar o `lastError` apagaria essa notícia.
+  const nota =
+    marca.molde.origem === "neutro"
+      ? `[molde neutro] esta peça saiu SEM a identidade do cliente. Falta no cadastro: ${marca.molde.lacunas.join(", ") || "cor primária da marca"}.`.slice(0, 480)
+      : null;
+  await prisma.socialPost.update({ where: { id: postId }, data: { mediaUrl, lastError: nota } });
   return { ok: true, mediaUrl };
 }
 

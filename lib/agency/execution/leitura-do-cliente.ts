@@ -88,7 +88,16 @@
 // feed é de LEGENDA, não de PIXEL. Se o cliente fotografa mármore e nunca
 // escreve 'mármore', a agência não vê o mármore." Agora existe visão
 // (`lib/ai/visao.ts`), e ela entra aqui — UMA vez por ciclo, dentro do mesmo
-// TTL de 24h, nunca no despertador (custo ≈ US$ 0,011 por ciclo de 8 imagens).
+// TTL de 24h, nunca no despertador.
+//
+// CUSTO — o número corrigido em 05/08/2026 (a auditoria pegou): ≈ US$ 0,011 por
+// ciclo de 8 imagens é o custo de UMA chamada que dá certo de primeira, no
+// provedor mais caro dos três. `visao.ts` re-tenta 2× no preferido e 1× em cada
+// reserva, então com os três conectados o PIOR CASO é 4 chamadas pagas —
+// ≈ US$ 0,044 por ciclo. O comportamento não mudou (a retentativa é o que
+// mantém a visão advisory de pé); o que mudou é que o gasto REAL agora vem
+// medido em `chamadasPagas` no retorno, e é ele que a telemetria loga. Número
+// escrito à mão em cabeçalho não é derivado do código e envelhece errado.
 //
 // ⚠️ E ELA NÃO ENTRA PELA PORTA DO PISO DE ANCORAGEM. Este é o ponto delicado
 // do arquivo, então está escrito por extenso:
@@ -751,7 +760,10 @@ export const VOCABULARIO_VISUAL: Record<string, string[]> = {
 };
 
 /** Quantas imagens a visão olha por ciclo. O teto de `visao.ts` é 8, e é ele
- *  que define a conta: ≈ US$ 0,011 por ciclo no provedor mais caro dos três. */
+ *  que define a conta: ≈ US$ 0,011 por CHAMADA bem-sucedida no provedor mais
+ *  caro dos três — e até `chamadasPagasNoPiorCaso(3)` = 4 chamadas por ciclo
+ *  quando há retentativa e troca de provedor (≈ US$ 0,044). O gasto efetivo de
+ *  cada ciclo sai no log `[visao-do-feed]`, campo `chamadasPagas`. */
 const IMAGENS_PARA_A_VISAO = LIMITE_DE_IMAGENS;
 
 /** Achata a resposta em termos e mantém só os que estão no vocabulário.
@@ -852,15 +864,21 @@ export async function observarImagensDoFeed(
     }
 
     // Telemetria com o mesmo espírito da do piso: descarte mudo não vira
-    // evidência, e sem evidência a escada não anda.
-    if (descartados > 0) {
+    // evidência, e sem evidência a escada não anda. `chamadasPagas` entra aqui
+    // porque custo estimado em comentário já subestimou em 4× — o que se
+    // audita é o número medido.
+    if (descartados > 0 || r.chamadasPagas > 1) {
       console.warn(
         `[visao-do-feed] ${JSON.stringify({
           clientId,
           provedor: r.provedor,
           modelo: r.modelo,
+          imagensLidas: r.imagensLidas,
+          chamadasPagas: r.chamadasPagas,
           descartados,
-          motivo: "termo devolvido fora do vocabulário fechado",
+          motivo: descartados > 0
+            ? "termo devolvido fora do vocabulário fechado"
+            : "custo acima de uma chamada (retentativa ou troca de provedor)",
         })}`,
       );
     }
