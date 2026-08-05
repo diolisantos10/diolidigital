@@ -139,9 +139,30 @@ function codigoDoConferidor(passos: number, topo: number, base: number): string 
   })()`;
 }
 
-function acharExecutavel(): string | undefined {
+/**
+ * Onde está o Chromium desta máquina.
+ *
+ * A lista fixa acima resolve o container de desenvolvimento. Ela NÃO resolve o
+ * CI: lá o `playwright install` põe o navegador em `~/.cache/ms-playwright/...`,
+ * com número de build que muda a cada atualização da biblioteca. Enquanto a
+ * busca era só a lista, o CI ficou vermelho com o Chromium instalado do lado —
+ * o sentinela dizia "a prova não foi feita" e estava tecnicamente certo, porque
+ * ninguém tinha achado o navegador.
+ *
+ * Por isso a última tentativa é PERGUNTAR ao Playwright onde ele instalou, em
+ * vez de adivinhar caminho. Caminho fixo com versão dentro é dívida com data
+ * marcada.
+ */
+async function acharExecutavel(): Promise<string | undefined> {
   for (const e of EXECUTAVEIS) if (existsSync(e)) return e;
-  return undefined; // deixa o Playwright procurar na instalação padrão
+  try {
+    const { chromium } = await import("playwright");
+    const dele = chromium.executablePath();
+    if (dele && existsSync(dele)) return dele;
+  } catch {
+    // Sem playwright, ou sem navegador baixado: quem chama trata como ausência.
+  }
+  return undefined;
 }
 
 /** Dá para rasterizar nesta máquina? Para o chamador decidir ANTES de gastar
@@ -152,7 +173,7 @@ export async function renderizadorDisponivel(): Promise<{ disponivel: boolean; c
   } catch {
     return { disponivel: false, caminho: null };
   }
-  const caminho = acharExecutavel();
+  const caminho = await acharExecutavel();
   // Sem caminho conhecido ainda pode haver instalação padrão do Playwright —
   // mas aí não dá para AFIRMAR que existe. Ausência de informação não é
   // informação: respondemos o que sabemos.
@@ -182,7 +203,7 @@ export async function renderizarHtml(p: PedidoDeRender): Promise<ResultadoDeRend
   let browser: import("playwright").Browser | null = null;
   try {
     browser = await chromium.launch({
-      executablePath: acharExecutavel(),
+      executablePath: await acharExecutavel(),
       args: ["--no-sandbox", "--disable-dev-shm-usage", "--font-render-hinting=none"],
     });
     const ctx = await browser.newContext({
