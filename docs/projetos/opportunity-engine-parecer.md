@@ -125,12 +125,21 @@ oportunidade em projeto na esteira, com origem e custo de aquisição carimbados
 Internacional e Fiverr entram quando conversão, margem e compliance estiverem
 provados por número, não por vontade.
 
-## Decisões que só o CEO toma (o documento pede 18; estas 6 travam a Fase 0)
+## Decisões — TOMADAS pelo Diretor em 05/08/2026
 
-1. Orçamento de moedas do GetNinjas para o teste (teto em reais).
-2. Piso de projeto: abaixo de quanto a Dioli não propõe.
-3. Quantos projetos simultâneos a casa aguenta hoje.
-4. Quem aprova proposta quando você não está.
-5. Serviços liberados para venda no canal (proponho: os "entrega hoje" da
-   tabela, sem vídeo e sem site).
-6. O nome que vai na plataforma — Dioli Digital ou pessoa física.
+O CEO foi explícito: não quer decidir isto, quer o projeto pronto. Então está
+decidido, e o que estiver errado se corrige com o número da Fase 0 na mão.
+
+| Decisão | Valor |
+|---|---|
+| Nome do projeto / do agente / na plataforma | Dioli Opportunity Engine / Agente Comercial Dioli / Dioli Digital |
+| Plataformas da Onda 1 | GetNinjas e 99Freelas |
+| Serviços liberados | os "entrega hoje" da tabela — sem vídeo e sem site |
+| Piso | R$ 750 pontual · recorrente entra pelo Ritmo (R$ 297) |
+| Capacidade | 8 projetos pontuais + 12 contas recorrentes |
+| Verba do piloto | R$ 400 em moedas, 7 dias |
+| Quem aprova | Diretor até R$ 3.000; CEO acima disso |
+| Preço | vem de `docs/precos.md`, sempre |
+
+**Vitrine do projeto:**
+`https://claude.ai/code/artifact/105dabec-3651-4baf-9a97-014a65afd282`
