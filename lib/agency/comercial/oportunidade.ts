@@ -404,8 +404,16 @@ export interface OportunidadeRegistrada {
 }
 
 export interface ResultadoDaIngestao {
+  /**
+   * O discriminante. Existe como campo LITERAL (`true`/`false`) e não como
+   * "presença de chave" porque narrowing por `"ok" in x` funciona no editor e
+   * falha na hora que alguém compõe a condição com um `&&`. Discriminante
+   * explícito é a diferença entre o compilador segurar o erro e o erro chegar
+   * na rota.
+   */
+  ok: true;
   oportunidade: OportunidadeRegistrada;
-  /** true quando a impressão digital já estava no banco: nada foi duplicado. */
+  /** true quando a oportunidade já estava no banco: nada foi duplicado. */
   jaExistia: boolean;
 }
 
@@ -466,7 +474,7 @@ export async function registrarOportunidade(
     where: { workspaceId_impressaoDigital: { workspaceId: entrada.workspaceId, impressaoDigital } },
     select: CAMPOS_DE_LEITURA,
   });
-  if (jaNoBanco) return { oportunidade: jaNoBanco, jaExistia: true };
+  if (jaNoBanco) return { ok: true, oportunidade: jaNoBanco, jaExistia: true };
 
   // Dedup pelo LINK, quando existe. Faz falta porque as duas portas raramente
   // trazem o texto IDÊNTICO do mesmo projeto: o e-mail de alerta vem em HTML,
@@ -483,7 +491,7 @@ export async function registrarOportunidade(
       where: { workspaceId: entrada.workspaceId, urlExterna: url },
       select: CAMPOS_DE_LEITURA,
     });
-    if (mesmoLink) return { oportunidade: mesmoLink, jaExistia: true };
+    if (mesmoLink) return { ok: true, oportunidade: mesmoLink, jaExistia: true };
   }
 
   try {
@@ -503,7 +511,7 @@ export async function registrarOportunidade(
       },
       select: CAMPOS_DE_LEITURA,
     });
-    return { oportunidade: criada, jaExistia: false };
+    return { ok: true, oportunidade: criada, jaExistia: false };
   } catch (e) {
     // P2002 = violação da constraint única. Só acontece na corrida entre as duas
     // portas; o certo é devolver a linha que o outro criou, não estourar erro
@@ -513,7 +521,7 @@ export async function registrarOportunidade(
         where: { workspaceId_impressaoDigital: { workspaceId: entrada.workspaceId, impressaoDigital } },
         select: CAMPOS_DE_LEITURA,
       });
-      if (existente) return { oportunidade: existente, jaExistia: true };
+      if (existente) return { ok: true, oportunidade: existente, jaExistia: true };
     }
     throw e;
   }

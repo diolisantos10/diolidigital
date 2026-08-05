@@ -100,7 +100,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     plataforma,
   });
 
-  if ("ok" in resultado && resultado.ok === false) {
+  if (!resultado.ok) {
     return NextResponse.json({ error: resultado.detalhe, motivo: resultado.motivo }, { status: 400 });
   }
 

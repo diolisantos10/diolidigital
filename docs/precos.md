@@ -44,6 +44,22 @@ na vitrine.
 
 ## Preço por serviço
 
+**Duas tabelas, e elas não se contradizem — vendem coisas diferentes:**
+
+| | **Balcão** (vitrine) | **Avulso** (cliente de plano) |
+|---|---|---|
+| Post | R$ 79 | R$ 190 |
+| Carrossel | R$ 129 | R$ 290 |
+| Quem produz | máquina, sem revisão humana | equipe, com direção de arte |
+| Revisões | nenhuma | 2 rodadas |
+| Pagamento | antes da produção, no cartão | na fatura do plano |
+| Para quem | qualquer pessoa, primeira compra | quem já é cliente |
+
+O balcão é a porta de entrada da casa: barato porque é 100% automático e pago
+antes. O avulso é serviço de agência para quem já está dentro. **Preço
+diferente para trabalho diferente não é incoerência — é o que impede a linha
+barata de canibalizar a cara.**
+
 **Conteúdo avulso só para quem já tem plano**, pedido mínimo R$ 750. Serviço de
 projeto pode ser a primeira compra.
 
@@ -77,8 +93,16 @@ WhatsApp do cliente R$ 490/mês · SEO local R$ 690/mês.
   dias úteis; passado isso a peça segue para a data agendada.
 - **Permanência:** 3 meses até o Presença, 6 do Conteúdo em diante. Pausa máxima
   de 30 dias por ciclo. Reajuste anual por IPCA.
-- **Desconto sai do prazo ou da implantação, nunca da mensalidade.** Baixar a
-  mensalidade para fechar o primeiro cliente ancora a carteira inteira.
+- **Desconto tem chão, e o chão é número.** Decidido em 05/08/2026, quando o CEO
+  definiu que o objetivo do comercial é FECHAR todo cliente sem prejuízo: cada
+  item tem um piso calculado (`lib/agency/comercial/negociacao.ts`), e a
+  mensalidade pode descer até ele — Ritmo R$ 229, Presença R$ 690, Conteúdo
+  R$ 1.190, Crescimento R$ 2.190.
+  **A ordem das moedas de troca continua valendo, e ela é a proteção real:** a
+  primeira coisa que se oferece é o que NÃO custa margem — prazo maior,
+  pagamento à vista, menos rodadas de ajuste, contrato mais longo, autorização
+  de case. Só depois disso o preço se mexe. Chegou no piso, corta-se ESCOPO,
+  nunca margem.
 - **Tráfego pago:** conta do cliente, verba fora da mensalidade, zero promessa de
   faturamento ou retorno. Ficha do Google, conta de anúncios, pixel e domínio no
   nome dele.
