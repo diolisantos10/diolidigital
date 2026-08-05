@@ -47,7 +47,7 @@
 import { prisma } from "@/lib/db/client";
 import { decidirGravacao, postsParaGravar } from "@/lib/agency/media/backfill-carrossel.mjs";
 import { montarPlanoDoCliente, type ContextoDoBackfill } from "@/lib/agency/media/backfill-contexto";
-import { reabrirAprovacoesDosPosts } from "@/lib/agency/esteira/reabrir-aprovacao";
+import { reabrirAprovacoesDosPosts, dataLegivel } from "@/lib/agency/esteira/reabrir-aprovacao";
 
 /** O interruptor. Definida = roda no próximo boot; removida = não roda mais. */
 export const VARIAVEL = "BACKFILL_CARROSSEL_CLIENT_ID";
@@ -291,12 +291,22 @@ export async function aplicarBackfill(ctx: ContextoDoBackfill): Promise<Resultad
   // 6. A APROVAÇÃO VOLTA PARA QUEM DECIDIU VENDO MENOS DO QUE EXISTE.
   //    Só os posts alterados AGORA entram — sem isso, todo boot reabriria o
   //    card e o cliente ficaria decidindo a mesma coisa para sempre.
+  //
+  //    E vai junto o DE-PARA de telas, peça por peça. Card em que o cliente
+  //    pediu ajuste só reabre com ganho comprovado; se este runner mandasse
+  //    apenas a lista de ids, a reabertura teria de PRESUMIR que algo mudou —
+  //    e uma condição presumida é decoração, não trava.
   const cardsReabertos: string[] = [];
   try {
     const r = await reabrirAprovacoesDosPosts({
       clientId: ctx.cliente.id,
       postIds: aGravar.map((p) => p.id),
       motivo: MOTIVO_DA_REABERTURA,
+      mudancas: aGravar.map((p) => ({
+        postId: p.id,
+        telasAntes: p.telasAtuais,
+        telasDepois: p.urls.length,
+      })),
     });
     log("── Aprovação ─────────────────────────────────────────────");
     for (const c of r.reabertos) {
@@ -306,7 +316,22 @@ export async function aplicarBackfill(ctx: ContextoDoBackfill): Promise<Resultad
           `(decidido por ${c.decididoPor ?? "—"}) → volta a PENDENTE, agora com as telas`,
       );
       log(`     histórico da decisão anterior preservado no card (comentário visível ao cliente)`);
-      log(`     ${c.postsDevolvidos} peça(s) devolvida(s) de "approved" para "draft" — o aval foi retirado`);
+      log(`     ${c.postsDevolvidos} peça(s) devolvida(s) para "draft" — a marca da decisão foi retirada`);
+      if (c.pedidoDeAjuste) {
+        // A linha que responde à pergunta que o CEO faria primeiro: "e o que eu
+        // pedi, sumiu?". O pedido dele NÃO é apagado nem movido — o registro
+        // novo entra depois dele no mesmo histórico.
+        log(
+          `     ↪ o card estava em AJUSTE SOLICITADO e voltou porque as peças mudaram: ` +
+            `${c.pecasCompletadas} peça(s) completada(s) · ${c.telasAcrescentadas} tela(s) acrescentada(s)`,
+        );
+        log(
+          `       o pedido de ajuste do cliente (${dataLegivel(c.pedidoDeAjuste.registradoEm)} · ` +
+            `${c.pedidoDeAjuste.autor}) CONTINUA no histórico do card` +
+            `${c.pedidoDeAjuste.comentarioNoHistorico ? ", com as palavras dele" : " (sem texto anexo)"} — ` +
+            `o registro novo responde a ele, não o substitui`,
+        );
+      }
       if (c.prazoRemovido) {
         log(`     prazo vencido removido (ele media a decisão antiga); prazo novo NÃO foi inventado`);
       }

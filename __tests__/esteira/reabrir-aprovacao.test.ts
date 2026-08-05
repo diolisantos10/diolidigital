@@ -1,16 +1,27 @@
 // REABRIR UMA APROVAÇÃO — as recusas, que são o valor real desta peça.
 //
 // Reabrir é fácil; o difícil é NÃO reabrir na hora errada. Devolver um card ao
-// cliente é pedir uma decisão de novo — e há três situações em que esse pedido
-// é pior do que o silêncio:
+// cliente é pedir uma decisão de novo — e há situações em que esse pedido é pior
+// do que o silêncio:
 //
 //   ⛔ a peça já foi PUBLICADA — o botão não desfaz nada, e a pergunta mente;
-//   ⛔ o cliente pediu AJUSTE ou RECUSOU — o caminho dele é a refação; reabrir
-//      por cima apagaria o pedido que ele fez;
+//   ⛔ o cliente RECUSOU ou o card foi cancelado — não ressuscita por dado;
+//   ⛔ o cliente pediu AJUSTE e NADA mudou nas peças — reabrir sem entregar
+//      nada novo enterra o pedido dele; o caminho ali é a refação;
 //   ⛔ o card é de OUTRO cliente — id de post não abre porta para o card alheio.
 //
 // E a metade positiva: quando reabre, o histórico da decisão anterior fica no
 // card, o aval sai das peças e nenhum prazo é inventado.
+//
+// ── A extensão de 05/08/2026, e por que ela não afrouxa nada ─────────────────
+// O CEO clicou "Solicitar ajustes" porque via só a capa dos carrosséis. O reparo
+// de dado atendeu o pedido dele (5 → 6 telas) e o card ficou PRESO em
+// "revision_requested" — trabalho parado num estado que ninguém destrava.
+//
+// A regra ganhou uma CONDIÇÃO, não uma exceção: card em ajuste volta a "pending"
+// se, e só se, a mesma operação acrescentou tela a alguma peça DELE. Este
+// arquivo anda as duas metades — com ganho e sem ganho — porque uma regra que
+// só é testada quando permite é uma regra sem trava.
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
 import { execSync } from "node:child_process";
@@ -23,7 +34,12 @@ const DB_PATH = vi.hoisted(() => {
 });
 
 import { prisma } from "@/lib/db/client";
-import { reabrirAprovacoesDosPosts, textoDoRegistro } from "@/lib/agency/esteira/reabrir-aprovacao";
+import {
+  reabrirAprovacoesDosPosts,
+  textoDoRegistro,
+  ganhoDePecas,
+  fraseDaCompletude,
+} from "@/lib/agency/esteira/reabrir-aprovacao";
 
 let workspaceId = "";
 let clientId = "";
@@ -44,6 +60,22 @@ async function criarPeca(dono: string, status: string) {
     },
   });
   return p.id;
+}
+
+/** O pedido de ajuste como o portal o grava: comentário do CLIENTE, visível. */
+async function pedirAjuste(cardId: string, texto: string) {
+  const c = await prisma.approvalComment.create({
+    data: {
+      approvalRequestId: cardId, authorName: "Dioli", authorRole: "client",
+      kind: "comment", body: texto, isClientVisible: true,
+    },
+  });
+  return c.id;
+}
+
+/** O de-para que o reparo entrega: cada peça de 5 para 6 telas. */
+function reparoDe5Para6(postIds: string[]) {
+  return postIds.map((postId) => ({ postId, telasAntes: 5, telasDepois: 6 }));
 }
 
 async function criarCard(dono: string, status: string, postIds: string[], extra: Record<string, unknown> = {}) {
@@ -160,23 +192,90 @@ describe("quando NÃO reabre", () => {
     expect((await prisma.socialPost.findUnique({ where: { id: p1 } }))!.status).toBe("published");
   });
 
-  it("⛔ card em 'revision_requested': o caminho é a refação, não a reabertura", async () => {
+  it("⛔ card em 'revision_requested' SEM mudança nas peças: o caminho é a refação", async () => {
     const p1 = await criarPeca(clientId, "revision_requested");
     const card = await criarCard(clientId, "revision_requested", [p1]);
+    const pedido = await pedirAjuste(card, "Só apareceu a capa, quero ver o carrossel todo.");
 
+    // Sem `mudancas`: a operação não tem como provar que entregou algo novo.
     const r = await reabrirAprovacoesDosPosts({ clientId, postIds: [p1], motivo: MOTIVO });
     expect(r.reabertos).toHaveLength(0);
     expect(r.recusados[0]!.motivo).toMatch(/refação/);
     expect((await prisma.approvalRequest.findUnique({ where: { id: card } }))!.status)
       .toBe("revision_requested");
+    // E NADA foi escrito: nem registro novo, nem status de peça mexido.
+    const comentarios = await prisma.approvalComment.findMany({ where: { approvalRequestId: card } });
+    expect(comentarios.map((c) => c.id)).toEqual([pedido]);
+    expect((await prisma.socialPost.findUnique({ where: { id: p1 } }))!.status)
+      .toBe("revision_requested");
   });
 
-  it("⛔ card 'cancelled' não ressuscita por dado", async () => {
-    const p1 = await criarPeca(clientId, "draft");
-    await criarCard(clientId, "cancelled", [p1]);
-    const r = await reabrirAprovacoesDosPosts({ clientId, postIds: [p1], motivo: MOTIVO });
+  it("⛔ 'revision_requested' com de-para que NÃO acrescentou nada continua recusado", async () => {
+    const p1 = await criarPeca(clientId, "revision_requested");
+    const card = await criarCard(clientId, "revision_requested", [p1]);
+    await pedirAjuste(card, "Trocar a cor do fundo.");
+
+    // O reparo rodou, olhou a peça e não mudou nada nela: 6 → 6.
+    const r = await reabrirAprovacoesDosPosts({
+      clientId, postIds: [p1], motivo: MOTIVO,
+      mudancas: [{ postId: p1, telasAntes: 6, telasDepois: 6 }],
+    });
     expect(r.reabertos).toHaveLength(0);
-    expect(r.recusados).toHaveLength(1);
+    expect(r.recusados[0]!.motivo).toMatch(/NADA mudou/);
+    expect(await prisma.approvalComment.count({ where: { approvalRequestId: card } })).toBe(1);
+  });
+
+  it("⛔ mudança em peça de OUTRO card não autoriza a reabertura deste", async () => {
+    const meu = await criarPeca(clientId, "revision_requested");
+    const alheio = await criarPeca(clientId, "approved");
+    const card = await criarCard(clientId, "revision_requested", [meu]);
+
+    const r = await reabrirAprovacoesDosPosts({
+      clientId, postIds: [meu], motivo: MOTIVO,
+      // O ganho é REAL, mas é de outra peça — a condição é por card.
+      mudancas: [{ postId: alheio, telasAntes: 1, telasDepois: 6 }],
+    });
+    expect(r.reabertos).toHaveLength(0);
+    expect(r.recusados[0]!.motivo).toMatch(/NADA mudou/);
+    expect((await prisma.approvalRequest.findUnique({ where: { id: card } }))!.status)
+      .toBe("revision_requested");
+  });
+
+  it("⛔ card 'cancelled' não ressuscita por dado — nem com telas novas", async () => {
+    const p1 = await criarPeca(clientId, "draft");
+    const card = await criarCard(clientId, "cancelled", [p1]);
+
+    const semGanho = await reabrirAprovacoesDosPosts({ clientId, postIds: [p1], motivo: MOTIVO });
+    expect(semGanho.reabertos).toHaveLength(0);
+    expect(semGanho.recusados).toHaveLength(1);
+
+    const comGanho = await reabrirAprovacoesDosPosts({
+      clientId, postIds: [p1], motivo: MOTIVO, mudancas: reparoDe5Para6([p1]),
+    });
+    expect(comGanho.reabertos).toHaveLength(0);
+    expect(comGanho.recusados[0]!.motivo).toMatch(/não ressuscitam/i);
+    expect((await prisma.approvalRequest.findUnique({ where: { id: card } }))!.status)
+      .toBe("cancelled");
+    expect(await prisma.approvalComment.count()).toBe(0);
+  });
+
+  it("⛔ card 'rejected' não ressuscita por dado — nem com telas novas", async () => {
+    const p1 = await criarPeca(clientId, "revision_requested");
+    const card = await criarCard(clientId, "rejected", [p1]);
+    await pedirAjuste(card, "Não é isso que a gente combinou.");
+
+    const semGanho = await reabrirAprovacoesDosPosts({ clientId, postIds: [p1], motivo: MOTIVO });
+    expect(semGanho.recusados).toHaveLength(1);
+
+    const comGanho = await reabrirAprovacoesDosPosts({
+      clientId, postIds: [p1], motivo: MOTIVO, mudancas: reparoDe5Para6([p1]),
+    });
+    expect(comGanho.reabertos).toHaveLength(0);
+    expect(comGanho.recusados[0]!.motivo).toMatch(/não ressuscitam/i);
+    expect((await prisma.approvalRequest.findUnique({ where: { id: card } }))!.status)
+      .toBe("rejected");
+    // A recusa dele continua sozinha no histórico — nada foi acrescentado.
+    expect(await prisma.approvalComment.count({ where: { approvalRequestId: card } })).toBe(1);
   });
 
   it("card já PENDENTE: nada a fazer — as telas novas aparecem nele sozinhas", async () => {
@@ -235,6 +334,184 @@ describe("quando NÃO reabre", () => {
     const r = await reabrirAprovacoesDosPosts({ clientId, postIds: [p1], motivo: MOTIVO });
     expect(r.reabertos).toHaveLength(0);
     expect(r.jaPendentes).toHaveLength(0);
+  });
+});
+
+// ─── A extensão: o card em ajuste cujas peças mudaram ────────────────────────
+
+describe("card em 'revision_requested' + reparo que acrescentou telas", () => {
+  it("volta a PENDENTE — e o pedido de ajuste do cliente continua no histórico", async () => {
+    const posts = [
+      await criarPeca(clientId, "revision_requested"),
+      await criarPeca(clientId, "revision_requested"),
+    ];
+    const card = await criarCard(clientId, "revision_requested", posts);
+    const pedido = await pedirAjuste(card, "Só estou vendo a capa de cada carrossel.");
+
+    const r = await reabrirAprovacoesDosPosts({
+      clientId, postIds: posts, motivo: MOTIVO, mudancas: reparoDe5Para6(posts),
+    });
+
+    expect(r.reabertos).toHaveLength(1);
+    expect(r.reabertos[0]).toMatchObject({
+      approvalRequestId: card,
+      statusAnterior: "revision_requested",
+      pecasCompletadas: 2,
+      telasAcrescentadas: 2,
+    });
+    expect(r.reabertos[0]!.pedidoDeAjuste).toMatchObject({
+      autor: "Dioli", comentarioNoHistorico: true,
+    });
+
+    const depois = await prisma.approvalRequest.findUnique({ where: { id: card } });
+    expect(depois!.status).toBe("pending");
+    expect(depois!.reviewedAt).toBeNull();
+    expect(depois!.reviewNote).toContain("corpo original"); // o corpo lido não é reescrito
+
+    // ⛔ O PEDIDO DELE NÃO SUMIU — e continua ACIMA da resposta da agência,
+    // que é a ordem em que o portal renderiza (createdAt asc).
+    const historico = await prisma.approvalComment.findMany({
+      where: { approvalRequestId: card }, orderBy: { createdAt: "asc" },
+    });
+    expect(historico).toHaveLength(2);
+    expect(historico[0]!.id).toBe(pedido);
+    expect(historico[0]!.authorRole).toBe("client");
+    expect(historico[0]!.body).toContain("Só estou vendo a capa");
+    expect(historico[0]!.isClientVisible).toBe(true);
+
+    // E o registro novo RESPONDE ao pedido, com o número real.
+    const resposta = historico[1]!;
+    expect(resposta.authorRole).toBe("internal");
+    expect(resposta.isClientVisible).toBe(true);
+    expect(resposta.body).toContain("Você pediu ajustes neste card");
+    expect(resposta.body).toContain("As peças foram completadas");
+    expect(resposta.body).toContain("cada uma das 2 peças deste card agora traz as 6 telas");
+    expect(resposta.body).toContain("continua aqui no histórico, com as suas palavras");
+    expect(resposta.body).toContain("Se o que você pediu foi outra coisa");
+    // Não finge que foi uma aprovação: aquele texto é de outra conversa.
+    expect(resposta.body).not.toContain("**aprovada**");
+  });
+
+  it("as peças saem de 'Em ajuste' — o calendário não contradiz o card", async () => {
+    // Peça em "revision_requested" com card "pending" faz o portal dizer
+    // "Em ajuste" na mesma tela em que o card pede decisão.
+    const p1 = await criarPeca(clientId, "revision_requested");
+    const card = await criarCard(clientId, "revision_requested", [p1]);
+    await pedirAjuste(card, "Faltam telas.");
+
+    const r = await reabrirAprovacoesDosPosts({
+      clientId, postIds: [p1], motivo: MOTIVO, mudancas: reparoDe5Para6([p1]),
+    });
+    expect(r.reabertos[0]!.postsDevolvidos).toBe(1);
+    expect((await prisma.socialPost.findUnique({ where: { id: p1 } }))!.status).toBe("draft");
+  });
+
+  it("idempotente: a segunda passada, sem ganho, não reabre nem escreve", async () => {
+    const p1 = await criarPeca(clientId, "revision_requested");
+    const card = await criarCard(clientId, "revision_requested", [p1]);
+    await pedirAjuste(card, "Faltam telas.");
+
+    await reabrirAprovacoesDosPosts({
+      clientId, postIds: [p1], motivo: MOTIVO, mudancas: reparoDe5Para6([p1]),
+    });
+    expect(await prisma.approvalComment.count({ where: { approvalRequestId: card } })).toBe(2);
+
+    // De novo, agora sem nada para acrescentar: o card já está pendente.
+    const r2 = await reabrirAprovacoesDosPosts({
+      clientId, postIds: [p1], motivo: MOTIVO,
+      mudancas: [{ postId: p1, telasAntes: 6, telasDepois: 6 }],
+    });
+    expect(r2.jaPendentes).toEqual([card]);
+    expect(r2.reabertos).toHaveLength(0);
+    expect(await prisma.approvalComment.count({ where: { approvalRequestId: card } })).toBe(2);
+  });
+
+  it("⛔ peça já PUBLICADA continua barrando, mesmo com ganho de tela", async () => {
+    const p1 = await criarPeca(clientId, "published");
+    const card = await criarCard(clientId, "revision_requested", [p1]);
+    const r = await reabrirAprovacoesDosPosts({
+      clientId, postIds: [p1], motivo: MOTIVO, mudancas: reparoDe5Para6([p1]),
+    });
+    expect(r.reabertos).toHaveLength(0);
+    expect(r.recusados[0]!.motivo).toMatch(/PUBLICADAS/);
+    expect((await prisma.approvalRequest.findUnique({ where: { id: card } }))!.status)
+      .toBe("revision_requested");
+  });
+
+  it("card em ajuste SEM comentário do cliente: reabre, mas não promete palavra que não existe", async () => {
+    const p1 = await criarPeca(clientId, "revision_requested");
+    const card = await criarCard(clientId, "revision_requested", [p1]);
+
+    const r = await reabrirAprovacoesDosPosts({
+      clientId, postIds: [p1], motivo: MOTIVO, mudancas: reparoDe5Para6([p1]),
+    });
+    expect(r.reabertos[0]!.pedidoDeAjuste).toMatchObject({ comentarioNoHistorico: false });
+    const registro = await prisma.approvalComment.findFirst({ where: { approvalRequestId: card } });
+    expect(registro!.body).toContain("continua registrado neste card");
+    expect(registro!.body).not.toContain("com as suas palavras");
+  });
+
+  it("card APROVADO + reparo continua funcionando como antes (sem regressão)", async () => {
+    const p1 = await criarPeca(clientId, "approved");
+    const card = await criarCard(clientId, "approved", [p1]);
+
+    const r = await reabrirAprovacoesDosPosts({
+      clientId, postIds: [p1], motivo: MOTIVO, mudancas: reparoDe5Para6([p1]),
+    });
+    expect(r.reabertos[0]).toMatchObject({ statusAnterior: "approved", pedidoDeAjuste: null });
+    expect((await prisma.approvalRequest.findUnique({ where: { id: card } }))!.status).toBe("pending");
+    const registro = await prisma.approvalComment.findFirst({ where: { approvalRequestId: card } });
+    expect(registro!.body).toContain("REABERTA");
+    expect(registro!.body).toContain("**aprovada**");
+    expect(registro!.body).not.toContain("Você pediu ajustes");
+  });
+});
+
+// ─── A condição, isolada: é ela que decide enterrar ou responder ─────────────
+
+describe("ganhoDePecas — a condição de 'mudou materialmente'", () => {
+  it("conta só as peças DO CARD que ganharam tela", () => {
+    const g = ganhoDePecas(["a", "b", "c"], [
+      { postId: "a", telasAntes: 5, telasDepois: 6 },
+      { postId: "b", telasAntes: 0, telasDepois: 6 },
+      { postId: "c", telasAntes: 6, telasDepois: 6 }, // sem ganho
+      { postId: "z", telasAntes: 0, telasDepois: 6 }, // de outro card
+    ]);
+    expect(g).toEqual({ pecasCompletadas: 2, telasAcrescentadas: 7, telasDepois: [6, 6] });
+  });
+
+  it("de-para ausente, vazio ou encolhendo = ganho ZERO", () => {
+    expect(ganhoDePecas(["a"], undefined).pecasCompletadas).toBe(0);
+    expect(ganhoDePecas(["a"], []).pecasCompletadas).toBe(0);
+    expect(ganhoDePecas(["a"], [{ postId: "a", telasAntes: 6, telasDepois: 5 }]).pecasCompletadas).toBe(0);
+  });
+
+  it("id repetido conta uma vez só — não se infla ganho por duplicata", () => {
+    const g = ganhoDePecas(["a"], [
+      { postId: "a", telasAntes: 5, telasDepois: 6 },
+      { postId: "a", telasAntes: 5, telasDepois: 6 },
+    ]);
+    expect(g.pecasCompletadas).toBe(1);
+    expect(g.telasAcrescentadas).toBe(1);
+  });
+});
+
+describe("a frase que o CEO lê", () => {
+  it("todas as peças no mesmo número: 'cada uma das 6 peças … as 6 telas'", () => {
+    const frase = fraseDaCompletude(
+      { pecasCompletadas: 6, telasAcrescentadas: 6, telasDepois: [6, 6, 6, 6, 6, 6] }, 6,
+    );
+    expect(frase).toBe(
+      "As peças foram completadas: cada uma das 6 peças deste card agora traz as 6 telas " +
+        "(6 tela(s) acrescentada(s) nesta rodada).",
+    );
+  });
+
+  it("números diferentes NÃO viram generalização — a frase diz o intervalo", () => {
+    const frase = fraseDaCompletude(
+      { pecasCompletadas: 2, telasAcrescentadas: 4, telasDepois: [4, 6] }, 6,
+    );
+    expect(frase).toContain("2 das 6 peças deste card agora trazem entre 4 e 6 telas");
   });
 });
 

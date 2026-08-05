@@ -69,8 +69,14 @@ const idPorNome = new Map<string, string>();
  *
  * @param telasJaGravadas o que já está em `mediaUrlsJson`. `"nada"` = a primeira
  *   passada; `"cinco-sem-capa"` = O ESTADO EXATO DE PRODUÇÃO depois do bug.
+ * @param decisao o que o cliente já fez com o card. `"aprovado"` = ele decidiu
+ *   vendo menos do que existe; `"ajuste-pedido"` = ele NOTOU que faltava e
+ *   clicou "Solicitar ajustes" (o estado real de 05/08/2026, às 22h).
  */
-async function semear(telasJaGravadas: "nada" | "cinco-sem-capa") {
+async function semear(
+  telasJaGravadas: "nada" | "cinco-sem-capa",
+  decisao: "aprovado" | "ajuste-pedido" = "aprovado",
+) {
   const ws = await prisma.agencyWorkspace.create({
     data: { name: "Dioli Agência", slug: `capa-${Date.now()}-${Math.random().toString(36).slice(2, 7)}` },
   });
@@ -116,7 +122,8 @@ async function semear(telasJaGravadas: "nada" | "cinco-sem-capa") {
         mediaUrlsJson: telasJaGravadas === "nada" ? "[]" : JSON.stringify(cinco),
         visibility: "compartilhado",
         scheduledFor: new Date(`2026-08-${10 + c}T13:00:00Z`),
-        status: "approved",
+        // A decisão do cliente propaga à peça — é o que o portal grava.
+        status: decisao === "aprovado" ? "approved" : "revision_requested",
       },
     });
     postIds.push(post.id);
@@ -125,14 +132,30 @@ async function semear(telasJaGravadas: "nada" | "cinco-sem-capa") {
   const card = await prisma.approvalRequest.create({
     data: {
       clientId, department: "social-media", requestedBy: "equipe:master@dioli.studio",
-      clientVisible: true, status: "approved",
+      clientVisible: true,
+      status: decisao === "aprovado" ? "approved" : "revision_requested",
       reviewedBy: "client:Dioli", reviewedAt: new Date("2026-08-04T21:33:00Z"),
       reviewNote: "Carrosséis de lançamento — 6 peças",
       sourcePostIdsJson: JSON.stringify(postIds),
     },
   });
   approvalId = card.id;
+
+  if (decisao === "ajuste-pedido") {
+    // O texto que ele escreveu. É ELE que não pode sumir de jeito nenhum.
+    await prisma.approvalComment.create({
+      data: {
+        approvalRequestId: card.id, authorName: "Dioli", authorRole: "client",
+        kind: "comment", isClientVisible: true,
+        body: PEDIDO_DO_CLIENTE,
+      },
+    });
+  }
 }
+
+/** O pedido literal que trancou o card em produção. */
+const PEDIDO_DO_CLIENTE =
+  "Só estou vendo uma imagem por carrossel — cadê as outras telas? Manda completo pra eu aprovar.";
 
 async function limpar() {
   await prisma.approvalComment.deleteMany({});
@@ -303,5 +326,134 @@ describe("o reparo dos 6 carrosséis que produção gravou com 5 telas", () => {
     // 6, não 5: é a razão de o conserto ter sido no dado e não na tela.
     expect(arg.mediaUrls).toHaveLength(6);
     expect(arg.mediaUrls![0]).toContain(idPorNome.get(CAPA_V3(1))!);
+  });
+});
+
+// ─── 3. O CARD TRANCADO EM "AJUSTES SOLICITADOS" ────────────────────────────
+//
+// O que aconteceu de verdade em 05/08/2026, às 22h: o CEO viu só a capa, clicou
+// "Solicitar ajustes" e escreveu o pedido. O reparo rodou depois e atendeu o
+// pedido — 5 → 6 telas — mas o log disse:
+//
+//     ⛔ card cmsdyt9in… NÃO reaberto: status "revision_requested"
+//
+// O card ficou preso no estado que o próprio conserto já tinha resolvido, e o
+// CEO sem botão de aprovar. Este bloco é a corrente inteira desse caso: banco →
+// reparo → de-para de telas → reabertura → histórico do card.
+
+describe("o card em AJUSTE cujo pedido o reparo acabou de atender", () => {
+  let texto = "";
+
+  beforeAll(async () => {
+    await limpar();
+    await semear("cinco-sem-capa", "ajuste-pedido");
+    process.env[VARIAVEL] = clientId;
+    const spy = vi.spyOn(console, "log").mockImplementation(() => {});
+    const r = await rodarBackfillDeBoot();
+    texto = spy.mock.calls.map((c) => String(c[0])).join("\n");
+    spy.mockRestore();
+    expect(r).toMatchObject({ rodou: true, motivo: "aplicado", postsAtualizados: 6, telasLigadas: 36 });
+    expect(r.cardsReabertos).toEqual([approvalId]);
+  });
+
+  it("✅ o card volta a PENDENTE — o CEO recupera o botão de aprovar", async () => {
+    const card = await prisma.approvalRequest.findUnique({ where: { id: approvalId } });
+    expect(card!.status).toBe("pending");
+    expect(card!.reviewedAt).toBeNull();
+    expect(card!.reviewedBy).toBeNull();
+  });
+
+  it("⛔ o PEDIDO DE AJUSTE dele continua no histórico, e vem ANTES da resposta", async () => {
+    const historico = await prisma.approvalComment.findMany({
+      where: { approvalRequestId: approvalId }, orderBy: { createdAt: "asc" },
+    });
+    expect(historico).toHaveLength(2);
+    expect(historico[0]!.authorRole).toBe("client");
+    expect(historico[0]!.body).toBe(PEDIDO_DO_CLIENTE);
+    expect(historico[0]!.isClientVisible).toBe(true);
+  });
+
+  it("✅ o registro novo diz o que foi feito em resposta — com o número real", async () => {
+    const historico = await prisma.approvalComment.findMany({
+      where: { approvalRequestId: approvalId }, orderBy: { createdAt: "asc" },
+    });
+    const resposta = historico[1]!;
+    expect(resposta.authorRole).toBe("internal");
+    expect(resposta.isClientVisible).toBe(true);
+    expect(resposta.body).toContain("Você pediu ajustes neste card");
+    expect(resposta.body).toContain(
+      "As peças foram completadas: cada uma das 6 peças deste card agora traz as 6 telas",
+    );
+    expect(resposta.body).toContain("continua aqui no histórico, com as suas palavras");
+    // Histórico, não conteúdo: nada de legenda nem URL de mídia no texto.
+    expect(resposta.body).not.toContain("/api/media/");
+    expect(resposta.body).not.toContain("Legenda:");
+  });
+
+  it("✅ as peças saem de 'Em ajuste' — o calendário não contradiz o card", async () => {
+    const posts = await prisma.socialPost.findMany({ where: { clientId } });
+    expect(posts.every((p) => p.status === "draft")).toBe(true);
+  });
+
+  it("o log do Railway conta a história ao CEO, sem abrir o banco", () => {
+    expect(texto).toMatch(/reparado: 5 → 6 telas/);
+    expect(texto).toContain('estava "revision_requested"');
+    expect(texto).toContain("voltou porque as peças mudaram");
+    expect(texto).toContain("CONTINUA no histórico do card");
+  });
+
+  it("⛔ rodar DE NOVO não reabre nem escreve — o pedido não é respondido duas vezes", async () => {
+    const spy = vi.spyOn(console, "log").mockImplementation(() => {});
+    const r = await rodarBackfillDeBoot();
+    spy.mockRestore();
+    expect(r).toMatchObject({ rodou: false, motivo: "nada-a-fazer" });
+    expect(await prisma.approvalComment.count({ where: { approvalRequestId: approvalId } })).toBe(2);
+    const card = await prisma.approvalRequest.findUnique({ where: { id: approvalId } });
+    expect(card!.status).toBe("pending");
+  });
+});
+
+// ─── 4. A METADE QUE NÃO AFROUXOU ───────────────────────────────────────────
+//
+// Mesmo card em ajuste, mesmo pedido do cliente — só que o backfill não tem nada
+// para acrescentar (os carrosséis já estão completos). Aqui o card TEM que ficar
+// onde está: reabrir sem entregar nada novo é enterrar o pedido dele.
+
+describe("o card em AJUSTE quando nada mudou nas peças", () => {
+  beforeAll(async () => {
+    await limpar();
+    await semear("nada", "ajuste-pedido");
+    // Os carrosséis já completos: a passada seguinte não tem o que gravar.
+    for (let i = 0; i < postIds.length; i++) {
+      const c = i + 1;
+      await prisma.socialPost.update({
+        where: { id: postIds[i]! },
+        data: {
+          mediaUrlsJson: JSON.stringify([
+            `/api/media/${idPorNome.get(CAPA_V3(c))}`,
+            ...[2, 3, 4, 5, 6].map((t) => `/api/media/${idPorNome.get(TELA_V3(c, t))}`),
+          ]),
+        },
+      });
+    }
+    process.env[VARIAVEL] = clientId;
+    const spy = vi.spyOn(console, "log").mockImplementation(() => {});
+    const r = await rodarBackfillDeBoot();
+    spy.mockRestore();
+    expect(r).toMatchObject({ rodou: false, motivo: "nada-a-fazer", cardsReabertos: [] });
+  });
+
+  it("⛔ o card CONTINUA em 'revision_requested' — o caminho dele é a refação", async () => {
+    const card = await prisma.approvalRequest.findUnique({ where: { id: approvalId } });
+    expect(card!.status).toBe("revision_requested");
+    expect(card!.reviewedBy).toBe("client:Dioli");
+  });
+
+  it("⛔ nada foi escrito no histórico, e a peça segue marcada 'Em ajuste'", async () => {
+    const historico = await prisma.approvalComment.findMany({ where: { approvalRequestId: approvalId } });
+    expect(historico).toHaveLength(1);
+    expect(historico[0]!.body).toBe(PEDIDO_DO_CLIENTE);
+    const posts = await prisma.socialPost.findMany({ where: { clientId } });
+    expect(posts.every((p) => p.status === "revision_requested")).toBe(true);
   });
 });
