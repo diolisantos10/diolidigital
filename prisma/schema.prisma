@@ -499,6 +499,17 @@ model ContentRequest {
   /// ou "extra" (escopo adicional a combinar). Nasce NULA de propósito — preço
   /// e prazo não se inventam, e o plano do ciclo é congelado na abertura.
   scopeDecision   String?
+  /// O ORÇAMENTO, em reais inteiros. Preenchido na triagem quando a decisão é
+  /// "extra" — e obrigatório nesse caminho: escopo adicional sem preço é a
+  /// discussão que aparece depois, com a peça já feita. Nulo em "ciclo", que
+  /// por definição já está pago pela mensalidade.
+  quotedPrice     Int?
+  /// O que o preço cobre, em uma frase que o cliente lê. Preço sem escopo é
+  /// número solto — e número solto sempre parece caro.
+  quoteNote       String?
+  /// pendente | aceito | recusado. Nulo = não há orçamento na mesa.
+  quoteStatus     String?
+  quoteDecidedAt  DateTime?
   /// A tarefa criada na triagem. É por aqui que o pedido encontra a esteira.
   taskId          String?
   /// Quem triou e quando — pedido parado sem dono é vazamento.

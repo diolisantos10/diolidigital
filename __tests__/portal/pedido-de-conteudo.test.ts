@@ -169,13 +169,46 @@ describe("a agência tria o pedido", () => {
   });
 
   it("aceita como ESCOPO EXTRA: a mensagem ao cliente promete a proposta ANTES de produzir", async () => {
-    await triar(tria({ pedidoId: "pc1", decisao: "extra", departamento: "design", prazo: "2026-08-20" }));
-    expect(db.contentRequest.update.mock.calls[0]![0].data.scopeDecision).toBe("extra");
+    await triar(tria({
+      pedidoId: "pc1", decisao: "extra", departamento: "design", prazo: "2026-08-20",
+      preco: 690, precoNota: "Um vídeo de até 60s, com 2 rodadas de ajuste.",
+    }));
+    const gravado = db.contentRequest.update.mock.calls[0]![0].data;
+    expect(gravado.scopeDecision).toBe("extra");
+    // A devolutiva vai com PREÇO — pedido do CEO em 05/08/2026. O orçamento
+    // nasce pendente: quem decide é o cliente, no portal.
+    expect(gravado.quotedPrice).toBe(690);
+    expect(gravado.quoteNote).toMatch(/60s/);
+    expect(gravado.quoteStatus).toBe("pendente");
     const aviso = db.portalMessage.create.mock.calls[0]![0].data;
     expect(aviso.authorRole).toBe("team");
     expect(aviso.readByClient).toBe(false);
     expect(aviso.body).toMatch(/proposta/i);
     expect(aviso.body).toMatch(/sem a sua aprovação/i);
+  });
+
+  it("ESCOPO EXTRA sem preço NÃO grava — a conversa comercial não fica para depois da peça pronta", async () => {
+    const res = await triar(tria({ pedidoId: "pc1", decisao: "extra", departamento: "design", prazo: "2026-08-20" }));
+    expect(res.status).toBe(422);
+    expect((await res.json()).error).toMatch(/preco/i);
+    expect(db.task.create).not.toHaveBeenCalled();
+    expect(db.contentRequest.update).not.toHaveBeenCalled();
+  });
+
+  it("ESCOPO EXTRA com preço mas sem dizer o que ele cobre também não passa", async () => {
+    const res = await triar(tria({
+      pedidoId: "pc1", decisao: "extra", departamento: "design", prazo: "2026-08-20", preco: 690,
+    }));
+    expect(res.status).toBe(422);
+    expect((await res.json()).error).toMatch(/precoNota/i);
+    expect(db.contentRequest.update).not.toHaveBeenCalled();
+  });
+
+  it("no CICLO não vai preço — a peça já está paga pela mensalidade", async () => {
+    await triar(tria({ pedidoId: "pc1", decisao: "ciclo", departamento: "social-media", prazo: "2026-08-20" }));
+    const gravado = db.contentRequest.update.mock.calls[0]![0].data;
+    expect(gravado.quotedPrice).toBeUndefined();
+    expect(gravado.quoteStatus).toBeUndefined();
   });
 
   it("SEM decisão de escopo não existe tarefa — preço e prazo não se inventam", async () => {

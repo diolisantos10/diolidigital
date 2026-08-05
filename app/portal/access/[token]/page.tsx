@@ -29,7 +29,7 @@ import {
   type AcaoDeAprovacao,
 } from "@/components/portal/AprovacoesDoCliente";
 import { ResultadosDoCliente } from "@/components/portal/ResultadosDoCliente";
-import { PedirConteudo } from "@/components/portal/PedirConteudo";
+import { SolicitarAlgo, MeusPedidos, type PedidoDoCliente } from "@/components/portal/SolicitarAlgo";
 import { ChatDrawer } from "@/components/agency/portal/FloatingChat";
 import EsteiraDoCliente from "@/components/agency/portal/EsteiraDoCliente";
 
@@ -213,6 +213,12 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
   const [error, setError] = useState<string | null>(null);
 
   const [secao, setSecao] = useState<SecaoId>("inicio");
+  // A porta do cliente para dentro da agência. Mora AQUI, no topo da página,
+  // porque abre por cima de qualquer seção — o CEO pediu "em segundo plano, e
+  // não abrir uma página": trocar de tela faz ele perder o que estava olhando.
+  const [solicitando, setSolicitando] = useState(false);
+  const [recadoDoPedido, setRecadoDoPedido] = useState<string | null>(null);
+  const [pedidos, setPedidos] = useState<PedidoDoCliente[]>([]);
   const [aprovacaoAberta, setAprovacaoAberta] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [erroDecisao, setErroDecisao] = useState<string | null>(null);
@@ -255,6 +261,19 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
     const ap = sp.get("aprovacao");
     if (ap) { setSecao("aprovacoes"); setAprovacaoAberta(ap); }
   }, []);
+
+  const carregarPedidos = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/portal/pedidos${token ? `?token=${encodeURIComponent(token)}` : ""}`, { cache: "no-store" });
+      if (!res.ok) return;
+      const j = await res.json();
+      setPedidos(Array.isArray(j.pedidos) ? j.pedidos : []);
+    } catch {
+      // A porta de pedir continua funcionando sem a lista.
+    }
+  }, [token]);
+
+  useEffect(() => { void carregarPedidos(); }, [carregarPedidos]);
 
   function irPara(s: SecaoId, aprovacaoId?: string | null) {
     setSecao(s);
@@ -641,22 +660,35 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
                 Sem ciclo fechado com dado completo, o bloco simplesmente não
                 existe: os tiles "—" morreram e não voltam como placeholder. */}
 
-            {/* Pedir conteúdo novo mora em Projetos (o teto de 6 itens de
-                navegação é inegociável), mas precisava de porta no Início: o
-                CEO tentou pedir uma peça e não achou onde. Uma linha, sem
-                virar destino de topo. */}
+            {/* A PORTA DE VENDA. Estava no rodapé e navegava para outra aba —
+                o CEO: "está muito escondido... precisa estar super destacado...
+                tem que abrir em segundo plano e não abrir uma página". Porta de
+                venda no rodapé é porta fechada. */}
             <button
-              onClick={() => irPara("projetos")}
+              onClick={() => { setSolicitando(true); setRecadoDoPedido(null); }}
               style={{ touchAction: "manipulation" }}
-              className="w-full flex items-center gap-3 bg-white rounded-[14px] border border-[var(--border)] px-4 py-3.5 text-left hover:bg-[var(--bg-elevated)] transition-colors shadow-[0_1px_3px_rgba(7,10,31,0.04)]"
+              className="w-full flex items-center gap-3.5 rounded-[16px] px-5 py-4 text-left bg-[#070A1F] text-white shadow-[0_6px_20px_rgba(7,10,31,0.22)] hover:-translate-y-0.5 transition-transform"
             >
-              <span aria-hidden className="shrink-0 w-9 h-9 rounded-[9px] bg-[#E6FBFA] flex items-center justify-center text-[15px]">➕</span>
+              <span aria-hidden className="shrink-0 w-11 h-11 rounded-[12px] bg-[#12B5AC] flex items-center justify-center text-[20px] font-bold leading-none">+</span>
               <span className="min-w-0 flex-1">
-                <span className="block text-[13.5px] font-semibold text-[var(--text-primary)]">Quer uma peça nova?</span>
-                <span className="block text-[12px] text-[var(--text-secondary)] mt-0.5">Peça aqui — a equipe recebe e te responde.</span>
+                <span className="block text-[15px] font-bold">Precisa de alguma coisa?</span>
+                <span className="block text-[12.5px] text-white/70 mt-0.5 leading-snug">
+                  Peça, serviço novo, orçamento — a equipe responde aqui com prazo e preço.
+                </span>
               </span>
-              <span aria-hidden className="text-[var(--text-subtle)]">›</span>
+              <span aria-hidden className="text-white/50 text-[18px]">›</span>
             </button>
+
+            {recadoDoPedido && (
+              <p className="rounded-[12px] bg-[#ECFDF5] px-4 py-3 text-[13px] text-[#047857]">✓ {recadoDoPedido}</p>
+            )}
+
+            {pedidos.length > 0 && (
+              <section>
+                <MeusPedidos token={token} pedidos={pedidos} aoDecidir={() => void carregarPedidos()} />
+              </section>
+            )}
+
           </div>
         )}
 
@@ -670,10 +702,21 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
 
             <EsteiraDoCliente token={token} />
 
-            {/* O primeiro elo cliente → agência. Fica em Projetos porque é aqui
-                que o cliente pensa no trabalho dele — e porque a navegação tem
-                teto de 6 itens: nada entra sem remover outro. */}
-            <PedirConteudo token={token} />
+            {/* O mesmo caminho, na aba onde ele pensa no trabalho. Um só
+                componente, um só formulário: duas portas para a mesma folha. */}
+            <button
+              onClick={() => { setSolicitando(true); setRecadoDoPedido(null); }}
+              style={{ touchAction: "manipulation" }}
+              className="w-full flex items-center gap-3.5 rounded-[14px] px-4 py-3.5 text-left bg-white border border-[var(--border)] hover:bg-[var(--bg-elevated)] transition-colors shadow-[0_1px_3px_rgba(7,10,31,0.04)]"
+            >
+              <span aria-hidden className="shrink-0 w-10 h-10 rounded-[11px] bg-[#E6FBFA] text-[#0E9E96] flex items-center justify-center text-[19px] font-bold leading-none">+</span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[14px] font-bold text-[var(--text-primary)]">Precisa de alguma coisa?</span>
+                <span className="block text-[12px] text-[var(--text-secondary)] mt-0.5">Peça, serviço novo ou orçamento — a resposta vem com preço.</span>
+              </span>
+            </button>
+
+            {pedidos.length > 0 && <MeusPedidos token={token} pedidos={pedidos} aoDecidir={() => void carregarPedidos()} />}
 
             {/* Cartões de projeto — vêm por clientId, então aparecem também
                 para o cliente criado direto (a correção do "onde eu vejo o
@@ -939,6 +982,15 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
           <span aria-hidden className="w-2 h-2 rounded-full bg-[#22C55E]" />
         </button>
       )}
+
+      {/* A folha de solicitar. Mora na raiz porque abre por cima de QUALQUER
+          seção — e é por isso que o clique não navega mais. */}
+      <SolicitarAlgo
+        token={token}
+        aberto={solicitando}
+        aoFechar={() => setSolicitando(false)}
+        aoEnviar={(recado) => { setRecadoDoPedido(recado); void carregarPedidos(); }}
+      />
 
       <ChatDrawer
         open={chatOpen}

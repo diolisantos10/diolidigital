@@ -155,6 +155,35 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ ok: true, status: "recusado" });
   }
 
+  // ── ESCOPO EXTRA EXIGE PREÇO. Fail-closed, e de propósito ────────────────
+  //
+  // Pedido do CEO em 05/08/2026: "a devolutiva já tem que vir com o preço".
+  // Não é preferência de fluxo — é onde a agência vende. Aceitar como escopo
+  // adicional sem número é empurrar a conversa comercial para depois da peça
+  // pronta, que é exatamente quando ela fica difícil: o cliente já viu o
+  // trabalho e qualquer preço soa como cobrança de surpresa.
+  //
+  // Por isso "extra" sem `preco` NÃO grava. E o preço vem com uma frase do que
+  // ele cobre: número solto sempre parece caro.
+  let orcamento: { preco: number; nota: string } | null = null;
+  if (decisao === "extra") {
+    const preco = Number(corpo.preco);
+    const nota = texto(corpo.precoNota);
+    if (!Number.isFinite(preco) || preco <= 0) {
+      return NextResponse.json(
+        { error: "preco obrigatório (em reais) — escopo extra sem preço vira discussão depois, com a peça já feita" },
+        { status: 422 },
+      );
+    }
+    if (nota.length < 5) {
+      return NextResponse.json(
+        { error: "precoNota obrigatória — diga em uma frase o que o preço cobre; número solto sempre parece caro" },
+        { status: 422 },
+      );
+    }
+    orcamento = { preco: Math.round(preco), nota };
+  }
+
   // ── Aceitar: precisa de descrição, projeto, departamento e prazo ─────────
   // Belt and braces: a rota do portal já barra pedido mudo, mas quem cria
   // tarefa é AQUI — e tarefa muda não pode nascer por nenhum caminho.
@@ -244,6 +273,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         taskId: tarefa.id,
         triagedBy: session.name ?? "Equipe",
         triagedAt: new Date(),
+        // O orçamento só existe no caminho "extra" — no ciclo, a peça já está
+        // paga pela mensalidade e mostrar preço ao cliente seria cobrar duas
+        // vezes pelo mesmo contrato.
+        ...(orcamento ? { quotedPrice: orcamento.preco, quoteNote: orcamento.nota, quoteStatus: "pendente" } : {}),
       },
     });
 

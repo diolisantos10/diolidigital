@@ -69,6 +69,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       select: {
         id: true, title: true, description: true, objective: true,
         desiredFor: true, status: true, declineReason: true, createdAt: true,
+        // O ORÇAMENTO. Entra na lista de propósito: a devolutiva do pedido tem
+        // de vir com preço, ou o cliente sai do portal para perguntar quanto
+        // custa — e a venda vai junto com ele.
+        quotedPrice: true, quoteNote: true, quoteStatus: true,
       },
     });
     return NextResponse.json({
@@ -83,6 +87,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         statusLegivel: STATUS_PARA_O_CLIENTE[p.status] ?? "Recebido",
         motivo: p.declineReason,
         criadoEm: p.createdAt.toISOString(),
+        preco: p.quotedPrice,
+        precoNota: p.quoteNote,
+        // Sem preço não existe orçamento na mesa — e "pendente" sem número
+        // seria botão de aprovar o nada.
+        orcamento: p.quotedPrice ? (p.quoteStatus ?? "pendente") : null,
       })),
     });
   } catch {
