@@ -43,14 +43,54 @@
 // de 5 em 5 minutos, o log do ensaio viraria ruído e a idempotência viraria a
 // única proteção contra uma segunda escrita. No boot, o CEO liga a variável,
 // lê o log do deploy, confere e desliga.
+//
+// ═══════════════════════════════════════════════════════════════════════════
+// ── A SEGUNDA PORTA DESTE ARQUIVO (05/08/2026) ─────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+//
+//     REABRIR_CARD_APROVACAO=<id do card>   → reabre UM card, no boot
+//     (remover a variável)                   → nunca mais roda
+//
+// Por que ela mora aqui e não num arquivo próprio: `instrumentation.ts` chama
+// UM ponto de entrada (`agendarBackfillDeBoot`), e este arquivo é ele. Quem
+// decide o QUÊ continua sendo a esteira — a regra inteira, incluindo a trava e
+// as recusas, vive em `lib/agency/esteira/reabrir-aprovacao.ts`
+// (`reabrirCardPorDecisaoDaDirecao`). Aqui só há o interruptor e o log.
+//
+// Por que ela existe: o impasse de ovo e galinha. A passada que acrescentou as
+// telas (5 → 6) rodou ANTES de a regra do ganho existir; quando a regra passou
+// a valer, o log já dizia `0 post(s) seriam atualizados · 6 post(s) já com
+// telas (intocados)`. Não havia mais ganho para provar, e o card ficou preso em
+// `revision_requested` — o CEO esperando para aprovar, sem botão que o
+// destravasse. Estado que prende trabalho para sempre é vazamento.
+//
+// ⛔ Isto NÃO é um afrouxamento da regra do ganho: ela continua intacta, e
+//    continua sendo a única que autoriza reabertura AUTOMÁTICA. Esta porta é
+//    outra coisa — decisão humana registrada, e ela se declara assim no card e
+//    no log. A trava dela é o ESTADO das peças (todo carrossel com ≥2 telas e a
+//    capa sendo a tela 1); peça incompleta é RECUSADA, nomeando o que falta.
+//
+// As duas portas rodam EM SÉRIE, nesta ordem, quando as duas variáveis estão
+// ligadas no mesmo deploy: a reabertura precisa ver o estado FINAL das peças,
+// não o de antes do backfill.
 
 import { prisma } from "@/lib/db/client";
 import { decidirGravacao, postsParaGravar } from "@/lib/agency/media/backfill-carrossel.mjs";
 import { montarPlanoDoCliente, type ContextoDoBackfill } from "@/lib/agency/media/backfill-contexto";
-import { reabrirAprovacoesDosPosts, dataLegivel } from "@/lib/agency/esteira/reabrir-aprovacao";
+import {
+  reabrirAprovacoesDosPosts,
+  reabrirCardPorDecisaoDaDirecao,
+  dataLegivel,
+} from "@/lib/agency/esteira/reabrir-aprovacao";
 
 /** O interruptor. Definida = roda no próximo boot; removida = não roda mais. */
 export const VARIAVEL = "BACKFILL_CARROSSEL_CLIENT_ID";
+
+/** O interruptor da SEGUNDA porta: o id do card a reabrir por decisão da
+ *  direção. Aceita **só o id** — de propósito. O cliente do backfill pode ser
+ *  resolvido pelo nome porque errar o cliente aborta no ensaio; errar o card
+ *  aqui é devolver a decisão errada a um cliente, e card não tem nome único. */
+export const VARIAVEL_REABRIR = "REABRIR_CARD_APROVACAO";
 
 /** O motivo que o cliente lê no card reaberto. Negócio, não jargão. */
 const MOTIVO_DA_REABERTURA =
@@ -82,6 +122,11 @@ let jaRodou = false;
 
 function log(linha: string): void {
   console.log(`[backfill-boot] ${linha}`);
+}
+
+/** Prefixo próprio: no log do Railway as duas portas não se confundem. */
+function logReabrir(linha: string): void {
+  console.log(`[reabrir-card] ${linha}`);
 }
 
 /** O ensaio inteiro, em linhas. Puro: quem chama imprime, e o teste lê. */
@@ -404,18 +449,137 @@ export async function rodarBackfillDeBoot(): Promise<ResultadoDoBackfillDeBoot> 
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// A SEGUNDA PORTA: reabrir UM card por decisão da direção
+// ═══════════════════════════════════════════════════════════════════════════
+
+export type ResultadoDaPortaDaDirecao = "reaberto" | "ja-pendente" | "recusado" | "variavel-ausente" | "erro";
+
+export interface ResultadoDaReaberturaDeBoot {
+  rodou: boolean;
+  motivo: ResultadoDaPortaDaDirecao;
+  approvalRequestId: string;
+  postsDevolvidos: number;
+}
+
 /**
- * Agenda a tarefa para logo depois do boot, uma vez por instância.
+ * Reabre o card nomeado em `REABRIR_CARD_APROVACAO`.
+ *
+ * Sem a variável, silêncio absoluto — como a outra porta. Com a variável, o log
+ * conta a decisão inteira: o que foi conferido, o que autorizou (ou o que
+ * faltou), e o que ficou gravado. Nada aqui pode derrubar o servidor.
+ */
+export async function rodarReaberturaDeBoot(): Promise<ResultadoDaReaberturaDeBoot> {
+  const pedido = (process.env[VARIAVEL_REABRIR] ?? "").trim();
+  const nada = (motivo: ResultadoDaPortaDaDirecao): ResultadoDaReaberturaDeBoot => ({
+    rodou: false, motivo, approvalRequestId: pedido, postsDevolvidos: 0,
+  });
+  if (!pedido) return nada("variavel-ausente");
+
+  logReabrir("═══ REABRIR CARD — decisão da direção ═══════════════════");
+  logReabrir(`${VARIAVEL_REABRIR}=${pedido}`);
+  logReabrir(
+    "esta porta NÃO usa ganho de telas (aquela regra continua intacta). A trava aqui é o",
+  );
+  logReabrir(
+    "ESTADO das peças: todo carrossel com ≥2 telas e a capa sendo a tela 1. Peça incompleta = RECUSA.",
+  );
+
+  try {
+    const r = await reabrirCardPorDecisaoDaDirecao({ approvalRequestId: pedido });
+
+    if (r.resultado === "recusado") {
+      logReabrir(`⛔ NÃO REABERTO: ${r.motivo}`);
+      if (r.faltas.length > 0) {
+        logReabrir("   o que falta, peça por peça:");
+        for (const f of r.faltas) logReabrir(`   ✗ ${f.postId} — ${f.falta}`);
+        logReabrir("   Complete as peças e faça um novo deploy com a variável ainda ligada.");
+      }
+      logReabrir(
+        `   NADA foi gravado. O card continua em "${r.statusAnterior ?? "—"}" e o cliente ` +
+          `não recebeu pedido de decisão nenhum.`,
+      );
+      logReabrir(`═══ FIM. Remova ${VARIAVEL_REABRIR} do Railway. ═══`);
+      return { rodou: false, motivo: "recusado", approvalRequestId: pedido, postsDevolvidos: 0 };
+    }
+
+    if (r.resultado === "ja-pendente") {
+      // A idempotência: o CEO pode esquecer a variável ligada, e o segundo boot
+      // não pode escrever um segundo comentário no histórico do cliente.
+      logReabrir("✓ NADA A FAZER — o card já está PENDENTE, esperando a sua decisão.");
+      logReabrir("  Um segundo boot com a variável ligada NÃO escreve segundo comentário.");
+      logReabrir(`  Pode remover ${VARIAVEL_REABRIR} do Railway.`);
+      logReabrir(`═══ FIM. Remova ${VARIAVEL_REABRIR} do Railway. ═══`);
+      return { rodou: false, motivo: "ja-pendente", approvalRequestId: pedido, postsDevolvidos: 0 };
+    }
+
+    // ── Reaberto: o log tem que deixar conferir sem abrir o banco ────────────
+    logReabrir(`✓ peças conferidas: ${r.pecasConferidas.length}, TODAS completas`);
+    for (const p of r.pecasConferidas) {
+      logReabrir(`   • ${p.postId} (${p.formato}) — ${p.telas.length} tela(s), capa = tela 1`);
+    }
+    logReabrir(
+      `↩ card ${r.approvalRequestId}: estava "${r.statusAnterior}" → volta a PENDENTE ` +
+        `POR DECISÃO DA DIREÇÃO (nada mudou nas peças nesta passada, e o card diz isso)`,
+    );
+    logReabrir(`  ${r.postsDevolvidos} peça(s) devolvida(s) para "draft" — a marca "Em ajuste" saiu`);
+    if (r.pedidoDeAjuste) {
+      logReabrir(
+        `  o pedido de ajuste do cliente (${dataLegivel(r.pedidoDeAjuste.registradoEm)} · ` +
+          `${r.pedidoDeAjuste.autor}) CONTINUA no histórico do card` +
+          `${r.pedidoDeAjuste.comentarioNoHistorico ? ", com as palavras dele" : " (sem texto anexo)"}` +
+          ` — o registro novo entra DEPOIS dele, não no lugar dele`,
+      );
+    }
+    if (r.prazoRemovido) {
+      logReabrir("  prazo vencido removido (ele media a decisão antiga); prazo novo NÃO foi inventado");
+    }
+    logReabrir(`═══ FIM. Remova ${VARIAVEL_REABRIR} do Railway. ═══`);
+    return {
+      rodou: true, motivo: "reaberto",
+      approvalRequestId: r.approvalRequestId, postsDevolvidos: r.postsDevolvidos,
+    };
+  } catch (e) {
+    logReabrir(`⚠ FALHOU: ${e instanceof Error ? e.message : "erro desconhecido"}`);
+    logReabrir("  O card NÃO voltou para decisão. Avise o Diretor.");
+    return nada("erro");
+  }
+}
+
+/**
+ * Agenda as tarefas de boot guardadas por variável, uma vez por instância.
+ *
+ * O nome continua o de origem porque é ele que `instrumentation.ts` chama —
+ * este é o ÚNICO ponto de entrada de conserto de dado no boot, e trocar o nome
+ * por elegância custaria uma edição fora do território com zero ganho.
  *
  * Não bloqueia o `register()`: o health check do Railway não espera por um
  * conserto de dado. Chamar duas vezes (o HMR do dev faz isso) é inofensivo.
+ *
+ * As duas rodam EM SÉRIE e nesta ordem: com as duas variáveis ligadas no mesmo
+ * deploy, a reabertura tem que ler o estado das peças DEPOIS do backfill — se
+ * lesse antes, recusaria por peça incompleta um card que o backfill acabaria de
+ * completar. Encadear é o que torna essa ordem um fato, e não uma torcida.
  */
 export function agendarBackfillDeBoot(): void {
   if (jaRodou) return;
-  if (!(process.env[VARIAVEL] ?? "").trim()) return;
+  const temBackfill = !!(process.env[VARIAVEL] ?? "").trim();
+  const temReabertura = !!(process.env[VARIAVEL_REABRIR] ?? "").trim();
+  if (!temBackfill && !temReabertura) return;
   jaRodou = true;
-  log(`agendado — ${VARIAVEL} presente; o ensaio sai em ${ATRASO_MS / 1000}s`);
-  const t = setTimeout(() => { void rodarBackfillDeBoot(); }, ATRASO_MS);
+  if (temBackfill) log(`agendado — ${VARIAVEL} presente; o ensaio sai em ${ATRASO_MS / 1000}s`);
+  if (temReabertura) {
+    logReabrir(
+      `agendada — ${VARIAVEL_REABRIR} presente; roda em ${ATRASO_MS / 1000}s, DEPOIS do backfill`,
+    );
+  }
+  const t = setTimeout(() => {
+    void (async () => {
+      // Cada uma sai calada quando a sua variável não está definida.
+      await rodarBackfillDeBoot();
+      await rodarReaberturaDeBoot();
+    })();
+  }, ATRASO_MS);
   // Não segura o processo vivo: se o servidor está encerrando, ele encerra.
   t.unref?.();
 }

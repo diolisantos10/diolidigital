@@ -36,9 +36,15 @@ const DB_PATH = vi.hoisted(() => {
 import { prisma } from "@/lib/db/client";
 import {
   reabrirAprovacoesDosPosts,
+  reabrirCardPorDecisaoDaDirecao,
   textoDoRegistro,
+  textoDaDecisaoDaDirecao,
   ganhoDePecas,
   fraseDaCompletude,
+  fraseDoEstadoDasPecas,
+  pecasIncompletas,
+  idDaMidia,
+  type PecaConferida,
 } from "@/lib/agency/esteira/reabrir-aprovacao";
 
 let workspaceId = "";
@@ -512,6 +518,406 @@ describe("a frase que o CEO lê", () => {
       { pecasCompletadas: 2, telasAcrescentadas: 4, telasDepois: [4, 6] }, 6,
     );
     expect(frase).toContain("2 das 6 peças deste card agora trazem entre 4 e 6 telas");
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// A SEGUNDA PORTA — decisão da direção, travada pelo ESTADO das peças
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// O impasse que a produziu: a passada que acrescentou as telas rodou ANTES de a
+// regra do ganho existir; quando a regra passou a valer, não havia mais ganho
+// para provar e o card ficou preso em "revision_requested" para sempre.
+//
+// A metade que dá valor a esta porta é a RECUSA. Reabrir card com peça capenga
+// por decisão da direção é repetir o erro de origem — com assinatura.
+
+let seq = 0;
+/** Uma peça COMPLETA pelo contrato de artes.ts: N telas e a capa é a tela 1. */
+async function criarCarrosselCompleto(dono: string, status: string, telas = 6) {
+  const urls = Array.from({ length: telas }, (_, i) => `/api/media/t${++seq}-${i + 1}`);
+  const p = await prisma.socialPost.create({
+    data: {
+      workspaceId, clientId: dono, caption: "Carrossel", networks: '["instagram"]',
+      format: "carousel", visibility: "compartilhado", status,
+      scheduledFor: new Date("2026-08-12T13:00:00Z"),
+      mediaUrl: urls[0], mediaUrlsJson: JSON.stringify(urls),
+    },
+  });
+  return p.id;
+}
+
+describe("reabrirCardPorDecisaoDaDirecao — quando REABRE", () => {
+  it("peças completas: volta a pendente, o pedido do cliente fica ACIMA da resposta", async () => {
+    const posts = [
+      await criarCarrosselCompleto(clientId, "revision_requested"),
+      await criarCarrosselCompleto(clientId, "revision_requested"),
+    ];
+    const card = await criarCard(clientId, "revision_requested", posts, {
+      expiresAt: new Date("2026-08-04T23:59:00Z"), // vencido
+    });
+    const pedido = await pedirAjuste(card, "Só estou vendo a capa de cada carrossel.");
+
+    const r = await reabrirCardPorDecisaoDaDirecao({ approvalRequestId: card });
+
+    expect(r).toMatchObject({
+      resultado: "reaberto", statusAnterior: "revision_requested",
+      postsDevolvidos: 2, prazoRemovido: true, faltas: [],
+    });
+    expect(r.pecasConferidas).toHaveLength(2);
+    expect(r.pedidoDeAjuste).toMatchObject({ autor: "Dioli", comentarioNoHistorico: true });
+
+    const depois = await prisma.approvalRequest.findUnique({ where: { id: card } });
+    expect(depois!.status).toBe("pending");
+    expect(depois!.reviewedAt).toBeNull();
+    expect(depois!.reviewedBy).toBeNull();
+    expect(depois!.expiresAt).toBeNull();
+    expect(depois!.reviewNote).toContain("corpo original"); // o corpo lido não é reescrito
+
+    // ⛔ O pedido dele continua no histórico, e ANTES da resposta (createdAt asc).
+    const historico = await prisma.approvalComment.findMany({
+      where: { approvalRequestId: card }, orderBy: { createdAt: "asc" },
+    });
+    expect(historico).toHaveLength(2);
+    expect(historico[0]!.id).toBe(pedido);
+    expect(historico[0]!.body).toContain("Só estou vendo a capa");
+
+    const resposta = historico[1]!;
+    expect(resposta.authorRole).toBe("internal");
+    expect(resposta.isClientVisible).toBe(true);
+    expect(resposta.body).toContain("POR DECISÃO DA DIREÇÃO DA AGÊNCIA");
+    // ⛔ A frase é HONESTA: não inventa que algo mudou nesta passada.
+    expect(resposta.body).toContain("NADA foi alterado nas peças");
+    expect(resposta.body).not.toContain("as peças MUDARAM");
+    expect(resposta.body).not.toContain("foram completadas");
+    expect(resposta.body).toContain("cada um dos 2 carrosséis deste card traz as 6 telas");
+    expect(resposta.body).toContain("continua aqui no histórico, com as suas palavras");
+  });
+
+  it("as peças saem de 'Em ajuste' para 'draft' — o calendário não contradiz o card", async () => {
+    const p1 = await criarCarrosselCompleto(clientId, "revision_requested");
+    const card = await criarCard(clientId, "revision_requested", [p1]);
+    await pedirAjuste(card, "Faltam telas.");
+
+    const r = await reabrirCardPorDecisaoDaDirecao({ approvalRequestId: card });
+    expect(r.postsDevolvidos).toBe(1);
+    expect((await prisma.socialPost.findUnique({ where: { id: p1 } }))!.status).toBe("draft");
+  });
+
+  it("prazo FUTURO é preservado — decisão da direção não é adiamento", async () => {
+    const p1 = await criarCarrosselCompleto(clientId, "revision_requested");
+    const futuro = new Date(Date.now() + 3 * 24 * 3600_000);
+    const card = await criarCard(clientId, "revision_requested", [p1], { expiresAt: futuro });
+
+    const r = await reabrirCardPorDecisaoDaDirecao({ approvalRequestId: card });
+    expect(r.prazoRemovido).toBe(false);
+    expect((await prisma.approvalRequest.findUnique({ where: { id: card } }))!.expiresAt?.getTime())
+      .toBe(futuro.getTime());
+  });
+
+  it("sem comentário do cliente: reabre, mas não promete palavra que não existe", async () => {
+    const p1 = await criarCarrosselCompleto(clientId, "revision_requested");
+    const card = await criarCard(clientId, "revision_requested", [p1]);
+
+    const r = await reabrirCardPorDecisaoDaDirecao({ approvalRequestId: card });
+    expect(r.pedidoDeAjuste).toMatchObject({ comentarioNoHistorico: false });
+    const registro = await prisma.approvalComment.findFirst({ where: { approvalRequestId: card } });
+    expect(registro!.body).toContain("continua registrado neste card");
+    expect(registro!.body).not.toContain("com as suas palavras");
+  });
+
+  it("IDEMPOTENTE: o segundo boot não escreve segundo comentário", async () => {
+    const p1 = await criarCarrosselCompleto(clientId, "revision_requested");
+    const card = await criarCard(clientId, "revision_requested", [p1]);
+    await pedirAjuste(card, "Faltam telas.");
+
+    await reabrirCardPorDecisaoDaDirecao({ approvalRequestId: card });
+    expect(await prisma.approvalComment.count({ where: { approvalRequestId: card } })).toBe(2);
+
+    const r2 = await reabrirCardPorDecisaoDaDirecao({ approvalRequestId: card });
+    expect(r2.resultado).toBe("ja-pendente");
+    expect(await prisma.approvalComment.count({ where: { approvalRequestId: card } })).toBe(2);
+    expect((await prisma.approvalRequest.findUnique({ where: { id: card } }))!.status).toBe("pending");
+  });
+
+  it("card do fluxo Brain (posse por clientRequestId) também é alcançado", async () => {
+    const pedido = await prisma.clientRequestDb.create({
+      data: {
+        workspaceId, clientId, businessName: "Foocci", segment: "Alimentação",
+        services: "[]", objectives: "[]", status: "accepted",
+      },
+    });
+    const p = await prisma.socialPost.create({
+      data: {
+        workspaceId, clientRequestId: pedido.id, caption: "Carrossel",
+        networks: '["instagram"]', format: "carousel", visibility: "compartilhado",
+        status: "revision_requested", scheduledFor: new Date("2026-08-12T13:00:00Z"),
+        mediaUrl: "/api/media/brain-1",
+        mediaUrlsJson: JSON.stringify(["/api/media/brain-1", "/api/media/brain-2"]),
+      },
+    });
+    const card = await prisma.approvalRequest.create({
+      data: {
+        clientRequestId: pedido.id, department: "social-media", clientVisible: true,
+        status: "revision_requested", reviewedBy: "client:Dioli",
+        reviewedAt: new Date("2026-08-04T21:33:00Z"),
+        sourcePostIdsJson: JSON.stringify([p.id]),
+      },
+    });
+
+    const r = await reabrirCardPorDecisaoDaDirecao({ approvalRequestId: card.id });
+    expect(r.resultado).toBe("reaberto");
+    expect((await prisma.socialPost.findUnique({ where: { id: p.id } }))!.status).toBe("draft");
+  });
+});
+
+describe("reabrirCardPorDecisaoDaDirecao — quando RECUSA (a metade que vale)", () => {
+  it("⛔ carrossel com 1 tela só: recusa e DIZ o que falta", async () => {
+    const bom = await criarCarrosselCompleto(clientId, "revision_requested");
+    const capenga = await criarCarrosselCompleto(clientId, "revision_requested", 1);
+    const card = await criarCard(clientId, "revision_requested", [bom, capenga]);
+    const pedido = await pedirAjuste(card, "Só a capa.");
+
+    const r = await reabrirCardPorDecisaoDaDirecao({ approvalRequestId: card });
+
+    expect(r.resultado).toBe("recusado");
+    expect(r.motivo).toMatch(/1 de 2 peça\(s\) deste card NÃO estão completas/);
+    expect(r.faltas).toEqual([
+      { postId: capenga, falta: expect.stringContaining("1 tela só") },
+    ]);
+    // NADA foi escrito: nem status, nem comentário, nem peça.
+    expect((await prisma.approvalRequest.findUnique({ where: { id: card } }))!.status)
+      .toBe("revision_requested");
+    const comentarios = await prisma.approvalComment.findMany({ where: { approvalRequestId: card } });
+    expect(comentarios.map((c) => c.id)).toEqual([pedido]);
+    expect((await prisma.socialPost.findUnique({ where: { id: bom } }))!.status)
+      .toBe("revision_requested");
+  });
+
+  it("⛔ carrossel SEM tela nenhuma: a recusa nomeia o problema de origem", async () => {
+    const p = await prisma.socialPost.create({
+      data: {
+        workspaceId, clientId, caption: "Carrossel", networks: '["instagram"]',
+        format: "carousel", visibility: "compartilhado", status: "revision_requested",
+        scheduledFor: new Date("2026-08-12T13:00:00Z"),
+        mediaUrl: "/api/media/so-a-capa", mediaUrlsJson: "[]",
+      },
+    });
+    const card = await criarCard(clientId, "revision_requested", [p.id]);
+
+    const r = await reabrirCardPorDecisaoDaDirecao({ approvalRequestId: card });
+    expect(r.resultado).toBe("recusado");
+    expect(r.faltas[0]!.falta).toMatch(/SEM NENHUMA TELA LIGADA/);
+    expect(await prisma.approvalComment.count()).toBe(0);
+  });
+
+  it("⛔ capa que NÃO é a tela 1: recusa — o publicado começaria por outra imagem", async () => {
+    const p = await prisma.socialPost.create({
+      data: {
+        workspaceId, clientId, caption: "Carrossel", networks: '["instagram"]',
+        format: "carousel", visibility: "compartilhado", status: "revision_requested",
+        scheduledFor: new Date("2026-08-12T13:00:00Z"),
+        mediaUrl: "/api/media/capa-v3",
+        mediaUrlsJson: JSON.stringify(["/api/media/tela-2", "/api/media/tela-3"]),
+      },
+    });
+    const card = await criarCard(clientId, "revision_requested", [p.id]);
+
+    const r = await reabrirCardPorDecisaoDaDirecao({ approvalRequestId: card });
+    expect(r.resultado).toBe("recusado");
+    expect(r.faltas[0]!.falta).toMatch(/capa NÃO é a tela 1/);
+    expect((await prisma.approvalRequest.findUnique({ where: { id: card } }))!.status)
+      .toBe("revision_requested");
+  });
+
+  it("⛔ peça que o portal NÃO mostra (visibility interno) conta como incompleta", async () => {
+    const p = await prisma.socialPost.create({
+      data: {
+        workspaceId, clientId, caption: "Carrossel", networks: '["instagram"]',
+        format: "carousel", visibility: "interno", status: "revision_requested",
+        scheduledFor: new Date("2026-08-12T13:00:00Z"),
+        mediaUrl: "/api/media/x1",
+        mediaUrlsJson: JSON.stringify(["/api/media/x1", "/api/media/x2"]),
+      },
+    });
+    const card = await criarCard(clientId, "revision_requested", [p.id]);
+
+    const r = await reabrirCardPorDecisaoDaDirecao({ approvalRequestId: card });
+    expect(r.resultado).toBe("recusado");
+    expect(r.faltas[0]!.falta).toMatch(/o cliente não a veria no card/);
+  });
+
+  it("⛔ peça de OUTRO cliente citada no card: recusa, não abre porta para o card alheio", async () => {
+    const outro = await criarCliente("Outro cliente");
+    const alheia = await criarCarrosselCompleto(outro, "revision_requested");
+    const card = await criarCard(clientId, "revision_requested", [alheia]);
+
+    const r = await reabrirCardPorDecisaoDaDirecao({ approvalRequestId: card });
+    expect(r.resultado).toBe("recusado");
+    expect(r.faltas[0]!.falta).toMatch(/não pertence ao dono deste card/);
+    expect((await prisma.socialPost.findUnique({ where: { id: alheia } }))!.status)
+      .toBe("revision_requested");
+  });
+
+  it("⛔ peça já PUBLICADA barra — decisão da direção não desfaz o que foi ao ar", async () => {
+    const p1 = await criarCarrosselCompleto(clientId, "published");
+    const card = await criarCard(clientId, "revision_requested", [p1]);
+
+    const r = await reabrirCardPorDecisaoDaDirecao({ approvalRequestId: card });
+    expect(r.resultado).toBe("recusado");
+    expect(r.motivo).toMatch(/PUBLICADAS/);
+    expect((await prisma.approvalRequest.findUnique({ where: { id: card } }))!.status)
+      .toBe("revision_requested");
+    expect(await prisma.approvalComment.count()).toBe(0);
+  });
+
+  it("⛔ 'rejected' e 'cancelled' não ressuscitam — nem com as peças completas", async () => {
+    for (const status of ["rejected", "cancelled"]) {
+      const p1 = await criarCarrosselCompleto(clientId, "revision_requested");
+      const card = await criarCard(clientId, status, [p1]);
+      const r = await reabrirCardPorDecisaoDaDirecao({ approvalRequestId: card });
+      expect(r.resultado).toBe("recusado");
+      expect(r.motivo).toMatch(/não ressuscitam/i);
+      expect((await prisma.approvalRequest.findUnique({ where: { id: card } }))!.status).toBe(status);
+    }
+    expect(await prisma.approvalComment.count()).toBe(0);
+  });
+
+  it("⛔ card 'approved' recusa: não há o que reabrir, e a porta não revoga o cliente", async () => {
+    const p1 = await criarCarrosselCompleto(clientId, "approved");
+    const card = await criarCard(clientId, "approved", [p1]);
+
+    const r = await reabrirCardPorDecisaoDaDirecao({ approvalRequestId: card });
+    expect(r.resultado).toBe("recusado");
+    expect(r.motivo).toMatch(/JÁ está aprovado/);
+    expect((await prisma.approvalRequest.findUnique({ where: { id: card } }))!.status).toBe("approved");
+    expect((await prisma.socialPost.findUnique({ where: { id: p1 } }))!.status).toBe("approved");
+  });
+
+  it("⛔ id de card que não existe: recusa dizendo o que conferir, sem lançar", async () => {
+    const r = await reabrirCardPorDecisaoDaDirecao({ approvalRequestId: "cardqueninguemtem" });
+    expect(r.resultado).toBe("recusado");
+    expect(r.motivo).toMatch(/não existe card de aprovação/);
+    expect(r.motivo).toMatch(/NADA foi gravado/);
+  });
+
+  it("⛔ id vazio: recusa sem consultar", async () => {
+    const r = await reabrirCardPorDecisaoDaDirecao({ approvalRequestId: "   " });
+    expect(r).toMatchObject({ resultado: "recusado", motivo: "nenhum id de card informado" });
+  });
+
+  it("⛔ card sem peça nenhuma: não há estado para conferir", async () => {
+    const card = await criarCard(clientId, "revision_requested", []);
+    const r = await reabrirCardPorDecisaoDaDirecao({ approvalRequestId: card });
+    expect(r.resultado).toBe("recusado");
+    expect(r.motivo).toMatch(/sourcePostIdsJson vazio/);
+  });
+
+  it("⛔ a regra do GANHO continua intacta: a porta automática não mudou de comportamento", async () => {
+    // A prova de que esta porta nova não afrouxou nada — o mesmo card em ajuste,
+    // pela porta automática e sem ganho, continua recusado.
+    const p1 = await criarCarrosselCompleto(clientId, "revision_requested");
+    const card = await criarCard(clientId, "revision_requested", [p1]);
+    await pedirAjuste(card, "Só a capa.");
+
+    const automatica = await reabrirAprovacoesDosPosts({ clientId, postIds: [p1], motivo: MOTIVO });
+    expect(automatica.reabertos).toHaveLength(0);
+    expect(automatica.recusados[0]!.motivo).toMatch(/refação/);
+
+    // E a porta da direção, sobre EXATAMENTE o mesmo card, reabre.
+    const direcao = await reabrirCardPorDecisaoDaDirecao({ approvalRequestId: card });
+    expect(direcao.resultado).toBe("reaberto");
+  });
+});
+
+describe("pecasIncompletas — a trava desta porta, isolada", () => {
+  const carrossel = (extra: Partial<PecaConferida>): PecaConferida => ({
+    postId: "p1", ausente: null, formato: "carousel",
+    capa: "/api/media/a", telas: ["/api/media/a", "/api/media/b"], ...extra,
+  });
+
+  it("carrossel com ≥2 telas e capa = tela 1 está COMPLETO", () => {
+    expect(pecasIncompletas([carrossel({})])).toEqual([]);
+  });
+
+  it("o formato em português também é carrossel", () => {
+    expect(pecasIncompletas([carrossel({ formato: "carrossel", telas: ["/api/media/a"] })]))
+      .toHaveLength(1);
+  });
+
+  it("peça de imagem única: completa é ter arte; sem arte nenhuma, falta", () => {
+    expect(pecasIncompletas([carrossel({ formato: "feed", telas: [] })])).toEqual([]);
+    expect(pecasIncompletas([carrossel({ formato: "feed", capa: null, telas: [] })]))
+      .toEqual([{ postId: "p1", falta: expect.stringContaining("não tem arte nenhuma") }]);
+  });
+
+  it("a comparação capa/tela 1 é por ID de mídia, não por string crua", () => {
+    // Um `?v=2` numa das pontas não pode recusar um carrossel perfeito.
+    expect(pecasIncompletas([carrossel({
+      capa: "/api/media/a?v=2", telas: ["/api/media/a", "/api/media/b"],
+    })])).toEqual([]);
+    expect(idDaMidia("/api/media/abc?v=2")).toBe("abc");
+    expect(idDaMidia("https://cdn/x.png")).toBe("https://cdn/x.png");
+    expect(idDaMidia(null)).toBeNull();
+  });
+
+  it("peça ausente do portal é o pior incompleto — entra com o motivo dela", () => {
+    expect(pecasIncompletas([carrossel({ ausente: "a peça não existe mais no calendário" })]))
+      .toEqual([{ postId: "p1", falta: "a peça não existe mais no calendário" }]);
+  });
+});
+
+describe("a frase de ESTADO que o CEO lê", () => {
+  const peca = (telas: number): PecaConferida => ({
+    postId: `p${telas}`, ausente: null, formato: "carousel", capa: "/api/media/a",
+    telas: Array.from({ length: telas }, (_, i) => `/api/media/${i}`),
+  });
+
+  it("todos no mesmo número: 'cada um dos 6 carrosséis … as 6 telas'", () => {
+    expect(fraseDoEstadoDasPecas([peca(6), peca(6), peca(6), peca(6), peca(6), peca(6)]))
+      .toContain("cada um dos 6 carrosséis deste card traz as 6 telas, e a capa é a tela 1");
+  });
+
+  it("números diferentes NÃO viram generalização — a frase diz o intervalo", () => {
+    expect(fraseDoEstadoDasPecas([peca(4), peca(6)]))
+      .toContain("cada um dos 2 carrosséis deste card traz entre 4 e 6 telas");
+  });
+});
+
+describe("o texto da decisão da direção", () => {
+  const pecas: PecaConferida[] = [{
+    postId: "p1", ausente: null, formato: "carousel",
+    capa: "/api/media/a", telas: ["/api/media/a", "/api/media/b"],
+  }];
+
+  it("declara-se DECISÃO HUMANA e não finge que algo mudou agora", () => {
+    const texto = textoDaDecisaoDaDirecao({ pecas, pedido: null });
+    expect(texto).toContain("POR DECISÃO DA DIREÇÃO DA AGÊNCIA");
+    expect(texto).toContain("não porque alguma coisa mudou agora");
+    expect(texto).toContain("NADA foi alterado nas peças");
+    // ⛔ Não empresta o texto da outra porta, que fala de mudança material.
+    expect(texto).not.toContain("as peças MUDARAM");
+    expect(texto).not.toContain("As peças foram completadas");
+    expect(texto).not.toContain("**aprovada**");
+  });
+
+  it("é histórico puro: não repete legenda nem URL de mídia", () => {
+    const texto = textoDaDecisaoDaDirecao({ pecas, pedido: null });
+    expect(texto).not.toContain("/api/media/");
+    expect(texto).not.toMatch(/Legenda:|Telas:/);
+    expect(texto).toContain("1 peça(s)");
+  });
+
+  it("não especula o motivo do cliente — só diz que ele pediu e que nada sumiu", () => {
+    const texto = textoDaDecisaoDaDirecao({
+      pecas,
+      pedido: { registradoEm: new Date("2026-08-05T01:00:00Z"), autor: "Dioli", comentarioNoHistorico: true },
+    });
+    expect(texto).toContain("Você pediu ajustes neste card");
+    expect(texto).toContain("com as suas palavras");
+    expect(texto).toContain("Dioli");
+    expect(texto).toContain("nada foi apagado");
+    expect(texto).toContain("Se o que você pediu foi outra coisa");
   });
 });
 

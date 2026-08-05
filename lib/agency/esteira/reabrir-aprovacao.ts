@@ -62,6 +62,51 @@
 // duplicado é ruído; histórico perdido é a informação que o CEO pediu para não
 // perder. Se um dia isto incomodar, o conserto é uma trava por linha, não
 // inverter a ordem.
+//
+// ═══════════════════════════════════════════════════════════════════════════
+// ── A SEGUNDA PORTA (05/08/2026): a decisão da direção ──────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// O impasse que a produziu, e ele é de ovo e galinha: a passada que acrescentou
+// as telas (5 → 6) rodou ANTES de a regra do `ganhoDePecas` existir. Quando a
+// regra passou a valer, já não havia ganho para provar — o log de produção diz
+// `0 post(s) seriam atualizados · 6 post(s) já com telas (intocados)` e
+// "Todos os carrosséis JÁ têm telas ligadas e COMPLETAS". O card ficou em
+// `revision_requested` para sempre: a condição que o destravaria só pode ser
+// satisfeita por uma passada que não tem mais o que fazer.
+//
+// ⛔ O QUE **NÃO** FOI FEITO: afrouxar `ganhoDePecas`. Aquela condição continua
+//    exatamente como estava, e continua sendo a única que autoriza a reabertura
+//    AUTOMÁTICA. Uma trava que se afrouxa no primeiro caso difícil não é trava.
+//
+// ✅ O que foi feito: abrir uma porta SEPARADA, que se declara pelo que ela é —
+//    **decisão humana registrada**. Ela não finge que algo mudou; ela diz, no
+//    card e no log, que quem mandou o card voltar foi a direção da agência.
+//
+// ── A trava desta porta é o ESTADO, não o ganho ──────────────────────────────
+// A porta automática pergunta "esta passada entregou alguma coisa?". Esta aqui
+// pergunta outra coisa: **"o que está no card hoje está inteiro?"**. Ela só
+// reabre se TODA peça do card estiver completa pelo contrato de
+// `execution/artes.ts`:
+//
+//     carrossel  →  `mediaUrlsJson` com ≥ 2 telas  E  `mediaUrl` = tela 1
+//     demais     →  a peça tem arte
+//     e a peça precisa APARECER no card do portal (mesma fronteira de
+//     `montarPecas`: existe, é do dono do card e é "compartilhado")
+//
+// Peça incompleta → **recusa, nomeando o que falta**. Devolver o card para o
+// CEO decidir sobre peça capenga é repetir, com assinatura da direção, o erro
+// que gerou o pedido de ajuste. A recusa é a metade que dá valor à porta.
+//
+// As recusas herdadas continuam todas: `rejected` e `cancelled` não ressuscitam,
+// peça `published` barra, e `approved` também recusa — card já aprovado não tem
+// o que reabrir, e esta porta existe para destravar ajuste, não para revogar
+// decisão do cliente.
+//
+// Idempotência: card já `pending` é `ja-pendente` e NADA é escrito. E a escrita
+// do status é condicional (`updateMany` com `status: "revision_requested"` no
+// WHERE) — duas réplicas subindo juntas, só uma escreve o comentário. Aqui deu
+// para fazer a trava por linha que a porta automática deixou como dívida.
 
 import { prisma } from "@/lib/db/client";
 
@@ -79,6 +124,15 @@ const STATUS_SEM_VOLTA = new Set(["rejected", "cancelled"]);
 /** O estado de um post que ainda espera aval. `aprovarPacote` é quem o move
  *  para "scheduled"; devolver a "draft" é retirar o aval, não recusar a peça. */
 const STATUS_SEM_AVAL = "draft";
+
+/** Formatos que a casa grava para carrossel (o legado usa o termo em PT). É o
+ *  único formato em que "completo" significa mais de uma imagem. */
+const FORMATOS_CARROSSEL = new Set(["carousel", "carrossel"]);
+
+/** O que o portal EXIGE para mostrar a peça dentro do card (`montarPecas`).
+ *  Peça fora disto não é vista pelo cliente — conferir o estado dela e dizer
+ *  "completa" seria conferir o que ninguém vai olhar. */
+const VISIBILIDADE_DO_PORTAL = "compartilhado";
 
 /**
  * O de-para de telas de UMA peça, entregue por quem chama.
@@ -461,4 +515,404 @@ export async function reabrirAprovacoesDosPosts(entrada: {
   }
 
   return saida;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// A PORTA DA DIREÇÃO — a trava é o ESTADO das peças (ver o cabeçalho)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Uma peça do card como esta porta precisa vê-la para julgar o ESTADO dela. */
+export interface PecaConferida {
+  postId: string;
+  /** Por que a peça NÃO aparece no card do portal. `null` = ela aparece.
+   *  Ausente é o pior tipo de incompleto: o CEO decidiria sem ver. */
+  ausente: string | null;
+  formato: string;
+  capa: string | null;
+  telas: string[];
+}
+
+/** O que falta numa peça, com todas as letras — é o que sai na recusa. */
+export interface FaltaNaPeca {
+  postId: string;
+  falta: string;
+}
+
+/**
+ * O id da mídia dentro de `/api/media/<id>`.
+ *
+ * A comparação "a capa é a tela 1" é feita por ID, não por string crua: um dia
+ * uma das duas pontas ganha `?v=2` ou uma barra a mais e a igualdade textual
+ * passaria a recusar carrossel perfeito. Sem forma de URL reconhecível, cai
+ * para a string — não se inventa equivalência.
+ */
+export function idDaMidia(url: string | null | undefined): string | null {
+  if (!url) return null;
+  const m = /\/api\/media\/([A-Za-z0-9_-]+)/.exec(url);
+  if (m) return m[1] ?? null;
+  const cru = String(url).trim();
+  return cru || null;
+}
+
+/**
+ * AS PEÇAS ESTÃO INTEIRAS? — a condição, e só ela, que autoriza esta porta.
+ *
+ * O contrato conferido é o de `lib/agency/execution/artes.ts`, que é o mesmo
+ * que `esteira/publicacao.ts` usa para montar o carrossel do Instagram:
+ * `mediaUrlsJson` traz TODAS as telas e `mediaUrl` é a PRIMEIRA delas. Um
+ * carrossel que não obedece a isso publica em nome do cliente uma peça
+ * diferente da que ele aprovou — e é por isso que "capa = tela 1" está aqui, e
+ * não só a contagem.
+ *
+ * Pura de propósito: é a linha que decide se o CEO recebe material inteiro ou
+ * material capenga assinado pela direção, e ela tem que ser testável sem banco.
+ */
+export function pecasIncompletas(pecas: PecaConferida[]): FaltaNaPeca[] {
+  const faltas: FaltaNaPeca[] = [];
+  for (const p of pecas) {
+    if (p.ausente) {
+      faltas.push({ postId: p.postId, falta: p.ausente });
+      continue;
+    }
+    if (!FORMATOS_CARROSSEL.has((p.formato || "").toLowerCase())) {
+      // Peça de imagem única: "completa" é ter arte. Sem arte não há o que
+      // decidir — o cliente veria um card com um retângulo vazio.
+      if (!p.capa && p.telas.length === 0) {
+        faltas.push({ postId: p.postId, falta: "a peça não tem arte nenhuma — não há o que decidir" });
+      }
+      continue;
+    }
+    if (p.telas.length === 0) {
+      faltas.push({
+        postId: p.postId,
+        falta:
+          "carrossel SEM NENHUMA TELA LIGADA — o card mostraria só a capa, que é " +
+          "exatamente o que gerou o pedido de ajuste",
+      });
+      continue;
+    }
+    if (p.telas.length < 2) {
+      faltas.push({
+        postId: p.postId,
+        falta: "carrossel com 1 tela só — uma imagem sozinha não é carrossel (mínimo 2)",
+      });
+      continue;
+    }
+    const capa = idDaMidia(p.capa);
+    if (!capa) {
+      faltas.push({
+        postId: p.postId,
+        falta:
+          `carrossel com ${p.telas.length} telas mas SEM CAPA — a capa é a tela 1 ` +
+          `(contrato de execution/artes.ts)`,
+      });
+      continue;
+    }
+    if (capa !== idDaMidia(p.telas[0])) {
+      faltas.push({
+        postId: p.postId,
+        falta:
+          `a capa NÃO é a tela 1 (capa: ${p.capa} · tela 1: ${p.telas[0]}) — o card ` +
+          `mostraria uma imagem e o carrossel publicado começaria por outra`,
+      });
+    }
+  }
+  return faltas;
+}
+
+/**
+ * A frase de ESTADO que o CEO lê: o que está no card hoje, conferido.
+ *
+ * Repare no tempo verbal, e ele é o ponto: aqui não se diz "foram completadas
+ * agora" (seria mentira — esta porta não altera peça nenhuma), diz-se o que
+ * ESTÁ lá. Números diferentes não viram generalização: a frase diz o intervalo.
+ */
+export function fraseDoEstadoDasPecas(pecas: PecaConferida[]): string {
+  const carrosseis = pecas.filter((p) => FORMATOS_CARROSSEL.has((p.formato || "").toLowerCase()));
+  if (carrosseis.length === 0) {
+    return `as ${pecas.length} peça(s) deste card estão com a arte no lugar.`;
+  }
+  const nums = carrosseis.map((p) => p.telas.length);
+  const min = Math.min(...nums);
+  const max = Math.max(...nums);
+  const quantas = min === max ? `as ${max} telas` : `entre ${min} e ${max} telas`;
+  const sujeito =
+    carrosseis.length === 1
+      ? "o carrossel deste card traz"
+      : `cada um dos ${carrosseis.length} carrosséis deste card traz`;
+  const resto = pecas.length - carrosseis.length;
+  const extra = resto > 0 ? ` As outras ${resto} peça(s) estão com a arte no lugar.` : "";
+  return (
+    `${sujeito} ${quantas}, e a capa é a tela 1 — é o carrossel inteiro que ` +
+    `está aí para você decidir.${extra}`
+  );
+}
+
+/**
+ * O texto que fica no card quando a DIREÇÃO manda o card voltar.
+ *
+ * Três coisas que ele NUNCA faz, e cada uma custou uma discussão:
+ *  • não diz que algo mudou nesta passada — nada mudou, e o cliente que lesse
+ *    isso procuraria a novidade e não acharia;
+ *  • não especula por que o cliente pediu ajuste — o que ele escreveu está no
+ *    histórico, com as palavras dele; a agência não reinterpreta;
+ *  • não se esconde atrás do sistema: quem destravou foi a direção, e está
+ *    escrito assim.
+ */
+export function textoDaDecisaoDaDirecao(entrada: {
+  pecas: PecaConferida[];
+  pedido: PedidoDeAjuste | null;
+}): string {
+  const { pedido } = entrada;
+  const onde = pedido?.comentarioNoHistorico
+    ? `O seu pedido de ajuste continua aqui no histórico, com as suas palavras ` +
+      `(registrado em ${dataLegivel(pedido.registradoEm)} por ${pedido.autor}) — nada foi apagado.`
+    : `O seu pedido de ajuste continua registrado neste card ` +
+      `(${dataLegivel(pedido?.registradoEm ?? null)}) — nada foi apagado.`;
+  return [
+    `Este card volta para a sua decisão POR DECISÃO DA DIREÇÃO DA AGÊNCIA — e ` +
+      `não porque alguma coisa mudou agora. Nesta passada NADA foi alterado nas peças.`,
+    ``,
+    `Você pediu ajustes neste card e ele ficou parado em "ajustes solicitados". ` +
+      `O material que está nele hoje foi conferido peça por peça antes de devolvê-lo: ` +
+      fraseDoEstadoDasPecas(entrada.pecas),
+    ``,
+    onde + ` Se o que você pediu foi outra coisa, é só dizer de novo: o card está aberto.`,
+    ``,
+    `Nenhuma das ${entrada.pecas.length} peça(s) deste card foi publicada nesse ` +
+      `intervalo — nada disso chegou a ir ao ar.`,
+  ].join("\n");
+}
+
+export type ResultadoDaPorta = "reaberto" | "ja-pendente" | "recusado";
+
+export interface ReaberturaPorDecisao {
+  approvalRequestId: string;
+  resultado: ResultadoDaPorta;
+  statusAnterior: string | null;
+  /** Vazio quando reabre; frase de negócio quando recusa. */
+  motivo: string;
+  /** O que falta, peça por peça. Só na recusa por peça incompleta. */
+  faltas: FaltaNaPeca[];
+  /** O estado conferido, como ele foi lido — a prova do que autorizou (ou não). */
+  pecasConferidas: PecaConferida[];
+  postsDevolvidos: number;
+  prazoRemovido: boolean;
+  /** O pedido do cliente, localizado ANTES de responder — nunca movido. */
+  pedidoDeAjuste: PedidoDeAjuste | null;
+}
+
+/**
+ * Reabre UM card, nomeado, por decisão registrada da direção.
+ *
+ * Não é a irmã da `reabrirAprovacoesDosPosts`: aquela varre os cards de um
+ * cliente e exige ganho material; esta recebe o id do card na mão de quem
+ * decidiu e exige que as peças estejam INTEIRAS. As duas nunca se substituem —
+ * a automática existe para não depender de gente, esta existe para que a gente
+ * tenha um caminho que não seja mexer no banco à mão.
+ */
+export async function reabrirCardPorDecisaoDaDirecao(entrada: {
+  approvalRequestId: string;
+}): Promise<ReaberturaPorDecisao> {
+  const id = (entrada.approvalRequestId ?? "").trim();
+  const base: ReaberturaPorDecisao = {
+    approvalRequestId: id,
+    resultado: "recusado",
+    statusAnterior: null,
+    motivo: "",
+    faltas: [],
+    pecasConferidas: [],
+    postsDevolvidos: 0,
+    prazoRemovido: false,
+    pedidoDeAjuste: null,
+  };
+  if (!id) return { ...base, motivo: "nenhum id de card informado" };
+
+  const card = await prisma.approvalRequest.findUnique({
+    where: { id },
+    select: {
+      id: true, status: true, clientId: true, clientRequestId: true,
+      reviewedAt: true, reviewedBy: true, expiresAt: true, sourcePostIdsJson: true,
+    },
+  });
+  if (!card) {
+    return {
+      ...base,
+      motivo:
+        `não existe card de aprovação com o id "${id}" — confira o id no portal ` +
+        `do cliente ou no painel; NADA foi gravado`,
+    };
+  }
+  base.statusAnterior = card.status;
+
+  // ── 1. Os estados, e o que cada um responde ────────────────────────────────
+  if (card.status === "pending") {
+    // A idempotência desta porta: o segundo boot com a variável ainda ligada
+    // encontra o card já pendente e não escreve segundo comentário.
+    return { ...base, resultado: "ja-pendente" };
+  }
+  if (STATUS_SEM_VOLTA.has(card.status)) {
+    return {
+      ...base,
+      motivo:
+        `status "${card.status}" — reprovado e cancelado NÃO ressuscitam, nem por ` +
+        `conserto de dado nem por decisão da direção. O caminho é um card novo`,
+    };
+  }
+  if (card.status === STATUS_REABRIVEL) {
+    return {
+      ...base,
+      motivo:
+        `status "approved" — o card JÁ está aprovado, não há o que reabrir. Esta ` +
+        `porta destrava ajuste solicitado; ela não revoga decisão que o cliente tomou`,
+    };
+  }
+  if (card.status !== STATUS_COM_AJUSTE) {
+    return {
+      ...base,
+      motivo: `status "${card.status}" — esta porta só reabre card em "${STATUS_COM_AJUSTE}"`,
+    };
+  }
+
+  const postsDoCard = lerLista(card.sourcePostIdsJson);
+  if (postsDoCard.length === 0) {
+    return {
+      ...base,
+      motivo:
+        `o card não aponta para peça nenhuma (sourcePostIdsJson vazio) — não há ` +
+        `estado para conferir, e esta porta só reabre contra estado conferido`,
+    };
+  }
+
+  // ── 2. O ESTADO das peças, lido pela MESMA fronteira do portal ─────────────
+  const linhas = await prisma.socialPost.findMany({
+    where: { id: { in: postsDoCard } },
+    select: {
+      id: true, clientId: true, clientRequestId: true, format: true,
+      mediaUrl: true, mediaUrlsJson: true, status: true, visibility: true,
+    },
+  });
+  const porId = new Map(linhas.map((p) => [p.id, p]));
+
+  const pecas: PecaConferida[] = postsDoCard.map((postId): PecaConferida => {
+    const vazia = { postId, formato: "", capa: null, telas: [] as string[] };
+    const p = porId.get(postId);
+    if (!p) return { ...vazia, ausente: "a peça não existe mais no calendário" };
+    // Posse por QUALQUER uma das duas chaves do card — igual a `montarPecas`.
+    const porCliente = !!card.clientId && p.clientId === card.clientId;
+    const porSolicitacao = !!card.clientRequestId && p.clientRequestId === card.clientRequestId;
+    if (!porCliente && !porSolicitacao) {
+      return { ...vazia, ausente: "a peça não pertence ao dono deste card — o portal nem a exibe" };
+    }
+    if (p.visibility !== VISIBILIDADE_DO_PORTAL) {
+      return {
+        ...vazia,
+        ausente:
+          `a peça está como "${p.visibility}" e o portal só mostra ` +
+          `"${VISIBILIDADE_DO_PORTAL}" — o cliente não a veria no card`,
+      };
+    }
+    return {
+      postId,
+      ausente: null,
+      formato: p.format,
+      capa: p.mediaUrl,
+      telas: lerLista(p.mediaUrlsJson),
+    };
+  });
+  base.pecasConferidas = pecas;
+
+  // ── 3. Peça no ar não volta atrás — a recusa que nenhuma decisão derruba ───
+  const publicados = linhas.filter((p) => p.status === "published");
+  if (publicados.length > 0) {
+    return {
+      ...base,
+      motivo:
+        `${publicados.length} peça(s) deste card já foram PUBLICADAS — não se reabre ` +
+        `decisão sobre o que já está no ar, com ou sem aval da direção`,
+    };
+  }
+
+  // ── 4. A TRAVA DESTA PORTA: as peças estão inteiras? ──────────────────────
+  const faltas = pecasIncompletas(pecas);
+  if (faltas.length > 0) {
+    return {
+      ...base,
+      faltas,
+      motivo:
+        `${faltas.length} de ${pecas.length} peça(s) deste card NÃO estão completas — ` +
+        `devolver o card para decidir sobre peça capenga repetiria, agora com ` +
+        `assinatura da direção, o erro que gerou o pedido de ajuste`,
+    };
+  }
+
+  // ── 5. O pedido do cliente é LIDO antes de responder ──────────────────────
+  const comentario = await prisma.approvalComment.findFirst({
+    where: { approvalRequestId: card.id, authorRole: "client", isClientVisible: true },
+    orderBy: { createdAt: "desc" },
+    select: { createdAt: true, authorName: true },
+  });
+  const pedidoDeAjuste: PedidoDeAjuste = {
+    registradoEm: comentario?.createdAt ?? card.reviewedAt,
+    autor: (comentario?.authorName || card.reviewedBy || "").replace(/^client:/, "") || "você",
+    comentarioNoHistorico: comentario != null,
+  };
+  const prazoRemovido = card.expiresAt != null && card.expiresAt < new Date();
+
+  // ── 6. A escrita, com a trava por LINHA no WHERE ──────────────────────────
+  // `updateMany` com o status de origem no filtro: quem chegar depois encontra
+  // `count === 0` e sai sem escrever comentário nenhum. É a trava que a porta
+  // automática deixou como dívida — aqui coube, porque o alvo é UM card só.
+  const escrito = await prisma.$transaction(async (tx) => {
+    const travou = await tx.approvalRequest.updateMany({
+      where: { id: card.id, status: STATUS_COM_AJUSTE },
+      data: {
+        status: "pending",
+        reviewedAt: null,
+        reviewedBy: null,
+        // Prazo vencido media a decisão antiga; prazo novo NÃO se inventa.
+        ...(prazoRemovido ? { expiresAt: null } : {}),
+      },
+    });
+    if (travou.count !== 1) return null;
+
+    await tx.approvalComment.create({
+      data: {
+        approvalRequestId: card.id,
+        authorName: "Equipe Dioli",
+        authorRole: "internal",
+        kind: "comment",
+        body: textoDaDecisaoDaDirecao({ pecas, pedido: pedidoDeAjuste }),
+        isClientVisible: true,
+      },
+    });
+    // A peça sai de "Em ajuste" junto: card pedindo decisão com peça marcada
+    // "em ajuste" faz o calendário do portal contradizer o card na mesma tela.
+    // Sem filtro de posse aqui de propósito: a posse de CADA peça já foi
+    // verificada no passo 2 (peça de outro dono vira `ausente` e recusa o card
+    // inteiro no passo 4). Chegar aqui significa que todas são deste card.
+    const posts = await tx.socialPost.updateMany({
+      where: { id: { in: postsDoCard }, status: { in: ["approved", STATUS_COM_AJUSTE] } },
+      data: { status: STATUS_SEM_AVAL },
+    });
+    return posts.count;
+  });
+
+  if (escrito == null) {
+    return {
+      ...base,
+      resultado: "ja-pendente",
+      motivo: "outra instância reabriu este card no mesmo instante — nada foi escrito duas vezes",
+      pedidoDeAjuste,
+    };
+  }
+
+  return {
+    ...base,
+    resultado: "reaberto",
+    motivo: "",
+    postsDevolvidos: escrito,
+    prazoRemovido,
+    pedidoDeAjuste,
+  };
 }

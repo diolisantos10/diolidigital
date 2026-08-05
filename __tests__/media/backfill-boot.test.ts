@@ -47,7 +47,12 @@ vi.mock("@/lib/auth/api-guard", () => ({ requireSession }));
 
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db/client";
-import { rodarBackfillDeBoot, VARIAVEL } from "@/lib/agency/media/backfill-boot";
+import {
+  rodarBackfillDeBoot,
+  rodarReaberturaDeBoot,
+  VARIAVEL,
+  VARIAVEL_REABRIR,
+} from "@/lib/agency/media/backfill-boot";
 import { GET as listarPosts } from "@/app/api/social-posts/route";
 import { GET as portalData } from "@/app/api/brain/portal-data/route";
 
@@ -175,6 +180,7 @@ beforeAll(() => {
 
 afterAll(async () => {
   delete process.env[VARIAVEL];
+  delete process.env[VARIAVEL_REABRIR];
   await prisma.$disconnect().catch(() => {});
   if (existsSync(DB_PATH)) rmSync(DB_PATH);
 });
@@ -444,5 +450,224 @@ describe("as paradas — nenhuma escreve", () => {
     expect(texto).toContain("NÃO será tocado");
     const depois = await prisma.socialPost.findUnique({ where: { id: jaFeito!.id } });
     expect(JSON.parse(depois!.mediaUrlsJson)).toEqual(telasAntigas);
+  });
+});
+
+// ─── A SEGUNDA PORTA: REABRIR_CARD_APROVACAO ─────────────────────────────────
+//
+// O impasse de ovo e galinha, reproduzido: as telas JÁ estão ligadas (o backfill
+// diz "nada a fazer") e o card continua em "revision_requested". A porta
+// automática exige ganho, e não há mais ganho para provar — o card nunca reabre
+// e o CEO fica esperando para aprovar sem botão nenhum.
+//
+// O que fica travado aqui:
+//   ✅ peças completas → reabre, com o pedido do cliente preservado e o card
+//      dizendo que quem destravou foi a DIREÇÃO (não "algo mudou agora");
+//   ⛔ peça incompleta → RECUSA, nomeando o que falta, sem escrever uma linha;
+//   ⛔ rejected/cancelled/approved/publicada → recusa;
+//   ⛔ segundo boot com a variável ainda ligada → nenhum comentário novo.
+
+describe("a segunda porta — reabrir o card por decisão da direção", () => {
+  /**
+   * O estado EXATO de produção em 05/08/2026: as 36 telas já gravadas nos posts
+   * (o backfill não tem mais o que fazer, e é isso que produz o impasse) e o
+   * card preso em "ajustes solicitados" com o pedido do CEO no histórico.
+   */
+  async function estadoDeProducao(): Promise<void> {
+    await semear();
+    const assets = await prisma.mediaAsset.findMany({ where: { clientId } });
+    const idPorNome = new Map(assets.map((a) => [a.fileName, a.id]));
+    const posts = await prisma.socialPost.findMany({
+      where: { clientId }, orderBy: { scheduledFor: "asc" },
+    });
+    for (const [i, p] of posts.entries()) {
+      const telas = [1, 2, 3, 4, 5, 6].map((t) => `/api/media/${idPorNome.get(nomeDaTela(i + 1, t))}`);
+      await prisma.socialPost.update({
+        where: { id: p.id },
+        // capa = tela 1: o contrato de execution/artes.ts, já satisfeito.
+        data: { mediaUrlsJson: JSON.stringify(telas), mediaUrl: telas[0], status: "revision_requested" },
+      });
+    }
+    await prisma.approvalRequest.update({
+      where: { id: approvalId },
+      data: { status: "revision_requested", reviewedBy: "client:Dioli" },
+    });
+    await prisma.approvalComment.create({
+      data: {
+        approvalRequestId: approvalId, authorName: "Dioli", authorRole: "client",
+        kind: "comment", body: "Só apareceu a capa, quero ver o carrossel todo.",
+        isClientVisible: true,
+      },
+    });
+  }
+
+  /** Roda a porta e devolve o log inteiro, como o CEO o lê no Railway. */
+  async function rodarComLog() {
+    const spy = vi.spyOn(console, "log").mockImplementation(() => {});
+    const r = await rodarReaberturaDeBoot();
+    const texto = spy.mock.calls.map((c) => String(c[0])).join("\n");
+    spy.mockRestore();
+    return { r, texto };
+  }
+
+  beforeEach(async () => {
+    await limpar();
+    delete process.env[VARIAVEL];
+    delete process.env[VARIAVEL_REABRIR];
+  });
+
+  it("sem a variável: silêncio total — a porta não fala em deploy que não é dela", async () => {
+    const spy = vi.spyOn(console, "log").mockImplementation(() => {});
+    const r = await rodarReaberturaDeBoot();
+    expect(r).toMatchObject({ rodou: false, motivo: "variavel-ausente" });
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
+  });
+
+  it("A CORRENTE INTEIRA: backfill sem ganho + porta da direção → o card volta ao CEO", async () => {
+    await estadoDeProducao();
+    process.env[VARIAVEL] = clientId;
+    process.env[VARIAVEL_REABRIR] = approvalId;
+
+    // 1. O backfill roda primeiro e não tem NADA a acrescentar — é o impasse.
+    const spy = vi.spyOn(console, "log").mockImplementation(() => {});
+    const backfill = await rodarBackfillDeBoot();
+    const reabertura = await rodarReaberturaDeBoot();
+    const texto = spy.mock.calls.map((c) => String(c[0])).join("\n");
+    spy.mockRestore();
+
+    expect(backfill).toMatchObject({ rodou: false, motivo: "nada-a-fazer", cardsReabertos: [] });
+    expect(texto).toContain("Todos os carrosséis JÁ têm telas ligadas e COMPLETAS");
+
+    // 2. A porta da direção destrava — e se declara como decisão humana.
+    expect(reabertura).toMatchObject({ rodou: true, motivo: "reaberto", postsDevolvidos: 6 });
+    expect(texto).toContain("[reabrir-card]");
+    expect(texto).toContain("peças conferidas: 6, TODAS completas");
+    expect(texto).toContain("POR DECISÃO DA DIREÇÃO");
+    expect(texto).toContain("nada mudou nas peças nesta passada");
+    expect(texto).toContain('6 peça(s) devolvida(s) para "draft"');
+    expect(texto).toContain("CONTINUA no histórico do card");
+    // A regra do ganho não foi tocada, e o log diz isso com todas as letras.
+    expect(texto).toContain("esta porta NÃO usa ganho de telas");
+
+    // 3. O estado: card pendente, peças sem aval, histórico com as DUAS vozes.
+    const card = await prisma.approvalRequest.findUnique({ where: { id: approvalId } });
+    expect(card!.status).toBe("pending");
+    expect(card!.reviewedAt).toBeNull();
+    expect(card!.expiresAt).toBeNull(); // o prazo vencido media a decisão antiga
+    const posts = await prisma.socialPost.findMany({ where: { clientId } });
+    expect(posts.every((p) => p.status === "draft")).toBe(true);
+
+    const historico = await prisma.approvalComment.findMany({
+      where: { approvalRequestId: approvalId }, orderBy: { createdAt: "asc" },
+    });
+    expect(historico).toHaveLength(2);
+    expect(historico[0]!.authorRole).toBe("client");
+    expect(historico[0]!.body).toContain("Só apareceu a capa");
+    expect(historico[1]!.body).toContain("POR DECISÃO DA DIREÇÃO DA AGÊNCIA");
+    expect(historico[1]!.body).toContain("NADA foi alterado nas peças");
+    expect(historico[1]!.body).toContain("cada um dos 6 carrosséis deste card traz as 6 telas");
+
+    // 4. A ponta que interessa: o PORTAL do cliente pede a decisão, com tudo.
+    validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: null, clientId } });
+    const res = await portalData(new NextRequest("http://localhost/api/brain/portal-data?token=tok"));
+    const json = await res.json();
+    const noPortal = json.approvals.find((a: { id: string }) => a.id === approvalId);
+    expect(noPortal.status).toBe("pending");
+    expect(noPortal.pecas).toHaveLength(6);
+    for (const peca of noPortal.pecas) expect(peca.telas).toHaveLength(6);
+  });
+
+  it("IDEMPOTENTE: o segundo boot com a variável ligada não escreve segundo comentário", async () => {
+    await estadoDeProducao();
+    process.env[VARIAVEL_REABRIR] = approvalId;
+
+    await rodarComLog();
+    expect(await prisma.approvalComment.count({ where: { approvalRequestId: approvalId } })).toBe(2);
+
+    const { r, texto } = await rodarComLog();
+    expect(r).toMatchObject({ rodou: false, motivo: "ja-pendente" });
+    expect(texto).toContain("NADA A FAZER — o card já está PENDENTE");
+    expect(texto).toContain("NÃO escreve segundo comentário");
+    expect(await prisma.approvalComment.count({ where: { approvalRequestId: approvalId } })).toBe(2);
+  });
+
+  it("⛔ peça INCOMPLETA: recusa, diz o que falta e não escreve uma linha", async () => {
+    await estadoDeProducao();
+    // Um carrossel volta a ter só a capa — o defeito de origem, num post só.
+    const capenga = await prisma.socialPost.findFirst({
+      where: { clientId }, orderBy: { scheduledFor: "asc" },
+    });
+    await prisma.socialPost.update({
+      where: { id: capenga!.id },
+      data: { mediaUrlsJson: "[]" },
+    });
+    process.env[VARIAVEL_REABRIR] = approvalId;
+
+    const { r, texto } = await rodarComLog();
+
+    expect(r).toMatchObject({ rodou: false, motivo: "recusado", postsDevolvidos: 0 });
+    expect(texto).toContain("⛔ NÃO REABERTO");
+    expect(texto).toContain("1 de 6 peça(s) deste card NÃO estão completas");
+    expect(texto).toContain("o que falta, peça por peça:");
+    expect(texto).toContain(`✗ ${capenga!.id} — carrossel SEM NENHUMA TELA LIGADA`);
+    expect(texto).toContain("Complete as peças e faça um novo deploy");
+    expect(texto).toContain("NADA foi gravado");
+
+    // O banco continua exatamente como estava: só o pedido do cliente no card.
+    const card = await prisma.approvalRequest.findUnique({ where: { id: approvalId } });
+    expect(card!.status).toBe("revision_requested");
+    expect(await prisma.approvalComment.count({ where: { approvalRequestId: approvalId } })).toBe(1);
+    const posts = await prisma.socialPost.findMany({ where: { clientId } });
+    expect(posts.every((p) => p.status === "revision_requested")).toBe(true);
+  });
+
+  it("⛔ card 'rejected': recusa nomeando o estado, e nada ressuscita", async () => {
+    await estadoDeProducao();
+    await prisma.approvalRequest.update({ where: { id: approvalId }, data: { status: "rejected" } });
+    process.env[VARIAVEL_REABRIR] = approvalId;
+
+    const { r, texto } = await rodarComLog();
+    expect(r.motivo).toBe("recusado");
+    expect(texto).toMatch(/não ressuscitam/i);
+    expect((await prisma.approvalRequest.findUnique({ where: { id: approvalId } }))!.status)
+      .toBe("rejected");
+    expect(await prisma.approvalComment.count({ where: { approvalRequestId: approvalId } })).toBe(1);
+  });
+
+  it("⛔ card 'approved': recusa — não há o que reabrir, e a porta não revoga o cliente", async () => {
+    await estadoDeProducao();
+    await prisma.approvalRequest.update({ where: { id: approvalId }, data: { status: "approved" } });
+    process.env[VARIAVEL_REABRIR] = approvalId;
+
+    const { r, texto } = await rodarComLog();
+    expect(r.motivo).toBe("recusado");
+    expect(texto).toContain("JÁ está aprovado");
+    expect((await prisma.approvalRequest.findUnique({ where: { id: approvalId } }))!.status)
+      .toBe("approved");
+  });
+
+  it("⛔ peça já PUBLICADA barra, mesmo com todas as peças completas", async () => {
+    await estadoDeProducao();
+    const noAr = await prisma.socialPost.findFirst({ where: { clientId } });
+    await prisma.socialPost.update({ where: { id: noAr!.id }, data: { status: "published" } });
+    process.env[VARIAVEL_REABRIR] = approvalId;
+
+    const { r, texto } = await rodarComLog();
+    expect(r.motivo).toBe("recusado");
+    expect(texto).toContain("já foram PUBLICADAS");
+    expect((await prisma.approvalRequest.findUnique({ where: { id: approvalId } }))!.status)
+      .toBe("revision_requested");
+  });
+
+  it("⛔ id de card errado na variável: recusa dizendo o que conferir, sem derrubar nada", async () => {
+    await estadoDeProducao();
+    process.env[VARIAVEL_REABRIR] = "cardquenaoexiste";
+
+    const { r, texto } = await rodarComLog();
+    expect(r.motivo).toBe("recusado");
+    expect(texto).toContain("não existe card de aprovação");
+    expect((await prisma.approvalRequest.findUnique({ where: { id: approvalId } }))!.status)
+      .toBe("revision_requested");
   });
 });
