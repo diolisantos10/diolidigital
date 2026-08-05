@@ -20,12 +20,13 @@ deles. A agência cuida do **FEED**.
 
 ## Escopo contratado
 
-**Decisão do CEO em 05/08/2026:** por enquanto **só post simples, um por dia**,
+**Decisão do CEO em 05/08/2026, corrigida na mesma conversa:** por enquanto
+**só post simples, DOIS por dia**,
 **na mesma linha visual dos 6 posts que já estão no perfil**. Sem carrossel. O
 objetivo declarado é comunidade e alcance — fazer a conta crescer, não encher o
 feed de formato.
 
-1. **30 posts por mês** — 1 post simples de feed por dia, 1080×1350 (4:5).
+1. **60 posts por mês** — 2 posts simples de feed por dia, 1080×1350 (4:5).
 2. **Legenda de cada peça** com CTA ("link na bio" / grupo de WhatsApp) e
    hashtags regionais.
 3. **Pauta mensal** no mix do briefing: vagas por setor · institucional
@@ -49,9 +50,9 @@ feed de formato.
 
 | Item | Valor |
 |---|---|
-| **Mensalidade** — 30 posts simples/mês, escopo acima | **R$ 1.990/mês** |
+| **Mensalidade** — 60 posts simples/mês, escopo acima | **R$ 3.490/mês** |
 | **Implantação** (uma vez) | **R$ 1.290** |
-| Post além dos 30, no mês | R$ 75 |
+| Post além dos 60, no mês | R$ 75 |
 
 **A implantação não é taxa: é o molde de marca do CityJobs.** É ela que trava,
 em código, o que o briefing exige e o modelo de imagem erra sozinho:
@@ -71,21 +72,28 @@ R$ 290 — e o CityJobs não usa nada do que encarece o degrau **Conteúdo**
 (Google, avaliações, stories, roteiros de reels, reunião mensal). Sobra
 conteúdo puro em volume alto.
 
-R$ 1.990 por 30 posts dá **R$ 66 por post publicado**, com legenda, calendário e
-aprovação. É menos de um terço do avulso de tabela (R$ 190) — que é o que
-volume fechado de 12 meses deve valer. Referência de mercado para 30 posts/mês
-na praça: R$ 3.000–5.000; estamos abaixo do piso da faixa, e isso é escolha
-declarada por ser conta da própria casa, não desconto que vira precedente.
+R$ 3.490 por 60 posts dá **R$ 58 por post publicado**, com legenda, calendário e
+aprovação — menos de um terço do avulso de tabela (R$ 190). A escala aparece no
+preço de propósito: os 30 primeiros saem a R$ 66 (o que 30 posts valeriam
+sozinhos, R$ 1.990) e os 30 seguintes a R$ 50, porque a segunda peça do dia usa
+a mesma pauta, o mesmo molde e a mesma leitura de feed. **Volume tem desconto de
+volume; escopo não tem desconto de simpatia.**
+
+Referência de mercado para conteúdo diário na praça: R$ 3.000–5.000 para UM post
+por dia. Dois por dia por R$ 3.490 só fecha porque a produção é nossa — e isso é
+escolha declarada por ser conta da própria casa, não desconto que vira
+precedente na tabela de fora.
 
 ## Margem
 
-- **Custo de IA:** ≈ R$ 75/mês (30 imagens + texto + leitura do perfil).
+- **Custo de IA:** ≈ R$ 150/mês (60 imagens + texto + leitura do perfil).
 - **Hora humana:** aprovação, revisão de marca e publicação diária —
-  **estimada em 5h/mês**, e é a única linha que ainda não foi medida.
-- Com hora humana a R$ 60, o custo direto fica em ≈ R$ 375: margem de
-  contribuição de ~81%, bem acima do piso de 55% da casa.
+  **estimada em 8h/mês**, e é a única linha que ainda não foi medida.
+- Com hora humana a R$ 60, o custo direto fica em ≈ R$ 630: margem de
+  contribuição de ~82%, bem acima do piso de 55% da casa.
 
-**A publicação diária é o item que pode virar prejuízo.** Ela é a única linha do
+**A publicação é o item que pode virar prejuízo — e agora dobrou.** Duas
+publicações por dia à mão são 60 idas ao aparelho por mês. Ela é a única linha do
 escopo com custo humano recorrente, e cresce linearmente com o número de contas.
 Enquanto o token da Meta não sair, ela é feita à mão — e por isso está medida
 como risco, não como detalhe.
@@ -113,4 +121,4 @@ como risco, não como detalhe.
    sai do que existe, não do meu gosto.
 3. Construir e auditar o molde de marca (é a implantação).
 4. Parecer do `meta` sobre a publicação diária **antes** da primeira publicação.
-5. Primeira pauta de 30 dias no portal, para aprovação.
+5. Primeira pauta de 30 dias (60 posts) no portal, para aprovação.
