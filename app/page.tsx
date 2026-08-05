@@ -144,6 +144,7 @@ export default function SitePage() {
             <DioliLogo variant="full" tone="dark" markSize={34} />
           </div>
           <a href="#servicos" className="hidden text-[13.5px] font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--navy)] sm:block">Serviços</a>
+          <Link href="/planos" className="hidden text-[13.5px] font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--navy)] sm:block">Planos</Link>
           <a href="#jornada" className="hidden text-[13.5px] font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--navy)] md:block">Como funciona</a>
           <a href="#trabalho" className="hidden text-[13.5px] font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--navy)] md:block">Trabalhos</a>
           <Link href="/auth/signin" className="hidden text-[13.5px] font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--navy)] sm:block">Área do cliente</Link>
