@@ -7,6 +7,8 @@ import {
   CATEGORY_LABEL,
   CATEGORY_COLOR,
   brlFixed,
+  prazoCurto,
+  prazoLongo,
   type MicroService,
   type SelfServeCategory,
 } from "@/lib/agency/self-serve-catalog";
@@ -96,7 +98,7 @@ function OrderModal({
           </div>
           <div className="mt-3 flex items-baseline gap-1.5">
             <span className="text-[22px] font-bold text-[#070A1F]">{brlFixed(service.price)}</span>
-            <span className="text-[13px] text-[var(--text-muted)]">· entrega em {service.deliveryDays} dias úteis</span>
+            <span className="text-[13px] text-[var(--text-muted)]">· {prazoLongo(service)}</span>
           </div>
         </div>
 
@@ -235,7 +237,7 @@ function ServiceCard({
       <div className="px-5 pb-5 pt-4 border-t border-[var(--border)] flex items-center justify-between gap-3">
         <div>
           <span className="text-[20px] font-bold text-[#070A1F]">{brlFixed(service.price)}</span>
-          <span className="text-[11px] text-[var(--text-muted)] ml-1.5">{service.deliveryDays}d úteis</span>
+          <span className="text-[11px] text-[var(--text-muted)] ml-1.5">{prazoCurto(service)}</span>
         </div>
         <button
           onClick={() => onOrder(service)}
@@ -250,7 +252,9 @@ function ServiceCard({
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
-const CATEGORIES: SelfServeCategory[] = ["social", "video", "design", "traffic"];
+// Balcão primeiro: é a linha de entrada, e quem chega com pouco dinheiro
+// desiste antes de rolar até o fim da lista.
+const CATEGORIES: SelfServeCategory[] = ["balcao", "social", "video", "design", "traffic"];
 
 export default function VitrinePage() {
   const [catFilter, setCatFilter]   = useState<SelfServeCategory | "all">("all");
@@ -279,7 +283,7 @@ export default function VitrinePage() {
           Serviços digitais com entrega rápida
         </h1>
         <p className="text-[14px] text-[var(--text-on-dark)] mt-3 max-w-[420px] mx-auto leading-relaxed">
-          Compre avulso, sem contratos longos. Design, social media, vídeo e tráfego pago — feito pela Dioli, entregue rápido.
+          Compre avulso, sem contratos longos. Balcão de peças avulsas, design, social media, vídeo e tráfego pago — feito pela Dioli, entregue rápido.
         </p>
       </div>
 

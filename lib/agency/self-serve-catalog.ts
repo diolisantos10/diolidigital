@@ -6,7 +6,7 @@
 // Pricing is fixed (not min–max) because the buyer pays at checkout.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type SelfServeCategory = "social" | "video" | "design" | "traffic";
+export type SelfServeCategory = "social" | "video" | "design" | "traffic" | "balcao";
 
 export interface MicroService {
   id: string;
@@ -17,10 +17,136 @@ export interface MicroService {
   deliveryDays: number;    // business days
   category: SelfServeCategory;
   popular?: boolean;
+
+  // Piso de negociação. Existe porque desconto sem chão vira leilão: cada
+  // pedido puxa um pouco mais para baixo até a linha inteira dar prejuízo.
+  // Abaixo do piso a resposta NÃO é "aprovo por menos" — é cortar ESCOPO
+  // (menos telas, sem legenda, prazo maior). Margem não é moeda de troca.
+  // Só o comercial vê este número; a vitrine pública nunca o exibe.
+  precoMinimo?: number;
+
+  // Prazo que o número sozinho não conta. Um pacote mensal não tem "30d úteis":
+  // ele tem um ciclo. Sem este campo a interface teria que escrever prazo na
+  // mão — e prazo, como preço, mora em um lugar só.
+  deliveryLabel?: string;
 }
 
 export const SELF_SERVE_CATALOG: MicroService[] = [
+  // ── Balcão ───────────────────────────────────────────────────────────────
+  // Decisão do CEO em 05/08/2026: a Dioli é empresa de serviços digitais PARA
+  // TODAS AS PESSOAS. Quem chega com R$ 60 e quer um carrossel sai com produto,
+  // não com uma recusa educada. O balcão só é lucrativo sob três condições, e
+  // as três valem juntas ou nenhuma vale:
+  //   1. produção 100% por máquina — zero hora humana no item;
+  //   2. pagamento ANTES da produção — nada entra na fila sem estar pago;
+  //   3. escopo fechado — o que está no `deliverables` é tudo que sai.
+  // Por isso o balcão vem primeiro na lista: é a porta de entrada, e porta de
+  // entrada escondida atrás de um reel de R$ 620 não é porta.
+  //
+  // ⚠️ Junta conhecida: hoje o pedido pago só vira `status: "in_progress"` no
+  // `ClientRequestDb` (app/api/self-serve/webhook/route.ts). Nada aciona agente
+  // nem cria Deliverable — é a quebra do pipeline registrada no BACKLOG.md.
+  // Enquanto isso não fechar, todo item de balcão vendido depende de alguém
+  // empurrar a produção à mão, o que mata a premissa (1).
+  {
+    id: "balcao-post-feed",
+    label: "Post para feed",
+    description: "Uma arte para o feed com legenda pronta para publicar.",
+    deliverables: [
+      "1 arte 1080×1350 (feed vertical)",
+      "Legenda pronta, no tom da marca",
+      "Arquivo PNG no portal do cliente",
+      "Escopo fechado: sem rodada de revisão",
+    ],
+    price: 79,
+    precoMinimo: 49,
+    deliveryDays: 2,
+    category: "balcao",
+  },
+  {
+    id: "balcao-carrossel-5",
+    label: "Carrossel até 5 telas",
+    description: "Sequência de até cinco telas com capa e legenda.",
+    deliverables: [
+      "Capa + até 4 telas de miolo (1080×1350)",
+      "Sequência com começo, meio e fim",
+      "Legenda pronta, no tom da marca",
+      "Arquivos PNG numerados na ordem de publicação",
+    ],
+    price: 129,
+    precoMinimo: 79,
+    deliveryDays: 2,
+    category: "balcao",
+    popular: true,
+  },
+  {
+    id: "balcao-4-stories",
+    label: "4 stories",
+    description: "Quatro stories verticais com margem protegida.",
+    deliverables: [
+      "4 stories 1080×1920",
+      "Margem protegida: nada de texto cortado por barra ou botão",
+      "Texto de cada tela",
+      "Arquivos PNG no portal do cliente",
+    ],
+    price: 99,
+    precoMinimo: 59,
+    deliveryDays: 2,
+    category: "balcao",
+  },
+  {
+    id: "balcao-legenda",
+    label: "Legenda / copy avulsa",
+    description: "Só o texto — para quem já tem a arte e trava na escrita.",
+    deliverables: [
+      "1 legenda no tom da marca",
+      "Chamada para ação e hashtags",
+      "Texto pronto para copiar e colar",
+      "Não inclui arte",
+    ],
+    price: 39,
+    precoMinimo: 29,
+    deliveryDays: 1,
+    category: "balcao",
+  },
+  {
+    id: "balcao-auditoria-perfil",
+    label: "Auditoria de perfil",
+    description: "Relatório do que está travando o seu Instagram hoje.",
+    deliverables: [
+      "Leitura de bio, destaques e das últimas publicações",
+      "Lista do que corrigir, em ordem de prioridade",
+      "O que fazer primeiro na semana seguinte",
+      "Relatório em PDF no portal do cliente",
+    ],
+    price: 149,
+    precoMinimo: 99,
+    deliveryDays: 3,
+    category: "balcao",
+  },
+  {
+    id: "balcao-pacote-mes",
+    label: "Pacote mês — 8 peças",
+    description: "Um mês de conteúdo: pauta, oito peças e calendário.",
+    deliverables: [
+      "Pauta do mês enviada antes da produção",
+      "8 peças (posts e/ou carrosséis)",
+      "Calendário com a data de cada publicação",
+      "Aprovação peça a peça no portal do cliente",
+    ],
+    price: 297,
+    precoMinimo: 229,
+    deliveryDays: 30,
+    deliveryLabel: "mensal",
+    category: "balcao",
+    popular: true,
+  },
+
   // ── Social Media ────────────────────────────────────────────────────────
+  // ⚠️ Sobreposição real com o balcão: `pack-4-stories` (R$ 150) entrega quase
+  // a mesma coisa que `balcao-4-stories` (R$ 99). A diferença precisa ser de
+  // ESCOPO declarado, não de tabela — enquanto ninguém decidir qual é qual, a
+  // vitrine mostra dois preços para o mesmo produto. Decisão pendente do CEO.
   {
     id: "pack-4-stories",
     label: "Pack 4 Stories",
@@ -113,6 +239,7 @@ export const SELF_SERVE_CATALOG: MicroService[] = [
 ];
 
 export const CATEGORY_LABEL: Record<SelfServeCategory, string> = {
+  balcao: "Balcão",
   social: "Redes Sociais",
   video: "Vídeo & Reels",
   design: "Design",
@@ -120,6 +247,9 @@ export const CATEGORY_LABEL: Record<SelfServeCategory, string> = {
 };
 
 export const CATEGORY_COLOR: Record<SelfServeCategory, { bg: string; text: string; dot: string }> = {
+  // Balcão ganha cor própria porque é linha de produto, não desconto de outra:
+  // se herdasse o ciano de "social", pareceria a mesma coisa mais barata.
+  balcao:  { bg: "bg-[#FCE7F3]", text: "text-[#9D174D]", dot: "bg-[#EC4899]" },
   social:  { bg: "bg-[#E6FBFA]", text: "text-[#070A1F]", dot: "bg-[#9AF5F0]" },
   video:   { bg: "bg-[#E9EFFF]", text: "text-[#1E3A8A]", dot: "bg-[#8B5CF6]" },
   design:  { bg: "bg-[#FEF3C7]", text: "text-[#92400E]", dot: "bg-[#F59E0B]" },
@@ -128,4 +258,35 @@ export const CATEGORY_COLOR: Record<SelfServeCategory, { bg: string; text: strin
 
 export function brlFixed(n: number): string {
   return "R$ " + n.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+// ─── Piso de negociação do balcão ─────────────────────────────────────────────
+// Derivado do próprio catálogo, nunca redigitado: número de preço escrito em
+// dois lugares vira duas verdades no dia em que alguém corrige só um.
+//
+// Como se usa: `PISO_BALCAO["balcao-carrossel-5"]` é o MENOR valor que o
+// comercial pode fechar. Chegou aí e o cliente ainda pede desconto? Tira item
+// do escopo. Se nem assim fecha, a resposta é não — e o caso sobe, não desce.
+export const PISO_BALCAO: Record<string, number> = Object.fromEntries(
+  SELF_SERVE_CATALOG
+    .filter((s) => s.category === "balcao" && typeof s.precoMinimo === "number")
+    .map((s) => [s.id, s.precoMinimo as number]),
+);
+
+// `true` quando o valor cabe no piso. Existe para que a regra seja um teste
+// executável e não um parágrafo de manual — aviso em prosa ninguém roda.
+export function dentroDoPiso(serviceId: string, valor: number): boolean {
+  const piso = PISO_BALCAO[serviceId];
+  if (piso === undefined) return false;   // item sem piso declarado não se negocia
+  return valor >= piso;
+}
+
+// Prazo em uma linha só. A vitrine não formata prazo por conta própria pelo
+// mesmo motivo que não formata preço: o catálogo é a fonte.
+export function prazoCurto(s: MicroService): string {
+  return s.deliveryLabel ?? `${s.deliveryDays}d úteis`;
+}
+
+export function prazoLongo(s: MicroService): string {
+  return s.deliveryLabel ? `entrega ${s.deliveryLabel}` : `entrega em ${s.deliveryDays} dias úteis`;
 }

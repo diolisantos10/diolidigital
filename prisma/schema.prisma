@@ -1233,3 +1233,86 @@ model MediaAsset {
   @@index([workspaceId, kind])
   @@index([sha256])
 }
+
+// ─── Radar de oportunidades ───────────────────────────────────────────────────
+
+/// A OPORTUNIDADE captada em marketplace de freelancer (99Freelas, Workana,
+/// Upwork, Guru, PeoplePerHour, Freelancer.com).
+///
+/// DESENHO: o sistema NÃO navega em plataforma logada. Scraping de área logada é
+/// o caminho mais curto para conta banida — a mesma lição que produziu a trava de
+/// plataforma em 03/08/2026. A oportunidade entra por DUAS PORTAS, as duas de
+/// texto puro:
+///   (a) alguém COLA a URL/o texto do projeto no painel;
+///   (b) o e-mail de alerta que a plataforma já manda é ENCAMINHADO para
+///       `/api/agency/oportunidades/email`.
+/// As duas caem na MESMA função de ingestão (`lib/agency/comercial/oportunidade.ts`).
+///
+/// ⚠️ `textoBruto` é DADO NÃO CONFIÁVEL. É texto escrito por um desconhecido na
+/// internet. Ele descreve um pedido; ele NÃO dá ordem ao sistema. Nunca vai para
+/// dentro de prompt como instrução, nunca vai para log (pode carregar contato de
+/// terceiro — PII que não é nossa e que não pedimos).
+model Oportunidade {
+  id          String @id @default(cuid())
+  workspaceId String
+  /// Slug canônico da origem: "99freelas" | "workana" | "upwork" | "guru" |
+  /// "peopleperhour" | "freelancer" | "desconhecida".
+  plataforma  String
+  /// O link do projeto, QUANDO informado. Ausência de link não é erro — o
+  /// e-mail de alerta de algumas plataformas não traz URL direta.
+  urlExterna  String?
+
+  titulo    String
+  descricao String
+  /// Só quando o texto declarar a categoria. Nunca inferida.
+  categoria String?
+
+  /// Orçamento em REAIS INTEIROS (1200 = R$ 1.200), nunca em centavos.
+  /// A unidade está escrita aqui de propósito: `valorSugerido` usa a MESMA, e
+  /// quem escrever a camada de negociação lê este comentário antes de comparar
+  /// os dois. NULO quando o anúncio não declarou valor — ausência de informação
+  /// não é informação.
+  orcamentoInformado Int?
+  /// O prazo COMO ESCRITO no anúncio ("15 dias", "até 20/08"). Texto, não data:
+  /// converter "urgente" em um `DateTime` seria inventar o que o cliente não
+  /// disse.
+  prazoInformado     String?
+
+  /// O texto original inteiro, como chegou. É a prova do que foi lido.
+  textoBruto       String
+  /// Hash do texto normalizado. É o que impede a MESMA oportunidade de entrar
+  /// duas vezes quando alguém cola no painel o projeto cujo e-mail de alerta já
+  /// tinha sido encaminhado — o caso normal, não o excepcional.
+  impressaoDigital String
+
+  /// Avaliação (0–100) e o porquê dela. Nulos até alguém/algo avaliar: o Radar
+  /// ingere; quem pontua é outra etapa.
+  nota            Int?
+  servicoSugerido String?
+  raciocinio      String?
+
+  /// nova | aprovada | recusada | enviada — conjunto FECHADO, conferido na rota.
+  status String @default("nova")
+
+  /// A proposta redigida e o preço que vamos pedir (reais inteiros).
+  propostaTexto String?
+  valorSugerido Int?
+
+  /// Quem bateu o martelo. `userId` da sessão, não e-mail: registro de decisão
+  /// não precisa carregar identificador pessoal.
+  decididoPor String?
+  decididoEm  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// A trava da dedup. Por workspace, nunca global: dois inquilinos podem
+  /// legitimamente estar olhando o MESMO projeto público.
+  @@unique([workspaceId, impressaoDigital])
+  /// A fila de triagem: "as novas deste workspace".
+  @@index([workspaceId, status])
+  /// A listagem ordena por nota desc e depois por data. Sem este índice, o
+  /// SQLite varre a tabela e ordena em memória — e varredura aqui segura o
+  /// único lock de escrita do banco inteiro.
+  @@index([workspaceId, nota, createdAt])
+}
