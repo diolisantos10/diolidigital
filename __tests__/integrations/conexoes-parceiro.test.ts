@@ -56,34 +56,34 @@ beforeEach(() => {
 });
 
 describe("GET /api/meta/connect-parceiro — só entra com token de portal válido", () => {
-  it("sem token → 401, e a Meta nem é consultada", async () => {
+  it("sem token → recusa legível, e a Meta nem é consultada", async () => {
     const res = await connectParceiro(req("http://localhost/api/meta/connect-parceiro"));
-    expect(res.status).toBe(401);
+    await esperaFalhaLegivel(res);
     expect(portalFindUnique).not.toHaveBeenCalled();
   });
 
-  it("token inexistente → 401", async () => {
+  it("token inexistente → recusa legível", async () => {
     portalFindUnique.mockResolvedValue(null);
     const res = await connectParceiro(req(`http://localhost/api/meta/connect-parceiro?token=falso`));
-    expect(res.status).toBe(401);
+    await esperaFalhaLegivel(res);
   });
 
-  it("token revogado → 401", async () => {
+  it("token revogado → recusa legível", async () => {
     portalFindUnique.mockResolvedValue({
       token: TOKEN, clientId: "cli-1", clientRequestId: null,
       revokedAt: new Date(), expiresAt: null,
     });
     const res = await connectParceiro(req(`http://localhost/api/meta/connect-parceiro?token=${TOKEN}`));
-    expect(res.status).toBe(401);
+    await esperaFalhaLegivel(res);
   });
 
-  it("token válido mas sem cliente vinculado → 401 (conexão sem dono não existe)", async () => {
+  it("token válido mas sem cliente vinculado → recusa legível (conexão sem dono não existe)", async () => {
     portalFindUnique.mockResolvedValue({
       token: TOKEN, clientId: null, clientRequestId: null,
       revokedAt: null, expiresAt: null,
     });
     const res = await connectParceiro(req(`http://localhost/api/meta/connect-parceiro?token=${TOKEN}`));
-    expect(res.status).toBe(401);
+    await esperaFalhaLegivel(res);
   });
 
   it("token válido → redirect para o diálogo da Meta com os três cookies", async () => {
@@ -92,22 +92,32 @@ describe("GET /api/meta/connect-parceiro — só entra com token de portal váli
     expect(res.status).toBeLessThan(400);
     expect(res.headers.get("location")).toContain("facebook.com");
 
-    const state = res.cookies.get("_meta_oauth_state");
-    const client = res.cookies.get("_meta_oauth_client");
-    const portal = res.cookies.get("_meta_oauth_portal");
-    expect(state?.value).toBeTruthy();
+    const cookies = res.headers.getSetCookie().join("; ");
+    expect(cookies).toMatch(/_meta_oauth_state=[^;]+/);
     // O clientId do cookie é o DERIVADO do token — nunca veio de query.
-    expect(client?.value).toBe("cli-1");
-    expect(portal?.value).toBe(TOKEN);
+    expect(cookies).toContain("_meta_oauth_client=cli-1");
+    expect(cookies).toContain(`_meta_oauth_portal=${TOKEN}`);
   });
 
   it("clientId na query é IGNORADO — derivação, não comparação", async () => {
     const res = await connectParceiro(
       req(`http://localhost/api/meta/connect-parceiro?token=${TOKEN}&clientId=cli-de-outro`),
     );
-    expect(res.cookies.get("_meta_oauth_client")?.value).toBe("cli-1");
+    expect(res.headers.getSetCookie().join("; ")).toContain("_meta_oauth_client=cli-1");
   });
 });
+
+/** O popup NÃO pode devolver JSON: quem lê é o dono do negócio, numa janela
+ *  pequena. E tem de avisar a aba que o abriu — falha invisível é o pior tipo
+ *  de falha, porque o cliente conclui que o sistema não funciona e a agência
+ *  nunca fica sabendo que ele tentou. (Raio-x de 05/08/2026.) */
+async function esperaFalhaLegivel(res: Response): Promise<void> {
+  expect(res.headers.get("content-type")).toContain("text/html");
+  const corpo = await res.text();
+  expect(corpo).toContain("postMessage");
+  expect(corpo).toContain("meta_auth_error");
+  expect(corpo).not.toContain('"error":"Acesso negado"');
+}
 
 describe("GET /api/portal/conexoes — a lista é SÓ do cliente do token", () => {
   beforeEach(() => {

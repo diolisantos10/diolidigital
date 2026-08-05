@@ -78,7 +78,36 @@ export function ConexoesDoCliente({ token }: { token: string }) {
     const url = token
       ? `/api/meta/connect-parceiro?token=${encodeURIComponent(token)}`
       : "/api/portal/conectar-meta";
-    window.open(url, "meta_oauth", "width=620,height=760,menubar=no,toolbar=no");
+    const janela = window.open(url, "meta_oauth", "width=620,height=760,menubar=no,toolbar=no");
+
+    // O NAVEGADOR BLOQUEOU O POPUP. Sem isto, o clique não fazia nada e a tela
+    // ficava igual — indistinguível de "o sistema não funciona".
+    if (!janela) {
+      setPopupMsg({
+        ok: false,
+        text: "Seu navegador bloqueou a janela de conexão. Libere os pop-ups deste site e tente de novo.",
+      });
+      return;
+    }
+
+    // A JANELA FECHADA NO MEIO NÃO AVISA NINGUÉM. Fechar o popup (ou desistir
+    // na tela da Meta) não dispara postMessage nenhum, e a aba ficava esperando
+    // para sempre. Silêncio de fluxo interrompido é indistinguível de silêncio
+    // de sistema quebrado — e foi o que o CEO viu ao testar em 05/08/2026.
+    const relogio = setInterval(() => {
+      if (!janela.closed) return;
+      clearInterval(relogio);
+      // Recarrega antes de julgar: se a conexão entrou, a lista prova, e aí não
+      // existe erro nenhum para mostrar.
+      void load().then(() => {
+        setPopupMsg((atual) =>
+          atual ?? {
+            ok: false,
+            text: "A janela foi fechada antes de terminar. Nada foi alterado na sua conta — pode tentar de novo.",
+          },
+        );
+      });
+    }, 700);
   }
 
   return (

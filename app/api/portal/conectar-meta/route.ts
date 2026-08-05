@@ -10,11 +10,14 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
+import { popupDeFalha } from "@/lib/integrations/meta/popup";
 
-export async function GET(request: NextRequest): Promise<NextResponse> {
+export async function GET(request: NextRequest): Promise<Response> {
   const token = tokenDoPortal(request);
   if (!token) {
-    return NextResponse.json({ error: "Acesso negado" }, { status: 401 });
+    // Mesma razão do connect-parceiro: quem lê esta resposta é uma pessoa,
+    // numa janela pequena, não um cliente HTTP.
+    return popupDeFalha("sem_acesso", "conectar-meta:sem_cookie");
   }
   return NextResponse.redirect(
     new URL(`/api/meta/connect-parceiro?token=${encodeURIComponent(token)}`, request.url),

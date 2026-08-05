@@ -11,25 +11,26 @@ import { NextRequest, NextResponse } from "next/server";
 import { resolvePortalClient } from "@/lib/agency/persistence/portal-access-service";
 import { resolveMetaAppCredentials, DEFAULT_SCOPES } from "@/lib/integrations/meta/config";
 import { buildLoginUrl } from "@/lib/integrations/meta/oauth";
+import { popupDeFalha } from "@/lib/integrations/meta/popup";
 
-export async function GET(req: NextRequest): Promise<NextResponse> {
+export async function GET(req: NextRequest): Promise<Response> {
   const token = req.nextUrl.searchParams.get("token")?.trim() ?? "";
   if (!token) {
-    return NextResponse.json({ error: "Acesso negado" }, { status: 401 });
+    // Esta janela é um POPUP na frente de um dono de negócio. JSON aqui é o
+    // mesmo que tela branca: ele conclui que não funciona, e o portal nunca
+    // fica sabendo que ele tentou.
+    return popupDeFalha("sem_acesso", "connect-parceiro:sem_token");
   }
 
   // Derivação, não comparação: cliente e workspace vêm do token do portal.
   const dono = await resolvePortalClient(token);
   if (!dono) {
-    return NextResponse.json({ error: "Acesso negado" }, { status: 401 });
+    return popupDeFalha("sem_acesso", "connect-parceiro:token_invalido");
   }
 
   const creds = await resolveMetaAppCredentials(dono.workspaceId);
   if (!creds) {
-    return NextResponse.json(
-      { error: "App da Meta não configurado — avise a agência." },
-      { status: 503 },
-    );
+    return popupDeFalha("app_nao_configurado", "connect-parceiro:sem_credenciais");
   }
 
   // Mesmo redirect URI do fluxo master: o callback é um só, e distingue o
