@@ -112,8 +112,46 @@ export default function DeliverablesPage() {
       {filtered.length === 0 ? (
         <EmptyState title="Nenhuma entrega encontrada" description="As entregas aparecem aqui conforme os agentes concluem suas tarefas." />
       ) : (
-        <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-          <table className="w-full">
+        <>
+        {/* Celular: cartão em vez de tabela de 6 colunas — DESIGN.md §6.3. */}
+        <ul className="md:hidden space-y-2 list-none p-0 m-0">
+          {filtered.map((d) => {
+            const project = getProject(d.projectId);
+            const owner = getOwner(d);
+            const revision = needsRevision(d);
+            const excerpt = getFeedbackExcerpt(d);
+            return (
+              <li key={d.id} className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4">
+                <button onClick={() => setDetailId(d.id)} className="block w-full text-left">
+                  <div className="text-[14px] font-medium text-[var(--text-primary)] leading-snug">{d.name}</div>
+                  <div className="text-[12px] text-[var(--text-secondary)] mt-0.5">
+                    {project?.name ?? "—"} · {owner.name}
+                  </div>
+                  {excerpt && (
+                    <div className="text-[12px] text-[var(--text-secondary)] mt-1.5 italic line-clamp-2">“{excerpt}”</div>
+                  )}
+                </button>
+                <div className="flex flex-wrap items-center gap-1.5 mt-3">
+                  <button
+                    onClick={() => updateDeliverableStatus(d.id, DELIVERABLE_CYCLE[d.status])}
+                    aria-label={`Avançar o status de ${d.name}`}
+                  >
+                    <Badge variant={d.status} />
+                  </button>
+                  <span className="text-[11px] text-[var(--text-secondary)] bg-[var(--accent)] px-1.5 py-0.5 rounded-[4px]">{d.type}</span>
+                  {revision && (
+                    <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full bg-[var(--warning-bg)] text-[var(--warning)]">Revisão necessária</span>
+                  )}
+                  <span className="text-[12px] text-[var(--text-secondary)] mono-num">v{getVersion(d)}</span>
+                  <span className="text-[12px] text-[var(--text-muted)]">· {d.createdAt.slice(5)}</span>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+
+        <div className="hidden md:block bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-x-auto">
+          <table className="w-full min-w-[720px]">
             <thead>
               <tr className="border-b border-[var(--border)]">
                 <th className="text-left px-5 py-3 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Entrega</th>
@@ -167,6 +205,7 @@ export default function DeliverablesPage() {
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       <DeliverableDetailModal deliverableId={detailId} onClose={() => setDetailId(null)} />

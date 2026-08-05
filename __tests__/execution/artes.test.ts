@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 
 const db = vi.hoisted(() => ({
   socialPost: { findMany: vi.fn(), update: vi.fn(), findUnique: vi.fn() },
-  mediaAsset: { findFirst: vi.fn(), findUnique: vi.fn() },
+  mediaAsset: { findFirst: vi.fn(), findUnique: vi.fn(), count: vi.fn() },
   client: { findUnique: vi.fn() },
 }));
 const generateDesign = vi.hoisted(() => vi.fn());
@@ -47,6 +47,9 @@ beforeEach(() => {
   generateDesign.mockResolvedValue({ ok: true, url: PNG, model: "gpt-image-1" });
   guardarArquivo.mockResolvedValue({ ok: true, arquivo: { id: "m1", fileName: "arte.png", sizeBytes: 100, url: "/api/media/m1" } });
   db.mediaAsset.findFirst.mockResolvedValue(null);
+  // O teto diário de imagens por cliente: por padrão, o cliente ainda não gerou
+  // nada hoje. Os testes que exercitam o teto ajustam este contador.
+  db.mediaAsset.count.mockResolvedValue(0);
   estiloVisualPersistido.mockResolvedValue("");
   estiloVistoPersistido.mockResolvedValue("");
   montarPeca.mockResolvedValue({
@@ -476,5 +479,104 @@ describe("a foto do CLIENTE ganha da imagem gerada — mas quem escolhe é gente
     await produzirArtesPendentes();
     expect(generateDesign).toHaveBeenCalledTimes(1);
     expect(montarPeca.mock.calls[0]![0].fundoBytes.toString()).not.toBe("foto-do-cliente");
+  });
+});
+
+// ── O VAZAMENTO DE DINHEIRO DE 05/08/2026 ───────────────────────────────────
+//
+// `baixarImagem` falhando fazia `continue` SEM `marcarErro`. O contador de
+// tentativas mora no `lastError`, então ele nunca subia, `MAX_TENTATIVAS_POR_PECA`
+// nunca era atingido e a peça voltava na rodada seguinte — a cada 5 minutos,
+// para sempre. Um único post com URL inacessível gerava 288 imagens pagas por
+// dia e nunca entregava nada.
+describe("imagem paga que não vira peça PARA de tentar", () => {
+  /** Simula N rodadas seguidas, carregando o `lastError` de uma para a outra —
+   *  que é exatamente como o despertador roda na vida real. */
+  async function rodadasSeguidas(quantas: number, quebrar: () => void): Promise<{ chamadasDeImagem: number }> {
+    let lastError: string | null = null;
+    db.socialPost.findMany.mockImplementation(async () => [{ ...POST, lastError }]);
+    db.socialPost.update.mockImplementation(async (args: { data: { lastError?: string | null } }) => {
+      if ("lastError" in args.data) lastError = args.data.lastError ?? null;
+      return {};
+    });
+    quebrar();
+    for (let i = 0; i < quantas; i++) await produzirArtesPendentes();
+    return { chamadasDeImagem: generateDesign.mock.calls.length };
+  }
+
+  it("download falhando: para de tentar depois de 3 rodadas — não gera para sempre", async () => {
+    // A URL responde 404: a imagem foi PAGA e não virou arquivo.
+    const r = await rodadasSeguidas(10, () => {
+      generateDesign.mockResolvedValue({ ok: true, url: "https://exemplo.invalido/arte.png" });
+      vi.stubGlobal("fetch", vi.fn(async () => ({ ok: false })));
+    });
+    vi.unstubAllGlobals();
+    // 3 tentativas, não 10. Sem o conserto seriam 10 — e 288 por dia.
+    expect(r.chamadasDeImagem).toBe(3);
+  });
+
+  it("a peça que desistiu aparece como desistiu, não como falha silenciosa", async () => {
+    db.socialPost.findMany.mockResolvedValue([{ ...POST, lastError: "[arte 3/3] não consegui baixar a imagem gerada" }]);
+    const r = await produzirArtesPendentes();
+    expect(r.desistiram).toContain("sp1");
+    expect(generateDesign).not.toHaveBeenCalled();
+  });
+
+  it("falha ao GUARDAR também gasta tentativa — a imagem já foi paga", async () => {
+    guardarArquivo.mockResolvedValue({ ok: false, motivo: "cota do workspace estourada" });
+    await produzirArtesPendentes();
+    const gravado = db.socialPost.update.mock.calls.at(-1)?.[0].data.lastError as string;
+    expect(gravado).toMatch(/^\[arte 1\/3\]/);
+  });
+});
+
+// ── O TETO DIÁRIO DE IMAGENS POR CLIENTE ────────────────────────────────────
+// O teto por rodada (6) não é teto de gasto: a rodada dispara a cada 5 minutos.
+describe("teto diário de imagens por cliente", () => {
+  it("cliente que já bateu o teto do dia não gera mais nenhuma imagem", async () => {
+    db.mediaAsset.count.mockResolvedValue(40);
+    const r = await produzirArtesPendentes();
+    expect(generateDesign).not.toHaveBeenCalled();
+    expect(r.semOrcamento).toContain("sp1");
+    // Não é falha da peça: não gasta tentativa.
+    expect(db.socialPost.update).not.toHaveBeenCalled();
+  });
+
+  it("conta as gerações do DIA, por cliente, pelos fundos guardados", async () => {
+    db.mediaAsset.count.mockResolvedValue(0);
+    await produzirArtesPendentes();
+    const where = db.mediaAsset.count.mock.calls[0]![0].where;
+    expect(where.clientId).toBe("c1");
+    expect(where.fileName).toEqual({ startsWith: "fundo-" });
+    expect(where.createdAt.gte.getHours()).toBe(0);
+  });
+
+  it("contador ilegível → fail-CLOSED: não gera. Teto que se desliga sozinho não é teto", async () => {
+    db.mediaAsset.count.mockRejectedValue(new Error("banco fora"));
+    const r = await produzirArtesPendentes();
+    expect(generateDesign).not.toHaveBeenCalled();
+    expect(r.falhas[0]!.erro).toMatch(/teto di[áa]rio/i);
+  });
+
+  it("carrossel que não cabe no que sobrou hoje NÃO começa pela metade", async () => {
+    // Cada tela é uma imagem paga: 5 telas com 2 de saldo seria pagar 2 e jogar fora.
+    db.mediaAsset.count.mockResolvedValue(38);
+    db.socialPost.findMany.mockResolvedValue([{
+      ...POST, format: "carousel",
+      scenesJson: JSON.stringify(["1) uma", "2) duas", "3) três", "4) quatro", "5) cinco"]),
+    }]);
+    const r = await produzirArtesPendentes();
+    expect(generateDesign).not.toHaveBeenCalled();
+    expect(r.semOrcamento).toContain("sp1");
+  });
+
+  it("carrossel acima do teto de telas é recusado ANTES da primeira chamada paga", async () => {
+    db.socialPost.findMany.mockResolvedValue([{
+      ...POST, format: "carousel",
+      scenesJson: JSON.stringify(Array.from({ length: 12 }, (_, i) => `${i + 1}) tela`)),
+    }]);
+    const r = await produzirArtesPendentes();
+    expect(generateDesign).not.toHaveBeenCalled();
+    expect(r.falhas[0]!.erro).toMatch(/12 telas/);
   });
 });

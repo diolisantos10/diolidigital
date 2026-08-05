@@ -21,7 +21,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimited } from "@/lib/security/rate-limit";
-import { resolveProviderKey } from "@/lib/ai/resolve-key";
+import { chaveDeRotaPublica } from "@/lib/ai/chave-publica";
 
 const CLAUDE_URL  = "https://api.anthropic.com/v1/messages";
 const MODEL       = "claude-sonnet-4-6";
@@ -219,7 +219,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const _limited = rateLimited(req, "sdr-chat", 30, 60_000);
   if (_limited) return _limited as NextResponse;
 
-  const resolved = await resolveProviderKey("claude");
+  // Rota PÚBLICA: sem sessão e sem token, quem paga a conversa é resolvido
+  // pelo servidor. `resolveProviderKey("claude")` sem workspace caía num
+  // `findFirst` global — a chave da primeira agência do banco, gasta por
+  // qualquer pessoa com um laço de requisições. Ver `lib/ai/chave-publica.ts`.
+  const resolved = await chaveDeRotaPublica("claude");
   if (!resolved) {
     return NextResponse.json({ ok: false, reason: "not_configured" });
   }

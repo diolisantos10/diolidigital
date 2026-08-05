@@ -7,6 +7,7 @@ import { canSubmitProposal, getSubmissionBlockReason, buildHandoffSummary } from
 import { detectPackage, getPackageDef, computeEstimate } from "@/lib/agency/live-calculator";
 import { MaterialsLinkField } from "@/components/agency/briefing/FileUploadZone";
 import { useSpeechToText } from "@/lib/hooks/useSpeechToText";
+import { useReservaDeBarra } from "@/components/agency/layout/useReservaDeBarra";
 import type { RequestAttachment, ExtractedRequestSummary } from "@/lib/agency/client-requests";
 import type { SDRHandoff } from "@/lib/agency/sdr-agent";
 
@@ -1244,6 +1245,7 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
 
   const [confirmStep, setConfirmStep] = useState<"pending" | "confirmed">("pending");
   const panelRef = useRef<HTMLDivElement>(null);
+  const { casca: cascaDaAcao, barra: barraDaAcao } = useReservaDeBarra<HTMLDivElement, HTMLDivElement>();
 
   const scope    = conv.scope;
   const estimate = conv.estimate;
@@ -1253,8 +1255,18 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
 
   const visibleActions = QUICK_ACTIONS.filter((qa) => qa.show(scope));
 
+  // A barra fixa de conversão cobre o FIM do conteúdo se ninguém reservar o
+  // espaço — é a §6.1 do DESIGN.md, que nasceu no portal, foi levada ao painel
+  // e tinha deixado o briefing público de fora. Aqui acontece exatamente no
+  // "quero meu orçamento": a primeira impressão da agência.
+  // `.acao-shell` declara as medidas, `.acao-reserva` reserva no fluxo e
+  // `.acao-barra` ancora a barra acima da safe-area do iOS. A altura real é
+  // MEDIDA (useReservaDeBarra), não digitada.
+  const barraDeConversaoVisivel = canSubmit && confirmStep === "pending";
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">
+    <div ref={cascaDaAcao} className={barraDeConversaoVisivel ? "acao-shell" : undefined}>
+    <div className={`grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start ${barraDeConversaoVisivel ? "acao-reserva lg:pb-0" : ""}`}>
 
       {/* ── Left: Chat ───────────────────────────────────────────────────────── */}
       <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden flex flex-col">
@@ -1538,10 +1550,15 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
 
       </div>
 
+      </div>
+
       {/* Mobile sticky confirm — on phones the summary panel sits BELOW the chat,
           so surface the CTA in a fixed bar that's always reachable with a thumb. */}
-      {canSubmit && confirmStep === "pending" && (
-        <div className="lg:hidden fixed inset-x-0 bottom-0 z-30 bg-white/95 backdrop-blur border-t border-[var(--border)] px-4 py-3 shadow-[0_-2px_12px_rgba(0,0,0,0.08)]">
+      {barraDeConversaoVisivel && (
+        <div
+          ref={barraDaAcao}
+          className="acao-barra lg:hidden fixed inset-x-0 bottom-0 z-30 bg-white/95 backdrop-blur border-t border-[var(--border)] px-4 py-3 shadow-[0_-2px_12px_rgba(0,0,0,0.08)]"
+        >
           <button
             onClick={() => {
               setConfirmStep("confirmed");

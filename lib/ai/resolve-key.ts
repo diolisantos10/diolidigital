@@ -47,6 +47,14 @@ export interface ResolvedKey {
 
 // Resolves the API key for a provider. If workspaceId is given, the UI key is
 // scoped to that workspace; otherwise the first configured key is used.
+/** Só a variável de ambiente — a chave do DEPLOY, que não é de inquilino
+ *  nenhum. Existe para quem não pode tocar no cofre por não ter um workspace
+ *  para chamar de seu (rotas públicas: ver `lib/ai/chave-publica.ts`). */
+export function chaveDoAmbiente(provider: AiProvider): ResolvedKey | null {
+  const envKey = process.env[PROVIDER_ENV[provider]]?.trim();
+  return envKey ? { apiKey: envKey, source: "env", model: null } : null;
+}
+
 export async function resolveProviderKey(
   provider: AiProvider,
   workspaceId?: string,
@@ -70,10 +78,7 @@ export async function resolveProviderKey(
     // DB unavailable — fall through to env.
   }
 
-  const envKey = process.env[PROVIDER_ENV[provider]]?.trim();
-  if (envKey) return { apiKey: envKey, source: "env", model: null };
-
-  return null;
+  return chaveDoAmbiente(provider);
 }
 
 export async function isProviderConfigured(provider: AiProvider, workspaceId?: string): Promise<boolean> {

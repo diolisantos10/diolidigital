@@ -2,16 +2,17 @@ import { describe, it, expect, beforeEach, afterAll, vi } from "vitest";
 
 // Mocks das dependências do núcleo.
 const db = vi.hoisted(() => ({
-  project: { findUnique: vi.fn(), update: vi.fn() },
+  project: { findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
   clientRequestDb: { findUnique: vi.fn() },
-  client: { findFirst: vi.fn() },
+  client: { findFirst: vi.fn(), findUnique: vi.fn() },
   brainArtifact: { findMany: vi.fn() },
-  deliverable: { findMany: vi.fn(), create: vi.fn(), update: vi.fn(), count: vi.fn() },
+  deliverable: { findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn(), count: vi.fn() },
   portalMessage: { create: vi.fn() },
   task: { updateMany: vi.fn() },
   materialRequest: { findFirst: vi.fn(), create: vi.fn(), findMany: vi.fn(), updateMany: vi.fn() },
   activityEvent: { create: vi.fn() },
   cycle: { findFirst: vi.fn() },
+  mediaAsset: { findMany: vi.fn() },
 }));
 const generate = vi.hoisted(() => vi.fn());
 const createApprovalRequest = vi.hoisted(() => vi.fn());
@@ -52,12 +53,46 @@ vi.mock("@/lib/agency/radar/library", () => ({
 // todo especialista — inclusive a degradação declarada.
 const sinteseDoFeedDoCliente = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/agency/execution/leitura-do-cliente", () => ({ sinteseDoFeedDoCliente }));
+// O kit de marca: a produção do logo tem testes próprios (logo.test.ts). Aqui o
+// que se testa é a FIAÇÃO — o arquivo produzido vira ENTREGA que o cliente
+// encontra, e a falha dessa entrega não pode sumir no silêncio.
+const colherIdentidadeDaEntrega = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/agency/execution/colher-identidade", () => ({ colherIdentidadeDaEntrega }));
+const produzirKitDeMarca = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/agency/execution/logo", () => ({
+  produzirKitDeMarca,
+  montarManual: () => "manual da marca",
+  corValida: (c?: string | null) => c ?? null,
+}));
 
 import { runProjectExecution } from "@/lib/agency/execution/run-execution";
 import { auditDeliverable } from "@/lib/agency/execution/quality-auditor";
 import * as marcos from "@/lib/agency/esteira/marcos";
 import * as mes from "@/lib/agency/esteira/mes";
 import { planProduction } from "@/lib/agency/execution/pm-conductor";
+
+/**
+ * A entrega COMPLETA — a que cumpre o contrato de saída do especialista.
+ *
+ * Existe desde 05/08/2026, quando as instruções de contagem e formato que
+ * viviam só no prompt ("6 a 8 peças", "1-2 carrossel, 2-3 story, 2-3 feed",
+ * "cenas: 3 a 6 telas") passaram a ser conferidas em código
+ * (`especialistas.ts: conferirContrato`). Uma peça só no `items` era exatamente
+ * o cliente que contratou 8 posts e recebeu 1 — e nenhum teste enxergava isso.
+ *
+ * O teste declara SÓ o que ele quer provar; o resto é preenchido até o contrato.
+ */
+function noContrato(data: { title?: string; summary?: string; items?: Array<Record<string, unknown>> }) {
+  const declaradas = (data.items ?? []).map((i) => ({ format: "feed", ...i }));
+  const conta = (f: string) => declaradas.filter((i) => String(i.format).includes(f)).length;
+  const enchimento: Array<Record<string, unknown>> = [];
+  for (let i = conta("carrossel"); i < 1; i++) {
+    enchimento.push({ format: "carrossel", headline: `C${i}`, caption: "legenda de carrossel bem completa aqui", cenas: "1) primeira tela · 2) segunda tela · 3) terceira tela" });
+  }
+  for (let i = conta("story"); i < 2; i++) enchimento.push({ format: "story", headline: `S${i}`, caption: "legenda de story bem completa aqui" });
+  for (let i = conta("feed"); i < 3; i++) enchimento.push({ format: "feed", headline: `F${i}`, caption: "legenda de feed bem completa aqui" });
+  return { ok: true, data: { title: data.title ?? "T", summary: data.summary ?? "s", items: [...declaradas, ...enchimento] } };
+}
 
 const baseProject = {
   id: "p1", workspaceId: "ws1", clientId: "c1", clientRequestId: "cr1",
@@ -74,8 +109,25 @@ beforeEach(() => {
   vi.clearAllMocks();
   materiaisPendentes = [];
   db.project.update.mockResolvedValue({});
+  // ── DUBLÊ FIEL DA TRAVA ATÔMICA ──────────────────────────────────────────
+  // A trava passou a ser um `updateMany` com o estado esperado no WHERE: quem
+  // roda é quem viu `count: 1`. Um dublê que sempre devolve 1 testaria o freio
+  // contra nada, então este reproduz a condição real do WHERE contra o projeto
+  // que o teste declarou.
+  db.project.updateMany.mockImplementation(async (args: { where?: { OR?: Array<Record<string, unknown>> } }) => {
+    const p = await Promise.resolve(db.project.findUnique.mock.results.at(-1)?.value) as
+      | { executionStatus?: string; executionStartedAt?: Date | null } | undefined;
+    if (!p) return { count: 1 };
+    const limite = (args?.where?.OR?.[2] as { executionStartedAt?: { lt?: Date } } | undefined)?.executionStartedAt?.lt;
+    const rodandoAgora =
+      p.executionStatus === "running" && !!p.executionStartedAt && !!limite && p.executionStartedAt >= limite;
+    return { count: rodandoAgora ? 0 : 1 };
+  });
+  db.deliverable.findFirst.mockResolvedValue(null);
+  db.mediaAsset.findMany.mockResolvedValue([]);
   db.clientRequestDb.findUnique.mockResolvedValue({ id: "cr1", businessName: "Loja X", services: JSON.stringify(["social"]), objectives: "[]", briefingJson: "{}" });
   db.client.findFirst.mockResolvedValue({ id: "c1", name: "Loja X", brandBrain: null });
+  db.client.findUnique.mockResolvedValue({ brandBrain: null, industry: "varejo" });
   db.brainArtifact.findMany.mockResolvedValue([]);
   db.deliverable.findMany.mockResolvedValue([]);
   db.cycle.findFirst.mockResolvedValue(null);
@@ -102,13 +154,15 @@ beforeEach(() => {
     texto: "FEED REAL DO CLIENTE (Instagram): feed não lido: o cliente ainda não conectou o Instagram. PROIBIDO descrever o estilo atual do perfil.",
     estiloVisual: "",
   });
+  colherIdentidadeDaEntrega.mockResolvedValue({ encontrouEntrega: false });
+  produzirKitDeMarca.mockResolvedValue({ arquivos: [] });
   (marcos.apresentar as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: true });
 });
 
 describe("runProjectExecution — produção durável e confiável", () => {
   it("produz a entrega e marca o projeto como 'done'", async () => {
     db.project.findUnique.mockResolvedValue({ ...baseProject });
-    generate.mockResolvedValue({ ok: true, data: { title: "Pacote Social", summary: "resumo", items: [{ format: "feed", headline: "Oi", caption: "legenda bem completa aqui", visual: "foto" }] } });
+    generate.mockResolvedValue(noContrato({ title: "Pacote Social", summary: "resumo", items: [{ format: "feed", headline: "Oi", caption: "legenda bem completa aqui", visual: "foto" }] }));
 
     const r = await runProjectExecution("p1");
     expect(r.ok).toBe(true);
@@ -116,9 +170,10 @@ describe("runProjectExecution — produção durável e confiável", () => {
     expect(r.produced).toContain("Social Media \u00b7 Pauta do m\u00eas");
     expect(r.produced).toContain("Social Media \u00b7 Roteiro de v\u00eddeo");
     expect(db.deliverable.create).toHaveBeenCalled();
-    // marcou running no começo e done no fim
+    // marcou running no começo (pelo `updateMany` da trava atômica) e done no fim
+    const travas = db.project.updateMany.mock.calls.map((c) => c[0].data.executionStatus);
+    expect(travas).toContain("running");
     const statuses = db.project.update.mock.calls.map((c) => c[0].data.executionStatus);
-    expect(statuses).toContain("running");
     expect(statuses).toContain("done");
   });
 
@@ -127,7 +182,7 @@ describe("runProjectExecution — produção durável e confiável", () => {
     const auditMock = auditDeliverable as unknown as ReturnType<typeof vi.fn>;
     auditMock.mockResolvedValueOnce({ verdict: "reprovado", issues: ["clichê vazio"], note: "revisar" })
              .mockResolvedValueOnce({ verdict: "aprovado", issues: [], note: "melhorou" });
-    generate.mockResolvedValue({ ok: true, data: { title: "Pacote", summary: "s", items: [{ format: "feed", headline: "Oi", caption: "legenda bem completa aqui", visual: "foto" }] } });
+    generate.mockResolvedValue(noContrato({ title: "Pacote", summary: "s", items: [{ format: "feed", headline: "Oi", caption: "legenda bem completa aqui", visual: "foto" }] }));
 
     const r = await runProjectExecution("p1");
     // Social Media tem 3 especialistas: 3 gerações + 1 revisão do que foi reprovado.
@@ -149,10 +204,13 @@ describe("runProjectExecution — produção durável e confiável", () => {
 
   it("gate de saída: resposta curta/vazia é barrada (não chega ao cliente)", async () => {
     db.project.findUnique.mockResolvedValue({ ...baseProject });
+    // `items: []` não passa nem pelo contrato de saída nem pelo tamanho mínimo.
+    // Quem barra primeiro é o contrato — e o que o teste garante é o efeito:
+    // resposta oca NÃO vira entrega.
     generate.mockResolvedValue({ ok: true, data: { title: "X", summary: "", items: [] } });
     const r = await runProjectExecution("p1");
     expect(db.deliverable.create).not.toHaveBeenCalled();
-    expect(r.skipped.join(" ")).toMatch(/insuficiente/);
+    expect(r.skipped.join(" ")).toMatch(/insuficiente|contrato/);
   });
 
   it("idempotente POR ESPECIALISTA: quem já entregou é pulado, os colegas continuam", async () => {
@@ -162,7 +220,7 @@ describe("runProjectExecution — produção durável e confiável", () => {
     // trabalho achando que recebeu tudo.
     db.project.findUnique.mockResolvedValue({ ...baseProject });
     db.deliverable.findMany.mockResolvedValue([{ ownerAgentId: "a3" }]); // só a Pauta já foi feita
-    generate.mockResolvedValue({ ok: true, data: { title: "T", summary: "s", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] } });
+    generate.mockResolvedValue(noContrato({ title: "T", summary: "s", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] }));
 
     const r = await runProjectExecution("p1");
     expect(r.produced).not.toContain("Social Media \u00b7 Pauta do m\u00eas");
@@ -218,7 +276,7 @@ describe("o portão de direção", () => {
 
   it("com o aval, a produção roda normalmente", async () => {
     db.project.findUnique.mockResolvedValue({ ...baseProject });
-    generate.mockResolvedValue({ ok: true, data: { title: "T", summary: "resumo", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] } });
+    generate.mockResolvedValue(noContrato({ title: "T", summary: "resumo", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] }));
     const r = await runProjectExecution("p1");
     expect(r.produced).toContain("Social Media \u00b7 Pauta do m\u00eas");
   });
@@ -227,7 +285,7 @@ describe("o portão de direção", () => {
 describe("a tarefa segue a produção", () => {
   it("produzindo → em revisão → entregue, ligada ao entregável", async () => {
     db.project.findUnique.mockResolvedValue({ ...baseProject });
-    generate.mockResolvedValue({ ok: true, data: { title: "T", summary: "resumo", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] } });
+    generate.mockResolvedValue(noContrato({ title: "T", summary: "resumo", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] }));
     await runProjectExecution("p1");
 
     const estados = db.task.updateMany.mock.calls.map((c) => c[0].data.status);
@@ -287,7 +345,7 @@ describe("uma voz para o cliente", () => {
 
   it("a entrega pronta NÃO pinga sozinha no portal do cliente", async () => {
     db.project.findUnique.mockResolvedValue({ ...baseProject });
-    generate.mockResolvedValue({ ok: true, data: { title: "T", summary: "resumo", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] } });
+    generate.mockResolvedValue(noContrato({ title: "T", summary: "resumo", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] }));
     await runProjectExecution("p1");
     expect(db.portalMessage.create).not.toHaveBeenCalled();
     expect(createApprovalRequest.mock.calls[0][0].clientVisible).toBe(false);
@@ -299,7 +357,7 @@ describe("uma voz para o cliente", () => {
 describe("o PM apresenta sozinho quando o pacote fecha", () => {
   it("pacote inteiro e sem ressalva → apresenta sem ninguém clicar", async () => {
     db.project.findUnique.mockResolvedValue({ ...baseProject });
-    generate.mockResolvedValue({ ok: true, data: { title: "T", summary: "s", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] } });
+    generate.mockResolvedValue(noContrato({ title: "T", summary: "s", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] }));
 
     const r = await runProjectExecution("p1");
     expect(r.apresentado?.ok).toBe(true);
@@ -310,7 +368,7 @@ describe("o PM apresenta sozinho quando o pacote fecha", () => {
     // O freio que faltava. Peça que a própria casa sabe que está torta não
     // chega ao cliente só porque não havia ninguém olhando.
     db.project.findUnique.mockResolvedValue({ ...baseProject });
-    generate.mockResolvedValue({ ok: true, data: { title: "T", summary: "s", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] } });
+    generate.mockResolvedValue(noContrato({ title: "T", summary: "s", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] }));
     (marcos.apresentar as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ok: false, erro: "2 entrega(s) com ressalva da Qualidade" });
 
     const r = await runProjectExecution("p1");
@@ -327,7 +385,7 @@ describe("o PM apresenta sozinho quando o pacote fecha", () => {
     // enquanto o resto espera material quebra a promessa e confunde o cliente.
     db.project.findUnique.mockResolvedValue({ ...baseProject, agents: JSON.stringify(["a2"]) });
     db.client.findFirst.mockResolvedValue({ id: "c1", name: "Loja X", brandBrain: null });
-    generate.mockResolvedValue({ ok: true, data: { title: "T", summary: "s", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] } });
+    generate.mockResolvedValue(noContrato({ title: "T", summary: "s", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] }));
 
     const r = await runProjectExecution("p1");
     expect(r.askedClient.length).toBeGreaterThan(0);
@@ -349,7 +407,7 @@ describe("o PM apresenta sozinho quando o pacote fecha", () => {
 // Antes, as duas eram o mesmo `pass`: o árbitro dizia "sim" na dúvida e o "não"
 // dele não parava nada.
 describe("reprovação bloqueia, indisponibilidade não", () => {
-  const PECA_BOA = { ok: true, data: { title: "T", summary: "s", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] } };
+  const PECA_BOA = noContrato({ title: "T", summary: "s", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] });
   const auditMock = () => auditDeliverable as unknown as ReturnType<typeof vi.fn>;
 
   /** Dublê fiel de `marcos.apresentar`: recusa enquanto existir `quality_flag`
@@ -456,8 +514,8 @@ describe("o piso de verdade barra dado inventado antes do cliente", () => {
   it("telefone inventado → o especialista refaz, e a versão limpa é publicada", async () => {
     db.project.findUnique.mockResolvedValue({ ...baseProject, agents: JSON.stringify(["a5"]) });
     generate
-      .mockResolvedValueOnce({ ok: true, data: { title: "T", summary: "s", items: [{ headline: "Reserve", caption: "Ligue (11) 91234-5678 e reserve sua mesa hoje mesmo." }] } })
-      .mockResolvedValue({ ok: true, data: { title: "T", summary: "s", items: [{ headline: "Reserve", caption: "Reserve sua mesa pelo canal oficial da casa, sem complicação." }] } });
+      .mockResolvedValueOnce(noContrato({ title: "T", summary: "s", items: [{ headline: "Reserve", caption: "Ligue (11) 91234-5678 e reserve sua mesa hoje mesmo." }] }))
+      .mockResolvedValue(noContrato({ title: "T", summary: "s", items: [{ headline: "Reserve", caption: "Reserve sua mesa pelo canal oficial da casa, sem complicação." }] }));
 
     const r = await runProjectExecution("p1");
     expect(db.deliverable.create).toHaveBeenCalled();
@@ -469,7 +527,7 @@ describe("o piso de verdade barra dado inventado antes do cliente", () => {
   it("insistiu na invenção → NÃO publica, e o bloqueio fica registrado", async () => {
     // Este é o ponto exato em que a casa deixa de ser "sai de qualquer jeito".
     db.project.findUnique.mockResolvedValue({ ...baseProject, agents: JSON.stringify(["a5"]) });
-    generate.mockResolvedValue({ ok: true, data: { title: "T", summary: "s", items: [{ headline: "Reserve", caption: "Garantimos 80% mais vendas já no primeiro mês, sem esforço nenhum." }] } });
+    generate.mockResolvedValue(noContrato({ title: "T", summary: "s", items: [{ headline: "Reserve", caption: "Garantimos 80% mais vendas já no primeiro mês, sem esforço nenhum." }] }));
 
     const r = await runProjectExecution("p1");
     expect(db.deliverable.create).not.toHaveBeenCalled();
@@ -482,7 +540,7 @@ describe("o piso de verdade barra dado inventado antes do cliente", () => {
 
   it("peça barrada não conta como pronta — o pacote não é apresentado", async () => {
     db.project.findUnique.mockResolvedValue({ ...baseProject, agents: JSON.stringify(["a5"]) });
-    generate.mockResolvedValue({ ok: true, data: { title: "T", summary: "s", items: [{ headline: "X", caption: "Nosso CNPJ é 12.345.678/0001-90, fale com a gente quando quiser." }] } });
+    generate.mockResolvedValue(noContrato({ title: "T", summary: "s", items: [{ headline: "X", caption: "Nosso CNPJ é 12.345.678/0001-90, fale com a gente quando quiser." }] }));
 
     const r = await runProjectExecution("p1");
     expect(r.status).toBe("failed");
@@ -495,7 +553,7 @@ describe("o piso de verdade barra dado inventado antes do cliente", () => {
       briefingJson: JSON.stringify({ scope: { prospectPhone: "(11) 98940-0692" } }),
     });
     db.project.findUnique.mockResolvedValue({ ...baseProject, agents: JSON.stringify(["a5"]) });
-    generate.mockResolvedValue({ ok: true, data: { title: "T", summary: "s", items: [{ headline: "Fale", caption: "Chame no WhatsApp (11) 98940-0692 e a gente responde rapidinho." }] } });
+    generate.mockResolvedValue(noContrato({ title: "T", summary: "s", items: [{ headline: "Fale", caption: "Chame no WhatsApp (11) 98940-0692 e a gente responde rapidinho." }] }));
 
     const r = await runProjectExecution("p1");
     expect(r.barradosNoPiso ?? []).toHaveLength(0);
@@ -543,7 +601,7 @@ describe("o pacote pronto é apresentado mesmo sem produção nova", () => {
 describe("a leitura minuciosa do cliente entra na produção", () => {
   it("o motor pede a síntese UMA vez, com o trio workspace/cliente/solicitação", async () => {
     db.project.findUnique.mockResolvedValue({ ...baseProject });
-    generate.mockResolvedValue({ ok: true, data: { title: "T", summary: "s", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] } });
+    generate.mockResolvedValue(noContrato({ title: "T", summary: "s", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] }));
     await runProjectExecution("p1");
     expect(sinteseDoFeedDoCliente).toHaveBeenCalledTimes(1);
     expect(sinteseDoFeedDoCliente).toHaveBeenCalledWith("ws1", "c1", "cr1");
@@ -556,7 +614,7 @@ describe("a leitura minuciosa do cliente entra na produção", () => {
       estiloVisual: "close de produto com luz quente",
     });
     db.project.findUnique.mockResolvedValue({ ...baseProject });
-    generate.mockResolvedValue({ ok: true, data: { title: "T", summary: "s", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] } });
+    generate.mockResolvedValue(noContrato({ title: "T", summary: "s", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] }));
     await runProjectExecution("p1");
     for (const call of generate.mock.calls) {
       expect(call[0].user as string).toContain("FEED REAL DO CLIENTE");
@@ -565,7 +623,7 @@ describe("a leitura minuciosa do cliente entra na produção", () => {
 
   it("sem conexão, a DEGRADAÇÃO declarada também vai — proibindo inferir estilo", async () => {
     db.project.findUnique.mockResolvedValue({ ...baseProject });
-    generate.mockResolvedValue({ ok: true, data: { title: "T", summary: "s", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] } });
+    generate.mockResolvedValue(noContrato({ title: "T", summary: "s", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] }));
     await runProjectExecution("p1");
     const user = generate.mock.calls[0]![0].user as string;
     expect(user).toContain("feed não lido");
@@ -574,7 +632,7 @@ describe("a leitura minuciosa do cliente entra na produção", () => {
 
   it("a falta de feed NUNCA trava a produção", async () => {
     db.project.findUnique.mockResolvedValue({ ...baseProject });
-    generate.mockResolvedValue({ ok: true, data: { title: "T", summary: "s", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] } });
+    generate.mockResolvedValue(noContrato({ title: "T", summary: "s", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] }));
     const r = await runProjectExecution("p1");
     expect(r.ok).toBe(true);
     expect(r.produced.length).toBeGreaterThan(0);
@@ -592,7 +650,7 @@ describe("o motor entende o que o briefing REALMENTE grava sobre material", () =
       briefingJson: JSON.stringify({ scope: { social } }),
     });
     db.project.findUnique.mockResolvedValue({ ...baseProject });
-    generate.mockResolvedValue({ ok: true, data: { title: "T", summary: "s", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] } });
+    generate.mockResolvedValue(noContrato({ title: "T", summary: "s", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] }));
   }
   const promptDoVideo = () =>
     (generate.mock.calls.map((c) => c[0].user as string).find((u) => u.includes("ROTEIRO DE VÍDEO")) ?? "");
@@ -699,7 +757,7 @@ describe("número de ciclo medido noutra base não entra no prompt de otimizaç�
     (planProduction as ReturnType<typeof vi.fn>).mockResolvedValue({
       orderedDepartments: ["analytics"], goal: "g", warnings: [], pmMode: "rule_based",
     });
-    generate.mockResolvedValue({ ok: true, data: { title: "Otimização", summary: "resumo", items: [{ format: "feed", headline: "Oi", caption: "legenda bem completa aqui", visual: "foto" }] } });
+    generate.mockResolvedValue(noContrato({ title: "Otimização", summary: "resumo", items: [{ format: "feed", headline: "Oi", caption: "legenda bem completa aqui", visual: "foto" }] }));
     db.cycle.findFirst.mockImplementation(async (args?: { where?: { status?: string } }) =>
       args?.where?.status === "fechado"
         ? { reference: "2026-07", resultsJson: JSON.stringify(results) }
@@ -736,5 +794,265 @@ describe("número de ciclo medido noutra base não entra no prompt de otimizaç�
     comCicloAnterior({ postsPublicados: 8, seguidores: 1200 });
     await runProjectExecution("p1");
     expect(promptDeOtimizacao()).not.toMatch(/OMITIDOS/);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// A MADRUGADA DE 05/08/2026 — os furos que o raio-x do Brain encontrou.
+// Cada teste abaixo é a metade que trava um deles.
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe("o TÍTULO da entrega passa pelo piso de verdade", () => {
+  it("título com telefone que a agência não tem → NÃO publica", async () => {
+    // O título vira o `name` do Deliverable — o PRIMEIRO campo que o cliente lê
+    // no portal. O piso conferia só o corpo, e `deliverableMarkdown` não inclui
+    // o título: preço, prazo e telefone inventados passavam inteiros, com o
+    // piso dizendo aprovado.
+    db.project.findUnique.mockResolvedValue({ ...baseProject });
+    generate.mockResolvedValue(noContrato({
+      title: "Fale agora no (11) 98940-0692",
+      summary: "s",
+      items: [{ headline: "A", caption: "uma legenda bem completa e sem nenhum dado inventado" }],
+    }));
+
+    const r = await runProjectExecution("p1");
+    expect(db.deliverable.create).not.toHaveBeenCalled();
+    expect(r.barradosNoPiso!.length).toBeGreaterThan(0);
+  });
+
+  it("título limpo com corpo limpo continua passando — o piso não atrapalha o trabalho", async () => {
+    db.project.findUnique.mockResolvedValue({ ...baseProject });
+    generate.mockResolvedValue(noContrato({
+      title: "Pauta do mês — Loja X",
+      summary: "s",
+      items: [{ headline: "A", caption: "uma legenda bem completa e sem nenhum dado inventado" }],
+    }));
+    const r = await runProjectExecution("p1");
+    expect(r.barradosNoPiso).toHaveLength(0);
+    expect(db.deliverable.create).toHaveBeenCalled();
+  });
+});
+
+describe("a correção enxerga o TEXTO ANTERIOR — não é re-roll cego", () => {
+  it("o pedido de refação carrega a versão anterior junto do parecer", async () => {
+    db.project.findUnique.mockResolvedValue({ ...baseProject });
+    const auditMock = auditDeliverable as unknown as ReturnType<typeof vi.fn>;
+    auditMock.mockResolvedValueOnce({ verdict: "reprovado", issues: ["clichê vazio"], note: "revisar" })
+             .mockResolvedValue({ verdict: "aprovado", issues: [], note: "ok" });
+    generate.mockResolvedValue(noContrato({
+      title: "T", summary: "s",
+      items: [{ headline: "MARCA DAGUA DA VERSAO ANTERIOR", caption: "uma legenda bem completa para passar do piso" }],
+    }));
+
+    await runProjectExecution("p1");
+    // A 2ª chamada é a revisão pedida pela Qualidade.
+    const revisao = generate.mock.calls[1]![0].user as string;
+    expect(revisao).toContain("MARCA DAGUA DA VERSAO ANTERIOR");
+    expect(revisao).toContain("clichê vazio");
+  });
+});
+
+describe("o contrato de saída é conferido no JSON, não confiado ao prompt", () => {
+  it("entregou 2 peças onde o cliente comprou 6 a 8 → tenta corrigir e, insistindo, NÃO publica", async () => {
+    db.project.findUnique.mockResolvedValue({ ...baseProject });
+    (planProduction as ReturnType<typeof vi.fn>).mockResolvedValue({
+      orderedDepartments: ["social-media"], goal: "g", warnings: [], pmMode: "rule_based",
+    });
+    generate.mockResolvedValue({
+      ok: true,
+      data: { title: "Legendas", summary: "s", items: [
+        { format: "feed", headline: "A", caption: "uma legenda bem completa para passar do piso" },
+        { format: "feed", headline: "B", caption: "outra legenda bem completa para passar do piso" },
+      ] },
+    });
+
+    const r = await runProjectExecution("p1");
+    expect(db.deliverable.create).not.toHaveBeenCalled();
+    expect(r.skipped.join(" ")).toMatch(/contrato de sa[íi]da/i);
+    // Tentou corrigir uma vez por especialista antes de barrar: 3 especialistas × 2.
+    expect(generate).toHaveBeenCalledTimes(6);
+    // E o pedido de correção diz o número que falta, não "melhore".
+    expect(generate.mock.calls[1]![0].user as string).toMatch(/entregou 2/);
+  });
+
+  it("a correção que cumpre o contrato é publicada", async () => {
+    db.project.findUnique.mockResolvedValue({ ...baseProject });
+    generate
+      .mockResolvedValueOnce({ ok: true, data: { title: "T", summary: "s", items: [{ format: "feed", headline: "A", caption: "uma legenda bem completa para passar do piso" }] } })
+      .mockResolvedValue(noContrato({ title: "T", summary: "s", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] }));
+
+    const r = await runProjectExecution("p1");
+    expect(r.produced.length).toBeGreaterThan(0);
+  });
+
+  it("carrossel com telas fora de 3–6 é barrado — cada tela é uma imagem PAGA", async () => {
+    db.project.findUnique.mockResolvedValue({ ...baseProject });
+    generate.mockResolvedValue(noContrato({
+      title: "T", summary: "s",
+      items: [{ format: "carrossel", headline: "C", caption: "legenda de carrossel bem completa", cenas: "1) única tela" }],
+    }));
+    const r = await runProjectExecution("p1");
+    expect(r.skipped.join(" ")).toMatch(/tela/i);
+  });
+});
+
+describe("ciclo ilegível é BLOQUEIO, nunca ciclo nulo", () => {
+  it("falha ao ler o ciclo → 'failed', e o mês NÃO é marcado como concluído", async () => {
+    // Com `null`, o motor comparava o mês 5 contra as entregas do mês 1, via
+    // todos os especialistas produzidos, montava fila vazia e gravava "done".
+    // O mês inteiro era pulado e carimbado como entregue — e o cron não
+    // recupera "done".
+    db.project.findUnique.mockResolvedValue({ ...baseProject });
+    db.cycle.findFirst.mockRejectedValue(new Error("banco fora do ar"));
+
+    const r = await runProjectExecution("p1");
+    expect(r.status).toBe("failed");
+    expect(db.deliverable.create).not.toHaveBeenCalled();
+    const statuses = db.project.update.mock.calls.map((c) => c[0].data.executionStatus);
+    expect(statuses).not.toContain("done");
+    expect(db.project.update.mock.calls.at(-1)?.[0].data.executionError).toMatch(/ciclo/i);
+  });
+});
+
+describe("executionAttempts conta falhas SEGUIDAS, não a vida inteira", () => {
+  it("passada que fecha o pacote ZERA o contador — o mês 3 continua recuperável", async () => {
+    // O cliente vitalício gastava as 5 tentativas nos dois primeiros meses e,
+    // do mês 3 em diante, qualquer falha ficava sem recuperação para sempre.
+    db.project.findUnique.mockResolvedValue({ ...baseProject, executionAttempts: 4 });
+    generate.mockResolvedValue(noContrato({ title: "T", summary: "s", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] }));
+
+    const r = await runProjectExecution("p1");
+    expect(r.status).toBe("done");
+    expect(db.project.update.mock.calls.at(-1)?.[0].data.executionAttempts).toBe(0);
+  });
+
+  it("passada que NÃO fecha não zera — senão o teto de retomada nunca chegaria", async () => {
+    db.project.findUnique.mockResolvedValue({ ...baseProject });
+    generate.mockResolvedValue({ ok: false, error: "IA fora" });
+    await runProjectExecution("p1");
+    expect(db.project.update.mock.calls.at(-1)?.[0].data.executionAttempts).toBeUndefined();
+  });
+});
+
+describe("recusa não é falha transitória — o cron para de re-rolar o dado", () => {
+  const invencao = () => noContrato({
+    title: "T", summary: "s",
+    items: [{ headline: "Fale", caption: "Chame no WhatsApp (11) 98940-0692 e a gente responde rapidinho." }],
+  });
+
+  it("primeira passada só com recusas → 'failed' marcado como recusa", async () => {
+    db.project.findUnique.mockResolvedValue({ ...baseProject, executionError: null });
+    generate.mockResolvedValue(invencao());
+    await runProjectExecution("p1");
+    const last = db.project.update.mock.calls.at(-1)?.[0].data;
+    expect(last.executionStatus).toBe("failed");
+    expect(last.executionError).toMatch(/^\[recusa\]/);
+  });
+
+  it("segunda passada seguida só com recusas → 'blocked': o cron não pega mais", async () => {
+    db.project.findUnique.mockResolvedValue({ ...baseProject, executionError: "[recusa] pendências: ..." });
+    generate.mockResolvedValue(invencao());
+    await runProjectExecution("p1");
+    expect(db.project.update.mock.calls.at(-1)?.[0].data.executionStatus).toBe("blocked");
+  });
+
+  it("falha de IA continua sendo 'failed' — o mundo muda, vale retentar", async () => {
+    db.project.findUnique.mockResolvedValue({ ...baseProject, executionError: "[recusa] pendências: ..." });
+    generate.mockResolvedValue({ ok: false, error: "IA fora" });
+    await runProjectExecution("p1");
+    expect(db.project.update.mock.calls.at(-1)?.[0].data.executionStatus).toBe("failed");
+  });
+});
+
+describe("os fail-opens que sobraram", () => {
+  it("a trava de concorrência é ATÔMICA: quem perdeu o updateMany não roda", async () => {
+    db.project.findUnique.mockResolvedValue({ ...baseProject });
+    db.project.updateMany.mockResolvedValue({ count: 0 }); // outro chamador ganhou
+    const r = await runProjectExecution("p1");
+    expect(r.status).toBe("skipped_running");
+    expect(generate).not.toHaveBeenCalled();
+    expect(db.deliverable.create).not.toHaveBeenCalled();
+  });
+
+  it("a trava põe o estado esperado no WHERE — não decide em memória", async () => {
+    db.project.findUnique.mockResolvedValue({ ...baseProject });
+    generate.mockResolvedValue(noContrato({ title: "T", summary: "s", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] }));
+    await runProjectExecution("p1");
+    const where = db.project.updateMany.mock.calls[0]![0].where;
+    expect(where.id).toBe("p1");
+    expect(Array.isArray(where.OR)).toBe(true);
+  });
+
+  it("aprovação do departamento que falha vira PENDÊNCIA, não silêncio", async () => {
+    // Estava solto depois do `create`: se lançasse, o Deliverable já existia, a
+    // retentativa pulava o especialista e a aprovação nunca era criada.
+    db.project.findUnique.mockResolvedValue({ ...baseProject });
+    generate.mockResolvedValue(noContrato({ title: "T", summary: "s", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] }));
+    createApprovalRequest.mockRejectedValue(new Error("banco fora"));
+
+    const r = await runProjectExecution("p1");
+    expect(db.deliverable.create).toHaveBeenCalled();
+    expect(r.skipped.join(" ")).toMatch(/aprova[çc][ãa]o/i);
+    expect(r.status).toBe("failed");
+    const tipos = db.activityEvent.create.mock.calls.map((c) => c[0].data.type);
+    expect(tipos).toContain("aprovacao_nao_criada");
+  });
+});
+
+describe("o kit de marca — o serviço mais caro da casa — sai do fail-open", () => {
+  const PROJETO_DE_IDENTIDADE = () => {
+    db.project.findUnique.mockResolvedValue({ ...baseProject, agents: JSON.stringify(["a2"]) });
+    db.clientRequestDb.findUnique.mockResolvedValue({
+      id: "cr1", businessName: "Loja X",
+      services: JSON.stringify(["identidade visual"]), objectives: "[]", briefingJson: "{}",
+    });
+    (planProduction as ReturnType<typeof vi.fn>).mockResolvedValue({
+      orderedDepartments: ["design"], goal: "g", warnings: [], pmMode: "rule_based",
+    });
+    generate.mockResolvedValue(noContrato({ title: "T", summary: "s", items: [{ headline: "A", caption: "uma legenda bem completa para passar do piso" }] }));
+  };
+
+  it("logo produzido mas entrega não gravada → PENDÊNCIA visível, não silêncio", async () => {
+    // O cliente pagava, o logo ia para o armazenamento, e o Deliverable que o
+    // torna visível falhava dentro de um `.catch(() => {})`. Ele nunca
+    // encontrava o que comprou.
+    PROJETO_DE_IDENTIDADE();
+    colherIdentidadeDaEntrega.mockResolvedValue({ encontrouEntrega: true });
+    produzirKitDeMarca.mockResolvedValue({ arquivos: [{ id: "m1", nome: "logo-claro-loja.svg", para: "fundo claro" }] });
+    db.deliverable.create.mockImplementation(async (args: { data: { type?: string } }) => {
+      if (args.data.type === "brand-kit") throw new Error("banco recusou");
+      return { id: "d1" };
+    });
+
+    const r = await runProjectExecution("p1");
+    expect(r.skipped.join(" ")).toMatch(/Kit de marca/i);
+    const tipos = db.activityEvent.create.mock.calls.map((c) => c[0].data.type);
+    expect(tipos).toContain("kit_de_marca_invisivel");
+  });
+
+  it("logo JÁ no armazenamento e sem entrega → a entrega é retentada, não abandonada", async () => {
+    // `produzirKitDeMarca` é idempotente e devolve lista vazia quando o logo já
+    // existe. Isso fazia a retentativa não reentregar NADA — o arquivo existia
+    // e o cliente continuava sem encontrá-lo, para sempre.
+    PROJETO_DE_IDENTIDADE();
+    colherIdentidadeDaEntrega.mockResolvedValue({ encontrouEntrega: true });
+    produzirKitDeMarca.mockResolvedValue({ arquivos: [] });
+    db.mediaAsset.findMany.mockResolvedValue([{ id: "m9", fileName: "logo-simbolo-loja.png" }]);
+
+    await runProjectExecution("p1");
+    const kits = db.deliverable.create.mock.calls.filter((c) => c[0].data.type === "brand-kit");
+    expect(kits).toHaveLength(1);
+    expect(kits[0]![0].data.content).toMatch(/api\/media\/m9/);
+  });
+
+  it("kit JÁ entregue → não duplica no portal", async () => {
+    PROJETO_DE_IDENTIDADE();
+    colherIdentidadeDaEntrega.mockResolvedValue({ encontrouEntrega: true });
+    produzirKitDeMarca.mockResolvedValue({ arquivos: [{ id: "m1", nome: "logo-claro-loja.svg", para: "fundo claro" }] });
+    db.deliverable.findFirst.mockResolvedValue({ id: "kit-antigo" });
+
+    await runProjectExecution("p1");
+    const kits = db.deliverable.create.mock.calls.filter((c) => c[0].data.type === "brand-kit");
+    expect(kits).toHaveLength(0);
   });
 });

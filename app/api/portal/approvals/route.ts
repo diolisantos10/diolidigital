@@ -189,17 +189,42 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // ── A DECISÃO PROPAGA AOS POSTS DO CARD ───────────────────────────────────
     // É o fechamento do circuito do Lote 1: o clique do cliente nunca pode
-    // "gravar um status e acabar ali". Aprovar → as peças viram "approved"
-    // (prontas para o agendamento); pedir ajuste ou recusar → viram
-    // "revision_requested", e o comentário (obrigatório nas duas) já está no
-    // registro do card como ApprovalComment. Filtro por clientId do CARD: um id
-    // de post de outro cliente dentro do JSON não seria tocado.
+    // "gravar um status e acabar ali".
+    //
+    // 05/08/2026 — o beco sem saída: aprovar gravava `status: "approved"` e
+    // NADA no repositório movia `approved → scheduled`. `publicarAgendados` só
+    // olha "scheduled". O cliente aprovava os 6 carrosséis, o portal escrevia
+    // "Aprovado por você", e nenhum post ia ao ar — nunca, sem ninguém saber.
+    // Agora a aprovação PROMOVE a peça a "scheduled" pela mesma função que
+    // atende o pacote e o ciclo (esteira/publicacao.ts), com o mesmo empurrão
+    // de datas — um caminho só para o estado que autoriza publicar.
+    //
+    // Pedir ajuste ou recusar → "revision_requested", e o comentário
+    // (obrigatório nas duas) já está no registro do card como ApprovalComment.
+    // Filtro por clientId do CARD nos dois ramos: um id de post de outro cliente
+    // dentro do JSON não é tocado.
     if (postsDoCard.length > 0 && approval.clientId) {
-      const statusDosPosts = status === "approved" ? "approved" : "revision_requested";
-      await prisma.socialPost.updateMany({
-        where: { id: { in: postsDoCard }, clientId: approval.clientId },
-        data: { status: statusDosPosts },
-      }).catch((e) => console.error("[portal/approvals] propagação aos posts falhou", e));
+      if (status === "approved") {
+        try {
+          // Import dinâmico: publicacao.ts fala com a Meta e não deve entrar no
+          // pacote desta rota só por causa de um ramo.
+          const { agendarPecasAprovadas } = await import("@/lib/agency/esteira/publicacao");
+          const r = await agendarPecasAprovadas({ clientId: approval.clientId, postIds: postsDoCard });
+          if (r.ignorados.length > 0) {
+            // Peça aprovada que NÃO virou calendário não pode sumir em silêncio:
+            // é trabalho pago preso num estado que o relógio não lê.
+            console.error(
+              "[portal/approvals] peças aprovadas NÃO agendadas:",
+              r.ignorados.map((i) => `${i.postId}=${i.status}`).join(", "),
+            );
+          }
+        } catch (e) { console.error("[portal/approvals] agendamento das peças falhou", e); }
+      } else {
+        await prisma.socialPost.updateMany({
+          where: { id: { in: postsDoCard }, clientId: approval.clientId },
+          data: { status: "revision_requested" },
+        }).catch((e) => console.error("[portal/approvals] propagação aos posts falhou", e));
+      }
     }
 
     // The client approving a PROPOSAL is what creates the project and sets the
@@ -252,12 +277,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     //
     // Best-effort de propósito: a resposta ao clique do cliente nunca depende
     // de uma chamada de IA dar certo.
-    if (approval.department !== "proposal" && approval.clientRequestId) {
+    // A condição era `department !== "proposal" && approval.clientRequestId`, e
+    // o segundo termo era o buraco (05/08/2026): card de CLIENTE DIRETO nasce
+    // só com `clientId` (por design de /api/social-posts/aprovacao — o caso
+    // Foocci). Ele caía fora do `if` inteiro: o cliente escrevia o que queria
+    // mudar, a peça virava "revision_requested", e nada refazia, ninguém
+    // escalava, ninguém avisava — o mesmo defeito que refacao.ts dizia ter
+    // consertado, sobrevivendo pelo outro ramo. A posse agora é pelas DUAS
+    // chaves, como na conversa (app/api/messages/conversa.ts).
+    const clienteDoCard = approval.clientId ?? approval.clientRequest?.clientId ?? null;
+    if (approval.department !== "proposal" && (approval.clientRequestId || clienteDoCard)) {
       if (status === "rejected" || status === "revision_requested") {
         try {
           const { refazerPorPedidoDoCliente } = await import("@/lib/agency/esteira/refacao");
           await refazerPorPedidoDoCliente({
             clientRequestId: approval.clientRequestId,
+            clientId: clienteDoCard,
             department: approval.department,
             comentario: body.comment,
           });
@@ -267,23 +302,36 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       // Aprovou a última pendência? Então ele aprovou o pacote — e é isso que
       // abre a operação contínua. Sem esta ponte, `aprovarPacote` só era
       // alcançável por alguém da agência clicando por ele.
-      if (status === "approved") {
+      if (status === "approved" && approval.clientRequestId) {
         try {
           const restantes = await prisma.approvalRequest.count({
             where: { clientRequestId: approval.clientRequestId, status: "pending", clientVisible: true },
           });
           if (restantes === 0) {
             const projeto = await prisma.project.findFirst({
-              where: { clientRequestId: approval.clientRequestId, clientApprovedAt: null, presentedAt: { not: null } },
-              select: { id: true },
+              where: { clientRequestId: approval.clientRequestId, presentedAt: { not: null } },
+              select: { id: true, clientApprovedAt: true },
               orderBy: { createdAt: "desc" },
             });
-            if (projeto) {
+            if (projeto && !projeto.clientApprovedAt) {
               const { aprovarPacote } = await import("@/lib/agency/esteira/marcos");
               await aprovarPacote(projeto.id);
+            } else if (projeto) {
+              // ── DO MÊS 2 EM DIANTE (05/08/2026) ─────────────────────────────
+              // `aprovarPacote` aborta de saída quando `clientApprovedAt` já
+              // existe, e ele era o ÚNICO chamador de `aprovarCalendario`.
+              // Resultado: o cliente de mensalidade aprovava o mês 2 depois de
+              // ler "Aprove e a gente já agenda as publicações" (mes.ts,
+              // apresentarCiclo) e o mês inteiro ficava em rascunho. Todo mês.
+              // O consentimento do mês é do CICLO, e agora tem caminho próprio.
+              const { aprovarCalendarioDoCicloCorrente } = await import("@/lib/agency/esteira/publicacao");
+              const r = await aprovarCalendarioDoCicloCorrente(projeto.id);
+              if (r.agendados === 0 && r.motivo) {
+                console.warn(`[portal/approvals] calendário do ciclo não agendou nada: ${r.motivo}`);
+              }
             }
           }
-        } catch (e) { console.error("[portal/approvals] aprovarPacote error", e); }
+        } catch (e) { console.error("[portal/approvals] aprovarPacote/ciclo error", e); }
       }
     }
 

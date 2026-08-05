@@ -7,6 +7,7 @@ import { useAgencyStore } from "@/store/agency-store";
 import { useDbDeliverables } from "@/lib/hooks/useDbDeliverables";
 import type { PmAssessment } from "@/app/api/agents/pm/generate/route";
 import { comoTexto, temSubstancia } from "@/lib/agency/esteira/conteudo";
+import AvisoModoAlternativo from "@/components/agency/ui/AvisoModoAlternativo";
 
 const ACCENT = "#1A1A1A";
 
@@ -60,6 +61,8 @@ export default function PmAgentPage() {
   const [activeTab, setActiveTab] = useState<OutputTab>("overview");
   const [stepIndex, setStepIndex] = useState(0);
   const [assessment, setAssessment] = useState<PmAssessment | null>(null);
+  // Quando a IA falha e o resultado sai do gerador por regras — DESIGN.md §7.3.
+  const [motivoDaReserva, setMotivoDaReserva] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [runError, setRunError] = useState<string | null>(null);
 
@@ -86,11 +89,13 @@ export default function PmAgentPage() {
     setStepIndex(0);
     setSaved(false);
     setRunError(null);
+    setMotivoDaReserva(null);
 
     const stepDelays = [700, 1600, 2800, 4000, 5500];
     stepDelays.forEach((ms, i) => setTimeout(() => setStepIndex(i + 1), ms));
 
     let finalAssessment: PmAssessment;
+    let motivoDaReserva: string | null = null;
     try {
       const res = await fetch("/api/agents/pm/generate", {
         method: "POST",
@@ -111,16 +116,20 @@ export default function PmAgentPage() {
 
       const data = (await res.json()) as { ok: boolean; assessment?: PmAssessment; error?: string };
       if (!data.ok || !data.assessment) {
+        // Cair em regras é aceitável; cair em SILÊNCIO não. DESIGN.md §7.3.
         console.warn("[pm-agent] AI unavailable, using fallback:", data.error);
         finalAssessment = generateMockAssessment(linkedProject.name);
+        motivoDaReserva = data.error ?? "a IA não respondeu";
       } else {
         finalAssessment = data.assessment;
       }
     } catch (err) {
       console.warn("[pm-agent] fetch error, falling back:", err);
       finalAssessment = generateMockAssessment(linkedProject.name);
+      motivoDaReserva = err instanceof Error ? err.message : "falha de conexão com o serviço de IA";
     }
 
+    setMotivoDaReserva(motivoDaReserva);
     setAssessment(finalAssessment);
     setAgentState("output_ready");
     setActiveTab("overview");
@@ -147,13 +156,14 @@ export default function PmAgentPage() {
     setStepIndex(0);
     setSaved(false);
     setRunError(null);
+    setMotivoDaReserva(null);
   }
 
   const healthColor = assessment
     ? assessment.healthScore >= 8 ? "#16A34A"
     : assessment.healthScore >= 5 ? "#D97706"
     : "#DC2626"
-    : "#9B9B95";
+    : "var(--text-muted)";
 
   return (
     <div className="flex flex-col min-h-screen bg-[var(--bg)]">
@@ -327,6 +337,10 @@ export default function PmAgentPage() {
 
           {agentState === "output_ready" && assessment && (
             <div className="space-y-4">
+              {motivoDaReserva && (
+                <AvisoModoAlternativo oQue="Diagnóstico do PM" motivo={motivoDaReserva} />
+              )}
+
               {/* Tab bar */}
               <div className="flex items-center gap-1 bg-white border border-[var(--border)] rounded-[8px] p-1 overflow-x-auto">
                 {OUTPUT_TABS.map((t) => (

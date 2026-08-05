@@ -181,8 +181,65 @@ export default function ProjectsPage() {
           action={<Link href="/agency/orchestrator"><Button variant="primary">Abrir Orquestrador</Button></Link>}
         />
       ) : (
-        <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-          <table className="w-full">
+        <>
+        {/* Celular: cartão em vez de tabela de 7 colunas — DESIGN.md §6.3. */}
+        <ul className="md:hidden space-y-2 list-none p-0 m-0">
+          {filtered.map((project) => {
+            const client = getClient(project.clientId);
+            const { done, total, pct } = getProgress(project.id);
+            const daysLeft = project.deadline
+              ? Math.ceil((new Date(project.deadline).getTime() - Date.now()) / 86400000)
+              : null;
+            const overdue = daysLeft !== null && daysLeft < 0;
+            return (
+              <li key={project.id} className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4">
+                <Link href={`/agency/projects/${project.id}`} className="block">
+                  <div className="text-[14px] font-medium text-[var(--text-primary)] leading-snug">{project.name}</div>
+                  <div className="text-[12px] text-[var(--text-secondary)] mt-0.5">
+                    {client?.name ?? "—"}{project.type ? ` · ${project.type}` : ""}
+                  </div>
+                </Link>
+                <div className="flex flex-wrap items-center gap-1.5 mt-3">
+                  <Badge variant={project.stage} />
+                  <Badge variant={project.priority} />
+                  {daysLeft !== null && (
+                    <span className={`text-[12px] mono-num font-medium ${overdue ? "text-[var(--danger)]" : daysLeft <= 7 ? "text-[var(--warning)]" : "text-[var(--text-secondary)]"}`}>
+                      {overdue ? "Atrasado" : `${daysLeft}d`}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 mt-3">
+                  <div className="flex-1 h-1.5 bg-[var(--accent)] rounded-full overflow-hidden">
+                    <div className="h-full bg-[var(--navy)] rounded-full" style={{ width: `${pct}%` }} />
+                  </div>
+                  <span className="text-[12px] text-[var(--text-secondary)] mono-num shrink-0">{done}/{total} tarefas</span>
+                </div>
+                <div className="mt-3 pt-3 border-t border-[var(--border)] flex items-center gap-1.5">
+                  <div className="text-[12px] text-[var(--text-muted)] flex-1">
+                    Criado {formatShort(project.createdAt)}
+                  </div>
+                  {deleteTarget === project.id ? (
+                    <>
+                      <button onClick={() => handleDelete(project.id)} className="h-8 px-3 rounded-[6px] bg-[var(--danger)] text-white text-[12px] font-semibold">Confirmar</button>
+                      <button onClick={() => setDeleteTarget(null)} className="h-8 px-3 rounded-[6px] border border-[var(--border)] text-[var(--text-secondary)] text-[12px]">Cancelar</button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => setDeleteTarget(project.id)}
+                      aria-label={`Excluir o projeto ${project.name}`}
+                      className="h-8 px-3 rounded-[6px] border border-[#FCA5A5] text-[var(--danger)] text-[12px] font-medium"
+                    >
+                      Excluir
+                    </button>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+
+        <div className="hidden md:block bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-x-auto">
+          <table className="w-full min-w-[760px]">
             <thead>
               <tr className="border-b border-[var(--border)]">
                 <th className="text-left px-5 py-3 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Projeto</th>
@@ -275,6 +332,7 @@ export default function ProjectsPage() {
             </tbody>
           </table>
         </div>
+        </>
       )}
     </>
   );

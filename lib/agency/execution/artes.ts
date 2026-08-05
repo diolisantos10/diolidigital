@@ -50,11 +50,40 @@ const MAX_ARTES_POR_RODADA = 6;
  *  acesso), e cada tentativa custa. */
 const MAX_TENTATIVAS_POR_PECA = 3;
 
+/**
+ * ── O TETO DIÁRIO DE IMAGENS POR CLIENTE ────────────────────────────────────
+ *
+ * O teto por rodada (6) não é teto de gasto: esta rodada dispara a cada 5
+ * minutos, e 6 × 288 rodadas = **1.728 gerações pagas por dia** se as peças
+ * continuarem voltando. O teto por PEÇA (3 tentativas) fecha o caso de uma peça
+ * teimosa; este fecha o caso de MUITAS peças teimosas, de um bug novo que
+ * ninguém previu e do carrossel que multiplica por tela.
+ *
+ * Por que 40, e não 12 nem 500: um mês inteiro de conteúdo desta casa são 6 a 8
+ * posts, com 1 a 2 carrosséis de até 6 telas — na conta mais cara, ~25 imagens.
+ * 40 cabe o mês inteiro produzido num único dia (é o que acontece quando o
+ * pacote é aprovado) mais folga para refação, e ainda assim corta o desastre em
+ * ~43×. Acima de 40 num dia não é produção: é laço.
+ *
+ * É teto de SEGURANÇA, não orçamento comercial — orçamento por cliente e por
+ * contrato ainda não existe nesta casa, e este número não o substitui.
+ */
+const MAX_IMAGENS_POR_CLIENTE_POR_DIA = 40;
+
+/** Teto de telas de um carrossel. Cada tela é UMA geração paga — carrossel de
+ *  12 telas custa 12 imagens. O contrato de saída do especialista (3 a 6) é
+ *  conferido em `especialistas.ts`; aqui é o cinto, porque a peça pode ter
+ *  nascido antes daquela trava existir. */
+const MAX_TELAS_POR_CARROSSEL = 6;
+
 export interface ArtesFeitas {
   produzidas: number;
   falhas: Array<{ postId: string; erro: string }>;
   /** Peças que desistiram — precisam de gente ou de material do cliente. */
   desistiram: string[];
+  /** Peças que NÃO foram tentadas porque o cliente bateu o teto diário de
+   *  imagens. Não é falha da peça e não gasta tentativa — volta amanhã. */
+  semOrcamento: string[];
 }
 
 /**
@@ -65,7 +94,7 @@ export interface ArtesFeitas {
  * agência decidindo que sabe melhor.
  */
 export async function produzirArtesPendentes(): Promise<ArtesFeitas> {
-  const saida: ArtesFeitas = { produzidas: 0, falhas: [], desistiram: [] };
+  const saida: ArtesFeitas = { produzidas: 0, falhas: [], desistiram: [], semOrcamento: [] };
 
   const pendentes = await prisma.socialPost.findMany({
     where: { mediaUrl: null, status: { in: ["draft", "scheduled", "approved"] } },
@@ -109,6 +138,8 @@ export async function produzirArtesPendentes(): Promise<ArtesFeitas> {
     return estilosVistos.get(clientId) ?? "";
   };
 
+  const orcamento = abrirOrcamentoDoDia();
+
   for (const post of pendentes) {
     const tentativas = contarTentativas(post.lastError);
 
@@ -137,6 +168,23 @@ export async function produzirArtesPendentes(): Promise<ArtesFeitas> {
       continue;
     }
 
+    // ── O TETO DIÁRIO, ANTES DE QUALQUER CHAMADA PAGA ───────────────────────
+    // Conferido aqui e não dentro do gerador porque o que custa é a CHAMADA:
+    // depois dela o dinheiro já saiu, independentemente do que aconteça com os
+    // bytes.
+    const disponivel = await orcamento.restam(post.clientId);
+    if (disponivel.erro) {
+      // Não deu para ler o contador. Fail-CLOSED de propósito: um teto de gasto
+      // que se desliga sozinho quando o banco tosse não é teto. A peça volta na
+      // rodada seguinte e NÃO gasta tentativa — não foi ela que falhou.
+      saida.falhas.push({ postId: post.id, erro: `não consegui conferir o teto diário de imagens (${disponivel.erro}) — a peça fica para a próxima rodada` });
+      continue;
+    }
+    if (disponivel.restam <= 0) {
+      saida.semOrcamento.push(post.id);
+      continue;
+    }
+
     const marca = await lerMarca(post.clientId);
     const estiloDoFeed = await estiloDoFeedDe(post.clientId);
     const estiloVisto = await estiloVistoDe(post.clientId);
@@ -145,9 +193,18 @@ export async function produzirArtesPendentes(): Promise<ArtesFeitas> {
     // Gerar uma imagem só e repetir seria entregar cinco vezes a mesma coisa.
     // Cada tela é uma ideia, e a arte tem que acompanhar a ideia dela.
     if (post.format === "carousel" || post.format === "carrossel") {
-      const r = await montarCarrossel(post, marca, estiloDoFeed, estiloVisto);
+      const r = await montarCarrossel(post, marca, estiloDoFeed, estiloVisto, disponivel.restam);
+      // O gasto conta ANTES do veredito: imagem gerada é imagem paga, mesmo que
+      // o carrossel inteiro tenha sido descartado depois.
+      orcamento.gastar(post.clientId, r.gerou);
       if (r.ok) { saida.produzidas++; continue; }
       saida.falhas.push({ postId: post.id, erro: r.erro });
+      if (r.semOrcamento) {
+        // O carrossel não cabe no que sobrou hoje. Não é falha da peça: gastar
+        // tentativa aqui esgotaria o teto por causa do relógio.
+        saida.semOrcamento.push(post.id);
+        continue;
+      }
       await marcarErro(post.id, r.erro, tentativas + 1);
       continue;
     }
@@ -172,6 +229,8 @@ export async function produzirArtesPendentes(): Promise<ArtesFeitas> {
       quality: "high",
       workspaceId: post.workspaceId,
     }).catch((e) => ({ ok: false as const, error: e instanceof Error ? e.message : "erro" }));
+    // A chamada saiu: o dinheiro saiu junto, deu certo ou não.
+    orcamento.gastar(post.clientId, 1);
 
     if (!r.ok || !r.url) {
       const erro = r.error ?? "o gerador de imagem não devolveu nada";
@@ -180,9 +239,17 @@ export async function produzirArtesPendentes(): Promise<ArtesFeitas> {
       continue;
     }
 
+    // ── DAQUI PARA BAIXO A IMAGEM JÁ FOI PAGA ───────────────────────────────
+    // Todo caminho de saída GASTA TENTATIVA. Não é zelo: o `continue` sem
+    // `marcarErro` era um vazamento de dinheiro puro — `contarTentativas` nunca
+    // subia, `MAX_TENTATIVAS_POR_PECA` nunca era atingido, e a peça voltava na
+    // rodada seguinte (a cada 5 minutos, para sempre) gerando uma imagem paga
+    // por rodada sem NUNCA entregar nada.
     const bytes = await baixarImagem(r.url).catch(() => null);
     if (!bytes) {
-      saida.falhas.push({ postId: post.id, erro: "não consegui baixar a imagem gerada" });
+      const erro = "não consegui baixar a imagem gerada";
+      saida.falhas.push({ postId: post.id, erro });
+      await marcarErro(post.id, erro, tentativas + 1);
       continue;
     }
 
@@ -202,6 +269,7 @@ export async function produzirArtesPendentes(): Promise<ArtesFeitas> {
     });
     if (!fundo.ok) {
       saida.falhas.push({ postId: post.id, erro: fundo.motivo });
+      await marcarErro(post.id, fundo.motivo, tentativas + 1);
       continue;
     }
 
@@ -230,6 +298,7 @@ export async function produzirArtesPendentes(): Promise<ArtesFeitas> {
     });
     if (!guardado.ok) {
       saida.falhas.push({ postId: post.id, erro: guardado.motivo });
+      await marcarErro(post.id, guardado.motivo, tentativas + 1);
       continue;
     }
 
@@ -247,6 +316,62 @@ export async function produzirArtesPendentes(): Promise<ArtesFeitas> {
 }
 
 // ─── Internos ───────────────────────────────────────────────────────────────
+
+/**
+ * O orçamento de imagens do dia, por cliente.
+ *
+ * O contador NÃO mora na memória do processo — essa é a lição do teto de ritmo
+ * da Meta, que vale N× com N instâncias no ar e zera a cada deploy. Ele é
+ * DERIVADO do banco: cada geração paga vira exatamente um arquivo `fundo-*`
+ * guardado, então contar esses arquivos de hoje é contar as gerações de hoje.
+ *
+ * O gasto da rodada corrente é somado localmente porque os arquivos só
+ * aparecem depois — a rodada não pode furar o próprio teto enquanto grava.
+ *
+ * Resíduo declarado: a geração que falha ANTES de salvar o fundo (download
+ * caído) sai do bolso e não entra na contagem do banco. É limitada pelas 3
+ * tentativas por peça, e por isso não vira laço.
+ */
+interface OrcamentoDeImagens {
+  restam(clientId: string | null): Promise<{ restam: number; erro?: string }>;
+  gastar(clientId: string | null, quantas: number): void;
+}
+
+const SEM_CLIENTE = "__sem_cliente__";
+
+function abrirOrcamentoDoDia(): OrcamentoDeImagens {
+  const lidoDoBanco = new Map<string, number | "erro">();
+  const gastoNestaRodada = new Map<string, number>();
+  const inicioDoDia = new Date();
+  inicioDoDia.setHours(0, 0, 0, 0);
+
+  return {
+    async restam(clientId) {
+      const chave = clientId ?? SEM_CLIENTE;
+      if (!lidoDoBanco.has(chave)) {
+        const n = clientId
+          ? await prisma.mediaAsset.count({
+              where: {
+                clientId,
+                kind: "generated",
+                fileName: { startsWith: "fundo-" },
+                createdAt: { gte: inicioDoDia },
+              },
+            }).catch(() => "erro" as const)
+          : 0;
+        lidoDoBanco.set(chave, n);
+      }
+      const jaHoje = lidoDoBanco.get(chave)!;
+      if (jaHoje === "erro") return { restam: 0, erro: "o contador do dia não pôde ser lido" };
+      return { restam: MAX_IMAGENS_POR_CLIENTE_POR_DIA - jaHoje - (gastoNestaRodada.get(chave) ?? 0) };
+    },
+    gastar(clientId, quantas) {
+      if (quantas <= 0) return;
+      const chave = clientId ?? SEM_CLIENTE;
+      gastoNestaRodada.set(chave, (gastoNestaRodada.get(chave) ?? 0) + quantas);
+    },
+  };
+}
 
 /** Quantas vezes esta peça já falhou. O contador mora no próprio `lastError`
  *  para não inventar mais uma coluna que um dia diverge do que aconteceu. */
@@ -631,19 +756,34 @@ async function montarCarrossel(
   marca: MarcaDaPeca,
   estiloDoFeed = "",
   estiloVisto = "",
-): Promise<{ ok: boolean; erro: string }> {
+  orcamentoRestante = Number.POSITIVE_INFINITY,
+): Promise<{ ok: boolean; erro: string; gerou: number; semOrcamento?: boolean }> {
   let cenas: string[] = [];
   try {
     const v = JSON.parse(post.scenesJson ?? "[]");
     if (Array.isArray(v)) cenas = v.filter((x): x is string => typeof x === "string");
   } catch { /* corrompido = sem cenas */ }
 
-  if (cenas.length < 2) return { ok: false, erro: "o carrossel não tem telas descritas para desenhar" };
+  if (cenas.length < 2) return { ok: false, erro: "o carrossel não tem telas descritas para desenhar", gerou: 0 };
+  // Uma tela = uma imagem paga. Carrossel fora do formato é conta de multiplicar
+  // errada, e a hora de descobrir é ANTES da primeira chamada.
+  if (cenas.length > MAX_TELAS_POR_CARROSSEL) {
+    return { ok: false, gerou: 0, erro: `o carrossel veio com ${cenas.length} telas e o teto é ${MAX_TELAS_POR_CARROSSEL} — cada tela é uma imagem paga` };
+  }
+  if (cenas.length > orcamentoRestante) {
+    return {
+      ok: false, gerou: 0, semOrcamento: true,
+      erro: `este carrossel precisa de ${cenas.length} imagens e o cliente só tem ${Math.max(0, orcamentoRestante)} no teto de hoje`,
+    };
+  }
 
   const urls: string[] = [];
   /** O que o molde não conseguiu fazer, tela a tela. Vira `lastError` legível —
    *  sem gastar tentativa: o carrossel SAIU, e o que faltou está dito. */
   const notas: string[] = [];
+  /** Imagens efetivamente PAGAS. Sai junto do veredito porque o carrossel é
+   *  tudo-ou-nada: pode falhar na tela 5 tendo pago 5. */
+  let gerou = 0;
   for (const [i, cena] of cenas.entries()) {
     const r = await generateDesign({
       prompt: montarPrompt({
@@ -664,11 +804,12 @@ async function montarCarrossel(
       quality: "high",
       workspaceId: post.workspaceId,
     }).catch(() => ({ ok: false as const, url: undefined }));
+    gerou++;
 
-    if (!r.ok || !r.url) return { ok: false, erro: `não consegui gerar a tela ${i + 1} de ${cenas.length}` };
+    if (!r.ok || !r.url) return { ok: false, gerou, erro: `não consegui gerar a tela ${i + 1} de ${cenas.length}` };
 
     const bytes = await baixarImagem(r.url).catch(() => null);
-    if (!bytes) return { ok: false, erro: `não consegui baixar a tela ${i + 1}` };
+    if (!bytes) return { ok: false, gerou, erro: `não consegui baixar a tela ${i + 1}` };
 
     // A foto de CADA tela fica guardada — é o que faz o re-render de texto de
     // uma tela isolada custar rasterização em vez de uma imagem nova.
@@ -709,7 +850,7 @@ async function montarCarrossel(
       kind: "generated",
       uploadedBy: "design",
     });
-    if (!g.ok) return { ok: false, erro: g.motivo };
+    if (!g.ok) return { ok: false, gerou, erro: g.motivo };
     urls.push(`/api/media/${g.arquivo.id}`);
   }
 
@@ -722,5 +863,5 @@ async function montarCarrossel(
       lastError: notas.length > 0 ? notas.join(" | ").slice(0, 480) : null,
     },
   });
-  return { ok: true, erro: "" };
+  return { ok: true, erro: "", gerou };
 }

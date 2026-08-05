@@ -8,11 +8,29 @@
 //
 // Sem um dos dois, 401. Não existe upload anônimo: arquivo sem dono é arquivo
 // que ninguém consegue apagar quando o cliente pedir exclusão de dados.
+//
+// ── 05/08/2026: o upload deixou de ser um beco ───────────────────────────────
+// Duas coisas erradas moravam aqui e as duas atingiam o MESMO cliente — o
+// criado direto, sem `ClientRequestDb` (o caso Foocci):
+//
+//  1. O workspace saía de `agencyWorkspace.findFirst()` quando o token não
+//     tinha solicitação. Ou seja: o arquivo do cliente era arquivado num
+//     workspace ARBITRÁRIO — o primeiro do banco. `resolvePortalClient` já
+//     devolvia cliente E workspace derivados do token e não era usado.
+//  2. O arquivo virava `MediaAsset` e parava ali: não tocava `MaterialRequest`,
+//     não retomava produção, não avisava ninguém — enquanto a tela dizia ao
+//     cliente "A equipe já foi avisada". Produção travada por falta de logo
+//     continuava travada depois de o logo chegar.
+//
+// O que a rota faz agora, nessa ordem: deriva o dono do token (workspace
+// incluído), guarda o arquivo, e SÓ ENTÃO chama a esteira. A chamada é
+// best-effort e nunca transforma um upload bem-sucedido em erro: o arquivo do
+// cliente já está salvo, e mandá-lo enviar de novo seria mentira.
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { getSession } from "@/lib/auth/session";
-import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-service";
+import { validatePortalAccess, resolvePortalClient } from "@/lib/agency/persistence/portal-access-service";
 import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
 import { guardarArquivo, MAX_BYTES_POR_ARQUIVO } from "@/lib/agency/media/armazenamento";
 import { rateLimited } from "@/lib/security/rate-limit";
@@ -62,7 +80,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const req = clientRequestId
       ? await prisma.clientRequestDb.findUnique({ where: { id: clientRequestId }, select: { workspaceId: true } })
       : null;
-    workspaceId = req?.workspaceId ?? (await prisma.agencyWorkspace.findFirst({ select: { id: true } }))?.id ?? null;
+    workspaceId = req?.workspaceId ?? null;
+    if (!workspaceId || !clientId) {
+      // O DONO COMPLETO vem do token, sempre. Antes, a falta do workspace caía
+      // em `agencyWorkspace.findFirst()` — o primeiro workspace do banco, que
+      // no caso do cliente direto (sem solicitação) é um workspace qualquer.
+      // Arquivo do cliente arquivado na casa errada não é detalhe: é o dado
+      // dele fora da fronteira do inquilino a que ele pertence.
+      const dono = await resolvePortalClient(token);
+      workspaceId = workspaceId ?? dono?.workspaceId ?? null;
+      clientId = clientId ?? dono?.clientId ?? null;
+    }
   } else {
     const session = await getSession();
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -109,5 +137,49 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // salão, não um desenvolvedor lendo código de erro.
     return NextResponse.json({ error: r.motivo, codigo: r.erro }, { status: 400 });
   }
-  return NextResponse.json({ ok: true, arquivo: r.arquivo }, { status: 201 });
+
+  // ── O ARQUIVO DESTRAVA A ESTEIRA ──────────────────────────────────────────
+  // Só no caminho do CLIENTE: quando é a equipe quem sobe (sessão), ela tem a
+  // tela de materiais para marcar o pedido certo, e adivinhar por ela seria pior.
+  // Best-effort de propósito — ver o cabeçalho.
+  let material: Awaited<ReturnType<typeof import("@/lib/agency/esteira/materiais").materialEnviadoPeloCliente>> | null = null;
+  if (uploadedBy === "cliente") {
+    try {
+      const { materialEnviadoPeloCliente } = await import("@/lib/agency/esteira/materiais");
+      material = await materialEnviadoPeloCliente({
+        workspaceId,
+        clientId,
+        clientRequestId,
+        arquivo: { fileName: nome, mimeType: mime },
+        assetId: r.arquivo.id,
+      });
+      // O arquivo passa a morar NO PROJETO que o pediu. Sem este carimbo ele
+      // fica só na pasta do cliente, e quem produz não sabe que ele existe.
+      if (material.projectId) {
+        await prisma.mediaAsset.update({
+          where: { id: r.arquivo.id },
+          data: { projectId: material.projectId },
+        }).catch(() => { /* best-effort */ });
+      }
+    } catch (e) {
+      console.error("[media] envio do cliente não chegou à esteira", e);
+    }
+  }
+
+  return NextResponse.json({
+    ok: true,
+    arquivo: r.arquivo,
+    // A verdade do que aconteceu depois do upload, para a tela poder falar sem
+    // prometer: a equipe foi avisada? destravou? ainda falta alguma coisa?
+    ...(material
+      ? {
+          material: {
+            equipeAvisada: material.equipeAvisada,
+            aindaFaltam: material.aindaFaltam,
+            producaoRetomada: material.producaoRetomada,
+            atendeuPedido: material.materialRequestId != null,
+          },
+        }
+      : {}),
+  }, { status: 201 });
 }

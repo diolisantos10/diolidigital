@@ -4,9 +4,10 @@ const generate = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/ai/generate", () => ({ generate }));
 
 import {
-  auditDeliverable, revisionStatusDoVeredito,
+  auditDeliverable, revisionStatusDoVeredito, escolherArbitro,
   foiAprovadaPelaQualidade, ficouSemArbitro, AUDIT_TIMEOUT_MS,
 } from "@/lib/agency/execution/quality-auditor";
+import { TODOS_OS_ESPECIALISTAS } from "@/lib/agency/execution/especialistas";
 
 const base = { deptLabel: "Social Media", title: "Pacote", content: "conteúdo da entrega", brandContext: "marca X", workspaceId: "ws1" };
 
@@ -140,5 +141,57 @@ describe("o critério do feed real na auditoria", () => {
     await auditDeliverable({ ...base, brandContext: "marca X", feed: { lida: true, posts: 12 } });
     const user = generate.mock.calls[0]![0].user as string;
     expect(user).toMatch(/\(6\)/);
+  });
+});
+
+// ── O JUIZ NÃO PODE SER O AUTOR ─────────────────────────────────────────────
+// O gate `quality_audit_impartial` DECLARA que a auditoria roda num modelo
+// diferente do que gerou a peça. Até 05/08/2026 o código garantia o contrário:
+// 11 dos 14 especialistas são "claude" e o auditor fixava
+// `preferredProvider: "claude"`. Estes testes existem para que a declaração e o
+// código não voltem a se contradizer.
+describe("a auditoria é IMPARCIAL — o juiz nunca é o autor", () => {
+  it("autor claude → o árbitro pedido NÃO é claude", async () => {
+    generate.mockResolvedValue({ ok: true, provider: "openai", data: { verdict: "pass", issues: [], note: "ok" } });
+    await auditDeliverable({ ...base, provedorDoAutor: "claude" });
+    expect(generate.mock.calls[0]![0].preferredProvider).not.toBe("claude");
+  });
+
+  it("autor openai → o árbitro pedido NÃO é openai", async () => {
+    generate.mockResolvedValue({ ok: true, provider: "claude", data: { verdict: "pass", issues: [], note: "ok" } });
+    await auditDeliverable({ ...base, provedorDoAutor: "openai" });
+    expect(generate.mock.calls[0]![0].preferredProvider).not.toBe("openai");
+  });
+
+  it("autor não informado é tratado como claude — a suposição conservadora desta casa", async () => {
+    generate.mockResolvedValue({ ok: true, provider: "openai", data: { verdict: "pass", issues: [], note: "ok" } });
+    await auditDeliverable(base);
+    expect(generate.mock.calls[0]![0].preferredProvider).not.toBe("claude");
+  });
+
+  it("nenhum especialista da casa pode ser julgado por si mesmo", () => {
+    for (const e of TODOS_OS_ESPECIALISTAS) {
+      expect(escolherArbitro(e.provedor ?? "claude")).not.toBe(e.provedor ?? "claude");
+    }
+  });
+
+  it("caiu de volta no MESMO modelo (chave única) → aprovação vira nao_auditado, não aprovação", async () => {
+    // `preferredProvider` é preferência, não trava: sem a chave do árbitro,
+    // `generate` volta para a fila e o autor se auto-aprova em silêncio.
+    generate.mockResolvedValue({ ok: true, provider: "claude", data: { verdict: "pass", issues: [], note: "ok" } });
+    const v = await auditDeliverable({ ...base, provedorDoAutor: "claude" });
+    expect(v.verdict).toBe("nao_auditado");
+    expect(v.motivo).toBe("juiz_nao_imparcial");
+    expect(foiAprovadaPelaQualidade(v.verdict)).toBe(false);
+    expect(revisionStatusDoVeredito(v.verdict)).toBe("quality_nao_auditado");
+  });
+
+  it("caiu de volta no MESMO modelo, mas REPROVOU → a reprovação continua valendo", async () => {
+    // Assimetria deliberada: um problema apontado pelo próprio modelo é um
+    // problema. Jogar a reprovação fora seria trocar um freio real por pureza.
+    generate.mockResolvedValue({ ok: true, provider: "claude", data: { verdict: "flag", issues: ["inventa preço"], note: "revisar" } });
+    const v = await auditDeliverable({ ...base, provedorDoAutor: "claude" });
+    expect(v.verdict).toBe("reprovado");
+    expect(v.issues).toContain("inventa preço");
   });
 });

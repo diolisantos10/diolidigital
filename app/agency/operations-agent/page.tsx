@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
+import AvisoModoAlternativo from "@/components/agency/ui/AvisoModoAlternativo";
 import { useAgencyStore } from "@/store/agency-store";
 import type { OperationsAssessment } from "@/app/api/agents/operations/generate/route";
 
@@ -188,7 +189,7 @@ export default function OperationsAgentPage() {
     ? assessment.healthScore >= 8 ? "#16A34A"
     : assessment.healthScore >= 5 ? "#D97706"
     : "#DC2626"
-    : "#9B9B95";
+    : "var(--text-muted)";
 
   const severityStyle = (s: string) =>
     s === "critical" ? { bg: "#FEF2F2", border: "#FECACA", dot: "#DC2626", text: "#DC2626" }
@@ -316,15 +317,7 @@ export default function OperationsAgentPage() {
 
           {agentState === "output_ready" && assessment && (
             <div className="space-y-4">
-              {usedFallback && (
-                <div className="rounded-[8px] bg-[#FFFBEB] border border-[#FDE68A] px-4 py-2.5 flex items-start gap-2">
-                  <span className="text-[14px] leading-none mt-0.5">⚠️</span>
-                  <p className="text-[12px] text-[#92400E] leading-snug">
-                    Diagnóstico gerado em <strong>modo regras</strong> (sem IA). Conecte um provedor em{" "}
-                    <Link href="/agency/integrations" className="underline">Integrações</Link> para raciocínio real.
-                  </p>
-                </div>
-              )}
+              {usedFallback && <AvisoModoAlternativo oQue="Diagnóstico de operações" />}
 
               {/* Tab bar */}
               <div className="flex items-center gap-1 bg-white border border-[var(--border)] rounded-[8px] p-1 overflow-x-auto">

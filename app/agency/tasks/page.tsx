@@ -209,12 +209,12 @@ export default function TasksPage() {
       />
 
       {/* Tabs */}
-      <div className="flex items-center gap-0 border-b border-[var(--border)] mb-6 -mt-2">
+      <div className="flex items-center gap-0 border-b border-[var(--border)] mb-6 -mt-2 overflow-x-auto scrollbar-none -mx-4 px-4 md:mx-0 md:px-0">
         {TABS.map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`flex items-center gap-1.5 h-9 px-4 text-[13px] font-medium border-b-2 transition-colors ${
+            className={`flex items-center gap-1.5 h-9 px-4 text-[13px] font-medium border-b-2 whitespace-nowrap shrink-0 transition-colors ${
               tab === t
                 ? "border-[var(--navy)] text-[var(--navy)]"
                 : "border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
@@ -284,8 +284,141 @@ export default function TasksPage() {
       {filtered.length === 0 ? (
         <EmptyState title="Nenhuma tarefa encontrada" description="Ajuste os filtros ou crie novas tarefas." />
       ) : (
-        <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-          <table className="w-full">
+        <>
+        {/* Celular: 9 colunas não cabem em 375px nem rolando — vira cartão.
+            Ver DESIGN.md §6.3. */}
+        <ul className="md:hidden space-y-2 list-none p-0 m-0">
+          {filtered.map((task) => {
+            const pStyle     = AUTO_TASK_PRIORITY_STYLE[task.priority];
+            const ownerColor = (AUTO_TASK_OWNER_STYLE as Record<string, { color: string }>)[task.owner]?.color ?? "var(--text-secondary)";
+            const isOverdue  = task.kind === "store" && task.dueDate && task.dueDate < today && task.storeStatus !== "done";
+            const statusLabel = task.kind === "store" && task.storeStatus
+              ? (task.storeStatus === "done" ? "Concluída"
+                : task.storeStatus === "blocked" ? "Bloqueada"
+                : task.storeStatus === "in_progress" ? "Em andamento" : "Pendente")
+              : "Sugerida";
+            const statusClass = task.kind === "store" && task.storeStatus
+              ? (task.storeStatus === "done" ? "bg-[var(--success-bg)] text-[var(--success)]"
+                : task.storeStatus === "blocked" ? "bg-[#FEE2E2] text-[var(--danger)]"
+                : task.storeStatus === "in_progress" ? "bg-[var(--warning-bg)] text-[var(--warning)]"
+                : "bg-[var(--accent)] text-[var(--text-secondary)]")
+              : "bg-[var(--accent-light)] text-[var(--navy)]";
+            return (
+              <li
+                key={task.id}
+                className={`bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-4 ${task.storeStatus === "done" ? "opacity-60" : ""}`}
+              >
+                <div className="flex items-start gap-3">
+                  {task.kind === "store" ? (
+                    <button
+                      onClick={() => task.storeStatus && updateTaskStatus(task.id, TASK_CYCLE[task.storeStatus])}
+                      aria-label={task.storeStatus === "done" ? "Reabrir tarefa" : "Avançar status da tarefa"}
+                      className={`mt-0.5 w-5 h-5 shrink-0 rounded-[5px] border flex items-center justify-center transition-colors ${
+                        task.storeStatus === "done"
+                          ? "bg-[var(--navy)] border-[var(--navy)]"
+                          : task.storeStatus === "blocked"
+                          ? "bg-[#FEE2E2] border-[var(--danger)]"
+                          : task.storeStatus === "in_progress"
+                          ? "border-[var(--navy)] bg-[var(--accent-light)]"
+                          : "border-[var(--border-strong)]"
+                      }`}
+                    >
+                      {task.storeStatus === "done" && (
+                        <svg width="9" height="7" viewBox="0 0 9 7" fill="none" aria-hidden="true">
+                          <path d="M1 3.5L3.5 6L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      )}
+                    </button>
+                  ) : (
+                    <span className="mt-0.5 w-5 h-5 shrink-0 rounded-[5px] bg-[var(--accent-light)] border border-[var(--navy)]/30 flex items-center justify-center text-[8px] text-[var(--navy)] font-bold leading-none">
+                      PM
+                    </span>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className={`text-[14px] font-medium leading-snug ${task.storeStatus === "done" ? "line-through text-[var(--text-muted)]" : "text-[var(--text-primary)]"}`}>
+                      {task.title}
+                    </div>
+                    <Link
+                      href={`/agency/projects/${task.projectId}`}
+                      className="text-[12px] text-[var(--text-secondary)] hover:text-[var(--navy)] transition-colors block mt-1 line-clamp-2"
+                    >
+                      {task.projectName} · {task.clientName}
+                    </Link>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-1.5 mt-3">
+                  <span className={`inline-flex h-5 px-2 rounded-full text-[11px] font-semibold items-center ${pStyle.bg} ${pStyle.text}`}>
+                    {pStyle.label}
+                  </span>
+                  <span className={`inline-flex h-5 px-2 rounded-full text-[11px] font-semibold items-center ${statusClass}`}>
+                    {statusLabel}
+                  </span>
+                </div>
+                <p className="text-[12px] text-[var(--text-muted)] mt-1.5">
+                  <span className="font-medium" style={{ color: ownerColor }}>{task.owner}</span>
+                  {task.dueDate && (
+                    <span className={isOverdue ? "text-[var(--danger)] font-semibold" : undefined}>
+                      {" · "}{isOverdue && "⚑ "}{task.dueDate.slice(5)}
+                    </span>
+                  )}
+                  {" · "}{SOURCE_LABELS[task.source] ?? task.source}
+                </p>
+
+                {(task.kind === "store" && task.storeStatus && task.storeStatus !== "done") ||
+                 (task.kind === "auto" && source === "db") || task.route ? (
+                  <div className="flex flex-wrap items-center gap-1.5 mt-3 pt-3 border-t border-[var(--border)]">
+                    {task.kind === "store" && task.storeStatus && task.storeStatus !== "done" && (
+                      <>
+                        <button
+                          onClick={() => updateTaskStatus(task.id, "done")}
+                          className="h-8 px-3 rounded-[6px] text-[12px] font-medium border border-[var(--border)] text-[var(--success)]"
+                        >
+                          Concluir
+                        </button>
+                        {task.storeStatus !== "blocked" ? (
+                          <button
+                            onClick={() => updateTaskStatus(task.id, "blocked")}
+                            className="h-8 px-3 rounded-[6px] text-[12px] font-medium border border-[var(--border)] text-[var(--danger)]"
+                          >
+                            Bloquear
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => updateTaskStatus(task.id, "pending")}
+                            className="h-8 px-3 rounded-[6px] text-[12px] font-medium border border-[var(--border)] text-[var(--warning)]"
+                          >
+                            Reabrir
+                          </button>
+                        )}
+                      </>
+                    )}
+                    {task.kind === "auto" && source === "db" && (
+                      <button
+                        onClick={() => { const at = autoTaskById[task.id]; if (at) handleSaveAutoTask(at); }}
+                        disabled={savingAutoId === task.id}
+                        className="h-8 px-3 rounded-[6px] text-[12px] font-medium border border-[var(--border)] text-[var(--navy)] disabled:opacity-50"
+                      >
+                        {savingAutoId === task.id ? "…" : "Salvar no DB"}
+                      </button>
+                    )}
+                    {task.route && (
+                      <Link
+                        href={task.route}
+                        className="h-8 px-3 inline-flex items-center rounded-[6px] border border-[var(--border)] text-[12px] text-[var(--text-secondary)]"
+                      >
+                        Abrir →
+                      </Link>
+                    )}
+                  </div>
+                ) : null}
+              </li>
+            );
+          })}
+        </ul>
+
+        <div className="hidden md:block bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-x-auto">
+          <table className="w-full min-w-[880px]">
             <thead>
               <tr className="border-b border-[var(--border)]">
                 <th className="w-8 px-4 py-3" />
@@ -465,6 +598,7 @@ export default function TasksPage() {
             </tbody>
           </table>
         </div>
+        </>
       )}
     </>
   );

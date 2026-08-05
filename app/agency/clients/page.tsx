@@ -105,8 +105,36 @@ export default function ClientsPage() {
           action={<Button variant="primary" onClick={() => setModalOpen(true)}>Adicionar Cliente</Button>}
         />
       ) : (
-        <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-          <table className="w-full">
+        <>
+        {/* Celular: cartão em vez de tabela de 5 colunas — DESIGN.md §6.3. */}
+        <ul className="md:hidden space-y-2 list-none p-0 m-0">
+          {filtered.map((client) => (
+            <li key={client.id} className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              <Link href={`/agency/clients/${client.id}`} className="flex items-center gap-3 p-4">
+                <div className="w-10 h-10 rounded-[10px] bg-[var(--accent)] flex items-center justify-center text-[13px] font-semibold text-[var(--text-secondary)] shrink-0">
+                  {client.name.slice(0, 2).toUpperCase()}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[14px] font-medium text-[var(--text-primary)] truncate">{client.name}</div>
+                  <div className="text-[12px] text-[var(--text-secondary)] truncate">
+                    {client.industry}
+                    {client.website ? ` · ${client.website}` : ""}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                    <Badge variant={client.status} />
+                    <span className="text-[12px] text-[var(--text-secondary)] mono-num">
+                      {getProjectCount(client.id)} projeto{getProjectCount(client.id) !== 1 ? "s" : ""}
+                    </span>
+                    <span className="text-[12px] text-[var(--text-muted)]">· desde {client.createdAt.slice(0, 7)}</span>
+                  </div>
+                </div>
+              </Link>
+            </li>
+          ))}
+        </ul>
+
+        <div className="hidden md:block bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-x-auto">
+          <table className="w-full min-w-[640px]">
             <thead>
               <tr className="border-b border-[var(--border)]">
                 <th className="text-left px-5 py-3 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em]">Cliente</th>
@@ -150,6 +178,7 @@ export default function ClientsPage() {
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       {/* Create Modal */}

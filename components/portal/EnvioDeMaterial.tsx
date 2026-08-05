@@ -121,7 +121,7 @@ export function EnvioDeMaterial({
               <li key={a.id} className="flex items-center justify-between gap-3 rounded-[8px] bg-[#F7F7F6] px-3 py-2">
                 <span className="min-w-0 flex-1 truncate text-[12.5px] text-[var(--text-primary)]">{a.fileName}</span>
                 <span className="shrink-0 text-[11px] text-[var(--text-muted)]">{tamanhoLegivel(a.sizeBytes)}</span>
-                <span className="shrink-0 text-[13px] text-[#12B5AC]" aria-label="enviado">✓</span>
+                <span className="shrink-0 text-[13px] text-[var(--teal-text)]" aria-label="enviado">✓</span>
               </li>
             ))}
           </ul>

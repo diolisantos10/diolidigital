@@ -121,9 +121,22 @@ const STATUS_COM_AJUSTE = "revision_requested";
 /** Decisões que NÃO ressuscitam por conserto de dado. Nunca. */
 const STATUS_SEM_VOLTA = new Set(["rejected", "cancelled"]);
 
-/** O estado de um post que ainda espera aval. `aprovarPacote` é quem o move
- *  para "scheduled"; devolver a "draft" é retirar o aval, não recusar a peça. */
+/** O estado de um post que ainda espera aval. `publicacao.promoverParaAgendado`
+ *  é quem o move para "scheduled"; devolver a "draft" é retirar o aval, não
+ *  recusar a peça. */
 const STATUS_SEM_AVAL = "draft";
+
+/**
+ * Os estados que PERDEM o aval quando o card volta para decisão.
+ *
+ * "scheduled" entrou aqui em 05/08/2026, junto com o conserto do beco sem saída
+ * (ver `esteira/publicacao.ts`): a decisão do cliente passou a promover a peça
+ * direto para "scheduled" em vez de parar em "approved". Sem esta linha, reabrir
+ * um card aprovado deixaria a peça AGENDADA com o card pendente — exatamente o
+ * estado que faz o relógio publicar em nome do cliente sem o gatilho previsto.
+ * "approved" continua na lista por causa das peças gravadas antes do conserto.
+ */
+const STATUS_COM_AVAL = ["approved", "scheduled"];
 
 /** Formatos que a casa grava para carrossel (o legado usa o termo em PT). É o
  *  único formato em que "completo" significa mais de uma imagem. */
@@ -459,7 +472,7 @@ export async function reabrirAprovacoesDosPosts(entrada: {
     // No caminho do ajuste, a peça também sai de "revision_requested": o card
     // volta a pedir decisão, e peça marcada "Em ajuste" faria o calendário do
     // portal contradizer o card na mesma tela (`CalendarioDoMes`).
-    const statusQuePerdemAMarca = emAjuste ? ["approved", STATUS_COM_AJUSTE] : ["approved"];
+    const statusQuePerdemAMarca = emAjuste ? [...STATUS_COM_AVAL, STATUS_COM_AJUSTE] : [...STATUS_COM_AVAL];
 
     // Tudo ou nada: um card que voltasse a "pending" sem o registro do histórico
     // (ou com as peças ainda carimbadas "approved") seria pior que o estado de
@@ -892,7 +905,7 @@ export async function reabrirCardPorDecisaoDaDirecao(entrada: {
     // verificada no passo 2 (peça de outro dono vira `ausente` e recusa o card
     // inteiro no passo 4). Chegar aqui significa que todas são deste card.
     const posts = await tx.socialPost.updateMany({
-      where: { id: { in: postsDoCard }, status: { in: ["approved", STATUS_COM_AJUSTE] } },
+      where: { id: { in: postsDoCard }, status: { in: [...STATUS_COM_AVAL, STATUS_COM_AJUSTE] } },
       data: { status: STATUS_SEM_AVAL },
     });
     return posts.count;

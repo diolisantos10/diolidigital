@@ -8,6 +8,7 @@ import { useDbDeliverables } from "@/lib/hooks/useDbDeliverables";
 import { getClientAgentContext } from "@/lib/agency/workspace";
 import type { BrandExtraction } from "@/lib/types/brand-extraction";
 import { comoTexto, temSubstancia } from "@/lib/agency/esteira/conteudo";
+import AvisoModoAlternativo from "@/components/agency/ui/AvisoModoAlternativo";
 
 // ─── Brand Hub Agent — Brand Intelligence Department ──────────────────────────
 //
@@ -91,6 +92,8 @@ export default function BrandHubAgentPage() {
   const [activeTab, setActiveTab] = useState<OutputTab>("overview");
   const [stepIndex, setStepIndex] = useState(0);
   const [analysis, setAnalysis] = useState<BrandAnalysis | null>(null);
+  // Análise veio do conteúdo de reserva, não da IA — DESIGN.md §7.3.
+  const [motivoDaReserva, setMotivoDaReserva] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [saveSkipped, setSaveSkipped] = useState(false);
 
@@ -117,6 +120,7 @@ export default function BrandHubAgentPage() {
     setStepIndex(0);
     setSaved(false);
     setSaveSkipped(false);
+    setMotivoDaReserva(null);
 
     const stepDelays = [800, 1800, 3000, 4500];
     stepDelays.forEach((ms, i) => {
@@ -124,6 +128,7 @@ export default function BrandHubAgentPage() {
     });
 
     let finalAnalysis: BrandAnalysis;
+    let motivo: string | null = null;
     try {
       const res = await fetch("/api/agents/brand/analyze", {
         method: "POST",
@@ -138,16 +143,20 @@ export default function BrandHubAgentPage() {
       const data = (await res.json()) as { ok: boolean; analysis?: BrandAnalysis; error?: string };
 
       if (!data.ok || !data.analysis) {
+        // Cair em reserva é aceitável; cair em SILÊNCIO não. DESIGN.md §7.3.
         console.warn("[brand-hub-agent] AI unavailable, using mock fallback:", data.error);
         finalAnalysis = MOCK_ANALYSIS;
+        motivo = data.error ?? "a IA não respondeu";
       } else {
         finalAnalysis = data.analysis;
       }
     } catch (err) {
       console.warn("[brand-hub-agent] fetch error, falling back to mock:", err);
       finalAnalysis = MOCK_ANALYSIS;
+      motivo = err instanceof Error ? err.message : "falha de conexão com o serviço de IA";
     }
 
+    setMotivoDaReserva(motivo);
     setAnalysis(finalAnalysis);
     setAgentState("output_ready");
     setActiveTab("overview");
@@ -541,6 +550,10 @@ export default function BrandHubAgentPage() {
           {/* Output ready */}
           {agentState === "output_ready" && analysis && (
             <div className="space-y-4">
+              {motivoDaReserva && (
+                <AvisoModoAlternativo oQue="Análise de marca" motivo={motivoDaReserva} />
+              )}
+
               {/* Tab bar */}
               <div className="flex items-center gap-1 bg-white border border-[var(--border)] rounded-[8px] p-1 overflow-x-auto">
                 {OUTPUT_TABS.map((t) => (

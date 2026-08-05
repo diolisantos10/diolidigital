@@ -10,6 +10,7 @@ import type { AgentClientContext } from "@/lib/agency/workspace";
 import { generateAdsPlan, buildAdsDeliverables, ADS_DELIVERABLE_TYPES } from "@/lib/agency/ads-agent";
 import type { AdsPlan } from "@/lib/agency/ads-agent";
 import { comoTexto, temSubstancia } from "@/lib/agency/esteira/conteudo";
+import AvisoModoAlternativo from "@/components/agency/ui/AvisoModoAlternativo";
 
 // ─── Ads Agent — Paid Traffic Department ────────────────────────────────────────
 //
@@ -123,6 +124,8 @@ export default function AdsAgentPage() {
   const [activeTab, setActiveTab] = useState<OutputTab>("strategy");
   const [stepIndex, setStepIndex] = useState(0);
   const [plan, setPlan] = useState<AdsPlan | null>(null);
+  // Resultado veio do gerador por regras, não da IA — DESIGN.md §7.3.
+  const [motivoDaReserva, setMotivoDaReserva] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
   const { projects, clients, deliverables, strategyRooms, pendingAgentInput, setPendingAgentInput } = useAgencyStore();
@@ -157,6 +160,7 @@ export default function AdsAgentPage() {
     setAgentState("generating");
     setStepIndex(0);
     setSaved(false);
+    setMotivoDaReserva(null);
 
     // Advance steps while real API call runs
     const stepDelays = [800, 1800, 3000, 4500, 6500];
@@ -165,6 +169,7 @@ export default function AdsAgentPage() {
     });
 
     let finalPlan: AdsPlan;
+    let motivo: string | null = null;
     try {
       const res = await fetch("/api/agents/ads/generate", {
         method: "POST",
@@ -186,16 +191,20 @@ export default function AdsAgentPage() {
       const data = (await res.json()) as { ok: boolean; plan?: AdsPlan; error?: string };
 
       if (!data.ok || !data.plan) {
+        // Cair em regras é aceitável; cair em SILÊNCIO não. DESIGN.md §7.3.
         console.warn("[ads-agent] AI unavailable, using rule-based fallback:", data.error);
         finalPlan = generateAdsPlan(linkedProject!, linkedClient!, strategyRoom, agentCtx);
+        motivo = data.error ?? "a IA não respondeu";
       } else {
         finalPlan = data.plan;
       }
     } catch (err) {
       console.warn("[ads-agent] fetch error, falling back to rule-based:", err);
       finalPlan = generateAdsPlan(linkedProject!, linkedClient!, strategyRoom, agentCtx);
+      motivo = err instanceof Error ? err.message : "falha de conexão com o serviço de IA";
     }
 
+    setMotivoDaReserva(motivo);
     setPlan(finalPlan);
     setAgentState("output_ready");
     setActiveTab("strategy");
@@ -426,6 +435,10 @@ export default function AdsAgentPage() {
           {/* Output ready */}
           {agentState === "output_ready" && plan && (
             <div className="space-y-4">
+              {motivoDaReserva && (
+                <AvisoModoAlternativo oQue="Plano de campanha" motivo={motivoDaReserva} />
+              )}
+
               {/* Tab bar */}
               <div className="flex items-center gap-1 bg-white border border-[var(--border)] rounded-[8px] p-1 overflow-x-auto">
                 {OUTPUT_TABS.map((t) => (

@@ -82,6 +82,148 @@ export interface Especialista {
   precisaDe?: { tem: (c: Ctx) => boolean; pedido: string };
   prompt: (c: Ctx) => string;
   provedor?: ProvedorPreferido;
+  /**
+   * O CONTRATO DE SAÍDA — o que o prompt pede em número e formato, conferido em
+   * código sobre o JSON que o modelo devolveu.
+   *
+   * Devolve a lista de violações em português, pronta para virar parecer. Lista
+   * vazia = cumpriu.
+   */
+  contrato?: (data: Record<string, unknown>) => string[];
+}
+
+// ── POR QUE ISTO EXISTE (05/08/2026) ─────────────────────────────────────────
+//
+// Sete instruções de CONTAGEM e FORMATO viviam só dentro do prompt — "6 a 8
+// peças", "1-2 carrossel, 2-3 story, 2-3 feed", "cenas: 3 a 6 telas",
+// "calendário de 4 semanas", "3 a 4 peças", "3 criativos", "4 anúncios" — e
+// nenhuma era conferida. Prompt é sugestão. O cliente contratava 8 posts e
+// recebia 3, todos feed, e nada no sistema sabia dizer que faltou.
+//
+// Todas eram conferíveis o tempo todo: estão no JSON que o modelo já devolve,
+// ANTES de virar markdown. E uma delas custa dinheiro direto — `artes.ts` gera
+// UMA IMAGEM PAGA POR TELA de carrossel, então "cenas: 3 a 6" sem trava é um
+// carrossel de 12 telas custando o dobro do mês.
+//
+// Fronteira honesta: só entra aqui o que é CONTÁVEL no JSON. "3 regras do que
+// nunca usar" (identidade visual) mora dentro de um campo de texto livre e
+// continua sem trava — está declarado, não esquecido.
+
+function itensDe(data: Record<string, unknown>): Array<Record<string, unknown>> {
+  return Array.isArray(data.items)
+    ? data.items.filter((x): x is Record<string, unknown> => typeof x === "object" && x !== null)
+    : [];
+}
+
+function texto(it: Record<string, unknown>, campo: string): string {
+  return typeof it[campo] === "string" ? (it[campo] as string).trim() : "";
+}
+
+/**
+ * "quantos itens" — a checagem mais banal e a que mais falta ao cliente.
+ *
+ * ── MÍNIMO E MÁXIMO NÃO SÃO A MESMA COISA ───────────────────────────────────
+ * O MÍNIMO é o contrato com o cliente: ele comprou 8 posts e recebeu 3. Isso
+ * bloqueia.
+ * O MÁXIMO existe só onde entregar demais CUSTA (cada peça de social vira arte
+ * paga; cada tela de carrossel vira uma imagem paga; a Meta aceita 4 interesses
+ * e não mais). Onde entregar a mais é só generosidade, o teto é folgado de
+ * propósito — barrar uma entrega boa por excesso seria trocar dano por dano.
+ */
+function exigirQuantidade(data: Record<string, unknown>, min: number, max: number, oQue: string): string[] {
+  const n = itensDe(data).length;
+  if (n < min) return [`entregou ${n} ${oQue} — o contrato com o cliente é de ${min}${max > min ? ` a ${max}` : ""}. Faltam ${min - n}.`];
+  if (n > max) return [`entregou ${n} ${oQue} — o teto é ${max}.`];
+  return [];
+}
+
+/** O formato de uma peça de social, normalizado. Vazio = não declarou. */
+function formatoDaPeca(it: Record<string, unknown>): string {
+  const f = texto(it, "format").toLowerCase();
+  if (/carrossel|carousel/.test(f)) return "carrossel";
+  if (/story|stories/.test(f)) return "story";
+  if (/reel|v[íi]deo|video/.test(f)) return "reel";
+  if (/feed|post/.test(f)) return "feed";
+  return "";
+}
+
+/** Quantas telas o campo `cenas` descreve. O formato pedido é "1) ... 2) ...". */
+export function contarCenas(cenas: string): number {
+  const marcadores = cenas.match(/(?:^|[\s·|])\d+\s*[)\].:-]/g);
+  if (marcadores && marcadores.length > 0) return marcadores.length;
+  return cenas.trim() ? cenas.split(/\n+/).filter((l) => l.trim()).length : 0;
+}
+
+const MIN_TELAS = 3;
+const MAX_TELAS = 6;
+
+/** O contrato da pauta: 4 semanas de calendário, uma por item. */
+function contratoDaPauta(data: Record<string, unknown>): string[] {
+  return exigirQuantidade(data, 4, 8, "semanas de calendário");
+}
+
+/**
+ * O contrato das legendas — o mais caro de todos quando falha.
+ *
+ * Confere as três coisas que o prompt pede e ninguém verificava: quantas peças,
+ * a MISTURA de formatos (senão sai tudo feed) e o tamanho do carrossel (que é
+ * conta de imagem paga, não gosto).
+ */
+function contratoDasLegendas(data: Record<string, unknown>): string[] {
+  const itens = itensDe(data);
+  const problemas = exigirQuantidade(data, 6, 8, "peças de conteúdo");
+
+  const porFormato = { carrossel: 0, story: 0, feed: 0, reel: 0, semFormato: 0 };
+  for (const it of itens) {
+    const f = formatoDaPeca(it);
+    if (!f) porFormato.semFormato++;
+    else porFormato[f as keyof typeof porFormato]++;
+  }
+  if (porFormato.semFormato > 0) {
+    problemas.push(`${porFormato.semFormato} peça(s) sem o campo "format" — o formato decide como a arte é gerada e onde a peça é publicada.`);
+  }
+  for (const [f, min, max] of [["carrossel", 1, 2], ["story", 2, 3], ["feed", 2, 3]] as const) {
+    const n = porFormato[f];
+    if (n < min) problemas.push(`só ${n} peça(s) de ${f} — o contrato pede de ${min} a ${max}. Sem a mistura, o mês inteiro sai no mesmo formato.`);
+    else if (n > max) problemas.push(`${n} peças de ${f} — o contrato pede no máximo ${max}.`);
+  }
+
+  itens.forEach((it, i) => {
+    if (formatoDaPeca(it) !== "carrossel") return;
+    const telas = contarCenas(texto(it, "cenas"));
+    if (telas < MIN_TELAS || telas > MAX_TELAS) {
+      problemas.push(`a peça ${i + 1} é carrossel e descreve ${telas} tela(s) em "cenas" — tem que ter de ${MIN_TELAS} a ${MAX_TELAS}, uma por linha começando com "1)", "2)". Cada tela vira uma arte produzida.`);
+    }
+  });
+
+  return problemas;
+}
+
+/** O contrato da segmentação: estes números entram na conta de anúncios do
+ *  cliente e gastam a verba dele. Fora da faixa é dinheiro queimado. */
+function contratoDaSegmentacao(data: Record<string, unknown>): string[] {
+  const itens = itensDe(data);
+  const problemas = exigirQuantidade(data, 1, 1, "públicos");
+  const p = itens[0];
+  if (!p) return problemas;
+
+  const cidade = texto(p, "cidade");
+  if (!cidade) problemas.push(`sem "cidade" — negócio local anunciado no país inteiro é dinheiro queimado. Se o briefing não disser, escreva "PRECISO CONFIRMAR: cidade".`);
+
+  const raio = typeof p.raioKm === "number" ? p.raioKm : NaN;
+  if (!Number.isFinite(raio) || raio < 1 || raio > 50) problemas.push(`"raioKm" = ${p.raioKm ?? "ausente"} — tem que ser um número entre 1 e 50.`);
+
+  const min = typeof p.idadeMin === "number" ? p.idadeMin : NaN;
+  const max = typeof p.idadeMax === "number" ? p.idadeMax : NaN;
+  if (!Number.isFinite(min) || !Number.isFinite(max) || min < 13 || max > 99 || min >= max) {
+    problemas.push(`faixa de idade inválida (${p.idadeMin ?? "?"}–${p.idadeMax ?? "?"}) — a Meta exige idadeMin ≥ 13, idadeMax ≤ 99 e idadeMin < idadeMax.`);
+  }
+
+  const interesses = Array.isArray(p.interesses) ? p.interesses : null;
+  if (!interesses) problemas.push(`"interesses" tem que ser uma lista (vazia é resposta válida).`);
+  else if (interesses.length > 4) problemas.push(`${interesses.length} interesses — o contrato é de no máximo 4.`);
+
+  return problemas;
 }
 
 export interface Departamento {
@@ -153,6 +295,7 @@ ${formato("Posicionamento — <negócio>", `"headline": "...", "note": "o que su
         id: "strategy-concorrencia",
         label: "Pesquisa de concorrência",
         deliverableType: "strategy",
+        contrato: (d) => exigirQuantidade(d, 3, 8, "concorrentes"),
         // A ÚNICA IA de pesquisa da casa. Concorrente é fato verificável do
         // mundo real: um modelo criativo INVENTA concorrente, e inventar
         // concorrente é o erro mais caro que a Estratégia pode cometer.
@@ -182,6 +325,7 @@ ${formato("Concorrência — <negócio>", `"headline": "nome do concorrente", "n
         id: "a3",
         label: "Pauta do mês",
         deliverableType: "social",
+        contrato: contratoDaPauta,
         provedor: "claude",
         prompt: (c) => `Você é o especialista de PAUTA da Dioli Digital. Monte o plano de conteúdo do mês.
 
@@ -196,6 +340,7 @@ ${formato("Pauta do Mês — <negócio>", `"headline": "Semana N — tema", "not
         id: "social-copy",
         label: "Copy dos posts",
         deliverableType: "social",
+        contrato: contratoDasLegendas,
         provedor: "claude",
         prompt: (c) => `Você é o especialista de COPY de social da Dioli Digital. Escreva as legendas prontas para publicar.
 
@@ -213,6 +358,7 @@ ${formato("Legendas Prontas — <negócio>", `"format": "feed|story|reel|carross
         id: "social-roteiro-video",
         label: "Roteiro de vídeo",
         deliverableType: "video",
+        contrato: (d) => exigirQuantidade(d, 3, 6, "roteiros de vídeo"),
         provedor: "claude",
         prompt: (c) => `Você é o especialista de ROTEIRO DE VÍDEO da Dioli Digital. Escreva roteiros de reels prontos para gravar.
 
@@ -264,6 +410,7 @@ ${formato("Direção Visual — <negócio>", `"headline": "...", "direction": ".
         id: "design-criativo-social",
         label: "Criativo de social",
         deliverableType: "design",
+        contrato: (d) => exigirQuantidade(d, 3, 8, "criativos de social"),
         provedor: "claude",
         prompt: (c) => `Você é o especialista de CRIATIVO DE SOCIAL da Dioli Digital. Descreva as artes dos posts, prontas para produzir.
 
@@ -278,6 +425,7 @@ ${formato("Criativos de Social — <negócio>", `"headline": "nome da peça", "d
         id: "design-criativo-trafego",
         label: "Criativo de tráfego",
         deliverableType: "design",
+        contrato: (d) => exigirQuantidade(d, 3, 8, "criativos de anúncio"),
         provedor: "claude",
         prompt: (c) => `Você é o especialista de CRIATIVO DE TRÁFEGO da Dioli Digital. Anúncio é outra peça: precisa parar o dedo e vender.
 
@@ -321,6 +469,7 @@ ${formato("Estrutura de Campanha — <negócio>", `"headline": "nome da campanha
         id: "traffic-segmentacao",
         label: "Segmentação",
         deliverableType: "campaign",
+        contrato: contratoDaSegmentacao,
         provedor: "claude",
         prompt: (c) => `Você é o especialista de SEGMENTAÇÃO da Dioli Digital. Sua saída NÃO é um texto: são os parâmetros exatos que vão para dentro da conta de anúncios do cliente.
 
@@ -339,6 +488,7 @@ Responda em JSON: {"title": "Segmentação — <negócio>", "summary": "1 frase 
         id: "traffic-copy-anuncio",
         label: "Copy de anúncio",
         deliverableType: "campaign",
+        contrato: (d) => exigirQuantidade(d, 4, 8, "anúncios"),
         provedor: "claude",
         prompt: (c) => `Você é o especialista de COPY DE ANÚNCIO da Dioli Digital. Texto de anúncio não é legenda de post: tem que vender em uma linha.
 
@@ -363,6 +513,7 @@ ${formato("Anúncios — <negócio>", `"headline": "headline do anúncio", "capt
         id: "a5",
         label: "Plano de medição",
         deliverableType: "analytics",
+        contrato: (d) => exigirQuantidade(d, 3, 8, "indicadores"),
         provedor: "openai",
         prompt: (c) => `Você é o especialista de MEDIÇÃO da Dioli Digital. Defina como vamos provar que funcionou.
 
@@ -381,6 +532,7 @@ ${formato("Plano de Medição — <negócio>", `"headline": "<indicador>", "note
         id: "analytics-otimizacao",
         label: "Otimização do próximo ciclo",
         deliverableType: "analytics",
+        contrato: (d) => exigirQuantidade(d, 3, 8, "mudanças para o próximo ciclo"),
         provedor: "claude",
         prompt: (c) => `Você é o especialista de OTIMIZAÇÃO da Dioli Digital. Sua entrega decide o que muda no mês que vem.
 
@@ -442,6 +594,38 @@ const vistos = new Set<string>();
 for (const e of TODOS_OS_ESPECIALISTAS) {
   if (vistos.has(e.id)) throw new Error(`especialistas.ts: id duplicado "${e.id}" — a idempotência do motor depende dele ser único`);
   vistos.add(e.id);
+}
+
+/**
+ * O contrato de saída deste especialista foi cumprido?
+ *
+ * Ponto ÚNICO de chamada para o motor. Especialista sem `contrato` devolve lista
+ * vazia — e isso é uma lacuna declarada, não uma aprovação: quem não tem
+ * contrato conferível simplesmente não é conferido aqui.
+ */
+export function conferirContrato(
+  esp: Pick<Especialista, "contrato">,
+  data: Record<string, unknown>,
+): { cumpriu: boolean; violacoes: string[] } {
+  if (!esp.contrato) return { cumpriu: true, violacoes: [] };
+  let violacoes: string[];
+  try {
+    violacoes = esp.contrato(data);
+  } catch {
+    // Um contrato que explode não pode derrubar a produção — mas também não
+    // pode virar "cumpriu". Vira violação declarada.
+    return { cumpriu: false, violacoes: ["não foi possível conferir o contrato de saída desta entrega"] };
+  }
+  return { cumpriu: violacoes.length === 0, violacoes };
+}
+
+/** Quantos especialistas da casa têm contrato conferível. Serve ao painel e à
+ *  auditoria: "quantas entregas ninguém confere?" precisa de resposta. */
+export function coberturaDeContratos(): { comContrato: number; total: number } {
+  return {
+    comContrato: TODOS_OS_ESPECIALISTAS.filter((e) => !!e.contrato).length,
+    total: TODOS_OS_ESPECIALISTAS.length,
+  };
 }
 
 export { ctxBlock };

@@ -22,7 +22,7 @@ import { getActiveInsights, buildInsightBlock } from "@/lib/agency/radar/library
 import { moverTarefasDoAgente, marcarEntregue } from "@/lib/agency/esteira/tarefas";
 import { abrirPedido, cobrarCliente } from "@/lib/agency/esteira/pedidos";
 import {
-  DEPARTAMENTOS, ctxBlock,
+  DEPARTAMENTOS, ctxBlock, conferirContrato,
   type Ctx, type Departamento, type Especialista,
 } from "@/lib/agency/execution/especialistas";
 import {
@@ -40,9 +40,35 @@ const MIN_DELIVERABLE_CHARS = 40;
 /** Máximo de revisões que a Qualidade pede antes de publicar (bounded — sem loop infinito). */
 const MAX_QUALITY_REVISIONS = 1;
 /** Tentativas de corrigir dado inventado antes de barrar a peça de vez. Uma é
- *  suficiente: se o modelo repetiu a invenção com o parecer na mão, insistir só
- *  gasta tokens — e a peça não pode ir ao cliente de qualquer forma. */
+ *  suficiente: se o modelo repetiu a invenção com o TEXTO ANTERIOR e o parecer
+ *  na mão, insistir só gasta tokens — e a peça não pode ir ao cliente de
+ *  qualquer forma.
+ *
+ *  Este comentário só passou a ser verdade em 05/08/2026: até então a refação
+ *  remontava `esp.prompt(context)` inteiro e NÃO mandava o corpo anterior. O
+ *  modelo recebia um parecer sobre um texto que não estava na frente dele —
+ *  pagava-se uma geração completa por uma correção às cegas, que
+ *  estatisticamente repetia a mesma violação. Ver `pedidoDeRefacao`. */
 const MAX_CORRECOES_DE_PISO = 1;
+
+/** Uma correção de contrato — o mesmo raciocínio do piso: a checagem é de
+ *  código (contagem e formato), o parecer é literal, e quem não cumpre com o
+ *  número na frente não cumpre com mais uma chamada. */
+const MAX_CORRECOES_DE_CONTRATO = 1;
+
+/** Depois disto, "running" quer dizer "o processo morreu no meio". É o mesmo
+ *  valor que o cron e o despertador usam para considerar a execução travada. */
+const TRAVA_DE_EXECUCAO_MS = 10 * 60_000;
+
+/**
+ * O prefixo que marca uma passada encerrada só por RECUSA (piso ou contrato).
+ *
+ * Mora no `executionError` porque é o único estado durável que temos sem coluna
+ * nova — e precisa ser durável: é ele que faz a segunda recusa seguida virar
+ * `blocked` em vez de queimar as cinco tentativas do cron para chegar sempre ao
+ * mesmo lugar.
+ */
+const MARCA_DE_RECUSA = "[recusa]";
 
 function deliverableMarkdown(data: Record<string, unknown>): string {
   const items = Array.isArray(data.items) ? data.items : [];
@@ -58,6 +84,39 @@ function deliverableMarkdown(data: Record<string, unknown>): string {
     lines.push("");
   });
   return lines.join("\n").trim();
+}
+
+/**
+ * O pedido de REFAÇÃO — com o texto anterior na frente do modelo.
+ *
+ * Existe porque a "correção" desta casa era um re-roll cego: remontava
+ * `esp.prompt(context)` inteiro e mandava junto um parecer sobre um texto que o
+ * modelo NÃO estava vendo. Ele recebia o mesmo pedido de antes mais uma
+ * reclamação sobre algo invisível — e reescrevia do zero, reproduzindo a
+ * violação com boa probabilidade. Pagava-se uma geração completa por uma
+ * correção que estatisticamente não corrigia, e o comentário de
+ * `MAX_CORRECOES_DE_PISO` se justificava dizendo "se repetiu com o parecer na
+ * mão", quando o parecer nunca esteve na mão junto do texto.
+ *
+ * A versão anterior vai como JSON: é o formato que ele tem de devolver, então
+ * corrigir vira edição — mais barata e mais fiel do que reescrever.
+ */
+function pedidoDeRefacao(p: {
+  prompt: string;
+  anterior: string;
+  parecer: string;
+  instrucao: string;
+}): string {
+  return [
+    p.prompt,
+    "",
+    "── A SUA VERSÃO ANTERIOR (é ESTE texto que precisa ser corrigido) ──",
+    p.anterior.slice(0, 6000),
+    "",
+    `── O PARECER ──\n${p.parecer}`,
+    "",
+    p.instrucao,
+  ].join("\n");
 }
 
 export interface ExecutionResult {
@@ -151,15 +210,14 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
     return { ok: false, status: "failed", produced: [], askedClient: [], skipped: [], error: "Projeto sem solicitação vinculada" };
   }
 
-  // Trava anti-concorrência: se já está rodando há pouco, não roda de novo.
-  if (project.executionStatus === "running" && project.executionStartedAt && Date.now() - project.executionStartedAt.getTime() < 10 * 60_000) {
-    return { ok: true, status: "skipped_running", produced: [], askedClient: [], skipped: [], error: "já em execução" };
-  }
-
   // ── O PORTÃO DE DIREÇÃO ────────────────────────────────────────────────────
   // A produção inteira só roda depois que o cliente avaliza o caminho. Aprovar
   // uma direção custa uma conversa; refazer um mês de produção custa o mês.
   // Sem este portão, a agência descobre que errou o rumo depois de gastar tudo.
+  //
+  // Vem ANTES da trava de propósito: sem o aval não há execução, e marcar
+  // "running" (gastando uma tentativa) para logo desmarcar seria queimar o
+  // orçamento de retomada de um projeto que nem começou.
   if (!project.directionApprovedAt) {
     await prisma.project.update({
       where: { id: projectId },
@@ -171,8 +229,26 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
     };
   }
 
-  await prisma.project.update({
-    where: { id: projectId },
+  // ── A TRAVA ANTI-CONCORRÊNCIA É ATÔMICA ──────────────────────────────────
+  // Era ler (findUnique), decidir (if) e escrever (update) — três passos, com
+  // CINCO chamadores, um deles disparado sem espera (`portal/approvals`). O
+  // cliente aprovar no mesmo minuto do cron abria duas execuções do mesmo ciclo,
+  // e como não existe unique em (projectId, cycleId, ownerAgentId), o cliente
+  // recebia duas "Pauta do Mês" do mesmo mês.
+  //
+  // Agora quem trava é o BANCO: o estado esperado vai no WHERE e quem ganha é
+  // quem viu `count === 1`. O perdedor não roda — e isso é o certo, não um erro.
+  const travadoAntesDe = new Date(Date.now() - TRAVA_DE_EXECUCAO_MS);
+  const errosAnteriores = project.executionError ?? "";
+  const tomouATrava = await prisma.project.updateMany({
+    where: {
+      id: projectId,
+      OR: [
+        { executionStatus: { not: "running" } },
+        { executionStartedAt: null },
+        { executionStartedAt: { lt: travadoAntesDe } },
+      ],
+    },
     data: {
       executionStatus: "running",
       executionStartedAt: new Date(),
@@ -181,17 +257,44 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
       executionError: null,
     },
   });
+  if (tomouATrava.count === 0) {
+    return { ok: true, status: "skipped_running", produced: [], askedClient: [], skipped: [], error: "já em execução" };
+  }
 
   const clientRequestId = project.clientRequestId;
   try {
     // Qual ciclo está aberto agora. NULO no pacote inicial — o projeto ainda não
     // virou rotina, e as entregas dele nascem sem ciclo (é o que `aprovarPacote`
     // depois carimba como sendo do ciclo 1).
-    const cicloDoMomento = (await import("@/lib/agency/esteira/ciclos"))
-      .cicloAberto(projectId)
+    //
+    // ── FALHA AO LER O CICLO É BLOQUEIO, NUNCA `null` ────────────────────────
+    // Havia um `.catch(() => null)` aqui, e ele era catastrófico porque `null`
+    // não quer dizer "sem ciclo": `null` é TAMBÉM a chave da produção do pacote
+    // inicial. Com o banco tossindo no mês 5, o motor consultava as entregas do
+    // ciclo `null` (as do mês 1), via todos os especialistas já produzidos,
+    // montava `toRun` vazio, concluía `allHandled: true` e gravava
+    // `executionStatus: "done"`. O MÊS INTEIRO era pulado e carimbado como
+    // concluído — e o cron não recupera "done".
+    //
+    // Agora lança: o catch externo marca `failed`, e o mês é retentado.
+    //
+    // E a leitura é FEITA AQUI, direto, em vez de por `ciclos.cicloAberto()`:
+    // aquela função tem um `catch { return null }` dentro dela
+    // (`lib/agency/esteira/ciclos.ts:118`), então tirar o catch daqui não
+    // resolveria nada — o `null` já teria nascido lá dentro, com a mesma cara de
+    // "este projeto não tem ciclo". Para quem lê um ciclo para MOSTRAR, engolir
+    // o erro é aceitável; para quem o usa como CHAVE DE IDEMPOTÊNCIA, é o mês
+    // inteiro pulado. A consulta é a mesma; o tratamento do erro é o oposto.
+    const cicloId = await prisma.cycle
+      .findFirst({
+        where: { projectId, status: { in: ["aberto", "entregue"] } },
+        orderBy: { reference: "desc" },
+        select: { id: true },
+      })
       .then((c) => c?.id ?? null)
-      .catch(() => null);
-    const cicloId = await cicloDoMomento;
+      .catch((e) => {
+        throw new Error(`não consegui ler o ciclo aberto do projeto (${e instanceof Error ? e.message : "erro"}) — a produção PARA aqui: seguir com ciclo nulo pularia o mês inteiro e o marcaria como concluído`);
+      });
 
     const [req, client, artifacts, existing, materiaisResolvidos, feedDoCliente] = await Promise.all([
       prisma.clientRequestDb.findUnique({ where: { id: clientRequestId } }),
@@ -330,7 +433,16 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
 
     const produced: string[] = [];
     const askedClient: string[] = [];
+    // ── DUAS NATUREZAS DE PENDÊNCIA, DUAS LISTAS ─────────────────────────────
+    // `skipped` misturava "a IA caiu" (vale retentar: o mundo muda) com
+    // "reprovado no piso" (a peça foi produzida e RECUSADA — o cron retentava 5
+    // vezes, queimando 2 chamadas por especialista por passada, para chegar
+    // sempre ao mesmo lugar). Agora são listas separadas, e é a lista transitória
+    // que decide se a passada foi "failed" e volta para a fila do cron.
     const skipped: string[] = [];
+    /** Recusas: a peça existiu e foi barrada. Retentar é re-rolar o dado — caro,
+     *  e sem nada no mundo tendo mudado. */
+    const recusados: string[] = [];
     const qualityAudit: Array<{ department: string; verdict: VereditoDaQualidade; issues: string[] }> = [];
     const barradosNoPiso: BarradoNoPiso[] = [];
     const reprovadosPelaQualidade: ReprovadoPelaQualidade[] = [];
@@ -373,7 +485,56 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
         await moverTarefasDoAgente(projectId, esp.id, "pending");
         continue;
       }
-      const data = result.data as Record<string, unknown>;
+      let data = result.data as Record<string, unknown>;
+
+      // ── O CONTRATO DE SAÍDA, CONFERIDO NO JSON ───────────────────────────
+      // Aqui e não depois do markdown: "6 a 8 peças", "1-2 carrossel", "cenas:
+      // 3 a 6 telas" são campos estruturados, e depois de virarem texto a
+      // contagem já não é conferível. É a checagem mais barata da casa — não
+      // custa uma chamada de IA — e fecha o buraco em que o cliente contratava
+      // 8 posts e recebia 3, todos feed, sem ninguém saber.
+      let contrato = conferirContrato(esp, data);
+      let correcoesDeContrato = 0;
+      while (!contrato.cumpriu && correcoesDeContrato < MAX_CORRECOES_DE_CONTRATO) {
+        const refeito = await generate({
+          system: "Você é um agente sênior de uma agência de marketing brasileira. Sua entrega NÃO cumpriu o contrato de formato e quantidade que o cliente comprou. Reentregue COMPLETA, no mesmo formato JSON. Não corte conteúdo bom da versão anterior — complete o que falta.",
+          user: pedidoDeRefacao({
+            prompt: esp.prompt(context),
+            anterior: JSON.stringify(data),
+            parecer: `O CONTRATO DE SAÍDA NÃO FOI CUMPRIDO:\n- ${contrato.violacoes.join("\n- ")}`,
+            instrucao: "Reentregue o JSON inteiro cumprindo exatamente essas contagens e formatos.",
+          }),
+          maxTokens: 1800, workspaceId: project.workspaceId, preferredProvider: esp.provedor ?? "claude",
+        });
+        correcoesDeContrato++;
+        if (!refeito.ok) break;
+        const novo = refeito.data as Record<string, unknown>;
+        const conferido = conferirContrato(esp, novo);
+        // Só troca se MELHOROU: uma segunda resposta pior que a primeira não
+        // pode ser promovida só por ser a mais recente.
+        if (conferido.violacoes.length <= contrato.violacoes.length) {
+          data = novo;
+          contrato = conferido;
+        }
+      }
+      if (!contrato.cumpriu) {
+        // NÃO PUBLICA. Entregar 3 posts de 8 é quebra de contrato que o cliente
+        // percebe — e, ao contrário de um dado inventado, esta é conferível em
+        // código, então não há desculpa para ela chegar lá.
+        const parecer = contrato.violacoes.join("; ");
+        recusados.push(`${nome} (contrato de saída não cumprido: ${parecer})`);
+        barradosNoPiso.push({ especialista: nome, violacoes: ["contrato_de_saida"], parecer });
+        await moverTarefasDoAgente(projectId, esp.id, "pending");
+        await prisma.activityEvent.create({
+          data: {
+            workspaceId: project.workspaceId, projectId, clientId: project.clientId,
+            type: "contrato_de_saida_barrou",
+            message: `${nome} para ${context.businessName}: ${parecer}`.slice(0, 900),
+          },
+        }).catch(() => { /* best-effort: o registro não pode derrubar a produção */ });
+        continue;
+      }
+
       let title = typeof data.title === "string" ? data.title : `${nome} — ${context.businessName}`;
       let body = deliverableMarkdown(data);
       // Gate de saída: nada vazio/curto demais chega ao cliente.
@@ -395,23 +556,44 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
       // Não julga qualidade nem gosto: responde só se a peça afirma FATO que a
       // agência não tem como sustentar. Reprovou, o especialista refaz com o
       // parecer na mão; reprovou de novo, a peça NÃO é publicada.
-      let piso = conferirPisoDeVerdade(body, verdade);
+      //
+      // ── O TÍTULO TAMBÉM É A ENTREGA ──────────────────────────────────────
+      // Até 05/08/2026 o piso conferia só o `body`, e `deliverableMarkdown` NÃO
+      // inclui o título. Só que o título vira o `name` do `Deliverable` — o
+      // PRIMEIRO campo que o cliente lê no portal. "Pacote Noiva R$ 1.000 —
+      // entrega em 24h" passava inteiro, com preço e prazo inventados, e o piso
+      // dizia aprovado. O que vai ao cliente é título + corpo; é isso que o
+      // piso confere.
+      const conferirPeca = (t: string, b: string) => conferirPisoDeVerdade(`${t}\n\n${b}`, verdade);
+      let piso = conferirPeca(title, body);
       let correcoesDePiso = 0;
       while (!piso.aprovado && correcoesDePiso < MAX_CORRECOES_DE_PISO) {
         const parecer = resumirViolacoes(piso.violacoes);
         const refeito = await generate({
           system: "Você é um agente sênior de uma agência de marketing brasileira. Sua entrega afirmou dados que a agência NÃO tem como sustentar. Corrija removendo ou substituindo por \"PRECISO CONFIRMAR: <o quê>\". NUNCA troque um dado inventado por outro inventado. Responda SOMENTE JSON válido no mesmo formato.",
-          user: `${esp.prompt(context)}\n\nA VERIFICAÇÃO DE VERDADE REPROVOU a versão anterior: ${parecer}\n\nRefaça sem esses dados. Onde faltar informação do cliente, escreva "PRECISO CONFIRMAR: <o quê>".`,
+          user: pedidoDeRefacao({
+            prompt: esp.prompt(context),
+            anterior: JSON.stringify(data),
+            parecer: `A VERIFICAÇÃO DE VERDADE REPROVOU a versão anterior: ${parecer}`,
+            instrucao: 'Refaça sem esses dados — inclusive no campo "title". Onde faltar informação do cliente, escreva "PRECISO CONFIRMAR: <o quê>".',
+          }),
           maxTokens: 1800, workspaceId: project.workspaceId, preferredProvider: esp.provedor ?? "claude",
         });
         correcoesDePiso++;
         if (!refeito.ok) break;
-        const corrigido = deliverableMarkdown(refeito.data as Record<string, unknown>);
+        const novo = refeito.data as Record<string, unknown>;
+        const corrigido = deliverableMarkdown(novo);
         if (!corrigido || corrigido.length < MIN_DELIVERABLE_CHARS) break;
+        // A correção do piso não pode DESFAZER o contrato de saída: cortar duas
+        // peças para remover um preço inventado resolve uma coisa e quebra
+        // outra. Se a versão corrigida deixou de cumprir o contrato, ela não
+        // entra — a peça é barrada com o parecer que já está na mão.
+        if (!conferirContrato(esp, novo).cumpriu) break;
+        data = novo;
         body = corrigido;
-        const t = (refeito.data as Record<string, unknown>).title;
+        const t = novo.title;
         if (typeof t === "string" && t.trim()) title = t;
-        piso = conferirPisoDeVerdade(body, verdade);
+        piso = conferirPeca(title, body);
       }
 
       if (!piso.aprovado) {
@@ -419,7 +601,7 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
         // qualquer jeito": dado inventado que sobreviveu à correção não vira
         // entrega. Fica registrado para a equipe, e o cliente não vê.
         const parecer = resumirViolacoes(piso.violacoes);
-        skipped.push(`${nome} (reprovado no piso de verdade: ${piso.violacoes.map((v) => v.id).join(", ")})`);
+        recusados.push(`${nome} (reprovado no piso de verdade: ${piso.violacoes.map((v) => v.id).join(", ")})`);
         barradosNoPiso.push({ especialista: nome, violacoes: piso.violacoes.map((v) => v.id), parecer });
         await moverTarefasDoAgente(projectId, esp.id, "pending");
         await prisma.activityEvent.create({
@@ -441,6 +623,9 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
         // O estado da leitura vai como DADO, não como substring para o auditor
         // farejar no contexto — ver o comentário dos três estados lá.
         feed: { lida: feedDoCliente.lida, posts: feedDoCliente.posts },
+        // QUEM ESCREVEU. O juiz é escolhido para não ser ele — sem isto, em 11
+        // das 14 entregas o autor se auditava (ver `escolherArbitro`).
+        provedorDoAutor: esp.provedor ?? "claude",
       });
       let revisions = 0;
       // Só REPROVAÇÃO manda refazer. `nao_auditado` não é parecer — pedir ao
@@ -449,20 +634,33 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
       while (foiReprovadaPelaQualidade(audit.verdict) && revisions < MAX_QUALITY_REVISIONS) {
         const fix = await generate({
           system: "Você é um agente sênior de uma agência de marketing brasileira. A Qualidade apontou problemas na sua entrega — CORRIJA-OS e reentregue melhor. Responda SOMENTE com JSON válido no mesmo formato.",
-          user: `${esp.prompt(context)}${insightBlock ? `\n\n${insightBlock}` : ""}\n\nA Qualidade REPROVOU a versão anterior por: ${audit.issues.join("; ") || audit.note}. Refaça corrigindo exatamente esses pontos.`,
+          user: pedidoDeRefacao({
+            prompt: `${esp.prompt(context)}${insightBlock ? `\n\n${insightBlock}` : ""}`,
+            anterior: JSON.stringify(data),
+            parecer: `A Qualidade REPROVOU a versão anterior por: ${audit.issues.join("; ") || audit.note}`,
+            instrucao: "Refaça corrigindo exatamente esses pontos, mantendo o que já estava bom.",
+          }),
           maxTokens: 1800, workspaceId: project.workspaceId, preferredProvider: esp.provedor ?? "claude",
         });
         revisions++;
         if (!fix.ok) break;
-        const fixedBody = deliverableMarkdown(fix.data as Record<string, unknown>);
+        const corrigido = fix.data as Record<string, unknown>;
+        const fixedBody = deliverableMarkdown(corrigido);
         if (!fixedBody || fixedBody.length < MIN_DELIVERABLE_CHARS) break;
+        // Nem a Qualidade pode fazer a entrega encolher abaixo do contratado, e
+        // nem pode reintroduzir dado que a agência não sustenta. As duas travas
+        // que já rodaram continuam valendo depois da revisão.
+        if (!conferirContrato(esp, corrigido).cumpriu) break;
+        const fixedTitle = typeof corrigido.title === "string" && corrigido.title.trim() ? corrigido.title : title;
+        if (!conferirPeca(fixedTitle, fixedBody).aprovado) break;
+        data = corrigido;
         body = fixedBody;
-        const fixedTitle = (fix.data as Record<string, unknown>).title;
-        if (typeof fixedTitle === "string" && fixedTitle.trim()) title = fixedTitle;
+        title = fixedTitle;
         audit = await auditDeliverable({
-          deptLabel: dept.label, title, content: body, brandContext: ctxBlock(context),
+          deptLabel: nome, title, content: body, brandContext: ctxBlock(context),
           marketGuidelines: insightBlock, workspaceId: project.workspaceId,
           feed: { lida: feedDoCliente.lida, posts: feedDoCliente.posts },
+          provedorDoAutor: esp.provedor ?? "claude",
         });
       }
 
@@ -519,7 +717,26 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
       // quem apresenta é o gerente de projeto, de uma vez, quando tudo estiver
       // pronto. Cinco entregas pingando no portal é o que faz o cliente sentir
       // que a agência é desorganizada mesmo entregando bem.
-      await createApprovalRequest({ clientRequestId, department: dept.id, requestedBy: `Especialista de ${esp.label} (${dept.label})`, clientVisible: false });
+      //
+      // ── POR QUE ISTO TEM CATCH PRÓPRIO ────────────────────────────────────
+      // Estava solto, depois do `create` do entregável. Se lançasse, o
+      // `Deliverable` JÁ existia — então a retentativa pulava o especialista
+      // (idempotência) e a aprovação daquele departamento NUNCA era criada. O
+      // trabalho ficava pronto e sem porta de aprovação, para sempre. A falha
+      // agora é uma pendência transitória: a peça já é do cliente, e a próxima
+      // passada tenta de novo criar o que falta.
+      try {
+        await createApprovalRequest({ clientRequestId, department: dept.id, requestedBy: `Especialista de ${esp.label} (${dept.label})`, clientVisible: false });
+      } catch (err) {
+        skipped.push(`${nome} (entrega gravada, mas a aprovação do departamento não foi criada: ${err instanceof Error ? err.message : "erro"})`);
+        await prisma.activityEvent.create({
+          data: {
+            workspaceId: project.workspaceId, projectId, clientId: project.clientId,
+            type: "aprovacao_nao_criada",
+            message: `${nome} para ${context.businessName}: a entrega foi gravada mas o pedido de aprovação do departamento ${dept.id} NÃO foi criado.`.slice(0, 900),
+          },
+        }).catch(() => { /* best-effort */ });
+      }
       produced.push(nome);
       qualityAudit.push({ department: nome, verdict: audit.verdict, issues: audit.issues });
     }
@@ -528,24 +745,49 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
     // Sem isto, a agência definia a paleta do cliente num entregável e no mês
     // seguinte lia a marca, encontrava nulo, escrevia genérico e propunha uma
     // identidade DIFERENTE. Criava a marca e esquecia dela.
+    let colheuIdentidade = false;
     try {
       const { colherIdentidadeDaEntrega } = await import("@/lib/agency/execution/colher-identidade");
-      const colhida = await colherIdentidadeDaEntrega(projectId, project.clientId);
-
-      // ── O LOGO EM ARQUIVO ──────────────────────────────────────────────────
-      // Só depois de colher: o kit usa a paleta e a tipografia que o
-      // especialista definiu. Gerar antes produziria um logo preto e branco
-      // ignorando a marca que a própria casa acabou de criar.
-      //
-      // Quem contratou identidade recebe ARQUIVO. Até 02/08/2026 o pet shop
-      // sem logo pagava por identidade visual e recebia um texto descrevendo
-      // a marca — meio serviço cobrado inteiro.
-      if (colhida.encontrouEntrega && context.criandoIdentidade) {
-        const { produzirKitDeMarca } = await import("@/lib/agency/execution/logo");
-        const kit = await produzirKitDeMarca(projectId, project.clientId, project.workspaceId);
-        if (kit.arquivos.length > 0) await entregarKit(projectId, cicloId, context.businessName, project.clientId, kit.arquivos);
-      }
+      colheuIdentidade = (await colherIdentidadeDaEntrega(projectId, project.clientId)).encontrouEntrega;
     } catch { /* best-effort: colher a marca não pode derrubar a produção */ }
+
+    // ── O LOGO EM ARQUIVO — E O CLIENTE ENCONTRANDO O LOGO ───────────────────
+    // Só depois de colher: o kit usa a paleta e a tipografia que o especialista
+    // definiu. Gerar antes produziria um logo preto e branco ignorando a marca
+    // que a própria casa acabou de criar.
+    //
+    // ESTE BLOCO SAIU DO `try {} catch {}` DE PROPÓSITO. O serviço mais caro da
+    // casa estava inteiro dentro de um best-effort, e `entregarKit` terminava em
+    // `.catch(() => {})`: o cliente pagava, o logo era gerado, o arquivo ia para
+    // o armazenamento — e o `Deliverable`, que é a ÚNICA coisa que o torna
+    // visível no portal, falhava em silêncio. Ele nunca encontrava o que
+    // comprou. Pior: `produzirKitDeMarca` é idempotente e devolve lista vazia
+    // quando o logo já existe, então a retentativa não reentregava nada.
+    //
+    // Por isso a entrega é conferida SEPARADAMENTE da produção: "o arquivo já
+    // existe" nunca quis dizer "o cliente já encontra o arquivo".
+    if (context.criandoIdentidade) {
+      const { produzirKitDeMarca } = await import("@/lib/agency/execution/logo");
+      const kit = colheuIdentidade
+        ? await produzirKitDeMarca(projectId, project.clientId, project.workspaceId).catch(() => ({ arquivos: [] as Array<{ id: string; nome: string; para: string }> }))
+        : { arquivos: [] as Array<{ id: string; nome: string; para: string }> };
+      const arquivos = kit.arquivos.length > 0 ? kit.arquivos : await arquivosDoKitJaGerados(project.clientId);
+      if (arquivos.length > 0) {
+        const entrega = await entregarKit(projectId, cicloId, context.businessName, project.clientId, arquivos);
+        if (!entrega.ok) {
+          // Pendência TRANSITÓRIA: os arquivos existem, falta a entrega que os
+          // mostra. A próxima passada tenta de novo — e agora tem como.
+          skipped.push(`Design · Kit de marca (arquivos prontos, entrega não registrada: ${entrega.erro})`);
+          await prisma.activityEvent.create({
+            data: {
+              workspaceId: project.workspaceId, projectId, clientId: project.clientId,
+              type: "kit_de_marca_invisivel",
+              message: `${context.businessName}: o kit de marca foi produzido (${arquivos.length} arquivo(s)) mas NÃO virou entrega no portal — o cliente não encontra o que comprou. Motivo: ${entrega.erro}`.slice(0, 900),
+            },
+          }).catch(() => { /* best-effort */ });
+        }
+      }
+    }
 
     // ── UMA VOZ: o PM junta tudo que travou e cobra numa mensagem só ─────────
     let pedidosCobrados = 0;
@@ -553,15 +795,40 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
       pedidosCobrados = await cobrarCliente({ projectId, clientRequestId, nomeDoNegocio: context.businessName });
     }
 
-    // "done" quando não restou nenhum departamento pendente de produção (o que
-    // falhou por IA fica pra próxima passada do cron re-tentar).
-    const allHandled = skipped.length === 0;
+    // ── O ESTADO FINAL: TRÊS SAÍDAS, NÃO DUAS ───────────────────────────────
+    //
+    // `allHandled` responde "o pacote está inteiro?" e por isso só olha as
+    // pendências TRANSITÓRIAS. Recusa (piso ou contrato) não é pendência que o
+    // tempo resolve: a peça foi produzida e barrada.
+    //
+    //   • sem nada pendente               → "done";
+    //   • pendência transitória           → "failed" (o cron retenta);
+    //   • só recusas, duas passadas segui-
+    //     das                             → "blocked" — o cron NÃO pega, e a
+    //     escalação já está no `ActivityEvent`. Sem isto, o projeto queimava as
+    //     cinco tentativas re-rolando o dado a 2 chamadas de IA por
+    //     especialista por passada.
+    const allHandled = skipped.length === 0 && recusados.length === 0;
+    const soRecusas = skipped.length === 0 && recusados.length > 0;
+    const recusouDeNovo = soRecusas && errosAnteriores.startsWith(MARCA_DE_RECUSA);
+    const pendencias = [...skipped, ...recusados];
+    const statusFinal = allHandled ? "done" : recusouDeNovo ? "blocked" : "failed";
     await prisma.project.update({
       where: { id: projectId },
       data: {
-        executionStatus: allHandled ? "done" : "failed",
+        executionStatus: statusFinal,
         executionFinishedAt: new Date(),
-        executionError: allHandled ? null : `pendências: ${skipped.join("; ")}`,
+        executionError: allHandled
+          ? null
+          : `${soRecusas ? `${MARCA_DE_RECUSA} ` : ""}pendências: ${pendencias.join("; ")}`,
+        // ── O CONTADOR É DE FALHAS SEGUIDAS, NÃO DE VIDA ────────────────────
+        // `executionAttempts` só subia, nunca zerava numa passada bem-sucedida,
+        // e o cron filtra `lt: 5`. O cliente vitalício gastava as cinco
+        // tentativas nos dois primeiros meses e, do mês 3 em diante, QUALQUER
+        // falha deixava de ser recuperável — para sempre, sem sinal nenhum.
+        // Zerar no sucesso faz o número dizer o que o cron pergunta: "há quantas
+        // passadas seguidas este projeto não consegue fechar?".
+        ...(allHandled ? { executionAttempts: 0 } : {}),
       },
     });
 
@@ -621,7 +888,11 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
     }
 
     return {
-      ok: true, status: allHandled ? "done" : "failed", produced, askedClient, skipped, qualityAudit,
+      ok: true, status: allHandled ? "done" : "failed", produced, askedClient,
+      // O relatório continua vendo UMA lista de pendências — a separação é
+      // interna, para decidir o que vale retentar.
+      skipped: pendencias,
+      qualityAudit,
       pedidosCobrados, apresentado, barradosNoPiso, reprovadosPelaQualidade, naoAuditados,
       pmPlan: { orderedDepartments: plan.orderedDepartments, goal: plan.goal, pmMode: plan.pmMode },
     };
@@ -648,7 +919,15 @@ async function entregarKit(
   negocio: string,
   clientId: string | null,
   arquivos: Array<{ id: string; nome: string; para: string }>,
-): Promise<void> {
+): Promise<{ ok: boolean; erro?: string }> {
+  // Idempotente por PROJETO: o kit é uma vez na vida do cliente, e a
+  // retentativa não pode gerar um segundo "Kit de marca" no portal.
+  const jaEntregue = await prisma.deliverable.findFirst({
+    where: { projectId, ownerAgentId: "design-kit-de-marca" },
+    select: { id: true },
+  }).catch(() => null);
+  if (jaEntregue) return { ok: true };
+
   const cliente = clientId
     ? await prisma.client.findUnique({ where: { id: clientId }, select: { brandBrain: true, industry: true } }).catch(() => null)
     : null;
@@ -671,7 +950,8 @@ async function entregarKit(
     ...arquivos.map((a, i) => `- Arquivo ${i + 1}: ${a.nome} — /api/media/${a.id}`),
   ].join("\n");
 
-  await prisma.deliverable.create({
+  try {
+    await prisma.deliverable.create({
     data: {
       projectId, name: `Kit de marca — ${negocio}`, type: "brand-kit",
       status: "in_review", content: corpo, ownerAgentId: "design-kit-de-marca",
@@ -682,7 +962,42 @@ async function entregarKit(
       // verdade e, como não bloqueia, o kit continua chegando ao cliente.
       revisionStatus: revisionStatusDoVeredito("nao_auditado"),
     },
-  }).catch(() => { /* best-effort */ });
+    });
+    return { ok: true };
+  } catch (err) {
+    // O `.catch(() => {})` que estava aqui era o fail-open mais caro da casa: o
+    // cliente pagava pela identidade visual, o logo ia para o armazenamento e a
+    // entrega que o torna visível sumia sem barulho.
+    return { ok: false, erro: err instanceof Error ? err.message.slice(0, 200) : "erro ao gravar a entrega do kit" };
+  }
+}
+
+/**
+ * Os arquivos de logo que JÁ existem para este cliente.
+ *
+ * Existe porque `produzirKitDeMarca` é idempotente: com o logo já no
+ * armazenamento, ele devolve lista vazia — e a lista vazia fazia a entrega
+ * nunca ser retentada. "O arquivo existe" e "o cliente encontra o arquivo" são
+ * duas perguntas diferentes.
+ */
+async function arquivosDoKitJaGerados(
+  clientId: string | null,
+): Promise<Array<{ id: string; nome: string; para: string }>> {
+  if (!clientId) return [];
+  const assets = await prisma.mediaAsset.findMany({
+    where: { clientId, kind: "deliverable", fileName: { startsWith: "logo-" } },
+    select: { id: true, fileName: true },
+    orderBy: { createdAt: "asc" },
+  }).catch(() => []);
+  return assets.map((a) => ({
+    id: a.id,
+    nome: a.fileName,
+    para: a.fileName.includes("-simbolo-")
+      ? "o símbolo isolado — perfil, favicon, selo"
+      : a.fileName.includes("-escuro-")
+        ? "uso sobre fundo escuro — fachada, camiseta, story"
+        : "uso sobre fundo claro — papel, cardápio, site",
+  }));
 }
 
 /**

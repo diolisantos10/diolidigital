@@ -128,7 +128,7 @@ export default function FaixaDaEsteira({
               role="listitem"
               aria-current={t.estado === "atual" ? "step" : undefined}
               title={t.etapa}
-              style={{ background: t.estado === "futuro" ? "#E5E5E2" : t.estado === "atual" ? c.ponto : "#9B9B95" }}
+              style={{ background: t.estado === "futuro" ? "#E5E5E2" : t.estado === "atual" ? c.ponto : "var(--text-muted)" }}
               className={`h-1.5 flex-1 rounded-full ${t.estado === "atual" ? "" : "opacity-80"}`}
             />
           ))}

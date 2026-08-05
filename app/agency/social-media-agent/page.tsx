@@ -9,6 +9,7 @@ import { getClientAgentContext } from "@/lib/agency/workspace";
 import type { AgentClientContext } from "@/lib/agency/workspace";
 import Link from "next/link";
 import { comoTexto, temSubstancia } from "@/lib/agency/esteira/conteudo";
+import AvisoModoAlternativo from "@/components/agency/ui/AvisoModoAlternativo";
 
 // ─── Form ────────────────────────────────────────────────────────────────────
 
@@ -500,6 +501,8 @@ export default function SocialMediaAgentPage() {
   const [activeTab, setActiveTab]     = useState<OutputTab>("strategy");
   const [stepIndex, setStepIndex]     = useState(0);
   const [output, setOutput]           = useState<SocialOutput | null>(null);
+  // Pacote veio do gerador por regras, não da IA — DESIGN.md §7.3.
+  const [motivoDaReserva, setMotivoDaReserva] = useState<string | null>(null);
   const [sourceProject, setSourceProject] = useState<{ projectId: string; projectName: string } | null>(null);
   const [savedToProject, setSavedToProject] = useState(false);
   const [copiedKey, setCopiedKey]     = useState<string | null>(null);
@@ -541,6 +544,7 @@ export default function SocialMediaAgentPage() {
     if (!isReady) return;
     setAgentState("generating");
     setStepIndex(0);
+    setMotivoDaReserva(null);
     const capturedCtx = agentCtx;
     const capturedForm = form;
 
@@ -551,6 +555,7 @@ export default function SocialMediaAgentPage() {
     });
 
     let finalResult: SocialOutput;
+    let motivo: string | null = null;
     try {
       const res = await fetch("/api/agents/social/generate", {
         method: "POST",
@@ -571,16 +576,20 @@ export default function SocialMediaAgentPage() {
       const data = (await res.json()) as { ok: boolean; output?: SocialOutput; error?: string };
 
       if (!data.ok || !data.output) {
+        // Cair em regras é aceitável; cair em SILÊNCIO não. DESIGN.md §7.3.
         console.warn("[social-agent] AI unavailable, using rule-based fallback:", data.error);
         finalResult = generateMockOutput(capturedForm, capturedCtx);
+        motivo = data.error ?? "a IA não respondeu";
       } else {
         finalResult = data.output;
       }
     } catch (err) {
       console.warn("[social-agent] fetch error, falling back to rule-based:", err);
       finalResult = generateMockOutput(capturedForm, capturedCtx);
+      motivo = err instanceof Error ? err.message : "falha de conexão com o serviço de IA";
     }
 
+    setMotivoDaReserva(motivo);
     setOutput(finalResult);
     setAgentState("output_ready");
     setActiveTab("strategy");
@@ -973,6 +982,10 @@ export default function SocialMediaAgentPage() {
             </div>
           ) : output ? (
             <div className="space-y-4">
+
+              {motivoDaReserva && (
+                <AvisoModoAlternativo oQue="Pacote de redes sociais" motivo={motivoDaReserva} />
+              )}
 
               {/* Saved banner */}
               {savedToProject && sourceProject && (

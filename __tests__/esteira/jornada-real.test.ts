@@ -29,15 +29,26 @@ const DB_PATH = vi.hoisted(() => {
 });
 
 // A IA responde sempre a mesma peça — o conteúdo não é o objeto do teste.
+//
+// O que ELE precisa ser, desde 05/08/2026: uma entrega que CUMPRE o contrato de
+// saída (`especialistas.ts: conferirContrato`). O fixture antigo devolvia 2
+// peças para um especialista que o cliente contratou com 6 a 8, todas sem a
+// mistura de formatos — ou seja, encenava exatamente a quebra de contrato que
+// a casa passou a barrar. A esteira de ponta a ponta tem de rodar sobre uma
+// entrega que a agência realmente publicaria.
 vi.mock("@/lib/ai/generate", () => ({
   generate: vi.fn(async () => ({
     ok: true,
     data: {
       title: "Pacote de conteúdo — Padaria do João",
-      summary: "Quatro peças sobre o pão de fermentação natural.",
+      summary: "Seis peças sobre o pão de fermentação natural.",
       items: [
-        { headline: "O pão que leva 18 horas", format: "reel", caption: "A massa descansa desde ontem à noite. É por isso que ela tem esse sabor.", visual: "close na massa" },
+        { headline: "3 sinais de um pão de verdade", format: "carrossel", caption: "Nem todo pão escuro é integral. Olhe estes três sinais antes de comprar.", visual: "close na casca", cenas: "1) a casca estala · 2) o miolo tem alvéolos · 3) o cheiro é ácido, não doce" },
+        { headline: "O pão que leva 18 horas", format: "story", caption: "A massa descansa desde ontem à noite. É por isso que ela tem esse sabor.", visual: "close na massa" },
+        { headline: "Bastidor das 3h", format: "story", caption: "A padaria acende as luzes quando a rua ainda está escura.", visual: "forno acendendo" },
         { headline: "Quem faz o seu pão", format: "feed", caption: "O João acorda às 3h. Todo dia, há 22 anos.", visual: "retrato do padeiro" },
+        { headline: "A farinha que a gente escolhe", format: "feed", caption: "Farinha boa não é a mais branca. É a que fermenta sem pressa.", visual: "farinha na bancada" },
+        { headline: "Domingo é dia de mesa cheia", format: "feed", caption: "O pão que sobra na sexta não chega no domingo. Encomende o seu.", visual: "mesa posta" },
       ],
     },
   })),

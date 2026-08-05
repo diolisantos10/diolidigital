@@ -9,7 +9,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimited } from "@/lib/security/rate-limit";
-import { resolveProviderKey } from "@/lib/ai/resolve-key";
+import { chaveDeRotaPublica } from "@/lib/ai/chave-publica";
 
 const OPENAI_URL = "https://api.openai.com/v1/audio/transcriptions";
 const TIMEOUT_MS = 30_000;
@@ -25,7 +25,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const _limited = rateLimited(req, "sdr-transcribe", 12, 60_000);
   if (_limited) return _limited as NextResponse;
 
-  const resolved = await resolveProviderKey("openai");
+  // Rota PÚBLICA (ver lib/ai/chave-publica.ts). A irmã do portal
+  // (`/api/portal/transcricao`) resolve o workspace pelo TOKEN; aqui não há
+  // token nenhum, então quem resolve é o servidor — e, na dúvida entre duas
+  // agências, não gasta a de ninguém.
+  const resolved = await chaveDeRotaPublica("openai");
   if (!resolved) {
     return NextResponse.json({ ok: false, reason: "not_configured" });
   }

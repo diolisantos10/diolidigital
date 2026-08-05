@@ -1097,7 +1097,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             <div className="bg-white rounded-[12px] border border-[var(--border)] px-8 py-12 text-center shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
               <div className="w-10 h-10 rounded-full bg-[var(--accent)] flex items-center justify-center mx-auto mb-4">
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                  <path d="M3 5h12M3 9h8M3 13h5" stroke="#9B9B95" strokeWidth="1.4" strokeLinecap="round"/>
+                  <path d="M3 5h12M3 9h8M3 13h5" stroke="var(--text-muted)" strokeWidth="1.4" strokeLinecap="round"/>
                 </svg>
               </div>
               <p className="text-[14px] font-medium text-[var(--text-primary)]">Sem dados de briefing</p>

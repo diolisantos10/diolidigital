@@ -23,11 +23,17 @@
   --card:         #FFFFFF;
   --sidebar:      #070A1F;   /* navy — real sidebar bg */
 
-  /* Text — neutros frios coerentes com graphite/off-white do brand book */
-  --text-primary:   #1F2937;
-  --text-secondary: #55606E;
-  --text-muted:     #8B95A3;
-  --text-subtle:    #B8C0CA;
+  /* Text — neutros frios coerentes com graphite/off-white do brand book.
+     Os três degraus passam AA (≥4.5:1) sobre --bg, --card E --accent. Medido,
+     não estimado: 05/08/2026. Antes, --text-muted (#8B95A3) dava 2.85:1 em
+     1.104 usos — e era o texto MENOR do produto; --text-subtle (#B8C0CA) dava
+     1.73:1 em 113. Cinza mais claro que isto NÃO é hierarquia, é texto que
+     some: para desênfase abaixo de --text-subtle, use tamanho/peso, não
+     contraste. */
+  --text-primary:   #1F2937;   /* 12.6:1 sobre --bg */
+  --text-secondary: #4B5563;   /*  7.11:1 */
+  --text-muted:     #5E6875;   /*  5.32:1 */
+  --text-subtle:    #6B7280;   /*  4.55:1 */
 
   /* Borders */
   --border:         #E6E9EE;
@@ -36,6 +42,11 @@
   /* Semantic */
   --accent:       #EEF1F4;   /* shadcn "accent" = subtle hover surface */
   --accent-light: #E6FBFA;
+  /* Cyan profundo do portal. Em SUPERFÍCIE (preenchimento, ícone grande) vale
+     o tom da marca; em TEXTO/LINK sobre fundo claro ele dá 2.40:1 — por isso
+     existe o par escuro, medido em 4.62:1 sobre --bg. */
+  --teal:         #12B5AC;
+  --teal-text:    #0F7E79;
   --success:      #16A34A;
   --success-bg:   #DCFCE7;
   --warning:      #D97706;
@@ -74,7 +85,7 @@
   --secondary:                #EEF1F4;
   --secondary-foreground:     #1F2937;
   --muted:                    #FDFDFE;   /* = --bg-elevated */
-  --muted-foreground:         #55606E;   /* = --text-secondary */
+  --muted-foreground:         #4B5563;   /* = --text-secondary */
   --accent-foreground:        #1F2937;
   --destructive:              #DC2626;   /* = --danger */
   --input:                    #E6E9EE;   /* = --border */
@@ -237,6 +248,18 @@ h1, h2, h3, h4, .font-display {
 }
 .acao-reserva { padding-bottom: var(--acao-espaco); }
 .acao-barra   { min-height: var(--acao-altura); padding-bottom: var(--acao-safe); }
+
+/* ── Ação revelada no hover ───────────────────────────────────────────────────
+   `opacity-0 group-hover:opacity-100` some no celular: toque não tem `:hover`,
+   então a ação NUNCA aparece — e a maioria dos nossos usuários está no celular.
+   Aqui o padrão se inverte: a ação é visível por padrão e só se esconde onde
+   existe mouse de verdade. Ver DESIGN.md §6.4. */
+.acao-revelada { opacity: 1; }
+@media (hover: hover) and (pointer: fine) {
+  .acao-revelada { opacity: 0; transition: opacity var(--duration) var(--ease-out); }
+  .group:hover .acao-revelada,
+  .group:focus-within .acao-revelada { opacity: 1; }
+}
 
 /* ── Site público: linguagem visual "gelada" (Google × Apple) ─────────────────
    Fundos com brilho frio, superfícies de vidro e movimento sutil. Tudo dentro da

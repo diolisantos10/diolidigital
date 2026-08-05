@@ -44,7 +44,10 @@ export default function PipelinePage() {
         subtitle={`${projects.filter((p) => p.stage !== "completed").length} projeto${projects.filter((p) => p.stage !== "completed").length !== 1 ? "s" : ""} ativo${projects.filter((p) => p.stage !== "completed").length !== 1 ? "s" : ""} em andamento`}
       />
 
-      <div className="overflow-x-auto -mx-8 px-8">
+      {/* A sangria tem que casar com o padding do shell: `px-4` no celular,
+          `md:px-8` daí pra cima. `-mx-8` fixo vazava 16px e cortava a primeira
+          coluna a 375px. */}
+      <div className="overflow-x-auto -mx-4 px-4 md:-mx-8 md:px-8">
         <div className="flex gap-3 min-w-max pb-4">
           {STAGES.map(({ key, label }) => {
             const stageProjects = projects.filter((p) => p.stage === key);
@@ -63,11 +66,14 @@ export default function PipelinePage() {
                   {stageProjects.map((project) => {
                     const client = getClient(project.clientId);
                     const isHighlighted = highlighted === project.id;
-                    const daysLeft = Math.ceil(
-                      (new Date(project.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-                    );
-                    const overdue = daysLeft < 0;
-                    const atRisk = daysLeft >= 0 && daysLeft <= 7;
+                    // Projeto sem prazo existe (briefing recem-chegado). Sem esta
+                    // guarda o cartao mostrava literalmente "NaNd" ao usuario.
+                    const prazo = project.deadline ? new Date(project.deadline).getTime() : NaN;
+                    const daysLeft = Number.isNaN(prazo)
+                      ? null
+                      : Math.ceil((prazo - Date.now()) / (1000 * 60 * 60 * 24));
+                    const overdue = daysLeft !== null && daysLeft < 0;
+                    const atRisk = daysLeft !== null && daysLeft >= 0 && daysLeft <= 7;
                     const currentIdx = STAGE_ORDER.indexOf(project.stage);
 
                     return (
@@ -91,23 +97,23 @@ export default function PipelinePage() {
                           <span className={`text-[11px] font-medium mono-num ${
                             overdue ? "text-[var(--danger)]" : atRisk ? "text-[var(--warning)]" : "text-[var(--text-muted)]"
                           }`}>
-                            {overdue ? "Atrasado" : `${daysLeft}d`}
+                            {daysLeft === null ? "Sem prazo" : overdue ? "Atrasado" : `${daysLeft}d`}
                           </span>
                         </div>
 
                         {/* Move buttons */}
-                        <div className="flex gap-1.5 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="acao-revelada flex gap-1.5 mt-3">
                           <button
                             onClick={() => handleMove(project.id, "prev")}
                             disabled={currentIdx === 0}
-                            className="flex-1 h-6 text-[11px] text-[var(--text-secondary)] bg-[var(--accent)] rounded-[5px] hover:bg-[var(--border)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                            className="flex-1 h-8 md:h-6 text-[12px] md:text-[11px] text-[var(--text-secondary)] bg-[var(--accent)] rounded-[5px] hover:bg-[var(--border)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                           >
                             ← Ant.
                           </button>
                           <button
                             onClick={() => handleMove(project.id, "next")}
                             disabled={currentIdx === STAGE_ORDER.length - 1}
-                            className="flex-1 h-6 text-[11px] text-[var(--text-secondary)] bg-[var(--accent)] rounded-[5px] hover:bg-[var(--border)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                            className="flex-1 h-8 md:h-6 text-[12px] md:text-[11px] text-[var(--text-secondary)] bg-[var(--accent)] rounded-[5px] hover:bg-[var(--border)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                           >
                             Próx. →
                           </button>

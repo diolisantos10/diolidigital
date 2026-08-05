@@ -16,6 +16,36 @@
 //
 // Juntar as três faria a agência publicar no instante em que produz, sem o
 // cliente ver nada antes — o oposto do que esta casa decidiu.
+//
+// ── 05/08/2026: "approved" era BECO SEM SAÍDA, e o conserto foi UM caminho ───
+//
+// A decisão do cliente num card de calendário gravava `SocialPost.status =
+// "approved"` (app/api/portal/approvals). E NADA no repositório inteiro movia
+// `approved → scheduled`: `publicarAgendados` só olha "scheduled" e
+// `aprovarCalendario` só promove "draft". O cliente aprovava os 6 carrosséis, o
+// portal escrevia "Aprovado por você", e nenhum post ia ao ar — nunca, e sem
+// ninguém ser avisado. Receita cobrada, entrega que não acontece.
+//
+// Havia duas saídas e elas eram excludentes:
+//   (a) a decisão PROMOVE a peça para "scheduled";
+//   (b) `publicarAgendados` passa a aceitar "approved" também.
+//
+// Escolhida a (a), por três motivos:
+//   1. "scheduled" já é o que o resto da casa entende por consentimento — o
+//      relógio, o calendário do portal ("Programado") e a reabertura de card
+//      (que devolve a peça a "draft" para RETIRAR o aval). "approved" seria um
+//      segundo estado com o mesmo significado, e dois nomes para o mesmo estado
+//      é como nasce a próxima divergência.
+//   2. A data de um post em "approved" é uma data PROPOSTA — e pode já ter
+//      passado enquanto o cliente pensava. A (b) faria o relógio disparar em
+//      rajada tudo que estava marcado para ontem, a não ser reimplementando
+//      dentro do relógio o empurrão de datas que já vive aqui. Relógio não
+//      decide calendário.
+//   3. A (a) mantém a publicação com UM gatilho só, aqui, onde ele é lido.
+//
+// "approved" continua ACEITO como estado de ENTRADA da promoção (peça que ficou
+// presa antes deste conserto é resgatada na próxima promoção do mesmo dono),
+// mas nunca mais é escrito como destino de uma decisão.
 
 import { prisma } from "@/lib/db/client";
 import { publishPost } from "@/lib/integrations/meta/client";
@@ -32,6 +62,20 @@ const HORA_PADRAO = 10;
 
 /** Tipos de entregável que viram post. Estratégia e relatório não vão ao ar. */
 const TIPOS_PUBLICAVEIS = ["social", "video"];
+
+/**
+ * Estados de onde uma peça PODE ser promovida a "scheduled".
+ *
+ * "draft" é o caminho normal (data proposta, sem aval). "approved" é o legado
+ * do beco sem saída descrito no cabeçalho: peça que recebeu o "sim" do cliente
+ * e ficou parada porque ninguém a agendava. Aceitá-la aqui resgata o que já
+ * está no banco sem criar um segundo caminho de publicação — a promoção
+ * continua sendo a única porta para "scheduled".
+ *
+ * O que NÃO entra: "revision_requested" (o cliente pediu mudança nessa peça —
+ * agendá-la seria publicar o que ele recusou), "published" e "failed".
+ */
+const ESTADOS_PROMOVIVEIS = ["draft", "approved"];
 
 export interface AgendamentoFeito {
   projectId: string;
@@ -145,24 +189,128 @@ export async function aprovarCalendario(projectId: string): Promise<{ agendados:
   if (!projeto?.clientApprovedAt || !projeto.clientRequestId) return { agendados: 0 };
 
   const rascunhos = await prisma.socialPost.findMany({
-    where: { clientRequestId: projeto.clientRequestId, status: "draft" },
+    where: { clientRequestId: projeto.clientRequestId, status: { in: ESTADOS_PROMOVIVEIS } },
     orderBy: { scheduledFor: "asc" },
     select: { id: true, scheduledFor: true },
   });
-  if (rascunhos.length === 0) return { agendados: 0 };
+  return { agendados: await promoverParaAgendado(rascunhos) };
+}
 
-  let proximo = amanhaAs(HORA_PADRAO);
-  for (const post of rascunhos) {
-    const original = post.scheduledFor;
-    const quando = original && original > proximo ? original : new Date(proximo);
-    await prisma.socialPost.update({
-      where: { id: post.id },
-      data: { status: "scheduled", scheduledFor: quando },
-    });
-    // Empurrados ficam com pelo menos um dia entre si — nunca em rajada.
-    proximo = new Date(Math.max(quando.getTime(), proximo.getTime()) + 24 * 60 * 60_000);
+export interface CalendarioDoCiclo {
+  cycleId: string | null;
+  agendados: number;
+  /** Por que nada foi agendado. Vazio quando agendou. */
+  motivo?: string;
+}
+
+/**
+ * O calendário DESTE CICLO passa a valer — o irmão mensal de `aprovarCalendario`.
+ *
+ * ── O buraco que isto fecha (05/08/2026) ─────────────────────────────────────
+ * `aprovarCalendario` exige `Project.clientApprovedAt`, e quem o carimba é
+ * `aprovarPacote`, que aborta de saída se o carimbo já existe. Ou seja: o
+ * caminho `draft → scheduled` só funcionava UMA vez na vida do projeto, no
+ * pacote inicial. Do mês 2 em diante `apresentarCiclo` escrevia ao cliente
+ * "Aprove e a gente já agenda as publicações", ele aprovava, e o mês inteiro
+ * ficava em rascunho. Todo mês. Mensalidade cobrada, nada indo ao ar.
+ *
+ * Por isso esta função NÃO passa por `aprovarPacote`: o consentimento do mês 2
+ * não é o consentimento do contrato, é o do CICLO. As duas travas que sobram
+ * são as que importam de verdade:
+ *   • o ciclo precisa ter sido APRESENTADO (`presentedAt`) — o cliente não
+ *     consente com o que não viu;
+ *   • quem chama garante que não sobrou aprovação pendente do cliente.
+ *
+ * O recorte é por ciclo, via `Deliverable.cycleId`: aprovar o mês 2 não pode
+ * agendar de carona um rascunho do mês 3 que ainda nem foi apresentado.
+ */
+export async function aprovarCalendarioDoCiclo(
+  projectId: string,
+  cycleId: string,
+): Promise<CalendarioDoCiclo> {
+  const ciclo = await prisma.cycle.findUnique({
+    where: { id: cycleId },
+    select: { id: true, projectId: true, presentedAt: true },
+  });
+  if (!ciclo || ciclo.projectId !== projectId) {
+    return { cycleId: null, agendados: 0, motivo: "ciclo não encontrado neste projeto" };
   }
-  return { agendados: rascunhos.length };
+  if (!ciclo.presentedAt) {
+    return { cycleId, agendados: 0, motivo: "o ciclo ainda não foi apresentado ao cliente" };
+  }
+
+  const entregas = await prisma.deliverable.findMany({
+    where: { projectId, cycleId },
+    select: { id: true },
+  });
+  if (entregas.length === 0) return { cycleId, agendados: 0, motivo: "o ciclo não tem entregas" };
+
+  const rascunhos = await prisma.socialPost.findMany({
+    where: {
+      deliverableId: { in: entregas.map((e) => e.id) },
+      status: { in: ESTADOS_PROMOVIVEIS },
+    },
+    orderBy: { scheduledFor: "asc" },
+    select: { id: true, scheduledFor: true },
+  });
+  return { cycleId, agendados: await promoverParaAgendado(rascunhos) };
+}
+
+/**
+ * O ciclo que o cliente acabou de aprovar: o último APRESENTADO do projeto.
+ *
+ * É o que a ponte do portal chama quando `aprovarPacote` não se aplica mais
+ * (projeto já aprovado = mês 2 em diante). Idempotente: rodar de novo só
+ * encontra peças que já saíram de "draft" e agenda zero.
+ */
+export async function aprovarCalendarioDoCicloCorrente(projectId: string): Promise<CalendarioDoCiclo> {
+  const ciclo = await prisma.cycle.findFirst({
+    where: { projectId, presentedAt: { not: null } },
+    orderBy: { reference: "desc" },
+    select: { id: true },
+  });
+  if (!ciclo) return { cycleId: null, agendados: 0, motivo: "nenhum ciclo apresentado neste projeto" };
+  return aprovarCalendarioDoCiclo(projectId, ciclo.id);
+}
+
+export interface PecasAgendadas {
+  agendados: number;
+  /** Peças do card que a promoção NÃO tocou, com o estado em que ficaram.
+   *  Existe para que "não agendei esta" seja um dado visível e não um silêncio —
+   *  peça que some entre o clique do cliente e o relógio é trabalho preso. */
+  ignorados: Array<{ postId: string; status: string }>;
+}
+
+/**
+ * O CLIENTE APROVOU O CARD → as peças dele viram calendário que vale.
+ *
+ * Esta é a ponte que faltava (ver o cabeçalho): o clique de "Aprovar" num card
+ * de calendário — o caminho do cliente direto, sem `ClientRequestDb`, que é o
+ * caso da Foocci — passa a produzir o MESMO estado que a aprovação do pacote,
+ * com o mesmo empurrão de datas. Nada de estado intermediário que ninguém lê.
+ *
+ * `clientId` é do CARD, derivado do token pela rota: id de post de outro
+ * cliente dentro do JSON continua intocável.
+ */
+export async function agendarPecasAprovadas(entrada: {
+  clientId: string;
+  postIds: string[];
+}): Promise<PecasAgendadas> {
+  const ids = [...new Set(entrada.postIds.filter((id) => typeof id === "string" && id))];
+  if (ids.length === 0 || !entrada.clientId) return { agendados: 0, ignorados: [] };
+
+  const pecas = await prisma.socialPost.findMany({
+    where: { id: { in: ids }, clientId: entrada.clientId },
+    orderBy: { scheduledFor: "asc" },
+    select: { id: true, scheduledFor: true, status: true },
+  });
+
+  const promoviveis = pecas.filter((p) => ESTADOS_PROMOVIVEIS.includes(p.status));
+  const ignorados = pecas
+    .filter((p) => !ESTADOS_PROMOVIVEIS.includes(p.status))
+    .map((p) => ({ postId: p.id, status: p.status }));
+
+  return { agendados: await promoverParaAgendado(promoviveis), ignorados };
 }
 
 export interface PublicacaoFeita {
@@ -299,6 +447,35 @@ export async function publicarAgendados(): Promise<PublicacaoFeita> {
 }
 
 // ─── Internos ───────────────────────────────────────────────────────────────
+
+/**
+ * A ÚNICA escrita de "scheduled" desta casa.
+ *
+ * Recebe as peças já filtradas e ordenadas por data e empurra para frente o que
+ * ficou para trás enquanto o cliente decidia: aprovar na sexta não pode disparar
+ * de uma vez tudo que estava marcado para a quarta. Os empurrados ficam com pelo
+ * menos um dia entre si — nunca em rajada no perfil do cliente.
+ *
+ * Está em um lugar só de propósito: as três portas de consentimento (pacote,
+ * ciclo e card) precisam produzir exatamente o mesmo estado e a mesma régua de
+ * datas. Duas cópias dessa régua divergiriam no primeiro ajuste.
+ */
+async function promoverParaAgendado(
+  pecas: Array<{ id: string; scheduledFor: Date | null }>,
+): Promise<number> {
+  if (pecas.length === 0) return 0;
+  let proximo = amanhaAs(HORA_PADRAO);
+  for (const post of pecas) {
+    const original = post.scheduledFor;
+    const quando = original && original > proximo ? original : new Date(proximo);
+    await prisma.socialPost.update({
+      where: { id: post.id },
+      data: { status: "scheduled", scheduledFor: quando },
+    });
+    proximo = new Date(Math.max(quando.getTime(), proximo.getTime()) + 24 * 60 * 60_000);
+  }
+  return pecas.length;
+}
 
 function amanhaAs(hora: number): Date {
   const d = new Date();

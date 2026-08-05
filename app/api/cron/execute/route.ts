@@ -11,6 +11,16 @@ import { prisma } from "@/lib/db/client";
 import { runProjectExecution } from "@/lib/agency/execution/run-execution";
 
 const MAX_PER_TICK = 5;
+/**
+ * Quantas passadas SEGUIDAS sem fechar antes de o projeto parar de ser
+ * retomado sozinho.
+ *
+ * É "seguidas", não "na vida": `runProjectExecution` zera `executionAttempts`
+ * toda vez que fecha o pacote. Enquanto o contador era vitalício, o cliente de
+ * mensalidade gastava as cinco tentativas nos dois primeiros meses e, do mês 3
+ * em diante, qualquer falha ficava sem recuperação para sempre — sem log, sem
+ * alerta, sem ninguém saber.
+ */
 const MAX_ATTEMPTS = 5;
 const STALE_RUNNING_MS = 10 * 60_000;
 
@@ -28,6 +38,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const staleBefore = new Date(Date.now() - STALE_RUNNING_MS);
   // Candidatos: travados em "running" (caíram no meio) OU "failed" com tentativas
   // sobrando. Ordena pelos mais antigos primeiro.
+  //
+  // "blocked" NÃO entra de propósito: é o estado de quem produziu e foi RECUSADO
+  // duas passadas seguidas (piso de verdade ou contrato de saída). Retentar é
+  // re-rolar o dado a 2 chamadas de IA por especialista, e o caso já está
+  // escalado em `ActivityEvent`. Quem tira de "blocked" é a virada de ciclo ou o
+  // material que o cliente enviar.
   const candidates = await prisma.project.findMany({
     where: {
       clientRequestId: { not: null },

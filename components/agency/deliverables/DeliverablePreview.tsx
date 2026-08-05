@@ -69,7 +69,7 @@ function FrameBlock({ f, mode }: { f: PreviewFrame; mode: "internal" | "portal" 
         <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed whitespace-pre-line bg-white border border-[var(--border)] rounded-[6px] px-3 py-2">{f.copy}</p>
       )}
       {f.cta && (
-        <div className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#12B5AC]">
+        <div className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[var(--teal-text)]">
           <span className="w-1.5 h-1.5 rounded-full bg-[#12B5AC]" />
           CTA: {f.cta}
         </div>
@@ -111,7 +111,7 @@ function AdCopyBlock({ a }: { a: PreviewAdCopy }) {
         <div className="text-[12px] font-semibold text-[var(--text-primary)] leading-snug">{a.headline}</div>
         <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed whitespace-pre-line">{a.body}</p>
       </div>
-      <div className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#12B5AC]">
+      <div className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[var(--teal-text)]">
         <span className="w-1.5 h-1.5 rounded-full bg-[#12B5AC]" />
         CTA: {a.cta}
       </div>

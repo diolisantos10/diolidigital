@@ -17,7 +17,7 @@ import { NextRequest, NextResponse } from "next/server";
 const db = vi.hoisted(() => ({
   approvalRequest: { findUnique: vi.fn(), findMany: vi.fn(), update: vi.fn(), count: vi.fn() },
   clientRequestDb: { findUnique: vi.fn(), findFirst: vi.fn() },
-  socialPost: { findMany: vi.fn(), updateMany: vi.fn() },
+  socialPost: { findMany: vi.fn(), updateMany: vi.fn(), update: vi.fn(), findFirst: vi.fn() },
   client: { findUnique: vi.fn() },
   brainArtifact: { findMany: vi.fn() },
   project: { findFirst: vi.fn() },
@@ -100,6 +100,8 @@ beforeEach(() => {
   requireSession.mockResolvedValue(SESSAO_MASTER);
   db.socialPost.findMany.mockResolvedValue(SEIS_POSTS);
   db.socialPost.updateMany.mockResolvedValue({ count: 6 });
+  db.socialPost.update.mockResolvedValue({});
+  db.socialPost.findFirst.mockResolvedValue(null);
   db.approvalRequest.findMany.mockResolvedValue([]);
   db.approvalRequest.findUnique.mockResolvedValue({ ...CARD_FOOCCI });
   db.approvalRequest.update.mockResolvedValue({});
@@ -175,13 +177,42 @@ describe("POST /api/social-posts/aprovacao — a equipe abre a aprovação do ca
 // ── 2. A decisão propaga aos posts ──────────────────────────────────────────
 
 describe("decisão do cliente propaga status aos posts do card", () => {
-  it("aprovar → os 6 posts viram 'approved'", async () => {
+  // 05/08/2026 — o beco sem saída. Aprovar gravava "approved", e NADA no
+  // repositório movia `approved → scheduled`: `publicarAgendados` só busca
+  // "scheduled". O cliente aprovava os 6 carrosséis, a tela dizia "Aprovado por
+  // você", e nenhum post ia ao ar — nunca. A decisão agora PROMOVE a peça.
+  it("aprovar → as 6 peças viram 'scheduled', que é o único estado que o relógio publica", async () => {
     const res = await decidir(reqDecisao({ action: "approve" }));
     expect(res.status).toBe(200);
-    expect(db.socialPost.updateMany).toHaveBeenCalledWith({
+    // Nenhuma peça fica em "approved": um segundo nome para o mesmo estado é
+    // como nasce a próxima divergência.
+    expect(db.socialPost.updateMany).not.toHaveBeenCalled();
+    expect(db.socialPost.update).toHaveBeenCalledTimes(6);
+    for (const call of db.socialPost.update.mock.calls) {
+      expect(call[0].data.status).toBe("scheduled");
+    }
+    // A busca das peças é filtrada pelo dono do CARD — id de post de outro
+    // cliente dentro do JSON continua intocável.
+    expect(db.socialPost.findMany).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: { in: SEIS_IDS }, clientId: "cli-foocci" },
-      data: { status: "approved" },
-    });
+    }));
+  });
+
+  // A prova de que a corrente fecha: o estado gravado pela decisão é exatamente
+  // o que `publicarAgendados` procura, e a data nunca é passado.
+  it("a peça aprovada é ENCONTRADA por publicarAgendados — e nunca com data vencida", async () => {
+    await decidir(reqDecisao({ action: "approve" }));
+    const gravados = db.socialPost.update.mock.calls.map((c) => c[0].data as { status: string; scheduledFor: Date });
+
+    // O filtro do relógio, escrito aqui como contrato: status + hora chegada.
+    const relogio = (p: { status: string; scheduledFor: Date }, agora: Date) =>
+      p.status === "scheduled" && p.scheduledFor <= agora;
+
+    // Hoje nenhuma vai ao ar (todas no futuro): o cliente aprovou, não mandou
+    // publicar agora. Amanhã de madrugada, o relógio encontra todas.
+    expect(gravados.some((p) => relogio(p, new Date()))).toBe(false);
+    const daquiUmMes = new Date(Date.now() + 31 * 24 * 60 * 60_000);
+    expect(gravados.filter((p) => relogio(p, daquiUmMes))).toHaveLength(6);
   });
 
   it("pedir ajuste COM comentário → posts viram 'revision_requested' e o comentário vai ao registro", async () => {

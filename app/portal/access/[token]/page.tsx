@@ -1,5 +1,7 @@
 "use client";
 
+import { mensagemDeErro } from "@/components/agency/ui/mensagemDeErro";
+
 // ── Portal do Cliente — Hub v1 (Fase 3 → Lote 2) ─────────────────────────────
 // A tela do cliente inteira montada com os 6 blocos da spec
 // (docs/projetos/hub/02-blocos-fluxos-navegacao.md) e EXATAMENTE 6 itens de
@@ -361,12 +363,14 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({} as { error?: string }));
-        throw new Error(j.error ?? `Falha HTTP ${res.status}`);
+        throw new Error(j.error ?? `HTTP ${res.status}`);
       }
       await loadData();
       return true;
     } catch (e) {
-      setErroDecisao(e instanceof Error ? e.message : "Erro ao registrar. Tente novamente.");
+      // Quem lê isto é o CLIENTE PAGANTE. "Falha HTTP 500" na tela dele não é
+      // mensagem de erro, é log vazado — DESIGN.md §7.3.
+      setErroDecisao(mensagemDeErro(e, "registrar sua resposta").mensagem);
       return false;
     } finally {
       setEnviando(false);
@@ -392,12 +396,25 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
       network: { title: "Erro de conexão", body: "Não foi possível verificar o acesso. Tente novamente em instantes." },
     };
     const msg = messages[error ?? "invalid"] ?? messages.invalid;
+    // "network" e a falha genérica são recuperáveis: quem chega aqui por queda
+    // de conexão precisa de um BOTÃO, não de um pedido para recarregar a
+    // página. Link expirado/revogado não tem o que tentar — só contato.
+    const podeTentarDeNovo = error === "network" || !error;
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--bg-elevated)] px-4">
-        <div className="max-w-sm text-center">
-          <div className="w-12 h-12 rounded-full bg-[#FEF3C7] flex items-center justify-center mx-auto mb-4 text-xl">⚠</div>
+        <div className="max-w-sm text-center" role="alert">
+          <div className="w-12 h-12 rounded-full bg-[var(--warning-bg)] flex items-center justify-center mx-auto mb-4 text-xl" aria-hidden>⚠</div>
           <h1 className="text-[18px] font-semibold text-[var(--text-primary)] mb-2">{msg.title}</h1>
           <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">{msg.body}</p>
+          {podeTentarDeNovo && (
+            <button
+              onClick={() => { setError(null); setLoading(true); void loadData(); }}
+              className="mt-4 h-10 px-4 rounded-[10px] bg-[var(--text-primary)] text-white text-[13px] font-semibold"
+              style={{ touchAction: "manipulation" }}
+            >
+              Tentar de novo
+            </button>
+          )}
         </div>
       </div>
     );
@@ -612,7 +629,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
                     </button>
                   ))}
                   <div className="px-4 py-2.5 border-t border-[var(--border)]">
-                    <button onClick={() => irPara("aprovacoes")} className="text-[12.5px] font-semibold text-[#12B5AC] hover:underline" style={{ touchAction: "manipulation" }}>
+                    <button onClick={() => irPara("aprovacoes")} className="text-[12.5px] font-semibold text-[var(--teal-text)] hover:underline" style={{ touchAction: "manipulation" }}>
                       Ver todas as decisões →
                     </button>
                   </div>
@@ -704,7 +721,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
                       {dept.bullets.length > 0 && (
                         <ul className="space-y-1.5">
                           {dept.bullets.map((b, i) => (
-                            <li key={i} className="flex items-start gap-2 text-[12.5px] text-[var(--text-secondary)]"><span aria-hidden className="text-[#12B5AC] mt-0.5 shrink-0">•</span>{b}</li>
+                            <li key={i} className="flex items-start gap-2 text-[12.5px] text-[var(--text-secondary)]"><span aria-hidden className="text-[var(--teal-text)] mt-0.5 shrink-0">•</span>{b}</li>
                           ))}
                         </ul>
                       )}
@@ -735,9 +752,27 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
             )}
 
             {erroProjetos && projetos.length === 0 && (
-              <div className="bg-white rounded-[14px] border border-[var(--border)] p-7 text-center">
-                <p className="text-[13.5px] font-semibold text-[var(--text-primary)]">Não consegui carregar agora</p>
-                <p className="text-[12px] text-[var(--text-muted)] mt-1">Tente atualizar a página. Se continuar assim, fale com a gente pela conversa aqui do portal.</p>
+              <div role="alert" className="bg-white rounded-[14px] border border-[#FCA5A5] p-7 text-center">
+                <p className="text-[13.5px] font-semibold text-[var(--text-primary)]">Não consegui carregar seus projetos</p>
+                <p className="text-[12px] text-[var(--text-secondary)] mt-1">
+                  Costuma ser conexão. Tente de novo — se continuar assim, fale com a gente pela conversa aqui do portal.
+                </p>
+                <div className="flex items-center justify-center gap-2 mt-4">
+                  <button
+                    onClick={() => { setErroProjetos(false); void loadData(); }}
+                    className="h-10 px-4 rounded-[10px] bg-[var(--text-primary)] text-white text-[13px] font-semibold"
+                    style={{ touchAction: "manipulation" }}
+                  >
+                    Tentar de novo
+                  </button>
+                  <button
+                    onClick={() => setChatOpen(true)}
+                    className="h-10 px-4 rounded-[10px] border border-[var(--border)] text-[var(--text-primary)] text-[13px] font-semibold"
+                    style={{ touchAction: "manipulation" }}
+                  >
+                    Falar com seu PM
+                  </button>
+                </div>
               </div>
             )}
 
@@ -803,7 +838,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
               <h3 className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-2">Arquivo muito grande?</h3>
               <p className="text-[12px] text-[var(--text-secondary)]">
                 Se passar de 120 MB, mande um link (WeTransfer, Drive, Dropbox):{" "}
-                <button onClick={() => setChatOpen(true)} className="text-[#12B5AC] font-semibold hover:underline" style={{ touchAction: "manipulation" }}>fale com seu PM</button>{" "}
+                <button onClick={() => setChatOpen(true)} className="text-[var(--teal-text)] font-semibold hover:underline" style={{ touchAction: "manipulation" }}>fale com seu PM</button>{" "}
                 e cole o link na conversa.
               </p>
             </div>

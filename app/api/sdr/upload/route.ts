@@ -17,7 +17,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimited } from "@/lib/security/rate-limit";
-import { resolveProviderKey } from "@/lib/ai/resolve-key";
+import { chaveDeRotaPublica } from "@/lib/ai/chave-publica";
 import AdmZip from "adm-zip";
 
 const MAX_FILE_BYTES = 20 * 1024 * 1024; // 20 MB
@@ -68,7 +68,11 @@ function extractPptxText(buf: Buffer): string {
 
 // Ask Claude to transcribe a PDF or image into plain briefing text.
 async function extractWithClaude(buf: Buffer, mime: string): Promise<string> {
-  const resolved = await resolveProviderKey("claude");
+  // Rota PÚBLICA (ver lib/ai/chave-publica.ts): o workspace que paga a
+  // leitura do arquivo é resolvido pelo servidor, nunca "a primeira chave do
+  // banco". Um PDF de 20 MB por requisição, 12 por minuto, é a chave de uma
+  // agência escolhida por acaso virando fatura.
+  const resolved = await chaveDeRotaPublica("claude");
   if (!resolved) return "";
 
   type Block =

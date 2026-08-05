@@ -74,6 +74,9 @@ export default function AgencySidebar({ id, userInfo, mobileOpen = false, onMobi
         // O cliente escrevia e ninguem lia: a mensagem gravava no banco e morria.
         // O badge soma conversa nao lida + pedido novo, sem contar duas vezes.
         { label: "Caixa de entrada", href: "/agency/inbox", icon: InboxIcon, badge: caixa.total },
+        // Caixa de WhatsApp: existia completa e funcional desde sempre, SEM um
+        // único link na interface — quem não soubesse a URL não chegava nela.
+        { label: "WhatsApp", href: "/agency/whatsapp", icon: WhatsAppIcon },
         { label: "Aprovações", href: "/agency/approvals", icon: BellIcon, badge: pendingCount },
       ],
     },
@@ -99,6 +102,8 @@ export default function AgencySidebar({ id, userInfo, mobileOpen = false, onMobi
       group: "Inteligência & Sistema",
       items: [
         { label: "Dioli Brain", href: "/agency/brain", icon: BrainIcon },
+        // Mesmo caso do WhatsApp: serviço + cron + 3 rotas de API, zero porta.
+        { label: "Radar do mercado", href: "/agency/radar", icon: RadarIcon },
         { label: "Ferramentas & Integrações", href: "/agency/integrations", icon: IntegrationsIcon },
         { label: "Configurações", href: "/agency/settings", icon: SettingsIcon },
       ],
@@ -181,8 +186,8 @@ export default function AgencySidebar({ id, userInfo, mobileOpen = false, onMobi
             <div key={i} className={i > 0 ? "mt-5" : ""}>
               {section.group && (
                 <div className="px-2 pt-1 pb-1.5 mb-0.5">
-                  <span className="text-[9.5px] font-semibold tracking-[0.1em] uppercase"
-                        style={{ color: "rgba(255,255,255,0.22)" }}>
+                  <span className="text-[11px] font-semibold tracking-[0.1em] uppercase"
+                        style={{ color: "rgba(255,255,255,0.55)" }}>
                     {section.group}
                   </span>
                 </div>
@@ -248,8 +253,8 @@ export default function AgencySidebar({ id, userInfo, mobileOpen = false, onMobi
           </svg>
           <span className="flex-1 text-left truncate">Guia da função</span>
         </button>
-        <div className="text-[9px] font-semibold uppercase tracking-[0.1em] mb-1.5 px-1"
-             style={{ color: "rgba(255,255,255,0.22)" }}>
+        <div className="text-[11px] font-semibold uppercase tracking-[0.1em] mb-1.5 px-1"
+             style={{ color: "rgba(255,255,255,0.55)" }}>
           Visualizar como
         </div>
         <select
@@ -291,6 +296,25 @@ function InboxIcon({ size = 16, className = "" }: { size?: number; className?: s
   return (
     <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
       <path d="M2 9.5h3l1 2h4l1-2h3M2 9.5L3.8 3.2A1 1 0 014.76 2.5h6.48a1 1 0 01.96.7L14 9.5v3a1 1 0 01-1 1H3a1 1 0 01-1-1v-3z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+function WhatsAppIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
+      <path d="M2.6 13.4l.8-2.7A5.4 5.4 0 1113.4 8 5.4 5.4 0 015.3 12.6l-2.7.8z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
+      <path d="M6 6.1c.2-.4.4-.4.6-.4h.4c.2 0 .3.2.4.4l.4.9-.5.5c.3.6.8 1.1 1.4 1.4l.5-.5.9.4c.2.1.4.2.4.4v.4c0 .2 0 .4-.4.6-.6.3-1.4.1-2.3-.5A6 6 0 016.1 8c-.5-.8-.5-1.5-.1-1.9z" fill="currentColor"/>
+    </svg>
+  );
+}
+
+function RadarIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
+      <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.3"/>
+      <circle cx="8" cy="8" r="2.6" stroke="currentColor" strokeWidth="1.3"/>
+      <path d="M8 8l4-3.2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
     </svg>
   );
 }

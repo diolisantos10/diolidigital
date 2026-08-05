@@ -54,7 +54,7 @@ function LinkifiedBody({ text, mine }: { text: string; mine: boolean }) {
       {parts.map((p, i) =>
         /^https?:\/\//.test(p) ? (
           <a key={i} href={p} target="_blank" rel="noopener noreferrer"
-             className={`underline break-all ${mine ? "text-[var(--cyan)]" : "text-[#12B5AC]"}`}>
+             className={`underline break-all ${mine ? "text-[var(--cyan)]" : "text-[var(--teal-text)]"}`}>
             {p.length > 42 ? p.slice(0, 42) + "…" : p}
           </a>
         ) : (

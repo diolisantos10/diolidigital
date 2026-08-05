@@ -62,27 +62,43 @@ sofisticada porque é clara, não porque é difícil de entender."* Evitar jarg�
 Todos os tokens vivem em [`app/globals.css`](app/globals.css) como CSS variables no `:root`.
 **Sempre** use o token — nunca digite o hex "na mão" no componente.
 
+> ⚠️ **Este documento é a fonte de verdade — então ele tem que estar certo.**
+> Até 05/08/2026 a tabela abaixo divergia do `globals.css` em **7 de 12 tokens**
+> (`--bg`, `--bg-elevated`, os quatro de texto e `--border`): quem lia o
+> `DESIGN.md` e digitava o hex escrevia a cor **errada**. Valores conferidos
+> contra `app/globals.css` em 05/08/2026.
+
 ### 2.1 Superfícies
 | Token | Valor | Uso |
 |---|---|---|
-| `--bg` | `#F5F5F3` | Fundo da página |
-| `--bg-elevated` | `#FAFAF8` | Cards/painéis levemente elevados |
+| `--bg` | `#F7F8FA` | Fundo da página (off-white oficial do brand book) |
+| `--bg-elevated` | `#FDFDFE` | Cards/painéis levemente elevados |
 | `--card` | `#FFFFFF` | Cartões |
 | `--sidebar` | `#070A1F` | Fundo da sidebar (navy) |
 
-### 2.2 Texto
-| Token | Valor | Uso |
-|---|---|---|
-| `--text-primary` | `#1A1A1A` | Texto principal |
-| `--text-secondary` | `#6B6B65` | Texto de apoio |
-| `--text-muted` | `#9B9B95` | Texto secundário/legendas |
-| `--text-subtle` | `#C0C0BC` | Placeholders, texto muito discreto |
+### 2.2 Texto — os três degraus passam AA, e isso é requisito
+
+| Token | Valor | Contraste sobre `--bg` | Uso |
+|---|---|---|---|
+| `--text-primary` | `#1F2937` | 12.6:1 | Texto principal |
+| `--text-secondary` | `#4B5563` | 7.11:1 | Texto de apoio |
+| `--text-muted` | `#5E6875` | 5.32:1 | Texto secundário/legendas |
+| `--text-subtle` | `#6B7280` | 4.55:1 | Placeholders, texto muito discreto |
+
+Os quatro passam AA (≥ 4.5:1) sobre `--bg`, `--card` **e** `--accent`.
+
+> **Por que isso virou requisito (05/08/2026):** `--text-muted` era `#8B95A3`
+> — **2.85:1**, em **1.104 usos**, e é justamente o texto **menor** do produto.
+> `--text-subtle` era `#B8C0CA` — **1.73:1**, em 113 usos. Um token só consertou
+> ~1.200 lugares. **Cinza mais claro que `--text-subtle` não é hierarquia, é
+> texto que some:** para desênfase abaixo dele, use **tamanho e peso**, nunca
+> menos contraste.
 
 ### 2.3 Bordas
 | Token | Valor | Uso |
 |---|---|---|
-| `--border` | `#E5E5E2` | Borda padrão |
-| `--border-strong` | `#C8C8C4` | Borda em hover/ênfase |
+| `--border` | `#E6E9EE` | Borda padrão |
+| `--border-strong` | `#D2D7DE` | Borda em hover/ênfase |
 
 ### 2.4 Cores semânticas (estados)
 | Token | Texto | Fundo | Significado |
@@ -91,7 +107,15 @@ Todos os tokens vivem em [`app/globals.css`](app/globals.css) como CSS variables
 | `--warning` / `--warning-bg` | `#D97706` | `#FEF3C7` | Atenção, em revisão, pendente |
 | `--danger` / `--danger-bg` | `#DC2626` | `#FEF2F2` | Erro, bloqueado, destrutivo |
 | `--info` / `--info-bg` | `#2563EB` | `#EFF6FF` | Informação, em andamento |
+| `--accent` | — | `#EEF1F4` | Superfície de hover discreta |
 | `--accent-light` | — | `#E6FBFA` | Tint de cyan para destaques suaves |
+| `--teal` | — | `#12B5AC` | Cyan profundo do portal — **superfície/ícone** |
+| `--teal-text` | `#0F7E79` | — | O mesmo papel em **texto/link** (4.62:1) |
+
+> **`--teal` não vai em texto.** `#12B5AC` sobre fundo claro dá **2.40:1**. Em
+> texto e link use `--teal-text`. *(Pendente para o CEO: botão com fundo
+> `--teal` e texto branco também dá 2.55:1 — mudar o preenchimento mexe em
+> identidade visual, que não é decisão do design system.)*
 
 > ⚠️ **Cor nunca é o único sinal de estado.** Todo status por cor deve ter também
 > um texto ou ícone (acessibilidade para daltônicos). Veja §7.
@@ -234,7 +258,24 @@ conteúdo. A regra:
 4. **A regra vale em TODA superfície, não só onde ela nasceu.** Ela foi escrita
    por causa do portal e, no mesmo dia, o painel da agência ainda tinha o defeito
    — porque ninguém foi conferir lá. Regra nova sem varredura das outras
-   superfícies é regra pela metade.
+   superfícies é regra pela metade. **E aconteceu de novo:** corrigidos portal e
+   painel, o **briefing público** ficou de fora por mais quatro dias — a barra
+   "Sim, quero meu orçamento" cobria o fim do conteúdo exatamente na tela de
+   conversão, que é a primeira impressão da agência. Duas vezes o mesmo erro é
+   processo, não descuido: **por isso a varredura agora é lista, com data.**
+
+#### Varredura das quatro superfícies
+
+| Superfície | Elemento fixo | Quem reserva | Conferido |
+|---|---|---|---|
+| Portal do cliente | FAB "Fale com seu PM" | `.portal-shell` em `app/portal/layout.tsx` | 04/08/2026 |
+| Painel da agência | barra de navegação no topo (celular) | `.agency-shell` / `.agency-conteudo` em `AgencyShell.tsx` | 05/08/2026 |
+| Painel — barra de ação no rodapé | Planner, Escopo | `.acao-shell` + `useReservaDeBarra` | 05/08/2026 |
+| **Briefing público** | barra "Sim, quero meu orçamento" | `.acao-shell` + `useReservaDeBarra` em `PublicBriefingRoom.tsx` | **05/08/2026** |
+| Vitrine / contato | — (sem elemento fixo sobre conteúdo) | — | 05/08/2026 |
+
+**Ao criar ou mexer num elemento fixo, esta tabela se atualiza na mesma sessão.**
+Linha sem data é linha não conferida.
 
 Referências de implementação em `app/globals.css`: `.portal-shell`
 (`--fab-inset` · `--fab-altura` · `--fab-respiro` · `--fab-safe`), aplicada em
@@ -283,6 +324,37 @@ uma terceira). Constante escrita à mão fica certa hoje e errada na primeira fr
 nova. Use `useReservaDeBarra`
 (`components/agency/layout/useReservaDeBarra.ts`), que escreve a altura real na
 variável que o layout usa para reservar.
+
+### 6.3 Tabela de muitas colunas no celular vira lista de cartões
+
+Tabela dentro de um pai com `overflow-hidden` não é "apertada": ela é
+**cortada**. As colunas finais somem da tela e **não existe gesto que chegue
+nelas**. Medido a 375px em 05/08/2026: Tarefas (9 colunas) perdia Prioridade,
+Status, Prazo, Origem e todas as ações; Projetos (7), Entregas (6) e Clientes
+(5) perdiam o mesmo tipo de coluna — as de decisão.
+
+`overflow-x-auto` conserta o *corte*, mas não conserta a *tela*: rolar
+lateralmente por 9 colunas de 880px num aparelho de 375px é navegação às cegas
+— o cabeçalho sai de vista junto com o dado. O padrão da casa é o mesmo do
+Linear e do Attio, e o que a Caixa de Entrada já fazia:
+
+- **Abaixo de `md`:** lista de **cartões** (`<ul>`), um item por cartão, com o
+  título em 14px, o contexto em 12px, os selos de estado em linha e as ações
+  como botões reais de 32px — não escondidos atrás de hover.
+- **De `md` para cima:** a tabela, dentro de container `overflow-x-auto` com
+  `min-w-[…]` explícito. `overflow-hidden` num container de tabela é bug.
+
+### 6.4 Ação revelada no hover não existe no celular
+
+`opacity-0 group-hover:opacity-100` é elegante no desktop e é **funcionalidade
+ausente** no toque: `:hover` nunca dispara, então a ação nunca aparece — e a
+maioria dos nossos usuários está no celular. Foi assim que os botões de mover
+etapa do Pipeline ficaram inalcançáveis por aparelho.
+
+Use `.acao-revelada` (`app/globals.css`): visível por padrão, escondida
+**apenas** dentro de `@media (hover: hover) and (pointer: fine)`, e revelada
+também por `:focus-within` (teclado). O breakpoint não serve para isso —
+tablet de 768px é toque com largura de desktop.
 
 ---
 

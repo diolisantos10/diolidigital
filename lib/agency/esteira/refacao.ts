@@ -17,6 +17,26 @@
 // peça três vezes, o problema não é a peça — é um desentendimento sobre o que
 // ele quer, e mais uma rodada de IA só aumenta a frustração dele. Na terceira,
 // vira gente.
+//
+// ── 05/08/2026: o mesmo bug sobrevivia pelo OUTRO ramo ───────────────────────
+// Tudo aqui dentro era ancorado SÓ em `clientRequestId`, e a rota do portal só
+// chamava esta função quando o card tinha esse campo. Card de CLIENTE DIRETO
+// (criado por /api/social-posts/aprovacao, que nasce só com `clientId` — o caso
+// Foocci) caía fora do `if`: o cliente escrevia o que queria mudar, a peça virava
+// "revision_requested", o comentário ficava gravado, e NADA acontecia. Não
+// refazia, não escalava, não avisava. O portal dizia "Ajustes solicitados" para
+// sempre — que é literalmente o defeito que este arquivo dizia ter consertado.
+//
+// A regra nova é a mesma que a conversa já adotou (`app/api/messages/conversa.ts`):
+// o pedido pertence ao CLIENTE, não à solicitação. A leitura une as duas chaves,
+// a escrita carimba as duas quando ambas são deriváveis, e nenhuma chave nula
+// entra em filtro — `{ clientId: null }` casaria com todo registro órfão do
+// banco, que é vazamento entre clientes.
+//
+// E o SILÊNCIO deixou de ser possível: quando não há projeto (cliente direto,
+// posts sem entregável), esta função não devolve mais um objeto e vai embora —
+// ela escala para a equipe e escreve no portal antes de retornar. Pedido de
+// cliente que não chega a ninguém é a pior falha que esta casa conhece.
 
 import { prisma } from "@/lib/db/client";
 import { buildVerdadeOperacional } from "@/lib/dioli-brain/client-snapshot";
@@ -41,42 +61,109 @@ export interface RefacaoFeita {
   avisouCliente: boolean;
 }
 
+/** Onde uma mensagem deste pedido é gravada. As DUAS chaves quando ambas são
+ *  deriváveis — é o que mantém a conversa única por cliente. */
+interface AncoraDoPedido {
+  clientId: string | null;
+  clientRequestId: string | null;
+}
+
 /**
  * Refaz o que o cliente pediu para mudar.
  *
  * `department` vem da `ApprovalRequest`: é a casa que produziu a peça. Refaz as
  * entregas daquele departamento no ciclo corrente — não o pacote inteiro. O
  * cliente que reclamou do texto do social não quer o logo dele redesenhado.
+ *
+ * Aceita as DUAS chaves de dono e exige pelo menos uma. `clientRequestId` é o
+ * caminho do fluxo Brain; `clientId` é o do cliente criado direto, que não tem
+ * solicitação nenhuma e até 05/08/2026 não era atendido por ninguém.
  */
 export async function refazerPorPedidoDoCliente(input: {
-  clientRequestId: string;
+  clientRequestId?: string | null;
+  clientId?: string | null;
   department: string;
   comentario?: string;
 }): Promise<RefacaoFeita> {
   const saida: RefacaoFeita = { refeitas: [], versoesNovas: [], escalado: false, avisouCliente: false };
 
+  const clientRequestId = input.clientRequestId?.trim() || null;
+  // O dono: quando só veio a solicitação, o cliente é derivado dela. Derivação,
+  // nunca invenção — solicitação de prospect (sem cliente) fica com `null`, e
+  // aí a âncora é só a solicitação mesmo.
+  let clientId = input.clientId?.trim() || null;
+  const req = clientRequestId
+    ? await prisma.clientRequestDb.findUnique({
+        where: { id: clientRequestId },
+        select: { businessName: true, clientId: true },
+      }).catch(() => null)
+    : null;
+  if (!clientId) clientId = req?.clientId ?? null;
+
+  if (!clientRequestId && !clientId) {
+    // Sem nenhuma das duas chaves não existe a quem responder nem onde escrever.
+    // Devolver "escalado" sem escalar seria repetir o silêncio; aqui o retorno
+    // é honesto e quem chama (a rota) registra o erro.
+    return { ...saida, escalado: true, motivo: "pedido sem dono: nem clientRequestId nem clientId" };
+  }
+
+  const ancora: AncoraDoPedido = { clientId, clientRequestId };
+
+  // O projeto é procurado pelas DUAS chaves. Só por `clientRequestId`, todo
+  // cliente direto caía em "projeto não encontrado" — e saía por uma porta que
+  // não avisava ninguém.
+  const chavesDoProjeto = [
+    ...(clientRequestId ? [{ clientRequestId }] : []),
+    ...(clientId ? [{ clientId }] : []),
+  ];
   const projeto = await prisma.project.findFirst({
-    where: { clientRequestId: input.clientRequestId },
+    where: { OR: chavesDoProjeto },
     select: {
       id: true, workspaceId: true, clientId: true, clientRequestId: true,
       client: { select: { name: true, phone: true, email: true } },
     },
     orderBy: { createdAt: "desc" },
   });
-  if (!projeto) return { ...saida, escalado: true, motivo: "projeto não encontrado" };
 
-  const req = await prisma.clientRequestDb.findUnique({
-    where: { id: input.clientRequestId },
-    select: { businessName: true },
-  }).catch(() => null);
-  const negocio = req?.businessName ?? projeto.client?.name ?? "o cliente";
+  // O cliente é lido mesmo sem projeto: é dele que sai o workspace onde a
+  // escalação será registrada, e o nome do negócio da mensagem.
+  const cliente = clientId
+    ? await prisma.client.findUnique({
+        where: { id: clientId },
+        select: { name: true, workspaceId: true },
+      }).catch(() => null)
+    : null;
+
+  const negocio = req?.businessName ?? projeto?.client?.name ?? cliente?.name ?? "o cliente";
+  const workspaceId = projeto?.workspaceId ?? cliente?.workspaceId ?? null;
+  const dono = {
+    id: projeto?.id ?? null,
+    workspaceId,
+    clientId: projeto?.clientId ?? clientId,
+  };
+
+  const comentario = input.comentario?.trim();
+
+  // ── SEM PROJETO: não há o que a máquina refaça — mas ALGUÉM precisa saber ──
+  // É o caso do cliente direto cujas peças nasceram no calendário, sem
+  // `Deliverable`. Antes, esta linha era um `return` mudo. Agora é o caminho
+  // curto e completo: registra para a equipe e responde ao cliente.
+  if (!projeto) {
+    await escalar(dono, negocio,
+      `pedido de mudança do cliente sem projeto correspondente (departamento "${input.department}") — ` +
+      `as peças estão marcadas "em ajuste" no calendário e esperam alguém da equipe`,
+      comentario ?? "(sem descrição)");
+    const avisou = await escreverNoPortal(ancora, comentario
+      ? "Recebi seu pedido de ajuste e já passei para a equipe olhar. Te retorno em breve com a mudança feita. 💛"
+      : "Recebi seu pedido de ajuste! Só me conta em uma frase o que você quer diferente — assim a equipe já refaz certo. 💛");
+    return { ...saida, escalado: true, avisouCliente: avisou, motivo: "projeto não encontrado" };
+  }
 
   // Um pedido sem palavras é o caso mais comum e o mais perigoso: refazer no
   // escuro produz outra peça igualmente errada e queima uma das tentativas.
   // Perguntar é mais rápido e mais barato do que adivinhar.
-  const comentario = input.comentario?.trim();
   if (!comentario) {
-    const avisou = await escreverNoPortal(input.clientRequestId,
+    const avisou = await escreverNoPortal(ancora,
       "Recebi seu pedido de ajuste! Só me conta em uma frase o que você quer diferente — assim eu refaço já certo, sem te fazer pedir de novo. 💛");
     return { ...saida, escalado: false, avisouCliente: avisou, motivo: "pedido sem descrição — perguntei ao cliente" };
   }
@@ -133,13 +220,13 @@ export async function refazerPorPedidoDoCliente(input: {
       ? "entrega do departamento está reprovada pela Qualidade — o pedido do cliente precisa entrar na refação dela"
       : "sem entrega correspondente";
     await escalar(
-      projeto, negocio,
+      dono, negocio,
       tudoBarrado
         ? `pedido de mudança do cliente sobre entrega BARRADA pela Qualidade (${barradas.map((d) => d.name).join(", ")}) — junte o que ele pediu à correção antes de apresentar`
         : `pedido de mudança do cliente sem entrega correspondente (departamento "${input.department}")`,
       comentario,
     );
-    const avisou = await escreverNoPortal(input.clientRequestId, tudoBarrado
+    const avisou = await escreverNoPortal(ancora, tudoBarrado
       ? "Recebi seu pedido de ajuste! Essa entrega ainda está em revisão aqui com a equipe — vou juntar o que você pediu na versão nova e te aviso assim que ela ficar pronta. 💛"
       : "Recebi seu pedido de ajuste e já passei para a equipe olhar. Te retorno em breve com a mudança feita. 💛");
     return { ...saida, escalado: true, motivo, avisouCliente: avisou };
@@ -149,7 +236,7 @@ export async function refazerPorPedidoDoCliente(input: {
   // barrada. As boas seguem refeitas abaixo; a barrada continua com a Qualidade,
   // mas o pedido dele não pode se perder no caminho — vira registro para gente.
   if (barradas.length > 0) {
-    await escalar(projeto, negocio,
+    await escalar(dono, negocio,
       `o pedido do cliente também toca entrega(s) barrada(s) pela Qualidade (${barradas.map((d) => d.name).join(", ")}) — essas não foram refeitas por aqui`,
       comentario);
   }
@@ -163,7 +250,14 @@ export async function refazerPorPedidoDoCliente(input: {
     // "não informada" e barra a refação que apenas repete o horário ou o canal
     // que o cliente já tinha contado. Fail-closed é o default certo; deixar de
     // ligar a fiação transforma isso em falso positivo.
-    operacao: (await buildVerdadeOperacional(input.clientRequestId)) ?? undefined,
+    // A verdade operacional é lida pela solicitação — a do pedido, ou a que o
+    // projeto carrega. Cliente direto não tem nenhuma das duas: aí a operação
+    // fica `undefined` e o piso volta a ser fail-closed para essas classes, que
+    // é o comportamento certo quando a verdade não existe para ser conferida.
+    operacao:
+      (clientRequestId ?? projeto.clientRequestId)
+        ? (await buildVerdadeOperacional((clientRequestId ?? projeto.clientRequestId)!)) ?? undefined
+        : undefined,
   };
 
   for (const entrega of alvos) {
@@ -270,8 +364,17 @@ export async function refazerPorPedidoDoCliente(input: {
     // várias entregas no mesmo departamento o vínculo 1:1 não é decidível aqui
     // (o card de aprovação é por departamento) e fica nulo, que é o estado
     // honesto: sem vínculo, o portal não mostra corpo (regra anti-A2).
+    // Posse pelas DUAS chaves, com a MESMA guarda da conversa: só entra chave
+    // com valor. `{ clientId: null }` casaria com toda aprovação órfã do banco
+    // e reabriria card de outro cliente — vazamento, não conserto.
     await prisma.approvalRequest.updateMany({
-      where: { clientRequestId: input.clientRequestId, department: input.department },
+      where: {
+        OR: [
+          ...(clientRequestId ? [{ clientRequestId }] : []),
+          ...(clientId ? [{ clientId }] : []),
+        ],
+        department: input.department,
+      },
       data: {
         status: "pending", clientVisible: true, reviewedAt: null, reviewedBy: null,
         // Dúvida aberta era sobre a versão anterior; a rodada nova zera o relógio.
@@ -280,7 +383,7 @@ export async function refazerPorPedidoDoCliente(input: {
       },
     }).catch(() => { /* best-effort */ });
 
-    saida.avisouCliente = await escreverNoPortal(input.clientRequestId, [
+    saida.avisouCliente = await escreverNoPortal(ancora, [
       "Refiz o que você pediu! ✏️",
       "",
       ...saida.refeitas.map((n) => `• ${n}`),
@@ -291,9 +394,9 @@ export async function refazerPorPedidoDoCliente(input: {
   }
 
   if (saida.escalado) {
-    await escalar(projeto, negocio, saida.motivo ?? "refação não concluída", comentario);
+    await escalar(dono, negocio, saida.motivo ?? "refação não concluída", comentario);
     if (saida.refeitas.length === 0) {
-      saida.avisouCliente = await escreverNoPortal(input.clientRequestId,
+      saida.avisouCliente = await escreverNoPortal(ancora,
         "Recebi seu pedido e já estou olhando com atenção. Te retorno em breve com o ajuste. 💛");
     }
   }
@@ -303,10 +406,21 @@ export async function refazerPorPedidoDoCliente(input: {
 
 // ─── Internos ───────────────────────────────────────────────────────────────
 
-async function escreverNoPortal(clientRequestId: string, corpo: string): Promise<boolean> {
+/**
+ * Escreve no portal carimbando as DUAS chaves quando ambas existem — a regra de
+ * `app/api/messages/conversa.ts`: a conversa pertence ao cliente, e a leitura
+ * une `clientId` com as solicitações dele. Carimbar só uma partia o histórico
+ * do cliente que ganha (ou troca de) solicitação depois.
+ */
+async function escreverNoPortal(ancora: AncoraDoPedido, corpo: string): Promise<boolean> {
+  if (!ancora.clientId && !ancora.clientRequestId) return false;
   try {
     await prisma.portalMessage.create({
-      data: { clientRequestId, authorRole: "team", authorName: "Gerente de projeto", body: corpo, readByTeam: true },
+      data: {
+        ...(ancora.clientRequestId ? { clientRequestId: ancora.clientRequestId } : {}),
+        ...(ancora.clientId ? { clientId: ancora.clientId } : {}),
+        authorRole: "team", authorName: "Gerente de projeto", body: corpo, readByTeam: true,
+      },
     });
     return true;
   } catch {
@@ -314,19 +428,33 @@ async function escreverNoPortal(clientRequestId: string, corpo: string): Promise
   }
 }
 
+/**
+ * Manda o pedido para gente.
+ *
+ * `workspaceId` pode faltar (cliente sem workspace legível): sem ele o
+ * `ActivityEvent` nem existe no modelo. Nesse caso o log do servidor é o último
+ * recurso — mas ele GRITA, porque o pedido de um cliente pagante acabou de
+ * ficar sem destinatário e alguém tem que descobrir isso hoje, não no mês que vem.
+ */
 async function escalar(
-  projeto: { id: string; workspaceId: string; clientId: string | null },
+  dono: { id: string | null; workspaceId: string | null; clientId: string | null },
   negocio: string,
   motivo: string,
   comentario: string,
 ): Promise<void> {
+  const mensagem =
+    `${negocio} pediu mudança e a máquina não resolveu: ${motivo}. O que ele pediu: "${comentario}"`.slice(0, 900);
+  if (!dono.workspaceId) {
+    console.error("[refacao] PEDIDO DE CLIENTE SEM DESTINATÁRIO (sem workspace):", mensagem);
+    return;
+  }
   await prisma.activityEvent.create({
     data: {
-      workspaceId: projeto.workspaceId,
-      projectId: projeto.id,
-      clientId: projeto.clientId,
+      workspaceId: dono.workspaceId,
+      ...(dono.id ? { projectId: dono.id } : {}),
+      clientId: dono.clientId,
       type: "refacao_escalada",
-      message: `${negocio} pediu mudança e a máquina não resolveu: ${motivo}. O que ele pediu: "${comentario}"`.slice(0, 900),
+      message: mensagem,
     },
   }).catch(() => { /* best-effort */ });
 }

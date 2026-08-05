@@ -4,6 +4,9 @@
 // the system using ONE number. Talks to /api/meta/whatsapp/messages.
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import AgencyHeader from "@/components/agency/layout/AgencyHeader";
+import EmptyState from "@/components/agency/ui/EmptyState";
+import { mensagemDeErro, type ErroHumano } from "@/components/agency/ui/mensagemDeErro";
 
 interface Thread {
   contactWaId: string;
@@ -30,14 +33,25 @@ export default function WhatsAppInboxPage() {
   const [reply, setReply] = useState("");
   const [sending, setSending] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  // A tela entrou no menu — e tela do menu precisa dos tres estados (§7). Antes
+  // o `catch` engolia a falha em silencio: sem conversas e API fora do ar
+  // ficavam com a MESMA cara.
+  const [carregando, setCarregando] = useState(true);
+  const [erroDeCarga, setErroDeCarga] = useState<ErroHumano | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
   const loadThreads = useCallback(async () => {
     try {
       const res = await fetch("/api/meta/whatsapp/messages");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = (await res.json()) as { threads?: Thread[] };
       setThreads(data.threads ?? []);
-    } catch { /* ignore */ }
+      setErroDeCarga(null);
+    } catch (e) {
+      setErroDeCarga(mensagemDeErro(e, "carregar as conversas do WhatsApp"));
+    } finally {
+      setCarregando(false);
+    }
   }, []);
 
   const loadMessages = useCallback(async (contact: string) => {
@@ -67,24 +81,50 @@ export default function WhatsAppInboxPage() {
         body: JSON.stringify({ contactWaId: active, text: reply.trim() }),
       });
       const data = (await res.json()) as { ok?: boolean; error?: string };
-      if (!data.ok) { setErr(data.error ?? "Falha ao enviar"); }
+      if (!data.ok) { setErr(mensagemDeErro(data.error ?? `HTTP ${res.status}`, "enviar sua mensagem").mensagem); }
       else { setReply(""); await loadMessages(active); await loadThreads(); }
-    } catch { setErr("Erro de rede"); }
+    } catch (e) { setErr(mensagemDeErro(e, "enviar sua mensagem").mensagem); }
     finally { setSending(false); }
   }
 
   return (
-    <div className="max-w-[960px] mx-auto px-4 py-6">
-      <div className="mb-4">
-        <h1 className="text-[18px] font-semibold text-[var(--text-primary)]">WhatsApp — Caixa de Entrada</h1>
-        <p className="text-[12px] text-[var(--text-muted)] mt-0.5">Um número só. Converse com os clientes por aqui.</p>
-      </div>
+    <>
+      <AgencyHeader
+        title="WhatsApp"
+        eyebrow="Clientes"
+        subtitle="Um número só. Leia e responda os clientes sem sair do sistema."
+      />
 
+      {erroDeCarga && (
+        <div role="alert" className="mb-4 rounded-[8px] bg-[var(--danger-bg)] border border-[#FCA5A5] px-4 py-3">
+          <p className="text-[13px] text-[#991B1B]">{erroDeCarga.mensagem}</p>
+          {erroDeCarga.detalhe && (
+            <p className="text-[11px] text-[#991B1B]/70 mt-1 break-words">Detalhe técnico: {erroDeCarga.detalhe}</p>
+          )}
+          <button
+            onClick={() => { setCarregando(true); void loadThreads(); }}
+            className="mt-2 h-8 px-3 rounded-[6px] border border-[#FCA5A5] text-[12px] font-medium text-[#991B1B] hover:bg-white/60 transition-colors"
+          >
+            Tentar de novo
+          </button>
+        </div>
+      )}
+
+      {!carregando && !erroDeCarga && threads.length === 0 ? (
+        <EmptyState
+          title="Nenhuma conversa ainda"
+          description="As mensagens que os clientes mandarem para o número da agência aparecem aqui. Se você esperava ver conversas, confira a conexão do WhatsApp em Ferramentas & Integrações."
+        />
+      ) : (
       <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-3 h-[70vh] min-h-[420px]">
         {/* Threads */}
         <div className={`border border-[var(--border)] rounded-[10px] bg-white overflow-y-auto ${active ? "hidden md:block" : ""}`}>
-          {threads.length === 0 ? (
-            <div className="p-4 text-[12px] text-[var(--text-muted)]">Nenhuma conversa ainda.</div>
+          {carregando ? (
+            <div className="p-3 space-y-2" aria-busy="true">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="h-10 rounded-[8px] bg-[var(--accent)] animate-pulse" />
+              ))}
+            </div>
           ) : threads.map((t) => (
             <button
               key={t.contactWaId}
@@ -116,7 +156,7 @@ export default function WhatsAppInboxPage() {
                       m.direction === "out" ? "bg-[#DCF8C6] text-[var(--text-primary)]" : "bg-white border border-[var(--border)] text-[var(--text-primary)]"
                     }`}>
                       <div className="whitespace-pre-wrap break-words">{m.body}</div>
-                      <div className="text-[9px] text-[var(--text-muted)] mt-1 text-right">
+                      <div className="text-[11px] text-[var(--text-muted)] mt-1 text-right">
                         {new Date(m.at).toLocaleString("pt-BR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" })}
                         {m.direction === "out" && m.status ? ` · ${m.status}` : ""}
                       </div>
@@ -125,7 +165,7 @@ export default function WhatsAppInboxPage() {
                 ))}
                 <div ref={endRef} />
               </div>
-              {err && <div className="px-4 py-1.5 text-[11px] text-[#DC2626] bg-[#FFF5F5]">{err}</div>}
+              {err && <div role="alert" className="px-4 py-2 text-[12px] text-[var(--danger)] bg-[var(--danger-bg)]">{err}</div>}
               <div className="p-3 border-t border-[var(--border)] flex items-center gap-2">
                 <input
                   value={reply}
@@ -148,10 +188,11 @@ export default function WhatsAppInboxPage() {
           )}
         </div>
       </div>
+      )}
 
-      <p className="text-[10px] text-[var(--text-muted)] mt-3">
+      <p className="text-[12px] text-[var(--text-muted)] mt-3">
         Respostas livres só valem dentro de 24h após a última mensagem do cliente (regra da Meta). Fora disso, use um template.
       </p>
-    </div>
+    </>
   );
 }

@@ -8,6 +8,7 @@ import { useDbDeliverables } from "@/lib/hooks/useDbDeliverables";
 import { getClientAgentContext } from "@/lib/agency/workspace";
 import type { AgentClientContext } from "@/lib/agency/workspace";
 import { comoTexto, temSubstancia } from "@/lib/agency/esteira/conteudo";
+import AvisoModoAlternativo from "@/components/agency/ui/AvisoModoAlternativo";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -411,6 +412,8 @@ export default function DesignAgentPage() {
   const [activeTab,          setActiveTab]          = useState<OutputTab>("briefs");
   const [stepIndex,          setStepIndex]          = useState(0);
   const [briefs,             setBriefs]             = useState<VisualBrief[]>([]);
+  // Briefs vieram do gerador por regras, não da IA — DESIGN.md §7.3.
+  const [motivoDaReserva,    setMotivoDaReserva]    = useState<string | null>(null);
   const [briefsSaved,        setBriefsSaved]        = useState(false);
   const [copiedKey,          setCopiedKey]          = useState<string | null>(null);
 
@@ -481,6 +484,7 @@ export default function DesignAgentPage() {
     setAgentState("generating");
     setStepIndex(0);
     setBriefsSaved(false);
+    setMotivoDaReserva(null);
     const capturedCtx = agentCtx;
     const capturedClient = linkedClient;
 
@@ -498,6 +502,7 @@ export default function DesignAgentPage() {
     });
 
     let finalBriefs: VisualBrief[];
+    let motivo: string | null = null;
     try {
       const res = await fetch("/api/agents/design/generate", {
         method: "POST",
@@ -512,16 +517,20 @@ export default function DesignAgentPage() {
       const data = (await res.json()) as { ok: boolean; briefs?: VisualBrief[]; error?: string };
 
       if (!data.ok || !data.briefs || data.briefs.length === 0) {
+        // Cair em regras é aceitável; cair em SILÊNCIO não. DESIGN.md §7.3.
         console.warn("[design-agent] AI unavailable, using rule-based fallback:", data.error);
         finalBriefs = generateVisualBriefs(posts, capturedCtx);
+        motivo = data.error ?? "a IA não respondeu";
       } else {
         finalBriefs = data.briefs;
       }
     } catch (err) {
       console.warn("[design-agent] fetch error, falling back to rule-based:", err);
       finalBriefs = generateVisualBriefs(posts, capturedCtx);
+      motivo = err instanceof Error ? err.message : "falha de conexão com o serviço de IA";
     }
 
+    setMotivoDaReserva(motivo);
     setBriefs(finalBriefs);
     setAgentState("output_ready");
     setActiveTab("briefs");
@@ -563,7 +572,7 @@ export default function DesignAgentPage() {
       });
       const data = await res.json() as { url?: string; error?: string };
       if (!res.ok || data.error) {
-        setImageStates((prev) => ({ ...prev, [postId]: { status: "error", error: data.error ?? "Generation failed." } }));
+        setImageStates((prev) => ({ ...prev, [postId]: { status: "error", error: data.error ?? "Não conseguimos gerar a imagem. Tente de novo em instantes." } }));
       } else {
         setImageStates((prev) => ({ ...prev, [postId]: { status: "done", url: data.url } }));
         const brief = briefs.find((b) => b.postId === postId);
@@ -577,7 +586,7 @@ export default function DesignAgentPage() {
         }));
       }
     } catch {
-      setImageStates((prev) => ({ ...prev, [postId]: { status: "error", error: "Network error — could not reach the image API." } }));
+      setImageStates((prev) => ({ ...prev, [postId]: { status: "error", error: "Sem conexão com o serviço de imagem. Verifique a internet e tente de novo." } }));
     }
   }
 
@@ -920,13 +929,13 @@ export default function DesignAgentPage() {
                     {hasDesignRequestsDeliverable ? "✓ " : ""}Redes Sociais
                   </div>
                   <svg width="16" height="10" viewBox="0 0 16 10" fill="none">
-                    <path d="M1 5h13M10 1l4 4-4 4" stroke="#C0C0BC" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M1 5h13M10 1l4 4-4 4" stroke="var(--text-subtle)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                   <div className="flex items-center gap-1.5 h-7 px-3 rounded-full text-[11px] font-medium bg-[#E6FBFA] text-[#0E7C75] border border-[#FDBA74]">
                     Agente de Design
                   </div>
                   <svg width="16" height="10" viewBox="0 0 16 10" fill="none">
-                    <path d="M1 5h13M10 1l4 4-4 4" stroke="#C0C0BC" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M1 5h13M10 1l4 4-4 4" stroke="var(--text-subtle)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                   <div className="flex items-center gap-1.5 h-7 px-3 rounded-full text-[11px] font-medium bg-[var(--bg)] text-[var(--text-muted)] border border-[var(--border)]">
                     Revisão do Cliente
@@ -1011,6 +1020,9 @@ export default function DesignAgentPage() {
           {/* Output */}
           {agentState === "output_ready" && briefs.length > 0 && (
             <div className="space-y-4">
+              {motivoDaReserva && (
+                <AvisoModoAlternativo oQue="Briefs visuais" motivo={motivoDaReserva} />
+              )}
 
               {/* Tabs */}
               <div className="flex items-center gap-1 bg-white border border-[var(--border)] rounded-[9px] p-1 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">

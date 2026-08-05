@@ -984,8 +984,8 @@ export default function OrchestratorPage() {
                       <>
                         <div className="w-10 h-10 rounded-full bg-[var(--accent)] flex items-center justify-center">
                           <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                            <path d="M9 2C6.24 2 4 4.24 4 7v4c0 2.76 2.24 5 5 5s5-2.24 5-5V7c0-2.76-2.24-5-5-5z" stroke="#9B9B95" strokeWidth="1.3"/>
-                            <path d="M2 9.5C2 13.09 4.91 16 8.5 16h1C13.09 16 16 13.09 16 9.5" stroke="#9B9B95" strokeWidth="1.3" strokeLinecap="round"/>
+                            <path d="M9 2C6.24 2 4 4.24 4 7v4c0 2.76 2.24 5 5 5s5-2.24 5-5V7c0-2.76-2.24-5-5-5z" stroke="var(--text-muted)" strokeWidth="1.3"/>
+                            <path d="M2 9.5C2 13.09 4.91 16 8.5 16h1C13.09 16 16 13.09 16 9.5" stroke="var(--text-muted)" strokeWidth="1.3" strokeLinecap="round"/>
                           </svg>
                         </div>
                         <div className="text-center">
@@ -1123,10 +1123,10 @@ export default function OrchestratorPage() {
                 <div className="bg-white rounded-[10px] border border-dashed border-[var(--border)] px-8 py-16 text-center">
                   <div className="w-10 h-10 rounded-full bg-[var(--accent)] flex items-center justify-center mx-auto mb-4">
                     <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                      <rect x="3" y="3" width="5" height="5" rx="1" stroke="#9B9B95" strokeWidth="1.3"/>
-                      <rect x="12" y="3" width="5" height="5" rx="1" stroke="#9B9B95" strokeWidth="1.3"/>
-                      <rect x="3" y="12" width="5" height="5" rx="1" stroke="#9B9B95" strokeWidth="1.3"/>
-                      <rect x="12" y="12" width="5" height="5" rx="1" stroke="#9B9B95" strokeWidth="1.3"/>
+                      <rect x="3" y="3" width="5" height="5" rx="1" stroke="var(--text-muted)" strokeWidth="1.3"/>
+                      <rect x="12" y="3" width="5" height="5" rx="1" stroke="var(--text-muted)" strokeWidth="1.3"/>
+                      <rect x="3" y="12" width="5" height="5" rx="1" stroke="var(--text-muted)" strokeWidth="1.3"/>
+                      <rect x="12" y="12" width="5" height="5" rx="1" stroke="var(--text-muted)" strokeWidth="1.3"/>
                     </svg>
                   </div>
                   <p className="text-[14px] font-medium text-[var(--text-primary)]">Aguardando entrada do briefing</p>

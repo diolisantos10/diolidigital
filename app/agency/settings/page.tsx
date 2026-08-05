@@ -1,5 +1,7 @@
 "use client";
 
+import { mensagemDeErro, type ErroHumano } from "@/components/agency/ui/mensagemDeErro";
+
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useAgencyStore } from "@/store/agency-store";
@@ -116,7 +118,8 @@ function PendingBrainUpdates() {
   const [updates, setUpdates] = useState<PendingBrainUpdate[]>([]);
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  // Erro em português com detalhe técnico separado — DESIGN.md §7.3.
+  const [error, setError] = useState<ErroHumano | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -126,7 +129,7 @@ function PendingBrainUpdates() {
       setUpdates((await res.json()) as PendingBrainUpdate[]);
       setError(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Falha ao carregar atualizações.");
+      setError(mensagemDeErro(e, "carregar as atualizações do Brain"));
     } finally {
       setLoading(false);
     }
@@ -145,7 +148,7 @@ function PendingBrainUpdates() {
       }
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Falha ao aplicar.");
+      setError(mensagemDeErro(e, "aplicar esta atualização"));
     } finally {
       setApplying(null);
     }
@@ -161,7 +164,20 @@ function PendingBrainUpdates() {
       </div>
       <div className="px-6 py-4 space-y-2">
         {loading && <p className="text-[12px] text-[var(--text-muted)]">Carregando…</p>}
-        {error && <p className="text-[12px] text-[#991B1B]">{error}</p>}
+        {error && (
+          <div role="alert" className="rounded-[8px] border border-[#FCA5A5] bg-[var(--danger-bg)] px-3 py-2.5">
+            <p className="text-[13px] text-[#991B1B]">{error.mensagem}</p>
+            {error.detalhe && (
+              <p className="text-[11px] text-[#991B1B]/70 mt-1 break-words">Detalhe técnico: {error.detalhe}</p>
+            )}
+            <button
+              onClick={() => { setError(null); void load(); }}
+              className="mt-2 h-8 px-3 rounded-[6px] border border-[#FCA5A5] text-[12px] font-medium text-[#991B1B] hover:bg-white/60 transition-colors"
+            >
+              Tentar de novo
+            </button>
+          </div>
+        )}
         {!loading && !error && updates.length === 0 && (
           <p className="text-[12px] text-[var(--text-muted)]">Nenhuma atualização pendente. O Brain propõe mudanças a partir de entregas aprovadas.</p>
         )}

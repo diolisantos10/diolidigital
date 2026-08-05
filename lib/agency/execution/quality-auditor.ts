@@ -28,12 +28,17 @@
 // espalhado em `? :` no chamador — string comparada à mão é como o bug volta.
 
 import { generate } from "@/lib/ai/generate";
+import type { AiProvider } from "@/lib/ai/resolve-key";
 
 /** O parecer possível da Qualidade. Três estados, de propósito — ver o topo. */
 export type VereditoDaQualidade = "aprovado" | "reprovado" | "nao_auditado";
 
 /** Por que a peça não foi auditada. Só existe quando `verdict === "nao_auditado"`. */
-export type MotivoDeNaoAuditar = "ia_indisponivel" | "timeout" | "erro" | "resposta_invalida";
+export type MotivoDeNaoAuditar =
+  | "ia_indisponivel" | "timeout" | "erro" | "resposta_invalida"
+  /** O juiz acabou sendo o MESMO modelo que escreveu a peça — ver
+   *  `escolherArbitro`. Aprovação de si mesmo não é aprovação. */
+  | "juiz_nao_imparcial";
 
 export interface QualityVerdict {
   verdict: VereditoDaQualidade;
@@ -41,6 +46,38 @@ export interface QualityVerdict {
   note: string;
   /** Preenchido SOMENTE em `nao_auditado`. Presente = ninguém olhou a peça. */
   motivo?: MotivoDeNaoAuditar;
+  /** Quem de fato julgou. Ausente = ninguém julgou. */
+  arbitro?: AiProvider;
+}
+
+// ── O JUIZ NÃO PODE SER O AUTOR ──────────────────────────────────────────────
+//
+// O gate `quality_audit_impartial` DECLARA que a auditoria roda num modelo
+// diferente do que gerou a peça. Até 05/08/2026 o código garantia o contrário:
+// 11 dos 14 especialistas são `claude` e este arquivo fixava
+// `preferredProvider: "claude"`. O argumento inteiro do piso de verdade
+// ("um LLM julgando outro LLM tem o mesmo ponto cego dos dois",
+// `piso-de-verdade.ts:7-9`) estava escrito no repositório e contradito por uma
+// linha dele.
+//
+// Duas metades, e a segunda é a que importa: escolher outro provedor NÃO basta,
+// porque `generate` cai para o próximo da fila quando a chave preferida não
+// existe — numa casa com uma chave só, o "outro modelo" volta a ser o mesmo, em
+// silêncio. Por isso o veredito é conferido contra o provedor REAL da resposta.
+
+/** A fila do árbitro, em ordem de preferência. */
+const FILA_DE_ARBITROS: AiProvider[] = ["claude", "openai", "gemini", "deepseek"];
+
+/**
+ * Quem julga uma peça escrita por `autor`. Nunca devolve o próprio autor.
+ *
+ * `perplexity` não entra na fila: é pesquisadora com fonte, não juíza de texto.
+ * Autor desconhecido cai em "claude" como se fosse o autor — é a suposição
+ * conservadora, porque claude é quem escreve quase tudo nesta casa.
+ */
+export function escolherArbitro(autor?: string | null): AiProvider {
+  const doAutor = (autor ?? "claude").trim().toLowerCase();
+  return FILA_DE_ARBITROS.find((p) => p !== doAutor) ?? "openai";
 }
 
 /**
@@ -93,6 +130,7 @@ const MOTIVO_EM_PALAVRAS: Record<MotivoDeNaoAuditar, string> = {
   timeout: "NÃO AUDITADA: a IA da Qualidade não respondeu a tempo — nenhum árbitro olhou esta peça.",
   erro: "NÃO AUDITADA: a auditoria falhou com erro — nenhum árbitro olhou esta peça.",
   resposta_invalida: "NÃO AUDITADA: a IA da Qualidade respondeu fora do formato — o parecer não pôde ser lido.",
+  juiz_nao_imparcial: "NÃO AUDITADA: o único modelo disponível para julgar é o MESMO que escreveu a peça — não existe aprovação independente aqui.",
 };
 
 function semArbitro(motivo: MotivoDeNaoAuditar): QualityVerdict {
@@ -120,8 +158,12 @@ export async function auditDeliverable(input: {
   /** O estado da leitura do feed, vindo da própria `SinteseDoFeed` — não de
    *  farejar substring no contexto. Ausente = fluxo que não leu feed nenhum. */
   feed?: { lida: boolean; posts: number };
+  /** Qual modelo ESCREVEU a peça. O árbitro é escolhido para não ser ele. */
+  provedorDoAutor?: string | null;
   workspaceId: string;
 }): Promise<QualityVerdict> {
+  const arbitro = escolherArbitro(input.provedorDoAutor);
+  const autor = (input.provedorDoAutor ?? "claude").trim().toLowerCase();
   // O critério do feed real (pedido do CEO, 04/08/2026) tem TRÊS estados, e a
   // versão anterior só enxergava dois porque decidia farejando o texto do
   // contexto (`includes("FEED REAL DO CLIENTE")`). Conta conectada com ZERO
@@ -157,7 +199,7 @@ Verifique: (1) está no tom e no segmento certos? (2) tem promessa falsa ou gara
 Responda JSON: {"verdict":"pass"|"flag","issues":["problema 1","problema 2"],"note":"1 frase de parecer"}. verdict="flag" só se houver problema real.`,
       maxTokens: 500,
       workspaceId: input.workspaceId,
-      preferredProvider: "claude",
+      preferredProvider: arbitro,
     });
 
     // O timeout é do AUDITOR, não do provedor: provedor que pendura a conexão
@@ -186,7 +228,22 @@ Responda JSON: {"verdict":"pass"|"flag","issues":["problema 1","problema 2"],"no
 
     const issues = Array.isArray(d.issues) ? d.issues.filter((x): x is string => typeof x === "string") : [];
     const note = typeof d.note === "string" ? d.note : "";
-    return { verdict: veredito, issues, note };
+
+    // ── QUEM REALMENTE JULGOU ────────────────────────────────────────────────
+    // `preferredProvider` é preferência, não trava: sem a chave do árbitro,
+    // `generate` volta para a fila e o autor pode ter se auto-aprovado.
+    //
+    // A degradação é ASSIMÉTRICA de propósito:
+    //   • REPROVAÇÃO continua valendo. Ela bloqueia, e um problema apontado pelo
+    //     próprio modelo é um problema — jogá-la fora seria trocar um freio real
+    //     por pureza de método.
+    //   • APROVAÇÃO vira `nao_auditado`. Não é reprovação (não bloqueia), mas
+    //     também não é aprovação: ninguém independente olhou. Fica declarada,
+    //     contável, e some do "aprovado pela Qualidade".
+    if (result.provider === autor && veredito === "aprovado") {
+      return { ...semArbitro("juiz_nao_imparcial"), issues, arbitro: result.provider };
+    }
+    return { verdict: veredito, issues, note, arbitro: result.provider };
   } catch {
     return semArbitro("erro");
   }

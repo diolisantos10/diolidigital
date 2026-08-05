@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { mensagemDeErro, type ErroHumano } from "@/components/agency/ui/mensagemDeErro";
 import { BRAIN_IDENTITY, BRAIN_VERSION, BRAIN_RULES } from "@/lib/dioli-brain/brain-config";
 import { DIOLI_COGNITIVE_FLOW } from "@/lib/dioli-brain/cognitive-flow";
 import { BRAIN_DEPARTMENTS, getBrainDepartmentsByStatus } from "@/lib/dioli-brain/departments";
@@ -1551,7 +1552,8 @@ function DirectorTab({ onCountsChange }: { onCountsChange: (n: number) => void }
   const [filter, setFilter] = useState<string>("pending_review");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [actionBusy, setActionBusy] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  // Erro em português com detalhe técnico separado — DESIGN.md §7.3.
+  const [error, setError] = useState<ErroHumano | null>(null);
 
   const load = useCallback(() => {
     fetch("/api/brain/changes")
@@ -1561,7 +1563,7 @@ function DirectorTab({ onCountsChange }: { onCountsChange: (n: number) => void }
         onCountsChange(d.counts.pending_review + d.counts.draft);
         setError(null);
       })
-      .catch((e) => setError(String(e)));
+      .catch((e) => setError(mensagemDeErro(e, "carregar a fila de governança")));
   }, [onCountsChange]);
 
   useEffect(() => { load(); }, [load]);
@@ -1581,7 +1583,7 @@ function DirectorTab({ onCountsChange }: { onCountsChange: (n: number) => void }
       }
       load();
     } catch (e) {
-      setError(String(e));
+      setError(mensagemDeErro(e, "aplicar esta decisão"));
     } finally {
       setActionBusy(null);
     }
@@ -1611,8 +1613,17 @@ function DirectorTab({ onCountsChange }: { onCountsChange: (n: number) => void }
       </div>
 
       {error && (
-        <div className="rounded-[8px] border border-[var(--danger)]/30 bg-[var(--danger)]/[0.06] px-4 py-3 text-[12px] text-[#FCA5A5]">
-          {error}
+        <div role="alert" className="rounded-[8px] border border-[var(--danger)]/30 bg-[var(--danger)]/[0.06] px-4 py-3">
+          <p className="text-[13px] text-[#FCA5A5]">{error.mensagem}</p>
+          {error.detalhe && (
+            <p className="text-[11px] text-[#FCA5A5]/70 mt-1 break-words">Detalhe técnico: {error.detalhe}</p>
+          )}
+          <button
+            onClick={() => { setError(null); load(); }}
+            className="mt-2 h-8 px-3 rounded-[6px] border border-[#FCA5A5]/40 text-[12px] font-medium text-[#FCA5A5] hover:bg-[var(--danger)]/10 transition-colors"
+          >
+            Tentar de novo
+          </button>
         </div>
       )}
 
