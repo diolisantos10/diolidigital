@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { executeBatch }        from "@/lib/agency/training/batch-runner";
 import { TRAINING_JOB_CONFIG } from "@/lib/agency/training/config";
+import { segredoConfere }       from "@/lib/security/crypto";
 
 // Protected cron endpoint — Authorization: Bearer <CRON_SECRET>
 // Returns 503 when CRON_SECRET is not set — never runs unsecured.
@@ -17,7 +18,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const authHeader = request.headers.get("authorization");
   const token      = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
-  if (token !== cronSecret) {
+  if (!segredoConfere(token, cronSecret)) {
     return NextResponse.json({ error: "Unauthorized — invalid CRON_SECRET" }, { status: 401 });
   }
 

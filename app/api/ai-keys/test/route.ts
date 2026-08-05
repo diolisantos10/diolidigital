@@ -115,11 +115,35 @@ async function fetchWithTimeout(url: string, init: RequestInit): Promise<Respons
   }
 }
 
+/**
+ * Tira da mensagem do provedor qualquer coisa com cara de credencial.
+ *
+ * ⚠️ Por que existe: esta mensagem é PERSISTIDA em `lastTestMessage` e depois
+ * servida por `GET /api/ai-keys`. Provedores ecoam parte da chave enviada no
+ * erro de autenticação ("Incorrect API key provided: sk-proj-…XyZ"). Guardar o
+ * texto cru transformava um teste de conexão num vazamento de credencial com
+ * persistência — o pior tipo, porque fica.
+ *
+ * Corta os prefixos conhecidos (`sk-`, `sk-ant-`, `AIza`, `pplx-`) e qualquer
+ * sequência longa de caracteres de token. Preferimos apagar demais a de menos:
+ * quem depura precisa do MOTIVO, não do segredo.
+ */
+export function sanitizarMensagemDeProvedor(msg: string): string {
+  return msg
+    .replace(/\b(sk|pplx|xai|gsk)-[A-Za-z0-9_\-]{6,}/gi, "«credencial removida»")
+    .replace(/\bAIza[A-Za-z0-9_\-]{10,}/g, "«credencial removida»")
+    .replace(/\b[A-Za-z0-9_\-]{40,}\b/g, "«credencial removida»")
+    .slice(0, 300);
+}
+
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // Testar chave dispara chamada PAGA ao provedor e escreve na configuração da
+  // integração. Quem configura credencial é o master — e só ele testa.
+  if (session.role !== "master") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const body = (await request.json()) as { provider?: string };
+  const body = (await request.json().catch(() => ({}))) as { provider?: string };
   const provider = body.provider ?? "";
   if (!isProvider(provider)) return NextResponse.json({ error: "Provider inválido" }, { status: 400 });
 
@@ -140,17 +164,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     result = { ok: false, message: `Falha ao testar (${reason})` };
   }
 
+  const mensagem = sanitizarMensagemDeProvedor(result.message);
+
   // Record the result (only for UI-stored keys — env keys have no row to update).
   if (resolved.source === "ui") {
     await prisma.dbIntegrationConfig.updateMany({
       where: { workspaceId: session.workspaceId, integrationId: PROVIDER_INTEGRATION_ID[provider] },
       data: {
         lastTestStatus: result.ok ? "pass" : "fail",
-        lastTestMessage: result.message,
+        lastTestMessage: mensagem,
         lastTestAt: new Date(),
       },
     });
   }
 
-  return NextResponse.json({ ok: result.ok, message: result.message, source: resolved.source });
+  return NextResponse.json({ ok: result.ok, message: mensagem, source: resolved.source });
 }

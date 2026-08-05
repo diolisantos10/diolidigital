@@ -17,6 +17,20 @@ function createPrismaClient(): PrismaClient {
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
-}
+// ⚠️ O CACHE VALE EM PRODUÇÃO TAMBÉM — e isso é o conserto.
+//
+// O padrão que se copia de todo tutorial ("só cacheia fora de produção") existe
+// para um motivo específico: em desenvolvimento o hot-reload reexecuta o módulo
+// e criaria um cliente novo a cada salvamento. Em produção, o pressuposto é que
+// o módulo é avaliado UMA vez.
+//
+// Aqui esse pressuposto não vale. O Next empacota rotas em bundles separados;
+// contextos diferentes podem avaliar este módulo de novo, e cada avaliação
+// abria mais uma conexão libsql para o MESMO arquivo SQLite. O SQLite tem UM
+// lock de escrita para o banco inteiro: mais clientes não é mais paralelismo, é
+// mais gente disputando o mesmo lock — o mesmo lock que já produziu
+// "database is locked" no deploy e obrigou o `start.sh` a ter retry.
+//
+// Guardar no `globalThis` sempre custa nada e remove a disputa que a própria
+// aplicação criava contra si mesma.
+globalForPrisma.prisma = prisma;

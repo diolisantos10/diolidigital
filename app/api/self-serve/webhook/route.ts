@@ -6,13 +6,23 @@ import { NextRequest, NextResponse } from "next/server";
 import { createHmac, timingSafeEqual } from "crypto";
 import { prisma } from "@/lib/db/client";
 
-// Validate Mercado Pago's x-signature HMAC. Manifest per MP docs:
+// Valida o HMAC `x-signature` do Mercado Pago. Manifesto, conforme a doc:
 //   id:<data.id>;request-id:<x-request-id>;ts:<ts>;
-// Only enforced when MERCADOPAGO_WEBHOOK_SECRET is set (so it can't lock out an
-// unconfigured instance); when set, a bad/missing signature is rejected.
+//
+// ⚠️ FAIL-CLOSED. Isto retornava `true` quando MERCADOPAGO_WEBHOOK_SECRET não
+// estava definido — "para não travar uma instância sem configuração". O efeito
+// real: qualquer um com a URL fazia um POST e marcava um pedido como PAGO. Um
+// webhook de pagamento sem verificação de assinatura não é um webhook com um
+// aviso; é uma rota que dá serviço de graça a quem descobrir o endereço.
+//
+// Sem o segredo, ninguém passa. A instância "sem configuração" já exige
+// MERCADOPAGO_ACCESS_TOKEN para chegar até aqui — quem tem um tem o outro.
 function verifyMpSignature(req: NextRequest, dataId: string): boolean {
   const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET?.trim();
-  if (!secret) return true; // not configured → skip (warned below)
+  if (!secret) {
+    console.error("[self-serve/webhook] MERCADOPAGO_WEBHOOK_SECRET ausente — webhook RECUSADO. Defina a variável nas Variables do Railway com o mesmo valor do painel do Mercado Pago.");
+    return false;
+  }
   const sig = req.headers.get("x-signature");
   const requestId = req.headers.get("x-request-id") ?? "";
   if (!sig) return false;
@@ -44,9 +54,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   if (!verifyMpSignature(req, paymentId)) {
     return NextResponse.json({ ok: false, error: "invalid_signature" }, { status: 401 });
-  }
-  if (!process.env.MERCADOPAGO_WEBHOOK_SECRET) {
-    console.warn("[self-serve/webhook] MERCADOPAGO_WEBHOOK_SECRET não definido — assinatura NÃO verificada.");
   }
 
   try {

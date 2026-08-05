@@ -19,10 +19,14 @@ import { orchestratePMReasoning } from "@/lib/dioli-brain/pm-orchestrator";
 import { createApprovalRequest } from "@/lib/agency/persistence/approval-service";
 import { generate } from "@/lib/ai/generate";
 import { computeEstimate } from "@/lib/agency/live-calculator";
+import { segredoConfere } from "@/lib/security/crypto";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  // ⚠️ O PIOR DOS SEIS: com este segredo a rota roda SEM escopo de workspace —
+  // apaga projeto de qualquer inquilino. Comparar com `===` deixava o segredo
+  // ser descoberto byte a byte por medição de tempo.
   const secret = request.headers.get("x-admin-secret");
-  const secretOk = !!process.env.ADMIN_TASK_SECRET && secret === process.env.ADMIN_TASK_SECRET;
+  const secretOk = segredoConfere(secret, process.env.ADMIN_TASK_SECRET);
 
   let workspaceScope: string | undefined;
   if (!secretOk) {

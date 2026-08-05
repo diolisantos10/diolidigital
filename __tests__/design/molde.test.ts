@@ -297,10 +297,18 @@ describe("S1 — as classes pegam a forma que a LÍNGUA usa, não só a canônic
     }
   });
 
-  it("a tese da casa e o código dizem a mesma coisa sobre 'hoje'", () => {
-    // "nunca prazo, promessa ou superlativo, mesmo com lastro" — e `hoje` É
-    // prazo. Antes ele passava, e a tese ficava maior que o código.
-    for (const t of ["hoje tem pao doce", "HOJE TEM PAO DOCE", "Hoje tem pão doce"]) {
+  // A 8ª auditoria mediu `hoje` nu como FALSO POSITIVO em duas verticais
+  // ("Hoje é dia de sorrir sem medo"). A troca está escrita no cabeçalho da
+  // trava e no resíduo: o que vira PRAZO é o dia COM companhia de urgência.
+  it("'hoje' com companhia de urgência é prazo; 'hoje' nu não é", () => {
+    for (const t of ["So hoje", "Somente hoje", "So ate hoje", "Hoje so ate as 18 h", "Aproveite hoje"]) {
+      expect(travaDeTextoNaArte(t, t).ok, `deveria barrar: ${t}`).toBe(false);
+    }
+    for (const t of ["Hoje é dia de sorrir sem medo", "A rosa que chegou hoje cedo do produtor"]) {
+      expect(travaDeTextoNaArte(t, `${t} — e o resto`).ok, `deveria passar: ${t}`).toBe(true);
+    }
+    // `amanha` e `hj` continuam nus: os dois só existem prometendo data.
+    for (const t of ["Amanha na loja", "Tem pao doce hj"]) {
       expect(travaDeTextoNaArte(t, t).ok, t).toBe(false);
     }
   });
@@ -308,7 +316,6 @@ describe("S1 — as classes pegam a forma que a LÍNGUA usa, não só a canônic
 
 describe("obfuscação: o que a trava fecha, e o que ela NÃO fecha", () => {
   const FECHADOS: Array<[string, string]> = [
-    ["homóglifo cirílico", "Sо hoje: Р$ 19,90"],
     ["letra espaçada", "G R A T I S hoje na loja"],
     ["letra com ponto", "G.R.A.T.I.S no balcao"],
     ["keycap de emoji no telefone", "Ligue 1️⃣1️⃣9️⃣8️⃣7️⃣6️⃣5️⃣4️⃣3️⃣2️⃣1️⃣"],
@@ -323,6 +330,56 @@ describe("obfuscação: o que a trava fecha, e o que ela NÃO fecha", () => {
     expect(travaDeTextoNaArte(texto, texto).ok, texto).toBe(false);
   });
 
+  // ── ITEM 2 DA 8ª AUDITORIA: A REGRA DOS TESTES DE OBFUSCAÇÃO ──────────────
+  // O caso antigo era `"Sо hoje: Р$ 19,90"` — barrado por `hoje` E por `19,90`,
+  // com o homóglifo sem participar do veredito. O teste passava e o quadrante
+  // ficava registrado como coberto; "Рromocao da semana" passava inteiro.
+  //
+  // A regra: TESTE DE TRAVA QUE AFIRMA FECHAR UMA OBFUSCAÇÃO TEM DE USAR CASO
+  // EM QUE SÓ AQUELA OBFUSCAÇÃO DECIDE. Cada par abaixo prova as duas metades:
+  // a versão latina barra (logo a classe existe), e a versão com UMA letra
+  // trocada barra pelo MESMO motivo (logo o homóglifo não é rota de fuga).
+  const HOMOGLIFO_ISOLADO: Array<[string, string, string]> = [
+    ["cirílico Р (U+0420)", "Promocao da semana", "Рromocao da semana"],
+    ["cirílico О (U+041E)", "Oferta especial", "Оferta especial"],
+    ["cirílico С (U+0421)", "Cupom na loja", "Сupom na loja"],
+    ["cirílico А (U+0410)", "Ate domingo", "Аte domingo"],
+    ["grego α (U+03B1)", "Frete gratis", "Frete grαtis"],
+    ["cirílico М (U+041C)", "Menor preco da regiao", "Мenor preco da regiao"],
+  ];
+
+  it.each(HOMOGLIFO_ISOLADO)("%s: só a letra trocada muda, e o veredito não muda", (_n, latino, trocado) => {
+    // Nenhum dos dois tem preço, dígito ou "hoje": quem decide é a classe da
+    // palavra, e nada mais.
+    const a = travaDeTextoNaArte(latino, latino);
+    const b = travaDeTextoNaArte(trocado, trocado);
+    expect(a.ok, `o caso latino tem de barrar, senão o teste não prova nada: ${latino}`).toBe(false);
+    expect(b.ok, `passou com homóglifo: ${trocado}`).toBe(false);
+    if (!a.ok && !b.ok) expect(b.detalhe).toBe(a.detalhe);
+  });
+
+  it("o homóglifo morre na ENTRADA — o texto devolvido para o pixel já é latino", () => {
+    // Se ele morresse só no julgamento, sobraria a peça que passa nas classes e
+    // vira pixel com cirílico dentro: legível ao olho, ilegível para a próxima
+    // conferência de texto.
+    expect(higienizar("Рromocao")).toBe("Promocao");
+    expect(higienizar("Сafe da manha")).toBe("Cafe da manha");
+    const v = travaDeTextoNaArte("Раo quentinho todo dia", "Pao quentinho todo dia na padaria");
+    expect(v.ok).toBe(true);
+    if (v.ok) expect(v.texto).toBe("Pao quentinho todo dia");
+  });
+
+  it("alfabeto FORA da tabela cai no rótulo pela forma — `\\p{L}` aceitava qualquer script", () => {
+    // Copta Ⲟ (U+2C9E) não está na tabela de homóglifos, e não precisa estar:
+    // rótulo desta casa é escrito em alfabeto latino.
+    const v = travaDeRotuloNaArte("Ⲟferta", FORMA_DO_SELO);
+    expect(v.ok).toBe(false);
+    if (!v.ok) expect(v.motivo).toBe("rotulo_fora_de_forma");
+    // E o selo latino normal continua entrando.
+    expect(travaDeRotuloNaArte("Bastidores", FORMA_DO_SELO).ok).toBe(true);
+    expect(travaDeRotuloNaArte("Portfólio", FORMA_DO_SELO).ok).toBe(true);
+  });
+
   // ── O RESÍDUO, DITO COM TODAS AS LETRAS ───────────────────────────────────
   // Este teste existe para a tese não ficar maior que o código. Se um dia
   // alguém fechar um destes, o teste fica VERMELHO e obriga a mexer aqui — a
@@ -332,14 +389,27 @@ describe("obfuscação: o que a trava fecha, e o que ela NÃO fecha", () => {
     "Pao por 5",                      // quantia nua, sem verbo e sem unidade
     "Enquanto o forno estiver aceso", // prazo perifrástico, sem marcador
     "Chame no zap da padaria",        // canal de contato sem número
+    "Hoje tem pao doce",              // dia corrente SEM marcador de urgência
   ];
 
-  it("o resíduo conhecido é 4 formas — regex não fecha semântica", () => {
+  it("o resíduo conhecido é 5 formas — regex não fecha semântica", () => {
     const passaram = AINDA_PASSAM.filter((t) => travaDeTextoNaArte(t, t).ok);
     expect(passaram).toEqual(AINDA_PASSAM);
-    // Fechar estes exige julgamento de sentido (LLM-judge), não padrão de
-    // texto: qualquer regex larga o bastante para pegá-los come legenda
-    // legítima de padaria. A escolha aqui foi manter o falso positivo em zero.
+    // As quatro primeiras exigem julgamento de sentido (LLM-judge): qualquer
+    // regex larga o bastante para pegá-las come legenda legítima.
+    //
+    // A QUINTA É DIFERENTE, e por isso está escrita aqui: ela não é uma lacuna
+    // herdada, é uma TROCA feita em 05/08/2026. `hoje` era barrado nu, e nu ele
+    // custava 2 falsos positivos medidos em legenda legítima. O que ficou
+    // barrado é o dia COM companhia de urgência — a forma que de fato afirma
+    // prazo. Quem quiser desfazer a troca desfaz aqui, com o número na mão.
+  });
+
+  it("a sexta família — homóglifo fora da tabela — está aberta no TEXTO e fechada no RÓTULO", () => {
+    // Copta/armênio/cherokee não estão em `HOMOGLIFOS`. No rótulo o alfabeto
+    // latino barra; no texto livre passa, e a lacuna é declarada, não silenciosa.
+    expect(travaDeRotuloNaArte("Ⲟferta", FORMA_DO_SELO).ok).toBe(false);
+    expect(travaDeTextoNaArte("Ⲟferta especial", "Ⲟferta especial").ok).toBe(true);
   });
 });
 
@@ -370,7 +440,12 @@ describe("S1 — a metade do FALSO POSITIVO, medida", () => {
     expect(v.ok, v.ok ? "" : `${v.motivo}: ${v.detalhe}`).toBe(true);
   });
 
-  it("a taxa de falso positivo do conjunto legítimo é ZERO — e está medida", () => {
+  // ⚠️ ESTE CONJUNTO NÃO MEDE O DETECTOR. Ele foi escrito pelo mesmo autor das
+  // regexes, no mesmo commit, na única vertical que ele tinha na cabeça. O zero
+  // que ele produz mede o CORPUS. A 8ª auditoria mostrou o tamanho do engano:
+  // 22,7% de falso positivo assim que a medição saiu da padaria. A medição que
+  // vale está no bloco seguinte, em verticais que o autor não usou.
+  it("na vertical do autor o falso positivo é zero — e isso, sozinho, não prova nada", () => {
     const barradas = LEGITIMAS.filter((t) => !travaDeTextoNaArte(t, t).ok);
     expect(barradas).toEqual([]);
     expect(LEGITIMAS.length).toBeGreaterThanOrEqual(14);
@@ -383,6 +458,142 @@ describe("S1 — a metade do FALSO POSITIVO, medida", () => {
     expect(travaDeTextoNaArte("Aberto das 7 às 19 h", "Aberto das 7 às 19 h").ok).toBe(true);
     expect(travaDeTextoNaArte("Entrega em 2 horas", "Entrega em 2 horas").ok).toBe(false);
     expect(travaDeTextoNaArte("Fica pronto em 30 min", "Fica pronto em 30 min").ok).toBe(false);
+  });
+});
+
+// ── A 8ª AUDITORIA ADVERSARIAL (05/08/2026): AS DUAS TAXAS, NO MESMO CORPUS ──
+//
+// A regra que este bloco existe para não deixar cair de novo: **o corpus de
+// medição vem de vertical que o autor da regra não usou, e as duas taxas saem
+// na mesma rodada.** As oito verticais abaixo não aparecem nem no corpus do
+// autor (padaria) nem no da 8ª auditoria (odonto, academia, restaurante,
+// imobiliária, salão, pet, advocacia, moda).
+//
+// Medido antes/depois do conserto de 05/08/2026:
+//                        FP (texto)      FN (texto)     FN (selo)
+//   corpus novo        14,3% →  0,0%   43,8% → 0,0%   90,0% → 0,0%
+//   corpus de borda    62,9% →  2,9%   48,0% → 0,0%   87,5% → 0,0%
+describe("S4 — as duas taxas, medidas em vertical que o autor da regra não usou", () => {
+  // Legendas legítimas. Metade delas encosta DE PROPÓSITO num padrão da trava
+  // (preço, ganha, hoje, melhor, único, sem, liquida, mais) — é na borda que o
+  // falso positivo mora, não no meio.
+  const LEGITIMAS_NOVAS = [
+    "Revisão feita com peça original e checagem de filtro",
+    "Explicamos o orçamento antes de encostar no carro",
+    "Atendemos de segunda a sexta, das 8 às 18 h",
+    "O preço da peça depende do modelo do carro",
+    "Ganha vida útil o motor que troca o óleo na hora certa",
+    "A maior parte das falhas aparece antes no barulho",
+    "Sem pressa: cada carro sai quando está pronto",
+    "Cada armação é escolhida junto com você",
+    "O exame de vista leva o tempo que precisar",
+    "Sem receita atualizada não montamos a lente",
+    "A armação que combina com você é a melhor para você",
+    "Cada rosto tem um formato único de armação",
+    "O mais indicado para quem dirige à noite",
+    "Cada buquê é montado na hora do pedido",
+    "Arranjo de mesa para o almoço de domingo",
+    "A rosa que chegou hoje cedo do produtor",
+    "Hoje é dia de flor amarela na casa da gente",
+    "A rosa que dura mais é a que bebe água limpa",
+    "Ninguém tem obrigação de decorar prazo fiscal",
+    "Nunca é tarde para organizar a contabilidade da empresa",
+    "Cada empresa tem um regime mais adequado ao seu caso",
+    "O melhor caminho depende do seu faturamento",
+    "Ninguém consegue guardar toda a legislação na cabeça",
+    "Prêmio de seguro entra como despesa dedutível",
+    "A partir de agora o MEI declara pelo aplicativo",
+    "A partir de segunda o escritório abre às 8 h",
+    "Você nunca está sozinho na sala de conversação",
+    "O mais importante é praticar toda semana",
+    "Cada aluno tem um ritmo único",
+    "Você nunca vai aprender ouvindo em silêncio",
+    "Ganha fluência quem fala errado sem medo",
+    "O curso mais curto não é o mais fraco",
+    "Dieta líquida não é atalho",
+    "Quem come melhor dorme melhor",
+    "O prato perfeito não existe",
+    "Sopa liquida a fome sem pesar no estômago",
+    "Queima de gordura não acontece em uma semana",
+    "O maior erro é cortar tudo de uma vez",
+    "Ganha tempo quem manda o arquivo em PDF fechado",
+    "Papel offset custa menos que couché",
+    "Marcenaria sob medida aproveita canto que ninguém usa",
+    "Luz natural é o material mais barato do projeto",
+    "O antes e o depois do apartamento de 42 m²",
+    "O projeto perfeito é o que cabe na vida de quem mora",
+    "Cada obra tem um ritmo próprio e único",
+  ];
+
+  // O adversário que NÃO exige adversário: é a legenda comercial comum das
+  // mesmas verticais, a que um modelo escreve sozinho.
+  const COMERCIAIS_NOVAS = [
+    "Descontão de outono na oficina", "Ofertão da semana na ótica",
+    "Feirão do buquê", "Promocional do mês na gráfica",
+    "Liquida tudo antes da reforma", "Preço baixo todo dia na floricultura",
+    "Sem juros no cartão", "Zero taxa de entrega",
+    "Entrega sem custo para o bairro", "Descontinho pra quem indicar um amigo",
+    "Ofertaço em armação de grau", "Menor preço da praça em cartão de visita",
+    "Preço justo, sempre", "Parcelamos sem entrada",
+    "Liquidação de armação antiga", "Compre já a sua consultoria",
+    "Garanta já a sua vaga na turma", "Descontaço na revisão",
+    "Ofertinha da semana em papel couché", "Promoção relâmpago na ótica",
+    "Liquidamos o estoque de moldura", "Queima de estoque de papel",
+    "Zero tarifa na primeira mensalidade", "Melhor preço em cartão de visita",
+    "Preço de fábrica em adesivo", "Adquira já o seu plano anual",
+    "Reserve agora a sua avaliação",
+    "Revisão a partir de R$ 199", "A troca de óleo custa cento e cinquenta",
+    "Sai por trinta pila o cartão", "Cinquenta por cento na segunda armação",
+    "Metade do preço na segunda lente", "Fale no 11 98888-7777",
+    "Mande o CNPJ para o orçamento", "Só hoje na floricultura",
+    "Últimas vagas na turma de conversação", "Válido até sexta",
+    "Projeto pronto em 15 dias", "Nesta quarta tem aula aberta",
+    "Ganhe um brinde na compra da armação", "Frete grátis para o buquê",
+    "Leve três pague dois em adesivo", "Sorteio de um projeto de interiores",
+    "O laudo fica por nossa conta", "A melhor gráfica da cidade",
+    "Resultado garantido na dieta", "Ninguém faz igual na marcenaria",
+    "Atendimento imbatível na oficina", "O mais vendido da loja",
+    "O maior estoque da região", "Melhor atendimento do bairro",
+    "O único no mercado com garantia vitalícia", "O mais procurado da loja",
+    "Ninguém entrega igual", "Você nunca viu uma lente assim",
+  ];
+
+  it("FALSO POSITIVO ≤ 5% — legenda legítima de vertical nova continua virando pixel", () => {
+    const barradas = LEGITIMAS_NOVAS.filter((t) => !travaDeTextoNaArte(t, `${t} — e o resto da legenda`).ok);
+    // Antes de 05/08/2026 este número era 8 (e 22 no corpus de borda inteiro).
+    expect(barradas, `barradas: ${JSON.stringify(barradas)}`).toEqual([]);
+    expect(LEGITIMAS_NOVAS.length).toBeGreaterThanOrEqual(45);
+  });
+
+  it("FALSO NEGATIVO = 0 — a legenda comercial comum não vira pixel", () => {
+    // Fonte = o próprio texto: lastro dado de graça, o cenário mais favorável.
+    const passaram = COMERCIAIS_NOVAS.filter((t) => travaDeTextoNaArte(t, t).ok);
+    expect(passaram, `passaram: ${JSON.stringify(passaram)}`).toEqual([]);
+    expect(COMERCIAIS_NOVAS.length).toBeGreaterThanOrEqual(50);
+  });
+
+  // ITEM 1: a família mais comum do varejo brasileiro. Não exige adversário —
+  // exige um modelo escrevendo legenda comercial comum. Aumentativo e
+  // diminutivo são morfologia normal do português, não grafia errada.
+  it("o SELO também: aumentativo e diminutivo não são carimbo legítimo", () => {
+    const caem = ["Descontão", "Ofertão", "Preço Justo", "Sem Juros", "Compre Já",
+      "Feirão", "Promocional", "Menor Preço", "Zero Taxa", "Adquira Já", "Frete Grátis"];
+    for (const s of caem) expect(travaDeRotuloNaArte(s, FORMA_DO_SELO).ok, `passou: ${s}`).toBe(false);
+    // E o pilar de verdade continua entrando — as duas metades, na mesma rodada.
+    const passam = ["Produto", "Bastidores", "Prova social", "Educativo", "Institucional",
+      "Antes e depois", "Serviço", "História", "Portfólio", "Rotina da oficina",
+      "Preço da peça", "Único olhar", "Sem pressa", "Mais luz"];
+    for (const s of passam) expect(travaDeRotuloNaArte(s, FORMA_DO_SELO).ok, `barrou: ${s}`).toBe(true);
+  });
+
+  // O erro de RÓTULO, não de veredito: a peça saía sem texto e o `lastError`
+  // dizia "preço" sobre uma frase temporal. Errar o motivo treina o time a
+  // ignorar o motivo.
+  it("expressão temporal não é rotulada como PREÇO", () => {
+    expect(travaDeTextoNaArte("A partir de agora atendemos aos sábados", "A partir de agora atendemos aos sábados — avisa todo mundo").ok).toBe(true);
+    const v = travaDeTextoNaArte("A partir de R$ 199", "A partir de R$ 199");
+    expect(v.ok).toBe(false);
+    if (!v.ok) expect(v.detalhe).toContain("preço");
   });
 });
 

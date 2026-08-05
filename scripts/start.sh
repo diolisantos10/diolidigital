@@ -85,6 +85,27 @@ if [ "$IS_PRODUCTION" = "true" ]; then
       ;;
   esac
 
+  # 3.5 ── A CÓPIA ANTES DA CIRURGIA ────────────────────────────────────────
+  #     Cinco migrations desta casa RECONSTROEM TABELA (PRAGMA foreign_keys=OFF
+  #     → CREATE new → INSERT SELECT → DROP → RENAME); uma delas reconstrói 4 de
+  #     uma vez, incluindo SocialPost e Deliverable — o trabalho entregue ao
+  #     cliente. Interrupção no meio (e o lock do volume JÁ causa retry logo
+  #     abaixo) deixa tabela órfã e a real derrubada, sem rollback.
+  #
+  #     A função de backup já existia e já era conferida. Só nunca rodava no
+  #     único momento em que ela é obrigatória. Agora roda — e SÓ quando há
+  #     migration pendente: sem cirurgia marcada não se faz pré-operatório.
+  #
+  #     `migrate status` sai 0 quando não há nada pendente.
+  if [ "$PULAR_BACKUP_PRE_MIGRATION" = "1" ]; then
+    echo "⚠ PULAR_BACKUP_PRE_MIGRATION=1 — migrations vão rodar SEM cópia de segurança."
+  elif "$PRISMA" migrate status >/dev/null 2>&1; then
+    echo "▶ Nenhuma migration pendente — backup pré-migration não é necessário."
+  else
+    echo "▶ Migration pendente detectada — fazendo cópia conferida ANTES de aplicar."
+    "$NODE" "$ROOT/scripts/backup-antes-da-migration.mjs"
+  fi
+
   # 4. Apply pending migrations — additive only, never destructive.
   #    Retry on failure: when two deploys boot at the same time they race on the
   #    SQLite volume DB ("database is locked"). A fatal exit here is exactly what
@@ -160,7 +181,9 @@ else
       ;;
   esac
   export DATABASE_URL="$DB"
-  echo "▶ DATABASE_URL=$DATABASE_URL"
+  # A URL vai para o log SEM a query: com Turso ela carrega
+  # `?authToken=<credencial do banco>`, e log é lido, copiado e colado.
+  echo "▶ DATABASE_URL=${DATABASE_URL%%\?*}"
   "$PRISMA" migrate deploy || echo "⚠ migrate deploy skipped (dev)"
 fi
 

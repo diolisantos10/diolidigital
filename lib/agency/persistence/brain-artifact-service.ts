@@ -59,6 +59,23 @@ export async function getLatestArtifact(clientRequestId: string, department: Dep
   });
 }
 
-export function parseArtifactCanvas<T = unknown>(artifact: { canvasJson: string }): T {
-  return JSON.parse(artifact.canvasJson) as T;
+/**
+ * Lê o canvas guardado. Devolve `null` quando o texto não é JSON válido.
+ *
+ * ⚠️ Isto era um `JSON.parse` nu. Uma linha truncada, um artefato gravado por
+ * uma versão antiga ou um caractere estranho vindo de uma resposta de IA
+ * derrubavam quem chamasse — com o erro aparecendo longe da causa, dentro do
+ * motor de produção. O resto da casa já trata isso com try/catch; aqui era
+ * inconsistência, não desconhecimento.
+ *
+ * O chamador precisa decidir o que fazer com `null` — e essa é a intenção:
+ * artefato ilegível é ausência de informação, e ausência de informação NÃO é
+ * informação. Nunca preencher por inferência.
+ */
+export function parseArtifactCanvas<T = unknown>(artifact: { canvasJson: string }): T | null {
+  try {
+    return JSON.parse(artifact.canvasJson) as T;
+  } catch {
+    return null;
+  }
 }

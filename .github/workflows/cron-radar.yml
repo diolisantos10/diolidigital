@@ -20,5 +20,12 @@ jobs:
           code=$(curl -s -o /tmp/out.json -w "%{http_code}" -X POST \
             "https://dioli-agency-os-1-production.up.railway.app/api/cron/radar" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}")
-          echo "HTTP $code"; cat /tmp/out.json || true
+          # ⚠️ NÃO despejar o corpo da resposta no log.
+          # O log de CI deste repositório é lido por quem tem acesso ao GitHub,
+          # fica guardado por 90 dias e é copiado para issue sem pensar. A
+          # resposta do Radar traz ids internos de workspace. O que interessa
+          # para saber se o cron passou é o status e a CONTAGEM — não os ids.
+          echo "HTTP $code"
+          jq -c '{ok, proposed, workspaces: (.results | length)}' /tmp/out.json 2>/dev/null \
+            || echo "(resposta não-JSON, $(wc -c < /tmp/out.json) bytes — corpo omitido de propósito)"
           if [ "$code" != "200" ] && [ "$code" != "503" ]; then exit 1; fi

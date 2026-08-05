@@ -22,6 +22,11 @@ jobs:
           code=$(curl -s -o /tmp/out.json -w "%{http_code}" -X POST \
             "https://dioli-agency-os-1-production.up.railway.app/api/cron/execute" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}")
-          echo "HTTP $code"; cat /tmp/out.json || true
+          # ⚠️ NÃO despejar o corpo da resposta no log de CI — ele traz ids
+          # internos (projeto, workspace), fica guardado 90 dias e é colado em
+          # issue sem pensar. Status e contagem bastam para saber se passou.
+          echo "HTTP $code"
+          jq -c 'with_entries(select(.value | type == "number" or type == "boolean"))' /tmp/out.json 2>/dev/null \
+            || echo "(resposta não-JSON, $(wc -c < /tmp/out.json) bytes — corpo omitido de propósito)"
           # Não falha o workflow por status transitório do app.
           if [ "$code" != "200" ] && [ "$code" != "503" ]; then exit 1; fi

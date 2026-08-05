@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
+import { segredoConfere } from "@/lib/security/crypto";
 
 const MAX_WORKSPACES = 10;
 const PENDING_SAMPLE = 8;
@@ -16,7 +17,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   if (!cronSecret) return NextResponse.json({ error: "Cron não configurado — defina CRON_SECRET" }, { status: 503 });
   const auth = request.headers.get("authorization");
   const token = auth?.startsWith("Bearer ") ? auth.slice(7) : null;
-  if (token !== cronSecret) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!segredoConfere(token, cronSecret)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const workspaces = await prisma.agencyWorkspace.findMany({ take: MAX_WORKSPACES, select: { id: true, name: true } });
 

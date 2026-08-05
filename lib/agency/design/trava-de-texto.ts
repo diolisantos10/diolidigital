@@ -51,23 +51,76 @@
 //     "o mais gostoso da cidade" são a forma que a LÍNGUA usa, e nenhuma delas
 //     era pega por regex que exige dígito ou a grafia canônica.
 //
+// ── A LIÇÃO DA 8ª AUDITORIA ADVERSARIAL (05/08/2026) ────────────────────────
+//
+// Ela derrubou três coisas de uma vez, e as três vieram do MESMO vício: medir a
+// trava com o corpus de quem a escreveu.
+//
+//   ① MORFOLOGIA NÃO É OBFUSCAÇÃO. `desconto`, `oferta`, `promocao` e
+//     `liquidacao` estavam na lista; "Descontão", "Ofertão", "Feirão",
+//     "Promocional", "Descontinho", "Preço baixo", "Sem juros" e "Zero taxa"
+//     passavam inteiros. Aumentativo e diminutivo são a morfologia NORMAL do
+//     português — é a forma que um modelo escrevendo legenda de varejo escolhe
+//     sozinho, sem adversário nenhum. Por isso a classe passou a ser escrita por
+//     RADICAL (`descont(o|ao|inho|aco)`), não por palavra inteira.
+//
+//   ② O FALSO POSITIVO ERA 22,7%, e o ZERO declarado media o CORPUS. As 14
+//     legendas de padaria tinham sido escritas pelo mesmo autor das regexes, no
+//     mesmo commit. Rodadas 44 legendas de outras verticais, 10 caíam — e uma
+//     delas ("A partir de agora atendemos também aos sábados") caía como PREÇO,
+//     rótulo puramente errado. Uma em cada cinco peças saía como foto pelada com
+//     a explicação enterrada no `lastError`. Falha para o lado seguro, e é
+//     exatamente assim que se treina um time a ignorar o alarme.
+//
+//     A regra que ficou: **o corpus de medição vem de vertical que o autor da
+//     regra não usou**, e as DUAS taxas (falso positivo e falso negativo) saem
+//     na mesma rodada. Medido em 05/08/2026 sobre 8 verticais novas (oficina,
+//     ótica, floricultura, contabilidade, idiomas, nutrição, gráfica,
+//     arquitetura) e sobre um segundo corpus de BORDA, feito de legendas
+//     legítimas que encostam de propósito em cada padrão novo:
+//
+//                          FP (texto)      FN (texto)     FN (selo)
+//       corpus novo      14,3% →  0,0%   43,8% → 0,0%   90,0% → 0,0%
+//       corpus de borda  62,9% →  2,9%   48,0% → 0,0%   87,5% → 0,0%
+//
+//     O 2,9% que sobra é uma linha só: "A oferta de papel reciclado depende do
+//     fornecedor". `oferta` fica na lista de propósito — separar essa acepção da
+//     comercial é julgamento de sentido, e o custo de errar para o outro lado é
+//     a palavra "oferta" carimbada numa peça.
+//
+//   ③ TESTE DE TRAVA TEM DE ISOLAR A OBFUSCAÇÃO QUE ELE AFIRMA FECHAR. O caso
+//     que provava "homóglifo cirílico — FECHADO" era `"Sо hoje: Р$ 19,90"`:
+//     barrado por `hoje` e por `19,90`, com o homóglifo sem participar do
+//     veredito. "Рromocao da semana" passava inteiro, e o pixel saía legível e
+//     idêntico ao olho, porque a trava devolve o higienizado e o higienizado
+//     preservava o cirílico. FECHADO de verdade agora (tabela `HOMOGLIFOS`,
+//     dobrada dentro de `higienizar`), e o teste passou a usar caso em que SÓ o
+//     homóglifo decide.
+//
 // ── O QUE ESTA TRAVA NÃO FECHA — DITO COM TODAS AS LETRAS ───────────────────
 //
-// Ela é DETERMINÍSTICA e trabalha sobre a FORMA do texto. Quatro famílias
+// Ela é DETERMINÍSTICA e trabalha sobre a FORMA do texto. Estas famílias
 // continuam passando, e estão fixadas em teste (`__tests__/design/molde.test.ts`,
 // "o resíduo conhecido") para que a lacuna não seja silenciosa:
 //
 //   1. grafia errada de propósito ("gratiz");
 //   2. quantia nua, sem verbo e sem unidade ("Pão por 5");
 //   3. prazo perifrástico, sem marcador ("enquanto o forno estiver aceso");
-//   4. canal de contato sem número ("chame no zap").
+//   4. canal de contato sem número ("chame no zap");
+//   5. NOVA, e é uma TROCA CONSCIENTE: o dia corrente SEM marcador de urgência
+//      ("Hoje tem pão doce"). `hoje` era barrado nu, e nu ele comia "Hoje é dia
+//      de sorrir sem medo" e "A rosa que chegou hoje cedo do produtor". O que
+//      transforma o dia em PRAZO é a companhia ("só hoje", "hoje só até as
+//      18 h", "até hoje") — e é ela que a classe passou a exigir. `amanha` e
+//      `hj` continuam nus: os dois só existem prometendo data;
+//   6. homóglifo de alfabeto FORA da tabela (armênio, cherokee, copta). No
+//      RÓTULO isso está fechado por outro caminho — o alfabeto do selo é
+//      `\p{Script=Latin}`, não `\p{L}` —, mas no texto livre sobra.
 //
-// Fechar qualquer uma exige julgamento de SENTIDO — LLM-judge, o mesmo que o
-// BACKLOG já prevê para os gates subjetivos. Qualquer regex larga o bastante
-// para pegá-las come legenda legítima de padaria, e trava que apaga a camada de
-// texto de toda peça em silêncio protege tanto quanto trava nenhuma. A escolha
-// aqui foi manter o falso positivo em ZERO sobre o conjunto legítimo medido, e
-// declarar o resíduo em vez de fingir cobertura.
+// Fechar 1–4 exige julgamento de SENTIDO — LLM-judge, o mesmo que o BACKLOG já
+// prevê para os gates subjetivos. Qualquer regex larga o bastante para pegá-las
+// come legenda legítima, e trava que apaga a camada de texto de toda peça em
+// silêncio protege tanto quanto trava nenhuma.
 
 /** Espaços que não são o espaço comum. Vêm de Word, PDF e teclado de celular. */
 const ESPACOS_EXOTICOS = /[\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000\u2028\u2029]/g;
@@ -86,19 +139,60 @@ const INVISIVEIS = /[\p{Cf}\u034F\u115F\u1160\u17B4\u17B5\u180B-\u180E\u3164\uFE
 const CONTROLES = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
 
 /**
+ * HOMÓGLIFO: a letra que não é a letra.
+ *
+ * `Рromocao` com Р cirílico (U+0420) é, para o olho e para o pixel, idêntico a
+ * `Promocao` — e, para toda regex latina desta casa, uma palavra que ela nunca
+ * viu. Até a 8ª auditoria isto passava, e o teste que dizia fechar o buraco
+ * usava `"Sо hoje: Р$ 19,90"`: barrado por `hoje` e por `19,90`, com o
+ * homóglifo sem participar do veredito.
+ *
+ * Cada par abaixo é `não-latino → latino`, e a dobra acontece na ENTRADA
+ * (dentro de `higienizar`), não só no julgamento: assim o texto que a trava
+ * DEVOLVE para virar pixel também já é latino, e não sobra a versão em que o
+ * veredito e o pixel discordam.
+ *
+ * Fecha cirílico, grego e as duas latinas sem ponto. NÃO fecha armênio,
+ * cherokee nem os confusáveis raros do Unicode — essa metade está declarada no
+ * cabeçalho e travada em teste.
+ */
+const HOMOGLIFOS: Record<string, string> = {
+  // cirílico
+  "А": "A", "В": "B", "Е": "E", "К": "K", "М": "M",
+  "Н": "H", "О": "O", "Р": "P", "С": "C", "Т": "T",
+  "У": "Y", "Х": "X", "Ѕ": "S", "І": "I", "Ј": "J",
+  "Ԛ": "Q", "Ԝ": "W",
+  "а": "a", "в": "b", "е": "e", "к": "k", "м": "m",
+  "н": "h", "о": "o", "р": "p", "с": "c", "т": "t",
+  "у": "y", "х": "x", "ѕ": "s", "і": "i", "ј": "j",
+  "ԛ": "q", "ԝ": "w",
+  // grego
+  "Α": "A", "Β": "B", "Ε": "E", "Ζ": "Z", "Η": "H",
+  "Ι": "I", "Κ": "K", "Μ": "M", "Ν": "N", "Ο": "O",
+  "Ρ": "P", "Τ": "T", "Υ": "Y", "Χ": "X",
+  "α": "a", "ε": "e", "ι": "i", "κ": "k", "ν": "v",
+  "ο": "o", "ρ": "p", "τ": "t", "υ": "u", "χ": "x",
+  "γ": "y",
+  // latino sem ponto (teclado turco) e afins
+  "ı": "i", "ȷ": "j",
+};
+const HOMOGLIFO = new RegExp(`[${Object.keys(HOMOGLIFOS).join("")}]`, "gu");
+
+/**
  * A forma em que qualquer texto entra nesta casa antes de ser julgado.
  *
  * NFKC primeiro, e de propósito: ele desfaz largura total (`Ｒ＄ １９`),
  * matemático estilizado (`𝟏𝟗`), sobrescrito e ligadura — todos formas de
- * escrever "R$ 19" que uma regex ASCII não vê. Depois somem os invisíveis e os
- * espaços exóticos viram espaço comum.
+ * escrever "R$ 19" que uma regex ASCII não vê. Depois somem os invisíveis, os
+ * espaços exóticos viram espaço comum e o homóglifo vira a letra que ele imita.
  */
 export function higienizar(s: string | null | undefined): string {
   return (s ?? "")
     .normalize("NFKC")
     .replace(INVISIVEIS, "")
     .replace(CONTROLES, "")
-    .replace(ESPACOS_EXOTICOS, " ");
+    .replace(ESPACOS_EXOTICOS, " ")
+    .replace(HOMOGLIFO, (c) => HOMOGLIFOS[c] ?? c);
 }
 
 /** Tem caractere invisível ou de controle bidi? Para quem confere DEPOIS —
@@ -184,12 +278,22 @@ export const CLASSES_PROIBIDAS_NA_ARTE: Array<{ classe: string; padrao: RegExp }
   // Gíria de dinheiro só conta com quantidade na frente — "conto" e "prata"
   // sozinhos são substantivos comuns ("conto de fadas").
   { classe: "preço", padrao: new RegExp(`\\b(?:\\d+|${NUM})\\s*(?:pila|contos?|mangos?|pratas?|paus)\\b`) },
-  { classe: "preço", padrao: /\b(?:a\s+partir\s+de|so\s+por|apenas\s+por|de\s+\d+\s+por)\b/ },
+  // "A partir de" SÓ com quantia, e não com hora nem com data. A 8ª auditoria
+  // achou aqui o erro de rótulo mais puro do arquivo: `\ba partir de\b` marcava
+  // "A partir de agora atendemos também aos sábados" — uma frase TEMPORAL — como
+  // PREÇO, e a peça saía sem texto com a explicação errada no `lastError`.
+  { classe: "preço", padrao: new RegExp(`\\b(?:a\\s+partir\\s+de|so\\s+por|apenas\\s+por|por\\s+so)\\s+(?:r\\$\\s*)?(?:\\d+(?:[.,]\\d+)?|${NUM}\\b)(?!\\s*(?:h|hs|hora|horas|minuto|minutos|min|dia|dias|semana|semanas|mes|meses|ano|anos)\\b)`) },
+  { classe: "preço", padrao: /\bde\s+\d+\s+por\s+\d+\b/ },
   // Quantia sem símbolo: "Sai por dezenove e noventa" afirma preço do mesmo
   // jeito que "R$ 19,90". Exige o verbo E o número — "fica por cima" e "feito
   // por um padeiro" continuam passando.
   { classe: "preço", padrao: new RegExp(`\\b(?:custa|custam|sai\\s+por|sao\\s+por|fica\\s+por|ficam\\s+por|paga|pagando|leva\\s+por)\\s+(?:\\d+|${NUM}\\b)`) },
-  { classe: "preço", padrao: /\b(?:condicao\s+especial|condicoes\s+especiais|preco\s+especial|precinho|melhor\s+preco)\b/ },
+  { classe: "preço", padrao: /\b(?:condicao\s+especial|condicoes\s+especiais|precinho)\b/ },
+  // O preço afirmado SEM número. "Preço baixo todo dia" e "Preço justo" fazem a
+  // mesma afirmação comercial que "R$ 19,90" e não tinham nenhum padrão.
+  { classe: "preço", padrao: /\bprec(?:o|os|inho|inhos|ao|oes)\s+(?:baix[oa]s?|just[oa]s?|especia(?:l|is)|de\s+fabrica|de\s+custo|que\s+cabe)\b/ },
+  { classe: "preço", padrao: /\b(?:menor|menores|melhor|melhores)\s+prec(?:o|os)\b/ },
+  { classe: "preço", padrao: /\bprec(?:o|os)\s+(?:baixo|justo)\b/ },
 
   // ── PERCENTUAL ────────────────────────────────────────────────────────────
   { classe: "percentual", padrao: /\d+\s*%/ },
@@ -210,9 +314,19 @@ export const CLASSES_PROIBIDAS_NA_ARTE: Array<{ classe: string; padrao: RegExp }
   { classe: "prazo", padrao: /\b\d{1,3}\s*(?:minutos?|min|horas?|dias?|semanas?|meses|mes)\b/ },
   { classe: "prazo", padrao: /\b(?:em|ate|apenas|so|somente)\s+\d{1,2}\s*(?:h|hs)\b/ },
   { classe: "prazo", padrao: /\b\d{1,2}\/\d{1,2}(?:\/\d{2,4})?\b/ },
-  // O dia como promessa. "hoje" É prazo — a tese da casa diz isso com todas as
-  // letras, e o código passa a dizer também.
-  { classe: "prazo", padrao: /\b(?:hoje|amanha|hj)\b/ },
+  // O dia como promessa. `amanha` e `hj` continuam NUS: os dois só aparecem em
+  // texto que promete uma data. `hoje` não — a 8ª auditoria mediu "Hoje é dia
+  // de sorrir sem medo" e "A rosa que chegou hoje cedo do produtor" caindo como
+  // PRAZO, e legenda legítima perdendo a camada de texto inteira em silêncio é
+  // o segundo erro simétrico. Então `hoje` passou a exigir COMPANHIA de
+  // urgência — que é o que transforma o dia em prazo. O que sobra ("Hoje tem
+  // pão doce") está declarado como resíduo no cabeçalho e travado em teste.
+  { classe: "prazo", padrao: /\b(?:amanha|hj)\b/ },
+  { classe: "prazo", padrao: /\b(?:so|somente|apenas|ate|valid[oa]s?|corre|corra|aproveite|garanta|ultim[oa]s?)\s+(?:ate\s+)?hoje\b/ },
+  { classe: "prazo", padrao: /\bhoje\s*[:!,.\-]*\s*(?:so|somente|apenas|e\s+amanha|ultim[oa]s?|aproveite|corre|corra|garanta)\b/ },
+  // O chamado de urgência sem data nenhuma. "Compre já" e "Garanta já" viram
+  // carimbo no topo da peça e afirmam prazo sem dizer qual.
+  { classe: "prazo", padrao: /\b(?:compre|peca|pecam|garanta|garanta|aproveite|agende|reserve|corra|corre|adquira)\s+(?:ja|agora|correndo)\b/ },
   { classe: "prazo", padrao: new RegExp(`\\bate\\s+(?:os?\\s+|as?\\s+|dia\\s+)?(?:${DIA}|\\d|${NUM}\\b)`) },
   { classe: "prazo", padrao: /\bultim[oa]s?\s+(?:dia|dias|hora|horas|chance|chances|unidade|unidades|vaga|vagas|peca|pecas)\b/ },
   { classe: "prazo", padrao: /\b(?:por\s+tempo\s+limitado|enquanto\s+durar|estoque\s+limitado|ultimas?\s+horas?|corre\s+que\s+acaba)\b/ },
@@ -220,9 +334,31 @@ export const CLASSES_PROIBIDAS_NA_ARTE: Array<{ classe: string; padrao: RegExp }
   { classe: "prazo", padrao: /\bvalid[oa]\s+(?:ate|de|por)\b|\bvalidade\b/ },
 
   // ── PROMESSA COMERCIAL ────────────────────────────────────────────────────
-  { classe: "promessa comercial", padrao: /\b(?:gratis|gratuit[oa]s?|cortesia|brinde|brindes|cupom|cupons|cashback|desconto|descontos|promocao|promocoes|oferta|ofertas|liquidacao|queima|sorteio|premio|premios)\b/ },
+  // ── A LIÇÃO DO ITEM 1 DA 8ª AUDITORIA: MORFOLOGIA, NÃO GRAFIA ERRADA ──────
+  // A lista antiga tinha `desconto`, `oferta`, `promocao` e `liquidacao` — e
+  // deixava passar "Descontão", "Ofertão", "Feirão", "Promocional",
+  // "Descontinho". Aumentativo e diminutivo NÃO são obfuscação de adversário:
+  // são a morfologia normal do português e a forma que um modelo escrevendo
+  // legenda de varejo escolhe sozinho. Por isso o padrão é por RADICAL.
+  { classe: "promessa comercial", padrao: /\b(?:gratis|gratuit[oa]s?|gratuidade|cortesia|brinde|brindes|cupo(?:m|ns)|cashback|descont(?:o|os|ao|oes|inho|inhos|ac[oa]|acos)|ofert(?:a|as|ao|oes|inha|inhas|ac[oa]|acos)|promoc(?:ao|oes)|promocion(?:al|ais)|promo|liquidac(?:ao|oes)|feir(?:ao|oes)|sorteio|sorteios|sortear|concorra|concorrer)\b/ },
+  // Três palavras SAÍRAM da lista nua porque cada uma tem vida fora da promoção,
+  // e a 8ª auditoria mediu as três: `queima` ("queima de gordura"), `liquida`
+  // ("dieta líquida" — o acento some em `dobrar`) e `premio` ("prêmio de seguro
+  // entra como despesa dedutível"). As três continuam barradas na forma
+  // comercial, logo abaixo e na regra de `ganhe`.
+  { classe: "promessa comercial", padrao: /\bqueima\s+(?:de\s+)?(?:estoque|estoques)\b/ },
+  // "liquida" nu comia "dieta líquida" (o acento some em `dobrar`).
+  { classe: "promessa comercial", padrao: /\bliquida(?:mos)?\s+(?:tudo|geral|total|o\s+estoque|estoque)\b/ },
   { classe: "promessa comercial", padrao: /\bde\s+graca\b/ },
-  { classe: "promessa comercial", padrao: /\bganh[ea]\b|\bleve\s+mais\b/ },
+  // Condição de pagamento como promessa. "Sem juros", "zero taxa de entrega" e
+  // "entrega sem custo" são as três formas que a família do varejo usa para
+  // dizer desconto sem usar a palavra desconto.
+  { classe: "promessa comercial", padrao: /\b(?:sem|zero)\s+(?:juros|taxa|taxas|tarifa|tarifas|custo|custos|entrada|fidelidade)\b|\bjuros\s+zero\b/ },
+  { classe: "promessa comercial", padrao: /\bparcel(?:e|ado|ada|ados|amos)\s+em\s+(?:ate\s+)?(?:\d+|\S+)\s*x\b/ },
+  // "Ganhe" só com o que se ganha. `\bganh[ea]\b` nu barrava "Quem treina ganha
+  // disposição" e "Ganha tempo quem manda o arquivo em PDF" — copy legítima.
+  { classe: "promessa comercial", padrao: /\bganh[ea]\s+(?:\S+\s+){0,2}?(?:brinde|brindes|cupom|cupons|desconto|descontos|premio|premios|voucher|vale|frete|bonus|gratis|cortesia|kit|sorteio)\b/ },
+  { classe: "promessa comercial", padrao: /\bleve\s+mais\b/ },
   { classe: "promessa comercial", padrao: new RegExp(`\\bleve\\s+(?:\\d+|${NUM})\\s+(?:e\\s+)?pague\\b`) },
   { classe: "promessa comercial", padrao: new RegExp(`\\b(?:2|dois|duas)\\s+por\\s+(?:1|um|uma)\\b`) },
   { classe: "promessa comercial", padrao: /\bna\s+compra\s+d[eoa]\b|\bcompre\s+\S+\s+(?:e\s+)?(?:ganhe|leve)\b/ },
@@ -230,15 +366,39 @@ export const CLASSES_PROIBIDAS_NA_ARTE: Array<{ classe: string; padrao: RegExp }
   { classe: "promessa comercial", padrao: /\bpor\s+(?:nossa|minha|conta\s+d[ao]\s+casa)\b|\bpor\s+conta\s+da\s+casa\b/ },
 
   // ── SUPERLATIVO NÃO SUSTENTÁVEL ───────────────────────────────────────────
-  { classe: "superlativo não sustentável", padrao: /\b(?:melhor|melhores|maior|maiores|unic[ao]|garantid[ao]s?|imperdivel|incomparavel|insuperavel|imbativel|inigualavel|sem\s+igual|lider|lideres|campe[ao]|campeoes|campea|sensacional|incrivel|perfeit[ao]|exclusiv[ao]|premium|definitiv[ao]|revolucionari[ao])\b/ },
+  // O que só existe como afirmação de mercado — estes continuam nus.
+  // Saíram daqui, e cada saída tem um caso medido pela 8ª auditoria atrás:
+  //   • `perfeit[ao]`  — "O look perfeito para o fim de semana" [moda]
+  //   • `melhor/maior` — "Quem come melhor dorme melhor": COMPARATIVO
+  //   • `unic[ao]`     — "Cada sorriso é único e merece um cuidado próprio"
+  // Nos três, a palavra é adjetivo comum antes de ser superlativo de mercado.
+  // O que os separa não é a palavra: é o ARTIGO DEFINIDO e a ÂNCORA ("da
+  // cidade", "do mercado") — que é o que os padrões abaixo passaram a exigir.
+  { classe: "superlativo não sustentável", padrao: /\b(?:garantid[ao]s?|imperdivel|incomparavel|insuperavel|imbativel|inigualavel|sem\s+igual|lider|lideres|campe[ao]|campeoes|campea|sensacional|incrivel|exclusiv[ao]|premium|definitiv[ao]|revolucionari[ao])\b/ },
+  // A lista de exceção não é gosto: são SUBSTANTIVOS DE DISCURSO. "O melhor
+  // caminho depende do seu faturamento" e "o maior erro é cortar tudo de uma
+  // vez" não afirmam superioridade da empresa — afirmam sobre o assunto. O que
+  // faz "o melhor" virar alegação é vir seguido do que a empresa VENDE.
+  { classe: "superlativo não sustentável", padrao: /\b(?:o|a|os|as)\s+(?:melhor|maior)(?:es)?\b(?!\s+(?:parte|erro|erros|caminho|jeito|jeitos|forma|formas|maneira|momento|hora|desafio|dificuldade|inimigo|problema|amigo|para|pra)\b)/ },
+  { classe: "superlativo não sustentável", padrao: /\b(?:melhor|maior)(?:es)?\s+(?:\S+\s+){0,2}?d[oa]s?\s+(?:cidade|regiao|bairro|estado|pais|brasil|mundo|mercado|ramo|segmento)\b/ },
+  { classe: "superlativo não sustentável", padrao: /\b(?:melhor|maior)(?:es)?\s+(?:atendimento|servico|servicos|escolha|qualidade|experiencia|custo)\b/ },
+  { classe: "superlativo não sustentável", padrao: /\b(?:o|a|os|as)\s+unic[ao]s?\b|\bunic[ao]s?\s+(?:no\s+mercado|d[oa]\s+(?:cidade|regiao|bairro|estado|pais|brasil|mundo))\b/ },
   { classe: "superlativo não sustentável", padrao: /\bn[o°º]?\s*1\b|\bnumero\s*(?:1|um)\b|\btop\s*(?:\d+|um)\b|\b100\s*%/ },
   // A forma que a língua usa para superlativo: artigo + "mais" + adjetivo.
-  { classe: "superlativo não sustentável", padrao: /\b(?:o|a|os|as)\s+mais\s+[a-z]+/ },
+  // Nua, ela comia "O mais importante é a constância" e "o mais indicado para o
+  // seu caso" — discurso, não afirmação de mercado. Agora exige ou a ÂNCORA que
+  // fecha o superlativo, ou um adjetivo que só existe como alegação comercial.
+  { classe: "superlativo não sustentável", padrao: /\b(?:o|a|os|as)\s+mais\s+[a-z]+\s+(?:d[oa]s?\s+(?:cidade|regiao|bairro|estado|pais|brasil|mundo|mercado|ramo|segmento|todos|todas)|que\s+(?:existe|voce))\b/ },
+  { classe: "superlativo não sustentável", padrao: /\b(?:o|a|os|as)\s+mais\s+(?:vendid|amad|procurad|pedid|querid|barat|complet|rapid|potent|eficaz|desejad|premiad|elogiad)[a-z]*\b/ },
   { classe: "superlativo não sustentável", padrao: /\bmais\s+[a-z]+\s+d[ao]\s+(?:cidade|regiao|bairro|estado|pais|brasil|mundo)\b/ },
   // O superlativo INDIRETO: a forma que não usa adjetivo nenhum e afirma a
   // mesma coisa. "Ninguém faz igual" é "o melhor" com outras palavras.
-  { classe: "superlativo não sustentável", padrao: /\bninguem\s+(?:faz|tem|chega|consegue|iguala)\b|\bnao\s+existe\s+igual\b|\bsem\s+comparacao\b|\bnada\s+se\s+compara\b/ },
-  { classe: "superlativo não sustentável", padrao: /\bnunca\s+(?:viu|comeu|provou|experimentou|sentiu)\b|\bvoce\s+nunca\b/ },
+  // `ninguem tem` nu barrava "Ninguém tem obrigação de saber tudo sobre a lei",
+  // e `voce nunca` barrava "Você nunca está sozinho no seu processo". Nos dois,
+  // o superlativo mora no COMPLEMENTO ("igual", "perto", "comeu assim"), não no
+  // pronome — então o complemento passou a ser exigido.
+  { classe: "superlativo não sustentável", padrao: /\bninguem\s+(?:faz|tem|serve|entrega|cuida|trata|consegue|cozinha)\s+(?:igual|como|assim)\b|\bninguem\s+(?:chega|chegou)\s+perto\b|\bninguem\s+iguala\b|\bnao\s+existe\s+igual\b|\bsem\s+comparacao\b|\bnada\s+se\s+compara\b/ },
+  { classe: "superlativo não sustentável", padrao: /\bnunca\s+(?:viu|vira|comeu|provou|experimentou|sentiu|encontrou|achou|vai\s+encontrar|vai\s+achar)\b/ },
 ];
 
 /** Qual classe pegou este texto — ou `null`. Dobra UMA vez e varre. */
@@ -335,14 +495,17 @@ export function travaDeRotuloNaArte(texto: string, forma: FormaDeRotulo): Veredi
       detalhe: `rótulo com ${palavras} palavras (máximo ${forma.maxPalavras}) — isso é uma frase, não um rótulo`,
     };
   }
+  // SCRIPT LATINO, não `\p{L}`. `\p{L}` aceita qualquer alfabeto do mundo, e o
+  // homóglifo que `higienizar` não conhece (armênio, cherokee) entraria no selo
+  // como letra legítima. Rótulo desta casa é escrito em português.
   const alfabeto = forma.permiteDigito
-    ? /^[\p{L}\p{N}\s&'.\-]+$/u
-    : /^[\p{L}\s&'.\-]+$/u;
+    ? /^[\p{Script=Latin}\p{M}\p{Nd}\s&'.\-]+$/u
+    : /^[\p{Script=Latin}\p{M}\s&'.\-]+$/u;
   if (!alfabeto.test(t)) {
     return {
       ok: false,
       motivo: "rotulo_fora_de_forma",
-      detalhe: "rótulo com caractere que não é de rótulo (número, símbolo ou pontuação de frase)",
+      detalhe: "rótulo com caractere que não é de rótulo (número, símbolo, pontuação de frase ou letra de outro alfabeto)",
     };
   }
 

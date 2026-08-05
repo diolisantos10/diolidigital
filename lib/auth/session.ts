@@ -1,6 +1,6 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
-import type { AgencyRole } from "@/lib/agency/roles";
+import { ROLE_PERMISSIONS, type AgencyRole } from "@/lib/agency/roles";
 import { getAuthSecret } from "./secret";
 
 export interface SessionPayload {
@@ -66,12 +66,20 @@ export async function deleteSession(): Promise<void> {
   });
 }
 
+/**
+ * O papel é um papel conhecido da agência?
+ *
+ * ⚠️ A lista NÃO é escrita à mão aqui, e isso é o conserto — não estilo.
+ * Ela era, e omitia `executivo_comercial`: o papel existia em
+ * `lib/agency/roles.ts`, não existia aqui, e o login (que caía em "master"
+ * quando não reconhecia) entregava JWT de MASTER a quem tivesse esse papel.
+ * Acesso a `/api/admin/reset`, `/api/ai-keys`, `/api/meta/config` (App Secret)
+ * e `/api/backup` — por uma linha esquecida numa cópia de lista.
+ *
+ * Derivando de `ROLE_PERMISSIONS` (o mapa que o TypeScript OBRIGA a ter uma
+ * entrada por `AgencyRole`), papel novo em `roles.ts` já nasce reconhecido
+ * aqui. Não há mais duas listas para manter em sincronia.
+ */
 export function isAgencyRole(role: string): role is AgencyRole {
-  return [
-    "master",
-    "project_manager",
-    "social_staff",
-    "design_staff",
-    "ads_staff",
-  ].includes(role);
+  return Object.prototype.hasOwnProperty.call(ROLE_PERMISSIONS, role);
 }

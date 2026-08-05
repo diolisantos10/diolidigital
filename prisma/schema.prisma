@@ -67,6 +67,10 @@ model Client {
   brandBrain      BrandBrain?
   brandUpdates    BrandUpdate[]
   contentRequests ContentRequest[]
+
+  /// Toda listagem de cliente é por inquilino. Sem isto, cada tela de clientes
+  /// varre a tabela inteira — e numa SQLite em volume, varredura segura lock.
+  @@index([workspaceId])
 }
 
 // ─── Projects ─────────────────────────────────────────────────────────────────
@@ -127,6 +131,18 @@ model Project {
   timelineEvents   TimelineEvent[]
   briefings        Briefing[]
   cycles           Cycle[]
+
+  /// ⚠️ ESTE É O ÍNDICE DO DESPERTADOR, e ele bate A CADA 5 MINUTOS.
+  /// `lib/agency/despertador.ts:62` procura projeto para retomar com um `OR` de
+  /// três condições sobre `executionStatus`, ordenando por
+  /// `executionRequestedAt`. Sem índice, cada batida é uma varredura completa
+  /// da tabela — e numa SQLite em volume a varredura SEGURA O LOCK DE ESCRITA.
+  /// É assim que "database is locked" vira erro de deploy; o retry do
+  /// `scripts/start.sh` existe por causa desse sintoma.
+  @@index([executionStatus, executionRequestedAt])
+  @@index([workspaceId])
+  @@index([clientId])
+  @@index([clientRequestId])
 }
 
 // ─── Ciclos ───────────────────────────────────────────────────────────────────
@@ -185,6 +201,11 @@ model AdCampaign {
 
   @@index([workspaceId, status])
   @@index([projectId])
+  /// O guardião de verba (`lib/agency/esteira/trafego.ts:332`) busca
+  /// `{ status: "active" }` SEM workspace, a cada batida do despertador. O
+  /// índice `[workspaceId, status]` não serve: a coluna líder é a errada, e
+  /// índice só é usado a partir do prefixo da esquerda.
+  @@index([status])
 }
 
 /// A conta do Google Meu Negócio de um cliente.
@@ -630,6 +651,10 @@ model Task {
   deliverableId String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  /// A tarefa SEMPRE é lida pelo projeto — e o cascade de exclusão do projeto
+  /// também passa por aqui. Sem índice, apagar um projeto varre todas as tasks.
+  @@index([projectId])
 }
 
 // ─── Timeline Events ──────────────────────────────────────────────────────────
@@ -657,6 +682,15 @@ model ActivityEvent {
   message     String
   clientId    String?
   timestamp   DateTime        @default(now())
+
+  /// A linha do tempo do inquilino (`/api/activity-events`): filtra por
+  /// workspace e ordena por `timestamp` desc.
+  @@index([workspaceId, timestamp])
+  /// O disparo de WhatsApp (`lib/integrations/meta/notifications.ts:115`) varre
+  /// por `type = "whatsapp_notify"` SEM workspace quando roda pelo cron — a
+  /// tabela inteira, a cada batida do despertador.
+  @@index([type, timestamp])
+  @@index([projectId])
 }
 
 // ─── AI Run Logs ──────────────────────────────────────────────────────────────
@@ -678,6 +712,10 @@ model AIRunLog {
   outputSummary  String?
   warnings       String          @default("[]")
   createdAt      DateTime        @default(now())
+
+  /// Log cresce para sempre e é sempre lido "os últimos N deste workspace".
+  @@index([workspaceId, createdAt])
+  @@index([projectId])
 }
 
 // ─── Continuous SDR Training V3 ───────────────────────────────────────────────
@@ -1034,6 +1072,13 @@ model MetaConnection {
   @@unique([workspaceId, platform, externalId])
   @@index([workspaceId, platform])
   @@index([clientId])
+  /// ⚠️ TODO WEBHOOK DE WHATSAPP PASSA POR AQUI.
+  /// `resolveWorkspaceForPhone` (`lib/integrations/meta/inbox.ts:14`) procura
+  /// por `{ platform, externalId }` — sem workspace, porque é justamente o
+  /// workspace que ele está tentando descobrir. O `@@unique` acima começa por
+  /// `workspaceId`, então não serve para esta busca: cada mensagem recebida
+  /// varria a tabela.
+  @@index([platform, externalId])
 }
 
 // WhatsApp conversation log — the single-inbox history. One row per message,
@@ -1092,6 +1137,11 @@ model PortalAccess {
   lastAccessedAt  DateTime?
   accessCount     Int              @default(0)
   createdAt       DateTime         @default(now())
+
+  /// `findFirst({ clientRequestId, revokedAt: null })` é a busca do link do
+  /// portal — feita no caminho do aviso ao cliente.
+  @@index([clientRequestId, revokedAt])
+  @@index([clientId])
 }
 
 // ─── Radar Dioli — biblioteca viva de tendências/atualizações de mercado ────

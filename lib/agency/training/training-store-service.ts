@@ -96,6 +96,27 @@ function serializeRun(run: SimulationRun, batchId?: string) {
   };
 }
 
+/**
+ * `JSON.parse` que não derruba a leitura inteira.
+ *
+ * ⚠️ Uma linha de treino com JSON truncado fazia a listagem de simulações
+ * lançar — o histórico inteiro sumia por causa de UM registro ruim. O padrão
+ * do resto da casa é try/catch com um padrão declarado; aqui faltava.
+ *
+ * O `padrao` é o que se assume quando o texto não presta. Nunca é um valor
+ * inventado: é vazio ou nulo, para o dado ruim aparecer como AUSENTE e não
+ * como algo que o sistema acha que sabe.
+ */
+function lerJson<T>(texto: unknown, padrao: T): T {
+  if (typeof texto !== "string" || texto.trim() === "") return padrao;
+  try {
+    return JSON.parse(texto) as T;
+  } catch {
+    console.warn("[training-store] JSON inválido no banco — campo tratado como ausente.");
+    return padrao;
+  }
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function deserializeRun(row: any): SimulationRun {
   return {
@@ -105,22 +126,20 @@ function deserializeRun(row: any): SimulationRun {
     scenarioName:     row.scenarioName,
     startedAt:        row.createdAt instanceof Date ? row.createdAt.toISOString() : String(row.createdAt),
     completedAt:      row.createdAt instanceof Date ? row.createdAt.toISOString() : String(row.createdAt),
-    transcript:       JSON.parse(row.transcript      || "[]"),
-    finalScope:       row.finalScope    ? JSON.parse(row.finalScope)    : null,
-    finalEstimate:    row.finalEstimate ? JSON.parse(row.finalEstimate) : null,
+    transcript:       lerJson<SimulationRun["transcript"]>(row.transcript, []),
+    finalScope:       lerJson<SimulationRun["finalScope"]>(row.finalScope, null),
+    finalEstimate:    lerJson<SimulationRun["finalEstimate"]>(row.finalEstimate, null),
     finalSdrState:    null,
-    sdrHandoff:       row.sdrHandoff    ? JSON.parse(row.sdrHandoff)    : null,
+    sdrHandoff:       lerJson<SimulationRun["sdrHandoff"]>(row.sdrHandoff, null),
     score:            row.score,
     verdict:          row.verdict  as SimulationRun["verdict"],
-    issues:           JSON.parse(row.issues          || "[]") as SimulationIssue[],
-    recommendations:  JSON.parse(row.recommendations || "[]") as string[],
+    issues:           lerJson<SimulationIssue[]>(row.issues, []),
+    recommendations:  lerJson<string[]>(row.recommendations, []),
     engineVersion:    row.engineVersion,
     status:           "completed",
     scenarioOrigin:   row.scenarioOrigin as "seed" | "dynamic",
     scenarioSeed:     row.scenarioSeed   ?? undefined,
-    scenarioMetadata: row.scenarioMetadata
-      ? JSON.parse(row.scenarioMetadata) as DynamicScenarioMetadata
-      : undefined,
+    scenarioMetadata: lerJson<DynamicScenarioMetadata | undefined>(row.scenarioMetadata, undefined),
   };
 }
 
@@ -151,7 +170,7 @@ function deserializeSuggestion(row: any): AgentImprovementSuggestion {
     suggestedChange: row.suggestedChange,
     impact:          row.impact as AgentImprovementSuggestion["impact"],
     status:          row.status as ImprovementStatus,
-    sourceRunIds:    JSON.parse(row.sourceRunIds || "[]") as string[],
+    sourceRunIds:    lerJson<string[]>(row.sourceRunIds, []),
     createdAt:       row.createdAt instanceof Date ? row.createdAt.toISOString() : String(row.createdAt),
     decidedAt:       row.decidedAt
       ? (row.decidedAt instanceof Date ? row.decidedAt.toISOString() : String(row.decidedAt))

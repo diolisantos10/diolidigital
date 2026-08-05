@@ -28,6 +28,13 @@ export async function GET(): Promise<NextResponse> {
     },
   });
 
+  // ⚠️ `lastTestMessage` guarda a resposta CRUA do provedor, e provedores
+  // ecoam pedaço da chave em erro de autenticação. Este GET exige só sessão —
+  // qualquer staff. O status ("pass"/"fail") todo mundo pode ver; o texto do
+  // provedor é do master. A rota não é fechada inteira porque a tela de
+  // Operações depende do booleano `configured` para dizer "IA conectada".
+  const podeVerDetalheDoProvedor = session.role === "master";
+
   const status = PROVIDERS.map((provider) => {
     const row = rows.find((r) => r.integrationId === PROVIDER_INTEGRATION_ID[provider]);
     const hasUiKey = !!row?.apiKeyEncrypted;
@@ -37,7 +44,7 @@ export async function GET(): Promise<NextResponse> {
       hint: row?.apiKeyHint ?? null,
       model: row?.selectedModel ?? null,
       lastTestStatus: row?.lastTestStatus ?? "not_run",
-      lastTestMessage: row?.lastTestMessage ?? null,
+      lastTestMessage: podeVerDetalheDoProvedor ? row?.lastTestMessage ?? null : null,
       lastTestAt: row?.lastTestAt ?? null,
     };
   });

@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { runRadarScan } from "@/lib/agency/radar/radar-agent";
+import { segredoConfere } from "@/lib/security/crypto";
 
 const MAX_WORKSPACES = 10;
 
@@ -14,7 +15,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!cronSecret) return NextResponse.json({ error: "Cron não configurado — defina CRON_SECRET" }, { status: 503 });
   const token = request.headers.get("authorization")?.startsWith("Bearer ")
     ? request.headers.get("authorization")!.slice(7) : null;
-  if (token !== cronSecret) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!segredoConfere(token, cronSecret)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const workspaces = await prisma.agencyWorkspace.findMany({ take: MAX_WORKSPACES, select: { id: true } });
   const results: Array<{ workspaceId: string; proposed: number }> = [];

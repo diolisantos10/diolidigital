@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { dispatchWhatsAppNotifications } from "@/lib/integrations/meta/notifications";
+import { segredoConfere } from "@/lib/security/crypto";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   // Two ways in: a valid CRON_SECRET (scheduler) OR a master session (manual).
   let workspaceId: string | undefined;
-  if (cronSecret && bearer === cronSecret) {
+  if (segredoConfere(bearer, cronSecret)) {
     workspaceId = undefined; // all workspaces
   } else {
     const session = await getSession();

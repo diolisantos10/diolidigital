@@ -21,14 +21,32 @@ if (!resolvedDbUrl && RAILWAY_VOLUME_MOUNT_PATH) {
 
 const isProduction = NODE_ENV === "production" || RAILWAY_ENVIRONMENT !== "";
 
+/**
+ * A URL do banco SEM a credencial.
+ *
+ * ⚠️ Com Turso, a `DATABASE_URL` carrega `?authToken=<credencial do banco>` —
+ * a chave do banco inteiro. Este diagnóstico é feito para ser COLADO num chat
+ * de suporte, e imprimir a URL crua vazava a credencial no primeiro print de
+ * tela. O que o operador precisa saber é o esquema, o host e o caminho.
+ */
+function urlSemSegredo(url: string): string {
+  if (!url) return "(not set)";
+  // libsql://host?authToken=… (e qualquer outra query com segredo)
+  const semQuery = url.split("?")[0];
+  const tinhaQuery = semQuery !== url;
+  // libsql://user:senha@host
+  const semCredencial = semQuery.replace(/\/\/[^/@]*@/, "//«credencial removida»@");
+  return tinhaQuery ? `${semCredencial}?«parâmetros ocultados»` : semCredencial;
+}
+
 console.log("=== Dioli Railway Environment Diagnostics ===");
 console.log(`Environment: ${isProduction ? "PRODUCTION" : "non-production"}\n`);
 
 // ── Database ──────────────────────────────────────────────────────────────────
 console.log("── Database ──");
-console.log(`DATABASE_URL:              ${DATABASE_URL || "(not set)"}`);
+console.log(`DATABASE_URL:              ${urlSemSegredo(DATABASE_URL)}`);
 console.log(`RAILWAY_VOLUME_MOUNT_PATH: ${RAILWAY_VOLUME_MOUNT_PATH || "(not set)"}`);
-console.log(`Resolved DB URL:           ${resolvedDbUrl || "(none)"}`);
+console.log(`Resolved DB URL:           ${resolvedDbUrl ? urlSemSegredo(resolvedDbUrl) : "(none)"}`);
 console.log(`Source:                    ${resolvedDbUrl ? dbSource : "—"}`);
 console.log();
 

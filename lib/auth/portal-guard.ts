@@ -1,51 +1,26 @@
-// Portal access guard — abstraction layer for secure client portal access.
+// Utilitário de saúde do banco.
 //
-// Current state (V2): portal accepts either a portalToken (secure) or a legacy
-// client ID (backwards compat with existing Playwright tests + demo data).
-// Production hardening: remove the ID fallback and require tokens only.
+// ── O QUE FOI REMOVIDO DAQUI, E POR QUÊ ────────────────────────────────────
+// Este arquivo continha `resolvePortalAccess(tokenOrId)`, com ZERO chamadores.
+// O comportamento dela: procurava o cliente pelo `portalToken`; NÃO ACHANDO,
+// devolvia `{ mode: "id_legacy", clientId: tokenOrId }` — ou seja, tratava o
+// texto recebido do visitante como um `clientId` AUTORIZADO. Um id de cliente
+// é adivinhável e circula em URL. Qualquer rota que "reaproveitasse o helper"
+// passaria a aceitar `?cliente=<id>` como credencial e entregaria o portal de
+// um cliente a qualquer um.
 //
-// The isPortalAccessAllowed() function is the single place to enforce
-// client data boundary checks — plug real auth here when ready.
+// Ela não estava ligada em lugar nenhum — e é exatamente por isso que era
+// perigosa: código morto com nome bom é uma armadilha esperando alguém com
+// pressa. O caminho VIVO e correto é
+// `lib/agency/persistence/portal-access-service.ts` (`validatePortalAccess`),
+// que valida token, expiração e revogação.
+//
+// Removida em 05/08/2026. Se alguém precisar resolver acesso de portal, use o
+// serviço acima. Não ressuscite isto.
 
 import { prisma } from "@/lib/db/client";
 
-export type PortalAccessMode = "token" | "id_legacy" | "denied";
-
-export interface PortalAccessResult {
-  mode: PortalAccessMode;
-  clientId: string | null;
-  // True when using secure token access
-  isSecure: boolean;
-  // Warning shown to operators in System Doctor
-  warningMessage?: string;
-}
-
-export async function resolvePortalAccess(tokenOrId: string): Promise<PortalAccessResult> {
-  // Try secure token first (preferred)
-  try {
-    const byToken = await prisma.client.findUnique({
-      where: { portalToken: tokenOrId },
-      select: { id: true },
-    });
-    if (byToken) {
-      return { mode: "token", clientId: byToken.id, isSecure: true };
-    }
-  } catch {
-    // DB unavailable — fall through to legacy mode
-  }
-
-  // Fallback: treat as legacy client ID (for demo data + backwards compat)
-  // This path is UNSAFE for production — client ID is guessable.
-  return {
-    mode: "id_legacy",
-    clientId: tokenOrId,
-    isSecure: false,
-    warningMessage:
-      "Portal acessado por ID direto (modo legacy). Use tokens de portal para acesso seguro em produção.",
-  };
-}
-
-// Quick check used by System Doctor and middleware
+/** O banco responde? Usado por diagnóstico — nunca como decisão de acesso. */
 export async function isDbAvailable(): Promise<boolean> {
   try {
     await prisma.$queryRaw`SELECT 1`;
