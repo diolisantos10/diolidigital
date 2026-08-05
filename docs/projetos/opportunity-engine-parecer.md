@@ -59,6 +59,40 @@ terceiro, com banimento e reputação em jogo, é exatamente o caso em que "sem
 gate executável = reprovado" vale. Enquanto o piso não subir, **toda** mensagem
 sai com humano no meio — sem exceção "para agilizar".
 
+## A tese completa, dita pelo CEO em 05/08/2026
+
+> "O agente — SDR, Google, o que for — aborda o cliente e a função dele é
+> **puxar o cliente como isca para o nosso sistema**. E aqui ele vai estar na
+> nossa interface."
+
+Isso muda o eixo do projeto e vale escrever com todas as letras: **a isca não é
+uma mensagem bem escrita, é a nossa interface.** O agente não fecha venda — ele
+faz o cliente ATRAVESSAR a porta. Quem converte é o briefing inteligente, e
+quem retém é o portal.
+
+Três consequências que decorrem disso, e nenhuma é opcional:
+
+1. **O gargalo do projeto passa a ser a página de briefing, não o agente.**
+   Se 100 pessoas clicam e 8 concluem, nenhum agente melhor resolve. A obra
+   mais rentável do Opportunity Engine é a taxa de conclusão do `/briefing` no
+   CELULAR — que é de onde essa gente vem.
+
+2. **Onde o link é proibido, a isca tem de ser reproduzida DENTRO da
+   plataforma.** É a Rota B do documento, e ela deixa de ser alternativa: vira
+   o caminho principal em 99Freelas, Workana e Upwork. O agente faz as perguntas
+   do nosso briefing lá dentro, com as nossas palavras, e o cliente experimenta
+   a inteligência sem sair do lugar.
+
+3. **Todo mundo que entra carrega a origem.** Sem carimbar qual agente, qual
+   plataforma e quanto custou o contato, em três meses ninguém sabe qual canal
+   paga o próprio custo — e a decisão de escalar vira palpite.
+
+**O agente do Google é o mesmo funil por outra porta:** negócio local com ficha
+abandonada, sem foto, sem resposta a avaliação. A diferença é o regime jurídico
+— marketplace tem regra de plataforma; abordagem fria tem LGPD e regra de spam.
+Não é mais frouxo, é diferente. Entra como canal 2, com parecer do especialista
+`google` antes da primeira abordagem.
+
 ## O que eu corto da primeira versão
 
 Upwork, Freelancer.com, Fiverr, inglês, multi-moeda, navegação assistida,
