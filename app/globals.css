@@ -190,6 +190,54 @@ h1, h2, h3, h4, .font-display {
   padding-bottom: var(--fab-espaco);
 }
 
+/* ── Painel da agência: o espaço das barras fixas ─────────────────────────────
+   Mesma regra do portal (§6.1 do DESIGN.md), a versão do painel — porque a
+   regra nasceu no portal e o painel não a tinha recebido.
+
+   No celular a navegação do painel é FIXA no topo. Enquanto foi um botão solto
+   de 32×32 colado em `top-3.5 left-4`, o `pt-16` do container só protegia a
+   rolagem ZERO: do primeiro pixel rolado em diante o quadrado navy passava por
+   cima do texto e cortava um pedaço da linha — foi assim que "Reconciliar telas
+   dos carrosséis" virou "econciliar telas dos carrosséis" a 375px, e mais 123
+   linhas em 7 telas do painel.
+
+   O conserto não é padding: é a FORMA do elemento fixo. No topo de uma área que
+   rola, elemento fixo é BARRA de largura total (o conteúdo passa por trás de uma
+   superfície opaca e o olho lê "cabeçalho"), nunca botão solto (que corta a
+   linha ao meio). Quem reserva a altura da barra é o LAYOUT (`.agency-shell`),
+   e a própria barra sai das MESMAS variáveis — as duas nunca saem de sincronia. */
+.agency-shell {
+  --barra-altura:  3.25rem;                 /* 52px — a mesma altura do topo da sidebar */
+  --barra-safe:    env(safe-area-inset-top, 0px);
+  --barra-respiro: 1rem;                    /* respiro entre a barra e o conteúdo */
+  --barra-espaco:  calc(var(--barra-altura) + var(--barra-safe));
+}
+/* A barra em si: altura e safe-area saem das variáveis acima. */
+.agency-barra-topo {
+  height: var(--barra-espaco);
+  padding-top: var(--barra-safe);
+}
+/* O container que rola por baixo dela. Só no celular: no tablet/desktop a
+   barra não existe (a sidebar fica visível) e vale o `md:py-8` do Tailwind. */
+@media (max-width: 767.98px) {
+  .agency-conteudo {
+    padding-top: calc(var(--barra-espaco) + var(--barra-respiro));
+  }
+}
+
+/* ── Barra de ação colada embaixo (ex.: decisão de escopo) ────────────────────
+   O caso literal da §6.1: barra fixa no rodapé cobre o FIM do conteúdo. As três
+   peças saem da mesma fonte — `.acao-shell` declara, `.acao-reserva` reserva o
+   espaço no fluxo e `.acao-barra` ancora a barra acima da safe-area do iOS. */
+.acao-shell {
+  --acao-altura:  4.5rem;                   /* 72px — altura real da barra */
+  --acao-safe:    env(safe-area-inset-bottom, 0px);
+  --acao-respiro: 1.5rem;
+  --acao-espaco:  calc(var(--acao-altura) + var(--acao-safe) + var(--acao-respiro));
+}
+.acao-reserva { padding-bottom: var(--acao-espaco); }
+.acao-barra   { min-height: var(--acao-altura); padding-bottom: var(--acao-safe); }
+
 /* ── Site público: linguagem visual "gelada" (Google × Apple) ─────────────────
    Fundos com brilho frio, superfícies de vidro e movimento sutil. Tudo dentro da
    paleta do brand book (navy / cyan / azul), sem fundo sempre escuro.           */

@@ -22,6 +22,7 @@ interface UserInfo {
 }
 
 interface AgencySidebarProps {
+  id?: string;
   userInfo?: UserInfo | null;
   mobileOpen?: boolean;
   onMobileClose?: () => void;
@@ -49,7 +50,7 @@ function useTaskBadgeCount() {
   return criticalHigh + blocked;
 }
 
-export default function AgencySidebar({ userInfo, mobileOpen = false, onMobileClose }: AgencySidebarProps) {
+export default function AgencySidebar({ id, userInfo, mobileOpen = false, onMobileClose }: AgencySidebarProps) {
   const path = usePathname();
   const { currentRole, setCurrentRole } = useAgencyStore();
   const pendingCount = usePendingCount();
@@ -120,6 +121,7 @@ export default function AgencySidebar({ userInfo, mobileOpen = false, onMobileCl
         />
       )}
       <aside
+        id={id}
         className={[
           "fixed inset-y-0 left-0 w-[224px] flex flex-col z-40 overflow-y-auto",
           "transition-transform duration-200",

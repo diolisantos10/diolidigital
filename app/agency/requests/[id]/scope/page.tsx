@@ -3,6 +3,7 @@
 import { use, useState, useEffect } from "react";
 import Link from "next/link";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
+import { useReservaDeBarra } from "@/components/agency/layout/useReservaDeBarra";
 import { PortalChat } from "@/components/agency/portal/PortalChat";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -456,6 +457,10 @@ export default function ScopeReviewPage({ params }: { params: Promise<{ id: stri
   // page reads the Zustand store, not the DB, and would 404 on a DB project.
   const [approvedProjectId, setApprovedProjectId] = useState<string | null>(null);
 
+  // A barra de decisão é FIXA no rodapé: o espaço dela é reservado pelo layout a
+  // partir da altura medida da própria barra (DESIGN.md §6.1).
+  const { casca: cascaDaAcao, barra: barraDaAcao } = useReservaDeBarra<HTMLDivElement, HTMLDivElement>();
+
   // ── Fetch data ────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -607,9 +612,13 @@ export default function ScopeReviewPage({ params }: { params: Promise<{ id: stri
   }
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--bg, #F5F5F3)" }}>
+    // `.acao-shell` declara a altura da barra fixa do rodapé e a safe-area do
+    // iOS; `.acao-reserva` reserva esse espaço no fluxo e `.acao-barra` ancora a
+    // barra acima da safe-area — as três da mesma fonte (DESIGN.md §6.1). Antes
+    // o espaço era um `pb-32` chutado, sem relação com a altura real da barra.
+    <div ref={cascaDaAcao} className="acao-shell min-h-screen" style={{ background: "var(--bg, #F5F5F3)" }}>
       {/* Scrollable content area */}
-      <div className="px-8 py-8 space-y-6 max-w-[900px] mx-auto pb-32">
+      <div className="acao-reserva px-4 sm:px-8 py-8 space-y-6 max-w-[900px] mx-auto">
         <AgencyHeader
           title="Revisão do Escopo"
           eyebrow={request?.businessName ?? undefined}
@@ -682,8 +691,11 @@ export default function ScopeReviewPage({ params }: { params: Promise<{ id: stri
 
       {/* Sticky footer */}
       {!loading && !fetchError && (
-        <div className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-[var(--border)] shadow-[0_-2px_8px_rgba(0,0,0,0.06)]">
-          <div className="max-w-[900px] mx-auto px-8 py-4 flex items-center justify-between gap-4">
+        <div
+          ref={barraDaAcao}
+          className="acao-barra fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-[var(--border)] shadow-[0_-2px_8px_rgba(0,0,0,0.06)]"
+        >
+          <div className="max-w-[900px] mx-auto px-4 sm:px-8 py-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
             {/* Decision summary */}
             <div className="flex items-center gap-3">
               <span className="text-[13px] text-[var(--text-secondary)]">

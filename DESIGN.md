@@ -214,13 +214,58 @@ conteúdo. A regra:
 3. **O próprio elemento fixo também se ancora acima da safe-area**, a partir das
    mesmas variáveis — para as duas medidas nunca saírem de sincronia.
 
-Referência de implementação: `.portal-shell` em `app/globals.css`
-(`--fab-inset` · `--fab-altura` · `--fab-respiro` · `--fab-safe`), aplicada em
-`app/portal/layout.tsx`.
+4. **A regra vale em TODA superfície, não só onde ela nasceu.** Ela foi escrita
+   por causa do portal e, no mesmo dia, o painel da agência ainda tinha o defeito
+   — porque ninguém foi conferir lá. Regra nova sem varredura das outras
+   superfícies é regra pela metade.
 
-**Como provar:** rolar até o fim e medir o retângulo — o botão não pode cruzar
-nenhum elemento de conteúdo. Screenshot de página inteira **não** prova isso:
-ele desenha o elemento fixo numa posição só.
+Referências de implementação em `app/globals.css`: `.portal-shell`
+(`--fab-inset` · `--fab-altura` · `--fab-respiro` · `--fab-safe`), aplicada em
+`app/portal/layout.tsx`; `.agency-shell` (`--barra-altura` · `--barra-safe` ·
+`--barra-respiro`), aplicada em `components/agency/layout/AgencyShell.tsx`; e o
+trio `.acao-shell` / `.acao-reserva` / `.acao-barra` para barra de ação no rodapé.
+
+**Como provar:** rolar até o fim e medir o retângulo — o elemento fixo não pode
+cruzar nenhum elemento de conteúdo. Screenshot de página inteira **não** prova
+isso: ele desenha o elemento fixo numa posição só. E rolagem tem que ser
+instantânea (`behavior: "instant"`), porque o `scroll-behavior: smooth` do
+`globals.css` faz a medição acontecer antes de a página chegar ao destino.
+
+### 6.2 No topo de uma área rolável, elemento fixo é BARRA — nunca botão solto
+
+Reservar padding protege a rolagem **zero**. Do primeiro pixel rolado em diante,
+todo elemento fixo no topo passa por cima do conteúdo — e aí o que decide se
+aquilo parece cabeçalho ou defeito é a **forma** do elemento:
+
+- **Botão solto** (32×32 opaco, `top-3.5 left-4`) cobre um *pedaço* da linha.
+  Sobra meia palavra: "Reconciliar telas dos carrosséis" lido como
+  **"econciliar telas dos carrosséis"**. Medido a 375px: **138 recortes em 124
+  linhas de texto, em 7 telas** do painel da agência.
+- **Barra de largura total, opaca**, cobre a linha inteira. O olho lê
+  "cabeçalho" — é o comportamento de Linear, Attio e Vercel no celular.
+
+Portanto: no topo, barra de largura total com altura **reservada pelo layout** e
+`env(safe-area-inset-top)` incluída. Botão flutuante solto só é aceitável **fora
+da coluna de conteúdo** (canto inferior, sobre a margem) e ainda assim com o fim
+do conteúdo reservado pela §6.1.
+
+**Duas medidas, não uma impressão:**
+
+| Métrica | O que é | Meta |
+|---|---|---|
+| **Recorte parcial** | linha de conteúdo cruzada por um fixo opaco que **não** cobre a largura visível dela | **0** |
+| **Nunca limpo** | conteúdo sem nenhuma posição de rolagem em que esteja visível **e** livre do fixo | **0** |
+
+Compare só a parte **visível** da linha: dentro de um container com `overflow-x`
+o elemento continua além da borda da tela, e sem esse recorte uma barra de
+largura total aparece como falso positivo.
+
+**Altura de barra não se digita, se mede.** A altura depende do conteúdo (no
+celular a barra de ação quebra em duas linhas; uma mensagem de erro acrescenta
+uma terceira). Constante escrita à mão fica certa hoje e errada na primeira frase
+nova. Use `useReservaDeBarra`
+(`components/agency/layout/useReservaDeBarra.ts`), que escreve a altura real na
+variável que o layout usa para reservar.
 
 ---
 
@@ -285,8 +330,9 @@ Levantamento de auditoria (Julho/2026). Prioridade: **P0** crítico → **P3** b
   control-room, orchestrator e `BriefingRoomV2` estouram no celular.
   **Ação:** `grid-cols-1 md:grid-cols-...`.
 - **I-8 · Rotas órfãs na navegação.** Control Room e Orchestrator não aparecem na sidebar.
-- **I-9 · Drawer mobile sem acessibilidade.** Sem foco preso, sem ESC, sem `aria-expanded`;
-  links continuam no tab-order quando fechado.
+- **I-9 · Drawer mobile sem acessibilidade.** Sem foco preso, sem ESC;
+  links continuam no tab-order quando fechado. *(Parcial: o botão da barra do
+  painel já tem `aria-expanded` + `aria-controls` desde 05/08/2026.)*
 
 ### P2 — Consistência
 - **I-5 · Sem escala de tipografia.** 24 tamanhos de fonte diferentes (incl. `11.5px`,
@@ -325,4 +371,4 @@ _(Regras 4 e 5 estão fixadas no `CLAUDE.md`.)_
 
 ---
 
-_Última atualização: 2026-08-04 · mantenha este arquivo vivo._
+_Última atualização: 2026-08-05 · mantenha este arquivo vivo._
