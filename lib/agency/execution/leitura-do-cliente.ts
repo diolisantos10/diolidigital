@@ -82,9 +82,52 @@
 // evidência que a escada exige — não dá para distinguir um detector que dispara
 // sempre (falso positivo) de um que nunca dispara (carimbo).
 
+// ─── A LEITURA DEIXA DE SER SÓ DE LEGENDA (05/08/2026) ──────────────────────
+//
+// A vitrine dos departamentos registrava, com todas as letras: "A leitura do
+// feed é de LEGENDA, não de PIXEL. Se o cliente fotografa mármore e nunca
+// escreve 'mármore', a agência não vê o mármore." Agora existe visão
+// (`lib/ai/visao.ts`), e ela entra aqui — UMA vez por ciclo, dentro do mesmo
+// TTL de 24h, nunca no despertador (custo ≈ US$ 0,011 por ciclo de 8 imagens).
+//
+// ⚠️ E ELA NÃO ENTRA PELA PORTA DO PISO DE ANCORAGEM. Este é o ponto delicado
+// do arquivo, então está escrito por extenso:
+//
+// O piso de lastro existe porque a IA de TEXTO escrevia sobre um visual que ela
+// nunca viu — o referente da afirmação não existia, e a única prova possível
+// era o eco no que o cliente escreveu. Com visão, o referente PASSA A EXISTIR:
+// a imagem foi baixada e enviada ao modelo. Medir a saída da visão contra o
+// corpus de legendas seria o erro simétrico — exigir que o cliente escreva
+// "mármore" para a agência poder dizer que viu mármore.
+//
+// Só que "tem referente" não pode virar licença para o modelo escrever o que
+// quiser. Por isso a visão desta casa responde em VOCABULÁRIO FECHADO: ela
+// escolhe de listas que o CÓDIGO define (paleta, enquadramento, luz, presença
+// de texto na arte) e tudo que não estiver na lista é descartado por comparação
+// exata, sem IA no meio. O modelo não descreve; ele CLASSIFICA. Isso dá três
+// propriedades que o texto livre não tinha:
+//
+//   1. Não existe "mármore italiano" que a visão possa inventar — o termo teria
+//      de estar na lista, e a lista é nossa.
+//   2. A afirmação carrega a própria proveniência: a linha diz "VISTO NAS
+//      IMAGENS", com quantas imagens foram lidas e por qual provedor. Quem lê o
+//      bloco distingue as três naturezas sem adivinhar:
+//         • "observado" (lastro no texto que o cliente publicou),
+//         • "visto nas imagens" (classificação de imagem real, lista fechada),
+//         • "leitura interpretativa" (o tom — hipótese, nunca fato).
+//   3. Some sem sequela: sem provedor de visão, sem conexão, ou com todas as
+//      imagens ilegíveis, a linha simplesmente NÃO é escrita e o campo fica
+//      vazio. Degradação declarada, igual ao resto do arquivo.
+//
+// O que a visão NUNCA faz aqui: alimentar `estiloVisual` (o campo do lastro de
+// legenda). São dois campos separados, `estiloVisual` e `estiloVisto`, e a
+// separação é o que impede que a leitura de pixel vire porta dos fundos para
+// afirmações que o piso de texto recusaria.
+
 import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/db/client";
 import { generate } from "@/lib/ai/generate";
+import { analisarImagens, visaoDisponivel, LIMITE_DE_IMAGENS, type ImagemDeEntrada } from "@/lib/ai/visao";
 import {
   lerFeedDoCliente, lerMetricasDosPosts,
   type PostDoFeed, type MetricasDoPost,
@@ -105,6 +148,16 @@ export interface SinteseDoFeed {
    *  Vazio quando o feed não foi lido, quando o estilo não é identificável ou
    *  quando NENHUM termo dele tem lastro nas legendas reais. */
   estiloVisual: string;
+  /** O que a VISÃO viu NAS IMAGENS — em vocabulário fechado ("paleta: tons
+   *  terrosos; enquadramento: close no produto; …"). Natureza de evidência
+   *  DIFERENTE do campo acima, e por isso um campo diferente: aquele tem lastro
+   *  no que o cliente escreveu, este no pixel que o modelo recebeu. Vazio
+   *  quando não há provedor de visão, quando nenhuma imagem pôde ser lida ou
+   *  quando nada da resposta bateu com o vocabulário. */
+  estiloVisto: string;
+  /** Quantas imagens do feed a visão realmente leu. 0 = não houve leitura de
+   *  pixel — e aí ninguém pode afirmar nada sobre o visual pela imagem. */
+  imagensLidas: number;
 }
 
 /** 24h: o feed de um negócio local não muda de estilo entre duas produções, e
@@ -132,10 +185,11 @@ const CAP_TEMAS = 200;
 const CAP_TOM = 140;
 const CAP_AUSENCIAS = 180;
 const CAP_HASHTAGS = 140;
+const CAP_VISTO = 200;
 
 /** A última linha do bloco, sempre. É a que diz o que fazer com o resto. */
 const GUARDA_COM_ANALISE =
-  "As peças novas devem CONVERSAR com este feed — mesma família de tom e de formato — sem copiá-lo. As linhas de formato, cadência, engajamento, hashtags, temas e estilo são OBSERVADAS (medidas ou com lastro no texto que o cliente publicou); a linha de tom é LEITURA INTERPRETATIVA — use como hipótese de escrita e NUNCA a repita ao cliente como fato sobre o perfil dele. NÃO afirme nada sobre este perfil que não esteja escrito acima.";
+  "As peças novas devem CONVERSAR com este feed — mesma família de tom e de formato — sem copiá-lo. Três naturezas de evidência, não misture: (a) formato, cadência, engajamento, hashtags, temas e estilo são OBSERVADOS (medidos, ou com lastro no texto que o cliente publicou); (b) a linha 'visto nas imagens' é CLASSIFICAÇÃO DE IMAGEM REAL, em vocabulário fechado — vale para direção visual, e nada além dos termos escritos ali pode ser atribuído às imagens; (c) a linha de tom é LEITURA INTERPRETATIVA — use como hipótese de escrita e NUNCA a repita ao cliente como fato sobre o perfil dele. NÃO afirme nada sobre este perfil que não esteja escrito acima.";
 const GUARDA_SEM_ANALISE =
   "- Análise qualitativa indisponível nesta leitura: use SOMENTE os números acima e não afirme tom ou tema que não está medido.";
 
@@ -146,6 +200,8 @@ function degradacao(motivo: string): SinteseDoFeed {
     lida: false,
     posts: 0,
     estiloVisual: "",
+    estiloVisto: "",
+    imagensLidas: 0,
     texto: `${ROTULO}): feed não lido: ${motivo}. PROIBIDO descrever, citar ou imitar o estilo atual do perfil do cliente — ninguém o viu. Trabalhe somente com o briefing e a direção estratégica, e não afirme nada sobre o que ele já publica.`,
   };
 }
@@ -179,6 +235,10 @@ async function sintesePersistida(clientId: string | null): Promise<SintesePersis
         posts: typeof c.posts === "number" ? c.posts : 0,
         texto: c.texto,
         estiloVisual: typeof c.estiloVisual === "string" ? c.estiloVisual : "",
+        // Síntese gravada ANTES da visão existir não tem estes campos. Vazio é
+        // vazio: ela vale como leitura de legenda, e não como leitura de pixel.
+        estiloVisto: typeof c.estiloVisto === "string" ? c.estiloVisto : "",
+        imagensLidas: typeof c.imagensLidas === "number" ? c.imagensLidas : 0,
       },
     };
   } catch {
@@ -200,7 +260,7 @@ async function persistir(clientId: string | null, clientRequestId: string | null
       clientRequestId,
       department: DEPARTAMENTO_DA_LEITURA,
       canvasId: CANVAS_ID,
-      canvasJson: JSON.stringify({ lida: s.lida, posts: s.posts, texto: s.texto, estiloVisual: s.estiloVisual, geradoEm: new Date().toISOString() }),
+      canvasJson: JSON.stringify({ lida: s.lida, posts: s.posts, texto: s.texto, estiloVisual: s.estiloVisual, estiloVisto: s.estiloVisto, imagensLidas: s.imagensLidas, geradoEm: new Date().toISOString() }),
       status: "approved",
       approvedBy: "leitura-automatica",
     },
@@ -652,6 +712,174 @@ Responda JSON: {"temas": ["2 a 4 temas recorrentes"], "tom": "o tom das legendas
   };
 }
 
+// ─── A VISÃO: o pixel vira classificação, nunca frase livre ─────────────────
+
+/**
+ * O VOCABULÁRIO FECHADO da leitura de imagem.
+ *
+ * Esta lista é o piso da visão, e ela faz o papel que o corpus de legendas faz
+ * para o texto: delimita o que pode ser afirmado. O modelo escolhe daqui; o que
+ * ele devolver fora daqui é descartado por comparação exata, em código.
+ *
+ * Por que classificar em vez de descrever: com frase livre, "mármore italiano"
+ * volta a ser possível e a única defesa seria de novo um piso de lastro — que
+ * não existe para pixel. Com lista fechada, o pior caso da visão é uma
+ * CLASSIFICAÇÃO ERRADA (dizer "luz suave" onde é luz dura), não uma INVENÇÃO de
+ * elemento que não está lá. Os dois erros não custam o mesmo: o primeiro faz a
+ * peça nova ficar com a luz errada; o segundo faz a agência afirmar ao cliente
+ * que viu no perfil dele algo que ninguém viu.
+ *
+ * Mexer nesta lista é mexer no que a agência pode dizer que viu. Termo novo
+ * entra com o mesmo critério: dá para um humano olhar a imagem e concordar ou
+ * discordar sem interpretar? Se não dá, não entra.
+ */
+export const VOCABULARIO_VISUAL: Record<string, string[]> = {
+  paleta: [
+    "tons quentes", "tons frios", "tons neutros", "tons terrosos", "tons pastel",
+    "cores saturadas", "preto e branco", "alto contraste", "baixo contraste",
+  ],
+  enquadramento: [
+    "close no produto", "plano médio", "plano aberto", "pessoas em cena",
+    "ambiente do negócio", "still em fundo liso", "vista de cima",
+  ],
+  luz: [
+    "luz natural", "luz dura", "luz suave", "ambiente escuro", "fundo claro", "contraluz",
+  ],
+  textoNaArte: [
+    "sem texto na arte", "texto pequeno de apoio", "texto grande em destaque",
+  ],
+};
+
+/** Quantas imagens a visão olha por ciclo. O teto de `visao.ts` é 8, e é ele
+ *  que define a conta: ≈ US$ 0,011 por ciclo no provedor mais caro dos três. */
+const IMAGENS_PARA_A_VISAO = LIMITE_DE_IMAGENS;
+
+/** Achata a resposta em termos e mantém só os que estão no vocabulário.
+ *  Comparação por forma normalizada (sem acento, sem caixa) — determinística,
+ *  sem IA, sem "parecido com". */
+export function filtrarPeloVocabulario(campo: string, bruto: unknown): string[] {
+  const permitidos = VOCABULARIO_VISUAL[campo];
+  if (!permitidos) return [];
+  const chave = new Map(permitidos.map((t) => [semAcento(t), t]));
+  const candidatos = Array.isArray(bruto) ? bruto : [bruto];
+  const fora: string[] = [];
+  for (const c of candidatos) {
+    if (typeof c !== "string") continue;
+    const achado = chave.get(semAcento(c.trim()));
+    if (achado && !fora.includes(achado)) fora.push(achado);
+  }
+  return fora;
+}
+
+/** As imagens do feed que dá para olhar: a foto do post, ou a miniatura do
+ *  vídeo. Post sem nenhuma das duas é ignorado — e a ausência é dita. */
+export function imagensDoFeed(posts: PostDoFeed[]): ImagemDeEntrada[] {
+  const fora: ImagemDeEntrada[] = [];
+  for (const p of posts) {
+    const url = p.media_type === "VIDEO" ? p.thumbnail_url ?? p.media_url : p.media_url ?? p.thumbnail_url;
+    if (!url) continue;
+    // O rótulo NUNCA leva a URL: ela carrega token do CDN da Meta.
+    fora.push({ tipo: "url", url, rotulo: `post ${fora.length + 1}` });
+    if (fora.length >= IMAGENS_PARA_A_VISAO) break;
+  }
+  return fora;
+}
+
+export interface LeituraDeImagens {
+  /** A frase pronta, em vocabulário fechado. Vazia = nada afirmável. */
+  frase: string;
+  /** Quantas imagens o provedor de fato leu. */
+  imagensLidas: number;
+  /** Por que não deu, quando não deu. Para o registro, não para o bloco. */
+  motivo: string | null;
+}
+
+const SEM_VISAO: LeituraDeImagens = { frase: "", imagensLidas: 0, motivo: null };
+
+/**
+ * Olha as imagens do feed e devolve a classificação em vocabulário fechado.
+ *
+ * NUNCA lança e NUNCA bloqueia a leitura: sem provedor com visão, sem imagem
+ * legível ou com o modelo fora do ar, devolve frase vazia e a linha não é
+ * escrita. Roda UMA vez por síntese — dentro do TTL de 24h, portanto no máximo
+ * uma vez por dia por cliente.
+ */
+export async function observarImagensDoFeed(
+  posts: PostDoFeed[],
+  workspaceId: string,
+  clientId: string | null,
+): Promise<LeituraDeImagens> {
+  try {
+    const disp = await visaoDisponivel(workspaceId);
+    if (!disp.disponivel) return { ...SEM_VISAO, motivo: "nenhuma IA com visão conectada" };
+
+    const imagens = imagensDoFeed(posts);
+    if (imagens.length === 0) return { ...SEM_VISAO, motivo: "nenhum post do feed tem imagem acessível" };
+
+    const opcoes = Object.entries(VOCABULARIO_VISUAL)
+      .map(([campo, lista]) => `"${campo}": escolha 1 a 2 de [${lista.map((v) => `"${v}"`).join(", ")}]`)
+      .join("\n");
+
+    const r = await analisarImagens({
+      imagens,
+      sistema:
+        "Você CLASSIFICA imagens de um perfil de Instagram usando SOMENTE as opções que recebe. " +
+        "Você não descreve, não interpreta e não inventa termo novo: se nenhuma opção servir, devolva lista vazia para aquele campo. " +
+        "Responda somente JSON.",
+      pergunta: `Estas são imagens reais do feed de um cliente. Classifique o CONJUNTO usando apenas as opções abaixo.\n${opcoes}\n\nResponda JSON com exatamente as chaves: paleta, enquadramento, luz, textoNaArte — cada uma um array de strings COPIADAS LITERALMENTE das opções.`,
+      formato: "json",
+      // "baixo" só tem efeito na OpenAI (ver o cabeçalho de visao.ts); pedimos
+      // assim mesmo porque, quando pega, é 6 a 9× mais barato. Nada aqui exige
+      // ler texto miúdo dentro da arte: a pergunta de texto é presença, não
+      // conteúdo.
+      detalhe: "baixo",
+      workspaceId,
+      maxTokens: 400,
+    });
+
+    if (!r.ok) return { ...SEM_VISAO, motivo: `${r.motivo}: ${r.erro}` };
+
+    const d = (r.dados ?? {}) as Record<string, unknown>;
+    const campos = ["paleta", "enquadramento", "luz", "textoNaArte"] as const;
+    const partes: string[] = [];
+    let descartados = 0;
+    for (const campo of campos) {
+      const brutoDoCampo = d[campo];
+      const mantidos = filtrarPeloVocabulario(campo, brutoDoCampo);
+      const quantosVieram = Array.isArray(brutoDoCampo) ? brutoDoCampo.length : brutoDoCampo ? 1 : 0;
+      descartados += Math.max(0, quantosVieram - mantidos.length);
+      if (mantidos.length > 0) partes.push(`${campo === "textoNaArte" ? "texto na arte" : campo}: ${mantidos.join(", ")}`);
+    }
+
+    // Telemetria com o mesmo espírito da do piso: descarte mudo não vira
+    // evidência, e sem evidência a escada não anda.
+    if (descartados > 0) {
+      console.warn(
+        `[visao-do-feed] ${JSON.stringify({
+          clientId,
+          provedor: r.provedor,
+          modelo: r.modelo,
+          descartados,
+          motivo: "termo devolvido fora do vocabulário fechado",
+        })}`,
+      );
+    }
+
+    if (partes.length === 0) {
+      return { frase: "", imagensLidas: r.imagensLidas, motivo: "a visão não devolveu nenhum termo do vocabulário" };
+    }
+
+    return {
+      frase: partes.join("; ").slice(0, CAP_VISTO),
+      imagensLidas: r.imagensLidas,
+      motivo: r.imagensIgnoradas.length > 0 ? `${r.imagensIgnoradas.length} imagem(ns) ilegível(is)` : null,
+    };
+  } catch (e) {
+    // Visão é advisory (Lei 2 do kit). Nada aqui pode derrubar a leitura.
+    return { ...SEM_VISAO, motivo: e instanceof Error ? e.message : "erro inesperado na visão" };
+  }
+}
+
 // ─── A montagem: os campos são cortados, o bloco NUNCA ──────────────────────
 
 /**
@@ -703,6 +931,8 @@ export async function sinteseDoFeedDoCliente(
         lida: true,
         posts: 0,
         estiloVisual: "",
+        estiloVisto: "",
+        imagensLidas: 0,
         texto: `${ROTULO}, lido em ${new Date().toISOString().slice(0, 10)}): a conta está conectada e NÃO tem nenhum post publicado. Não existe estilo anterior a seguir — a direção visual e de tom vem do briefing e da estratégia, e isto deve ser dito com clareza, não inventado.`,
       };
       await persistir(clientId, clientRequestId, s);
@@ -722,6 +952,14 @@ export async function sinteseDoFeedDoCliente(
     }
 
     const qual = await analisarLegendas(feed.posts, metricas, workspaceId);
+
+    // A LEITURA DE PIXEL. Uma vez por síntese — ou seja, no máximo uma vez por
+    // dia por cliente, pelo TTL. Nunca no despertador: `estiloVistoPersistido`
+    // (o caminho das artes) só lê o que já está gravado.
+    const visto = await observarImagensDoFeed(feed.posts, workspaceId, clientId);
+    if (visto.motivo) {
+      console.warn(`[visao-do-feed] ${JSON.stringify({ clientId, imagensLidas: visto.imagensLidas, motivo: visto.motivo })}`);
+    }
 
     // ── O PISO ────────────────────────────────────────────────────────────
     // Tudo que vira AFIRMAÇÃO sobre o que existe no feed passa por aqui antes
@@ -784,6 +1022,13 @@ export async function sinteseDoFeedDoCliente(
       estiloVisual
         ? `- Estilo visual observado: ${estiloVisual}`
         : (qual ? "- Estilo visual: NÃO foi possível observar pelas legendas. PROIBIDO descrever ou imitar o visual atual do perfil." : null),
+      // A linha da VISÃO. Só existe quando imagens foram REALMENTE lidas, e
+      // carrega o número delas: quem lê sabe o tamanho da amostra. Sem visão,
+      // a linha some — e some sem deixar buraco, porque a linha de estilo por
+      // legenda continua dizendo o que se sabe e o que não se sabe.
+      visto.frase && visto.imagensLidas > 0
+        ? `- Estilo VISTO NAS IMAGENS (${visto.imagensLidas} imagens do feed classificadas por IA de visão, vocabulário fechado): ${visto.frase}`
+        : null,
       ausencias ? `- Não aparece no feed: ${ausencias}` : null,
     ].filter((l): l is string => typeof l === "string" && l.length > 0);
 
@@ -791,7 +1036,9 @@ export async function sinteseDoFeedDoCliente(
       lida: true,
       posts: feed.posts.length,
       estiloVisual,
-      texto: blocoComGuarda(cabecalho, meio, qual ? GUARDA_COM_ANALISE : GUARDA_SEM_ANALISE),
+      estiloVisto: visto.imagensLidas > 0 ? visto.frase : "",
+      imagensLidas: visto.imagensLidas,
+      texto: blocoComGuarda(cabecalho, meio, qual || visto.frase ? GUARDA_COM_ANALISE : GUARDA_SEM_ANALISE),
     };
     await persistir(clientId, clientRequestId, s);
     return s;
@@ -816,4 +1063,19 @@ export async function estiloVisualPersistido(clientId: string | null): Promise<s
   const guardada = await sintesePersistida(clientId);
   if (!guardada || !fresca(guardada) || !guardada.sintese.lida) return "";
   return guardada.sintese.estiloVisual;
+}
+
+/**
+ * O estilo VISTO NAS IMAGENS, da síntese já persistida — o outro caminho das
+ * ARTES.
+ *
+ * Mesmo contrato do de cima, e pelo mesmo motivo, elevado ao quadrado: a rodada
+ * de artes dispara a cada 5 minutos e visão é cobrada POR IMAGEM. Uma chamada
+ * de visão aqui multiplicaria a fatura pelo relógio. Sem síntese fresca no
+ * banco, devolve vazio — e vazio é vazio.
+ */
+export async function estiloVistoPersistido(clientId: string | null): Promise<string> {
+  const guardada = await sintesePersistida(clientId);
+  if (!guardada || !fresca(guardada) || !guardada.sintese.lida) return "";
+  return guardada.sintese.estiloVisto;
 }

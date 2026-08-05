@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 const db = vi.hoisted(() => ({
-  socialPost: { findMany: vi.fn(), update: vi.fn() },
-  mediaAsset: { findFirst: vi.fn() },
+  socialPost: { findMany: vi.fn(), update: vi.fn(), findUnique: vi.fn() },
+  mediaAsset: { findFirst: vi.fn(), findUnique: vi.fn() },
   client: { findUnique: vi.fn() },
 }));
 const generateDesign = vi.hoisted(() => vi.fn());
@@ -17,9 +17,15 @@ vi.mock("@/lib/agency/media/video", () => ({ editarParaReel }));
 // cada 5 min e nunca pode falar com a Graph. A leitura em si é testada em
 // leitura-do-cliente.test.ts; aqui, o contrato com o prompt da arte.
 const estiloVisualPersistido = vi.hoisted(() => vi.fn());
-vi.mock("@/lib/agency/execution/leitura-do-cliente", () => ({ estiloVisualPersistido }));
+const estiloVistoPersistido = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/agency/execution/leitura-do-cliente", () => ({ estiloVisualPersistido, estiloVistoPersistido }));
+// O MOLDE (a camada de texto por código) tem testes próprios, com Chromium de
+// verdade, em __tests__/design/. Aqui o que se testa é a FIAÇÃO: quem chama
+// quem, com o quê, e o que acontece quando o molde não pode ser aplicado.
+const montarPeca = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/agency/design/peca", () => ({ montarPeca }));
 
-import { produzirArtesPendentes, montarPrompt } from "@/lib/agency/execution/artes";
+import { produzirArtesPendentes, montarPrompt, nomeDoFundo, reRenderizarTexto, montarArteComFotoDoCliente } from "@/lib/agency/execution/artes";
 
 // 1x1 png em base64 — o suficiente para o caminho de bytes.
 const PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
@@ -42,6 +48,12 @@ beforeEach(() => {
   guardarArquivo.mockResolvedValue({ ok: true, arquivo: { id: "m1", fileName: "arte.png", sizeBytes: 100, url: "/api/media/m1" } });
   db.mediaAsset.findFirst.mockResolvedValue(null);
   estiloVisualPersistido.mockResolvedValue("");
+  estiloVistoPersistido.mockResolvedValue("");
+  montarPeca.mockResolvedValue({
+    ok: true, bytes: Buffer.from("peca-com-texto"), largura: 1080, altura: 1350,
+    textosPintados: ["PRODUTO", "Pão saindo do forno às 6 da manhã"], textoRecusado: [],
+    encolheu: false, origemDoMolde: "marca",
+  });
 });
 
 describe("o Design passa a produzir imagem, não descrição de imagem", () => {
@@ -257,8 +269,14 @@ describe("carrossel: uma arte POR TELA — repetir a mesma imagem 5x não é car
   it("as telas são gravadas em ordem, e a capa vira a miniatura do portal", async () => {
     await produzirArtesPendentes();
     const d = db.socialPost.update.mock.calls[0]![0].data;
-    expect(JSON.parse(d.mediaUrlsJson)).toEqual(["/api/media/m1", "/api/media/m2", "/api/media/m3"]);
-    expect(d.mediaUrl).toBe("/api/media/m1");
+    // Cada tela guarda DOIS arquivos: a foto (fundo-, para o re-render barato)
+    // e a arte composta. O que vai para o post é a arte.
+    const artes = guardarArquivo.mock.calls
+      .filter((c) => (c[0] as { fileName: string }).fileName.startsWith("carrossel-"))
+      .map((c) => (c[0] as { fileName: string }).fileName);
+    expect(artes).toEqual(["carrossel-sp3-1.png", "carrossel-sp3-2.png", "carrossel-sp3-3.png"]);
+    expect(JSON.parse(d.mediaUrlsJson)).toHaveLength(3);
+    expect(d.mediaUrl).toBe(JSON.parse(d.mediaUrlsJson)[0]);
   });
 
   it("uma tela falhou → NADA é gravado. Carrossel com buraco perde o sentido no meio", async () => {
@@ -300,5 +318,163 @@ describe("story é VERTICAL — quadrado publicado como story corta a peça no m
     db.socialPost.findMany.mockResolvedValue([{ ...POST }]);
     await produzirArtesPendentes();
     expect(generateDesign.mock.calls[0]![0].size).toBe("square");
+  });
+});
+
+// ── O MOTOR DE MOLDE NA PRODUÇÃO (05/08/2026) ───────────────────────────────
+// O modelo faz FOTO; o layout é código. Aqui se testa a fiação: a foto vai para
+// o molde, o molde devolve a peça, e a peça é o que o post recebe.
+describe("a peça sai do MOLDE — foto da IA + texto por código", () => {
+  it("a foto gerada entra no molde, e o post recebe a peça COMPOSTA", async () => {
+    await produzirArtesPendentes();
+    expect(montarPeca).toHaveBeenCalledTimes(1);
+    const pedido = montarPeca.mock.calls[0]![0];
+    expect(pedido.formato).toBe("feed");
+    // O texto é derivado da legenda AUDITADA, e a fonte vai junto para a trava.
+    expect(pedido.fonteAuditada).toBe(POST.caption);
+    expect(pedido.titulo).toContain("Pão saindo do forno");
+    // A arte gravada é a do molde, não a foto crua.
+    const arte = guardarArquivo.mock.calls.find((c) => (c[0] as { fileName: string }).fileName.startsWith("arte-"));
+    expect((arte![0] as { bytes: Buffer }).bytes.toString()).toBe("peca-com-texto");
+  });
+
+  it("o molde vem da MARCA do cliente — mesma cara em toda peça", async () => {
+    await produzirArtesPendentes();
+    expect(montarPeca.mock.calls[0]![0].molde).toMatchObject({ origem: "marca", primaria: "#8B4513" });
+  });
+
+  it("cliente SEM marca cadastrada recebe o molde NEUTRO, nunca uma cor inventada", async () => {
+    db.client.findUnique.mockResolvedValue({ name: "Cliente Novo", industry: "Pet shop", brandBrain: null });
+    await produzirArtesPendentes();
+    expect(montarPeca.mock.calls[0]![0].molde.origem).toBe("neutro");
+  });
+
+  it("a FOTO é guardada à parte — é o que faz o re-render de texto ser barato", async () => {
+    await produzirArtesPendentes();
+    const nomes = guardarArquivo.mock.calls.map((c) => (c[0] as { fileName: string }).fileName);
+    expect(nomes).toContain(nomeDoFundo("sp1"));
+    expect(nomes).toContain("arte-sp1.png");
+  });
+
+  it("sem navegador para rasterizar, a peça sai SÓ COM A FOTO e o motivo fica escrito", async () => {
+    montarPeca.mockResolvedValue({ ok: false, motivo: "sem_navegador", erro: "Playwright não está instalado" });
+    const r = await produzirArtesPendentes();
+    // A peça SAIU: degradação declarada, não peça perdida.
+    expect(r.produzidas).toBe(1);
+    const d = db.socialPost.update.mock.calls[0]![0].data;
+    expect(d.mediaUrl).toBeTruthy();
+    expect(d.lastError).toMatch(/^\[molde\]/);
+    // E a nota NÃO gasta tentativa: o padrão de contagem é "[arte n/".
+    expect(d.lastError).not.toMatch(/^\[arte/);
+  });
+
+  it("texto barrado pela trava não derruba a peça — ela sai, e o barrado fica dito", async () => {
+    montarPeca.mockResolvedValue({
+      ok: true, bytes: Buffer.from("so-foto"), largura: 1080, altura: 1350,
+      textosPintados: [], encolheu: false, origemDoMolde: "marca",
+      textoRecusado: [{ papel: "titulo", motivo: "classe_de_fato_proibida", detalhe: "preço — fica na legenda" }],
+    });
+    const r = await produzirArtesPendentes();
+    expect(r.produzidas).toBe(1);
+    expect(db.socialPost.update.mock.calls[0]![0].data.lastError).toMatch(/trava/);
+  });
+
+  it("o carrossel monta TODAS as telas com o MESMO molde, e cada tela leva o seu índice", async () => {
+    db.socialPost.findMany.mockResolvedValue([{
+      ...POST, id: "sp7", format: "carousel",
+      scenesJson: JSON.stringify(["O forno aceso às 4h", "A massa descansando", "O pão saindo"]),
+    }]);
+    let n = 0;
+    guardarArquivo.mockImplementation(async (i: { fileName: string }) => ({
+      ok: true, arquivo: { id: `m${++n}`, fileName: i.fileName, sizeBytes: 10, url: `/api/media/m${n}` },
+    }));
+    await produzirArtesPendentes();
+    expect(montarPeca).toHaveBeenCalledTimes(3);
+    const pedidos = montarPeca.mock.calls.map((c) => c[0]);
+    // Mesmo molde nas três — é isto que faz a tela 3 ter a cara da tela 1.
+    expect(pedidos[1]!.molde).toEqual(pedidos[0]!.molde);
+    expect(pedidos[2]!.molde).toEqual(pedidos[0]!.molde);
+    expect(pedidos.map((p) => p.indice)).toEqual([
+      { atual: 1, total: 3 }, { atual: 2, total: 3 }, { atual: 3, total: 3 },
+    ]);
+    // Cada tela é auditada contra a PRÓPRIA cena, não contra a legenda do post.
+    expect(pedidos[0]!.fonteAuditada).toBe("O forno aceso às 4h");
+    expect(pedidos[1]!.fonteAuditada).toBe("A massa descansando");
+  });
+});
+
+describe("re-render de texto: barato por construção", () => {
+  const POST_DB = { ...POST, format: "feed" };
+
+  beforeEach(() => {
+    db.socialPost.findUnique.mockResolvedValue(POST_DB);
+    db.mediaAsset.findFirst.mockResolvedValue({ id: "f1", storagePath: "a/fundo.png" });
+    lerArquivo.mockResolvedValue(Buffer.from("foto-original"));
+  });
+
+  it("troca a frase SEM chamar o gerador de imagem de novo", async () => {
+    const r = await reRenderizarTexto("sp1", "Pão saindo do forno");
+    expect(r.ok).toBe(true);
+    expect(generateDesign).not.toHaveBeenCalled();
+    // Reusa a MESMA foto que já estava no armazenamento.
+    expect(montarPeca.mock.calls[0]![0].fundoBytes.toString()).toBe("foto-original");
+  });
+
+  it("sem a foto guardada, NÃO gera outra por conta própria — isso custa e não é decisão desta função", async () => {
+    db.mediaAsset.findFirst.mockResolvedValue(null);
+    const r = await reRenderizarTexto("sp1", "Pão saindo do forno");
+    expect(r.ok).toBe(false);
+    expect(generateDesign).not.toHaveBeenCalled();
+    expect(r.erro).toMatch(/foto original/);
+  });
+
+  it("o texto novo continua passando pela trava — o re-render não é porta dos fundos", async () => {
+    montarPeca.mockResolvedValue({
+      ok: true, bytes: Buffer.from("x"), largura: 1080, altura: 1350, textosPintados: [],
+      encolheu: false, origemDoMolde: "marca",
+      textoRecusado: [{ papel: "titulo", motivo: "sem_lastro_no_conteudo_auditado", detalhe: "não é trecho literal" }],
+    });
+    const r = await reRenderizarTexto("sp1", "Frase que ninguém auditou");
+    expect(r.ok).toBe(false);
+    expect(r.erro).toMatch(/trava/);
+    // E a legenda auditada é que serve de fonte — não o texto que chegou.
+    expect(montarPeca.mock.calls[0]![0].fonteAuditada).toBe(POST.caption);
+  });
+});
+
+describe("a foto do CLIENTE ganha da imagem gerada — mas quem escolhe é gente", () => {
+  beforeEach(() => {
+    db.socialPost.findUnique.mockResolvedValue({ ...POST });
+    db.mediaAsset.findUnique.mockResolvedValue({
+      id: "ma1", workspaceId: "ws1", mimeType: "image/jpeg", storagePath: "a/foto.jpg",
+    });
+    lerArquivo.mockResolvedValue(Buffer.from("foto-do-cliente"));
+  });
+
+  it("monta a peça com a foto real dele, sem gastar modelo de imagem", async () => {
+    const r = await montarArteComFotoDoCliente("sp1", "ma1");
+    expect(r.ok).toBe(true);
+    expect(generateDesign).not.toHaveBeenCalled();
+    expect(montarPeca.mock.calls[0]![0].fundoBytes.toString()).toBe("foto-do-cliente");
+    expect(montarPeca.mock.calls[0]![0].fotoMime ?? montarPeca.mock.calls[0]![0].fundoMime).toBe("image/jpeg");
+  });
+
+  it("arquivo de OUTRO workspace não vira peça deste — posse é conferida no servidor", async () => {
+    db.mediaAsset.findUnique.mockResolvedValue({
+      id: "ma1", workspaceId: "outro", mimeType: "image/jpeg", storagePath: "a/foto.jpg",
+    });
+    const r = await montarArteComFotoDoCliente("sp1", "ma1");
+    expect(r.ok).toBe(false);
+    expect(montarPeca).not.toHaveBeenCalled();
+  });
+
+  it("a rodada AUTOMÁTICA não sai casando foto do cliente com post — sobra não é evidência de correspondência", async () => {
+    // Lição da auditoria de 04/08: o passe posicional montou carrossel com o
+    // logo dentro. Enquanto não houver vínculo explícito post↔arquivo, o
+    // automático GERA a foto, e a foto do cliente entra por decisão de gente.
+    db.mediaAsset.findFirst.mockResolvedValue({ id: "ma9", storagePath: "a/qualquer.jpg", mimeType: "image/jpeg" });
+    await produzirArtesPendentes();
+    expect(generateDesign).toHaveBeenCalledTimes(1);
+    expect(montarPeca.mock.calls[0]![0].fundoBytes.toString()).not.toBe("foto-do-cliente");
   });
 });

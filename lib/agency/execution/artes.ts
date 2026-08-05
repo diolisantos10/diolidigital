@@ -8,18 +8,38 @@
 // formato, então cada post ficava parado esperando uma imagem que ninguém
 // produzia. A agência vendia arte e entregava briefing de arte.
 //
-// O QUE ESTE ARQUIVO NÃO FAZ, DE PROPÓSITO:
+// ── A VIRADA DE 05/08/2026: O MODELO FAZ FOTO, O CÓDIGO FAZ LAYOUT ──────────
 //
-// Não põe texto na imagem. Modelo de imagem erra letra, e errar letra numa peça
-// é o cliente publicando "PROMOÇÂO" no perfil dele. Pior: preço, telefone e
-// prazo dentro de um pixel escapam do piso de verdade, que lê texto e não
-// enxerga imagem — seria o único lugar da casa onde um dado inventado passaria
-// sem ninguém conferir. Legenda é texto, e texto vai na legenda.
+// Diagnóstico do CEO, fechado e aprovado: pedir a PEÇA INTEIRA ao `gpt-image-1`
+// entrega foto, não design — e modelo de imagem erra letra. Foi por isso que
+// os 36 criativos do lançamento da Foocci foram montados à mão em HTML e
+// rasterizados. Agora aquele trabalho manual é o motor: `lib/agency/design/`.
+//
+// A produção passou a ter DUAS CAMADAS:
+//   • FOTO  → `generateDesign` (cenário, luz, textura). Continua igual, e o
+//     prompt continua PROIBINDO letra: a tipografia não é dela.
+//   • TEXTO, COR, MARGEM e ASSINATURA → HTML rasterizado pelo Chromium que a
+//     casa já usa. A letra sai do rasterizador de fonte, e é conferida contra o
+//     DOM antes de virar arquivo (`lib/agency/design/renderizar.ts`).
+//
+// ── O QUE CONTINUA VALENDO DO CABEÇALHO ANTIGO ──────────────────────────────
+//
+// A proibição antiga tinha DUAS razões. A primeira ("modelo erra letra") o
+// molde fecha por construção. A segunda NÃO se resolve sozinha e continua de pé
+// palavra por palavra: "preço, telefone e prazo dentro de um pixel escapam do
+// piso de verdade, que lê texto e não enxerga imagem". Por isso todo texto que
+// vira pixel passa pela trava de `lib/agency/design/trava-de-texto.ts`, que
+// exige (a) trecho LITERAL do conteúdo já auditado e (b) nenhuma classe de fato
+// perigosa. Reprovou? A peça sai só com a foto — nunca com texto que ninguém
+// consegue conferir.
 
 import { prisma } from "@/lib/db/client";
 import { generateDesign } from "@/lib/ai/design-engine";
 import { guardarArquivo, lerArquivo } from "@/lib/agency/media/armazenamento";
-import { estiloVisualPersistido } from "@/lib/agency/execution/leitura-do-cliente";
+import { estiloVisualPersistido, estiloVistoPersistido } from "@/lib/agency/execution/leitura-do-cliente";
+import { moldeDoCliente, formatoDoPost, type Molde } from "@/lib/agency/design/molde";
+import { montarPeca } from "@/lib/agency/design/peca";
+import { tituloDaFonte } from "@/lib/agency/design/trava-de-texto";
 
 /** Quantas artes por rodada. Cada uma é uma chamada cara de modelo de imagem —
  *  um calendário de 12 posts custaria 12 de uma vez se não houvesse teto. */
@@ -76,6 +96,19 @@ export async function produzirArtesPendentes(): Promise<ArtesFeitas> {
     return estilosDoFeed.get(clientId) ?? "";
   };
 
+  // O que a VISÃO viu nas imagens do feed — vocabulário fechado, gravado pela
+  // leitura do cliente. Mesmo caminho do de cima: só o persistido, nunca uma
+  // chamada de visão aqui. Visão custa por imagem, e esta rodada dispara a cada
+  // 5 minutos — uma chamada aqui multiplicaria a fatura pelo relógio.
+  const estilosVistos = new Map<string, string>();
+  const estiloVistoDe = async (clientId: string | null): Promise<string> => {
+    if (!clientId) return "";
+    if (!estilosVistos.has(clientId)) {
+      estilosVistos.set(clientId, await estiloVistoPersistido(clientId).catch(() => ""));
+    }
+    return estilosVistos.get(clientId) ?? "";
+  };
+
   for (const post of pendentes) {
     const tentativas = contarTentativas(post.lastError);
 
@@ -106,12 +139,13 @@ export async function produzirArtesPendentes(): Promise<ArtesFeitas> {
 
     const marca = await lerMarca(post.clientId);
     const estiloDoFeed = await estiloDoFeedDe(post.clientId);
+    const estiloVisto = await estiloVistoDe(post.clientId);
 
     // ── CARROSSEL: uma arte POR TELA ─────────────────────────────────────────
     // Gerar uma imagem só e repetir seria entregar cinco vezes a mesma coisa.
     // Cada tela é uma ideia, e a arte tem que acompanhar a ideia dela.
     if (post.format === "carousel" || post.format === "carrossel") {
-      const r = await montarCarrossel(post, marca, estiloDoFeed);
+      const r = await montarCarrossel(post, marca, estiloDoFeed, estiloVisto);
       if (r.ok) { saida.produzidas++; continue; }
       saida.falhas.push({ postId: post.id, erro: r.erro });
       await marcarErro(post.id, r.erro, tentativas + 1);
@@ -132,6 +166,7 @@ export async function produzirArtesPendentes(): Promise<ArtesFeitas> {
         tom: marca.tom,
         formato: post.format,
         estiloDoFeed,
+        estiloVisto,
       }),
       size: proporcao,
       quality: "high",
@@ -151,10 +186,40 @@ export async function produzirArtesPendentes(): Promise<ArtesFeitas> {
       continue;
     }
 
+    // ── A FOTO É GUARDADA À PARTE ───────────────────────────────────────────
+    // Custa um arquivo a mais por peça, e paga isso na primeira correção de
+    // texto: com o fundo em disco, trocar a chamada da arte é rasterização
+    // local (≈1s), não uma chamada nova e paga ao modelo de imagem.
+    const fundo = await guardarArquivo({
+      bytes,
+      fileName: nomeDoFundo(post.id),
+      mimeType: "image/png",
+      workspaceId: post.workspaceId,
+      clientId: post.clientId,
+      clientRequestId: post.clientRequestId,
+      kind: "generated",
+      uploadedBy: "design",
+    });
+    if (!fundo.ok) {
+      saida.falhas.push({ postId: post.id, erro: fundo.motivo });
+      continue;
+    }
+
+    // ── A CAMADA DE TEXTO, POR CÓDIGO ───────────────────────────────────────
+    const composta = await comporComMolde({
+      formato: formatoDoPost(post.format),
+      molde: marca.molde,
+      fotoBytes: bytes,
+      fonteAuditada: post.caption,
+      selo: post.pillar,
+      assinatura: marca.nome,
+      indice: null,
+    });
+
     // Guardada no MESMO lugar que o material do cliente: um só armazenamento,
     // uma só cota, um só link assinado que a Meta consegue buscar.
     const guardado = await guardarArquivo({
-      bytes,
+      bytes: composta.bytes,
       fileName: `arte-${post.id}.png`,
       mimeType: "image/png",
       workspaceId: post.workspaceId,
@@ -170,7 +235,10 @@ export async function produzirArtesPendentes(): Promise<ArtesFeitas> {
 
     await prisma.socialPost.update({
       where: { id: post.id },
-      data: { mediaUrl: `/api/media/${guardado.arquivo.id}`, lastError: null },
+      // A nota do molde NÃO gasta tentativa (não casa com o padrão "[arte n/"):
+      // peça sem camada de texto é peça entregue, não peça falhada. O que ela
+      // não pode é sair sem alguém saber que saiu assim.
+      data: { mediaUrl: `/api/media/${guardado.arquivo.id}`, lastError: composta.nota },
     });
     saida.produzidas++;
   }
@@ -187,10 +255,18 @@ function contarTentativas(lastError: string | null): number {
   return m ? Number(m[1]) : 0;
 }
 
-async function lerMarca(clientId: string | null): Promise<{
-  nome: string; segmento: string; cores: string[]; tom: string;
-}> {
-  const vazio = { nome: "", segmento: "", cores: [] as string[], tom: "" };
+interface MarcaDaPeca {
+  nome: string;
+  segmento: string;
+  cores: string[];
+  tom: string;
+  /** O molde DESTE cliente — a mesma cara em toda peça, de todo formato.
+   *  Sem marca definida, vem o molde NEUTRO, declarado como tal. */
+  molde: Molde;
+}
+
+async function lerMarca(clientId: string | null): Promise<MarcaDaPeca> {
+  const vazio: MarcaDaPeca = { nome: "", segmento: "", cores: [], tom: "", molde: moldeDoCliente(null) };
   if (!clientId) return vazio;
   const c = await prisma.client.findUnique({
     where: { id: clientId },
@@ -203,7 +279,191 @@ async function lerMarca(clientId: string | null): Promise<{
     segmento: c.industry ?? "",
     cores: [b?.primaryColor, b?.secondaryColor].filter((v): v is string => !!v),
     tom: b?.tone ?? "",
+    // O molde nasce do BrandBrain e SÓ dele. Cliente sem cor cadastrada recebe
+    // o neutro — a agência não escolhe a cor da marca de ninguém.
+    molde: moldeDoCliente(b ?? null),
   };
+}
+
+/** O nome do arquivo da FOTO de uma peça. Fixo por post (e por tela, no
+ *  carrossel) porque é a chave do re-render barato. */
+export function nomeDoFundo(postId: string, tela?: number): string {
+  return tela ? `fundo-${postId}-${tela}.png` : `fundo-${postId}.png`;
+}
+
+interface PedidoDeComposicao {
+  formato: ReturnType<typeof formatoDoPost>;
+  molde: Molde;
+  fotoBytes: Buffer;
+  /** O MIME real da foto. Declarar errado faz o navegador desenhar nada — e a
+   *  peça sairia com o fundo chapado sem ninguém entender por quê. */
+  fotoMime?: string;
+  /** O conteúdo já auditado de onde o texto tem de ser trecho literal. */
+  fonteAuditada: string;
+  selo: string | null;
+  assinatura: string;
+  indice: { atual: number; total: number } | null;
+}
+
+/**
+ * Põe a camada de texto sobre a foto — e degrada DECLARANDO.
+ *
+ * Devolve sempre bytes publicáveis. Quando o molde não pode ser aplicado (sem
+ * Chromium, texto sem lastro, texto que não cabe), o que volta é a FOTO PURA,
+ * que é exatamente o que o motor antigo entregava, mais uma `nota` dizendo por
+ * quê. Nunca volta peça com texto que a trava reprovou.
+ */
+async function comporComMolde(p: PedidoDeComposicao): Promise<{ bytes: Buffer; nota: string | null }> {
+  const titulo = tituloDaFonte(p.fonteAuditada);
+  if (!titulo) {
+    return { bytes: p.fotoBytes, nota: "[molde] peça entregue só com a foto: o conteúdo não tem uma frase utilizável como chamada." };
+  }
+
+  const r = await montarPeca({
+    formato: p.formato,
+    molde: p.molde,
+    fundoBytes: p.fotoBytes,
+    fundoMime: p.fotoMime ?? "image/png",
+    titulo,
+    selo: p.selo,
+    assinatura: p.assinatura,
+    indice: p.indice,
+    fonteAuditada: p.fonteAuditada,
+  }).catch((e) => ({ ok: false as const, motivo: "erro_do_navegador" as const, erro: e instanceof Error ? e.message : "erro" }));
+
+  if (!r.ok) {
+    return {
+      bytes: p.fotoBytes,
+      nota: `[molde] peça entregue só com a foto (sem camada de texto): ${r.motivo} — ${r.erro}`.slice(0, 480),
+    };
+  }
+  if (r.textoRecusado.length > 0) {
+    // Aconteceu o caminho bom: a peça SAIU, e o que a trava barrou está dito.
+    const barrado = r.textoRecusado.map((t) => `${t.papel}: ${t.detalhe}`).join(" · ");
+    return { bytes: r.bytes, nota: `[molde] texto barrado pela trava — ${barrado}`.slice(0, 480) };
+  }
+  return { bytes: r.bytes, nota: null };
+}
+
+/**
+ * Re-render de TEXTO, sem tocar no gerador de imagem.
+ *
+ * A foto já está no armazenamento (`fundo-<postId>.png`), então trocar a
+ * chamada da peça é rasterização local — a diferença entre corrigir uma arte e
+ * comprar outra. É o caminho para o "muda essa frase" do cliente.
+ *
+ * Nunca lança. Só funciona se o fundo daquela peça existir: sem ele, a peça
+ * teria de ser gerada de novo, e essa decisão (que custa) não é desta função.
+ */
+export async function reRenderizarTexto(
+  postId: string,
+  novoTitulo: string,
+): Promise<{ ok: boolean; erro?: string; mediaUrl?: string }> {
+  const post = await prisma.socialPost.findUnique({ where: { id: postId } }).catch(() => null);
+  if (!post) return { ok: false, erro: "peça não encontrada" };
+
+  const fundo = await prisma.mediaAsset.findFirst({
+    where: { fileName: nomeDoFundo(postId), workspaceId: post.workspaceId },
+    orderBy: { createdAt: "desc" },
+  }).catch(() => null);
+  if (!fundo) return { ok: false, erro: "a foto original desta peça não está guardada — o re-render exigiria gerar a imagem de novo" };
+
+  const bytes = await lerArquivo(fundo.storagePath);
+  if (!bytes) return { ok: false, erro: "a foto original não está mais no armazenamento" };
+
+  const marca = await lerMarca(post.clientId);
+  const r = await montarPeca({
+    formato: formatoDoPost(post.format),
+    molde: marca.molde,
+    fundoBytes: Buffer.from(bytes),
+    fundoMime: "image/png",
+    titulo: novoTitulo,
+    selo: post.pillar,
+    assinatura: marca.nome,
+    // O texto novo continua tendo de ser trecho literal da legenda auditada.
+    // Sem isso, o re-render vira a porta dos fundos por onde qualquer frase
+    // entraria na arte sem passar por auditoria nenhuma.
+    fonteAuditada: post.caption,
+  }).catch((e) => ({ ok: false as const, motivo: "erro_do_navegador" as const, erro: e instanceof Error ? e.message : "erro" }));
+  if (!r.ok) return { ok: false, erro: `${r.motivo} — ${r.erro}` };
+  if (r.textoRecusado.length > 0) {
+    return { ok: false, erro: `texto recusado pela trava — ${r.textoRecusado.map((t) => t.detalhe).join(" · ")}` };
+  }
+
+  const guardado = await guardarArquivo({
+    bytes: r.bytes,
+    fileName: `arte-${postId}.png`,
+    mimeType: "image/png",
+    workspaceId: post.workspaceId,
+    clientId: post.clientId,
+    clientRequestId: post.clientRequestId,
+    kind: "generated",
+    uploadedBy: "design",
+  });
+  if (!guardado.ok) return { ok: false, erro: guardado.motivo };
+
+  const mediaUrl = `/api/media/${guardado.arquivo.id}`;
+  await prisma.socialPost.update({ where: { id: postId }, data: { mediaUrl, lastError: null } });
+  return { ok: true, mediaUrl };
+}
+
+/**
+ * A peça montada sobre a FOTO DO PRÓPRIO CLIENTE.
+ *
+ * A foto real dele ganha de qualquer imagem gerada — é a mesma regra que já
+ * vale para vídeo em `montarReel`. O que esta função NÃO faz é adivinhar qual
+ * foto vai em qual post: quem passa o `mediaAssetId` é quem decidiu.
+ *
+ * Isso é deliberado e vem de uma lição cara desta casa (auditoria de
+ * 04/08/2026, `scripts/backfill-carrossel-foocci.mjs`): "sobra não é evidência
+ * de correspondência". Casar arquivo com peça por ordem ou por sobra montou
+ * carrossel com o logo e com material bruto dentro. Enquanto não existir um
+ * vínculo explícito entre `SocialPost` e `MediaAsset` no banco, a escolha é de
+ * gente — e o automático continua gerando a foto.
+ */
+export async function montarArteComFotoDoCliente(
+  postId: string,
+  mediaAssetId: string,
+): Promise<{ ok: boolean; erro?: string; mediaUrl?: string }> {
+  const post = await prisma.socialPost.findUnique({ where: { id: postId } }).catch(() => null);
+  if (!post) return { ok: false, erro: "peça não encontrada" };
+
+  const asset = await prisma.mediaAsset.findUnique({ where: { id: mediaAssetId } }).catch(() => null);
+  if (!asset) return { ok: false, erro: "arquivo não encontrado" };
+  // Posse conferida no servidor: arquivo de outro workspace não vira peça deste.
+  if (asset.workspaceId !== post.workspaceId) return { ok: false, erro: "esse arquivo não é deste workspace" };
+  if (!asset.mimeType.startsWith("image/")) return { ok: false, erro: "esse arquivo não é uma imagem" };
+
+  const bytes = await lerArquivo(asset.storagePath);
+  if (!bytes) return { ok: false, erro: "o arquivo não está mais no armazenamento" };
+
+  const marca = await lerMarca(post.clientId);
+  const composta = await comporComMolde({
+    formato: formatoDoPost(post.format),
+    molde: marca.molde,
+    fotoBytes: Buffer.from(bytes),
+    fotoMime: asset.mimeType,
+    fonteAuditada: post.caption,
+    selo: post.pillar,
+    assinatura: marca.nome,
+    indice: null,
+  });
+
+  const guardado = await guardarArquivo({
+    bytes: composta.bytes,
+    fileName: `arte-${postId}.png`,
+    mimeType: "image/png",
+    workspaceId: post.workspaceId,
+    clientId: post.clientId,
+    clientRequestId: post.clientRequestId,
+    kind: "generated",
+    uploadedBy: "design",
+  });
+  if (!guardado.ok) return { ok: false, erro: guardado.motivo };
+
+  const mediaUrl = `/api/media/${guardado.arquivo.id}`;
+  await prisma.socialPost.update({ where: { id: postId }, data: { mediaUrl, lastError: composta.nota } });
+  return { ok: true, mediaUrl };
 }
 
 /**
@@ -225,6 +485,11 @@ export function montarPrompt(input: {
    *  leitura-do-cliente.ts). Vazio quando o feed não foi lido — e aí o prompt
    *  simplesmente não menciona feed nenhum: estilo não se inventa. */
   estiloDoFeed?: string;
+  /** O que a IA de VISÃO viu NAS IMAGENS do feed — vocabulário fechado
+   *  (paleta, enquadramento, luz), nunca frase livre. Entra rotulado como
+   *  "visto nas imagens" para não se confundir com o que foi lido em legenda:
+   *  são duas evidências diferentes, e o gerador precisa saber qual é qual. */
+  estiloVisto?: string;
 }): string {
   const vertical = input.formato === "story";
   const partes = [
@@ -238,6 +503,11 @@ export function montarPrompt(input: {
     // é o pedido literal do CEO ("os nossos carrosséis têm a ver com os que
     // eles fizeram lá?").
     input.estiloDoFeed ? `Estilo visual observado no feed real deste cliente — a peça deve pertencer à mesma família visual, sem copiar nenhum post: ${input.estiloDoFeed}` : "",
+    input.estiloVisto ? `Leitura das IMAGENS do feed real deste cliente (paleta, enquadramento e luz efetivamente vistos): ${input.estiloVisto}. Siga esta direção fotográfica.` : "",
+    // O molde escreve por cima da faixa de baixo — e elemento fixo obriga
+    // espaço reservado (DESIGN.md). Sem isto, a IA compõe o assunto exatamente
+    // onde o título vai entrar, e a peça sai com texto sobre o rosto do pão.
+    "COMPOSIÇÃO OBRIGATÓRIA: deixe o terço INFERIOR da imagem visualmente calmo — fundo, sombra ou superfície lisa —, sem assunto importante ali. Esse espaço é reservado para a tipografia, que é aplicada depois.",
     vertical
       // Story é lido de celular na mão, em segundos, e o topo e a base ficam
       // sob os elementos da interface do Instagram.
@@ -337,8 +607,9 @@ async function marcarErro(postId: string, erro: string, tentativa: number | null
  */
 async function montarCarrossel(
   post: { id: string; workspaceId: string; clientId: string | null; clientRequestId: string | null; caption: string; pillar: string | null; scenesJson?: string },
-  marca: { nome: string; segmento: string; cores: string[]; tom: string },
+  marca: MarcaDaPeca,
   estiloDoFeed = "",
+  estiloVisto = "",
 ): Promise<{ ok: boolean; erro: string }> {
   let cenas: string[] = [];
   try {
@@ -349,6 +620,9 @@ async function montarCarrossel(
   if (cenas.length < 2) return { ok: false, erro: "o carrossel não tem telas descritas para desenhar" };
 
   const urls: string[] = [];
+  /** O que o molde não conseguiu fazer, tela a tela. Vira `lastError` legível —
+   *  sem gastar tentativa: o carrossel SAIU, e o que faltou está dito. */
+  const notas: string[] = [];
   for (const [i, cena] of cenas.entries()) {
     const r = await generateDesign({
       prompt: montarPrompt({
@@ -360,7 +634,10 @@ async function montarCarrossel(
         segmento: marca.segmento,
         cores: marca.cores,
         tom: marca.tom,
+        // O carrossel também é 4:5 no molde — o quadrado é o que o gerador
+        // devolve, e o corte acontece no `background-size: cover` do molde.
         estiloDoFeed,
+        estiloVisto,
       }),
       size: "square",
       quality: "high",
@@ -372,8 +649,37 @@ async function montarCarrossel(
     const bytes = await baixarImagem(r.url).catch(() => null);
     if (!bytes) return { ok: false, erro: `não consegui baixar a tela ${i + 1}` };
 
-    const g = await guardarArquivo({
+    // A foto de CADA tela fica guardada — é o que faz o re-render de texto de
+    // uma tela isolada custar rasterização em vez de uma imagem nova.
+    await guardarArquivo({
       bytes,
+      fileName: nomeDoFundo(post.id, i + 1),
+      mimeType: "image/png",
+      workspaceId: post.workspaceId,
+      clientId: post.clientId,
+      clientRequestId: post.clientRequestId,
+      kind: "generated",
+      uploadedBy: "design",
+    }).catch(() => null);
+
+    // ── A MESMA CARA DA TELA 1 ATÉ A TELA 6 ────────────────────────────────
+    // Todas as telas nascem do MESMO `molde` (marca.molde) e do mesmo layout;
+    // o que muda é a foto, a frase e o índice. Era exatamente isto que não
+    // existia quando cada tela era um prompt novo para o modelo de imagem.
+    const composta = await comporComMolde({
+      formato: "carrossel",
+      molde: marca.molde,
+      fotoBytes: bytes,
+      // A CENA é o conteúdo auditado desta tela — a legenda é do post inteiro.
+      fonteAuditada: cena,
+      selo: i === 0 ? post.pillar : null,
+      assinatura: marca.nome,
+      indice: { atual: i + 1, total: cenas.length },
+    });
+    if (composta.nota) notas.push(`tela ${i + 1}: ${composta.nota}`);
+
+    const g = await guardarArquivo({
+      bytes: composta.bytes,
       fileName: `carrossel-${post.id}-${i + 1}.png`,
       mimeType: "image/png",
       workspaceId: post.workspaceId,
@@ -392,7 +698,7 @@ async function montarCarrossel(
       mediaUrlsJson: JSON.stringify(urls),
       // A capa também vai em `mediaUrl`: é o que o portal mostra como miniatura.
       mediaUrl: urls[0],
-      lastError: null,
+      lastError: notas.length > 0 ? notas.join(" | ").slice(0, 480) : null,
     },
   });
   return { ok: true, erro: "" };
