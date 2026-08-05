@@ -16,9 +16,17 @@ const lerMetricasDosPosts = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
 vi.mock("@/lib/ai/generate", () => ({ generate }));
 vi.mock("@/lib/integrations/meta/leitura", () => ({ lerFeedDoCliente, lerMetricasDosPosts }));
+// A VISÃO (05/08/2026). A camada em si é testada em __tests__/ai/visao.test.ts;
+// aqui o que importa é como ela entra na síntese sem furar o piso de ancoragem.
+const analisarImagens = vi.hoisted(() => vi.fn());
+const visaoDisponivel = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/ai/visao", () => ({
+  analisarImagens, visaoDisponivel, LIMITE_DE_IMAGENS: 8,
+}));
 
 import {
-  sinteseDoFeedDoCliente, estiloVisualPersistido,
+  sinteseDoFeedDoCliente, estiloVisualPersistido, estiloVistoPersistido,
+  observarImagensDoFeed, filtrarPeloVocabulario, imagensDoFeed, VOCABULARIO_VISUAL,
   TTL_DA_SINTESE_MS, MAX_CARACTERES_DA_SINTESE, DEPARTAMENTO_DA_LEITURA,
 } from "@/lib/agency/execution/leitura-do-cliente";
 
@@ -66,6 +74,10 @@ beforeEach(() => {
   lerFeedDoCliente.mockResolvedValue(FEED);
   lerMetricasDosPosts.mockResolvedValue({ ok: true, posts: [{ mediaId: "m2", tipo: "FEED", metricas: { total_interactions: 70 }, erro: null }] });
   generate.mockResolvedValue(QUALITATIVA);
+  // Padrão dos testes antigos: SEM visão conectada. O bloco tem de continuar
+  // exatamente como era — visão é advisory, não caminho crítico.
+  visaoDisponivel.mockResolvedValue({ disponivel: false, provedor: null, modelo: null });
+  analisarImagens.mockResolvedValue({ ok: false, erro: "sem provedor", motivo: "sem_provedor_com_visao" });
 });
 
 describe("a síntese do feed real — o que os especialistas veem", () => {
@@ -433,5 +445,180 @@ describe("frase de instrução plantada na legenda não vira lastro", () => {
     const s = await sinteseDoFeedDoCliente("ws1", "c1", "cr1");
     expect(s.estiloVisual).toBe("");
     expect(s.texto).not.toMatch(/mármore/i);
+  });
+});
+
+// ── A VISÃO ENTRA NA LEITURA (05/08/2026) ───────────────────────────────────
+//
+// A vitrine dizia: "a leitura do feed é de LEGENDA, não de PIXEL". Agora o
+// pixel é lido — e o ponto destes testes é que ele entra por uma porta PRÓPRIA,
+// declarada, e não como atalho para afirmar o que o piso de texto recusaria.
+describe("a visão olha as IMAGENS do feed — sem furar o piso de ancoragem", () => {
+  const VISTO_OK = {
+    ok: true as const,
+    texto: "{}",
+    dados: {
+      paleta: ["tons terrosos"],
+      enquadramento: ["close no produto"],
+      luz: ["luz natural"],
+      textoNaArte: ["sem texto na arte"],
+    },
+    provedor: "claude", modelo: "claude-haiku-4-5", detalheAplicado: false,
+    imagensLidas: 3, imagensIgnoradas: [],
+  };
+
+  beforeEach(() => {
+    visaoDisponivel.mockResolvedValue({ disponivel: true, provedor: "claude", modelo: "claude-haiku-4-5" });
+    analisarImagens.mockResolvedValue(VISTO_OK);
+    lerFeedDoCliente.mockResolvedValue({
+      ok: true,
+      posts: FEED.posts.map((p, i) => ({ ...p, media_url: `https://cdn.meta/x${i}.jpg` })),
+    });
+  });
+
+  it("a linha do que foi VISTO é separada da linha do que foi lido em legenda", async () => {
+    const s = await sinteseDoFeedDoCliente("ws1", "c1", "cr1");
+    expect(s.texto).toContain("Estilo VISTO NAS IMAGENS");
+    expect(s.texto).toContain("tons terrosos");
+    // A linha de legenda continua existindo, com o rótulo dela, intacta.
+    expect(s.texto).toContain("- Estilo visual observado:");
+    // E os campos são DOIS: pixel não alimenta o campo do lastro de legenda.
+    expect(s.estiloVisto).toContain("tons terrosos");
+    expect(s.estiloVisual).not.toContain("tons terrosos");
+  });
+
+  it("a linha diz QUANTAS imagens foram lidas — o leitor sabe o tamanho da amostra", async () => {
+    const s = await sinteseDoFeedDoCliente("ws1", "c1", "cr1");
+    expect(s.texto).toMatch(/3 imagens do feed classificadas/);
+    expect(s.imagensLidas).toBe(3);
+  });
+
+  it("a guarda separa as TRÊS naturezas: observado, visto na imagem e interpretação", async () => {
+    const s = await sinteseDoFeedDoCliente("ws1", "c1", "cr1");
+    expect(s.texto).toMatch(/OBSERVADOS/);
+    expect(s.texto).toMatch(/CLASSIFICAÇÃO DE IMAGEM REAL/);
+    expect(s.texto).toMatch(/LEITURA INTERPRETATIVA/);
+  });
+
+  it("VOCABULÁRIO FECHADO: termo que a lista não tem é descartado em código", async () => {
+    analisarImagens.mockResolvedValue({
+      ...VISTO_OK,
+      dados: {
+        paleta: ["mármore italiano de Carrara", "tons terrosos"],
+        enquadramento: ["tipografia serifada"],
+        luz: [],
+        textoNaArte: [],
+      },
+    });
+    const s = await sinteseDoFeedDoCliente("ws1", "c1", "cr1");
+    expect(s.estiloVisto).toContain("tons terrosos");
+    expect(s.texto).not.toMatch(/mármore/i);
+    expect(s.texto).not.toMatch(/serifada/i);
+  });
+
+  it("nada do vocabulário na resposta → a linha NÃO é escrita (vazio é vazio)", async () => {
+    analisarImagens.mockResolvedValue({ ...VISTO_OK, dados: { paleta: ["mármore"], enquadramento: [], luz: [], textoNaArte: [] } });
+    const s = await sinteseDoFeedDoCliente("ws1", "c1", "cr1");
+    expect(s.texto).not.toContain("VISTO NAS IMAGENS");
+    expect(s.estiloVisto).toBe("");
+  });
+
+  it("sem provedor de visão, o bloco fica exatamente como era — degradação declarada", async () => {
+    visaoDisponivel.mockResolvedValue({ disponivel: false, provedor: null, modelo: null });
+    const s = await sinteseDoFeedDoCliente("ws1", "c1", "cr1");
+    expect(analisarImagens).not.toHaveBeenCalled();
+    expect(s.texto).not.toContain("VISTO NAS IMAGENS");
+    expect(s.estiloVisto).toBe("");
+    expect(s.lida).toBe(true); // a leitura NÃO trava por falta de visão
+  });
+
+  it("visão que estoura não derruba a leitura", async () => {
+    analisarImagens.mockRejectedValue(new Error("provedor caiu"));
+    const s = await sinteseDoFeedDoCliente("ws1", "c1", "cr1");
+    expect(s.lida).toBe(true);
+    expect(s.estiloVisto).toBe("");
+  });
+
+  it("custo: no MÁXIMO uma chamada de visão por síntese, e nenhuma com síntese fresca", async () => {
+    await sinteseDoFeedDoCliente("ws1", "c1", "cr1");
+    expect(analisarImagens).toHaveBeenCalledTimes(1);
+
+    // Síntese fresca no banco: nem Graph, nem visão.
+    db.brainArtifact.findFirst.mockResolvedValue({
+      canvasJson: JSON.stringify({ lida: true, posts: 3, texto: "bloco", estiloVisual: "x", estiloVisto: "paleta: tons terrosos", imagensLidas: 3 }),
+      createdAt: new Date(),
+    });
+    analisarImagens.mockClear();
+    const s = await sinteseDoFeedDoCliente("ws1", "c1", "cr1");
+    expect(analisarImagens).not.toHaveBeenCalled();
+    expect(s.estiloVisto).toBe("paleta: tons terrosos");
+  });
+
+  it("o teto de imagens é o da camada de visão — a conta de custo mora lá", () => {
+    const posts = Array.from({ length: 20 }, (_, i) => post({ id: `p${i}`, media_url: `https://cdn/x${i}.jpg` }));
+    expect(imagensDoFeed(posts as never)).toHaveLength(8);
+  });
+
+  it("post sem imagem acessível é ignorado, e vídeo entra pela miniatura", () => {
+    const imagens = imagensDoFeed([
+      post({ media_url: null, thumbnail_url: null }),
+      post({ id: "v1", media_type: "VIDEO", media_url: null, thumbnail_url: "https://cdn/t.jpg" }),
+    ] as never);
+    expect(imagens).toHaveLength(1);
+    // O rótulo nunca leva a URL: ela carrega token do CDN da Meta.
+    expect(imagens[0]!.rotulo).not.toMatch(/https?:/);
+  });
+
+  it("o filtro de vocabulário é comparação exata, sem 'parecido com'", () => {
+    expect(filtrarPeloVocabulario("paleta", ["Tons Terrosos"])).toEqual(["tons terrosos"]);
+    expect(filtrarPeloVocabulario("paleta", ["tons terrosos e mármore"])).toEqual([]);
+    expect(filtrarPeloVocabulario("paleta", "tons frios")).toEqual(["tons frios"]);
+    expect(filtrarPeloVocabulario("inventado", ["qualquer"])).toEqual([]);
+    expect(VOCABULARIO_VISUAL.paleta!.length).toBeGreaterThan(3);
+  });
+
+  it("sem feed lido não há o que olhar — a visão nem é chamada", async () => {
+    lerFeedDoCliente.mockResolvedValue({ ok: false, error: "o cliente ainda não conectou o Instagram" });
+    const s = await sinteseDoFeedDoCliente("ws1", "c1", "cr1");
+    expect(analisarImagens).not.toHaveBeenCalled();
+    expect(s.estiloVisto).toBe("");
+  });
+
+  it("o caminho das ARTES lê só o persistido — nunca dispara visão", async () => {
+    db.brainArtifact.findFirst.mockResolvedValue({
+      canvasJson: JSON.stringify({ lida: true, posts: 3, texto: "b", estiloVisual: "", estiloVisto: "luz: luz natural", imagensLidas: 4 }),
+      createdAt: new Date(),
+    });
+    const visto = await estiloVistoPersistido("c1");
+    expect(visto).toBe("luz: luz natural");
+    expect(analisarImagens).not.toHaveBeenCalled();
+    expect(lerFeedDoCliente).not.toHaveBeenCalled();
+  });
+
+  it("síntese antiga (gravada antes da visão existir) não vira leitura de pixel", async () => {
+    db.brainArtifact.findFirst.mockResolvedValue({
+      canvasJson: JSON.stringify({ lida: true, posts: 3, texto: "b", estiloVisual: "luz de forno" }),
+      createdAt: new Date(),
+    });
+    expect(await estiloVistoPersistido("c1")).toBe("");
+    expect(await estiloVisualPersistido("c1")).toBe("luz de forno");
+  });
+
+  it("a chamada de visão pede o barato e o vocabulário fechado", async () => {
+    await sinteseDoFeedDoCliente("ws1", "c1", "cr1");
+    const pedido = analisarImagens.mock.calls[0]![0];
+    expect(pedido.detalhe).toBe("baixo");
+    expect(pedido.formato).toBe("json");
+    expect(pedido.imagens.length).toBeLessThanOrEqual(8);
+    expect(pedido.pergunta).toContain("tons terrosos");
+    expect(pedido.sistema).toMatch(/CLASSIFICA/);
+  });
+
+  it("`observarImagensDoFeed` nunca lança e devolve motivo legível", async () => {
+    visaoDisponivel.mockResolvedValue({ disponivel: false, provedor: null, modelo: null });
+    const r = await observarImagensDoFeed([post()] as never, "ws1", "c1");
+    expect(r.frase).toBe("");
+    expect(r.imagensLidas).toBe(0);
+    expect(r.motivo).toMatch(/visão/i);
   });
 });
