@@ -125,9 +125,11 @@ export default function CartaoDeOportunidade({
             {o.titulo}
           </span>
 
-          {/* O raciocínio é UMA linha por decisão de projeto: é o resumo do
-              porquê da nota, não o relatório. O relatório mora no cartão aberto. */}
-          <span className="block text-[13px] text-[var(--text-secondary)] mt-1 leading-relaxed line-clamp-1">
+          {/* O raciocínio é o resumo do PORQUÊ da nota, não o relatório — por
+              isso é cortado. Uma linha só a partir de `lg`, onde a linha é
+              larga o bastante para caber uma frase; no celular, uma linha
+              seriam ~30 caracteres, ou seja, meia frase e nenhum sentido. */}
+          <span className="text-[13px] text-[var(--text-secondary)] mt-1 leading-relaxed line-clamp-2 lg:line-clamp-1">
             {o.raciocinio ?? "Sem raciocínio registrado para esta nota."}
           </span>
 
@@ -195,13 +197,22 @@ export default function CartaoDeOportunidade({
                   {[o.categoria, o.prazoInformado && `prazo: ${o.prazoInformado}`].filter(Boolean).join(" · ")}
                 </p>
               )}
-              <pre className="max-h-[280px] overflow-y-auto whitespace-pre-wrap break-words rounded-[8px] bg-[var(--bg)] border border-[var(--border)] px-3 py-2.5 font-sans text-[13px] leading-relaxed text-[var(--text-secondary)]">
-                {/* O texto CRU do anúncio não sai da API de propósito: costuma
-                    trazer contato de terceiro (PII que não pedimos). Aqui vem a
-                    descrição extraída — e, quando nem ela veio, o cartão diz
-                    isso em vez de mostrar uma caixa vazia. */}
-                {o.textoOriginal || "O anúncio não trouxe descrição. Abra o link na plataforma para ler o original."}
-              </pre>
+              {/* A caixa rola. Sem a borda esfumaçada embaixo, texto cortado no
+                  meio de uma frase parece defeito, não continuação — e no
+                  celular ninguém descobre que dá para rolar ali dentro. */}
+              <div className="relative">
+                <pre className="max-h-[280px] overflow-y-auto whitespace-pre-wrap break-words rounded-[8px] bg-[var(--bg)] border border-[var(--border)] px-3 py-2.5 font-sans text-[13px] leading-relaxed text-[var(--text-secondary)]">
+                  {/* O texto CRU do anúncio não sai da API de propósito: costuma
+                      trazer contato de terceiro (PII que não pedimos). Aqui vem a
+                      descrição extraída — e, quando nem ela veio, o cartão diz
+                      isso em vez de mostrar uma caixa vazia. */}
+                  {o.textoOriginal || "O anúncio não trouxe descrição. Abra o link na plataforma para ler o original."}
+                </pre>
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute inset-x-px bottom-px h-6 rounded-b-[8px] bg-gradient-to-t from-[var(--bg)] to-transparent"
+                />
+              </div>
             </section>
 
             <section className="min-w-0">
@@ -218,16 +229,24 @@ export default function CartaoDeOportunidade({
                   {copiado === "painel" ? "Copiado ✓" : "Copiar"}
                 </button>
               </div>
-              <pre
-                className={`max-h-[280px] overflow-y-auto whitespace-pre-wrap break-words rounded-[8px] px-3 py-2.5 font-sans text-[13px] leading-relaxed border ${
-                  temProposta
-                    ? "bg-[var(--accent-light)] border-[#BFEFEC] text-[var(--text-primary)]"
-                    : "bg-[var(--bg)] border-[var(--border)] text-[var(--text-muted)]"
-                }`}
-              >
-                {o.proposta ??
-                  "A proposta ainda não foi gerada. Analise a oportunidade de novo para produzi-la."}
-              </pre>
+              <div className="relative">
+                <pre
+                  className={`max-h-[280px] overflow-y-auto whitespace-pre-wrap break-words rounded-[8px] px-3 py-2.5 font-sans text-[13px] leading-relaxed border ${
+                    temProposta
+                      ? "bg-[var(--accent-light)] border-[#BFEFEC] text-[var(--text-primary)]"
+                      : "bg-[var(--bg)] border-[var(--border)] text-[var(--text-muted)]"
+                  }`}
+                >
+                  {o.proposta ??
+                    "A proposta ainda não foi gerada. Analise a oportunidade de novo para produzi-la."}
+                </pre>
+                <span
+                  aria-hidden
+                  className={`pointer-events-none absolute inset-x-px bottom-px h-6 rounded-b-[8px] bg-gradient-to-t to-transparent ${
+                    temProposta ? "from-[var(--accent-light)]" : "from-[var(--bg)]"
+                  }`}
+                />
+              </div>
             </section>
           </div>
 

@@ -213,3 +213,84 @@ e a razão para não setar deixou de existir.
    contém ataque distribuído, e todo deploy zera. No dia em que houver réplica,
    precisa virar contador compartilhado antes de ser chamado de proteção.
 4. **Trilha B do raio-x** — o que não era pequeno — não foi tocada.
+
+---
+
+## 2026-08-05 · noite — Radar de Oportunidades: a porta de entrada da prospecção
+
+Território: `prisma/schema.prisma` (modelo novo), `prisma/migrations/`,
+`lib/agency/comercial/oportunidade.ts`, `app/api/agency/oportunidades/**`,
+`__tests__/esteira/oportunidade.test.ts`. Outros agentes trabalhavam em paralelo
+na tela (`app/agency/oportunidades/page.tsx`), no contrato de leitura
+(`components/agency/comercial/contratoDeOportunidade.ts`) e na negociação
+(`lib/agency/comercial/negociacao.ts`) — nenhum arquivo deles foi tocado.
+
+### O desenho: duas portas, as duas de texto
+
+O sistema **não navega em plataforma logada e não faz scraping**. A oportunidade
+entra por (a) alguém colando URL/texto no painel e (b) o e-mail de alerta que a
+plataforma já manda, encaminhado para uma rota nossa. As duas caem em
+`registrarOportunidade` — dedup, extração e teto de tamanho valem para as duas,
+sem cópia de regra.
+
+### O que foi construído
+
+1. **Modelo `Oportunidade`** (`prisma/schema.prisma:1255`) com migration
+   versionada aditiva (`prisma/migrations/20260805210000_radar_de_oportunidades/`).
+   Produção só aplica schema por `migrate deploy`; `db push` sozinho passa no
+   build e quebra em runtime.
+2. **A ingestão** (`lib/agency/comercial/oportunidade.ts`): impressão digital
+   SHA-256 sobre texto normalizado, extração determinística (sem IA) e registro
+   com dedup.
+3. **As três rotas**: GET/POST em `app/api/agency/oportunidades/route.ts`, PATCH
+   em `[id]/route.ts`, e a porta do e-mail em `email/route.ts`.
+4. **37 testes** em `__tests__/esteira/oportunidade.test.ts`.
+
+### As decisões que valem registro
+
+- **Dedup em três camadas, porque uma não basta.** Impressão do texto (o caso
+  comum); dedup pelo **link normalizado** (o caso real: o e-mail vem em HTML
+  com carimbo `utm_*`, o texto colado vem limpo — textos diferentes, mesma
+  vaga); e o `catch` do `P2002` (a corrida entre as duas portas no mesmo
+  segundo). Cada uma pega um buraco que as outras não pegam.
+- **Faixa de orçamento grava o PISO.** "de R$ 1.000 a R$ 2.000" vira 1000. A
+  coluna guarda um inteiro; escolher o teto contaria à agência uma história
+  melhor que a do anúncio, e é assim que nasce proposta cara e lead morto.
+- **Moeda estrangeira fica NULA.** "$500 USD" no Upwork não vira 500. A cotação
+  não está no anúncio — converter seria inventar.
+- **A porta do e-mail NÃO cai no primeiro workspace.** Exige
+  `x-radar-workspace` (id ou slug) e confirma no banco; sem isso, 400. O atalho
+  do "primeiro workspace" já existe na caixa de entrada do WhatsApp e está na
+  vitrine como bomba-relógio de multi-tenant — não repeti aqui.
+- **Sem `RADAR_EMAIL_SECRET` a rota responde 503**, antes de ler um byte do
+  corpo. Configuração faltando é porta fechada.
+- **`textoBruto` não sai em resposta de API.** Fica fora de `CAMPOS_DE_LEITURA`:
+  anúncio de marketplace traz contato de terceiro com frequência — PII que não é
+  nossa e que não pedimos. Não vai para log em nenhum caminho.
+
+### Verificação
+
+- `npx tsc --noEmit` limpo.
+- `npx vitest run --fileParallelism=false`: **113 arquivos, 1785 testes, todos
+  passando** (37 novos).
+- `npx eslint` limpo nos arquivos novos.
+- `npx prisma db push` + `npx prisma generate` aplicados na base local.
+
+### 🔴 O que ficou aberto — e um achado que não é meu
+
+1. **DRIFT DE SCHEMA PRÉ-EXISTENTE, fora do meu território.** As colunas
+   `quotedPrice`, `quoteStatus`, `quoteNote` e `quoteDecidedAt` de
+   `ContentRequest` estão no `schema.prisma` desde o commit `8f79b0a` e **não
+   têm migration nenhuma**. Produção só aplica `migrate deploy` — logo essas
+   colunas **não existem no volume do Railway**, e qualquer consulta que as toque
+   estoura em runtime. Não escrevi a migration porque o modelo é de outro
+   departamento e um `ADD COLUMN` errado derruba o deploy de todo mundo. O SQL é
+   trivial (quatro `ALTER TABLE ... ADD COLUMN`, nulos, aditivos) — falta a
+   decisão de quem é o dono.
+2. **A nota e a proposta ainda não existem.** O Radar ingere e devolve `nota`,
+   `servicoSugerido`, `raciocinio` e `propostaTexto` nulos. Quem avalia é a etapa
+   seguinte, e ela **precisa** tratar `textoBruto` como conteúdo citado — nunca
+   concatenado direto em prompt.
+3. **A porta do e-mail não tem teto por remetente.** Tem teto de corpo (512 KB)
+   e de texto (60k chars), mas quem tiver o segredo pode inserir em ritmo livre.
+   No dia em que o segredo vazar, isso enche o volume do Railway.

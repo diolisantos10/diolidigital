@@ -301,6 +301,10 @@ export default function OportunidadesPage() {
       {/* ── Abas de triagem ──────────────────────────────────────────────────
           O cartão decidido não some do produto: ele muda de aba. Some é o que
           faz o operador desconfiar da ferramenta. */}
+      {/* Fila vazia (ou erro ao carregar) não mostra cinco filtros zerados: são
+          cinco controles que não fazem nada, logo acima da mensagem que
+          realmente importa. */}
+      {lista.length > 0 && (
       <nav aria-label="Filtrar por situação" className="flex flex-wrap gap-1.5 mt-6 mb-3">
         {ABAS.map((a) => {
           const ativa = aba === a.id;
@@ -323,6 +327,7 @@ export default function OportunidadesPage() {
           );
         })}
       </nav>
+      )}
 
       {/* ── Os três estados obrigatórios + a lista ───────────────────────────── */}
       {carregando ? (
