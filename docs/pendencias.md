@@ -1,7 +1,33 @@
 # Pendências — o que está aberto
 
-> Última atualização: 04/08/2026 (tarde — portal visual, métricas reais e o piso
-> de ancoragem da leitura do cliente).
+> Última atualização: 05/08/2026 (raio-x noturno virou mecanismo — os achados
+> abaixo saíram da primeira coleta e cada um tem dono).
+
+---
+
+## 🔵 05/08/2026 — Achados do raio-x, com dono
+
+Saíram da coleta de 05/08 (`docs/raio-x/relatorios/2026-08-05.md`). O raio-x
+diagnostica; o conserto é frente com dono e verificação.
+
+- **`plataforma` — 4 rotas aceitam id sem provar posse.**
+  `admin/backfill-carrossel`, `admin/training/sdr/suggestions/[id]`,
+  `brain/changes/[id]`, `self-serve/order`. A fronteira única já existe
+  (`lib/auth/posse-de-workspace.ts`); falta passar por ela.
+- **`plataforma` — `/api/self-serve/order` grava no banco sem guarda nenhuma.**
+  Pública, sem sessão, sem assinatura e sem limite por IP.
+- **`plataforma` — 4 rotas públicas pagas defendidas só por contador em memória.**
+  `sdr/chat`, `sdr/transcribe`, `sdr/upload`, `brain/briefing-extract`. O
+  contador some no deploy e não atravessa réplica — mesma família da rota de
+  imagem que estava aberta.
+- **`esteira` — 6 estados gravados que ninguém lê.** `archived`, `dispensado`,
+  `enviado`, `respondida`, `skipped_running`, `superseded`. Cada um é um botão
+  que não faz nada ou uma tela que não filtra.
+- **`qualidade` — o P0 da casa, agora com número que anda:** 28 de 31 checagens
+  não são executáveis.
+- **Diretor — cobrir a metade de DADOS.** Ela ficou CEGA na primeira noite (a
+  rota `/api/cron/raio-x` ainda não estava em produção). Enquanto isso, o raio-x
+  não enxerga o que está preso AGORA no banco.
 
 ---
 
