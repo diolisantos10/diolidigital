@@ -32,6 +32,7 @@ import {
   TAMANHO_MAXIMO_POR_IMAGEM,
   PROVEDORES_COM_VISAO,
   honraDetalhe,
+  chamadasPagasNoPiorCaso,
 } from "@/lib/ai/visao";
 
 function conecta(provedor: string, model: string | null = null) {
@@ -244,6 +245,48 @@ describe("falha da IA", () => {
 
     await analisarImagens({ imagens: [{ tipo: "url", url: URL_DO_FEED }], pergunta: "?" });
     expect(chamadasIa).toBe(1);
+  });
+});
+
+// ─── 3b. O CUSTO MEDIDO (achado da 7ª auditoria) ────────────────────────────
+//
+// A telemetria de custo em `leitura-do-cliente.ts` dizia "≈US$ 0,011 por ciclo"
+// — o preço de UMA chamada bem-sucedida. Com retentativa e troca de provedor,
+// o mesmo ciclo pode custar 4×. Número escrito à mão em cabeçalho envelhece
+// errado; por isso o gasto agora VOLTA MEDIDO no resultado.
+
+describe("chamadasPagas — o custo do ciclo é medido, não estimado em comentário", () => {
+  it("chamada que dá certo de primeira: 1 chamada paga", async () => {
+    conecta("openai");
+    roteia(() => openAiOk("ok"));
+    const r = await analisarImagens({ imagens: [{ tipo: "url", url: URL_DO_FEED }], pergunta: "?" });
+    expect(r.ok).toBe(true);
+    expect(r.chamadasPagas).toBe(1);
+  });
+
+  it("o PIOR CASO dos três provedores é 4 chamadas pagas — 2 + 1 + 1, e o número aparece", async () => {
+    conecta("claude"); conecta("openai"); conecta("gemini");
+    // 429 é passageiro: o preferido re-tenta, as reservas levam um tiro cada.
+    let chamadasIa = 0;
+    roteia(() => { chamadasIa++; return httpErro(429); });
+
+    const r = await analisarImagens({ imagens: [{ tipo: "url", url: URL_DO_FEED }], pergunta: "?" });
+    expect(r.ok).toBe(false);
+    expect(chamadasIa).toBe(4);
+    expect(r.chamadasPagas).toBe(4);
+    expect(r.chamadasPagas).toBe(chamadasPagasNoPiorCaso(3));
+  });
+
+  it("caminho que NÃO gasta um centavo devolve 0 — sem provedor, sem imagem legível", async () => {
+    const semProvedor = await analisarImagens({ imagens: [{ tipo: "url", url: URL_DO_FEED }], pergunta: "?" });
+    expect(semProvedor.ok).toBe(false);
+    expect(semProvedor.chamadasPagas).toBe(0);
+
+    conecta("openai");
+    fetchMock.mockImplementation(async () => imagemMorta(403));
+    const semImagem = await analisarImagens({ imagens: [{ tipo: "url", url: URL_DO_FEED }], pergunta: "?" });
+    expect(semImagem.ok).toBe(false);
+    expect(semImagem.chamadasPagas).toBe(0);
   });
 });
 

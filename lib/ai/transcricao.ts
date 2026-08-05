@@ -110,7 +110,30 @@ export function falhaDeTranscricao(motivo: MotivoDeFalhaDeTranscricao): FalhaDeT
 export const MAX_BYTES_DE_AUDIO = 6 * 1024 * 1024;
 /** Abaixo disto é clique acidental, não fala. */
 export const MIN_BYTES_DE_AUDIO = 1_200;
-/** Corte automático da gravação. Não envia nada — só PARA de gravar. */
+/**
+ * Corte automático da gravação. Não envia nada — só PARA de gravar.
+ *
+ * ⚠️ ESTE CORTE É DO NAVEGADOR, E SÓ DELE. Dito com todas as letras porque a
+ * confusão aqui seria cara: um POST direto na rota, sem passar pela tela, pode
+ * mandar 12 minutos de áudio dentro dos 6 MB e ninguém barra por DURAÇÃO.
+ *
+ * DECISÃO (05/08/2026, auditoria 7): **o teto de BYTES é a trava; duração não
+ * vira trava de servidor.** Os porquês, na ordem que importa:
+ *   • Ele é mecanismo, não aviso: `transcreverAudio` recusa acima de
+ *     `MAX_BYTES_DE_AUDIO` ANTES de tocar na chave, e a rota recusa antes dele.
+ *   • Custo é proporcional à duração, e bytes limitam a duração. Whisper cobra
+ *     ~US$ 0,006/min; o pior caso real de 6 MB é áudio muito comprimido
+ *     (~24 kbps) ≈ 33 min ≈ US$ 0,20 por requisição — com o balde de 15/min por
+ *     IP, um teto de gasto que a agência aguenta, não um ralo aberto.
+ *   • Medir duração no servidor exigiria DECODIFICAR o contêiner (webm/ogg/mp4,
+ *     cada um com seu jeito de guardar — e nenhum obrigado a declarar duração
+ *     no cabeçalho). Ou entra dependência nativa no build do Railway, ou entra
+ *     um parser caseiro que erra: e um parser que erra REJEITA ÁUDIO LEGÍTIMO
+ *     do cliente. Trocar um teto que funciona por uma trava que às vezes
+ *     recusa a fala do cliente pagante é piorar.
+ * Se um dia a fatura mostrar abuso por duração, o conserto barato é BAIXAR
+ * `MAX_BYTES_DE_AUDIO` — mesmo mecanismo, número menor.
+ */
 export const MAX_SEGUNDOS_DE_GRAVACAO = 180;
 
 const TIMEOUT_PADRAO_MS = 30_000;

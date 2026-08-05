@@ -10,7 +10,10 @@ import { NextRequest } from "next/server";
 
 const db = vi.hoisted(() => ({
   socialPost: { findMany: vi.fn() },
-  clientRequestDb: { findFirst: vi.fn() },
+  // O ramo de portal resolve o WORKSPACE do token e leva ele no filtro
+  // (auditoria 7, B2): `clientRequestId` sozinho é id global.
+  clientRequestDb: { findFirst: vi.fn(), findUnique: vi.fn() },
+  client: { findUnique: vi.fn() },
 }));
 const validatePortalAccess = vi.hoisted(() => vi.fn());
 const requireSession = vi.hoisted(() => vi.fn());
@@ -38,6 +41,8 @@ function req(url: string): NextRequest {
 beforeEach(() => {
   vi.clearAllMocks();
   validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: null } });
+  db.clientRequestDb.findUnique.mockResolvedValue({ id: "cr1", workspaceId: "ws1" });
+  db.client.findUnique.mockResolvedValue({ workspaceId: "ws1" });
   db.socialPost.findMany.mockResolvedValue([POST_NO_BANCO]);
 });
 

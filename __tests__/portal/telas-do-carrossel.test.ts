@@ -66,6 +66,13 @@ beforeEach(() => {
   db.project.findMany.mockResolvedValue([]);
   db.approvalRequest.findMany.mockResolvedValue([]);
   db.agencyWorkspace.findMany.mockResolvedValue([{ id: "ws1" }]);
+  // O ramo de portal do GET resolve o WORKSPACE do token antes de consultar
+  // (auditoria 7, B2) — sem isso o filtro seria só por `clientRequestId`, que
+  // é um id global.
+  db.clientRequestDb.findUnique.mockResolvedValue({ id: "cr1", workspaceId: "ws1" });
+  db.clientRequestDb.findFirst.mockResolvedValue({ id: "cr1", workspaceId: "ws1" });
+  db.client.findUnique.mockResolvedValue({ workspaceId: "ws1" });
+  db.client.findFirst.mockResolvedValue({ id: "cli-foocci" });
 });
 
 // ── 1. GET /api/social-posts — telas no DTO ─────────────────────────────────

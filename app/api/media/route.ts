@@ -69,11 +69,27 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     workspaceId = session.workspaceId;
     uploadedBy = "equipe";
     // Aqui o corpo PODE dizer de quem é: quem manda está autenticado como
-    // equipe da agência e tem direito de anexar em nome do cliente.
+    // equipe da agência e tem direito de anexar em nome do cliente —
+    // DO PRÓPRIO WORKSPACE. "Autenticado" não é "dono de qualquer id": sem esta
+    // conferência, a equipe do workspace A anexa um arquivo na pasta de um
+    // cliente do workspace B só digitando o id dele, e o arquivo aparece no
+    // portal do outro inquilino.
     const cr = form.get("clientRequestId");
     const cl = form.get("clientId");
-    if (typeof cr === "string" && cr) clientRequestId = cr;
-    if (typeof cl === "string" && cl) clientId = cl;
+    if (typeof cr === "string" && cr) {
+      const pedido = await prisma.clientRequestDb.findFirst({
+        where: { id: cr, workspaceId: session.workspaceId }, select: { id: true },
+      });
+      if (!pedido) return NextResponse.json({ error: "Solicitação inválida" }, { status: 400 });
+      clientRequestId = cr;
+    }
+    if (typeof cl === "string" && cl) {
+      const cliente = await prisma.client.findFirst({
+        where: { id: cl, workspaceId: session.workspaceId }, select: { id: true },
+      });
+      if (!cliente) return NextResponse.json({ error: "Cliente inválido" }, { status: 400 });
+      clientId = cl;
+    }
   }
 
   if (!workspaceId) return NextResponse.json({ error: "Workspace não resolvido" }, { status: 409 });

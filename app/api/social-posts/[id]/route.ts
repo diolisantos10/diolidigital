@@ -25,13 +25,28 @@ export async function PATCH(request: NextRequest, ctx: { params: Promise<Params>
   // O CLIENTE do post era ignorado no PATCH: a equipe trocava o cliente no
   // editor, salvava, e nada acontecia — em silêncio. Trocar o cliente reabre a
   // solicitação vinculada (é ela que liga o post à conversa do portal).
+  //
+  // ⚠️ O `clientId` VEM DO CORPO — logo tem de ser CONFERIDO contra o workspace
+  // da sessão antes de ser gravado. Sem essa conferência, staff do workspace A
+  // manda o id de um cliente do workspace B, o `clientRequestId` vira o do B, o
+  // fail-closed de `visibility` vê "tem dono" e aprova, e a peça do A aparece no
+  // portal do cliente do B. Vazamento entre inquilinos, sem erro nenhum na tela.
   if (typeof body.clientId === "string" || body.clientId === null) {
     const novoClientId = body.clientId || null;
+    if (novoClientId) {
+      const cliente = await prisma.client.findFirst({
+        where: { id: novoClientId, workspaceId: session.workspaceId }, select: { id: true },
+      });
+      if (!cliente) {
+        return NextResponse.json({ error: "Cliente inválido" }, { status: 400 });
+      }
+    }
     data.clientId = novoClientId;
     if (novoClientId !== existing.clientId) {
       const latest = novoClientId
         ? await prisma.clientRequestDb.findFirst({
-            where: { clientId: novoClientId }, orderBy: { createdAt: "desc" }, select: { id: true },
+            where: { clientId: novoClientId, workspaceId: session.workspaceId },
+            orderBy: { createdAt: "desc" }, select: { id: true },
           })
         : null;
       data.clientRequestId = latest?.id ?? null;
@@ -47,7 +62,19 @@ export async function PATCH(request: NextRequest, ctx: { params: Promise<Params>
   const listaDeTexto = (v: unknown): string[] =>
     (v as unknown[]).filter((x): x is string => typeof x === "string" && !!x.trim());
   const telas = body.telas ?? body.mediaUrlsJson;
-  if (Array.isArray(telas)) data.mediaUrlsJson = JSON.stringify(listaDeTexto(telas));
+  if (Array.isArray(telas)) {
+    const lista = listaDeTexto(telas);
+    data.mediaUrlsJson = JSON.stringify(lista);
+    // ── INVARIANTE "A CAPA É A TELA 1" — travado NO DADO, não na tela ────────
+    // `mediaUrl` (a capa que o portal mostra no card) e `mediaUrlsJson` (o que
+    // `esteira/publicacao.ts:232` publica na Meta) chegam do Composer como dois
+    // campos independentes. Gravados sem reconciliar, trocar ou apagar a tela 1
+    // no editor deixa a capa apontando para uma arte que NÃO é a primeira do
+    // carrossel publicado: o cliente aprova uma imagem e sai outra em nome dele.
+    // Por isso o servidor decide — consertar no Composer deixaria a rota aberta
+    // para qualquer outro chamador.
+    if (lista.length > 0) data.mediaUrl = lista[0];
+  }
   // As descrições internas das telas — o que o gerador de arte usa para desenhar
   // CADA tela. Sem isto no PATCH, carrossel só entrava pela esteira.
   const cenas = body.cenas ?? body.scenesJson;

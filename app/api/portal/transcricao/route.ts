@@ -21,7 +21,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimited } from "@/lib/security/rate-limit";
 import { resolveProviderKey } from "@/lib/ai/resolve-key";
-import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-service";
+import { resolvePortalClient } from "@/lib/agency/persistence/portal-access-service";
 import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
 import {
   transcreverAudio,
@@ -51,8 +51,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const token = tokenDoPortal(request, typeof tokenDoCorpo === "string" ? tokenDoCorpo : null);
   if (!token) return resposta(falhaDeTranscricao("acesso_negado"), 403);
 
-  const acesso = await validatePortalAccess(token);
-  if (!acesso.valid) return resposta(falhaDeTranscricao("acesso_negado"), 403);
+  // O token não diz só "pode entrar" — diz DE QUEM É a conta que vai pagar.
+  // `resolvePortalClient` valida (inexistente/revogado/vencido) e devolve o
+  // cliente e o WORKSPACE dele. Sem o workspace, `resolveProviderKey` cai num
+  // `findFirst` global e a fala de um cliente é transcrita na chave de outra
+  // agência. Latente com um workspace só; estrutural no segundo.
+  const dono = await resolvePortalClient(token);
+  if (!dono) return resposta(falhaDeTranscricao("acesso_negado"), 403);
 
   const arquivo = form.get("file");
   if (!arquivo || !(arquivo instanceof Blob)) {
@@ -62,8 +67,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return resposta(falhaDeTranscricao("audio_grande"), 413);
   }
 
-  // A chave vem do cofre (Integrações) e só depois da env — nunca hardcoded.
-  const chave = await resolveProviderKey("openai");
+  // A chave vem do cofre (Integrações) do WORKSPACE do token, e só depois da
+  // env — nunca hardcoded, nunca "a primeira que existir no banco".
+  const chave = await resolveProviderKey("openai", dono.workspaceId);
   if (!chave) return resposta(falhaDeTranscricao("sem_chave"));
 
   const r = await transcreverAudio({ apiKey: chave.apiKey, arquivo });

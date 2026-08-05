@@ -64,9 +64,17 @@
 //     (~4 aqui) ≈ 1k tokens ≈ US$ 0,00008/imagem. Ciclo de 8 ≈ US$ 0,0006.
 //     IGNORA `detalhe`. É o mais barato dos três por uma ordem de grandeza.
 //   • CADA RETENTATIVA REENVIA AS IMAGENS e é cobrada de novo. Por isso a
-//     retentativa aqui é curta (2 tentativas no preferido, 1 na reserva) — bem
-//     menos que as 3 do generate(), que só reenvia texto. O pior caso de uma
-//     chamada é 2× no preferido + 1× em cada reserva.
+//     retentativa aqui é curta (`TENTATIVAS_DO_PREFERIDO` = 2 no preferido,
+//     `TENTATIVAS_DA_RESERVA` = 1 na reserva) — bem menos que as 3 do
+//     generate(), que só reenvia texto.
+//   • ⚠️ OS NÚMEROS DE "CICLO DE 8" ACIMA SÃO DE **UMA** CHAMADA BEM-SUCEDIDA
+//     NA PRIMEIRA TENTATIVA. Com os três provedores conectados, o PIOR CASO é
+//     2 + 1 + 1 = 4 chamadas pagas (`chamadasPagasNoPiorCaso(3)`) — ou seja,
+//     até 4× o número da linha. Foi assim que a telemetria de custo em
+//     `leitura-do-cliente.ts` subestimou o gasto: o número estava escrito à mão
+//     num comentário e ignorava a retentativa. Por isso o retorno agora traz
+//     `chamadasPagas` MEDIDO — quem quiser reportar custo usa esse campo, não
+//     um número copiado daqui.
 // O teto de 8 imagens por chamada não é estético: é a diferença entre "custo de
 // um cafezinho por cliente por ciclo" e uma fatura que ninguém revisou.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -136,12 +144,23 @@ export type ResultadoDeVisao =
        */
       detalheAplicado: boolean;
       imagensLidas: number;
+      /**
+       * QUANTAS CHAMADAS PAGAS esta análise custou de verdade — retentativa e
+       * troca de provedor incluídas, porque cada uma REENVIA as imagens e é
+       * cobrada de novo. Existe porque o custo estava escrito à mão em
+       * comentário de outro arquivo ("≈US$ 0,011 por ciclo") e subestimava em
+       * até 4×: número em cabeçalho não é derivado do código e envelhece
+       * errado. Este é medido.
+       */
+      chamadasPagas: number;
       /** Vazio quando tudo foi lido. Leitura parcial é dita, nunca escondida. */
       imagensIgnoradas: ImagemIgnorada[];
     }
   | {
       ok: false;
       erro: string;
+      /** Idem: a falha também custou — tentativa que falha foi cobrada. */
+      chamadasPagas: number;
       motivo: MotivoDeFalhaDeVisao;
       imagensIgnoradas?: ImagemIgnorada[];
     };
@@ -150,6 +169,17 @@ export type ResultadoDeVisao =
 
 /** Imagens por chamada. Ver a seção de CUSTO no cabeçalho antes de subir. */
 export const LIMITE_DE_IMAGENS = 8;
+/** Tentativas no provedor PREFERIDO. Cada uma reenvia as imagens e é cobrada. */
+export const TENTATIVAS_DO_PREFERIDO = 2;
+/** Tentativas em cada provedor de RESERVA. */
+export const TENTATIVAS_DA_RESERVA = 1;
+/** O pior caso de chamadas PAGAS numa análise, dado quantos provedores estão
+ *  conectados. É a conta que a telemetria de custo tem de usar — escrever o
+ *  número à mão em comentário foi exatamente o que envelheceu errado. */
+export function chamadasPagasNoPiorCaso(provedoresConectados: number): number {
+  if (provedoresConectados <= 0) return 0;
+  return TENTATIVAS_DO_PREFERIDO + (provedoresConectados - 1) * TENTATIVAS_DA_RESERVA;
+}
 /** Por imagem. Acima disso é foto de câmera, não peça de feed. */
 export const TAMANHO_MAXIMO_POR_IMAGEM = 5 * 1024 * 1024;
 /** Somado. Segura o caso de 8 imagens no limite virarem um corpo de 40 MB. */
@@ -637,13 +667,16 @@ function extrairJson(texto: string): unknown | null {
  * falha (`motivo: "nenhuma_imagem_lida"`) — sem gastar um centavo de IA.
  */
 export async function analisarImagens(pedido: PedidoDeVisao): Promise<ResultadoDeVisao> {
+  // O contador de gasto REAL. Cada `chamar` abaixo incrementa antes de sair —
+  // inclusive as que falham, porque a tentativa que falha também foi cobrada.
+  let chamadasPagas = 0;
   try {
     const pergunta = (pedido.pergunta ?? "").trim();
     if (!pergunta) {
-      return { ok: false, motivo: "pedido_invalido", erro: "Pergunta vazia — esta camada não inventa o que perguntar." };
+      return { ok: false, chamadasPagas, motivo: "pedido_invalido", erro: "Pergunta vazia — esta camada não inventa o que perguntar." };
     }
     if (!Array.isArray(pedido.imagens) || pedido.imagens.length === 0) {
-      return { ok: false, motivo: "pedido_invalido", erro: "Nenhuma imagem enviada." };
+      return { ok: false, chamadasPagas, motivo: "pedido_invalido", erro: "Nenhuma imagem enviada." };
     }
 
     // A ordem importa: descobrir que NÃO há provedor antes de baixar 8 imagens
@@ -657,6 +690,7 @@ export async function analisarImagens(pedido: PedidoDeVisao): Promise<ResultadoD
     if (conectados.length === 0) {
       return {
         ok: false,
+        chamadasPagas,
         motivo: "sem_provedor_com_visao",
         erro:
           "Nenhuma IA com visão conectada (OpenAI, Claude ou Gemini). " +
@@ -668,6 +702,7 @@ export async function analisarImagens(pedido: PedidoDeVisao): Promise<ResultadoD
     if (prontas.length === 0) {
       return {
         ok: false,
+        chamadasPagas,
         motivo: "nenhuma_imagem_lida",
         erro: "Nenhuma das imagens pôde ser lida.",
         imagensIgnoradas: ignoradas,
@@ -694,10 +729,11 @@ export async function analisarImagens(pedido: PedidoDeVisao): Promise<ResultadoD
       const modelo = modeloDeVisao(provedor);
       // O preferido tem direito a uma segunda tentativa; a reserva, a um tiro
       // só. Cada tentativa REENVIA as imagens e é cobrada — ver CUSTO.
-      const tentativas = i === 0 ? 2 : 1;
+      const tentativas = i === 0 ? TENTATIVAS_DO_PREFERIDO : TENTATIVAS_DA_RESERVA;
       let r: RespostaCrua = { ok: false, erro: "sem tentativas", motivo: "erro_do_provedor" };
       for (let t = 0; t < tentativas; t++) {
         r = await chamar(provedor, apiKey, modelo, interno);
+        chamadasPagas += 1;
         if (r.ok || !ehPassageiro(r.motivo, r.erro)) break;
         if (t < tentativas - 1) await new Promise((res) => setTimeout(res, 600));
       }
@@ -711,6 +747,7 @@ export async function analisarImagens(pedido: PedidoDeVisao): Promise<ResultadoD
           provedor,
           modelo,
           detalheAplicado: honraDetalhe(provedor),
+          chamadasPagas,
           imagensLidas: prontas.length,
           imagensIgnoradas: ignoradas,
         };
@@ -723,6 +760,7 @@ export async function analisarImagens(pedido: PedidoDeVisao): Promise<ResultadoD
 
     return {
       ok: false,
+      chamadasPagas,
       motivo: primeiroMotivo,
       erro: `Análise de imagem indisponível — ${primeiraFalha}`,
       imagensIgnoradas: ignoradas,
@@ -732,6 +770,7 @@ export async function analisarImagens(pedido: PedidoDeVisao): Promise<ResultadoD
     // escapar, o chamador recebe um erro, não uma exceção no meio da execução.
     return {
       ok: false,
+      chamadasPagas,
       motivo: "erro_de_rede",
       erro: `falha inesperada na análise de imagem: ${err instanceof Error ? err.message : "erro desconhecido"}`,
     };
