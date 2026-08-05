@@ -16,6 +16,31 @@ export type TrafficChannel =
 
 export type BudgetScenario = "low" | "medium" | "high" | "premium";
 
+/**
+ * A ORIGEM DO NÚMERO — o campo que faltava para o plano parar de mentir.
+ *
+ * `verba_informada`: o total mensal saiu da verba que o CLIENTE informou
+ * (briefing/contexto, lida pelo servidor). Os projetados derivam dele.
+ *
+ * `faixa_de_referencia`: o cliente não informou verba. Os números NÃO são
+ * estimativa dele — são a faixa do segmento, e todos os campos projetados
+ * carregam `MARCA_FAIXA_DE_REFERENCIA` no texto para que a marca não se perca
+ * quando o valor for copiado para um slide, um e-mail ou um card do portal.
+ */
+export type BudgetBasis = "verba_informada" | "faixa_de_referencia";
+
+/**
+ * A marca viaja GRUDADA no valor, e isso é de propósito.
+ *
+ * O filtro de preço do portal segura o "R$", mas nunca segurou "6x–12x" nem
+ * "30K–80K": o ROAS e o alcance projetados chegavam limpos ao time da agência,
+ * que trabalhava em cima deles como se fossem deste cliente. Um flag booleano
+ * no canvas não resolve — quem copia o número não copia o flag. A ressalva
+ * precisa estar dentro da string.
+ */
+export const MARCA_FAIXA_DE_REFERENCIA =
+  "faixa de referência do segmento, não estimativa deste cliente";
+
 export type CampaignObjective =
   | "awareness"
   | "traffic"
@@ -81,6 +106,9 @@ export interface CreativeRequirement {
 
 export interface BudgetAllocation {
   scenario: BudgetScenario;
+  basis: BudgetBasis;
+  /** A ressalva em uma frase, para quem lê só a tabela de budget. */
+  basisNote: string;
   totalMonthlyBRL: number;
   managementFeePercent: number;    // agency fee — always separate from media budget
   managementFeeBRL: number;
@@ -158,6 +186,13 @@ export interface TrafficCanvas {
   // ── Financial ──
   budgetScenario: BudgetScenario;
   budgetAllocation: BudgetAllocation;
+  /**
+   * DE ONDE VEIO O DINHEIRO DESTE PLANO. O campo existe porque o canvas viajava
+   * sem ele: `budgetScenario` caía no default `"medium"` (R$ 4.000) para todo
+   * cliente, e o time trabalhava em cima de um número de tabela achando que era
+   * do cliente. Ver `MARCA_FAIXA_DE_REFERENCIA`.
+   */
+  budgetBasis: BudgetBasis;
 
   // ── Offer ──
   offerMappings: OfferMapping[];
@@ -178,7 +213,25 @@ export interface TrafficCanvas {
   cognitiveFlowTrace: TrafficFlowStep[];
 }
 
-// ── Quality Gate (10-item checklist) ─────────────────────────────────────────
+// ── Quality Gate (11-item checklist) ─────────────────────────────────────────
+
+/**
+ * Todo número projetado ou vem da verba do cliente, ou traz a ressalva colada.
+ * Determinístico e sem IA: é conferência de origem, não julgamento de valor.
+ */
+export function projecoesComOrigemDeclarada(
+  canvas: Pick<TrafficCanvas, "budgetBasis" | "projectedROAS" | "projectedCAC" | "projectedMonthlyLeads" | "audiences">,
+): boolean {
+  if (canvas.budgetBasis === "verba_informada") return true;
+  const marcados = [canvas.projectedROAS, canvas.projectedCAC, canvas.projectedMonthlyLeads]
+    .every((v) => typeof v === "string" && v.includes(MARCA_FAIXA_DE_REFERENCIA));
+  // O alcance estimado por público é o outro número que escapava do filtro de
+  // preço do portal ("30K–80K") — entra na mesma conferência.
+  const alcanceMarcado = canvas.audiences.every(
+    (a) => a.estimatedReach === "N/D" || a.estimatedReach.includes(MARCA_FAIXA_DE_REFERENCIA),
+  );
+  return marcados && alcanceMarcado;
+}
 
 export function runTrafficQualityGate(
   canvas: Omit<TrafficCanvas, "qualityGateResult" | "cognitiveFlowTrace" | "id" | "status" | "createdAt" | "source">,
@@ -246,6 +299,18 @@ export function runTrafficQualityGate(
       detail: canvas.projectedMonthlyLeads.length > 0
         ? `Leads: ${canvas.projectedMonthlyLeads} | CAC: ${canvas.projectedCAC}`
         : "Projeções não definidas.",
+    },
+    {
+      // Número projetado sem origem declarada é o furo que mandava R$ 4.000 de
+      // tabela ao time como se fosse a verba do cliente. Aqui é FAIL, não aviso.
+      id: "projections_anchored",
+      label: "Origem dos números projetados declarada",
+      status: projecoesComOrigemDeclarada(canvas) ? "PASS" : "FAIL",
+      detail: canvas.budgetBasis === "verba_informada"
+        ? `Total mensal R$ ${canvas.budgetAllocation.totalMonthlyBRL.toLocaleString("pt-BR")} derivado da verba informada pelo cliente.`
+        : projecoesComOrigemDeclarada(canvas)
+        ? `Cliente não informou verba — projetados marcados como ${MARCA_FAIXA_DE_REFERENCIA}.`
+        : "Números projetados sem verba do cliente E sem a ressalva de faixa de referência — o time leria como estimativa deste cliente.",
     },
     {
       id: "risks_identified",

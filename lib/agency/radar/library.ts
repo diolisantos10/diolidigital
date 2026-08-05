@@ -4,10 +4,28 @@
 // (insumo de produção) e as diretrizes da QUALIDADE. É a versão generalizada do
 // "Experience Vault" do FOOCCI: um depósito de verdade que todo o sistema consome.
 //
-// GOVERNANÇA (regra do dono):
-//   • source "official" (a própria plataforma — Meta/TikTok/Google): entra ATIVA
-//     na hora, sem validação humana. É a fonte da verdade.
-//   • source "trend" (tendência não-oficial): entra PENDENTE até um humano aprovar.
+// GOVERNANÇA (regra do dono) — RECORTADA EM 05/08/2026:
+//   • source "official" diz que A FONTE é confiável (Meta/TikTok/Google).
+//   • `extraction` diz se O TEXTO que está entrando veio da fonte ou de um
+//     modelo lendo a fonte. São coisas DIFERENTES, e tratá-las como a mesma era
+//     o furo.
+//   • Só entra ATIVA na hora a combinação `official` + `literal_da_fonte`.
+//     Todo o resto entra PENDENTE, à espera de humano.
+//
+// ─── O FURO QUE ISTO FECHA ──────────────────────────────────────────────────
+//
+// `addInsight({ source: "official" })` gravava `status: "active"`,
+// `approvedBy: "official-source"`, na hora. Só que o `guidance` NÃO era da
+// fonte: era o que um modelo extraiu dela (`radar-agent.ts` → `scanSource`),
+// com um "NÃO invente" no prompt como única proteção. Prompt é sugestão.
+//
+// E o destino desse texto é o pior possível: ele entra (a) no prompt de TODOS
+// os especialistas sob o rótulo "siga estas diretrizes" e (b) no prompt do
+// AUDITOR DE QUALIDADE como régua de julgamento. Uma alucinação virava diretriz
+// da agência inteira e a própria Qualidade passava a auditar contra ela —
+// contaminando todos os clientes ao mesmo tempo, sem ninguém no caminho.
+//
+// "A fonte é oficial" nunca foi prova de que "a extração está certa".
 //
 // VERSIONAMENTO: cada insight tem um `topic`. Ao ATIVAR um insight, os anteriores
 // ATIVOS do mesmo tópico são ARQUIVADOS — o "era assim → agora é assim".
@@ -17,6 +35,18 @@ import { prisma } from "@/lib/db/client";
 export type InsightDomain = "social" | "design" | "paid-traffic" | "analytics" | "seo" | "general";
 export type InsightSource = "official" | "trend";
 
+/**
+ * COMO O TEXTO CHEGOU AQUI — a distinção que faltava.
+ *
+ * `literal_da_fonte`: cada afirmação do `guidance` tem lastro verificado no
+ * texto publicado pela fonte. Quem grava isto teve de PROVAR, em código.
+ *
+ * `modelo`: um modelo leu a fonte e escreveu o `guidance` com as próprias
+ * palavras. Pode estar certo; não está verificado. É o default, e o default é
+ * desconfiança de propósito — quem esquecer de declarar cai no lado seguro.
+ */
+export type InsightExtraction = "literal_da_fonte" | "modelo";
+
 export interface AddInsightInput {
   workspaceId: string;
   domain: InsightDomain;
@@ -24,6 +54,8 @@ export interface AddInsightInput {
   title: string;
   guidance: string;
   source: InsightSource;
+  /** Omitir = `"modelo"`. Ver `InsightExtraction`. */
+  extraction?: InsightExtraction;
   sourceName?: string;
   sourceUrl?: string;
 }
@@ -37,12 +69,16 @@ async function archiveActiveTopic(workspaceId: string, topic: string): Promise<v
 }
 
 /**
- * Adiciona um insight. Oficial → ATIVO na hora (e supersede o tópico); tendência
- * → PENDENTE (só entra em vigor após aprovação humana). Nunca inventa: quem chama
- * fornece o texto; a biblioteca só governa o estado.
+ * Adiciona um insight. Só a combinação FONTE OFICIAL + EXTRAÇÃO LITERAL entra
+ * ATIVA na hora (e supersede o tópico). Todo o resto — inclusive fonte oficial
+ * com texto escrito por modelo — entra PENDENTE, à espera de humano.
+ *
+ * Nunca inventa: quem chama fornece o texto; a biblioteca só governa o estado.
  */
 export async function addInsight(input: AddInsightInput): Promise<{ id: string; status: string }> {
-  const isOfficial = input.source === "official";
+  const extraction: InsightExtraction = input.extraction ?? "modelo";
+  // A conjunção é o ponto do arquivo inteiro: `official` sozinho NÃO ativa.
+  const isOfficial = input.source === "official" && extraction === "literal_da_fonte";
   if (isOfficial) await archiveActiveTopic(input.workspaceId, input.topic);
   const row = await prisma.marketInsight.create({
     data: {
@@ -52,7 +88,9 @@ export async function addInsight(input: AddInsightInput): Promise<{ id: string; 
       title: input.title,
       guidance: input.guidance,
       source: input.source,
-      sourceName: input.sourceName ?? null,
+      sourceName: input.sourceName
+        ? `${input.sourceName}${extraction === "modelo" ? " (texto extraído por modelo — não conferido palavra a palavra)" : ""}`
+        : null,
       sourceUrl: input.sourceUrl ?? null,
       status: isOfficial ? "active" : "pending",
       approvedBy: isOfficial ? "official-source" : null,

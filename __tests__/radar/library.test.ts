@@ -15,8 +15,25 @@ beforeEach(() => {
 });
 
 describe("Radar Dioli — biblioteca (governança oficial vs tendência)", () => {
-  it("fonte OFICIAL entra ATIVA na hora (sem validação) e supersede o tópico", async () => {
+  // ⚠️ REGRA MUDADA EM 05/08/2026 — este teste afirmava o contrário.
+  //
+  // Ele checava que `source: "official"` bastava para entrar ATIVO na hora. Só
+  // que quem chamava com `official` era o `scanSource`, e o texto que ele passa
+  // é escrito por um MODELO lendo o feed — não pela plataforma. "Fonte
+  // confiável" nunca foi prova de "extração correta", e a diferença importa
+  // porque esse texto vira diretriz de todos os especialistas E régua do
+  // auditor de qualidade. Agora `extraction` responde pelo texto, e só a
+  // conjunção ativa.
+  it("fonte OFICIAL com texto NÃO conferido entra PENDENTE — 'official' não atesta a extração", async () => {
     const r = await addInsight({ workspaceId: "ws1", domain: "social", topic: "ig-algo", title: "Novo ranking IG", guidance: "priorizar reels de até 30s", source: "official", sourceName: "Meta" });
+    expect(r.status).toBe("pending");
+    // não arquiva o tópico vigente: nada entrou em vigor
+    expect(db.marketInsight.updateMany).not.toHaveBeenCalled();
+    expect(db.marketInsight.create.mock.calls[0][0].data.approvedBy).toBeNull();
+  });
+
+  it("fonte OFICIAL com extração LITERAL entra ATIVA na hora e supersede o tópico", async () => {
+    const r = await addInsight({ workspaceId: "ws1", domain: "social", topic: "ig-algo", title: "Novo ranking IG", guidance: "priorizar reels de até 30s", source: "official", extraction: "literal_da_fonte", sourceName: "Meta" });
     expect(r.status).toBe("active");
     // arquivou o tópico ativo anterior (versionamento)
     expect(db.marketInsight.updateMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ topic: "ig-algo", status: "active" }) }));

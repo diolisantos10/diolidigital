@@ -2,9 +2,34 @@
 // Generates QualityCanvas audit reports from any upstream canvas.
 // Uses DIOLI_COGNITIVE_FLOW + department-specific quality gates.
 // Pure function — no side effects, no store access.
+//
+// ─── O QUE ESTAVA ESCRITO AQUI, E POR QUE ERA GRAVE (corrigido 05/08/2026) ───
+//
+//     const hasHallucination  = false; // synthetic — never has hallucinations
+//     const hasBrandViolation = false; // synthetic — always respects brand
+//     const hasClientValue    = true;
+//     const matchesBriefing   = true;
+//
+// Quatro das cinco checagens globais bloqueantes eram constantes verdadeiras, e
+// a quinta (`des_no_invented`) era `getPass: () => true` com o detalhe
+// "Assets seguem o Brand Hub aprovado" — uma AFIRMAÇÃO DE FATO sobre algo que
+// o código nunca consultou. Isso virava `overallVerdict: "PASS"` e a frase
+// "qualidade verificada", persistida por `run-auto-scope.ts` para todo cliente.
+//
+// O comentário "synthetic" contava a origem (canvases de simulação) mas o valor
+// era usado no caminho REAL (`source: "request"`). Premissa de simulação vazando
+// para produção é como quase toda mentira de sistema começa.
+//
+// Agora: sem mecanismo → `UNVERIFIED`. Com mecanismo → o mecanismo decide.
+// O único mecanismo determinístico que existe é o piso de verdade
+// (`conferirPisoDeVerdade`), e ele só roda quando o SERVIDOR entrega a
+// `VerdadeDoCliente` lida do banco — nunca com uma verdade montada por quem
+// chama. Sem ela, `no_hallucination` é `UNVERIFIED`, e o veredito não é PASS.
 
-import type { QualityCanvas, QualityAuditType, QualityPattern, QualityRecommendation } from "./quality-canvas";
+import type { QualityCanvas, QualityAuditType, QualityPattern, QualityRecommendation, GlobalCheckId, GlobalFinding } from "./quality-canvas";
 import { runQualityAuditGate } from "./quality-canvas";
+import { conferirPisoDeVerdade, resumirViolacoes, type VerdadeDoCliente } from "@/lib/agency/execution/piso-de-verdade";
+import { projecoesComOrigemDeclarada } from "./traffic-canvas";
 import type { StrategyCanvas } from "./strategy-canvas";
 import type { SocialCanvas } from "./social-canvas";
 import type { DesignCanvas } from "./design-canvas";
@@ -19,13 +44,20 @@ export interface QualityEngineInput {
   analyticsCanvas?: AnalyticsCanvas;
   requestId?: string;
   source?: "request" | "simulation";
+  /**
+   * A verdade do cliente LIDA PELO SERVIDOR (`buildVerdadeDoCliente`). É o que
+   * transforma `no_hallucination` de constante em checagem. Ausente = a
+   * checagem fica `UNVERIFIED`; nunca vira PASS por omissão.
+   */
+  verdade?: VerdadeDoCliente;
 }
 
 // ── Segment-aware dept check profiles ────────────────────────────────────────
 
 interface DeptCheckSpec {
   id: string; label: string; blocking: boolean;
-  getPass: (input: QualityEngineInput) => boolean;
+  /** `null` = não há como conferir. Vira `UNVERIFIED`, jamais PASS. */
+  getPass: (input: QualityEngineInput) => boolean | null;
   getDetail: (input: QualityEngineInput) => string;
 }
 
@@ -44,7 +76,11 @@ const SOCIAL_CHECKS: DeptCheckSpec[] = [
 const DESIGN_CHECKS: DeptCheckSpec[] = [
   { id: "des_visual",        label: "Consistência visual verificada",  blocking: true,  getPass: (i) => !!i.designCanvas?.colorDirection, getDetail: (i) => i.designCanvas?.colorDirection ? "Direção de cor definida." : "Direção de cor não especificada." },
   { id: "des_briefs",        label: "Briefs criativos gerados",        blocking: true,  getPass: (i) => (i.designCanvas?.creativeBriefs?.length ?? 0) > 0, getDetail: (i) => `${i.designCanvas?.creativeBriefs?.length ?? 0} brief(s) criado(s).` },
-  { id: "des_no_invented",   label: "Sem assets inventados",           blocking: true,  getPass: (_i) => true, getDetail: (_i) => "Assets seguem o Brand Hub aprovado." },
+  // Era `getPass: () => true` com o detalhe "Assets seguem o Brand Hub
+  // aprovado." — uma afirmação de fato sobre um inventário que este código
+  // nunca leu. Não existe Brand Hub consultável aqui; enquanto não existir, a
+  // resposta honesta é "não sei".
+  { id: "des_no_invented",   label: "Sem assets inventados",           blocking: true,  getPass: (_i) => null, getDetail: (_i) => "NÃO VERIFICADO — a agência não tem inventário do Brand Hub consultável por código. Nenhuma conferência de asset foi feita." },
 ];
 
 const TRAFFIC_CHECKS: DeptCheckSpec[] = [
@@ -66,6 +102,119 @@ const DEPT_CHECKS: Record<string, DeptCheckSpec[]> = {
   "paid-traffic": TRAFFIC_CHECKS,
   analytics:     ANALYTICS_CHECKS,
 };
+
+// ── O QUE DÁ PARA CONFERIR DE VERDADE ────────────────────────────────────────
+
+/**
+ * O texto que a agência AFIRMA — a prosa que descreve o cliente e vira peça,
+ * legenda, oferta e copy. É este texto que o piso de verdade confere.
+ *
+ * O que fica de fora, e por quê: a tabela financeira e os projetados do tráfego
+ * (`budgetAllocation`, `projectedROAS`, `projectedCAC`). Não é brecha — é que
+ * esses campos têm um dono próprio de honestidade agora: o
+ * `projections_anchored`, que exige que o número venha da verba do cliente ou
+ * carregue a ressalva de faixa de referência. Passá-los pelo piso de verdade
+ * (que reprova todo "R$" que o cliente não informou) faria TODO plano de mídia
+ * ser bloqueado por citar o próprio fee — reprovar tudo é como se desliga um
+ * freio.
+ */
+function textoAfirmado(input: QualityEngineInput): string {
+  const partes: string[] = [];
+  const s = input.strategyCanvas;
+  if (s) {
+    partes.push(s.positioningStatement ?? "", s.audience ?? "", s.mainObjective ?? "");
+    for (const t of s.contentTerritories ?? []) partes.push(typeof t === "string" ? t : JSON.stringify(t));
+  }
+  const so = input.socialCanvas;
+  if (so) {
+    partes.push(so.communicationDirection ?? "");
+    for (const e of so.editorialCalendar?.entries ?? []) partes.push(JSON.stringify(e));
+    for (const t of so.contentPlan?.themes ?? []) partes.push(typeof t === "string" ? t : JSON.stringify(t));
+  }
+  const d = input.designCanvas;
+  if (d) {
+    partes.push(d.colorDirection ?? "");
+    for (const b of d.creativeBriefs ?? []) partes.push(JSON.stringify(b));
+  }
+  const t = input.trafficCanvas;
+  if (t) {
+    partes.push(t.offerContext ?? "", t.targetAudience ?? "", t.channelRationale ?? "");
+    for (const o of t.offerMappings ?? []) partes.push([o.name, o.description, o.cta].filter(Boolean).join(" "));
+    for (const c of t.creativeRequirements ?? []) partes.push([c.copyDirection, c.ctaText].filter(Boolean).join(" "));
+  }
+  return partes.filter((p) => typeof p === "string" && p.trim().length > 0).join("\n");
+}
+
+/**
+ * As checagens globais, apuradas com o que EXISTE. Cada uma responde uma de
+ * três coisas: passou, falhou, ou "não tenho mecanismo". Nenhuma responde
+ * "passou" por não ter olhado.
+ */
+function apurarGlobais(
+  input: QualityEngineInput,
+  ctx: { hasRisks: boolean; hasEvidencePath: boolean },
+): Partial<Record<GlobalCheckId, GlobalFinding>> {
+  const findings: Partial<Record<GlobalCheckId, GlobalFinding>> = {};
+
+  // 1. SEM ALUCINAÇÃO — a única global bloqueante que hoje tem mecanismo.
+  //    Depende da verdade lida pelo SERVIDOR; sem ela, não se afirma nada.
+  if (input.verdade) {
+    const texto = textoAfirmado(input);
+    if (texto.trim().length === 0) {
+      findings.no_hallucination = {
+        status: "UNVERIFIED",
+        detail: "NÃO VERIFICADO — os canvases não trouxeram texto afirmativo para conferir contra a verdade do cliente.",
+      };
+    } else {
+      const veredito = conferirPisoDeVerdade(texto, input.verdade);
+      findings.no_hallucination = veredito.aprovado
+        ? { status: "PASS", detail: "Conferido contra a verdade do cliente lida do banco (telefone, e-mail, valor, documento, promessa, horário, área, prazo): nenhuma afirmação sem lastro." }
+        : { status: "FAIL", detail: `${veredito.violacoes.length} afirmação(ões) sem lastro na verdade do cliente. ${resumirViolacoes(veredito.violacoes).slice(0, 600)}` };
+    }
+  }
+
+  // 2. NÚMEROS PROJETADOS COM ORIGEM DECLARADA — determinístico, e existe.
+  if (input.trafficCanvas) {
+    const ok = projecoesComOrigemDeclarada(input.trafficCanvas);
+    findings.projections_anchored = ok
+      ? {
+          status: "PASS",
+          detail: input.trafficCanvas.budgetBasis === "verba_informada"
+            ? "Budget e projeções derivados da verba informada pelo cliente."
+            : "Cliente não informou verba — todo campo projetado carrega a ressalva de faixa de referência do segmento.",
+        }
+      : { status: "FAIL", detail: "Números projetados sem verba do cliente e sem ressalva de origem — o time leria a faixa do segmento como estimativa deste cliente." };
+  } else {
+    findings.projections_anchored = { status: "PASS", detail: "Sem plano de mídia nesta auditoria — nenhum número projetado a ancorar." };
+  }
+
+  // 3. RISCOS — só sabemos olhar o gate do tráfego. Fora dele, não sabemos.
+  if (input.trafficCanvas) {
+    findings.risk_checked = ctx.hasRisks
+      ? { status: "WARNING", detail: "Quality Gate do tráfego reprovou — riscos identificados, endereçamento NÃO verificado." }
+      : { status: "WARNING", detail: "Quality Gate do tráfego sem falha. Riscos legais, financeiros e reputacionais do entregável NÃO foram verificados — não há mecanismo para isso." };
+  }
+  // Sem tráfego, `risk_checked` fica ausente → UNVERIFIED.
+
+  // 4. APROVAÇÃO — esta é verdade de código, não de julgamento: o artefato
+  //    nasce `draft` e a governança separa aprovar de aplicar.
+  findings.approval_verified = {
+    status: "PASS",
+    detail: "Artefato nasce em rascunho; aprovação e aplicação são transições separadas na governança do Brain.",
+  };
+
+  // 5. CAMINHO DE EVIDÊNCIA — checagem real sobre o estado dos canvases.
+  findings.evidence_path = ctx.hasEvidencePath
+    ? { status: "PASS", detail: "Caminho de evidência definido — há canvas aprovado com métrica de sucesso." }
+    : { status: "WARNING", detail: "Nenhum canvas aprovado — definir como medir o sucesso deste entregável." };
+
+  // 6, 7, 8. MARCA, BRIEFING e VALOR AO CLIENTE ficam DE FORA de propósito.
+  //    Não existe mecanismo executável para nenhum dos três, e é exatamente
+  //    isso que o relatório precisa dizer. Ausentes daqui → `UNVERIFIED`.
+  //    (`respects_brand`, `matches_briefing`, `client_value_clear`.)
+
+  return findings;
+}
 
 // ── Pattern detection ─────────────────────────────────────────────────────────
 
@@ -191,16 +340,13 @@ export function generateQualityCanvas(input: QualityEngineInput): QualityCanvas 
     ? (input.trafficCanvas.qualityGateResult?.overall === "FAIL")
     : false;
 
-  const hasHallucination = false; // synthetic — never has hallucinations
-  const hasBrandViolation = false; // synthetic — always respects brand
-  const hasClientValue = true;
-  const matchesBriefing = true;
   const hasEvidencePath = !!(input.trafficCanvas?.status === "approved" || input.analyticsCanvas?.status === "approved");
+
+  const globalFindings = apurarGlobais(input, { hasRisks, hasEvidencePath });
 
   const gateResult = runQualityAuditGate({
     clientName, segment, department: auditedDepartment, auditType,
-    deptSpecificChecks, hasRisks, hasBrandViolation, hasHallucination,
-    hasClientValue, matchesBriefing, hasEvidencePath,
+    deptSpecificChecks, globalFindings,
   });
 
   const patterns     = detectPatterns(input);
@@ -215,20 +361,33 @@ export function generateQualityCanvas(input: QualityEngineInput): QualityCanvas 
     ...(hasRisks ? ["Traffic: Quality Gate falhou — revisar antes de lançar"] : []),
   ];
 
+  const naoVerificados = gateResult.globalItems
+    .concat(gateResult.deptItems)
+    .filter((i) => i.status === "UNVERIFIED")
+    .map((i) => i.label);
+
   const keyFindings = [
     `Auditoria de ${auditedDepartment === "strategy" ? "Estratégia" : auditedDepartment === "paid-traffic" ? "Tráfego Pago" : auditedDepartment === "analytics" ? "Analytics" : auditedDepartment === "design" ? "Design" : "Social Media"} — veredicto: ${gateResult.overall}.`,
-    `${gateResult.passCount} checks passaram · ${gateResult.warningCount} avisos · ${gateResult.failCount} falhas.`,
+    `${gateResult.passCount} checks passaram · ${gateResult.warningCount} avisos · ${gateResult.failCount} falhas · ${gateResult.unverifiedCount} NÃO VERIFICADOS.`,
+    ...(naoVerificados.length > 0
+      ? [`⚠ Sem verificação (não confundir com aprovado): ${naoVerificados.join(", ")}.`]
+      : []),
     ...(patterns.filter((p) => p.type === "strength").map((p) => `✓ Força: ${p.description}`).slice(0, 2)),
     ...(patterns.filter((p) => p.type === "risk").map((p) => `⚠ Risco: ${p.description}`).slice(0, 2)),
   ];
 
+  // A frase "Todos os N checks aprovados — qualidade verificada" só pode existir
+  // quando NADA ficou por verificar. Enquanto houver `unverifiedCount > 0`, o
+  // relatório diz o que de fato aconteceu: parte foi conferida, parte não.
   const verdictRationale = gateResult.overall === "BLOCKED"
     ? `${gateResult.blockingFailures} falha(s) bloqueante(s) detectada(s) — entrega bloqueada até correção.`
     : gateResult.overall === "FAIL"
     ? `${gateResult.failCount} falha(s) não bloqueante(s) — revisão necessária antes de avançar.`
+    : gateResult.unverifiedBlocking > 0
+    ? `${gateResult.unverifiedCount} check(s) NÃO VERIFICADO(S), ${gateResult.unverifiedBlocking} deles bloqueante(s) — a agência NÃO conferiu ${naoVerificados.slice(0, 3).join(", ")}${naoVerificados.length > 3 ? " e outros" : ""}. Isto não é aprovação: é ausência de verificação, e esta casa não tem revisor humano depois daqui.`
     : gateResult.overall === "WARNING"
-    ? `${gateResult.warningCount} aviso(s) — entrega liberada mas recomenda-se revisão.`
-    : `Todos os ${gateResult.passCount} checks aprovados — qualidade verificada.`;
+    ? `${gateResult.warningCount} aviso(s)${gateResult.unverifiedCount > 0 ? ` e ${gateResult.unverifiedCount} não verificado(s)` : ""} — entrega liberada mas recomenda-se revisão.`
+    : `Todos os ${gateResult.passCount} checks executáveis aprovados — nenhum item ficou sem verificação.`;
 
   return {
     id: `qc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,

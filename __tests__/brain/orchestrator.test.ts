@@ -18,6 +18,11 @@ const SEM_CHAVE = { ok: false, error: "Nenhuma IA conectada. Conecte uma chave e
 
 // ── Prisma mock (for the apply route) ───────────────────────────────────────────
 const findUniqueRequest = vi.fn();
+// A rota /apply passou a conferir a POSSE antes de adotar a solicitação
+// (achado 10/11 da 8ª auditoria): sem isso, o id de uma solicitação de outra
+// agência criava Cliente + Projeto aqui e reescrevia o `workspaceId` dela.
+// A conferência lê por `findFirst`; este mock HONRA o `workspaceId` do where.
+const findFirstRequest = vi.fn();
 const createClient = vi.fn();
 const updateRequest = vi.fn();
 const createProject = vi.fn();
@@ -26,6 +31,7 @@ vi.mock("@/lib/db/client", () => ({
   prisma: {
     clientRequestDb: {
       findUnique: (...a: unknown[]) => findUniqueRequest(...a),
+      findFirst: (...a: unknown[]) => findFirstRequest(...a),
       update: (...a: unknown[]) => updateRequest(...a),
     },
     client: { create: (...a: unknown[]) => createClient(...a) },
@@ -68,6 +74,13 @@ beforeEach(() => {
   generate.mockReset();
   generate.mockResolvedValue(SEM_CHAVE);
   findUniqueRequest.mockReset();
+  findFirstRequest.mockReset();
+  // Por padrão, a solicitação é DESTE workspace (ws1, o da sessão mockada).
+  findFirstRequest.mockImplementation(async ({ where }: { where: Record<string, unknown> }) => {
+    const ramos = (where.OR as { workspaceId: string | null }[] | undefined);
+    if (ramos && !ramos.some((r) => r.workspaceId === "ws1" || r.workspaceId === null)) return null;
+    return { id: where.id as string, workspaceId: "ws1", clientId: null };
+  });
   createClient.mockReset();
   updateRequest.mockReset();
   createProject.mockReset();
@@ -193,6 +206,19 @@ describe("POST /api/brain/orchestrate/apply", () => {
     expect(res.status).toBe(201);
     expect(createClient).toHaveBeenCalledOnce();
     expect(createProject.mock.calls[0][0].data.clientId).toBe("newcli");
+  });
+
+  it("solicitação de OUTRA agência → 404, e NADA criado (nem cliente, nem projeto, nem adoção)", async () => {
+    // A solicitação existe, mas é do ws2: o `findFirst` com o workspace da
+    // sessão não a encontra, e a rota para antes de qualquer escrita.
+    findFirstRequest.mockResolvedValue(null);
+    findUniqueRequest.mockResolvedValue({ id: "req-do-vizinho", clientId: null, businessName: "Vizinha", segment: "X" });
+
+    const res = await applyPost(applyReq({ clientRequestId: "req-do-vizinho", proposal: validProposal }));
+    expect(res.status).toBe(404);
+    expect(createClient).not.toHaveBeenCalled();
+    expect(createProject).not.toHaveBeenCalled();
+    expect(updateRequest).not.toHaveBeenCalled();
   });
 
   it("invalid proposal (missing fields) → 400, nothing created", async () => {

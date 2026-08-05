@@ -12,6 +12,8 @@ import type { SocialCanvas } from "./social-canvas";
 import type { DesignCanvas } from "./design-canvas";
 import {
   runTrafficQualityGate,
+  MARCA_FAIXA_DE_REFERENCIA,
+  type BudgetBasis,
   type AudienceSegment,
   type BudgetAllocation,
   type CampaignObjective,
@@ -30,11 +32,31 @@ export interface TrafficEngineInput {
   socialCanvas?: SocialCanvas;              // optional — enriches audience targeting
   designCanvas?: DesignCanvas;              // optional — links creative requirements
   budgetScenario?: "low" | "medium" | "high" | "premium";
+  /**
+   * A VERBA MENSAL QUE O CLIENTE INFORMOU, em reais. Quando vem, é ELA que
+   * manda: o total do plano é este número, e os projetados derivam dele.
+   *
+   * Quando não vem, o motor NÃO finge que veio — cai na faixa de referência do
+   * segmento e marca todo campo projetado com `MARCA_FAIXA_DE_REFERENCIA`.
+   *
+   * Quem preenche é o servidor (`run-auto-scope.ts`, a partir de
+   * `buildVerdadeDoCliente().verbas`). Ninguém monta este número à mão.
+   */
+  verbaInformadaBRL?: number;
   requestId?: string;
   source?: "request" | "simulation";
 }
 
 // ── Budget scenarios (monthly BRL) ───────────────────────────────────────────
+//
+// ⚠️ ESTA TABELA NÃO É O BUDGET DE NINGUÉM. É a faixa de referência do mercado,
+// usada só quando o cliente não informou verba. O furo que ela causava até
+// 05/08/2026: `budgetScenario` tinha default `"medium"`, `run-auto-scope.ts`
+// nunca passava cenário nenhum, e portanto TODO cliente recebia um plano de
+// R$ 4.000/mês — R$ 800 de fee, R$ 3.200 de mídia — persistido como
+// `BrainArtifact`, com ROAS "6x–12x" e alcance "30K–80K" ao lado. O filtro de
+// preço do portal segurava o "R$"; o ROAS e o alcance passavam limpos, e o time
+// planejava em cima deles.
 
 const BUDGET_TOTALS: Record<string, number> = {
   low:     1500,
@@ -44,6 +66,22 @@ const BUDGET_TOTALS: Record<string, number> = {
 };
 
 const MANAGEMENT_FEE_PERCENT = 20; // agency fee as % of total (separate line item)
+
+/** O cenário cujo total mais se aproxima da verba real — só para rotular a
+ *  faixa. O VALOR usado nas contas é sempre a verba, nunca o da tabela. */
+function cenarioMaisProximo(verbaBRL: number): "low" | "medium" | "high" | "premium" {
+  const cenarios = ["low", "medium", "high", "premium"] as const;
+  return cenarios.reduce((melhor, c) =>
+    Math.abs(BUDGET_TOTALS[c]! - verbaBRL) < Math.abs(BUDGET_TOTALS[melhor]! - verbaBRL) ? c : melhor,
+  );
+}
+
+/** Cola a ressalva no valor. Vazio e "N/D" ficam como estão — marcar ausência
+ *  de número como "faixa de referência" seria inventar uma faixa. */
+function comRessalva(valor: string): string {
+  if (!valor || valor === "N/D") return valor;
+  return `${valor} (${MARCA_FAIXA_DE_REFERENCIA})`;
+}
 
 // ── Segment traffic profiles ─────────────────────────────────────────────────
 // Order matters: more specific profiles before generic ones.
@@ -321,8 +359,9 @@ function buildBudgetAllocation(
   scenario: "low" | "medium" | "high" | "premium",
   channels: TrafficChannel[],
   campaignAllocations: { channel: TrafficChannel; percent: number }[],
+  total: number,
+  basis: BudgetBasis,
 ): BudgetAllocation {
-  const total     = BUDGET_TOTALS[scenario];
   const feePct    = MANAGEMENT_FEE_PERCENT;
   const feeBRL    = Math.round(total * feePct / 100);
   const mediaBRL  = total - feeBRL;
@@ -334,6 +373,10 @@ function buildBudgetAllocation(
 
   return {
     scenario,
+    basis,
+    basisNote: basis === "verba_informada"
+      ? `Total mensal de R$ ${total.toLocaleString("pt-BR")} informado pelo cliente.`
+      : `Cliente não informou verba. R$ ${total.toLocaleString("pt-BR")} é ${MARCA_FAIXA_DE_REFERENCIA} — confirmar com o cliente antes de qualquer compromisso.`,
     totalMonthlyBRL: total,
     managementFeePercent: feePct,
     managementFeeBRL: feeBRL,
@@ -353,22 +396,29 @@ function buildTrafficFlowTrace(
   strategyCanvas: StrategyCanvas,
   profile: TrafficSegmentProfile,
   budgetScenario: string,
+  total: number,
+  basis: BudgetBasis,
+  proj: (v: string) => string,
 ): TrafficFlowStep[] {
   return DIOLI_COGNITIVE_FLOW.map((step) => {
     let summary = "";
     switch (step.id) {
       case "intention":    summary = `Tráfego pago para: ${strategyCanvas.mainObjective}`;                          break;
       case "context":      summary = `Segmento: ${strategyCanvas.segment} — ${strategyCanvas.clientName}`;         break;
-      case "certainty":    summary = `Canais: ${profile.recommendedChannels.join(", ")} — Budget: ${budgetScenario}`; break;
+      // O passo "certainty" é onde o motor declara o que SABE. Dizer só
+      // "Budget: medium" era o oposto disso: escondia que o número era default.
+      case "certainty":    summary = `Canais: ${profile.recommendedChannels.join(", ")} — Budget: R$ ${total.toLocaleString("pt-BR")}/mês (${basis === "verba_informada" ? "verba informada pelo cliente" : `${MARCA_FAIXA_DE_REFERENCIA} — cliente não informou verba`})`; break;
       case "unknowns":     summary = "Verificados: pixel instalado, acesso a contas de mídia, criativos disponíveis"; break;
       case "routing":      summary = "Rota: Traffic → campanhas → aprovação → ativação com criativos aprovados";    break;
       case "permission":   summary = "Permissões: Strategy Canvas presente — Traffic autorizado";                   break;
       case "brand":        summary = `Canais: ${profile.channelRationale.slice(0, 70)}...`;                         break;
-      case "objective":    summary = `Objetivo: ${profile.primaryObjective} — ${profile.projectedLeads(BUDGET_TOTALS["medium"])}`; break;
+      // Era `BUDGET_TOTALS["medium"]` fixo: mesmo quando o plano usava outro
+      // total, o traço cognitivo relatava a projeção de R$ 4.000.
+      case "objective":    summary = `Objetivo: ${profile.primaryObjective} — ${proj(profile.projectedLeads(total))}`; break;
       case "risk":         summary = profile.keyRisks[0] ?? "Riscos mapeados";                                      break;
       case "approval":     summary = "Aguarda aprovação humana do Traffic Canvas e budget";                         break;
       case "training":     summary = "Performance de campanhas alimenta base de treinamento de tráfego";            break;
-      case "measurement":  summary = `Métricas: CPL, ROAS, CAC — ${profile.projectedROAS}`;                         break;
+      case "measurement":  summary = `Métricas: CPL, ROAS, CAC — ${proj(profile.projectedROAS)}`;                    break;
       default:             summary = `${step.label} — concluído`;
     }
     return { stepId: step.id, order: step.order, label: step.label, completed: true, summary };
@@ -382,14 +432,32 @@ export function generateTrafficCanvas(input: TrafficEngineInput): TrafficCanvas 
     strategyCanvas,
     socialCanvas,
     designCanvas,
-    budgetScenario = "medium",
+    verbaInformadaBRL,
     requestId,
     source = "simulation",
   } = input;
 
+  // A DECISÃO (05/08/2026): as DUAS metades, e nesta ordem de prioridade.
+  //   1. Verba informada pelo cliente manda — o plano é feito com o dinheiro
+  //      dele, e aí os projetados são estimativa DELE, sem ressalva.
+  //   2. Sem verba informada, o motor não inventa uma: usa a faixa do segmento
+  //      e DECLARA que é faixa, dentro de cada string projetada.
+  // Não escolhi só a segunda porque rotular bem um número errado continua
+  // deixando o time planejar em cima dele; não escolhi só a primeira porque
+  // sem verba informada o plano teria de sumir, e um departamento que não
+  // entrega nada quando falta um campo é um departamento que ninguém usa.
+  const temVerbaDoCliente = typeof verbaInformadaBRL === "number" && Number.isFinite(verbaInformadaBRL) && verbaInformadaBRL > 0;
+  const budgetBasis: BudgetBasis = temVerbaDoCliente ? "verba_informada" : "faixa_de_referencia";
+  const budgetScenario = temVerbaDoCliente
+    ? cenarioMaisProximo(verbaInformadaBRL!)
+    : input.budgetScenario ?? "medium";
+
   const profile  = getTrafficProfile(strategyCanvas.segment);
-  const total    = BUDGET_TOTALS[budgetScenario];
+  const total    = temVerbaDoCliente ? Math.round(verbaInformadaBRL!) : BUDGET_TOTALS[budgetScenario]!;
   const channels = profile.recommendedChannels;
+
+  // Sem verba do cliente, TODO valor projetado sai daqui com a ressalva colada.
+  const proj = temVerbaDoCliente ? (v: string) => v : comRessalva;
 
   const rawCampaigns = profile.getCampaigns(total, channels);
   const campaigns: TrafficCampaign[] = rawCampaigns.map((c, i) => {
@@ -403,8 +471,8 @@ export function generateTrafficCanvas(input: TrafficEngineInput): TrafficCanvas 
       budgetAllocation: c.budgetAllocation ?? 30,
       budgetBRL: brl,
       audienceType: c.audienceType ?? "cold_top",
-      expectedCPA: profile.projectedCAC(total),
-      expectedROAS: profile.projectedROAS,
+      expectedCPA: proj(profile.projectedCAC(total)),
+      expectedROAS: proj(profile.projectedROAS),
       priority: c.priority ?? "media",
     };
   });
@@ -418,7 +486,8 @@ export function generateTrafficCanvas(input: TrafficEngineInput): TrafficCanvas 
     description: a.description ?? "",
     interests: a.interests ?? [],
     behaviors: a.behaviors ?? [],
-    estimatedReach: a.estimatedReach ?? "N/D",
+    // O alcance é o número que o filtro de preço do portal nunca segurou.
+    estimatedReach: proj(a.estimatedReach ?? "N/D"),
     funnelStage: a.funnelStage ?? "top",
   }));
 
@@ -446,9 +515,9 @@ export function generateTrafficCanvas(input: TrafficEngineInput): TrafficCanvas 
   }));
 
   const channelAllocations = campaigns.map((c) => ({ channel: c.channel, percent: c.budgetAllocation }));
-  const budgetAllocation = buildBudgetAllocation(budgetScenario, channels, channelAllocations);
+  const budgetAllocation = buildBudgetAllocation(budgetScenario, channels, channelAllocations, total, budgetBasis);
 
-  const cognitiveFlowTrace = buildTrafficFlowTrace(strategyCanvas, profile, budgetScenario);
+  const cognitiveFlowTrace = buildTrafficFlowTrace(strategyCanvas, profile, budgetScenario, total, budgetBasis, proj);
 
   const partial: Omit<TrafficCanvas, "qualityGateResult" | "cognitiveFlowTrace" | "id" | "status" | "createdAt" | "source"> = {
     strategyCanvasId: strategyCanvas.id,
@@ -468,14 +537,15 @@ export function generateTrafficCanvas(input: TrafficEngineInput): TrafficCanvas 
 
     budgetScenario,
     budgetAllocation,
+    budgetBasis,
 
     offerMappings,
     recommendedChannels: channels,
     channelRationale:    profile.channelRationale,
 
-    projectedMonthlyLeads: profile.projectedLeads(total),
-    projectedCAC:          profile.projectedCAC(total),
-    projectedROAS:         profile.projectedROAS,
+    projectedMonthlyLeads: proj(profile.projectedLeads(total)),
+    projectedCAC:          proj(profile.projectedCAC(total)),
+    projectedROAS:         proj(profile.projectedROAS),
     keyRisks:              profile.keyRisks,
     successIndicators:     profile.successIndicators,
   };

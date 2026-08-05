@@ -3,7 +3,7 @@
 // API calls) and persists the results as BrainArtifact records.
 
 import { prisma } from "@/lib/db/client";
-import { buildClientSnapshot } from "@/lib/dioli-brain/client-snapshot";
+import { buildClientSnapshot, buildVerdadeDoCliente } from "@/lib/dioli-brain/client-snapshot";
 import { generateStrategyCanvas } from "@/lib/dioli-brain/strategy-engine";
 import { generateSocialCanvas } from "@/lib/dioli-brain/social-engine";
 import { generateDesignCanvas } from "@/lib/dioli-brain/design-engine";
@@ -20,6 +20,19 @@ export async function runAutoScope(
   const snapshot = await buildClientSnapshot(clientRequestId);
   if (!snapshot) throw new Error(`ClientRequest not found: ${clientRequestId}`);
 
+  // A VERDADE LIDA PELO SERVIDOR — não montada por quem chama, não vinda do
+  // navegador. É ela que faz o `no_hallucination` do gate deixar de ser
+  // constante e o budget do tráfego deixar de ser tabela. `null` (banco fora do
+  // ar, cliente inexistente) NÃO vira verdade vazia: vira ausência, e ausência
+  // deixa a checagem em NÃO VERIFICADO — nunca em aprovado.
+  const verdade = await buildVerdadeDoCliente(clientRequestId);
+
+  // A verba que o CLIENTE informou. Mais de uma informada → a maior é o teto
+  // que ele autorizou; nenhuma → o motor de tráfego cai na faixa de referência
+  // do segmento e DECLARA que é faixa.
+  const verbas = verdade?.verbas ?? [];
+  const verbaInformadaBRL = verbas.length > 0 ? Math.max(...verbas) : undefined;
+
   const strategyCanvas = generateStrategyCanvas({
     businessName: snapshot.businessName,
     segment:      snapshot.segment,
@@ -32,9 +45,9 @@ export async function runAutoScope(
 
   const socialCanvas    = generateSocialCanvas({ strategyCanvas, requestId: clientRequestId, source: "request" });
   const designCanvas    = generateDesignCanvas({ socialCanvas, requestId: clientRequestId, source: "request" });
-  const trafficCanvas   = generateTrafficCanvas({ strategyCanvas, socialCanvas, designCanvas, requestId: clientRequestId, source: "request" });
+  const trafficCanvas   = generateTrafficCanvas({ strategyCanvas, socialCanvas, designCanvas, verbaInformadaBRL, requestId: clientRequestId, source: "request" });
   const analyticsCanvas = generateAnalyticsCanvas({ strategyCanvas, socialCanvas, designCanvas, trafficCanvas, requestId: clientRequestId, source: "request" });
-  const qualityCanvas   = generateQualityCanvas({ strategyCanvas, socialCanvas, designCanvas, trafficCanvas, analyticsCanvas, requestId: clientRequestId, source: "request" });
+  const qualityCanvas   = generateQualityCanvas({ strategyCanvas, socialCanvas, designCanvas, trafficCanvas, analyticsCanvas, verdade: verdade ?? undefined, requestId: clientRequestId, source: "request" });
 
   const artifacts = [
     { dept: "strategy",  canvas: strategyCanvas,  gate: strategyCanvas.qualityGateResult,  flow: strategyCanvas.cognitiveFlowTrace },
