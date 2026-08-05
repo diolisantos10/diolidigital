@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHmac, timingSafeEqual } from "crypto";
 import { prisma } from "@/lib/db/client";
+import { produzirPedidoDeBalcao } from "@/lib/agency/balcao/producao";
 
 // Valida o HMAC `x-signature` do Mercado Pago. Manifesto, conforme a doc:
 //   id:<data.id>;request-id:<x-request-id>;ts:<ts>;
@@ -73,6 +74,23 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         where: { id: pm.external_reference },
         data:  { status: "in_progress" },
       });
+
+      // ── PAGOU, PRODUZ. ───────────────────────────────────────────────────
+      // Até 05/08/2026 o webhook parava na linha acima: o pedido virava
+      // "in_progress" e ficava esperando alguém empurrar à mão. Num item de
+      // R$ 79 uma única intervenção humana come a margem do mês — o balcão só
+      // fecha a conta se a produção começar sozinha. Abre cliente, projeto e
+      // acesso ao portal, e entrega o resto à esteira que já existe.
+      //
+      // Falhar aqui NÃO desfaz o pagamento: o pedido continua pago e visível
+      // para o time. Por isso o erro é registrado e a resposta ao gateway
+      // continua 200 — devolver erro faria o Mercado Pago reenviar para sempre.
+      const produzido = await produzirPedidoDeBalcao(pm.external_reference).catch(
+        (e: unknown) => ({ ok: false as const, motivo: e instanceof Error ? e.message : "falha" }),
+      );
+      if (!produzido.ok) {
+        console.error("[self-serve/webhook] producao do balcao nao iniciou:", produzido.motivo);
+      }
     }
   } catch (err) {
     console.error("[self-serve/webhook] error:", err);

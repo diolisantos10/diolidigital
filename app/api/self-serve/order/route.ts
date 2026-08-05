@@ -64,6 +64,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         status:       "new",
         attachmentsJson: "[]",
         briefingJson: JSON.stringify({
+          // O ID DO ITEM. É por ele que a produção automática do balcão sabe o
+          // que foi comprado — sem isso, pagamento aprovado vira pedido mudo.
+          serviceId: service.id,
+          precoPago: service.price,
           businessName: name,
           segment: service.category,
           objectives: [service.description],
@@ -131,6 +135,23 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     } catch (err) {
       console.warn("[self-serve/order] MP error:", err);
     }
+  }
+
+  // ── ITEM DE BALCÃO SEM GATEWAY NÃO VIRA PEDIDO ─────────────────────────
+  // O balcão só é lucrativo com pagamento ANTES da produção: num item de R$ 39,
+  // cobrar depois é prejuízo garantido — e o caminho do WhatsApp grava o pedido
+  // sem ter recebido nada. Configuração faltando vira porta FECHADA, e a pessoa
+  // recebe uma frase honesta em vez de um pedido que ninguém vai produzir.
+  if (service.id.startsWith("balcao-")) {
+    await prisma.clientRequestDb.delete({ where: { id: dbId } }).catch(() => {});
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          "O pagamento online está indisponível neste momento. Chame a Dioli no WhatsApp que a gente fecha por lá.",
+      },
+      { status: 503 },
+    );
   }
 
   // ── 3. Fallback: WhatsApp manual flow ──────────────────────────────────
