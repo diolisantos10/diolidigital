@@ -43,6 +43,45 @@ export async function varrerDadosPresos(agora: Date = new Date()): Promise<Resul
       });
     }
 
+    // 1b. O RETRATO COMPLETO DA ESTEIRA. Contar só "approved" e "scheduled"
+    //     esconde o caso mais comum de peça parada: a que nunca saiu de
+    //     rascunho. Em 05/08/2026 o CEO disse "os carrosséis não chegaram para
+    //     eu aprovar" e as duas medidas anteriores respondiam zero — zero que
+    //     não distingue "não existe" de "existe e está em outro estado".
+    const rascunhos = await prisma.socialPost.count({ where: { status: "draft" } });
+    const publicados = await prisma.socialPost.count({ where: { status: "published" } });
+    const totalDePosts = await prisma.socialPost.count();
+    const carrosseis = await prisma.socialPost.count({ where: { format: "carousel" } });
+    const visiveisAoCliente = await prisma.socialPost.count({ where: { visibility: "compartilhado" } });
+    medidas.postsRascunho = rascunhos;
+    medidas.postsPublicados = publicados;
+    medidas.postsTotal = totalDePosts;
+    medidas.postsCarrossel = carrosseis;
+    medidas.postsVisiveisAoCliente = visiveisAoCliente;
+
+    // Aprovações abertas: é o que o cliente VÊ como "esperando você".
+    const aprovacoesPendentes = await prisma.approvalRequest.count({ where: { status: "pending" } });
+    const aprovacoesVisiveis = await prisma.approvalRequest.count({
+      where: { status: "pending", clientVisible: true },
+    });
+    medidas.aprovacoesPendentes = aprovacoesPendentes;
+    medidas.aprovacoesVisiveisAoCliente = aprovacoesVisiveis;
+    medidas.clientes = await prisma.client.count();
+    medidas.projetos = await prisma.project.count();
+
+    // A ARMADILHA QUE JÁ ACONTECEU: peça pronta, aprovação criada, e o cliente
+    // não enxerga porque o card nasceu invisível.
+    if (aprovacoesPendentes > 0 && aprovacoesVisiveis === 0) {
+      achados.push({
+        padrao: "estado-morto",
+        chave: "aprovacao-invisivel",
+        titulo: "Aprovação pendente que o cliente NÃO enxerga",
+        evidencia: `${aprovacoesPendentes} card(s) em "pending" e nenhum com clientVisible — o portal dele mostra vazio`,
+        local: "ApprovalRequest.clientVisible",
+        gravidade: "alto",
+      });
+    }
+
     // 2. Agendado para o passado e não publicado: o relógio parou e ninguém viu.
     const atrasados = await prisma.socialPost.findMany({
       where: { status: "scheduled", scheduledFor: { lt: agora } },
