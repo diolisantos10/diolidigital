@@ -168,6 +168,10 @@ O projeto tem **duas camadas** de componentes. A direção daqui pra frente é u
 ### 4.3 Regras de componente
 - **Nunca** recrie um `<button>`/`<input>`/modal "na mão" se já existe um componente. Reuse.
 - Todo botão só de ícone precisa de `aria-label`.
+- **Contador de excedente é um caminho, nunca um rótulo.** "+2 mais", "e outros 5",
+  "…" — se existe conteúdo além do que a caixa mostra, o contador é `<button>` e
+  abre a lista completa. No Planner, `+N mais` era uma `<div>` inerte: da quarta
+  peça do dia em diante o trabalho ficava sem nenhum caminho pela tela.
 - Todo `<input>/<textarea>/<select>` precisa de `<label>` associado (`htmlFor`/`id`) ou `aria-label`.
 - Elemento clicável precisa ser `<button>`/`<a>` (não `<div onClick>`); se for `<div>`,
   precisa de `role`, `tabIndex={0}` e handler de teclado (Enter/Espaço).
@@ -198,6 +202,19 @@ nada de ruído visual.
 - **Espaçe com `flex`/`grid` + `gap`**, não com margens soltas.
 - Conteúdo largo (tabelas, código) rola dentro do próprio container (`overflow-x-auto`) —
   a página nunca rola horizontalmente.
+
+### 6.0 Célula estreita não recebe cartão com texto — recebe resumo tocável
+
+Grade de 7 colunas (calendário) dentro do painel: a 768px sobram ~77px por
+coluna. Um chip com miniatura + rótulo ali não trunca a legenda, ele **apaga** a
+legenda — o resultado é uma tela cheia de retângulos coloridos sem informação
+nenhuma, que é exatamente a sensação de "produto pobre".
+
+A saída não é encolher a fonte (a escala da §3 tem piso de 12px): é **trocar a
+densidade pela navegação**. Abaixo de `lg`, cada dia vira um resumo tocável
+(miniaturas empilhadas + um ponto por estado + contagem) e o conteúdo completo
+mora a um toque, num painel do dia. Chip com texto só onde a célula comporta —
+`lg` para cima. No celular, a vista padrão é a **lista**, não a grade.
 
 ### 6.1 Elemento fixo obriga espaço reservado — e quem reserva é o layout
 
@@ -291,6 +308,32 @@ variável que o layout usa para reservar.
 - **IA em modo alternativo:** se uma geração por IA falhar e cair em conteúdo de
   fallback/regras, **avise o usuário** com um banner ("gerado em modo alternativo") —
   nunca faça passar por resultado real da IA.
+
+### 7.4 O quarto estado: trabalho que existe e o destinatário não vê
+
+Carregando, vazio e erro são os três clássicos. Numa ferramenta que produz para
+**outra pessoa** existe um quarto, e ele é o mais caro porque é **silencioso**:
+o item foi criado, salvo e agendado — e o destinatário não o enxerga.
+
+No Planner, post criado para cliente direto nascia com visibilidade "interno"
+(a API derivava do vínculo com a solicitação, que cliente direto não tem). A
+agência programava o mês inteiro, ninguém via erro, e o cliente pagante abria o
+portal vazio. **Estado vazio no portal do cliente não é detalhe de UI — é o
+cliente achando que não recebeu nada.**
+
+A regra, em três camadas — as três, não uma:
+
+1. **Campo.** Quem decide quem vê é a interface, explicitamente. Derivar
+   visibilidade de um efeito colateral é criar um estado que ninguém consegue
+   corrigir pela tela.
+2. **Sinal no item.** O item que o destinatário não vê tem marca própria na
+   lista (no Planner: contorno tracejado no chip + "Só a equipe vê" na linha).
+3. **Agregado + conserto.** No topo da tela, quantos itens estão nesse estado e
+   **um botão que resolve** — não só o diagnóstico.
+
+E a trava: fail-closed no servidor. "Compartilhado" sem destinatário nunca é
+gravado; a API recusa com motivo em português em vez de gravar uma promessa que
+ninguém recebe.
 
 ---
 

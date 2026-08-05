@@ -1,150 +1,85 @@
 "use client";
 
-// Planner — the agency's universal post scheduler + editorial calendar.
-// One place to plan a piece of content, tag every network it should go out on,
-// and see the whole month at a glance. Backed by /api/social-posts (SocialPost).
+// Planner — o calendário editorial da agência: uma peça planejada uma vez,
+// marcada para todas as redes em que deve sair, e o mês inteiro num olhar.
+// Fonte: /api/social-posts (SocialPost). Alimenta o portal do cliente.
 //
-// Publishing to the actual networks is a later phase (needs each platform's
-// OAuth); today this is the source of truth for WHAT goes out WHEN and WHERE,
-// and it feeds the client portal's Social tab read-only.
+// ── O QUE ESTA TELA APRENDEU (05/08/2026) ────────────────────────────────────
+// 1. TRABALHO INVISÍVEL É O PIOR DEFEITO. Post criado aqui para cliente direto
+//    nascia "interno" e o cliente não via nada — sem erro, sem aviso. Agora a
+//    visibilidade é campo, é sinal no chip e é aviso no topo do mês.
+// 2. NADA DE CONTEÚDO SEM CAMINHO. "+N mais" era uma <div> inerte: da quarta
+//    peça do dia em diante não havia como chegar nela. Hoje abre o painel do dia.
+// 3. ROTA CONSTRUÍDA SEM BOTÃO NÃO EXISTE. /api/social-posts/aprovacao montava
+//    o card de aprovação do cliente e nenhum componente a chamava.
 
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useAgencyStore } from "@/store/agency-store";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import EmptyState from "@/components/agency/ui/EmptyState";
-
-// ─── Network + format metadata ───────────────────────────────────────────────
-// Every network the Planner can target. Colour is the brand accent used for
-// chips and toggles so a glance at the calendar tells you the mix.
-const NETWORKS: { id: string; label: string; short: string; color: string }[] = [
-  { id: "instagram", label: "Instagram", short: "IG", color: "#E1306C" },
-  { id: "facebook",  label: "Facebook",  short: "FB", color: "#1877F2" },
-  { id: "tiktok",    label: "TikTok",    short: "TT", color: "#111111" },
-  { id: "linkedin",  label: "LinkedIn",  short: "IN", color: "#0A66C2" },
-  { id: "youtube",   label: "YouTube",   short: "YT", color: "#FF0000" },
-  { id: "pinterest", label: "Pinterest", short: "PT", color: "#E60023" },
-  { id: "twitter",   label: "X / Twitter", short: "X", color: "#000000" },
-  { id: "threads",   label: "Threads",   short: "TH", color: "#111111" },
-  { id: "whatsapp",  label: "WhatsApp",  short: "WA", color: "#25D366" },
-  { id: "gbp",       label: "Google Business", short: "GB", color: "#4285F4" },
-];
-const NETWORK_MAP = Object.fromEntries(NETWORKS.map((n) => [n.id, n]));
-
-const FORMATS: { id: string; label: string }[] = [
-  { id: "feed",     label: "Feed" },
-  { id: "reel",     label: "Reel" },
-  { id: "story",    label: "Story" },
-  { id: "carousel", label: "Carrossel" },
-  { id: "video",    label: "Vídeo" },
-];
-
-const STATUS_META: Record<string, { label: string; bg: string; fg: string }> = {
-  draft:     { label: "Rascunho",  bg: "#F0F0ED", fg: "#6B6B65" },
-  scheduled: { label: "Agendado",  bg: "#DBEAFE", fg: "#1D4ED8" },
-  published: { label: "Publicado", bg: "#DCFCE7", fg: "#16A34A" },
-};
-
-const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-const MONTHS = [
-  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
-];
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-interface VideoScript {
-  hooks: string[];
-  scenes: { visual: string; voiceover: string; onScreen: string }[];
-  audio: string;
-  cta: string;
-}
-interface Post {
-  id: string;
-  clientId: string | null;
-  clientRequestId: string | null;
-  caption: string;
-  networks: string[];
-  format: string;
-  pillar: string | null;
-  mediaUrl: string | null;
-  script: VideoScript | null;
-  scheduledFor: string | null;
-  status: string;
-}
-const VIDEO_FORMATS = new Set(["reel", "video", "story"]);
-
-// Turn a roteiro into a provider-agnostic generation prompt, ready to paste
-// into Runway / Pika (or feed to their API later — same text). Each scene
-// becomes a clip prompt; overall specs and audio/CTA framing lead it.
-function buildVideoPrompt(script: VideoScript, format: string, pillar: string): string {
-  const ratio = format === "story" ? "9:16 vertical" : format === "reel" ? "9:16 vertical" : "9:16 vertical";
-  const lines: string[] = [];
-  lines.push(`Vídeo curto para redes sociais — ${ratio}, ~15–30s, ritmo dinâmico, alta qualidade.`);
-  if (pillar) lines.push(`Tema: ${pillar}.`);
-  if (script.hooks[0]) lines.push(`Abertura (gancho, 0–2s): ${script.hooks[0]}`);
-  lines.push("");
-  lines.push("CLIPES (gere um por cena):");
-  script.scenes.forEach((s, i) => {
-    const parts = [s.visual].filter(Boolean);
-    if (s.onScreen) parts.push(`texto na tela: "${s.onScreen}"`);
-    lines.push(`${i + 1}. ${parts.join(" — ")}`);
-  });
-  lines.push("");
-  if (script.audio) lines.push(`Trilha/áudio: ${script.audio}`);
-  if (script.cta) lines.push(`Encerramento (CTA): ${script.cta}`);
-  return lines.join("\n");
-}
-
-// Local-date key (YYYY-MM-DD) from an ISO string, in the viewer's timezone.
-function dayKey(iso: string | null): string | null {
-  if (!iso) return null;
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return null;
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-function keyOf(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
+import { useReservaDeBarra } from "@/components/agency/layout/useReservaDeBarra";
+import { Composer } from "@/components/agency/planner/Composer";
+import { IdeasPanel, type Idea } from "@/components/agency/planner/IdeasPanel";
+import { PainelDoDia } from "@/components/agency/planner/PainelDoDia";
+import { PostChip } from "@/components/agency/planner/PostChip";
+import { LinhaDePeca } from "@/components/agency/planner/LinhaDePeca";
+import {
+  MONTHS, WEEKDAYS, STATUS_ORDEM, STATUS_META, metaDoStatus,
+  dayKey, keyOf, trocarODia, type Post,
+} from "@/components/agency/planner/tipos";
 
 export default function PlannerPage() {
   const { clients } = useAgencyStore();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
   const [cursor, setCursor] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
   const [view, setView] = useState<"calendar" | "list">("calendar");
   const [clientFilter, setClientFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [editing, setEditing] = useState<Post | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
   const [presetDate, setPresetDate] = useState<string | null>(null);
   const [ideasOpen, setIdeasOpen] = useState(false);
   const [seed, setSeed] = useState<{ caption?: string; format?: string; pillar?: string } | null>(null);
+  const [diaAberto, setDiaAberto] = useState<string | null>(null);
+  const [modoSelecao, setModoSelecao] = useState(false);
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
+  const [aviso, setAviso] = useState<{ tipo: "ok" | "erro"; texto: string } | null>(null);
+  const [trabalhando, setTrabalhando] = useState(false);
+  const [arrastando, setArrastando] = useState<string | null>(null);
+  const [diaAlvo, setDiaAlvo] = useState<string | null>(null);
+
+  // A barra de seleção é fixa no rodapé: quem reserva o espaço é o layout desta
+  // tela, medindo a altura real da barra (DESIGN.md §6.1/§6.2).
+  const { casca, barra } = useReservaDeBarra<HTMLDivElement, HTMLDivElement>();
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/social-posts");
-      if (res.ok) {
-        const data = await res.json();
-        setPosts(Array.isArray(data.posts) ? data.posts : []);
-      }
+      if (!res.ok) { setErro("Não consegui carregar o calendário agora."); return; }
+      const data = await res.json();
+      setPosts(Array.isArray(data.posts) ? data.posts : []);
+      setErro(null);
     } catch {
-      /* keep whatever we have */
+      setErro("Não consegui falar com o servidor. Verifique a conexão.");
     } finally {
       setLoading(false);
     }
   }, []);
 
+  useEffect(() => { void load(); }, [load]);
+
+  // No celular a grade de 7 colunas vira 7 tirinhas de 45px — nenhuma legenda
+  // cabe. A vista de lista é a que serve para planejar no telefone; o calendário
+  // continua a um toque de distância.
   useEffect(() => {
-    load();
-  }, [load]);
+    if (typeof window !== "undefined" && window.innerWidth < 640) setView("list");
+  }, []);
 
   const clientName = useCallback(
     (id: string | null) => (id ? clients.find((c) => c.id === id)?.name ?? "Cliente" : "Sem cliente"),
@@ -152,11 +87,12 @@ export default function PlannerPage() {
   );
 
   const visiblePosts = useMemo(
-    () => posts.filter((p) => clientFilter === "all" || p.clientId === clientFilter),
-    [posts, clientFilter],
+    () => posts.filter((p) =>
+      (clientFilter === "all" || p.clientId === clientFilter) &&
+      (statusFilter === "all" || p.status === statusFilter)),
+    [posts, clientFilter, statusFilter],
   );
 
-  // Group posts by local day key for the calendar.
   const byDay = useMemo(() => {
     const map = new Map<string, Post[]>();
     for (const p of visiblePosts) {
@@ -166,15 +102,17 @@ export default function PlannerPage() {
       arr.push(p);
       map.set(k, arr);
     }
+    for (const arr of map.values()) {
+      arr.sort((a, b) => (a.scheduledFor ?? "").localeCompare(b.scheduledFor ?? ""));
+    }
     return map;
   }, [visiblePosts]);
 
-  // Build the 6-week grid for the current month.
   const weeks = useMemo(() => {
     const year = cursor.getFullYear();
     const month = cursor.getMonth();
     const first = new Date(year, month, 1);
-    const start = new Date(year, month, 1 - first.getDay()); // back up to Sunday
+    const start = new Date(year, month, 1 - first.getDay());
     const cells: Date[] = [];
     for (let i = 0; i < 42; i++) {
       cells.push(new Date(start.getFullYear(), start.getMonth(), start.getDate() + i));
@@ -185,6 +123,29 @@ export default function PlannerPage() {
   }, [cursor]);
 
   const todayKey = keyOf(new Date());
+
+  // As peças DO MÊS que está na tela — é sobre elas que o resumo fala.
+  const doMes = useMemo(
+    () => visiblePosts.filter((p) => {
+      if (!p.scheduledFor) return false;
+      const d = new Date(p.scheduledFor);
+      return d.getFullYear() === cursor.getFullYear() && d.getMonth() === cursor.getMonth();
+    }),
+    [visiblePosts, cursor],
+  );
+
+  const resumo = useMemo(() => {
+    const contagem: Record<string, number> = {};
+    for (const p of doMes) contagem[p.status] = (contagem[p.status] ?? 0) + 1;
+    return contagem;
+  }, [doMes]);
+
+  // O alerta que fecha o defeito silencioso: peça de um cliente, pronta para ir
+  // ao ar, que o cliente não enxerga no portal.
+  const invisiveis = useMemo(
+    () => doMes.filter((p) => p.clientId && p.visibility !== "compartilhado" && p.status !== "draft"),
+    [doMes],
+  );
 
   function openNew(dateKey?: string) {
     setEditing(null);
@@ -198,7 +159,11 @@ export default function PlannerPage() {
     setPresetDate(null);
     setComposerOpen(true);
   }
-  function openFromIdea(idea: { title: string; angle: string; format: string; pillar: string }) {
+  function abrirPorId(id: string) {
+    const p = posts.find((x) => x.id === id);
+    if (p) openEdit(p);
+  }
+  function openFromIdea(idea: Idea) {
     setEditing(null);
     setPresetDate(null);
     setSeed({
@@ -221,6 +186,94 @@ export default function PlannerPage() {
     await fetch(`/api/social-posts/${id}`, { method: "DELETE" });
   }
 
+  // ── Arrastar para reagendar ────────────────────────────────────────────────
+  // Melhoria de mouse: o caminho acessível (teclado / celular) continua sendo
+  // abrir a peça e trocar a data — por isso a hora é preservada aqui também.
+  async function reagendar(id: string, novoDia: string) {
+    const alvo = posts.find((p) => p.id === id);
+    if (!alvo) return;
+    const antes = alvo.scheduledFor;
+    const novo = trocarODia(antes, novoDia);
+    if (antes === novo) return;
+    setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, scheduledFor: novo } : p)));
+    try {
+      const res = await fetch(`/api/social-posts/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scheduledFor: novo }),
+      });
+      if (!res.ok) throw new Error();
+      setAviso({ tipo: "ok", texto: `Peça movida para ${new Date(novo).toLocaleDateString("pt-BR")}.` });
+    } catch {
+      setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, scheduledFor: antes } : p)));
+      setAviso({ tipo: "erro", texto: "Não consegui mover a peça. A data voltou ao que era." });
+    }
+  }
+
+  // ── Ações em lote ──────────────────────────────────────────────────────────
+  function alternarSelecao(id: string) {
+    setSelecionados((prev) => {
+      const s = new Set(prev);
+      if (s.has(id)) s.delete(id); else s.add(id);
+      return s;
+    });
+  }
+  function sairDaSelecao() {
+    setModoSelecao(false);
+    setSelecionados(new Set());
+    setAviso(null);
+  }
+
+  async function compartilharSelecionados() {
+    const ids = [...selecionados];
+    if (ids.length === 0) return;
+    setTrabalhando(true);
+    setAviso(null);
+    const falhas: string[] = [];
+    for (const id of ids) {
+      const res = await fetch(`/api/social-posts/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ visibility: "compartilhado" }),
+      }).catch(() => null);
+      if (!res || !res.ok) {
+        const json = res ? await res.json().catch(() => ({})) : {};
+        falhas.push(typeof json.error === "string" ? json.error : "erro de rede");
+      }
+    }
+    setTrabalhando(false);
+    await load();
+    setAviso(falhas.length === 0
+      ? { tipo: "ok", texto: `${ids.length} peça(s) agora aparecem no portal do cliente.` }
+      : { tipo: "erro", texto: `${falhas.length} de ${ids.length} não foram compartilhadas: ${falhas[0]}` });
+  }
+
+  async function pedirAprovacao() {
+    const ids = [...selecionados];
+    if (ids.length === 0) return;
+    setTrabalhando(true);
+    setAviso(null);
+    try {
+      const res = await fetch("/api/social-posts/aprovacao", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postIds: ids }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setAviso({ tipo: "erro", texto: typeof json.error === "string" ? json.error : "Não consegui abrir a aprovação." });
+        return;
+      }
+      setAviso({ tipo: "ok", texto: `Aprovação aberta: "${json.titulo}". O cliente já vê o card no portal.` });
+      setSelecionados(new Set());
+      await load();
+    } catch {
+      setAviso({ tipo: "erro", texto: "Falha de rede ao abrir a aprovação." });
+    } finally {
+      setTrabalhando(false);
+    }
+  }
+
   const upcoming = useMemo(
     () =>
       [...visiblePosts]
@@ -229,187 +282,448 @@ export default function PlannerPage() {
     [visiblePosts],
   );
 
+  const barraVisivel = modoSelecao;
+
   return (
-    <>
-      <AgencyHeader
-        eyebrow="Conteúdo"
-        title="Planner"
-        subtitle="Programe um post uma vez e distribua para todas as redes. Calendário editorial de toda a agência."
-        actions={
-          <button
-            onClick={() => openNew()}
-            className="h-9 px-4 rounded-[8px] text-[13px] font-semibold text-white transition-opacity hover:opacity-90"
-            style={{ background: "#0B0F2A" }}
-          >
-            + Novo post
-          </button>
-        }
-      />
-
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-2.5 mb-5">
-        <div className="flex items-center rounded-[8px] overflow-hidden" style={{ border: "1px solid #E7E7E2" }}>
-          <button
-            onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}
-            className="h-9 w-9 flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg)]"
-            aria-label="Mês anterior"
-          >‹</button>
-          <button
-            onClick={() => {
-              const n = new Date();
-              setCursor(new Date(n.getFullYear(), n.getMonth(), 1));
-            }}
-            className="h-9 px-3 text-[12px] font-medium text-[var(--text-secondary)] border-x hover:bg-[var(--bg)]"
-            style={{ borderColor: "#E7E7E2" }}
-          >Hoje</button>
-          <button
-            onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}
-            className="h-9 w-9 flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg)]"
-            aria-label="Próximo mês"
-          >›</button>
-        </div>
-        <div className="text-[15px] font-semibold text-[var(--text-primary)] min-w-[150px]">
-          {MONTHS[cursor.getMonth()]} {cursor.getFullYear()}
-        </div>
-
-        <div className="flex-1" />
-
-        <button
-          onClick={() => setIdeasOpen(true)}
-          className="h-9 px-3 rounded-[8px] text-[12.5px] font-semibold transition-colors"
-          style={{ background: "#E6FBFA", color: "#0E5F5A", border: "1px solid #C7EFEC" }}
-        >
-          ✨ Ideias
-        </button>
-
-        <select
-          value={clientFilter}
-          onChange={(e) => setClientFilter(e.target.value)}
-          className="h-9 px-3 rounded-[8px] text-[12.5px] text-[var(--text-primary)] outline-none"
-          style={{ border: "1px solid #E7E7E2", background: "#fff" }}
-        >
-          <option value="all">Todos os clientes</option>
-          {clients.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
-
-        <div className="flex items-center rounded-[8px] overflow-hidden" style={{ border: "1px solid #E7E7E2" }}>
-          {(["calendar", "list"] as const).map((v) => (
+    <div ref={casca} className={barraVisivel ? "acao-shell" : undefined}>
+      <div className={barraVisivel ? "acao-reserva" : undefined}>
+        <AgencyHeader
+          eyebrow="Conteúdo"
+          title="Planner"
+          subtitle="Programe um post uma vez e distribua para todas as redes. Calendário editorial de toda a agência."
+          actions={
             <button
-              key={v}
-              onClick={() => setView(v)}
-              className="h-9 px-3 text-[12px] font-medium transition-colors"
-              style={view === v
-                ? { background: "#0B0F2A", color: "#fff" }
-                : { background: "#fff", color: "#6B6B65" }}
+              onClick={() => openNew()}
+              className="h-9 rounded-[8px] px-4 text-[13px] font-semibold text-white transition-opacity hover:opacity-90"
+              style={{ background: "var(--primary)" }}
             >
-              {v === "calendar" ? "Calendário" : "Lista"}
+              + Novo post
             </button>
-          ))}
-        </div>
-      </div>
+          }
+        />
 
-      {loading && posts.length === 0 ? (
-        <div className="text-[13px] text-[var(--text-muted)] py-16 text-center">Carregando planner…</div>
-      ) : view === "calendar" ? (
-        <div className="rounded-[12px] overflow-hidden" style={{ border: "1px solid #E7E7E2" }}>
-          {/* Weekday header */}
-          <div className="grid grid-cols-7" style={{ background: "#F7F7F4", borderBottom: "1px solid #E7E7E2" }}>
-            {WEEKDAYS.map((d) => (
-              <div key={d} className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
-                {d}
+        {/* ── Barra de navegação e filtros ───────────────────────────────── */}
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <div className="flex items-center overflow-hidden rounded-[8px]" style={{ border: "1px solid var(--border)" }}>
+            <button
+              onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}
+              className="flex h-9 w-9 items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--accent)]"
+              aria-label="Mês anterior"
+            >‹</button>
+            <button
+              onClick={() => { const n = new Date(); setCursor(new Date(n.getFullYear(), n.getMonth(), 1)); }}
+              className="h-9 border-x px-3 text-[12px] font-medium text-[var(--text-secondary)] hover:bg-[var(--accent)]"
+              style={{ borderColor: "var(--border)" }}
+            >Hoje</button>
+            <button
+              onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}
+              className="flex h-9 w-9 items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--accent)]"
+              aria-label="Próximo mês"
+            >›</button>
+          </div>
+          <h2 className="min-w-[140px] text-[16px] font-semibold text-[var(--text-primary)]">
+            {MONTHS[cursor.getMonth()]} {cursor.getFullYear()}
+          </h2>
+
+          <div className="flex-1" />
+
+          <button
+            onClick={() => setIdeasOpen(true)}
+            className="h-9 rounded-[8px] px-3 text-[12.5px] font-semibold transition-colors"
+            style={{ background: "var(--accent-light)", color: "#0E5F5A", border: "1px solid #C7EFEC" }}
+          >
+            ✨ Ideias
+          </button>
+
+          <button
+            onClick={() => (modoSelecao ? sairDaSelecao() : setModoSelecao(true))}
+            aria-pressed={modoSelecao}
+            className="h-9 rounded-[8px] px-3 text-[12.5px] font-semibold transition-colors"
+            style={modoSelecao
+              ? { background: "var(--primary)", color: "#fff", border: "1px solid var(--primary)" }
+              : { background: "var(--card)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}
+          >
+            {modoSelecao ? "Sair da seleção" : "Selecionar"}
+          </button>
+
+          <label className="sr-only" htmlFor="planner-filtro-cliente">Filtrar por cliente</label>
+          <select
+            id="planner-filtro-cliente"
+            value={clientFilter}
+            onChange={(e) => setClientFilter(e.target.value)}
+            className="h-9 rounded-[8px] px-3 text-[12.5px] text-[var(--text-primary)] outline-none"
+            style={{ border: "1px solid var(--border)", background: "var(--card)" }}
+          >
+            <option value="all">Todos os clientes</option>
+            {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+
+          <label className="sr-only" htmlFor="planner-filtro-status">Filtrar por estado</label>
+          <select
+            id="planner-filtro-status"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="h-9 rounded-[8px] px-3 text-[12.5px] text-[var(--text-primary)] outline-none"
+            style={{ border: "1px solid var(--border)", background: "var(--card)" }}
+          >
+            <option value="all">Todos os estados</option>
+            {STATUS_ORDEM.map((s) => <option key={s} value={s}>{STATUS_META[s]!.label}</option>)}
+          </select>
+
+          <div className="flex items-center overflow-hidden rounded-[8px]" style={{ border: "1px solid var(--border)" }}>
+            {(["calendar", "list"] as const).map((v) => (
+              <button
+                key={v}
+                onClick={() => setView(v)}
+                aria-pressed={view === v}
+                className="h-9 px-3 text-[12px] font-medium transition-colors"
+                style={view === v
+                  ? { background: "var(--primary)", color: "#fff" }
+                  : { background: "var(--card)", color: "var(--text-secondary)" }}
+              >
+                {v === "calendar" ? "Calendário" : "Lista"}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Resumo do mês ──────────────────────────────────────────────── */}
+        {!loading && !erro && doMes.length > 0 && (
+          <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+            <span className="text-[13px] font-semibold text-[var(--text-primary)]">
+              {doMes.length} {doMes.length === 1 ? "peça" : "peças"} em {MONTHS[cursor.getMonth()].toLowerCase()}
+            </span>
+            <span aria-hidden="true" className="text-[var(--border-strong)]">·</span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {STATUS_ORDEM.filter((s) => resumo[s]).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setStatusFilter(statusFilter === s ? "all" : s)}
+                  aria-pressed={statusFilter === s}
+                  className="inline-flex h-[22px] items-center gap-1 rounded-full px-2.5 text-[11px] font-semibold transition-opacity hover:opacity-80"
+                  style={{
+                    background: metaDoStatus(s).bg,
+                    color: metaDoStatus(s).fg,
+                    boxShadow: statusFilter === s ? "0 0 0 2px var(--navy)" : undefined,
+                  }}
+                >
+                  <span aria-hidden="true">{metaDoStatus(s).glifo}</span>
+                  {resumo[s]} {metaDoStatus(s).label.toLowerCase()}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── O alerta do trabalho invisível ─────────────────────────────── */}
+        {invisiveis.length > 0 && (
+          <div
+            className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[10px] px-3.5 py-3"
+            style={{ background: "var(--warning-bg)", border: "1px solid #FDE68A" }}
+          >
+            <div className="min-w-0 flex-1">
+              <p className="text-[13px] font-semibold" style={{ color: "#92400E" }}>
+                {invisiveis.length === 1
+                  ? "1 peça deste mês não aparece para o cliente"
+                  : `${invisiveis.length} peças deste mês não aparecem para o cliente`}
+              </p>
+              <p className="mt-0.5 text-[12px]" style={{ color: "#B45309" }}>
+                Elas estão programadas, mas marcadas como internas — no portal dele o mês continua vazio.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setModoSelecao(true);
+                setSelecionados(new Set(invisiveis.map((p) => p.id)));
+                setAviso(null);
+              }}
+              className="h-8 shrink-0 rounded-[8px] px-3 text-[12px] font-semibold text-white"
+              style={{ background: "var(--primary)" }}
+            >
+              Selecionar e resolver
+            </button>
+          </div>
+        )}
+
+        {/* ── Erro ───────────────────────────────────────────────────────── */}
+        {erro && (
+          <div role="alert" className="rounded-[12px] px-4 py-8 text-center" style={{ border: "1px solid var(--border)", background: "var(--card)" }}>
+            <p className="text-[13.5px] font-semibold text-[var(--text-primary)]">{erro}</p>
+            <p className="mt-1 text-[12.5px] text-[var(--text-muted)]">O calendário não foi perdido — só não consegui buscá-lo agora.</p>
+            <button
+              onClick={() => void load()}
+              className="mt-3 h-9 rounded-[8px] px-4 text-[12.5px] font-semibold text-white"
+              style={{ background: "var(--primary)" }}
+            >
+              Tentar de novo
+            </button>
+          </div>
+        )}
+
+        {/* ── Carregando ─────────────────────────────────────────────────── */}
+        {!erro && loading && posts.length === 0 && (
+          <div role="status" aria-live="polite" className="rounded-[12px] p-3" style={{ border: "1px solid var(--border)", background: "var(--card)" }}>
+            <span className="sr-only">Carregando o calendário…</span>
+            <div className="grid grid-cols-7 gap-2">
+              {Array.from({ length: 21 }).map((_, i) => (
+                <div key={i} className="h-[72px] animate-pulse rounded-[8px] bg-[var(--accent)]" />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── Vazio ──────────────────────────────────────────────────────── */}
+        {!erro && !loading && posts.length === 0 && (
+          <div className="rounded-[12px] py-12" style={{ border: "1px solid var(--border)", background: "var(--card)" }}>
+            <EmptyState
+              icon={<span aria-hidden="true">🗓</span>}
+              title="Nenhum post no calendário"
+              description="Crie a primeira peça e distribua para todas as redes de uma vez — ou peça ideias à IA."
+              action={
+                <button
+                  onClick={() => openNew()}
+                  className="h-9 rounded-[8px] px-4 text-[12.5px] font-semibold text-white"
+                  style={{ background: "var(--primary)" }}
+                >
+                  + Novo post
+                </button>
+              }
+            />
+          </div>
+        )}
+
+        {/* ── Calendário ─────────────────────────────────────────────────── */}
+        {!erro && !loading && posts.length > 0 && view === "calendar" && (
+          <div className="overflow-hidden rounded-[12px]" style={{ border: "1px solid var(--border)", background: "var(--card)" }}>
+            <div className="grid grid-cols-7" style={{ background: "var(--bg)", borderBottom: "1px solid var(--border)" }}>
+              {WEEKDAYS.map((d) => (
+                <div key={d} className="px-1 py-2 text-center text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)] sm:px-3 sm:text-left">
+                  <span className="sm:hidden">{d.slice(0, 1)}</span>
+                  <span className="hidden sm:inline">{d}</span>
+                </div>
+              ))}
+            </div>
+            {weeks.map((row, ri) => (
+              <div key={ri} className="grid grid-cols-7" style={{ borderBottom: ri < 5 ? "1px solid var(--border)" : "none" }}>
+                {row.map((date, ci) => {
+                  const k = keyOf(date);
+                  const inMonth = date.getMonth() === cursor.getMonth();
+                  const dayPosts = byDay.get(k) ?? [];
+                  const isToday = k === todayKey;
+                  const alvo = diaAlvo === k && !!arrastando;
+                  return (
+                    <div
+                      key={ci}
+                      className="group relative min-h-[76px] p-1 lg:min-h-[112px] lg:p-1.5"
+                      onDragOver={(e) => { if (arrastando) { e.preventDefault(); setDiaAlvo(k); } }}
+                      onDragLeave={() => setDiaAlvo((atual) => (atual === k ? null : atual))}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        const id = e.dataTransfer.getData("text/plain") || arrastando;
+                        setDiaAlvo(null);
+                        setArrastando(null);
+                        if (id) void reagendar(id, k);
+                      }}
+                      style={{
+                        borderRight: ci < 6 ? "1px solid var(--border)" : "none",
+                        background: alvo ? "var(--accent-light)" : inMonth ? "var(--card)" : "var(--bg)",
+                        outline: alvo ? "2px dashed var(--navy)" : undefined,
+                        outlineOffset: "-2px",
+                      }}
+                    >
+                      <div className="mb-1 flex items-center justify-between">
+                        <button
+                          onClick={() => setDiaAberto(k)}
+                          aria-label={`Ver ${date.getDate()} de ${MONTHS[date.getMonth()]}${dayPosts.length ? ` — ${dayPosts.length} peça(s)` : ""}`}
+                          className="flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[11px] font-semibold hover:bg-[var(--accent)]"
+                          style={isToday
+                            ? { background: "var(--primary)", color: "#fff" }
+                            : { color: inMonth ? "var(--text-secondary)" : "var(--text-subtle)" }}
+                        >
+                          {date.getDate()}
+                        </button>
+                        <button
+                          onClick={() => openNew(k)}
+                          className="hidden h-5 w-5 items-center justify-center rounded text-[var(--text-muted)] opacity-0 transition-opacity hover:bg-[var(--accent)] focus-visible:opacity-100 group-hover:opacity-100 lg:flex"
+                          aria-label={`Adicionar post em ${date.getDate()} de ${MONTHS[date.getMonth()]}`}
+                        >+</button>
+                      </div>
+
+                      {/* Célula larga (lg+): os chips com miniatura e legenda.
+                          Abaixo disso a coluna tem ~77px — chip ali não mostra
+                          legenda nenhuma, que era o "Planner pobre" no tablet. */}
+                      <div className="hidden space-y-1 lg:block">
+                        {dayPosts.slice(0, 3).map((p) => (
+                          <PostChip
+                            key={p.id}
+                            post={p}
+                            modoSelecao={modoSelecao}
+                            selecionado={selecionados.has(p.id)}
+                            onClick={() => (modoSelecao ? alternarSelecao(p.id) : openEdit(p))}
+                            onDragStart={(e) => {
+                              e.dataTransfer.setData("text/plain", p.id);
+                              e.dataTransfer.effectAllowed = "move";
+                              setArrastando(p.id);
+                            }}
+                            onDragEnd={() => { setArrastando(null); setDiaAlvo(null); }}
+                          />
+                        ))}
+                        {dayPosts.length > 3 && (
+                          <button
+                            onClick={() => setDiaAberto(k)}
+                            className="w-full rounded-[6px] px-1 py-0.5 text-left text-[11px] font-semibold text-[var(--info)] hover:bg-[var(--accent)] hover:underline"
+                          >
+                            Ver mais {dayPosts.length - 3} ›
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Célula estreita (celular e tablet): resumo tocável do
+                          dia — miniaturas + um ponto por estado. O conteúdo
+                          inteiro está a um toque, no painel do dia. */}
+                      {dayPosts.length > 0 && (
+                        <button
+                          onClick={() => setDiaAberto(k)}
+                          aria-label={`Ver as ${dayPosts.length} peça(s) de ${date.getDate()} de ${MONTHS[date.getMonth()]}`}
+                          className="flex w-full flex-col items-start gap-1 rounded-[6px] p-1 hover:bg-[var(--accent)] lg:hidden"
+                        >
+                          <span className="flex -space-x-1">
+                            {dayPosts.slice(0, 3).map((p) => (
+                              <span
+                                key={p.id}
+                                className="h-5 w-5 overflow-hidden rounded-[4px] border border-white bg-[var(--accent)]"
+                              >
+                                {p.mediaUrl ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img src={p.mediaUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
+                                ) : null}
+                              </span>
+                            ))}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <span className="flex gap-0.5">
+                              {dayPosts.slice(0, 4).map((p) => (
+                                <span
+                                  key={p.id}
+                                  className="h-1.5 w-1.5 rounded-full"
+                                  style={{ background: metaDoStatus(p.status).fg }}
+                                />
+                              ))}
+                            </span>
+                            <span className="text-[11px] font-semibold text-[var(--text-secondary)]">
+                              {dayPosts.length}
+                            </span>
+                          </span>
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             ))}
           </div>
-          {weeks.map((row, ri) => (
-            <div key={ri} className="grid grid-cols-7" style={{ borderBottom: ri < 5 ? "1px solid #EFEFEA" : "none" }}>
-              {row.map((date, ci) => {
-                const k = keyOf(date);
-                const inMonth = date.getMonth() === cursor.getMonth();
-                const dayPosts = byDay.get(k) ?? [];
-                const isToday = k === todayKey;
-                return (
-                  <div
-                    key={ci}
-                    className="min-h-[104px] p-1.5 group relative"
-                    style={{
-                      borderRight: ci < 6 ? "1px solid #EFEFEA" : "none",
-                      background: inMonth ? "#fff" : "#FBFBF9",
-                    }}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span
-                        className="text-[11px] font-semibold w-5 h-5 flex items-center justify-center rounded-full"
-                        style={isToday
-                          ? { background: "#0B0F2A", color: "#fff" }
-                          : { color: inMonth ? "#6B6B65" : "#C7C7C0" }}
-                      >
-                        {date.getDate()}
-                      </span>
-                      <button
-                        onClick={() => openNew(k)}
-                        className="opacity-0 group-hover:opacity-100 w-5 h-5 flex items-center justify-center rounded text-[var(--text-muted)] hover:bg-[var(--accent)] transition-opacity"
-                        aria-label="Adicionar post neste dia"
-                      >+</button>
-                    </div>
-                    <div className="space-y-1">
-                      {dayPosts.slice(0, 3).map((p) => (
-                        <PostChip key={p.id} post={p} onClick={() => openEdit(p)} />
-                      ))}
-                      {dayPosts.length > 3 && (
-                        <div className="text-[10px] text-[var(--text-muted)] px-1">+{dayPosts.length - 3} mais</div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-        </div>
-      ) : (
-        // List view
-        <div className="rounded-[12px] overflow-hidden" style={{ border: "1px solid #E7E7E2" }}>
-          {upcoming.length === 0 ? (
-            <div className="py-12">
-              <EmptyState
-                title="Nenhum post programado"
-                description="Crie seu primeiro post e distribua para todas as redes de uma vez."
-              />
-            </div>
-          ) : (
-            upcoming.map((p, i) => (
+        )}
+
+        {/* ── Lista ──────────────────────────────────────────────────────── */}
+        {!erro && !loading && posts.length > 0 && view === "list" && (
+          <div className="overflow-hidden rounded-[12px]" style={{ border: "1px solid var(--border)", background: "var(--card)" }}>
+            {upcoming.length === 0 ? (
+              <div className="py-12">
+                <EmptyState
+                  title="Nenhuma peça neste filtro"
+                  description="Troque o cliente ou o estado no filtro acima para ver o resto do calendário."
+                />
+              </div>
+            ) : (
+              <div className="divide-y" style={{ borderColor: "var(--border)" }}>
+                {upcoming.map((p) => (
+                  <LinhaDePeca
+                    key={p.id}
+                    post={p}
+                    comData
+                    subtitulo={clientName(p.clientId)}
+                    modoSelecao={modoSelecao}
+                    selecionado={selecionados.has(p.id)}
+                    onClick={() => (modoSelecao ? alternarSelecao(p.id) : openEdit(p))}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ── Barra de seleção (fixa) ──────────────────────────────────────── */}
+      {barraVisivel && (
+        <div
+          ref={barra}
+          className="acao-barra fixed bottom-0 left-0 right-0 z-40 md:left-[224px]"
+          style={{ background: "var(--card)", borderTop: "1px solid var(--border)", boxShadow: "var(--shadow-lg)" }}
+        >
+          <div className="mx-auto flex max-w-[1240px] flex-col gap-2 px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center md:px-8">
+            <div className="flex items-center gap-2">
+              <span className="text-[13px] font-semibold text-[var(--text-primary)]">
+                {selecionados.size === 0 ? "Toque nas peças para selecionar" : `${selecionados.size} selecionada(s)`}
+              </span>
+              <div className="flex-1" />
               <button
-                key={p.id}
-                onClick={() => openEdit(p)}
-                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[var(--bg-elevated)] transition-colors"
-                style={{ borderTop: i > 0 ? "1px solid #EFEFEA" : "none" }}
+                onClick={sairDaSelecao}
+                className="h-8 rounded-[8px] px-2 text-[12.5px] font-medium text-[var(--text-secondary)] hover:bg-[var(--accent)] sm:hidden"
               >
-                <div className="w-[52px] shrink-0 text-center">
-                  <div className="text-[16px] font-bold text-[var(--text-primary)] leading-none">
-                    {p.scheduledFor ? new Date(p.scheduledFor).getDate() : "—"}
-                  </div>
-                  <div className="text-[10px] uppercase text-[var(--text-muted)] mt-0.5">
-                    {p.scheduledFor ? MONTHS[new Date(p.scheduledFor).getMonth()].slice(0, 3) : ""}
-                  </div>
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-[13px] font-medium text-[var(--text-primary)] truncate">
-                    {p.caption || <span className="text-[var(--text-muted)] italic">Sem legenda</span>}
-                  </div>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <span className="text-[11px] text-[var(--text-muted)]">{clientName(p.clientId)}</span>
-                    <span className="text-[var(--border-strong)]">·</span>
-                    <span className="text-[11px] text-[var(--text-muted)] capitalize">{p.format}</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  {p.networks.map((n) => <NetworkDot key={n} id={n} />)}
-                </div>
-                <StatusPill status={p.status} />
+                Cancelar
               </button>
-            ))
-          )}
+            </div>
+            <div className="hidden flex-1 sm:block" />
+            <div className="flex items-center gap-2">
+              <button
+                onClick={compartilharSelecionados}
+                disabled={selecionados.size === 0 || trabalhando}
+                className="h-9 flex-1 rounded-[8px] px-3 text-[12.5px] font-semibold text-[var(--text-primary)] disabled:opacity-40 sm:flex-none"
+                style={{ border: "1px solid var(--border-strong)", background: "var(--card)" }}
+              >
+                Mostrar ao cliente
+              </button>
+              <button
+                onClick={pedirAprovacao}
+                disabled={selecionados.size === 0 || trabalhando}
+                className="h-9 flex-1 rounded-[8px] px-3 text-[12.5px] font-semibold text-white disabled:opacity-40 sm:flex-none"
+                style={{ background: "var(--primary)" }}
+              >
+                {trabalhando ? "Enviando…" : "Pedir aprovação"}
+              </button>
+              <button
+                onClick={sairDaSelecao}
+                className="hidden h-9 rounded-[8px] px-3 text-[12.5px] font-medium text-[var(--text-secondary)] hover:bg-[var(--accent)] sm:block"
+              >
+                Cancelar
+              </button>
+            </div>
+            {aviso && (
+              <p
+                role={aviso.tipo === "erro" ? "alert" : "status"}
+                className="w-full rounded-[8px] px-3 py-2 text-[12px]"
+                style={aviso.tipo === "erro"
+                  ? { background: "var(--danger-bg)", color: "var(--danger)" }
+                  : { background: "var(--success-bg)", color: "var(--success)" }}
+              >
+                {aviso.texto}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Aviso fora do modo seleção (arrastar) ────────────────────────── */}
+      {!barraVisivel && aviso && (
+        <div
+          role={aviso.tipo === "erro" ? "alert" : "status"}
+          className="fixed bottom-4 left-1/2 z-40 -translate-x-1/2 rounded-[10px] px-4 py-2.5 text-[12.5px] font-medium shadow-[var(--shadow-lg)]"
+          style={aviso.tipo === "erro"
+            ? { background: "var(--danger-bg)", color: "var(--danger)", border: "1px solid var(--danger)" }
+            : { background: "var(--card)", color: "var(--text-primary)", border: "1px solid var(--border)" }}
+          onClick={() => setAviso(null)}
+        >
+          {aviso.texto}
         </div>
       )}
 
@@ -422,7 +736,21 @@ export default function PlannerPage() {
           clients={clients}
           onClose={() => setComposerOpen(false)}
           onSaved={handleSaved}
-          onDelete={editing ? () => { handleDelete(editing.id); setComposerOpen(false); } : undefined}
+          onDelete={editing ? () => { void handleDelete(editing.id); setComposerOpen(false); } : undefined}
+        />
+      )}
+
+      {diaAberto && (
+        <PainelDoDia
+          dia={diaAberto}
+          posts={byDay.get(diaAberto) ?? []}
+          nomeDoCliente={clientName}
+          modoSelecao={modoSelecao}
+          selecionados={selecionados}
+          onSelecionar={alternarSelecao}
+          onAbrir={(id) => { setDiaAberto(null); abrirPorId(id); }}
+          onNovo={() => { const d = diaAberto; setDiaAberto(null); openNew(d); }}
+          onClose={() => setDiaAberto(null)}
         />
       )}
 
@@ -434,519 +762,6 @@ export default function PlannerPage() {
           onPick={openFromIdea}
         />
       )}
-    </>
-  );
-}
-
-// ─── Calendar chip ────────────────────────────────────────────────────────────
-function PostChip({ post, onClick }: { post: Post; onClick: () => void }) {
-  const st = STATUS_META[post.status] ?? STATUS_META.draft;
-  return (
-    <button
-      onClick={onClick}
-      className="w-full flex items-center gap-1 px-1.5 py-1 rounded-[5px] text-left hover:brightness-95 transition-all"
-      style={{ background: st.bg }}
-    >
-      <div className="flex items-center gap-0.5 shrink-0">
-        {post.networks.slice(0, 3).map((n) => <NetworkDot key={n} id={n} sm />)}
-      </div>
-      <span className="text-[10px] font-medium truncate" style={{ color: st.fg }}>
-        {post.caption || "Sem legenda"}
-      </span>
-    </button>
-  );
-}
-
-function NetworkDot({ id, sm }: { id: string; sm?: boolean }) {
-  const n = NETWORK_MAP[id];
-  const size = sm ? 8 : 14;
-  if (!n) return null;
-  return sm ? (
-    <span className="rounded-full shrink-0" style={{ width: size, height: size, background: n.color }} title={n.label} />
-  ) : (
-    <span
-      className="rounded-full shrink-0 flex items-center justify-center text-white font-bold"
-      style={{ width: size, height: size, background: n.color, fontSize: 7 }}
-      title={n.label}
-    >
-      {n.short.slice(0, 2)}
-    </span>
-  );
-}
-
-function StatusPill({ status }: { status: string }) {
-  const st = STATUS_META[status] ?? STATUS_META.draft;
-  return (
-    <span className="shrink-0 inline-flex items-center h-[20px] px-2 rounded-full text-[10px] font-semibold"
-          style={{ background: st.bg, color: st.fg }}>
-      {st.label}
-    </span>
-  );
-}
-
-// ─── Composer modal ───────────────────────────────────────────────────────────
-function Composer({
-  post, seed, presetDate, clients, onClose, onSaved, onDelete,
-}: {
-  post: Post | null;
-  seed?: { caption?: string; format?: string; pillar?: string } | null;
-  presetDate: string | null;
-  clients: { id: string; name: string }[];
-  onClose: () => void;
-  onSaved: () => void;
-  onDelete?: () => void;
-}) {
-  // scheduledFor for the datetime-local input (YYYY-MM-DDTHH:mm) in local time.
-  const initialWhen = (() => {
-    if (post?.scheduledFor) {
-      const d = new Date(post.scheduledFor);
-      if (!isNaN(d.getTime())) {
-        const pad = (n: number) => String(n).padStart(2, "0");
-        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-      }
-    }
-    if (presetDate) return `${presetDate}T09:00`;
-    return "";
-  })();
-
-  const [caption, setCaption] = useState(post?.caption ?? seed?.caption ?? "");
-  const [networks, setNetworks] = useState<string[]>(post?.networks ?? []);
-  const [format, setFormat] = useState(post?.format ?? seed?.format ?? "feed");
-  const [pillar, setPillar] = useState(post?.pillar ?? seed?.pillar ?? "");
-  const [mediaUrl, setMediaUrl] = useState(post?.mediaUrl ?? "");
-  const [clientId, setClientId] = useState(post?.clientId ?? "");
-  const [when, setWhen] = useState(initialWhen);
-  const [status, setStatus] = useState(post?.status ?? "scheduled");
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [generating, setGenerating] = useState(false);
-  const [script, setScript] = useState<VideoScript | null>(post?.script ?? null);
-  const [scripting, setScripting] = useState(false);
-  const [copiedPrompt, setCopiedPrompt] = useState(false);
-
-  async function copyVideoPrompt() {
-    if (!script) return;
-    const text = buildVideoPrompt(script, format, pillar.trim());
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedPrompt(true);
-      setTimeout(() => setCopiedPrompt(false), 2000);
-    } catch {
-      setError("Não consegui copiar. Selecione e copie manualmente.");
-    }
-  }
-
-  // Generate a filmable video/reel script, grounded in the client's context.
-  async function generateScript() {
-    setScripting(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/social-posts/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode: "script", clientId: clientId || null, networks, format, pillar: pillar.trim() || null, brief: caption.trim() || null }),
-      });
-      const json = await res.json();
-      if (!res.ok) { setError(json.error ? `IA: ${json.error}` : "Não foi possível gerar o roteiro."); return; }
-      if (json.script) setScript(json.script);
-      if (json.caption && !caption.trim()) setCaption(json.caption);
-    } catch {
-      setError("Falha ao gerar roteiro. Tente de novo.");
-    } finally {
-      setScripting(false);
-    }
-  }
-
-  // Ask the AI copilot to write the caption. The current caption text (if any)
-  // is passed as a brief — so "post sobre promoção de inverno" becomes a full
-  // publish-ready caption grounded in the client's context.
-  async function generateCaption() {
-    setGenerating(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/social-posts/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode: "caption", clientId: clientId || null, networks, format, pillar: pillar.trim() || null, brief: caption.trim() || null }),
-      });
-      const json = await res.json();
-      if (!res.ok) {
-        setError(json.error === undefined ? "Não foi possível gerar." : `IA: ${json.error}`);
-        return;
-      }
-      const tags = Array.isArray(json.hashtags) && json.hashtags.length
-        ? "\n\n" + json.hashtags.map((h: string) => `#${h}`).join(" ")
-        : "";
-      setCaption((json.caption ?? "") + tags);
-    } catch {
-      setError("Falha ao gerar. Tente de novo.");
-    } finally {
-      setGenerating(false);
-    }
-  }
-
-  function toggleNetwork(id: string) {
-    setNetworks((prev) => (prev.includes(id) ? prev.filter((n) => n !== id) : [...prev, id]));
-  }
-
-  async function save() {
-    setError(null);
-    if (networks.length === 0) { setError("Escolha ao menos uma rede."); return; }
-    setSaving(true);
-    const payload = {
-      caption,
-      networks,
-      format,
-      pillar: pillar.trim() || null,
-      mediaUrl: mediaUrl.trim() || null,
-      clientId: clientId || null,
-      script: script ?? null,
-      scheduledFor: when ? new Date(when).toISOString() : null,
-      status,
-    };
-    try {
-      const res = post
-        ? await fetch(`/api/social-posts/${post.id}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          })
-        : await fetch("/api/social-posts", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          });
-      if (!res.ok) {
-        setError(res.status === 403 ? "Você não tem permissão para isso." : "Não foi possível salvar.");
-        setSaving(false);
-        return;
-      }
-      onSaved();
-    } catch {
-      setError("Falha de rede. Tente de novo.");
-      setSaving(false);
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4" onClick={onClose}>
-      <div
-        className="bg-white w-full sm:max-w-[560px] max-h-[92vh] overflow-y-auto rounded-t-[16px] sm:rounded-[16px] shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="sticky top-0 bg-white px-5 py-4 flex items-center justify-between z-10" style={{ borderBottom: "1px solid #EFEFEA" }}>
-          <h2 className="text-[16px] font-semibold text-[var(--text-primary)]">{post ? "Editar post" : "Novo post"}</h2>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full text-[var(--text-muted)] hover:bg-[var(--accent)]">✕</button>
-        </div>
-
-        <div className="px-5 py-4 space-y-4">
-          {/* Networks */}
-          <Field label="Redes de destino" hint="O mesmo post sai em todas as selecionadas.">
-            <div className="flex flex-wrap gap-2">
-              {NETWORKS.map((n) => {
-                const on = networks.includes(n.id);
-                return (
-                  <button
-                    key={n.id}
-                    onClick={() => toggleNetwork(n.id)}
-                    className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-[12px] font-medium transition-all"
-                    style={on
-                      ? { background: n.color, color: "#fff", borderColor: n.color }
-                      : { background: "#fff", color: "#6B6B65", border: "1px solid #E7E7E2" }}
-                  >
-                    <span className="w-2 h-2 rounded-full" style={{ background: on ? "#fff" : n.color }} />
-                    {n.label}
-                  </button>
-                );
-              })}
-            </div>
-          </Field>
-
-          <div>
-            <div className="flex items-baseline justify-between mb-1.5">
-              <label className="text-[12px] font-semibold text-[var(--text-primary)]">Legenda</label>
-              <button
-                onClick={generateCaption}
-                disabled={generating}
-                className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-[#12B5AC] hover:underline disabled:opacity-50"
-                title="A IA escreve a legenda com base no cliente e no que você já digitou"
-              >
-                {generating ? "Gerando…" : "✨ Gerar com IA"}
-              </button>
-            </div>
-            <textarea
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              rows={5}
-              placeholder="Escreva a legenda — ou digite uma ideia curta e toque em ✨ Gerar com IA."
-              className="w-full rounded-[8px] px-3 py-2 text-[13px] text-[var(--text-primary)] outline-none resize-y"
-              style={{ border: "1px solid #E7E7E2" }}
-            />
-          </div>
-
-          {/* Video/reel script studio */}
-          {VIDEO_FORMATS.has(format) && (
-            <div className="rounded-[10px] p-3" style={{ background: "#FBFBF9", border: "1px solid #EFEFEA" }}>
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[13px]">🎬</span>
-                  <span className="text-[12px] font-semibold text-[var(--text-primary)]">Roteiro de vídeo</span>
-                </div>
-                <button
-                  onClick={generateScript}
-                  disabled={scripting}
-                  className="text-[11.5px] font-semibold text-[#12B5AC] hover:underline disabled:opacity-50"
-                >
-                  {scripting ? "Gerando roteiro…" : script ? "Gerar de novo" : "✨ Gerar roteiro com IA"}
-                </button>
-              </div>
-              {!script ? (
-                <p className="text-[11.5px] text-[var(--text-muted)]">A IA escreve um roteiro filmável — ganchos, cenas, texto na tela, áudio e CTA — pronto para gravar.</p>
-              ) : (
-                <div className="space-y-3 mt-2">
-                  {script.hooks.length > 0 && (
-                    <div>
-                      <p className="text-[10.5px] font-semibold uppercase tracking-wide text-[var(--text-muted)] mb-1">Ganchos (teste A/B)</p>
-                      <ul className="space-y-1">
-                        {script.hooks.map((h, i) => (
-                          <li key={i} className="text-[12px] text-[var(--text-secondary)] flex gap-1.5"><span className="text-[#12B5AC]">›</span>{h}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  <div>
-                    <p className="text-[10.5px] font-semibold uppercase tracking-wide text-[var(--text-muted)] mb-1.5">Cenas</p>
-                    <div className="space-y-2">
-                      {script.scenes.map((s, i) => (
-                        <div key={i} className="rounded-[8px] bg-white p-2.5" style={{ border: "1px solid #EFEFEA" }}>
-                          <div className="flex items-center gap-1.5 mb-1">
-                            <span className="w-4 h-4 rounded-full bg-[#0B0F2A] text-white text-[9px] font-bold flex items-center justify-center">{i + 1}</span>
-                            <span className="text-[11px] font-semibold text-[var(--text-primary)]">{s.visual || "Cena"}</span>
-                          </div>
-                          {s.voiceover && <p className="text-[11.5px] text-[var(--text-secondary)]"><span className="text-[var(--text-muted)]">🎙 </span>{s.voiceover}</p>}
-                          {s.onScreen && <p className="text-[11.5px] text-[#0E5F5A] mt-0.5"><span className="text-[var(--text-muted)]">▦ </span>{s.onScreen}</p>}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  {script.audio && <p className="text-[11.5px] text-[var(--text-secondary)]"><span className="font-semibold">Áudio:</span> {script.audio}</p>}
-                  {script.cta && <p className="text-[11.5px] text-[var(--text-secondary)]"><span className="font-semibold">CTA:</span> {script.cta}</p>}
-
-                  {/* Ready-to-paste generation prompt for Runway / Pika */}
-                  <div className="rounded-[8px] p-2.5" style={{ background: "#0B0F2A" }}>
-                    <div className="flex items-center justify-between gap-2 mb-1">
-                      <span className="text-[10.5px] font-semibold uppercase tracking-wide" style={{ color: "#9AF5F0" }}>Prompt de vídeo (IA)</span>
-                      <button
-                        onClick={copyVideoPrompt}
-                        className="text-[11px] font-semibold rounded-[6px] px-2 py-1 transition-colors"
-                        style={copiedPrompt ? { background: "#16A34A", color: "#fff" } : { background: "rgba(154,245,240,0.15)", color: "#9AF5F0" }}
-                      >
-                        {copiedPrompt ? "✓ Copiado" : "Copiar prompt"}
-                      </button>
-                    </div>
-                    <p className="text-[10.5px] leading-relaxed" style={{ color: "#8C93AE" }}>Cole no Runway ou Pika para gerar o vídeo. Quando você assinar um deles, a geração automática entra aqui neste mesmo prompt.</p>
-                  </div>
-
-                  <button onClick={() => setScript(null)} className="text-[11px] text-[var(--text-muted)] hover:text-[var(--danger)]">Remover roteiro</button>
-                </div>
-              )}
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Formato">
-              <select value={format} onChange={(e) => setFormat(e.target.value)} className="w-full h-9 px-3 rounded-[8px] text-[13px] text-[var(--text-primary)] outline-none" style={{ border: "1px solid #E7E7E2", background: "#fff" }}>
-                {FORMATS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
-              </select>
-            </Field>
-            <Field label="Status">
-              <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full h-9 px-3 rounded-[8px] text-[13px] text-[var(--text-primary)] outline-none" style={{ border: "1px solid #E7E7E2", background: "#fff" }}>
-                <option value="draft">Rascunho</option>
-                <option value="scheduled">Agendado</option>
-                <option value="published">Publicado</option>
-              </select>
-            </Field>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Cliente">
-              <select value={clientId} onChange={(e) => setClientId(e.target.value)} className="w-full h-9 px-3 rounded-[8px] text-[13px] text-[var(--text-primary)] outline-none" style={{ border: "1px solid #E7E7E2", background: "#fff" }}>
-                <option value="">Sem cliente</option>
-                {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            </Field>
-            <Field label="Data e hora">
-              <input
-                type="datetime-local"
-                value={when}
-                onChange={(e) => setWhen(e.target.value)}
-                className="w-full h-9 px-3 rounded-[8px] text-[13px] text-[var(--text-primary)] outline-none"
-                style={{ border: "1px solid #E7E7E2", background: "#fff" }}
-              />
-            </Field>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Pilar / tema" hint="Ex.: Autoridade, Bastidores">
-              <input
-                value={pillar}
-                onChange={(e) => setPillar(e.target.value)}
-                placeholder="Pilar editorial"
-                className="w-full h-9 px-3 rounded-[8px] text-[13px] text-[var(--text-primary)] outline-none"
-                style={{ border: "1px solid #E7E7E2" }}
-              />
-            </Field>
-            <Field label="Link da mídia" hint="Drive, Figma, arquivo…">
-              <input
-                value={mediaUrl}
-                onChange={(e) => setMediaUrl(e.target.value)}
-                placeholder="https://…"
-                className="w-full h-9 px-3 rounded-[8px] text-[13px] text-[var(--text-primary)] outline-none"
-                style={{ border: "1px solid #E7E7E2" }}
-              />
-            </Field>
-          </div>
-
-          {error && <div className="text-[12px] text-[var(--danger)] bg-[var(--danger-bg)] rounded-[8px] px-3 py-2">{error}</div>}
-        </div>
-
-        <div className="sticky bottom-0 bg-white px-5 py-3.5 flex items-center gap-2" style={{ borderTop: "1px solid #EFEFEA" }}>
-          {onDelete && (
-            <button onClick={onDelete} className="h-9 px-3 rounded-[8px] text-[12.5px] font-medium text-[var(--danger)] hover:bg-[var(--danger-bg)]">
-              Excluir
-            </button>
-          )}
-          <div className="flex-1" />
-          <button onClick={onClose} className="h-9 px-4 rounded-[8px] text-[12.5px] font-medium text-[var(--text-secondary)] hover:bg-[var(--accent)]">
-            Cancelar
-          </button>
-          <button
-            onClick={save}
-            disabled={saving}
-            className="h-9 px-5 rounded-[8px] text-[12.5px] font-semibold text-white disabled:opacity-60"
-            style={{ background: "#0B0F2A" }}
-          >
-            {saving ? "Salvando…" : post ? "Salvar" : "Programar post"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Ideas panel ──────────────────────────────────────────────────────────────
-// AI content ideation. Generates a batch of grounded post ideas the team can
-// drop straight into the calendar.
-interface Idea { title: string; angle: string; format: string; pillar: string }
-
-function IdeasPanel({
-  clientId, clientName, onClose, onPick,
-}: {
-  clientId: string | null;
-  clientName: string;
-  onClose: () => void;
-  onPick: (idea: Idea) => void;
-}) {
-  const [ideas, setIdeas] = useState<Idea[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [brief, setBrief] = useState("");
-
-  async function run() {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/social-posts/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode: "ideas", clientId, brief: brief.trim() || null, count: 6 }),
-      });
-      const json = await res.json();
-      if (!res.ok) { setError(json.error ? `IA: ${json.error}` : "Não foi possível gerar."); return; }
-      setIdeas(Array.isArray(json.ideas) ? json.ideas : []);
-    } catch {
-      setError("Falha de rede. Tente de novo.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4" onClick={onClose}>
-      <div className="bg-white w-full sm:max-w-[560px] max-h-[92vh] overflow-y-auto rounded-t-[16px] sm:rounded-[16px] shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="sticky top-0 bg-white px-5 py-4 flex items-center justify-between z-10" style={{ borderBottom: "1px solid #EFEFEA" }}>
-          <div>
-            <h2 className="text-[16px] font-semibold text-[var(--text-primary)]">✨ Ideias de conteúdo</h2>
-            <p className="text-[11.5px] text-[var(--text-muted)] mt-0.5">Para {clientName}</p>
-          </div>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full text-[var(--text-muted)] hover:bg-[var(--accent)]">✕</button>
-        </div>
-
-        <div className="px-5 py-4 space-y-4">
-          <div className="flex gap-2">
-            <input
-              value={brief}
-              onChange={(e) => setBrief(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && !loading) run(); }}
-              placeholder="Direcionamento (opcional): ex. lançamento, datas comemorativas…"
-              className="flex-1 h-9 px-3 rounded-[8px] text-[13px] text-[var(--text-primary)] outline-none"
-              style={{ border: "1px solid #E7E7E2" }}
-            />
-            <button
-              onClick={run}
-              disabled={loading}
-              className="h-9 px-4 rounded-[8px] text-[12.5px] font-semibold text-white disabled:opacity-60 shrink-0"
-              style={{ background: "#0E5F5A" }}
-            >
-              {loading ? "Gerando…" : ideas.length ? "Gerar mais" : "Gerar ideias"}
-            </button>
-          </div>
-
-          {error && <div className="text-[12px] text-[var(--danger)] bg-[var(--danger-bg)] rounded-[8px] px-3 py-2">{error}</div>}
-
-          {ideas.length === 0 && !loading && !error && (
-            <div className="text-[13px] text-[var(--text-muted)] text-center py-8">
-              Toque em <span className="font-semibold text-[#0E5F5A]">Gerar ideias</span> e a IA sugere pautas específicas para este cliente.
-            </div>
-          )}
-
-          <div className="space-y-2">
-            {ideas.map((idea, i) => (
-              <div key={i} className="rounded-[12px] border border-[var(--border)] px-3.5 py-3 hover:border-[#C7EFEC] transition-colors">
-                <div className="flex items-start gap-2">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[13px] font-semibold text-[var(--text-primary)]">{idea.title}</p>
-                    {idea.angle && <p className="text-[12px] text-[var(--text-secondary)] mt-0.5 leading-snug">{idea.angle}</p>}
-                    <div className="flex items-center gap-1.5 mt-1.5">
-                      <span className="h-[18px] px-2 rounded-full bg-[var(--accent)] text-[var(--text-secondary)] text-[10px] font-medium capitalize flex items-center">{idea.format}</span>
-                      {idea.pillar && <span className="h-[18px] px-2 rounded-full bg-[var(--accent-light)] text-[#0E5F5A] text-[10px] font-medium flex items-center">{idea.pillar}</span>}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => onPick(idea)}
-                    className="shrink-0 h-8 px-3 rounded-[8px] text-[12px] font-semibold text-white hover:opacity-90"
-                    style={{ background: "#0B0F2A" }}
-                  >
-                    Usar
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <div className="flex items-baseline justify-between mb-1.5">
-        <label className="text-[12px] font-semibold text-[var(--text-primary)]">{label}</label>
-        {hint && <span className="text-[10.5px] text-[var(--text-muted)]">{hint}</span>}
-      </div>
-      {children}
     </div>
   );
 }

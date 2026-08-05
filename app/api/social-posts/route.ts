@@ -11,10 +11,18 @@ import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
 interface DbPost {
   id: string; clientId: string | null; clientRequestId: string | null;
   caption: string; networks: string; format: string; pillar: string | null;
-  mediaUrl: string | null; mediaUrlsJson: string | null; scriptJson: string | null;
+  mediaUrl: string | null; mediaUrlsJson: string | null; scenesJson?: string | null;
+  scriptJson: string | null;
+  visibility?: string;
   scheduledFor: Date | null; status: string;
+  externalPostId?: string | null; permalink?: string | null;
+  publishedAt?: Date | null; lastError?: string | null;
   createdAt: Date; updatedAt: Date;
 }
+
+/** Os estados do contrato (schema: draft|scheduled|approved|published|failed).
+ *  Fora dessa lista o post ficaria num estado que nenhuma tela sabe desenhar. */
+const STATUS_VALIDOS = new Set(["draft", "scheduled", "approved", "published", "failed"]);
 
 /** Parse defensivo de uma lista JSON de strings — JSON quebrado vira []. */
 function lerLista(bruto: string | null | undefined): string[] {
@@ -40,20 +48,39 @@ function toDTO(p: DbPost) {
     // NÃO confundir com scenesJson (descrições internas): estas são as URLs
     // das artes prontas, material que o cliente pode ver.
     telas: lerLista(p.mediaUrlsJson),
+    // As descrições das telas (scenesJson) são material INTERNO — o que o
+    // especialista escreveu para o gerador de arte desenhar cada tela. A
+    // equipe precisa editá-las no Planner; o cliente nunca as vê (toPortalDTO).
+    cenas: lerLista(p.scenesJson),
     script,
     scheduledFor: p.scheduledFor ? p.scheduledFor.toISOString() : null,
     status: p.status,
+    // Sem estes quatro campos a tela da agência não conseguia dizer se um post
+    // foi mesmo publicado (ou por que falhou) — "Publicado" era um estado que
+    // alguém marcava à mão e ninguém conseguia conferir.
+    visibility: p.visibility ?? "interno",
+    externalPostId: p.externalPostId ?? null,
+    permalink: p.permalink ?? null,
+    publishedAt: p.publishedAt ? p.publishedAt.toISOString() : null,
+    lastError: p.lastError ?? null,
   };
 }
 
-// O que o CLIENTE recebe. Sem `script`: o roteiro é material de trabalho
-// interno da IA (hook, cenas, áudio, observações do agente) e saía inteiro no
-// ramo token — achado A3 da auditoria do Hub. Se um roteiro contiver instrução
-// interna ou observação sobre o cliente, chegava nele. Conteúdo não curado
-// não atravessa a fronteira do portal.
+// O que o CLIENTE recebe — lista EXPLÍCITA (fail-closed): campo novo no modelo
+// não atravessa a fronteira só porque foi criado. Fora de propósito:
+//   • `script` — roteiro interno da IA (achado A3 da auditoria do Hub): hook,
+//     cenas, áudio e observações do agente sobre o cliente saíam inteiros;
+//   • `cenas` — as descrições internas das telas do carrossel;
+//   • `lastError` / `externalPostId` — diagnóstico de operação nossa.
 function toPortalDTO(p: DbPost) {
-  const { script: _interno, ...dto } = toDTO(p);
-  return dto;
+  const dto = toDTO(p);
+  return {
+    id: dto.id, clientId: dto.clientId, clientRequestId: dto.clientRequestId,
+    caption: dto.caption, networks: dto.networks, format: dto.format, pillar: dto.pillar,
+    mediaUrl: dto.mediaUrl, telas: dto.telas,
+    scheduledFor: dto.scheduledFor, status: dto.status,
+    permalink: dto.permalink, publishedAt: dto.publishedAt,
+  };
 }
 
 async function resolveTokenRequestId(token: string): Promise<string | null | false> {
@@ -112,7 +139,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const networks = Array.isArray(body.networks)
     ? (body.networks as unknown[]).filter((x): x is string => typeof x === "string") : [];
 
-  const clientId = typeof body.clientId === "string" ? body.clientId : null;
+  const clientId = typeof body.clientId === "string" && body.clientId ? body.clientId : null;
   // Resolve the client's latest Brain request so the post shows on their portal.
   let clientRequestId = typeof body.clientRequestId === "string" ? body.clientRequestId : null;
   if (!clientRequestId && clientId) {
@@ -121,6 +148,32 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     });
     clientRequestId = latest?.id ?? null;
   }
+
+  // ── Visibilidade: DECISÃO DECLARADA, não efeito colateral ────────────────
+  // O que existia aqui era `clientRequestId ? "compartilhado" : "interno"`. Para
+  // cliente DIRETO (criado sem briefing, como a Foocci) não existe solicitação
+  // Brain — logo todo post programado pelo Planner nascia "interno" e o cliente
+  // pagante abria o portal e não via NADA. Falha silenciosa: ninguém erra, a
+  // agência programa o mês e o trabalho some.
+  // Agora quem decide é a tela (campo "Quem vê"), com dois travas:
+  //   • sem cliente não existe quem veja → "interno", mesmo se pedirem outro;
+  //   • sem pedido explícito, mantém a regra antiga (compatibilidade da esteira).
+  const pedido = body.visibility === "compartilhado" || body.visibility === "interno"
+    ? body.visibility
+    : null;
+  const temDono = !!clientId || !!clientRequestId;
+  const visibility =
+    pedido === "compartilhado" ? (temDono ? "compartilhado" : "interno")
+    : pedido === "interno"      ? "interno"
+    : clientRequestId           ? "compartilhado"
+    : "interno";
+
+  // Telas do carrossel: `telas` (artes prontas) e `cenas` (descrição interna de
+  // cada tela). Aceita só array de string — qualquer outro tipo vira lista vazia.
+  const listaDeTexto = (v: unknown): string[] =>
+    Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && !!x.trim()) : [];
+  const telas = listaDeTexto(body.telas ?? body.mediaUrlsJson);
+  const cenas = listaDeTexto(body.cenas ?? body.scenesJson);
 
   try {
     const post = await prisma.socialPost.create({
@@ -133,13 +186,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         format:          typeof body.format === "string" ? body.format : "feed",
         pillar:          typeof body.pillar === "string" ? body.pillar : null,
         mediaUrl:        typeof body.mediaUrl === "string" ? body.mediaUrl : null,
+        mediaUrlsJson:   JSON.stringify(telas),
+        scenesJson:      JSON.stringify(cenas),
         scriptJson:      body.script && typeof body.script === "object" ? JSON.stringify(body.script) : null,
         scheduledFor:    typeof body.scheduledFor === "string" && body.scheduledFor ? new Date(body.scheduledFor) : null,
-        status:          typeof body.status === "string" ? body.status : "scheduled",
-        // A intenção declarada desta rota é "o post aparece no portal do
-        // cliente" (resolução do clientRequestId acima) — então o vínculo à
-        // solicitação é a decisão de compartilhar. Post sem cliente é interno.
-        visibility:      clientRequestId ? "compartilhado" : "interno",
+        status:          STATUS_VALIDOS.has(String(body.status)) ? String(body.status) : "scheduled",
+        visibility,
       },
     });
     return NextResponse.json(toDTO(post), { status: 201 });
