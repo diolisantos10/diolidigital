@@ -75,19 +75,19 @@ export default function ClientsPage() {
       />
 
       {/* Filters */}
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3 mb-6 flex-wrap">
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar clientes..."
-          className="h-8 px-3 text-[13px] bg-white border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] placeholder:text-[var(--text-muted)] w-64"
+          className="h-8 px-3 text-[13px] bg-white border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)] placeholder:text-[var(--text-muted)] w-full md:w-64"
         />
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none -mx-4 px-4 md:mx-0 md:px-0">
           {(["all", "active", "inactive", "prospect"] as const).map((s) => (
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
-              className={`h-7 px-3 text-[12px] font-medium rounded-[6px] transition-colors ${
+              className={`h-8 md:h-7 px-3 text-[12px] font-medium rounded-[6px] shrink-0 whitespace-nowrap transition-colors ${
                 statusFilter === s ? "bg-[var(--text-primary)] text-white" : "bg-white border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--accent)]"
               }`}
             >
@@ -107,7 +107,7 @@ export default function ClientsPage() {
       ) : (
         <>
         {/* Celular: cartão em vez de tabela de 5 colunas — DESIGN.md §6.3. */}
-        <ul className="md:hidden space-y-2 list-none p-0 m-0">
+        <ul className="lg:hidden space-y-2 list-none p-0 m-0">
           {filtered.map((client) => (
             <li key={client.id} className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
               <Link href={`/agency/clients/${client.id}`} className="flex items-center gap-3 p-4">
@@ -133,7 +133,7 @@ export default function ClientsPage() {
           ))}
         </ul>
 
-        <div className="hidden md:block bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-x-auto">
+        <div className="hidden lg:block bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-x-auto">
           <table className="w-full min-w-[640px]">
             <thead>
               <tr className="border-b border-[var(--border)]">

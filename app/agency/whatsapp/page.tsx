@@ -4,6 +4,7 @@
 // the system using ONE number. Talks to /api/meta/whatsapp/messages.
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import EmptyState from "@/components/agency/ui/EmptyState";
 import { mensagemDeErro, type ErroHumano } from "@/components/agency/ui/mensagemDeErro";
@@ -112,8 +113,17 @@ export default function WhatsAppInboxPage() {
 
       {!carregando && !erroDeCarga && threads.length === 0 ? (
         <EmptyState
+          icon={<span aria-hidden className="text-[20px]">💬</span>}
           title="Nenhuma conversa ainda"
-          description="As mensagens que os clientes mandarem para o número da agência aparecem aqui. Se você esperava ver conversas, confira a conexão do WhatsApp em Ferramentas & Integrações."
+          description="As mensagens que os clientes mandarem para o número da agência aparecem aqui."
+          action={
+            <Link
+              href="/agency/integrations"
+              className="inline-flex h-9 px-4 items-center rounded-[7px] bg-[var(--navy)] text-white text-[13px] font-semibold"
+            >
+              Conferir a conexão do WhatsApp
+            </Link>
+          }
         />
       ) : (
       <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-3 h-[70vh] min-h-[420px]">

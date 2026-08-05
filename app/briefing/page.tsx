@@ -61,7 +61,7 @@ export default function BriefingPage() {
   if (submitted) {
     return (
       <div className="max-w-[560px] mx-auto py-16 px-4 text-center">
-        <div className="w-14 h-14 rounded-full bg-[#DCFCE7] flex items-center justify-center mx-auto mb-5 text-[#16A34A] text-[22px] font-bold">
+        <div className="w-14 h-14 rounded-full bg-[#DCFCE7] flex items-center justify-center mx-auto mb-5 text-[var(--success)] text-[22px] font-bold">
           ✓
         </div>
         <h1 className="text-[22px] font-semibold text-[var(--text-primary)] mb-3">

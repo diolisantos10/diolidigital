@@ -192,9 +192,9 @@ export default function OperationsAgentPage() {
     : "var(--text-muted)";
 
   const severityStyle = (s: string) =>
-    s === "critical" ? { bg: "#FEF2F2", border: "#FECACA", dot: "#DC2626", text: "#DC2626" }
-    : s === "warning" ? { bg: "#FFFBEB", border: "#FDE68A", dot: "#D97706", text: "#92400E" }
-    : { bg: "#F0FDF4", border: "#BBF7D0", dot: "#16A34A", text: "#15803D" };
+    s === "critical" ? { bg: "#FEF2F2", border: "#FECACA", dot: "var(--danger)", text: "var(--danger)" }
+    : s === "warning" ? { bg: "#FFFBEB", border: "#FDE68A", dot: "var(--warning)", text: "#92400E" }
+    : { bg: "#F0FDF4", border: "#BBF7D0", dot: "var(--success)", text: "#15803D" };
 
   return (
     <div className="flex flex-col min-h-screen bg-[var(--bg)]">

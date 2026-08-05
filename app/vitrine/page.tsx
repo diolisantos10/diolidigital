@@ -175,7 +175,7 @@ function OrderModal({
               </div>
 
               {status === "error" && (
-                <div className="bg-[#FEF2F2] border border-[#FECACA] rounded-[8px] px-3 py-2.5 text-[12px] text-[#DC2626]">
+                <div className="bg-[#FEF2F2] border border-[#FECACA] rounded-[8px] px-3 py-2.5 text-[12px] text-[var(--danger)]">
                   {errMsg}
                 </div>
               )}
@@ -278,7 +278,7 @@ export default function VitrinePage() {
         <h1 className="text-[28px] md:text-[34px] font-bold leading-tight max-w-[540px] mx-auto">
           Serviços digitais com entrega rápida
         </h1>
-        <p className="text-[14px] text-[var(--text-muted)] mt-3 max-w-[420px] mx-auto leading-relaxed">
+        <p className="text-[14px] text-[var(--text-on-dark)] mt-3 max-w-[420px] mx-auto leading-relaxed">
           Compre avulso, sem contratos longos. Design, social media, vídeo e tráfego pago — feito pela Dioli, entregue rápido.
         </p>
       </div>

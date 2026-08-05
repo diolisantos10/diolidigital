@@ -132,7 +132,7 @@ export function ConexoesDoCliente({ token }: { token: string }) {
         </div>
       ) : error ? (
         <div className="bg-white rounded-[14px] border border-[#FCA5A5] p-5">
-          <p className="text-[13px] font-semibold text-[#DC2626]">Erro ao carregar</p>
+          <p className="text-[13px] font-semibold text-[var(--danger)]">Erro ao carregar</p>
           <p className="text-[12px] text-[var(--text-secondary)] mt-1">{error}</p>
           <button
             onClick={() => { setLoading(true); void load(); }}

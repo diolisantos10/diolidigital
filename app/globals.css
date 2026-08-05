@@ -34,6 +34,12 @@
   --text-secondary: #4B5563;   /*  7.11:1 */
   --text-muted:     #5E6875;   /*  5.32:1 */
   --text-subtle:    #6B7280;   /*  4.55:1 */
+  /* Texto de apoio sobre superfície NAVY (cabeçalho do briefing, herói da
+     vitrine, sidebar). Os três degraus acima são calibrados para fundo CLARO:
+     `--text-secondary` sobre navy dá 2.59:1 — e piorou justamente quando ele
+     escureceu para passar AA no claro. Token errado na superfície errada é a
+     armadilha mais fácil do sistema. Este dá 8.6:1 sobre `--navy`. */
+  --text-on-dark:   rgba(255,255,255,0.66);
 
   /* Borders */
   --border:         #E6E9EE;
@@ -47,11 +53,17 @@
      existe o par escuro, medido em 4.62:1 sobre --bg. */
   --teal:         #12B5AC;
   --teal-text:    #0F7E79;
-  --success:      #16A34A;
+  /* Semanticas: o valor de TEXTO passa AA sobre --bg, --card e o proprio tint.
+     Os anteriores (#16A34A 3.00:1 / #D97706 2.86:1 / #DC2626 4.41:1 sobre o
+     tint) reprovavam justamente onde mais aparecem — os selos de status, que
+     sao o texto mais curto e mais importante das listas. Nao e mudanca de
+     identidade: verde/ambar/vermelho de estado nao sao cores da marca (navy e
+     cyan sao). Medido em 05/08/2026. */
+  --success:      #15803D;   /* 4.72:1 sobre --bg · 4.57:1 sobre --success-bg */
   --success-bg:   #DCFCE7;
-  --warning:      #D97706;
+  --warning:      #A45A05;   /* 4.89:1 · 4.66:1 */
   --warning-bg:   #FEF3C7;
-  --danger:       #DC2626;
+  --danger:       #B91C1C;   /* 6.09:1 · 5.91:1 */
   --danger-bg:    #FEF2F2;
   --info:         #2563EB;
   --info-bg:      #EFF6FF;

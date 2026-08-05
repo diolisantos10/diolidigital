@@ -84,8 +84,16 @@ Todos os tokens vivem em [`app/globals.css`](app/globals.css) como CSS variables
 | `--text-secondary` | `#4B5563` | 7.11:1 | Texto de apoio |
 | `--text-muted` | `#5E6875` | 5.32:1 | Texto secundário/legendas |
 | `--text-subtle` | `#6B7280` | 4.55:1 | Placeholders, texto muito discreto |
+| `--text-on-dark` | `rgba(255,255,255,.66)` | 8.6:1 sobre `--navy` | Texto de apoio sobre superfície **navy** |
 
-Os quatro passam AA (≥ 4.5:1) sobre `--bg`, `--card` **e** `--accent`.
+Os quatro primeiros passam AA (≥ 4.5:1) sobre `--bg`, `--card` **e** `--accent`.
+
+> **Token certo, superfície errada.** Os degraus de texto são calibrados para
+> fundo **claro**. Sobre navy, `--text-secondary` dá **2.59:1** — e o número
+> *piorou* exatamente quando ele escureceu para passar AA no claro. Foi o que
+> acontecia com "Briefing gratuito · sem compromisso" no cabeçalho do briefing
+> público e com o subtítulo do herói da vitrine. Em superfície navy use
+> **`--text-on-dark`**; nunca reaproveite um degrau do fundo claro.
 
 > **Por que isso virou requisito (05/08/2026):** `--text-muted` era `#8B95A3`
 > — **2.85:1**, em **1.104 usos**, e é justamente o texto **menor** do produto.
@@ -103,14 +111,21 @@ Os quatro passam AA (≥ 4.5:1) sobre `--bg`, `--card` **e** `--accent`.
 ### 2.4 Cores semânticas (estados)
 | Token | Texto | Fundo | Significado |
 |---|---|---|---|
-| `--success` / `--success-bg` | `#16A34A` | `#DCFCE7` | Sucesso, aprovado, concluído |
-| `--warning` / `--warning-bg` | `#D97706` | `#FEF3C7` | Atenção, em revisão, pendente |
-| `--danger` / `--danger-bg` | `#DC2626` | `#FEF2F2` | Erro, bloqueado, destrutivo |
+| `--success` / `--success-bg` | `#15803D` | `#DCFCE7` | Sucesso, aprovado, concluído (4.57:1 no tint) |
+| `--warning` / `--warning-bg` | `#A45A05` | `#FEF3C7` | Atenção, em revisão, pendente (4.66:1) |
+| `--danger` / `--danger-bg` | `#B91C1C` | `#FEF2F2` | Erro, bloqueado, destrutivo (5.91:1) |
 | `--info` / `--info-bg` | `#2563EB` | `#EFF6FF` | Informação, em andamento |
 | `--accent` | — | `#EEF1F4` | Superfície de hover discreta |
 | `--accent-light` | — | `#E6FBFA` | Tint de cyan para destaques suaves |
 | `--teal` | — | `#12B5AC` | Cyan profundo do portal — **superfície/ícone** |
 | `--teal-text` | `#0F7E79` | — | O mesmo papel em **texto/link** (4.62:1) |
+
+> **A cor de estado é lida sobre o próprio tint.** Os valores anteriores
+> (`#16A34A` 3.00:1 · `#D97706` 2.86:1 · `#DC2626` 4.41:1 sobre o respectivo
+> `-bg`) reprovavam exatamente onde mais aparecem: o **selo de status**, que é o
+> texto mais curto e mais decisivo de toda lista. Escurecer os três não é mexer
+> em identidade — verde/âmbar/vermelho de estado não são cores da marca (navy e
+> cyan são).
 
 > **`--teal` não vai em texto.** `#12B5AC` sobre fundo claro dá **2.40:1**. Em
 > texto e link use `--teal-text`. *(Pendente para o CEO: botão com fundo
@@ -338,11 +353,15 @@ lateralmente por 9 colunas de 880px num aparelho de 375px é navegação às ceg
 — o cabeçalho sai de vista junto com o dado. O padrão da casa é o mesmo do
 Linear e do Attio, e o que a Caixa de Entrada já fazia:
 
-- **Abaixo de `md`:** lista de **cartões** (`<ul>`), um item por cartão, com o
+- **Abaixo de `lg`:** lista de **cartões** (`<ul>`), um item por cartão, com o
   título em 14px, o contexto em 12px, os selos de estado em linha e as ações
   como botões reais de 32px — não escondidos atrás de hover.
-- **De `md` para cima:** a tabela, dentro de container `overflow-x-auto` com
+- **De `lg` para cima:** a tabela, dentro de container `overflow-x-auto` com
   `min-w-[…]` explícito. `overflow-hidden` num container de tabela é bug.
+
+O corte é `lg`, não `md`, e o motivo é aritmético: a partir de `md` a sidebar
+volta a ocupar 224px, então um tablet de 768px tem **544px** de conteúdo — menos
+que o celular tinha de sobra. Mesmo raciocínio da §6.0.
 
 ### 6.4 Ação revelada no hover não existe no celular
 
@@ -438,13 +457,21 @@ Levantamento de auditoria (Julho/2026). Prioridade: **P0** crítico → **P3** b
   **Ação:** rotear tudo pelos componentes compartilhados / shadcn.
 - **I-4 · Inputs sem `<label>` associado.** 147 inputs, só 2 com `htmlFor`.
   Botões só-de-ícone sem `aria-label` (~28). **Ação:** associar labels e rótulos.
-- **I-6 · Transparência da IA inconsistente.** Várias páginas caem em conteúdo mock
-  silenciosamente (só `console.warn`); `pm-agent` tem UI de erro que nunca dispara.
-  **Ação:** banner padrão de "modo alternativo".
+- **I-6 · ✅ Resolvida (05/08/2026).** As seis telas de agente que caíam em
+  conteúdo de reserva **em silêncio** (`pm-agent`, `ads-agent`, `design-agent`,
+  `social-media-agent`, `brand-hub-agent` — `operations-agent` já fazia certo)
+  agora usam o mesmo banner: `components/agency/ui/AvisoModoAlternativo.tsx`,
+  com o motivo técnico como detalhe, nunca como manchete. Ver §7.3.
 - **I-7 · Grids sem breakpoint responsivo.** `grid-cols-4/5` fixos no dashboard,
   control-room, orchestrator e `BriefingRoomV2` estouram no celular.
   **Ação:** `grid-cols-1 md:grid-cols-...`.
-- **I-8 · Rotas órfãs na navegação.** Control Room e Orchestrator não aparecem na sidebar.
+- **I-8 · Rotas órfãs na navegação.** *(Parcial — 05/08/2026.)* **WhatsApp**
+  (`/agency/whatsapp`, caixa completa e funcional) e **Radar do mercado**
+  (`/agency/radar`, serviço + cron + 3 rotas de API) não tinham **um único
+  link** na interface: quem não soubesse a URL não chegava neles. Ambos entraram
+  no menu. Continuam órfãos: Control Room e Orchestrator.
+  → A lição: **funcionalidade sem porta na interface não existe.** Rota nova
+  nasce com entrada no menu, ou nasce morta.
 - **I-9 · Drawer mobile sem acessibilidade.** Sem foco preso, sem ESC;
   links continuam no tab-order quando fechado. *(Parcial: o botão da barra do
   painel já tem `aria-expanded` + `aria-controls` desde 05/08/2026.)*
@@ -460,6 +487,17 @@ Levantamento de auditoria (Julho/2026). Prioridade: **P0** crítico → **P3** b
   e backdrops de modal.
 - **I-13 · Largura da coluna de formulário varia** entre departamentos (360px vs 380px).
 - **I-14 · Progresso de loading "falso"** (setTimeout) desacoplado da chamada real, sem `aria-live`.
+
+- **I-20 · Contraste ainda reprovado em `lib/**`.** Depois da correção dos
+  tokens (05/08/2026), sobraram **17 reprovações AA** medidas a 375px, todas
+  vindas de hex "na mão" dentro de `lib/` — território de outra frente:
+  `lib/agency/orchestration/auto-tasks.ts:247-250` (selos Crítico/Alto/Baixo),
+  `lib/agency/orchestration/department-health.ts:166` (Ocioso, `#9B9B95`
+  2.45:1), `lib/dioli-brain/department-adapter.ts:86-87` e
+  `department-maturity.ts:34`. **Ação:** trocar por `var(--danger)` /
+  `var(--warning)` / `var(--text-muted)` — o token já está certo.
+- **I-21 · Fonte abaixo do piso da §3.** Ainda existem rótulos em 9px e 9.5px
+  (auto-tasks, dashboard, brain). A sidebar já subiu para 11px em 05/08/2026.
 
 ### P3 — Conversão / polimento
 - **I-15 · Vitrine sem prova social** (depoimentos, logos, portfólio) e sem CTA primário no hero.
@@ -486,4 +524,4 @@ _(Regras 4 e 5 estão fixadas no `CLAUDE.md`.)_
 
 ---
 
-_Última atualização: 2026-08-05 · mantenha este arquivo vivo._
+_Última atualização: 2026-08-05 (madrugada de melhoria: §2 conferida contra o CSS, §6.1 com varredura datada, §6.3, §6.4) · mantenha este arquivo vivo._

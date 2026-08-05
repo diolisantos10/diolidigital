@@ -114,7 +114,7 @@ export default function DeliverablesPage() {
       ) : (
         <>
         {/* Celular: cartão em vez de tabela de 6 colunas — DESIGN.md §6.3. */}
-        <ul className="md:hidden space-y-2 list-none p-0 m-0">
+        <ul className="lg:hidden space-y-2 list-none p-0 m-0">
           {filtered.map((d) => {
             const project = getProject(d.projectId);
             const owner = getOwner(d);
@@ -150,7 +150,7 @@ export default function DeliverablesPage() {
           })}
         </ul>
 
-        <div className="hidden md:block bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-x-auto">
+        <div className="hidden lg:block bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-x-auto">
           <table className="w-full min-w-[720px]">
             <thead>
               <tr className="border-b border-[var(--border)]">

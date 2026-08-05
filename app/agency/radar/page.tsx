@@ -151,6 +151,13 @@ export default function RadarPage() {
         </ul>
       ) : pendentes.length === 0 && !erro ? (
         <EmptyState
+          icon={
+            <svg width="20" height="20" viewBox="0 0 16 16" fill="none" aria-hidden>
+              <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.3"/>
+              <circle cx="8" cy="8" r="2.6" stroke="currentColor" strokeWidth="1.3"/>
+              <path d="M8 8l4-3.2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+            </svg>
+          }
           title="Nada esperando por você"
           description="O Radar varre as fontes oficiais e as tendências do mercado. Quando encontra algo que muda como a agência trabalha, a proposta aparece aqui para você aprovar ou recusar."
           action={<Button variant="primary" onClick={varrer} disabled={varrendo}>{varrendo ? "Buscando…" : "Buscar agora"}</Button>}

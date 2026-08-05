@@ -68,9 +68,9 @@ const MOCK_ANALYSIS: BrandAnalysis = {
 
 function HealthBadge({ score, label }: { score: number; label: string }) {
   const color =
-    score >= 8 ? { bg: "#DCFCE7", text: "#16A34A", dot: "#16A34A" } :
+    score >= 8 ? { bg: "#DCFCE7", text: "var(--success)", dot: "var(--success)" } :
     score >= 5 ? { bg: "#E6FBFA", text: "#0E7C75", dot: "#0E7C75" } :
-                 { bg: "#FEE2E2", text: "#DC2626", dot: "#DC2626" };
+                 { bg: "#FEE2E2", text: "var(--danger)", dot: "var(--danger)" };
   return (
     <div className="flex items-center gap-3">
       <div className="w-14 h-14 rounded-full flex items-center justify-center text-[22px] font-bold border-[3px]" style={{ borderColor: color.dot, color: color.text, backgroundColor: color.bg }}>

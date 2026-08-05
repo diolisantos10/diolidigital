@@ -92,7 +92,7 @@ function SignInForm() {
 
             {error && (
               <div className="bg-[#FEE2E2] border border-[#FECACA] rounded-[7px] px-3 py-2">
-                <p className="text-[12px] text-[#DC2626]">{error}</p>
+                <p className="text-[12px] text-[var(--danger)]">{error}</p>
               </div>
             )}
 

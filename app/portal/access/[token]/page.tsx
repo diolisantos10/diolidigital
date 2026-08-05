@@ -598,7 +598,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
                         <span className="block text-[13.5px] font-semibold text-[var(--text-primary)]">{p.department}</span>
                         <span className="text-[12px] text-[var(--text-secondary)]">v{p.version}</span>
                       </span>
-                      <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full text-[11px] font-semibold bg-[#DCFCE7] text-[#16A34A] shrink-0">
+                      <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full text-[11px] font-semibold bg-[#DCFCE7] text-[var(--success)] shrink-0">
                         Aprovado {dataCurta(p.approvedAt)}
                       </span>
                     </button>
@@ -712,7 +712,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
                   <div className="flex items-center justify-between mb-2.5">
                     <h3 className="text-[14px] font-bold text-[var(--text-primary)]">{mod.label}</h3>
                     {dept?.approvedAt && (
-                      <span className="h-5 px-2 rounded-full bg-[#DCFCE7] text-[#16A34A] text-[10px] font-semibold flex items-center">✓ Plano aprovado</span>
+                      <span className="h-5 px-2 rounded-full bg-[#DCFCE7] text-[var(--success)] text-[10px] font-semibold flex items-center">✓ Plano aprovado</span>
                     )}
                   </div>
                   {dept && (dept.headline || dept.bullets.length > 0) ? (

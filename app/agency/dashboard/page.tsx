@@ -450,8 +450,8 @@ export default function DashboardPage() {
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {[
             { label: "Projetos ativos",     value: activeProjects.length, sub: `${projects.filter((p) => p.stage === "completed").length} concluídos`, color: "#070A1F" },
-            { label: "Tarefas abertas",     value: tasks.filter((tk) => tk.status === "pending" || tk.status === "in_progress").length, sub: `${tasks.filter((tk) => tk.status === "blocked").length} bloqueadas`, color: "#D97706" },
-            { label: "Entregas pendentes",  value: deliverables.filter((d) => d.status === "draft" || d.status === "in_review").length, sub: `${deliverables.filter((d) => d.status === "approved").length} aprovadas`, color: "#16A34A" },
+            { label: "Tarefas abertas",     value: tasks.filter((tk) => tk.status === "pending" || tk.status === "in_progress").length, sub: `${tasks.filter((tk) => tk.status === "blocked").length} bloqueadas`, color: "var(--warning)" },
+            { label: "Entregas pendentes",  value: deliverables.filter((d) => d.status === "draft" || d.status === "in_review").length, sub: `${deliverables.filter((d) => d.status === "approved").length} aprovadas`, color: "var(--success)" },
             { label: "Atenção necessária",  value: totalAttention, sub: totalAttention === 0 ? "tudo em dia" : "itens pendentes", color: totalAttention > 0 ? "#DC2626" : "#16A34A" },
           ].map((kpi) => (
             <div key={kpi.label} className="bg-white rounded-[12px] border border-[var(--border)] px-4 py-3.5" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.05)", borderLeft: `3px solid ${kpi.color}` }}>

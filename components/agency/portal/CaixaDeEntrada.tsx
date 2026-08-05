@@ -270,7 +270,7 @@ export default function CaixaDeEntrada() {
                     <span className="block mt-0.5 truncate text-[12px] text-[var(--text-secondary)]">{p.titulo}</span>
                     <span className={`mt-1 inline-flex items-center h-[18px] px-2 rounded-full text-[10px] font-semibold ${
                       p.status === "novo" ? "bg-[#FEF3C7] text-[#9B7B2D]"
-                      : p.status === "triado" ? "bg-[#DCFCE7] text-[#16A34A]"
+                      : p.status === "triado" ? "bg-[#DCFCE7] text-[var(--success)]"
                       : "bg-[#F3F4F6] text-[#6B7280]"
                     }`}>
                       {p.status === "novo" ? "Esperando decisão" : p.status === "triado" ? `Aceito · ${p.escopo === "extra" ? "escopo extra" : "no ciclo"}` : "Recusado"}

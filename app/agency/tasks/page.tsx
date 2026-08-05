@@ -287,7 +287,7 @@ export default function TasksPage() {
         <>
         {/* Celular: 9 colunas não cabem em 375px nem rolando — vira cartão.
             Ver DESIGN.md §6.3. */}
-        <ul className="md:hidden space-y-2 list-none p-0 m-0">
+        <ul className="lg:hidden space-y-2 list-none p-0 m-0">
           {filtered.map((task) => {
             const pStyle     = AUTO_TASK_PRIORITY_STYLE[task.priority];
             const ownerColor = (AUTO_TASK_OWNER_STYLE as Record<string, { color: string }>)[task.owner]?.color ?? "var(--text-secondary)";
@@ -417,7 +417,7 @@ export default function TasksPage() {
           })}
         </ul>
 
-        <div className="hidden md:block bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-x-auto">
+        <div className="hidden lg:block bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-x-auto">
           <table className="w-full min-w-[880px]">
             <thead>
               <tr className="border-b border-[var(--border)]">
@@ -501,7 +501,7 @@ export default function TasksPage() {
 
                     {/* Priority */}
                     <td className="px-4 py-3.5">
-                      <span className={`inline-flex h-5 px-2 rounded-full text-[10px] font-semibold items-center ${pStyle.bg} ${pStyle.text}`}>
+                      <span className={`inline-flex h-5 px-2 rounded-full text-[10px] font-semibold items-center whitespace-nowrap ${pStyle.bg} ${pStyle.text}`}>
                         {pStyle.label}
                       </span>
                     </td>
@@ -509,7 +509,7 @@ export default function TasksPage() {
                     {/* Status */}
                     <td className="px-4 py-3.5">
                       {task.kind === "store" && task.storeStatus ? (
-                        <span className={`inline-flex h-5 px-2 rounded-full text-[10px] font-semibold items-center ${
+                        <span className={`inline-flex h-5 px-2 rounded-full text-[10px] font-semibold items-center whitespace-nowrap ${
                           task.storeStatus === "done"        ? "bg-[var(--success-bg)] text-[var(--success)]"
                           : task.storeStatus === "blocked"   ? "bg-[#FEE2E2] text-[var(--danger)]"
                           : task.storeStatus === "in_progress" ? "bg-[var(--warning-bg)] text-[var(--warning)]"
@@ -521,7 +521,7 @@ export default function TasksPage() {
                             : "Pendente"}
                         </span>
                       ) : (
-                        <span className="inline-flex h-5 px-2 rounded-full text-[10px] font-semibold items-center bg-[var(--accent-light)] text-[var(--navy)]">
+                        <span className="inline-flex h-5 px-2 rounded-full text-[10px] font-semibold items-center whitespace-nowrap bg-[var(--accent-light)] text-[var(--navy)]">
                           Sugerida
                         </span>
                       )}

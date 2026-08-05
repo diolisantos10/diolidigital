@@ -12,7 +12,7 @@ export default function BriefingLayout({ children }: { children: React.ReactNode
       <header className="bg-[#070A1F] border-b border-white/[0.06]">
         <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
           <DioliLogo variant="full" tone="light" markSize={20} className="text-[13px]" />
-          <span className="text-[11px] text-[var(--text-secondary)]">Briefing gratuito · sem compromisso</span>
+          <span className="text-[11px] text-[var(--text-on-dark)]">Briefing gratuito · sem compromisso</span>
         </div>
       </header>
       <main className="max-w-5xl mx-auto px-6 py-8">

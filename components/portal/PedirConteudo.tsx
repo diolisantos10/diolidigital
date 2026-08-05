@@ -256,7 +256,7 @@ export function PedirConteudo({ token }: { token: string }) {
                 <div className="flex items-start justify-between gap-3">
                   <p className="min-w-0 flex-1 text-[13px] font-medium text-[var(--text-primary)] leading-snug">{p.titulo}</p>
                   <span className={`shrink-0 h-6 px-2.5 rounded-full text-[11px] font-semibold flex items-center ${
-                    p.status === "triado" ? "bg-[#DCFCE7] text-[#16A34A]"
+                    p.status === "triado" ? "bg-[#DCFCE7] text-[var(--success)]"
                     : p.status === "recusado" ? "bg-[#F3F4F6] text-[#6B7280]"
                     : "bg-[#FEF3C7] text-[#9B7B2D]"
                   }`}>

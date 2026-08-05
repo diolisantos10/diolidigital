@@ -985,7 +985,7 @@ function DepartmentPipelineSection() {
     { step: 3, dept: "Social",    status: "waiting_design",   label: "Social Media",       color: "#0057FF", href: "/agency/social" },
     { step: 4, dept: "Design",    status: "waiting_traffic",  label: "Design",             color: "#0891B2", href: "/agency/design" },
     { step: 5, dept: "Traffic",   status: "waiting_analytics",label: "Tráfego Pago",       color: "#0891B2", href: "/agency/traffic" },
-    { step: 6, dept: "Analytics", status: "waiting_quality",  label: "Analytics",          color: "#16A34A", href: "/agency/analytics" },
+    { step: 6, dept: "Analytics", status: "waiting_quality",  label: "Analytics",          color: "var(--success)", href: "/agency/analytics" },
     { step: 7, dept: "Quality",   status: "in_progress",      label: "Quality",            color: "#9B9EB5", href: "/agency/quality" },
   ];
 
@@ -1094,9 +1094,9 @@ function PilotReadinessChecklist() {
   const blocked = PILOT_CHECKS.filter((c) => c.status === "blocked").length;
 
   const statusStyle: Record<CheckStatus, { icon: string; color: string; bg: string }> = {
-    done:    { icon: "✓", color: "#16A34A", bg: "#DCFCE7" },
-    partial: { icon: "~", color: "#D97706", bg: "#FEF3C7" },
-    blocked: { icon: "✗", color: "#DC2626", bg: "#FEE2E2" },
+    done:    { icon: "✓", color: "var(--success)", bg: "#DCFCE7" },
+    partial: { icon: "~", color: "var(--warning)", bg: "#FEF3C7" },
+    blocked: { icon: "✗", color: "var(--danger)", bg: "#FEE2E2" },
   };
 
   return (
@@ -1916,14 +1916,14 @@ const ARCHITECTURE_LAYERS = [
   {
     id: "training",
     icon: "▲",
-    color: "#16A34A",
+    color: "var(--success)",
     name: "Training Center",
     description: "Loop de aprendizado. Simulações → Sugestões → BrainChangeRequest → revisão.",
   },
   {
     id: "evidence",
     icon: "★",
-    color: "#D97706",
+    color: "var(--warning)",
     name: "Evidence Layer",
     description: "Prova de valor. Métricas, elogios, antes/depois. Aprovação humana obrigatória.",
   },

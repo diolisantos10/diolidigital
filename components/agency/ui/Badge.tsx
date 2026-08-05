@@ -111,8 +111,15 @@ interface BadgeProps {
 
 export default function Badge({ variant, children, className = "", size = "sm" }: BadgeProps) {
   const style = STYLES[variant] ?? STYLES.default;
-  const label = children ?? LABELS[variant] ?? variant.charAt(0).toUpperCase() + variant.slice(1);
-  const sizeClass = size === "md" ? "px-2.5 py-1 text-[11.5px]" : "px-2 py-0.5 text-[10.5px]";
+  // Variante sem rótulo cadastrado aparecia crua para o usuário —
+  // "Revision_requested", "Client_review". Chave de banco não é português:
+  // no mínimo, troque o underscore por espaço antes de mostrar.
+  const label =
+    children ??
+    LABELS[variant] ??
+    variant.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
+  // Escala da §3: nada de tamanhos fracionários.
+  const sizeClass = size === "md" ? "px-2.5 py-1 text-[12px]" : "px-2 py-0.5 text-[11px]";
   return (
     <span className={`inline-flex items-center rounded-[6px] font-semibold tracking-[0.01em] ${sizeClass} ${style} ${className}`}>
       {label}

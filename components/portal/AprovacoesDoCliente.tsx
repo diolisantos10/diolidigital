@@ -553,7 +553,7 @@ function DetalheDaAprovacao({
                 : "A dúvida fica presa a este card e não muda sua decisão. O prazo pausa até a agência responder."}
             </p>
             {(erroLocal || erro) && (
-              <p role="alert" className="text-[12.5px] font-semibold text-[#DC2626] mt-1.5">{erroLocal ?? erro}</p>
+              <p role="alert" className="text-[12.5px] font-semibold text-[var(--danger)] mt-1.5">{erroLocal ?? erro}</p>
             )}
             <div className="flex gap-2 mt-3">
               <button
@@ -577,7 +577,7 @@ function DetalheDaAprovacao({
         )}
 
         {pendente && modo === null && erro && (
-          <p role="alert" className="text-[12.5px] font-semibold text-[#DC2626] mt-3">{erro}</p>
+          <p role="alert" className="text-[12.5px] font-semibold text-[var(--danger)] mt-3">{erro}</p>
         )}
 
         {!pendente && (
@@ -708,7 +708,7 @@ export function AprovacoesDoCliente({
         <h3 className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em] mb-2">Aguardando você ({pendentes.length})</h3>
         {pendentes.length === 0 ? (
           <div className="bg-white rounded-[14px] border border-[var(--border)] p-7 text-center">
-            <div aria-hidden className="w-10 h-10 rounded-full bg-[#DCFCE7] text-[#16A34A] text-lg flex items-center justify-center mx-auto mb-2.5">✓</div>
+            <div aria-hidden className="w-10 h-10 rounded-full bg-[#DCFCE7] text-[var(--success)] text-lg flex items-center justify-center mx-auto mb-2.5">✓</div>
             <p className="text-[13.5px] font-semibold text-[var(--text-primary)]">Nenhuma aprovação pendente</p>
             <p className="text-[12px] text-[var(--text-muted)] mt-1">Quando algo precisar da sua decisão, aparece aqui.</p>
           </div>
