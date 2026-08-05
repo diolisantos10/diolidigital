@@ -1,7 +1,7 @@
 {
   "data": "2026-08-05",
-  "em": "2026-08-05T13:43:01.760Z",
-  "commit": "a9788b8",
+  "em": "2026-08-05T17:39:00.278Z",
+  "commit": "8f87361",
   "metade": "codigo",
   "varreduras": [
     {
@@ -233,7 +233,7 @@
         }
       ],
       "medidas": {
-        "rotas": 119,
+        "rotas": 121,
         "rotasSemGuarda": 1,
         "rotasPublicasPagasComLimiteApenas": 4,
         "rotasSemGuardaQueImportam": 5

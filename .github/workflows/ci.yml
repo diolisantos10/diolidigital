@@ -44,6 +44,16 @@ jobs:
       - name: Tests
         run: npm test
 
+      # O BUILD DE PRODUÇÃO ENTRA NO PORTÃO.
+      # Em 05/08/2026 um `import.meta.url` num arquivo novo passou por typecheck
+      # e por 1715 testes, e derrubou TODOS os deploys por uma hora: o Railway
+      # falhava no build e mantinha a versão antiga no ar, sem barulho nenhum.
+      # CI que não roda o build não protege o deploy — protege o editor.
+      - name: Build de produção
+        run: npm run build
+        env:
+          DATABASE_URL: "file:./ci.db"
+
       - name: Lint (informativo — não bloqueia ainda)
         run: npm run lint
         continue-on-error: true

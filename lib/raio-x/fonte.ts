@@ -22,10 +22,21 @@ const IGNORAR = new Set([
 
 export type Arquivo = { caminho: string; texto: string };
 
-/** Raiz do projeto. Fixa e derivada do próprio arquivo — nunca de cwd, que muda
- *  conforme quem chama e faria a varredura enxergar árvores diferentes. */
+/**
+ * Raiz do projeto.
+ *
+ * NÃO use `import.meta.url` aqui. Este arquivo acaba no grafo de módulos do
+ * servidor (via `registro.ts` → a rota de cron), e o empacotador do Next
+ * REPROVA `import.meta.url` no build de produção. Foi assim que o raio-x
+ * derrubou o deploy em 05/08/2026: o CI continuou verde — ele roda typecheck e
+ * teste, não `next build` — e cada deploy do Railway falhou em silêncio,
+ * mantendo a versão antiga no ar por uma hora.
+ *
+ * `cwd` resolve porque quem lê o repositório é sempre `npm run raio-x`, na
+ * raiz. Em produção a metade de código nem roda: lá roda a metade de dados.
+ */
 export function raizDoProjeto(): string {
-  return join(new URL(".", import.meta.url).pathname, "..", "..");
+  return process.cwd();
 }
 
 function listar(dir: string, acc: string[]): string[] {
