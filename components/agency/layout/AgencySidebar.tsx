@@ -5,6 +5,7 @@ import { useAgencyStore } from "@/store/agency-store";
 import { AGENCY_ROLE_OPTIONS, isNavAllowed, type AgencyRole } from "@/lib/agency/roles";
 import { generateAllAutoTasks } from "@/lib/agency/orchestration/auto-tasks";
 import { DioliLogo } from "@/components/brand/DioliLogo";
+import { useCaixaDeEntrada } from "@/components/agency/portal/useCaixaDeEntrada";
 import RoleGuide, { useRoleGuide } from "@/components/agency/onboarding/RoleGuide";
 
 const ROLE_LABEL: Record<string, string> = {
@@ -56,6 +57,7 @@ export default function AgencySidebar({ id, userInfo, mobileOpen = false, onMobi
   const pendingCount = usePendingCount();
   const taskBadgeCount = useTaskBadgeCount();
   const newRequestsCount = useNewRequestsCount();
+  const caixa = useCaixaDeEntrada();
   // Role getting-started guide — auto-opens on a role's first visit, re-openable below.
   const { guideOpen, openGuide, closeGuide } = useRoleGuide(currentRole);
 
@@ -69,6 +71,9 @@ export default function AgencySidebar({ id, userInfo, mobileOpen = false, onMobi
       items: [
         { label: "Início", href: "/agency/dashboard", icon: HomeIcon },
         { label: "Solicitações", href: "/agency/requests", icon: FileTextIcon, badge: newRequestsCount },
+        // O cliente escrevia e ninguem lia: a mensagem gravava no banco e morria.
+        // O badge soma conversa nao lida + pedido novo, sem contar duas vezes.
+        { label: "Caixa de entrada", href: "/agency/inbox", icon: InboxIcon, badge: caixa.total },
         { label: "Aprovações", href: "/agency/approvals", icon: BellIcon, badge: pendingCount },
       ],
     },
@@ -282,6 +287,14 @@ function HomeIcon({ size = 16, className = "" }: { size?: number; className?: st
     </svg>
   );
 }
+function InboxIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
+      <path d="M2 9.5h3l1 2h4l1-2h3M2 9.5L3.8 3.2A1 1 0 014.76 2.5h6.48a1 1 0 01.96.7L14 9.5v3a1 1 0 01-1 1H3a1 1 0 01-1-1v-3z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
 function BellIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>

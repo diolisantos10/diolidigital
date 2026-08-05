@@ -1,17 +1,24 @@
 // Chat com o PM (adição do CEO, 03/08/2026): a gaveta do portal usa a infra
 // PortalMessage existente. O que estes testes travam:
 //   • mensagem do cliente nasce readByTeam=false — é ela que acende o badge
-//     na fila da agência; se nascesse lida, o PM nunca saberia que o cliente
-//     falou;
+//     na caixa de entrada da agência; se nascesse lida, o PM nunca saberia que
+//     o cliente falou;
 //   • o cliente autentica por token OU pelo cookie httpOnly (A4);
 //   • mensagem vazia não entra (400).
+//
+// ── Atualizado em 05/08/2026 ─────────────────────────────────────────────────
+// A âncora da conversa mudou: a thread pertence ao CLIENTE, não à solicitação
+// de briefing (ver `app/api/messages/conversa.ts`). Por isso a resolução passa
+// por `clientRequestDb.findUnique` / `findMany` — e a mensagem sai carimbada
+// com AS DUAS chaves quando as duas existem.
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 const db = vi.hoisted(() => ({
   portalMessage: { create: vi.fn(), findMany: vi.fn(), updateMany: vi.fn() },
-  clientRequestDb: { findFirst: vi.fn() },
+  clientRequestDb: { findFirst: vi.fn(), findUnique: vi.fn(), findMany: vi.fn() },
+  client: { findFirst: vi.fn() },
 }));
 const validatePortalAccess = vi.hoisted(() => vi.fn());
 const requireSession = vi.hoisted(() => vi.fn());
@@ -30,7 +37,10 @@ const MSG_CRIADA = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // Token de uma solicitação que JÁ pertence a um cliente — o caso comum.
   validatePortalAccess.mockResolvedValue({ valid: true, record: { clientRequestId: "cr1", clientId: null } });
+  db.clientRequestDb.findUnique.mockResolvedValue({ id: "cr1", clientId: "cli1" });
+  db.clientRequestDb.findMany.mockResolvedValue([{ id: "cr1" }]);
   db.portalMessage.create.mockResolvedValue(MSG_CRIADA);
 });
 
@@ -51,7 +61,9 @@ describe("envio do cliente pela gaveta do PM", () => {
     expect(data.authorRole).toBe("client");
     expect(data.readByTeam).toBe(false);
     expect(data.readByClient).toBe(true);
+    // As DUAS chaves: a solicitação (compatibilidade) e o dono (a âncora nova).
     expect(data.clientRequestId).toBe("cr1");
+    expect(data.clientId).toBe("cli1");
   });
 
   it("via cookie httpOnly (A4): mesmo resultado, sem token no corpo", async () => {

@@ -177,6 +177,10 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
     await tx.evidenceItem.deleteMany({});
     await tx.portalAccess.deleteMany({});
     await tx.portalMessage.deleteMany({});
+    // O pedido de conteúdo é operacional: cascatearia só junto com o cliente,
+    // e no modo padrão o cliente FICA de pé. Sem esta linha um pedido já triado
+    // sobreviveria ao reset e reapareceria na caixa de entrada como fantasma.
+    await tx.contentRequest.deleteMany({});
     await tx.brainArtifact.deleteMany({});
     await tx.approvalComment.deleteMany({});
     await tx.approvalRequest.deleteMany({});
@@ -216,7 +220,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
     ok: true,
     mode,
     tablesCleared: [
-      "evidenceItem", "portalAccess", "portalMessage", "brainArtifact",
+      "evidenceItem", "portalAccess", "portalMessage", "contentRequest", "brainArtifact",
       "approvalComment", "approvalRequest", "brainUpdate", "socialPost",
       "whatsAppOutbox", "whatsAppMessage", "aIRunLog", "activityEvent",
       "project (+ deliverable, materialRequest, task, timelineEvent, briefing, strategyRoom, cycle)",

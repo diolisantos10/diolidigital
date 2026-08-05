@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { requireSession } from "@/lib/auth/api-guard";
 import { generate } from "@/lib/ai/generate";
+import { conversaDoCliente, conversaDaSolicitacao, solicitacaoDoWorkspace } from "@/app/api/messages/conversa";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const { session, error } = await requireSession(["master", "project_manager", "executivo_comercial", "social_staff", "design_staff", "ads_staff"]);
@@ -18,24 +19,47 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   try { body = await request.json(); } catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
 
   const clientRequestId = typeof body.clientRequestId === "string" ? body.clientRequestId : "";
+  const clientId = typeof body.clientId === "string" ? body.clientId : "";
   const context = typeof body.context === "string" ? body.context.trim() : "";
-  if (!clientRequestId) return NextResponse.json({ error: "clientRequestId obrigatório" }, { status: 400 });
+  if (!clientRequestId && !clientId) {
+    return NextResponse.json({ error: "clientId ou clientRequestId obrigatório" }, { status: 400 });
+  }
 
-  const req = await prisma.clientRequestDb.findUnique({ where: { id: clientRequestId } });
-  if (!req) return NextResponse.json({ error: "Solicitação não encontrada" }, { status: 404 });
+  // A conversa é do CLIENTE, não da solicitação — a mesma âncora que a rota de
+  // mensagens usa. Sem isto, o "✨ Sugerir mensagem" só existia para cliente
+  // vindo de briefing: no cliente direto ele nunca teria contexto nenhum.
+  let conversa;
+  let businessName: string;
+  if (clientId) {
+    const dono = await prisma.client.findFirst({
+      where: { id: clientId, workspaceId: session.workspaceId },
+      select: { id: true, name: true },
+    });
+    if (!dono) return NextResponse.json({ error: "Cliente não encontrado" }, { status: 404 });
+    conversa = await conversaDoCliente(dono.id);
+    businessName = dono.name || "o cliente";
+  } else {
+    const req = await prisma.clientRequestDb.findUnique({ where: { id: clientRequestId } });
+    if (!req) return NextResponse.json({ error: "Solicitação não encontrada" }, { status: 404 });
+    if (!(await solicitacaoDoWorkspace(clientRequestId, session.workspaceId))) {
+      return NextResponse.json({ error: "Solicitação não encontrada" }, { status: 404 });
+    }
+    conversa = await conversaDaSolicitacao(clientRequestId);
+    businessName = req.businessName || "o cliente";
+  }
 
   // Last few messages for tone/continuity (most recent thread state).
-  const recent = await prisma.portalMessage.findMany({
-    where: { clientRequestId },
-    orderBy: { createdAt: "desc" },
-    take: 6,
-    select: { authorRole: true, body: true },
-  });
+  const recent = conversa.filtro
+    ? await prisma.portalMessage.findMany({
+        where: conversa.filtro,
+        orderBy: { createdAt: "desc" },
+        take: 6,
+        select: { authorRole: true, body: true },
+      })
+    : [];
   const thread = recent.reverse()
     .map((m) => `${m.authorRole === "client" ? "Cliente" : "Equipe"}: ${m.body}`)
     .join("\n");
-
-  const businessName = req.businessName || "o cliente";
 
   const system = `Você é um Project Manager sênior da Dioli Digital escrevendo para um cliente pelo canal de atendimento.
 Tom: caloroso, profissional, humano e objetivo. Português do Brasil.

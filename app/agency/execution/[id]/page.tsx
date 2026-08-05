@@ -27,6 +27,9 @@ interface ExecutionData {
   tasks: TaskRow[];
   departments: DeptWork[];
   clientRequestId?: string;
+  /** A conversa é do CLIENTE — este é o campo que faz o painel de conversa
+   *  aparecer também em projeto de cliente direto (sem solicitação). */
+  clientId?: string;
 }
 
 const GATE_STYLE: Record<string, { bg: string; text: string; label: string }> = {
@@ -186,11 +189,18 @@ export default function ProjectExecutionPage({ params }: { params: Promise<{ id:
               </div>
             )}
 
-            {/* Conversation with the client */}
-            {data.clientRequestId && (
+            {/* Conversa com o cliente.
+                Ficava atrás de `data.clientRequestId &&` — null em projeto de
+                cliente DIRETO, então o painel nem renderizava justamente no
+                cliente-piloto. A conversa é do CLIENTE: o clientId abre. */}
+            {(data.clientId || data.clientRequestId) && (
               <div>
                 <h2 className="text-[13px] font-semibold text-[var(--text-primary)] mb-3">Conversa com o cliente</h2>
-                <PortalChat clientRequestId={data.clientRequestId} height={300} />
+                <PortalChat
+                  clientId={data.clientId}
+                  clientRequestId={data.clientId ? undefined : data.clientRequestId}
+                  height={300}
+                />
               </div>
             )}
           </>

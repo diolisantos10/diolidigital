@@ -396,6 +396,7 @@ export const ModelName = {
   Deliverable: 'Deliverable',
   DeliverableVersion: 'DeliverableVersion',
   MaterialRequest: 'MaterialRequest',
+  ContentRequest: 'ContentRequest',
   BrandBrain: 'BrandBrain',
   StrategyRoom: 'StrategyRoom',
   Briefing: 'Briefing',
@@ -441,7 +442,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1330,6 +1331,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.MaterialRequestCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.MaterialRequestCountAggregateOutputType> | number
+        }
+      }
+    }
+    ContentRequest: {
+      payload: Prisma.$ContentRequestPayload<ExtArgs>
+      fields: Prisma.ContentRequestFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ContentRequestFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContentRequestPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ContentRequestFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContentRequestPayload>
+        }
+        findFirst: {
+          args: Prisma.ContentRequestFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContentRequestPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ContentRequestFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContentRequestPayload>
+        }
+        findMany: {
+          args: Prisma.ContentRequestFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContentRequestPayload>[]
+        }
+        create: {
+          args: Prisma.ContentRequestCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContentRequestPayload>
+        }
+        createMany: {
+          args: Prisma.ContentRequestCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ContentRequestCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContentRequestPayload>[]
+        }
+        delete: {
+          args: Prisma.ContentRequestDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContentRequestPayload>
+        }
+        update: {
+          args: Prisma.ContentRequestUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContentRequestPayload>
+        }
+        deleteMany: {
+          args: Prisma.ContentRequestDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ContentRequestUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ContentRequestUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContentRequestPayload>[]
+        }
+        upsert: {
+          args: Prisma.ContentRequestUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ContentRequestPayload>
+        }
+        aggregate: {
+          args: Prisma.ContentRequestAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateContentRequest>
+        }
+        groupBy: {
+          args: Prisma.ContentRequestGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ContentRequestGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ContentRequestCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ContentRequestCountAggregateOutputType> | number
         }
       }
     }
@@ -3822,6 +3897,29 @@ export const MaterialRequestScalarFieldEnum = {
 export type MaterialRequestScalarFieldEnum = (typeof MaterialRequestScalarFieldEnum)[keyof typeof MaterialRequestScalarFieldEnum]
 
 
+export const ContentRequestScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  clientRequestId: 'clientRequestId',
+  projectId: 'projectId',
+  title: 'title',
+  description: 'description',
+  objective: 'objective',
+  desiredFor: 'desiredFor',
+  attachmentsJson: 'attachmentsJson',
+  status: 'status',
+  scopeDecision: 'scopeDecision',
+  taskId: 'taskId',
+  triagedBy: 'triagedBy',
+  triagedAt: 'triagedAt',
+  declineReason: 'declineReason',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ContentRequestScalarFieldEnum = (typeof ContentRequestScalarFieldEnum)[keyof typeof ContentRequestScalarFieldEnum]
+
+
 export const BrandBrainScalarFieldEnum = {
   id: 'id',
   clientId: 'clientId',
@@ -4129,6 +4227,7 @@ export type ClientRequestDbScalarFieldEnum = (typeof ClientRequestDbScalarFieldE
 export const PortalMessageScalarFieldEnum = {
   id: 'id',
   clientRequestId: 'clientRequestId',
+  clientId: 'clientId',
   authorRole: 'authorRole',
   authorName: 'authorName',
   body: 'body',
@@ -4528,6 +4627,7 @@ export type GlobalOmitConfig = {
   deliverable?: Prisma.DeliverableOmit
   deliverableVersion?: Prisma.DeliverableVersionOmit
   materialRequest?: Prisma.MaterialRequestOmit
+  contentRequest?: Prisma.ContentRequestOmit
   brandBrain?: Prisma.BrandBrainOmit
   strategyRoom?: Prisma.StrategyRoomOmit
   briefing?: Prisma.BriefingOmit

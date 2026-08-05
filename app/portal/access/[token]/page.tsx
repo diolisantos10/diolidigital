@@ -27,6 +27,7 @@ import {
   type AcaoDeAprovacao,
 } from "@/components/portal/AprovacoesDoCliente";
 import { ResultadosDoCliente } from "@/components/portal/ResultadosDoCliente";
+import { PedirConteudo } from "@/components/portal/PedirConteudo";
 import { ChatDrawer } from "@/components/agency/portal/FloatingChat";
 import EsteiraDoCliente from "@/components/agency/portal/EsteiraDoCliente";
 
@@ -622,6 +623,23 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
             {/* 5 · Resultado do ciclo — SÓ com meta + comparação + ação.
                 Sem ciclo fechado com dado completo, o bloco simplesmente não
                 existe: os tiles "—" morreram e não voltam como placeholder. */}
+
+            {/* Pedir conteúdo novo mora em Projetos (o teto de 6 itens de
+                navegação é inegociável), mas precisava de porta no Início: o
+                CEO tentou pedir uma peça e não achou onde. Uma linha, sem
+                virar destino de topo. */}
+            <button
+              onClick={() => irPara("projetos")}
+              style={{ touchAction: "manipulation" }}
+              className="w-full flex items-center gap-3 bg-white rounded-[14px] border border-[var(--border)] px-4 py-3.5 text-left hover:bg-[var(--bg-elevated)] transition-colors shadow-[0_1px_3px_rgba(7,10,31,0.04)]"
+            >
+              <span aria-hidden className="shrink-0 w-9 h-9 rounded-[9px] bg-[#E6FBFA] flex items-center justify-center text-[15px]">➕</span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[13.5px] font-semibold text-[var(--text-primary)]">Quer uma peça nova?</span>
+                <span className="block text-[12px] text-[var(--text-secondary)] mt-0.5">Peça aqui — a equipe recebe e te responde.</span>
+              </span>
+              <span aria-hidden className="text-[var(--text-subtle)]">›</span>
+            </button>
           </div>
         )}
 
@@ -634,6 +652,11 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
             </div>
 
             <EsteiraDoCliente token={token} />
+
+            {/* O primeiro elo cliente → agência. Fica em Projetos porque é aqui
+                que o cliente pensa no trabalho dele — e porque a navegação tem
+                teto de 6 itens: nada entra sem remover outro. */}
+            <PedirConteudo token={token} />
 
             {/* Cartões de projeto — vêm por clientId, então aparecem também
                 para o cliente criado direto (a correção do "onde eu vejo o

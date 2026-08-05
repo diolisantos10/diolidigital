@@ -27,6 +27,7 @@ export type AggregatePortalMessage = {
 export type PortalMessageMinAggregateOutputType = {
   id: string | null
   clientRequestId: string | null
+  clientId: string | null
   authorRole: string | null
   authorName: string | null
   body: string | null
@@ -38,6 +39,7 @@ export type PortalMessageMinAggregateOutputType = {
 export type PortalMessageMaxAggregateOutputType = {
   id: string | null
   clientRequestId: string | null
+  clientId: string | null
   authorRole: string | null
   authorName: string | null
   body: string | null
@@ -49,6 +51,7 @@ export type PortalMessageMaxAggregateOutputType = {
 export type PortalMessageCountAggregateOutputType = {
   id: number
   clientRequestId: number
+  clientId: number
   authorRole: number
   authorName: number
   body: number
@@ -62,6 +65,7 @@ export type PortalMessageCountAggregateOutputType = {
 export type PortalMessageMinAggregateInputType = {
   id?: true
   clientRequestId?: true
+  clientId?: true
   authorRole?: true
   authorName?: true
   body?: true
@@ -73,6 +77,7 @@ export type PortalMessageMinAggregateInputType = {
 export type PortalMessageMaxAggregateInputType = {
   id?: true
   clientRequestId?: true
+  clientId?: true
   authorRole?: true
   authorName?: true
   body?: true
@@ -84,6 +89,7 @@ export type PortalMessageMaxAggregateInputType = {
 export type PortalMessageCountAggregateInputType = {
   id?: true
   clientRequestId?: true
+  clientId?: true
   authorRole?: true
   authorName?: true
   body?: true
@@ -167,7 +173,8 @@ export type PortalMessageGroupByArgs<ExtArgs extends runtime.Types.Extensions.In
 
 export type PortalMessageGroupByOutputType = {
   id: string
-  clientRequestId: string
+  clientRequestId: string | null
+  clientId: string | null
   authorRole: string
   authorName: string
   body: string
@@ -199,19 +206,21 @@ export type PortalMessageWhereInput = {
   OR?: Prisma.PortalMessageWhereInput[]
   NOT?: Prisma.PortalMessageWhereInput | Prisma.PortalMessageWhereInput[]
   id?: Prisma.StringFilter<"PortalMessage"> | string
-  clientRequestId?: Prisma.StringFilter<"PortalMessage"> | string
+  clientRequestId?: Prisma.StringNullableFilter<"PortalMessage"> | string | null
+  clientId?: Prisma.StringNullableFilter<"PortalMessage"> | string | null
   authorRole?: Prisma.StringFilter<"PortalMessage"> | string
   authorName?: Prisma.StringFilter<"PortalMessage"> | string
   body?: Prisma.StringFilter<"PortalMessage"> | string
   readByTeam?: Prisma.BoolFilter<"PortalMessage"> | boolean
   readByClient?: Prisma.BoolFilter<"PortalMessage"> | boolean
   createdAt?: Prisma.DateTimeFilter<"PortalMessage"> | Date | string
-  clientRequest?: Prisma.XOR<Prisma.ClientRequestDbScalarRelationFilter, Prisma.ClientRequestDbWhereInput>
+  clientRequest?: Prisma.XOR<Prisma.ClientRequestDbNullableScalarRelationFilter, Prisma.ClientRequestDbWhereInput> | null
 }
 
 export type PortalMessageOrderByWithRelationInput = {
   id?: Prisma.SortOrder
-  clientRequestId?: Prisma.SortOrder
+  clientRequestId?: Prisma.SortOrderInput | Prisma.SortOrder
+  clientId?: Prisma.SortOrderInput | Prisma.SortOrder
   authorRole?: Prisma.SortOrder
   authorName?: Prisma.SortOrder
   body?: Prisma.SortOrder
@@ -226,19 +235,21 @@ export type PortalMessageWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.PortalMessageWhereInput | Prisma.PortalMessageWhereInput[]
   OR?: Prisma.PortalMessageWhereInput[]
   NOT?: Prisma.PortalMessageWhereInput | Prisma.PortalMessageWhereInput[]
-  clientRequestId?: Prisma.StringFilter<"PortalMessage"> | string
+  clientRequestId?: Prisma.StringNullableFilter<"PortalMessage"> | string | null
+  clientId?: Prisma.StringNullableFilter<"PortalMessage"> | string | null
   authorRole?: Prisma.StringFilter<"PortalMessage"> | string
   authorName?: Prisma.StringFilter<"PortalMessage"> | string
   body?: Prisma.StringFilter<"PortalMessage"> | string
   readByTeam?: Prisma.BoolFilter<"PortalMessage"> | boolean
   readByClient?: Prisma.BoolFilter<"PortalMessage"> | boolean
   createdAt?: Prisma.DateTimeFilter<"PortalMessage"> | Date | string
-  clientRequest?: Prisma.XOR<Prisma.ClientRequestDbScalarRelationFilter, Prisma.ClientRequestDbWhereInput>
+  clientRequest?: Prisma.XOR<Prisma.ClientRequestDbNullableScalarRelationFilter, Prisma.ClientRequestDbWhereInput> | null
 }, "id">
 
 export type PortalMessageOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
-  clientRequestId?: Prisma.SortOrder
+  clientRequestId?: Prisma.SortOrderInput | Prisma.SortOrder
+  clientId?: Prisma.SortOrderInput | Prisma.SortOrder
   authorRole?: Prisma.SortOrder
   authorName?: Prisma.SortOrder
   body?: Prisma.SortOrder
@@ -255,7 +266,8 @@ export type PortalMessageScalarWhereWithAggregatesInput = {
   OR?: Prisma.PortalMessageScalarWhereWithAggregatesInput[]
   NOT?: Prisma.PortalMessageScalarWhereWithAggregatesInput | Prisma.PortalMessageScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"PortalMessage"> | string
-  clientRequestId?: Prisma.StringWithAggregatesFilter<"PortalMessage"> | string
+  clientRequestId?: Prisma.StringNullableWithAggregatesFilter<"PortalMessage"> | string | null
+  clientId?: Prisma.StringNullableWithAggregatesFilter<"PortalMessage"> | string | null
   authorRole?: Prisma.StringWithAggregatesFilter<"PortalMessage"> | string
   authorName?: Prisma.StringWithAggregatesFilter<"PortalMessage"> | string
   body?: Prisma.StringWithAggregatesFilter<"PortalMessage"> | string
@@ -266,18 +278,20 @@ export type PortalMessageScalarWhereWithAggregatesInput = {
 
 export type PortalMessageCreateInput = {
   id?: string
+  clientId?: string | null
   authorRole: string
   authorName?: string
   body: string
   readByTeam?: boolean
   readByClient?: boolean
   createdAt?: Date | string
-  clientRequest: Prisma.ClientRequestDbCreateNestedOneWithoutMessagesInput
+  clientRequest?: Prisma.ClientRequestDbCreateNestedOneWithoutMessagesInput
 }
 
 export type PortalMessageUncheckedCreateInput = {
   id?: string
-  clientRequestId: string
+  clientRequestId?: string | null
+  clientId?: string | null
   authorRole: string
   authorName?: string
   body: string
@@ -288,18 +302,20 @@ export type PortalMessageUncheckedCreateInput = {
 
 export type PortalMessageUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorRole?: Prisma.StringFieldUpdateOperationsInput | string
   authorName?: Prisma.StringFieldUpdateOperationsInput | string
   body?: Prisma.StringFieldUpdateOperationsInput | string
   readByTeam?: Prisma.BoolFieldUpdateOperationsInput | boolean
   readByClient?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  clientRequest?: Prisma.ClientRequestDbUpdateOneRequiredWithoutMessagesNestedInput
+  clientRequest?: Prisma.ClientRequestDbUpdateOneWithoutMessagesNestedInput
 }
 
 export type PortalMessageUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  clientRequestId?: Prisma.StringFieldUpdateOperationsInput | string
+  clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorRole?: Prisma.StringFieldUpdateOperationsInput | string
   authorName?: Prisma.StringFieldUpdateOperationsInput | string
   body?: Prisma.StringFieldUpdateOperationsInput | string
@@ -310,7 +326,8 @@ export type PortalMessageUncheckedUpdateInput = {
 
 export type PortalMessageCreateManyInput = {
   id?: string
-  clientRequestId: string
+  clientRequestId?: string | null
+  clientId?: string | null
   authorRole: string
   authorName?: string
   body: string
@@ -321,6 +338,7 @@ export type PortalMessageCreateManyInput = {
 
 export type PortalMessageUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorRole?: Prisma.StringFieldUpdateOperationsInput | string
   authorName?: Prisma.StringFieldUpdateOperationsInput | string
   body?: Prisma.StringFieldUpdateOperationsInput | string
@@ -331,7 +349,8 @@ export type PortalMessageUpdateManyMutationInput = {
 
 export type PortalMessageUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  clientRequestId?: Prisma.StringFieldUpdateOperationsInput | string
+  clientRequestId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorRole?: Prisma.StringFieldUpdateOperationsInput | string
   authorName?: Prisma.StringFieldUpdateOperationsInput | string
   body?: Prisma.StringFieldUpdateOperationsInput | string
@@ -353,6 +372,7 @@ export type PortalMessageOrderByRelationAggregateInput = {
 export type PortalMessageCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   clientRequestId?: Prisma.SortOrder
+  clientId?: Prisma.SortOrder
   authorRole?: Prisma.SortOrder
   authorName?: Prisma.SortOrder
   body?: Prisma.SortOrder
@@ -364,6 +384,7 @@ export type PortalMessageCountOrderByAggregateInput = {
 export type PortalMessageMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   clientRequestId?: Prisma.SortOrder
+  clientId?: Prisma.SortOrder
   authorRole?: Prisma.SortOrder
   authorName?: Prisma.SortOrder
   body?: Prisma.SortOrder
@@ -375,6 +396,7 @@ export type PortalMessageMaxOrderByAggregateInput = {
 export type PortalMessageMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   clientRequestId?: Prisma.SortOrder
+  clientId?: Prisma.SortOrder
   authorRole?: Prisma.SortOrder
   authorName?: Prisma.SortOrder
   body?: Prisma.SortOrder
@@ -427,6 +449,7 @@ export type PortalMessageUncheckedUpdateManyWithoutClientRequestNestedInput = {
 
 export type PortalMessageCreateWithoutClientRequestInput = {
   id?: string
+  clientId?: string | null
   authorRole: string
   authorName?: string
   body: string
@@ -437,6 +460,7 @@ export type PortalMessageCreateWithoutClientRequestInput = {
 
 export type PortalMessageUncheckedCreateWithoutClientRequestInput = {
   id?: string
+  clientId?: string | null
   authorRole: string
   authorName?: string
   body: string
@@ -475,7 +499,8 @@ export type PortalMessageScalarWhereInput = {
   OR?: Prisma.PortalMessageScalarWhereInput[]
   NOT?: Prisma.PortalMessageScalarWhereInput | Prisma.PortalMessageScalarWhereInput[]
   id?: Prisma.StringFilter<"PortalMessage"> | string
-  clientRequestId?: Prisma.StringFilter<"PortalMessage"> | string
+  clientRequestId?: Prisma.StringNullableFilter<"PortalMessage"> | string | null
+  clientId?: Prisma.StringNullableFilter<"PortalMessage"> | string | null
   authorRole?: Prisma.StringFilter<"PortalMessage"> | string
   authorName?: Prisma.StringFilter<"PortalMessage"> | string
   body?: Prisma.StringFilter<"PortalMessage"> | string
@@ -486,6 +511,7 @@ export type PortalMessageScalarWhereInput = {
 
 export type PortalMessageCreateManyClientRequestInput = {
   id?: string
+  clientId?: string | null
   authorRole: string
   authorName?: string
   body: string
@@ -496,6 +522,7 @@ export type PortalMessageCreateManyClientRequestInput = {
 
 export type PortalMessageUpdateWithoutClientRequestInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorRole?: Prisma.StringFieldUpdateOperationsInput | string
   authorName?: Prisma.StringFieldUpdateOperationsInput | string
   body?: Prisma.StringFieldUpdateOperationsInput | string
@@ -506,6 +533,7 @@ export type PortalMessageUpdateWithoutClientRequestInput = {
 
 export type PortalMessageUncheckedUpdateWithoutClientRequestInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorRole?: Prisma.StringFieldUpdateOperationsInput | string
   authorName?: Prisma.StringFieldUpdateOperationsInput | string
   body?: Prisma.StringFieldUpdateOperationsInput | string
@@ -516,6 +544,7 @@ export type PortalMessageUncheckedUpdateWithoutClientRequestInput = {
 
 export type PortalMessageUncheckedUpdateManyWithoutClientRequestInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   authorRole?: Prisma.StringFieldUpdateOperationsInput | string
   authorName?: Prisma.StringFieldUpdateOperationsInput | string
   body?: Prisma.StringFieldUpdateOperationsInput | string
@@ -529,42 +558,46 @@ export type PortalMessageUncheckedUpdateManyWithoutClientRequestInput = {
 export type PortalMessageSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   clientRequestId?: boolean
+  clientId?: boolean
   authorRole?: boolean
   authorName?: boolean
   body?: boolean
   readByTeam?: boolean
   readByClient?: boolean
   createdAt?: boolean
-  clientRequest?: boolean | Prisma.ClientRequestDbDefaultArgs<ExtArgs>
+  clientRequest?: boolean | Prisma.PortalMessage$clientRequestArgs<ExtArgs>
 }, ExtArgs["result"]["portalMessage"]>
 
 export type PortalMessageSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   clientRequestId?: boolean
+  clientId?: boolean
   authorRole?: boolean
   authorName?: boolean
   body?: boolean
   readByTeam?: boolean
   readByClient?: boolean
   createdAt?: boolean
-  clientRequest?: boolean | Prisma.ClientRequestDbDefaultArgs<ExtArgs>
+  clientRequest?: boolean | Prisma.PortalMessage$clientRequestArgs<ExtArgs>
 }, ExtArgs["result"]["portalMessage"]>
 
 export type PortalMessageSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   clientRequestId?: boolean
+  clientId?: boolean
   authorRole?: boolean
   authorName?: boolean
   body?: boolean
   readByTeam?: boolean
   readByClient?: boolean
   createdAt?: boolean
-  clientRequest?: boolean | Prisma.ClientRequestDbDefaultArgs<ExtArgs>
+  clientRequest?: boolean | Prisma.PortalMessage$clientRequestArgs<ExtArgs>
 }, ExtArgs["result"]["portalMessage"]>
 
 export type PortalMessageSelectScalar = {
   id?: boolean
   clientRequestId?: boolean
+  clientId?: boolean
   authorRole?: boolean
   authorName?: boolean
   body?: boolean
@@ -573,25 +606,44 @@ export type PortalMessageSelectScalar = {
   createdAt?: boolean
 }
 
-export type PortalMessageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "clientRequestId" | "authorRole" | "authorName" | "body" | "readByTeam" | "readByClient" | "createdAt", ExtArgs["result"]["portalMessage"]>
+export type PortalMessageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "clientRequestId" | "clientId" | "authorRole" | "authorName" | "body" | "readByTeam" | "readByClient" | "createdAt", ExtArgs["result"]["portalMessage"]>
 export type PortalMessageInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  clientRequest?: boolean | Prisma.ClientRequestDbDefaultArgs<ExtArgs>
+  clientRequest?: boolean | Prisma.PortalMessage$clientRequestArgs<ExtArgs>
 }
 export type PortalMessageIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  clientRequest?: boolean | Prisma.ClientRequestDbDefaultArgs<ExtArgs>
+  clientRequest?: boolean | Prisma.PortalMessage$clientRequestArgs<ExtArgs>
 }
 export type PortalMessageIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  clientRequest?: boolean | Prisma.ClientRequestDbDefaultArgs<ExtArgs>
+  clientRequest?: boolean | Prisma.PortalMessage$clientRequestArgs<ExtArgs>
 }
 
 export type $PortalMessagePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "PortalMessage"
   objects: {
-    clientRequest: Prisma.$ClientRequestDbPayload<ExtArgs>
+    clientRequest: Prisma.$ClientRequestDbPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
+    /**
+     * Nulo para cliente criado DIRETO (sem briefing público) — MESMO par de
+     * chaves que o ApprovalRequest e o BrainArtifact já adotaram em 04/08/2026.
+     * Era obrigatório, e por isso o cliente-piloto (Foocci, criado direto) não
+     * conseguia MANDAR mensagem nenhuma: a rota devolvia 404 "No conversation
+     * thread for this token yet" e a bolha voltava para a caixa de texto para
+     * sempre. O CEO tentou falar com a agência pelo portal e não conseguiu.
+     */
     id: string
-    clientRequestId: string
+    clientRequestId: string | null
+    /**
+     * O dono quando não há solicitação. Sem FK, pelo mesmo motivo do
+     * ApprovalRequest: a limpeza total (`/api/admin/reset`) já apaga a tabela
+     * inteira, e um FK novo redefiniria a tabela para todo mundo.
+     * 
+     * A partir daqui TODA mensagem nova carimba o clientId quando ele é
+     * derivável — inclusive as que também têm clientRequestId. É o que mantém a
+     * conversa ÚNICA por cliente mesmo depois de o cliente ganhar (ou trocar de)
+     * solicitação: a leitura une as duas chaves.
+     */
+    clientId: string | null
     authorRole: string
     authorName: string
     body: string
@@ -992,7 +1044,7 @@ readonly fields: PortalMessageFieldRefs;
  */
 export interface Prisma__PortalMessageClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  clientRequest<T extends Prisma.ClientRequestDbDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ClientRequestDbDefaultArgs<ExtArgs>>): Prisma.Prisma__ClientRequestDbClient<runtime.Types.Result.GetResult<Prisma.$ClientRequestDbPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  clientRequest<T extends Prisma.PortalMessage$clientRequestArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PortalMessage$clientRequestArgs<ExtArgs>>): Prisma.Prisma__ClientRequestDbClient<runtime.Types.Result.GetResult<Prisma.$ClientRequestDbPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1024,6 +1076,7 @@ export interface Prisma__PortalMessageClient<T, Null = never, ExtArgs extends ru
 export interface PortalMessageFieldRefs {
   readonly id: Prisma.FieldRef<"PortalMessage", 'String'>
   readonly clientRequestId: Prisma.FieldRef<"PortalMessage", 'String'>
+  readonly clientId: Prisma.FieldRef<"PortalMessage", 'String'>
   readonly authorRole: Prisma.FieldRef<"PortalMessage", 'String'>
   readonly authorName: Prisma.FieldRef<"PortalMessage", 'String'>
   readonly body: Prisma.FieldRef<"PortalMessage", 'String'>
@@ -1426,6 +1479,25 @@ export type PortalMessageDeleteManyArgs<ExtArgs extends runtime.Types.Extensions
    * Limit how many PortalMessages to delete.
    */
   limit?: number
+}
+
+/**
+ * PortalMessage.clientRequest
+ */
+export type PortalMessage$clientRequestArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ClientRequestDb
+   */
+  select?: Prisma.ClientRequestDbSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ClientRequestDb
+   */
+  omit?: Prisma.ClientRequestDbOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ClientRequestDbInclude<ExtArgs> | null
+  where?: Prisma.ClientRequestDbWhereInput
 }
 
 /**

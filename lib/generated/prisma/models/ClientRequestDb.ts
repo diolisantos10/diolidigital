@@ -560,11 +560,6 @@ export type ClientRequestDbMinOrderByAggregateInput = {
   updatedAt?: Prisma.SortOrder
 }
 
-export type ClientRequestDbScalarRelationFilter = {
-  is?: Prisma.ClientRequestDbWhereInput
-  isNot?: Prisma.ClientRequestDbWhereInput
-}
-
 export type ClientRequestDbNullableScalarRelationFilter = {
   is?: Prisma.ClientRequestDbWhereInput | null
   isNot?: Prisma.ClientRequestDbWhereInput | null
@@ -576,10 +571,12 @@ export type ClientRequestDbCreateNestedOneWithoutMessagesInput = {
   connect?: Prisma.ClientRequestDbWhereUniqueInput
 }
 
-export type ClientRequestDbUpdateOneRequiredWithoutMessagesNestedInput = {
+export type ClientRequestDbUpdateOneWithoutMessagesNestedInput = {
   create?: Prisma.XOR<Prisma.ClientRequestDbCreateWithoutMessagesInput, Prisma.ClientRequestDbUncheckedCreateWithoutMessagesInput>
   connectOrCreate?: Prisma.ClientRequestDbCreateOrConnectWithoutMessagesInput
   upsert?: Prisma.ClientRequestDbUpsertWithoutMessagesInput
+  disconnect?: Prisma.ClientRequestDbWhereInput | boolean
+  delete?: Prisma.ClientRequestDbWhereInput | boolean
   connect?: Prisma.ClientRequestDbWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.ClientRequestDbUpdateToOneWithWhereWithoutMessagesInput, Prisma.ClientRequestDbUpdateWithoutMessagesInput>, Prisma.ClientRequestDbUncheckedUpdateWithoutMessagesInput>
 }

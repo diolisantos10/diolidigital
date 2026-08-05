@@ -160,6 +160,11 @@ export async function GET(
         createdAt: project.createdAt.toISOString(),
       },
       clientRequestId: project.clientRequestId ?? undefined,
+      // O clientId vai junto porque a conversa com o cliente pertence ao
+      // CLIENTE, não à solicitação de briefing: sem ele, o painel "Conversa com
+      // o cliente" desta tela ficava atrás de `clientRequestId &&` e simplesmente
+      // não renderizava em projeto de cliente direto.
+      clientId: project.clientId,
       tasks: project.tasks.map((t) => ({
         id: t.id, title: t.title, description: t.description,
         status: t.status, agentId: t.agentId,

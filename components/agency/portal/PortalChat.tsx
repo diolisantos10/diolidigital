@@ -3,6 +3,10 @@
 // Client ↔ team conversation panel. The SAME component serves both sides:
 //   - Client portal passes { token }            → posts as "client"
 //   - Agency view passes  { clientRequestId }    → posts as "team" (session)
+//   - Agency inbox passes { clientId }           → posts as "team" (session)
+// `clientId` é a entrada que faz a conversa funcionar para CLIENTE DIRETO — o
+// que não tem solicitação de briefing. Era o caso da Foocci, e por isso o
+// painel "Conversa com o cliente" da tela de execução nem renderizava.
 // It polls every 8s so a reply shows up without a refresh. Deliberately simple:
 // no websockets, no extra deps — efficiency over machinery.
 
@@ -23,6 +27,9 @@ interface PortalChatProps {
   token?: string;
   /** Team side: the request thread id (requires an agency session). */
   clientRequestId?: string;
+  /** Team side: abre a conversa PELO CLIENTE — o caminho que funciona também
+   *  para cliente criado direto (sem solicitação). Requer sessão. */
+  clientId?: string;
   /** Team side: when set, shows an "✨ Sugerir mensagem" button that drafts a
    *  reply with AI, biased by this situation hint (e.g. "escopo aprovado"). */
   suggestContext?: string;
@@ -58,12 +65,15 @@ function LinkifiedBody({ text, mine }: { text: string; mine: boolean }) {
   );
 }
 
-export function PortalChat({ token, clientRequestId, suggestContext, authorName, height = 360, bare = false }: PortalChatProps) {
+export function PortalChat({ token, clientRequestId, clientId, suggestContext, authorName, height = 360, bare = false }: PortalChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Conversa sem dono (acesso mal emitido): a caixa de texto some e a tela diz
+  // o motivo, em vez de aceitar o texto e falhar no envio para sempre.
+  const [semDono, setSemDono] = useState(false);
   const [attachOpen, setAttachOpen] = useState(false);
   const [linkDraft, setLinkDraft] = useState("");
   const [suggesting, setSuggesting] = useState(false);
@@ -72,16 +82,16 @@ export function PortalChat({ token, clientRequestId, suggestContext, authorName,
   // Team side only: draft a message with AI, drop it in the box for review.
   // Cliente pode chegar sem token (A4, modo cookie): equipe é só quem traz
   // clientRequestId com sessão.
-  const isTeam = !token && !!clientRequestId;
+  const isTeam = !token && (!!clientRequestId || !!clientId);
   async function suggestMessage() {
-    if (suggesting || !clientRequestId) return;
+    if (suggesting || (!clientRequestId && !clientId)) return;
     setSuggesting(true);
     setError(null);
     try {
       const res = await fetch("/api/portal/messages/suggest", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clientRequestId, context: suggestContext ?? "" }),
+        body: JSON.stringify({ clientId, clientRequestId, context: suggestContext ?? "" }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -113,11 +123,15 @@ export function PortalChat({ token, clientRequestId, suggestContext, authorName,
   const { isListening, isTranscribing, isSupported, startListening, stopListening } =
     useSpeechToText({ onTranscript: appendTranscript });
 
+  // A ordem importa: clientId (o caminho que serve cliente direto) vem antes de
+  // clientRequestId, que fica como entrada legada das telas de projeto.
   const query = token
     ? `token=${encodeURIComponent(token)}`
-    : clientRequestId
-      ? `clientRequestId=${encodeURIComponent(clientRequestId)}`
-      : ""; // A4: modo cookie — o httpOnly do portal autentica sozinho
+    : clientId
+      ? `clientId=${encodeURIComponent(clientId)}`
+      : clientRequestId
+        ? `clientRequestId=${encodeURIComponent(clientRequestId)}`
+        : ""; // A4: modo cookie — o httpOnly do portal autentica sozinho
 
   const load = useCallback(async () => {
     try {
@@ -126,8 +140,9 @@ export function PortalChat({ token, clientRequestId, suggestContext, authorName,
         if (loading) setError("Não foi possível carregar a conversa.");
         return;
       }
-      const data = (await res.json()) as { messages?: ChatMessage[] };
+      const data = (await res.json()) as { messages?: ChatMessage[]; podeEnviar?: boolean };
       setMessages(data.messages ?? []);
+      setSemDono(data.podeEnviar === false);
       setError(null);
     } catch {
       if (loading) setError("Não foi possível carregar a conversa.");
@@ -156,7 +171,7 @@ export function PortalChat({ token, clientRequestId, suggestContext, authorName,
     // Optimistic append.
     const optimistic: ChatMessage = {
       id: "tmp-" + Date.now(),
-      authorRole: clientRequestId && !token ? "team" : "client",
+      authorRole: isTeam ? "team" : "client",
       authorName: authorName ?? "",
       body: text,
       createdAt: new Date().toISOString(),
@@ -167,12 +182,21 @@ export function PortalChat({ token, clientRequestId, suggestContext, authorName,
       const res = await fetch("/api/portal/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, clientRequestId, body: text, authorName }),
+        body: JSON.stringify({ token, clientRequestId, clientId, body: text, authorName }),
       });
       if (!res.ok) {
         setMessages((m) => m.filter((x) => x.id !== optimistic.id));
         setInput(text);
-        setError("Não foi possível enviar. Tente novamente.");
+        // O servidor agora explica o que houve (409 = acesso sem dono). Repetir
+        // "tente novamente" para um erro que nunca resolve foi o que fez o CEO
+        // bater na mesma parede sem parar.
+        const detalhe = await res.json().catch(() => ({} as { error?: string }));
+        setError(
+          res.status === 409 && detalhe.error
+            ? detalhe.error
+            : "Não foi possível enviar. Tente novamente.",
+        );
+        if (res.status === 409) setSemDono(true);
       } else {
         await load();
       }
@@ -235,6 +259,16 @@ export function PortalChat({ token, clientRequestId, suggestContext, authorName,
         <p className="text-[10px] text-[var(--danger)] px-4 pb-1">{error}</p>
       )}
 
+      {semDono ? (
+        <div className="border-t border-[var(--border)] px-4 py-4 bg-[#FFFBEB]">
+          <p className="text-[12.5px] font-semibold text-[#9B7B2D]">Esta conversa ainda não tem dono</p>
+          <p className="text-[11.5px] text-[#B08D3E] mt-0.5 leading-snug">
+            O link de acesso não está ligado a nenhum cliente. Peça um link novo à equipe Dioli —
+            enquanto isso a mensagem não teria para onde ir.
+          </p>
+        </div>
+      ) : (
+      <>
       {/* Attach a link (Drive, WeTransfer, image URL…) — reliable without file storage */}
       {attachOpen && (
         <div className="border-t border-[var(--border)] px-2.5 pt-2.5 flex gap-2 items-center">
@@ -328,6 +362,8 @@ export function PortalChat({ token, clientRequestId, suggestContext, authorName,
           </svg>
         </button>
       </div>
+      </>
+      )}
     </div>
   );
 }

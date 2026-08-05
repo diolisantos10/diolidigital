@@ -62,10 +62,11 @@ model Client {
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
-  projects     Project[]
-  notices      ClientNotice[]
-  brandBrain   BrandBrain?
-  brandUpdates BrandUpdate[]
+  projects        Project[]
+  notices         ClientNotice[]
+  brandBrain      BrandBrain?
+  brandUpdates    BrandUpdate[]
+  contentRequests ContentRequest[]
 }
 
 // ─── Projects ─────────────────────────────────────────────────────────────────
@@ -427,6 +428,70 @@ model MaterialRequest {
   @@index([projectId, status])
 }
 
+// ─── Pedido de conteúdo — a PRIMEIRA seta que aponta cliente → agência ────────
+
+/// O pedido que o CLIENTE faz à agência: "quero uma peça nova".
+///
+/// Por que NÃO é um MaterialRequest com a seta invertida (a pergunta que o CEO
+/// mandou justificar): o MaterialRequest é o portão de recursos — ele existe
+/// para TRAVAR produção por falta de insumo. `assess-resources` abre um por item
+/// faltante, `esteira/pedidos.ts` consolida e o portal os lista sob "A produção
+/// está esperando:". Um pedido do cliente entrando ali apareceria para o próprio
+/// cliente como coisa que ELE deve entregar, e travaria o projeto dele. A seta é
+/// oposta e o efeito é oposto — mesma forma, semântica invertida.
+///
+/// Também não cabe em ClientRequestDb: aquilo é a porta do PROSPECT (briefing,
+/// SDR, proposta). Um cliente que já paga pedindo mais um reels não é um lead
+/// novo; entraria na fila de "Solicitações" com status "new" e sujaria o funil.
+///
+/// O que este modelo carrega é o MÍNIMO que um especialista precisa para
+/// produzir sem inventar: o que, para quando e para qual objetivo. Nada de
+/// formulário longo — o cliente não preenche.
+model ContentRequest {
+  id              String    @id @default(cuid())
+  /// O dono. Vem SEMPRE do token (derivação, nunca comparação — regra da casa
+  /// de 03/08/2026). Cascata porque um pedido sem cliente não significa nada.
+  clientId        String
+  client          Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  /// A solicitação do briefing, quando o cliente veio por lá. Ponteiro sem FK:
+  /// o `/api/admin/reset` mexe nessa tabela por conta própria.
+  clientRequestId String?
+  /// O projeto que recebeu o pedido. Nulo até a triagem — e nulo é honesto:
+  /// cliente sem projeto aberto NÃO ganha tarefa inventada.
+  projectId       String?
+  /// Título curto derivado da descrição, só para a lista da caixa de entrada.
+  title           String
+  /// O QUE ele quer, nas palavras dele. NUNCA vazio — pedido mudo não vira
+  /// tarefa muda: a rota devolve a pergunta em vez de gravar.
+  description     String
+  /// PARA QUAL OBJETIVO. Também obrigatório: sem o porquê, o especialista
+  /// escolhe o ângulo sozinho — que é exatamente inventar verdade.
+  objective       String
+  /// PARA QUANDO, quando o cliente sabe dizer. Opcional de propósito: a maioria
+  /// não sabe, e obrigar a chutar data produz prazo falso no sistema.
+  desiredFor      DateTime?
+  /// URLs de material já enviado pelo portal (/api/media). JSON de strings.
+  attachmentsJson String    @default("[]")
+  /// novo | triado | recusado. "triado" = virou Task (o elo com a esteira).
+  status          String    @default("novo")
+  /// A decisão de ESCOPO, tomada por gente: "ciclo" (entra no ciclo corrente)
+  /// ou "extra" (escopo adicional a combinar). Nasce NULA de propósito — preço
+  /// e prazo não se inventam, e o plano do ciclo é congelado na abertura.
+  scopeDecision   String?
+  /// A tarefa criada na triagem. É por aqui que o pedido encontra a esteira.
+  taskId          String?
+  /// Quem triou e quando — pedido parado sem dono é vazamento.
+  triagedBy       String?
+  triagedAt       DateTime?
+  /// Por que foi recusado, em linguagem que o cliente lê.
+  declineReason   String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([clientId, status])
+  @@index([status, createdAt])
+}
+
 // ─── Brand Brain ─────────────────────────────────────────────────────────────
 
 model BrandBrain {
@@ -743,21 +808,41 @@ model ClientRequestDb {
   messages      PortalMessage[]
 }
 
-// Client ↔ team conversation. One thread per Brain request (the project the
-// client sees in their portal). authorRole distinguishes who wrote it; the
-// read flags drive unread badges on each side.
+// Client ↔ team conversation. A thread belongs to um CLIENTE — não a uma
+// solicitação. authorRole distinguishes who wrote it; the read flags drive
+// unread badges on each side.
 model PortalMessage {
-  id              String          @id @default(cuid())
-  clientRequestId String
-  clientRequest   ClientRequestDb @relation(fields: [clientRequestId], references: [id], onDelete: Cascade)
+  /// Nulo para cliente criado DIRETO (sem briefing público) — MESMO par de
+  /// chaves que o ApprovalRequest e o BrainArtifact já adotaram em 04/08/2026.
+  /// Era obrigatório, e por isso o cliente-piloto (Foocci, criado direto) não
+  /// conseguia MANDAR mensagem nenhuma: a rota devolvia 404 "No conversation
+  /// thread for this token yet" e a bolha voltava para a caixa de texto para
+  /// sempre. O CEO tentou falar com a agência pelo portal e não conseguiu.
+  id              String           @id @default(cuid())
+  clientRequestId String?
+  clientRequest   ClientRequestDb? @relation(fields: [clientRequestId], references: [id], onDelete: Cascade)
+  /// O dono quando não há solicitação. Sem FK, pelo mesmo motivo do
+  /// ApprovalRequest: a limpeza total (`/api/admin/reset`) já apaga a tabela
+  /// inteira, e um FK novo redefiniria a tabela para todo mundo.
+  ///
+  /// A partir daqui TODA mensagem nova carimba o clientId quando ele é
+  /// derivável — inclusive as que também têm clientRequestId. É o que mantém a
+  /// conversa ÚNICA por cliente mesmo depois de o cliente ganhar (ou trocar de)
+  /// solicitação: a leitura une as duas chaves.
+  clientId        String?
   authorRole      String // "client" | "team"
-  authorName      String          @default("")
+  authorName      String           @default("")
   body            String
-  readByTeam      Boolean         @default(false)
-  readByClient    Boolean         @default(false)
-  createdAt       DateTime        @default(now())
+  readByTeam      Boolean          @default(false)
+  readByClient    Boolean          @default(false)
+  createdAt       DateTime         @default(now())
 
   @@index([clientRequestId, createdAt])
+  @@index([clientId, createdAt])
+  /// A caixa de entrada da agência conta por aqui: quantas do cliente ainda não
+  /// foram lidas pela equipe. Escrito em 11 lugares e, até 05/08/2026, lido em
+  /// NENHUM — a mensagem gravava e morria.
+  @@index([readByTeam, authorRole])
 }
 
 // A planned/scheduled social post — the unit of the universal Planner. One post

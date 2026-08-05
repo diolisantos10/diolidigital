@@ -128,6 +128,27 @@ export type DeliverableVersion = Prisma.DeliverableVersionModel
  */
 export type MaterialRequest = Prisma.MaterialRequestModel
 /**
+ * Model ContentRequest
+ * O pedido que o CLIENTE faz à agência: "quero uma peça nova".
+ * 
+ * Por que NÃO é um MaterialRequest com a seta invertida (a pergunta que o CEO
+ * mandou justificar): o MaterialRequest é o portão de recursos — ele existe
+ * para TRAVAR produção por falta de insumo. `assess-resources` abre um por item
+ * faltante, `esteira/pedidos.ts` consolida e o portal os lista sob "A produção
+ * está esperando:". Um pedido do cliente entrando ali apareceria para o próprio
+ * cliente como coisa que ELE deve entregar, e travaria o projeto dele. A seta é
+ * oposta e o efeito é oposto — mesma forma, semântica invertida.
+ * 
+ * Também não cabe em ClientRequestDb: aquilo é a porta do PROSPECT (briefing,
+ * SDR, proposta). Um cliente que já paga pedindo mais um reels não é um lead
+ * novo; entraria na fila de "Solicitações" com status "new" e sujaria o funil.
+ * 
+ * O que este modelo carrega é o MÍNIMO que um especialista precisa para
+ * produzir sem inventar: o que, para quando e para qual objetivo. Nada de
+ * formulário longo — o cliente não preenche.
+ */
+export type ContentRequest = Prisma.ContentRequestModel
+/**
  * Model BrandBrain
  * 
  */

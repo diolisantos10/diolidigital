@@ -1,37 +1,28 @@
-// Client ↔ team chat for the portal.
-//   - Clients authenticate with a portal token (?token=) — authorRole "client".
-//   - Team authenticates with a session (?clientRequestId=) — authorRole "team".
-// One thread per Brain request (clientRequestId). GET also marks the *other*
-// side's messages as read so unread badges clear on view.
+// Conversa cliente ↔ equipe.
+//   - Cliente autentica por token de portal (?token=) ou cookie httpOnly (A4)
+//     — authorRole "client".
+//   - Equipe autentica por sessão, abrindo por ?clientId= (a caixa de entrada)
+//     ou ?clientRequestId= (as telas de projeto que já existiam).
+//
+// A THREAD PERTENCE AO CLIENTE, não à solicitação de briefing. Toda a
+// resolução de âncora e de filtro mora em `app/api/messages/conversa.ts` —
+// leia o cabeçalho de lá antes de mexer aqui.
+//
+// O GET também marca como lidas as mensagens do OUTRO lado, que é o que apaga
+// o badge de não-lidas de cada lado ao abrir a conversa.
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
-import { validatePortalAccess } from "@/lib/agency/persistence/portal-access-service";
 import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
 import { requireSession } from "@/lib/auth/api-guard";
-
-// Resolve which request thread a portal token points at. Mirrors portal-data:
-// a token may be issued for a specific request, or for a client (→ latest request).
-async function resolveTokenRequestId(token: string): Promise<
-  { ok: true; clientRequestId: string | null } | { ok: false; status: number; reason?: string }
-> {
-  const access = await validatePortalAccess(token);
-  if (!access.valid || !access.record) {
-    return { ok: false, status: 403, reason: access.reason };
-  }
-  if (access.record.clientRequestId) {
-    return { ok: true, clientRequestId: access.record.clientRequestId };
-  }
-  if (access.record.clientId) {
-    const latest = await prisma.clientRequestDb.findFirst({
-      where: { clientId: access.record.clientId },
-      orderBy: { createdAt: "desc" },
-      select: { id: true },
-    });
-    return { ok: true, clientRequestId: latest?.id ?? null };
-  }
-  return { ok: true, clientRequestId: null };
-}
+import {
+  conversaDoToken,
+  conversaDoCliente,
+  conversaDaSolicitacao,
+  clienteDoWorkspace,
+  solicitacaoDoWorkspace,
+  type Conversa,
+} from "@/app/api/messages/conversa";
 
 interface MessageDTO {
   id: string;
@@ -56,66 +47,99 @@ function toDTO(
   };
 }
 
-// ── GET: list the thread ────────────────────────────────────────────────────
-export async function GET(request: NextRequest): Promise<NextResponse> {
-  const { searchParams } = new URL(request.url);
-  // A4: sem token na query e sem clientRequestId (lado da equipe), o cookie
-  // httpOnly do portal vale como credencial do cliente.
-  const token = searchParams.get("token")
-    ?? (searchParams.get("clientRequestId") ? null : tokenDoPortal(request));
+type Resolucao =
+  | { ok: true; conversa: Conversa; viewer: "client" | "team"; nomeDaSessao: string | null }
+  | { ok: false; response: NextResponse };
 
-  let clientRequestId: string | null;
-  let viewer: "client" | "team";
+/**
+ * Quem está falando e com qual conversa. Um só lugar para os dois verbos —
+ * GET e POST divergirem na resolução foi exatamente o que produziu o defeito
+ * (o GET devolvia conversa vazia em silêncio; o POST devolvia 404).
+ */
+async function resolver(request: NextRequest, corpo?: { token?: string; clientRequestId?: string; clientId?: string }): Promise<Resolucao> {
+  const { searchParams } = new URL(request.url);
+  const requestIdExplicito = corpo ? corpo.clientRequestId : searchParams.get("clientRequestId");
+  const clientIdExplicito  = corpo ? corpo.clientId        : searchParams.get("clientId");
+  const ladoDaEquipe = Boolean(requestIdExplicito || clientIdExplicito);
+
+  // A4: sem parâmetro do lado da equipe, o cookie httpOnly do portal vale como
+  // credencial do cliente.
+  const token = ladoDaEquipe ? null : tokenDoPortal(request, corpo?.token ?? searchParams.get("token"));
 
   if (token) {
-    const r = await resolveTokenRequestId(token);
-    if (!r.ok) return NextResponse.json({ error: "Access denied", reason: r.reason }, { status: r.status });
-    clientRequestId = r.clientRequestId;
-    viewer = "client";
-  } else {
-    const { error } = await requireSession();
-    if (error) return error;
-    clientRequestId = searchParams.get("clientRequestId");
-    viewer = "team";
-    if (!clientRequestId) {
-      return NextResponse.json({ error: "clientRequestId required" }, { status: 400 });
+    const r = await conversaDoToken(token);
+    if (!r.ok) {
+      return { ok: false, response: NextResponse.json({ error: "Access denied", reason: r.reason }, { status: r.status }) };
     }
+    return { ok: true, conversa: r.conversa, viewer: "client", nomeDaSessao: null };
   }
 
-  if (!clientRequestId) {
-    // Valid token but no request thread yet — empty conversation.
-    return NextResponse.json({ messages: [], unread: 0 });
+  const { session, error } = await requireSession();
+  if (error) return { ok: false, response: error };
+  const nomeDaSessao = session.name ?? null;
+
+  // Estar logado não é ser dono: toda abertura por id explícito passa pela
+  // posse do workspace da sessão.
+  if (clientIdExplicito) {
+    if (!(await clienteDoWorkspace(clientIdExplicito, session.workspaceId))) {
+      return { ok: false, response: NextResponse.json({ error: "Not found" }, { status: 404 }) };
+    }
+    return { ok: true, conversa: await conversaDoCliente(clientIdExplicito), viewer: "team", nomeDaSessao };
+  }
+  if (requestIdExplicito) {
+    if (!(await solicitacaoDoWorkspace(requestIdExplicito, session.workspaceId))) {
+      return { ok: false, response: NextResponse.json({ error: "Not found" }, { status: 404 }) };
+    }
+    return { ok: true, conversa: await conversaDaSolicitacao(requestIdExplicito), viewer: "team", nomeDaSessao };
+  }
+  return {
+    ok: false,
+    response: NextResponse.json({ error: "clientId ou clientRequestId obrigatório" }, { status: 400 }),
+  };
+}
+
+// ── GET: a conversa ─────────────────────────────────────────────────────────
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  const r = await resolver(request);
+  if (!r.ok) return r.response;
+  const { conversa, viewer } = r;
+
+  if (!conversa.filtro) {
+    // Token válido, mas sem cliente nem solicitação por trás — acesso mal
+    // emitido. Antes isto era `{ messages: [] }` mudo; agora a tela sabe que
+    // não é conversa vazia, é conversa que não existe.
+    return NextResponse.json({ messages: [], podeEnviar: false, motivo: "sem-dono" });
   }
 
   try {
     const rows = await prisma.portalMessage.findMany({
-      where: { clientRequestId },
+      where: conversa.filtro,
       orderBy: { createdAt: "asc" },
     });
 
-    // Mark the other side's messages as read for this viewer.
+    // Ao ver a conversa, o outro lado fica lido para este espectador.
     if (viewer === "client") {
       await prisma.portalMessage.updateMany({
-        where: { clientRequestId, authorRole: "team", readByClient: false },
+        where: { ...conversa.filtro, authorRole: "team", readByClient: false },
         data: { readByClient: true },
       });
     } else {
       await prisma.portalMessage.updateMany({
-        where: { clientRequestId, authorRole: "client", readByTeam: false },
+        where: { ...conversa.filtro, authorRole: "client", readByTeam: false },
         data: { readByTeam: true },
       });
     }
 
-    return NextResponse.json({ messages: rows.map((m) => toDTO(m, viewer)) });
+    return NextResponse.json({ messages: rows.map((m) => toDTO(m, viewer)), podeEnviar: true });
   } catch (e) {
     console.error("[portal/messages] GET error", e);
     return NextResponse.json({ error: "DB unavailable" }, { status: 503 });
   }
 }
 
-// ── POST: send a message ────────────────────────────────────────────────────
+// ── POST: enviar ────────────────────────────────────────────────────────────
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  let body: { token?: string; clientRequestId?: string; body?: string; authorName?: string };
+  let body: { token?: string; clientRequestId?: string; clientId?: string; body?: string; authorName?: string };
   try {
     body = await request.json();
   } catch {
@@ -126,43 +150,45 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!text) return NextResponse.json({ error: "body required" }, { status: 400 });
   if (text.length > 4000) return NextResponse.json({ error: "message too long" }, { status: 400 });
 
-  let clientRequestId: string | null;
-  let authorRole: "client" | "team";
-  let authorName: string;
+  const r = await resolver(request, {
+    token: body.token,
+    clientRequestId: typeof body.clientRequestId === "string" ? body.clientRequestId : undefined,
+    clientId: typeof body.clientId === "string" ? body.clientId : undefined,
+  });
+  if (!r.ok) return r.response;
+  const { conversa, viewer } = r;
 
-  // A4: corpo (compatibilidade) ou cookie httpOnly — cliente; senão, sessão.
-  const tokenCliente = tokenDoPortal(request, body.token) ?? undefined;
-  if (tokenCliente && !body.clientRequestId) {
-    const r = await resolveTokenRequestId(tokenCliente);
-    if (!r.ok) return NextResponse.json({ error: "Access denied", reason: r.reason }, { status: r.status });
-    clientRequestId = r.clientRequestId;
-    authorRole = "client";
-    authorName = body.authorName?.trim() || "Cliente";
-  } else {
-    const { session, error } = await requireSession();
-    if (error) return error;
-    clientRequestId = typeof body.clientRequestId === "string" ? body.clientRequestId : null;
-    authorRole = "team";
-    authorName = session.name || "Equipe Dioli";
+  const { clientId, clientRequestId } = conversa.ancora;
+  if (!clientId && !clientRequestId) {
+    // Não é mais o 404 genérico: aqui o acesso realmente não aponta para
+    // ninguém, e a mensagem diz o que fazer.
+    return NextResponse.json(
+      { error: "Este acesso não está ligado a nenhum cliente. Fale com a equipe Dioli para receber um link novo." },
+      { status: 409 },
+    );
   }
 
-  if (!clientRequestId) {
-    return NextResponse.json({ error: "No conversation thread for this token yet" }, { status: 404 });
-  }
+  const authorName =
+    viewer === "client"
+      ? body.authorName?.trim() || "Cliente"
+      : r.nomeDaSessao || "Equipe Dioli";
 
   try {
     const created = await prisma.portalMessage.create({
       data: {
+        // As DUAS chaves quando as duas existem — é o que mantém a conversa
+        // única depois que um cliente direto ganha uma solicitação.
+        clientId,
         clientRequestId,
-        authorRole,
+        authorRole: viewer,
         authorName,
         body: text,
-        // The author has implicitly read their own side.
-        readByTeam:   authorRole === "team",
-        readByClient: authorRole === "client",
+        // Quem escreve já leu o próprio lado.
+        readByTeam:   viewer === "team",
+        readByClient: viewer === "client",
       },
     });
-    return NextResponse.json(toDTO(created, authorRole), { status: 201 });
+    return NextResponse.json(toDTO(created, viewer), { status: 201 });
   } catch (e) {
     console.error("[portal/messages] POST error", e);
     return NextResponse.json({ error: "DB unavailable" }, { status: 503 });

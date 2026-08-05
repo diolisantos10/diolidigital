@@ -63,6 +63,7 @@ export const ModelName = {
   Deliverable: 'Deliverable',
   DeliverableVersion: 'DeliverableVersion',
   MaterialRequest: 'MaterialRequest',
+  ContentRequest: 'ContentRequest',
   BrandBrain: 'BrandBrain',
   StrategyRoom: 'StrategyRoom',
   Briefing: 'Briefing',
@@ -339,6 +340,29 @@ export const MaterialRequestScalarFieldEnum = {
 } as const
 
 export type MaterialRequestScalarFieldEnum = (typeof MaterialRequestScalarFieldEnum)[keyof typeof MaterialRequestScalarFieldEnum]
+
+
+export const ContentRequestScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  clientRequestId: 'clientRequestId',
+  projectId: 'projectId',
+  title: 'title',
+  description: 'description',
+  objective: 'objective',
+  desiredFor: 'desiredFor',
+  attachmentsJson: 'attachmentsJson',
+  status: 'status',
+  scopeDecision: 'scopeDecision',
+  taskId: 'taskId',
+  triagedBy: 'triagedBy',
+  triagedAt: 'triagedAt',
+  declineReason: 'declineReason',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ContentRequestScalarFieldEnum = (typeof ContentRequestScalarFieldEnum)[keyof typeof ContentRequestScalarFieldEnum]
 
 
 export const BrandBrainScalarFieldEnum = {
@@ -648,6 +672,7 @@ export type ClientRequestDbScalarFieldEnum = (typeof ClientRequestDbScalarFieldE
 export const PortalMessageScalarFieldEnum = {
   id: 'id',
   clientRequestId: 'clientRequestId',
+  clientId: 'clientId',
   authorRole: 'authorRole',
   authorName: 'authorName',
   body: 'body',

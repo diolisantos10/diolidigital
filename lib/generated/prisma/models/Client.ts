@@ -227,6 +227,7 @@ export type ClientWhereInput = {
   notices?: Prisma.ClientNoticeListRelationFilter
   brandBrain?: Prisma.XOR<Prisma.BrandBrainNullableScalarRelationFilter, Prisma.BrandBrainWhereInput> | null
   brandUpdates?: Prisma.BrandUpdateListRelationFilter
+  contentRequests?: Prisma.ContentRequestListRelationFilter
 }
 
 export type ClientOrderByWithRelationInput = {
@@ -245,6 +246,7 @@ export type ClientOrderByWithRelationInput = {
   notices?: Prisma.ClientNoticeOrderByRelationAggregateInput
   brandBrain?: Prisma.BrandBrainOrderByWithRelationInput
   brandUpdates?: Prisma.BrandUpdateOrderByRelationAggregateInput
+  contentRequests?: Prisma.ContentRequestOrderByRelationAggregateInput
 }
 
 export type ClientWhereUniqueInput = Prisma.AtLeast<{
@@ -266,6 +268,7 @@ export type ClientWhereUniqueInput = Prisma.AtLeast<{
   notices?: Prisma.ClientNoticeListRelationFilter
   brandBrain?: Prisma.XOR<Prisma.BrandBrainNullableScalarRelationFilter, Prisma.BrandBrainWhereInput> | null
   brandUpdates?: Prisma.BrandUpdateListRelationFilter
+  contentRequests?: Prisma.ContentRequestListRelationFilter
 }, "id" | "portalToken">
 
 export type ClientOrderByWithAggregationInput = {
@@ -315,6 +318,7 @@ export type ClientCreateInput = {
   notices?: Prisma.ClientNoticeCreateNestedManyWithoutClientInput
   brandBrain?: Prisma.BrandBrainCreateNestedOneWithoutClientInput
   brandUpdates?: Prisma.BrandUpdateCreateNestedManyWithoutClientInput
+  contentRequests?: Prisma.ContentRequestCreateNestedManyWithoutClientInput
 }
 
 export type ClientUncheckedCreateInput = {
@@ -332,6 +336,7 @@ export type ClientUncheckedCreateInput = {
   notices?: Prisma.ClientNoticeUncheckedCreateNestedManyWithoutClientInput
   brandBrain?: Prisma.BrandBrainUncheckedCreateNestedOneWithoutClientInput
   brandUpdates?: Prisma.BrandUpdateUncheckedCreateNestedManyWithoutClientInput
+  contentRequests?: Prisma.ContentRequestUncheckedCreateNestedManyWithoutClientInput
 }
 
 export type ClientUpdateInput = {
@@ -349,6 +354,7 @@ export type ClientUpdateInput = {
   notices?: Prisma.ClientNoticeUpdateManyWithoutClientNestedInput
   brandBrain?: Prisma.BrandBrainUpdateOneWithoutClientNestedInput
   brandUpdates?: Prisma.BrandUpdateUpdateManyWithoutClientNestedInput
+  contentRequests?: Prisma.ContentRequestUpdateManyWithoutClientNestedInput
 }
 
 export type ClientUncheckedUpdateInput = {
@@ -366,6 +372,7 @@ export type ClientUncheckedUpdateInput = {
   notices?: Prisma.ClientNoticeUncheckedUpdateManyWithoutClientNestedInput
   brandBrain?: Prisma.BrandBrainUncheckedUpdateOneWithoutClientNestedInput
   brandUpdates?: Prisma.BrandUpdateUncheckedUpdateManyWithoutClientNestedInput
+  contentRequests?: Prisma.ContentRequestUncheckedUpdateManyWithoutClientNestedInput
 }
 
 export type ClientCreateManyInput = {
@@ -530,6 +537,20 @@ export type ClientUpdateOneRequiredWithoutNoticesNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.ClientUpdateToOneWithWhereWithoutNoticesInput, Prisma.ClientUpdateWithoutNoticesInput>, Prisma.ClientUncheckedUpdateWithoutNoticesInput>
 }
 
+export type ClientCreateNestedOneWithoutContentRequestsInput = {
+  create?: Prisma.XOR<Prisma.ClientCreateWithoutContentRequestsInput, Prisma.ClientUncheckedCreateWithoutContentRequestsInput>
+  connectOrCreate?: Prisma.ClientCreateOrConnectWithoutContentRequestsInput
+  connect?: Prisma.ClientWhereUniqueInput
+}
+
+export type ClientUpdateOneRequiredWithoutContentRequestsNestedInput = {
+  create?: Prisma.XOR<Prisma.ClientCreateWithoutContentRequestsInput, Prisma.ClientUncheckedCreateWithoutContentRequestsInput>
+  connectOrCreate?: Prisma.ClientCreateOrConnectWithoutContentRequestsInput
+  upsert?: Prisma.ClientUpsertWithoutContentRequestsInput
+  connect?: Prisma.ClientWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ClientUpdateToOneWithWhereWithoutContentRequestsInput, Prisma.ClientUpdateWithoutContentRequestsInput>, Prisma.ClientUncheckedUpdateWithoutContentRequestsInput>
+}
+
 export type ClientCreateNestedOneWithoutBrandBrainInput = {
   create?: Prisma.XOR<Prisma.ClientCreateWithoutBrandBrainInput, Prisma.ClientUncheckedCreateWithoutBrandBrainInput>
   connectOrCreate?: Prisma.ClientCreateOrConnectWithoutBrandBrainInput
@@ -572,6 +593,7 @@ export type ClientCreateWithoutWorkspaceInput = {
   notices?: Prisma.ClientNoticeCreateNestedManyWithoutClientInput
   brandBrain?: Prisma.BrandBrainCreateNestedOneWithoutClientInput
   brandUpdates?: Prisma.BrandUpdateCreateNestedManyWithoutClientInput
+  contentRequests?: Prisma.ContentRequestCreateNestedManyWithoutClientInput
 }
 
 export type ClientUncheckedCreateWithoutWorkspaceInput = {
@@ -588,6 +610,7 @@ export type ClientUncheckedCreateWithoutWorkspaceInput = {
   notices?: Prisma.ClientNoticeUncheckedCreateNestedManyWithoutClientInput
   brandBrain?: Prisma.BrandBrainUncheckedCreateNestedOneWithoutClientInput
   brandUpdates?: Prisma.BrandUpdateUncheckedCreateNestedManyWithoutClientInput
+  contentRequests?: Prisma.ContentRequestUncheckedCreateNestedManyWithoutClientInput
 }
 
 export type ClientCreateOrConnectWithoutWorkspaceInput = {
@@ -645,6 +668,7 @@ export type ClientCreateWithoutProjectsInput = {
   notices?: Prisma.ClientNoticeCreateNestedManyWithoutClientInput
   brandBrain?: Prisma.BrandBrainCreateNestedOneWithoutClientInput
   brandUpdates?: Prisma.BrandUpdateCreateNestedManyWithoutClientInput
+  contentRequests?: Prisma.ContentRequestCreateNestedManyWithoutClientInput
 }
 
 export type ClientUncheckedCreateWithoutProjectsInput = {
@@ -661,6 +685,7 @@ export type ClientUncheckedCreateWithoutProjectsInput = {
   notices?: Prisma.ClientNoticeUncheckedCreateNestedManyWithoutClientInput
   brandBrain?: Prisma.BrandBrainUncheckedCreateNestedOneWithoutClientInput
   brandUpdates?: Prisma.BrandUpdateUncheckedCreateNestedManyWithoutClientInput
+  contentRequests?: Prisma.ContentRequestUncheckedCreateNestedManyWithoutClientInput
 }
 
 export type ClientCreateOrConnectWithoutProjectsInput = {
@@ -693,6 +718,7 @@ export type ClientUpdateWithoutProjectsInput = {
   notices?: Prisma.ClientNoticeUpdateManyWithoutClientNestedInput
   brandBrain?: Prisma.BrandBrainUpdateOneWithoutClientNestedInput
   brandUpdates?: Prisma.BrandUpdateUpdateManyWithoutClientNestedInput
+  contentRequests?: Prisma.ContentRequestUpdateManyWithoutClientNestedInput
 }
 
 export type ClientUncheckedUpdateWithoutProjectsInput = {
@@ -709,6 +735,7 @@ export type ClientUncheckedUpdateWithoutProjectsInput = {
   notices?: Prisma.ClientNoticeUncheckedUpdateManyWithoutClientNestedInput
   brandBrain?: Prisma.BrandBrainUncheckedUpdateOneWithoutClientNestedInput
   brandUpdates?: Prisma.BrandUpdateUncheckedUpdateManyWithoutClientNestedInput
+  contentRequests?: Prisma.ContentRequestUncheckedUpdateManyWithoutClientNestedInput
 }
 
 export type ClientCreateWithoutNoticesInput = {
@@ -725,6 +752,7 @@ export type ClientCreateWithoutNoticesInput = {
   projects?: Prisma.ProjectCreateNestedManyWithoutClientInput
   brandBrain?: Prisma.BrandBrainCreateNestedOneWithoutClientInput
   brandUpdates?: Prisma.BrandUpdateCreateNestedManyWithoutClientInput
+  contentRequests?: Prisma.ContentRequestCreateNestedManyWithoutClientInput
 }
 
 export type ClientUncheckedCreateWithoutNoticesInput = {
@@ -741,6 +769,7 @@ export type ClientUncheckedCreateWithoutNoticesInput = {
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutClientInput
   brandBrain?: Prisma.BrandBrainUncheckedCreateNestedOneWithoutClientInput
   brandUpdates?: Prisma.BrandUpdateUncheckedCreateNestedManyWithoutClientInput
+  contentRequests?: Prisma.ContentRequestUncheckedCreateNestedManyWithoutClientInput
 }
 
 export type ClientCreateOrConnectWithoutNoticesInput = {
@@ -773,6 +802,7 @@ export type ClientUpdateWithoutNoticesInput = {
   projects?: Prisma.ProjectUpdateManyWithoutClientNestedInput
   brandBrain?: Prisma.BrandBrainUpdateOneWithoutClientNestedInput
   brandUpdates?: Prisma.BrandUpdateUpdateManyWithoutClientNestedInput
+  contentRequests?: Prisma.ContentRequestUpdateManyWithoutClientNestedInput
 }
 
 export type ClientUncheckedUpdateWithoutNoticesInput = {
@@ -787,6 +817,91 @@ export type ClientUncheckedUpdateWithoutNoticesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutClientNestedInput
+  brandBrain?: Prisma.BrandBrainUncheckedUpdateOneWithoutClientNestedInput
+  brandUpdates?: Prisma.BrandUpdateUncheckedUpdateManyWithoutClientNestedInput
+  contentRequests?: Prisma.ContentRequestUncheckedUpdateManyWithoutClientNestedInput
+}
+
+export type ClientCreateWithoutContentRequestsInput = {
+  id?: string
+  name: string
+  industry?: string | null
+  email?: string | null
+  phone?: string | null
+  website?: string | null
+  portalToken?: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutClientsInput
+  projects?: Prisma.ProjectCreateNestedManyWithoutClientInput
+  notices?: Prisma.ClientNoticeCreateNestedManyWithoutClientInput
+  brandBrain?: Prisma.BrandBrainCreateNestedOneWithoutClientInput
+  brandUpdates?: Prisma.BrandUpdateCreateNestedManyWithoutClientInput
+}
+
+export type ClientUncheckedCreateWithoutContentRequestsInput = {
+  id?: string
+  workspaceId: string
+  name: string
+  industry?: string | null
+  email?: string | null
+  phone?: string | null
+  website?: string | null
+  portalToken?: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutClientInput
+  notices?: Prisma.ClientNoticeUncheckedCreateNestedManyWithoutClientInput
+  brandBrain?: Prisma.BrandBrainUncheckedCreateNestedOneWithoutClientInput
+  brandUpdates?: Prisma.BrandUpdateUncheckedCreateNestedManyWithoutClientInput
+}
+
+export type ClientCreateOrConnectWithoutContentRequestsInput = {
+  where: Prisma.ClientWhereUniqueInput
+  create: Prisma.XOR<Prisma.ClientCreateWithoutContentRequestsInput, Prisma.ClientUncheckedCreateWithoutContentRequestsInput>
+}
+
+export type ClientUpsertWithoutContentRequestsInput = {
+  update: Prisma.XOR<Prisma.ClientUpdateWithoutContentRequestsInput, Prisma.ClientUncheckedUpdateWithoutContentRequestsInput>
+  create: Prisma.XOR<Prisma.ClientCreateWithoutContentRequestsInput, Prisma.ClientUncheckedCreateWithoutContentRequestsInput>
+  where?: Prisma.ClientWhereInput
+}
+
+export type ClientUpdateToOneWithWhereWithoutContentRequestsInput = {
+  where?: Prisma.ClientWhereInput
+  data: Prisma.XOR<Prisma.ClientUpdateWithoutContentRequestsInput, Prisma.ClientUncheckedUpdateWithoutContentRequestsInput>
+}
+
+export type ClientUpdateWithoutContentRequestsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  industry?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  website?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  portalToken?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutClientsNestedInput
+  projects?: Prisma.ProjectUpdateManyWithoutClientNestedInput
+  notices?: Prisma.ClientNoticeUpdateManyWithoutClientNestedInput
+  brandBrain?: Prisma.BrandBrainUpdateOneWithoutClientNestedInput
+  brandUpdates?: Prisma.BrandUpdateUpdateManyWithoutClientNestedInput
+}
+
+export type ClientUncheckedUpdateWithoutContentRequestsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  industry?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  website?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  portalToken?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  projects?: Prisma.ProjectUncheckedUpdateManyWithoutClientNestedInput
+  notices?: Prisma.ClientNoticeUncheckedUpdateManyWithoutClientNestedInput
   brandBrain?: Prisma.BrandBrainUncheckedUpdateOneWithoutClientNestedInput
   brandUpdates?: Prisma.BrandUpdateUncheckedUpdateManyWithoutClientNestedInput
 }
@@ -805,6 +920,7 @@ export type ClientCreateWithoutBrandBrainInput = {
   projects?: Prisma.ProjectCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeCreateNestedManyWithoutClientInput
   brandUpdates?: Prisma.BrandUpdateCreateNestedManyWithoutClientInput
+  contentRequests?: Prisma.ContentRequestCreateNestedManyWithoutClientInput
 }
 
 export type ClientUncheckedCreateWithoutBrandBrainInput = {
@@ -821,6 +937,7 @@ export type ClientUncheckedCreateWithoutBrandBrainInput = {
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeUncheckedCreateNestedManyWithoutClientInput
   brandUpdates?: Prisma.BrandUpdateUncheckedCreateNestedManyWithoutClientInput
+  contentRequests?: Prisma.ContentRequestUncheckedCreateNestedManyWithoutClientInput
 }
 
 export type ClientCreateOrConnectWithoutBrandBrainInput = {
@@ -853,6 +970,7 @@ export type ClientUpdateWithoutBrandBrainInput = {
   projects?: Prisma.ProjectUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUpdateManyWithoutClientNestedInput
   brandUpdates?: Prisma.BrandUpdateUpdateManyWithoutClientNestedInput
+  contentRequests?: Prisma.ContentRequestUpdateManyWithoutClientNestedInput
 }
 
 export type ClientUncheckedUpdateWithoutBrandBrainInput = {
@@ -869,6 +987,7 @@ export type ClientUncheckedUpdateWithoutBrandBrainInput = {
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUncheckedUpdateManyWithoutClientNestedInput
   brandUpdates?: Prisma.BrandUpdateUncheckedUpdateManyWithoutClientNestedInput
+  contentRequests?: Prisma.ContentRequestUncheckedUpdateManyWithoutClientNestedInput
 }
 
 export type ClientCreateWithoutBrandUpdatesInput = {
@@ -885,6 +1004,7 @@ export type ClientCreateWithoutBrandUpdatesInput = {
   projects?: Prisma.ProjectCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeCreateNestedManyWithoutClientInput
   brandBrain?: Prisma.BrandBrainCreateNestedOneWithoutClientInput
+  contentRequests?: Prisma.ContentRequestCreateNestedManyWithoutClientInput
 }
 
 export type ClientUncheckedCreateWithoutBrandUpdatesInput = {
@@ -901,6 +1021,7 @@ export type ClientUncheckedCreateWithoutBrandUpdatesInput = {
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutClientInput
   notices?: Prisma.ClientNoticeUncheckedCreateNestedManyWithoutClientInput
   brandBrain?: Prisma.BrandBrainUncheckedCreateNestedOneWithoutClientInput
+  contentRequests?: Prisma.ContentRequestUncheckedCreateNestedManyWithoutClientInput
 }
 
 export type ClientCreateOrConnectWithoutBrandUpdatesInput = {
@@ -933,6 +1054,7 @@ export type ClientUpdateWithoutBrandUpdatesInput = {
   projects?: Prisma.ProjectUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUpdateManyWithoutClientNestedInput
   brandBrain?: Prisma.BrandBrainUpdateOneWithoutClientNestedInput
+  contentRequests?: Prisma.ContentRequestUpdateManyWithoutClientNestedInput
 }
 
 export type ClientUncheckedUpdateWithoutBrandUpdatesInput = {
@@ -949,6 +1071,7 @@ export type ClientUncheckedUpdateWithoutBrandUpdatesInput = {
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutClientNestedInput
   notices?: Prisma.ClientNoticeUncheckedUpdateManyWithoutClientNestedInput
   brandBrain?: Prisma.BrandBrainUncheckedUpdateOneWithoutClientNestedInput
+  contentRequests?: Prisma.ContentRequestUncheckedUpdateManyWithoutClientNestedInput
 }
 
 export type ClientCreateManyWorkspaceInput = {
@@ -977,6 +1100,7 @@ export type ClientUpdateWithoutWorkspaceInput = {
   notices?: Prisma.ClientNoticeUpdateManyWithoutClientNestedInput
   brandBrain?: Prisma.BrandBrainUpdateOneWithoutClientNestedInput
   brandUpdates?: Prisma.BrandUpdateUpdateManyWithoutClientNestedInput
+  contentRequests?: Prisma.ContentRequestUpdateManyWithoutClientNestedInput
 }
 
 export type ClientUncheckedUpdateWithoutWorkspaceInput = {
@@ -993,6 +1117,7 @@ export type ClientUncheckedUpdateWithoutWorkspaceInput = {
   notices?: Prisma.ClientNoticeUncheckedUpdateManyWithoutClientNestedInput
   brandBrain?: Prisma.BrandBrainUncheckedUpdateOneWithoutClientNestedInput
   brandUpdates?: Prisma.BrandUpdateUncheckedUpdateManyWithoutClientNestedInput
+  contentRequests?: Prisma.ContentRequestUncheckedUpdateManyWithoutClientNestedInput
 }
 
 export type ClientUncheckedUpdateManyWithoutWorkspaceInput = {
@@ -1016,12 +1141,14 @@ export type ClientCountOutputType = {
   projects: number
   notices: number
   brandUpdates: number
+  contentRequests: number
 }
 
 export type ClientCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   projects?: boolean | ClientCountOutputTypeCountProjectsArgs
   notices?: boolean | ClientCountOutputTypeCountNoticesArgs
   brandUpdates?: boolean | ClientCountOutputTypeCountBrandUpdatesArgs
+  contentRequests?: boolean | ClientCountOutputTypeCountContentRequestsArgs
 }
 
 /**
@@ -1055,6 +1182,13 @@ export type ClientCountOutputTypeCountBrandUpdatesArgs<ExtArgs extends runtime.T
   where?: Prisma.BrandUpdateWhereInput
 }
 
+/**
+ * ClientCountOutputType without action
+ */
+export type ClientCountOutputTypeCountContentRequestsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ContentRequestWhereInput
+}
+
 
 export type ClientSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1072,6 +1206,7 @@ export type ClientSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   notices?: boolean | Prisma.Client$noticesArgs<ExtArgs>
   brandBrain?: boolean | Prisma.Client$brandBrainArgs<ExtArgs>
   brandUpdates?: boolean | Prisma.Client$brandUpdatesArgs<ExtArgs>
+  contentRequests?: boolean | Prisma.Client$contentRequestsArgs<ExtArgs>
   _count?: boolean | Prisma.ClientCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["client"]>
 
@@ -1123,6 +1258,7 @@ export type ClientInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   notices?: boolean | Prisma.Client$noticesArgs<ExtArgs>
   brandBrain?: boolean | Prisma.Client$brandBrainArgs<ExtArgs>
   brandUpdates?: boolean | Prisma.Client$brandUpdatesArgs<ExtArgs>
+  contentRequests?: boolean | Prisma.Client$contentRequestsArgs<ExtArgs>
   _count?: boolean | Prisma.ClientCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type ClientIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1140,6 +1276,7 @@ export type $ClientPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     notices: Prisma.$ClientNoticePayload<ExtArgs>[]
     brandBrain: Prisma.$BrandBrainPayload<ExtArgs> | null
     brandUpdates: Prisma.$BrandUpdatePayload<ExtArgs>[]
+    contentRequests: Prisma.$ContentRequestPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1551,6 +1688,7 @@ export interface Prisma__ClientClient<T, Null = never, ExtArgs extends runtime.T
   notices<T extends Prisma.Client$noticesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Client$noticesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ClientNoticePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   brandBrain<T extends Prisma.Client$brandBrainArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Client$brandBrainArgs<ExtArgs>>): Prisma.Prisma__BrandBrainClient<runtime.Types.Result.GetResult<Prisma.$BrandBrainPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   brandUpdates<T extends Prisma.Client$brandUpdatesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Client$brandUpdatesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BrandUpdatePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  contentRequests<T extends Prisma.Client$contentRequestsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Client$contentRequestsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ContentRequestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2077,6 +2215,30 @@ export type Client$brandUpdatesArgs<ExtArgs extends runtime.Types.Extensions.Int
   take?: number
   skip?: number
   distinct?: Prisma.BrandUpdateScalarFieldEnum | Prisma.BrandUpdateScalarFieldEnum[]
+}
+
+/**
+ * Client.contentRequests
+ */
+export type Client$contentRequestsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ContentRequest
+   */
+  select?: Prisma.ContentRequestSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ContentRequest
+   */
+  omit?: Prisma.ContentRequestOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ContentRequestInclude<ExtArgs> | null
+  where?: Prisma.ContentRequestWhereInput
+  orderBy?: Prisma.ContentRequestOrderByWithRelationInput | Prisma.ContentRequestOrderByWithRelationInput[]
+  cursor?: Prisma.ContentRequestWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ContentRequestScalarFieldEnum | Prisma.ContentRequestScalarFieldEnum[]
 }
 
 /**
