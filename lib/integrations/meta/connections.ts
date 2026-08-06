@@ -5,7 +5,7 @@
 import { prisma } from "@/lib/db/client";
 import { encryptSecret, decryptSecret, keyHint } from "@/lib/security/crypto";
 import type { MetaConnectionView, MetaPlatform } from "./types";
-import { TIPO_POR_PLATAFORMA, ativoAutorizado, normalizarId } from "./ativos-autorizados";
+import { TIPO_POR_PLATAFORMA, ativoAutorizado, normalizarId, donoDe } from "./ativos-autorizados";
 
 /** A conexão foi recusada porque o ativo não está na lista do cliente. */
 export class AtivoNaoAutorizadoError extends Error {
@@ -82,7 +82,9 @@ async function conferirAutorizacao(input: SaveConnectionInput): Promise<void> {
   const tipo = TIPO_POR_PLATAFORMA[input.platform] ?? null;
   if (tipo === null) return; // "user": credencial, não ativo.
 
-  const clientId = input.clientId ?? null;
+  // `donoDe` e não `?? null`: "sem cliente" chega aqui em duas grafias — `null`
+  // do callback e `""` de `/api/meta/token`. Ver a perícia em `donoDe`.
+  const clientId = donoDe(input.clientId);
   if (clientId === null) return; // conta da própria agência (ver acima).
 
   const ok = await ativoAutorizado(input.workspaceId, clientId, tipo, input.externalId);
@@ -107,7 +109,8 @@ export async function saveConnection(input: SaveConnectionInput): Promise<MetaCo
     },
     create: {
       workspaceId: input.workspaceId,
-      clientId: input.clientId ?? null,
+      // Nunca mais gravar `""` como dono: era a segunda grafia de "sem cliente".
+      clientId: donoDe(input.clientId),
       platform: input.platform,
       name: input.name,
       externalId: input.externalId,
@@ -120,7 +123,7 @@ export async function saveConnection(input: SaveConnectionInput): Promise<MetaCo
       lastSyncedAt: new Date(),
     },
     update: {
-      clientId: input.clientId ?? undefined,
+      clientId: donoDe(input.clientId) ?? undefined,
       name: input.name,
       accessTokenEncrypted: encrypted,
       tokenHint: hint,
@@ -172,7 +175,10 @@ export async function loadConnectionToken(
     token,
     externalId: row.externalId,
     platform: row.platform as MetaPlatform,
-    clientId: row.clientId ?? null,
+    // Normalizado: a linha pode ter `""` (gravado antes de 06/08/2026). Quem
+    // recebe isto consulta a lista de autorizados — com `""` consultaria o
+    // ramo do CLIENTE para um ativo da agência.
+    clientId: donoDe(row.clientId),
     metaJson,
   };
 }

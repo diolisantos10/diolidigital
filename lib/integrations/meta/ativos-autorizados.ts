@@ -53,6 +53,37 @@ export const TIPO_POR_PLATAFORMA: Record<string, TipoDeAtivo | null> = {
 };
 
 /**
+ * O DONO, EM FORMA CANÔNICA. Chamado em toda fronteira desta trava.
+ *
+ * ─── POR QUE ISTO EXISTE (perícia em produção, 06/08/2026) ─────────────────
+ *
+ * "Sem cliente" tinha DUAS grafias no banco: `null` e `""`. O callback do OAuth
+ * grava `null` (`clientId = cookie || null`); `/api/meta/token` — o fluxo de
+ * token colado, que é como a agência conectou tudo em 03/08 — grava `""`
+ * (`body.clientId?.trim() || ""`). As 24 conexões de nível agência em produção
+ * estão TODAS com `""`.
+ *
+ * Toda guarda desta casa perguntava `clientId === null`. Com `""`, a guarda não
+ * reconhecia o fluxo da agência e caía no ramo do cliente. Consequências reais,
+ * as duas medidas e não supostas:
+ *
+ *   • `scripts/meta-pericia-alcance.mts` marcou para exclusão **25 de 25**
+ *     conexões de ativo do banco de produção — incluindo as 2 legítimas da
+ *     Foocci e as 4 da própria Dioli. Um `--apply` teria zerado a casa.
+ *   • `saveConnection` passaria a LANÇAR em todo `/api/meta/token`, e o laço de
+ *     Páginas engole a exceção — o fluxo que o CEO usa para conectar a agência
+ *     gravaria ZERO Páginas, em silêncio.
+ *
+ * Duas grafias do mesmo conceito numa trava de igualdade é a mesma família de
+ * defeito que `normalizarId` já resolvia para `act_123` vs `123`. Aqui o
+ * conceito é o DONO, e errar o dono é errar de quem é o dado.
+ */
+export function donoDe(clientId: string | null | undefined): string | null {
+  const cru = String(clientId ?? "").trim();
+  return cru === "" ? null : cru;
+}
+
+/**
  * A chave determinística de uma autorização.
  *
  * `clientId` nulo vira o literal `agencia` — o mesmo significado que em
@@ -66,7 +97,7 @@ export function chaveDoAtivo(
   tipo: TipoDeAtivo,
   externalId: string,
 ): string {
-  return `${workspaceId}:${clientId ?? "agencia"}:${tipo}:${normalizarId(tipo, externalId)}`;
+  return `${workspaceId}:${donoDe(clientId) ?? "agencia"}:${tipo}:${normalizarId(tipo, externalId)}`;
 }
 
 /**
@@ -105,7 +136,7 @@ export async function idsAutorizados(
 ): Promise<Set<string>> {
   try {
     const linhas = await prisma.metaAtivoAutorizado.findMany({
-      where: { workspaceId, clientId: clientId ?? null, tipo },
+      where: { workspaceId, clientId: donoDe(clientId), tipo },
       select: { externalId: true },
     });
     return new Set(linhas.map((l) => normalizarId(tipo, l.externalId)));
@@ -190,7 +221,7 @@ export async function autorizarAtivos(
       create: {
         id,
         workspaceId,
-        clientId: clientId ?? null,
+        clientId: donoDe(clientId),
         tipo: e.tipo,
         externalId,
         nome: e.nome ?? "",
@@ -231,7 +262,7 @@ export async function revogarAtivo(
   if (plataformas.length > 0 && alvo) {
     const r = await prisma.metaConnection
       .deleteMany({
-        where: { workspaceId, clientId: clientId ?? null, platform: { in: plataformas }, externalId: alvo },
+        where: { workspaceId, clientId: donoDe(clientId), platform: { in: plataformas }, externalId: alvo },
       })
       .catch(() => ({ count: 0 }));
     conexoesApagadas = r.count;
@@ -247,7 +278,7 @@ export async function listarAutorizados(
 ): Promise<AtivoAutorizadoView[]> {
   const linhas = await prisma.metaAtivoAutorizado
     .findMany({
-      where: { workspaceId, clientId: clientId ?? null },
+      where: { workspaceId, clientId: donoDe(clientId) },
       orderBy: { autorizadoEm: "desc" },
     })
     .catch(() => []);

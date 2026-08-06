@@ -86,7 +86,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
   } catch { /* alguns tokens já são long-lived e a troca falha — o original serve */ }
 
-  const clientId = body.clientId?.trim() || "";
+  // `null`, nunca `""`. Até 06/08/2026 esta linha gravava string vazia como
+  // dono, e "sem cliente" passou a ter duas grafias no banco — as 24 conexões
+  // de nível agência em produção nasceram aqui, com `""`. Toda guarda da trava
+  // pergunta `=== null`; com `""` ela caía no ramo do CLIENTE. Ver `donoDe`.
+  const clientId = body.clientId?.trim() || null;
 
   // ── O token de usuário: a chave do tráfego pago ───────────────────────────
   await saveConnection({

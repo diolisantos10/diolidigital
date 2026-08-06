@@ -132,6 +132,52 @@ describe("saveConnection — a Página de terceiro NÃO vira conexão do cliente
   });
 });
 
+// ─── 1b. "SEM CLIENTE" TINHA DUAS GRAFIAS ───────────────────────────────────
+//
+// Achado na perícia contra o banco de PRODUÇÃO em 06/08/2026. O callback grava
+// `null`; `/api/meta/token` gravava `""`. As 24 conexões de nível agência que
+// estavam em produção tinham TODAS `""` — e toda guarda desta casa perguntava
+// `=== null`, então o fluxo da agência caía no ramo do CLIENTE.
+//
+// Os dois estragos medidos: `scripts/meta-pericia-alcance.mts` marcou 25 de 25
+// conexões para exclusão (inclusive as 2 legítimas da Foocci e as 4 da própria
+// Dioli), e `saveConnection` passaria a LANÇAR em todo `/api/meta/token` — cujo
+// laço de Páginas engole a exceção, gravando ZERO Páginas em silêncio.
+describe("saveConnection — `\"\"` e `null` são o MESMO dono: a agência", () => {
+  const entrada = (over: Record<string, unknown> = {}) => ({
+    workspaceId: W, platform: "facebook" as const,
+    name: "Dioli - Marketing Digital", externalId: "111685217945334",
+    accessToken: "token-de-pagina", ...over,
+  });
+
+  it("B. clientId `\"\"` (o que /api/meta/token gravava) segue pelo fluxo master, sem lançar", async () => {
+    ativoAutorizado.mockResolvedValue(false);
+    await expect(saveConnection(entrada({ clientId: "" }))).resolves.toBeDefined();
+    expect(upsert).toHaveBeenCalledTimes(1);
+    // Nem consultou a lista: não é ativo de cliente.
+    expect(ativoAutorizado).not.toHaveBeenCalled();
+  });
+
+  it("B. clientId só com espaços também é a agência — grafia não muda o dono", async () => {
+    ativoAutorizado.mockResolvedValue(false);
+    await expect(saveConnection(entrada({ clientId: "   " }))).resolves.toBeDefined();
+    expect(upsert).toHaveBeenCalledTimes(1);
+  });
+
+  it("`\"\"` NUNCA volta ao banco: o dono é gravado como null", async () => {
+    ativoAutorizado.mockResolvedValue(false);
+    await saveConnection(entrada({ clientId: "" }));
+    expect(upsert.mock.calls[0][0].create.clientId).toBeNull();
+  });
+
+  it("A. a metade que não pode afrouxar: cliente DE VERDADE sem autorização continua LANÇANDO", async () => {
+    ativoAutorizado.mockResolvedValue(false);
+    await expect(saveConnection(entrada({ clientId: FOOCCI, name: "Santioh" })))
+      .rejects.toBeInstanceOf(AtivoNaoAutorizadoError);
+    expect(upsert).not.toHaveBeenCalled();
+  });
+});
+
 // ─── 2. ads-leitura: as 14 contas não sobem ─────────────────────────────────
 
 describe("lerContasDeAnuncio — o que o token ALCANÇA não é o que a agência LÊ", () => {

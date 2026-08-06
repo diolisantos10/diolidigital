@@ -28,6 +28,7 @@ import { requireSession } from "@/lib/auth/api-guard";
 import { decryptSecret } from "@/lib/security/crypto";
 import { resolveMetaAppCredentials } from "@/lib/integrations/meta/config";
 import { GRAPH_BASE } from "@/lib/integrations/meta/config";
+import { donoDe } from "@/lib/integrations/meta/ativos-autorizados";
 
 export const dynamic = "force-dynamic";
 
@@ -124,7 +125,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   try { body = await request.json(); }
   catch { body = {}; }
 
-  const token = await tokenDeUsuario(session!.workspaceId, body.clientId ?? null);
+  const token = await tokenDeUsuario(session!.workspaceId, donoDe(body.clientId));
   if (!token) {
     return NextResponse.json({ error: "Nenhuma conta Meta conectada com acesso de usuário." }, { status: 409 });
   }

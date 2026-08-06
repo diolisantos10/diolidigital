@@ -14,7 +14,7 @@ import { exchangeCodeForToken, exchangeForLongLivedToken } from "@/lib/integrati
 import { discoverPages } from "@/lib/integrations/meta/discovery";
 import { saveConnection } from "@/lib/integrations/meta/connections";
 import {
-  autorizarAtivos, ativoAutorizado, type EntradaDeAutorizacao,
+  autorizarAtivos, ativoAutorizado, donoDe, type EntradaDeAutorizacao,
 } from "@/lib/integrations/meta/ativos-autorizados";
 
 function safeAttr(s: string) {
@@ -197,7 +197,7 @@ export async function GET(req: NextRequest): Promise<Response> {
     //     quem é dono são a mesma pessoa. A linha da lista é gravada junto,
     //     para o ativo ficar visível e revogável.
     //     ⚠️ LACUNA DECLARADA: o master ainda não tem tela de escolha.
-    const ehDaAgencia = clientId === null;
+    const ehDaAgencia = donoDe(clientId) === null;
     let saved = 0;
     let ignorados = 0;
     const names: string[] = [];
