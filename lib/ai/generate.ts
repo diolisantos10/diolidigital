@@ -154,16 +154,22 @@ async function callGemini(apiKey: string, model: string, m: OpenAIMessages, maxT
   }
 }
 
-const DEFAULT_MODEL: Record<AiProvider, string> = {
-  claude: process.env.CLAUDE_MODEL?.trim() || "claude-haiku-4-5-20251001",
-  openai: process.env.OPENAI_MODEL?.trim() || "gpt-4o-mini",
-  gemini: "gemini-1.5-flash",
+// FUNÇÃO, não constante de módulo: como constante, a env era lida UMA vez no
+// import e trocar `GEMINI_MODEL` no Railway não surtia efeito até o processo
+// reiniciar — e nada na tela dizia isso.
+function modeloPadrao(p: AiProvider): string {
+  if (p === "claude") return process.env.CLAUDE_MODEL?.trim() || "claude-haiku-4-5-20251001";
+  if (p === "openai") return process.env.OPENAI_MODEL?.trim() || "gpt-4o-mini";
+  // ⚠️ `gemini-1.5-*` FOI APOSENTADO pela Google — a API responde 404 para esses
+  // nomes. O default tem que ser um modelo vivo, senão a faixa gratuita nasce
+  // morta e o erro aparece como "IA indisponível" sem dizer o porquê.
+  if (p === "gemini") return process.env.GEMINI_MODEL?.trim() || "gemini-2.5-flash";
   // Flash is the cheap tier and the sane default; deepseek-v4-pro is the same
   // API with a bigger bill, so it is opt-in through the model field in the UI.
-  deepseek: process.env.DEEPSEEK_MODEL?.trim() || "deepseek-v4-flash",
+  if (p === "deepseek") return process.env.DEEPSEEK_MODEL?.trim() || "deepseek-v4-flash";
   // Sonar é o modelo com busca na web — a razão de existir da Perplexity aqui.
-  perplexity: process.env.PERPLEXITY_MODEL?.trim() || "sonar",
-};
+  return process.env.PERPLEXITY_MODEL?.trim() || "sonar";
+}
 
 // Is ANY provider connected (UI key or env)? Used to decide whether the central
 // brain should attempt AI reasoning at all.
@@ -233,10 +239,22 @@ export async function generate(options: {
   maxTokens?: number;
   workspaceId?: string;
   preferredProvider?: AiProvider;
+  /**
+   * SEM RESERVA: usa exclusivamente `preferredProvider`. Se ele não tiver chave
+   * ou falhar, o resultado é a falha dele — nenhum outro provedor entra.
+   *
+   * Existe porque a reserva, que é uma virtude em produção, é uma MENTIRA na
+   * medição: comparar "o caminho gratuito" enquanto o Claude atende por baixo
+   * mede o Claude. Também é o modo de provar a metade que ninguém testa — o
+   * provedor indisponível PARA, não improvisa.
+   */
+  apenasOPreferido?: boolean;
 }): Promise<GenerateResult> {
   const maxTokens = options.maxTokens ?? 2048;
   const order = options.preferredProvider
-    ? [options.preferredProvider, ...preferenceOrder().filter((p) => p !== options.preferredProvider)]
+    ? (options.apenasOPreferido
+        ? [options.preferredProvider]
+        : [options.preferredProvider, ...preferenceOrder().filter((p) => p !== options.preferredProvider)])
     : preferenceOrder();
   const messages: OpenAIMessages = { system: options.system, user: options.user };
 
@@ -247,7 +265,7 @@ export async function generate(options: {
     const resolved = await resolveProviderKey(provider, options.workspaceId);
     if (!resolved) continue;                       // sem chave não é falha, é ausência
 
-    const model = resolved.model ?? DEFAULT_MODEL[provider];
+    const model = resolved.model ?? modeloPadrao(provider);
     const attempts = tried.length === 0 ? 3 : 1;
     const result = await callProvider(provider, resolved.apiKey, model, messages, maxTokens, attempts);
 
@@ -268,5 +286,8 @@ export async function generate(options: {
     return { ok: false, error: `IA indisponível: ${firstFailure}${tried.length > 1 ? ` (reservas também falharam: ${tried.length - 1})` : ""}` };
   }
 
+  if (options.apenasOPreferido && options.preferredProvider) {
+    return { ok: false, error: `Provedor "${options.preferredProvider}" não está configurado. Conecte a chave em Integrações.` };
+  }
   return { ok: false, error: "Nenhuma IA conectada. Conecte uma chave em Integrações." };
 }
