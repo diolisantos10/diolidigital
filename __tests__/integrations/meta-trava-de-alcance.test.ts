@@ -119,8 +119,22 @@ describe("saveConnection — a Página de terceiro NÃO vira conexão do cliente
     expect(ativoAutorizado).not.toHaveBeenCalled();
   });
 
-  it("B. conta da PRÓPRIA agência (clientId nulo) segue pelo fluxo master", async () => {
+  // ⚠️ MUDOU EM 06/08/2026 (noite). Este teste afirmava que a conta da própria
+  // agência "segue pelo fluxo master" — isto é, passava sem lista. Era a
+  // exceção que a perícia em produção provou ser o VETOR do dano: as 19
+  // conexões de terceiros entraram por ela, com dono nulo. A agência agora é um
+  // dono como qualquer outro. As duas metades estão em
+  // `meta-escolha-da-agencia.test.ts`.
+  it("A. conta da PRÓPRIA agência (clientId nulo) TAMBÉM exige marcação", async () => {
     ativoAutorizado.mockResolvedValue(false);
+    await expect(saveConnection(entrada({ clientId: null }))).rejects.toBeInstanceOf(AtivoNaoAutorizadoError);
+    expect(upsert).not.toHaveBeenCalled();
+    // E a pergunta foi feita com o dono canônico: `null`, a agência.
+    expect(ativoAutorizado).toHaveBeenCalledWith(W, null, "page", "9002");
+  });
+
+  it("B. marcada, a conta da agência grava sem atrito", async () => {
+    ativoAutorizado.mockResolvedValue(true);
     await saveConnection(entrada({ clientId: null }));
     expect(upsert).toHaveBeenCalledTimes(1);
   });
@@ -150,22 +164,22 @@ describe("saveConnection — `\"\"` e `null` são o MESMO dono: a agência", () 
     accessToken: "token-de-pagina", ...over,
   });
 
-  it("B. clientId `\"\"` (o que /api/meta/token gravava) segue pelo fluxo master, sem lançar", async () => {
+  it("A. clientId `\"\"` (o que /api/meta/token gravava) consulta a lista da AGÊNCIA, e sem marcação é barrado", async () => {
     ativoAutorizado.mockResolvedValue(false);
-    await expect(saveConnection(entrada({ clientId: "" }))).resolves.toBeDefined();
-    expect(upsert).toHaveBeenCalledTimes(1);
-    // Nem consultou a lista: não é ativo de cliente.
-    expect(ativoAutorizado).not.toHaveBeenCalled();
+    await expect(saveConnection(entrada({ clientId: "" }))).rejects.toBeInstanceOf(AtivoNaoAutorizadoError);
+    expect(upsert).not.toHaveBeenCalled();
+    // O ponto da grafia canônica: perguntou por `null`, não por `""`.
+    expect(ativoAutorizado).toHaveBeenCalledWith(W, null, "page", "111685217945334");
   });
 
-  it("B. clientId só com espaços também é a agência — grafia não muda o dono", async () => {
+  it("A. clientId só com espaços também é a agência — grafia não muda o dono", async () => {
     ativoAutorizado.mockResolvedValue(false);
-    await expect(saveConnection(entrada({ clientId: "   " }))).resolves.toBeDefined();
-    expect(upsert).toHaveBeenCalledTimes(1);
+    await expect(saveConnection(entrada({ clientId: "   " }))).rejects.toBeInstanceOf(AtivoNaoAutorizadoError);
+    expect(ativoAutorizado).toHaveBeenCalledWith(W, null, "page", "111685217945334");
   });
 
   it("`\"\"` NUNCA volta ao banco: o dono é gravado como null", async () => {
-    ativoAutorizado.mockResolvedValue(false);
+    ativoAutorizado.mockResolvedValue(true);
     await saveConnection(entrada({ clientId: "" }));
     expect(upsert.mock.calls[0][0].create.clientId).toBeNull();
   });

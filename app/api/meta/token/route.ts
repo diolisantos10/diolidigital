@@ -16,6 +16,15 @@
 //      um token de outro app qualquer é recusado na porta.
 //   2. O token precisa estar válido (is_valid) e pertencer a um usuário.
 //   3. Só o master, autenticado, pode colar. E o token nunca volta na resposta.
+//
+// ── A QUARTA FECHADURA, DE 06/08/2026: COLAR NÃO É AUTORIZAR ────────────────
+// As três fechaduras acima provam de ONDE vem o token. Nenhuma delas responde
+// à pergunta que produziu o incidente: **o que a agência passa a administrar?**
+// Até hoje a resposta era "tudo que o token alcança" — e foi assim que 19
+// Páginas de terceiros entraram no banco em 03/08. Agora colar guarda a
+// CREDENCIAL e mais nada: os ativos só viram conexão depois que o operador
+// marca em `/api/meta/ativos`. É a mesma regra do portal do cliente, no mesmo
+// mecanismo (`lib/integrations/meta/escolha-de-ativos.ts`).
 
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth/api-guard";
@@ -23,6 +32,7 @@ import { resolveMetaAppCredentials, GRAPH_BASE, DEFAULT_SCOPES } from "@/lib/int
 import { exchangeForLongLivedToken } from "@/lib/integrations/meta/oauth";
 import { discoverPages } from "@/lib/integrations/meta/discovery";
 import { saveConnection } from "@/lib/integrations/meta/connections";
+import { gravarSomenteAutorizados, fraseFaltaEscolher } from "@/lib/integrations/meta/escolha-de-ativos";
 
 export const dynamic = "force-dynamic";
 
@@ -105,39 +115,40 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     meta: { tipo: "user_token", origem: "explorer" },
   });
 
-  // ── Páginas e Instagram, igual ao callback ────────────────────────────────
-  // TETO DE GRAVAÇÕES POR REQUISIÇÃO. Sem ele, uma conta com 30 Páginas virava
-  // 60 `saveConnection` sequenciais (cada uma cifrando um token) dentro de UM
-  // request HTTP, logo depois da rajada de GETs da descoberta. Vinte Páginas já
-  // é mais do que qualquer cliente desta agência tem; o que passar disso é
-  // dito na resposta em vez de ser gravado em silêncio.
+  // ── PÁGINAS E INSTAGRAM: O LAÇO QUE PRODUZIU O DANO DE 03/08 ──────────────
+  //
+  // Este laço gravava TODA Página que o token alcançava. Foi ele, às 14:05 de
+  // 03/08/2026, que pôs no banco as 19 conexões de terceiros — Sushi Cazza,
+  // Dilee, Kero Shop, Acesso Beleza, santioh_, dilix.br, queise, Santioh
+  // Europe, Spa da Mente, City Jobs SP. Nenhum é cliente desta agência. O CEO
+  // colou um token; a casa entendeu "grave tudo que ele alcança".
+  //
+  // Agora ele grava **só o que o operador já marcou** em `/api/meta/ativos`.
+  // O que não está marcado é CONTADO e devolvido como "falta escolher" — nunca
+  // gravado. Na primeira colagem a lista está vazia, então o número gravado é
+  // ZERO, e a tela diz isso em vez de "conectado ✓". Fail-closed.
+  //
+  // O TETO DE 20 continua, por outro motivo: sem ele, uma conta com 30 Páginas
+  // virava 60 `saveConnection` sequenciais dentro de UM request HTTP, logo
+  // depois da rajada de GETs da descoberta — ritmo de máquina, que é o que
+  // restringiu a conta de anúncios da agência em 03/08.
   const MAXIMO_DE_PAGINAS_GRAVADAS = 20;
-  let paginas = 0;
-  const nomes: string[] = [];
+  let gravadas = 0;
+  let faltamEscolher = 0;
+  let nomes: string[] = [];
   let sobraram = 0;
+  let alcancadas = 0;
   try {
     const descobertas = await discoverPages(token);
+    alcancadas = descobertas.length;
     sobraram = Math.max(0, descobertas.length - MAXIMO_DE_PAGINAS_GRAVADAS);
-    for (const page of descobertas.slice(0, MAXIMO_DE_PAGINAS_GRAVADAS)) {
-      await saveConnection({
-        workspaceId: session!.workspaceId, clientId,
-        platform: "facebook", name: page.name, externalId: page.id,
-        accessToken: page.accessToken, tokenExpiresAt: null,
-        scopes: escopos, meta: { pageId: page.id },
-      });
-      paginas++; nomes.push(`FB: ${page.name}`);
-      if (page.instagram) {
-        await saveConnection({
-          workspaceId: session!.workspaceId, clientId,
-          platform: "instagram",
-          name: page.instagram.username ? `@${page.instagram.username}` : `IG ${page.instagram.id}`,
-          externalId: page.instagram.id,
-          accessToken: page.accessToken, tokenExpiresAt: null,
-          scopes: escopos, meta: { pageId: page.id, igUserId: page.instagram.id },
-        });
-        paginas++; nomes.push(`IG: ${page.instagram.username ?? page.instagram.id}`);
-      }
-    }
+    const r = await gravarSomenteAutorizados({
+      workspaceId: session!.workspaceId,
+      clientId,
+      paginas: descobertas.slice(0, MAXIMO_DE_PAGINAS_GRAVADAS),
+      scopes: escopos,
+    });
+    gravadas = r.gravadas; faltamEscolher = r.faltamEscolher; nomes = r.nomes;
   } catch { /* sem pages_show_list ainda dá para rodar anúncio — não derruba */ }
 
   const avisos: string[] = [];
@@ -145,14 +156,20 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     avisos.push(`O token veio sem: ${faltando.join(", ")}. Gere de novo marcando essas permissões para liberar tudo.`);
   }
   if (sobraram > 0) {
-    avisos.push(`Conectei as primeiras ${MAXIMO_DE_PAGINAS_GRAVADAS} Páginas; outras ${sobraram} ficaram de fora nesta rodada (conectamos por partes para não operar em ritmo de máquina).`);
+    avisos.push(`O acesso alcança ${alcancadas} Páginas; listei as primeiras ${MAXIMO_DE_PAGINAS_GRAVADAS} nesta rodada (trabalhamos por partes para não operar em ritmo de máquina).`);
   }
 
   return NextResponse.json({
     ok: true,
-    contas: paginas,
+    // `precisaEscolher` é o desfecho honesto: o acesso está guardado e NADA de
+    // ativo foi gravado. A tela usa isto para dizer "falta escolher" — a mentira
+    // "conectado ✓" já foi corrigida no fluxo do cliente e não volta por aqui.
+    precisaEscolher: faltamEscolher > 0,
+    contas: gravadas,
+    faltamEscolher,
     nomes,
     validoAte: expiraEm,
+    ...(faltamEscolher > 0 ? { escolher: fraseFaltaEscolher(faltamEscolher, "agencia") } : {}),
     ...(avisos.length > 0 ? { aviso: avisos.join(" ") } : {}),
   });
 }

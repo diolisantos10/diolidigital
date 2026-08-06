@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { getSession } from "@/lib/auth/session";
 import { saveConnection, deleteConnection } from "@/lib/integrations/meta/connections";
+import { autorizarAtivos } from "@/lib/integrations/meta/ativos-autorizados";
 
 export async function GET(): Promise<NextResponse> {
   const session = await getSession();
@@ -55,10 +56,24 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: "phoneNumberId e token são obrigatórios" }, { status: 400 });
   }
 
+  const nome = body.displayName || `WhatsApp ${phoneNumberId}`;
+
+  // ── A ESCOLHA JÁ ACONTECEU: ELE DIGITOU O NÚMERO ──────────────────────────
+  // Desde 06/08/2026 (noite) `saveConnection` exige que TODO ativo — inclusive
+  // os da própria agência — esteja na lista de autorizados. Aqui não há
+  // varredura: o master digitou este `phoneNumberId` à mão, um por vez. Isso é
+  // uma escolha explícita, e é a metade "não atrapalhar o autorizado" da trava.
+  // O registro na lista é o que mantém o número visível e revogável na tela.
+  await autorizarAtivos(
+    session.workspaceId, null,
+    [{ tipo: "whatsapp", externalId: phoneNumberId, nome }],
+    `master:${session.userId}`,
+  );
+
   const view = await saveConnection({
     workspaceId: session.workspaceId,
     platform: "whatsapp",
-    name: body.displayName || `WhatsApp ${phoneNumberId}`,
+    name: nome,
     externalId: phoneNumberId, // the id we POST /{id}/messages to
     accessToken: token,
     scopes: ["whatsapp_business_messaging", "whatsapp_business_management"],

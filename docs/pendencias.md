@@ -5,6 +5,53 @@
 
 ---
 
+## ✅ 06/08/2026 (noite) — A PORTA DA AGÊNCIA FECHOU. O vetor das 19 está morto.
+
+A perícia da tarde disse que o fluxo do CLIENTE estava fechado e o da AGÊNCIA
+não — e que foi o da agência (token colado, 03/08 às 14:05) que pôs no banco as
+19 conexões de terceiros. **Essa porta está fechada agora.**
+
+- **`saveConnection` não tem mais exceção para a agência.** `clientId` nulo era
+  passe-livre; hoje a agência é um dono como qualquer outro, e ativo sem
+  marcação **não vira conexão** — lança, não grava, não cifra o token.
+- **Tela de escolha do master construída** (`/api/meta/ativos` +
+  seção "3. O que a agência administra" em `MetaConnectManager.tsx`). Colou o
+  token → lista o que o token alcança → o operador marca → só o marcado é
+  gravado. Desmarcar apaga a lista **e** a conexão.
+- **Um mecanismo, não dois.** O alcance/escolha/gravação saíram das rotas e
+  viraram `lib/integrations/meta/escolha-de-ativos.ts`, usado pelo portal do
+  cliente, pela tela da agência, pelo callback do OAuth e pelo token colado.
+  Copiar teria criado o segundo mecanismo que diverge e reabre o incidente.
+- **O ramo `fluxo_master` do callback foi apagado.** Ele auto-autorizava tudo
+  que o token alcançava — "alcance = autorização" escrito em outro lugar do
+  código.
+- **A tela parou de mentir.** Colar um token devolve `precisaEscolher` e a
+  mensagem é âmbar ("falta escolher"), não verde ("conectado ✓").
+- **A metade que não pode atrapalhar:** o token de USUÁRIO continua passando
+  (é a credencial, não um ativo) e o número de WhatsApp digitado à mão continua
+  funcionando — a rota o registra como escolha explícita antes de gravar.
+- Verde: `npx tsc --noEmit` limpo, **2017 testes**, 129 arquivos.
+  Provas novas em `__tests__/integrations/meta-escolha-da-agencia.test.ts`
+  (lista vazia ⇒ 0 gravadas e 6 "falta escolher"; marcar uma não abre as outras;
+  banco fora do ar ⇒ nada gravado).
+- Conferido nos 3 tamanhos (375 / 768 / 1440) com o painel renderizado de
+  verdade, nos dois estados. **Dívida declarada:** a Meta foi stubada na camada
+  de rede para a captura — a tela é real, os dados são fixture.
+
+### 🔴 O QUE CONTINUA DEPENDENDO DO CEO
+
+1. **Apagar ou não as 19 linhas de terceiros.** Continua sem decisão, e
+   continua sendo dele: parte desses negócios (Santioh, Dilix, Queise, Dilee) é
+   do próprio CEO, e apagar destrói o token cifrado. **A diferença é que agora a
+   limpeza não é desfeita pelo próximo token colado.**
+2. **Marcar o que a agência administra.** A lista nasce vazia: até o operador
+   abrir Integrações e marcar, nenhum ativo novo é gravado. As conexões que já
+   existem no banco continuam de pé (nada foi apagado) — mas não são renovadas
+   por uma colagem nova enquanto não forem marcadas.
+3. **Reautorização da Foocci** — inalterado, ver a seção da tarde.
+
+---
+
 ## ✅ 06/08/2026 (tarde) — Onda 0 do P0, o portão do PM, o microfone e a coleta de produto
 
 Quatro frentes fechadas. O que mudou de verdade, sem prosa:

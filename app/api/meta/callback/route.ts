@@ -13,9 +13,10 @@ import { resolveMetaAppCredentials, DEFAULT_SCOPES } from "@/lib/integrations/me
 import { exchangeCodeForToken, exchangeForLongLivedToken } from "@/lib/integrations/meta/oauth";
 import { discoverPages } from "@/lib/integrations/meta/discovery";
 import { saveConnection } from "@/lib/integrations/meta/connections";
+import { donoDe } from "@/lib/integrations/meta/ativos-autorizados";
 import {
-  autorizarAtivos, ativoAutorizado, donoDe, type EntradaDeAutorizacao,
-} from "@/lib/integrations/meta/ativos-autorizados";
+  gravarSomenteAutorizados, fraseFaltaEscolher,
+} from "@/lib/integrations/meta/escolha-de-ativos";
 
 function safeAttr(s: string) {
   return s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/'/g, "&#39;").replace(/</g, "&lt;");
@@ -193,73 +194,24 @@ export async function GET(req: NextRequest): Promise<Response> {
     //     lista está vazia — de propósito. O popup devolve
     //     `meta_auth_escolher`, e a tela dele pede quais contas liberar. Zero
     //     conexão gravada até ele marcar. Fail-closed.
-    //   • AGÊNCIA (`clientId` nulo): fluxo master inalterado — quem autoriza e
-    //     quem é dono são a mesma pessoa. A linha da lista é gravada junto,
-    //     para o ativo ficar visível e revogável.
-    //     ⚠️ LACUNA DECLARADA: o master ainda não tem tela de escolha.
+    //   • AGÊNCIA (`clientId` nulo): **desde 06/08/2026 (noite), a MESMA regra.**
+    //     Havia aqui um ramo `fluxo_master` que chamava `autorizarAtivos` para
+    //     tudo que o token alcançava — "alcance = autorização" escrito em outro
+    //     lugar do código, a mesma frase que produziu o incidente. A perícia em
+    //     produção mostrou que a porta da agência era o vetor real (19 Páginas
+    //     de terceiros gravadas em 03/08). O ramo não existe mais: o operador
+    //     escolhe em `/api/meta/ativos`, exatamente como o cliente escolhe no
+    //     portal dele.
     const ehDaAgencia = donoDe(clientId) === null;
-    let saved = 0;
-    let ignorados = 0;
-    const names: string[] = [];
-
-    for (const page of pages) {
-      const ativos: EntradaDeAutorizacao[] = [{ tipo: "page", externalId: page.id, nome: page.name }];
-      if (page.instagram) {
-        ativos.push({
-          tipo: "instagram",
-          externalId: page.instagram.id,
-          nome: page.instagram.username ? `@${page.instagram.username}` : `IG ${page.instagram.id}`,
-        });
-      }
-      if (ehDaAgencia) {
-        await autorizarAtivos(workspaceId, null, ativos, "fluxo_master");
-      }
-
-      if (await ativoAutorizado(workspaceId, clientId, "page", page.id)) {
-        await saveConnection({
-          workspaceId,
-          clientId,
-          platform: "facebook",
-          name: page.name,
-          externalId: page.id,
-          accessToken: page.accessToken,
-          tokenExpiresAt: null,
-          scopes: DEFAULT_SCOPES,
-          meta: { pageId: page.id },
-        });
-        saved++;
-        names.push(`FB: ${page.name}`);
-      } else {
-        ignorados++;
-      }
-
-      if (page.instagram) {
-        if (await ativoAutorizado(workspaceId, clientId, "instagram", page.instagram.id)) {
-          await saveConnection({
-            workspaceId,
-            clientId,
-            platform: "instagram",
-            name: page.instagram.username ? `@${page.instagram.username}` : `IG ${page.instagram.id}`,
-            externalId: page.instagram.id,
-            accessToken: page.accessToken, // IG Graph publishing uses the Page token
-            tokenExpiresAt: null,
-            scopes: DEFAULT_SCOPES,
-            meta: { pageId: page.id, igUserId: page.instagram.id },
-          });
-          saved++;
-          names.push(`IG: ${page.instagram.username ?? page.instagram.id}`);
-        } else {
-          ignorados++;
-        }
-      }
-    }
+    const { gravadas: saved, faltamEscolher: ignorados, nomes: names } =
+      await gravarSomenteAutorizados({ workspaceId, clientId, paginas: pages, scopes: DEFAULT_SCOPES });
 
     if (saved === 0 && ignorados > 0) {
       // NÃO é erro: é a trava. O acesso foi concedido e o token está guardado;
       // falta o dono dizer QUAIS contas a agência pode usar.
       return popupHtml({
         type: "meta_auth_escolher",
-        summary: `Acesso concedido. Agora escolha quais das ${ignorados} conta(s) a Dioli pode acessar — nenhuma foi liberada ainda.`,
+        summary: fraseFaltaEscolher(ignorados, ehDaAgencia ? "agencia" : "cliente"),
       });
     }
 

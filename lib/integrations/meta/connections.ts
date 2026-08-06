@@ -7,12 +7,13 @@ import { encryptSecret, decryptSecret, keyHint } from "@/lib/security/crypto";
 import type { MetaConnectionView, MetaPlatform } from "./types";
 import { TIPO_POR_PLATAFORMA, ativoAutorizado, normalizarId, donoDe } from "./ativos-autorizados";
 
-/** A conexão foi recusada porque o ativo não está na lista do cliente. */
+/** A conexão foi recusada porque o ativo não está na lista do DONO — o cliente,
+ *  na tela dele; a agência, na tela dela. Um só significado, dois donos. */
 export class AtivoNaoAutorizadoError extends Error {
   constructor(public platform: string, public externalId: string) {
     super(
-      `A agência não tem autorização do cliente para "${externalId}" (${platform}). ` +
-        `Só entra em MetaConnection o ativo que o cliente marcou na tela dele.`,
+      `Ninguém autorizou "${externalId}" (${platform}). ` +
+        `Só entra em MetaConnection o ativo que o dono marcou — cliente no portal, agência em Integrações.`,
     );
     this.name = "AtivoNaoAutorizadoError";
   }
@@ -68,15 +69,27 @@ function toView(row: {
  * lista que o próprio cliente marcou (`MetaAtivoAutorizado`). Sem linha na
  * lista, `saveConnection` LANÇA — não grava e não devolve silêncio.
  *
- * Duas exceções declaradas, e só duas:
+ * ─── E A AGÊNCIA? A EXCEÇÃO CAIU EM 06/08/2026 (à noite) ───────────────────
+ *
+ * Até esta linha ser escrita, `clientId === null` — a conta da própria agência
+ * — era exceção declarada: passava sem consultar lista nenhuma. A perícia
+ * contra o banco de PRODUÇÃO mostrou que essa exceção não era teórica, era o
+ * VETOR: as 19 conexões de terceiros (Sushi Cazza, Dilee, Kero Shop, Acesso
+ * Beleza, santioh_, dilix.br, queise, Santioh Europe, Spa da Mente, City Jobs
+ * SP) entraram em 03/08 às 14:05 por `/api/meta/token`, que grava com dono
+ * nulo. Fechar só o lado do cliente era fechar a porta da frente e deixar a
+ * dos fundos escancarada — e limpar o banco antes disso é limpeza que o
+ * próximo token colado desfaz.
+ *
+ * "Quem autoriza e quem é dono são a mesma pessoa" continua verdade — e é
+ * exatamente por isso que a pessoa precisa MARCAR. O operador escolhe em
+ * `/api/meta/ativos`; o que ele não marcou não vira conexão.
+ *
+ * Sobra UMA exceção, e só uma:
  *   • `platform: "user"` — o token de usuário é a CREDENCIAL que a pessoa
  *     concedeu, não um ativo escolhido. Sem ele não há como nem mostrar a lista
  *     de contas para ela marcar. Ele não dá acesso a nada por si: todo caminho
  *     de leitura filtra pela lista antes de devolver qualquer coisa.
- *   • `clientId === null` — a conta da PRÓPRIA agência, conectada pelo master.
- *     Aqui quem autoriza e quem é dono são a mesma pessoa. A linha da lista é
- *     gravada junto, para o ativo continuar visível e revogável.
- *     ⚠️ DECLARADO COMO LACUNA: o fluxo master ainda não tem tela de escolha.
  */
 async function conferirAutorizacao(input: SaveConnectionInput): Promise<void> {
   const tipo = TIPO_POR_PLATAFORMA[input.platform] ?? null;
@@ -84,8 +97,9 @@ async function conferirAutorizacao(input: SaveConnectionInput): Promise<void> {
 
   // `donoDe` e não `?? null`: "sem cliente" chega aqui em duas grafias — `null`
   // do callback e `""` de `/api/meta/token`. Ver a perícia em `donoDe`.
+  // `null` (a agência) NÃO é mais atalho: ele é um dono como qualquer outro, e
+  // `idsAutorizados`/`ativoAutorizado` já o tratam pela chave `agencia`.
   const clientId = donoDe(input.clientId);
-  if (clientId === null) return; // conta da própria agência (ver acima).
 
   const ok = await ativoAutorizado(input.workspaceId, clientId, tipo, input.externalId);
   if (!ok) throw new AtivoNaoAutorizadoError(input.platform, normalizarId(tipo, input.externalId));

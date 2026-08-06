@@ -36,12 +36,29 @@ const PLATFORM_META: Record<Connection["platform"], { emoji: string; label: stri
 
 const ACCENT = "#1877F2"; // Meta blue
 
+/** Um ativo que o acesso da agência ALCANÇA — e que só vira conexão se marcado. */
+interface AtivoAlcancado {
+  tipo: "ad_account" | "page" | "instagram" | "whatsapp";
+  externalId: string;
+  nome: string;
+  autorizado: boolean;
+}
+
+const TIPO_LABEL: Record<string, string> = {
+  page: "Página do Facebook",
+  instagram: "Instagram",
+  ad_account: "Conta de anúncios",
+  whatsapp: "WhatsApp",
+};
+
 export default function MetaConnectManager() {
   const [config, setConfig] = useState<ConfigStatus | null>(null);
   const [connections, setConnections] = useState<Connection[]>([]);
   const [loading, setLoading] = useState(true);
+  const [versao, setVersao] = useState(0);
 
   const load = useCallback(async () => {
+    setVersao((v) => v + 1);
     try {
       const [cfgRes, connRes] = await Promise.all([
         fetch("/api/meta/config"),
@@ -81,6 +98,7 @@ export default function MetaConnectManager() {
           loading={loading}
           onChanged={load}
         />
+        <AtivosDaAgencia versao={versao} onChanged={load} />
       </div>
     </div>
   );
@@ -236,6 +254,11 @@ function AppCredentialsRow({
  * do app — e a operação parou. Colar um token do Graph API Explorer resolve em
  * dois minutos: a rota /api/meta/token valida que o token é DESTE app, troca
  * por um de longa duração e descobre as Páginas/Instagram sozinha.
+ *
+ * ⚠️ 06/08/2026: DESCOBRIR NÃO É GRAVAR. Este mesmo campo, em 03/08 às 14:05,
+ * pôs no banco 19 Páginas de negócios que não são clientes da agência — porque
+ * a casa entendia "grave tudo que o token alcança". Agora colar guarda só a
+ * credencial, e a mensagem de retorno é "falta escolher", não "conectado ✓".
  */
 function TokenPasteRow({ onChanged }: { onChanged: () => void }) {
   const [open, setOpen] = useState(false);
@@ -252,9 +275,18 @@ function TokenPasteRow({ onChanged }: { onChanged: () => void }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: token.trim() }),
       });
-      const data = (await res.json()) as { ok?: boolean; contas?: number; aviso?: string; error?: string };
+      const data = (await res.json()) as {
+        ok?: boolean; contas?: number; precisaEscolher?: boolean;
+        escolher?: string; aviso?: string; error?: string;
+      };
       if (res.ok && data.ok) {
-        setMsg({ ok: true, text: `${data.contas ?? 0} conta(s) conectada(s).${data.aviso ? ` ${data.aviso}` : ""}` });
+        // "Falta escolher" NÃO é sucesso: o acesso está guardado e nenhum ativo
+        // foi gravado. Pintar isto de verde seria a mesma mentira que já foi
+        // corrigida no portal do cliente.
+        const texto = data.precisaEscolher
+          ? `${data.escolher ?? "Escolha abaixo o que a agência administra."}${data.aviso ? ` ${data.aviso}` : ""}`
+          : `${data.contas ?? 0} conta(s) atualizada(s).${data.aviso ? ` ${data.aviso}` : ""}`;
+        setMsg({ ok: !data.precisaEscolher, text: texto });
         setToken("");
         setOpen(false);
         onChanged();
@@ -313,6 +345,161 @@ function TokenPasteRow({ onChanged }: { onChanged: () => void }) {
   );
 }
 
+/**
+ * ─── O QUE A AGÊNCIA ADMINISTRA — a escolha do operador ─────────────────────
+ *
+ * A tela que faltava. O portal do cliente já perguntava "o que a Dioli pode
+ * acessar?"; a agência sobre si mesma, não — e foi por aí que entraram, em
+ * 03/08/2026, 19 Páginas de negócios que não são clientes desta casa.
+ *
+ * Regra escrita na tela, não só no código: **o que não estiver marcado não é
+ * gravado.** Enquanto nada estiver marcado, o aviso é âmbar e diz "falta
+ * escolher" — nunca "conectado ✓".
+ */
+function AtivosDaAgencia({ versao, onChanged }: { versao: number; onChanged: () => void }) {
+  const [ativos, setAtivos] = useState<AtivoAlcancado[]>([]);
+  const [semConexao, setSemConexao] = useState(true);
+  const [marcados, setMarcados] = useState<Set<string>>(new Set());
+  const [lacunas, setLacunas] = useState<string[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  const [salvando, setSalvando] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const carregar = useCallback(async () => {
+    try {
+      const res = await fetch("/api/meta/ativos");
+      if (!res.ok) { setSemConexao(true); return; }
+      const json = (await res.json()) as { semConexao?: boolean; ativos?: AtivoAlcancado[]; lacunas?: string[] };
+      const lista = json.ativos ?? [];
+      setAtivos(lista);
+      setSemConexao(Boolean(json.semConexao));
+      setLacunas(json.lacunas ?? []);
+      setMarcados(new Set(lista.filter((a) => a.autorizado).map((a) => `${a.tipo}:${a.externalId}`)));
+    } catch {
+      setSemConexao(true);
+    } finally {
+      setCarregando(false);
+    }
+  }, []);
+
+  useEffect(() => { void carregar(); }, [carregar, versao]);
+
+  async function salvar() {
+    setSalvando(true);
+    setMsg(null);
+    try {
+      const escolhidos = ativos.filter((a) => marcados.has(`${a.tipo}:${a.externalId}`));
+      await fetch("/api/meta/ativos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ativos: escolhidos.map((a) => ({ tipo: a.tipo, externalId: a.externalId })) }),
+      });
+      // Desmarcar tem que APAGAR a conexão, não só sumir com o visto — token
+      // guardado depois de revogado é exatamente o dano que a trava impede.
+      for (const a of ativos) {
+        if (a.autorizado && !marcados.has(`${a.tipo}:${a.externalId}`)) {
+          await fetch(`/api/meta/ativos?tipo=${a.tipo}&externalId=${encodeURIComponent(a.externalId)}`, { method: "DELETE" });
+        }
+      }
+      setMsg({ ok: true, text: "Pronto. A agência administra só o que está marcado." });
+      await carregar();
+      onChanged();
+    } catch {
+      setMsg({ ok: false, text: "Falha de rede ao salvar a escolha." });
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  if (semConexao && !carregando) return null;
+
+  return (
+    <div className="border border-[var(--border)] rounded-[8px] p-4 bg-[#FAFAFB]">
+      <div className="text-[12px] font-semibold text-[var(--text-primary)]">
+        3. O que a agência administra
+      </div>
+      <p className="text-[11px] text-[var(--text-muted)] mt-0.5 leading-snug">
+        O acesso da Meta alcança tudo o que o operador administra — inclusive
+        contas de terceiros e pessoais. Marque só o que é da agência ou de
+        cliente contratado. <span className="font-semibold text-[var(--text-secondary)]">O que não estiver marcado não é gravado.</span>
+      </p>
+
+      {carregando ? (
+        <div className="text-[12px] text-[var(--text-muted)] mt-3">Carregando o que o acesso alcança…</div>
+      ) : ativos.length === 0 ? (
+        <p className="text-[11px] text-[var(--text-muted)] mt-3">
+          Nenhum ativo encontrado neste acesso.
+        </p>
+      ) : (
+        <>
+          {marcados.size === 0 && (
+            <div className="mt-3 rounded-[7px] border border-[#FCE7A0] bg-[#FFFBEB] px-3 py-2">
+              <p className="text-[11.5px] font-bold text-[#9B7B2D]">Falta escolher.</p>
+              <p className="text-[11px] text-[#9B7B2D] leading-snug">
+                Enquanto nada estiver marcado, nenhuma conta é gravada — nem por token colado, nem pelo popup.
+              </p>
+            </div>
+          )}
+          <div className="mt-3 space-y-1.5">
+            {ativos.map((a) => {
+              const chave = `${a.tipo}:${a.externalId}`;
+              const on = marcados.has(chave);
+              return (
+                <label
+                  key={chave}
+                  className="flex items-start gap-3 border border-[var(--border)] rounded-[7px] px-3 py-2 bg-white cursor-pointer hover:bg-[var(--bg-elevated)] transition-colors"
+                >
+                  <input
+                    type="checkbox"
+                    checked={on}
+                    onChange={() => {
+                      const proximo = new Set(marcados);
+                      if (on) proximo.delete(chave); else proximo.add(chave);
+                      setMarcados(proximo);
+                    }}
+                    className="mt-0.5 h-4 w-4 shrink-0 accent-[#070A1F]"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[12px] font-medium text-[var(--text-primary)] truncate">{a.nome}</span>
+                    <span className="block text-[10px] text-[var(--text-muted)] font-mono truncate">
+                      {TIPO_LABEL[a.tipo] ?? a.tipo} · {a.externalId}
+                    </span>
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+          <button
+            onClick={() => void salvar()}
+            disabled={salvando}
+            className="mt-3 h-9 w-full sm:w-auto px-4 text-white text-[12px] font-semibold rounded-[7px] transition-opacity hover:opacity-90 disabled:opacity-40"
+            style={{ backgroundColor: ACCENT, touchAction: "manipulation" }}
+            data-testid="salvar-ativos-da-agencia"
+          >
+            {salvando ? "Salvando…" : "Salvar o que a agência administra"}
+          </button>
+        </>
+      )}
+
+      {lacunas.length > 0 && (
+        <ul className="mt-3 space-y-1">
+          {lacunas.map((l, i) => (
+            <li key={i} className="text-[10.5px] text-[var(--text-muted)] leading-snug">• {l}</li>
+          ))}
+        </ul>
+      )}
+
+      {msg && (
+        <div className={`mt-2 text-[11px] px-3 py-1.5 rounded-[6px] ${
+          msg.ok ? "bg-[#F0FDF4] text-[var(--success)]" : "bg-[#FFF5F5] text-[var(--danger)]"
+        }`}>
+          {msg.ok ? "✓ " : "✗ "}{msg.text}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ConnectionsSection({
   config,
   connections,
@@ -345,6 +532,13 @@ function ConnectionsSection({
       const data = ev.data as { type?: string; summary?: string; error?: string };
       if (data?.type === "meta_auth_success") {
         setMsg({ ok: true, text: data.summary ?? "Conta conectada." });
+        setConnecting(false);
+        window.removeEventListener("message", onMessage);
+        onChanged();
+      } else if (data?.type === "meta_auth_escolher") {
+        // Nem sucesso nem falha: o acesso existe e NADA foi gravado. Pintar de
+        // verde aqui é a mentira que já foi corrigida no portal do cliente.
+        setMsg({ ok: false, text: data.summary ?? "Escolha abaixo o que a agência administra." });
         setConnecting(false);
         window.removeEventListener("message", onMessage);
         onChanged();

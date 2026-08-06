@@ -32,25 +32,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { resolvePortalClient } from "@/lib/agency/persistence/portal-access-service";
 import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
-import { loadConnectionToken, saveConnection } from "@/lib/integrations/meta/connections";
-import { discoverPages, type DiscoveredPage } from "@/lib/integrations/meta/discovery";
-import { lerContasQueOAcessoAlcanca } from "@/lib/integrations/meta/ads-leitura";
-import { DEFAULT_SCOPES } from "@/lib/integrations/meta/config";
 import {
-  autorizarAtivos, revogarAtivo, idsAutorizados, normalizarId,
-  TIPOS_DE_ATIVO, type TipoDeAtivo, type EntradaDeAutorizacao,
-} from "@/lib/integrations/meta/ativos-autorizados";
+  alcanceDoAcesso, marcarAutorizados, aplicarEscolha, type PedidoDeEscolha,
+} from "@/lib/integrations/meta/escolha-de-ativos";
+import { revogarAtivo, TIPOS_DE_ATIVO } from "@/lib/integrations/meta/ativos-autorizados";
 
 export const dynamic = "force-dynamic";
 
-interface AtivoAlcancado {
-  tipo: TipoDeAtivo;
-  externalId: string;
-  nome: string;
-  autorizado: boolean;
-  /** Só para page/instagram: a Página dona (o IG publica com o token dela). */
-  pageId?: string;
-}
+// ⚠️ O QUE ERA CÓDIGO AQUI VIROU MÓDULO (06/08/2026, noite). O alcance, a
+// aplicação da escolha e a gravação moravam nesta rota — e quando chegou a hora
+// de dar a MESMA tela à agência, copiar seria criar um segundo mecanismo. Dois
+// mecanismos divergem: conserta-se um, esquece-se o outro, e o incidente volta
+// pela porta que ninguém está olhando. A lógica agora é
+// `lib/integrations/meta/escolha-de-ativos.ts`, compartilhada com
+// `/api/meta/ativos`. Esta rota guarda o que é DELA: quem é o dono.
 
 async function dono(req: NextRequest) {
   const token = tokenDoPortal(req, req.nextUrl.searchParams.get("token")) ?? "";
@@ -71,56 +66,6 @@ async function conexaoDeUsuario(workspaceId: string, clientId: string): Promise<
   return row?.id ?? null;
 }
 
-/** Tudo o que o token alcança, em uma lista só. Páginas e Instagram sempre;
- *  contas de anúncio quando a Meta liberar `ads_read` (sem App Review ela
- *  recusa — e isso vira lacuna declarada, não lista vazia silenciosa). */
-async function alcance(
-  workspaceId: string,
-  connectionId: string,
-): Promise<{ ativos: AtivoAlcancado[]; paginas: DiscoveredPage[]; lacunas: string[] }> {
-  const lacunas: string[] = [];
-  const ativos: AtivoAlcancado[] = [];
-
-  const conn = await loadConnectionToken(workspaceId, connectionId);
-  let paginas: DiscoveredPage[] = [];
-  if (conn) {
-    try {
-      paginas = await discoverPages(conn.token);
-    } catch (e) {
-      lacunas.push(`Não consegui listar suas Páginas agora: ${e instanceof Error ? e.message : "erro na Meta"}`);
-    }
-  }
-
-  for (const p of paginas) {
-    ativos.push({ tipo: "page", externalId: p.id, nome: p.name, autorizado: false, pageId: p.id });
-    if (p.instagram) {
-      ativos.push({
-        tipo: "instagram",
-        externalId: p.instagram.id,
-        nome: p.instagram.username ? `@${p.instagram.username}` : `Instagram ${p.instagram.id}`,
-        autorizado: false,
-        pageId: p.id,
-      });
-    }
-  }
-
-  const contas = await lerContasQueOAcessoAlcanca(workspaceId, connectionId);
-  if (contas.ok && contas.dados) {
-    for (const c of contas.dados) {
-      ativos.push({
-        tipo: "ad_account",
-        externalId: c.id,
-        nome: `${c.nome} · ${c.moeda}${c.ativa ? "" : ` · ${c.statusTexto}`}`,
-        autorizado: false,
-      });
-    }
-  } else if (contas.motivo && contas.motivo !== "sem_dado") {
-    lacunas.push(contas.erro ?? "Não consegui listar suas contas de anúncio agora.");
-  }
-
-  return { ativos, paginas, lacunas };
-}
-
 // ─── GET: o que o acesso alcança e o que já está liberado ───────────────────
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
@@ -132,13 +77,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ semConexao: true, ativos: [], lacunas: [] });
   }
 
-  const { ativos, lacunas } = await alcance(d.workspaceId, connectionId);
-
-  const porTipo = new Map<TipoDeAtivo, Set<string>>();
-  for (const t of TIPOS_DE_ATIVO) porTipo.set(t, await idsAutorizados(d.workspaceId, d.clientId, t));
-  for (const a of ativos) {
-    a.autorizado = porTipo.get(a.tipo)?.has(normalizarId(a.tipo, a.externalId)) ?? false;
-  }
+  const { ativos, lacunas } = await alcanceDoAcesso(d.workspaceId, connectionId);
+  await marcarAutorizados(d.workspaceId, d.clientId, ativos);
 
   return NextResponse.json({
     semConexao: false,
@@ -154,7 +94,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const d = await dono(req);
   if (!d) return NextResponse.json({ error: "Acesso negado" }, { status: 401 });
 
-  let body: { ativos?: Array<{ tipo?: string; externalId?: string }> };
+  let body: { ativos?: PedidoDeEscolha[] };
   try { body = (await req.json()) as typeof body; } catch { body = {}; }
   const pedidos = Array.isArray(body.ativos) ? body.ativos : [];
 
@@ -163,51 +103,15 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: "Conecte sua conta Meta antes de escolher o que liberar." }, { status: 409 });
   }
 
-  // Só se autoriza o que o token DESTE cliente realmente alcança. Um id vindo
-  // do corpo que a conta dele não administra não vira linha na lista: isso
-  // seria a agência escrevendo autorização sobre ativo de terceiro.
-  const { ativos: alcancados, paginas } = await alcance(d.workspaceId, connectionId);
-  const conhecidos = new Map(alcancados.map((a) => [`${a.tipo}:${normalizarId(a.tipo, a.externalId)}`, a]));
+  const r = await aplicarEscolha({
+    workspaceId: d.workspaceId,
+    clientId: d.clientId,
+    connectionId,
+    pedidos,
+    autorizadoPor: `portal:${d.clientId}`,
+  });
 
-  const entradas: EntradaDeAutorizacao[] = [];
-  const recusados: string[] = [];
-  for (const p of pedidos) {
-    const tipo = TIPOS_DE_ATIVO.find((t) => t === p.tipo);
-    const id = tipo ? normalizarId(tipo, String(p.externalId ?? "")) : "";
-    const achado = tipo && id ? conhecidos.get(`${tipo}:${id}`) : undefined;
-    if (!achado) { recusados.push(`${p.tipo ?? "?"}:${p.externalId ?? "?"}`); continue; }
-    entradas.push({ tipo: achado.tipo, externalId: achado.externalId, nome: achado.nome });
-  }
-
-  const gravados = await autorizarAtivos(d.workspaceId, d.clientId, entradas, `portal:${d.clientId}`);
-
-  // Com a autorização gravada, as conexões das Páginas/Instagram escolhidas
-  // passam a poder existir (`saveConnection` confere a lista). O token de
-  // Página vem da mesma descoberta — nenhuma chamada nova à Meta.
-  let conexoes = 0;
-  for (const e of entradas) {
-    if (e.tipo === "page") {
-      const p = paginas.find((x) => x.id === e.externalId);
-      if (!p) continue;
-      await saveConnection({
-        workspaceId: d.workspaceId, clientId: d.clientId, platform: "facebook",
-        name: p.name, externalId: p.id, accessToken: p.accessToken,
-        tokenExpiresAt: null, scopes: DEFAULT_SCOPES, meta: { pageId: p.id },
-      }).then(() => { conexoes++; }).catch(() => { /* a trava recusou: fica sem conexão */ });
-    }
-    if (e.tipo === "instagram") {
-      const p = paginas.find((x) => x.instagram?.id === e.externalId);
-      if (!p || !p.instagram) continue;
-      await saveConnection({
-        workspaceId: d.workspaceId, clientId: d.clientId, platform: "instagram",
-        name: e.nome ?? `IG ${p.instagram.id}`, externalId: p.instagram.id,
-        accessToken: p.accessToken, tokenExpiresAt: null, scopes: DEFAULT_SCOPES,
-        meta: { pageId: p.id, igUserId: p.instagram.id },
-      }).then(() => { conexoes++; }).catch(() => { /* idem */ });
-    }
-  }
-
-  return NextResponse.json({ ok: true, autorizados: gravados, conexoes, recusados });
+  return NextResponse.json({ ok: true, ...r });
 }
 
 // ─── DELETE: revogar ────────────────────────────────────────────────────────
