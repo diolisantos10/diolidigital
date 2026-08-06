@@ -10,8 +10,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { resolveMetaAppCredentials, DEFAULT_SCOPES } from "@/lib/integrations/meta/config";
 import { buildLoginUrl } from "@/lib/integrations/meta/oauth";
+import { urlPublica } from "@/lib/http/endereco-publico";
+import { popupDeFalha } from "@/lib/integrations/meta/popup";
 
-export async function GET(req: NextRequest): Promise<NextResponse> {
+export async function GET(req: NextRequest): Promise<Response> {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (session.role !== "master") {
@@ -30,9 +32,12 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
   // Build the redirect URI from the request host so it works on localhost,
   // Railway previews and production without extra env vars.
-  const proto = req.headers.get("x-forwarded-proto") ?? "https";
-  const host = req.headers.get("host") ?? "localhost:3000";
-  const redirectUri = `${proto}://${host}/api/meta/callback`;
+  // Uma fonte só para o endereço público. `host` cru já devolveu o endereço
+  // interno do contêiner para o navegador do cliente (06/08/2026).
+  const redirectUri = urlPublica(req, "/api/meta/callback");
+  if (!redirectUri) {
+    return popupDeFalha("app_nao_configurado", "meta:sem_endereco_publico");
+  }
 
   const state = crypto.randomUUID(); // CSRF token
 

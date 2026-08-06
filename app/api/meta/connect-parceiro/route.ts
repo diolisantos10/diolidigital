@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { resolvePortalClient } from "@/lib/agency/persistence/portal-access-service";
 import { resolveMetaAppCredentials, DEFAULT_SCOPES } from "@/lib/integrations/meta/config";
 import { buildLoginUrl } from "@/lib/integrations/meta/oauth";
+import { urlPublica } from "@/lib/http/endereco-publico";
 import { popupDeFalha } from "@/lib/integrations/meta/popup";
 
 export async function GET(req: NextRequest): Promise<Response> {
@@ -35,9 +36,12 @@ export async function GET(req: NextRequest): Promise<Response> {
 
   // Mesmo redirect URI do fluxo master: o callback é um só, e distingue o
   // parceiro pelo cookie `_meta_oauth_portal`.
-  const proto = req.headers.get("x-forwarded-proto") ?? "https";
-  const host = req.headers.get("host") ?? "localhost:3000";
-  const redirectUri = `${proto}://${host}/api/meta/callback`;
+  // Uma fonte só para o endereço público. `host` cru já devolveu o endereço
+  // interno do contêiner para o navegador do cliente (06/08/2026).
+  const redirectUri = urlPublica(req, "/api/meta/callback");
+  if (!redirectUri) {
+    return popupDeFalha("app_nao_configurado", "meta:sem_endereco_publico");
+  }
 
   const state = crypto.randomUUID(); // CSRF token
 
