@@ -13,7 +13,12 @@
 // request/response cycle and never logged.
 
 import { NextRequest, NextResponse } from "next/server";
-import { rateLimited } from "@/lib/security/rate-limit";
+// O TETO SAIU DA MEMÓRIA DO PROCESSO E FOI PARA O BANCO (raio-x de 05/08/2026).
+// `rateLimited` zerava em todo deploy e não atravessava réplica — numa casa em
+// que vários agentes publicam por dia, isso devolvia a cota inteira ao atacante
+// de graça, numa rota pública que gasta chave de IA PAGA. `limiteExcedido` conta
+// no volume, é atômico e é fail-closed: contador fora do ar recusa, não libera.
+import { limiteExcedido } from "@/lib/security/limite-no-banco";
 import { chaveDeRotaPublica } from "@/lib/ai/chave-publica";
 
 const CLAUDE_URL  = "https://api.anthropic.com/v1/messages";
@@ -121,8 +126,8 @@ function validateExtracted(raw: unknown): ExtractedFields {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  const _limited = rateLimited(req, "briefing-extract", 30, 60_000);
-  if (_limited) return _limited as NextResponse;
+  const barrado = await limiteExcedido(req, "briefing-extract", 30, 60_000);
+  if (barrado) return barrado as NextResponse;
 
   // A QUARTA porta da mesma família, que o raio-x não listou: esta rota também
   // é pública (só teto de ritmo por IP) e também caía no `findFirst` global.

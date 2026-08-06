@@ -13,7 +13,8 @@ export async function GET(): Promise<NextResponse> {
   if (session.role !== "master")
     return NextResponse.json({ error: "Forbidden — master role required" }, { status: 403 });
 
-  const summary = await getGovernanceSummary();
+  // A listagem também é do inquilino — id global não vira lista global.
+  const summary = await getGovernanceSummary(session.workspaceId);
   return NextResponse.json(summary);
 }
 

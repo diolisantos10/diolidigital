@@ -25,6 +25,17 @@ const db = vi.hoisted(() => ({
   agencyWorkspace: { findMany: vi.fn() },
   dbIntegrationConfig: { findUnique: vi.fn(), findFirst: vi.fn() },
   clientRequestDb: { create: vi.fn(), findFirst: vi.fn() },
+  // O teto de ritmo das rotas públicas MORA NO BANCO desde 06/08/2026
+  // (`lib/security/limite-no-banco.ts`). Sem esta tabela no mock, o contador
+  // "não responde" e a rota recusa com 503 — que é o fail-closed funcionando,
+  // não um defeito. Aqui ele libera, para que o assunto do arquivo (de quem é a
+  // chave que a rota gasta) fique isolado.
+  rateLimitBucket: {
+    updateMany: vi.fn(async () => ({ count: 1 })),
+    create: vi.fn(),
+    findUnique: vi.fn(),
+    deleteMany: vi.fn(async () => ({ count: 0 })),
+  },
 }));
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
 

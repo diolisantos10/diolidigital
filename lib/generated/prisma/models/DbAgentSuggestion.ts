@@ -26,6 +26,7 @@ export type AggregateDbAgentSuggestion = {
 
 export type DbAgentSuggestionMinAggregateOutputType = {
   id: string | null
+  workspaceId: string | null
   agentId: string | null
   title: string | null
   problem: string | null
@@ -40,6 +41,7 @@ export type DbAgentSuggestionMinAggregateOutputType = {
 
 export type DbAgentSuggestionMaxAggregateOutputType = {
   id: string | null
+  workspaceId: string | null
   agentId: string | null
   title: string | null
   problem: string | null
@@ -54,6 +56,7 @@ export type DbAgentSuggestionMaxAggregateOutputType = {
 
 export type DbAgentSuggestionCountAggregateOutputType = {
   id: number
+  workspaceId: number
   agentId: number
   title: number
   problem: number
@@ -70,6 +73,7 @@ export type DbAgentSuggestionCountAggregateOutputType = {
 
 export type DbAgentSuggestionMinAggregateInputType = {
   id?: true
+  workspaceId?: true
   agentId?: true
   title?: true
   problem?: true
@@ -84,6 +88,7 @@ export type DbAgentSuggestionMinAggregateInputType = {
 
 export type DbAgentSuggestionMaxAggregateInputType = {
   id?: true
+  workspaceId?: true
   agentId?: true
   title?: true
   problem?: true
@@ -98,6 +103,7 @@ export type DbAgentSuggestionMaxAggregateInputType = {
 
 export type DbAgentSuggestionCountAggregateInputType = {
   id?: true
+  workspaceId?: true
   agentId?: true
   title?: true
   problem?: true
@@ -185,6 +191,7 @@ export type DbAgentSuggestionGroupByArgs<ExtArgs extends runtime.Types.Extension
 
 export type DbAgentSuggestionGroupByOutputType = {
   id: string
+  workspaceId: string | null
   agentId: string
   title: string
   problem: string
@@ -220,6 +227,7 @@ export type DbAgentSuggestionWhereInput = {
   OR?: Prisma.DbAgentSuggestionWhereInput[]
   NOT?: Prisma.DbAgentSuggestionWhereInput | Prisma.DbAgentSuggestionWhereInput[]
   id?: Prisma.StringFilter<"DbAgentSuggestion"> | string
+  workspaceId?: Prisma.StringNullableFilter<"DbAgentSuggestion"> | string | null
   agentId?: Prisma.StringFilter<"DbAgentSuggestion"> | string
   title?: Prisma.StringFilter<"DbAgentSuggestion"> | string
   problem?: Prisma.StringFilter<"DbAgentSuggestion"> | string
@@ -234,6 +242,7 @@ export type DbAgentSuggestionWhereInput = {
 
 export type DbAgentSuggestionOrderByWithRelationInput = {
   id?: Prisma.SortOrder
+  workspaceId?: Prisma.SortOrderInput | Prisma.SortOrder
   agentId?: Prisma.SortOrder
   title?: Prisma.SortOrder
   problem?: Prisma.SortOrder
@@ -251,6 +260,7 @@ export type DbAgentSuggestionWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.DbAgentSuggestionWhereInput | Prisma.DbAgentSuggestionWhereInput[]
   OR?: Prisma.DbAgentSuggestionWhereInput[]
   NOT?: Prisma.DbAgentSuggestionWhereInput | Prisma.DbAgentSuggestionWhereInput[]
+  workspaceId?: Prisma.StringNullableFilter<"DbAgentSuggestion"> | string | null
   agentId?: Prisma.StringFilter<"DbAgentSuggestion"> | string
   title?: Prisma.StringFilter<"DbAgentSuggestion"> | string
   problem?: Prisma.StringFilter<"DbAgentSuggestion"> | string
@@ -265,6 +275,7 @@ export type DbAgentSuggestionWhereUniqueInput = Prisma.AtLeast<{
 
 export type DbAgentSuggestionOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
+  workspaceId?: Prisma.SortOrderInput | Prisma.SortOrder
   agentId?: Prisma.SortOrder
   title?: Prisma.SortOrder
   problem?: Prisma.SortOrder
@@ -285,6 +296,7 @@ export type DbAgentSuggestionScalarWhereWithAggregatesInput = {
   OR?: Prisma.DbAgentSuggestionScalarWhereWithAggregatesInput[]
   NOT?: Prisma.DbAgentSuggestionScalarWhereWithAggregatesInput | Prisma.DbAgentSuggestionScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"DbAgentSuggestion"> | string
+  workspaceId?: Prisma.StringNullableWithAggregatesFilter<"DbAgentSuggestion"> | string | null
   agentId?: Prisma.StringWithAggregatesFilter<"DbAgentSuggestion"> | string
   title?: Prisma.StringWithAggregatesFilter<"DbAgentSuggestion"> | string
   problem?: Prisma.StringWithAggregatesFilter<"DbAgentSuggestion"> | string
@@ -299,6 +311,7 @@ export type DbAgentSuggestionScalarWhereWithAggregatesInput = {
 
 export type DbAgentSuggestionCreateInput = {
   id: string
+  workspaceId?: string | null
   agentId: string
   title: string
   problem: string
@@ -313,6 +326,7 @@ export type DbAgentSuggestionCreateInput = {
 
 export type DbAgentSuggestionUncheckedCreateInput = {
   id: string
+  workspaceId?: string | null
   agentId: string
   title: string
   problem: string
@@ -327,6 +341,7 @@ export type DbAgentSuggestionUncheckedCreateInput = {
 
 export type DbAgentSuggestionUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   agentId?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   problem?: Prisma.StringFieldUpdateOperationsInput | string
@@ -341,6 +356,7 @@ export type DbAgentSuggestionUpdateInput = {
 
 export type DbAgentSuggestionUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   agentId?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   problem?: Prisma.StringFieldUpdateOperationsInput | string
@@ -355,6 +371,7 @@ export type DbAgentSuggestionUncheckedUpdateInput = {
 
 export type DbAgentSuggestionCreateManyInput = {
   id: string
+  workspaceId?: string | null
   agentId: string
   title: string
   problem: string
@@ -369,6 +386,7 @@ export type DbAgentSuggestionCreateManyInput = {
 
 export type DbAgentSuggestionUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   agentId?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   problem?: Prisma.StringFieldUpdateOperationsInput | string
@@ -383,6 +401,7 @@ export type DbAgentSuggestionUpdateManyMutationInput = {
 
 export type DbAgentSuggestionUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   agentId?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   problem?: Prisma.StringFieldUpdateOperationsInput | string
@@ -397,6 +416,7 @@ export type DbAgentSuggestionUncheckedUpdateManyInput = {
 
 export type DbAgentSuggestionCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  workspaceId?: Prisma.SortOrder
   agentId?: Prisma.SortOrder
   title?: Prisma.SortOrder
   problem?: Prisma.SortOrder
@@ -411,6 +431,7 @@ export type DbAgentSuggestionCountOrderByAggregateInput = {
 
 export type DbAgentSuggestionMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  workspaceId?: Prisma.SortOrder
   agentId?: Prisma.SortOrder
   title?: Prisma.SortOrder
   problem?: Prisma.SortOrder
@@ -425,6 +446,7 @@ export type DbAgentSuggestionMaxOrderByAggregateInput = {
 
 export type DbAgentSuggestionMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  workspaceId?: Prisma.SortOrder
   agentId?: Prisma.SortOrder
   title?: Prisma.SortOrder
   problem?: Prisma.SortOrder
@@ -441,6 +463,7 @@ export type DbAgentSuggestionMinOrderByAggregateInput = {
 
 export type DbAgentSuggestionSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  workspaceId?: boolean
   agentId?: boolean
   title?: boolean
   problem?: boolean
@@ -455,6 +478,7 @@ export type DbAgentSuggestionSelect<ExtArgs extends runtime.Types.Extensions.Int
 
 export type DbAgentSuggestionSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  workspaceId?: boolean
   agentId?: boolean
   title?: boolean
   problem?: boolean
@@ -469,6 +493,7 @@ export type DbAgentSuggestionSelectCreateManyAndReturn<ExtArgs extends runtime.T
 
 export type DbAgentSuggestionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  workspaceId?: boolean
   agentId?: boolean
   title?: boolean
   problem?: boolean
@@ -483,6 +508,7 @@ export type DbAgentSuggestionSelectUpdateManyAndReturn<ExtArgs extends runtime.T
 
 export type DbAgentSuggestionSelectScalar = {
   id?: boolean
+  workspaceId?: boolean
   agentId?: boolean
   title?: boolean
   problem?: boolean
@@ -495,13 +521,20 @@ export type DbAgentSuggestionSelectScalar = {
   decidedAt?: boolean
 }
 
-export type DbAgentSuggestionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "agentId" | "title" | "problem" | "evidence" | "suggestedChange" | "impact" | "status" | "sourceRunIds" | "createdAt" | "decidedAt", ExtArgs["result"]["dbAgentSuggestion"]>
+export type DbAgentSuggestionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "agentId" | "title" | "problem" | "evidence" | "suggestedChange" | "impact" | "status" | "sourceRunIds" | "createdAt" | "decidedAt", ExtArgs["result"]["dbAgentSuggestion"]>
 
 export type $DbAgentSuggestionPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "DbAgentSuggestion"
   objects: {}
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
+    /**
+     * O DONO. Nasceu sem ele (o treino roda sem sessão), e por isso a coluna é
+     * NULA — mas nulo aqui NÃO é "de todo mundo": vale a política de órfã de
+     * `lib/auth/posse-de-workspace.ts` (só passa quando existe UM workspace na
+     * base; com dois, adivinhar é o mesmo que vazar).
+     */
+    workspaceId: string | null
     agentId: string
     title: string
     problem: string
@@ -936,6 +969,7 @@ export interface Prisma__DbAgentSuggestionClient<T, Null = never, ExtArgs extend
  */
 export interface DbAgentSuggestionFieldRefs {
   readonly id: Prisma.FieldRef<"DbAgentSuggestion", 'String'>
+  readonly workspaceId: Prisma.FieldRef<"DbAgentSuggestion", 'String'>
   readonly agentId: Prisma.FieldRef<"DbAgentSuggestion", 'String'>
   readonly title: Prisma.FieldRef<"DbAgentSuggestion", 'String'>
   readonly problem: Prisma.FieldRef<"DbAgentSuggestion", 'String'>

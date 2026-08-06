@@ -283,13 +283,22 @@ export async function getActiveAlertTitles(): Promise<Set<string>> {
 
 // ── Mutation ──────────────────────────────────────────────────────────────────
 
+/**
+ * `workspaceId` vem da SESSÃO de quem decidiu (a rota já provou a posse antes de
+ * chamar). Ele serve para duas coisas:
+ *   • ADOTAR a sugestão órfã — a linha antiga passa a ter dono no momento em que
+ *     alguém decide sobre ela, e a próxima conferência de posse é exata;
+ *   • CARIMBAR a mudança de Brain gerada, que nascia sem dono nenhum e por isso
+ *     ficava aberta a qualquer master em `/api/brain/changes/[id]`.
+ */
 export async function updateSuggestionStatus(
   id:     string,
   status: ImprovementStatus,
+  workspaceId?: string,
 ): Promise<void> {
   await prisma.dbAgentSuggestion.update({
     where: { id },
-    data:  { status, decidedAt: new Date() },
+    data:  { status, decidedAt: new Date(), ...(workspaceId ? { workspaceId } : {}) },
   });
 
   // When approved — create a BrainChangeRequest in the Brain Director governance
@@ -314,6 +323,9 @@ export async function updateSuggestionStatus(
         requestedBy:         "training_center",
         sourceSuggestionIds: [id],
         status:              "pending_review",
+        // O dono desce junto: mudança de Brain sem workspace é mudança que
+        // qualquer master de qualquer agência aprova.
+        workspaceId:         workspaceId ?? suggestion.workspaceId ?? undefined,
       });
     }
   }

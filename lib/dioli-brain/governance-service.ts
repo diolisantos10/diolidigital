@@ -8,6 +8,7 @@
 //   - Structural categories require CEO approval (see brain-director.ts).
 
 import { prisma } from "@/lib/db/client";
+import { workspaceUnico } from "@/lib/auth/posse-de-workspace";
 import type {
   BrainChangeSource,
   BrainChangeStatus,
@@ -80,6 +81,10 @@ export interface CreateChangeRequestInput {
   agentId?: string;
   sourceSuggestionIds?: string[];
   status?: "draft" | "pending_review";
+  /** O DONO. Derivado da sessão de quem abriu ou herdado da sugestão de origem
+   *  — nunca lido do corpo da requisição. Ausente = linha órfã, e órfã é
+   *  julgada pela política fail-closed de `lib/auth/posse-de-workspace.ts`. */
+  workspaceId?: string;
 }
 
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
@@ -161,6 +166,7 @@ export async function createChangeRequest(input: CreateChangeRequestInput): Prom
 
   const row = await prisma.brainChangeRequest.create({
     data: {
+      workspaceId:         input.workspaceId ?? null,
       agentId:             input.agentId ?? "brain",
       title:               input.title,
       description:         input.description ?? "",
@@ -243,12 +249,29 @@ export async function getCurrentBrainVersion(): Promise<string> {
 
 // ── Read ──────────────────────────────────────────────────────────────────────
 
-export async function getGovernanceSummary(): Promise<GovernanceSummary> {
-  const [rows, versions, currentVersion] = await Promise.all([
-    prisma.brainChangeRequest.findMany({ orderBy: { createdAt: "desc" }, take: 100 }),
+/**
+ * `workspaceId` fecha a LISTAGEM na mesma fronteira que a transição. Sem ele, a
+ * tela de governança do workspace A mostrava a fila inteira do banco — a metade
+ * de LEITURA do mesmo furo que o raio-x pescou na metade de escrita.
+ *
+ * O filtro vai no WHERE (defesa no banco, não só no `if`), e a órfã entra pelo
+ * `OR` para ser julgada pela política única.
+ */
+export async function getGovernanceSummary(workspaceId?: string): Promise<GovernanceSummary> {
+  const unico = workspaceId ? await workspaceUnico() : { id: null, ambiguo: false };
+  const [linhas, versions, currentVersion] = await Promise.all([
+    prisma.brainChangeRequest.findMany({
+      where: workspaceId ? { OR: [{ workspaceId }, { workspaceId: null }] } : undefined,
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    }),
     prisma.brainVersion.findMany({ orderBy: { createdAt: "desc" }, take: 20 }),
     getCurrentBrainVersion(),
   ]);
+
+  const rows = workspaceId
+    ? linhas.filter((l) => (l.workspaceId ? l.workspaceId === workspaceId : unico.id === workspaceId))
+    : linhas;
 
   const requests = rows.map(deserialize);
   const counts = {

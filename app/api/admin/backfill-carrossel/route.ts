@@ -32,7 +32,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
-import { getSession } from "@/lib/auth/session";
+import { getSession, type SessionPayload } from "@/lib/auth/session";
+import { clienteDoWorkspace, naoEncontrado } from "@/lib/auth/posse-de-workspace";
 import { postsParaGravar } from "@/lib/agency/media/backfill-carrossel.mjs";
 import type { Plano } from "@/lib/agency/media/backfill-carrossel.mjs";
 import {
@@ -43,12 +44,29 @@ import { avaliarPlano, explicarErro } from "./plano";
 
 const CONFIRMACAO = "APLICAR";
 
-async function requireMaster() {
+// ⚠️ A TRAVA QUE FALTAVA (raio-x de 05/08/2026): `requireMaster` respondia "quem
+// é você" e mais nada. O `clientId` chegava pela query (GET) ou pelo corpo
+// (POST) e ia direto para `montarPlano` — um master do workspace A LIA os
+// carrosséis, os nomes de arquivo e o histórico de mídia de um cliente do
+// workspace B, e no POST ESCREVIA em `SocialPost` do vizinho. Ser master é papel;
+// não é escritura.
+//
+// A posse é DERIVADA da sessão (`session.workspaceId` sai do JWT) e conferida na
+// fronteira única, que põe o `workspaceId` DENTRO do `where` — não é um `if`
+// depois de ler tudo.
+
+async function requireMaster(): Promise<
+  { error: NextResponse; session: null } | { error: null; session: SessionPayload }
+> {
   const session = await getSession();
-  if (!session) return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
+  if (!session)
+    return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }), session: null };
   if (session.role !== "master")
-    return { error: NextResponse.json({ error: "Forbidden — master role required" }, { status: 403 }) };
-  return { session };
+    return {
+      error: NextResponse.json({ error: "Forbidden — master role required" }, { status: 403 }),
+      session: null,
+    };
+  return { error: null, session };
 }
 
 // A leitura do mundo mora em `lib/agency/media/backfill-contexto.ts`: a tarefa
@@ -116,6 +134,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   if (!clientId) {
     return NextResponse.json({ error: "clientId é obrigatório" }, { status: 400 });
   }
+  // POSSE ANTES DA LEITURA: o ensaio não escreve, mas VAZA (nomes de arquivo,
+  // legendas, datas). 404 é a mesma resposta de "não existe" de propósito.
+  if (!(await clienteDoWorkspace(clientId, guard.session.workspaceId))) return naoEncontrado();
 
   const ctx = await montarPlano(clientId);
   if (!ctx) {
@@ -146,6 +167,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!clientId) {
     return NextResponse.json({ error: "clientId é obrigatório" }, { status: 400 });
   }
+  // POSSE ANTES DA ESCRITA — e antes de recalcular o plano, para que nem a
+  // leitura aconteça sobre cliente alheio.
+  if (!(await clienteDoWorkspace(clientId, guard.session.workspaceId))) return naoEncontrado();
   if (body.confirmar !== CONFIRMACAO) {
     return NextResponse.json(
       { error: `confirmação explícita necessária: { confirmar: "${CONFIRMACAO}" }` },

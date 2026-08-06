@@ -334,3 +334,8 @@ export type MediaAsset = Prisma.MediaAssetModel
  * terceiro — PII que não é nossa e que não pedimos).
  */
 export type Oportunidade = Prisma.OportunidadeModel
+/**
+ * Model RateLimitBucket
+ * 
+ */
+export type RateLimitBucket = Prisma.RateLimitBucketModel

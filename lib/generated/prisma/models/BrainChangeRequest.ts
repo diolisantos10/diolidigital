@@ -26,6 +26,7 @@ export type AggregateBrainChangeRequest = {
 
 export type BrainChangeRequestMinAggregateOutputType = {
   id: string | null
+  workspaceId: string | null
   agentId: string | null
   title: string | null
   sourceSuggestionIds: string | null
@@ -49,6 +50,7 @@ export type BrainChangeRequestMinAggregateOutputType = {
 
 export type BrainChangeRequestMaxAggregateOutputType = {
   id: string | null
+  workspaceId: string | null
   agentId: string | null
   title: string | null
   sourceSuggestionIds: string | null
@@ -72,6 +74,7 @@ export type BrainChangeRequestMaxAggregateOutputType = {
 
 export type BrainChangeRequestCountAggregateOutputType = {
   id: number
+  workspaceId: number
   agentId: number
   title: number
   sourceSuggestionIds: number
@@ -97,6 +100,7 @@ export type BrainChangeRequestCountAggregateOutputType = {
 
 export type BrainChangeRequestMinAggregateInputType = {
   id?: true
+  workspaceId?: true
   agentId?: true
   title?: true
   sourceSuggestionIds?: true
@@ -120,6 +124,7 @@ export type BrainChangeRequestMinAggregateInputType = {
 
 export type BrainChangeRequestMaxAggregateInputType = {
   id?: true
+  workspaceId?: true
   agentId?: true
   title?: true
   sourceSuggestionIds?: true
@@ -143,6 +148,7 @@ export type BrainChangeRequestMaxAggregateInputType = {
 
 export type BrainChangeRequestCountAggregateInputType = {
   id?: true
+  workspaceId?: true
   agentId?: true
   title?: true
   sourceSuggestionIds?: true
@@ -239,6 +245,7 @@ export type BrainChangeRequestGroupByArgs<ExtArgs extends runtime.Types.Extensio
 
 export type BrainChangeRequestGroupByOutputType = {
   id: string
+  workspaceId: string | null
   agentId: string
   title: string
   sourceSuggestionIds: string
@@ -283,6 +290,7 @@ export type BrainChangeRequestWhereInput = {
   OR?: Prisma.BrainChangeRequestWhereInput[]
   NOT?: Prisma.BrainChangeRequestWhereInput | Prisma.BrainChangeRequestWhereInput[]
   id?: Prisma.StringFilter<"BrainChangeRequest"> | string
+  workspaceId?: Prisma.StringNullableFilter<"BrainChangeRequest"> | string | null
   agentId?: Prisma.StringFilter<"BrainChangeRequest"> | string
   title?: Prisma.StringFilter<"BrainChangeRequest"> | string
   sourceSuggestionIds?: Prisma.StringFilter<"BrainChangeRequest"> | string
@@ -306,6 +314,7 @@ export type BrainChangeRequestWhereInput = {
 
 export type BrainChangeRequestOrderByWithRelationInput = {
   id?: Prisma.SortOrder
+  workspaceId?: Prisma.SortOrderInput | Prisma.SortOrder
   agentId?: Prisma.SortOrder
   title?: Prisma.SortOrder
   sourceSuggestionIds?: Prisma.SortOrder
@@ -332,6 +341,7 @@ export type BrainChangeRequestWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.BrainChangeRequestWhereInput | Prisma.BrainChangeRequestWhereInput[]
   OR?: Prisma.BrainChangeRequestWhereInput[]
   NOT?: Prisma.BrainChangeRequestWhereInput | Prisma.BrainChangeRequestWhereInput[]
+  workspaceId?: Prisma.StringNullableFilter<"BrainChangeRequest"> | string | null
   agentId?: Prisma.StringFilter<"BrainChangeRequest"> | string
   title?: Prisma.StringFilter<"BrainChangeRequest"> | string
   sourceSuggestionIds?: Prisma.StringFilter<"BrainChangeRequest"> | string
@@ -355,6 +365,7 @@ export type BrainChangeRequestWhereUniqueInput = Prisma.AtLeast<{
 
 export type BrainChangeRequestOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
+  workspaceId?: Prisma.SortOrderInput | Prisma.SortOrder
   agentId?: Prisma.SortOrder
   title?: Prisma.SortOrder
   sourceSuggestionIds?: Prisma.SortOrder
@@ -384,6 +395,7 @@ export type BrainChangeRequestScalarWhereWithAggregatesInput = {
   OR?: Prisma.BrainChangeRequestScalarWhereWithAggregatesInput[]
   NOT?: Prisma.BrainChangeRequestScalarWhereWithAggregatesInput | Prisma.BrainChangeRequestScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"BrainChangeRequest"> | string
+  workspaceId?: Prisma.StringNullableWithAggregatesFilter<"BrainChangeRequest"> | string | null
   agentId?: Prisma.StringWithAggregatesFilter<"BrainChangeRequest"> | string
   title?: Prisma.StringWithAggregatesFilter<"BrainChangeRequest"> | string
   sourceSuggestionIds?: Prisma.StringWithAggregatesFilter<"BrainChangeRequest"> | string
@@ -407,6 +419,7 @@ export type BrainChangeRequestScalarWhereWithAggregatesInput = {
 
 export type BrainChangeRequestCreateInput = {
   id?: string
+  workspaceId?: string | null
   agentId: string
   title: string
   sourceSuggestionIds?: string
@@ -430,6 +443,7 @@ export type BrainChangeRequestCreateInput = {
 
 export type BrainChangeRequestUncheckedCreateInput = {
   id?: string
+  workspaceId?: string | null
   agentId: string
   title: string
   sourceSuggestionIds?: string
@@ -453,6 +467,7 @@ export type BrainChangeRequestUncheckedCreateInput = {
 
 export type BrainChangeRequestUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   agentId?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   sourceSuggestionIds?: Prisma.StringFieldUpdateOperationsInput | string
@@ -476,6 +491,7 @@ export type BrainChangeRequestUpdateInput = {
 
 export type BrainChangeRequestUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   agentId?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   sourceSuggestionIds?: Prisma.StringFieldUpdateOperationsInput | string
@@ -499,6 +515,7 @@ export type BrainChangeRequestUncheckedUpdateInput = {
 
 export type BrainChangeRequestCreateManyInput = {
   id?: string
+  workspaceId?: string | null
   agentId: string
   title: string
   sourceSuggestionIds?: string
@@ -522,6 +539,7 @@ export type BrainChangeRequestCreateManyInput = {
 
 export type BrainChangeRequestUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   agentId?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   sourceSuggestionIds?: Prisma.StringFieldUpdateOperationsInput | string
@@ -545,6 +563,7 @@ export type BrainChangeRequestUpdateManyMutationInput = {
 
 export type BrainChangeRequestUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  workspaceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   agentId?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   sourceSuggestionIds?: Prisma.StringFieldUpdateOperationsInput | string
@@ -568,6 +587,7 @@ export type BrainChangeRequestUncheckedUpdateManyInput = {
 
 export type BrainChangeRequestCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  workspaceId?: Prisma.SortOrder
   agentId?: Prisma.SortOrder
   title?: Prisma.SortOrder
   sourceSuggestionIds?: Prisma.SortOrder
@@ -591,6 +611,7 @@ export type BrainChangeRequestCountOrderByAggregateInput = {
 
 export type BrainChangeRequestMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  workspaceId?: Prisma.SortOrder
   agentId?: Prisma.SortOrder
   title?: Prisma.SortOrder
   sourceSuggestionIds?: Prisma.SortOrder
@@ -614,6 +635,7 @@ export type BrainChangeRequestMaxOrderByAggregateInput = {
 
 export type BrainChangeRequestMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  workspaceId?: Prisma.SortOrder
   agentId?: Prisma.SortOrder
   title?: Prisma.SortOrder
   sourceSuggestionIds?: Prisma.SortOrder
@@ -639,6 +661,7 @@ export type BrainChangeRequestMinOrderByAggregateInput = {
 
 export type BrainChangeRequestSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  workspaceId?: boolean
   agentId?: boolean
   title?: boolean
   sourceSuggestionIds?: boolean
@@ -662,6 +685,7 @@ export type BrainChangeRequestSelect<ExtArgs extends runtime.Types.Extensions.In
 
 export type BrainChangeRequestSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  workspaceId?: boolean
   agentId?: boolean
   title?: boolean
   sourceSuggestionIds?: boolean
@@ -685,6 +709,7 @@ export type BrainChangeRequestSelectCreateManyAndReturn<ExtArgs extends runtime.
 
 export type BrainChangeRequestSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  workspaceId?: boolean
   agentId?: boolean
   title?: boolean
   sourceSuggestionIds?: boolean
@@ -708,6 +733,7 @@ export type BrainChangeRequestSelectUpdateManyAndReturn<ExtArgs extends runtime.
 
 export type BrainChangeRequestSelectScalar = {
   id?: boolean
+  workspaceId?: boolean
   agentId?: boolean
   title?: boolean
   sourceSuggestionIds?: boolean
@@ -729,13 +755,18 @@ export type BrainChangeRequestSelectScalar = {
   reviewNote?: boolean
 }
 
-export type BrainChangeRequestOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "agentId" | "title" | "sourceSuggestionIds" | "proposedChange" | "status" | "createdAt" | "approvedAt" | "appliedAt" | "source" | "department" | "category" | "description" | "rationale" | "expectedImpact" | "riskLevel" | "requestedBy" | "approvalRequiredBy" | "reviewedAt" | "reviewNote", ExtArgs["result"]["brainChangeRequest"]>
+export type BrainChangeRequestOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "agentId" | "title" | "sourceSuggestionIds" | "proposedChange" | "status" | "createdAt" | "approvedAt" | "appliedAt" | "source" | "department" | "category" | "description" | "rationale" | "expectedImpact" | "riskLevel" | "requestedBy" | "approvalRequiredBy" | "reviewedAt" | "reviewNote", ExtArgs["result"]["brainChangeRequest"]>
 
 export type $BrainChangeRequestPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "BrainChangeRequest"
   objects: {}
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
+    /**
+     * O DONO — herdado da sugestão que originou a mudança, ou da sessão de quem
+     * abriu. Nulo é órfã, e órfã segue a política de `posse-de-workspace.ts`.
+     */
+    workspaceId: string | null
     agentId: string
     title: string
     sourceSuggestionIds: string
@@ -1179,6 +1210,7 @@ export interface Prisma__BrainChangeRequestClient<T, Null = never, ExtArgs exten
  */
 export interface BrainChangeRequestFieldRefs {
   readonly id: Prisma.FieldRef<"BrainChangeRequest", 'String'>
+  readonly workspaceId: Prisma.FieldRef<"BrainChangeRequest", 'String'>
   readonly agentId: Prisma.FieldRef<"BrainChangeRequest", 'String'>
   readonly title: Prisma.FieldRef<"BrainChangeRequest", 'String'>
   readonly sourceSuggestionIds: Prisma.FieldRef<"BrainChangeRequest", 'String'>

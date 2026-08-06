@@ -94,7 +94,8 @@ export const ModelName = {
   PortalAccess: 'PortalAccess',
   MarketInsight: 'MarketInsight',
   MediaAsset: 'MediaAsset',
-  Oportunidade: 'Oportunidade'
+  Oportunidade: 'Oportunidade',
+  RateLimitBucket: 'RateLimitBucket'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -585,6 +586,7 @@ export type DbSimulationRunScalarFieldEnum = (typeof DbSimulationRunScalarFieldE
 
 export const DbAgentSuggestionScalarFieldEnum = {
   id: 'id',
+  workspaceId: 'workspaceId',
   agentId: 'agentId',
   title: 'title',
   problem: 'problem',
@@ -618,6 +620,7 @@ export type TrainingAlertScalarFieldEnum = (typeof TrainingAlertScalarFieldEnum)
 
 export const BrainChangeRequestScalarFieldEnum = {
   id: 'id',
+  workspaceId: 'workspaceId',
   agentId: 'agentId',
   title: 'title',
   sourceSuggestionIds: 'sourceSuggestionIds',
@@ -924,6 +927,17 @@ export const OportunidadeScalarFieldEnum = {
 } as const
 
 export type OportunidadeScalarFieldEnum = (typeof OportunidadeScalarFieldEnum)[keyof typeof OportunidadeScalarFieldEnum]
+
+
+export const RateLimitBucketScalarFieldEnum = {
+  chave: 'chave',
+  contagem: 'contagem',
+  resetAt: 'resetAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type RateLimitBucketScalarFieldEnum = (typeof RateLimitBucketScalarFieldEnum)[keyof typeof RateLimitBucketScalarFieldEnum]
 
 
 export const SortOrder = {

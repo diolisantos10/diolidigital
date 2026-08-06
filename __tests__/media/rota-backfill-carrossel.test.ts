@@ -18,7 +18,8 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 const db = vi.hoisted(() => ({
-  client: { findUnique: vi.fn() },
+  client: { findUnique: vi.fn(), findFirst: vi.fn() },
+  agencyWorkspace: { findMany: vi.fn() },
   clientRequestDb: { findMany: vi.fn() },
   socialPost: { findMany: vi.fn(), update: vi.fn() },
   mediaAsset: { findMany: vi.fn() },
@@ -42,6 +43,19 @@ const DATA = (d: string) => new Date(`2026-08-${d}T12:00:00Z`);
 /** Dois carrosséis, três telas cada, nomeadas pelo padrão da esteira. */
 function mundoFeliz() {
   db.client.findUnique.mockResolvedValue({ id: "cli", name: "Foocci", workspaceId: "ws1" });
+  // A POSSE (raio-x de 05/08/2026): a rota confere o cliente contra o workspace
+  // da SESSÃO antes de ler ou escrever qualquer coisa. O mock honra o `where`,
+  // como o Prisma faria — se a rota esquecer o `workspaceId`, o teste de posse
+  // em `__tests__/plataforma/posse-nas-quatro-rotas.test.ts` fica vermelho.
+  db.client.findFirst.mockImplementation(
+    ({ where }: { where: { id: string; workspaceId?: string } }) =>
+      Promise.resolve(
+        where.id === "cli" && (!where.workspaceId || where.workspaceId === "ws1")
+          ? { id: "cli" }
+          : null,
+      ),
+  );
+  db.agencyWorkspace.findMany.mockResolvedValue([{ id: "ws1" }]);
   db.clientRequestDb.findMany.mockResolvedValue([]);
   db.socialPost.findMany.mockImplementation(({ where }: { where: Record<string, unknown> }) =>
     Promise.resolve(

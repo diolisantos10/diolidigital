@@ -139,6 +139,50 @@ export async function artefatoDoWorkspace(
   return unico.id === workspaceId;
 }
 
+/**
+ * Posse da sugestão de treino e da mudança de Brain — as duas tabelas de
+ * GOVERNANÇA. Elas nasceram sem dono nenhum (o treino roda sem sessão), e por
+ * isso `/api/admin/training/sdr/suggestions/[id]` e `/api/brain/changes/[id]`
+ * aceitavam qualquer id de qualquer master: o raio-x de 05/08/2026 pescou as
+ * duas. A coluna `workspaceId` entrou nulável na migration
+ * `20260806090000_teto_no_banco_e_dono_da_governanca`.
+ *
+ * NULO NÃO É "DE TODO MUNDO". Vale a mesma política de órfã do topo deste
+ * arquivo: com UM workspace na base, a linha antiga é dele; com dois, ninguém
+ * adivinha por ninguém e a porta fecha. É a política que já existe, não uma nova.
+ */
+async function posseDaLinhaDeGovernanca(
+  linha: { workspaceId: string | null } | null,
+  workspaceId: string,
+): Promise<boolean> {
+  if (!linha) return false;
+  if (linha.workspaceId) return linha.workspaceId === workspaceId;
+  const unico = await workspaceUnico();
+  return unico.id === workspaceId;
+}
+
+export async function sugestaoDoWorkspace(
+  suggestionId: string,
+  workspaceId: string,
+): Promise<boolean> {
+  const s = await prisma.dbAgentSuggestion.findUnique({
+    where: { id: suggestionId },
+    select: { workspaceId: true },
+  });
+  return posseDaLinhaDeGovernanca(s, workspaceId);
+}
+
+export async function mudancaDeBrainDoWorkspace(
+  changeRequestId: string,
+  workspaceId: string,
+): Promise<boolean> {
+  const c = await prisma.brainChangeRequest.findUnique({
+    where: { id: changeRequestId },
+    select: { workspaceId: true },
+  });
+  return posseDaLinhaDeGovernanca(c, workspaceId);
+}
+
 type LinhaComDono = { workspaceId: string | null; clientId: string | null };
 
 /**

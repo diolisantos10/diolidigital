@@ -769,6 +769,11 @@ model DbSimulationRun {
 
 model DbAgentSuggestion {
   id              String    @id
+  /// O DONO. Nasceu sem ele (o treino roda sem sessão), e por isso a coluna é
+  /// NULA — mas nulo aqui NÃO é "de todo mundo": vale a política de órfã de
+  /// `lib/auth/posse-de-workspace.ts` (só passa quando existe UM workspace na
+  /// base; com dois, adivinhar é o mesmo que vazar).
+  workspaceId     String?
   agentId         String
   title           String
   problem         String
@@ -779,6 +784,8 @@ model DbAgentSuggestion {
   sourceRunIds    String    @default("[]")
   createdAt       DateTime  @default(now())
   decidedAt       DateTime?
+
+  @@index([workspaceId, status])
 }
 
 model TrainingAlert {
@@ -796,6 +803,9 @@ model TrainingAlert {
 
 model BrainChangeRequest {
   id                  String    @id @default(cuid())
+  /// O DONO — herdado da sugestão que originou a mudança, ou da sessão de quem
+  /// abriu. Nulo é órfã, e órfã segue a política de `posse-de-workspace.ts`.
+  workspaceId         String?
   agentId             String
   title               String
   sourceSuggestionIds String    @default("[]")
@@ -816,6 +826,8 @@ model BrainChangeRequest {
   approvalRequiredBy  String    @default("brain_director")
   reviewedAt          DateTime?
   reviewNote          String?
+
+  @@index([workspaceId, status])
 }
 
 // Brain version history — every applied change increments the version.
@@ -1320,4 +1332,32 @@ model Oportunidade {
   /// pelo LINK. Esta busca roda em TODA ingestão — sem índice, é varredura de
   /// tabela a cada oportunidade que entra.
   @@index([workspaceId, urlExterna])
+}
+
+// ─── O teto de ritmo que SOBREVIVE AO DEPLOY ─────────────────────────────────
+//
+// O contador de `lib/security/rate-limit.ts` mora na memória do processo. Isso
+// tem duas consequências que o raio-x de 05/08/2026 nomeou: todo deploy ZERA os
+// baldes, e uma segunda réplica multiplica o teto por N. É a mesma família da
+// rota de imagem que já estava aberta e custou dinheiro — um teto que some é um
+// teto que o atacante consegue rolar de graça (basta esperar o próximo deploy).
+//
+// Aqui o balde mora no VOLUME. A janela fixa é `(contagem, resetAt)`; a chave é
+// `balde:identificador` (rota + IP, normalmente). Quem escreve é
+// `lib/security/limite-no-banco.ts`, e a escrita é ATÔMICA por `updateMany`
+// condicional — ler-e-depois-escrever deixa duas requisições simultâneas
+// passarem pelo mesmo "9 de 10".
+model RateLimitBucket {
+  /// "rota:identificador". Chave primária de propósito: o `create` disputado
+  /// entre duas requisições falha por unicidade, e a perdedora incrementa.
+  chave     String   @id
+  contagem  Int      @default(1)
+  /// Fim da janela. Passou disso, a linha é RECICLADA (update), não apagada —
+  /// reciclar não deixa buraco entre o DELETE e o INSERT.
+  resetAt   DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// A faxina das janelas vencidas varre por `resetAt`.
+  @@index([resetAt])
 }

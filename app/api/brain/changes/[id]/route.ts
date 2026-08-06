@@ -1,5 +1,12 @@
+// ⚠️ A TRAVA QUE FALTAVA (raio-x de 05/08/2026): a rota conferia o PAPEL e nunca
+// a POSSE. O `id` do caminho é global e ia direto para `transitionChangeRequest`
+// — um master do workspace A aprovava e APLICAVA (o que cria `BrainVersion`) a
+// mudança de Brain proposta no workspace B. Papel responde "quem é você"; nada
+// nele responde "isto é seu".
+
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
+import { mudancaDeBrainDoWorkspace, naoEncontrado } from "@/lib/auth/posse-de-workspace";
 import {
   transitionChangeRequest,
   type GovernanceAction,
@@ -35,6 +42,10 @@ export async function PATCH(
       { status: 400 },
     );
   }
+
+  // A POSSE, antes da transição. 404 nos dois casos ("não existe" e "é do
+  // vizinho") para a rota não virar oráculo de enumeração de ids.
+  if (!(await mudancaDeBrainDoWorkspace(id, session.workspaceId))) return naoEncontrado();
 
   try {
     const updated = await transitionChangeRequest(

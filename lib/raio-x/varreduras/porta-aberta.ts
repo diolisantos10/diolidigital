@@ -29,6 +29,15 @@ const GUARDA =
  *  achado: rebaixa. Some da lista de "sem guarda" e entra como vigilância. */
 const LIMITE_PUBLICO = /rateLimited|chaveDeRotaPublica/;
 
+/** O teto que MORA NO BANCO (`lib/security/limite-no-banco.ts`) — o conserto de
+ *  06/08/2026 para as quatro rotas públicas pagas. Ele atravessa deploy e
+ *  réplica e é fail-closed, então NÃO é a mesma coisa que o contador em memória.
+ *  Continua aparecendo no relatório de propósito: rota pública que gasta chave
+ *  paga merece ser olhada para sempre. O que muda é a gravidade e o texto — o
+ *  raio-x não deixa de contar nada, e mentir sobre a defesa seria pior que o
+ *  achado. */
+const LIMITE_DURAVEL = /limiteExcedido|consumirVaga/;
+
 const MOTOR_PAGO = /gerarImagem|generateImage|analisarImagens|transcrever|callProvider|chamarProvedor|runAgent|openai|anthropic|gemini/i;
 const TOCA_BANCO = /prisma\./;
 const ESCREVE = /prisma\.\w+\.(create|update|updateMany|delete|deleteMany|upsert)/;
@@ -50,6 +59,7 @@ export function varrerPortaAberta(entrada?: Arquivo[]): ResultadoDeVarredura {
   const achados: Achado[] = [];
   let semGuarda = 0;
   let apenasComLimite = 0;
+  let comLimiteDuravel = 0;
 
   for (const { caminho, texto } of rotas) {
     if (PUBLICAS_POR_CONTRATO.includes(caminho)) continue;
@@ -60,27 +70,33 @@ export function varrerPortaAberta(entrada?: Arquivo[]): ResultadoDeVarredura {
     const banco = TOCA_BANCO.test(texto);
     if (!pago && !banco) continue; // rota sem guarda que não encosta em nada é ruído
 
-    const soLimite = LIMITE_PUBLICO.test(texto);
-    if (soLimite) apenasComLimite++;
+    const duravel = LIMITE_DURAVEL.test(texto);
+    const soLimite = !duravel && LIMITE_PUBLICO.test(texto);
+    if (duravel) comLimiteDuravel++;
+    else if (soLimite) apenasComLimite++;
     else semGuarda++;
+
+    const oQueFaz = pago ? "chama motor pago" : escreve ? "grava no banco" : "consulta o banco";
 
     achados.push({
       padrao: "porta-aberta",
       chave: `porta-aberta:${caminho}`,
-      titulo: soLimite
-        ? "Rota pública paga protegida só por limite por IP (contador na memória do processo)"
-        : pago
-          ? "Rota sem guarda encostada em motor pago"
-          : escreve
-            ? "Rota sem guarda que ESCREVE no banco"
-            : "Rota sem guarda que lê dado do banco",
-      evidencia: soLimite
-        ? `${caminho} é pública por desenho e ${pago ? "chama motor pago" : "grava no banco"}; a única defesa é rateLimited, que não sobrevive a deploy nem a segunda réplica`
-        : `${caminho} não referencia nenhuma guarda (sessão, portal, cron ou assinatura) e ${
-            pago ? "chama motor pago" : escreve ? "grava no banco" : "consulta o banco"
-          }`,
+      titulo: duravel
+        ? "Rota pública paga com teto de ritmo NO BANCO (sobrevive a deploy e a réplica)"
+        : soLimite
+          ? "Rota pública paga protegida só por limite por IP (contador na memória do processo)"
+          : pago
+            ? "Rota sem guarda encostada em motor pago"
+            : escreve
+              ? "Rota sem guarda que ESCREVE no banco"
+              : "Rota sem guarda que lê dado do banco",
+      evidencia: duravel
+        ? `${caminho} é pública por desenho e ${oQueFaz}; a defesa é limiteExcedido (contador em RateLimitBucket, atômico e fail-closed). Continua listada porque rota pública que gasta merece vigilância permanente`
+        : soLimite
+          ? `${caminho} é pública por desenho e ${oQueFaz}; a única defesa é rateLimited, que não sobrevive a deploy nem a segunda réplica`
+          : `${caminho} não referencia nenhuma guarda (sessão, portal, cron ou assinatura) e ${oQueFaz}`,
       local: caminho,
-      gravidade: soLimite ? "medio" : pago || escreve ? "alto" : "medio",
+      gravidade: duravel ? "baixo" : soLimite ? "medio" : pago || escreve ? "alto" : "medio",
     });
   }
 
@@ -93,6 +109,7 @@ export function varrerPortaAberta(entrada?: Arquivo[]): ResultadoDeVarredura {
       rotas: rotas.length,
       rotasSemGuarda: semGuarda,
       rotasPublicasPagasComLimiteApenas: apenasComLimite,
+      rotasPublicasPagasComLimiteNoBanco: comLimiteDuravel,
       rotasSemGuardaQueImportam: achados.length,
     },
   };

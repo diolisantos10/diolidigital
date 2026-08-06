@@ -20,7 +20,12 @@
 // fails (no key, timeout, bad JSON), the client falls back to it.
 
 import { NextRequest, NextResponse } from "next/server";
-import { rateLimited } from "@/lib/security/rate-limit";
+// O TETO SAIU DA MEMÓRIA DO PROCESSO E FOI PARA O BANCO (raio-x de 05/08/2026).
+// `rateLimited` zerava em todo deploy e não atravessava réplica — numa casa em
+// que vários agentes publicam por dia, isso devolvia a cota inteira ao atacante
+// de graça, numa rota pública que gasta chave de IA PAGA. `limiteExcedido` conta
+// no volume, é atômico e é fail-closed: contador fora do ar recusa, não libera.
+import { limiteExcedido } from "@/lib/security/limite-no-banco";
 import { chaveDeRotaPublica } from "@/lib/ai/chave-publica";
 import { blocoDeNegociacaoParaPrompt, ehPerguntaDeFaixa, normalizarFaixa } from "@/lib/agency/comercial/negociacao";
 
@@ -221,8 +226,8 @@ function extractJson(text: string): Record<string, unknown> | null {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  const _limited = rateLimited(req, "sdr-chat", 30, 60_000);
-  if (_limited) return _limited as NextResponse;
+  const barrado = await limiteExcedido(req, "sdr-chat", 30, 60_000);
+  if (barrado) return barrado as NextResponse;
 
   // Rota PÚBLICA: sem sessão e sem token, quem paga a conversa é resolvido
   // pelo servidor. `resolveProviderKey("claude")` sem workspace caía num
