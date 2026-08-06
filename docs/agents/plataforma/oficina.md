@@ -512,3 +512,134 @@ arquivo, para ninguém mais acreditar no "de 10 em 10 minutos".
 3. **A pane do Actions ainda estava aberta** ao fim desta frente: nenhum run foi
    criado entre 19:22Z e 21:40Z. Enquanto durar, o sentinela vai acusar
    `SEM_PROVA_PLATAFORMA_FORA` — que é o veredito correto, não um falso positivo.
+
+---
+
+## 2026-08-06 · O mapa da dependência de conta paga e a troca para a faixa gratuita
+
+**Pedido do CEO:** *"troca pro gratuito, vamos testar na agência; se der certo, replica."*
+Premissa dada: a conta da OpenAI está sem crédito.
+
+### A premissa não se confirmou — e o buraco era outro
+
+Rodei geração real em produção antes de trocar qualquer coisa. **A OpenAI gera
+normalmente** (`gpt-4o`, 9/9 execuções). Quem estava morto era **o Gemini**, a
+faixa gratuita, e ninguém sabia porque a tela mentia.
+
+`app/api/ai-keys/test/route.ts` testava OpenAI e Gemini com `GET /models` — uma
+listagem que responde 200 com a conta zerada **e** com o modelo aposentado. A
+configuração de produção apontava para `gemini-1.5-pro`, aposentado pela Google.
+Resultado: cinco provedores verdes na tela, um deles incapaz de produzir um
+caractere. **Verde falso é pior que vermelho:** manda procurar o defeito em
+qualquer lugar menos onde ele está.
+
+Sondagem nome a nome contra a chave desta casa (06/08/2026): `gemini-1.5-pro`,
+`gemini-1.5-flash`, `gemini-2.0-flash`, `gemini-2.5-flash`,
+`gemini-2.5-flash-lite`, `gemini-2.5-pro`, `gemini-3-flash` → **todos 404**.
+Geram: `gemini-flash-latest`, `gemini-pro-latest`, `gemini-flash-lite-latest`.
+
+### O mapa
+
+| Camada | Onde | Provedor | Quebra se a conta zerar |
+|---|---|---|---|
+| Texto (motor único) | `lib/ai/generate.ts` | 5 provedores, cadeia de reserva | Não — passa para o próximo com chave |
+| Texto (6 rotas de agente) | `app/api/agents/*/generate`, `app/api/brain/*`, `app/api/sdr/{chat,upload}` | **Claude, no braço, sem reserva** | Sim, com aviso |
+| Visão | `lib/ai/visao.ts` | claude → openai → gemini | Não — degradação declarada |
+| Transcrição | `lib/ai/transcricao.ts` | **OpenAI Whisper, exclusivo** | Sim (outra frente cuida) |
+| **Imagem** | `lib/ai/design-engine.ts` | **OpenAI `gpt-image-1`/`dall-e-3`, exclusivo** | Sim, com erro marcado na peça |
+| Embedding | — | não existe | — |
+
+### O que descobri que ninguém sabia
+
+- **`AIRunLog` está VAZIO em produção e nunca teve dono.** O único escritor é
+  `save()` em `lib/hooks/useDbAIRunLogs.ts:56` — **nenhum arquivo o chama**. E a
+  tabela não tem coluna de token nem de custo (`prisma/schema.prisma:741`).
+  **Não dá para estimar custo pelo log**, hoje nem retroativamente.
+- **A tela de "provedor por agente" é decorativa.** `DbAgentProviderConfig` é
+  gravada por `app/api/agent-configs/route.ts` e **lida por ninguém no servidor**.
+  A escolha real está *hardcoded* em `lib/agency/execution/especialistas.ts`
+  (`provedor: "claude"` na maioria).
+- **Não existe como trocar o provedor só de um cliente.** `BRAIN_AI_PROVIDER` é
+  env global, e os 4 clientes (Foocci, Dioli Digital Studio, 2× Camila Pereira)
+  vivem no **mesmo workspace**. Ligar o gratuito por env põe cliente pagante na
+  cobaia — o oposto da ordem.
+- **`lib/ai/provider-registry.ts` é código morto.** O cabeçalho afirma que a rota
+  de raciocínio e o orquestrador o chamam; **ninguém chama** (só os testes). O
+  portão único de verdade é `lib/ai/generate.ts`, guardado por
+  `__tests__/brain/no-parallel-brain.test.ts`.
+
+### O que foi feito
+
+- `app/api/ai-keys/test/route.ts:33` e `:98` — OpenAI e Gemini passam a **gerar**
+  no modelo escolhido, e sabem nomear 429 (sem saldo) e 404 (modelo morto).
+- `lib/ai/generate.ts:157` — `modeloPadrao()` virou função (era const de módulo:
+  trocar `GEMINI_MODEL` no Railway não surtia efeito até reiniciar) e o default
+  do Gemini virou apelido móvel. Mesmo conserto em `lib/ai/visao.ts:214`.
+- `lib/ai/generate.ts` — nova opção **`apenasOPreferido`**: sem reserva. A
+  reserva é virtude em produção e mentira na medição.
+- `app/api/ai/run/route.ts` — deixou de ter cérebro paralelo, passa por
+  `generate()`, aceita os 5 provedores, aceita `estrito` e devolve `ms`.
+  **Saiu da lista congelada** do portão único: a lista diminuiu.
+- `app/api/ai-keys/route.ts` — `PATCH` troca só o modelo (antes era impossível
+  sem recolar a chave, que ninguém tem à mão depois de salva).
+- Listas de modelo do Gemini corrigidas em `components/agency/AiKeyManager.tsx`
+  e `app/agency/integrations/page.tsx`.
+- `__tests__/plataforma/troca-para-provedor-gratuito.test.ts` — 7 testes: modelo
+  vivo, o gratuito produz, e **o gratuito indisponível PARA** (prova de que
+  nenhuma chamada vaza para o provedor pago no modo estrito).
+
+### O teste na agência — número, não impressão
+
+Cobaia: **Dioli Digital Studio** (`cmsayxrdq00050po7mdeg6kvw`). Nenhuma execução
+tocou Foocci ou Camila Pereira. Modo estrito, produção real, portão = o
+validador de departamento que já existia.
+
+**45 execuções — 3 departamentos × 5 provedores × 3 rodadas:**
+
+| provedor | passou o portão | mediana | pior caso |
+|---|---|---|---|
+| claude | 9/9 | 9,8 s | 16,1 s |
+| openai | 9/9 | 8,2 s | 11,1 s |
+| **gemini (grátis)** | **8/9** | 10,0 s | 11,1 s |
+| deepseek | 9/9 | 12,7 s | 39,5 s |
+| perplexity | 9/9 | 9,5 s | 14,7 s |
+
+**Aprofundamento Claude × Gemini (36 execuções) + rajada de 15 sequenciais:**
+
+- Gemini no total medido: **36/39 = 92,3%**. Claude: **27/27 = 100%**.
+- Todas as 3 falhas do Gemini foram `JSON inválido` **depois de 3 tentativas**, e
+  todas em **tráfego pago** — o esquema mais complexo. Custam ~37 s antes de
+  desistir.
+- Riqueza da saída (mediana de caracteres): estratégia **3.078 (Claude) × 2.122
+  (Gemini)** — o gratuito entrega ~31% menos texto. Social: 1.877 × 2.466
+  (Gemini maior). Tráfego pago: 3.532 × 3.042.
+- 15 chamadas sequenciais no Gemini: **15/15**, sem estouro de cota.
+
+### Imagem — com todas as letras
+
+**Não troquei, e não recomendo trocar às cegas.** `design-engine.ts` fala o
+dialeto de imagens da OpenAI; o Gemini exigiria adaptador novo. Sondei a chave
+desta casa: `gemini-2.5-flash-image` e `gemini-3-pro-image-preview` **existem e
+respondem**. Mas *existir não é ter a qualidade do feed*, e **eu não medi
+qualidade de arte** — medir isso é comparação visual, não `curl`. Rebaixar a
+peça calado seria exatamente a degradação silenciosa que a ordem proíbe.
+
+### Verificação — À MÃO, porque não há CI
+
+GitHub Actions em pane. Rodei os três portões na mão, nas duas entregas:
+`npx tsc --noEmit` limpo · `npx vitest run` **139 arquivos, 2206 testes, todos
+passando** · `npm run build` ok. **Não há CI verde para estes commits.**
+
+### 🔴 O que fica aberto — precisa de decisão do CEO/Diretor
+
+1. **A troca por cliente não existe.** Ligar `BRAIN_AI_PROVIDER=gemini` põe
+   Foocci na cobaia. Falta um seletor por cliente (ou fazer
+   `DbAgentProviderConfig` finalmente ser lido) — decisão de arquitetura, não
+   minha.
+2. **Custo é imensurável hoje.** Sem instrumentar `AIRunLog` com tokens, nenhuma
+   conversa sobre economia passa de palpite.
+3. **Tráfego pago é o ponto fraco do gratuito** (2 falhas em 6). Se o gratuito
+   entrar, entra por departamento, não de uma vez.
+4. **6 rotas de agente ainda falam com a Anthropic direto**, sem reserva. São o
+   que sobra da lista congelada; migrar para `generate()` é ganho de robustez
+   independente de provedor.
