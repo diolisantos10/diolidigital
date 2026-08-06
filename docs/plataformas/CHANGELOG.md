@@ -83,6 +83,51 @@ Uma linha por mudança detectada na recaptura diária. Formato:
   CHANGELOG. Não existe rotina agendada de recaptura em lugar nenhum do
   repositório (nem workflow do GitHub, nem cron) — ver o relato do dia.
 
+## 2026-08-06
+
+- `tiktok` · **Expansão do manifesto por ordem do CEO (05/08): de 18 para 77
+  fontes; 62 capturadas com sucesso, 15 lacunas datadas.** Entram: registro e
+  revisão de app, Login Kit/OAuth/escopos, Content Posting API completa
+  (direct post, rascunho, creator_info, upload, foto, status, transferência de
+  mídia), Display API, **Accounts API (Organic API) do portal de business**,
+  Marketing API (autorização, campanha, grupo, anúncio, criativo, relatório,
+  limites de taxa, Spark Ads), Developer Terms of Service, Data Sharing
+  Agreement, Branded Content Policy e os artigos por indústria com o recorte
+  do **Brasil** (financeiro, saúde, jogo, álcool, emagrecimento, adulto,
+  política, PI).
+- `tiktok/business-*` · **Lacuna do portal da Marketing API FECHADA** — o
+  portal captura pelo caminho `/portal/docs/<guia>/v1.3` e `/portal/docs?id=…`
+  (a URL antiga de "get started" continua vazia ao headless).
+- `tiktok/ads-praticas-enganosas` · **Lacuna FECHADA** — a página de Deceptive
+  Practices, que dava timeout em 03/08, foi capturada.
+- `tiktok/ads-industria-*` · **Lacuna do detalhe por indústria para o Brasil
+  FECHADA** — Brasil aparece nominalmente nos artigos de serviços financeiros
+  (exige licença local + 18+) e de jogo (cassino online só com aprovação de
+  representante comercial do TikTok).
+- `tiktok` · **LACUNA NOVA (regressão do help center):**
+  `ads-criativos-landing-page`, `ads-industrias-visao-geral`,
+  `ads-industrias-america-latina` e `musica-biblioteca-comercial` pararam de
+  ser capturáveis (o `ads.tiktok.com/help` passou a devolver só o menu ao
+  headless). As cópias de 03/08 seguem no repositório e continuam citáveis.
+  `ads-industria-alcool` falhou por timeout nesta rodada (capturada mais cedo
+  no mesmo dia).
+- `tiktok` · **LACUNA NOVA (piso do capturador):** `ads-estrutura-campanha`,
+  `dev-escopos-lista`, `dev-rate-limit`, `dev-display-perfil`,
+  `dev-display-consulta-videos`, `business-lista-anunciantes` e
+  `business-accounts-api-inicio` são páginas de tabela pura e ficam abaixo do
+  piso de 1.200 caracteres úteis — não gravadas, declaradas na cartilha.
+- `tiktok/conta-comercial` · Lacuna de 03/08 **persiste** (support.tiktok.com
+  só entrega menu ao headless; 3ª rodada consecutiva).
+- `tiktok/ads-formato-funcionalidade` · Hash mudou desde 03/08 — diff é
+  remoção de linha de rodapé, **sem mudança de política**.
+- `tiktok/cartilha.md` · Reescrita. Achado que muda o plano: a **Accounts API
+  autoriza explicitamente** "gerenciar a presença orgânica de contas próprias
+  de marcas/criadores, incluindo publicar posts" — o caso de uso de agência
+  que a auditoria da Content Posting API rejeita. A ordem de nascimento da
+  integração passa a começar pelo portal de business, não pelo TikTok for
+  Developers. Exige o Accounts API Access Application Form (obrigatório desde
+  20/03/2026).
+
 ## 2026-08-03
 
 - Biblioteca criada por ordem do CEO, no dia da restrição da conta de anúncios
