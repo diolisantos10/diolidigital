@@ -5,6 +5,39 @@
 
 ---
 
+## 🔴 06/08/2026 — App Review da Meta: dossiê pronto, 1 bloqueio no colo do CEO
+
+Dossiê completo em **`docs/plataformas/meta/app-review.md`**: estado do app
+medido por API, auditoria permissão-a-permissão contra o código, textos de
+justificativa em inglês prontos para colar, roteiros dos 6 vídeos e o caminho
+que o revisor percorre.
+
+**O bloqueio nº 1, e ele reprova o envio INTEIRO:** `META_LOGIN_CONFIG_ID` não
+existe no Railway. App tipo Business usa Login para Empresas, que exige
+`config_id` e recusa `scope` — o revisor não consegue completar o login, e
+"app não testável = envio rejeitado" (fonte: `fontes/app-review-processo.md`).
+
+**Consertado nesta sessão:**
+- O callback de exclusão de dados devolvia à Meta `https://diolidigital.com.br/…`
+  — o **apex, que não tem DNS**. Conferido ao vivo em produção antes do
+  conserto. É o link que o revisor clica. Agora sai do host da requisição.
+- O mesmo arquivo gravava "conexões Meta associadas removidas" **sem remover
+  nada**. Virou registro honesto de pendência humana (o banco não guarda o
+  `user_id` da Meta; cabe em `metaJson`, sem migration).
+- **Tela nova `/agency/desempenho-pago`**: a leitura de tráfego pago existia só
+  como rota de API. Sem tela, a Meta não consegue exercitar `ads_read` /
+  `ads_management` e reprova as duas.
+
+**3 permissões recomendadas para TIRAR** (zero uso em código):
+`instagram_manage_comments`, `pages_manage_metadata`, `business_management`.
+
+**Buraco inverso:** `client.ts:201,207` publica em Página do Facebook e exige
+`pages_manage_posts`, que **não é pedida** — publicação orgânica em Página é
+código morto hoje.
+
+**Portão rodado À MÃO** (GitHub Actions em pane): `vitest` 139/139 arquivos,
+2206/2206 testes; `tsc --noEmit` limpo; eslint sem erro novo.
+
 ## ✅ 06/08/2026 (noite) — As duas rotinas órfãs ganharam agendamento
 
 Código sem agendamento é promessa, não mecanismo. Duas rotinas existiam e

@@ -27,13 +27,34 @@ import { prisma } from "@/lib/db/client";
 import { createHash, randomUUID } from "crypto";
 import { resolveMetaAppCredentials } from "@/lib/integrations/meta/config";
 import { lerSignedRequest } from "@/lib/integrations/meta/signed-request";
+import { origemPublica } from "@/lib/http/endereco-publico";
 
 export const dynamic = "force-dynamic";
 
-function base(): string {
-  const b = process.env.PUBLIC_BASE_URL?.trim() || process.env.RAILWAY_PUBLIC_DOMAIN?.trim() || "";
-  if (!b) return "";
-  return b.startsWith("http") ? b : `https://${b}`;
+// ── POR QUE ESTA FUNÇÃO MUDOU EM 06/08/2026 ────────────────────────────────
+//
+// Ela devolvia `RAILWAY_PUBLIC_DOMAIN`, que nesta casa vale
+// `diolidigital.com.br` — o domínio APEX, que **não tem registro de DNS**.
+// Conferido ao vivo: a resposta em produção era
+// `https://diolidigital.com.br/exclusao-de-dados?codigo=…`, um link que não
+// abre em lugar nenhum. É o link que a Meta clica na análise do app para
+// confirmar que o callback de exclusão funciona — e link morto ali reprova o
+// envio inteiro (fonte: docs/plataformas/meta/fontes/app-review-processo.md:
+// "Se não conseguirmos acessar seu app para a execução de testes, todo o seu
+// envio será rejeitado").
+//
+// Agora a origem sai do MESMO endereço em que a Meta nos chamou
+// (`x-forwarded-host`, via `origemPublica`) — se ela bate no domínio do
+// Railway, recebe de volta o domínio do Railway. Só depois cai no endereço
+// declarado da casa (`NEXT_PUBLIC_APP_URL`, que é o `www`, esse sim resolve).
+// O apex saiu da corrente: um endereço que não resolve nunca é bom padrão.
+function base(request: NextRequest): string {
+  const daRequisicao = origemPublica(request);
+  if (daRequisicao) return daRequisicao;
+
+  const declarado = process.env.PUBLIC_BASE_URL?.trim() || process.env.NEXT_PUBLIC_APP_URL?.trim() || "";
+  if (!declarado) return "";
+  return (declarado.startsWith("http") ? declarado : `https://${declarado}`).replace(/\/+$/, "");
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -84,7 +105,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   void apagarDadosDoUsuario(impressao).catch(() => { /* registrado acima */ });
 
   return NextResponse.json({
-    url: `${base()}/exclusao-de-dados?codigo=${codigo}`,
+    url: `${base(request)}/exclusao-de-dados?codigo=${codigo}`,
     confirmation_code: codigo,
   });
 }
@@ -93,16 +114,41 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
  * O que a Dioli guarda de um usuário DA META é a conexão de conta dele.
  *
  * Não guardamos perfil, amigos nem qualquer dado pessoal vindo do login — a
- * conexão existe para publicar e medir em nome do cliente. Apagá-la é o que
- * "esquecer esta pessoa" significa aqui, e é honesto dizer isso em vez de
- * fingir uma varredura maior do que a que existe.
+ * conexão existe para publicar e medir em nome do cliente.
+ *
+ * ── A VERDADE, DITA COM TODAS AS LETRAS (corrigido em 06/08/2026) ───────────
+ *
+ * Esta função ANTES gravava "conexões Meta associadas removidas" — e não
+ * removia nada. Era uma frase falsa no registro de auditoria, exatamente o
+ * lugar onde a frase falsa custa mais caro: quem lesse o histórico concluiria
+ * que a exclusão aconteceu.
+ *
+ * O motivo de não remover é estrutural, e está registrado aqui em vez de
+ * escondido: `MetaConnection` guarda o id do ATIVO (conta do Instagram, Página,
+ * número de WhatsApp) — **não guarda o id do usuário da Meta que autorizou**.
+ * Sem essa coluna não existe como ligar o `user_id` do `signed_request` a uma
+ * linha do banco, e apagar por adivinhação apagaria a conexão de outra pessoa.
+ *
+ * Então o pedido é registrado como PENDENTE DE AÇÃO HUMANA, com prazo — e a
+ * página que a Meta e o usuário abrem (`/exclusao-de-dados?codigo=…`) já
+ * promete conclusão em até 15 dias por e-mail, que é o caminho que de fato
+ * existe hoje. Prometer menos e cumprir é defensável; prometer mais e gravar
+ * que cumpriu, não.
+ *
+ * Para automatizar: persistir o `user_id` da Meta em `MetaConnection` no
+ * momento da conexão (cabe em `metaJson`, sem migration) e passar a apagar por
+ * ele aqui.
  */
 async function apagarDadosDoUsuario(impressao: string): Promise<void> {
   await prisma.activityEvent.create({
     data: {
       workspaceId: "",
-      type: "exclusao_de_dados_concluida",
-      message: `Exclusão processada para o usuário ${impressao}: conexões Meta associadas removidas.`,
+      type: "exclusao_de_dados_pendente",
+      message:
+        `Pedido de exclusão da Meta registrado para o usuário ${impressao}. ` +
+        `AÇÃO HUMANA NECESSÁRIA: o banco não guarda o id do usuário da Meta que ` +
+        `autorizou a conexão, então não há como localizar as linhas por ele. ` +
+        `Concluir manualmente em até 15 dias, como a página do pedido promete.`,
     },
   }).catch(() => { /* best-effort */ });
 }

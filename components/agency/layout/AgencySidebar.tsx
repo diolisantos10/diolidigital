@@ -93,6 +93,11 @@ export default function AgencySidebar({ id, userInfo, mobileOpen = false, onMobi
         { label: "Planner", href: "/agency/planner", icon: CalendarIcon },
         { label: "Tarefas", href: "/agency/tasks", icon: CheckIcon, badge: taskBadgeCount },
         { label: "Entregas", href: "/agency/deliverables", icon: BoxIcon },
+        // A leitura de tráfego pago existia só como rota de API
+        // (`/api/meta/desempenho`) — mesmo defeito do Radar e do WhatsApp.
+        // Sem porta na interface, a Meta não consegue exercitar
+        // ads_management/ads_read na análise do app e reprova as duas.
+        { label: "Desempenho pago", href: "/agency/desempenho-pago", icon: ChartIcon },
       ],
     },
     {
@@ -332,6 +337,16 @@ function RadarIcon({ size = 16, className = "" }: { size?: number; className?: s
       <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.3"/>
       <circle cx="8" cy="8" r="2.6" stroke="currentColor" strokeWidth="1.3"/>
       <path d="M8 8l4-3.2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+/** Barras de desempenho — a leitura de mídia paga. */
+function ChartIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
+      <path d="M2.2 13.8h11.6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+      <path d="M4.6 13.8V8.4M8 13.8V3.6M11.4 13.8v-3.4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
     </svg>
   );
 }
