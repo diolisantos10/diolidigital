@@ -1,5 +1,27 @@
 # Pendências — o que está aberto
 
+## 🟢 06/08/2026 — Decisões do CEO, fechadas em conversa
+
+- **As 19 conexões de terceiros: MANTIDAS.** São produtos do próprio CEO em
+  stand-by (Sushi Cazza, Dilee, Kero Shop, Acesso Beleza, santioh_, dilix.br,
+  queise, Santioh Europe, Spa da Mente, City Jobs SP). Elas entraram em 03/08
+  pelo fluxo de token colado, que gravava tudo o que o token alcançava.
+  **A porta já foi fechada** (`lib/integrations/meta/escolha-de-ativos.ts`): hoje
+  nada é gravado sem marcação explícita. As 19 seguem no banco **sem
+  autorização** — o sistema não lê nenhuma delas. Apagar destruiria o token e
+  exigiria colar de novo caso virem clientes; manter é reversível, apagar não.
+- **A campanha parada da Foocci foi DELETADA pelo CEO.** Era "Nova campanha de
+  Leads — Cópia", ativa com R$ 25/dia e zero entrega em 30 dias (`start_time`
+  voltava como epoch zero — nunca começou). Risco de R$ 750/mês encerrado.
+- **Configuração de Login para Empresas criada** — id `1985152182184882`, já em
+  `META_LOGIN_CONFIG_ID` na produção. É o que tira o diálogo do fluxo clássico
+  de `scope`, causa do "Invalid Scopes" que o CEO levou na cara em 06/08.
+- **Deploy só com CI verde: AUTORIZADO**, com porta de emergência registrada.
+  Falta o CEO ligar "Wait for CI" no painel do Railway — conferido por API que
+  o campo **não é exposto** em `ServiceInstanceUpdateInput`; é clique de painel,
+  não falta de acesso.
+
+
 > Última atualização: 05/08/2026 (raio-x noturno virou mecanismo — os achados
 > abaixo saíram da primeira coleta e cada um tem dono).
 
