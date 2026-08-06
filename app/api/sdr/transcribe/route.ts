@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from "next/server";
 // no volume, é atômico e é fail-closed: contador fora do ar recusa, não libera.
 import { limiteExcedido } from "@/lib/security/limite-no-banco";
 import { chaveDeRotaPublica } from "@/lib/ai/chave-publica";
+import { codigoDeErroDoProvedor, classificarFalhaDoProvedor } from "@/lib/ai/transcricao";
 
 const OPENAI_URL = "https://api.openai.com/v1/audio/transcriptions";
 const TIMEOUT_MS = 30_000;
@@ -77,9 +78,25 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     });
 
     if (!res.ok) {
-      const errText = await res.text().catch(() => "");
-      console.error(`[sdr/transcribe] OpenAI ${res.status}: ${errText}`);
-      return NextResponse.json({ ok: false, reason: "provider_error" });
+      // ── 06/08/2026 — POR QUE O CORPO DO ERRO SAIU DAQUI ───────────────────
+      // Esta linha logava `res.text()` inteiro. O corpo de erro do provedor
+      // pode ecoar trechos do que foi ENVIADO — e o que foi enviado é a fala
+      // de quem preencheu o briefing: nome, telefone, faturamento. Isso é PII
+      // no log, e log de produção é lido por gente e por ferramenta.
+      // O que fica: status + `error.code`/`error.type`, que são enum fechado
+      // do provedor. Mesmo diagnóstico, sem a fala de ninguém.
+      // `sem_saldo` aparece aqui como 429 + insufficient_quota — ver
+      // `classificarFalhaDoProvedor` em lib/ai/transcricao.ts.
+      const diag = await codigoDeErroDoProvedor(res);
+      console.error(
+        `[sdr/transcribe] OpenAI ${res.status}` +
+          (diag ? ` · code=${diag.code ?? "-"} type=${diag.type ?? "-"}` : ""),
+      );
+      return NextResponse.json({
+        ok: false,
+        reason: "provider_error",
+        motivo: classificarFalhaDoProvedor(res.status, diag),
+      });
     }
 
     const data = (await res.json()) as { text?: string };

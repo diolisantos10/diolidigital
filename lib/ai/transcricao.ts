@@ -53,6 +53,10 @@ export type MotivoDeFalhaDeTranscricao =
    *  saldo ou sem permissão de áudio. É configuração da agência, não do cliente
    *  — e era o caso que mais se disfarçava de "indisponível". */
   | "chave_recusada"
+  /** a chave é VÁLIDA e a conta do provedor está SEM CRÉDITO. Não é ritmo (não
+   *  passa esperando) e não é chave errada (não passa trocando a chave): passa
+   *  quando alguém põe saldo. Ver `classificarFalhaDoProvedor`. */
+  | "sem_saldo"
   /** o provedor recusou o ARQUIVO (400/415/422): formato, codec ou tamanho */
   | "audio_recusado"
   /** token de portal inválido/expirado */
@@ -91,6 +95,8 @@ const MENSAGENS: Record<MotivoDeFalhaDeTranscricao, string> = {
     "A transcrição por voz não está configurada. Escreva no campo acima — nada se perde.",
   chave_recusada:
     "A transcrição por voz está com um problema de configuração do nosso lado. Escreva no campo acima — nada se perde, e já fomos avisados.",
+  sem_saldo:
+    "A transcrição por voz está temporariamente fora do ar por uma pendência da nossa conta. Escreva no campo acima — nada se perde, e já fomos avisados.",
   audio_recusado:
     "Não consegui processar este áudio. Grave de novo, de preferência mais curto — ou escreva no campo acima.",
   acesso_negado:
@@ -176,8 +182,44 @@ export function extensaoDeAudio(mime: string): string {
  * Note que `chave_recusada` NÃO vira `sem_chave`: "não configurado" e
  * "configurado e recusado" pedem ações opostas, e trocar um pelo outro manda o
  * operador procurar uma chave que já está lá.
+ *
+ * ─── 06/08/2026 — POR QUE O STATUS SOZINHO AINDA MENTIA ─────────────────────
+ * O log de produção do deploy c98d8f88 trouxe a linha inteira:
+ *
+ *     [transcricao] provedor respondeu 429 · code=credit_balance_exhausted
+ *                                            type=insufficient_quota
+ *
+ * A chave está lá e é válida; a CONTA está sem crédito. A OpenAI devolve isso
+ * como **429**, o MESMO status do teto por minuto — está na documentação dela,
+ * com todas as letras: "429 insufficient_quota — You exceeded your current
+ * quota, please check your plan and billing details".
+ *
+ * Só pelo status, o cliente do CEO lia "Muitas gravações seguidas. Aguarde
+ * alguns segundos" para um problema que **nenhuma espera resolve**. É a mesma
+ * família de defeito de `provedor_indisponivel`: uma palavra cobrindo dois
+ * consertos opostos — só que esta manda o operador esperar para sempre.
+ *
+ * Por isso a classificação lê `code`/`type` quando eles existem. Os dois são
+ * enum fechado do provedor (não texto livre), então a regra de PII continua
+ * inteira. Sem corpo legível, 429 volta a ser `ritmo` — o palpite certo quando
+ * não há informação, e ausência de informação não vira informação.
  */
-export function classificarFalhaDoProvedor(status: number): MotivoDeFalhaDeTranscricao {
+const CODIGOS_DE_SEM_SALDO = new Set([
+  "insufficient_quota",
+  "credit_balance_exhausted",
+  "billing_hard_limit_reached",
+  "account_deactivated",
+]);
+
+export function classificarFalhaDoProvedor(
+  status: number,
+  diag?: { code?: string; type?: string } | null,
+): MotivoDeFalhaDeTranscricao {
+  const semSaldo =
+    (diag?.code && CODIGOS_DE_SEM_SALDO.has(diag.code)) ||
+    (diag?.type && CODIGOS_DE_SEM_SALDO.has(diag.type));
+  if (semSaldo) return "sem_saldo";
+
   if (status === 401 || status === 403 || status === 402) return "chave_recusada";
   if (status === 429) return "ritmo";
   if (status === 413) return "audio_grande";
@@ -192,7 +234,7 @@ export function classificarFalhaDoProvedor(status: number): MotivoDeFalhaDeTrans
  * pode conter eco do que foi enviado — e o que foi enviado é a fala do cliente.
  * Nunca lança: falhar ao ler um erro não pode virar um segundo erro.
  */
-async function codigoDeErroDoProvedor(
+export async function codigoDeErroDoProvedor(
   res: Response,
 ): Promise<{ code?: string; type?: string } | null> {
   try {
@@ -256,7 +298,7 @@ export async function transcreverAudio(opts: {
         `[transcricao] provedor respondeu ${res.status}` +
           (diag ? ` · code=${diag.code ?? "-"} type=${diag.type ?? "-"}` : ""),
       );
-      return falhaDeTranscricao(classificarFalhaDoProvedor(res.status));
+      return falhaDeTranscricao(classificarFalhaDoProvedor(res.status, diag));
     }
 
     let texto = "";

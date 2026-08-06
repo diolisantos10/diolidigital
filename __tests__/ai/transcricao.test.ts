@@ -136,13 +136,52 @@ describe("a recusa do provedor deixou de ser uma palavra só", () => {
     expect(r).not.toEqual(falhaDeTranscricao("sem_chave"));
   });
 
-  it("403 e 402 (sem saldo) também são chave recusada — é conta da agência, não do cliente", async () => {
+  it("403 é chave recusada — é conta da agência, não do cliente", async () => {
     expect(await comStatus(403)).toEqual(falhaDeTranscricao("chave_recusada"));
-    expect(await comStatus(402, { error: { code: "insufficient_quota" } })).toEqual(falhaDeTranscricao("chave_recusada"));
+    // 402 sem corpo legível: cobrança do provedor, sem saber qual. Chave
+    // recusada é o palpite que manda o operador ao lugar certo (Integrações).
+    expect(await comStatus(402)).toEqual(falhaDeTranscricao("chave_recusada"));
   });
 
   it("429 do provedor vira 'ritmo' — esperar resolve, mexer na chave não", async () => {
     expect(await comStatus(429)).toEqual(falhaDeTranscricao("ritmo"));
+  });
+
+  // ─── O bug DE VERDADE, lido do log de produção em 06/08/2026 ───────────────
+  // [transcricao] provedor respondeu 429 · code=credit_balance_exhausted
+  //                                        type=insufficient_quota
+  // A chave é válida. A conta está sem crédito. A OpenAI manda isso em 429 —
+  // o mesmo status do teto por minuto. Classificar pelo status mandava o
+  // cliente do CEO "aguardar alguns segundos" para sempre.
+  it("429 SEM SALDO não é ritmo — nenhuma espera resolve conta sem crédito", async () => {
+    const r = await comStatus(429, {
+      error: { code: "credit_balance_exhausted", type: "insufficient_quota" },
+    });
+    expect(r).toEqual(falhaDeTranscricao("sem_saldo"));
+    expect(r).not.toEqual(falhaDeTranscricao("ritmo"));
+    // e a frase na tela não pode mandar esperar
+    expect((r as { mensagem: string }).mensagem).not.toMatch(/aguarde|segundos/i);
+  });
+
+  it("insufficient_quota em 402 também é sem_saldo, não 'chave recusada'", async () => {
+    expect(await comStatus(402, { error: { type: "insufficient_quota" } }))
+      .toEqual(falhaDeTranscricao("sem_saldo"));
+  });
+
+  // A OUTRA METADE: a leitura do corpo não pode inventar "sem saldo" onde não há.
+  it("429 de RITMO DE VERDADE continua ritmo — a trava nova não pega o caso limpo", async () => {
+    expect(await comStatus(429, { error: { code: "rate_limit_exceeded", type: "requests" } }))
+      .toEqual(falhaDeTranscricao("ritmo"));
+    // e sem corpo legível também: ausência de informação não vira informação
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("<html>", { status: 429 })));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(await transcreverAudio({ apiKey: CHAVE, arquivo: audio(5_000) }))
+      .toEqual(falhaDeTranscricao("ritmo"));
+  });
+
+  it("401 com chave inválida continua chave_recusada — não vira sem_saldo", async () => {
+    expect(await comStatus(401, { error: { code: "invalid_api_key" } }))
+      .toEqual(falhaDeTranscricao("chave_recusada"));
   });
 
   it("400 é ÁUDIO recusado — o conserto é regravar, não mexer na configuração", async () => {
@@ -185,7 +224,7 @@ describe("a recusa do provedor deixou de ser uma palavra só", () => {
   });
 
   it("todo motivo novo tem frase em português — nenhum chega cru na tela", () => {
-    for (const m of ["chave_recusada", "audio_recusado"] as const) {
+    for (const m of ["chave_recusada", "audio_recusado", "sem_saldo"] as const) {
       const f = falhaDeTranscricao(m);
       expect(f.mensagem.length).toBeGreaterThan(20);
       expect(f.mensagem).not.toContain("_");
