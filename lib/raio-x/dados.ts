@@ -205,6 +205,42 @@ export async function varrerDadosPresos(agora: Date = new Date()): Promise<Resul
     //    continua sustentável ou virou porta.
     const orfas = await prisma.clientRequestDb.count({ where: { workspaceId: null } });
     medidas.solicitacoesOrfas = orfas;
+
+    // 10. O CLIENTE PEDIU E NINGUÉM PEGOU.
+    //
+    // A cicatriz é de 06/08/2026 e é a mais cara desta lista. O CEO pediu um
+    // roteiro de vídeo em 05/08 às 14h47; o pedido gravou com status "novo" e
+    // ficou lá **dois dias**, até ele cobrar dizendo que o ChatGPT entregaria
+    // em um minuto e meio.
+    //
+    // O raio-x enxergava peça presa, mensagem sem leitura e material não
+    // perguntado — e **não enxergava pedido preso**. O balde mais próximo do
+    // dinheiro era justamente o que ninguém media: é do pedido do cliente que
+    // sai projeto novo. Estado "novo" não aciona ninguém, e o que não aciona
+    // ninguém precisa, no mínimo, acordar alguém pela madrugada.
+    const pedidosNovos = await prisma.clientRequestDb.count({ where: { status: "novo" } });
+    const pedidosNovosParados = await prisma.clientRequestDb.count({
+      where: { status: "novo", createdAt: { lt: ontem(agora) } },
+    });
+    medidas.pedidosNovos = pedidosNovos;
+    medidas.pedidosNovosHaMaisDeUmDia = pedidosNovosParados;
+    if (pedidosNovosParados > 0) {
+      const maisAntigo = await prisma.clientRequestDb.findFirst({
+        where: { status: "novo", createdAt: { lt: ontem(agora) } },
+        select: { id: true, createdAt: true },
+        orderBy: { createdAt: "asc" },
+      });
+      achados.push({
+        padrao: "estado-morto",
+        chave: "pedido-do-cliente-parado",
+        titulo: "Pedido do cliente parado sem ninguém pegar",
+        evidencia:
+          `${pedidosNovosParados} pedido(s) em "novo" há +24h (${pedidosNovos} no total). ` +
+          `O mais antigo: ${maisAntigo?.id} de ${maisAntigo?.createdAt?.toISOString()}`,
+        local: "ClientRequestDb.status",
+        gravidade: "alto",
+      });
+    }
   } catch (erro) {
     // Banco fora do ar é AUSÊNCIA DE INFORMAÇÃO, e ausência de informação não é
     // informação: a varredura volta cega, com motivo, e não conta como "tudo bem".
