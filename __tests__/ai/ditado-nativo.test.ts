@@ -168,6 +168,37 @@ describe("corte por silêncio religa — o dono pode pensar no meio da frase", (
     expect(fim).toBe(1);
     expect(ReconhecedorFalso.inicios).toBe(1); // não religou
   });
+
+  // ─── 06/08/2026 · o nativo que EXISTE e não funciona ───────────────────────
+  // No iPhone todo navegador é WebKit, e um WebKit embarcado (Chrome, Edge,
+  // Firefox do iOS) pode expor o construtor sem ter o serviço por trás: start()
+  // passa, onend chega na hora, nenhum onerror dispara. Sem esta trava, o
+  // religamento vira LOOP — 40 partidas, botão vermelho aceso e nem uma palavra
+  // no campo, no aparelho do dono.
+  it("abre e fecha sem NUNCA reconhecer nada: rebaixa em vez de religar para sempre", () => {
+    comNavegador({ webkit: true });
+    let fim = 0;
+    iniciarDitadoNativo({ onFinal: () => {}, onFim: () => { fim++; }, onFalha: () => {} });
+
+    ReconhecedorFalso.ultimo!.cortarPorSilencio();
+    ReconhecedorFalso.ultimo!.cortarPorSilencio();
+    ReconhecedorFalso.ultimo!.cortarPorSilencio();
+
+    expect(ReconhecedorFalso.inicios).toBeLessThanOrEqual(3); // desistiu cedo
+    expect(fim).toBe(1);                                      // a tela sai de "ouvindo"
+    expect(suportaDitadoNativo()).toBe(false);                // e cai para o envio
+  });
+
+  it("quem JÁ reconheceu alguma coisa continua religando — silêncio no meio da frase é normal", () => {
+    comNavegador({ padrao: true });
+    iniciarDitadoNativo({ onFinal: () => {}, onFim: () => {}, onFalha: () => {} });
+
+    ReconhecedorFalso.ultimo!.dizer("preciso trocar", false);
+    for (let i = 0; i < 5; i++) ReconhecedorFalso.ultimo!.cortarPorSilencio();
+
+    expect(ReconhecedorFalso.inicios).toBe(6);
+    expect(suportaDitadoNativo()).toBe(true);
+  });
 });
 
 describe("cada falha vira a SUA frase — e só a técnica rebaixa o caminho", () => {

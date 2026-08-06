@@ -202,7 +202,26 @@ export function iniciarDitadoNativo(opts: {
   let encerrado = false;
   let pedidoDeParada = false;
   let religamentos = 0;
+  let houveResultado = false;
   const MAX_RELIGAMENTOS = 40; // teto para nunca virar microfone infinito
+  /**
+   * ─── 06/08/2026 · O NATIVO QUE EXISTE E NÃO FUNCIONA ──────────────────────
+   * Rebaixar por ERRO cobre o caso barulhento. Falta o silencioso, e ele é
+   * justamente o do aparelho do CEO: no iPhone TODO navegador é WebKit, e um
+   * WebKit embarcado (Chrome/Edge/Firefox do iOS) pode expor o construtor de
+   * `webkitSpeechRecognition` sem ter o serviço de reconhecimento por trás.
+   * Aí `start()` passa, `onend` chega na hora, e nenhum `onerror` dispara.
+   *
+   * Com o religamento de cima, isso não seria "não funciona": seria um LOOP —
+   * 40 partidas em sequência, botão vermelho aceso, microfone do sistema
+   * piscando e nem uma palavra no campo. Duas voltas sem NENHUM resultado já
+   * são resposta suficiente: o nativo não serve aqui. Rebaixa, e a tela cai
+   * sozinha para gravar-e-enviar no toque seguinte.
+   *
+   * O teto é 2, não 1, porque começar em silêncio de verdade acontece (a pessoa
+   * abre o microfone e pensa antes de falar) e não pode custar o caminho grátis.
+   */
+  const RELIGAMENTOS_SEM_RESULTADO = 2;
 
   const encerrar = () => {
     if (encerrado) return;
@@ -219,6 +238,7 @@ export function iniciarDitadoNativo(opts: {
       const r = e.results[i];
       const t = r?.[0]?.transcript ?? "";
       if (!t) continue;
+      houveResultado = true;
       if (r.isFinal) opts.onFinal(t.trim());
       else parcial += t;
     }
@@ -233,6 +253,14 @@ export function iniciarDitadoNativo(opts: {
   };
 
   rec.onend = () => {
+    // Nativo que abre e fecha sem nunca reconhecer nada: rebaixa em vez de
+    // religar para sempre. É o WebKit embarcado do iPhone (Chrome/Edge/Firefox
+    // do iOS) — ver `RELIGAMENTOS_SEM_RESULTADO`.
+    if (!houveResultado && religamentos >= RELIGAMENTOS_SEM_RESULTADO) {
+      rebaixarDitadoNativo();
+      encerrar();
+      return;
+    }
     // Corte por silêncio: religa enquanto o usuário não pediu parada.
     if (!pedidoDeParada && !encerrado && religamentos < MAX_RELIGAMENTOS) {
       religamentos++;

@@ -363,6 +363,41 @@ O corte é `lg`, não `md`, e o motivo é aritmético: a partir de `md` a sideba
 volta a ocupar 224px, então um tablet de 768px tem **544px** de conteúdo — menos
 que o celular tinha de sobra. Mesmo raciocínio da §6.0.
 
+### 6.5 No iPhone, TODO navegador é WebKit — inclusive o Chrome
+
+O CEO foi direto: *"todo mundo usa o Chrome."* No iPhone essa frase tem uma
+consequência de produto que muda prioridade, não só implementação: a App Store
+obriga todo navegador do iOS a rodar o WebKit do sistema, e o
+`SpeechRecognition` é exposto **só pelo Safari**. Logo:
+
+- **no Chrome do iPhone, o ditado nativo não existe.** Gravar-e-enviar não é
+  rede de segurança: é a **rua principal** da maioria dos nossos usuários;
+- o contêiner que aquela engine grava de casa é **MP4/AAC**, não WebM/Opus.
+
+Três regras saem daí, e valem para qualquer captura de mídia:
+
+1. **Suporte é medido; preferência pode ser inferida.** `isTypeSupported` decide
+   o que existe. UA só escolhe entre formatos que a engine já confirmou —
+   presumir preferência erra num formato pior, presumir suporte quebra a
+   gravação.
+2. **Não passar `mimeType` é uma resposta legítima.** Pela especificação, sem
+   `mimeType` o navegador usa o padrão dele. O melhor palpite sobre o formato de
+   um aparelho é o do próprio aparelho.
+3. **Quem detecta é a camada, não a tela.** O hook do briefing checava só
+   `getUserMedia` e esquecia o `MediaRecorder`: o botão aparecia, o prospect
+   gravava, e a falha só chegava **no fim**. Detecção duplicada à mão sempre
+   fica com metade da condição.
+
+E a lição de método, que é a mais cara: **a hipótese bonita era falsa.** A
+suspeita registrada era "o construtor lança `NotSupportedError` e a gravação
+morre calada". Emulada no Chromium com as regras lidas no código-fonte do
+WebKit, ela **não se reproduziu** — `MediaRecorder::create` chama o mesmo
+`isTypeSupported`, então o que a engine reporta o construtor aceita. Os defeitos
+reais eram outros (rótulo mentindo, falha muda, `error` descartado no portal).
+**Comentário de código que afirma uma causa não verificada vira a próxima
+investigação errada.** Escreva o que foi medido, e escreva também o que a
+medição desmentiu.
+
 ### 6.4 Ação revelada no hover não existe no celular
 
 `opacity-0 group-hover:opacity-100` é elegante no desktop e é **funcionalidade
@@ -514,6 +549,26 @@ Levantamento de auditoria (Julho/2026). Prioridade: **P0** crítico → **P3** b
   camada devolveu**, nunca uma frase escrita à mão no JSX. *(Corrigido em
   06/08/2026 no `PublicBriefingRoom`; conferir os outros usos de
   `useSpeechToText` ao tocar neles.)*
+  *(Varredura feita em 06/08/2026 — e ela achou mais três, todos da mesma
+  família de "a tela escreve a própria frase":*
+  - *`PortalChat` **descartava `error`**: falha de microfone na tela de quem
+    paga não deixava rastro nenhum. Agora tem `role="alert"` com a frase da
+    camada;*
+  - *`Ditado.tsx` dizia "não está disponível **neste navegador**" quando a causa
+    era a AGÊNCIA sem provedor configurado — mandando o cliente desconfiar do
+    aparelho dele por uma pendência nossa;*
+  - *`BriefingRoomV2` era a cópia atrasada: 10px de fonte, alvo de 24px e o
+    ativo em rosa claro. Subiu para 12px/32px e vermelho cheio, como o público.)*
+
+- **I-23 · Rótulo de estado tem que descrever o motor que está rodando.** O
+  microfone do briefing dizia **"Ouvindo"** nos dois caminhos. No reconhecimento
+  nativo isso é verdade (o texto aparece durante a fala); no caminho de **envio**
+  — que é o do Chrome do iPhone, ver §6.5 — não se ouve nada ao vivo: o texto só
+  chega depois de parar. O prospect ficava esperando, na tela de conversão da
+  agência, um texto que por desenho não vinha. Agora o hook devolve `modo`, e o
+  rótulo é **"Gravando · toque para transcrever · 0:00"**, com relógio porque
+  existe corte automático em 3 minutos. Regra: **quando dois motores diferentes
+  alimentam o mesmo botão, o rótulo diz qual está rodando.**
 
 ### P3 — Conversão / polimento
 - **I-15 · Vitrine sem prova social** (depoimentos, logos, portfólio) e sem CTA primário no hero.
@@ -540,4 +595,7 @@ _(Regras 4 e 5 estão fixadas no `CLAUDE.md`.)_
 
 ---
 
-_Última atualização: 2026-08-05 (madrugada de melhoria: §2 conferida contra o CSS, §6.1 com varredura datada, §6.3, §6.4) · mantenha este arquivo vivo._
+_Última atualização: 2026-08-06 (§6.5 — o iPhone é WebKit em todo navegador; I-22
+com a varredura dos três usos restantes; I-23 rótulo por motor) · anterior:
+2026-08-05 (§2 conferida contra o CSS, §6.1 com varredura datada, §6.3, §6.4) ·
+mantenha este arquivo vivo._
