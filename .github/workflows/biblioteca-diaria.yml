@@ -1,0 +1,99 @@
+name: Biblioteca — recaptura diária das plataformas
+
+# ── POR QUE ESTE ARQUIVO EXISTE ────────────────────────────────────────────
+#
+# Em 03/08/2026, no dia em que a Meta restringiu a conta de anúncios da agência,
+# o CEO mandou: *"que essa biblioteca seja atualizada diariamente, e que isso
+# nunca mais se repita."* O documento que registrou a ordem prometia uma rotina
+# às 06:00 BRT — e **essa rotina nunca teve artefato nenhum.** Ficou três dias
+# muda enquanto 7 fontes de política mudavam sem ninguém saber.
+#
+# Rotina que existe só em documento é promessa, não mecanismo. Este arquivo é o
+# mecanismo: roda sozinho, sem sessão aberta, e deixa rastro auditável.
+#
+# ── AS DUAS REGRAS QUE ELE OBEDECE ─────────────────────────────────────────
+#
+# 1. **A coleta é código, não IA.** Se um modelo coletasse, ele erraria
+#    diferente toda noite e a comparação com ontem morreria. O `capturar.mjs`
+#    tem hash por fonte: mudou o hash, mudou a página.
+# 2. **Falha não é silêncio.** O script sai com código 2 quando alguma fonte
+#    falha. Aqui isso NÃO derruba o commit do que deu certo — mas aparece no
+#    resumo do job, porque captura que falha calada vira lacuna invisível, e
+#    lacuna invisível é o mesmo que biblioteca mentindo sobre a própria
+#    cobertura.
+
+on:
+  schedule:
+    # 09:00 UTC = 06:00 BRT, o horário que o documento de 03/08 prometeu.
+    - cron: "0 9 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  recapturar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/dioli-pm-role-pow56e
+          # O passo de commit precisa de credencial para empurrar de volta.
+          persist-credentials: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      # Os centros de ajuda dessas empresas são aplicações JavaScript: sem
+      # navegador de verdade, a captura devolve casca vazia e a biblioteca
+      # inteira vira decoração.
+      - run: npx playwright install --with-deps chromium
+
+      - name: Recapturar todas as plataformas
+        id: captura
+        run: |
+          set +e
+          node scripts/biblioteca/capturar.mjs 2>&1 | tee /tmp/captura.log
+          echo "codigo=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+          set -e
+
+      - name: Resumo (o que mudou e o que falhou)
+        run: |
+          {
+            echo "## Recaptura diária"
+            echo ""
+            echo "- Fontes que MUDARAM: $(grep -c 'MUDOU' /tmp/captura.log || echo 0)"
+            echo "- Fontes que FALHARAM: $(grep -ci 'falh' /tmp/captura.log || echo 0)"
+            echo ""
+            echo '```'
+            grep -iE 'MUDOU|falh' /tmp/captura.log | head -40 || echo "(nada)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commitar o que mudou
+        run: |
+          if [ -z "$(git status --porcelain docs/plataformas)" ]; then
+            echo "Nenhuma fonte mudou hoje — sem commit, sem ruído."
+            exit 0
+          fi
+          git config user.name  "biblioteca-diaria"
+          git config user.email "noreply@dioli.studio"
+          git add docs/plataformas
+          git commit -m "Biblioteca: recaptura de $(date -u +%d/%m/%Y)
+
+          $(grep 'MUDOU' /tmp/captura.log | head -20 || true)"
+          # A rotina compete com sessões humanas na mesma branch. Rebase antes
+          # de empurrar; se ainda assim colidir, ela perde a vez e tenta amanhã
+          # — trabalho de gente nunca é atropelado por rotina.
+          git pull --rebase origin claude/dioli-pm-role-pow56e || exit 0
+          git push origin HEAD:claude/dioli-pm-role-pow56e
+
+      - name: Falha de captura aparece, mas não apaga o que deu certo
+        if: steps.captura.outputs.codigo == '2'
+        run: |
+          echo "::warning::Alguma fonte falhou na captura. Veja o resumo do job — falha calada vira lacuna invisível."
