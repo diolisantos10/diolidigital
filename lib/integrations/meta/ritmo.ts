@@ -43,6 +43,12 @@
 //      crescente.
 //
 // ─── ⚠️ LIMITAÇÃO CONHECIDA, DITA AQUI E NÃO NUM E-MAIL DE BAN ──────────────
+// ATUALIZAÇÃO 06/08/2026: para a MARKETING API esta limitação foi FECHADA — a
+// cota por pontuação (leitura 1, escrita 3, teto 60 por conta a cada 300s) é
+// contada no BANCO, por conta de anúncios, em `./cota-de-anuncios.ts`. O que
+// está descrito abaixo continua valendo para o resto (Instagram, Páginas,
+// WhatsApp), que ainda usa os baldes em memória deste arquivo.
+//
 // Os contadores são MEMÓRIA DE PROCESSO. Com N réplicas no ar, o teto efetivo
 // na MESMA conta da Meta é N × TETO_POR_HORA, e todo redeploy zera tudo. O
 // incidente de 03/08 foi restrição de CONTA — exatamente o eixo em que este

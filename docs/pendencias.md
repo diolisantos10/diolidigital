@@ -28,6 +28,36 @@ Routine. O texto de 03/08 abaixo diz "recaptura diária agendada (rotina às
 
 ---
 
+## 🟡 06/08/2026 — O token de SANDBOX da Meta não existe (bloqueia a prova final)
+
+`scripts/meta-sandbox.ts` já monta a estrutura inteira (campanha → conjunto →
+criativo → anúncio, tudo PAUSADO), com catálogo fechado e cota por pontuação.
+**Falta o token.** As variáveis do Railway (projeto Dioli Digital) têm
+`META_APP_ID`, `META_APP_SECRET` e o token do WhatsApp — **nenhum token de
+usuário com `ads_management` para `act_1072627681961050`**.
+
+- Testado hoje, com uma ÚNICA leitura (é assim que se testa acesso, nunca com
+  create/delete): o app access token é recusado com
+  `(#200) Ad account owner has NOT grant ads_management or ads_read permission`.
+- **O que o CEO precisa fazer:** gerar no Explorer um token de usuário com
+  `ads_management` + `ads_read` que enxergue a conta de sandbox e entregá-lo
+  como variável de ambiente da execução (não commitado, não em arquivo).
+- Sem isso, a estrutura completa **não está provada na Meta** — só no código e
+  nos testes.
+
+## 🟢 06/08/2026 — Cota da Marketing API: número corrigido e contador no banco
+
+O código limitava por "300 + 40 × anúncios ativos por HORA", por processo. A
+Marketing API usa **pontuação**: leitura 1, escrita 3, teto 60 por conta a cada
+300s no nosso nível — **20 escritas travam a conta por 5 minutos**
+(fonte capturada: `docs/plataformas/meta/fontes/marketing-api-limites-de-taxa.md`).
+Contador agora em `MetaAdCota`/`MetaAdFreio` (banco), por conta de anúncios,
+com incremento atômico e freio persistente. **O que continua aberto:** os
+baldes de Instagram/WhatsApp de `ritmo.ts` e os caches de `leitura.ts`/`ads.ts`
+ainda são memória de processo (lacuna 8 da cartilha).
+
+---
+
 ## 🔵 05/08/2026 — Achados do raio-x, com dono
 
 Saíram da coleta de 05/08 (`docs/raio-x/relatorios/2026-08-05.md`). O raio-x

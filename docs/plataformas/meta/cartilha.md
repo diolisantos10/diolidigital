@@ -104,7 +104,9 @@ de falha/contestação de pagamento. (fonte: fontes/qualidade-da-conta.md)
 
 | Limite | Valor oficial |
 |---|---|
-| Gerenciamento de anúncios (app em **development_access**) | **300 + 40 × anúncios ativos** chamadas/hora por conta | 
+| **Marketing API — cota por PONTUAÇÃO (o limite que morde primeiro)** | **leitura = 1 ponto, escrita = 3 pontos; teto 60 por conta de anúncios, decaimento de 300s, no nível de desenvolvimento — ou seja, 20 ESCRITAS bloqueiam a conta por 5 minutos.** Acesso total: teto 9.000, bloqueio de 60s |
+| Marketing API — QPS de mutação | 100 requisições/segundo por app+conta (criação/edição de campanha, conjunto e anúncio) |
+| Gerenciamento de anúncios (app em **development_access**) | 300 + 40 × anúncios ativos chamadas/hora por conta (camada BUC, por cima da pontuação) | 
 | Gerenciamento de anúncios (standard/advanced access) | 100.000 + 40 × anúncios ativos chamadas/hora |
 | Insights de anúncios (development) | 600 + 400 × anúncios ativos − 0,001 × erros | 
 | Insights de anúncios (advanced) | 190.000 + 400 × anúncios ativos |
@@ -496,6 +498,15 @@ O que a cartilha **não** cobre com documento capturado:
    protege de nada no nosso caso: o que nos derrubou foi 60 pontos de cota (20
    escritas) e o padrão comportamental, não 100 chamadas por segundo. O balde
    próprio da casa continua valendo — agora calibrado também pela pontuação.
+   **Fechada em parte, 06/08/2026:** a cota da **Marketing API** passou a ser
+   contada NO BANCO, por conta de anúncios e por pontuação
+   (`lib/integrations/meta/cota-de-anuncios.ts` + tabelas `MetaAdCota` e
+   `MetaAdFreio`): incremento atômico, teto 48 pontos (80% dos 60 publicados),
+   janela de 300s somada com a anterior, e freio persistente quando a Meta
+   recusa por limite. Atravessa réplica e deploy. **Continua em memória** o que
+   não é Marketing API: o balde de rajada da Graph (`ritmo.ts`) e os caches de
+   `leitura.ts`/`ads.ts` — ou seja, a leitura de Instagram ainda tem o defeito
+   do N × teto.
 
 ---
 

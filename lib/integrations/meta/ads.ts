@@ -83,6 +83,7 @@ export async function listarContasDeAnuncio(
   try {
     const r = await graphGet<{ data?: Array<{ id: string; name?: string; currency?: string; account_status?: number }> }>(
       "me/adaccounts", conn.token, { fields: "id,name,currency,account_status", limit: 50 },
+      { operacao: "listar_contas" },
     );
     const contas = (r.data ?? []).map((c) => ({
       id: c.id, nome: c.name ?? c.id, moeda: c.currency ?? "BRL", status: c.account_status ?? 0,
@@ -174,7 +175,7 @@ export async function criarCampanhaPausada(
       // teto vale para o todo. Orçamento por conjunto multiplicaria o gasto
       // pelo número de conjuntos — o jeito mais fácil de estourar sem perceber.
       daily_budget: String(Math.round(plano.orcamentoDiarioBRL * 100)), // centavos
-    });
+    }, { operacao: "criar_campanha_pausada", conta: plano.contaId });
     return { ok: true, dados: { campaignId: r.id } };
   } catch (e) {
     return traduzirErro(e);
@@ -214,6 +215,7 @@ export async function buscarCidade(
     const r = await graphGet<{ data?: Array<{ key: string; name: string; country_code?: string }> }>(
       "search", conn.token,
       { type: "adgeolocation", location_types: '["city"]', q: termo.slice(0, 100), limit: 5 },
+      { operacao: "buscar_cidade" },
     );
     const br = r.data?.find((c) => c.country_code === "BR") ?? r.data?.[0];
     if (!br) return { ok: false, motivo: "sem_conta", erro: `A Meta não conhece a cidade "${termo}"` };
@@ -238,6 +240,7 @@ export async function buscarInteresses(
     try {
       const r = await graphGet<{ data?: Array<{ id: string; name: string }> }>(
         "search", conn.token, { type: "adinterest", q: termo.slice(0, 80), limit: 1 },
+        { operacao: "buscar_interesse" },
       );
       const i = r.data?.[0];
       if (i && !achados.some((a) => a.id === i.id)) achados.push({ id: i.id, name: i.name });
@@ -310,7 +313,8 @@ export async function criarConjuntoPausado(
   }
 
   try {
-    const r = await graphPost<{ id: string }>(`${input.contaId}/adsets`, conn.token, corpo);
+    const r = await graphPost<{ id: string }>(`${input.contaId}/adsets`, conn.token, corpo,
+      { operacao: "criar_conjunto_pausado", conta: input.contaId });
     return { ok: true, dados: { adSetId: r.id, segmentouGeografia } };
   } catch (e) {
     return traduzirErro(e);
@@ -369,14 +373,14 @@ export async function criarAnuncioPausado(
           call_to_action: { type: CTA_VALIDOS.includes(input.cta ?? "") ? input.cta : "LEARN_MORE" },
         },
       }),
-    });
+    }, { operacao: "criar_criativo", conta: input.contaId });
 
     const anuncio = await graphPost<{ id: string }>(`${input.contaId}/ads`, conn.token, {
       name: input.nome.slice(0, 200),
       adset_id: input.adSetId,
       creative: JSON.stringify({ creative_id: criativo.id }),
       status: "PAUSED",
-    });
+    }, { operacao: "criar_anuncio_pausado", conta: input.contaId });
 
     return { ok: true, dados: { adId: anuncio.id, creativeId: criativo.id } };
   } catch (e) {
@@ -396,13 +400,16 @@ export const CTA_VALIDOS = [
 export async function ativarFilhos(
   workspaceId: string,
   connectionId: string,
-  ids: { adSetId?: string | null; adId?: string | null },
+  ids: { adSetId?: string | null; adId?: string | null; contaId?: string },
 ): Promise<void> {
   const conn = await loadConnectionToken(workspaceId, connectionId);
   if (!conn) return;
   for (const id of [ids.adSetId, ids.adId]) {
     if (!id) continue;
-    await graphPost(id, conn.token, { status: "ACTIVE" }).catch(() => { /* best-effort */ });
+    // A operação é declarada: o catálogo (travas.ts) é o que autoriza a
+    // escrita, e é dele que sai o peso de 3 pontos na cota da conta.
+    await graphPost(id, conn.token, { status: "ACTIVE" }, { operacao: "ativar", conta: ids.contaId })
+      .catch(() => { /* best-effort */ });
   }
 }
 
@@ -417,6 +424,7 @@ export async function ativarCampanha(
   connectionId: string,
   campaignId: string,
   autorizadoPor: string,
+  contaId?: string,
 ): Promise<ResultadoDeAnuncio<{ ativada: true }>> {
   if (!autorizadoPor?.trim()) {
     return { ok: false, motivo: "orcamento_invalido", erro: "ativação sem autorizador identificado" };
@@ -425,7 +433,8 @@ export async function ativarCampanha(
   if (!conn) return { ok: false, motivo: "sem_conexao", erro: "Conexão Meta não encontrada ou token inválido" };
 
   try {
-    await graphPost(campaignId, conn.token, { status: "ACTIVE" });
+    await graphPost(campaignId, conn.token, { status: "ACTIVE" },
+      { operacao: "ativar", conta: contaId });
     return { ok: true, dados: { ativada: true } };
   } catch (e) {
     return traduzirErro(e);
@@ -438,11 +447,13 @@ export async function pausarCampanha(
   workspaceId: string,
   connectionId: string,
   campaignId: string,
+  contaId?: string,
 ): Promise<ResultadoDeAnuncio<{ pausada: true }>> {
   const conn = await loadConnectionToken(workspaceId, connectionId);
   if (!conn) return { ok: false, motivo: "sem_conexao", erro: "Conexão Meta não encontrada ou token inválido" };
   try {
-    await graphPost(campaignId, conn.token, { status: "PAUSED" });
+    await graphPost(campaignId, conn.token, { status: "PAUSED" },
+      { operacao: "pausar", conta: contaId });
     return { ok: true, dados: { pausada: true } };
   } catch (e) {
     return traduzirErro(e);
@@ -497,7 +508,7 @@ export async function lerDesempenho(
   connectionId: string,
   campaignId: string,
   periodo: { desde: string; ate: string },
-  opts: { ignorarCache?: boolean } = {},
+  opts: { ignorarCache?: boolean; contaId?: string } = {},
 ): Promise<ResultadoDeAnuncio<DesempenhoPago>> {
   const chave = `${connectionId}:${campaignId}:${periodo.desde}:${periodo.ate}`;
   if (!opts.ignorarCache) {
@@ -516,6 +527,7 @@ export async function lerDesempenho(
         fields: "spend,impressions,clicks,reach",
         time_range: JSON.stringify({ since: periodo.desde, until: periodo.ate }),
       },
+      { operacao: "ler_desempenho", conta: opts.contaId },
     );
     const linha = r.data?.[0];
     if (!linha) {

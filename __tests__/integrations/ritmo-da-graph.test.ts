@@ -27,6 +27,11 @@ import {
   TETO_POR_HORA, FICHAS_DE_RAJADA, TIPO_DE_RITMO_DA_CASA,
 } from "@/lib/integrations/meta/ritmo";
 import { lerDesempenho, limparCacheDeDesempenho } from "@/lib/integrations/meta/ads";
+// A cota por pontuação da Marketing API é FAIL-CLOSED: sem banco, o caminho de
+// anúncios recusa a chamada antes de qualquer coisa. Aqui ela roda num SQLite
+// em memória para o que está sob teste continuar sendo o BALDE.
+import { subirCotaDeTeste } from "./_cota";
+import { configurarCota } from "@/lib/integrations/meta/cota-de-anuncios";
 
 // ─── Relógio de mentira: o teste não pode dormir de verdade ─────────────────
 // `dormir` avança o relógio em vez de esperar. É o que permite provar o
@@ -50,7 +55,7 @@ function sempre(body: unknown, init: { status?: number; headers?: Record<string,
 
 let fetchFalso: ReturnType<typeof vi.fn>;
 
-beforeEach(() => {
+beforeEach(async () => {
   relogio = 1_700_000_000_000;
   dormidoMs = 0;
   limparRitmo();
@@ -59,12 +64,14 @@ beforeEach(() => {
     agora: () => relogio,
     dormir: async (ms) => { dormidoMs += ms; relogio += ms; },
   });
+  await subirCotaDeTeste(() => relogio);
   fetchFalso = vi.fn(sempre({ ok: true }));
   vi.stubGlobal("fetch", fetchFalso);
   loadConnectionToken.mockResolvedValue({ token: "token-do-cliente", platform: "facebook", externalId: "1" });
 });
 
 afterEach(() => {
+  configurarCota();
   configurarRitmo();
   limparRitmo();
   vi.unstubAllGlobals();
@@ -146,7 +153,10 @@ describe("o caminho de anúncios passa a ser CONTADO", () => {
 
   it("criar campanha (POST) também é contado — escrita não escapa do balde", async () => {
     fetchFalso.mockImplementation(sempre({ id: "camp_9" }));
-    await graphPost("act_123/campaigns", "token-de-anuncio", { name: "x", status: "PAUSED" });
+    // `operacao` é obrigatória desde 06/08/2026: escrita na Marketing API que
+    // não está no catálogo fechado (travas.ts) nem chega na rede.
+    await graphPost("act_123/campaigns", "token-de-anuncio", { name: "x", status: "PAUSED" },
+      { operacao: "criar_campanha_pausada", conta: "act_123" });
     expect(retratoDoRitmo(chaveDoToken("token-de-anuncio")).gastasNaHora).toBe(1);
   });
 

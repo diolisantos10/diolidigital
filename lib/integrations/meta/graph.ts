@@ -16,6 +16,12 @@
 // falar com a Meta nesta casa sem passar por ele.
 //
 // O que acontece em cada chamada, nesta ordem:
+//   0. se for MARKETING API: a operação precisa estar no catálogo fechado
+//      (`travas.ts`) quando é escrita, e a COTA POR PONTUAÇÃO da conta de
+//      anúncios é reservada NO BANCO (`cota-de-anuncios.ts`) — leitura 1 ponto,
+//      escrita 3, teto 60 por 300 segundos no nível de desenvolvimento
+//      (fontes/marketing-api-limites-de-taxa.md, recapturado em 06/08/2026).
+//      Estourou: PARA E ESPERA, sem laço de retentativa;
 //   1. reserva no balde (espaça o uso normal, BARRA a rajada);
 //   2. chama;
 //   3. LÊ os cabeçalhos `X-App-Usage` / `X-Business-Use-Case-Usage` — a própria
@@ -30,7 +36,13 @@ import { GRAPH_BASE } from "./config";
 import {
   reservarChamadaNaGraph, registrarCabecalhos, registrarErroDeLimite,
   chaveDoToken, ehCodigoDeLimite, RitmoDaCasaError, lerUsoDosCabecalhos,
+  TIPO_DE_RITMO_DA_CASA,
 } from "./ritmo";
+import {
+  reservarPontosDaConta, frearConta, contaDaUrl, ehChamadaDaMarketingApi,
+  bloqueioDaMetaSegundos,
+} from "./cota-de-anuncios";
+import { ehEscrita, operacaoConhecida, fraseDeOperacaoNaoCatalogada } from "./travas";
 
 const TIMEOUT_MS = 20_000;
 
@@ -61,6 +73,15 @@ export class GraphApiError extends Error {
  *  chamador sabe melhor que o token quem é o dono da cota. */
 export interface OpcoesDaChamada {
   escopo?: string;
+  /**
+   * O nome da operação no catálogo fechado (`travas.ts`). Obrigatório para
+   * ESCRITA na Marketing API: o que não está no catálogo não sai desta casa.
+   * Também é o que dá o peso em pontos (leitura 1, escrita 3).
+   */
+  operacao?: string;
+  /** A conta de anúncios dona da cota ("act_..."), quando ela não está na URL —
+   *  é o caso de pausar/ativar, que são `POST /{id}`. */
+  conta?: string;
 }
 
 async function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
@@ -120,10 +141,41 @@ async function chamarAGraph<T>(
   chave: string,
   url: string,
   init: RequestInit,
+  opts?: OpcoesDaChamada,
 ): Promise<T> {
   let ultimaFalha: unknown = null;
+  const metodo = (init.method ?? "GET").toUpperCase();
+  const cota = alvoDaCota(chave, url, metodo, opts);
+
+  // 0. O CATÁLOGO FECHADO (travas.ts). Escrita na Marketing API que não foi
+  //    declarada não acontece — nem é tentada. A trava de plataforma decidida
+  //    pelo CEO em 03/08/2026 vira mecanismo aqui: parecer que depende de
+  //    alguém lembrar de pedir não é trava, é aviso.
+  if (cota && ehEscrita(opts?.operacao, metodo) && !operacaoConhecida(opts?.operacao)) {
+    const frase = fraseDeOperacaoNaoCatalogada(opts?.operacao);
+    throw new GraphApiError(frase, 403, { message: frase, type: TIPO_DE_RITMO_DA_CASA, code: 613 });
+  }
 
   for (let tentativa = 0; tentativa <= TENTATIVAS_EM_FALHA_TRANSITORIA; tentativa++) {
+    // 0.1 A COTA POR PONTUAÇÃO da conta de anúncios, contada no BANCO
+    //     (leitura 1, escrita 3; teto 60 por 300s em development_access —
+    //     fontes/marketing-api-limites-de-taxa.md). Reserva a cada tentativa:
+    //     retentativa é chamada e pontua igual.
+    if (cota) {
+      const reserva = await reservarPontosDaConta(cota.conta, {
+        operacao: opts?.operacao, metodo,
+      });
+      if (!reserva.ok) {
+        // PARA E ESPERA: quem chamou recebe a frase e o tempo. Não existe laço
+        // de retentativa aqui — insistir contra limite de taxa é auto-bloqueio.
+        throw new GraphApiError(reserva.frase, 429, {
+          message: reserva.frase,
+          type: TIPO_DE_RITMO_DA_CASA,
+          code: 613,
+        });
+      }
+    }
+
     // 1. O freio, ANTES da rede. Uma retentativa também é uma chamada: conta.
     try {
       await reservarChamadaNaGraph(chave);
@@ -162,6 +214,15 @@ async function chamarAGraph<T>(
         // 4. Limite: freia e devolve. Não retenta.
         if (ehCodigoDeLimite(e.detail?.code) || res.status === 429) {
           registrarErroDeLimite(chave, e.detail?.code, uso.esperarMin);
+          // O castigo da CONTA vai para o banco: memória de processo perde o
+          // castigo no primeiro deploy, e a Meta não perde.
+          if (cota) {
+            await frearConta(
+              cota.conta,
+              uso.esperarMin > 0 ? uso.esperarMin * 60 : bloqueioDaMetaSegundos(),
+              `a Meta recusou por limite de volume (código ${e.detail?.code ?? "?"})`,
+            ).catch(() => {});
+          }
           throw e;
         }
         // 5. 5xx é transitório; 4xx é resposta da Meta e é definitiva.
@@ -184,6 +245,31 @@ function chaveDaChamada(token: string, opts?: OpcoesDaChamada): string {
   return opts?.escopo ? `escopo:${opts.escopo}` : chaveDoToken(token);
 }
 
+/**
+ * Esta chamada entra na cota por pontuação da Marketing API? E em nome de qual
+ * conta de anúncios?
+ *
+ * Duas portas, de propósito:
+ *   • a DECLARADA — quem chama diz a operação (catálogo de `travas.ts`) e, se
+ *     souber, a conta. É o caminho de `ads.ts`;
+ *   • a DETECTADA — a URL denuncia a Marketing API (`act_...`, `/campaigns`,
+ *     `/adsets`, `/adcreatives`, ...). É a rede de segurança para o caminho que
+ *     alguém escrever amanhã sem declarar nada.
+ * Sem conta conhecida, o balde é o do próprio ator (a chave do token). Conta a
+ * MAIS, nunca a menos.
+ */
+function alvoDaCota(
+  chave: string,
+  url: string,
+  metodo: string,
+  opts?: OpcoesDaChamada,
+): { conta: string } | null {
+  const declarada = !!opts?.operacao || !!opts?.conta;
+  if (!declarada && !ehChamadaDaMarketingApi(url)) return null;
+  void metodo;
+  return { conta: opts?.conta ?? contaDaUrl(url) ?? `sem_conta:${chave}` };
+}
+
 // GET a Graph node/edge. Pass the access token as `accessToken`.
 export async function graphGet<T = unknown>(
   path: string,
@@ -192,7 +278,7 @@ export async function graphGet<T = unknown>(
   opts?: OpcoesDaChamada,
 ): Promise<T> {
   const url = buildUrl(path, { ...params, access_token: accessToken });
-  return chamarAGraph<T>(chaveDaChamada(accessToken, opts), url, { method: "GET" });
+  return chamarAGraph<T>(chaveDaChamada(accessToken, opts), url, { method: "GET" }, opts);
 }
 
 // POST a JSON body — required by the WhatsApp Cloud API (/{phone}/messages),
@@ -211,7 +297,7 @@ export async function graphPostJson<T = unknown>(
       Authorization: `Bearer ${accessToken}`,
     },
     body: JSON.stringify(body),
-  });
+  }, opts);
 }
 
 // POST to a Graph node/edge. Body params are form-encoded (Graph convention).
@@ -229,7 +315,7 @@ export async function graphPost<T = unknown>(
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: form,
-  });
+  }, opts);
 }
 
 // Reexportado para quem precisa diagnosticar ritmo sem importar dois módulos.

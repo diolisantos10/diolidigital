@@ -82,6 +82,12 @@ export function limparCacheDeLeitura(): void {
 // Por isso existe um teto de chamadas à Graph por conexão por hora, que não
 // depende do cache ter acertado.
 //
+// ⚠️ ATUALIZAÇÃO 06/08/2026: o caminho de ANÚNCIOS deixou de ter este defeito —
+// a cota por pontuação da Marketing API é contada no banco, por conta de
+// anúncios (`./cota-de-anuncios.ts`). Esta camada de LEITURA de Instagram
+// continua com o teto em memória descrito abaixo, e a dívida segue registrada
+// na cartilha (lacuna 8).
+//
 // ⚠️ LIMITAÇÃO CONHECIDA, COM TODAS AS LETRAS: este teto é POR PROCESSO, não
 // por conexão. O contador é um Map em MEMÓRIA (`ritmoPorConexao`), e memória
 // não é compartilhada entre instâncias nem sobrevive a um deploy. Consequências
