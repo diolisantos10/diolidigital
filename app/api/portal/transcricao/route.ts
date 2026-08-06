@@ -21,18 +21,39 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { rateLimited } from "@/lib/security/rate-limit";
-import { resolveProviderKey } from "@/lib/ai/resolve-key";
 import { resolvePortalClient } from "@/lib/agency/persistence/portal-access-service";
 import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
 import {
-  transcreverAudio,
   falhaDeTranscricao,
   MAX_BYTES_DE_AUDIO,
   type ResultadoDeTranscricao,
 } from "@/lib/ai/transcricao";
+import { transcreverPelaCasa, ditadoPorEnvioDisponivel } from "@/lib/ai/transcricao-servidor";
 
 function resposta(r: ResultadoDeTranscricao, status = 200): NextResponse {
   return NextResponse.json(r, { status });
+}
+
+/**
+ * GET — "este caminho existe?" Nada mais.
+ *
+ * A tela pergunta ANTES de mostrar o botão de gravar, e só quando o navegador
+ * não tem reconhecimento nativo. Sem isto, o cliente aperta o microfone, fala
+ * meio minuto e só então descobre que não havia provedor nenhum configurado —
+ * a tela teria fingido um caminho que não existe. Devolve um booleano e mais
+ * nada: nome de provedor é assunto da agência, não do cliente.
+ */
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  const token = tokenDoPortal(request, request.nextUrl.searchParams.get("token"));
+  if (!token) return NextResponse.json({ ok: false, disponivel: false }, { status: 403 });
+  const dono = await resolvePortalClient(token);
+  if (!dono) return NextResponse.json({ ok: false, disponivel: false }, { status: 403 });
+
+  const disponivel = await ditadoPorEnvioDisponivel({
+    tipo: "workspace",
+    workspaceId: dono.workspaceId,
+  });
+  return NextResponse.json({ ok: true, disponivel });
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -69,19 +90,31 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   // A chave vem do cofre (Integrações) do WORKSPACE do token, e só depois da
-  // env — nunca hardcoded, nunca "a primeira que existir no banco".
-  const chave = await resolveProviderKey("openai", dono.workspaceId);
-  if (!chave) return resposta(falhaDeTranscricao("sem_chave"));
+  // env — nunca hardcoded, nunca "a primeira que existir no banco". Qual
+  // PROVEDOR paga deixou de ser decisão desta rota em 06/08/2026: a casa tenta
+  // os configurados em cadeia (`transcreverPelaCasa`), então uma conta sem saldo
+  // deixa de derrubar o microfone do cliente enquanto houver outra configurada.
+  const { resultado: r, provedor } = await transcreverPelaCasa({
+    arquivo,
+    escopo: { tipo: "workspace", workspaceId: dono.workspaceId },
+  });
 
-  const r = await transcreverAudio({ apiKey: chave.apiKey, arquivo });
-
-  // A frase que o cliente lê em `chave_recusada` diz "já fomos avisados". Ou
-  // isso é verdade, ou é a casa mentindo para o cliente em nome próprio — então
-  // o aviso EXISTE. É o único motivo que vira registro: os outros são do mundo
-  // (rede, ritmo, áudio ruim) e encheriam a linha do tempo de nada.
+  // A frase que o cliente lê em `chave_recusada`/`sem_saldo` diz "já fomos
+  // avisados". Ou isso é verdade, ou é a casa mentindo para o cliente em nome
+  // próprio — então o aviso EXISTE. São os dois únicos motivos que viram
+  // registro: os outros são do mundo (rede, ritmo, áudio ruim) e encheriam a
+  // linha do tempo de nada.
   //
-  // O que fica registrado é o MOTIVO, nunca o áudio e nunca o texto.
-  if (!r.ok && r.motivo === "chave_recusada") {
+  // `sem_saldo` entrou em 06/08/2026 pelo motivo mais simples do mundo: foi ele
+  // que aconteceu, e ele passava calado — o cliente lia a frase e ninguém na
+  // agência ficava sabendo.
+  //
+  // O que fica registrado é o MOTIVO e o PROVEDOR, nunca o áudio e nunca o texto.
+  if (!r.ok && (r.motivo === "chave_recusada" || r.motivo === "sem_saldo")) {
+    const causa =
+      r.motivo === "sem_saldo"
+        ? "está SEM CRÉDITO (a chave é válida; o conserto é pagar)"
+        : "RECUSOU a chave (inválida, revogada ou sem permissão de áudio)";
     await prisma.activityEvent
       .create({
         data: {
@@ -89,7 +122,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           clientId: dono.clientId,
           type: "transcricao_chave_recusada",
           message:
-            "O provedor RECUSOU a chave de transcrição (OpenAI). O ditado por voz no portal está fora do ar para este cliente — conferir a chave em Integrações (inválida, revogada ou sem saldo).",
+            `O provedor de transcrição (${provedor ?? "desconhecido"}) ${causa}. ` +
+            "O ditado por ENVIO está fora do ar para este cliente — conferir em Integrações. " +
+            "Quem estiver num navegador com reconhecimento nativo (iPhone/Safari, Chrome) continua ditando normalmente.",
         },
       })
       .catch(() => {

@@ -251,3 +251,62 @@ cliente.
 3. **Hex solto em borda de tint** (`#BBF7D0`, `#FCA5A5`, `#FDE68A`, `#BFEFEC`) —
    os mesmos valores que `/agency/radar` já usava. Não existe token de *borda*
    para os tints semânticos; criar um mexe em tela demais para caber aqui.
+
+---
+
+## 2026-08-06 · O microfone que não depende de saldo (nativo primeiro)
+
+### O pedido
+
+CEO: *"não tem como usar algum microfone sem usar OpenAI?"*. Contexto: a conta
+do provedor ficou sem crédito e o ditado morreu ao mesmo tempo no **portal do
+cliente**, no **briefing público** e no chat. Um campo de texto que depende de
+fatura não é funcionalidade, é promessa.
+
+### O que passou a existir
+
+1. **Caminho 1 — nativo** (`lib/ai/ditado-nativo.ts`): `SpeechRecognition` /
+   `webkitSpeechRecognition`. Grátis, sem chave, texto durante a fala, e o áudio
+   **não passa pelo nosso servidor** (a rota paga não é chamada — está no teste).
+2. **Caminho 2 — envio**, como antes, mas com **provedor substituível**
+   (openai · groq · gemini) e cadeia de fallback em `lib/ai/transcricao-servidor.ts`.
+3. **Nenhum dos dois = a tela diz.** `GET` nas duas rotas responde só
+   `{ disponivel }`; sem provedor, em vez de um botão que grava meio minuto para
+   depois falhar, sai uma frase: *"O ditado por voz não está disponível neste
+   navegador. Escreva no campo acima — nada se perde."*
+
+### As três decisões que valem para a próxima tela
+
+1. **Suporte não é constante — pode CAIR no meio.** O nativo do Chrome depende
+   de um serviço remoto; sem rede ele morre com `network`. Por isso existe
+   *rebaixamento*: o módulo passa a responder `false`, avisa por assinatura
+   (`useSyncExternalStore` com instantâneo de servidor `false`, que continua
+   sendo o que evita erro de hidratação) e a tela cai sozinha para o caminho 2.
+2. **Só falha TÉCNICA rebaixa.** Permissão negada é escolha legítima do usuário:
+   vira frase e **não** troca de caminho — trocar não mudaria a resposta do SO.
+3. **Estado ativo se lê de longe.** O selo de 24px/10px rosa claro do briefing
+   ("Parar") virou vermelho cheio com a palavra **Ouvindo** em 12px/32px. Quem
+   está falando faz uma pergunta só: *está ouvindo?*
+
+### Prova
+
+- 375 / 768 / 1440 nos três estados do botão (repouso · **Ouvindo** com eco do
+  parcial · caminho indisponível), com `SpeechRecognition` falso injetado —
+  o Chromium do ambiente não tem o serviço do Google, e o estado que importa é
+  justamente o do iPhone.
+- Testes: `__tests__/ai/ditado-nativo.test.ts` (18) e
+  `__tests__/ai/transcricao-provedores.test.ts` (13). As duas metades: com
+  suporte, `fetch` **nunca** é chamado; sem suporte, o envio continua inteiro.
+- Portão à mão (Actions em pane): `npx tsc --noEmit`, `npx vitest run`
+  (139 arquivos · 2206 testes) e `npm run build` — verdes.
+
+### O que ficou aberto
+
+1. **Groq só por env** (`GROQ_API_KEY`). O cofre das Integrações lista provedores
+   de *raciocínio*; enquanto Groq não tiver linha lá, ele não é configurável pela
+   tela — território da plataforma.
+2. **Gemini com áudio `webm`** é o caminho menos testado dos três: a lista oficial
+   de mimes do Google não cita webm. Se recusar, cai como `audio_recusado` e a
+   cadeia segue — mas o ideal é medir com áudio real do iPhone (mp4) e do Chrome.
+3. **`BriefingRoomV2` (painel interno)** ainda tem a linha de erro do microfone em
+   10px. Não foi tocado nesta frente para não ampliar o escopo.

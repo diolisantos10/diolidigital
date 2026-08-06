@@ -1348,14 +1348,24 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
               </svg>
             </button>
           </div>
-          <div className="flex items-center gap-2 mt-2">
-            {/* Microphone button — three states: idle / recording / transcribing */}
+          {/* `flex-wrap` + `whitespace-nowrap`: a 375px os dois botões não cabem
+              lado a lado, e sem isto o rótulo quebra DENTRO do botão — duas
+              linhas de texto num alvo de toque, que é o desenho de algo
+              apertado. Melhor empilhar botões inteiros. */}
+          <div className="flex flex-wrap items-center gap-2 mt-2">
+            {/* ── Microfone: repouso / OUVINDO / transcrevendo ────────────────
+                06/08/2026: além de trocar o motor (nativo primeiro, ver
+                `useSpeechToText`), o estado ATIVO ficou legível. Antes ele era
+                um selo de 24px com texto de 10px em rosa claro — abaixo do piso
+                de 12px da §3 do DESIGN.md e de qualquer alvo de toque decente.
+                "Está ouvindo?" é a única pergunta que o cliente faz enquanto
+                fala; a resposta agora é vermelho cheio e a palavra inteira. */}
             {isSupported ? (
               isTranscribing ? (
                 <button
                   type="button"
                   disabled
-                  className="h-6 px-2.5 rounded-[5px] text-[10px] font-medium border bg-[var(--accent)] border-[var(--border)] text-[var(--text-muted)] flex items-center gap-1.5 cursor-not-allowed"
+                  className="h-8 px-3 rounded-[7px] text-[12px] font-medium border bg-[var(--accent)] border-[var(--border)] text-[var(--text-muted)] flex items-center gap-1.5 cursor-not-allowed"
                   style={{ touchAction: "manipulation" }}
                   title="Transcrevendo áudio…"
                 >
@@ -1368,41 +1378,47 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
                 <button
                   type="button"
                   onClick={isListening ? stopListening : startListening}
-                  className={`h-6 px-2.5 rounded-[5px] text-[10px] font-medium border transition-colors flex items-center gap-1.5 ${
+                  aria-pressed={isListening}
+                  className={`h-8 px-3 rounded-[7px] text-[12px] font-semibold border transition-colors flex items-center gap-1.5 whitespace-nowrap ${
                     isListening
-                      ? "bg-[#FEE2E2] border-[#FECACA] text-[var(--danger)]"
-                      : "bg-white border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--text-muted)]"
+                      ? "bg-[var(--danger)] border-[var(--danger)] text-white"
+                      : "bg-white border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--text-muted)]"
                   }`}
                   style={{ touchAction: "manipulation" }}
-                  title={isListening ? "Parar gravação" : "Ditar por voz"}
+                  title={isListening ? "Parar de ouvir" : "Falar em vez de digitar"}
                 >
                   {isListening ? (
-                    <><span className="w-1.5 h-1.5 rounded-full bg-[var(--danger)] animate-pulse" />Parar</>
+                    <>
+                      <span aria-hidden className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                      <span>Ouvindo<span className="hidden sm:inline">{" · toque para parar"}</span></span>
+                    </>
                   ) : (
                     <>
-                      <svg width="9" height="12" viewBox="0 0 9 12" fill="none">
+                      <svg width="9" height="12" viewBox="0 0 9 12" fill="none" aria-hidden>
                         <rect x="2.5" y="0.5" width="4" height="6" rx="2" stroke="currentColor" strokeWidth="1.1"/>
                         <path d="M0.5 6C0.5 8.21 2.29 10 4.5 10C6.71 10 8.5 8.21 8.5 6" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/>
                         <line x1="4.5" y1="10" x2="4.5" y2="11.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/>
                       </svg>
-                      Voz
+                      Falar
                     </>
                   )}
                 </button>
               )
             ) : (
-              <span className="text-[10px] text-[var(--text-subtle)]" title="Seu navegador não suporta transcrição por voz.">
-                Microfone indisponível
+              <span className="text-[12px] text-[var(--text-muted)]">
+                Ditado por voz indisponível neste navegador
               </span>
             )}
             {/* Materials button (file upload + links) */}
             <button
               type="button"
               onClick={() => setShowMaterials((v) => !v)}
-              className={`h-6 px-2.5 rounded-[5px] text-[10px] font-medium border transition-colors flex items-center gap-1.5 ${
+              aria-pressed={showMaterials}
+              style={{ touchAction: "manipulation" }}
+              className={`h-8 px-3 rounded-[7px] text-[12px] font-medium border transition-colors flex items-center gap-1.5 whitespace-nowrap ${
                 showMaterials
-                  ? "bg-[var(--accent-light)] border-[#D6DEFF] text-[var(--navy)]"
-                  : "bg-white border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--text-muted)]"
+                  ? "bg-[var(--accent-light)] border-[var(--border-strong)] text-[var(--navy)]"
+                  : "bg-white border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--text-muted)]"
               }`}
             >
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
@@ -1412,17 +1428,21 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
               </svg>
               {attachments.length > 0
                 ? `${attachments.length} anexo${attachments.length !== 1 ? "s" : ""}`
-                : "Anexar briefing / materiais"}
+                : <span>Anexar<span className="hidden sm:inline">{" briefing / materiais"}</span></span>}
             </button>
-            <span className="text-[10px] text-[var(--text-subtle)] ml-auto hidden sm:block">
+            <span className="text-[12px] text-[var(--text-muted)] ml-auto hidden sm:block">
               Enter para enviar · Shift+Enter nova linha
             </span>
           </div>
-          {/* Microphone error feedback */}
+          {/* ── A falha do microfone diz a CAUSA, não um chute ─────────────────
+              Esta linha era uma frase fixa: "Verifique a permissão do
+              navegador" — dita igual para permissão negada, conta do provedor
+              sem crédito, rede caída e áudio recusado. Três dos quatro casos
+              mandavam o prospect mexer onde não era. A camada
+              (`lib/ai/transcricao.ts`) já devolve a frase certa para cada
+              causa; aqui a gente só mostra. */}
           {micError && (
-            <p className="text-[10px] text-[var(--danger)] mt-1">
-              Não consegui acessar o microfone. Verifique a permissão do navegador.
-            </p>
+            <p role="alert" className="text-[12px] text-[var(--danger)] mt-1.5">{micError}</p>
           )}
         </div>
       </div>

@@ -5,23 +5,30 @@
 // eu não gosto de digitar". O alvo é o campo de "solicitar ajustes" e "tenho
 // uma dúvida" no portal do cliente.
 //
-// POR QUE SERVIDOR E NÃO `SpeechRecognition` DO NAVEGADOR
-//   O `SpeechRecognition` é grátis e não tira o áudio do aparelho — mas no
-//   Safari/iOS (que é ONDE O CEO USA) ele é `webkitSpeechRecognition`, exige
-//   gesto do usuário a cada início, corta sozinho no silêncio e em várias
-//   versões simplesmente não existe fora do Safari. "Funciona no meu Chrome e
-//   não funciona no iPhone do dono" é a pior falha possível para este pedido.
-//   A casa JÁ decidiu isso uma vez: `lib/hooks/useSpeechToText.ts` nasceu como
-//   hook de Web Speech e foi trocado por MediaRecorder + Whisper no servidor
-//   ("Drop-in replacement for the old Web Speech API hook"). Este arquivo é a
-//   extração dessa decisão para um lugar reutilizável — não uma segunda via.
+// ESTE É O CAMINHO 2, NÃO O ÚNICO (06/08/2026)
+//   Gravar e enviar para um provedor pago é a REDE, não a rua principal. A rua
+//   principal é `lib/ai/ditado-nativo.ts` — o `SpeechRecognition` do próprio
+//   navegador: grátis, sem chave, e o áudio nem sai do aparelho. Aqui só cai
+//   quem não tem reconhecimento nativo.
+//
+//   O comentário que ficava neste lugar defendia o contrário ("servidor, e não
+//   SpeechRecognition") pelos motivos certos: no Safari o nativo é
+//   `webkitSpeechRecognition`, exige gesto do usuário e corta no silêncio. O
+//   erro não foi preferir o servidor — foi ter SÓ o servidor. Em 06/08/2026 a
+//   conta do provedor ficou sem crédito e o microfone morreu para o dono e para
+//   todo cliente pagante. Um campo de texto não pode depender de saldo.
+//
+// PROVEDOR É SUBSTITUÍVEL — e isso é mecanismo, não intenção
+//   Até 06/08/2026 este arquivo falava DIRETO com `api.openai.com`: uma conta
+//   sem saldo = ditado morto, sem rota de fuga. Agora existe `MotorDeTranscricao`
+//   (openai · groq · gemini) e o servidor tenta os configurados EM CADEIA
+//   (`lib/ai/transcricao-servidor.ts`). Nenhum configurado = o caminho 2 não
+//   existe, e a tela DIZ isso — nunca finge.
 //
 // POR QUE NÃO PASSA PELO `provider-registry`
 //   O contrato do registry é `call(messages) → texto` — raciocínio. Não há
 //   superfície de áudio nele, e transcrição não é raciocínio: não decide nada,
-//   só datilografa. O precedente da casa (`app/api/sdr/transcribe/route.ts`)
-//   resolve a chave por `resolveProviderKey("openai")` e chama o endpoint de
-//   áudio direto. Seguimos o mesmo caminho — a chave continua vindo do cofre,
+//   só datilografa. A chave continua vindo do cofre pelo `resolveProviderKey`,
 //   nunca de env hardcoded (vitrine: "A chave de IA da tela é a fonte de
 //   verdade").
 //
@@ -156,6 +163,14 @@ const TIMEOUT_PADRAO_MS = 30_000;
 const URL_OPENAI = "https://api.openai.com/v1/audio/transcriptions";
 /** Mesmo modelo já em uso em `app/api/sdr/transcribe` — ~US$ 0,006 por minuto. */
 const MODELO_PADRAO = "whisper-1";
+/** Groq serve Whisper por uma API compatível com a da OpenAI — mesmo corpo,
+ *  outra URL. É por isso que ele custa dez linhas aqui e não um arquivo novo. */
+const URL_GROQ = "https://api.groq.com/openai/v1/audio/transcriptions";
+const MODELO_GROQ = "whisper-large-v3-turbo";
+const MODELO_GEMINI = "gemini-2.0-flash";
+function urlGemini(modelo: string): string {
+  return `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelo)}:generateContent`;
+}
 
 export function extensaoDeAudio(mime: string): string {
   if (mime.includes("ogg")) return "ogg";
@@ -249,30 +264,74 @@ export async function codigoDeErroDoProvedor(
 
 // ─── Servidor: áudio → texto ─────────────────────────────────────────────────
 
-export async function transcreverAudio(opts: {
+/**
+ * Os provedores que a casa sabe usar para transcrever.
+ *
+ * `openai` e `groq` servem o MESMO Whisper por APIs compatíveis; `gemini` é
+ * outro desenho (multimodal, o áudio vai embutido no prompt). Nenhum deles é
+ * obrigatório: quem decide quais existem é a chave configurada — ver
+ * `lib/ai/transcricao-servidor.ts`.
+ */
+export type ProvedorDeTranscricao = "openai" | "groq" | "gemini";
+
+export const PROVEDORES_DE_TRANSCRICAO: ProvedorDeTranscricao[] = ["openai", "groq", "gemini"];
+
+export function ehProvedorDeTranscricao(v: string): v is ProvedorDeTranscricao {
+  return (PROVEDORES_DE_TRANSCRICAO as string[]).includes(v);
+}
+
+export interface OpcoesDeTranscricao {
   apiKey: string;
   arquivo: Blob;
+  /** Qual motor usar. Ausente = `openai` (compatibilidade com o chamador antigo). */
+  provedor?: ProvedorDeTranscricao;
   modelo?: string;
   idioma?: string;
   timeoutMs?: number;
-}): Promise<ResultadoDeTranscricao> {
+}
+
+/**
+ * Porta de entrada única. Valida o que é da CASA (chave, tamanho) antes de
+ * qualquer motor — a trava de bytes continua acontecendo ANTES de tocar na
+ * chave, como documentado em `MAX_SEGUNDOS_DE_GRAVACAO`.
+ */
+export async function transcreverAudio(opts: OpcoesDeTranscricao): Promise<ResultadoDeTranscricao> {
   const { apiKey, arquivo } = opts;
 
   if (!apiKey) return falhaDeTranscricao("sem_chave");
   if (arquivo.size > MAX_BYTES_DE_AUDIO) return falhaDeTranscricao("audio_grande");
   if (arquivo.size < MIN_BYTES_DE_AUDIO) return falhaDeTranscricao("audio_curto");
 
+  switch (opts.provedor ?? "openai") {
+    case "gemini":
+      return transcreverComGemini(opts);
+    case "groq":
+      return transcreverCompativelComOpenAI(opts, URL_GROQ, MODELO_GROQ, "groq");
+    default:
+      return transcreverCompativelComOpenAI(opts, URL_OPENAI, MODELO_PADRAO, "openai");
+  }
+}
+
+/** OpenAI e Groq: mesmo multipart, mesmo formato de erro, URLs diferentes. */
+async function transcreverCompativelComOpenAI(
+  opts: OpcoesDeTranscricao,
+  url: string,
+  modeloPadrao: string,
+  etiqueta: string,
+): Promise<ResultadoDeTranscricao> {
+  const { apiKey, arquivo } = opts;
+
   const ext = extensaoDeAudio(arquivo.type || "audio/webm");
   const form = new FormData();
   form.append("file", arquivo, `audio.${ext}`);
-  form.append("model", opts.modelo ?? MODELO_PADRAO);
+  form.append("model", opts.modelo ?? modeloPadrao);
   form.append("language", opts.idioma ?? "pt");
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), opts.timeoutMs ?? TIMEOUT_PADRAO_MS);
 
   try {
-    const res = await fetch(URL_OPENAI, {
+    const res = await fetch(url, {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}` },
       body: form,
@@ -295,7 +354,7 @@ export async function transcreverAudio(opts: {
       // do provedor pode ecoar trechos do que foi dito.
       const diag = await codigoDeErroDoProvedor(res);
       console.error(
-        `[transcricao] provedor respondeu ${res.status}` +
+        `[transcricao:${etiqueta}] provedor respondeu ${res.status}` +
           (diag ? ` · code=${diag.code ?? "-"} type=${diag.type ?? "-"}` : ""),
       );
       return falhaDeTranscricao(classificarFalhaDoProvedor(res.status, diag));
@@ -313,7 +372,116 @@ export async function transcreverAudio(opts: {
     return { ok: true, texto };
   } catch (err) {
     const abortado = err instanceof Error && err.name === "AbortError";
-    console.error(`[transcricao] ${abortado ? "tempo_esgotado" : "rede"}`);
+    console.error(`[transcricao:${etiqueta}] ${abortado ? "tempo_esgotado" : "rede"}`);
+    return falhaDeTranscricao(abortado ? "tempo_esgotado" : "rede");
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// ─── Gemini: outro desenho, mesmo contrato ───────────────────────────────────
+// O Gemini não tem endpoint de transcrição: o áudio entra EMBUTIDO no prompt de
+// um modelo multimodal. Por isso ele é o único motor com instrução em texto — e
+// a instrução é deliberadamente pobre: "escreva o que ouviu, e nada mais". O
+// campo é um recado do cliente; um modelo que resume ou corrige estaria pondo
+// palavra na boca de quem paga.
+
+const INSTRUCAO_GEMINI =
+  "Transcreva literalmente a fala deste áudio em português do Brasil. " +
+  "Responda apenas com o texto transcrito, sem aspas, sem resumo, sem comentário. " +
+  "Se não houver fala, responda com uma linha vazia.";
+
+function paraBase64(bytes: ArrayBuffer): string {
+  const g = globalThis as { Buffer?: { from(b: ArrayBuffer): { toString(enc: string): string } } };
+  if (g.Buffer) return g.Buffer.from(bytes).toString("base64");
+  let bin = "";
+  const arr = new Uint8Array(bytes);
+  for (let i = 0; i < arr.length; i += 0x8000) {
+    bin += String.fromCharCode(...arr.subarray(i, i + 0x8000));
+  }
+  return btoa(bin);
+}
+
+/**
+ * Erro do Gemini → motivo da casa.
+ *
+ * O corpo é `{ error: { code:number, status:"RESOURCE_EXHAUSTED", ... } }` — o
+ * `status` é enum fechado (como `code`/`type` na OpenAI), então continua valendo
+ * a regra de PII: `message` nunca é lido nem logado.
+ */
+export function classificarFalhaDoGemini(
+  status: number,
+  googleStatus?: string | null,
+): MotivoDeFalhaDeTranscricao {
+  if (googleStatus === "PERMISSION_DENIED" || googleStatus === "UNAUTHENTICATED") return "chave_recusada";
+  if (googleStatus === "RESOURCE_EXHAUSTED") return "ritmo";
+  if (status === 401 || status === 403) return "chave_recusada";
+  if (status === 429) return "ritmo";
+  if (status === 413) return "audio_grande";
+  if (status >= 400 && status < 500) return "audio_recusado";
+  return "provedor_indisponivel";
+}
+
+async function statusDoGemini(res: Response): Promise<string | null> {
+  try {
+    const corpo = (await res.clone().json()) as { error?: { status?: unknown } };
+    return typeof corpo.error?.status === "string" ? corpo.error.status : null;
+  } catch {
+    return null;
+  }
+}
+
+async function transcreverComGemini(opts: OpcoesDeTranscricao): Promise<ResultadoDeTranscricao> {
+  const { apiKey, arquivo } = opts;
+  const modelo = opts.modelo?.startsWith("gemini") ? opts.modelo : MODELO_GEMINI;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), opts.timeoutMs ?? TIMEOUT_PADRAO_MS);
+
+  try {
+    const base64 = paraBase64(await arquivo.arrayBuffer());
+    const res = await fetch(urlGemini(modelo), {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+      body: JSON.stringify({
+        contents: [
+          {
+            role: "user",
+            parts: [
+              { text: INSTRUCAO_GEMINI },
+              { inline_data: { mime_type: arquivo.type || "audio/webm", data: base64 } },
+            ],
+          },
+        ],
+        generationConfig: { temperature: 0 },
+      }),
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      const gstatus = await statusDoGemini(res);
+      console.error(`[transcricao:gemini] provedor respondeu ${res.status} · status=${gstatus ?? "-"}`);
+      return falhaDeTranscricao(classificarFalhaDoGemini(res.status, gstatus));
+    }
+
+    let texto = "";
+    try {
+      const data = (await res.json()) as {
+        candidates?: { content?: { parts?: { text?: unknown }[] } }[];
+      };
+      texto = (data.candidates?.[0]?.content?.parts ?? [])
+        .map((p) => (typeof p.text === "string" ? p.text : ""))
+        .join(" ")
+        .trim();
+    } catch {
+      return falhaDeTranscricao("provedor_indisponivel");
+    }
+
+    if (!texto) return falhaDeTranscricao("sem_texto");
+    return { ok: true, texto };
+  } catch (err) {
+    const abortado = err instanceof Error && err.name === "AbortError";
+    console.error(`[transcricao:gemini] ${abortado ? "tempo_esgotado" : "rede"}`);
     return falhaDeTranscricao(abortado ? "tempo_esgotado" : "rede");
   } finally {
     clearTimeout(timer);

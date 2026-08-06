@@ -498,6 +498,22 @@ Levantamento de auditoria (Julho/2026). Prioridade: **P0** crítico → **P3** b
   `var(--warning)` / `var(--text-muted)` — o token já está certo.
 - **I-21 · Fonte abaixo do piso da §3.** Ainda existem rótulos em 9px e 9.5px
   (auto-tasks, dashboard, brain). A sidebar já subiu para 11px em 05/08/2026.
+  *(Parcial — 06/08/2026: a barra do compositor do **briefing público** subiu de
+  10px/24px para 12px/32px. Era o rodapé do campo onde o prospect fala com a
+  agência: "Falar", "Anexar" e o estado **Ouvindo** — o trio mais tocado da
+  tela de conversão vivia abaixo do piso de fonte e do alvo de toque.)*
+
+- **I-22 · Estado ativo tem que ser lido de longe — e dizer a causa quando
+  falha.** O microfone do briefing sinalizava gravação com um selo de 24px em
+  rosa claro (`#FEE2E2`) e a palavra "Parar": no celular, quem estava falando
+  não conseguia responder "está ouvindo?" olhando a tela. Agora é vermelho cheio
+  (`--danger`) + rótulo **Ouvindo**. E a linha de erro embaixo dele era uma
+  frase fixa ("verifique a permissão do navegador") mostrada para **quatro**
+  causas diferentes — inclusive conta do provedor sem crédito, que nenhuma
+  permissão conserta. Regra: **componente de captura mostra a mensagem que a
+  camada devolveu**, nunca uma frase escrita à mão no JSX. *(Corrigido em
+  06/08/2026 no `PublicBriefingRoom`; conferir os outros usos de
+  `useSpeechToText` ao tocar neles.)*
 
 ### P3 — Conversão / polimento
 - **I-15 · Vitrine sem prova social** (depoimentos, logos, portfólio) e sem CTA primário no hero.
