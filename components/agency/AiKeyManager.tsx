@@ -53,10 +53,11 @@ const META: Record<Provider, ProviderMeta> = {
     emoji: "🔵",
     keyUrl: "https://aistudio.google.com/app/apikey",
     keyHelp: "aistudio.google.com → Get API key → Create API key",
-    // ⚠️ `gemini-1.5-*` e `gemini-pro` FORAM APOSENTADOS — a API devolve 404.
-    // Oferecer nome morto na lista faz a pessoa escolher um modelo que nunca
-    // vai gerar, com a tela dizendo que a conexão está boa.
-    models: ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash"],
+    // ⚠️ SÓ APELIDOS MÓVEIS. Verificado contra a chave desta casa em 06/08/2026:
+    // `gemini-1.5-*`, `gemini-2.0-flash`, `gemini-2.5-flash` e `gemini-2.5-pro`
+    // devolvem 404. Oferecer nome morto faz a pessoa escolher um modelo que
+    // nunca vai gerar — com a tela dizendo que a conexão está boa.
+    models: ["gemini-flash-latest", "gemini-pro-latest", "gemini-flash-lite-latest"],
     accent: "#2563EB",
   },
   perplexity: {

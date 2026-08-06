@@ -212,8 +212,9 @@ function modeloDeVisao(p: ProvedorComVisao): string {
   if (p === "openai") return process.env.VISAO_OPENAI_MODEL?.trim() || "gpt-4o-mini";
   if (p === "claude") return process.env.VISAO_CLAUDE_MODEL?.trim() || "claude-haiku-4-5-20251001";
   // `gemini-1.5-flash` foi aposentado — devolvia 404 e a visão pelo Gemini
-  // nunca chegava a rodar, caindo calada para o provedor seguinte.
-  return process.env.VISAO_GEMINI_MODEL?.trim() || "gemini-2.5-flash";
+  // nunca chegava a rodar, caindo calada para o provedor seguinte. O apelido
+  // móvel é o único nome que a chave desta casa resolve (verificado 06/08/2026).
+  return process.env.VISAO_GEMINI_MODEL?.trim() || "gemini-flash-latest";
 }
 
 function ordemDeVisao(preferido?: AiProvider): ProvedorComVisao[] {

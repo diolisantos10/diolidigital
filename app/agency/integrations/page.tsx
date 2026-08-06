@@ -103,8 +103,8 @@ function ConfigPanel({ integration, onClose }: ConfigPanelProps) {
   const AI_MODELS: Record<string, string[]> = {
     "int-openai":        ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"],
     "int-openai-images": ["dall-e-3", "dall-e-2"],
-    // `gemini-1.5-*` e `gemini-pro` foram aposentados pela Google (404 na API).
-    "int-gemini":        ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash"],
+    // Só apelidos móveis: os nomes versionados devolvem 404 (verificado 06/08/2026).
+    "int-gemini":        ["gemini-flash-latest", "gemini-pro-latest", "gemini-flash-lite-latest"],
     "int-claude":        ["claude-sonnet-4-6", "claude-opus-4-8", "claude-haiku-4-5"],
     "int-deepseek":      ["deepseek-v4-flash", "deepseek-v4-pro"],
     "int-perplexity":    ["sonar", "sonar-pro", "sonar-reasoning"],

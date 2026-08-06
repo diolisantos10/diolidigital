@@ -115,7 +115,7 @@ async function erroDaApi(res: Response): Promise<string> {
 // devolve 404 em qualquer geração). A tela dizia "OK" e a faixa gratuita não
 // gerava um caractere. Aqui também se testa gerando, no modelo escolhido.
 async function testGemini(apiKey: string, model?: string | null): Promise<{ ok: boolean; message: string }> {
-  const modelo = (model ?? "").trim() || process.env.GEMINI_MODEL?.trim() || "gemini-2.5-flash";
+  const modelo = (model ?? "").trim() || process.env.GEMINI_MODEL?.trim() || "gemini-flash-latest";
   const res = await fetchWithTimeout(
     `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelo)}:generateContent?key=${encodeURIComponent(apiKey)}`,
     {
