@@ -48,6 +48,7 @@ import {
   foiReprovadaPelaQualidade, ficouSemArbitro,
 } from "@/lib/agency/execution/quality-auditor";
 import { comoTexto, MINIMO_DE_CONTEUDO, temSubstancia } from "@/lib/agency/esteira/conteudo";
+import { lerProibicoes } from "@/lib/agency/esteira/proibicoes";
 import { TRAVA_MS, pararComMotivo, avisarCliente } from "@/lib/agency/esteira/triagem";
 import { escadaFiltraEntregas } from "@/lib/agency/escada/registro";
 
@@ -204,6 +205,10 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
     valores: precos,
     verbas,
     operacao: extrairVerdadeOperacional(textoDoCliente, contexto.businessName),
+    // A METADE NEGATIVA. O que ele proibiu vale para esta peça também — e a
+    // leitura é fail-closed: se não der para ler, o piso reprova em vez de
+    // deixar sair uma peça não conferida. Ver `esteira/proibicoes.ts`.
+    proibicoes: await lerProibicoes(cliente.id),
   };
 
   // ── O PEDIDO DO CLIENTE VAI JUNTO, DELIMITADO ─────────────────────────────
@@ -540,6 +545,29 @@ export async function atenderPedido(pedidoId: string): Promise<Atendimento1a1> {
       status: pedido?.status ?? "novo",
       preco: pedido?.quotedPrice ?? null,
       prazo: pedido?.promisedFor?.toISOString() ?? null,
+      produziu: false,
+    };
+  }
+
+  // ── O PEDIDO ERA UMA OPERAÇÃO, NÃO UM TRABALHO NOVO ───────────────────────
+  // Mudar data de calendário já aconteceu por inteiro dentro da triagem: não há
+  // peça a produzir, não há prazo a prometer e não há preço. O que o cliente
+  // precisa ler são as DATAS NOVAS — e elas já foram para a conversa dele
+  // (`contarAoCliente`) e para o calendário do portal. Aqui devolvemos o mesmo
+  // recado, para quem chamou pela rota síncrona ver a mesma coisa.
+  if (t.executado) {
+    const pedido = await prisma.contentRequest.findUnique({
+      where: { id: pedidoId }, select: { status: true },
+    });
+    return {
+      recado:
+        `Pronto — ajustei o seu calendário: ${t.executado.movidas} publicação(ões) remarcada(s)` +
+        (t.executado.intocadas > 0 ? `, ${t.executado.intocadas} não pude mexer` : "") +
+        (t.executado.empurradoPeloPiso ? ". A data que você pediu já tinha passado, então usei o próximo horário viável" : "") +
+        ". As datas novas estão no seu calendário aqui no portal, e o detalhe peça a peça está na nossa conversa.",
+      status: pedido?.status ?? "executado",
+      preco: null,
+      prazo: null,
       produziu: false,
     };
   }

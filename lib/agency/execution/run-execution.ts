@@ -30,6 +30,7 @@ import {
   type VerdadeDoCliente,
 } from "@/lib/agency/execution/piso-de-verdade";
 import { sinteseDoFeedDoCliente } from "@/lib/agency/execution/leitura-do-cliente";
+import { lerProibicoes } from "@/lib/agency/esteira/proibicoes";
 import {
   VERSAO_DA_MEDICAO, versaoDaMedicao,
   type MedicaoDoMes,
@@ -398,6 +399,11 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
       // ser fail-closed, de propósito) barraria qualquer peça com CTA de canal
       // ou horário. Não é opcional: é a fiação que faz o piso ser piso.
       operacao: (await buildVerdadeOperacional(clientRequestId)) ?? undefined,
+      // A METADE NEGATIVA da verdade ancorada: o que o cliente PROIBIU. Lida do
+      // banco pelo servidor, nunca montada por quem chama, e fail-closed —
+      // leitura que falha reprova a peça em vez de liberá-la. Ver
+      // `lib/agency/esteira/proibicoes.ts`.
+      proibicoes: await lerProibicoes(project.clientId),
     };
 
     const agents = (() => { try { return JSON.parse(project.agents ?? "[]"); } catch { return []; } })() as string[];

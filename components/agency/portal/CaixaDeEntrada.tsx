@@ -284,7 +284,7 @@ export default function CaixaDeEntrada() {
                     <span className={`mt-1 inline-flex items-center h-[18px] px-2 rounded-full text-[10px] font-semibold ${
                       p.status === "precisa_decisao" ? "bg-[#FEE2E2] text-[#B91C1C]"
                       : precisaDeGente(p.status) ? "bg-[#FEF3C7] text-[#9B7B2D]"
-                      : p.status === "entregue" ? "bg-[#DCFCE7] text-[var(--success)]"
+                      : p.status === "entregue" || p.status === "executado" ? "bg-[#DCFCE7] text-[var(--success)]"
                       : p.status === "triado" || p.status === "em_producao" || p.status === "em_triagem" ? "bg-[#DBEAFE] text-[#1D4ED8]"
                       : "bg-[#F3F4F6] text-[#6B7280]"
                     }`}>
@@ -332,6 +332,10 @@ function rotuloDoStatus(p: PedidoDaCaixa): string {
     case "triado":          return `Aceito · ${p.escopo === "extra" ? "orçamento na mesa" : "no ciclo"}`;
     case "em_producao":     return "Produzindo";
     case "entregue":        return "Entregue ao cliente";
+    // A terceira família de pedido: OPERAÇÃO sobre trabalho já contratado
+    // (adiantar/adiar calendário, remarcar horário). Não gerou tarefa nem
+    // orçamento — mudou datas que já existiam, e o cliente já viu as novas.
+    case "executado":       return "Operação executada · calendário ajustado";
     case "precisa_decisao": return "PRECISA DE DECISÃO";
     case "recusado":        return "Recusado";
     default:                return p.status;

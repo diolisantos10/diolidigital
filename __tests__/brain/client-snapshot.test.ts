@@ -12,6 +12,10 @@ vi.mock("@/lib/db/client", () => ({
   prisma: {
     clientRequestDb: { findUnique: (...a: unknown[]) => findUniqueRequest(...a) },
     brandBrain: { findUnique: (...a: unknown[]) => findUniqueBrand(...a) },
+    // A gaveta das PROIBIÇÕES (`esteira/proibicoes.ts`). Ausente, a leitura falha
+    // e o piso REPROVA por fail-closed — que é o comportamento certo e não o que
+    // esta suíte prova. Vazia = "este cliente não proibiu nada".
+    brainArtifact: { findFirst: () => Promise.resolve(null) },
     client: { findUnique: (...a: unknown[]) => findUniqueClient(...a) },
   },
 }));

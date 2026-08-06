@@ -153,7 +153,11 @@ async function cuidarDosPedidos(): Promise<number> {
       const r = await triarPedido(p.id);
       if (r.ok) {
         andaram++;
-        if (r.triado.podeProduzirAgora) await produzirPedido(p.id);
+        // `r.triado` ausente = o pedido era uma OPERAÇÃO sobre trabalho já
+        // existente (mudar data de calendário). Ela já se executou por inteiro
+        // dentro da triagem: não há peça a produzir, e chamar o produtor aqui
+        // criaria trabalho que ninguém pediu.
+        if (r.triado?.podeProduzirAgora) await produzirPedido(p.id);
       } else if (r.parou) {
         // Parou com motivo é ANDAR: saiu do balde e virou decisão visível.
         andaram++;

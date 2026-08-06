@@ -44,6 +44,7 @@ import { generate } from "@/lib/ai/generate";
 import { TODOS_OS_ESPECIALISTAS } from "@/lib/agency/execution/especialistas";
 import { conferirPisoDeVerdade, resumirViolacoes, type VerdadeDoCliente } from "@/lib/agency/execution/piso-de-verdade";
 import { preservarVersaoAtual, registrarNovaVersao } from "@/lib/agency/esteira/versoes";
+import { lerProibicoes, registrarProibicoes } from "@/lib/agency/esteira/proibicoes";
 import { revisionStatusDoVeredito } from "@/lib/agency/execution/quality-auditor";
 
 /** Quantas vezes a máquina refaz por pedido do CLIENTE antes de virar gente. */
@@ -108,6 +109,15 @@ export async function refazerPorPedidoDoCliente(input: {
   }
 
   const ancora: AncoraDoPedido = { clientId, clientRequestId };
+
+  // ── A PROIBIÇÃO NASCE AQUI, e é aqui que ela mais nasce ──────────────────
+  // O pedido de ajuste é onde o cliente escreve "não use mais essa palavra".
+  // Registrar ANTES de montar a verdade faz a proibição valer já nesta refação
+  // — registrar depois a faria valer só na próxima peça, que é exatamente a
+  // demora que ele reclamou. Best-effort: registro não derruba refação.
+  if (clientId && input.comentario?.trim()) {
+    await registrarProibicoes(clientId, input.comentario, "ajuste");
+  }
 
   // O projeto é procurado pelas DUAS chaves. Só por `clientRequestId`, todo
   // cliente direto caía em "projeto não encontrado" — e saía por uma porta que
@@ -258,6 +268,11 @@ export async function refazerPorPedidoDoCliente(input: {
       (clientRequestId ?? projeto.clientRequestId)
         ? (await buildVerdadeOperacional((clientRequestId ?? projeto.clientRequestId)!)) ?? undefined
         : undefined,
+    // As PROIBIÇÕES valem com força extra aqui: a refação nasce de um pedido de
+    // ajuste, e o pedido de ajuste é onde o cliente costuma dizer "nunca mais
+    // use isso". Refazer violando de novo o que ele acabou de proibir é o pior
+    // desfecho possível deste caminho. Ver `esteira/proibicoes.ts`.
+    proibicoes: await lerProibicoes(projeto.clientId),
   };
 
   for (const entrega of alvos) {

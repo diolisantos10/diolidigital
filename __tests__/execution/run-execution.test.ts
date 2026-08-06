@@ -5,7 +5,10 @@ const db = vi.hoisted(() => ({
   project: { findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
   clientRequestDb: { findUnique: vi.fn() },
   client: { findFirst: vi.fn(), findUnique: vi.fn() },
-  brainArtifact: { findMany: vi.fn() },
+  // `findFirst` é a gaveta das PROIBIÇÕES do cliente (`esteira/proibicoes.ts`).
+  // Ausente, a leitura falha e o piso REPROVA toda peça por fail-closed — certo,
+  // mas não é o que esta suíte mede. Nulo = "este cliente não proibiu nada".
+  brainArtifact: { findMany: vi.fn(), findFirst: vi.fn(() => Promise.resolve(null)) },
   deliverable: { findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn(), count: vi.fn() },
   portalMessage: { create: vi.fn() },
   task: { updateMany: vi.fn() },

@@ -36,6 +36,11 @@ export const STATUS_PARA_O_CLIENTE: Record<string, string> = {
   triado:          "Aceito — entrou na produção",
   em_producao:     "Produzindo agora",
   entregue:        "Pronto — está nas suas aprovações",
+  // A terceira família: OPERAÇÃO sobre o trabalho que já existe (mudar data,
+  // remarcar horário). Não vira peça nem orçamento — vira mudança já feita. O
+  // estado é novo e tem leitor nos DOIS lados (aqui e na caixa de entrada da
+  // agência); estado gravado que ninguém lê é vazamento.
+  executado:       "Feito — já ajustei para você",
   precisa_decisao: "Preciso confirmar uma coisa com você",
   recusado:        "Não vamos seguir com este",
 };

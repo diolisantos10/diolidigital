@@ -63,6 +63,38 @@ export interface VerdadeDoCliente {
    * para consertar.
    */
   operacao?: VerdadeOperacional;
+  /**
+   * O que o cliente PROIBIU — a metade negativa da verdade ancorada.
+   *
+   * Até 06/08/2026 isto não existia: a casa sabia o que o cliente É e não sabia
+   * o que ele NÃO QUER. "Nunca use essa palavra", "não fale de preço", "não
+   * cite concorrente" morriam no texto do pedido daquela vez.
+   *
+   * `undefined` = quem montou esta verdade não passa proibições (verdade montada
+   * à mão em teste, ou caminho antigo). O piso não confere e diz por quê.
+   * `{ lidas: false }` = **tentou ler e não conseguiu**, e aí o piso REPROVA.
+   * A distinção é a diferença entre "não se aplica" e "a trava caiu".
+   *
+   * A gaveta e o extrator moram em `lib/agency/esteira/proibicoes.ts`; o tipo
+   * mora aqui porque é o piso que decide o veredito.
+   */
+  proibicoes?: ProibicoesDoCliente;
+}
+
+/** Uma proibição declarada pelo cliente, pronta para ser conferida. */
+export interface ProibicaoRegistrada {
+  /** A frase DELE, para o motivo poder citar quem proibiu o quê. */
+  frase: string;
+  /** Os termos que não podem aparecer na peça. Já normalizados (minúsculo, sem
+   *  acento). Lista vazia = proibição que nunca dispara, e por isso é descartada
+   *  na leitura em vez de virar regra decorativa. */
+  termos: string[];
+}
+
+export interface ProibicoesDoCliente {
+  /** `false` significa que a LEITURA falhou — nunca "não há proibições". */
+  lidas: boolean;
+  itens: ProibicaoRegistrada[];
 }
 
 /** As classes de afirmação que este piso sabe conferir. Cada uma é um fato
@@ -1282,6 +1314,9 @@ export function conferirPisoDeVerdade(conteudo: string, verdade: VerdadeDoClient
   //    que o cliente-revisor não tem como pegar — ele lê e aprova de boa-fé.
   violacoes.push(...conferirOperacao(texto, verdade));
 
+  // 8. O QUE O CLIENTE PROIBIU. Última checagem e a mais direta: ele já avisou.
+  violacoes.push(...conferirProibicoes(texto, verdade.proibicoes));
+
   // Uma frase que erra duas vezes o mesmo fato reprova uma vez. Repetir o mesmo
   // parecer só faz o agente reescrever no escuro.
   const vistas = new Set<string>();
@@ -1293,6 +1328,58 @@ export function conferirPisoDeVerdade(conteudo: string, verdade: VerdadeDoClient
   });
 
   return { aprovado: unicas.length === 0, violacoes: unicas };
+}
+
+// ─── O que o cliente PROIBIU ────────────────────────────────────────────────
+//
+// Por que isto é CÓDIGO e não uma linha no prompt: a regra da casa é trava, não
+// aviso. "Evite falar de preço" dentro de um prompt é uma sugestão entre outras
+// vinte; o modelo cumpre na maioria das vezes, e a vez em que não cumpre é
+// justamente a que chega ao cliente que já tinha avisado.
+//
+// A comparação é por FRONTEIRA DE PALAVRA e sem acento: "imperdível" e
+// "imperdivel" são a mesma proibição para quem digitou no celular, e um termo
+// que casasse no meio de outra palavra ("caro" dentro de "carrossel") barraria
+// peça legítima o tempo todo — freio que reprova tudo é desligado na primeira
+// semana.
+
+function conferirProibicoes(texto: string, proibicoes: ProibicoesDoCliente | undefined): Violacao[] {
+  // `undefined` = quem montou a verdade não passa proibições. Não é falha e não
+  // é permissão: é uma checagem que não se aplica àquele caminho.
+  if (!proibicoes) return [];
+
+  // FAIL-CLOSED. A leitura tentou e não conseguiu; a peça NÃO sai como aprovada.
+  // O oposto — "não consegui ler, então libera" — é o defeito que este módulo
+  // inteiro existe para não repetir.
+  if (!proibicoes.lidas) {
+    return [{
+      id: "proibicoes_nao_conferidas",
+      trecho: "",
+      motivo: "Não consegui ler o que este cliente proibiu, então não tenho como garantir que a peça respeita as restrições dele. Peça não conferida não vai como aprovada.",
+    }];
+  }
+
+  const alvo = semAcento(texto);
+  const violacoes: Violacao[] = [];
+  for (const p of proibicoes.itens) {
+    for (const termo of p.termos) {
+      const t = semAcento(termo);
+      if (t.length < 3) continue;
+      const re = new RegExp(`(?<![\\p{L}\\p{N}])${escaparRegex(t)}(?![\\p{L}\\p{N}])`, "u");
+      if (re.test(alvo)) {
+        violacoes.push({
+          id: "proibicao_do_cliente",
+          trecho: termo,
+          motivo: `O cliente PROIBIU isto: "${p.frase}". Peça que viola uma proibição registrada é pior que peça sem graça — ele já tinha avisado.`,
+        });
+      }
+    }
+  }
+  return violacoes;
+}
+
+function escaparRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 /** O parecer em uma linha, para o agente corrigir e para o painel mostrar. */

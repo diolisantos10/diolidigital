@@ -31,6 +31,9 @@ const db = vi.hoisted(() => ({
   clientRequestDb: { findUnique: vi.fn() },
   client: { findUnique: vi.fn() },
   brandBrain: { findUnique: vi.fn() },
+  // A gaveta das PROIBIÇÕES (`esteira/proibicoes.ts`). Ausente, a leitura falha
+  // e o piso REPROVA por fail-closed — certo, mas não é o que esta suíte mede.
+  brainArtifact: { findFirst: vi.fn(() => Promise.resolve(null)) },
 }));
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
 
