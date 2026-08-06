@@ -35,34 +35,19 @@
     "url": "https://transparency.meta.com/pt-br/policies/community-standards/inauthentic-behavior/"
   },
   {
+    "slug": "praticas-discriminatorias",
+    "titulo": "Padrões de Publicidade — Práticas discriminatórias",
+    "url": "https://transparency.meta.com/pt-br/policies/ad-standards/unacceptable-content/discriminatory-practices/"
+  },
+  {
+    "slug": "pi-de-terceiros",
+    "titulo": "Padrões de Publicidade — Violação de PI de terceiros",
+    "url": "https://transparency.meta.com/pt-br/policies/ad-standards/intellectual-property-infringement/third-party-infringement/"
+  },
+  {
     "slug": "termos-da-plataforma",
     "titulo": "Termos da Plataforma Meta (desenvolvedores)",
     "url": "https://developers.facebook.com/terms/"
-  },
-  {
-    "slug": "marketing-api-visao-geral",
-    "titulo": "Marketing API — visão geral",
-    "url": "https://developers.facebook.com/docs/marketing-api/overview"
-  },
-  {
-    "slug": "marketing-api-boas-praticas",
-    "titulo": "Marketing API — boas práticas",
-    "url": "https://developers.facebook.com/docs/marketing-api/best-practices/"
-  },
-  {
-    "slug": "graph-api-limites-de-taxa",
-    "titulo": "Graph API — limites de taxa (rate limiting)",
-    "url": "https://developers.facebook.com/docs/graph-api/overview/rate-limiting"
-  },
-  {
-    "slug": "instagram-publicacao-de-conteudo",
-    "titulo": "Instagram Platform — publicação de conteúdo por API",
-    "url": "https://developers.facebook.com/docs/instagram-platform/content-publishing"
-  },
-  {
-    "slug": "whatsapp-politica-de-mensagens",
-    "titulo": "WhatsApp Business — política de mensagens",
-    "url": "https://business.whatsapp.com/policy"
   },
   {
     "slug": "analise-de-anuncios",
@@ -75,38 +60,428 @@
     "url": "https://www.facebook.com/business/help/975570072950669"
   },
   {
-    "slug": "praticas-discriminatorias",
-    "titulo": "Padrões de Publicidade — Práticas discriminatórias",
-    "url": "https://transparency.meta.com/pt-br/policies/ad-standards/unacceptable-content/discriminatory-practices/"
-  },
-  {
     "slug": "recorrer-de-restricao",
     "titulo": "Central de Ajuda — Solicitar análise de restrição de publicidade",
     "url": "https://www.facebook.com/business/help/530209463124901"
   },
   {
-    "slug": "pi-de-terceiros",
-    "titulo": "Padrões de Publicidade — Violação de PI de terceiros (LACUNA: fora da 1ª rodada; recaptura deve tentar)",
-    "url": "https://transparency.meta.com/pt-br/policies/ad-standards/intellectual-property-infringement/third-party-infringement/"
-  },
-  {
     "slug": "app-review-processo",
-    "titulo": "App Review — processo e requisitos (LACUNA: não capturado na 1ª rodada)",
-    "url": "https://developers.facebook.com/docs/resp-plat-initiatives/app-review/"
+    "titulo": "App Review — processo e requisitos (Iniciativas de Plataforma Responsável)",
+    "url": "https://developers.facebook.com/documentation/resp-plat-initiatives/individual-processes/app-review"
   },
   {
-    "slug": "whatsapp-diretrizes-de-mensagens",
-    "titulo": "WhatsApp Business Messaging Guidelines (LACUNA: não capturado na 1ª rodada)",
-    "url": "https://business.whatsapp.com/policy"
+    "slug": "app-review-publicacao",
+    "titulo": "Desenvolvimento — publicar o app (release): App Review, modo Ativo, requisitos",
+    "url": "https://developers.facebook.com/documentation/development/release"
+  },
+  {
+    "slug": "app-review-fluxo-de-envio",
+    "titulo": "Desenvolvimento — envio para App Review (passo a passo) (LACUNA 06/08/2026: página devolve casca vazia ao capturador (SPA nova /documentation/ não hidrata). Retentar.)",
+    "url": "https://developers.facebook.com/documentation/development/release/app-review"
+  },
+  {
+    "slug": "app-modos-dev-vs-live",
+    "titulo": "App Modes — modo de desenvolvimento vs. modo Ativo (o que cada um permite)",
+    "url": "https://developers.facebook.com/documentation/development/build-and-test/app-modes"
+  },
+  {
+    "slug": "app-criacao-e-tipos",
+    "titulo": "Desenvolvimento — criar um app, tipos de app e painel",
+    "url": "https://developers.facebook.com/documentation/development/create-an-app"
+  },
+  {
+    "slug": "verificacao-de-negocio",
+    "titulo": "Verificação de negócio (Business Verification) — quando é exigida",
+    "url": "https://developers.facebook.com/documentation/development/release/business-verification"
+  },
+  {
+    "slug": "manutencao-de-acesso-a-dados",
+    "titulo": "Manutenção de acesso a dados (Data Access Renewal / uso continuado)",
+    "url": "https://developers.facebook.com/documentation/development/maintaining-data-access"
+  },
+  {
+    "slug": "permissoes-referencia",
+    "titulo": "Permissions Reference — todas as permissões da Graph API e o nível exigido",
+    "url": "https://developers.facebook.com/docs/permissions"
+  },
+  {
+    "slug": "graph-api-visao-geral",
+    "titulo": "Graph API — visão geral (nós, arestas, campos)",
+    "url": "https://developers.facebook.com/docs/graph-api/overview"
+  },
+  {
+    "slug": "graph-api-primeiros-passos",
+    "titulo": "Graph API — primeiros passos (chamadas, Explorer, host)",
+    "url": "https://developers.facebook.com/docs/graph-api/get-started"
+  },
+  {
+    "slug": "graph-api-versionamento",
+    "titulo": "Graph API — versionamento (ciclo de vida de versão, depreciação)",
+    "url": "https://developers.facebook.com/docs/graph-api/guides/versioning"
+  },
+  {
+    "slug": "graph-api-changelog",
+    "titulo": "Graph API — changelog oficial (mudanças por versão) (LACUNA 06/08/2026: só 1.104 caracteres úteis (índice de versões, conteúdo carregado por aba) — abaixo do mínimo. Retentar.)",
+    "url": "https://developers.facebook.com/docs/graph-api/changelog"
+  },
+  {
+    "slug": "graph-api-limites-de-taxa",
+    "titulo": "Graph API — limites de taxa (rate limiting)",
+    "url": "https://developers.facebook.com/docs/graph-api/overview/rate-limiting"
+  },
+  {
+    "slug": "graph-api-tratamento-de-erros",
+    "titulo": "Graph API — tratamento de erros e códigos",
+    "url": "https://developers.facebook.com/docs/graph-api/guides/error-handling"
+  },
+  {
+    "slug": "graph-api-requisicoes-seguras",
+    "titulo": "Graph API — requisições seguras (appsecret_proof, segredo do app)",
+    "url": "https://developers.facebook.com/docs/graph-api/guides/secure-requests"
+  },
+  {
+    "slug": "graph-api-lotes",
+    "titulo": "Graph API — requisições em lote (batch)",
+    "url": "https://developers.facebook.com/docs/graph-api/batch-requests"
+  },
+  {
+    "slug": "graph-api-resultados-e-paginacao",
+    "titulo": "Graph API — leitura de resultados, paginação e filtros",
+    "url": "https://developers.facebook.com/docs/graph-api/results"
+  },
+  {
+    "slug": "graph-api-debug-token",
+    "titulo": "Graph API — referência do endpoint debug_token (inspecionar token)",
+    "url": "https://developers.facebook.com/docs/graph-api/reference/debug_token"
+  },
+  {
+    "slug": "tokens-de-acesso",
+    "titulo": "Tipos de token de acesso — usuário, app, página, cliente",
+    "url": "https://developers.facebook.com/documentation/facebook-login/guides/access-tokens"
+  },
+  {
+    "slug": "tokens-longa-duracao",
+    "titulo": "Tokens de longa duração — troca, validade e renovação",
+    "url": "https://developers.facebook.com/documentation/facebook-login/guides/access-tokens/get-long-lived"
+  },
+  {
+    "slug": "login-seguranca",
+    "titulo": "Facebook Login — segurança (proteção de token, boas práticas)",
+    "url": "https://developers.facebook.com/documentation/facebook-login/security"
+  },
+  {
+    "slug": "marketing-api-visao-geral",
+    "titulo": "Marketing API — visão geral",
+    "url": "https://developers.facebook.com/docs/marketing-api/overview"
+  },
+  {
+    "slug": "marketing-api-boas-praticas",
+    "titulo": "Marketing API — boas práticas",
+    "url": "https://developers.facebook.com/docs/marketing-api/best-practices/"
+  },
+  {
+    "slug": "marketing-api-primeiros-passos",
+    "titulo": "Marketing API — primeiros passos (get started)",
+    "url": "https://developers.facebook.com/documentation/ads-commerce/marketing-api/get-started"
+  },
+  {
+    "slug": "marketing-api-autorizacao-e-niveis",
+    "titulo": "Marketing API — autorização, escopos e níveis de acesso (Limited/Full)",
+    "url": "https://developers.facebook.com/documentation/ads-commerce/marketing-api/get-started/authorization"
+  },
+  {
+    "slug": "marketing-api-nivel-de-acesso-maio-2026",
+    "titulo": "Anúncio oficial (maio/2026) — AMSA vira 'Marketing API Access Tier': Standard→Limited, Advanced→Full",
+    "url": "https://developers.meta.com/blog/updates-to-ads-management-standard-access-feature/"
+  },
+  {
+    "slug": "marketing-api-estrutura-de-campanha",
+    "titulo": "Marketing API — estrutura campanha / conjunto / anúncio / criativo",
+    "url": "https://developers.facebook.com/documentation/ads-commerce/marketing-api/overview"
+  },
+  {
+    "slug": "marketing-api-objetivos-outcome",
+    "titulo": "Marketing API — objetivos baseados em resultado (Outcome-Driven Ad Experiences) (LACUNA 06/08/2026: página devolve casca vazia ao capturador (SPA nova /documentation/ não hidrata). Retentar.)",
+    "url": "https://developers.facebook.com/documentation/ads-commerce/marketing-api/outcome-ad-objectives"
+  },
+  {
+    "slug": "marketing-api-referencia-campanha",
+    "titulo": "Marketing API — referência de Campaign (ad-campaign-group)",
+    "url": "https://developers.facebook.com/documentation/ads-commerce/marketing-api/reference/ad-campaign-group"
+  },
+  {
+    "slug": "marketing-api-referencia-conjunto",
+    "titulo": "Marketing API — referência de Ad Set (ad-campaign)",
+    "url": "https://developers.facebook.com/documentation/ads-commerce/marketing-api/reference/ad-campaign"
+  },
+  {
+    "slug": "marketing-api-referencia-anuncio",
+    "titulo": "Marketing API — referência de Ad (adgroup)",
+    "url": "https://developers.facebook.com/documentation/ads-commerce/marketing-api/reference/adgroup"
+  },
+  {
+    "slug": "marketing-api-referencia-criativo",
+    "titulo": "Marketing API — referência de AdCreative",
+    "url": "https://developers.facebook.com/documentation/ads-commerce/marketing-api/reference/ad-creative"
+  },
+  {
+    "slug": "marketing-api-referencia-conta-de-anuncios",
+    "titulo": "Marketing API — referência de Ad Account (campos, limite de gasto, status)",
+    "url": "https://developers.facebook.com/docs/graph-api/reference/adaccount/"
+  },
+  {
+    "slug": "marketing-api-imagens-de-anuncio",
+    "titulo": "Marketing API — upload de imagens de anúncio (adimages)",
+    "url": "https://developers.facebook.com/documentation/ads-commerce/marketing-api/reference/ad-account/adimages"
+  },
+  {
+    "slug": "marketing-api-criativo-guia",
+    "titulo": "Marketing API — guia de criativos (formatos, especificações)",
+    "url": "https://developers.facebook.com/documentation/ads-commerce/marketing-api/creative"
+  },
+  {
+    "slug": "marketing-api-lances",
+    "titulo": "Marketing API — estratégias de lance e orçamento",
+    "url": "https://developers.facebook.com/documentation/ads-commerce/marketing-api/bidding/overview"
+  },
+  {
+    "slug": "marketing-api-categoria-especial",
+    "titulo": "Marketing API — Special Ad Categories (crédito, emprego, moradia, social)",
+    "url": "https://developers.facebook.com/documentation/ads-commerce/marketing-api/audiences/special-ad-category"
+  },
+  {
+    "slug": "marketing-api-publicos-personalizados",
+    "titulo": "Marketing API — públicos personalizados (custom audiences)",
+    "url": "https://developers.facebook.com/documentation/ads-commerce/marketing-api/audiences/guides/custom-audiences"
+  },
+  {
+    "slug": "marketing-api-insights",
+    "titulo": "Marketing API — Insights API (visão geral)",
+    "url": "https://developers.facebook.com/documentation/ads-commerce/marketing-api/insights"
+  },
+  {
+    "slug": "marketing-api-insights-parametros",
+    "titulo": "Marketing API — Insights: parâmetros e campos (LACUNA 06/08/2026: página devolve casca vazia ao capturador (SPA nova /documentation/ não hidrata). Retentar.)",
+    "url": "https://developers.facebook.com/documentation/ads-commerce/marketing-api/insights/parameters"
+  },
+  {
+    "slug": "marketing-api-insights-metricas",
+    "titulo": "Marketing API — Insights: dicionário de métricas (LACUNA 06/08/2026: página devolve casca vazia ao capturador (SPA nova /documentation/ não hidrata). Retentar.)",
+    "url": "https://developers.facebook.com/documentation/ads-commerce/marketing-api/insights/metrics"
+  },
+  {
+    "slug": "marketing-api-insights-recortes",
+    "titulo": "Marketing API — Insights: breakdowns (recortes)",
+    "url": "https://developers.facebook.com/documentation/ads-commerce/marketing-api/insights/breakdowns"
+  },
+  {
+    "slug": "marketing-api-insights-limites",
+    "titulo": "Marketing API — Insights: limites e boas práticas",
+    "url": "https://developers.facebook.com/documentation/ads-commerce/marketing-api/insights/best-practices"
+  },
+  {
+    "slug": "marketing-api-limites-de-taxa",
+    "titulo": "Marketing API — limites de taxa por app e por conta de anúncio",
+    "url": "https://developers.facebook.com/documentation/ads-commerce/marketing-api/overview/rate-limiting"
+  },
+  {
+    "slug": "marketing-api-erros",
+    "titulo": "Marketing API — referência de erros (códigos e subcódigos)",
+    "url": "https://developers.facebook.com/documentation/ads-commerce/marketing-api/error-reference"
+  },
+  {
+    "slug": "marketing-api-requisicoes-assincronas",
+    "titulo": "Marketing API — requisições assíncronas e em lote",
+    "url": "https://developers.facebook.com/documentation/ads-commerce/marketing-api/asyncrequests"
+  },
+  {
+    "slug": "marketing-api-regras-automatizadas",
+    "titulo": "Marketing API — Ad Rules (regras automatizadas)",
+    "url": "https://developers.facebook.com/documentation/ads-commerce/marketing-api/ad-rules"
+  },
+  {
+    "slug": "marketing-api-versionamento",
+    "titulo": "Marketing API — versionamento e ciclo de vida das versões",
+    "url": "https://developers.facebook.com/documentation/ads-commerce/marketing-api/overview/versioning"
+  },
+  {
+    "slug": "marketing-api-mudancas-fora-de-ciclo-2026",
+    "titulo": "Marketing API — mudanças fora de ciclo em 2026 (out-of-cycle changes)",
+    "url": "https://developers.facebook.com/documentation/ads-commerce/marketing-api/out-of-cycle-changes/occ-2026"
+  },
+  {
+    "slug": "marketing-api-anuncios-de-cadastro",
+    "titulo": "Marketing API — anúncios de cadastro (lead ads)",
+    "url": "https://developers.facebook.com/documentation/ads-commerce/marketing-api/guides/lead-ads"
+  },
+  {
+    "slug": "business-management-apis",
+    "titulo": "Business Management APIs — visão geral",
+    "url": "https://developers.facebook.com/docs/business-management-apis"
+  },
+  {
+    "slug": "business-manager-api",
+    "titulo": "Business Manager API — o nó Business e suas arestas (LACUNA 06/08/2026: só 1.057 caracteres úteis (página-índice) — abaixo do mínimo. Retentar.)",
+    "url": "https://developers.facebook.com/docs/business-management-apis/business-manager-api"
+  },
+  {
+    "slug": "business-usuarios-de-sistema",
+    "titulo": "Business — System Users (usuários do sistema, tokens que não expiram)",
+    "url": "https://developers.facebook.com/docs/business-management-apis/system-users"
+  },
+  {
+    "slug": "business-atribuicao-de-ativos",
+    "titulo": "Business — atribuição de ativos (contas de anúncio, Páginas, Instagram)",
+    "url": "https://developers.facebook.com/docs/business-management-apis/business-asset-management"
+  },
+  {
+    "slug": "instagram-visao-geral",
+    "titulo": "Instagram Platform — visão geral (contas profissionais, APIs disponíveis)",
+    "url": "https://developers.facebook.com/documentation/instagram-platform/overview"
+  },
+  {
+    "slug": "instagram-publicacao-de-conteudo",
+    "titulo": "Instagram Platform — publicação de conteúdo por API",
+    "url": "https://developers.facebook.com/documentation/instagram-platform/content-publishing"
+  },
+  {
+    "slug": "instagram-limite-de-publicacao",
+    "titulo": "Instagram — limite de publicação em 24h (content_publishing_limit)",
+    "url": "https://developers.facebook.com/documentation/instagram-platform/instagram-graph-api/reference/ig-user/content_publishing_limit"
+  },
+  {
+    "slug": "instagram-insights",
+    "titulo": "Instagram Platform — insights (guia)",
+    "url": "https://developers.facebook.com/documentation/instagram-platform/insights"
   },
   {
     "slug": "instagram-insights-de-usuario",
-    "titulo": "Instagram API — IG User Insights (métricas de conta vigentes; LACUNA: conferido ao vivo em 04/08/2026, não capturado)",
-    "url": "https://developers.facebook.com/docs/instagram-api/reference/ig-user/insights"
+    "titulo": "Instagram — IG User Insights (métricas de conta)",
+    "url": "https://developers.facebook.com/documentation/instagram-platform/api-reference/instagram-user/insights"
   },
   {
     "slug": "instagram-insights-de-midia",
-    "titulo": "Instagram API — IG Media Insights (métricas por post/reel/story; LACUNA: conferido ao vivo em 04/08/2026, não capturado)",
-    "url": "https://developers.facebook.com/docs/instagram-api/reference/ig-media/insights"
+    "titulo": "Instagram — IG Media Insights (métricas por post/reel/story)",
+    "url": "https://developers.facebook.com/documentation/instagram-platform/reference/instagram-media/insights"
+  },
+  {
+    "slug": "instagram-moderacao-de-comentarios",
+    "titulo": "Instagram — comentários e moderação por API",
+    "url": "https://developers.facebook.com/documentation/instagram-platform/comment-moderation"
+  },
+  {
+    "slug": "instagram-mensagens",
+    "titulo": "Instagram — Messaging API (mensagens diretas)",
+    "url": "https://developers.facebook.com/documentation/instagram-platform/instagram-api-with-instagram-login/messaging-api"
+  },
+  {
+    "slug": "instagram-webhooks",
+    "titulo": "Instagram — webhooks (campos e assinatura)",
+    "url": "https://developers.facebook.com/documentation/instagram-platform/webhooks"
+  },
+  {
+    "slug": "pages-api-visao-geral",
+    "titulo": "Pages API — visão geral (Páginas do Facebook por API)",
+    "url": "https://developers.facebook.com/documentation/pages-api"
+  },
+  {
+    "slug": "pages-api-primeiros-passos",
+    "titulo": "Pages API — primeiros passos e tokens de Página",
+    "url": "https://developers.facebook.com/documentation/pages-api/getting-started"
+  },
+  {
+    "slug": "pages-api-publicacoes",
+    "titulo": "Pages API — publicações (criar, ler, apagar posts)",
+    "url": "https://developers.facebook.com/documentation/pages-api/posts"
+  },
+  {
+    "slug": "webhooks-visao-geral",
+    "titulo": "Webhooks — visão geral (configuração, verificação, entrega)",
+    "url": "https://developers.facebook.com/docs/graph-api/webhooks/"
+  },
+  {
+    "slug": "webhooks-primeiros-passos",
+    "titulo": "Webhooks — primeiros passos (endpoint, verify token, assinatura X-Hub)",
+    "url": "https://developers.facebook.com/docs/graph-api/webhooks/getting-started"
+  },
+  {
+    "slug": "webhooks-instagram",
+    "titulo": "Webhooks — configuração para Instagram",
+    "url": "https://developers.facebook.com/docs/graph-api/webhooks/getting-started/webhooks-for-instagram"
+  },
+  {
+    "slug": "webhooks-referencia-pagina",
+    "titulo": "Webhooks — referência de campos do objeto Page",
+    "url": "https://developers.facebook.com/docs/graph-api/webhooks/reference/page/"
+  },
+  {
+    "slug": "conversions-api",
+    "titulo": "Conversions API — visão geral",
+    "url": "https://developers.facebook.com/documentation/ads-commerce/conversions-api"
+  },
+  {
+    "slug": "conversions-api-primeiros-passos",
+    "titulo": "Conversions API — primeiros passos",
+    "url": "https://developers.facebook.com/documentation/ads-commerce/conversions-api/get-started"
+  },
+  {
+    "slug": "conversions-api-parametros",
+    "titulo": "Conversions API — parâmetros do evento (customer data, event data)",
+    "url": "https://developers.facebook.com/documentation/ads-commerce/conversions-api/parameters"
+  },
+  {
+    "slug": "meta-pixel",
+    "titulo": "Meta Pixel — visão geral",
+    "url": "https://developers.facebook.com/documentation/meta-pixel"
+  },
+  {
+    "slug": "meta-pixel-primeiros-passos",
+    "titulo": "Meta Pixel — instalação e eventos",
+    "url": "https://developers.facebook.com/documentation/meta-pixel/get-started"
+  },
+  {
+    "slug": "whatsapp-politica-de-mensagens",
+    "titulo": "WhatsApp Business — política de mensagens",
+    "url": "https://business.whatsapp.com/policy"
+  },
+  {
+    "slug": "whatsapp-diretrizes-de-mensagens",
+    "titulo": "WhatsApp Business Messaging Guidelines (documento legal do WhatsApp)",
+    "url": "https://www.whatsapp.com/legal/messaging-guidelines"
+  },
+  {
+    "slug": "whatsapp-cloud-api-visao-geral",
+    "titulo": "WhatsApp Cloud API — visão geral da plataforma",
+    "url": "https://developers.facebook.com/documentation/business-messaging/whatsapp/about-the-platform"
+  },
+  {
+    "slug": "whatsapp-cloud-api-primeiros-passos",
+    "titulo": "WhatsApp Cloud API — primeiros passos",
+    "url": "https://developers.facebook.com/documentation/business-messaging/whatsapp/get-started"
+  },
+  {
+    "slug": "whatsapp-envio-de-mensagens",
+    "titulo": "WhatsApp Cloud API — envio de mensagens (janela de 24h, tipos)",
+    "url": "https://developers.facebook.com/documentation/business-messaging/whatsapp/messages/send-messages"
+  },
+  {
+    "slug": "whatsapp-modelos",
+    "titulo": "WhatsApp — modelos de mensagem (templates): criação e aprovação",
+    "url": "https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/overview"
+  },
+  {
+    "slug": "whatsapp-webhooks",
+    "titulo": "WhatsApp Cloud API — webhooks (eventos de mensagem e status)",
+    "url": "https://developers.facebook.com/documentation/business-messaging/whatsapp/webhooks/overview"
+  },
+  {
+    "slug": "whatsapp-precos",
+    "titulo": "WhatsApp — modelo de cobrança por conversa/mensagem",
+    "url": "https://developers.facebook.com/documentation/business-messaging/whatsapp/pricing"
+  },
+  {
+    "slug": "whatsapp-politica-desenvolvedor",
+    "titulo": "WhatsApp Business Platform — política para desenvolvedores (LACUNA 06/08/2026: página devolve casca vazia ao capturador (SPA nova /documentation/ não hidrata). Retentar.)",
+    "url": "https://developers.facebook.com/documentation/business-messaging/whatsapp/policy"
   }
 ]

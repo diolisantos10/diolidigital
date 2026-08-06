@@ -10,6 +10,12 @@
 //   node scripts/biblioteca/capturar.mjs meta          # captura uma plataforma
 //   node scripts/biblioteca/capturar.mjs               # captura todas
 //   node scripts/biblioteca/capturar.mjs meta --diff   # só relata o que mudou
+//   node scripts/biblioteca/capturar.mjs meta --slug=graph-api-changelog,app-modos-dev-vs-live
+//                                                     # recaptura só as fontes citadas
+//                                                     # (o modo de RETENTATIVA: manifesto
+//                                                     #  com ~100 fontes leva ~35 min inteiro,
+//                                                     #  e uma lacuna do dia anterior não
+//                                                     #  justifica varrer tudo de novo)
 //
 // Cada plataforma tem um manifesto `docs/plataformas/<p>/fontes.json`:
 //   [{ "slug": "padroes-de-publicidade", "titulo": "…", "url": "https://…" }]
@@ -46,6 +52,12 @@ function caracteresUteis(texto) {
 
 const soDiff = process.argv.includes("--diff");
 const alvo = process.argv[2] && !process.argv[2].startsWith("--") ? [process.argv[2]] : null;
+const filtroSlug = (() => {
+  const arg = process.argv.find((a) => a.startsWith("--slug="));
+  if (!arg) return null;
+  const lista = arg.slice("--slug=".length).split(",").map((s) => s.trim()).filter(Boolean);
+  return lista.length > 0 ? new Set(lista) : null;
+})();
 
 const plataformas = (alvo ?? readdirSync(BASE, { withFileTypes: true })
   .filter((d) => d.isDirectory()).map((d) => d.name))
@@ -84,6 +96,7 @@ for (const plat of plataformas) {
   mkdirSync(pastaFontes, { recursive: true });
 
   for (const fonte of manifesto) {
+    if (filtroSlug && !filtroSlug.has(fonte.slug)) continue;
     const destino = path.join(pastaFontes, `${fonte.slug}.md`);
     const pagina = await contexto.newPage();
     let texto = "";

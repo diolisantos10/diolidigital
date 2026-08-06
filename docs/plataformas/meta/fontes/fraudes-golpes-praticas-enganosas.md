@@ -1,8 +1,8 @@
 ---
 titulo: "Padrões da Comunidade — Fraude, golpes e práticas enganosas"
 url: https://transparency.meta.com/pt-br/policies/community-standards/fraud-and-scams/
-capturado_em: 2026-08-03
-hash: df286372e9c3a4ce
+capturado_em: 2026-08-06
+hash: 28ec8538feed8550
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -14,21 +14,21 @@ Experiências do usuário
 Detalhes da política
 REGISTRO DE ALTERAÇÕES
 Hoje
-22 de jul de 2026
-6 de jun de 2025
-2 de out de 2024
-18 de jul de 2024
-4 de ago de 2023
-28 de abr de 2022
-23 de dez de 2021
-24 de nov de 2021
-28 de out de 2021
-26 de ago de 2021
-4 de mai de 2020
-17 de dez de 2020
-18 de nov de 2020
-16 de dez de 2019
-3 de set de 2019
+23 de jul de 2026
+7 de jun de 2025
+3 de out de 2024
+19 de jul de 2024
+5 de ago de 2023
+29 de abr de 2022
+24 de dez de 2021
+25 de nov de 2021
+29 de out de 2021
+27 de ago de 2021
+5 de mai de 2020
+18 de dez de 2020
+19 de nov de 2020
+17 de dez de 2019
+4 de set de 2019
 Fundamento da política
 Nosso objetivo é proteger usuários e empresas de serem enganados e perderem dinheiro, bens materiais ou informações pessoais. Conseguimos isso removendo conteúdo e combatendo comportamentos que empregam propositalmente meios enganosos, como declaração falsa intencional, informações roubadas e alegações exageradas, para enganar usuários e empresas ou cometer fraudes contra eles, ou para impulsionar o engajamento. Isso inclui conteúdos que visem coordenar ou promover essas atividades usando nossos serviços. Nós permitimos que as pessoas divulguem informações sobre isso, bem como condenem essas atividades.
 Nós não permitimos:

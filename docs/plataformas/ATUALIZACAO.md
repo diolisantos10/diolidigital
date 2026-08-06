@@ -10,6 +10,9 @@
    TODAS as fontes de todos os manifestos (`docs/plataformas/*/fontes.json`).
    Cada arquivo capturado carrega `capturado_em` e `hash`; quando o hash muda,
    a ferramenta imprime `[MUDOU]` e lista as mudanças no fim.
+   Retentativa de uma lacuna isolada: `--slug=a,b,c` (o manifesto da Meta tem
+   ~100 fontes e a varredura inteira leva ~35 minutos — não se paga varrer tudo
+   para reconferir uma página que falhou ontem).
 2. **Rotina diária** — uma Routine agendada abre uma sessão nova todo dia de
    manhã, roda a captura, e quando algo mudou: lê o diff, resume a mudança em
    `docs/plataformas/CHANGELOG.md` (data, fonte, o que mudou em uma linha),

@@ -1,8 +1,8 @@
 ---
 titulo: "Padrões da Comunidade — Comportamento inautêntico"
 url: https://transparency.meta.com/pt-br/policies/community-standards/inauthentic-behavior/
-capturado_em: 2026-08-03
-hash: b78ebdebb62fafac
+capturado_em: 2026-08-06
+hash: 1e95e062aaadc6b0
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -14,13 +14,13 @@ Experiências do usuário
 Detalhes da política
 REGISTRO DE ALTERAÇÕES
 Hoje
-11 de dez de 2025
-2 de out de 2024
-18 de jul de 2024
-25 de abr de 2022
-17 de dez de 2020
-7 de nov de 2019
-10 de out de 2019
+12 de dez de 2025
+3 de out de 2024
+19 de jul de 2024
+26 de abr de 2022
+18 de dez de 2020
+8 de nov de 2019
+11 de out de 2019
 Fundamento da política
 Comportamento não autêntico refere-se a uma variedade de formas complexas de enganação, realizadas por uma rede de ativos não autênticos controlados pela mesma pessoa ou pessoas, cujo objetivo é enganar a Meta ou nossa comunidade ou se esquivar do monitoramento conforme os Padrões da Comunidade.
 Quando indivíduos que agem com ameaças deliberadas usam identidades falsas para se envolverem em formas sofisticadas de comportamento não autêntico, eles se envolvem no que definimos como Comportamento Inautêntico Coordenado (CIC).

@@ -5,6 +5,29 @@
 
 ---
 
+## 🔴 06/08/2026 — A recaptura diária da biblioteca NÃO está rodando
+
+Fato verificado, não suspeita: `docs/plataformas/CHANGELOG.md` ficou **três
+dias sem uma linha** (03/08 → 06/08), e não existe agendamento algum no
+repositório — nenhum workflow em `.github/workflows/` (só `cron-radar` e
+`cron-execute`, ambos de produto), nenhum cron de sistema, nenhum arquivo de
+Routine. O texto de 03/08 abaixo diz "recaptura diária agendada (rotina às
+06:00 BRT)"; **esse agendamento não tem artefato em lugar nenhum**.
+
+- **Consequência:** a biblioteca que serve de fonte aos pareceres-trava
+  envelheceu em silêncio. Na recaptura de hoje, **7 fontes de política já
+  tinham mudado** desde 03/08 sem ninguém saber.
+- **Decisão do CEO necessária** (não faço por conta própria, exige criar
+  agendamento): a rotina diária vive como **Routine do Claude** (sessão nova
+  que roda a captura, lê o diff, escreve o CHANGELOG e commita) ou como
+  **workflow do GitHub Actions** no molde de `cron-radar.yml`? A segunda é
+  auditável no repositório e não depende de nenhuma sessão estar de pé — mas
+  não sabe resumir a mudança em linguagem de negócio.
+- Enquanto não houver rotina, **a data de `capturado_em` do arquivo é o único
+  atestado de frescor** — o especialista precisa olhá-la antes de citar.
+
+---
+
 ## 🔵 05/08/2026 — Achados do raio-x, com dono
 
 Saíram da coleta de 05/08 (`docs/raio-x/relatorios/2026-08-05.md`). O raio-x

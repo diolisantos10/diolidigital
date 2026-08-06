@@ -1,12 +1,75 @@
 # Cartilha da Meta — manual operacional da Dioli Digital
 
-> Destilada em 03/08/2026 a partir dos documentos oficiais capturados em
+> Destilada em 03/08/2026 e **ampliada em 06/08/2026** (a biblioteca saltou de
+> 22 para 97 fontes no manifesto; 90 capturadas — Marketing API, Graph API,
+> tokens, App Review, Business Management, Instagram, Webhooks, CAPI/Pixel e
+> WhatsApp Cloud API entraram) a partir dos documentos oficiais capturados em
 > `docs/plataformas/meta/fontes/` (cada arquivo tem URL, data e hash).
 > **Esta cartilha é resumo de trabalho; em caso de dúvida ou decisão de risco,
 > vale o documento capturado — e, acima dele, a página oficial da Meta.**
 > Contexto que a motivou: em 03/08/2026 a conta de anúncios da agência foi
 > RESTRINGIDA por "automação que não segue as regras" (operação por API em
 > ritmo de máquina, app em modo de desenvolvimento).
+
+---
+
+## Mapa da biblioteca (o que existe em `fontes/`, por família)
+
+Toda a lista viva está em `fontes.json`. Resumo para achar rápido:
+
+- **Política de anúncio e conta:** `padroes-de-publicidade`,
+  `praticas-comerciais-inaceitaveis`, `atributos-pessoais`,
+  `praticas-discriminatorias`, `pi-de-terceiros`,
+  `fraudes-golpes-praticas-enganosas`, `comunidade-spam`,
+  `comunidade-comportamento-inautentico`, `integridade-da-conta`,
+  `analise-de-anuncios`, `qualidade-da-conta`, `recorrer-de-restricao`,
+  `termos-da-plataforma`.
+- **App, permissões e review:** `app-review-processo`, `app-review-publicacao`,
+  `app-modos-dev-vs-live`, `app-criacao-e-tipos`, `verificacao-de-negocio`,
+  `manutencao-de-acesso-a-dados`, `permissoes-referencia`.
+- **Graph API e tokens:** `graph-api-visao-geral`, `graph-api-primeiros-passos`,
+  `graph-api-versionamento`, `graph-api-limites-de-taxa`,
+  `graph-api-tratamento-de-erros`, `graph-api-requisicoes-seguras`,
+  `graph-api-lotes`, `graph-api-resultados-e-paginacao`,
+  `graph-api-debug-token`, `tokens-de-acesso`, `tokens-longa-duracao`,
+  `login-seguranca`.
+- **Marketing API:** `marketing-api-visao-geral`, `marketing-api-boas-praticas`,
+  `marketing-api-primeiros-passos`, `marketing-api-autorizacao-e-niveis`,
+  `marketing-api-nivel-de-acesso-maio-2026`,
+  `marketing-api-estrutura-de-campanha`, `marketing-api-referencia-campanha`,
+  `marketing-api-referencia-conjunto`, `marketing-api-referencia-anuncio`,
+  `marketing-api-referencia-criativo`,
+  `marketing-api-referencia-conta-de-anuncios`,
+  `marketing-api-imagens-de-anuncio`, `marketing-api-criativo-guia`,
+  `marketing-api-lances`, `marketing-api-categoria-especial`,
+  `marketing-api-publicos-personalizados`, `marketing-api-insights`,
+  `marketing-api-insights-recortes`, `marketing-api-insights-limites`,
+  `marketing-api-limites-de-taxa`, `marketing-api-erros`,
+  `marketing-api-requisicoes-assincronas`, `marketing-api-regras-automatizadas`,
+  `marketing-api-versionamento`, `marketing-api-mudancas-fora-de-ciclo-2026`,
+  `marketing-api-anuncios-de-cadastro`.
+- **Business Management:** `business-management-apis`,
+  `business-usuarios-de-sistema`, `business-atribuicao-de-ativos`.
+- **Instagram:** `instagram-visao-geral`, `instagram-publicacao-de-conteudo`,
+  `instagram-limite-de-publicacao`, `instagram-insights`,
+  `instagram-insights-de-usuario`, `instagram-insights-de-midia`,
+  `instagram-moderacao-de-comentarios`, `instagram-mensagens`,
+  `instagram-webhooks`.
+- **Páginas e webhooks:** `pages-api-visao-geral`,
+  `pages-api-primeiros-passos`, `pages-api-publicacoes`,
+  `webhooks-visao-geral`, `webhooks-primeiros-passos`, `webhooks-instagram`,
+  `webhooks-referencia-pagina`.
+- **Medição:** `conversions-api`, `conversions-api-primeiros-passos`,
+  `conversions-api-parametros`, `meta-pixel`, `meta-pixel-primeiros-passos`.
+- **WhatsApp:** `whatsapp-politica-de-mensagens`,
+  `whatsapp-diretrizes-de-mensagens`, `whatsapp-cloud-api-visao-geral`,
+  `whatsapp-cloud-api-primeiros-passos`, `whatsapp-envio-de-mensagens`,
+  `whatsapp-modelos`, `whatsapp-webhooks`, `whatsapp-precos`.
+
+> ⚠️ **Aviso de tradução que a própria Meta imprime nas páginas em pt-BR:**
+> "Esta página foi traduzida do inglês usando IA. O conteúdo traduzido pode
+> conter erros, omissões ou divergências de sentido." Em decisão de risco,
+> confira a versão em inglês na URL do cabeçalho do arquivo.
 
 ---
 
@@ -51,12 +114,19 @@ de falha/contestação de pagamento. (fonte: fontes/qualidade-da-conta.md)
 
 (fonte: fontes/graph-api-limites-de-taxa.md; fonte: fontes/instagram-publicacao-de-conteudo.md)
 
-**Tradução para a nossa operação:** com conta fria e app em modo de
-desenvolvimento, o teto formal já é baixo (300 + 40×ativos/hora) — mas o ban
-veio ANTES de qualquer rate limit, por padrão de comportamento. O limite
-técnico não é a licença: é o teto de emergência. Aquecimento (uma ação por
-vez, minutos entre escritas, volume subindo ao longo de dias) continua sendo a
-regra da casa, por cima dos números acima.
+> ⚠️ **CORREÇÃO de 06/08/2026 (fonte nova):** a Marketing API **não** usa a
+> fórmula "300 + 40 × anúncios ativos" que a linha acima repetia da página de
+> rate limiting da Graph API. Ela tem lógica PRÓPRIA, por PONTUAÇÃO, e está
+> **excluída dos limites da Graph API**. Ver a seção (d) — é o número que
+> realmente governa a nossa esteira de tráfego.
+> (fonte: fontes/marketing-api-limites-de-taxa.md)
+
+**Tradução para a nossa operação:** com conta fria e app em Acesso Limitado, o
+teto formal já é baixo — mas o ban veio ANTES de qualquer rate limit, por
+padrão de comportamento. O limite técnico não é a licença: é o teto de
+emergência. Aquecimento (uma ação por vez, minutos entre escritas, volume
+subindo ao longo de dias) continua sendo a regra da casa, por cima dos números
+acima.
 
 ---
 
@@ -163,17 +233,136 @@ observação. (fonte: fontes/qualidade-da-conta.md)
 
 ## (d) Regras de API — ritmo, limites, modo do app, App Review
 
+### ⭐ O número que governa a esteira: a PONTUAÇÃO da Marketing API
+
+**A Marketing API tem lógica de limite própria e está EXCLUÍDA dos limites da
+Graph API** — chamada de Marketing API não conta no balde da Graph. O limite é
+por **conta de anúncios**, por pontuação, em janela deslizante:
+
+| | Acesso Limitado (padrão) | Acesso Total (após análise) |
+|---|---|---|
+| Pontuação máxima | **60** | 9.000 |
+| Decaimento | 300 s | 300 s |
+| Bloqueio ao estourar | **300 s** | 60 s |
+
+**Leitura = 1 ponto. Escrita = 3 pontos.** Ou seja: no nosso nível (Limitado),
+**20 escritas** já estouram a cota e travam a conta por 5 minutos. As 36
+imagens + campanha do incidente estavam muito acima disso.
+
+Erros correspondentes: **17** (subcódigo 2446079, "User request limit reached")
+e **613** (subcódigo 1487742, "too many calls from this ad-account").
+
+Há ainda um limite **anti-rajada em tempo real**: **100 QPS por combinação de
+app + conta de anúncios**, aplicado só às operações de **criação e edição** de
+campanha, conjunto e anúncio — feito justamente para pegar picos curtos que a
+janela normal não vê. (fonte: fontes/marketing-api-limites-de-taxa.md)
+
+### Nível de acesso da Marketing API — o nome mudou em maio/2026
+
+**Em 04/05/2026 a Meta renomeou "Ads Management Standard Access" (AMSA) para
+"Marketing API Access Tier"**, e trocou os rótulos: *Standard Access* virou
+**Limited Access (Acesso Limitado)** e *Advanced Access* virou **Full Access
+(Acesso Total)**. Não é mudança quebradora — o identificador da permissão é o
+mesmo e o nível existente foi preservado.
+(fonte: fontes/marketing-api-nivel-de-acesso-maio-2026.md)
+
+**Requisitos para subir para Acesso Total (revisados na mesma data, e agora
+visíveis no próprio Painel de Apps):**
+- **500+ chamadas** à Marketing API nos **últimos 15 dias** (antes eram 1.500);
+- **taxa de erro < 15%** nas **últimas 500 chamadas** (janela deslizante, não
+  mais período fixo);
+- gravação de tela **não é mais exigida** no envio.
+
+**O que o nível muda além da cota** (fonte:
+fontes/marketing-api-autorizacao-e-niveis.md):
+
+| | Acesso Limitado | Acesso Total |
+|---|---|---|
+| Volume | "extremamente limitado por conta de anúncio — **somente para desenvolvimento, não para apps em produção veiculando para anunciantes publicados**" | levemente limitado |
+| Business Manager API | acesso limitado; **sem** administrar contas, permissões e Páginas | todas as APIs de BM e Catálogo |
+| Usuários do sistema | **1** + 1 admin | **10** + 1 admin |
+| Criar Página por API | não | não |
+
+> **Consequência direta para a Dioli:** a própria Meta diz, com todas as
+> letras, que o Acesso Limitado **não é para produção servindo anunciantes**.
+> Rodar a esteira de tráfego de CLIENTES neste nível é operar fora do uso
+> declarado. O caminho é acumular 500 chamadas legítimas em 15 dias com erro
+> < 15% (leitura conta) e pedir o Acesso Total. Onde conferir o nível atual:
+> **Painel de Apps > Análise do app > Permissões e recursos**.
+
+### Modo de desenvolvimento vs. modo publicado — o que realmente trava
+
+O modo do app decide **QUEM** pode usá-lo, não se o anúncio é real:
+
+- **Modo de desenvolvimento:** o app só pode pedir permissões de **usuários com
+  função no app** (Administrador, Desenvolvedor, Testador), e só permissões de
+  nível padrão ou avançado. O app não aparece em busca nem na Central de Apps.
+  Dados gerados aqui (posts de teste) ficam visíveis só para quem tem função —
+  **e passam a ser visíveis para todos quando o app for publicado**.
+- **Modo publicado (Ativo):** pode pedir permissões de **qualquer pessoa**, mas
+  **somente as aprovadas na análise do app**.
+- A troca é uma alternância na barra do Painel de Apps, feita por administrador
+  — não existe API para isso.
+(fonte: fontes/app-modos-dev-vs-live.md)
+
+> **Correção importante ao entendimento anterior da casa:** "modo de
+> desenvolvimento" **não** proíbe por si só uma escrita de anúncio real na
+> conta do próprio dono do app. O que ele proíbe é operar em nome de gente
+> **sem função no app** — que é exatamente o caso dos nossos CLIENTES. Para
+> cliente, a exigência não é só o modo publicado: é o App Review das permissões.
+> **As chamadas em QUALQUER nível de acesso são feitas contra dados de
+> PRODUÇÃO** — não existe "modo de teste" implícito.
+> (fonte: fontes/marketing-api-autorizacao-e-niveis.md)
+
+### App Review — quando é obrigatório e o que reprova
+
+- **Regra do gatilho:** se o app se destina a ser usado por pessoas **sem
+  função nele (ou na empresa que o obteve)**, ele precisa passar pela análise.
+  Se só é usado por quem tem função, a análise **não** é necessária.
+- Permissões aprovadas podem ser pedidas de qualquer usuário; **não aprovadas,
+  só de quem tem função**.
+- **A Meta TESTA o app.** Se não conseguir acessá-lo, **o envio inteiro é
+  rejeitado**. Se conseguir acessar mas não conseguir exercitar a
+  funcionalidade que justifica a permissão pedida, **aquela permissão não é
+  aprovada**.
+- Processos independentes que podem ser exigidos conforme o tipo de app:
+  **Verificação da empresa (Business Verification)**.
+(fonte: fontes/app-review-processo.md; fonte: fontes/app-review-publicacao.md;
+fonte: fontes/verificacao-de-negocio.md)
+
+### Tipos de token — qual usar para quê
+
+| Token | Para quê | Nota da casa |
+|---|---|---|
+| **App access token** (`{id}\|{secret}`) | ler/alterar **configurações do app** | é o que responde "em que modo o app está" sem adivinhação |
+| **Token de usuário** | agir **em nome de uma pessoa**, com base em ação dela | é o que temos hoje no cofre; expira |
+| **Token de Página** | ler/escrever dados de uma **Página** | obtido trocando um token de usuário |
+| **Token de usuário do sistema** | **ações programáticas e automatizadas** em objetos de anúncio ou Páginas, **sem login e sem reautenticação** | é o token certo para uma esteira automatizada; exige Business Manager, e o Acesso Limitado só permite **1** usuário do sistema |
+| **Token de cliente** | apps nativos/desktop | não é segredo; não usamos |
+(fonte: fontes/tokens-de-acesso.md; fonte: fontes/business-usuarios-de-sistema.md)
+
+> **Consequência:** a arquitetura atual (token de usuário do CEO, colado do
+> Explorer, válido até 02/10/2026) é a arquitetura ERRADA para automação — a
+> própria Meta indica usuário do sistema para isso. Migrar depende de Acesso
+> Total (para ter mais de 1 usuário do sistema) e de Business Manager.
+> Inspeção de token: `GET /debug_token` (fonte: fontes/graph-api-debug-token.md).
+
+### O regime geral da Graph API (o resto da plataforma)
+
 **Dois regimes de rate limit:** Platform (token de app/usuário) e **BUC —
 Business Use Case** (Marketing API, Instagram, Páginas com token de
 Página/sistema). Marketing API é sempre BUC, **por conta de anúncios**: todos
 os endpoints do mesmo caso de uso compartilham a cota da conta — estourou num
 endpoint, todos recebem erro. (fonte: fontes/graph-api-limites-de-taxa.md)
 
-**O nível do app muda a cota em ~300×:** app novo nasce em
-`development_access`; `standard_access` (via recurso "Acesso Padrão ao
-Gerenciamento de Anúncios", pedido como acesso avançado no App Review) sobe o
-teto de 300+40×/h para 100.000+40×/h. Enquanto o nosso app estiver em
-desenvolvimento, a cota é a mínima. (fonte: fontes/graph-api-limites-de-taxa.md)
+**O nível do app muda a cota em ordens de grandeza:** app novo nasce em
+`development_access` / Acesso Limitado. A página de rate limiting da Graph API
+ainda descreve o salto em termos de chamadas/hora (300+40×/h → 100.000+40×/h) e
+ainda usa os nomes antigos `standard_access` / `advanced_access` no cabeçalho
+`ads_api_access_tier` — **mas para a Marketing API o que vale é a pontuação da
+seção acima (60 → 9.000)**. Onde as duas páginas divergirem, vale a de
+limitação da Marketing API, que é a específica e a mais recente (05/05/2026).
+(fonte: fontes/graph-api-limites-de-taxa.md; fonte: fontes/marketing-api-limites-de-taxa.md)
 
 **Disciplina de operação que a própria Meta manda seguir:**
 - **Atingiu o limite: PARE.** Continuar chamando aumenta a contagem e estende o
@@ -236,13 +425,16 @@ de polling para status de modelo/número. (fonte: fontes/graph-api-limites-de-ta
 
 ## Lacunas da biblioteca (honestidade acima de completude)
 
+> **Rodada de 06/08/2026:** o manifesto foi de 22 para **97** fontes e **90**
+> capturaram. As lacunas 1, 3, 4 e 6 da lista abaixo foram FECHADAS
+> (PI de terceiros, App Review, Diretrizes do WhatsApp, Instagram Insights de
+> conta e de mídia). As lacunas que restam, todas datadas de 06/08/2026, são as
+> **7 fontes que falharam na captura** — listadas ao fim desta seção.
+
 O que a cartilha **não** cobre com documento capturado:
 
-1. **Violação de propriedade intelectual de terceiros em anúncio**
-   (`transparency.meta.com/policies/ad-standards/intellectual-property-infringement/third-party-infringement/`)
-   — relevante para a regra "não usar logo do iFood na peça". Não capturada
-   nesta rodada (não estava no manifesto); a afirmação sobre PI na seção (b)
-   vem apenas do índice geral dos Padrões de Publicidade.
+1. ~~**Violação de propriedade intelectual de terceiros em anúncio**~~ —
+   **FECHADA em 06/08/2026**: capturada em `fontes/pi-de-terceiros.md`.
 2. **Páginas específicas de "Padrões de Publicidade → ativos de negócios"**
    (account-integrity, inauthentic-behavior, spam em
    `.../ad-standards/business-assets/...`): são páginas-casca de ~1.000
@@ -250,17 +442,26 @@ O que a cartilha **não** cobre com documento capturado:
    de 1.500 do capturador. Capturamos os Padrões da Comunidade completos no
    lugar (integridade-da-conta, comunidade-spam,
    comunidade-comportamento-inautentico).
-3. **Detalhe do processo de App Review / permissões avançadas** — a cartilha
-   cita o efeito no rate limit (tier do app), mas o passo a passo do App Review
-   não foi capturado como fonte própria.
-4. **Diretrizes de Mensagens do WhatsApp** (documento separado citado pela
-   Política de Mensagens) e limites de envio de mensagens de marketing por
-   número — só a política geral foi capturada.
+3. ~~**Detalhe do processo de App Review / permissões avançadas**~~ —
+   **FECHADA em 06/08/2026**: `fontes/app-review-processo.md`,
+   `fontes/app-review-publicacao.md`, `fontes/app-modos-dev-vs-live.md`,
+   `fontes/permissoes-referencia.md`, `fontes/verificacao-de-negocio.md`,
+   `fontes/marketing-api-autorizacao-e-niveis.md`. **Ressalva:** o passo a passo
+   do FORMULÁRIO de envio (`/documentation/development/release/app-review`)
+   segue como lacuna — a página não rende para o capturador.
+4. ~~**Diretrizes de Mensagens do WhatsApp**~~ — **FECHADA em 06/08/2026**:
+   `fontes/whatsapp-diretrizes-de-mensagens.md`
+   (`whatsapp.com/legal/messaging-guidelines`), mais Cloud API (envio, modelos,
+   webhooks, preços). O limite de envio de marketing por número segue não
+   isolado em documento próprio.
 5. **Tradução automática:** as páginas de developers.facebook.com em pt-BR
    avisam que foram traduzidas por IA; em decisão crítica, conferir a versão
    em inglês na URL original.
-6. **Referência de MÉTRICAS de Instagram Insights (conta e mídia)** — não há
-   documento capturado. Conferido AO VIVO na fonte oficial em 04/08/2026 (o
+6. ~~**Referência de MÉTRICAS de Instagram Insights (conta e mídia)**~~ —
+   **FECHADA em 06/08/2026**: `fontes/instagram-insights-de-usuario.md` e
+   `fontes/instagram-insights-de-midia.md` estão capturadas. O registro do que
+   foi conferido ao vivo fica abaixo como histórico da decisão. Conferido AO
+   VIVO na fonte oficial em 04/08/2026 (o
    especialista Meta, ao construir a camada de leitura): `impressions` está
    DESCONTINUADA na conta (v22.0; todas as versões em 21/04/2025) e na mídia
    criada após 02/07/2024; as vigentes são `reach` (única de conta com
@@ -289,3 +490,49 @@ O que a cartilha **não** cobre com documento capturado:
    N réplicas, o teto efetivo na mesma conta da Meta é N × teto, e todo deploy
    zera. O que reduz o dano hoje é a camada que lê `X-App-Usage` /
    `X-Business-Use-Case-Usage` — o número é da Meta e é global de verdade.
+   **Atualização 06/08/2026:** a Meta publica, sim, um limite anti-rajada —
+   **100 QPS por app + conta de anúncios** nas mutações de campanha/conjunto/
+   anúncio (fontes/marketing-api-limites-de-taxa.md). Ele é altíssimo e não
+   protege de nada no nosso caso: o que nos derrubou foi 60 pontos de cota (20
+   escritas) e o padrão comportamental, não 100 chamadas por segundo. O balde
+   próprio da casa continua valendo — agora calibrado também pela pontuação.
+
+---
+
+### 🔻 Fontes que FALHARAM na captura de 06/08/2026 (lacunas datadas)
+
+Todas continuam no manifesto e serão retentadas a cada recaptura.
+
+| Fonte | URL | Por que falhou |
+|---|---|---|
+| `app-review-fluxo-de-envio` | `/documentation/development/release/app-review` | casca vazia (28 caracteres) — SPA nova não hidrata no capturador |
+| `marketing-api-objetivos-outcome` | `/documentation/ads-commerce/marketing-api/outcome-ad-objectives` | casca vazia (28 caracteres) |
+| `marketing-api-insights-parametros` | `/documentation/ads-commerce/marketing-api/insights/parameters` | casca vazia (28 caracteres) |
+| `marketing-api-insights-metricas` | `/documentation/ads-commerce/marketing-api/insights/metrics` | casca vazia (28 caracteres) |
+| `whatsapp-politica-desenvolvedor` | `/documentation/business-messaging/whatsapp/policy` | casca vazia (28 caracteres) |
+| `graph-api-changelog` | `/docs/graph-api/changelog` | 1.104 caracteres úteis — índice de versões, conteúdo por aba; abaixo do mínimo de 1.200 |
+| `business-manager-api` | `/docs/business-management-apis/business-manager-api` | 1.057 caracteres úteis — página-índice; abaixo do mínimo |
+
+**O que isso custa na prática, dito com todas as letras:**
+- **Objetivos de campanha (Outcome-based)** não têm documento capturado. As
+  enumerações de `objective` existem, sim, dentro de
+  `fontes/marketing-api-referencia-campanha.md` — use essa como fonte de
+  parecer, não a memória.
+- **Dicionário de métricas e parâmetros do Insights** não capturou. O que
+  temos é `fontes/marketing-api-insights.md`,
+  `fontes/marketing-api-insights-recortes.md` e
+  `fontes/marketing-api-insights-limites.md`, além dos campos em
+  `fontes/marketing-api-referencia-conta-de-anuncios.md`. Nome exato de métrica
+  em parecer de risco: conferir ao vivo.
+- **Changelog da Graph API** não capturou — logo, **"mudou alguma coisa na
+  versão X?" não tem resposta na biblioteca hoje**. Conferir ao vivo. Para
+  Marketing API existe `fontes/marketing-api-mudancas-fora-de-ciclo-2026.md` e
+  `fontes/marketing-api-versionamento.md`.
+- **Política do WhatsApp para desenvolvedores** não capturou, mas a política de
+  mensagens (`fontes/whatsapp-politica-de-mensagens.md`) e as Diretrizes
+  (`fontes/whatsapp-diretrizes-de-mensagens.md`) cobrem o essencial da regra.
+- **Business Manager API (nó Business)** não capturou; usuários do sistema e
+  atribuição de ativos, que é o que operamos, capturaram
+  (`fontes/business-usuarios-de-sistema.md`,
+  `fontes/business-atribuicao-de-ativos.md`,
+  `fontes/business-management-apis.md`).
