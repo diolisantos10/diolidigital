@@ -11,6 +11,8 @@ import { buildClientSnapshot } from "@/lib/dioli-brain/client-snapshot";
 import { orchestratePMReasoning } from "@/lib/dioli-brain/pm-orchestrator";
 import { getDepartmentDef, type DepartmentId } from "@/lib/agency/departments";
 import { pedirDirecao } from "@/lib/agency/esteira/marcos";
+import { criarTarefas } from "@/lib/agency/tarefas/criar-tarefas";
+import { prazoAPartirDaEstimativa } from "@/lib/agency/tarefas/portao-do-pm";
 
 const AGENCY_ROLES = ["master", "project_manager"] as const;
 
@@ -119,17 +121,20 @@ export async function POST(
         },
       });
 
-      await prisma.task.createMany({
-        data: proposal.tasks
+      // PORTÃO DO PM (`lib/agency/tarefas/portao-do-pm.ts`): tarefa sem dono ou
+      // sem prazo não é gravada — o bloqueio vira `ActivityEvent`.
+      await criarTarefas(
+        project.id,
+        proposal.tasks
           .filter((t) => VALID_TASK_DEPTS.includes(t.department))
           .map((t) => ({
-            projectId: project.id,
             title: t.title,
             description: t.description || null,
             agentId: getDepartmentDef(DEPT_TO_DEF[t.department] ?? "project-management")?.primaryAgentId ?? null,
             status: "pending",
+            dueDate: prazoAPartirDaEstimativa(t.estimatedDays),
           })),
-      });
+      );
 
       await prisma.clientRequestDb.update({
         where: { id: clientRequestId },

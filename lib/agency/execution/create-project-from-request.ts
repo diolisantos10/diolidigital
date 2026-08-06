@@ -11,6 +11,9 @@ import { orchestratePMReasoning } from "@/lib/dioli-brain/pm-orchestrator";
 import { getDepartmentDef, type DepartmentId } from "@/lib/agency/departments";
 import { generate } from "@/lib/ai/generate";
 import { semearMarcaDoBriefing } from "@/lib/agency/execution/semear-marca";
+import { coletarMaterialDeProduto } from "@/lib/agency/esteira/material-de-produto";
+import { criarTarefas } from "@/lib/agency/tarefas/criar-tarefas";
+import { prazoAPartirDaEstimativa } from "@/lib/agency/tarefas/portao-do-pm";
 
 const DEPT_TO_DEF: Record<string, DepartmentId> = {
   strategy: "strategy", social: "social-media", design: "design",
@@ -58,17 +61,30 @@ export async function createProjectFromRequest(clientRequestId: string, approved
     data: { workspaceId, clientId, clientRequestId, name: proposal.name, goal: proposal.goal, stage: "planning", priority: "medium" },
   });
 
-  await prisma.task.createMany({
-    data: proposal.tasks
+  // PORTÃO DO PM: tarefa sem dono ou sem prazo NÃO é criada (`portao-do-pm.ts`).
+  // O prazo não é inventado aqui — sai do `estimatedDays` que o próprio PM
+  // estimou na proposta. Sem estimativa utilizável, a tarefa é barrada e o
+  // bloqueio vira `ActivityEvent`, em vez de virar uma linha sem prazo no banco.
+  await criarTarefas(
+    project.id,
+    proposal.tasks
       .filter((t) => VALID_TASK_DEPTS.includes(t.department))
       .map((t) => ({
-        projectId: project.id,
         title: t.title,
         description: t.description || null,
         agentId: getDepartmentDef(DEPT_TO_DEF[t.department] ?? "project-management")?.primaryAgentId ?? null,
         status: "pending",
+        dueDate: prazoAPartirDaEstimativa(t.estimatedDays),
       })),
-  });
+  );
+
+  // A ETAPA DE ONBOARDING QUE NÃO EXISTIA: pedir o PRODUTO do cliente.
+  // Sem captura de tela, embalagem, uniforme e logo em arquivo, o Design nunca
+  // põe o produto na peça — e foi assim que o produto do cliente apareceu em
+  // 0 de 6 peças nossas contra 7 de 10 das de referência (06/08/2026).
+  // Material ausente vira pergunta ao cliente, nunca invenção.
+  await coletarMaterialDeProduto({ projectId: project.id, clientRequestId })
+    .catch((e) => console.error("[projeto] não consegui abrir a coleta de produto:", e));
 
   await prisma.clientRequestDb.update({ where: { id: clientRequestId }, data: { status: "in_progress" } });
 

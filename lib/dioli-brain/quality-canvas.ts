@@ -31,6 +31,8 @@
 // rodar `conferirPisoDeVerdade` contra a `VerdadeDoCliente` lida do banco.
 // O que se perdeu foi o carimbo verde falso, que era o dano real.
 
+import { GLOBAL_QUALITY_GATE, type GlobalCheckId } from "./quality-gates";
+
 export type QualityAuditType =
   | "canvas_review"
   | "cross_dept_audit"
@@ -142,26 +144,26 @@ export interface QualityCanvas {
 
 // ── Quality Audit Gate (8 checagens globais + as do departamento) ────────────
 
-export const GLOBAL_AUDIT_CHECKS: Array<{ id: GlobalCheckId; label: string; scope: "global"; blocking: boolean }> = [
-  { id: "no_hallucination",      label: "Sem alucinação detectada",                scope: "global", blocking: true  },
-  { id: "respects_brand",        label: "Marca respeitada no output",              scope: "global", blocking: true  },
-  { id: "matches_briefing",      label: "Output corresponde ao briefing",          scope: "global", blocking: true  },
-  { id: "client_value_clear",    label: "Valor claro para o cliente",              scope: "global", blocking: true  },
-  { id: "risk_checked",          label: "Riscos identificados e endereçados",      scope: "global", blocking: true  },
-  { id: "projections_anchored",  label: "Números projetados com origem declarada", scope: "global", blocking: true  },
-  { id: "approval_verified",     label: "Necessidade de aprovação verificada",     scope: "global", blocking: false },
-  { id: "evidence_path",         label: "Caminho de evidência definido",           scope: "global", blocking: false },
-];
+// ─── ONDA 0 (06/08/2026): esta lista DERIVA do registro único ────────────────
+//
+// Ela era a segunda lista da casa — a que rodava, enquanto as 31 de
+// `quality-gates.ts` não rodavam, e com ids que NÃO batiam com as de lá
+// (`client_value_clear` vs `clear_client_value`, e assim por diante). Duas
+// listas divergindo sobre a mesma coisa é como um portão vira documento.
+//
+// Agora existe uma só, em `quality-gates.ts`, e ela é a de lá. Acrescentar uma
+// checagem global passou a ser impossível de fazer pela metade: quem
+// acrescentar no registro aparece aqui automaticamente, e o tipo obriga a
+// declarar `mecanismo` ou `lacuna` junto.
+export const GLOBAL_AUDIT_CHECKS: Array<{ id: GlobalCheckId; label: string; scope: "global"; blocking: boolean }> =
+  GLOBAL_QUALITY_GATE.map((c) => ({
+    id: c.id as GlobalCheckId,
+    label: c.label,
+    scope: "global" as const,
+    blocking: c.blocking,
+  }));
 
-export type GlobalCheckId =
-  | "no_hallucination"
-  | "respects_brand"
-  | "matches_briefing"
-  | "client_value_clear"
-  | "risk_checked"
-  | "projections_anchored"
-  | "approval_verified"
-  | "evidence_path";
+export type { GlobalCheckId };
 
 /** O que o motor CONSEGUIU apurar sobre uma checagem. Não mandar nada é
  *  legítimo e significa exatamente uma coisa: não foi verificado. */

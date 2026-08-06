@@ -11,6 +11,8 @@ import { naoEncontrado, solicitacaoDoWorkspace } from "@/lib/auth/posse-de-works
 import { prisma } from "@/lib/db/client";
 import { getDepartmentDef, type DepartmentId } from "@/lib/agency/departments";
 import { pedirDirecao } from "@/lib/agency/esteira/marcos";
+import { criarTarefas } from "@/lib/agency/tarefas/criar-tarefas";
+import { prazoAPartirDaEstimativa } from "@/lib/agency/tarefas/portao-do-pm";
 
 const AGENCY_ROLES = ["master", "project_manager"] as const;
 // Reasoning departments accepted in a proposal. "analytics" is a reasoning dept
@@ -128,15 +130,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     });
 
     // Map each proposal task to a Task row. department → owning agent id (for routing).
-    await prisma.task.createMany({
-      data: proposal.tasks.map((t) => ({
-        projectId: project.id,
+    // PORTÃO DO PM (`lib/agency/tarefas/portao-do-pm.ts`): sem dono ou sem prazo
+    // a tarefa NÃO é gravada. O prazo sai do `estimatedDays` da própria proposta.
+    await criarTarefas(
+      project.id,
+      proposal.tasks.map((t) => ({
         title: t.title,
         description: t.description || null,
         agentId: getDepartmentDef(DEPT_TO_DEF[t.department])?.primaryAgentId ?? null,
         status: "pending",
+        dueDate: prazoAPartirDaEstimativa((t as { estimatedDays?: number }).estimatedDays),
       })),
-    });
+    );
 
     // Advance the request — a project now exists for it.
     await prisma.clientRequestDb
