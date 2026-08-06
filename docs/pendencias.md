@@ -79,6 +79,12 @@ As duas metades testadas: "preciso do roteiro" **não** vira reel; "quero um ree
 pronto" continua virando reel, sem atrito, com o preço da tabela. Conferido nos
 3 tamanhos (375/768/1440) com o portal renderizado de verdade.
 
+**Corrigido em PRODUÇÃO, e conferido pelo próprio portal do cliente:** o pedido
+`cmsg7anke00030ps260acx43s` está `entregue`, com `preco: null` e sem botão de
+aprovar orçamento; os roteiros (26 KB, os mesmos de
+`docs/projetos/foocci/roteiros-video.md`) estão no card de aprovação da Foocci,
+esperando a leitura dele. Nenhuma escrita em plataforma nenhuma.
+
 ### 🔴 O QUE DEPENDE DO CEO
 
 1. **Preço de tabela do ROTEIRO avulso.** Enquanto não existir, todo pedido de
