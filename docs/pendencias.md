@@ -51,6 +51,86 @@ Quatro frentes fechadas. O que mudou de verdade, sem prosa:
 
 ---
 
+## 🔴 06/08/2026 (tarde) — PERÍCIA EM PRODUÇÃO: o script ia apagar a casa inteira
+
+Rodada contra PRODUÇÃO com protocolo (dry-run → conferir → aplicar). **A etapa
+`--apply` NÃO foi executada, e isso foi a decisão certa.** O que a perícia achou:
+
+### 1. O dry-run marcou 25 de 25 conexões de ativo para exclusão
+
+Incluindo **as 2 legítimas da Foocci** (`@foocci_`, Página `Foocci`) e as 4 da
+própria Dioli. É exatamente o caso em que o protocolo manda **PARAR**. Causa
+dupla, as duas consertadas em `82dc075`:
+
+- **"Sem cliente" tinha duas grafias.** O callback grava `clientId` `null`;
+  `/api/meta/token` gravava `""`. As **24 conexões de nível agência que estão em
+  produção nasceram com `""`**, em 03/08. Toda guarda desta casa pergunta
+  `clientId === null` — com `""`, o fluxo da AGÊNCIA caía no ramo do CLIENTE.
+  Agora existe `donoDe()` (`lib/integrations/meta/ativos-autorizados.ts`), a
+  forma canônica, aplicada em toda fronteira.
+  > **Isto também teria quebrado o deploy em silêncio:** sem o conserto,
+  > `saveConnection` passaria a LANÇAR em todo `/api/meta/token`, e o laço de
+  > Páginas engole a exceção — o fluxo de token colado gravaria **zero** Páginas
+  > sem uma linha de erro.
+- **"Sem autorização" não é "gravado indevidamente".** `MetaAtivoAutorizado`
+  nasce vazia de propósito, então **toda** conexão de cliente parece não
+  autorizada — inclusive a que o cliente concedeu de verdade. Deduzir exclusão
+  de uma lista vazia é tratar ausência de informação como informação.
+  **`--apply` agora EXIGE `--ids=<...>`**, a lista que uma pessoa conferiu.
+  Sem ids, recusa e sai 1. As duas metades testadas.
+
+### 2. O dano real em produção é MAIOR e MAIS ANTIGO do que o registrado
+
+O incidente foi atribuído ao clique de 06/08 no portal da Foocci. **Os
+carimbos do banco dizem outra coisa:**
+
+- O clique de 06/08 (12:55) tocou **3 linhas**: o token de usuário da Foocci,
+  `@foocci_` e a Página `Foocci`. **Nenhum ativo de terceiro foi gravado nesse
+  dia** — a tela de consentimento por Página da Meta limitou o alcance.
+- **19 conexões de terceiros estão gravadas desde 03/08 às 14:05**, pelo fluxo
+  de **token colado** (`/api/meta/token`, o "Plano B" do OAuth) — 10 negócios
+  que **não são clientes da agência**: Sushi Cazza, Dilee, Kero Shop, Acesso
+  Beleza, santioh_, dilix.br, queise, Santioh Europe, Spa da Mente, City Jobs SP.
+- Elas estão com `clientId = ""`, e por isso o script as classificava como
+  **"conta da própria agência"** e as **preservava**. Ficaram três dias
+  invisíveis sob esse rótulo. A perícia agora **imprime** as de nível agência.
+
+**O que essas 19 dão acesso, medido pelo escopo gravado** (`pages_show_list`,
+`pages_read_engagement`, `instagram_basic`, `business_management`,
+`ads_management`, `ads_read`): **leitura** do engajamento das Páginas e do
+Instagram desses negócios. **Não têm `pages_manage_posts` nem
+`instagram_content_publish` — não publicam.** As que publicam são as 2 da
+**Foocci** (13 escopos, com `instagram_content_publish`), que são legítimas.
+
+### 3. A trava está no ar — mas só fecha metade do caminho
+
+Promovido `82dc075` para produção (CI verde, fast-forward, 27 conexões antes e
+27 depois — nada perdido, nada criado).
+
+- ✅ **Fluxo do CLIENTE (callback do OAuth) fechado.** É o que dispararia no
+  próximo clique de "Conectar" em qualquer portal.
+- 🔴 **Fluxo da AGÊNCIA continua aberto — e foi ele que produziu as 19.**
+  `clientId` nulo é exceção declarada em `saveConnection`: quem colar um token
+  novo em `/api/meta/token` **regrava as 19 Páginas de terceiros**. A "lacuna
+  do fluxo master" já estava declarada; o que a perícia acrescenta é que ela
+  **não é teórica — é o vetor do dano que está no banco.**
+
+### 🔴 O QUE DEPENDE DO CEO
+
+1. **Apagar ou não as 19 linhas de terceiros.** Não apaguei por conta própria:
+   parte desses negócios (Santioh, Dilix, Queise, Dilee) é do próprio CEO, e
+   apagar destrói o token cifrado — reconectar exige colar token de novo.
+   Os ids estão prontos; o comando é um só, com `--ids=`.
+2. **Fechar o fluxo master** (tela de escolha para a agência). Sem isso, apagar
+   as 19 é limpeza que o próximo token colado desfaz.
+3. **Reautorização da Foocci:** as 2 conexões legítimas continuam no banco, mas
+   a lista nasce vazia — a Foocci precisa marcar na tela dela o que a Dioli pode
+   ler. Até lá o portal dela diz "falta autorizar", que é a trava funcionando.
+
+**Nenhuma escrita na Meta. Nenhum token revogado. Nada apagado em produção.**
+
+---
+
 ## 🔴 06/08/2026 — FALHA DE PRIVACIDADE NA META: alcance tratado como autorização
 
 **O CEO pegou; devia ter sido o sistema.** Ele clicou "Conectar
