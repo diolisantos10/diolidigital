@@ -272,7 +272,15 @@ export default function CaixaDeEntrada() {
                       </span>
                       <span className="shrink-0 text-[10.5px] text-[var(--text-muted)]">{quando(p.criadoEm)}</span>
                     </span>
-                    <span className="block mt-0.5 truncate text-[12px] text-[var(--text-secondary)]">{p.titulo}</span>
+                    {/* O TEXTO DO CLIENTE, não o título derivado. O título é a
+                        primeira frase cortada em 70 caracteres — quem tria lia
+                        um resumo do sistema em vez das palavras de quem pediu.
+                        Duas linhas aqui; o texto inteiro fica no detalhe. */}
+                    {/* sem `block`: `line-clamp` já define o display, e as duas
+                        classes juntas se anulam — o texto voltaria inteiro. */}
+                    <span className="mt-0.5 line-clamp-2 text-[12px] leading-snug text-[var(--text-secondary)]">
+                      {p.descricao?.trim() || p.titulo}
+                    </span>
                     <span className={`mt-1 inline-flex items-center h-[18px] px-2 rounded-full text-[10px] font-semibold ${
                       p.status === "precisa_decisao" ? "bg-[#FEE2E2] text-[#B91C1C]"
                       : precisaDeGente(p.status) ? "bg-[#FEF3C7] text-[#9B7B2D]"

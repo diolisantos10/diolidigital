@@ -36,6 +36,59 @@ produção respondem (401 com segredo errado = viva e fechada), os dois caminhos
 de falha do workflow saem 1, e o guarda do raio-x acende com a metade de dados
 cega. **A primeira execução real é a agendada.**
 
+## 🟠 06/08/2026 (noite) — A AGÊNCIA ESTAVA ORÇANDO TRABALHO QUE JÁ TINHA ENTREGUE
+
+Dois defeitos pegos pelo CEO no portal do celular. O segundo é de dinheiro.
+
+**1. O cartão escondia o que o cliente escreveu.** Aparecia só o título
+truncado; o texto dele não aparecia em lugar nenhum. Agora o cartão mostra
+**"O QUE VOCÊ PEDIU"** com o texto inteiro (recolhido a 3 linhas, com "ver
+mais") **acima** da resposta da agência — é assim que ele confere se foi
+entendido, e é o que torna o preço auditável por quem paga. Mesma correção na
+caixa de entrada da agência: a lista mostra as palavras do cliente, não o
+título derivado.
+
+**2. A triagem lia o ASSUNTO e não lia o VERBO.** O pedido
+`cmsg7anke00030ps260acx43s` dizia "**preciso do roteiro com as falas** para
+produzir os videos" e voltou como **"1 Reel — R$ 350"**. Três erros de uma vez:
+insumo classificado como peça final, quantidade no plural virando 1, e o
+roteiro **já entregue** (`docs/projetos/foocci/roteiros-video.md`) sendo
+cobrado. O que mudou, em mecanismo:
+
+- **A carta de atendimentos declara o que sai.** Cada linha tem `entrega`
+  (`insumo` | `peca`) e `cobre` (`1` | `pacote`). "Roteiro de vídeo" e "Reel
+  produzido" viraram atendimentos **separados** — antes eram o mesmo id, com o
+  preço do reel.
+- **Leitura léxica do texto do cliente, sem IA**
+  (`lib/agency/esteira/leitura-do-pedido.ts`). Pediu INSUMO e o modelo escolheu
+  PEÇA FINAL → `precisa_decisao`. Texto ambíguo (pede os dois) →
+  `precisa_decisao`. A trava não depende de o modelo acertar: foi ele que errou.
+- **Quantidade não contada NÃO vira 1.** Plural sem número, ou duas contagens
+  diferentes, ou número maior que o item de tabela → para e pergunta, com as
+  palavras dele na mensagem.
+- **Roteiro avulso não tem preço de tabela — e preço que não existe não se
+  inventa.** O atendimento tem `itemDeCatalogo: null`, o que **para** e manda a
+  equipe orçar.
+- **Rota nova para consertar triagem que já saiu errada** (`PATCH
+  /api/messages/pedidos`): `cancelar_orcamento` (tira o número da frente do
+  cliente, com motivo obrigatório) e `entregar` (peça feita fora da máquina vira
+  entrega visível no portal). Antes não havia caminho: `triado` não volta para
+  `novo` e "recusar" apagaria o pedido legítimo junto com o erro.
+
+As duas metades testadas: "preciso do roteiro" **não** vira reel; "quero um reel
+pronto" continua virando reel, sem atrito, com o preço da tabela. Conferido nos
+3 tamanhos (375/768/1440) com o portal renderizado de verdade.
+
+### 🔴 O QUE DEPENDE DO CEO
+
+1. **Preço de tabela do ROTEIRO avulso.** Enquanto não existir, todo pedido de
+   roteiro para em `precisa_decisao` e alguém orça à mão. É decisão comercial,
+   não de código — por isso não inventei o número.
+2. **Os outros 10 pedidos de vídeo do texto dele** (6 reels + longo + 4 do SDR):
+   a triagem agora pergunta em vez de orçar 1. Alguém precisa fechar o escopo.
+
+---
+
 ## ✅ 06/08/2026 (noite) — A PORTA DA AGÊNCIA FECHOU. O vetor das 19 está morto.
 
 A perícia da tarde disse que o fluxo do CLIENTE estava fechado e o da AGÊNCIA

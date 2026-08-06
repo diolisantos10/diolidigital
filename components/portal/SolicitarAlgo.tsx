@@ -304,6 +304,51 @@ export function SolicitarAlgo({
   );
 }
 
+// ── O TEXTO DO CLIENTE, no cartão ───────────────────────────────────────────
+//
+// Recolhido a 3 linhas quando é longo, com "ver mais" — no celular, um pedido
+// de dez linhas empurraria o orçamento e os botões para fora da tela, e botão
+// que ninguém vê é botão que ninguém aperta. O corte é VISUAL (`line-clamp`):
+// o texto vai inteiro no DOM, então nada do que ele escreveu se perde.
+
+const LIMITE_SEM_VER_MAIS = 180;
+
+export function TextoQueVoceEscreveu({ descricao, objetivo }: { descricao: string; objetivo: string }) {
+  const [aberto, setAberto] = useState(false);
+  const longo = (descricao ?? "").length > LIMITE_SEM_VER_MAIS;
+  if (!descricao?.trim()) return null;
+
+  return (
+    <div className="mt-2.5 rounded-[10px] border border-[var(--border)] bg-white px-3.5 py-3">
+      <p className="text-[10.5px] font-semibold uppercase tracking-[0.06em] text-[var(--text-muted)]">
+        O que você pediu
+      </p>
+      <p
+        className={`text-[12.5px] text-[var(--text-primary)] mt-1 leading-relaxed whitespace-pre-wrap ${
+          longo && !aberto ? "line-clamp-3" : ""
+        }`}
+      >
+        {descricao}
+      </p>
+      {longo && (
+        <button
+          type="button"
+          onClick={() => setAberto((v) => !v)}
+          style={{ touchAction: "manipulation" }}
+          className="mt-1 h-8 -ml-1 px-1 text-[12px] font-semibold text-[var(--text-secondary)] underline underline-offset-2"
+        >
+          {aberto ? "ver menos" : "ver mais"}
+        </button>
+      )}
+      {objetivo?.trim() && (
+        <p className="text-[11.5px] text-[var(--text-muted)] mt-1.5">
+          Para: {objetivo}
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ── A lista dos pedidos, com o ORÇAMENTO quando já veio ─────────────────────
 
 export function MeusPedidos({
@@ -357,8 +402,12 @@ export function MeusPedidos({
           const pendente = temOrcamento && (p.orcamento ?? "pendente") === "pendente";
           return (
             <li key={p.id} className="rounded-[10px] bg-[var(--bg-elevated)] px-3.5 py-3">
-              <div className="flex items-start justify-between gap-3">
-                <p className="min-w-0 flex-1 text-[13px] font-medium text-[var(--text-primary)] leading-snug">{p.titulo}</p>
+              {/* `flex-wrap`: no celular, rótulo de status longo ("Preciso
+                  confirmar uma coisa com você") espremia o título em uma coluna
+                  de três palavras. Sem espaço para os dois na mesma linha, o
+                  status desce — em vez de esmagar o texto do cliente. */}
+              <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1.5">
+                <p className="min-w-[60%] flex-1 text-[13px] font-medium text-[var(--text-primary)] leading-snug">{p.titulo}</p>
                 <span className={`shrink-0 h-6 px-2.5 rounded-full text-[11px] font-semibold flex items-center ${
                   p.orcamento === "aceito" ? "bg-[#DCFCE7] text-[var(--success)]"
                   : p.orcamento === "recusado" ? "bg-[#F3F4F6] text-[#6B7280]"
@@ -376,6 +425,15 @@ export function MeusPedidos({
               <p className="text-[11.5px] text-[var(--text-muted)] mt-1">
                 Pedido em {dataCurta(p.criadoEm)}{p.para ? ` · você pediu para ${dataCurta(p.para)}` : ""}
               </p>
+
+              {/* O QUE ELE ESCREVEU — inteiro, e ANTES da resposta da agência.
+                  Até 06/08/2026 o cartão mostrava só o título truncado: o
+                  cliente lia um orçamento sem ver a pergunta que ele fez. Nas
+                  palavras do CEO: "aqui eu preciso que tenha a minha
+                  solicitação pra eu conferir o que escrevi". É assim que ele
+                  confere se foi entendido — e é o que torna o preço auditável
+                  por quem paga. */}
+              <TextoQueVoceEscreveu descricao={p.descricao} objetivo={p.objetivo} />
               {/* O PRAZO QUE A CASA PROMETEU. Metade da devolutiva que o CEO
                   pediu é o prazo — sem ele, o cliente lê o preço e continua sem
                   saber quando recebe. */}

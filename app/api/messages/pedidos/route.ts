@@ -347,6 +347,173 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 }
 
+// ── PATCH: consertar uma triagem que já saiu errada ─────────────────────────
+//
+// ── Por que esta rota existe (06/08/2026) ──────────────────────────────────
+// A triagem automática orçou "1 Reel — R$ 350" para um pedido cujo entregável
+// era o ROTEIRO — e o roteiro já estava pronto. O CEO viu o orçamento errado no
+// portal do celular e **não havia como tirá-lo dali**: `triado` não volta para
+// `novo`, e o POST acima recusa pedido já triado (409). O único caminho era
+// "recusar", que apaga o pedido legítimo do cliente junto com o erro.
+//
+// Duas ações, e as duas escrevem no lugar onde o cliente enxerga:
+//   • `cancelar_orcamento` — o número sai da frente dele, com o motivo em
+//     português. Exige motivo: orçamento que some sem explicação é pior do que
+//     orçamento errado, porque o cliente fica sem saber o que vale.
+//   • `entregar` — a peça produzida FORA da máquina (por um especialista, em
+//     documento) vira entrega visível no portal. Sem isto, trabalho concluído
+//     mora no repositório, que é um lugar onde o cliente não entra — e a
+//     agência continua orçando o que já entregou.
+//
+// O que esta rota NÃO faz: inventar preço (ela só apaga), publicar em
+// plataforma nenhuma e mexer em pedido de outro workspace.
+export async function PATCH(request: NextRequest): Promise<NextResponse> {
+  const { session, error } = await requireSession(["master", "project_manager"]);
+  if (error) return error;
+
+  let corpo: Record<string, unknown>;
+  try {
+    corpo = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  const pedidoId = texto(corpo.pedidoId);
+  const acao = texto(corpo.acao);
+  if (!pedidoId) return NextResponse.json({ error: "pedidoId obrigatório" }, { status: 400 });
+  if (acao !== "cancelar_orcamento" && acao !== "entregar") {
+    return NextResponse.json({ error: "acao obrigatória: 'cancelar_orcamento' ou 'entregar'" }, { status: 400 });
+  }
+
+  const pedido = await prisma.contentRequest.findUnique({ where: { id: pedidoId } });
+  if (!pedido) return NextResponse.json({ error: "Pedido não encontrado" }, { status: 404 });
+
+  // Estar logado não é ser dono — a mesma regra do POST.
+  const dono = await prisma.client.findFirst({
+    where: { id: pedido.clientId, workspaceId: session.workspaceId },
+    select: { id: true, name: true },
+  });
+  if (!dono) return NextResponse.json({ error: "Pedido não encontrado" }, { status: 404 });
+
+  const motivo = texto(corpo.motivo);
+  if (motivo.length < 10) {
+    return NextResponse.json(
+      { error: "motivo obrigatório — o cliente precisa saber por que o valor mudou ou de onde veio a entrega" },
+      { status: 422 },
+    );
+  }
+
+  // ── Cancelar o orçamento ─────────────────────────────────────────────────
+  if (acao === "cancelar_orcamento") {
+    if (pedido.quotedPrice === null) {
+      return NextResponse.json({ error: "Este pedido não tem orçamento na mesa." }, { status: 409 });
+    }
+    await prisma.contentRequest.update({
+      where: { id: pedido.id },
+      data: {
+        // O número sai — e sai INTEIRO. Deixar `quoteNote` seria a frase de um
+        // preço que não existe mais.
+        quotedPrice: null, quoteNote: null, quoteStatus: null,
+        // Volta a ser trabalho de gente, com o motivo visível dos dois lados.
+        // Nunca "novo": "novo" é o balde de onde esta esteira saiu.
+        status: pedido.status === "entregue" ? "entregue" : "precisa_decisao",
+        declineReason: motivo.slice(0, 600),
+        triagedBy: session.name ?? "Equipe",
+        triagedAt: new Date(),
+      },
+    });
+    await avisarCliente(pedido.clientId, session.name ?? "Equipe Dioli",
+      `Sobre o seu pedido "${pedido.title}": ${motivo}`);
+    return NextResponse.json({ ok: true, status: pedido.status === "entregue" ? "entregue" : "precisa_decisao", orcamento: null });
+  }
+
+  // ── Entregar uma peça produzida fora da máquina ──────────────────────────
+  const titulo = texto(corpo.titulo);
+  const conteudo = typeof corpo.conteudo === "string" ? corpo.conteudo.trim() : "";
+  if (titulo.length < 3 || conteudo.length < 200) {
+    return NextResponse.json(
+      { error: "titulo e conteudo obrigatórios — entrega vazia no portal é pior que entrega nenhuma (mínimo de 200 caracteres de conteúdo)" },
+      { status: 422 },
+    );
+  }
+  if (pedido.deliverableId) {
+    return NextResponse.json({ error: "Este pedido já tem entrega ligada.", deliverableId: pedido.deliverableId }, { status: 409 });
+  }
+
+  const projeto = pedido.projectId
+    ? await prisma.project.findFirst({ where: { id: pedido.projectId, clientId: pedido.clientId }, select: { id: true } })
+    : await prisma.project.findFirst({ where: { clientId: pedido.clientId }, orderBy: { createdAt: "desc" }, select: { id: true } });
+  if (!projeto) {
+    return NextResponse.json({ error: "sem_projeto", mensagem: `${dono.name} não tem projeto — a entrega precisa de onde morar.` }, { status: 409 });
+  }
+
+  // O dono da peça é o especialista que a tarefa já apontava. Sem tarefa, fica
+  // nulo: inventar um autor é assinar trabalho no nome de quem não fez.
+  const tarefa = pedido.taskId
+    ? await prisma.task.findUnique({ where: { id: pedido.taskId }, select: { id: true, agentId: true } })
+    : null;
+
+  try {
+    const entregavel = await prisma.deliverable.create({
+      data: {
+        projectId: projeto.id,
+        name: titulo.slice(0, 200),
+        type: "content",
+        status: "in_review",
+        content: conteudo.slice(0, 200_000),
+        ownerAgentId: tarefa?.agentId ?? null,
+        // O cliente PEDIU esta peça — segurar em "interno" seria recriar o
+        // problema que estamos consertando: trabalho pronto que ele não vê.
+        visibility: "compartilhado",
+      },
+      select: { id: true },
+    });
+
+    const { createApprovalRequest } = await import("@/lib/agency/persistence/approval-service");
+    const card = await createApprovalRequest({
+      clientId: pedido.clientId,
+      department: `pedido:${pedido.id}`,
+      requestedBy: session.name ?? "Equipe Dioli",
+      clientVisible: true,
+      reviewNote: `${titulo}\n\n${conteudo}`.slice(0, 200_000),
+    });
+
+    await prisma.contentRequest.update({
+      where: { id: pedido.id },
+      data: {
+        status: "entregue",
+        deliverableId: entregavel.id,
+        declineReason: null,
+        // Trabalho ENTREGUE não fica com orçamento pendente na tela do cliente.
+        // Era exatamente esta a cena que o CEO viu: a agência cobrando por algo
+        // que já tinha feito.
+        ...(pedido.quoteStatus === "aceito" ? {} : { quotedPrice: null, quoteNote: null, quoteStatus: null }),
+        triagedBy: session.name ?? "Equipe",
+        triagedAt: new Date(),
+      },
+    });
+
+    if (pedido.taskId) {
+      await prisma.task.update({
+        where: { id: pedido.taskId },
+        data: { status: "done", deliverableId: entregavel.id },
+      }).catch(() => { /* a tarefa é rastro; não desfaz a entrega */ });
+    }
+
+    await prisma.timelineEvent.create({
+      data: { projectId: projeto.id, type: "deliverable", label: `Pedido do cliente entregue: ${titulo}`, dept: "social-media", detail: pedido.title },
+    }).catch(() => { /* rastro */ });
+
+    await avisarCliente(pedido.clientId, session.name ?? "Equipe Dioli",
+      `Sobre o seu pedido "${pedido.title}": ${motivo} Está na sua aba de aprovações.`);
+
+    return NextResponse.json({ ok: true, status: "entregue", deliverableId: entregavel.id, approvalRequestId: card.id });
+  } catch (e) {
+    console.error("[messages/pedidos] PATCH error", e);
+    return NextResponse.json({ error: "Não consegui registrar a entrega agora" }, { status: 503 });
+  }
+}
+
 /** Escreve na conversa do cliente pelo canal que ele já usa. Best-effort: o
  *  aviso é comunicação, e comunicação não pode derrubar a triagem. */
 async function avisarCliente(clientId: string, autor: string, corpo: string): Promise<void> {

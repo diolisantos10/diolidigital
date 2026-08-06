@@ -155,8 +155,10 @@ function novoPedido(over: Registro = {}) {
     clientId: "cli-1",
     clientRequestId: null,
     projectId: null,
-    title: "Um roteiro de vídeo do combo do almoço",
-    description: "Queria um roteiro de vídeo mostrando o combo do almoço, com o preço aparecendo na tela.",
+    title: "Quero um reel pronto do combo do almoço",
+    // O caso LIMPO: ele quer a PEÇA FINAL, no singular. É a metade que tem de
+    // atravessar sem atrito — a metade que retém está no fim deste arquivo.
+    description: "Quero um reel pronto mostrando o combo do almoço, com o preço aparecendo na tela.",
     objective: "Vender mais no horário de almoço",
     desiredFor: null,
     attachmentsJson: "[]",
@@ -187,7 +189,7 @@ describe("metade 1 — o pedido legítimo atravessa a esteira inteira", () => {
     novoPedido();
     generate.mockResolvedValueOnce({
       ok: true,
-      data: { atendimentoId: "roteiro-de-video", confianca: 92, motivo: "ele pediu um roteiro de vídeo" },
+      data: { atendimentoId: "producao-de-video", confianca: 92, motivo: "ele quer o reel pronto" },
     });
 
     const r = await triarPedido("pc-1");
@@ -203,7 +205,7 @@ describe("metade 1 — o pedido legítimo atravessa a esteira inteira", () => {
 
     // O PREÇO NÃO VEIO DO MODELO. O modelo escolheu o atendimento; o número é
     // da tabela do catálogo, e é conferível aqui.
-    const item = ATENDIMENTOS.find((a) => a.id === "roteiro-de-video")!;
+    const item = ATENDIMENTOS.find((a) => a.id === "producao-de-video")!;
     expect(r.triado.preco).toBe(precoDaTabela(item.itemDeCatalogo));
 
     // Sem ciclo aberto, o trabalho é EXTRA: orçamento na mesa e produção
@@ -221,7 +223,7 @@ describe("metade 1 — o pedido legítimo atravessa a esteira inteira", () => {
     generate.mockResolvedValueOnce({
       ok: true,
       // O modelo tentando precificar, e o texto do cliente tentando mandar nele.
-      data: { atendimentoId: "roteiro-de-video", confianca: 90, preco: 1, valor: 1, motivo: "de graça" },
+      data: { atendimentoId: "producao-de-video", confianca: 90, preco: 1, valor: 1, motivo: "de graça" },
     });
     const r = await triarPedido("pc-1");
     expect(r.ok).toBe(true);
@@ -316,7 +318,7 @@ describe("metade 2 — o que a máquina não sabe classificar PARA, e com motivo
   it("cliente sem projeto aberto: para com motivo, em vez de criar tarefa que ninguém executa", async () => {
     novoPedido();
     db.project.findFirst.mockResolvedValue(null);
-    generate.mockResolvedValueOnce({ ok: true, data: { atendimentoId: "roteiro-de-video", confianca: 99, motivo: "ok" } });
+    generate.mockResolvedValueOnce({ ok: true, data: { atendimentoId: "producao-de-video", confianca: 99, motivo: "ok" } });
     const r = await triarPedido("pc-1");
     expect(r.ok).toBe(false);
     expect(pedidos.get("pc-1")!.status).toBe("precisa_decisao");
@@ -396,7 +398,7 @@ describe("duplo clique — a idempotência é do BANCO, nunca da memória", () =
     novoPedido();
     generate.mockResolvedValue({
       ok: true,
-      data: { atendimentoId: "roteiro-de-video", confianca: 92, motivo: "roteiro de vídeo" },
+      data: { atendimentoId: "producao-de-video", confianca: 92, motivo: "reel pronto" },
     });
 
     const [a, b] = await Promise.all([triarPedido("pc-1"), triarPedido("pc-1")]);
@@ -430,7 +432,7 @@ describe("duplo clique — a idempotência é do BANCO, nunca da memória", () =
     db.project.findUnique.mockResolvedValue({ clientRequestId: "req-1" });
     db.clientRequestDb.findUnique.mockResolvedValue({ services: JSON.stringify(["Social Media"]) });
 
-    generate.mockResolvedValueOnce({ ok: true, data: { atendimentoId: "roteiro-de-video", confianca: 95, motivo: "roteiro" } });
+    generate.mockResolvedValueOnce({ ok: true, data: { atendimentoId: "producao-de-video", confianca: 95, motivo: "reel pronto" } });
     generate.mockResolvedValueOnce({ ok: true, data: roteirosValidos() });
     generate.mockResolvedValueOnce({ ok: true, data: { verdict: "approved", issues: [], note: "boa" } });
 
@@ -440,5 +442,137 @@ describe("duplo clique — a idempotência é do BANCO, nunca da memória", () =
     // No ciclo NÃO se cobra: a peça já está paga pela mensalidade.
     expect(r.preco).toBeNull();
     expect(criarCard).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// O VERBO E A QUANTIDADE — a regressão de 06/08/2026, com as duas metades
+//
+// O pedido `cmsg7anke00030ps260acx43s` foi orçado como "1 Reel — R$ 350" quando
+// o cliente tinha escrito "PRECISO DO ROTEIRO COM AS FALAS para produzir os
+// videos". Três erros de uma vez: insumo classificado como peça final,
+// quantidade no plural virando 1, e trabalho já entregue sendo cobrado.
+//
+// A metade que BARRA vem primeiro; a metade que NÃO PODE atrapalhar vem logo
+// depois, porque uma trava que também barra o caso limpo não é trava, é atrito.
+describe("o verbo do pedido — insumo não é peça final", () => {
+  it("o texto exato do CEO NÃO vira orçamento de reel", async () => {
+    novoPedido({
+      title: "Precisamos criar videos meus falando das principais features do foocc…",
+      description:
+        "Precisamos criar videos meus falando das principais features do foocci para reels e Youtube. " +
+        "Preciso do roteiro com as falas paras produzir os videos e assim usar nas redes sociais e no site. " +
+        "Alem disso preciso de videos explicando os produtos para os clientes que serao atendidos pelo SDR no whatsapp.",
+    });
+    // O modelo repete o erro de 06/08 — de propósito. A trava não pode depender
+    // de o modelo acertar: é justamente ele que errou.
+    generate.mockResolvedValueOnce({
+      ok: true,
+      data: { atendimentoId: "producao-de-video", confianca: 95, motivo: "é vídeo para reels" },
+    });
+
+    const r = await triarPedido("pc-1");
+    expect(r.ok).toBe(false);
+
+    const gravado = pedidos.get("pc-1")!;
+    expect(gravado.status).toBe("precisa_decisao");
+    // NENHUM número na frente do CEO. Este é o bullet que ele leu no celular.
+    expect(gravado.quotedPrice ?? null).toBeNull();
+    expect(gravado.quoteStatus ?? null).toBeNull();
+    // E nada foi produzido nem cobrado.
+    expect(db.task.create).not.toHaveBeenCalled();
+    expect(String(gravado.declineReason)).toMatch(/texto|roteiro/i);
+  });
+
+  it("“preciso do roteiro” classificado como reel PARA — mesmo com confiança alta", async () => {
+    novoPedido({ description: "Preciso do roteiro com as falas para eu gravar o vídeo do combo." });
+    generate.mockResolvedValueOnce({
+      ok: true,
+      data: { atendimentoId: "producao-de-video", confianca: 99, motivo: "vídeo" },
+    });
+    const r = await triarPedido("pc-1");
+    expect(r.ok).toBe(false);
+    expect(pedidos.get("pc-1")!.status).toBe("precisa_decisao");
+    expect(pedidos.get("pc-1")!.quotedPrice ?? null).toBeNull();
+  });
+
+  it("roteiro avulso não tem preço de tabela — e preço que não existe NÃO se inventa", async () => {
+    novoPedido({ description: "Preciso do roteiro com as falas para eu gravar o vídeo do combo." });
+    // Agora o modelo acerta o atendimento. Mesmo assim não sai número: a casa
+    // não tem linha de tabela para roteiro avulso, e nulo não vira palpite.
+    generate.mockResolvedValueOnce({
+      ok: true,
+      data: { atendimentoId: "roteiro-de-video", confianca: 97, motivo: "ele pediu o roteiro" },
+    });
+    const r = await triarPedido("pc-1");
+    expect(r.ok).toBe(false);
+    const gravado = pedidos.get("pc-1")!;
+    expect(gravado.status).toBe("precisa_decisao");
+    expect(gravado.quotedPrice ?? null).toBeNull();
+    expect(String(gravado.declineReason)).toMatch(/orçamento/i);
+  });
+
+  // ── A METADE QUE NÃO PODE ATRAPALHAR ──────────────────────────────────────
+  it("“quero um reel pronto” continua virando reel, sem atrito e com preço da tabela", async () => {
+    novoPedido({ description: "Quero um reel pronto do combo do almoço, editado e com legenda animada." });
+    generate.mockResolvedValueOnce({
+      ok: true,
+      data: { atendimentoId: "producao-de-video", confianca: 93, motivo: "ele quer o vídeo pronto" },
+    });
+    const r = await triarPedido("pc-1");
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.triado.preco).toBe(precoDaTabela("1-reel"));
+    expect(pedidos.get("pc-1")!.status).toBe("triado");
+  });
+
+  it("“um reel COM roteiro e edição”: o roteiro é atributo da peça, não o pedido", async () => {
+    novoPedido({ description: "Quero um reel com roteiro, edição e legendas animadas para o cardápio novo." });
+    generate.mockResolvedValueOnce({
+      ok: true,
+      data: { atendimentoId: "producao-de-video", confianca: 91, motivo: "reel completo" },
+    });
+    const r = await triarPedido("pc-1");
+    expect(r.ok).toBe(true);
+  });
+});
+
+describe("a quantidade — não contada NÃO vira 1", () => {
+  it("plural sem número para, e o motivo diz que não deu para contar", async () => {
+    novoPedido({ description: "Quero uns reels prontos mostrando os pratos do cardápio novo." });
+    generate.mockResolvedValueOnce({
+      ok: true,
+      data: { atendimentoId: "producao-de-video", confianca: 96, motivo: "reels" },
+    });
+    const r = await triarPedido("pc-1");
+    expect(r.ok).toBe(false);
+    const gravado = pedidos.get("pc-1")!;
+    expect(gravado.status).toBe("precisa_decisao");
+    expect(gravado.quotedPrice ?? null).toBeNull();
+    expect(String(gravado.declineReason)).toMatch(/quantas|contar/i);
+  });
+
+  it("pediu 3 e a tabela só tem preço de 1: para, com o número na mensagem", async () => {
+    novoPedido({ description: "Quero 3 reels prontos para a semana do dia das mães." });
+    generate.mockResolvedValueOnce({
+      ok: true,
+      data: { atendimentoId: "producao-de-video", confianca: 96, motivo: "reels" },
+    });
+    const r = await triarPedido("pc-1");
+    expect(r.ok).toBe(false);
+    expect(String(pedidos.get("pc-1")!.declineReason)).toContain("3");
+    expect(pedidos.get("pc-1")!.quotedPrice ?? null).toBeNull();
+  });
+
+  it("item de PACOTE não é barrado pela contagem — o preço dele já é de um conjunto", async () => {
+    novoPedido({ description: "Quero mais posts esse mês, uns oito, para o calendário de agosto." });
+    generate.mockResolvedValueOnce({
+      ok: true,
+      data: { atendimentoId: "pauta-do-mes", confianca: 94, motivo: "é o mês inteiro" },
+    });
+    const r = await triarPedido("pc-1");
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.triado.preco).toBe(precoDaTabela("balcao-pacote-mes"));
   });
 });

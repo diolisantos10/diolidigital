@@ -34,7 +34,7 @@ import { createPortalAccess } from "@/lib/agency/persistence/portal-access-servi
 import { POST as enviarMensagem, GET as lerConversa } from "@/app/api/portal/messages/route";
 import { GET as caixaDeEntrada } from "@/app/api/messages/route";
 import { POST as pedirConteudo, GET as meusPedidos } from "@/app/api/portal/pedidos/route";
-import { POST as triarPedido, GET as filaDePedidos } from "@/app/api/messages/pedidos/route";
+import { POST as triarPedido, GET as filaDePedidos, PATCH as consertarPedido } from "@/app/api/messages/pedidos/route";
 
 let workspaceId = "";
 let foocciId = "";
@@ -47,6 +47,9 @@ function postJson(url: string, body: Record<string, unknown>): NextRequest {
 }
 function getUrl(url: string): NextRequest {
   return new NextRequest(`http://localhost${url}`);
+}
+function patchJson(url: string, body: Record<string, unknown>): NextRequest {
+  return new NextRequest(`http://localhost${url}`, { method: "PATCH", body: JSON.stringify(body) });
 }
 
 beforeAll(async () => {
@@ -268,6 +271,101 @@ describe("a trava: um cliente nunca vê o outro", () => {
       error: null,
     });
     const res = await lerConversa(getUrl(`/api/portal/messages?clientId=${foocciId}`));
+    expect(res.status).toBe(404);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// O CONSERTO DO ORÇAMENTO ERRADO — 06/08/2026
+//
+// A triagem automática pôs "1 Reel — R$ 350" na frente do CEO para um pedido
+// cujo entregável era o ROTEIRO, e que já estava PRONTO. Não havia como tirar
+// aquele número do portal: `triado` não volta para `novo`, o POST recusa pedido
+// já triado, e "recusar" apagaria o pedido legítimo junto com o erro.
+//
+// As duas metades, como sempre: a que conserta, e a que não pode virar porta
+// dos fundos.
+describe("consertar uma triagem que já saiu errada", () => {
+  let pedidoId = "";
+
+  it("o orçamento errado SAI da frente do cliente — e ele lê por quê", async () => {
+    const { pedidos } = await (await filaDePedidos(getUrl("/api/messages/pedidos"))).json();
+    pedidoId = pedidos[0].id;
+
+    // O estado exato da produção: orçamento pendente na tela do cliente.
+    await prisma.contentRequest.update({
+      where: { id: pedidoId },
+      data: { quotedPrice: 350, quoteNote: "1 Reel: um reel com roteiro, edição, música e legendas animadas.", quoteStatus: "pendente" },
+    });
+    const antes = await (await meusPedidos(getUrl(`/api/portal/pedidos?token=${tokenFoocci}`))).json();
+    expect(antes.pedidos[0].preco).toBe(350);
+
+    const res = await consertarPedido(patchJson("/api/messages/pedidos", {
+      pedidoId, acao: "cancelar_orcamento",
+      motivo: "Cancelei este orçamento: você pediu o roteiro (o texto para gravar), não a produção do reel — e esse trabalho já estava feito.",
+    }));
+    expect(res.status).toBe(200);
+
+    // O número sumiu INTEIRO: preço, nota e o botão de aprovar.
+    const depois = await (await meusPedidos(getUrl(`/api/portal/pedidos?token=${tokenFoocci}`))).json();
+    expect(depois.pedidos[0].preco).toBeNull();
+    expect(depois.pedidos[0].precoNota).toBeNull();
+    expect(depois.pedidos[0].orcamento).toBeNull();
+    // E não sumiu calado: o motivo está na tela dele e na conversa.
+    expect(String(depois.pedidos[0].motivo)).toMatch(/roteiro/i);
+    const conversa = await (await lerConversa(getUrl(`/api/portal/messages?token=${tokenFoocci}`))).json();
+    expect(conversa.messages.at(-1).body).toMatch(/roteiro/i);
+  });
+
+  it("orçamento não sai calado: sem motivo, 422", async () => {
+    const res = await consertarPedido(patchJson("/api/messages/pedidos", { pedidoId, acao: "cancelar_orcamento", motivo: "erro" }));
+    expect(res.status).toBe(422);
+  });
+
+  it("a peça feita FORA da máquina chega ao portal — visível, com conteúdo", async () => {
+    const roteiro = "ROTEIRO 1 — O que é o Foocci\n\nGANCHO (0-3s): você olha para a câmera e diz…\n".repeat(12);
+    const res = await consertarPedido(patchJson("/api/messages/pedidos", {
+      pedidoId, acao: "entregar",
+      titulo: "Roteiros de vídeo — Foocci",
+      conteudo: roteiro,
+      motivo: "Os roteiros ficaram prontos e estão aqui para você conferir antes de gravar.",
+    }));
+    expect(res.status).toBe(200);
+    const j = await res.json();
+
+    // A entrega existe e é VISÍVEL — "interno" seria o mesmo que deixá-la no
+    // repositório, que é onde o cliente não entra.
+    const entrega = await prisma.deliverable.findUnique({ where: { id: j.deliverableId } });
+    expect(entrega?.visibility).toBe("compartilhado");
+    expect(String(entrega?.content)).toContain("GANCHO");
+
+    // O card no portal, ligado ao pedido pelo caminho de volta.
+    const card = await prisma.approvalRequest.findUnique({ where: { id: j.approvalRequestId } });
+    expect(card?.clientVisible).toBe(true);
+    expect(card?.department).toBe(`pedido:${pedidoId}`);
+
+    // E o pedido reflete o que aconteceu: entregue, sem orçamento pendurado.
+    const pedido = await prisma.contentRequest.findUnique({ where: { id: pedidoId } });
+    expect(pedido?.status).toBe("entregue");
+    expect(pedido?.quotedPrice).toBeNull();
+  });
+
+  it("entrega vazia não passa — portal com card oco é pior que card nenhum", async () => {
+    const res = await consertarPedido(patchJson("/api/messages/pedidos", {
+      pedidoId, acao: "entregar", titulo: "Qualquer coisa", conteudo: "pronto",
+      motivo: "Segue a entrega conforme combinado.",
+    }));
+    expect(res.status).toBe(422);
+  });
+
+  it("a agência de OUTRO workspace não conserta pedido alheio", async () => {
+    requireSession.mockResolvedValueOnce({
+      session: { name: "Intruso", workspaceId: "ws-alheio", role: "master", userId: "u9" },
+      error: null,
+    });
+    const res = await consertarPedido(patchJson("/api/messages/pedidos", {
+      pedidoId, acao: "cancelar_orcamento", motivo: "quero mexer no cliente do vizinho",
+    }));
     expect(res.status).toBe(404);
   });
 });
