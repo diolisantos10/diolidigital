@@ -89,6 +89,8 @@ export const ModelName = {
   ApprovalComment: 'ApprovalComment',
   EvidenceItem: 'EvidenceItem',
   MetaConnection: 'MetaConnection',
+  MetaAdCota: 'MetaAdCota',
+  MetaAdFreio: 'MetaAdFreio',
   WhatsAppMessage: 'WhatsAppMessage',
   WhatsAppOutbox: 'WhatsAppOutbox',
   PortalAccess: 'PortalAccess',
@@ -811,6 +813,27 @@ export const MetaConnectionScalarFieldEnum = {
 } as const
 
 export type MetaConnectionScalarFieldEnum = (typeof MetaConnectionScalarFieldEnum)[keyof typeof MetaConnectionScalarFieldEnum]
+
+
+export const MetaAdCotaScalarFieldEnum = {
+  id: 'id',
+  contaId: 'contaId',
+  janela: 'janela',
+  pontos: 'pontos',
+  atualizadoEm: 'atualizadoEm'
+} as const
+
+export type MetaAdCotaScalarFieldEnum = (typeof MetaAdCotaScalarFieldEnum)[keyof typeof MetaAdCotaScalarFieldEnum]
+
+
+export const MetaAdFreioScalarFieldEnum = {
+  contaId: 'contaId',
+  ate: 'ate',
+  motivo: 'motivo',
+  criadoEm: 'criadoEm'
+} as const
+
+export type MetaAdFreioScalarFieldEnum = (typeof MetaAdFreioScalarFieldEnum)[keyof typeof MetaAdFreioScalarFieldEnum]
 
 
 export const WhatsAppMessageScalarFieldEnum = {

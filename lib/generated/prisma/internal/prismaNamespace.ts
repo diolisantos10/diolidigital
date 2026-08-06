@@ -422,6 +422,8 @@ export const ModelName = {
   ApprovalComment: 'ApprovalComment',
   EvidenceItem: 'EvidenceItem',
   MetaConnection: 'MetaConnection',
+  MetaAdCota: 'MetaAdCota',
+  MetaAdFreio: 'MetaAdFreio',
   WhatsAppMessage: 'WhatsAppMessage',
   WhatsAppOutbox: 'WhatsAppOutbox',
   PortalAccess: 'PortalAccess',
@@ -444,7 +446,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "oportunidade" | "rateLimitBucket"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "metaAdFreio" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "oportunidade" | "rateLimitBucket"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -3260,6 +3262,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    MetaAdCota: {
+      payload: Prisma.$MetaAdCotaPayload<ExtArgs>
+      fields: Prisma.MetaAdCotaFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MetaAdCotaFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdCotaPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MetaAdCotaFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdCotaPayload>
+        }
+        findFirst: {
+          args: Prisma.MetaAdCotaFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdCotaPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MetaAdCotaFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdCotaPayload>
+        }
+        findMany: {
+          args: Prisma.MetaAdCotaFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdCotaPayload>[]
+        }
+        create: {
+          args: Prisma.MetaAdCotaCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdCotaPayload>
+        }
+        createMany: {
+          args: Prisma.MetaAdCotaCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MetaAdCotaCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdCotaPayload>[]
+        }
+        delete: {
+          args: Prisma.MetaAdCotaDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdCotaPayload>
+        }
+        update: {
+          args: Prisma.MetaAdCotaUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdCotaPayload>
+        }
+        deleteMany: {
+          args: Prisma.MetaAdCotaDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MetaAdCotaUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MetaAdCotaUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdCotaPayload>[]
+        }
+        upsert: {
+          args: Prisma.MetaAdCotaUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdCotaPayload>
+        }
+        aggregate: {
+          args: Prisma.MetaAdCotaAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMetaAdCota>
+        }
+        groupBy: {
+          args: Prisma.MetaAdCotaGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaAdCotaGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MetaAdCotaCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaAdCotaCountAggregateOutputType> | number
+        }
+      }
+    }
+    MetaAdFreio: {
+      payload: Prisma.$MetaAdFreioPayload<ExtArgs>
+      fields: Prisma.MetaAdFreioFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MetaAdFreioFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdFreioPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MetaAdFreioFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdFreioPayload>
+        }
+        findFirst: {
+          args: Prisma.MetaAdFreioFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdFreioPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MetaAdFreioFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdFreioPayload>
+        }
+        findMany: {
+          args: Prisma.MetaAdFreioFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdFreioPayload>[]
+        }
+        create: {
+          args: Prisma.MetaAdFreioCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdFreioPayload>
+        }
+        createMany: {
+          args: Prisma.MetaAdFreioCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MetaAdFreioCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdFreioPayload>[]
+        }
+        delete: {
+          args: Prisma.MetaAdFreioDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdFreioPayload>
+        }
+        update: {
+          args: Prisma.MetaAdFreioUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdFreioPayload>
+        }
+        deleteMany: {
+          args: Prisma.MetaAdFreioDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MetaAdFreioUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MetaAdFreioUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdFreioPayload>[]
+        }
+        upsert: {
+          args: Prisma.MetaAdFreioUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAdFreioPayload>
+        }
+        aggregate: {
+          args: Prisma.MetaAdFreioAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMetaAdFreio>
+        }
+        groupBy: {
+          args: Prisma.MetaAdFreioGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaAdFreioGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MetaAdFreioCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaAdFreioCountAggregateOutputType> | number
+        }
+      }
+    }
     WhatsAppMessage: {
       payload: Prisma.$WhatsAppMessagePayload<ExtArgs>
       fields: Prisma.WhatsAppMessageFieldRefs
@@ -4516,6 +4666,27 @@ export const MetaConnectionScalarFieldEnum = {
 export type MetaConnectionScalarFieldEnum = (typeof MetaConnectionScalarFieldEnum)[keyof typeof MetaConnectionScalarFieldEnum]
 
 
+export const MetaAdCotaScalarFieldEnum = {
+  id: 'id',
+  contaId: 'contaId',
+  janela: 'janela',
+  pontos: 'pontos',
+  atualizadoEm: 'atualizadoEm'
+} as const
+
+export type MetaAdCotaScalarFieldEnum = (typeof MetaAdCotaScalarFieldEnum)[keyof typeof MetaAdCotaScalarFieldEnum]
+
+
+export const MetaAdFreioScalarFieldEnum = {
+  contaId: 'contaId',
+  ate: 'ate',
+  motivo: 'motivo',
+  criadoEm: 'criadoEm'
+} as const
+
+export type MetaAdFreioScalarFieldEnum = (typeof MetaAdFreioScalarFieldEnum)[keyof typeof MetaAdFreioScalarFieldEnum]
+
+
 export const WhatsAppMessageScalarFieldEnum = {
   id: 'id',
   workspaceId: 'workspaceId',
@@ -4847,6 +5018,8 @@ export type GlobalOmitConfig = {
   approvalComment?: Prisma.ApprovalCommentOmit
   evidenceItem?: Prisma.EvidenceItemOmit
   metaConnection?: Prisma.MetaConnectionOmit
+  metaAdCota?: Prisma.MetaAdCotaOmit
+  metaAdFreio?: Prisma.MetaAdFreioOmit
   whatsAppMessage?: Prisma.WhatsAppMessageOmit
   whatsAppOutbox?: Prisma.WhatsAppOutboxOmit
   portalAccess?: Prisma.PortalAccessOmit

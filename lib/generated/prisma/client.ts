@@ -298,6 +298,34 @@ export type EvidenceItem = Prisma.EvidenceItemModel
  */
 export type MetaConnection = Prisma.MetaConnectionModel
 /**
+ * Model MetaAdCota
+ * COTA POR PONTUAÇÃO DA MARKETING API — o contador que precisa ATRAVESSAR
+ * réplica e deploy.
+ * 
+ * A Marketing API não limita por "chamadas por hora": limita por PONTUAÇÃO,
+ * por CONTA DE ANÚNCIOS, com decaimento de 300 segundos — leitura vale 1
+ * ponto, escrita vale 3, e o teto no nível de desenvolvimento é 60. Ou seja,
+ * 20 escritas bloqueiam a conta por 5 minutos (fonte capturada:
+ * docs/plataformas/meta/fontes/marketing-api-limites-de-taxa.md, 06/08/2026).
+ * 
+ * Até 06/08/2026 esse contador era um Map em MEMÓRIA: com N réplicas o teto
+ * real virava N × teto, e todo deploy zerava. Como o que a Meta restringiu em
+ * 03/08/2026 foi uma CONTA — não um processo —, o contador passou a morar
+ * aqui. Uma linha por (conta, janela de 300s), incrementada por um único
+ * UPDATE condicional (atômico).
+ */
+export type MetaAdCota = Prisma.MetaAdCotaModel
+/**
+ * Model MetaAdFreio
+ * O CASTIGO DA CONTA depois de um erro de limite da Meta.
+ * 
+ * A Meta publica o tamanho do bloqueio (300s no nível de desenvolvimento, 60s
+ * no acesso total). Enquanto durar, a casa não chama — e o freio no banco vale
+ * para todas as réplicas e sobrevive ao deploy, ao contrário do balde em
+ * memória de `lib/integrations/meta/ritmo.ts`.
+ */
+export type MetaAdFreio = Prisma.MetaAdFreioModel
+/**
  * Model WhatsAppMessage
  * 
  */
