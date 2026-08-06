@@ -2,7 +2,7 @@
 // série, os dois estados de conexão que a UI precisa distinguir, e o cache.
 // Tudo com graphGet mockado — teste aqui não fala com a Meta nunca.
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 const graphGet = vi.hoisted(() => vi.fn());
 const conexaoDoCliente = vi.hoisted(() => vi.fn());
@@ -36,6 +36,13 @@ import {
   FRASE_DO_TETO,
 } from "@/lib/integrations/meta/leitura";
 
+// O teto por hora e o cache desta camada são contados NO BANCO desde
+// 06/08/2026, e o teto é FAIL-CLOSED: sem banco, a leitura recusa antes de
+// tudo. Por isso a suíte sobe um SQLite em memória a partir do arquivo de
+// migration REAL — sem ele, o que se mediria seria a recusa, não o comportamento.
+import { subirCotaDeTeste, baixarCotaDeTeste } from "./_cota";
+import { retratoNoBanco, configurarRitmoNoBanco } from "@/lib/integrations/meta/ritmo-no-banco";
+
 const CONEXAO_VIVA = {
   id: "mc1", platform: "instagram", externalId: "ig9", status: "connected",
   tokenExpiresAt: null, metaJson: { igUserId: "ig9" }, token: "tk",
@@ -52,11 +59,19 @@ function paginaDeFeed(n: number, comProxima: boolean) {
   };
 }
 
-beforeEach(() => {
+let relogio = 1_700_000_000_000;
+
+beforeEach(async () => {
   vi.clearAllMocks();
-  limparCacheDeLeitura();
+  relogio = 1_700_000_000_000;
+  await subirCotaDeTeste(() => relogio);
+  await limparCacheDeLeitura();
   conexaoDoCliente.mockResolvedValue({ ...CONEXAO_VIVA });
   marcarConexaoExpirada.mockResolvedValue(undefined);
+});
+
+afterEach(() => {
+  baixarCotaDeTeste();
 });
 
 describe("os dois estados que a UI não pode confundir", () => {
@@ -329,17 +344,59 @@ describe("teto de ritmo por conexão: o cache não protege janela livre", () => 
       if (!ultima.ok) break;
     }
     expect(ultima!.ok).toBe(false);
-    if (!ultima!.ok) expect((ultima as { error: string }).error).toBe(FRASE_DO_TETO);
+    // A frase vem do contador do banco e diz o QUE aconteceu (teto da hora),
+    // não só "limitou": quem lê precisa saber se espera, se reconecta ou se o
+    // contador caiu. `FRASE_DO_TETO` continua sendo o piso do contrato.
+    if (!ultima!.ok) {
+      const erro = (ultima as { error: string }).error;
+      expect(erro).toMatch(/ritmo|teto/i);
+      expect(erro.length).toBeGreaterThan(10);
+    }
     // E o teto é DURO: passar dele não gasta mais nenhuma chamada com a Meta.
     const gastas = graphGet.mock.calls.length;
     await lerMetricasDaConta("ws1", "c1", { desde: "2026-04-01", ate: "2026-04-10" });
     expect(graphGet.mock.calls.length).toBe(gastas);
   });
 
-  it("limpar o cache zera o contador — senão um teste envenenaria o outro", async () => {
-    limparCacheDeLeitura();
+  // ─── A MUDANÇA DE 06/08/2026, dita como teste ────────────────────────────
+  // Antes, `limparCacheDeLeitura()` zerava TAMBÉM o contador da hora, porque os
+  // dois moravam no mesmo Map. Isso era uma porta: reconectar (ou reiniciar)
+  // devolvia a cota já gasta com a Meta. Agora o cache é uma coisa e o contador
+  // é outra — e só o cache é apagável.
+  it("limpar o cache NÃO devolve a cota já gasta com a Meta", async () => {
+    for (let i = 0; i < 10; i++) {
+      const ate = new Date(Date.UTC(2026, 5, 2) + i * 86_400_000).toISOString().slice(0, 10);
+      await lerMetricasDaConta("ws1", "c1", { desde: "2026-06-01", ate });
+    }
+    const antes = await retratoNoBanco("conexao:mc1");
+    expect(antes.gastas).toBe(30); // 10 leituras × 3 chamadas
+
+    await limparCacheDeLeitura();
+
+    const depois = await retratoNoBanco("conexao:mc1");
+    expect(depois.gastas).toBe(30);
+  });
+
+  // A OUTRA METADE: o teto não pode inventar recusa no caso limpo.
+  it("uma leitura só, com o contador zerado, passa sem nenhum atrito", async () => {
     const r = await lerMetricasDaConta("ws1", "c1", { desde: "2026-03-01", ate: "2026-03-10" });
     expect(r.ok).toBe(true);
+  });
+
+  // FAIL-CLOSED, provado: contador fora do ar RECUSA, não libera.
+  it("contador indisponível NEGA a leitura — trava que se abre sozinha não é trava", async () => {
+    configurarRitmoNoBanco({
+      agora: () => relogio,
+      banco: {
+        executar: async () => { throw new Error("banco fora"); },
+        consultar: async () => { throw new Error("banco fora"); },
+      },
+    });
+    const chamadas = graphGet.mock.calls.length;
+    const r = await lerMetricasDaConta("ws1", "c1", { desde: "2026-07-01", ate: "2026-07-10" });
+    expect(r.ok).toBe(false);
+    // O que prova que PAROU: a Meta não foi tocada.
+    expect(graphGet.mock.calls.length).toBe(chamadas);
   });
 });
 

@@ -204,7 +204,7 @@ async function chamarAGraph<T>(
     // 3. O que a META diz sobre a cota — vale para resposta boa e ruim.
     let uso = { esperarMin: 0 };
     try {
-      uso = registrarCabecalhos(chave, res.headers);
+      uso = await registrarCabecalhos(chave, res.headers);
     } catch { /* cabeçalho estranho nunca derruba a chamada */ }
 
     try {
@@ -213,7 +213,7 @@ async function chamarAGraph<T>(
       if (e instanceof GraphApiError) {
         // 4. Limite: freia e devolve. Não retenta.
         if (ehCodigoDeLimite(e.detail?.code) || res.status === 429) {
-          registrarErroDeLimite(chave, e.detail?.code, uso.esperarMin);
+          await registrarErroDeLimite(chave, e.detail?.code, uso.esperarMin);
           // O castigo da CONTA vai para o banco: memória de processo perde o
           // castigo no primeiro deploy, e a Meta não perde.
           if (cota) {

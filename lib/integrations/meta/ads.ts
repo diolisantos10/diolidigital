@@ -27,6 +27,7 @@ import {
   filtrarAutorizados, ativoAutorizado, normalizarId, FRASE_SEM_AUTORIZACAO,
 } from "./ativos-autorizados";
 import { TIPO_DE_RITMO_DA_CASA } from "./ritmo";
+import { lerDoCacheNoBanco, guardarNoCacheNoBanco, limparCacheNoBanco } from "./cache-no-banco";
 
 /** Teto absoluto da casa, em reais por dia, independente do que for pedido.
  *  É a última linha de defesa: se todo o resto falhar, o estrago é limitado. */
@@ -531,14 +532,21 @@ export interface DesempenhoPago {
 // abaixo do piso de insights em development_access (600 + 400 × anúncios
 // ativos por hora, mesma fonte).
 //
-// ⚠️ Em memória, como o cache de leitura.ts: todo deploy esvazia, e é por
-// processo. Declarado aqui para não ser descoberto num e-mail de restrição.
+// ✅ 06/08/2026: SAIU DA MEMÓRIA. O aviso que estava aqui — "todo deploy
+// esvazia, e é por processo" — descrevia um freio que a casa perdia várias
+// vezes por dia: cada publish devolvia a varredura inteira à rede, contra a
+// mesma conta de anúncios que a Meta já restringiu uma vez. Agora o resultado
+// mora no volume (`./cache-no-banco.ts`): atravessa deploy e réplica, e quem já
+// pagou a chamada paga por todas as instâncias durante o TTL.
 export const TTL_DO_DESEMPENHO_MS = 15 * 60_000;
-const cacheDeDesempenho = new Map<string, { validoAte: number; valor: DesempenhoPago }>();
+
+/** Prefixo das chaves desta camada — permite limpar o desempenho sem varrer o
+ *  cache da leitura de Instagram. */
+const PREFIXO_DO_DESEMPENHO = "desempenho:";
 
 /** Para teste e para quando a campanha muda de estado. */
-export function limparCacheDeDesempenho(): void {
-  cacheDeDesempenho.clear();
+export async function limparCacheDeDesempenho(): Promise<void> {
+  await limparCacheNoBanco(PREFIXO_DO_DESEMPENHO);
 }
 
 /**
@@ -560,9 +568,8 @@ export async function lerDesempenho(
 ): Promise<ResultadoDeAnuncio<DesempenhoPago>> {
   const chave = `${connectionId}:${campaignId}:${periodo.desde}:${periodo.ate}`;
   if (!opts.ignorarCache) {
-    const hit = cacheDeDesempenho.get(chave);
-    if (hit && hit.validoAte > Date.now()) return { ok: true, dados: hit.valor };
-    if (hit) cacheDeDesempenho.delete(chave);
+    const hit = await lerDoCacheNoBanco<DesempenhoPago>(PREFIXO_DO_DESEMPENHO + chave);
+    if (hit) return { ok: true, dados: hit };
   }
 
   const conn = await loadConnectionToken(workspaceId, connectionId);
@@ -592,7 +599,7 @@ export async function lerDesempenho(
     };
     // Só sucesso entra no cache: guardar um erro por 15 min esconderia a
     // reconexão ou a liberação da conta que acabou de acontecer.
-    cacheDeDesempenho.set(chave, { validoAte: Date.now() + TTL_DO_DESEMPENHO_MS, valor: dados });
+    await guardarNoCacheNoBanco(PREFIXO_DO_DESEMPENHO + chave, dados, TTL_DO_DESEMPENHO_MS);
     return { ok: true, dados };
   } catch (e) {
     return traduzirErro(e);

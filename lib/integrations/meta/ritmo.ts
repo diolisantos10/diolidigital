@@ -42,21 +42,28 @@
 //      vier no cabeçalho. Retentativa só existe para 5xx/rede, com espera
 //      crescente.
 //
-// ─── ⚠️ LIMITAÇÃO CONHECIDA, DITA AQUI E NÃO NUM E-MAIL DE BAN ──────────────
-// ATUALIZAÇÃO 06/08/2026: para a MARKETING API esta limitação foi FECHADA — a
-// cota por pontuação (leitura 1, escrita 3, teto 60 por conta a cada 300s) é
-// contada no BANCO, por conta de anúncios, em `./cota-de-anuncios.ts`. O que
-// está descrito abaixo continua valendo para o resto (Instagram, Páginas,
-// WhatsApp), que ainda usa os baldes em memória deste arquivo.
+// ─── ✅ 06/08/2026 — O TETO E O FREIO SAÍRAM DA MEMÓRIA ─────────────────────
+// Este cabeçalho trazia uma limitação declarada: "os contadores são MEMÓRIA DE
+// PROCESSO; com N réplicas o teto efetivo na MESMA conta vira N × TETO_POR_HORA,
+// e todo redeploy zera tudo". Ela está FECHADA em duas etapas:
+//   • a MARKETING API já contava no banco por pontuação (`./cota-de-anuncios.ts`);
+//   • agora o TETO POR HORA (camada 2) e o FREIO (camada 4) de TODA a Graph —
+//     Instagram, Páginas, WhatsApp inclusive — são contados no VOLUME, em
+//     `./ritmo-no-banco.ts`. Uma linha por (chave, hora), incremento atômico.
 //
-// Os contadores são MEMÓRIA DE PROCESSO. Com N réplicas no ar, o teto efetivo
-// na MESMA conta da Meta é N × TETO_POR_HORA, e todo redeploy zera tudo. O
-// incidente de 03/08 foi restrição de CONTA — exatamente o eixo em que este
-// contador não soma. O certo é contador compartilhado (linha por chave+hora no
-// banco, incremento atômico); não foi feito nesta rodada porque põe UMA ESCRITA
-// no banco em toda chamada à Graph. O que reduz o dano hoje: a camada 3 lê o
-// número da PRÓPRIA META, que é global de verdade e não depende da nossa
-// memória — se outra réplica gastou a cota, o cabeçalho conta.
+// O que continua em memória, de propósito, é SÓ o ESPAÇAMENTO (camada 1): ele dá
+// forma à curva de UM processo, e um processo recém-subido não tem rajada em
+// curso para espalhar. Fazê-lo no banco poria uma escrita por FICHA, com sono no
+// caminho quente. Os porquês inteiros estão no cabeçalho de `ritmo-no-banco.ts`
+// — leia lá antes de "unificar" as duas camadas.
+//
+// FAIL-CLOSED: banco fora do ar NEGA a chamada à Meta. Sem contador não dá para
+// saber se a próxima é a 199ª ou a 201ª. Não custa disponibilidade real — o
+// token da conexão também sai do banco.
+
+import {
+  reservarNaJanelaDoBanco, frearChaveNoBanco, retratoNoBanco,
+} from "./ritmo-no-banco";
 
 // ─── Os números, e a fonte de cada um ───────────────────────────────────────
 
@@ -173,9 +180,15 @@ export function configurarRitmo(
 interface Balde {
   fichas: number;
   ultimoRefil: number;
-  /** Marcas de tempo das chamadas da última hora — janela DESLIZANTE. Janela
-   *  fixa deixaria passar 2× o teto na virada da hora. */
-  marcas: number[];
+  /**
+   * Freio LOCAL desta réplica.
+   *
+   * ⚠️ Não é a fonte de verdade — a fonte é `MetaRitmoFreio`, no banco
+   * (`./ritmo-no-banco.ts`), que atravessa deploy e réplica. Este aqui existe
+   * para o caso em que a gravação do freio no banco FALHA: a réplica que viu o
+   * erro de limite continua freada mesmo assim. Degradação, não silêncio.
+   * Ele só ADICIONA freio; nunca libera nada que o banco tenha freado.
+   */
   bloqueadoAte: number;
   motivo: string;
   errosSeguidos: number;
@@ -199,7 +212,7 @@ function baldeDe(chave: string): Balde {
   if (!b) {
     const cheio = chave === CHAVE_DA_CASA ? FICHAS_DE_RAJADA_DA_CASA : FICHAS_DE_RAJADA;
     b = {
-      fichas: cheio, ultimoRefil: agora(), marcas: [], bloqueadoAte: 0,
+      fichas: cheio, ultimoRefil: agora(), bloqueadoAte: 0,
       motivo: "", errosSeguidos: 0, fila: Promise.resolve(), ultimoUso: agora(),
     };
     baldes.set(chave, b);
@@ -216,7 +229,10 @@ function podarBaldes(): void {
   for (const [k, b] of baldes) if (b.ultimoUso < corte) baldes.delete(k);
 }
 
-/** Zera tudo. Para teste e para depois de uma reconexão. */
+/** Zera o estado EM MEMÓRIA (fichas, freio local, tier). Para teste e para
+ *  depois de uma reconexão. Não toca o contador do banco de propósito: apagar a
+ *  contagem da hora seria dar a rajada de volta a quem só reiniciou o processo
+ *  — exatamente o defeito que tirou este contador da memória. */
 export function limparRitmo(): void {
   baldes.clear();
   tierDeAnuncios = null;
@@ -272,11 +288,10 @@ function repor(b: Balde, chave: string): void {
   b.ultimoRefil = t;
 }
 
-function podarMarcas(b: Balde): void {
-  const corte = agora() - 3_600_000;
-  while (b.marcas.length > 0 && b.marcas[0] < corte) b.marcas.shift();
-}
-
+/**
+ * O ESPAÇAMENTO (camada 1) e o freio local. Memória de propósito — ver o
+ * cabeçalho. O TETO POR HORA não está mais aqui: mora no banco.
+ */
 async function reservarUma(chave: string): Promise<void> {
   const b = baldeDe(chave);
 
@@ -288,27 +303,15 @@ async function reservarUma(chave: string): Promise<void> {
   await anterior.catch(() => {});
 
   try {
-    // 1. Freio ativo (erro de limite ou cabeçalho no vermelho): PARA. Não
-    //    espera, não tenta: continuar chamando estende o bloqueio.
+    // 1. Freio LOCAL ativo: PARA. Não espera, não tenta — continuar chamando
+    //    estende o bloqueio. (O freio que vale para todas as réplicas é o do
+    //    banco, checado em `reservarChamadaNaGraph`; este é o de reserva.)
     if (b.bloqueadoAte > agora()) {
       const min = Math.max(1, Math.ceil((b.bloqueadoAte - agora()) / 60_000));
       throw new RitmoDaCasaError(detalheDeRitmo(b.motivo || "o ritmo com a Meta está freado", min));
     }
 
-    // 2. Teto por hora (janela deslizante). Só para as chaves de conexão — a
-    //    chave da casa espaça, não tampa.
-    if (chave !== CHAVE_DA_CASA) {
-      podarMarcas(b);
-      if (b.marcas.length >= TETO_POR_HORA) {
-        const liberaEm = Math.max(1, Math.ceil((b.marcas[0] + 3_600_000 - agora()) / 60_000));
-        throw new RitmoDaCasaError(detalheDeRitmo(
-          `seguramos o ritmo com a Meta: ${TETO_POR_HORA} chamadas nesta hora já é o nosso teto`,
-          liberaEm,
-        ));
-      }
-    }
-
-    // 3. Espaçamento. Aqui a chamada ESPERA em vez de falhar — é o que deixa o
+    // 2. Espaçamento. Aqui a chamada ESPERA em vez de falhar — é o que deixa o
     //    uso normal passar.
     repor(b, chave);
     if (b.fichas < 1) {
@@ -325,7 +328,6 @@ async function reservarUma(chave: string): Promise<void> {
     }
 
     b.fichas -= 1;
-    if (chave !== CHAVE_DA_CASA) b.marcas.push(agora());
   } finally {
     liberar();
   }
@@ -335,12 +337,32 @@ async function reservarUma(chave: string): Promise<void> {
  * Reserva uma chamada à Graph para `chave`. Lança `RitmoDaCasaError` quando a
  * resposta certa é PARAR. Passa (às vezes depois de esperar) quando é só ritmo.
  *
- * Reserva SEMPRE nas duas chaves: a da conexão e a da casa. Contar depois
- * deixaria a rajada acontecer antes de ser contada.
+ * A ordem das três etapas é o desenho:
+ *   1. ESPAÇA na chave da casa (em memória) — o app inteiro não vira um pico só;
+ *   2. ESPAÇA na chave da conexão (em memória) e checa o freio local;
+ *   3. RESERVA A VAGA DA HORA NO BANCO — o único contador que atravessa deploy
+ *      e réplica, e que também guarda o freio.
+ *
+ * O passo 3 vem por último porque os dois primeiros SERIALIZAM e espalham as
+ * chamadas: chegar ao banco já espaçado é o que evita dez UPDATEs simultâneos
+ * na mesma linha do SQLite. Reservar depois de esperar pode "gastar" a espera
+ * numa chamada que o banco vai recusar — é o lado barato do erro.
+ *
+ * A chave da casa NÃO tem teto por hora, e isso é decisão antiga: um teto
+ * horário global derrubaria a agência inteira por causa de um cliente
+ * movimentado. Ela só espaça.
  */
 export async function reservarChamadaNaGraph(chave: string): Promise<void> {
   await reservarUma(CHAVE_DA_CASA);
   await reservarUma(chave);
+  if (chave === CHAVE_DA_CASA) return;
+
+  const r = await reservarNaJanelaDoBanco(chave, 1, TETO_POR_HORA);
+  if (!r.ok) {
+    throw new RitmoDaCasaError(
+      detalheDeRitmo(r.frase, Math.max(1, Math.ceil(r.esperarSegundos / 60))),
+    );
+  }
 }
 
 // ─── Camada 3: o que a META diz nos cabeçalhos ──────────────────────────────
@@ -422,18 +444,27 @@ export function lerUsoDosCabecalhos(headers: Headers): UsoDeclaradoPelaMeta {
 /**
  * Registra o que a Meta declarou nesta resposta. Quando ELA diz que estamos
  * perto do limite, o número dela manda — é global de verdade, e o nosso
- * contador é só memória de um processo.
+ * contador é palpite.
+ *
+ * O freio daqui vai para o BANCO e para a memória: o banco é o que vale para as
+ * outras réplicas e para depois do próximo deploy; a memória é o que ainda
+ * segura ESTA réplica se a gravação falhar.
  */
-export function registrarCabecalhos(chave: string, headers: Headers): UsoDeclaradoPelaMeta {
+export async function registrarCabecalhos(
+  chave: string,
+  headers: Headers,
+): Promise<UsoDeclaradoPelaMeta> {
   const uso = lerUsoDosCabecalhos(headers);
   if (uso.tier) tierDeAnuncios = uso.tier;
 
   if (uso.esperarMin > 0) {
-    frear(chave, uso.esperarMin * 60_000,
-      `a Meta informou que o nosso app está limitado nesta conta`);
+    const motivo = `a Meta informou que o nosso app está limitado nesta conta`;
+    frear(chave, uso.esperarMin * 60_000, motivo);
+    await frearChaveNoBanco(chave, uso.esperarMin * 60, motivo);
   } else if (uso.usoPct >= USO_QUE_FREIA_PCT) {
-    frear(chave, FREIO_POR_CABECALHO_MS,
-      `a Meta já registrou ${Math.round(uso.usoPct)}% da cota desta conta nesta hora`);
+    const motivo = `a Meta já registrou ${Math.round(uso.usoPct)}% da cota desta conta nesta hora`;
+    frear(chave, FREIO_POR_CABECALHO_MS, motivo);
+    await frearChaveNoBanco(chave, FREIO_POR_CABECALHO_MS / 1000, motivo);
   }
 
   // Resposta saudável zera a escada do freio: um erro isolado não pode deixar a
@@ -449,18 +480,21 @@ export function registrarCabecalhos(chave: string, headers: Headers): UsoDeclara
  * "Quando o limite tiver sido atingido, pare de fazer chamadas à API"
  * (fonte: fontes/graph-api-limites-de-taxa.md, Boas práticas).
  */
-export function registrarErroDeLimite(
+export async function registrarErroDeLimite(
   chave: string,
   code: number | undefined,
   esperarMinDaMeta = 0,
-): void {
+): Promise<void> {
   const b = baldeDe(chave);
   b.errosSeguidos = Math.min(b.errosSeguidos + 1, ESCADA_DE_FREIO_MIN.length);
   const min = esperarMinDaMeta > 0
     ? esperarMinDaMeta
     : ESCADA_DE_FREIO_MIN[b.errosSeguidos - 1];
-  frear(chave, min * 60_000,
-    `a Meta recusou por limite de volume (código ${code ?? "?"}) e paramos de chamar`);
+  const motivo = `a Meta recusou por limite de volume (código ${code ?? "?"}) e paramos de chamar`;
+  frear(chave, min * 60_000, motivo);
+  // O castigo no BANCO é o que sobrevive ao deploy. Em memória, um redeploy no
+  // meio do castigo devolvia a rajada — e a Meta não esquece a rajada.
+  await frearChaveNoBanco(chave, min * 60, motivo);
 }
 
 // ─── Diagnóstico (para o Diretor e para o teste) ────────────────────────────
@@ -473,16 +507,25 @@ export interface RetratoDoRitmo {
   motivo: string;
 }
 
-export function retratoDoRitmo(chave: string): RetratoDoRitmo {
+/**
+ * O retrato é ASSÍNCRONO desde 06/08/2026 porque `gastasNaHora` deixou de ser
+ * uma lista na memória e passou a ser uma linha no banco — que é justamente o
+ * ponto: o número que interessa é o de TODAS as réplicas, não o desta.
+ * `bloqueadoPorMin` é o MAIOR entre o freio local e o do banco: o freio nunca
+ * encurta por consulta.
+ */
+export async function retratoDoRitmo(chave: string): Promise<RetratoDoRitmo> {
   const b = baldes.get(chave);
-  if (!b) return { chave, gastasNaHora: 0, fichas: FICHAS_DE_RAJADA, bloqueadoPorMin: 0, motivo: "" };
-  podarMarcas(b);
+  const noBanco = await retratoNoBanco(chave);
+  const localMin =
+    b && b.bloqueadoAte > agora() ? Math.ceil((b.bloqueadoAte - agora()) / 60_000) : 0;
+  const bancoMin = noBanco.freadaPorSegundos > 0 ? Math.ceil(noBanco.freadaPorSegundos / 60) : 0;
   return {
     chave,
-    gastasNaHora: b.marcas.length,
-    fichas: Math.floor(b.fichas),
-    bloqueadoPorMin: b.bloqueadoAte > agora() ? Math.ceil((b.bloqueadoAte - agora()) / 60_000) : 0,
-    motivo: b.motivo,
+    gastasNaHora: Math.max(0, noBanco.gastas),
+    fichas: b ? Math.floor(b.fichas) : FICHAS_DE_RAJADA,
+    bloqueadoPorMin: Math.max(localMin, bancoMin),
+    motivo: (b?.motivo || noBanco.motivo) ?? "",
   };
 }
 

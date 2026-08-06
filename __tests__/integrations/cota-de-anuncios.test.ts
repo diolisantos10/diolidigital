@@ -18,9 +18,8 @@
 // fica vermelho — que é o ponto.
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { readFileSync } from "node:fs";
-import path from "node:path";
-import { createClient, type Client } from "@libsql/client";
+import { type Client } from "@libsql/client";
+import { subirCotaDeTeste, baixarCotaDeTeste } from "./_cota";
 
 vi.mock("@/lib/integrations/meta/connections", () => ({ loadConnectionToken: vi.fn() }));
 vi.mock("@/lib/integrations/meta/config", () => ({
@@ -37,12 +36,7 @@ import { pesoDaOperacao, ehEscrita, operacaoConhecida, PONTOS_DE_ESCRITA } from 
 import { graphPost, GraphApiError } from "@/lib/integrations/meta/graph";
 import { limparRitmo, configurarRitmo } from "@/lib/integrations/meta/ritmo";
 
-// ─── Um SQLite de verdade, criado pela migration de verdade ─────────────────
-
-const MIGRATION = path.join(
-  process.cwd(), "prisma", "migrations",
-  "20260806120000_cota_por_pontuacao_da_marketing_api", "migration.sql",
-);
+// ─── Um SQLite de verdade, criado pelas migrations de verdade (ver ./_cota) ──
 
 let cliente: Client;
 let relogio = 1_700_000_000_000;
@@ -60,27 +54,20 @@ function bancoDeTeste(c: Client): BancoDaCota {
   };
 }
 
-async function subirBanco(): Promise<Client> {
-  const c = createClient({ url: ":memory:" });
-  const sql = readFileSync(MIGRATION, "utf8")
-    .split("\n").filter((l) => !l.trim().startsWith("--")).join("\n");
-  for (const comando of sql.split(";")) {
-    const limpo = comando.trim();
-    if (limpo) await c.execute(limpo);
-  }
-  return c;
-}
-
+// O banco de teste sobe pelo ajudante compartilhado (`./_cota`), que aplica os
+// arquivos de migration REAIS — o da cota E o do ritmo/cache. São as mesmas
+// tabelas de produção: um CREATE TABLE copiado aqui deixaria de falhar no dia
+// em que o schema mudasse, que é justamente o dia em que precisa falhar.
 beforeEach(async () => {
   relogio = 1_700_000_000_000;
-  cliente = await subirBanco();
+  cliente = await subirCotaDeTeste(() => relogio);
   configurarCota({ agora: () => relogio, banco: bancoDeTeste(cliente) });
   limparRitmo();
   configurarRitmo({ agora: () => relogio, dormir: async (ms) => { relogio += ms; } });
 });
 
 afterEach(() => {
-  configurarCota();
+  baixarCotaDeTeste();
   configurarRitmo();
   limparRitmo();
   vi.restoreAllMocks();

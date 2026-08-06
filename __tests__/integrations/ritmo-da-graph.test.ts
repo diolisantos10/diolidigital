@@ -30,8 +30,8 @@ import { lerDesempenho, limparCacheDeDesempenho } from "@/lib/integrations/meta/
 // A cota por pontuação da Marketing API é FAIL-CLOSED: sem banco, o caminho de
 // anúncios recusa a chamada antes de qualquer coisa. Aqui ela roda num SQLite
 // em memória para o que está sob teste continuar sendo o BALDE.
-import { subirCotaDeTeste } from "./_cota";
-import { configurarCota } from "@/lib/integrations/meta/cota-de-anuncios";
+import { subirCotaDeTeste, baixarCotaDeTeste } from "./_cota";
+import { configurarRitmoNoBanco } from "@/lib/integrations/meta/ritmo-no-banco";
 
 // ─── Relógio de mentira: o teste não pode dormir de verdade ─────────────────
 // `dormir` avança o relógio em vez de esperar. É o que permite provar o
@@ -59,7 +59,7 @@ beforeEach(async () => {
   relogio = 1_700_000_000_000;
   dormidoMs = 0;
   limparRitmo();
-  limparCacheDeDesempenho();
+  await limparCacheDeDesempenho();
   configurarRitmo({
     agora: () => relogio,
     dormir: async (ms) => { dormidoMs += ms; relogio += ms; },
@@ -71,7 +71,7 @@ beforeEach(async () => {
 });
 
 afterEach(() => {
-  configurarCota();
+  baixarCotaDeTeste();
   configurarRitmo();
   limparRitmo();
   vi.unstubAllGlobals();
@@ -105,7 +105,7 @@ describe("a metade que deixa passar — uso humano não pode virar erro", () => 
 describe("a metade que barra — o ritmo de máquina de 03/08 não passa de novo", () => {
   it("estourado o teto da hora, a chamada falha NA HORA (não espera)", async () => {
     for (let i = 0; i < TETO_POR_HORA; i++) await graphGet("me", "tk-teto");
-    expect(retratoDoRitmo(chaveDoToken("tk-teto")).gastasNaHora).toBe(TETO_POR_HORA);
+    expect((await retratoDoRitmo(chaveDoToken("tk-teto"))).gastasNaHora).toBe(TETO_POR_HORA);
 
     const chamadasAntes = fetchFalso.mock.calls.length;
     await expect(graphGet("me", "tk-teto")).rejects.toThrow(/seguramos o ritmo/i);
@@ -124,11 +124,54 @@ describe("a metade que barra — o ritmo de máquina de 03/08 não passa de novo
     expect(g.detail?.message).not.toMatch(/a Meta limitou/i);
   });
 
-  it("passada uma hora, a janela DESLIZANTE libera de novo", async () => {
+  // ─── 06/08/2026: a janela mudou de FORMA ao sair da memória ──────────────
+  // Antes eram marcas de tempo numa lista (janela deslizante exata) — barato em
+  // memória, caro no banco: guardar 200 timestamps por chave e podar a cada
+  // chamada. No volume a janela é a HORA, e a conta soma a hora ATUAL MAIS A
+  // ANTERIOR. É de propósito e é mais conservador: janela fixa pura deixaria
+  // passar 2× o teto na virada (200 às 10h59 e mais 200 às 11h01). Somar as
+  // duas nunca libera mais que o teto em nenhum intervalo de 60 minutos.
+  it("estourado o teto, a hora seguinte AINDA não libera — a virada não é porta", async () => {
     for (let i = 0; i < TETO_POR_HORA; i++) await graphGet("me", "tk-janela");
     await expect(graphGet("me", "tk-janela")).rejects.toThrow();
-    relogio += 3_600_001;
-    await expect(graphGet("me", "tk-janela")).resolves.toBeTruthy();
+    relogio += 3_600_001; // uma hora depois: a janela anterior ainda conta
+    await expect(graphGet("me", "tk-janela")).rejects.toThrow(/seguramos o ritmo/i);
+  });
+
+  it("passadas duas janelas, libera de novo — o teto é freio, não banimento", async () => {
+    for (let i = 0; i < TETO_POR_HORA; i++) await graphGet("me", "tk-janela2");
+    await expect(graphGet("me", "tk-janela2")).rejects.toThrow();
+    relogio += 2 * 3_600_001;
+    await expect(graphGet("me", "tk-janela2")).resolves.toBeTruthy();
+  });
+
+  // FAIL-CLOSED, provado: sem contador, ninguém fala com a Meta.
+  it("contador fora do ar NEGA a chamada — e a rede nem é tocada", async () => {
+    configurarRitmoNoBanco({
+      agora: () => relogio,
+      banco: {
+        executar: async () => { throw new Error("banco fora"); },
+        consultar: async () => { throw new Error("banco fora"); },
+      },
+    });
+    const antes = fetchFalso.mock.calls.length;
+    await expect(graphGet("me", "tk-sem-banco")).rejects.toThrow(/não consegui contabilizar|ritmo/i);
+    expect(fetchFalso.mock.calls.length).toBe(antes);
+  });
+
+  // ─── A prova que dá nome a esta frente: O DEPLOY NÃO DEVOLVE A RAJADA ─────
+  // `limparRitmo()` é o que acontece quando o processo reinicia: os baldes em
+  // memória nascem cheios. Se o teto ainda morasse lá, este teste passaria a
+  // chamada — e um deploy no meio de uma rajada seria a rajada de novo.
+  it("REINICIAR O PROCESSO no meio da rajada não devolve a cota", async () => {
+    for (let i = 0; i < TETO_POR_HORA; i++) await graphGet("me", "tk-deploy");
+    await expect(graphGet("me", "tk-deploy")).rejects.toThrow();
+
+    limparRitmo(); // o deploy
+
+    const antes = fetchFalso.mock.calls.length;
+    await expect(graphGet("me", "tk-deploy")).rejects.toThrow(/seguramos o ritmo/i);
+    expect(fetchFalso.mock.calls.length).toBe(antes);
   });
 
   it("cada token tem o seu balde — um cliente ruidoso não derruba o outro", async () => {
@@ -144,11 +187,11 @@ describe("o caminho de anúncios passa a ser CONTADO", () => {
   it("lerDesempenho gasta ficha do mesmo balde do token", async () => {
     fetchFalso.mockImplementation(sempre({ data: [{ spend: "10", impressions: "100", clicks: "5", reach: "80" }] }));
     const chave = chaveDoToken("token-do-cliente");
-    expect(retratoDoRitmo(chave).gastasNaHora).toBe(0);
+    expect((await retratoDoRitmo(chave)).gastasNaHora).toBe(0);
 
     const r = await lerDesempenho("w1", "c1", "camp_1", { desde: "2026-08-01", ate: "2026-08-02" });
     expect(r.ok).toBe(true);
-    expect(retratoDoRitmo(chave).gastasNaHora).toBe(1);
+    expect((await retratoDoRitmo(chave)).gastasNaHora).toBe(1);
   });
 
   it("criar campanha (POST) também é contado — escrita não escapa do balde", async () => {
@@ -157,7 +200,7 @@ describe("o caminho de anúncios passa a ser CONTADO", () => {
     // não está no catálogo fechado (travas.ts) nem chega na rede.
     await graphPost("act_123/campaigns", "token-de-anuncio", { name: "x", status: "PAUSED" },
       { operacao: "criar_campanha_pausada", conta: "act_123" });
-    expect(retratoDoRitmo(chaveDoToken("token-de-anuncio")).gastasNaHora).toBe(1);
+    expect((await retratoDoRitmo(chaveDoToken("token-de-anuncio"))).gastasNaHora).toBe(1);
   });
 
   it("com o balde estourado, lerDesempenho devolve motivo `ritmo` em português", async () => {
@@ -206,7 +249,7 @@ describe("os cabeçalhos da Meta mandam mais que a nossa conta local", () => {
     await graphGet("me", "tk-freio");
     // Uma chamada só: o nosso teto de 200/h nem foi arranhado. Quem freou foi a
     // Meta, dizendo pelo cabeçalho que a cota já estava em 95%.
-    expect(retratoDoRitmo(chaveDoToken("tk-freio")).bloqueadoPorMin).toBeGreaterThan(0);
+    expect((await retratoDoRitmo(chaveDoToken("tk-freio"))).bloqueadoPorMin).toBeGreaterThan(0);
     await expect(graphGet("me", "tk-freio")).rejects.toThrow(/95%|freado/i);
   });
 
@@ -219,7 +262,7 @@ describe("os cabeçalhos da Meta mandam mais que a nossa conta local", () => {
       },
     }));
     await graphGet("act_1/campaigns", "tk-eta");
-    expect(retratoDoRitmo(chaveDoToken("tk-eta")).bloqueadoPorMin).toBe(19);
+    expect((await retratoDoRitmo(chaveDoToken("tk-eta"))).bloqueadoPorMin).toBe(19);
   });
 
   it("o tier de anúncios observado fica registrado (development_access = cota mínima)", async () => {
@@ -261,7 +304,7 @@ describe("erro de limite: a regra da Meta é PARAR, não insistir", () => {
       { status: 400 },
     ));
     await expect(graphGet("me", "tk-4")).rejects.toThrow();
-    expect(retratoDoRitmo(chaveDoToken("tk-4")).bloqueadoPorMin).toBeGreaterThan(0);
+    expect((await retratoDoRitmo(chaveDoToken("tk-4"))).bloqueadoPorMin).toBeGreaterThan(0);
   });
 
   it("erro 4xx que NÃO é de limite não freia — não é para punir a conta por um campo errado", async () => {
@@ -270,7 +313,7 @@ describe("erro de limite: a regra da Meta é PARAR, não insistir", () => {
       { status: 400 },
     ));
     await expect(graphGet("me", "tk-100")).rejects.toThrow(/campo inválido/);
-    expect(retratoDoRitmo(chaveDoToken("tk-100")).bloqueadoPorMin).toBe(0);
+    expect((await retratoDoRitmo(chaveDoToken("tk-100"))).bloqueadoPorMin).toBe(0);
     await expect(graphGet("me", "tk-100")).rejects.toThrow(/campo inválido/);
     expect(fetchFalso.mock.calls.length).toBe(2);
   });
@@ -282,7 +325,7 @@ describe("erro de limite: a regra da Meta é PARAR, não insistir", () => {
     await expect(graphGet("me", "tk-5xx")).resolves.toBeTruthy();
     expect(fetchFalso).toHaveBeenCalledTimes(2);
     // Duas idas à rede, duas fichas gastas: retentativa também é chamada.
-    expect(retratoDoRitmo(chaveDoToken("tk-5xx")).gastasNaHora).toBe(2);
+    expect((await retratoDoRitmo(chaveDoToken("tk-5xx"))).gastasNaHora).toBe(2);
   });
 });
 

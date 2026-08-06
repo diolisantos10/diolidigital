@@ -31,6 +31,8 @@
 
 import { graphGet, GraphApiError } from "./graph";
 import { TIPO_DE_RITMO_DA_CASA } from "./ritmo";
+import { reservarNaJanelaDoBanco } from "./ritmo-no-banco";
+import { lerDoCacheNoBanco, guardarNoCacheNoBanco, limparCacheNoBanco } from "./cache-no-banco";
 import {
   conexaoDoCliente, loadConnectionToken, marcarConexaoExpirada,
   type ConexaoResolvida,
@@ -49,29 +51,36 @@ export interface ErroDeLeitura {
 export type ResultadoDeLeitura<T> = ({ ok: true } & T) | ErroDeLeitura;
 
 // ─── Cache honesto ──────────────────────────────────────────────────────────
-// Em memória, por (conexão, janela/página), TTL curto. Não é "dado histórico
-// guardado" — é só para o dashboard aberto três vezes seguidas não virar três
-// rajadas de GET. O limite BUC do Instagram escala com as impressões da conta
-// (contas pequenas = cota pequena); ver fontes/graph-api-limites-de-taxa.md.
+// Por (conexão, janela/página), TTL curto. Não é "dado histórico guardado" — é
+// só para o dashboard aberto três vezes seguidas não virar três rajadas de GET.
+// O limite BUC do Instagram escala com as impressões da conta (contas pequenas =
+// cota pequena); ver fontes/graph-api-limites-de-taxa.md.
+//
+// ⚠️ 06/08/2026: SAIU DA MEMÓRIA. Era um `Map` de processo, e todo deploy o
+// esvaziava — nesta casa, que publica várias vezes por dia, isso devolvia a
+// primeira rajada de graça exatamente no minuto em que alguém abre a tela para
+// conferir o deploy. Agora mora no volume (`./cache-no-banco.ts`), atravessa
+// deploy e réplica, e é FAIL-OPEN: cache fora do ar é miss, e quem trava o
+// ritmo é o contador, não ele.
 
 export const TTL_DO_CACHE_MS = 10 * 60_000;
-const cache = new Map<string, { validoAte: number; valor: unknown }>();
 
-function doCache<T>(chave: string): T | null {
-  const hit = cache.get(chave);
-  if (!hit) return null;
-  if (Date.now() > hit.validoAte) { cache.delete(chave); return null; }
-  return hit.valor as T;
+/** Prefixo de todas as chaves desta camada — é o que permite limpar só a
+ *  leitura sem varrer o cache dos anúncios. */
+const PREFIXO = "leitura:";
+
+function doCache<T>(chave: string): Promise<T | null> {
+  return lerDoCacheNoBanco<T>(PREFIXO + chave);
 }
-function guardarNoCache(chave: string, valor: unknown): void {
+function guardarNoCache(chave: string, valor: unknown): Promise<void> {
   // Só sucesso entra no cache: guardar um erro por 10 min esconderia a
   // reconexão que o usuário acabou de fazer.
-  cache.set(chave, { validoAte: Date.now() + TTL_DO_CACHE_MS, valor });
+  return guardarNoCacheNoBanco(PREFIXO + chave, valor, TTL_DO_CACHE_MS);
 }
-/** Para testes e para depois de reconectar uma conta. */
-export function limparCacheDeLeitura(): void {
-  cache.clear();
-  ritmoPorConexao.clear();
+/** Para testes e para depois de reconectar uma conta. NÃO apaga o contador da
+ *  hora: reconectar não é motivo para devolver a cota já gasta com a Meta. */
+export async function limparCacheDeLeitura(): Promise<void> {
+  await limparCacheNoBanco(PREFIXO);
 }
 
 // ─── Teto de ritmo por conexão ──────────────────────────────────────────────
@@ -82,28 +91,19 @@ export function limparCacheDeLeitura(): void {
 // Por isso existe um teto de chamadas à Graph por conexão por hora, que não
 // depende do cache ter acertado.
 //
-// ⚠️ ATUALIZAÇÃO 06/08/2026: o caminho de ANÚNCIOS deixou de ter este defeito —
-// a cota por pontuação da Marketing API é contada no banco, por conta de
-// anúncios (`./cota-de-anuncios.ts`). Esta camada de LEITURA de Instagram
-// continua com o teto em memória descrito abaixo, e a dívida segue registrada
-// na cartilha (lacuna 8).
+// ✅ ATUALIZAÇÃO 06/08/2026: A LIMITAÇÃO QUE ESTAVA DECLARADA AQUI FOI FECHADA.
+// O texto anterior dizia, com todas as letras, que este teto era POR PROCESSO —
+// um `Map` em memória (`ritmoPorConexao`), que não somava entre réplicas e que
+// todo redeploy zerava. Era o mesmo eixo do incidente de 03/08/2026: a Meta
+// restringiu uma CONTA, e memória de processo não conta por conta.
 //
-// ⚠️ LIMITAÇÃO CONHECIDA, COM TODAS AS LETRAS: este teto é POR PROCESSO, não
-// por conexão. O contador é um Map em MEMÓRIA (`ritmoPorConexao`), e memória
-// não é compartilhada entre instâncias nem sobrevive a um deploy. Consequências
-// que precisam estar ditas aqui, e não descobertas num e-mail de restrição:
-//   • com N instâncias no ar, o teto efetivo na MESMA conta da Meta é N × 200
-//     por hora — e o incidente de 03/08/2026 foi restrição de CONTA, que é
-//     exatamente o eixo em que este teto NÃO soma;
-//   • cada redeploy/reinício zera o contador de todo mundo;
-//   • em serverless (uma instância por requisição, no limite) o teto pode
-//     virar decoração.
-// O certo é contador compartilhado (linha por conexão+hora no banco, com
-// incremento atômico). NÃO foi feito nesta rodada, de propósito: exige modelo
-// e migração novos e põe UMA ESCRITA no banco em todo GET do caminho de
-// leitura — mudança de raio maior que o desta frente. Enquanto não existir,
-// o que segura o ritmo de verdade é a instância única do deploy atual mais o
-// cache; tratar este teto como garantia de conta é otimismo, não engenharia.
+// Agora o contador é uma linha por (conexão, hora) no VOLUME, com incremento
+// atômico dentro do WHERE do UPDATE (`./ritmo-no-banco.ts`) — a mesma forma da
+// cota de anúncios e do teto das rotas públicas. Atravessa deploy e réplica.
+//
+// FAIL-CLOSED: banco fora do ar recusa a leitura em vez de deixar passar sem
+// contar. Não custa disponibilidade real — a conexão e o token desta leitura já
+// vêm do mesmo banco.
 
 /** Chamadas à Graph que uma conexão pode gastar por hora. Um dashboard inteiro
  *  com métricas por post custa ~28; o teto deixa passar o uso humano e barra a
@@ -113,24 +113,27 @@ export const TETO_DE_CHAMADAS_POR_HORA = 200;
 /** A frase que a UI mostra quando o teto estoura. */
 export const FRASE_DO_TETO = "a Meta limitou nosso ritmo — tente daqui a pouco";
 
-const ritmoPorConexao = new Map<string, { hora: number; gastas: number }>();
-
-/** Reserva `custo` chamadas para a conexão nesta hora. `false` = estourou.
- *  Reserva ANTES de chamar: contar depois deixaria a rajada acontecer.
- *  ATENÇÃO: contador em memória — vale por PROCESSO. Ver a limitação declarada
- *  no cabeçalho desta seção antes de confiar nele como proteção de conta. */
-function reservarChamadas(connectionId: string, custo: number): boolean {
-  const hora = Math.floor(Date.now() / 3_600_000);
-  const atual = ritmoPorConexao.get(connectionId);
-  const contador = atual && atual.hora === hora ? atual : { hora, gastas: 0 };
-  ritmoPorConexao.set(connectionId, contador);
-  if (contador.gastas + custo > TETO_DE_CHAMADAS_POR_HORA) return false;
-  contador.gastas += custo;
-  return true;
-}
-
-function erroDeTeto(): ErroDeLeitura {
-  return { ok: false, error: FRASE_DO_TETO };
+/**
+ * Reserva `custo` chamadas para a conexão nesta hora. `null` = pode seguir;
+ * um `ErroDeLeitura` = PARE, com a frase já pronta para a tela.
+ *
+ * Reserva ANTES de chamar: contar depois deixaria a rajada acontecer e só então
+ * ser descoberta. O contador é o do banco — vale para todas as réplicas e
+ * sobrevive ao deploy.
+ */
+async function reservarChamadas(
+  connectionId: string,
+  custo: number,
+): Promise<ErroDeLeitura | null> {
+  const r = await reservarNaJanelaDoBanco(
+    `conexao:${connectionId}`,
+    custo,
+    TETO_DE_CHAMADAS_POR_HORA,
+  );
+  if (r.ok) return null;
+  // A frase do banco já explica em português (teto, freio ou contador fora do
+  // ar). `FRASE_DO_TETO` fica como piso: nenhum caminho devolve string vazia.
+  return { ok: false, error: r.frase || FRASE_DO_TETO };
 }
 
 // ─── Erro da Graph em frase de gente (regra da casa nº 2) ───────────────────
@@ -275,11 +278,12 @@ async function lerFeedPorConta(
 ): Promise<ResultadoDeLeitura<{ posts: PostDoFeed[] }>> {
   const limite = Math.min(LIMITE_MAXIMO_DO_FEED, Math.max(1, opts.limite ?? LIMITE_PADRAO_DO_FEED));
   const chave = `feed:${conta.conexao.id}:${limite}`;
-  const emCache = doCache<{ posts: PostDoFeed[] }>(chave);
+  const emCache = await doCache<{ posts: PostDoFeed[] }>(chave);
   if (emCache) return { ok: true, ...emCache };
 
   // Custo: uma chamada por página de 25.
-  if (!reservarChamadas(conta.conexao.id, Math.ceil(limite / TAMANHO_DA_PAGINA))) return erroDeTeto();
+  const teto = await reservarChamadas(conta.conexao.id, Math.ceil(limite / TAMANHO_DA_PAGINA));
+  if (teto) return teto;
 
   const posts: PostDoFeed[] = [];
   try {
@@ -307,7 +311,7 @@ async function lerFeedPorConta(
     return comoErro(e, conta.conexao.id);
   }
 
-  guardarNoCache(chave, { posts });
+  await guardarNoCache(chave, { posts });
   return { ok: true, posts };
 }
 
@@ -480,11 +484,12 @@ export async function lerMetricasDaConta(
   const { desde, ate, avisos: avisosDeJanela } = normalizarJanela(janela);
 
   const chave = `conta:${conta.conexao.id}:${desde}:${ate}`;
-  const emCache = doCache<MetricasDaConta>(chave);
+  const emCache = await doCache<MetricasDaConta>(chave);
   if (emCache) return { ok: true, ...emCache };
 
   // Custo: perfil + série + totais = 3 chamadas.
-  if (!reservarChamadas(conta.conexao.id, 3)) return erroDeTeto();
+  const teto = await reservarChamadas(conta.conexao.id, 3);
+  if (teto) return teto;
 
   const resultado: MetricasDaConta = {
     perfil: { seguidores: null, totalDePosts: null },
@@ -579,7 +584,7 @@ export async function lerMetricasDaConta(
   }
 
   if (avisos.length > 0) resultado.aviso = avisos.join("; ");
-  guardarNoCache(chave, resultado);
+  await guardarNoCache(chave, resultado);
   return { ok: true, ...resultado };
 }
 
@@ -627,11 +632,12 @@ export async function lerMetricasDosPosts(
 
   const ids = [...new Set(mediaIds.filter(Boolean))].slice(0, LIMITE_DE_POSTS_COM_METRICAS);
   const chave = `posts:${conta.conexao.id}:${[...ids].sort().join(",")}`;
-  const emCache = doCache<{ posts: MetricasDoPost[] }>(chave);
+  const emCache = await doCache<{ posts: MetricasDoPost[] }>(chave);
   if (emCache) return { ok: true, ...emCache };
 
   // Custo: 2 chamadas por post (tipo da mídia + insights).
-  if (!reservarChamadas(conta.conexao.id, ids.length * 2)) return erroDeTeto();
+  const teto = await reservarChamadas(conta.conexao.id, ids.length * 2);
+  if (teto) return teto;
 
   const posts: MetricasDoPost[] = [];
   for (const mediaId of ids) {
@@ -658,6 +664,6 @@ export async function lerMetricasDosPosts(
     posts.push(item);
   }
 
-  guardarNoCache(chave, { posts });
+  await guardarNoCache(chave, { posts });
   return { ok: true, posts };
 }

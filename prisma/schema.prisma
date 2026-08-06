@@ -1176,6 +1176,64 @@ model MetaAdFreio {
   criadoEm DateTime @default(now())
 }
 
+/// O TETO POR HORA DE **TODA** A GRAPH — Instagram, Páginas, WhatsApp inclusive.
+///
+/// Irmão do `MetaAdCota` (que é só da Marketing API, e conta por pontuação). Até
+/// 06/08/2026 este era o último contador de ritmo em MEMÓRIA de processo, em
+/// dois lugares: `lib/integrations/meta/ritmo.ts` (marcas de tempo por chave) e
+/// `lib/integrations/meta/leitura.ts` (mapa por conexão). Os dois defeitos são o
+/// mesmo: todo deploy zerava — nesta casa, várias vezes por dia — e com N
+/// réplicas o teto efetivo na MESMA conta da Meta virava N × teto.
+///
+/// `chave` é o ator, nunca o token: impressão digital FNV-1a (`tk:xxxxxxxx`),
+/// `conexao:<id>` ou `escopo:<nome>`. Credencial não entra em tabela nem em log.
+model MetaRitmoJanela {
+  /// "<chave>:<janela>" — determinístico: duas réplicas colidem na chave
+  /// primária em vez de criar duas linhas para a mesma hora.
+  id           String   @id
+  chave        String
+  /// floor(epoch_segundos / 3600).
+  janela       Int
+  gastas       Int      @default(0)
+  atualizadoEm DateTime @default(now())
+
+  @@unique([chave, janela])
+  @@index([janela])
+}
+
+/// O CASTIGO DA CHAVE depois de um erro de limite (ou de um cabeçalho de uso no
+/// vermelho). Enquanto durar, a casa não chama a Meta com aquela chave.
+///
+/// Em memória, um redeploy no meio do castigo devolvia a rajada — e a Meta não
+/// esquece a rajada. Só ESTENDE: um freio menor nunca encurta um maior.
+model MetaRitmoFreio {
+  chave    String   @id
+  ate      DateTime
+  motivo   String   @default("")
+  criadoEm DateTime @default(now())
+
+  @@index([ate])
+}
+
+/// O CACHE DE LEITURA DA META, no volume.
+///
+/// Não é histórico: é o que impede o dashboard aberto três vezes (ou a varredura
+/// da esteira a cada 5 min) de virar três rajadas de GET na mesma conta. Em
+/// memória, todo deploy o esvaziava e devolvia a primeira rajada de graça.
+///
+/// FAIL-OPEN por desenho: linha ausente ou ilegível é MISS, e a chamada segue
+/// pelo contador (`MetaRitmoJanela`), que é a trava de verdade.
+model MetaLeituraCache {
+  /// "leitura:..." ou "desempenho:..." — o prefixo é o que permite limpar uma
+  /// camada sem varrer a outra.
+  chave     String   @id
+  valorJson String
+  validoAte DateTime
+  criadoEm  DateTime @default(now())
+
+  @@index([validoAte])
+}
+
 /// A LISTA EXPLÍCITA DO QUE A AGÊNCIA PODE LER/USAR NA META, POR CLIENTE.
 ///
 /// Incidente de 06/08/2026: o CEO clicou "Conectar Facebook/Instagram" no
@@ -1467,4 +1525,68 @@ model RateLimitBucket {
 
   /// A faxina das janelas vencidas varre por `resetAt`.
   @@index([resetAt])
+}
+
+// ─── A ESCADA DE EXPOSIÇÃO — sombra → allowlist → wide ───────────────────────
+//
+// Por que no BANCO e não numa constante: a escada é o que decide se a saída de
+// um departamento CHEGA ao cliente. Constante de código é editada por quem tem
+// pressa e conferida por ninguém; e, pior, um `Record<string, Degrau>` no
+// arquivo não tem como registrar QUEM subiu, QUANDO e COM QUAL NÚMERO. Sem essa
+// prova, "subir de degrau" vira opinião com cara de configuração.
+//
+// Fail-closed: departamento SEM linha aqui é SOMBRA. A ausência da linha nunca
+// pode significar "pode ir ao cliente" — é exatamente o defeito que as 31
+// checagens tinham (silêncio = aprovado).
+model DepartmentLadder {
+  id           String @id @default(cuid())
+  workspaceId  String
+  /// O id do departamento (`lib/dioli-brain/departments.ts` + os que produzem
+  /// em `lib/agency/execution/especialistas.ts`).
+  departmentId String
+  /// "sombra" | "allowlist" | "wide". Default fail-closed no próprio banco.
+  degrau       String @default("sombra")
+  /// JSON com os clientIds explicitamente liberados. SÓ tem efeito em
+  /// "allowlist" — em "sombra" ninguém recebe, em "wide" todos recebem.
+  clientesLiberados String @default("[]")
+  /// Por que este departamento está neste degrau. Obrigatório na prática: um
+  /// degrau sem motivo é um degrau que ninguém consegue auditar depois.
+  motivo       String?
+  /// Quem carimbou ("escada:semeadura", "escada:evidencia", "diretor", ...).
+  decididoPor  String?
+  /// O número que sustentou a ÚLTIMA subida — a prova congelada no instante em
+  /// que ela valeu. Sem isto, "subiu com evidência" não é verificável a
+  /// posteriori: a janela move e a evidência de ontem some.
+  provaJson    String @default("{}")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([workspaceId, departmentId])
+}
+
+/// Um registro por PEÇA que o departamento produziu — inclusive as barradas.
+///
+/// É o denominador da evidência. Contar só `Deliverable` mentiria a favor do
+/// departamento: peça barrada no piso de verdade ou no contrato de saída NUNCA
+/// vira `Deliverable`, então um departamento que inventa dado o tempo todo
+/// apareceria com histórico limpo.
+model DepartmentLadderRecord {
+  id            String   @id @default(cuid())
+  workspaceId   String
+  departmentId  String
+  projectId     String?
+  clientId      String?
+  deliverableId String?
+  /// Em que degrau o departamento estava quando produziu. Guardado porque a
+  /// evidência de SOMBRA é o que autoriza a subida — e ela precisa continuar
+  /// legível depois que o degrau mudar.
+  degrauNaEpoca String
+  /// "aprovada" | "reprovada_qualidade" | "barrada_piso" | "barrada_contrato"
+  /// | "sem_arbitro". `sem_arbitro` NÃO conta como aprovada: verde não é prova,
+  /// e ausência de árbitro é ausência de informação.
+  resultado     String
+  detalhe       String?
+  criadoEm      DateTime @default(now())
+
+  @@index([workspaceId, departmentId, criadoEm])
 }
