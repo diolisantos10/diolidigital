@@ -5,6 +5,124 @@
 
 ---
 
+## 2026-08-06 · tarde — Três frentes: o microfone, os contadores e a grafia dupla
+
+Território: `lib/ai/transcricao.ts`, `app/api/{portal/transcricao,sdr/transcribe,meta/ativos}`,
+`lib/integrations/meta/{ritmo,leitura,ads,graph}.ts` + dois módulos novos,
+`prisma/migrations/`. Outro agente trabalhava na mesma árvore (escada de
+exposição, recompra) — commits sempre com pathspec explícito.
+
+### 1. O microfone do portal: a causa era saldo, não código
+
+Reproduzido em produção contra o deploy ativo (`c98d8f88`), com áudio Opus real
+de 3s no campo `file`. A resposta veio `HTTP 200` + `motivo: "ritmo"`, o que já
+provava que **não** era o teto local (esse devolveria 429). O log do Railway
+fechou:
+
+    [transcricao] provedor respondeu 429 · code=credit_balance_exhausted
+                                           type=insufficient_quota
+
+**A chave é válida. A conta da OpenAI está sem crédito.** É decisão do CEO, não
+conserto de código.
+
+O que ERA conserto de código: a OpenAI devolve falta de saldo em **429**, o
+mesmo status do teto por minuto. `classificarFalhaDoProvedor` julgava só pelo
+status e mandava o cliente "aguardar alguns segundos" para um problema que
+nenhuma espera resolve — a mesma família de defeito do `provedor_indisponivel`
+que cobria quatro casos, só que pior: manda esperar para sempre.
+
+- Motivo novo `sem_saldo`; a classificação passou a ler `code`/`type`, que são
+  enum fechado do provedor (a regra de PII fica inteira — `message` continua
+  fora do log). Sem corpo legível, 429 volta a ser `ritmo`: ausência de
+  informação não vira informação. (`lib/ai/transcricao.ts:168-220`)
+- `/api/sdr/transcribe` **parou de logar `res.text()`** do erro do provedor. O
+  corpo pode ecoar o que foi enviado, e o que foi enviado é a fala de quem
+  preencheu o briefing. (`app/api/sdr/transcribe/route.ts:79-99`)
+
+### 2. Os contadores saíram da memória
+
+Foram para o volume, com a forma já provada em `MetaAdCota` e `RateLimitBucket`
+(incremento atômico com o teste dentro do `WHERE` do `UPDATE`):
+
+- teto por hora de **toda** a Graph (era lista de marcas em `ritmo.ts`);
+- o segundo contador, por conexão, de `leitura.ts`;
+- o freio depois de erro de limite;
+- os caches de `leitura.ts` e `ads.ts`.
+
+Módulos novos: `lib/integrations/meta/ritmo-no-banco.ts` e
+`cache-no-banco.ts`. Migration `20260806170000_ritmo_e_cache_da_meta_no_banco`
+(aditiva: três tabelas, nada movido).
+
+### As decisões que valem registro
+
+- **O espaçamento FICOU em memória, de propósito.** Ele dá forma à curva de um
+  processo, e processo recém-subido não tem rajada em curso para espalhar. No
+  banco custaria uma escrita por ficha, com sono dentro do caminho quente de
+  todo GET. O que foi para o volume é o que a Meta cobra: volume por hora e
+  castigo.
+- **Janela = hora, somando a anterior.** Janela fixa pura deixaria passar 2× o
+  teto na virada (200 às 10h59 + 200 às 11h01). Custo: recuperação gradual —
+  quem estourou espera até duas janelas. Erra para o lado de esperar.
+- **Contador FAIL-CLOSED, cache FAIL-OPEN.** Não é inconsistência: a trava é o
+  contador; o cache é atalho. Cache fora do ar vira miss e a chamada ainda passa
+  pelo teto. Se o cache fosse fail-closed, um SELECT ruim derrubaria o dashboard
+  sem nenhum ganho.
+- **`limparRitmo()` não apaga o contador do banco.** Apagar seria devolver a
+  rajada a quem só reiniciou o processo — o defeito que tirou o contador da
+  memória.
+- **`retratoDoRitmo` virou assíncrono.** É o ponto: o número que interessa é o
+  de todas as réplicas.
+
+### 3. A grafia dupla de "sem cliente"
+
+Migration `20260806180000_uma_grafia_so_para_sem_cliente`, com **ensaio antes**
+(replica do histórico real + 24 linhas `""` plantadas + 1 `null` + 1 cliente de
+verdade). Duas metades: reparo (`''` → `NULL` em 16 tabelas) e **trava**
+(gatilhos que ABORTAM a escrita de `''` em `MetaConnection` e
+`MetaAtivoAutorizado`).
+
+- **Gatilho, não CHECK.** CHECK em SQLite exige reconstruir a tabela — copiar,
+  dropar, renomear — no volume que guarda as conexões do cliente. Gatilho é
+  aditivo e reversível com um `DROP`.
+- **`''` nunca foi id válido** (id é cuid), então a normalização só junta duas
+  grafias do mesmo significado, nunca dois donos. E no SQLite NULLs são
+  distintos entre si: nenhum índice único colide ao juntar linhas em NULL.
+- **O `OR [null, ""]` de `/api/meta/ativos` saiu.** Ele consertava aquela
+  consulta e deixava a doença: a próxima consulta que esquecesse o OR não
+  falharia — responderia errado, em silêncio, sobre de quem é o dado.
+
+### Verificação
+
+- `npx tsc --noEmit` limpo (as duas queixas restantes são de arquivos não
+  commitados do outro agente).
+- `npx vitest run`: **133 arquivos, 2119 testes, todos passando** (27 novos).
+- `npm run build` de produção completo, local.
+- Ensaio da migration rodado contra réplica do histórico: 24 → NULL, cliente
+  intacto, `''` recusado no INSERT e no UPDATE, caso limpo passando.
+
+### 🔴 O que ficou aberto
+
+1. **A conta da OpenAI está sem crédito — decisão do CEO.** Enquanto não houver
+   saldo, o ditado por voz não funciona em lugar nenhum (portal e briefing). O
+   código agora diz `sem_saldo` em vez de mandar esperar, mas dizer melhor não
+   transcreve.
+2. **Não consegui contar as linhas `''` em PRODUÇÃO antes do deploy.** O banco é
+   SQLite num volume — não há acesso remoto. O número conhecido é o da perícia
+   (24 conexões de nível agência de 03/08). `scripts/grafia-do-sem-cliente.mts`
+   conta com um `DATABASE_URL` na mão; a conferência prática é a tela de ativos
+   voltar a achar a conexão da agência com `clientId: null` puro.
+3. **O gatilho não está no `schema.prisma`** (Prisma não modela gatilho). Um
+   `prisma migrate dev` futuro pode reclamar de drift. Não quebra produção
+   (`migrate deploy` só aplica arquivos), mas quem for gerar migration nova
+   precisa saber.
+4. **Duas escritas por chamada à Graph.** O contador da hora e o freio somam um
+   SELECT + INSERT OR IGNORE + UPDATE por chamada, no mesmo volume que já tem um
+   lock só de escrita. Está no mesmo patamar da cota de anúncios, que já roda
+   assim desde hoje de manhã — mas é o eixo a olhar se aparecer "database is
+   locked" de novo.
+
+---
+
 ## 2026-08-05 · madrugada — Trilha A do raio-x de plataforma, 17 itens
 
 Território: `lib/auth/`, `lib/security/`, `lib/db/`, `prisma/`, `scripts/`,
