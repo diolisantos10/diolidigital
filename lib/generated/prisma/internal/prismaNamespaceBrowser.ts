@@ -70,7 +70,7 @@ export const ModelName = {
   BrandUpdate: 'BrandUpdate',
   BrainUpdate: 'BrainUpdate',
   DbIntegrationConfig: 'DbIntegrationConfig',
-  DbAgentProviderConfig: 'DbAgentProviderConfig',
+  ClientAiProvider: 'ClientAiProvider',
   Task: 'Task',
   TimelineEvent: 'TimelineEvent',
   ActivityEvent: 'ActivityEvent',
@@ -484,15 +484,20 @@ export const DbIntegrationConfigScalarFieldEnum = {
 export type DbIntegrationConfigScalarFieldEnum = (typeof DbIntegrationConfigScalarFieldEnum)[keyof typeof DbIntegrationConfigScalarFieldEnum]
 
 
-export const DbAgentProviderConfigScalarFieldEnum = {
+export const ClientAiProviderScalarFieldEnum = {
   id: 'id',
   workspaceId: 'workspaceId',
-  agentId: 'agentId',
-  selectedProvider: 'selectedProvider',
-  selectedModel: 'selectedModel'
+  clientId: 'clientId',
+  provider: 'provider',
+  model: 'model',
+  estrito: 'estrito',
+  motivo: 'motivo',
+  decididoPor: 'decididoPor',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 } as const
 
-export type DbAgentProviderConfigScalarFieldEnum = (typeof DbAgentProviderConfigScalarFieldEnum)[keyof typeof DbAgentProviderConfigScalarFieldEnum]
+export type ClientAiProviderScalarFieldEnum = (typeof ClientAiProviderScalarFieldEnum)[keyof typeof ClientAiProviderScalarFieldEnum]
 
 
 export const TaskScalarFieldEnum = {
@@ -550,7 +555,15 @@ export const AIRunLogScalarFieldEnum = {
   promptSummary: 'promptSummary',
   outputSummary: 'outputSummary',
   warnings: 'warnings',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  clientId: 'clientId',
+  agentId: 'agentId',
+  tokensEntrada: 'tokensEntrada',
+  tokensSaida: 'tokensSaida',
+  custoEstimadoUsd: 'custoEstimadoUsd',
+  custoTabela: 'custoTabela',
+  duracaoMs: 'duracaoMs',
+  erro: 'erro'
 } as const
 
 export type AIRunLogScalarFieldEnum = (typeof AIRunLogScalarFieldEnum)[keyof typeof AIRunLogScalarFieldEnum]
@@ -1043,6 +1056,7 @@ export const DepartmentLadderRecordScalarFieldEnum = {
   degrauNaEpoca: 'degrauNaEpoca',
   resultado: 'resultado',
   detalhe: 'detalhe',
+  provedor: 'provedor',
   criadoEm: 'criadoEm'
 } as const
 

@@ -403,7 +403,7 @@ export const ModelName = {
   BrandUpdate: 'BrandUpdate',
   BrainUpdate: 'BrainUpdate',
   DbIntegrationConfig: 'DbIntegrationConfig',
-  DbAgentProviderConfig: 'DbAgentProviderConfig',
+  ClientAiProvider: 'ClientAiProvider',
   Task: 'Task',
   TimelineEvent: 'TimelineEvent',
   ActivityEvent: 'ActivityEvent',
@@ -452,7 +452,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1862,77 +1862,77 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
-    DbAgentProviderConfig: {
-      payload: Prisma.$DbAgentProviderConfigPayload<ExtArgs>
-      fields: Prisma.DbAgentProviderConfigFieldRefs
+    ClientAiProvider: {
+      payload: Prisma.$ClientAiProviderPayload<ExtArgs>
+      fields: Prisma.ClientAiProviderFieldRefs
       operations: {
         findUnique: {
-          args: Prisma.DbAgentProviderConfigFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DbAgentProviderConfigPayload> | null
+          args: Prisma.ClientAiProviderFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientAiProviderPayload> | null
         }
         findUniqueOrThrow: {
-          args: Prisma.DbAgentProviderConfigFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DbAgentProviderConfigPayload>
+          args: Prisma.ClientAiProviderFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientAiProviderPayload>
         }
         findFirst: {
-          args: Prisma.DbAgentProviderConfigFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DbAgentProviderConfigPayload> | null
+          args: Prisma.ClientAiProviderFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientAiProviderPayload> | null
         }
         findFirstOrThrow: {
-          args: Prisma.DbAgentProviderConfigFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DbAgentProviderConfigPayload>
+          args: Prisma.ClientAiProviderFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientAiProviderPayload>
         }
         findMany: {
-          args: Prisma.DbAgentProviderConfigFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DbAgentProviderConfigPayload>[]
+          args: Prisma.ClientAiProviderFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientAiProviderPayload>[]
         }
         create: {
-          args: Prisma.DbAgentProviderConfigCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DbAgentProviderConfigPayload>
+          args: Prisma.ClientAiProviderCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientAiProviderPayload>
         }
         createMany: {
-          args: Prisma.DbAgentProviderConfigCreateManyArgs<ExtArgs>
+          args: Prisma.ClientAiProviderCreateManyArgs<ExtArgs>
           result: BatchPayload
         }
         createManyAndReturn: {
-          args: Prisma.DbAgentProviderConfigCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DbAgentProviderConfigPayload>[]
+          args: Prisma.ClientAiProviderCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientAiProviderPayload>[]
         }
         delete: {
-          args: Prisma.DbAgentProviderConfigDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DbAgentProviderConfigPayload>
+          args: Prisma.ClientAiProviderDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientAiProviderPayload>
         }
         update: {
-          args: Prisma.DbAgentProviderConfigUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DbAgentProviderConfigPayload>
+          args: Prisma.ClientAiProviderUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientAiProviderPayload>
         }
         deleteMany: {
-          args: Prisma.DbAgentProviderConfigDeleteManyArgs<ExtArgs>
+          args: Prisma.ClientAiProviderDeleteManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateMany: {
-          args: Prisma.DbAgentProviderConfigUpdateManyArgs<ExtArgs>
+          args: Prisma.ClientAiProviderUpdateManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateManyAndReturn: {
-          args: Prisma.DbAgentProviderConfigUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DbAgentProviderConfigPayload>[]
+          args: Prisma.ClientAiProviderUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientAiProviderPayload>[]
         }
         upsert: {
-          args: Prisma.DbAgentProviderConfigUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$DbAgentProviderConfigPayload>
+          args: Prisma.ClientAiProviderUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ClientAiProviderPayload>
         }
         aggregate: {
-          args: Prisma.DbAgentProviderConfigAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateDbAgentProviderConfig>
+          args: Prisma.ClientAiProviderAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateClientAiProvider>
         }
         groupBy: {
-          args: Prisma.DbAgentProviderConfigGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.DbAgentProviderConfigGroupByOutputType>[]
+          args: Prisma.ClientAiProviderGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ClientAiProviderGroupByOutputType>[]
         }
         count: {
-          args: Prisma.DbAgentProviderConfigCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.DbAgentProviderConfigCountAggregateOutputType> | number
+          args: Prisma.ClientAiProviderCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ClientAiProviderCountAggregateOutputType> | number
         }
       }
     }
@@ -4779,15 +4779,20 @@ export const DbIntegrationConfigScalarFieldEnum = {
 export type DbIntegrationConfigScalarFieldEnum = (typeof DbIntegrationConfigScalarFieldEnum)[keyof typeof DbIntegrationConfigScalarFieldEnum]
 
 
-export const DbAgentProviderConfigScalarFieldEnum = {
+export const ClientAiProviderScalarFieldEnum = {
   id: 'id',
   workspaceId: 'workspaceId',
-  agentId: 'agentId',
-  selectedProvider: 'selectedProvider',
-  selectedModel: 'selectedModel'
+  clientId: 'clientId',
+  provider: 'provider',
+  model: 'model',
+  estrito: 'estrito',
+  motivo: 'motivo',
+  decididoPor: 'decididoPor',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 } as const
 
-export type DbAgentProviderConfigScalarFieldEnum = (typeof DbAgentProviderConfigScalarFieldEnum)[keyof typeof DbAgentProviderConfigScalarFieldEnum]
+export type ClientAiProviderScalarFieldEnum = (typeof ClientAiProviderScalarFieldEnum)[keyof typeof ClientAiProviderScalarFieldEnum]
 
 
 export const TaskScalarFieldEnum = {
@@ -4845,7 +4850,15 @@ export const AIRunLogScalarFieldEnum = {
   promptSummary: 'promptSummary',
   outputSummary: 'outputSummary',
   warnings: 'warnings',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  clientId: 'clientId',
+  agentId: 'agentId',
+  tokensEntrada: 'tokensEntrada',
+  tokensSaida: 'tokensSaida',
+  custoEstimadoUsd: 'custoEstimadoUsd',
+  custoTabela: 'custoTabela',
+  duracaoMs: 'duracaoMs',
+  erro: 'erro'
 } as const
 
 export type AIRunLogScalarFieldEnum = (typeof AIRunLogScalarFieldEnum)[keyof typeof AIRunLogScalarFieldEnum]
@@ -5338,6 +5351,7 @@ export const DepartmentLadderRecordScalarFieldEnum = {
   degrauNaEpoca: 'degrauNaEpoca',
   resultado: 'resultado',
   detalhe: 'detalhe',
+  provedor: 'provedor',
   criadoEm: 'criadoEm'
 } as const
 
@@ -5529,7 +5543,7 @@ export type GlobalOmitConfig = {
   brandUpdate?: Prisma.BrandUpdateOmit
   brainUpdate?: Prisma.BrainUpdateOmit
   dbIntegrationConfig?: Prisma.DbIntegrationConfigOmit
-  dbAgentProviderConfig?: Prisma.DbAgentProviderConfigOmit
+  clientAiProvider?: Prisma.ClientAiProviderOmit
   task?: Prisma.TaskOmit
   timelineEvent?: Prisma.TimelineEventOmit
   activityEvent?: Prisma.ActivityEventOmit

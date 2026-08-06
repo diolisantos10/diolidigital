@@ -5,10 +5,11 @@ import Link from "next/link";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import AiKeyManager from "@/components/agency/AiKeyManager";
 import MetaConnectManager from "@/components/agency/MetaConnectManager";
+import ProvedorPorCliente from "@/components/agency/ProvedorPorCliente";
+import GastoDeIa from "@/components/agency/GastoDeIa";
 import { useAgencyStore } from "@/store/agency-store";
 import {
   MOCK_INTEGRATIONS,
-  AGENT_AI_CONFIGS,
   CATEGORY_LABELS,
   integracoesDaAgencia,
   integracoesDoCliente,
@@ -17,12 +18,7 @@ import {
   STATUS_COLORS,
   PRIORITY_LABELS,
   PRIORITY_COLORS,
-  MODE_LABELS,
-  MODE_COLORS,
   AGENT_LABELS,
-  AGENT_ID_LABELS,
-  PROVIDER_OPTIONS,
-  PROVIDER_INTEGRATION_MAP,
   computeIntegrationReadiness,
   type IntegrationCategory,
   type Integration,
@@ -472,74 +468,6 @@ function IntegrationCard({ integration, onConfigure }: IntegrationCardProps) {
   );
 }
 
-// ─── Agent Provider Section ───────────────────────────────────────────────────
-
-function AgentProviderSection() {
-  const { integrationConfigs, agentProviderConfigs, updateAgentProviderConfig } = useAgencyStore();
-
-  const isProviderConfigured = (provider: string): boolean => {
-    if (provider === "rule_based") return true;
-    const intId = PROVIDER_INTEGRATION_MAP[provider as keyof typeof PROVIDER_INTEGRATION_MAP];
-    if (!intId) return true;
-    return integrationConfigs.find((c) => c.integrationId === intId)?.configured ?? false;
-  };
-
-  return (
-    <div className="bg-white border border-[var(--border)] rounded-[10px] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden mb-6">
-      <div className="px-5 py-3.5 border-b border-[var(--border)]">
-        <h2 className="text-[14px] font-semibold text-[var(--text-primary)]">IAs dos Agentes</h2>
-        <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Selecione o provedor de IA para cada agente — configure o provedor antes de ativar</p>
-      </div>
-      <div className="divide-y divide-[var(--border)]">
-        {agentProviderConfigs.map((ac) => {
-          const agentConfig = AGENT_AI_CONFIGS.find((a) => a.agentId === ac.agentId);
-          const providerOk = isProviderConfigured(ac.selectedProvider);
-          const isExternal = ac.selectedProvider !== "rule_based";
-          return (
-            <div key={ac.agentId} className="flex items-center gap-4 px-5 py-3 hover:bg-[var(--bg-elevated)] transition-colors">
-              <div className="w-[150px] shrink-0">
-                <div className="text-[13px] font-semibold text-[var(--text-primary)]">{AGENT_ID_LABELS[ac.agentId]}</div>
-                {agentConfig && (
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] ${MODE_COLORS[agentConfig.currentMode]}`}>
-                    {MODE_LABELS[agentConfig.currentMode]}
-                  </span>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <select
-                  value={ac.selectedProvider}
-                  onChange={(e) => updateAgentProviderConfig(ac.agentId, { selectedProvider: e.target.value as typeof ac.selectedProvider })}
-                  className="w-full border border-[var(--border)] rounded-[7px] px-3 py-1.5 text-[12px] text-[var(--text-primary)] bg-white focus:outline-none focus:ring-2 focus:ring-[var(--navy)]/30"
-                >
-                  {PROVIDER_OPTIONS.map((p) => (
-                    <option key={p.value} value={p.value}>{p.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="w-[160px] shrink-0 text-right">
-                {!isExternal && (
-                  <span className="text-[10px] text-[var(--success)] font-medium">✓ Pronto</span>
-                )}
-                {isExternal && providerOk && (
-                  <span className="text-[10px] text-[var(--success)] font-medium">✓ Provedor configurado</span>
-                )}
-                {isExternal && !providerOk && (
-                  <span className="text-[10px] text-[var(--warning)] font-medium">⚠ Fornecedor não configurado</span>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-      <div className="px-5 py-3 border-t border-[var(--border)] bg-[var(--bg-elevated)]">
-        <p className="text-[11px] text-[var(--text-muted)]">
-          Selecionar um provedor não ativa a conexão real. Configure o provedor na seção abaixo e execute o teste de conexão.
-        </p>
-      </div>
-    </div>
-  );
-}
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function IntegrationsPage() {
@@ -673,8 +601,12 @@ export default function IntegrationsPage() {
       {/* Meta (Instagram / Facebook / WhatsApp) — connect real accounts via OAuth */}
       <MetaConnectManager />
 
-      {/* Agent Provider Section */}
-      <AgentProviderSection />
+      {/* A escolha que MANDA de verdade: provedor de IA por cliente.
+          Substituiu a seção "IAs dos Agentes", que gravava e ninguém lia. */}
+      <ProvedorPorCliente />
+
+      {/* O leitor do AIRunLog — o primeiro número real de gasto com IA. */}
+      <GastoDeIa />
 
       {/* Integration Cards */}
       <div className="bg-white border border-[var(--border)] rounded-[10px] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden mb-6">

@@ -670,20 +670,21 @@ export interface IntegrationConfig {
   configuredManually?: boolean;
 }
 
-export interface AgentProviderConfig {
-  agentId: AgentId;
-  selectedProvider: ProviderOption;
-  selectedModel?: string;
-}
-
-export const PROVIDER_OPTIONS: { value: ProviderOption; label: string }[] = [
-  { value: "rule_based", label: "Regras locais (padrão)" },
-  { value: "openai",     label: "OpenAI (GPT-4o)" },
-  { value: "gemini",     label: "Google Gemini" },
-  { value: "claude",     label: "Claude (Anthropic)" },
-  { value: "deepseek",   label: "DeepSeek (mais barato)" },
-  { value: "perplexity", label: "Perplexity AI" },
-];
+// ⚠️ `AgentProviderConfig`, `PROVIDER_OPTIONS` e `buildDefaultAgentProviderConfigs`
+// FORAM REMOVIDOS em 06/08/2026, junto com a seção "IAs dos Agentes" da tela de
+// Integrações, a rota `/api/agent-configs` e a tabela `DbAgentProviderConfig`.
+//
+// Por quê: a tela gravava a escolha e NINGUÉM a lia. A decisão real de provedor
+// estava (e está) em `lib/agency/execution/especialistas.ts`, e o motor único é
+// `lib/ai/generate.ts`. Três coisas erradas de uma vez:
+//   • o operador configurava e nada acontecia, sem mensagem nenhuma;
+//   • a lista de agentes (`strategy_room`, `pm_agent`, `brand_hub`…) é vocabulário
+//     da V1 e não corresponde a nenhum departamento nem especialista que o motor
+//     executa hoje — a tela nem falava das mesmas entidades;
+//   • `rule_based` era uma opção que não existe: não há motor de texto por regras.
+//
+// O que ocupou o lugar dela MANDA de verdade: a escolha de provedor **por
+// cliente** (`ClientAiProvider` → `lib/ai/escolha-por-cliente.ts` → `generate()`).
 
 export const PROVIDER_INTEGRATION_MAP: Record<ProviderOption, string | null> = {
   rule_based:  null,
@@ -707,18 +708,6 @@ export function buildDefaultIntegrationConfigs(): IntegrationConfig[] {
       ? "Configuração pré-instalada — simulação OK."
       : undefined,
   }));
-}
-
-export function buildDefaultAgentProviderConfigs(): AgentProviderConfig[] {
-  return [
-    { agentId: "strategy_room",  selectedProvider: "rule_based" },
-    { agentId: "pm_agent",       selectedProvider: "rule_based" },
-    { agentId: "social",         selectedProvider: "rule_based" },
-    { agentId: "design",         selectedProvider: "rule_based" },
-    { agentId: "ads",            selectedProvider: "rule_based" },
-    { agentId: "brand_hub",      selectedProvider: "rule_based" },
-    { agentId: "system_doctor",  selectedProvider: "rule_based" },
-  ];
 }
 
 // ─── UI Helpers ───────────────────────────────────────────────────────────────

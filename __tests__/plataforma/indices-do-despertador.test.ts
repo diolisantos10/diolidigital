@@ -81,6 +81,16 @@ beforeAll(async () => {
   comIndices = createClient({ url: `file:${arquivo}` });
   semIndices = createClient({ url: `file:${semArquivo}` });
   for (const i of nomesDosIndices) await semIndices.execute(`DROP INDEX IF EXISTS "${i}"`);
+
+  // Índices criados por migrations POSTERIORES que cobrem as MESMAS consultas
+  // desta comparação. Sem derrubá-los, o "antes" deixaria de ser "antes": em
+  // 06/08/2026 o índice de gasto de IA (`workspaceId, clientId, createdAt`)
+  // passou a servir a consulta do log pela coluna líder, e o teste acusou
+  // SEARCH onde deveria haver SCAN — um falso negativo que faria alguém
+  // "consertar" a asserção em vez de entender a causa.
+  for (const i of ["AIRunLog_workspaceId_clientId_createdAt_idx"]) {
+    await semIndices.execute(`DROP INDEX IF EXISTS "${i}"`);
+  }
 }, 120_000);
 
 afterAll(async () => {

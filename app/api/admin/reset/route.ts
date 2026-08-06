@@ -86,19 +86,18 @@ async function countOperational() {
 
 /** Contagem do que sobrevive a qualquer modo — a agência em si. */
 async function countPreserved() {
-  const [workspaces, users, integrationConfigs, providerConfigs, metaConnections,
+  const [workspaces, users, integrationConfigs, metaConnections,
          marketInsights, brainChangeRequests, brainVersions, trainingBatches] = await Promise.all([
     prisma.agencyWorkspace.count(),
     prisma.user.count(),
     prisma.dbIntegrationConfig.count(),
-    prisma.dbAgentProviderConfig.count(),
-    prisma.metaConnection.count(),
+        prisma.metaConnection.count(),
     prisma.marketInsight.count(),
     prisma.brainChangeRequest.count(),
     prisma.brainVersion.count(),
     prisma.trainingBatch.count(),
   ]);
-  return { workspaces, users, integrationConfigs, providerConfigs, metaConnections,
+  return { workspaces, users, integrationConfigs, metaConnections,
            marketInsights, brainChangeRequests, brainVersions, trainingBatches };
 }
 

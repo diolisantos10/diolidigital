@@ -22,7 +22,7 @@ model AgencyWorkspace {
   clients              Client[]
   projects             Project[]
   integrationConfigs   DbIntegrationConfig[]
-  agentProviderConfigs DbAgentProviderConfig[]
+  clientAiProviders    ClientAiProvider[]
   activityEvents       ActivityEvent[]
   aiRunLogs            AIRunLog[]
   metaConnections      MetaConnection[]
@@ -667,15 +667,46 @@ model DbIntegrationConfig {
   @@unique([workspaceId, integrationId])
 }
 
-model DbAgentProviderConfig {
-  id               String          @id @default(cuid())
-  workspaceId      String
-  workspace        AgencyWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  agentId          String
-  selectedProvider String          @default("rule_based")
-  selectedModel    String?
+// ─── A ESCOLHA DE PROVEDOR DE IA, POR CLIENTE ────────────────────────────────
+//
+// Substitui `DbAgentProviderConfig`, que era gravado pela tela e lido por
+// NINGUÉM — a decisão real estava fixa em `especialistas.ts`. Uma tela que
+// grava e não manda mente para o operador; esta tabela só existe porque tem um
+// leitor nomeado: `lib/ai/escolha-por-cliente.ts`, chamado dentro de
+// `lib/ai/generate.ts`, que é o portão único por onde toda IA desta casa passa.
+//
+// POR QUE POR CLIENTE E NÃO POR ENV: `BRAIN_AI_PROVIDER` é global. Ligar a faixa
+// gratuita por env poria a Foocci (cliente pagante) na cobaia junto com a
+// agência. A ordem do CEO é "testar na agência primeiro" — e isso exige que a
+// escolha tenha dono.
+model ClientAiProvider {
+  id          String          @id @default(cuid())
+  workspaceId String
+  workspace   AgencyWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  /// O cliente cobaia. Uma linha por cliente; sem linha = preferência da casa.
+  clientId    String
+  /// "claude" | "openai" | "gemini" | "deepseek" | "perplexity".
+  /// Texto e não enum: valor desconhecido tem que cair na preferência da casa,
+  /// não explodir o motor no meio de uma produção.
+  provider    String
+  /// Modelo específico. Nulo = o default do provedor (`modeloPadrao`).
+  model       String?
+  /// SEM RESERVA. `true` (o default) = se o provedor escolhido falhar, a casa
+  /// DIZ que não conseguiu em vez de deixar outro atender por baixo.
+  ///
+  /// O default é `true` de propósito: a razão de fixar um provedor num cliente é
+  /// MEDIR aquele provedor. Reserva calada mede o reserva e entrega ao cliente
+  /// uma peça de padrão diferente do que o painel afirma — degradação
+  /// silenciosa, o pior desfecho possível.
+  estrito     Boolean         @default(true)
+  /// Por que este cliente está neste provedor. Sem motivo, ninguém audita depois.
+  motivo      String?
+  decididoPor String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
 
-  @@unique([workspaceId, agentId])
+  @@unique([workspaceId, clientId])
+  @@index([workspaceId])
 }
 
 // ─── Tasks ────────────────────────────────────────────────────────────────────
@@ -754,9 +785,36 @@ model AIRunLog {
   warnings       String          @default("[]")
   createdAt      DateTime        @default(now())
 
+  // ── A CONTA: quem pediu, quanto consumiu, quanto custou ────────────────────
+  // Acrescentado em 06/08/2026. Até aqui a tabela não tinha coluna de token nem
+  // de custo E estava vazia em produção (nunca teve escritor). Ou seja: "quanto
+  // custou este cliente este mês" não tinha resposta possível, nem retroativa.
+
+  /// DE QUEM é a conta. Nulo quando a chamada não é de nenhum cliente (triagem
+  /// de lead, radar, saúde do sistema) — e nulo é uma resposta legítima, não uma
+  /// falta: "gasto sem dono" é um número que a agência precisa ver separado.
+  clientId         String?
+  /// QUEM pediu, dentro do departamento (o `ownerAgentId` do especialista).
+  agentId          String?
+  tokensEntrada    Int?
+  tokensSaida      Int?
+  /// USD estimado. NULO quando o modelo está fora da tabela de preço ou o
+  /// provedor não devolveu `usage`. Nunca 0 nesses casos: zero afirmaria que a
+  /// chamada foi de graça, e um modelo novo apareceria como economia.
+  custoEstimadoUsd Float?
+  /// Qual versão de `lib/ai/precos.ts` produziu o número acima. Sem isto, um mês
+  /// calculado com a tabela velha é indistinguível de um calculado com a nova.
+  custoTabela      String?
+  duracaoMs        Int?
+  /// O motivo da falha, quando `status != "success"`. Mensagem do NOSSO motor
+  /// (já sanitizada) — nunca o corpo cru do provedor, que pode ecoar o prompt.
+  erro             String?
+
   /// Log cresce para sempre e é sempre lido "os últimos N deste workspace".
   @@index([workspaceId, createdAt])
   @@index([projectId])
+  /// O relatório de gasto é sempre "deste cliente, nesta janela".
+  @@index([workspaceId, clientId, createdAt])
 }
 
 // ─── Continuous SDR Training V3 ───────────────────────────────────────────────
@@ -1586,6 +1644,18 @@ model DepartmentLadderRecord {
   /// e ausência de árbitro é ausência de informação.
   resultado     String
   detalhe       String?
+  /// QUAL IA produziu esta peça. Acrescentado em 06/08/2026.
+  ///
+  /// É a ligação entre a escolha de provedor por cliente e a escada — e existe
+  /// para NÃO haver um segundo mecanismo de maturidade. Provedor novo é
+  /// exposição nova, e a casa já tem um jeito de medir exposição: contar peças
+  /// aprovadas e reprovadas numa janela. Com esta coluna, "o gratuito aguenta o
+  /// tráfego pago?" é uma consulta sobre a MESMA evidência que decide se a peça
+  /// chega ao cliente, em vez de uma segunda escada paralela com regra própria.
+  ///
+  /// Nulo nos registros anteriores à coluna — e nulo aparece como "não sei",
+  /// nunca somado ao provedor da casa.
+  provedor      String?
   criadoEm      DateTime @default(now())
 
   @@index([workspaceId, departmentId, criadoEm])

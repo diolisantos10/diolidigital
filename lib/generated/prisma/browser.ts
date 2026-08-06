@@ -179,10 +179,10 @@ export type BrainUpdate = Prisma.BrainUpdateModel
  */
 export type DbIntegrationConfig = Prisma.DbIntegrationConfigModel
 /**
- * Model DbAgentProviderConfig
+ * Model ClientAiProvider
  * 
  */
-export type DbAgentProviderConfig = Prisma.DbAgentProviderConfigModel
+export type ClientAiProvider = Prisma.ClientAiProviderModel
 /**
  * Model Task
  * 

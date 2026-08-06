@@ -458,14 +458,20 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
     // peça reprovada no piso de verdade ou no contrato de saída nunca chega a
     // existir como entrega, então o departamento que inventa dado o tempo todo
     // apareceria com histórico impecável e subiria para wide.
+    //
+    // `provedor` entrou junto (06/08/2026) para NÃO existir uma segunda escada.
+    // Provedor novo é exposição nova, e a casa já sabe medir exposição: peças
+    // aprovadas e reprovadas numa janela. Com o provedor carimbado aqui, "o
+    // gratuito aguenta o tráfego pago deste cliente?" é uma consulta sobre a
+    // MESMA evidência que decide se a peça chega ao cliente.
     const degrauDaCasa = new Map<string, Degrau>();
-    const anotarNaEscada = async (deptId: string, resultado: ResultadoDaPeca, detalhe: string, deliverableId?: string) => {
+    const anotarNaEscada = async (deptId: string, resultado: ResultadoDaPeca, detalhe: string, deliverableId?: string, provedor?: string | null) => {
       let degrau = degrauDaCasa.get(deptId);
       if (!degrau) { degrau = await degrauAtual(project.workspaceId, deptId); degrauDaCasa.set(deptId, degrau); }
       await registrarProducao({
         workspaceId: project.workspaceId, departmentId: deptId, projectId,
         clientId: project.clientId, deliverableId: deliverableId ?? null,
-        degrauNaEpoca: degrau, resultado, detalhe,
+        degrauNaEpoca: degrau, resultado, detalhe, provedor: provedor ?? null,
       });
     };
 
@@ -499,6 +505,14 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
         maxTokens: 1800,
         workspaceId: project.workspaceId,
         preferredProvider: esp.provedor ?? "claude",
+        // DE QUEM é a chamada. Duas coisas dependem disto e nenhuma é opcional:
+        // a fixação de provedor DESTE cliente (que vence o `preferredProvider`
+        // acima) e a conta — sem `clientId`, "quanto custou este cliente este
+        // mês" volta a não ter resposta.
+        clientId: project.clientId,
+        departmentId: dept.id,
+        agentId: esp.id,
+        projectId,
       });
 
       if (!result.ok) {
@@ -526,6 +540,7 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
             instrucao: "Reentregue o JSON inteiro cumprindo exatamente essas contagens e formatos.",
           }),
           maxTokens: 1800, workspaceId: project.workspaceId, preferredProvider: esp.provedor ?? "claude",
+          clientId: project.clientId, departmentId: dept.id, agentId: esp.id, projectId,
         });
         correcoesDeContrato++;
         if (!refeito.ok) break;
@@ -545,7 +560,7 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
         const parecer = contrato.violacoes.join("; ");
         recusados.push(`${nome} (contrato de saída não cumprido: ${parecer})`);
         barradosNoPiso.push({ especialista: nome, violacoes: ["contrato_de_saida"], parecer });
-        await anotarNaEscada(dept.id, "barrada_contrato", parecer);
+        await anotarNaEscada(dept.id, "barrada_contrato", parecer, undefined, result.provider);
         await moverTarefasDoAgente(projectId, esp.id, "pending");
         await prisma.activityEvent.create({
           data: {
@@ -600,6 +615,7 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
             instrucao: 'Refaça sem esses dados — inclusive no campo "title". Onde faltar informação do cliente, escreva "PRECISO CONFIRMAR: <o quê>".',
           }),
           maxTokens: 1800, workspaceId: project.workspaceId, preferredProvider: esp.provedor ?? "claude",
+          clientId: project.clientId, departmentId: dept.id, agentId: esp.id, projectId,
         });
         correcoesDePiso++;
         if (!refeito.ok) break;
@@ -625,7 +641,7 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
         const parecer = resumirViolacoes(piso.violacoes);
         recusados.push(`${nome} (reprovado no piso de verdade: ${piso.violacoes.map((v) => v.id).join(", ")})`);
         barradosNoPiso.push({ especialista: nome, violacoes: piso.violacoes.map((v) => v.id), parecer });
-        await anotarNaEscada(dept.id, "barrada_piso", parecer);
+        await anotarNaEscada(dept.id, "barrada_piso", parecer, undefined, result.provider);
         await moverTarefasDoAgente(projectId, esp.id, "pending");
         await prisma.activityEvent.create({
           data: {
@@ -664,6 +680,7 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
             instrucao: "Refaça corrigindo exatamente esses pontos, mantendo o que já estava bom.",
           }),
           maxTokens: 1800, workspaceId: project.workspaceId, preferredProvider: esp.provedor ?? "claude",
+          clientId: project.clientId, departmentId: dept.id, agentId: esp.id, projectId,
         });
         revisions++;
         if (!fix.ok) break;
@@ -709,7 +726,7 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
       if (foiReprovadaPelaQualidade(audit.verdict)) {
         const parecer = audit.issues.join("; ") || audit.note || "qualidade insuficiente";
         reprovadosPelaQualidade.push({ especialista: nome, deliverableId: entregavel.id, issues: audit.issues, parecer });
-        await anotarNaEscada(dept.id, "reprovada_qualidade", parecer, entregavel.id);
+        await anotarNaEscada(dept.id, "reprovada_qualidade", parecer, entregavel.id, result.provider);
         // O bloqueio precisa ser VISÍVEL, não um campo que ninguém abre. Sem
         // este registro, "a Qualidade reprovou" só existiria dentro de um
         // retorno de função que nenhum humano lê.
@@ -728,7 +745,7 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
         // `sem_arbitro` NÃO conta como aprovada na escada. Verde não é prova, e
         // "ninguém olhou" muito menos: um provedor fora do ar por uma semana
         // promoveria o departamento a wide sem uma única auditoria.
-        await anotarNaEscada(dept.id, "sem_arbitro", audit.motivo ?? "erro", entregavel.id);
+        await anotarNaEscada(dept.id, "sem_arbitro", audit.motivo ?? "erro", entregavel.id, result.provider);
         await prisma.activityEvent.create({
           data: {
             workspaceId: project.workspaceId, projectId, clientId: project.clientId,
@@ -739,7 +756,7 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
       } else {
         // Passou por TODOS os portões que hoje barram alguma coisa. É esta — e
         // só esta — que conta como evidência de subida.
-        await anotarNaEscada(dept.id, "aprovada", "aprovada pela auditoria", entregavel.id);
+        await anotarNaEscada(dept.id, "aprovada", "aprovada pela auditoria", entregavel.id, result.provider);
       }
       // A tarefa fecha ligada ao entregável que a cumpriu — no quadro dá para
       // clicar e ver o que foi feito, em vez de um "concluído" sem lastro.

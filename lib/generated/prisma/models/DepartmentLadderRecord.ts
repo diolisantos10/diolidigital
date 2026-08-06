@@ -39,6 +39,7 @@ export type DepartmentLadderRecordMinAggregateOutputType = {
   degrauNaEpoca: string | null
   resultado: string | null
   detalhe: string | null
+  provedor: string | null
   criadoEm: Date | null
 }
 
@@ -52,6 +53,7 @@ export type DepartmentLadderRecordMaxAggregateOutputType = {
   degrauNaEpoca: string | null
   resultado: string | null
   detalhe: string | null
+  provedor: string | null
   criadoEm: Date | null
 }
 
@@ -65,6 +67,7 @@ export type DepartmentLadderRecordCountAggregateOutputType = {
   degrauNaEpoca: number
   resultado: number
   detalhe: number
+  provedor: number
   criadoEm: number
   _all: number
 }
@@ -80,6 +83,7 @@ export type DepartmentLadderRecordMinAggregateInputType = {
   degrauNaEpoca?: true
   resultado?: true
   detalhe?: true
+  provedor?: true
   criadoEm?: true
 }
 
@@ -93,6 +97,7 @@ export type DepartmentLadderRecordMaxAggregateInputType = {
   degrauNaEpoca?: true
   resultado?: true
   detalhe?: true
+  provedor?: true
   criadoEm?: true
 }
 
@@ -106,6 +111,7 @@ export type DepartmentLadderRecordCountAggregateInputType = {
   degrauNaEpoca?: true
   resultado?: true
   detalhe?: true
+  provedor?: true
   criadoEm?: true
   _all?: true
 }
@@ -192,6 +198,7 @@ export type DepartmentLadderRecordGroupByOutputType = {
   degrauNaEpoca: string
   resultado: string
   detalhe: string | null
+  provedor: string | null
   criadoEm: Date
   _count: DepartmentLadderRecordCountAggregateOutputType | null
   _min: DepartmentLadderRecordMinAggregateOutputType | null
@@ -226,6 +233,7 @@ export type DepartmentLadderRecordWhereInput = {
   degrauNaEpoca?: Prisma.StringFilter<"DepartmentLadderRecord"> | string
   resultado?: Prisma.StringFilter<"DepartmentLadderRecord"> | string
   detalhe?: Prisma.StringNullableFilter<"DepartmentLadderRecord"> | string | null
+  provedor?: Prisma.StringNullableFilter<"DepartmentLadderRecord"> | string | null
   criadoEm?: Prisma.DateTimeFilter<"DepartmentLadderRecord"> | Date | string
 }
 
@@ -239,6 +247,7 @@ export type DepartmentLadderRecordOrderByWithRelationInput = {
   degrauNaEpoca?: Prisma.SortOrder
   resultado?: Prisma.SortOrder
   detalhe?: Prisma.SortOrderInput | Prisma.SortOrder
+  provedor?: Prisma.SortOrderInput | Prisma.SortOrder
   criadoEm?: Prisma.SortOrder
 }
 
@@ -255,6 +264,7 @@ export type DepartmentLadderRecordWhereUniqueInput = Prisma.AtLeast<{
   degrauNaEpoca?: Prisma.StringFilter<"DepartmentLadderRecord"> | string
   resultado?: Prisma.StringFilter<"DepartmentLadderRecord"> | string
   detalhe?: Prisma.StringNullableFilter<"DepartmentLadderRecord"> | string | null
+  provedor?: Prisma.StringNullableFilter<"DepartmentLadderRecord"> | string | null
   criadoEm?: Prisma.DateTimeFilter<"DepartmentLadderRecord"> | Date | string
 }, "id">
 
@@ -268,6 +278,7 @@ export type DepartmentLadderRecordOrderByWithAggregationInput = {
   degrauNaEpoca?: Prisma.SortOrder
   resultado?: Prisma.SortOrder
   detalhe?: Prisma.SortOrderInput | Prisma.SortOrder
+  provedor?: Prisma.SortOrderInput | Prisma.SortOrder
   criadoEm?: Prisma.SortOrder
   _count?: Prisma.DepartmentLadderRecordCountOrderByAggregateInput
   _max?: Prisma.DepartmentLadderRecordMaxOrderByAggregateInput
@@ -287,6 +298,7 @@ export type DepartmentLadderRecordScalarWhereWithAggregatesInput = {
   degrauNaEpoca?: Prisma.StringWithAggregatesFilter<"DepartmentLadderRecord"> | string
   resultado?: Prisma.StringWithAggregatesFilter<"DepartmentLadderRecord"> | string
   detalhe?: Prisma.StringNullableWithAggregatesFilter<"DepartmentLadderRecord"> | string | null
+  provedor?: Prisma.StringNullableWithAggregatesFilter<"DepartmentLadderRecord"> | string | null
   criadoEm?: Prisma.DateTimeWithAggregatesFilter<"DepartmentLadderRecord"> | Date | string
 }
 
@@ -300,6 +312,7 @@ export type DepartmentLadderRecordCreateInput = {
   degrauNaEpoca: string
   resultado: string
   detalhe?: string | null
+  provedor?: string | null
   criadoEm?: Date | string
 }
 
@@ -313,6 +326,7 @@ export type DepartmentLadderRecordUncheckedCreateInput = {
   degrauNaEpoca: string
   resultado: string
   detalhe?: string | null
+  provedor?: string | null
   criadoEm?: Date | string
 }
 
@@ -326,6 +340,7 @@ export type DepartmentLadderRecordUpdateInput = {
   degrauNaEpoca?: Prisma.StringFieldUpdateOperationsInput | string
   resultado?: Prisma.StringFieldUpdateOperationsInput | string
   detalhe?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  provedor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   criadoEm?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -339,6 +354,7 @@ export type DepartmentLadderRecordUncheckedUpdateInput = {
   degrauNaEpoca?: Prisma.StringFieldUpdateOperationsInput | string
   resultado?: Prisma.StringFieldUpdateOperationsInput | string
   detalhe?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  provedor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   criadoEm?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -352,6 +368,7 @@ export type DepartmentLadderRecordCreateManyInput = {
   degrauNaEpoca: string
   resultado: string
   detalhe?: string | null
+  provedor?: string | null
   criadoEm?: Date | string
 }
 
@@ -365,6 +382,7 @@ export type DepartmentLadderRecordUpdateManyMutationInput = {
   degrauNaEpoca?: Prisma.StringFieldUpdateOperationsInput | string
   resultado?: Prisma.StringFieldUpdateOperationsInput | string
   detalhe?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  provedor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   criadoEm?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -378,6 +396,7 @@ export type DepartmentLadderRecordUncheckedUpdateManyInput = {
   degrauNaEpoca?: Prisma.StringFieldUpdateOperationsInput | string
   resultado?: Prisma.StringFieldUpdateOperationsInput | string
   detalhe?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  provedor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   criadoEm?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -391,6 +410,7 @@ export type DepartmentLadderRecordCountOrderByAggregateInput = {
   degrauNaEpoca?: Prisma.SortOrder
   resultado?: Prisma.SortOrder
   detalhe?: Prisma.SortOrder
+  provedor?: Prisma.SortOrder
   criadoEm?: Prisma.SortOrder
 }
 
@@ -404,6 +424,7 @@ export type DepartmentLadderRecordMaxOrderByAggregateInput = {
   degrauNaEpoca?: Prisma.SortOrder
   resultado?: Prisma.SortOrder
   detalhe?: Prisma.SortOrder
+  provedor?: Prisma.SortOrder
   criadoEm?: Prisma.SortOrder
 }
 
@@ -417,6 +438,7 @@ export type DepartmentLadderRecordMinOrderByAggregateInput = {
   degrauNaEpoca?: Prisma.SortOrder
   resultado?: Prisma.SortOrder
   detalhe?: Prisma.SortOrder
+  provedor?: Prisma.SortOrder
   criadoEm?: Prisma.SortOrder
 }
 
@@ -432,6 +454,7 @@ export type DepartmentLadderRecordSelect<ExtArgs extends runtime.Types.Extension
   degrauNaEpoca?: boolean
   resultado?: boolean
   detalhe?: boolean
+  provedor?: boolean
   criadoEm?: boolean
 }, ExtArgs["result"]["departmentLadderRecord"]>
 
@@ -445,6 +468,7 @@ export type DepartmentLadderRecordSelectCreateManyAndReturn<ExtArgs extends runt
   degrauNaEpoca?: boolean
   resultado?: boolean
   detalhe?: boolean
+  provedor?: boolean
   criadoEm?: boolean
 }, ExtArgs["result"]["departmentLadderRecord"]>
 
@@ -458,6 +482,7 @@ export type DepartmentLadderRecordSelectUpdateManyAndReturn<ExtArgs extends runt
   degrauNaEpoca?: boolean
   resultado?: boolean
   detalhe?: boolean
+  provedor?: boolean
   criadoEm?: boolean
 }, ExtArgs["result"]["departmentLadderRecord"]>
 
@@ -471,10 +496,11 @@ export type DepartmentLadderRecordSelectScalar = {
   degrauNaEpoca?: boolean
   resultado?: boolean
   detalhe?: boolean
+  provedor?: boolean
   criadoEm?: boolean
 }
 
-export type DepartmentLadderRecordOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "departmentId" | "projectId" | "clientId" | "deliverableId" | "degrauNaEpoca" | "resultado" | "detalhe" | "criadoEm", ExtArgs["result"]["departmentLadderRecord"]>
+export type DepartmentLadderRecordOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "departmentId" | "projectId" | "clientId" | "deliverableId" | "degrauNaEpoca" | "resultado" | "detalhe" | "provedor" | "criadoEm", ExtArgs["result"]["departmentLadderRecord"]>
 
 export type $DepartmentLadderRecordPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "DepartmentLadderRecord"
@@ -499,6 +525,20 @@ export type $DepartmentLadderRecordPayload<ExtArgs extends runtime.Types.Extensi
      */
     resultado: string
     detalhe: string | null
+    /**
+     * QUAL IA produziu esta peça. Acrescentado em 06/08/2026.
+     * 
+     * É a ligação entre a escolha de provedor por cliente e a escada — e existe
+     * para NÃO haver um segundo mecanismo de maturidade. Provedor novo é
+     * exposição nova, e a casa já tem um jeito de medir exposição: contar peças
+     * aprovadas e reprovadas numa janela. Com esta coluna, "o gratuito aguenta o
+     * tráfego pago?" é uma consulta sobre a MESMA evidência que decide se a peça
+     * chega ao cliente, em vez de uma segunda escada paralela com regra própria.
+     * 
+     * Nulo nos registros anteriores à coluna — e nulo aparece como "não sei",
+     * nunca somado ao provedor da casa.
+     */
+    provedor: string | null
     criadoEm: Date
   }, ExtArgs["result"]["departmentLadderRecord"]>
   composites: {}
@@ -932,6 +972,7 @@ export interface DepartmentLadderRecordFieldRefs {
   readonly degrauNaEpoca: Prisma.FieldRef<"DepartmentLadderRecord", 'String'>
   readonly resultado: Prisma.FieldRef<"DepartmentLadderRecord", 'String'>
   readonly detalhe: Prisma.FieldRef<"DepartmentLadderRecord", 'String'>
+  readonly provedor: Prisma.FieldRef<"DepartmentLadderRecord", 'String'>
   readonly criadoEm: Prisma.FieldRef<"DepartmentLadderRecord", 'DateTime'>
 }
     

@@ -11,7 +11,6 @@ export interface UseDbAIRunLogsResult {
   logs: AIRunLog[];
   source: DataSource;
   loading: boolean;
-  save: (log: AIRunLog) => Promise<void>;
   refetch: () => void;
 }
 
@@ -52,25 +51,16 @@ export function useDbAIRunLogs(options?: { departmentId?: string; limit?: number
         return true;
       }).slice(0, options?.limit ?? 100);
 
-  // save: writes to local store (always) and to DB (if connected).
-  const save = useCallback(async (log: AIRunLog) => {
-    // Local store is the source of truth — it already contains the log from
-    // runDepartmentIntelligence. We only need to persist it to DB when connected.
-    if (source === "db") {
-      try {
-        const res = await fetch("/api/ai-run-logs", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(log),
-        });
-        if (res.ok) {
-          const raw: DbAIRunLog = await res.json();
-          const saved = dbAIRunLogToStore(raw);
-          setDbLogs((prev) => (prev ? [saved, ...prev] : [saved]));
-        }
-      } catch { /* local store already has the log */ }
-    }
-  }, [source]);
+  // ⚠️ `save()` FOI REMOVIDO em 06/08/2026, junto com o `POST /api/ai-run-logs`.
+  //
+  // Ele era o ÚNICO escritor do `AIRunLog` no código — e nenhum arquivo o
+  // chamava. Por isso a tabela estava vazia em produção desde sempre.
+  //
+  // Agora `AIRunLog` é o LIVRO-CAIXA da IA da casa (tokens e custo estimado por
+  // chamada), e quem escreve nele é o servidor, dentro de `lib/ai/generate.ts`,
+  // no exato instante da chamada. Deixar uma rota POST aberta ao navegador
+  // permitiria a qualquer sessão inventar linhas no relatório de gasto — o log
+  // deixaria de ser prova de qualquer coisa. Esta é uma leitura, e só.
 
-  return { logs, source, loading, save, refetch: fetchFromDb };
+  return { logs, source, loading, refetch: fetchFromDb };
 }
