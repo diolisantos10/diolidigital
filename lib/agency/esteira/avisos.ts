@@ -21,7 +21,12 @@
 
 import { prisma } from "@/lib/db/client";
 
-export type TipoDeAviso = "direcao" | "material" | "entrega" | "ciclo";
+// "recompra" entrou em 06/08/2026 com a régua de 30/60/90 dias
+// (`esteira/recompra.ts`). Ela NÃO usa `avisarCliente` — escreve o
+// `ClientNotice` direto, com id determinístico, porque a idempotência do toque
+// tem de morar na chave primária. O tipo está aqui porque `filaDeAvisos` faz
+// `l.kind as TipoDeAviso`: sem a entrada, a fila mentiria sobre o que ela lista.
+export type TipoDeAviso = "direcao" | "material" | "entrega" | "ciclo" | "recompra";
 export type CanalDeAviso = "whatsapp" | "email" | "manual" | "nenhum";
 
 export interface PedidoDeAviso {
