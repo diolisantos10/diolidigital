@@ -43,12 +43,27 @@ export const dynamic = "force-dynamic";
  *  três funções abaixo poder "esquecer" e cair no ramo do cliente. */
 const DONO_AGENCIA = null;
 
-/** A conexão de USUÁRIO da própria agência — a credencial colada/autorizada
- *  pelo master. Sem ela não há o que listar, e isso é "conecte primeiro". */
+/**
+ * A conexão de USUÁRIO da própria agência — a credencial colada/autorizada pelo
+ * master. Sem ela não há o que listar, e isso é "conecte primeiro".
+ *
+ * ⚠️ `OR: [null, ""]` NÃO É PARANOIA: é o estado do banco de PRODUÇÃO. As 24
+ * conexões de nível agência nasceram em 03/08 com `clientId = ""` — a segunda
+ * grafia de "sem cliente" que a perícia achou. `donoDe` normaliza na leitura,
+ * mas o `where` do Prisma compara o valor CRU. Perguntar só por `null` faria
+ * esta tela dizer "conecte primeiro" para uma agência que está conectada há
+ * três dias — e a tela de escolha nunca apareceria justamente para o token que
+ * gravou as 19.
+ */
 async function conexaoDeUsuario(workspaceId: string): Promise<string | null> {
   const row = await prisma.metaConnection
     .findFirst({
-      where: { workspaceId, clientId: null, platform: "user", status: "connected" },
+      where: {
+        workspaceId,
+        platform: "user",
+        status: "connected",
+        OR: [{ clientId: null }, { clientId: "" }],
+      },
       orderBy: { connectedAt: "desc" },
       select: { id: true },
     })
