@@ -5,6 +5,37 @@
 
 ---
 
+## ✅ 06/08/2026 (noite) — As duas rotinas órfãs ganharam agendamento
+
+Código sem agendamento é promessa, não mecanismo. Duas rotinas existiam e
+**ninguém as chamava**:
+
+- **Raio-X noturno — `03:00 BRT` (06:00 UTC)**, `.github/workflows/raio-x-noturno.yml`.
+  Foi afirmado ao CEO que ele rodava toda noite; **não rodava** — a única coleta
+  em `docs/raio-x/coletas/` era a de 05/08, feita à mão. Agora roda as duas
+  metades (código no repositório + dados da produção) e **commita a coleta**.
+- **Régua de recompra 30/60/90 — `07:00 BRT` (10:00 UTC)**,
+  `.github/workflows/cron-recompra.yml` → `POST /api/cron/recompra`. Idempotente:
+  segundo disparo no mesmo dia devolve `registrados: 0`. Não manda WhatsApp —
+  produz rascunho em `/api/avisos`.
+
+**Dois defeitos consertados nos workflows que já existiam** (`cron-radar`,
+`cron-execute`):
+
+1. `CRON_SECRET` ausente saía com **exit 0** ("pulei") — workflow que nunca
+   chamou nada se declarando saudável. Agora é vermelho.
+2. **503 passava verde.** As quatro rotas de cron só devolvem 503 quando
+   `CRON_SECRET` não existe **no servidor** — morte silenciosa do cron, não
+   instabilidade. Agora 503 com a frase de configuração é vermelho; 503 do edge
+   (deploy em curso) fica em aviso.
+
+**Lacuna declarada:** o `workflow_dispatch` manual não pôde ser executado desta
+sessão — o token desta integração não tem `actions: write`
+(403 "Resource not accessible by integration"). O que foi provado: as rotas de
+produção respondem (401 com segredo errado = viva e fechada), os dois caminhos
+de falha do workflow saem 1, e o guarda do raio-x acende com a metade de dados
+cega. **A primeira execução real é a agendada.**
+
 ## ✅ 06/08/2026 (noite) — A PORTA DA AGÊNCIA FECHOU. O vetor das 19 está morto.
 
 A perícia da tarde disse que o fluxo do CLIENTE estava fechado e o da AGÊNCIA
