@@ -1,17 +1,42 @@
 // ─── useSpeechToText ─────────────────────────────────────────────────────────
-// Records audio via MediaRecorder, sends it to /api/sdr/transcribe (Whisper),
-// and delivers the Portuguese transcript via onTranscript.
+// O microfone do BRIEFING PÚBLICO e do chat do portal. Mesma interface de
+// sempre (`isListening` · `isTranscribing` · `isSupported` · `error` ·
+// `startListening` · `stopListening`) — três telas dependem dela e nenhuma
+// precisou mudar.
 //
-// Drop-in replacement for the old Web Speech API hook — same interface.
-// Safe to import in server-rendered pages; all browser API access is gated
-// inside useEffect / async callbacks.
+// ─── 06/08/2026 · O QUE MUDOU POR DENTRO ────────────────────────────────────
+// Este hook já foi Web Speech, virou MediaRecorder + Whisper, e hoje é os DOIS,
+// nesta ordem:
+//   1. NATIVO (`lib/ai/ditado-nativo.ts`) — `SpeechRecognition` do navegador.
+//      Grátis, sem chave, texto durante a fala, e o áudio NEM CHEGA ao nosso
+//      servidor: a rota paga não é chamada.
+//   2. ENVIO (`/api/sdr/transcribe`) — grava e manda transcrever, com provedor
+//      substituível. Só para quem não tem o caminho 1.
+//
+// O motivo é de negócio, não de gosto: a conta do provedor ficou sem crédito e
+// o microfone morreu no briefing público — a PRIMEIRA IMPRESSÃO da agência —
+// para todo mundo ao mesmo tempo. Um campo de texto não pode depender de saldo.
+//
+// `isSupported` continua sendo DETECTADO (começa `false` e sobe no efeito, para
+// não divergir do render do servidor) e agora ele também CAI: se a casa não tem
+// provedor nenhum e o navegador não tem nativo, o microfone não é oferecido —
+// botão que não faz nada é pior que botão ausente.
+//
+// PII: o texto reconhecido é fala de quem preencheu o briefing. Nunca é logado.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import {
+  suportaDitadoNativo,
+  assinarDitadoNativo,
+  iniciarDitadoNativo,
+  type SessaoDeDitadoNativo,
+} from "@/lib/ai/ditado-nativo";
+import { falhaDeTranscricao } from "@/lib/ai/transcricao";
 
 interface UseSpeechToTextOptions {
   onTranscript: (text: string) => void;
-  lang?: string; // kept for interface compatibility; Whisper always uses pt
+  lang?: string;
 }
 
 export interface UseSpeechToTextReturn {
@@ -32,46 +57,79 @@ function mimeToExt(mime: string): string {
 
 export function useSpeechToText({
   onTranscript,
+  lang = "pt-BR",
 }: UseSpeechToTextOptions): UseSpeechToTextReturn {
   const [isListening,    setIsListening]    = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
-  const [isSupported,    setIsSupported]    = useState(false);
   const [error,          setError]          = useState<string | null>(null);
+
+  // Os dois caminhos, detectados separadamente.
+  const [temNativo,   setTemNativo]   = useState(false);
+  const [podeGravar,  setPodeGravar]  = useState(false);
+  /** null = ainda não perguntamos ao servidor. */
+  const [temProvedor, setTemProvedor] = useState<boolean | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef        = useRef<Blob[]>([]);
+  const sessaoRef        = useRef<SessaoDeDitadoNativo | null>(null);
   const onTranscriptRef  = useRef(onTranscript);
-  onTranscriptRef.current = onTranscript;
+  useEffect(() => { onTranscriptRef.current = onTranscript; }, [onTranscript]);
 
+  // Detecção só no cliente (o servidor renderiza sem microfone), e o nativo
+  // pode ser REBAIXADO em runtime — por isso a assinatura.
   useEffect(() => {
-    if (typeof window !== "undefined" && !!navigator.mediaDevices?.getUserMedia) {
-      setIsSupported(true);
+    const ler = () => setTemNativo(suportaDitadoNativo());
+    ler();
+    setPodeGravar(typeof window !== "undefined" && !!navigator.mediaDevices?.getUserMedia);
+    return assinarDitadoNativo(ler);
+  }, []);
+
+  // Só quem NÃO tem nativo pergunta ao servidor se o caminho 2 existe. Quem tem
+  // nativo não toca no servidor nem para perguntar.
+  useEffect(() => {
+    if (temNativo || !podeGravar || temProvedor !== null) return;
+    let vivo = true;
+    void fetch("/api/sdr/transcribe")
+      .then((r) => r.json() as Promise<{ disponivel?: boolean }>)
+      .then((d) => { if (vivo) setTemProvedor(!!d?.disponivel); })
+      // Sem resposta, assumimos que existe: o teste real é gravar. Esconder o
+      // microfone por causa de um GET que falhou seria tirar o que funciona.
+      .catch(() => { if (vivo) setTemProvedor(true); });
+    return () => { vivo = false; };
+  }, [temNativo, podeGravar, temProvedor]);
+
+  const isSupported = temNativo || (podeGravar && temProvedor !== false);
+
+  useEffect(() => () => {
+    sessaoRef.current?.cancelar();
+    sessaoRef.current = null;
+    const mr = mediaRecorderRef.current;
+    if (mr && mr.state === "recording") {
+      mr.onstop = null;
+      try { mr.stop(); } catch { /* já parado */ }
+      mr.stream.getTracks().forEach((t) => t.stop());
     }
   }, []);
 
   const stopListening = useCallback(() => {
+    if (sessaoRef.current) { sessaoRef.current.parar(); return; }
     const mr = mediaRecorderRef.current;
     if (mr && mr.state === "recording") {
       mr.stop(); // triggers onstop → upload → setIsListening(false)
     }
   }, []);
 
-  const startListening = useCallback(async () => {
-    if (mediaRecorderRef.current?.state === "recording") return;
-
-    setError(null);
-
+  // ─── Caminho 2: gravar e enviar ────────────────────────────────────────────
+  const gravarEEnviar = useCallback(async () => {
     let stream: MediaStream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch {
-      setError("Permissão de microfone negada. Ative o acesso ao microfone nas configurações do navegador.");
+      setError(falhaDeTranscricao("sem_permissao").mensagem);
       return;
     }
 
     chunksRef.current = [];
-
-    // Prefer webm (Chrome, Edge); fall back to browser default (Firefox → ogg)
     const preferWebm = MediaRecorder.isTypeSupported("audio/webm");
     const mr = new MediaRecorder(stream, preferWebm ? { mimeType: "audio/webm" } : {});
     mediaRecorderRef.current = mr;
@@ -81,39 +139,39 @@ export function useSpeechToText({
     };
 
     mr.onstop = async () => {
-      // Immediately exit recording state so the button stops showing "Parar"
       setIsListening(false);
-      // Release mic indicator
-      stream.getTracks().forEach((t) => t.stop());
+      stream.getTracks().forEach((t) => t.stop()); // apaga a luz do microfone
 
       const blob = new Blob(chunksRef.current, { type: mr.mimeType || "audio/webm" });
       chunksRef.current = [];
-
-      // Skip clips too short to produce a useful transcript
-      if (blob.size < 1_000) {
-        return;
-      }
+      mediaRecorderRef.current = null;
+      if (blob.size < 1_000) return; // clique acidental
 
       setIsTranscribing(true);
       try {
-        const ext  = mimeToExt(mr.mimeType || "audio/webm");
         const form = new FormData();
-        form.append("file", blob, `audio.${ext}`);
+        form.append("file", blob, `audio.${mimeToExt(mr.mimeType || "audio/webm")}`);
 
-        const res = await fetch("/api/sdr/transcribe", { method: "POST", body: form });
-        if (!res.ok) throw new Error("http_error");
-
-        const data = (await res.json()) as { ok?: boolean; text?: string; reason?: string };
+        const res  = await fetch("/api/sdr/transcribe", { method: "POST", body: form });
+        const data = (await res.json()) as {
+          ok?: boolean; text?: string; reason?: string; mensagem?: string;
+        };
 
         if (data.ok && data.text?.trim()) {
           onTranscriptRef.current(data.text.trim());
         } else if (data.reason === "not_configured") {
-          setError("Transcrição por voz não configurada. Adicione a chave OpenAI nas Integrações.");
+          // A casa não tem provedor nenhum: o caminho 2 não existe. Some o
+          // microfone em vez de oferecer de novo o que já falhou.
+          setTemProvedor(false);
+          setError(falhaDeTranscricao("sem_chave").mensagem);
         } else if (data.reason !== "empty_transcript") {
-          setError("Não consegui transcrever o áudio. Tente novamente.");
+          // A frase vem pronta da camada — ela distingue chave recusada, conta
+          // sem saldo, ritmo, áudio recusado e provedor fora do ar. Reescrever
+          // aqui seria voltar a ter uma palavra só para cinco consertos.
+          setError(data.mensagem ?? falhaDeTranscricao("provedor_indisponivel").mensagem);
         }
       } catch {
-        setError("Erro ao enviar o áudio. Verifique a conexão e tente novamente.");
+        setError(falhaDeTranscricao("rede").mensagem);
       } finally {
         setIsTranscribing(false);
       }
@@ -122,6 +180,34 @@ export function useSpeechToText({
     mr.start();
     setIsListening(true);
   }, []);
+
+  const startListening = useCallback(() => {
+    if (sessaoRef.current || mediaRecorderRef.current?.state === "recording") return;
+    setError(null);
+
+    // ─── Caminho 1: nativo ───────────────────────────────────────────────────
+    if (suportaDitadoNativo()) {
+      const sessao = iniciarDitadoNativo({
+        idioma: lang,
+        onFinal: (t) => onTranscriptRef.current(t),
+        onFim: () => { sessaoRef.current = null; setIsListening(false); },
+        onFalha: (motivo) => setError(falhaDeTranscricao(motivo).mensagem),
+      });
+      if (sessao) {
+        sessaoRef.current = sessao;
+        setIsListening(true);
+        return;
+      }
+      // O nativo se rebaixou na largada — cai para o envio nesta mesma ação.
+      setTemNativo(false);
+    }
+
+    if (!podeGravar) {
+      setError(falhaDeTranscricao("sem_suporte").mensagem);
+      return;
+    }
+    void gravarEEnviar();
+  }, [lang, podeGravar, gravarEEnviar]);
 
   return { isListening, isTranscribing, isSupported, error, startListening, stopListening };
 }
