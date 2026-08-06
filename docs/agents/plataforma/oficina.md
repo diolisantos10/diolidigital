@@ -5,6 +5,135 @@
 
 ---
 
+## 2026-08-06 · noite — Provedor por cliente, a tela que manda, e a conta de IA
+
+Três defeitos da mesma família, e a família é: **a tela grava e ninguém lê.**
+Commit `17b4212`.
+
+### 1. A escolha de provedor por CLIENTE — o que destrava a ordem do CEO
+
+`BRAIN_AI_PROVIDER` é env global. Ligar a faixa gratuita por ela poria a Foocci
+— cliente pagante — na cobaia junto com a agência, o oposto de "testar na
+agência primeiro".
+
+- Tabela nova `ClientAiProvider` (`prisma/schema.prisma:670`), com **um leitor
+  nomeado**: `lib/ai/escolha-por-cliente.ts:63`, chamado dentro de
+  `lib/ai/generate.ts:305` — o portão único por onde toda IA de texto passa.
+- **Precedência:** fixação do cliente → `preferredProvider` do especialista →
+  preferência da casa. A fixação tinha que vencer o especialista, senão a tela
+  não mandaria nada no caminho que produz peça de verdade.
+- **Nasce ESTRITA** (`estrito: true` no default da coluna). Provedor fixado que
+  cai faz a casa **dizer que não conseguiu** — não deixa outro atender por baixo.
+  Duas razões e as duas são caras: fixar o Gemini e o Claude atender calado mede
+  o Claude; e o cliente recebe uma peça de padrão diferente do que o painel
+  afirma. **Degradação silenciosa é o pior desfecho.**
+- **Fail-closed antes de gravar:** `PUT /api/agency/provedor-do-cliente` recusa
+  (409) fixar provedor sem chave conectada. Fixar sem chave é programar a próxima
+  produção daquele cliente para falhar, com a tela dizendo que está tudo certo.
+- Wiring no caminho real: `lib/agency/execution/run-execution.ts` passa
+  `clientId`, `departmentId`, `agentId` e `projectId` nas 4 chamadas a
+  `generate()`.
+
+### 2. A tela decorativa SAIU
+
+"IAs dos Agentes" gravava em `localStorage` via Zustand; `/api/agent-configs`
+**não tinha um único chamador**; `DbAgentProviderConfig` nasceu e morreu vazia.
+A decisão real estava fixa em `especialistas.ts`. E a lista de agentes dela
+(`strategy_room`, `pm_agent`, `brand_hub`…) é vocabulário da V1 — **nem falava
+das mesmas entidades** que o motor executa. `rule_based` era uma opção que não
+existe: não há motor de texto por regras.
+
+Saíram: a seção, a rota, a fatia do store, os tipos em `lib/agency/integrations.ts`,
+a tabela (DROP na migration) e a checagem `integration-agent-modes` do
+system-doctor — **alarme sobre estado decorativo é ruído que treina o operador a
+ignorar o painel inteiro**.
+
+No lugar: `components/agency/ProvedorPorCliente.tsx`, que manda de verdade.
+
+### 3. A conta de IA — o primeiro número real
+
+`AIRunLog` estava **vazia em produção** (nunca teve escritor) e sem coluna de
+token nem de custo.
+
+- `lib/ai/registro-de-custo.ts` grava cada chamada dentro de `generate()`:
+  cliente, departamento, agente, projeto, provedor, modelo, tokens de entrada e
+  saída, custo estimado, duração, e o motivo quando falha.
+- **O uso é lido ANTES de julgar o conteúdo:** resposta 200 com JSON inválido
+  consumiu token igual. Contar só sucesso faria a casa achar que retentativa é
+  de graça.
+- **FAIL-OPEN, e é a exceção da casa:** falha ao gravar não derruba a entrega.
+  **Mas não é fail-silencioso** — sai `[custo-de-ia] NÃO GRAVADO` com provedor,
+  modelo, cliente, tokens e causa. Sem esse rastro o relatório contaria uma
+  história mais barata que a realidade e ninguém saberia.
+- `try/catch`, não `.catch()`: cliente do Prisma sem o modelo estoura **antes**
+  de existir promessa, e a exceção síncrona passa por cima do `.catch`.
+- **PII fora:** `promptSummary`/`outputSummary` ficam nulos neste caminho. O
+  prompt de um especialista carrega o briefing do cliente inteiro.
+- **Leitor nomeado:** `lib/ai/relatorio-de-gasto.ts` →
+  `GET /api/agency/gasto-de-ia` (só master) → `components/agency/GastoDeIa.tsx`.
+- **`POST /api/ai-run-logs` foi REMOVIDO.** Virou livro-caixa, e livro-caixa que
+  a parte interessada escreve pelo navegador não prova nada.
+
+### O preço é ESTIMATIVA DECLARADA, não verdade
+
+`lib/ai/precos.ts`. Preço de tabela público, copiado da documentação de cada
+provedor, com `origem` por linha, `conferidoEm: null` (**ainda não reconferido
+por esta casa** — declarado assim em vez de uma data falsa) e `TABELA_VERSAO`
+carimbada em cada linha do log.
+
+- **Modelo fora da tabela custa `null`, nunca zero.** Zero afirmaria que a
+  chamada foi de graça, e um modelo novo apareceria como economia.
+- **Prefixo mais longo vence:** `sonar` é prefixo de `sonar-pro`, cujo preço é
+  3× — o casamento ingênuo fecharia a conta errada para menos.
+- A tela nunca mostra dinheiro sem o aviso e sem **quantas chamadas ficaram de
+  fora** (sem preço, sem token, ou tabela de versão diferente).
+
+### A escada: nenhum segundo mecanismo de maturidade
+
+Provedor novo é exposição nova, e a casa já sabe medir exposição.
+`DepartmentLadderRecord` ganhou a coluna **`provedor`**. "O gratuito aguenta o
+tráfego pago deste cliente?" passa a ser uma consulta sobre a **mesma evidência**
+que decide se a peça chega ao cliente — não uma segunda escada com regra própria.
+
+### Verificação — À MÃO, porque o GitHub Actions está em pane
+
+**Não há CI verde para o commit `17b4212`.** Rodei os três portões na mão, num
+**worktree limpo do HEAD com só as minhas mudanças** (a árvore principal tinha
+trabalho não-commitado de outro agente):
+
+- `npx tsc --noEmit` limpo;
+- `npx vitest run`: **140 arquivos, 2257 testes, todos passando** (32 novos);
+- `npm run build` de produção ok (na árvore principal — o Turbopack não aceita o
+  `node_modules` simbólico do worktree);
+- migration aplicada por `prisma migrate deploy` numa base nova, e conferida
+  também pelo teste de índices, que constrói o banco pelas migrations;
+- telas em **375 / 768 / 1440**, com o cliente cobaia fixado no Gemini, os outros
+  dois no padrão da casa e o aviso vermelho de "sem chave conectada" aparecendo.
+  Auto-avaliação: hierarquia 9 · tipografia 8,5 · espaçamento 8,5 · consistência 9.
+
+### 🔴 O que fica aberto
+
+1. **A conta começa hoje.** Não há gasto retroativo: a tabela estava vazia e sem
+   colunas. Comparação mês a mês só a partir de setembro.
+2. **O preço nunca foi reconferido por esta casa.** Todo `conferidoEm` é `null`.
+   Enquanto ninguém abrir as páginas de preço e carimbar a data, o total é uma
+   ordem de grandeza, não um número de fatura.
+3. **A Perplexity sai subestimada:** ela cobra token **e** uma taxa por
+   requisição de busca, que não está na tabela.
+4. **A cota gratuita do Gemini não é descontada.** Dentro da cota o custo real é
+   0, e o relatório mostra o preço pago. Erra para o lado de assustar — o lado
+   certo, porque a cota estoura calada.
+5. **6 rotas de agente ainda falam com a Anthropic direto**, fora de
+   `generate()`. Elas **não entram na conta nem obedecem à fixação por cliente**.
+   É o maior buraco que sobra: `app/api/agents/*/generate`, `app/api/brain/*`,
+   `app/api/sdr/{chat,upload}`.
+6. **Imagem e transcrição continuam presas à OpenAI** e fora da conta — outro
+   dialeto, outro caminho.
+7. **`lib/ai/provider-registry.ts` segue código morto.** Ninguém o chama fora dos
+   testes; o portão real é `generate()`.
+
+---
+
 ## 2026-08-06 · tarde — Três frentes: o microfone, os contadores e a grafia dupla
 
 Território: `lib/ai/transcricao.ts`, `app/api/{portal/transcricao,sdr/transcribe,meta/ativos}`,
