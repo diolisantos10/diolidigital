@@ -63,6 +63,7 @@
 import { graphGet, GraphApiError } from "./graph";
 import { loadConnectionToken } from "./connections";
 import { TIPO_DE_RITMO_DA_CASA } from "./ritmo";
+import { filtrarAutorizados, ativoAutorizado, FRASE_SEM_AUTORIZACAO, normalizarId } from "./ativos-autorizados";
 
 // ─── Contrato de erro (o mesmo de ads.ts, para a casa ter um vocabulário) ────
 
@@ -70,7 +71,15 @@ export interface ResultadoDeLeituraPaga<T> {
   ok: boolean;
   dados?: T;
   erro?: string;
-  motivo?: "sem_permissao" | "sem_conexao" | "erro_da_meta" | "ritmo" | "sem_dado";
+  motivo?:
+    | "sem_permissao"
+    | "sem_conexao"
+    | "erro_da_meta"
+    | "ritmo"
+    | "sem_dado"
+    /** A lista de contas autorizadas está vazia, ou a conta pedida não está
+     *  nela. NÃO é erro e NÃO é "sem dado": é a trava fazendo o trabalho. */
+    | "sem_autorizacao";
 }
 
 function traduzirErro<T>(e: unknown): ResultadoDeLeituraPaga<T> {
@@ -174,14 +183,90 @@ export async function lerContasDeAnuncio(
       { fields: CAMPOS_DA_CONTA, limit: 100 },
       { operacao: "listar_contas" },
     );
-    const contas = (r.data ?? []).map(normalizarConta);
-    if (contas.length === 0) {
+    const alcancadas = (r.data ?? []).map(normalizarConta);
+    // "O acesso não alcança nada" ≠ "o cliente não autorizou nada". Duas ações
+    // diferentes para quem lê a tela; misturar as duas é esconder qual é.
+    if (alcancadas.length === 0) {
       return { ok: false, motivo: "sem_dado", erro: "Este acesso não alcança nenhuma conta de anúncio." };
     }
-    return { ok: true, dados: contas };
+
+    // ── A TRAVA (06/08/2026) ────────────────────────────────────────────────
+    // `me/adaccounts` devolve o que o TOKEN alcança. Em 06/08/2026 isso foram
+    // 14 contas do CEO num clique dado no portal da Foocci. O que sobe daqui é
+    // só o que o DONO DESTE TOKEN marcou — e o dono é derivado da própria linha
+    // de conexão (`conn.clientId`), nunca de um parâmetro do chamador.
+    const { autorizados, recusados, listaVazia } = await filtrarAutorizados(
+      workspaceId, conn.clientId, "ad_account", alcancadas, (c) => c.id,
+    );
+
+    if (listaVazia) {
+      // Fail-closed: sem lista, NENHUMA conta é lida. E a mensagem diz o que
+      // falta fazer, em vez de "nenhuma conta encontrada" — que faria o
+      // operador concluir que o cliente não tem contas de anúncio.
+      return { ok: false, motivo: "sem_autorizacao", erro: FRASE_SEM_AUTORIZACAO };
+    }
+    if (autorizados.length === 0) {
+      return {
+        ok: false,
+        motivo: "sem_autorizacao",
+        erro: `Este acesso alcança ${recusados.length} conta(s) de anúncio, e nenhuma delas está na lista autorizada pelo cliente. Nada foi lido.`,
+      };
+    }
+    return { ok: true, dados: autorizados };
   } catch (e) {
     return traduzirErro(e);
   }
+}
+
+/**
+ * O QUE O TOKEN ALCANÇA — cru, sem filtro. **Só para a tela de escolha do
+ * PRÓPRIO DONO da conta.**
+ *
+ * Existe porque o cliente precisa ver a lista para poder marcar o que libera —
+ * e essa é a única situação em que "tudo o que o token alcança" pode aparecer
+ * numa tela: quem está olhando é o dono das contas, vendo as contas dele.
+ *
+ * ⚠️ NUNCA chamar isto de rota da agência, de motor de execução ou de
+ * relatório. O caminho da agência é `lerContasDeAnuncio`, que filtra.
+ */
+export async function lerContasQueOAcessoAlcanca(
+  workspaceId: string,
+  connectionId: string,
+): Promise<ResultadoDeLeituraPaga<ContaDeAnuncioLida[]>> {
+  const conn = await loadConnectionToken(workspaceId, connectionId);
+  if (!conn) return { ok: false, motivo: "sem_conexao", erro: "Conexão Meta não encontrada ou token inválido" };
+  try {
+    const r = await graphGet<{ data?: Array<Record<string, unknown>> }>(
+      "me/adaccounts", conn.token,
+      { fields: CAMPOS_DA_CONTA, limit: 100 },
+      { operacao: "listar_contas" },
+    );
+    return { ok: true, dados: (r.data ?? []).map(normalizarConta) };
+  } catch (e) {
+    return traduzirErro(e);
+  }
+}
+
+/** A frase de recusa de uma conta específica. Uma só, para o teste poder
+ *  afirmar sobre ela e para a tela nunca improvisar. */
+export function fraseDeContaNaoAutorizada(contaId: string): string {
+  return `A conta ${contaId} não está na lista de contas que o cliente autorizou. Nada foi lido dela.`;
+}
+
+/**
+ * A conferência que roda ANTES de qualquer chamada dirigida a uma conta.
+ *
+ * Está aqui, e não na rota, porque rota nova é exatamente o caminho que o
+ * incidente de 06/08/2026 provou existir: `lerCampanhasAtivas` e
+ * `lerDesempenhoDaConta` recebem `contaId` como argumento e qualquer chamador
+ * pode inventar um. A trava tem que morar onde a chamada à Meta nasce.
+ */
+async function contaLiberada(
+  workspaceId: string,
+  clientId: string | null,
+  contaId: string,
+): Promise<boolean> {
+  return ativoAutorizado(workspaceId, clientId, "ad_account", contaId);
 }
 
 export function normalizarConta(bruto: Record<string, unknown>): ContaDeAnuncioLida {
@@ -245,6 +330,13 @@ export async function lerCampanhasAtivas(
 ): Promise<ResultadoDeLeituraPaga<CampanhaAtiva[]>> {
   const conn = await loadConnectionToken(workspaceId, connectionId);
   if (!conn) return { ok: false, motivo: "sem_conexao", erro: "Conexão Meta não encontrada ou token inválido" };
+
+  // Trava ANTES da rede: conta fora da lista nem é perguntada à Meta. Barrar
+  // depois de ler já teria deixado o dado passar pelo processo — e, com a cota
+  // por conta contada no banco, teria gravado a linha de cota daquela conta.
+  if (!(await contaLiberada(workspaceId, conn.clientId, contaId))) {
+    return { ok: false, motivo: "sem_autorizacao", erro: fraseDeContaNaoAutorizada(normalizarId("ad_account", contaId)) };
+  }
 
   try {
     const r = await graphGet<{ data?: Array<Record<string, unknown>> }>(
@@ -366,6 +458,11 @@ export async function lerDesempenhoDaConta(
 ): Promise<ResultadoDeLeituraPaga<DesempenhoDaCampanha[]>> {
   const conn = await loadConnectionToken(workspaceId, connectionId);
   if (!conn) return { ok: false, motivo: "sem_conexao", erro: "Conexão Meta não encontrada ou token inválido" };
+
+  // Mesma trava do `campaigns`: derivada do dono do token, antes da rede.
+  if (!(await contaLiberada(workspaceId, conn.clientId, contaId))) {
+    return { ok: false, motivo: "sem_autorizacao", erro: fraseDeContaNaoAutorizada(normalizarId("ad_account", contaId)) };
+  }
 
   try {
     const r = await graphGet<{ data?: Array<Record<string, unknown>> }>(

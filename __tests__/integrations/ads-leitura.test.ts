@@ -26,6 +26,24 @@ const FakeGraphError = vi.hoisted(() => class FakeGraphError extends Error {
 vi.mock("@/lib/integrations/meta/graph", () => ({ graphGet, GraphApiError: FakeGraphError }));
 vi.mock("@/lib/integrations/meta/connections", () => ({ loadConnectionToken }));
 
+// A LISTA DE CONTAS AUTORIZADAS (06/08/2026). Aqui ela é simulada como
+// "o cliente autorizou tudo", porque este arquivo mede OUTRA coisa: ritmo,
+// custo em cota e honestidade do relatório. A trava em si — o que acontece
+// quando a lista está vazia ou a conta está fora dela — tem arquivo próprio,
+// `__tests__/integrations/meta-ativos-autorizados.test.ts`, com as duas
+// metades.
+vi.mock("@/lib/integrations/meta/ativos-autorizados", async (original) => {
+  const real = await original<typeof import("@/lib/integrations/meta/ativos-autorizados")>();
+  return {
+    ...real,
+    idsAutorizados: vi.fn(),
+    ativoAutorizado: vi.fn(async () => true),
+    filtrarAutorizados: vi.fn(async (_w: string, _c: unknown, _t: unknown, itens: unknown[]) => ({
+      autorizados: itens, recusados: [], listaVazia: false,
+    })),
+  };
+});
+
 import {
   lerContasDeAnuncio, lerCampanhasAtivas, lerDesempenhoDaConta, lerPanoramaDaAgencia,
   normalizarConta, normalizarDesempenho, analisarConta, ultimos30Dias,

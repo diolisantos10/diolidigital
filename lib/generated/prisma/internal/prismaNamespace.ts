@@ -424,6 +424,7 @@ export const ModelName = {
   MetaConnection: 'MetaConnection',
   MetaAdCota: 'MetaAdCota',
   MetaAdFreio: 'MetaAdFreio',
+  MetaAtivoAutorizado: 'MetaAtivoAutorizado',
   WhatsAppMessage: 'WhatsAppMessage',
   WhatsAppOutbox: 'WhatsAppOutbox',
   PortalAccess: 'PortalAccess',
@@ -446,7 +447,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "metaAdFreio" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "oportunidade" | "rateLimitBucket"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "metaAdFreio" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "oportunidade" | "rateLimitBucket"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -3410,6 +3411,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    MetaAtivoAutorizado: {
+      payload: Prisma.$MetaAtivoAutorizadoPayload<ExtArgs>
+      fields: Prisma.MetaAtivoAutorizadoFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MetaAtivoAutorizadoFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAtivoAutorizadoPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MetaAtivoAutorizadoFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAtivoAutorizadoPayload>
+        }
+        findFirst: {
+          args: Prisma.MetaAtivoAutorizadoFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAtivoAutorizadoPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MetaAtivoAutorizadoFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAtivoAutorizadoPayload>
+        }
+        findMany: {
+          args: Prisma.MetaAtivoAutorizadoFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAtivoAutorizadoPayload>[]
+        }
+        create: {
+          args: Prisma.MetaAtivoAutorizadoCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAtivoAutorizadoPayload>
+        }
+        createMany: {
+          args: Prisma.MetaAtivoAutorizadoCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MetaAtivoAutorizadoCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAtivoAutorizadoPayload>[]
+        }
+        delete: {
+          args: Prisma.MetaAtivoAutorizadoDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAtivoAutorizadoPayload>
+        }
+        update: {
+          args: Prisma.MetaAtivoAutorizadoUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAtivoAutorizadoPayload>
+        }
+        deleteMany: {
+          args: Prisma.MetaAtivoAutorizadoDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MetaAtivoAutorizadoUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MetaAtivoAutorizadoUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAtivoAutorizadoPayload>[]
+        }
+        upsert: {
+          args: Prisma.MetaAtivoAutorizadoUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaAtivoAutorizadoPayload>
+        }
+        aggregate: {
+          args: Prisma.MetaAtivoAutorizadoAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMetaAtivoAutorizado>
+        }
+        groupBy: {
+          args: Prisma.MetaAtivoAutorizadoGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaAtivoAutorizadoGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MetaAtivoAutorizadoCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaAtivoAutorizadoCountAggregateOutputType> | number
+        }
+      }
+    }
     WhatsAppMessage: {
       payload: Prisma.$WhatsAppMessagePayload<ExtArgs>
       fields: Prisma.WhatsAppMessageFieldRefs
@@ -4690,6 +4765,20 @@ export const MetaAdFreioScalarFieldEnum = {
 export type MetaAdFreioScalarFieldEnum = (typeof MetaAdFreioScalarFieldEnum)[keyof typeof MetaAdFreioScalarFieldEnum]
 
 
+export const MetaAtivoAutorizadoScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  clientId: 'clientId',
+  tipo: 'tipo',
+  externalId: 'externalId',
+  nome: 'nome',
+  autorizadoPor: 'autorizadoPor',
+  autorizadoEm: 'autorizadoEm'
+} as const
+
+export type MetaAtivoAutorizadoScalarFieldEnum = (typeof MetaAtivoAutorizadoScalarFieldEnum)[keyof typeof MetaAtivoAutorizadoScalarFieldEnum]
+
+
 export const WhatsAppMessageScalarFieldEnum = {
   id: 'id',
   workspaceId: 'workspaceId',
@@ -5023,6 +5112,7 @@ export type GlobalOmitConfig = {
   metaConnection?: Prisma.MetaConnectionOmit
   metaAdCota?: Prisma.MetaAdCotaOmit
   metaAdFreio?: Prisma.MetaAdFreioOmit
+  metaAtivoAutorizado?: Prisma.MetaAtivoAutorizadoOmit
   whatsAppMessage?: Prisma.WhatsAppMessageOmit
   whatsAppOutbox?: Prisma.WhatsAppOutboxOmit
   portalAccess?: Prisma.PortalAccessOmit

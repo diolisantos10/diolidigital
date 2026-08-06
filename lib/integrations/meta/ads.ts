@@ -23,6 +23,9 @@
 
 import { graphGet, graphPost, GraphApiError } from "./graph";
 import { loadConnectionToken } from "./connections";
+import {
+  filtrarAutorizados, ativoAutorizado, normalizarId, FRASE_SEM_AUTORIZACAO,
+} from "./ativos-autorizados";
 import { TIPO_DE_RITMO_DA_CASA } from "./ritmo";
 
 /** Teto absoluto da casa, em reais por dia, independente do que for pedido.
@@ -39,7 +42,10 @@ export interface ResultadoDeAnuncio<T = unknown> {
   /** `sem_permissao` = App Review pendente. É o caso mais comum, e é do CEO.
    *  `ritmo` = a CASA freou antes de a Meta reclamar (ver ritmo.ts). Não é
    *  defeito nem falta de permissão: é a trava de 03/08 funcionando. */
-  motivo?: "sem_permissao" | "sem_conta" | "orcamento_invalido" | "erro_da_meta" | "sem_conexao" | "ritmo";
+  motivo?:
+    | "sem_permissao" | "sem_conta" | "orcamento_invalido" | "erro_da_meta" | "sem_conexao" | "ritmo"
+    /** A conta não está na lista que o cliente autorizou (06/08/2026). */
+    | "sem_autorizacao";
 }
 
 export interface ContaDeAnuncio {
@@ -85,13 +91,26 @@ export async function listarContasDeAnuncio(
       "me/adaccounts", conn.token, { fields: "id,name,currency,account_status", limit: 50 },
       { operacao: "listar_contas" },
     );
-    const contas = (r.data ?? []).map((c) => ({
+    const alcancadas = (r.data ?? []).map((c) => ({
       id: c.id, nome: c.name ?? c.id, moeda: c.currency ?? "BRL", status: c.account_status ?? 0,
     }));
-    if (contas.length === 0) {
+    // "O token não alcança conta nenhuma" e "o cliente não autorizou nenhuma"
+    // são estados DIFERENTES, e a ação que cada um pede é diferente: um é
+    // "peça acesso ao cliente", o outro é "ele precisa marcar na tela dele".
+    if (alcancadas.length === 0) {
       return { ok: false, motivo: "sem_conta", erro: "Nenhuma conta de anúncio encontrada nesta conexão. O cliente precisa dar acesso à conta de anúncios dele." };
     }
-    return { ok: true, dados: contas };
+    // A MESMA TRAVA DE `ads-leitura.ts` (06/08/2026): o que o token alcança não
+    // é o que a agência pode usar. Aqui pesa ainda mais que na leitura, porque
+    // esta lista é o menu de onde a campanha vai ser criada.
+    const { autorizados, listaVazia } = await filtrarAutorizados(
+      workspaceId, conn.clientId, "ad_account", alcancadas, (c) => c.id,
+    );
+    if (listaVazia) return { ok: false, motivo: "sem_autorizacao", erro: FRASE_SEM_AUTORIZACAO };
+    if (autorizados.length === 0) {
+      return { ok: false, motivo: "sem_autorizacao", erro: "Nenhuma das contas que este acesso alcança está autorizada pelo cliente." };
+    }
+    return { ok: true, dados: autorizados };
   } catch (e) {
     return traduzirErro(e);
   }
@@ -148,6 +167,27 @@ export function conferirOrcamento(plano: {
 }
 
 /**
+ * A TRAVA DE CONTA NO CAMINHO DE ESCRITA (06/08/2026).
+ *
+ * Criar campanha, conjunto ou anúncio numa conta que o cliente não autorizou é
+ * pior do que lê-la: é a agência mexendo no ativo de um terceiro. A conferência
+ * é derivada do dono do TOKEN (`conn.clientId`), nunca de um `clientId` que o
+ * chamador tenha passado, e roda ANTES de qualquer POST na Meta.
+ */
+async function recusarContaNaoAutorizada(
+  workspaceId: string,
+  clientId: string | null,
+  contaId: string,
+): Promise<ResultadoDeAnuncio<never> | null> {
+  if (await ativoAutorizado(workspaceId, clientId, "ad_account", contaId)) return null;
+  return {
+    ok: false,
+    motivo: "sem_autorizacao",
+    erro: `A conta ${normalizarId("ad_account", contaId)} não está na lista de contas autorizadas pelo cliente. Nada foi criado nem alterado.`,
+  };
+}
+
+/**
  * Cria a campanha — SEMPRE PAUSADA.
  *
  * `status: "PAUSED"` é literal e não é parâmetro. Uma campanha criada ativa por
@@ -164,6 +204,8 @@ export async function criarCampanhaPausada(
 
   const conn = await loadConnectionToken(workspaceId, connectionId);
   if (!conn) return { ok: false, motivo: "sem_conexao", erro: "Conexão Meta não encontrada ou token inválido" };
+  const barrado = await recusarContaNaoAutorizada(workspaceId, conn.clientId, plano.contaId);
+  if (barrado) return barrado;
 
   try {
     const r = await graphPost<{ id: string }>(`${plano.contaId}/campaigns`, conn.token, {
@@ -211,6 +253,8 @@ export async function buscarCidade(
 ): Promise<ResultadoDeAnuncio<{ key: string; name: string }>> {
   const conn = await loadConnectionToken(workspaceId, connectionId);
   if (!conn) return { ok: false, motivo: "sem_conexao", erro: "Conexão Meta não encontrada" };
+  // Sem trava de conta aqui de propósito: `search` é um dicionário da própria
+  // Meta (cidades/interesses), não toca conta de anúncio nenhuma.
   try {
     const r = await graphGet<{ data?: Array<{ key: string; name: string; country_code?: string }> }>(
       "search", conn.token,
@@ -275,6 +319,8 @@ export async function criarConjuntoPausado(
 ): Promise<ResultadoDeAnuncio<{ adSetId: string; segmentouGeografia: boolean }>> {
   const conn = await loadConnectionToken(workspaceId, connectionId);
   if (!conn) return { ok: false, motivo: "sem_conexao", erro: "Conexão Meta não encontrada" };
+  const barrado = await recusarContaNaoAutorizada(workspaceId, conn.clientId, input.contaId);
+  if (barrado) return barrado;
 
   const p = input.publico;
   const raio = Math.max(RAIO_MIN_KM, Math.min(RAIO_MAX_KM, Math.round(p.raioKm || 10)));
@@ -355,6 +401,8 @@ export async function criarAnuncioPausado(
 ): Promise<ResultadoDeAnuncio<{ adId: string; creativeId: string }>> {
   const conn = await loadConnectionToken(workspaceId, connectionId);
   if (!conn) return { ok: false, motivo: "sem_conexao", erro: "Conexão Meta não encontrada" };
+  const barrado = await recusarContaNaoAutorizada(workspaceId, conn.clientId, input.contaId);
+  if (barrado) return barrado;
   if (!input.imagemUrl || !input.link) {
     return { ok: false, motivo: "orcamento_invalido", erro: "anúncio sem imagem ou sem destino não é anúncio" };
   }

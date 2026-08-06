@@ -91,6 +91,7 @@ export const ModelName = {
   MetaConnection: 'MetaConnection',
   MetaAdCota: 'MetaAdCota',
   MetaAdFreio: 'MetaAdFreio',
+  MetaAtivoAutorizado: 'MetaAtivoAutorizado',
   WhatsAppMessage: 'WhatsAppMessage',
   WhatsAppOutbox: 'WhatsAppOutbox',
   PortalAccess: 'PortalAccess',
@@ -837,6 +838,20 @@ export const MetaAdFreioScalarFieldEnum = {
 } as const
 
 export type MetaAdFreioScalarFieldEnum = (typeof MetaAdFreioScalarFieldEnum)[keyof typeof MetaAdFreioScalarFieldEnum]
+
+
+export const MetaAtivoAutorizadoScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  clientId: 'clientId',
+  tipo: 'tipo',
+  externalId: 'externalId',
+  nome: 'nome',
+  autorizadoPor: 'autorizadoPor',
+  autorizadoEm: 'autorizadoEm'
+} as const
+
+export type MetaAtivoAutorizadoScalarFieldEnum = (typeof MetaAtivoAutorizadoScalarFieldEnum)[keyof typeof MetaAtivoAutorizadoScalarFieldEnum]
 
 
 export const WhatsAppMessageScalarFieldEnum = {

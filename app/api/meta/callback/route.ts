@@ -13,6 +13,9 @@ import { resolveMetaAppCredentials, DEFAULT_SCOPES } from "@/lib/integrations/me
 import { exchangeCodeForToken, exchangeForLongLivedToken } from "@/lib/integrations/meta/oauth";
 import { discoverPages } from "@/lib/integrations/meta/discovery";
 import { saveConnection } from "@/lib/integrations/meta/connections";
+import {
+  autorizarAtivos, ativoAutorizado, type EntradaDeAutorizacao,
+} from "@/lib/integrations/meta/ativos-autorizados";
 
 function safeAttr(s: string) {
   return s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/'/g, "&#39;").replace(/</g, "&lt;");
@@ -21,11 +24,19 @@ function safeAttr(s: string) {
 function popupHtml(payload: Record<string, string>): Response {
   const json = JSON.stringify(payload).replace(/</g, "\\u003c").replace(/>/g, "\\u003e");
   const isError = payload.type === "meta_auth_error";
-  const heading = isError ? "Não foi possível conectar" : "Conta Meta conectada ✓";
+  // "escolher" não é sucesso nem falha: o acesso foi concedido e NADA foi
+  // liberado ainda. Dizer "Conta conectada ✓" aqui seria mentir para o dono do
+  // negócio sobre o que a agência passou a enxergar.
+  const isEscolher = payload.type === "meta_auth_escolher";
+  const heading = isError
+    ? "Não foi possível conectar"
+    : isEscolher
+      ? "Falta escolher as contas"
+      : "Conta Meta conectada ✓";
   const detail = isError
     ? `Motivo: ${safeAttr(payload.error ?? "desconhecido")}`
     : `${safeAttr(payload.summary || "Contas conectadas")}. Já pode fechar esta janela.`;
-  const color = isError ? "#dc2626" : "#16a34a";
+  const color = isError ? "#dc2626" : isEscolher ? "#9B7B2D" : "#16a34a";
   return new Response(
     `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
 <body style="font-family:sans-serif;padding:2rem;text-align:center;color:#1a1a1a">
@@ -164,43 +175,92 @@ export async function GET(req: NextRequest): Promise<Response> {
       meta: { tipo: "user_token" },
     }).catch(() => { /* best-effort: perder isto não pode derrubar a conexão das Páginas */ });
 
-    // 3. Discover Pages + linked Instagram accounts.
+    // 3. Descobre as Páginas + Instagram vinculados.
     const pages = await discoverPages(userToken);
 
-    // 4. Persist each connectable asset. Page tokens don't expire for
-    //    long-lived users; IG publishing uses the Page token too.
+    // ── 4. O QUE É GRAVADO — E POR QUE MUDOU EM 06/08/2026 ──────────────────
+    //
+    // Até hoje este laço gravava TODAS as Páginas e todos os Instagram que o
+    // token alcançava, carimbados com o `clientId` de quem clicou. Com o token
+    // do CEO no portal da Foocci, isso significou guardar as Páginas de
+    // Santioh, Dilix, Queise, DileeBags e as pessoais dele **como conexões da
+    // Foocci, com o token de Página junto** — token que publica.
+    //
+    // "O token alcança" nunca foi "o cliente autorizou". Agora:
+    //
+    //   • CLIENTE (`clientId` preenchido): grava-se SÓ o que já está na lista
+    //     que ele marcou (`MetaAtivoAutorizado`). Na primeira conexão essa
+    //     lista está vazia — de propósito. O popup devolve
+    //     `meta_auth_escolher`, e a tela dele pede quais contas liberar. Zero
+    //     conexão gravada até ele marcar. Fail-closed.
+    //   • AGÊNCIA (`clientId` nulo): fluxo master inalterado — quem autoriza e
+    //     quem é dono são a mesma pessoa. A linha da lista é gravada junto,
+    //     para o ativo ficar visível e revogável.
+    //     ⚠️ LACUNA DECLARADA: o master ainda não tem tela de escolha.
+    const ehDaAgencia = clientId === null;
     let saved = 0;
+    let ignorados = 0;
     const names: string[] = [];
-    for (const page of pages) {
-      await saveConnection({
-        workspaceId,
-        clientId,
-        platform: "facebook",
-        name: page.name,
-        externalId: page.id,
-        accessToken: page.accessToken,
-        tokenExpiresAt: null,
-        scopes: DEFAULT_SCOPES,
-        meta: { pageId: page.id },
-      });
-      saved++;
-      names.push(`FB: ${page.name}`);
 
+    for (const page of pages) {
+      const ativos: EntradaDeAutorizacao[] = [{ tipo: "page", externalId: page.id, nome: page.name }];
       if (page.instagram) {
+        ativos.push({
+          tipo: "instagram",
+          externalId: page.instagram.id,
+          nome: page.instagram.username ? `@${page.instagram.username}` : `IG ${page.instagram.id}`,
+        });
+      }
+      if (ehDaAgencia) {
+        await autorizarAtivos(workspaceId, null, ativos, "fluxo_master");
+      }
+
+      if (await ativoAutorizado(workspaceId, clientId, "page", page.id)) {
         await saveConnection({
           workspaceId,
           clientId,
-          platform: "instagram",
-          name: page.instagram.username ? `@${page.instagram.username}` : `IG ${page.instagram.id}`,
-          externalId: page.instagram.id,
-          accessToken: page.accessToken, // IG Graph publishing uses the Page token
+          platform: "facebook",
+          name: page.name,
+          externalId: page.id,
+          accessToken: page.accessToken,
           tokenExpiresAt: null,
           scopes: DEFAULT_SCOPES,
-          meta: { pageId: page.id, igUserId: page.instagram.id },
+          meta: { pageId: page.id },
         });
         saved++;
-        names.push(`IG: ${page.instagram.username ?? page.instagram.id}`);
+        names.push(`FB: ${page.name}`);
+      } else {
+        ignorados++;
       }
+
+      if (page.instagram) {
+        if (await ativoAutorizado(workspaceId, clientId, "instagram", page.instagram.id)) {
+          await saveConnection({
+            workspaceId,
+            clientId,
+            platform: "instagram",
+            name: page.instagram.username ? `@${page.instagram.username}` : `IG ${page.instagram.id}`,
+            externalId: page.instagram.id,
+            accessToken: page.accessToken, // IG Graph publishing uses the Page token
+            tokenExpiresAt: null,
+            scopes: DEFAULT_SCOPES,
+            meta: { pageId: page.id, igUserId: page.instagram.id },
+          });
+          saved++;
+          names.push(`IG: ${page.instagram.username ?? page.instagram.id}`);
+        } else {
+          ignorados++;
+        }
+      }
+    }
+
+    if (saved === 0 && ignorados > 0) {
+      // NÃO é erro: é a trava. O acesso foi concedido e o token está guardado;
+      // falta o dono dizer QUAIS contas a agência pode usar.
+      return popupHtml({
+        type: "meta_auth_escolher",
+        summary: `Acesso concedido. Agora escolha quais das ${ignorados} conta(s) a Dioli pode acessar — nenhuma foi liberada ainda.`,
+      });
     }
 
     if (saved === 0) {

@@ -326,6 +326,23 @@ export type MetaAdCota = Prisma.MetaAdCotaModel
  */
 export type MetaAdFreio = Prisma.MetaAdFreioModel
 /**
+ * Model MetaAtivoAutorizado
+ * A LISTA EXPLÍCITA DO QUE A AGÊNCIA PODE LER/USAR NA META, POR CLIENTE.
+ * 
+ * Incidente de 06/08/2026: o CEO clicou "Conectar Facebook/Instagram" no
+ * portal do cliente Foocci. A Meta devolveu um token de USUÁRIO dele, e o
+ * sistema tratou "tudo o que o token ALCANÇA" como "tudo o que a agência PODE
+ * LER": 14 contas de anúncio (Santioh, Dilix, Queise, DileeBags e contas
+ * pessoais) e todas as Páginas/Instagram da conta pessoal dele — nada disso
+ * tem relação com a Foocci, e nada disso foi autorizado.
+ * 
+ * ALCANCE ≠ AUTORIZAÇÃO. Esta tabela é o segundo conjunto, e ele é explícito:
+ * uma linha por ativo que o CLIENTE marcou na tela dele. Ausência de linha é
+ * NEGAÇÃO — nunca "ainda não configurado, então pode". Sem linha nenhuma, a
+ * agência não lê nada daquele cliente.
+ */
+export type MetaAtivoAutorizado = Prisma.MetaAtivoAutorizadoModel
+/**
  * Model WhatsAppMessage
  * 
  */

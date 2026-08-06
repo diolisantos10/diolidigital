@@ -8,6 +8,20 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+interface AtivoView {
+  tipo: "ad_account" | "page" | "instagram" | "whatsapp";
+  externalId: string;
+  nome: string;
+  autorizado: boolean;
+}
+
+const TIPO_LABEL: Record<string, string> = {
+  page: "Página do Facebook",
+  instagram: "Instagram",
+  ad_account: "Conta de anúncios",
+  whatsapp: "WhatsApp",
+};
+
 interface ConexaoView {
   id: string;
   platform: string;
@@ -34,6 +48,11 @@ export function ConexoesDoCliente({ token }: { token: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [popupMsg, setPopupMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [ativos, setAtivos] = useState<AtivoView[]>([]);
+  const [semConexao, setSemConexao] = useState(true);
+  const [marcados, setMarcados] = useState<Set<string>>(new Set());
+  const [salvando, setSalvando] = useState(false);
+  const [lacunas, setLacunas] = useState<string[]>([]);
 
   const load = useCallback(async () => {
     try {
@@ -53,7 +72,49 @@ export function ConexoesDoCliente({ token }: { token: string }) {
     }
   }, [token]);
 
-  useEffect(() => { void load(); }, [load]);
+  // ── A ESCOLHA DO CLIENTE (06/08/2026) ───────────────────────────────────
+  // O que a Meta ALCANÇA não é o que a Dioli PODE LER. Esta lista mostra o
+  // primeiro conjunto e deixa o dono do negócio marcar o segundo. Enquanto ele
+  // não marcar, a agência não lê nada — e a tela diz isso.
+  const carregarAtivos = useCallback(async () => {
+    try {
+      const res = await fetch(token ? `/api/portal/meta-ativos?token=${encodeURIComponent(token)}` : "/api/portal/meta-ativos");
+      if (!res.ok) return;
+      const json = await res.json();
+      const lista: AtivoView[] = Array.isArray(json.ativos) ? json.ativos : [];
+      setAtivos(lista);
+      setSemConexao(Boolean(json.semConexao));
+      setLacunas(Array.isArray(json.lacunas) ? json.lacunas : []);
+      setMarcados(new Set(lista.filter((a) => a.autorizado).map((a) => `${a.tipo}:${a.externalId}`)));
+    } catch { /* a seção some; a lista de conexões continua de pé */ }
+  }, [token]);
+
+  useEffect(() => { void load(); void carregarAtivos(); }, [load, carregarAtivos]);
+
+  async function salvarEscolha() {
+    setSalvando(true);
+    try {
+      const escolhidos = ativos.filter((a) => marcados.has(`${a.tipo}:${a.externalId}`));
+      const q = token ? `?token=${encodeURIComponent(token)}` : "";
+      await fetch(`/api/portal/meta-ativos${q}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ativos: escolhidos.map((a) => ({ tipo: a.tipo, externalId: a.externalId })) }),
+      });
+      // Revogar o que foi desmarcado: desmarcar tem que APAGAR a conexão, não
+      // só sumir com o visto.
+      for (const a of ativos) {
+        if (a.autorizado && !marcados.has(`${a.tipo}:${a.externalId}`)) {
+          await fetch(`/api/portal/meta-ativos${q ? q + "&" : "?"}tipo=${a.tipo}&externalId=${encodeURIComponent(a.externalId)}`, { method: "DELETE" });
+        }
+      }
+      setPopupMsg({ ok: true, text: "Pronto. A Dioli passa a acessar só o que você marcou." });
+      await carregarAtivos();
+      await load();
+    } finally {
+      setSalvando(false);
+    }
+  }
 
   // O popup do OAuth termina num postMessage do callback — sucesso ou erro.
   useEffect(() => {
@@ -63,13 +124,18 @@ export function ConexoesDoCliente({ token }: { token: string }) {
       if (data?.type === "meta_auth_success") {
         setPopupMsg({ ok: true, text: data.summary || "Conta conectada." });
         void load();
+        void carregarAtivos();
+      } else if (data?.type === "meta_auth_escolher") {
+        // Não é sucesso: o acesso existe e NADA foi liberado ainda.
+        setPopupMsg({ ok: false, text: data.summary || "Escolha abaixo quais contas a Dioli pode acessar." });
+        void carregarAtivos();
       } else if (data?.type === "meta_auth_error") {
         setPopupMsg({ ok: false, text: `A Meta recusou a conexão: ${data.error || "erro desconhecido"}.` });
       }
     }
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, [load]);
+  }, [load, carregarAtivos]);
 
   function abrirPopup() {
     setPopupMsg(null);
@@ -151,6 +217,86 @@ export function ConexoesDoCliente({ token }: { token: string }) {
           }`}
         >
           {popupMsg.text}
+        </div>
+      )}
+
+      {/* ── O QUE A DIOLI PODE ACESSAR — a escolha é do cliente ────────────── */}
+      {!semConexao && (
+        <div className="bg-white rounded-[14px] border border-[var(--border)] p-5 shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
+          <p className="text-[14px] font-semibold text-[var(--text-primary)]">
+            O que a Dioli pode acessar
+          </p>
+          <p className="mt-1 text-[12px] text-[var(--text-secondary)] leading-snug">
+            Seu login na Meta alcança tudo o que você administra. Marque abaixo
+            só o que é do seu negócio — a Dioli não acessa nada que você não
+            marcar, e você pode desmarcar quando quiser.
+          </p>
+
+          {ativos.length === 0 ? (
+            <p className="mt-3 text-[12px] text-[var(--text-muted)]">
+              Nenhuma conta encontrada neste acesso.
+            </p>
+          ) : (
+            <>
+              {marcados.size === 0 && (
+                <div className="mt-3 rounded-[10px] border border-[#FCE7A0] bg-[#FFFBEB] px-3 py-2">
+                  <p className="text-[12px] font-semibold text-[#9B7B2D]">
+                    Falta autorizar quais contas.
+                  </p>
+                  <p className="text-[11.5px] text-[#9B7B2D] leading-snug">
+                    Enquanto nada estiver marcado, a Dioli não lê nenhuma conta sua.
+                  </p>
+                </div>
+              )}
+              <div className="mt-3 space-y-1.5">
+                {ativos.map((a) => {
+                  const chave = `${a.tipo}:${a.externalId}`;
+                  const on = marcados.has(chave);
+                  return (
+                    <label
+                      key={chave}
+                      className="flex items-start gap-3 rounded-[10px] border border-[var(--border)] px-3 py-2.5 cursor-pointer hover:bg-[var(--bg-elevated)] transition-colors"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={on}
+                        onChange={() => {
+                          const proximo = new Set(marcados);
+                          if (on) proximo.delete(chave); else proximo.add(chave);
+                          setMarcados(proximo);
+                        }}
+                        className="mt-0.5 h-4 w-4 shrink-0 accent-[#070A1F]"
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[13px] font-semibold text-[var(--text-primary)] truncate">
+                          {a.nome}
+                        </span>
+                        <span className="block text-[11px] text-[var(--text-subtle)]">
+                          {TIPO_LABEL[a.tipo] ?? a.tipo} · {a.externalId}
+                        </span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+              <button
+                onClick={() => void salvarEscolha()}
+                disabled={salvando}
+                style={{ touchAction: "manipulation" }}
+                className="mt-3 h-10 w-full sm:w-auto px-4 rounded-[9px] bg-[#070A1F] text-white text-[13px] font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity"
+              >
+                {salvando ? "Salvando…" : "Salvar o que a Dioli pode acessar"}
+              </button>
+            </>
+          )}
+
+          {lacunas.length > 0 && (
+            <ul className="mt-3 space-y-1">
+              {lacunas.map((l, i) => (
+                <li key={i} className="text-[11.5px] text-[var(--text-muted)] leading-snug">• {l}</li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
 

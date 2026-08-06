@@ -5,6 +5,18 @@
 import { prisma } from "@/lib/db/client";
 import { encryptSecret, decryptSecret, keyHint } from "@/lib/security/crypto";
 import type { MetaConnectionView, MetaPlatform } from "./types";
+import { TIPO_POR_PLATAFORMA, ativoAutorizado, normalizarId } from "./ativos-autorizados";
+
+/** A conexão foi recusada porque o ativo não está na lista do cliente. */
+export class AtivoNaoAutorizadoError extends Error {
+  constructor(public platform: string, public externalId: string) {
+    super(
+      `A agência não tem autorização do cliente para "${externalId}" (${platform}). ` +
+        `Só entra em MetaConnection o ativo que o cliente marcou na tela dele.`,
+    );
+    this.name = "AtivoNaoAutorizadoError";
+  }
+}
 
 interface SaveConnectionInput {
   workspaceId: string;
@@ -41,8 +53,45 @@ function toView(row: {
   };
 }
 
+/**
+ * ─── A TRAVA, NO PONTO ONDE O DADO NASCE (06/08/2026) ──────────────────────
+ *
+ * Até hoje, o callback do OAuth varria `me/accounts` e gravava aqui TODAS as
+ * Páginas e Instagram que o token alcançava, carimbadas com o `clientId` de
+ * quem clicou no portal. Resultado real, com o token do CEO no portal da
+ * Foocci: as Páginas de Santioh, Dilix, Queise, DileeBags e as pessoais dele
+ * viraram "conexões da Foocci" — **com o token de Página junto**, isto é, com
+ * poder de publicar. Uma varredura do que o token alcança não é uma
+ * autorização.
+ *
+ * Agora: ativo de CLIENTE (`clientId` preenchido) só é gravado se estiver na
+ * lista que o próprio cliente marcou (`MetaAtivoAutorizado`). Sem linha na
+ * lista, `saveConnection` LANÇA — não grava e não devolve silêncio.
+ *
+ * Duas exceções declaradas, e só duas:
+ *   • `platform: "user"` — o token de usuário é a CREDENCIAL que a pessoa
+ *     concedeu, não um ativo escolhido. Sem ele não há como nem mostrar a lista
+ *     de contas para ela marcar. Ele não dá acesso a nada por si: todo caminho
+ *     de leitura filtra pela lista antes de devolver qualquer coisa.
+ *   • `clientId === null` — a conta da PRÓPRIA agência, conectada pelo master.
+ *     Aqui quem autoriza e quem é dono são a mesma pessoa. A linha da lista é
+ *     gravada junto, para o ativo continuar visível e revogável.
+ *     ⚠️ DECLARADO COMO LACUNA: o fluxo master ainda não tem tela de escolha.
+ */
+async function conferirAutorizacao(input: SaveConnectionInput): Promise<void> {
+  const tipo = TIPO_POR_PLATAFORMA[input.platform] ?? null;
+  if (tipo === null) return; // "user": credencial, não ativo.
+
+  const clientId = input.clientId ?? null;
+  if (clientId === null) return; // conta da própria agência (ver acima).
+
+  const ok = await ativoAutorizado(input.workspaceId, clientId, tipo, input.externalId);
+  if (!ok) throw new AtivoNaoAutorizadoError(input.platform, normalizarId(tipo, input.externalId));
+}
+
 // Upsert a connection (unique on workspaceId+platform+externalId).
 export async function saveConnection(input: SaveConnectionInput): Promise<MetaConnectionView> {
+  await conferirAutorizacao(input);
   const encrypted = encryptSecret(input.accessToken);
   const hint = keyHint(input.accessToken);
   const scopes = JSON.stringify(input.scopes ?? []);
@@ -97,17 +146,35 @@ export async function listConnections(workspaceId: string): Promise<MetaConnecti
 // Loads the decrypted token + externalId + platform for a connection. Returns
 // null if the connection doesn't exist, isn't in this workspace, or the token
 // can't be decrypted.
+//
+// ⚠️ `clientId` SAI DAQUI DE PROPÓSITO (06/08/2026). Quem usa um token precisa
+// saber DE QUEM ele é para consultar a lista de ativos autorizados — e a
+// resposta tem que vir da linha da conexão, nunca de um `clientId` que o
+// chamador passou. Trava derivada; trava comparada é trava que a próxima rota
+// contorna sem perceber.
 export async function loadConnectionToken(
   workspaceId: string,
   connectionId: string,
-): Promise<{ token: string; externalId: string; platform: MetaPlatform; metaJson: Record<string, unknown> } | null> {
+): Promise<{
+  token: string;
+  externalId: string;
+  platform: MetaPlatform;
+  clientId: string | null;
+  metaJson: Record<string, unknown>;
+} | null> {
   const row = await prisma.metaConnection.findUnique({ where: { id: connectionId } });
   if (!row || row.workspaceId !== workspaceId) return null;
   const token = decryptSecret(row.accessTokenEncrypted);
   if (!token) return null;
   let metaJson: Record<string, unknown> = {};
   try { metaJson = JSON.parse(row.metaJson) as Record<string, unknown>; } catch { /* ignore */ }
-  return { token, externalId: row.externalId, platform: row.platform as MetaPlatform, metaJson };
+  return {
+    token,
+    externalId: row.externalId,
+    platform: row.platform as MetaPlatform,
+    clientId: row.clientId ?? null,
+    metaJson,
+  };
 }
 
 // ─── Resolução cliente → conexão ────────────────────────────────────────────

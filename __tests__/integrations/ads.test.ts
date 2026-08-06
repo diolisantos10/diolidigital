@@ -11,6 +11,20 @@ const FakeGraphError = vi.hoisted(() => class FakeGraphError extends Error {
 vi.mock("@/lib/integrations/meta/graph", () => ({ graphGet, graphPost, GraphApiError: FakeGraphError }));
 vi.mock("@/lib/integrations/meta/connections", () => ({ loadConnectionToken }));
 
+// A lista de contas autorizadas (06/08/2026) aqui é "o cliente autorizou tudo":
+// este arquivo mede orçamento, status PAUSED e ritmo. A trava de alcance tem
+// arquivo próprio — `__tests__/integrations/meta-trava-de-alcance.test.ts`.
+vi.mock("@/lib/integrations/meta/ativos-autorizados", async (original) => {
+  const real = await original<typeof import("@/lib/integrations/meta/ativos-autorizados")>();
+  return {
+    ...real,
+    ativoAutorizado: vi.fn(async () => true),
+    filtrarAutorizados: vi.fn(async (_w: string, _c: unknown, _t: unknown, itens: unknown[]) => ({
+      autorizados: itens, recusados: [], listaVazia: false,
+    })),
+  };
+});
+
 import {
   conferirOrcamento, criarCampanhaPausada, ativarCampanha, pausarCampanha,
   listarContasDeAnuncio, lerDesempenho,

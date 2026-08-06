@@ -57,9 +57,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const q = request.nextUrl.searchParams;
   const clientId = q.get("clientId");
 
-  const connectionId =
-    (await conexaoDeUsuario(session!.workspaceId, clientId)) ??
-    (clientId ? await conexaoDeUsuario(session!.workspaceId, null) : null);
+  // ⚠️ SEM FALLBACK PARA A CONEXÃO DA AGÊNCIA (corrigido em 06/08/2026). Até
+  // hoje, pedir o desempenho de um cliente sem conexão devolvia, em silêncio, o
+  // desempenho das contas DA AGÊNCIA sob o nome daquele cliente. Relatório
+  // errado com cara de certo é pior que relatório ausente.
+  const connectionId = await conexaoDeUsuario(session!.workspaceId, clientId);
 
   if (!connectionId) {
     // Estado, não falha: a tela precisa mostrar "conectar", e "não conectado"
@@ -90,9 +92,19 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   if (!r.ok || !r.dados) {
     // Freio de ritmo não é erro de servidor: é a trava funcionando. Sai 200
     // com o motivo, para a tela dizer "tente daqui a pouco" em vez de "falhou".
+    //
+    // `sem_autorizacao` idem, e por um motivo mais forte: é o estado NORMAL de
+    // uma conexão recém-feita. A tela precisa dizer "falta autorizar quais
+    // contas" — nunca mostrar dado, nunca gritar erro de servidor.
+    const trava = r.motivo === "ritmo" || r.motivo === "sem_autorizacao";
     return NextResponse.json(
-      { ok: false, motivo: r.motivo, error: r.erro },
-      { status: r.motivo === "ritmo" ? 200 : 502 },
+      {
+        ok: false,
+        motivo: r.motivo,
+        ...(r.motivo === "sem_autorizacao" ? { semAutorizacao: true, contas: [] } : {}),
+        error: r.erro,
+      },
+      { status: trava ? 200 : 502 },
     );
   }
 

@@ -51,6 +51,56 @@ Quatro frentes fechadas. O que mudou de verdade, sem prosa:
 
 ---
 
+## 🔴 06/08/2026 — FALHA DE PRIVACIDADE NA META: alcance tratado como autorização
+
+**O CEO pegou; devia ter sido o sistema.** Ele clicou "Conectar
+Facebook/Instagram" no portal do cliente **Foocci**. A Meta devolveu um token do
+**usuário** dele, e a casa tratou "o que o token alcança" como "o que a agência
+pode usar":
+
+- `me/adaccounts` devolveu **14 contas de anúncio** — Santioh, Dilix, Queise,
+  DileeBags e pessoais — e as 14 subiram para a tela;
+- **pior, e não estava no pedido:** o callback do OAuth varreu `me/accounts` e
+  **gravou como conexões da Foocci todas as Páginas e Instagram** que o token
+  alcançava, **com o token de Página junto** — token que PUBLICA. A leitura foi
+  de passagem; isso ficou no banco.
+
+### O que foi construído (fail-closed, com as duas metades testadas)
+
+| Peça | Onde |
+|---|---|
+| Lista explícita de ativos autorizados, por cliente | `MetaAtivoAutorizado` + `lib/integrations/meta/ativos-autorizados.ts` |
+| Trava na leitura (contas, campanhas, insights) | `lib/integrations/meta/ads-leitura.ts` |
+| Trava na gravação de conexão | `lib/integrations/meta/connections.ts` (`saveConnection` LANÇA) |
+| Trava na escrita de anúncios | `lib/integrations/meta/ads.ts` |
+| Callback não grava mais o que não foi marcado | `app/api/meta/callback/route.ts` |
+| A escolha, na tela do cliente | `app/api/portal/meta-ativos/route.ts` + `components/portal/ConexoesDoCliente.tsx` |
+| Perícia + limpeza do que ficou gravado | `scripts/meta-pericia-alcance.mts` |
+
+**A regra em uma frase:** a lista é consultada pelo dono **derivado** do token
+(portal ou linha de conexão), e conta fora dela não é lida nem perguntada à Meta
+— sem lista, nada.
+
+### 🔴 O QUE DEPENDE DO CEO
+
+1. **Rodar a perícia contra PRODUÇÃO** (deste ambiente não há acesso ao banco de
+   produção — o script rodou só contra o `dev.db`):
+   `DATABASE_URL=<prod> npx tsx scripts/meta-pericia-alcance.mts` → conferir →
+   `--apply`. Ele lista e apaga as conexões de Páginas/Instagram de terceiros
+   gravadas como da Foocci e as linhas de cota (`MetaAdCota`) das contas não
+   autorizadas.
+2. **Efeito do deploy, declarado:** a tabela nasce **vazia**. No primeiro boot
+   **nenhuma** conexão de cliente está autorizada — inclusive as legítimas da
+   Foocci. É fail-closed funcionando. Preencher por inferência a partir das
+   conexões existentes seria inventar o consentimento que o incidente provou não
+   existir. **Cada cliente marca na tela dele** (portal → Conexões).
+3. **Lacuna declarada:** o fluxo **master** (a agência conectando a conta dela
+   própria, `clientId` nulo) ainda **não tem tela de escolha** — ele
+   auto-autoriza e registra na lista. Fecha o buraco do cliente, não o da
+   agência sobre si mesma.
+
+---
+
 ## 🔴 06/08/2026 — A recaptura diária da biblioteca NÃO está rodando
 
 Fato verificado, não suspeita: `docs/plataformas/CHANGELOG.md` ficou **três

@@ -8,6 +8,40 @@
 
 ---
 
+## ALCANCE ≠ AUTORIZAÇÃO — lista explícita por cliente, fail-closed
+
+**Decidido em** 2026-08-06 · **por** CEO (incidente que ele mesmo pegou) ·
+**origem:** `lib/integrations/meta/ativos-autorizados.ts`
+
+O CEO clicou "Conectar Facebook/Instagram" no portal do cliente **Foocci**. A
+Meta devolveu um token do **usuário** dele. Com esse token, a casa leu **14
+contas de anúncio** (Santioh, Dilix, Queise, DileeBags e pessoais) e **gravou
+como conexões da Foocci todas as Páginas/Instagram que o token alcançava** —
+com o token de Página junto, que publica. Palavras dele: *"eu só autorizei as
+contas do Foocci no projeto."*
+
+**A regra, para qualquer plataforma (Meta, Google, TikTok, e as que vierem):**
+o que uma credencial **ALCANÇA** e o que a agência **PODE USAR** são dois
+conjuntos. Tratá-los como um só é a falha. O segundo conjunto:
+
+1. **é explícito** — uma lista por cliente, gravada, com quem marcou e quando;
+2. **é do cliente** — ele marca na tela dele; a agência não marca por ele;
+3. **é fail-closed** — lista vazia libera **nada**, e banco indisponível
+   também libera nada. Ausência de lista nunca vira permissão;
+4. **é derivado** — o dono vem do token do portal ou da própria linha de
+   conexão cujo token está em uso, **nunca de um `clientId` vindo do pedido**;
+5. **mora onde o dado nasce** — em `saveConnection` e na camada de leitura, não
+   na rota. Trava que mora na rota é trava que a rota seguinte não tem;
+6. **revogar APAGA** — desmarcar remove a linha **e** a conexão. Deixar o token
+   guardado depois de revogado é manter o dano.
+
+**Corolário que veio junto:** conectar não é autorizar. O popup do OAuth passou
+a distinguir três desfechos — conectado, **falta escolher** e erro. Dizer
+"Conta conectada ✓" quando nada foi liberado é mentir para o dono do negócio
+sobre o que a agência passou a enxergar.
+
+---
+
 ## Regra que mede um TRECHO tem de emitir só o TRECHO que mediu
 
 **Decidido em** 2026-08-04 · **por** Diretor, após 3 reprovações da auditoria
