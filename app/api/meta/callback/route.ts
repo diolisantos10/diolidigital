@@ -51,10 +51,35 @@ export async function GET(req: NextRequest): Promise<Response> {
   const { searchParams } = new URL(req.url);
   const code = searchParams.get("code");
   const state = searchParams.get("state");
-  const err = searchParams.get("error_description") ?? searchParams.get("error");
+  // ── 06/08/2026: A META EXPLICA, E A NOSSA TELA APAGAVA A EXPLICAÇÃO ────────
+  //
+  // O CEO recebeu "Motivo: no_code" numa janela em branco. A Meta tinha
+  // mandado, na MESMA URL, `error_code=100` e a razão por extenso — permissões
+  // inválidas no pedido. Nós lemos só dois dos cinco campos dela e, quando os
+  // dois vinham vazios, inventamos um rótulo interno que não significa nada
+  // para quem lê.
+  //
+  // "no_code" descreve o que FALTOU no nosso lado; nunca o que ACONTECEU no
+  // lado da Meta. Mensagem de erro que não carrega a causa não é diagnóstico —
+  // é a agência dizendo "não sei" com cara de resposta técnica.
+  const err =
+    searchParams.get("error_description") ??
+    searchParams.get("error_message") ??
+    searchParams.get("error_reason") ??
+    searchParams.get("error") ??
+    null;
+  const codigoDaMeta = searchParams.get("error_code");
 
-  if (err || !code || !state) {
-    return popupHtml({ type: "meta_auth_error", error: err ?? "no_code" });
+  if (err || codigoDaMeta || !code || !state) {
+    const detalhe = [err, codigoDaMeta ? `código ${codigoDaMeta} da Meta` : null]
+      .filter(Boolean)
+      .join(" · ");
+    return popupHtml({
+      type: "meta_auth_error",
+      // Sem NENHUM sinal da Meta, o honesto é dizer que a autorização não
+      // voltou — e não um rótulo de variável nossa.
+      error: detalhe || "A Meta não devolveu a autorização (nenhum motivo informado).",
+    });
   }
 
   // CSRF: state must match the cookie set in /api/meta/connect.
