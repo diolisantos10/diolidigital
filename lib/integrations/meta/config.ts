@@ -37,13 +37,26 @@ export const FB_OAUTH_DIALOG = `https://www.facebook.com/${GRAPH_VERSION}/dialog
 // A consequência de NÃO ter estes dois é absoluta e não tem contorno: sem eles
 // a Meta recusa qualquer chamada de anúncio — com token válido, conta conectada
 // e tudo no lugar. Não existe gestão de tráfego pago sem esta linha.
+// ── 06/08/2026: TRÊS PERMISSÕES SAÍRAM, E QUEM MANDOU TIRAR FOI A META ──────
+//
+// O CEO clicou em conectar e o diálogo respondeu, com os nomes:
+//   "Invalid Scopes: email, pages_manage_posts, read_insights."
+//
+// Este app usa **Login do Facebook para Empresas**, e ali o diálogo só aceita o
+// que está na configuração do caso de uso — `email` nem existe nesse fluxo. A
+// própria Meta avisa que "usuários do app vão ignorar estas permissões", ou
+// seja: pedir não dava erro fatal, dava **silêncio**. Permissão pedida e
+// ignorada é a pior forma de falha, porque a casa acha que tem acesso e
+// descobre que não na hora de publicar em nome do cliente.
+//
+// As três saíram pelo nome que a Meta deu, não por dedução nossa. O que a
+// publicação em Página precisar vem da configuração do caso de uso — e se
+// faltar, a conexão diz o que faltou em vez de tentar e morrer calada.
 export const DEFAULT_SCOPES = [
   "public_profile",
-  "email",
   // Facebook — páginas
   "pages_show_list",
   "pages_read_engagement",
-  "pages_manage_posts",
   "pages_manage_metadata",
   "business_management",
   // Instagram — publicar, medir, moderar
@@ -51,7 +64,6 @@ export const DEFAULT_SCOPES = [
   "instagram_content_publish",
   "instagram_manage_insights",
   "instagram_manage_comments",
-  "read_insights",
   // WhatsApp — atendimento
   "whatsapp_business_management",
   "whatsapp_business_messaging",
