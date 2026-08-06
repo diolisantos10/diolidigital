@@ -35,8 +35,16 @@ import { GET as listarConexoes } from "@/app/api/portal/conexoes/route";
 
 const TOKEN = "tok-parceiro-1";
 
+/**
+ * O `Host` vai junto porque TODO navegador manda `Host` — é obrigatório em
+ * HTTP/1.1. Sem ele o fixture representa uma requisição que não existe no mundo,
+ * e desde 06/08/2026 o código recusa montar endereço público a partir do nada
+ * (`lib/http/endereco-publico.ts`): sem saber por onde o cliente chega, o
+ * redirect sairia com o endereço interno do contêiner — foi o que abriu
+ * `http://0.0.0.0:8080` na tela do CEO.
+ */
 function req(url: string): NextRequest {
-  return new NextRequest(url);
+  return new NextRequest(url, { headers: { host: new URL(url).host } });
 }
 
 beforeEach(() => {
