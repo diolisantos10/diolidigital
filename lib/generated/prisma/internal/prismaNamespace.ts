@@ -424,6 +424,9 @@ export const ModelName = {
   MetaConnection: 'MetaConnection',
   MetaAdCota: 'MetaAdCota',
   MetaAdFreio: 'MetaAdFreio',
+  MetaRitmoJanela: 'MetaRitmoJanela',
+  MetaRitmoFreio: 'MetaRitmoFreio',
+  MetaLeituraCache: 'MetaLeituraCache',
   MetaAtivoAutorizado: 'MetaAtivoAutorizado',
   WhatsAppMessage: 'WhatsAppMessage',
   WhatsAppOutbox: 'WhatsAppOutbox',
@@ -449,7 +452,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "metaAdFreio" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -3413,6 +3416,228 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    MetaRitmoJanela: {
+      payload: Prisma.$MetaRitmoJanelaPayload<ExtArgs>
+      fields: Prisma.MetaRitmoJanelaFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MetaRitmoJanelaFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaRitmoJanelaPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MetaRitmoJanelaFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaRitmoJanelaPayload>
+        }
+        findFirst: {
+          args: Prisma.MetaRitmoJanelaFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaRitmoJanelaPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MetaRitmoJanelaFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaRitmoJanelaPayload>
+        }
+        findMany: {
+          args: Prisma.MetaRitmoJanelaFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaRitmoJanelaPayload>[]
+        }
+        create: {
+          args: Prisma.MetaRitmoJanelaCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaRitmoJanelaPayload>
+        }
+        createMany: {
+          args: Prisma.MetaRitmoJanelaCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MetaRitmoJanelaCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaRitmoJanelaPayload>[]
+        }
+        delete: {
+          args: Prisma.MetaRitmoJanelaDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaRitmoJanelaPayload>
+        }
+        update: {
+          args: Prisma.MetaRitmoJanelaUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaRitmoJanelaPayload>
+        }
+        deleteMany: {
+          args: Prisma.MetaRitmoJanelaDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MetaRitmoJanelaUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MetaRitmoJanelaUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaRitmoJanelaPayload>[]
+        }
+        upsert: {
+          args: Prisma.MetaRitmoJanelaUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaRitmoJanelaPayload>
+        }
+        aggregate: {
+          args: Prisma.MetaRitmoJanelaAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMetaRitmoJanela>
+        }
+        groupBy: {
+          args: Prisma.MetaRitmoJanelaGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaRitmoJanelaGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MetaRitmoJanelaCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaRitmoJanelaCountAggregateOutputType> | number
+        }
+      }
+    }
+    MetaRitmoFreio: {
+      payload: Prisma.$MetaRitmoFreioPayload<ExtArgs>
+      fields: Prisma.MetaRitmoFreioFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MetaRitmoFreioFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaRitmoFreioPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MetaRitmoFreioFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaRitmoFreioPayload>
+        }
+        findFirst: {
+          args: Prisma.MetaRitmoFreioFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaRitmoFreioPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MetaRitmoFreioFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaRitmoFreioPayload>
+        }
+        findMany: {
+          args: Prisma.MetaRitmoFreioFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaRitmoFreioPayload>[]
+        }
+        create: {
+          args: Prisma.MetaRitmoFreioCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaRitmoFreioPayload>
+        }
+        createMany: {
+          args: Prisma.MetaRitmoFreioCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MetaRitmoFreioCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaRitmoFreioPayload>[]
+        }
+        delete: {
+          args: Prisma.MetaRitmoFreioDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaRitmoFreioPayload>
+        }
+        update: {
+          args: Prisma.MetaRitmoFreioUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaRitmoFreioPayload>
+        }
+        deleteMany: {
+          args: Prisma.MetaRitmoFreioDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MetaRitmoFreioUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MetaRitmoFreioUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaRitmoFreioPayload>[]
+        }
+        upsert: {
+          args: Prisma.MetaRitmoFreioUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaRitmoFreioPayload>
+        }
+        aggregate: {
+          args: Prisma.MetaRitmoFreioAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMetaRitmoFreio>
+        }
+        groupBy: {
+          args: Prisma.MetaRitmoFreioGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaRitmoFreioGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MetaRitmoFreioCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaRitmoFreioCountAggregateOutputType> | number
+        }
+      }
+    }
+    MetaLeituraCache: {
+      payload: Prisma.$MetaLeituraCachePayload<ExtArgs>
+      fields: Prisma.MetaLeituraCacheFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MetaLeituraCacheFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaLeituraCachePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MetaLeituraCacheFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaLeituraCachePayload>
+        }
+        findFirst: {
+          args: Prisma.MetaLeituraCacheFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaLeituraCachePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MetaLeituraCacheFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaLeituraCachePayload>
+        }
+        findMany: {
+          args: Prisma.MetaLeituraCacheFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaLeituraCachePayload>[]
+        }
+        create: {
+          args: Prisma.MetaLeituraCacheCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaLeituraCachePayload>
+        }
+        createMany: {
+          args: Prisma.MetaLeituraCacheCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MetaLeituraCacheCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaLeituraCachePayload>[]
+        }
+        delete: {
+          args: Prisma.MetaLeituraCacheDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaLeituraCachePayload>
+        }
+        update: {
+          args: Prisma.MetaLeituraCacheUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaLeituraCachePayload>
+        }
+        deleteMany: {
+          args: Prisma.MetaLeituraCacheDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MetaLeituraCacheUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MetaLeituraCacheUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaLeituraCachePayload>[]
+        }
+        upsert: {
+          args: Prisma.MetaLeituraCacheUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetaLeituraCachePayload>
+        }
+        aggregate: {
+          args: Prisma.MetaLeituraCacheAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMetaLeituraCache>
+        }
+        groupBy: {
+          args: Prisma.MetaLeituraCacheGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaLeituraCacheGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MetaLeituraCacheCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetaLeituraCacheCountAggregateOutputType> | number
+        }
+      }
+    }
     MetaAtivoAutorizado: {
       payload: Prisma.$MetaAtivoAutorizadoPayload<ExtArgs>
       fields: Prisma.MetaAtivoAutorizadoFieldRefs
@@ -4915,6 +5140,37 @@ export const MetaAdFreioScalarFieldEnum = {
 export type MetaAdFreioScalarFieldEnum = (typeof MetaAdFreioScalarFieldEnum)[keyof typeof MetaAdFreioScalarFieldEnum]
 
 
+export const MetaRitmoJanelaScalarFieldEnum = {
+  id: 'id',
+  chave: 'chave',
+  janela: 'janela',
+  gastas: 'gastas',
+  atualizadoEm: 'atualizadoEm'
+} as const
+
+export type MetaRitmoJanelaScalarFieldEnum = (typeof MetaRitmoJanelaScalarFieldEnum)[keyof typeof MetaRitmoJanelaScalarFieldEnum]
+
+
+export const MetaRitmoFreioScalarFieldEnum = {
+  chave: 'chave',
+  ate: 'ate',
+  motivo: 'motivo',
+  criadoEm: 'criadoEm'
+} as const
+
+export type MetaRitmoFreioScalarFieldEnum = (typeof MetaRitmoFreioScalarFieldEnum)[keyof typeof MetaRitmoFreioScalarFieldEnum]
+
+
+export const MetaLeituraCacheScalarFieldEnum = {
+  chave: 'chave',
+  valorJson: 'valorJson',
+  validoAte: 'validoAte',
+  criadoEm: 'criadoEm'
+} as const
+
+export type MetaLeituraCacheScalarFieldEnum = (typeof MetaLeituraCacheScalarFieldEnum)[keyof typeof MetaLeituraCacheScalarFieldEnum]
+
+
 export const MetaAtivoAutorizadoScalarFieldEnum = {
   id: 'id',
   workspaceId: 'workspaceId',
@@ -5294,6 +5550,9 @@ export type GlobalOmitConfig = {
   metaConnection?: Prisma.MetaConnectionOmit
   metaAdCota?: Prisma.MetaAdCotaOmit
   metaAdFreio?: Prisma.MetaAdFreioOmit
+  metaRitmoJanela?: Prisma.MetaRitmoJanelaOmit
+  metaRitmoFreio?: Prisma.MetaRitmoFreioOmit
+  metaLeituraCache?: Prisma.MetaLeituraCacheOmit
   metaAtivoAutorizado?: Prisma.MetaAtivoAutorizadoOmit
   whatsAppMessage?: Prisma.WhatsAppMessageOmit
   whatsAppOutbox?: Prisma.WhatsAppOutboxOmit

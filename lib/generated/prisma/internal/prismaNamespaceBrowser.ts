@@ -91,6 +91,9 @@ export const ModelName = {
   MetaConnection: 'MetaConnection',
   MetaAdCota: 'MetaAdCota',
   MetaAdFreio: 'MetaAdFreio',
+  MetaRitmoJanela: 'MetaRitmoJanela',
+  MetaRitmoFreio: 'MetaRitmoFreio',
+  MetaLeituraCache: 'MetaLeituraCache',
   MetaAtivoAutorizado: 'MetaAtivoAutorizado',
   WhatsAppMessage: 'WhatsAppMessage',
   WhatsAppOutbox: 'WhatsAppOutbox',
@@ -840,6 +843,37 @@ export const MetaAdFreioScalarFieldEnum = {
 } as const
 
 export type MetaAdFreioScalarFieldEnum = (typeof MetaAdFreioScalarFieldEnum)[keyof typeof MetaAdFreioScalarFieldEnum]
+
+
+export const MetaRitmoJanelaScalarFieldEnum = {
+  id: 'id',
+  chave: 'chave',
+  janela: 'janela',
+  gastas: 'gastas',
+  atualizadoEm: 'atualizadoEm'
+} as const
+
+export type MetaRitmoJanelaScalarFieldEnum = (typeof MetaRitmoJanelaScalarFieldEnum)[keyof typeof MetaRitmoJanelaScalarFieldEnum]
+
+
+export const MetaRitmoFreioScalarFieldEnum = {
+  chave: 'chave',
+  ate: 'ate',
+  motivo: 'motivo',
+  criadoEm: 'criadoEm'
+} as const
+
+export type MetaRitmoFreioScalarFieldEnum = (typeof MetaRitmoFreioScalarFieldEnum)[keyof typeof MetaRitmoFreioScalarFieldEnum]
+
+
+export const MetaLeituraCacheScalarFieldEnum = {
+  chave: 'chave',
+  valorJson: 'valorJson',
+  validoAte: 'validoAte',
+  criadoEm: 'criadoEm'
+} as const
+
+export type MetaLeituraCacheScalarFieldEnum = (typeof MetaLeituraCacheScalarFieldEnum)[keyof typeof MetaLeituraCacheScalarFieldEnum]
 
 
 export const MetaAtivoAutorizadoScalarFieldEnum = {

@@ -326,6 +326,42 @@ export type MetaAdCota = Prisma.MetaAdCotaModel
  */
 export type MetaAdFreio = Prisma.MetaAdFreioModel
 /**
+ * Model MetaRitmoJanela
+ * O TETO POR HORA DE **TODA** A GRAPH — Instagram, Páginas, WhatsApp inclusive.
+ * 
+ * Irmão do `MetaAdCota` (que é só da Marketing API, e conta por pontuação). Até
+ * 06/08/2026 este era o último contador de ritmo em MEMÓRIA de processo, em
+ * dois lugares: `lib/integrations/meta/ritmo.ts` (marcas de tempo por chave) e
+ * `lib/integrations/meta/leitura.ts` (mapa por conexão). Os dois defeitos são o
+ * mesmo: todo deploy zerava — nesta casa, várias vezes por dia — e com N
+ * réplicas o teto efetivo na MESMA conta da Meta virava N × teto.
+ * 
+ * `chave` é o ator, nunca o token: impressão digital FNV-1a (`tk:xxxxxxxx`),
+ * `conexao:<id>` ou `escopo:<nome>`. Credencial não entra em tabela nem em log.
+ */
+export type MetaRitmoJanela = Prisma.MetaRitmoJanelaModel
+/**
+ * Model MetaRitmoFreio
+ * O CASTIGO DA CHAVE depois de um erro de limite (ou de um cabeçalho de uso no
+ * vermelho). Enquanto durar, a casa não chama a Meta com aquela chave.
+ * 
+ * Em memória, um redeploy no meio do castigo devolvia a rajada — e a Meta não
+ * esquece a rajada. Só ESTENDE: um freio menor nunca encurta um maior.
+ */
+export type MetaRitmoFreio = Prisma.MetaRitmoFreioModel
+/**
+ * Model MetaLeituraCache
+ * O CACHE DE LEITURA DA META, no volume.
+ * 
+ * Não é histórico: é o que impede o dashboard aberto três vezes (ou a varredura
+ * da esteira a cada 5 min) de virar três rajadas de GET na mesma conta. Em
+ * memória, todo deploy o esvaziava e devolvia a primeira rajada de graça.
+ * 
+ * FAIL-OPEN por desenho: linha ausente ou ilegível é MISS, e a chamada segue
+ * pelo contador (`MetaRitmoJanela`), que é a trava de verdade.
+ */
+export type MetaLeituraCache = Prisma.MetaLeituraCacheModel
+/**
  * Model MetaAtivoAutorizado
  * A LISTA EXPLÍCITA DO QUE A AGÊNCIA PODE LER/USAR NA META, POR CLIENTE.
  * 
