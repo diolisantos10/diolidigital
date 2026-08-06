@@ -7,7 +7,15 @@ name: CI
 
 on:
   push:
-    branches: ["**"]
+    # A BRANCH DE PRODUÇÃO VEM NOMEADA, e não é redundância com o `**`.
+    # O Railway só reconhece um workflow como portão ("Wait for CI") quando
+    # acha um `on: push: branches:` que ele consiga casar com a branch
+    # conectada — glob não basta. Sem esta linha, o portão do deploy ficaria
+    # ligado sem ter o que esperar, que é aprovar tudo com cara de trava.
+    # Conferir com `npm run portao`: "workflows de portão" tem que ser >= 1.
+    branches:
+      - claude/dioli-agency-os-architecture-kk7kp
+      - "**"
   pull_request:
     branches: ["**"]
 

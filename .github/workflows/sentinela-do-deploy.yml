@@ -26,10 +26,23 @@ on:
     # comentário em cron-execute.yml. Por isso o sentinela também roda a cada
     # push: assim todo deploy é conferido logo depois de acontecer.
     - cron: "17 * * * *"
-  push:
-    branches:
-      - claude/dioli-agency-os-architecture-kk7kp
   workflow_dispatch: {}
+
+# ── O GATILHO DE PUSH FOI REMOVIDO EM 06/08/2026, E ISSO FOI DE PROPÓSITO ────
+# O portão do deploy passou a ser o "Wait for CI" do Railway: ele espera os
+# workflows daquele push e DESCARTA a implantação se algum deles não fechar
+# verde. Um sentinela rodando no push entraria nessa conta — e o sentinela
+# fecha vermelho justamente quando a produção está ruim.
+#
+# O resultado seria o pior impasse possível: produção em estado ruim →
+# sentinela vermelho → Railway descarta o deploy → o conserto não sobe →
+# sentinela continua vermelho. O alarme de incêndio trancando a porta.
+#
+# Quem GUARDA a produção agora é a CI, na frente do deploy. O sentinela voltou
+# a ser o que ele é: quem CONFERE depois e abre issue. Custo declarado: a
+# conferência de um deploy deixa de ser imediata e passa a esperar a rodada
+# de hora em hora (que, medido neste repositório, na prática demora mais que
+# uma hora). Quem quiser na hora: `workflow_dispatch`, ou `npm run sentinela`.
 
 # Não adianta ter três sentinelas conferindo a mesma produção ao mesmo tempo.
 concurrency:
@@ -55,21 +68,36 @@ jobs:
       - name: Install deps
         run: npm ci
 
-      # O deploy do Railway leva ~2 min entre o push e o container novo atender.
-      # Conferir antes disso acusaria o commit ANTERIOR e abriria issue à toa.
-      - name: Esperar o deploy assentar
-        if: github.event_name == 'push'
-        run: sleep 180
+      # (A espera de 3 min existia para o gatilho de push, que saiu daqui.
+      #  Na rodada agendada e no disparo manual não há deploy em curso para
+      #  esperar — e esperar à toa só queima runner.)
 
+      # ── POR QUE ESTE PASSO NÃO PODE DERRUBAR O JOB ────────────────────────
+      # Desde 06/08/2026 o portão do deploy é o "Wait for CI" do Railway: ele
+      # segura a subida enquanto os workflows do push rodam e a DESCARTA se
+      # algum deles falhar. O sentinela roda no mesmo push — e falha de
+      # propósito quando a produção está sem prova.
+      #
+      # Somando as duas coisas sem cuidado, nasce um impasse: produção em
+      # estado ruim → sentinela vermelho → Railway descarta o deploy → o
+      # conserto não sobe → sentinela continua vermelho. O alarme viraria a
+      # tranca da porta de saída.
+      #
+      # Quem GUARDA é a CI; quem DENUNCIA é o sentinela, e a denúncia dele é a
+      # issue (que notifica por e-mail e fica aberta cobrando), não a cor do
+      # job. Por isso o passo é `continue-on-error` e a issue passou a depender
+      # do CÓDIGO do veredito, não da falha do passo.
       - name: Perguntar à produção e ao portão
         id: sentinela
+        continue-on-error: true
         run: npm run sentinela
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Só roda quando o passo acima falhou — e aí o veredito já está no output.
+      # Qualquer veredito que não seja APROVADO abre issue. Output vazio
+      # também: sentinela mudo é sentinela quebrado, não "está tudo bem".
       - name: Abrir issue quando a produção está sem prova
-        if: failure() && steps.sentinela.outputs.codigo != ''
+        if: steps.sentinela.outputs.codigo != '' && steps.sentinela.outputs.codigo != 'APROVADO'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CODIGO: ${{ steps.sentinela.outputs.codigo }}
@@ -93,4 +121,25 @@ jobs:
             gh issue create --title "$TITULO" --body "$CORPO" \
               --label sentinela-do-deploy 2>/dev/null \
               || gh issue create --title "$TITULO" --body "$CORPO"
+          fi
+
+      # Sentinela que não deu veredito nenhum é sentinela QUEBRADO — e um
+      # sentinela quebrado tem exatamente a mesma aparência de um sentinela
+      # satisfeito: silêncio. É a doença que este workflow inteiro veio curar,
+      # aplicada a ele mesmo.
+      - name: Gritar quando o próprio sentinela ficou mudo
+        if: steps.sentinela.outputs.codigo == ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          TITULO="🚨 O sentinela do deploy não deu veredito"
+          EXISTE=$(gh issue list --state open --search "não deu veredito in:title" \
+                     --json number --jq '.[0].number // empty')
+          CORPO="O sentinela rodou e não produziu código de veredito. Enquanto isso, ninguém está conferindo se o que está no ar passou pelo portão. Rodada: $RUN_URL"
+          if [ -n "$EXISTE" ]; then
+            gh issue comment "$EXISTE" --body "$CORPO"
+          else
+            gh issue create --title "$TITULO" --body "$CORPO"
           fi

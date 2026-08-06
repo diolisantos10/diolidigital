@@ -17,28 +17,11 @@
  * ele é usado só para não esbarrar no limite de requisições.
  */
 
-import { julgarDeploy, type ConclusaoDeCI } from "../lib/plataforma/sentinela-do-deploy.ts";
+import { julgarDeploy } from "../lib/plataforma/sentinela-do-deploy.ts";
+import { comTempoLimite, olharCI, olharPlataforma, REPO_PADRAO } from "../lib/plataforma/consulta-de-ci.ts";
 
 const PRODUCAO = process.env.SENTINELA_URL ?? "https://dioli-agency-os-1-production.up.railway.app";
-const REPO = process.env.SENTINELA_REPO ?? "diolisantos10/diolidigital";
-const NOME_DO_WORKFLOW_DE_PORTAO = "CI";
-
-function cabecalhos(): Record<string, string> {
-  const h: Record<string, string> = { Accept: "application/vnd.github+json" };
-  const tok = process.env.GITHUB_TOKEN;
-  if (tok) h.Authorization = `Bearer ${tok}`;
-  return h;
-}
-
-async function comTempoLimite(url: string, init: RequestInit = {}, ms = 15_000): Promise<Response> {
-  const ac = new AbortController();
-  const t = setTimeout(() => ac.abort(), ms);
-  try {
-    return await fetch(url, { ...init, signal: ac.signal });
-  } finally {
-    clearTimeout(t);
-  }
-}
+const REPO = process.env.SENTINELA_REPO ?? REPO_PADRAO;
 
 /** 1. A produção: está de pé, e qual versão? */
 async function olharProducao(): Promise<{ noAr: boolean; commit: string | null }> {
@@ -52,84 +35,15 @@ async function olharProducao(): Promise<{ noAr: boolean; commit: string | null }
   }
 }
 
-/**
- * 2. A CI daquele commit.
- *
- * ATENÇÃO ao detalhe que já enganou: `?head_sha=` exige o SHA COMPLETO. Com o
- * SHA curto (que é o que /api/health devolve) a API responde `total_count: 0` —
- * ou seja, "não existe CI" — para um commit que pode ter CI verde. Um sentinela
- * que caísse nessa gritaria falso todo dia e seria desligado na primeira semana.
- * Por isso resolvemos o SHA completo antes de perguntar.
- */
-async function olharCI(commitCurto: string): Promise<{
-  houveRun: boolean;
-  conclusao: ConclusaoDeCI | null;
-  url: string | null;
-  shaCompleto: string | null;
-}> {
-  const vazio = { houveRun: false, conclusao: null, url: null, shaCompleto: null };
-  let shaCompleto: string;
-  try {
-    const rc = await comTempoLimite(`https://api.github.com/repos/${REPO}/commits/${commitCurto}`, {
-      headers: cabecalhos(),
-    });
-    if (!rc.ok) return vazio;
-    shaCompleto = ((await rc.json()) as { sha: string }).sha;
-  } catch {
-    return vazio;
-  }
-
-  try {
-    const rr = await comTempoLimite(
-      `https://api.github.com/repos/${REPO}/actions/runs?head_sha=${shaCompleto}&per_page=50`,
-      { headers: cabecalhos() },
-    );
-    if (!rr.ok) return { ...vazio, shaCompleto };
-    const j = (await rr.json()) as {
-      workflow_runs: { name: string; conclusion: string | null; status: string; html_url: string }[];
-    };
-    // Só o workflow de portão conta. Um cron verde não prova nada sobre o código.
-    const runs = j.workflow_runs.filter((r) => r.name === NOME_DO_WORKFLOW_DE_PORTAO);
-    if (runs.length === 0) return { ...vazio, shaCompleto };
-    // Se QUALQUER tentativa fechou verde, o commit tem prova.
-    const verde = runs.find((r) => r.conclusion === "success");
-    const escolhido = verde ?? runs[0];
-    return {
-      houveRun: true,
-      conclusao: (escolhido.conclusion ?? null) as ConclusaoDeCI | null,
-      url: escolhido.html_url,
-      shaCompleto,
-    };
-  } catch {
-    return { ...vazio, shaCompleto };
-  }
-}
-
-/** 3. O GitHub Actions em si está de pé? */
-async function olharPlataforma(): Promise<{ actionsOperacional: boolean; incidente: string | null }> {
-  try {
-    const r = await comTempoLimite("https://www.githubstatus.com/api/v2/summary.json");
-    if (!r.ok) return { actionsOperacional: true, incidente: null };
-    const j = (await r.json()) as {
-      components: { name: string; status: string }[];
-      incidents: { name: string; status: string }[];
-    };
-    const actions = j.components.find((c) => c.name === "Actions");
-    const ok = !actions || actions.status === "operational";
-    const inc = j.incidents.find((i) => /actions/i.test(i.name));
-    return { actionsOperacional: ok, incidente: inc ? inc.name : null };
-  } catch {
-    // Não conseguir falar com o status page NÃO pode virar "está tudo bem" nem
-    // "está tudo mal": assumimos operacional, que é o caminho MAIS severo do
-    // veredito (SEM_PROVA grave em vez de atenção).
-    return { actionsOperacional: true, incidente: null };
-  }
-}
+// 2. A CI daquele commit e 3. o estado do Actions saíram daqui e viraram
+//    `lib/plataforma/consulta-de-ci.ts` — a porta de emergência precisa das
+//    MESMAS perguntas, e duas cópias é como um dos lados volta a ler ausência
+//    como aprovação.
 
 async function main(): Promise<void> {
   const [producao, plataforma] = await Promise.all([olharProducao(), olharPlataforma()]);
   const ci = producao.commit
-    ? await olharCI(producao.commit)
+    ? await olharCI(producao.commit, REPO)
     : { houveRun: false, conclusao: null, url: null, shaCompleto: null };
 
   const v = julgarDeploy({ producao, ci, plataforma });

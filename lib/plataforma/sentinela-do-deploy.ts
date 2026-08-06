@@ -93,6 +93,66 @@ const REPROVA: ReadonlySet<string> = new Set<ConclusaoDeCI>([
   "action_required",
 ]);
 
+/**
+ * O veredito sobre A PROVA de um commit, sem falar de produção.
+ *
+ * Existe porque DUAS coisas precisam da mesma regra e não podem divergir:
+ *   • o sentinela, que julga o que JÁ está no ar (depois do fato);
+ *   • a porta de emergência, que precisa registrar em que estado a CI estava
+ *     no momento em que alguém forçou uma subida (antes do fato).
+ *
+ * Duas cópias da regra é como "sem prova" volta a contar como verde num dos
+ * lados. Por isso a classificação mora aqui, uma vez só, e `julgarDeploy`
+ * apenas a veste de produção.
+ */
+export type CodigoDaProva = "APROVADO" | "CI_REPROVOU" | "SEM_PROVA_PLATAFORMA_FORA" | "SEM_PROVA";
+
+export type VereditoDaProva = {
+  codigo: CodigoDaProva;
+  /** true SÓ quando a CI rodou inteira e disse sim. Nunca por ausência. */
+  temProva: boolean;
+  /** Uma linha, em português de negócio. */
+  resumo: string;
+};
+
+export function julgarProva(input: { ci: ProvaDeCI; plataforma: EstadoDaPlataforma }): VereditoDaProva {
+  const { ci, plataforma } = input;
+
+  if (ci.houveRun && ci.conclusao && REPROVA.has(ci.conclusao)) {
+    return {
+      codigo: "CI_REPROVOU",
+      temProva: false,
+      resumo: `A CI rodou e REPROVOU este commit (${ci.conclusao}).`,
+    };
+  }
+
+  if (ci.houveRun && ci.conclusao && APROVA.has(ci.conclusao)) {
+    return { codigo: "APROVADO", temProva: true, resumo: "Este commit passou na CI." };
+  }
+
+  // Tudo o mais é AUSÊNCIA DE PROVA — e ausência de prova não é aprovação.
+  // Cai aqui tanto "não houve run nenhum" quanto "houve run que morreu no
+  // meio" (cancelled/stale/skipped/neutral). Nos dois casos ninguém provou nada.
+  if (!plataforma.actionsOperacional) {
+    return {
+      codigo: "SEM_PROVA_PLATAFORMA_FORA",
+      temProva: false,
+      resumo:
+        "Este commit NÃO tem prova de CI — o GitHub Actions está fora" +
+        (plataforma.incidente ? ` (${plataforma.incidente})` : "") +
+        ".",
+    };
+  }
+
+  return {
+    codigo: "SEM_PROVA",
+    temProva: false,
+    resumo:
+      "Este commit NÃO tem CI verde" +
+      (ci.houveRun ? ` — o run terminou em "${ci.conclusao}", sem provar nada.` : " — nenhum run foi criado."),
+  };
+}
+
 export function julgarDeploy(input: {
   producao: EstadoDaProducao;
   ci: ProvaDeCI;
@@ -128,53 +188,53 @@ export function julgarDeploy(input: {
 
   const commit = producao.commit;
 
-  // 3. A CI rodou e disse NÃO — e mesmo assim isso está no ar.
-  if (ci.houveRun && ci.conclusao && REPROVA.has(ci.conclusao)) {
-    return {
-      codigo: "CI_REPROVOU",
-      gravidade: "grave",
-      resumo: `A produção está servindo ${commit}, e a CI REPROVOU esse commit (${ci.conclusao}).`,
-      acao: "Voltar a produção para o último commit aprovado, ou consertar e subir por cima — agora.",
-      producaoSemProva: true,
-    };
-  }
+  // 3 a 5. A classificação da PROVA é uma regra só, e ela mora em `julgarProva`.
+  //        Aqui ela só é vestida de produção: mesma conclusão, texto de quem
+  //        está olhando o que já está no ar.
+  const prova = julgarProva({ ci, plataforma });
 
-  // 4. A CI aprovou. Único caminho verde.
-  if (ci.houveRun && ci.conclusao && APROVA.has(ci.conclusao)) {
-    return {
-      codigo: "APROVADO",
-      gravidade: "ok",
-      resumo: `A produção está servindo ${commit}, e esse commit passou na CI.`,
-      acao: "",
-      producaoSemProva: false,
-    };
-  }
+  switch (prova.codigo) {
+    case "CI_REPROVOU":
+      return {
+        codigo: "CI_REPROVOU",
+        gravidade: "grave",
+        resumo: `A produção está servindo ${commit}, e a CI REPROVOU esse commit (${ci.conclusao}).`,
+        acao: "Voltar a produção para o último commit aprovado, ou consertar e subir por cima — agora.",
+        producaoSemProva: true,
+      };
 
-  // 5. Tudo o mais é AUSÊNCIA DE PROVA — e ausência de prova não é aprovação.
-  //    Cai aqui tanto "não houve run nenhum" quanto "houve run que morreu no
-  //    meio" (cancelled/stale/skipped). Nos dois casos ninguém provou nada.
-  if (!plataforma.actionsOperacional) {
-    return {
-      codigo: "SEM_PROVA_PLATAFORMA_FORA",
-      gravidade: "atencao",
-      resumo:
-        `A produção está servindo ${commit} SEM prova de CI — o GitHub Actions está fora` +
-        (plataforma.incidente ? ` (${plataforma.incidente})` : "") +
-        ".",
-      acao:
-        "Rodar o portão à mão (npx tsc --noEmit, npx vitest run, npm run build) e, " +
-        "quando o Actions voltar, disparar a CI neste commit para deixar a prova registrada.",
-      producaoSemProva: true,
-    };
-  }
+    case "APROVADO":
+      return {
+        codigo: "APROVADO",
+        gravidade: "ok",
+        resumo: `A produção está servindo ${commit}, e esse commit passou na CI.`,
+        acao: "",
+        producaoSemProva: false,
+      };
 
-  return {
-    codigo: "SEM_PROVA",
-    gravidade: "grave",
-    resumo:
-      `A produção está servindo ${commit} e NÃO existe CI verde para esse commit` +
-      (ci.houveRun ? ` (o run terminou em "${ci.conclusao}", sem provar nada).` : " (nenhum run foi criado)."),
-    acao: "Disparar a CI neste commit. Até ela fechar verde, tratar a produção como não verificada.",
-    producaoSemProva: true,
-  };
+    case "SEM_PROVA_PLATAFORMA_FORA":
+      return {
+        codigo: "SEM_PROVA_PLATAFORMA_FORA",
+        gravidade: "atencao",
+        resumo:
+          `A produção está servindo ${commit} SEM prova de CI — o GitHub Actions está fora` +
+          (plataforma.incidente ? ` (${plataforma.incidente})` : "") +
+          ".",
+        acao:
+          "Rodar o portão à mão (npx tsc --noEmit, npx vitest run, npm run build) e, " +
+          "quando o Actions voltar, disparar a CI neste commit para deixar a prova registrada.",
+        producaoSemProva: true,
+      };
+
+    case "SEM_PROVA":
+      return {
+        codigo: "SEM_PROVA",
+        gravidade: "grave",
+        resumo:
+          `A produção está servindo ${commit} e NÃO existe CI verde para esse commit` +
+          (ci.houveRun ? ` (o run terminou em "${ci.conclusao}", sem provar nada).` : " (nenhum run foi criado)."),
+        acao: "Disparar a CI neste commit. Até ela fechar verde, tratar a produção como não verificada.",
+        producaoSemProva: true,
+      };
+  }
 }

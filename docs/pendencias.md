@@ -5,6 +5,83 @@
 
 ---
 
+## 🔴 06/08/2026 (noite) — O PORTÃO DO DEPLOY ESTÁ CONSTRUÍDO E **NÃO ESTÁ LIGADO**
+
+Ordem do CEO: *deploy só com CI verde, com porta de emergência declarada.*
+O mecanismo está pronto, testado e documentado (`docs/deploys/portao.md`).
+**Falta um clique — e ele não é meu.**
+
+**O caminho escolhido, conferido na documentação do Railway** (não de memória):
+o recurso **"Wait for CI"** do próprio Railway (`checkSuites` no
+`DeploymentTrigger`, `docs.railway.com/deployments/github-autodeploys`). Com ele,
+o push cria a implantação em **WAITING**, ela vira **SKIPPED** se algum workflow
+falhar, e só sobe com tudo verde. Preferido ao caminho "desligar o autodeploy e
+deployar de dentro de um workflow" porque este último **não funciona no dia da
+pane** — workflow que deploya só deploya se o Actions estiver de pé, e foi
+justamente o Actions que caiu.
+
+### 🔴 O QUE DEPENDE DO CEO — e sem isso nada disto protege
+
+1. **Ligar o portão.** Railway → projeto Dioli Digital → serviço `diolidigital`
+   → Settings → Source → **Wait for CI**. Ou, com um token de conta:
+   `RAILWAY_TOKEN=<token> npm run portao -- --ligar`.
+2. **Um token de CONTA do Railway.** O token de projeto que eu tinha **só lê**.
+   Ele recusou com `Bad Access` as três mutações que importam:
+   `deploymentTriggerUpdate` (ligar o portão),
+   `serviceInstanceAutoDeployUpdate` e `environmentTriggersDeploy` (disparar o
+   deploy — a porta de emergência). **Sem esse token a porta de emergência não
+   abre**, e é ela que garante subir num dia de pane.
+
+**Enquanto o item 1 não acontecer, o Railway continua subindo todo push sem
+olhar a CI — exatamente como hoje de manhã.** `npm run portao` responde isso em
+uma linha, e sai vermelho.
+
+### O que foi construído
+
+- **Uma régua só de "o que conta como verde"** (`julgarProva`, em
+  `lib/plataforma/sentinela-do-deploy.ts`). O sentinela e a porta de emergência
+  usam a mesma — duas cópias é como "sem prova" volta a contar como verde de um
+  lado só. `success` aprova; cancelada, estourada, pulada, em andamento e
+  **inexistente** caem em `SEM_PROVA`, e a mensagem diz qual dos casos é.
+- **A porta de emergência** (`npm run deploy:emergencia`, com `--ensaio`).
+  Não abre sem `--quem`, sem `--motivo` de 20+ caracteres e sem `--confirmo`;
+  **recusa** quando o commit já tem CI verde (porta usada com o portão aberto é
+  como ela vira o caminho normal); e **grava o registro ANTES de disparar** — se
+  não deu para registrar, não sobe. O rastro fica em
+  `docs/deploys/emergencias.md`.
+- **O sentinela saiu da frente do deploy.** Ele rodava no push; com o portão
+  ligado, workflow vermelho descarta a implantação — e o sentinela fica vermelho
+  justamente quando a produção está ruim. Isso trancaria o conserto do lado de
+  fora. Agora ele roda de hora em hora e denuncia por issue. **Custo declarado:**
+  a conferência pós-deploy deixa de ser imediata.
+- **`ci.yml` passou a nomear a branch de produção** no `on: push`. O Railway só
+  reconhece como portão um workflow cujo `branches:` ele consegue casar; portão
+  ligado sem workflow para esperar aprova tudo com cara de trava. `npm run portao`
+  sai vermelho nesse estado.
+
+### O que ficou provado, e o que não
+
+- ✅ **A régua, contra o GitHub real:** commit `0ce8ea2` (o que está em produção)
+  tem CI verde e sai `APROVADO` — com SHA curto **e** completo. Com o Actions em
+  **major outage neste momento**, CI verde continua verde: a pane não apaga prova
+  que existe.
+- ✅ **As duas metades da porta**, com o script rodando de verdade: sem motivo →
+  recusa e sai 1; motivo curto → recusa; commit já aprovado → recusa e ensina o
+  caminho normal; com quem+motivo+confirmação num dia de pane → **libera**.
+  36 testes verdes em `__tests__/plataforma/porta-de-emergencia.test.ts`.
+- 🔴 **NÃO ficou provado que o portão segura de verdade** — não consegui ligá-lo
+  (token só lê). O comportamento do "Wait for CI" está afirmado pela
+  documentação do Railway, não medido nesta casa.
+- 🔴 **NÃO ficou provado o disparo do deploy.** `environmentTriggersDeploy`
+  recusou. A produção **não foi tocada** nesta sessão.
+- 🟠 **Defeito achado testando de verdade, e corrigido:** o registro era gravado
+  antes do disparo (certo) e nunca voltava para dizer que o disparo **falhou** —
+  ficava no arquivo uma linha com cara de subida que não aconteceu. Agora toda
+  entrada termina com o resultado. A entrada do teste em
+  `docs/deploys/emergencias.md` está anotada com todas as letras.
+
+---
+
 ## 🔴 06/08/2026 — App Review da Meta: dossiê pronto, 1 bloqueio no colo do CEO
 
 Dossiê completo em **`docs/plataformas/meta/app-review.md`**: estado do app
