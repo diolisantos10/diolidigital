@@ -1,5 +1,14 @@
 # Cartilha do Google — o que pode, o que não pode, o que suspende
 
+> **Ampliada em 06/08/2026** por ordem do CEO ("absorver o máximo de
+> conhecimento público da plataforma"): a biblioteca saiu de 21 para 76 fontes
+> no manifesto, 71 capturadas. O que entrou de novo — e é o que muda operação —
+> está nas seções (f) a (i): como a API do Perfil de Empresa funciona de
+> verdade (endpoints, cotas, verificação, Pub/Sub), a Google Ads API do zero
+> (token, níveis, cotas diárias, GAQL, erros), o GA4 (Data API, Admin API,
+> cotas, PII) e o OAuth do Google (escopos sensíveis/restritos, verificação de
+> app, refresh token de 7 dias).
+
 > Biblioteca do especialista do Google da Dioli Digital. Escrita em 03/08/2026,
 > no dia em que a Meta restringiu a conta de anúncios da agência por "automação
 > fora das regras" — esta cartilha existe para o mesmo erro não se repetir no
@@ -268,6 +277,199 @@ específico registrado por cliente (item 2) e acesso aprovado à API (seção d)
 
 ---
 
+## (f) Perfil de Empresa API — como funciona de verdade (captura de 06/08/2026)
+
+### Não é uma API, são oito
+
+O acesso liga **oito APIs** distintas no console: Google My Business (v4,
+legado), My Business Account Management, Business Information, Verifications,
+Q&A, Notifications, Lodging, Place Actions
+(fonte: fontes/business-profile-api-configuracao-basica.md). Isso explica os
+dois hosts em `lib/integrations/google/client.ts`: conta em
+`mybusinessaccountmanagement`, avaliações e posts na v4 `mybusiness.googleapis.com`
+— **avaliações e localPosts só existem na v4 legada**
+(fontes/business-profile-api-avaliacoes.md; fontes/business-profile-api-posts.md).
+
+**Armadilha nova:** se a conta é Google Workspace e o Perfil de Empresa estiver
+desativado para a organização, a API devolve **403 PERMISSION_DENIED mesmo com
+acesso aprovado** (fonte: fontes/business-profile-api-configuracao-basica.md).
+Ou seja: nem todo 403 é "acesso não aprovado" — a tradução atual do
+`traduzirErro` está certa para o nosso caso de hoje, mas quando o acesso sair
+ela precisa distinguir os dois.
+
+### Cotas — o número que faltava para dimensionar o robô
+
+- **300 QPM por API** (Business Information, Account Management, Performance,
+  Verifications, Q&A, Lodging, Place Actions, Notifications);
+- **10 edições por minuto POR PERFIL — limite que NÃO pode ser aumentado**;
+- **Cota "0" significa acesso ainda não concedido**; aumento se pede pelo
+  formulário de contato ("Pedido de aumento de cota"), com número do projeto e
+  justificativa, e o **domínio do site precisa bater com o domínio do e-mail**
+  que envia o formulário;
+- Práticas recomendadas do próprio Google: espaçar solicitações, **espera
+  exponencial** nas tentativas (fonte: fontes/business-profile-api-limites.md).
+
+**O que muda em `lib/agency/esteira/avaliacoes.ts`:** o teto de 5 respostas por
+rodada continua conservador e correto; o limite duro a respeitar é **10 escritas
+por minuto por perfil**. Rodada que toque vários perfis do mesmo cliente precisa
+espaçar por perfil, não no total.
+
+### Avaliações — os endpoints reais
+
+`accounts.locations.reviews.list` (listar), `.get` (uma), `locations:batchGetReviews`
+(vários locais numa chamada, com `ignoreRatingOnlyReviews`),
+`reviews.updateReply` (PUT — **cria ou substitui** a resposta) e `deleteReply`
+(fonte: fontes/business-profile-api-avaliacoes.md). Dois pontos operacionais:
+
+1. **`updateReply` é upsert.** Não existe "responder só se não houver resposta"
+   do lado do Google — a proteção é nossa, no código (o robô já checa resposta
+   existente antes de escrever). **Nenhum parecer libera chamar `updateReply`
+   sem essa checagem.**
+2. Em conta Workspace, responder exige que o administrador tenha ativado
+   Pesquisa/Perfil de Empresa/Maps como serviços
+   (fonte: fontes/business-profile-api-avaliacoes.md).
+
+### Posts (localPosts)
+
+`POST accounts/{a}/locations/{l}/localPosts`, com `topicType` EVENT / OFFER /
+STANDARD, `callToAction.actionType` + URL, e mídia por `sourceUrl` público.
+**Post de PRODUTO não é possível pela API** — quem prometer isso ao cliente
+promete o que a plataforma não entrega
+(fonte: fontes/business-profile-api-posts.md). Mídia entra por URL acessível
+publicamente (fonte: fontes/business-profile-api-fotos.md).
+
+### Verificação de local pela nossa plataforma
+
+`locations.getVoiceOfMerchantState` diz se a ficha está regular
+(`hasVoiceOfMerchant`); `fetchVerificationOptions` lista os métodos disponíveis
+(variam por região/idioma); `locations.verify` inicia. **Tentar verificar um
+local que já existe devolve erro e pode abrir disputa de propriedade**
+(fonte: fontes/business-profile-api-verificacao.md). Regra da casa: antes de
+qualquer criação de local, LER (`getVoiceOfMerchantState` / busca) — criar
+duplicata é o caminho curto para suspensão do perfil
+(fonte: fontes/business-profile-perfis-suspensos.md).
+
+### Notificações em tempo real
+
+Avaliação nova, Q&A, upload de mídia, mudança de status do local e "atualizações
+do Google para revisão" chegam por **Cloud Pub/Sub** — basta dar
+`pubsub.topics.publish` a `mybusiness-api-pubsub@system.gserviceaccount.com`
+(fonte: fontes/business-profile-api-notificacoes.md). **Isso substitui polling:**
+quando o acesso for aprovado, o robô de avaliações deve migrar de varredura
+periódica para evento — menos chamadas, menos cara de robô, menos risco.
+
+---
+
+## (g) Google Ads API — o caminho do zero (captura de 06/08/2026)
+
+- **Token de desenvolvedor**: string de 22 caracteres, pedido na Central de API
+  de uma conta **de administrador (MCC)**; **o Google concede em geral UM token
+  por empresa** — se a Dioli já tiver um, é para reutilizar, não pedir outro
+  (fonte: fontes/ads-api-token-de-desenvolvedor.md).
+- **Nível inicial é Explorador** (chamadas em contas de produção, com
+  restrição); quando a inscrição não pode ser analisada automaticamente, o token
+  nasce restrito a **contas de teste** (idem).
+- **Cotas diárias por token** — o número que decide se um plano de automação é
+  viável: **Explorador = 2.880 operações/dia em produção** (15.000 em conta de
+  teste); **Básico = 15.000/dia**; estouro devolve `RESOURCE_EXHAUSTED`. Mutação:
+  máx. 10.000 operações por requisição, 100 operações de ação; planejamento
+  (Keyword Planner) = **1 QPS** (fonte: fontes/ads-api-cotas.md).
+- **RMF só se aplica ao nível padrão**, e não-conformidade em auditoria pode
+  gerar **taxa de não conformidade**. Upgrade leva "dias ou semanas" — pedir com
+  antecedência (fonte: fontes/ads-api-niveis-de-acesso.md).
+- **Modelo de acesso**: para gerir contas de clientes que nos convidam, o padrão
+  é **autenticação multiusuário** (OAuth por cliente); conta de serviço só serve
+  para contas já sob o nosso MCC
+  (fonte: fontes/ads-api-oauth-visao-geral.md; fontes/ads-api-selecionar-conta.md).
+- **Estrutura**: conta → campanha → grupo de anúncios → anúncio/critério, com
+  orçamento no nível de campanha
+  (fontes/ads-api-relacao-entre-entidades.md; fontes/ads-api-estrutura-de-campanha.md).
+- **Relatório é GAQL** — `SELECT ... FROM <recurso> WHERE ... DURING ...`, um
+  recurso principal por consulta (fontes/ads-api-gaql-visao-geral.md;
+  fontes/ads-api-gaql-gramatica.md; fontes/ads-api-relatorios.md).
+- **Erros que vão nos morder** (fonte: fontes/ads-api-erros-comuns.md):
+  - `ACCESS_TOKEN_SCOPE_INSUFFICIENT` — token reaproveitado de outro conjunto de
+    escopos;
+  - **`invalid_grant` — projeto com tela de consentimento OAuth em "Testing"
+    ganha refresh token que EXPIRA EM 7 DIAS.** Precisa estar "In production".
+    **Este é o bug mais provável do nosso OAuth de cliente**: cliente conecta,
+    some em uma semana, e parece falha nossa;
+  - anúncio criado **não pode ser editado** (só status) — mudou o texto, cria
+    outro e remove o antigo. Isso importa para não parecer "variação de anúncio
+    reprovado" (ver fraude de sistema, seção a);
+  - validar tamanho/caracteres de texto e URL **antes** da chamada
+    (`LINE_TOO_WIDE`, `INVALID_INPUT`).
+- Termos e Condições da API capturados em fontes/ads-api-termos-e-condicoes.md
+  (fecha lacuna declarada em 03/08).
+
+---
+
+## (h) Analytics GA4 — o que dá para fazer e o que derruba
+
+- **Data API v1** (relatórios): `runReport`, `runPivotReport`, `batchRunReports`,
+  `runRealtimeReport`, `runFunnelReport`, `runAccessReport`
+  (fontes/analytics-data-api.md; fontes/analytics-data-api-fundamentos.md).
+- **Cotas por propriedade** (padrão / 360): 200.000 / 2.000.000 tokens por dia;
+  40.000 / 400.000 por hora; **14.000 por projeto+propriedade por hora**;
+  **10 solicitações simultâneas**; e **10 erros de servidor por hora — estourou,
+  a propriedade inteira fica bloqueada para o nosso projeto**
+  (fonte: fontes/analytics-data-api-cotas.md). Consequência direta: **retry cego
+  em erro 5xx é auto-bloqueio.** Backoff obrigatório.
+- **Admin API v1** administra contas, propriedades, streams, links com Ads/BigQuery
+  (fonte: fontes/analytics-admin-api.md).
+- **PII**: proibido enviar qualquer dado que identifique uma pessoa "mesmo em
+  forma de hash"; upload de PII → conta encerrada. As páginas novas dão a
+  definição operacional e a lista de práticas
+  (fontes/analytics-pii-definicao.md; fontes/analytics-pii-praticas.md) — vale
+  também para **URL com e-mail/CPF em querystring**, que é o vazamento mais
+  comum e passa despercebido.
+- **User-ID e Measurement Protocol** têm política própria: o ID precisa ser
+  não-identificável e o uso exige aviso ao usuário
+  (fonte: fontes/analytics-measurement-protocol-politica.md).
+- **Modo de consentimento** documentado em fontes/analytics-consentimento.md —
+  base para o que exigimos do site do cliente.
+
+---
+
+## (i) OAuth do Google — o que pode travar a nossa integração
+
+- **Escopo do Perfil de Empresa é `https://www.googleapis.com/auth/business.manage`**
+  ("Gerenciar o Perfil da Empresa no Google"); Analytics leitura é
+  `analytics.readonly` (fonte: fontes/google-oauth2-escopos.md).
+- **App que pede escopo sensível ou restrito precisa passar pela verificação de
+  app do Google** antes de publicar. Só escopo não-sensível dispensa — mas
+  mesmo assim exige "brand verification" para exibir nome e logo na tela de
+  consentimento (fonte: fontes/google-oauth-verificacao-do-app.md).
+- **Escopo restrito**: exige tipo de aplicativo permitido, **avaliação de
+  segurança independente (CASA)** se os dados passam pelo nosso servidor, e
+  **re-verificação anual**. Pode levar **semanas**
+  (fonte: fontes/google-oauth2-escopos-restritos.md).
+- **A regra prática que vale hoje:** app em "Testing" → refresh token morre em
+  7 dias (fonte: fontes/ads-api-erros-comuns.md). Antes de conectar o primeiro
+  cliente real, o projeto tem que estar publicado e verificado. **Parecer que
+  autorize conectar cliente com o app em modo de teste é PODE COM AJUSTE, no
+  máximo, e o ajuste é este.**
+- **Política de dados do usuário dos Serviços de API**: uso limitado, mínimo
+  privilégio, transparência na política de privacidade, exclusão a pedido
+  (fonte: fontes/google-politica-de-dados-do-usuario.md).
+
+---
+
+## (j) Suspensão do PERFIL (diferente da suspensão do Ads)
+
+Perfil de Empresa suspenso é caso próprio: causas típicas são dados que não
+correspondem ao negócio real, duplicidade de ficha, mudanças em massa em pouco
+tempo, categoria/nome com palavra-chave, endereço inelegível. O caminho é
+**corrigir a violação e pedir restabelecimento — um pedido por vez**
+(fonte: fontes/business-profile-perfis-suspensos.md; verificação em
+fontes/business-profile-verificacao.md). **Risco a declarar em todo parecer de
+escrita em perfil de cliente: a suspensão atinge o ativo do cliente, não o
+nosso.** Avaliação difamatória/falsa se denuncia pelo fluxo oficial — nunca se
+"resolve" respondendo com dado pessoal do avaliador
+(fonte: fontes/business-profile-denunciar-avaliacoes.md).
+
+---
+
 ## Lacunas da biblioteca
 
 Declaradas, não escondidas:
@@ -286,9 +488,23 @@ Declaradas, não escondidas:
 - **Sub-política dedicada "Práticas comerciais inaceitáveis"**: coberta pelo
   resumo dentro de deturpação (fontes/ads-deturpacao.md); a página dedicada não
   foi capturada em separado.
-- **Termos e Condições da Google Ads API** (página jurídica completa) e
-  **RMF detalhado por recurso**: não capturados; só relevantes quando formos
-  pedir upgrade de nível de acesso.
-- Rate limits do Business Profile API (QPS específicos): não há página pública
-  estável capturada; os limites aparecem no console do projeto quando o acesso
-  é aprovado.
+- **RMF detalhado por recurso**: continua não capturado (a página de níveis de
+  acesso só descreve o conceito). Só relevante quando pedirmos nível padrão.
+- **"Conteúdo proibido e restrito" do Perfil de Empresa**
+  (support.google.com/business/answer/2622994) — **LACUNA datada 06/08/2026**:
+  a página é toda de seções recolhidas; a captura extraiu 831 caracteres úteis,
+  abaixo do piso. Cobertura parcial pelas diretrizes de representação e pela
+  política de UGC do Maps. Parecer que dependa da lista exata deve consultar a
+  URL ao vivo.
+- **Enumeração `ErrorCode` da Google Ads API** (referência RPC) — **LACUNA
+  datada 06/08/2026**: a página é tabela de linhas curtas (558 caracteres
+  úteis) e a URL é fixada por versão (v21), então envelhece. Use
+  fontes/ads-api-erros-comuns.md e fontes/ads-api-solucao-de-problemas.md.
+- **Cotas da Admin API do GA4** — **LACUNA datada 06/08/2026**: página curta
+  (1.180 caracteres úteis, piso é 1.200). As cotas da Data API foram capturadas
+  e cobrem o nosso uso previsto.
+- **Rate limits do Business Profile API: LACUNA FECHADA em 06/08/2026** —
+  fontes/business-profile-api-limites.md traz 300 QPM por API e 10 edições por
+  minuto por perfil.
+- **Termos e Condições da Google Ads API: LACUNA FECHADA em 06/08/2026**
+  (fontes/ads-api-termos-e-condicoes.md).

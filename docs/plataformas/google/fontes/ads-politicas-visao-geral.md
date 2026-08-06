@@ -1,8 +1,8 @@
 ---
 titulo: "Políticas do Google Ads — visão geral"
 url: https://support.google.com/adspolicy/answer/6008942?hl=pt-BR
-capturado_em: 2026-08-03
-hash: 4076c942e95b3fda
+capturado_em: 2026-08-06
+hash: 53c4b8c38e1b3d05
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -143,11 +143,13 @@ Alguns exemplos de conteúdo político: promoção de partidos ou candidatos pol
 
 Produtos e serviços financeiros
 
-Queremos que os usuários tenham informações adequadas para tomar boas decisões financeiras. O objetivo das nossas políticas é oferecer aos usuários informações para que eles considerem os custos associados aos produtos e serviços financeiros, além de proteger as pessoas contra práticas nocivas ou enganosas. Para os fins desta política, são considerados produtos e serviços financeiros aqueles que estão relacionados ao gerenciamento ou investimento de dinheiro e criptomoedas, incluindo consultorias personalizadas.
+O Google tem o compromisso de ajudar as pessoas a tomar decisões financeiras fundamentadas. As políticas do Google Ads foram criadas para fazer com que os usuários tenham as informações necessárias na hora de avaliar os custos dos produtos e serviços financeiros, além de protegê-los contra práticas nocivas ou enganosas.
 
-Ao promover produtos e serviços financeiros, você precisa obedecer às regulamentações estaduais e locais de todos os locais segmentados pelos seus anúncios (por exemplo, incluir as divulgações específicas exigidas pela legislação vigente). Os anunciantes devem pesquisar por conta própria sobre a regulamentação vigente nos locais segmentados pelos anúncios.
+Na definição desta política, os produtos e serviços financeiros são aqueles relacionados à gestão ou ao investimento de dinheiro e criptomoedas, incluindo consultoria personalizada.
 
-Veja a seguir alguns requisitos da política relacionados a serviços financeiros, empréstimos pessoais e determinados produtos financeiros restritos. Como a publicidade on-line e a regulamentação estão sempre mudando, atualizamos continuamente esta política com mais diretrizes específicas para cada produto. Saiba mais sobre o que acontece quando nossas políticas são violadas.
+Ao promover produtos e serviços financeiros, você precisa obedecer às regulamentações estaduais e regionais de todos os destinos segmentados pelos seus anúncios. Por exemplo, inclua as declarações específicas exigidas pela legislação local. Os anunciantes precisam pesquisar por conta própria sobre os regulamentos vigentes nos lugares segmentados pelos anúncios.
+
+A política é atualizada continuamente com mais diretrizes específicas a cada produto. Saiba mais sobre o que acontece quando nossas políticas são violadas.
 
 Alguns exemplos de produtos e serviços financeiros restritos: empréstimos pessoais; modificação dos termos do empréstimo; serviços de recuperação de crédito.
 

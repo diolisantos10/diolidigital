@@ -40,6 +40,26 @@
     "url": "https://support.google.com/adspolicy/answer/6021546?hl=pt-BR"
   },
   {
+    "slug": "ads-conteudo-inadequado",
+    "titulo": "Google Ads — conteúdo inadequado (proibido)",
+    "url": "https://support.google.com/adspolicy/answer/6015406?hl=pt-BR"
+  },
+  {
+    "slug": "ads-requisitos-legais",
+    "titulo": "Google Ads — requisitos legais",
+    "url": "https://support.google.com/adspolicy/answer/6023676?hl=pt-BR"
+  },
+  {
+    "slug": "ads-coleta-e-uso-de-dados",
+    "titulo": "Google Ads — política de coleta e uso de dados",
+    "url": "https://support.google.com/adspolicy/answer/6020956?hl=pt-BR"
+  },
+  {
+    "slug": "ads-verificacao-do-anunciante",
+    "titulo": "Google Ads — verificação do anunciante",
+    "url": "https://support.google.com/adspolicy/answer/9703665?hl=pt-BR"
+  },
+  {
     "slug": "business-profile-diretrizes",
     "titulo": "Perfil de Empresa — diretrizes de representação da empresa",
     "url": "https://support.google.com/business/answer/3038177?hl=pt-BR"
@@ -53,6 +73,31 @@
     "slug": "business-profile-responder-avaliacoes",
     "titulo": "Perfil de Empresa — ler e responder avaliações",
     "url": "https://support.google.com/business/answer/3474050?hl=pt-BR"
+  },
+  {
+    "slug": "business-profile-conteudo-proibido",
+    "titulo": "Perfil de Empresa — conteúdo proibido e restrito (LACUNA 2026-08-06: seções recolhidas, 831 chars úteis; consultar ao vivo)",
+    "url": "https://support.google.com/business/answer/2622994?hl=pt-BR"
+  },
+  {
+    "slug": "business-profile-perfis-suspensos",
+    "titulo": "Perfil de Empresa — corrigir perfis suspensos ou desativados",
+    "url": "https://support.google.com/business/answer/4569145?hl=pt-BR"
+  },
+  {
+    "slug": "business-profile-verificacao",
+    "titulo": "Perfil de Empresa — verificar a empresa no Google",
+    "url": "https://support.google.com/business/answer/7107242?hl=pt-BR"
+  },
+  {
+    "slug": "business-profile-denunciar-avaliacoes",
+    "titulo": "Perfil de Empresa — denunciar avaliações impróprias",
+    "url": "https://support.google.com/business/answer/4596773?hl=pt-BR"
+  },
+  {
+    "slug": "business-profile-atributos",
+    "titulo": "Perfil de Empresa — gerenciar atributos da empresa",
+    "url": "https://support.google.com/business/answer/9049526?hl=pt-BR"
   },
   {
     "slug": "avaliacoes-conteudo-proibido",
@@ -70,6 +115,81 @@
     "url": "https://developers.google.com/my-business/content/prereqs?hl=pt-br"
   },
   {
+    "slug": "business-profile-api-visao-geral",
+    "titulo": "Business Profile APIs — visão geral",
+    "url": "https://developers.google.com/my-business/content/overview?hl=pt-br"
+  },
+  {
+    "slug": "business-profile-api-configuracao-basica",
+    "titulo": "Business Profile APIs — configuração básica (as 8 APIs a habilitar)",
+    "url": "https://developers.google.com/my-business/content/basic-setup?hl=pt-br"
+  },
+  {
+    "slug": "business-profile-api-oauth",
+    "titulo": "Business Profile APIs — OAuth 2.0 e escopos",
+    "url": "https://developers.google.com/my-business/content/oauth-overview?hl=pt-br"
+  },
+  {
+    "slug": "business-profile-api-implementar-oauth",
+    "titulo": "Business Profile APIs — implementar OAuth",
+    "url": "https://developers.google.com/my-business/content/implement-oauth?hl=pt-br"
+  },
+  {
+    "slug": "business-profile-api-contas",
+    "titulo": "Business Profile APIs — contas e grupos de localização",
+    "url": "https://developers.google.com/my-business/content/accounts?hl=pt-br"
+  },
+  {
+    "slug": "business-profile-api-locais",
+    "titulo": "Business Profile APIs — conceito de local (location)",
+    "url": "https://developers.google.com/my-business/content/locations?hl=pt-br"
+  },
+  {
+    "slug": "business-profile-api-dados-de-local",
+    "titulo": "Business Profile APIs — trabalhar com dados de ficha/local",
+    "url": "https://developers.google.com/my-business/content/location-data?hl=pt-br"
+  },
+  {
+    "slug": "business-profile-api-gerenciar-locais",
+    "titulo": "Business Profile APIs — criar e gerenciar locais",
+    "url": "https://developers.google.com/my-business/content/manage-locations?hl=pt-br"
+  },
+  {
+    "slug": "business-profile-api-avaliacoes",
+    "titulo": "Business Profile APIs — avaliações e respostas (review data)",
+    "url": "https://developers.google.com/my-business/content/review-data?hl=pt-br"
+  },
+  {
+    "slug": "business-profile-api-posts",
+    "titulo": "Business Profile APIs — posts locais (localPosts)",
+    "url": "https://developers.google.com/my-business/content/posts-data?hl=pt-br"
+  },
+  {
+    "slug": "business-profile-api-fotos",
+    "titulo": "Business Profile APIs — enviar fotos e mídia",
+    "url": "https://developers.google.com/my-business/content/upload-photos?hl=pt-br"
+  },
+  {
+    "slug": "business-profile-api-atributos",
+    "titulo": "Business Profile APIs — atributos de local",
+    "url": "https://developers.google.com/my-business/content/attributes?hl=pt-br"
+  },
+  {
+    "slug": "business-profile-api-verificacao",
+    "titulo": "Business Profile APIs — gerenciar verificação de local",
+    "url": "https://developers.google.com/my-business/content/manage-verification?hl=pt-br"
+  },
+  {
+    "slug": "business-profile-api-limites",
+    "titulo": "Business Profile APIs — limites de uso (cotas por projeto)",
+    "url": "https://developers.google.com/my-business/content/limits?hl=pt-br"
+  },
+  {
+    "slug": "business-profile-api-notificacoes",
+    "titulo": "Business Profile APIs — notificações via Pub/Sub",
+    "url": "https://developers.google.com/my-business/content/notification-setup?hl=pt-br"
+  },
+  {
     "slug": "ads-api-politicas",
     "titulo": "Google Ads API — políticas",
     "url": "https://support.google.com/adspolicy/answer/6169371?hl=pt-BR"
@@ -85,6 +205,86 @@
     "url": "https://developers.google.com/google-ads/api/docs/best-practices/rate-limits?hl=pt-br"
   },
   {
+    "slug": "ads-api-primeiros-passos",
+    "titulo": "Google Ads API — primeiros passos (introdução)",
+    "url": "https://developers.google.com/google-ads/api/docs/get-started/introduction?hl=pt-br"
+  },
+  {
+    "slug": "ads-api-token-de-desenvolvedor",
+    "titulo": "Google Ads API — token de desenvolvedor",
+    "url": "https://developers.google.com/google-ads/api/docs/get-started/dev-token?hl=pt-br"
+  },
+  {
+    "slug": "ads-api-projeto-oauth",
+    "titulo": "Google Ads API — projeto do Cloud e credenciais OAuth",
+    "url": "https://developers.google.com/google-ads/api/docs/get-started/oauth-cloud-project?hl=pt-br"
+  },
+  {
+    "slug": "ads-api-oauth-visao-geral",
+    "titulo": "Google Ads API — OAuth 2.0: visão geral e escopos",
+    "url": "https://developers.google.com/google-ads/api/docs/oauth/overview?hl=pt-br"
+  },
+  {
+    "slug": "ads-api-oauth-detalhes",
+    "titulo": "Google Ads API — OAuth: refresh token e detalhes internos",
+    "url": "https://developers.google.com/google-ads/api/docs/oauth/internals?hl=pt-br"
+  },
+  {
+    "slug": "ads-api-selecionar-conta",
+    "titulo": "Google Ads API — selecionar conta e hierarquia MCC",
+    "url": "https://developers.google.com/google-ads/api/docs/get-started/select-account?hl=pt-br"
+  },
+  {
+    "slug": "ads-api-estrutura-de-campanha",
+    "titulo": "Google Ads API — campanhas (estrutura e tipos)",
+    "url": "https://developers.google.com/google-ads/api/docs/campaigns/overview?hl=pt-br"
+  },
+  {
+    "slug": "ads-api-relacao-entre-entidades",
+    "titulo": "Google Ads API — relação entre entidades (conta → campanha → grupo → anúncio)",
+    "url": "https://developers.google.com/google-ads/api/docs/concepts/entity-relationships?hl=pt-br"
+  },
+  {
+    "slug": "ads-api-gaql-visao-geral",
+    "titulo": "Google Ads API — GAQL: visão geral das consultas",
+    "url": "https://developers.google.com/google-ads/api/docs/query/overview?hl=pt-br"
+  },
+  {
+    "slug": "ads-api-gaql-gramatica",
+    "titulo": "Google Ads API — GAQL: gramática da linguagem",
+    "url": "https://developers.google.com/google-ads/api/docs/query/grammar?hl=pt-br"
+  },
+  {
+    "slug": "ads-api-relatorios",
+    "titulo": "Google Ads API — relatórios (reporting)",
+    "url": "https://developers.google.com/google-ads/api/docs/reporting/overview?hl=pt-br"
+  },
+  {
+    "slug": "ads-api-erros-comuns",
+    "titulo": "Google Ads API — erros comuns e como tratá-los",
+    "url": "https://developers.google.com/google-ads/api/docs/best-practices/common-errors?hl=pt-br"
+  },
+  {
+    "slug": "ads-api-solucao-de-problemas",
+    "titulo": "Google Ads API — solução de problemas",
+    "url": "https://developers.google.com/google-ads/api/docs/best-practices/troubleshooting?hl=pt-br"
+  },
+  {
+    "slug": "ads-api-cotas",
+    "titulo": "Google Ads API — cotas de operações e recursos",
+    "url": "https://developers.google.com/google-ads/api/docs/best-practices/quotas?hl=pt-br"
+  },
+  {
+    "slug": "ads-api-codigos-de-erro",
+    "titulo": "Google Ads API — enumeração ErrorCode (LACUNA 2026-08-06: página de referência é tabela de linhas curtas, 558 chars úteis; usar ads-api-erros-comuns)",
+    "url": "https://developers.google.com/google-ads/api/reference/rpc/v21/ErrorCode?hl=pt-br"
+  },
+  {
+    "slug": "ads-api-termos-e-condicoes",
+    "titulo": "Google Ads API — Termos e Condições",
+    "url": "https://developers.google.com/google-ads/api/terms?hl=pt-br"
+  },
+  {
     "slug": "analytics-termos-de-servico",
     "titulo": "Google Analytics — Termos de Serviço (BR)",
     "url": "https://marketingplatform.google.com/about/analytics/terms/br/"
@@ -95,13 +295,88 @@
     "url": "https://support.google.com/analytics/answer/2838984?hl=pt-BR"
   },
   {
+    "slug": "analytics-pii-praticas",
+    "titulo": "Google Analytics — práticas para evitar envio de PII",
+    "url": "https://support.google.com/analytics/answer/6366371?hl=pt-BR"
+  },
+  {
+    "slug": "analytics-pii-definicao",
+    "titulo": "Google Analytics — o que é PII nos contratos e políticas do Google",
+    "url": "https://support.google.com/analytics/answer/7686480?hl=pt-BR"
+  },
+  {
+    "slug": "analytics-consentimento",
+    "titulo": "Google Analytics — modo de consentimento (sites e apps)",
+    "url": "https://support.google.com/analytics/answer/9976101?hl=pt-BR"
+  },
+  {
+    "slug": "analytics-data-api",
+    "titulo": "Google Analytics — Data API (GA4): visão geral",
+    "url": "https://developers.google.com/analytics/devguides/reporting/data/v1?hl=pt-br"
+  },
+  {
+    "slug": "analytics-data-api-fundamentos",
+    "titulo": "Google Analytics — Data API (GA4): fundamentos de relatório",
+    "url": "https://developers.google.com/analytics/devguides/reporting/data/v1/basics?hl=pt-br"
+  },
+  {
+    "slug": "analytics-data-api-cotas",
+    "titulo": "Google Analytics — Data API (GA4): cotas e limites",
+    "url": "https://developers.google.com/analytics/devguides/reporting/data/v1/quotas?hl=pt-br"
+  },
+  {
+    "slug": "analytics-admin-api",
+    "titulo": "Google Analytics — Admin API (GA4): visão geral",
+    "url": "https://developers.google.com/analytics/devguides/config/admin/v1?hl=pt-br"
+  },
+  {
+    "slug": "analytics-admin-api-cotas",
+    "titulo": "Google Analytics — Admin API (GA4): cotas (LACUNA 2026-08-06: página curta, 1180 chars úteis, abaixo do piso)",
+    "url": "https://developers.google.com/analytics/devguides/config/admin/v1/quotas?hl=pt-br"
+  },
+  {
+    "slug": "analytics-measurement-protocol-politica",
+    "titulo": "Google Analytics — política do Measurement Protocol, SDK e User-ID",
+    "url": "https://developers.google.com/analytics/devguides/collection/protocol/ga4/policy?hl=pt-br"
+  },
+  {
+    "slug": "google-oauth2-visao-geral",
+    "titulo": "Google Identity — OAuth 2.0: visão geral e tipos de credencial",
+    "url": "https://developers.google.com/identity/protocols/oauth2?hl=pt-br"
+  },
+  {
+    "slug": "google-oauth2-servidor-web",
+    "titulo": "Google Identity — OAuth 2.0 para apps de servidor web (refresh token)",
+    "url": "https://developers.google.com/identity/protocols/oauth2/web-server?hl=pt-br"
+  },
+  {
+    "slug": "google-oauth2-escopos",
+    "titulo": "Google Identity — lista de escopos OAuth 2.0 das APIs",
+    "url": "https://developers.google.com/identity/protocols/oauth2/scopes?hl=pt-br"
+  },
+  {
+    "slug": "google-oauth2-escopos-restritos",
+    "titulo": "Google Identity — verificação de escopos restritos",
+    "url": "https://developers.google.com/identity/protocols/oauth2/production-readiness/restricted-scope-verification?hl=pt-br"
+  },
+  {
+    "slug": "google-oauth-verificacao-do-app",
+    "titulo": "Google Cloud — verificação de apps OAuth (processo e prazos)",
+    "url": "https://support.google.com/cloud/answer/13463073?hl=pt-BR"
+  },
+  {
+    "slug": "google-politica-de-dados-do-usuario",
+    "titulo": "Google — Política de dados do usuário dos Serviços de API",
+    "url": "https://developers.google.com/terms/api-services-user-data-policy?hl=pt-br"
+  },
+  {
     "slug": "analytics-politicas-hub",
-    "titulo": "Políticas do Google Analytics — hub (LACUNA: página-índice <1500 chars; recaptura deve tentar)",
+    "titulo": "Políticas do Google Analytics — hub (LACUNA 2026-08-06, desde 03/08: página-índice curta, 651 chars úteis)",
     "url": "https://support.google.com/analytics/answer/4597324?hl=pt-BR"
   },
   {
     "slug": "maps-conteudo-proibido",
-    "titulo": "Maps — Conteúdo proibido e restrito nas contribuições (LACUNA: seções recolhidas <1500 chars)",
+    "titulo": "Maps — Conteúdo proibido e restrito nas contribuições (LACUNA 2026-08-06, desde 03/08: seções recolhidas, 693 chars úteis)",
     "url": "https://support.google.com/contributionpolicy/answer/7400114?hl=pt-BR"
   }
 ]

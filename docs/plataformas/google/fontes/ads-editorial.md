@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads — política editorial"
 url: https://support.google.com/adspolicy/answer/6021546?hl=pt-BR
-capturado_em: 2026-08-03
-hash: 585eefc70bd7c9e3
+capturado_em: 2026-08-06
+hash: e47b743351f73f32
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -19,7 +19,7 @@ Para oferecer uma experiência de qualidade aos usuários, o Google exige que to
 Confira abaixo alguns exemplos de conteúdo que deve ser evitado nos seus anúncios.
 
 Saiba o que acontece quando nossas políticas são violadas.
-Violações destas políticas não levarão à suspensão imediata da conta sem aviso prévio. Uma notificação será enviada pelo menos sete dias antes da suspensão. Saiba mais sobre contas suspensas.
+Violações destas políticas não levarão à suspensão imediata da conta sem aviso prévio. Enviaremos um alerta pelo menos 7 dias antes da suspensão. Saiba mais sobre as suspensões de contas do Google Ads.
 Neste artigo:
 Requisitos do nome da empresa
 Letras maiúsculas
