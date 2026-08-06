@@ -160,10 +160,13 @@ async function callGemini(apiKey: string, model: string, m: OpenAIMessages, maxT
 function modeloPadrao(p: AiProvider): string {
   if (p === "claude") return process.env.CLAUDE_MODEL?.trim() || "claude-haiku-4-5-20251001";
   if (p === "openai") return process.env.OPENAI_MODEL?.trim() || "gpt-4o-mini";
-  // ⚠️ `gemini-1.5-*` FOI APOSENTADO pela Google — a API responde 404 para esses
-  // nomes. O default tem que ser um modelo vivo, senão a faixa gratuita nasce
-  // morta e o erro aparece como "IA indisponível" sem dizer o porquê.
-  if (p === "gemini") return process.env.GEMINI_MODEL?.trim() || "gemini-2.5-flash";
+  // ⚠️ NOME DE MODELO DO GEMINI ENVELHECE. Verificado contra a chave DESTA casa
+  // em 06/08/2026: `gemini-1.5-*`, `gemini-2.0-flash`, `gemini-2.5-flash` e
+  // `gemini-2.5-pro` respondem 404; só os APELIDOS MÓVEIS resolvem
+  // (`gemini-flash-latest`, `gemini-pro-latest`, `gemini-flash-lite-latest`).
+  // Um nome fixo aqui faz a faixa gratuita nascer morta, e o sintoma que chega
+  // é "IA indisponível" — que manda procurar o defeito em outro lugar.
+  if (p === "gemini") return process.env.GEMINI_MODEL?.trim() || "gemini-flash-latest";
   // Flash is the cheap tier and the sane default; deepseek-v4-pro is the same
   // API with a bigger bill, so it is opt-in through the model field in the UI.
   if (p === "deepseek") return process.env.DEEPSEEK_MODEL?.trim() || "deepseek-v4-flash";

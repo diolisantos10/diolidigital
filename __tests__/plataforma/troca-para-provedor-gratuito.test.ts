@@ -56,17 +56,21 @@ afterEach(() => {
 const PEDIDO = { system: "você é o estrategista", user: "monte o plano da Dioli" };
 
 describe("o modelo do Gemini precisa ser um modelo VIVO", () => {
-  // `gemini-1.5-flash` foi aposentado pela Google: a API devolve 404. Um default
-  // morto faz a faixa gratuita nascer sem gerar um caractere — e o sintoma que
-  // chega é "IA indisponível", que manda procurar o defeito em outro lugar.
-  it("o default NÃO é um gemini-1.5 aposentado", async () => {
+  // Verificado contra a chave DESTA casa em 06/08/2026, um nome por vez:
+  // `gemini-1.5-pro`, `gemini-1.5-flash`, `gemini-2.0-flash`, `gemini-2.5-flash`,
+  // `gemini-2.5-flash-lite`, `gemini-2.5-pro` e `gemini-3-flash` → todos 404.
+  // Só os APELIDOS MÓVEIS geraram: `gemini-flash-latest`, `gemini-pro-latest`,
+  // `gemini-flash-lite-latest`. Um default morto faz a faixa gratuita nascer
+  // sem gerar um caractere — e o sintoma que chega é "IA indisponível", que
+  // manda procurar o defeito em qualquer lugar menos onde ele está.
+  it("o default é um apelido móvel, nunca um nome versionado morto", async () => {
     conecta("gemini");
     fetchMock.mockResolvedValue(respostaGeminiOk("{}"));
     await generate(PEDIDO);
 
     const url = String(fetchMock.mock.calls[0][0]);
-    expect(url).not.toContain("gemini-1.5");
-    expect(url).toContain("gemini-2.5-flash");
+    expect(url).not.toMatch(/gemini-\d/);   // nada de 1.5 / 2.0 / 2.5 / 3
+    expect(url).toContain("gemini-flash-latest");
   });
 
   it("GEMINI_MODEL no ambiente troca o modelo sem mexer em código", async () => {
@@ -78,10 +82,10 @@ describe("o modelo do Gemini precisa ser um modelo VIVO", () => {
   });
 
   it("o modelo escolhido na tela vence o default", async () => {
-    conecta("gemini", "gemini-2.5-pro");
+    conecta("gemini", "gemini-pro-latest");
     fetchMock.mockResolvedValue(respostaGeminiOk("{}"));
     await generate(PEDIDO);
-    expect(String(fetchMock.mock.calls[0][0])).toContain("gemini-2.5-pro");
+    expect(String(fetchMock.mock.calls[0][0])).toContain("gemini-pro-latest");
   });
 });
 
