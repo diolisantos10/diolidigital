@@ -10,6 +10,11 @@
     "url": "https://www.tiktok.com/community-guidelines/pt-br/integrity-authenticity"
   },
   {
+    "slug": "cg-bens-atividades-comerciais",
+    "titulo": "Diretrizes da Comunidade — Bens regulamentados e atividades comerciais (divulgação de conteúdo comercial) (pt-BR)",
+    "url": "https://www.tiktok.com/community-guidelines/pt-br/regulated-commercial-activities"
+  },
+  {
     "slug": "ads-criativos-landing-page",
     "titulo": "TikTok Advertising Policies — Ad Creatives and Landing Page (hoje um ÍNDICE dos artigos de política)",
     "url": "https://ads.tiktok.com/help/article?aid=6684149081637388293"
@@ -51,8 +56,78 @@
   },
   {
     "slug": "ads-praticas-enganosas",
-    "titulo": "TikTok Advertising Policies — Deceptive Practices (LACUNA: timeout persistente no headless)",
+    "titulo": "TikTok Advertising Policies — Deceptive Practices",
     "url": "https://ads.tiktok.com/help/article/tiktok-ads-policy-deceptive-practices"
+  },
+  {
+    "slug": "ads-industria-servicos-financeiros",
+    "titulo": "TikTok Advertising Policies — Financial Services (por mercado, inclui Brasil)",
+    "url": "https://ads.tiktok.com/help/article/tiktok-ads-policy-financial-services"
+  },
+  {
+    "slug": "ads-industria-saude-farmaceutico",
+    "titulo": "TikTok Advertising Policies — Healthcare and Pharmaceuticals (por mercado, inclui Brasil)",
+    "url": "https://ads.tiktok.com/help/article/tiktok-ads-policy-healthcare-pharmaceuticals"
+  },
+  {
+    "slug": "ads-industria-jogos-apostas",
+    "titulo": "TikTok Advertising Policies — Gambling and Games (por mercado, inclui Brasil)",
+    "url": "https://ads.tiktok.com/help/article/tiktok-ads-policy-gambling-and-games"
+  },
+  {
+    "slug": "ads-industria-alcool",
+    "titulo": "TikTok Advertising Policies — Alcohol",
+    "url": "https://ads.tiktok.com/help/article/tiktok-ads-policy-alcohol?lang=en"
+  },
+  {
+    "slug": "ads-industria-emagrecimento",
+    "titulo": "TikTok Advertising Policies — Weight Management and Body Image",
+    "url": "https://ads.tiktok.com/help/article/tiktok-ads-policy-weight-management"
+  },
+  {
+    "slug": "ads-industria-conteudo-adulto",
+    "titulo": "TikTok Advertising Policies — Adult Content",
+    "url": "https://ads.tiktok.com/help/article/tiktok-ads-policy-adult-content"
+  },
+  {
+    "slug": "ads-industria-politica-eleicoes",
+    "titulo": "TikTok Advertising Policies — Politics, Governments, and Elections",
+    "url": "https://ads.tiktok.com/help/article/tiktok-ads-policy-politics-government-and-elections"
+  },
+  {
+    "slug": "ads-industria-outros-produtos",
+    "titulo": "TikTok Advertising Policies — Other Products and Services",
+    "url": "https://ads.tiktok.com/help/article/tiktok-ads-policy-other-products-and-services"
+  },
+  {
+    "slug": "ads-propriedade-intelectual",
+    "titulo": "TikTok Advertising Policies — Intellectual Property Infringement",
+    "url": "https://ads.tiktok.com/help/article/tiktok-ads-policy-intellectual-property-infringement?lang=en"
+  },
+  {
+    "slug": "ads-branded-content-requisitos-mercado",
+    "titulo": "Branded Content Policy — Market-specific Requirements (divulgação de parceria paga por país)",
+    "url": "https://ads.tiktok.com/help/article/branded-content-policy-country-specific-requirements"
+  },
+  {
+    "slug": "ads-estrutura-campanha",
+    "titulo": "TikTok Ads Structure — campanha, grupo de anúncios e anúncio (LACUNA 05/08/2026: página é quase só tabela; fica abaixo do piso de conteúdo útil do capturador)",
+    "url": "https://ads.tiktok.com/help/article/tiktok-ads-structure"
+  },
+  {
+    "slug": "ads-spark-ads",
+    "titulo": "Spark Ads — impulsionar post orgânico (do cliente ou de criador) como anúncio; exige código de autorização",
+    "url": "https://ads.tiktok.com/help/article/spark-ads?lang=en"
+  },
+  {
+    "slug": "ads-configurar-campanha",
+    "titulo": "How to Set Up a Campaign (objetivos e configuração no Ads Manager)",
+    "url": "https://ads.tiktok.com/help/article/campaign-set-up?lang=en"
+  },
+  {
+    "slug": "ads-in-feed-auction",
+    "titulo": "TikTok Auction In-Feed Ads — especificações de criativo (formato, duração, resolução, sem marca d'água)",
+    "url": "https://ads.tiktok.com/help/article/tiktok-auction-in-feed-ads?lang=en"
   },
   {
     "slug": "musica-biblioteca-comercial",
@@ -65,9 +140,79 @@
     "url": "https://ads.tiktok.com/help/article/how-to-use-the-commercial-music-library?lang=en"
   },
   {
+    "slug": "legal-music-usage-confirmation",
+    "titulo": "TikTok Music Usage Confirmation (o texto que a UX da Content Posting API precisa declarar) (LACUNA 05/08/2026: página legal curta demais para o piso do capturador)",
+    "url": "https://www.tiktok.com/legal/page/global/music-usage-confirmation/en"
+  },
+  {
+    "slug": "legal-politica-branded-content",
+    "titulo": "TikTok Branded Content Policy (parceria paga, conteúdo de marca)",
+    "url": "https://www.tiktok.com/legal/page/global/bc-policy/en"
+  },
+  {
+    "slug": "legal-termos-desenvolvedor",
+    "titulo": "TikTok Developer Terms of Service (contrato que rege qualquer integração)",
+    "url": "https://www.tiktok.com/legal/page/global/tik-tok-developer-terms-of-service/en"
+  },
+  {
+    "slug": "legal-acordo-compartilhamento-dados",
+    "titulo": "TikTok Developer Data Sharing Agreement (tratamento de dados de usuário pela integração)",
+    "url": "https://www.tiktok.com/legal/page/global/tiktok-data-sharing-agreement/en"
+  },
+  {
     "slug": "conta-comercial",
     "titulo": "Account types on TikTok — pessoal x Business (LACUNA: support.tiktok.com só entrega o menu ao headless)",
     "url": "https://support.tiktok.com/en/using-tiktok/growing-your-audience/account-types-on-tiktok"
+  },
+  {
+    "slug": "dev-criar-app",
+    "titulo": "Getting Started — Create an App: conta de desenvolvedor, organização, registro, Sandbox e submissão à revisão",
+    "url": "https://developers.tiktok.com/doc/getting-started-create-an-app"
+  },
+  {
+    "slug": "dev-diretrizes-desenvolvedor",
+    "titulo": "Developer Guidelines (TikTok for Developers)",
+    "url": "https://developers.tiktok.com/doc/our-guidelines-developer-guidelines"
+  },
+  {
+    "slug": "dev-escopos-visao-geral",
+    "titulo": "Scopes Overview — como escopo é pedido, aprovado e autorizado pelo usuário",
+    "url": "https://developers.tiktok.com/doc/scopes-overview"
+  },
+  {
+    "slug": "dev-escopos-lista",
+    "titulo": "TikTok API Scopes — lista de escopos disponíveis (LACUNA 05/08/2026: página é tabela; abaixo do piso de conteúdo útil do capturador)",
+    "url": "https://developers.tiktok.com/doc/tiktok-api-scopes"
+  },
+  {
+    "slug": "dev-login-kit-visao-geral",
+    "titulo": "Login Kit Overview — o OAuth 2.0 do TikTok",
+    "url": "https://developers.tiktok.com/doc/login-kit-overview"
+  },
+  {
+    "slug": "dev-login-kit-web",
+    "titulo": "Login Kit for Web — fluxo de autorização no servidor (redirect, code, state)",
+    "url": "https://developers.tiktok.com/doc/login-kit-web"
+  },
+  {
+    "slug": "dev-login-kit-gerenciar-tokens",
+    "titulo": "Manage User Access Tokens with OAuth v2 (troca de code, refresh, revogação)",
+    "url": "https://developers.tiktok.com/doc/login-kit-manage-user-access-tokens"
+  },
+  {
+    "slug": "dev-oauth-tokens-usuario",
+    "titulo": "OAuth — User Access Token Management (validade do access token e do refresh token)",
+    "url": "https://developers.tiktok.com/doc/oauth-user-access-token-management"
+  },
+  {
+    "slug": "dev-rate-limit",
+    "titulo": "TikTok API v2 — Rate Limit (LACUNA 05/08/2026: página é tabela; abaixo do piso de conteúdo útil do capturador)",
+    "url": "https://developers.tiktok.com/doc/tiktok-api-v2-rate-limit"
+  },
+  {
+    "slug": "dev-webhooks",
+    "titulo": "Webhooks Overview — eventos de publicação e de autorização",
+    "url": "https://developers.tiktok.com/doc/webhooks-overview"
   },
   {
     "slug": "dev-content-posting-inicio",
@@ -80,13 +225,163 @@
     "url": "https://developers.tiktok.com/doc/content-sharing-guidelines"
   },
   {
-    "slug": "dev-diretrizes-desenvolvedor",
-    "titulo": "Developer Guidelines (TikTok for Developers)",
-    "url": "https://developers.tiktok.com/doc/our-guidelines-developer-guidelines"
+    "slug": "dev-content-posting-creator-info",
+    "titulo": "Content Posting API — Query Creator Info (/v2/post/publish/creator_info/query/: opções de privacidade, toggles e cota diária do criador)",
+    "url": "https://developers.tiktok.com/doc/content-posting-api-reference-query-creator-info"
+  },
+  {
+    "slug": "dev-content-posting-direct-post",
+    "titulo": "Content Posting API — Direct Post (creator_info, init, privacidade, disclosure comercial)",
+    "url": "https://developers.tiktok.com/doc/content-posting-api-reference-direct-post"
+  },
+  {
+    "slug": "dev-content-posting-rascunho",
+    "titulo": "Content Posting API — Upload Content (enviar para a caixa de entrada/rascunho, sem publicar)",
+    "url": "https://developers.tiktok.com/doc/content-posting-api-get-started-upload-content"
+  },
+  {
+    "slug": "dev-content-posting-upload-video",
+    "titulo": "Content Posting API — Initialize Video Upload (/v2/post/publish/inbox/video/init/, 6 req/min por token)",
+    "url": "https://developers.tiktok.com/doc/content-posting-api-reference-upload-video"
+  },
+  {
+    "slug": "dev-content-posting-foto",
+    "titulo": "Content Posting API — Photo Post (/v2/post/publish/content/init/)",
+    "url": "https://developers.tiktok.com/doc/content-posting-api-reference-photo-post"
+  },
+  {
+    "slug": "dev-content-posting-status",
+    "titulo": "Content Posting API — Get Post Status (/v2/post/publish/status/fetch/ e códigos de erro)",
+    "url": "https://developers.tiktok.com/doc/content-posting-api-reference-get-video-status"
+  },
+  {
+    "slug": "dev-content-posting-transferencia-midia",
+    "titulo": "Content Posting API — Media Transfer Guide (FILE_UPLOAD x PULL_FROM_URL, chunks, formatos e limites de mídia)",
+    "url": "https://developers.tiktok.com/doc/content-posting-api-media-transfer-guide"
+  },
+  {
+    "slug": "dev-display-api-inicio",
+    "titulo": "Display API — Get Started (leitura de perfil e de vídeos do usuário autorizado)",
+    "url": "https://developers.tiktok.com/doc/display-api-get-started"
+  },
+  {
+    "slug": "dev-display-api-visao-geral",
+    "titulo": "Display API — Overview (/v2/user/info/, /v2/video/list/, /v2/video/query/)",
+    "url": "https://developers.tiktok.com/doc/display-api-overview"
+  },
+  {
+    "slug": "dev-display-lista-videos",
+    "titulo": "Display API — List Videos (/v2/video/list/, métricas de like/comment/share/view)",
+    "url": "https://developers.tiktok.com/doc/tiktok-api-v2-video-list"
+  },
+  {
+    "slug": "dev-display-perfil",
+    "titulo": "Display API — Get User Info (/v2/user/info/) (LACUNA 05/08/2026: página é tabela de campos; abaixo do piso do capturador)",
+    "url": "https://developers.tiktok.com/doc/tiktok-api-v2-get-user-info"
+  },
+  {
+    "slug": "dev-display-consulta-videos",
+    "titulo": "Display API — Query Videos (/v2/video/query/) (LACUNA 05/08/2026: página é tabela de campos; abaixo do piso do capturador)",
+    "url": "https://developers.tiktok.com/doc/tiktok-api-v2-video-query"
   },
   {
     "slug": "business-api-marketing-inicio",
-    "titulo": "Get started for Marketing API (LACUNA: portal business-api.tiktok.com devolve página vazia ao headless)",
+    "titulo": "Get started for Marketing API (LACUNA: a página de \"get started\" do portal continua quase vazia ao headless; usar business-marketing-api-visao-geral)",
     "url": "https://business-api.tiktok.com/portal/docs/marketing-api-get-started/v1.3"
+  },
+  {
+    "slug": "business-marketing-api-visao-geral",
+    "titulo": "Marketing API — Overview (TikTok API for Business)",
+    "url": "https://business-api.tiktok.com/portal/docs/marketing-api-overview/v1.3"
+  },
+  {
+    "slug": "business-marketing-api-sobre",
+    "titulo": "About API for Business (o que a Marketing API cobre — Business Help Center)",
+    "url": "https://ads.tiktok.com/help/article/marketing-api?lang=en"
+  },
+  {
+    "slug": "business-autenticacao-contas",
+    "titulo": "Accounts API Authentication — OAuth do anunciante (app_id, secret, auth_code, access token de longa duração)",
+    "url": "https://business-api.tiktok.com/portal/docs/accounts-api-authentication/v1.3"
+  },
+  {
+    "slug": "business-oauth-access-token",
+    "titulo": "Marketing API — /oauth2/access_token/ (troca de auth_code por access token de anunciante)",
+    "url": "https://business-api.tiktok.com/portal/docs?id=1739965703387137"
+  },
+  {
+    "slug": "business-lista-anunciantes",
+    "titulo": "Marketing API — /oauth2/advertiser/get/ (contas de anunciante autorizadas ao app) (LACUNA 05/08/2026: página é tabela curta; abaixo do piso do capturador)",
+    "url": "https://business-api.tiktok.com/portal/docs?id=1738455508553729"
+  },
+  {
+    "slug": "business-referencia-api",
+    "titulo": "Marketing API — API Reference (índice completo dos endpoints v1.3)",
+    "url": "https://business-api.tiktok.com/portal/docs/api-reference/v1.3"
+  },
+  {
+    "slug": "business-criar-campanha-guia",
+    "titulo": "Marketing API — Create a Manual Campaign (guia campanha → grupo → anúncio)",
+    "url": "https://business-api.tiktok.com/portal/docs/create-a-campaign-guide/v1.3"
+  },
+  {
+    "slug": "business-campanha-create",
+    "titulo": "Marketing API — /campaign/create/ (objetivo, orçamento, tipo de compra)",
+    "url": "https://business-api.tiktok.com/portal/docs?id=1739318962329602"
+  },
+  {
+    "slug": "business-adgroup-create",
+    "titulo": "Marketing API — /adgroup/create/ (posicionamento, público, orçamento, otimização, lance)",
+    "url": "https://business-api.tiktok.com/portal/docs?id=1739499616346114"
+  },
+  {
+    "slug": "business-ad-create",
+    "titulo": "Marketing API — /ad/create/ (criativo do anúncio: vídeo, texto, CTA, identidade)",
+    "url": "https://business-api.tiktok.com/portal/docs?id=1739953377508354"
+  },
+  {
+    "slug": "business-upload-video-anuncio",
+    "titulo": "Marketing API — /file/video/ad/upload/ (upload de vídeo de anúncio: formatos, tamanho, hash)",
+    "url": "https://business-api.tiktok.com/portal/docs?id=1737587322856449"
+  },
+  {
+    "slug": "business-relatorio-integrado",
+    "titulo": "Marketing API — /report/integrated/get/ (relatórios: dimensões, métricas, filtros)",
+    "url": "https://business-api.tiktok.com/portal/docs?id=1740302848100353"
+  },
+  {
+    "slug": "business-autorizacao-musica",
+    "titulo": "Marketing API — /identity/music/authorization/ (autorização de música em anúncio)",
+    "url": "https://business-api.tiktok.com/portal/docs?id=1740218495869954"
+  },
+  {
+    "slug": "business-marketing-api-autorizacao",
+    "titulo": "Marketing API — Authorization (fluxo de autorização da conta de anunciante do cliente)",
+    "url": "https://business-api.tiktok.com/portal/docs/authorization/v1.3"
+  },
+  {
+    "slug": "business-limites-de-taxa",
+    "titulo": "TikTok API for Business — Rate limits (limites por app, por anunciante e por endpoint)",
+    "url": "https://business-api.tiktok.com/portal/docs/rate-limits/v1.3"
+  },
+  {
+    "slug": "business-accounts-api-visao-geral",
+    "titulo": "Accounts API (Organic API) — Overview: publicar e gerenciar posts orgânicos de conta de negócio pelo portal de business",
+    "url": "https://business-api.tiktok.com/portal/docs/accounts-api-overview/v1.3"
+  },
+  {
+    "slug": "business-accounts-api-inicio",
+    "titulo": "Accounts API — Get started (pré-requisitos antes da primeira chamada)",
+    "url": "https://business-api.tiktok.com/portal/docs/get-started/v1.3"
+  },
+  {
+    "slug": "business-accounts-api-autorizacao",
+    "titulo": "Accounts API — Authorization (autorização da conta TikTok do cliente e escopos)",
+    "url": "https://business-api.tiktok.com/portal/docs/accounts-api-authorization/v1.3"
+  },
+  {
+    "slug": "business-autorizacao-post-para-anuncio",
+    "titulo": "Accounts API — Manage TikTok post ad authorization (autorizar post orgânico a virar Spark Ad)",
+    "url": "https://business-api.tiktok.com/portal/docs/manage-tiktok-post-ad-authorization/v1.3"
   }
 ]
