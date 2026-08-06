@@ -117,6 +117,82 @@ describe("transcreverAudio — servidor", () => {
   });
 });
 
+// ─── O bug do microfone do portal (06/08/2026) ───────────────────────────────
+// Sintoma: áudio válido e chave presente devolviam `provedor_indisponivel`.
+// Causa da CEGUEIRA (não do bug): quatro problemas com quatro consertos
+// diferentes chegavam com a mesma palavra e uma linha de log que só dizia o
+// número. O motivo agora diz qual dos quatro é.
+describe("a recusa do provedor deixou de ser uma palavra só", () => {
+  const comStatus = async (status: number, corpo: unknown = {}) => {
+    vi.stubGlobal("fetch", vi.fn(async () =>
+      new Response(JSON.stringify(corpo), { status, headers: { "content-type": "application/json" } })));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    return transcreverAudio({ apiKey: CHAVE, arquivo: audio(5_000) });
+  };
+
+  it("401 é CHAVE RECUSADA — e nunca 'sem_chave', que mandaria procurar o que já está lá", async () => {
+    const r = await comStatus(401, { error: { code: "invalid_api_key", type: "invalid_request_error" } });
+    expect(r).toEqual(falhaDeTranscricao("chave_recusada"));
+    expect(r).not.toEqual(falhaDeTranscricao("sem_chave"));
+  });
+
+  it("403 e 402 (sem saldo) também são chave recusada — é conta da agência, não do cliente", async () => {
+    expect(await comStatus(403)).toEqual(falhaDeTranscricao("chave_recusada"));
+    expect(await comStatus(402, { error: { code: "insufficient_quota" } })).toEqual(falhaDeTranscricao("chave_recusada"));
+  });
+
+  it("429 do provedor vira 'ritmo' — esperar resolve, mexer na chave não", async () => {
+    expect(await comStatus(429)).toEqual(falhaDeTranscricao("ritmo"));
+  });
+
+  it("400 é ÁUDIO recusado — o conserto é regravar, não mexer na configuração", async () => {
+    expect(await comStatus(400, { error: { code: "invalid_file_format" } })).toEqual(falhaDeTranscricao("audio_recusado"));
+    expect(await comStatus(415)).toEqual(falhaDeTranscricao("audio_recusado"));
+  });
+
+  it("5xx continua sendo 'provedor_indisponivel' — o caso limpo não foi reclassificado", async () => {
+    // A outra metade: a mudança não pode transformar queda de provedor em
+    // alarme de configuração, senão o operador vai caçar chave boa toda vez
+    // que a OpenAI piscar.
+    expect(await comStatus(500)).toEqual(falhaDeTranscricao("provedor_indisponivel"));
+    expect(await comStatus(503)).toEqual(falhaDeTranscricao("provedor_indisponivel"));
+  });
+
+  it("o log leva status, code e type — e NUNCA a mensagem do provedor", async () => {
+    // `error.message` é texto livre e pode ecoar o que foi enviado. O que foi
+    // enviado é a fala do cliente.
+    const erro = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.stubGlobal("fetch", vi.fn(async () =>
+      new Response(
+        JSON.stringify({ error: { code: "invalid_api_key", type: "invalid_request_error", message: "sk-abc123 é inválida; pedido do cliente: bolo de morango" } }),
+        { status: 401, headers: { "content-type": "application/json" } },
+      )));
+    await transcreverAudio({ apiKey: CHAVE, arquivo: audio(5_000) });
+
+    const linhas = erro.mock.calls.flat().join(" ");
+    expect(linhas).toContain("401");
+    expect(linhas).toContain("invalid_api_key");
+    expect(linhas).toContain("invalid_request_error");
+    expect(linhas).not.toContain("bolo de morango");
+    expect(linhas).not.toContain("sk-abc123");
+  });
+
+  it("corpo de erro ilegível não vira um segundo erro", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("<html>502</html>", { status: 502 })));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const r = await transcreverAudio({ apiKey: CHAVE, arquivo: audio(5_000) });
+    expect(r).toEqual(falhaDeTranscricao("provedor_indisponivel"));
+  });
+
+  it("todo motivo novo tem frase em português — nenhum chega cru na tela", () => {
+    for (const m of ["chave_recusada", "audio_recusado"] as const) {
+      const f = falhaDeTranscricao(m);
+      expect(f.mensagem.length).toBeGreaterThan(20);
+      expect(f.mensagem).not.toContain("_");
+    }
+  });
+});
+
 describe("enviarAudioParaTranscricao — navegador", () => {
   it("propaga o motivo devolvido pela rota", async () => {
     vi.stubGlobal("fetch", vi.fn(async () =>

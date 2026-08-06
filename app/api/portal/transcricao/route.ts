@@ -19,6 +19,7 @@
 // já recebe a frase em português.
 
 import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/db/client";
 import { rateLimited } from "@/lib/security/rate-limit";
 import { resolveProviderKey } from "@/lib/ai/resolve-key";
 import { resolvePortalClient } from "@/lib/agency/persistence/portal-access-service";
@@ -73,5 +74,28 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!chave) return resposta(falhaDeTranscricao("sem_chave"));
 
   const r = await transcreverAudio({ apiKey: chave.apiKey, arquivo });
+
+  // A frase que o cliente lê em `chave_recusada` diz "já fomos avisados". Ou
+  // isso é verdade, ou é a casa mentindo para o cliente em nome próprio — então
+  // o aviso EXISTE. É o único motivo que vira registro: os outros são do mundo
+  // (rede, ritmo, áudio ruim) e encheriam a linha do tempo de nada.
+  //
+  // O que fica registrado é o MOTIVO, nunca o áudio e nunca o texto.
+  if (!r.ok && r.motivo === "chave_recusada") {
+    await prisma.activityEvent
+      .create({
+        data: {
+          workspaceId: dono.workspaceId,
+          clientId: dono.clientId,
+          type: "transcricao_chave_recusada",
+          message:
+            "O provedor RECUSOU a chave de transcrição (OpenAI). O ditado por voz no portal está fora do ar para este cliente — conferir a chave em Integrações (inválida, revogada ou sem saldo).",
+        },
+      })
+      .catch(() => {
+        /* best-effort: o registro não pode derrubar a resposta ao cliente */
+      });
+  }
+
   return resposta(r);
 }

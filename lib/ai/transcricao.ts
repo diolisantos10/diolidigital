@@ -49,6 +49,12 @@ export type MotivoDeFalhaDeTranscricao =
   | "formato_invalido"
   /** nenhuma chave de transcrição configurada nas Integrações */
   | "sem_chave"
+  /** existe chave e o provedor a RECUSOU (401/403): inválida, revogada, sem
+   *  saldo ou sem permissão de áudio. É configuração da agência, não do cliente
+   *  — e era o caso que mais se disfarçava de "indisponível". */
+  | "chave_recusada"
+  /** o provedor recusou o ARQUIVO (400/415/422): formato, codec ou tamanho */
+  | "audio_recusado"
   /** token de portal inválido/expirado */
   | "acesso_negado"
   /** rate limit local */
@@ -83,6 +89,10 @@ const MENSAGENS: Record<MotivoDeFalhaDeTranscricao, string> = {
     "Não consegui ler o áudio. Tente gravar de novo.",
   sem_chave:
     "A transcrição por voz não está configurada. Escreva no campo acima — nada se perde.",
+  chave_recusada:
+    "A transcrição por voz está com um problema de configuração do nosso lado. Escreva no campo acima — nada se perde, e já fomos avisados.",
+  audio_recusado:
+    "Não consegui processar este áudio. Grave de novo, de preferência mais curto — ou escreva no campo acima.",
   acesso_negado:
     "Seu acesso ao portal expirou. Recarregue a página e tente de novo.",
   ritmo:
@@ -149,6 +159,52 @@ export function extensaoDeAudio(mime: string): string {
   return "webm";
 }
 
+// ─── Leitura do erro do provedor ─────────────────────────────────────────────
+
+/**
+ * Status HTTP do provedor → motivo da casa.
+ *
+ * Sem esta tabela, quatro problemas com quatro consertos diferentes chegavam à
+ * tela como a mesma frase — e o operador não tinha por onde começar:
+ *
+ *   401/403 → chave inválida, revogada ou sem permissão  → mexer nas Integrações
+ *   402     → sem saldo na conta do provedor             → pagar
+ *   429     → teto do provedor                           → esperar
+ *   4xx     → o provedor recusou o ARQUIVO               → regravar
+ *   5xx     → o provedor caiu                            → esperar
+ *
+ * Note que `chave_recusada` NÃO vira `sem_chave`: "não configurado" e
+ * "configurado e recusado" pedem ações opostas, e trocar um pelo outro manda o
+ * operador procurar uma chave que já está lá.
+ */
+export function classificarFalhaDoProvedor(status: number): MotivoDeFalhaDeTranscricao {
+  if (status === 401 || status === 403 || status === 402) return "chave_recusada";
+  if (status === 429) return "ritmo";
+  if (status === 413) return "audio_grande";
+  if (status >= 400 && status < 500) return "audio_recusado";
+  return "provedor_indisponivel";
+}
+
+/**
+ * Extrai SÓ `code` e `type` do corpo de erro. Nunca `message`, nunca o corpo.
+ *
+ * Os dois são identificadores fechados do provedor. `message` é texto livre e
+ * pode conter eco do que foi enviado — e o que foi enviado é a fala do cliente.
+ * Nunca lança: falhar ao ler um erro não pode virar um segundo erro.
+ */
+async function codigoDeErroDoProvedor(
+  res: Response,
+): Promise<{ code?: string; type?: string } | null> {
+  try {
+    const corpo = (await res.clone().json()) as { error?: { code?: unknown; type?: unknown } };
+    const code = typeof corpo.error?.code === "string" ? corpo.error.code : undefined;
+    const type = typeof corpo.error?.type === "string" ? corpo.error.type : undefined;
+    return code || type ? { code, type } : null;
+  } catch {
+    return null;
+  }
+}
+
 // ─── Servidor: áudio → texto ─────────────────────────────────────────────────
 
 export async function transcreverAudio(opts: {
@@ -182,10 +238,25 @@ export async function transcreverAudio(opts: {
     });
 
     if (!res.ok) {
-      // Só o status entra no log. O corpo do erro do provedor pode ecoar
-      // trechos do que foi dito — e isso é fala do cliente.
-      console.error(`[transcricao] provedor respondeu ${res.status}`);
-      return falhaDeTranscricao("provedor_indisponivel");
+      // ── 06/08/2026 — POR QUE ISTO DEIXOU DE SER UM MOTIVO SÓ ──────────────
+      // Bug reproduzido em produção: o microfone do portal devolvia
+      // `provedor_indisponivel` com áudio válido e chave presente. E era
+      // impossível avançar: chave inválida, saldo zerado, formato recusado e
+      // provedor fora do ar chegavam TODOS aqui, com a mesma palavra e uma
+      // linha de log que só dizia o número. Diagnóstico não pode depender de
+      // adivinhação — a resposta certa para "qual é o erro?" nunca é "algum".
+      //
+      // O que entra no log agora: status + `error.code`/`error.type`. Esses
+      // dois são ENUM do provedor (`invalid_api_key`, `insufficient_quota`,
+      // `invalid_request_error`), nunca texto livre — a regra de PII continua
+      // inteira: `error.message` e o corpo NÃO são logados, porque a mensagem
+      // do provedor pode ecoar trechos do que foi dito.
+      const diag = await codigoDeErroDoProvedor(res);
+      console.error(
+        `[transcricao] provedor respondeu ${res.status}` +
+          (diag ? ` · code=${diag.code ?? "-"} type=${diag.type ?? "-"}` : ""),
+      );
+      return falhaDeTranscricao(classificarFalhaDoProvedor(res.status));
     }
 
     let texto = "";
