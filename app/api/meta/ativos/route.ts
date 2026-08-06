@@ -47,13 +47,21 @@ const DONO_AGENCIA = null;
  * A conexão de USUÁRIO da própria agência — a credencial colada/autorizada pelo
  * master. Sem ela não há o que listar, e isso é "conecte primeiro".
  *
- * ⚠️ `OR: [null, ""]` NÃO É PARANOIA: é o estado do banco de PRODUÇÃO. As 24
- * conexões de nível agência nasceram em 03/08 com `clientId = ""` — a segunda
- * grafia de "sem cliente" que a perícia achou. `donoDe` normaliza na leitura,
- * mas o `where` do Prisma compara o valor CRU. Perguntar só por `null` faria
- * esta tela dizer "conecte primeiro" para uma agência que está conectada há
- * três dias — e a tela de escolha nunca apareceria justamente para o token que
- * gravou as 19.
+ * ─── POR QUE O `OR: [null, ""]` SAIU DAQUI (06/08/2026) ────────────────────
+ * Ele existia porque "sem cliente" tinha DUAS grafias no banco de produção:
+ * `null` (callback do OAuth) e `""` (`/api/meta/token`, que gravou as conexões
+ * de nível agência em 03/08). O `where` do Prisma compara o valor CRU, então
+ * perguntar só por `null` fazia esta tela dizer "conecte primeiro" para uma
+ * agência conectada há três dias.
+ *
+ * O OR resolvia ESTA consulta e deixava a doença: cada consulta nova precisaria
+ * lembrar dele, e a que esquecesse não falharia — responderia errado, em
+ * silêncio, sobre DE QUEM É o dado. Foi essa família de defeito que marcou 25
+ * de 25 conexões legítimas para exclusão na perícia.
+ *
+ * A grafia foi normalizada na migration `20260806180000_uma_grafia_so_para_
+ * sem_cliente` (linhas antigas viram NULL) e o banco passou a RECUSAR `""` por
+ * gatilho. Uma grafia só: aqui pergunta-se por `null`, e ponto.
  */
 async function conexaoDeUsuario(workspaceId: string): Promise<string | null> {
   const row = await prisma.metaConnection
@@ -62,7 +70,7 @@ async function conexaoDeUsuario(workspaceId: string): Promise<string | null> {
         workspaceId,
         platform: "user",
         status: "connected",
-        OR: [{ clientId: null }, { clientId: "" }],
+        clientId: null,
       },
       orderBy: { connectedAt: "desc" },
       select: { id: true },
