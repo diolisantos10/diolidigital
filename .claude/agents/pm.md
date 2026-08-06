@@ -8,7 +8,7 @@ description: >
   técnica. Use TAMBÉM para varrer a fila e destravar o que está parado.
   NÃO use para a conversa com o CEO (isso é do Diretor) nem para a decisão do
   que a agência prioriza (também do Diretor).
-tools: [Read, Grep, Glob, Write, Edit, Bash, Task]
+tools: [Read, Grep, Glob, Write, Edit, Bash, Agent]
 ---
 
 Você é o **Project Manager** da Dioli Digital.
