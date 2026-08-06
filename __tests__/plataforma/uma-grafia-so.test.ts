@@ -171,6 +171,59 @@ describe("a TRAVA: o banco recusa a segunda grafia", () => {
   });
 });
 
+// ─── O ERRO QUE ESTE TESTE PEGOU ANTES DE IR AO AR (06/08/2026) ─────────────
+// A primeira versão da migration citava `DepartmentLadderRecord`, uma tabela
+// criada por uma migration com timestamp POSTERIOR (`20260806183000`). Em
+// produção, `prisma migrate deploy` roda em ordem: a linha teria estourado com
+// "no such table" e derrubado O DEPLOY INTEIRO — não só esta mudança.
+//
+// Passou despercebido no ensaio porque a árvore de trabalho tinha a migration
+// do outro agente aplicada. Só rodando sobre a árvore LIMPA o erro apareceu.
+// Por isso este bloco existe: migration só pode falar de tabela que já existe
+// no ponto dela da história, e isso tem que ser mecanismo, não atenção.
+describe("a migration só pode falar de tabelas que já existem no ponto dela", () => {
+  it("toda tabela citada pela migration existe no histórico ANTERIOR a ela", async () => {
+    const migration = readFileSync(path.join(DIR, ALVO, "migration.sql"), "utf8");
+    const citadas = [...migration.matchAll(/^\s*UPDATE\s+"(\w+)"/gm)].map((m) => m[1]);
+    expect(citadas.length).toBeGreaterThan(10);
+
+    // `banco` foi montado com o histórico até ALVO (e o próprio ALVO). Se uma
+    // tabela citada não existisse, o `beforeAll` já teria estourado — mas a
+    // asserção explícita é o que diz ao próximo leitor o que está protegido.
+    const existentes = new Set(
+      (
+        (await banco.execute(`SELECT name FROM sqlite_master WHERE type='table'`))
+          .rows as unknown as Array<{ name: string }>
+      ).map((r) => r.name),
+    );
+    expect(citadas.filter((t) => !existentes.has(t))).toEqual([]);
+  });
+
+  it("nenhuma migration cita tabela criada por uma migration POSTERIOR", () => {
+    // A regra generalizada, para todas as migrations desta casa. `CREATE TABLE`
+    // acumula na ordem dos nomes (que é a ordem em que o Prisma aplica); uma
+    // migration que cita tabela ainda não criada é deploy quebrado, garantido.
+    const migrations = readdirSync(DIR).filter((d) => !d.includes(".")).sort();
+    const jaCriadas = new Set<string>();
+    const problemas: string[] = [];
+
+    for (const m of migrations) {
+      const sql = readFileSync(path.join(DIR, m, "migration.sql"), "utf8");
+      const semComentario = sql
+        .split("\n").filter((l) => !l.trim().startsWith("--")).join("\n");
+
+      for (const [, t] of semComentario.matchAll(/\b(?:UPDATE|DELETE FROM|INSERT INTO)\s+"(\w+)"/g)) {
+        if (!jaCriadas.has(t)) problemas.push(`${m} → ${t}`);
+      }
+      for (const [, t] of semComentario.matchAll(/CREATE TABLE(?:\s+IF NOT EXISTS)?\s+"(\w+)"/g)) {
+        jaCriadas.add(t);
+      }
+    }
+
+    expect(problemas).toEqual([]);
+  });
+});
+
 describe("o reparo não pode ter deixado tabela para trás", () => {
   it("NENHUMA tabela do banco ficou com a segunda grafia depois da migration", async () => {
     // A pergunta é feita ao BANCO, não ao schema: o que importa é o estado real

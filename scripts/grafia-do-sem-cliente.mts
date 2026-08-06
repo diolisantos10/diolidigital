@@ -36,7 +36,9 @@ const TABELAS = [
   "ApprovalRequest",
   "PortalAccess",
   "MediaAsset",
-  "DepartmentLadderRecord",
+  // `DepartmentLadderRecord` fica de fora: nasceu DEPOIS da migration do
+  // reparo, quando a segunda grafia já estava proibida por gatilho. Tabela
+  // ausente aqui não é esquecimento — é a ordem da história.
 ];
 
 async function main(): Promise<void> {

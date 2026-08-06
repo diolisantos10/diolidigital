@@ -48,7 +48,13 @@ UPDATE "BrainArtifact"         SET "clientId" = NULL WHERE "clientId" = '';
 UPDATE "ApprovalRequest"       SET "clientId" = NULL WHERE "clientId" = '';
 UPDATE "PortalAccess"          SET "clientId" = NULL WHERE "clientId" = '';
 UPDATE "MediaAsset"            SET "clientId" = NULL WHERE "clientId" = '';
-UPDATE "DepartmentLadderRecord" SET "clientId" = NULL WHERE "clientId" = '';
+
+-- ⚠️ `DepartmentLadderRecord` NÃO entra nesta lista, e a ausência é deliberada:
+-- a tabela é criada pela migration `20260806183000_escada_de_exposicao_por_
+-- departamento`, que roda DEPOIS desta. Citá-la aqui faria `prisma migrate
+-- deploy` estourar com "no such table" e DERRUBAR O DEPLOY INTEIRO — migration
+-- só pode falar de tabela que já existe no ponto dela da história. Ela também
+-- não precisa do reparo: nasce depois de a segunda grafia já estar proibida.
 
 -- ── 2. TRAVA ────────────────────────────────────────────────────────────────
 -- O banco passa a RECUSAR a segunda grafia nas duas tabelas da Meta. A mensagem
