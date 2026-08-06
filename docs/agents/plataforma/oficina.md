@@ -412,3 +412,103 @@ sem cópia de regra.
 3. **A porta do e-mail não tem teto por remetente.** Tem teto de corpo (512 KB)
    e de texto (60k chars), mas quem tiver o segredo pode inserir em ritmo livre.
    No dia em que o segredo vazar, isso enche o volume do Railway.
+
+---
+
+## 06/08/2026 · A caixa de e-mail cheia de alarme — o que era defeito e o que era ruído
+
+Frente aberta pelo CEO: alertas de falha em série (CI, cron, "Deployment
+crashed"). Pedido: **descobrir a verdade e consertar a causa**.
+
+### O que os e-mails eram de verdade
+
+**Contexto que explica quase tudo: o GitHub Actions estava em PANE.** Incidente
+aberto às 15:22Z, ainda não resolvido às 21:30Z; webhooks estrangulados a ~15%,
+capacidade de runner limitada (`githubstatus.com/api/v2/summary.json` →
+componente `Actions` em `major_outage`).
+
+1. **CI de 17:38 (`c605fbd`) — "All jobs have failed".** Não foi teste nenhum.
+   O job ficou **30 min na fila**, rodou 45 min, registrou **zero passos** e o
+   log nem existe (`BlobNotFound`). Casualidade da pane. E `c605fbd` **nem está
+   na branch**: é commit órfão de uma corrida entre dois agentes empurrando na
+   mesma branch (mesma mensagem de `d9c4232`, pai diferente).
+2. **"All jobs were cancelled" em série.** A hipótese do `concurrency` estava
+   **errada**: não havia `concurrency` em workflow nenhum. Quem matava os jobs
+   era a infraestrutura — e job morto por infraestrutura fecha o *run* como
+   `failure`, por isso virou e-mail vermelho.
+3. **Duas falhas de CI que eram REAIS** — 12:21 (`5f39ce0`) e 12:22 (`4f62ce2`),
+   passo `Tests`. Já consertadas no mesmo dia (`e37a60d` em diante). O único
+   defeito de código do dia inteiro, e foi o que menos apareceu na caixa.
+4. **Cron "recuperar produção travada" FALHOU 2x.** Também a pane: o job, que é
+   **um `curl`**, ficou **83 minutos** pendurado antes de ser morto.
+5. **"Deployment crashed" (15:55).** **Nunca houve crash.** O log do deployment
+   `2ff2df14` mostra boot limpo, migrations aplicadas, `Ready`, atendendo por 20
+   min — e então `SIGTERM` às 18:55:07, que é o Railway trocando o container
+   pelo deploy seguinte. Ver a seção abaixo.
+
+### 🔴 O achado que ninguém tinha visto: produção sem prova
+
+**`7724050` — o commit que está em produção — não tem NENHUM run de CI.** Zero.
+Com o Actions estrangulado, o push não gerou run; o Railway faz deploy **por
+push, não por CI verde**; e subiu.
+
+Rodei o portão à mão neste commit: `tsc` limpo, **2146 testes passando**, `npm
+run build` ok, com o Chromium presente (a prova do pixel rodou de verdade, não
+foi pulada). **O código está bom** — mas isso foi descoberto por perícia, não
+pelo processo.
+
+O buraco é o processo: **"a CI não rodou" e "a CI passou" produzem o mesmo
+efeito na caixa de entrada — nenhum e-mail vermelho.** Silêncio virou aprovação.
+
+### O outro achado: o cron de socorro roda 12x menos do que está escrito
+
+`cron-execute.yml` diz `*/10` (6x por hora). Medido nos runs reais dos 3 dias
+anteriores, o intervalo **entre disparos** foi de **64 a 203 minutos** — mediana
+perto de 100. `schedule` do GitHub é best-effort e o descarte é silencioso.
+A rede de segurança da produção roda ~1x por hora e meia. Registrado no próprio
+arquivo, para ninguém mais acreditar no "de 10 em 10 minutos".
+
+### O que foi consertado
+
+- **`instrumentation.ts` + `scripts/start.sh` — parada não é queda.** O servidor
+  standalone do Next sai com `process.exit(143)` no SIGTERM
+  (`node_modules/next/dist/server/lib/start-server.js:375`). 143 é != 0, e é
+  assim que a hospedagem reconhece defeito — por isso **todo deploy** gerava
+  "Deployment crashed". Agora `start.sh` exporta `NEXT_MANUAL_SIG_HANDLE=true`
+  e `pararSemParecerQueda()` sai **0**. Queda de verdade (exceção, OOM, falha de
+  boot) segue != 0 — não chega por SIGTERM.
+  **Provado no servidor real, não no papel:** mesmo binário, mesmo SIGTERM —
+  `EXIT=143` sem a variável, `EXIT=0` com ela.
+- **`lib/plataforma/sentinela-do-deploy.ts` + `scripts/sentinela-do-deploy.mts`
+  (`npm run sentinela`).** Pergunta à produção qual commit está no ar
+  (`/api/health`), ao GitHub se aquele commit tem CI verde, e ao status page se
+  o Actions está de pé. **Distingue três coisas que o e-mail confunde:**
+  REPROVADO, SEM_PROVA e APROVADO. Ausência de informação não é informação.
+  Rodando agora, ele acusa exatamente o buraco, em uma linha.
+- **`.github/workflows/sentinela-do-deploy.yml`.** Roda a cada push na branch de
+  produção e de hora em hora, e **abre issue** quando a produção está sem prova
+  — issue notifica por e-mail e fica aberta cobrando, ao contrário de um job
+  vermelho no meio de trinta.
+- **`concurrency` na CI** (o cancelamento passa a ser deliberado, fecha como
+  `cancelled`, que o GitHub não manda por e-mail) e **`timeout-minutes`** na CI
+  (30) e nos dois crons (10) — o job de 83 min não se repete.
+
+### Verificação
+
+- `npx tsc --noEmit` limpo.
+- `npx vitest run`: **136 arquivos, 2168 testes, todos passando** (22 novos).
+- `npm run build` ok.
+- YAML dos 6 workflows validado.
+
+### 🔴 O que fica aberto — precisa de decisão
+
+1. **O Railway não pergunta pela CI.** Ele faz deploy por push. O sentinela
+   **detecta e denuncia** depois do fato; ele não impede. Trava de verdade seria
+   deploy só por CI verde (Railway Deployment Triggers / deploy via workflow) —
+   é mudança de processo de deploy, não cabia nesta frente.
+2. **Dois agentes empurrando na mesma branch** produziram `c605fbd` órfão. O
+   `concurrency` reduz o desperdício de runner, mas não resolve a corrida de
+   push.
+3. **A pane do Actions ainda estava aberta** ao fim desta frente: nenhum run foi
+   criado entre 19:22Z e 21:40Z. Enquanto durar, o sentinela vai acusar
+   `SEM_PROVA_PLATAFORMA_FORA` — que é o veredito correto, não um falso positivo.

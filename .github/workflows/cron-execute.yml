@@ -1,8 +1,24 @@
 name: Cron — recuperar produção travada
 
-# Rede de segurança da produção: a cada 10 min, chama /api/cron/execute pra
-# recuperar projetos cuja produção travou (não depende do navegador).
+# Rede de segurança da produção: chama /api/cron/execute pra recuperar projetos
+# cuja produção travou (não depende do navegador).
 # Requer o secret de repositório CRON_SECRET (mesmo valor setado no Railway).
+#
+# ⚠️ ESTE "*/10" NÃO É DE 10 EM 10 MINUTOS. Medido em 06/08/2026 sobre os runs
+# reais dos três dias anteriores, o intervalo ENTRE DISPAROS foi de 64 a 203
+# minutos — mediana perto de 100. `schedule` do GitHub Actions é best-effort:
+# em repositório público, na fila compartilhada, a maioria dos tiques é
+# simplesmente descartada, e o descarte não gera aviso nenhum.
+#
+# Ou seja: a rede de segurança da produção roda ~1x por hora e meia, não 6x por
+# hora — um fator de ~12 entre o que está escrito e o que acontece. Se algum dia
+# a recuperação PRECISAR de granularidade de minutos, ela não pode morar aqui.
+#
+# O que de fato roda de 5 em 5 minutos é o despertador DENTRO do servidor
+# (`instrumentation.ts` → `lib/agency/despertador.ts`). Este cron é o reforço
+# de fora para o caso de o próprio servidor estar de pé mas parado — e um
+# reforço que dispara a cada hora e meia ainda vale, desde que ninguém acredite
+# que ele dispara a cada 10 minutos.
 
 on:
   schedule:
@@ -12,6 +28,12 @@ on:
 jobs:
   tick:
     runs-on: ubuntu-latest
+    # É UM curl. Em 06/08 este job ficou 83 MINUTOS pendurado antes de ser
+    # morto pela infraestrutura — e o e-mail que chegou ao CEO dizia só
+    # "FALHOU", como se a rotina de socorro da produção tivesse encontrado um
+    # defeito. Teto de 10 min: a rede de segurança falha rápido e com o motivo
+    # certo, em vez de ficar segurando runner e mentindo no assunto do e-mail.
+    timeout-minutes: 10
     steps:
       - name: Chamar o worker de execução
         run: |

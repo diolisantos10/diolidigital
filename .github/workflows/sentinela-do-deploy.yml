@@ -1,0 +1,96 @@
+name: Sentinela do deploy — o que está no ar passou pelo portão?
+
+# ── POR QUE ESTE WORKFLOW EXISTE ────────────────────────────────────────────
+# 06/08/2026. A produção passou a servir o commit `7724050` sem que a CI
+# tivesse rodado UMA VEZ nesse commit (pane do GitHub Actions: webhooks
+# estrangulados a ~15%, incidente aberto 15:22Z). O Railway faz deploy por
+# PUSH, não por CI verde — então subiu. E a agência trabalhou a tarde inteira
+# achando que estava tudo conferido.
+#
+# Ninguém foi avisado porque "a CI não rodou" e "a CI passou" produzem o mesmo
+# efeito na caixa de entrada: nenhum e-mail vermelho. Silêncio virou aprovação.
+#
+# Este workflow existe para que o SILÊNCIO NÃO SEJA MAIS UMA RESPOSTA VÁLIDA.
+# Ele pergunta ativamente à produção qual commit está no ar, confere se aquele
+# commit tem CI verde, e — quando não tem — ABRE UMA ISSUE. Issue notifica o
+# dono do repositório por e-mail sem depender de ninguém ir olhar a aba Actions.
+#
+# Por que issue e não só um job vermelho: um job vermelho é mais um e-mail
+# "workflow failed" no meio dos outros. A issue tem título em português, corpo
+# com a ação, e fica ABERTA até alguém fechar — ela cobra.
+
+on:
+  schedule:
+    # De hora em hora. Vale lembrar (medido neste repositório) que `schedule` é
+    # best-effort e o intervalo real fica bem acima do escrito — ver o
+    # comentário em cron-execute.yml. Por isso o sentinela também roda a cada
+    # push: assim todo deploy é conferido logo depois de acontecer.
+    - cron: "17 * * * *"
+  push:
+    branches:
+      - claude/dioli-agency-os-architecture-kk7kp
+  workflow_dispatch: {}
+
+# Não adianta ter três sentinelas conferindo a mesma produção ao mesmo tempo.
+concurrency:
+  group: sentinela-do-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  conferir:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install deps
+        run: npm ci
+
+      # O deploy do Railway leva ~2 min entre o push e o container novo atender.
+      # Conferir antes disso acusaria o commit ANTERIOR e abriria issue à toa.
+      - name: Esperar o deploy assentar
+        if: github.event_name == 'push'
+        run: sleep 180
+
+      - name: Perguntar à produção e ao portão
+        id: sentinela
+        run: npm run sentinela
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Só roda quando o passo acima falhou — e aí o veredito já está no output.
+      - name: Abrir issue quando a produção está sem prova
+        if: failure() && steps.sentinela.outputs.codigo != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CODIGO: ${{ steps.sentinela.outputs.codigo }}
+          GRAVIDADE: ${{ steps.sentinela.outputs.gravidade }}
+          RESUMO: ${{ steps.sentinela.outputs.resumo }}
+          ACAO: ${{ steps.sentinela.outputs.acao }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          TITULO="🚨 Produção sem prova: $CODIGO"
+          # Uma issue aberta por vez para o mesmo código. Sentinela que abre uma
+          # issue por hora vira spam, e spam é a mesma doença que ele veio curar.
+          EXISTE=$(gh issue list --state open --label sentinela-do-deploy \
+                     --search "$CODIGO in:title" --json number --jq '.[0].number // empty')
+          CORPO=$(printf '%s\n\n**O que fazer:** %s\n\n---\nVerificado automaticamente em %s\nRodada: %s\n' \
+                    "$RESUMO" "$ACAO" "$(date -u '+%Y-%m-%d %H:%M UTC')" "$RUN_URL")
+          if [ -n "$EXISTE" ]; then
+            echo "Issue #$EXISTE já está aberta para $CODIGO — comentando em vez de abrir outra."
+            gh issue comment "$EXISTE" --body "$CORPO"
+          else
+            gh issue create --title "$TITULO" --body "$CORPO" \
+              --label sentinela-do-deploy 2>/dev/null \
+              || gh issue create --title "$TITULO" --body "$CORPO"
+          fi

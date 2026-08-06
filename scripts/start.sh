@@ -193,6 +193,21 @@ fi
 # proxy can't reach it ("Application failed to respond").
 export HOSTNAME=0.0.0.0
 export PORT="${PORT:-8080}"
+
+# Parada a pedido da hospedagem não é queda — a METADE DE FORA do conserto.
+#
+# Com esta variável o Next NÃO registra o handler de sinal dele (que sai com
+# `process.exit(143)`, e 143 é o que fazia o Railway mandar "Deployment
+# crashed" a CADA deploy, no rodízio normal de container). Quem passa a
+# responder ao SIGTERM é `instrumentation.ts` → `pararSemParecerQueda()`, que
+# sai 0.
+#
+# ⚠️ As duas metades são obrigatórias: esta variável SEM o handler em
+# `instrumentation.ts` deixa o processo sem tratamento nenhum de SIGTERM. Não
+# remova uma sem a outra — `__tests__/plataforma/parada-nao-e-queda.test.ts`
+# reprova a rodada se isso acontecer.
+export NEXT_MANUAL_SIG_HANDLE=true
+
 echo "▶ Listening on $HOSTNAME:$PORT"
 
 exec "$NODE" "$ROOT/.next/standalone/server.js"

@@ -19,6 +19,7 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "db:seed": "node scripts/seed-db.mjs",
     "db:studio": "prisma studio",
+    "sentinela": "tsx scripts/sentinela-do-deploy.mts",
     "raio-x": "tsx scripts/raio-x.ts",
     "check:production-safety": "tsx scripts/check-production-safety.ts",
     "diagnose:railway": "tsx scripts/diagnose-railway-env.ts"

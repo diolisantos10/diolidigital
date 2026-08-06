@@ -11,6 +11,8 @@ on:
 jobs:
   scan:
     runs-on: ubuntu-latest
+    # Mesmo motivo do cron-execute: é um curl, não uma compilação.
+    timeout-minutes: 10
     steps:
       - name: Rodar o Radar
         run: |
