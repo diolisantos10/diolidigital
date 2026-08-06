@@ -326,3 +326,40 @@ O raio-x é somente leitura, e isso é trava com teste
 
 **O que NÃO muda:** o raio-x diagnostica; o conserto continua sendo uma frente
 com dono e verificação. Diagnóstico sem dono vira lista, e lista ninguém lê.
+
+---
+
+## O especialista estuda todo dia, não só quando precisa executar
+
+**Decidido pelo CEO em** 2026-08-05 · **registrado pelo** Diretor
+
+> *"Quanto mais coisas eles souberem e absorverem, mais avançados eles vão ficar.
+> Você precisa fazer eles criarem uma rotina de aprendizado, autoaprendizado."*
+
+A biblioteca de plataformas nasceu em 03/08 como resposta a incêndio: a conta de
+anúncios foi restrita, e capturou-se **política**. Foi o que apagou o fogo, e
+ficou assim por três dias. O defeito disso tem nome: **o especialista que só sabe
+o que NÃO pode fazer não sabe fazer.**
+
+**A regra, em uma frase: conhecimento não se captura sob demanda.** Aprender no
+momento em que a tarefa chega significa aprender com pressa, aprender o mínimo, e
+descobrir a regra que faltava depois de já ter agido.
+
+**O que muda para todo especialista da casa:**
+
+1. **Cobertura é meta, não sobra.** O manifesto de cada especialista busca o
+   máximo do conhecimento público do seu domínio — referência de API inteira, não
+   só a página do endpoint que ele vai chamar hoje.
+2. **A rotina é diária e é código.** Recaptura todo dia, hash por fonte, `[MUDOU]`
+   quando muda. Aprendizado que depende de alguém lembrar não é rotina.
+3. **Lacuna é declarada, com data.** Fonte que não capturou vira lacuna escrita no
+   manifesto e linha no CHANGELOG. **Biblioteca que finge cobertura é pior que
+   biblioteca pequena** — o parecer sai confiante e errado.
+4. **Parecer cita fonte capturada ou declara a lacuna.** Especialista que responde
+   de memória está inventando, mesmo quando acerta.
+5. **O manifesto cresce, não encolhe.** Tirar uma fonte exige motivo no CHANGELOG.
+
+**Por que isso é decisão de corredor e não de plataforma:** vale para Meta,
+Google e TikTok hoje, e para todo especialista que a casa criar amanhã. O ativo
+da agência não é o código que cada agente executa — é o que cada agente sabe
+antes de executar.
