@@ -49,11 +49,14 @@ const META: Record<Provider, ProviderMeta> = {
   },
   gemini: {
     name: "Google Gemini",
-    tagline: "Google · texto, imagem e vídeo",
+    tagline: "Google · texto e visão · tem faixa GRATUITA",
     emoji: "🔵",
     keyUrl: "https://aistudio.google.com/app/apikey",
     keyHelp: "aistudio.google.com → Get API key → Create API key",
-    models: ["gemini-1.5-pro", "gemini-1.5-flash", "gemini-2.0-flash"],
+    // ⚠️ `gemini-1.5-*` e `gemini-pro` FORAM APOSENTADOS — a API devolve 404.
+    // Oferecer nome morto na lista faz a pessoa escolher um modelo que nunca
+    // vai gerar, com a tela dizendo que a conexão está boa.
+    models: ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash"],
     accent: "#2563EB",
   },
   perplexity: {

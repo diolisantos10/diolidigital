@@ -1,7 +1,20 @@
+// Execução de inteligência de departamento por provedor — e a BANCADA de
+// comparação entre provedores.
+//
+// Este arquivo tinha um cérebro paralelo: falava com os endpoints da OpenAI e
+// da Anthropic direto, com dois provedores no braço. Agora chama `generate()`
+// como todo mundo, o que traz de graça o retry, os cinco provedores e a
+// resolução de chave pelo cofre.
+//
+// `estrito: true` desliga a reserva. É o que permite comparar caminho pago e
+// caminho gratuito medindo o que se pediu, e é o que prova que provedor
+// indisponível PARA em vez de improvisar.
+
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { isAgencyRole } from "@/lib/auth/session";
-import { resolveProviderKey } from "@/lib/ai/resolve-key";
+import { resolveProviderKey, isAiProvider, type AiProvider } from "@/lib/ai/resolve-key";
+import { generate } from "@/lib/ai/generate";
 import {
   buildMessages,
   isOpenAIDepartment,
@@ -13,95 +26,6 @@ import {
   type AIRunContext,
   type OpenAIMessages,
 } from "@/lib/agency/intelligence/openai-schemas";
-
-const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
-const CLAUDE_URL = "https://api.anthropic.com/v1/messages";
-const DEFAULT_CLAUDE_MODEL = "claude-haiku-4-5-20251001";
-const DEFAULT_OPENAI_MODEL = "gpt-4o-mini";
-const TIMEOUT_MS = 30_000;
-
-type ProviderResult = { ok: true; data: unknown; model: string } | { ok: false; error: string };
-
-async function callWithKey(
-  provider: "openai" | "claude",
-  apiKey: string,
-  model: string,
-  messages: OpenAIMessages,
-): Promise<ProviderResult> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-
-  try {
-    let res: Response;
-    if (provider === "claude") {
-      res = await fetch(CLAUDE_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify({
-          model,
-          max_tokens: 2048,
-          system: messages.system,
-          messages: [{ role: "user", content: messages.user }],
-        }),
-        signal: controller.signal,
-      });
-    } else {
-      res = await fetch(OPENAI_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model,
-          messages: [
-            { role: "system", content: messages.system },
-            { role: "user", content: messages.user },
-          ],
-          response_format: { type: "json_object" },
-          temperature: 0.7,
-          max_tokens: 2048,
-        }),
-        signal: controller.signal,
-      });
-    }
-
-    if (!res.ok) {
-      return { ok: false, error: `${provider === "claude" ? "Claude" : "OpenAI"} respondeu HTTP ${res.status}` };
-    }
-
-    let rawText: string;
-    if (provider === "claude") {
-      const json = (await res.json()) as { content?: { type: string; text: string }[] };
-      rawText = json.content?.[0]?.text ?? "";
-    } else {
-      const json = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-      rawText = json.choices?.[0]?.message?.content ?? "";
-    }
-
-    if (!rawText) return { ok: false, error: "Resposta vazia do provedor" };
-
-    const stripped = rawText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "");
-    const start = stripped.indexOf("{");
-    const end = stripped.lastIndexOf("}");
-    if (start === -1 || end === -1) return { ok: false, error: "JSON não encontrado na resposta" };
-
-    try {
-      return { ok: true, data: JSON.parse(stripped.slice(start, end + 1)), model };
-    } catch {
-      return { ok: false, error: "JSON inválido na resposta" };
-    }
-  } catch (err) {
-    const reason = err instanceof Error && err.name === "AbortError" ? "timeout" : "erro de rede";
-    return { ok: false, error: `Falha ao chamar ${provider} (${reason})` };
-  } finally {
-    clearTimeout(timer);
-  }
-}
 
 function validateOutput(departmentId: string, raw: unknown) {
   if (departmentId === "strategy")          return validateStrategyOutput(raw);
@@ -123,9 +47,14 @@ export async function GET(): Promise<NextResponse> {
   return NextResponse.json({ openaiConfigured, claudeConfigured });
 }
 
-// POST — run department intelligence through Claude or OpenAI.
-// Falls back gracefully: returns mode:"fallback" whenever the key is missing,
-// the call fails, or the response is invalid.
+// POST — roda a inteligência de um departamento pelo provedor pedido.
+//
+// `provider` aceita qualquer um dos cinco. `estrito: true` proíbe a reserva:
+// o provedor pedido atende ou o resultado é a falha dele.
+//
+// A degradação continua DECLARADA: chave ausente, falha do provedor ou saída
+// que não passa no validador do departamento devolvem `mode:"fallback"` com o
+// motivo escrito — o chamador segue nas regras locais sabendo que seguiu.
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const session = await getSession();
   if (!session || session.clientId || !isAgencyRole(session.role)) {
@@ -136,6 +65,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     departmentId?: string;
     projectId?: string;
     provider?: string;
+    estrito?: boolean;
     context?: AIRunContext;
   };
   try {
@@ -153,38 +83,31 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  if (provider !== "openai" && provider !== "claude") {
-    return NextResponse.json({ error: "provider must be 'openai' or 'claude'" }, { status: 400 });
+  if (!provider || !isAiProvider(provider)) {
+    return NextResponse.json({ error: "provider inválido — use claude, openai, gemini, deepseek ou perplexity" }, { status: 400 });
   }
 
   if (!context || typeof context !== "object" || !context.prompt) {
     return NextResponse.json({ error: "context with prompt is required" }, { status: 400 });
   }
 
-  const resolvedKey = await resolveProviderKey(
-    provider as "openai" | "claude",
-    session.workspaceId,
-  );
-
-  if (!resolvedKey) {
-    return NextResponse.json({
-      ok: true,
-      mode: "fallback",
-      fallbackReason: `Chave ${provider === "claude" ? "Claude" : "OpenAI"} não configurada`,
-      warnings: [`Provedor ${provider} selecionado mas a chave não está configurada — usando regras locais`],
-    });
-  }
-
-  const model = resolvedKey.model
-    ?? (provider === "claude" ? DEFAULT_CLAUDE_MODEL : DEFAULT_OPENAI_MODEL);
-
   const messages = buildMessages(departmentId, context);
-  const result = await callWithKey(provider as "openai" | "claude", resolvedKey.apiKey, model, messages);
+  const comecou = Date.now();
+  const result = await generate({
+    system: messages.system,
+    user: messages.user,
+    maxTokens: 2048,
+    workspaceId: session.workspaceId,
+    preferredProvider: provider as AiProvider,
+    apenasOPreferido: body.estrito === true,
+  });
+  const ms = Date.now() - comecou;
 
   if (!result.ok) {
     return NextResponse.json({
       ok: true,
       mode: "fallback",
+      ms,
       fallbackReason: result.error,
       warnings: [`Falha na execução ${provider}: ${result.error} — usando regras locais`],
     });
@@ -195,6 +118,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({
       ok: true,
       mode: "fallback",
+      ms,
+      // Quem realmente respondeu importa no diagnóstico: "inválido" de um
+      // provedor de reserva manda investigar o provedor errado.
+      provider: result.provider,
+      model: result.model,
       fallbackReason: "Resposta em formato inválido",
       warnings: ["A resposta da IA não passou na validação — usando regras locais"],
     });
@@ -202,8 +130,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   return NextResponse.json({
     ok: true,
-    mode: provider,
+    mode: result.provider,
+    provider: result.provider,
     model: result.model,
+    ms,
     output,
   });
 }

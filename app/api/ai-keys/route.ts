@@ -99,6 +99,43 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   return NextResponse.json({ ok: true, hint });
 }
 
+// PATCH — troca SÓ o modelo, sem exigir a chave de novo.
+//
+// Existe porque o POST só aceita `model` acompanhado de `apiKey`, e ninguém tem
+// a chave à mão depois de colada (ela sai criptografada e nunca volta). Isso
+// tornava "trocar de modelo" uma operação impossível sem ir buscar a chave no
+// provedor — e é exatamente a operação de que a troca para a faixa gratuita
+// depende. Nunca cria linha: sem chave configurada, não há o que ajustar.
+export async function PATCH(request: NextRequest): Promise<NextResponse> {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (session.role !== "master") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const body = (await request.json().catch(() => ({}))) as { provider?: string; model?: string };
+  const provider = body.provider ?? "";
+  const model = (body.model ?? "").trim();
+
+  if (!isProvider(provider)) return NextResponse.json({ error: "Provider inválido" }, { status: 400 });
+  if (!model) return NextResponse.json({ error: "Modelo vazio" }, { status: 400 });
+
+  const integrationId = PROVIDER_INTEGRATION_ID[provider];
+  const row = await prisma.dbIntegrationConfig.findUnique({
+    where: { workspaceId_integrationId: { workspaceId: session.workspaceId, integrationId } },
+  });
+  if (!row?.apiKeyEncrypted) {
+    return NextResponse.json({ error: "Nenhuma chave configurada para este provedor" }, { status: 404 });
+  }
+
+  await prisma.dbIntegrationConfig.update({
+    where: { workspaceId_integrationId: { workspaceId: session.workspaceId, integrationId } },
+    // O modelo mudou: o resultado do teste anterior era sobre OUTRO modelo e
+    // deixa de valer. Mantê-lo verde é o mesmo verde falso de antes.
+    data: { selectedModel: model, lastTestStatus: "not_run", lastTestMessage: null },
+  });
+
+  return NextResponse.json({ ok: true, provider, model });
+}
+
 // DELETE — remove a provider's stored key.
 export async function DELETE(request: NextRequest): Promise<NextResponse> {
   const session = await getSession();

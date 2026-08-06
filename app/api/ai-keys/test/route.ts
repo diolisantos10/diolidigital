@@ -30,13 +30,28 @@ async function testClaude(apiKey: string): Promise<{ ok: boolean; message: strin
   return { ok: false, message: `Claude respondeu HTTP ${res.status}` };
 }
 
-async function testOpenAI(apiKey: string): Promise<{ ok: boolean; message: string }> {
-  const res = await fetchWithTimeout("https://api.openai.com/v1/models", {
-    headers: { Authorization: `Bearer ${apiKey}` },
+// ⚠️ ANTES este teste era `GET /v1/models`. Listar modelos responde 200 com a
+// conta ZERADA — a tela dizia "Conexão com OpenAI OK" enquanto toda geração
+// falhava por falta de saldo. Verde falso é pior que vermelho: manda procurar o
+// defeito em qualquer lugar menos onde ele está.
+//
+// O teste agora é a menor GERAÇÃO possível, no modelo escolhido na tela: é a
+// única pergunta que interessa — esta chave PRODUZ?
+async function testOpenAI(apiKey: string, model?: string | null): Promise<{ ok: boolean; message: string }> {
+  const res = await fetchWithTimeout("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      model: (model ?? "").trim() || "gpt-4o-mini",
+      messages: [{ role: "user", content: "ok" }],
+      max_tokens: 16,
+    }),
   });
-  if (res.ok) return { ok: true, message: "Conexão com OpenAI OK" };
+  if (res.ok) return { ok: true, message: "OpenAI gerou — chave válida e com saldo" };
   if (res.status === 401) return { ok: false, message: "Chave inválida (401)" };
-  return { ok: false, message: `OpenAI respondeu HTTP ${res.status}` };
+  if (res.status === 429) return { ok: false, message: `Chave válida, mas SEM SALDO ou no limite (OpenAI 429): ${await erroDaApi(res)}` };
+  if (res.status === 404) return { ok: false, message: `Modelo "${(model ?? "").trim() || "gpt-4o-mini"}" não existe nesta conta (404)` };
+  return { ok: false, message: `OpenAI recusou o pedido (HTTP ${res.status}): ${await erroDaApi(res)}` };
 }
 
 // DeepSeek mirrors OpenAI's API, including GET /models with a Bearer token —
@@ -95,14 +110,28 @@ async function erroDaApi(res: Response): Promise<string> {
   }
 }
 
-async function testGemini(apiKey: string): Promise<{ ok: boolean; message: string }> {
+// Mesmo defeito que a OpenAI tinha, agravado: listar modelos responde 200 mesmo
+// quando o modelo ESCOLHIDO na tela foi aposentado pela Google (`gemini-1.5-*`
+// devolve 404 em qualquer geração). A tela dizia "OK" e a faixa gratuita não
+// gerava um caractere. Aqui também se testa gerando, no modelo escolhido.
+async function testGemini(apiKey: string, model?: string | null): Promise<{ ok: boolean; message: string }> {
+  const modelo = (model ?? "").trim() || process.env.GEMINI_MODEL?.trim() || "gemini-2.5-flash";
   const res = await fetchWithTimeout(
-    `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`,
-    {},
+    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelo)}:generateContent?key=${encodeURIComponent(apiKey)}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ role: "user", parts: [{ text: "ok" }] }],
+        generationConfig: { maxOutputTokens: 16 },
+      }),
+    },
   );
-  if (res.ok) return { ok: true, message: "Conexão com Gemini OK" };
-  if (res.status === 400 || res.status === 403) return { ok: false, message: "Chave inválida" };
-  return { ok: false, message: `Gemini respondeu HTTP ${res.status}` };
+  if (res.ok) return { ok: true, message: `Gemini gerou com ${modelo}` };
+  if (res.status === 401 || res.status === 403) return { ok: false, message: "Chave inválida ou sem permissão" };
+  if (res.status === 404) return { ok: false, message: `Modelo "${modelo}" não existe mais na API do Gemini (404) — escolha um modelo atual` };
+  if (res.status === 429) return { ok: false, message: `Cota da faixa gratuita esgotada (Gemini 429): ${await erroDaApi(res)}` };
+  return { ok: false, message: `Gemini recusou o pedido (HTTP ${res.status}): ${await erroDaApi(res)}` };
 }
 
 async function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
@@ -155,10 +184,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   let result: { ok: boolean; message: string };
   try {
     if (provider === "claude") result = await testClaude(resolved.apiKey);
-    else if (provider === "openai") result = await testOpenAI(resolved.apiKey);
+    else if (provider === "openai") result = await testOpenAI(resolved.apiKey, resolved.model);
     else if (provider === "deepseek") result = await testDeepSeek(resolved.apiKey);
     else if (provider === "perplexity") result = await testPerplexity(resolved.apiKey, resolved.model);
-    else result = await testGemini(resolved.apiKey);
+    else result = await testGemini(resolved.apiKey, resolved.model);
   } catch (err) {
     const reason = err instanceof Error && err.name === "AbortError" ? "timeout" : "erro de rede";
     result = { ok: false, message: `Falha ao testar (${reason})` };

@@ -28,7 +28,6 @@ const FROZEN_EXCEPTIONS = new Set<string>([
   "app/api/agents/pm/generate/route.ts",
   "app/api/agents/social/generate/route.ts",
   "app/api/ai-keys/test/route.ts",
-  "app/api/ai/run/route.ts",
   "app/api/brain/analyze-brand-book/route.ts",
   "app/api/brain/briefing-extract/route.ts",
   "app/api/sdr/chat/route.ts",
