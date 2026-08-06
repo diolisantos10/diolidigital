@@ -43,6 +43,14 @@
 // em `lacunas`. Quem lê a peça sabe que aquele cinza é ausência de marca, não a
 // marca do cliente.
 
+import { escaparHtml, type TextoDaPeca } from "./texto-da-peca";
+import { cssDoMockup } from "./mockup";
+
+// Reexportados para que nenhum chamador antigo precise mudar de import. A
+// definição mora em `texto-da-peca.ts` desde 06/08/2026 — ver o porquê lá.
+export { escaparHtml };
+export type { TextoDaPeca };
+
 /** Os formatos que um molde só atende. Mesma peça, mesma cara, sem redesenho. */
 export type FormatoDaPeca = "feed" | "story" | "carrossel" | "quadrado";
 
@@ -210,14 +218,6 @@ export function moldeDoCliente(marca: MarcaDoCliente | null | undefined): Molde 
 
 // ─── A peça ─────────────────────────────────────────────────────────────────
 
-/** Um pedaço de texto que vai virar pixel — e que o renderizador vai conferir. */
-export interface TextoDaPeca {
-  /** Identificador do papel no layout: "titulo", "apoio", "selo", "assinatura". */
-  papel: "titulo" | "apoio" | "selo" | "assinatura" | "indice";
-  /** O texto EXATO. É este string que o renderizador confere no DOM. */
-  texto: string;
-}
-
 export interface PecaDoMolde {
   formato: FormatoDaPeca;
   /** A frase principal. Passou pela trava (`trava-de-texto.ts`) antes de chegar aqui. */
@@ -234,16 +234,42 @@ export interface PecaDoMolde {
   fundo?: string | null;
   /** "3/6" no canto do carrossel. */
   indice?: { atual: number; total: number } | null;
+  /**
+   * O bloco de mockup, JÁ MONTADO por `montarMockup` (`mockup.ts`).
+   *
+   * Vem pronto, e não como pedido, por um motivo que é o coração da trava: o
+   * mockup pode RECUSAR (captura declarada sem imagem, número sem origem). Se o
+   * molde montasse, a recusa teria que virar exceção no meio do layout ou —
+   * pior — um bloco vazio pintado do mesmo jeito. Aqui, peça sem mockup é peça
+   * sóbria; peça com mockup é peça cuja procedência alguém declarou.
+   *
+   * Os `textos` entram na conferência do renderizador junto com os do molde.
+   */
+  mockup?: { html: string; textos: TextoDaPeca[] } | null;
 }
 
-/** Escapa para conteúdo de elemento E para valor de atributo. */
-export function escaparHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+/**
+ * O MONOGRAMA DA ASSINATURA — token, não decisão de peça.
+ *
+ * Até 06/08/2026 a assinatura era o nome do cliente solto no rodapé, e cada
+ * peça decidia sozinha se e como assinava. "Decidir sozinha 36 vezes foi o que
+ * produziu as 36 telas iguais" (comparativo do CEO): quando não há token, o
+ * gerador repete o mesmo default para sempre — e, na peça de referência, a
+ * marca no mundo físico aparece justamente porque a assinatura é constante.
+ *
+ * Derivado por regra do nome, nunca inventado: iniciais das duas primeiras
+ * palavras com letra; nome de uma palavra só vira as duas primeiras letras.
+ */
+export function monogramaDe(nome: string | null | undefined): string | null {
+  const limpo = (nome ?? "").trim();
+  if (!limpo) return null;
+  const palavras = limpo
+    .split(/\s+/)
+    .map((p) => p.replace(/[^\p{L}\p{N}]/gu, ""))
+    .filter((p) => p.length > 0);
+  if (palavras.length === 0) return null;
+  if (palavras.length === 1) return palavras[0]!.slice(0, 2).toUpperCase();
+  return (palavras[0]![0]! + palavras[1]![0]!).toUpperCase();
 }
 
 /**
@@ -254,6 +280,19 @@ export function escaparHtml(s: string): string {
  * gerador contra o gerador.
  */
 export function textosDaPeca(peca: PecaDoMolde): TextoDaPeca[] {
+  return [...textosDoMolde(peca), ...(peca.mockup?.textos ?? [])];
+}
+
+/**
+ * Só os textos que o MOLDE pinta — sem os do mockup.
+ *
+ * Existe separado porque `montarHtmlDaPeca` indexa estes por `papel`, e o
+ * mockup emite vários textos com o mesmo papel (`apoio`, uma vez por linha do
+ * painel e por balão da conversa). Indexar os dois juntos faria a última linha
+ * do painel SUBSTITUIR a linha de apoio da peça — um layout errado que nenhum
+ * teste de texto pegaria, porque a lista conferida continuaria completa.
+ */
+function textosDoMolde(peca: PecaDoMolde): TextoDaPeca[] {
   const fora: TextoDaPeca[] = [];
   if (peca.selo?.trim()) fora.push({ papel: "selo", texto: peca.selo.trim().toUpperCase() });
   if (peca.titulo?.trim()) fora.push({ papel: "titulo", texto: peca.titulo.trim() });
@@ -280,7 +319,8 @@ const TITULO_PX: Record<FormatoDaPeca, number> = {
  */
 export function montarHtmlDaPeca(peca: PecaDoMolde, molde: Molde): string {
   const dim = FORMATOS[peca.formato];
-  const textos = new Map(textosDaPeca(peca).map((t) => [t.papel, t.texto]));
+  const textos = new Map(textosDoMolde(peca).map((t) => [t.papel, t.texto]));
+  const monograma = monogramaDe(peca.assinatura);
   const temFundo = typeof peca.fundo === "string" && peca.fundo.length > 0;
 
   // Sobre foto, o texto precisa de um degradê por baixo — sem ele a legibilidade
@@ -348,11 +388,24 @@ export function montarHtmlDaPeca(peca: PecaDoMolde, molde: Molde): string {
     bottom:${dim.margemBase}px; height:${ALTURA_DO_RODAPE - 20}px;
     display:flex; align-items:center; justify-content:space-between; gap:24px;
   }
+  /* A ASSINATURA COMO TOKEN: monograma + wordmark, sempre no mesmo lugar, com
+     a mesma medida, em toda peça de toda campanha. É o que o comparativo de
+     06/08 chamou de "assinatura fixa de rodapé" — a referência tem, nós não
+     tínhamos. O monograma vem de monogramaDe(), derivado do nome; nunca
+     desenhado pelo modelo, porque modelo de imagem erra letra. */
+  .lockup { display:flex; align-items:center; gap:12px; }
+  .monograma {
+    display:flex; align-items:center; justify-content:center;
+    width:44px; height:44px; border-radius:12px; flex:0 0 auto;
+    background:${apoioCor}; color:${tintaSobre(apoioCor)};
+    font-size:22px; font-weight:800; letter-spacing:0;
+  }
   .assinatura { font-size:24px; font-weight:600; letter-spacing:1px; opacity:.85; }
   .indice {
     font-size:22px; font-weight:700; letter-spacing:2px; opacity:.8;
     border:2px solid currentColor; border-radius:999px; padding:6px 16px;
   }
+${cssDoMockup({ primaria: molde.primaria, secundaria: apoioCor, tinta })}
 </style></head>
 <body><div class="peca">
   <div class="foto"></div>
@@ -362,9 +415,18 @@ export function montarHtmlDaPeca(peca: PecaDoMolde, molde: Molde): string {
     ${el("selo", "div", "selo")}
     ${el("titulo", "h1", "titulo")}
     ${el("apoio", "p", "apoio")}
+    ${peca.mockup?.html ?? ""}
   </div>
   <div class="rodape">
-    ${el("assinatura", "div", "assinatura")}
+    <div class="lockup">
+      <!-- O monograma NÃO entra na lista conferida, e isso é decisão, não
+           esquecimento: ele é DERIVADO por código de peca.assinatura, que já é
+           conferida no DOM. Conferir a fonte confere o derivado. Marcá-lo com
+           data-papel criaria um segundo elemento com papel "assinatura" e o
+           mapa do layout passaria a pintar as iniciais no lugar do nome. -->
+      ${monograma ? `<div class="monograma" aria-hidden="true">${escaparHtml(monograma)}</div>` : ""}
+      ${el("assinatura", "div", "assinatura")}
+    </div>
     ${el("indice", "div", "indice")}
   </div>
 </div></body></html>`;
