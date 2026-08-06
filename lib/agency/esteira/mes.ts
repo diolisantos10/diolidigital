@@ -30,6 +30,7 @@ import { generate } from "@/lib/ai/generate";
 import { lerMetricasDaConta } from "@/lib/integrations/meta/leitura";
 import { fecharCiclo, type CicloResumido } from "@/lib/agency/esteira/ciclos";
 import { falarComOCliente } from "@/lib/agency/esteira/marcos";
+import { escadaFiltraEntregas } from "@/lib/agency/escada/registro";
 import { conferirPisoDeVerdade, resumirViolacoes, type VerdadeDoCliente } from "@/lib/agency/execution/piso-de-verdade";
 import { lerEvolucao } from "@/lib/agency/esteira/comparacao";
 import {
@@ -677,7 +678,9 @@ export async function apresentarCiclo(
 
   const entregaveis = await prisma.deliverable.findMany({
     where: { projectId, cycleId },
-    select: { id: true, name: true, revisionStatus: true },
+    // `ownerAgentId`: é ele que diz de que DEPARTAMENTO é a peça, e é o
+    // departamento que tem degrau na escada de exposição.
+    select: { id: true, name: true, revisionStatus: true, ownerAgentId: true },
   });
   if (entregaveis.length === 0) return { ok: false, erro: "não há nada pronto para apresentar neste ciclo" };
 
@@ -704,10 +707,32 @@ export async function apresentarCiclo(
   // Mesma regra do pacote inicial (marcos.ts): apresentar o ciclo é o ato que
   // torna as entregas DELE "compartilhado" — antes disso o portal, que filtra
   // por `visibility` fail-closed, não as mostra.
-  await prisma.deliverable.updateMany({
-    where: { projectId, cycleId },
-    data: { visibility: "compartilhado" },
-  }).catch(() => { /* best-effort */ });
+  //
+  // E a ESCADA DE EXPOSIÇÃO decide QUAIS. Apresentar é o ato; o degrau é o
+  // direito de participar dele. Sombra não chega ao cliente — é o que a palavra
+  // quer dizer; allowlist chega só a quem estiver marcado; wide chega a todos.
+  const escada = await escadaFiltraEntregas({
+    workspaceId: projeto.workspaceId,
+    clientId: projeto.clientId,
+    entregas: entregaveis.map((d) => ({ id: d.id, ownerAgentId: d.ownerAgentId })),
+  });
+  if (escada.liberados.length > 0) {
+    await prisma.deliverable.updateMany({
+      where: { id: { in: escada.liberados } },
+      data: { visibility: "compartilhado" },
+    }).catch(() => { /* best-effort */ });
+  }
+  if (escada.retidos.length > 0) {
+    await prisma.activityEvent.create({
+      data: {
+        workspaceId: projeto.workspaceId,
+        projectId,
+        clientId: projeto.clientId,
+        type: "escada_reteve_entrega",
+        message: `Ciclo ${ciclo.reference}: ${escada.retidos.length} entrega(s) NÃO foram compartilhadas pela escada de exposição: ${escada.retidos.map((r) => `${r.id} (${r.departmentId ?? "sem departamento"}): ${r.motivo}`).join(" | ")}`.slice(0, 900),
+      },
+    }).catch(() => { /* best-effort */ });
+  }
 
   const avisou = await falarComOCliente(projeto, [
     `O material de ${ciclo.reference} está pronto! 🎉`,

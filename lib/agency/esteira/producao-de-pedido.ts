@@ -49,6 +49,7 @@ import {
 } from "@/lib/agency/execution/quality-auditor";
 import { comoTexto, MINIMO_DE_CONTEUDO, temSubstancia } from "@/lib/agency/esteira/conteudo";
 import { TRAVA_MS, pararComMotivo, avisarCliente } from "@/lib/agency/esteira/triagem";
+import { escadaFiltraEntregas } from "@/lib/agency/escada/registro";
 
 /** Uma correção por freio. Se o modelo repetiu a violação COM o parecer e o
  *  texto anterior na frente, insistir só queima IA — e a peça não pode ir ao
@@ -336,6 +337,28 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
     // declarado, para ser possível responder "quantas peças foram sem árbitro?".
     await registrar(projeto, "qualidade_nao_auditou",
       `${nome} para ${contexto.businessName}: SEM AUDITORIA (${audit.motivo ?? "erro"}) — a peça foi ao cliente sem parecer da Qualidade. Isto NÃO é uma aprovação.`);
+  }
+
+  // ── A ESCADA DE EXPOSIÇÃO, TAMBÉM AQUI ────────────────────────────────────
+  // Esta é a TERCEIRA porta de visibilidade da casa (as outras são
+  // `marcos.apresentar` e `mes.apresentarCiclo`) e a mais fácil de esquecer,
+  // porque aqui a peça nasce "compartilhado" em vez de virar depois. Uma escada
+  // com duas portas fechadas e uma aberta não é escada: é o caminho que o
+  // tráfego aprende a usar.
+  //
+  // O cliente ter PEDIDO a peça não promove o departamento. Em sombra, o pedido
+  // para aqui e vira trabalho de gente — que é exatamente o que "sombra"
+  // significa: produz, registra, não entrega.
+  const escada = await escadaFiltraEntregas({
+    workspaceId: projeto.workspaceId,
+    clientId: pedido.clientId ?? projeto.clientId ?? null,
+    entregas: [{ id: "pedido", ownerAgentId: esp.id }],
+  });
+  if (escada.liberados.length === 0) {
+    const porque = escada.retidos[0]?.motivo ?? "retida pela escada de exposição";
+    await moverTarefa(pedido.taskId, "pending");
+    await registrar(projeto, "escada_reteve_entrega", `${nome} para ${contexto.businessName}: peça produzida e NÃO entregue — ${porque}`);
+    return await parar(pedidoId, "A peça ficou pronta, mas este time ainda está em rodagem interna nesta conta. A equipe vai revisar antes de te entregar.");
   }
 
   // ── A ENTREGA ─────────────────────────────────────────────────────────────

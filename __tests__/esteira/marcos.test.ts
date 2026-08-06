@@ -8,12 +8,15 @@ const db = vi.hoisted(() => ({
   approvalRequest: { updateMany: vi.fn() },
   portalMessage: { create: vi.fn() },
   cycle: { findUnique: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
+  activityEvent: { create: vi.fn() },
+  departmentLadder: { findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
 }));
 const runProjectExecution = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
 vi.mock("@/lib/agency/execution/run-execution", () => ({ runProjectExecution }));
 
 import { pedirDirecao, aprovarDirecao, apresentar, aprovarPacote } from "@/lib/agency/esteira/marcos";
+import { escadaToda } from "../_escada";
 
 const PROJETO = {
   id: "p1", name: "Padaria do João", clientRequestId: "cr1",
@@ -29,7 +32,13 @@ beforeEach(() => {
   db.deliverable.updateMany.mockResolvedValue({});
   db.cycle.update.mockResolvedValue({});
   db.task.findMany.mockResolvedValue([{ title: "Pacote de social" }, { title: "Conceito visual" }]);
-  db.deliverable.findMany.mockResolvedValue([{ id: "d1", name: "Pacote Social", revisionStatus: "quality_ok" }]);
+  // `ownerAgentId` é o que diz de que departamento é a peça — sem ele a escada
+  // de exposição retém, e com razão (executor desconhecido = fail-closed).
+  db.deliverable.findMany.mockResolvedValue([{ id: "d1", name: "Pacote Social", revisionStatus: "quality_ok", ownerAgentId: "a3" }]);
+  db.activityEvent.create.mockResolvedValue({});
+  // A METADE LEGÍTIMA: com o departamento em `wide`, apresentar segue sem
+  // atrito. A metade que barra tem teste próprio (escada-de-exposicao.test.ts).
+  db.departmentLadder.findMany.mockResolvedValue(escadaToda("wide"));
   db.materialRequest.count.mockResolvedValue(0);
   db.approvalRequest.updateMany.mockResolvedValue({ count: 1 });
   db.portalMessage.create.mockResolvedValue({});
@@ -113,8 +122,12 @@ describe("MARCO 2 — apresentar, de uma vez", () => {
     // é o ato explícito de publicação. Sem o carimbo, o card fica sem corpo.
     db.project.findUnique.mockResolvedValue({ ...PROJETO, directionApprovedAt: new Date() });
     await apresentar("p1");
+    // Publica por LISTA DE IDS, não pelo projeto inteiro: quem decide quais é a
+    // escada de exposição (`escadaFiltraEntregas`). Aqui o departamento está em
+    // `wide`, então a entrega legítima atravessa — a metade que retém está em
+    // `__tests__/qualidade/escada-de-exposicao.test.ts`.
     expect(db.deliverable.updateMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: { projectId: "p1" },
+      where: { id: { in: ["d1"] } },
       data: { visibility: "compartilhado" },
     }));
   });

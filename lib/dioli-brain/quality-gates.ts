@@ -42,6 +42,40 @@
 // Não inverte o default. "Departamento sem gate executável = REPROVADO" para
 // 8 de 8 departamentos no dia 1 — desliga a agência num commit. A inversão é a
 // Onda 1 e entra JUNTO com a escada (sombra → allowlist → wide), nunca antes.
+//
+// ─── A ESCADA JÁ EXISTE (06/08/2026). O QUE FALTA PARA A INVERSÃO ────────────
+//
+// `lib/agency/escada/` está construída e LIGADA nas TRÊS portas de visibilidade
+// da casa (`esteira/marcos.ts`, `esteira/mes.ts`, `esteira/producao-de-pedido.ts`):
+// departamento em sombra produz, é registrado e NÃO chega ao cliente.
+//
+// A inversão do default DESTE arquivo ainda não pode entrar. Falta, e cada item
+// é conferível — não é lista de intenção:
+//
+//   1. UMA JANELA DE EVIDÊNCIA REAL. `DepartmentLadderRecord` começou a ser
+//      escrito em 06/08/2026; antes disso a casa não contava nada. Inverter
+//      agora barraria departamentos que ninguém teve chance de medir. Conferível
+//      em `/api/agency/escada`: `contagem.total > 0` em todo departamento que
+//      produz.
+//
+//   2. UM GATE EXECUTÁVEL POR DEPARTAMENTO QUE PRODUZ. Das 32 checagens, 7 têm
+//      mecanismo — e todas são do escopo `global` ou do PM. `social-media`,
+//      `design`, `paid-traffic`, `analytics`, `strategy` e `financeiro` não têm
+//      NENHUMA checagem própria com mecanismo. Invertendo hoje, os seis reprovam
+//      por definição, e o piso de verdade (que já os protege) não conta porque
+//      está registrado como global. Ou o default passa a olhar as globais
+//      também, ou cada casa ganha a sua primeira checagem executável (Onda 4).
+//
+//   3. O LLM-JUDGE DOS SUBJETIVOS (Onda 5). Enquanto "respeita a marca" e
+//      "corresponde ao briefing" não emitirem veredito item a item, a inversão
+//      só troca um silêncio que APROVA por um silêncio que REPROVA. Reprovar
+//      tudo, sempre, é o falso positivo em escala máxima — e um portão que
+//      reprova o legítimo treina o time inteiro a desligá-lo.
+//
+//   4. A ORDEM DE ENTRADA, que é o que a escada tornou possível: a inversão vale
+//      primeiro só para departamento em SOMBRA (onde reprovar não tira nada de
+//      ninguém, porque nada chega ao cliente mesmo), depois para allowlist, por
+//      último para wide. É por isso que a escada vinha antes.
 
 import type { QualityGateCheck } from "./types";
 

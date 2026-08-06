@@ -13,6 +13,10 @@ const db = vi.hoisted(() => ({
   activityEvent: { create: vi.fn() },
   cycle: { findFirst: vi.fn() },
   mediaAsset: { findMany: vi.fn() },
+  // A escada de exposição: o motor ALIMENTA o contador dela a cada peça —
+  // inclusive as barradas, que nunca viram `Deliverable`.
+  departmentLadder: { findUnique: vi.fn(), findMany: vi.fn(), create: vi.fn(), update: vi.fn() },
+  departmentLadderRecord: { create: vi.fn(), findMany: vi.fn() },
 }));
 const generate = vi.hoisted(() => vi.fn());
 const createApprovalRequest = vi.hoisted(() => vi.fn());
@@ -125,6 +129,9 @@ beforeEach(() => {
   });
   db.deliverable.findFirst.mockResolvedValue(null);
   db.mediaAsset.findMany.mockResolvedValue([]);
+  db.departmentLadder.findUnique.mockResolvedValue({ degrau: "sombra" });
+  db.departmentLadder.findMany.mockResolvedValue([]);
+  db.departmentLadderRecord.create.mockResolvedValue({});
   db.clientRequestDb.findUnique.mockResolvedValue({ id: "cr1", businessName: "Loja X", services: JSON.stringify(["social"]), objectives: "[]", briefingJson: "{}" });
   db.client.findFirst.mockResolvedValue({ id: "c1", name: "Loja X", brandBrain: null });
   db.client.findUnique.mockResolvedValue({ brandBrain: null, industry: "varejo" });
@@ -1054,5 +1061,36 @@ describe("o kit de marca — o serviço mais caro da casa — sai do fail-open",
     await runProjectExecution("p1");
     const kits = db.deliverable.create.mock.calls.filter((c) => c[0].data.type === "brand-kit");
     expect(kits).toHaveLength(0);
+  });
+});
+
+
+// ── A ESCADA É ALIMENTADA PELO MOTOR ─────────────────────────────────────────
+//
+// Sem esta fiação a escada seria estado gravado que ninguém alimenta — e
+// nenhum departamento sairia da sombra nunca, o que na prática é a agência
+// desligada com cara de portão funcionando.
+
+describe("cada peça produzida vira evidência na escada — inclusive a barrada", () => {
+  it("peça aprovada entra como 'aprovada', com o departamento e o degrau da época", async () => {
+    db.project.findUnique.mockResolvedValue({ ...baseProject, agents: JSON.stringify(["a3"]) });
+    generate.mockResolvedValue(noContrato({ title: "T", summary: "s", items: [{ headline: "Pauta", caption: "legenda de feed bem completa para o mes inteiro" }] }));
+
+    await runProjectExecution("p1");
+    const regs = db.departmentLadderRecord.create.mock.calls.map((c) => c[0].data);
+    const social = regs.find((r) => r.departmentId === "social-media");
+    expect(social, "o motor precisa anotar a peça na escada").toBeTruthy();
+    expect(social!.resultado).toBe("aprovada");
+    expect(social!.degrauNaEpoca).toBe("sombra");
+  });
+
+  it("peça barrada no piso NÃO vira Deliverable, mas VIRA registro — senão o histórico mente a favor", async () => {
+    db.project.findUnique.mockResolvedValue({ ...baseProject, agents: JSON.stringify(["a5"]) });
+    generate.mockResolvedValue(noContrato({ title: "T", summary: "s", items: [{ headline: "Reserve", caption: "Garantimos 80% mais vendas já no primeiro mês, sem esforço nenhum." }] }));
+
+    await runProjectExecution("p1");
+    expect(db.deliverable.create).not.toHaveBeenCalled();
+    const regs = db.departmentLadderRecord.create.mock.calls.map((c) => c[0].data);
+    expect(regs.map((r) => r.resultado)).toContain("barrada_piso");
   });
 });

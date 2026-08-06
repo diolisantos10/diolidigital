@@ -408,3 +408,18 @@ export type Oportunidade = Prisma.OportunidadeModel
  * 
  */
 export type RateLimitBucket = Prisma.RateLimitBucketModel
+/**
+ * Model DepartmentLadder
+ * 
+ */
+export type DepartmentLadder = Prisma.DepartmentLadderModel
+/**
+ * Model DepartmentLadderRecord
+ * Um registro por PEÇA que o departamento produziu — inclusive as barradas.
+ * 
+ * É o denominador da evidência. Contar só `Deliverable` mentiria a favor do
+ * departamento: peça barrada no piso de verdade ou no contrato de saída NUNCA
+ * vira `Deliverable`, então um departamento que inventa dado o tempo todo
+ * apareceria com histórico limpo.
+ */
+export type DepartmentLadderRecord = Prisma.DepartmentLadderRecordModel

@@ -98,7 +98,9 @@ export const ModelName = {
   MarketInsight: 'MarketInsight',
   MediaAsset: 'MediaAsset',
   Oportunidade: 'Oportunidade',
-  RateLimitBucket: 'RateLimitBucket'
+  RateLimitBucket: 'RateLimitBucket',
+  DepartmentLadder: 'DepartmentLadder',
+  DepartmentLadderRecord: 'DepartmentLadderRecord'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -979,6 +981,38 @@ export const RateLimitBucketScalarFieldEnum = {
 } as const
 
 export type RateLimitBucketScalarFieldEnum = (typeof RateLimitBucketScalarFieldEnum)[keyof typeof RateLimitBucketScalarFieldEnum]
+
+
+export const DepartmentLadderScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  departmentId: 'departmentId',
+  degrau: 'degrau',
+  clientesLiberados: 'clientesLiberados',
+  motivo: 'motivo',
+  decididoPor: 'decididoPor',
+  provaJson: 'provaJson',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type DepartmentLadderScalarFieldEnum = (typeof DepartmentLadderScalarFieldEnum)[keyof typeof DepartmentLadderScalarFieldEnum]
+
+
+export const DepartmentLadderRecordScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  departmentId: 'departmentId',
+  projectId: 'projectId',
+  clientId: 'clientId',
+  deliverableId: 'deliverableId',
+  degrauNaEpoca: 'degrauNaEpoca',
+  resultado: 'resultado',
+  detalhe: 'detalhe',
+  criadoEm: 'criadoEm'
+} as const
+
+export type DepartmentLadderRecordScalarFieldEnum = (typeof DepartmentLadderRecordScalarFieldEnum)[keyof typeof DepartmentLadderRecordScalarFieldEnum]
 
 
 export const SortOrder = {

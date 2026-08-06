@@ -431,7 +431,9 @@ export const ModelName = {
   MarketInsight: 'MarketInsight',
   MediaAsset: 'MediaAsset',
   Oportunidade: 'Oportunidade',
-  RateLimitBucket: 'RateLimitBucket'
+  RateLimitBucket: 'RateLimitBucket',
+  DepartmentLadder: 'DepartmentLadder',
+  DepartmentLadderRecord: 'DepartmentLadderRecord'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -447,7 +449,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "metaAdFreio" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "oportunidade" | "rateLimitBucket"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "dbAgentProviderConfig" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "metaAdFreio" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -4003,6 +4005,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    DepartmentLadder: {
+      payload: Prisma.$DepartmentLadderPayload<ExtArgs>
+      fields: Prisma.DepartmentLadderFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.DepartmentLadderFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DepartmentLadderPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.DepartmentLadderFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DepartmentLadderPayload>
+        }
+        findFirst: {
+          args: Prisma.DepartmentLadderFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DepartmentLadderPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.DepartmentLadderFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DepartmentLadderPayload>
+        }
+        findMany: {
+          args: Prisma.DepartmentLadderFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DepartmentLadderPayload>[]
+        }
+        create: {
+          args: Prisma.DepartmentLadderCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DepartmentLadderPayload>
+        }
+        createMany: {
+          args: Prisma.DepartmentLadderCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.DepartmentLadderCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DepartmentLadderPayload>[]
+        }
+        delete: {
+          args: Prisma.DepartmentLadderDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DepartmentLadderPayload>
+        }
+        update: {
+          args: Prisma.DepartmentLadderUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DepartmentLadderPayload>
+        }
+        deleteMany: {
+          args: Prisma.DepartmentLadderDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.DepartmentLadderUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.DepartmentLadderUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DepartmentLadderPayload>[]
+        }
+        upsert: {
+          args: Prisma.DepartmentLadderUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DepartmentLadderPayload>
+        }
+        aggregate: {
+          args: Prisma.DepartmentLadderAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateDepartmentLadder>
+        }
+        groupBy: {
+          args: Prisma.DepartmentLadderGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DepartmentLadderGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.DepartmentLadderCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DepartmentLadderCountAggregateOutputType> | number
+        }
+      }
+    }
+    DepartmentLadderRecord: {
+      payload: Prisma.$DepartmentLadderRecordPayload<ExtArgs>
+      fields: Prisma.DepartmentLadderRecordFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.DepartmentLadderRecordFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DepartmentLadderRecordPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.DepartmentLadderRecordFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DepartmentLadderRecordPayload>
+        }
+        findFirst: {
+          args: Prisma.DepartmentLadderRecordFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DepartmentLadderRecordPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.DepartmentLadderRecordFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DepartmentLadderRecordPayload>
+        }
+        findMany: {
+          args: Prisma.DepartmentLadderRecordFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DepartmentLadderRecordPayload>[]
+        }
+        create: {
+          args: Prisma.DepartmentLadderRecordCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DepartmentLadderRecordPayload>
+        }
+        createMany: {
+          args: Prisma.DepartmentLadderRecordCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.DepartmentLadderRecordCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DepartmentLadderRecordPayload>[]
+        }
+        delete: {
+          args: Prisma.DepartmentLadderRecordDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DepartmentLadderRecordPayload>
+        }
+        update: {
+          args: Prisma.DepartmentLadderRecordUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DepartmentLadderRecordPayload>
+        }
+        deleteMany: {
+          args: Prisma.DepartmentLadderRecordDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.DepartmentLadderRecordUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.DepartmentLadderRecordUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DepartmentLadderRecordPayload>[]
+        }
+        upsert: {
+          args: Prisma.DepartmentLadderRecordUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DepartmentLadderRecordPayload>
+        }
+        aggregate: {
+          args: Prisma.DepartmentLadderRecordAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateDepartmentLadderRecord>
+        }
+        groupBy: {
+          args: Prisma.DepartmentLadderRecordGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DepartmentLadderRecordGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.DepartmentLadderRecordCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DepartmentLadderRecordCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -4906,6 +5056,38 @@ export const RateLimitBucketScalarFieldEnum = {
 export type RateLimitBucketScalarFieldEnum = (typeof RateLimitBucketScalarFieldEnum)[keyof typeof RateLimitBucketScalarFieldEnum]
 
 
+export const DepartmentLadderScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  departmentId: 'departmentId',
+  degrau: 'degrau',
+  clientesLiberados: 'clientesLiberados',
+  motivo: 'motivo',
+  decididoPor: 'decididoPor',
+  provaJson: 'provaJson',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type DepartmentLadderScalarFieldEnum = (typeof DepartmentLadderScalarFieldEnum)[keyof typeof DepartmentLadderScalarFieldEnum]
+
+
+export const DepartmentLadderRecordScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  departmentId: 'departmentId',
+  projectId: 'projectId',
+  clientId: 'clientId',
+  deliverableId: 'deliverableId',
+  degrauNaEpoca: 'degrauNaEpoca',
+  resultado: 'resultado',
+  detalhe: 'detalhe',
+  criadoEm: 'criadoEm'
+} as const
+
+export type DepartmentLadderRecordScalarFieldEnum = (typeof DepartmentLadderRecordScalarFieldEnum)[keyof typeof DepartmentLadderRecordScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -5120,6 +5302,8 @@ export type GlobalOmitConfig = {
   mediaAsset?: Prisma.MediaAssetOmit
   oportunidade?: Prisma.OportunidadeOmit
   rateLimitBucket?: Prisma.RateLimitBucketOmit
+  departmentLadder?: Prisma.DepartmentLadderOmit
+  departmentLadderRecord?: Prisma.DepartmentLadderRecordOmit
 }
 
 /* Types for Logging */

@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { escadaToda } from "../_escada";
 
 const db = vi.hoisted(() => ({
   project: { findUnique: vi.fn(), update: vi.fn() },
@@ -7,6 +8,7 @@ const db = vi.hoisted(() => ({
   metaConnection: { findFirst: vi.fn() },
   adCampaign: { findMany: vi.fn() },
   activityEvent: { create: vi.fn() },
+  departmentLadder: { findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
   deliverable: { findMany: vi.fn(), create: vi.fn(), updateMany: vi.fn() },
   approvalRequest: { updateMany: vi.fn() },
   portalMessage: { create: vi.fn() },
@@ -73,6 +75,7 @@ beforeEach(() => {
   db.adCampaign.findMany.mockResolvedValue([]);
   db.cycle.findFirst.mockResolvedValue(null);
   db.activityEvent.create.mockResolvedValue({});
+  db.departmentLadder.findMany.mockResolvedValue(escadaToda("wide"));
   db.deliverable.create.mockResolvedValue({ id: "d9" });
   db.deliverable.updateMany.mockResolvedValue({});
   db.cycle.update.mockResolvedValue({});
@@ -290,7 +293,7 @@ describe("o relatório mensal é AUDITADO de verdade — não se auto-aprova", (
 describe("apresentar o pacote do mês", () => {
   beforeEach(() => {
     db.cycle.findUnique.mockResolvedValue({ id: "cy2", reference: "2026-08", presentedAt: null });
-    db.deliverable.findMany.mockResolvedValue([{ id: "d1", name: "Calendário de agosto", revisionStatus: "quality_ok" }]);
+    db.deliverable.findMany.mockResolvedValue([{ id: "d1", name: "Calendário de agosto", revisionStatus: "quality_ok", ownerAgentId: "a3" }]);
     db.approvalRequest.updateMany.mockResolvedValue({});
     db.socialPost.findMany.mockResolvedValue([]);
     db.socialPost.findFirst.mockResolvedValue(null);
@@ -306,8 +309,10 @@ describe("apresentar o pacote do mês", () => {
     // Sem este carimbo o portal, que agora filtra por `visibility` fail-closed,
     // mostraria o card de aprovação sem o corpo da entrega (Hub, Lote 1).
     await apresentarCiclo("p1", "cy2");
+    // Por LISTA DE IDS: quem escolhe quais é a escada de exposição. Neste teste
+    // o departamento está em `wide` e a entrega legítima passa sem atrito.
     expect(db.deliverable.updateMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: { projectId: "p1", cycleId: "cy2" },
+      where: { id: { in: ["d1"] } },
       data: { visibility: "compartilhado" },
     }));
   });

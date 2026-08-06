@@ -16,6 +16,7 @@
 import { prisma } from "@/lib/db/client";
 import { runProjectExecution, type ExecutionResult } from "@/lib/agency/execution/run-execution";
 import { avisarCliente, type TipoDeAviso } from "@/lib/agency/esteira/avisos";
+import { escadaFiltraEntregas } from "@/lib/agency/escada/registro";
 
 export interface ResultadoDoMarco {
   ok: boolean;
@@ -168,7 +169,9 @@ export async function apresentar(projectId: string, opts: { mesmoComRessalva?: b
 
   const entregaveis = await prisma.deliverable.findMany({
     where: { projectId },
-    select: { id: true, name: true, revisionStatus: true },
+    // `ownerAgentId` entra porque é ele que diz DE QUE DEPARTAMENTO é a peça —
+    // e é o departamento que tem degrau na escada de exposição.
+    select: { id: true, name: true, revisionStatus: true, ownerAgentId: true },
   });
   if (entregaveis.length === 0) return { ok: false, erro: "não há nada pronto para apresentar" };
 
@@ -196,10 +199,39 @@ export async function apresentar(projectId: string, opts: { mesmoComRessalva?: b
   // 2.2): as entregas nascem "interno" e só aqui viram "compartilhado". Sem
   // este carimbo, o portal (que agora filtra por `visibility`, fail-closed)
   // mostraria o card de aprovação sem o corpo da entrega.
-  await prisma.deliverable.updateMany({
-    where: { projectId },
-    data: { visibility: "compartilhado" },
-  }).catch(() => { /* best-effort */ });
+  //
+  // ── E A ESCADA DE EXPOSIÇÃO DECIDE QUAIS ────────────────────────────────────
+  // Apresentar é o ato; a escada é quem tem direito de participar dele. Peça de
+  // departamento em SOMBRA foi produzida, foi registrada e NÃO vira
+  // "compartilhado" — é literalmente o que "sombra" quer dizer. Em ALLOWLIST,
+  // vira só se este cliente estiver marcado. Em WIDE, vira sem atrito.
+  //
+  // O `updateMany` daqui era por `projectId` inteiro: uma única linha que
+  // publicava tudo o que existisse. Agora publica por LISTA DE IDS, e o que
+  // ficou de fora vira alarme com o caso concreto — "algo foi retido" sem dizer
+  // o quê é ruído que ninguém investiga.
+  const escada = await escadaFiltraEntregas({
+    workspaceId: projeto.workspaceId,
+    clientId: projeto.clientId,
+    entregas: entregaveis.map((d) => ({ id: d.id, ownerAgentId: d.ownerAgentId })),
+  });
+  if (escada.liberados.length > 0) {
+    await prisma.deliverable.updateMany({
+      where: { id: { in: escada.liberados } },
+      data: { visibility: "compartilhado" },
+    }).catch(() => { /* best-effort */ });
+  }
+  if (escada.retidos.length > 0) {
+    await prisma.activityEvent.create({
+      data: {
+        workspaceId: projeto.workspaceId,
+        projectId,
+        clientId: projeto.clientId,
+        type: "escada_reteve_entrega",
+        message: `${escada.retidos.length} entrega(s) NÃO foram compartilhadas com o cliente pela escada de exposição: ${escada.retidos.map((r) => `${r.id} (${r.departmentId ?? "sem departamento"}): ${r.motivo}`).join(" | ")}`.slice(0, 900),
+      },
+    }).catch(() => { /* best-effort */ });
+  }
 
   // ── A FRASE SÓ AFIRMA A REVISÃO QUE EXISTIU ───────────────────────────────
   //

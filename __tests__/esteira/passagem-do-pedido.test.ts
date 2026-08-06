@@ -14,6 +14,7 @@
 // projetos, e a trava é o banco.
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { escadaToda } from "../_escada";
 
 // ── O banco, em memória, com as escritas condicionais de verdade ────────────
 // `updateMany` é a trava de concorrência dos dois módulos: ele SÓ escreve se o
@@ -102,6 +103,16 @@ const db = {
   timelineEvent: { create: vi.fn(() => Promise.resolve({})) },
   activityEvent: { create: vi.fn(() => Promise.resolve({})) },
   portalMessage: { create: vi.fn(() => Promise.resolve({})) },
+  // A escada de exposição, com o departamento em `wide`: esta suíte é sobre a
+  // passagem legítima do pedido, e a metade legítima TEM que atravessar sem
+  // atrito. A metade que retém está em `__tests__/qualidade/escada-de-exposicao.test.ts`.
+  departmentLadder: {
+    findMany: vi.fn(() => Promise.resolve(escadaToda("wide"))),
+    findUnique: vi.fn(() => Promise.resolve({ degrau: "wide" })),
+    create: vi.fn(() => Promise.resolve({})),
+    update: vi.fn(() => Promise.resolve({})),
+  },
+  departmentLadderRecord: { create: vi.fn(() => Promise.resolve({})), findMany: vi.fn(() => Promise.resolve([])) },
 };
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
 
