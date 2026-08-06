@@ -39,6 +39,7 @@ import {
   reabrirCardPorDecisaoDaDirecao,
   textoDoRegistro,
   textoDaDecisaoDaDirecao,
+  pecasAlteradasDesdeOPedido,
   ganhoDePecas,
   fraseDaCompletude,
   fraseDoEstadoDasPecas,
@@ -832,7 +833,7 @@ describe("reabrirCardPorDecisaoDaDirecao — quando RECUSA (a metade que vale)",
 
 describe("pecasIncompletas — a trava desta porta, isolada", () => {
   const carrossel = (extra: Partial<PecaConferida>): PecaConferida => ({
-    postId: "p1", ausente: null, formato: "carousel",
+    postId: "p1", ausente: null, formato: "carousel", mudouEm: null,
     capa: "/api/media/a", telas: ["/api/media/a", "/api/media/b"], ...extra,
   });
 
@@ -870,6 +871,7 @@ describe("pecasIncompletas — a trava desta porta, isolada", () => {
 describe("a frase de ESTADO que o CEO lê", () => {
   const peca = (telas: number): PecaConferida => ({
     postId: `p${telas}`, ausente: null, formato: "carousel", capa: "/api/media/a",
+    mudouEm: null,
     telas: Array.from({ length: telas }, (_, i) => `/api/media/${i}`),
   });
 
@@ -886,16 +888,68 @@ describe("a frase de ESTADO que o CEO lê", () => {
 
 describe("o texto da decisão da direção", () => {
   const pecas: PecaConferida[] = [{
-    postId: "p1", ausente: null, formato: "carousel",
+    postId: "p1", ausente: null, formato: "carousel", mudouEm: null,
     capa: "/api/media/a", telas: ["/api/media/a", "/api/media/b"],
   }];
 
-  it("declara-se DECISÃO HUMANA e não finge que algo mudou agora", () => {
-    const texto = textoDaDecisaoDaDirecao({ pecas, pedido: null });
+  // ── A CICATRIZ DE 06/08/2026 ───────────────────────────────────────────────
+  // Esta primeira linha era LITERAL no código: "Nesta passada NADA foi alterado
+  // nas peças", dita sempre. No dia em que as 36 telas da Foocci foram refeitas
+  // A PEDIDO DO CEO, a porta mandaria o card de volta afirmando, no portal dele,
+  // que nada tinha mudado. Frase fixa que sai para o cliente é alucinação com
+  // data marcada: nasce verdadeira e vira mentira sozinha, sem ninguém sentir.
+  //
+  // Os três testes abaixo são as três respostas possíveis, e nenhuma é escrita
+  // à mão: todas saem da comparação entre `mudouEm` e a data do pedido.
+  const PEDIDO_EM = new Date("2026-08-05T01:00:00Z");
+  const pedido = { registradoEm: PEDIDO_EM, autor: "Dioli", comentarioNoHistorico: true };
+  const comMudanca = (quando: Date): PecaConferida[] => [{ ...pecas[0]!, mudouEm: quando }];
+
+  it("NADA mudou desde o pedido → afirma que nada mudou", () => {
+    const antes = new Date(PEDIDO_EM.getTime() - 60_000);
+    const texto = textoDaDecisaoDaDirecao({ pecas: comMudanca(antes), pedido });
     expect(texto).toContain("POR DECISÃO DA DIREÇÃO DA AGÊNCIA");
     expect(texto).toContain("não porque alguma coisa mudou agora");
     expect(texto).toContain("NADA foi alterado nas peças");
-    // ⛔ Não empresta o texto da outra porta, que fala de mudança material.
+    expect(texto).not.toContain("FORAM ALTERADAS");
+  });
+
+  it("a peça MUDOU depois do pedido → NÃO diz que nada mudou", () => {
+    const depois = new Date(PEDIDO_EM.getTime() + 60_000);
+    const texto = textoDaDecisaoDaDirecao({ pecas: comMudanca(depois), pedido });
+    expect(texto).toContain("FORAM ALTERADAS depois do seu pedido de ajuste");
+    expect(texto).toContain("não é o mesmo material que você recusou");
+    // ⛔ A mentira de 06/08 não pode voltar por nenhum caminho.
+    expect(texto).not.toContain("NADA foi alterado");
+    expect(texto).not.toContain("não porque alguma coisa mudou agora");
+  });
+
+  it("sem data do pedido, não afirma nem uma coisa nem outra", () => {
+    // Ausência de informação não é informação: sem marco não há comparação, e
+    // o texto que sai não promete nas DUAS direções.
+    const texto = textoDaDecisaoDaDirecao({ pecas, pedido: null });
+    expect(texto).toContain("não afirmo se as peças mudaram");
+    expect(texto).not.toContain("NADA foi alterado");
+    expect(texto).not.toContain("FORAM ALTERADAS");
+  });
+
+  it("o contador é a trava, e ele conta peça por peça", () => {
+    const antes = new Date(PEDIDO_EM.getTime() - 1);
+    const depois = new Date(PEDIDO_EM.getTime() + 1);
+    const tres: PecaConferida[] = [
+      { ...pecas[0]!, postId: "a", mudouEm: antes },
+      { ...pecas[0]!, postId: "b", mudouEm: depois },
+      { ...pecas[0]!, postId: "c", mudouEm: depois },
+    ];
+    expect(pecasAlteradasDesdeOPedido(tres, pedido)).toBe(2);
+    expect(pecasAlteradasDesdeOPedido(tres, null)).toBeNull();
+    // Peça sem data de mudança NÃO conta como alterada — não se inventa mudança.
+    expect(pecasAlteradasDesdeOPedido([{ ...pecas[0]!, mudouEm: null }], pedido)).toBe(0);
+    expect(textoDaDecisaoDaDirecao({ pecas: tres, pedido })).toContain("2 das 3 peça(s)");
+  });
+
+  it("não empresta o texto das outras portas", () => {
+    const texto = textoDaDecisaoDaDirecao({ pecas, pedido: null });
     expect(texto).not.toContain("as peças MUDARAM");
     expect(texto).not.toContain("As peças foram completadas");
     expect(texto).not.toContain("**aprovada**");

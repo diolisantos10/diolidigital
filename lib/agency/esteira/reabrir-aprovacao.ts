@@ -543,6 +543,18 @@ export interface PecaConferida {
   formato: string;
   capa: string | null;
   telas: string[];
+  /**
+   * Quando a peça mudou pela última vez. É o que permite AFIRMAR se algo mudou
+   * desde o pedido do cliente em vez de declarar isso por escrito fixo.
+   *
+   * A cicatriz: em 06/08/2026 o CEO pediu ajuste na ARTE dos 6 carrosséis, a
+   * arte foi refeita, e a porta ainda assim mandaria o card de volta dizendo
+   * "Nesta passada NADA foi alterado nas peças" — porque a frase era literal no
+   * código. **Afirmação que sai para o cliente tem de ser derivada do estado.**
+   * String fixa é uma alucinação com data marcada: ela vira mentira no dia em
+   * que o mundo mudar, e ninguém percebe porque não há teste que sinta.
+   */
+  mudouEm: Date | null;
 }
 
 /** O que falta numa peça, com todas as letras — é o que sai na recusa. */
@@ -662,29 +674,60 @@ export function fraseDoEstadoDasPecas(pecas: PecaConferida[]): string {
 }
 
 /**
+ * Quantas peças mudaram DEPOIS do pedido do cliente.
+ *
+ * É a única coisa que autoriza a porta a dizer "mudou" ou "não mudou". Sem data
+ * do pedido não há comparação possível, e **não dá para saber nunca vira
+ * afirmação**: o texto cai para a forma que não promete nada nas duas direções.
+ */
+export function pecasAlteradasDesdeOPedido(
+  pecas: PecaConferida[],
+  pedido: PedidoDeAjuste | null,
+): number | null {
+  const marco = pedido?.registradoEm ?? null;
+  if (!marco) return null;
+  return pecas.filter((p) => !!p.mudouEm && p.mudouEm.getTime() > marco.getTime()).length;
+}
+
+/**
  * O texto que fica no card quando a DIREÇÃO manda o card voltar.
  *
  * Três coisas que ele NUNCA faz, e cada uma custou uma discussão:
- *  • não diz que algo mudou nesta passada — nada mudou, e o cliente que lesse
- *    isso procuraria a novidade e não acharia;
  *  • não especula por que o cliente pediu ajuste — o que ele escreveu está no
  *    histórico, com as palavras dele; a agência não reinterpreta;
  *  • não se esconde atrás do sistema: quem destravou foi a direção, e está
- *    escrito assim.
+ *    escrito assim;
+ *  • **não afirma que nada mudou sem ter conferido.** Até 06/08/2026 a primeira
+ *    linha era literal — *"Nesta passada NADA foi alterado nas peças"* — e o
+ *    CEO leria isso no portal dele no mesmo dia em que as 36 telas tinham sido
+ *    refeitas por pedido dele. Frase fixa mostrada ao cliente é alucinação com
+ *    data marcada: nasce verdadeira e vira mentira sozinha.
  */
 export function textoDaDecisaoDaDirecao(entrada: {
   pecas: PecaConferida[];
   pedido: PedidoDeAjuste | null;
 }): string {
   const { pedido } = entrada;
+  const alteradas = pecasAlteradasDesdeOPedido(entrada.pecas, pedido);
+  // Três estados, e o terceiro é o honesto quando falta a data do pedido.
+  const oQueMudou =
+    alteradas === null
+      ? `Este card volta para a sua decisão POR DECISÃO DA DIREÇÃO DA AGÊNCIA. ` +
+        `Não temos a data do seu pedido registrada, então não afirmo se as peças ` +
+        `mudaram desde então — confira o material antes de decidir.`
+      : alteradas === 0
+        ? `Este card volta para a sua decisão POR DECISÃO DA DIREÇÃO DA AGÊNCIA — e ` +
+          `não porque alguma coisa mudou agora. Nesta passada NADA foi alterado nas peças.`
+        : `Este card volta para a sua decisão porque ${alteradas} das ` +
+          `${entrada.pecas.length} peça(s) FORAM ALTERADAS depois do seu pedido de ` +
+          `ajuste. O que você está vendo agora não é o mesmo material que você recusou.`;
   const onde = pedido?.comentarioNoHistorico
     ? `O seu pedido de ajuste continua aqui no histórico, com as suas palavras ` +
       `(registrado em ${dataLegivel(pedido.registradoEm)} por ${pedido.autor}) — nada foi apagado.`
     : `O seu pedido de ajuste continua registrado neste card ` +
       `(${dataLegivel(pedido?.registradoEm ?? null)}) — nada foi apagado.`;
   return [
-    `Este card volta para a sua decisão POR DECISÃO DA DIREÇÃO DA AGÊNCIA — e ` +
-      `não porque alguma coisa mudou agora. Nesta passada NADA foi alterado nas peças.`,
+    oQueMudou,
     ``,
     `Você pediu ajustes neste card e ele ficou parado em "ajustes solicitados". ` +
       `O material que está nele hoje foi conferido peça por peça antes de devolvê-lo: ` +
@@ -803,12 +846,13 @@ export async function reabrirCardPorDecisaoDaDirecao(entrada: {
     select: {
       id: true, clientId: true, clientRequestId: true, format: true,
       mediaUrl: true, mediaUrlsJson: true, status: true, visibility: true,
+      updatedAt: true,
     },
   });
   const porId = new Map(linhas.map((p) => [p.id, p]));
 
   const pecas: PecaConferida[] = postsDoCard.map((postId): PecaConferida => {
-    const vazia = { postId, formato: "", capa: null, telas: [] as string[] };
+    const vazia = { postId, formato: "", capa: null, telas: [] as string[], mudouEm: null };
     const p = porId.get(postId);
     if (!p) return { ...vazia, ausente: "a peça não existe mais no calendário" };
     // Posse por QUALQUER uma das duas chaves do card — igual a `montarPecas`.
@@ -831,6 +875,7 @@ export async function reabrirCardPorDecisaoDaDirecao(entrada: {
       formato: p.format,
       capa: p.mediaUrl,
       telas: lerLista(p.mediaUrlsJson),
+      mudouEm: p.updatedAt ?? null,
     };
   });
   base.pecasConferidas = pecas;
