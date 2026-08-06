@@ -1,8 +1,11 @@
 // piso-de-verdade.ts — O FREIO QUE NÃO DEPENDE DE IA.
 //
-// O P0 desta casa, em uma frase: das 31 checagens declaradas em
-// `quality-gates.ts`, 28 são texto descrevendo o que um humano deveria conferir.
-// Com revisão humana isso era um checklist. Sem revisão humana é decoração.
+// O P0 desta casa, em uma frase: das 32 checagens declaradas em
+// `quality-gates.ts`, 25 não têm mecanismo — são texto descrevendo o que um
+// humano deveria conferir. Com revisão humana isso era um checklist. Sem
+// revisão humana é decoração. (Número de 06/08/2026, derivado do código por
+// `__tests__/brain/o-numero-do-p0.test.ts`; antes a casa dizia "31 e 28", e o
+// número estava errado nas duas direções — ver a vitrine da qualidade.)
 //
 // O auditor que roda de verdade (`quality-auditor.ts`) é um LLM — e um LLM
 // julgando outro LLM tem o mesmo ponto cego dos dois: se o modelo inventou um

@@ -5,11 +5,21 @@
 
 ---
 
-## O P0 desta casa: 28 das 31 checagens não rodam
+## O P0 desta casa: 25 das 32 checagens não têm mecanismo
 
-Das 31 checagens de `lib/dioli-brain/quality-gates.ts`, **28 são
-`autoCheckable: false`** — texto descrevendo o que um humano deveria conferir. Só
-3 rodam.
+> **Corrigido em 06/08/2026, na Onda 0.** O número antigo — "28 de 31" — estava
+> errado **nas duas direções**, e por isso é caso de estudo, não de errata:
+> faltava `projections_anchored`, que existia só na segunda lista da casa
+> (`quality-canvas.ts`) e **rodava**; e `quality_audit_impartial` estava
+> **construído** e declarado `autoCheckable: false`. Ao mesmo tempo, as "3
+> executáveis" não executavam nada — `getBlockingChecks` não tinha chamador.
+> **Metadado que descreve código em vez de sair dele mente para os dois lados.**
+> Por isso o número agora não é a flag: é `mecanismo`, com caminho de arquivo
+> que um teste confere que existe (`__tests__/brain/o-numero-do-p0.test.ts`).
+
+Das **32** checagens de `lib/dioli-brain/quality-gates.ts` — agora o registro
+**único** da casa —, **7 têm mecanismo** e **25 declaram lacuna** (motivo, dono e
+prazo obrigatórios; o tipo não aceita as duas ausências).
 
 Com revisão humana, isso era um checklist. **Sem revisão humana é decoração** — e
 as quatro desligadas que mais importam ("sem alucinação", "respeita a marca",

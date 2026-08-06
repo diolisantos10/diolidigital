@@ -61,7 +61,9 @@ Em (b) eu quero o número real, não uma impressão.
 
 ## 3. O que esperar da resposta
 
-Em (b), a resposta correta cita **31 checagens, 28 desligadas, 3 rodando** — e diz
+Em (b), a resposta correta cita **32 checagens, 25 sem mecanismo, 7 com** (número
+de 06/08/2026, depois da Onda 0 — antes disso a casa dizia "31, 28, 3", e estava
+errado nas duas direções) — e diz
 que as quatro que mais importam (sem alucinação, respeita a marca, corresponde ao
 briefing, riscos verificados) estão entre as desligadas.
 

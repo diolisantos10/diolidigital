@@ -5,6 +5,52 @@
 
 ---
 
+## ✅ 06/08/2026 (tarde) — Onda 0 do P0, o portão do PM, o microfone e a coleta de produto
+
+Quatro frentes fechadas. O que mudou de verdade, sem prosa:
+
+- **O portão do PM ganhou leitor.** `pm_task_owner` e `pm_deadline` estavam
+  `autoCheckable: true` sem um único chamador. Agora `criarTarefas`
+  (`lib/agency/tarefas/criar-tarefas.ts`) é o **ponto único** de gravação de
+  Task: sem dono ou sem prazo, a tarefa **não é gravada**, e o bloqueio vira
+  `ActivityEvent`. Um teste de guarda reprova `prisma.task.create` novo fora
+  dali. O prazo sai do `estimatedDays` do próprio PM — sem estimativa, barra.
+- **Onda 0: os dois registros viraram um.** Ids unificados pela lista que
+  ROdava (a de `quality-canvas.ts`), `projections_anchored` incorporado, e o
+  tipo agora obriga cada checagem a declarar `mecanismo` (caminho de arquivo,
+  conferido por teste) ou `lacuna` (motivo, dono, prazo).
+  **O default NÃO foi invertido** — isso para 8 de 8 departamentos e só entra
+  junto com a escada (Onda 1).
+- **O número honesto do P0 mudou: de "31, 3 executáveis" para "32, 7 com
+  mecanismo".** Faltava `projections_anchored`, e `quality_audit_impartial`
+  estava construído e declarado como não executável. A flag mentia nas duas
+  direções. Seguem descobertas as 4 bloqueantes globais que importam: marca,
+  briefing, valor ao cliente e riscos.
+- **O microfone do portal.** A causa raiz **NÃO está fechada** — falta a linha
+  de log da produção. O que foi fechado é a cegueira: 401/402/403 →
+  `chave_recusada`, 429 → `ritmo`, 4xx → `audio_recusado`, 5xx →
+  `provedor_indisponivel`. O log leva `status` + `error.code` + `error.type`
+  (enum fechado); `error.message` e o corpo continuam fora, porque podem ecoar
+  a fala do cliente. `chave_recusada` vira `ActivityEvent`.
+- **A esteira passou a pedir o produto do cliente**
+  (`lib/agency/esteira/material-de-produto.ts`), no nascimento do projeto.
+  SaaS recebe pedido de captura de tela; padaria não recebe. Sem sinal nenhum,
+  a casa **pergunta** — silêncio não vira "não tem".
+- **Biblioteca de mockup + assinatura como token** (`lib/agency/design/mockup.ts`).
+  Os quatro blocos, e a trava junto: **captura real ou selo de ilustração na
+  peça**, e número sem origem declarada não vira pixel. Todo texto do mockup
+  entra na lista que o renderizador confere no DOM.
+
+**Não deu, e o motivo exato:**
+
+- **Contadores de Instagram/WhatsApp para o banco** — não encostei.
+  `prisma/schema.prisma` está sendo editado por outro agente nesta mesma
+  árvore; migration nova aqui colidiria com a dele.
+- **Régua de recompra 30/60/90** — depende da triagem
+  (`lib/agency/esteira/triagem.ts`) pousar. Ainda não pousou.
+
+---
+
 ## 🔴 06/08/2026 — A recaptura diária da biblioteca NÃO está rodando
 
 Fato verificado, não suspeita: `docs/plataformas/CHANGELOG.md` ficou **três
