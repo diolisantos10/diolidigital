@@ -1,0 +1,64 @@
+name: Cron — régua de recompra (30/60/90)
+
+# ── POR QUE ESTE ARQUIVO EXISTE ────────────────────────────────────────────
+#
+# A régua de recompra pousou em código (`lib/agency/esteira/recompra.ts`, rota
+# `POST /api/cron/recompra`) e NINGUÉM a chamava. Código sem agendamento é
+# promessa, não mecanismo — o mesmo defeito que a casa registrou em 06/08 sobre
+# a recaptura da biblioteca, que ficou três dias muda porque a "rotina diária"
+# só existia em documento.
+#
+# ── O QUE ELA FAZ, E O QUE NÃO FAZ ─────────────────────────────────────────
+#
+# A rota é IDEMPOTENTE: um segundo disparo no mesmo dia devolve `registrados: 0`
+# e `repetidos: N`. Por isso rodar de novo à mão é seguro.
+#
+# ⚠️ Ela NÃO manda WhatsApp. Produz RASCUNHO na fila da equipe (`/api/avisos`).
+# Ligar disparo automático exige parecer do especialista `meta` — trava de
+# plataforma, ver CLAUDE.md.
+
+on:
+  schedule:
+    # 10:00 UTC = 07:00 BRT — depois da recaptura da biblioteca (06:00 BRT),
+    # para que a fila de toques já esteja na tela quando a equipe abrir o dia.
+    - cron: "0 10 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  regua:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Rodar a régua de recompra
+        run: |
+          # Segredo ausente NÃO passa verde. Workflow verde sem ter chamado nada
+          # é a mesma promessa com outra roupa — foi assim que a recaptura
+          # "diária" ficou três dias sem rodar sem ninguém perceber.
+          if [ -z "${{ secrets.CRON_SECRET }}" ]; then
+            echo "::error::CRON_SECRET não está nos secrets do repositório — a régua NÃO rodou."
+            exit 1
+          fi
+          code=$(curl -s -o /tmp/out.json -w "%{http_code}" -X POST \
+            "https://dioli-agency-os-1-production.up.railway.app/api/cron/recompra" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}")
+          # ⚠️ NÃO despejar o corpo no log: a resposta traz clientId e
+          # workspaceId. O log de CI fica 90 dias e é colado em issue sem pensar.
+          # Contagem basta para saber se passou.
+          echo "HTTP $code"
+          jq -c '{ok, registrados, repetidos, parados: (.parados | length)}' /tmp/out.json 2>/dev/null \
+            || echo "(resposta não-JSON, $(wc -c < /tmp/out.json) bytes — corpo omitido de propósito)"
+
+          # 503 da NOSSA rota significa uma coisa só: CRON_SECRET não existe no
+          # servidor. Isso é morte silenciosa do cron, não instabilidade — vermelho.
+          # 503 do edge (deploy em curso) não traz essa frase: fica em aviso.
+          if [ "$code" = "503" ]; then
+            if grep -qiE 'não configurado|not configured' /tmp/out.json; then
+              echo "::error::A produção respondeu 503 dizendo que CRON_SECRET não está configurado no servidor."
+              exit 1
+            fi
+            echo "::warning::503 sem ser de configuração (provável deploy em curso). Não falhei o job."
+            exit 0
+          fi
+          if [ "$code" != "200" ]; then
+            echo "::error::A rota respondeu HTTP $code — a régua de recompra não rodou hoje."
+            exit 1
+          fi

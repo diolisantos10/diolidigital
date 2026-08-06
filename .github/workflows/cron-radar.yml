@@ -14,8 +14,12 @@ jobs:
     steps:
       - name: Rodar o Radar
         run: |
+          # Segredo ausente NÃO passa verde: "pulei" com exit 0 é um workflow que
+          # nunca chamou nada se declarando saudável — o defeito que deixou a
+          # recaptura da biblioteca três dias muda sem ninguém perceber.
           if [ -z "${{ secrets.CRON_SECRET }}" ]; then
-            echo "CRON_SECRET não configurado — pulei."; exit 0
+            echo "::error::CRON_SECRET não está nos secrets do repositório — o Radar NÃO rodou."
+            exit 1
           fi
           code=$(curl -s -o /tmp/out.json -w "%{http_code}" -X POST \
             "https://dioli-agency-os-1-production.up.railway.app/api/cron/radar" \
@@ -28,4 +32,18 @@ jobs:
           echo "HTTP $code"
           jq -c '{ok, proposed, workspaces: (.results | length)}' /tmp/out.json 2>/dev/null \
             || echo "(resposta não-JSON, $(wc -c < /tmp/out.json) bytes — corpo omitido de propósito)"
-          if [ "$code" != "200" ] && [ "$code" != "503" ]; then exit 1; fi
+          # 503 da NOSSA rota quer dizer uma coisa só: CRON_SECRET não existe no
+          # servidor — morte silenciosa do cron, não instabilidade. Vermelho.
+          # 503 do edge (deploy em curso) não traz essa frase: fica em aviso.
+          if [ "$code" = "503" ]; then
+            if grep -qiE 'não configurado|not configured' /tmp/out.json; then
+              echo "::error::A produção respondeu 503: CRON_SECRET não está configurado no servidor."
+              exit 1
+            fi
+            echo "::warning::503 sem ser de configuração (provável deploy em curso). Não falhei o job."
+            exit 0
+          fi
+          if [ "$code" != "200" ]; then
+            echo "::error::A rota respondeu HTTP $code — o Radar não rodou."
+            exit 1
+          fi

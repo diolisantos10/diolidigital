@@ -1,0 +1,103 @@
+name: Raio-X noturno (coleta das duas metades)
+
+# ── POR QUE ESTE ARQUIVO EXISTE ────────────────────────────────────────────
+#
+# Foi afirmado ao CEO que o raio-x "roda toda noite". **Não rodava.** Não havia
+# agendamento nenhum: a única coleta que existe em `docs/raio-x/coletas/` é a de
+# 05/08, e ela só existe porque alguém chamou o script à mão. Este arquivo é o
+# que torna a afirmação verdadeira.
+#
+# ── AS DUAS METADES ────────────────────────────────────────────────────────
+#
+# 1. CÓDIGO — `npm run raio-x` varre este repositório (determinístico, sem IA).
+# 2. DADOS  — `POST /api/cron/raio-x` na produção, porque o que está preso AGORA
+#    está no banco de lá, não no dev.db de quem rodou. Rota SOMENTE LEITURA.
+#
+# A metade de dados ficou CEGA na primeira noite e ninguém soube. Por isso aqui
+# ela é OBRIGATÓRIA: se a produção não responder, o job fica VERMELHO. O script
+# imprime "NÃO SEI" e sai 0 de propósito (ausência de informação não é ausência
+# de problema) — cabe ao agendamento transformar esse "NÃO SEI" em alarme.
+
+on:
+  schedule:
+    # 06:00 UTC = 03:00 BRT — de madrugada, para o relatório estar coletado
+    # quando o CEO acordar.
+    - cron: "0 6 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  coletar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/dioli-pm-role-pow56e
+          # O passo de commit precisa de credencial para empurrar a coleta.
+          persist-credentials: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Coletar as duas metades
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::CRON_SECRET não está nos secrets do repositório — a metade de DADOS ficaria cega toda noite."
+            exit 1
+          fi
+          set -o pipefail
+          npm run raio-x -- --dados \
+            "https://dioli-agency-os-1-production.up.railway.app/api/cron/raio-x" \
+            2>&1 | tee /tmp/raio-x.log
+
+      - name: Resumo da noite
+        if: always()
+        run: |
+          {
+            echo "## Raio-X noturno"
+            echo ""
+            echo '```'
+            # O resumo do script já é texto de evidência, sem id de cliente.
+            head -80 /tmp/raio-x.log 2>/dev/null || echo "(sem log)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Guardar a coleta no repositório
+        if: always()
+        run: |
+          if [ -z "$(git status --porcelain docs/raio-x/coletas)" ]; then
+            echo "Nenhuma coleta nova gravada."
+            exit 0
+          fi
+          git config user.name  "raio-x-noturno"
+          git config user.email "noreply@dioli.studio"
+          git add docs/raio-x/coletas
+          git commit -m "Raio-X: coleta de $(TZ=America/Sao_Paulo date +%d/%m/%Y)"
+          # A rotina compete com sessões humanas na mesma branch: rebase antes de
+          # empurrar; se ainda assim colidir, perde a vez — trabalho de gente
+          # nunca é atropelado por rotina.
+          git pull --rebase origin claude/dioli-pm-role-pow56e || exit 0
+          git push origin HEAD:claude/dioli-pm-role-pow56e
+
+      - name: A metade de DADOS não pode ficar cega em silêncio
+        if: always()
+        run: |
+          if grep -q "METADE DE DADOS: NÃO SEI" /tmp/raio-x.log; then
+            echo "::error::A metade de DADOS não foi coletada (produção fora do ar, 401 ou 503). O raio-x desta noite enxerga só o repositório."
+            grep "METADE DE DADOS" /tmp/raio-x.log
+            exit 1
+          fi
+          if ! grep -q "RAIO-X DADOS" /tmp/raio-x.log; then
+            echo "::error::Não houve metade de DADOS no log — a coleta não chegou à produção."
+            exit 1
+          fi
+          echo "Duas metades coletadas."
