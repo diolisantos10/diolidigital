@@ -989,7 +989,11 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
         token={token}
         aberto={solicitando}
         aoFechar={() => setSolicitando(false)}
-        aoEnviar={(recado) => { setRecadoDoPedido(recado); void carregarPedidos(); }}
+        // `loadData` junto porque desde 06/08/2026 a esteira pode ter ENTREGADO
+        // a peça antes desta linha rodar: o card de aprovação já existe, e sem
+        // recarregar o portal-data o cliente leria "está nas suas aprovações"
+        // olhando para uma aba vazia.
+        aoEnviar={(recado) => { setRecadoDoPedido(recado); void carregarPedidos(); void loadData(); }}
       />
 
       <ChatDrawer

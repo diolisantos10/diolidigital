@@ -99,5 +99,24 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // não pode desfazer o que o cliente decidiu.
   }
 
-  return NextResponse.json({ ok: true, orcamento: decisao });
+  // ── "PODE FAZER" TEM DE FAZER ALGUMA COISA ────────────────────────────────
+  //
+  // Até 06/08/2026 o aceite virava uma coluna no banco e uma frase na conversa
+  // ("Aprovei o orçamento. Pode fazer.") — e nada produzia. Era o mesmo beco do
+  // status "novo", uma etapa adiante: o cliente aprovou, pagou com a palavra
+  // dele, e o trabalho continuou esperando alguém olhar.
+  //
+  // Este é o GATILHO DE APROVAÇÃO previsto no fluxo: escopo extra não é
+  // produzido antes daqui, e é produzido imediatamente depois.
+  let produziu = false;
+  if (decisao === "aceito") {
+    const { produzirPedido } = await import("@/lib/agency/esteira/producao-de-pedido");
+    const r = await produzirPedido(pedido.id).catch((e: unknown) => {
+      console.error("[portal/pedidos/orcamento] a produção falhou", e);
+      return null;
+    });
+    produziu = r?.ok === true;
+  }
+
+  return NextResponse.json({ ok: true, orcamento: decisao, produziu });
 }

@@ -493,7 +493,19 @@ model ContentRequest {
   desiredFor      DateTime?
   /// URLs de material já enviado pelo portal (/api/media). JSON de strings.
   attachmentsJson String    @default("[]")
-  /// novo | triado | recusado. "triado" = virou Task (o elo com a esteira).
+  /// A MÁQUINA DE ESTADOS DO PEDIDO. Todo valor aqui é LIDO por alguma tela:
+  /// `STATUS_PARA_O_CLIENTE` (app/api/portal/pedidos/route.ts) no portal e
+  /// `CaixaDeEntrada.tsx` na agência. Estado que ninguém lê é vazamento.
+  ///
+  ///   novo            → acabou de entrar; a triagem automática ainda não pegou
+  ///   em_triagem      → a triagem está decidindo AGORA (trava atômica; parada
+  ///                     há +10 min o despertador retoma)
+  ///   triado          → departamento, prazo e (quando extra) preço definidos
+  ///   em_producao     → o especialista está produzindo (mesma trava por tempo)
+  ///   entregue        → virou Deliverable + card de aprovação no portal
+  ///   precisa_decisao → FAIL-CLOSED: a máquina não soube resolver. `declineReason`
+  ///                     diz por quê, em português, e aparece para os dois lados
+  ///   recusado        → a agência não vai seguir, com motivo
   status          String    @default("novo")
   /// A decisão de ESCOPO, tomada por gente: "ciclo" (entra no ciclo corrente)
   /// ou "extra" (escopo adicional a combinar). Nasce NULA de propósito — preço
@@ -513,9 +525,27 @@ model ContentRequest {
   /// A tarefa criada na triagem. É por aqui que o pedido encontra a esteira.
   taskId          String?
   /// Quem triou e quando — pedido parado sem dono é vazamento.
+  /// `triagedAt` é TAMBÉM o relógio da trava: `em_triagem`/`em_producao` parado
+  /// há mais de 10 min significa que o processo morreu no meio, e o despertador
+  /// retoma. Sem isso a trava vira armadilha.
   triagedBy       String?
   triagedAt       DateTime?
-  /// Por que foi recusado, em linguagem que o cliente lê.
+  /// O PRAZO QUE A AGÊNCIA PROMETEU. Diferente de `desiredFor`, que é a data que
+  /// o CLIENTE pediu: um é desejo, outro é compromisso, e confundir os dois é
+  /// como a agência passa a dever o que nunca combinou. Sai da tabela
+  /// (`deliveryDays` do catálogo), nunca do modelo.
+  promisedFor     DateTime?
+  /// A peça que este pedido virou. É o elo que faltava: sem ele, "entregue" é
+  /// uma palavra sem lastro e ninguém consegue ir do pedido até o que saiu.
+  deliverableId   String?
+  /// Quantas vezes a produção automática TENTOU e não concluiu por motivo
+  /// transitório (IA fora do ar, rede). Mesmo papel do `Project.executionAttempts`:
+  /// separar "o mundo estava ruim naquele minuto" de "isto precisa de gente".
+  /// Sem o contador, ou o despertador retenta para sempre queimando IA, ou uma
+  /// piscada de rede vira trabalho humano. Lido pelo despertador.
+  productionAttempts Int    @default(0)
+  /// Por que foi recusado — ou por que PAROU. Em linguagem que o cliente lê:
+  /// é o mesmo campo que carrega o motivo do `precisa_decisao`.
   declineReason   String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
@@ -1144,6 +1174,41 @@ model MetaAdFreio {
   ate      DateTime
   motivo   String   @default("")
   criadoEm DateTime @default(now())
+}
+
+/// A LISTA EXPLÍCITA DO QUE A AGÊNCIA PODE LER/USAR NA META, POR CLIENTE.
+///
+/// Incidente de 06/08/2026: o CEO clicou "Conectar Facebook/Instagram" no
+/// portal do cliente Foocci. A Meta devolveu um token de USUÁRIO dele, e o
+/// sistema tratou "tudo o que o token ALCANÇA" como "tudo o que a agência PODE
+/// LER": 14 contas de anúncio (Santioh, Dilix, Queise, DileeBags e contas
+/// pessoais) e todas as Páginas/Instagram da conta pessoal dele — nada disso
+/// tem relação com a Foocci, e nada disso foi autorizado.
+///
+/// ALCANCE ≠ AUTORIZAÇÃO. Esta tabela é o segundo conjunto, e ele é explícito:
+/// uma linha por ativo que o CLIENTE marcou na tela dele. Ausência de linha é
+/// NEGAÇÃO — nunca "ainda não configurado, então pode". Sem linha nenhuma, a
+/// agência não lê nada daquele cliente.
+model MetaAtivoAutorizado {
+  /// "<workspaceId>:<clientId|agencia>:<tipo>:<externalId>" — determinístico de
+  /// propósito: duas gravações do mesmo ativo colidem na chave em vez de criar
+  /// duas linhas, e a chave é reconstruível por quem faz a pergunta.
+  id            String   @id
+  workspaceId   String
+  /// null = a própria agência (o mesmo significado que em MetaConnection).
+  clientId      String?
+  /// ad_account | page | instagram | whatsapp
+  tipo          String
+  /// "act_123…" (conta de anúncio) | id da Página | id do IG Business | phone_number_id
+  externalId    String
+  nome          String   @default("")
+  /// Quem marcou, para a revogação ter rastro: "portal:<clientId>" quando foi o
+  /// próprio cliente na tela dele, "master:<userId>" quando foi a agência.
+  autorizadoPor String   @default("")
+  autorizadoEm  DateTime @default(now())
+
+  @@index([workspaceId, clientId, tipo])
+  @@index([workspaceId, tipo, externalId])
 }
 
 // WhatsApp conversation log — the single-inbox history. One row per message,

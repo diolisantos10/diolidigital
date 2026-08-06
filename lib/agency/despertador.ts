@@ -120,6 +120,75 @@ async function destravarPacotesBarrados(): Promise<number> {
   return corrigidas;
 }
 
+/**
+ * A REDE DE SEGURANÇA DA PASSAGEM DO PEDIDO.
+ *
+ * A triagem e a produção rodam no ato do envio (`/api/portal/pedidos`), que é
+ * onde o cliente sente a velocidade. Isto aqui existe para o que escapa: o
+ * processo que morreu no meio, a IA que estava fora do ar naquele minuto, o
+ * pedido criado por outro caminho. Sem esta varredura, um único erro de rede
+ * recria exatamente o balde de onde a esteira acabou de sair.
+ *
+ * Três filas, todas com estado no BANCO e nenhuma dependendo de memória:
+ *   • "novo"        — a triagem não chegou a acontecer;
+ *   • "em_triagem"  — travado há mais de 10 min = processo morto;
+ *   • "triado"      — classificado e não produzido (inclui o que ficou
+ *                     esperando o aceite: quem não pode produzir devolve
+ *                     "esperando", sem gastar IA).
+ */
+async function cuidarDosPedidos(): Promise<number> {
+  const { triarPedido, TRAVA_MS } = await import("@/lib/agency/esteira/triagem");
+  const { produzirPedido } = await import("@/lib/agency/esteira/producao-de-pedido");
+  const travadoAntesDe = new Date(Date.now() - TRAVA_MS);
+  let andaram = 0;
+
+  const paraTriar = await prisma.contentRequest.findMany({
+    where: { OR: [{ status: "novo" }, { status: "em_triagem", triagedAt: { lt: travadoAntesDe } }] },
+    orderBy: { createdAt: "asc" },
+    take: MAX_POR_RODADA,
+    select: { id: true },
+  });
+  for (const p of paraTriar) {
+    try {
+      const r = await triarPedido(p.id);
+      if (r.ok) {
+        andaram++;
+        if (r.triado.podeProduzirAgora) await produzirPedido(p.id);
+      } else if (r.parou) {
+        // Parou com motivo é ANDAR: saiu do balde e virou decisão visível.
+        andaram++;
+        log(`pedido ${p.id} precisa de decisão: ${r.motivo}`);
+      }
+    } catch (err) {
+      log(`pedido ${p.id} falhou na triagem: ${err instanceof Error ? err.message : "erro"}`);
+    }
+  }
+
+  const { MAX_TENTATIVAS_DE_PRODUCAO } = await import("@/lib/agency/esteira/producao-de-pedido");
+  const paraProduzir = await prisma.contentRequest.findMany({
+    where: {
+      deliverableId: null,
+      // Depois do teto, o pedido já virou `precisa_decisao` — insistir aqui só
+      // queimaria IA para chegar sempre ao mesmo lugar.
+      productionAttempts: { lt: MAX_TENTATIVAS_DE_PRODUCAO },
+      OR: [{ status: "triado" }, { status: "em_producao", updatedAt: { lt: travadoAntesDe } }],
+    },
+    orderBy: { createdAt: "asc" },
+    take: MAX_POR_RODADA,
+    select: { id: true },
+  });
+  for (const p of paraProduzir) {
+    try {
+      const r = await produzirPedido(p.id);
+      if (r.ok) andaram++;
+    } catch (err) {
+      log(`pedido ${p.id} falhou na produção: ${err instanceof Error ? err.message : "erro"}`);
+    }
+  }
+
+  return andaram;
+}
+
 /** Uma batida do relógio. Nunca lança — o relógio não pode morrer. */
 export async function baterORelogio(): Promise<{
   retomados: number;
@@ -130,9 +199,12 @@ export async function baterORelogio(): Promise<{
   artes: number;
   campanhasFreadas: number;
   avaliacoes: number;
+  /** Pedidos do cliente que saíram do lugar nesta rodada. */
+  pedidos: number;
   backup: boolean;
 }> {
   let retomados = 0;
+  let pedidos = 0;
   let avisos = 0;
   let destravadas = 0;
   let publicados = 0;
@@ -153,6 +225,14 @@ export async function baterORelogio(): Promise<{
     }
   } catch (err) {
     log(`virada do mês falhou: ${err instanceof Error ? err.message : "erro"}`);
+  }
+
+  // O PEDIDO DO CLIENTE VEM CEDO NA RODADA. É o balde mais perto do dinheiro —
+  // e foi o único que ninguém media até 06/08/2026.
+  try {
+    pedidos = await cuidarDosPedidos();
+  } catch (err) {
+    log(`pedidos do cliente falharam: ${err instanceof Error ? err.message : "erro"}`);
   }
 
   try {
@@ -236,10 +316,10 @@ export async function baterORelogio(): Promise<{
     log(`disparo de avisos falhou: ${err instanceof Error ? err.message : "erro"}`);
   }
 
-  if (retomados > 0 || avisos > 0 || destravadas > 0 || publicados > 0 || mesesVirados > 0 || artes > 0 || campanhasFreadas > 0 || avaliacoes > 0) {
-    log(`rodada: ${mesesVirados} mês(es) virado(s), ${retomados} produção(ões) retomada(s), ${destravadas} entrega(s) refeita(s), ${artes} arte(s) produzida(s), ${publicados} post(s) publicado(s), ${campanhasFreadas} campanha(s) freada(s), ${avaliacoes} avaliação(ões) tratada(s), ${avisos} aviso(s) enviado(s)`);
+  if (retomados > 0 || avisos > 0 || destravadas > 0 || publicados > 0 || mesesVirados > 0 || artes > 0 || campanhasFreadas > 0 || avaliacoes > 0 || pedidos > 0) {
+    log(`rodada: ${pedidos} pedido(s) do cliente movido(s), ${mesesVirados} mês(es) virado(s), ${retomados} produção(ões) retomada(s), ${destravadas} entrega(s) refeita(s), ${artes} arte(s) produzida(s), ${publicados} post(s) publicado(s), ${campanhasFreadas} campanha(s) freada(s), ${avaliacoes} avaliação(ões) tratada(s), ${avisos} aviso(s) enviado(s)`);
   }
-  return { retomados, avisos, destravadas, publicados, mesesVirados, artes, campanhasFreadas, avaliacoes, backup };
+  return { retomados, avisos, destravadas, publicados, mesesVirados, artes, campanhasFreadas, avaliacoes, pedidos, backup };
 }
 
 /**

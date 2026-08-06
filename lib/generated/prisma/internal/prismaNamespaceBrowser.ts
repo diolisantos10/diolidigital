@@ -365,6 +365,9 @@ export const ContentRequestScalarFieldEnum = {
   taskId: 'taskId',
   triagedBy: 'triagedBy',
   triagedAt: 'triagedAt',
+  promisedFor: 'promisedFor',
+  deliverableId: 'deliverableId',
+  productionAttempts: 'productionAttempts',
   declineReason: 'declineReason',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'

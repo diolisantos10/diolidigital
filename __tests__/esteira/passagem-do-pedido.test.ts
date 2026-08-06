@@ -1,0 +1,433 @@
+// A PASSAGEM DO PEDIDO DO CLIENTE — as duas metades da prova.
+//
+// A regressão que estes testes existem para impedir tem data e id: o pedido
+// `cmsg7anke00030ps260acx43s` (roteiro de vídeo do Foocci) entrou em 05/08 às
+// 14h47 e ficou com `status: "novo"` até o CEO cobrar dois dias depois. "Novo"
+// não aciona ninguém.
+//
+// As duas metades, como sempre:
+//   1. pedido legítimo atravessa a esteira inteira — triagem, departamento
+//      certo, preço da TABELA, prazo, peça e card no portal;
+//   2. pedido impossível de classificar PARA na porta certa, com o motivo em
+//      português, e não vira default silencioso.
+// Mais a terceira que a casa já aprendeu a exigir: duplo clique não vira dois
+// projetos, e a trava é o banco.
+
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+// ── O banco, em memória, com as escritas condicionais de verdade ────────────
+// `updateMany` é a trava de concorrência dos dois módulos: ele SÓ escreve se o
+// estado no WHERE ainda for o esperado. Um mock que sempre devolve `count: 1`
+// provaria o contrário do que interessa.
+interface Registro { [k: string]: unknown }
+const pedidos = new Map<string, Registro>();
+
+function casa(reg: Registro, where: Registro): boolean {
+  for (const [k, v] of Object.entries(where)) {
+    if (k === "OR") {
+      if (!(v as Registro[]).some((o) => casa(reg, o))) return false;
+      continue;
+    }
+    if (v !== null && typeof v === "object" && !(v instanceof Date)) {
+      const cond = v as Record<string, unknown>;
+      if ("lt" in cond) {
+        const atual = reg[k];
+        if (!(atual instanceof Date) || atual >= (cond.lt as Date)) return false;
+        continue;
+      }
+      if ("in" in cond) {
+        if (!(cond.in as unknown[]).includes(reg[k])) return false;
+        continue;
+      }
+    }
+    if (reg[k] !== v) return false;
+  }
+  return true;
+}
+
+const db = {
+  contentRequest: {
+    findUnique: vi.fn(({ where }: { where: { id: string } }) => Promise.resolve(pedidos.get(where.id) ?? null)),
+    findUniqueOrThrow: vi.fn(({ where }: { where: { id: string } }) => {
+      const r = pedidos.get(where.id);
+      if (!r) throw new Error("não encontrado");
+      return Promise.resolve(r);
+    }),
+    findFirst: vi.fn(() => Promise.resolve(null)),
+    update: vi.fn(({ where, data }: { where: { id: string }; data: Registro }) => {
+      const r = pedidos.get(where.id)!;
+      Object.assign(r, data, { updatedAt: new Date() });
+      return Promise.resolve(r);
+    }),
+    updateMany: vi.fn(({ where, data }: { where: Registro; data: Registro }) => {
+      const r = pedidos.get(where.id as string);
+      if (!r || !casa(r, where)) return Promise.resolve({ count: 0 });
+      Object.assign(r, data, { updatedAt: new Date() });
+      return Promise.resolve({ count: 1 });
+    }),
+  },
+  client: {
+    findUnique: vi.fn(() => Promise.resolve({
+      id: "cli-1", name: "Foocci", workspaceId: "ws-1", industry: "Alimentação",
+      email: "contato@foocci.com.br", phone: null, brandBrain: null,
+    })),
+    findUniqueOrThrow: vi.fn(() => Promise.resolve({
+      id: "cli-1", name: "Foocci", workspaceId: "ws-1", industry: "Alimentação",
+      email: "contato@foocci.com.br", phone: null, brandBrain: null,
+    })),
+  },
+  project: {
+    findFirst: vi.fn<() => Promise<{ id: string; name: string } | null>>(
+      () => Promise.resolve({ id: "prj-1", name: "Foocci" }),
+    ),
+    findUnique: vi.fn<() => Promise<{ clientRequestId: string | null } | null>>(
+      () => Promise.resolve({ clientRequestId: null }),
+    ),
+    findUniqueOrThrow: vi.fn(() => Promise.resolve({
+      id: "prj-1", name: "Foocci", goal: "Vender mais no almoço",
+      workspaceId: "ws-1", clientId: "cli-1", clientRequestId: null,
+    })),
+  },
+  cycle: { findFirst: vi.fn<() => Promise<{ id: string } | null>>(() => Promise.resolve(null)) },
+  clientRequestDb: { findUnique: vi.fn<() => Promise<{ services: string } | null>>(() => Promise.resolve(null)) },
+  task: {
+    create: vi.fn((_args: { data: Registro }) => Promise.resolve({ id: "task-1" })),
+    findUnique: vi.fn<() => Promise<{ id: string; agentId: string | null } | null>>(
+      () => Promise.resolve({ id: "task-1", agentId: "social-roteiro-video" }),
+    ),
+    update: vi.fn(() => Promise.resolve({})),
+  },
+  deliverable: { create: vi.fn((_args: { data: Registro }) => Promise.resolve({ id: "del-1" })) },
+  approvalRequest: { findFirst: vi.fn(() => Promise.resolve(null)) },
+  timelineEvent: { create: vi.fn(() => Promise.resolve({})) },
+  activityEvent: { create: vi.fn(() => Promise.resolve({})) },
+  portalMessage: { create: vi.fn(() => Promise.resolve({})) },
+};
+vi.mock("@/lib/db/client", () => ({ prisma: db }));
+
+// Permissivo de propósito: cada teste decide o que a IA responde, e a forma da
+// resposta muda por chamada (classificação, peça, parecer do juiz).
+const generate = vi.fn<(...a: unknown[]) => Promise<unknown>>();
+vi.mock("@/lib/ai/generate", () => ({ generate: (...a: unknown[]) => generate(...a) }));
+
+const criarCard = vi.fn<(input: Record<string, unknown>) => Promise<{ id: string }>>(
+  () => Promise.resolve({ id: "apr-1" }),
+);
+vi.mock("@/lib/agency/persistence/approval-service", () => ({
+  createApprovalRequest: (input: Record<string, unknown>) => criarCard(input),
+}));
+
+vi.mock("@/app/api/messages/conversa", () => ({
+  conversaDoCliente: () => Promise.resolve({ ancora: { clientId: "cli-1", clientRequestId: null } }),
+}));
+
+const { triarPedido, ATENDIMENTOS, somarDiasUteis, precoDaTabela } = await import("@/lib/agency/esteira/triagem");
+const { produzirPedido, atenderPedido } = await import("@/lib/agency/esteira/producao-de-pedido");
+
+/** Três roteiros: é o que o contrato de saída de `social-roteiro-video` exige. */
+function roteirosValidos() {
+  return {
+    title: "Roteiros de Vídeo — Foocci",
+    summary: "Três roteiros de reels para o horário do almoço.",
+    items: [
+      { headline: "O combo que salva a segunda", note: "GANCHO (0-2s): o prato saindo da cozinha. Cenas: 3s prato, 4s cliente comendo, 3s chamada.", visual: "Close no prato montado, luz natural", caption: "Segunda também merece almoço bom." },
+      { headline: "Quem faz o seu almoço", note: "GANCHO (0-2s): as mãos abrindo a marmita. Cenas: 4s cozinha, 4s montagem, 2s entrega.", visual: "Bastidor da cozinha, câmera na mão", caption: "Feito hoje, para você comer hoje." },
+      { headline: "O que tem hoje", note: "GANCHO (0-2s): a pergunta na tela. Cenas: 3s balcão, 5s pratos, 2s chamada.", visual: "Panorâmica do balcão de pratos do dia", caption: "O cardápio de hoje está no perfil." },
+    ],
+  };
+}
+
+function novoPedido(over: Registro = {}) {
+  pedidos.clear();
+  const p: Registro = {
+    id: "pc-1",
+    clientId: "cli-1",
+    clientRequestId: null,
+    projectId: null,
+    title: "Um roteiro de vídeo do combo do almoço",
+    description: "Queria um roteiro de vídeo mostrando o combo do almoço, com o preço aparecendo na tela.",
+    objective: "Vender mais no horário de almoço",
+    desiredFor: null,
+    attachmentsJson: "[]",
+    status: "novo",
+    scopeDecision: null,
+    quotedPrice: null, quoteNote: null, quoteStatus: null,
+    taskId: null, promisedFor: null, deliverableId: null, productionAttempts: 0,
+    triagedBy: null, triagedAt: null, declineReason: null,
+    createdAt: new Date("2026-08-06T12:00:00Z"),
+    updatedAt: new Date("2026-08-06T12:00:00Z"),
+    ...over,
+  };
+  pedidos.set(p.id as string, p);
+  return p;
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  db.cycle.findFirst.mockResolvedValue(null);
+  db.project.findFirst.mockResolvedValue({ id: "prj-1", name: "Foocci" });
+  db.task.findUnique.mockResolvedValue({ id: "task-1", agentId: "social-roteiro-video" });
+  criarCard.mockResolvedValue({ id: "apr-1" });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+describe("metade 1 — o pedido legítimo atravessa a esteira inteira", () => {
+  it("tria para o departamento certo, com preço da TABELA e prazo", async () => {
+    novoPedido();
+    generate.mockResolvedValueOnce({
+      ok: true,
+      data: { atendimentoId: "roteiro-de-video", confianca: 92, motivo: "ele pediu um roteiro de vídeo" },
+    });
+
+    const r = await triarPedido("pc-1");
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+
+    // O DEPARTAMENTO CERTO — e a tarefa nasce com dono e com prazo. As duas
+    // travas contra "em execução" que ninguém move.
+    expect(r.triado.atendimento.especialistaId).toBe("social-roteiro-video");
+    const tarefa = db.task.create.mock.calls[0]![0].data as Record<string, unknown>;
+    expect(tarefa.agentId).toBe("social-roteiro-video");
+    expect(tarefa.dueDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+
+    // O PREÇO NÃO VEIO DO MODELO. O modelo escolheu o atendimento; o número é
+    // da tabela do catálogo, e é conferível aqui.
+    const item = ATENDIMENTOS.find((a) => a.id === "roteiro-de-video")!;
+    expect(r.triado.preco).toBe(precoDaTabela(item.itemDeCatalogo));
+
+    // Sem ciclo aberto, o trabalho é EXTRA: orçamento na mesa e produção
+    // segurada até o cliente aceitar.
+    expect(r.triado.escopo).toBe("extra");
+    expect(r.triado.podeProduzirAgora).toBe(false);
+    const gravado = pedidos.get("pc-1")!;
+    expect(gravado.status).toBe("triado");
+    expect(gravado.quoteStatus).toBe("pendente");
+    expect(gravado.promisedFor).toBeInstanceOf(Date);
+  });
+
+  it("o modelo NÃO consegue dizer o preço: número que ele mandar é ignorado", async () => {
+    novoPedido();
+    generate.mockResolvedValueOnce({
+      ok: true,
+      // O modelo tentando precificar, e o texto do cliente tentando mandar nele.
+      data: { atendimentoId: "roteiro-de-video", confianca: 90, preco: 1, valor: 1, motivo: "de graça" },
+    });
+    const r = await triarPedido("pc-1");
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.triado.preco).toBe(precoDaTabela("1-reel"));
+    expect(r.triado.preco).not.toBe(1);
+  });
+
+  it("aceito o orçamento, a peça é produzida e vai para o portal do cliente", async () => {
+    novoPedido({
+      status: "triado", scopeDecision: "extra", quoteStatus: "aceito", quotedPrice: 350,
+      projectId: "prj-1", taskId: "task-1", promisedFor: new Date("2026-08-12T12:00:00Z"),
+    });
+    // 1ª chamada: o especialista produz. 2ª: o juiz da qualidade aprova.
+    generate.mockResolvedValueOnce({ ok: true, data: roteirosValidos() });
+    generate.mockResolvedValueOnce({ ok: true, data: { verdict: "approved", issues: [], note: "boa" } });
+
+    const r = await produzirPedido("pc-1");
+    expect(r.ok).toBe(true);
+
+    // A PEÇA EXISTE e é do especialista que a triagem escolheu.
+    const entrega = db.deliverable.create.mock.calls[0]![0].data as Record<string, unknown>;
+    expect(entrega.ownerAgentId).toBe("social-roteiro-video");
+    // …e é VISÍVEL. Entrega "interna" é o portal vazio de novo.
+    expect(entrega.visibility).toBe("compartilhado");
+
+    // O CARD NO PORTAL, com o conteúdo dentro. Sem isto o cliente abre o portal
+    // e vê a mesma coisa de antes: nada.
+    const card = criarCard.mock.calls[0]![0];
+    expect(card.clientVisible).toBe(true);
+    expect(card.clientId).toBe("cli-1");
+    expect(String(card.reviewNote)).toContain("GANCHO");
+
+    // E o pedido SAI do limbo, apontando para a peça.
+    const gravado = pedidos.get("pc-1")!;
+    expect(gravado.status).toBe("entregue");
+    expect(gravado.deliverableId).toBe("del-1");
+  });
+
+  it("o prazo é de dias ÚTEIS — prometer entrega no domingo é prometer o que não acontece", () => {
+    // 06/08/2026 é uma quinta. Dois dias úteis caem na segunda, 10/08.
+    const segunda = somarDiasUteis(new Date("2026-08-06T12:00:00Z"), 2);
+    expect(segunda.getDay()).not.toBe(0);
+    expect(segunda.getDay()).not.toBe(6);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+describe("metade 2 — o que a máquina não sabe classificar PARA, e com motivo", () => {
+  it("modelo responde 'nao_sei': vira precisa_decisao, nunca um default silencioso", async () => {
+    novoPedido({ description: "Quero renegociar a mensalidade e marcar uma reunião com o dono." });
+    generate.mockResolvedValueOnce({
+      ok: true,
+      data: { atendimentoId: "nao_sei", confianca: 95, motivo: "é assunto comercial, não é peça" },
+    });
+
+    const r = await triarPedido("pc-1");
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.parou).toBe(true);
+
+    const gravado = pedidos.get("pc-1")!;
+    expect(gravado.status).toBe("precisa_decisao");
+    // O motivo é português de gente, não um código — os dois lados leem este campo.
+    expect(String(gravado.declineReason).length).toBeGreaterThan(20);
+    expect(String(gravado.declineReason)).toMatch(/equipe/i);
+    // E NADA foi criado: sem departamento, não nasce tarefa órfã.
+    expect(db.task.create).not.toHaveBeenCalled();
+  });
+
+  it("confiança baixa também para — chutar aqui é produzir a peça errada", async () => {
+    novoPedido();
+    generate.mockResolvedValueOnce({
+      ok: true,
+      data: { atendimentoId: "post-ou-carrossel", confianca: 20, motivo: "não deu para entender" },
+    });
+    const r = await triarPedido("pc-1");
+    expect(r.ok).toBe(false);
+    expect(pedidos.get("pc-1")!.status).toBe("precisa_decisao");
+    expect(db.task.create).not.toHaveBeenCalled();
+  });
+
+  it("sem IA, o pedido NÃO volta para 'novo' (onde some): fica visível, com o motivo", async () => {
+    novoPedido();
+    generate.mockResolvedValueOnce({ ok: false, error: "sem chave de IA" });
+    await triarPedido("pc-1");
+    const gravado = pedidos.get("pc-1")!;
+    expect(gravado.status).toBe("precisa_decisao");
+    expect(String(gravado.declineReason)).toContain("sem chave de IA");
+  });
+
+  it("cliente sem projeto aberto: para com motivo, em vez de criar tarefa que ninguém executa", async () => {
+    novoPedido();
+    db.project.findFirst.mockResolvedValue(null);
+    generate.mockResolvedValueOnce({ ok: true, data: { atendimentoId: "roteiro-de-video", confianca: 99, motivo: "ok" } });
+    const r = await triarPedido("pc-1");
+    expect(r.ok).toBe(false);
+    expect(pedidos.get("pc-1")!.status).toBe("precisa_decisao");
+    expect(db.task.create).not.toHaveBeenCalled();
+  });
+
+  it("peça reprovada no piso de verdade NÃO vai ao cliente — e o pedido não fica preso", async () => {
+    novoPedido({
+      status: "triado", scopeDecision: "extra", quoteStatus: "aceito", quotedPrice: 350,
+      projectId: "prj-1", taskId: "task-1",
+    });
+    // O especialista inventa um telefone. Duas vezes: a produção e a correção.
+    const comTelefone = () => {
+      const d = roteirosValidos();
+      d.items[0]!.caption = "Peça pelo (11) 98888-7777 agora mesmo.";
+      return d;
+    };
+    generate.mockResolvedValueOnce({ ok: true, data: comTelefone() });
+    generate.mockResolvedValueOnce({ ok: true, data: comTelefone() });
+
+    const r = await produzirPedido("pc-1");
+    expect(r.ok).toBe(false);
+    // NÃO publicou.
+    expect(db.deliverable.create).not.toHaveBeenCalled();
+    expect(criarCard).not.toHaveBeenCalled();
+    // E não sumiu: virou decisão visível.
+    expect(pedidos.get("pc-1")!.status).toBe("precisa_decisao");
+    expect(String(pedidos.get("pc-1")!.declineReason)).toMatch(/confirmar/i);
+  });
+
+  it("IA fora do ar é PISCADA, não decisão: volta para a fila e o despertador retoma", async () => {
+    novoPedido({
+      status: "triado", scopeDecision: "ciclo", projectId: "prj-1", taskId: "task-1",
+    });
+    generate.mockResolvedValueOnce({ ok: false, error: "sem chave de IA" });
+
+    const r = await produzirPedido("pc-1");
+    expect(r.ok).toBe(false);
+    const gravado = pedidos.get("pc-1")!;
+    // Continua "triado" — a fila que o despertador varre — com o motivo visível
+    // e o contador andando. Chamar gente por causa de rede é caro num item barato.
+    expect(gravado.status).toBe("triado");
+    expect(gravado.productionAttempts).toBe(1);
+    expect(String(gravado.declineReason)).toContain("sem chave de IA");
+  });
+
+  it("depois do teto de tentativas a piscada vira problema de gente, com o número", async () => {
+    novoPedido({
+      status: "triado", scopeDecision: "ciclo", projectId: "prj-1", taskId: "task-1",
+      productionAttempts: 4,
+    });
+    generate.mockResolvedValueOnce({ ok: false, error: "sem chave de IA" });
+
+    await produzirPedido("pc-1");
+    const gravado = pedidos.get("pc-1")!;
+    expect(gravado.status).toBe("precisa_decisao");
+    expect(String(gravado.declineReason)).toContain("5 vezes");
+  });
+
+  it("escopo extra sem o aceite do cliente NÃO produz — o gatilho de aprovação é do servidor", async () => {
+    novoPedido({
+      status: "triado", scopeDecision: "extra", quoteStatus: "pendente", quotedPrice: 350,
+      projectId: "prj-1", taskId: "task-1",
+    });
+    const r = await produzirPedido("pc-1");
+    expect(r.ok).toBe(false);
+    expect(generate).not.toHaveBeenCalled();
+    expect(db.deliverable.create).not.toHaveBeenCalled();
+    // Continua triado: esperar o cliente não é defeito.
+    expect(pedidos.get("pc-1")!.status).toBe("triado");
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+describe("duplo clique — a idempotência é do BANCO, nunca da memória", () => {
+  it("dois envios simultâneos triam UMA vez só: quem perde a trava não roda", async () => {
+    novoPedido();
+    generate.mockResolvedValue({
+      ok: true,
+      data: { atendimentoId: "roteiro-de-video", confianca: 92, motivo: "roteiro de vídeo" },
+    });
+
+    const [a, b] = await Promise.all([triarPedido("pc-1"), triarPedido("pc-1")]);
+    const ganharam = [a, b].filter((r) => r.ok);
+    expect(ganharam).toHaveLength(1);
+    // UMA tarefa. Duas seriam dois trabalhos e duas cobranças.
+    expect(db.task.create).toHaveBeenCalledTimes(1);
+  });
+
+  it("produzir duas vezes o mesmo pedido devolve a peça que já existe", async () => {
+    novoPedido({
+      status: "triado", scopeDecision: "ciclo",
+      projectId: "prj-1", taskId: "task-1",
+    });
+    generate.mockResolvedValueOnce({ ok: true, data: roteirosValidos() });
+    generate.mockResolvedValueOnce({ ok: true, data: { verdict: "approved", issues: [], note: "boa" } });
+
+    const primeira = await produzirPedido("pc-1");
+    expect(primeira.ok).toBe(true);
+
+    const segunda = await produzirPedido("pc-1");
+    expect(segunda).toMatchObject({ ok: true, deliverableId: "del-1", jaExistia: true });
+    // UMA peça. Duas seriam o cliente recebendo o mesmo trabalho em dobro.
+    expect(db.deliverable.create).toHaveBeenCalledTimes(1);
+  });
+
+  it("a passagem inteira numa chamada: no ciclo, o cliente aperta enviar e já sai peça", async () => {
+    novoPedido();
+    // Cliente com contrato de social em ciclo aberto → o trabalho já está pago.
+    db.cycle.findFirst.mockResolvedValue({ id: "ciclo-1" });
+    db.project.findUnique.mockResolvedValue({ clientRequestId: "req-1" });
+    db.clientRequestDb.findUnique.mockResolvedValue({ services: JSON.stringify(["Social Media"]) });
+
+    generate.mockResolvedValueOnce({ ok: true, data: { atendimentoId: "roteiro-de-video", confianca: 95, motivo: "roteiro" } });
+    generate.mockResolvedValueOnce({ ok: true, data: roteirosValidos() });
+    generate.mockResolvedValueOnce({ ok: true, data: { verdict: "approved", issues: [], note: "boa" } });
+
+    const r = await atenderPedido("pc-1");
+    expect(r.produziu).toBe(true);
+    expect(r.status).toBe("entregue");
+    // No ciclo NÃO se cobra: a peça já está paga pela mensalidade.
+    expect(r.preco).toBeNull();
+    expect(criarCard).toHaveBeenCalledTimes(1);
+  });
+});

@@ -131,6 +131,13 @@ describe("a corrente inteira, de ponta a ponta", () => {
     expect(messages[1].mine).toBe(false); // visto pelo cliente
   });
 
+  // ── A PASSAGEM AUTOMÁTICA, e por que aqui ela PARA ────────────────────────
+  // Desde 06/08/2026 gravar o pedido dispara a triagem automática. Neste teste
+  // não existe chave de IA — e é justamente essa metade que interessa provar
+  // aqui: sem classificação, o pedido NÃO fica em "novo" (o balde de dois dias)
+  // e NÃO vira um departamento chutado. Ele vira `precisa_decisao`, com o motivo
+  // em português, visível para o cliente E para a agência — e a triagem manual
+  // continua sendo a saída.
   it("5 · o cliente PEDE uma peça nova — e o pedido vazio não passa", async () => {
     const mudo = await pedirConteudo(postJson("/api/portal/pedidos", { token: tokenFoocci, descricao: "", objetivo: "Vender" }));
     expect(mudo.status).toBe(422);
@@ -146,7 +153,11 @@ describe("a corrente inteira, de ponta a ponta", () => {
 
     const meus = await (await meusPedidos(getUrl(`/api/portal/pedidos?token=${tokenFoocci}`))).json();
     expect(meus.pedidos).toHaveLength(1);
-    expect(meus.pedidos[0].statusLegivel).toMatch(/Recebido/);
+    // Sem IA a triagem para — e para FALANDO. O cliente lê o motivo, não um
+    // silêncio de dois dias.
+    expect(meus.pedidos[0].status).toBe("precisa_decisao");
+    expect(meus.pedidos[0].statusLegivel).toMatch(/confirmar/i);
+    expect(String(meus.pedidos[0].motivo).length).toBeGreaterThan(20);
   });
 
   it("6 · o pedido aparece na caixa de entrada da agência", async () => {
@@ -157,10 +168,12 @@ describe("a corrente inteira, de ponta a ponta", () => {
     const { pedidos } = await (await filaDePedidos(getUrl("/api/messages/pedidos"))).json();
     expect(pedidos).toHaveLength(1);
     expect(pedidos[0].cliente).toBe("Foocci");
-    expect(pedidos[0].status).toBe("novo");
+    // O que a máquina parou conta no MESMO badge do que ainda não foi triado:
+    // fail-closed que ninguém vê é esconderijo, não freio.
+    expect(pedidos[0].status).toBe("precisa_decisao");
   });
 
-  it("7 · sem projeto aberto a triagem NÃO inventa projeto", async () => {
+  it("7 · sem projeto aberto a triagem manual NÃO inventa projeto", async () => {
     const { pedidos } = await (await filaDePedidos(getUrl("/api/messages/pedidos"))).json();
     const res = await triarPedido(postJson("/api/messages/pedidos", {
       pedidoId: pedidos[0].id, decisao: "ciclo", departamento: "social-media", prazo: "2026-08-25",
@@ -193,10 +206,16 @@ describe("a corrente inteira, de ponta a ponta", () => {
     expect(tarefa?.description).toContain("combo do almoço");
 
     // O pedido saiu da fila, com rastro de quem decidiu.
+    // A produção dispara junto (é o elo que faltava), mas sem IA ela não conclui
+    // — e nesse caso o pedido fica na FILA que o despertador varre, com o motivo
+    // gravado. O que não pode acontecer, e é o que se prova aqui, é ele voltar
+    // para "novo" ou sumir.
     const pedido = await prisma.contentRequest.findUnique({ where: { id: pedidos[0].id } });
-    expect(pedido?.status).toBe("triado");
+    expect(["triado", "entregue", "precisa_decisao"]).toContain(pedido?.status);
+    expect(pedido?.status).not.toBe("novo");
     expect(pedido?.scopeDecision).toBe("ciclo");
     expect(pedido?.triagedBy).toBe("Dioli");
+    expect(pedido?.promisedFor).toBeTruthy();
 
     // E o cliente ficou sabendo pelo mesmo canal em que pediu.
     const conversa = await (await lerConversa(getUrl(`/api/portal/messages?token=${tokenFoocci}`))).json();
@@ -211,6 +230,8 @@ describe("a corrente inteira, de ponta a ponta", () => {
     const res = await triarPedido(postJson("/api/messages/pedidos", {
       pedidoId: pedidos[0].id, decisao: "extra", departamento: "design", prazo: "2026-09-01",
     }));
+    // Já triado: 409. (Só "novo" e "precisa_decisao" entram na triagem manual —
+    // o resto já está andando, e re-triar criaria a segunda tarefa.)
     expect(res.status).toBe(409);
     expect(await prisma.task.count()).toBe(1);
   });

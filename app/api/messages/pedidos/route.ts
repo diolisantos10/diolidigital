@@ -130,9 +130,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   });
   if (!dono) return NextResponse.json({ error: "Pedido não encontrado" }, { status: 404 });
 
-  if (pedido.status !== "novo") {
+  // A TRIAGEM MANUAL É A SAÍDA DO `precisa_decisao`.
+  //
+  // Desde 06/08/2026 quem tria primeiro é a máquina (`lib/agency/esteira/triagem.ts`).
+  // Esta rota deixou de ser o caminho normal e passou a ser o caminho do que a
+  // máquina PAROU — e por isso `precisa_decisao` tem de entrar aqui. Se só
+  // "novo" fosse aceito, o fail-closed levaria o pedido para um limbo sem botão:
+  // visível, com motivo, e sem ninguém podendo destravá-lo. Trocaríamos um balde
+  // por outro, com o agravante de parecer resolvido.
+  if (pedido.status !== "novo" && pedido.status !== "precisa_decisao") {
     return NextResponse.json(
-      { error: `Este pedido já foi triado (${pedido.status}).`, status: pedido.status },
+      { error: `Este pedido já está em "${pedido.status}" — não dá para triar de novo.`, status: pedido.status },
       { status: 409 },
     );
   }
@@ -271,6 +279,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         scopeDecision: decisao,
         projectId: projeto.id,
         taskId: tarefa.id,
+        // O PRAZO PROMETIDO em coluna própria. Antes ele existia só como
+        // `Task.dueDate` e como frase na mensagem — nada que o portal do cliente
+        // pudesse mostrar de volta.
+        promisedFor: new Date(`${prazo}T12:00:00`),
+        // Triado é triado: o motivo do `precisa_decisao` sai junto, senão a tela
+        // continuaria mostrando a pergunta de um pedido já resolvido.
+        declineReason: null,
         triagedBy: session.name ?? "Equipe",
         triagedAt: new Date(),
         // O orçamento só existe no caminho "extra" — no ciclo, a peça já está
@@ -300,9 +315,25 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         : `Recebemos seu pedido "${pedido.title}". Ele vai além do que está contratado neste ciclo, então vamos te mandar a proposta desse trabalho extra antes de começar. Nada é produzido nem cobrado sem a sua aprovação.`,
     );
 
+    // ── A TAREFA ACIONA O AGENTE ─────────────────────────────────────────────
+    // Este era o ponto exato da quebra do pipeline: a triagem criava a `Task` e
+    // parava aí "de propósito" — e nada nunca movia a tarefa. No ciclo (já pago
+    // pela mensalidade) a produção começa agora; no escopo extra ela espera o
+    // cliente aceitar o orçamento, e quem dispara então é `/orcamento`.
+    let produziu = false;
+    if (decisao === "ciclo") {
+      const { produzirPedido } = await import("@/lib/agency/esteira/producao-de-pedido");
+      const r = await produzirPedido(pedido.id).catch((e: unknown) => {
+        console.error("[messages/pedidos] a produção falhou", e);
+        return null;
+      });
+      produziu = r?.ok === true;
+    }
+
     return NextResponse.json({
       ok: true,
-      status: "triado",
+      status: produziu ? "entregue" : "triado",
+      produziu,
       escopo: decisao,
       taskId: tarefa.id,
       projectId: projeto.id,

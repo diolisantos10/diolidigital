@@ -27,10 +27,17 @@ import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
 const MINIMO_DE_DESCRICAO = 8;
 const MINIMO_DE_OBJETIVO = 3;
 
+// Todo estado que a esteira grava aparece AQUI, em português de gente. Estado
+// sem tradução é estado que o cliente vê como código — e estado que ninguém lê
+// é o balde de onde este arquivo acabou de sair.
 export const STATUS_PARA_O_CLIENTE: Record<string, string> = {
-  novo:     "Recebido — a equipe vai avaliar",
-  triado:   "Aceito — entrou na produção",
-  recusado: "Não vamos seguir com este",
+  novo:            "Recebido — já estou avaliando",
+  em_triagem:      "Estou vendo o seu pedido agora",
+  triado:          "Aceito — entrou na produção",
+  em_producao:     "Produzindo agora",
+  entregue:        "Pronto — está nas suas aprovações",
+  precisa_decisao: "Preciso confirmar uma coisa com você",
+  recusado:        "Não vamos seguir com este",
 };
 
 function texto(v: unknown): string {
@@ -69,6 +76,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       select: {
         id: true, title: true, description: true, objective: true,
         desiredFor: true, status: true, declineReason: true, createdAt: true,
+        // O PRAZO PROMETIDO pela agência (≠ a data que ele pediu). Entra por
+        // propósito: a devolutiva que o CEO pediu é "prazo E valor" — mostrar
+        // só o valor deixa metade da resposta de fora.
+        promisedFor: true,
         // O ORÇAMENTO. Entra na lista de propósito: a devolutiva do pedido tem
         // de vir com preço, ou o cliente sai do portal para perguntar quanto
         // custa — e a venda vai junto com ele.
@@ -83,6 +94,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         descricao: p.description,
         objetivo: p.objective,
         para: p.desiredFor ? p.desiredFor.toISOString() : null,
+        prometidoPara: p.promisedFor ? p.promisedFor.toISOString() : null,
         status: p.status,
         statusLegivel: STATUS_PARA_O_CLIENTE[p.status] ?? "Recebido",
         motivo: p.declineReason,
@@ -177,19 +189,39 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       select: { id: true, title: true, status: true, createdAt: true },
     });
 
+    // ── AQUI A ESTEIRA ANDA ──────────────────────────────────────────────────
+    //
+    // Até 06/08/2026 o pedido terminava aqui, com `status: "novo"` — e "novo"
+    // não aciona ninguém. O formulário gravava, o departamento produzia, e não
+    // existia a passagem entre os dois: o pedido caía num balde e esperava
+    // alguém olhar. Um roteiro de vídeo esperou dois dias.
+    //
+    // A triagem é AGUARDADA de propósito. É dela que saem o departamento, o
+    // prazo e o preço — e a devolutiva sem número manda o cliente perguntar
+    // quanto custa fora do portal, levando a venda junto. Ela nunca lança: o
+    // que não dá para resolver vira `precisa_decisao` com o motivo, que o
+    // cliente lê na resposta e a agência vê na caixa de entrada.
+    const { atenderPedido } = await import("@/lib/agency/esteira/producao-de-pedido");
+    const atendimento = await atenderPedido(criado.id).catch((e: unknown) => {
+      console.error("[portal/pedidos] a esteira falhou", e);
+      return null;
+    });
+
     return NextResponse.json(
       {
         ok: true,
         pedido: {
           id: criado.id,
           titulo: criado.title,
-          status: criado.status,
-          statusLegivel: STATUS_PARA_O_CLIENTE[criado.status],
+          status: atendimento?.status ?? criado.status,
+          statusLegivel: STATUS_PARA_O_CLIENTE[atendimento?.status ?? criado.status] ?? "Recebido",
           criadoEm: criado.createdAt.toISOString(),
+          preco: atendimento?.preco ?? null,
+          prazo: atendimento?.prazo ?? null,
         },
-        // A promessa que o portal pode cumprir: o pedido AGORA aparece numa
-        // caixa de entrada que alguém lê. Antes, morria no chat.
-        recado: "Recebemos. A equipe avalia e te responde por aqui.",
+        // A devolutiva de verdade: o que vai ser feito, para quando e por
+        // quanto — decidido antes de esta resposta sair.
+        recado: atendimento?.recado ?? "Recebemos. A equipe avalia e te responde por aqui.",
       },
       { status: 201 },
     );

@@ -112,8 +112,13 @@ export default function CaixaDeEntrada() {
 
   const aberta = conversas.find((c) => c.chave === abertaChave) ?? null;
   const pedido = pedidos.find((p) => p.id === pedidoAberto) ?? null;
-  const novos = pedidos.filter((p) => p.status === "novo");
-  const jaTriados = pedidos.filter((p) => p.status !== "novo");
+  // O QUE PRECISA DE GENTE. Desde 06/08/2026 a triagem é automática, então
+  // "novo" praticamente não existe mais — o que sobra para a equipe é o que a
+  // máquina PAROU e declarou (`precisa_decisao`). Ele entra no mesmo balde e no
+  // mesmo badge: se ficasse de fora, o fail-closed viraria um esconderijo mais
+  // silencioso que o balde que ele substituiu.
+  const novos = pedidos.filter((p) => p.status === "novo" || p.status === "precisa_decisao");
+  const jaTriados = pedidos.filter((p) => p.status !== "novo" && p.status !== "precisa_decisao");
   const totalNaoLidas = conversas.reduce((s, c) => s + c.naoLidas, 0);
 
   function abrirConversa(c: ConversaDaCaixa) {
@@ -262,18 +267,20 @@ export default function CaixaDeEntrada() {
                 >
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center justify-between gap-2">
-                      <span className={`truncate text-[13px] ${p.status === "novo" ? "font-bold text-[var(--text-primary)]" : "font-medium text-[var(--text-secondary)]"}`}>
+                      <span className={`truncate text-[13px] ${precisaDeGente(p.status) ? "font-bold text-[var(--text-primary)]" : "font-medium text-[var(--text-secondary)]"}`}>
                         {p.cliente}
                       </span>
                       <span className="shrink-0 text-[10.5px] text-[var(--text-muted)]">{quando(p.criadoEm)}</span>
                     </span>
                     <span className="block mt-0.5 truncate text-[12px] text-[var(--text-secondary)]">{p.titulo}</span>
                     <span className={`mt-1 inline-flex items-center h-[18px] px-2 rounded-full text-[10px] font-semibold ${
-                      p.status === "novo" ? "bg-[#FEF3C7] text-[#9B7B2D]"
-                      : p.status === "triado" ? "bg-[#DCFCE7] text-[var(--success)]"
+                      p.status === "precisa_decisao" ? "bg-[#FEE2E2] text-[#B91C1C]"
+                      : precisaDeGente(p.status) ? "bg-[#FEF3C7] text-[#9B7B2D]"
+                      : p.status === "entregue" ? "bg-[#DCFCE7] text-[var(--success)]"
+                      : p.status === "triado" || p.status === "em_producao" || p.status === "em_triagem" ? "bg-[#DBEAFE] text-[#1D4ED8]"
                       : "bg-[#F3F4F6] text-[#6B7280]"
                     }`}>
-                      {p.status === "novo" ? "Esperando decisão" : p.status === "triado" ? `Aceito · ${p.escopo === "extra" ? "escopo extra" : "no ciclo"}` : "Recusado"}
+                      {rotuloDoStatus(p)}
                     </span>
                   </span>
                 </button>
@@ -300,6 +307,27 @@ export default function CaixaDeEntrada() {
       )}
     </div>
   );
+}
+
+/** Este pedido está esperando um humano? Só dois estados esperam: o que a
+ *  triagem automática ainda não pegou e o que ela PAROU declarando o motivo. */
+function precisaDeGente(status: string): boolean {
+  return status === "novo" || status === "precisa_decisao";
+}
+
+/** Todo estado que a esteira grava tem rótulo AQUI. Estado sem rótulo é estado
+ *  que ninguém lê — e estado que ninguém lê é o balde de volta. */
+function rotuloDoStatus(p: PedidoDaCaixa): string {
+  switch (p.status) {
+    case "novo":            return "Esperando triagem";
+    case "em_triagem":      return "Triando agora";
+    case "triado":          return `Aceito · ${p.escopo === "extra" ? "orçamento na mesa" : "no ciclo"}`;
+    case "em_producao":     return "Produzindo";
+    case "entregue":        return "Entregue ao cliente";
+    case "precisa_decisao": return "PRECISA DE DECISÃO";
+    case "recusado":        return "Recusado";
+    default:                return p.status;
+  }
 }
 
 // ── O detalhe + a triagem ───────────────────────────────────────────────────
@@ -341,7 +369,10 @@ function DetalheDoPedido({
     }
   }
 
-  const jaDecidido = pedido.status !== "novo";
+  // A triagem MANUAL continua valendo para o que a máquina parou: é a saída de
+  // `precisa_decisao`. Sem isto, o fail-closed viraria um beco — o pedido sairia
+  // do balde para um limbo sem botão.
+  const jaDecidido = !precisaDeGente(pedido.status);
 
   return (
     <div className="bg-white rounded-[12px] border border-[var(--border)] p-5">

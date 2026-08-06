@@ -33,6 +33,8 @@ export interface PedidoDoCliente {
   descricao: string;
   objetivo: string;
   para: string | null;
+  /** O PRAZO PROMETIDO pela agência (≠ `para`, a data que ele pediu). */
+  prometidoPara?: string | null;
   status: string;
   statusLegivel: string;
   motivo: string | null;
@@ -360,7 +362,9 @@ export function MeusPedidos({
                 <span className={`shrink-0 h-6 px-2.5 rounded-full text-[11px] font-semibold flex items-center ${
                   p.orcamento === "aceito" ? "bg-[#DCFCE7] text-[var(--success)]"
                   : p.orcamento === "recusado" ? "bg-[#F3F4F6] text-[#6B7280]"
-                  : p.status === "triado" ? "bg-[#DCFCE7] text-[var(--success)]"
+                  : p.status === "entregue" ? "bg-[#DCFCE7] text-[var(--success)]"
+                  : p.status === "precisa_decisao" ? "bg-[#FEF3C7] text-[#9B7B2D]"
+                  : p.status === "triado" || p.status === "em_producao" || p.status === "em_triagem" ? "bg-[#DBEAFE] text-[#1D4ED8]"
                   : p.status === "recusado" ? "bg-[#F3F4F6] text-[#6B7280]"
                   : "bg-[#FEF3C7] text-[#9B7B2D]"
                 }`}>
@@ -370,8 +374,16 @@ export function MeusPedidos({
                 </span>
               </div>
               <p className="text-[11.5px] text-[var(--text-muted)] mt-1">
-                Pedido em {dataCurta(p.criadoEm)}{p.para ? ` · para ${dataCurta(p.para)}` : ""}
+                Pedido em {dataCurta(p.criadoEm)}{p.para ? ` · você pediu para ${dataCurta(p.para)}` : ""}
               </p>
+              {/* O PRAZO QUE A CASA PROMETEU. Metade da devolutiva que o CEO
+                  pediu é o prazo — sem ele, o cliente lê o preço e continua sem
+                  saber quando recebe. */}
+              {p.prometidoPara && (
+                <p className="text-[11.5px] font-semibold text-[var(--text-secondary)] mt-0.5">
+                  Entrega até {dataCurta(p.prometidoPara)}
+                </p>
+              )}
               {p.motivo && <p className="text-[12px] text-[var(--text-secondary)] mt-1">{p.motivo}</p>}
 
               {/* A DEVOLUTIVA COM PREÇO. É aqui que a agência vende — e por isso

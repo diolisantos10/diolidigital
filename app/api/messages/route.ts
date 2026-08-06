@@ -80,7 +80,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const escopo = chavesDoEscopo.length === 1 ? chavesDoEscopo[0]! : { OR: chavesDoEscopo };
 
     // ── O badge: uma contagem e nada mais ───────────────────────────────────
-    const ondePedidos = { status: "novo", clientId: { in: idsDeClientes } };
+    // O QUE ESPERA UMA PESSOA. Desde 06/08/2026 a triagem é automática, então
+    // "novo" é passagem de segundos — o que realmente espera gente é o que a
+    // máquina PAROU e declarou (`precisa_decisao`). Se ele ficasse fora deste
+    // badge, o fail-closed seria um esconderijo mais silencioso que o balde que
+    // ele substituiu: ninguém saberia que há um cliente esperando resposta.
+    const ondePedidos = { status: { in: ["novo", "precisa_decisao"] }, clientId: { in: idsDeClientes } };
     const pedidosNovos = idsDeClientes.length === 0
       ? 0
       : await prisma.contentRequest.count({ where: ondePedidos });

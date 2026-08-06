@@ -218,27 +218,54 @@ export async function varrerDadosPresos(agora: Date = new Date()): Promise<Resul
     // dinheiro era justamente o que ninguém media: é do pedido do cliente que
     // sai projeto novo. Estado "novo" não aciona ninguém, e o que não aciona
     // ninguém precisa, no mínimo, acordar alguém pela madrugada.
-    const pedidosNovos = await prisma.clientRequestDb.count({ where: { status: "novo" } });
-    const pedidosNovosParados = await prisma.clientRequestDb.count({
-      where: { status: "novo", createdAt: { lt: ontem(agora) } },
+    // A varredura olha o `ContentRequest` — é ONDE o pedido do portal mora e
+    // onde o roteiro travado estava. (A primeira versão contava
+    // `ClientRequestDb.status === "novo"`, que nunca casa: o default daquela
+    // tabela é "new". A varredura devolvia zero e passava por saudável.)
+    //
+    // Desde 06/08/2026 a triagem é automática, então três estados prendem
+    // trabalho e os três entram:
+    //   • "novo"/"em_triagem" parados     → a passagem não rodou;
+    //   • "triado"/"em_producao" parados  → triou e não produziu;
+    //   • "precisa_decisao"               → a máquina parou e CHAMOU. Isto não é
+    //     defeito — é o fail-closed funcionando —, mas parado +24h vira balde
+    //     igual, só que com motivo escrito.
+    const PARADOS = ["novo", "em_triagem", "triado", "em_producao"];
+    const pedidosAbertos = await prisma.contentRequest.count({ where: { status: { in: PARADOS } } });
+    const pedidosParados = await prisma.contentRequest.count({
+      where: { status: { in: PARADOS }, createdAt: { lt: ontem(agora) } },
     });
-    medidas.pedidosNovos = pedidosNovos;
-    medidas.pedidosNovosHaMaisDeUmDia = pedidosNovosParados;
-    if (pedidosNovosParados > 0) {
-      const maisAntigo = await prisma.clientRequestDb.findFirst({
-        where: { status: "novo", createdAt: { lt: ontem(agora) } },
-        select: { id: true, createdAt: true },
+    const pedidosEsperandoGente = await prisma.contentRequest.count({
+      where: { status: "precisa_decisao", createdAt: { lt: ontem(agora) } },
+    });
+    medidas.pedidosDoClienteAbertos = pedidosAbertos;
+    medidas.pedidosDoClienteParadosHaMaisDeUmDia = pedidosParados;
+    medidas.pedidosEsperandoDecisaoHaMaisDeUmDia = pedidosEsperandoGente;
+    if (pedidosParados > 0) {
+      const maisAntigo = await prisma.contentRequest.findFirst({
+        where: { status: { in: PARADOS }, createdAt: { lt: ontem(agora) } },
+        select: { id: true, status: true, createdAt: true },
         orderBy: { createdAt: "asc" },
       });
       achados.push({
         padrao: "estado-morto",
         chave: "pedido-do-cliente-parado",
-        titulo: "Pedido do cliente parado sem ninguém pegar",
+        titulo: "Pedido do cliente parado sem a esteira andar",
         evidencia:
-          `${pedidosNovosParados} pedido(s) em "novo" há +24h (${pedidosNovos} no total). ` +
-          `O mais antigo: ${maisAntigo?.id} de ${maisAntigo?.createdAt?.toISOString()}`,
-        local: "ClientRequestDb.status",
+          `${pedidosParados} pedido(s) sem sair do lugar há +24h (${pedidosAbertos} em aberto no total). ` +
+          `O mais antigo: ${maisAntigo?.id} em "${maisAntigo?.status}" desde ${maisAntigo?.createdAt?.toISOString()}`,
+        local: "ContentRequest.status",
         gravidade: "alto",
+      });
+    }
+    if (pedidosEsperandoGente > 0) {
+      achados.push({
+        padrao: "estado-morto",
+        chave: "pedido-esperando-decisao",
+        titulo: "Pedido que a máquina parou e ninguém decidiu",
+        evidencia: `${pedidosEsperandoGente} pedido(s) em "precisa_decisao" há +24h. O fail-closed chamou; ninguém atendeu.`,
+        local: "ContentRequest.status",
+        gravidade: "medio",
       });
     }
   } catch (erro) {
