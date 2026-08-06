@@ -200,23 +200,29 @@ describe("a migration só pode falar de tabelas que já existem no ponto dela", 
   });
 
   it("nenhuma migration cita tabela criada por uma migration POSTERIOR", () => {
-    // A regra generalizada, para todas as migrations desta casa. `CREATE TABLE`
-    // acumula na ordem dos nomes (que é a ordem em que o Prisma aplica); uma
-    // migration que cita tabela ainda não criada é deploy quebrado, garantido.
+    // A regra generalizada, para todas as migrations desta casa. As migrations
+    // são aplicadas na ordem do NOME; uma que cita tabela ainda não criada é
+    // deploy quebrado, garantido.
+    //
+    // A varredura é ORDENADA dentro de cada arquivo, e isso não é detalhe: o
+    // próprio Prisma, para mudar coluna no SQLite, cria `new_X`, copia com
+    // INSERT e renomeia — tudo no MESMO arquivo. Uma varredura que olhasse os
+    // CREATE só depois dos INSERT acusaria sete falsos positivos e ensinaria a
+    // ignorar o sinal, que é pior que não ter sinal.
     const migrations = readdirSync(DIR).filter((d) => !d.includes(".")).sort();
     const jaCriadas = new Set<string>();
     const problemas: string[] = [];
+
+    const COMANDO = /CREATE TABLE(?:\s+IF NOT EXISTS)?\s+"(\w+)"|\b(?:UPDATE|DELETE FROM|INSERT INTO)\s+"(\w+)"/g;
 
     for (const m of migrations) {
       const sql = readFileSync(path.join(DIR, m, "migration.sql"), "utf8");
       const semComentario = sql
         .split("\n").filter((l) => !l.trim().startsWith("--")).join("\n");
 
-      for (const [, t] of semComentario.matchAll(/\b(?:UPDATE|DELETE FROM|INSERT INTO)\s+"(\w+)"/g)) {
-        if (!jaCriadas.has(t)) problemas.push(`${m} → ${t}`);
-      }
-      for (const [, t] of semComentario.matchAll(/CREATE TABLE(?:\s+IF NOT EXISTS)?\s+"(\w+)"/g)) {
-        jaCriadas.add(t);
+      for (const [, criada, citada] of semComentario.matchAll(COMANDO)) {
+        if (criada) jaCriadas.add(criada);
+        else if (citada && !jaCriadas.has(citada)) problemas.push(`${m} → ${citada}`);
       }
     }
 
