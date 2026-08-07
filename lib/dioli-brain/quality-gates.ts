@@ -329,12 +329,36 @@ export const DESIGN_QUALITY_GATE: PortaoDaCasa[] = [
     autoCheckable: false,
     // Declarado com todas as letras porque é a armadilha desta linha: esta
     // checagem PREMIA IGUALDADE. Ela teria aprovado as 36 telas idênticas de
-    // 06/08 com nota máxima. Falta a irmã dela — `design_dispersao_minima` —,
-    // que não está desligada: NÃO EXISTE (Onda 3).
-    lacuna: {
-      motivo: "premia igualdade e não mede dispersão. As 36 telas idênticas passariam. Falta `design_dispersao_minima`, que ainda não existe.",
-      dono: "departamentos",
-      prazo: "Onda 3 do P0",
+    // 06/08 com nota máxima. A irmã dela — `design_storyboard_sem_repeticao` —
+    // passou a existir em 07/08/2026 e é executável; o que continua faltando
+    // aqui é o juiz do brandbook, que é subjetivo.
+    lacuna: LACUNA_JUIZ,
+  },
+  {
+    // ── A IRMÃ QUE FALTAVA, E QUE AGORA RODA ────────────────────────────────
+    //
+    // `design_visual_consistency` premia igualdade; esta mede DISPERSÃO — se as
+    // telas de uma peça cumprem papéis diferentes e mostram imagens diferentes.
+    // As 36 telas idênticas de 06/08 passariam na primeira e são barradas por
+    // esta.
+    //
+    // `autoCheckable: true` aqui é verdade, e não metadado otimista: o
+    // executor é `conferirStoryboard` (`lib/agency/design/storyboard.ts`), e
+    // ele roda em DOIS pontos reais da esteira — no contrato de saída do
+    // especialista (`especialistas.ts`) e antes de qualquer imagem paga
+    // (`artes.ts: montarCarrossel`), com uma terceira passada sobre o hash das
+    // imagens já geradas. Peça reprovada não é gravada.
+    id: "design_storyboard_sem_repeticao",
+    label: "Storyboard sem repetição de papel ou de imagem",
+    description:
+      "Cada tela declara o papel que cumpre na história (gancho, tensão, prova, mecanismo, resultado, ação). Duas telas com o mesmo papel, duas cenas iguais ou duas imagens iguais reprovam a peça, nomeando qual tela. A régua é por formato de produto: a revistinha semanal declara por escrito que 'matéria' pode repetir — imagem repetida não é liberada por régua nenhuma.",
+    scope: "design",
+    blocking: true,
+    autoCheckable: true,
+    mecanismo: {
+      onde: "lib/agency/design/storyboard.ts",
+      comoBarra:
+        "`conferirStoryboard` devolve reprovação nomeando a tela. Roda no contrato de saída do especialista (`lib/agency/execution/especialistas.ts`), onde ele ainda pode refazer, e em `lib/agency/execution/artes.ts: montarCarrossel` antes de qualquer imagem paga — mais uma passada sobre o hash SHA-256 de cada imagem já gerada. Carrossel reprovado não é gravado no post.",
     },
   },
   {

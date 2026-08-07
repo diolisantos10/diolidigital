@@ -20,6 +20,14 @@
 //     executável (`quality_audit_impartial`). A flag mentia nas duas direções.
 // O número honesto agora não é a flag: é `mecanismo` com caminho de arquivo que
 // este teste confere que EXISTE.
+//
+// ── ATUALIZADO EM 07/08/2026 ────────────────────────────────────────────────
+// 32 viraram 33, e 7 executáveis viraram 8: entrou
+// `design_storyboard_sem_repeticao`, a irmã que faltava de
+// `design_visual_consistency`. A primeira PREMIA IGUALDADE (teria aprovado as
+// 36 telas idênticas de 06/08 com nota máxima); a nova mede DISPERSÃO — duas
+// telas com o mesmo papel, duas cenas iguais ou duas imagens iguais reprovam a
+// peça. O número subiu pelo lado certo: uma checagem a mais QUE RODA.
 
 import { describe, it, expect } from "vitest";
 import { existsSync } from "node:fs";
@@ -38,17 +46,18 @@ const TODAS = Object.values(ALL_QUALITY_GATES).flat();
 const RAIZ = resolve(__dirname, "../..");
 
 describe("o número do P0 — conferido em 06/08/2026, depois da Onda 0", () => {
-  it("são 32 checagens declaradas, 7 com mecanismo, 25 com lacuna declarada", () => {
+  it("são 33 checagens declaradas, 8 com mecanismo, 25 com lacuna declarada", () => {
     const r = retratoDosPortoes();
-    expect(r.total).toBe(32);
-    expect(r.comMecanismo).toBe(7);
+    expect(r.total).toBe(33);
+    expect(r.comMecanismo).toBe(8);
     expect(r.comLacuna).toBe(25);
     expect(r.comMecanismo + r.comLacuna).toBe(r.total);
   });
 
-  it("as 7 com mecanismo são estas — nomeadas, para ninguém contar de memória", () => {
+  it("as 8 com mecanismo são estas — nomeadas, para ninguém contar de memória", () => {
     expect(TODAS.filter((c) => c.autoCheckable).map((c) => c.id).sort()).toEqual([
       "approval_verified",
+      "design_storyboard_sem_repeticao",
       "evidence_path",
       "no_hallucination",
       "pm_deadline",
