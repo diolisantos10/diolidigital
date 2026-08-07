@@ -37,12 +37,55 @@ export interface AddCommentInput {
   isClientVisible?: boolean;
 }
 
+/**
+ * Uma DECISÃO por departamento, não uma por especialista.
+ *
+ * ── Por que isto existe (CEO, 07/08/2026) ─────────────────────────────────
+ * O motor de produção (`run-execution`) chama `createApprovalRequest` uma vez
+ * **por especialista**, sempre com `department: dept.id`. Social Media tem três
+ * especialistas (Pauta do mês · Copy dos posts · Roteiros) — então nasciam TRÊS
+ * `ApprovalRequest` com o mesmo departamento, sem `reviewNote` própria, sem
+ * versão vinculada e sem posts. No portal os três liam o MESMO corpo (o
+ * `deliverableContentFor` do departamento) e apareciam como
+ * "Pauta do Mês — <negócio>" três vezes.
+ *
+ * E não eram três decisões: `refazerPorPedidoDoCliente` e `aprovarPacote` agem
+ * **por departamento**. Decidir um card já decidia o assunto inteiro — os
+ * outros dois eram o mesmo clique pedido de novo. O cliente olhava a tela e não
+ * sabia se já tinha decidido, que é exatamente o que o CEO reclamou.
+ *
+ * A trava é aqui, na escrita: card genérico (sem nota, sem versão, sem posts)
+ * de um departamento que JÁ tem card pendente não vira registro novo — reusa o
+ * que existe. Card com conteúdo próprio (proposta, calendário, versão) continua
+ * criando normalmente: aquilo sim é uma decisão distinta.
+ */
+async function cardGenericoJaPendente(input: CreateApprovalRequestInput) {
+  const temConteudoProprio =
+    !!input.reviewNote?.trim() || (input.sourcePostIds?.length ?? 0) > 0 || !!input.artifactId;
+  if (temConteudoProprio) return null;
+  const dono = input.clientRequestId
+    ? { clientRequestId: input.clientRequestId }
+    : { clientId: input.clientId! };
+  return prisma.approvalRequest.findFirst({
+    where: {
+      ...dono,
+      department: input.department,
+      status: "pending",
+      reviewNote: null,
+      deliverableVersionId: null,
+    },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
 export async function createApprovalRequest(input: CreateApprovalRequestInput) {
   // Aprovação sem dono é card órfão: ninguém consegue vê-lo nem decidi-lo.
   // Falhar aqui, alto, é melhor do que gravar um registro invisível.
   if (!input.clientRequestId && !input.clientId) {
     throw new Error("createApprovalRequest: informe clientRequestId ou clientId — aprovação precisa de dono");
   }
+  const jaExiste = await cardGenericoJaPendente(input);
+  if (jaExiste) return jaExiste;
   return prisma.approvalRequest.create({
     data: {
       clientRequestId: input.clientRequestId ?? null,
@@ -57,6 +100,64 @@ export async function createApprovalRequest(input: CreateApprovalRequestInput) {
       status:          "pending",
     },
   });
+}
+
+/** Um card é GENÉRICO quando nada nele o distingue dos outros do mesmo
+ *  departamento: sem nota própria, sem versão vinculada, sem posts de
+ *  calendário. Dois cards genéricos do mesmo departamento não são duas
+ *  decisões — são a mesma decisão duplicada pelo motor de produção. */
+export function cardGenerico(ap: {
+  reviewNote: string | null;
+  deliverableVersionId: string | null;
+  sourcePostIdsJson: string | null;
+}): boolean {
+  let posts: unknown = [];
+  try { posts = JSON.parse(ap.sourcePostIdsJson ?? "[]"); } catch { posts = []; }
+  return !ap.reviewNote?.trim()
+    && !ap.deliverableVersionId
+    && (!Array.isArray(posts) || posts.length === 0);
+}
+
+/**
+ * A decisão de um card genérico vale para os IRMÃOS genéricos do mesmo
+ * departamento — porque os efeitos (`refazerPorPedidoDoCliente`,
+ * `aprovarPacote`) já agem por departamento, nunca por card.
+ *
+ * Sem isto, esconder a duplicata na tela deixaria irmãos "pending" no banco
+ * para sempre: `restantes === 0` nunca aconteceria e o pacote nunca abriria a
+ * operação contínua. Esconder sem fechar seria trocar um bug visível por um
+ * invisível.
+ */
+export async function decidirIrmaosGenericos(input: {
+  id: string;
+  clientRequestId: string | null;
+  clientId: string | null;
+  department: string;
+  status: ApprovalStatus;
+  reviewedBy: string;
+}): Promise<number> {
+  const dono = input.clientRequestId
+    ? { clientRequestId: input.clientRequestId }
+    : input.clientId
+      ? { clientId: input.clientId }
+      : null;
+  if (!dono) return 0;
+  const irmaos = await prisma.approvalRequest.findMany({
+    where: {
+      ...dono,
+      department: input.department,
+      status: "pending",
+      id: { not: input.id },
+    },
+    select: { id: true, reviewNote: true, deliverableVersionId: true, sourcePostIdsJson: true },
+  });
+  const alvos = irmaos.filter(cardGenerico).map((a) => a.id);
+  if (alvos.length === 0) return 0;
+  const r = await prisma.approvalRequest.updateMany({
+    where: { id: { in: alvos } },
+    data: { status: input.status, reviewedBy: input.reviewedBy, reviewedAt: new Date() },
+  });
+  return r.count;
 }
 
 export async function updateApprovalStatus(

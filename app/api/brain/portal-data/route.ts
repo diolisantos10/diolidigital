@@ -10,6 +10,7 @@ import { requireSession } from "@/lib/auth/api-guard";
 // copiada para outros dois lugares — onde já divergia. Uma trava de segurança
 // com três versões é três políticas com o mesmo nome.
 import { clienteDoWorkspace, solicitacaoDoWorkspace } from "@/lib/auth/posse-de-workspace";
+import { cardGenerico } from "@/lib/agency/persistence/approval-service";
 
 // O nome que o CLIENTE vê. Precisa cobrir os dois vocabulários: o do Brain
 // (`social`, `traffic`) e o do motor de produção (`social-media`,
@@ -61,7 +62,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         // esta busca, o Início dizia "nada depende de você" com 6 peças
         // esperando — a contradição do lançamento da Foocci.
         const client = await prisma.client.findUnique({ where: { id: access.record.clientId } });
-        const approvals = await buscarAprovacoes({ clientId: access.record.clientId, clientVisible: true });
+        const approvals = semDuplicatas(await buscarAprovacoes({ clientId: access.record.clientId, clientVisible: true }));
         const pecasPorCard = await montarPecas(approvals);
         return NextResponse.json({
           id: null, businessName: client?.name ?? "Cliente", status: "new",
@@ -204,6 +205,36 @@ function buscarAprovacoes(where: FiltroDeAprovacao) {
 }
 
 type AprovacaoDb = Awaited<ReturnType<typeof buscarAprovacoes>>[number];
+
+/**
+ * ── UMA DECISÃO, UM CARD (CEO, 07/08/2026) ────────────────────────────────
+ * O motor cria uma aprovação por ESPECIALISTA, todas com o mesmo
+ * `department`. Quando o card não tem nada que o distinga — sem nota própria,
+ * sem versão vinculada, sem posts — os irmãos ficavam idênticos na tela:
+ * "Pauta do Mês — <negócio>" três vezes, "Estratégia" duas.
+ *
+ * A trava de escrita (`createApprovalRequest`) impede novos. Esta função
+ * conserta o que JÁ está no banco: dos genéricos de um mesmo departamento e
+ * status, sobra o mais recente. Card com conteúdo próprio nunca é agrupado.
+ *
+ * E o outro lado da regra: decidir o card que sobrou fecha os irmãos
+ * escondidos (`decidirIrmaosGenericos` em /api/portal/approvals) — nada fica
+ * "pendente" fora da tela.
+ */
+function semDuplicatas(aprovacoes: AprovacaoDb[]): AprovacaoDb[] {
+  const vistos = new Set<string>();
+  const saida: AprovacaoDb[] = [];
+  // `buscarAprovacoes` já ordena por createdAt desc — o primeiro de cada grupo
+  // é o mais recente, que é o que o cliente deve decidir.
+  for (const ap of aprovacoes) {
+    if (!cardGenerico(ap)) { saida.push(ap); continue; }
+    const chave = `${ap.department}::${ap.status}`;
+    if (vistos.has(chave)) continue;
+    vistos.add(chave);
+    saida.push(ap);
+  }
+  return saida;
+}
 
 /** Parse defensivo de uma lista JSON de strings — JSON quebrado vira []. */
 function lerLista(bruto: string | null | undefined): string[] {
@@ -371,7 +402,7 @@ async function buildPortalData(clientRequestId: string) {
         { clientRequestId },
         ...(clientRequest.clientId ? [{ clientId: clientRequest.clientId }] : []),
       ],
-    }),
+    }).then(semDuplicatas),
   ]);
 
   // As peças estruturadas dos cards (imagem + legenda), nos DOIS ramos — o

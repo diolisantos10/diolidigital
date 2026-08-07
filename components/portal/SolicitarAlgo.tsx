@@ -349,43 +349,26 @@ export function TextoQueVoceEscreveu({ descricao, objetivo }: { descricao: strin
   );
 }
 
-// ── A lista dos pedidos, com o ORÇAMENTO quando já veio ─────────────────────
+// ── A lista dos pedidos — ACOMPANHAMENTO, não decisão ───────────────────────
+//
+// ⚠️ Os botões "Aprovar e fazer / Agora não" MORARAM AQUI, e este componente
+// renderizava no Início E em Projetos. Resultado: a mesma decisão em duas telas
+// diferentes, nenhuma delas chamada "Aprovações" — a confusão que o CEO
+// apontou em 07/08/2026 ("é projeto pra aprovar em uma tela, é projeto pra
+// aprovar em outra tela").
+//
+// A regra da casa agora: **quem decide é Aprovações, e só ela.** Aqui fica o
+// estado do pedido e, quando há orçamento esperando, um CAMINHO para lá — nunca
+// um segundo botão que decide.
 
 export function MeusPedidos({
-  token,
   pedidos,
-  aoDecidir,
+  aoIrParaAprovacoes,
 }: {
-  token: string;
   pedidos: PedidoDoCliente[];
-  aoDecidir?: () => void;
+  /** Leva o cliente até Aprovações, no card daquele orçamento. */
+  aoIrParaAprovacoes?: (pedidoId: string) => void;
 }) {
-  const [decidindo, setDecidindo] = useState<string | null>(null);
-  const [erro, setErro] = useState<string | null>(null);
-
-  async function decidir(id: string, decisao: "aceito" | "recusado") {
-    if (decidindo) return;
-    setDecidindo(id);
-    setErro(null);
-    try {
-      const res = await fetch("/api/portal/pedidos/orcamento", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...(token ? { token } : {}), pedidoId: id, decisao }),
-      });
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({} as Record<string, string>));
-        setErro(j.error ?? "Não consegui registrar sua resposta. Tente de novo.");
-        return;
-      }
-      aoDecidir?.();
-    } catch {
-      setErro("A conexão caiu. Tente de novo.");
-    } finally {
-      setDecidindo(null);
-    }
-  }
-
   if (pedidos.length === 0) return null;
 
   return (
@@ -393,37 +376,41 @@ export function MeusPedidos({
       <h4 className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--text-muted)] mb-2">
         Seus pedidos
       </h4>
-      {erro && (
-        <p role="alert" className="mb-2 rounded-[10px] bg-[#FEF2F2] px-3.5 py-2.5 text-[12.5px] text-[#B91C1C]">{erro}</p>
-      )}
       <ul className="space-y-2">
         {pedidos.map((p) => {
           const temOrcamento = typeof p.preco === "number" && p.preco > 0;
           const pendente = temOrcamento && (p.orcamento ?? "pendente") === "pendente";
           return (
-            <li key={p.id} className="rounded-[10px] bg-[var(--bg-elevated)] px-3.5 py-3">
+            <li key={p.id} className="rounded-[10px] bg-[var(--bg-elevated)] border border-[var(--border)] px-3.5 py-3">
               {/* `flex-wrap`: no celular, rótulo de status longo ("Preciso
                   confirmar uma coisa com você") espremia o título em uma coluna
                   de três palavras. Sem espaço para os dois na mesma linha, o
-                  status desce — em vez de esmagar o texto do cliente. */}
+                  status desce — em vez de esmagar o texto do cliente.
+
+                  E a ORDEM importa: "esperando decisão" tem que ser lido ANTES
+                  de `status`, senão um pedido triado com orçamento na mesa saía
+                  com o selo VERDE de concluído enquanto ainda espera o cliente. */}
               <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1.5">
                 <p className="min-w-[60%] flex-1 text-[13px] font-medium text-[var(--text-primary)] leading-snug">{p.titulo}</p>
                 <span className={`shrink-0 h-6 px-2.5 rounded-full text-[11px] font-semibold flex items-center ${
-                  p.orcamento === "aceito" ? "bg-[#DCFCE7] text-[var(--success)]"
-                  : p.orcamento === "recusado" ? "bg-[#F3F4F6] text-[#6B7280]"
-                  : p.status === "entregue" ? "bg-[#DCFCE7] text-[var(--success)]"
-                  : p.status === "precisa_decisao" ? "bg-[#FEF3C7] text-[#9B7B2D]"
-                  : p.status === "triado" || p.status === "em_producao" || p.status === "em_triagem" ? "bg-[#DBEAFE] text-[#1D4ED8]"
-                  : p.status === "recusado" ? "bg-[#F3F4F6] text-[#6B7280]"
-                  : "bg-[#FEF3C7] text-[#9B7B2D]"
+                  pendente ? "bg-[var(--warning-bg)] text-[var(--warning)]"
+                  : p.orcamento === "aceito" ? "bg-[var(--success-bg)] text-[var(--success)]"
+                  : p.orcamento === "recusado" ? "bg-[var(--accent)] text-[var(--text-secondary)]"
+                  : p.status === "entregue" ? "bg-[var(--success-bg)] text-[var(--success)]"
+                  : p.status === "precisa_decisao" ? "bg-[var(--warning-bg)] text-[var(--warning)]"
+                  : p.status === "triado" || p.status === "em_producao" || p.status === "em_triagem" ? "bg-[var(--info-bg)] text-[var(--info)]"
+                  : p.status === "recusado" ? "bg-[var(--accent)] text-[var(--text-secondary)]"
+                  : "bg-[var(--warning-bg)] text-[var(--warning)]"
                 }`}>
-                  {p.orcamento === "aceito" ? "Aprovado por você"
+                  {pendente ? "Aguardando sua decisão"
+                    : p.orcamento === "aceito" ? "Aprovado por você"
                     : p.orcamento === "recusado" ? "Recusado por você"
-                    : pendente ? "Orçamento na mesa" : p.statusLegivel}
+                    : p.statusLegivel}
                 </span>
               </div>
               <p className="text-[11.5px] text-[var(--text-muted)] mt-1">
                 Pedido em {dataCurta(p.criadoEm)}{p.para ? ` · você pediu para ${dataCurta(p.para)}` : ""}
+                {temOrcamento ? ` · orçamento de ${emReais(p.preco!)}` : ""}
               </p>
 
               {/* O QUE ELE ESCREVEU — inteiro, e ANTES da resposta da agência.
@@ -444,38 +431,15 @@ export function MeusPedidos({
               )}
               {p.motivo && <p className="text-[12px] text-[var(--text-secondary)] mt-1">{p.motivo}</p>}
 
-              {/* A DEVOLUTIVA COM PREÇO. É aqui que a agência vende — e por isso
-                  o número aparece grande, com o que ele cobre logo abaixo. */}
-              {temOrcamento && (
-                <div className="mt-3 rounded-[10px] border border-[var(--border)] bg-white px-3.5 py-3">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--text-muted)]">Orçamento</span>
-                    <span className="text-[20px] font-bold text-[var(--text-primary)] leading-none">{emReais(p.preco!)}</span>
-                  </div>
-                  {p.precoNota && (
-                    <p className="text-[12.5px] text-[var(--text-secondary)] mt-1.5 leading-relaxed">{p.precoNota}</p>
-                  )}
-                  {pendente && (
-                    <div className="mt-3 flex gap-2">
-                      <button
-                        onClick={() => void decidir(p.id, "aceito")}
-                        disabled={decidindo === p.id}
-                        style={{ touchAction: "manipulation" }}
-                        className="h-11 px-4 rounded-[10px] bg-[#12B5AC] hover:bg-[#0E9E96] disabled:opacity-40 text-white text-[13px] font-semibold transition-colors"
-                      >
-                        {decidindo === p.id ? "Registrando…" : "Aprovar e fazer"}
-                      </button>
-                      <button
-                        onClick={() => void decidir(p.id, "recusado")}
-                        disabled={decidindo === p.id}
-                        style={{ touchAction: "manipulation" }}
-                        className="h-11 px-4 rounded-[10px] border border-[var(--border-strong)] text-[13px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] transition-colors"
-                      >
-                        Agora não
-                      </button>
-                    </div>
-                  )}
-                </div>
+              {/* O CAMINHO, não o botão. A decisão vive em Aprovações. */}
+              {pendente && aoIrParaAprovacoes && (
+                <button
+                  onClick={() => aoIrParaAprovacoes(p.id)}
+                  style={{ touchAction: "manipulation" }}
+                  className="mt-2.5 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-[9px] border border-[var(--border-strong)] bg-white text-[12.5px] font-semibold text-[var(--text-primary)] hover:bg-[var(--accent)] transition-colors"
+                >
+                  Decidir em Aprovações <span aria-hidden>→</span>
+                </button>
               )}
             </li>
           );

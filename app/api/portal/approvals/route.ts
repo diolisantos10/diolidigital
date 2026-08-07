@@ -11,6 +11,8 @@ import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
 import {
   updateApprovalStatus,
   addApprovalComment,
+  cardGenerico,
+  decidirIrmaosGenericos,
   type ApprovalStatus,
 } from "@/lib/agency/persistence/approval-service";
 import { createProjectFromRequest } from "@/lib/agency/execution/create-project-from-request";
@@ -175,6 +177,32 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       `client:${clientIdentity}`,
       postsDoCard.length > 0 ? undefined : (body.comment?.trim() || undefined),
     );
+
+    // 3b. ── A DUPLICATA FECHA JUNTO ──────────────────────────────────────────
+    // Card genérico (sem nota, sem versão, sem posts) tem irmãos genéricos do
+    // mesmo departamento quando o motor rodou vários especialistas — eram três
+    // "Pauta do Mês" na tela do cliente para UMA decisão. O portal agora mostra
+    // um só; aqui os outros fecham com a mesma decisão, para não sobrar
+    // "pending" invisível travando `aprovarPacote`.
+    // Best-effort declarado: fechar a duplicata é higiene, e higiene nunca
+    // pode derrubar a decisão que o cliente acabou de tomar.
+    try {
+      if (cardGenerico(approval)) {
+        const fechados = await decidirIrmaosGenericos({
+          id: approval.id,
+          clientRequestId: approval.clientRequestId,
+          clientId: approval.clientId,
+          department: approval.department,
+          status: status!,
+          reviewedBy: `client:${clientIdentity}`,
+        });
+        if (fechados > 0) {
+          console.warn(`[portal/approvals] ${fechados} card(s) duplicado(s) de ${approval.department} fecharam junto com ${approval.id}`);
+        }
+      }
+    } catch (e) {
+      console.error("[portal/approvals] fechamento das duplicatas falhou", e);
+    }
 
     // 4. Persist the comment as a client-visible ApprovalComment.
     if (body.comment?.trim()) {

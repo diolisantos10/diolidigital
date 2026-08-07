@@ -51,12 +51,12 @@ const METRICAS: { chave: keyof ContaMedida["totais"]; rotulo: string; explicacao
 
 export function ResultadosDoCliente({
   token,
-  onIrParaConta,
+  onIrParaIntegracoes,
 }: {
   /** Token de query (compatibilidade) — vazio em modo cookie. */
   token: string;
-  /** Leva o cliente à seção Conta, onde a conexão se resolve. */
-  onIrParaConta: () => void;
+  /** Leva o cliente à seção Integrações, onde a conexão se resolve. */
+  onIrParaIntegracoes: () => void;
 }) {
   const [estado, setEstado] = useState<Estado>({ fase: "carregando" });
   // O retry incrementa e o effect re-busca — o estado já nasce "carregando",
@@ -123,11 +123,11 @@ export function ResultadosDoCliente({
           visualizações e engajamento, direto da Meta.
         </p>
         <button
-          onClick={onIrParaConta}
+          onClick={onIrParaIntegracoes}
           style={{ touchAction: "manipulation" }}
           className="mt-4 h-10 rounded-[10px] bg-[var(--navy)] px-5 text-[13px] font-semibold text-white transition-opacity hover:opacity-90"
         >
-          Conectar em Conta
+          Conectar em Integrações
         </button>
       </div>
     );
@@ -140,14 +140,14 @@ export function ResultadosDoCliente({
         <p className="text-[14px] font-semibold text-[#92400E]">A conexão com o Instagram venceu</p>
         <p className="mx-auto mt-1.5 max-w-[42ch] text-[12.5px] leading-relaxed text-[#B45309]">
           É normal de tempos em tempos — a Meta pede uma nova autorização.
-          Reconecte em Conta e os números voltam sozinhos.
+          Reconecte em Integrações e os números voltam sozinhos.
         </p>
         <button
-          onClick={onIrParaConta}
+          onClick={onIrParaIntegracoes}
           style={{ touchAction: "manipulation" }}
           className="mt-4 h-10 rounded-[10px] bg-[var(--navy)] px-5 text-[13px] font-semibold text-white transition-opacity hover:opacity-90"
         >
-          Reconectar em Conta
+          Reconectar em Integrações
         </button>
       </div>
     );
