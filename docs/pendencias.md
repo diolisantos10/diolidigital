@@ -1,5 +1,99 @@
 # Pendências — o que está aberto
 
+## 🔴 07/08/2026 — O PORTAL PEDIA APROVAÇÃO DE CARDS VAZIOS. Consertado (`02c7629`)
+
+**A consequência, primeiro:** o CEO abriu duas aprovações em produção e as duas
+estavam **literalmente vazias** — título "Estratégia", subtítulo "Estratégia",
+os três botões de decisão, e nenhuma linha de conteúdo. A segunda, idêntica,
+dizia "Analytics"/"Analytics". Ele estava sendo convidado a **aprovar o que não
+podia ver**. Num piloto 100% IA, aprovação às cegas é a assinatura do cliente
+num trabalho que ninguém conferiu — é "sem gate = aprovado" com a culpa
+transferida para quem clicou.
+
+**O diagnóstico, PROVADO (não era "o entregável não existe"):** é **(a)** — o
+entregável **existia no banco** e o portal não conseguia lê-lo. Duas causas
+empilhadas, cada uma suficiente sozinha:
+
+1. **`apresentar()` publicava as aprovações ANTES de a escada de exposição
+   decidir**, com um `updateMany` sem condição: toda aprovação pendente virava
+   `clientVisible`. Departamento em SOMBRA tinha a entrega retida (certo — é o
+   que "sombra" quer dizer) e **o card de decisão dele subia assim mesmo**.
+   > **A escada protegia o CONTEÚDO e deixava passar o PEDIDO DE DECISÃO sobre
+   > ele.** Uma trava pela metade que parecia inteira.
+   O mesmo defeito existia em `mes.apresentarCiclo` — consertar só `marcos.ts`
+   deixaria o ciclo mensal reabrindo o buraco todo mês.
+2. **O portal casava entrega→departamento por um mapa de 3 linhas**
+   (`{a3, a2, a4}`) contra os ~14 especialistas da casa. `strategy-*`, `a5`,
+   `analytics-*`, `social-copy` e os demais resolviam `undefined` e a entrega era
+   **descartada em silêncio**. Agora usa `departamentoDoAgente`
+   (`lib/agency/escada/degraus.ts`), a forma canônica que a própria escada usa.
+   Era uma segunda cópia da mesma relação, e **já divergia em 11 dos 14 casos**.
+
+> ### ⚠️ O QUE A JORNADA PONTA-A-PONTA REVELOU — e ninguém tinha medido
+>
+> **Departamento nasce em `sombra`** ("degrau de nascimento — nunca entregou
+> nada a cliente nenhum nesta casa", `escada/registro.ts`). Logo, no caminho
+> ponta-a-ponta **nenhuma** entrega vira `compartilhado` e **nenhum** card tem
+> corpo. Os dois cards do CEO não são exceção: são **o estado padrão da casa**.
+>
+> E isso passava **verde**: `__tests__/esteira/jornada-real.test.ts` afirmava
+> `aprovacoes.every((a) => a.clientVisible === true)` — **o defeito escrito como
+> se fosse o contrato**, a mesma armadilha do teste que mandava publicar peça
+> sem molde. A asserção mudou de lado: o invariante agora é *nunca existe card
+> visível sem corpo atrás dele*.
+
+**Na tela:** `semConteudo` vem do **servidor** (uma fonte de verdade só — deduzir
+"vazio" no cliente faria falha de LEITURA virar FATO sobre o cliente, a lição do
+Drive de 07/08). Card sem corpo **perde os botões**, sai de "Aguardando você"
+para a seção **"Em produção na Dioli"**, some da contagem do Início e ganha uma
+explicação que **não culpa o cliente**. Card COM corpo segue idêntico.
+
+### ✅ A terceira saída do ORÇAMENTO ("Devolver com apontamentos")
+
+Correção de escopo: o cartão de **entregável já tinha** as três saídas. Quem só
+tinha duas era o de **orçamento** — e foi por isso que, em 06/08, a devolutiva
+do CEO ("mandei uma devolutiva do que tem que ser feito, e estou esperando até
+agora") ficou **dois dias** sem destino.
+
+- `POST /api/portal/pedidos/orcamento` aceita `ajustar` com `apontamento`
+  **obrigatório**: vazio → **400 e NADA é criado** (nem tarefa, nem recado, nem
+  mudança de estado).
+- Com texto, vira **rodada nova** por `criarTarefas` — o portão do PM recusa sem
+  dono e sem prazo. **Dono** sai do `agentId` da tarefa da triagem; **prazo**, de
+  dias úteis declarados. Nenhum dos dois inventado.
+- **Sem dono derivável a casa PARA e escala** (`precisa_decisao` +
+  `ActivityEvent`) em vez de sortear responsável.
+- **Não reescreve o orçamento anterior:** `quoteStatus: "ajuste_solicitado"`, e a
+  próxima proposta é uma rodada nova que o cliente decide de novo.
+
+### ✅ O título do cartão deixou de ser a transcrição crua do áudio
+
+Ele lia *"para de óleo digital eu preciso de dois carrosseis por semana uma
+seg…"* — ditado, com o reconhecedor errando "para a Dioli Digital", sem
+pontuação, cortado ao meio. Agora é derivado **na LEITURA** (os títulos ruins já
+estão gravados no banco; corrigir só na escrita deixaria os antigos tortos para
+sempre): frase curta e pontuada vira título; texto corrido de ditado vira rótulo
+honesto **"Orçamento · 06/08"**. **Nada de resumir com IA** — resumo afirma sobre
+o pedido do cliente algo que ele não escreveu. O texto original continua íntegro
+em "O QUE VOCÊ PEDIU".
+
+**Portão:** `tsc` limpo, **2504 testes** em 162 arquivos, `npm run build` limpo.
+Conferido nos 3 tamanhos (375/768/1440) com o portal renderizado de verdade.
+
+### 🔴 O QUE ESTE CONSERTO NÃO FEZ — e precisa de dono
+
+1. **A fila continua vazia do outro lado.** Com a escada em `sombra` por padrão,
+   o conserto faz a casa **parar de pedir decisão** — não faz a entrega chegar ao
+   cliente. **Alguém precisa decidir quais departamentos sobem de degrau**, com
+   evidência. É decisão de negócio (a escada existe para isso), não de código.
+2. **Os cards vazios que JÁ estão no banco de produção** continuam lá. O código
+   novo impede os próximos e a tela os trata com honestidade, mas ninguém rodou
+   uma limpeza — e não rodei por conta própria.
+3. **Pedido do CEO NÃO atendido nesta sessão:** "Nova solicitação" no topo com
+   cardápio de tipos, e a **logo do cliente** no cabeçalho do portal. Ficaram
+   fora por tempo, não por decisão técnica. Sem dono ainda.
+
+
 ## 🟠 07/08/2026 — FRENTE 99FREELAS: **PODE COM AJUSTE.** Dono: PM do 99Freelas
 
 Pedido do CEO: um agente autônomo que opera o 99Freelas por navegador e envia
