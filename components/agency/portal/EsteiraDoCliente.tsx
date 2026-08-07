@@ -36,7 +36,25 @@ interface EstadoDoCliente {
   ciclo?: { referencia: string; resumo: string | null } | null;
 }
 
-export default function EsteiraDoCliente({ token }: { token: string }) {
+export default function EsteiraDoCliente({
+  token,
+  aoIrParaAprovacoes,
+}: {
+  token: string;
+  /**
+   * ── UM ÚNICO LUGAR PARA DECIDIR (CEO, 07/08/2026) ────────────────────────
+   * Quando informado, a esteira PARA de decidir: "Aprovar e começar" e
+   * "Aprovar tudo" viram um caminho para Aprovações, que é onde toda decisão
+   * do cliente mora.
+   *
+   * Por que isto era um problema real: este componente renderiza no Início E
+   * em Projetos. O mesmo botão "Aprovar tudo" existia nas duas telas, e em
+   * nenhuma delas chamada "Aprovações" — três lugares para a mesma decisão.
+   * O cliente clicava numa, voltava na outra, via o botão de novo e não sabia
+   * se já tinha decidido.
+   */
+  aoIrParaAprovacoes?: () => void;
+}) {
   const [estado, setEstado] = useState<EstadoDoCliente | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [decidindo, setDecidindo] = useState(false);
@@ -106,19 +124,29 @@ export default function EsteiraDoCliente({ token }: { token: string }) {
   const acoes: { rotulo: string; onClick: () => void; primaria?: boolean; carregando?: boolean }[] = [];
   const etapa = estado.etapa ?? "";
 
-  if (etapa.toLowerCase().includes("confirme o caminho")) {
-    acoes.push({
-      rotulo: "Aprovar e começar",
-      primaria: true, carregando: decidindo,
-      onClick: () => void decidir("aprovar_direcao"),
-    });
-  }
-  if (etapa.toLowerCase().includes("tudo pronto")) {
-    acoes.push({
-      rotulo: "Aprovar tudo",
-      primaria: true, carregando: decidindo,
-      onClick: () => void decidir("aprovar_pacote"),
-    });
+  const pedeDirecao = etapa.toLowerCase().includes("confirme o caminho");
+  const pedePacote  = etapa.toLowerCase().includes("tudo pronto");
+
+  if (aoIrParaAprovacoes) {
+    // Modo CAMINHO: a esteira anuncia a decisão e leva até ela. Nunca decide.
+    if (pedeDirecao || pedePacote) {
+      acoes.push({ rotulo: "Ver e decidir em Aprovações", primaria: true, onClick: aoIrParaAprovacoes });
+    }
+  } else {
+    if (pedeDirecao) {
+      acoes.push({
+        rotulo: "Aprovar e começar",
+        primaria: true, carregando: decidindo,
+        onClick: () => void decidir("aprovar_direcao"),
+      });
+    }
+    if (pedePacote) {
+      acoes.push({
+        rotulo: "Aprovar tudo",
+        primaria: true, carregando: decidindo,
+        onClick: () => void decidir("aprovar_pacote"),
+      });
+    }
   }
 
   return (

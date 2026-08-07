@@ -3,12 +3,18 @@
 import { mensagemDeErro } from "@/components/agency/ui/mensagemDeErro";
 
 // ── Portal do Cliente — Hub v1 (Fase 3 → Lote 2) ─────────────────────────────
-// A tela do cliente inteira montada com os 6 blocos da spec
-// (docs/projetos/hub/02-blocos-fluxos-navegacao.md) e EXATAMENTE 6 itens de
-// navegação: Início · Projetos · Aprovações · Resultados · Arquivos · Conta.
+// A tela do cliente inteira montada com os blocos da spec
+// (docs/projetos/hub/02-blocos-fluxos-navegacao.md), em 7 itens de navegação:
+// Início · Projetos · Aprovações · Resultados · Arquivos · Integrações · Conta.
 // As ~10 abas antigas viraram estados internos — nada sumiu, mudou de casa.
 //
 // Regras que esta tela cumpre e que não são estilo, são contrato:
+//   • UM ÚNICO LUGAR PARA DECIDIR (CEO, 07/08/2026). Tudo que espera decisão do
+//     cliente — entrega OU orçamento — vive em Aprovações, e só ali. Início e
+//     Projetos ANUNCIAM a pendência e LEVAM para lá; nenhum dos dois repete o
+//     botão. A mesma decisão em duas telas é o cliente sem saber se já decidiu.
+//   • Conta é sobre o CLIENTE (negócio, plano, acesso). Tudo que conecta um
+//     aplicativo mora em Integrações. Uma aba, um assunto.
 //   • Início abre com "O que depende de você" — pendência ACIMA de qualquer
 //     métrica (o desenho antigo era o inverso: banner de aprovação no fim).
 //   • Métrica sem meta + comparação + ação NÃO renderiza. Os 4 tiles "—"
@@ -25,6 +31,9 @@ import { ConexoesDoCliente } from "@/components/portal/ConexoesDoCliente";
 import { EnvioDeMaterial } from "@/components/portal/EnvioDeMaterial";
 import {
   AprovacoesDoCliente,
+  idDeOrcamento,
+  orcamentoEsperandoDecisao,
+  type DecisaoDaEsteira,
   type AprovacaoDoPortal,
   type AcaoDeAprovacao,
 } from "@/components/portal/AprovacoesDoCliente";
@@ -74,6 +83,15 @@ interface PortalPost {
 interface EstadoEsteira {
   ok: boolean;
   temProjeto: boolean;
+  /** A etapa legível. É dela que sai a decisão de andamento que virou card de
+   *  Aprovações — antes ela só existia como botão dentro do painel de esteira. */
+  etapa?: string;
+  titulo?: string;
+  /** O que a esteira pede ao cliente, em uma frase. Entra na conta de
+   *  pendências: o painel dizia "Conecte seu Instagram" enquanto o cabeçalho
+   *  dizia "Nada pendente com você agora" — duas frases, a mesma tela. */
+  oQueEsperamosDeVoce?: string;
+  aBolaEstaComVoce?: boolean;
   pendencias?: string[];
   ciclo?: { referencia: string; resumo: string | null } | null;
 }
@@ -90,18 +108,28 @@ interface ProjetoDoPortal {
 
 interface ConexaoView { id: string; platform: string; name: string; status: string }
 
-type SecaoId = "inicio" | "projetos" | "aprovacoes" | "resultados" | "arquivos" | "conta";
+type SecaoId = "inicio" | "projetos" | "aprovacoes" | "resultados" | "arquivos" | "integracoes" | "conta";
 
 // ── Config ───────────────────────────────────────────────────────────────────
 
-// Os 6 itens — teto do briefing: nenhum entra sem remover outro.
+// ── A NAVEGAÇÃO, E POR QUE ELA TEM 7 ITENS (CEO, 07/08/2026) ────────────────
+// O teto era 6 e o custo de manter era um item fazendo dois papéis: "Conta"
+// guardava o cadastro do cliente E as conexões com Facebook/Instagram/Drive.
+// O CEO: "aba de Conta é todas as informações sobre esse cliente; aba onde você
+// integra com aplicativos se chama aba de Integrações". Nomear a coisa pelo que
+// ela é vale mais que o número — nome errado custa uma busca em toda visita.
+//
+// A ORDEM tem uma lógica só: o que a Dioli faz por você (Projetos, Aprovações,
+// Resultados), o que você manda (Arquivos), o que você conecta (Integrações),
+// e quem você é (Conta).
 const NAV: { id: SecaoId; label: string }[] = [
-  { id: "inicio",     label: "Início" },
-  { id: "projetos",   label: "Projetos" },
-  { id: "aprovacoes", label: "Aprovações" },
-  { id: "resultados", label: "Resultados" },
-  { id: "arquivos",   label: "Arquivos" },
-  { id: "conta",      label: "Conta" },
+  { id: "inicio",      label: "Início" },
+  { id: "projetos",    label: "Projetos" },
+  { id: "aprovacoes",  label: "Aprovações" },
+  { id: "resultados",  label: "Resultados" },
+  { id: "arquivos",    label: "Arquivos" },
+  { id: "integracoes", label: "Integrações" },
+  { id: "conta",       label: "Conta" },
 ];
 
 // Serviço contratado → módulo dentro de Projetos (as antigas abas dinâmicas).
@@ -192,6 +220,20 @@ function LinhaDePendencia({
   );
 }
 
+/** Campo da ficha do cliente. Sem dado, diz "Não informado" — nunca some.
+ *  Bloco escondido é a agência sabendo que falta um dado e o cliente não. */
+function CampoDaConta({ rotulo, valor }: { rotulo: string; valor?: string | null }) {
+  const preenchido = !!valor?.trim();
+  return (
+    <div>
+      <div className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em]">{rotulo}</div>
+      <p className={`text-[13px] mt-0.5 ${preenchido ? "text-[var(--text-primary)]" : "text-[var(--text-subtle)]"}`}>
+        {preenchido ? valor : "Não informado"}
+      </p>
+    </div>
+  );
+}
+
 // ── Página ───────────────────────────────────────────────────────────────────
 
 export default function ClientPortalPage({ params }: { params: Promise<{ token: string }> }) {
@@ -229,6 +271,15 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
   // modo cookie; vira true no modo link assim que a troca por cookie dá certo.
   const [cookiePronto, setCookiePronto] = useState(modoCookie);
   const trocouUrl = useRef(false);
+  const navRef = useRef<HTMLDivElement | null>(null);
+
+  // Com 7 itens, a barra rola no celular — e "Integrações" e "Conta" nascem
+  // fora da tela. Aba ativa fora do campo de visão é o cliente sem saber onde
+  // está: a barra se move até ela sempre que a seção muda.
+  useEffect(() => {
+    const ativo = navRef.current?.querySelector<HTMLElement>('[aria-current="page"]');
+    ativo?.scrollIntoView({ block: "nearest", inline: "center", behavior: "instant" });
+  }, [secao]);
 
   // A4: chegou com token no CAMINHO → troca por cookie e limpa a URL sem
   // recarregar. O token em memória continua servindo esta visita; a próxima já
@@ -313,14 +364,14 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
   useEffect(() => { void loadData(); }, [loadData]);
 
   // Pendências de material e ciclo — mesma fonte da trilha (esteira).
-  useEffect(() => {
-    void (async () => {
-      try {
-        const res = await fetch(`/api/portal/esteira${q}`, { cache: "no-store" });
-        if (res.ok) setEsteira(await res.json());
-      } catch { /* o Início ainda funciona sem a esteira */ }
-    })();
+  const carregarEsteira = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/portal/esteira${q}`, { cache: "no-store" });
+      if (res.ok) setEsteira(await res.json());
+    } catch { /* o Início ainda funciona sem a esteira */ }
   }, [q]);
+
+  useEffect(() => { void carregarEsteira(); }, [carregarEsteira]);
 
   // Conexões — para a pendência "conta quebrada" do Início.
   useEffect(() => {
@@ -397,6 +448,61 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
     }
   }
 
+  // A decisão do ORÇAMENTO subiu para cá junto com os botões: ela é irmã de
+  // `decidir` (a decisão da entrega) e as duas passam pelo MESMO estado de
+  // envio e pela MESMA caixa de erro. Enquanto morava dentro de `MeusPedidos`,
+  // cada tela que renderizava a lista carregava uma cópia do mesmo poder.
+  async function decidirOrcamento(pedidoId: string, decisao: "aceito" | "recusado"): Promise<boolean> {
+    if (enviando) return false;
+    setEnviando(true);
+    setErroDecisao(null);
+    try {
+      const res = await fetch("/api/portal/pedidos/orcamento", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...(token ? { token } : {}), pedidoId, decisao }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({} as { error?: string }));
+        throw new Error(j.error ?? `HTTP ${res.status}`);
+      }
+      await carregarPedidos();
+      return true;
+    } catch (e) {
+      setErroDecisao(mensagemDeErro(e, "registrar sua resposta").mensagem);
+      return false;
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  // A decisão de ANDAMENTO (confirmar o caminho · aprovar o pacote). Saiu de
+  // dentro do painel da esteira, que aparece em duas telas, e virou card de
+  // Aprovações — o único lugar onde o cliente decide.
+  async function decidirEsteira(decisao: "aprovar_direcao" | "aprovar_pacote"): Promise<boolean> {
+    if (enviando) return false;
+    setEnviando(true);
+    setErroDecisao(null);
+    try {
+      const res = await fetch("/api/portal/esteira", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(token ? { token, decisao } : { decisao }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({} as { error?: string }));
+        throw new Error(j.error ?? `HTTP ${res.status}`);
+      }
+      await Promise.all([carregarEsteira(), loadData()]);
+      return true;
+    } catch (e) {
+      setErroDecisao(mensagemDeErro(e, "registrar sua aprovação").mensagem);
+      return false;
+    } finally {
+      setEnviando(false);
+    }
+  }
+
   // ── Portões de carregamento / erro ────────────────────────────────────────
   if (loading) {
     return (
@@ -442,12 +548,63 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
 
   // ── Derivações ────────────────────────────────────────────────────────────
   const pendentes = data.approvals.filter((a) => a.status === "pending");
+  // O orçamento com preço na mesa é uma DECISÃO — conta junto das aprovações em
+  // toda contagem da tela (selo da navegação, frase do cabeçalho, bloco "o que
+  // depende de você"). Antes ele não contava em lugar nenhum e mesmo assim
+  // tinha botão em duas telas: número que não bate com o que a tela pede.
+  const orcamentosPendentes = pedidos.filter(orcamentoEsperandoDecisao);
+  // A decisão de andamento, derivada da MESMA etapa que a esteira mostra — para
+  // as duas telas nunca discordarem sobre a bola estar com o cliente.
+  const etapaEsteira = (esteira?.etapa ?? "").toLowerCase();
+  const decisaoDaEsteira: DecisaoDaEsteira | null = etapaEsteira.includes("confirme o caminho")
+    ? {
+        titulo: "Confirme o caminho do projeto",
+        descricao: "A equipe montou a direção do trabalho a partir do seu briefing. Com o seu sim, a produção começa; se algo não fizer sentido, fale com seu PM antes de aprovar.",
+        rotulo: "Aprovar e começar",
+        decidir: () => decidirEsteira("aprovar_direcao"),
+      }
+    : etapaEsteira.includes("tudo pronto")
+      ? {
+          titulo: "O pacote inteiro está pronto para você",
+          descricao: "Terminamos e organizamos tudo. Aprovar o pacote libera a publicação do calendário e coloca o trabalho em operação. Você pode decidir item por item nas linhas abaixo, ou aprovar tudo de uma vez.",
+          rotulo: "Aprovar tudo",
+          decidir: () => decidirEsteira("aprovar_pacote"),
+        }
+      : null;
   const decididas = data.approvals
     .filter((a) => a.status !== "pending" && a.reviewedAt)
     .sort((a, b) => (b.reviewedAt ?? "").localeCompare(a.reviewedAt ?? ""));
   const materiaisPedidos = esteira?.pendencias ?? [];
   const conexoesQuebradas = conexoes.filter((c) => ["expired", "revoked", "error"].includes(c.status));
-  const totalPendencias = pendentes.length + materiaisPedidos.length + conexoesQuebradas.length;
+  const outrasPendencias =
+    pendentes.length + orcamentosPendentes.length + (decisaoDaEsteira ? 1 : 0)
+    + materiaisPedidos.length + conexoesQuebradas.length;
+
+  // ── A PENDÊNCIA QUE SÓ A ESTEIRA ENXERGA ──────────────────────────────────
+  // A esteira sabe pedir coisas que não são aprovação, material nem conexão
+  // quebrada — "conecte seu Instagram" quando NUNCA houve conexão, por exemplo.
+  // Sem esta linha, o painel dizia "O que precisamos de você: conecte seu
+  // Instagram" três dedos abaixo de "Nada pendente com você agora".
+  // Entra só quando nenhuma outra fonte já cobre o assunto — a regra é somar o
+  // que falta, nunca contar duas vezes o mesmo pedido.
+  const pedidoDaEsteira = esteira?.aBolaEstaComVoce ? esteira.oQueEsperamosDeVoce?.trim() : "";
+  const pendenciaDaEsteira = outrasPendencias === 0 && pedidoDaEsteira
+    ? {
+        texto: pedidoDaEsteira,
+        titulo: esteira?.etapa || esteira?.titulo || "A equipe precisa de você",
+        destino: /conect|instagram|facebook|integra/i.test(pedidoDaEsteira)
+          ? ("integracoes" as SecaoId)
+          : /envi|materi|arquiv|foto|v[íi]deo|log[oô]/i.test(pedidoDaEsteira)
+            ? ("arquivos" as SecaoId)
+            : ("projetos" as SecaoId),
+      }
+    : null;
+
+  const totalPendencias = outrasPendencias + (pendenciaDaEsteira ? 1 : 0);
+  // O selo da navegação é a MESMA conta de "aguardando você" dentro de
+  // Aprovações. Dois números com nomes parecidos e valores diferentes é o que
+  // faz o cliente desconfiar da tela.
+  const decisoesEsperando = pendentes.length + orcamentosPendentes.length + (decisaoDaEsteira ? 1 : 0);
   // O chip do cabeçalho: o cliente DIRETO não tem solicitação Brain — o
   // portal-data devolve o estado vazio ("new" → "Recebido") mesmo com projeto
   // em produção. Quando /api/portal/projetos enxerga projeto, a etapa DELE é a
@@ -512,10 +669,10 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
       {/* Navegação — exatamente 6 itens */}
       <nav aria-label="Navegação do portal" className="sticky top-0 z-20 bg-[var(--bg-elevated)]/92 backdrop-blur border-b border-[var(--border)] -mt-7 sm:-mt-8">
         <div className="max-w-[860px] mx-auto px-3">
-          <div className="flex gap-1 overflow-x-auto no-scrollbar py-2.5">
+          <div ref={navRef} className="flex gap-1 overflow-x-auto no-scrollbar py-2.5">
             {NAV.map((item) => {
               const active = secao === item.id;
-              const badge = item.id === "aprovacoes" ? pendentes.length : 0;
+              const badge = item.id === "aprovacoes" ? decisoesEsperando : 0;
               return (
                 <button
                   key={item.id}
@@ -554,6 +711,19 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
                 </div>
               ) : (
                 <div className="bg-white rounded-[14px] border border-[var(--border)] overflow-hidden shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
+                  {/* A decisão de andamento entra na LISTA, não só na contagem.
+                      Sem esta linha o cabeçalho dizia "5 pendências" e o bloco
+                      mostrava 4 — número que não bate com a tela é o cliente
+                      procurando uma quinta coisa que não existe. */}
+                  {decisaoDaEsteira && (
+                    <LinhaDePendencia
+                      icone="🚦" fundo="var(--warning-bg)"
+                      titulo={decisaoDaEsteira.titulo}
+                      porque={decisaoDaEsteira.descricao}
+                      meta="Decidir em Aprovações"
+                      onClick={() => irPara("aprovacoes")}
+                    />
+                  )}
                   {pendentes.map((ap) => {
                     const vencida = !ap.questionOpen && ap.expiresAt != null && new Date(ap.expiresAt) < new Date();
                     return (
@@ -571,6 +741,19 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
                       />
                     );
                   })}
+                  {/* O orçamento também é decisão — e o caminho dele é o mesmo
+                      de qualquer outra: Aprovações. Antes ele nem aparecia
+                      aqui, mas tinha botão em Projetos. */}
+                  {orcamentosPendentes.map((p) => (
+                    <LinhaDePendencia
+                      key={`orc-${p.id}`}
+                      icone="💬" fundo="var(--accent-light)"
+                      titulo={`Orçamento de ${p.titulo} aguarda sua resposta`}
+                      porque="A equipe já respondeu com preço e prazo — falta o seu sim."
+                      meta="Decidir em Aprovações"
+                      onClick={() => irPara("aprovacoes", idDeOrcamento(p.id))}
+                    />
+                  ))}
                   {materiaisPedidos.map((m, i) => (
                     <LinhaDePendencia
                       key={`mat-${i}`}
@@ -581,14 +764,27 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
                       onClick={() => irPara("arquivos")}
                     />
                   ))}
+                  {pendenciaDaEsteira && (
+                    <LinhaDePendencia
+                      icone="🔔" fundo="var(--info-bg)"
+                      titulo={pendenciaDaEsteira.titulo}
+                      porque={pendenciaDaEsteira.texto}
+                      meta={pendenciaDaEsteira.destino === "integracoes"
+                        ? "Resolver em Integrações"
+                        : pendenciaDaEsteira.destino === "arquivos"
+                          ? "Enviar em Arquivos"
+                          : "Ver em Projetos"}
+                      onClick={() => irPara(pendenciaDaEsteira.destino)}
+                    />
+                  )}
                   {conexoesQuebradas.map((c) => (
                     <LinhaDePendencia
                       key={c.id}
                       icone="🔌" fundo="#FEF2F2"
                       titulo={`${c.name || c.platform} desconectado — reconecte a conta`}
                       porque="Sem a conexão, os posts aprovados não podem ser publicados."
-                      meta="Resolver em Conta"
-                      onClick={() => irPara("conta")}
+                      meta="Resolver em Integrações"
+                      onClick={() => irPara("integracoes")}
                     />
                   ))}
                 </div>
@@ -598,7 +794,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
             {/* 2 · Onde estamos */}
             <section>
               <TituloDeBloco n={2}>Onde estamos e o que vem</TituloDeBloco>
-              <EsteiraDoCliente token={token} />
+              <EsteiraDoCliente token={token} aoIrParaAprovacoes={() => irPara("aprovacoes")} />
             </section>
 
             {/* 3 · Entregas recentes — só renderiza quando existe entrega */}
@@ -640,11 +836,16 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
                       className="w-full flex items-center gap-3 px-4 py-3 text-left border-t border-[var(--border)] first:border-t-0 hover:bg-[var(--bg-elevated)] transition-colors"
                     >
                       <span aria-hidden className="shrink-0 w-9 h-9 rounded-[9px] bg-[var(--accent)] flex items-center justify-center text-[15px]">📌</span>
+                      {/* O QUE foi decidido em cima, QUAL decisão embaixo. Numa
+                          linha só, "Kit de marca — paleta e tipografia — a…"
+                          cortava justamente a palavra que diz o resultado. */}
                       <span className="min-w-0 flex-1">
                         <span className="block text-[13.5px] font-semibold text-[var(--text-primary)] truncate">
-                          {tituloDaAprovacao(d)}{d.version != null ? ` (v${d.version})` : ""} — {DECISAO_LABEL[d.status] ?? d.status}
+                          {tituloDaAprovacao(d)}{d.version != null ? ` (v${d.version})` : ""}
                         </span>
-                        <span className="text-[12px] text-[var(--text-secondary)]">Registrada em {dataCurta(d.reviewedAt)}</span>
+                        <span className="block text-[12px] text-[var(--text-secondary)] leading-snug">
+                          {DECISAO_LABEL[d.status] ?? d.status} · {dataCurta(d.reviewedAt)}
+                        </span>
                       </span>
                     </button>
                   ))}
@@ -684,10 +885,19 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
               <p className="rounded-[12px] bg-[#ECFDF5] px-4 py-3 text-[13px] text-[#047857]">✓ {recadoDoPedido}</p>
             )}
 
+            {/* A lista "Seus pedidos" NÃO se repete aqui. Ela morava no Início
+                E em Projetos, com os botões de decisão nas duas — a mesma coisa
+                em dois lugares é o que faz o cliente não saber se já decidiu.
+                O que espera decisão já está no bloco 1, no topo; o
+                acompanhamento completo mora em Projetos. */}
             {pedidos.length > 0 && (
-              <section>
-                <MeusPedidos token={token} pedidos={pedidos} aoDecidir={() => void carregarPedidos()} />
-              </section>
+              <button
+                onClick={() => irPara("projetos")}
+                style={{ touchAction: "manipulation" }}
+                className="w-full text-left text-[12.5px] font-semibold text-[var(--teal-text)] hover:underline"
+              >
+                Ver todos os seus pedidos em Projetos →
+              </button>
             )}
 
           </div>
@@ -698,10 +908,33 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
           <div className="space-y-6">
             <div>
               <h2 className="text-[18px] font-bold text-[var(--text-primary)]">Projetos</h2>
-              <p className="text-[12.5px] text-[var(--text-secondary)] mt-0.5">O que a Dioli está construindo para você.</p>
+              <p className="text-[12.5px] text-[var(--text-secondary)] mt-0.5">
+                O andamento do que a Dioli está construindo para você. Decisões ficam em <b>Aprovações</b>.
+              </p>
             </div>
 
-            <EsteiraDoCliente token={token} />
+            {/* A metade visível da regra: existindo decisão pendente, Projetos
+                a ANUNCIA e aponta o caminho — sem repetir o botão. */}
+            {decisoesEsperando > 0 && (
+              <button
+                onClick={() => irPara("aprovacoes")}
+                style={{ touchAction: "manipulation" }}
+                className="w-full flex items-center gap-3 rounded-[12px] border border-[var(--border)] bg-[var(--warning-bg)] px-4 py-3 text-left hover:brightness-[0.98] transition-[filter]"
+              >
+                <span aria-hidden className="shrink-0 w-8 h-8 rounded-[9px] bg-white/70 flex items-center justify-center text-[14px]">✍️</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[13px] font-bold text-[var(--warning)]">
+                    {decisoesEsperando === 1 ? "1 item espera sua decisão" : `${decisoesEsperando} itens esperam sua decisão`}
+                  </span>
+                  <span className="block text-[12px] text-[var(--warning)]/90 mt-0.5">
+                    Tudo que precisa de um sim seu fica em Aprovações — inclusive orçamentos.
+                  </span>
+                </span>
+                <span aria-hidden className="text-[var(--warning)]">›</span>
+              </button>
+            )}
+
+            <EsteiraDoCliente token={token} aoIrParaAprovacoes={() => irPara("aprovacoes")} />
 
             {/* O mesmo caminho, na aba onde ele pensa no trabalho. Um só
                 componente, um só formulário: duas portas para a mesma folha. */}
@@ -717,21 +950,31 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
               </span>
             </button>
 
-            {pedidos.length > 0 && <MeusPedidos token={token} pedidos={pedidos} aoDecidir={() => void carregarPedidos()} />}
+            {/* Sem botões de decisão: Projetos MOSTRA o estado e leva para
+                Aprovações. A mesma decisão não pode existir em duas telas. */}
+            {pedidos.length > 0 && (
+              <MeusPedidos
+                pedidos={pedidos}
+                aoIrParaAprovacoes={(id) => irPara("aprovacoes", idDeOrcamento(id))}
+              />
+            )}
 
             {/* Cartões de projeto — vêm por clientId, então aparecem também
                 para o cliente criado direto (a correção do "onde eu vejo o
                 projeto?" do lançamento da Foocci). */}
             {projetos.map((p) => (
               <section key={p.id} className="bg-white rounded-[14px] border border-[var(--border)] p-5 shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
+                {/* No celular o selo desce: "Aprovado por você — colocando no
+                    ar" ao lado do título deixava "Presença digital — agosto"
+                    quebrado em três linhas de uma palavra. */}
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3">
+                  <div className="min-w-0 order-2 sm:order-1">
                     <h3 className="text-[15px] font-bold text-[var(--text-primary)] leading-snug">{p.nome}</h3>
                     {p.objetivo && (
                       <p className="text-[12.5px] text-[var(--text-secondary)] mt-1 leading-relaxed">{p.objetivo}</p>
                     )}
                   </div>
-                  <span className="shrink-0 h-6 px-2.5 rounded-full bg-[#EFF6FF] text-[#1D4ED8] text-[11px] font-semibold flex items-center">
+                  <span className="order-1 sm:order-2 self-start shrink-0 h-6 px-2.5 rounded-full bg-[var(--info-bg)] text-[var(--info)] text-[11px] font-semibold flex items-center">
                     {p.etapa}
                   </span>
                 </div>
@@ -833,12 +1076,15 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
         {secao === "aprovacoes" && (
           <AprovacoesDoCliente
             aprovacoes={data.approvals}
+            orcamentos={pedidos}
+            decisaoDaEsteira={decisaoDaEsteira}
             token={tokenDeMidia}
             abertaId={aprovacaoAberta}
             onAbrir={(id) => irPara("aprovacoes", id)}
             enviando={enviando}
             erro={erroDecisao}
             onDecidir={decidir}
+            onDecidirOrcamento={decidirOrcamento}
           />
         )}
 
@@ -853,7 +1099,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
                 Os números do seu Instagram, direto da Meta — sem enfeite e sem estimativa.
               </p>
             </div>
-            <ResultadosDoCliente token={token} onIrParaConta={() => irPara("conta")} />
+            <ResultadosDoCliente token={token} onIrParaIntegracoes={() => irPara("integracoes")} />
           </div>
         )}
 
@@ -889,63 +1135,117 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
           </div>
         )}
 
-        {/* ══ CONTA — conexões + integrações (fundidas) + contexto do negócio ══ */}
-        {secao === "conta" && (
+        {/* ══ INTEGRAÇÕES — tudo que CONECTA um aplicativo ══
+            Saiu de dentro de Conta em 07/08/2026, por ordem do CEO: "aba onde
+            você integra com aplicativos se chama aba de Integrações". Conta
+            passou a ser só sobre o cliente. ══ */}
+        {secao === "integracoes" && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-[18px] font-bold text-[var(--text-primary)]">Conta</h2>
-              <p className="text-[12.5px] text-[var(--text-secondary)] mt-0.5">Suas conexões, seu plano e seu acesso.</p>
+              <h2 className="text-[18px] font-bold text-[var(--text-primary)]">Integrações</h2>
+              <p className="text-[12.5px] text-[var(--text-secondary)] mt-0.5">
+                As contas que você conecta à Dioli — e o que cada uma libera. Conectar é opcional: sem elas o trabalho continua, só não é publicado nem medido automaticamente.
+              </p>
             </div>
 
-            {/* Checklist de integrações — Conexões e Integrações eram duas abas
-                para a mesma ideia; agora são uma seção (spec 3.1). */}
+            {conexoesQuebradas.length > 0 && (
+              <div role="alert" className="rounded-[12px] border border-[var(--border)] bg-[var(--danger-bg)] px-4 py-3">
+                <p className="text-[12.5px] font-semibold text-[var(--danger)]">
+                  {conexoesQuebradas.length === 1
+                    ? "1 conexão precisa ser refeita"
+                    : `${conexoesQuebradas.length} conexões precisam ser refeitas`}
+                </p>
+                <p className="text-[12px] text-[var(--danger)] mt-0.5 leading-snug">
+                  Enquanto ela estiver assim, os posts aprovados não são publicados e os números não atualizam.
+                </p>
+              </div>
+            )}
+
+            {/* Checklist de conexões reais (Meta/Instagram, Google Drive, ativos
+                autorizados) — o componente já trata carregando / vazio / erro. */}
             <ConexoesDoCliente token={token} />
 
             <section>
               <h3 className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em] mb-2">Em breve</h3>
+              <p className="text-[12px] text-[var(--text-secondary)] mb-2.5 max-w-[62ch] leading-relaxed">
+                Ainda não dá para conectar estas — quando abrirem, elas aparecem aqui com o botão de conectar. Não há nada a fazer agora.
+              </p>
               <div className="grid sm:grid-cols-2 gap-2.5">
                 {INTEGRACOES_FUTURAS.map((it) => (
                   <div key={it.key} className="bg-white rounded-[12px] border border-[var(--border)] p-3.5 flex items-center gap-3">
                     <span aria-hidden className="w-9 h-9 rounded-[9px] flex items-center justify-center text-white text-[11px] font-bold shrink-0" style={{ background: it.color }}>{it.initials}</span>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="text-[13px] font-semibold text-[var(--text-primary)]">{it.name}</p>
                       <p className="text-[11.5px] text-[var(--text-secondary)] leading-snug">{it.desc}</p>
                     </div>
+                    <span className="shrink-0 h-6 px-2.5 rounded-full bg-[var(--accent)] text-[var(--text-muted)] text-[11px] font-semibold flex items-center">Em breve</span>
                   </div>
                 ))}
               </div>
-              <p className="text-[11px] text-[var(--text-subtle)] mt-2.5">🔒 Toda conexão é feita pela autorização oficial da plataforma (OAuth). Você nunca digita senha aqui, e tokens nunca aparecem.</p>
+              <p className="text-[11.5px] text-[var(--text-muted)] mt-2.5 leading-relaxed">
+                🔒 Toda conexão é feita pela autorização oficial da plataforma (OAuth). Você nunca digita senha aqui, e tokens nunca aparecem.
+              </p>
             </section>
+          </div>
+        )}
 
-            {(data.segment || data.targetAudience || data.objectives.length > 0) && (
-              <section className="bg-white rounded-[14px] border border-[var(--border)] p-5 shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
-                <h3 className="text-[14px] font-bold text-[var(--text-primary)] mb-3">Sobre o seu negócio</h3>
-                <div className="space-y-3">
-                  {data.segment && (
-                    <div>
-                      <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em]">Segmento</div>
-                      <p className="text-[13px] text-[var(--text-primary)] mt-0.5">{data.segment}</p>
+        {/* ══ CONTA — TUDO sobre o cliente: negócio, plano, acesso ══ */}
+        {secao === "conta" && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-[18px] font-bold text-[var(--text-primary)]">Conta</h2>
+              <p className="text-[12.5px] text-[var(--text-secondary)] mt-0.5">
+                Os dados do seu negócio, o que você contratou e como você entra aqui.
+              </p>
+            </div>
+
+            <section className="bg-white rounded-[14px] border border-[var(--border)] p-5 shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
+              <h3 className="text-[14px] font-bold text-[var(--text-primary)] mb-3">Sobre o seu negócio</h3>
+              <div className="space-y-3">
+                <div>
+                  <div className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em]">Nome</div>
+                  <p className="text-[13px] text-[var(--text-primary)] mt-0.5">{data.businessName}</p>
+                </div>
+                {/* Estado honesto vence preenchimento bonito: campo sem dado diz
+                    "não informado" e como corrigir — nunca some da tela, senão
+                    o cliente não sabe que a agência está sem aquele dado. */}
+                <CampoDaConta rotulo="Segmento" valor={data.segment} />
+                <CampoDaConta rotulo="Público-alvo" valor={data.targetAudience} />
+                <div>
+                  <div className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em]">Objetivos</div>
+                  {data.objectives.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5 mt-1.5">
+                      {data.objectives.map((o, i) => (
+                        <span key={i} className="h-7 px-3 rounded-full bg-[var(--accent)] text-[var(--text-secondary)] text-[12px] font-medium flex items-center">{o}</span>
+                      ))}
                     </div>
-                  )}
-                  {data.targetAudience && (
-                    <div>
-                      <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em]">Público-alvo</div>
-                      <p className="text-[13px] text-[var(--text-primary)] mt-0.5">{data.targetAudience}</p>
-                    </div>
-                  )}
-                  {data.objectives.length > 0 && (
-                    <div>
-                      <div className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em]">Objetivos</div>
-                      <div className="flex flex-wrap gap-1.5 mt-1.5">
-                        {data.objectives.map((o, i) => (
-                          <span key={i} className="h-7 px-3 rounded-full bg-[#F0EFEB] text-[var(--text-secondary)] text-[11px] font-medium flex items-center">{o}</span>
-                        ))}
-                      </div>
-                    </div>
+                  ) : (
+                    <p className="text-[13px] text-[var(--text-subtle)] mt-0.5">Não informado</p>
                   )}
                 </div>
-              </section>
-            )}
+              </div>
+              <p className="text-[11.5px] text-[var(--text-muted)] mt-4 leading-relaxed">
+                Algum dado está errado ou faltando? Diga na conversa com seu PM — a equipe corrige e o novo dado passa a valer para todo o trabalho.
+              </p>
+            </section>
+
+            <section className="bg-white rounded-[14px] border border-[var(--border)] p-5 shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
+              <h3 className="text-[14px] font-bold text-[var(--text-primary)] mb-3">O que você contratou</h3>
+              {data.services.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {data.services.map((s, i) => (
+                    <span key={i} className="h-8 px-3.5 rounded-[9px] bg-[var(--bg-elevated)] border border-[var(--border)] text-[var(--text-primary)] text-[12px] font-medium flex items-center">{s}</span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[12.5px] text-[var(--text-secondary)] leading-relaxed">
+                  Nenhum serviço registrado neste cadastro ainda. Se você já contratou algo, fale com seu PM — o plano precisa aparecer aqui.
+                </p>
+              )}
+              <p className="text-[11.5px] text-[var(--text-muted)] mt-3">
+                Situação atual do trabalho: <b className="text-[var(--text-secondary)]">{currentStatus}</b>.
+              </p>
+            </section>
 
             <section className="bg-white rounded-[14px] border border-[var(--border)] p-5">
               <h3 className="text-[14px] font-bold text-[var(--text-primary)] mb-1.5">Seu acesso</h3>
@@ -954,7 +1254,29 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
                 depois do primeiro acesso — o navegador guarda a chave num cookie protegido.
                 Perdeu o link? Peça um novo ao seu PM pela conversa aqui do portal.
               </p>
+              <button
+                onClick={() => setChatOpen(true)}
+                style={{ touchAction: "manipulation" }}
+                className="mt-3 h-10 px-4 rounded-[10px] border border-[var(--border-strong)] bg-white text-[13px] font-semibold text-[var(--text-primary)] hover:bg-[var(--accent)] transition-colors"
+              >
+                Falar com seu PM
+              </button>
             </section>
+
+            {/* Ponte explícita: quem procurou conexão em Conta (onde ela morava
+                até hoje) encontra a porta, em vez de concluir que sumiu. */}
+            <button
+              onClick={() => irPara("integracoes")}
+              style={{ touchAction: "manipulation" }}
+              className="w-full flex items-center gap-3 rounded-[12px] border border-[var(--border)] bg-white px-4 py-3.5 text-left hover:bg-[var(--bg-elevated)] transition-colors"
+            >
+              <span aria-hidden className="shrink-0 w-9 h-9 rounded-[9px] bg-[var(--accent-light)] flex items-center justify-center text-[15px]">🔌</span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[13.5px] font-semibold text-[var(--text-primary)]">Procurando suas conexões?</span>
+                <span className="block text-[12px] text-[var(--text-secondary)] mt-0.5">Facebook, Instagram e Google Drive agora ficam em Integrações.</span>
+              </span>
+              <span aria-hidden className="text-[var(--text-subtle)]">›</span>
+            </button>
           </div>
         )}
 

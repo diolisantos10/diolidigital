@@ -206,6 +206,12 @@ O projeto tem **duas camadas** de componentes. A direção daqui pra frente é u
 
 ### 4.3 Regras de componente
 - **Nunca** recrie um `<button>`/`<input>`/modal "na mão" se já existe um componente. Reuse.
+- **Componente reutilizado não carrega ação de escrita.** Se ele aparece em mais de
+  uma tela, a função que grava mora na tela dona da ação e desce por prop — senão
+  a mesma decisão se multiplica junto com os usos. Ver §7.6.
+- **Um rótulo por conceito.** Se a aba se chama "Integrações", o bloco dentro dela
+  não se chama "Conexões"; se a prop leva para Integrações, ela não se chama
+  `onIrParaConta`. Dois nomes para a mesma coisa custam uma busca em toda visita.
 - Todo botão só de ícone precisa de `aria-label`.
 - **Contador de excedente é um caminho, nunca um rótulo.** "+2 mais", "e outros 5",
   "…" — se existe conteúdo além do que a caixa mostra, o contador é `<button>` e
@@ -501,6 +507,75 @@ não lança — `__tests__/agency/meta-conexoes-render.test.ts` é o modelo. Ele
 varre `app/api/meta/**` atrás de todo `platform: "x"` gravado, então o próximo
 valor que alguém inventar já nasce coberto.
 
+### 7.6 A mesma decisão não pode existir em duas telas
+
+Decidido pelo CEO em **07/08/2026**, olhando o portal no ar: *"projeto pra
+aprovar em uma tela, é projeto pra aprovar em outra tela, tem um monte de coisa
+pra aprovar em outra tela. Está uma confusão."*
+
+Ele tinha razão, e o número era três. Tudo que o cliente decide vivia espalhado:
+
+| Decisão | Onde o botão estava | Onde deveria estar |
+|---|---|---|
+| Orçamento de um pedido (`MeusPedidos`) | Início **e** Projetos | Aprovações |
+| Aprovar o pacote / confirmar o caminho (`EsteiraDoCliente`) | Início **e** Projetos | Aprovações |
+| Aprovar uma entrega | Aprovações | Aprovações |
+
+Repare no padrão: **os dois vazamentos vieram de componentes renderizados em mais
+de uma tela.** Componente que carrega uma ação de escrita se multiplica junto com
+os lugares onde é usado — e ninguém percebe, porque cada tela isolada parece
+certa.
+
+**A regra:**
+
+1. **Um destino de decisão por superfície.** No portal é `Aprovações`. Toda
+   pendência de decisão — de qualquer espécie — aparece lá, e só lá.
+2. **As outras telas ANUNCIAM e LEVAM.** Elas mostram o estado ("Aguardando sua
+   decisão") e oferecem um caminho ("Decidir em Aprovações →"). Nunca um segundo
+   botão que decide.
+3. **Componente de acompanhamento não faz `fetch` de escrita.** A função que grava
+   sobe para a tela dona da decisão. Foi assim que `MeusPedidos` e
+   `EsteiraDoCliente` pararam de carregar poder para onde eram usados.
+4. **Uma função define "esperando decisão", e todas as contagens usam ela.** Selo
+   da navegação, frase do cabeçalho, título da seção e lista têm que dar o mesmo
+   número. Contagem que não bate com a lista é o cliente procurando um item que
+   não existe.
+5. **As duas metades se provam.** Com pendência: aparece no destino e **não**
+   aparece nas outras. Sem pendência: o destino mostra estado vazio honesto e as
+   outras telas **não** ficam com buraco.
+
+> Travado por teste em `__tests__/portal/um-lugar-para-decidir.test.ts`
+> (inclusive a trava estrutural: a rota de escrita não pode reaparecer dentro do
+> componente de acompanhamento).
+
+### 7.7 Item repetido na lista é bug de dados, não de tela
+
+Na mesma sessão, a lista de Aprovações mostrava **"Pauta do Mês — Dioli Digital
+Studio" três vezes** e "Estratégia" duas. A tentação é tratar como ruído visual.
+Não era: o motor criava uma aprovação por **especialista**, todas carimbadas com
+o mesmo departamento e sem nada que as distinguisse — e o portal dava às três o
+corpo do **mesmo** entregável. Como os efeitos da decisão agem por departamento,
+decidir uma já decidia as outras: eram um clique pedido três vezes.
+
+**Ao ver dois itens idênticos numa lista, a pergunta é "isto são duas coisas?" —
+não "como escondo o segundo?".** E a correção tem três camadas, porque esconder
+sem fechar troca um bug visível por um invisível:
+
+1. **Escrita** — a duplicata para de nascer (a criação reusa o registro pendente
+   equivalente);
+2. **Leitura** — o que já está no banco é agrupado, sobrando o mais recente;
+3. **Fechamento** — decidir o que sobrou fecha os irmãos escondidos, senão fica
+   "pendente" fora da tela travando o passo seguinte para sempre.
+
+### 7.8 Miniatura quebrada é estado de erro — e precisa de fallback
+
+`<img>` sem `onError` numa lista entrega o **ícone quebrado do navegador** ao
+cliente pagante quando a mídia expira, o token muda ou o arquivo some. O
+fallback certo não é um emoji nem um "x": é o mesmo bloco neutro do item sem
+mídia — que diz "não há prévia" em vez de "algo quebrou".
+
+Vale a mesma regra do §7.3: o cliente nunca lê a falha técnica, lê o estado.
+
 ---
 
 ## 8. Acessibilidade (mínimos)
@@ -635,7 +710,8 @@ _(Regras 4 e 5 estão fixadas no `CLAUDE.md`.)_
 
 ---
 
-_Última atualização: 2026-08-06 (§6.5 — o iPhone é WebKit em todo navegador; I-22
-com a varredura dos três usos restantes; I-23 rótulo por motor) · anterior:
-2026-08-05 (§2 conferida contra o CSS, §6.1 com varredura datada, §6.3, §6.4) ·
+_Última atualização: 2026-08-07 (raio-x do portal do cliente: §4.3, §7.6 um
+único lugar para decidir, §7.7 duplicata é bug de dados, §7.8 miniatura
+quebrada) · anterior: 2026-08-06 (§6.5 — o iPhone é WebKit em todo navegador;
+I-22 com a varredura dos três usos restantes; I-23 rótulo por motor) ·
 mantenha este arquivo vivo._

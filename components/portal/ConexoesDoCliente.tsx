@@ -179,9 +179,12 @@ export function ConexoesDoCliente({ token }: { token: string }) {
 
   return (
     <div className="space-y-4">
+      {/* "Conexões" era um H2 do mesmo tamanho do título da página, e a página
+          se chama Integrações: dois nomes para a mesma coisa, um embaixo do
+          outro. Aqui vira o rótulo da SEÇÃO, no degrau abaixo do título. */}
       <div>
-        <h2 className="text-[16px] font-bold text-[var(--text-primary)]">Conexões</h2>
-        <p className="mt-0.5 text-[12.5px] text-[var(--text-secondary)]">
+        <h3 className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--text-muted)]">Disponíveis agora</h3>
+        <p className="mt-1.5 text-[12.5px] text-[var(--text-secondary)] max-w-[62ch] leading-relaxed">
           Conecte o Facebook e o Instagram do seu negócio para a Dioli publicar e
           trazer seus resultados direto para este portal, e o Google Drive para a
           equipe usar seu logo e suas fotos reais nas peças. Você controla o
