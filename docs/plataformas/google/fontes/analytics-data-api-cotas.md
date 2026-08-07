@@ -1,8 +1,8 @@
 ---
 titulo: "Google Analytics — Data API (GA4): cotas e limites"
 url: https://developers.google.com/analytics/devguides/reporting/data/v1/quotas?hl=pt-br
-capturado_em: 2026-08-06
-hash: bdc94b699c032ffe
+capturado_em: 2026-08-07
+hash: ffbe55f4158363cb
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -11,6 +11,11 @@ hash: bdc94b699c032ffe
 O Google usa tecnologia de IA na tradução de conteúdos para seu idioma de preferência. As traduções com IA podem ter erros.
 Envie comentários
 Limites e cotas da API Data
+Nesta página
+Como as cotas são aplicadas
+Categorias de cota
+Cotas de propriedade do Google Analytics
+Cota de tokens de propriedade
 
 Os limites e as cotas a seguir se aplicam à API Data.
 

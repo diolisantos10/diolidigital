@@ -1,14 +1,19 @@
 ---
 titulo: "Business Profile APIs — atributos de local"
 url: https://developers.google.com/my-business/content/attributes?hl=pt-br
-capturado_em: 2026-08-06
-hash: 9a957bb2725479aa
+capturado_em: 2026-08-07
+hash: a271196222c752e6
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
 Adicionar atributos
+Nesta página
+Mostrar atributos
+Solicitação
+Resposta
+Definir atributos para uma ficha
 
 Observação: os atributos disponíveis para as fichas da empresa mudam dependendo da categoria e do país. Eles são dinâmicos e podem ser alterados a qualquer momento.
 

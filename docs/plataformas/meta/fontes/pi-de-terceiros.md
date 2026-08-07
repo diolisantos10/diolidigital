@@ -1,8 +1,8 @@
 ---
 titulo: "Padrões de Publicidade — Violação de PI de terceiros"
 url: https://transparency.meta.com/pt-br/policies/ad-standards/intellectual-property-infringement/third-party-infringement/
-capturado_em: 2026-08-06
-hash: 8ac9011c97ddbfd5
+capturado_em: 2026-08-07
+hash: a9a4839e93bb9411
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -12,8 +12,8 @@ Violação de Propriedade Intelectual de Terceiros
 Detalhes da política
 REGISTRO DE ALTERAÇÕES
 Hoje
-27 de ago de 2024
-31 de mai de 2024
+26 de ago de 2024
+30 de mai de 2024
 Violação de Propriedade Intelectual de Terceiros
 Os anúncios não podem conter conteúdo que viole os direitos de propriedade intelectual de terceiros, incluindo direitos autorais, marca comercial ou outros direitos legais. Isso inclui, mas não se limita a, promoção ou venda de falsificações, como as de itens que copiam a marca comercial (nome ou logotipo) e/ou detalhes característicos de produtos de outras empresas para imitar um produto genuíno.
 Visão geral

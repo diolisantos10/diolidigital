@@ -1,8 +1,8 @@
 ---
 titulo: "Google Analytics — Data API (GA4): fundamentos de relatório"
 url: https://developers.google.com/analytics/devguides/reporting/data/v1/basics?hl=pt-br
-capturado_em: 2026-08-06
-hash: e8e7b50f4bd9247c
+capturado_em: 2026-08-07
+hash: f1ad672ada3fff1f
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -11,6 +11,12 @@ hash: e8e7b50f4bd9247c
 O Google usa tecnologia de IA na tradução de conteúdos para seu idioma de preferência. As traduções com IA podem ter erros.
 Envie comentários
 Crie um relatório
+Nesta página
+Visão geral de relatórios
+Especificar uma fonte de dados
+Gerar um relatório
+Consultar métricas
+Leia a resposta
 
 Este guia explica como criar um relatório básico para seus dados do Google Analytics usando a API Google Analytics Data v1. Os relatórios da API Data v1 são semelhantes aos que você pode gerar na seção Relatórios da interface do Google Analytics.
 

@@ -1,8 +1,8 @@
 ---
 titulo: "Google Analytics — Admin API (GA4): visão geral"
 url: https://developers.google.com/analytics/devguides/config/admin/v1?hl=pt-br
-capturado_em: 2026-08-06
-hash: 6002b1888e2c0a8a
+capturado_em: 2026-08-07
+hash: ae58c03186ea0f0b
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -11,6 +11,15 @@ hash: 6002b1888e2c0a8a
 O Google usa tecnologia de IA na tradução de conteúdos para seu idioma de preferência. As traduções com IA podem ter erros.
 Envie comentários
 Visão geral da API Admin do Google Analytics
+Nesta página
+Introdução
+Métodos disponíveis
+Provisionamento de conta
+Gerenciamento de contas
+Gerenciamento das configurações de compartilhamento de dados
+Exibir resumos da conta
+Pesquisar eventos do histórico de alterações
+Gerenciamento de propriedades
 
 Resumo: este documento apresenta uma visão geral de alto nível da API Google Analytics Admin versão 1.0.
 

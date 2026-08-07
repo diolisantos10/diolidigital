@@ -1,12 +1,19 @@
 ---
 titulo: "Business Profile APIs — limites de uso (cotas por projeto)"
 url: https://developers.google.com/my-business/content/limits?hl=pt-br
-capturado_em: 2026-08-06
-hash: c6bf692cacad6a52
+capturado_em: 2026-08-07
+hash: 62e4557dee365e19
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
+
+Nesta página
+Como solicitar um aumento de cota
+API My Business Business Information
+API My Business Account Management
+API Business Profile Performance
+API My Business Verifications
 
 Limites de uso
 Observação: se o limite da sua cota da API do Perfil da Empresa no Google for "0", você precisará solicitar acesso às APIs do Perfil da Empresa no Google. Isso não se aplica ao aumento de uma cota.

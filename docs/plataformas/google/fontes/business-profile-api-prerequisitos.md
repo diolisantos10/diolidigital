@@ -1,14 +1,20 @@
 ---
 titulo: "Business Profile APIs — pré-requisitos e aprovação de acesso"
 url: https://developers.google.com/my-business/content/prereqs?hl=pt-br
-capturado_em: 2026-08-06
-hash: 53fec026fa6b16a9
+capturado_em: 2026-08-07
+hash: 1afd14de3f071d58
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
 Pré-requisitos
+Nesta página
+Criar uma Conta do Google
+Usar o Perfil da Empresa
+Criar um projeto no Console de APIs do Google
+Criar uma conta da organização
+Pedir acesso às APIs
 
 Você precisa atender aos seguintes requisitos para criar seu primeiro aplicativo cliente:
 

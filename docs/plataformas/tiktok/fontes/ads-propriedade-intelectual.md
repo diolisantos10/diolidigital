@@ -1,8 +1,8 @@
 ---
 titulo: "TikTok Advertising Policies — Intellectual Property Infringement"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-intellectual-property-infringement?lang=en
-capturado_em: 2026-08-06
-hash: 54716afbb5e823a9
+capturado_em: 2026-08-07
+hash: 90a9798cbab9a830
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -242,8 +242,8 @@ FAQs
 2.5 Appeals and Dispute Resolution
 Related Articles
  TikTok Advertising Policies
- Non-Governmental Organization (NGO) and Non-Profit Organization (NPO) Advertisers
  Misleading and false content
+ Non-Governmental Organization (NGO) and Non-Profit Organization (NPO) Advertisers
 Log in for a personalized experience
 Sign up
 Log in

@@ -1,18 +1,20 @@
 ---
 titulo: "Marketing API — referência de Campaign (ad-campaign-group)"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/reference/ad-campaign-group
-capturado_em: 2026-08-06
-hash: 2f636a09f9c79026
+capturado_em: 2026-08-07
+hash: 4d6122084832f301
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
+Esta página foi traduzida do inglês para outro idioma usando IA. O conteúdo traduzido por IA pode conter erros, omissões ou divergências de sentido. Como a tradução automática pode ser imprecisa ou pouco clara, consulte o conteúdo original em inglês desta página para validar as orientações corretas.
 Version
 v22.0
 v23.0
 v24.0
 v25.0
+Isso foi útil?
 Grupo de campanhas de anúncios
 Updated: 11 de mai de 2026
 Copiar para LLM
@@ -1704,3 +1706,4 @@ OUTCOME_AWARENESS
 REACH
 	
 place_page_set_id
+Você achou esta página útil?

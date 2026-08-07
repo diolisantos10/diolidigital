@@ -1,8 +1,8 @@
 ---
 titulo: "Padrões de Publicidade — Violações de privacidade e atributos pessoais"
 url: https://transparency.meta.com/pt-br/policies/ad-standards/objectionable-content/privacy-violations-personal-attributes/
-capturado_em: 2026-08-06
-hash: 0ef4c28d38b3ea44
+capturado_em: 2026-08-07
+hash: a4c7c35835a49cdb
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -12,7 +12,7 @@ Violações de privacidade e atributos pessoais
 Detalhes da política
 REGISTRO DE ALTERAÇÕES
 Hoje
-27 de jun de 2024
+26 de jun de 2024
 Violações de privacidade e atributos pessoais
 Os anúncios devem estar em conformidade com os Padrões da Comunidade sobre Violações de Privacidade. Os anúncios não devem conter conteúdo que compartilhe ou solicite informações privadas sobre os usuários. Além disso, não devem conter conteúdo que afirme ou sugira atributos pessoais. Isso abrange afirmações ou sugestões diretas ou indiretas quanto a raça, etnia, religião, crença, idade, orientação ou práticas sexuais, identidade de gênero, deficiência, condições de saúde física ou mental (inclusive médicas), condição financeira vulnerável, situação eleitoral, participação em sindicato, antecedentes criminais ou nome da pessoa.
 Visão geral

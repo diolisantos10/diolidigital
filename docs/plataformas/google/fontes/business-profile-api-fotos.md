@@ -1,14 +1,17 @@
 ---
 titulo: "Business Profile APIs — enviar fotos e mídia"
 url: https://developers.google.com/my-business/content/upload-photos?hl=pt-br
-capturado_em: 2026-08-06
-hash: 557a982eeb71648f
+capturado_em: 2026-08-07
+hash: 5774f1834ea1e3b7
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
 Fazer upload de mídia
+Nesta página
+Upload usando um URL
+Upload usando bytes
 
 Você pode usar a API Google My Business para fazer o upload de mídia com os dois métodos a seguir:
 

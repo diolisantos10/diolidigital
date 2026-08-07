@@ -1,14 +1,23 @@
 ---
 titulo: "Business Profile APIs — criar e gerenciar locais"
 url: https://developers.google.com/my-business/content/manage-locations?hl=pt-br
-capturado_em: 2026-08-06
-hash: 5d45f3ee594c04e2
+capturado_em: 2026-08-07
+hash: b613d6a3c4b36bbd
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
 Gerencie vários locais ao mesmo tempo
+Nesta página
+Tipos de conta
+Conta pessoal
+Conta da organização
+Conta do grupo por locais
+Conta do grupo de usuários
+Usar a API para chamar uma lista com todas as contas
+Solicitação
+Resposta
 
 À medida que sua organização cresce, gerenciar seus locais e permissões pode dar trabalho. Neste guia, detalhamos as práticas recomendadas para gerenciar vários locais ao mesmo tempo e descrevemos estes tipos de conta:
 

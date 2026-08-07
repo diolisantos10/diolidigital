@@ -1,14 +1,22 @@
 ---
 titulo: "Business Profile APIs — posts locais (localPosts)"
 url: https://developers.google.com/my-business/content/posts-data?hl=pt-br
-capturado_em: 2026-08-06
-hash: 2492b34e1015df88
+capturado_em: 2026-08-07
+hash: 9e7d4c90d3875fec
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
 Criar postagens no Google
+Nesta página
+Antes de começar
+Postagens de eventos
+Postagens com call-to-action
+Tipos de ação
+Postagens de ofertas
+Editar postagens
+Excluir postagens
 
 Com a API Google My Business, você pode criar postagens em várias categorias na Pesquisa Google, como notícias, eventos e ofertas.
 

@@ -1,8 +1,8 @@
 ---
 titulo: "Google Identity — verificação de escopos restritos"
 url: https://developers.google.com/identity/protocols/oauth2/production-readiness/restricted-scope-verification?hl=pt-br
-capturado_em: 2026-08-06
-hash: 5a82b7c7937999ca
+capturado_em: 2026-08-07
+hash: 1f4a7eac1b8f5279
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -11,6 +11,15 @@ hash: 5a82b7c7937999ca
 O Google usa tecnologia de IA na tradução de conteúdos para seu idioma de preferência. As traduções com IA podem ter erros.
 Envie comentários
 Verificação de escopo restrito
+Nesta página
+Entender os escopos restritos
+Entender o uso do escopo
+Tipos de aplicativos permitidos
+Security assessment
+Etapas para se preparar para a verificação
+Requisitos da página inicial do aplicativo
+Requisitos do link da Política de Privacidade do aplicativo
+Como enviar seu app para verificação de marca
 
 Algumas APIs do Google (as que aceitam escopos sensíveis ou restritos) têm requisitos para apps que buscam permissão para acessar dados do consumidor. Esses requisitos adicionais para escopos restritos exigem que um app demonstre ser um tipo de aplicativo permitido e se submeta a outras análises, incluindo uma possível avaliação de segurança.
 

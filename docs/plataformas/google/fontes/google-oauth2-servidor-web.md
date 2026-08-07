@@ -1,8 +1,8 @@
 ---
 titulo: "Google Identity — OAuth 2.0 para apps de servidor web (refresh token)"
 url: https://developers.google.com/identity/protocols/oauth2/web-server?hl=pt-br
-capturado_em: 2026-08-06
-hash: 75eadc3a727d3596
+capturado_em: 2026-08-07
+hash: ebb3de84a6b5a5a3
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -11,6 +11,12 @@ hash: 75eadc3a727d3596
 O Google usa tecnologia de IA na tradução de conteúdos para seu idioma de preferência. As traduções com IA podem ter erros.
 Envie comentários
 Como usar o OAuth 2.0 para aplicativos de servidor da Web
+Nesta página
+Bibliotecas de cliente
+Pré-requisitos
+Ativar as APIs do projeto
+Criar credenciais de autorização
+Identificar escopos de acesso
 
 Este documento explica como os aplicativos de servidor da Web usam as bibliotecas de cliente das APIs do Google ou os endpoints OAuth 2.0 do Google para implementar a autorização do OAuth 2.0 e acessar as APIs do Google.
 

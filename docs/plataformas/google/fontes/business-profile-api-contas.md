@@ -1,14 +1,20 @@
 ---
 titulo: "Business Profile APIs — contas e grupos de localização"
 url: https://developers.google.com/my-business/content/accounts?hl=pt-br
-capturado_em: 2026-08-06
-hash: 03b67f46231cbc58
+capturado_em: 2026-08-07
+hash: 76541c775c1e3bf5
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
 Contas
+Nesta página
+Tipos de conta do Perfil da empresa
+Conta pessoal
+Conta da organização
+Conta do grupo de locais
+Conta do grupo de usuários
 
 Cada pessoa que usa as APIs do Perfil da Empresa já precisa ter criado uma Conta do Google.
 

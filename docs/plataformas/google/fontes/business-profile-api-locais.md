@@ -1,14 +1,22 @@
 ---
 titulo: "Business Profile APIs — conceito de local (location)"
 url: https://developers.google.com/my-business/content/locations?hl=pt-br
-capturado_em: 2026-08-06
-hash: 799ff7e2f5d7edb5
+capturado_em: 2026-08-07
+hash: 072a320965788e4f
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
 Locais
+Nesta página
+Grupo de unidades da empresa (ou grupos por locais)
+Agências e terceiros
+Testes e verificação de local
+Gerenciar locais
+Horário de funcionamento especial
+Latitude e longitude
+Atributos
 
 Os locais podem ser gerenciados diretamente pelos proprietários de empresas ou por agências terceirizadas. Saiba mais sobre as agências.
 

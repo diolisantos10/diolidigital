@@ -1,7 +1,7 @@
 ---
 titulo: "Padrões da Comunidade — Integridade da conta (norma citada pelos Padrões de Publicidade)"
 url: https://transparency.meta.com/pt-br/policies/community-standards/account-integrity
-capturado_em: 2026-08-06
+capturado_em: 2026-08-07
 hash: 63cce73e6c7404b2
 ---
 

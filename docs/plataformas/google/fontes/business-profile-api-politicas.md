@@ -1,12 +1,22 @@
 ---
 titulo: "Business Profile APIs — políticas de uso"
 url: https://developers.google.com/my-business/content/policies?hl=pt-br
-capturado_em: 2026-08-06
-hash: e841218343d22210
+capturado_em: 2026-08-07
+hash: 6ed123ab5097f373
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
+
+Nesta página
+Políticas gerais de API
+Política de terceiros
+Diretrizes
+Transparência
+Avaliações
+Perguntas e respostas
+Segurança
+Rescisão do relacionamento com o cliente final
 
 Projeto: /my-business/_project.yaml Reserva: /my-business/_book.yaml
 

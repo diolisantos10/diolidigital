@@ -1,14 +1,23 @@
 ---
 titulo: "Business Profile APIs — trabalhar com dados de ficha/local"
 url: https://developers.google.com/my-business/content/location-data?hl=pt-br
-capturado_em: 2026-08-06
-hash: 39ddd305da770907
+capturado_em: 2026-08-07
+hash: cea430d57b4798e4
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
 Trabalhar com dados de local
+Nesta página
+Antes de começar
+Criar uma unidade
+Excluir uma unidade
+Encontrar uma unidade pelo nome
+Retornar a versão do Google Maps
+Listar unidades
+Filtrar resultados ao exibir unidades
+Classificar por campo de consulta
 
 Neste tutorial, mostramos como criar e editar dados de unidades. Com a API My Business Business Information, você pode fazer o seguinte:
 

@@ -1,8 +1,8 @@
 ---
 titulo: "Padrões de Publicidade — Práticas comerciais inaceitáveis"
 url: https://transparency.meta.com/pt-br/policies/ad-standards/fraud-scams/unacceptable-business-practices/
-capturado_em: 2026-08-06
-hash: af69663a28ae78aa
+capturado_em: 2026-08-07
+hash: 924d510cc354c254
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -12,10 +12,10 @@ Práticas de negócios inaceitáveis
 Detalhes da política
 REGISTRO DE ALTERAÇÕES
 Hoje
-21 de mar de 2026
-22 de abr de 2025
-26 de jul de 2024
-19 de jul de 2024
+20 de mar de 2026
+21 de abr de 2025
+25 de jul de 2024
+18 de jul de 2024
 Práticas Comerciais Inaceitáveis na Publicidade
 Os anúncios não devem promover produtos, serviços, esquemas ou ofertas usando práticas enganosas ou falsas identificadas, inclusive aquelas cuja intenção é conseguir dinheiro ou informações pessoais. Quando detectamos que os anunciantes estão se envolvendo em comportamentos potencialmente suspeitos, incluindo comportamento não autêntico, ou estão veiculando anúncios em determinadas categorias que provavelmente serão alvo de golpistas, podemos exigir que esses anunciantes concluam processos de verificação adicionais.
 Visão geral
