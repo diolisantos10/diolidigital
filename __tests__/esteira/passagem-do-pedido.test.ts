@@ -608,15 +608,25 @@ describe("família 3 — OPERAÇÃO sobre o que já existe", () => {
   const PEDIDO_DO_CEO =
     "Eu quero que você adiante. É preciso dar calendário de posts para hoje. Então, ao invés do primeiro post, o primeiro carrossel, que está programado pra amanhã, é preciso que vocês adiantem um dia e possam o primeiro carrossel hoje.";
 
+  // O calendário nasce RELATIVO ao relógio, não em datas fixas. A versão
+  // anterior fixava 2026-08-07/08/09 às 10:00 — e no dia 07, a partir das 10:01,
+  // as duas asserções desta prova viravam impossíveis ao mesmo tempo: "nenhuma
+  // data no passado" exige > agora, e "andou para trás" exigia < 07 às 10:00.
+  // Não era regressão do código: era o teste marcando encontro com o calendário.
+  // O comentário abaixo já avisava disso e a fixture não seguiu o próprio aviso.
+  const UM_DIA = 24 * 60 * 60_000;
+  let original: number[] = [];
+
   beforeEach(() => {
-    calendario = [
-      ["2026-08-07T10:00:00", "Carrossel 1"],
-      ["2026-08-08T10:00:00", "Carrossel 2"],
-      ["2026-08-09T10:00:00", "Carrossel 3"],
-    ].map(([d, c], i) => ({
+    // Duas casas de folga à frente: sobra espaço para a peça andar UM dia para
+    // trás e ainda assim continuar no futuro, a qualquer hora que isto rode.
+    const base = new Date(Date.now() + 2 * UM_DIA);
+    base.setHours(10, 0, 0, 0);
+    calendario = ["Carrossel 1", "Carrossel 2", "Carrossel 3"].map((c, i) => ({
       id: `sp-${i + 1}`, clientId: "cli-1", status: "scheduled",
-      scheduledFor: new Date(d as string), caption: c as string,
+      scheduledFor: new Date(base.getTime() + i * UM_DIA), caption: c,
     }));
+    original = calendario.map((p) => p.scheduledFor!.getTime());
   });
 
   it("METADE 1 — o pedido do CEO é EXECUTADO, sem IA e sem virar decisão humana", async () => {
@@ -636,11 +646,15 @@ describe("família 3 — OPERAÇÃO sobre o que já existe", () => {
     // verdade, e travar a prova numa data fixa faria o teste quebrar por hora
     // do dia — que é ruído, não regressão.
     const novas = calendario.map((p) => p.scheduledFor!.getTime());
-    const um_dia = 24 * 60 * 60_000;
-    expect(novas[1]! - novas[0]!).toBe(um_dia);
-    expect(novas[2]! - novas[1]!).toBe(um_dia);
+    expect(novas[1]! - novas[0]!).toBe(UM_DIA);
+    expect(novas[2]! - novas[1]!).toBe(UM_DIA);
     for (const t of novas) expect(t, "nenhuma data no passado").toBeGreaterThan(Date.now());
-    expect(novas[0]!, "andou para TRÁS").toBeLessThan(new Date("2026-08-07T10:00:00").getTime());
+    // Comparação contra a data que a fixture REALMENTE criou, não contra uma
+    // constante escrita à mão — e o tanto que andou é exatamente um dia.
+    for (const [i, t] of novas.entries()) {
+      expect(t, "andou para TRÁS").toBeLessThan(original[i]!);
+      expect(original[i]! - t, "andou exatamente um dia").toBe(UM_DIA);
+    }
     // E o cliente recebe as DATAS, não um "ok".
     const chamadas = db.portalMessage.create.mock.calls as unknown as Array<[{ data: { body: string } }]>;
     const recado = chamadas.at(-1)![0];
