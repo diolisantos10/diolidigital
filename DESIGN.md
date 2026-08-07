@@ -461,6 +461,46 @@ E a trava: fail-closed no servidor. "Compartilhado" sem destinatário nunca é
 gravado; a API recusa com motivo em português em vez de gravar uma promessa que
 ninguém recebe.
 
+### 7.5 O quinto estado: a tela que não existe mais
+
+Carregando, vazio, erro e o silencioso. Falta o pior de todos, porque não tem
+aparência nenhuma: **um `TypeError` em UM componente apaga a página inteira.**
+React desmonta a árvore toda, sobra uma tela branca, e o navegador anuncia à
+sua maneira ("This page couldn't load"). Nenhuma palavra, nenhum caminho de
+volta, nada para o usuário fazer — e nada para ele contar a quem for consertar.
+
+Aconteceu em 06/08/2026 com `/agency/integrations`, e o CEO ficou sem a tela em
+dois aparelhos e três endereços. A linha:
+
+```tsx
+const pm = PLATFORM_META[c.platform];   // "user" não estava no mapa → undefined
+<span>{pm.emoji}</span>                 // TypeError → a página inteira some
+```
+
+Três regras saem daí, e as três valem para toda tela:
+
+1. **Todo `MAPA[chave]` vindo de dado de rede tem fallback.** Não existe
+   "esse valor não acontece": o `platform` é `String` livre no banco. Escreva
+   `MAPA[k] ?? PADRAO` e dê ao desconhecido uma aparência digna — nunca deixe o
+   `undefined` chegar ao `.`.
+2. **Tipo estreito sobre dado de rede é palpite, não garantia.** A interface do
+   cliente declarava `"instagram" | "facebook" | "whatsapp"`; o servidor mandava
+   `user` havia dias. O TypeScript ficou verde do começo ao fim — ele confere o
+   que você escreveu, não o que o servidor manda. Payload externo entra como
+   `string` e é estreitado **em tempo de execução**.
+3. **Quem protege é o layout, de novo.** Consertar o `TypeError` conserta uma
+   tela; o que conserta a classe é a fronteira de erro. Existe agora
+   `app/error.tsx` na raiz do `app/` — qualquer erro de render em qualquer uma
+   das quatro superfícies vira um cartão em português com `role="alert"`,
+   "Tentar de novo" e o código do erro. Antes de 06/08/2026 **não havia nenhum
+   `error.tsx` em todo o projeto**: toda tela quebrada era uma tela branca.
+
+**Como provar:** teste que renderiza o componente com o payload real do
+servidor (todos os valores que ele grava, não os que você lembra) e afirma que
+não lança — `__tests__/agency/meta-conexoes-render.test.ts` é o modelo. Ele
+varre `app/api/meta/**` atrás de todo `platform: "x"` gravado, então o próximo
+valor que alguém inventar já nasce coberto.
+
 ---
 
 ## 8. Acessibilidade (mínimos)
