@@ -19,7 +19,18 @@ interface ConfigStatus {
 
 interface Connection {
   id: string;
-  platform: "instagram" | "facebook" | "whatsapp";
+  /**
+   * ⚠️ É `string`, NÃO uma união fechada — e essa foi a linha que apagou a tela.
+   *
+   * O tipo dizia "instagram | facebook | whatsapp"; o servidor devolve também
+   * `user` (o registro "Acesso da conta Meta", criado pelo popup de OAuth e
+   * pelo token colado). O TypeScript acreditou no tipo, `PLATFORM_META["user"]`
+   * veio `undefined` e `pm.emoji` derrubou o render inteiro da página de
+   * Integrações — em produção, com DUAS conexões desse tipo no banco.
+   *
+   * Tipo estreito sobre dado que vem da rede não é garantia, é palpite.
+   */
+  platform: string;
   name: string;
   externalId: string;
   status: string;
@@ -28,11 +39,22 @@ interface Connection {
   connectedAt: string;
 }
 
-const PLATFORM_META: Record<Connection["platform"], { emoji: string; label: string }> = {
+const PLATFORM_META: Record<string, { emoji: string; label: string }> = {
   instagram: { emoji: "📸", label: "Instagram" },
   facebook: { emoji: "📘", label: "Facebook" },
   whatsapp: { emoji: "💬", label: "WhatsApp" },
+  // `user` não é uma conta que publica: é a CREDENCIAL de acesso da conta Meta,
+  // gravada pelo popup de OAuth e pelo token colado. Ela precisa aparecer na
+  // lista (é por ela que se revoga o acesso), mas com nome próprio.
+  user: { emoji: "🔑", label: "Acesso da conta" },
 };
+
+/** Plataforma que a tela ainda não conhece nunca derruba o render. */
+const PLATFORM_PADRAO = { emoji: "🔌", label: "Conta Meta" };
+
+export function rotuloDaPlataforma(platform: string): { emoji: string; label: string } {
+  return PLATFORM_META[platform] ?? PLATFORM_PADRAO;
+}
 
 const ACCENT = "#1877F2"; // Meta blue
 
@@ -433,9 +455,12 @@ function AtivosDaAgencia({ versao, onChanged }: { versao: number; onChanged: () 
       ) : (
         <>
           {marcados.size === 0 && (
-            <div className="mt-3 rounded-[7px] border border-[#FCE7A0] bg-[#FFFBEB] px-3 py-2">
-              <p className="text-[11.5px] font-bold text-[#9B7B2D]">Falta escolher.</p>
-              <p className="text-[11px] text-[#9B7B2D] leading-snug">
+            /* Hex na mão (#9B7B2D sobre #FFFBEB) onde o token de atenção já
+               existe — I-1 do DESIGN.md, num aviso que decide se a conta do
+               cliente é gravada. --warning passa AA sobre --warning-bg. */
+            <div className="mt-3 rounded-[7px] border border-[var(--warning)]/30 bg-[var(--warning-bg)] px-3 py-2">
+              <p className="text-[12px] font-bold text-[var(--warning)]">Falta escolher.</p>
+              <p className="text-[12px] text-[var(--warning)] leading-snug">
                 Enquanto nada estiver marcado, nenhuma conta é gravada — nem por token colado, nem pelo popup.
               </p>
             </div>
@@ -460,10 +485,16 @@ function AtivosDaAgencia({ versao, onChanged }: { versao: number; onChanged: () 
                     className="mt-0.5 h-4 w-4 shrink-0 accent-[#070A1F]"
                   />
                   <span className="min-w-0 flex-1">
-                    <span className="block text-[12px] font-medium text-[var(--text-primary)] truncate">{a.nome}</span>
-                    <span className="block text-[10px] text-[var(--text-muted)] font-mono truncate">
-                      {TIPO_LABEL[a.tipo] ?? a.tipo} · {a.externalId}
-                    </span>
+                    {/* Piso de 12px da §3: o nome da conta e o tipo são o que
+                        decide o clique — não podem ser o texto menor da tela. */}
+                    {/* Nada de `truncate` aqui: a 375px, catorze contas
+                        chamadas "Diego Oliveira · BRL" só se distinguem pelo
+                        sufixo e pelo id. Cortar é apagar a informação que
+                        decide o clique — a §6.0 manda trocar densidade por
+                        leitura, não encolher até sumir. */}
+                    <span className="block text-[13px] font-medium text-[var(--text-primary)] break-words">{a.nome}</span>
+                    <span className="block text-[12px] text-[var(--text-muted)]">{TIPO_LABEL[a.tipo] ?? a.tipo}</span>
+                    <span className="block text-[12px] text-[var(--text-muted)] font-mono break-all">{a.externalId}</span>
                   </span>
                 </label>
               );
@@ -484,7 +515,7 @@ function AtivosDaAgencia({ versao, onChanged }: { versao: number; onChanged: () 
       {lacunas.length > 0 && (
         <ul className="mt-3 space-y-1">
           {lacunas.map((l, i) => (
-            <li key={i} className="text-[10.5px] text-[var(--text-muted)] leading-snug">• {l}</li>
+            <li key={i} className="text-[12px] text-[var(--text-muted)] leading-snug">• {l}</li>
           ))}
         </ul>
       )}
@@ -500,7 +531,8 @@ function AtivosDaAgencia({ versao, onChanged }: { versao: number; onChanged: () 
   );
 }
 
-function ConnectionsSection({
+/** Exportada para o portão automático (`__tests__/agency/meta-conexoes-render.test.ts`). */
+export function ConnectionsSection({
   config,
   connections,
   loading,
@@ -598,20 +630,20 @@ function ConnectionsSection({
       ) : (
         <div className="space-y-1.5">
           {connections.map((c) => {
-            const pm = PLATFORM_META[c.platform];
+            const pm = rotuloDaPlataforma(c.platform);
             return (
               <div key={c.id} className="flex items-center gap-3 border border-[var(--border)] rounded-[7px] px-3 py-2">
                 <span className="text-[16px]">{pm.emoji}</span>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[12px] font-medium text-[var(--text-primary)] truncate">
-                    {c.name} <span className="text-[10px] text-[var(--text-muted)]">· {pm.label}</span>
+                  <div className="text-[13px] font-medium text-[var(--text-primary)] break-words">
+                    {c.name} <span className="text-[12px] text-[var(--text-muted)]">· {pm.label}</span>
                   </div>
-                  <div className="text-[10px] text-[var(--text-muted)] font-mono">id {c.externalId}</div>
+                  <div className="text-[12px] text-[var(--text-muted)] font-mono break-all">id {c.externalId}</div>
                 </div>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] bg-[var(--success-bg)] text-[var(--success)]">● {c.status}</span>
+                <span className="shrink-0 text-[12px] font-bold px-1.5 py-0.5 rounded-[4px] bg-[var(--success-bg)] text-[var(--success)]">● {c.status}</span>
                 <button
                   onClick={() => handleDisconnect(c.id, c.name)}
-                  className="text-[11px] font-medium text-[var(--danger)] hover:bg-[#FEE2E2] px-2 py-1 rounded-[6px]"
+                  className="shrink-0 text-[12px] font-medium text-[var(--danger)] hover:bg-[var(--danger-bg)] px-2 py-1 rounded-[6px]"
                 >
                   Desconectar
                 </button>
