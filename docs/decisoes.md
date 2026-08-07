@@ -8,6 +8,148 @@
 
 ---
 
+## 99FREELAS — A REGRA OFICIAL DO CEO: **ENVIO SUPERVISIONADO**
+
+**Decidida em** 2026-08-07 · **por** DIOLI (CEO), com as palavras dele ·
+**executada por** PM da frente 99Freelas · **registro de máquina:**
+`docs/plataformas/99freelas/policy.json`
+
+> 🟠 **MODO ATUAL: envio supervisionado.**
+>
+> O agente pode localizar projetos, ler briefings, eliminar oportunidades ruins,
+> calcular score, precificar, criar uma proposta individualizada e preencher a
+> candidatura.
+>
+> **Antes do clique final em "Enviar proposta", deve parar para aprovação
+> humana.**
+>
+> Os termos públicos atuais do 99Freelas não trazem proibição explícita de
+> bots/automação, mas também não fornecem autorização expressa para automação de
+> candidaturas. Como spam e violações podem resultar inclusive em banimento de
+> outras contas do mesmo usuário, não liberar submissão automática até obter
+> autorização formal do 99Freelas.
+>
+> **Importante:** não assumir limite de 10 propostas mensais. O plano Free possui
+> 10 conexões/mês; os planos pagos possuem limites maiores. O sistema deve
+> consultar/configurar o plano real da conta antes de definir o limite
+> operacional.
+
+### 🔴 A IMPRECISÃO QUE O CEO CORRIGIU — e que estava nos nossos documentos
+
+O Diretor resumiu a cota ao CEO como **"10 propostas por mês"**. Está errado por
+**generalizar**: 10 é a cota do plano **Free**. A régua oficial, que o CEO
+conferiu na fonte do próprio 99Freelas (blog oficial, março/2025, e a Central de
+Ajuda):
+
+| Plano | Conexões/mês |
+|---|---|
+| Free | 10 |
+| Pro | até 120 |
+| Premium | 240 |
+
+**E o nome certo é `conexões`, não "propostas".** É o termo da plataforma, e a
+diferença é operacional: conexão é consumida **também por pergunta ao cliente**,
+e **projeto disputado consome mais de uma**. Chamar de "proposta" faz a casa
+planejar 240 propostas com 240 conexões e descobrir na 80ª que a cota acabou.
+**"Conexões" no código, na tela e nos documentos.** Nome errado vira regra
+errada seis meses depois.
+
+**O plano da conta é PREMIUM**, declarado pelo CEO em 07/08/2026 — logo a cota
+operacional é **240**. A procedência está gravada no `policy.json`: foi
+declarado em conversa, **não foi lido da tela** (nenhum login foi feito).
+
+**O fail closed segue intacto:** o padrão, na ausência de declaração, continua
+sendo Free (10). Apagar `plano_declarado_da_conta` devolve o sistema a 10
+sozinho, sem tocar em código. Piso, nunca teto otimista.
+
+### 🔴 A SEGUNDA CORREÇÃO — esta é NOSSA, e é de dinheiro
+
+A casa vinha dizendo: **"embuta a taxa de 10–20%, senão a margem é corroída em
+toda proposta."** A leitura da fonte diz o contrário, e em dois lugares
+independentes:
+
+- **Termos de Uso:** *"Nós **adicionamos** uma taxa de 10% a 20% (R$ 5,00 no
+  mínimo) **na sua oferta** enviada ao Cliente"*.
+- **Central de Ajuda, "Como enviar propostas?":** *"Sua oferta … é o valor que
+  **será recebido pelo freelancer**"* / *"Oferta final: a oferta final **inclui**
+  uma taxa de intermediação"*.
+
+Ou seja: **o que se digita é o líquido da agência.** A taxa é acrescentada por
+cima e quem paga é o cliente. **Embutir não protege margem — ela já está
+protegida — e só encarece a oferta final em 11% a 25%, derrubando a chance de
+ganhar sem aparecer em relatório nenhum.**
+
+**O que protege a margem é o PISO:** `max(piso da casa, piso da categoria da
+plataforma)`. É isso que o Pricing Engine trava.
+
+**A taxa por plano, confirmada na fonte** (`fontes/ajuda-planos-de-freelancers.md`):
+Básico **20%**, Pro **15%**, Premium **10%**. Sem plano declarado, o motor usa a
+**mais cara (20%)** — fail closed também no preço, porque errar para menos faz a
+oferta final surpreender o cliente para cima.
+
+**Se a primeira proposta real mostrar o contrário**, muda-se
+`precificacao.taxa_incide_sobre` no `policy.json` e o motor passa a fazer o
+gross-up. É dado, não código.
+
+### O que ficou construído
+
+| Peça | Onde | O que trava |
+|---|---|---|
+| Platform Policy Engine | `lib/marketplaces/politica.ts` | política é dado versionado; plataforma sem `policy.json` = BLOCK |
+| Compliance Gate | `lib/marketplaces/portao.ts` | `ALLOW` / `HUMAN_GATE` / `BLOCK` por ação |
+| Compliance Validator | `lib/marketplaces/99freelas/conformidade.ts` | link, contato, pagamento fora, **referência à comissão**, comissionado, permuta, spam por repetição |
+| Cota de conexões | `lib/marketplaces/99freelas/conexoes.ts` | plano configurável, fail closed em Free, custo desconhecido = `Infinity` |
+| Contador no volume | `lib/marketplaces/99freelas/contador.ts` + `ConexaoGasta` | conexão gasta não volta; leitura que falha = mês esgotado |
+| Pricing Engine | `lib/marketplaces/99freelas/preco.ts` | `max(piso da casa, piso da categoria)`; taxa relatada, não embutida |
+| BrowserComputer | `lib/marketplaces/navegador.ts` | só https, só o domínio, só área pública, ritmo humano, CAPTCHA = parar |
+| Loop do agente | `lib/marketplaces/99freelas/agente.ts` | elimina antes de gastar; para no clique |
+| Follow-up | `lib/marketplaces/99freelas/follow-up.ts` | cliente esperando além do prazo **freia** o envio de novas propostas |
+
+### A UMA LINHA DE DADO que destrava o envio
+
+`policy.json → autorizacao_do_suporte`. Quando o suporte responder por escrito:
+`status: "autorizado"` **+** `respondido_em` **+** `evidencia` (o arquivo com a
+resposta arquivada). **As três metades juntas, ou não vale** — status sozinho é
+a parte fácil de escrever com otimismo.
+
+**Não existe flag escondida:** nenhum `process.env`, nenhum `{ forcar: true }`,
+nenhum `case` no gate. Há teste que reprova o arquivo que voltar a ter qualquer
+um dos três.
+
+### 🟠 O E-MAIL AO SUPORTE — o remetente da casa NÃO SERVE
+
+Texto congelado em `docs/plataformas/99freelas/pergunta-ao-suporte.md`.
+**Medido em 07/08/2026, por DNS público:**
+
+- `diolidigital.com.br` — **nenhum TXT, nenhum MX, nenhum `resend._domainkey`**.
+  Não está verificado no Resend.
+- `dioli.studio` (o domínio do exemplo em `lib/email/send.ts`) — **NXDOMAIN**.
+  O domínio não existe.
+
+Consequência: mesmo com `RESEND_API_KEY` presente, o `RESEND_FROM` não pode
+estar num domínio verificado da agência. `sendEmail` cairia em
+`Dioli Studio <onboarding@resend.dev>` — o remetente compartilhado do Resend,
+que **só entrega para o dono da conta Resend**. **O e-mail não chegaria ao
+99Freelas**, e sairia de um endereço que não é da agência.
+
+**Não confirmei se `RESEND_API_KEY` e `RESEND_FROM` existem em produção** — não
+há token do Railway neste ambiente e nenhuma rota expõe variáveis. Ausência de
+informação não é informação: está declarado, não deduzido. **Mas isso não muda a
+conclusão**, porque a verificação de domínio falha por DNS, que é público.
+
+**Recomendação: o CEO manda do Gmail dele.** A resposta cai na caixa dele e o
+suporte reconhece o titular da conta.
+
+### 🟠 Risco aberto declarado: a ENTRADA do follow-up não existe
+
+O mecanismo está construído e testado. **A alimentação dele, não:** o chat do
+99Freelas fica atrás do login, e login é `BLOCK` nesta rodada. Hoje a fila de
+follow-up só enche à mão ou por e-mail de notificação encaminhado. Enquanto for
+assim, a sanção de "não responder a tempo" **está mitigada em código e exposta
+na operação**.
+
+---
+
 ## 99FREELAS: PODE COM AJUSTE — e o ajuste é COTA, não texto de contrato
 
 **Decidido em** 2026-08-07 · **por** PM da frente 99Freelas, sob a trava de

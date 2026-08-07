@@ -1,0 +1,60 @@
+{
+  "_leia_isto": [
+    "Linha do `platform_policies` (§46/§47 da especificação 01 do CEO).",
+    "Fonte primária: docs/projetos/99freelas/02-PESQUISA-DO-CEO-plataformas.md",
+    "⚠️ NÃO CAPTURADA POR ROTINA — derivada da pesquisa do CEO de 07/08/2026."
+  ],
+
+  "platform": "fiverr",
+  "version": "2026-08",
+  "active": true,
+  "policy_verified_at": "2026-08-07",
+  "verificado_por": "pesquisa do CEO (02-PESQUISA-DO-CEO-plataformas.md)",
+  "procedencia_das_fontes": "PESQUISA_DO_CEO",
+
+  "prioridade_no_roadmap": 5,
+
+  "integration_mode": "INBOUND_ASSISTIDO_POR_EMAIL",
+
+  "browser_automation_allowed": false,
+  "browser_automation_motivo": "A MAIS EXPLÍCITA DAS CINCO — mais que o 99Freelas. Os Termos proíbem software de automação (bots), hacks, mods e software de terceiros não autorizado; e também robot, spider, crawler ou qualquer processo/dispositivo automático para acessar, minerar, fazer scraping, monitorar, recuperar, extrair ou coletar conteúdo do site. Não há zona cinzenta.",
+
+  "api_available": false,
+  "api_authorization_required": false,
+  "api_motivo": "Não há API pública tradicional para este fluxo.",
+
+  "auto_submission_allowed": false,
+  "auto_messaging_allowed": false,
+  "human_gate_required": true,
+  "external_links_allowed_pre_contract": false,
+  "external_contact_allowed_pre_contract": false,
+
+  "capabilities": {
+    "discovery": "BLOCKED",
+    "projectRead": "BLOCKED",
+    "proposalSubmission": "MANUAL",
+    "messaging": "MANUAL",
+    "statusSync": "BLOCKED",
+    "_motivo": "No Fiverr NÃO SE CAÇA PROJETO — o algoritmo escolhe o freelancer e manda um Brief. A descoberta é desnecessária, além de proibida: a entrada é o e-mail de Brief."
+  },
+
+  "entrada_por_brief": {
+    "_leia_isto": "É assim que a oportunidade entra: e-mail de Brief encaminhado ao sistema. O trabalho intelectual inteiro (análise, score, preço, oferta escrita) é automático FORA do Fiverr. O humano abre e clica.",
+    "janela_de_resposta_horas": 72,
+    "janela_motivo": "⚠️ PRIORIDADE OPERACIONAL: cada Brief normalmente fica disponível por 72 h. Brief vencido é oportunidade perdida EM SILÊNCIO — a plataforma não avisa que passou. O `expires_at` tem de ser gravado na ingestão e virar prazo, não campo decorativo.",
+    "o_que_o_brief_traz": ["brief", "orçamento", "necessidade", "prazo"],
+    "acoes_possiveis": ["criar oferta", "recusar", "fazer pergunta"]
+  },
+
+  "autorizacao_do_provedor": {
+    "status": "nao_perguntado",
+    "status_valores": ["nao_perguntado", "perguntado", "autorizado", "negado", "sem_resposta"],
+    "perguntado_em": null,
+    "respondido_em": null,
+    "evidencia": null,
+    "pedido": null,
+    "pedido_motivo": "Sem pedido nesta rodada — prioridade 5, e a proibição é a mais explícita das cinco."
+  },
+
+  "notes": "Comercialmente é a mais confortável: sem caçada, sem cota de conexão, sem scanner. O custo é a janela de 72 h."
+}

@@ -438,7 +438,8 @@ export const ModelName = {
   Oportunidade: 'Oportunidade',
   RateLimitBucket: 'RateLimitBucket',
   DepartmentLadder: 'DepartmentLadder',
-  DepartmentLadderRecord: 'DepartmentLadderRecord'
+  DepartmentLadderRecord: 'DepartmentLadderRecord',
+  ConexaoGasta: 'ConexaoGasta'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -454,7 +455,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord" | "conexaoGasta"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -4528,6 +4529,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    ConexaoGasta: {
+      payload: Prisma.$ConexaoGastaPayload<ExtArgs>
+      fields: Prisma.ConexaoGastaFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ConexaoGastaFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConexaoGastaPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ConexaoGastaFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConexaoGastaPayload>
+        }
+        findFirst: {
+          args: Prisma.ConexaoGastaFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConexaoGastaPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ConexaoGastaFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConexaoGastaPayload>
+        }
+        findMany: {
+          args: Prisma.ConexaoGastaFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConexaoGastaPayload>[]
+        }
+        create: {
+          args: Prisma.ConexaoGastaCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConexaoGastaPayload>
+        }
+        createMany: {
+          args: Prisma.ConexaoGastaCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ConexaoGastaCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConexaoGastaPayload>[]
+        }
+        delete: {
+          args: Prisma.ConexaoGastaDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConexaoGastaPayload>
+        }
+        update: {
+          args: Prisma.ConexaoGastaUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConexaoGastaPayload>
+        }
+        deleteMany: {
+          args: Prisma.ConexaoGastaDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ConexaoGastaUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ConexaoGastaUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConexaoGastaPayload>[]
+        }
+        upsert: {
+          args: Prisma.ConexaoGastaUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConexaoGastaPayload>
+        }
+        aggregate: {
+          args: Prisma.ConexaoGastaAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateConexaoGasta>
+        }
+        groupBy: {
+          args: Prisma.ConexaoGastaGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ConexaoGastaGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ConexaoGastaCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ConexaoGastaCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -5548,6 +5623,21 @@ export const DepartmentLadderRecordScalarFieldEnum = {
 export type DepartmentLadderRecordScalarFieldEnum = (typeof DepartmentLadderRecordScalarFieldEnum)[keyof typeof DepartmentLadderRecordScalarFieldEnum]
 
 
+export const ConexaoGastaScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  plataforma: 'plataforma',
+  competencia: 'competencia',
+  motivo: 'motivo',
+  custo: 'custo',
+  oportunidadeId: 'oportunidadeId',
+  registradoPor: 'registradoPor',
+  criadoEm: 'criadoEm'
+} as const
+
+export type ConexaoGastaScalarFieldEnum = (typeof ConexaoGastaScalarFieldEnum)[keyof typeof ConexaoGastaScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -5769,6 +5859,7 @@ export type GlobalOmitConfig = {
   rateLimitBucket?: Prisma.RateLimitBucketOmit
   departmentLadder?: Prisma.DepartmentLadderOmit
   departmentLadderRecord?: Prisma.DepartmentLadderRecordOmit
+  conexaoGasta?: Prisma.ConexaoGastaOmit
 }
 
 /* Types for Logging */

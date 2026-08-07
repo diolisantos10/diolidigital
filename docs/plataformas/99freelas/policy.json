@@ -9,10 +9,21 @@
   ],
 
   "platform": "99freelas",
-  "version": "2026-08",
+  "version": "2026-08-b",
   "active": true,
   "policy_verified_at": "2026-08-07",
   "verificado_por": "PM da frente 99Freelas, sob a trava de plataforma de 03/08/2026",
+
+  "regra_oficial_do_ceo": {
+    "modo": "ENVIO_SUPERVISIONADO",
+    "declarado_em": "2026-08-07",
+    "palavras_do_ceo": "O agente pode localizar projetos, ler briefings, eliminar oportunidades ruins, calcular score, precificar, criar uma proposta individualizada e preencher a candidatura. Antes do clique final em 'Enviar proposta', deve parar para aprovação humana.",
+    "fundamento": "Os termos públicos atuais do 99Freelas não trazem proibição explícita de bots/automação, mas também não fornecem autorização expressa para automação de candidaturas. Como spam e violações podem resultar inclusive em banimento de outras contas do mesmo usuário, não liberar submissão automática até obter autorização formal do 99Freelas.",
+    "registro": "docs/decisoes.md — 07/08/2026"
+  },
+
+  "prioridade_no_roadmap": 3,
+  "prioridade_motivo": "Terceiro no roadmap depois da pesquisa do CEO de 07/08/2026 (Upwork 1, Freelancer.com 2) — mas o PRIMEIRO a ficar pronto: é o que já está construído e o mercado é o do CEO.",
 
   "integration_mode": "BROWSER_DISCOVERY_HUMAN_GATE_SUBMISSION",
 
@@ -63,14 +74,34 @@
     "janela_motivo": "No plano gratuito só é possível propor DEPOIS de 24h da publicação do projeto.",
     "teto_diario_deve_ser_lido_da_plataforma": true,
     "teto_diario_motivo": "Número fixo no .env descola do saldo real e queima cota que não se recupera. O teto sai do saldo lido, nunca de configuração.",
-    "plano_da_conta_do_ceo": null,
-    "plano_da_conta_do_ceo_motivo": "NÃO CONFIRMADO. Ausência de informação não é informação — enquanto for null, o ritmo é o do plano gratuito (fail closed)."
+
+    "plano_declarado_da_conta": "premium",
+    "plano_declarado_procedencia": "declarado pelo CEO em 07/08/2026, em conversa com o Diretor. NÃO foi lido da tela da plataforma — nenhum login foi feito nesta rodada.",
+    "plano_padrao_sem_declaracao": "gratuito",
+    "plano_padrao_motivo": "FAIL CLOSED: enquanto ninguém declarar o plano, o sistema opera como Gratuito (10 conexões/mês). Piso, nunca teto otimista. Apagar `plano_declarado_da_conta` volta o sistema para 10 automaticamente.",
+
+    "medalha_declarada": null,
+    "medalha_motivo": "NÃO CONFIRMADA. Bônus de medalha vale 0 enquanto for null — bônus não confirmado nunca vira cota.",
+
+    "conexoes_nao_expiraveis_em_estoque": null,
+    "conexoes_nao_expiraveis_motivo": "NÃO CONFIRMADO. Vale 0 até ser lido da tela.",
+
+    "custo_em_conexoes_deve_ser_lido_da_tela": true,
+    "custo_desconhecido_vale": "Infinity",
+    "custo_desconhecido_motivo": "A plataforma NÃO publica a tabela de custo por projeto ('varia com o quão disputado é'). Item desconhecido é Infinity de custo, nunca 0 — senão a casa planeja 240 propostas e a cota acaba na 80ª."
   },
 
   "precificacao": {
     "taxa_da_plataforma_percentual": [10, 20],
     "taxa_minima_reais": 5,
-    "taxa_motivo": "'Nós adicionamos uma taxa de 10% a 20% (R$ 5,00 no mínimo) na sua oferta enviada ao Cliente'. A oferta digitada é o que a agência RECEBE. Precificar sem embutir corrói a margem em toda proposta.",
+
+    "taxa_incide_sobre": "ACRESCIMO_AO_CLIENTE",
+    "taxa_incide_sobre_motivo": "DUAS fontes independentes dizem a mesma coisa e CORRIGEM a suposição inicial da casa. (1) Termos de Uso: 'Nós ADICIONAMOS uma taxa de 10% a 20% (R$ 5,00 no mínimo) NA SUA OFERTA enviada ao Cliente (a taxa é sobre o valor final)'. (2) Central de Ajuda, 'Como enviar propostas?': 'Sua oferta ... é o valor que SERÁ RECEBIDO PELO FREELANCER após a conclusão do projeto' e 'Oferta final: a oferta final inclui uma taxa de intermediação'. Ou seja: o que se digita é o LÍQUIDO da agência; a taxa é acrescentada por cima e quem paga é o cliente. Logo, EMBUTIR a taxa no valor digitado NÃO protege margem — ela já está protegida — e só encarece a oferta final, derrubando a taxa de vitória. O que protege a margem é o PISO: max(piso da casa, piso da categoria).",
+    "taxa_por_plano_percentual": { "gratuito": 20, "pro": 15, "premium": 10 },
+    "taxa_por_plano_fonte": "fontes/ajuda-planos-de-freelancers.md — Básico 20%, Pro 15%, Premium 10% de taxa de intermediação.",
+    "taxa_sem_plano_declarado_percentual": 20,
+    "taxa_sem_plano_motivo": "FAIL CLOSED no preço: sem plano declarado, usa-se a faixa MAIS CARA (20%). Errar para menos faz a oferta final ser maior do que o previsto na frente do cliente.",
+    "prazo_para_receber_dias_uteis": { "gratuito": 10, "pro": 7, "premium": 3 },
     "piso_por_categoria_reais": {
       "Administração & Contabilidade": 50,
       "Advogados & Leis": 100,
@@ -87,6 +118,17 @@
     },
     "regra_do_piso": "max(piso da tabela da casa, piso da categoria da plataforma). Nunca o contrário.",
     "valor_maximo": null
+  },
+
+  "follow_up": {
+    "_leia_isto": "NÃO É FASE 11. É condição de não tomar punição: 'não responder o cliente a tempo' é motivo declarado de Violação (30 dias com as propostas rebaixadas para o fim da fila).",
+    "prazo_da_plataforma_horas": null,
+    "prazo_da_plataforma_motivo": "A plataforma NÃO publica quantas horas são 'a tempo'. Ausência de informação não é informação — o número abaixo é REGRA DA CASA, mais apertada que o desconhecido, e está declarado como tal.",
+    "prazo_da_casa_horas": 12,
+    "prazo_da_casa_motivo": "Regra da Dioli, não da plataforma. Escolhida apertada de propósito: errar para o lado de responder cedo custa uma mensagem; errar para o outro custa 30 dias de propostas rebaixadas.",
+    "alerta_da_casa_horas": 6,
+    "leitura_do_chat": "MANUAL",
+    "leitura_do_chat_motivo": "O chat fica atrás do login, e login é BLOCK nesta rodada. Enquanto for assim, a fila de follow-up é alimentada à mão ou pelo e-mail de notificação encaminhado — e isso é RISCO ABERTO, não recurso pronto."
   },
 
   "sancoes": [
@@ -114,5 +156,19 @@
   ],
   "projetos_a_rejeitar_motivo": "São reprovados pela própria plataforma (fontes/ajuda-projetos-nao-permitidos.md). Propor neles queima conexão e chama a moderação.",
 
-  "notes": "Este 🟠 vira 🟢 com UMA coisa: resposta escrita de suporte@99freelas.com.br autorizando automação. Enquanto não houver, auto_submission_allowed permanece false por FAIL CLOSED, e não por suspeita de proibição."
+  "autorizacao_do_suporte": {
+    "_leia_isto": "ESTE É O CAMPO QUE A RESPOSTA DO SUPORTE VAI PREENCHER. É a UMA LINHA DE DADO que troca HUMAN_GATE por ALLOW no envio. Não existe flag escondida no código: `auto_submission_allowed` e a capability `proposalSubmission` só mudam quando `status` aqui virar `autorizado` COM data e evidência.",
+    "status": "nao_perguntado",
+    "status_valores": ["nao_perguntado", "perguntado", "autorizado", "negado", "sem_resposta"],
+    "perguntado_em": null,
+    "respondido_em": null,
+    "canal": null,
+    "remetente": null,
+    "destinatario": "suporte@99freelas.com.br",
+    "pergunta_enviada": "docs/plataformas/99freelas/pergunta-ao-suporte.md",
+    "evidencia": null,
+    "evidencia_motivo": "Caminho do arquivo com a resposta capturada (cabeçalho do e-mail + corpo). Sem evidência arquivada, `autorizado` NÃO vale — o gate exige os três: status, respondido_em e evidencia."
+  },
+
+  "notes": "Este 🟠 vira 🟢 com UMA coisa: resposta escrita de suporte@99freelas.com.br autorizando automação, registrada em `autorizacao_do_suporte`. Enquanto não houver, auto_submission_allowed permanece false por FAIL CLOSED, e não por suspeita de proibição."
 }

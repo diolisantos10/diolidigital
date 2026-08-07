@@ -94,6 +94,114 @@ Conferido nos 3 tamanhos (375/768/1440) com o portal renderizado de verdade.
    fora por tempo, não por decisão técnica. Sem dono ainda.
 
 
+## 🟢 07/08/2026 (noite) — 99FREELAS: **ENVIO SUPERVISIONADO CONSTRUÍDO E VERDE**
+
+**A regra oficial é do CEO** e está em `docs/decisoes.md` com as palavras dele:
+o agente faz tudo — localiza, lê, elimina, pontua, precifica, escreve a proposta
+individualizada e preenche a candidatura — **e para antes do clique**.
+
+### 🔴 DUAS IMPRECISÕES NOSSAS, CORRIGIDAS. As duas eram de dinheiro.
+
+**1. "10 propostas por mês" era generalização.** 10 é a cota do plano **Free**.
+Pro tem 120, Premium tem **240**. E o nome é **conexão**, não proposta — porque
+conexão é gasta **também por pergunta** e **projeto disputado custa mais de
+uma**. O CEO declarou o plano: **Premium, 240**, com a procedência gravada
+(declarado em conversa, **não lido da tela** — nenhum login foi feito).
+**O fail closed continua intacto:** apagar `plano_declarado_da_conta` devolve o
+sistema a 10 sozinho.
+
+**2. "Embuta a taxa de 10–20%, senão a margem é corroída" estava ERRADO.**
+Duas fontes independentes da plataforma dizem que a taxa é **acrescentada por
+cima** e que **a oferta digitada é o que a agência recebe**. Embutir não protege
+margem — só encarece a oferta final em 11% a 25% e derruba a chance de ganhar,
+sem aparecer em relatório nenhum. **O que protege a margem é o piso.** A taxa
+por plano, confirmada na fonte: Básico 20%, Pro 15%, **Premium 10%**.
+
+### O que ficou construído, testado e verde
+
+`lib/marketplaces/` — Policy Engine, Compliance Gate (`ALLOW`/`HUMAN_GATE`/
+`BLOCK`), Compliance Validator, cota de conexões, contador no volume
+(`ConexaoGasta` **com migration**), Pricing Engine, `BrowserComputer` e o
+primeiro loop do agente. **113 testes novos**, cada trava com as duas metades.
+
+- **`enviarProposta` é `HUMAN_GATE`**, e isso **não é falha** — é a arquitetura.
+- **`login` e `contornarAntiBot` são `BLOCK`.** Nenhum login foi feito, nenhuma
+  escrita no 99Freelas aconteceu.
+- **Nasce em SOMBRA:** `prospeccao` entrou na escada da casa
+  (`lib/agency/escada/degraus.ts`).
+- **A trava de spam por repetição existe** e reprova proposta gêmea — a
+  especificação do CEO não pedia.
+- **A referência à comissão é barrada** — a proibição que a `00` não previa.
+
+### A UMA LINHA DE DADO que destrava o envio
+
+`policy.json → autorizacao_do_suporte`: `status: "autorizado"` **+**
+`respondido_em` **+** `evidencia`. **As três juntas, ou não vale.** Não há flag
+de ambiente, `{ forcar: true }` nem `case` no gate — **e há teste que reprova o
+arquivo que voltar a ter qualquer um dos três**.
+
+### 🔴 O QUE DEPENDE DO CEO
+
+1. **Mandar a pergunta ao suporte do 99Freelas** — texto congelado em
+   `docs/plataformas/99freelas/pergunta-ao-suporte.md`.
+   **Do Gmail dele, não da agência.** Medido por DNS público em 07/08:
+   `diolidigital.com.br` **não tem TXT, MX nem `resend._domainkey`** (não está
+   verificado no Resend) e `dioli.studio` é **NXDOMAIN**. O `sendEmail` cairia
+   em `onboarding@resend.dev`, que **só entrega para o dono da conta Resend** —
+   o e-mail nunca chegaria. *(Não confirmei se `RESEND_API_KEY`/`RESEND_FROM`
+   existem em produção: não há token do Railway aqui. Não muda a conclusão.)*
+2. **Mandar os dois pedidos de API** — `docs/plataformas/upwork/pedido-de-api.md`
+   e `docs/plataformas/freelancer/pedido-de-api.md`. **O prazo é externo:**
+   análise leva dias ou semanas e, enquanto ninguém pede, o relógio não começa.
+3. **Conferir o perfil da conta** — link ou contato no perfil é violação, e o
+   robô chama atenção para esse perfil.
+4. **O primeiro clique.** A candidatura sai pronta; ninguém a envia por ele.
+
+### 🟠 RISCOS ABERTOS, DECLARADOS
+
+- **A entrada do follow-up não existe.** O mecanismo está pronto e freia o envio
+  quando há cliente esperando — mas o chat fica atrás do login, e login é
+  `BLOCK`. Hoje a fila só enche à mão. **A sanção está mitigada em código e
+  exposta na operação.**
+- **Nenhuma página real do 99Freelas foi lida ainda.** O `BrowserComputer` está
+  testado em unidade; a primeira leitura de verdade é a prova que falta.
+- **O custo em conexões nunca foi lido de uma tela real.** Enquanto não for,
+  todo envio é `BLOCK` por `Infinity` — correto, e ainda não exercitado.
+
+## 🟢 07/08/2026 (noite) — AS CINCO PLATAFORMAS VIRARAM DADO
+
+Da pesquisa do CEO (`docs/projetos/99freelas/02-PESQUISA-DO-CEO-plataformas.md`).
+Cinco `policy.json`, lidas pelo mesmo Policy Engine. **Nenhum adaptador novo foi
+construído — policy e pedidos, só.**
+
+**Ordem de ataque:** Upwork 1 · Freelancer.com 2 · **99Freelas 3** · Workana 4 ·
+Fiverr 5. O 99Freelas cai para terceiro no roadmap e continua sendo o primeiro a
+ficar pronto.
+
+**🎓 O caso-escola que o Policy Engine agora carrega:** a Freelancer.com **tem**
+API oficial grande, com sandbox e SDK — **e** os Termos Gerais exigem autorização
+escrita para acesso automatizado, **dizendo explicitamente que isso inclui a
+própria API**. `api_available` e `api_authorization_required` são campos
+**independentes**, e o segundo vale `true` quando ausente. **Ter API não é ter
+permissão** — um motor que colapsasse os dois autorizaria o que os termos
+proíbem, e o erro pareceria certo para quem lesse o código.
+
+- **Workana e Fiverr proíbem crawling com todas as letras** — mais explícitas que
+  o 99Freelas. Nelas `descobrir` e `lerProjeto` são **`BLOCK`**, não
+  `HUMAN_GATE`: varrer já é o comportamento proibido. A entrada é texto colado ou
+  e-mail encaminhado.
+- **⚠️ Fiverr: a janela do Brief é de 72 h** e está gravada como dado.
+  **Brief vencido é oportunidade perdida em silêncio** — a plataforma não avisa.
+- **A procedência das quatro linhas novas está declarada:**
+  `procedencia_das_fontes: "PESQUISA_DO_CEO"`. **Não são captura conferida por
+  hash**, ao contrário da biblioteca do 99Freelas.
+
+**A frase do CEO que vira princípio da casa:** o Opportunity Engine é **100%
+automático por dentro**; o `HUMAN_GATE` entra só onde a plataforma exige.
+*"Sete propostas prontas — revisar e enviar"* continua sendo automação.
+
+**Portão:** `tsc` limpo, **2617 testes** em 164 arquivos, `npm run build` limpo.
+
 ## 🟠 07/08/2026 — FRENTE 99FREELAS: **PODE COM AJUSTE.** Dono: PM do 99Freelas
 
 Pedido do CEO: um agente autônomo que opera o 99Freelas por navegador e envia

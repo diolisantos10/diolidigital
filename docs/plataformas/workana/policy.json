@@ -1,0 +1,57 @@
+{
+  "_leia_isto": [
+    "Linha do `platform_policies` (§46/§47 da especificação 01 do CEO).",
+    "Fonte primária: docs/projetos/99freelas/02-PESQUISA-DO-CEO-plataformas.md",
+    "⚠️ NÃO CAPTURADA POR ROTINA — derivada da pesquisa do CEO de 07/08/2026."
+  ],
+
+  "platform": "workana",
+  "version": "2026-08",
+  "active": true,
+  "policy_verified_at": "2026-08-07",
+  "verificado_por": "pesquisa do CEO (02-PESQUISA-DO-CEO-plataformas.md)",
+  "procedencia_das_fontes": "PESQUISA_DO_CEO",
+
+  "prioridade_no_roadmap": 4,
+
+  "integration_mode": "ASSISTIDO_ENTRADA_MANUAL",
+
+  "browser_automation_allowed": false,
+  "browser_automation_motivo": "PROIBIÇÃO EXPRESSA nos Termos e Condições: não se pode utilizar robô, spider, processos manuais ou automáticos ou dispositivos para mineração de dados, crawling, scraping ou indexação do site. Diferente do 99Freelas, aqui NÃO é silêncio de contrato — é proibição textual. E ela alcança a DESCOBERTA: para o robô achar projetos e ler páginas, ele já faria a atividade proibida.",
+
+  "api_available": false,
+  "api_authorization_required": false,
+  "api_motivo": "Não há API pública de marketplace. As páginas 'API' do site são anúncios para CONTRATAR freelancers especialistas em API — não uma API da Workana.",
+
+  "auto_submission_allowed": false,
+  "auto_messaging_allowed": false,
+  "human_gate_required": true,
+  "external_links_allowed_pre_contract": false,
+  "external_contact_allowed_pre_contract": false,
+
+  "capabilities": {
+    "discovery": "BLOCKED",
+    "projectRead": "BLOCKED",
+    "proposalSubmission": "MANUAL",
+    "messaging": "MANUAL",
+    "statusSync": "BLOCKED",
+    "_motivo": "Descoberta e leitura são BLOCKED, não MANUAL: são exatamente o comportamento proibido por escrito. O projeto entra no sistema por texto colado ou e-mail encaminhado — o mesmo desenho de lib/agency/comercial/oportunidade.ts."
+  },
+
+  "proibicoes_de_conteudo": {
+    "spam": "Publicar repetidamente a mesma mensagem ou mensagens similares é ESTRITAMENTE PROIBIDO.",
+    "contato_externo": "Proibidos telefone, WhatsApp, e-mail, LinkedIn, redes sociais, links externos e links diretos do Behance durante o relacionamento protegido pela plataforma. ⚠️ O LINK DO BRIEFING DA DIOLI TAMBÉM NÃO ENTRA."
+  },
+
+  "autorizacao_do_provedor": {
+    "status": "nao_perguntado",
+    "status_valores": ["nao_perguntado", "perguntado", "autorizado", "negado", "sem_resposta"],
+    "perguntado_em": null,
+    "respondido_em": null,
+    "evidencia": null,
+    "pedido": null,
+    "pedido_motivo": "Sem pedido escrito nesta rodada — prioridade 4. O caminho, se houver, é autorização formal à Workana."
+  },
+
+  "notes": "O que a casa PODE fazer aqui, 100% automático: analisar o projeto fornecido ao sistema, precificar e escrever a proposta. O humano cola e envia."
+}

@@ -105,7 +105,8 @@ export const ModelName = {
   Oportunidade: 'Oportunidade',
   RateLimitBucket: 'RateLimitBucket',
   DepartmentLadder: 'DepartmentLadder',
-  DepartmentLadderRecord: 'DepartmentLadderRecord'
+  DepartmentLadderRecord: 'DepartmentLadderRecord',
+  ConexaoGasta: 'ConexaoGasta'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1103,6 +1104,21 @@ export const DepartmentLadderRecordScalarFieldEnum = {
 } as const
 
 export type DepartmentLadderRecordScalarFieldEnum = (typeof DepartmentLadderRecordScalarFieldEnum)[keyof typeof DepartmentLadderRecordScalarFieldEnum]
+
+
+export const ConexaoGastaScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  plataforma: 'plataforma',
+  competencia: 'competencia',
+  motivo: 'motivo',
+  custo: 'custo',
+  oportunidadeId: 'oportunidadeId',
+  registradoPor: 'registradoPor',
+  criadoEm: 'criadoEm'
+} as const
+
+export type ConexaoGastaScalarFieldEnum = (typeof ConexaoGastaScalarFieldEnum)[keyof typeof ConexaoGastaScalarFieldEnum]
 
 
 export const SortOrder = {

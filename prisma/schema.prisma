@@ -1751,3 +1751,46 @@ model DepartmentLadderRecord {
 
   @@index([workspaceId, departmentId, criadoEm])
 }
+
+// ─── O CONTADOR DE CONEXÕES DO 99FREELAS ─────────────────────────────────────
+//
+// Por que no BANCO e não num contador em memória: a cota é MENSAL e conexão
+// gasta NÃO VOLTA. Um contador que mora no processo zera a cada deploy — e um
+// teto que zera é um teto que não existe, exatamente o defeito que o raio-x de
+// 05/08 nomeou no rate limit. Aqui cada gasto vira uma linha no volume.
+//
+// Uma linha por CONEXÃO GASTA, não por proposta: pergunta ao cliente também
+// consome, e projeto disputado consome mais de uma. `custo` é o número LIDO DA
+// TELA da plataforma — nunca inferido, nunca 1 por padrão.
+model ConexaoGasta {
+  id          String @id @default(cuid())
+  workspaceId String
+  /// Slug da plataforma. Hoje só "99freelas" tem cota de conexão, mas a coluna
+  /// existe porque a segunda plataforma não pode exigir uma tabela nova.
+  plataforma  String
+
+  /// "2026-08" — o mês da cota, no fuso de São Paulo. A cota vira à meia-noite
+  /// do CEO, não à do UTC; sem isto, três horas de todo dia 31 liberariam cota
+  /// que ainda não existe.
+  competencia String
+
+  /// "proposta" | "pergunta". As duas gastam.
+  motivo String
+  /// Quantas conexões esta interação consumiu, LIDO DA TELA. A plataforma não
+  /// publica a tabela ("varia com o quão disputado é"), então inferir aqui é
+  /// inventar — e o erro só aparece quando a cota acaba no meio do mês.
+  custo  Int
+
+  /// A oportunidade correspondente, quando houver.
+  oportunidadeId String?
+  /// Quem confirmou o gasto. Enquanto o envio for HUMAN_GATE, é sempre gente.
+  registradoPor  String
+
+  criadoEm DateTime @default(now())
+
+  /// A pergunta que a casa faz toda vez: quanto já gastei neste mês?
+  @@index([workspaceId, plataforma, competencia])
+  /// A trava contra contar duas vezes a mesma proposta. `oportunidadeId` nulo
+  /// (perguntas avulsas) não colide: no SQLite, NULLs são distintos entre si.
+  @@unique([workspaceId, plataforma, motivo, oportunidadeId])
+}

@@ -1,0 +1,55 @@
+{
+  "_leia_isto": [
+    "Linha do `platform_policies` (§46/§47 da especificação 01 do CEO).",
+    "Fonte primária: docs/projetos/99freelas/02-PESQUISA-DO-CEO-plataformas.md",
+    "⚠️ NÃO CAPTURADA POR ROTINA — derivada da pesquisa do CEO de 07/08/2026.",
+    "🎓 ESTA É A LINHA-ESCOLA do Policy Engine: ver `api_available` × `api_authorization_required`."
+  ],
+
+  "platform": "freelancer",
+  "version": "2026-08",
+  "active": true,
+  "policy_verified_at": "2026-08-07",
+  "verificado_por": "pesquisa do CEO (02-PESQUISA-DO-CEO-plataformas.md)",
+  "procedencia_das_fontes": "PESQUISA_DO_CEO",
+  "procedencia_motivo": "Sem `fontes/` capturada. Afirmações rastreáveis à pesquisa do CEO, não conferidas contra o original por esta casa.",
+
+  "prioridade_no_roadmap": 2,
+
+  "integration_mode": "API_OFICIAL_MEDIANTE_AUTORIZACAO_ESCRITA",
+
+  "browser_automation_allowed": false,
+  "browser_automation_motivo": "Termos Gerais: não se pode usar robot, spider, scraper ou qualquer meio automatizado para acessar o site.",
+
+  "api_available": true,
+  "api_authorization_required": true,
+  "api_motivo": "🎓 A PEGADINHA MAIS IMPORTANTE DA PESQUISA, e a razão de estes dois campos serem INDEPENDENTES. A Freelancer.com tem API oficial grande, com sandbox e SDKs, e literalmente promove 'automação dos processos de negócio em escala'. MAS os Termos Gerais exigem autorização expressa POR ESCRITO para acesso automatizado — E DEIXAM EXPLÍCITO QUE ISSO INCLUI O ACESSO À PRÓPRIA API. TER API NÃO É TER PERMISSÃO. Um Policy Engine que colapsasse os dois campos num só ('tem API ⇒ pode') autorizaria exatamente o que os termos proíbem.",
+
+  "auto_submission_allowed": false,
+  "auto_messaging_allowed": false,
+  "human_gate_required": true,
+  "external_links_allowed_pre_contract": false,
+  "external_contact_allowed_pre_contract": false,
+
+  "capabilities": {
+    "discovery": "MANUAL",
+    "projectRead": "MANUAL",
+    "proposalSubmission": "MANUAL",
+    "messaging": "MANUAL",
+    "statusSync": "MANUAL",
+    "_motivo": "MANUAL até haver autorização ESCRITA associada ao nosso aplicativo. A licença limitada da documentação da API não substitui a autorização exigida nos Termos Gerais — foi essa distinção que a pesquisa do CEO achou."
+  },
+
+  "autorizacao_do_provedor": {
+    "status": "nao_perguntado",
+    "status_valores": ["nao_perguntado", "perguntado", "autorizado", "negado", "sem_resposta"],
+    "perguntado_em": null,
+    "respondido_em": null,
+    "escopos_concedidos": null,
+    "evidencia": null,
+    "pedido": "docs/plataformas/freelancer/pedido-de-api.md",
+    "o_que_confirmar": "Não basta a API key: é preciso confirmação de que o uso autorizado INCLUI o gerenciamento automatizado de bids da PRÓPRIA CONTA."
+  },
+
+  "notes": "A política de privacidade deles reconhece aplicações de terceiros conectadas à conta via API que podem agir em nome do usuário conforme as permissões concedidas — o que é a forma certa, e não o Playwright com login."
+}

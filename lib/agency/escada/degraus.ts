@@ -74,7 +74,22 @@ export function alturaDo(degrau: Degrau): number {
 const EXECUTORES_AVULSOS: Record<string, string> = {
   "design-kit-de-marca": "design",
   "relatorio-mensal": "analytics",
+  // ── PROSPECÇÃO EM MARKETPLACE (07/08/2026) ────────────────────────────────
+  // O agente do 99Freelas produz uma PROPOSTA COMERCIAL que sai em nome da
+  // agência. Não é entregável de cliente, mas é saída para fora — e é
+  // exatamente isso que a escada existe para medir. Nasce em `sombra`, como
+  // todo departamento novo: produz, registra e não chega a lugar nenhum sem
+  // decisão humana. O HUMAN_GATE do envio é a face operacional do mesmo degrau.
+  "99freelas-prospeccao": "prospeccao",
 };
+
+/**
+ * Departamentos que produzem saída para FORA e não têm especialista de
+ * entregável em `DEPARTAMENTOS`. Sem esta lista, `prospeccao` não teria linha
+ * na escada — e "sem linha" é invisível na tela, mesmo estando fail-closed.
+ * É o mesmo motivo pelo qual o financeiro entrou em `departamentosDaCasa`.
+ */
+const DEPARTAMENTOS_SEM_ESPECIALISTA_DE_ENTREGAVEL = ["prospeccao"];
 
 const AGENTE_PARA_DEPARTAMENTO: Map<string, string> = (() => {
   const m = new Map<string, string>();
@@ -116,7 +131,11 @@ export function departamentosQueProduzem(): string[] {
  * dela sem arrastar o cliente do banco junto.
  */
 export function departamentosDaCasa(): string[] {
-  return [...new Set([...BRAIN_DEPARTMENTS.map((d) => d.id), ...departamentosQueProduzem()])].sort();
+  return [...new Set([
+    ...BRAIN_DEPARTMENTS.map((d) => d.id),
+    ...departamentosQueProduzem(),
+    ...DEPARTAMENTOS_SEM_ESPECIALISTA_DE_ENTREGAVEL,
+  ])].sort();
 }
 
 /** O nome que a casa usa para o departamento. Sai das listas existentes — um

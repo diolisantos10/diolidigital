@@ -1,0 +1,63 @@
+{
+  "_leia_isto": [
+    "Linha do `platform_policies` (§46/§47 da especificação 01 do CEO).",
+    "POLÍTICA DE PLATAFORMA É DADO, NÃO TEXTO DE PROMPT (§48).",
+    "Fonte primária: docs/projetos/99freelas/02-PESQUISA-DO-CEO-plataformas.md",
+    "— o CEO foi aos termos e páginas oficiais em 07/08/2026.",
+    "⚠️ ESTA LINHA NÃO FOI CAPTURADA POR ROTINA. É derivada da pesquisa do CEO,",
+    "não de arquivos em `fontes/` conferidos por hash. Está declarado abaixo.",
+    "Mudou a regra? A linha antiga vira active:false e nasce outra (§48)."
+  ],
+
+  "platform": "upwork",
+  "version": "2026-08",
+  "active": true,
+  "policy_verified_at": "2026-08-07",
+  "verificado_por": "pesquisa do CEO (02-PESQUISA-DO-CEO-plataformas.md)",
+  "procedencia_das_fontes": "PESQUISA_DO_CEO",
+  "procedencia_motivo": "Ainda NÃO existe `fontes/` capturada para esta plataforma. Toda afirmação aqui é rastreável à pesquisa do CEO; nenhuma foi conferida contra o texto original por esta casa. Enquanto for assim, o gate opera no fail closed máximo.",
+
+  "prioridade_no_roadmap": 1,
+  "prioridade_motivo": "Melhor candidata: é a ÚNICA das cinco que PROÍBE automação por escrito E OFERECE CAMINHO OFICIAL para autorizá-la.",
+
+  "integration_mode": "API_OFICIAL_MEDIANTE_AUTORIZACAO",
+
+  "browser_automation_allowed": false,
+  "browser_automation_motivo": "A Upwork define bot/automação de forma ampla — script, extensão ou serviço que envie requisições, colete dados, execute ações mais rápido que um humano, monitore vagas, faça auto-refresh, use RPA/macros ou interaja com as páginas. Automação NÃO AUTORIZADA gera aviso, restrição temporária ou bloqueio permanente da conta.",
+
+  "api_available": true,
+  "api_authorization_required": true,
+  "api_motivo": "Existe API GraphQL documentada, com objetos de jobs, propostas, mensagens, contratos e equipes — inclusive `VendorProposal`, a candidatura enviada pelo freelancer. O acesso depende de API key concedida após ANÁLISE DA CONTA E DO CASO DE USO. A própria Upwork diz que proprietário de agência pode solicitar para integrar aos sistemas internos.",
+
+  "auto_submission_allowed": false,
+  "auto_messaging_allowed": false,
+  "human_gate_required": true,
+  "external_links_allowed_pre_contract": false,
+  "external_contact_allowed_pre_contract": false,
+
+  "capabilities": {
+    "discovery": "MANUAL",
+    "projectRead": "MANUAL",
+    "proposalSubmission": "MANUAL",
+    "messaging": "MANUAL",
+    "statusSync": "MANUAL",
+    "_motivo": "Tudo MANUAL até a API key ser concedida. Não há caminho autorizado hoje: navegador é proibido por escrito e a API exige aprovação que ainda não foi pedida."
+  },
+
+  "proibicoes_de_conteudo": {
+    "spam_de_propostas": "PROIBIDO MESMO COM API KEY. A Upwork mantém a proibição de spam de propostas ou convites independentemente da autorização técnica. É a regra que impede '100 vagas → 100 candidaturas'."
+  },
+
+  "autorizacao_do_provedor": {
+    "_leia_isto": "É ESTE campo que a resposta da Upwork vai preencher. `capabilities` só muda quando `status` virar `autorizado` COM data, escopos concedidos e evidência.",
+    "status": "nao_perguntado",
+    "status_valores": ["nao_perguntado", "perguntado", "autorizado", "negado", "sem_resposta"],
+    "perguntado_em": null,
+    "respondido_em": null,
+    "escopos_concedidos": null,
+    "evidencia": null,
+    "pedido": "docs/plataformas/upwork/pedido-de-api.md"
+  },
+
+  "notes": "O desenho defensável, nas palavras do CEO: 100 vagas encontradas → IA qualifica → 12 realmente compatíveis → 12 propostas INDIVIDUALIZADAS. Volume filtrado, não volume disparado."
+}

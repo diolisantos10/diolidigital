@@ -470,3 +470,8 @@ export type DepartmentLadder = Prisma.DepartmentLadderModel
  * apareceria com histórico limpo.
  */
 export type DepartmentLadderRecord = Prisma.DepartmentLadderRecordModel
+/**
+ * Model ConexaoGasta
+ * 
+ */
+export type ConexaoGasta = Prisma.ConexaoGastaModel
