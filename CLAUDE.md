@@ -60,15 +60,43 @@ CEO  →  DIRETOR (você)  →  PROJECT MANAGER (`pm`)  →  especialistas
 
 ### Os especialistas desta casa
 
+### 🏛️ OS CINCO ESSENCIAIS — ordem do CEO de 07/08/2026
+
+Cinco agentes existem em **todo** projeto Dioli, não podem ser apagados, e a
+constituição deles mora no `dioli-brain-kit`
+(`docs/21-elenco-obrigatorio.md` e `docs/23-constituicao-dos-essenciais.md`).
+**Regra não se copia, se aponta** — não reproduza a constituição aqui.
+
+| Essencial | A pergunta que ele responde |
+|---|---|
+| `qualidade` | "isto está bom o bastante para chegar ao cliente?" — **somente leitura** |
+| `cerebro` | "a base sustenta o que este departamento afirmou?" |
+| `interface` | "esta tela está bem feita?" — forma: token, tipografia, espaço, responsivo |
+| `experiencia` | "esta tela **deveria existir**, e a pessoa consegue fazer o que veio fazer?" — **somente leitura** |
+| `seguranca` | "quem entra sem ser convidado, e quem entrou alcança o que não é dele?" |
+
+> **Por que `interface` e `experiencia` são dois.** Uma tela pode tirar nota
+> máxima de aparência e ainda assim não deixar a pessoa fazer o que veio fazer.
+> Quem responde pelos dois papéis nunca faz a pergunta cara — *"esta tela
+> deveria existir?"* — porque avaliar o que já está desenhado é sempre mais
+> barato do que questionar a existência dele.
+>
+> **Por que `qualidade` e `experiencia` não escrevem.** Quem duvida do trabalho
+> não pode ser quem conserta o trabalho. É construção, não preferência.
+>
+> **Por que `seguranca` saiu de dentro de `plataforma`.** Em 07/08/2026 houve
+> três urgências de produção no mesmo dia e **zero varredura de superfície
+> exposta**: segurança dividia fila com deploy e perdia todos os dias. Fila
+> compartilhada com urgência não é prioridade, é fila.
+
+### Os especialistas de domínio desta casa
+
 | Agente | Quando despachar |
 |---|---|
 | `pm` | **A PORTA DE ENTRADA DE TODO TRABALHO.** Ele distribui, cobra e consolida |
-| `cerebro` | núcleo do raciocínio, governança, snapshot de verdade |
 | `departamentos` | os 8 departamentos, motores, canvases, scorecards |
-| `qualidade` | portões, evidência, escada — **dono do P0 da casa** |
 | `esteira` | briefing → proposta → projeto → deliverable → portal |
-| `interface` | as quatro telas, dono do `DESIGN.md` |
-| `plataforma` | auth, banco, segurança, integrações, deploy, provedores de IA |
+| `plataforma` | auth, banco, integrações, deploy, provedores de IA (**segurança não é mais dele**) |
 | `meta` · `google` · `tiktok` | **os especialistas-trava das plataformas** — ver regra abaixo |
 
 ### 🔒 REGRA DA TRAVA DE PLATAFORMA — decidida pelo CEO em 03/08/2026

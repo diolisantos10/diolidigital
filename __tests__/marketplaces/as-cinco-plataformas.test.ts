@@ -128,7 +128,31 @@ describe("os dois pedidos formais de API existem, prontos para o CEO", () => {
   it.each(pedidos)("%s: o texto do pedido está na biblioteca", (_p, caminho) => {
     const t = readFileSync(resolve(RAIZ, caminho), "utf8");
     expect(t.length).toBeGreaterThan(1500);
-    expect(t).toMatch(/NÃO ENVIADO/);
+  });
+
+  // ── POR QUE ESTE TESTE MUDOU EM 07/08/2026 ────────────────────────────────
+  //
+  // Ele exigia a frase "NÃO ENVIADO" no documento. Parecia zelo — era uma
+  // armadilha: o pedido foi enviado no mesmo dia, o documento passou a dizer a
+  // verdade, e o teste ficou VERMELHO por isso. Um teste que fica vermelho
+  // quando o mundo anda para frente não protege nada; ensina a mexer no
+  // documento para o teste calar.
+  //
+  // O que importa não é QUAL estado, é que o estado seja DECLARADO e com data
+  // quando já saiu — porque o relógio dessas respostas é externo, e sem data
+  // ninguém sabe quando cobrar nem há quanto tempo o HUMAN_GATE está travado.
+  it.each(pedidos)("%s: o pedido declara seu estado, e com data se já saiu", (_p, caminho) => {
+    const t = readFileSync(resolve(RAIZ, caminho), "utf8");
+    const linha = t.split("\n").find((l) => l.includes("**Estado:"));
+    expect(linha, "o documento tem que declarar o estado do pedido").toBeTruthy();
+
+    const enviado = /ENVIAD[OA]/.test(linha!) && !/NÃO ENVIAD[OA]/.test(linha!);
+    if (enviado) {
+      // Enviado sem data é o mesmo que não saber se foi enviado.
+      expect(linha, "pedido enviado tem que carregar a data").toMatch(/\d{2}\/\d{2}\/\d{4}/);
+    } else {
+      expect(linha).toMatch(/NÃO ENVIAD[OA]/);
+    }
   });
 
   it.each(pedidos)("%s: o pedido NÃO usa as palavras que descrevem o que não vamos fazer", (_p, caminho) => {
