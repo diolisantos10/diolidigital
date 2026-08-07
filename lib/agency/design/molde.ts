@@ -43,8 +43,27 @@
 // em `lacunas`. Quem lê a peça sabe que aquele cinza é ausência de marca, não a
 // marca do cliente.
 
+//
+// ── A VIRADA DE 07/08/2026: UMA COMPOSIÇÃO SÓ ERA O DEFEITO ─────────────────
+//
+// Até aqui este arquivo tinha UMA composição: foto cheia + degradê + texto por
+// cima. Foi ela que produziu as 36 telas iguais da Foocci, e é ela que o CEO
+// apontou em 07/08/2026: "as peças de referência DIVIDEM A TELA — um lado é
+// fundo sólido com o texto, o outro é foto. Divisão reta OU em curva. As nossas
+// jogam texto por cima da foto com degradê."
+//
+// Agora o molde sabe desenhar TRÊS composições (`Composicao`, definida em
+// `repertorio.ts`), e quem escolhe qual **não é este arquivo**: é o cérebro
+// criativo da marca, a partir do papel que a tela cumpre na história.
+//
+// Duas coisas NÃO mudaram, e são o que mantém a conferência de letra de pé:
+//   • os elementos de texto são os MESMOS em qualquer composição (`data-papel`).
+//     Composição que inventasse elemento novo criaria texto não conferido;
+//   • nenhuma composição usa `text-transform` nem fonte de rede.
+
 import { escaparHtml, type TextoDaPeca } from "./texto-da-peca";
 import { cssDoMockup } from "./mockup";
+import type { Composicao } from "./repertorio";
 
 // Reexportados para que nenhum chamador antigo precise mudar de import. A
 // definição mora em `texto-da-peca.ts` desde 06/08/2026 — ver o porquê lá.
@@ -246,6 +265,18 @@ export interface PecaDoMolde {
    * Os `textos` entram na conferência do renderizador junto com os do molde.
    */
   mockup?: { html: string; textos: TextoDaPeca[] } | null;
+  /**
+   * A COMPOSIÇÃO desta tela — onde o texto mora dentro da peça.
+   *
+   * Ausente = `foto-cheia`, o layout histórico. Nenhuma peça muda de cara sem
+   * alguém pedir; o que muda é que agora existe pedido possível.
+   *
+   * Quem escolhe NÃO é este arquivo: é o cérebro criativo da marca, a partir do
+   * PAPEL que a tela cumpre na história (`repertorio.ts`,
+   * `composicaoParaFuncao`). Layout deixou de ser preferência e virou
+   * consequência da função.
+   */
+  composicao?: Composicao | null;
 }
 
 /**
@@ -341,14 +372,28 @@ export function montarHtmlDaPeca(peca: PecaDoMolde, molde: Molde): string {
   const monograma = monogramaDe(peca.assinatura);
   const temFundo = typeof peca.fundo === "string" && peca.fundo.length > 0;
 
+  // ── O CAMPO PRÓPRIO DO TEXTO ──────────────────────────────────────────────
+  //
+  // Nas composições DIVIDIDAS o texto não fica sobre a foto: ele tem um campo
+  // sólido só dele, e a foto ocupa a parte de cima. Não é estética — com campo
+  // próprio a legibilidade deixa de depender do que a IA desenhou naquele
+  // canto, e por isso o degradê (que escurecia a foto inteira para salvar a
+  // letra) não precisa existir ali. A CURVA é o mesmo painel com recorte
+  // elíptico subindo sobre a foto.
+  const composicao: Composicao = peca.composicao ?? "foto-cheia";
+  const dividida = composicao === "dividido-reto" || composicao === "dividido-curva";
+  const ALTURA_DA_FOTO_PCT = 46;
+  const SUBIDA_DA_CURVA_PX = 90;
+
   // Sobre foto, o texto precisa de um degradê por baixo — sem ele a legibilidade
   // depende da sorte do que a IA desenhou naquele canto. A cor do degradê é a
   // PRIMÁRIA da marca, então até a sombra pertence à identidade do cliente.
-  const scrim = temFundo
+  // Na composição dividida ele não existe: o campo sólido já resolve.
+  const scrim = temFundo && !dividida
     ? `linear-gradient(to top, ${molde.primaria} 0%, ${molde.primaria}F2 26%, ${molde.primaria}00 62%)`
     : "none";
 
-  const tinta = temFundo ? tintaSobre(molde.primaria) : molde.tinta;
+  const tinta = temFundo || dividida ? tintaSobre(molde.primaria) : molde.tinta;
   const apoioCor = molde.secundaria;
   const el = (papel: string, tag: string, classe: string) => {
     const t = textos.get(papel as TextoDaPeca["papel"]);
@@ -369,12 +414,27 @@ export function montarHtmlDaPeca(peca: PecaDoMolde, molde: Molde): string {
   }
   .peca { position:relative; width:${dim.largura}px; height:${dim.altura}px; overflow:hidden; }
   .foto {
-    position:absolute; inset:0;
+    position:absolute;
+    /* Composição de painel: a foto ocupa só a parte de cima. Composição de
+       foto cheia: ela ocupa a tela inteira, como sempre ocupou. */
+    left:0; right:0; top:0;
+    ${dividida ? `height:${ALTURA_DA_FOTO_PCT}%;` : "bottom:0;"}
     background-image:${temFundo ? `url("${escaparHtml(peca.fundo!)}")` : "none"};
     background-size:cover; background-position:center;
     background-color:${molde.primaria};
   }
   .scrim { position:absolute; inset:0; background:${scrim}; }
+  /* O PAINEL: o campo próprio do texto. Existe só nas composições divididas.
+     A CURVA é este mesmo painel com recorte elíptico no topo, subindo sobre a
+     foto — é a assinatura mais reconhecível do repertório de referência.
+     Fica ANTES do conteúdo no DOM e sem z-index próprio: pinta atrás do texto
+     pela ordem natural, e não por uma camada que um dia alguém reordena. */
+  .painel {
+    position:absolute; left:0; right:0; bottom:0;
+    top:${dividida ? `calc(${ALTURA_DA_FOTO_PCT}% - ${composicao === "dividido-curva" ? SUBIDA_DA_CURVA_PX : 0}px)` : "100%"};
+    background:${molde.primaria};
+    ${composicao === "dividido-curva" ? "border-radius:50% 50% 0 0 / 120px 120px 0 0;" : ""}
+  }
   /* O traço de acento. Fica DENTRO do bloco de texto, encostado no selo —
      elemento solto no canto vira sujeira quando o formato muda de proporção. */
   .acento { width:96px; height:8px; background:${apoioCor}; border-radius:4px; }
@@ -385,7 +445,10 @@ export function montarHtmlDaPeca(peca: PecaDoMolde, molde: Molde): string {
        Nada de texto pode entrar na faixa de ${dim.margemBase}px do pé — é ali
        que a interface do Instagram desenha por cima. */
     bottom:${dim.margemBase + ALTURA_DO_RODAPE}px;
-    top:${dim.margemTopo}px;
+    /* Na composição dividida o conteúdo começa DENTRO do painel — nunca em
+       cima da foto. É o "campo próprio" da referência: se o texto pudesse
+       subir para a área da foto, a divisão seria decorativa. */
+    top:${dividida ? `calc(${ALTURA_DA_FOTO_PCT}% + 24px)` : `${dim.margemTopo}px`};
     display:flex; flex-direction:column; justify-content:flex-end;
     gap:22px;
   }
@@ -428,6 +491,7 @@ ${cssDoMockup({ primaria: molde.primaria, secundaria: apoioCor, tinta })}
 <body><div class="peca">
   <div class="foto"></div>
   <div class="scrim"></div>
+  ${dividida ? `<div class="painel"></div>` : ""}
   <div class="conteudo">
     <div class="acento"></div>
     ${el("selo", "div", "selo")}
