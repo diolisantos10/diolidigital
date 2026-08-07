@@ -72,13 +72,17 @@ export function DriveDoCliente({ token }: { token: string }) {
 
   const q = useCallback((base: string) => (token ? `${base}${base.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}` : base), [token]);
 
-  const carregar = useCallback(async () => {
+  /** Devolve o estado lido do SERVIDOR, para quem precisa decidir com ele. */
+  const carregar = useCallback(async (): Promise<EstadoDoDrive | null> => {
     try {
       const res = await fetch(q("/api/portal/drive"));
-      if (!res.ok) { setEstado(null); return; }
-      setEstado(await res.json());
+      if (!res.ok) { setEstado(null); return null; }
+      const novo = (await res.json()) as EstadoDoDrive;
+      setEstado(novo);
+      return novo;
     } catch {
       setEstado(null);
+      return null;
     } finally {
       setCarregando(false);
     }
@@ -92,8 +96,28 @@ export function DriveDoCliente({ token }: { token: string }) {
       if (e.origin !== window.location.origin) return;
       const d = e.data as { type?: string; summary?: string; error?: string };
       if (d?.type === "drive_auth_success") {
-        setRecado({ ok: true, texto: d.summary || "Drive conectado." });
-        void carregar();
+        // ── QUEM DIZ "CONECTADO" É O SERVIDOR, NÃO O POPUP ──────────────────
+        //
+        // Em 07/08/2026 o CEO viu, no MESMO cartão e ao mesmo tempo, a faixa
+        // verde "Google Drive conectado." e o texto "Drive não conectado." com
+        // o botão de conectar. Eram duas fontes de verdade: a faixa vinha do
+        // postMessage (a INTENÇÃO do popup) e o cartão vinha do banco (o FATO).
+        // O popup estava errado — a tabela nem existia em produção.
+        //
+        // A causa raiz foi consertada nos dois lugares (migration + porta
+        // fechada no callback). Isto aqui é a terceira metade, a que impede a
+        // contradição de voltar por outro motivo: a confirmação só aparece
+        // depois de o servidor confirmar, e é a palavra DELE que vai na tela.
+        void carregar().then((novo) => {
+          if (novo?.conectado) {
+            setRecado({ ok: true, texto: novo.conta ? `Google Drive de ${novo.conta} conectado.` : "Google Drive conectado." });
+          } else {
+            setRecado({
+              ok: false,
+              texto: "O Google autorizou, mas a conexão não apareceu aqui do nosso lado. Avise a equipe — não é problema da sua conta.",
+            });
+          }
+        });
       } else if (d?.type === "drive_auth_error") {
         setRecado({ ok: false, texto: d.error || "Não foi possível conectar o Drive." });
       }

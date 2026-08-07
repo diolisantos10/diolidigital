@@ -57,15 +57,43 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const dono = await donoDoPedido(req);
   if (!dono) return NextResponse.json({ error: "Acesso negado" }, { status: 401 });
 
+  // ── "NÃO ACHEI" É DIFERENTE DE "NÃO CONSEGUI OLHAR" ───────────────────────
+  //
+  // Isto era `.catch(() => null)`, e o null virava `conectado: false` — ou seja,
+  // uma falha de LEITURA saía na tela como o fato "você não conectou". Em
+  // 07/08/2026 foi metade do que o CEO viu: as tabelas do Drive não existiam em
+  // produção, toda consulta lançava, e o cartão dizia com todas as letras
+  // "Drive não conectado." para um cliente que tinha acabado de conectar.
+  //
+  // Ausência de informação não é informação. Agora a falha é NOMEADA e sobe
+  // para a tela como indisponibilidade — que é o que ela é.
+  let leituraFalhou = false;
   const conexao = await prisma.googleDriveConnection.findUnique({
     where: { workspaceId_clientId: { workspaceId: dono.workspaceId, clientId: dono.clientId } },
-  }).catch(() => null);
+  }).catch((e) => {
+    console.error("[portal/drive] não consegui ler a conexão:", e instanceof Error ? e.message : e);
+    leituraFalhou = true;
+    return null;
+  });
 
   const materiais = await prisma.driveMaterial.findMany({
     where: { clientId: dono.clientId },
     orderBy: { escolhidoEm: "desc" },
     take: 100,
-  }).catch(() => []);
+  }).catch((e) => {
+    console.error("[portal/drive] não consegui ler os materiais:", e instanceof Error ? e.message : e);
+    leituraFalhou = true;
+    return [];
+  });
+
+  if (leituraFalhou) {
+    // 503, e não um 200 com `conectado: false`: o cliente não pode receber uma
+    // afirmação sobre o estado dele que a casa não conseguiu conferir.
+    return NextResponse.json({
+      error: "Não consegui consultar seu Google Drive agora. Avise a equipe — não é problema da sua conta.",
+      indisponivel: true,
+    }, { status: 503 });
+  }
 
   const retrato = retratoDaEscolha(
     paraDecidir(conexao),

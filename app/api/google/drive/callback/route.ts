@@ -152,11 +152,42 @@ export async function GET(req: NextRequest): Promise<Response> {
     status: semRefresh ? "expired" : "connected",
   };
 
-  await prisma.googleDriveConnection.upsert({
+  // ── A GRAVAÇÃO É A CONEXÃO. SE ELA FALHA, NÃO HOUVE CONEXÃO. ──────────────
+  //
+  // Isto era `.catch(() => null)`, e foi o elo que transformou um defeito de
+  // infraestrutura numa mentira na cara do cliente (07/08/2026):
+  //
+  //   as tabelas `GoogleDriveConnection` e `DriveMaterial` NUNCA existiram em
+  //   produção — foram para o `schema.prisma` sem migration, e produção só
+  //   aplica esquema por `migrate deploy`. O upsert lançava, o catch engolia, e
+  //   o popup dizia "Drive conectado" a seguir, incondicionalmente. O portal,
+  //   lendo o banco, dizia "Drive não conectado." no mesmo cartão, ao mesmo
+  //   tempo. Depois do F5 não sobrava nada.
+  //
+  // O CEO ficou parado nisso com o Drive da Foocci na tela. A tabela que
+  // faltava é consertada por migration; ESTE bloco é a metade que impede a
+  // próxima falha de gravação de virar de novo um "conectado" que não conectou.
+  //
+  // Regra da casa: porta fechada. Não deu para gravar, o popup DIZ que não deu.
+  const gravada = await prisma.googleDriveConnection.upsert({
     where: { workspaceId_clientId: { workspaceId: dono.workspaceId, clientId: dono.clientId } },
     update: dados,
     create: dados,
-  }).catch(() => null);
+  }).catch((e) => {
+    // O motivo vai para o log da casa, não para a tela do cliente: ele pode
+    // carregar nome de tabela e formato de banco.
+    console.error("[drive/callback] não consegui gravar a conexão:", e instanceof Error ? e.message : e);
+    return null;
+  });
+
+  if (!gravada) {
+    return falha(
+      "A conexão não ficou salva",
+      "Você autorizou no Google, mas não conseguimos guardar a conexão aqui do nosso lado. Nada ficou pela metade na sua conta.",
+      "Avise a equipe — é um problema nosso, não da sua conta do Google. Você pode remover o acesso em myaccount.google.com/permissions se preferir.",
+      "drive/callback:falha_ao_gravar",
+    );
+  }
 
   if (semRefresh) {
     return falha(
