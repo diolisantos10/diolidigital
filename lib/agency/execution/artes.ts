@@ -39,6 +39,7 @@ import { guardarArquivo, lerArquivo } from "@/lib/agency/media/armazenamento";
 import { estiloVisualPersistido, estiloVistoPersistido } from "@/lib/agency/execution/leitura-do-cliente";
 import { moldeDoCliente, formatoDoPost, type Molde } from "@/lib/agency/design/molde";
 import { montarPeca } from "@/lib/agency/design/peca";
+import type { MotivoDeFalhaDeRender } from "@/lib/agency/design/renderizar";
 import { tituloDaFonte } from "@/lib/agency/design/trava-de-texto";
 import { cerebroDaMarca } from "@/lib/agency/design/repertorio-registrado";
 import {
@@ -292,6 +293,13 @@ export async function produzirArtesPendentes(): Promise<ArtesFeitas> {
       assinatura: marca.nome,
       indice: null,
     });
+    // Molde impossível por falta de ferramenta = a peça não existe. Falha
+    // contada como falha, com tentativa gasta, e NADA gravado no post.
+    if (!composta.ok) {
+      saida.falhas.push({ postId: post.id, erro: composta.erro });
+      await marcarErro(post.id, composta.erro, tentativas + 1);
+      continue;
+    }
 
     // Guardada no MESMO lugar que o material do cliente: um só armazenamento,
     // uma só cota, um só link assinado que a Meta consegue buscar.
@@ -454,15 +462,49 @@ interface PedidoDeComposicao {
   composicao?: Composicao | null;
 }
 
+/** Falha de INFRAESTRUTURA do rasterizador: não há navegador, ou ele quebrou.
+ *  Não é característica do conteúdo — é a casa sem a ferramenta montada. */
+const MOTIVOS_DE_INFRA: ReadonlySet<MotivoDeFalhaDeRender> = new Set([
+  "sem_navegador",
+  "erro_do_navegador",
+  "timeout",
+]);
+
 /**
- * Põe a camada de texto sobre a foto — e degrada DECLARANDO.
+ * Põe a camada de texto sobre a foto.
  *
- * Devolve sempre bytes publicáveis. Quando o molde não pode ser aplicado (sem
- * Chromium, texto sem lastro, texto que não cabe), o que volta é a FOTO PURA,
- * que é exatamente o que o motor antigo entregava, mais uma `nota` dizendo por
- * quê. Nunca volta peça com texto que a trava reprovou.
+ * ── POR QUE ISTO NÃO DEGRADA MAIS QUANDO FALTA NAVEGADOR ────────────────────
+ *
+ * Esta função devolvia SEMPRE bytes publicáveis: sem Chromium, saía a foto pura
+ * com uma `nota`. Parecia degradação declarada e era FAIL-OPEN — porque a nota
+ * ia para `lastError`, que ninguém lê antes de publicar, enquanto a peça seguia
+ * para o portal e para o perfil do cliente sem o molde da marca.
+ *
+ * E a falta de navegador não é um caso raro: até 07/08/2026 o `playwright`
+ * morava em `devDependencies`, então em produção ele NUNCA existiu. O resultado
+ * é que TODA peça de TODO cliente saiu como foto crua de IA, e o sistema
+ * relatou isso como sucesso, peça por peça.
+ *
+ * Por isso a separação abaixo, que é a regra da casa "configuração faltando =
+ * porta FECHADA":
+ *
+ *   • INFRA (sem navegador, navegador quebrado, timeout) → `ok: false`. A peça
+ *     NÃO é gravada e NÃO é publicada. A causa sobe nomeada, e quem chamou
+ *     trata como falha de verdade — do mesmo jeito que já trata "não consegui
+ *     gerar a foto". Ferramenta faltando é problema da agência, não um
+ *     entregável de qualidade menor para o cliente pagante.
+ *
+ *   • CONTEÚDO (não há frase utilizável, o texto não cabe, a trava reprovou a
+ *     letra) → segue a degradação declarada: foto + `nota`. Aqui o molde falhou
+ *     por causa do MATERIAL, o texto errado nunca chega à arte, e a peça sem
+ *     chamada continua sendo uma peça. Mudar isto é decisão de produto, com
+ *     alcance maior — está anotado em `docs/pendencias.md` para o CEO decidir.
  */
-async function comporComMolde(p: PedidoDeComposicao): Promise<{ bytes: Buffer; nota: string | null }> {
+type ResultadoDaComposicao =
+  | { ok: true; bytes: Buffer; nota: string | null }
+  | { ok: false; motivo: MotivoDeFalhaDeRender; erro: string };
+
+async function comporComMolde(p: PedidoDeComposicao): Promise<ResultadoDaComposicao> {
   // ── O MOLDE NEUTRO PRECISA SER DECLARADO PARA FORA ────────────────────────
   // Até a 7ª auditoria, `origem: "neutro"` e `lacunas` não tinham um único
   // consumidor fora de teste: o cliente sem marca recebia a peça cinza e nada —
@@ -477,7 +519,7 @@ async function comporComMolde(p: PedidoDeComposicao): Promise<{ bytes: Buffer; n
 
   const titulo = tituloDaFonte(p.fonteAuditada);
   if (!titulo) {
-    return { bytes: p.fotoBytes, nota: comAviso("[molde] peça entregue só com a foto: o conteúdo não tem uma frase utilizável como chamada.") };
+    return { ok: true, bytes: p.fotoBytes, nota: comAviso("[molde] peça entregue só com a foto: o conteúdo não tem uma frase utilizável como chamada.") };
   }
 
   const r = await montarPeca({
@@ -494,10 +536,22 @@ async function comporComMolde(p: PedidoDeComposicao): Promise<{ bytes: Buffer; n
   }).catch((e) => ({ ok: false as const, motivo: "erro_do_navegador" as const, erro: e instanceof Error ? e.message : "erro" }));
 
   if (!r.ok) {
-    // Sem camada de texto o molde nem foi aplicado — o aviso de neutro não
-    // descreveria esta peça, e uma nota que descreve o que não aconteceu é
-    // ruído. Aqui vale só o motivo real.
+    // PORTA FECHADA. Sem a ferramenta, não sai peça — nem "peça pior".
+    if (MOTIVOS_DE_INFRA.has(r.motivo)) {
+      return {
+        ok: false,
+        motivo: r.motivo,
+        erro:
+          r.motivo === "sem_navegador"
+            ? "não há Chromium para rasterizar o molde neste ambiente — a peça NÃO foi gravada. " +
+              "Confira `playwright` em `dependencies` e o pacote `chromium` em `railpack.json → deploy.aptPackages`."
+            : `o rasterizador do molde falhou (${r.motivo}) — a peça NÃO foi gravada: ${r.erro}`,
+      };
+    }
+    // Falha de CONTEÚDO: o molde não coube nesta letra. A peça sai como foto,
+    // declarando o motivo — o texto reprovado nunca chega à arte.
     return {
+      ok: true,
       bytes: p.fotoBytes,
       nota: `[molde] peça entregue só com a foto (sem camada de texto): ${r.motivo} — ${r.erro}`.slice(0, 480),
     };
@@ -505,9 +559,9 @@ async function comporComMolde(p: PedidoDeComposicao): Promise<{ bytes: Buffer; n
   if (r.textoRecusado.length > 0) {
     // Aconteceu o caminho bom: a peça SAIU, e o que a trava barrou está dito.
     const barrado = r.textoRecusado.map((t) => `${t.papel}: ${t.detalhe}`).join(" · ");
-    return { bytes: r.bytes, nota: comAviso(`[molde] texto barrado pela trava — ${barrado}`) };
+    return { ok: true, bytes: r.bytes, nota: comAviso(`[molde] texto barrado pela trava — ${barrado}`) };
   }
-  return { bytes: r.bytes, nota: comAviso(null) };
+  return { ok: true, bytes: r.bytes, nota: comAviso(null) };
 }
 
 /**
@@ -619,6 +673,7 @@ export async function montarArteComFotoDoCliente(
     assinatura: marca.nome,
     indice: null,
   });
+  if (!composta.ok) return { ok: false, erro: composta.erro };
 
   const guardado = await guardarArquivo({
     bytes: composta.bytes,
@@ -950,6 +1005,10 @@ async function montarCarrossel(
       indice: { atual: i + 1, total: cenas.length },
       composicao,
     });
+    // Uma tela sem molde contamina o carrossel inteiro: o cliente receberia um
+    // carrossel meio com marca, meio foto crua. Falta de ferramenta derruba a
+    // peça toda, não gera meia peça.
+    if (!composta.ok) return { ok: false, gerou, erro: composta.erro };
     if (composta.nota) notas.push(`tela ${i + 1}: ${composta.nota}`);
 
     const g = await guardarArquivo({

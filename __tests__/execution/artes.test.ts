@@ -374,16 +374,36 @@ describe("a peça sai do MOLDE — foto da IA + texto por código", () => {
     expect(nomes).toContain("arte-sp1.png");
   });
 
-  it("sem navegador para rasterizar, a peça sai SÓ COM A FOTO e o motivo fica escrito", async () => {
+  // ── ESTE TESTE MUDOU DE LADO EM 07/08/2026 ────────────────────────────────
+  //
+  // Ele afirmava o contrário: "sem navegador para rasterizar, a peça sai SÓ COM
+  // A FOTO e o motivo fica escrito", e conferia `mediaUrl` verdadeiro. Estava
+  // codificando o fail-open — o teste protegia justamente o comportamento que
+  // fazia mal ao cliente.
+  //
+  // O que ele não sabia: `playwright` morava em `devDependencies`, então em
+  // produção `sem_navegador` não era o caso raro, era o caso ÚNICO. Toda peça de
+  // todo cliente saiu como foto crua de IA, e este teste chamava isso de
+  // "degradação declarada" — verde, o tempo todo.
+  //
+  // Degradação só é declarada se alguém lê a declaração. `lastError` não é lido
+  // por ninguém antes de a peça ir ao portal. Configuração faltando = porta
+  // FECHADA.
+  it("sem navegador para rasterizar, a peça NÃO é gravada — porta fechada, causa nomeada", async () => {
     montarPeca.mockResolvedValue({ ok: false, motivo: "sem_navegador", erro: "Playwright não está instalado" });
     const r = await produzirArtesPendentes();
-    // A peça SAIU: degradação declarada, não peça perdida.
-    expect(r.produzidas).toBe(1);
-    const d = db.socialPost.update.mock.calls[0]![0].data;
-    expect(d.mediaUrl).toBeTruthy();
-    expect(d.lastError).toMatch(/^\[molde\]/);
-    // E a nota NÃO gasta tentativa: o padrão de contagem é "[arte n/".
-    expect(d.lastError).not.toMatch(/^\[arte/);
+
+    // Peça sem molde não é peça entregue.
+    expect(r.produzidas).toBe(0);
+    expect(r.falhas).toHaveLength(1);
+    expect(r.falhas[0]!.postId).toBe("sp1");
+    // A causa sobe acionável: quem lê sabe o que consertar.
+    expect(r.falhas[0]!.erro).toMatch(/Chromium/i);
+    expect(r.falhas[0]!.erro).toMatch(/dependencies/);
+
+    // E o post NUNCA recebe mediaUrl da foto crua — o coração do conserto.
+    const escritas = db.socialPost.update.mock.calls.map((c) => c[0].data as { mediaUrl?: string });
+    expect(escritas.some((d) => d.mediaUrl), "foto crua não vira peça publicável").toBeFalsy();
   });
 
   it("texto barrado pela trava não derruba a peça — ela sai, e o barrado fica dito", async () => {
