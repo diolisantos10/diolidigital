@@ -1,6 +1,6 @@
 # Pedido de API key à Upwork — texto pronto para o CEO enviar
 
-**Estado: NÃO ENVIADO.** Quem envia é o CEO. Nenhum agente desta casa mandou
+**Estado: ENVIADO pelo CEO em 07/08/2026. Aguardando resposta.** Quem envia é o CEO. Nenhum agente desta casa mandou
 nada.
 
 **Por que a pressa, se a Upwork é prioridade 1 e ainda não há adaptador:**

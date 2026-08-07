@@ -1,6 +1,6 @@
 # Pedido de autorização de API à Freelancer.com — texto pronto para o CEO
 
-**Estado: NÃO ENVIADO.** Quem envia é o CEO.
+**Estado: ENVIADO pelo CEO em 07/08/2026. Aguardando resposta.** Quem envia é o CEO.
 
 ## 🎓 Por que este pedido é diferente do da Upwork
 

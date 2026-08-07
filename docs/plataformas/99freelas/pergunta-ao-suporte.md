@@ -1,6 +1,6 @@
 # A pergunta ao suporte do 99Freelas — texto congelado
 
-**Estado: NÃO ENVIADA.** Quem envia é o CEO. Nenhum agente desta casa mandou
+**Estado: ENVIADA pelo CEO em 07/08/2026. Aguardando resposta.** Quem envia é o CEO. Nenhum agente desta casa mandou
 nada, e nenhum vai mandar sem ordem explícita.
 
 **Por que este arquivo existe:** a resposta a esta pergunta é a UMA COISA que
