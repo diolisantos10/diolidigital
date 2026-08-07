@@ -628,8 +628,10 @@ diagnostica; o conserto é frente com dono e verificação.
 - **`esteira` — 6 estados gravados que ninguém lê.** `archived`, `dispensado`,
   `enviado`, `respondida`, `skipped_running`, `superseded`. Cada um é um botão
   que não faz nada ou uma tela que não filtra.
-- **`qualidade` — o P0 da casa, agora com número que anda:** 28 de 31 checagens
-  não são executáveis.
+- **`qualidade` — o P0 da casa, agora com número que anda:** a maioria das
+  checagens de `lib/dioli-brain/quality-gates.ts` segue sem mecanismo. Número
+  corrente em `retratoDosPortoes()` / `__tests__/brain/o-numero-do-p0.test.ts` —
+  não em prosa, que envelhece errado.
 - **Diretor — cobrir a metade de DADOS.** Ela ficou CEGA na primeira noite (a
   rota `/api/cron/raio-x` ainda não estava em produção). Enquanto isso, o raio-x
   não enxerga o que está preso AGORA no banco.
@@ -1029,15 +1031,23 @@ Depois de regenerar, atualizar as variáveis `META_*` no Railway.
 **Decisão do CEO (31/07/2026): o piloto roda 100% IA, sem revisão humana.** Nada
 disto abaixo é teórico — é o que está entre um erro do modelo e um cliente pagante.
 
-### 1. Os quality gates não protegem nada
-Das **31** checagens em `lib/dioli-brain/quality-gates.ts`, **28 são
-`autoCheckable: false`** — texto descrevendo o que um humano deveria conferir.
-**Só 3 rodam.**
+### 1. A maioria dos quality gates ainda não protege nada
+O registro é `lib/dioli-brain/quality-gates.ts`. **A maior parte das checagens
+declara `lacuna`, não `mecanismo`** — texto descrevendo o que um humano deveria
+conferir.
+
+> **O número não fica escrito aqui, de propósito.** Este parágrafo dizia "31
+> checagens, 28 sem mecanismo, só 3 rodam" muito depois de os três números terem
+> mudado: prosa que descreve um número não muda junto com o número, e ninguém
+> lembra de atualizar. A fonte é `retratoDosPortoes()`, e
+> `__tests__/brain/o-numero-do-p0.test.ts` quebra quando o número anda — é ele
+> que obriga a prosa a acompanhar.
 
 Com revisão humana era um checklist. Sem revisão humana é **decoração** — e as
-quatro desligadas que mais importam são exatamente as falhas que chegam no
-cliente: *sem alucinação*, *respeita a marca*, *corresponde ao briefing*, *riscos
-verificados*.
+bloqueantes globais ainda descobertas são exatamente as falhas que chegam no
+cliente: *respeita a marca*, *corresponde ao briefing*, *valor ao cliente claro*,
+*riscos verificados*. (*Sem alucinação* saiu dessa lista — ganhou mecanismo. O
+buraco encolheu; não fechou.)
 
 **O que precisa existir:**
 1. ✅ **Construído em 04/08/2026** — piso determinístico: afirmação conferida
@@ -1049,7 +1059,7 @@ verificados*.
 3. 🔴 Default do registry invertido — departamento sem gate executável = **REPROVADO**
 4. 🔴 Escada por departamento — sombra até haver evidência
 
-> **As 28 checagens desligadas continuam desligadas.** Um dos quatro itens ficou
+> **As checagens desligadas continuam desligadas.** Um dos quatro itens ficou
 > de pé; três não. Quem ler só o item 1 e concluir "o P0 andou" está lendo errado:
 > o piso protege *uma* afirmação de *uma* fonte, não o entregável.
 
