@@ -11,6 +11,9 @@ import { requireSession } from "@/lib/auth/api-guard";
 // com três versões é três políticas com o mesmo nome.
 import { clienteDoWorkspace, solicitacaoDoWorkspace } from "@/lib/auth/posse-de-workspace";
 import { cardGenerico } from "@/lib/agency/persistence/approval-service";
+// A relação agente→departamento tem UMA forma canônica nesta casa, e é a que a
+// escada de exposição usa. Ver o bloco em `buildPortalData`.
+import { departamentoDoAgente } from "@/lib/agency/escada/degraus";
 
 // O nome que o CLIENTE vê. Precisa cobrir os dois vocabulários: o do Brain
 // (`social`, `traffic`) e o do motor de produção (`social-media`,
@@ -354,6 +357,15 @@ function mapearAprovacao(
   deliverableContentFor: (dept: string) => string | null,
   pecas: PecaDoCard[] = [],
 ) {
+  // O corpo do card, calculado UMA vez: é ele que decide o texto e também se o
+  // card tem o direito de pedir uma decisão.
+  const corpo =
+    (ap.deliverableVersion
+      ? `${ap.deliverableVersion.deliverable.name}\n\n${ap.deliverableVersion.content ?? ""}`.trim()
+      : null)
+    || ap.reviewNote
+    || (ap.department !== "proposal" ? deliverableContentFor(ap.department) : null);
+
   return {
     id:         ap.id,
     department: CLIENT_SAFE_DEPARTMENTS[ap.department] ?? ap.department,
@@ -368,15 +380,23 @@ function mapearAprovacao(
     version: ap.deliverableVersion?.number ?? null,
     // Corpo do card: 1º a versão vinculada por FK (a fonte de verdade); 2º a
     // nota própria; 3º o casamento determinístico por departamento. Nunca sobra.
-    reviewNote:
-      (ap.deliverableVersion
-        ? `${ap.deliverableVersion.deliverable.name}\n\n${ap.deliverableVersion.content ?? ""}`.trim()
-        : null)
-      || ap.reviewNote
-      || (ap.department !== "proposal" ? deliverableContentFor(ap.department) : null),
+    reviewNote: corpo,
     // As peças ESTRUTURADAS (imagem + legenda + telas do carrossel) — a UI
     // nova renderiza daqui; o reviewNote acima vira resumo/fallback.
     pecas,
+    // ⚠️ 07/08/2026 — O CARD NÃO TEM O QUE MOSTRAR.
+    //
+    // O CEO abriu duas aprovações em produção ("Estratégia" e "Analytics") e as
+    // duas estavam LITERALMENTE vazias: título, subtítulo e os três botões de
+    // decisão. Ele estava sendo convidado a aprovar o que não podia ver — e num
+    // piloto 100% IA, aprovação às cegas é a assinatura do cliente num trabalho
+    // que ninguém conferiu.
+    //
+    // A verdade sai do SERVIDOR, num campo só, e não é deduzida na tela. Essa é
+    // a lição de 07/08 (o Drive): quando a tela infere um fato sobre o cliente a
+    // partir do que ela não conseguiu ler, falha de leitura vira afirmação
+    // falsa. Aqui existe uma fonte de verdade e é esta.
+    semConteudo: !corpo?.trim() && pecas.length === 0,
     comments:   ap.comments,
   };
 }
@@ -426,10 +446,27 @@ async function buildPortalData(clientRequestId: string) {
         select: { name: true, content: true, ownerAgentId: true },
       })
     : [];
-  const AGENT_TO_DEPT: Record<string, string> = { a3: "social-media", a2: "design", a4: "paid-traffic" };
+  // ⚠️ 07/08/2026 — AQUI MORAVA UM MAPA DE 3 LINHAS PARA 14 ESPECIALISTAS.
+  //
+  // Era `{ a3: "social-media", a2: "design", a4: "paid-traffic" }`: os ids
+  // HISTÓRICOS do primeiro especialista de três departamentos. A casa tem hoje
+  // ~14 especialistas (`TODOS_OS_ESPECIALISTAS`), e todo id fora dessas três
+  // letras — `strategy-posicionamento`, `strategy-concorrencia`, `a5`,
+  // `analytics-otimizacao`, `social-copy`, `social-roteiro-video`,
+  // `design-criativo-*`, `traffic-*`, `financeiro` — resolvia `undefined` e a
+  // entrega era DESCARTADA em silêncio. Foi metade da causa do card
+  // "Estratégia / Estratégia" e "Analytics / Analytics" que o CEO abriu em
+  // produção e encontrou VAZIO: o texto estava no banco e o portal não sabia
+  // ler o dono dele.
+  //
+  // Não é um mapa a mais para manter: `departamentoDoAgente` já é a forma
+  // canônica desta casa (`lib/agency/escada/degraus.ts`), a MESMA que a escada
+  // de exposição usa para decidir o que pode ser compartilhado. Duas cópias da
+  // relação agente→departamento são duas políticas com o mesmo nome — e esta
+  // aqui já divergia da outra em 11 dos 14 casos.
   const contentByDept = new Map<string, string>();
   for (const dv of deliverables) {
-    const dept = dv.ownerAgentId ? AGENT_TO_DEPT[dv.ownerAgentId] : undefined;
+    const dept = departamentoDoAgente(dv.ownerAgentId);
     const body = dv.content ? `${dv.name}\n\n${dv.content}` : dv.name;
     if (dept && !contentByDept.has(dept)) contentByDept.set(dept, body);
   }

@@ -73,6 +73,7 @@ import { prisma } from "@/lib/db/client";
 import { runProjectExecution } from "@/lib/agency/execution/run-execution";
 import { pedirDirecao, aprovarDirecao, aprovarPacote } from "@/lib/agency/esteira/marcos";
 import { statusDoProjeto } from "@/lib/agency/esteira/retrato";
+import { departamentoDoAgente } from "@/lib/agency/escada/degraus";
 
 let workspaceId = "";
 let clientId = "";
@@ -198,7 +199,53 @@ describe("a esteira, de ponta a ponta, com banco real", () => {
 
     const aprovacoes = await prisma.approvalRequest.findMany({ where: { clientRequestId } });
     expect(aprovacoes.length).toBeGreaterThan(0);
-    expect(aprovacoes.every((a) => a.clientVisible === true)).toBe(true);
+
+    // ⚠️ 07/08/2026 — ESTA ASSERÇÃO MUDOU DE LADO, e o motivo precisa ficar escrito.
+    //
+    // Ela dizia `aprovacoes.every((a) => a.clientVisible === true)`: TODA
+    // aprovação vira visível, sem condição. Isso não era o contrato — era o
+    // DEFEITO, escrito como se fosse contrato. Foi ele que pôs na frente do CEO,
+    // em produção, dois cards "Estratégia"/"Estratégia" e "Analytics"/"Analytics"
+    // com três botões de decisão e nenhum corpo: a escada de exposição retinha a
+    // entrega (certo) e a aprovação subia assim mesmo (errado).
+    //
+    // O contrato de verdade é a ligação entre as duas metades: um card só fica
+    // visível quando existe entrega COMPARTILHADA do departamento dele. Nunca há
+    // card visível sem corpo atrás — que é a única coisa que o cliente precisa
+    // poder confiar nesta tela.
+    const entregasVisiveis = await prisma.deliverable.findMany({
+      where: { projectId, visibility: "compartilhado" },
+      select: { ownerAgentId: true },
+    });
+    const deptsComCorpo = new Set(
+      entregasVisiveis.map((d) => departamentoDoAgente(d.ownerAgentId)).filter(Boolean),
+    );
+
+    // ⚠️ O QUE ESTA JORNADA REVELA, e que ninguém tinha medido: neste caminho
+    // ponta-a-ponta `deptsComCorpo` é VAZIO. Departamento nasce em `sombra`
+    // (`escada/registro.ts`: "degrau de nascimento — nunca entregou nada a
+    // cliente nenhum nesta casa"), então nenhuma entrega vira "compartilhado" e
+    // NENHUM card tem corpo. Com a asserção antiga (`every(clientVisible)`) isso
+    // passava verde: a casa publicava, para todo departamento, um card vazio.
+    //
+    // Não se afirma aqui que algo FOI compartilhado — seria inventar um estado
+    // que a escada não concedeu. Afirma-se o invariante, que vale nos dois
+    // mundos: nunca existe card visível sem corpo atrás dele.
+    for (const a of aprovacoes) {
+      if (a.clientVisible) {
+        expect(
+          deptsComCorpo.has(a.department),
+          `card visível do departamento "${a.department}" SEM entrega compartilhada — é o card vazio do CEO`,
+        ).toBe(true);
+      }
+    }
+    // E a metade que não pode atrapalhar: quem TEM corpo liberado aparece mesmo.
+    for (const dept of deptsComCorpo) {
+      const doDept = aprovacoes.filter((a) => a.department === dept);
+      if (doDept.length > 0) {
+        expect(doDept.some((a) => a.clientVisible), `entrega de "${dept}" foi compartilhada e nenhum card dela apareceu`).toBe(true);
+      }
+    }
 
     const msgs = await prisma.portalMessage.findMany({ where: { clientRequestId }, orderBy: { createdAt: "asc" } });
     const apresentacao = msgs.at(-1)!;

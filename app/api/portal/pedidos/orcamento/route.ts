@@ -21,7 +21,12 @@ import { prisma } from "@/lib/db/client";
 import { resolvePortalClient } from "@/lib/agency/persistence/portal-access-service";
 import { tokenDoPortal } from "@/lib/agency/persistence/portal-cookie";
 
-const DECISOES = ["aceito", "recusado"] as const;
+// ── A TERCEIRA SAÍDA (CEO, 06-07/08/2026) ───────────────────────────────────
+// Eram duas: aceitar e recusar. A que mais acontece na vida real — "aceito, mas
+// ajuste o prazo / o escopo / o preço" — não tinha para onde ir, e por isso uma
+// devolutiva do CEO ficou dois dias parada numa conversa. Ver
+// `lib/agency/esteira/devolutiva-de-orcamento.ts`.
+const DECISOES = ["aceito", "recusado", "ajustar"] as const;
 type Decisao = (typeof DECISOES)[number];
 
 function texto(v: unknown): string {
@@ -46,7 +51,20 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const decisao = texto(corpo.decisao) as Decisao;
   if (!pedidoId) return NextResponse.json({ error: "pedidoId é obrigatório" }, { status: 400 });
   if (!DECISOES.includes(decisao)) {
-    return NextResponse.json({ error: "decisao deve ser 'aceito' ou 'recusado'" }, { status: 400 });
+    return NextResponse.json({ error: "decisao deve ser 'aceito', 'recusado' ou 'ajustar'" }, { status: 400 });
+  }
+
+  // ⚠️ DEVOLVER SEM DIZER O QUÊ É O MESMO SILÊNCIO DE ANTES.
+  //
+  // Esta é a metade que barra: `ajustar` sem apontamento devolve 400 e **nada é
+  // criado** — nem tarefa, nem recado, nem mudança de estado. A UI trava antes
+  // (botão desabilitado), mas a trava de verdade é esta: UI é sugestão.
+  const apontamento = texto(corpo.apontamento);
+  if (decisao === "ajustar" && !apontamento) {
+    return NextResponse.json(
+      { error: "Escreva o que precisa mudar no orçamento — é este apontamento que orienta a nova proposta." },
+      { status: 400 },
+    );
   }
 
   // O `clientId` do token entra no WHERE — estar com um token válido não faz
@@ -68,6 +86,33 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       { error: `Este orçamento já foi ${pedido.quoteStatus}.`, orcamento: pedido.quoteStatus },
       { status: 409 },
     );
+  }
+
+  // ── DEVOLVER COM APONTAMENTOS: caminho próprio, e ele NÃO decide o orçamento.
+  //
+  // Não é aceite nem recusa: é a bola de volta para a agência revisar prazo,
+  // escopo ou preço. O orçamento anterior não é reescrito — a nova proposta é
+  // uma rodada nova, que o cliente decide de novo. É a regra que a própria tela
+  // já promete ("decisão registrada é imutável").
+  if (decisao === "ajustar") {
+    const { devolverOrcamentoComApontamentos } = await import(
+      "@/lib/agency/esteira/devolutiva-de-orcamento"
+    );
+    const r = await devolverOrcamentoComApontamentos({
+      pedidoId: pedido.id,
+      clientId: dono.clientId,
+      apontamento,
+    });
+    if (!r.ok) {
+      return NextResponse.json({ error: r.motivo ?? "não foi possível registrar" }, { status: 409 });
+    }
+    return NextResponse.json({
+      ok: true,
+      orcamento: "ajuste_solicitado",
+      // Honesto com o cliente: dizemos se a revisão já tem dono ou se foi
+      // escalada para uma pessoa. Nunca fingimos que virou trabalho quando não.
+      revisaoAberta: r.tarefaCriada,
+    });
   }
 
   // Escrita condicional: o estado entra no WHERE, não só no corpo. Dois cliques

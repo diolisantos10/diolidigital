@@ -56,6 +56,57 @@ export function tituloDoPedido(descricao: string): string {
   return primeira.length > 70 ? primeira.slice(0, 69) + "…" : primeira;
 }
 
+/**
+ * O título que o CLIENTE lê no cartão — e por que ele não pode ser `title`.
+ *
+ * ── O QUE O CEO VIU EM PRODUÇÃO (07/08/2026) ────────────────────────────────
+ * O cartão de orçamento dele se chamava:
+ *
+ *   "para de óleo digital eu preciso de dois carrosseis por semana uma seg…"
+ *
+ * É a transcrição CRUA do áudio que ele ditou: "para de óleo digital" é o
+ * reconhecedor errando "para a Dioli Digital", não há pontuação, e o corte em
+ * 70 caracteres deixou a frase pela metade. É a primeira coisa que ele lê no
+ * cartão, e ela não diz o que aquilo é.
+ *
+ * ── A REGRA: DERIVAR, NUNCA INVENTAR ────────────────────────────────────────
+ * A tentação é "resumir com IA". Não. Um resumo gerado afirma sobre o pedido do
+ * cliente algo que o cliente não escreveu — e num piloto sem revisão humana
+ * isso é exatamente a alucinação que a casa proíbe. Ausência de informação não
+ * é informação.
+ *
+ * Então o corte é MECÂNICO e conservador:
+ *   • se a descrição começa com uma frase de verdade — curta e terminada em
+ *     pontuação real — ela vira o título. Isso é derivação, não interpretação;
+ *   • se NÃO dá para cortar com segurança (texto corrido de ditado, sem
+ *     pontuação, que só truncaria no meio de uma palavra), o título passa a ser
+ *     um rótulo HONESTO: o tipo do item + a data. Ele não afirma nada sobre o
+ *     conteúdo, e o conteúdo continua logo abaixo, íntegro, em "O QUE VOCÊ
+ *     PEDIU" — que é onde o cliente confere se foi entendido.
+ */
+export function tituloParaOCliente(input: {
+  descricao: string;
+  criadoEm: Date | string;
+  temOrcamento: boolean;
+}): string {
+  const texto = (input.descricao ?? "").trim();
+  // Onde a primeira frase termina de VERDADE (pontuação ou quebra de linha).
+  const corte = texto.search(/[\n.!?]/);
+  const primeira = corte > 0 ? texto.slice(0, corte).trim() : "";
+
+  // Uma frase só vira título se ela realmente terminou e é curta o bastante
+  // para caber num cartão. `corte <= 0` é o texto corrido do ditado.
+  if (primeira.length >= 8 && primeira.length <= 60) return primeira;
+
+  // Sem corte seguro: rótulo honesto. Diz o QUE É e QUANDO — dois fatos.
+  const d = new Date(input.criadoEm);
+  const data = Number.isNaN(d.getTime())
+    ? null
+    : d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+  const tipo = input.temOrcamento ? "Orçamento" : "Pedido";
+  return data ? `${tipo} · ${data}` : tipo;
+}
+
 function anexos(v: unknown): string[] {
   if (!Array.isArray(v)) return [];
   return v.filter((x): x is string => typeof x === "string" && x.trim().length > 0).slice(0, 20);
@@ -95,7 +146,16 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       ok: true,
       pedidos: pedidos.map((p) => ({
         id: p.id,
-        titulo: p.title,
+        // Derivado da DESCRIÇÃO na leitura, e não o `title` gravado. Os pedidos
+        // que já estão no banco nasceram com a transcrição crua do áudio no
+        // título (foi o que o CEO abriu em produção) — corrigir só na escrita
+        // deixaria os antigos torto para sempre. O texto original continua
+        // íntegro logo abaixo, em "O QUE VOCÊ PEDIU".
+        titulo: tituloParaOCliente({
+          descricao: p.description,
+          criadoEm: p.createdAt,
+          temOrcamento: !!p.quotedPrice,
+        }),
         descricao: p.description,
         objetivo: p.objective,
         para: p.desiredFor ? p.desiredFor.toISOString() : null,

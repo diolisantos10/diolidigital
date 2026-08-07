@@ -17,6 +17,9 @@ import { prisma } from "@/lib/db/client";
 import { runProjectExecution, type ExecutionResult } from "@/lib/agency/execution/run-execution";
 import { avisarCliente, type TipoDeAviso } from "@/lib/agency/esteira/avisos";
 import { escadaFiltraEntregas } from "@/lib/agency/escada/registro";
+// A MESMA forma canônica de agente→departamento que a escada usa. Ver o bloco
+// de publicação de cards em `apresentar`.
+import { departamentoDoAgente } from "@/lib/agency/escada/degraus";
 
 export interface ResultadoDoMarco {
   ok: boolean;
@@ -187,13 +190,28 @@ export async function apresentar(projectId: string, opts: { mesmoComRessalva?: b
 
   await prisma.project.update({ where: { id: projectId }, data: { presentedAt: new Date() } });
 
-  // A partir daqui o cliente enxerga as aprovações — todas juntas, não pingando.
-  if (projeto.clientRequestId) {
-    await prisma.approvalRequest.updateMany({
-      where: { clientRequestId: projeto.clientRequestId, status: "pending" },
-      data: { clientVisible: true },
-    }).catch(() => { /* best-effort: a apresentação não pode falhar por isto */ });
-  }
+  // ⚠️ 07/08/2026 — A ORDEM DESTES DOIS BLOCOS ERA O DEFEITO, E ELA FOI INVERTIDA.
+  //
+  // Antes, a publicação das aprovações vinha PRIMEIRO e era um `updateMany` sem
+  // condição: TODA aprovação pendente da solicitação virava `clientVisible`.
+  // Só DEPOIS a escada de exposição decidia quais ENTREGAS podiam virar
+  // "compartilhado". As duas metades andavam soltas, e o resultado é o que o CEO
+  // encontrou em produção: departamento em SOMBRA tem a entrega retida (certo,
+  // é o que "sombra" quer dizer) e mesmo assim o card de decisão dele ia para a
+  // tela do cliente — título, subtítulo e três botões, sem uma linha de corpo.
+  //
+  // **A escada protegia o conteúdo e deixava passar o PEDIDO DE DECISÃO sobre
+  // ele.** Pedir "aprove isto" escondendo o "isto" é pior do que não pedir: é o
+  // mesmo erro de "sem gate = aprovado", com a assinatura do cliente em cima.
+  //
+  // Agora a escada corre primeiro e ela é quem define a lista: só o
+  // departamento cuja entrega foi LIBERADA ganha card visível. O que ficou em
+  // sombra fica calado dos dois lados — corpo e botão.
+  const escada = await escadaFiltraEntregas({
+    workspaceId: projeto.workspaceId,
+    clientId: projeto.clientId,
+    entregas: entregaveis.map((d) => ({ id: d.id, ownerAgentId: d.ownerAgentId })),
+  });
 
   // Apresentar É o ato de publicação do contrato de visibilidade (Hub, Fase 1,
   // 2.2): as entregas nascem "interno" e só aqui viram "compartilhado". Sem
@@ -210,16 +228,44 @@ export async function apresentar(projectId: string, opts: { mesmoComRessalva?: b
   // publicava tudo o que existisse. Agora publica por LISTA DE IDS, e o que
   // ficou de fora vira alarme com o caso concreto — "algo foi retido" sem dizer
   // o quê é ruído que ninguém investiga.
-  const escada = await escadaFiltraEntregas({
-    workspaceId: projeto.workspaceId,
-    clientId: projeto.clientId,
-    entregas: entregaveis.map((d) => ({ id: d.id, ownerAgentId: d.ownerAgentId })),
-  });
   if (escada.liberados.length > 0) {
     await prisma.deliverable.updateMany({
       where: { id: { in: escada.liberados } },
       data: { visibility: "compartilhado" },
     }).catch(() => { /* best-effort */ });
+  }
+
+  // A partir daqui o cliente enxerga as aprovações — todas juntas, não pingando.
+  // Mas SÓ as dos departamentos cuja entrega a escada acabou de liberar.
+  //
+  // A lista de departamentos sai dos ids LIBERADOS, pelo mesmo
+  // `departamentoDoAgente` que a escada usou — não por uma segunda tabela
+  // escrita à mão aqui (foi exatamente uma segunda tabela dessas, de 3 linhas
+  // para 14 especialistas, que cegou o corpo do card no portal).
+  //
+  // Fail-closed: nenhum departamento liberado ⇒ nenhum card publicado. O
+  // projeto fica apresentado e sem pedir decisão, que é o estado honesto de
+  // "produzimos, e ainda não é para o cliente ver".
+  if (projeto.clientRequestId) {
+    const liberados = new Set(entregaveis.map((d) => d.id));
+    const deptsLiberados = [
+      ...new Set(
+        escada.liberados
+          .filter((id) => liberados.has(id))
+          .map((id) => departamentoDoAgente(entregaveis.find((d) => d.id === id)?.ownerAgentId))
+          .filter((d): d is string => !!d),
+      ),
+    ];
+    if (deptsLiberados.length > 0) {
+      await prisma.approvalRequest.updateMany({
+        where: {
+          clientRequestId: projeto.clientRequestId,
+          status: "pending",
+          department: { in: deptsLiberados },
+        },
+        data: { clientVisible: true },
+      }).catch(() => { /* best-effort: a apresentação não pode falhar por isto */ });
+    }
   }
   if (escada.retidos.length > 0) {
     await prisma.activityEvent.create({

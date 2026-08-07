@@ -44,7 +44,10 @@ export interface PedidoDoCliente {
   /** O que o preço cobre, em uma frase. */
   precoNota?: string | null;
   /** Decisão do cliente sobre o orçamento. */
-  orcamento?: "pendente" | "aceito" | "recusado" | null;
+  /** `ajuste_solicitado` = o cliente devolveu a proposta com apontamentos
+   *  (terceira saída, 07/08/2026). Não é aceite nem recusa: a bola está com a
+   *  agência revisando prazo, escopo ou preço. */
+  orcamento?: "pendente" | "aceito" | "recusado" | "ajuste_solicitado" | null;
 }
 
 /** Atalhos de objetivo — um toque em vez de uma redação. Deliberadamente largos:

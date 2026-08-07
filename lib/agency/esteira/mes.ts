@@ -31,6 +31,7 @@ import { lerMetricasDaConta } from "@/lib/integrations/meta/leitura";
 import { fecharCiclo, type CicloResumido } from "@/lib/agency/esteira/ciclos";
 import { falarComOCliente } from "@/lib/agency/esteira/marcos";
 import { escadaFiltraEntregas } from "@/lib/agency/escada/registro";
+import { departamentoDoAgente } from "@/lib/agency/escada/degraus";
 import { conferirPisoDeVerdade, resumirViolacoes, type VerdadeDoCliente } from "@/lib/agency/execution/piso-de-verdade";
 import { lerEvolucao } from "@/lib/agency/esteira/comparacao";
 import {
@@ -697,13 +698,6 @@ export async function apresentarCiclo(
 
   await prisma.cycle.update({ where: { id: cycleId }, data: { presentedAt: new Date(), status: "entregue" } });
 
-  if (projeto.clientRequestId) {
-    await prisma.approvalRequest.updateMany({
-      where: { clientRequestId: projeto.clientRequestId, status: "pending" },
-      data: { clientVisible: true },
-    }).catch(() => { /* best-effort */ });
-  }
-
   // Mesma regra do pacote inicial (marcos.ts): apresentar o ciclo é o ato que
   // torna as entregas DELE "compartilhado" — antes disso o portal, que filtra
   // por `visibility` fail-closed, não as mostra.
@@ -722,6 +716,36 @@ export async function apresentarCiclo(
       data: { visibility: "compartilhado" },
     }).catch(() => { /* best-effort */ });
   }
+
+  // ⚠️ 07/08/2026 — ESTE BLOCO ESTAVA ACIMA DA ESCADA, e era o mesmo defeito de
+  // `marcos.apresentar`: um `updateMany` sem condição publicava TODA aprovação
+  // pendente antes de a escada dizer quais entregas podiam ser vistas. O card
+  // do departamento retido chegava ao cliente com título, três botões e nenhum
+  // corpo — foi o que o CEO abriu em produção ("Estratégia", "Analytics").
+  //
+  // Consertar só em `marcos.ts` deixaria o ciclo mensal reabrindo o buraco todo
+  // mês. Um defeito com dois lugares precisa dos dois consertos.
+  if (projeto.clientRequestId) {
+    const porId = new Map(entregaveis.map((d) => [d.id, d.ownerAgentId]));
+    const deptsLiberados = [
+      ...new Set(
+        escada.liberados
+          .map((id) => departamentoDoAgente(porId.get(id)))
+          .filter((d): d is string => !!d),
+      ),
+    ];
+    if (deptsLiberados.length > 0) {
+      await prisma.approvalRequest.updateMany({
+        where: {
+          clientRequestId: projeto.clientRequestId,
+          status: "pending",
+          department: { in: deptsLiberados },
+        },
+        data: { clientVisible: true },
+      }).catch(() => { /* best-effort */ });
+    }
+  }
+
   if (escada.retidos.length > 0) {
     await prisma.activityEvent.create({
       data: {

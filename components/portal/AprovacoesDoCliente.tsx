@@ -60,6 +60,10 @@ export interface AprovacaoDoPortal {
   /** As peças ESTRUTURADAS do card (imagem + legenda + telas do carrossel).
    *  Vazio = card antigo, só texto — o reviewNote continua sendo o corpo. */
   pecas: PecaAberta[];
+  /** O card NÃO tem corpo: nem texto, nem peça. Quem decide isto é o SERVIDOR
+   *  (`portal-data`), nunca esta tela — ver o comentário do campo lá. Card sem
+   *  corpo não recebe botão de decisão: ninguém aprova o que não pode ver. */
+  semConteudo?: boolean;
   comments: Array<{
     id: string;
     authorName: string;
@@ -71,6 +75,11 @@ export interface AprovacaoDoPortal {
 }
 
 export type AcaoDeAprovacao = "approve" | "request_revision" | "question";
+
+/** As TRÊS saídas do cartão de orçamento. `ajustar` é a terceira, aberta em
+ *  07/08/2026: devolver a proposta com apontamentos (prazo, escopo ou preço)
+ *  sem aceitar nem recusar — a bola volta para a agência revisar. */
+export type DecisaoDeOrcamento = "aceito" | "recusado" | "ajustar";
 
 const STATUS_APROVACAO: Record<string, { rotulo: string; cor: string; fundo: string }> = {
   pending:            { rotulo: "Aguardando sua decisão", cor: "#9B7B2D", fundo: "#FEF3C7" },
@@ -91,6 +100,22 @@ function tituloDaPeca(ap: AprovacaoDoPortal): string {
   const primeiraLinha = ap.reviewNote?.split("\n")[0]?.trim();
   if (primeiraLinha && primeiraLinha.length <= 90) return primeiraLinha;
   return ap.department;
+}
+
+/**
+ * O SUBTÍTULO da linha — e a razão de ele existir é um defeito que o CEO viu.
+ *
+ * Em produção os cards apareciam como "Estratégia" em cima de "Estratégia" e
+ * "Analytics" em cima de "Analytics": o título caía no `ap.department` (porque
+ * o card não tinha corpo, logo não tinha primeira linha) e o subtítulo JÁ era o
+ * departamento. Duas vezes a mesma palavra, e nenhuma delas diz o que aquilo é.
+ *
+ * Aqui a regra é derivar, nunca inventar: quando o título já É o nome do
+ * departamento, o subtítulo passa a dizer o que a LINHA é ("Entrega da Dioli"),
+ * que é um fato, e não um resumo do conteúdo que a tela não tem.
+ */
+function contextoDaLinha(ap: AprovacaoDoPortal, titulo: string): string {
+  return titulo === ap.department ? "Entrega da Dioli" : ap.department;
 }
 
 function corpoDaPeca(ap: AprovacaoDoPortal): string | null {
@@ -170,7 +195,16 @@ function PecaDoCard({ peca, indice, total, token }: { peca: PecaAberta; indice: 
   );
 }
 
-function Badge({ status, questionOpen }: { status: string; questionOpen: boolean }) {
+function Badge({ status, questionOpen, semConteudo }: { status: string; questionOpen: boolean; semConteudo?: boolean }) {
+  // Sem corpo não é "aguardando sua decisão" — a bola está com a AGÊNCIA. O
+  // selo antigo cobrava do cliente uma decisão que ele não tinha como tomar.
+  if (status === "pending" && semConteudo) {
+    return (
+      <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full text-[11px] font-semibold shrink-0 bg-[var(--bg-elevated)] text-[var(--text-secondary)] border border-[var(--border)]">
+        <span className="w-1.5 h-1.5 rounded-full bg-current" /> Em produção na Dioli
+      </span>
+    );
+  }
   if (status === "pending" && questionOpen) {
     return (
       <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full text-[11px] font-semibold shrink-0 bg-[#E6FBFA] text-[#0E7490]">
@@ -252,7 +286,18 @@ function DetalheDaAprovacao({
   const [texto, setTexto] = useState("");
   const [erroLocal, setErroLocal] = useState<string | null>(null);
 
-  const pendente = ap.status === "pending";
+  // ⚠️ Card SEM CORPO não pede decisão (CEO, 07/08/2026).
+  //
+  // Ele abriu duas aprovações em produção e as duas tinham título, subtítulo e
+  // três botões — e nada mais. Estava sendo convidado a aprovar o que não podia
+  // ver. Num piloto 100% IA, isso é a assinatura do cliente num trabalho que
+  // ninguém conferiu.
+  //
+  // A verdade vem do servidor (`semConteudo`), não de uma contagem feita aqui:
+  // se esta tela deduzisse "vazio" por conta própria, uma falha de LEITURA
+  // viraria um FATO sobre o cliente — a lição do Drive, 07/08.
+  const semCorpo = ap.semConteudo === true;
+  const pendente = ap.status === "pending" && !semCorpo;
   const temPecas = ap.pecas.length > 0;
   // Com peças estruturadas, o reviewNote não renderiza: ele é o RESUMO em texto
   // das mesmas legendas — mostrá-lo duplicaria tudo que a peça já mostra.
@@ -289,11 +334,14 @@ function DetalheDaAprovacao({
           <div className="min-w-0">
             <h2 className="text-[17px] font-bold text-[var(--text-primary)] leading-snug">{tituloDaPeca(ap)}</h2>
             <p className="text-[12px] text-[var(--text-secondary)] mt-1 flex items-center gap-2 flex-wrap">
-              {ap.department}
+              {/* Mesma regra da lista: sem `contextoDaLinha` o detalhe repetia
+                  "Estratégia" embaixo de "Estratégia" — o defeito que o CEO viu
+                  estava nas DUAS telas, e consertar só a lista deixaria metade. */}
+              {contextoDaLinha(ap, tituloDaPeca(ap))}
               <TagVersao n={ap.version} />
             </p>
           </div>
-          <Badge status={ap.status} questionOpen={ap.questionOpen} />
+          <Badge status={ap.status} questionOpen={ap.questionOpen} semConteudo={semCorpo} />
         </div>
 
         {temPecas && (
@@ -310,6 +358,27 @@ function DetalheDaAprovacao({
         {corpo && (
           <div className="mt-4 rounded-[10px] bg-[var(--bg-elevated)] border border-[var(--border)] p-4">
             <p className="text-[13px] text-[var(--text-primary)] leading-relaxed whitespace-pre-wrap"><ComNegrito texto={corpo} /></p>
+          </div>
+        )}
+
+        {/* O estado honesto: o material ainda não subiu, e por isso NÃO há o
+            que decidir. Nenhum botão de decisão aparece — nem "Aprovar", nem
+            "Solicitar ajustes", nem "Tenho uma dúvida". A falta é da agência e
+            a frase diz isso com todas as letras: o cliente não é culpado por um
+            card que a casa publicou sem corpo. */}
+        {semCorpo && ap.status === "pending" && (
+          <div className="mt-4 rounded-[10px] bg-[var(--bg-elevated)] border border-[var(--border)] p-4">
+            <p className="text-[13px] font-semibold text-[var(--text-primary)] flex items-center gap-2">
+              <span aria-hidden>⏳</span> O material ainda não subiu
+            </p>
+            <p className="text-[12.5px] text-[var(--text-secondary)] mt-1.5 leading-relaxed max-w-[62ch]">
+              Esta entrega está em produção na Dioli e ainda não tem conteúdo para você ver.
+              Enquanto ela não chegar aqui, <b>não há nada para você decidir</b> — e nós não vamos
+              pedir sua aprovação sem te mostrar o trabalho. Você recebe um aviso assim que estiver pronta.
+            </p>
+            <p className="text-[11.5px] text-[var(--text-muted)] mt-2">
+              Não é problema seu nem falta de ação sua — é a agência que ainda não publicou o material.
+            </p>
           </div>
         )}
 
@@ -425,7 +494,10 @@ function DetalheDaAprovacao({
           <p role="alert" className="text-[12.5px] font-semibold text-[var(--danger)] mt-3">{erro}</p>
         )}
 
-        {!pendente && (
+        {/* `!pendente` sozinho pegava o card SEM CORPO junto — e ele anunciava
+            "Decisão registrada" em verde para uma decisão que nunca houve. Card
+            vazio não é decidido: é uma entrega que ainda não chegou. */}
+        {!pendente && !semCorpo && (
           <div className="mt-4 rounded-[10px] bg-[#DCFCE7] text-[#166534] px-3.5 py-2.5 text-[12.5px]">
             <b>Decisão registrada{ap.reviewedAt ? ` em ${dataCurta(ap.reviewedAt)}` : ""}.</b>{" "}
             Registro imutável: os dois lados param de rediscutir o que já foi decidido.
@@ -477,10 +549,31 @@ function DetalheDoOrcamento({
   pedido: PedidoDoCliente;
   enviando: boolean;
   erro: string | null;
-  onDecidir: (decisao: "aceito" | "recusado") => Promise<boolean>;
+  onDecidir: (decisao: DecisaoDeOrcamento, apontamento?: string) => Promise<boolean>;
   onVoltar: () => void;
 }) {
   const pendente = orcamentoEsperandoDecisao(pedido);
+  // A terceira saída, aberta em modo — mesmo padrão do card de entrega, para o
+  // cliente não precisar aprender duas interações para a mesma coisa.
+  const [ajustando, setAjustando] = useState(false);
+  const [apontamento, setApontamento] = useState("");
+  const [erroLocal, setErroLocal] = useState<string | null>(null);
+
+  async function enviarApontamento() {
+    // Espelho do 400 do backend. Devolver sem dizer o quê é o mesmo silêncio
+    // que a terceira saída existe para matar.
+    if (!apontamento.trim()) {
+      setErroLocal("Escreva o que precisa mudar — prazo, escopo ou preço.");
+      return;
+    }
+    setErroLocal(null);
+    const ok = await onDecidir("ajustar", apontamento.trim());
+    if (ok) {
+      setAjustando(false);
+      setApontamento("");
+    }
+  }
+
   return (
     <div className="space-y-4">
       <button onClick={onVoltar} className="inline-flex items-center gap-1.5 text-[12.5px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]" style={{ touchAction: "manipulation" }}>
@@ -527,36 +620,89 @@ function DetalheDoOrcamento({
         )}
 
         {pendente ? (
-          <>
-            <div className="mt-4 flex flex-col sm:flex-row gap-2">
-              <button
-                disabled={enviando}
-                onClick={() => void onDecidir("aceito")}
-                style={{ touchAction: "manipulation" }}
-                className="flex-1 h-11 rounded-[10px] text-[14px] font-semibold bg-[#070A1F] text-white hover:opacity-90 transition-opacity disabled:opacity-50"
-              >
-                {enviando ? "Registrando…" : "Aprovar e fazer"}
-              </button>
-              <button
-                disabled={enviando}
-                onClick={() => void onDecidir("recusado")}
-                style={{ touchAction: "manipulation" }}
-                className="flex-1 h-11 rounded-[10px] text-[14px] font-semibold bg-white border border-[var(--border-strong)] text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] transition-colors disabled:opacity-50"
-              >
-                Agora não
-              </button>
+          ajustando ? (
+            /* A TERCEIRA SAÍDA, aberta. Campo obrigatório: vazio não envia. */
+            <div className="mt-4">
+              <label htmlFor="apontamento-orcamento" className="block text-[12.5px] font-semibold text-[var(--text-primary)]">
+                O que precisa mudar nesta proposta?
+              </label>
+              <p className="text-[12px] text-[var(--text-muted)] mt-0.5 mb-2 leading-relaxed">
+                Prazo, escopo ou preço — escreva com suas palavras. Isto volta para a equipe revisar a proposta.
+              </p>
+              <textarea
+                id="apontamento-orcamento"
+                value={apontamento}
+                onChange={(e) => { setApontamento(e.target.value); if (erroLocal) setErroLocal(null); }}
+                rows={4}
+                autoFocus
+                placeholder="Ex.: o valor está acima do que posso agora; consegue fechar só os 2 primeiros carrosséis?"
+                className="w-full rounded-[10px] border border-[var(--border-strong)] bg-white px-3.5 py-2.5 text-[14px] text-[var(--text-primary)] leading-relaxed outline-none focus:border-[var(--text-primary)] transition-colors"
+              />
+              {erroLocal && <p role="alert" className="text-[12.5px] font-semibold text-[var(--danger)] mt-1.5">{erroLocal}</p>}
+              <div className="mt-2.5 flex flex-col sm:flex-row gap-2">
+                <button
+                  disabled={enviando || !apontamento.trim()}
+                  onClick={() => void enviarApontamento()}
+                  style={{ touchAction: "manipulation" }}
+                  className="flex-1 h-11 rounded-[10px] text-[14px] font-semibold bg-[#070A1F] text-white hover:opacity-90 transition-opacity disabled:opacity-40"
+                >
+                  {enviando ? "Enviando…" : "Enviar apontamentos"}
+                </button>
+                <button
+                  disabled={enviando}
+                  onClick={() => { setAjustando(false); setErroLocal(null); }}
+                  style={{ touchAction: "manipulation" }}
+                  className="sm:w-[130px] h-11 rounded-[10px] text-[14px] font-semibold bg-white border border-[var(--border-strong)] text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] transition-colors disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+              </div>
             </div>
-            <p className="text-[12px] text-[var(--text-muted)] mt-2">
-              Aprovar coloca este trabalho na fila da equipe. &quot;Agora não&quot; só arquiva a proposta — você pode pedir de novo quando quiser.
-            </p>
-          </>
+          ) : (
+            <>
+              <div className="mt-4 flex flex-col sm:flex-row gap-2">
+                <button
+                  disabled={enviando}
+                  onClick={() => void onDecidir("aceito")}
+                  style={{ touchAction: "manipulation" }}
+                  className="flex-1 h-11 rounded-[10px] text-[14px] font-semibold bg-[#070A1F] text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+                >
+                  {enviando ? "Registrando…" : "Aprovar e fazer"}
+                </button>
+                <button
+                  disabled={enviando}
+                  onClick={() => { setAjustando(true); setErroLocal(null); }}
+                  style={{ touchAction: "manipulation" }}
+                  className="flex-1 h-11 rounded-[10px] text-[14px] font-semibold bg-white border border-[var(--border-strong)] text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] transition-colors disabled:opacity-50"
+                >
+                  Devolver com apontamentos
+                </button>
+                <button
+                  disabled={enviando}
+                  onClick={() => void onDecidir("recusado")}
+                  style={{ touchAction: "manipulation" }}
+                  className="flex-1 h-11 rounded-[10px] text-[14px] font-semibold bg-white border border-[var(--border-strong)] text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] transition-colors disabled:opacity-50"
+                >
+                  Agora não
+                </button>
+              </div>
+              <p className="text-[12px] text-[var(--text-muted)] mt-2 leading-relaxed">
+                Aprovar coloca este trabalho na fila da equipe.{" "}
+                <b>Devolver com apontamentos</b>{" "}manda a proposta de volta para a equipe rever prazo,
+                escopo ou preço — nada é cobrado e você decide de novo quando ela voltar.{" "}
+                &quot;Agora não&quot; só arquiva a proposta.
+              </p>
+            </>
+          )
         ) : (
           <div className="mt-4 rounded-[10px] bg-[var(--bg-elevated)] border border-[var(--border)] px-3.5 py-2.5 text-[12.5px] text-[var(--text-secondary)]">
             {pedido.orcamento === "aceito"
               ? <><b>Você aprovou este orçamento.</b> O trabalho já está na fila da equipe — o andamento aparece em Projetos.</>
               : pedido.orcamento === "recusado"
                 ? <><b>Você recusou este orçamento.</b> Nada foi cobrado. Se mudar de ideia, é só pedir de novo.</>
-                : <><b>Este pedido ainda está com a equipe.</b> Estado atual: {pedido.statusLegivel}. Quando houver preço, ele volta para cá como decisão sua.</>}
+                : pedido.orcamento === "ajuste_solicitado"
+                  ? <><b>Você devolveu esta proposta com apontamentos.</b> A equipe está revendo prazo, escopo ou preço. Quando a nova proposta chegar, ela volta para cá como uma decisão nova — a anterior fica registrada.</>
+                  : <><b>Este pedido ainda está com a equipe.</b> Estado atual: {pedido.statusLegivel}. Quando houver preço, ele volta para cá como decisão sua.</>}
           </div>
         )}
 
@@ -573,7 +719,11 @@ function BadgeDoOrcamento({ pedido }: { pedido: PedidoDoCliente }) {
       ? { rotulo: "Aprovado por você", cor: "var(--success)", fundo: "var(--success-bg)" }
       : pedido.orcamento === "recusado"
         ? { rotulo: "Recusado por você", cor: "var(--text-secondary)", fundo: "var(--accent)" }
-        : { rotulo: pedido.statusLegivel, cor: "var(--info)", fundo: "var(--info-bg)" };
+        : pedido.orcamento === "ajuste_solicitado"
+          // Devolvido com apontamentos: a bola está com a AGÊNCIA. O selo diz
+          // isso — não pode parecer decisão pendente do cliente.
+          ? { rotulo: "Devolvido para revisão", cor: "var(--info)", fundo: "var(--info-bg)" }
+          : { rotulo: pedido.statusLegivel, cor: "var(--info)", fundo: "var(--info-bg)" };
   return (
     <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full text-[11px] font-semibold shrink-0" style={{ background: s.fundo, color: s.cor }}>
       <span className="w-1.5 h-1.5 rounded-full bg-current" /> {s.rotulo}
@@ -620,7 +770,7 @@ export function AprovacoesDoCliente({
   enviando: boolean;
   erro: string | null;
   onDecidir: (id: string, acao: AcaoDeAprovacao, comentario?: string) => Promise<boolean>;
-  onDecidirOrcamento?: (pedidoId: string, decisao: "aceito" | "recusado") => Promise<boolean>;
+  onDecidirOrcamento?: (pedidoId: string, decisao: DecisaoDeOrcamento, apontamento?: string) => Promise<boolean>;
 }) {
   const orcamentoAberto = ehIdDeOrcamento(abertaId)
     ? orcamentos.find((p) => p.id === pedidoDoId(abertaId!)) ?? null
@@ -631,7 +781,7 @@ export function AprovacoesDoCliente({
         pedido={orcamentoAberto}
         enviando={enviando}
         erro={erro}
-        onDecidir={async (d) => (await onDecidirOrcamento?.(orcamentoAberto.id, d)) ?? false}
+        onDecidir={async (d, apontamento) => (await onDecidirOrcamento?.(orcamentoAberto.id, d, apontamento)) ?? false}
         onVoltar={() => onAbrir(null)}
       />
     );
@@ -651,10 +801,17 @@ export function AprovacoesDoCliente({
     );
   }
 
-  const pendentes = aprovacoes.filter((a) => a.status === "pending");
+  // "Aguardando você" só pode conter o que o cliente CONSEGUE decidir. Card sem
+  // corpo sai desta lista e vai para a de baixo, "Em produção na Dioli" — ele
+  // continua visível (esconder seria fingir que não existe), mas parado de
+  // cobrar uma decisão impossível.
+  const pendentes = aprovacoes.filter((a) => a.status === "pending" && a.semConteudo !== true);
+  const emProducao = aprovacoes.filter((a) => a.status === "pending" && a.semConteudo === true);
   const decididas = aprovacoes.filter((a) => a.status !== "pending");
   const orcamentosPendentes = orcamentos.filter(orcamentoEsperandoDecisao);
-  const orcamentosDecididos = orcamentos.filter((p) => p.orcamento === "aceito" || p.orcamento === "recusado");
+  const orcamentosDecididos = orcamentos.filter(
+    (p) => p.orcamento === "aceito" || p.orcamento === "recusado" || p.orcamento === "ajuste_solicitado",
+  );
   const totalAguardando = pendentes.length + orcamentosPendentes.length + (decisaoDaEsteira ? 1 : 0);
   const totalDecidido = decididas.length + orcamentosDecididos.length;
 
@@ -685,13 +842,18 @@ export function AprovacoesDoCliente({
     // Rótulo repetido é ruído: quando o card não tem nome próprio, o título JÁ
     // é o nome do departamento ("Analytics" em cima de "Analytics", que foi o
     // que o CEO viu). Nesse caso o subtítulo diz o que a linha realmente é.
-    const contexto = titulo === ap.department ? "Entrega da Dioli" : ap.department;
+    const contexto = contextoDaLinha(ap, titulo);
+    const semCorpo = ap.semConteudo === true;
     // Uma linha de metadados montada como TEXTO, não como caixas com `gap`:
     // com gap + "·" escrito no início de cada pedaço o separador ganhava dois
     // espaços de um lado só ("Social Media  · prazo 10/08").
     const meta: string[] = [];
     if (ap.pecas.length > 0) meta.push(`${ap.pecas.length} ${ap.pecas.length === 1 ? "peça" : "peças"}`);
-    if (ap.status === "pending") {
+    // Card sem corpo não anuncia prazo nem "aguardando você": não há decisão a
+    // tomar, e cobrar decisão sobre o nada foi exatamente o defeito.
+    if (semCorpo && ap.status === "pending") {
+      meta.push("material ainda não subiu");
+    } else if (ap.status === "pending") {
       meta.push(ap.questionOpen
         ? "prazo pausado"
         : dataCurta(ap.expiresAt)
@@ -716,9 +878,9 @@ export function AprovacoesDoCliente({
           </span>
           {/* No celular o selo desce para baixo do texto — ao lado ele esmaga o
               título até virar reticência. */}
-          <span className="mt-1.5 block sm:hidden"><Badge status={ap.status} questionOpen={ap.questionOpen} /></span>
+          <span className="mt-1.5 block sm:hidden"><Badge status={ap.status} questionOpen={ap.questionOpen} semConteudo={semCorpo} /></span>
         </span>
-        <span className="hidden sm:block self-center"><Badge status={ap.status} questionOpen={ap.questionOpen} /></span>
+        <span className="hidden sm:block self-center"><Badge status={ap.status} questionOpen={ap.questionOpen} semConteudo={semCorpo} /></span>
         <span aria-hidden className="self-center text-[var(--text-subtle)]">›</span>
       </button>
     );
@@ -770,6 +932,24 @@ export function AprovacoesDoCliente({
           </div>
         )}
       </section>
+
+      {/* O que a agência ainda não entregou. Fica VISÍVEL — sumir com o card
+          seria o cliente perder de vista um trabalho que existe — mas fora da
+          fila de decisão, porque não há o que decidir aqui. */}
+      {emProducao.length > 0 && (
+        <section>
+          <h3 className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em] mb-2">
+            Em produção na Dioli ({emProducao.length})
+          </h3>
+          <div className="bg-white rounded-[14px] border border-[var(--border)] overflow-hidden shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
+            {emProducao.map(linha)}
+          </div>
+          <p className="text-[11.5px] text-[var(--text-muted)] mt-2 px-1 leading-relaxed">
+            Estas entregas ainda não têm material para você ver — por isso não pedimos decisão sobre elas.
+            Assim que ficarem prontas, elas sobem para <b>Aguardando você</b> e você recebe um aviso.
+          </p>
+        </section>
+      )}
 
       {totalDecidido > 0 && (
         <section>

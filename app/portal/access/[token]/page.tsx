@@ -36,6 +36,7 @@ import {
   type DecisaoDaEsteira,
   type AprovacaoDoPortal,
   type AcaoDeAprovacao,
+  type DecisaoDeOrcamento,
 } from "@/components/portal/AprovacoesDoCliente";
 import { ResultadosDoCliente } from "@/components/portal/ResultadosDoCliente";
 import { SolicitarAlgo, MeusPedidos, type PedidoDoCliente } from "@/components/portal/SolicitarAlgo";
@@ -452,7 +453,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
   // `decidir` (a decisão da entrega) e as duas passam pelo MESMO estado de
   // envio e pela MESMA caixa de erro. Enquanto morava dentro de `MeusPedidos`,
   // cada tela que renderizava a lista carregava uma cópia do mesmo poder.
-  async function decidirOrcamento(pedidoId: string, decisao: "aceito" | "recusado"): Promise<boolean> {
+  async function decidirOrcamento(pedidoId: string, decisao: DecisaoDeOrcamento, apontamento?: string): Promise<boolean> {
     if (enviando) return false;
     setEnviando(true);
     setErroDecisao(null);
@@ -460,7 +461,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
       const res = await fetch("/api/portal/pedidos/orcamento", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...(token ? { token } : {}), pedidoId, decisao }),
+        body: JSON.stringify({ ...(token ? { token } : {}), pedidoId, decisao, ...(apontamento ? { apontamento } : {}) }),
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({} as { error?: string }));
@@ -547,7 +548,17 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
   }
 
   // ── Derivações ────────────────────────────────────────────────────────────
-  const pendentes = data.approvals.filter((a) => a.status === "pending");
+  // ⚠️ Card SEM CORPO não é pendência DO CLIENTE (CEO, 07/08/2026).
+  //
+  // Esconder os botões só na tela de Aprovações não bastava: o Início continuava
+  // dizendo "3 pendências esperam por você" e listando "Estratégia aguarda sua
+  // aprovação" — para um card que não tem uma linha de conteúdo. A contagem é a
+  // primeira coisa que ele lê, e ela estava cobrando decisão sobre o nada.
+  //
+  // A verdade é a mesma dos dois lados, e vem do servidor: uma regra só, para as
+  // contagens nunca discordarem entre si (é a mesma razão de
+  // `orcamentoEsperandoDecisao` existir).
+  const pendentes = data.approvals.filter((a) => a.status === "pending" && a.semConteudo !== true);
   // O orçamento com preço na mesa é uma DECISÃO — conta junto das aprovações em
   // toda contagem da tela (selo da navegação, frase do cabeçalho, bloco "o que
   // depende de você"). Antes ele não contava em lugar nenhum e mesmo assim
@@ -748,7 +759,15 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
                     <LinhaDePendencia
                       key={`orc-${p.id}`}
                       icone="💬" fundo="var(--accent-light)"
-                      titulo={`Orçamento de ${p.titulo} aguarda sua resposta`}
+                      // O título do pedido JÁ pode ser o rótulo honesto
+                      // "Orçamento · 06/08" (quando a descrição é ditado corrido
+                      // e não dá para derivar frase). Prefixar "Orçamento de" às
+                      // cegas produzia "Orçamento de Orçamento · 06/08" na tela.
+                      titulo={
+                        p.titulo.startsWith("Orçamento")
+                          ? `${p.titulo} aguarda sua resposta`
+                          : `Orçamento de ${p.titulo} aguarda sua resposta`
+                      }
                       porque="A equipe já respondeu com preço e prazo — falta o seu sim."
                       meta="Decidir em Aprovações"
                       onClick={() => irPara("aprovacoes", idDeOrcamento(p.id))}
