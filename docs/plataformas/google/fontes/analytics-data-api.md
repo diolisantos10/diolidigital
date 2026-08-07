@@ -1,8 +1,8 @@
 ---
 titulo: "Google Analytics — Data API (GA4): visão geral"
 url: https://developers.google.com/analytics/devguides/reporting/data/v1?hl=pt-br
-capturado_em: 2026-08-06
-hash: 0c955ef8fb5c9356
+capturado_em: 2026-08-07
+hash: eda49eefaee450d6
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -11,6 +11,11 @@ hash: 0c955ef8fb5c9356
 O Google usa tecnologia de IA na tradução de conteúdos para seu idioma de preferência. As traduções com IA podem ter erros.
 Envie comentários
 Visão geral da API Google Analytics Data
+Nesta página
+Consistência de dados e identidade do relatório
+Primeiros passos
+Métodos disponíveis
+Dimensões e métricas aceitas
 
 Use a API Data para acessar os dados dos relatórios do Google Analytics (Google Analytics) de maneira programática.
 

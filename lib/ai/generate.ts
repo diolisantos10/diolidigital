@@ -9,10 +9,33 @@
 
 import type { OpenAIMessages } from "@/lib/agency/intelligence/openai-schemas";
 import { resolveProviderKey, isAiProvider, type AiProvider } from "@/lib/ai/resolve-key";
+import { escolhaDoCliente } from "@/lib/ai/escolha-por-cliente";
+import { registrarChamadaDeIa, type UsoDeTokens } from "@/lib/ai/registro-de-custo";
 
 export type GenerateResult =
-  | { ok: true; data: unknown; model: string; provider: AiProvider }
-  | { ok: false; error: string };
+  | { ok: true; data: unknown; model: string; provider: AiProvider; uso?: UsoDeTokens | null }
+  | { ok: false; error: string; uso?: UsoDeTokens | null };
+
+/**
+ * Tokens consumidos, como cada provedor os devolve. Ausência é `null`, nunca 0:
+ * um provedor que parou de mandar `usage` apareceria como consumo zero — a casa
+ * comemoraria uma economia que não existe.
+ */
+function usoDoClaude(json: unknown): UsoDeTokens | null {
+  const u = (json as { usage?: { input_tokens?: number; output_tokens?: number } })?.usage;
+  if (!u) return null;
+  return { entrada: u.input_tokens ?? null, saida: u.output_tokens ?? null };
+}
+function usoOpenAICompativel(json: unknown): UsoDeTokens | null {
+  const u = (json as { usage?: { prompt_tokens?: number; completion_tokens?: number } })?.usage;
+  if (!u) return null;
+  return { entrada: u.prompt_tokens ?? null, saida: u.completion_tokens ?? null };
+}
+function usoDoGemini(json: unknown): UsoDeTokens | null {
+  const u = (json as { usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number } })?.usageMetadata;
+  if (!u) return null;
+  return { entrada: u.promptTokenCount ?? null, saida: u.candidatesTokenCount ?? null };
+}
 
 const TIMEOUT_MS = 60_000;
 
@@ -67,10 +90,14 @@ async function callClaude(apiKey: string, model: string, m: OpenAIMessages, maxT
     });
     if (!res.ok) return { ok: false, error: `Claude HTTP ${res.status}` };
     const json = (await res.json()) as { content?: { text: string }[] };
+    // O uso é lido ANTES de julgar o conteúdo: resposta 200 com JSON inválido
+    // consumiu token igual e a conta tem que registrar isso. Só contar sucesso
+    // faria a casa achar que erro é de graça.
+    const uso = usoDoClaude(json);
     const text = json.content?.[0]?.text;
-    if (!text) return { ok: false, error: "Resposta Claude vazia" };
+    if (!text) return { ok: false, error: "Resposta Claude vazia", uso };
     const data = extractJson(text);
-    return data ? { ok: true, data, model, provider: "claude" } : { ok: false, error: "JSON inválido (Claude)" };
+    return data ? { ok: true, data, model, provider: "claude", uso } : { ok: false, error: "JSON inválido (Claude)", uso };
   } catch (err) {
     return { ok: false, error: err instanceof Error && err.name === "AbortError" ? "timeout" : "erro de rede" };
   } finally {
@@ -116,10 +143,11 @@ async function callOpenAICompatible(
     });
     if (!res.ok) return { ok: false, error: `${label} HTTP ${res.status}` };
     const json = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+    const uso = usoOpenAICompativel(json);
     const content = json.choices?.[0]?.message?.content;
-    if (!content) return { ok: false, error: `Resposta ${label} vazia` };
+    if (!content) return { ok: false, error: `Resposta ${label} vazia`, uso };
     const data = extractJson(content);
-    return data ? { ok: true, data, model, provider } : { ok: false, error: `JSON inválido (${label})` };
+    return data ? { ok: true, data, model, provider, uso } : { ok: false, error: `JSON inválido (${label})`, uso };
   } catch (err) {
     return { ok: false, error: err instanceof Error && err.name === "AbortError" ? "timeout" : "erro de rede" };
   } finally {
@@ -143,10 +171,11 @@ async function callGemini(apiKey: string, model: string, m: OpenAIMessages, maxT
     });
     if (!res.ok) return { ok: false, error: `Gemini HTTP ${res.status}` };
     const json = (await res.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
+    const uso = usoDoGemini(json);
     const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) return { ok: false, error: "Resposta Gemini vazia" };
+    if (!text) return { ok: false, error: "Resposta Gemini vazia", uso };
     const data = extractJson(text);
-    return data ? { ok: true, data, model, provider: "gemini" } : { ok: false, error: "JSON inválido (Gemini)" };
+    return data ? { ok: true, data, model, provider: "gemini", uso } : { ok: false, error: "JSON inválido (Gemini)", uso };
   } catch (err) {
     return { ok: false, error: err instanceof Error && err.name === "AbortError" ? "timeout" : "erro de rede" };
   } finally {
@@ -252,14 +281,80 @@ export async function generate(options: {
    * provedor indisponível PARA, não improvisa.
    */
   apenasOPreferido?: boolean;
+  /**
+   * DE QUEM é esta chamada. As duas coisas que ela habilita:
+   *
+   *   1. **A escolha de provedor por cliente** (`ClientAiProvider`). Com
+   *      `workspaceId` + `clientId`, a fixação daquele cliente VENCE o
+   *      `preferredProvider` do especialista e a preferência da casa. É o que
+   *      permite pôr a Dioli na faixa gratuita sem encostar na Foocci.
+   *   2. **A conta**: sem cliente e sem departamento, o `AIRunLog` grava um
+   *      gasto que não tem dono, e "quanto custou este cliente" continua sem
+   *      resposta.
+   *
+   * Todos opcionais para não quebrar chamador nenhum — mas chamada sem
+   * `workspaceId` NÃO é registrada, e diz isso no log do processo.
+   */
+  clientId?: string | null;
+  departmentId?: string | null;
+  agentId?: string | null;
+  projectId?: string | null;
 }): Promise<GenerateResult> {
   const maxTokens = options.maxTokens ?? 2048;
-  const order = options.preferredProvider
-    ? (options.apenasOPreferido
-        ? [options.preferredProvider]
-        : [options.preferredProvider, ...preferenceOrder().filter((p) => p !== options.preferredProvider)])
+
+  // ── A escolha do cliente vence ────────────────────────────────────────────
+  // Ordem de precedência, do mais específico para o mais geral:
+  //   1. o provedor FIXADO neste cliente (esta tela manda de verdade);
+  //   2. o `preferredProvider` do especialista (`especialistas.ts`);
+  //   3. a preferência da casa (`BRAIN_AI_PROVIDER` / ranking de qualidade).
+  //
+  // E a fixação carrega o `estrito` junto: fixar o Gemini na Dioli e deixar o
+  // Claude atender por baixo mediria o Claude e chamaria isso de "o gratuito
+  // funciona". Por isso `estrito` nasce `true` no banco.
+  const fixado = options.workspaceId
+    ? await escolhaDoCliente(options.workspaceId, options.clientId)
+    : null;
+
+  const preferido = fixado?.provider ?? options.preferredProvider;
+  const semReserva = fixado ? fixado.estrito : (options.apenasOPreferido ?? false);
+  const modeloFixado = fixado?.model ?? null;
+
+  const order = preferido
+    ? (semReserva
+        ? [preferido]
+        : [preferido, ...preferenceOrder().filter((p) => p !== preferido)])
     : preferenceOrder();
   const messages: OpenAIMessages = { system: options.system, user: options.user };
+
+  const anotar = (p: {
+    provider: string; model: string; status: "success" | "error";
+    uso?: UsoDeTokens | null; duracaoMs: number; erro?: string | null;
+    fallbackUsed?: boolean; fallbackReason?: string | null;
+  }) => {
+    if (!options.workspaceId) {
+      // Não dá para atribuir a workspace nenhum — e ficar calado faria o
+      // relatório de gasto parecer completo quando não é.
+      console.warn(`[custo-de-ia] chamada SEM workspace, fora da conta — ${p.provider}/${p.model}`);
+      return;
+    }
+    // Sem `await`: a contabilidade não segura a entrega. `registrarChamadaDeIa`
+    // nunca rejeita, então não há promessa órfã capaz de derrubar o processo.
+    void registrarChamadaDeIa({
+      workspaceId:  options.workspaceId,
+      departmentId: options.departmentId ?? "desconhecido",
+      agentId:      options.agentId ?? null,
+      clientId:     options.clientId ?? null,
+      projectId:    options.projectId ?? null,
+      provider:     p.provider,
+      model:        p.model,
+      status:       p.status,
+      uso:          p.uso ?? null,
+      duracaoMs:    p.duracaoMs,
+      erro:         p.erro ?? null,
+      fallbackUsed: p.fallbackUsed ?? false,
+      fallbackReason: p.fallbackReason ?? null,
+    });
+  };
 
   let firstFailure: string | null = null;
   const tried: string[] = [];
@@ -268,17 +363,27 @@ export async function generate(options: {
     const resolved = await resolveProviderKey(provider, options.workspaceId);
     if (!resolved) continue;                       // sem chave não é falha, é ausência
 
-    const model = resolved.model ?? modeloPadrao(provider);
+    // Modelo fixado na tela do cliente vence o modelo salvo com a chave: quem
+    // fixou "gemini-flash-lite-latest" naquele cliente fixou por um motivo.
+    const model = (fixado && provider === fixado.provider ? modeloFixado : null) ?? resolved.model ?? modeloPadrao(provider);
     const attempts = tried.length === 0 ? 3 : 1;
+    const comecou = Date.now();
     const result = await callProvider(provider, resolved.apiKey, model, messages, maxTokens, attempts);
+    const duracaoMs = Date.now() - comecou;
 
     if (result.ok) {
       if (tried.length > 0) {
         console.warn(`[generate] ${tried.join(", ")} falhou — entregue por ${provider} (${model})`);
       }
+      anotar({
+        provider, model, status: "success", uso: result.uso, duracaoMs,
+        fallbackUsed: tried.length > 0,
+        fallbackReason: tried.length > 0 ? tried.join(", ") : null,
+      });
       return result;
     }
 
+    anotar({ provider, model, status: "error", uso: result.uso, duracaoMs, erro: result.error });
     firstFailure ??= result.error;
     tried.push(`${provider} (${result.error})`);
   }
@@ -286,11 +391,20 @@ export async function generate(options: {
   if (tried.length > 0) {
     // Reporta a PRIMEIRA falha, não a última: a primeira é a do provedor que
     // devia ter atendido, e é a que a pessoa precisa investigar.
-    return { ok: false, error: `IA indisponível: ${firstFailure}${tried.length > 1 ? ` (reservas também falharam: ${tried.length - 1})` : ""}` };
+    const porFixacao = fixado ? ` [provedor fixado no cliente: ${fixado.provider}, sem reserva]` : "";
+    return { ok: false, error: `IA indisponível: ${firstFailure}${tried.length > 1 ? ` (reservas também falharam: ${tried.length - 1})` : ""}${porFixacao}` };
   }
 
-  if (options.apenasOPreferido && options.preferredProvider) {
-    return { ok: false, error: `Provedor "${options.preferredProvider}" não está configurado. Conecte a chave em Integrações.` };
+  // FAIL-CLOSED no que decide gasto: provedor fixado e sem chave = a casa DIZ
+  // que não consegue. Nunca produz pior calada por outro caminho.
+  if (fixado) {
+    return {
+      ok: false,
+      error: `Provedor "${fixado.provider}" está fixado neste cliente e não tem chave conectada. Conecte a chave em Integrações ou remova a fixação — nada foi produzido por outro provedor.`,
+    };
+  }
+  if (semReserva && preferido) {
+    return { ok: false, error: `Provedor "${preferido}" não está configurado. Conecte a chave em Integrações.` };
   }
   return { ok: false, error: "Nenhuma IA conectada. Conecte uma chave em Integrações." };
 }

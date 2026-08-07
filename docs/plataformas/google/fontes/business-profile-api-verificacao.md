@@ -1,14 +1,23 @@
 ---
 titulo: "Business Profile APIs — gerenciar verificação de local"
 url: https://developers.google.com/my-business/content/manage-verification?hl=pt-br
-capturado_em: 2026-08-06
-hash: b6b98bd3e9fe65ea
+capturado_em: 2026-08-07
+hash: aab51eb26629e021
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
 Gerenciar a verificação
+Nesta página
+Ver o estado atual
+Buscar opções de verificação
+Iniciar o processo de verificação
+Recuperar as verificações atuais
+Concluir uma verificação pendente
+Práticas recomendadas para a verificação com o GBP usando a API
+Criação de unidade
+Verificação de unidade
 
 Os provedores que oferecem gerenciamento de fichas de empresa diretamente na plataforma deles podem verificar a empresa de um comerciante no próprio site. Assim, não é preciso redirecionar o comerciante para a interface do Perfil da Empresa.
 

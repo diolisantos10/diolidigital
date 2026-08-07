@@ -508,3 +508,37 @@ Declaradas, não escondidas:
   minuto por perfil.
 - **Termos e Condições da Google Ads API: LACUNA FECHADA em 06/08/2026**
   (fontes/ads-api-termos-e-condicoes.md).
+- **Pasta escolhida no Google Picker sob o escopo `drive.file`** (07/08/2026):
+  NENHUMA página oficial diz se o app passa a enxergar os arquivos de dentro da
+  pasta, as subpastas, ou o que for adicionado depois. A página de escopos
+  (fontes/drive-api-escopos.md) fala em acesso **por arquivo**; as referências
+  do Picker descrevem `setSelectFolderEnabled` sem dizer o efeito no acesso. A
+  única declaração de funcionário do Google encontrada é de 2019, na comunidade
+  oficial de Apps Script, e diz que **não** dá acesso ao conteúdo da pasta.
+  **Decisão da casa: pasta é tratada como não-material** — o cliente escolhe os
+  arquivos. Ver o parecer em
+  `pareceres/2026-08-07-drive-do-cliente.md`.
+- **Recaptura de 07/08/2026:** `ads-requisitos-de-destino` falhou por timeout
+  (a cópia de 03/08 continua valendo). `analytics-politicas-hub` e
+  `maps-conteudo-proibido` seguem sem captura pelos motivos acima.
+
+## Google Drive do cliente (07/08/2026)
+
+O material de marca do cliente — logo em arquivo, fotos reais, manual, captura
+de tela — entra pelo Drive DELE, com o escopo estreito `drive.file` e o seletor
+do Google. É **leitura**: nada é escrito no Drive de ninguém.
+
+- Escopo `drive.file` é **não sensível**: acesso por arquivo, verificação
+  simplificada, sem avaliação de segurança
+  (fonte: fontes/drive-api-escopos.md).
+- `drive` e `drive.readonly` são **restritos**: verificação restrita, avaliação
+  de segurança de terceiros (porque guardamos os bytes) e reverificação anual
+  (fontes: fontes/drive-api-escopos.md, fontes/oauth-verificacao-do-app.md).
+  **Não pedimos.**
+- App OAuth com status de publicação **"Teste"** recebe refresh token que
+  **expira em 7 dias** (fonte: fontes/oauth2-tokens-e-expiracao.md). Publicar o
+  app é pré-requisito para a conexão do cliente não quebrar sozinha.
+- Como o escopo é não sensível, **não há verificação obrigatória** — publicar é
+  um clique no console (fonte: fontes/oauth-verificacao-do-app.md).
+
+O parecer completo, com as condições do PODE: `pareceres/2026-08-07-drive-do-cliente.md`.

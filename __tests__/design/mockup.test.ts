@@ -187,6 +187,16 @@ describe("a assinatura de marca virou token", () => {
     expect(monogramaDe("padaria da esquina")).toBe("PD");
   });
 
+  it("caixa camelo é emenda de duas palavras — 'CityJobs' assina CJ, não CI", () => {
+    // O logo oficial desenha CITY e JOBS em duas linhas: a marca É composta.
+    expect(monogramaDe("CityJobs")).toBe("CJ");
+    expect(monogramaDe("CityJobs SP")).toBe("CJ");
+    // E só a transição minúscula→MAIÚSCULA conta. Sequência de maiúsculas é
+    // sigla ou ênfase, não composição — senão "MOGI" viraria "MO"+"O".
+    expect(monogramaDe("Foocci")).toBe("FO");
+    expect(monogramaDe("MOGI")).toBe("MO");
+  });
+
   it("sem nome não há monograma — e o rodapé não inventa iniciais", () => {
     expect(monogramaDe("")).toBeNull();
     expect(monogramaDe(null)).toBeNull();

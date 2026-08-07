@@ -56,6 +56,10 @@ import { generate } from "@/lib/ai/generate";
 import { SELF_SERVE_CATALOG } from "@/lib/agency/self-serve-catalog";
 import { DEPARTAMENTOS, TODOS_OS_ESPECIALISTAS } from "@/lib/agency/execution/especialistas";
 import { lerPedido, explicarLeitura } from "@/lib/agency/esteira/leitura-do-pedido";
+import {
+  lerOperacao, executarOperacaoDeCalendario, contarAoCliente, OPERACOES,
+} from "@/lib/agency/esteira/operacoes";
+import { registrarProibicoes } from "@/lib/agency/esteira/proibicoes";
 
 /** Depois disto, `em_triagem`/`em_producao` quer dizer "o processo morreu no
  *  meio". Mesmo valor que o motor de produção usa para a trava dele — e é o que
@@ -271,8 +275,27 @@ export interface PedidoTriado {
   podeProduzirAgora: boolean;
 }
 
+/**
+ * O pedido não virou TRABALHO NOVO: virou uma mudança no trabalho que já existe.
+ * Estado próprio porque o desfecho é próprio — não há tarefa, não há prazo, não
+ * há orçamento. O que há são datas novas, já visíveis ao cliente.
+ */
+export interface OperacaoExecutada {
+  pedidoId: string;
+  operacao: string;
+  movidas: number;
+  intocadas: number;
+  /** A data pedida já tinha passado e o bloco inteiro foi empurrado. */
+  empurradoPeloPiso: boolean;
+}
+
 export type ResultadoDaTriagem =
-  | { ok: true; triado: PedidoTriado }
+  // Os dois desfechos de SUCESSO, e eles são diferentes: um criou trabalho
+  // novo, o outro mexeu no trabalho que já existia. O `?: never` é o que faz
+  // `if (r.ok && r.triado)` estreitar de verdade — sem ele, quem já lia
+  // `r.triado` passaria a ler `undefined` em silêncio no caminho novo.
+  | { ok: true; triado: PedidoTriado; executado?: never }
+  | { ok: true; executado: OperacaoExecutada; triado?: never }
   /** A máquina não resolveu. O pedido está em `precisa_decisao`, com este motivo
    *  gravado e visível dos dois lados. */
   | { ok: false; parou: true; motivo: string }
@@ -365,6 +388,102 @@ async function classificarEEncaminhar(pedidoId: string): Promise<ResultadoDaTria
   });
   if (!cliente) {
     return await parar(pedidoId, "Não consegui identificar o cliente deste pedido. A equipe precisa olhar.");
+  }
+
+  // ── A METADE NEGATIVA DA VERDADE ──────────────────────────────────────────
+  // Toda palavra do cliente passa por aqui. Se ele proibiu alguma coisa neste
+  // pedido ("não use X", "nunca cite Y"), a proibição é registrada ANTES de
+  // qualquer produção — e passa a valer para esta peça e para todas as
+  // seguintes. Antes disto, o que ele proibia morria no texto daquela vez.
+  // Best-effort: o registro não pode derrubar a triagem.
+  await registrarProibicoes(
+    cliente.id,
+    [pedido.description, pedido.objective].filter(Boolean).join("\n"),
+    "pedido",
+  );
+
+  // ── FAMÍLIA 3 · OPERAÇÃO SOBRE O QUE JÁ EXISTE ────────────────────────────
+  //
+  // Antes desta passagem, "adiantem o calendário um dia" caía no classificador,
+  // não casava com nenhum atendimento da carta (porque não É um atendimento —
+  // não produz peça) e virava `precisa_decisao` esperando gente. O motivo estava
+  // certo e o desfecho errado: mudar data de peça aprovada é operação do próprio
+  // sistema.
+  //
+  // Vem ANTES da checagem de projeto e ANTES do modelo, de propósito: operação
+  // de calendário não precisa de projeto aberto (o calendário já existe) e não
+  // pode depender de chave de IA — uma operação simples que para porque um
+  // provedor caiu é o mesmo balde com outro nome.
+  const op = lerOperacao(pedido.description);
+  if (op.reconhecidaSemExecucao) {
+    return await parar(pedidoId, op.reconhecidaSemExecucao);
+  }
+  if (op.operacao) {
+    const definicao = OPERACOES.find((o) => o.id === op.operacao)!;
+    const r = await executarOperacaoDeCalendario({
+      clientId: cliente.id,
+      operacao: op.operacao,
+      dias: op.dias,
+      hora: op.hora,
+    });
+    if (!r.ok) {
+      // Operação reconhecida e NÃO executada não vira silêncio nem vira peça
+      // nova: para com o motivo exato, incluindo o estado das peças que a trava
+      // recusou mexer.
+      const recusas = r.intocadas.length > 0
+        ? ` Peça(s) que eu não posso remarcar: ${[...new Set(r.intocadas.map((i) => i.motivo))].join("; ")}.`
+        : "";
+      return await parar(
+        pedidoId,
+        `Entendi que você quer ${definicao.label.toLowerCase()}, mas não consegui fazer: ${r.motivo}.${recusas} A equipe resolve e te confirma por aqui.`,
+      );
+    }
+
+    await prisma.contentRequest.update({
+      where: { id: pedidoId },
+      data: {
+        status: "executado",
+        triagedBy: "Operação automática",
+        triagedAt: new Date(),
+        declineReason: null,
+      },
+    });
+
+    // O rastro vai para a linha do tempo do projeto QUANDO existe um. Operação
+    // de calendário não exige projeto — e não ter onde registrar não pode
+    // impedir a operação de acontecer.
+    const projetoParaRastro = pedido.projectId
+      ?? (await prisma.project.findFirst({
+        where: { clientId: cliente.id }, orderBy: { createdAt: "desc" }, select: { id: true },
+      }).catch(() => null))?.id;
+    if (projetoParaRastro) {
+      await prisma.timelineEvent.create({
+        data: {
+          projectId: projetoParaRastro,
+          type: "content_request",
+          label: `Operação executada automaticamente: ${definicao.label}`,
+          dept: "social-media",
+          detail: r.movidas
+            .map((m) => `${m.de.toISOString().slice(0, 16)} → ${m.para.toISOString().slice(0, 16)}`)
+            .join(" · "),
+        },
+      }).catch(() => { /* rastro é visibilidade: não derruba a operação */ });
+    }
+
+    // O cliente vê as DATAS NOVAS, peça a peça — e as vê também no calendário
+    // do portal, que lê `SocialPost.scheduledFor` direto.
+    await avisarCliente(pedido.clientId, contarAoCliente(r));
+
+    return {
+      ok: true,
+      executado: {
+        operacao: op.operacao,
+        pedidoId,
+        movidas: r.movidas.length,
+        intocadas: r.intocadas.length,
+        empurradoPeloPiso: r.empurradoPeloPiso,
+      },
+    };
   }
 
   // O projeto que recebe. NUNCA inventado: sem projeto aberto, a tarefa não é

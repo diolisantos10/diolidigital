@@ -1,14 +1,21 @@
 ---
 titulo: "Business Profile APIs — avaliações e respostas (review data)"
 url: https://developers.google.com/my-business/content/review-data?hl=pt-br
-capturado_em: 2026-08-06
-hash: 73b5c463ba0e11c0
+capturado_em: 2026-08-07
+hash: 58ba6834238f9f90
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
 Trabalhar com dados de avaliações
+Nesta página
+Antes de começar
+Exibir todas as avaliações
+Ver uma avaliação específica
+Ver avaliações de vários locais
+Responder a uma avaliação
+Excluir uma resposta de uma avaliação
 
 Neste tutorial, explicamos como mostrar, retornar, responder e excluir uma avaliação. Com a API Google My Business, você pode usar os dados de avaliação para as seguintes operações:
 

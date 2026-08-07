@@ -26,6 +26,7 @@
 import { prisma } from "@/lib/db/client";
 import { generateDesign } from "@/lib/ai/design-engine";
 import { guardarArquivo } from "@/lib/agency/media/armazenamento";
+import { logoDoCliente } from "@/lib/agency/esteira/material-do-drive";
 
 /** As fontes que o wordmark pode usar. Lista fechada e com fallback genérico
  *  em cada uma: o SVG é aberto na máquina do CLIENTE, que não tem as nossas
@@ -57,6 +58,21 @@ export async function produzirKitDeMarca(
 ): Promise<KitDeMarca> {
   const saida: KitDeMarca = { arquivos: [] };
   if (!clientId) return { ...saida, erro: "projeto sem cliente" };
+
+  // ── O LOGO REAL DO CLIENTE VEM ANTES DE QUALQUER DESENHO (07/08/2026) ─────
+  // Se ele conectou o Drive e declarou "isto é o meu logo", a casa NÃO inventa
+  // outro. Gerar um símbolo ao lado do logo oficial é entregar duas marcas ao
+  // mesmo cliente — e foi por não ter de onde buscar o arquivo real que o logo
+  // da Foocci é, até hoje, o nome escrito em fonte.
+  const oficial = await logoDoCliente(clientId).catch(() => null);
+  if (oficial) {
+    saida.arquivos.push({
+      id: oficial.mediaAssetId,
+      nome: oficial.nome,
+      para: "o logo oficial que o próprio cliente entregou pelo Google Drive — use este, não recrie",
+    });
+    return saida;
+  }
 
   const jaTem = await prisma.mediaAsset.findFirst({
     where: { clientId, kind: "deliverable", fileName: { startsWith: "logo-" } },

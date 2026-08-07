@@ -18,6 +18,7 @@
 import { NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth/api-guard";
 import { ffmpegDisponivel } from "@/lib/agency/media/video";
+import { renderizadorDisponivel } from "@/lib/agency/design/renderizar";
 import { resolveProviderKey } from "@/lib/ai/resolve-key";
 
 export const dynamic = "force-dynamic";
@@ -26,9 +27,10 @@ export async function GET(): Promise<NextResponse> {
   const { error, session } = await requireSession();
   if (error) return error;
 
-  const [temFfmpeg, chaveImagem] = await Promise.all([
+  const [temFfmpeg, chaveImagem, renderizador] = await Promise.all([
     ffmpegDisponivel().catch(() => false),
     resolveProviderKey("openai", session?.workspaceId).then((r) => !!r).catch(() => false),
+    renderizadorDisponivel().catch(() => ({ disponivel: false, caminho: null })),
   ]);
 
   const dominioPublico = Boolean(
@@ -50,6 +52,30 @@ export async function GET(): Promise<NextResponse> {
       pronta: chaveImagem,
       sem_isso: "post fica sem imagem e NÃO vai ao ar — o Instagram exige mídia",
       depende_de: "chave OpenAI com acesso a modelo de imagem",
+    },
+    {
+      // ── O MOLDE DE MARCA, E POR QUE ELE PRECISA APARECER AQUI ─────────────
+      // Achado montando o CityJobs (07/08/2026): em produção o `import`
+      // de `playwright` FALHA — a biblioteca está em `devDependencies`, e o
+      // build de produção não a instala. Consequência: `montarPeca` nunca roda,
+      // e TODA peça sai como a foto crua da IA — sem título, sem a cor da
+      // marca, sem o selo e sem a assinatura de rodapé.
+      //
+      // Ou seja: o motor inteiro de 05–06/08 ("o modelo faz FOTO, o código faz
+      // LAYOUT") estava desligado em produção, e a única testemunha era o
+      // `lastError` DENTRO de cada post — um campo que, nas palavras do próprio
+      // `publicacao.ts`, "para ver é preciso já suspeitar e ir procurar".
+      //
+      // `renderizadorDisponivel()` já existia com este propósito escrito no
+      // docstring e não tinha chamador. Agora tem: a peça continua saindo (foto
+      // sem texto é degradação declarada, não erro), mas a agência PASSA A
+      // SABER que está entregando sem a identidade do cliente.
+      id: "montar-molde",
+      o_que_faz: "Aplicar o molde de marca na peça: título, cor, selo e assinatura de rodapé",
+      pronta: renderizador.disponivel,
+      sem_isso: "a peça sai como a foto crua da IA — sem texto, sem a cor da marca e sem assinatura. Ela é entregue assim mesmo, e o cliente recebe uma imagem genérica assinada por ninguém",
+      depende_de: "playwright em dependencies (hoje está em devDependencies) + binário do Chromium no runtime",
+      onde_achei_o_navegador: renderizador.caminho,
     },
     {
       id: "meta-buscar-midia",

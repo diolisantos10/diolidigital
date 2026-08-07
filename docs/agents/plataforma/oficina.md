@@ -5,6 +5,135 @@
 
 ---
 
+## 2026-08-06 · noite — Provedor por cliente, a tela que manda, e a conta de IA
+
+Três defeitos da mesma família, e a família é: **a tela grava e ninguém lê.**
+Commit `17b4212`.
+
+### 1. A escolha de provedor por CLIENTE — o que destrava a ordem do CEO
+
+`BRAIN_AI_PROVIDER` é env global. Ligar a faixa gratuita por ela poria a Foocci
+— cliente pagante — na cobaia junto com a agência, o oposto de "testar na
+agência primeiro".
+
+- Tabela nova `ClientAiProvider` (`prisma/schema.prisma:670`), com **um leitor
+  nomeado**: `lib/ai/escolha-por-cliente.ts:63`, chamado dentro de
+  `lib/ai/generate.ts:305` — o portão único por onde toda IA de texto passa.
+- **Precedência:** fixação do cliente → `preferredProvider` do especialista →
+  preferência da casa. A fixação tinha que vencer o especialista, senão a tela
+  não mandaria nada no caminho que produz peça de verdade.
+- **Nasce ESTRITA** (`estrito: true` no default da coluna). Provedor fixado que
+  cai faz a casa **dizer que não conseguiu** — não deixa outro atender por baixo.
+  Duas razões e as duas são caras: fixar o Gemini e o Claude atender calado mede
+  o Claude; e o cliente recebe uma peça de padrão diferente do que o painel
+  afirma. **Degradação silenciosa é o pior desfecho.**
+- **Fail-closed antes de gravar:** `PUT /api/agency/provedor-do-cliente` recusa
+  (409) fixar provedor sem chave conectada. Fixar sem chave é programar a próxima
+  produção daquele cliente para falhar, com a tela dizendo que está tudo certo.
+- Wiring no caminho real: `lib/agency/execution/run-execution.ts` passa
+  `clientId`, `departmentId`, `agentId` e `projectId` nas 4 chamadas a
+  `generate()`.
+
+### 2. A tela decorativa SAIU
+
+"IAs dos Agentes" gravava em `localStorage` via Zustand; `/api/agent-configs`
+**não tinha um único chamador**; `DbAgentProviderConfig` nasceu e morreu vazia.
+A decisão real estava fixa em `especialistas.ts`. E a lista de agentes dela
+(`strategy_room`, `pm_agent`, `brand_hub`…) é vocabulário da V1 — **nem falava
+das mesmas entidades** que o motor executa. `rule_based` era uma opção que não
+existe: não há motor de texto por regras.
+
+Saíram: a seção, a rota, a fatia do store, os tipos em `lib/agency/integrations.ts`,
+a tabela (DROP na migration) e a checagem `integration-agent-modes` do
+system-doctor — **alarme sobre estado decorativo é ruído que treina o operador a
+ignorar o painel inteiro**.
+
+No lugar: `components/agency/ProvedorPorCliente.tsx`, que manda de verdade.
+
+### 3. A conta de IA — o primeiro número real
+
+`AIRunLog` estava **vazia em produção** (nunca teve escritor) e sem coluna de
+token nem de custo.
+
+- `lib/ai/registro-de-custo.ts` grava cada chamada dentro de `generate()`:
+  cliente, departamento, agente, projeto, provedor, modelo, tokens de entrada e
+  saída, custo estimado, duração, e o motivo quando falha.
+- **O uso é lido ANTES de julgar o conteúdo:** resposta 200 com JSON inválido
+  consumiu token igual. Contar só sucesso faria a casa achar que retentativa é
+  de graça.
+- **FAIL-OPEN, e é a exceção da casa:** falha ao gravar não derruba a entrega.
+  **Mas não é fail-silencioso** — sai `[custo-de-ia] NÃO GRAVADO` com provedor,
+  modelo, cliente, tokens e causa. Sem esse rastro o relatório contaria uma
+  história mais barata que a realidade e ninguém saberia.
+- `try/catch`, não `.catch()`: cliente do Prisma sem o modelo estoura **antes**
+  de existir promessa, e a exceção síncrona passa por cima do `.catch`.
+- **PII fora:** `promptSummary`/`outputSummary` ficam nulos neste caminho. O
+  prompt de um especialista carrega o briefing do cliente inteiro.
+- **Leitor nomeado:** `lib/ai/relatorio-de-gasto.ts` →
+  `GET /api/agency/gasto-de-ia` (só master) → `components/agency/GastoDeIa.tsx`.
+- **`POST /api/ai-run-logs` foi REMOVIDO.** Virou livro-caixa, e livro-caixa que
+  a parte interessada escreve pelo navegador não prova nada.
+
+### O preço é ESTIMATIVA DECLARADA, não verdade
+
+`lib/ai/precos.ts`. Preço de tabela público, copiado da documentação de cada
+provedor, com `origem` por linha, `conferidoEm: null` (**ainda não reconferido
+por esta casa** — declarado assim em vez de uma data falsa) e `TABELA_VERSAO`
+carimbada em cada linha do log.
+
+- **Modelo fora da tabela custa `null`, nunca zero.** Zero afirmaria que a
+  chamada foi de graça, e um modelo novo apareceria como economia.
+- **Prefixo mais longo vence:** `sonar` é prefixo de `sonar-pro`, cujo preço é
+  3× — o casamento ingênuo fecharia a conta errada para menos.
+- A tela nunca mostra dinheiro sem o aviso e sem **quantas chamadas ficaram de
+  fora** (sem preço, sem token, ou tabela de versão diferente).
+
+### A escada: nenhum segundo mecanismo de maturidade
+
+Provedor novo é exposição nova, e a casa já sabe medir exposição.
+`DepartmentLadderRecord` ganhou a coluna **`provedor`**. "O gratuito aguenta o
+tráfego pago deste cliente?" passa a ser uma consulta sobre a **mesma evidência**
+que decide se a peça chega ao cliente — não uma segunda escada com regra própria.
+
+### Verificação — À MÃO, porque o GitHub Actions está em pane
+
+**Não há CI verde para o commit `17b4212`.** Rodei os três portões na mão, num
+**worktree limpo do HEAD com só as minhas mudanças** (a árvore principal tinha
+trabalho não-commitado de outro agente):
+
+- `npx tsc --noEmit` limpo;
+- `npx vitest run`: **140 arquivos, 2257 testes, todos passando** (32 novos);
+- `npm run build` de produção ok (na árvore principal — o Turbopack não aceita o
+  `node_modules` simbólico do worktree);
+- migration aplicada por `prisma migrate deploy` numa base nova, e conferida
+  também pelo teste de índices, que constrói o banco pelas migrations;
+- telas em **375 / 768 / 1440**, com o cliente cobaia fixado no Gemini, os outros
+  dois no padrão da casa e o aviso vermelho de "sem chave conectada" aparecendo.
+  Auto-avaliação: hierarquia 9 · tipografia 8,5 · espaçamento 8,5 · consistência 9.
+
+### 🔴 O que fica aberto
+
+1. **A conta começa hoje.** Não há gasto retroativo: a tabela estava vazia e sem
+   colunas. Comparação mês a mês só a partir de setembro.
+2. **O preço nunca foi reconferido por esta casa.** Todo `conferidoEm` é `null`.
+   Enquanto ninguém abrir as páginas de preço e carimbar a data, o total é uma
+   ordem de grandeza, não um número de fatura.
+3. **A Perplexity sai subestimada:** ela cobra token **e** uma taxa por
+   requisição de busca, que não está na tabela.
+4. **A cota gratuita do Gemini não é descontada.** Dentro da cota o custo real é
+   0, e o relatório mostra o preço pago. Erra para o lado de assustar — o lado
+   certo, porque a cota estoura calada.
+5. **6 rotas de agente ainda falam com a Anthropic direto**, fora de
+   `generate()`. Elas **não entram na conta nem obedecem à fixação por cliente**.
+   É o maior buraco que sobra: `app/api/agents/*/generate`, `app/api/brain/*`,
+   `app/api/sdr/{chat,upload}`.
+6. **Imagem e transcrição continuam presas à OpenAI** e fora da conta — outro
+   dialeto, outro caminho.
+7. **`lib/ai/provider-registry.ts` segue código morto.** Ninguém o chama fora dos
+   testes; o portão real é `generate()`.
+
+---
+
 ## 2026-08-06 · tarde — Três frentes: o microfone, os contadores e a grafia dupla
 
 Território: `lib/ai/transcricao.ts`, `app/api/{portal/transcricao,sdr/transcribe,meta/ativos}`,
@@ -412,3 +541,234 @@ sem cópia de regra.
 3. **A porta do e-mail não tem teto por remetente.** Tem teto de corpo (512 KB)
    e de texto (60k chars), mas quem tiver o segredo pode inserir em ritmo livre.
    No dia em que o segredo vazar, isso enche o volume do Railway.
+
+---
+
+## 06/08/2026 · A caixa de e-mail cheia de alarme — o que era defeito e o que era ruído
+
+Frente aberta pelo CEO: alertas de falha em série (CI, cron, "Deployment
+crashed"). Pedido: **descobrir a verdade e consertar a causa**.
+
+### O que os e-mails eram de verdade
+
+**Contexto que explica quase tudo: o GitHub Actions estava em PANE.** Incidente
+aberto às 15:22Z, ainda não resolvido às 21:30Z; webhooks estrangulados a ~15%,
+capacidade de runner limitada (`githubstatus.com/api/v2/summary.json` →
+componente `Actions` em `major_outage`).
+
+1. **CI de 17:38 (`c605fbd`) — "All jobs have failed".** Não foi teste nenhum.
+   O job ficou **30 min na fila**, rodou 45 min, registrou **zero passos** e o
+   log nem existe (`BlobNotFound`). Casualidade da pane. E `c605fbd` **nem está
+   na branch**: é commit órfão de uma corrida entre dois agentes empurrando na
+   mesma branch (mesma mensagem de `d9c4232`, pai diferente).
+2. **"All jobs were cancelled" em série.** A hipótese do `concurrency` estava
+   **errada**: não havia `concurrency` em workflow nenhum. Quem matava os jobs
+   era a infraestrutura — e job morto por infraestrutura fecha o *run* como
+   `failure`, por isso virou e-mail vermelho.
+3. **Duas falhas de CI que eram REAIS** — 12:21 (`5f39ce0`) e 12:22 (`4f62ce2`),
+   passo `Tests`. Já consertadas no mesmo dia (`e37a60d` em diante). O único
+   defeito de código do dia inteiro, e foi o que menos apareceu na caixa.
+4. **Cron "recuperar produção travada" FALHOU 2x.** Também a pane: o job, que é
+   **um `curl`**, ficou **83 minutos** pendurado antes de ser morto.
+5. **"Deployment crashed" (15:55).** **Nunca houve crash.** O log do deployment
+   `2ff2df14` mostra boot limpo, migrations aplicadas, `Ready`, atendendo por 20
+   min — e então `SIGTERM` às 18:55:07, que é o Railway trocando o container
+   pelo deploy seguinte. Ver a seção abaixo.
+
+### 🔴 O achado que ninguém tinha visto: produção sem prova
+
+**`7724050` — o commit que está em produção — não tem NENHUM run de CI.** Zero.
+Com o Actions estrangulado, o push não gerou run; o Railway faz deploy **por
+push, não por CI verde**; e subiu.
+
+Rodei o portão à mão neste commit: `tsc` limpo, **2146 testes passando**, `npm
+run build` ok, com o Chromium presente (a prova do pixel rodou de verdade, não
+foi pulada). **O código está bom** — mas isso foi descoberto por perícia, não
+pelo processo.
+
+O buraco é o processo: **"a CI não rodou" e "a CI passou" produzem o mesmo
+efeito na caixa de entrada — nenhum e-mail vermelho.** Silêncio virou aprovação.
+
+### O outro achado: o cron de socorro roda 12x menos do que está escrito
+
+`cron-execute.yml` diz `*/10` (6x por hora). Medido nos runs reais dos 3 dias
+anteriores, o intervalo **entre disparos** foi de **64 a 203 minutos** — mediana
+perto de 100. `schedule` do GitHub é best-effort e o descarte é silencioso.
+A rede de segurança da produção roda ~1x por hora e meia. Registrado no próprio
+arquivo, para ninguém mais acreditar no "de 10 em 10 minutos".
+
+### O que foi consertado
+
+- **`instrumentation.ts` + `scripts/start.sh` — parada não é queda.** O servidor
+  standalone do Next sai com `process.exit(143)` no SIGTERM
+  (`node_modules/next/dist/server/lib/start-server.js:375`). 143 é != 0, e é
+  assim que a hospedagem reconhece defeito — por isso **todo deploy** gerava
+  "Deployment crashed". Agora `start.sh` exporta `NEXT_MANUAL_SIG_HANDLE=true`
+  e `pararSemParecerQueda()` sai **0**. Queda de verdade (exceção, OOM, falha de
+  boot) segue != 0 — não chega por SIGTERM.
+  **Provado no servidor real, não no papel:** mesmo binário, mesmo SIGTERM —
+  `EXIT=143` sem a variável, `EXIT=0` com ela.
+- **`lib/plataforma/sentinela-do-deploy.ts` + `scripts/sentinela-do-deploy.mts`
+  (`npm run sentinela`).** Pergunta à produção qual commit está no ar
+  (`/api/health`), ao GitHub se aquele commit tem CI verde, e ao status page se
+  o Actions está de pé. **Distingue três coisas que o e-mail confunde:**
+  REPROVADO, SEM_PROVA e APROVADO. Ausência de informação não é informação.
+  Rodando agora, ele acusa exatamente o buraco, em uma linha.
+- **`.github/workflows/sentinela-do-deploy.yml`.** Roda a cada push na branch de
+  produção e de hora em hora, e **abre issue** quando a produção está sem prova
+  — issue notifica por e-mail e fica aberta cobrando, ao contrário de um job
+  vermelho no meio de trinta.
+- **`concurrency` na CI** (o cancelamento passa a ser deliberado, fecha como
+  `cancelled`, que o GitHub não manda por e-mail) e **`timeout-minutes`** na CI
+  (30) e nos dois crons (10) — o job de 83 min não se repete.
+
+### Verificação
+
+- `npx tsc --noEmit` limpo.
+- `npx vitest run`: **136 arquivos, 2168 testes, todos passando** (22 novos).
+- `npm run build` ok.
+- YAML dos 6 workflows validado.
+
+### 🔴 O que fica aberto — precisa de decisão
+
+1. **O Railway não pergunta pela CI.** Ele faz deploy por push. O sentinela
+   **detecta e denuncia** depois do fato; ele não impede. Trava de verdade seria
+   deploy só por CI verde (Railway Deployment Triggers / deploy via workflow) —
+   é mudança de processo de deploy, não cabia nesta frente.
+2. **Dois agentes empurrando na mesma branch** produziram `c605fbd` órfão. O
+   `concurrency` reduz o desperdício de runner, mas não resolve a corrida de
+   push.
+3. **A pane do Actions ainda estava aberta** ao fim desta frente: nenhum run foi
+   criado entre 19:22Z e 21:40Z. Enquanto durar, o sentinela vai acusar
+   `SEM_PROVA_PLATAFORMA_FORA` — que é o veredito correto, não um falso positivo.
+
+---
+
+## 2026-08-06 · O mapa da dependência de conta paga e a troca para a faixa gratuita
+
+**Pedido do CEO:** *"troca pro gratuito, vamos testar na agência; se der certo, replica."*
+Premissa dada: a conta da OpenAI está sem crédito.
+
+### A premissa não se confirmou — e o buraco era outro
+
+Rodei geração real em produção antes de trocar qualquer coisa. **A OpenAI gera
+normalmente** (`gpt-4o`, 9/9 execuções). Quem estava morto era **o Gemini**, a
+faixa gratuita, e ninguém sabia porque a tela mentia.
+
+`app/api/ai-keys/test/route.ts` testava OpenAI e Gemini com `GET /models` — uma
+listagem que responde 200 com a conta zerada **e** com o modelo aposentado. A
+configuração de produção apontava para `gemini-1.5-pro`, aposentado pela Google.
+Resultado: cinco provedores verdes na tela, um deles incapaz de produzir um
+caractere. **Verde falso é pior que vermelho:** manda procurar o defeito em
+qualquer lugar menos onde ele está.
+
+Sondagem nome a nome contra a chave desta casa (06/08/2026): `gemini-1.5-pro`,
+`gemini-1.5-flash`, `gemini-2.0-flash`, `gemini-2.5-flash`,
+`gemini-2.5-flash-lite`, `gemini-2.5-pro`, `gemini-3-flash` → **todos 404**.
+Geram: `gemini-flash-latest`, `gemini-pro-latest`, `gemini-flash-lite-latest`.
+
+### O mapa
+
+| Camada | Onde | Provedor | Quebra se a conta zerar |
+|---|---|---|---|
+| Texto (motor único) | `lib/ai/generate.ts` | 5 provedores, cadeia de reserva | Não — passa para o próximo com chave |
+| Texto (6 rotas de agente) | `app/api/agents/*/generate`, `app/api/brain/*`, `app/api/sdr/{chat,upload}` | **Claude, no braço, sem reserva** | Sim, com aviso |
+| Visão | `lib/ai/visao.ts` | claude → openai → gemini | Não — degradação declarada |
+| Transcrição | `lib/ai/transcricao.ts` | **OpenAI Whisper, exclusivo** | Sim (outra frente cuida) |
+| **Imagem** | `lib/ai/design-engine.ts` | **OpenAI `gpt-image-1`/`dall-e-3`, exclusivo** | Sim, com erro marcado na peça |
+| Embedding | — | não existe | — |
+
+### O que descobri que ninguém sabia
+
+- **`AIRunLog` está VAZIO em produção e nunca teve dono.** O único escritor é
+  `save()` em `lib/hooks/useDbAIRunLogs.ts:56` — **nenhum arquivo o chama**. E a
+  tabela não tem coluna de token nem de custo (`prisma/schema.prisma:741`).
+  **Não dá para estimar custo pelo log**, hoje nem retroativamente.
+- **A tela de "provedor por agente" é decorativa.** `DbAgentProviderConfig` é
+  gravada por `app/api/agent-configs/route.ts` e **lida por ninguém no servidor**.
+  A escolha real está *hardcoded* em `lib/agency/execution/especialistas.ts`
+  (`provedor: "claude"` na maioria).
+- **Não existe como trocar o provedor só de um cliente.** `BRAIN_AI_PROVIDER` é
+  env global, e os 4 clientes (Foocci, Dioli Digital Studio, 2× Camila Pereira)
+  vivem no **mesmo workspace**. Ligar o gratuito por env põe cliente pagante na
+  cobaia — o oposto da ordem.
+- **`lib/ai/provider-registry.ts` é código morto.** O cabeçalho afirma que a rota
+  de raciocínio e o orquestrador o chamam; **ninguém chama** (só os testes). O
+  portão único de verdade é `lib/ai/generate.ts`, guardado por
+  `__tests__/brain/no-parallel-brain.test.ts`.
+
+### O que foi feito
+
+- `app/api/ai-keys/test/route.ts:33` e `:98` — OpenAI e Gemini passam a **gerar**
+  no modelo escolhido, e sabem nomear 429 (sem saldo) e 404 (modelo morto).
+- `lib/ai/generate.ts:157` — `modeloPadrao()` virou função (era const de módulo:
+  trocar `GEMINI_MODEL` no Railway não surtia efeito até reiniciar) e o default
+  do Gemini virou apelido móvel. Mesmo conserto em `lib/ai/visao.ts:214`.
+- `lib/ai/generate.ts` — nova opção **`apenasOPreferido`**: sem reserva. A
+  reserva é virtude em produção e mentira na medição.
+- `app/api/ai/run/route.ts` — deixou de ter cérebro paralelo, passa por
+  `generate()`, aceita os 5 provedores, aceita `estrito` e devolve `ms`.
+  **Saiu da lista congelada** do portão único: a lista diminuiu.
+- `app/api/ai-keys/route.ts` — `PATCH` troca só o modelo (antes era impossível
+  sem recolar a chave, que ninguém tem à mão depois de salva).
+- Listas de modelo do Gemini corrigidas em `components/agency/AiKeyManager.tsx`
+  e `app/agency/integrations/page.tsx`.
+- `__tests__/plataforma/troca-para-provedor-gratuito.test.ts` — 7 testes: modelo
+  vivo, o gratuito produz, e **o gratuito indisponível PARA** (prova de que
+  nenhuma chamada vaza para o provedor pago no modo estrito).
+
+### O teste na agência — número, não impressão
+
+Cobaia: **Dioli Digital Studio** (`cmsayxrdq00050po7mdeg6kvw`). Nenhuma execução
+tocou Foocci ou Camila Pereira. Modo estrito, produção real, portão = o
+validador de departamento que já existia.
+
+**45 execuções — 3 departamentos × 5 provedores × 3 rodadas:**
+
+| provedor | passou o portão | mediana | pior caso |
+|---|---|---|---|
+| claude | 9/9 | 9,8 s | 16,1 s |
+| openai | 9/9 | 8,2 s | 11,1 s |
+| **gemini (grátis)** | **8/9** | 10,0 s | 11,1 s |
+| deepseek | 9/9 | 12,7 s | 39,5 s |
+| perplexity | 9/9 | 9,5 s | 14,7 s |
+
+**Aprofundamento Claude × Gemini (36 execuções) + rajada de 15 sequenciais:**
+
+- Gemini no total medido: **36/39 = 92,3%**. Claude: **27/27 = 100%**.
+- Todas as 3 falhas do Gemini foram `JSON inválido` **depois de 3 tentativas**, e
+  todas em **tráfego pago** — o esquema mais complexo. Custam ~37 s antes de
+  desistir.
+- Riqueza da saída (mediana de caracteres): estratégia **3.078 (Claude) × 2.122
+  (Gemini)** — o gratuito entrega ~31% menos texto. Social: 1.877 × 2.466
+  (Gemini maior). Tráfego pago: 3.532 × 3.042.
+- 15 chamadas sequenciais no Gemini: **15/15**, sem estouro de cota.
+
+### Imagem — com todas as letras
+
+**Não troquei, e não recomendo trocar às cegas.** `design-engine.ts` fala o
+dialeto de imagens da OpenAI; o Gemini exigiria adaptador novo. Sondei a chave
+desta casa: `gemini-2.5-flash-image` e `gemini-3-pro-image-preview` **existem e
+respondem**. Mas *existir não é ter a qualidade do feed*, e **eu não medi
+qualidade de arte** — medir isso é comparação visual, não `curl`. Rebaixar a
+peça calado seria exatamente a degradação silenciosa que a ordem proíbe.
+
+### Verificação — À MÃO, porque não há CI
+
+GitHub Actions em pane. Rodei os três portões na mão, nas duas entregas:
+`npx tsc --noEmit` limpo · `npx vitest run` **139 arquivos, 2206 testes, todos
+passando** · `npm run build` ok. **Não há CI verde para estes commits.**
+
+### 🔴 O que fica aberto — precisa de decisão do CEO/Diretor
+
+1. **A troca por cliente não existe.** Ligar `BRAIN_AI_PROVIDER=gemini` põe
+   Foocci na cobaia. Falta um seletor por cliente (ou fazer
+   `DbAgentProviderConfig` finalmente ser lido) — decisão de arquitetura, não
+   minha.
+2. **Custo é imensurável hoje.** Sem instrumentar `AIRunLog` com tokens, nenhuma
+   conversa sobre economia passa de palpite.
+3. **Tráfego pago é o ponto fraco do gratuito** (2 falhas em 6). Se o gratuito
+   entrar, entra por departamento, não de uma vez.
+4. **6 rotas de agente ainda falam com a Anthropic direto**, sem reserva. São o
+   que sobra da lista congelada; migrar para `generate()` é ganho de robustez
+   independente de provedor.

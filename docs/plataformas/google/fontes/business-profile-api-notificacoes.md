@@ -1,14 +1,20 @@
 ---
 titulo: "Business Profile APIs — notificações via Pub/Sub"
 url: https://developers.google.com/my-business/content/notification-setup?hl=pt-br
-capturado_em: 2026-08-06
-hash: fc153c9645495ffc
+capturado_em: 2026-08-07
+hash: 3a594bf90d0b5e09
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
 Gerenciar as notificações em tempo real
+Nesta página
+Antes de começar
+Configuração do Cloud Pub/Sub
+Recuperar as configurações de notificação
+Atualizar as configurações de notificação
+Excluir as configurações de notificação
 
 Na API My Business Notifications, as notificações são publicadas no serviço Cloud Pub/Sub. Depois de configurar o Cloud Pub/Sub e criar um tópico, é possível realizar as seguintes operações nas notificações:
 

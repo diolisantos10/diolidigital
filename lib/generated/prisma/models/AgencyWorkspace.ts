@@ -178,7 +178,7 @@ export type AgencyWorkspaceWhereInput = {
   clients?: Prisma.ClientListRelationFilter
   projects?: Prisma.ProjectListRelationFilter
   integrationConfigs?: Prisma.DbIntegrationConfigListRelationFilter
-  agentProviderConfigs?: Prisma.DbAgentProviderConfigListRelationFilter
+  clientAiProviders?: Prisma.ClientAiProviderListRelationFilter
   activityEvents?: Prisma.ActivityEventListRelationFilter
   aiRunLogs?: Prisma.AIRunLogListRelationFilter
   metaConnections?: Prisma.MetaConnectionListRelationFilter
@@ -194,7 +194,7 @@ export type AgencyWorkspaceOrderByWithRelationInput = {
   clients?: Prisma.ClientOrderByRelationAggregateInput
   projects?: Prisma.ProjectOrderByRelationAggregateInput
   integrationConfigs?: Prisma.DbIntegrationConfigOrderByRelationAggregateInput
-  agentProviderConfigs?: Prisma.DbAgentProviderConfigOrderByRelationAggregateInput
+  clientAiProviders?: Prisma.ClientAiProviderOrderByRelationAggregateInput
   activityEvents?: Prisma.ActivityEventOrderByRelationAggregateInput
   aiRunLogs?: Prisma.AIRunLogOrderByRelationAggregateInput
   metaConnections?: Prisma.MetaConnectionOrderByRelationAggregateInput
@@ -213,7 +213,7 @@ export type AgencyWorkspaceWhereUniqueInput = Prisma.AtLeast<{
   clients?: Prisma.ClientListRelationFilter
   projects?: Prisma.ProjectListRelationFilter
   integrationConfigs?: Prisma.DbIntegrationConfigListRelationFilter
-  agentProviderConfigs?: Prisma.DbAgentProviderConfigListRelationFilter
+  clientAiProviders?: Prisma.ClientAiProviderListRelationFilter
   activityEvents?: Prisma.ActivityEventListRelationFilter
   aiRunLogs?: Prisma.AIRunLogListRelationFilter
   metaConnections?: Prisma.MetaConnectionListRelationFilter
@@ -249,7 +249,7 @@ export type AgencyWorkspaceCreateInput = {
   clients?: Prisma.ClientCreateNestedManyWithoutWorkspaceInput
   projects?: Prisma.ProjectCreateNestedManyWithoutWorkspaceInput
   integrationConfigs?: Prisma.DbIntegrationConfigCreateNestedManyWithoutWorkspaceInput
-  agentProviderConfigs?: Prisma.DbAgentProviderConfigCreateNestedManyWithoutWorkspaceInput
+  clientAiProviders?: Prisma.ClientAiProviderCreateNestedManyWithoutWorkspaceInput
   activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionCreateNestedManyWithoutWorkspaceInput
@@ -265,7 +265,7 @@ export type AgencyWorkspaceUncheckedCreateInput = {
   clients?: Prisma.ClientUncheckedCreateNestedManyWithoutWorkspaceInput
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutWorkspaceInput
   integrationConfigs?: Prisma.DbIntegrationConfigUncheckedCreateNestedManyWithoutWorkspaceInput
-  agentProviderConfigs?: Prisma.DbAgentProviderConfigUncheckedCreateNestedManyWithoutWorkspaceInput
+  clientAiProviders?: Prisma.ClientAiProviderUncheckedCreateNestedManyWithoutWorkspaceInput
   activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogUncheckedCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionUncheckedCreateNestedManyWithoutWorkspaceInput
@@ -281,7 +281,7 @@ export type AgencyWorkspaceUpdateInput = {
   clients?: Prisma.ClientUpdateManyWithoutWorkspaceNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutWorkspaceNestedInput
   integrationConfigs?: Prisma.DbIntegrationConfigUpdateManyWithoutWorkspaceNestedInput
-  agentProviderConfigs?: Prisma.DbAgentProviderConfigUpdateManyWithoutWorkspaceNestedInput
+  clientAiProviders?: Prisma.ClientAiProviderUpdateManyWithoutWorkspaceNestedInput
   activityEvents?: Prisma.ActivityEventUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUpdateManyWithoutWorkspaceNestedInput
@@ -297,7 +297,7 @@ export type AgencyWorkspaceUncheckedUpdateInput = {
   clients?: Prisma.ClientUncheckedUpdateManyWithoutWorkspaceNestedInput
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutWorkspaceNestedInput
   integrationConfigs?: Prisma.DbIntegrationConfigUncheckedUpdateManyWithoutWorkspaceNestedInput
-  agentProviderConfigs?: Prisma.DbAgentProviderConfigUncheckedUpdateManyWithoutWorkspaceNestedInput
+  clientAiProviders?: Prisma.ClientAiProviderUncheckedUpdateManyWithoutWorkspaceNestedInput
   activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUncheckedUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUncheckedUpdateManyWithoutWorkspaceNestedInput
@@ -415,18 +415,18 @@ export type AgencyWorkspaceUpdateOneRequiredWithoutIntegrationConfigsNestedInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.AgencyWorkspaceUpdateToOneWithWhereWithoutIntegrationConfigsInput, Prisma.AgencyWorkspaceUpdateWithoutIntegrationConfigsInput>, Prisma.AgencyWorkspaceUncheckedUpdateWithoutIntegrationConfigsInput>
 }
 
-export type AgencyWorkspaceCreateNestedOneWithoutAgentProviderConfigsInput = {
-  create?: Prisma.XOR<Prisma.AgencyWorkspaceCreateWithoutAgentProviderConfigsInput, Prisma.AgencyWorkspaceUncheckedCreateWithoutAgentProviderConfigsInput>
-  connectOrCreate?: Prisma.AgencyWorkspaceCreateOrConnectWithoutAgentProviderConfigsInput
+export type AgencyWorkspaceCreateNestedOneWithoutClientAiProvidersInput = {
+  create?: Prisma.XOR<Prisma.AgencyWorkspaceCreateWithoutClientAiProvidersInput, Prisma.AgencyWorkspaceUncheckedCreateWithoutClientAiProvidersInput>
+  connectOrCreate?: Prisma.AgencyWorkspaceCreateOrConnectWithoutClientAiProvidersInput
   connect?: Prisma.AgencyWorkspaceWhereUniqueInput
 }
 
-export type AgencyWorkspaceUpdateOneRequiredWithoutAgentProviderConfigsNestedInput = {
-  create?: Prisma.XOR<Prisma.AgencyWorkspaceCreateWithoutAgentProviderConfigsInput, Prisma.AgencyWorkspaceUncheckedCreateWithoutAgentProviderConfigsInput>
-  connectOrCreate?: Prisma.AgencyWorkspaceCreateOrConnectWithoutAgentProviderConfigsInput
-  upsert?: Prisma.AgencyWorkspaceUpsertWithoutAgentProviderConfigsInput
+export type AgencyWorkspaceUpdateOneRequiredWithoutClientAiProvidersNestedInput = {
+  create?: Prisma.XOR<Prisma.AgencyWorkspaceCreateWithoutClientAiProvidersInput, Prisma.AgencyWorkspaceUncheckedCreateWithoutClientAiProvidersInput>
+  connectOrCreate?: Prisma.AgencyWorkspaceCreateOrConnectWithoutClientAiProvidersInput
+  upsert?: Prisma.AgencyWorkspaceUpsertWithoutClientAiProvidersInput
   connect?: Prisma.AgencyWorkspaceWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.AgencyWorkspaceUpdateToOneWithWhereWithoutAgentProviderConfigsInput, Prisma.AgencyWorkspaceUpdateWithoutAgentProviderConfigsInput>, Prisma.AgencyWorkspaceUncheckedUpdateWithoutAgentProviderConfigsInput>
+  update?: Prisma.XOR<Prisma.XOR<Prisma.AgencyWorkspaceUpdateToOneWithWhereWithoutClientAiProvidersInput, Prisma.AgencyWorkspaceUpdateWithoutClientAiProvidersInput>, Prisma.AgencyWorkspaceUncheckedUpdateWithoutClientAiProvidersInput>
 }
 
 export type AgencyWorkspaceCreateNestedOneWithoutActivityEventsInput = {
@@ -493,7 +493,7 @@ export type AgencyWorkspaceCreateWithoutUsersInput = {
   clients?: Prisma.ClientCreateNestedManyWithoutWorkspaceInput
   projects?: Prisma.ProjectCreateNestedManyWithoutWorkspaceInput
   integrationConfigs?: Prisma.DbIntegrationConfigCreateNestedManyWithoutWorkspaceInput
-  agentProviderConfigs?: Prisma.DbAgentProviderConfigCreateNestedManyWithoutWorkspaceInput
+  clientAiProviders?: Prisma.ClientAiProviderCreateNestedManyWithoutWorkspaceInput
   activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionCreateNestedManyWithoutWorkspaceInput
@@ -508,7 +508,7 @@ export type AgencyWorkspaceUncheckedCreateWithoutUsersInput = {
   clients?: Prisma.ClientUncheckedCreateNestedManyWithoutWorkspaceInput
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutWorkspaceInput
   integrationConfigs?: Prisma.DbIntegrationConfigUncheckedCreateNestedManyWithoutWorkspaceInput
-  agentProviderConfigs?: Prisma.DbAgentProviderConfigUncheckedCreateNestedManyWithoutWorkspaceInput
+  clientAiProviders?: Prisma.ClientAiProviderUncheckedCreateNestedManyWithoutWorkspaceInput
   activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogUncheckedCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionUncheckedCreateNestedManyWithoutWorkspaceInput
@@ -539,7 +539,7 @@ export type AgencyWorkspaceUpdateWithoutUsersInput = {
   clients?: Prisma.ClientUpdateManyWithoutWorkspaceNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutWorkspaceNestedInput
   integrationConfigs?: Prisma.DbIntegrationConfigUpdateManyWithoutWorkspaceNestedInput
-  agentProviderConfigs?: Prisma.DbAgentProviderConfigUpdateManyWithoutWorkspaceNestedInput
+  clientAiProviders?: Prisma.ClientAiProviderUpdateManyWithoutWorkspaceNestedInput
   activityEvents?: Prisma.ActivityEventUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUpdateManyWithoutWorkspaceNestedInput
@@ -554,7 +554,7 @@ export type AgencyWorkspaceUncheckedUpdateWithoutUsersInput = {
   clients?: Prisma.ClientUncheckedUpdateManyWithoutWorkspaceNestedInput
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutWorkspaceNestedInput
   integrationConfigs?: Prisma.DbIntegrationConfigUncheckedUpdateManyWithoutWorkspaceNestedInput
-  agentProviderConfigs?: Prisma.DbAgentProviderConfigUncheckedUpdateManyWithoutWorkspaceNestedInput
+  clientAiProviders?: Prisma.ClientAiProviderUncheckedUpdateManyWithoutWorkspaceNestedInput
   activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUncheckedUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUncheckedUpdateManyWithoutWorkspaceNestedInput
@@ -569,7 +569,7 @@ export type AgencyWorkspaceCreateWithoutClientsInput = {
   users?: Prisma.UserCreateNestedManyWithoutWorkspaceInput
   projects?: Prisma.ProjectCreateNestedManyWithoutWorkspaceInput
   integrationConfigs?: Prisma.DbIntegrationConfigCreateNestedManyWithoutWorkspaceInput
-  agentProviderConfigs?: Prisma.DbAgentProviderConfigCreateNestedManyWithoutWorkspaceInput
+  clientAiProviders?: Prisma.ClientAiProviderCreateNestedManyWithoutWorkspaceInput
   activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionCreateNestedManyWithoutWorkspaceInput
@@ -584,7 +584,7 @@ export type AgencyWorkspaceUncheckedCreateWithoutClientsInput = {
   users?: Prisma.UserUncheckedCreateNestedManyWithoutWorkspaceInput
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutWorkspaceInput
   integrationConfigs?: Prisma.DbIntegrationConfigUncheckedCreateNestedManyWithoutWorkspaceInput
-  agentProviderConfigs?: Prisma.DbAgentProviderConfigUncheckedCreateNestedManyWithoutWorkspaceInput
+  clientAiProviders?: Prisma.ClientAiProviderUncheckedCreateNestedManyWithoutWorkspaceInput
   activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogUncheckedCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionUncheckedCreateNestedManyWithoutWorkspaceInput
@@ -615,7 +615,7 @@ export type AgencyWorkspaceUpdateWithoutClientsInput = {
   users?: Prisma.UserUpdateManyWithoutWorkspaceNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutWorkspaceNestedInput
   integrationConfigs?: Prisma.DbIntegrationConfigUpdateManyWithoutWorkspaceNestedInput
-  agentProviderConfigs?: Prisma.DbAgentProviderConfigUpdateManyWithoutWorkspaceNestedInput
+  clientAiProviders?: Prisma.ClientAiProviderUpdateManyWithoutWorkspaceNestedInput
   activityEvents?: Prisma.ActivityEventUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUpdateManyWithoutWorkspaceNestedInput
@@ -630,7 +630,7 @@ export type AgencyWorkspaceUncheckedUpdateWithoutClientsInput = {
   users?: Prisma.UserUncheckedUpdateManyWithoutWorkspaceNestedInput
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutWorkspaceNestedInput
   integrationConfigs?: Prisma.DbIntegrationConfigUncheckedUpdateManyWithoutWorkspaceNestedInput
-  agentProviderConfigs?: Prisma.DbAgentProviderConfigUncheckedUpdateManyWithoutWorkspaceNestedInput
+  clientAiProviders?: Prisma.ClientAiProviderUncheckedUpdateManyWithoutWorkspaceNestedInput
   activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUncheckedUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUncheckedUpdateManyWithoutWorkspaceNestedInput
@@ -645,7 +645,7 @@ export type AgencyWorkspaceCreateWithoutProjectsInput = {
   users?: Prisma.UserCreateNestedManyWithoutWorkspaceInput
   clients?: Prisma.ClientCreateNestedManyWithoutWorkspaceInput
   integrationConfigs?: Prisma.DbIntegrationConfigCreateNestedManyWithoutWorkspaceInput
-  agentProviderConfigs?: Prisma.DbAgentProviderConfigCreateNestedManyWithoutWorkspaceInput
+  clientAiProviders?: Prisma.ClientAiProviderCreateNestedManyWithoutWorkspaceInput
   activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionCreateNestedManyWithoutWorkspaceInput
@@ -660,7 +660,7 @@ export type AgencyWorkspaceUncheckedCreateWithoutProjectsInput = {
   users?: Prisma.UserUncheckedCreateNestedManyWithoutWorkspaceInput
   clients?: Prisma.ClientUncheckedCreateNestedManyWithoutWorkspaceInput
   integrationConfigs?: Prisma.DbIntegrationConfigUncheckedCreateNestedManyWithoutWorkspaceInput
-  agentProviderConfigs?: Prisma.DbAgentProviderConfigUncheckedCreateNestedManyWithoutWorkspaceInput
+  clientAiProviders?: Prisma.ClientAiProviderUncheckedCreateNestedManyWithoutWorkspaceInput
   activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogUncheckedCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionUncheckedCreateNestedManyWithoutWorkspaceInput
@@ -691,7 +691,7 @@ export type AgencyWorkspaceUpdateWithoutProjectsInput = {
   users?: Prisma.UserUpdateManyWithoutWorkspaceNestedInput
   clients?: Prisma.ClientUpdateManyWithoutWorkspaceNestedInput
   integrationConfigs?: Prisma.DbIntegrationConfigUpdateManyWithoutWorkspaceNestedInput
-  agentProviderConfigs?: Prisma.DbAgentProviderConfigUpdateManyWithoutWorkspaceNestedInput
+  clientAiProviders?: Prisma.ClientAiProviderUpdateManyWithoutWorkspaceNestedInput
   activityEvents?: Prisma.ActivityEventUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUpdateManyWithoutWorkspaceNestedInput
@@ -706,7 +706,7 @@ export type AgencyWorkspaceUncheckedUpdateWithoutProjectsInput = {
   users?: Prisma.UserUncheckedUpdateManyWithoutWorkspaceNestedInput
   clients?: Prisma.ClientUncheckedUpdateManyWithoutWorkspaceNestedInput
   integrationConfigs?: Prisma.DbIntegrationConfigUncheckedUpdateManyWithoutWorkspaceNestedInput
-  agentProviderConfigs?: Prisma.DbAgentProviderConfigUncheckedUpdateManyWithoutWorkspaceNestedInput
+  clientAiProviders?: Prisma.ClientAiProviderUncheckedUpdateManyWithoutWorkspaceNestedInput
   activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUncheckedUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUncheckedUpdateManyWithoutWorkspaceNestedInput
@@ -721,7 +721,7 @@ export type AgencyWorkspaceCreateWithoutIntegrationConfigsInput = {
   users?: Prisma.UserCreateNestedManyWithoutWorkspaceInput
   clients?: Prisma.ClientCreateNestedManyWithoutWorkspaceInput
   projects?: Prisma.ProjectCreateNestedManyWithoutWorkspaceInput
-  agentProviderConfigs?: Prisma.DbAgentProviderConfigCreateNestedManyWithoutWorkspaceInput
+  clientAiProviders?: Prisma.ClientAiProviderCreateNestedManyWithoutWorkspaceInput
   activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionCreateNestedManyWithoutWorkspaceInput
@@ -736,7 +736,7 @@ export type AgencyWorkspaceUncheckedCreateWithoutIntegrationConfigsInput = {
   users?: Prisma.UserUncheckedCreateNestedManyWithoutWorkspaceInput
   clients?: Prisma.ClientUncheckedCreateNestedManyWithoutWorkspaceInput
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutWorkspaceInput
-  agentProviderConfigs?: Prisma.DbAgentProviderConfigUncheckedCreateNestedManyWithoutWorkspaceInput
+  clientAiProviders?: Prisma.ClientAiProviderUncheckedCreateNestedManyWithoutWorkspaceInput
   activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogUncheckedCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionUncheckedCreateNestedManyWithoutWorkspaceInput
@@ -767,7 +767,7 @@ export type AgencyWorkspaceUpdateWithoutIntegrationConfigsInput = {
   users?: Prisma.UserUpdateManyWithoutWorkspaceNestedInput
   clients?: Prisma.ClientUpdateManyWithoutWorkspaceNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutWorkspaceNestedInput
-  agentProviderConfigs?: Prisma.DbAgentProviderConfigUpdateManyWithoutWorkspaceNestedInput
+  clientAiProviders?: Prisma.ClientAiProviderUpdateManyWithoutWorkspaceNestedInput
   activityEvents?: Prisma.ActivityEventUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUpdateManyWithoutWorkspaceNestedInput
@@ -782,14 +782,14 @@ export type AgencyWorkspaceUncheckedUpdateWithoutIntegrationConfigsInput = {
   users?: Prisma.UserUncheckedUpdateManyWithoutWorkspaceNestedInput
   clients?: Prisma.ClientUncheckedUpdateManyWithoutWorkspaceNestedInput
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutWorkspaceNestedInput
-  agentProviderConfigs?: Prisma.DbAgentProviderConfigUncheckedUpdateManyWithoutWorkspaceNestedInput
+  clientAiProviders?: Prisma.ClientAiProviderUncheckedUpdateManyWithoutWorkspaceNestedInput
   activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUncheckedUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUncheckedUpdateManyWithoutWorkspaceNestedInput
   marketInsights?: Prisma.MarketInsightUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
-export type AgencyWorkspaceCreateWithoutAgentProviderConfigsInput = {
+export type AgencyWorkspaceCreateWithoutClientAiProvidersInput = {
   id?: string
   name: string
   slug: string
@@ -804,7 +804,7 @@ export type AgencyWorkspaceCreateWithoutAgentProviderConfigsInput = {
   marketInsights?: Prisma.MarketInsightCreateNestedManyWithoutWorkspaceInput
 }
 
-export type AgencyWorkspaceUncheckedCreateWithoutAgentProviderConfigsInput = {
+export type AgencyWorkspaceUncheckedCreateWithoutClientAiProvidersInput = {
   id?: string
   name: string
   slug: string
@@ -819,23 +819,23 @@ export type AgencyWorkspaceUncheckedCreateWithoutAgentProviderConfigsInput = {
   marketInsights?: Prisma.MarketInsightUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
-export type AgencyWorkspaceCreateOrConnectWithoutAgentProviderConfigsInput = {
+export type AgencyWorkspaceCreateOrConnectWithoutClientAiProvidersInput = {
   where: Prisma.AgencyWorkspaceWhereUniqueInput
-  create: Prisma.XOR<Prisma.AgencyWorkspaceCreateWithoutAgentProviderConfigsInput, Prisma.AgencyWorkspaceUncheckedCreateWithoutAgentProviderConfigsInput>
+  create: Prisma.XOR<Prisma.AgencyWorkspaceCreateWithoutClientAiProvidersInput, Prisma.AgencyWorkspaceUncheckedCreateWithoutClientAiProvidersInput>
 }
 
-export type AgencyWorkspaceUpsertWithoutAgentProviderConfigsInput = {
-  update: Prisma.XOR<Prisma.AgencyWorkspaceUpdateWithoutAgentProviderConfigsInput, Prisma.AgencyWorkspaceUncheckedUpdateWithoutAgentProviderConfigsInput>
-  create: Prisma.XOR<Prisma.AgencyWorkspaceCreateWithoutAgentProviderConfigsInput, Prisma.AgencyWorkspaceUncheckedCreateWithoutAgentProviderConfigsInput>
+export type AgencyWorkspaceUpsertWithoutClientAiProvidersInput = {
+  update: Prisma.XOR<Prisma.AgencyWorkspaceUpdateWithoutClientAiProvidersInput, Prisma.AgencyWorkspaceUncheckedUpdateWithoutClientAiProvidersInput>
+  create: Prisma.XOR<Prisma.AgencyWorkspaceCreateWithoutClientAiProvidersInput, Prisma.AgencyWorkspaceUncheckedCreateWithoutClientAiProvidersInput>
   where?: Prisma.AgencyWorkspaceWhereInput
 }
 
-export type AgencyWorkspaceUpdateToOneWithWhereWithoutAgentProviderConfigsInput = {
+export type AgencyWorkspaceUpdateToOneWithWhereWithoutClientAiProvidersInput = {
   where?: Prisma.AgencyWorkspaceWhereInput
-  data: Prisma.XOR<Prisma.AgencyWorkspaceUpdateWithoutAgentProviderConfigsInput, Prisma.AgencyWorkspaceUncheckedUpdateWithoutAgentProviderConfigsInput>
+  data: Prisma.XOR<Prisma.AgencyWorkspaceUpdateWithoutClientAiProvidersInput, Prisma.AgencyWorkspaceUncheckedUpdateWithoutClientAiProvidersInput>
 }
 
-export type AgencyWorkspaceUpdateWithoutAgentProviderConfigsInput = {
+export type AgencyWorkspaceUpdateWithoutClientAiProvidersInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
@@ -850,7 +850,7 @@ export type AgencyWorkspaceUpdateWithoutAgentProviderConfigsInput = {
   marketInsights?: Prisma.MarketInsightUpdateManyWithoutWorkspaceNestedInput
 }
 
-export type AgencyWorkspaceUncheckedUpdateWithoutAgentProviderConfigsInput = {
+export type AgencyWorkspaceUncheckedUpdateWithoutClientAiProvidersInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.StringFieldUpdateOperationsInput | string
@@ -874,7 +874,7 @@ export type AgencyWorkspaceCreateWithoutActivityEventsInput = {
   clients?: Prisma.ClientCreateNestedManyWithoutWorkspaceInput
   projects?: Prisma.ProjectCreateNestedManyWithoutWorkspaceInput
   integrationConfigs?: Prisma.DbIntegrationConfigCreateNestedManyWithoutWorkspaceInput
-  agentProviderConfigs?: Prisma.DbAgentProviderConfigCreateNestedManyWithoutWorkspaceInput
+  clientAiProviders?: Prisma.ClientAiProviderCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionCreateNestedManyWithoutWorkspaceInput
   marketInsights?: Prisma.MarketInsightCreateNestedManyWithoutWorkspaceInput
@@ -889,7 +889,7 @@ export type AgencyWorkspaceUncheckedCreateWithoutActivityEventsInput = {
   clients?: Prisma.ClientUncheckedCreateNestedManyWithoutWorkspaceInput
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutWorkspaceInput
   integrationConfigs?: Prisma.DbIntegrationConfigUncheckedCreateNestedManyWithoutWorkspaceInput
-  agentProviderConfigs?: Prisma.DbAgentProviderConfigUncheckedCreateNestedManyWithoutWorkspaceInput
+  clientAiProviders?: Prisma.ClientAiProviderUncheckedCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogUncheckedCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionUncheckedCreateNestedManyWithoutWorkspaceInput
   marketInsights?: Prisma.MarketInsightUncheckedCreateNestedManyWithoutWorkspaceInput
@@ -920,7 +920,7 @@ export type AgencyWorkspaceUpdateWithoutActivityEventsInput = {
   clients?: Prisma.ClientUpdateManyWithoutWorkspaceNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutWorkspaceNestedInput
   integrationConfigs?: Prisma.DbIntegrationConfigUpdateManyWithoutWorkspaceNestedInput
-  agentProviderConfigs?: Prisma.DbAgentProviderConfigUpdateManyWithoutWorkspaceNestedInput
+  clientAiProviders?: Prisma.ClientAiProviderUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUpdateManyWithoutWorkspaceNestedInput
   marketInsights?: Prisma.MarketInsightUpdateManyWithoutWorkspaceNestedInput
@@ -935,7 +935,7 @@ export type AgencyWorkspaceUncheckedUpdateWithoutActivityEventsInput = {
   clients?: Prisma.ClientUncheckedUpdateManyWithoutWorkspaceNestedInput
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutWorkspaceNestedInput
   integrationConfigs?: Prisma.DbIntegrationConfigUncheckedUpdateManyWithoutWorkspaceNestedInput
-  agentProviderConfigs?: Prisma.DbAgentProviderConfigUncheckedUpdateManyWithoutWorkspaceNestedInput
+  clientAiProviders?: Prisma.ClientAiProviderUncheckedUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUncheckedUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUncheckedUpdateManyWithoutWorkspaceNestedInput
   marketInsights?: Prisma.MarketInsightUncheckedUpdateManyWithoutWorkspaceNestedInput
@@ -950,7 +950,7 @@ export type AgencyWorkspaceCreateWithoutAiRunLogsInput = {
   clients?: Prisma.ClientCreateNestedManyWithoutWorkspaceInput
   projects?: Prisma.ProjectCreateNestedManyWithoutWorkspaceInput
   integrationConfigs?: Prisma.DbIntegrationConfigCreateNestedManyWithoutWorkspaceInput
-  agentProviderConfigs?: Prisma.DbAgentProviderConfigCreateNestedManyWithoutWorkspaceInput
+  clientAiProviders?: Prisma.ClientAiProviderCreateNestedManyWithoutWorkspaceInput
   activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionCreateNestedManyWithoutWorkspaceInput
   marketInsights?: Prisma.MarketInsightCreateNestedManyWithoutWorkspaceInput
@@ -965,7 +965,7 @@ export type AgencyWorkspaceUncheckedCreateWithoutAiRunLogsInput = {
   clients?: Prisma.ClientUncheckedCreateNestedManyWithoutWorkspaceInput
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutWorkspaceInput
   integrationConfigs?: Prisma.DbIntegrationConfigUncheckedCreateNestedManyWithoutWorkspaceInput
-  agentProviderConfigs?: Prisma.DbAgentProviderConfigUncheckedCreateNestedManyWithoutWorkspaceInput
+  clientAiProviders?: Prisma.ClientAiProviderUncheckedCreateNestedManyWithoutWorkspaceInput
   activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionUncheckedCreateNestedManyWithoutWorkspaceInput
   marketInsights?: Prisma.MarketInsightUncheckedCreateNestedManyWithoutWorkspaceInput
@@ -996,7 +996,7 @@ export type AgencyWorkspaceUpdateWithoutAiRunLogsInput = {
   clients?: Prisma.ClientUpdateManyWithoutWorkspaceNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutWorkspaceNestedInput
   integrationConfigs?: Prisma.DbIntegrationConfigUpdateManyWithoutWorkspaceNestedInput
-  agentProviderConfigs?: Prisma.DbAgentProviderConfigUpdateManyWithoutWorkspaceNestedInput
+  clientAiProviders?: Prisma.ClientAiProviderUpdateManyWithoutWorkspaceNestedInput
   activityEvents?: Prisma.ActivityEventUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUpdateManyWithoutWorkspaceNestedInput
   marketInsights?: Prisma.MarketInsightUpdateManyWithoutWorkspaceNestedInput
@@ -1011,7 +1011,7 @@ export type AgencyWorkspaceUncheckedUpdateWithoutAiRunLogsInput = {
   clients?: Prisma.ClientUncheckedUpdateManyWithoutWorkspaceNestedInput
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutWorkspaceNestedInput
   integrationConfigs?: Prisma.DbIntegrationConfigUncheckedUpdateManyWithoutWorkspaceNestedInput
-  agentProviderConfigs?: Prisma.DbAgentProviderConfigUncheckedUpdateManyWithoutWorkspaceNestedInput
+  clientAiProviders?: Prisma.ClientAiProviderUncheckedUpdateManyWithoutWorkspaceNestedInput
   activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUncheckedUpdateManyWithoutWorkspaceNestedInput
   marketInsights?: Prisma.MarketInsightUncheckedUpdateManyWithoutWorkspaceNestedInput
@@ -1026,7 +1026,7 @@ export type AgencyWorkspaceCreateWithoutMetaConnectionsInput = {
   clients?: Prisma.ClientCreateNestedManyWithoutWorkspaceInput
   projects?: Prisma.ProjectCreateNestedManyWithoutWorkspaceInput
   integrationConfigs?: Prisma.DbIntegrationConfigCreateNestedManyWithoutWorkspaceInput
-  agentProviderConfigs?: Prisma.DbAgentProviderConfigCreateNestedManyWithoutWorkspaceInput
+  clientAiProviders?: Prisma.ClientAiProviderCreateNestedManyWithoutWorkspaceInput
   activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogCreateNestedManyWithoutWorkspaceInput
   marketInsights?: Prisma.MarketInsightCreateNestedManyWithoutWorkspaceInput
@@ -1041,7 +1041,7 @@ export type AgencyWorkspaceUncheckedCreateWithoutMetaConnectionsInput = {
   clients?: Prisma.ClientUncheckedCreateNestedManyWithoutWorkspaceInput
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutWorkspaceInput
   integrationConfigs?: Prisma.DbIntegrationConfigUncheckedCreateNestedManyWithoutWorkspaceInput
-  agentProviderConfigs?: Prisma.DbAgentProviderConfigUncheckedCreateNestedManyWithoutWorkspaceInput
+  clientAiProviders?: Prisma.ClientAiProviderUncheckedCreateNestedManyWithoutWorkspaceInput
   activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogUncheckedCreateNestedManyWithoutWorkspaceInput
   marketInsights?: Prisma.MarketInsightUncheckedCreateNestedManyWithoutWorkspaceInput
@@ -1072,7 +1072,7 @@ export type AgencyWorkspaceUpdateWithoutMetaConnectionsInput = {
   clients?: Prisma.ClientUpdateManyWithoutWorkspaceNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutWorkspaceNestedInput
   integrationConfigs?: Prisma.DbIntegrationConfigUpdateManyWithoutWorkspaceNestedInput
-  agentProviderConfigs?: Prisma.DbAgentProviderConfigUpdateManyWithoutWorkspaceNestedInput
+  clientAiProviders?: Prisma.ClientAiProviderUpdateManyWithoutWorkspaceNestedInput
   activityEvents?: Prisma.ActivityEventUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUpdateManyWithoutWorkspaceNestedInput
   marketInsights?: Prisma.MarketInsightUpdateManyWithoutWorkspaceNestedInput
@@ -1087,7 +1087,7 @@ export type AgencyWorkspaceUncheckedUpdateWithoutMetaConnectionsInput = {
   clients?: Prisma.ClientUncheckedUpdateManyWithoutWorkspaceNestedInput
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutWorkspaceNestedInput
   integrationConfigs?: Prisma.DbIntegrationConfigUncheckedUpdateManyWithoutWorkspaceNestedInput
-  agentProviderConfigs?: Prisma.DbAgentProviderConfigUncheckedUpdateManyWithoutWorkspaceNestedInput
+  clientAiProviders?: Prisma.ClientAiProviderUncheckedUpdateManyWithoutWorkspaceNestedInput
   activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUncheckedUpdateManyWithoutWorkspaceNestedInput
   marketInsights?: Prisma.MarketInsightUncheckedUpdateManyWithoutWorkspaceNestedInput
@@ -1102,7 +1102,7 @@ export type AgencyWorkspaceCreateWithoutMarketInsightsInput = {
   clients?: Prisma.ClientCreateNestedManyWithoutWorkspaceInput
   projects?: Prisma.ProjectCreateNestedManyWithoutWorkspaceInput
   integrationConfigs?: Prisma.DbIntegrationConfigCreateNestedManyWithoutWorkspaceInput
-  agentProviderConfigs?: Prisma.DbAgentProviderConfigCreateNestedManyWithoutWorkspaceInput
+  clientAiProviders?: Prisma.ClientAiProviderCreateNestedManyWithoutWorkspaceInput
   activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionCreateNestedManyWithoutWorkspaceInput
@@ -1117,7 +1117,7 @@ export type AgencyWorkspaceUncheckedCreateWithoutMarketInsightsInput = {
   clients?: Prisma.ClientUncheckedCreateNestedManyWithoutWorkspaceInput
   projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutWorkspaceInput
   integrationConfigs?: Prisma.DbIntegrationConfigUncheckedCreateNestedManyWithoutWorkspaceInput
-  agentProviderConfigs?: Prisma.DbAgentProviderConfigUncheckedCreateNestedManyWithoutWorkspaceInput
+  clientAiProviders?: Prisma.ClientAiProviderUncheckedCreateNestedManyWithoutWorkspaceInput
   activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogUncheckedCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionUncheckedCreateNestedManyWithoutWorkspaceInput
@@ -1148,7 +1148,7 @@ export type AgencyWorkspaceUpdateWithoutMarketInsightsInput = {
   clients?: Prisma.ClientUpdateManyWithoutWorkspaceNestedInput
   projects?: Prisma.ProjectUpdateManyWithoutWorkspaceNestedInput
   integrationConfigs?: Prisma.DbIntegrationConfigUpdateManyWithoutWorkspaceNestedInput
-  agentProviderConfigs?: Prisma.DbAgentProviderConfigUpdateManyWithoutWorkspaceNestedInput
+  clientAiProviders?: Prisma.ClientAiProviderUpdateManyWithoutWorkspaceNestedInput
   activityEvents?: Prisma.ActivityEventUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUpdateManyWithoutWorkspaceNestedInput
@@ -1163,7 +1163,7 @@ export type AgencyWorkspaceUncheckedUpdateWithoutMarketInsightsInput = {
   clients?: Prisma.ClientUncheckedUpdateManyWithoutWorkspaceNestedInput
   projects?: Prisma.ProjectUncheckedUpdateManyWithoutWorkspaceNestedInput
   integrationConfigs?: Prisma.DbIntegrationConfigUncheckedUpdateManyWithoutWorkspaceNestedInput
-  agentProviderConfigs?: Prisma.DbAgentProviderConfigUncheckedUpdateManyWithoutWorkspaceNestedInput
+  clientAiProviders?: Prisma.ClientAiProviderUncheckedUpdateManyWithoutWorkspaceNestedInput
   activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUncheckedUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUncheckedUpdateManyWithoutWorkspaceNestedInput
@@ -1179,7 +1179,7 @@ export type AgencyWorkspaceCountOutputType = {
   clients: number
   projects: number
   integrationConfigs: number
-  agentProviderConfigs: number
+  clientAiProviders: number
   activityEvents: number
   aiRunLogs: number
   metaConnections: number
@@ -1191,7 +1191,7 @@ export type AgencyWorkspaceCountOutputTypeSelect<ExtArgs extends runtime.Types.E
   clients?: boolean | AgencyWorkspaceCountOutputTypeCountClientsArgs
   projects?: boolean | AgencyWorkspaceCountOutputTypeCountProjectsArgs
   integrationConfigs?: boolean | AgencyWorkspaceCountOutputTypeCountIntegrationConfigsArgs
-  agentProviderConfigs?: boolean | AgencyWorkspaceCountOutputTypeCountAgentProviderConfigsArgs
+  clientAiProviders?: boolean | AgencyWorkspaceCountOutputTypeCountClientAiProvidersArgs
   activityEvents?: boolean | AgencyWorkspaceCountOutputTypeCountActivityEventsArgs
   aiRunLogs?: boolean | AgencyWorkspaceCountOutputTypeCountAiRunLogsArgs
   metaConnections?: boolean | AgencyWorkspaceCountOutputTypeCountMetaConnectionsArgs
@@ -1239,8 +1239,8 @@ export type AgencyWorkspaceCountOutputTypeCountIntegrationConfigsArgs<ExtArgs ex
 /**
  * AgencyWorkspaceCountOutputType without action
  */
-export type AgencyWorkspaceCountOutputTypeCountAgentProviderConfigsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.DbAgentProviderConfigWhereInput
+export type AgencyWorkspaceCountOutputTypeCountClientAiProvidersArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ClientAiProviderWhereInput
 }
 
 /**
@@ -1281,7 +1281,7 @@ export type AgencyWorkspaceSelect<ExtArgs extends runtime.Types.Extensions.Inter
   clients?: boolean | Prisma.AgencyWorkspace$clientsArgs<ExtArgs>
   projects?: boolean | Prisma.AgencyWorkspace$projectsArgs<ExtArgs>
   integrationConfigs?: boolean | Prisma.AgencyWorkspace$integrationConfigsArgs<ExtArgs>
-  agentProviderConfigs?: boolean | Prisma.AgencyWorkspace$agentProviderConfigsArgs<ExtArgs>
+  clientAiProviders?: boolean | Prisma.AgencyWorkspace$clientAiProvidersArgs<ExtArgs>
   activityEvents?: boolean | Prisma.AgencyWorkspace$activityEventsArgs<ExtArgs>
   aiRunLogs?: boolean | Prisma.AgencyWorkspace$aiRunLogsArgs<ExtArgs>
   metaConnections?: boolean | Prisma.AgencyWorkspace$metaConnectionsArgs<ExtArgs>
@@ -1316,7 +1316,7 @@ export type AgencyWorkspaceInclude<ExtArgs extends runtime.Types.Extensions.Inte
   clients?: boolean | Prisma.AgencyWorkspace$clientsArgs<ExtArgs>
   projects?: boolean | Prisma.AgencyWorkspace$projectsArgs<ExtArgs>
   integrationConfigs?: boolean | Prisma.AgencyWorkspace$integrationConfigsArgs<ExtArgs>
-  agentProviderConfigs?: boolean | Prisma.AgencyWorkspace$agentProviderConfigsArgs<ExtArgs>
+  clientAiProviders?: boolean | Prisma.AgencyWorkspace$clientAiProvidersArgs<ExtArgs>
   activityEvents?: boolean | Prisma.AgencyWorkspace$activityEventsArgs<ExtArgs>
   aiRunLogs?: boolean | Prisma.AgencyWorkspace$aiRunLogsArgs<ExtArgs>
   metaConnections?: boolean | Prisma.AgencyWorkspace$metaConnectionsArgs<ExtArgs>
@@ -1333,7 +1333,7 @@ export type $AgencyWorkspacePayload<ExtArgs extends runtime.Types.Extensions.Int
     clients: Prisma.$ClientPayload<ExtArgs>[]
     projects: Prisma.$ProjectPayload<ExtArgs>[]
     integrationConfigs: Prisma.$DbIntegrationConfigPayload<ExtArgs>[]
-    agentProviderConfigs: Prisma.$DbAgentProviderConfigPayload<ExtArgs>[]
+    clientAiProviders: Prisma.$ClientAiProviderPayload<ExtArgs>[]
     activityEvents: Prisma.$ActivityEventPayload<ExtArgs>[]
     aiRunLogs: Prisma.$AIRunLogPayload<ExtArgs>[]
     metaConnections: Prisma.$MetaConnectionPayload<ExtArgs>[]
@@ -1742,7 +1742,7 @@ export interface Prisma__AgencyWorkspaceClient<T, Null = never, ExtArgs extends 
   clients<T extends Prisma.AgencyWorkspace$clientsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AgencyWorkspace$clientsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ClientPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   projects<T extends Prisma.AgencyWorkspace$projectsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AgencyWorkspace$projectsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   integrationConfigs<T extends Prisma.AgencyWorkspace$integrationConfigsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AgencyWorkspace$integrationConfigsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DbIntegrationConfigPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  agentProviderConfigs<T extends Prisma.AgencyWorkspace$agentProviderConfigsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AgencyWorkspace$agentProviderConfigsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DbAgentProviderConfigPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  clientAiProviders<T extends Prisma.AgencyWorkspace$clientAiProvidersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AgencyWorkspace$clientAiProvidersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ClientAiProviderPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   activityEvents<T extends Prisma.AgencyWorkspace$activityEventsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AgencyWorkspace$activityEventsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ActivityEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   aiRunLogs<T extends Prisma.AgencyWorkspace$aiRunLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AgencyWorkspace$aiRunLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AIRunLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   metaConnections<T extends Prisma.AgencyWorkspace$metaConnectionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AgencyWorkspace$metaConnectionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MetaConnectionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -2267,27 +2267,27 @@ export type AgencyWorkspace$integrationConfigsArgs<ExtArgs extends runtime.Types
 }
 
 /**
- * AgencyWorkspace.agentProviderConfigs
+ * AgencyWorkspace.clientAiProviders
  */
-export type AgencyWorkspace$agentProviderConfigsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type AgencyWorkspace$clientAiProvidersArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the DbAgentProviderConfig
+   * Select specific fields to fetch from the ClientAiProvider
    */
-  select?: Prisma.DbAgentProviderConfigSelect<ExtArgs> | null
+  select?: Prisma.ClientAiProviderSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the DbAgentProviderConfig
+   * Omit specific fields from the ClientAiProvider
    */
-  omit?: Prisma.DbAgentProviderConfigOmit<ExtArgs> | null
+  omit?: Prisma.ClientAiProviderOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.DbAgentProviderConfigInclude<ExtArgs> | null
-  where?: Prisma.DbAgentProviderConfigWhereInput
-  orderBy?: Prisma.DbAgentProviderConfigOrderByWithRelationInput | Prisma.DbAgentProviderConfigOrderByWithRelationInput[]
-  cursor?: Prisma.DbAgentProviderConfigWhereUniqueInput
+  include?: Prisma.ClientAiProviderInclude<ExtArgs> | null
+  where?: Prisma.ClientAiProviderWhereInput
+  orderBy?: Prisma.ClientAiProviderOrderByWithRelationInput | Prisma.ClientAiProviderOrderByWithRelationInput[]
+  cursor?: Prisma.ClientAiProviderWhereUniqueInput
   take?: number
   skip?: number
-  distinct?: Prisma.DbAgentProviderConfigScalarFieldEnum | Prisma.DbAgentProviderConfigScalarFieldEnum[]
+  distinct?: Prisma.ClientAiProviderScalarFieldEnum | Prisma.ClientAiProviderScalarFieldEnum[]
 }
 
 /**

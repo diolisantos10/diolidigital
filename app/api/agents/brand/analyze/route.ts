@@ -1,6 +1,20 @@
+// Esta rota passou a falar com o MOTOR (`lib/ai/generate`), não com a Anthropic.
+//
+// Antes ela montava o `fetch` para `api.anthropic.com` na mão, com o provedor
+// "claude" escrito no código. Três coisas se perdiam nisso, e nenhuma é
+// cosmética:
+//
+//   1. A CONTA. Toda chamada daqui saía de graça no relatório: sem `AIRunLog`,
+//      sem tokens, sem dono. "Quanto custou este cliente" respondia menos do que
+//      a verdade, e a diferença crescia sozinha.
+//   2. A ESCOLHA DE PROVEDOR POR CLIENTE (`ClientAiProvider`). O cliente fixado
+//      no Gemini era atendido pelo Claude assim mesmo — a tela dizia uma coisa e
+//      o servidor fazia outra.
+//   3. A RESERVA. Claude fora do ar = rota fora do ar, com as outras chaves
+//      conectadas paradas do lado.
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
-import { resolveProviderKey } from "@/lib/ai/resolve-key";
+import { generate } from "@/lib/ai/generate";
 
 export interface BrandAnalysis {
   healthScore: number;
@@ -14,7 +28,6 @@ export interface BrandAnalysis {
 }
 
 const MAX_TOKENS = 2048;
-const TIMEOUT_MS = 60_000;
 
 const SYSTEM_PROMPT = `Você é o Brand Guardian da Dioli Agência. Analise o Brand Brain do cliente e produza um relatório de saúde de marca acionável.
 
@@ -51,14 +64,6 @@ Brand Brain:
 Gere um relatório completo de saúde de marca para este cliente.`;
 }
 
-function extractJson(text: string): unknown | null {
-  const stripped = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "");
-  const start = stripped.indexOf("{");
-  const end = stripped.lastIndexOf("}");
-  if (start === -1 || end === -1) return null;
-  try { return JSON.parse(stripped.slice(start, end + 1)); } catch { return null; }
-}
-
 function validateAnalysis(data: unknown): BrandAnalysis | null {
   if (!data || typeof data !== "object") return null;
   const d = data as Record<string, unknown>;
@@ -86,46 +91,27 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
   }
 
-  const resolved = await resolveProviderKey("claude", session?.workspaceId);
-  if (!resolved) {
-    return NextResponse.json({ ok: false, error: "Nenhuma chave Claude conectada. Configure em Integrações." }, { status: 503 });
+  const r = await generate({
+    system: SYSTEM_PROMPT,
+    user: buildUserMessage(body),
+    maxTokens: MAX_TOKENS,
+    workspaceId: session.workspaceId,
+    // `preferredProvider` é PREFERÊNCIA, não decreto: a fixação do cliente
+    // vence, e as outras chaves entram de reserva se esta falhar.
+    preferredProvider: "claude",
+    // Sem estes, o gasto entra no relatório sem dono.
+    clientId: typeof body.clientId === "string" ? body.clientId : null,
+    projectId: typeof body.projectId === "string" ? body.projectId : null,
+    departmentId: "strategy",
+    agentId: "brand",
+  });
+
+  if (!r.ok) return NextResponse.json({ ok: false, error: r.error }, { status: 503 });
+
+  const analysis = validateAnalysis(r.data);
+  if (!analysis) {
+    return NextResponse.json({ ok: false, error: `Shape inválido na resposta de ${r.provider}` }, { status: 502 });
   }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
-
-  try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": resolved.apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: resolved.model ?? "claude-haiku-4-5-20251001",
-        max_tokens: MAX_TOKENS,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: "user", content: buildUserMessage(body) }],
-      }),
-      signal: controller.signal,
-    });
-
-    if (!res.ok) return NextResponse.json({ ok: false, error: `Claude HTTP ${res.status}` }, { status: 502 });
-
-    const json = (await res.json()) as { content?: { text: string }[] };
-    const text = json.content?.[0]?.text;
-    if (!text) return NextResponse.json({ ok: false, error: "Resposta Claude vazia" }, { status: 502 });
-
-    const data = extractJson(text);
-    const analysis = validateAnalysis(data);
-    if (!analysis) return NextResponse.json({ ok: false, error: "Shape inválido na resposta Claude" }, { status: 502 });
-
-    return NextResponse.json({ ok: true, analysis });
-  } catch (err) {
-    const reason = err instanceof Error && err.name === "AbortError" ? "timeout" : "erro de rede";
-    return NextResponse.json({ ok: false, error: `Falha ao chamar Claude (${reason})` }, { status: 502 });
-  } finally {
-    clearTimeout(timeout);
-  }
+  return NextResponse.json({ ok: true, analysis });
 }

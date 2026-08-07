@@ -1,14 +1,23 @@
 ---
 titulo: "Business Profile APIs — configuração básica (as 8 APIs a habilitar)"
 url: https://developers.google.com/my-business/content/basic-setup?hl=pt-br
-capturado_em: 2026-08-06
-hash: cafb8d7c54f43231
+capturado_em: 2026-08-07
+hash: 5148195cb158d5a5
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
 Configuração básica
+Nesta página
+Ativar as APIs
+Ativar uma API
+Solicitar um ID do cliente do OAuth 2.0
+Conhecer os fundamentos do REST
+REST nas APIs do Perfil da empresa
+Conhecer os fundamentos do JSON
+Use o OAuth Playground para fazer uma solicitação HTTP simples
+Bibliotecas de cliente
 
 Para continuar, verifique se você seguiu as instruções em Pré-requisitos e se o projeto foi aprovado para acessar as APIs do Perfil da Empresa.
 

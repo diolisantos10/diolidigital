@@ -39,7 +39,17 @@ import { guardarArquivo, lerArquivo } from "@/lib/agency/media/armazenamento";
 import { estiloVisualPersistido, estiloVistoPersistido } from "@/lib/agency/execution/leitura-do-cliente";
 import { moldeDoCliente, formatoDoPost, type Molde } from "@/lib/agency/design/molde";
 import { montarPeca } from "@/lib/agency/design/peca";
+import type { MotivoDeFalhaDeRender } from "@/lib/agency/design/renderizar";
 import { tituloDaFonte } from "@/lib/agency/design/trava-de-texto";
+import { cerebroDaMarca } from "@/lib/agency/design/repertorio-registrado";
+import {
+  composicaoParaFuncao, direcaoDeAmplitude, type CerebroCriativo, type Composicao,
+} from "@/lib/agency/design/repertorio";
+import {
+  conferirStoryboard, direcaoDaImagem, laudoDoStoryboard, lerStoryboard,
+  REGUA_CARROSSEL_DE_VENDA, type ReguaDeStoryboard, type TelaDoStoryboard,
+} from "@/lib/agency/design/storyboard";
+import { createHash } from "node:crypto";
 
 /** Quantas artes por rodada. Cada uma é uma chamada cara de modelo de imagem —
  *  um calendário de 12 posts custaria 12 de uma vez se não houvesse teto. */
@@ -283,6 +293,13 @@ export async function produzirArtesPendentes(): Promise<ArtesFeitas> {
       assinatura: marca.nome,
       indice: null,
     });
+    // Molde impossível por falta de ferramenta = a peça não existe. Falha
+    // contada como falha, com tentativa gasta, e NADA gravado no post.
+    if (!composta.ok) {
+      saida.falhas.push({ postId: post.id, erro: composta.erro });
+      await marcarErro(post.id, composta.erro, tentativas + 1);
+      continue;
+    }
 
     // Guardada no MESMO lugar que o material do cliente: um só armazenamento,
     // uma só cota, um só link assinado que a Meta consegue buscar.
@@ -388,10 +405,18 @@ interface MarcaDaPeca {
   /** O molde DESTE cliente — a mesma cara em toda peça, de todo formato.
    *  Sem marca definida, vem o molde NEUTRO, declarado como tal. */
   molde: Molde;
+  /** O CÉREBRO CRIATIVO desta marca: repertório (peça + razão), amplitude
+   *  declarada e formatos com régua própria. Marca sem cérebro registrado
+   *  recebe o cérebro VAZIO com as lacunas ditas — nunca o de outra marca. */
+  cerebro: CerebroCriativo;
 }
 
 async function lerMarca(clientId: string | null): Promise<MarcaDaPeca> {
-  const vazio: MarcaDaPeca = { nome: "", segmento: "", cores: [], tom: "", molde: moldeDoCliente(null) };
+  const vazio: MarcaDaPeca = {
+    nome: "", segmento: "", cores: [], tom: "",
+    molde: moldeDoCliente(null),
+    cerebro: cerebroDaMarca(null),
+  };
   if (!clientId) return vazio;
   const c = await prisma.client.findUnique({
     where: { id: clientId },
@@ -407,6 +432,10 @@ async function lerMarca(clientId: string | null): Promise<MarcaDaPeca> {
     // O molde nasce do BrandBrain e SÓ dele. Cliente sem cor cadastrada recebe
     // o neutro — a agência não escolhe a cor da marca de ninguém.
     molde: moldeDoCliente(b ?? null),
+    // O cérebro é achado pelo NOME da marca. Marca desconhecida recebe o vazio
+    // declarado; emprestar o repertório de um cliente a outro seria dar a
+    // identidade de um a outro.
+    cerebro: cerebroDaMarca(c.name),
   };
 }
 
@@ -428,17 +457,54 @@ interface PedidoDeComposicao {
   selo: string | null;
   assinatura: string;
   indice: { atual: number; total: number } | null;
+  /** A composição escolhida pelo cérebro criativo a partir do papel da tela.
+   *  Ausente = `foto-cheia`, o layout histórico. */
+  composicao?: Composicao | null;
 }
 
+/** Falha de INFRAESTRUTURA do rasterizador: não há navegador, ou ele quebrou.
+ *  Não é característica do conteúdo — é a casa sem a ferramenta montada. */
+const MOTIVOS_DE_INFRA: ReadonlySet<MotivoDeFalhaDeRender> = new Set([
+  "sem_navegador",
+  "erro_do_navegador",
+  "timeout",
+]);
+
 /**
- * Põe a camada de texto sobre a foto — e degrada DECLARANDO.
+ * Põe a camada de texto sobre a foto.
  *
- * Devolve sempre bytes publicáveis. Quando o molde não pode ser aplicado (sem
- * Chromium, texto sem lastro, texto que não cabe), o que volta é a FOTO PURA,
- * que é exatamente o que o motor antigo entregava, mais uma `nota` dizendo por
- * quê. Nunca volta peça com texto que a trava reprovou.
+ * ── POR QUE ISTO NÃO DEGRADA MAIS QUANDO FALTA NAVEGADOR ────────────────────
+ *
+ * Esta função devolvia SEMPRE bytes publicáveis: sem Chromium, saía a foto pura
+ * com uma `nota`. Parecia degradação declarada e era FAIL-OPEN — porque a nota
+ * ia para `lastError`, que ninguém lê antes de publicar, enquanto a peça seguia
+ * para o portal e para o perfil do cliente sem o molde da marca.
+ *
+ * E a falta de navegador não é um caso raro: até 07/08/2026 o `playwright`
+ * morava em `devDependencies`, então em produção ele NUNCA existiu. O resultado
+ * é que TODA peça de TODO cliente saiu como foto crua de IA, e o sistema
+ * relatou isso como sucesso, peça por peça.
+ *
+ * Por isso a separação abaixo, que é a regra da casa "configuração faltando =
+ * porta FECHADA":
+ *
+ *   • INFRA (sem navegador, navegador quebrado, timeout) → `ok: false`. A peça
+ *     NÃO é gravada e NÃO é publicada. A causa sobe nomeada, e quem chamou
+ *     trata como falha de verdade — do mesmo jeito que já trata "não consegui
+ *     gerar a foto". Ferramenta faltando é problema da agência, não um
+ *     entregável de qualidade menor para o cliente pagante.
+ *
+ *   • CONTEÚDO (não há frase utilizável, o texto não cabe, a trava reprovou a
+ *     letra) → segue a degradação declarada: foto + `nota`. Aqui o molde falhou
+ *     por causa do MATERIAL, o texto errado nunca chega à arte, e a peça sem
+ *     chamada continua sendo uma peça. Mudar isto é decisão de produto, com
+ *     alcance maior — está anotado em `docs/pendencias.md` para o CEO decidir.
  */
-async function comporComMolde(p: PedidoDeComposicao): Promise<{ bytes: Buffer; nota: string | null }> {
+type ResultadoDaComposicao =
+  | { ok: true; bytes: Buffer; nota: string | null }
+  | { ok: false; motivo: MotivoDeFalhaDeRender; erro: string };
+
+async function comporComMolde(p: PedidoDeComposicao): Promise<ResultadoDaComposicao> {
   // ── O MOLDE NEUTRO PRECISA SER DECLARADO PARA FORA ────────────────────────
   // Até a 7ª auditoria, `origem: "neutro"` e `lacunas` não tinham um único
   // consumidor fora de teste: o cliente sem marca recebia a peça cinza e nada —
@@ -453,7 +519,7 @@ async function comporComMolde(p: PedidoDeComposicao): Promise<{ bytes: Buffer; n
 
   const titulo = tituloDaFonte(p.fonteAuditada);
   if (!titulo) {
-    return { bytes: p.fotoBytes, nota: comAviso("[molde] peça entregue só com a foto: o conteúdo não tem uma frase utilizável como chamada.") };
+    return { ok: true, bytes: p.fotoBytes, nota: comAviso("[molde] peça entregue só com a foto: o conteúdo não tem uma frase utilizável como chamada.") };
   }
 
   const r = await montarPeca({
@@ -466,13 +532,26 @@ async function comporComMolde(p: PedidoDeComposicao): Promise<{ bytes: Buffer; n
     assinatura: p.assinatura,
     indice: p.indice,
     fonteAuditada: p.fonteAuditada,
+    composicao: p.composicao ?? null,
   }).catch((e) => ({ ok: false as const, motivo: "erro_do_navegador" as const, erro: e instanceof Error ? e.message : "erro" }));
 
   if (!r.ok) {
-    // Sem camada de texto o molde nem foi aplicado — o aviso de neutro não
-    // descreveria esta peça, e uma nota que descreve o que não aconteceu é
-    // ruído. Aqui vale só o motivo real.
+    // PORTA FECHADA. Sem a ferramenta, não sai peça — nem "peça pior".
+    if (MOTIVOS_DE_INFRA.has(r.motivo)) {
+      return {
+        ok: false,
+        motivo: r.motivo,
+        erro:
+          r.motivo === "sem_navegador"
+            ? "não há Chromium para rasterizar o molde neste ambiente — a peça NÃO foi gravada. " +
+              "Confira `playwright` em `dependencies` e o pacote `chromium` em `railpack.json → deploy.aptPackages`."
+            : `o rasterizador do molde falhou (${r.motivo}) — a peça NÃO foi gravada: ${r.erro}`,
+      };
+    }
+    // Falha de CONTEÚDO: o molde não coube nesta letra. A peça sai como foto,
+    // declarando o motivo — o texto reprovado nunca chega à arte.
     return {
+      ok: true,
       bytes: p.fotoBytes,
       nota: `[molde] peça entregue só com a foto (sem camada de texto): ${r.motivo} — ${r.erro}`.slice(0, 480),
     };
@@ -480,9 +559,9 @@ async function comporComMolde(p: PedidoDeComposicao): Promise<{ bytes: Buffer; n
   if (r.textoRecusado.length > 0) {
     // Aconteceu o caminho bom: a peça SAIU, e o que a trava barrou está dito.
     const barrado = r.textoRecusado.map((t) => `${t.papel}: ${t.detalhe}`).join(" · ");
-    return { bytes: r.bytes, nota: comAviso(`[molde] texto barrado pela trava — ${barrado}`) };
+    return { ok: true, bytes: r.bytes, nota: comAviso(`[molde] texto barrado pela trava — ${barrado}`) };
   }
-  return { bytes: r.bytes, nota: comAviso(null) };
+  return { ok: true, bytes: r.bytes, nota: comAviso(null) };
 }
 
 /**
@@ -594,6 +673,7 @@ export async function montarArteComFotoDoCliente(
     assinatura: marca.nome,
     indice: null,
   });
+  if (!composta.ok) return { ok: false, erro: composta.erro };
 
   const guardado = await guardarArquivo({
     bytes: composta.bytes,
@@ -636,6 +716,20 @@ export function montarPrompt(input: {
    *  "visto nas imagens" para não se confundir com o que foi lido em legenda:
    *  são duas evidências diferentes, e o gerador precisa saber qual é qual. */
   estiloVisto?: string;
+  /**
+   * O que a IMAGEM DESTA TELA precisa mostrar, derivado do PAPEL que ela cumpre
+   * na história (`direcaoDaImagem`).
+   *
+   * É a virada de 07/08/2026: até aqui todas as telas de um carrossel recebiam
+   * a mesma direção fotográfica e mudavam só o assunto — por isso a imagem era
+   * fundo, e não argumento. Vazio quando o papel não é conhecido; vazio é
+   * vazio, e o prompt não menciona papel nenhum.
+   */
+  papelDaTela?: string;
+  /** Os extremos DECLARADOS da marca (`direcaoDeAmplitude`). Vazio quando a
+   *  marca não tem amplitude registrada — a agência não inventa os extremos
+   *  permitidos da marca de um cliente. */
+  amplitude?: string;
 }): string {
   const vertical = input.formato === "story";
   const partes = [
@@ -650,6 +744,10 @@ export function montarPrompt(input: {
     // eles fizeram lá?").
     input.estiloDoFeed ? `Estilo visual observado no feed real deste cliente — a peça deve pertencer à mesma família visual, sem copiar nenhum post: ${input.estiloDoFeed}` : "",
     input.estiloVisto ? `Leitura das IMAGENS do feed real deste cliente (paleta, enquadramento e luz efetivamente vistos): ${input.estiloVisto}. Siga esta direção fotográfica.` : "",
+    // O papel vem antes da amplitude de propósito: ele diz O QUE a imagem tem
+    // de provar, e a amplitude só diz em que registro provar.
+    input.papelDaTela ? `FUNÇÃO DESTA TELA NA HISTÓRIA — a imagem precisa MOSTRAR isto, e não servir de fundo bonito: ${input.papelDaTela}` : "",
+    input.amplitude ? input.amplitude : "",
     // O molde escreve por cima da faixa de baixo — e elemento fixo obriga
     // espaço reservado (DESIGN.md). Sem isto, a IA compõe o assunto exatamente
     // onde o título vai entrar, e a peça sai com texto sobre o rosto do pão.
@@ -765,6 +863,7 @@ async function montarCarrossel(
   } catch { /* corrompido = sem cenas */ }
 
   if (cenas.length < 2) return { ok: false, erro: "o carrossel não tem telas descritas para desenhar", gerou: 0 };
+
   // Uma tela = uma imagem paga. Carrossel fora do formato é conta de multiplicar
   // errada, e a hora de descobrir é ANTES da primeira chamada.
   if (cenas.length > MAX_TELAS_POR_CARROSSEL) {
@@ -777,6 +876,33 @@ async function montarCarrossel(
     };
   }
 
+  // ── O STORYBOARD, ANTES DE QUALQUER CHAMADA PAGA ──────────────────────────
+  //
+  // "Tem carrosséis que têm duas imagens e as imagens ficam sendo repetidas.
+  // Não contam história de acordo com o texto, só são imagens." (CEO,
+  // 07/08/2026). A conferência mora AQUI, e não depois da produção, por dois
+  // motivos que puxam para o mesmo lado: (a) uma tela é uma imagem paga, então
+  // reprovar antes economiza o carrossel inteiro; (b) o defeito é de ROTEIRO,
+  // e roteiro não melhora depois que a foto já existe.
+  //
+  // Vem DEPOIS das contagens acima de propósito: contar telas é mais barato que
+  // conferir história, e um carrossel de 12 telas precisa ouvir "o teto é 6",
+  // que é o conserto real, e não uma reclamação de roteiro.
+  //
+  // A régua vem do CÉREBRO DA MARCA, não deste arquivo. Marca sem formato
+  // registrado cai na régua do carrossel de venda, que é a que a casa conhece.
+  const regua: ReguaDeStoryboard =
+    marca.cerebro.formatos.find((f) => f.regua.funcoesPermitidas.includes("gancho"))?.regua
+    ?? REGUA_CARROSSEL_DE_VENDA;
+  const formatoId = marca.cerebro.formatos.find((f) => f.regua.id === regua.id)?.id ?? null;
+  const roteiro = conferirStoryboard(lerStoryboard(cenas), regua);
+  if (!roteiro.ok) {
+    // NÃO gasta imagem (`gerou: 0`): insistir não conserta um roteiro que
+    // repete tela. Quem conserta é o especialista de conteúdo, reescrevendo as
+    // cenas — e o laudo diz exatamente qual tela e por quê.
+    return { ok: false, gerou: 0, erro: laudoDoStoryboard(roteiro).slice(0, 460) };
+  }
+
   const urls: string[] = [];
   /** O que o molde não conseguiu fazer, tela a tela. Vira `lastError` legível —
    *  sem gastar tentativa: o carrossel SAIU, e o que faltou está dito. */
@@ -784,7 +910,11 @@ async function montarCarrossel(
   /** Imagens efetivamente PAGAS. Sai junto do veredito porque o carrossel é
    *  tudo-ou-nada: pode falhar na tela 5 tendo pago 5. */
   let gerou = 0;
-  for (const [i, cena] of cenas.entries()) {
+  /** As telas COM a identidade da imagem que saiu. É a segunda metade da trava:
+   *  a primeira confere o roteiro, esta confere o que virou pixel. */
+  const telasProduzidas: TelaDoStoryboard[] = [];
+  for (const [i, tela] of roteiro.telas.entries()) {
+    const cena = tela.descricao;
     const r = await generateDesign({
       prompt: montarPrompt({
         // A CENA é o assunto, não a legenda: a legenda é a mesma para o
@@ -799,6 +929,14 @@ async function montarCarrossel(
         // devolve, e o corte acontece no `background-size: cover` do molde.
         estiloDoFeed,
         estiloVisto,
+        // ── O QUE FAZ A IMAGEM SER O ARGUMENTO ────────────────────────────
+        // A direção da foto vem do PAPEL que esta tela cumpre, não da legenda
+        // do post. É o que separa "imagem de fundo" de "imagem argumento": a
+        // tela de tensão pede o custo visível, a de mecanismo pede a
+        // engrenagem em operação. Papel desconhecido devolve string vazia, e
+        // aí o prompt simplesmente não fala disso.
+        papelDaTela: direcaoDaImagem(tela.funcao),
+        amplitude: direcaoDeAmplitude(marca.cerebro),
       }),
       size: "square",
       quality: "high",
@@ -810,6 +948,20 @@ async function montarCarrossel(
 
     const bytes = await baixarImagem(r.url).catch(() => null);
     if (!bytes) return { ok: false, gerou, erro: `não consegui baixar a tela ${i + 1}` };
+
+    // A IDENTIDADE DA IMAGEM. Hash dos bytes: duas telas com o mesmo hash são,
+    // literalmente, a mesma imagem publicada duas vezes — o defeito que o CEO
+    // apontou. Conferido AQUI, dentro do laço, para não pagar as telas
+    // restantes de um carrossel que já está reprovado.
+    const impressao = createHash("sha256").update(bytes).digest("hex");
+    const jaUsada = telasProduzidas.find((t) => t.imagem === impressao);
+    if (jaUsada) {
+      return {
+        ok: false, gerou,
+        erro: `[storyboard] REPROVADO — as telas ${jaUsada.ordem} e ${i + 1} saíram com A MESMA IMAGEM. Imagem repetida é a prova de que aquela tela não tinha função própria; o carrossel não foi gravado.`.slice(0, 460),
+      };
+    }
+    telasProduzidas.push({ ...tela, imagem: impressao });
 
     // A foto de CADA tela fica guardada — é o que faz o re-render de texto de
     // uma tela isolada custar rasterização em vez de uma imagem nova.
@@ -824,10 +976,24 @@ async function montarCarrossel(
       uploadedBy: "design",
     }).catch(() => null);
 
-    // ── A MESMA CARA DA TELA 1 ATÉ A TELA 6 ────────────────────────────────
-    // Todas as telas nascem do MESMO `molde` (marca.molde) e do mesmo layout;
-    // o que muda é a foto, a frase e o índice. Era exatamente isto que não
-    // existia quando cada tela era um prompt novo para o modelo de imagem.
+    // ── A MESMA MARCA DA TELA 1 À TELA 6, SEM SEREM A MESMA TELA ───────────
+    //
+    // Todas as telas nascem do MESMO `molde` (marca.molde): cor, tipografia e
+    // assinatura são as mesmas, e é isso que faz a peça pertencer ao conjunto.
+    // O que MUDA agora é a COMPOSIÇÃO, escolhida pelo cérebro criativo a partir
+    // do papel desta tela — porque uma composição só, repetida seis vezes, foi
+    // exatamente o que produziu as 36 telas iguais da Foocci.
+    //
+    // Sem repertório para aquele papel, `escolha` é `null` e a tela cai no
+    // `foto-cheia` histórico — DECLARANDO que caiu, em vez de a agência
+    // escolher um layout "que combina" pelo cliente.
+    const escolha = composicaoParaFuncao(marca.cerebro, tela.funcao, formatoId);
+    if (!escolha) {
+      notas.push(
+        `tela ${i + 1}: sem entrada de repertório para o papel "${tela.funcao ?? "(não declarado)"}" — saiu na composição base (foto cheia).`,
+      );
+    }
+    const composicao: Composicao = escolha?.composicao ?? "foto-cheia";
     const composta = await comporComMolde({
       formato: "carrossel",
       molde: marca.molde,
@@ -837,7 +1003,12 @@ async function montarCarrossel(
       selo: i === 0 ? post.pillar : null,
       assinatura: marca.nome,
       indice: { atual: i + 1, total: cenas.length },
+      composicao,
     });
+    // Uma tela sem molde contamina o carrossel inteiro: o cliente receberia um
+    // carrossel meio com marca, meio foto crua. Falta de ferramenta derruba a
+    // peça toda, não gera meia peça.
+    if (!composta.ok) return { ok: false, gerou, erro: composta.erro };
     if (composta.nota) notas.push(`tela ${i + 1}: ${composta.nota}`);
 
     const g = await guardarArquivo({
@@ -852,6 +1023,25 @@ async function montarCarrossel(
     });
     if (!g.ok) return { ok: false, gerou, erro: g.motivo };
     urls.push(`/api/media/${g.arquivo.id}`);
+  }
+
+  // ── A SEGUNDA CONFERÊNCIA: O ROTEIRO CONTRA O QUE VIROU PIXEL ─────────────
+  //
+  // A primeira rodou sobre a intenção; esta roda sobre o resultado, com a
+  // identidade real de cada imagem preenchida. Parece redundante e não é: entre
+  // as duas existe o gerador de imagem, que é justamente a peça que pode
+  // devolver a mesma foto para duas cenas diferentes. Reprovar aqui custa as
+  // imagens já pagas e evita o carrossel repetido no perfil do cliente — que é
+  // o dano que não volta atrás.
+  const conferenciaFinal = conferirStoryboard(telasProduzidas, regua);
+  if (!conferenciaFinal.ok) {
+    return { ok: false, gerou, erro: laudoDoStoryboard(conferenciaFinal).slice(0, 460) };
+  }
+
+  // O cérebro da marca declara o que NÃO sabe, e a declaração sobe junto com a
+  // peça. Lacuna que ninguém lê não é lacuna declarada.
+  if (marca.cerebro.lacunas.length > 0) {
+    notas.push(`[cérebro criativo] o que falta para esta marca: ${marca.cerebro.lacunas.join("; ")}`);
   }
 
   await prisma.socialPost.update({

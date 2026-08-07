@@ -120,8 +120,15 @@ export function PortalChat({ token, clientRequestId, clientId, suggestContext, a
   const appendTranscript = useCallback((text: string) => {
     setInput((prev) => (prev ? prev.trimEnd() + " " + text : text));
   }, []);
-  const { isListening, isTranscribing, isSupported, startListening, stopListening } =
-    useSpeechToText({ onTranscript: appendTranscript });
+  // `error` e `modo` entraram em 06/08/2026 e não são enfeite: sem `error`, uma
+  // falha do microfone no PORTAL — a tela de quem paga — não deixava rastro
+  // nenhum na tela; o cliente tocava, nada acontecia, e ele concluía que o
+  // produto está quebrado. `modo` é o que impede o chat de prometer texto ao
+  // vivo no Chrome do iPhone, onde ele só chega depois de parar.
+  const {
+    isListening, isTranscribing, isSupported, error: micError, modo: micModo,
+    startListening, stopListening,
+  } = useSpeechToText({ onTranscript: appendTranscript });
 
   // A ordem importa: clientId (o caminho que serve cliente direto) vem antes de
   // clientRequestId, que fica como entrada legada das telas de projeto.
@@ -302,11 +309,20 @@ export function PortalChat({ token, clientRequestId, clientId, suggestContext, a
         </div>
       )}
 
-      <div className="border-t border-[var(--border)] p-2.5 flex items-end gap-2">
+      <div className="border-t border-[var(--border)] p-2.5">
+      {/* A falha do microfone tem que APARECER — e com a causa que a camada
+          devolveu (permissão, gravação que não iniciou, conta do provedor,
+          rede). Antes ela era descartada aqui dentro e o cliente ficava sem
+          nenhum sinal. Ver DESIGN.md §7.3 e I-22. */}
+      {micError && (
+        <p role="alert" className="text-[12px] text-[var(--danger)] mb-2 px-0.5">{micError}</p>
+      )}
+      <div className="flex items-end gap-2">
         <button
           type="button"
           onClick={() => setAttachOpen((v) => !v)}
           title="Anexar link / material"
+          aria-label="Anexar link ou material"
           style={{ touchAction: "manipulation" }}
           className={`w-10 h-10 rounded-full shrink-0 flex items-center justify-center transition-colors ${attachOpen ? "bg-[var(--accent-light)] text-[#0E9E96]" : "bg-[var(--accent)] text-[var(--text-secondary)] hover:bg-[var(--border)]"}`}
         >
@@ -319,7 +335,21 @@ export function PortalChat({ token, clientRequestId, clientId, suggestContext, a
             type="button"
             onClick={isTranscribing ? undefined : (isListening ? stopListening : startListening)}
             disabled={isTranscribing}
-            title={isListening ? "Parar gravação" : "Gravar áudio"}
+            title={
+              isTranscribing
+                ? "Transcrevendo o áudio…"
+                : isListening
+                  ? micModo === "envio" ? "Parar e transcrever" : "Parar de ouvir"
+                  : "Falar em vez de digitar"
+            }
+            aria-label={
+              isTranscribing
+                ? "Transcrevendo o áudio"
+                : isListening
+                  ? micModo === "envio" ? "Parar e transcrever" : "Parar de ouvir"
+                  : "Falar em vez de digitar"
+            }
+            aria-pressed={isListening}
             style={{ touchAction: "manipulation" }}
             className={`w-10 h-10 rounded-full shrink-0 flex items-center justify-center transition-colors ${
               isListening ? "bg-[var(--danger)] text-white animate-pulse"
@@ -345,7 +375,15 @@ export function PortalChat({ token, clientRequestId, clientId, suggestContext, a
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={onKeyDown}
-          placeholder={isListening ? "Gravando… fale agora" : "Escreva ou grave um áudio…"}
+          placeholder={
+            isTranscribing
+              ? "Transcrevendo o áudio…"
+              : isListening
+                ? micModo === "envio"
+                  ? "Gravando… fale e toque no microfone para transcrever"
+                  : "Ouvindo… fale agora"
+                : "Escreva ou grave um áudio…"
+          }
           rows={1}
           className="flex-1 px-3 py-2.5 bg-[var(--bg)] border border-[var(--border)] rounded-[10px] outline-none focus:border-[var(--text-primary)] focus:bg-white transition-all resize-none leading-relaxed"
           style={{ fontSize: "16px" }}
@@ -354,6 +392,7 @@ export function PortalChat({ token, clientRequestId, clientId, suggestContext, a
           onClick={send}
           disabled={!input.trim() || sending}
           title="Enviar"
+          aria-label="Enviar mensagem"
           className="w-10 h-10 rounded-full bg-[#12B5AC] hover:bg-[#0E9E96] disabled:opacity-40 text-white flex items-center justify-center transition-colors shrink-0"
           style={{ touchAction: "manipulation" }}
         >
@@ -361,6 +400,7 @@ export function PortalChat({ token, clientRequestId, clientId, suggestContext, a
             <path d="M14.5 8L2 2.5l2.5 5.5L2 13.5 14.5 8z" fill="currentColor" />
           </svg>
         </button>
+      </div>
       </div>
       </>
       )}

@@ -1,7 +1,7 @@
 ---
 titulo: "Marketing API — Insights: breakdowns (recortes)"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/insights/breakdowns
-capturado_em: 2026-08-06
+capturado_em: 2026-08-07
 hash: 43958c9eaa3b74fb
 ---
 

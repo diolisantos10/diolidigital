@@ -174,14 +174,23 @@ Em particular, os quatro que não são opcionais:
 
 > ### ⚠️ Buraco aberto e conhecido — prioridade do piloto
 >
-> **Os quality gates não protegem nada hoje.** Das 31 checagens em
-> `lib/dioli-brain/quality-gates.ts`, **28 são `autoCheckable: false`** — texto
-> descrevendo o que um humano deveria conferir. **Só 3 rodam.**
+> **A maioria dos quality gates ainda não protege nada.** O registro é
+> `lib/dioli-brain/quality-gates.ts`; o número honesto sai de
+> `retratoDosPortoes()` e está fixado em `__tests__/brain/o-numero-do-p0.test.ts`.
+> Hoje **a maior parte das checagens declara `lacuna`, não `mecanismo`** — texto
+> descrevendo o que um humano deveria conferir.
 >
-> Com revisão humana isso era um checklist. **Sem revisão humana é decoração:**
-> "sem alucinação", "respeita a marca", "corresponde ao briefing" e "riscos
-> verificados" são exatamente as falhas que chegam no cliente, e nenhuma delas é
-> verificada por código.
+> **Não repita o número aqui em prosa.** Ele já esteve defasado por meses ("31
+> checagens, 28 sem mecanismo, só 3 rodam") porque prosa que descreve um número
+> não muda quando o número muda, e ninguém atualiza. Quem precisar do número
+> corrente roda o teste ou lê `retratoDosPortoes()`.
+>
+> Com revisão humana isso era um checklist. **Sem revisão humana é decoração.**
+> As bloqueantes globais ainda descobertas são **"respeita a marca",
+> "corresponde ao briefing", "valor ao cliente claro" e "riscos verificados"** —
+> exatamente as falhas que chegam no cliente, e nenhuma delas é verificada por
+> código. ("Sem alucinação" saiu dessa lista: ganhou mecanismo. O buraco
+> encolheu; não fechou.)
 >
 > **Além disso:** a ancoragem de verdade ainda depende de contexto montado no
 > cliente (ver o cabeçalho de `lib/dioli-brain/reason.ts` — "Phase 2 will add

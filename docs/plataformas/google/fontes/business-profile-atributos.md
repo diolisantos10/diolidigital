@@ -1,8 +1,8 @@
 ---
 titulo: "Perfil de Empresa — gerenciar atributos da empresa"
 url: https://support.google.com/business/answer/9049526?hl=pt-BR
-capturado_em: 2026-08-06
-hash: 932cf14d1cf09f41
+capturado_em: 2026-08-07
+hash: 4a8875c2397769cc
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -48,3 +48,6 @@ Siga as próximas etapas:
 Postar na Comunidade de Ajuda Receba respostas dos membros da comunidade
  
 Fale conosco Conte mais sobre o problema para podermos ajudar você
+Moldando o futuro do Suporte do Google
+
+Estudos de pesquisa com usuários ajudam a melhorar nossos serviços de suporte, pois nos permitem receber comentários diretamente de usuários como você. Saiba mais ou inscreva-se agora e receba convites para participar de estudos futuros.

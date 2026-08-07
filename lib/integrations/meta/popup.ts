@@ -22,7 +22,10 @@ function escapar(s: string): string {
 }
 
 export type CargaDoPopup = {
-  type: "meta_auth_success" | "meta_auth_error";
+  // O Drive do cliente (07/08/2026) reusa esta saída em vez de criar uma
+  // segunda: popup que fala JSON é o defeito que este módulo existe para
+  // impedir, e ele não seria menos defeito só por ser do Google.
+  type: "meta_auth_success" | "meta_auth_error" | "drive_auth_success" | "drive_auth_error";
   /** Frase para o CLIENTE ler. Nunca código, nunca nome de variável. */
   error?: string;
   summary?: string;

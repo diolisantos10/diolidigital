@@ -7,6 +7,7 @@
 // postMessage — aí a lista recarrega sozinha.
 
 import { useCallback, useEffect, useState } from "react";
+import { DriveDoCliente } from "@/components/portal/DriveDoCliente";
 
 interface AtivoView {
   tipo: "ad_account" | "page" | "instagram" | "whatsapp";
@@ -182,8 +183,9 @@ export function ConexoesDoCliente({ token }: { token: string }) {
         <h2 className="text-[16px] font-bold text-[var(--text-primary)]">Conexões</h2>
         <p className="mt-0.5 text-[12.5px] text-[var(--text-secondary)]">
           Conecte o Facebook e o Instagram do seu negócio para a Dioli publicar e
-          trazer seus resultados direto para este portal. Você controla o acesso e
-          pode revogar quando quiser.
+          trazer seus resultados direto para este portal, e o Google Drive para a
+          equipe usar seu logo e suas fotos reais nas peças. Você controla o
+          acesso e pode revogar quando quiser.
         </p>
       </div>
 
@@ -353,6 +355,18 @@ export function ConexoesDoCliente({ token }: { token: string }) {
           <span className="font-semibold">Se o login da Meta recusar, avise a agência</span> — a
           liberação do app pela Meta pode estar pendente. Não é um problema da sua conta.
         </p>
+      </div>
+
+      {/* ── Google Drive — de onde vem o material de marca do cliente ──────────
+          Bloco PRÓPRIO, depois da Meta inteira (cartão + lista + aviso), e não
+          entre eles: são consentimentos diferentes, escopos diferentes e riscos
+          diferentes. Encaixado no meio, o vazio "Nenhuma conta conectada" da
+          Meta caía logo abaixo do cartão do Drive e parecia ser dele. */}
+      <div className="pt-1">
+        <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-2">
+          Seu material de marca
+        </h3>
+        <DriveDoCliente token={token} />
       </div>
     </div>
   );

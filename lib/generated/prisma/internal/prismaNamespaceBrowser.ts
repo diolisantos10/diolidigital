@@ -58,6 +58,8 @@ export const ModelName = {
   AdCampaign: 'AdCampaign',
   GoogleConnection: 'GoogleConnection',
   GoogleReview: 'GoogleReview',
+  GoogleDriveConnection: 'GoogleDriveConnection',
+  DriveMaterial: 'DriveMaterial',
   Cycle: 'Cycle',
   ClientNotice: 'ClientNotice',
   Deliverable: 'Deliverable',
@@ -70,7 +72,7 @@ export const ModelName = {
   BrandUpdate: 'BrandUpdate',
   BrainUpdate: 'BrainUpdate',
   DbIntegrationConfig: 'DbIntegrationConfig',
-  DbAgentProviderConfig: 'DbAgentProviderConfig',
+  ClientAiProvider: 'ClientAiProvider',
   Task: 'Task',
   TimelineEvent: 'TimelineEvent',
   ActivityEvent: 'ActivityEvent',
@@ -259,6 +261,46 @@ export const GoogleReviewScalarFieldEnum = {
 } as const
 
 export type GoogleReviewScalarFieldEnum = (typeof GoogleReviewScalarFieldEnum)[keyof typeof GoogleReviewScalarFieldEnum]
+
+
+export const GoogleDriveConnectionScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  clientId: 'clientId',
+  contaHint: 'contaHint',
+  accessTokenEncrypted: 'accessTokenEncrypted',
+  refreshTokenEncrypted: 'refreshTokenEncrypted',
+  tokenExpiresAt: 'tokenExpiresAt',
+  escopos: 'escopos',
+  status: 'status',
+  connectedAt: 'connectedAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type GoogleDriveConnectionScalarFieldEnum = (typeof GoogleDriveConnectionScalarFieldEnum)[keyof typeof GoogleDriveConnectionScalarFieldEnum]
+
+
+export const DriveMaterialScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  clientId: 'clientId',
+  connectionId: 'connectionId',
+  fileId: 'fileId',
+  nome: 'nome',
+  mimeType: 'mimeType',
+  tamanhoBytes: 'tamanhoBytes',
+  ehPasta: 'ehPasta',
+  papel: 'papel',
+  papelSugerido: 'papelSugerido',
+  papelConfirmadoEm: 'papelConfirmadoEm',
+  mediaAssetId: 'mediaAssetId',
+  importadoEm: 'importadoEm',
+  erro: 'erro',
+  escolhidoEm: 'escolhidoEm',
+  updatedAt: 'updatedAt'
+} as const
+
+export type DriveMaterialScalarFieldEnum = (typeof DriveMaterialScalarFieldEnum)[keyof typeof DriveMaterialScalarFieldEnum]
 
 
 export const CycleScalarFieldEnum = {
@@ -484,15 +526,20 @@ export const DbIntegrationConfigScalarFieldEnum = {
 export type DbIntegrationConfigScalarFieldEnum = (typeof DbIntegrationConfigScalarFieldEnum)[keyof typeof DbIntegrationConfigScalarFieldEnum]
 
 
-export const DbAgentProviderConfigScalarFieldEnum = {
+export const ClientAiProviderScalarFieldEnum = {
   id: 'id',
   workspaceId: 'workspaceId',
-  agentId: 'agentId',
-  selectedProvider: 'selectedProvider',
-  selectedModel: 'selectedModel'
+  clientId: 'clientId',
+  provider: 'provider',
+  model: 'model',
+  estrito: 'estrito',
+  motivo: 'motivo',
+  decididoPor: 'decididoPor',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 } as const
 
-export type DbAgentProviderConfigScalarFieldEnum = (typeof DbAgentProviderConfigScalarFieldEnum)[keyof typeof DbAgentProviderConfigScalarFieldEnum]
+export type ClientAiProviderScalarFieldEnum = (typeof ClientAiProviderScalarFieldEnum)[keyof typeof ClientAiProviderScalarFieldEnum]
 
 
 export const TaskScalarFieldEnum = {
@@ -550,7 +597,15 @@ export const AIRunLogScalarFieldEnum = {
   promptSummary: 'promptSummary',
   outputSummary: 'outputSummary',
   warnings: 'warnings',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  clientId: 'clientId',
+  agentId: 'agentId',
+  tokensEntrada: 'tokensEntrada',
+  tokensSaida: 'tokensSaida',
+  custoEstimadoUsd: 'custoEstimadoUsd',
+  custoTabela: 'custoTabela',
+  duracaoMs: 'duracaoMs',
+  erro: 'erro'
 } as const
 
 export type AIRunLogScalarFieldEnum = (typeof AIRunLogScalarFieldEnum)[keyof typeof AIRunLogScalarFieldEnum]
@@ -1043,6 +1098,7 @@ export const DepartmentLadderRecordScalarFieldEnum = {
   degrauNaEpoca: 'degrauNaEpoca',
   resultado: 'resultado',
   detalhe: 'detalhe',
+  provedor: 'provedor',
   criadoEm: 'criadoEm'
 } as const
 

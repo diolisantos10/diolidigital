@@ -1,5 +1,115 @@
 # Pendências — o que está aberto
 
+## ✅ 07/08/2026 — FECHADO: o molde da marca nunca rodou em produção
+
+**A consequência, primeiro:** de quando o motor de molde entrou até 07/08/2026,
+**toda peça de todo cliente saiu como foto crua de IA** — sem tipografia, sem
+selo, sem assinatura. E o sistema relatou isso como entrega bem-sucedida, peça
+por peça.
+
+**A causa:** `playwright` estava em `devDependencies`. Produção instala com
+`--omit=dev`, então `await import("playwright")` falhava sempre;
+`renderizarHtml` devolvia `sem_navegador`; e `comporComMolde` tratava isso como
+"degradação declarada", gravando a foto crua com a explicação em `lastError` —
+campo que ninguém lê antes de publicar.
+
+> ### ⚠️ O MEIO-CONSERTO QUE A CASA PRECISA SABER QUE ACONTECEU
+>
+> **Mover `playwright` para `dependencies` NÃO era o conserto.** Foi o primeiro
+> commit desta frente e, sozinho, teria dado sensação de resolvido sem resolver:
+> o npm passa a instalar a BIBLIOTECA, mas **não baixa o binário do Chromium**.
+> Sem binário, `chromium.launch()` continua falhando e a peça continua saindo
+> crua — exatamente a consequência que se queria matar.
+>
+> Um conserto de dependência que não provisiona o executável é meio conserto.
+> Foram precisas **três** partes:
+>
+> 1. **A biblioteca** — `playwright` em `dependencies` (conferido: ela chega em
+>    `.next/standalone/node_modules/playwright`).
+> 2. **O BINÁRIO** — `railpack.json → deploy.aptPackages` passa a instalar
+>    `chromium`, ao lado do `ffmpeg` que já estava lá. Escolhido em vez de
+>    `npx playwright install chromium` no build porque o pacote apt faz parte da
+>    IMAGEM: sobrevive a redeploy sem depender de cache e não acrescenta ~500MB
+>    de download por build. `renderizar.ts` acha `/usr/bin/chromium` **sem exigir
+>    variável de ambiente** — pedir configuração para a peça sair certa é a
+>    armadilha do ffmpeg, que some em silêncio.
+> 3. **A PORTA FECHADA** — sem as duas acima, o código voltaria a entregar foto
+>    crua chamando aquilo de sucesso. Agora falha de INFRA (`sem_navegador`,
+>    `erro_do_navegador`, `timeout`) devolve `ok: false`: a peça não é gravada
+>    nem publicada, e a causa sobe nomeada. Falha de CONTEÚDO (texto que não
+>    cabe, sem frase utilizável) segue degradando declarado.
+>
+> **A lição, que vale além desta frente:** havia um teste VERDE afirmando que a
+> peça sem molde deve ser publicada (`__tests__/execution/artes.test.ts`). O
+> fail-open não estava só no código — estava protegido por prova. Quando a
+> checagem descreve o defeito como se fosse o contrato, consertar o código não
+> basta: o teste tem de mudar de lado, e o commit tem de dizer por quê.
+
+**Dívida declarada que sobrou:** `/usr/bin/chromium` (apt) é um Chromium de
+sistema, não o build que o Playwright baixa. A combinação é suportada via
+`executablePath`, mas **não foi exercitada em produção ainda** — a primeira peça
+produzida depois do deploy é a prova que falta. Se falhar, o erro agora aparece
+como falha nomeada em vez de peça crua silenciosa, que é o ponto.
+
+## ✅ 07/08/2026 — FECHADO: porta de emergência do deploy, e as 6 rotas fora da conta
+
+- **A porta de emergência não abria.** Falhou nas DUAS emergências reais (06 e
+  07/08) com "Bad Access": o token de PROJETO do Railway recusa
+  `environmentTriggersDeploy` e `deploymentTriggerUpdate`. Na segunda, com o
+  GitHub Actions em pane e o portal do cliente quebrado, o conserto subiu à mão.
+  `dispararDeploy()` passa a usar `serviceInstanceDeployV2(serviceId,
+  environmentId, commitSha)` — que o mesmo token aceita. Ganho extra: ela **não
+  passa pelo "Wait for CI"**, então o script não precisa mais desligar o portão
+  para disparar e religar depois. Aquela janela deixava a produção sem CI e
+  ficava aberta **para sempre** se o processo morresse no meio.
+- **As 6 rotas de `app/api/agents/*` contornavam o motor de IA.** Montavam o
+  `fetch` para a Anthropic na mão. Perdiam a CONTA (nenhum `AIRunLog` — o gasto
+  existia na fatura e não no relatório), a ESCOLHA DE PROVEDOR POR CLIENTE
+  (`ClientAiProvider` ignorado: cliente fixado no Gemini era atendido pelo
+  Claude) e a RESERVA. Todas passam por `generate()` agora, com trava em
+  `__tests__/plataforma/rotas-passam-pelo-motor.test.ts` para a 7ª rota.
+
+**Furo declarado, NÃO resolvido:** `social/generate` e `design/generate` aceitam
+`clientId`/`projectId` como opcionais porque as telas ainda podem não mandá-los.
+Quando não vêm, o custo entra na conta **sem cliente**. Ausência de informação
+não é informação: está anotado, não preenchido por inferência. Quem for mexer
+nessas duas telas fecha isto junto.
+
+## 🟡 07/08/2026 — GOOGLE DRIVE DO CLIENTE: código no ar do branch, feature TRAVADA
+
+O material de marca do cliente (logo em arquivo, fotos reais, manual, captura de
+tela) já tem caminho: portal → escolha do cliente → esteira. Está no branch
+`claude/dioli-pm-role-pow56e`, commit `626192e`. **Não está em produção** —
+produção roda outro branch (`claude/dioli-agency-os-architecture-kk7kp`,
+commit `796fca0`).
+
+**O que trava, e é do CEO:**
+
+1. **Publicar o app OAuth** no Google Cloud Console (Tela de permissão OAuth →
+   "PUBLICAR APP"). Com o app em "Teste", o refresh token do cliente **morre em
+   7 dias** e a conexão quebra sozinha parecendo defeito nosso
+   (fonte: `docs/plataformas/google/fontes/oauth2-tokens-e-expiracao.md`).
+   Como o escopo é `drive.file` (não sensível), **não há verificação
+   obrigatória** — é um clique.
+2. **Registrar o redirect URI** `https://www.diolidigital.com.br/api/google/drive/callback`.
+3. **Ativar Drive API + Picker API** e criar uma chave de API de navegador
+   (`GOOGLE_PICKER_API_KEY`) + anotar o número do projeto (`GOOGLE_PROJECT_NUMBER`).
+
+Sem (3), o portal já diz a verdade: botão de escolher arquivos indisponível com
+"avise a agência — não é problema da sua conta". Nada finge funcionar.
+
+Parecer completo, com fontes: `docs/plataformas/google/pareceres/2026-08-07-drive-do-cliente.md`.
+
+**Dívidas declaradas do mesmo bloco:**
+- O par foto→peça continua sendo escolha explícita (`montarArteComFotoDoCliente`),
+  como manda a lição de 04/08 ("sobra não é evidência de correspondência"). A
+  oferta existe (`fotosReaisDoCliente`); quem casa arquivo com peça, não.
+- `BrandBrain` e `ClientKnowledgeSnapshot` ainda não são alimentados pelo
+  material do Drive — o manual de marca entra como arquivo, não como cor/fonte
+  extraída.
+- `__tests__/esteira/passagem-do-pedido.test.ts` falha por data fixa no teste
+  (falha JÁ em `c48d635`, antes deste trabalho).
+
 ## 🔵 07/08/2026 (madrugada) — O RELÓGIO ESTAVA CERTO; QUEM ESTAVA ERRADO ERA O DIAGNÓSTICO
 
 Ordem do CEO: *"amanhã quando eu voltar eu quero essa agência produzindo, sem
@@ -98,6 +208,116 @@ Conferido nos 3 tamanhos (375/768/1440) com o painel renderizado de verdade.
 > abaixo saíram da primeira coleta e cada um tem dono).
 
 ---
+
+## 🔴 06/08/2026 (noite) — O PORTÃO DO DEPLOY ESTÁ CONSTRUÍDO E **NÃO ESTÁ LIGADO**
+
+Ordem do CEO: *deploy só com CI verde, com porta de emergência declarada.*
+O mecanismo está pronto, testado e documentado (`docs/deploys/portao.md`).
+**Falta um clique — e ele não é meu.**
+
+**O caminho escolhido, conferido na documentação do Railway** (não de memória):
+o recurso **"Wait for CI"** do próprio Railway (`checkSuites` no
+`DeploymentTrigger`, `docs.railway.com/deployments/github-autodeploys`). Com ele,
+o push cria a implantação em **WAITING**, ela vira **SKIPPED** se algum workflow
+falhar, e só sobe com tudo verde. Preferido ao caminho "desligar o autodeploy e
+deployar de dentro de um workflow" porque este último **não funciona no dia da
+pane** — workflow que deploya só deploya se o Actions estiver de pé, e foi
+justamente o Actions que caiu.
+
+### 🔴 O QUE DEPENDE DO CEO — e sem isso nada disto protege
+
+1. **Ligar o portão.** Railway → projeto Dioli Digital → serviço `diolidigital`
+   → Settings → Source → **Wait for CI**. Ou, com um token de conta:
+   `RAILWAY_TOKEN=<token> npm run portao -- --ligar`.
+2. **Um token de CONTA do Railway.** O token de projeto que eu tinha **só lê**.
+   Ele recusou com `Bad Access` as três mutações que importam:
+   `deploymentTriggerUpdate` (ligar o portão),
+   `serviceInstanceAutoDeployUpdate` e `environmentTriggersDeploy` (disparar o
+   deploy — a porta de emergência). **Sem esse token a porta de emergência não
+   abre**, e é ela que garante subir num dia de pane.
+
+**Enquanto o item 1 não acontecer, o Railway continua subindo todo push sem
+olhar a CI — exatamente como hoje de manhã.** `npm run portao` responde isso em
+uma linha, e sai vermelho.
+
+### O que foi construído
+
+- **Uma régua só de "o que conta como verde"** (`julgarProva`, em
+  `lib/plataforma/sentinela-do-deploy.ts`). O sentinela e a porta de emergência
+  usam a mesma — duas cópias é como "sem prova" volta a contar como verde de um
+  lado só. `success` aprova; cancelada, estourada, pulada, em andamento e
+  **inexistente** caem em `SEM_PROVA`, e a mensagem diz qual dos casos é.
+- **A porta de emergência** (`npm run deploy:emergencia`, com `--ensaio`).
+  Não abre sem `--quem`, sem `--motivo` de 20+ caracteres e sem `--confirmo`;
+  **recusa** quando o commit já tem CI verde (porta usada com o portão aberto é
+  como ela vira o caminho normal); e **grava o registro ANTES de disparar** — se
+  não deu para registrar, não sobe. O rastro fica em
+  `docs/deploys/emergencias.md`.
+- **O sentinela saiu da frente do deploy.** Ele rodava no push; com o portão
+  ligado, workflow vermelho descarta a implantação — e o sentinela fica vermelho
+  justamente quando a produção está ruim. Isso trancaria o conserto do lado de
+  fora. Agora ele roda de hora em hora e denuncia por issue. **Custo declarado:**
+  a conferência pós-deploy deixa de ser imediata.
+- **`ci.yml` passou a nomear a branch de produção** no `on: push`. O Railway só
+  reconhece como portão um workflow cujo `branches:` ele consegue casar; portão
+  ligado sem workflow para esperar aprova tudo com cara de trava. `npm run portao`
+  sai vermelho nesse estado.
+
+### O que ficou provado, e o que não
+
+- ✅ **A régua, contra o GitHub real:** commit `0ce8ea2` (o que está em produção)
+  tem CI verde e sai `APROVADO` — com SHA curto **e** completo. Com o Actions em
+  **major outage neste momento**, CI verde continua verde: a pane não apaga prova
+  que existe.
+- ✅ **As duas metades da porta**, com o script rodando de verdade: sem motivo →
+  recusa e sai 1; motivo curto → recusa; commit já aprovado → recusa e ensina o
+  caminho normal; com quem+motivo+confirmação num dia de pane → **libera**.
+  36 testes verdes em `__tests__/plataforma/porta-de-emergencia.test.ts`.
+- 🔴 **NÃO ficou provado que o portão segura de verdade** — não consegui ligá-lo
+  (token só lê). O comportamento do "Wait for CI" está afirmado pela
+  documentação do Railway, não medido nesta casa.
+- 🔴 **NÃO ficou provado o disparo do deploy.** `environmentTriggersDeploy`
+  recusou. A produção **não foi tocada** nesta sessão.
+- 🟠 **Defeito achado testando de verdade, e corrigido:** o registro era gravado
+  antes do disparo (certo) e nunca voltava para dizer que o disparo **falhou** —
+  ficava no arquivo uma linha com cara de subida que não aconteceu. Agora toda
+  entrada termina com o resultado. A entrada do teste em
+  `docs/deploys/emergencias.md` está anotada com todas as letras.
+
+---
+
+## 🔴 06/08/2026 — App Review da Meta: dossiê pronto, 1 bloqueio no colo do CEO
+
+Dossiê completo em **`docs/plataformas/meta/app-review.md`**: estado do app
+medido por API, auditoria permissão-a-permissão contra o código, textos de
+justificativa em inglês prontos para colar, roteiros dos 6 vídeos e o caminho
+que o revisor percorre.
+
+**O bloqueio nº 1, e ele reprova o envio INTEIRO:** `META_LOGIN_CONFIG_ID` não
+existe no Railway. App tipo Business usa Login para Empresas, que exige
+`config_id` e recusa `scope` — o revisor não consegue completar o login, e
+"app não testável = envio rejeitado" (fonte: `fontes/app-review-processo.md`).
+
+**Consertado nesta sessão:**
+- O callback de exclusão de dados devolvia à Meta `https://diolidigital.com.br/…`
+  — o **apex, que não tem DNS**. Conferido ao vivo em produção antes do
+  conserto. É o link que o revisor clica. Agora sai do host da requisição.
+- O mesmo arquivo gravava "conexões Meta associadas removidas" **sem remover
+  nada**. Virou registro honesto de pendência humana (o banco não guarda o
+  `user_id` da Meta; cabe em `metaJson`, sem migration).
+- **Tela nova `/agency/desempenho-pago`**: a leitura de tráfego pago existia só
+  como rota de API. Sem tela, a Meta não consegue exercitar `ads_read` /
+  `ads_management` e reprova as duas.
+
+**3 permissões recomendadas para TIRAR** (zero uso em código):
+`instagram_manage_comments`, `pages_manage_metadata`, `business_management`.
+
+**Buraco inverso:** `client.ts:201,207` publica em Página do Facebook e exige
+`pages_manage_posts`, que **não é pedida** — publicação orgânica em Página é
+código morto hoje.
+
+**Portão rodado À MÃO** (GitHub Actions em pane): `vitest` 139/139 arquivos,
+2206/2206 testes; `tsc --noEmit` limpo; eslint sem erro novo.
 
 ## ✅ 06/08/2026 (noite) — As duas rotinas órfãs ganharam agendamento
 
@@ -252,11 +472,14 @@ Quatro frentes fechadas. O que mudou de verdade, sem prosa:
   conferido por teste) ou `lacuna` (motivo, dono, prazo).
   **O default NÃO foi invertido** — isso para 8 de 8 departamentos e só entra
   junto com a escada (Onda 1).
-- **O número honesto do P0 mudou: de "31, 3 executáveis" para "32, 7 com
-  mecanismo".** Faltava `projections_anchored`, e `quality_audit_impartial`
-  estava construído e declarado como não executável. A flag mentia nas duas
-  direções. Seguem descobertas as 4 bloqueantes globais que importam: marca,
-  briefing, valor ao cliente e riscos.
+- **O número do P0 parou de ser escrito em prosa.** A contagem antiga ("31, 3
+  executáveis") mentia nas duas direções: faltava `projections_anchored` e
+  `quality_audit_impartial` estava construído e declarado como não executável.
+  **A partir daqui o número corrente sai de `retratoDosPortoes()`**
+  (`lib/dioli-brain/quality-gates.ts`), com trava em
+  `__tests__/brain/o-numero-do-p0.test.ts` — número em prosa envelhece errado e
+  vira afirmação falsa sem ninguém mexer numa linha. Seguem descobertas as 4
+  bloqueantes globais que importam: marca, briefing, valor ao cliente e riscos.
 - **O microfone do portal.** A causa raiz **NÃO está fechada** — falta a linha
   de log da produção. O que foi fechado é a cegueira: 401/402/403 →
   `chave_recusada`, 429 → `ritmo`, 4xx → `audio_recusado`, 5xx →
@@ -483,8 +706,10 @@ diagnostica; o conserto é frente com dono e verificação.
 - **`esteira` — 6 estados gravados que ninguém lê.** `archived`, `dispensado`,
   `enviado`, `respondida`, `skipped_running`, `superseded`. Cada um é um botão
   que não faz nada ou uma tela que não filtra.
-- **`qualidade` — o P0 da casa, agora com número que anda:** 28 de 31 checagens
-  não são executáveis.
+- **`qualidade` — o P0 da casa, agora com número que anda:** a maioria das
+  checagens de `lib/dioli-brain/quality-gates.ts` segue sem mecanismo. Número
+  corrente em `retratoDosPortoes()` / `__tests__/brain/o-numero-do-p0.test.ts` —
+  não em prosa, que envelhece errado.
 - **Diretor — cobrir a metade de DADOS.** Ela ficou CEGA na primeira noite (a
   rota `/api/cron/raio-x` ainda não estava em produção). Enquanto isso, o raio-x
   não enxerga o que está preso AGORA no banco.
@@ -884,15 +1109,23 @@ Depois de regenerar, atualizar as variáveis `META_*` no Railway.
 **Decisão do CEO (31/07/2026): o piloto roda 100% IA, sem revisão humana.** Nada
 disto abaixo é teórico — é o que está entre um erro do modelo e um cliente pagante.
 
-### 1. Os quality gates não protegem nada
-Das **31** checagens em `lib/dioli-brain/quality-gates.ts`, **28 são
-`autoCheckable: false`** — texto descrevendo o que um humano deveria conferir.
-**Só 3 rodam.**
+### 1. A maioria dos quality gates ainda não protege nada
+O registro é `lib/dioli-brain/quality-gates.ts`. **A maior parte das checagens
+declara `lacuna`, não `mecanismo`** — texto descrevendo o que um humano deveria
+conferir.
+
+> **O número não fica escrito aqui, de propósito.** Este parágrafo dizia "31
+> checagens, 28 sem mecanismo, só 3 rodam" muito depois de os três números terem
+> mudado: prosa que descreve um número não muda junto com o número, e ninguém
+> lembra de atualizar. A fonte é `retratoDosPortoes()`, e
+> `__tests__/brain/o-numero-do-p0.test.ts` quebra quando o número anda — é ele
+> que obriga a prosa a acompanhar.
 
 Com revisão humana era um checklist. Sem revisão humana é **decoração** — e as
-quatro desligadas que mais importam são exatamente as falhas que chegam no
-cliente: *sem alucinação*, *respeita a marca*, *corresponde ao briefing*, *riscos
-verificados*.
+bloqueantes globais ainda descobertas são exatamente as falhas que chegam no
+cliente: *respeita a marca*, *corresponde ao briefing*, *valor ao cliente claro*,
+*riscos verificados*. (*Sem alucinação* saiu dessa lista — ganhou mecanismo. O
+buraco encolheu; não fechou.)
 
 **O que precisa existir:**
 1. ✅ **Construído em 04/08/2026** — piso determinístico: afirmação conferida
@@ -904,7 +1137,7 @@ verificados*.
 3. 🔴 Default do registry invertido — departamento sem gate executável = **REPROVADO**
 4. 🔴 Escada por departamento — sombra até haver evidência
 
-> **As 28 checagens desligadas continuam desligadas.** Um dos quatro itens ficou
+> **As checagens desligadas continuam desligadas.** Um dos quatro itens ficou
 > de pé; três não. Quem ler só o item 1 e concluir "o P0 andou" está lendo errado:
 > o piso protege *uma* afirmação de *uma* fonte, não o entregável.
 

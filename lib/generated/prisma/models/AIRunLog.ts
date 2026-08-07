@@ -20,8 +20,24 @@ export type AIRunLogModel = runtime.Types.Result.DefaultSelection<Prisma.$AIRunL
 
 export type AggregateAIRunLog = {
   _count: AIRunLogCountAggregateOutputType | null
+  _avg: AIRunLogAvgAggregateOutputType | null
+  _sum: AIRunLogSumAggregateOutputType | null
   _min: AIRunLogMinAggregateOutputType | null
   _max: AIRunLogMaxAggregateOutputType | null
+}
+
+export type AIRunLogAvgAggregateOutputType = {
+  tokensEntrada: number | null
+  tokensSaida: number | null
+  custoEstimadoUsd: number | null
+  duracaoMs: number | null
+}
+
+export type AIRunLogSumAggregateOutputType = {
+  tokensEntrada: number | null
+  tokensSaida: number | null
+  custoEstimadoUsd: number | null
+  duracaoMs: number | null
 }
 
 export type AIRunLogMinAggregateOutputType = {
@@ -38,6 +54,14 @@ export type AIRunLogMinAggregateOutputType = {
   outputSummary: string | null
   warnings: string | null
   createdAt: Date | null
+  clientId: string | null
+  agentId: string | null
+  tokensEntrada: number | null
+  tokensSaida: number | null
+  custoEstimadoUsd: number | null
+  custoTabela: string | null
+  duracaoMs: number | null
+  erro: string | null
 }
 
 export type AIRunLogMaxAggregateOutputType = {
@@ -54,6 +78,14 @@ export type AIRunLogMaxAggregateOutputType = {
   outputSummary: string | null
   warnings: string | null
   createdAt: Date | null
+  clientId: string | null
+  agentId: string | null
+  tokensEntrada: number | null
+  tokensSaida: number | null
+  custoEstimadoUsd: number | null
+  custoTabela: string | null
+  duracaoMs: number | null
+  erro: string | null
 }
 
 export type AIRunLogCountAggregateOutputType = {
@@ -70,9 +102,31 @@ export type AIRunLogCountAggregateOutputType = {
   outputSummary: number
   warnings: number
   createdAt: number
+  clientId: number
+  agentId: number
+  tokensEntrada: number
+  tokensSaida: number
+  custoEstimadoUsd: number
+  custoTabela: number
+  duracaoMs: number
+  erro: number
   _all: number
 }
 
+
+export type AIRunLogAvgAggregateInputType = {
+  tokensEntrada?: true
+  tokensSaida?: true
+  custoEstimadoUsd?: true
+  duracaoMs?: true
+}
+
+export type AIRunLogSumAggregateInputType = {
+  tokensEntrada?: true
+  tokensSaida?: true
+  custoEstimadoUsd?: true
+  duracaoMs?: true
+}
 
 export type AIRunLogMinAggregateInputType = {
   id?: true
@@ -88,6 +142,14 @@ export type AIRunLogMinAggregateInputType = {
   outputSummary?: true
   warnings?: true
   createdAt?: true
+  clientId?: true
+  agentId?: true
+  tokensEntrada?: true
+  tokensSaida?: true
+  custoEstimadoUsd?: true
+  custoTabela?: true
+  duracaoMs?: true
+  erro?: true
 }
 
 export type AIRunLogMaxAggregateInputType = {
@@ -104,6 +166,14 @@ export type AIRunLogMaxAggregateInputType = {
   outputSummary?: true
   warnings?: true
   createdAt?: true
+  clientId?: true
+  agentId?: true
+  tokensEntrada?: true
+  tokensSaida?: true
+  custoEstimadoUsd?: true
+  custoTabela?: true
+  duracaoMs?: true
+  erro?: true
 }
 
 export type AIRunLogCountAggregateInputType = {
@@ -120,6 +190,14 @@ export type AIRunLogCountAggregateInputType = {
   outputSummary?: true
   warnings?: true
   createdAt?: true
+  clientId?: true
+  agentId?: true
+  tokensEntrada?: true
+  tokensSaida?: true
+  custoEstimadoUsd?: true
+  custoTabela?: true
+  duracaoMs?: true
+  erro?: true
   _all?: true
 }
 
@@ -161,6 +239,18 @@ export type AIRunLogAggregateArgs<ExtArgs extends runtime.Types.Extensions.Inter
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    * 
+   * Select which fields to average
+  **/
+  _avg?: AIRunLogAvgAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
+   * Select which fields to sum
+  **/
+  _sum?: AIRunLogSumAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
    * Select which fields to find the minimum value
   **/
   _min?: AIRunLogMinAggregateInputType
@@ -191,6 +281,8 @@ export type AIRunLogGroupByArgs<ExtArgs extends runtime.Types.Extensions.Interna
   take?: number
   skip?: number
   _count?: AIRunLogCountAggregateInputType | true
+  _avg?: AIRunLogAvgAggregateInputType
+  _sum?: AIRunLogSumAggregateInputType
   _min?: AIRunLogMinAggregateInputType
   _max?: AIRunLogMaxAggregateInputType
 }
@@ -209,7 +301,17 @@ export type AIRunLogGroupByOutputType = {
   outputSummary: string | null
   warnings: string
   createdAt: Date
+  clientId: string | null
+  agentId: string | null
+  tokensEntrada: number | null
+  tokensSaida: number | null
+  custoEstimadoUsd: number | null
+  custoTabela: string | null
+  duracaoMs: number | null
+  erro: string | null
   _count: AIRunLogCountAggregateOutputType | null
+  _avg: AIRunLogAvgAggregateOutputType | null
+  _sum: AIRunLogSumAggregateOutputType | null
   _min: AIRunLogMinAggregateOutputType | null
   _max: AIRunLogMaxAggregateOutputType | null
 }
@@ -246,6 +348,14 @@ export type AIRunLogWhereInput = {
   outputSummary?: Prisma.StringNullableFilter<"AIRunLog"> | string | null
   warnings?: Prisma.StringFilter<"AIRunLog"> | string
   createdAt?: Prisma.DateTimeFilter<"AIRunLog"> | Date | string
+  clientId?: Prisma.StringNullableFilter<"AIRunLog"> | string | null
+  agentId?: Prisma.StringNullableFilter<"AIRunLog"> | string | null
+  tokensEntrada?: Prisma.IntNullableFilter<"AIRunLog"> | number | null
+  tokensSaida?: Prisma.IntNullableFilter<"AIRunLog"> | number | null
+  custoEstimadoUsd?: Prisma.FloatNullableFilter<"AIRunLog"> | number | null
+  custoTabela?: Prisma.StringNullableFilter<"AIRunLog"> | string | null
+  duracaoMs?: Prisma.IntNullableFilter<"AIRunLog"> | number | null
+  erro?: Prisma.StringNullableFilter<"AIRunLog"> | string | null
   workspace?: Prisma.XOR<Prisma.AgencyWorkspaceScalarRelationFilter, Prisma.AgencyWorkspaceWhereInput>
 }
 
@@ -263,6 +373,14 @@ export type AIRunLogOrderByWithRelationInput = {
   outputSummary?: Prisma.SortOrderInput | Prisma.SortOrder
   warnings?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  clientId?: Prisma.SortOrderInput | Prisma.SortOrder
+  agentId?: Prisma.SortOrderInput | Prisma.SortOrder
+  tokensEntrada?: Prisma.SortOrderInput | Prisma.SortOrder
+  tokensSaida?: Prisma.SortOrderInput | Prisma.SortOrder
+  custoEstimadoUsd?: Prisma.SortOrderInput | Prisma.SortOrder
+  custoTabela?: Prisma.SortOrderInput | Prisma.SortOrder
+  duracaoMs?: Prisma.SortOrderInput | Prisma.SortOrder
+  erro?: Prisma.SortOrderInput | Prisma.SortOrder
   workspace?: Prisma.AgencyWorkspaceOrderByWithRelationInput
 }
 
@@ -283,6 +401,14 @@ export type AIRunLogWhereUniqueInput = Prisma.AtLeast<{
   outputSummary?: Prisma.StringNullableFilter<"AIRunLog"> | string | null
   warnings?: Prisma.StringFilter<"AIRunLog"> | string
   createdAt?: Prisma.DateTimeFilter<"AIRunLog"> | Date | string
+  clientId?: Prisma.StringNullableFilter<"AIRunLog"> | string | null
+  agentId?: Prisma.StringNullableFilter<"AIRunLog"> | string | null
+  tokensEntrada?: Prisma.IntNullableFilter<"AIRunLog"> | number | null
+  tokensSaida?: Prisma.IntNullableFilter<"AIRunLog"> | number | null
+  custoEstimadoUsd?: Prisma.FloatNullableFilter<"AIRunLog"> | number | null
+  custoTabela?: Prisma.StringNullableFilter<"AIRunLog"> | string | null
+  duracaoMs?: Prisma.IntNullableFilter<"AIRunLog"> | number | null
+  erro?: Prisma.StringNullableFilter<"AIRunLog"> | string | null
   workspace?: Prisma.XOR<Prisma.AgencyWorkspaceScalarRelationFilter, Prisma.AgencyWorkspaceWhereInput>
 }, "id">
 
@@ -300,9 +426,19 @@ export type AIRunLogOrderByWithAggregationInput = {
   outputSummary?: Prisma.SortOrderInput | Prisma.SortOrder
   warnings?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  clientId?: Prisma.SortOrderInput | Prisma.SortOrder
+  agentId?: Prisma.SortOrderInput | Prisma.SortOrder
+  tokensEntrada?: Prisma.SortOrderInput | Prisma.SortOrder
+  tokensSaida?: Prisma.SortOrderInput | Prisma.SortOrder
+  custoEstimadoUsd?: Prisma.SortOrderInput | Prisma.SortOrder
+  custoTabela?: Prisma.SortOrderInput | Prisma.SortOrder
+  duracaoMs?: Prisma.SortOrderInput | Prisma.SortOrder
+  erro?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.AIRunLogCountOrderByAggregateInput
+  _avg?: Prisma.AIRunLogAvgOrderByAggregateInput
   _max?: Prisma.AIRunLogMaxOrderByAggregateInput
   _min?: Prisma.AIRunLogMinOrderByAggregateInput
+  _sum?: Prisma.AIRunLogSumOrderByAggregateInput
 }
 
 export type AIRunLogScalarWhereWithAggregatesInput = {
@@ -322,6 +458,14 @@ export type AIRunLogScalarWhereWithAggregatesInput = {
   outputSummary?: Prisma.StringNullableWithAggregatesFilter<"AIRunLog"> | string | null
   warnings?: Prisma.StringWithAggregatesFilter<"AIRunLog"> | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"AIRunLog"> | Date | string
+  clientId?: Prisma.StringNullableWithAggregatesFilter<"AIRunLog"> | string | null
+  agentId?: Prisma.StringNullableWithAggregatesFilter<"AIRunLog"> | string | null
+  tokensEntrada?: Prisma.IntNullableWithAggregatesFilter<"AIRunLog"> | number | null
+  tokensSaida?: Prisma.IntNullableWithAggregatesFilter<"AIRunLog"> | number | null
+  custoEstimadoUsd?: Prisma.FloatNullableWithAggregatesFilter<"AIRunLog"> | number | null
+  custoTabela?: Prisma.StringNullableWithAggregatesFilter<"AIRunLog"> | string | null
+  duracaoMs?: Prisma.IntNullableWithAggregatesFilter<"AIRunLog"> | number | null
+  erro?: Prisma.StringNullableWithAggregatesFilter<"AIRunLog"> | string | null
 }
 
 export type AIRunLogCreateInput = {
@@ -337,6 +481,14 @@ export type AIRunLogCreateInput = {
   outputSummary?: string | null
   warnings?: string
   createdAt?: Date | string
+  clientId?: string | null
+  agentId?: string | null
+  tokensEntrada?: number | null
+  tokensSaida?: number | null
+  custoEstimadoUsd?: number | null
+  custoTabela?: string | null
+  duracaoMs?: number | null
+  erro?: string | null
   workspace: Prisma.AgencyWorkspaceCreateNestedOneWithoutAiRunLogsInput
 }
 
@@ -354,6 +506,14 @@ export type AIRunLogUncheckedCreateInput = {
   outputSummary?: string | null
   warnings?: string
   createdAt?: Date | string
+  clientId?: string | null
+  agentId?: string | null
+  tokensEntrada?: number | null
+  tokensSaida?: number | null
+  custoEstimadoUsd?: number | null
+  custoTabela?: string | null
+  duracaoMs?: number | null
+  erro?: string | null
 }
 
 export type AIRunLogUpdateInput = {
@@ -369,6 +529,14 @@ export type AIRunLogUpdateInput = {
   outputSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   warnings?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tokensEntrada?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  tokensSaida?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custoEstimadoUsd?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  custoTabela?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  duracaoMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  erro?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   workspace?: Prisma.AgencyWorkspaceUpdateOneRequiredWithoutAiRunLogsNestedInput
 }
 
@@ -386,6 +554,14 @@ export type AIRunLogUncheckedUpdateInput = {
   outputSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   warnings?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tokensEntrada?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  tokensSaida?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custoEstimadoUsd?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  custoTabela?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  duracaoMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  erro?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type AIRunLogCreateManyInput = {
@@ -402,6 +578,14 @@ export type AIRunLogCreateManyInput = {
   outputSummary?: string | null
   warnings?: string
   createdAt?: Date | string
+  clientId?: string | null
+  agentId?: string | null
+  tokensEntrada?: number | null
+  tokensSaida?: number | null
+  custoEstimadoUsd?: number | null
+  custoTabela?: string | null
+  duracaoMs?: number | null
+  erro?: string | null
 }
 
 export type AIRunLogUpdateManyMutationInput = {
@@ -417,6 +601,14 @@ export type AIRunLogUpdateManyMutationInput = {
   outputSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   warnings?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tokensEntrada?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  tokensSaida?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custoEstimadoUsd?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  custoTabela?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  duracaoMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  erro?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type AIRunLogUncheckedUpdateManyInput = {
@@ -433,6 +625,14 @@ export type AIRunLogUncheckedUpdateManyInput = {
   outputSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   warnings?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tokensEntrada?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  tokensSaida?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custoEstimadoUsd?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  custoTabela?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  duracaoMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  erro?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type AIRunLogListRelationFilter = {
@@ -459,6 +659,21 @@ export type AIRunLogCountOrderByAggregateInput = {
   outputSummary?: Prisma.SortOrder
   warnings?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  clientId?: Prisma.SortOrder
+  agentId?: Prisma.SortOrder
+  tokensEntrada?: Prisma.SortOrder
+  tokensSaida?: Prisma.SortOrder
+  custoEstimadoUsd?: Prisma.SortOrder
+  custoTabela?: Prisma.SortOrder
+  duracaoMs?: Prisma.SortOrder
+  erro?: Prisma.SortOrder
+}
+
+export type AIRunLogAvgOrderByAggregateInput = {
+  tokensEntrada?: Prisma.SortOrder
+  tokensSaida?: Prisma.SortOrder
+  custoEstimadoUsd?: Prisma.SortOrder
+  duracaoMs?: Prisma.SortOrder
 }
 
 export type AIRunLogMaxOrderByAggregateInput = {
@@ -475,6 +690,14 @@ export type AIRunLogMaxOrderByAggregateInput = {
   outputSummary?: Prisma.SortOrder
   warnings?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  clientId?: Prisma.SortOrder
+  agentId?: Prisma.SortOrder
+  tokensEntrada?: Prisma.SortOrder
+  tokensSaida?: Prisma.SortOrder
+  custoEstimadoUsd?: Prisma.SortOrder
+  custoTabela?: Prisma.SortOrder
+  duracaoMs?: Prisma.SortOrder
+  erro?: Prisma.SortOrder
 }
 
 export type AIRunLogMinOrderByAggregateInput = {
@@ -491,6 +714,21 @@ export type AIRunLogMinOrderByAggregateInput = {
   outputSummary?: Prisma.SortOrder
   warnings?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  clientId?: Prisma.SortOrder
+  agentId?: Prisma.SortOrder
+  tokensEntrada?: Prisma.SortOrder
+  tokensSaida?: Prisma.SortOrder
+  custoEstimadoUsd?: Prisma.SortOrder
+  custoTabela?: Prisma.SortOrder
+  duracaoMs?: Prisma.SortOrder
+  erro?: Prisma.SortOrder
+}
+
+export type AIRunLogSumOrderByAggregateInput = {
+  tokensEntrada?: Prisma.SortOrder
+  tokensSaida?: Prisma.SortOrder
+  custoEstimadoUsd?: Prisma.SortOrder
+  duracaoMs?: Prisma.SortOrder
 }
 
 export type AIRunLogCreateNestedManyWithoutWorkspaceInput = {
@@ -535,6 +773,14 @@ export type AIRunLogUncheckedUpdateManyWithoutWorkspaceNestedInput = {
   deleteMany?: Prisma.AIRunLogScalarWhereInput | Prisma.AIRunLogScalarWhereInput[]
 }
 
+export type NullableFloatFieldUpdateOperationsInput = {
+  set?: number | null
+  increment?: number
+  decrement?: number
+  multiply?: number
+  divide?: number
+}
+
 export type AIRunLogCreateWithoutWorkspaceInput = {
   id?: string
   departmentId: string
@@ -548,6 +794,14 @@ export type AIRunLogCreateWithoutWorkspaceInput = {
   outputSummary?: string | null
   warnings?: string
   createdAt?: Date | string
+  clientId?: string | null
+  agentId?: string | null
+  tokensEntrada?: number | null
+  tokensSaida?: number | null
+  custoEstimadoUsd?: number | null
+  custoTabela?: string | null
+  duracaoMs?: number | null
+  erro?: string | null
 }
 
 export type AIRunLogUncheckedCreateWithoutWorkspaceInput = {
@@ -563,6 +817,14 @@ export type AIRunLogUncheckedCreateWithoutWorkspaceInput = {
   outputSummary?: string | null
   warnings?: string
   createdAt?: Date | string
+  clientId?: string | null
+  agentId?: string | null
+  tokensEntrada?: number | null
+  tokensSaida?: number | null
+  custoEstimadoUsd?: number | null
+  custoTabela?: string | null
+  duracaoMs?: number | null
+  erro?: string | null
 }
 
 export type AIRunLogCreateOrConnectWithoutWorkspaceInput = {
@@ -607,6 +869,14 @@ export type AIRunLogScalarWhereInput = {
   outputSummary?: Prisma.StringNullableFilter<"AIRunLog"> | string | null
   warnings?: Prisma.StringFilter<"AIRunLog"> | string
   createdAt?: Prisma.DateTimeFilter<"AIRunLog"> | Date | string
+  clientId?: Prisma.StringNullableFilter<"AIRunLog"> | string | null
+  agentId?: Prisma.StringNullableFilter<"AIRunLog"> | string | null
+  tokensEntrada?: Prisma.IntNullableFilter<"AIRunLog"> | number | null
+  tokensSaida?: Prisma.IntNullableFilter<"AIRunLog"> | number | null
+  custoEstimadoUsd?: Prisma.FloatNullableFilter<"AIRunLog"> | number | null
+  custoTabela?: Prisma.StringNullableFilter<"AIRunLog"> | string | null
+  duracaoMs?: Prisma.IntNullableFilter<"AIRunLog"> | number | null
+  erro?: Prisma.StringNullableFilter<"AIRunLog"> | string | null
 }
 
 export type AIRunLogCreateManyWorkspaceInput = {
@@ -622,6 +892,14 @@ export type AIRunLogCreateManyWorkspaceInput = {
   outputSummary?: string | null
   warnings?: string
   createdAt?: Date | string
+  clientId?: string | null
+  agentId?: string | null
+  tokensEntrada?: number | null
+  tokensSaida?: number | null
+  custoEstimadoUsd?: number | null
+  custoTabela?: string | null
+  duracaoMs?: number | null
+  erro?: string | null
 }
 
 export type AIRunLogUpdateWithoutWorkspaceInput = {
@@ -637,6 +915,14 @@ export type AIRunLogUpdateWithoutWorkspaceInput = {
   outputSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   warnings?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tokensEntrada?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  tokensSaida?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custoEstimadoUsd?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  custoTabela?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  duracaoMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  erro?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type AIRunLogUncheckedUpdateWithoutWorkspaceInput = {
@@ -652,6 +938,14 @@ export type AIRunLogUncheckedUpdateWithoutWorkspaceInput = {
   outputSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   warnings?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tokensEntrada?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  tokensSaida?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custoEstimadoUsd?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  custoTabela?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  duracaoMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  erro?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type AIRunLogUncheckedUpdateManyWithoutWorkspaceInput = {
@@ -667,6 +961,14 @@ export type AIRunLogUncheckedUpdateManyWithoutWorkspaceInput = {
   outputSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   warnings?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  tokensEntrada?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  tokensSaida?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  custoEstimadoUsd?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  custoTabela?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  duracaoMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  erro?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 
@@ -685,6 +987,14 @@ export type AIRunLogSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   outputSummary?: boolean
   warnings?: boolean
   createdAt?: boolean
+  clientId?: boolean
+  agentId?: boolean
+  tokensEntrada?: boolean
+  tokensSaida?: boolean
+  custoEstimadoUsd?: boolean
+  custoTabela?: boolean
+  duracaoMs?: boolean
+  erro?: boolean
   workspace?: boolean | Prisma.AgencyWorkspaceDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["aIRunLog"]>
 
@@ -702,6 +1012,14 @@ export type AIRunLogSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exte
   outputSummary?: boolean
   warnings?: boolean
   createdAt?: boolean
+  clientId?: boolean
+  agentId?: boolean
+  tokensEntrada?: boolean
+  tokensSaida?: boolean
+  custoEstimadoUsd?: boolean
+  custoTabela?: boolean
+  duracaoMs?: boolean
+  erro?: boolean
   workspace?: boolean | Prisma.AgencyWorkspaceDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["aIRunLog"]>
 
@@ -719,6 +1037,14 @@ export type AIRunLogSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
   outputSummary?: boolean
   warnings?: boolean
   createdAt?: boolean
+  clientId?: boolean
+  agentId?: boolean
+  tokensEntrada?: boolean
+  tokensSaida?: boolean
+  custoEstimadoUsd?: boolean
+  custoTabela?: boolean
+  duracaoMs?: boolean
+  erro?: boolean
   workspace?: boolean | Prisma.AgencyWorkspaceDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["aIRunLog"]>
 
@@ -736,9 +1062,17 @@ export type AIRunLogSelectScalar = {
   outputSummary?: boolean
   warnings?: boolean
   createdAt?: boolean
+  clientId?: boolean
+  agentId?: boolean
+  tokensEntrada?: boolean
+  tokensSaida?: boolean
+  custoEstimadoUsd?: boolean
+  custoTabela?: boolean
+  duracaoMs?: boolean
+  erro?: boolean
 }
 
-export type AIRunLogOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "departmentId" | "projectId" | "provider" | "model" | "status" | "fallbackUsed" | "fallbackReason" | "promptSummary" | "outputSummary" | "warnings" | "createdAt", ExtArgs["result"]["aIRunLog"]>
+export type AIRunLogOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "departmentId" | "projectId" | "provider" | "model" | "status" | "fallbackUsed" | "fallbackReason" | "promptSummary" | "outputSummary" | "warnings" | "createdAt" | "clientId" | "agentId" | "tokensEntrada" | "tokensSaida" | "custoEstimadoUsd" | "custoTabela" | "duracaoMs" | "erro", ExtArgs["result"]["aIRunLog"]>
 export type AIRunLogInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   workspace?: boolean | Prisma.AgencyWorkspaceDefaultArgs<ExtArgs>
 }
@@ -768,6 +1102,35 @@ export type $AIRunLogPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
     outputSummary: string | null
     warnings: string
     createdAt: Date
+    /**
+     * DE QUEM é a conta. Nulo quando a chamada não é de nenhum cliente (triagem
+     * de lead, radar, saúde do sistema) — e nulo é uma resposta legítima, não uma
+     * falta: "gasto sem dono" é um número que a agência precisa ver separado.
+     */
+    clientId: string | null
+    /**
+     * QUEM pediu, dentro do departamento (o `ownerAgentId` do especialista).
+     */
+    agentId: string | null
+    tokensEntrada: number | null
+    tokensSaida: number | null
+    /**
+     * USD estimado. NULO quando o modelo está fora da tabela de preço ou o
+     * provedor não devolveu `usage`. Nunca 0 nesses casos: zero afirmaria que a
+     * chamada foi de graça, e um modelo novo apareceria como economia.
+     */
+    custoEstimadoUsd: number | null
+    /**
+     * Qual versão de `lib/ai/precos.ts` produziu o número acima. Sem isto, um mês
+     * calculado com a tabela velha é indistinguível de um calculado com a nova.
+     */
+    custoTabela: string | null
+    duracaoMs: number | null
+    /**
+     * O motivo da falha, quando `status != "success"`. Mensagem do NOSSO motor
+     * (já sanitizada) — nunca o corpo cru do provedor, que pode ecoar o prompt.
+     */
+    erro: string | null
   }, ExtArgs["result"]["aIRunLog"]>
   composites: {}
 }
@@ -1205,6 +1568,14 @@ export interface AIRunLogFieldRefs {
   readonly outputSummary: Prisma.FieldRef<"AIRunLog", 'String'>
   readonly warnings: Prisma.FieldRef<"AIRunLog", 'String'>
   readonly createdAt: Prisma.FieldRef<"AIRunLog", 'DateTime'>
+  readonly clientId: Prisma.FieldRef<"AIRunLog", 'String'>
+  readonly agentId: Prisma.FieldRef<"AIRunLog", 'String'>
+  readonly tokensEntrada: Prisma.FieldRef<"AIRunLog", 'Int'>
+  readonly tokensSaida: Prisma.FieldRef<"AIRunLog", 'Int'>
+  readonly custoEstimadoUsd: Prisma.FieldRef<"AIRunLog", 'Float'>
+  readonly custoTabela: Prisma.FieldRef<"AIRunLog", 'String'>
+  readonly duracaoMs: Prisma.FieldRef<"AIRunLog", 'Int'>
+  readonly erro: Prisma.FieldRef<"AIRunLog", 'String'>
 }
     
 

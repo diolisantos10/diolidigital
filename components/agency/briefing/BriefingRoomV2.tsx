@@ -442,7 +442,7 @@ export function BriefingRoomV2({
   const handleTranscript = useCallback((text: string) => {
     setInputText((prev) => (prev ? prev.trimEnd() + " " + text : text));
   }, []);
-  const { isListening, isSupported, error: micError, startListening, stopListening } =
+  const { isListening, isSupported, error: micError, modo: micModo, startListening, stopListening } =
     useSpeechToText({ onTranscript: handleTranscript });
 
   function handleSend() {
@@ -564,18 +564,29 @@ export function BriefingRoomV2({
             </button>
           </div>
           <div className="flex items-center gap-2 mt-2">
+            {/* ── Mesmo conserto do briefing público, aqui também ──────────────
+                Esta cópia ficou para trás: 10px de fonte e alvo de 24px (abaixo
+                do piso da §3 do DESIGN.md — I-21), e o estado ativo em rosa
+                claro com a palavra "Parar", que a 375px não responde a única
+                pergunta de quem está falando: "está ouvindo?" (I-22). Regra
+                nova sem varredura das outras superfícies é regra pela metade. */}
             {isSupported && (
               <button
                 type="button"
                 onClick={isListening ? stopListening : startListening}
-                className={`h-6 px-2.5 rounded-[5px] text-[10px] font-medium border transition-colors flex items-center gap-1.5 ${
+                aria-pressed={isListening}
+                style={{ touchAction: "manipulation" }}
+                className={`h-8 px-3 rounded-[7px] text-[12px] font-semibold border transition-colors flex items-center gap-1.5 whitespace-nowrap ${
                   isListening
-                    ? "bg-[#FEE2E2] border-[#FECACA] text-[var(--danger)]"
-                    : "bg-white border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--text-muted)]"
+                    ? "bg-[var(--danger)] border-[var(--danger)] text-white"
+                    : "bg-white border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--text-muted)]"
                 }`}
               >
                 {isListening ? (
-                  <><span className="w-1.5 h-1.5 rounded-full bg-[var(--danger)] animate-pulse" />Parar</>
+                  <>
+                    <span aria-hidden className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                    {micModo === "envio" ? "Gravando" : "Ouvindo"}
+                  </>
                 ) : (
                   <>
                     <svg width="9" height="12" viewBox="0 0 9 12" fill="none">

@@ -8,6 +8,41 @@
 
 ---
 
+## DEPLOY SÓ COM CI VERDE — e "sem CI" nunca conta como verde
+
+**Decidido em** 2026-08-06 · **por** CEO · **origem:** `docs/deploys/portao.md`,
+`lib/plataforma/sentinela-do-deploy.ts`, `lib/plataforma/porta-de-emergencia.ts`
+
+Às 12h22 o GitHub Actions entrou em pane, nenhum workflow rodou, e a produção
+recebeu um commit **sem nenhum resultado de CI** — não vermelho: inexistente.
+Deu certo porque o portão foi rodado à mão. **A proteção era alguém lembrar.**
+
+A regra que fica, e ela vale para qualquer esteira desta casa:
+
+1. **Prova vem ANTES da entrega, não ao lado dela.** Checagem que roda em
+   paralelo com o deploy não é portão — é comentário.
+2. **Ausência de prova não é aprovação.** Cancelada, estourada, pulada, ainda
+   rodando ou inexistente são todas a mesma coisa: ninguém provou nada. É a Lei
+   da casa (*ausência de informação não é informação*) aplicada à esteira.
+3. **A régua é UMA.** Quem confere depois e quem decide antes usam a mesma
+   função (`julgarProva`). Duas cópias é como um dos lados volta a ler ausência
+   como verde.
+4. **Toda trava de entrega precisa de porta de emergência declarada** — senão,
+   no dia da pane, a trava impede o conserto e alguém a desliga para sempre.
+5. **Porta de emergência sem rastro é o caminho normal com outro nome.** O
+   registro (quem, quando, por quê, sobre qual commit, e o estado da prova
+   naquele instante) é gravado **antes** da subida: não deu para registrar, não
+   sobe.
+6. **Alarme não pode ser tranca.** O sentinela saiu do gatilho de push porque,
+   com o portão ligado, um alarme vermelho descartaria justamente o deploy que
+   conserta o motivo do alarme.
+
+**Escolha de mecanismo, para o registro:** a trava mora **na plataforma de
+deploy** (o "Wait for CI" do Railway), não num workflow do GitHub. Trava que
+depende do sistema que caiu não é trava.
+
+---
+
 ## ALCANCE ≠ AUTORIZAÇÃO — lista explícita por cliente, fail-closed
 
 **Decidido em** 2026-08-06 · **por** CEO (incidente que ele mesmo pegou) ·

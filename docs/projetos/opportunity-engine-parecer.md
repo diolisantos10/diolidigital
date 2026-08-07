@@ -53,7 +53,8 @@ nascer com price book próprio, em duas semanas há dois preços da Dioli — e 
 cliente sempre acha o menor. O price book é UM, e é aquele.
 
 **5. O risco que o documento não vê: o nosso próprio piso de qualidade.**
-Esta casa roda 100% IA e tem **28 de 31 checagens não executáveis**. Um agente
+Esta casa roda 100% IA e tem **a maioria das checagens de qualidade ainda não
+executável** (número corrente em `retratoDosPortoes()`, não em prosa). Um agente
 que escreve proposta comercial em nome da Dioli, dentro da plataforma de um
 terceiro, com banimento e reputação em jogo, é exatamente o caso em que "sem
 gate executável = reprovado" vale. Enquanto o piso não subir, **toda** mensagem

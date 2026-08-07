@@ -1,14 +1,18 @@
 ---
 titulo: "Business Profile APIs — visão geral"
 url: https://developers.google.com/my-business/content/overview?hl=pt-br
-capturado_em: 2026-08-06
-hash: 563021fb1f69eb95
+capturado_em: 2026-08-07
+hash: 17ee45bd4daacf42
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
 Visão geral do Perfil da Empresa
+Nesta página
+APIs do Perfil da Empresa
+Qualificação para uso das APIs Business Profile
+Recursos das APIs
 
 Ter uma presença on-line é importante para os comerciantes, porque a maioria dos clientes na Web usa um mecanismo de pesquisa para encontrar empresas e fazer compras nos sites delas. Os clientes que fazem buscas na Pesquisa Google ou no Maps encontram os Perfis de Empresas nessas duas plataformas e podem clicar neles.
 

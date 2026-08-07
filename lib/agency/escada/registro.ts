@@ -230,6 +230,9 @@ export async function registrarProducao(p: {
   degrauNaEpoca: Degrau;
   resultado: ResultadoDaPeca;
   detalhe?: string | null;
+  /** QUAL IA produziu. Nulo = não sei — e "não sei" nunca é somado ao provedor
+   *  da casa: um provedor em teste não pode herdar a reputação do titular. */
+  provedor?: string | null;
 }): Promise<void> {
   // `try/catch` e não `.catch()` no fim da promessa: os dois NÃO são a mesma
   // coisa. `.catch()` só pega a rejeição — se o cliente do banco não tiver a
@@ -248,6 +251,7 @@ export async function registrarProducao(p: {
         degrauNaEpoca: p.degrauNaEpoca,
         resultado: p.resultado,
         detalhe: p.detalhe?.slice(0, 500) ?? null,
+        provedor: p.provedor ?? null,
       },
     });
   } catch { /* best-effort: sem registro, a evidência não acumula e o

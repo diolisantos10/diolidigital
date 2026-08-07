@@ -20,7 +20,6 @@ import {
   MOCK_INTEGRATIONS,
   PROVIDER_INTEGRATION_MAP,
   type IntegrationConfig,
-  type AgentProviderConfig,
 } from "@/lib/agency/integrations";
 import type { AIRunLog } from "@/store/agency-store";
 import {
@@ -103,7 +102,6 @@ export interface DoctorInput {
   tasks?: Task[];
   persisted: boolean;
   integrationConfigs?: IntegrationConfig[];
-  agentProviderConfigs?: AgentProviderConfig[];
   // SaaS foundation status — populated asynchronously in settings page
   dbAvailable?: boolean;
   authMode?: "real" | "mock" | "none";
@@ -124,7 +122,7 @@ export interface DoctorInput {
 }
 
 export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
-  const { clients, projects, deliverables, materialRequests, strategyRooms, tasks = [], persisted, integrationConfigs, agentProviderConfigs, dbAvailable, authMode, portalMode, sessionActive, sessionUser, dbSyncStatus, aiRunLogs = [], aiRunLogSource, openaiConfigured, departmentConfigs = [], clientRequests = [] } = input;
+  const { clients, projects, deliverables, materialRequests, strategyRooms, tasks = [], persisted, integrationConfigs, dbAvailable, authMode, portalMode, sessionActive, sessionUser, dbSyncStatus, aiRunLogs = [], aiRunLogSource, openaiConfigured, departmentConfigs = [], clientRequests = [] } = input;
 
   const checks: DiagnosticCheck[] = [];
 
@@ -471,30 +469,14 @@ export function runSystemDoctor(input: DoctorInput): DiagnosticReport {
     route: "/agency/integrations",
   });
 
-  // Check if any agent selected an external provider that is not yet configured
-  const agentConfigs = agentProviderConfigs ?? [];
-  const misconfiguredAgents = agentConfigs.filter((ac) => {
-    if (ac.selectedProvider === "rule_based") return false;
-    const intId = PROVIDER_INTEGRATION_MAP[ac.selectedProvider];
-    if (!intId) return false;
-    return !isConfigured(intId);
-  });
-  checks.push({
-    id: "integration-agent-modes",
-    group: "Ferramentas & Integrações",
-    label: "Modo dos agentes",
-    status: misconfiguredAgents.length > 0 ? "warning" : "info",
-    severity: "low",
-    explanation:
-      misconfiguredAgents.length > 0
-        ? `${misconfiguredAgents.length} agente(s) com provedor selecionado mas não configurado.`
-        : "Agentes em modo regras locais. Nenhum provedor externo configurado.",
-    action:
-      misconfiguredAgents.length > 0
-        ? "Configure os provedores selecionados em Ferramentas & Integrações."
-        : "Configure provedores de IA por agente em Ferramentas & Integrações.",
-    route: "/agency/integrations",
-  });
+  // A checagem "modo dos agentes" SAIU em 06/08/2026, junto com a tela que ela
+  // conferia. Ela avisava que um agente tinha provedor selecionado e não
+  // configurado — sobre uma seleção que NENHUMA rota lia. Alarme sobre estado
+  // decorativo é ruído: treina o operador a ignorar o painel inteiro.
+  //
+  // O que ocupou o lugar é conferido onde importa: a rota
+  // `/api/agency/provedor-do-cliente` RECUSA fixar um provedor sem chave, e a
+  // tela marca em vermelho o cliente cuja fixação ficou sem chave. Trava, não aviso.
 
   // ── Group 6: Infraestrutura SaaS ─────────────────────────────────────────
 

@@ -1,7 +1,7 @@
 ---
 titulo: "Perfil de Empresa — diretrizes de representação da empresa"
 url: https://support.google.com/business/answer/3038177?hl=pt-BR
-capturado_em: 2026-08-06
+capturado_em: 2026-08-07
 hash: 02201e3eb24680c2
 ---
 

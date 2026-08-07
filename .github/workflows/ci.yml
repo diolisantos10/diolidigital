@@ -7,13 +7,47 @@ name: CI
 
 on:
   push:
-    branches: ["**"]
+    # A BRANCH DE PRODUÇÃO VEM NOMEADA, e não é redundância com o `**`.
+    # O Railway só reconhece um workflow como portão ("Wait for CI") quando
+    # acha um `on: push: branches:` que ele consiga casar com a branch
+    # conectada — glob não basta. Sem esta linha, o portão do deploy ficaria
+    # ligado sem ter o que esperar, que é aprovar tudo com cara de trava.
+    # Conferir com `npm run portao`: "workflows de portão" tem que ser >= 1.
+    branches:
+      - claude/dioli-agency-os-architecture-kk7kp
+      - "**"
   pull_request:
     branches: ["**"]
+
+# ── POR QUE ESTE BLOCO EXISTE ───────────────────────────────────────────────
+# Em 06/08/2026 a caixa do CEO recebeu SEIS e-mails de CI numa hora, quase
+# todos "All jobs were cancelled". Vários agentes empurram na mesma branch com
+# minutos de diferença, e cada push abria um run novo enquanto o anterior ainda
+# rodava — cinco rodadas de ~8 min cada para provar o mesmo código, disputando
+# runner com o cron que socorre a produção.
+#
+# Sem `concurrency`, quem matava esses runs era a infraestrutura, e run morto
+# por infraestrutura fecha como `failure` — e-mail vermelho para um cancelamento
+# que não era defeito nenhum. Ruído vermelho é pior que silêncio: ele treina
+# quem lê a caixa a ignorar a cor vermelha, e aí o alarme de verdade passa
+# batido.
+#
+# Com o bloco, o cancelamento é DELIBERADO: o run superado fecha como
+# `cancelled` (que o GitHub não manda por e-mail) e o runner sobra para o
+# commit que interessa. O run do commit mais novo — o único que pode ir para
+# produção — nunca é cancelado, porque só o mais novo sobrevive ao grupo.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   quality:
     runs-on: ubuntu-latest
+    # O portão inteiro leva ~8 min. Em 06/08 um job ficou 45 min pendurado sem
+    # registrar UM passo sequer e sem deixar log — segurando runner e virando
+    # e-mail de falha no fim. Teto explícito: passou de 30, o problema não é o
+    # nosso código, é a rodada, e ela morre rápido em vez de apodrecer devagar.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 

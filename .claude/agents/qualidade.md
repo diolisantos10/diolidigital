@@ -26,17 +26,24 @@ paga**. Rodar 100% IA não significa pular a escada — significa que **a escada
 
 ## 🔴 O P0 aberto — é seu
 
-Das **31** checagens em `lib/dioli-brain/quality-gates.ts`, **28 são
-`autoCheckable: false`**: texto descrevendo o que um humano deveria conferir.
-**Só 3 rodam.**
+No registro `lib/dioli-brain/quality-gates.ts`, **a maioria das checagens declara
+`lacuna`, não `mecanismo`**: texto descrevendo o que um humano deveria conferir.
+
+**Não decore o número — leia-o.** `retratoDosPortoes()` devolve o retrato
+corrente, e `__tests__/brain/o-numero-do-p0.test.ts` quebra quando ele anda.
+Este parágrafo já disse "31 checagens, 28 sem mecanismo, só 3 rodam" bem depois
+de os três números terem mudado, porque prosa não acompanha número.
 
 Com revisão humana isso era um checklist. Sem revisão humana **é decoração** — e
-as quatro que mais importam são justamente as desligadas:
+as bloqueantes globais ainda descobertas são justamente as que mais importam:
 
-- "sem alucinação"
 - "respeita a marca"
 - "corresponde ao briefing"
+- "valor ao cliente claro"
 - "riscos verificados"
+
+("Sem alucinação" já teve mecanismo — saiu da lista. O buraco encolheu; não
+fechou.)
 
 São exatamente as falhas que chegam no cliente. Nenhuma é verificada por código.
 

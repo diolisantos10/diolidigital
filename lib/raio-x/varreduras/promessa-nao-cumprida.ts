@@ -2,9 +2,11 @@
 //
 // O que pescou de verdade, nesta casa: um relatório afirmando "qualidade
 // verificada" com as verificações escritas como `true` fixo no código. E o P0
-// declarado da casa: 28 das 31 checagens de `quality-gates.ts` são
+// declarado da casa: a maioria das checagens de `quality-gates.ts` é
 // `autoCheckable: false` — texto descrevendo o que um humano deveria conferir,
 // numa operação que decidiu rodar 100% IA e não tem humano nenhum conferindo.
+// (O número corrente sai de `retratoDosPortoes()`; escrito à mão em comentário
+// ele envelhece errado, que foi o que aconteceu com o "28 de 31" daqui.)
 //
 // TRADUÇÃO PARA ESTE CÓDIGO, duas frentes:
 //   a) CARIMBO CONSTANTE: campo com cara de veredito (`verificado`, `aprovado`,

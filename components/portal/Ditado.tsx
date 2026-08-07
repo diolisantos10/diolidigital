@@ -180,13 +180,20 @@ function useDitado({ token, onTexto }: { token: string; onTexto: (texto: string)
       return;
     }
 
+    // A preferência de contêiner acompanha a ENGINE (WebKit → MP4/AAC), e
+    // `null` quer dizer "deixe o navegador escolher o padrão dele". Ver
+    // `mimeDeGravacaoSuportado`: no iPhone — onde Chrome, Edge e Firefox também
+    // são WebKit — a lista antiga pedia WebM primeiro, e o caminho provado
+    // daquela engine é MP4/AAC.
     const mime = mimeDeGravacaoSuportado();
     let gravador: MediaRecorder;
     try {
       gravador = new MediaRecorder(stream, mime ? { mimeType: mime } : {});
     } catch {
+      // "Não grava áudio" seria mentira: grava, e recusou este contêiner. A
+      // frase certa fala do aparelho — e nunca de permissão.
       stream.getTracks().forEach((t) => t.stop());
-      setFalha(falhaDeTranscricao("sem_suporte").mensagem);
+      setFalha(falhaDeTranscricao("gravacao_falhou").mensagem);
       return;
     }
 
@@ -229,7 +236,7 @@ function useDitado({ token, onTexto }: { token: string; onTexto: (texto: string)
       gravador.start();
     } catch {
       stream.getTracks().forEach((t) => t.stop());
-      setFalha(falhaDeTranscricao("sem_suporte").mensagem);
+      setFalha(falhaDeTranscricao("gravacao_falhou").mensagem);
       return;
     }
     setSegundos(0);
@@ -283,10 +290,15 @@ export function BotaoDeDitado({
 
   // O navegador gravaria, mas a casa não tem provedor de transcrição. Isto é uma
   // FRASE, não um botão morto: o cliente merece saber por que não há microfone.
+  // A frase é a da CAMADA, não uma escrita à mão aqui. A que estava aqui dizia
+  // "não está disponível neste navegador" — e a causa é o contrário disso: o
+  // navegador grava, quem não tem provedor configurado é a AGÊNCIA. Mandar o
+  // cliente desconfiar do aparelho dele por um problema nosso é o mesmo defeito
+  // do I-22 do DESIGN.md, de novo.
   if (caminho === "sem_provedor") {
     return (
       <p className="mt-2 text-[12px] text-[var(--text-muted)]">
-        O ditado por voz não está disponível neste navegador. Escreva no campo acima — nada se perde.
+        {falhaDeTranscricao("sem_chave").mensagem}
       </p>
     );
   }

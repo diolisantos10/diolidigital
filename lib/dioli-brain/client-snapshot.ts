@@ -14,6 +14,7 @@ import {
   type VerdadeDoCliente,
   type VerdadeOperacional,
 } from "@/lib/agency/execution/piso-de-verdade";
+import { lerProibicoes } from "@/lib/agency/esteira/proibicoes";
 
 export interface ClientKnowledgeSnapshot {
   clientRequestId: string;
@@ -148,14 +149,34 @@ export async function buildClientSnapshot(
   // the two color fields; typography → fonts.
   const colorParts = [clean(brandBrain?.primaryColor), clean(brandBrain?.secondaryColor)].filter(Boolean);
 
+  // ── `thingsToAvoid` DEIXOU DE SER SEMPRE VAZIO (06/08/2026) ────────────────
+  // Estas quatro linhas diziam: "preferredChannels / visualStyle / thingsToAvoid
+  // / productsToHighlight have no DB column on BrandBrain — left undefined".
+  // Era verdade, e para `thingsToAvoid` era grave: a casa sabia o que o cliente
+  // É e não sabia o que ele NÃO QUER. "Nunca use essa palavra", "não fale de
+  // preço", "não cite concorrente" não sobreviviam ao pedido daquela vez.
+  //
+  // Agora a proibição TEM casa (`lib/agency/esteira/proibicoes.ts`) e é daqui
+  // que ela chega ao especialista como aviso. A TRAVA é outra e roda na saída:
+  // `VerdadeDoCliente.proibicoes` no piso determinístico. Prompt não protege.
+  //
+  // `preferredChannels` / `visualStyle` / `productsToHighlight` continuam sem
+  // coluna — seguem `undefined` e reportados em `missingFields`, nunca inventados.
+  const proibicoes = await lerProibicoes(request.clientId);
+
   const mapped: Partial<Record<(typeof TRACKED_BRAND_FIELDS)[number], string>> = {
     brandVoice: clean(brandBrain?.tone),
     positioning: clean(brandBrain?.positioning),
     targetAudience: clean(brandBrain?.targetAudience),
     fonts: clean(brandBrain?.typography),
     colors: colorParts.length > 0 ? colorParts.join(", ") : undefined,
-    // preferredChannels / visualStyle / thingsToAvoid / productsToHighlight have no
-    // DB column on BrandBrain — left undefined, reported as missing.
+    // Só as proibições EFETIVAMENTE LIDAS entram. `lidas: false` (falha de
+    // leitura) deixa o campo vazio e o nome cai em `missingFields` — declarar
+    // "nenhuma restrição" sem ter conseguido ler seria a mentira mais cara aqui.
+    thingsToAvoid:
+      proibicoes.lidas && proibicoes.itens.length > 0
+        ? proibicoes.itens.map((p) => p.frase).join(" · ").slice(0, 1200)
+        : undefined,
   };
 
   const missingFields = TRACKED_BRAND_FIELDS.filter((f) => !mapped[f]);
@@ -317,6 +338,10 @@ async function lerVerdadeDoCliente(clientRequestId: string): Promise<VerdadeDoCl
       return { valores: precos, verbas };
     })(),
     operacao,
+    // A METADE NEGATIVA. Lida pelo SERVIDOR, como todo o resto desta função —
+    // e fail-closed: `lidas: false` faz o piso reprovar a peça em vez de
+    // liberá-la por falta de checagem.
+    proibicoes: await lerProibicoes(request.clientId),
   };
 }
 

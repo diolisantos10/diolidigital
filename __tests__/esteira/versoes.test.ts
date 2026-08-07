@@ -15,6 +15,11 @@ const db = vi.hoisted(() => ({
   deliverableVersion: { create: vi.fn() },
   approvalRequest: { updateMany: vi.fn() },
   portalMessage: { create: vi.fn() },
+  // A gaveta das PROIBIÇÕES do cliente (`esteira/proibicoes.ts`). Sem ela, a
+  // leitura falha e o piso de verdade REPROVA a peça — que é o comportamento
+  // certo (fail-closed) e não o que estas suítes estão provando. Vazia aqui
+  // significa "este cliente não proibiu nada", que é o caso limpo.
+  brainArtifact: { findFirst: vi.fn(() => Promise.resolve(null)), findMany: vi.fn(() => Promise.resolve([])), create: vi.fn(() => Promise.resolve({})) },
   activityEvent: { create: vi.fn() },
 }));
 const generate = vi.hoisted(() => vi.fn());

@@ -1,14 +1,19 @@
 ---
 titulo: "Business Profile APIs — implementar OAuth"
 url: https://developers.google.com/my-business/content/implement-oauth?hl=pt-br
-capturado_em: 2026-08-06
-hash: bdd10364785e5149
+capturado_em: 2026-08-07
+hash: 473567c6fe128dce
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
 Implemente o OAuth com APIs do Perfil da Empresa
+Nesta página
+Acessar a API com o OAuth 2.0
+Configurar o OAuth e a tela de permissão
+Métodos para incorporar o OAuth 2.0
+Executar a amostra
 
 Todas as solicitações que seu aplicativo envia para as APIs do Perfil da Empresa precisam incluir um token de autorização, que identifica o usuário ou o aplicativo para o Google, permitindo acesso a essas APIs. O app precisa usar o protocolo OAuth 2.0 para autorizar as solicitações.
 

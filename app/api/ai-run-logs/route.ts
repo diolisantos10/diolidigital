@@ -22,30 +22,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   return NextResponse.json(logs);
 }
 
-export async function POST(request: NextRequest): Promise<NextResponse> {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const body = await request.json();
-  if (!body.departmentId) {
-    return NextResponse.json({ error: "departmentId required" }, { status: 400 });
-  }
-
-  const log = await prisma.aIRunLog.create({
-    data: {
-      workspaceId:    session.workspaceId,
-      departmentId:   body.departmentId,
-      projectId:      body.projectId      ?? null,
-      provider:       body.provider       ?? "rule_based",
-      model:          body.model          ?? "rule_based",
-      status:         body.status         ?? "success",
-      fallbackUsed:   body.fallbackUsed   ?? false,
-      fallbackReason: body.fallbackReason ?? null,
-      promptSummary:  body.promptSummary  ?? null,
-      outputSummary:  body.outputSummary  ?? null,
-      warnings:       JSON.stringify(body.warnings ?? []),
-    },
-  });
-
-  return NextResponse.json(log, { status: 201 });
-}
+// ⚠️ NÃO EXISTE MAIS `POST` AQUI, e não deve voltar.
+//
+// Desde 06/08/2026 `AIRunLog` é o livro-caixa da IA da casa: tokens consumidos e
+// custo estimado por chamada. Quem escreve nele é o SERVIDOR, dentro de
+// `lib/ai/generate.ts`, no instante da chamada — o único lugar que sabe qual
+// provedor atendeu, quantos tokens custou e se deu certo.
+//
+// Uma rota POST aberta ao navegador deixaria qualquer sessão inventar linhas no
+// relatório de gasto. Um livro-caixa que a parte interessada pode escrever não
+// prova nada. O POST anterior era, além disso, código morto: nenhum arquivo o
+// chamava, e por isso a tabela estava vazia em produção desde sempre.

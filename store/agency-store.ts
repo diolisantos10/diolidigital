@@ -31,10 +31,8 @@ import { generateStrategyRoomForProject } from "@/lib/agency/strategy-room";
 import { isValidProposalPricing } from "@/lib/agency/reporting";
 import {
   type IntegrationConfig,
-  type AgentProviderConfig,
   type AgentId,
   buildDefaultIntegrationConfigs,
-  buildDefaultAgentProviderConfigs,
   PROVIDER_INTEGRATION_MAP,
   MOCK_INTEGRATIONS,
 } from "@/lib/agency/integrations";
@@ -280,10 +278,8 @@ interface AgencyState {
 
   // Integrations V2
   integrationConfigs: IntegrationConfig[];
-  agentProviderConfigs: AgentProviderConfig[];
   saveIntegrationConfig: (id: string, patch: Partial<Omit<IntegrationConfig, "integrationId">>) => void;
   runIntegrationTest: (id: string) => void;
-  updateAgentProviderConfig: (agentId: AgentId, patch: Partial<Omit<AgentProviderConfig, "agentId">>) => void;
 
   // Client Portal Items (proposals, content, material requests surfaced to the client)
   clientPortalItems: ClientPortalItem[];
@@ -318,7 +314,6 @@ export const useAgencyStore = create<AgencyState>()(
       clientRequests: [],
       clientPortalItems: [],
       integrationConfigs: buildDefaultIntegrationConfigs(),
-      agentProviderConfigs: buildDefaultAgentProviderConfigs(),
       // Default hierarchy: PM = hybrid (human commands), all other depts = full_ai.
       departmentConfigs: buildDefaultDepartmentConfigs(),
       aiRunLogs: [],
@@ -1709,14 +1704,6 @@ export const useAgencyStore = create<AgencyState>()(
         }));
       },
 
-      updateAgentProviderConfig: (agentId, patch) => {
-        set((s) => ({
-          agentProviderConfigs: s.agentProviderConfigs.map((c) =>
-            c.agentId === agentId ? { ...c, ...patch } : c
-          ),
-        }));
-      },
-
       // ── Activity ──────────────────────────────────────────────────────────
       addActivity: (event) => {
         const entry: ActivityEvent = {
@@ -1745,8 +1732,7 @@ export const useAgencyStore = create<AgencyState>()(
           departmentConfigs: buildDefaultDepartmentConfigs(),
           aiRunLogs: [],
           integrationConfigs: buildDefaultIntegrationConfigs(),
-          agentProviderConfigs: buildDefaultAgentProviderConfigs(),
-        });
+            });
       },
 
       // ── Load Dioli Digital pilot data ───────────────────────────────────────
@@ -1859,8 +1845,7 @@ export const useAgencyStore = create<AgencyState>()(
           aiRunLogs: [],
           currentRole: "master",
           integrationConfigs: buildDefaultIntegrationConfigs(),
-          agentProviderConfigs: buildDefaultAgentProviderConfigs(),
-        });
+            });
       },
     }),
     {
@@ -1895,7 +1880,6 @@ export const useAgencyStore = create<AgencyState>()(
         brandUpdates: s.brandUpdates,
         clientRequests: s.clientRequests,
         integrationConfigs: s.integrationConfigs,
-        agentProviderConfigs: s.agentProviderConfigs,
         departmentConfigs: s.departmentConfigs,
         aiRunLogs: s.aiRunLogs,
       }),

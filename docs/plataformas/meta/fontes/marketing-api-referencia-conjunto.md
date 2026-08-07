@@ -1,18 +1,20 @@
 ---
 titulo: "Marketing API — referência de Ad Set (ad-campaign)"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/reference/ad-campaign
-capturado_em: 2026-08-06
-hash: f0a06cc9d94f3abd
+capturado_em: 2026-08-07
+hash: 595acb28a79e63a2
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
+Esta página foi traduzida do inglês para outro idioma usando IA. O conteúdo traduzido por IA pode conter erros, omissões ou divergências de sentido. Como a tradução automática pode ser imprecisa ou pouco clara, consulte o conteúdo original em inglês desta página para validar as orientações corretas.
 Version
 v22.0
 v23.0
 v24.0
 v25.0
+Isso foi útil?
 Conjunto de anúncios
 Updated: 29 de jul de 2026
 Copiar para LLM
@@ -1831,3 +1833,4 @@ Conversões, cliques no link, impressões e alcance
 Enumeração da API {OFFSITE_CONVERSIONS, LINK_CLICKS, IMPRESSIONS, REACH}
 	
 Conversões
+Você achou esta página útil?

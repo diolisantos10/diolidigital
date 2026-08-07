@@ -46,6 +46,11 @@
 export type MotivoDeFalhaDeTranscricao =
   /** navegador sem MediaRecorder/getUserMedia — o botão nem aparece */
   | "sem_suporte"
+  /** o navegador TEM gravador, mas ele recusou começar (contêiner que a engine
+   *  não escreve, microfone tomado por outro app, aba em segundo plano). É
+   *  falha do APARELHO, não de permissão — e dizer "verifique a permissão" aqui
+   *  manda o usuário mexer onde não é. Ver `mimeDeGravacaoSuportado`. */
+  | "gravacao_falhou"
   /** o usuário negou (ou o SO bloqueou) o microfone */
   | "sem_permissao"
   /** clipe curto demais para render texto — clique acidental */
@@ -90,6 +95,8 @@ export type ResultadoDeTranscricao = { ok: true; texto: string } | FalhaDeTransc
 const MENSAGENS: Record<MotivoDeFalhaDeTranscricao, string> = {
   sem_suporte:
     "Este navegador não grava áudio. Escreva no campo acima — funciona igual.",
+  gravacao_falhou:
+    "Não consegui iniciar a gravação neste aparelho. Feche outros apps que usem o microfone e tente de novo — ou escreva no campo acima.",
   sem_permissao:
     "O microfone está bloqueado. Libere o acesso nas configurações do navegador e tente de novo — ou escreva no campo acima.",
   audio_curto:
@@ -131,7 +138,21 @@ export function falhaDeTranscricao(motivo: MotivoDeFalhaDeTranscricao): FalhaDeT
 
 /** ~12 min de voz em Opus. Acima disto é uso indevido do campo. */
 export const MAX_BYTES_DE_AUDIO = 6 * 1024 * 1024;
-/** Abaixo disto é clique acidental, não fala. */
+/**
+ * Abaixo disto é clique acidental, não fala.
+ *
+ * CONFERIDO CONTRA O AAC DO iPHONE (06/08/2026), porque um piso calibrado para
+ * Opus recusaria áudio legítimo do aparelho do dono. A conta é a favor, e com
+ * folga grande: o AAC que o WebKit grava fica na faixa de 64–128 kbps, ou seja
+ * **8–16 KB por segundo de fala** — um segundo de iPhone é 7 a 13 vezes este
+ * piso. O Opus do Chrome é que é o formato apertado (24–64 kbps, ~3–8 KB/s), e
+ * mesmo ele passa folgado. 1.200 bytes pega o que se quer pegar: o toque
+ * acidental, que não chega a um décimo de segundo de som.
+ *
+ * A direção do erro também importa: piso ALTO recusa a fala do cliente pagante
+ * com a frase errada ("curto demais") quando o problema é outro. Por isso ele
+ * fica onde está e a checagem de formato acontece antes, no aparelho.
+ */
 export const MIN_BYTES_DE_AUDIO = 1_200;
 /**
  * Corte automático da gravação. Não envia nada — só PARA de gravar.
@@ -170,6 +191,33 @@ const MODELO_GROQ = "whisper-large-v3-turbo";
 const MODELO_GEMINI = "gemini-2.0-flash";
 function urlGemini(modelo: string): string {
   return `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelo)}:generateContent`;
+}
+
+/**
+ * O que a casa MANDA para cada motor, e por que MP4 do iPhone chega inteiro.
+ *
+ * Conferido na documentação oficial em 06/08/2026 (não de memória):
+ *   • OpenAI Whisper — aceita `mp4` e `m4a` na lista de formatos. Quem decide é
+ *     a EXTENSÃO do arquivo no multipart, e é isso que `extensaoDeAudio` monta.
+ *   • Groq — mesma API, mesma lista (mp4/m4a inclusos).
+ *   • Gemini — `ai.google.dev/gemini-api/docs/audio`, seção "Supported audio
+ *     formats": wav · mp3 · aiff · **aac** · ogg · flac. **MP4 não está na
+ *     lista** (WebM também não). Mandar um mime que a documentação não promete é
+ *     torcer para o servidor adivinhar.
+ *
+ * Por isso, e SÓ para o Gemini, o contêiner MP4 é anunciado pelo codec que ele
+ * de fato carrega: **AAC**. É a etiqueta documentada mais próxima da verdade do
+ * arquivo — não é chute, é dizer o que tem dentro. Os demais mimes passam
+ * intactos de propósito: WebM/Opus é o que já roda em produção hoje e trocar a
+ * etiqueta dele seria apostar em cima do que funciona.
+ *
+ * E a rede embaixo disso continua valendo: o Gemini é o ÚLTIMO da cadeia
+ * (`transcricao-servidor.ts`), e `audio_recusado` passa para o próximo motor.
+ */
+export function mimeParaGemini(mime: string): string {
+  const m = (mime || "").toLowerCase();
+  if (m.includes("mp4") || m.includes("m4a")) return "audio/aac";
+  return mime || "audio/webm";
 }
 
 export function extensaoDeAudio(mime: string): string {
@@ -449,7 +497,7 @@ async function transcreverComGemini(opts: OpcoesDeTranscricao): Promise<Resultad
             role: "user",
             parts: [
               { text: INSTRUCAO_GEMINI },
-              { inline_data: { mime_type: arquivo.type || "audio/webm", data: base64 } },
+              { inline_data: { mime_type: mimeParaGemini(arquivo.type), data: base64 } },
             ],
           },
         ],
@@ -498,16 +546,85 @@ export function suportaDitado(): boolean {
   return typeof navigator !== "undefined" && !!navigator.mediaDevices?.getUserMedia;
 }
 
-/** Mime que o aparelho realmente grava. Safari/iOS só entrega mp4/aac. */
+/**
+ * NO iPHONE, TODO NAVEGADOR É WebKit — inclusive o Chrome.
+ *
+ * A App Store obriga: Chrome (`CriOS`), Edge (`EdgiOS`) e Firefox (`FxiOS`) no
+ * iOS são casca em cima do WebKit do sistema. Consequência direta e cara para
+ * esta casa: **o `SpeechRecognition` nativo não existe no Chrome do iPhone** —
+ * ele é exposto só pelo Safari — então o caminho 2 (gravar e enviar) é a RUA
+ * PRINCIPAL para a maioria dos nossos usuários, não a rede de segurança.
+ *
+ * Isto é *sniffing* de UA, e sniffing é presunção. Por isso ele não decide
+ * SUPORTE (isso continua sendo `MediaRecorder.isTypeSupported`, medido) —
+ * decide só PREFERÊNCIA de contêiner entre formatos que a engine já disse que
+ * aceita. Presumir preferência erra num formato pior; presumir suporte
+ * derrubaria a gravação.
+ *
+ * O iPad a partir do iPadOS 13 se anuncia como "Macintosh": o desempate é o
+ * toque, que Mac de verdade não tem.
+ */
+export function ehWebKitDeIOS(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent || "";
+  if (/iPad|iPhone|iPod/.test(ua)) return true;
+  return /Macintosh/.test(ua) && (navigator.maxTouchPoints ?? 0) > 1;
+}
+
+/**
+ * Mime que o aparelho realmente grava — ou `null` para "deixe o navegador
+ * escolher o padrão dele".
+ *
+ * ─── 06/08/2026 · POR QUE A ORDEM DEIXOU DE SER FIXA ─────────────────────────
+ * A lista era `webm;codecs=opus → webm → mp4 → ogg`, igual para todo mundo. No
+ * WebKit isso é pedir o contêiner errado para a engine errada: quem escreve o
+ * arquivo lá é o AVAssetWriter, cujo caminho testado, acelerado por hardware e
+ * de dez anos de estrada é **MP4/AAC**. WebM no WebKit é adição recente e vem
+ * atrás de um feature flag (`MediaRecorderPrivateAVFImpl::isTypeSupported`,
+ * ramo `ENABLE(MEDIA_RECORDER_WEBM)` — fonte: WebKit/WebKit, `Source/WebCore/
+ * platform/mediarecorder/MediaRecorderPrivateAVFImpl.cpp`, lido em 06/08/2026).
+ *
+ * O QUE FOI MEDIDO, E O QUE NÃO FOI — porque a diferença muda a conclusão:
+ *   • flag DESLIGADA → `isTypeSupported("audio/webm")` é `false`. Emulado no
+ *     Chromium com as regras do WebKit (06/08/2026): o código antigo do hook
+ *     caía no `{}` e o aparelho gravava MP4 sozinho. **Não houve quebra.** A
+ *     suspeita de `NotSupportedError` no construtor NÃO se confirmou, e não
+ *     podia mesmo: `MediaRecorder::create` chama o MESMO `isTypeSupported`
+ *     (MediaRecorder.cpp:84), então "reportado como suportado" e "aceito pelo
+ *     construtor" nunca divergem.
+ *   • flag LIGADA → aí sim o código antigo pedia `audio/webm` explicitamente, e
+ *     gravávamos WebM num escritor cujo caminho de casa é MP4: trocando o
+ *     formato provado, acelerado por hardware, pelo formato novo — de graça.
+ * A troca vale por isso, não por um crash: é preferir o caminho que a engine
+ * anda melhor. O construtor sem `try` continuava sendo dívida, e virou `try`.
+ *
+ * Agora a preferência acompanha a engine, e a decisão final continua sendo da
+ * medição: só entra o que `isTypeSupported` confirmar. Nada confirmado devolve
+ * `null`, e `null` NÃO é erro — é "não passe `mimeType`", que pela especificação
+ * faz o navegador usar o padrão dele (mp4/aac no iPhone, webm/opus no Chrome de
+ * desktop). O palpite mais seguro sobre o formato de um aparelho é o do próprio
+ * aparelho.
+ *
+ * Os três motores da casa aceitam os dois contêineres — ver `extensaoDeAudio` e
+ * `mimeParaGemini`.
+ */
 export function mimeDeGravacaoSuportado(): string | null {
   if (typeof MediaRecorder === "undefined") return null;
-  for (const m of ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg"]) {
+
+  const aceita = (m: string): boolean => {
     try {
-      if (MediaRecorder.isTypeSupported(m)) return m;
+      return MediaRecorder.isTypeSupported(m);
     } catch {
       /* isTypeSupported pode lançar em engines antigas */
+      return false;
     }
-  }
+  };
+
+  const preferencia = ehWebKitDeIOS()
+    ? ["audio/mp4", "audio/mp4;codecs=mp4a.40.2", "audio/webm;codecs=opus", "audio/webm"]
+    : ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg;codecs=opus", "audio/ogg"];
+
+  for (const m of preferencia) if (aceita(m)) return m;
   return null;
 }
 
@@ -528,7 +645,11 @@ export async function enviarAudioParaTranscricao(
   try {
     const res = await fetch(opts.endpoint, { method: "POST", body: form, signal: opts.sinal });
 
-    let corpo: Partial<FalhaDeTranscricao> & { texto?: unknown } = {};
+    // `texto` é o contrato desta casa; `text` é o que `/api/sdr/transcribe`
+    // devolve desde antes deste arquivo existir. Ler os dois é o que permitiu o
+    // briefing público parar de ter uma SEGUNDA implementação de envio dentro
+    // do hook — e foi a cópia divergente que deixou o iPhone falhar calado.
+    let corpo: Partial<FalhaDeTranscricao> & { texto?: unknown; text?: unknown } = {};
     try {
       corpo = (await res.json()) as typeof corpo;
     } catch {
@@ -542,7 +663,8 @@ export async function enviarAudioParaTranscricao(
       );
     }
 
-    const texto = typeof corpo.texto === "string" ? corpo.texto.trim() : "";
+    const bruto = typeof corpo.texto === "string" ? corpo.texto : corpo.text;
+    const texto = typeof bruto === "string" ? bruto.trim() : "";
     if (!texto) return falhaDeTranscricao("sem_texto");
     return { ok: true, texto };
   } catch {

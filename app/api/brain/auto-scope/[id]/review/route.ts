@@ -7,25 +7,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth/api-guard";
 import { naoEncontrado, solicitacaoDoWorkspace } from "@/lib/auth/posse-de-workspace";
 import { prisma } from "@/lib/db/client";
-import { buildClientSnapshot } from "@/lib/dioli-brain/client-snapshot";
-import { orchestratePMReasoning } from "@/lib/dioli-brain/pm-orchestrator";
-import { getDepartmentDef, type DepartmentId } from "@/lib/agency/departments";
 import { pedirDirecao } from "@/lib/agency/esteira/marcos";
-import { criarTarefas } from "@/lib/agency/tarefas/criar-tarefas";
-import { prazoAPartirDaEstimativa } from "@/lib/agency/tarefas/portao-do-pm";
+import { createProjectFromRequest } from "@/lib/agency/execution/create-project-from-request";
 
 const AGENCY_ROLES = ["master", "project_manager"] as const;
-
-const DEPT_TO_DEF: Record<string, DepartmentId> = {
-  strategy: "strategy",
-  social: "social-media",
-  design: "design",
-  traffic: "paid-traffic",
-  analytics: "project-management",
-  quality: "project-management",
-};
-
-const VALID_TASK_DEPTS = ["strategy", "social-media", "design", "paid-traffic", "analytics", "project-management"];
 
 type Params = { id: string };
 
@@ -81,74 +66,38 @@ export async function POST(
         );
       }
 
-      // Approve all draft artifacts.
-      await prisma.brainArtifact.updateMany({
-        where: { clientRequestId, status: "draft" },
-        data: { status: "approved", approvedBy: session.name },
-      });
-
-      // Build snapshot → orchestrate → create Project + Tasks.
-      const snapshot = await buildClientSnapshot(clientRequestId);
-      if (!snapshot) return NextResponse.json({ error: "Snapshot unavailable" }, { status: 503 });
-
-      const proposal = await orchestratePMReasoning(snapshot, session.workspaceId);
-
-      let clientId = req.clientId ?? undefined;
-      if (!clientId) {
-        const client = await prisma.client.create({
-          data: {
-            workspaceId: session.workspaceId,
-            name: req.businessName,
-            industry: req.segment || null,
-          },
-        });
-        clientId = client.id;
-        await prisma.clientRequestDb.update({
-          where: { id: clientRequestId },
-          data: { clientId, workspaceId: session.workspaceId },
-        });
+      // ── A PORTA É UMA SÓ ────────────────────────────────────────────────
+      // Até 07/08/2026 esta rota tinha uma CÓPIA da criação de projeto — e a
+      // cópia estava incompleta. Faltavam nela as duas etapas que só existiam
+      // no helper compartilhado:
+      //
+      //   • `semearMarcaDoBriefing` — sem ela o `BrandBrain` do cliente nasce
+      //     VAZIO, e `moldeDoCliente` (design/molde.ts:198) cai no molde
+      //     NEUTRO: o cliente recebe a peça cinza padrão em vez da cor dele,
+      //     e nada na tela diz que aquele cinza é ausência de marca;
+      //   • `coletarMaterialDeProduto` — sem ela o pedido de captura de tela,
+      //     embalagem e uniforme nunca é aberto, e o Design nunca põe o
+      //     produto do cliente na peça (o defeito medido em
+      //     `docs/projetos/foocci/comparativo-06-08.md`: 0 de 6 contra 7 de 10).
+      //
+      // O comentário logo abaixo já dizia "dois caminhos com comportamentos
+      // diferentes é exatamente como nasce sistema imprevisível" — e o arquivo
+      // era o exemplo do que ele alertava. Agora as duas portas são a MESMA
+      // função: `createProjectFromRequest`, que aprova os artefatos, monta o
+      // snapshot, orquestra o PM, cria o Cliente quando falta, semeia a marca,
+      // abre a coleta de material, cria as tarefas pelo portão do PM e é
+      // idempotente por `clientRequestId`.
+      const criacao = await createProjectFromRequest(clientRequestId, session.name);
+      if (!criacao.ok) {
+        return NextResponse.json({ error: criacao.error }, { status: 503 });
       }
 
-      const project = await prisma.project.create({
-        data: {
-          workspaceId: session.workspaceId,
-          clientId,
-          clientRequestId,
-          name: proposal.name,
-          goal: proposal.goal,
-          stage: "planning",
-          priority: "medium",
-        },
-      });
-
-      // PORTÃO DO PM (`lib/agency/tarefas/portao-do-pm.ts`): tarefa sem dono ou
-      // sem prazo não é gravada — o bloqueio vira `ActivityEvent`.
-      await criarTarefas(
-        project.id,
-        proposal.tasks
-          .filter((t) => VALID_TASK_DEPTS.includes(t.department))
-          .map((t) => ({
-            title: t.title,
-            description: t.description || null,
-            agentId: getDepartmentDef(DEPT_TO_DEF[t.department] ?? "project-management")?.primaryAgentId ?? null,
-            status: "pending",
-            dueDate: prazoAPartirDaEstimativa(t.estimatedDays),
-          })),
-      );
-
-      await prisma.clientRequestDb.update({
-        where: { id: clientRequestId },
-        data: { status: "in_progress" },
-      });
-
       // A ESTEIRA ANDA SOZINHA: nasce o projeto, o cliente já recebe a direção
-      // para avalizar. Aprovou, a produção dispara. Mesmo caminho do outro
-      // criador de projeto — dois caminhos com comportamentos diferentes é
-      // exatamente como nasce sistema imprevisível.
-      const direcao = await pedirDirecao(project.id).catch(() => ({ ok: false, avisouCliente: false }));
+      // para avalizar. Aprovou, a produção dispara.
+      const direcao = await pedirDirecao(criacao.projectId).catch(() => ({ ok: false, avisouCliente: false }));
 
       return NextResponse.json(
-        { ok: true, action: "approved_all", projectId: project.id, direcaoEnviada: direcao.avisouCliente === true },
+        { ok: true, action: "approved_all", projectId: criacao.projectId, direcaoEnviada: direcao.avisouCliente === true },
         { status: 201 },
       );
     } else {

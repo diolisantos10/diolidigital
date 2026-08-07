@@ -1001,8 +1001,17 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
     setInputText((prev) => (prev ? prev.trimEnd() + " " + text : text));
   }, []);
 
-  const { isListening, isTranscribing, isSupported, error: micError, startListening, stopListening } =
-    useSpeechToText({ onTranscript: handleTranscript });
+  const {
+    isListening,
+    isTranscribing,
+    isSupported,
+    error: micError,
+    modo: micModo,
+    segundos: micSegundos,
+    mensagemIndisponivel: micIndisponivel,
+    startListening,
+    stopListening,
+  } = useSpeechToText({ onTranscript: handleTranscript });
 
   // ── AI extraction (async, fire-and-forget) ────────────────────────────────
   // Sends the conversation + new message to the server; Claude Haiku extracts
@@ -1385,12 +1394,27 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
                       : "bg-white border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--text-muted)]"
                   }`}
                   style={{ touchAction: "manipulation" }}
-                  title={isListening ? "Parar de ouvir" : "Falar em vez de digitar"}
+                  title={isListening ? "Parar" : "Falar em vez de digitar"}
                 >
                   {isListening ? (
                     <>
                       <span aria-hidden className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                      <span>Ouvindo<span className="hidden sm:inline">{" · toque para parar"}</span></span>
+                      {/* ── O rótulo diz o que ESTE caminho faz ───────────────
+                          "Ouvindo" promete texto ao vivo — e ao vivo só existe
+                          no reconhecimento nativo. No Chrome do iPhone (que é
+                          WebKit, e portanto sem nativo) o texto só chega depois
+                          de parar: chamar isso de "Ouvindo" põe o prospect
+                          esperando algo que não vem, na tela de conversão da
+                          agência. O relógio existe porque há corte automático
+                          em 3 minutos — número que aparece antes de acontecer. */}
+                      <span>
+                        {micModo === "envio" ? "Gravando" : "Ouvindo"}
+                        <span className="hidden sm:inline">
+                          {micModo === "envio" ? " · toque para transcrever" : " · toque para parar"}
+                        </span>
+                        {" · "}
+                        {`${Math.floor(micSegundos / 60)}:${String(micSegundos % 60).padStart(2, "0")}`}
+                      </span>
                     </>
                   ) : (
                     <>
@@ -1405,9 +1429,7 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
                 </button>
               )
             ) : (
-              <span className="text-[12px] text-[var(--text-muted)]">
-                Ditado por voz indisponível neste navegador
-              </span>
+              <span className="text-[12px] text-[var(--text-muted)]">{micIndisponivel}</span>
             )}
             {/* Materials button (file upload + links) */}
             <button

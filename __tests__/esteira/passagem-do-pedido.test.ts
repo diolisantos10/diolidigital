@@ -23,6 +23,10 @@ import { escadaToda } from "../_escada";
 interface Registro { [k: string]: unknown }
 const pedidos = new Map<string, Registro>();
 
+/** O calendário da Foocci — os 6 carrosséis já aprovados e agendados. */
+interface PostDoCalendario { id: string; clientId: string; status: string; scheduledFor: Date | null; caption: string }
+let calendario: PostDoCalendario[] = [];
+
 function casa(reg: Registro, where: Registro): boolean {
   for (const [k, v] of Object.entries(where)) {
     if (k === "OR") {
@@ -103,6 +107,21 @@ const db = {
   timelineEvent: { create: vi.fn(() => Promise.resolve({})) },
   activityEvent: { create: vi.fn(() => Promise.resolve({})) },
   portalMessage: { create: vi.fn(() => Promise.resolve({})) },
+  // A gaveta das PROIBIÇÕES do cliente (`esteira/proibicoes.ts`). Sem ela, a
+  // leitura falha e o piso de verdade REPROVA a peça — que é o comportamento
+  // certo (fail-closed) e não o que estas suítes estão provando. Vazia aqui
+  // significa "este cliente não proibiu nada", que é o caso limpo.
+  brainArtifact: { findFirst: vi.fn(() => Promise.resolve(null)), findMany: vi.fn(() => Promise.resolve([])), create: vi.fn(() => Promise.resolve({})) },
+  // O calendário do cliente — a FAMÍLIA 3 de pedido (operação sobre trabalho já
+  // contratado) mexe aqui e em nada mais.
+  socialPost: {
+    findMany: vi.fn(() => Promise.resolve(calendario)),
+    update: vi.fn(({ where, data }: { where: { id: string }; data: Registro }) => {
+      const p = calendario.find((x) => x.id === where.id)!;
+      Object.assign(p, data);
+      return Promise.resolve(p);
+    }),
+  },
   // A escada de exposição, com o departamento em `wide`: esta suíte é sobre a
   // passagem legítima do pedido, e a metade legítima TEM que atravessar sem
   // atrito. A metade que retém está em `__tests__/qualidade/escada-de-exposicao.test.ts`.
@@ -198,7 +217,7 @@ describe("metade 1 — o pedido legítimo atravessa a esteira inteira", () => {
 
     // O DEPARTAMENTO CERTO — e a tarefa nasce com dono e com prazo. As duas
     // travas contra "em execução" que ninguém move.
-    expect(r.triado.atendimento.especialistaId).toBe("social-roteiro-video");
+    expect(r.triado!.atendimento.especialistaId).toBe("social-roteiro-video");
     const tarefa = db.task.create.mock.calls[0]![0].data as Record<string, unknown>;
     expect(tarefa.agentId).toBe("social-roteiro-video");
     expect(tarefa.dueDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
@@ -206,12 +225,12 @@ describe("metade 1 — o pedido legítimo atravessa a esteira inteira", () => {
     // O PREÇO NÃO VEIO DO MODELO. O modelo escolheu o atendimento; o número é
     // da tabela do catálogo, e é conferível aqui.
     const item = ATENDIMENTOS.find((a) => a.id === "producao-de-video")!;
-    expect(r.triado.preco).toBe(precoDaTabela(item.itemDeCatalogo));
+    expect(r.triado!.preco).toBe(precoDaTabela(item.itemDeCatalogo));
 
     // Sem ciclo aberto, o trabalho é EXTRA: orçamento na mesa e produção
     // segurada até o cliente aceitar.
-    expect(r.triado.escopo).toBe("extra");
-    expect(r.triado.podeProduzirAgora).toBe(false);
+    expect(r.triado!.escopo).toBe("extra");
+    expect(r.triado!.podeProduzirAgora).toBe(false);
     const gravado = pedidos.get("pc-1")!;
     expect(gravado.status).toBe("triado");
     expect(gravado.quoteStatus).toBe("pendente");
@@ -228,8 +247,8 @@ describe("metade 1 — o pedido legítimo atravessa a esteira inteira", () => {
     const r = await triarPedido("pc-1");
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.triado.preco).toBe(precoDaTabela("1-reel"));
-    expect(r.triado.preco).not.toBe(1);
+    expect(r.triado!.preco).toBe(precoDaTabela("1-reel"));
+    expect(r.triado!.preco).not.toBe(1);
   });
 
   it("aceito o orçamento, a peça é produzida e vai para o portal do cliente", async () => {
@@ -522,7 +541,7 @@ describe("o verbo do pedido — insumo não é peça final", () => {
     const r = await triarPedido("pc-1");
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.triado.preco).toBe(precoDaTabela("1-reel"));
+    expect(r.triado!.preco).toBe(precoDaTabela("1-reel"));
     expect(pedidos.get("pc-1")!.status).toBe("triado");
   });
 
@@ -573,6 +592,125 @@ describe("a quantidade — não contada NÃO vira 1", () => {
     const r = await triarPedido("pc-1");
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.triado.preco).toBe(precoDaTabela("balcao-pacote-mes"));
+    expect(r.triado!.preco).toBe(precoDaTabela("balcao-pacote-mes"));
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// A TERCEIRA FAMÍLIA — operação sobre o trabalho já contratado
+//
+// A junta que arrebentou em 06/08/2026: cada peça passava no seu teste e o
+// pedido `cmshiesdq00000pp2adk7zxe4` mesmo assim parou. A triagem só conhecia
+// "peça nova no ciclo" e "peça nova como escopo extra"; "adiantem o calendário
+// um dia" não é nenhuma das duas, não casou com a carta de atendimentos e virou
+// `precisa_decisao` esperando gente que nunca veio.
+describe("família 3 — OPERAÇÃO sobre o que já existe", () => {
+  const PEDIDO_DO_CEO =
+    "Eu quero que você adiante. É preciso dar calendário de posts para hoje. Então, ao invés do primeiro post, o primeiro carrossel, que está programado pra amanhã, é preciso que vocês adiantem um dia e possam o primeiro carrossel hoje.";
+
+  // O calendário nasce RELATIVO ao relógio, não em datas fixas. A versão
+  // anterior fixava 2026-08-07/08/09 às 10:00 — e no dia 07, a partir das 10:01,
+  // as duas asserções desta prova viravam impossíveis ao mesmo tempo: "nenhuma
+  // data no passado" exige > agora, e "andou para trás" exigia < 07 às 10:00.
+  // Não era regressão do código: era o teste marcando encontro com o calendário.
+  // O comentário abaixo já avisava disso e a fixture não seguiu o próprio aviso.
+  const UM_DIA = 24 * 60 * 60_000;
+  let original: number[] = [];
+
+  beforeEach(() => {
+    // Duas casas de folga à frente: sobra espaço para a peça andar UM dia para
+    // trás e ainda assim continuar no futuro, a qualquer hora que isto rode.
+    const base = new Date(Date.now() + 2 * UM_DIA);
+    base.setHours(10, 0, 0, 0);
+    calendario = ["Carrossel 1", "Carrossel 2", "Carrossel 3"].map((c, i) => ({
+      id: `sp-${i + 1}`, clientId: "cli-1", status: "scheduled",
+      scheduledFor: new Date(base.getTime() + i * UM_DIA), caption: c,
+    }));
+    original = calendario.map((p) => p.scheduledFor!.getTime());
+  });
+
+  it("METADE 1 — o pedido do CEO é EXECUTADO, sem IA e sem virar decisão humana", async () => {
+    novoPedido({ title: "Adiantar o calendário", description: PEDIDO_DO_CEO });
+
+    const r = await triarPedido("pc-1");
+
+    expect(r.ok, "a operação tem de ser executada, não parada").toBe(true);
+    expect(r.ok && r.executado?.movidas).toBe(3);
+    // NENHUMA chamada de IA: operação simples não pode depender de provedor.
+    expect(generate).not.toHaveBeenCalled();
+    // O pedido saiu do balde com estado próprio, lido pelos dois lados.
+    expect(pedidos.get("pc-1")!.status).toBe("executado");
+    expect(pedidos.get("pc-1")!.declineReason).toBeNull();
+    // As datas andaram para trás mantendo o ESPAÇAMENTO, e nenhuma caiu no
+    // passado. A asserção é relativa de propósito: a triagem usa o relógio de
+    // verdade, e travar a prova numa data fixa faria o teste quebrar por hora
+    // do dia — que é ruído, não regressão.
+    const novas = calendario.map((p) => p.scheduledFor!.getTime());
+    expect(novas[1]! - novas[0]!).toBe(UM_DIA);
+    expect(novas[2]! - novas[1]!).toBe(UM_DIA);
+    for (const t of novas) expect(t, "nenhuma data no passado").toBeGreaterThan(Date.now());
+    // Comparação contra a data que a fixture REALMENTE criou, não contra uma
+    // constante escrita à mão — e o tanto que andou é exatamente um dia.
+    for (const [i, t] of novas.entries()) {
+      expect(t, "andou para TRÁS").toBeLessThan(original[i]!);
+      expect(original[i]! - t, "andou exatamente um dia").toBe(UM_DIA);
+    }
+    // E o cliente recebe as DATAS, não um "ok".
+    const chamadas = db.portalMessage.create.mock.calls as unknown as Array<[{ data: { body: string } }]>;
+    const recado = chamadas.at(-1)![0];
+    expect(recado.data.body).toMatch(/→/);
+    expect(recado.data.body).toMatch(/Carrossel 1/);
+  });
+
+  // A OUTRA METADE DA TRAVA DO PISO. A fixture antiga exercitava este caminho
+  // por acidente (o calendário nascia no dia corrente) e depois afirmava o
+  // contrário do que o código faz — por isso quebrava. Agora o caso do piso tem
+  // prova PRÓPRIA, e a de cima tem folga para provar o adiantamento limpo.
+  it("TRAVA DO PISO — adiantar para o passado empurra o BLOCO, sem esmagar o espaçamento", async () => {
+    // Calendário colado no relógio: recuar um dia jogaria a primeira peça para
+    // ontem, que é exatamente o que a trava tem de impedir.
+    const base = new Date(Date.now() + 2 * 60 * 60_000);
+    calendario = ["Carrossel 1", "Carrossel 2", "Carrossel 3"].map((c, i) => ({
+      id: `sp-${i + 1}`, clientId: "cli-1", status: "scheduled",
+      scheduledFor: new Date(base.getTime() + i * UM_DIA), caption: c,
+    }));
+    novoPedido({ title: "Adiantar o calendário", description: PEDIDO_DO_CEO });
+
+    const r = await triarPedido("pc-1");
+
+    expect(r.ok).toBe(true);
+    expect(r.ok && r.executado?.empurradoPeloPiso, "o piso tem de se declarar").toBe(true);
+    const novas = calendario.map((p) => p.scheduledFor!.getTime());
+    // Nenhuma no passado — o que a trava existe para garantir.
+    for (const t of novas) expect(t, "nenhuma data no passado").toBeGreaterThan(Date.now());
+    // E o espaçamento aprovado pelo cliente continua de pé: o bloco andou
+    // inteiro, não só a primeira peça (que a juntaria com a segunda).
+    expect(novas[1]! - novas[0]!).toBe(UM_DIA);
+    expect(novas[2]! - novas[1]!).toBe(UM_DIA);
+  });
+
+  it("METADE 2 — com o calendário já PUBLICADO, a operação recusa nomeando o estado", async () => {
+    for (const p of calendario) p.status = "published";
+    const antes = calendario.map((p) => p.scheduledFor!.getTime());
+    novoPedido({ title: "Adiantar o calendário", description: PEDIDO_DO_CEO });
+
+    const r = await triarPedido("pc-1");
+
+    expect(r.ok).toBe(false);
+    expect(pedidos.get("pc-1")!.status).toBe("precisa_decisao");
+    expect(String(pedidos.get("pc-1")!.declineReason)).toMatch(/published/);
+    expect(calendario.map((p) => p.scheduledFor!.getTime()), "nada foi tocado").toEqual(antes);
+  });
+
+  it("pedido de PEÇA NOVA continua indo para o classificador — a família 3 não sequestra", async () => {
+    novoPedido();
+    generate.mockResolvedValueOnce({
+      ok: true,
+      data: { atendimentoId: "producao-de-video", confianca: 92, motivo: "ele quer o reel pronto" },
+    });
+    const r = await triarPedido("pc-1");
+    expect(r.ok).toBe(true);
+    expect(r.ok && r.triado?.atendimento.id).toBe("producao-de-video");
+    expect(generate).toHaveBeenCalled();
   });
 });

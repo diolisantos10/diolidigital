@@ -77,6 +77,12 @@ const EXECUTAVEIS = [
   process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE?.trim() || "",
   "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
   "/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell",
+  // PRODUÇÃO (Railway/Railpack). O Chromium do sistema vem de
+  // `railpack.json → deploy.aptPackages`, junto com o ffmpeg, e é achado SEM
+  // variável de ambiente: exigir configuração para a peça sair certa é a mesma
+  // armadilha do ffmpeg — some em silêncio e o cliente recebe a peça crua.
+  "/usr/bin/chromium",
+  "/usr/bin/chromium-browser",
 ].filter(Boolean);
 
 const TIMEOUT_MS = 45_000;
