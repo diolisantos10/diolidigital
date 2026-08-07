@@ -1,5 +1,80 @@
 # Pendências — o que está aberto
 
+## ✅ 07/08/2026 — FECHADO: o molde da marca nunca rodou em produção
+
+**A consequência, primeiro:** de quando o motor de molde entrou até 07/08/2026,
+**toda peça de todo cliente saiu como foto crua de IA** — sem tipografia, sem
+selo, sem assinatura. E o sistema relatou isso como entrega bem-sucedida, peça
+por peça.
+
+**A causa:** `playwright` estava em `devDependencies`. Produção instala com
+`--omit=dev`, então `await import("playwright")` falhava sempre;
+`renderizarHtml` devolvia `sem_navegador`; e `comporComMolde` tratava isso como
+"degradação declarada", gravando a foto crua com a explicação em `lastError` —
+campo que ninguém lê antes de publicar.
+
+> ### ⚠️ O MEIO-CONSERTO QUE A CASA PRECISA SABER QUE ACONTECEU
+>
+> **Mover `playwright` para `dependencies` NÃO era o conserto.** Foi o primeiro
+> commit desta frente e, sozinho, teria dado sensação de resolvido sem resolver:
+> o npm passa a instalar a BIBLIOTECA, mas **não baixa o binário do Chromium**.
+> Sem binário, `chromium.launch()` continua falhando e a peça continua saindo
+> crua — exatamente a consequência que se queria matar.
+>
+> Um conserto de dependência que não provisiona o executável é meio conserto.
+> Foram precisas **três** partes:
+>
+> 1. **A biblioteca** — `playwright` em `dependencies` (conferido: ela chega em
+>    `.next/standalone/node_modules/playwright`).
+> 2. **O BINÁRIO** — `railpack.json → deploy.aptPackages` passa a instalar
+>    `chromium`, ao lado do `ffmpeg` que já estava lá. Escolhido em vez de
+>    `npx playwright install chromium` no build porque o pacote apt faz parte da
+>    IMAGEM: sobrevive a redeploy sem depender de cache e não acrescenta ~500MB
+>    de download por build. `renderizar.ts` acha `/usr/bin/chromium` **sem exigir
+>    variável de ambiente** — pedir configuração para a peça sair certa é a
+>    armadilha do ffmpeg, que some em silêncio.
+> 3. **A PORTA FECHADA** — sem as duas acima, o código voltaria a entregar foto
+>    crua chamando aquilo de sucesso. Agora falha de INFRA (`sem_navegador`,
+>    `erro_do_navegador`, `timeout`) devolve `ok: false`: a peça não é gravada
+>    nem publicada, e a causa sobe nomeada. Falha de CONTEÚDO (texto que não
+>    cabe, sem frase utilizável) segue degradando declarado.
+>
+> **A lição, que vale além desta frente:** havia um teste VERDE afirmando que a
+> peça sem molde deve ser publicada (`__tests__/execution/artes.test.ts`). O
+> fail-open não estava só no código — estava protegido por prova. Quando a
+> checagem descreve o defeito como se fosse o contrato, consertar o código não
+> basta: o teste tem de mudar de lado, e o commit tem de dizer por quê.
+
+**Dívida declarada que sobrou:** `/usr/bin/chromium` (apt) é um Chromium de
+sistema, não o build que o Playwright baixa. A combinação é suportada via
+`executablePath`, mas **não foi exercitada em produção ainda** — a primeira peça
+produzida depois do deploy é a prova que falta. Se falhar, o erro agora aparece
+como falha nomeada em vez de peça crua silenciosa, que é o ponto.
+
+## ✅ 07/08/2026 — FECHADO: porta de emergência do deploy, e as 6 rotas fora da conta
+
+- **A porta de emergência não abria.** Falhou nas DUAS emergências reais (06 e
+  07/08) com "Bad Access": o token de PROJETO do Railway recusa
+  `environmentTriggersDeploy` e `deploymentTriggerUpdate`. Na segunda, com o
+  GitHub Actions em pane e o portal do cliente quebrado, o conserto subiu à mão.
+  `dispararDeploy()` passa a usar `serviceInstanceDeployV2(serviceId,
+  environmentId, commitSha)` — que o mesmo token aceita. Ganho extra: ela **não
+  passa pelo "Wait for CI"**, então o script não precisa mais desligar o portão
+  para disparar e religar depois. Aquela janela deixava a produção sem CI e
+  ficava aberta **para sempre** se o processo morresse no meio.
+- **As 6 rotas de `app/api/agents/*` contornavam o motor de IA.** Montavam o
+  `fetch` para a Anthropic na mão. Perdiam a CONTA (nenhum `AIRunLog` — o gasto
+  existia na fatura e não no relatório), a ESCOLHA DE PROVEDOR POR CLIENTE
+  (`ClientAiProvider` ignorado: cliente fixado no Gemini era atendido pelo
+  Claude) e a RESERVA. Todas passam por `generate()` agora, com trava em
+  `__tests__/plataforma/rotas-passam-pelo-motor.test.ts` para a 7ª rota.
+
+**Furo declarado, NÃO resolvido:** `social/generate` e `design/generate` aceitam
+`clientId`/`projectId` como opcionais porque as telas ainda podem não mandá-los.
+Quando não vêm, o custo entra na conta **sem cliente**. Ausência de informação
+não é informação: está anotado, não preenchido por inferência. Quem for mexer
+nessas duas telas fecha isto junto.
+
 ## 🟡 07/08/2026 — GOOGLE DRIVE DO CLIENTE: código no ar do branch, feature TRAVADA
 
 O material de marca do cliente (logo em arquivo, fotos reais, manual, captura de
