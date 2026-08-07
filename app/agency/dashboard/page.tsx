@@ -13,6 +13,7 @@ import { generateAllAutoTasks, AUTO_TASK_PRIORITY_STYLE } from "@/lib/agency/orc
 import { computeWorkspaceHealth, DEPT_HEALTH_STYLE } from "@/lib/agency/orchestration/department-health";
 import { evaluateProjectPipeline, STAGE_STATUS_STYLE } from "@/lib/agency/orchestration/pipeline";
 import FilaDeAvisos from "@/components/agency/FilaDeAvisos";
+import PulsoDaAgencia from "@/components/agency/PulsoDaAgencia";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -425,6 +426,13 @@ export default function DashboardPage() {
           porque é o único item do painel que representa um projeto PARADO
           esperando alguém que nem sabe que precisa agir. Some sozinha quando
           está vazia: caixa vazia treina o time a ignorar a tela. */}
+      {/* O PULSO vem antes da fila de avisos: antes de saber o que está parado,
+          é preciso saber se a agência está ANDANDO. Faixa que não some quando
+          está verde — ver o cabeçalho do componente. */}
+      <div className="mb-3">
+        <PulsoDaAgencia />
+      </div>
+
       <div className="mb-6">
         <FilaDeAvisos />
       </div>

@@ -337,11 +337,33 @@ export async function publicarAgendados(): Promise<PublicacaoFeita> {
   for (const post of pendentes) {
     const falhar = async (erro: string) => {
       saida.falhas.push({ postId: post.id, erro });
+      // ── 06/08/2026: A FALHA DE PUBLICAÇÃO NÃO TINHA TESTEMUNHA ─────────────
+      // `lastError` é um campo dentro de um post: para vê-lo é preciso já
+      // suspeitar e ir procurar. Os 6 carrosséis da Foocci estavam marcados
+      // para as 07h de 07/08 SEM as telas do carrossel (`mediaUrls` vazio) —
+      // iam falhar em silêncio na madrugada, e o CEO descobriria pelo cliente.
+      // A hora marcada que não aconteceu é notícia, e notícia sobe ao painel.
+      //
+      // Só no PRIMEIRO erro, ou quando o MOTIVO muda: o post continua
+      // "scheduled" e o relógio re-tenta a cada 5 min — um evento por tentativa
+      // seriam 288 linhas iguais por dia, que é como um painel ensina a ser
+      // ignorado.
+      const motivoMudou = post.lastError !== erro;
       // O post CONTINUA "scheduled": a causa quase sempre é externa e
       // temporária (conta não conectada, mídia faltando). Marcar como falha
       // permanente enterraria trabalho pago. `lastError` é o que fica visível.
       await prisma.socialPost.update({ where: { id: post.id }, data: { lastError: erro } })
         .catch(() => { /* best-effort */ });
+      if (motivoMudou) {
+        await prisma.activityEvent.create({
+          data: {
+            workspaceId: post.workspaceId,
+            clientId: post.clientId,
+            type: "publicacao_falhou",
+            message: `Post NÃO foi ao ar na hora marcada (${post.scheduledFor?.toISOString() ?? "sem data"}): ${erro}`,
+          },
+        }).catch(() => { /* best-effort: o registro não pode travar a rodada */ });
+      }
     };
 
     // A conta do CLIENTE, não a da agência. `clientId` nulo numa conexão
