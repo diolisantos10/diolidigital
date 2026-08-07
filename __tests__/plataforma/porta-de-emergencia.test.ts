@@ -163,3 +163,76 @@ describe("o rastro — sem ele a porta vira o caminho normal", () => {
     expect(registro).not.toMatch(/Project-Access-Token|Bearer |RAILWAY_TOKEN|GITHUB_TOKEN/);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// O DISPARO — a porta de emergência precisa ABRIR, não só recusar direito.
+//
+// Tudo acima prova que a porta barra quem não deve passar. Nada provava que ela
+// ABRE para quem deve — e ela não abria: em 06 e 07/08/2026 o disparo falhou com
+// "Bad Access" nas duas emergências reais, porque o token de PROJETO do Railway
+// recusa `environmentTriggersDeploy` e `deploymentTriggerUpdate`. Na segunda, com
+// o GitHub Actions em pane e o portal quebrado, o conserto subiu À MÃO.
+//
+// Uma trava que só sabe dizer "não" passa em qualquer teste de segurança e não
+// entrega nada. Estas são as duas metades do DISPARO.
+describe("dispararDeploy — a porta abre, pela mutação que o token aceita", () => {
+  const chamadas: Array<{ query: string; variables: Record<string, unknown> }> = [];
+
+  async function comFetchFalso(
+    resposta: unknown,
+    fn: () => Promise<unknown>,
+  ): Promise<{ erro: Error | null; valor: unknown }> {
+    const original = globalThis.fetch;
+    process.env.RAILWAY_TOKEN = "token-de-teste";
+    globalThis.fetch = (async (_url: string, init: { body: string }) => {
+      chamadas.push(JSON.parse(init.body));
+      return { ok: true, json: async () => resposta } as unknown as Response;
+    }) as unknown as typeof fetch;
+    try {
+      return { erro: null, valor: await fn() };
+    } catch (e) {
+      return { erro: e as Error, valor: null };
+    } finally {
+      globalThis.fetch = original;
+      delete process.env.RAILWAY_TOKEN;
+    }
+  }
+
+  it("✅ METADE 1 — dispara o COMMIT NOMEADO por serviceInstanceDeployV2, sem tocar no portão", async () => {
+    chamadas.length = 0;
+    const { dispararDeploy } = await import("@/lib/plataforma/railway-portao");
+    const r = await comFetchFalso({ data: { serviceInstanceDeployV2: "dep-123" } }, () =>
+      dispararDeploy("4ed47a9641d6002693b14552d59ee4e2dc9e301e"),
+    );
+
+    expect(r.erro).toBeNull();
+    // Devolve o id da implantação: é o que permite CONFERIR que subiu, em vez
+    // de acreditar no "disparei".
+    expect(r.valor).toBe("dep-123");
+
+    expect(chamadas).toHaveLength(1);
+    const { query, variables } = chamadas[0]!;
+    // A mutação que o token de PROJETO aceita — a outra dava "Bad Access".
+    expect(query).toContain("serviceInstanceDeployV2");
+    expect(query).not.toContain("environmentTriggersDeploy");
+    // O commit vai EXPLÍCITO: "o último da branch" não responde "o que subiu?".
+    expect(variables.commitSha).toBe("4ed47a9641d6002693b14552d59ee4e2dc9e301e");
+
+    // E o portão do CI não é tocado: nenhuma chamada mexe no trigger. Era a
+    // janela em que a produção ficava sem portão — e ficava aberta para sempre
+    // se o processo morresse no meio do caminho.
+    for (const c of chamadas) expect(c.query).not.toContain("deploymentTriggerUpdate");
+  });
+
+  it("⛔ METADE 2 — sem commitSha não dispara nada: porta que adivinha o que sobe é alçapão", async () => {
+    chamadas.length = 0;
+    const { dispararDeploy } = await import("@/lib/plataforma/railway-portao");
+    for (const vazio of ["", "   "]) {
+      const r = await comFetchFalso({ data: {} }, () => dispararDeploy(vazio));
+      expect(r.erro, `"${vazio}" tinha de recusar`).toBeInstanceOf(Error);
+      expect(String(r.erro?.message)).toMatch(/commitSha/);
+    }
+    // O que importa: NENHUMA chamada saiu para o Railway.
+    expect(chamadas, "recusa tem de ser ANTES da rede").toHaveLength(0);
+  });
+});
