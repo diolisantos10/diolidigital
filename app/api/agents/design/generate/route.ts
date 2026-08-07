@@ -1,13 +1,25 @@
+// Esta rota passou a falar com o MOTOR (`lib/ai/generate`), não com a Anthropic.
+//
+// Antes ela montava o `fetch` para `api.anthropic.com` na mão, com o provedor
+// "claude" escrito no código. Três coisas se perdiam nisso, e nenhuma é
+// cosmética:
+//
+//   1. A CONTA. Toda chamada daqui saía de graça no relatório: sem `AIRunLog`,
+//      sem tokens, sem dono. "Quanto custou este cliente" respondia menos do que
+//      a verdade, e a diferença crescia sozinha.
+//   2. A ESCOLHA DE PROVEDOR POR CLIENTE (`ClientAiProvider`). O cliente fixado
+//      no Gemini era atendido pelo Claude assim mesmo — a tela dizia uma coisa e
+//      o servidor fazia outra.
+//   3. A RESERVA. Claude fora do ar = rota fora do ar, com as outras chaves
+//      conectadas paradas do lado.
 // POST /api/agents/design/generate
 // Calls Claude to generate enhanced visual briefs for each post/design request.
 // Returns VisualBrief[] shape expected by the design-agent page.
 
 import { NextRequest, NextResponse } from "next/server";
-import { claudeModel } from "@/lib/ai/claude-provider";
 import { requireSession } from "@/lib/auth/api-guard";
-import { resolveProviderKey } from "@/lib/ai/resolve-key";
+import { generate } from "@/lib/ai/generate";
 
-const CLAUDE_URL = "https://api.anthropic.com/v1/messages";
 
 interface ParsedPost {
   postId: number;
@@ -34,15 +46,14 @@ export async function POST(req: NextRequest) {
   // SEGURANÇA: exige sessão — antes, anônimo queimava a chave Claude da agência.
   const guard = await requireSession();
   if (guard.error) return guard.error;
-  const resolved = await resolveProviderKey("claude", guard.session.workspaceId);
-  if (!resolved) {
-    return NextResponse.json(
-      { ok: false, error: "Nenhuma chave Claude configurada. Adicione em Integrações → IAs dos Agentes." },
-      { status: 503 },
-    );
-  }
 
-  const body = await req.json() as { posts: ParsedPost[]; brandName: string; brandBrain?: BrandBrain };
+  // `clientId`/`projectId` são opcionais e usados SÓ para dar dono ao gasto.
+  // Ver social/generate: se a tela não mandar, o custo entra sem cliente — e
+  // isso está anotado em docs/pendencias.md, não preenchido por adivinhação.
+  const body = await req.json() as {
+    posts: ParsedPost[]; brandName: string; brandBrain?: BrandBrain;
+    clientId?: string; projectId?: string;
+  };
   const { posts, brandName, brandBrain } = body;
 
   if (!posts || posts.length === 0) {
@@ -105,49 +116,23 @@ Responda com JSON no formato exato:
 GERE um brief para cada post (postId ${posts.map((p) => p.postId).join(", ")}).
 Adapte cada brief profundamente ao formato, objetivo e copy de cada post específico.`;
 
-  const apiKey = resolved.apiKey;
-  const model = resolved.model ?? claudeModel();
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 60_000);
+  const r = await generate({
+    system: systemPrompt,
+    user: userPrompt,
+    maxTokens: 3000,
+    workspaceId: guard.session.workspaceId,
+    // `preferredProvider` é PREFERÊNCIA, não decreto: a fixação do cliente
+    // vence, e as outras chaves entram de reserva se esta falhar.
+    preferredProvider: "claude",
+    // Sem estes, o gasto entra no relatório sem dono.
+    clientId: typeof body.clientId === "string" ? body.clientId : null,
+    projectId: typeof body.projectId === "string" ? body.projectId : null,
+    departmentId: "design",
+    agentId: "design",
+  });
 
-  try {
-    const res = await fetch(CLAUDE_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model,
-        max_tokens: 4096,
-        system: systemPrompt,
-        messages: [{ role: "user", content: userPrompt }],
-      }),
-      signal: controller.signal,
-    });
+  if (!r.ok) return NextResponse.json({ ok: false, error: r.error }, { status: 503 });
 
-    if (!res.ok) {
-      return NextResponse.json({ ok: false, error: `Claude HTTP ${res.status}` }, { status: 500 });
-    }
-
-    const json = (await res.json()) as { content?: { type: string; text: string }[] };
-    const text = json.content?.[0]?.text;
-    if (!text) return NextResponse.json({ ok: false, error: "Resposta Claude vazia" }, { status: 500 });
-
-    const stripped = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "");
-    const start = stripped.indexOf("{");
-    const end   = stripped.lastIndexOf("}");
-    if (start === -1 || end === -1) {
-      return NextResponse.json({ ok: false, error: "JSON não encontrado" }, { status: 500 });
-    }
-
-    const parsed = JSON.parse(stripped.slice(start, end + 1)) as { briefs: unknown[] };
-    return NextResponse.json({ ok: true, briefs: parsed.briefs, model });
-  } catch (err) {
-    const reason = err instanceof Error && err.name === "AbortError" ? "timeout" : String(err);
-    return NextResponse.json({ ok: false, error: `Falha ao chamar Claude: ${reason}` }, { status: 500 });
-  } finally {
-    clearTimeout(timeout);
-  }
+  const briefs = (r.data as { briefs: unknown[] }).briefs;
+  return NextResponse.json({ ok: true, briefs, model: r.model });
 }
