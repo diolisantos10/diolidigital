@@ -662,6 +662,33 @@ describe("família 3 — OPERAÇÃO sobre o que já existe", () => {
     expect(recado.data.body).toMatch(/Carrossel 1/);
   });
 
+  // A OUTRA METADE DA TRAVA DO PISO. A fixture antiga exercitava este caminho
+  // por acidente (o calendário nascia no dia corrente) e depois afirmava o
+  // contrário do que o código faz — por isso quebrava. Agora o caso do piso tem
+  // prova PRÓPRIA, e a de cima tem folga para provar o adiantamento limpo.
+  it("TRAVA DO PISO — adiantar para o passado empurra o BLOCO, sem esmagar o espaçamento", async () => {
+    // Calendário colado no relógio: recuar um dia jogaria a primeira peça para
+    // ontem, que é exatamente o que a trava tem de impedir.
+    const base = new Date(Date.now() + 2 * 60 * 60_000);
+    calendario = ["Carrossel 1", "Carrossel 2", "Carrossel 3"].map((c, i) => ({
+      id: `sp-${i + 1}`, clientId: "cli-1", status: "scheduled",
+      scheduledFor: new Date(base.getTime() + i * UM_DIA), caption: c,
+    }));
+    novoPedido({ title: "Adiantar o calendário", description: PEDIDO_DO_CEO });
+
+    const r = await triarPedido("pc-1");
+
+    expect(r.ok).toBe(true);
+    expect(r.ok && r.executado?.empurradoPeloPiso, "o piso tem de se declarar").toBe(true);
+    const novas = calendario.map((p) => p.scheduledFor!.getTime());
+    // Nenhuma no passado — o que a trava existe para garantir.
+    for (const t of novas) expect(t, "nenhuma data no passado").toBeGreaterThan(Date.now());
+    // E o espaçamento aprovado pelo cliente continua de pé: o bloco andou
+    // inteiro, não só a primeira peça (que a juntaria com a segunda).
+    expect(novas[1]! - novas[0]!).toBe(UM_DIA);
+    expect(novas[2]! - novas[1]!).toBe(UM_DIA);
+  });
+
   it("METADE 2 — com o calendário já PUBLICADO, a operação recusa nomeando o estado", async () => {
     for (const p of calendario) p.status = "published";
     const antes = calendario.map((p) => p.scheduledFor!.getTime());
