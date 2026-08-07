@@ -12,6 +12,7 @@ import { getDepartmentDef, type DepartmentId } from "@/lib/agency/departments";
 import { generate } from "@/lib/ai/generate";
 import { semearMarcaDoBriefing } from "@/lib/agency/execution/semear-marca";
 import { coletarMaterialDeProduto } from "@/lib/agency/esteira/material-de-produto";
+import { sincronizarDoBriefing } from "@/lib/agency/esteira/proibicoes";
 import { criarTarefas } from "@/lib/agency/tarefas/criar-tarefas";
 import { prazoAPartirDaEstimativa } from "@/lib/agency/tarefas/portao-do-pm";
 
@@ -56,6 +57,29 @@ export async function createProjectFromRequest(clientRequestId: string, approved
   // o que ele não contou continua vazio e vira pedido de material.
   await semearMarcaDoBriefing(clientId, clientRequestId)
     .catch((e) => console.error("[projeto] não consegui semear a marca:", e));
+
+  // ── AS PROIBIÇÕES DO CLIENTE NASCEM AQUI, E ANTES DA PRIMEIRA PEÇA ────────
+  // `sincronizarDoBriefing` existia desde 06/08/2026 com a justificativa certa
+  // escrita no próprio docstring ("a proibição mais forte que um cliente
+  // escreve costuma estar no briefing") — e NENHUM chamador no repositório
+  // inteiro. Ou seja: o cliente escrevia "nada de emprego garantido" no
+  // briefing, o extrator determinístico sabia ler aquilo, e a proibição
+  // simplesmente não existia na hora em que a peça era produzida.
+  //
+  // É o defeito das 31 checagens com outra roupa: mecanismo construído,
+  // correto, testado — e sem ninguém puxando o gatilho. Regra que ninguém
+  // executa não é regra, é documentação.
+  //
+  // O lugar é este e não a produção: a proibição precisa estar registrada
+  // ANTES da primeira peça, não junto com ela. Idempotente pela deduplicação
+  // de `registrarProibicoes`, e best-effort porque um extrator com defeito não
+  // pode impedir o projeto de nascer — mas a falha é gritada no log.
+  await sincronizarDoBriefing(clientId)
+    .then((r) => {
+      if (r.erro) console.error("[projeto] proibições do briefing falharam:", r.erro);
+      else console.log(`[projeto] proibições do briefing: ${r.novas.length} nova(s), ${r.total} no total`);
+    })
+    .catch((e) => console.error("[projeto] não consegui ler as proibições do briefing:", e));
 
   const project = await prisma.project.create({
     data: { workspaceId, clientId, clientRequestId, name: proposal.name, goal: proposal.goal, stage: "planning", priority: "medium" },

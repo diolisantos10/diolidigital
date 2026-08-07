@@ -259,11 +259,29 @@ export interface PecaDoMolde {
  *
  * Derivado por regra do nome, nunca inventado: iniciais das duas primeiras
  * palavras com letra; nome de uma palavra só vira as duas primeiras letras.
+ *
+ * ── A EMENDA INTERNA CONTA COMO ESPAÇO (07/08/2026) ────────────────────────
+ * "CityJobs" é UMA palavra para `split(/\s+/)`, então o monograma saía "CI" —
+ * duas letras da mesma palavra, com o J de Jobs sumido. Silencioso e errado: a
+ * assinatura é o token que aparece em TODA peça de TODA campanha, e ninguém
+ * revisa 60 rodapés por mês.
+ *
+ * Marca escrita em caixa camelo é uma composição de duas palavras que perdeu o
+ * espaço na hora de virar logotipo — e o logo oficial do CityJobs prova isso,
+ * porque desenha "CITY" e "JOBS" em DUAS linhas
+ * (`public/brand/cityjobs/01_city_jobs_quadrado_principal.svg`). A transição
+ * minúscula→MAIÚSCULA é, portanto, fronteira de palavra.
+ *
+ * Só essa transição, e de propósito: "Foocci" continua "FO" e "MOGI" continua
+ * "MO", porque nem toda maiúscula é emenda — sequência de maiúsculas é ênfase
+ * ou sigla, não composição.
  */
 export function monogramaDe(nome: string | null | undefined): string | null {
   const limpo = (nome ?? "").trim();
   if (!limpo) return null;
   const palavras = limpo
+    // A emenda camelo vira espaço ANTES do corte por espaço.
+    .replace(/(\p{Ll})(\p{Lu})/gu, "$1 $2")
     .split(/\s+/)
     .map((p) => p.replace(/[^\p{L}\p{N}]/gu, ""))
     .filter((p) => p.length > 0);

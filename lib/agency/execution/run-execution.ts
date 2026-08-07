@@ -30,7 +30,7 @@ import {
   type VerdadeDoCliente,
 } from "@/lib/agency/execution/piso-de-verdade";
 import { sinteseDoFeedDoCliente } from "@/lib/agency/execution/leitura-do-cliente";
-import { lerProibicoes } from "@/lib/agency/esteira/proibicoes";
+import { lerProibicoes, sincronizarDoBriefing } from "@/lib/agency/esteira/proibicoes";
 import {
   VERSAO_DA_MEDICAO, versaoDaMedicao,
   type MedicaoDoMes,
@@ -403,7 +403,24 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
       // banco pelo servidor, nunca montada por quem chama, e fail-closed —
       // leitura que falha reprova a peça em vez de liberá-la. Ver
       // `lib/agency/esteira/proibicoes.ts`.
-      proibicoes: await lerProibicoes(project.clientId),
+      // ⚠️ A SINCRONIZAÇÃO VEM ANTES DA LEITURA, e por isso está nesta ordem.
+      // `sincronizarDoBriefing` nasceu em 06/08/2026 sem um único chamador: a
+      // proibição que o cliente escreveu no briefing existia no texto, o
+      // extrator determinístico sabia lê-la, e ela nunca chegava ao piso. O
+      // chamador definitivo é a criação do projeto
+      // (`create-project-from-request.ts`); ESTE aqui é o auto-conserto dos
+      // clientes que já existiam antes daquele chamador — sem ele, todo cliente
+      // criado até 07/08/2026 continuaria produzindo sem as próprias
+      // proibições, para sempre e em silêncio.
+      // Idempotente (dedup por conjunto de termos) e best-effort: falhar aqui
+      // não pode derrubar a produção, mas o piso ainda é fail-closed na leitura.
+      proibicoes: await (async () => {
+        if (project.clientId) {
+          await sincronizarDoBriefing(project.clientId)
+            .catch((e) => console.warn("[execucao] proibições do briefing não sincronizaram:", e));
+        }
+        return lerProibicoes(project.clientId);
+      })(),
     };
 
     const agents = (() => { try { return JSON.parse(project.agents ?? "[]"); } catch { return []; } })() as string[];
