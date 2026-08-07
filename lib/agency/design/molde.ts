@@ -449,8 +449,18 @@ export function montarHtmlDaPeca(peca: PecaDoMolde, molde: Molde): string {
        cima da foto. É o "campo próprio" da referência: se o texto pudesse
        subir para a área da foto, a divisão seria decorativa. */
     top:${dividida ? `calc(${ALTURA_DA_FOTO_PCT}% + 24px)` : `${dim.margemTopo}px`};
-    display:flex; flex-direction:column; justify-content:flex-end;
-    gap:22px;
+    display:flex; flex-direction:column;
+    /* Na foto cheia o texto SENTA no pé: o topo é a foto, e empurrar o bloco
+       para baixo é o que deixa o assunto respirar. No painel é o contrário —
+       ancorar no pé abre um vazio no meio do campo sólido, que é a mesma
+       crítica do CEO ("a metade de baixo fica vazia") de cabeça para baixo.
+
+       No painel COM bloco de mockup, o texto encosta no alto e o bloco ocupa o
+       resto — o espaço que sobra é o lugar do PRODUTO. Sem bloco, o texto vai
+       para o centro do campo: melhor centrar o que existe do que reservar um
+       vazio para uma coisa que aquela peça não tem. */
+    justify-content:${dividida ? (peca.mockup ? "flex-start" : "center") : "flex-end"};
+    gap:${dividida ? 26 : 22}px;
   }
   .selo {
     font-size:26px; font-weight:700; letter-spacing:5px; color:${apoioCor};

@@ -387,6 +387,20 @@ describe("as composições saem no HTML — o cérebro vira pixel", () => {
     expect(html).toContain("border-radius:50% 50% 0 0");
   });
 
+  it("no painel o texto NÃO ancora no pé — vazio no meio do campo é a crítica do CEO ao contrário", () => {
+    const semBloco = montarHtmlDaPeca({ ...base, composicao: "dividido-reto" }, molde);
+    expect(semBloco).toMatch(/justify-content:center/);
+    // Com bloco de produto, o texto encosta no alto e o resto é o lugar do
+    // PRODUTO — o espaço deixa de ser vazio e passa a ser reservado.
+    const comBloco = montarHtmlDaPeca(
+      { ...base, composicao: "dividido-reto", mockup: { html: "<div class='mk'></div>", textos: [] } },
+      molde,
+    );
+    expect(comBloco).toMatch(/justify-content:flex-start/);
+    // Na foto cheia nada muda: o texto senta no pé, como sempre sentou.
+    expect(montarHtmlDaPeca({ ...base }, molde)).toMatch(/justify-content:flex-end/);
+  });
+
   it("nenhuma composição usa text-transform nem fonte de rede", () => {
     for (const c of COMPOSICOES) {
       const html = montarHtmlDaPeca({ ...base, composicao: c }, molde);
