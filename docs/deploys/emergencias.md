@@ -43,3 +43,29 @@
   em `lib/plataforma/railway-portao.ts` por essa mutação (com o `commitSha`
   explícito, que também elimina o "que commit foi mesmo que subiu?"), e então a
   porta de emergência volta a funcionar **sem** depender de um token de conta.
+
+## 2026-08-07 01:20 UTC — `c78c3b3`
+
+- **Quem forçou:** meta (especialista-trava da plataforma Meta)
+- **Commit:** `c78c3b3` — A casa ia publicar sozinha no @foocci_ em nove horas — e o backfill ia misturar arte velha com nova
+- **Estado da CI no momento:** `SEM_PROVA` — GitHub Actions em pane; nenhum run foi criado.
+- **Motivo:** Os 6 carrosséis da Foocci estavam `scheduled` para HOJE às 10:00
+  UTC, completos e publicáveis; `@foocci_` estava `connected` com o escopo
+  `instagram_content_publish` no token; e o despertador roda a cada 5 minutos em
+  produção, sem condição nenhuma. `publishPost` não consultava a lista de ativos
+  autorizados nem decisão de ninguém. Faltavam ~9 horas para a agência publicar
+  sozinha em nome de um cliente, contra ordem explícita do CEO e sem App Review.
+  Não subir era garantir o dano na hora marcada.
+- **Portão à mão** (Actions em pane), rodado sobre ESTE commit num worktree da
+  branch de produção: `npx tsc --noEmit` 0 erros · `npx vitest run` 2211 testes
+  passando · `npm run build` OK.
+- **Delta:** 9 arquivos, só a trava de publicação e a trava de ambiguidade do
+  backfill. Cherry-pick sobre a branch de produção de propósito — a branch de
+  trabalho tem ~99 arquivos de outros agentes ainda não conferidos, e uma
+  emergência não é carona para trabalho alheio.
+- **⚠️ A trava nasce FECHADA:** `PUBLICACAO_ORGANICA` não foi definida no
+  Railway, e é isso que a torna eficaz. Enquanto ela não existir, nenhum post
+  vai ao Instagram ou ao Facebook — inclusive os 6 da Foocci, que passam a
+  registrar `publicacao_falhou` no painel com o motivo em português. Ligar é
+  decisão do CEO, não deste agente.
+- **Resultado:** (preenchido abaixo, depois do disparo)
