@@ -18,6 +18,7 @@
 
 import { graphGet, graphPost, graphPostJson, GraphApiError } from "./graph";
 import { loadConnectionToken } from "./connections";
+import { conferirPublicacao } from "./trava-de-publicacao";
 import type {
   PublishInput,
   PublishResult,
@@ -219,6 +220,28 @@ export async function publishPost(
 ): Promise<PublishResult> {
   const conn = await loadConnectionToken(workspaceId, input.connectionId);
   if (!conn) return { ok: false, error: "Conexão Meta não encontrada ou token inválido" };
+
+  // ── A TRAVA DE PUBLICAÇÃO — ANTES DE QUALQUER CHAMADA DE REDE ─────────────
+  // Ver `trava-de-publicacao.ts` para o porquê inteiro. Em duas linhas: até
+  // 07/08/2026 esta função publicava em QUALQUER perfil cuja conexão existisse,
+  // sem consultar a lista de ativos autorizados e sem decisão de ninguém — e
+  // faltavam nove horas para ela postar sozinha no @foocci_.
+  //
+  // O dono é DERIVADO da conexão (`conn.clientId`, já normalizado por
+  // `loadConnectionToken`), nunca do chamador: `input` não tem — e não pode
+  // ter — voz sobre de quem é o perfil.
+  //
+  // A recusa vira `{ ok: false, error }` em vez de exceção porque é assim que
+  // `esteira/publicacao.ts` já sabe reagir: o post continua `scheduled`, o
+  // motivo aparece em `lastError` e sobe ao painel como `publicacao_falhou`.
+  // Trabalho pago não é enterrado — fica visível, esperando decisão.
+  const parecer = await conferirPublicacao({
+    workspaceId,
+    clientId: conn.clientId,
+    platform: conn.platform,
+    externalId: conn.externalId,
+  });
+  if (!parecer.pode) return { ok: false, error: parecer.motivo };
 
   try {
     if (conn.platform === "instagram") {

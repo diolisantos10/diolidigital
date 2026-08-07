@@ -29,7 +29,14 @@ export type AcaoDoPost =
   /** Já tem telas ligadas — a tela nunca sobrescreve (o `--force` não é exposto). */
   | "ja-tem-telas"
   /** Casou 0 ou 1 tela — carrossel de uma imagem só não é carrossel. */
-  | "sem-telas-suficientes";
+  | "sem-telas-suficientes"
+  /**
+   * Duas artes disputam a MESMA tela deste post. Foi o que o ensaio de
+   * 07/08/2026 mostrou na Foocci: as telas v3 (velhas) e as v4 (aprovadas)
+   * convivem nos Arquivos e casam com o mesmo carrossel pelo mesmo padrão de
+   * nome. Aplicar montaria um carrossel alternando arte velha e nova.
+   */
+  | "ambiguo";
 
 export interface TelaNaTela {
   pos: number;
@@ -59,6 +66,8 @@ export interface Avaliacao {
   postsQueSeraoReparados: number;
   postsJaComTelas: number;
   postsSemTelasSuficientes: number;
+  /** Posts com duas artes disputando a mesma tela. Qualquer um TRAVA a tela. */
+  postsAmbiguos: number;
   /** Todas as telas reconhecidas, inclusive as de posts que não serão tocados. */
   telasCasadas: number;
   /**
@@ -84,6 +93,7 @@ export function acaoDoPost(post: PostPlanejado): AcaoDoPost {
   if (d.acao === "ligar") return "atualizar";
   if (d.acao === "reparar") return "reparar";
   if (d.acao === "sem-telas-suficientes") return "sem-telas-suficientes";
+  if (d.acao === "ambiguo") return "ambiguo";
   return "ja-tem-telas"; // `sobrescrever` não existe nesta porta: sem `--force`.
 }
 
@@ -113,8 +123,20 @@ export function avaliarPlano(plano: Pick<Plano, "posts">): Avaliacao {
   const postsQueSeraoAtualizados = conta("atualizar") + postsQueSeraoReparados;
   const temCasamentoPorOrdem = postsNaTela.some((p) => p.telas.some((t) => t.via === "ordem"));
 
+  const postsAmbiguos = conta("ambiguo");
+
   let motivoNaoAplicavel: string | null = null;
-  if (temCasamentoPorOrdem) {
+  if (postsAmbiguos > 0) {
+    // ANTES do casamento por ordem: ambiguidade é o defeito mais próximo do
+    // dano (arte velha entrando em carrossel aprovado) e é o que o operador
+    // precisa ler primeiro.
+    motivoNaoAplicavel =
+      `${postsAmbiguos} carrossel(éis) têm DUAS artes disputando a mesma tela — ` +
+      "tipicamente um jogo antigo e o aprovado convivendo nos Arquivos, os dois " +
+      "casando com o mesmo carrossel pelo nome. Aplicar montaria a peça " +
+      "alternando arte velha e nova. Apague (ou renomeie) o jogo que não vale e " +
+      "rode o ensaio de novo. Nada foi alterado.";
+  } else if (temCasamentoPorOrdem) {
     motivoNaoAplicavel =
       "O ensaio casou telas por ORDEM DE UPLOAD — isso é chute posicional, não " +
       "reconhecimento de nome. Esta tela não aplica esse tipo de casamento.";
@@ -128,12 +150,13 @@ export function avaliarPlano(plano: Pick<Plano, "posts">): Avaliacao {
     postsQueSeraoReparados,
     postsJaComTelas: conta("ja-tem-telas"),
     postsSemTelasSuficientes: conta("sem-telas-suficientes"),
+    postsAmbiguos,
     telasCasadas: postsNaTela.reduce((s, p) => s + p.telas.length, 0),
     telasQueSeraoLigadas: postsNaTela
       .filter((p) => p.acao === "atualizar" || p.acao === "reparar")
       .reduce((s, p) => s + p.telas.length, 0),
     temCasamentoPorOrdem,
-    aplicavel: !temCasamentoPorOrdem && postsQueSeraoAtualizados > 0,
+    aplicavel: postsAmbiguos === 0 && !temCasamentoPorOrdem && postsQueSeraoAtualizados > 0,
     motivoNaoAplicavel,
   };
 }

@@ -13,6 +13,12 @@ const db = vi.hoisted(() => ({
   metaConnection: { findFirst: vi.fn() },
   agencyWorkspace: { findMany: vi.fn() },
   whatsAppMessage: { create: vi.fn(), findFirst: vi.fn(), findMany: vi.fn(), updateMany: vi.fn() },
+  // Desde 07/08/2026 `publishPost` CONFERE o ativo na lista do dono antes de
+  // tocar a rede (`meta/trava-de-publicacao.ts`). Estes testes medem RITMO —
+  // quantas chamadas o carrossel gasta —, então a autorização aqui é cenário,
+  // não o que está sob medição. Sem ela nada publicaria, que é justamente o
+  // ponto da trava: ausência de lista nunca vira permissão.
+  metaAtivoAutorizado: { findMany: vi.fn() },
 }));
 
 const FakeGraphError = vi.hoisted(() => class FakeGraphError extends Error {
@@ -30,14 +36,23 @@ import { publishPost } from "@/lib/integrations/meta/client";
 import { discoverPages, MAXIMO_DE_PAGINAS_DE_PAGINACAO } from "@/lib/integrations/meta/discovery";
 import { resolveWorkspaceForPhone } from "@/lib/integrations/meta/inbox";
 
+const decisaoOriginal = process.env.PUBLICACAO_ORGANICA;
+
 beforeEach(() => {
   vi.clearAllMocks();
   vi.useFakeTimers();
   loadConnectionToken.mockResolvedValue({ token: "tk", platform: "instagram", externalId: "ig9" });
+  // O cenário destes testes: perfil autorizado e publicação liberada — para
+  // que o que sobre sob medição seja o RITMO. Quem prova a trava em si é
+  // `__tests__/integrations/trava-de-publicacao.test.ts`.
+  db.metaAtivoAutorizado.findMany.mockResolvedValue([{ externalId: "ig9" }]);
+  process.env.PUBLICACAO_ORGANICA = "liberada";
 });
 
 afterEach(() => {
   vi.useRealTimers();
+  if (decisaoOriginal === undefined) delete process.env.PUBLICACAO_ORGANICA;
+  else process.env.PUBLICACAO_ORGANICA = decisaoOriginal;
 });
 
 /** Roda a promessa deixando os `setTimeout` internos dispararem na hora. */
