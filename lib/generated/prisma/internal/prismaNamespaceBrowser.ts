@@ -58,6 +58,8 @@ export const ModelName = {
   AdCampaign: 'AdCampaign',
   GoogleConnection: 'GoogleConnection',
   GoogleReview: 'GoogleReview',
+  GoogleDriveConnection: 'GoogleDriveConnection',
+  DriveMaterial: 'DriveMaterial',
   Cycle: 'Cycle',
   ClientNotice: 'ClientNotice',
   Deliverable: 'Deliverable',
@@ -259,6 +261,46 @@ export const GoogleReviewScalarFieldEnum = {
 } as const
 
 export type GoogleReviewScalarFieldEnum = (typeof GoogleReviewScalarFieldEnum)[keyof typeof GoogleReviewScalarFieldEnum]
+
+
+export const GoogleDriveConnectionScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  clientId: 'clientId',
+  contaHint: 'contaHint',
+  accessTokenEncrypted: 'accessTokenEncrypted',
+  refreshTokenEncrypted: 'refreshTokenEncrypted',
+  tokenExpiresAt: 'tokenExpiresAt',
+  escopos: 'escopos',
+  status: 'status',
+  connectedAt: 'connectedAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type GoogleDriveConnectionScalarFieldEnum = (typeof GoogleDriveConnectionScalarFieldEnum)[keyof typeof GoogleDriveConnectionScalarFieldEnum]
+
+
+export const DriveMaterialScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  clientId: 'clientId',
+  connectionId: 'connectionId',
+  fileId: 'fileId',
+  nome: 'nome',
+  mimeType: 'mimeType',
+  tamanhoBytes: 'tamanhoBytes',
+  ehPasta: 'ehPasta',
+  papel: 'papel',
+  papelSugerido: 'papelSugerido',
+  papelConfirmadoEm: 'papelConfirmadoEm',
+  mediaAssetId: 'mediaAssetId',
+  importadoEm: 'importadoEm',
+  erro: 'erro',
+  escolhidoEm: 'escolhidoEm',
+  updatedAt: 'updatedAt'
+} as const
+
+export type DriveMaterialScalarFieldEnum = (typeof DriveMaterialScalarFieldEnum)[keyof typeof DriveMaterialScalarFieldEnum]
 
 
 export const CycleScalarFieldEnum = {

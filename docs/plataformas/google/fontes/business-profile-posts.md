@@ -2,7 +2,7 @@
 titulo: "Perfil de Empresa — política de conteúdo de posts"
 url: https://support.google.com/business/answer/7213077?hl=pt-BR
 capturado_em: 2026-08-07
-hash: 84b93572ac025089
+hash: 80f72814be2f240a
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -42,6 +42,3 @@ Siga as próximas etapas:
 Postar na Comunidade de Ajuda Receba respostas dos membros da comunidade
  
 Fale conosco Conte mais sobre o problema para podermos ajudar você
-Moldando o futuro do Suporte do Google
-
-Estudos de pesquisa com usuários ajudam a melhorar nossos serviços de suporte, pois nos permitem receber comentários diretamente de usuários como você. Saiba mais ou inscreva-se agora e receba convites para participar de estudos futuros.

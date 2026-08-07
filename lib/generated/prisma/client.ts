@@ -99,6 +99,41 @@ export type GoogleConnection = Prisma.GoogleConnectionModel
  */
 export type GoogleReview = Prisma.GoogleReviewModel
 /**
+ * Model GoogleDriveConnection
+ * A conexão do Google Drive DO CLIENTE com o portal dele.
+ * 
+ * Separada de `GoogleConnection` de propósito: aquela é o Meu Negócio (perfil,
+ * avaliações, posts — ESCRITA pública em nome do cliente) e usa o escopo
+ * `business.manage`. Esta é SÓ LEITURA de material, com o escopo estreito
+ * `drive.file`, e o cliente escolhe arquivo por arquivo no seletor do Google.
+ * Misturar as duas numa linha só faria um consentimento carregar o outro — e
+ * "alcance nunca é autorização" é a regra da casa desde 06/08/2026.
+ * 
+ * O escopo `drive.file` é NÃO SENSÍVEL: dá acesso por arquivo, só ao que o
+ * usuário abriu com o app pelo Google Picker
+ * (fonte: docs/plataformas/google/fontes/drive-api-escopos.md). Escopo amplo
+ * (`drive`, `drive.readonly`) é RESTRITO: exige verificação restrita e
+ * avaliação de segurança — meses. Não usamos, e não é para usar.
+ */
+export type GoogleDriveConnection = Prisma.GoogleDriveConnectionModel
+/**
+ * Model DriveMaterial
+ * UM arquivo que o cliente escolheu no seletor do Google — e o papel que ELE
+ * disse que aquele arquivo tem.
+ * 
+ * A trava mora aqui: `papel` só vale quando `papelConfirmadoEm` está
+ * preenchido, e só o CLIENTE preenche. Arquivo escolhido sem papel confirmado
+ * existe no banco, aparece na tela como "falta dizer o que é" e **não é
+ * insumo de nada**. O motivo é o defeito que o CEO nomeou: adivinhar que
+ * "IMG_2831.jpg" é a foto do produto produz peça com a foto errada, que é pior
+ * que peça sem foto.
+ * 
+ * E material daqui é INSUMO, não verdade: ter a foto do produto no Drive não
+ * autoriza a casa a afirmar nada sobre o negócio. O piso de verdade
+ * (lib/agency/execution/piso-de-verdade.ts) continua valendo inteiro.
+ */
+export type DriveMaterial = Prisma.DriveMaterialModel
+/**
  * Model Cycle
  * 
  */

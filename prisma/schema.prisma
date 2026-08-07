@@ -280,6 +280,97 @@ model GoogleReview {
   @@index([workspaceId, status])
 }
 
+// ─── Google Drive do CLIENTE — o material de marca vem de lá ─────────────────
+
+/// A conexão do Google Drive DO CLIENTE com o portal dele.
+///
+/// Separada de `GoogleConnection` de propósito: aquela é o Meu Negócio (perfil,
+/// avaliações, posts — ESCRITA pública em nome do cliente) e usa o escopo
+/// `business.manage`. Esta é SÓ LEITURA de material, com o escopo estreito
+/// `drive.file`, e o cliente escolhe arquivo por arquivo no seletor do Google.
+/// Misturar as duas numa linha só faria um consentimento carregar o outro — e
+/// "alcance nunca é autorização" é a regra da casa desde 06/08/2026.
+///
+/// O escopo `drive.file` é NÃO SENSÍVEL: dá acesso por arquivo, só ao que o
+/// usuário abriu com o app pelo Google Picker
+/// (fonte: docs/plataformas/google/fontes/drive-api-escopos.md). Escopo amplo
+/// (`drive`, `drive.readonly`) é RESTRITO: exige verificação restrita e
+/// avaliação de segurança — meses. Não usamos, e não é para usar.
+model GoogleDriveConnection {
+  id                    String    @id @default(cuid())
+  workspaceId           String
+  /// O dono. SEMPRE derivado do token do portal, nunca do que o navegador manda.
+  clientId              String
+  /// A conta Google que autorizou, só para o cliente reconhecer qual é ("j***@gmail.com").
+  /// Guardado mascarado: e-mail inteiro é PII e não precisa ficar aqui.
+  contaHint             String    @default("")
+  accessTokenEncrypted  String
+  /// Sem refresh token a conexão morre em 1h. E com o app OAuth em "Teste", o
+  /// PRÓPRIO refresh token expira em 7 dias
+  /// (fonte: fontes/oauth2-tokens-e-expiracao.md) — por isso `status` tem
+  /// "expired" e a tela do cliente diz a verdade em vez de erro genérico.
+  refreshTokenEncrypted String?
+  tokenExpiresAt        DateTime?
+  /// Os escopos que o Google efetivamente concedeu. Conferidos na volta: se
+  /// `drive.file` não vier, a conexão NÃO é gravada como utilizável.
+  escopos               String    @default("")
+  /// connected | expired | revoked | error
+  status                String    @default("connected")
+  connectedAt           DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@unique([workspaceId, clientId])
+  @@index([clientId, status])
+}
+
+/// UM arquivo que o cliente escolheu no seletor do Google — e o papel que ELE
+/// disse que aquele arquivo tem.
+///
+/// A trava mora aqui: `papel` só vale quando `papelConfirmadoEm` está
+/// preenchido, e só o CLIENTE preenche. Arquivo escolhido sem papel confirmado
+/// existe no banco, aparece na tela como "falta dizer o que é" e **não é
+/// insumo de nada**. O motivo é o defeito que o CEO nomeou: adivinhar que
+/// "IMG_2831.jpg" é a foto do produto produz peça com a foto errada, que é pior
+/// que peça sem foto.
+///
+/// E material daqui é INSUMO, não verdade: ter a foto do produto no Drive não
+/// autoriza a casa a afirmar nada sobre o negócio. O piso de verdade
+/// (lib/agency/execution/piso-de-verdade.ts) continua valendo inteiro.
+model DriveMaterial {
+  id             String    @id @default(cuid())
+  workspaceId    String
+  clientId       String
+  connectionId   String
+  /// O id do arquivo dentro do Drive. Chave de idempotência da escolha.
+  fileId         String
+  /// Nome como está no Drive do cliente. Pode ser "IMG_2831.jpg" — e é por isso
+  /// que ele não decide nada sozinho.
+  nome           String    @default("")
+  mimeType       String    @default("")
+  tamanhoBytes   Int       @default(0)
+  /// "pasta" quando o cliente escolheu uma PASTA em vez de um arquivo.
+  ehPasta        Boolean   @default(false)
+  /// O papel declarado pelo CLIENTE. Lista fechada em
+  /// lib/integrations/google/escolha-de-material.ts. Null = não declarado.
+  papel          String?
+  /// O palpite da casa, mostrado ao cliente como sugestão a CONFIRMAR. Nunca
+  /// vale como declaração — fica gravado só para a tela já vir preenchida.
+  papelSugerido  String?
+  /// Quando o CLIENTE confirmou o papel. Null = material inutilizável.
+  papelConfirmadoEm DateTime?
+  /// A cópia local, depois de importada. Null = ainda não baixamos.
+  mediaAssetId   String?
+  importadoEm    DateTime?
+  /// Por que a importação falhou, em português, quando falhou.
+  erro           String?
+  escolhidoEm    DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([connectionId, fileId])
+  @@index([clientId, papel])
+  @@index([workspaceId, papelConfirmadoEm])
+}
+
 model Cycle {
   id          String    @id @default(cuid())
   projectId   String

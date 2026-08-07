@@ -585,10 +585,6 @@ export type DbIntegrationConfigUncheckedUpdateManyWithoutWorkspaceNestedInput = 
   deleteMany?: Prisma.DbIntegrationConfigScalarWhereInput | Prisma.DbIntegrationConfigScalarWhereInput[]
 }
 
-export type BoolFieldUpdateOperationsInput = {
-  set?: boolean
-}
-
 export type DbIntegrationConfigCreateWithoutWorkspaceInput = {
   id?: string
   integrationId: string

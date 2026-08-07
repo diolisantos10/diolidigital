@@ -378,5 +378,35 @@
     "slug": "maps-conteudo-proibido",
     "titulo": "Maps — Conteúdo proibido e restrito nas contribuições (LACUNA 2026-08-06, desde 03/08: seções recolhidas, 693 chars úteis)",
     "url": "https://support.google.com/contributionpolicy/answer/7400114?hl=pt-BR"
+  },
+  {
+    "slug": "drive-api-escopos",
+    "titulo": "Google Drive API — escopos de OAuth (drive.file, sensíveis, restritos)",
+    "url": "https://developers.google.com/workspace/drive/api/guides/api-specific-auth"
+  },
+  {
+    "slug": "drive-picker-visao-geral",
+    "titulo": "Google Picker API — visão geral (o seletor de arquivos do Google)",
+    "url": "https://developers.google.com/workspace/drive/picker/guides/overview"
+  },
+  {
+    "slug": "oauth2-tokens-e-expiracao",
+    "titulo": "Google Identity — OAuth 2.0: refresh token e expiração (app em Testing = 7 dias)",
+    "url": "https://developers.google.com/identity/protocols/oauth2"
+  },
+  {
+    "slug": "oauth-verificacao-do-app",
+    "titulo": "Google Cloud — verificação do app OAuth e status de publicação",
+    "url": "https://support.google.com/cloud/answer/13463073?hl=pt-BR"
+  },
+  {
+    "slug": "politica-de-dados-do-usuario",
+    "titulo": "Google API Services — User Data Policy (uso limitado)",
+    "url": "https://developers.google.com/terms/api-services-user-data-policy"
+  },
+  {
+    "slug": "drive-api-baixar-arquivos",
+    "titulo": "Google Drive API — baixar e exportar arquivos",
+    "url": "https://developers.google.com/workspace/drive/api/guides/manage-downloads"
   }
 ]

@@ -391,6 +391,8 @@ export const ModelName = {
   AdCampaign: 'AdCampaign',
   GoogleConnection: 'GoogleConnection',
   GoogleReview: 'GoogleReview',
+  GoogleDriveConnection: 'GoogleDriveConnection',
+  DriveMaterial: 'DriveMaterial',
   Cycle: 'Cycle',
   ClientNotice: 'ClientNotice',
   Deliverable: 'Deliverable',
@@ -452,7 +454,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -971,6 +973,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.GoogleReviewCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.GoogleReviewCountAggregateOutputType> | number
+        }
+      }
+    }
+    GoogleDriveConnection: {
+      payload: Prisma.$GoogleDriveConnectionPayload<ExtArgs>
+      fields: Prisma.GoogleDriveConnectionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.GoogleDriveConnectionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleDriveConnectionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.GoogleDriveConnectionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleDriveConnectionPayload>
+        }
+        findFirst: {
+          args: Prisma.GoogleDriveConnectionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleDriveConnectionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.GoogleDriveConnectionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleDriveConnectionPayload>
+        }
+        findMany: {
+          args: Prisma.GoogleDriveConnectionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleDriveConnectionPayload>[]
+        }
+        create: {
+          args: Prisma.GoogleDriveConnectionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleDriveConnectionPayload>
+        }
+        createMany: {
+          args: Prisma.GoogleDriveConnectionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.GoogleDriveConnectionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleDriveConnectionPayload>[]
+        }
+        delete: {
+          args: Prisma.GoogleDriveConnectionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleDriveConnectionPayload>
+        }
+        update: {
+          args: Prisma.GoogleDriveConnectionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleDriveConnectionPayload>
+        }
+        deleteMany: {
+          args: Prisma.GoogleDriveConnectionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.GoogleDriveConnectionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.GoogleDriveConnectionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleDriveConnectionPayload>[]
+        }
+        upsert: {
+          args: Prisma.GoogleDriveConnectionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GoogleDriveConnectionPayload>
+        }
+        aggregate: {
+          args: Prisma.GoogleDriveConnectionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateGoogleDriveConnection>
+        }
+        groupBy: {
+          args: Prisma.GoogleDriveConnectionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.GoogleDriveConnectionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.GoogleDriveConnectionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.GoogleDriveConnectionCountAggregateOutputType> | number
+        }
+      }
+    }
+    DriveMaterial: {
+      payload: Prisma.$DriveMaterialPayload<ExtArgs>
+      fields: Prisma.DriveMaterialFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.DriveMaterialFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriveMaterialPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.DriveMaterialFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriveMaterialPayload>
+        }
+        findFirst: {
+          args: Prisma.DriveMaterialFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriveMaterialPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.DriveMaterialFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriveMaterialPayload>
+        }
+        findMany: {
+          args: Prisma.DriveMaterialFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriveMaterialPayload>[]
+        }
+        create: {
+          args: Prisma.DriveMaterialCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriveMaterialPayload>
+        }
+        createMany: {
+          args: Prisma.DriveMaterialCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.DriveMaterialCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriveMaterialPayload>[]
+        }
+        delete: {
+          args: Prisma.DriveMaterialDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriveMaterialPayload>
+        }
+        update: {
+          args: Prisma.DriveMaterialUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriveMaterialPayload>
+        }
+        deleteMany: {
+          args: Prisma.DriveMaterialDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.DriveMaterialUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.DriveMaterialUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriveMaterialPayload>[]
+        }
+        upsert: {
+          args: Prisma.DriveMaterialUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DriveMaterialPayload>
+        }
+        aggregate: {
+          args: Prisma.DriveMaterialAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateDriveMaterial>
+        }
+        groupBy: {
+          args: Prisma.DriveMaterialGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DriveMaterialGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.DriveMaterialCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DriveMaterialCountAggregateOutputType> | number
         }
       }
     }
@@ -4556,6 +4706,46 @@ export const GoogleReviewScalarFieldEnum = {
 export type GoogleReviewScalarFieldEnum = (typeof GoogleReviewScalarFieldEnum)[keyof typeof GoogleReviewScalarFieldEnum]
 
 
+export const GoogleDriveConnectionScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  clientId: 'clientId',
+  contaHint: 'contaHint',
+  accessTokenEncrypted: 'accessTokenEncrypted',
+  refreshTokenEncrypted: 'refreshTokenEncrypted',
+  tokenExpiresAt: 'tokenExpiresAt',
+  escopos: 'escopos',
+  status: 'status',
+  connectedAt: 'connectedAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type GoogleDriveConnectionScalarFieldEnum = (typeof GoogleDriveConnectionScalarFieldEnum)[keyof typeof GoogleDriveConnectionScalarFieldEnum]
+
+
+export const DriveMaterialScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  clientId: 'clientId',
+  connectionId: 'connectionId',
+  fileId: 'fileId',
+  nome: 'nome',
+  mimeType: 'mimeType',
+  tamanhoBytes: 'tamanhoBytes',
+  ehPasta: 'ehPasta',
+  papel: 'papel',
+  papelSugerido: 'papelSugerido',
+  papelConfirmadoEm: 'papelConfirmadoEm',
+  mediaAssetId: 'mediaAssetId',
+  importadoEm: 'importadoEm',
+  erro: 'erro',
+  escolhidoEm: 'escolhidoEm',
+  updatedAt: 'updatedAt'
+} as const
+
+export type DriveMaterialScalarFieldEnum = (typeof DriveMaterialScalarFieldEnum)[keyof typeof DriveMaterialScalarFieldEnum]
+
+
 export const CycleScalarFieldEnum = {
   id: 'id',
   projectId: 'projectId',
@@ -5531,6 +5721,8 @@ export type GlobalOmitConfig = {
   adCampaign?: Prisma.AdCampaignOmit
   googleConnection?: Prisma.GoogleConnectionOmit
   googleReview?: Prisma.GoogleReviewOmit
+  googleDriveConnection?: Prisma.GoogleDriveConnectionOmit
+  driveMaterial?: Prisma.DriveMaterialOmit
   cycle?: Prisma.CycleOmit
   clientNotice?: Prisma.ClientNoticeOmit
   deliverable?: Prisma.DeliverableOmit

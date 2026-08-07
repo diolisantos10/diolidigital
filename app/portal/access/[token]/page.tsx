@@ -125,9 +125,10 @@ const DECISAO_LABEL: Record<string, string> = {
   rejected: "recusado por você",
 };
 
-// Integrações futuras (além da Meta, que já é real em Conexões).
+// Integrações futuras (além da Meta e do Google Drive, que já são reais em
+// Conexões). O Drive saiu daqui em 07/08/2026: cartão "EM BREVE" que não faz
+// nada é promessa parada na tela do cliente.
 const INTEGRACOES_FUTURAS: { key: string; name: string; desc: string; color: string; initials: string }[] = [
-  { key: "gdrive",     name: "Google Drive",     desc: "Repositório de fotos, vídeos e materiais", color: "#1FA463", initials: "GD" },
   { key: "gads",       name: "Google Ads",       desc: "Campanhas e desempenho de anúncios",       color: "#4285F4", initials: "GA" },
   { key: "ganalytics", name: "Google Analytics", desc: "Tráfego e conversões do site",             color: "#E8710A", initials: "GA" },
   { key: "tiktok",     name: "TikTok",           desc: "Visualizações, seguidores e engajamento",  color: "#010101", initials: "TT" },
