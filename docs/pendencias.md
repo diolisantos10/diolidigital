@@ -1,5 +1,40 @@
 # Pendências — o que está aberto
 
+## 🟡 07/08/2026 — GOOGLE DRIVE DO CLIENTE: código no ar do branch, feature TRAVADA
+
+O material de marca do cliente (logo em arquivo, fotos reais, manual, captura de
+tela) já tem caminho: portal → escolha do cliente → esteira. Está no branch
+`claude/dioli-pm-role-pow56e`, commit `626192e`. **Não está em produção** —
+produção roda outro branch (`claude/dioli-agency-os-architecture-kk7kp`,
+commit `796fca0`).
+
+**O que trava, e é do CEO:**
+
+1. **Publicar o app OAuth** no Google Cloud Console (Tela de permissão OAuth →
+   "PUBLICAR APP"). Com o app em "Teste", o refresh token do cliente **morre em
+   7 dias** e a conexão quebra sozinha parecendo defeito nosso
+   (fonte: `docs/plataformas/google/fontes/oauth2-tokens-e-expiracao.md`).
+   Como o escopo é `drive.file` (não sensível), **não há verificação
+   obrigatória** — é um clique.
+2. **Registrar o redirect URI** `https://www.diolidigital.com.br/api/google/drive/callback`.
+3. **Ativar Drive API + Picker API** e criar uma chave de API de navegador
+   (`GOOGLE_PICKER_API_KEY`) + anotar o número do projeto (`GOOGLE_PROJECT_NUMBER`).
+
+Sem (3), o portal já diz a verdade: botão de escolher arquivos indisponível com
+"avise a agência — não é problema da sua conta". Nada finge funcionar.
+
+Parecer completo, com fontes: `docs/plataformas/google/pareceres/2026-08-07-drive-do-cliente.md`.
+
+**Dívidas declaradas do mesmo bloco:**
+- O par foto→peça continua sendo escolha explícita (`montarArteComFotoDoCliente`),
+  como manda a lição de 04/08 ("sobra não é evidência de correspondência"). A
+  oferta existe (`fotosReaisDoCliente`); quem casa arquivo com peça, não.
+- `BrandBrain` e `ClientKnowledgeSnapshot` ainda não são alimentados pelo
+  material do Drive — o manual de marca entra como arquivo, não como cor/fonte
+  extraída.
+- `__tests__/esteira/passagem-do-pedido.test.ts` falha por data fixa no teste
+  (falha JÁ em `c48d635`, antes deste trabalho).
+
 ## 🔵 07/08/2026 (madrugada) — O RELÓGIO ESTAVA CERTO; QUEM ESTAVA ERRADO ERA O DIAGNÓSTICO
 
 Ordem do CEO: *"amanhã quando eu voltar eu quero essa agência produzindo, sem
