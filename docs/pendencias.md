@@ -1,5 +1,104 @@
 # Pendências — o que está aberto
 
+## 🔴 07/08/2026 — RESOLVIDO: o Drive do cliente NUNCA funcionou em produção
+
+**A consequência, primeiro:** desde que a feature subiu (07/08, `d0985b6`) até
+`70d0275`, **nenhum cliente conseguiu conectar o Google Drive.** Não é "quase
+funcionava": as tabelas não existiam no banco de produção.
+
+**A causa:** `GoogleDriveConnection` e `DriveMaterial` entraram em
+`prisma/schema.prisma` **sem migration**. Produção aplica esquema só por
+`prisma migrate deploy` (`scripts/start.sh` recusa `db push` de propósito).
+Medido: das 55 tabelas do schema, **exatamente estas 2** não eram criadas por
+migration nenhuma. Não tinha nada a ver com o host do Railway — falhava nos dois.
+
+> ### ⚠️ O QUE FEZ O DEFEITO DURAR: TRÊS `.catch` EM FILA
+>
+> O CEO viu, no mesmo cartão e ao mesmo tempo, a faixa verde "Google Drive
+> conectado." e o texto "Drive não conectado." com o botão de conectar. Cada elo
+> do caminho engolia a verdade e passava adiante:
+>
+> 1. o callback fazia `upsert(...).catch(() => null)` e devolvia a página de
+>    sucesso **incondicionalmente** — o popup declarava conexão que não houve;
+> 2. `GET /api/portal/drive` fazia `findUnique(...).catch(() => null)`, e a
+>    falha de LEITURA saía como o FATO "você não conectou";
+> 3. a faixa verde do componente vinha do postMessage (a INTENÇÃO do popup),
+>    não do banco — duas fontes de verdade no mesmo cartão.
+>
+> **A lição:** `.catch(() => null)` posto para "não derrubar a página" converte
+> falha de infraestrutura em afirmação falsa sobre o cliente. Os três eram
+> defensáveis isoladamente; em fila, produziram uma feature morta que se
+> anunciava viva por um mês.
+
+**Consertado nos quatro lugares** (`70d0275`): a migration (só CREATE TABLE —
+ver abaixo), porta fechada no callback, leitura honesta (503 nomeado) no portal,
+e a faixa passa a usar a palavra do SERVIDOR.
+
+**A trava para a classe inteira:** `__tests__/plataforma/schema-sem-migration.test.ts`
+reprova qualquer modelo do schema que nenhuma migration crie. "Lembre de gerar a
+migration" é sugestão — e foi essa sugestão que falhou: em dev o `db push` deixa
+tudo verde enquanto a produção fica sem a tabela.
+
+### 🟠 Dívida declarada, NÃO consertada: `ClientAiProvider` está fora do lugar
+
+`prisma migrate diff` também propõe **RECONSTRUIR** `ClientAiProvider` (PRAGMA
+foreign_keys=OFF → CREATE new → INSERT SELECT → DROP → RENAME), por uma
+divergência de chave estrangeira **anterior a esta frente**. Ficou **de fora**
+do conserto de urgência: reconstruir tabela num SQLite em volume, com o CEO
+parado, é exatamente o risco que o passo 3.5 do `start.sh` existe para cobrir.
+
+- [ ] `plataforma` — migration própria para a divergência de `ClientAiProvider`,
+      em janela calma, com a cópia pré-migration conferida.
+
+## ✅ 07/08/2026 — Os links de portal saem de PRODUÇÃO
+
+`GET /api/admin/links-do-portal`, autenticada pelo **mesmo `CRON_SECRET`** das
+rotas de cron (`Authorization: Bearer`). O script exigia o banco de produção, que
+ninguém alcança — o SQLite mora num volume dentro do contêiner.
+
+- **A regra é uma só:** saiu do script e virou `lib/agency/esteira/links-do-portal.ts`,
+  usada pelos dois. Teste reprova o script que voltar a emitir token por conta própria.
+- **Não emite por padrão** (`?emitir=1` é explícito) e **nunca revoga** token vivo.
+- **Conferido em produção** (`70d0275`): sem segredo → **401** `{"error":"Unauthorized"}`;
+  rota inexistente → 404, o que prova que o 401 é "viva e fechada".
+  O 401 (e não 503) também prova que **`CRON_SECRET` existe em produção**.
+
+## ✅ 07/08/2026 — O material do Drive CHEGA na peça (foto e logo)
+
+Até `43bf31e`, o cliente conectava a pasta e **a peça saía igual**:
+`fotosReaisDoCliente` não tinha um chamador no app, `montarArteComFotoDoCliente`
+só era chamada por teste, e o molde **não tinha campo para imagem de logo**.
+
+**A regra de escolha é derivada do CONTEÚDO, não um interruptor global**
+(`lib/agency/design/escolha-de-foto.ts`). Duas razões, ambas obrigatórias:
+
+1. **Papel** — cada `FUNCOES[papel]` declara `materiaisReais`, derivado do
+   `imagemPrecisa` que ele já declarava. `prova` admite captura de tela;
+   `mecanismo`, a tela do produto; `acao`, o local. **`gancho`, `tensao`,
+   `capa`, `materia` e `fechamento` declaram lista VAZIA** — ninguém sobe ao
+   Drive a foto do próprio problema.
+2. **Assunto** — desempate por lastro léxico entre o nome do arquivo (a palavra
+   do cliente) e o texto daquela tela.
+
+**Empate ou lastro zero NÃO escolhe:** gera por IA e declara o que havia. É a
+lição de 04/08 — "sobra não é evidência de correspondência".
+
+**O logo real assina** (`Molde.logo`, data URL): ocupa o lugar do monograma, que
+sempre foi o substituto declarado dele. **Sem logo, a falta é declarada e nada é
+desenhado.**
+
+### O que esta frente NÃO faz (declarado, não escondido)
+
+- **Post avulso quase nunca usa foto real, por decisão.** Ele não declara papel
+  de imagem, então falta uma das duas razões e a régua fica mais estrita. Um
+  `SocialPost` com papel declarado resolveria — não existe hoje.
+- **`BrandBrain` continua sem ser alimentado pelo Drive.** O manual de marca
+  entra como arquivo, não como cor/fonte extraída. A peça usa foto e logo; cor e
+  tipografia ainda saem só do cadastro.
+- **Nenhuma peça foi produzida em produção com este código ainda.** A prova é em
+  teste (bytes e DOM). A primeira peça real é a prova que falta.
+
+
 ## 🔴 07/08/2026 — FRENTE DE VÍDEO: **CapCut NÃO PODE ser conectado.** Dono: PM de vídeo
 
 Pedido do CEO: *"vídeo, vamos conectar o CapCut"*. O especialista-trava do
