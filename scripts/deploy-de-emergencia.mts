@@ -32,7 +32,8 @@ import { julgarProva } from "../lib/plataforma/sentinela-do-deploy.ts";
 import { cabecalhosDoGitHub, comTempoLimite, olharCI, olharPlataforma, REPO_PADRAO } from "../lib/plataforma/consulta-de-ci.ts";
 import { montarRegistro, podeForcar } from "../lib/plataforma/porta-de-emergencia.ts";
 import {
-  ajustarPortao,
+  // `ajustarPortao` saiu de propósito: a porta de emergência não mexe mais no
+  // portão do CI. Ver o bloco do disparo, mais abaixo.
   BRANCH_DE_PRODUCAO,
   dispararDeploy,
   lerPortao,
@@ -180,17 +181,30 @@ async function main(): Promise<void> {
   if (urlDaIssue) console.log(`📣 Issue de rastro: ${urlDaIssue}`);
   else console.log("⚠️  Não consegui abrir a issue de rastro (GitHub fora ou sem token). O arquivo é o rastro.");
 
-  // 5. Abrir o portão só pelo instante do disparo, e fechar no finally.
-  const antes = await lerPortao();
-  let reabriu = false;
+  // 5. O DISPARO — com o portão INTACTO.
+  //
+  // Aqui o script desligava o "Wait for CI", disparava e religava no `finally`.
+  // Duas coisas erradas com isso, as duas custaram uma emergência de verdade:
+  //
+  //   • O token de projeto RECUSA `deploymentTriggerUpdate` — então em 06 e
+  //     07/08/2026 nem chegava a disparar: a porta de emergência simplesmente
+  //     não abria, e o conserto de produção subiu à mão.
+  //   • Mesmo que funcionasse, existia uma JANELA com a produção sem portão. Se
+  //     o processo morresse entre o desligar e o religar, ela ficava aberta para
+  //     sempre — e o próprio script já previa esse desastre num `console.error`.
+  //
+  // `serviceInstanceDeployV2` dispara o commit nomeado sem passar pelo portão.
+  // Não há o que desligar, então não há janela, nem religamento que possa
+  // falhar. A trava da casa fica de pé durante a própria emergência.
   try {
-    if (antes.esperaPelaCI) {
-      await ajustarPortao(antes.triggerId, false);
-      reabriu = true;
-    }
-    await dispararDeploy();
-    console.log("🚀 Deploy disparado no Railway.");
-    appendFileSync(ARQUIVO_DE_REGISTRO, `- **Resultado:** deploy disparado no Railway.\n`, "utf8");
+    const implantacao = await dispararDeploy(commit);
+    console.log(`🚀 Deploy disparado no Railway (implantação ${implantacao}).`);
+    console.log("🔒 O portão do deploy NÃO foi tocado — continua como estava.");
+    appendFileSync(
+      ARQUIVO_DE_REGISTRO,
+      `- **Resultado:** deploy disparado no Railway — implantação \`${implantacao}\`, commit \`${commit.slice(0, 7)}\`, portão do CI intacto.\n`,
+      "utf8",
+    );
   } catch (e) {
     // O registro é escrito ANTES do disparo (de propósito: sem rastro não
     // sobe). O preço é que uma tentativa que falha deixa no arquivo uma linha
@@ -200,18 +214,6 @@ async function main(): Promise<void> {
     const porque = e instanceof Error ? e.message : String(e);
     appendFileSync(ARQUIVO_DE_REGISTRO, `- **Resultado: O DISPARO FALHOU** — ${porque} (nada subiu).\n`, "utf8");
     throw e;
-  } finally {
-    if (reabriu) {
-      const depois = await ajustarPortao(antes.triggerId, true).catch(() => null);
-      if (!depois || !depois.esperaPelaCI) {
-        console.error("");
-        console.error("🚨 NÃO CONSEGUI FECHAR O PORTÃO DE VOLTA. Ele está ABERTO agora:");
-        console.error("   todo push vai para produção sem CI até alguém rodar `npm run portao -- --ligar`.");
-        console.error("");
-        process.exit(1);
-      }
-      console.log("🔒 Portão fechado de volta (conferido por releitura).");
-    }
   }
 
   const impl = await ultimasImplantacoes(3).catch(() => []);

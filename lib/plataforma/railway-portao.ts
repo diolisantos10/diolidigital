@@ -151,12 +151,50 @@ export async function lerAutodeploy(): Promise<{ ligado: boolean; podeLigar: boo
   return { ligado: a.enabled, podeLigar: a.canEnable, motivo: a.reason ?? null };
 }
 
-/** Dispara o deploy do último commit da branch conectada ("Deploy Latest Commit"). */
-export async function dispararDeploy(): Promise<void> {
-  await graphql(
-    `mutation($input: EnvironmentTriggersDeployInput!) { environmentTriggersDeploy(input: $input) }`,
-    { input: { projectId: PROJETO, serviceId: SERVICO, environmentId: AMBIENTE } },
+/**
+ * Dispara o deploy de UM COMMIT NOMEADO.
+ *
+ * ── POR QUE NÃO É MAIS `environmentTriggersDeploy` ──────────────────────────
+ *
+ * Era, e a porta de emergência não abria. Duas descobertas, as duas pagas em
+ * incidente real e registradas em `docs/deploys/emergencias.md`:
+ *
+ *   1. O token de PROJETO do Railway (`Project-Access-Token`, o único que esta
+ *      casa tem) RECUSA `environmentTriggersDeploy` e `deploymentTriggerUpdate`
+ *      com "Bad Access". Em 06/08 e 07/08/2026 a porta falhou nos dois usos —
+ *      no segundo, com o GitHub Actions em pane e a produção quebrada na cara
+ *      do CEO, o conserto teve de subir À MÃO, por fora do script.
+ *   2. O MESMO token ACEITA `serviceInstanceDeployV2`. Foi ela que subiu o
+ *      conserto de 07/08.
+ *
+ * Ela é melhor por três motivos, não só por funcionar:
+ *
+ *   • NÃO PASSA PELO "Wait for CI". O portão pode continuar LIGADO durante a
+ *     emergência. O caminho antigo precisava DESLIGAR o portão para disparar e
+ *     religar depois — uma janela em que todo push ia direto para produção sem
+ *     CI, e que ficava aberta para sempre se o processo morresse no meio.
+ *   • O COMMIT É EXPLÍCITO. "Deploy do último commit da branch" não responde
+ *     "que commit subiu mesmo?" — e numa emergência é exatamente a pergunta.
+ *     Aqui o commit é argumento obrigatório: adivinhar não é opção.
+ *   • SUBSTITUI a implantação presa em `WAITING`, que é o estado em que o push
+ *     fica quando a CI nunca vai responder porque o GitHub está fora.
+ *
+ * Devolve o id da implantação criada — é o que permite conferir depois que a
+ * subida foi mesmo esta, em vez de acreditar no "disparei".
+ */
+export async function dispararDeploy(commitSha: string): Promise<string> {
+  const sha = commitSha?.trim();
+  // Porta de emergência que adivinha o que sobe não é porta, é alçapão.
+  if (!sha) {
+    throw new Error("dispararDeploy exige o commitSha: sem ele não há como dizer O QUE subiu.");
+  }
+  const d = await graphql<{ serviceInstanceDeployV2: string }>(
+    `mutation($serviceId: String!, $environmentId: String!, $commitSha: String) {
+       serviceInstanceDeployV2(serviceId: $serviceId, environmentId: $environmentId, commitSha: $commitSha)
+     }`,
+    { serviceId: SERVICO, environmentId: AMBIENTE, commitSha: sha },
   );
+  return d.serviceInstanceDeployV2;
 }
 
 export type ImplantacaoResumida = {
