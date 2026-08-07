@@ -1,0 +1,72 @@
+[
+  {
+    "slug": "termos-de-uso",
+    "titulo": "99Freelas — Termos de uso (regras para freelancers, sanções, fluxo de projetos, repasses)",
+    "url": "https://www.99freelas.com.br/termos"
+  },
+  {
+    "slug": "politica-de-privacidade",
+    "titulo": "99Freelas — Política de privacidade",
+    "url": "https://www.99freelas.com.br/privacidade"
+  },
+  {
+    "slug": "ajuda-o-que-sao-conexoes",
+    "titulo": "99Freelas — O que são conexões (a cota mensal que limita quantas propostas se pode enviar)",
+    "url": "https://99freelas.zendesk.com/hc/pt-br/articles/4410951411223-O-que-s%C3%A3o-conex%C3%B5es"
+  },
+  {
+    "slug": "ajuda-minhas-conexoes",
+    "titulo": "99Freelas — Minhas conexões (consumo por projeto, renovação, sem estorno)",
+    "url": "https://99freelas.zendesk.com/hc/pt-br/articles/1500008364942-Minhas-conex%C3%B5es"
+  },
+  {
+    "slug": "ajuda-como-enviar-propostas",
+    "titulo": "99Freelas — Como enviar propostas (janela de 24h, campos, regras de conduta)",
+    "url": "https://99freelas.zendesk.com/hc/pt-br/articles/1500007214242-Como-enviar-propostas"
+  },
+  {
+    "slug": "ajuda-plano-gratuito-nao-consigo-enviar-proposta",
+    "titulo": "99Freelas — Plano gratuito e a janela de 24h exclusiva de assinantes",
+    "url": "https://99freelas.zendesk.com/hc/pt-br/articles/360012176014-Sou-profissional-do-plano-gratuito-e-n%C3%A3o-consigo-enviar-proposta-Como-fa%C3%A7o"
+  },
+  {
+    "slug": "ajuda-planos-de-freelancers",
+    "titulo": "99Freelas — Planos de freelancers (Free, Pro, Premium)",
+    "url": "https://99freelas.zendesk.com/hc/pt-br/articles/1500008543262-Planos-de-freelancers"
+  },
+  {
+    "slug": "ajuda-valor-minimo",
+    "titulo": "99Freelas — O que é o valor mínimo (piso de preço por categoria imposto pela plataforma)",
+    "url": "https://99freelas.zendesk.com/hc/pt-br/articles/1500009181841-O-que-%C3%A9-o-valor-m%C3%ADnimo-freelancer"
+  },
+  {
+    "slug": "ajuda-violacao-freelancer",
+    "titulo": "99Freelas — Violação (freelancer): o que é, motivos, 30 dias de rebaixamento e risco de banimento",
+    "url": "https://99freelas.zendesk.com/hc/pt-br/articles/1500009819622-Viola%C3%A7%C3%A3o-freelancer"
+  },
+  {
+    "slug": "ajuda-projetos-nao-permitidos",
+    "titulo": "99Freelas — Projetos não permitidos (comissionado, teste não pago, acadêmico, vaga de emprego)",
+    "url": "https://99freelas.zendesk.com/hc/pt-br/articles/360007809654-Projetos-n%C3%A3o-permitidos"
+  },
+  {
+    "slug": "ajuda-usando-o-chat-freelancer",
+    "titulo": "99Freelas — Usando o chat (proibição de contato antes da garantia de pagamento)",
+    "url": "https://99freelas.zendesk.com/hc/pt-br/articles/1500007359441-Usando-o-chat-freelancer"
+  },
+  {
+    "slug": "ajuda-pesquisando-por-projetos",
+    "titulo": "99Freelas — Pesquisando por projetos (filtros disponíveis para o scanner)",
+    "url": "https://99freelas.zendesk.com/hc/pt-br/articles/1500007160041-Pesquisando-por-projetos"
+  },
+  {
+    "slug": "ajuda-subindo-no-ranking",
+    "titulo": "99Freelas — Subindo no ranking (o que a plataforma premia)",
+    "url": "https://99freelas.zendesk.com/hc/pt-br/articles/1500007148521-Subindo-no-ranking"
+  },
+  {
+    "slug": "ajuda-tirando-duvida-com-o-cliente",
+    "titulo": "99Freelas — Tirando uma dúvida com o cliente (pergunta também consome conexão)",
+    "url": "https://99freelas.zendesk.com/hc/pt-br/articles/1500007358381-Tirando-uma-d%C3%BAvida-com-o-cliente"
+  }
+]

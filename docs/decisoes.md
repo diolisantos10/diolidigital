@@ -8,6 +8,53 @@
 
 ---
 
+## 99FREELAS: PODE COM AJUSTE — e o ajuste é COTA, não texto de contrato
+
+**Decidido em** 2026-08-07 · **por** PM da frente 99Freelas, sob a trava de
+plataforma de 03/08 · **origem:**
+`docs/plataformas/99freelas/pareceres/2026-08-07-agente-autonomo-de-prospeccao.md`
+(15 fontes capturadas em `docs/plataformas/99freelas/fontes/`)
+
+O CEO pediu um agente autônomo que opera o 99Freelas por navegador e envia **10
+propostas por dia**. O parecer-trava saiu **antes de qualquer código**, como ele
+mesmo escolheu.
+
+**O que os Termos NÃO dizem:** não existe a palavra automação, robô, bot,
+script ou crawler — nem nos Termos, nem na Central de Ajuda (0 resultado para
+cada termo). Diferente do CapCut, que proíbe automação com todas as letras.
+**Ausência de proibição não é permissão:** também não existe autorização. É o
+silêncio do contrato, e no silêncio quem julga é a moderação, olhando conduta.
+
+**O que os Termos dizem, e nos alcança:** *"propagação de spams … e quaisquer
+outras práticas que descumpram os termos"* → Violação (30 dias de propostas
+rebaixadas) → Penalização (bloqueio de enviar proposta) → **Banimento
+permanente, que alcança outras contas do mesmo usuário**. É o mesmo formato do
+ban da Meta em 03/08: a regra violada é de CONDUTA, não de tecnologia.
+
+**O ajuste que redefine o projeto — e é aritmética, não opinião:** o 99Freelas
+cobra cada proposta **e cada pergunta** em "conexões", com cota **MENSAL**:
+gratuito 10/mês, Pro 120/mês, Premium 240/mês. **10 por dia = 300 por mês**,
+acima do teto do plano mais caro. Projeto disputado custa **mais de uma**
+conexão, e conexão gasta **não volta**.
+
+As três regras que ficam para qualquer plataforma de marketplace desta casa:
+
+1. **Teto de ritmo é lido da plataforma, nunca fixado no `.env`.** Número
+   escrito à mão descola do saldo real e queima cota que não se recupera.
+2. **Ausência de proibição explícita rebaixa o veredito, não o promove.**
+   Silêncio contratual = 🟠 PODE COM AJUSTE, com as condições viradas requisito.
+   Só vira 🟢 com resposta escrita da plataforma.
+3. **Onde há CAPTCHA, o robô para e escala.** reCAPTCHA e Cloudflare Turnstile
+   estão confirmados no login do 99Freelas. Contornar é fraude na lista de
+   sanções — e nesta casa é proibição, não custo/benefício.
+
+**A quarta, que é de dinheiro:** a plataforma tira **10% a 20%** da oferta
+digitada, e impõe piso por categoria (R$ 30 a R$ 100). O Pricing Engine aplica
+`max(piso da casa, piso da categoria)` **e** embute a taxa — senão a margem some
+sem aparecer em relatório nenhum.
+
+---
+
 ## DEPLOY SÓ COM CI VERDE — e "sem CI" nunca conta como verde
 
 **Decidido em** 2026-08-06 · **por** CEO · **origem:** `docs/deploys/portao.md`,

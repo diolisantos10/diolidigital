@@ -1,5 +1,110 @@
 # Pendências — o que está aberto
 
+## 🟠 07/08/2026 — FRENTE 99FREELAS: **PODE COM AJUSTE.** Dono: PM do 99Freelas
+
+Pedido do CEO: um agente autônomo que opera o 99Freelas por navegador e envia
+**10 propostas por dia**. Especificação íntegra dele em
+`docs/projetos/99freelas/00-ESPECIFICACAO-DO-CEO.md` (1.458 linhas).
+Não existia especialista-trava nem biblioteca desta plataforma — o mesmo buraco
+que custou a conta de anúncios da Meta em 03/08. **Parecer completo, com 15
+fontes capturadas:
+`docs/plataformas/99freelas/pareceres/2026-08-07-agente-autonomo-de-prospeccao.md`.**
+
+**Veredito: 🟠 PODE COM AJUSTE.** Os Termos de Uso **não proíbem automação** —
+a palavra não existe no texto, nem nos Termos nem na Central de Ajuda. O que a
+plataforma proíbe é conduta: spam, link externo, dado de contato, pagamento por
+fora, referência à comissão. Um agente que respeita a conduta não viola cláusula
+nenhuma que exista hoje.
+
+### 🔴 O ajuste que muda o pedido do CEO: "10 por dia" não cabe em nenhum plano
+
+O 99Freelas cobra cada proposta **e cada pergunta** em **conexões**, com cota
+**MENSAL**:
+
+| Plano | Conexões/mês | Por dia |
+|---|---|---|
+| Gratuito | **10** | 0,33 |
+| Pro | 120 | 4 |
+| Premium | 240 | 8 |
+
+**10 por dia = 300 por mês.** Acima do teto do plano mais caro. Medalhas somam
+(até +120/mês) mas se conquistam com histórico — conta nova não tem. Pior:
+projeto disputado (marketing e design são os disputados) custa **mais de uma**
+conexão, e **conexão gasta não volta**.
+
+**E no plano gratuito o freelancer só pode propor depois de 24 h** da publicação
+— as primeiras 24 h são exclusivas de assinantes. O scanner de 15 em 15 minutos
+encontraria projetos que ainda não pode responder.
+
+### O que mais o parecer achou, e a especificação não previa
+
+- **Proibido fazer referência à comissão da 99Freelas** no texto. "Esse valor já
+  considera a taxa da plataforma" é violação. Entra no Compliance Validator.
+- **A taxa é NOSSA: 10% a 20% da oferta digitada** (mínimo R$ 5). Precificar sem
+  embutir corrói a margem em toda proposta, silenciosamente.
+- **Piso de preço por categoria imposto pela plataforma** (R$ 30 a R$ 100). O
+  Pricing Engine aplica `max(piso da casa, piso da categoria)`.
+- **Sanção de Violação por NÃO RESPONDER o cliente a tempo** — 30 dias com as
+  propostas rebaixadas para o fim da fila. Um robô que envia 10 por dia e deixa
+  o `AUTO_REPLY=false` do §23 constrói exatamente esse cenário. **Follow-up não
+  é fase 11: é condição de não tomar punição.**
+- **Banimento alcança outras contas do mesmo usuário.** Abrir segunda conta é o
+  gesto que transforma suspensão em banimento definitivo.
+- **Não existe API oficial** — nenhum host de desenvolvedor resolve no DNS.
+  Navegador é o único caminho que existe.
+- **CAPTCHA confirmado:** reCAPTCHA **e** Cloudflare Turnstile na tela de login.
+
+### Lacunas declaradas — não deduzidas
+
+- **Não fizemos login.** Rate limit e fingerprint do lado autenticado: **não
+  confirmei**. Não há documento público do 99Freelas sobre isso.
+- **Não sei qual plano a conta do CEO tem.** Todo o cálculo de ritmo depende
+  disso.
+- **Não sei quanto cada categoria custa em conexões.** A plataforma diz que
+  varia e não publica a tabela.
+- **Não sei se o perfil da conta tem link ou contato**, que é proibido pelas
+  Regras para Freelancers. Precisa de conferência humana antes de operar.
+- 6 das 15 fontes são artigos curtos que a régua do `capturar.mjs` reprova por
+  tamanho (ela existe para barrar menu e bloqueio de robô). Em vez de afrouxar a
+  régua global, vieram pela **API oficial do Help Center**, com a procedência
+  declarada no cabeçalho de cada arquivo.
+- **`/termos/`, `/privacidade/`, `/faq/` e `/freelancer-premium/` são
+  `Disallow` no robots.txt.** A captura foi feita uma vez, à mão. **Esta
+  biblioteca fica FORA da recaptura diária automática.**
+
+### 🔴 O QUE DEPENDE DO CEO — antes de o envio ser destravado
+
+1. **Qual é o plano da conta, e o ritmo aceito.** "10 por dia" só existe com
+   Premium + medalha máxima. Ou ele assina, ou o número muda. **É decisão dele,
+   e por isso não escolhi um número.**
+2. **Perguntar por escrito ao `suporte@99freelas.com.br` se automação é aceita.**
+   É a única coisa que transforma este 🟠 em 🟢. A resposta vira fonte na
+   biblioteca.
+3. **Conferir o perfil da conta** — link ou dado de contato no perfil/portfólio
+   é violação, e o robô vai chamar atenção para esse perfil.
+4. **Ordem de provedor de IA:** a casa é Claude primeiro, OpenAI segundo
+   (`lib/ai/generate.ts`); a especificação exige OpenAI (Agents SDK,
+   ComputerTool). **Não troquei a ordem global** — isso afeta todos os produtos.
+   Levantamento e proposta vêm no plano faseado.
+
+### O que vem a seguir nesta frente (a fazer, com dono)
+
+- [ ] `pm` 99freelas — `BrowserComputer` + primeiro loop real do agente
+      (Playwright determinístico por padrão, Computer Use como exceção
+      declarada, conforme a emenda §37 do CEO). **Não toca o 99Freelas.**
+- [ ] `pm` 99freelas — Compliance Validator com a regra do link **travada**,
+      somadas as 4 regras novas achadas no parecer.
+- [ ] `pm` 99freelas — Pricing Engine puxando o piso da tabela da casa, serviço
+      por serviço, com `max(piso da casa, piso da categoria)` e a taxa embutida.
+- [ ] `pm` 99freelas — departamento em SOMBRA na escada (`lib/agency/escada/`),
+      reaproveitando `lib/agency/comercial/oportunidade.ts` e `qualificar.ts`.
+- [ ] `qualidade` — gate executável de **similaridade entre propostas**. Texto
+      repetido é spam, spam é sanção, e a especificação não pede essa trava.
+- [ ] `pm` 99freelas — teto de ritmo **lido da plataforma**, nunca do `.env`.
+
+**Nenhuma escrita no 99Freelas nesta rodada. Nenhum login feito. Nenhuma linha
+de código de produção escrita.**
+
 ## 🔴 07/08/2026 — RESOLVIDO: o Drive do cliente NUNCA funcionou em produção
 
 **A consequência, primeiro:** desde que a feature subiu (07/08, `d0985b6`) até
