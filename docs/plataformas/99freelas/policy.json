@@ -1,0 +1,118 @@
+{
+  "_leia_isto": [
+    "A primeira linha do `platform_policies` (§46/§47 da especificação 01 do CEO).",
+    "POLÍTICA DE PLATAFORMA É DADO, NÃO TEXTO DE PROMPT (§48).",
+    "Quem lê este arquivo é o Compliance Gate. O modelo NÃO decide política (§57).",
+    "Toda afirmação aqui é derivada do parecer com fonte citada em:",
+    "docs/plataformas/99freelas/pareceres/2026-08-07-agente-autonomo-de-prospeccao.md",
+    "Mudou a regra da plataforma? A linha antiga vira active:false e nasce outra (§48)."
+  ],
+
+  "platform": "99freelas",
+  "version": "2026-08",
+  "active": true,
+  "policy_verified_at": "2026-08-07",
+  "verificado_por": "PM da frente 99Freelas, sob a trava de plataforma de 03/08/2026",
+
+  "integration_mode": "BROWSER_DISCOVERY_HUMAN_GATE_SUBMISSION",
+
+  "browser_automation_allowed": false,
+  "browser_automation_motivo": "O regulamento do 99Freelas NÃO proíbe automação (a palavra não existe nos Termos nem na Central de Ajuda) — mas TAMBÉM NÃO AUTORIZA expressamente. Pela §6 e §60 da especificação 01 do CEO, silêncio não é autorização e 'provavelmente pode' não executa. FAIL CLOSED.",
+
+  "api_available": false,
+  "api_authorization_required": false,
+  "api_motivo": "Nenhum host de API/desenvolvedor resolve no DNS (api., developer., developers., docs.). Central de Ajuda: 0 resultado para 'API'. Navegador é o único caminho que existe.",
+
+  "external_links_allowed_pre_contract": false,
+  "external_contact_allowed_pre_contract": false,
+  "external_payment_allowed": false,
+  "auto_submission_allowed": false,
+  "auto_messaging_allowed": false,
+  "human_gate_required": true,
+
+  "capabilities": {
+    "discovery": "AUTHORIZED_BROWSER",
+    "projectRead": "AUTHORIZED_BROWSER",
+    "proposalSubmission": "MANUAL",
+    "messaging": "MANUAL",
+    "statusSync": "AUTHORIZED_BROWSER",
+    "_discovery_motivo": "Único ponto com sinal POSITIVO da plataforma: `/projects` não é Disallow no robots.txt e está no sitemap.xml com prioridade 0.80 — o 99Freelas pede que a listagem seja indexada. Vale só para a ÁREA PÚBLICA, em ritmo humano.",
+    "_submission_motivo": "§60/§61 da especificação 01: plataforma que não autoriza automação ⇒ HUMAN_GATE. O clique final é do CEO até haver autorização escrita."
+  },
+
+  "proibicoes_de_conteudo": {
+    "link_externo": "Termos, Regras para Freelancers: 'Não se pode solicitar ou compartilhar dados de contato ao enviar proposta, pergunta ou no chat de projeto' e 'Não se pode adicionar dados de contato e/ou links ao seu perfil ou portfólio'. Confirmado pelo CEO em 07/08/2026.",
+    "dado_de_contato": "idem. O chat reforça: proibido até o cliente fazer a garantia de pagamento.",
+    "pagamento_fora": "Termos: 'Não se pode solicitar ou aceitar pagamentos por fora da plataforma'.",
+    "referencia_a_comissao": "Termos: 'Não se pode fazer referência à comissão da 99Freelas'. ESTA NÃO ESTAVA NA ESPECIFICAÇÃO 00 — 'esse valor já considera a taxa da plataforma' é violação.",
+    "pagamento_comissionado": "Termos: 'Não se pode solicitar pagamento comissionado'.",
+    "spam": "Termos, Sanções: 'propagação de spams' é sancionável. Proposta repetida entre projetos é o vetor."
+  },
+
+  "limites_da_plataforma": {
+    "unidade_de_cota": "conexao",
+    "cota_e_mensal": true,
+    "consome_conexao": ["envio de proposta", "pergunta ao cliente"],
+    "cota_por_plano_mes": { "gratuito": 10, "pro": 120, "premium": 240 },
+    "bonus_por_medalha_mes": { "talent": 30, "top_freelancer": 60, "top_freelancer_plus": 120 },
+    "custo_por_projeto_varia": true,
+    "custo_por_projeto_motivo": "'Essa quantidade será calculada com base no quão disputado costuma ser aquele tipo de projeto' — e marketing/design são os disputados. O teto real é MENOR que a tabela.",
+    "conexao_gasta_nao_volta": true,
+    "cota_nao_acumula_no_mes_seguinte": true,
+    "janela_exclusiva_de_assinantes_horas": 24,
+    "janela_motivo": "No plano gratuito só é possível propor DEPOIS de 24h da publicação do projeto.",
+    "teto_diario_deve_ser_lido_da_plataforma": true,
+    "teto_diario_motivo": "Número fixo no .env descola do saldo real e queima cota que não se recupera. O teto sai do saldo lido, nunca de configuração.",
+    "plano_da_conta_do_ceo": null,
+    "plano_da_conta_do_ceo_motivo": "NÃO CONFIRMADO. Ausência de informação não é informação — enquanto for null, o ritmo é o do plano gratuito (fail closed)."
+  },
+
+  "precificacao": {
+    "taxa_da_plataforma_percentual": [10, 20],
+    "taxa_minima_reais": 5,
+    "taxa_motivo": "'Nós adicionamos uma taxa de 10% a 20% (R$ 5,00 no mínimo) na sua oferta enviada ao Cliente'. A oferta digitada é o que a agência RECEBE. Precificar sem embutir corrói a margem em toda proposta.",
+    "piso_por_categoria_reais": {
+      "Administração & Contabilidade": 50,
+      "Advogados & Leis": 100,
+      "Atendimento ao Consumidor": 100,
+      "Design & Criação": 50,
+      "Educação & Consultoria": 50,
+      "Engenharia & Arquitetura": 70,
+      "Escrita": 30,
+      "Fotografia & AudioVisual": 50,
+      "Suporte Administrativo": 30,
+      "Tradução": 40,
+      "Vendas & Marketing": 60,
+      "Web, Mobile & Software": 50
+    },
+    "regra_do_piso": "max(piso da tabela da casa, piso da categoria da plataforma). Nunca o contrário.",
+    "valor_maximo": null
+  },
+
+  "sancoes": [
+    { "nome": "Violação", "efeito": "ícone de alerta no perfil e propostas rebaixadas para o fim da fila", "prazo": "30 dias corridos", "motivos": ["não cumprir o combinado", "não cumprir o prazo", "NÃO RESPONDER O CLIENTE A TEMPO"] },
+    { "nome": "Penalização", "efeito": "bloqueia publicar projeto e ENVIAR PROPOSTA", "prazo": "definido pela plataforma" },
+    { "nome": "Banimento", "efeito": "encerra o acesso definitivamente E ALCANÇA OUTRAS CONTAS DO MESMO USUÁRIO", "prazo": "permanente", "observacao": "Saldo já ganho é preservado: mesmo banido, o freelancer recebe pelo projeto executado." }
+  ],
+
+  "anti_bot": {
+    "captcha_confirmado": ["Google reCAPTCHA", "Cloudflare Turnstile"],
+    "cdn": "Cloudflare",
+    "ao_encontrar_desafio": "PARAR e escalar (HUMAN_AUTH_REQUIRED). Contornar é fraude na lista de Sanções e é proibido pela §61 da especificação 01.",
+    "rate_limit": null,
+    "fingerprint": null,
+    "rate_limit_e_fingerprint_motivo": "NÃO CONFIRMADO — não fizemos login e não há documento público do 99Freelas sobre isso."
+  },
+
+  "projetos_a_rejeitar_antes_de_gastar_conexao": [
+    "trabalho acadêmico",
+    "teste não remunerado",
+    "pagamento comissionado ou permuta",
+    "vaga de emprego",
+    "projeto duplicado",
+    "projeto indefinido ou incompleto"
+  ],
+  "projetos_a_rejeitar_motivo": "São reprovados pela própria plataforma (fontes/ajuda-projetos-nao-permitidos.md). Propor neles queima conexão e chama a moderação.",
+
+  "notes": "Este 🟠 vira 🟢 com UMA coisa: resposta escrita de suporte@99freelas.com.br autorizando automação. Enquanto não houver, auto_submission_allowed permanece false por FAIL CLOSED, e não por suspeita de proibição."
+}

@@ -261,6 +261,59 @@ os dois caminhos **não têm o mesmo risco**, e isso decide o padrão:
   modelo digitar valor em campo que ele localizou visualmente é como o preço sai
   errado sem ninguém ver.
 
+## 6.2 🔴 A SEGUNDA ESPECIFICAÇÃO DO CEO REBAIXA ESTE VEREDITO NA PRÁTICA
+
+`docs/projetos/99freelas/01-ESPECIFICACAO-DO-CEO-marketplaces.md` chegou depois
+que este parecer começou, e ela **decide sozinha o ponto que o contrato do
+99Freelas deixou em silêncio**. O CEO escreveu, com as palavras dele:
+
+> **§6 — REGRA FUNDAMENTAL.** "Não utilizar: Playwright, Selenium, Puppeteer,
+> Computer Use, browser bots, scrapers, session cookies, RPA, auto refresh, DOM
+> crawling **em plataformas que não autorizem expressamente esse tipo de
+> acesso**. A existência do OpenAI Computer Use NÃO concede autorização para
+> automatizar uma plataforma de terceiros. **Compliance da plataforma sempre
+> prevalece sobre capacidade tecnológica.**"
+
+> **§60 — FAIL CLOSED.** "Quando houver dúvida sobre autorização: DO NOT
+> EXECUTE. Nunca: *'provavelmente pode'*."
+
+> **§61.** "Se a plataforma não autorizar automação: **use HUMAN_GATE**."
+
+**O 99Freelas não autoriza expressamente.** É o achado central deste parecer: o
+regulamento não proíbe, mas também não autoriza — é silêncio. E silêncio, pela
+régua que o próprio CEO acabou de fixar, **não é autorização**. "Provavelmente
+pode" é exatamente o nome do que teríamos se marcássemos
+`browser_automation_allowed: true`.
+
+**A conclusão operacional, então, é esta — e ela não é minha, é a regra dele
+aplicada ao fato que eu medi:**
+
+| Operação | Decisão | Por quê |
+|---|---|---|
+| Descoberta e leitura de projetos | navegador próprio, **área pública**, ritmo humano | `/projects` **não** é `Disallow` no robots.txt e está no `sitemap.xml` com prioridade 0.80 — a plataforma **pede** que seja indexado. É o único ponto com sinal positivo do 99Freelas. |
+| Qualificar, pontuar, precificar, escrever, priorizar, CRM | **ALLOW**, 100% automático | Não toca a plataforma. É o §51 inteiro: "o objetivo continua sendo automatizar … mesmo quando o clique final pertence ao usuário". |
+| **Enviar proposta** | **HUMAN_GATE** | §60 + §61. Sem autorização expressa, o clique é humano. |
+| Responder mensagem no chat | **HUMAN_GATE** | idem. |
+| Resolver CAPTCHA, atraso que imita gente, rodízio de proxy, fingerprint, extrair cookie | **BLOCK** | §61, e a lista de Sanções ("fraude"). |
+
+**Isto não mata o projeto — reposiciona o clique.** Tudo o que a especificação
+`00` descreve continua sendo construído: o loop OBSERVE→REASON→ACT, o
+`BrowserComputer`, os sete papéis, a proposta individual, o preço da tabela.
+O que muda é que a última ação, hoje, é do CEO — e vira automática no dia em que
+existir autorização expressa, **trocando uma linha de dado** no
+`platform_policies`, não reescrevendo o sistema.
+
+> **E há um efeito colateral que joga a favor:** com 10 conexões/mês no plano
+> gratuito, o gargalo real nunca foi o clique — era a cota. Um humano clicando
+> 10 vezes por mês não é gargalo de nada. **O HUMAN_GATE custa quase zero no
+> cenário atual e compra a segurança inteira.**
+
+## 6.3 A primeira linha do `platform_policies` (§46/§47 da especificação `01`)
+
+Este parecer não é documento solto: é o dado. Gravado, em formato de máquina,
+em **`docs/plataformas/99freelas/policy.json`** — e é dali que o Compliance Gate
+lê, nunca de um prompt (§48: *"Nunca codificar policy diretamente no prompt"*).
+
 ## 7. Lacunas declaradas — o que este parecer NÃO sabe
 
 - **Não fizemos login.** Nada do lado autenticado foi medido: nem rate limit,

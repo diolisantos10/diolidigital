@@ -72,6 +72,39 @@ encontraria projetos que ainda não pode responder.
   `Disallow` no robots.txt.** A captura foi feita uma vez, à mão. **Esta
   biblioteca fica FORA da recaptura diária automática.**
 
+### 🔴 A `01` DO CEO REBAIXA O VEREDITO NA PRÁTICA — pela regra dele mesmo
+
+A segunda especificação (`01-ESPECIFICACAO-DO-CEO-marketplaces.md`) chegou depois
+e decide o ponto que o contrato do 99Freelas deixou em silêncio:
+
+- **§6:** não usar Playwright/Computer Use "em plataformas que não autorizem
+  **expressamente** esse tipo de acesso".
+- **§60:** "quando houver dúvida sobre autorização: **DO NOT EXECUTE**. Nunca:
+  *'provavelmente pode'*."
+- **§61:** "se a plataforma não autorizar automação: **use HUMAN_GATE**."
+
+**O 99Freelas não autoriza expressamente.** Silêncio não é autorização. Então,
+pela régua do próprio CEO:
+
+| Operação | Decisão |
+|---|---|
+| Descobrir e ler projetos (área **pública**) | navegador nosso, ritmo humano — `/projects` **não** é `Disallow` no robots.txt e está no sitemap com prioridade 0.80: é o único sinal positivo da plataforma |
+| Qualificar, pontuar, precificar, escrever, priorizar, CRM | **ALLOW**, 100% automático — não toca a plataforma |
+| **Enviar proposta** | **HUMAN_GATE** — o clique é do CEO |
+| Responder no chat | **HUMAN_GATE** |
+| CAPTCHA, proxy, fingerprint, delay que imita gente | **BLOCK** |
+
+**Isso não mata o projeto — reposiciona o clique.** É o §51 da própria `01`:
+"Human Gate é parte da arquitetura", e o sistema segue automatizando tudo o mais.
+E há um efeito a favor: **com 10 conexões/mês, o gargalo nunca foi o clique — era
+a cota.** Um humano clicando 10 vezes por mês não atrasa nada. O HUMAN_GATE
+custa quase zero hoje e compra a segurança inteira. Vira automático trocando
+**uma linha de dado**, no dia em que houver autorização escrita.
+
+**A política já está em formato de máquina:** `docs/plataformas/99freelas/policy.json`
+— a primeira linha do `platform_policies` (§46/§47). O Compliance Gate lê dali,
+nunca de um prompt (§48).
+
 ### 🔴 O QUE DEPENDE DO CEO — antes de o envio ser destravado
 
 1. **Qual é o plano da conta, e o ritmo aceito.** "10 por dia" só existe com
