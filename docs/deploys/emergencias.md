@@ -68,4 +68,24 @@
   vai ao Instagram ou ao Facebook — inclusive os 6 da Foocci, que passam a
   registrar `publicacao_falhou` no painel com o motivo em português. Ligar é
   decisão do CEO, não deste agente.
-- **Resultado:** (preenchido abaixo, depois do disparo)
+- **Resultado: SUBIU.** `serviceInstanceDeployV2(serviceId, environmentId,
+  commitSha)` com o `Project-Access-Token` — a mutação que a entrada anterior
+  descobriu — devolveu a implantação `cbd0994b-3c6e-44c5-bc64-81b7721f64db`.
+  `/api/health` responde `commit: 5b32d39`, branch
+  `claude/dioli-agency-os-architecture-kk7kp`. (Confirmado: as duas mutações que
+  o script usa hoje continuam recusadas; a pendência de trocar `dispararDeploy()`
+  segue de pé.)
+- **PROVA EM PRODUÇÃO, não "deploy verde":**
+  - a trava de publicação responde no ar, com a frase nova:
+    `POST /api/meta/publish` numa conexão de plataforma `user` devolve
+    *"Publicação não faz sentido para \"user\" — só Página do Facebook e conta
+    do Instagram recebem post."* Antes deste commit a frase era outra
+    ("Publicação não suportada para user"), então isto prova que
+    `conferirPublicacao` está DENTRO do caminho de publicação da build no ar.
+    Sonda escolhida de propósito por não ter como publicar nada.
+  - `PUBLICACAO_ORGANICA` **não existe** nas variáveis do Railway — conferido
+    depois do deploy. A trava está FECHADA.
+  - o ensaio do backfill da Foocci passou de `postsQueSeraoAtualizados: 6` para
+    `0`, com os 6 posts em `ambiguo` e `aplicavel: false`.
+  - lido de volta do banco: os 6 carrosséis seguem com as 6 telas **v4**, na
+    ordem, capa = tela 1. Nada foi tocado.
