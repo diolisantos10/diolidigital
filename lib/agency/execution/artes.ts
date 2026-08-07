@@ -37,7 +37,12 @@ import { prisma } from "@/lib/db/client";
 import { generateDesign } from "@/lib/ai/design-engine";
 import { guardarArquivo, lerArquivo } from "@/lib/agency/media/armazenamento";
 import { estiloVisualPersistido, estiloVistoPersistido } from "@/lib/agency/execution/leitura-do-cliente";
-import { moldeDoCliente, formatoDoPost, type Molde } from "@/lib/agency/design/molde";
+import { moldeDoCliente, moldeComLogo, formatoDoPost, MIMES_DE_LOGO, type Molde } from "@/lib/agency/design/molde";
+import { logoDoCliente, fotosReaisDoCliente } from "@/lib/agency/esteira/material-do-drive";
+import {
+  escolherFotoReal, escolherFotoParaPostAvulso, type FotoCandidata,
+} from "@/lib/agency/design/escolha-de-foto";
+import type { MaterialReal } from "@/lib/agency/design/storyboard";
 import { montarPeca } from "@/lib/agency/design/peca";
 import type { MotivoDeFalhaDeRender } from "@/lib/agency/design/renderizar";
 import { tituloDaFonte } from "@/lib/agency/design/trava-de-texto";
@@ -190,14 +195,48 @@ export async function produzirArtesPendentes(): Promise<ArtesFeitas> {
       saida.falhas.push({ postId: post.id, erro: `não consegui conferir o teto diário de imagens (${disponivel.erro}) — a peça fica para a próxima rodada` });
       continue;
     }
-    if (disponivel.restam <= 0) {
-      saida.semOrcamento.push(post.id);
-      continue;
-    }
 
     const marca = await lerMarca(post.clientId);
     const estiloDoFeed = await estiloDoFeedDe(post.clientId);
     const estiloVisto = await estiloVistoDe(post.clientId);
+
+    // ── A FOTO REAL DO CLIENTE, ANTES DA GERADA ──────────────────────────────
+    //
+    // Decidida em `escolha-de-foto.ts`, por razão de ASSUNTO — e não por um
+    // interruptor global. Post avulso não declara papel de imagem, então a
+    // régua é a mais estrita: exatamente um arquivo com lastro no texto.
+    //
+    // Fica ANTES do teto diário de propósito: foto real não custa chamada de
+    // modelo nenhuma. Barrar por orçamento uma peça que não vai gastar seria o
+    // teto de gasto impedindo a versão mais barata E melhor da peça.
+    const escolhaDaFoto =
+      post.format === "carousel" || post.format === "carrossel"
+        ? null
+        : escolherFotoParaPostAvulso({ legenda: post.caption, disponiveis: marca.fotosReais });
+
+    let fotoDoCliente: { bytes: Buffer; mime: string; razao: string } | null = null;
+    if (escolhaDaFoto?.usar) {
+      const asset = await prisma.mediaAsset.findUnique({
+        where: { id: escolhaDaFoto.foto.mediaAssetId }, select: { storagePath: true, workspaceId: true },
+      }).catch(() => null);
+      // Posse conferida no servidor, como em `montarArteComFotoDoCliente`:
+      // arquivo de outro workspace não vira peça deste.
+      const bytesDaFoto = asset && asset.workspaceId === post.workspaceId
+        ? await lerArquivo(asset.storagePath).catch(() => null)
+        : null;
+      if (bytesDaFoto && bytesDaFoto.length > 0) {
+        fotoDoCliente = { bytes: Buffer.from(bytesDaFoto), mime: escolhaDaFoto.foto.mimeType, razao: escolhaDaFoto.razao };
+      }
+      // Arquivo escolhido que sumiu do disco NÃO derruba a peça: cai na imagem
+      // gerada, que é o comportamento de sempre. O que ele não pode é sair
+      // como se a foto do cliente tivesse entrado.
+    }
+
+    // O teto só vale para quem vai GERAR. Quem já tem a foto do cliente passa.
+    if (!fotoDoCliente && disponivel.restam <= 0) {
+      saida.semOrcamento.push(post.id);
+      continue;
+    }
 
     // ── CARROSSEL: uma arte POR TELA ─────────────────────────────────────────
     // Gerar uma imagem só e repetir seria entregar cinco vezes a mesma coisa.
@@ -223,64 +262,79 @@ export async function produzirArtesPendentes(): Promise<ArtesFeitas> {
     // meio — e o cliente vê o próprio conteúdo mutilado no perfil dele.
     const proporcao = post.format === "story" ? "portrait" : "square";
 
-    const r = await generateDesign({
-      prompt: montarPrompt({
-        legenda: post.caption,
-        pilar: post.pillar,
-        negocio: marca.nome,
-        segmento: marca.segmento,
-        cores: marca.cores,
-        tom: marca.tom,
-        formato: post.format,
-        estiloDoFeed,
-        estiloVisto,
-      }),
-      size: proporcao,
-      quality: "high",
-      workspaceId: post.workspaceId,
-    }).catch((e) => ({ ok: false as const, error: e instanceof Error ? e.message : "erro" }));
-    // A chamada saiu: o dinheiro saiu junto, deu certo ou não.
-    orcamento.gastar(post.clientId, 1);
+    let bytes: Buffer | null = null;
+    let mimeDaFoto = "image/png";
 
-    if (!r.ok || !r.url) {
-      const erro = r.error ?? "o gerador de imagem não devolveu nada";
-      saida.falhas.push({ postId: post.id, erro });
-      await marcarErro(post.id, erro, tentativas + 1);
-      continue;
-    }
+    if (fotoDoCliente) {
+      // A foto REAL do cliente. Nenhuma chamada paga, nenhum download: os bytes
+      // já estão no armazenamento da casa desde que ele os mandou.
+      bytes = fotoDoCliente.bytes;
+      mimeDaFoto = fotoDoCliente.mime;
+    } else {
+      const r = await generateDesign({
+        prompt: montarPrompt({
+          legenda: post.caption,
+          pilar: post.pillar,
+          negocio: marca.nome,
+          segmento: marca.segmento,
+          cores: marca.cores,
+          tom: marca.tom,
+          formato: post.format,
+          estiloDoFeed,
+          estiloVisto,
+        }),
+        size: proporcao,
+        quality: "high",
+        workspaceId: post.workspaceId,
+      }).catch((e) => ({ ok: false as const, error: e instanceof Error ? e.message : "erro" }));
+      // A chamada saiu: o dinheiro saiu junto, deu certo ou não.
+      orcamento.gastar(post.clientId, 1);
 
-    // ── DAQUI PARA BAIXO A IMAGEM JÁ FOI PAGA ───────────────────────────────
-    // Todo caminho de saída GASTA TENTATIVA. Não é zelo: o `continue` sem
-    // `marcarErro` era um vazamento de dinheiro puro — `contarTentativas` nunca
-    // subia, `MAX_TENTATIVAS_POR_PECA` nunca era atingido, e a peça voltava na
-    // rodada seguinte (a cada 5 minutos, para sempre) gerando uma imagem paga
-    // por rodada sem NUNCA entregar nada.
-    const bytes = await baixarImagem(r.url).catch(() => null);
-    if (!bytes) {
-      const erro = "não consegui baixar a imagem gerada";
-      saida.falhas.push({ postId: post.id, erro });
-      await marcarErro(post.id, erro, tentativas + 1);
-      continue;
-    }
+      if (!r.ok || !r.url) {
+        const erro = r.error ?? "o gerador de imagem não devolveu nada";
+        saida.falhas.push({ postId: post.id, erro });
+        await marcarErro(post.id, erro, tentativas + 1);
+        continue;
+      }
 
-    // ── A FOTO É GUARDADA À PARTE ───────────────────────────────────────────
-    // Custa um arquivo a mais por peça, e paga isso na primeira correção de
-    // texto: com o fundo em disco, trocar a chamada da arte é rasterização
-    // local (≈1s), não uma chamada nova e paga ao modelo de imagem.
-    const fundo = await guardarArquivo({
-      bytes,
-      fileName: nomeDoFundo(post.id),
-      mimeType: "image/png",
-      workspaceId: post.workspaceId,
-      clientId: post.clientId,
-      clientRequestId: post.clientRequestId,
-      kind: "generated",
-      uploadedBy: "design",
-    });
-    if (!fundo.ok) {
-      saida.falhas.push({ postId: post.id, erro: fundo.motivo });
-      await marcarErro(post.id, fundo.motivo, tentativas + 1);
-      continue;
+      // ── DAQUI PARA BAIXO A IMAGEM JÁ FOI PAGA ─────────────────────────────
+      // Todo caminho de saída GASTA TENTATIVA. Não é zelo: o `continue` sem
+      // `marcarErro` era um vazamento de dinheiro puro — `contarTentativas`
+      // nunca subia, `MAX_TENTATIVAS_POR_PECA` nunca era atingido, e a peça
+      // voltava na rodada seguinte (a cada 5 minutos, para sempre) gerando uma
+      // imagem paga por rodada sem NUNCA entregar nada.
+      bytes = await baixarImagem(r.url).catch(() => null);
+      if (!bytes) {
+        const erro = "não consegui baixar a imagem gerada";
+        saida.falhas.push({ postId: post.id, erro });
+        await marcarErro(post.id, erro, tentativas + 1);
+        continue;
+      }
+
+      // ── A FOTO GERADA É GUARDADA À PARTE ──────────────────────────────────
+      // Custa um arquivo a mais por peça, e paga isso na primeira correção de
+      // texto: com o fundo em disco, trocar a chamada da arte é rasterização
+      // local (≈1s), não uma chamada nova e paga ao modelo de imagem.
+      //
+      // A foto REAL do cliente não passa por aqui: ela já está guardada (é o
+      // arquivo que ele mandou), e copiá-la com nome `fundo-*` a faria contar
+      // como geração paga no orçamento do dia, que conta exatamente esses
+      // arquivos. O re-render de texto encontra o fundo pelo mesmo caminho.
+      const fundo = await guardarArquivo({
+        bytes,
+        fileName: nomeDoFundo(post.id),
+        mimeType: "image/png",
+        workspaceId: post.workspaceId,
+        clientId: post.clientId,
+        clientRequestId: post.clientRequestId,
+        kind: "generated",
+        uploadedBy: "design",
+      });
+      if (!fundo.ok) {
+        saida.falhas.push({ postId: post.id, erro: fundo.motivo });
+        await marcarErro(post.id, fundo.motivo, tentativas + 1);
+        continue;
+      }
     }
 
     // ── A CAMADA DE TEXTO, POR CÓDIGO ───────────────────────────────────────
@@ -288,10 +342,19 @@ export async function produzirArtesPendentes(): Promise<ArtesFeitas> {
       formato: formatoDoPost(post.format),
       molde: marca.molde,
       fotoBytes: bytes,
+      fotoMime: mimeDaFoto,
       fonteAuditada: post.caption,
       selo: post.pillar,
       assinatura: marca.nome,
       indice: null,
+      // O que aconteceu com o material do cliente — a foto que ENTROU e por
+      // quê, ou o que havia e por que nada entrou. Sem isto, "a peça saiu
+      // igual" continua sendo invisível de fora.
+      notaDoMaterial: fotoDoCliente
+        ? `[foto do cliente] ${fotoDoCliente.razao}`
+        : escolhaDaFoto && !escolhaDaFoto.usar && escolhaDaFoto.explicacao
+          ? `[material do cliente] ${escolhaDaFoto.explicacao}`
+          : null,
     });
     // Molde impossível por falta de ferramenta = a peça não existe. Falha
     // contada como falha, com tentativa gasta, e NADA gravado no post.
@@ -409,13 +472,76 @@ interface MarcaDaPeca {
    *  declarada e formatos com régua própria. Marca sem cérebro registrado
    *  recebe o cérebro VAZIO com as lacunas ditas — nunca o de outra marca. */
   cerebro: CerebroCriativo;
+  /** AS FOTOS REAIS que o cliente deu, já autorizadas pela trava do Drive.
+   *  Vazio = ele não deu nenhuma, e vazio NUNCA vira "invente". */
+  fotosReais: FotoCandidata[];
+}
+
+/**
+ * O MATERIAL REAL DO CLIENTE, pronto para a produção da peça.
+ *
+ * Existe porque, até 07/08/2026, `fotosReaisDoCliente` e `logoDoCliente` não
+ * tinham UM chamador no app: o cliente conectava o Drive, o material entrava na
+ * casa e a peça saía idêntica. A ponte existia dos dois lados e faltava o meio.
+ *
+ * Nunca lança e nunca derruba a peça: material do cliente é o que MELHORA a
+ * arte, e o Drive fora do ar não pode virar peça não produzida. Falha aqui cai
+ * no comportamento de sempre (imagem gerada, monograma), que é exatamente o que
+ * a casa fazia antes.
+ */
+async function lerMaterialReal(clientId: string | null): Promise<{
+  logo: { dataUrl: string; nome: string; mimeType: string } | null;
+  fotos: FotoCandidata[];
+}> {
+  if (!clientId) return { logo: null, fotos: [] };
+
+  const [logoAsset, fotos] = await Promise.all([
+    logoDoCliente(clientId).catch(() => null),
+    fotosReaisDoCliente(clientId).catch(() => []),
+  ]);
+
+  let logo: { dataUrl: string; nome: string; mimeType: string } | null = null;
+  if (logoAsset && MIMES_DE_LOGO.has(logoAsset.mimeType)) {
+    // Os bytes viajam DENTRO do documento (data URL). Um `src` de rede num
+    // render offline falha em silêncio e a peça sai sem o logo — a mesma
+    // armadilha da webfont que o cabeçalho de `molde.ts` proíbe.
+    const bytes = await lerArquivo(
+      // `materiaisDeMarca` devolve a URL interna; o caminho no disco sai do
+      // próprio MediaAsset, que é quem sabe onde o arquivo mora.
+      (await prisma.mediaAsset.findUnique({
+        where: { id: logoAsset.mediaAssetId }, select: { storagePath: true },
+      }).catch(() => null))?.storagePath ?? "",
+    ).catch(() => null);
+    if (bytes && bytes.length > 0) {
+      logo = {
+        dataUrl: `data:${logoAsset.mimeType};base64,${Buffer.from(bytes).toString("base64")}`,
+        nome: logoAsset.nome,
+        mimeType: logoAsset.mimeType,
+      };
+    }
+  }
+
+  return {
+    logo,
+    fotos: fotos.map((f) => ({
+      mediaAssetId: f.mediaAssetId,
+      // O papel foi declarado PELO CLIENTE no portal; `fotosReaisDoCliente` já
+      // filtrou para as quatro classes fotográficas.
+      papel: f.papel as MaterialReal,
+      nome: f.nome,
+      mimeType: f.mimeType,
+    })),
+  };
 }
 
 async function lerMarca(clientId: string | null): Promise<MarcaDaPeca> {
   const vazio: MarcaDaPeca = {
     nome: "", segmento: "", cores: [], tom: "",
-    molde: moldeDoCliente(null),
+    // Sem cliente não há logo e não há foto — e o molde declara a falta do logo
+    // do mesmo jeito, porque a peça REALMENTE sai sem ele.
+    molde: moldeComLogo(moldeDoCliente(null), null),
     cerebro: cerebroDaMarca(null),
+    fotosReais: [],
   };
   if (!clientId) return vazio;
   const c = await prisma.client.findUnique({
@@ -424,14 +550,17 @@ async function lerMarca(clientId: string | null): Promise<MarcaDaPeca> {
   }).catch(() => null);
   if (!c) return vazio;
   const b = c.brandBrain;
+  const material = await lerMaterialReal(clientId);
   return {
     nome: c.name ?? "",
     segmento: c.industry ?? "",
     cores: [b?.primaryColor, b?.secondaryColor].filter((v): v is string => !!v),
     tom: b?.tone ?? "",
-    // O molde nasce do BrandBrain e SÓ dele. Cliente sem cor cadastrada recebe
-    // o neutro — a agência não escolhe a cor da marca de ninguém.
-    molde: moldeDoCliente(b ?? null),
+    fotosReais: material.fotos,
+    // O molde nasce do BrandBrain e SÓ dele (cor, tipografia). O LOGO não vem
+    // do BrandBrain: vem do arquivo que o cliente mandou. Sem arquivo, o molde
+    // volta intacto e a lacuna é declarada — nunca um logo desenhado.
+    molde: moldeComLogo(moldeDoCliente(b ?? null), material.logo),
     // O cérebro é achado pelo NOME da marca. Marca desconhecida recebe o vazio
     // declarado; emprestar o repertório de um cliente a outro seria dar a
     // identidade de um a outro.
@@ -460,6 +589,15 @@ interface PedidoDeComposicao {
   /** A composição escolhida pelo cérebro criativo a partir do papel da tela.
    *  Ausente = `foto-cheia`, o layout histórico. */
   composicao?: Composicao | null;
+  /**
+   * O QUE ACONTECEU COM O MATERIAL DO CLIENTE nesta peça.
+   *
+   * Ou a foto real que entrou e a razão dela, ou o que havia na pasta e por que
+   * nada entrou. Sobe junto com a peça porque, até 07/08/2026, o cliente
+   * conectava o Drive e a peça saía idêntica **sem que nada dissesse isso** —
+   * e uma promessa quebrada em silêncio é pior que uma recusa.
+   */
+  notaDoMaterial?: string | null;
 }
 
 /** Falha de INFRAESTRUTURA do rasterizador: não há navegador, ou ele quebrou.
@@ -514,8 +652,29 @@ async function comporComMolde(p: PedidoDeComposicao): Promise<ResultadoDaComposi
     p.molde.origem === "neutro"
       ? `[molde neutro] esta peça saiu SEM a identidade do cliente (cinza padrão, não a marca dele). Falta no cadastro: ${p.molde.lacunas.join(", ") || "cor primária da marca"}.`
       : null;
+  // ── O LOGO QUE NÃO ASSINOU A PEÇA ─────────────────────────────────────────
+  // Mesma doença do molde neutro, achada em 07/08/2026: a peça saía assinada
+  // com o monograma das iniciais — um símbolo que a AGÊNCIA derivou — e nada
+  // dizia ao cliente que o logo dele não estava ali. Declarar é o que separa
+  // "degradação declarada" de "entrega silenciosamente pior".
+  const avisoDeLogo = !p.molde.logo
+    ? "[sem logo] assinada com o monograma das iniciais, não com o logo real — o cliente não mandou o arquivo do logo. Nenhum logo foi desenhado."
+    : null;
+
+  // ── A ORDEM DAS NOTAS É CONCLUSÃO PRIMEIRO, E ISSO É MECANISMO ────────────
+  //
+  // `lastError` é cortado em 480 caracteres. Com as declarações permanentes na
+  // frente (molde neutro, logo ausente), a NOTÍCIA daquela peça — o motivo real
+  // pelo qual ela degradou — era empurrada para fora do corte e sumia. Foi o
+  // que aconteceu na primeira versão desta mudança, e um teste pegou: o campo
+  // dizia "falta a cor da marca" onde devia dizer "o texto não coube".
+  //
+  // Então: o que é NOVO nesta peça vem primeiro (a falha, depois o que
+  // aconteceu com o material do cliente); o que vale para todas as peças deste
+  // cliente vem por último, e é ele que o corte come. É a mesma regra do relato
+  // ao CEO — conclusão primeiro — aplicada a um campo de 480 caracteres.
   const comAviso = (nota: string | null): string | null =>
-    [avisoDeNeutro, nota].filter(Boolean).join(" ").slice(0, 480) || null;
+    [nota, p.notaDoMaterial ?? null, avisoDeNeutro, avisoDeLogo].filter(Boolean).join(" ").slice(0, 480) || null;
 
   const titulo = tituloDaFonte(p.fonteAuditada);
   if (!titulo) {
@@ -553,7 +712,10 @@ async function comporComMolde(p: PedidoDeComposicao): Promise<ResultadoDaComposi
     return {
       ok: true,
       bytes: p.fotoBytes,
-      nota: `[molde] peça entregue só com a foto (sem camada de texto): ${r.motivo} — ${r.erro}`.slice(0, 480),
+      // `comAviso` e não string crua: a declaração do molde neutro, a do logo
+      // ausente e a do material do cliente não podem sumir só porque o texto
+      // não coube. Nota que some é declaração que nunca existiu.
+      nota: comAviso(`[molde] peça entregue só com a foto (sem camada de texto): ${r.motivo} — ${r.erro}`),
     };
   }
   if (r.textoRecusado.length > 0) {
@@ -913,8 +1075,92 @@ async function montarCarrossel(
   /** As telas COM a identidade da imagem que saiu. É a segunda metade da trava:
    *  a primeira confere o roteiro, esta confere o que virou pixel. */
   const telasProduzidas: TelaDoStoryboard[] = [];
+  /** As fotos reais que já entraram numa tela DESTA peça. Uma foto não se
+   *  repete: imagem repetida é o defeito que a segunda conferência reprova. */
+  const fotosJaUsadas = new Set<string>();
+
   for (const [i, tela] of roteiro.telas.entries()) {
     const cena = tela.descricao;
+
+    // ── A FOTO REAL DO CLIENTE, POR RAZÃO DE PAPEL ──────────────────────────
+    //
+    // Aqui existem as duas razões que `escolha-de-foto.ts` exige: o PAPEL desta
+    // tela (que declara, em `FUNCOES[papel].materiaisReais`, que classes de
+    // material servem a ele) e o ASSUNTO desta cena (o desempate).
+    //
+    // O papel é o mesmo campo que já dita a direção da foto gerada
+    // (`direcaoDaImagem`). Não é coincidência: se o papel sabe dizer o que a
+    // imagem precisa MOSTRAR, ele sabe dizer que material do cliente serviria.
+    const escolhaDaFoto = escolherFotoReal({
+      funcao: tela.funcao,
+      cena,
+      disponiveis: marca.fotosReais,
+      jaUsadas: fotosJaUsadas,
+    });
+
+    let bytesReais: Buffer | null = null;
+    let mimeDaTela = "image/png";
+    let notaDoMaterial: string | null = null;
+
+    if (escolhaDaFoto.usar) {
+      const asset = await prisma.mediaAsset.findUnique({
+        where: { id: escolhaDaFoto.foto.mediaAssetId }, select: { storagePath: true, workspaceId: true },
+      }).catch(() => null);
+      const b = asset && asset.workspaceId === post.workspaceId
+        ? await lerArquivo(asset.storagePath).catch(() => null)
+        : null;
+      if (b && b.length > 0) {
+        bytesReais = Buffer.from(b);
+        mimeDaTela = escolhaDaFoto.foto.mimeType;
+        fotosJaUsadas.add(escolhaDaFoto.foto.mediaAssetId);
+        notaDoMaterial = `[foto do cliente] tela ${i + 1}: ${escolhaDaFoto.razao}`;
+      }
+      // Arquivo escolhido que sumiu do disco cai na imagem gerada abaixo — mas
+      // NUNCA sai dizendo que a foto do cliente entrou.
+    } else if (escolhaDaFoto.explicacao) {
+      notaDoMaterial = `[material do cliente] ${escolhaDaFoto.explicacao}`;
+    }
+
+    if (bytesReais) {
+      // Foto real: nenhuma chamada paga, nenhuma linha no orçamento do dia.
+      const impressaoReal = createHash("sha256").update(bytesReais).digest("hex");
+      telasProduzidas.push({ ...tela, imagem: impressaoReal });
+      const escolhaComp = composicaoParaFuncao(marca.cerebro, tela.funcao, formatoId);
+      if (!escolhaComp) {
+        notas.push(
+          `tela ${i + 1}: sem entrada de repertório para o papel "${tela.funcao ?? "(não declarado)"}" — saiu na composição base (foto cheia).`,
+        );
+      }
+      const compostaReal = await comporComMolde({
+        formato: "carrossel",
+        molde: marca.molde,
+        fotoBytes: bytesReais,
+        fotoMime: mimeDaTela,
+        fonteAuditada: cena,
+        selo: i === 0 ? post.pillar : null,
+        assinatura: marca.nome,
+        indice: { atual: i + 1, total: cenas.length },
+        composicao: escolhaComp?.composicao ?? "foto-cheia",
+        notaDoMaterial,
+      });
+      if (!compostaReal.ok) return { ok: false, gerou, erro: compostaReal.erro };
+      if (compostaReal.nota) notas.push(`tela ${i + 1}: ${compostaReal.nota}`);
+
+      const gReal = await guardarArquivo({
+        bytes: compostaReal.bytes,
+        fileName: `carrossel-${post.id}-${i + 1}.png`,
+        mimeType: "image/png",
+        workspaceId: post.workspaceId,
+        clientId: post.clientId,
+        clientRequestId: post.clientRequestId,
+        kind: "generated",
+        uploadedBy: "design",
+      });
+      if (!gReal.ok) return { ok: false, gerou, erro: gReal.motivo };
+      urls.push(`/api/media/${gReal.arquivo.id}`);
+      continue;
+    }
+
     const r = await generateDesign({
       prompt: montarPrompt({
         // A CENA é o assunto, não a legenda: a legenda é a mesma para o
@@ -1004,6 +1250,10 @@ async function montarCarrossel(
       assinatura: marca.nome,
       indice: { atual: i + 1, total: cenas.length },
       composicao,
+      // Por que esta tela saiu com imagem GERADA tendo o cliente mandado
+      // material. Vazio quando o papel simplesmente não usa foto real — aí não
+      // falta nada e não há o que declarar.
+      notaDoMaterial,
     });
     // Uma tela sem molde contamina o carrossel inteiro: o cliente receberia um
     // carrossel meio com marca, meio foto crua. Falta de ferramenta derruba a

@@ -142,7 +142,46 @@ export interface Molde {
   /** O que faltava no BrandBrain. Entra no relatório da peça: a agência sabe o
    *  que não sabe, e o cliente pode preencher. */
   lacunas: string[];
+  /**
+   * O LOGO REAL DO CLIENTE, em data URL — o arquivo que ele mesmo mandou.
+   *
+   * ── POR QUE ESTE CAMPO PRECISOU EXISTIR (07/08/2026) ─────────────────────
+   *
+   * Até aqui a peça era assinada pelo NOME DO CLIENTE EM TEXTO, mais um
+   * monograma derivado das iniciais. O molde não tinha campo para imagem de
+   * logo — nenhum. Então o cliente conectava o Drive, mandava o logo oficial
+   * dele, o arquivo entrava na casa com papel `logo` declarado por ele, e a
+   * peça saía assinada com duas letras desenhadas por CSS. O material chegava
+   * e a peça não mudava, que é o defeito inteiro desta frente.
+   *
+   * ── AUSÊNCIA CONTINUA SENDO AUSÊNCIA ────────────────────────────────────
+   *
+   * `null` = o cliente NÃO deu logo. Aí vale o comportamento de sempre:
+   * monograma derivado do nome, e a falta declarada em `lacunas`. O que este
+   * campo **nunca** autoriza é desenhar um logo: modelo de imagem erra letra, e
+   * logo errado é a marca do cliente publicada torta, em nome dele.
+   *
+   * ── POR QUE DATA URL, E NÃO CAMINHO ─────────────────────────────────────
+   *
+   * Este arquivo é PURO e o documento HTML é autossuficiente: sem rede, sem
+   * fonte externa, sem `file://`. Um `src` que o rasterizador não alcança falha
+   * em SILÊNCIO — a peça sai sem o logo e ninguém sabe. Mesma armadilha da
+   * webfont, resolvida do mesmo jeito: os bytes viajam dentro do documento.
+   */
+  logo?: LogoDoMolde | null;
 }
+
+/** O logo real, pronto para virar pixel. */
+export interface LogoDoMolde {
+  /** `data:image/png;base64,...`. Nunca URL de rede, nunca `file://`. */
+  dataUrl: string;
+  /** O nome do arquivo, para o registro da peça. Não vira pixel. */
+  nome: string;
+}
+
+/** Os MIMEs de logo que o navegador desenha. SVG entra: é vetor, e é o formato
+ *  em que a maioria dos clientes tem o logo oficial. */
+export const MIMES_DE_LOGO = new Set(["image/png", "image/jpeg", "image/webp", "image/svg+xml"]);
 
 /** Hex de 3 ou 6 dígitos. Qualquer outra coisa é tratada como ausência. */
 export function corValida(v: string | null | undefined): string | null {
@@ -233,6 +272,39 @@ export function moldeDoCliente(marca: MarcaDoCliente | null | undefined): Molde 
     familia: fam.pilha,
     lacunas,
   };
+}
+
+/** A LACUNA do logo, escrita uma vez só. Aparece em `Molde.lacunas` e no
+ *  registro da peça, e as duas têm de dizer a mesma frase. */
+export const LACUNA_DO_LOGO = "logo do cliente em arquivo (a peça foi assinada com o monograma das iniciais, não com o logo real)";
+
+/**
+ * Prega o LOGO REAL no molde — ou declara que não há.
+ *
+ * Mora aqui, e não em `moldeDoCliente`, porque o logo não vem do `BrandBrain`:
+ * vem de um ARQUIVO no armazenamento, e ler arquivo é assíncrono e toca disco.
+ * Este arquivo é puro por contrato (ver o cabeçalho), e quebrar essa pureza
+ * significaria não conseguir testar o molde sem montar meia casa.
+ *
+ * As duas metades, e a segunda é a que costuma faltar:
+ *   • COM logo, ele entra e a lacuna NÃO é declarada — declarar falta que não
+ *     existe treina quem lê a ignorar as declarações;
+ *   • SEM logo (ou com MIME que o navegador não desenha), o molde volta
+ *     INTACTO e com a lacuna declarada. Nunca um logo desenhado.
+ */
+export function moldeComLogo(
+  molde: Molde,
+  logo: { dataUrl?: string | null; nome?: string | null; mimeType?: string | null } | null | undefined,
+): Molde {
+  const dataUrl = (logo?.dataUrl ?? "").trim();
+  const mimeOk = !logo?.mimeType || MIMES_DE_LOGO.has(logo.mimeType);
+
+  if (!dataUrl || !dataUrl.startsWith("data:") || !mimeOk) {
+    // Ausência de material NÃO vira invenção: ela vira declaração.
+    const lacunas = molde.lacunas.includes(LACUNA_DO_LOGO) ? molde.lacunas : [...molde.lacunas, LACUNA_DO_LOGO];
+    return { ...molde, logo: null, lacunas };
+  }
+  return { ...molde, logo: { dataUrl, nome: (logo?.nome ?? "").trim() || "logo" } };
 }
 
 // ─── A peça ─────────────────────────────────────────────────────────────────
@@ -491,6 +563,12 @@ export function montarHtmlDaPeca(peca: PecaDoMolde, molde: Molde): string {
     background:${apoioCor}; color:${tintaSobre(apoioCor)};
     font-size:22px; font-weight:800; letter-spacing:0;
   }
+  /* O LOGO REAL, quando o cliente deu um. Ocupa o lugar do monograma — os dois
+     nunca aparecem juntos, porque monograma É o substituto declarado do logo.
+     contain e não cover: logo cortado é logo errado, e a proporção de uma
+     marca não é nossa para ajustar. Altura fixa (a mesma do monograma) para que
+     um logo largo e um logo quadrado assinem na mesma linha de base. */
+  .logo-real { height:44px; width:auto; max-width:220px; object-fit:contain; flex:0 0 auto; display:block; }
   .assinatura { font-size:24px; font-weight:600; letter-spacing:1px; opacity:.85; }
   .indice {
     font-size:22px; font-weight:700; letter-spacing:2px; opacity:.8;
@@ -511,12 +589,16 @@ ${cssDoMockup({ primaria: molde.primaria, secundaria: apoioCor, tinta })}
   </div>
   <div class="rodape">
     <div class="lockup">
-      <!-- O monograma NÃO entra na lista conferida, e isso é decisão, não
-           esquecimento: ele é DERIVADO por código de peca.assinatura, que já é
-           conferida no DOM. Conferir a fonte confere o derivado. Marcá-lo com
-           data-papel criaria um segundo elemento com papel "assinatura" e o
-           mapa do layout passaria a pintar as iniciais no lugar do nome. -->
-      ${monograma ? `<div class="monograma" aria-hidden="true">${escaparHtml(monograma)}</div>` : ""}
+      <!-- O LOGO REAL TEM PRECEDÊNCIA SOBRE O MONOGRAMA.
+           O monograma sempre foi o SUBSTITUTO declarado do logo que a casa não
+           tinha ("o logo da Foocci é, hoje, o nome escrito em fonte"). Tendo o
+           arquivo real do cliente, manter as iniciais ao lado dele seria assinar
+           a peça duas vezes, uma delas com um símbolo que a agência inventou.
+           O nome em texto (o elemento .assinatura) CONTINUA — é ele que o renderizador
+           confere no DOM, e é o que mantém a peça legível se a imagem falhar. -->
+      ${molde.logo?.dataUrl
+        ? `<img class="logo-real" src="${escaparHtml(molde.logo.dataUrl)}" alt="" aria-hidden="true" />`
+        : monograma ? `<div class="monograma" aria-hidden="true">${escaparHtml(monograma)}</div>` : ""}
       ${el("assinatura", "div", "assinatura")}
     </div>
     ${el("indice", "div", "indice")}

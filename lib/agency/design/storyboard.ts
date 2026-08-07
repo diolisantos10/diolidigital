@@ -59,7 +59,43 @@ export interface Funcao {
   /** O que a IMAGEM desta tela precisa MOSTRAR para servir ao papel.
    *  É este campo que transforma "imagem de fundo" em "imagem argumento". */
   imagemPrecisa: string;
+  /**
+   * QUE CLASSES DE MATERIAL REAL DO CLIENTE servem a este papel — declarado,
+   * papel a papel, e derivado de `imagemPrecisa`, não de gosto.
+   *
+   * É o que impede o defeito inverso do que a casa consertou em 07/08/2026.
+   * Ligar "usa foto do cliente" como interruptor global poria a foto do balcão
+   * na tela de GANCHO, cujo trabalho é mostrar a DOR acontecendo — e foto real
+   * que não tem nada a ver com o texto é pior que foto de IA: ela parece
+   * verdade e não é argumento.
+   *
+   * **Lista VAZIA é uma resposta, e é a mais comum.** `gancho` e `tensao` pedem
+   * a dor e o custo; nenhum cliente sobe ao Drive a foto da própria bagunça.
+   * `capa`, `materia` e `fechamento` pedem cena própria daquela edição. Para
+   * esses papéis a foto real NÃO entra, e a imagem continua sendo gerada.
+   *
+   * A ordem importa: é a preferência quando o cliente tem material de mais de
+   * uma classe para o mesmo papel.
+   */
+  materiaisReais: MaterialReal[];
 }
+
+/**
+ * As classes de material real que podem virar a IMAGEM de uma peça.
+ *
+ * Espelham `Papel` de `lib/integrations/google/escolha-de-material.ts` — os
+ * papéis que o PRÓPRIO CLIENTE declarou ao escolher o arquivo no Drive. Só
+ * entram aqui os que são FOTOGRAFIA de alguma coisa: `logo` assina a peça (é
+ * outro trabalho, ver `Molde.logo`), `manual_de_marca` é documento, e
+ * `referencia`/`outro` são justamente as classes sem semântica declarada —
+ * usá-las seria escolher por sobra, que é o defeito de 04/08/2026.
+ *
+ * Repetido como união local, e não importado, porque este arquivo é PURO: o
+ * módulo do Drive arrasta Prisma no import. A correspondência é conferida por
+ * teste (`__tests__/design/foto-real-na-peca.test.ts`), que é o que impede as
+ * duas listas de divergirem em silêncio.
+ */
+export type MaterialReal = "foto_produto" | "foto_equipe" | "foto_local" | "captura_de_tela";
 
 /** O vocabulário de papéis da casa. */
 export const FUNCOES: Record<string, Funcao> = {
@@ -69,36 +105,56 @@ export const FUNCOES: Record<string, Funcao> = {
     label: "Gancho",
     cumpre: "para o dedo: nomeia a dor ou a pergunta, em uma frase.",
     imagemPrecisa: "a cena da dor/pergunta ACONTECENDO — não um retrato bonito do produto.",
+    // VAZIO por decisão: o gancho pede a DOR acontecendo, e ninguém sobe ao
+    // Drive a foto do próprio problema. Pôr aqui a foto do produto seria o
+    // "retrato bonito do produto" que a própria linha de cima proíbe.
+    materiaisReais: [],
   },
   tensao: {
     id: "tensao",
     label: "Tensão",
     cumpre: "mostra o custo de continuar como está.",
     imagemPrecisa: "o custo visível: a bagunça, a fila, a mensagem sem resposta.",
+    // VAZIO: o material que o cliente escolhe mostrar é o melhor dele, nunca o
+    // custo de não o ter. Material não existe para este papel.
+    materiaisReais: [],
   },
   prova: {
     id: "prova",
     label: "Prova",
     cumpre: "traz evidência REAL do cliente — dado, captura, caso, número com origem.",
     imagemPrecisa: "a evidência em si (captura real, documento, cena registrada). Ilustração de evidência entra com selo de ilustração, nunca disfarçada de prova.",
+    // É AQUI que o material real vale mais. A linha acima já diz: a evidência
+    // tem de ser REAL, e ilustração de evidência é a coisa que ela proíbe
+    // disfarçar. Captura vem primeiro porque é a evidência mais literal.
+    materiaisReais: ["captura_de_tela", "foto_produto", "foto_local"],
   },
   mecanismo: {
     id: "mecanismo",
     label: "Mecanismo",
     cumpre: "explica COMO funciona — o passo, a engrenagem, a diferença.",
     imagemPrecisa: "a engrenagem em operação: a tela do produto, a mão fazendo, o antes/depois.",
+    // "a tela do produto" é, literalmente, a captura de tela que o cliente
+    // mandou; "a mão fazendo" é a foto de equipe em operação.
+    materiaisReais: ["captura_de_tela", "foto_produto", "foto_equipe"],
   },
   resultado: {
     id: "resultado",
     label: "Resultado",
     cumpre: "mostra o estado depois, sem prometer número que não veio do cliente.",
     imagemPrecisa: "o estado depois, na cena real do negócio.",
+    // "na cena REAL do negócio" — o lugar e o produto dele, não uma cena
+    // inventada que se parece com o negócio dele.
+    materiaisReais: ["foto_local", "foto_produto", "foto_equipe"],
   },
   acao: {
     id: "acao",
     label: "Ação",
     cumpre: "diz o próximo passo, um só, concreto.",
     imagemPrecisa: "o ponto de contato: a porta, o balcão, o canal por onde a ação acontece.",
+    // A porta e o balcão DELE. É o papel em que a foto genérica mais engana:
+    // manda o cliente a um lugar que não existe.
+    materiaisReais: ["foto_local", "foto_equipe"],
   },
   // ── A revistinha semanal (formato pedido pelo CEO em 07/08/2026) ──────────
   // Vive no mesmo vocabulário, e não num arquivo à parte, porque a conferência
@@ -108,18 +164,27 @@ export const FUNCOES: Record<string, Funcao> = {
     label: "Capa da edição",
     cumpre: "nomeia a edição e a semana. É índice, não manchete de venda.",
     imagemPrecisa: "uma cena-síntese daquela semana, própria daquela edição.",
+    // VAZIO: "própria daquela edição". Uma foto fixa do acervo, reusada toda
+    // semana, é exatamente a capa que não pertence à edição.
+    materiaisReais: [],
   },
   materia: {
     id: "materia",
     label: "Matéria",
     cumpre: "uma notícia por tela: o que aconteceu e por que importa para quem lê.",
     imagemPrecisa: "a cena daquela notícia específica. Duas matérias nunca dividem imagem.",
+    // VAZIO: a notícia é do mundo, não do acervo do cliente. Casar acervo com
+    // notícia por proximidade de palavra seria inventar a ilustração de um
+    // fato — o pior lugar possível para material que parece verdade.
+    materiaisReais: [],
   },
   fechamento: {
     id: "fechamento",
     label: "Fechamento",
     cumpre: "amarra a edição e diz quando sai a próxima.",
     imagemPrecisa: "a assinatura visual da publicação, própria do fechamento.",
+    // VAZIO: a assinatura visual é do molde e do logo, não uma fotografia.
+    materiaisReais: [],
   },
 };
 
