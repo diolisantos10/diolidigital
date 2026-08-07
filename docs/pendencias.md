@@ -1,5 +1,77 @@
 # Pendências — o que está aberto
 
+## 🔵 07/08/2026 (madrugada) — O RELÓGIO ESTAVA CERTO; QUEM ESTAVA ERRADO ERA O DIAGNÓSTICO
+
+Ordem do CEO: *"amanhã quando eu voltar eu quero essa agência produzindo, sem
+parar."* O diagnóstico que entrou na sessão dizia que a produção roda pelo cron
+do GitHub e que ele dispara de 64 a 203 minutos em vez de 10. **Os dois fatos
+são verdadeiros e a conclusão não era.**
+
+**O relógio de produção desta casa NÃO é o GitHub.** É o `despertador`
+(`lib/agency/despertador.ts`), que roda DENTRO do servidor, a cada 5 minutos,
+ligado no boot pelo `instrumentation.ts`. Conferido em produção: `DESPERTADOR`
+não está setada (logo, ligado) e o log do container traz
+`[despertador] ligado — … a cada 5 min`. O workflow `cron-execute.yml` é o
+REFORÇO de fora, e é ele — só ele — que roda 12× menos do que está escrito.
+Trocar o GitHub por um cron do Railway não melhoraria nada e pioraria uma coisa:
+`cronSchedule` no Railway transforma o serviço num job que **roda e sai** — ligá-lo
+no serviço web tiraria o site do ar.
+
+### O buraco que existia mesmo: o relógio batia SEM TESTEMUNHA
+
+Uma rodada em que nada acontecia não escrevia uma linha — e é exatamente isso
+que "o relógio morreu" também produz. Os dois estados eram indistinguíveis de
+fora. Pior: cada perna da rodada engole o próprio erro num `console.log` (certo,
+para não derrubar as outras), e o log do container é rotativo, some no deploy
+seguinte e ninguém o lê às 7 da manhã.
+
+- **`lib/agency/pulso.ts`** — uma linha por batida no volume: o que a rodada
+  moveu e o que quebrou. Nunca lança: o registro do relógio não pode ser o que
+  para o relógio.
+- **`GET /api/pulso`** — bateu? moveu? quebrou? Protegida (sessão ou
+  `CRON_SECRET`). `/api/health` responde se o PROCESSO vive, que é outra pergunta.
+- **Faixa `PulsoDaAgencia` no topo de `/agency/dashboard`** — e ela **não some
+  quando está verde**, ao contrário da fila de avisos. Aqui o silêncio é o que
+  precisa ser desmentido.
+- **`lib/agency/vigia-da-madrugada.ts`** — às 03h de São Paulo fecha a noite em
+  `ActivityEvent`: um vermelho por falha e por achado grave, e um fechamento que
+  **sai também na noite limpa**. Mora dentro do relógio da casa, e não no
+  `raio-x-noturno.yml`, porque o Actions estava em **pane declarada** — alarme
+  hospedado no provedor que cai não toca no dia em que faria falta.
+- **Falha de publicação virou notícia.** `lastError` era um campo dentro de um
+  post: para vê-lo era preciso já suspeitar. Agora o primeiro erro (e só a
+  MUDANÇA de motivo, senão seriam 288 linhas iguais por dia) vira
+  `ActivityEvent`.
+
+### 🔴 A NOTÍCIA QUE O CEO PRECISA OUVIR: a fila está VAZIA
+
+Medido em produção (`POST /api/cron/raio-x`, só leitura, 07/08 00:10 UTC):
+`pedidosDoClienteAbertos: 0`, `postsRascunho: 0`, `chamadasDeIA24h: **0**`.
+**A casa não fez uma única chamada de IA em 24 h.** O gargalo não é o relógio:
+é que **não há trabalho na esteira**. Agência acionada sem fila produz zero, e
+zero com o relógio perfeito continua sendo zero.
+
+### 🔴 Os 6 carrosséis da Foocci vão FALHAR hoje às 07h — e é o certo
+
+Os 6 posts estão `scheduled` (o primeiro em `2026-08-07T10:00Z` = 07h BRT) e
+**`mediaUrls` está vazio nos 6** — as 36 telas nunca foram ligadas aos posts
+(o backfill continua dependendo do CEO). `publicarAgendados` vai parar em
+"o carrossel ainda não tem as artes das telas", **antes de qualquer chamada à
+Meta**, e re-tentar a cada 5 min sem nunca ir ao ar. Até agora isso seria
+silencioso; a partir deste commit vira linha no painel.
+
+> ⚠️ **Achado que vale por si:** `publishPost` (`lib/integrations/meta/client.ts`)
+> **não consulta `MetaAtivoAutorizado`**. A trava de ativos cobre leitura de ads,
+> gravação de conexão e escrita de anúncio — **não cobre publicação orgânica**.
+> Hoje o que segura os 6 posts é a falta das telas, não uma trava. Com o backfill
+> aplicado, a casa publicaria sozinha no @foocci_ — contra a ordem "nada publica
+> na Meta sozinho". **Não foi consertado nesta sessão** (mexer na publicação
+> exige parecer do especialista `meta`); fica como a próxima trava a construir.
+
+**Portão rodado À MÃO** (Actions em pane): `npx tsc --noEmit` limpo,
+`npx vitest run` **2308/2308** em 146 arquivos, `npm run build` limpo.
+Conferido nos 3 tamanhos (375/768/1440) com o painel renderizado de verdade.
+
 ## 🟢 06/08/2026 — Decisões do CEO, fechadas em conversa
 
 - **As 19 conexões de terceiros: MANTIDAS.** São produtos do próprio CEO em

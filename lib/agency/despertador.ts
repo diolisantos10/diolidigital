@@ -31,6 +31,8 @@ import { produzirArtesPendentes } from "@/lib/agency/execution/artes";
 import { guardarAVerba } from "@/lib/agency/esteira/trafego";
 import { cuidarDasAvaliacoes } from "@/lib/agency/esteira/avaliacoes";
 import { fazerBackup, estadoDoBackup } from "@/lib/agency/backup";
+import { registrarBatida, type FalhaDaRodada } from "@/lib/agency/pulso";
+import { vigiarAMadrugada } from "@/lib/agency/vigia-da-madrugada";
 
 /** De quanto em quanto tempo a agência olha se tem trabalho parado. */
 const INTERVALO_MS = Number(process.env.DESPERTADOR_INTERVALO_MS ?? 5 * 60_000);
@@ -218,6 +220,20 @@ export async function baterORelogio(): Promise<{
   let avaliacoes = 0;
   let backup = false;
 
+  // ── A TESTEMUNHA DA RODADA (06/08/2026) ───────────────────────────────────
+  // Cada perna abaixo engole o próprio erro para não derrubar as outras — isso
+  // é certo, e era também o motivo de a madrugada quebrar sem ninguém saber:
+  // `console.log` no container é rotativo, some no deploy seguinte e ninguém o
+  // lê às 7 da manhã. Agora todo erro engolido também é ANOTADO, e a anotação
+  // sai em `/api/health` → `relogio.falhas`.
+  const comeco = Date.now();
+  const falhas: FalhaDaRodada[] = [];
+  const quebrou = (perna: string, err: unknown): void => {
+    const erro = err instanceof Error ? err.message : String(err ?? "erro");
+    falhas.push({ perna, erro });
+    log(`${perna} falhou: ${erro}`);
+  };
+
   // A virada vem ANTES da retomada de propósito: ela é quem abre o mês novo e
   // marca o projeto como "pending". Assim o mês nasce e já é produzido na mesma
   // rodada, em vez de esperar mais cinco minutos.
@@ -228,7 +244,7 @@ export async function baterORelogio(): Promise<{
       log(`${v.projectId}: ciclo ${v.referenciaFechada} fechado${v.relatorioEntregue ? " com relatório" : " SEM relatório"}${v.proximaReferencia ? ` → ${v.proximaReferencia}` : ""}`);
     }
   } catch (err) {
-    log(`virada do mês falhou: ${err instanceof Error ? err.message : "erro"}`);
+    quebrou("virada-do-mes", err);
   }
 
   // O PEDIDO DO CLIENTE VEM CEDO NA RODADA. É o balde mais perto do dinheiro —
@@ -236,19 +252,19 @@ export async function baterORelogio(): Promise<{
   try {
     pedidos = await cuidarDosPedidos();
   } catch (err) {
-    log(`pedidos do cliente falharam: ${err instanceof Error ? err.message : "erro"}`);
+    quebrou("pedidos-do-cliente", err);
   }
 
   try {
     retomados = await retomarProducao();
   } catch (err) {
-    log(`retomada falhou: ${err instanceof Error ? err.message : "erro"}`);
+    quebrou("retomada-de-producao", err);
   }
 
   try {
     destravadas = await destravarPacotesBarrados();
   } catch (err) {
-    log(`destravamento falhou: ${err instanceof Error ? err.message : "erro"}`);
+    quebrou("destravamento-de-pacote", err);
   }
 
   // A arte vem ANTES da publicação, e por um motivo prático: o Instagram exige
@@ -257,9 +273,9 @@ export async function baterORelogio(): Promise<{
   try {
     const r = await produzirArtesPendentes();
     artes = r.produzidas;
-    for (const f of r.falhas) log(`arte do post ${f.postId} falhou: ${f.erro}`);
+    for (const f of r.falhas) quebrou("arte", f.erro);
   } catch (err) {
-    log(`produção de artes falhou: ${err instanceof Error ? err.message : "erro"}`);
+    quebrou("arte", err);
   }
 
   // O que o cliente aprovou e chegou a hora vai ao ar. É a última perna da
@@ -267,9 +283,9 @@ export async function baterORelogio(): Promise<{
   try {
     const r = await publicarAgendados();
     publicados = r.publicados;
-    for (const f of r.falhas) log(`post ${f.postId} não foi ao ar: ${f.erro}`);
+    for (const f of r.falhas) quebrou("publicacao", f.erro);
   } catch (err) {
-    log(`publicação falhou: ${err instanceof Error ? err.message : "erro"}`);
+    quebrou("publicacao", err);
   }
 
   // O GUARDIÃO DE VERBA. Freia sozinho a campanha que gasta sem entregar —
@@ -280,7 +296,7 @@ export async function baterORelogio(): Promise<{
     campanhasFreadas = r.pausadas.length;
     for (const p of r.pausadas) log(`campanha ${p.campanhaId} freada: ${p.motivo}`);
   } catch (err) {
-    log(`guardião de verba falhou: ${err instanceof Error ? err.message : "erro"}`);
+    quebrou("guardiao-de-verba", err);
   }
 
   // As avaliações do Google. Responder em 24h vale muito mais que responder
@@ -289,9 +305,9 @@ export async function baterORelogio(): Promise<{
     const r = await cuidarDasAvaliacoes();
     avaliacoes = r.respondidas + r.escaladas;
     if (r.escaladas > 0) log(`${r.escaladas} avaliação(ões) negativa(s) esperando decisão`);
-    for (const f of r.falhas) log(`avaliações: ${f}`);
+    for (const f of r.falhas) quebrou("avaliacoes", f);
   } catch (err) {
-    log(`avaliações falharam: ${err instanceof Error ? err.message : "erro"}`);
+    quebrou("avaliacoes", err);
   }
 
   // ── O BACKUP ──────────────────────────────────────────────────────────────
@@ -307,22 +323,46 @@ export async function baterORelogio(): Promise<{
       if (r.ok) log(`backup ok — ${Math.round((r.bytes ?? 0) / 1024)} KB, ${JSON.stringify(r.conferencia)}`);
       // Backup que falha em silêncio é pior que backup nenhum: dá a sensação
       // de estar protegido.
-      else log(`⚠ BACKUP FALHOU: ${r.erro}`);
+      else quebrou("backup", r.erro ?? "motivo não informado");
     }
   } catch (err) {
-    log(`⚠ BACKUP FALHOU: ${err instanceof Error ? err.message : "erro"}`);
+    quebrou("backup", err);
   }
 
   try {
     const r = await dispatchWhatsAppNotifications();
     avisos = typeof r?.sent === "number" ? r.sent : 0;
   } catch (err) {
-    log(`disparo de avisos falhou: ${err instanceof Error ? err.message : "erro"}`);
+    quebrou("avisos", err);
+  }
+
+  // ── O VIGIA DA MADRUGADA ──────────────────────────────────────────────────
+  // Vem por ÚLTIMO de propósito: ele conta a noite, e a noite inclui esta
+  // rodada. Roda uma vez por dia, às 03h de São Paulo, e é ele que transforma
+  // "quebrou de madrugada" em linha no painel que o CEO abre de manhã. Mora
+  // aqui, e não no GitHub Actions, porque o Actions estava em pane declarada na
+  // noite em que isto foi escrito — alarme que depende do provedor caído é
+  // alarme que falta justamente no dia em que faria falta.
+  try {
+    await vigiarAMadrugada(falhas);
+  } catch (err) {
+    quebrou("vigia-da-madrugada", err);
   }
 
   if (retomados > 0 || avisos > 0 || destravadas > 0 || publicados > 0 || mesesVirados > 0 || artes > 0 || campanhasFreadas > 0 || avaliacoes > 0 || pedidos > 0) {
     log(`rodada: ${pedidos} pedido(s) do cliente movido(s), ${mesesVirados} mês(es) virado(s), ${retomados} produção(ões) retomada(s), ${destravadas} entrega(s) refeita(s), ${artes} arte(s) produzida(s), ${publicados} post(s) publicado(s), ${campanhasFreadas} campanha(s) freada(s), ${avaliacoes} avaliação(ões) tratada(s), ${avisos} aviso(s) enviado(s)`);
   }
+
+  // A BATIDA É GRAVADA SEMPRE — inclusive (e principalmente) a rodada em que
+  // nada aconteceu. É a rodada silenciosa que prova que o relógio está vivo, e
+  // era exatamente ela que não deixava rastro nenhum.
+  await registrarBatida({
+    em: new Date().toISOString(),
+    ms: Date.now() - comeco,
+    moveu: { pedidos, mesesVirados, retomados, destravadas, artes, publicados, campanhasFreadas, avaliacoes, avisos },
+    falhas,
+  });
+
   return { retomados, avisos, destravadas, publicados, mesesVirados, artes, campanhasFreadas, avaliacoes, pedidos, backup };
 }
 
