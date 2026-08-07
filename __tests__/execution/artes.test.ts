@@ -30,6 +30,20 @@ import { produzirArtesPendentes, montarPrompt, nomeDoFundo, reRenderizarTexto, m
 // 1x1 png em base64 — o suficiente para o caminho de bytes.
 const PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
 
+/**
+ * Uma imagem DIFERENTE a cada chamada.
+ *
+ * Existe desde 07/08/2026, quando a trava de storyboard passou a conferir a
+ * identidade (hash) da imagem de cada tela: um gerador que devolve sempre os
+ * mesmos bytes é, para a trava, um carrossel com a mesma foto repetida — e ela
+ * reprova, corretamente. O mock antigo devolvia `PNG` sempre, então o caminho
+ * feliz do carrossel virava o caso de falha. Aqui cada chamada devolve bytes
+ * distintos, que é o que um gerador real faz.
+ */
+function pngUnico(n: number): string {
+  return `data:image/png;base64,${Buffer.from(`tela-${n}-${"x".repeat(n)}`).toString("base64")}`;
+}
+
 const POST = {
   id: "sp1", workspaceId: "ws1", clientId: "c1", clientRequestId: "cr1",
   caption: "Pão saindo do forno às 6 da manhã, ainda fumegando.",
@@ -44,7 +58,8 @@ beforeEach(() => {
     name: "Padaria do João", industry: "Padaria",
     brandBrain: { primaryColor: "#8B4513", secondaryColor: "#F5DEB3", tone: "acolhedor" },
   });
-  generateDesign.mockResolvedValue({ ok: true, url: PNG, model: "gpt-image-1" });
+  let geradas = 0;
+  generateDesign.mockImplementation(async () => ({ ok: true, url: pngUnico(++geradas), model: "gpt-image-1" }));
   guardarArquivo.mockResolvedValue({ ok: true, arquivo: { id: "m1", fileName: "arte.png", sizeBytes: 100, url: "/api/media/m1" } });
   db.mediaAsset.findFirst.mockResolvedValue(null);
   // O teto diário de imagens por cliente: por padrão, o cliente ainda não gerou
@@ -187,7 +202,7 @@ describe("a arte segue o estilo OBSERVADO no feed real do cliente", () => {
     estiloVisualPersistido.mockResolvedValue("paleta quente e produto em close");
     db.socialPost.findMany.mockResolvedValue([{
       ...POST, id: "sp9", format: "carousel",
-      scenesJson: JSON.stringify(["O forno aceso", "A massa descansando"]),
+      scenesJson: JSON.stringify(["[gancho] O forno aceso às quatro da manhã", "[acao] A porta da padaria abrindo para o primeiro cliente"]),
     }]);
     let n = 0;
     guardarArquivo.mockImplementation(async () => ({ ok: true, arquivo: { id: `m${++n}`, fileName: "a.png", sizeBytes: 10, url: `/api/media/m${n}` } }));
@@ -244,7 +259,7 @@ describe("o reel: o vídeo do CLIENTE, editado — não uma imagem parada", () =
 describe("carrossel: uma arte POR TELA — repetir a mesma imagem 5x não é carrossel", () => {
   const POST_CARROSSEL = {
     ...POST, id: "sp3", format: "carousel",
-    scenesJson: JSON.stringify(["O forno aceso às 4h", "A massa descansando", "O pão saindo"]),
+    scenesJson: JSON.stringify(["[gancho] O forno aceso às 4h", "[tensao] A massa descansando sem ninguém para assar", "[acao] O pão saindo quentinho para o balcão"]),
   };
 
   beforeEach(() => {
@@ -385,7 +400,7 @@ describe("a peça sai do MOLDE — foto da IA + texto por código", () => {
   it("o carrossel monta TODAS as telas com o MESMO molde, e cada tela leva o seu índice", async () => {
     db.socialPost.findMany.mockResolvedValue([{
       ...POST, id: "sp7", format: "carousel",
-      scenesJson: JSON.stringify(["O forno aceso às 4h", "A massa descansando", "O pão saindo"]),
+      scenesJson: JSON.stringify(["[gancho] O forno aceso às 4h", "[tensao] A massa descansando sem ninguém para assar", "[acao] O pão saindo quentinho para o balcão"]),
     }]);
     let n = 0;
     guardarArquivo.mockImplementation(async (i: { fileName: string }) => ({
@@ -401,8 +416,12 @@ describe("a peça sai do MOLDE — foto da IA + texto por código", () => {
       { atual: 1, total: 3 }, { atual: 2, total: 3 }, { atual: 3, total: 3 },
     ]);
     // Cada tela é auditada contra a PRÓPRIA cena, não contra a legenda do post.
+    // E o marcador de PAPEL ("[gancho]") NÃO entra na fonte auditada: ele é
+    // declaração de storyboard, não texto do cliente. Se entrasse, a trava de
+    // texto passaria a aceitar "[gancho]" como trecho literal da cena.
     expect(pedidos[0]!.fonteAuditada).toBe("O forno aceso às 4h");
-    expect(pedidos[1]!.fonteAuditada).toBe("A massa descansando");
+    expect(pedidos[1]!.fonteAuditada).toBe("A massa descansando sem ninguém para assar");
+    for (const p of pedidos) expect(p.fonteAuditada).not.toMatch(/\[/);
   });
 });
 
@@ -563,7 +582,7 @@ describe("teto diário de imagens por cliente", () => {
     db.mediaAsset.count.mockResolvedValue(38);
     db.socialPost.findMany.mockResolvedValue([{
       ...POST, format: "carousel",
-      scenesJson: JSON.stringify(["1) uma", "2) duas", "3) três", "4) quatro", "5) cinco"]),
+      scenesJson: JSON.stringify(["[gancho] uma", "[tensao] duas", "[prova] tres", "[mecanismo] quatro", "[acao] cinco"]),
     }]);
     const r = await produzirArtesPendentes();
     expect(generateDesign).not.toHaveBeenCalled();

@@ -554,6 +554,8 @@ async function urlPublicaDaMidia(mediaUrl: string | null): Promise<string | unde
   return `${dominio}${caminhoPublicoAssinado(id)}`;
 }
 
+import { quebrarCenas } from "@/lib/agency/design/storyboard";
+
 interface PecaExtraida {
   legenda: string;
   formato: string;
@@ -600,19 +602,18 @@ export function extrairPecas(conteudo: string, tipo: string): PecaExtraida[] {
 }
 
 /**
- * Lê as telas do carrossel. O especialista escreve "1) tela · 2) tela · 3) ..."
- * — numa linha só ou em várias, porque modelo não é consistente nisso.
+ * Lê as telas do carrossel. O especialista escreve
+ * "1) [gancho] tela · 2) [tensao] tela · 3) ..." — numa linha só ou em várias,
+ * porque modelo não é consistente nisso.
  *
- * Teto de 10 porque é o limite da Meta. Cortar aqui é melhor do que a Meta
- * recusar o carrossel inteiro na hora de publicar.
+ * A quebra delega para `quebrarCenas` (`lib/agency/design/storyboard.ts`): é o
+ * MESMO texto lido no contrato de saída do especialista e na produção da arte,
+ * e ler diferente em qualquer um dos três pontos faria um deles aprovar o que
+ * o outro reprova. O `[papel]` de cada tela é preservado — é ele que a trava de
+ * storyboard confere antes de a peça virar imagem paga.
  */
 function lerCenas(bruto: string | null): string[] {
-  if (!bruto) return [];
-  return bruto
-    .split(/\s*(?:·|\||\n|(?<=[.!?])\s)?\s*\d+\)\s*/)
-    .map((t) => t.replace(/^[·|\-\s]+/, "").trim())
-    .filter((t) => t.length > 3)
-    .slice(0, 10);
+  return quebrarCenas(bruto);
 }
 
 function capturar(bloco: string, campo: string): string | null {

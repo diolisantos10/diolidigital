@@ -88,13 +88,21 @@ import { planProduction } from "@/lib/agency/execution/pm-conductor";
  * o cliente que contratou 8 posts e recebeu 1 — e nenhum teste enxergava isso.
  *
  * O teste declara SÓ o que ele quer provar; o resto é preenchido até o contrato.
+ *
+ * ── 07/08/2026: o enchimento de carrossel virou um STORYBOARD VÁLIDO ────────
+ * O contrato passou a conferir o storyboard (`lib/agency/design/storyboard.ts`):
+ * cada tela declara o papel que cumpre, abre em [gancho], fecha em [acao],
+ * nenhum papel repete e nenhuma cena repete a outra. O enchimento tinha
+ * "primeira tela · segunda tela · terceira tela" — três telas sem papel
+ * nenhum, que é exatamente o defeito que o CEO apontou. Um fixture que não
+ * passa na trava não pode ser o fixture do caminho feliz.
  */
 function noContrato(data: { title?: string; summary?: string; items?: Array<Record<string, unknown>> }) {
   const declaradas = (data.items ?? []).map((i) => ({ format: "feed", ...i }));
   const conta = (f: string) => declaradas.filter((i) => String(i.format).includes(f)).length;
   const enchimento: Array<Record<string, unknown>> = [];
   for (let i = conta("carrossel"); i < 1; i++) {
-    enchimento.push({ format: "carrossel", headline: `C${i}`, caption: "legenda de carrossel bem completa aqui", cenas: "1) primeira tela · 2) segunda tela · 3) terceira tela" });
+    enchimento.push({ format: "carrossel", headline: `C${i}`, caption: "legenda de carrossel bem completa aqui", cenas: "1) [gancho] o post-it com o pedido anotado no monitor · 2) [tensao] a caixa de mensagens sem resposta há dois dias · 3) [acao] o entregador saindo pela porta com a sacola" });
   }
   for (let i = conta("story"); i < 2; i++) enchimento.push({ format: "story", headline: `S${i}`, caption: "legenda de story bem completa aqui" });
   for (let i = conta("feed"); i < 3; i++) enchimento.push({ format: "feed", headline: `F${i}`, caption: "legenda de feed bem completa aqui" });
@@ -899,7 +907,7 @@ describe("o contrato de saída é conferido no JSON, não confiado ao prompt", (
     db.project.findUnique.mockResolvedValue({ ...baseProject });
     generate.mockResolvedValue(noContrato({
       title: "T", summary: "s",
-      items: [{ format: "carrossel", headline: "C", caption: "legenda de carrossel bem completa", cenas: "1) única tela" }],
+      items: [{ format: "carrossel", headline: "C", caption: "legenda de carrossel bem completa", cenas: "1) [gancho] única tela" }],
     }));
     const r = await runProjectExecution("p1");
     expect(r.skipped.join(" ")).toMatch(/tela/i);

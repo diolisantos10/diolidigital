@@ -16,6 +16,7 @@
 //    ordem de centavos de segundo, contra uma chamada paga de `gpt-image-1`.
 
 import { FORMATOS, montarHtmlDaPeca, textosDaPeca, type FormatoDaPeca, type Molde, type PecaDoMolde } from "./molde";
+import type { Composicao } from "./repertorio";
 import { renderizarHtml, type MotivoDeFalhaDeRender } from "./renderizar";
 import {
   travaDeTextoNaArte, travaDeRotuloNaArte, FORMA_DO_SELO, FORMA_DA_ASSINATURA,
@@ -38,6 +39,10 @@ export interface PedidoDePeca {
   /** O conteúdo JÁ AUDITADO de onde o texto tem de ser trecho literal
    *  (legenda do post, ou a cena descrita do carrossel). */
   fonteAuditada: string;
+  /** A composição desta tela — decidida pelo cérebro criativo da marca a partir
+   *  do PAPEL que a tela cumpre na história (`repertorio.ts`). Ausente =
+   *  `foto-cheia`, o layout histórico. */
+  composicao?: Composicao | null;
 }
 
 export interface TextoRecusado {
@@ -132,6 +137,7 @@ export async function montarPeca(p: PedidoDePeca): Promise<ResultadoDaPeca> {
     assinatura,
     indice: p.indice ?? null,
     fundo,
+    composicao: p.composicao ?? null,
   };
 
   const html = montarHtmlDaPeca(peca, p.molde);

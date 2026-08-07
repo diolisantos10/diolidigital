@@ -475,3 +475,30 @@ export function lerTela(bruto: string, ordem: number): TelaDoStoryboard {
 export function lerStoryboard(cenas: string[]): TelaDoStoryboard[] {
   return cenas.map((c, i) => lerTela(c, i + 1));
 }
+
+/**
+ * Quebra o campo "cenas" do especialista nas telas, preservando o `[papel]`.
+ *
+ * Mora AQUI, e não em cada ponto da esteira, porque este mesmo texto é lido em
+ * três lugares: o contrato de saída do especialista (`especialistas.ts`), a
+ * gravação do post (`publicacao.ts`) e a produção da arte (`artes.ts`). Ler
+ * diferente em qualquer um deles faria o contrato aprovar um storyboard que a
+ * produção depois reprova — o pior dos dois mundos, porque o especialista não
+ * teria como saber o que consertar.
+ *
+ * Teto de 10 porque é o limite de mídia da Meta. Cortar aqui é melhor do que a
+ * Meta recusar o carrossel inteiro na hora de publicar.
+ */
+export function quebrarCenas(bruto: string | null | undefined): string[] {
+  if (!bruto?.trim()) return [];
+  return bruto
+    .split(/\s*(?:·|\||\n|(?<=[.!?])\s)?\s*\d+\)\s*/)
+    .map((t) => t.replace(/^[·|\-\s]+/, "").trim())
+    .filter((t) => t.length > 3)
+    .slice(0, 10);
+}
+
+/** O storyboard a partir do campo "cenas" cru, em um passo só. */
+export function lerStoryboardDoCampo(bruto: string | null | undefined): TelaDoStoryboard[] {
+  return lerStoryboard(quebrarCenas(bruto));
+}

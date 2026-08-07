@@ -22,6 +22,12 @@
 //     NÃO inventa — ele abre pedido e o gerente de projeto cobra o cliente.
 
 import type { InsightDomain } from "@/lib/agency/radar/library";
+// A trava de storyboard (`lib/agency/design/storyboard.ts`) roda nos DOIS pontos
+// da esteira: aqui, no contrato de saída do especialista, onde ele ainda pode
+// refazer; e em `artes.ts`, antes de gastar imagem. Mesma função, mesma régua.
+import {
+  conferirStoryboard, lerStoryboardDoCampo, REGUA_CARROSSEL_DE_VENDA,
+} from "@/lib/agency/design/storyboard";
 
 /** O contexto do cliente que todo especialista recebe. Verdade ancorada: campo
  *  vazio é campo vazio — nenhum prompt aqui manda preencher por inferência. */
@@ -190,14 +196,27 @@ function contratoDasLegendas(data: Record<string, unknown>): string[] {
 
   itens.forEach((it, i) => {
     if (formatoDaPeca(it) !== "carrossel") return;
-    const telas = contarCenas(texto(it, "cenas"));
+    const bruto = texto(it, "cenas");
+    const telas = contarCenas(bruto);
     if (telas < MIN_TELAS || telas > MAX_TELAS) {
       problemas.push(`a peça ${i + 1} é carrossel e descreve ${telas} tela(s) em "cenas" — tem que ter de ${MIN_TELAS} a ${MAX_TELAS}, uma por linha começando com "1)", "2)". Cada tela vira uma arte produzida.`);
+      return;
+    }
+    // ── O STORYBOARD, CONFERIDO ONDE O ESPECIALISTA ENTREGA ──────────────────
+    //
+    // A mesma trava roda depois, em `artes.ts`, antes de gastar imagem. Rodar
+    // AQUI TAMBÉM não é redundância: aqui o especialista ainda pode refazer (é
+    // o laço de contrato de saída que já existe), e lá o remédio seria descartar
+    // o carrossel inteiro. Barato agora, caro depois.
+    const r = conferirStoryboard(lerStoryboardDoCampo(bruto), REGUA_CARROSSEL_DE_VENDA);
+    if (!r.ok) {
+      for (const rep of r.reprovacoes) problemas.push(`a peça ${i + 1}: ${rep.detalhe}`);
     }
   });
 
   return problemas;
 }
+
 
 /** O contrato da segmentação: estes números entram na conta de anúncios do
  *  cliente e gastam a verba dele. Fora da faixa é dinheiro queimado. */
@@ -348,11 +367,16 @@ CONTEXTO
 ${ctxBlock(c)}
 
 Escreva de 6 a 8 peças, com a MISTURA de formatos que funciona para negócio local — não faça tudo feed:
-- 1 a 2 CARROSSEL: o formato que mais segura atenção. Use quando o assunto tem PASSOS ou LISTA ("3 sinais de que...", "como escolher..."). No campo "cenas", descreva de 3 a 6 telas, uma por linha, começando com "1)", "2)"... Cada tela é uma ideia só.
+- 1 a 2 CARROSSEL: o formato que mais segura atenção. Use quando o assunto tem PASSOS ou LISTA ("3 sinais de que...", "como escolher..."). No campo "cenas", descreva de 3 a 6 telas, uma por linha, começando com "1)", "2)"...
+
+STORYBOARD OBRIGATÓRIO — cada tela declara o PAPEL que cumpre na história, entre colchetes, logo depois do número:
+"1) [gancho] a cena da dor acontecendo · 2) [tensao] o custo de continuar assim · 3) [mecanismo] como funciona, na prática · 4) [acao] o próximo passo"
+Papéis: gancho (para o dedo, nomeia a dor) · tensao (o custo de continuar como está) · prova (evidência REAL do cliente) · mecanismo (como funciona) · resultado (o estado depois) · acao (o próximo passo).
+REGRAS QUE REPROVAM A PEÇA, e são conferidas em código: a primeira tela é sempre [gancho] e a última sempre [acao]; NENHUM papel se repete; NENHUMA cena descreve a mesma coisa que outra — cada tela pede uma imagem diferente porque cumpre um papel diferente. Descreva o que a imagem daquela tela MOSTRA (a imagem é o argumento, não fundo bonito). Se um papel exigir material que você não tem (um dado do cliente para [prova], por exemplo), escreva "PRECISO CONFIRMAR: <o quê>" naquela tela — nunca preencha com cena genérica.
 - 2 a 3 STORY: assunto do dia, bastidor, enquete. Story é vertical e vive 24h — nada que precise durar.
 - 2 a 3 FEED: o que fica no perfil e representa a marca.
 ${REGRA}
-${formato("Legendas Prontas — <negócio>", `"format": "feed|story|reel|carrossel", "headline": "...", "caption": "legenda pronta", "visual": "o que aparece na imagem", "cenas": "só para carrossel: 1) tela 1 · 2) tela 2 · 3) ..."`)}`,
+${formato("Legendas Prontas — <negócio>", `"format": "feed|story|reel|carrossel", "headline": "...", "caption": "legenda pronta", "visual": "o que aparece na imagem", "cenas": "só para carrossel: 1) [gancho] tela 1 · 2) [tensao] tela 2 · 3) [acao] ..."`)}`,
       },
       {
         id: "social-roteiro-video",
