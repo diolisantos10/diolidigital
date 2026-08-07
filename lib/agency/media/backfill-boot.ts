@@ -107,6 +107,9 @@ export type MotivoDeParada =
   | "cliente-inexistente"
   | "plano-abortado"
   | "casamento-por-ordem"
+  /** Duas artes disputam a mesma tela — jogo velho e jogo aprovado convivendo
+   *  nos Arquivos. Ver a trava em `aplicarBackfill`. */
+  | "telas-ambiguas"
   | "nada-a-fazer"
   | "erro";
 
@@ -271,6 +274,31 @@ export async function aplicarBackfill(ctx: ContextoDoBackfill): Promise<Resultad
     log("   Casamento posicional é chute — monta carrossel com logo e material bruto.");
     log("   Esta tarefa NUNCA aplica isso. NADA foi gravado.");
     return nada("casamento-por-ordem");
+  }
+
+  // 3b. A TRAVA DA AMBIGUIDADE (07/08/2026). Medida em produção: os 6
+  //     carrosséis da Foocci estavam CERTOS e COMPLETOS (as 6 telas v4), e
+  //     mesmo assim o ensaio propunha "reparar" os 6 — porque as telas v3
+  //     antigas continuam nos Arquivos e casam com o mesmo carrossel pelo mesmo
+  //     padrão de nome. Aplicar teria alternado arte velha e nova em peça já
+  //     aprovada pelo cliente. Duas candidatas para a mesma posição é decisão de
+  //     gente, não de tarefa de boot rodando às 3 da manhã.
+  const ambiguos = ctx.plano.posts
+    .map((p) => ({ post: p, d: decidirGravacao(p, { force: false }) }))
+    .filter((x) => x.d.acao === "ambiguo");
+  if (ambiguos.length > 0) {
+    log(`✗ ABORTADO: ${ambiguos.length} carrossel(éis) com DUAS artes para a mesma tela.`);
+    for (const { post, d } of ambiguos) {
+      log(`   C${post.idx} (${post.id}): posições em disputa ${d.posicoesEmDisputa.join(", ")}`);
+      for (const pos of d.posicoesEmDisputa) {
+        const nomes = post.telas.filter((t) => t.pos === pos).map((t) => t.fileName);
+        log(`      tela ${pos}: ${nomes.join("  ×  ")}`);
+      }
+    }
+    log("   Provavelmente um jogo ANTIGO e o APROVADO convivem nos Arquivos do");
+    log("   cliente, e os dois casam com o mesmo carrossel pelo nome. Apague ou");
+    log("   renomeie o jogo que não vale. NADA foi gravado.");
+    return nada("telas-ambiguas");
   }
 
   // 4. O QUE SERIA GRAVADO. Vazio = idempotência: já rodou, e é para dizer isso.

@@ -105,7 +105,11 @@ export type AcaoDeGravacao =
   | "reparar"
   | "sobrescrever"
   | "ja-tem-telas"
-  | "sem-telas-suficientes";
+  | "sem-telas-suficientes"
+  /** Duas artes disputam a MESMA tela — jogo velho e jogo novo casando com o
+   *  mesmo post pelo mesmo padrão de nome. Ambiguidade não se resolve por
+   *  chute: nada é gravado e a decisão sobe para gente. */
+  | "ambiguo";
 
 export interface Gravacao {
   acao: AcaoDeGravacao;
@@ -113,6 +117,8 @@ export interface Gravacao {
   telasAtuais: number;
   /** Quantas telas do plano ainda NÃO estão gravadas. */
   faltando: number;
+  /** As posições com mais de uma candidata. Vazio fora de `ambiguo`. */
+  posicoesEmDisputa: number[];
 }
 
 export declare function decidirGravacao(
