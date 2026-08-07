@@ -1,5 +1,97 @@
 # Pendências — o que está aberto
 
+## 🔴 07/08/2026 — FRENTE DE VÍDEO: **CapCut NÃO PODE ser conectado.** Dono: PM de vídeo
+
+Pedido do CEO: *"vídeo, vamos conectar o CapCut"*. O especialista-trava do
+TikTok/ByteDance entrou antes de qualquer código, como manda a regra de 03/08.
+**Parecer completo, com fontes: `docs/plataformas/tiktok/pareceres/2026-08-07-capcut.md`.**
+
+**Veredito: NÃO PODE**, por dois motivos independentes, cada um suficiente:
+
+1. **Não existe API pública do CapCut.** Medido em 07/08: `developer.capcut.com`,
+   `open.capcut.com` e `api.capcut.com` **não têm registro de DNS**; o rodapé do
+   capcut.com não tem link de desenvolvedor; o catálogo da TikTok for Developers
+   não tem produto de edição. `capcut.com/business` **redireciona para
+   `pippit.ai`** — "CapCut for Business" virou Pippit, que também não publica API.
+2. **Os Termos do CapCut proíbem automação, com todas as letras.** §5, *"You may
+   not: use automated scripts or other technologies to collect information from
+   or **otherwise interact with** the Services"*
+   (`fontes/capcut-termos-de-servico.md`, atualizado em 15/04/2026). Não é
+   proibição de scraping — é proibição de *interagir* por automação.
+
+**O que os Termos NÃO proíbem:** um **humano** da agência operar o CapCut em nome
+de um cliente que a autorizou. Isso é expressamente previsto no §1. A linha que
+separa pode de não pode é **automação**, não "em nome de terceiro".
+
+**O único caminho oficial de edição programável da casa ByteDance** é o
+**BytePlus Video Editor SDK** (`fontes/byteplus-video-editor-sdk.md`) — e ele
+**não serve**: é SDK **iOS/Android**, 100% no dispositivo, para embutir um editor
+na tela de um humano dentro de **um app que a Dioli teria que construir**. Não é
+API de servidor. Licença anual sob consulta comercial, sem preço público.
+
+> **Lacunas declaradas, não deduzidas:**
+> - **A versão BRASILEIRA dos Termos não foi lida.** O CapCut serve o documento
+>   por geo-IP; este ambiente sai por IP dos EUA e as 5 tentativas de forçar
+>   região devolveram o mesmo texto ("All United States Users", contraparte
+>   TikTok USDS Joint Venture LLC). Não afirmo que o texto brasileiro é idêntico.
+> - **A página `pippit.ai/developer` (HTTP 200) não pôde ser lida** — é SPA em
+>   JavaScript e este ambiente não tem navegador. É a **única** coisa que
+>   poderia mudar o parecer, e fecha em 30 segundos com o CEO logado.
+
+### O estado REAL do vídeo nesta casa, conferido (não repetido)
+
+- **11 roteiros prontos e ENTREGUES**, em `docs/projetos/foocci/roteiros-video.md`
+  (641 linhas): 6 reels + 1 vídeo longo + 4 vídeos de SDR. Já estão no card de
+  aprovação da Foocci desde 06/08.
+- **O editor de vídeo EXISTE e RODA.** `lib/agency/media/video.ts`, ligado ao
+  pipeline em `lib/agency/execution/artes.ts:160` (`format === "reel" |
+  "video"` → `montarReel`). `ffmpeg` está na imagem de produção
+  (`railpack.json → deploy.aptPackages`). **`__tests__/media/video.test.ts`:
+  13/13 verde, rodando ffmpeg de verdade nesta sessão.**
+- **O que ele faz:** corte, enquadramento 9:16 sem distorcer, normalização de
+  áudio (−16 LUFS), capa, `+faststart`.
+- **O que ele NÃO faz:** legenda queimada, trilha, transição, cartela. Nenhuma
+  dessas existe hoje — todas são construíveis com o ffmpeg que já está lá.
+- **O gargalo NÃO é a ferramenta, é o MATERIAL.** `montarReel` só produz se o
+  cliente já tiver enviado vídeo bruto (`MediaAsset kind: "inbound"`,
+  `mimeType: video/*`). Sem vídeo, ele devolve *"o cliente ainda não enviou
+  nenhum vídeo para editarmos"* e **não gasta tentativa** — corretamente. Em
+  produção a única porta de entrada de vídeo bruto é `/api/media`; a do Google
+  Drive existe em código mas está **travada** (ver seção do Drive abaixo).
+- **Não confirmei que um único reel tenha sido produzido em produção.** Não há
+  acesso ao banco de produção desta sessão. O que se sabe é coerente com zero:
+  em 07/08 a fila foi medida vazia (0 pedidos abertos, 0 chamadas de IA em 24 h).
+
+### 🔴 O QUE DEPENDE DO CEO
+
+1. **Aceitar que CapCut vira fluxo HUMANO, não integração.** A agência monta o
+   template à mão e o cliente aplica. É trabalho de gente, não escala com o
+   relógio de 5 minutos. Se ele quiser volume, o caminho é o ffmpeg, não o CapCut.
+2. **Legenda queimada: decisão de risco, não de engenharia.** Texto dentro do
+   pixel **escapa do piso de verdade desta casa**, que lê texto e não enxerga
+   imagem (está escrito no cabeçalho de `lib/agency/media/video.ts`). Num piloto
+   100% IA sem revisão humana, ligar isso sem conferir o texto contra fonte
+   declarada é regressão de segurança. **Não construir antes de decidir.**
+3. **Transcrição custa dinheiro** (Whisper/OpenAI, por minuto de áudio) e é
+   pré-requisito de legenda automática. Ferramenta paga = decisão dele.
+4. **Material do cliente.** Sem vídeo bruto no portal, o editor não tem o que
+   editar. É o furo que trava a frente inteira, e é pedido, não código.
+
+### O que vem a seguir nesta frente (a fazer, com dono)
+
+- [ ] `pm` de vídeo — fechar a lacuna do `pippit.ai/developer` com o CEO logado.
+- [ ] `pm` de vídeo — reconferir a §5 dos Termos por IP brasileiro quando houver
+      como. Enquanto não houver, a citação vale para o contrato dos EUA.
+- [ ] `departamentos` — biblioteca de templates de CapCut montados à mão,
+      por campanha, entregues como link ao cliente.
+- [ ] `departamentos` + `qualidade` — cartela de abertura/fim via ffmpeg
+      `concat` reaproveitando `lib/agency/design/renderizar.ts` (HTML→imagem já
+      existe e já confere o texto no DOM — é o caminho que **não** cega o gate).
+- [ ] `qualidade` — **antes** de qualquer legenda queimada: a trava que confere
+      o texto do pixel contra fonte declarada. Sem ela, não construir.
+
+**Nenhuma escrita em plataforma nenhuma nesta frente. Nada foi integrado.**
+
 ## ✅ 07/08/2026 — FECHADO: o molde da marca nunca rodou em produção
 
 **A consequência, primeiro:** de quando o motor de molde entrou até 07/08/2026,

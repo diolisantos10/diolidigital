@@ -383,5 +383,20 @@
     "slug": "business-autorizacao-post-para-anuncio",
     "titulo": "Accounts API — Manage TikTok post ad authorization (autorizar post orgânico a virar Spark Ad)",
     "url": "https://business-api.tiktok.com/portal/docs/manage-tiktok-post-ad-authorization/v1.3"
+  },
+  {
+    "slug": "capcut-termos-de-servico",
+    "titulo": "CapCut — Terms of Service (ByteDance; atualizada em 15/04/2026; cobre CapCut APP/Desktop/Web e Pippit). Seção 5 proíbe interagir com o Serviço por script automatizado.",
+    "url": "https://www.capcut.com/clause/terms-of-service?store_region=&lang=en"
+  },
+  {
+    "slug": "byteplus-video-editor-sdk",
+    "titulo": "BytePlus Video Editor — o SDK de edição de vídeo da ByteDance (iOS/Android, 100% no dispositivo, licença anual sob consulta). Único caminho oficial de edição programável da casa ByteDance.",
+    "url": "https://www.byteplus.com/en/product/video-editor"
+  },
+  {
+    "slug": "dev-catalogo-de-produtos",
+    "titulo": "TikTok for Developers — catálogo completo de produtos. Nenhum produto de edição de vídeo; nenhuma menção a CapCut.",
+    "url": "https://developers.tiktok.com/products"
   }
 ]
