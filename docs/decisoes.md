@@ -8,6 +8,91 @@
 
 ---
 
+## OS CINCO ESSENCIAIS ENTRARAM NESTA CASA — 07/08/2026
+
+**Ordem do CEO**, doutrina 21 do `dioli-brain-kit`: todo projeto passa a ter,
+obrigatoriamente e sem poder apagar, cinco Essenciais — `qualidade`, `cerebro`,
+`interface`, `experiencia`, `seguranca`.
+
+**O elenco não foi instalado por cima do que existia.** Dois agentes respondendo
+a mesma pergunta = nenhum dono de verdade, que é o defeito que a doutrina existe
+para matar. O cruzamento, agente por agente:
+
+| Agente que existia | Pergunta que ele responde | Saída |
+|---|---|---|
+| `qualidade` | "isto está conforme o prometido?" | **É o Essencial.** Já era só leitura (`Read, Grep, Glob, Bash`) — mantido |
+| `cerebro` | "podemos afirmar isto, e com base em quê?" | **É o Essencial.** Papel confere com a constituição |
+| `interface` | forma **e** percurso | **DIVIDIDO EM DOIS** — ver abaixo |
+| `plataforma` | fundação **e** segurança | **Segurança SEPARADA** — ver abaixo |
+| `pm` | "quem faz o quê, e quando?" | **Mantido de domínio.** É a camada de direção, não um Essencial |
+| `departamentos`, `esteira` | o que o produto faz | **Mantidos de domínio** |
+| `meta`, `google`, `tiktok` | o que a plataforma externa permite | **Mantidos de domínio** — as travas de 03/08 continuam de pé |
+
+**Nenhum agente foi apagado. Nenhuma memória foi movida ou destruída.**
+`docs/agents/interface/` e `docs/agents/plataforma/` seguem intactos.
+
+### Por que `interface` virou DOIS
+
+Ele fazia forma e percurso. **Quem responde pelos dois nunca faz a pergunta cara
+— "esta tela deveria existir?" — porque ela invalida o trabalho que ele acabou
+de fazer.** A prova é desta casa, não do manual: a nota de 0 a 10 de aparência
+não pegou o **card de aprovação vazio**, o Drive dizendo "conectado" e "não
+conectado" no mesmo cartão, nem o orçamento com **duas saídas** quando o cliente
+precisava de três (a devolutiva do CEO ficou dois dias sem destino). **Nenhum
+desses é feio.**
+
+- **`interface`** — mover, alinhar, renomear, estilizar, completar estado.
+- **`experiencia`** — eliminar passo, trocar ordem, criar ou apagar tela.
+  **Sem `Write` e sem `Edit`**, como manda a constituição.
+
+> *Botão com a cor errada é do `interface`. Botão que promete o que não faz é do
+> `experiencia`.*
+
+### Por que `seguranca` saiu de dentro de `plataforma`
+
+Segurança dividia fila com deploy, migration e banco — **e perdia todo dia**.
+Deploy caindo é urgente e visível; rota aberta é urgente e invisível. Em 07/08
+esta casa teve três frentes de urgência no mesmo dia (Drive, portal, deploy) e
+**nenhuma varredura de superfície exposta aconteceu**. Não por negligência: por
+fila.
+
+`plataforma` continua dono da fundação. `seguranca` é dono da porta, **tem
+escrita**, e correção que toca pagamento ou parceiro passa por humano.
+
+### As travas, não os avisos
+
+`__tests__/agentes/elenco-obrigatorio.test.ts` (38 asserções, verde) reprova:
+apagar qualquer um dos cinco · perfil de Essencial que não aponte para a
+constituição · `Write`/`Edit` aparecendo no perfil do `qualidade` ou do
+`experiencia`. **A constituição NÃO foi copiada para cá** — é apontada. Cópia
+espalhada diverge em três meses.
+
+---
+
+## A SALA DOS AGENTES ESTÁ NO AR — 07/08/2026
+
+Item **próprio** no menu do admin (`/agency/agents`), não dentro de
+Configurações — ordem explícita do CEO. Duas abas: **Agentes** e
+**Configurações** (as IAs contratadas).
+
+**A tela que estava lá rodava em `MOCK_AGENTS`: mostrava um time inventado como
+se fosse o elenco real.** Ela mentia exatamente sobre a pergunta que o CEO faz.
+
+**A regra que governa cada número dela:** o cartão nunca escreve zero quando a
+resposta é "não sei". O tipo `Medida`
+(`lib/agency/sala-dos-agentes/tipos.ts`) tem **três** casos — `medido`,
+`zeroMedido`, `naoMedido` (com motivo obrigatório) — e a tela desenha os três
+diferentes. Não existe `number` cru: `number | null` viraria `?? 0` no primeiro
+`.tsx` distraído, e aí "não medido" e "trabalhou zero" voltariam a parecer a
+mesma coisa.
+
+**O elenco é declarado em TypeScript versionado, não varrido do disco.** Em
+produção o servidor roda a partir de `.next/standalone`, sem `.claude/` nem
+`docs/` — uma varredura devolveria lista vazia, que a tela leria como "este
+projeto não tem agentes".
+
+---
+
 ## 99FREELAS — A REGRA OFICIAL DO CEO: **ENVIO SUPERVISIONADO**
 
 **Decidida em** 2026-08-07 · **por** DIOLI (CEO), com as palavras dele ·

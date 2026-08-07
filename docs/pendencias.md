@@ -1,5 +1,71 @@
 # Pendências — o que está aberto
 
+## 🟢 07/08/2026 — OS CINCO ESSENCIAIS E A SALA DOS AGENTES ESTÃO NO AR
+
+**O elenco não foi instalado por cima do que existia.** Cruzamento feito agente
+por agente (registro completo em `docs/decisoes.md`):
+
+- **`qualidade` e `cerebro` já eram os Essenciais** — papel conferido contra a
+  constituição, não só o nome. `qualidade` já era só leitura; continua.
+- **`interface` virou DOIS**: `interface` (forma) e **`experiencia`** (percurso,
+  **sem `Write` nem `Edit`**). A prova é desta casa: a nota de aparência não
+  pegou o card de aprovação vazio, nem o Drive dizendo "conectado" e "não
+  conectado" no mesmo cartão, nem o orçamento com duas saídas quando o cliente
+  precisava de três. **Nenhum desses é feio.**
+- **`seguranca` saiu de dentro de `plataforma`**, com escrita e com o direito de
+  barrar merge. Motivo: segurança dividia fila com deploy e migration **e perdia
+  todo dia** — em 07/08 houve três urgências de produção e zero varredura de
+  superfície exposta.
+- **`pm`, `departamentos`, `esteira`, `plataforma`, `meta`, `google`, `tiktok`
+  ficaram como domínio.** Nenhum agente apagado, nenhuma memória movida.
+
+**A trava, não o aviso:** `__tests__/agentes/elenco-obrigatorio.test.ts`
+(38 asserções) reprova apagar um dos cinco, perfil de Essencial que não aponte
+para a constituição, e `Write`/`Edit` no `qualidade` ou no `experiencia`.
+**A constituição não foi copiada para cá** — é apontada.
+
+### A Sala dos Agentes: `/agency/agents`, item PRÓPRIO no menu
+
+- **A tela que estava lá rodava em `MOCK_AGENTS`** — mostrava um time inventado
+  como se fosse o elenco real, mentindo exatamente sobre a pergunta do CEO.
+- **26 no elenco**: 12 que constroem o produto + 14 que falam com o cliente,
+  **em seções rotuladas separadas** — as duas populações não se medem igual.
+- **O cartão nunca escreve zero quando a resposta é "não sei".** Três estados
+  visualmente distintos: número · `—` (medido zero) · *não medido* (com motivo).
+- Conferido em **375 / 768 / 1440**, autenticado, com a tela renderizada.
+
+### 🔴 O QUE ESTÁ "NÃO MEDIDO" NESSA TELA — e é verdade, não defeito
+
+1. **Nenhum despacho de especialista é registrado nesta casa.** A sala não sabe
+   quantas vezes cada agente foi acionado — só quantos blocos ele assinou na
+   própria oficina. `cerebro` e `pm` aparecem "não medido" porque **não têm
+   `docs/agents/<slug>/`**; `meta`, `google` e `tiktok` também não têm.
+2. **Em produção, os blocos serão "não medido" para todos** — o servidor roda a
+   partir de `.next/standalone`, sem a pasta `docs/`. É honesto e é o motivo de
+   o elenco ser declarado em código, não varrido do disco.
+3. **Custo de IA existe e é medido**, mas **~28 dos 38 pontos que chamam
+   `generate()` não passam `agentId`** — esse gasto entra sem dono. A sala
+   **não o reparte** (repartir seria inventar quem gastou) e **não o esconde**:
+   ele aparece como lacuna declarada.
+
+### 🔴 O QUE EXIGE DECISÃO DE CIMA — em `docs/perguntas-ao-diretor-geral.md`
+
+1. **O `CLAUDE.md` ainda lista o elenco antigo.** Não o alterei: é configuração
+   de sessão, acima da camada do PM. **Enquanto não for atualizado, o Diretor
+   não vê `experiencia` nem `seguranca` na lista e nunca os despacha.**
+2. **Duas hierarquias competindo:** o kit desenha `Diretor do Projeto →
+   especialistas`; esta casa tem `Diretor → PM → especialistas`.
+3. **Fechar a cobertura de `agentId`** nos ~28 pontos restantes: precisa de dono
+   e prazo.
+4. **A primeira varredura do `seguranca`** — a fila dele já nasce com 4 itens
+   registrados e sem dono, e o primeiro (`publishPost` sem
+   `MetaAtivoAutorizado`) exige parecer do `meta` antes.
+
+**Portão:** `npx tsc --noEmit` limpo · `npm run build` limpo · **2653 testes
+verdes**. ⚠️ **2 testes falham em `__tests__/marketplaces/as-cinco-plataformas.test.ts`
+— a falha é ANTERIOR a este trabalho** (confirmado com `git stash`) e continua
+sem dono.
+
 ## 🔴 07/08/2026 — O PORTAL PEDIA APROVAÇÃO DE CARDS VAZIOS. Consertado (`02c7629`)
 
 **A consequência, primeiro:** o CEO abriu duas aprovações em produção e as duas

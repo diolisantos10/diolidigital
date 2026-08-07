@@ -112,6 +112,11 @@ export default function AgencySidebar({ id, userInfo, mobileOpen = false, onMobi
       group: "Inteligência & Sistema",
       items: [
         { label: "Dioli Brain", href: "/agency/brain", icon: BrainIcon },
+        // ITEM PRÓPRIO, e NÃO dentro de Configurações — ordem explícita do CEO
+        // em 07/08/2026 (doutrina 20 do `dioli-brain-kit`). A pergunta "quem
+        // trabalha aqui?" é de primeira ordem; pendurada dentro de outra tela,
+        // ela vira rodapé e ninguém olha.
+        { label: "Sala dos Agentes", href: "/agency/agents", icon: AgentesIcon },
         // Mesmo caso do WhatsApp: serviço + cron + 3 rotas de API, zero porta.
         { label: "Radar do mercado", href: "/agency/radar", icon: RadarIcon },
         { label: "Ferramentas & Integrações", href: "/agency/integrations", icon: IntegrationsIcon },
@@ -457,6 +462,17 @@ function SettingsIcon({ size = 16, className = "" }: { size?: number; className?
     </svg>
   );
 }
+/** Sala dos Agentes: duas pessoas — quem trabalha aqui. */
+function AgentesIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
+      <circle cx="6" cy="5.5" r="2.3" stroke="currentColor" strokeWidth="1.3" />
+      <path d="M2 13.2c0-2.1 1.8-3.4 4-3.4s4 1.3 4 3.4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+      <path d="M10.6 3.6a2.3 2.3 0 0 1 0 4.4M11.4 9.9c1.6.3 2.6 1.5 2.6 3.3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function BrainIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
