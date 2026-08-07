@@ -75,13 +75,25 @@ Quando não vêm, o custo entra na conta **sem cliente**. Ausência de informaç
 não é informação: está anotado, não preenchido por inferência. Quem for mexer
 nessas duas telas fecha isto junto.
 
-## 🟡 07/08/2026 — GOOGLE DRIVE DO CLIENTE: código no ar do branch, feature TRAVADA
+## 🟡 07/08/2026 — GOOGLE DRIVE DO CLIENTE: **EM PRODUÇÃO**, feature TRAVADA no CEO
 
 O material de marca do cliente (logo em arquivo, fotos reais, manual, captura de
-tela) já tem caminho: portal → escolha do cliente → esteira. Está no branch
-`claude/dioli-pm-role-pow56e`, commit `626192e`. **Não está em produção** —
-produção roda outro branch (`claude/dioli-agency-os-architecture-kk7kp`,
-commit `796fca0`).
+tela) já tem caminho: portal → escolha do cliente → esteira.
+
+**Subiu em 07/08/2026, commit `d0985b6`** — merge de `claude/dioli-pm-role-pow56e`
+na branch de produção, pelo caminho normal (push → CI verde → Railway). O portão
+"Wait for CI" estava LIGADO e funcionou: a implantação esperou o workflow
+`quality` concluir antes de subir. **A porta de emergência não foi usada.**
+
+Prova em produção, não "deploy verde": `/api/health` responde `commit: d0985b6`,
+e as rotas que só existem neste commit respondem —
+`/api/portal/drive` **401** (viva e fechada, exige sessão do portal),
+`/api/portal/drive/conectar` e `/api/google/drive/callback` **200**. Rota
+inexistente devolveria 404; é isso que separa "subiu" de "foi disparado".
+
+**O card "Google Drive" saiu de "EM BREVE"** — `DriveDoCliente` está montado em
+`ConexoesDoCliente.tsx:369` e não há mais nenhum "EM BREVE" em
+`components/portal/`.
 
 **O que trava, e é do CEO:**
 
@@ -97,6 +109,13 @@ commit `796fca0`).
 
 Sem (3), o portal já diz a verdade: botão de escolher arquivos indisponível com
 "avise a agência — não é problema da sua conta". Nada finge funcionar.
+
+> ⚠️ **Não conferi as variáveis do Railway nesta sessão** — não havia token do
+> Railway neste ambiente. Então **não sei dizer se `GOOGLE_CLIENT_ID`,
+> `GOOGLE_PICKER_API_KEY` e `GOOGLE_PROJECT_NUMBER` já existem em produção.**
+> O código está no ar e é fail-closed: sem elas o cliente vê a mensagem honesta,
+> não um botão quebrado. Ausência de informação não é informação — quem tiver o
+> token confere antes de dizer ao CEO que o Drive "está funcionando".
 
 Parecer completo, com fontes: `docs/plataformas/google/pareceres/2026-08-07-drive-do-cliente.md`.
 
