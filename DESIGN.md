@@ -42,11 +42,79 @@ não cyan. Brand book manda **evitar cyan em excesso** e **evitar fundo sempre e
 (misturar claro e escuro com equilíbrio).
 
 ### Símbolo e assinatura visual
-- **Logo** (`components/brand/DioliLogo.tsx`): dois círculos (eclipse) — anel grande +
-  disco menor + micro-satélite. **Monocromático** (navy no claro, branco no escuro). O
-  cyan **não** entra no logo.
+
+- **Símbolo "Oo"** — **dois anéis vazados**: um grande e um pequeno, à direita e um
+  pouco acima. Não há disco cheio nem micro-satélite (esta linha descreveu isso até
+  08/08/2026 e estava simplesmente errada — quem seguisse o `DESIGN.md` desenharia
+  outra marca).
+- **Logotipo horizontal** — o símbolo + a palavra **Dioli**.
+- **Monocromático**: navy em fundo claro, branco em fundo escuro. O cyan **não** entra
+  no logo, em nenhuma variação.
 - **Órbita/eclipse** (`components/brand/OrbitMotif.tsx`): elipses tracejadas + esfera cyan
-  luminosa. Assinatura decorativa das telas de marca.
+  luminosa. Assinatura decorativa das telas de marca — **não** é o logo.
+
+#### O kit de arquivos (`public/brand/`)
+
+Gerado por `scripts/gerar-kit-de-marca.mjs`. **Não edite os arquivos à mão** — mude a
+geometria no script e rode-o de novo; `__tests__/design/kit-de-marca.test.ts` reprova se
+os SVGs divergirem das constantes de `lib/agency/design/marca-da-casa.ts`.
+
+| Arquivo | Quando usar |
+|---|---|
+| `dioli-logo-h-{navy,white}.svg` | **O padrão.** Tela, documento, impresso — qualquer tamanho |
+| `dioli-mark-{navy,white}.svg` | Só o símbolo: avatar, favicon, selo, assinatura de peça |
+| `dioli-logo-h-{navy,white}-{512,1024,2048}.png` | Onde SVG não entra (e-mail, Meta, Canva) |
+| `dioli-mark-{navy,white}-{256,512,1024}.png` | Idem, símbolo isolado |
+| `dioli-app-icon-1024.png` | Ícone de app — **opaco de propósito** (loja exige fundo) |
+
+Todos os PNGs do kit têm **fundo transparente de verdade** (conferido sobre xadrez em
+`scripts/conferir-kit-de-marca.mjs`, não só no código).
+
+**`navy` é para fundo CLARO e `white` é para fundo ESCURO** — a nomenclatura é a cor da
+tinta, não a do fundo. Quem escolhe em produção é o contraste, nunca o gosto:
+`tomDaCasaSobre()` (`lib/agency/design/logo-da-casa.ts`) usa a mesma luminância que
+decide a cor do texto ao lado.
+
+#### A geometria da marca — fixada em 08/08/2026
+
+O brand book entregou o logo em **PNG**. Os SVGs de `docs/brand/logo/` são saída de
+conversor de PDF e de `1.svg` a `6.svg` carregam `<image>` embutido — **PNG disfarçado de
+SVG**. O kit atual foi **redesenhado**, não vetorizado: as medidas saíram do PNG oficial
+em precisão de sub-pixel e viraram primitivas. O que ficou fixado:
+
+- **Grade:** `viewBox="0 0 1331 338"` (logotipo) e `0 0 548 338` (símbolo) — a mesma grade
+  de pixel dos PNGs oficiais, para que SVG e PNG sejam intercambiáveis.
+- **Anel grande:** raio externo 168,5 · espessura 33,5.
+- **Anel pequeno:** raio externo **84,25 — exatamente metade do grande**. A proporção é
+  exata no arquivo original, não aproximada.
+- **O anel pequeno fica 3,5 acima** do centro do grande. Medido em duas peças
+  independentes do brand book, logo **é a marca e foi preservado** — não é ruído.
+- **Logotipo em curvas, nunca em `<text>`.** SVG com `font-family` abre em Times New Roman
+  na máquina de quem não tem a fonte, e o logo do cliente quebraria igual
+  (`lib/agency/execution/logo.ts:33`).
+- **O "D"** tem bojo em semicírculo perfeito, mas contra-forma **elíptica mais alta que
+  larga** — a barra horizontal é mais fina que a vertical (48,3 contra 54,6), correção
+  óptica clássica. **O "o"** tem contra-forma circular exata e contorno em **superelipse**
+  (expoente ≈ 2,11), não elipse.
+
+**O que foi regularizado** (e por quê): no PNG original o furo do anel pequeno estava 2,4px
+descentrado em relação ao contorno externo, e as três hastes verticais mediam 52,4 / 52,6 /
+52,8. São ruído de rasterização, não desenho — o kit usa anéis concêntricos e haste única de
+52,6. Desvio total do redesenho contra o PNG oficial: **12 pixels acima de 3px de distância
+do contorno, em 450 mil** (medido por `scripts/gerar-kit-de-marca.mjs`).
+
+#### A Dioli assina a própria peça
+
+A peça só sabia buscar logo no **Google Drive do cliente**, e a Dioli não conecta um Drive
+para si mesma — então toda peça da casa saía assinada com o monograma "DD" enquanto o logo
+oficial estava versionado no repositório. Fechado em `lib/agency/design/logo-da-casa.ts`.
+
+> ⚠️ **A regra da ausência continua inteira.** Cliente sem arquivo de logo recebe o
+> monograma das iniciais e a falta **declarada** em `Molde.lacunas` (`LACUNA_DO_LOGO`).
+> A exceção da casa é uma **lista fechada de nomes**, nunca um prefixo — `startsWith("Dioli")`
+> entregaria a marca da agência a um cliente chamado "Dioli Móveis". As duas metades são
+> provadas em `__tests__/design/kit-de-marca.test.ts` e olhadas em
+> `scripts/conferir-peca-assinada.mts`.
 
 ### Tipografia oficial
 - **Sora** — títulos e destaques · **Inter** — textos e parágrafos.

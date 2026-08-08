@@ -27,6 +27,8 @@ import { prisma } from "@/lib/db/client";
 import { generateDesign } from "@/lib/ai/design-engine";
 import { guardarArquivo } from "@/lib/agency/media/armazenamento";
 import { logoDoCliente } from "@/lib/agency/esteira/material-do-drive";
+import { ehACasa } from "@/lib/agency/design/logo-da-casa";
+import { LOGOTIPO_DA_CASA, SIMBOLO_DA_CASA } from "@/lib/agency/design/marca-da-casa";
 
 /** As fontes que o wordmark pode usar. Lista fechada e com fallback genérico
  *  em cada uma: o SVG é aberto na máquina do CLIENTE, que não tem as nossas
@@ -85,6 +87,32 @@ export async function produzirKitDeMarca(
     select: { name: true, industry: true, brandBrain: true, workspaceId: true },
   }).catch(() => null);
   if (!cliente?.name) return { ...saida, erro: "cliente sem nome — não há o que escrever no logo" };
+
+  // ── A CASA JÁ TEM MARCA — NÃO SE DESENHA OUTRA (08/08/2026) ───────────────
+  // Pedir um kit de marca para a própria Dioli e receber um símbolo inventado
+  // por modelo de imagem seria a agência criando uma SEGUNDA identidade para si
+  // mesma. O kit dela existe, é vetor, e está versionado: entrega-se o que
+  // existe. Mesmo princípio do bloco acima (logo oficial do cliente vence).
+  if (ehACasa(cliente.name)) {
+    for (const [tom, para] of [
+      ["navy", "uso sobre fundo claro — papel, site, apresentação"],
+      ["white", "uso sobre fundo escuro — story, fachada, camiseta"],
+    ] as const) {
+      for (const [peca, svg] of [
+        ["logotipo", LOGOTIPO_DA_CASA[tom]],
+        ["simbolo", SIMBOLO_DA_CASA[tom]],
+      ] as const) {
+        const g = await guardarArquivo({
+          bytes: Buffer.from(svg, "utf8"),
+          fileName: `logo-dioli-${peca}-${tom}.svg`,
+          mimeType: "image/svg+xml",
+          workspaceId, clientId, projectId, kind: "deliverable", uploadedBy: "design",
+        });
+        if (g.ok) saida.arquivos.push({ id: g.arquivo.id, nome: g.arquivo.fileName, para });
+      }
+    }
+    return saida;
+  }
 
   const b = cliente.brandBrain;
   const primaria = corValida(b?.primaryColor) ?? "#1A1A1A";

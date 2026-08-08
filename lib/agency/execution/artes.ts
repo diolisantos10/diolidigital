@@ -39,6 +39,7 @@ import { guardarArquivo, lerArquivo } from "@/lib/agency/media/armazenamento";
 import { estiloVisualPersistido, estiloVistoPersistido } from "@/lib/agency/execution/leitura-do-cliente";
 import { moldeDoCliente, moldeComLogo, formatoDoPost, MIMES_DE_LOGO, type Molde } from "@/lib/agency/design/molde";
 import { logoDoCliente, fotosReaisDoCliente } from "@/lib/agency/esteira/material-do-drive";
+import { logoDaCasa } from "@/lib/agency/design/logo-da-casa";
 import {
   escolherFotoReal, escolherFotoParaPostAvulso, type FotoCandidata,
 } from "@/lib/agency/design/escolha-de-foto";
@@ -55,6 +56,7 @@ import {
   REGUA_CARROSSEL_DE_VENDA, type ReguaDeStoryboard, type TelaDoStoryboard,
 } from "@/lib/agency/design/storyboard";
 import { createHash } from "node:crypto";
+import { conferirPilar, motivoCurto } from "@/lib/agency/execution/pilares-bloqueados";
 
 /** Quantas artes por rodada. Cada uma é uma chamada cara de modelo de imagem —
  *  um calendário de 12 posts custaria 12 de uma vez se não houvesse teto. */
@@ -156,6 +158,23 @@ export async function produzirArtesPendentes(): Promise<ArtesFeitas> {
   const orcamento = abrirOrcamentoDoDia();
 
   for (const post of pendentes) {
+    // ── PILAR BLOQUEADO: NEM PEDE A IMAGEM ──────────────────────────────────
+    // Primeira coisa do laço, antes do teto de gasto e antes de qualquer
+    // chamada paga. Foi exatamente aqui que a casa queimou geração de imagem
+    // três vezes em 07/08 para jogar as três peças fora — e a segunda tentativa
+    // do pilar de salário inventou um número NOVO ("R$6.000" depois de
+    // "$3,500"), o que prova que regerar não é conserto.
+    //
+    // `desistiram`, e não `falhas`: não foi a máquina que falhou, e a peça não
+    // pode voltar na próxima rodada gastando tentativa. Quem a destrava é a
+    // conferência de pixel, não o relógio.
+    const vereditoDoPilar = conferirPilar(post.pillar);
+    if (vereditoDoPilar.bloqueado) {
+      saida.desistiram.push(post.id);
+      await marcarErro(post.id, motivoCurto(vereditoDoPilar), null);
+      continue;
+    }
+
     const tentativas = contarTentativas(post.lastError);
 
     // ── REEL: o vídeo do CLIENTE, editado ────────────────────────────────────
@@ -551,6 +570,20 @@ async function lerMarca(clientId: string | null): Promise<MarcaDaPeca> {
   if (!c) return vazio;
   const b = c.brandBrain;
   const material = await lerMaterialReal(clientId);
+  const base = moldeDoCliente(b ?? null);
+
+  // ── A ORDEM DAS DUAS FONTES DE LOGO IMPORTA (08/08/2026) ──────────────────
+  //
+  //   1º  o arquivo que o CLIENTE mandou pelo Drive — sempre vence;
+  //   2º  o logo da CASA, e só quando o cliente É a casa (`logoDaCasa` devolve
+  //       `null` para todos os outros, e é isso que a mantém uma exceção de um
+  //       nome só, não uma porta aberta).
+  //
+  // Para todo o resto continua valendo o de sempre: sem arquivo, monograma das
+  // iniciais e a falta DECLARADA em `Molde.lacunas`. Ausência de logo nunca
+  // virou licença para desenhar um.
+  const logo = material.logo ?? logoDaCasa(c.name, base.primaria);
+
   return {
     nome: c.name ?? "",
     segmento: c.industry ?? "",
@@ -558,9 +591,8 @@ async function lerMarca(clientId: string | null): Promise<MarcaDaPeca> {
     tom: b?.tone ?? "",
     fotosReais: material.fotos,
     // O molde nasce do BrandBrain e SÓ dele (cor, tipografia). O LOGO não vem
-    // do BrandBrain: vem do arquivo que o cliente mandou. Sem arquivo, o molde
-    // volta intacto e a lacuna é declarada — nunca um logo desenhado.
-    molde: moldeComLogo(moldeDoCliente(b ?? null), material.logo),
+    // do BrandBrain: vem de um ARQUIVO — o do cliente, ou o da casa.
+    molde: moldeComLogo(base, logo),
     // O cérebro é achado pelo NOME da marca. Marca desconhecida recebe o vazio
     // declarado; emprestar o repertório de um cliente a outro seria dar a
     // identidade de um a outro.

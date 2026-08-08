@@ -1,6 +1,9 @@
 // ─── Dioli Digital brand logo ─────────────────────────────────────────────────
-// Usa os ARQUIVOS OFICIAIS extraídos em alta resolução do Brand Book v1
-// (public/brand/). Monocromático: navy para fundos claros, branco para escuros.
+// Usa o KIT EM VETOR de `public/brand/`, redesenhado a partir do Brand Book v1
+// em 08/08/2026 (`scripts/gerar-kit-de-marca.mjs`). SVG e não PNG: o cabeçalho
+// do portal desenha o logo a 30px numa tela retina, e vetor é o único formato
+// que não pede um arquivo novo a cada densidade de pixel.
+// Monocromático: navy para fundos claros, branco para escuros.
 //   variant="full" → lockup horizontal (símbolo + "Dioli DIGITAL")
 //   variant="mark" → só o símbolo "Oo" (dois anéis)
 
@@ -27,8 +30,8 @@ export function DioliLogo({
   const color = tone === "light" ? "white" : "navy";
   const src =
     variant === "mark"
-      ? `/brand/dioli-mark-${color}.png`
-      : `/brand/dioli-logo-h-${color}.png`;
+      ? `/brand/dioli-mark-${color}.svg`
+      : `/brand/dioli-logo-h-${color}.svg`;
   const height = markSize;
   const width = Math.round(markSize * ASPECT[variant]);
 

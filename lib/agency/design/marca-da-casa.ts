@@ -1,0 +1,40 @@
+// marca-da-casa.ts — A MARCA DA DIOLI EM TEXTO.
+//
+// ⚠️  GERADO por `scripts/gerar-kit-de-marca.mjs`. NÃO EDITE À MÃO.
+//     Para mudar a marca, mude a GEOMETRIA naquele script e rode-o de novo.
+//     `__tests__/design/kit-de-marca.test.ts` reprova se este arquivo divergir
+//     dos SVGs de `public/brand/`.
+//
+// Por que a marca mora no código e não só em `public/brand/`: a peça é montada
+// num documento autossuficiente — sem rede, sem `file://`. Um caminho de disco
+// que o rasterizador não alcança falha em SILÊNCIO, e a peça sai sem assinatura
+// sem ninguém notar (o mesmo motivo que fez o logo do cliente viajar em data URL,
+// `lib/agency/design/molde.ts:164`).
+//
+// `navy` = para fundo CLARO. `white` = para fundo ESCURO. Quem escolhe é o
+// contraste, em `logo-da-casa.ts` — nunca o gosto de quem monta a peça.
+
+/** O logotipo horizontal: símbolo + "Dioli". */
+export const LOGOTIPO_DA_CASA = {
+  navy: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1331 338" width="1331" height="338" role="img" aria-label="Dioli Digital">
+  <title>Dioli Digital</title>
+  <path fill="#070A1F" fill-rule="evenodd" d="M0 168.5A168.5 168.5 0 1 0 337 168.5A168.5 168.5 0 1 0 0 168.5ZM33.5 168.5A135 135 0 1 0 303.5 168.5A135 135 0 1 0 33.5 168.5ZM378.25 165A84.25 84.25 0 1 0 546.75 165A84.25 84.25 0 1 0 378.25 165ZM405.75 165A56.75 56.75 0 1 0 519.25 165A56.75 56.75 0 1 0 405.75 165ZM641.6 48H723.3A123.75 123.75 0 0 1 723.3 295.5H641.6ZM696.2 96.35H723.3A69.2 75.5 0 0 1 723.3 247.35H696.2ZM880.8 130.5H933.4V295.5H880.8ZM878.3 74.15A28.8 28.8 0 1 0 935.9 74.15A28.8 28.8 0 1 0 878.3 74.15ZM1056.7 127.35C1110.559 127.35 1148.5 162.749 1148.5 213C1148.5 263.251 1110.559 298.65 1056.7 298.65C1002.841 298.65 964.9 263.251 964.9 213C964.9 162.749 1002.841 127.35 1056.7 127.35ZM1017.44 213A39.26 39.26 0 1 0 1095.96 213A39.26 39.26 0 1 0 1017.44 213ZM1179.5 13H1232.1V295.5H1179.5ZM1275 130.5H1327.6V295.5H1275ZM1272.5 74.15A28.8 28.8 0 1 0 1330.1 74.15A28.8 28.8 0 1 0 1272.5 74.15Z"/>
+</svg>`,
+  white: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1331 338" width="1331" height="338" role="img" aria-label="Dioli Digital">
+  <title>Dioli Digital</title>
+  <path fill="#FFFFFF" fill-rule="evenodd" d="M0 168.5A168.5 168.5 0 1 0 337 168.5A168.5 168.5 0 1 0 0 168.5ZM33.5 168.5A135 135 0 1 0 303.5 168.5A135 135 0 1 0 33.5 168.5ZM378.25 165A84.25 84.25 0 1 0 546.75 165A84.25 84.25 0 1 0 378.25 165ZM405.75 165A56.75 56.75 0 1 0 519.25 165A56.75 56.75 0 1 0 405.75 165ZM641.6 48H723.3A123.75 123.75 0 0 1 723.3 295.5H641.6ZM696.2 96.35H723.3A69.2 75.5 0 0 1 723.3 247.35H696.2ZM880.8 130.5H933.4V295.5H880.8ZM878.3 74.15A28.8 28.8 0 1 0 935.9 74.15A28.8 28.8 0 1 0 878.3 74.15ZM1056.7 127.35C1110.559 127.35 1148.5 162.749 1148.5 213C1148.5 263.251 1110.559 298.65 1056.7 298.65C1002.841 298.65 964.9 263.251 964.9 213C964.9 162.749 1002.841 127.35 1056.7 127.35ZM1017.44 213A39.26 39.26 0 1 0 1095.96 213A39.26 39.26 0 1 0 1017.44 213ZM1179.5 13H1232.1V295.5H1179.5ZM1275 130.5H1327.6V295.5H1275ZM1272.5 74.15A28.8 28.8 0 1 0 1330.1 74.15A28.8 28.8 0 1 0 1272.5 74.15Z"/>
+</svg>`,
+} as const;
+
+/** O símbolo "Oo" isolado. É ELE que assina a peça: no rodapé o nome já vem ao
+ *  lado em texto, e o logotipo horizontal escreveria "Dioli" duas vezes. */
+export const SIMBOLO_DA_CASA = {
+  navy: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 548 338" width="548" height="338" role="img" aria-label="Dioli Digital — símbolo">
+  <title>Dioli Digital — símbolo</title>
+  <path fill="#070A1F" fill-rule="evenodd" d="M0 168.5A168.5 168.5 0 1 0 337 168.5A168.5 168.5 0 1 0 0 168.5ZM33.5 168.5A135 135 0 1 0 303.5 168.5A135 135 0 1 0 33.5 168.5ZM378.25 165A84.25 84.25 0 1 0 546.75 165A84.25 84.25 0 1 0 378.25 165ZM405.75 165A56.75 56.75 0 1 0 519.25 165A56.75 56.75 0 1 0 405.75 165Z"/>
+</svg>`,
+  white: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 548 338" width="548" height="338" role="img" aria-label="Dioli Digital — símbolo">
+  <title>Dioli Digital — símbolo</title>
+  <path fill="#FFFFFF" fill-rule="evenodd" d="M0 168.5A168.5 168.5 0 1 0 337 168.5A168.5 168.5 0 1 0 0 168.5ZM33.5 168.5A135 135 0 1 0 303.5 168.5A135 135 0 1 0 33.5 168.5ZM378.25 165A84.25 84.25 0 1 0 546.75 165A84.25 84.25 0 1 0 378.25 165ZM405.75 165A56.75 56.75 0 1 0 519.25 165A56.75 56.75 0 1 0 405.75 165Z"/>
+</svg>`,
+} as const;
