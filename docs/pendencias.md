@@ -113,13 +113,12 @@ apagar. **O que fecha isto é uma frase do CEO: enviou ou não enviou.**
 
 ### 🔴 O QUE FICOU DE FORA, E O MOTIVO
 
-- **`RADAR_EMAIL_SECRET` em produção: NÃO CONFIRMADO.** Não há token do Railway
-  aqui e este ambiente **não alcança `diolidigital.com.br`** (o proxy nega a
-  conexão). O documento traz um `curl` de 10 segundos que responde 401 (existe) ou
-  503 (não existe), e não grava nada.
-- **Pelo mesmo motivo, não confirmei em `/api/health` que o commit subiu.** O push
-  para `claude/dioli-agency-os-architecture-kk7kp` foi feito; a confirmação no ar
-  precisa de alguém com acesso à rede de produção.
+- **`RADAR_EMAIL_SECRET`: CONFIRMADO em produção.** Medido, não deduzido: a rota
+  respondeu **401** a uma chamada sem a chave (se não existisse, seria 503).
+  ⚠️ **Só `www.diolidigital.com.br` responde** — o domínio raiz não devolveu nada
+  na mesma medição. Encaminhador apontado para o domínio sem `www` vira uma porta
+  que nunca recebe nada **e não avisa ninguém**. Consertar o DNS do raiz é outra
+  frente, sem dono.
 - **`BrowserComputer` continua sem chamador — de propósito.** Nenhum login,
   nenhuma leitura autenticada, nenhuma escrita no 99Freelas. Há teste que reprova
   quem o chamar a partir do caminho vivo, e que reprova `fetch(` nas rotas do

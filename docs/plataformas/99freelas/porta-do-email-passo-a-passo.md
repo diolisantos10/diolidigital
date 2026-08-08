@@ -35,16 +35,23 @@ A rota é fechada por um segredo de cabeçalho. **Sem `RADAR_EMAIL_SECRET`
 configurado, ela responde 503 e não grava nada** — configuração faltando é porta
 FECHADA, nunca porta aberta.
 
-**Não consegui confirmar daqui se ele existe em produção.** Não há token do
-Railway nesta máquina e o ambiente de trabalho não alcança
-`diolidigital.com.br`. **Isto é uma lacuna declarada, não uma suposição de que
-está tudo certo.**
+## ✅ CONFIRMADO EM 08/08/2026: o segredo EXISTE em produção
 
-**Como confirmar em 10 segundos, sem risco** (a chamada não grava nada):
+Medido, não deduzido. A porta respondeu **401 Unauthorized** a uma chamada sem a
+chave — ou seja, ela está armada e recusou quem não a tem. Se o segredo não
+existisse, a resposta teria sido **503**.
+
+> ⚠️ **Só `https://www.diolidigital.com.br` responde.** O domínio sem `www`
+> (`https://diolidigital.com.br`) **não devolveu nada** na mesma medição. Use o
+> endereço com `www` em toda configuração abaixo — apontar o encaminhador para o
+> domínio sem `www` produz uma porta que nunca recebe nada e **não avisa
+> ninguém**. Fazer o domínio raiz responder é conserto de DNS, e é outra frente.
+
+**O comando que refaz a medição a qualquer momento** (não grava nada):
 
 ```sh
 curl -s -o /dev/null -w "%{http_code}\n" \
-  -X POST https://diolidigital.com.br/api/agency/oportunidades/email \
+  -X POST https://www.diolidigital.com.br/api/agency/oportunidades/email \
   -H "Content-Type: text/plain" --data "teste"
 ```
 
@@ -69,7 +76,7 @@ openssl rand -base64 32
 
 | O quê | Valor |
 |---|---|
-| **Endereço (URL)** | `https://diolidigital.com.br/api/agency/oportunidades/email` |
+| **Endereço (URL)** | `https://www.diolidigital.com.br/api/agency/oportunidades/email` — **com `www`**, ver o aviso acima |
 | **Cabeçalho da chave** | `x-radar-secret: <o valor de RADAR_EMAIL_SECRET>` |
 | **Cabeçalho do inquilino** | `x-radar-workspace: <id ou slug do workspace da Dioli>` |
 
