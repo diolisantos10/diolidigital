@@ -32,8 +32,14 @@ describe("a rota é SOMENTE LEITURA, por construção", () => {
     }
   });
 
-  it("não sobe navegador — lançar é outro teste, e trava o processo por 45s", () => {
+  it("não sobe navegador por conta própria — a prova de vida é OPT-IN", () => {
+    // Subir o Chromium é a única parte cara aqui. Ela não pode acontecer numa
+    // chamada de rotina, e a rota nunca chama `launch` direto: ela reusa o
+    // `renderizarHtml` da esteira, que é o caminho que produz a peça do
+    // cliente. Uma segunda implementação provaria o caminho errado.
     expect(FONTE.includes(".launch(")).toBe(false);
+    expect(FONTE.includes('searchParams.get("lancar") === "1"')).toBe(true);
+    expect(FONTE.includes("renderizarHtml")).toBe(true);
   });
 });
 

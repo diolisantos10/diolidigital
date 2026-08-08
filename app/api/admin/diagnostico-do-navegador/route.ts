@@ -26,8 +26,10 @@
 //
 //   • **Não escreve nada.** Nem no disco, nem no banco, nem em plataforma
 //     nenhuma. Só `existsSync`, `readdir` e `stat`.
-//   • **Não sobe navegador.** Lançar o Chromium é outro teste, e um que pode
-//     travar o processo por 45s; aqui a pergunta é anterior: o binário existe?
+//   • **Não sobe navegador — a menos que lhe peçam `?lancar=1`.** Subir o
+//     Chromium é a única parte cara desta rota, e a pergunta padrão é anterior:
+//     o binário existe? A prova de vida é opt-in, usa o MESMO `renderizarHtml`
+//     da esteira e descarta os bytes.
 //   • **Não devolve VALOR de variável de ambiente** — só se está definida e,
 //     para as que são caminho, o caminho em si (que não é segredo). Rota de
 //     admin que imprime segredo é vazamento por screenshot.
@@ -170,6 +172,42 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     commit: process.env.RAILWAY_GIT_COMMIT_SHA?.slice(0, 7) ?? null,
   };
 
+  // ── 5. A PROVA DE VIDA, e por que ela é OPT-IN ───────────────────────────
+  //
+  // "O arquivo existe" NÃO é "o navegador funciona". `/usr/bin/chromium` do
+  // Debian é um script de 5 KB que faz exec no binário de verdade, e um wrapper
+  // pode falhar por biblioteca faltando, por sandbox ou por versão de protocolo
+  // — e `/api/capacidades` responderia `pronta: true` do mesmo jeito, porque
+  // ela só sabe se o caminho existe.
+  //
+  // Isso importa em DINHEIRO: `produzirArtesPendentes` consulta
+  // `renderizadorDisponivel()` e, se ela disser que sim, manda gerar a foto de
+  // IA de cada peça — que custa, por peça — para só então tentar aplicar o
+  // molde. Um "pronta: true" que mente vira fatura sem entregável.
+  //
+  // Fica atrás de `?lancar=1` porque subir um Chromium leva segundos e é a
+  // única parte cara desta rota; e usa o MESMO `renderizarHtml` da esteira —
+  // uma segunda implementação provaria outro caminho que não é o que produz a
+  // peça do cliente. Nada é escrito: os bytes são contados e descartados.
+  const querLancar = request.nextUrl.searchParams.get("lancar") === "1";
+  let provaDeVida:
+    | { tentado: false }
+    | { tentado: true; ok: true; bytes: number; conferidos: number; ms: number }
+    | { tentado: true; ok: false; motivo: string; erro: string; ms: number } = { tentado: false };
+  if (querLancar) {
+    const t0 = Date.now();
+    const { renderizarHtml } = await import("@/lib/agency/design/renderizar");
+    const r = await renderizarHtml({
+      html: '<html><body style="margin:0;background:#111"><div data-papel="titulo" style="font:700 40px sans-serif;color:#fff">PROVA DE VIDA</div></body></html>',
+      largura: 320,
+      altura: 320,
+      textosEsperados: ["PROVA DE VIDA"],
+    });
+    provaDeVida = r.ok
+      ? { tentado: true, ok: true, bytes: r.bytes.length, conferidos: r.conferencia.conferidos, ms: Date.now() - t0 }
+      : { tentado: true, ok: false, motivo: r.motivo, erro: r.erro, ms: Date.now() - t0 };
+  }
+
   const achou = caminhos.find((c) => c.existe) ?? null;
   const veredito = achou
     ? `binário encontrado em ${achou.caminho}`
@@ -182,6 +220,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // A mesma pergunta que `/api/capacidades` faz, respondida com o disco na mão.
     temNavegador: Boolean(achou) || playwright.executablePathExiste === true,
     playwright,
+    provaDeVida,
     caminhos,
     pastas,
     ambiente,
