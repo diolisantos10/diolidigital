@@ -27,34 +27,44 @@
 // E arquivo ausente vira PERGUNTA, nunca invenção: sem logo no Drive, a peça sai
 // declarando que falta o logo, e não com um logo desenhado por IA.
 //
-// ── 🔴 08/08/2026 — A PONTE EXISTE DOS DOIS LADOS E FALTA O MEIO ────────────
+// ── ✅ 08/08/2026 — A PONTE EXISTIA DOS DOIS LADOS E FALTAVA O MEIO ─────────
 //
-// Medido, não deduzido, nesta data:
+// O defeito, medido nos dois lados antes do conserto:
 //
 //   • `materiaisDeMarca` (abaixo) é a ÚNICA porta de material para dentro de uma
 //     peça. Quem consome: `execution/artes.ts` (logo + fotos reais) e
 //     `execution/logo.ts`. Não há outra.
-//   • Ela lê EXCLUSIVAMENTE `DriveMaterial`, exigindo as três coisas juntas:
-//     `mediaAssetId` + `papelConfirmadoEm` + `GoogleDriveConnection` viva.
-//   • E `DriveMaterial` nasce em UM ÚNICO lugar no repositório inteiro:
-//     `app/api/portal/drive/route.ts:173` — o caminho do **Google Picker**.
+//   • Ela lia EXCLUSIVAMENTE material de origem Drive, exigindo as três coisas
+//     juntas: `mediaAssetId` + `papelConfirmadoEm` + `GoogleDriveConnection` viva.
+//   • E a linha de material nascia em UM ÚNICO lugar no repositório inteiro:
+//     `app/api/portal/drive/route.ts` — o caminho do **Google Picker**.
 //
 // Consequência: o portal do cliente TEM, desde 02/08, uma tela de arrastar e
 // soltar (`components/portal/EnvioDeMaterial.tsx` → `POST /api/media`). Ela
-// guarda o `MediaAsset`, fecha o `MaterialRequest` e destrava a esteira — e
-// **nunca cria linha de `DriveMaterial`, nem pergunta o papel do arquivo.**
+// guardava o `MediaAsset`, fechava o `MaterialRequest` e destravava a esteira —
+// e **nunca criava linha de material, nem perguntava o papel do arquivo.**
 //
-// Ou seja: **o logo que o cliente (ou o CEO) sobe pelo portal chega ao disco da
-// casa, avisa a equipe, destrava a produção — e é INVISÍVEL para a peça.** O
-// logo da peça continua sendo o nome escrito em fonte, com o arquivo real já
-// gravado no volume. Os bytes atravessam; a declaração de PAPEL, não.
+// Ou seja: o logo que o cliente (ou o CEO) subia pelo portal chegava ao disco da
+// casa, avisava a equipe, destravava a produção — e era **INVISÍVEL para a
+// peça**. Os bytes atravessavam; a declaração de PAPEL, não. A peça continuava
+// saindo com o nome do cliente escrito em fonte comum, com o arquivo real já
+// gravado no volume.
 //
-// ⚠️ NÃO consertado aqui, e o motivo é explícito: o conserto limpo é uma
-// ORIGEM no material (`drive` exige conexão viva; `envio_direto` não depende do
-// Google, porque a casa já tem os bytes pelo ato do próprio cliente) — e isso é
-// campo novo em `prisma/schema.prisma`, que estava em mãos de outro agente
-// nesta sessão. Codificar a origem dentro de `connectionId`/`fileId` como texto
-// seria esconder o modelo dentro de uma string. Dono: `esteira` + `plataforma`.
+// **O conserto: uma ORIGEM no material** (`prisma/schema.prisma`, migration
+// `20260808150000_origem_do_material`):
+//
+//   • `drive`        — exige conexão viva com o Google, exatamente como antes;
+//   • `envio_direto` — o portal ou o admin; **não depende do Google para nada**,
+//     porque a casa já tem os bytes pelo ato do próprio dono.
+//
+// A entrada é `registrarMaterialEnviado` (abaixo). O papel é PEDIDO NA HORA DO
+// ENVIO, na própria tela — sem papel declarado o arquivo é guardado mas não
+// entra em peça nenhuma, e a esteira escala pedindo em vez de engolir em
+// silêncio.
+//
+// ⚠️ **A metade que quase ninguém testa, e é o ponto inteiro da mudança:**
+// material de origem `envio_direto` continua valendo com o Google
+// DESCONECTADO. Travado em `__tests__/esteira/origem-do-material.test.ts`.
 
 import { prisma } from "@/lib/db/client";
 import { guardarArquivo } from "@/lib/agency/media/armazenamento";
@@ -206,6 +216,111 @@ export async function importarPendentesDoCliente(clientId: string): Promise<Impo
   return saida;
 }
 
+// ─── O ENVIO DIRETO — O MEIO DA PONTE, FECHADO EM 08/08/2026 ────────────────
+
+export interface RegistroDeEnvioDireto {
+  ok: boolean;
+  driveMaterialId?: string;
+  papel?: Papel;
+  /** Em português. Vai para a tela de quem enviou. */
+  erro?: string;
+}
+
+/**
+ * O arquivo que o cliente arrastou no portal (ou que o operador subiu pelo
+ * admin) vira MATERIAL DE MARCA — visível para a peça.
+ *
+ * ── POR QUE ISTO PRECISA EXISTIR ──────────────────────────────────────────
+ *
+ * `POST /api/media` já guardava o `MediaAsset`, fechava o `MaterialRequest` e
+ * destravava a esteira. O que ele NUNCA fez foi criar a linha de material — e
+ * `materiaisDeMarca` só lê material. Os bytes atravessavam; a declaração de
+ * PAPEL, não. Resultado: o logo chegava ao disco e a peça continuava saindo com
+ * o nome do cliente escrito em fonte comum.
+ *
+ * ── SEM PAPEL, NÃO ENTRA. E ISSO NÃO É UM BUG ─────────────────────────────
+ *
+ * Papel ausente devolve `ok: false` e NÃO grava linha nenhuma. A casa não
+ * adivinha se "IMG_2831.jpg" é o produto, a fachada ou o cachorro do dono —
+ * peça com a foto errada é pior que peça sem foto, porque parece que alguém
+ * olhou e escolheu aquilo. Ausência de informação não é informação.
+ *
+ * O arquivo NÃO se perde nesse caso: o `MediaAsset` continua guardado e o
+ * pedido de material continua fechado. O que não acontece é ele entrar numa
+ * peça sem alguém ter dito o que ele é.
+ *
+ * ── NÃO DEPENDE DO GOOGLE PARA NADA ───────────────────────────────────────
+ *
+ * `origem: "envio_direto"` e `connectionId: null`. Nenhuma leitura de
+ * `GoogleDriveConnection` acontece aqui, nem na hora de usar o material. É o
+ * ponto inteiro da mudança.
+ *
+ * Idempotente por `@@unique([clientId, mediaAssetId])`: reenviar o mesmo
+ * arquivo atualiza a linha em vez de duplicar o material da peça.
+ */
+export async function registrarMaterialEnviado(entrada: {
+  workspaceId: string;
+  clientId: string | null | undefined;
+  mediaAssetId: string;
+  fileName: string;
+  mimeType: string;
+  tamanhoBytes?: number;
+  /** O papel DECLARADO por quem enviou. Sem ele não há material. */
+  papel: unknown;
+}): Promise<RegistroDeEnvioDireto> {
+  // Material é sempre DE UM CLIENTE. Arquivo sem dono não tem em que peça
+  // entrar, e adivinhar o dono é como o arquivo de um cliente aparece no
+  // portal de outro.
+  if (!entrada.clientId) {
+    return { ok: false, erro: "arquivo sem cliente dono — não vira material de marca" };
+  }
+
+  const papel = papelValido(entrada.papel);
+  if (!papel) {
+    return {
+      ok: false,
+      erro: "não sabemos o que é este arquivo — quem enviou precisa dizer se é logo, foto de produto, foto do local, prova ou referência",
+    };
+  }
+
+  const agora = new Date();
+  try {
+    const linha = await prisma.driveMaterial.upsert({
+      where: { clientId_mediaAssetId: { clientId: entrada.clientId, mediaAssetId: entrada.mediaAssetId } },
+      create: {
+        workspaceId: entrada.workspaceId,
+        clientId: entrada.clientId,
+        origem: "envio_direto",
+        // NULO de propósito: não existe conexão com o Google neste caminho, e
+        // inventar uma (ou codificar "envio_direto" dentro deste campo como
+        // texto) esconderia o modelo dentro de uma string.
+        connectionId: null,
+        // Na origem "envio_direto" o identificador estável do arquivo é o
+        // próprio `MediaAsset` — é dele que os bytes vêm.
+        fileId: entrada.mediaAssetId,
+        nome: entrada.fileName,
+        mimeType: entrada.mimeType,
+        tamanhoBytes: entrada.tamanhoBytes ?? 0,
+        ehPasta: false,
+        papel,
+        // Quem envia declarando o papel ESTÁ confirmando. Não há segunda tela
+        // de confirmação neste caminho (diferente do Picker, onde o cliente
+        // escolhe primeiro e diz o que é depois).
+        papelConfirmadoEm: agora,
+        mediaAssetId: entrada.mediaAssetId,
+        // Já está no disco da casa: não há o que importar depois.
+        importadoEm: agora,
+        erro: null,
+      },
+      update: { papel, papelConfirmadoEm: agora, nome: entrada.fileName, mimeType: entrada.mimeType, erro: null },
+    });
+    return { ok: true, driveMaterialId: linha.id, papel };
+  } catch (e) {
+    console.error("[material] envio direto não virou material de marca", e);
+    return { ok: false, erro: "não consegui registrar este arquivo como material de marca" };
+  }
+}
+
 // ─── O QUE QUEM PRODUZ ENXERGA ──────────────────────────────────────────────
 
 export interface MaterialDeMarca {
@@ -254,6 +369,11 @@ export async function materiaisDeMarca(clientId: string | null | undefined): Pro
     const m: MaterialParaDecidir = {
       fileId: l.fileId, nome: l.nome, ehPasta: l.ehPasta,
       papel: l.papel, papelConfirmadoEm: l.papelConfirmadoEm,
+      // ── 08/08/2026: SEM ESTA LINHA A MUDANÇA INTEIRA NÃO VALE NADA ────────
+      // Omitir `origem` aqui faria a trava tratar todo material como se fosse
+      // do Drive, e o arquivo que o cliente arrastou no portal seria recusado
+      // por falta de uma conexão com o Google que ele nunca precisou ter.
+      origem: l.origem,
     };
     // A trava roda DE NOVO na leitura. O material foi autorizado no dia da
     // importação; se o cliente revogou depois, ou a conexão morreu, o arquivo

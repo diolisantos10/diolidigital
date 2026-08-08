@@ -77,7 +77,16 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   });
 
   const materiais = await prisma.driveMaterial.findMany({
-    where: { clientId: dono.clientId },
+    // ── SÓ A ORIGEM "drive" ───────────────────────────────────────────────
+    // Este cartão responde UMA pergunta: "você escolheu arquivos no seletor do
+    // Google?". Desde 08/08 a mesma tabela guarda também o que o cliente
+    // arrasta no portal (`origem: "envio_direto"`), que não passa pelo Google.
+    // Sem este filtro, um logo enviado pelo portal apagaria a frase
+    // FRASE_ZERO_MATERIAL do cartão do Drive — e o cliente leria "1 material
+    // pronto" num cartão que fala de uma escolha que ele nunca fez. É a mesma
+    // classe de defeito do card do pacote em 08/08: um lugar afirmando algo
+    // que quem responde é outro.
+    where: { clientId: dono.clientId, origem: "drive" },
     orderBy: { escolhidoEm: "desc" },
     take: 100,
   }).catch((e) => {

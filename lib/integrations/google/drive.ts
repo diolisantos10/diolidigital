@@ -34,6 +34,7 @@ import { prisma } from "@/lib/db/client";
 import { encryptSecret, decryptSecret } from "@/lib/security/crypto";
 import {
   materialAutorizado,
+  origemValida,
   type ConexaoParaDecidir,
   type MaterialParaDecidir,
   type MotivoDaRecusa,
@@ -236,7 +237,9 @@ export async function baixarMaterial(
   const m = await prisma.driveMaterial.findUnique({ where: { id: driveMaterialId } });
   if (!m) return { ok: false, motivo: "sem_conexao", erro: "material do Drive não encontrado no sistema" };
 
-  const conexao = (await prisma.googleDriveConnection.findUnique({ where: { id: m.connectionId } })) as ConexaoDoDrive | null;
+  const conexao = m.connectionId
+    ? ((await prisma.googleDriveConnection.findUnique({ where: { id: m.connectionId } })) as ConexaoDoDrive | null)
+    : null;
 
   const material: MaterialParaDecidir = {
     fileId: m.fileId,
@@ -244,12 +247,33 @@ export async function baixarMaterial(
     ehPasta: m.ehPasta,
     papel: m.papel,
     papelConfirmadoEm: m.papelConfirmadoEm,
+    origem: m.origem,
   };
 
   // ── A TRAVA. Antes da rede. ───────────────────────────────────────────────
   const veredito = materialAutorizado(paraDecidir(conexao), material);
   if (!veredito.pode) {
     return { ok: false, motivo: veredito.motivo, erro: veredito.recado };
+  }
+
+  // ── SÓ MATERIAL DO GOOGLE SE BAIXA DO GOOGLE (08/08/2026) ────────────────
+  //
+  // Desde a origem do material, a mesma tabela guarda também o que o cliente
+  // arrastou no portal (`origem: "envio_direto"`, `connectionId` nulo). Esses
+  // bytes JÁ SÃO da casa — não existe o que buscar, e chegar aqui com um deles
+  // é erro de quem chamou, não falha de rede.
+  //
+  // ⚠️ A ORDEM É DELIBERADA: esta guarda vem DEPOIS da trava, nunca antes.
+  // Posta antes, ela responderia "sem_conexao" para arquivo sem papel declarado
+  // e para pasta — apagando os motivos próprios que a trava existe para dar, e
+  // que a tela do cliente mostra. A trava decide PRIMEIRO; isto só impede a
+  // requisição que não faz sentido.
+  if (origemValida(m.origem) !== "drive" || !m.connectionId) {
+    return {
+      ok: false,
+      motivo: "sem_conexao",
+      erro: "este material não veio do Google Drive — os arquivos dele já estão guardados na casa",
+    };
   }
 
   const t = await comTokenDoDrive(m.connectionId);

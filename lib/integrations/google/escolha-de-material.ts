@@ -139,6 +139,33 @@ export function sugerirPapel(nome: string, mimeType: string): Papel | null {
 
 // ─── A TRAVA ────────────────────────────────────────────────────────────────
 
+// ─── A ORIGEM DO MATERIAL ───────────────────────────────────────────────────
+//
+// 08/08/2026. Duas origens, e a diferença entre elas é de QUEM DEPENDE O ACESSO:
+//
+//   • "drive"        — o arquivo mora no Google. Para lê-lo a casa precisa da
+//                      conexão viva, do escopo e do token. Se o cliente
+//                      desconectar, o acesso acaba — e tem que acabar.
+//   • "envio_direto" — o cliente arrastou o arquivo no portal (ou o operador
+//                      subiu pelo admin). Os BYTES JÁ SÃO DA CASA, guardados no
+//                      volume pelo ato do próprio dono. Não há nada a pedir ao
+//                      Google, e por isso nada do Google pode barrar.
+//
+// É este parágrafo que estava faltando no meio da ponte: o portal guardava o
+// arquivo desde 02/08, e a peça continuava saindo sem ele porque a única porta
+// de material exigia uma conexão com o Google que nada tinha a ver com aquele
+// arquivo.
+
+export const ORIGENS = ["drive", "envio_direto"] as const;
+export type OrigemDoMaterial = (typeof ORIGENS)[number];
+
+/** Aceita só origem da lista. Desconhecida cai em "drive" — o lado ESTRITO:
+ *  origem que a casa não reconhece passa a exigir conexão viva, nunca a
+ *  dispensar. Fail-closed também aqui. */
+export function origemValida(v: unknown): OrigemDoMaterial {
+  return v === "envio_direto" ? "envio_direto" : "drive";
+}
+
 /** O que a trava precisa saber de um material para decidir. Só isto: nada de
  *  objeto do Prisma inteiro, para que a decisão seja testável sem banco. */
 export interface MaterialParaDecidir {
@@ -147,6 +174,9 @@ export interface MaterialParaDecidir {
   ehPasta: boolean;
   papel: string | null;
   papelConfirmadoEm: Date | null;
+  /** Ausente = "drive". Compatível com todo chamador anterior a 08/08/2026, e
+   *  o padrão é o lado que EXIGE conexão. */
+  origem?: string | null;
 }
 
 /** A conexão, pelo mínimo que decide. */
@@ -189,34 +219,50 @@ export function materialAutorizado(
   material: MaterialParaDecidir,
   agora: Date = new Date(),
 ): Veredito {
-  if (!conexao || conexao.status === "revoked") {
-    return {
-      pode: false,
-      motivo: "sem_conexao",
-      recado: "o Google Drive deste cliente não está conectado — falta material",
-    };
-  }
+  const origem = origemValida(material.origem);
 
-  // Escopo: se o Google não concedeu `drive.file`, não existe leitura possível.
-  // Conferir aqui (e não só na conexão) é o que impede uma conexão antiga, de
-  // antes de uma mudança de escopo, de continuar valendo por inércia.
-  if (!conexao.escopos.includes(ESCOPO_DRIVE)) {
-    return {
-      pode: false,
-      motivo: "escopo_insuficiente",
-      recado: "a autorização do Drive não cobre leitura de arquivo — o cliente precisa reconectar",
-    };
-  }
+  // ── AS TRÊS CONFERÊNCIAS DE CONEXÃO SÓ VALEM PARA A ORIGEM "drive" ────────
+  //
+  // Elas perguntam "a casa consegue ir ao Google buscar este arquivo?". Para
+  // material de ENVIO DIRETO a pergunta não faz sentido: o arquivo já está no
+  // volume da casa, posto lá pelo próprio dono. Aplicá-las aqui faria o logo que
+  // o cliente arrastou no portal sumir da peça no dia em que ele desconectasse
+  // um Drive que nunca teve nada a ver com aquele arquivo — e, pior, faria o
+  // envio direto ser inútil para os clientes que NUNCA conectaram o Google, que
+  // são a maioria.
+  //
+  // O que NÃO é dispensado: papel declarado. Essa é a regra sobre o ARQUIVO, não
+  // sobre o acesso a ele, e ela continua valendo inteira nas duas origens.
+  if (origem === "drive") {
+    if (!conexao || conexao.status === "revoked") {
+      return {
+        pode: false,
+        motivo: "sem_conexao",
+        recado: "o Google Drive deste cliente não está conectado — falta material",
+      };
+    }
 
-  // Token vencido SEM refresh é fim de linha: ninguém consegue renovar.
-  // Com refresh, `comTokenDoDrive` renova — vencido aqui não é motivo de recusa.
-  const vencido = !conexao.tokenExpiresAt || conexao.tokenExpiresAt.getTime() <= agora.getTime();
-  if (conexao.status === "expired" || (vencido && !conexao.temRefresh)) {
-    return {
-      pode: false,
-      motivo: "conexao_expirada",
-      recado: "o acesso ao Drive do cliente expirou — ele precisa reconectar",
-    };
+    // Escopo: se o Google não concedeu `drive.file`, não existe leitura possível.
+    // Conferir aqui (e não só na conexão) é o que impede uma conexão antiga, de
+    // antes de uma mudança de escopo, de continuar valendo por inércia.
+    if (!conexao.escopos.includes(ESCOPO_DRIVE)) {
+      return {
+        pode: false,
+        motivo: "escopo_insuficiente",
+        recado: "a autorização do Drive não cobre leitura de arquivo — o cliente precisa reconectar",
+      };
+    }
+
+    // Token vencido SEM refresh é fim de linha: ninguém consegue renovar.
+    // Com refresh, `comTokenDoDrive` renova — vencido aqui não é motivo de recusa.
+    const vencido = !conexao.tokenExpiresAt || conexao.tokenExpiresAt.getTime() <= agora.getTime();
+    if (conexao.status === "expired" || (vencido && !conexao.temRefresh)) {
+      return {
+        pode: false,
+        motivo: "conexao_expirada",
+        recado: "o acesso ao Drive do cliente expirou — ele precisa reconectar",
+      };
+    }
   }
 
   // Pasta não é material. Ver o parecer em

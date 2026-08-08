@@ -4952,6 +4952,7 @@ export const DriveMaterialScalarFieldEnum = {
   id: 'id',
   workspaceId: 'workspaceId',
   clientId: 'clientId',
+  origem: 'origem',
   connectionId: 'connectionId',
   fileId: 'fileId',
   nome: 'nome',

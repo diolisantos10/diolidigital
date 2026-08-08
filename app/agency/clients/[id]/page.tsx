@@ -8,6 +8,7 @@ import { useDbBrandUpdates } from "@/lib/hooks/useDbBrandUpdates";
 import { notFound } from "next/navigation";
 import AgencyHeader from "@/components/agency/layout/AgencyHeader";
 import RedesDoCliente from "@/components/agency/clients/RedesDoCliente";
+import MaterialDeMarca from "@/components/agency/clients/MaterialDeMarca";
 import ReconciliarCarrosseis from "@/components/agency/clients/ReconciliarCarrosseis";
 import Badge from "@/components/agency/ui/Badge";
 import Button from "@/components/agency/ui/Button";
@@ -485,6 +486,9 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
               </div>
             )}
           </div>
+
+          {/* ── Material de marca — o que a peça consegue usar de verdade ────── */}
+          <MaterialDeMarca clientId={id} />
 
           {/* ── Redes (métricas reais da Meta) ───────────────────────────────── */}
           <RedesDoCliente clientId={id} />

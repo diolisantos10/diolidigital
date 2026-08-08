@@ -107,6 +107,13 @@ export type GoogleDriveConnection = Prisma.GoogleDriveConnectionModel
  * E material daqui é INSUMO, não verdade: ter a foto do produto no Drive não
  * autoriza a casa a afirmar nada sobre o negócio. O piso de verdade
  * (lib/agency/execution/piso-de-verdade.ts) continua valendo inteiro.
+ * O MATERIAL DE MARCA DO CLIENTE — a ÚNICA porta de arquivo para dentro de uma
+ * peça (lib/agency/esteira/material-do-drive.ts::materiaisDeMarca).
+ * 
+ * ⚠️ O NOME DO MODELO É DÍVIDA DECLARADA. Ele nasceu só para o Google Drive e
+ * hoje guarda também o que o cliente arrasta no portal (`origem`). Renomear é
+ * migration de tabela inteira num SQLite em volume; ficou de fora de propósito.
+ * Quem ler `DriveMaterial` deve ler "material de marca", não "material do Drive".
  */
 export type DriveMaterial = Prisma.DriveMaterialModel
 /**

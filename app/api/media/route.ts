@@ -138,6 +138,39 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: r.motivo, codigo: r.erro }, { status: 400 });
   }
 
+  // ── O ARQUIVO VIRA MATERIAL DE MARCA — o meio da ponte (08/08/2026) ───────
+  //
+  // Até hoje esta rota guardava os bytes, fechava o pedido de material e parava
+  // aí. `materiaisDeMarca()` — a ÚNICA porta de material para dentro de uma peça
+  // — nunca via nada disso, porque só lia o que veio do Picker do Google.
+  // Resultado: o CEO arrastava o logo, o sistema dizia "recebido", e a peça saía
+  // com o nome do cliente escrito em fonte comum, com o arquivo no disco.
+  //
+  // O papel vem do formulário, DECLARADO por quem enviou — cliente ou operador.
+  // Sem papel não há material: o arquivo fica guardado e o pedido fecha, mas ele
+  // não entra em peça nenhuma. A casa não adivinha o que é "IMG_2831.jpg".
+  //
+  // Vale para as DUAS portas (portal e admin da agência): uma só implementação,
+  // porque duas cópias da mesma regra divergem — é o defeito nº 2 do incidente
+  // do Drive.
+  const papelBruto = form.get("papel");
+  let materialDeMarca: { registrado: boolean; papel?: string; motivo?: string } | null = null;
+  if (typeof papelBruto === "string" && papelBruto.trim()) {
+    const { registrarMaterialEnviado } = await import("@/lib/agency/esteira/material-do-drive");
+    const reg = await registrarMaterialEnviado({
+      workspaceId,
+      clientId,
+      mediaAssetId: r.arquivo.id,
+      fileName: nome,
+      mimeType: mime,
+      tamanhoBytes: r.arquivo.sizeBytes,
+      papel: papelBruto.trim(),
+    });
+    materialDeMarca = reg.ok
+      ? { registrado: true, papel: reg.papel }
+      : { registrado: false, motivo: reg.erro };
+  }
+
   // ── O ARQUIVO DESTRAVA A ESTEIRA ──────────────────────────────────────────
   // Só no caminho do CLIENTE: quando é a equipe quem sobe (sessão), ela tem a
   // tela de materiais para marcar o pedido certo, e adivinhar por ela seria pior.
@@ -169,6 +202,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   return NextResponse.json({
     ok: true,
     arquivo: r.arquivo,
+    // A verdade sobre o material: entrou na peça ou não, e por quê. A tela
+    // precisa poder dizer "o time já pode usar isto" — ou pedir o que falta —
+    // sem prometer nada que a casa não fez.
+    ...(materialDeMarca ? { materialDeMarca } : {}),
     // A verdade do que aconteceu depois do upload, para a tela poder falar sem
     // prometer: a equipe foi avisada? destravou? ainda falta alguma coisa?
     ...(material

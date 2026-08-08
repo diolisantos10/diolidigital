@@ -27,6 +27,13 @@ import type * as Prisma from "../internal/prismaNamespace"
  * E material daqui é INSUMO, não verdade: ter a foto do produto no Drive não
  * autoriza a casa a afirmar nada sobre o negócio. O piso de verdade
  * (lib/agency/execution/piso-de-verdade.ts) continua valendo inteiro.
+ * O MATERIAL DE MARCA DO CLIENTE — a ÚNICA porta de arquivo para dentro de uma
+ * peça (lib/agency/esteira/material-do-drive.ts::materiaisDeMarca).
+ * 
+ * ⚠️ O NOME DO MODELO É DÍVIDA DECLARADA. Ele nasceu só para o Google Drive e
+ * hoje guarda também o que o cliente arrasta no portal (`origem`). Renomear é
+ * migration de tabela inteira num SQLite em volume; ficou de fora de propósito.
+ * Quem ler `DriveMaterial` deve ler "material de marca", não "material do Drive".
  */
 export type DriveMaterialModel = runtime.Types.Result.DefaultSelection<Prisma.$DriveMaterialPayload>
 
@@ -50,6 +57,7 @@ export type DriveMaterialMinAggregateOutputType = {
   id: string | null
   workspaceId: string | null
   clientId: string | null
+  origem: string | null
   connectionId: string | null
   fileId: string | null
   nome: string | null
@@ -70,6 +78,7 @@ export type DriveMaterialMaxAggregateOutputType = {
   id: string | null
   workspaceId: string | null
   clientId: string | null
+  origem: string | null
   connectionId: string | null
   fileId: string | null
   nome: string | null
@@ -90,6 +99,7 @@ export type DriveMaterialCountAggregateOutputType = {
   id: number
   workspaceId: number
   clientId: number
+  origem: number
   connectionId: number
   fileId: number
   nome: number
@@ -120,6 +130,7 @@ export type DriveMaterialMinAggregateInputType = {
   id?: true
   workspaceId?: true
   clientId?: true
+  origem?: true
   connectionId?: true
   fileId?: true
   nome?: true
@@ -140,6 +151,7 @@ export type DriveMaterialMaxAggregateInputType = {
   id?: true
   workspaceId?: true
   clientId?: true
+  origem?: true
   connectionId?: true
   fileId?: true
   nome?: true
@@ -160,6 +172,7 @@ export type DriveMaterialCountAggregateInputType = {
   id?: true
   workspaceId?: true
   clientId?: true
+  origem?: true
   connectionId?: true
   fileId?: true
   nome?: true
@@ -267,7 +280,8 @@ export type DriveMaterialGroupByOutputType = {
   id: string
   workspaceId: string
   clientId: string
-  connectionId: string
+  origem: string
+  connectionId: string | null
   fileId: string
   nome: string
   mimeType: string
@@ -310,7 +324,8 @@ export type DriveMaterialWhereInput = {
   id?: Prisma.StringFilter<"DriveMaterial"> | string
   workspaceId?: Prisma.StringFilter<"DriveMaterial"> | string
   clientId?: Prisma.StringFilter<"DriveMaterial"> | string
-  connectionId?: Prisma.StringFilter<"DriveMaterial"> | string
+  origem?: Prisma.StringFilter<"DriveMaterial"> | string
+  connectionId?: Prisma.StringNullableFilter<"DriveMaterial"> | string | null
   fileId?: Prisma.StringFilter<"DriveMaterial"> | string
   nome?: Prisma.StringFilter<"DriveMaterial"> | string
   mimeType?: Prisma.StringFilter<"DriveMaterial"> | string
@@ -330,7 +345,8 @@ export type DriveMaterialOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   workspaceId?: Prisma.SortOrder
   clientId?: Prisma.SortOrder
-  connectionId?: Prisma.SortOrder
+  origem?: Prisma.SortOrder
+  connectionId?: Prisma.SortOrderInput | Prisma.SortOrder
   fileId?: Prisma.SortOrder
   nome?: Prisma.SortOrder
   mimeType?: Prisma.SortOrder
@@ -349,12 +365,14 @@ export type DriveMaterialOrderByWithRelationInput = {
 export type DriveMaterialWhereUniqueInput = Prisma.AtLeast<{
   id?: string
   connectionId_fileId?: Prisma.DriveMaterialConnectionIdFileIdCompoundUniqueInput
+  clientId_mediaAssetId?: Prisma.DriveMaterialClientIdMediaAssetIdCompoundUniqueInput
   AND?: Prisma.DriveMaterialWhereInput | Prisma.DriveMaterialWhereInput[]
   OR?: Prisma.DriveMaterialWhereInput[]
   NOT?: Prisma.DriveMaterialWhereInput | Prisma.DriveMaterialWhereInput[]
   workspaceId?: Prisma.StringFilter<"DriveMaterial"> | string
   clientId?: Prisma.StringFilter<"DriveMaterial"> | string
-  connectionId?: Prisma.StringFilter<"DriveMaterial"> | string
+  origem?: Prisma.StringFilter<"DriveMaterial"> | string
+  connectionId?: Prisma.StringNullableFilter<"DriveMaterial"> | string | null
   fileId?: Prisma.StringFilter<"DriveMaterial"> | string
   nome?: Prisma.StringFilter<"DriveMaterial"> | string
   mimeType?: Prisma.StringFilter<"DriveMaterial"> | string
@@ -368,13 +386,14 @@ export type DriveMaterialWhereUniqueInput = Prisma.AtLeast<{
   erro?: Prisma.StringNullableFilter<"DriveMaterial"> | string | null
   escolhidoEm?: Prisma.DateTimeFilter<"DriveMaterial"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"DriveMaterial"> | Date | string
-}, "id" | "connectionId_fileId">
+}, "id" | "connectionId_fileId" | "clientId_mediaAssetId">
 
 export type DriveMaterialOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   workspaceId?: Prisma.SortOrder
   clientId?: Prisma.SortOrder
-  connectionId?: Prisma.SortOrder
+  origem?: Prisma.SortOrder
+  connectionId?: Prisma.SortOrderInput | Prisma.SortOrder
   fileId?: Prisma.SortOrder
   nome?: Prisma.SortOrder
   mimeType?: Prisma.SortOrder
@@ -402,7 +421,8 @@ export type DriveMaterialScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"DriveMaterial"> | string
   workspaceId?: Prisma.StringWithAggregatesFilter<"DriveMaterial"> | string
   clientId?: Prisma.StringWithAggregatesFilter<"DriveMaterial"> | string
-  connectionId?: Prisma.StringWithAggregatesFilter<"DriveMaterial"> | string
+  origem?: Prisma.StringWithAggregatesFilter<"DriveMaterial"> | string
+  connectionId?: Prisma.StringNullableWithAggregatesFilter<"DriveMaterial"> | string | null
   fileId?: Prisma.StringWithAggregatesFilter<"DriveMaterial"> | string
   nome?: Prisma.StringWithAggregatesFilter<"DriveMaterial"> | string
   mimeType?: Prisma.StringWithAggregatesFilter<"DriveMaterial"> | string
@@ -422,7 +442,8 @@ export type DriveMaterialCreateInput = {
   id?: string
   workspaceId: string
   clientId: string
-  connectionId: string
+  origem?: string
+  connectionId?: string | null
   fileId: string
   nome?: string
   mimeType?: string
@@ -442,7 +463,8 @@ export type DriveMaterialUncheckedCreateInput = {
   id?: string
   workspaceId: string
   clientId: string
-  connectionId: string
+  origem?: string
+  connectionId?: string | null
   fileId: string
   nome?: string
   mimeType?: string
@@ -462,7 +484,8 @@ export type DriveMaterialUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
-  connectionId?: Prisma.StringFieldUpdateOperationsInput | string
+  origem?: Prisma.StringFieldUpdateOperationsInput | string
+  connectionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileId?: Prisma.StringFieldUpdateOperationsInput | string
   nome?: Prisma.StringFieldUpdateOperationsInput | string
   mimeType?: Prisma.StringFieldUpdateOperationsInput | string
@@ -482,7 +505,8 @@ export type DriveMaterialUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
-  connectionId?: Prisma.StringFieldUpdateOperationsInput | string
+  origem?: Prisma.StringFieldUpdateOperationsInput | string
+  connectionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileId?: Prisma.StringFieldUpdateOperationsInput | string
   nome?: Prisma.StringFieldUpdateOperationsInput | string
   mimeType?: Prisma.StringFieldUpdateOperationsInput | string
@@ -502,7 +526,8 @@ export type DriveMaterialCreateManyInput = {
   id?: string
   workspaceId: string
   clientId: string
-  connectionId: string
+  origem?: string
+  connectionId?: string | null
   fileId: string
   nome?: string
   mimeType?: string
@@ -522,7 +547,8 @@ export type DriveMaterialUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
-  connectionId?: Prisma.StringFieldUpdateOperationsInput | string
+  origem?: Prisma.StringFieldUpdateOperationsInput | string
+  connectionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileId?: Prisma.StringFieldUpdateOperationsInput | string
   nome?: Prisma.StringFieldUpdateOperationsInput | string
   mimeType?: Prisma.StringFieldUpdateOperationsInput | string
@@ -542,7 +568,8 @@ export type DriveMaterialUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   workspaceId?: Prisma.StringFieldUpdateOperationsInput | string
   clientId?: Prisma.StringFieldUpdateOperationsInput | string
-  connectionId?: Prisma.StringFieldUpdateOperationsInput | string
+  origem?: Prisma.StringFieldUpdateOperationsInput | string
+  connectionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileId?: Prisma.StringFieldUpdateOperationsInput | string
   nome?: Prisma.StringFieldUpdateOperationsInput | string
   mimeType?: Prisma.StringFieldUpdateOperationsInput | string
@@ -563,10 +590,16 @@ export type DriveMaterialConnectionIdFileIdCompoundUniqueInput = {
   fileId: string
 }
 
+export type DriveMaterialClientIdMediaAssetIdCompoundUniqueInput = {
+  clientId: string
+  mediaAssetId: string
+}
+
 export type DriveMaterialCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   workspaceId?: Prisma.SortOrder
   clientId?: Prisma.SortOrder
+  origem?: Prisma.SortOrder
   connectionId?: Prisma.SortOrder
   fileId?: Prisma.SortOrder
   nome?: Prisma.SortOrder
@@ -591,6 +624,7 @@ export type DriveMaterialMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   workspaceId?: Prisma.SortOrder
   clientId?: Prisma.SortOrder
+  origem?: Prisma.SortOrder
   connectionId?: Prisma.SortOrder
   fileId?: Prisma.SortOrder
   nome?: Prisma.SortOrder
@@ -611,6 +645,7 @@ export type DriveMaterialMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   workspaceId?: Prisma.SortOrder
   clientId?: Prisma.SortOrder
+  origem?: Prisma.SortOrder
   connectionId?: Prisma.SortOrder
   fileId?: Prisma.SortOrder
   nome?: Prisma.SortOrder
@@ -641,6 +676,7 @@ export type DriveMaterialSelect<ExtArgs extends runtime.Types.Extensions.Interna
   id?: boolean
   workspaceId?: boolean
   clientId?: boolean
+  origem?: boolean
   connectionId?: boolean
   fileId?: boolean
   nome?: boolean
@@ -661,6 +697,7 @@ export type DriveMaterialSelectCreateManyAndReturn<ExtArgs extends runtime.Types
   id?: boolean
   workspaceId?: boolean
   clientId?: boolean
+  origem?: boolean
   connectionId?: boolean
   fileId?: boolean
   nome?: boolean
@@ -681,6 +718,7 @@ export type DriveMaterialSelectUpdateManyAndReturn<ExtArgs extends runtime.Types
   id?: boolean
   workspaceId?: boolean
   clientId?: boolean
+  origem?: boolean
   connectionId?: boolean
   fileId?: boolean
   nome?: boolean
@@ -701,6 +739,7 @@ export type DriveMaterialSelectScalar = {
   id?: boolean
   workspaceId?: boolean
   clientId?: boolean
+  origem?: boolean
   connectionId?: boolean
   fileId?: boolean
   nome?: boolean
@@ -717,7 +756,7 @@ export type DriveMaterialSelectScalar = {
   updatedAt?: boolean
 }
 
-export type DriveMaterialOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "clientId" | "connectionId" | "fileId" | "nome" | "mimeType" | "tamanhoBytes" | "ehPasta" | "papel" | "papelSugerido" | "papelConfirmadoEm" | "mediaAssetId" | "importadoEm" | "erro" | "escolhidoEm" | "updatedAt", ExtArgs["result"]["driveMaterial"]>
+export type DriveMaterialOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "clientId" | "origem" | "connectionId" | "fileId" | "nome" | "mimeType" | "tamanhoBytes" | "ehPasta" | "papel" | "papelSugerido" | "papelConfirmadoEm" | "mediaAssetId" | "importadoEm" | "erro" | "escolhidoEm" | "updatedAt", ExtArgs["result"]["driveMaterial"]>
 
 export type $DriveMaterialPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "DriveMaterial"
@@ -726,9 +765,25 @@ export type $DriveMaterialPayload<ExtArgs extends runtime.Types.Extensions.Inter
     id: string
     workspaceId: string
     clientId: string
-    connectionId: string
+    /**
+     * DE ONDE VEIO O ARQUIVO. Lista fechada em escolha-de-material.ts:
+     * • "drive"        — escolhido no Picker do Google. EXIGE conexão viva.
+     * • "envio_direto" — arrastado no portal ou subido pelo admin. A casa já
+     * tem os bytes pelo ato do próprio dono; NÃO depende do Google para nada.
+     * 
+     * É coluna, e não um prefixo dentro de `connectionId`, de propósito: esconder
+     * o modelo dentro de uma string é o atalho que a casa paga em três meses.
+     */
+    origem: string
+    /**
+     * A conexão do Google que autorizou. NULA quando `origem = "envio_direto"` —
+     * é exatamente o ponto da mudança: envio direto sobrevive ao Google caído.
+     */
+    connectionId: string | null
     /**
      * O id do arquivo dentro do Drive. Chave de idempotência da escolha.
+     * Em `envio_direto` guarda o id do `MediaAsset`, que é a mesma coisa: o
+     * identificador estável do arquivo na origem de onde ele veio.
      */
     fileId: string
     /**
@@ -1193,6 +1248,7 @@ export interface DriveMaterialFieldRefs {
   readonly id: Prisma.FieldRef<"DriveMaterial", 'String'>
   readonly workspaceId: Prisma.FieldRef<"DriveMaterial", 'String'>
   readonly clientId: Prisma.FieldRef<"DriveMaterial", 'String'>
+  readonly origem: Prisma.FieldRef<"DriveMaterial", 'String'>
   readonly connectionId: Prisma.FieldRef<"DriveMaterial", 'String'>
   readonly fileId: Prisma.FieldRef<"DriveMaterial", 'String'>
   readonly nome: Prisma.FieldRef<"DriveMaterial", 'String'>

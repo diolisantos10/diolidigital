@@ -1,5 +1,134 @@
 # Pendências — o que está aberto
 
+## 🟢 08/08/2026 — O MATERIAL ENVIADO PELO PORTAL CHEGA NA PEÇA (a ponte ganhou o meio)
+
+**A consequência, primeiro:** o cliente (ou o CEO) arrasta o logo no portal e ele
+**entra na peça** — sem Google, sem Drive, sem conta em lugar nenhum.
+
+**O defeito, medido nos dois lados:** o portal tinha a tela de arrastar e soltar
+desde **02/08** (`components/portal/EnvioDeMaterial.tsx` → `POST /api/media`), e
+ela funcionava: guardava o `MediaAsset`, fechava o `MaterialRequest`, destravava
+a esteira e avisava a equipe. E **o arquivo nunca chegava na peça**:
+`materiaisDeMarca()` — a ÚNICA porta de material para dentro de uma arte
+(consumidores: `execution/artes.ts` e `execution/logo.ts`) — lia só material de
+origem Drive, e a linha nascia num único lugar do repositório inteiro:
+`app/api/portal/drive/route.ts`, o caminho do Picker do Google.
+
+> **Os bytes atravessavam; a declaração de PAPEL, não.** A peça saía com o nome
+> do cliente escrito em fonte comum, com o arquivo real já gravado no volume.
+> **Terceiro caso do mesmo padrão no dia:** a ponte existe dos dois lados e falta
+> o meio.
+>
+> 🔴 **E o corolário que reordena a fila:** o dia inteiro foi gasto tratando o
+> Drive como o caminho do material — escopo, conta de serviço, verificação do
+> Google. **Havia uma porta pronta e desligada o tempo todo.**
+
+### O conserto: uma ORIGEM no material (migration `20260808150000_origem_do_material`)
+
+- **`drive`** — exige conexão viva com o Google, exatamente como antes;
+- **`envio_direto`** — portal ou admin; **não depende do Google para nada**,
+  porque a casa já tem os bytes pelo ato do próprio dono.
+
+**É COLUNA, não prefixo dentro de `connectionId`.** `connectionId` passou a ser
+**nulo** nessa origem — é o ponto inteiro da mudança, e uma coluna `NOT NULL`
+forçaria a inventar uma conexão que não existe. Ganhou
+`@@unique([clientId, mediaAssetId])`, porque a chave antiga
+(`connectionId`, `fileId`) **não protege** essa origem: `connectionId` é NULO
+nela, e NULL não colide com NULL em índice único — sem ela, reenviar o mesmo logo
+duplicaria o material da peça.
+
+⚠️ **O nome do modelo continua `DriveMaterial` e isso é dívida declarada** (no
+schema): ele guarda hoje o que não vem do Drive. Renomear é reconstrução de
+tabela em SQLite sobre volume; ficou de fora de propósito.
+
+### O papel é pedido NA HORA DO ENVIO — nas duas portas
+
+- **Portal:** escolher arquivo **não envia**. Cada arquivo entra numa fila com um
+  seletor de papel; o palpite pelo nome (`sugerirPapel`) vem preenchido e **nunca
+  autoriza sozinho**. `IMG_2831.jpg` vem VAZIO de propósito.
+- **Admin:** `MaterialDeMarca` na ficha do cliente — o operador vê **o que a peça
+  enxerga de verdade** (a mesma função que `artes.ts` chama, não uma segunda
+  leitura que diverge), o alarme **"Sem logo"**, e sobe material pelo cliente.
+- **Uma implementação, não duas:** as duas telas passam pelo MESMO
+  `POST /api/media` com `papel`. Duas cópias da regra divergem — é o defeito nº 2
+  do incidente do Drive.
+- **Sem papel, o arquivo é guardado e o pedido fecha, mas não entra em peça
+  nenhuma.** A esteira escala pedindo; não engole em silêncio.
+
+### As três metades, provadas
+
+- ✅ **Com papel declarado, o logo entra na peça** — provado com **bytes**, contra
+  a build de produção: upload real por HTTP → `logoDoCliente()` devolve o
+  arquivo → os bytes lidos do volume são **idênticos** aos enviados.
+- ⛔ **Sem papel: NADA é gravado** e nenhum material fantasma aparece. O
+  `MediaAsset` **não se perde**.
+- 🔑 **A que quase ninguém testa:** material `envio_direto` vale com o Google
+  **desconectado, revogado e expirado**. E no MESMO banco, na MESMA hora,
+  material de origem `drive` **continua recusado** pela conexão revogada — a
+  trava do Google não foi afrouxada de carona.
+
+**Um defeito achado pela ordem, não pela leitura:** a guarda "só material do
+Google se baixa do Google" posta ANTES da trava respondia `sem_conexao` para
+arquivo sem papel e para pasta, **apagando os motivos próprios que a tela do
+cliente mostra**. Ela desceu para depois da trava, com o motivo escrito no
+código.
+
+**Portão:** `npx tsc --noEmit` limpo · **2967 testes em 182 arquivos, todos
+verdes** · `npm run build` compila. Conferido em 375/768/1440 com o estado que
+importa (a fila pedindo o papel). Avisos do build: os **pré-existentes** de
+`instrumentation.ts` → `armazenamento.ts` → `next.config.ts`.
+
+### 🔴 OS ÓRFÃOS — o número de PRODUÇÃO **não foi medido**, e não vou fingir que foi
+
+Os arquivos que o portal recebeu desde 02/08 e que a peça nunca viu continuam
+lá. **Quantos são em produção: NÃO SEI.** Não há `CRON_SECRET` neste ambiente
+(medido: `POST /api/cron/raio-x` em produção respondeu **401**) e o banco mora
+num volume que ninguém alcança de fora. **Estimar seria inventar.**
+
+**O mecanismo para medir existe e está no ar** —
+`GET /api/agency/material-de-marca?censo=1`, que devolve o total, o recorte por
+cliente, os **sem dono** e a **lista arquivo por arquivo** com o palpite de papel
+marcado como palpite. Duas portas: sessão da agência, ou
+`Authorization: Bearer <CRON_SECRET>` (**segredo ausente → não abre**). É
+**somente leitura** — não migra, não carimba, não apaga, e há teste que reprova
+quem lhe der um verbo de escrita.
+
+- [ ] **CEO/Diretor** — rodar o censo em produção e decidir. **Nada foi migrado.**
+
+**A proposta de recuperação, e ela NÃO é automática:**
+
+1. **Papel não se adivinha.** O palpite pelo nome acerta `logo-*.png` e erra em
+   silêncio num `IMG_2831.jpg` — e peça com a foto errada é pior que peça sem
+   foto, porque parece que alguém olhou e escolheu aquilo.
+2. **O caminho barato:** a tela da ficha do cliente já **lista os órfãos** com o
+   palpite ao lado. O operador confirma um a um pelo mesmo `POST /api/media`.
+3. **Arquivo sem `clientId` não é recuperável** sem alguém dizer de quem é.
+4. **Migração em massa por palpite: NÃO recomendo**, nem para os que têm palpite.
+
+### 🔴 O QUE FICOU DE FORA
+
+- **Nenhum especialista foi despachado como agente** (`esteira`, `plataforma`,
+  `interface`, `experiencia`, `qualidade`, `seguranca`): **não há ferramenta de
+  despacho nesta execução.** O trabalho foi feito e auditado pelo `pm` contra as
+  cartas. **Não substitui a passada deles** — em especial `experiencia` (a fila
+  de papéis é hipótese não observada com cliente real) e `seguranca`.
+- **O Drive continua sendo o único caminho para material que o cliente NÃO quer
+  subir à mão** e continua com os furos de 08/08 (escolha perdida na Foocci).
+  Esta frente **não conserta** aquilo — ela tira o Drive do caminho crítico.
+- **Nenhuma peça foi produzida com o logo novo, e isso ainda não foi provado
+  ponta a ponta.** A prova aqui vai até `logoDoCliente()` devolver os bytes
+  certos — o elo seguinte (`artes.ts` desenhar o arquivo na peça) já tinha
+  chamador e teste desde 07/08, mas **não foi exercitado com material de origem
+  `envio_direto` numa peça real**. O molde voltou a funcionar nesta mesma data
+  (P0 do Chromium fechado por outra frente), então **agora dá para fechar essa
+  volta**: subir um logo pelo portal de um cliente e mandar produzir.
+- **A ficha do cliente 404 de forma intermitente** (o store hidrata depois do
+  primeiro render e o `notFound()` dispara antes). **É anterior a este
+  trabalho** e atrapalhou a captura em 768/1440 — a seção foi conferida em
+  375px. Sem dono.
+- **`GET /api/agency/material-de-marca?clientId=…` lista até 500 arquivos sem
+  paginação.** Suficiente hoje; não é para sempre.
+
 ## 🟢 08/08/2026 — 99FREELAS: A CASA PASSOU A LER O GMAIL DA AGÊNCIA SOZINHA (IMAP)
 
 **O CEO recusou o caminho do Make** — *"muita função ir pelo Make, por que você

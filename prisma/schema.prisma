@@ -337,12 +337,31 @@ model GoogleDriveConnection {
 /// E material daqui é INSUMO, não verdade: ter a foto do produto no Drive não
 /// autoriza a casa a afirmar nada sobre o negócio. O piso de verdade
 /// (lib/agency/execution/piso-de-verdade.ts) continua valendo inteiro.
+/// O MATERIAL DE MARCA DO CLIENTE — a ÚNICA porta de arquivo para dentro de uma
+/// peça (lib/agency/esteira/material-do-drive.ts::materiaisDeMarca).
+///
+/// ⚠️ O NOME DO MODELO É DÍVIDA DECLARADA. Ele nasceu só para o Google Drive e
+/// hoje guarda também o que o cliente arrasta no portal (`origem`). Renomear é
+/// migration de tabela inteira num SQLite em volume; ficou de fora de propósito.
+/// Quem ler `DriveMaterial` deve ler "material de marca", não "material do Drive".
 model DriveMaterial {
   id             String    @id @default(cuid())
   workspaceId    String
   clientId       String
-  connectionId   String
+  /// DE ONDE VEIO O ARQUIVO. Lista fechada em escolha-de-material.ts:
+  ///   • "drive"        — escolhido no Picker do Google. EXIGE conexão viva.
+  ///   • "envio_direto" — arrastado no portal ou subido pelo admin. A casa já
+  ///     tem os bytes pelo ato do próprio dono; NÃO depende do Google para nada.
+  ///
+  /// É coluna, e não um prefixo dentro de `connectionId`, de propósito: esconder
+  /// o modelo dentro de uma string é o atalho que a casa paga em três meses.
+  origem         String    @default("drive")
+  /// A conexão do Google que autorizou. NULA quando `origem = "envio_direto"` —
+  /// é exatamente o ponto da mudança: envio direto sobrevive ao Google caído.
+  connectionId   String?
   /// O id do arquivo dentro do Drive. Chave de idempotência da escolha.
+  /// Em `envio_direto` guarda o id do `MediaAsset`, que é a mesma coisa: o
+  /// identificador estável do arquivo na origem de onde ele veio.
   fileId         String
   /// Nome como está no Drive do cliente. Pode ser "IMG_2831.jpg" — e é por isso
   /// que ele não decide nada sozinho.
@@ -368,7 +387,13 @@ model DriveMaterial {
   updatedAt      DateTime  @updatedAt
 
   @@unique([connectionId, fileId])
+  /// A idempotência do ENVIO DIRETO. `connectionId` é NULO nessa origem, e NULL
+  /// não colide com NULL em índice único — então a chave acima não protege esse
+  /// caminho. Esta protege: um arquivo guardado = no máximo uma linha de
+  /// material. Sem ela, reenviar o mesmo logo duplicaria o material da peça.
+  @@unique([clientId, mediaAssetId])
   @@index([clientId, papel])
+  @@index([clientId, origem])
   @@index([workspaceId, papelConfirmadoEm])
 }
 
