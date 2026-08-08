@@ -260,69 +260,53 @@ decisão de conteúdo, e escolher por inferência é o que a lei da casa proíbe
 <summary>O registro ANTERIOR desta frente, mantido inteiro porque a hipótese
 dele estava errada e apagá-la esconderia como se erra assim (clique)</summary>
 
-## 🔴 08/08/2026 — O MOLDE NÃO EXISTE EM PRODUÇÃO (HIPÓTESE REFUTADA — ver acima)
+## ✅ 08/08/2026 — O P0 DO MOLDE: MEDIÇÃO CERTA, HIPÓTESE ERRADA, PROBLEMA RESOLVIDO
 
-**A consequência, primeiro: nenhuma peça pode ser produzida hoje, para cliente
-nenhum.** Não é fila parada nem falta de despacho — é ferramenta ausente.
+> **CORRIGIDO ÀS 15h.** Este bloco descrevia um P0 aberto. **Ele fechou na
+> mesma sessão, por outro agente** (`729da03`, `fa5729b`, `98cd038`), e o texto
+> abaixo foi reescrito porque **registro falso é pior do que registro nenhum** —
+> quem lesse a versão anterior concluiria que a agência não consegue produzir,
+> e isso deixou de ser verdade.
 
-**Medido, não deduzido.** `GET /api/capacidades` em produção (commit `27be1af`,
-depois `ffe6329`) respondeu:
+**O que eu medi, e continua verdadeiro:** às 14h47, `GET /api/capacidades` em
+produção respondeu `montar-molde → pronta:false · onde_achei_o_navegador: null`.
+A casa **de fato** não conseguia aplicar o molde, e as 6 peças do CityJobs no
+banco eram foto crua de IA.
 
-```
-montar-molde → pronta: false · onde_achei_o_navegador: null
-```
+**O que eu deduzi, e estava ERRADO:** escrevi que "não há Chromium no
+container", com a hipótese de o pacote apt do Ubuntu ser stub de snap. **O
+navegador estava lá o tempo todo** — `/usr/bin/chromium`. Quem chegava quebrado
+era o **playwright**.
 
-Não há Chromium no container — **mesmo com `playwright` em `dependencies` e
-`chromium` em `railpack.json → deploy.aptPackages`**. O `ffmpeg`, que vem da
-MESMA lista de `aptPackages`, responde `pronta: true`: **a lista É aplicada; o
-Chromium é que não aparece em `/usr/bin`.** A hipótese mais provável (não
-confirmada — não há CLI do Railway nesta execução) é o pacote `chromium` do
-Ubuntu ser stub de snap, que instala sem deixar binário.
+> **A lição, e ela é a da casa inteira:** a medição (`pronta:false`) era um fato
+> sobre a CAPACIDADE; eu a converti numa afirmação sobre a CAUSA sem ter olhado
+> o container. É o defeito nº 1 do incidente do Drive numa terceira roupa —
+> "não consegui usar" virando "não existe". `renderizadorDisponivel()` também
+> confundia os dois: `existsSync` responde *"o arquivo existe"*, não *"o
+> navegador funciona"*. A prova de vida de `fa5729b` é o conserto disso.
 
-### Por que isto vira ZERO peças, e não peças piores
+**Estado agora, remedido:** `montar-molde → pronta:true · /usr/bin/chromium`. As
+6 peças do CityJobs foram **re-renderizadas sem pagar imagem de novo**
+(`98cd038`) e hoje têm a camada de marca. O que sobra nelas é degradação
+**declarada e de conteúdo**, não de infra:
 
-A trava de 07/08 está correta e está no ar: falha de INFRA no molde devolve
-`ok:false` e **a peça não é gravada**. Ferramenta faltando é problema da
-agência, não um entregável de qualidade menor para cliente pagante.
+- `[molde] texto barrado pela trava — selo: rótulo com 32 caracteres (máximo 28)`
+  — a trava do selo recusou frase onde cabe rótulo. **Está certa**: frase vira
+  pixel só com lastro auditado.
+- `[sem logo] assinada com o monograma das iniciais` — **o CityJobs nunca mandou
+  o arquivo do logo.** Não é falha da máquina; é material que falta.
 
-> **Não produzi peça em produção nesta rodada, e isso foi decisão, não
-> omissão.** Rodar a esteira hoje geraria a foto de IA de cada peça — que
-> **custa, por peça** — para descobrir logo depois que não há como aplicar o
-> molde, e jogar tudo fora. Zero entregáveis, com fatura.
+### O que NÃO fechou junto, e continua aberto
 
-### O que os 6 posts do CityJobs no banco realmente são
-
-Os 6 estão em `draft`/`interno` com `lastError` dizendo
-`[molde] peça entregue só com a foto (sem camada de texto): sem_navegador`.
-**São de 07/08, anteriores ao fail-closed.** São foto crua de IA, sem título,
-sem a cor da marca, sem selo e sem assinatura. **Não são entregáveis** e não
-devem ser apresentadas a ninguém.
-
-### O que fechou nesta rodada (`4244f83`)
-
-`produzirArtesPendentes` passou a consultar `renderizadorDisponivel()` **antes
-de olhar a fila**. Sem navegador, a rodada para sem gastar um centavo, e o
-despertador **grita** o motivo no pulso — antes, a casa produziria zero peça por
-dia e o pulso registraria "0 falhas", o pior tipo de número, porque tem cara de
-saúde. É o mesmo silêncio que deixou o molde desligado por dias, com a única
-testemunha dentro do `lastError` de cada post.
-
-⚠️ **Isto NÃO conserta o P0.** Só para de cobrar por ele. **O P0 continua aberto
-e sem dono: fazer o Chromium existir no container.** Enquanto ele não existir,
-a agência não produz peça — para nenhum dos 5 clientes.
-
-**Dono sugerido: `plataforma`.** Caminhos, do mais provável ao menos:
-1. `playwright install --with-deps chromium` no build (põe o binário em
-   `~/.cache/ms-playwright`, que `acharExecutavel()` já procura);
-2. trocar o nome do pacote apt (`chromium-browser`, ou a base do Railpack);
-3. `PLAYWRIGHT_CHROMIUM_EXECUTABLE` apontando para o caminho real.
-**Nenhum foi tentado daqui: não há como inspecionar o container nesta execução,
-e um build quebrado pararia três agentes.**
-
-> **REFUTADO às 15:41 de 08/08.** Os três caminhos acima partiam da premissa de
-> que o binário não existia. Ele existia. Ver o registro no topo desta seção.
-
-</details>
+- [ ] `departamentos` — **o selo das peças do CityJobs precisa caber em 3
+      palavras / 28 caracteres.** Hoje o gerador escreve o nome inteiro do pilar
+      ("Alto Tietê · Dica para candidato") no campo de rótulo, e a trava recusa
+      — peça após peça, em silêncio, dentro do `lastError`.
+- [ ] **CEO** — **pedir o arquivo do logo do CityJobs.** Enquanto não vier, toda
+      peça sai assinada com monograma derivado, não com a marca do cliente.
+- [ ] `esteira` — as 2 peças de hoje do CityJobs existem, com molde, e estão
+      `interno`: `social-media` está em **`allowlist`** e o CityJobs não está na
+      lista. **Subir degrau é decisão de negócio com evidência**, não minha.
 
 ## 🟢 08/08/2026 — O CARD DO PACOTE PARA DE PEDIR ASSINATURA EM BRANCO (`1184b90`, no ar)
 
