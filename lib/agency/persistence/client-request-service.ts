@@ -32,7 +32,19 @@ export function normalizeClientRequest(raw: RawRecord): NormalizedClientRequest 
 }
 
 export type ClientRequestDbStatus =
+  /**
+   * Chegou com contato e está na fila para virar proposta. É o estado normal.
+   */
   | "new"
+  /**
+   * Chegou SEM forma de falar com a pessoa (08/08/2026).
+   *
+   * Não é lixo e não some: a conversa inteira fica gravada, o lead aparece na
+   * fila com o motivo, e o raio-x cobra. O que ele **não** faz é virar proposta
+   * — `runAutoScope` não roda, porque proposta que ninguém pode receber é
+   * fatura de IA sem destinatário.
+   */
+  | "lead_incompleto"
   | "scope_ready"
   | "needs_revision"
   | "waiting_strategy"
@@ -57,6 +69,16 @@ export interface CreateClientRequestInput {
   briefingJson?: object;
   sdrHandoffJson?: object;
   attachmentsJson?: object[];
+  /**
+   * ⚠️ CONTROLADO PELO SERVIDOR, nunca pelo corpo da requisição.
+   *
+   * Só existem dois valores possíveis na criação e quem escolhe é o gate de
+   * contato da rota (`new` com canal, `lead_incompleto` sem). Qualquer outro
+   * valor é ignorado — a rota `POST /api/brain/client-requests` é **pública**, e
+   * aceitar `status` do corpo deixaria qualquer pessoa plantar uma solicitação
+   * já em `completed` para sair da fila e fugir do raio-x.
+   */
+  status?: "new" | "lead_incompleto";
 }
 
 export interface UpdateClientRequestInput {
@@ -108,7 +130,8 @@ export async function createClientRequest(input: CreateClientRequestInput): Prom
       briefingJson:    input.briefingJson    ? JSON.stringify(input.briefingJson)    : null,
       sdrHandoffJson:  input.sdrHandoffJson  ? JSON.stringify(input.sdrHandoffJson)  : null,
       attachmentsJson: JSON.stringify(input.attachmentsJson ?? []),
-      status: "new",
+      // Lista fechada, não passagem livre: ver o comentário do campo.
+      status: input.status === "lead_incompleto" ? "lead_incompleto" : "new",
     },
   });
   return normalizeClientRequest(raw);

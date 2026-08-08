@@ -11,6 +11,7 @@
 // sem teste não existe (guardrail 4).
 
 import { prisma } from "@/lib/db/client";
+import { lerContato } from "@/lib/agency/comercial/contato-do-lead";
 import { cega, type Achado, type ResultadoDeVarredura } from "./tipos";
 
 const DIA = 24 * 60 * 60 * 1000;
@@ -266,6 +267,91 @@ export async function varrerDadosPresos(agora: Date = new Date()): Promise<Resul
         evidencia: `${pedidosEsperandoGente} pedido(s) em "precisa_decisao" há +24h. O fail-closed chamou; ninguém atendeu.`,
         local: "ContentRequest.status",
         gravidade: "medio",
+      });
+    }
+    // 11. A FILA DA PORTA DA FRENTE — o interessado que entrou e ninguém varreu.
+    //
+    // Medido em produção em 08/08/2026: **três** solicitações em `"new"`, a mais
+    // velha parada há **51 dias** (Sushi Cazza, 18/06), as outras há 29 e 28.
+    // Briefing completo, com paleta, ticket e público-alvo. **Nenhuma com
+    // contato.**
+    //
+    // Por que nada tocou: o item 10 acima olha `ContentRequest` — o pedido de
+    // quem JÁ É cliente. Estas moram em `ClientRequestDb`, que é a porta do
+    // prospect, e nenhuma varredura desta casa a olhava. O item 9 conta órfãs
+    // por workspace e não olha status. O cargo de PM nasceu por DOIS dias de
+    // atraso num pedido do próprio CEO; aqui foram sete semanas de gente de fora
+    // com dinheiro na mão, e o painel não tinha uma linha vermelha.
+    //
+    // POR QUE O HORIZONTE É 24h, E NÃO MAIS:
+    // a própria tela de confirmação do briefing promete ao prospect *"entramos
+    // em contato pelo e-mail informado em até 1 dia útil"*. Alarme que só toca
+    // em 48h ou 72h toca **depois de a promessa já estar quebrada** — ele
+    // registra o dano, não o previne. E 24h é o mesmo horizonte de todos os
+    // outros baldes deste arquivo: um segundo relógio na mesma varredura é uma
+    // segunda regra para alguém esquecer. O custo de um alarme que aparece num
+    // sábado é uma linha a mais num relatório noturno; o custo de errar para o
+    // outro lado tem nome e são três.
+    //
+    // DOIS BALDES, porque a AÇÃO é diferente:
+    //   • parada COM contato  → alguém pode pegar o telefone hoje;
+    //   • parada SEM contato  → não há para onde ligar. É o pior dos dois, e é
+    //     também o termômetro do gate de contato: se este número cresce depois
+    //     de 08/08, o gate do briefing está vazando.
+    const ABERTAS = ["new", "lead_incompleto"];
+    const limite = ontem(agora);
+    const totalAbertas = await prisma.clientRequestDb.count({ where: { status: { in: ABERTAS } } });
+    const totalParadas = await prisma.clientRequestDb.count({
+      where: { status: { in: ABERTAS }, createdAt: { lt: limite } },
+    });
+    medidas.solicitacoesDeBriefingAbertas = totalAbertas;
+    medidas.solicitacoesDeBriefingParadasHaMaisDeUmDia = totalParadas;
+
+    // O teto existe para o raio-x não puxar a base inteira. Quando ele morde, a
+    // divisão abaixo vira AMOSTRA — e isso aparece como medida, nunca escondido:
+    // um split que some com o total é um número que mente sem avisar.
+    const TETO_DE_CLASSIFICACAO = 200;
+    const paradas = await prisma.clientRequestDb.findMany({
+      where: { status: { in: ABERTAS }, createdAt: { lt: limite } },
+      select: { id: true, businessName: true, status: true, createdAt: true, briefingJson: true, sdrHandoffJson: true },
+      orderBy: { createdAt: "asc" },
+      take: TETO_DE_CLASSIFICACAO,
+    });
+    medidas.solicitacoesClassificadas = paradas.length;
+
+    const comContato = paradas.filter((s) => lerContato(s).temComoFalar);
+    const semContato = paradas.filter((s) => !lerContato(s).temComoFalar);
+    medidas.solicitacoesParadasComContato = comContato.length;
+    medidas.solicitacoesParadasSemContato = semContato.length;
+
+    const diasDe = (d: Date) => Math.floor((agora.getTime() - d.getTime()) / DIA);
+
+    if (comContato.length > 0) {
+      const v = comContato[0];
+      achados.push({
+        padrao: "estado-morto",
+        chave: "briefing-parado-com-contato",
+        titulo: "Interessado com contato esperando a agência responder",
+        evidencia:
+          `${comContato.length} solicitação(ões) de briefing parada(s) há +24h COM forma de falar. ` +
+          `A mais antiga: "${v.businessName}" (${v.id}) em "${v.status}" há ${diasDe(v.createdAt)} dia(s).`,
+        local: "ClientRequestDb.status",
+        gravidade: "alto",
+      });
+    }
+
+    if (semContato.length > 0) {
+      const v = semContato[0];
+      achados.push({
+        padrao: "estado-morto",
+        chave: "briefing-parado-sem-contato",
+        titulo: "Interessado contou tudo e a agência não tem como falar com ele",
+        evidencia:
+          `${semContato.length} solicitação(ões) parada(s) há +24h SEM nome de contato e SEM canal. ` +
+          `A mais antiga: "${v.businessName}" (${v.id}) há ${diasDe(v.createdAt)} dia(s). ` +
+          `O briefing está gravado inteiro; não há para onde ligar.`,
+        local: "ClientRequestDb.briefingJson.contato",
+        gravidade: "alto",
       });
     }
   } catch (erro) {

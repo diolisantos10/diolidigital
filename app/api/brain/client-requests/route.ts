@@ -10,17 +10,19 @@ import { runAutoScope } from "@/lib/dioli-brain/run-auto-scope";
 import { rateLimited } from "@/lib/security/rate-limit";
 import { sendEmail } from "@/lib/email/send";
 import { briefingConfirmationEmail } from "@/lib/email/templates";
+import { lerContato, montarContato } from "@/lib/agency/comercial/contato-do-lead";
 
-// Fire-and-forget prospect confirmation. Reads the e-mail from the briefing
-// scope; a no-op when e-mail isn't configured or no address was captured.
-function sendBriefingConfirmation(body: Record<string, unknown>): void {
+// Fire-and-forget prospect confirmation. O endereço sai do leitor único de
+// contato (`lerContato`) — não de um `?.scope?.prospectEmail` reinventado aqui.
+function sendBriefingConfirmation(body: Record<string, unknown>, briefingJson: unknown): void {
   if (body.source !== "briefing") return;
-  const scope = (body.briefingJson as { scope?: Record<string, unknown> } | undefined)?.scope;
-  const email = typeof scope?.prospectEmail === "string" ? scope.prospectEmail : "";
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return;
+  const contato = lerContato({ briefingJson, sdrHandoffJson: body.sdrHandoffJson });
+  const email = contato.email;
+  if (!email) return;
 
+  const scope = (briefingJson as { scope?: Record<string, unknown> } | undefined)?.scope;
   const { subject, html } = briefingConfirmationEmail({
-    prospectName: typeof scope?.prospectName === "string" ? scope.prospectName : undefined,
+    prospectName: contato.nome ?? undefined,
     businessName: typeof scope?.businessName === "string" ? scope.businessName : undefined,
     services:     Array.isArray(body.services) ? (body.services as string[]) : undefined,
   });
@@ -96,8 +98,41 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: "businessName required" }, { status: 400 });
   }
 
+  // ── O GATE DE CONTATO (08/08/2026) ─────────────────────────────────────────
+  //
+  // Três interessados entraram por esta rota e ficaram 51, 29 e 28 dias sem que
+  // ninguém pudesse falar com eles: o briefing coletava a conversa inteira e
+  // nunca perguntava para onde ligar. A trava é aqui, no SERVIDOR, e não na
+  // tela: esta rota é pública e um POST direto passa por cima de qualquer
+  // `disabled` de botão.
+  //
+  // AS DUAS METADES, e nenhuma é opcional:
+  //   • COM canal  → `new`, `runAutoScope` roda, a proposta nasce.
+  //   • SEM canal  → `lead_incompleto`. Não vira proposta **e não se perde**:
+  //     a conversa inteira grava, o motivo grava junto, e o raio-x cobra.
+  //
+  // O que NÃO acontece no caso sem contato: nenhuma inferência. O `rawContext`
+  // não é vasculhado atrás de um telefone. Arroba de Instagram no meio da
+  // conversa é PISTA para o CEO ler, nunca contato (`pistasDeContato`).
+  const contatoDeclarado = montarContato({
+    nome:     (body.contato as Record<string, unknown> | undefined)?.nome
+              ?? (body.briefingJson as { scope?: Record<string, unknown> } | undefined)?.scope?.prospectName,
+    email:    (body.contato as Record<string, unknown> | undefined)?.email
+              ?? (body.briefingJson as { scope?: Record<string, unknown> } | undefined)?.scope?.prospectEmail,
+    whatsapp: (body.contato as Record<string, unknown> | undefined)?.whatsapp
+              ?? (body.briefingJson as { scope?: Record<string, unknown> } | undefined)?.scope?.prospectPhone,
+  });
+
+  const briefingJson =
+    body.briefingJson != null || contatoDeclarado
+      ? { ...(body.briefingJson as object | undefined ?? {}), ...(contatoDeclarado ? { contato: contatoDeclarado } : {}) }
+      : undefined;
+
+  const contato = lerContato({ briefingJson, sdrHandoffJson: body.sdrHandoffJson });
+
   try {
     const record = await createClientRequest({
+      status: contato.temComoFalar ? "new" : "lead_incompleto",
       businessName,
       segment:         typeof body.segment        === "string"   ? body.segment          : undefined,
       services:        Array.isArray(body.services)              ? body.services as string[] : [],
@@ -112,22 +147,31 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       // (`resolverWorkspacePublico`); a adoção explícita é o PATCH, que tem
       // sessão. Ver a regra da casa: no caminho público, o dono é DERIVADO,
       // nunca informado.
-      briefingJson:    body.briefingJson    != null              ? body.briefingJson as object : undefined,
+      briefingJson,
       sdrHandoffJson:  body.sdrHandoffJson  != null              ? body.sdrHandoffJson as object : undefined,
       attachmentsJson: Array.isArray(body.attachmentsJson)       ? body.attachmentsJson as object[] : [],
     });
 
-    // Automatically generate the full scope as soon as the briefing lands —
-    // no PM click needed. Fire-and-forget: the 201 returns immediately while
-    // the synchronous engine chain runs in the background.
-    runAutoScope(record.id).catch((e) => {
-      console.error("[client-requests] background auto-scope failed for", record.id, e);
-    });
+    if (contato.temComoFalar) {
+      // Automatically generate the full scope as soon as the briefing lands —
+      // no PM click needed. Fire-and-forget: the 201 returns immediately while
+      // the synchronous engine chain runs in the background.
+      runAutoScope(record.id).catch((e) => {
+        console.error("[client-requests] background auto-scope failed for", record.id, e);
+      });
 
-    // Confirmation e-mail to the prospect — fire-and-forget, never blocks the 201.
-    sendBriefingConfirmation(body);
+      // Confirmation e-mail to the prospect — fire-and-forget, never blocks the 201.
+      sendBriefingConfirmation(body, briefingJson);
+    } else {
+      // Sem canal não há proposta: `runAutoScope` custa chamadas de IA e produz
+      // um documento para ninguém. O lead está gravado inteiro e o raio-x cobra.
+      console.warn("[client-requests] lead sem contato — sem proposta:", record.id, contato.motivo);
+    }
 
-    return NextResponse.json(record, { status: 201 });
+    return NextResponse.json(
+      { ...record, contato: { temComoFalar: contato.temComoFalar, motivo: contato.motivo } },
+      { status: 201 },
+    );
   } catch (e) {
     console.error("[brain/client-requests] POST error", e);
     return NextResponse.json({ error: "DB unavailable" }, { status: 503 });

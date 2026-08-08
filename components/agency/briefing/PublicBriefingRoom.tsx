@@ -27,6 +27,15 @@ export interface PublicBriefingRoomSubmitData {
   businessName: string;
   segment: string;
   sdrHandoff?: SDRHandoff;
+  /**
+   * O que a pessoa DECLAROU como forma de falar com ela — e `null` quando ela
+   * escolheu não declarar nada.
+   *
+   * `null` não é erro nem descarte: o briefing sobe do mesmo jeito e vira
+   * **lead incompleto**, com a conversa inteira gravada. O que ele não vira é
+   * proposta. Ver `lib/agency/comercial/contato-do-lead.ts`.
+   */
+  contato: { nome: string; email: string; whatsapp: string } | null;
 }
 
 interface PublicBriefingRoomProps {
@@ -449,7 +458,11 @@ function GoogleSignInButton({
           <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
           <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
         </svg>
-        Continuar com Google para ver a proposta
+        {/* Rótulo curto de propósito: a 375px o texto antigo ("…para ver a
+            proposta") quebrava em duas linhas dentro do botão e desalinhava o
+            logo. E ele prometia o que não é mais verdade — a proposta chega
+            pelo canal informado, não na tela seguinte. */}
+        Continuar com Google
       </button>
       {state === "error" && (
         <p className="text-[10px] text-[var(--danger)] text-center">
@@ -488,40 +501,104 @@ function EmailFallbackForm({ onSubmit, loading }: { onSubmit: (email: string) =>
   );
 }
 
-// ── Email contact form (name + email, shown as alternative to Google) ─────────
+// ── Formulário de contato ─────────────────────────────────────────────────────
+//
+// Nome + PELO MENOS UM canal. O WhatsApp entra na frente do e-mail, e a ordem
+// não é estética: é por onde o cliente brasileiro responde. O formulário
+// anterior aceitava **só** e-mail — e o e-mail que o Google devolve é a caixa
+// que a pessoa não abre.
+//
+// O momento do pedido é o FIM da conversa, com a proposta na tela, e isso é
+// escolha declarada: pedir contato na primeira mensagem cobra antes de entregar
+// e espanta quem só está olhando; pedir depois de a pessoa já ter contado o
+// negócio inteiro é a hora em que o pedido é natural — ela investiu, quer o
+// resultado, e o contato é o que faz o resultado chegar até ela.
 
-function EmailContactForm({ onSubmit, loading }: { onSubmit: (email: string, name: string) => void; loading: boolean }) {
-  const [name,  setName]  = useState("");
-  const [email, setEmail] = useState("");
-  const valid =
-    name.trim().length >= 2 &&
-    /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
+const RE_EMAIL_UI = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const digitos = (v: string) => v.replace(/\D/g, "");
+const zapValido = (v: string) => digitos(v).length >= 10 && digitos(v).length <= 13;
+
+function FormularioDeContato({
+  onSubmit,
+  onSemContato,
+  loading,
+}: {
+  onSubmit: (contato: { nome: string; email: string; whatsapp: string }) => void;
+  onSemContato: () => void;
+  loading: boolean;
+}) {
+  const [nome, setNome]         = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [email, setEmail]       = useState("");
+
+  const zapOk   = zapValido(whatsapp);
+  const emailOk = RE_EMAIL_UI.test(email);
+  const temCanal = zapOk || emailOk;
+  const nomeOk  = nome.trim().length >= 2;
+  const valido  = nomeOk && temCanal;
+
+  // O motivo do bloqueio é ESCRITO. Botão apagado sem dizer o porquê é o mesmo
+  // que não ter botão — a pessoa não descobre o que falta e fecha a aba.
+  const oQueFalta = !nomeOk
+    ? "Escreva seu nome."
+    : !temCanal
+    ? "Preencha o WhatsApp ou o e-mail — precisamos de pelo menos um."
+    : null;
 
   return (
     <div className="space-y-2">
       <input
         type="text"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        placeholder="Seu nome completo"
+        value={nome}
+        onChange={(e) => setNome(e.target.value)}
+        placeholder="Seu nome"
+        autoComplete="name"
+        className="w-full px-3 py-2.5 border border-[var(--border)] rounded-[8px] outline-none focus:border-[var(--text-primary)] transition-colors"
+        style={{ fontSize: "16px" }}
+      />
+      <input
+        type="tel"
+        inputMode="tel"
+        value={whatsapp}
+        onChange={(e) => setWhatsapp(e.target.value)}
+        placeholder="WhatsApp com DDD"
+        autoComplete="tel"
         className="w-full px-3 py-2.5 border border-[var(--border)] rounded-[8px] outline-none focus:border-[var(--text-primary)] transition-colors"
         style={{ fontSize: "16px" }}
       />
       <input
         type="email"
+        inputMode="email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         placeholder="seu@email.com"
+        autoComplete="email"
         className="w-full px-3 py-2.5 border border-[var(--border)] rounded-[8px] outline-none focus:border-[var(--text-primary)] transition-colors"
         style={{ fontSize: "16px" }}
       />
       <button
-        onClick={() => valid && onSubmit(email, name.trim())}
-        disabled={!valid || loading}
+        onClick={() => valido && onSubmit({ nome: nome.trim(), email: emailOk ? email.trim() : "", whatsapp: zapOk ? whatsapp.trim() : "" })}
+        disabled={!valido || loading}
         style={{ touchAction: "manipulation" }}
         className="w-full h-11 rounded-[8px] bg-[var(--text-primary)] hover:bg-[var(--text-primary)] disabled:opacity-40 text-white text-[13px] font-semibold transition-colors"
       >
-        {loading ? "Enviando…" : "Enviar por e-mail →"}
+        {loading ? "Enviando…" : "Receber minha proposta →"}
+      </button>
+      {oQueFalta && (
+        <p className="text-[12px] text-[var(--text-muted)] text-center leading-relaxed">{oQueFalta}</p>
+      )}
+
+      {/* A saída honesta. Sem ela, quem não quer dar contato fecha a aba e a
+          conversa inteira — a melhor matéria-prima que esta agência recebe —
+          desaparece sem deixar registro. Com ela, o briefing fica gravado e
+          aparece na fila com o motivo. O que ela NÃO faz é gerar proposta. */}
+      <button
+        onClick={() => !loading && onSemContato()}
+        disabled={loading}
+        style={{ touchAction: "manipulation" }}
+        className="w-full h-9 text-[12px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] underline underline-offset-2 transition-colors disabled:opacity-40"
+      >
+        Prefiro não deixar contato agora
       </button>
     </div>
   );
@@ -1224,15 +1301,21 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
 
   const [submitting, setSubmitting] = useState(false);
 
-  // Unified submit — called after Google auth or manual email fallback.
-  function handleSubmitWithContact(email: string, name?: string) {
+  // Submit único — Google, formulário, ou "prefiro não deixar contato agora".
+  //
+  // ⚠️ O caminho SEM contato passa por aqui do mesmo jeito, e é isso que importa:
+  // a conversa sobe, grava e aparece na fila. Quem decide se vira proposta é o
+  // SERVIDOR (`POST /api/brain/client-requests`), não esta tela — esta rota é
+  // pública e um POST direto passa por cima de qualquer `disabled` de botão.
+  function handleSubmitWithContact(contato: { nome: string; email: string; whatsapp: string } | null) {
     if (submitting) return;
     setSubmitting(true);
     const scope = conv.scope;
     const mergedScope: BriefingScope = {
       ...scope,
-      prospectEmail: email,
-      prospectName:  scope.prospectName ?? name ?? "",
+      prospectEmail: contato?.email || scope.prospectEmail,
+      prospectPhone: contato?.whatsapp || scope.prospectPhone,
+      prospectName:  scope.prospectName ?? contato?.nome ?? "",
     };
     const rawText = buildRawText(conv.messages);
     onSubmit({
@@ -1244,11 +1327,12 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
       rawText,
       title:            buildTitle(mergedScope),
       prospectName:     mergedScope.prospectName ?? "",
-      prospectEmail:    email,
-      prospectPhone:    scope.prospectPhone ?? "",
+      prospectEmail:    mergedScope.prospectEmail ?? "",
+      prospectPhone:    mergedScope.prospectPhone ?? "",
       businessName:     mergedScope.businessName ?? "",
       segment:          mergedScope.segment ?? "",
       sdrHandoff:       buildHandoffSummary(conv, sdr),
+      contato,
     });
   }
 
@@ -1484,7 +1568,7 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
             </div>
             <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
               {canSubmit && confirmStep === "confirmed"
-                ? "Faça login para gerar seu orçamento"
+                ? "Onde você quer receber a proposta?"
                 : canSubmit
                 ? "É isso mesmo que você precisa?"
                 : "Atualizado conforme a conversa avança"}
@@ -1513,21 +1597,23 @@ export function PublicBriefingRoom({ onSubmit }: PublicBriefingRoomProps) {
           ) : confirmStep === "confirmed" ? (
             /* ── Auth step: Google or e-mail ── */
             <div className="px-4 py-4 space-y-3">
-              <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
-                Ótimo! Identifique-se para receber seu orçamento personalizado.
+              <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed">
+                Falta só uma coisa: <strong className="text-[var(--text-primary)]">para onde mandamos sua
+                proposta</strong>. Sem isso não conseguimos voltar para você.
               </p>
               <GoogleSignInButton
-                onSuccess={(r) => handleSubmitWithContact(r.email, r.name)}
+                onSuccess={(r) => handleSubmitWithContact({ nome: r.name, email: r.email, whatsapp: "" })}
                 onFallback={() => {}}
                 loading={submitting}
               />
               <div className="flex items-center gap-2">
                 <div className="flex-1 h-px bg-[var(--accent)]" />
-                <span className="text-[10px] text-[var(--text-subtle)]">ou</span>
+                <span className="text-[12px] text-[var(--text-subtle)]">ou</span>
                 <div className="flex-1 h-px bg-[var(--accent)]" />
               </div>
-              <EmailContactForm
-                onSubmit={(email, name) => handleSubmitWithContact(email, name)}
+              <FormularioDeContato
+                onSubmit={(c) => handleSubmitWithContact(c)}
+                onSemContato={() => handleSubmitWithContact(null)}
                 loading={submitting}
               />
             </div>

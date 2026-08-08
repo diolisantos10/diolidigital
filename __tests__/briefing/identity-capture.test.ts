@@ -2,11 +2,27 @@
 //   1. A bare first name ("Pedro") caused the bot to repeat the same question.
 //   2. Only the business was captured, silently dropping the person's name.
 //
-// E-mail and WhatsApp are NO LONGER collected in the conversation — they are
-// captured via Google sign-in after the prospect confirms their request. These
-// tests guard that the SDR (a) still captures name + business, and (b) NEVER
-// asks for e-mail/phone or mistakes a business reply for an e-mail input.
-// All behaviour here is rule-based (no AI) and must never regress.
+// ⚠️ O MUNDO ANDOU — leia antes de usar este arquivo como argumento (08/08/2026).
+//
+// O cabeçalho original dizia que e-mail e WhatsApp seriam capturados "via Google
+// sign-in depois que o prospect confirmar o pedido". Isso foi lido como "a casa
+// não precisa perguntar contato", e o resultado está medido em produção: três
+// interessados — Sushi Cazza (51 dias), Camila Pereira (29) e Beatriz Gimenes
+// (28) — com a conversa inteira gravada e NENHUM canal de contato. Quem não
+// chega ao login não deixa nada, e a maioria não chega.
+//
+// O que MUDOU: o contato passou a ser CONDIÇÃO PARA FECHAR o briefing, pedido no
+// fim (nome + WhatsApp **ou** e-mail), com saída explícita para quem não quiser
+// dar — que grava a conversa como `lead_incompleto`. Ver
+// `lib/agency/comercial/contato-do-lead.ts` e
+// `__tests__/comercial/gate-de-contato-do-briefing.test.ts`.
+//
+// O que NÃO mudou, e é o que este arquivo trava: **a conversa do SDR** continua
+// sem pedir e sem validar e-mail/telefone. O motivo é o incidente original —
+// pedir e-mail no meio da descoberta fazia o bot repetir pergunta, tratar "só
+// isso" como e-mail inválido e travar o prospect antes de saber o que ele
+// queria. O pedido de contato mora no PASSO DE CONFIRMAÇÃO, não no chat.
+// Todo comportamento aqui é rule-based (sem IA) e não pode regredir.
 
 import { describe, it, expect } from "vitest";
 import { initProspectConvState, processProspectMessage } from "@/lib/agency/prospect-engine";

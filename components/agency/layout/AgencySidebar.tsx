@@ -71,6 +71,13 @@ export default function AgencySidebar({ id, userInfo, mobileOpen = false, onMobi
       items: [
         { label: "Início", href: "/agency/dashboard", icon: HomeIcon },
         { label: "Solicitações", href: "/agency/requests", icon: FileTextIcon, badge: newRequestsCount },
+        // "Quem procurou a Dioli" — a fila da PORTA DA FRENTE, lida do BANCO.
+        // Ela existe porque "Solicitações", logo acima, lê o store do navegador:
+        // quem abrisse noutro computador via zero, e três interessados ficaram
+        // 51, 29 e 28 dias invisíveis por causa disso (08/08/2026). Fica ao lado
+        // de Solicitações, não em "Inteligência": é fila de decisão diária —
+        // abordar ou não —, o mesmo gesto da vizinhança.
+        { label: "Quem procurou", href: "/agency/leads", icon: TargetIcon },
         // Radar de oportunidades entra AQUI, no bloco de entrada, e não em
         // "Inteligência": ele não é relatório, é fila de decisão diária — chega
         // um projeto de plataforma de freela, o Diretor aprova ou recusa. Mesmo

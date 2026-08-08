@@ -9,8 +9,13 @@ export default function BriefingPage() {
   const { addClientRequest } = useAgencyStore();
   const [submitted, setSubmitted] = useState(false);
   const [submittedId, setSubmittedId] = useState<string | null>(null);
+  // Quem sobe sem contato NÃO pode ver "entramos em contato em até 1 dia útil".
+  // Prometer retorno para quem não deixou endereço é a mentira mais fácil desta
+  // tela — e a que faz a pessoa esperar por uma ligação que não existe.
+  const [temContato, setTemContato] = useState(true);
 
   async function handleSubmit(data: PublicBriefingRoomSubmitData) {
+    setTemContato(data.contato !== null);
     const id = addClientRequest({
       clientId: `prospect-${Date.now()}`,
       source: "public_briefing",
@@ -42,6 +47,10 @@ export default function BriefingPage() {
           objectives:     data.extractedSummary.objectives,
           rawContext:     data.rawText,
           source:         "briefing",
+          // O contato vai como CAMPO PRÓPRIO, não enterrado no escopo. Quem
+          // decide o que fazer com ele (proposta ou lead incompleto) é o
+          // servidor — a tela só entrega o fato.
+          contato:        data.contato,
           briefingJson:   { transcript: data.conversationTranscript, scope: data.v2Scope, estimate: data.v2Estimate },
           sdrHandoffJson: data.sdrHandoff ?? null,
           attachmentsJson: data.attachments.map((a) => ({
@@ -65,19 +74,28 @@ export default function BriefingPage() {
           ✓
         </div>
         <h1 className="text-[22px] font-semibold text-[var(--text-primary)] mb-3">
-          Recebemos seu briefing.
+          {temContato ? "Recebemos seu briefing." : "Seu briefing está guardado."}
         </h1>
         <p className="text-[14px] text-[var(--text-secondary)] leading-relaxed max-w-[400px] mx-auto mb-6">
-          Nossa equipe vai revisar a proposta inicial e retornar com os próximos passos em breve.
+          {temContato
+            ? "Nossa equipe vai revisar a proposta inicial e retornar com os próximos passos em breve."
+            : "Nada do que você contou se perdeu. Mas, como não temos WhatsApp nem e-mail seu, não temos como te enviar a proposta — quando quiser, é só falar com a gente pelo WhatsApp abaixo."}
         </p>
         <div className="bg-[var(--bg)] border border-[var(--border)] rounded-[10px] px-5 py-4 mb-8 text-left">
           <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.05em] mb-1">O que acontece agora</p>
           <ol className="space-y-1.5">
-            {[
-              "Nossa equipe analisa o escopo enviado",
-              "Preparamos uma proposta formal detalhada",
-              "Entramos em contato pelo e-mail informado em até 1 dia útil",
-            ].map((s, i) => (
+            {(temContato
+              ? [
+                  "Nossa equipe analisa o escopo enviado",
+                  "Preparamos uma proposta formal detalhada",
+                  "Entramos em contato pelo canal informado em até 1 dia útil",
+                ]
+              : [
+                  "Seu briefing fica guardado com tudo que você contou",
+                  "A proposta só é preparada quando tivermos um canal de contato",
+                  "Você pode nos chamar no WhatsApp a qualquer momento",
+                ]
+            ).map((s, i) => (
               <li key={i} className="flex items-start gap-2 text-[12px] text-[var(--text-secondary)]">
                 <span className="w-4 h-4 rounded-full bg-[var(--text-primary)] text-white text-[9px] font-bold flex items-center justify-center shrink-0 mt-0.5">
                   {i + 1}

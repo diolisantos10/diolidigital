@@ -1,5 +1,181 @@
 # Pendências — o que está aberto
 
+## 🟢 08/08/2026 — O BRIEFING PÚBLICO PASSA A PEDIR CONTATO, E A FILA DA PORTA DA FRENTE ENTRA NO RAIO-X
+
+**A consequência, primeiro:** três interessados entraram e a agência não tinha
+como responder a nenhum. Medido em produção, em `ClientRequestDb`:
+
+| Negócio | Parado desde | Serviços | Contato |
+|---|---|---|---|
+| **Sushi Cazza** | 18/06 — **51 dias** | planejamento de conteúdo, direção visual, estratégia | **nenhum** |
+| **Camila Pereira** (Beauty Clinic) | 10/07 — **29 dias** | social media, quer muito vídeo | **nenhum** |
+| **Beatriz Gimenes** (lash designer) | 11/07 — **28 dias** | social + tráfego + identidade | **nenhum** |
+
+Dois defeitos empilhados. **O segundo é o grave: mesmo que alguém varresse a
+fila, não havia para onde ligar.**
+
+### 🔴 A CAUSA RAIZ ESTAVA ESCRITA COMO CONTRATO, NUM TESTE
+
+`__tests__/briefing/identity-capture.test.ts` dizia, no cabeçalho:
+*"E-mail and WhatsApp are NO LONGER collected in the conversation — they are
+captured via Google sign-in after the prospect confirms their request."*
+
+A premissa é falsa na prática: **quem não chega ao login não deixa nada, e a
+maioria não chega.** O teste travava "o SDR nunca pede e-mail" — e o resultado
+está medido acima. É o mesmo padrão do teste dos pedidos de API (07/08) e do
+`jornada-real` (08/08): **o defeito virando invariante.** O cabeçalho foi
+reescrito declarando o que mudou e o que continua valendo (a conversa do SDR
+segue sem pedir contato — o pedido mora no passo de confirmação; pedir no meio
+da descoberta foi o que produziu o incidente original do "só isso").
+
+### 1. O CONTATO PASSA A SER CONDIÇÃO PARA FECHAR — e a trava é no SERVIDOR
+
+**Onde pedir foi decisão declarada.** No FIM, com a proposta na tela: pedir na
+primeira mensagem cobra antes de entregar e espanta quem só está olhando; pedir
+depois de a pessoa ter contado o negócio inteiro é a hora em que o pedido é
+natural — ela investiu, quer o resultado, e o contato é o que faz o resultado
+chegar até ela.
+
+- **Nome + PELO MENOS UM canal (WhatsApp _ou_ e-mail).** O WhatsApp entra na
+  frente, e não é estética: é por onde o cliente brasileiro responde. O
+  formulário antigo aceitava **só e-mail**, e o e-mail do login do Google é a
+  caixa que a pessoa não abre.
+- **A trava mora em `POST /api/brain/client-requests`, não no botão.** A rota é
+  **pública** — é o submit do `/briefing` — e um POST direto passa por cima de
+  qualquer `disabled`. `status` vindo do corpo é **ignorado**; quem escolhe entre
+  `new` e `lead_incompleto` é o servidor.
+
+**AS DUAS METADES, provadas em `__tests__/comercial/gate-de-contato-do-briefing.test.ts`:**
+
+| | fecha? | vira proposta? | o que foi dito |
+|---|---|---|---|
+| **com canal** | sim, `status: "new"` | **sim** — `runAutoScope` roda | grava |
+| **sem canal** | não | **não** — `runAutoScope` NÃO roda | **grava inteiro** |
+
+**Sem contato NÃO é descarte.** Há saída explícita na tela ("Prefiro não deixar
+contato agora"): a conversa sobe, grava como `lead_incompleto` **com o motivo**,
+e aparece na fila. Sem ela, quem não quer dar contato fecha a aba e a melhor
+matéria-prima que esta agência recebe desaparece sem deixar registro.
+
+E a tela de confirmação **para de prometer o que não pode cumprir**: quem sobe
+sem contato não lê mais *"entramos em contato em até 1 dia útil"*.
+
+### 🔴 CONTATO NÃO SE DEDUZ — e a arroba do Sushi Cazza tem nome próprio
+
+`lib/agency/comercial/contato-do-lead.ts` é o **leitor único**: lê o formato
+canônico novo e o legado (`briefingJson.scope.prospect*`), e **não lê o
+`rawContext`**. O `@sushicazzaoficial` que está escrito no briefing aparece como
+**PISTA** (`pistasDeContato`), em campo separado, rotulado *"não é contato
+confirmado"* na tela — e **nunca** faz `temComoFalar` virar `true`. Quem aborda
+é o CEO.
+
+- **Nome sozinho não é contato** — era exatamente assim que o desperdício se
+  chamava.
+- Piso de 10 dígitos no telefone: aceitar 8 faria `R$ 1.500` e `12 posts` — que
+  aparecem em TODO briefing — virarem telefone. **Telefone inventado é pior que
+  nenhum: desliga o alarme sem dar para onde ligar.**
+
+### 2. A FILA ENTRA NO RAIO-X (`lib/raio-x/dados.ts`, item 11)
+
+**Por que nada tocava:** o raio-x mede `pedidosDoClienteAbertos` sobre
+`ContentRequest` — o pedido de quem **já é cliente**. Estas moram em
+`ClientRequestDb`, a porta do **prospect**, e nenhuma varredura a olhava.
+
+**O horizonte é 24h, e a defesa é a própria tela:** o `/briefing` promete
+*"entramos em contato em até 1 dia útil"*. Alarme de 48h ou 72h toca **depois de
+a promessa já estar quebrada** — registra o dano em vez de preveni-lo. E 24h é o
+mesmo relógio de todos os outros baldes do arquivo; um segundo relógio na mesma
+varredura é uma segunda regra para alguém esquecer.
+
+**DOIS baldes, porque a AÇÃO é diferente** (`briefing-parado-com-contato` e
+`briefing-parado-sem-contato`, ambos `alto`). O segundo é também o **termômetro
+do gate**: se ele crescer depois de hoje, o briefing está vazando.
+
+As duas metades em `__tests__/raio-x/fila-da-porta-da-frente.test.ts`: acha as
+três com a mais antiga nomeada e os 51 dias na evidência · **não** dispara em
+fila vazia, em lead de hoje nem em ficha que já virou projeto.
+
+### 3. AS TRÊS DE VOLTA — `/agency/leads` ("Quem procurou", na barra lateral)
+
+Cada cartão responde, nesta ordem: **dá para falar com ele?** (e o "não" vem
+primeiro, em vermelho) · o que ele pediu, **nas palavras dele** · escopo e faixa
+**pela tabela da casa** (`live-calculator` + `service-catalog`) · **preciso
+confirmar**.
+
+- **Determinístico. Zero IA.** Um modelo escrevendo "leitura do negócio"
+  produziria prosa convincente sobre um cliente que ninguém conferiu — o modo de
+  falhar desta casa sem revisor humano.
+- **Faixa ausente NÃO é R$ 0.** Serviço que a tabela não cobre devolve faixa
+  nula com o motivo escrito. Faixa sem cadência declarada é a banda inteira do
+  catálogo **e diz que é**.
+- **Falha de leitura tem tela própria** (`medido: false`): lista vazia por erro
+  de banco é exatamente como esta fila ficou invisível por sete semanas.
+- Somente leitura. **Não aborda ninguém, não envia nada, não escreve nada.**
+
+> ⚠️ **"Solicitações", a aba que já existia, lê o STORE DO NAVEGADOR** — quem
+> abrisse noutro computador via zero. É parte de por que ninguém enxergou as
+> três. A tela nova lê o **banco**. Unificar as duas fica aberto, com dono.
+
+### 🔴 4. A FICHA DUPLICADA DA CAMILA — LEVANTADA, NÃO FUNDIDA
+
+**Não fundi**: afirmar que duas fichas são o mesmo negócio é decisão de negócio,
+e a ficha certa decide para onde vai o histórico.
+
+**O mecanismo, com linha:** **duas** rotas criam `Client` a partir da mesma
+solicitação e **nenhuma confere se já existe alguém com aquele nome** —
+`lib/agency/execution/create-project-from-request.ts:49` e
+`app/api/brain/orchestrate/apply/route.ts:103`. As duas só olham
+`req.clientId == null`. **Não há `@@unique(workspaceId, name)` no `Client`.**
+
+> **E aqui os dois defeitos se encontram:** `lib/agency/balcao/producao.ts:98`
+> **deduplica** — por **e-mail**. O caminho do briefing não tinha e-mail nenhum,
+> então não tinha chave. **Sem contato não existe chave de identidade**, e é por
+> isso que o gate do item 1 também fecha este buraco daqui para frente.
+
+**Decisão do CEO:** qual das duas (`cmqyb0bpo…` / `cmrt7aecz…`) é a boa.
+
+### Portão
+
+`npx tsc --noEmit` limpo · **3088 testes em 191 arquivos, todos verdes** ·
+`npm run build` sai 0. ⚠️ Os 9 avisos do build são **todos** de
+`instrumentation.ts` → `lib/agency/design/fontes-embutidas.ts` /
+`lib/agency/media/armazenamento.ts` → `app/api/media/route.ts` — **frentes de
+outros agentes, nenhum arquivo meu aparece em trace nenhum.**
+
+Conferido em **375 / 768 / 1440**, autenticado, com os estados vazio, bloqueado e
+válido. Notas (0–10) a 375px: hierarquia **9** · tipografia **9** · espaçamento
+**8,5** · consistência **9**. Dois defeitos achados **renderizando, não lendo**:
+o rótulo do botão do Google quebrava em duas linhas a 375px (e prometia "para ver
+a proposta", que deixou de ser verdade), e as linhas de escopo botavam preço e
+nome do plano na mesma largura — agora empilham no celular.
+
+### 🔴 O QUE NÃO FOI FEITO, E POR QUÊ
+
+- [ ] **AS TRÊS CONTINUAM EM `"new"` NO BANCO DE PRODUÇÃO. Não as movi.** Daqui
+      só há HTTP e a rota exige sessão de admin (medido: `401`). O dossiê das
+      três é **gerado ao abrir a tela** — ele existe no minuto do deploy, sem
+      migration e sem backfill. **Quem decide se aborda é o CEO.**
+- [ ] **NADA foi enviado a ninguém.** Nenhuma mensagem, nenhum e-mail, nenhuma
+      abordagem pelo `@sushicazzaoficial`.
+- [ ] **Contato ainda NÃO TEM COLUNA** — mora dentro de `briefingJson`. Foi
+      escolha declarada: `prisma/` está com outro agente nesta rodada e mexer no
+      schema quebraria a frente dele. O leitor único (`lerContato`) esconde o
+      formato de todo mundo, então promover a coluna depois é migration + um
+      arquivo. **Enquanto não for coluna, não dá para filtrar nem indexar por
+      contato no banco.** Sem dono.
+- [ ] **Abandono NO MEIO da conversa continua sem registro.** O `lead_incompleto`
+      pega quem chega ao passo de contato e recusa; quem fecha a aba na terceira
+      mensagem não deixa nada. Capturar isso exige gravação parcial com token de
+      rascunho — frente própria, sem dono.
+- [ ] `esteira` — **"Solicitações" lê o store do navegador e `/agency/leads` lê o
+      banco.** Duas verdades adjacentes sobre a mesma fila é o defeito nº 2 do
+      incidente do Drive. Unificar.
+- [ ] `plataforma` — **`Client` sem `@@unique(workspaceId, name)` e com duas
+      rotas criando ficha sem dedup.** É o que produziu a Camila duplicada.
+- [ ] **`ProposalCard` e `EmailFallbackForm` em `PublicBriefingRoom.tsx` não têm
+      chamador** — código morto, achado de passagem. Não removi: apagar 150
+      linhas de uma tela pública no mesmo commit da trava misturaria os riscos.
+
 ## 🟢 08/08/2026 — AS 2 PEÇAS DO CITYJOBS REFEITAS: O CLIPART VIROU REPROVAÇÃO EM CÓDIGO
 
 **A consequência, primeiro:** o CEO reprovou as duas peças de `4c4ea1a` (prédio
