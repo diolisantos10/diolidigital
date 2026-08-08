@@ -157,6 +157,54 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
   }
 
+  // ─── CONTAS DE ANÚNCIO ───────────────────────────────────────────────────
+  //
+  // ⚠️ Elas NÃO viram `MetaConnection`. Uma conta de anúncios autorizada mora só
+  // em `MetaAtivoAutorizado` — sem token próprio, porque quem fala com a
+  // Marketing API é o token de USUÁRIO do cliente. Consequência prática, e o CEO
+  // topou com ela hoje: ele salvou `act_1355986106660251` e **nenhum cartão do
+  // portal fala dela**, porque o portal lista conexões. Salvar não é conectar.
+  const autorizados = await prisma.metaAtivoAutorizado
+    .findMany({ where: { tipo: "ad_account" } })
+    .catch(() => null);
+
+  const contas: unknown[] = [];
+  if (autorizados === null) {
+    contas.push({ indisponivel: true, motivo: "não consegui ler a lista de ativos autorizados" });
+  } else {
+    for (const a of autorizados.filter((x) => interessa(x.clientId))) {
+      // O token que fala pela conta é o de usuário do DONO dela — derivado da
+      // linha, nunca informado por quem chama.
+      const credencial = linhas.find(
+        (l) => l.platform === "user" && l.clientId === a.clientId && l.status === "connected",
+      );
+      const base = {
+        cliente: a.clientId ? (nomePorId.get(a.clientId) ?? a.clientId) : "a própria agência",
+        clientId: a.clientId,
+        conta: a.externalId,
+        nome: a.nome,
+        autorizadaEm: a.autorizadoEm.toISOString(),
+        autorizadaPor: a.autorizadoPor,
+        viraConexaoNoPortal: false,
+      };
+      const segredo = credencial ? tokenGuardado(credencial.accessTokenEncrypted) : null;
+      if (!segredo) {
+        contas.push({ ...base, exame: "nao_foi_possivel", motivo: "não há token de usuário utilizável deste cliente para perguntar à Meta" });
+        continue;
+      }
+      const r = await exercitarAcesso({ platform: "ad_account", externalId: a.externalId, token: segredo });
+      if (r.ok) contas.push({ ...base, exame: "vivo", prova: r.prova, amostra: r.amostra });
+      else {
+        const f = r.falha as FalhaDeAcesso;
+        contas.push({
+          ...base,
+          exame: f.codigo === null ? "nao_respondeu" : "recusado",
+          metaDisse: { codigo: f.codigo, subcodigo: f.subcodigo, tipo: f.tipo, mensagem: f.mensagem },
+        });
+      }
+    }
+  }
+
   // ─── GOOGLE DRIVE ────────────────────────────────────────────────────────
 
   const drives = await prisma.googleDriveConnection.findMany({}).catch(() => null);
@@ -218,6 +266,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     conexoesExaminadas: alvos.length,
     conexoesNoBanco: linhas.length,
     meta,
+    contasDeAnuncio: contas,
     drive,
   });
 }

@@ -16,6 +16,7 @@ import {
   estadoDaConexao,
   lerMetaJson,
   statusPeloCodigo,
+  lerCodigoDaGraph,
   CHAVE_CONFIRMACAO,
   CHAVE_FALHA,
 } from "@/lib/integrations/meta/verificacao";
@@ -115,22 +116,42 @@ describe("os três estados de um acesso", () => {
 });
 
 describe("o código da Graph decide a palavra — e a biblioteca capturada é a fonte", () => {
-  it("190 e 102 mandam reconectar; 10 e 200 são permissão; o resto é erro", () => {
-    // fontes/graph-api-tratamento-de-erros.md, capturado em 07/08/2026.
+  it("190 e 102 são TOKEN — e só eles mandam o cliente reconectar", () => {
+    // fontes/graph-api-tratamento-de-erros.md, capturado em 07/08/2026:
+    // "isso indica que o status de login ou o token de acesso expirou, foi
+    //  revogado ou é inválido. Obtenha um novo token de acesso."
     expect(statusPeloCodigo(190)).toBe("expired");
     expect(statusPeloCodigo(102)).toBe("expired");
-    expect(statusPeloCodigo(200)).toBe("revoked");
-    expect(statusPeloCodigo(10)).toBe("revoked");
-    expect(statusPeloCodigo(100)).toBe("error");
+    expect(lerCodigoDaGraph(190).quemResolve).toBe("cliente");
   });
 
-  it("LIMITE DE TAXA NÃO É TOKEN MORTO — 4/17/32/613 não mandam ninguém reconectar", () => {
-    // Mandar o dono do negócio reconectar por causa de um limite temporário é
-    // mentira, e o próximo passo dele é achar que o produto não funciona.
-    for (const codigo of [4, 17, 32, 613]) {
-      expect(statusPeloCodigo(codigo)).toBe("error");
+  it("🔴 CÓDIGO 10 NÃO É TOKEN MORTO — e não pode mandar o cliente reconectar", () => {
+    // Medido em produção em 08/08/2026 na Página "City Jobs SP":
+    //   "(#10) This endpoint requires the 'pages_read_engagement' permission
+    //    or the 'Page Public Content Access' feature."
+    // A fonte capturada é explícita: código 10 = "Permissão de API negada. A
+    // permissão não foi concedida ou foi removida." Isso é App Review do app
+    // DA AGÊNCIA. Se a tela mandar reconectar, o cliente reconecta, o erro
+    // volta igual, e ele conclui que o produto não funciona.
+    const r = lerCodigoDaGraph(10);
+    expect(r.quemResolve).toBe("agencia");
+    expect(r.status).not.toBe("expired");
+    expect(r.oQueFazer).not.toMatch(/reconecte a conta/i);
+    expect(r.oQueFazer).toMatch(/reconectar não resolve/i);
+    // 200 e 3 são a mesma família e seguem a mesma regra.
+    for (const codigo of [3, 200, 299]) {
+      expect(lerCodigoDaGraph(codigo).quemResolve).toBe("agencia");
     }
   });
+
+  it("LIMITE DE TAXA não é culpa de ninguém e se resolve sozinho", () => {
+    for (const codigo of [4, 17, 32, 613, 80004]) {
+      const r = lerCodigoDaGraph(codigo);
+      expect(r.quemResolve).toBe("ninguem_agora");
+      expect(r.status).not.toBe("expired");
+    }
+  });
+
 });
 
 describe("a tela do cliente não pode voltar a escrever 'Conectada' sozinha", () => {
@@ -158,6 +179,16 @@ describe("a tela do cliente não pode voltar a escrever 'Conectada' sozinha", ()
     expect(cartao).toContain("funcionou pela última vez em");
     expect(cartao).toContain("registrada em");
     expect(cartao).toContain("o acesso foi recusado em");
+  });
+
+  it("🔴 o cartão não manda reconectar quando reconectar não resolve", () => {
+    // Quem decide a frase é o SERVIDOR (`oQueFazer`). O componente não pode ter
+    // um "Reconecte" incondicional no ramo de erro — foi o que quase mandou o
+    // dono do CityJobs reconectar por um erro de App Review da agência.
+    expect(cartao).toContain("c.oQueFazer");
+    expect(cartao).toMatch(/quemResolve === "cliente"/);
+    // E o fallback do lado "não é o cliente" existe e não pede reconexão.
+    expect(cartao).toContain("não é problema da sua conta");
   });
 
   it("a rota do portal não fala com a Meta — tela de cliente não faz rajada de GET", () => {

@@ -82,6 +82,10 @@ export interface RetratoDaConexao {
   provaDoAcesso: string | null;
   /** Preenchido só quando `estado === "caiu"`. */
   falha: FalhaDeAcesso | null;
+  /** Quem consegue resolver. `null` fora do estado "caiu". */
+  quemResolve: QuemResolve | null;
+  /** O que fazer, em português, sem mandar reconectar em vão. */
+  oQueFazer: string | null;
   /** Sempre presente: a data em que a LINHA nasceu. Nunca sai sozinha na tela. */
   registradaEm: string;
 }
@@ -141,6 +145,7 @@ export function estadoDaConexao(linha: LinhaParaJulgar): RetratoDaConexao {
   const confirmacao = lerConfirmacao(linha.metaJson);
   const falha = lerFalha(linha.metaJson);
 
+  const leitura = falha?.codigo !== null && falha?.codigo !== undefined ? lerCodigoDaGraph(falha.codigo) : null;
   const caiuPeloStatus = linha.status !== "connected";
   const falhaMaisNova =
     !!falha && (!confirmacao || Date.parse(falha.em) >= Date.parse(confirmacao.em));
@@ -162,6 +167,12 @@ export function estadoDaConexao(linha: LinhaParaJulgar): RetratoDaConexao {
           mensagem: `a casa marcou este acesso como "${linha.status}" e não guardou a resposta da plataforma`,
           tipo: null,
         },
+      // Sem código da Meta não dá para saber quem resolve. "Avise a agência" é
+      // a única saída honesta — melhor que mandar reconectar por chute.
+      quemResolve: leitura?.quemResolve ?? "agencia",
+      oQueFazer:
+        leitura?.oQueFazer ??
+        "este acesso está marcado como caído e a casa não guardou o motivo. Avise a equipe da Dioli",
       registradaEm,
     };
   }
@@ -172,11 +183,21 @@ export function estadoDaConexao(linha: LinhaParaJulgar): RetratoDaConexao {
       confirmadoEm: confirmacao.em,
       provaDoAcesso: confirmacao.prova || null,
       falha: null,
+      quemResolve: null,
+      oQueFazer: null,
       registradaEm,
     };
   }
 
-  return { estado: "nao_verificada", confirmadoEm: null, provaDoAcesso: null, falha: null, registradaEm };
+  return {
+    estado: "nao_verificada",
+    confirmadoEm: null,
+    provaDoAcesso: null,
+    falha: null,
+    quemResolve: null,
+    oQueFazer: null,
+    registradaEm,
+  };
 }
 
 /** `metaJson` cru → objeto. String quebrada nunca derruba quem chama. */
@@ -383,18 +404,79 @@ export async function carimbarAcessoRecusado(
 }
 
 /**
- * O código da Graph → a palavra que a tela usa.
+ * Quem consegue resolver esta recusa. **Só isto decide se o cliente vê um botão
+ * de reconectar.**
  *
- * A biblioteca capturada (`docs/plataformas/meta/fontes/graph-api-tratamento-de-erros.md`,
- * 07/08/2026) diz que 190/102 sem subcódigo significam "o token expirou, foi
- * revogado ou é inválido — obtenha um novo". É o único grupo que manda o cliente
- * reconectar. 10 e 200 são PERMISSÃO (o app não pode aquilo), 4/17/32/613 são
- * LIMITE (temporário, e mandar reconectar seria mentira), e o resto é erro.
+ * ─── MEDIDO EM PRODUÇÃO, 08/08/2026, E QUASE VIROU A SEGUNDA MENTIRA ────────
+ *
+ * A Página "City Jobs SP" recusou com **código 10**:
+ *
+ *     "(#10) This endpoint requires the 'pages_read_engagement' permission or
+ *      the 'Page Public Content Access' feature."
+ *
+ * A primeira versão deste arquivo mapeava 10 para `revoked` — o que faria a
+ * tela dizer ao dono do CityJobs "seu acesso foi revogado, reconecte". Ele
+ * reconectaria, **o erro voltaria igual**, e ele concluiria que o produto não
+ * funciona. Código 10 não é token morto: a biblioteca capturada
+ * (`fontes/graph-api-tratamento-de-erros.md`, 07/08/2026) diz, com todas as
+ * letras, *"Permissão de API negada. A permissão não foi concedida ou foi
+ * removida."* Isso é App Review do app DA AGÊNCIA — nada que o cliente clique
+ * conserta.
+ *
+ * É exatamente o aviso de que "os códigos da Graph mentem sobre a causa com
+ * frequência". Um diagnóstico que traduz errado é pior que nenhum: ele manda
+ * a pessoa certa fazer a coisa inútil.
  */
+export type QuemResolve = "cliente" | "agencia" | "ninguem_agora";
+
+export interface LeituraDoCodigo {
+  /** O valor que vai para a coluna `status`. */
+  status: string;
+  quemResolve: QuemResolve;
+  /** A frase que a tela mostra. Ela nunca manda reconectar em vão. */
+  oQueFazer: string;
+}
+
+/** Erros de LIMITE de taxa (`ritmo.ts` os conhece pelo mesmo número). */
+const CODIGOS_DE_LIMITE = new Set([4, 17, 32, 613, 80000, 80001, 80002, 80003, 80004]);
+/** Erros de PERMISSÃO: o app não tem o direito, o token não tem culpa. */
+const CODIGOS_DE_PERMISSAO = new Set([3, 10, 200, 299]);
+/** Erros de TOKEN: e só estes mandam o cliente reconectar. */
+const CODIGOS_DE_TOKEN = new Set([102, 190, 463, 467]);
+
+export function lerCodigoDaGraph(codigo: number): LeituraDoCodigo {
+  if (CODIGOS_DE_TOKEN.has(codigo)) {
+    return {
+      status: "expired",
+      quemResolve: "cliente",
+      oQueFazer: "o acesso venceu ou foi retirado — reconecte a conta para a Dioli voltar a publicar e a ler seus resultados",
+    };
+  }
+  if (CODIGOS_DE_PERMISSAO.has(codigo)) {
+    return {
+      status: "error",
+      quemResolve: "agencia",
+      // Reconectar NÃO resolve, e por isso a frase não pede isso.
+      oQueFazer: "falta uma permissão no aplicativo da Dioli junto à Meta. Não é problema da sua conta e reconectar não resolve — a agência já está ciente",
+    };
+  }
+  if (CODIGOS_DE_LIMITE.has(codigo)) {
+    return {
+      status: "error",
+      quemResolve: "ninguem_agora",
+      oQueFazer: "a Meta limitou o volume de consultas por alguns minutos. É temporário e se resolve sozinho — nada precisa ser feito",
+    };
+  }
+  return {
+    status: "error",
+    quemResolve: "agencia",
+    oQueFazer: "a Meta recusou este acesso por um motivo que a agência precisa investigar. Não é problema da sua conta",
+  };
+}
+
+/** Só o status, para quem já sabe o resto. */
 export function statusPeloCodigo(codigo: number): string {
-  if (codigo === 190 || codigo === 102) return "expired";
-  if (codigo === 10 || codigo === 200 || codigo === 3) return "revoked";
-  return "error";
+  return lerCodigoDaGraph(codigo).status;
 }
 
 /** O token guardado, decifrado. `null` quando a chave da casa não abre — e isso

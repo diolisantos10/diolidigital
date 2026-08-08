@@ -57,6 +57,8 @@ interface ConexaoView {
   estado?: "viva" | "nao_verificada" | "caiu";
   funcionouEm?: string | null;
   falha?: FalhaView | null;
+  quemResolve?: "cliente" | "agencia" | "ninguem_agora" | null;
+  oQueFazer?: string | null;
   registradaEm?: string;
   connectedAt: string;
 }
@@ -413,8 +415,17 @@ export function ConexoesDoCliente({ token }: { token: string }) {
                     negócio adivinhar — e ele conclui que é problema dele. */}
                 {caiu && (
                   <div className="mt-2.5 rounded-[10px] bg-[#FEF2F2] px-3 py-2">
-                    <p className="text-[12px] font-semibold text-[#991B1B]">
-                      A Meta recusou este acesso. Reconecte no botão acima.
+                    {/* ⚠️ "Reconecte" SÓ quando reconectar resolve. Medido em
+                        produção em 08/08: a Página do CityJobs recusa com
+                        código 10 — permissão do app DA AGÊNCIA. Mandar o dono
+                        do negócio reconectar ali seria a segunda mentira do
+                        mesmo cartão, e a que faz ele achar que o produto não
+                        funciona. Quem decide é o servidor. */}
+                    <p className="text-[12px] font-semibold text-[#991B1B] leading-snug">
+                      {c.oQueFazer ??
+                        (c.quemResolve === "cliente"
+                          ? "A Meta recusou este acesso. Reconecte no botão acima."
+                          : "A Meta recusou este acesso. A agência já está ciente — não é problema da sua conta.")}
                     </p>
                     {c.falha?.mensagem && (
                       <p className="text-[11px] text-[#991B1B] leading-snug mt-0.5 break-words">

@@ -82,6 +82,10 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
           provaDoAcesso: retrato.provaDoAcesso,
           /** O que a Meta respondeu ao recusar. `null` quando não caiu. */
           falha: retrato.falha,
+          /** Quem resolve. É o que decide se o cliente vê "reconecte" — código
+           *  10 é permissão do app DA AGÊNCIA, e reconectar não conserta. */
+          quemResolve: retrato.quemResolve,
+          oQueFazer: retrato.oQueFazer,
           /** A data em que a LINHA nasceu. Nunca vai à tela sem esse nome. */
           registradaEm: retrato.registradaEm,
           connectedAt: r.connectedAt.toISOString(),
