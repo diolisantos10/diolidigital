@@ -1,5 +1,47 @@
 # Pendências — o que está aberto
 
+## 🟢 08/08/2026 — A ESCOLHA DO CLIENTE NO DRIVE PARAVA DE EXISTIR EM SILÊNCIO (`808aee3`, no ar)
+
+**Medido em produção, antes:** Drive da Foocci — **1 arquivo ao alcance do app no
+Google, 0 linhas em `DriveMaterial`**. O CEO escolheu o material no seletor, o
+Google concedeu o acesso, e a tela respondeu *"Sem material — a Dioli não alcança
+NENHUM arquivo seu"*. Sem erro, sem aviso, sem registro.
+
+**A causa, capturada AO VIVO em produção antes do deploy do conserto** (POST na
+rota do portal com um arquivo fora do alcance):
+
+```
+HTTP 200  {"gravados":[],"recusados":[{...}],
+           "proximoPasso":"Você escolheu apenas pastas. ..."}
+```
+
+Zero gravados, **HTTP 200**, e no campo que a tela pinta de **verde** — para um
+PNG. Somado a isso, no navegador o callback do seletor fazia `await fetch` e
+`await res.json()` **sem try/catch**: 502 do proxy (HTML), rede oscilando ou
+servidor reiniciando num deploy matavam a escolha sem uma palavra na tela.
+
+**Depois, as duas metades provadas contra produção:**
+
+| | antes | depois |
+|---|---|---|
+| gravação impedida | `HTTP 200` + frase verde | `HTTP 502` + "Sua escolha NÃO foi registrada — a falha foi nossa" |
+| escolha real | (perdida) | `HTTP 200`, 1 gravado, "agora diga o que é" |
+| Foocci no diagnóstico | 1 no Google / 0 na casa · `escolhaPerdida: true` | 1 / 1 · `escolhaPerdida: false` |
+
+**O que ficou aberto, e é ação de gente:** o arquivo da Foocci está dentro da
+casa **pendente de triagem** — `papel` NULO, `declarados: 0`, `importados: 0`.
+Ele **não entra em peça nenhuma** até alguém dizer o que ele é. O nome é
+`ChatGPT Image 7_08_2026, 11_02_42.png`: não dá para saber se é logo, foto ou
+rascunho, e **carimbar "logo" por conveniência poria a imagem errada numa peça
+entregue**. Quem declara é o cliente, no portal — o cartão já mostra o arquivo
+com o seletor de papel.
+
+**A rede de segurança nova:** `POST /api/admin/reconciliar-drive` (CRON_SECRET).
+O diagnóstico já sabia DETECTAR (`escolhaPerdida`); agora a casa CONSERTA — todo
+arquivo que o Google concede e a casa não tem entra pendente de triagem.
+
+---
+
 ## 🟢 08/08/2026 — O BRIEFING PÚBLICO PASSA A PEDIR CONTATO, E A FILA DA PORTA DA FRENTE ENTRA NO RAIO-X
 
 **A consequência, primeiro:** três interessados entraram e a agência não tinha
