@@ -1,5 +1,68 @@
 # Pendências — o que está aberto
 
+## 🟢 08/08/2026 — A ESCADA SOLTA SOZINHA: A DECISÃO DO DONO VIROU MECANISMO
+
+**A consequência, primeiro:** `social-media` e `design` sobem para `allowlist`
+com **todos os clientes com projeto** no momento em que o deploy subir — sem
+ninguém logar em produção. Era esse degrau que segurava as peças do CityJobs em
+`interno`.
+
+**Mecanismo:** `lib/agency/escada/decisoes-do-dono.ts`, aplicado pelo relógio
+(`despertador.ts`, primeira perna da rodada) e disponível na rota
+(`POST /api/agency/escada`, `acao: "aplicar_decisoes_do_dono"`) só para não
+esperar os 5 minutos. Registro completo em `docs/decisoes.md`.
+
+**Portão:** `npx tsc --noEmit` limpo · **3028 testes em 186 arquivos, todos
+verdes** (31 novos) · `npm run build` compila.
+
+### 🔴 O PADRÃO DAS QUATRO RODADAS QUE NÃO ENTREGARAM PEÇA — em uma frase
+
+**Nenhuma rodada de agente consegue atravessar o último metro sozinha: produzir
+é livre, mas fazer a peça CHEGAR ao cliente sempre exigiu uma credencial que só
+um humano tem** (sessão de admin, `CRON_SECRET`, ou um clique). Os quatro
+"motivos diferentes" — sem acesso à produção, sem sessão de admin, navegador
+ausente, escada prendendo — **são o mesmo motivo com quatro roupas.**
+
+**O conserto começou aqui e é generalizável:** o que a agência precisa fazer
+sozinha não pode morar atrás de uma rota autenticada; tem que morar no
+**relógio**, declarado em código e aplicado no deploy. A escada foi a primeira a
+mudar de lado.
+
+- [ ] `plataforma` — 🔴 **o mesmo tratamento para PRODUZIR peça.** Hoje produzir
+      exige sessão de admin; o `despertador` já produz arte pendente, mas não há
+      caminho para "produza as peças de hoje deste cliente" sem gente logada.
+- [ ] `plataforma` — 🔴 **a branch de deploy é
+      `claude/dioli-agency-os-architecture-kk7kp`** (medido em `/api/health`), e
+      trabalho vem sendo commitado em `subida-07-08`. **Commit em branch que não
+      deploya é trabalho que não existe** — é a causa das "três frentes
+      commitadas e sem deploy".
+
+### 🔴 O QUE NÃO FOI SOLTO — e é decisão do CEO/Diretor
+
+| Departamento | Por que ficou de fora |
+|---|---|
+| `paid-traffic` | **ESCREVE em Meta/Google.** Depende do parecer do especialista da plataforma (trava de 03/08) |
+| `prospeccao` | sai em nome da agência para **terceiros** — não é peça de cliente |
+| `analytics` · `strategy` · `financeiro` | relatório, plano e proposta **não são "peça"**; a fala do CEO não os cobre com todas as letras |
+
+⚠️ **Publicação automática continua BLOQUEADA, e isso é deliberado.** "Soltar a
+agência para produzir" não é "publicar sem parecer". A peça vai até o **card de
+aprovação**; o clique é do CEO.
+
+⚠️ **`cliente ativo` não existe no banco** (sem coluna `status` em `Client`). O
+escopo se chama `clientes_com_projeto` porque é o que o banco sabe dizer.
+
+### 🔴 AS 2 PEÇAS DO CITYJOBS: ONDE ELAS ESTÃO DE VERDADE
+
+**Produzidas** (`4c4ea1a`, por outro agente): PNG 1080×1350 com o logo oficial
+de `public/brand/cityjobs/`, molde de verdade, três portões rodados — em
+`docs/entregas/cityjobs-08-08/`.
+
+**NÃO estão no card de aprovação do cliente.** Arquivo no repositório não é
+entrega: o portal lê o banco de **produção**, e as peças que moram lá são as do
+calendário (recompostas em `98cd038`), que sobem de `interno` para visível
+**quando este deploy entrar**. Enquanto o deploy não sobe, o CEO não vê nada.
+
 ## 🟢 08/08/2026 — O MATERIAL ENVIADO PELO PORTAL CHEGA NA PEÇA (a ponte ganhou o meio)
 
 **A consequência, primeiro:** o cliente (ou o CEO) arrasta o logo no portal e ele

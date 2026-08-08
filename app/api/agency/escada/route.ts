@@ -63,5 +63,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const r = await liberarCliente({ workspaceId: session.workspaceId, departmentId, clientId: body.clientId, quem });
     return NextResponse.json(r, { status: r.ok ? 200 : 409 });
   }
-  return NextResponse.json({ error: "acao inválida (subir | descer | liberar_cliente)" }, { status: 400 });
+  // A decisão do dono já é aplicada sozinha pelo relógio da agência a cada
+  // rodada — esta ação existe só para NÃO ESPERAR os 5 minutos. Ela não recebe
+  // parâmetro nenhum de propósito: o que vale é o que está declarado em
+  // `DECISOES_DO_DONO`, versionado. Um endpoint que aceitasse departamento e
+  // cliente por corpo de requisição seria a porta dos fundos da escada.
+  if (body.acao === "aplicar_decisoes_do_dono") {
+    const { aplicarDecisoesDoDono } = await import("@/lib/agency/escada/decisoes-do-dono");
+    const r = await aplicarDecisoesDoDono(session.workspaceId);
+    return NextResponse.json(r, { status: 200 });
+  }
+  return NextResponse.json(
+    { error: "acao inválida (subir | descer | liberar_cliente | aplicar_decisoes_do_dono)" },
+    { status: 400 },
+  );
 }

@@ -241,6 +241,29 @@ export async function baterORelogio(): Promise<{
     log(`${perna} falhou: ${erro}`);
   };
 
+  // ── A DECISÃO DO DONO, ANTES DE TUDO ──────────────────────────────────────
+  // Vem primeiro na rodada porque ela decide se a peça produzida logo abaixo
+  // CHEGA ao cliente. Aplicá-la depois deixaria uma rodada inteira de entregas
+  // retidas por um degrau que a decisão já tinha mandado abrir.
+  //
+  // Está aqui, e não numa rota, porque foi exatamente a rota que falhou: soltar
+  // a escada exigia sessão de admin em produção, e nenhuma rodada de agente tem
+  // uma. Aqui o deploy aplica. É idempotente: da segunda rodada em diante não
+  // escreve nada.
+  try {
+    const { aplicarDecisoesDoDonoNaCasa } = await import("@/lib/agency/escada/decisoes-do-dono");
+    const r = await aplicarDecisoesDoDonoNaCasa();
+    for (const m of r.mudancas) {
+      log(`escada: ${m.departmentId} ${m.de} → ${m.para} por decisão do dono (${m.decisao}), +${m.clientesAdicionados} cliente(s)`);
+    }
+    // Decisão malformada é FALHA da rodada, nunca silêncio: uma decisão do dono
+    // que não aplica e não avisa é a peça presa de novo, com outra roupa.
+    for (const x of r.recusadas) quebrou("decisao-do-dono", `${x.id}: ${x.motivo}`);
+    for (const a of r.avisos) quebrou("decisao-do-dono", a);
+  } catch (err) {
+    quebrou("decisao-do-dono", err);
+  }
+
   // A virada vem ANTES da retomada de propósito: ela é quem abre o mês novo e
   // marca o projeto como "pending". Assim o mês nasce e já é produzido na mesma
   // rodada, em vez de esperar mais cinco minutos.

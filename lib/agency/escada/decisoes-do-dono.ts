@@ -1,0 +1,360 @@
+// A SEGUNDA PORTA DA ESCADA: a decisão do dono — declarada, datada e aplicada
+// sozinha.
+//
+// ─── POR QUE ELA EXISTE (08/08/2026) ─────────────────────────────────────────
+//
+// A escada tinha UM caminho para subir: evidência (`subirDegrau`), e ele está
+// certo. O que faltava era o caso em que quem manda na casa MANDA, com todas as
+// letras — e a casa não tinha onde escrever isso a não ser num campo de texto
+// preenchido à mão por alguém logado em produção.
+//
+// O CEO, em 08/08/2026: *"Solta, óbvio, tem que soltar tudo, tem que dar
+// autonomia pra essa agência funcionar, gente. (...) Você tem vinte e seis
+// agentes pra fazer um monte de coisa e dois posts não estão saindo."*
+//
+// Duas peças do CityJobs ficaram um dia inteiro presas em `interno` porque
+// `social-media` estava em `allowlist` sem o CityJobs na lista. Nenhum agente
+// conseguiu soltar: soltar exigia uma **sessão de admin em produção**, que não
+// existe dentro de uma rodada de agente. A decisão existia; o caminho, não.
+//
+// ─── O DESENHO, E O QUE ELE RECUSA ───────────────────────────────────────────
+//
+// A decisão do dono é **código versionado**, não um clique. Ela mora nesta
+// lista, é aplicada pelo relógio da agência (`despertador.ts`) a cada rodada, e
+// é idempotente. Consequência prática, que é o ponto inteiro: **deploy = a
+// escada solta.** Não há humano no meio do caminho, não há segredo para
+// carregar, não há sessão para conseguir.
+//
+// O que ela NÃO faz, e cada recusa tem motivo:
+//
+//   • **Nunca leva a `wide`.** O alvo é SEMPRE `allowlist` com clientes
+//     nomeados. "Chega a todos, inclusive aos que ainda não existem" não é o que
+//     ninguém disse — e allowlist deixa cada cliente auditável e revogável um a
+//     um. `wide` continua se conquistando só com número.
+//   • **Nunca desce ninguém.** Departamento em degrau mais alto fica onde está.
+//   • **Nunca publica nada.** Soltar a escada faz a peça chegar ao CARD DE
+//     APROVAÇÃO do cliente. O clique de publicar continua sendo dele, e a trava
+//     de publicação orgânica não é tocada aqui — foi um lote de escrita em ritmo
+//     de máquina que custou a conta de anúncios da agência em 03/08.
+//   • **Não aceita decisão sem procedência.** Sem data, sem quem, e sem a FALA
+//     literal, a entrada é recusada e registrada como recusada. "O CEO mandou"
+//     sem a frase é memória de alguém, e memória não é registro.
+//
+// Não há `process.env`, não há `{ forcar: true }` e não há parâmetro de degrau.
+// Há teste que reprova este arquivo se ganhar qualquer um dos três.
+
+import { prisma } from "@/lib/db/client";
+import { degrauDeclarado, alturaDo, departamentosDaCasa, type Degrau } from "./degraus";
+
+// ── O QUE UMA DECISÃO É ──────────────────────────────────────────────────────
+
+/**
+ * Quem recebe. Não existe "todos": existe um recorte que se resolve em ids
+ * concretos na hora de aplicar, e a lista resolvida fica gravada na prova.
+ */
+export type EscopoDeClientes =
+  /**
+   * Os clientes que a casa de fato atende — medido por "tem projeto".
+   *
+   * ⚠️ **FURO DE DADO DECLARADO:** não existe coluna `status` em `Client`.
+   * "Cliente ativo" não é um fato guardado nesta casa; o mais próximo que o
+   * banco sabe dizer é "tem ao menos um projeto". O nome do tipo diz exatamente
+   * isso, e não "ativo", porque batizar o proxy com o nome do fato é como se
+   * inventa dado. Quem quiser precisão: crie a coluna.
+   */
+  | { tipo: "clientes_com_projeto" }
+  /** Clientes nomeados. Nome ambíguo (duas fichas) NÃO é resolvido por palpite. */
+  | { tipo: "nomes"; nomes: string[] };
+
+export interface DecisaoDoDono {
+  /** Estável e único. É por ele que a decisão é reconhecível no registro. */
+  id: string;
+  /** Data da decisão (ISO). Data no futuro é recusada. */
+  em: string;
+  /** Quem decidiu. */
+  quem: string;
+  /** A FALA LITERAL. É a procedência — sem ela a decisão não existe. */
+  fala: string;
+  /** Departamentos que sobem. Id desconhecido é recusado, não ignorado. */
+  departamentos: string[];
+  /** Quem passa a receber. */
+  escopo: EscopoDeClientes;
+}
+
+/** Mínimo de caracteres da fala. "ok" não é procedência de nada. */
+export const MINIMO_DA_FALA = 20;
+
+// ── AS DECISÕES DESTA CASA ───────────────────────────────────────────────────
+
+/**
+ * Ordem cronológica. Uma decisão nunca é apagada: ela é história, e a linha do
+ * banco carrega o id da que a produziu. Para reverter, o caminho é
+ * `descerDegrau` — que é livre, imediato e também fica registrado.
+ */
+export const DECISOES_DO_DONO: readonly DecisaoDoDono[] = [
+  {
+    id: "2026-08-08-solta-a-producao-de-peca",
+    em: "2026-08-08",
+    quem: "Dioli (CEO)",
+    fala:
+      "Solta, óbvio, tem que soltar tudo, tem que dar autonomia pra essa agência " +
+      "funcionar, gente. O fluxo eu já te dei completo de como deve funcionar. Eu te " +
+      "dei os agentes, te dei interface, te dei autonomia só pra comandar. Você tem " +
+      "vinte e seis agentes pra fazer um monte de coisa e dois posts não estão saindo.",
+    // A fala é sobre PEÇA que não sai. Os dois departamentos que fazem uma peça
+    // de feed chegar ao cliente são estes: `social-media` escreve, `design`
+    // desenha. Um em sombra segura a entrega do outro — foi o que prendeu as
+    // duas peças do CityJobs.
+    //
+    // O que NÃO entrou aqui, e não entrou de propósito: `paid-traffic` (escreve
+    // em Meta/Google e depende do parecer do especialista da plataforma),
+    // `prospeccao` (sai em nome da agência para terceiros, não é peça de
+    // cliente) e `analytics`/`strategy`/`financeiro` (relatório, plano e
+    // proposta não são "peça" — vão ao Diretor como pergunta, não como
+    // suposição).
+    departamentos: ["social-media", "design"],
+    escopo: { tipo: "clientes_com_projeto" },
+  },
+];
+
+// ── VALIDAÇÃO: procedência é obrigatória ─────────────────────────────────────
+
+export interface RecusaDeDecisao { id: string; motivo: string }
+
+/**
+ * `null` quando a decisão é válida; o motivo da recusa quando não é.
+ *
+ * Roda em tempo de execução e não só em tempo de tipo porque o tipo não protege
+ * contra a entrada escrita às pressas com `fala: "ok"`.
+ */
+export function recusarDecisao(d: DecisaoDoDono): string | null {
+  if (!d.id?.trim()) return "decisão sem id";
+  if (!d.quem?.trim()) return "decisão sem quem decidiu";
+  if ((d.fala ?? "").trim().length < MINIMO_DA_FALA) {
+    return `decisão sem a fala literal (mínimo ${MINIMO_DA_FALA} caracteres) — "o CEO mandou" sem a frase é memória, não registro`;
+  }
+  const em = new Date(d.em);
+  if (Number.isNaN(em.getTime())) return `data inválida: ${d.em}`;
+  // Data no futuro: alguém pré-datou uma decisão que ainda não foi tomada.
+  if (em.getTime() > Date.now() + 24 * 60 * 60_000) return `data no futuro: ${d.em}`;
+  if (!Array.isArray(d.departamentos) || d.departamentos.length === 0) return "decisão sem departamento";
+  const conhecidos = new Set(departamentosDaCasa());
+  const desconhecidos = d.departamentos.filter((x) => !conhecidos.has(x));
+  if (desconhecidos.length > 0) {
+    // Recusa a decisão INTEIRA, e não só o departamento errado: um id com typo
+    // aplicado "parcialmente com sucesso" é a pior das saídas — parece que
+    // funcionou.
+    return `departamento desconhecido: ${desconhecidos.join(", ")}`;
+  }
+  if (d.escopo.tipo === "nomes" && d.escopo.nomes.filter((n) => n.trim()).length === 0) {
+    return "escopo por nomes sem nenhum nome";
+  }
+  return null;
+}
+
+// ── RESOLUÇÃO DE CLIENTE ─────────────────────────────────────────────────────
+
+/** Sem acento, sem caixa, sem espaço sobrando. Comparação de nome, não parsing. */
+function normalizar(s: string): string {
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+}
+
+export interface ClientesResolvidos {
+  ids: string[];
+  /** Nomes que não resolveram, com o motivo. Nunca vira silêncio. */
+  naoResolvidos: string[];
+}
+
+export async function resolverClientes(
+  workspaceId: string,
+  escopo: EscopoDeClientes,
+): Promise<ClientesResolvidos> {
+  if (escopo.tipo === "clientes_com_projeto") {
+    const clientes = await prisma.client.findMany({
+      where: { workspaceId, projects: { some: {} } },
+      select: { id: true },
+    });
+    return { ids: clientes.map((c) => c.id), naoResolvidos: [] };
+  }
+
+  const todos = await prisma.client.findMany({ where: { workspaceId }, select: { id: true, name: true } });
+  const ids: string[] = [];
+  const naoResolvidos: string[] = [];
+  for (const nome of escopo.nomes) {
+    const casam = todos.filter((c) => normalizar(c.name) === normalizar(nome));
+    if (casam.length === 1) ids.push(casam[0].id);
+    else if (casam.length === 0) naoResolvidos.push(`"${nome}": nenhum cliente com esse nome`);
+    // Duas fichas com o mesmo nome (o caso "Camila Pereira") não se resolve por
+    // palpite: escolher uma é afirmar que aquela é o negócio, e é exatamente o
+    // que a lei da casa proíbe.
+    else naoResolvidos.push(`"${nome}": ${casam.length} fichas com esse nome — não escolho por palpite`);
+  }
+  return { ids, naoResolvidos };
+}
+
+// ── A APLICAÇÃO ──────────────────────────────────────────────────────────────
+
+export interface MudancaDaDecisao {
+  decisao: string;
+  departmentId: string;
+  de: Degrau;
+  para: Degrau;
+  clientesAdicionados: number;
+}
+
+export interface RelatorioDasDecisoes {
+  /** Decisões que rodaram sem recusa (mesmo as que não mudaram nada). */
+  aplicadas: number;
+  /** O que efetivamente mudou nesta passada. Vazio na segunda rodada. */
+  mudancas: MudancaDaDecisao[];
+  /** Decisão malformada — recusada por inteiro, com motivo. */
+  recusadas: RecusaDeDecisao[];
+  /** Nome de cliente que não resolveu, e escopo que resolveu para zero. */
+  avisos: string[];
+}
+
+function lerClientes(json: string | null | undefined): string[] {
+  try {
+    const v = JSON.parse(json ?? "[]");
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+  } catch {
+    // JSON quebrado não é "todos liberados": é lista vazia. Fail-closed.
+    return [];
+  }
+}
+
+/**
+ * Aplica as decisões declaradas neste workspace. Idempotente: a segunda passada
+ * não escreve nada e devolve `mudancas: []`.
+ *
+ * NUNCA lança. Ela roda dentro do relógio da agência, e um erro aqui não pode
+ * derrubar a rodada que produz peça. O que falha vira aviso — e aviso que
+ * ninguém vê é o defeito que este arquivo existe para não repetir, então ele
+ * sobe no `/api/health` pela perna do despertador.
+ */
+export async function aplicarDecisoesDoDono(
+  workspaceId: string,
+  decisoes: readonly DecisaoDoDono[] = DECISOES_DO_DONO,
+): Promise<RelatorioDasDecisoes> {
+  const r: RelatorioDasDecisoes = { aplicadas: 0, mudancas: [], recusadas: [], avisos: [] };
+
+  for (const d of decisoes) {
+    const recusa = recusarDecisao(d);
+    if (recusa) {
+      r.recusadas.push({ id: d.id ?? "(sem id)", motivo: recusa });
+      continue;
+    }
+
+    let alvo: ClientesResolvidos;
+    try {
+      alvo = await resolverClientes(workspaceId, d.escopo);
+    } catch (e) {
+      r.recusadas.push({ id: d.id, motivo: `não consegui ler os clientes: ${e instanceof Error ? e.message : "erro"}` });
+      continue;
+    }
+    for (const n of alvo.naoResolvidos) r.avisos.push(`${d.id}: ${n}`);
+    if (alvo.ids.length === 0) {
+      // Zero cliente resolvido não é "aplicada com sucesso". Sem esta linha, a
+      // decisão pareceria aplicada para sempre e ninguém receberia nada.
+      r.avisos.push(`${d.id}: nenhum cliente resolvido — nada foi liberado`);
+      continue;
+    }
+    r.aplicadas++;
+
+    for (const departmentId of d.departamentos) {
+      try {
+        const linha = await prisma.departmentLadder.findUnique({
+          where: { workspaceId_departmentId: { workspaceId, departmentId } },
+        });
+        const atual = degrauDeclarado(linha?.degrau);
+
+        // Já está acima: a decisão do dono não desce ninguém, e em `wide` a
+        // lista de clientes não tem efeito nenhum — mexer nela seria escrita sem
+        // leitor.
+        if (alturaDo(atual) > alturaDo("allowlist")) continue;
+
+        const lista = new Set(lerClientes(linha?.clientesLiberados));
+        const antes = lista.size;
+        for (const id of alvo.ids) lista.add(id);
+        const adicionados = lista.size - antes;
+        const para: Degrau = "allowlist";
+
+        // Idempotência: nada novo, nada escrito.
+        if (adicionados === 0 && atual === para && linha) continue;
+
+        const prova = {
+          origem: "decisao-do-dono",
+          decisao: d.id,
+          decididaEm: d.em,
+          quem: d.quem,
+          // A fala inteira fica gravada na linha. É a procedência, e ela precisa
+          // sobreviver ao arquivo — quem auditar o banco daqui a um ano lê a
+          // frase que soltou o departamento sem precisar do repositório.
+          fala: d.fala,
+          escopo: d.escopo,
+          aplicadaEm: new Date().toISOString(),
+          de: atual,
+          para,
+          clientes: [...lista],
+        };
+        const motivo =
+          `solto por DECISÃO DO DONO (${d.quem}, ${d.em}) — não por evidência. ` +
+          `${lista.size} cliente(s) na lista. A peça chega ao card de aprovação do cliente; ` +
+          `publicar continua sendo clique dele.`;
+
+        if (linha) {
+          await prisma.departmentLadder.update({
+            where: { workspaceId_departmentId: { workspaceId, departmentId } },
+            data: {
+              degrau: para,
+              clientesLiberados: JSON.stringify([...lista]),
+              motivo,
+              decididoPor: `decisao-do-dono:${d.id}`,
+              provaJson: JSON.stringify(prova),
+            },
+          });
+        } else {
+          await prisma.departmentLadder.create({
+            data: {
+              workspaceId, departmentId,
+              degrau: para,
+              clientesLiberados: JSON.stringify([...lista]),
+              motivo,
+              decididoPor: `decisao-do-dono:${d.id}`,
+              provaJson: JSON.stringify(prova),
+            },
+          });
+        }
+        r.mudancas.push({ decisao: d.id, departmentId, de: atual, para, clientesAdicionados: adicionados });
+      } catch (e) {
+        r.avisos.push(`${d.id}/${departmentId}: ${e instanceof Error ? e.message : "erro"}`);
+      }
+    }
+  }
+
+  return r;
+}
+
+/**
+ * Roda em TODOS os workspaces. É esta que o relógio chama — a decisão do dono
+ * vale para a casa, e uma casa com dois inquilinos não pode ter um deles solto
+ * porque alguém lembrou de rodar a rota logado nele.
+ */
+export async function aplicarDecisoesDoDonoNaCasa(): Promise<RelatorioDasDecisoes> {
+  const geral: RelatorioDasDecisoes = { aplicadas: 0, mudancas: [], recusadas: [], avisos: [] };
+  let workspaces: Array<{ id: string }>;
+  try {
+    workspaces = await prisma.agencyWorkspace.findMany({ select: { id: true } });
+  } catch (e) {
+    geral.avisos.push(`não consegui listar os workspaces: ${e instanceof Error ? e.message : "erro"}`);
+    return geral;
+  }
+  for (const w of workspaces) {
+    const r = await aplicarDecisoesDoDono(w.id);
+    geral.aplicadas += r.aplicadas;
+    geral.mudancas.push(...r.mudancas);
+    geral.recusadas.push(...r.recusadas);
+    geral.avisos.push(...r.avisos);
+  }
+  return geral;
+}

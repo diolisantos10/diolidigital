@@ -8,6 +8,59 @@
 
 ---
 
+## A ESCADA GANHOU UMA SEGUNDA PORTA: A DECISÃO DO DONO, DECLARADA EM CÓDIGO
+
+**Decidido em** 2026-08-08 · **por** Dioli (CEO), executado pelo `pm` ·
+**mecanismo:** `lib/agency/escada/decisoes-do-dono.ts`
+
+**A fala, literal, que é a procedência:**
+
+> *"Solta, óbvio, tem que soltar tudo, tem que dar autonomia pra essa agência
+> funcionar, gente. O fluxo eu já te dei completo de como deve funcionar. Eu te
+> dei os agentes, te dei interface, te dei autonomia só pra comandar. Você tem
+> vinte e seis agentes pra fazer um monte de coisa e dois posts não estão
+> saindo."*
+
+Até hoje a escada subia por **um** caminho só: evidência (`subirDegrau`). O caso
+"quem manda na casa mandou" não tinha onde ser escrito a não ser num campo de
+texto preenchido à mão por alguém **logado em produção** — e nenhuma rodada de
+agente tem sessão de produção. **A decisão existia; o caminho, não.** Foi assim
+que duas peças do CityJobs ficaram um dia inteiro em `interno`.
+
+**A decisão do dono agora é código versionado, aplicado pelo relógio da agência
+a cada rodada.** Consequência prática, que é o ponto inteiro: **deploy = a
+escada solta.** Sem humano no meio, sem segredo para carregar, sem sessão para
+conseguir.
+
+**O que ela recusa, e cada recusa tem motivo:**
+
+- **Nunca leva a `wide`** — o alvo é sempre `allowlist` com clientes nomeados,
+  auditáveis e revogáveis um a um. `wide` continua se conquistando com número.
+- **Nunca desce ninguém** e **nunca publica nada.** Soltar a escada leva a peça
+  ao **card de aprovação** do cliente; o clique de publicar continua sendo dele.
+- **Sem procedência (data + quem + a FALA literal, mín. 20 caracteres) a decisão
+  é RECUSADA por inteiro** e a recusa vira falha de rodada. "O CEO mandou" sem a
+  frase é memória de alguém, e memória não é registro.
+- **Sem `process.env`, sem `{ forcar: true }`, sem parâmetro de degrau.** Há
+  teste que reprova o arquivo que ganhar qualquer um dos três, e teste que
+  reprova a decisão que soltar `paid-traffic` ou `prospeccao`.
+
+**O que foi solto por esta decisão:** `social-media` e `design` — os dois
+departamentos que uma peça de feed atravessa — para os **clientes com projeto**.
+
+⚠️ **FURO DE DADO DECLARADO:** *"cliente ativo"* **não existe nesta casa.** Não
+há coluna `status` em `Client`. O escopo se chama `clientes_com_projeto` porque
+é isso que o banco sabe dizer — batizar o proxy com o nome do fato é como se
+inventa dado.
+
+**O que NÃO foi solto, e é decisão que sobe ao Diretor/CEO:** `paid-traffic`
+(escreve em Meta/Google — depende do parecer do especialista da plataforma, a
+trava de 03/08), `prospeccao` (sai em nome da agência para terceiros, não é peça
+de cliente) e `analytics` · `strategy` · `financeiro` (relatório, plano e
+proposta não são "peça" — a fala do CEO não os cobre com todas as letras).
+
+---
+
 ## O CAMINHO C DO DRIVE (CONTA DE SERVIÇO) FOI DERRUBADO PELO ESPECIALISTA — NADA FOI CONSTRUÍDO
 
 **Decidido em** 2026-08-08 · **por** `google` (parecer), aceito pelo `pm` ·
