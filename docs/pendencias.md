@@ -1,5 +1,149 @@
 # Pendências — o que está aberto
 
+## 🟢 08/08/2026 — O GOOGLE ENTROU NO ADMIN: `/agency/google`, item próprio no menu
+
+**Pedido urgente do CEO:** *"preciso da integração das ferramentas do Google nas
+páginas do admin urgentemente."*
+
+**A consequência, primeiro:** até hoje o único lugar do admin que falava do
+Google era `/agency/integrations`, rodando em `MOCK_INTEGRATIONS`, dizendo
+**"Google Drive — planejado · OAuth Google não implementado"** sobre uma feature
+que está **em produção e foi provada com a Foocci nesta semana**. E dizendo
+**nada** sobre o Perfil de Empresa, que já roda no despertador a cada 5 minutos.
+Painel que descreve errado o que a casa faz é pior do que painel vazio: ele
+responde a pergunta do CEO com um número inventado.
+
+### O levantamento, com evidência (não deduzido)
+
+| O que existe | Estado real |
+|---|---|
+| `lib/integrations/google/drive.ts` + `escolha-de-material.ts` | **Completo e em produção.** Só leitura, escopo `drive.file` |
+| `lib/integrations/google/client.ts` (Perfil de Empresa) | **Completo**: listar locais, listar avaliações, **responder avaliação**, **publicar post** |
+| `/api/portal/drive/*` (3 rotas) | No ar, fechadas pelo token do portal |
+| `/api/google/conectar` (Perfil de Empresa) | **Viva, funciona, e NÃO TEM BOTÃO EM LUGAR NENHUM** |
+| `/api/auth/google/*` | Login do briefing por popup. Escopo `openid email profile`, sem sessão |
+| `/api/avaliacoes` | Rota de leitura da fila de escalação — **sem tela** |
+| `lib/agency/esteira/avaliacoes.ts` | **Roda no despertador a cada 5 min** e responde avaliação 4–5 ★ sozinho |
+| Telas de `/agency/` que mostravam algo do Google | **Nenhuma.** Zero |
+
+### 🟡 O achado que mais importa, e ele é bom
+
+**A resposta automática a avaliação já é FAIL CLOSED, e por mecanismo.**
+`GoogleConnection.autoReplyConsentAt` nulo ⇒ nada sai sozinho, tudo vira
+rascunho escalado — e há teste que reprova o contrário
+(`__tests__/esteira/avaliacoes.test.ts:283`). Está **nulo em todos os locais**.
+A política da própria API do Perfil de Empresa exige consentimento prévio e
+específico (`fontes/business-profile-api-politicas.md`).
+
+> **Mas:** o único caminho que LIGA esse consentimento não existe em tela
+> nenhuma, e não foi construído aqui **de propósito** — ligar resposta
+> automática é escrita no Google, e a regra de 03/08 exige parecer prévio do
+> especialista `google`. A pasta `pareceres/` só tem o do Drive.
+
+### O que ficou no ar
+
+- **`/agency/google`** — item próprio no menu, acima de "Ferramentas &
+  Integrações". Fechada a `master` e `project_manager` **no servidor**
+  (`requireSession(["master","project_manager"])`), não só no menu.
+- **Por cliente:** quem conectou o Drive, com que conta, desde quando, quantos
+  arquivos **a agência de fato usa**, quantos faltam o cliente declarar, quais
+  papéis já existem, e a falha de importação com a frase que o Google devolveu.
+- **Perfil de Empresa por cliente**, mais a conta da própria Dioli (conexão sem
+  `clientId`) — sem essa seção ela responderia avaliação no relógio sem
+  aparecer em tela nenhuma.
+- **As 4 credenciais**, por presença. **Nenhum valor é devolvido pelo servidor**
+  — tela de admin que imprime `GOOGLE_CLIENT_SECRET` é vazamento por screenshot,
+  e há teste que reprova.
+
+**As regras que a fazem valer alguma coisa** (`__tests__/google/retrato-do-admin.test.ts`,
+18 testes, cada trava com as duas metades):
+
+- **`Contagem` tem DOIS estados** — `medido` e `nao_medido`. Falha de leitura
+  **não vira zero**: zero é uma afirmação sobre o cliente, "não consegui olhar"
+  é uma afirmação sobre nós. É a lição dos três `.catch(() => null)` de 07/08.
+- **Escolher ≠ declarar.** Arquivo sem `papelConfirmadoEm` conta em "escolhidos"
+  e **não** em "a agência usa". Se os dois números pudessem ser iguais, a tela
+  diria "12 disponíveis" para uma esteira que só consegue usar 5.
+- **A rota não exporta POST, PUT, PATCH nem DELETE**, e o teste reprova quem
+  acrescentar. Toda escrita que essa tela poderia querer é escrita no Google.
+- **Nem a rota nem a camada de leitura falam com o Google** — o teste reprova
+  `googleapis.com` e `fetch(` nos dois arquivos. Tela de admin que consulta a
+  plataforma a cada F5 é rajada de GET, a assinatura do que restringiu a conta
+  da agência na Meta em 03/08.
+
+**Conferido em 375/768/1440 com a tela renderizada e autenticada**, e um defeito
+foi achado assim, não por leitura: sem `items-start`, o cartão curto ("nunca
+conectou", 3 linhas) esticava até a altura do cartão longo (~30 linhas) e virava
+um retângulo branco vazio de meia tela a 1440px.
+
+### 🔴 O QUE DEPENDE DO CEO — passo a passo em `docs/plataformas/google/o-que-depende-do-ceo.md`
+
+1. **Google Ads: PEDIDO FORMAL, prazo EXTERNO de dias a semanas.** Texto pronto
+   em `docs/plataformas/google/pedido-de-token-de-desenvolvedor-ads.md`.
+   Sem token de desenvolvedor **nenhuma** chamada à API funciona, nem de
+   leitura. O token **nasce restrito** e tirar as restrições é um **segundo**
+   pedido. Exige conta de administrador (MCC), site no ar e e-mail monitorado —
+   os três são motivo declarado de recusa. **Enquanto ninguém pede, o relógio
+   não começa.** O Planejador de Palavras-chave vive dentro dessa mesma API.
+2. **Analytics (GA4): 15 minutos, sem prazo externo.** Ativar
+   `analyticsdata.googleapis.com` **e** `analyticsadmin.googleapis.com`, e
+   declarar **`https://www.googleapis.com/auth/analytics.readonly`** na tela de
+   consentimento (confirmado no documento de descoberta oficial em 08/08).
+   ⚠️ É escopo **sensível**: acrescentá-lo **reabre a verificação do app**.
+3. **Search Console: mesma forma.** API `searchconsole:v1` (confirmada), escopo
+   **`https://www.googleapis.com/auth/webmasters.readonly`**. Grátis.
+4. **Google Trends: entrar na LISTA DE ESPERA.** Existe API oficial e ela está
+   em **alpha fechado** desde 24/07/2025 (`fontes/trends-api-alpha.md`,
+   capturada hoje). ⚠️ **Biblioteca não oficial de Trends é proibida nesta casa
+   sem parecer** — é o gesto que custou a conta da Meta.
+5. **Gargalo comum a 2, 3 e 4:** escopo concedido **não alcança dado nenhum**
+   sem cada cliente autorizar a propriedade dele. Alcance nunca é autorização.
+
+### O que vem a seguir nesta frente (a fazer, com dono)
+
+- [ ] `google` — **parecer sobre ESCRITA no Perfil de Empresa** (responder
+      avaliação, publicar post, ligar `autoReplyConsentAt`). Enquanto não sair,
+      `/agency/google` fica só leitura. **É o item que destrava mais valor.**
+- [ ] `pm` — botão de conectar Perfil de Empresa. A rota existe e não tem porta;
+      entra **depois** do parecer, porque conectar sem ter o que fazer com a
+      conexão é meio caminho.
+- [ ] `pm` — tela para a fila de `/api/avaliacoes` (rascunho + decisão de gente).
+      Hoje a rota existe e ninguém vê a fila — "escalada invisível é o mesmo que
+      escalada nenhuma", como diz o cabeçalho dela.
+- [ ] `interface` — `/agency/integrations` continua descrevendo o Google errado
+      (`MOCK_INTEGRATIONS`). Duas versões do mesmo fato em telas diferentes é a
+      §7.6 do DESIGN.md. **Não mexi**: a tela é de outra frente.
+- [ ] `qualidade` — `PAPEIS[papel]` cai no id cru quando o papel não está na
+      lista fechada. É o comportamento honesto (não inventa rótulo) e **também**
+      o sintoma de dado velho no banco. Sem dono.
+
+### 🗺️ E o MAPA do arsenal de informação: `docs/plataformas/mapa-do-arsenal-de-informacao.md`
+
+Ampliação do pedido do CEO (*"todas as ferramentas que uma agência de marketing
+precisa estar conectada"*). **Nada construído** — levantamento com fonte, uma
+linha por ferramenta, para o Diretor decidir a ordem.
+
+> **🔴 O achado que muda a prioridade: o Radar está LIGADO E CEGO.**
+> `RADAR_SOURCES` vem **vazia por padrão** (`lib/agency/radar/sources.ts`), e o
+> cabeçalho do `radar-agent.ts` diz com todas as letras: *"sem fontes
+> automáticas (Fase 3), a 'atualidade' vem do que a IA conhece"*. A tela que o
+> CEO abre para ver o mercado mostra **o que um modelo lembra**, com data de
+> corte. A governança está pronta (fonte oficial → ativo, resto → pendente,
+> lastro léxico por cobertura total). **Falta fonte, não código.**
+>
+> **O atalho de melhor custo/benefício da lista inteira: ligar `RADAR_SOURCES`
+> com feeds RSS oficiais.** Custo zero, sem token, sem aprovação, sem prazo
+> externo, trava já existente. **Não liguei**: escolher quais feeds entram como
+> `official: true` decide o que atravessa sem revisão humana — é decisão de
+> negócio, não minha.
+
+**Portão:** `npx tsc --noEmit` limpo · **2709 testes verdes em 168 arquivos**
+(inclusive os 2 de `as-cinco-plataformas` que estavam vermelhos em 07/08) ·
+`npm run build` limpo.
+
+**Nenhuma escrita no Google nesta frente. Nenhuma chamada à API do Google
+partiu desta sessão.**
+
 ## 🟢 08/08/2026 — NASCE O DEPARTAMENTO FINANCEIRO, e a conta de IA parou de medir um terço
 
 **A consequência, primeiro:** até 07/08 a casa gravava o custo de cada chamada

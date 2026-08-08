@@ -129,6 +129,13 @@ export default function AgencySidebar({ id, userInfo, mobileOpen = false, onMobi
         { label: "Sala dos Agentes", href: "/agency/agents", icon: AgentesIcon },
         // Mesmo caso do WhatsApp: serviço + cron + 3 rotas de API, zero porta.
         { label: "Radar do mercado", href: "/agency/radar", icon: RadarIcon },
+        // Item PRÓPRIO, acima de "Ferramentas & Integrações", por pedido do CEO
+        // em 08/08/2026. Motivo de estar separado: `/agency/integrations` roda
+        // em `MOCK_INTEGRATIONS` e descreve o Google como "planejado · OAuth
+        // não implementado" — sobre uma feature que está EM PRODUÇÃO. Enfiar o
+        // estado real dentro da tela que mente sobre ele deixaria as duas
+        // versões no mesmo lugar, e a errada é a que tem cara de catálogo.
+        { label: "Google", href: "/agency/google", icon: GoogleIcon },
         { label: "Ferramentas & Integrações", href: "/agency/integrations", icon: IntegrationsIcon },
         { label: "Configurações", href: "/agency/settings", icon: SettingsIcon },
       ],
@@ -470,6 +477,18 @@ function IntegrationsIcon({ size = 16, className = "" }: { size?: number; classN
       <circle cx="4" cy="12" r="2" stroke="currentColor" strokeWidth="1.3"/>
       <circle cx="12" cy="12" r="2" stroke="currentColor" strokeWidth="1.3"/>
       <path d="M6 4h4M4 6v4M12 6v4M6 12h4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+    </svg>
+  );
+}
+/** Google: a lupa da busca local, que é onde a padaria é encontrada de verdade.
+ *  Monocromática de propósito — o "G" colorido é marca de terceiro e o menu usa
+ *  `currentColor` para o estado ativo (DESIGN.md §4.3). */
+function GoogleIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className} aria-hidden="true">
+      <circle cx="7" cy="7" r="4.25" stroke="currentColor" strokeWidth="1.3"/>
+      <path d="M10.2 10.2L13.5 13.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+      <path d="M7 5.4h2.1a2.2 2.2 0 11-2.1-1.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   );
 }
