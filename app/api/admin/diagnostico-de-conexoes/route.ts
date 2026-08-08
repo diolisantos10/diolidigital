@@ -238,8 +238,17 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         exame: r.ok ? "vivo" : "recusado",
         prova: r.prova ?? null,
         googleDisse: r.ok ? null : { codigo: r.codigo ?? null, mensagem: r.mensagem ?? "" },
+        // ⚠️ AS DUAS CONTAGENS LADO A LADO, DE PROPÓSITO. Se elas divergirem,
+        // o cliente escolheu material no seletor do Google e a escolha NÃO
+        // ficou gravada nesta casa — que é uma falha nossa, invisível para ele,
+        // e o motivo de alguém achar que "já mandou o logo".
+        escolhaPerdida:
+          typeof r.alcancadosNoGoogle === "number" &&
+          r.alcancadosNoGoogle > (porCliente.get(c.clientId)?.escolhidos ?? 0),
         // As DUAS perguntas, separadas: acesso vivo e material alcançado.
         material: {
+          /** O que o GOOGLE diz que o app alcança. `null` = não contei. */
+          alcancadosNoGoogle: r.alcancadosNoGoogle ?? null,
           escolhidos: contagem.escolhidos,
           declarados: contagem.declarados,
           importados: contagem.importados,

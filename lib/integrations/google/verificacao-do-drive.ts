@@ -32,6 +32,21 @@ export interface ExercicioDoDrive {
   codigo?: number | null;
   /** A frase crua do Google, sem tradução nossa por cima. */
   mensagem?: string;
+  /**
+   * Quantos arquivos o app ALCANÇA no Drive do cliente, contados no Google.
+   *
+   * ⚠️ Este número é a metade que faltava, e ele achou um furo em 08/08/2026: o
+   * Drive da Foocci devolveu arquivo ao alcance do app enquanto a tabela
+   * `DriveMaterial` desta casa tinha **zero linhas** para o cliente. Ou seja, o
+   * CEO escolheu material no seletor do Google e a escolha **não ficou** — o que
+   * explica ele acreditar que já tinha mandado o logo.
+   *
+   * `null` = não contei. Nunca 0 por falha de leitura: zero é uma afirmação
+   * sobre o cliente, "não contei" é uma afirmação sobre nós.
+   */
+  alcancadosNoGoogle?: number | null;
+  /** true quando o Google diz que há mais páginas — o número é um PISO. */
+  haMais?: boolean;
 }
 
 /**
@@ -54,28 +69,40 @@ export async function exercitarDrive(connectionId: string): Promise<ExercicioDoD
     };
   }
 
-  const url = `${HOST_DRIVE}/files?pageSize=1&fields=${encodeURIComponent("files(id,name)")}&supportsAllDrives=true`;
+  // 100 por página: um teto que responde "quantos" sem virar varredura. Página
+  // única, sem seguir `nextPageToken` — o número vira um PISO declarado.
+  const url = `${HOST_DRIVE}/files?pageSize=100&fields=${encodeURIComponent("nextPageToken,files(id,name)")}&supportsAllDrives=true`;
   const res = await fetch(url, { headers: { Authorization: `Bearer ${t.token}` } }).catch(() => null);
   if (!res) {
-    return { ok: false, codigo: null, mensagem: "o Google não respondeu à listagem de arquivos" };
+    return { ok: false, codigo: null, mensagem: "o Google não respondeu à listagem de arquivos", alcancadosNoGoogle: null };
   }
   const corpo = await res.text().catch(() => "");
   if (!res.ok) {
-    return { ok: false, codigo: res.status, mensagem: corpo.slice(0, 400) };
+    return { ok: false, codigo: res.status, mensagem: corpo.slice(0, 400), alcancadosNoGoogle: null };
   }
 
-  let alcanca = 0;
+  // `null`, não `0`: corpo que não parseia é falha de LEITURA nossa, e falha de
+  // leitura não pode virar o fato "o cliente não tem arquivo nenhum". É a lição
+  // dos três `.catch(() => null)` de 07/08.
+  let alcanca: number | null = null;
+  let haMais = false;
   try {
-    alcanca = ((JSON.parse(corpo) as { files?: unknown[] }).files ?? []).length;
+    const j = JSON.parse(corpo) as { files?: unknown[]; nextPageToken?: string };
+    alcanca = (j.files ?? []).length;
+    haMais = !!j.nextPageToken;
   } catch {
-    /* corpo estranho não derruba o diagnóstico: o 200 já provou o acesso */
+    /* o 200 já provou o acesso; a CONTAGEM é que fica declarada como não feita */
   }
 
   return {
     ok: true,
+    alcancadosNoGoogle: alcanca,
+    haMais,
     prova:
-      alcanca > 0
-        ? "o Google trocou o refresh token e devolveu arquivo ao alcance do app"
-        : "o Google trocou o refresh token e respondeu à listagem; o app não alcança arquivo nenhum (nada foi escolhido no seletor)",
+      alcanca === null
+        ? "o Google trocou o refresh token e respondeu à listagem, mas não consegui contar os arquivos"
+        : alcanca > 0
+          ? `o Google trocou o refresh token e o app alcança ${alcanca}${haMais ? "+" : ""} arquivo(s) neste Drive`
+          : "o Google trocou o refresh token e respondeu à listagem; o app não alcança arquivo nenhum (nada foi escolhido no seletor)",
   };
 }

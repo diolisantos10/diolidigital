@@ -283,4 +283,18 @@ describe("Drive: conectado sem arquivo é ZERO MATERIAL, e a tela diz isso", () 
     expect(exame).not.toMatch(/method:\s*"(POST|PUT|PATCH|DELETE)"/);
     expect(exame).toContain("comTokenDoDrive");
   });
+
+  it("contagem que falha vira NULL, nunca zero — zero é uma afirmação sobre o cliente", () => {
+    const exame = readFileSync(join(RAIZ, "lib/integrations/google/verificacao-do-drive.ts"), "utf8");
+    // O acumulador nasce `null` e só vira número quando o JSON do Google
+    // parseia. Se nascesse 0, corpo estranho diria "você não tem arquivo".
+    expect(exame).toMatch(/let alcanca: number \| null = null/);
+    expect(exame).toContain("alcancadosNoGoogle: null");
+  });
+
+  it("a rota compara as DUAS contagens — escolha perdida não pode passar em silêncio", () => {
+    const rota = readFileSync(join(RAIZ, "app/api/admin/diagnostico-de-conexoes/route.ts"), "utf8");
+    expect(rota).toContain("escolhaPerdida");
+    expect(rota).toContain("alcancadosNoGoogle");
+  });
 });
