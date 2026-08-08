@@ -90,7 +90,13 @@ function legendaDoEstado(c: ConexaoView): string {
   }
   if (estado === "caiu") {
     const quando = c.falha?.em ? dia(c.falha.em) : dia(c.registradaEm ?? c.connectedAt);
-    return `o acesso foi recusado em ${quando} — reconecte`;
+    // ⚠️ "reconecte" SÓ quando reconectar resolve. Achado renderizando, não
+    // lendo (08/08/2026): esta legenda dizia "— reconecte" enquanto o corpo do
+    // mesmo cartão, três linhas abaixo, dizia "reconectar não resolve". Duas
+    // verdades adjacentes na mesma tela é a §7.6 do DESIGN.md, e é o defeito
+    // que o CEO já viu no cartão do Drive em 07/08.
+    const cabeAoCliente = (c.quemResolve ?? "cliente") === "cliente";
+    return `o acesso foi recusado em ${quando}${cabeAoCliente ? " — reconecte" : " — a agência está resolvendo"}`;
   }
   return `registrada em ${dia(c.registradaEm ?? c.connectedAt)} · ainda não testamos este acesso`;
 }

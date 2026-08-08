@@ -114,7 +114,14 @@ interface ProjetoDoPortal {
   criadoEm: string | null;
 }
 
-interface ConexaoView { id: string; platform: string; name: string; status: string }
+interface ConexaoView {
+  id: string; platform: string; name: string; status: string;
+  /** Três estados, decididos no servidor. Ver lib/integrations/meta/verificacao.ts. */
+  estado?: "viva" | "nao_verificada" | "caiu";
+  /** Quem consegue resolver quando caiu. **Só "cliente" vira pendência dele.** */
+  quemResolve?: "cliente" | "agencia" | "ninguem_agora" | null;
+  oQueFazer?: string | null;
+}
 
 /** As seções que a barra mostra. São 5 — o que a tela renderiza. */
 type SecaoId = "inicio" | "projetos" | "aprovacoes" | "arquivos" | "conta";
@@ -731,7 +738,27 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
     .filter((a) => a.status !== "pending" && a.reviewedAt)
     .sort((a, b) => (b.reviewedAt ?? "").localeCompare(a.reviewedAt ?? ""));
   const materiaisPedidos = esteira?.pendencias ?? [];
-  const conexoesQuebradas = conexoes.filter((c) => ["expired", "revoked", "error"].includes(c.status));
+  // ── 08/08/2026: NEM TODA CONEXÃO CAÍDA É PENDÊNCIA DO CLIENTE ─────────────
+  //
+  // Medido em produção: a Página "City Jobs SP" e a "Foocci" recusam com
+  // **código 10** — falta uma permissão no app DA AGÊNCIA junto à Meta. Isso
+  // caía aqui como "1 conexão precisa ser refeita" no bloco *O QUE DEPENDE DE
+  // VOCÊ*, com um botão que manda o dono do negócio reconectar. Ele
+  // reconectaria, o erro voltaria igual, e sobraria a impressão de que o
+  // produto não funciona.
+  //
+  // O portal existe para UMA coisa: destravar o que espera uma decisão DELE.
+  // Trabalho nosso na fila dele não destrava nada — só faz barulho e ensina a
+  // ignorar a lista. Quem decide de quem é a bola é o servidor.
+  const conexoesCaidas = conexoes.filter(
+    (c) => c.estado === "caiu" || ["expired", "revoked", "error"].includes(c.status),
+  );
+  /** As que o CLIENTE resolve — e só estas contam como pendência dele.
+   *  `quemResolve` ausente (resposta antiga) cai aqui: o comportamento de
+   *  antes é o padrão seguro, e ele já pedia reconexão. */
+  const conexoesQuebradas = conexoesCaidas.filter((c) => (c.quemResolve ?? "cliente") === "cliente");
+  /** As que a AGÊNCIA resolve. Aparecem, com todas as letras, e fora da fila dele. */
+  const conexoesComAAgencia = conexoesCaidas.filter((c) => (c.quemResolve ?? "cliente") !== "cliente");
   const outrasPendencias =
     pendentes.length + orcamentosPendentes.length + (decisaoDaEsteira ? 1 : 0)
     + materiaisPedidos.length + conexoesQuebradas.length;
@@ -1444,6 +1471,25 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
                 </p>
                 <p className="text-[12px] text-[var(--danger)] mt-0.5 leading-snug">
                   Enquanto ela estiver assim, os posts aprovados não são publicados e os números não atualizam.
+                </p>
+              </div>
+            )}
+
+            {/* O que está caído POR NOSSA CONTA. Aparece — esconder seria a
+                mesma mentira de outro jeito — mas não se disfarça de tarefa
+                dele, e não usa a palavra "reconecte". */}
+            {conexoesComAAgencia.length > 0 && (
+              <div className="rounded-[12px] border border-[#FCE7A0] bg-[#FFFBEB] px-4 py-3">
+                <p className="text-[13px] font-semibold text-[#9B7B2D]">
+                  {conexoesComAAgencia.length === 1
+                    ? "1 conexão está com a Dioli, não com você"
+                    : `${conexoesComAAgencia.length} conexões estão com a Dioli, não com você`}
+                </p>
+                <p className="text-[12px] text-[#9B7B2D] mt-0.5 leading-snug">
+                  A Meta recusou o acesso por uma permissão que falta no aplicativo
+                  da agência. <span className="font-semibold">Não há nada para você
+                  fazer, e reconectar não resolve.</span> Enquanto isso, essas contas
+                  não publicam nem trazem números.
                 </p>
               </div>
             )}

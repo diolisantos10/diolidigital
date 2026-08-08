@@ -191,6 +191,25 @@ describe("a tela do cliente não pode voltar a escrever 'Conectada' sozinha", ()
     expect(cartao).toContain("não é problema da sua conta");
   });
 
+  it("🔴 a legenda não contradiz o corpo do próprio cartão", () => {
+    // Achado renderizando, não lendo: a legenda dizia "— reconecte" enquanto o
+    // corpo, três linhas abaixo, dizia "reconectar não resolve". Duas verdades
+    // adjacentes na mesma tela é a §7.6 do DESIGN.md.
+    expect(cartao).not.toMatch(/recusado em \$\{quando\} — reconecte/);
+    expect(cartao).toContain("a agência está resolvendo");
+  });
+
+  it("🔴 conexão que só a AGÊNCIA resolve não entra na fila de pendências do cliente", () => {
+    const pagina = readFileSync(join(RAIZ, "app/portal/access/[token]/page.tsx"), "utf8");
+    // A régua antiga contava toda conexão caída como tarefa dele.
+    expect(pagina).toContain("conexoesComAAgencia");
+    expect(pagina).toMatch(/conexoesQuebradas = conexoesCaidas\.filter\(\(c\) => \(c\.quemResolve \?\? "cliente"\) === "cliente"\)/);
+    // A METADE LIMPA: o que o cliente resolve continua contando.
+    expect(pagina).toMatch(/\+ materiaisPedidos\.length \+ conexoesQuebradas\.length/);
+    // E o aviso da agência não usa a palavra que faria ele tentar em vão.
+    expect(pagina).toContain("reconectar não resolve");
+  });
+
   it("a rota do portal não fala com a Meta — tela de cliente não faz rajada de GET", () => {
     const rota = readFileSync(join(RAIZ, "app/api/portal/conexoes/route.ts"), "utf8");
     expect(rota).not.toContain("graphGet");
