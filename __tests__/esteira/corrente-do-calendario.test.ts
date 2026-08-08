@@ -25,7 +25,15 @@ const db = vi.hoisted(() => ({
   deliverable: { findMany: vi.fn() },
   socialPost: { findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
   activityEvent: { create: vi.fn() },
+  // 08/08/2026: a publicação confere o MIME antes de falar com a Meta (só
+  // JPEG). Ver `lib/integrations/meta/formato-de-midia.ts`.
+  mediaAsset: { findMany: vi.fn() },
 }));
+
+/** Caso limpo: toda mídia existe e é JPEG. Estes testes são sobre as JUNTAS da
+ *  corrente, não sobre formato de arquivo (que tem teste próprio). */
+const midiaTodaJpeg = async (args?: { where?: { id?: { in?: string[] } } }) =>
+  (args?.where?.id?.in ?? []).map((id) => ({ id, mimeType: "image/jpeg" }));
 const publishPost = vi.hoisted(() => vi.fn());
 const conexaoDoCliente = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
@@ -64,6 +72,7 @@ const SEIS = ["sp1", "sp2", "sp3", "sp4", "sp5", "sp6"];
 
 beforeEach(() => {
   vi.clearAllMocks();
+  db.mediaAsset.findMany.mockImplementation(midiaTodaJpeg);
   banco.clear();
   // O filtro de STATUS é aplicado de verdade: é ele que torna a promoção
   // idempotente, e um mock que ignorasse o `where` esconderia justamente isso.

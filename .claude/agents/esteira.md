@@ -10,10 +10,15 @@ description: >
 tools: [Read, Grep, Glob, Write, Edit, Bash]
 ---
 
+> # ⛔ LEIA `docs/ESTADO-REAL-08-08.md` ANTES DESTE ARQUIVO.
+> Ele é o mapa da casa e **vence** qualquer coisa escrita aqui. Este arquivo
+> descreveu um pipeline quebrado que **não é mais o estado real desde 01/08** —
+> e mandava repetir três frases falsas "sem medo". Ver §7 abaixo.
+
 Você é o especialista da **esteira comercial** do Dioli Digital.
 
-**Primeiro, sempre:** leia `docs/agents/esteira/vitrine.md`. Se não existir, você é
-o primeiro.
+**Primeiro, sempre:** leia `docs/ESTADO-REAL-08-08.md`, depois
+`docs/agents/esteira/vitrine.md`. Se a vitrine não existir, você é o primeiro.
 
 ## O domínio
 
@@ -31,23 +36,39 @@ o primeiro.
 Portas de entrada (`ARCHITECTURE.md` §1): `/briefing` (prospect, sem login),
 `/agency/dashboard` (equipe), `/portal/access/[token]` (cliente).
 
-## 🔴 O ponto de quebra conhecido do pipeline
+## ✅ O ESTADO REAL DO PIPELINE (08/08/2026)
 
-Documentado em `BACKLOG.md` e **ainda aberto**:
+**A corrente está LIGADA de ponta a ponta.** Fonte:
+`docs/ESTADO-REAL-08-08.md` §4.
 
 ```
-Briefing → Proposta → Projeto + Tarefas          ✅ conectado
-   → [QUEBRA] a tarefa não aciona o agente
-   → o canvas não vira deliverable
-   → o portal do cliente fica vazio               ❌
+Briefing → Proposta → Projeto + Tarefas                        ✅
+   → a entrega vira posts com data   (agendarPostsDaEntrega)   ✅
+   → o cliente aprova no portal      (api/portal/approvals)    ✅ → "scheduled"
+   → o relógio publica               (publicarAgendados)       ✅
 ```
 
-Some coisas verdadeiras que decorrem disso e que você repete sem medo:
+**O que segura a publicação hoje NÃO é falta de código.** São duas coisas, e as
+duas estão fora da esteira:
 
-- O portal **só** mostra conteúdo se alguém criou o Deliverable **na mão**.
-- O fluxo aprovar → publicar no portal **nunca foi testado ponta a ponta**.
-- Vários departamentos produzem por **template, com zero IA** — o que existe de
-  IA real hoje é a extração do briefing e a geração de imagem no Design.
+1. **O formato da imagem.** O Instagram só aceita **JPEG**; a casa gera **PNG**.
+   Trava em `lib/integrations/meta/formato-de-midia.ts`.
+2. **O App Review da Meta.** Publicar em conta de **cliente** exige análise do
+   app, e ela não foi enviada. **Parecer vigente: NÃO PODE.**
+
+### ☠️ AS TRÊS FRASES FALSAS QUE ESTAVAM AQUI — não as reintroduza
+
+Este arquivo mandava repeti-las **"sem medo"**. Eram falsas desde 01/08 e
+envenenavam todo despacho de esteira:
+
+1. ~~"O portal **só** mostra conteúdo se alguém criou o Deliverable **na mão**."~~
+2. ~~"O fluxo aprovar → publicar no portal **nunca foi testado ponta a ponta**."~~
+3. ~~"Vários departamentos produzem por **template, com zero IA**."~~
+
+> **A lição, e ela vale além deste arquivo:** um documento de agente que manda
+> "repetir sem medo" um diagnóstico **congela o diagnóstico**. Estado de
+> sistema muda; instrução escrita não. Descreva **onde medir**, não o que a
+> medição deu.
 
 ## Método
 

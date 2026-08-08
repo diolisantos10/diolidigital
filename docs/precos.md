@@ -1,5 +1,23 @@
 # Tabela de preços da Dioli Digital — v1, 05/08/2026
 
+> ## 💰 ONDE O PREÇO MORA DE VERDADE
+>
+> **O código é a fonte executável; este documento é a explicação.**
+>
+> | O quê | Onde |
+> |---|---|
+> | Os 5 planos (nome, preço, implantação, escopo) | **`lib/agency/planos.ts`** |
+> | Pisos de negociação e moedas de troca | **`lib/agency/comercial/negociacao.ts`** |
+> | O balcão (post R$ 79, carrossel R$ 129) | **`lib/agency/self-serve-catalog.ts`** |
+>
+> **Mudou um preço? Mude nos DOIS, no mesmo commit.** Não é disciplina, é
+> portão: `__tests__/comercial/preco-uma-fonte-so.test.ts` lê a tabela "Os cinco
+> degraus" daqui, compara com `PLANOS` e **reprova a build** se divergirem.
+>
+> ⚠️ **O balcão NÃO contém os 5 planos, e isso é de propósito** — são produtos
+> diferentes (ver "Preço por serviço", abaixo). Uma auditoria já leu o balcão
+> procurando os planos e concluiu, errado, que o preço não estava no código.
+
 > Decidida pelo CEO em 05/08/2026: **primeiro a tabela**, planos e serviços.
 > Vitrine: `https://claude.ai/code/artifact/ac47e688-4584-4555-ac74-fe15bea339bf`
 >

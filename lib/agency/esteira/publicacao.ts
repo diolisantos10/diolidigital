@@ -52,6 +52,7 @@ import { publishPost } from "@/lib/integrations/meta/client";
 import { conexaoDoCliente } from "@/lib/integrations/meta/connections";
 import { caminhoPublicoAssinado } from "@/lib/agency/media/armazenamento";
 import { conferirPilar, motivoCurto } from "@/lib/agency/execution/pilares-bloqueados";
+import { conferirFormatoDeMidia, type MidiaConferida } from "@/lib/integrations/meta/formato-de-midia";
 
 /** Quantos posts publicamos por rodada do relógio. Publicação é irreversível e
  *  a Meta limita chamadas — melhor ir devagar e nunca em enxurrada. */
@@ -463,6 +464,36 @@ export async function publicarAgendados(): Promise<PublicacaoFeita> {
             : "a peça ainda não tem imagem — o Instagram não aceita post só com legenda",
       );
       continue;
+    }
+
+    // ── O FORMATO DO ARQUIVO, ANTES DE FALAR COM A META ─────────────────────
+    // 08/08/2026: com o interruptor JÁ LIBERADO, os 6 carrosséis da Foocci
+    // falhavam 12 vezes por hora com "Only photo or video can be accepted as
+    // media type" — as 36 telas são PNG, e o Instagram só aceita JPEG. A casa
+    // descobria isso PERGUNTANDO À META, em rajada permanente, contra a conta
+    // de um cliente, com o app em modo de desenvolvimento. É o padrão de
+    // 03/08. Ver `lib/integrations/meta/formato-de-midia.ts`.
+    const idsDaPeca = (formato === "carousel" ? lerLista(post.mediaUrlsJson) : [post.mediaUrl])
+      .filter((u): u is string => !!u && u.startsWith("/api/media/"))
+      .map((u) => u.split("/api/media/")[1]?.split("?")[0] ?? "")
+      .filter((id) => id.length > 0);
+    if (idsDaPeca.length > 0) {
+      const linhas = await prisma.mediaAsset
+        .findMany({ where: { id: { in: idsDaPeca } }, select: { id: true, mimeType: true } })
+        .catch(() => null);
+      // Banco fora do ar não vira permissão: sem saber o formato, não se
+      // arrisca a chamada. Fail-closed, como a trava de publicação ao lado.
+      if (!linhas) {
+        await falhar("não consegui conferir o formato dos arquivos desta peça (banco indisponível)");
+        continue;
+      }
+      const porId = new Map(linhas.map((l) => [l.id, l.mimeType]));
+      const conferidas: MidiaConferida[] = idsDaPeca.map((id) => ({ id, mime: porId.get(id) ?? null }));
+      const veredito = conferirFormatoDeMidia(conferidas, ehVideo);
+      if (!veredito.aceita) {
+        await falhar(veredito.motivo);
+        continue;
+      }
     }
 
     let r;

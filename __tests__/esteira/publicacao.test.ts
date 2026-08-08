@@ -6,7 +6,17 @@ const db = vi.hoisted(() => ({
   socialPost: { findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
   metaConnection: { findFirst: vi.fn() },
   activityEvent: { create: vi.fn() },
+  // 08/08/2026: a publicação passou a conferir o MIME de cada arquivo antes de
+  // falar com a Meta (o Instagram só aceita JPEG). Ver
+  // `lib/integrations/meta/formato-de-midia.ts`.
+  mediaAsset: { findMany: vi.fn() },
 }));
+
+/** Toda mídia pedida existe e é JPEG — o caso limpo destes testes, que são
+ *  sobre O RELÓGIO, não sobre formato de arquivo. O formato tem teste próprio
+ *  em `__tests__/meta/formato-de-midia.test.ts`. */
+const midiaTodaJpeg = async (args?: { where?: { id?: { in?: string[] } } }) =>
+  (args?.where?.id?.in ?? []).map((id) => ({ id, mimeType: "image/jpeg" }));
 const publishPost = vi.hoisted(() => vi.fn());
 const conexaoDoCliente = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
@@ -40,6 +50,7 @@ const projeto = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  db.mediaAsset.findMany.mockImplementation(midiaTodaJpeg);
   db.project.findUnique.mockResolvedValue({ ...projeto });
   db.deliverable.findMany.mockResolvedValue([
     { id: "d1", name: "Calendário de conteúdo", content: CONTEUDO, type: "social" },

@@ -1,5 +1,20 @@
 # Pendências — o que está aberto
 
+> # ⛔ O MAPA DA CASA É `docs/ESTADO-REAL-08-08.md`.
+> Aposentado como fonte de verdade por ordem do CEO em 08/08/2026. Este arquivo
+> tem **3.896 linhas** e **29 seções já concluídas** — o que está aberto de
+> verdade não é mais legível daqui, e foi lendo isto que a casa passou a
+> consertar o que já estava consertado.
+>
+> **Como usar a partir de agora:**
+> - **O que fazer a seguir** → `docs/ESTADO-REAL-08-08.md` §3 (as 8 frentes).
+> - **Por que uma decisão foi tomada** → aqui embaixo. Este arquivo continua
+>   sendo o **diário de bordo** da casa, e é perícia valiosa: cada seção tem a
+>   medição de produção que produziu a regra.
+> - **Regra nova:** seção concluída ganha `🟢` no título e **não** volta a ser
+>   lida como pendência. Em conflito com o mapa, **o mapa vence**.
+
+
 ## 🟢 08/08/2026 — A ESCOLHA DO CLIENTE NO DRIVE PARAVA DE EXISTIR EM SILÊNCIO (`808aee3`, no ar)
 
 **Medido em produção, antes:** Drive da Foocci — **1 arquivo ao alcance do app no

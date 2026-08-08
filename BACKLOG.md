@@ -1,4 +1,21 @@
-# Backlog — Primeiro Teste Real da Agência
+# 🗄️ ARQUIVADO — Backlog de 22/06/2026
+
+> # ⛔ O MAPA DA CASA É `docs/ESTADO-REAL-08-08.md`.
+> Este arquivo **parou em 22/06/2026** e foi aposentado por ordem do CEO em
+> 08/08/2026. Ele **não descreve o estado atual do sistema** e não deve ser
+> usado para decidir o que fazer a seguir.
+>
+> **Fica como HISTÓRICO** — é o registro de onde a agência partiu, e várias
+> decisões só se entendem lendo daqui. Memória não se apaga; ela se data.
+>
+> **Cuidado específico:** a "Situação atual" abaixo descreve um pipeline
+> quebrado (tarefa não aciona agente, portal vazio). **Isso foi consertado.**
+> A corrente está ligada de ponta a ponta desde 01/08 — ver
+> `docs/ESTADO-REAL-08-08.md` §4.
+
+---
+
+## O que este documento era (contexto original, 22/06/2026)
 
 > Escrito com base em auditoria do código em 22/06/2026. Cada item tem
 > diagnóstico real (o que existe, o que falta) e estimativa honesta.

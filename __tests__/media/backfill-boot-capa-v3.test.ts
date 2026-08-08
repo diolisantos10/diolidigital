@@ -318,6 +318,21 @@ describe("o reparo dos 6 carrosséis que produção gravou com 5 telas", () => {
       data: { status: "scheduled", scheduledFor: new Date("2026-08-01T10:00:00Z") },
     });
 
+    // ── 08/08/2026: O PNG PARA AQUI, E É ASSIM QUE PRODUÇÃO ESTAVA ──────────
+    // Este teste semeia `mimeType: "image/png"` (linha ~93) porque era esse o
+    // estado real dos 36 arquivos da Foocci. E o Instagram **só aceita JPEG**
+    // (docs/plataformas/meta/fontes/instagram-publicacao-de-conteudo.md).
+    // Antes da trava, a casa descobria isso perguntando à Meta a cada 5 min.
+    const comPng = await publicarAgendados();
+    expect(comPng.publicados).toBe(0);
+    expect(publishPost).not.toHaveBeenCalled(); // recusa ANTES da rede
+    const barrado = await prisma.socialPost.findUnique({ where: { id: alvo!.id } });
+    expect(barrado!.lastError).toContain("JPEG");
+    expect(barrado!.status).toBe("scheduled"); // trabalho pago não é enterrado
+
+    // ── A OUTRA METADE: em JPEG, as 6 telas passam ──────────────────────────
+    await prisma.mediaAsset.updateMany({ where: { clientId }, data: { mimeType: "image/jpeg" } });
+
     const r = await publicarAgendados();
     expect(r.publicados).toBe(1);
 
