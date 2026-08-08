@@ -1,5 +1,163 @@
 # Pendências — o que está aberto
 
+## 🔴 08/08/2026 — VERIFICAÇÃO EM PRODUÇÃO: O CITYJOBS NÃO CAIU. QUEM MENTIU FOI A TELA (E O DIRETOR)
+
+**Pedido do CEO:** ele abriu o portal do CityJobs e leu **"Conectada · desde
+03/08/2026"** no Instagram e na Página, no mesmo dia em que o Diretor lhe
+afirmou, mais de uma vez, que o acesso do CityJobs tinha vencido.
+
+**O veredito, exercitando o acesso contra a Meta de dentro da produção:**
+
+| Ativo | Resultado do exame |
+|---|---|
+| `@cityjobs.sp` (IG `17841480451638505`) | **VIVO.** Perfil lido, último post `01/08/2026` |
+| Página `City Jobs SP` (`980144238512557`) | **RECUSADO — código 10** |
+| `act_1355986106660251` | **VIVA e autorizada** — mas não é conexão nenhuma (ver abaixo) |
+| Token de usuário do CityJobs | **VIVO** |
+
+> **A afirmação de que "o acesso do CityJobs venceu" estava ERRADA.** Nada
+> venceu. O que existe é uma permissão que falta no app **da agência**.
+
+### 🔴 O código 10 quase virou a SEGUNDA mentira do mesmo cartão
+
+A Página recusa com:
+
+```
+(#10) This endpoint requires the 'pages_read_engagement' permission or the
+'Page Public Content Access' feature.
+```
+
+A primeira versão deste conserto mapeava 10 para `revoked` — o que faria a tela
+dizer ao dono do CityJobs *"seu acesso foi revogado, reconecte"*. **Ele
+reconectaria, o erro voltaria idêntico, e concluiria que o produto não
+funciona.** A biblioteca capturada é explícita
+(`fontes/graph-api-tratamento-de-erros.md`): código 10 é *"Permissão de API
+negada"* — **App Review**, não token. É literalmente o aviso de que os códigos
+da Graph mentem sobre a causa.
+
+Agora `lerCodigoDaGraph` separa **TOKEN** (190/102/463/467 → o cliente
+reconecta) de **PERMISSÃO** (3/10/200/299 → é nossa, reconectar não adianta) de
+**LIMITE** (4/17/32/613/8000x → passa sozinho).
+
+### O que a tela passou a distinguir — e as duas metades estão provadas
+
+Três estados, decididos no **servidor** (`lib/integrations/meta/verificacao.ts`),
+a mesma função que o diagnóstico usa — duas cópias divergem:
+
+- **`viva`** — o acesso foi exercitado e respondeu, **com a data do exame**;
+- **`nao_verificada`** — existe registro, ninguém testou. **É o padrão**, e era
+  o estado real de todas as conexões da casa até hoje;
+- **`caiu`** — recusado, com **o código e a frase crus da Meta**.
+
+**Nenhuma data vai à tela sem dizer de que data se trata.** "Desde 03/08" era a
+data de criação da linha lida como prova de vida. Agora: *"funcionou pela última
+vez em…"*, *"registrada em… · ainda não testamos"*, *"o acesso foi recusado
+em…"*.
+
+**Provado em produção, depois do carimbo:** `@cityjobs.sp` aparece **viva**;
+`City Jobs SP` aparece **caída, com o motivo**, e **nunca** como "Conectada".
+
+### 🔴 DOIS DEFEITOS ACHADOS RENDERIZANDO, NÃO LENDO
+
+1. **O cartão se contradizia**: a legenda dizia *"— reconecte"* e o corpo, três
+   linhas abaixo, *"reconectar não resolve"* (DESIGN.md §7.6).
+2. **A Página caía em "O QUE DEPENDE DE VOCÊ"** como *"1 conexão precisa ser
+   refeita"*, com botão de reconectar — **para um problema nosso**. Trabalho da
+   agência na fila do cliente não destrava nada e ensina a ignorar a lista.
+   Agora quem decide de quem é a bola é o servidor (`quemResolve`), e o que é
+   nosso aparece com todas as letras, **fora** da fila dele.
+
+### 🔴 O DRIVE: 3 CLIENTES CONECTADOS, **ZERO** ARQUIVOS NA AGÊNCIA INTEIRA
+
+Medido, não deduzido. Os três acessos estão **vivos** (o Google trocou o refresh
+token):
+
+| Cliente | Acesso | Escolhidos | Declarados | A agência alcança |
+|---|---|---|---|---|
+| CityJobs | **vivo** | 0 | 0 | **0** |
+| Foocci | **vivo** | 0 | 0 | **0** |
+| Dioli Digital Studio | **vivo** | 0 | 0 | **0** |
+
+> **O CEO acredita ter mandado o logo da Foocci pelo Drive. Ele não mandou —
+> ou mandou e a escolha não ficou.** O exame da Foocci devolveu **arquivo ao
+> alcance do app** enquanto `DriveMaterial` tem **zero linhas** para ela. Isso é
+> escolha feita no seletor do Google que **não gravou aqui**. O diagnóstico
+> passou a contar os dois lados e marcar `escolhaPerdida` quando divergem.
+> ⚠️ **Não confirmei quantos arquivos são** — a contagem entrou depois desta
+> medição e ainda não rodou em produção.
+
+A frase da tela mudou: *"Conectado, mas nenhum arquivo escolhido ainda"* dizia o
+estado e **escondia a consequência**. Agora diz que a Dioli **não alcança
+NENHUM arquivo** e que **conectar não envia nada**. E o selo verde **"Ativo"**,
+que aparecia com zero material (a régua era `faltaDizerOQueE > 0`, que é zero
+quando nada foi escolhido), virou **"Sem material"**.
+
+### 🟠 A CONTA DE ANÚNCIOS NÃO É UMA CONEXÃO — e por isso não aparece em lugar nenhum
+
+`act_1355986106660251` ("Principal · BRL") está **autorizada** pelo CityJobs e
+**viva**, mas mora só em `MetaAtivoAutorizado`: ela **não vira `MetaConnection`**
+e **nenhum cartão do portal fala dela**. Salvar não é conectar. O diagnóstico
+passou a exercitá-la; **a tela ainda não a mostra** — sem dono.
+
+### 🟠 16 CONEXÕES ÓRFÃS DE TERCEIROS, TODAS COM TOKEN MORTO (código 190)
+
+Sushi Cazza, Dilee, Kero Shop, Acesso Beleza, santioh_, dilix.br, queise,
+Santioh Europe, Spa da Mente e as pessoais do CEO — as que entraram em 03/08 por
+`/api/meta/token` com dono nulo (incidente já registrado em 06/08). **Todas
+recusam**, e agora estão carimbadas como tal. Elas não pertencem a cliente
+nenhum e **continuam no banco** — limpeza não foi rodada por conta própria.
+
+### A rota nova: `GET /api/admin/diagnostico-de-conexoes`
+
+Nasce fechada: `Authorization: Bearer <CRON_SECRET>`; **segredo ausente do
+ambiente → 503**, nunca aberta. Não exporta POST/PUT/PATCH/DELETE. Carimbar o
+resultado no banco **desta casa** exige `?carimbar=1` explícito — o mesmo padrão
+do `?emitir=1` de `/api/admin/links-do-portal`.
+
+**Nenhuma escrita na Meta e nenhuma no Google.** Só GET, e os da Meta passam por
+`graph.ts` (balde de ritmo + cota por pontuação). Ela é chamada à mão: tela que
+consulta a plataforma a cada F5 é rajada de GET, a assinatura do que restringiu
+a conta da agência em 03/08.
+
+**Duas travas foram reescritas com o motivo declarado** — o `toEqual` do payload
+do portal (congelava "a resposta tem exatamente estes 5 campos") e a frase do
+Drive. O invariante sobreviveu nas duas; a letra mudou.
+
+**Portão:** `tsc` limpo · **2868 testes verdes em 176 arquivos** · build limpo.
+Conferido em 375/768/1440 com a tela renderizada e os três estados vivos.
+
+### 🔴 O QUE DEPENDE DO CEO
+
+1. **App Review da Meta: `pages_read_engagement` + `Page Public Content
+   Access`.** É o que destrava a leitura das Páginas de **CityJobs, Foocci e
+   Dioli Digital Studio**. **Prazo externo** — enquanto ninguém pede, o relógio
+   não começa. Sem isso, Página não publica nem traz número; o Instagram
+   continua funcionando.
+2. **Escolher os arquivos no Drive.** Conectar não envia nada. Hoje a agência
+   alcança **0 arquivos de 0 clientes** — e é por isso que a peça sai com foto
+   genérica e o logo é o nome escrito em fonte.
+
+### O que vem a seguir (a fazer, com dono)
+
+- [ ] `plataforma` — **por que a escolha do seletor não gravou na Foocci.** É a
+      pista mais quente: há arquivo ao alcance do app e zero linha no banco.
+- [ ] `pm` — rodar o diagnóstico com a contagem nova e fechar o número.
+- [ ] `interface` — **a conta de anúncios autorizada precisa de cartão.** Hoje o
+      CEO salva e nada aparece.
+- [ ] `seguranca` — **as 16 conexões órfãs de terceiros continuam no banco**,
+      com token morto. Recomendação mantida: ocultar/remover por decisão
+      declarada, nunca por varredura silenciosa.
+- [ ] `plataforma` — **o carimbo só existe quando alguém roda a rota.** Ele
+      deveria ser deixado pelos caminhos vivos (publicação, leitura de
+      resultados) para o portal se manter honesto sozinho. Sem isso, tudo volta
+      a "não verificada" com o tempo — o que é honesto, mas é pouco.
+- [ ] `plataforma` — ⚠️ **RISCO DE DEPLOY, visto hoje:** três deploys seguidos
+      ficaram `SKIPPED` e um `FAILED` porque um commit da branch importava
+      `lib/agency/execution/pilares-bloqueados` **sem o arquivo estar no
+      commit**. Produção ficou ~40 min presa num commit antigo, e **ninguém
+      seria avisado** se eu não estivesse olhando. Falta alarme de "produção não
+      está no commit da branch".
+
 ## 🟢 08/08/2026 — O BLOQUEIO DO PILAR DE SALÁRIO VIROU MECANISMO, E A PERGUNTA QUE NUNCA CHEGOU AO CLIENTE GANHOU QUEM A FAÇA
 
 **A consequência, primeiro:** dois P0 desta casa existiam **só como frase em
