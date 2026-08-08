@@ -408,5 +408,30 @@
     "slug": "drive-api-baixar-arquivos",
     "titulo": "Google Drive API — baixar e exportar arquivos",
     "url": "https://developers.google.com/workspace/drive/api/guides/manage-downloads"
+  },
+  {
+    "slug": "drive-api-cotas",
+    "titulo": "Google Drive API — limites de uso e cotas (usage limits)",
+    "url": "https://developers.google.com/workspace/drive/api/guides/limits"
+  },
+  {
+    "slug": "drive-api-changes",
+    "titulo": "Google Drive API — rastrear mudanças (changes.list / pageToken)",
+    "url": "https://developers.google.com/workspace/drive/api/guides/manage-changes"
+  },
+  {
+    "slug": "google-service-accounts",
+    "titulo": "Google Identity — contas de serviço (JWT/2LO, domain-wide delegation)",
+    "url": "https://developers.google.com/identity/protocols/oauth2/service-account"
+  },
+  {
+    "slug": "workspace-create-credentials",
+    "titulo": "Google Workspace — criar credenciais (conta de serviço + compartilhamento de arquivo/pasta)",
+    "url": "https://developers.google.com/workspace/guides/create-credentials"
+  },
+  {
+    "slug": "drive-api-expansive-access",
+    "titulo": "Google Drive API — acesso limitado vs. expansivo (limited vs. expansive access)",
+    "url": "https://developers.google.com/workspace/drive/api/guides/limited-expansive-access"
   }
 ]

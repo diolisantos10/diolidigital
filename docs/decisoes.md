@@ -8,6 +8,76 @@
 
 ---
 
+## O CAMINHO C DO DRIVE (CONTA DE SERVIÇO) FOI DERRUBADO PELO ESPECIALISTA — NADA FOI CONSTRUÍDO
+
+**Decidido em** 2026-08-08 · **por** `google` (parecer), aceito pelo `pm` ·
+**origem:** `docs/plataformas/google/pareceres/2026-08-08-drive-conta-de-servico.md`
+
+O CEO autorizou o **Caminho C** — uma conta de serviço da agência recebe a
+pasta-raiz `Dioli Digital - Material Agencia` por compartilhamento, uma vez, e
+passa a ler tudo que entrar depois, sem seletor. A autorização veio **sob a
+premissa de que C era barato** ("uma pergunta ao Google, dias"), premissa escrita
+no parecer anterior (`2026-08-08-drive-da-agencia.md`), que **foi produzido pelo
+`pm`, não pelo especialista** — a trava de plataforma de 03/08 rodou sem quem ela
+manda ouvir, e o próprio parecer declarou o furo.
+
+**Este despacho corrigiu o furo: o `google` foi acionado de verdade** (via
+`claude --agent google`) e **derrubou o C**. Nenhuma conta de serviço foi criada,
+nenhum escopo foi acrescentado ao app, nenhuma chamada de escrita saiu.
+
+### Por que C caiu
+
+- **Tecnicamente C funciona** (pergunta 1): conta de serviço com a pasta
+  compartilhada lê a árvore inteira, inclusive o que entrar depois. Isso **não** é
+  o caso do Picker + `drive.file` de 07/08 — lá o obstáculo era o escopo, não a
+  credencial.
+- **Mas o escopo necessário é `drive.readonly`, e ele é RESTRITO.** Não existe
+  escopo não-sensível que leia conteúdo por ACL.
+- **A isenção de verificação NÃO cobre este caso** — e isto é **citação, não
+  inferência**: a isenção "somente dados de propriedade do serviço" exige
+  *"acessar apenas os próprios dados"* **e** *"não acessar dados do usuário
+  (vinculados a uma Conta do Google)"*. A pasta é de `agenciadioli@gmail.com`,
+  que é uma Conta do Google. As duas condições falham.
+- **Logo C custa o mesmo que a Saída A** (`drive.readonly` direto): verificação de
+  escopo restrito, avaliação de segurança (a casa guarda os bytes) e
+  reverificação anual. **A única coisa que muda entre C e A é quem segura a
+  credencial — não o preço.**
+
+### A correção que o `pm` arrancou na auditoria, e que ficou registrada
+
+O parecer afirmava que declarar `drive.readonly` no projeto **aciona** a
+verificação também para conta de serviço. Cobrado com o contra-argumento de que a
+verificação se prende à **tela de consentimento OAuth** — que conta de serviço
+nunca vê —, o especialista **rebaixou a própria afirmação a inferência não
+confirmada**, com fonte: no compartilhamento direto de pasta o escopo entra em
+código (`createScoped`), fora da página "Acesso a dados".
+
+> **O veredito NÃO mudou, e é importante entender por quê.** Ele nunca dependeu
+> daquele mecanismo: dependia da isenção, que é citação direta. **Mesmo que o
+> Google não barre tecnicamente o token, usar escopo restrito não verificado põe
+> o app em descumprimento da Política de dados do usuário** — risco de revogação
+> por auditoria, não 403 imediato. *A casa não aposta em comportamento não
+> documentado.*
+
+### O que atravessa domínios, e por isso mora aqui
+
+1. **A trava de plataforma vale para o `pm`, principalmente para o `pm`.** Foi um
+   parecer sem especialista que produziu a premissa errada que subiu ao CEO. Não
+   houve dano — o custo foi um despacho —, mas o mecanismo que o evitaria é
+   **acionar o especialista, não escrever no lugar dele**.
+2. **Autorização do CEO é sobre o DESTINO, não sobre o preço.** Ele autorizou C
+   por ser barato. Barato caiu ⇒ a autorização não se transfere para A, que é o
+   caminho caro. **Quem decide pagar semanas de verificação é ele.**
+3. **A cota da Drive API deixou de ser lacuna** — `fontes/drive-api-cotas.md`
+   capturada. E a conclusão é que **cota não é o limite**: o limite é o padrão de
+   rajada (15 min mínimo, backoff, nada de chamada a partir de renderização),
+   a mesma assinatura que restringiu a conta da Meta em 03/08.
+4. **A Saída B segue sendo a única sem custo de verificação** (a casa cria os
+   arquivos via `drive.file`, upload por tela da Dioli) — e ela **é escrita no
+   Drive**, então exige parecer próprio do `google`, que **ainda não existe**.
+
+---
+
 ## O FINANCEIRO É O DONO ÚNICO DE TODO DINHEIRO DA CASA
 
 **Decidido em** 2026-08-07 · **por** CEO · **origem:** `lib/agency/financeiro/dre.ts`,
