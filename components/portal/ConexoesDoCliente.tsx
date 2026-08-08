@@ -23,11 +23,41 @@ const TIPO_LABEL: Record<string, string> = {
   whatsapp: "WhatsApp",
 };
 
+// ── OS TRÊS ESTADOS DE UM ACESSO (08/08/2026) ───────────────────────────────
+//
+// Este cartão dizia **"Conectada · desde 03/08/2026"** para um acesso que
+// ninguém tinha exercitado desde que a linha nasceu. Duas mentiras numa frase:
+// o rótulo verde vinha de uma coluna que só muda por má notícia, e a data era a
+// da CRIAÇÃO DO REGISTRO — não a de quando aquilo funcionou.
+//
+// Agora são três estados, e o do meio é o que faltava:
+//
+//   • CONECTADA E FUNCIONANDO — o acesso foi exercitado e a Meta respondeu;
+//   • NÃO VERIFICADA          — existe registro, ninguém testou desde então;
+//   • CAIU                    — a Meta recusou, com motivo e data.
+//
+// Nenhum deles se chama só "Conectada". Quem verifica é o servidor
+// (`estadoDaConexao`), fonte única — deduzir estado aqui no cliente foi a causa
+// do cartão do Drive que dizia "conectado" e "não conectado" ao mesmo tempo em
+// 07/08.
+
+interface FalhaView {
+  em: string;
+  codigo: number | null;
+  subcodigo: number | null;
+  mensagem: string;
+  tipo: string | null;
+}
+
 interface ConexaoView {
   id: string;
   platform: string;
   name: string;
   status: string;
+  estado?: "viva" | "nao_verificada" | "caiu";
+  funcionouEm?: string | null;
+  falha?: FalhaView | null;
+  registradaEm?: string;
   connectedAt: string;
 }
 
@@ -37,12 +67,31 @@ const PLATFORM_LABEL: Record<string, { label: string; color: string; initials: s
   whatsapp:  { label: "WhatsApp",  color: "#25D366", initials: "WA" },
 };
 
-const STATUS_BADGE: Record<string, { label: string; bg: string; fg: string }> = {
-  connected: { label: "Conectada", bg: "#DCFCE7", fg: "#16A34A" },
-  expired:   { label: "Expirada",  bg: "#FEF3C7", fg: "#9B7B2D" },
-  revoked:   { label: "Revogada",  bg: "#FEE2E2", fg: "#DC2626" },
-  error:     { label: "Com erro",  bg: "#FEE2E2", fg: "#DC2626" },
+const ESTADO_BADGE: Record<string, { label: string; curto: string; bg: string; fg: string }> = {
+  viva:           { label: "Funcionando",    curto: "Ativa",         bg: "#DCFCE7", fg: "#16A34A" },
+  nao_verificada: { label: "Não verificada", curto: "Não verificada", bg: "#F0EFEB", fg: "#6B6B65" },
+  caiu:           { label: "Caiu",           curto: "Caiu",           bg: "#FEE2E2", fg: "#DC2626" },
 };
+
+function dia(iso: string): string {
+  return new Date(iso).toLocaleDateString("pt-BR");
+}
+
+/**
+ * A linha embaixo do nome. Ela nunca escreve uma data sem dizer de QUE data se
+ * trata — foi exatamente isso que fez "desde 03/08" ser lido como prova de vida.
+ */
+function legendaDoEstado(c: ConexaoView): string {
+  const estado = c.estado ?? (c.status === "connected" ? "nao_verificada" : "caiu");
+  if (estado === "viva" && c.funcionouEm) {
+    return `funcionou pela última vez em ${dia(c.funcionouEm)}`;
+  }
+  if (estado === "caiu") {
+    const quando = c.falha?.em ? dia(c.falha.em) : dia(c.registradaEm ?? c.connectedAt);
+    return `o acesso foi recusado em ${quando} — reconecte`;
+  }
+  return `registrada em ${dia(c.registradaEm ?? c.connectedAt)} · ainda não testamos este acesso`;
+}
 
 export function ConexoesDoCliente({ token }: { token: string }) {
   const [conexoes, setConexoes] = useState<ConexaoView[]>([]);
@@ -333,19 +382,57 @@ export function ConexoesDoCliente({ token }: { token: string }) {
         <div className="space-y-2.5">
           {conexoes.map((c) => {
             const p = PLATFORM_LABEL[c.platform] ?? { label: c.platform, color: "#6B6B65", initials: c.platform.slice(0, 2).toUpperCase() };
-            const s = STATUS_BADGE[c.status] ?? { label: c.status, bg: "#F0EFEB", fg: "#6B6B65" };
+            // FAIL CLOSED: estado ausente (resposta velha, campo novo que não
+            // chegou) nunca cai em "Funcionando". Cai em "Não verificada", que
+            // é a verdade sobre o que sabemos.
+            const estado = c.estado ?? (c.status === "connected" ? "nao_verificada" : "caiu");
+            const s = ESTADO_BADGE[estado];
+            const caiu = estado === "caiu";
             return (
-              <div key={c.id} className="bg-white rounded-[12px] border border-[var(--border)] px-4 py-3 flex items-center gap-3 shadow-[0_1px_2px_rgba(7,10,31,0.03)]">
-                <span className="w-9 h-9 rounded-[9px] flex items-center justify-center text-white text-[11px] font-bold shrink-0" style={{ background: p.color }}>{p.initials}</span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-semibold text-[var(--text-primary)] truncate">{c.name || p.label}</p>
-                  <p className="text-[11px] text-[var(--text-subtle)]">
-                    {p.label} · desde {new Date(c.connectedAt).toLocaleDateString("pt-BR")}
-                  </p>
+              <div
+                key={c.id}
+                className={`bg-white rounded-[12px] border px-4 py-3 shadow-[0_1px_2px_rgba(7,10,31,0.03)] ${caiu ? "border-[#FCA5A5]" : "border-[var(--border)]"}`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="w-9 h-9 rounded-[9px] flex items-center justify-center text-white text-[11px] font-bold shrink-0" style={{ background: p.color }}>{p.initials}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] font-semibold text-[var(--text-primary)] truncate">{c.name || p.label}</p>
+                    <p className="text-[11px] text-[var(--text-subtle)]">
+                      {p.label} · {legendaDoEstado(c)}
+                    </p>
+                  </div>
+                  <span className="h-6 px-2.5 rounded-full text-[10px] font-bold flex items-center shrink-0" style={{ background: s.bg, color: s.fg }}>
+                    {/* A 375px o rótulo longo empurrava o nome da conta para
+                        fora do cartão. Curto no celular, inteiro daí pra cima. */}
+                    <span className="sm:hidden">{s.curto}</span>
+                    <span className="hidden sm:inline">{s.label}</span>
+                  </span>
                 </div>
-                <span className="h-6 px-2.5 rounded-full text-[10px] font-bold flex items-center shrink-0" style={{ background: s.bg, color: s.fg }}>
-                  {s.label}
-                </span>
+
+                {/* O MOTIVO, quando caiu. Sem ele, "Caiu" manda o dono do
+                    negócio adivinhar — e ele conclui que é problema dele. */}
+                {caiu && (
+                  <div className="mt-2.5 rounded-[10px] bg-[#FEF2F2] px-3 py-2">
+                    <p className="text-[12px] font-semibold text-[#991B1B]">
+                      A Meta recusou este acesso. Reconecte no botão acima.
+                    </p>
+                    {c.falha?.mensagem && (
+                      <p className="text-[11px] text-[#991B1B] leading-snug mt-0.5 break-words">
+                        Resposta da Meta{c.falha.codigo !== null ? ` (código ${c.falha.codigo}${c.falha.subcodigo !== null ? `/${c.falha.subcodigo}` : ""})` : ""}: {c.falha.mensagem}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* "Não verificada" não é má notícia — é honestidade. E ela
+                    precisa ser dita, senão o silêncio vira promessa. */}
+                {estado === "nao_verificada" && (
+                  <p className="mt-2 text-[11px] text-[var(--text-muted)] leading-snug">
+                    Guardamos este acesso, mas ainda não o usamos nenhuma vez. Só
+                    conseguimos confirmar que ele funciona depois da primeira
+                    publicação ou leitura de resultados.
+                  </p>
+                )}
               </div>
             );
           })}

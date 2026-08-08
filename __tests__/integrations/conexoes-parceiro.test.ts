@@ -163,14 +163,30 @@ describe("GET /api/portal/conexoes — a lista é SÓ do cliente do token", () =
     expect(where).toEqual({ workspaceId: "ws-1", clientId: "cli-1" });
   });
 
-  it("devolve nome/plataforma/status e NUNCA credencial; a pseudo-conexão 'user' fica de fora", async () => {
+  // ⚠️ TRAVA REESCRITA EM 08/08/2026, com o motivo declarado.
+  //
+  // A letra antiga era um `toEqual` do objeto INTEIRO — ou seja, ela congelava
+  // "a resposta tem exatamente estes cinco campos". Isso reprovava o conserto
+  // do dia: a rota passou a devolver `estado`, `funcionouEm`, `falha` e
+  // `registradaEm`, porque "Conectada · desde 03/08" era rótulo de um acesso
+  // que ninguém tinha testado.
+  //
+  // O invariante nunca foi a lista de campos: é **nenhuma credencial sai
+  // daqui**, e é isso que a trava passa a exigir — agora por proibição
+  // explícita, que é mais forte, porque campo novo perigoso reprova mesmo que
+  // alguém acrescente outros junto.
+  it("devolve nome/plataforma/estado e NUNCA credencial; a pseudo-conexão 'user' fica de fora", async () => {
     const res = await listarConexoes(req(`http://localhost/api/portal/conexoes?token=${TOKEN}`));
     const json = await res.json();
     expect(json.conexoes).toHaveLength(1);
-    expect(json.conexoes[0]).toEqual({
+    expect(json.conexoes[0]).toMatchObject({
       id: "mc-1", platform: "facebook", name: "Página do Parceiro",
       status: "connected", connectedAt: "2026-08-03T12:00:00.000Z",
     });
+    // Os três estados nascem aqui, no SERVIDOR — fonte única. Sem exame
+    // registrado, o estado é "não verificada": nunca "viva".
+    expect(json.conexoes[0].estado).toBe("nao_verificada");
+    expect(json.conexoes[0].funcionouEm).toBeNull();
     const raw = JSON.stringify(json);
     expect(raw).not.toContain("accessToken");
     expect(raw).not.toContain("tokenHint");

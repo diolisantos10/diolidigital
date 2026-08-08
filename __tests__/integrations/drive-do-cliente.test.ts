@@ -26,6 +26,7 @@ import { baixarMaterial } from "@/lib/integrations/google/drive";
 import {
   materialAutorizado,
   retratoDaEscolha,
+  FRASE_ZERO_MATERIAL,
   sugerirPapel,
   papelValido,
   ESCOPO_DRIVE,
@@ -148,10 +149,25 @@ describe("o retrato da tela — nunca diz 'pronto' enquanto falta", () => {
     expect(r.frase).not.toContain("prontos para a equipe");
   });
 
-  it("conectado e sem nada escolhido NÃO é 'conectado ✓'", () => {
+  // ⚠️ TRAVA REESCRITA EM 08/08/2026, com o motivo declarado.
+  //
+  // A letra antiga era `expect(r.frase).toContain("nenhum arquivo escolhido")`
+  // — ela congelava a frase "Conectado, mas nenhum arquivo escolhido ainda.".
+  // Essa frase descreve o ESTADO e esconde a CONSEQUÊNCIA, e o CEO leu "Drive
+  // conectado" no portal do CityJobs concluindo que já tinha mandado o logo da
+  // Foocci por ali. Medido em produção no mesmo dia: 3 clientes com Drive
+  // conectado e **0 arquivos escolhidos na agência inteira**.
+  //
+  // O invariante nunca foi a frase: é "conectado sem material não pode passar
+  // por pronto". É isso que esta trava passa a exigir — e agora ela também
+  // exige que a consequência esteja escrita, que é a metade que faltava.
+  it("conectado e sem nada escolhido NÃO é 'conectado ✓' — e a tela diz a consequência", () => {
     const r = retratoDaEscolha(CONEXAO_BOA, [], AGORA);
     expect(r.utilizavel).toBe(false);
-    expect(r.frase).toContain("nenhum arquivo escolhido");
+    expect(r.frase).toBe(FRASE_ZERO_MATERIAL);
+    // Não basta descrever o estado: tem que dizer que a agência não tem nada.
+    expect(r.frase).toMatch(/não alcança NENHUM arquivo/);
+    expect(r.frase).not.toMatch(/prontos? para a equipe/);
   });
 
   it("só pasta escolhida = a casa não tem material", () => {

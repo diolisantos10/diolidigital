@@ -237,7 +237,16 @@ export function DriveDoCliente({ token }: { token: string }) {
   }
 
   const expirado = estado?.status === "expired";
-  const faltaDeclarar = (estado?.retrato.faltaDizerOQueE ?? 0) > 0;
+  // ── 08/08/2026: o selo verde "Ativo" aparecia com ZERO arquivo ─────────────
+  //
+  // A régua era `faltaDizerOQueE > 0`. Cliente que conectou e não escolheu nada
+  // tem `faltaDizerOQueE === 0` — e ganhava **"Ativo", em verde**, sobre uma
+  // conexão da qual a agência não alcança um único byte. Medido em produção:
+  // era o estado de TODOS os 3 clientes com Drive conectado.
+  //
+  // A régua certa é a que a esteira já usa para decidir se tem material:
+  // `retrato.utilizavel`. Uma só, para os dois — duas divergem.
+  const semMaterialUtil = !(estado?.retrato.utilizavel ?? false);
 
   return (
     <div className="bg-white rounded-[14px] border border-[var(--border)] p-5 shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
@@ -249,9 +258,11 @@ export function DriveDoCliente({ token }: { token: string }) {
             {estado?.conectado && !expirado && (
               <span
                 className="h-5 px-2 rounded-full text-[10px] font-bold flex items-center"
-                style={faltaDeclarar ? { background: "#FEF3C7", color: "#9B7B2D" } : { background: "#DCFCE7", color: "#16A34A" }}
+                style={semMaterialUtil ? { background: "#FEF3C7", color: "#9B7B2D" } : { background: "#DCFCE7", color: "#16A34A" }}
               >
-                {faltaDeclarar ? "Falta escolher" : "Ativo"}
+                {semMaterialUtil
+                  ? (estado.retrato.escolhidos === 0 ? "Sem material" : "Falta escolher")
+                  : "Ativo"}
               </span>
             )}
             {expirado && <span className="h-5 px-2 rounded-full text-[10px] font-bold flex items-center" style={{ background: "#FEE2E2", color: "#DC2626" }}>Expirado</span>}

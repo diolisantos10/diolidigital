@@ -270,6 +270,16 @@ export interface RetratoDaEscolha {
 }
 
 /**
+ * A frase do estado que mais engana: conexão viva, material zero.
+ *
+ * Mora aqui como constante — e não solta no meio do `if` — porque é o ponto de
+ * um incidente e precisa ser travável por teste. Ver o comentário no `if` de
+ * `escolhidos === 0`.
+ */
+export const FRASE_ZERO_MATERIAL =
+  "Conectado, e a Dioli não alcança NENHUM arquivo seu. Conectar não envia nada: enquanto você não escolher os arquivos no seletor do Google, a equipe segue sem seu logo e sem suas fotos.";
+
+/**
  * O que a tela mostra. Regra: enquanto faltar declaração, o estado é "falta
  * escolher" — não "conectado".
  */
@@ -302,7 +312,18 @@ export function retratoDaEscolha(
   } else if (materialAutorizado(conexao, { fileId: "", nome: "", ehPasta: false, papel: "logo", papelConfirmadoEm: agora }, agora).motivo === "conexao_expirada") {
     frase = "O acesso ao seu Drive expirou. Reconecte para a equipe continuar buscando seu material.";
   } else if (escolhidos === 0) {
-    frase = "Conectado, mas nenhum arquivo escolhido ainda. Escolha o que a equipe pode usar.";
+    // ── 08/08/2026: a frase dizia o ESTADO e escondia a CONSEQUÊNCIA ─────────
+    //
+    // Era "Conectado, mas nenhum arquivo escolhido ainda. Escolha o que a
+    // equipe pode usar." — e o CEO, lendo aquilo no portal do CityJobs, seguiu
+    // acreditando que já tinha mandado o logo da Foocci por ali. Medido em
+    // produção no mesmo dia: 3 clientes com Drive conectado, **0 arquivos
+    // escolhidos na agência inteira**.
+    //
+    // "Conectado" é a primeira palavra que a pessoa lê, e ela paga por todas as
+    // que vêm depois. Conectar não envia nada — e a tela tem que dizer isso com
+    // todas as letras, antes de dizer que está conectado.
+    frase = FRASE_ZERO_MATERIAL;
   } else if (faltaDizerOQueE > 0) {
     frase = `Falta dizer o que é: ${faltaDizerOQueE} de ${escolhidos} arquivo(s) escolhido(s).`;
   } else if (pastas > 0 && utilizaveis === 0) {
