@@ -51,6 +51,7 @@ import { prisma } from "@/lib/db/client";
 import { publishPost } from "@/lib/integrations/meta/client";
 import { conexaoDoCliente } from "@/lib/integrations/meta/connections";
 import { caminhoPublicoAssinado } from "@/lib/agency/media/armazenamento";
+import { conferirPilar, motivoCurto } from "@/lib/agency/execution/pilares-bloqueados";
 
 /** Quantos posts publicamos por rodada do relógio. Publicação é irreversível e
  *  a Meta limita chamadas — melhor ir devagar e nunca em enxurrada. */
@@ -84,6 +85,15 @@ export interface AgendamentoFeito {
   jaAgendadas: number;
   /** Entregas cujo texto o leitor não conseguiu quebrar em peças. */
   naoInterpretadas: string[];
+  /**
+   * Peças que NÃO viraram post porque o pilar está bloqueado
+   * (`lib/agency/execution/pilares-bloqueados.ts`).
+   *
+   * Campo próprio, e não um silêncio: a peça descartada aqui é trabalho pago que
+   * não vai ao calendário. Errar para menos, nunca em segredo — é a mesma regra
+   * de `naoInterpretadas`, logo acima.
+   */
+  bloqueadasPorPilar: Array<{ pilar: string; motivo: string }>;
 }
 
 /**
@@ -94,7 +104,7 @@ export interface AgendamentoFeito {
  * Idempotência por projeto travaria a agência no primeiro mês para sempre.
  */
 export async function agendarPostsDaEntrega(projectId: string): Promise<AgendamentoFeito> {
-  const saida: AgendamentoFeito = { projectId, criados: 0, jaAgendadas: 0, naoInterpretadas: [] };
+  const saida: AgendamentoFeito = { projectId, criados: 0, jaAgendadas: 0, naoInterpretadas: [], bloqueadasPorPilar: [] };
 
   const projeto = await prisma.project.findUnique({
     where: { id: projectId },
@@ -141,6 +151,25 @@ export async function agendarPostsDaEntrega(projectId: string): Promise<Agendame
     // Espalhadas ao longo de ~4 semanas.
     const intervaloDias = Math.max(1, Math.floor(28 / pecas.length));
     for (const peca of pecas) {
+      // ── A TRAVA DE PILAR, ANTES DE A PEÇA EXISTIR ─────────────────────────
+      // Barrar só na hora da arte deixaria a peça no calendário do CLIENTE,
+      // com data marcada, para nunca sair — que é a definição de fila morta.
+      // Aqui ela simplesmente não nasce, e o fato é registrado.
+      const veredito = conferirPilar(peca.pilar);
+      if (veredito.bloqueado) {
+        saida.bloqueadasPorPilar.push({ pilar: peca.pilar ?? "", motivo: veredito.motivo ?? "" });
+        await prisma.activityEvent.create({
+          data: {
+            workspaceId: projeto.workspaceId,
+            clientId: projeto.clientId,
+            projectId,
+            type: "pilar_bloqueado",
+            message: `Peça NÃO entrou no calendário: ${veredito.motivo ?? "pilar bloqueado"}`.slice(0, 900),
+          },
+        }).catch(() => { /* best-effort: o registro não pode travar a rodada */ });
+        continue;
+      }
+
       await prisma.socialPost.create({
         data: {
           workspaceId: projeto.workspaceId,
@@ -365,6 +394,18 @@ export async function publicarAgendados(): Promise<PublicacaoFeita> {
         }).catch(() => { /* best-effort: o registro não pode travar a rodada */ });
       }
     };
+
+    // ── A TRAVA DE PILAR, DE NOVO, NA ÚLTIMA PORTA ─────────────────────────
+    // Não é redundância: os posts que JÁ estão no banco de produção nasceram
+    // antes de a trava existir, e o calendário deles não passa por
+    // `agendarPostsDaEntrega` outra vez. Uma trava só na entrada protege o
+    // futuro e deixa o passado sair. Esta é a porta pela qual o dano chega ao
+    // público — é aqui que ela precisa valer mesmo se as outras falharem.
+    const vereditoDoPilar = conferirPilar(post.pillar);
+    if (vereditoDoPilar.bloqueado) {
+      await falhar(motivoCurto(vereditoDoPilar));
+      continue;
+    }
 
     // A conta do CLIENTE, não a da agência. `clientId` nulo numa conexão
     // significa "conta da própria Dioli" — publicar o post de um cliente por

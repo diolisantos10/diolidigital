@@ -1,5 +1,99 @@
 # Pendências — o que está aberto
 
+## 🟢 08/08/2026 — O BLOQUEIO DO PILAR DE SALÁRIO VIROU MECANISMO, E A PERGUNTA QUE NUNCA CHEGOU AO CLIENTE GANHOU QUEM A FAÇA
+
+**A consequência, primeiro:** dois P0 desta casa existiam **só como frase em
+documento**. Pela lei da casa — *sem gate = reprovado* — os dois já estavam
+reprovados: voltariam a passar no dia em que alguém esquecesse do `.md`.
+
+### 1. O pilar de salário do CityJobs (`lib/agency/execution/pilares-bloqueados.ts`)
+
+Em 07/08 **3 de 6 peças foram para o lixo** porque o gerador desenhou anúncio de
+emprego FALSO nos pixels (`"VAGA $3,500"`, `"R$6.000"`, `"Assistents
+Administrativo · R$ 2000 per wes"` sob a marca inventada *"AlcTiete"*). O
+registro fechou com *"os pilares ficam BLOQUEADOS"* — e **nenhuma linha de código
+barrava nada**.
+
+- **A trava roda em TRÊS portas**, e nenhuma é redundante:
+  `agendarPostsDaEntrega` (a peça não nasce no calendário) ·
+  `produzirArtesPendentes` (**antes do teto de gasto** — depois dele o dinheiro
+  já saiu) · `publicarAgendados` (**antes de falar com a Meta**: os 12 posts que
+  já estão no banco de produção nasceram antes da trava, e uma guarda só na
+  entrada protege o futuro deixando o passado sair).
+- **O bloqueio se levanta por MECANISMO, não por memória.** Enquanto
+  `conferenciaDePixelDisponivel()` devolver `false`, ele vale. Sem
+  `process.env`, sem `{ forcar: true }`, sem exceção por cliente — **e há teste
+  que reprova o arquivo que ganhar qualquer um dos três.**
+- **A régua casa com o NOME DO PILAR, nunca com a legenda.** Filtro largo
+  apagaria o calendário inteiro de um cliente de plataforma de vagas, e trava que
+  dispara onde não há risco é desligada por quem não sabe o que ela protege. As
+  legendas estavam certas; o preditor do estrago era o TEMA.
+
+> 🟠 **UMA DECISÃO MINHA, DECLARADA:** a decisão escrita bloqueava **dois**
+> pilares (*salário aberto*, *vagas por setor*). O terceiro — **candidatura
+> rápida** — também foi REPROVADO em produção e **não constava do documento**.
+> Entrou como `origem: "evidencia-de-producao"`. Quem discordar, o caminho é
+> reabrir aqui: o CityJobs perde 3 dos 6 pilares até haver conferência de pixel.
+
+### 2. A pergunta que nunca chegou ao cliente (`cobrarPedidosEsquecidos`)
+
+O raio-x de produção acusou *"1 pedido pendente há +24h com `askedClientAt`
+vazio"*. **Não era um caso raro: era estrutural.** `cobrarCliente` tinha **um
+único chamador** (`run-execution.ts:869`) e ele só dispara na **mesma passada**
+que abriu o pedido — e só se a passada chegar até lá, o que não acontece quando
+o projeto termina em `blocked`, estado que o cron de recuperação **não pega de
+propósito**.
+
+> Ou seja: o pedido nascia, o projeto morria, e **não existia caminho nenhum no
+> repositório capaz de perguntar aquilo ao cliente depois**. O alarme tocaria
+> para sempre e ninguém poderia calá-lo. Do lado de fora, a agência parecia ter
+> parado — que é exatamente o que o CEO viu.
+
+Agora o **despertador** varre por TEMPO (carência de 24h, uma voz só por
+projeto, idempotente). O que não puder ser cobrado vira **falha de rodada com
+motivo**, nunca silêncio.
+
+**Um defeito que o teste pegou e o código não teria contado:** `cobrarCliente`
+devolve `0` tanto para *"nada a cobrar"* quanto para *"a escrita falhou"*. É o
+defeito nº 1 do incidente do Drive outra vez — um `if` que confunde "não sei"
+com "quebrou". Separado.
+
+### 3. O censo por cliente (`lib/raio-x/por-cliente.ts`) — somente leitura
+
+A agência só sabia responder no agregado (**12 posts, 5 clientes**). Agregado
+responde outra pergunta: **esconde o cliente que recebeu ZERO hoje** dentro da
+média de quem recebeu quatro. O `POST /api/cron/raio-x` passa a devolver
+`porCliente`: peças de hoje, agendadas, publicadas, atrasadas, aprovações e
+materiais — **por cliente, no fuso de São Paulo** (contar em UTC diria "nada saiu
+hoje" nas três primeiras horas do dia do cliente).
+
+- **Zero e "não sei" nunca dividem o mesmo pixel.** Falha de leitura vira
+  `nao_medido` COM motivo. Banco fora do ar **não** devolve "a agência não tem
+  cliente".
+- **`ritmoContratado` fica NULO, sempre.** Não existe coluna que o guarde, e
+  deduzi-lo do volume produzido faria o resultado virar a meta — a peça que
+  faltou provaria que não era devida. **Quem sabe o ritmo é o CEO.**
+
+**Portão:** `npx tsc --noEmit` limpo · **2842 testes em 174 arquivos, todos
+verdes** · `npm run build` sai 0. ⚠️ Os 3 avisos de `instrumentation.ts` →
+`armazenamento.ts` são **anteriores** a este trabalho (nenhum dos dois foi
+tocado aqui).
+
+### 🔴 O QUE NÃO FOI FEITO, E POR QUÊ
+
+- **Nenhuma peça nova foi produzida em produção nesta rodada.** O único acesso a
+  produção daqui é HTTP com `CRON_SECRET`, e as rotas `cron/*` **não produzem
+  conteúdo**: `execute` é rede de segurança e devolveu `recovered: 0` (não há
+  projeto em `running`/`failed` recuperável). **Produzir peça exige sessão
+  autenticada de admin, que não existe nesta execução.**
+- **Os 2 posts atrasados NÃO foram mexidos.** Não há caminho seguro daqui, e
+  reagendá-los às cegas é o oposto da trava "nada é publicado".
+- **O pedido em `precisa_decisao` há +24h continua parado** — por desenho ele
+  espera decisão de gente.
+- **A conferência de PIXEL na foto gerada por IA continua não existindo.** É a
+  causa raiz dos 3 descartes e é o que destrava os 3 pilares. Sem dono.
+
+
 ## 🟢 08/08/2026 — 99FREELAS: A MÁQUINA DE CONFORMIDADE ENTROU NO CAMINHO QUE A TELA USA
 
 **A consequência, primeiro:** até hoje a proposta que o CEO copiava em

@@ -30,6 +30,7 @@ import { virarOsMesesVencidos } from "@/lib/agency/esteira/mes";
 import { produzirArtesPendentes } from "@/lib/agency/execution/artes";
 import { guardarAVerba } from "@/lib/agency/esteira/trafego";
 import { cuidarDasAvaliacoes } from "@/lib/agency/esteira/avaliacoes";
+import { cobrarPedidosEsquecidos } from "@/lib/agency/esteira/pedidos";
 import { fazerBackup, estadoDoBackup } from "@/lib/agency/backup";
 import { registrarBatida, type FalhaDaRodada } from "@/lib/agency/pulso";
 import { vigiarAMadrugada } from "@/lib/agency/vigia-da-madrugada";
@@ -207,6 +208,8 @@ export async function baterORelogio(): Promise<{
   avaliacoes: number;
   /** Pedidos do cliente que saíram do lugar nesta rodada. */
   pedidos: number;
+  /** Pedidos de MATERIAL que estavam presos e finalmente foram ao cliente. */
+  cobrancasEsquecidas: number;
   backup: boolean;
 }> {
   let retomados = 0;
@@ -218,6 +221,7 @@ export async function baterORelogio(): Promise<{
   let artes = 0;
   let campanhasFreadas = 0;
   let avaliacoes = 0;
+  let cobrancasEsquecidas = 0;
   let backup = false;
 
   // ── A TESTEMUNHA DA RODADA (06/08/2026) ───────────────────────────────────
@@ -310,6 +314,26 @@ export async function baterORelogio(): Promise<{
     quebrou("avaliacoes", err);
   }
 
+  // ── A PERGUNTA QUE NUNCA CHEGOU AO CLIENTE ────────────────────────────────
+  // Medido na produção em 08/08/2026: um pedido de material aberto há mais de
+  // um dia com `askedClientAt` vazio. O agente travou esperando algo que o
+  // cliente NUNCA foi perguntado — e não existia caminho no repositório capaz
+  // de perguntar depois (o único chamador de `cobrarCliente` só dispara na
+  // mesma passada que abre o pedido). Do lado de fora, a agência parecia ter
+  // parado. Fila morta conta como entrega não feita.
+  try {
+    const r = await cobrarPedidosEsquecidos();
+    cobrancasEsquecidas = r.pedidosCobrados;
+    if (r.pedidosCobrados > 0) {
+      log(`${r.pedidosCobrados} pedido(s) de material presos há +24h foram finalmente ao cliente`);
+    }
+    // Pedido vencido que continua sem destino é notícia: ele seguirá preso e o
+    // raio-x seguirá acusando. Silenciar aqui recriaria o buraco original.
+    for (const s of r.semDestino) quebrou("cobranca-esquecida", `${s.projectId}: ${s.motivo}`);
+  } catch (err) {
+    quebrou("cobranca-esquecida", err);
+  }
+
   // ── O BACKUP ──────────────────────────────────────────────────────────────
   // Uma vez por dia. Não é o relógio que decide a frequência: ele bate a cada
   // 5 min, e é o estado no disco que diz se já passou 24h. Assim um restart do
@@ -349,8 +373,8 @@ export async function baterORelogio(): Promise<{
     quebrou("vigia-da-madrugada", err);
   }
 
-  if (retomados > 0 || avisos > 0 || destravadas > 0 || publicados > 0 || mesesVirados > 0 || artes > 0 || campanhasFreadas > 0 || avaliacoes > 0 || pedidos > 0) {
-    log(`rodada: ${pedidos} pedido(s) do cliente movido(s), ${mesesVirados} mês(es) virado(s), ${retomados} produção(ões) retomada(s), ${destravadas} entrega(s) refeita(s), ${artes} arte(s) produzida(s), ${publicados} post(s) publicado(s), ${campanhasFreadas} campanha(s) freada(s), ${avaliacoes} avaliação(ões) tratada(s), ${avisos} aviso(s) enviado(s)`);
+  if (retomados > 0 || avisos > 0 || destravadas > 0 || publicados > 0 || mesesVirados > 0 || artes > 0 || campanhasFreadas > 0 || avaliacoes > 0 || pedidos > 0 || cobrancasEsquecidas > 0) {
+    log(`rodada: ${pedidos} pedido(s) do cliente movido(s), ${mesesVirados} mês(es) virado(s), ${retomados} produção(ões) retomada(s), ${destravadas} entrega(s) refeita(s), ${artes} arte(s) produzida(s), ${publicados} post(s) publicado(s), ${campanhasFreadas} campanha(s) freada(s), ${avaliacoes} avaliação(ões) tratada(s), ${cobrancasEsquecidas} cobrança(s) esquecida(s) enviada(s), ${avisos} aviso(s) enviado(s)`);
   }
 
   // A BATIDA É GRAVADA SEMPRE — inclusive (e principalmente) a rodada em que
@@ -359,11 +383,11 @@ export async function baterORelogio(): Promise<{
   await registrarBatida({
     em: new Date().toISOString(),
     ms: Date.now() - comeco,
-    moveu: { pedidos, mesesVirados, retomados, destravadas, artes, publicados, campanhasFreadas, avaliacoes, avisos },
+    moveu: { pedidos, mesesVirados, retomados, destravadas, artes, publicados, campanhasFreadas, avaliacoes, cobrancasEsquecidas, avisos },
     falhas,
   });
 
-  return { retomados, avisos, destravadas, publicados, mesesVirados, artes, campanhasFreadas, avaliacoes, pedidos, backup };
+  return { retomados, avisos, destravadas, publicados, mesesVirados, artes, campanhasFreadas, avaliacoes, pedidos, cobrancasEsquecidas, backup };
 }
 
 /**

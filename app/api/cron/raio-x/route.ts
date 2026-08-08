@@ -10,6 +10,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { varrerDadosPresos } from "@/lib/raio-x/dados";
+import { varrerPorCliente } from "@/lib/raio-x/por-cliente";
 import { hojeEmSaoPaulo } from "@/lib/raio-x/registro";
 import { segredoConfere } from "@/lib/security/crypto";
 import type { Coleta } from "@/lib/raio-x/tipos";
@@ -33,5 +34,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     metade: "dados",
     varreduras: [await varrerDadosPresos(agora)],
   };
-  return NextResponse.json(coleta);
+  // ── O RETRATO POR CLIENTE, FORA DE `varreduras` ───────────────────────────
+  // Não é uma varredura: não tem padrão do kit, não produz achado e não se
+  // compara com ontem por chave estável. É o CENSO que responde "quem recebeu
+  // peça hoje e quem não recebeu" — a pergunta que o agregado de `medidas` não
+  // consegue responder e que, em 08/08, deixou a agência sem saber qual dos 5
+  // clientes estava parado. Enfiá-lo dentro de `varreduras` desalinharia o
+  // histórico das coletas anteriores.
+  const porCliente = await varrerPorCliente(agora);
+  return NextResponse.json({ ...coleta, porCliente });
 }
