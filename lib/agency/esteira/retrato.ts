@@ -11,6 +11,8 @@ import { lerFase, trilhaMarcada, nomeDoResponsavel, type LeituraDaFase, type Ret
 import { contarTarefas } from "./tarefas";
 import { pedidosAbertos, type PedidoAberto } from "./pedidos";
 import { cicloAberto, type CicloResumido } from "./ciclos";
+// O card do PACOTE: quantas entregas o cliente pode de fato decidir, e quais.
+import { retratoDoPacote, type RetratoDoPacote } from "./pacote";
 
 export interface StatusDoProjeto {
   projectId: string;
@@ -22,6 +24,12 @@ export interface StatusDoProjeto {
   /** O que está travando agora, para a equipe agir e o cliente entender. */
   pendencias: PedidoAberto[];
   ciclo: CicloResumido | null;
+  /**
+   * O card do PACOTE — se ele pode pedir "Aprovar tudo" e, quando pode, o que
+   * exatamente está dentro. Sobe até as telas porque o cliente precisa ver,
+   * item por item, o que está assinando (CEO, 08/08/2026).
+   */
+  pacote: RetratoDoPacote;
   /** Contagens cruas, para quem quiser detalhar. */
   numeros: RetratoDoProjeto;
 }
@@ -47,7 +55,7 @@ export async function statusDoProjeto(projectId: string): Promise<StatusDoProjet
   }).catch(() => null);
   if (!projeto) return null;
 
-  const [tarefas, pendencias, ciclo, entregaveis, solicitacao, posts, conexoes] = await Promise.all([
+  const [tarefas, pendencias, ciclo, entregaveis, solicitacao, posts, conexoes, pacote] = await Promise.all([
     contarTarefas(projectId),
     pedidosAbertos(projectId),
     cicloAberto(projectId),
@@ -71,6 +79,9 @@ export async function statusDoProjeto(projectId: string): Promise<StatusDoProjet
     prisma.metaConnection.count({
       where: { workspaceId: projeto.workspaceId, clientId: projeto.clientId, status: "connected" },
     }).catch(() => 0),
+    // Nunca lança e nunca devolve "pronto" por engano: falha de leitura vira
+    // pacote vazio, e pacote vazio não pede aprovação. Ver `pacote.ts`.
+    retratoDoPacote(projectId),
   ]);
 
   const contarPosts = (status: string) =>
@@ -113,6 +124,12 @@ export async function statusDoProjeto(projectId: string): Promise<StatusDoProjet
     redesConectadas: conexoes > 0,
     postsPublicados: contarPosts("published"),
     postsAgendados: contarPosts("scheduled"),
+    // A conta que separa "apresentado" de "pronto". Ver `lerFase`.
+    //
+    // ⚠️ NÃO MEDIDO CONTINUA NÃO MEDIDO. Leitura que falhou vira `undefined`,
+    // nunca `0`: zero é uma AFIRMAÇÃO ("não há nada pronto") e faria a etapa do
+    // cliente mudar por causa de um banco lento. Ver `RetratoDoPacote.medido`.
+    ...(pacote.medido ? { decisoesDisponiveis: pacote.prontas.length } : {}),
   };
 
   const leitura = lerFase(numeros);
@@ -126,6 +143,7 @@ export async function statusDoProjeto(projectId: string): Promise<StatusDoProjet
     trilha: trilhaMarcada(leitura.fase),
     pendencias,
     ciclo,
+    pacote,
     numeros,
   };
 }

@@ -344,15 +344,53 @@ export async function aprovarPacote(projectId: string): Promise<ResultadoDoMarco
   if (projeto.clientApprovedAt) return { ok: true, erro: "já aprovado — nada mudou" };
   if (!projeto.presentedAt) return { ok: false, erro: "o pacote ainda não foi apresentado ao cliente" };
 
+  // ── TRAVA, NÃO AVISO (CEO, 08/08/2026) ────────────────────────────────────
+  //
+  // Esconder o botão "Aprovar tudo" na tela é APARÊNCIA. `POST
+  // /api/portal/esteira { decisao: "aprovar_pacote" }` é uma rota pública por
+  // token: um link antigo, um F5 numa aba velha, um `curl` — qualquer um deles
+  // chegaria aqui com a tela nova instalada e mesmo assim aprovaria o nada.
+  //
+  // E o estrago não é cosmético. Daqui para baixo esta função abre o ciclo,
+  // carimba `clientApprovedAt` e chama `aprovarCalendario`, que é o ÚNICO
+  // consentimento de publicação desta casa. Um pacote sem corpo aprovado às
+  // cegas libera o calendário de um trabalho que ninguém viu.
+  //
+  // Então a recusa mora AQUI, no servidor, antes da primeira escrita — e ela é
+  // total: nada muda de estado, nem o carimbo, nem o ciclo, nem o calendário.
+  const { retratoDoPacote } = await import("@/lib/agency/esteira/pacote");
+  const pacote = await retratoDoPacote(projectId);
+  if (!pacote.pedeAprovacao) {
+    return {
+      ok: false,
+      erro:
+        "não há nenhuma entrega com material para aprovar — o pacote está em produção. " +
+        (pacote.emProducao.length > 0
+          ? `Ainda sem material: ${pacote.emProducao.map((i) => i.titulo).join(", ")}.`
+          : "Nenhuma aprovação pendente visível ao cliente."),
+    };
+  }
+
   const agora = new Date();
   await prisma.project.update({
     where: { id: projectId },
     data: { clientApprovedAt: agora, stage: "implementation" },
   });
 
-  if (projeto.clientRequestId) {
+  // ── "APROVAR TUDO" APROVA O QUE ESTÁ PRONTO, NÃO O QUE ESTÁ PENDENTE ──────
+  //
+  // Antes era `status: "pending"` sem mais nada: no pacote MISTO — duas
+  // entregas com material e uma ainda em produção — o clique carimbava as três.
+  // A entrega sem corpo saía "aprovada pelo cliente" sem que ele jamais a
+  // tivesse visto, e o histórico registrava a assinatura dele nisso.
+  //
+  // A lista vem do MESMO retrato que autorizou o botão, casada por id. O que
+  // está em produção continua pendente e volta a pedir decisão quando ganhar
+  // corpo — que é o comportamento que o cliente espera de "está em produção".
+  const idsProntos = pacote.prontas.map((i) => i.id);
+  if (idsProntos.length > 0) {
     await prisma.approvalRequest.updateMany({
-      where: { clientRequestId: projeto.clientRequestId, status: "pending" },
+      where: { id: { in: idsProntos }, status: "pending" },
       data: { status: "approved", reviewedBy: "cliente", reviewedAt: agora },
     }).catch(() => { /* best-effort */ });
   }

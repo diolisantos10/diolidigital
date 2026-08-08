@@ -5,7 +5,8 @@ const db = vi.hoisted(() => ({
   task: { findMany: vi.fn() },
   deliverable: { findMany: vi.fn(), updateMany: vi.fn() },
   materialRequest: { count: vi.fn() },
-  approvalRequest: { updateMany: vi.fn() },
+  approvalRequest: { updateMany: vi.fn(), findMany: vi.fn() },
+  socialPost: { findMany: vi.fn() },
   portalMessage: { create: vi.fn() },
   cycle: { findUnique: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
   activityEvent: { create: vi.fn() },
@@ -41,6 +42,14 @@ beforeEach(() => {
   db.departmentLadder.findMany.mockResolvedValue(escadaToda("wide"));
   db.materialRequest.count.mockResolvedValue(0);
   db.approvalRequest.updateMany.mockResolvedValue({ count: 1 });
+  // ── O PACOTE QUE `aprovarPacote` LÊ ANTES DE ESCREVER (CEO, 08/08/2026) ────
+  // Desde o print do CityJobs, aprovar o pacote exige que exista ALGO com
+  // corpo. O caso limpo é este: uma aprovação pendente com nota própria.
+  db.approvalRequest.findMany.mockResolvedValue([
+    { id: "ap1", department: "social-media", status: "pending", reviewNote: "Pauta do mês — 6 peças",
+      sourcePostIdsJson: null, clientId: null, clientRequestId: "cr1", deliverableVersion: null, comments: [] },
+  ]);
+  db.socialPost.findMany.mockResolvedValue([]);
   db.portalMessage.create.mockResolvedValue({});
   db.cycle.findUnique.mockResolvedValue(null);
   db.cycle.findFirst.mockResolvedValue(null);
@@ -175,6 +184,69 @@ describe("MARCO 3 — o aval do cliente abre a rotina", () => {
     expect(db.project.update.mock.calls[0][0].data.clientApprovedAt).toBeInstanceOf(Date);
     expect(db.approvalRequest.updateMany.mock.calls[0][0].data.status).toBe("approved");
     expect(db.cycle.create).toHaveBeenCalled();
+  });
+
+  // ── PACOTE SEM CORPO NÃO PEDE, E NÃO ACEITA, APROVAÇÃO ────────────────────
+  //
+  // 08/08/2026: o CEO abriu o portal do CityJobs e o topo dizia "O pacote
+  // inteiro está pronto para você" com "Aprovar tudo", sobre TRÊS entregas que
+  // diziam "material ainda não subiu". Esconder o botão não bastava — a rota
+  // do portal é pública por token, e um link antigo chegaria aqui do mesmo
+  // jeito. A recusa mora no servidor.
+  it("BARRA: pacote sem NENHUMA entrega com corpo não é aprovado, e nada muda de estado", async () => {
+    db.project.findUnique.mockResolvedValue({ ...PROJETO, directionApprovedAt: new Date(), presentedAt: new Date() });
+    // Três cards pendentes e vazios — o print do CityJobs, exatamente.
+    db.approvalRequest.findMany.mockResolvedValue(
+      ["analytics", "social-media", "strategy"].map((d, i) => ({
+        id: `ap${i}`, department: d, status: "pending", reviewNote: null,
+        sourcePostIdsJson: null, clientId: null, clientRequestId: "cr1",
+        deliverableVersion: null, comments: [],
+      })),
+    );
+    db.deliverable.findMany.mockResolvedValue([]);
+
+    const r = await aprovarPacote("p1");
+
+    expect(r.ok).toBe(false);
+    expect(r.erro).toContain("em produção");
+    // A recusa é TOTAL: nem o carimbo, nem as aprovações, nem o ciclo, nem o
+    // calendário. Aprovar às cegas libera a publicação de trabalho não visto.
+    expect(db.project.update).not.toHaveBeenCalled();
+    expect(db.approvalRequest.updateMany).not.toHaveBeenCalled();
+    expect(db.cycle.create).not.toHaveBeenCalled();
+  });
+
+  it("BARRA: no pacote MISTO, 'aprovar tudo' só carimba o que tem corpo", async () => {
+    db.project.findUnique.mockResolvedValue({ ...PROJETO, directionApprovedAt: new Date(), presentedAt: new Date() });
+    db.approvalRequest.findMany.mockResolvedValue([
+      { id: "pronta", department: "social-media", status: "pending", reviewNote: "Pauta do mês",
+        sourcePostIdsJson: null, clientId: null, clientRequestId: "cr1", deliverableVersion: null, comments: [] },
+      { id: "vazia", department: "analytics", status: "pending", reviewNote: null,
+        sourcePostIdsJson: null, clientId: null, clientRequestId: "cr1", deliverableVersion: null, comments: [] },
+    ]);
+    db.deliverable.findMany.mockResolvedValue([]);
+
+    const r = await aprovarPacote("p1");
+
+    expect(r.ok).toBe(true);
+    // A entrega que o cliente nunca viu continua pendente. Carimbá-la
+    // registraria a assinatura dele num trabalho que não existe.
+    const alvo = db.approvalRequest.updateMany.mock.calls[0][0].where;
+    expect(alvo.id.in).toEqual(["pronta"]);
+  });
+
+  it("BARRA: leitura do pacote que FALHA não vira aprovação", async () => {
+    db.project.findUnique.mockResolvedValue({ ...PROJETO, directionApprovedAt: new Date(), presentedAt: new Date() });
+    db.approvalRequest.findMany.mockRejectedValue(new Error("banco fora do ar"));
+
+    const r = await aprovarPacote("p1");
+
+    // "Não sei" e "não há" são coisas diferentes — mas do lado da ESCRITA as
+    // duas param igual: carimbar aprovação sobre o que não se conseguiu ler é
+    // a assinatura às cegas com outro nome.
+    expect(r.ok).toBe(false);
+    expect(db.project.update).not.toHaveBeenCalled();
+    expect(db.cycle.create).not.toHaveBeenCalled();
   });
 
   it("não aprova o que nunca foi apresentado", async () => {

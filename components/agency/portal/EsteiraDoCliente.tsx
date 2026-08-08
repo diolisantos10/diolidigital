@@ -34,6 +34,12 @@ interface EstadoDoCliente {
   trilha?: { etapa: string; estado: "feito" | "atual" | "futuro" }[];
   pendencias?: string[];
   ciclo?: { referencia: string; resumo: string | null } | null;
+  /**
+   * O card do PACOTE, medido no servidor (CEO, 08/08/2026). Opcional porque a
+   * rota do "cliente direto" (sem solicitação Brain) não o monta — e ausente
+   * significa NÃO PEDE, nunca "pede sem lista".
+   */
+  pacote?: { pedeAprovacao: boolean; prontas: string[]; emProducao: string[] } | null;
 }
 
 /**
@@ -218,7 +224,19 @@ export default function EsteiraDoCliente({
   const etapa = estado.etapa ?? "";
 
   const pedeDirecao = etapa.toLowerCase().includes("confirme o caminho");
-  const pedePacote  = etapa.toLowerCase().includes("tudo pronto");
+  // ── O PACOTE PEDE APROVAÇÃO? QUEM RESPONDE É O SERVIDOR ───────────────────
+  //
+  // Era `etapa.includes("tudo pronto")`. Em 08/08/2026 o CEO abriu o portal do
+  // CityJobs e leu "O pacote inteiro está pronto para você" com "Aprovar tudo"
+  // logo acima de TRÊS entregas dizendo "material ainda não subiu" — porque a
+  // etapa saía de `presentedAt`, um carimbo que só diz que o PM apresentou.
+  //
+  // Agora vem medido (`/api/portal/esteira → pacote.pedeAprovacao`): pacote sem
+  // nenhuma entrega pronta não pede aprovação, e o botão some. O `?? false` é o
+  // fail closed — servidor antigo, campo ausente, resposta truncada: nenhum
+  // deles produz um botão que aprova às cegas.
+  const pacote = estado.pacote;
+  const pedePacote = pacote?.pedeAprovacao ?? false;
 
   if (aoIrParaAprovacoes) {
     // Modo CAMINHO: a esteira anuncia a decisão e leva até ela. Nunca decide.
@@ -256,6 +274,28 @@ export default function EsteiraDoCliente({
         pendencias={estado.pendencias ?? []}
         acoes={acoes}
       />
+
+      {/* ── O QUE ESTÁ DENTRO DO PACOTE ──────────────────────────────────────
+          "Aprovar tudo" sem dizer o que é "tudo" é assinatura em branco. A
+          lista vem do servidor (`pacote.prontas`), não de uma contagem feita
+          aqui — a tela nunca deve AFIRMAR o que ela não conseguiu ler. */}
+      {pedePacote && pacote && pacote.prontas.length > 0 ? (
+        <div className="rounded-xl border border-[var(--border)] bg-white px-3.5 py-3">
+          <p className="text-[12px] font-semibold text-[var(--text-primary)]">
+            {pacote.prontas.length === 1 ? "O que está pronto" : `As ${pacote.prontas.length} entregas prontas`}
+          </p>
+          <ul className="mt-1.5 space-y-1">
+            {pacote.prontas.map((titulo) => (
+              <li key={titulo} className="text-[13px] text-[var(--text-secondary)]">• {titulo}</li>
+            ))}
+          </ul>
+          {pacote.emProducao.length > 0 ? (
+            <p className="mt-2 text-[12px] text-[var(--text-secondary)]">
+              Ainda em produção, e <strong>não</strong> entram nesta aprovação: {pacote.emProducao.join(", ")}.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       {estado.ciclo ? (
         <p className="px-1 text-[12px] text-[var(--text-secondary)]">

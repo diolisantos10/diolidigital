@@ -124,6 +124,19 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     progresso: status.leitura.progresso,
     trilha: status.trilha.map((t) => ({ etapa: t.curtoCliente, estado: t.estado })),
     pendencias: status.pendencias.filter((p) => p.jaFoiPedido).map((p) => p.descricao),
+    // ── O CARD DO PACOTE (CEO, 08/08/2026) ────────────────────────────────
+    // O botão "Aprovar tudo" deixou de ser derivado do TEXTO da etapa
+    // ("tudo pronto", casado por `includes`) e passa a vir daqui, medido no
+    // servidor. Casar botão com frase é dívida: a frase muda por motivo de
+    // redação e o botão muda de comportamento junto, sem ninguém perceber.
+    //
+    // `prontas` sobe com nome de cliente porque o card TEM de listar o que
+    // está dentro — ele estava pedindo assinatura sem dizer em quê.
+    pacote: {
+      pedeAprovacao: status.pacote.pedeAprovacao,
+      prontas: status.pacote.prontas.map((i) => i.titulo),
+      emProducao: status.pacote.emProducao.map((i) => i.titulo),
+    },
     ciclo: status.ciclo ? { referencia: status.ciclo.referencia, resumo: status.ciclo.resumo } : null,
   });
 }

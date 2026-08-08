@@ -252,8 +252,55 @@ describe("a esteira, de ponta a ponta, com banco real", () => {
     expect(apresentacao.authorName).toBe("Gerente de projeto");
   });
 
-  it("7. a bola passou para o cliente — a esteira sabe disso sem ninguém avisar", async () => {
+  // ⚠️ 08/08/2026 — ESTA ASSERÇÃO MUDOU DE LADO, e é a segunda vez neste teste.
+  //
+  // Ela dizia, direto: `fase === "aprovacao_cliente"`. Mas o passo 6 acima já
+  // tinha PROVADO, com banco real, que neste caminho `deptsComCorpo` é VAZIO —
+  // departamento nasce em `sombra`, nenhuma entrega vira "compartilhado" e
+  // NENHUM card tem corpo. Ou seja: a jornada afirmava "a bola passou para o
+  // cliente" sobre um pacote em que ele não tinha uma linha para ler.
+  //
+  // Era o mesmo defeito escrito como contrato, um nível acima — e foi
+  // exatamente o que o CEO viu no portal do CityJobs em 08/08: "O pacote
+  // inteiro está pronto para você" + "Aprovar tudo", sobre três entregas
+  // dizendo "material ainda não subiu".
+  //
+  // Agora a jornada prova os DOIS mundos, na ordem em que a casa os vive.
+  it("7. escada em sombra: a esteira NÃO cobra decisão, e o servidor recusa o aval", async () => {
     const status = await statusDoProjeto(projectId);
+
+    expect(status?.pacote.medido).toBe(true);
+    expect(status?.pacote.pedeAprovacao).toBe(false);
+    // A bola é da agência: ele não é cobrado por uma decisão que não tem como
+    // tomar, e o botão "Aprovar tudo" some junto (as telas derivam daqui).
+    expect(status?.leitura.responsavel).not.toBe("cliente");
+    expect(status?.leitura.paraCliente.oQueEsperamosDeVoce).toBe("");
+    expect(status?.leitura.paraCliente.titulo.toLowerCase()).not.toContain("tudo pronto");
+
+    // TRAVA, NÃO AVISO: a rota do portal é pública por token. Esconder o botão
+    // não impede um link antigo de chegar aqui.
+    const recusa = await aprovarPacote(projectId);
+    expect(recusa.ok).toBe(false);
+    const projeto = await prisma.project.findUnique({ where: { id: projectId } });
+    expect(projeto?.clientApprovedAt).toBeNull();
+    expect(await prisma.cycle.count({ where: { projectId } })).toBe(0);
+  });
+
+  it("7b. departamento que SUBIU de degrau: aí sim a bola passa para o cliente", async () => {
+    // A outra metade da trava. Sem ela, a regra nova poderia estar barrando
+    // tudo — inclusive o pacote legítimo — e o teste ficaria verde do mesmo
+    // jeito. É o estado que a escada produz em `wide`: a entrega é
+    // compartilhada e o card dela sobe com corpo.
+    await prisma.deliverable.updateMany({ where: { projectId }, data: { visibility: "compartilhado" } });
+    await prisma.approvalRequest.updateMany({ where: { clientRequestId }, data: { clientVisible: true } });
+
+    const status = await statusDoProjeto(projectId);
+    expect(status?.pacote.pedeAprovacao).toBe(true);
+    expect(status?.pacote.prontas.length).toBeGreaterThan(0);
+    // O card LISTA o que está dentro — com nome de cliente, nunca id de agente.
+    for (const item of status!.pacote.prontas) {
+      expect(item.titulo).not.toMatch(/^(a\d|social-media|paid-traffic)$/);
+    }
     expect(status?.leitura.fase).toBe("aprovacao_cliente");
     expect(status?.leitura.paraCliente.oQueEsperamosDeVoce.length).toBeGreaterThan(10);
   });

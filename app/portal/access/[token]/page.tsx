@@ -95,6 +95,13 @@ interface EstadoEsteira {
   aBolaEstaComVoce?: boolean;
   pendencias?: string[];
   ciclo?: { referencia: string; resumo: string | null } | null;
+  /**
+   * ── O CARD DO PACOTE, MEDIDO NO SERVIDOR (CEO, 08/08/2026) ──────────────
+   * `pedeAprovacao` é `true` só quando existe pelo menos uma entrega com
+   * material. Ausente = NÃO PEDE (fail closed): servidor antigo ou resposta
+   * truncada não podem produzir um botão que aprova às cegas.
+   */
+  pacote?: { pedeAprovacao: boolean; prontas: string[]; emProducao: string[] } | null;
 }
 
 // O projeto como a rota /api/portal/projetos entrega: por clientId, já na
@@ -681,6 +688,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
   // A decisão de andamento, derivada da MESMA etapa que a esteira mostra — para
   // as duas telas nunca discordarem sobre a bola estar com o cliente.
   const etapaEsteira = (esteira?.etapa ?? "").toLowerCase();
+  const pacoteDaEsteira = esteira?.pacote ?? null;
   const decisaoDaEsteira: DecisaoDaEsteira | null = etapaEsteira.includes("confirme o caminho")
     ? {
         titulo: "Confirme o caminho do projeto",
@@ -688,11 +696,34 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
         rotulo: "Aprovar e começar",
         decidir: () => decidirEsteira("aprovar_direcao"),
       }
-    : etapaEsteira.includes("tudo pronto")
+    // ── 08/08/2026 — O TOPO MENTIA, E O RODAPÉ JÁ ERA HONESTO ──────────────
+    //
+    // O CEO abriu o portal do CityJobs: aqui em cima, "O pacote inteiro está
+    // pronto para você" + "Aprovar tudo". Três dedos abaixo, as TRÊS entregas
+    // (Analytics, Social Media, Estratégia) dizendo "material ainda não subiu",
+    // em "Em produção na Dioli". As duas não podem ser verdade — e clicar
+    // aprovaria NADA, às cegas.
+    //
+    // A causa: este card saía de `etapa.includes("tudo pronto")`, e a etapa
+    // saía de `presentedAt` sozinho — um carimbo que diz "o PM apresentou",
+    // nunca "há o que ver". O card individual ganhou `semConteudo` em 07/08; o
+    // do PACOTE, um nível acima, ficou sem ninguém olhando.
+    //
+    // Agora quem responde é o servidor (`pacote.pedeAprovacao`, a MESMA regra
+    // de `semConteudo`), e a descrição LISTA o que está dentro: pedir
+    // assinatura sem dizer em quê é a mesma aprovação às cegas com outra roupa.
+    : pacoteDaEsteira?.pedeAprovacao
       ? {
-          titulo: "O pacote inteiro está pronto para você",
-          descricao: "Terminamos e organizamos tudo. Aprovar o pacote libera a publicação do calendário e coloca o trabalho em operação. Você pode decidir item por item nas linhas abaixo, ou aprovar tudo de uma vez.",
-          rotulo: "Aprovar tudo",
+          titulo: pacoteDaEsteira.prontas.length === 1
+            ? "1 entrega está pronta para você"
+            : `${pacoteDaEsteira.prontas.length} entregas estão prontas para você`,
+          descricao:
+            `Nesta aprovação vão: ${pacoteDaEsteira.prontas.join(", ")}. `
+            + (pacoteDaEsteira.emProducao.length > 0
+                ? `Ainda em produção, e fora desta aprovação: ${pacoteDaEsteira.emProducao.join(", ")}. `
+                : "")
+            + "Aprovar libera a publicação do calendário. Você pode decidir item por item nas linhas abaixo, ou aprovar de uma vez.",
+          rotulo: pacoteDaEsteira.prontas.length === 1 ? "Aprovar esta entrega" : "Aprovar as entregas prontas",
           decidir: () => decidirEsteira("aprovar_pacote"),
         }
       : null;

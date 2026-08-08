@@ -75,6 +75,27 @@ export interface RetratoDoProjeto {
   postsPublicados?: number;
   /** Posts aprovados esperando a data chegar. */
   postsAgendados?: number;
+  /**
+   * ── QUANTAS ENTREGAS O CLIENTE PODE DE FATO DECIDIR AGORA ────────────────
+   *
+   * Aprovações pendentes, visíveis ao cliente, **com corpo** — a mesma conta
+   * que o portal usa para decidir se um card ganha os botões de decisão
+   * (`semConteudo`, invertido). Quem responde é `retratoDoPacote`
+   * (`lib/agency/esteira/pacote.ts`).
+   *
+   * Por que precisou existir (CEO, 08/08/2026): a fase "Tudo pronto para você
+   * ver" saía de `apresentadoEm` sozinho — um carimbo que só diz "o PM
+   * apresentou", nunca "há o que ver". No portal do CityJobs isso virou "O
+   * pacote inteiro está pronto para você" + "Aprovar tudo" no topo, com as
+   * TRÊS entregas logo abaixo dizendo "material ainda não subiu".
+   *
+   * OPCIONAL, e o `undefined` é deliberado: retrato montado à mão em teste (e
+   * qualquer chamador que ainda não meça isto) continua lendo a fase antiga.
+   * Fosse obrigatório, todo teste existente teria de ser reescrito, e a
+   * pressão seria escrever `0` sem medir — que faria "não sei" virar "não há",
+   * exatamente o defeito que este campo existe para matar.
+   */
+  decisoesDisponiveis?: number;
 }
 
 export interface LeituraDaFase {
@@ -215,6 +236,30 @@ export function lerFase(r: RetratoDoProjeto): LeituraDaFase {
 
   // ── Apresentado e esperando a palavra do cliente ──────────────────────────
   if (preenchido(r.apresentadoEm)) {
+    // ⚠️ 08/08/2026 — APRESENTADO NÃO É O MESMO QUE PRONTO.
+    //
+    // `apresentadoEm` diz que o PM apertou "apresentar". Não diz que existe uma
+    // linha de conteúdo do outro lado. No portal do CityJobs os dois se
+    // separaram na cara do CEO: o topo dizia "O pacote inteiro está pronto para
+    // você" com o botão "Aprovar tudo", e as três entregas logo abaixo diziam
+    // "material ainda não subiu". Clicar aprovaria NADA, às cegas.
+    //
+    // Quando a conta EXISTE e dá zero, a bola volta para a agência: o cliente
+    // não é cobrado por uma decisão que ele não tem como tomar, e o botão some
+    // junto — as duas telas derivam o botão desta etapa.
+    //
+    // `undefined` (ninguém mediu) mantém a leitura antiga de propósito: ausência
+    // de informação não é informação, e inventar "zero" aqui esconderia o
+    // pacote legítimo de todo chamador que ainda não passa o número.
+    if (r.decisoesDisponiveis === 0) {
+      return montar("revisao_interna", "andando", "agentes",
+        { titulo: "Apresentado, mas sem nada para o cliente decidir",
+          agora: "O pacote foi apresentado e NENHUMA aprovação pendente tem corpo — o cliente não tem o que assinar.",
+          proximoPasso: "Terminar o material das entregas pendentes. Enquanto não houver corpo, o portal não pede aprovação." },
+        { titulo: "Ainda estamos produzindo",
+          agora: "Estas entregas ainda não têm material para você ver. Assim que a primeira ficar pronta, ela aparece aqui para a sua decisão.",
+          oQueEsperamosDeVoce: "" });
+    }
     return montar("aprovacao_cliente", "esperando", "cliente",
       { titulo: "Na mão do cliente",
         agora: "O pacote foi apresentado. Aguardando aprovação.",

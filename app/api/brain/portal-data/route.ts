@@ -10,10 +10,16 @@ import { requireSession } from "@/lib/auth/api-guard";
 // copiada para outros dois lugares — onde já divergia. Uma trava de segurança
 // com três versões é três políticas com o mesmo nome.
 import { clienteDoWorkspace, solicitacaoDoWorkspace } from "@/lib/auth/posse-de-workspace";
-import { cardGenerico } from "@/lib/agency/persistence/approval-service";
 // A relação agente→departamento tem UMA forma canônica nesta casa, e é a que a
 // escada de exposição usa. Ver o bloco em `buildPortalData`.
-import { departamentoDoAgente } from "@/lib/agency/escada/degraus";
+// A consulta do card, o agrupamento dos genéricos, as peças estruturadas e a
+// regra de "este card tem o que mostrar" — UMA implementação, dois chamadores
+// (este arquivo e o card do pacote em `lerFase`/`aprovarPacote`).
+import {
+  buscarAprovacoes, semDuplicatas, montarPecas, conteudoPorDepartamento,
+  corpoDoCard, cardTemCorpo,
+  type AprovacaoDb, type PecaDoCard,
+} from "@/lib/agency/esteira/pacote";
 
 // O nome que o CLIENTE vê. Precisa cobrir os dois vocabulários: o do Brain
 // (`social`, `traffic`) e o do motor de produção (`social-media`,
@@ -175,182 +181,13 @@ function summarizeCanvas(canvas: unknown): { headline: string | null; bullets: s
 // A consulta e o mapeamento do card de aprovação num lugar só: os DOIS estados
 // do portal (com solicitação e cliente direto) precisam falar a mesma língua —
 // era a divergência entre eles que fazia o Início prometer uma aba vazia.
-type FiltroDeAprovacao =
-  | { clientId: string; clientVisible: true }
-  | { clientVisible: true; OR: Array<{ clientRequestId: string } | { clientId: string }> };
-
-function buscarAprovacoes(where: FiltroDeAprovacao) {
-  return prisma.approvalRequest.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-    include: {
-      comments: {
-        where: { isClientVisible: true },
-        orderBy: { createdAt: "asc" },
-        select: { id: true, authorName: true, authorRole: true, kind: true, body: true, createdAt: true },
-      },
-      // O vínculo por FK à versão decidida (Fase 2, 2.2) — quando existe, é
-      // ELE que dá o corpo do card, nunca casamento por ordem.
-      // `mediaAssetIds` entra para o fallback visual das peças (montarPecas).
-      // `visibility` da ENTREGA entra no select porque a peça montada a partir
-      // de `mediaAssetIds` precisa dele: sem isso o ramo de mídia era
-      // fail-open — entrega nascida "interno" (o default do schema) virava
-      // arte na tela do cliente só porque alguém marcou a aprovação como
-      // clientVisible. Ver montarPecas.
-      deliverableVersion: {
-        select: {
-          number: true, content: true, mediaAssetIds: true,
-          deliverable: { select: { name: true, visibility: true } },
-        },
-      },
-    },
-  });
-}
-
-type AprovacaoDb = Awaited<ReturnType<typeof buscarAprovacoes>>[number];
-
-/**
- * ── UMA DECISÃO, UM CARD (CEO, 07/08/2026) ────────────────────────────────
- * O motor cria uma aprovação por ESPECIALISTA, todas com o mesmo
- * `department`. Quando o card não tem nada que o distinga — sem nota própria,
- * sem versão vinculada, sem posts — os irmãos ficavam idênticos na tela:
- * "Pauta do Mês — <negócio>" três vezes, "Estratégia" duas.
- *
- * A trava de escrita (`createApprovalRequest`) impede novos. Esta função
- * conserta o que JÁ está no banco: dos genéricos de um mesmo departamento e
- * status, sobra o mais recente. Card com conteúdo próprio nunca é agrupado.
- *
- * E o outro lado da regra: decidir o card que sobrou fecha os irmãos
- * escondidos (`decidirIrmaosGenericos` em /api/portal/approvals) — nada fica
- * "pendente" fora da tela.
- */
-function semDuplicatas(aprovacoes: AprovacaoDb[]): AprovacaoDb[] {
-  const vistos = new Set<string>();
-  const saida: AprovacaoDb[] = [];
-  // `buscarAprovacoes` já ordena por createdAt desc — o primeiro de cada grupo
-  // é o mais recente, que é o que o cliente deve decidir.
-  for (const ap of aprovacoes) {
-    if (!cardGenerico(ap)) { saida.push(ap); continue; }
-    const chave = `${ap.department}::${ap.status}`;
-    if (vistos.has(chave)) continue;
-    vistos.add(chave);
-    saida.push(ap);
-  }
-  return saida;
-}
-
-/** Parse defensivo de uma lista JSON de strings — JSON quebrado vira []. */
-function lerLista(bruto: string | null | undefined): string[] {
-  try {
-    const v = JSON.parse(bruto ?? "[]");
-    return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
-  } catch {
-    return [];
-  }
-}
-
-/** Uma peça do card de aprovação, ESTRUTURADA — imagem + legenda, como no
- *  planner da Meta. O reviewNote textual continua como resumo/fallback para
- *  cards antigos; a UI nova renderiza daqui. */
-type PecaDoCard = {
-  id: string;
-  caption: string;
-  format: string;
-  pillar: string | null;
-  scheduledFor: string | null;
-  /** A miniatura (mediaUrl do post — a capa do carrossel). */
-  capa: string | null;
-  /** TODAS as telas do carrossel (mediaUrlsJson), na ordem de publicação. */
-  telas: string[];
-};
-
-/**
- * Monta as peças estruturadas de cada card a partir de `sourcePostIdsJson`
- * (a única ponte Approval→SocialPost — antes só usada na escrita).
- *
- * Fronteira do portal, fail-closed:
- *   • só post com visibility "compartilhado" entra (a consulta já filtra);
- *   • só post do MESMO dono do card entra (clientId, ou clientRequestId quando
- *     o card não tem clientId) — id de post de outro cliente num card não
- *     abre porta para o conteúdo dele.
- *
- * Fallback: card sem posts mas com versão vinculada por FK e mídias
- * (`DeliverableVersion.mediaAssetIds`, nunca lido até hoje) vira UMA peça com
- * as URLs `/api/media/<id>`.
- */
-async function montarPecas(aprovacoes: AprovacaoDb[]): Promise<Map<string, PecaDoCard[]>> {
-  const resultado = new Map<string, PecaDoCard[]>();
-  const todosIds = [...new Set(aprovacoes.flatMap((ap) => lerLista(ap.sourcePostIdsJson)))];
-  const posts = todosIds.length
-    ? await prisma.socialPost.findMany({
-        where: { id: { in: todosIds }, visibility: "compartilhado" },
-        select: {
-          id: true, clientId: true, clientRequestId: true, caption: true, format: true,
-          pillar: true, scheduledFor: true, mediaUrl: true, mediaUrlsJson: true,
-        },
-      })
-    : [];
-  const porId = new Map(posts.map((p) => [p.id, p]));
-
-  for (const ap of aprovacoes) {
-    const pecas: PecaDoCard[] = [];
-    // A ordem do card é a ordem gravada em sourcePostIdsJson (data proposta).
-    for (const postId of lerLista(ap.sourcePostIdsJson)) {
-      const p = porId.get(postId);
-      if (!p) continue;
-      // Posse por QUALQUER uma das duas chaves do card — fail-closed no fim.
-      // Antes era `clientId` OU `clientRequestId`, com o clientId ganhando
-      // exclusividade: como POST /api/social-posts aceita `clientId` nulo com
-      // `clientRequestId` resolvido, a peça legítima sumia do card em silêncio
-      // e o cliente aprovava 5 achando que eram 6. Agora casa por qualquer uma
-      // das duas; não casando em nenhuma, cai fora — e o log diz que caiu.
-      const porCliente    = !!ap.clientId        && p.clientId        === ap.clientId;
-      const porSolicitacao = !!ap.clientRequestId && p.clientRequestId === ap.clientRequestId;
-      if (!porCliente && !porSolicitacao) {
-        console.warn(
-          `[portal-data] peça descartada: post ${p.id} não pertence ao card ${ap.id} ` +
-          `(post: clientId=${p.clientId ?? "—"} clientRequestId=${p.clientRequestId ?? "—"} · ` +
-          `card: clientId=${ap.clientId ?? "—"} clientRequestId=${ap.clientRequestId ?? "—"})`,
-        );
-        continue;
-      }
-      pecas.push({
-        id: p.id,
-        caption: p.caption,
-        format: p.format,
-        pillar: p.pillar,
-        scheduledFor: p.scheduledFor ? p.scheduledFor.toISOString() : null,
-        capa: p.mediaUrl,
-        telas: lerLista(p.mediaUrlsJson),
-      });
-    }
-
-    // Fallback por FK: só de entrega EXPLICITAMENTE compartilhada. O corpo do
-    // card já filtra `visibility` (deliverables, abaixo); o ramo de mídia não
-    // filtrava nada — e mídia é o que o cliente vê primeiro. Entrega "interno"
-    // ou "aguardando_publicacao" não vira arte no portal, nem com a aprovação
-    // marcada clientVisible.
-    const entregaCompartilhada =
-      ap.deliverableVersion?.deliverable.visibility === "compartilhado";
-    if (pecas.length === 0 && ap.deliverableVersion && entregaCompartilhada) {
-      const midias = lerLista(ap.deliverableVersion.mediaAssetIds).map((id) => `/api/media/${id}`);
-      if (midias.length > 0) {
-        pecas.push({
-          id: `${ap.id}-versao`,
-          caption: ap.deliverableVersion.content ?? "",
-          format: "arquivo",
-          pillar: null,
-          scheduledFor: null,
-          capa: midias[0] ?? null,
-          telas: midias,
-        });
-      }
-    }
-
-    resultado.set(ap.id, pecas);
-  }
-  return resultado;
-}
+// ⚠️ 08/08/2026 — A CONSULTA, O AGRUPAMENTO, AS PEÇAS E A REGRA DE "TEM CORPO"
+// MUDARAM DE CASA: agora moram em `lib/agency/esteira/pacote.ts`.
+//
+// Nada foi reescrito — ganharam um SEGUNDO chamador. O card do PACOTE ("Aprovar
+// tudo") precisava responder à mesma pergunta que `semConteudo` responde aqui,
+// e escrever uma segunda versão dela seria repetir o defeito nº 2 do incidente
+// do Drive: duas fontes de verdade adjacentes que divergem na primeira mudança.
 
 function mapearAprovacao(
   ap: AprovacaoDb,
@@ -359,12 +196,7 @@ function mapearAprovacao(
 ) {
   // O corpo do card, calculado UMA vez: é ele que decide o texto e também se o
   // card tem o direito de pedir uma decisão.
-  const corpo =
-    (ap.deliverableVersion
-      ? `${ap.deliverableVersion.deliverable.name}\n\n${ap.deliverableVersion.content ?? ""}`.trim()
-      : null)
-    || ap.reviewNote
-    || (ap.department !== "proposal" ? deliverableContentFor(ap.department) : null);
+  const corpo = corpoDoCard(ap, deliverableContentFor);
 
   return {
     id:         ap.id,
@@ -396,7 +228,7 @@ function mapearAprovacao(
     // a lição de 07/08 (o Drive): quando a tela infere um fato sobre o cliente a
     // partir do que ela não conseguiu ler, falha de leitura vira afirmação
     // falsa. Aqui existe uma fonte de verdade e é esta.
-    semConteudo: !corpo?.trim() && pecas.length === 0,
+    semConteudo: !cardTemCorpo(ap, deliverableContentFor, pecas),
     comments:   ap.comments,
   };
 }
@@ -439,39 +271,18 @@ async function buildPortalData(clientRequestId: string) {
   // de completude (Fase 2, 2.2). O filtro de `visibility` é a outra metade:
   // entrega "interno" nunca abastece card de portal, mesmo do próprio cliente.
   const project = await prisma.project.findFirst({ where: { clientRequestId }, select: { id: true } });
-  const deliverables = project
-    ? await prisma.deliverable.findMany({
-        where: { projectId: project.id, visibility: "compartilhado" },
-        orderBy: { createdAt: "asc" },
-        select: { name: true, content: true, ownerAgentId: true },
-      })
-    : [];
-  // ⚠️ 07/08/2026 — AQUI MORAVA UM MAPA DE 3 LINHAS PARA 14 ESPECIALISTAS.
+  // ⚠️ 07/08/2026 — AQUI MORAVA UM MAPA DE 3 LINHAS PARA 14 ESPECIALISTAS
+  // (`{ a3, a2, a4 }`), e todo id fora dessas três letras resolvia `undefined`:
+  // a entrega era descartada em silêncio. Foi metade da causa do card
+  // "Estratégia / Estratégia" que o CEO abriu em produção e encontrou VAZIO.
   //
-  // Era `{ a3: "social-media", a2: "design", a4: "paid-traffic" }`: os ids
-  // HISTÓRICOS do primeiro especialista de três departamentos. A casa tem hoje
-  // ~14 especialistas (`TODOS_OS_ESPECIALISTAS`), e todo id fora dessas três
-  // letras — `strategy-posicionamento`, `strategy-concorrencia`, `a5`,
-  // `analytics-otimizacao`, `social-copy`, `social-roteiro-video`,
-  // `design-criativo-*`, `traffic-*`, `financeiro` — resolvia `undefined` e a
-  // entrega era DESCARTADA em silêncio. Foi metade da causa do card
-  // "Estratégia / Estratégia" e "Analytics / Analytics" que o CEO abriu em
-  // produção e encontrou VAZIO: o texto estava no banco e o portal não sabia
-  // ler o dono dele.
-  //
-  // Não é um mapa a mais para manter: `departamentoDoAgente` já é a forma
-  // canônica desta casa (`lib/agency/escada/degraus.ts`), a MESMA que a escada
-  // de exposição usa para decidir o que pode ser compartilhado. Duas cópias da
-  // relação agente→departamento são duas políticas com o mesmo nome — e esta
-  // aqui já divergia da outra em 11 dos 14 casos.
-  const contentByDept = new Map<string, string>();
-  for (const dv of deliverables) {
-    const dept = departamentoDoAgente(dv.ownerAgentId);
-    const body = dv.content ? `${dv.name}\n\n${dv.content}` : dv.name;
-    if (dept && !contentByDept.has(dept)) contentByDept.set(dept, body);
-  }
-  const deliverableContentFor = (deptRaw: string): string | null =>
-    contentByDept.get(deptRaw) ?? null;
+  // Em 08/08 o casamento entrega→departamento saiu daqui e virou
+  // `conteudoPorDepartamento` (`lib/agency/esteira/pacote.ts`), pela mesma razão
+  // de sempre: o card do PACOTE precisa da mesma resposta, e duas cópias da
+  // relação agente→departamento são duas políticas com o mesmo nome.
+  const deliverableContentFor = project
+    ? await conteudoPorDepartamento(project.id)
+    : () => null;
 
   const services = (() => { try { return JSON.parse(clientRequest.services); } catch { return []; } })();
   const objectives = (() => { try { return JSON.parse(clientRequest.objectives); } catch { return []; } })();
