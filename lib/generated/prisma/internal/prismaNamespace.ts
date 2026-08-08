@@ -410,6 +410,7 @@ export const ModelName = {
   TimelineEvent: 'TimelineEvent',
   ActivityEvent: 'ActivityEvent',
   AIRunLog: 'AIRunLog',
+  LancamentoFinanceiro: 'LancamentoFinanceiro',
   TrainingBatch: 'TrainingBatch',
   DbSimulationRun: 'DbSimulationRun',
   DbAgentSuggestion: 'DbAgentSuggestion',
@@ -455,7 +456,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord" | "conexaoGasta"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "lancamentoFinanceiro" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord" | "conexaoGasta"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2380,6 +2381,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.AIRunLogCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.AIRunLogCountAggregateOutputType> | number
+        }
+      }
+    }
+    LancamentoFinanceiro: {
+      payload: Prisma.$LancamentoFinanceiroPayload<ExtArgs>
+      fields: Prisma.LancamentoFinanceiroFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.LancamentoFinanceiroFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LancamentoFinanceiroPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.LancamentoFinanceiroFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LancamentoFinanceiroPayload>
+        }
+        findFirst: {
+          args: Prisma.LancamentoFinanceiroFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LancamentoFinanceiroPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.LancamentoFinanceiroFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LancamentoFinanceiroPayload>
+        }
+        findMany: {
+          args: Prisma.LancamentoFinanceiroFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LancamentoFinanceiroPayload>[]
+        }
+        create: {
+          args: Prisma.LancamentoFinanceiroCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LancamentoFinanceiroPayload>
+        }
+        createMany: {
+          args: Prisma.LancamentoFinanceiroCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.LancamentoFinanceiroCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LancamentoFinanceiroPayload>[]
+        }
+        delete: {
+          args: Prisma.LancamentoFinanceiroDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LancamentoFinanceiroPayload>
+        }
+        update: {
+          args: Prisma.LancamentoFinanceiroUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LancamentoFinanceiroPayload>
+        }
+        deleteMany: {
+          args: Prisma.LancamentoFinanceiroDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.LancamentoFinanceiroUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.LancamentoFinanceiroUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LancamentoFinanceiroPayload>[]
+        }
+        upsert: {
+          args: Prisma.LancamentoFinanceiroUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LancamentoFinanceiroPayload>
+        }
+        aggregate: {
+          args: Prisma.LancamentoFinanceiroAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateLancamentoFinanceiro>
+        }
+        groupBy: {
+          args: Prisma.LancamentoFinanceiroGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LancamentoFinanceiroGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.LancamentoFinanceiroCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LancamentoFinanceiroCountAggregateOutputType> | number
         }
       }
     }
@@ -5129,6 +5204,29 @@ export const AIRunLogScalarFieldEnum = {
 export type AIRunLogScalarFieldEnum = (typeof AIRunLogScalarFieldEnum)[keyof typeof AIRunLogScalarFieldEnum]
 
 
+export const LancamentoFinanceiroScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  tipo: 'tipo',
+  categoria: 'categoria',
+  descricao: 'descricao',
+  valorCentavos: 'valorCentavos',
+  moeda: 'moeda',
+  origem: 'origem',
+  natureza: 'natureza',
+  competencia: 'competencia',
+  clientId: 'clientId',
+  projectId: 'projectId',
+  centroDeCusto: 'centroDeCusto',
+  criadoPor: 'criadoPor',
+  observacao: 'observacao',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type LancamentoFinanceiroScalarFieldEnum = (typeof LancamentoFinanceiroScalarFieldEnum)[keyof typeof LancamentoFinanceiroScalarFieldEnum]
+
+
 export const TrainingBatchScalarFieldEnum = {
   id: 'id',
   mode: 'mode',
@@ -5830,6 +5928,7 @@ export type GlobalOmitConfig = {
   timelineEvent?: Prisma.TimelineEventOmit
   activityEvent?: Prisma.ActivityEventOmit
   aIRunLog?: Prisma.AIRunLogOmit
+  lancamentoFinanceiro?: Prisma.LancamentoFinanceiroOmit
   trainingBatch?: Prisma.TrainingBatchOmit
   dbSimulationRun?: Prisma.DbSimulationRunOmit
   dbAgentSuggestion?: Prisma.DbAgentSuggestionOmit

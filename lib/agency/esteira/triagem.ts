@@ -516,7 +516,7 @@ async function classificarEEncaminhar(pedidoId: string): Promise<ResultadoDaTria
     "──────── FIM DO PEDIDO ────────",
   ].join("\n");
 
-  const r = await generate({ system: SISTEMA, user, maxTokens: 500, workspaceId: cliente.workspaceId });
+  const r = await generate({ system: SISTEMA, user, maxTokens: 500, workspaceId: cliente.workspaceId, agentId: "esteira-triagem", clientId: cliente.id });
   if (!r.ok) {
     // Degradação declarada. Sem IA não existe classificação — e classificar por
     // regra fixa aqui pareceria julgamento sem ser.

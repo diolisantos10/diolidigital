@@ -122,7 +122,7 @@ export async function qualificarOportunidade(entrada: {
     "──────── FIM DO ANÚNCIO ────────",
   ].join("\n");
 
-  const r = await generate({ system: SISTEMA, user, maxTokens: 1200, workspaceId: entrada.workspaceId });
+  const r = await generate({ system: SISTEMA, user, maxTokens: 1200, workspaceId: entrada.workspaceId, agentId: "comercial-qualificar" });
   if (!r.ok) return { ok: false, motivo: r.error };
 
   let bruto: Record<string, unknown>;

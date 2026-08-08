@@ -312,6 +312,9 @@ const QUALIFICADOR_DO_ALCANCE: Record<string, string> = {
  * aqui a peça é a que o cliente usa para decidir se continua pagando.
  */
 export async function escreverRelatorio(input: {
+  /** DE QUEM é a conta deste relatório. */
+  clientId?: string | null;
+  projectId?: string | null;
   workspaceId: string;
   nomeDoNegocio: string;
   referencia: string;
@@ -387,6 +390,9 @@ export async function escreverRelatorio(input: {
       "Se um número não está acima, ele não existe para você.",
     maxTokens: 1400,
     workspaceId: input.workspaceId,
+    agentId: "esteira-relatorio-mes",
+    clientId: input.clientId ?? null,
+    projectId: input.projectId ?? null,
   });
   if (!r.ok) return null;
 
@@ -477,6 +483,8 @@ export async function virarOMes(projectId: string, ciclo: CicloResumido): Promis
   const nome = projeto.client?.name ?? "o cliente";
   const relatorio = await escreverRelatorio({
     workspaceId: projeto.workspaceId,
+    clientId: projeto.clientId,
+    projectId,
     nomeDoNegocio: nome,
     referencia: ciclo.referencia,
     medicao,
@@ -524,6 +532,8 @@ export async function virarOMes(projectId: string, ciclo: CicloResumido): Promis
           "Todo número deste relatório foi medido, não estimado. Reprove se o texto afirmar resultado, comparação ou causa que os números não sustentam.",
         ].join("\n"),
         workspaceId: projeto.workspaceId,
+        clientId: projeto.clientId ?? null,
+        projectId,
       }).catch(() => null)
     : null;
   // `auditDeliverable` já é fail-safe, mas a virada do mês não pode morrer por

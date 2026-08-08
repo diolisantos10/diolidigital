@@ -161,6 +161,10 @@ export async function auditDeliverable(input: {
   /** Qual modelo ESCREVEU a peça. O árbitro é escolhido para não ser ele. */
   provedorDoAutor?: string | null;
   workspaceId: string;
+  /** DE QUEM é a conta desta auditoria. A Qualidade custa dinheiro e o custo é
+   *  do cliente auditado — sem isto ele caía em "gasto sem dono". */
+  clientId?: string | null;
+  projectId?: string | null;
 }): Promise<QualityVerdict> {
   const arbitro = escolherArbitro(input.provedorDoAutor);
   const autor = (input.provedorDoAutor ?? "claude").trim().toLowerCase();
@@ -200,6 +204,9 @@ Responda JSON: {"verdict":"pass"|"flag","issues":["problema 1","problema 2"],"no
       maxTokens: 500,
       workspaceId: input.workspaceId,
       preferredProvider: arbitro,
+      agentId: "quality-auditor",
+      clientId: input.clientId ?? null,
+      projectId: input.projectId ?? null,
     });
 
     // O timeout é do AUDITOR, não do provedor: provedor que pendura a conexão

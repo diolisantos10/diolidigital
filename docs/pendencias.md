@@ -1,5 +1,102 @@
 # Pendências — o que está aberto
 
+## 🟢 08/08/2026 — NASCE O DEPARTAMENTO FINANCEIRO, e a conta de IA parou de medir um terço
+
+**A consequência, primeiro:** até 07/08 a casa gravava o custo de cada chamada
+de IA, mas **22 dos 32 pontos de chamada não diziam de quem era a conta**.
+"Quanto cada agente gasta" e "quanto este cliente custa" tinham resposta, e a
+resposta era uma amostra de tamanho desconhecido — o pior tipo de número, porque
+tem cara de completo. (O item 4 de `docs/perguntas-ao-diretor-geral.md` já
+apontava isso e está fechado.)
+
+### O que fechou
+
+- **`agentId` virou OBRIGATÓRIO em `generate()`** (`lib/ai/generate.ts`).
+  Chamada nova sem dono **não compila**; o portão (`npx tsc --noEmit`) reprova.
+  Os 22 pontos foram fechados, e onde havia cliente/projeto à mão eles entraram
+  junto (`clientId`, `projectId`) — inclusive na Qualidade, que auditava de
+  graça na conta de ninguém.
+- **O dono sai de um registro fechado** (`lib/ai/donos.ts`), e o **departamento
+  que paga é derivado dele**. Achado ao construir: as 6 telas de `/api/agents/*`
+  gravavam `"social"`, `"design"`, `"ads"`… — grafias que não casam com os ids
+  dos especialistas. Ficaram **como estão**, registradas com o departamento
+  certo: renomeá-las partiria o histórico em duas linhas para o mesmo trabalho,
+  que é o defeito que o registro existe para impedir.
+- **A trava tem as duas metades provadas**
+  (`__tests__/ai/todo-gasto-tem-dono.test.ts`, 10 testes): reprova chamada sem
+  `agentId` **e** dono fora do registro; não reprova o repositório limpo nem
+  `generate({` citado em comentário. O teste também exige achar mais de 20
+  chamadas — varredura que quebra e encontra zero ficaria verde para sempre.
+
+### O departamento
+
+- **`financeiro` em `lib/dioli-brain/departments.ts`**, com o **mesmo id** já
+  usado em `especialistas.ts`. Departamento é a casa: ela tem o plano de
+  investimento que o CLIENTE recebe (especialista `financeiro-plano`, que já
+  existia) e os livros DA AGÊNCIA (novos). Id novo criaria dois "financeiros" no
+  painel e na escada. **Não é um sexto Essencial** — é departamento de domínio.
+- **Nasce em SOMBRA por mecanismo, não por promessa:** `degrauDeclarado()`
+  devolve `sombra` para linha ausente, e `departamentosDaCasa()` já o enxerga.
+- **`firstVersionStatus: "partial"`, declarado:** o DRE e a medição de IA
+  existem; **conciliação bancária, contas a pagar/receber e regime de caixa
+  NÃO existem.**
+
+### A tela — `/agency/financeiro`, seção própria no menu
+
+Responde as duas perguntas ao mesmo tempo: **"como está a agência?"** (DRE:
+receita, custo direto, despesa, resultado) e **"este projeto se paga?"** (uma
+linha por centro de custo, **ordenada do pior resultado para o melhor** — quem
+dá prejuízo aparece primeiro, nunca no rodapé). Mais custo de IA **por agente** e
+**por cliente**, e o livro de lançamentos do mês. Rota fechada a `master` e
+`project_manager` no servidor, não só no menu.
+
+**As regras que a fazem valer alguma coisa, e cada uma tem teste**
+(`__tests__/financeiro/dre-nao-escreve-zero.test.ts`, 18 testes):
+
+- **`Dinheiro` tem TRÊS estados** — `medido`, `nao_medido`, `nao_lancado` — e a
+  soma **se recusa a somar**: parcela não medida contamina o total em vez de
+  virar zero. "Não medido" e "custou zero" nunca compartilham pixel.
+- **Toda linha carrega procedência** (registro de IA · manual · contrato ·
+  extrato) e ela aparece na tela, não no log.
+- **Estimado em linha separada**, fora do resultado.
+- **Falha de LEITURA vira erro nomeado**, nunca uma tela de zeros — a lição dos
+  três `.catch(() => null)` de 07/08 aplicada a dinheiro.
+
+**Conferido nos 3 tamanhos (375/768/1440) com a tela renderizada de verdade, e
+dois defeitos foram achados assim, não por leitura:** (1) o mesmo projeto abria
+**duas linhas** quando um lançamento usava `centroDeCusto: "CityJobs"` e outro o
+`clientId` do cliente CityJobs — resolvido no servidor, e **só quando o nome é
+único** (dois clientes homônimos continuam separados, porque fundi-los seria
+inventar que são o mesmo negócio); (2) a grade de custo de IA em `md:grid-cols-2`
+truncava o nome do agente a 768px — a barra lateral volta a ocupar 224px ali,
+sobram 544px, e a régua é `lg`, não `md` (DESIGN.md §6.3).
+
+### 🔴 O QUE DEPENDE DO CEO
+
+1. **Faturamento e custo em reais entram À MÃO.** Não há conciliação bancária
+   nem integração com banco. Hoje a casa mede sozinha **apenas o custo de IA**.
+   Se ele quiser o DRE completo sem digitar, isso é uma frente própria.
+2. **Câmbio USD→BRL.** O custo de IA é cobrado em dólar e **não entra no
+   resultado em reais** — não há taxa declarada nesta casa e inventar uma
+   mudaria o número mais consequente da tela. Ele decide a fonte da taxa.
+3. **O histórico anterior a 07/08/2026 NÃO volta** e não foi extrapolado.
+   Aparece marcado na tela, com a data.
+
+### O que vem a seguir nesta frente (a fazer, com dono)
+
+- [ ] `plataforma` — lançar o custo de IA como custo em reais por rotina, assim
+      que houver câmbio declarado. Enquanto não houver, ele fica fora do
+      resultado, declarado.
+- [ ] `esteira` — quando um pedido é aprovado com preço, gerar o lançamento de
+      receita automaticamente (origem `contrato`). Hoje o preço existe na
+      proposta e não chega ao DRE.
+- [ ] `plataforma` — `social/generate` e `design/generate` continuam aceitando
+      `clientId` opcional; quando não vem, o custo entra **sem cliente**. Está
+      anotado, não preenchido por inferência (furo já declarado em 07/08).
+- [ ] `qualidade` — subir `financeiro` de sombra exige evidência, como qualquer
+      outro. Nada foi subido.
+
+
 ## 🟢 07/08/2026 — OS CINCO ESSENCIAIS E A SALA DOS AGENTES ESTÃO NO AR
 
 **O elenco não foi instalado por cima do que existia.** Cruzamento feito agente

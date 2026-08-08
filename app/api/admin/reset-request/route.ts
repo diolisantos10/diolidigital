@@ -201,6 +201,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       system: "Você reescreve itens de uma proposta de marketing para uma cliente que NÃO é da área. REGRA: mantenha o termo técnico E acrescente, entre parênteses, uma explicação curta e simples do que significa (ex.: '3 criativos/semana (3 artes novas por semana)'). Não invente itens nem números. Responda SOMENTE JSON válido.",
       user: `Itens da proposta:\n${baseItems.map((i) => `- ${i}`).join("\n")}\n\nReescreva cada item mantendo o termo + explicação simples entre parênteses. Mesma quantidade, mesma ordem.\nJSON: {"items": ["...", "..."]}`,
       maxTokens: 700, workspaceId: wsId, preferredProvider: "claude",
+      agentId: "comercial-proposta", clientId: target.clientId ?? null,
     });
     if (explR.ok) {
       const got = (explR.data as { items?: unknown }).items;
@@ -263,8 +264,8 @@ Se estiver tudo certo, é só clicar em Aprovar aqui embaixo. Assim que você ap
     const sys = "Você é um agente sênior de uma agência de marketing brasileira. Produza conteúdo real, específico e pronto para o cliente. Responda SOMENTE com JSON válido.";
     const socialPrompt = `Você é o agente de Social Media. Produza um pacote de 6 posts/stories para o negócio "${target.businessName}". Para cada peça: formato (story/feed/reel), headline, legenda completa (2 a 3 frases) e ideia de visual. Português do Brasil, específico.\nResponda em JSON: {"title":"...","summary":"...","items":[{"format":"...","headline":"...","caption":"...","visual":"..."}]}`;
     const [a, b] = await Promise.all([
-      generate({ system: sys, user: socialPrompt, maxTokens: 1800, workspaceId: ws, preferredProvider: "claude" }),
-      generate({ system: sys, user: socialPrompt, maxTokens: 4096, workspaceId: ws, preferredProvider: "claude" }),
+      generate({ system: sys, user: socialPrompt, maxTokens: 1800, workspaceId: ws, preferredProvider: "claude", agentId: "admin-diagnostico" }),
+      generate({ system: sys, user: socialPrompt, maxTokens: 4096, workspaceId: ws, preferredProvider: "claude", agentId: "admin-diagnostico" }),
     ]);
     return NextResponse.json({
       ok: true, action: "diag-ai", businessName: target.businessName,

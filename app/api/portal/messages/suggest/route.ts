@@ -77,6 +77,7 @@ Escreva a mensagem da equipe para o cliente agora.`;
     maxTokens: 400,
     workspaceId: session.workspaceId,
     preferredProvider: "claude",
+    agentId: "portal-sugestao",
   });
 
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: 503 });

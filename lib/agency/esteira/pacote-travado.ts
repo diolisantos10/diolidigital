@@ -118,6 +118,9 @@ export async function destravarPacote(projectId: string): Promise<ResultadoDoDes
       maxTokens: 1800,
       workspaceId: projeto.workspaceId,
       preferredProvider: esp?.provedor ?? "claude",
+      agentId: "esteira-pacote-travado",
+      clientId: projeto.clientId ?? null,
+      projectId: projeto.id,
     });
 
     if (!refeito.ok) {
@@ -165,6 +168,8 @@ export async function destravarPacote(projectId: string): Promise<ResultadoDoDes
       content: novoCorpo,
       brandContext: contextoDaMarca,
       workspaceId: projeto.workspaceId,
+      clientId: projeto.clientId ?? null,
+      projectId: projeto.id,
     });
 
     // ── A REPROVAÇÃO NÃO SE APAGA POR AUSÊNCIA DE PARECER ───────────────────

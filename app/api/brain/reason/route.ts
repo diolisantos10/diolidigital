@@ -214,6 +214,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       user:        messages.user,
       maxTokens:   2048,
       workspaceId: session.workspaceId,
+      agentId:     "cerebro-raciocinio",
+      // LACUNA DECLARADA: esta rota não recebe `clientId` no corpo, então o
+      // gasto entra na conta SEM cliente. Preencher por inferência (o único
+      // cliente do workspace, o último ativo) seria inventar a atribuição de
+      // um custo. Quem mexer no contrato desta rota fecha isto junto.
     });
 
     if (!result.ok) {

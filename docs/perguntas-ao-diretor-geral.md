@@ -46,6 +46,26 @@ e portanto entre no kit — ou ela é uma particularidade desta casa? Hoje o
 **duas hierarquias competindo é o próprio defeito das "duas verdades"** que a
 constituição corta na tabela de alterações do Conselho.
 
+### ✅ FECHADA em 07/08/2026 — pelo CEO, com as palavras dele
+
+> *"em relação a ter o PM ou não já está decidido — eram erros de comunicação,
+> mas eu já havia decidido que todo projeto precisa de um PM. O kit está sendo
+> corrigido."*
+
+**O veredito, em uma frase: esta casa estava certa; o kit é que está
+desatualizado.** A camada de PM É doutrina — `CEO → Diretor → PM →
+especialistas` vale para todo projeto, não é particularidade da Dioli Digital.
+Não havia duas verdades competindo: havia uma verdade e uma cópia velha.
+
+**O que NÃO fazer, e é a parte que importa: não mexer no `dioli-brain-kit`.**
+A correção é do próprio CEO, no repositório dele. Escrever lá por conta própria
+produziria exatamente a divergência que a regra existe para impedir.
+
+**O que continua valendo aqui, sem mudança:** `pm` segue como agente de domínio
+na área "Direção" e **não** vira um sexto Essencial. Ser doutrina não é ser
+Essencial — são duas listas diferentes, e confundi-las inflaria o elenco que
+acabou de ser fechado em cinco.
+
 ---
 
 ## 3. Três dos quatro degraus que a constituição declara ausentes também faltam aqui
@@ -89,6 +109,30 @@ como lacuna declarada, com o número de chamadas.
 **O que sobe:** fechar a cobertura é trabalho de passar `agentId` em ~28 pontos
 de chamada, espalhados por `esteira` e `departamentos`. Precisa de dono e de
 prazo, e é decisão de prioridade — não minha.
+
+### ✅ FECHADO em 07/08/2026 — o CEO priorizou, e a cobertura fechou
+
+O dono da medição de custo de IA **é o departamento financeiro** (decisão do CEO
+no mesmo dia — ver `docs/decisoes.md`). A cobertura foi fechada junto com o
+nascimento dele.
+
+**O número medido de novo, não repetido:** contando chamadas a `generate({…})` e
+não menções ao nome, eram **32 pontos, 10 com dono e 22 sem** — próximo do "~28"
+estimado acima, e a diferença é que aquela contagem incluía comentários e
+`import`. Hoje são **33 pontos e 33 com dono**.
+
+**O que mudou de natureza, e é o ponto:** `agentId` **deixou de ser opcional na
+assinatura de `generate()`**. Chamada nova sem dono não compila. Fechar 22
+buracos sem isso seria fechar 22 buracos e deixar a porta aberta para o 23º —
+foi esquecimento que produziu os 22, e esquecimento não se conserta pedindo
+atenção. A segunda metade da trava é estática
+(`__tests__/ai/todo-gasto-tem-dono.test.ts`), e existe porque o tipo não pega
+`as never` nem string montada em runtime.
+
+**O que NÃO foi feito, de propósito: o histórico não voltou.** O gasto anterior
+a 07/08/2026 continua sendo uma amostra de tamanho desconhecido, e a tela do
+financeiro diz isso com a data. Extrapolar para trás por regra de três seria
+inventar o número mais perigoso da casa.
 
 ---
 

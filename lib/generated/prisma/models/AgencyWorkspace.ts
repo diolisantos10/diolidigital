@@ -181,6 +181,7 @@ export type AgencyWorkspaceWhereInput = {
   clientAiProviders?: Prisma.ClientAiProviderListRelationFilter
   activityEvents?: Prisma.ActivityEventListRelationFilter
   aiRunLogs?: Prisma.AIRunLogListRelationFilter
+  lancamentos?: Prisma.LancamentoFinanceiroListRelationFilter
   metaConnections?: Prisma.MetaConnectionListRelationFilter
   marketInsights?: Prisma.MarketInsightListRelationFilter
 }
@@ -197,6 +198,7 @@ export type AgencyWorkspaceOrderByWithRelationInput = {
   clientAiProviders?: Prisma.ClientAiProviderOrderByRelationAggregateInput
   activityEvents?: Prisma.ActivityEventOrderByRelationAggregateInput
   aiRunLogs?: Prisma.AIRunLogOrderByRelationAggregateInput
+  lancamentos?: Prisma.LancamentoFinanceiroOrderByRelationAggregateInput
   metaConnections?: Prisma.MetaConnectionOrderByRelationAggregateInput
   marketInsights?: Prisma.MarketInsightOrderByRelationAggregateInput
 }
@@ -216,6 +218,7 @@ export type AgencyWorkspaceWhereUniqueInput = Prisma.AtLeast<{
   clientAiProviders?: Prisma.ClientAiProviderListRelationFilter
   activityEvents?: Prisma.ActivityEventListRelationFilter
   aiRunLogs?: Prisma.AIRunLogListRelationFilter
+  lancamentos?: Prisma.LancamentoFinanceiroListRelationFilter
   metaConnections?: Prisma.MetaConnectionListRelationFilter
   marketInsights?: Prisma.MarketInsightListRelationFilter
 }, "id" | "slug">
@@ -252,6 +255,7 @@ export type AgencyWorkspaceCreateInput = {
   clientAiProviders?: Prisma.ClientAiProviderCreateNestedManyWithoutWorkspaceInput
   activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogCreateNestedManyWithoutWorkspaceInput
+  lancamentos?: Prisma.LancamentoFinanceiroCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionCreateNestedManyWithoutWorkspaceInput
   marketInsights?: Prisma.MarketInsightCreateNestedManyWithoutWorkspaceInput
 }
@@ -268,6 +272,7 @@ export type AgencyWorkspaceUncheckedCreateInput = {
   clientAiProviders?: Prisma.ClientAiProviderUncheckedCreateNestedManyWithoutWorkspaceInput
   activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogUncheckedCreateNestedManyWithoutWorkspaceInput
+  lancamentos?: Prisma.LancamentoFinanceiroUncheckedCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionUncheckedCreateNestedManyWithoutWorkspaceInput
   marketInsights?: Prisma.MarketInsightUncheckedCreateNestedManyWithoutWorkspaceInput
 }
@@ -284,6 +289,7 @@ export type AgencyWorkspaceUpdateInput = {
   clientAiProviders?: Prisma.ClientAiProviderUpdateManyWithoutWorkspaceNestedInput
   activityEvents?: Prisma.ActivityEventUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUpdateManyWithoutWorkspaceNestedInput
+  lancamentos?: Prisma.LancamentoFinanceiroUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUpdateManyWithoutWorkspaceNestedInput
   marketInsights?: Prisma.MarketInsightUpdateManyWithoutWorkspaceNestedInput
 }
@@ -300,6 +306,7 @@ export type AgencyWorkspaceUncheckedUpdateInput = {
   clientAiProviders?: Prisma.ClientAiProviderUncheckedUpdateManyWithoutWorkspaceNestedInput
   activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUncheckedUpdateManyWithoutWorkspaceNestedInput
+  lancamentos?: Prisma.LancamentoFinanceiroUncheckedUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUncheckedUpdateManyWithoutWorkspaceNestedInput
   marketInsights?: Prisma.MarketInsightUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
@@ -457,6 +464,20 @@ export type AgencyWorkspaceUpdateOneRequiredWithoutAiRunLogsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.AgencyWorkspaceUpdateToOneWithWhereWithoutAiRunLogsInput, Prisma.AgencyWorkspaceUpdateWithoutAiRunLogsInput>, Prisma.AgencyWorkspaceUncheckedUpdateWithoutAiRunLogsInput>
 }
 
+export type AgencyWorkspaceCreateNestedOneWithoutLancamentosInput = {
+  create?: Prisma.XOR<Prisma.AgencyWorkspaceCreateWithoutLancamentosInput, Prisma.AgencyWorkspaceUncheckedCreateWithoutLancamentosInput>
+  connectOrCreate?: Prisma.AgencyWorkspaceCreateOrConnectWithoutLancamentosInput
+  connect?: Prisma.AgencyWorkspaceWhereUniqueInput
+}
+
+export type AgencyWorkspaceUpdateOneRequiredWithoutLancamentosNestedInput = {
+  create?: Prisma.XOR<Prisma.AgencyWorkspaceCreateWithoutLancamentosInput, Prisma.AgencyWorkspaceUncheckedCreateWithoutLancamentosInput>
+  connectOrCreate?: Prisma.AgencyWorkspaceCreateOrConnectWithoutLancamentosInput
+  upsert?: Prisma.AgencyWorkspaceUpsertWithoutLancamentosInput
+  connect?: Prisma.AgencyWorkspaceWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.AgencyWorkspaceUpdateToOneWithWhereWithoutLancamentosInput, Prisma.AgencyWorkspaceUpdateWithoutLancamentosInput>, Prisma.AgencyWorkspaceUncheckedUpdateWithoutLancamentosInput>
+}
+
 export type AgencyWorkspaceCreateNestedOneWithoutMetaConnectionsInput = {
   create?: Prisma.XOR<Prisma.AgencyWorkspaceCreateWithoutMetaConnectionsInput, Prisma.AgencyWorkspaceUncheckedCreateWithoutMetaConnectionsInput>
   connectOrCreate?: Prisma.AgencyWorkspaceCreateOrConnectWithoutMetaConnectionsInput
@@ -496,6 +517,7 @@ export type AgencyWorkspaceCreateWithoutUsersInput = {
   clientAiProviders?: Prisma.ClientAiProviderCreateNestedManyWithoutWorkspaceInput
   activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogCreateNestedManyWithoutWorkspaceInput
+  lancamentos?: Prisma.LancamentoFinanceiroCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionCreateNestedManyWithoutWorkspaceInput
   marketInsights?: Prisma.MarketInsightCreateNestedManyWithoutWorkspaceInput
 }
@@ -511,6 +533,7 @@ export type AgencyWorkspaceUncheckedCreateWithoutUsersInput = {
   clientAiProviders?: Prisma.ClientAiProviderUncheckedCreateNestedManyWithoutWorkspaceInput
   activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogUncheckedCreateNestedManyWithoutWorkspaceInput
+  lancamentos?: Prisma.LancamentoFinanceiroUncheckedCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionUncheckedCreateNestedManyWithoutWorkspaceInput
   marketInsights?: Prisma.MarketInsightUncheckedCreateNestedManyWithoutWorkspaceInput
 }
@@ -542,6 +565,7 @@ export type AgencyWorkspaceUpdateWithoutUsersInput = {
   clientAiProviders?: Prisma.ClientAiProviderUpdateManyWithoutWorkspaceNestedInput
   activityEvents?: Prisma.ActivityEventUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUpdateManyWithoutWorkspaceNestedInput
+  lancamentos?: Prisma.LancamentoFinanceiroUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUpdateManyWithoutWorkspaceNestedInput
   marketInsights?: Prisma.MarketInsightUpdateManyWithoutWorkspaceNestedInput
 }
@@ -557,6 +581,7 @@ export type AgencyWorkspaceUncheckedUpdateWithoutUsersInput = {
   clientAiProviders?: Prisma.ClientAiProviderUncheckedUpdateManyWithoutWorkspaceNestedInput
   activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUncheckedUpdateManyWithoutWorkspaceNestedInput
+  lancamentos?: Prisma.LancamentoFinanceiroUncheckedUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUncheckedUpdateManyWithoutWorkspaceNestedInput
   marketInsights?: Prisma.MarketInsightUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
@@ -572,6 +597,7 @@ export type AgencyWorkspaceCreateWithoutClientsInput = {
   clientAiProviders?: Prisma.ClientAiProviderCreateNestedManyWithoutWorkspaceInput
   activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogCreateNestedManyWithoutWorkspaceInput
+  lancamentos?: Prisma.LancamentoFinanceiroCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionCreateNestedManyWithoutWorkspaceInput
   marketInsights?: Prisma.MarketInsightCreateNestedManyWithoutWorkspaceInput
 }
@@ -587,6 +613,7 @@ export type AgencyWorkspaceUncheckedCreateWithoutClientsInput = {
   clientAiProviders?: Prisma.ClientAiProviderUncheckedCreateNestedManyWithoutWorkspaceInput
   activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogUncheckedCreateNestedManyWithoutWorkspaceInput
+  lancamentos?: Prisma.LancamentoFinanceiroUncheckedCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionUncheckedCreateNestedManyWithoutWorkspaceInput
   marketInsights?: Prisma.MarketInsightUncheckedCreateNestedManyWithoutWorkspaceInput
 }
@@ -618,6 +645,7 @@ export type AgencyWorkspaceUpdateWithoutClientsInput = {
   clientAiProviders?: Prisma.ClientAiProviderUpdateManyWithoutWorkspaceNestedInput
   activityEvents?: Prisma.ActivityEventUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUpdateManyWithoutWorkspaceNestedInput
+  lancamentos?: Prisma.LancamentoFinanceiroUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUpdateManyWithoutWorkspaceNestedInput
   marketInsights?: Prisma.MarketInsightUpdateManyWithoutWorkspaceNestedInput
 }
@@ -633,6 +661,7 @@ export type AgencyWorkspaceUncheckedUpdateWithoutClientsInput = {
   clientAiProviders?: Prisma.ClientAiProviderUncheckedUpdateManyWithoutWorkspaceNestedInput
   activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUncheckedUpdateManyWithoutWorkspaceNestedInput
+  lancamentos?: Prisma.LancamentoFinanceiroUncheckedUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUncheckedUpdateManyWithoutWorkspaceNestedInput
   marketInsights?: Prisma.MarketInsightUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
@@ -648,6 +677,7 @@ export type AgencyWorkspaceCreateWithoutProjectsInput = {
   clientAiProviders?: Prisma.ClientAiProviderCreateNestedManyWithoutWorkspaceInput
   activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogCreateNestedManyWithoutWorkspaceInput
+  lancamentos?: Prisma.LancamentoFinanceiroCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionCreateNestedManyWithoutWorkspaceInput
   marketInsights?: Prisma.MarketInsightCreateNestedManyWithoutWorkspaceInput
 }
@@ -663,6 +693,7 @@ export type AgencyWorkspaceUncheckedCreateWithoutProjectsInput = {
   clientAiProviders?: Prisma.ClientAiProviderUncheckedCreateNestedManyWithoutWorkspaceInput
   activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogUncheckedCreateNestedManyWithoutWorkspaceInput
+  lancamentos?: Prisma.LancamentoFinanceiroUncheckedCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionUncheckedCreateNestedManyWithoutWorkspaceInput
   marketInsights?: Prisma.MarketInsightUncheckedCreateNestedManyWithoutWorkspaceInput
 }
@@ -694,6 +725,7 @@ export type AgencyWorkspaceUpdateWithoutProjectsInput = {
   clientAiProviders?: Prisma.ClientAiProviderUpdateManyWithoutWorkspaceNestedInput
   activityEvents?: Prisma.ActivityEventUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUpdateManyWithoutWorkspaceNestedInput
+  lancamentos?: Prisma.LancamentoFinanceiroUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUpdateManyWithoutWorkspaceNestedInput
   marketInsights?: Prisma.MarketInsightUpdateManyWithoutWorkspaceNestedInput
 }
@@ -709,6 +741,7 @@ export type AgencyWorkspaceUncheckedUpdateWithoutProjectsInput = {
   clientAiProviders?: Prisma.ClientAiProviderUncheckedUpdateManyWithoutWorkspaceNestedInput
   activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUncheckedUpdateManyWithoutWorkspaceNestedInput
+  lancamentos?: Prisma.LancamentoFinanceiroUncheckedUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUncheckedUpdateManyWithoutWorkspaceNestedInput
   marketInsights?: Prisma.MarketInsightUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
@@ -724,6 +757,7 @@ export type AgencyWorkspaceCreateWithoutIntegrationConfigsInput = {
   clientAiProviders?: Prisma.ClientAiProviderCreateNestedManyWithoutWorkspaceInput
   activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogCreateNestedManyWithoutWorkspaceInput
+  lancamentos?: Prisma.LancamentoFinanceiroCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionCreateNestedManyWithoutWorkspaceInput
   marketInsights?: Prisma.MarketInsightCreateNestedManyWithoutWorkspaceInput
 }
@@ -739,6 +773,7 @@ export type AgencyWorkspaceUncheckedCreateWithoutIntegrationConfigsInput = {
   clientAiProviders?: Prisma.ClientAiProviderUncheckedCreateNestedManyWithoutWorkspaceInput
   activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogUncheckedCreateNestedManyWithoutWorkspaceInput
+  lancamentos?: Prisma.LancamentoFinanceiroUncheckedCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionUncheckedCreateNestedManyWithoutWorkspaceInput
   marketInsights?: Prisma.MarketInsightUncheckedCreateNestedManyWithoutWorkspaceInput
 }
@@ -770,6 +805,7 @@ export type AgencyWorkspaceUpdateWithoutIntegrationConfigsInput = {
   clientAiProviders?: Prisma.ClientAiProviderUpdateManyWithoutWorkspaceNestedInput
   activityEvents?: Prisma.ActivityEventUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUpdateManyWithoutWorkspaceNestedInput
+  lancamentos?: Prisma.LancamentoFinanceiroUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUpdateManyWithoutWorkspaceNestedInput
   marketInsights?: Prisma.MarketInsightUpdateManyWithoutWorkspaceNestedInput
 }
@@ -785,6 +821,7 @@ export type AgencyWorkspaceUncheckedUpdateWithoutIntegrationConfigsInput = {
   clientAiProviders?: Prisma.ClientAiProviderUncheckedUpdateManyWithoutWorkspaceNestedInput
   activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUncheckedUpdateManyWithoutWorkspaceNestedInput
+  lancamentos?: Prisma.LancamentoFinanceiroUncheckedUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUncheckedUpdateManyWithoutWorkspaceNestedInput
   marketInsights?: Prisma.MarketInsightUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
@@ -800,6 +837,7 @@ export type AgencyWorkspaceCreateWithoutClientAiProvidersInput = {
   integrationConfigs?: Prisma.DbIntegrationConfigCreateNestedManyWithoutWorkspaceInput
   activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogCreateNestedManyWithoutWorkspaceInput
+  lancamentos?: Prisma.LancamentoFinanceiroCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionCreateNestedManyWithoutWorkspaceInput
   marketInsights?: Prisma.MarketInsightCreateNestedManyWithoutWorkspaceInput
 }
@@ -815,6 +853,7 @@ export type AgencyWorkspaceUncheckedCreateWithoutClientAiProvidersInput = {
   integrationConfigs?: Prisma.DbIntegrationConfigUncheckedCreateNestedManyWithoutWorkspaceInput
   activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogUncheckedCreateNestedManyWithoutWorkspaceInput
+  lancamentos?: Prisma.LancamentoFinanceiroUncheckedCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionUncheckedCreateNestedManyWithoutWorkspaceInput
   marketInsights?: Prisma.MarketInsightUncheckedCreateNestedManyWithoutWorkspaceInput
 }
@@ -846,6 +885,7 @@ export type AgencyWorkspaceUpdateWithoutClientAiProvidersInput = {
   integrationConfigs?: Prisma.DbIntegrationConfigUpdateManyWithoutWorkspaceNestedInput
   activityEvents?: Prisma.ActivityEventUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUpdateManyWithoutWorkspaceNestedInput
+  lancamentos?: Prisma.LancamentoFinanceiroUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUpdateManyWithoutWorkspaceNestedInput
   marketInsights?: Prisma.MarketInsightUpdateManyWithoutWorkspaceNestedInput
 }
@@ -861,6 +901,7 @@ export type AgencyWorkspaceUncheckedUpdateWithoutClientAiProvidersInput = {
   integrationConfigs?: Prisma.DbIntegrationConfigUncheckedUpdateManyWithoutWorkspaceNestedInput
   activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUncheckedUpdateManyWithoutWorkspaceNestedInput
+  lancamentos?: Prisma.LancamentoFinanceiroUncheckedUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUncheckedUpdateManyWithoutWorkspaceNestedInput
   marketInsights?: Prisma.MarketInsightUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
@@ -876,6 +917,7 @@ export type AgencyWorkspaceCreateWithoutActivityEventsInput = {
   integrationConfigs?: Prisma.DbIntegrationConfigCreateNestedManyWithoutWorkspaceInput
   clientAiProviders?: Prisma.ClientAiProviderCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogCreateNestedManyWithoutWorkspaceInput
+  lancamentos?: Prisma.LancamentoFinanceiroCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionCreateNestedManyWithoutWorkspaceInput
   marketInsights?: Prisma.MarketInsightCreateNestedManyWithoutWorkspaceInput
 }
@@ -891,6 +933,7 @@ export type AgencyWorkspaceUncheckedCreateWithoutActivityEventsInput = {
   integrationConfigs?: Prisma.DbIntegrationConfigUncheckedCreateNestedManyWithoutWorkspaceInput
   clientAiProviders?: Prisma.ClientAiProviderUncheckedCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogUncheckedCreateNestedManyWithoutWorkspaceInput
+  lancamentos?: Prisma.LancamentoFinanceiroUncheckedCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionUncheckedCreateNestedManyWithoutWorkspaceInput
   marketInsights?: Prisma.MarketInsightUncheckedCreateNestedManyWithoutWorkspaceInput
 }
@@ -922,6 +965,7 @@ export type AgencyWorkspaceUpdateWithoutActivityEventsInput = {
   integrationConfigs?: Prisma.DbIntegrationConfigUpdateManyWithoutWorkspaceNestedInput
   clientAiProviders?: Prisma.ClientAiProviderUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUpdateManyWithoutWorkspaceNestedInput
+  lancamentos?: Prisma.LancamentoFinanceiroUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUpdateManyWithoutWorkspaceNestedInput
   marketInsights?: Prisma.MarketInsightUpdateManyWithoutWorkspaceNestedInput
 }
@@ -937,6 +981,7 @@ export type AgencyWorkspaceUncheckedUpdateWithoutActivityEventsInput = {
   integrationConfigs?: Prisma.DbIntegrationConfigUncheckedUpdateManyWithoutWorkspaceNestedInput
   clientAiProviders?: Prisma.ClientAiProviderUncheckedUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUncheckedUpdateManyWithoutWorkspaceNestedInput
+  lancamentos?: Prisma.LancamentoFinanceiroUncheckedUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUncheckedUpdateManyWithoutWorkspaceNestedInput
   marketInsights?: Prisma.MarketInsightUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
@@ -952,6 +997,7 @@ export type AgencyWorkspaceCreateWithoutAiRunLogsInput = {
   integrationConfigs?: Prisma.DbIntegrationConfigCreateNestedManyWithoutWorkspaceInput
   clientAiProviders?: Prisma.ClientAiProviderCreateNestedManyWithoutWorkspaceInput
   activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutWorkspaceInput
+  lancamentos?: Prisma.LancamentoFinanceiroCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionCreateNestedManyWithoutWorkspaceInput
   marketInsights?: Prisma.MarketInsightCreateNestedManyWithoutWorkspaceInput
 }
@@ -967,6 +1013,7 @@ export type AgencyWorkspaceUncheckedCreateWithoutAiRunLogsInput = {
   integrationConfigs?: Prisma.DbIntegrationConfigUncheckedCreateNestedManyWithoutWorkspaceInput
   clientAiProviders?: Prisma.ClientAiProviderUncheckedCreateNestedManyWithoutWorkspaceInput
   activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutWorkspaceInput
+  lancamentos?: Prisma.LancamentoFinanceiroUncheckedCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionUncheckedCreateNestedManyWithoutWorkspaceInput
   marketInsights?: Prisma.MarketInsightUncheckedCreateNestedManyWithoutWorkspaceInput
 }
@@ -998,6 +1045,7 @@ export type AgencyWorkspaceUpdateWithoutAiRunLogsInput = {
   integrationConfigs?: Prisma.DbIntegrationConfigUpdateManyWithoutWorkspaceNestedInput
   clientAiProviders?: Prisma.ClientAiProviderUpdateManyWithoutWorkspaceNestedInput
   activityEvents?: Prisma.ActivityEventUpdateManyWithoutWorkspaceNestedInput
+  lancamentos?: Prisma.LancamentoFinanceiroUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUpdateManyWithoutWorkspaceNestedInput
   marketInsights?: Prisma.MarketInsightUpdateManyWithoutWorkspaceNestedInput
 }
@@ -1013,6 +1061,87 @@ export type AgencyWorkspaceUncheckedUpdateWithoutAiRunLogsInput = {
   integrationConfigs?: Prisma.DbIntegrationConfigUncheckedUpdateManyWithoutWorkspaceNestedInput
   clientAiProviders?: Prisma.ClientAiProviderUncheckedUpdateManyWithoutWorkspaceNestedInput
   activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutWorkspaceNestedInput
+  lancamentos?: Prisma.LancamentoFinanceiroUncheckedUpdateManyWithoutWorkspaceNestedInput
+  metaConnections?: Prisma.MetaConnectionUncheckedUpdateManyWithoutWorkspaceNestedInput
+  marketInsights?: Prisma.MarketInsightUncheckedUpdateManyWithoutWorkspaceNestedInput
+}
+
+export type AgencyWorkspaceCreateWithoutLancamentosInput = {
+  id?: string
+  name: string
+  slug: string
+  createdAt?: Date | string
+  users?: Prisma.UserCreateNestedManyWithoutWorkspaceInput
+  clients?: Prisma.ClientCreateNestedManyWithoutWorkspaceInput
+  projects?: Prisma.ProjectCreateNestedManyWithoutWorkspaceInput
+  integrationConfigs?: Prisma.DbIntegrationConfigCreateNestedManyWithoutWorkspaceInput
+  clientAiProviders?: Prisma.ClientAiProviderCreateNestedManyWithoutWorkspaceInput
+  activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutWorkspaceInput
+  aiRunLogs?: Prisma.AIRunLogCreateNestedManyWithoutWorkspaceInput
+  metaConnections?: Prisma.MetaConnectionCreateNestedManyWithoutWorkspaceInput
+  marketInsights?: Prisma.MarketInsightCreateNestedManyWithoutWorkspaceInput
+}
+
+export type AgencyWorkspaceUncheckedCreateWithoutLancamentosInput = {
+  id?: string
+  name: string
+  slug: string
+  createdAt?: Date | string
+  users?: Prisma.UserUncheckedCreateNestedManyWithoutWorkspaceInput
+  clients?: Prisma.ClientUncheckedCreateNestedManyWithoutWorkspaceInput
+  projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutWorkspaceInput
+  integrationConfigs?: Prisma.DbIntegrationConfigUncheckedCreateNestedManyWithoutWorkspaceInput
+  clientAiProviders?: Prisma.ClientAiProviderUncheckedCreateNestedManyWithoutWorkspaceInput
+  activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutWorkspaceInput
+  aiRunLogs?: Prisma.AIRunLogUncheckedCreateNestedManyWithoutWorkspaceInput
+  metaConnections?: Prisma.MetaConnectionUncheckedCreateNestedManyWithoutWorkspaceInput
+  marketInsights?: Prisma.MarketInsightUncheckedCreateNestedManyWithoutWorkspaceInput
+}
+
+export type AgencyWorkspaceCreateOrConnectWithoutLancamentosInput = {
+  where: Prisma.AgencyWorkspaceWhereUniqueInput
+  create: Prisma.XOR<Prisma.AgencyWorkspaceCreateWithoutLancamentosInput, Prisma.AgencyWorkspaceUncheckedCreateWithoutLancamentosInput>
+}
+
+export type AgencyWorkspaceUpsertWithoutLancamentosInput = {
+  update: Prisma.XOR<Prisma.AgencyWorkspaceUpdateWithoutLancamentosInput, Prisma.AgencyWorkspaceUncheckedUpdateWithoutLancamentosInput>
+  create: Prisma.XOR<Prisma.AgencyWorkspaceCreateWithoutLancamentosInput, Prisma.AgencyWorkspaceUncheckedCreateWithoutLancamentosInput>
+  where?: Prisma.AgencyWorkspaceWhereInput
+}
+
+export type AgencyWorkspaceUpdateToOneWithWhereWithoutLancamentosInput = {
+  where?: Prisma.AgencyWorkspaceWhereInput
+  data: Prisma.XOR<Prisma.AgencyWorkspaceUpdateWithoutLancamentosInput, Prisma.AgencyWorkspaceUncheckedUpdateWithoutLancamentosInput>
+}
+
+export type AgencyWorkspaceUpdateWithoutLancamentosInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  users?: Prisma.UserUpdateManyWithoutWorkspaceNestedInput
+  clients?: Prisma.ClientUpdateManyWithoutWorkspaceNestedInput
+  projects?: Prisma.ProjectUpdateManyWithoutWorkspaceNestedInput
+  integrationConfigs?: Prisma.DbIntegrationConfigUpdateManyWithoutWorkspaceNestedInput
+  clientAiProviders?: Prisma.ClientAiProviderUpdateManyWithoutWorkspaceNestedInput
+  activityEvents?: Prisma.ActivityEventUpdateManyWithoutWorkspaceNestedInput
+  aiRunLogs?: Prisma.AIRunLogUpdateManyWithoutWorkspaceNestedInput
+  metaConnections?: Prisma.MetaConnectionUpdateManyWithoutWorkspaceNestedInput
+  marketInsights?: Prisma.MarketInsightUpdateManyWithoutWorkspaceNestedInput
+}
+
+export type AgencyWorkspaceUncheckedUpdateWithoutLancamentosInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  users?: Prisma.UserUncheckedUpdateManyWithoutWorkspaceNestedInput
+  clients?: Prisma.ClientUncheckedUpdateManyWithoutWorkspaceNestedInput
+  projects?: Prisma.ProjectUncheckedUpdateManyWithoutWorkspaceNestedInput
+  integrationConfigs?: Prisma.DbIntegrationConfigUncheckedUpdateManyWithoutWorkspaceNestedInput
+  clientAiProviders?: Prisma.ClientAiProviderUncheckedUpdateManyWithoutWorkspaceNestedInput
+  activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutWorkspaceNestedInput
+  aiRunLogs?: Prisma.AIRunLogUncheckedUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUncheckedUpdateManyWithoutWorkspaceNestedInput
   marketInsights?: Prisma.MarketInsightUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
@@ -1029,6 +1158,7 @@ export type AgencyWorkspaceCreateWithoutMetaConnectionsInput = {
   clientAiProviders?: Prisma.ClientAiProviderCreateNestedManyWithoutWorkspaceInput
   activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogCreateNestedManyWithoutWorkspaceInput
+  lancamentos?: Prisma.LancamentoFinanceiroCreateNestedManyWithoutWorkspaceInput
   marketInsights?: Prisma.MarketInsightCreateNestedManyWithoutWorkspaceInput
 }
 
@@ -1044,6 +1174,7 @@ export type AgencyWorkspaceUncheckedCreateWithoutMetaConnectionsInput = {
   clientAiProviders?: Prisma.ClientAiProviderUncheckedCreateNestedManyWithoutWorkspaceInput
   activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogUncheckedCreateNestedManyWithoutWorkspaceInput
+  lancamentos?: Prisma.LancamentoFinanceiroUncheckedCreateNestedManyWithoutWorkspaceInput
   marketInsights?: Prisma.MarketInsightUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
@@ -1075,6 +1206,7 @@ export type AgencyWorkspaceUpdateWithoutMetaConnectionsInput = {
   clientAiProviders?: Prisma.ClientAiProviderUpdateManyWithoutWorkspaceNestedInput
   activityEvents?: Prisma.ActivityEventUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUpdateManyWithoutWorkspaceNestedInput
+  lancamentos?: Prisma.LancamentoFinanceiroUpdateManyWithoutWorkspaceNestedInput
   marketInsights?: Prisma.MarketInsightUpdateManyWithoutWorkspaceNestedInput
 }
 
@@ -1090,6 +1222,7 @@ export type AgencyWorkspaceUncheckedUpdateWithoutMetaConnectionsInput = {
   clientAiProviders?: Prisma.ClientAiProviderUncheckedUpdateManyWithoutWorkspaceNestedInput
   activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUncheckedUpdateManyWithoutWorkspaceNestedInput
+  lancamentos?: Prisma.LancamentoFinanceiroUncheckedUpdateManyWithoutWorkspaceNestedInput
   marketInsights?: Prisma.MarketInsightUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
@@ -1105,6 +1238,7 @@ export type AgencyWorkspaceCreateWithoutMarketInsightsInput = {
   clientAiProviders?: Prisma.ClientAiProviderCreateNestedManyWithoutWorkspaceInput
   activityEvents?: Prisma.ActivityEventCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogCreateNestedManyWithoutWorkspaceInput
+  lancamentos?: Prisma.LancamentoFinanceiroCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionCreateNestedManyWithoutWorkspaceInput
 }
 
@@ -1120,6 +1254,7 @@ export type AgencyWorkspaceUncheckedCreateWithoutMarketInsightsInput = {
   clientAiProviders?: Prisma.ClientAiProviderUncheckedCreateNestedManyWithoutWorkspaceInput
   activityEvents?: Prisma.ActivityEventUncheckedCreateNestedManyWithoutWorkspaceInput
   aiRunLogs?: Prisma.AIRunLogUncheckedCreateNestedManyWithoutWorkspaceInput
+  lancamentos?: Prisma.LancamentoFinanceiroUncheckedCreateNestedManyWithoutWorkspaceInput
   metaConnections?: Prisma.MetaConnectionUncheckedCreateNestedManyWithoutWorkspaceInput
 }
 
@@ -1151,6 +1286,7 @@ export type AgencyWorkspaceUpdateWithoutMarketInsightsInput = {
   clientAiProviders?: Prisma.ClientAiProviderUpdateManyWithoutWorkspaceNestedInput
   activityEvents?: Prisma.ActivityEventUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUpdateManyWithoutWorkspaceNestedInput
+  lancamentos?: Prisma.LancamentoFinanceiroUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUpdateManyWithoutWorkspaceNestedInput
 }
 
@@ -1166,6 +1302,7 @@ export type AgencyWorkspaceUncheckedUpdateWithoutMarketInsightsInput = {
   clientAiProviders?: Prisma.ClientAiProviderUncheckedUpdateManyWithoutWorkspaceNestedInput
   activityEvents?: Prisma.ActivityEventUncheckedUpdateManyWithoutWorkspaceNestedInput
   aiRunLogs?: Prisma.AIRunLogUncheckedUpdateManyWithoutWorkspaceNestedInput
+  lancamentos?: Prisma.LancamentoFinanceiroUncheckedUpdateManyWithoutWorkspaceNestedInput
   metaConnections?: Prisma.MetaConnectionUncheckedUpdateManyWithoutWorkspaceNestedInput
 }
 
@@ -1182,6 +1319,7 @@ export type AgencyWorkspaceCountOutputType = {
   clientAiProviders: number
   activityEvents: number
   aiRunLogs: number
+  lancamentos: number
   metaConnections: number
   marketInsights: number
 }
@@ -1194,6 +1332,7 @@ export type AgencyWorkspaceCountOutputTypeSelect<ExtArgs extends runtime.Types.E
   clientAiProviders?: boolean | AgencyWorkspaceCountOutputTypeCountClientAiProvidersArgs
   activityEvents?: boolean | AgencyWorkspaceCountOutputTypeCountActivityEventsArgs
   aiRunLogs?: boolean | AgencyWorkspaceCountOutputTypeCountAiRunLogsArgs
+  lancamentos?: boolean | AgencyWorkspaceCountOutputTypeCountLancamentosArgs
   metaConnections?: boolean | AgencyWorkspaceCountOutputTypeCountMetaConnectionsArgs
   marketInsights?: boolean | AgencyWorkspaceCountOutputTypeCountMarketInsightsArgs
 }
@@ -1260,6 +1399,13 @@ export type AgencyWorkspaceCountOutputTypeCountAiRunLogsArgs<ExtArgs extends run
 /**
  * AgencyWorkspaceCountOutputType without action
  */
+export type AgencyWorkspaceCountOutputTypeCountLancamentosArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.LancamentoFinanceiroWhereInput
+}
+
+/**
+ * AgencyWorkspaceCountOutputType without action
+ */
 export type AgencyWorkspaceCountOutputTypeCountMetaConnectionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.MetaConnectionWhereInput
 }
@@ -1284,6 +1430,7 @@ export type AgencyWorkspaceSelect<ExtArgs extends runtime.Types.Extensions.Inter
   clientAiProviders?: boolean | Prisma.AgencyWorkspace$clientAiProvidersArgs<ExtArgs>
   activityEvents?: boolean | Prisma.AgencyWorkspace$activityEventsArgs<ExtArgs>
   aiRunLogs?: boolean | Prisma.AgencyWorkspace$aiRunLogsArgs<ExtArgs>
+  lancamentos?: boolean | Prisma.AgencyWorkspace$lancamentosArgs<ExtArgs>
   metaConnections?: boolean | Prisma.AgencyWorkspace$metaConnectionsArgs<ExtArgs>
   marketInsights?: boolean | Prisma.AgencyWorkspace$marketInsightsArgs<ExtArgs>
   _count?: boolean | Prisma.AgencyWorkspaceCountOutputTypeDefaultArgs<ExtArgs>
@@ -1319,6 +1466,7 @@ export type AgencyWorkspaceInclude<ExtArgs extends runtime.Types.Extensions.Inte
   clientAiProviders?: boolean | Prisma.AgencyWorkspace$clientAiProvidersArgs<ExtArgs>
   activityEvents?: boolean | Prisma.AgencyWorkspace$activityEventsArgs<ExtArgs>
   aiRunLogs?: boolean | Prisma.AgencyWorkspace$aiRunLogsArgs<ExtArgs>
+  lancamentos?: boolean | Prisma.AgencyWorkspace$lancamentosArgs<ExtArgs>
   metaConnections?: boolean | Prisma.AgencyWorkspace$metaConnectionsArgs<ExtArgs>
   marketInsights?: boolean | Prisma.AgencyWorkspace$marketInsightsArgs<ExtArgs>
   _count?: boolean | Prisma.AgencyWorkspaceCountOutputTypeDefaultArgs<ExtArgs>
@@ -1336,6 +1484,7 @@ export type $AgencyWorkspacePayload<ExtArgs extends runtime.Types.Extensions.Int
     clientAiProviders: Prisma.$ClientAiProviderPayload<ExtArgs>[]
     activityEvents: Prisma.$ActivityEventPayload<ExtArgs>[]
     aiRunLogs: Prisma.$AIRunLogPayload<ExtArgs>[]
+    lancamentos: Prisma.$LancamentoFinanceiroPayload<ExtArgs>[]
     metaConnections: Prisma.$MetaConnectionPayload<ExtArgs>[]
     marketInsights: Prisma.$MarketInsightPayload<ExtArgs>[]
   }
@@ -1745,6 +1894,7 @@ export interface Prisma__AgencyWorkspaceClient<T, Null = never, ExtArgs extends 
   clientAiProviders<T extends Prisma.AgencyWorkspace$clientAiProvidersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AgencyWorkspace$clientAiProvidersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ClientAiProviderPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   activityEvents<T extends Prisma.AgencyWorkspace$activityEventsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AgencyWorkspace$activityEventsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ActivityEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   aiRunLogs<T extends Prisma.AgencyWorkspace$aiRunLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AgencyWorkspace$aiRunLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AIRunLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  lancamentos<T extends Prisma.AgencyWorkspace$lancamentosArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AgencyWorkspace$lancamentosArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$LancamentoFinanceiroPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   metaConnections<T extends Prisma.AgencyWorkspace$metaConnectionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AgencyWorkspace$metaConnectionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MetaConnectionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   marketInsights<T extends Prisma.AgencyWorkspace$marketInsightsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AgencyWorkspace$marketInsightsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MarketInsightPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
@@ -2336,6 +2486,30 @@ export type AgencyWorkspace$aiRunLogsArgs<ExtArgs extends runtime.Types.Extensio
   take?: number
   skip?: number
   distinct?: Prisma.AIRunLogScalarFieldEnum | Prisma.AIRunLogScalarFieldEnum[]
+}
+
+/**
+ * AgencyWorkspace.lancamentos
+ */
+export type AgencyWorkspace$lancamentosArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the LancamentoFinanceiro
+   */
+  select?: Prisma.LancamentoFinanceiroSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the LancamentoFinanceiro
+   */
+  omit?: Prisma.LancamentoFinanceiroOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.LancamentoFinanceiroInclude<ExtArgs> | null
+  where?: Prisma.LancamentoFinanceiroWhereInput
+  orderBy?: Prisma.LancamentoFinanceiroOrderByWithRelationInput | Prisma.LancamentoFinanceiroOrderByWithRelationInput[]
+  cursor?: Prisma.LancamentoFinanceiroWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.LancamentoFinanceiroScalarFieldEnum | Prisma.LancamentoFinanceiroScalarFieldEnum[]
 }
 
 /**

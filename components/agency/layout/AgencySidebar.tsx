@@ -101,6 +101,16 @@ export default function AgencySidebar({ id, userInfo, mobileOpen = false, onMobi
       ],
     },
     {
+      // O Financeiro é seção PRÓPRIA, e não um item dentro de "Clientes" — foi
+      // decisão do CEO em 07/08/2026: "quem mede tudo em relação a dinheiro vai
+      // ser o departamento de finanças". Dinheiro da agência inteira não é
+      // assunto de um cliente; é a leitura da casa.
+      group: "Financeiro",
+      items: [
+        { label: "DRE & custos", href: "/agency/financeiro", icon: DinheiroIcon },
+      ],
+    },
+    {
       group: "Clientes",
       items: [
         { label: "Clientes", href: "/agency/clients", icon: BuildingIcon },
@@ -395,6 +405,15 @@ function BuildingIcon({ size = 16, className = "" }: { size?: number; className?
       <rect x="6" y="9" width="2" height="5" stroke="currentColor" strokeWidth="1.3"/>
       <rect x="5" y="5.5" width="2" height="2" rx="0.5" stroke="currentColor" strokeWidth="1.2"/>
       <rect x="9" y="5.5" width="2" height="2" rx="0.5" stroke="currentColor" strokeWidth="1.2"/>
+    </svg>
+  );
+}
+function DinheiroIcon({ size = 16, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className}>
+      <rect x="1.5" y="3.5" width="13" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.3"/>
+      <circle cx="8" cy="8" r="2.1" stroke="currentColor" strokeWidth="1.3"/>
+      <path d="M4 6v4M12 6v4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
     </svg>
   );
 }

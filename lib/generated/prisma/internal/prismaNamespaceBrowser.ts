@@ -77,6 +77,7 @@ export const ModelName = {
   TimelineEvent: 'TimelineEvent',
   ActivityEvent: 'ActivityEvent',
   AIRunLog: 'AIRunLog',
+  LancamentoFinanceiro: 'LancamentoFinanceiro',
   TrainingBatch: 'TrainingBatch',
   DbSimulationRun: 'DbSimulationRun',
   DbAgentSuggestion: 'DbAgentSuggestion',
@@ -610,6 +611,29 @@ export const AIRunLogScalarFieldEnum = {
 } as const
 
 export type AIRunLogScalarFieldEnum = (typeof AIRunLogScalarFieldEnum)[keyof typeof AIRunLogScalarFieldEnum]
+
+
+export const LancamentoFinanceiroScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  tipo: 'tipo',
+  categoria: 'categoria',
+  descricao: 'descricao',
+  valorCentavos: 'valorCentavos',
+  moeda: 'moeda',
+  origem: 'origem',
+  natureza: 'natureza',
+  competencia: 'competencia',
+  clientId: 'clientId',
+  projectId: 'projectId',
+  centroDeCusto: 'centroDeCusto',
+  criadoPor: 'criadoPor',
+  observacao: 'observacao',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type LancamentoFinanceiroScalarFieldEnum = (typeof LancamentoFinanceiroScalarFieldEnum)[keyof typeof LancamentoFinanceiroScalarFieldEnum]
 
 
 export const TrainingBatchScalarFieldEnum = {

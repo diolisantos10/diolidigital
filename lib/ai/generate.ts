@@ -11,6 +11,7 @@ import type { OpenAIMessages } from "@/lib/agency/intelligence/openai-schemas";
 import { resolveProviderKey, isAiProvider, type AiProvider } from "@/lib/ai/resolve-key";
 import { escolhaDoCliente } from "@/lib/ai/escolha-por-cliente";
 import { registrarChamadaDeIa, type UsoDeTokens } from "@/lib/ai/registro-de-custo";
+import { departamentoQuePaga } from "@/lib/ai/donos";
 
 export type GenerateResult =
   | { ok: true; data: unknown; model: string; provider: AiProvider; uso?: UsoDeTokens | null }
@@ -292,12 +293,22 @@ export async function generate(options: {
    *      gasto que não tem dono, e "quanto custou este cliente" continua sem
    *      resposta.
    *
-   * Todos opcionais para não quebrar chamador nenhum — mas chamada sem
+   * `clientId`/`projectId` seguem opcionais (há chamada que legitimamente não
+   * tem cliente: triagem de lead, radar, diagnóstico) — mas chamada sem
    * `workspaceId` NÃO é registrada, e diz isso no log do processo.
+   *
+   * **`agentId` é OBRIGATÓRIO desde 07/08/2026** e essa é a trava: até aqui ele
+   * era opcional e 22 das 32 chamadas do repositório não o passavam, o que
+   * fazia o financeiro medir uma fração do gasto sem saber qual. Optional
+   * dependia de lembrança; obrigatório é conferido pelo compilador no portão.
+   * O id vem do registro fechado em `lib/ai/donos.ts` — string livre partiria o
+   * custo do mesmo especialista em duas linhas do relatório.
    */
   clientId?: string | null;
+  /** Opcional PORQUE é derivado do dono (`departamentoQuePaga`). Só passe se
+   *  souber de um contexto que o registro não tem. */
   departmentId?: string | null;
-  agentId?: string | null;
+  agentId: string;
   projectId?: string | null;
 }): Promise<GenerateResult> {
   const maxTokens = options.maxTokens ?? 2048;
@@ -341,8 +352,12 @@ export async function generate(options: {
     // nunca rejeita, então não há promessa órfã capaz de derrubar o processo.
     void registrarChamadaDeIa({
       workspaceId:  options.workspaceId,
-      departmentId: options.departmentId ?? "desconhecido",
-      agentId:      options.agentId ?? null,
+      // O departamento sai do REGISTRO do dono, não de cada chamador repetindo
+      // o mesmo par. Repetir era a segunda porta do mesmo buraco: quem lembrava
+      // do `agentId` esquecia do `departmentId`, e o gasto caía em
+      // "desconhecido" com dono declarado — o pior dos dois mundos.
+      departmentId: departamentoQuePaga(options.agentId, options.departmentId) ?? "desconhecido",
+      agentId:      options.agentId,
       clientId:     options.clientId ?? null,
       projectId:    options.projectId ?? null,
       provider:     p.provider,

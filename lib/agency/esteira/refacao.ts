@@ -304,6 +304,9 @@ export async function refazerPorPedidoDoCliente(input: {
       maxTokens: 1800,
       workspaceId: projeto.workspaceId,
       preferredProvider: esp?.provedor ?? "claude",
+      agentId: "esteira-refacao",
+      clientId: projeto.clientId ?? null,
+      projectId: projeto.id,
     });
 
     if (!r.ok) {

@@ -100,6 +100,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     workspaceId: session.workspaceId,
     preferredProvider: provider as AiProvider,
     apenasOPreferido: body.estrito === true,
+    // Console do operador: gasto real, sem cliente. Fica no departamento
+    // `operacao-interna` para não engordar o custo de nenhum projeto.
+    agentId: "console-ia",
   });
   const ms = Date.now() - comecou;
 

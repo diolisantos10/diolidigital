@@ -119,7 +119,7 @@ export async function createProjectFromRequest(clientRequestId: string, approved
     const sched = await generate({
       system: "Você é um Project Manager de uma agência de marketing brasileira. Monte um cronograma simples e claro para um cliente que NÃO é da área (sem jargão). Responda SOMENTE JSON válido.",
       user: `Projeto: ${proposal.name}. Objetivo: ${proposal.goal}.\nEntregas previstas: ${(proposal.tasks ?? []).map((t) => t.title).slice(0, 10).join("; ")}.\nMonte um cronograma de 4 semanas: em cada semana, 2 a 3 coisas que acontecem, em linguagem simples e direta.\nJSON: {"weeks":[{"label":"Semana 1","items":["...","..."]}]}`,
-      maxTokens: 900, workspaceId, preferredProvider: "claude",
+      maxTokens: 900, workspaceId, preferredProvider: "claude", agentId: "pm-cronograma", clientId: req.clientId ?? null, projectId: project.id,
     });
     if (sched.ok) {
       const weeks = ((sched.data as { weeks?: Array<{ label?: string; items?: string[] }> }).weeks ?? []).slice(0, 6);

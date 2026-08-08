@@ -53,7 +53,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const PEDIDO = { system: "você é o estrategista", user: "monte o plano da Dioli" };
+const PEDIDO = { system: "você é o estrategista", user: "monte o plano da Dioli", agentId: "strategy-posicionamento" };
 
 describe("o modelo do Gemini precisa ser um modelo VIVO", () => {
   // Verificado contra a chave DESTA casa em 06/08/2026, um nome por vez:

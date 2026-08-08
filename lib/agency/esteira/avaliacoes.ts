@@ -114,6 +114,7 @@ export async function cuidarDasAvaliacoes(): Promise<RodadaDeAvaliacoes> {
 
       const redacao = await redigirResposta({
         workspaceId: conexao.workspaceId,
+        clientId: conexao.clientId,
         negocio: negocio?.name ?? conexao.title,
         tom: (negocio?.brandBrain?.tone ?? "") as string,
         autor: a.autor,
@@ -221,6 +222,9 @@ export async function redigirResposta(input: {
   estrelas: number;
   comentario: string;
   verdade: VerdadeDoCliente;
+  /** DE QUEM é a conta desta chamada. Nulo é legítimo: conexão do Google sem
+   *  cliente vinculado existe. Nulo declarado ≠ nulo esquecido. */
+  clientId?: string | null;
 }): Promise<RedacaoDeResposta> {
   const positiva = input.estrelas >= ESTRELAS_PARA_RESPOSTA_AUTOMATICA;
 
@@ -248,6 +252,8 @@ export async function redigirResposta(input: {
     ].filter(Boolean).join("\n"),
     maxTokens: 400,
     workspaceId: input.workspaceId,
+    agentId: "esteira-avaliacoes",
+    clientId: input.clientId ?? null,
   });
   if (!r.ok) return { texto: null, motivo: "a IA que escreve a resposta estava indisponível" };
 

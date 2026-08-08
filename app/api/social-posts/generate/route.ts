@@ -170,6 +170,7 @@ Responda EXATAMENTE neste formato JSON:
     maxTokens: mode === "caption" ? 900 : 2048,
     workspaceId: session.workspaceId,
     preferredProvider: "claude",
+    agentId: "social-copy",
   });
 
   if (!result.ok) {

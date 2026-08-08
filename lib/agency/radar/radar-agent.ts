@@ -160,6 +160,7 @@ JSON: {"items":[{"topic":"...","title":"...","guidance":"..."}]}${blocoConhecido
     maxTokens: 700,
     workspaceId,
     preferredProvider: "claude",
+    agentId: "radar-tendencias",
   });
   if (!result.ok) {
     return { estado: "ia_indisponivel", propostos: 0, motivo: `${domain}: IA não respondeu — nenhuma varredura foi feita neste domínio.` };
@@ -216,7 +217,7 @@ async function scanSource(workspaceId: string, source: RadarSource): Promise<Res
   const result = await generate({
     system: "Você é o Radar Dioli. Extraia mudanças/atualizações ACIONÁVEIS SOMENTE a partir dos itens fornecidos — NÃO invente nada que não esteja neles. Responda SOMENTE JSON válido.",
     user: `Fonte: ${source.name} (domínio: ${source.domain}). Itens recentes:\n${feedText}\n\nExtraia até 2 atualizações que uma agência deve aplicar já. Para cada: topic (slug estável), title (curto), guidance (o que fazer). Se os itens não trouxerem nada acionável, retorne items vazio.\nJSON: {"items":[{"topic":"...","title":"...","guidance":"..."}]}`,
-    maxTokens: 600, workspaceId, preferredProvider: "claude",
+    maxTokens: 600, workspaceId, preferredProvider: "claude", agentId: "radar-feeds",
   });
   if (!result.ok) {
     return { estado: "ia_indisponivel", propostos: 0, motivo: `${source.name}: IA não respondeu — o feed foi lido mas nada foi extraído.` };

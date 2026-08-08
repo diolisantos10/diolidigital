@@ -8,6 +8,87 @@
 
 ---
 
+## O FINANCEIRO É O DONO ÚNICO DE TODO DINHEIRO DA CASA
+
+**Decidido em** 2026-08-07 · **por** CEO · **origem:** `lib/agency/financeiro/dre.ts`,
+`app/agency/financeiro/page.tsx`, `lib/ai/donos.ts`
+
+As palavras do CEO:
+
+> *"Em tese todos os projetos são de autoria da Dioli Digital. Então todos os
+> custos de todos os projetos, e também o faturamento, tudo, eu vou colocar
+> dentro do financeiro da agência. […] quem mede tudo em relação a dinheiro vai
+> ser o departamento de finanças — inclusive isso que você está me
+> questionando, de quem vai medir quanto cada IA gasta. É o financeiro."*
+
+Isso fecha uma pergunta que estava aberta (item 4 de
+`docs/perguntas-ao-diretor-geral.md`): **o dono da medição de custo de IA por
+agente é o financeiro**, não a Plataforma e não a Qualidade.
+
+O que atravessa domínios, e por isso mora aqui:
+
+1. **Consolidação por autoria, não por contrato.** Foocci, CityJobs, Dioli
+   Digital — todos os projetos são de autoria da Dioli, logo custo e
+   faturamento de todos sobem para o mesmo DRE. Nenhum projeto tem caixa
+   próprio.
+2. **A tela responde DUAS perguntas ao mesmo tempo:** *"como está a agência?"*
+   (o consolidado) e *"este projeto se paga?"* (a linha por centro de custo,
+   **ordenada do pior para o melhor**). Consolidado sozinho é média, e média
+   esconde o projeto que consome mais IA do que fatura.
+3. **Zero e "não sei" são valores DIFERENTES, e o tipo obriga a distinção.**
+   `Dinheiro` tem três estados (`medido`, `nao_medido`, `nao_lancado`) e a soma
+   se recusa a somar: uma parcela não medida contamina o total em vez de virar
+   zero. É a Lei da casa (*ausência de informação não é informação*) escrita em
+   tipo, não em disciplina.
+4. **Todo número em tela de dinheiro carrega procedência** — registro de chamada
+   de IA, lançamento manual, contrato, extrato. Número sem origem num DRE é o
+   que faz um dono decidir errado com cara de dado.
+5. **Estimado nunca se soma a realizado**, e **moeda não se converte sem câmbio
+   declarado**. O custo de IA sai em dólar, fora do resultado, com a ressalva —
+   escolher uma taxa por conta própria mudaria o número mais consequente da tela
+   por um chute.
+6. **O histórico não volta.** A medição de custo de IA só é completa a partir de
+   07/08/2026 (`MEDICAO_DE_IA_COMPLETA_DESDE`). Período anterior sai marcado
+   como amostra de tamanho desconhecido. **Não se extrapola o passado.**
+
+> **Proposto ao Diretor Geral do Cérebro como regra de companhia:** os itens 3 e
+> 4. "Zero não é 'não sei'" já vale para métrica de cliente nesta casa; em
+> dinheiro ela precisa de tipo, não de lembrança. E "número em painel carrega
+> procedência" é a mesma família da verdade ancorada, aplicada a relatório em
+> vez de a texto.
+
+---
+
+## TODA CHAMADA DE IA DECLARA O DONO — e o compilador é quem cobra
+
+**Decidido em** 2026-08-07 · **por** PM · **origem:** `lib/ai/donos.ts`,
+`__tests__/ai/todo-gasto-tem-dono.test.ts`
+
+`AIRunLog.agentId` existia desde 06/08. **Medido em 07/08: das 32 chamadas a
+`generate({…})` do repositório, 10 declaravam o dono e 22 não.** O departamento
+financeiro nasceria medindo cerca de um terço do gasto — e sem saber qual terço.
+
+O que fica como regra:
+
+1. **`agentId` é OBRIGATÓRIO na assinatura.** Chamada nova sem dono **não
+   compila**. Optional dependia de lembrança, e lembrança foi exatamente o que
+   falhou nas 22.
+2. **O id vem de um registro fechado** (`DONOS_DE_CHAMADA`). String livre
+   reabre o buraco por outra porta: `"social"` num arquivo e `"social-media"`
+   noutro partem o custo do mesmo especialista em duas linhas do relatório sem
+   ninguém errar visivelmente.
+3. **O departamento que paga é DERIVADO do dono**, não repetido em cada
+   chamada. Quem lembrava do `agentId` esquecia do `departmentId` e o gasto caía
+   em `"desconhecido"` com dono declarado.
+4. **Duas travas, porque o tipo sozinho não basta.** O teste estático varre o
+   repositório e reprova (a) chamada sem `agentId` e (b) dono fora do registro —
+   é o que pega `as never`, string montada em runtime e
+   `// @ts-expect-error` posto para destravar o build.
+5. **Nada disso pode derrubar a entrega.** Dono desconhecido em produção é
+   gravado como veio e denunciado no log; contabilidade não para a agência.
+
+---
+
 ## OS CINCO ESSENCIAIS ENTRARAM NESTA CASA — 07/08/2026
 
 **Ordem do CEO**, doutrina 21 do `dioli-brain-kit`: todo projeto passa a ter,

@@ -73,7 +73,7 @@ function respostaClaude(texto: string, uso = { input_tokens: 2000, output_tokens
 function http(status: number) { return { ok: false, status, json: async () => ({}) }; }
 
 const fetchMock = vi.fn();
-const PEDIDO = { system: "estrategista", user: "monte o plano" };
+const PEDIDO = { system: "estrategista", user: "monte o plano", agentId: "strategy-posicionamento" };
 const WS = "ws-dioli";
 
 beforeEach(() => {

@@ -167,6 +167,7 @@ export async function orchestratePMReasoning(
     user: messages.user,
     maxTokens: 2048,
     workspaceId,
+    agentId: "pm-orquestrador",
   });
 
   if (!result.ok) {

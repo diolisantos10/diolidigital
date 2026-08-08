@@ -25,6 +25,7 @@ model AgencyWorkspace {
   clientAiProviders    ClientAiProvider[]
   activityEvents       ActivityEvent[]
   aiRunLogs            AIRunLog[]
+  lancamentos          LancamentoFinanceiro[]
   metaConnections      MetaConnection[]
   marketInsights       MarketInsight[]
 }
@@ -906,6 +907,66 @@ model AIRunLog {
   @@index([projectId])
   /// O relatório de gasto é sempre "deste cliente, nesta janela".
   @@index([workspaceId, clientId, createdAt])
+}
+
+// ─── DEPARTAMENTO FINANCEIRO ──────────────────────────────────────────────────
+//
+// Pedido do CEO em 07/08/2026: "todos os projetos são de autoria da Dioli
+// Digital. Então todos os custos de todos os projetos, e também o faturamento,
+// tudo, eu vou colocar dentro do financeiro da agência."
+//
+// UM lançamento serve receita e custo. Duas tabelas separadas divergiriam de
+// campo em campo (uma ganha `origem`, a outra não) e o DRE teria de somar duas
+// formas diferentes do mesmo conceito.
+//
+// ── AS TRÊS COLUNAS QUE FAZEM ESTA TABELA VALER ALGUMA COISA ────────────────
+//
+//   `origem`   — de ONDE veio o número. Número sem procedência num DRE é o que
+//                faz um dono decidir errado com cara de dado.
+//   `natureza` — realizado ou estimado. Nunca se somam sem rótulo.
+//   `centroDeCusto` — a qual projeto/produto da casa pertence, mesmo quando não
+//                há linha de `Client` (Foocci, CityJobs, a própria Dioli).
+//                É o que responde "este projeto se paga?" sem sumir na média.
+
+model LancamentoFinanceiro {
+  id             String          @id @default(cuid())
+  workspaceId    String
+  workspace      AgencyWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  /// `receita` | `custo`
+  tipo           String
+  /// `mensalidade` `projeto` `ia` `midia` `ferramenta` `pessoal` `imposto` `outro`
+  categoria      String
+  descricao      String
+
+  /// CENTAVOS, inteiro. Dinheiro em ponto flutuante é erro de arredondamento
+  /// com nome de bug — e aqui o erro sai no DRE que o CEO lê.
+  valorCentavos  Int
+  moeda          String          @default("BRL")
+
+  /// PROCEDÊNCIA: `manual` | `contrato` | `registro_de_ia` | `extrato` | `importado`.
+  origem         String
+  /// `realizado` | `estimado`. Estimativa nunca se mistura com realizado sem rótulo.
+  natureza       String          @default("realizado")
+
+  /// A que mês este lançamento pertence (regime de competência).
+  competencia    DateTime
+
+  clientId       String?
+  projectId      String?
+  /// Nome do projeto/produto da casa quando não existe linha de cliente.
+  centroDeCusto  String?
+
+  /// Quem lançou. `null` = importado por rotina, e isso é diferente de "ninguém".
+  criadoPor      String?
+  observacao     String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  /// O DRE é sempre "deste workspace, neste período".
+  @@index([workspaceId, competencia])
+  @@index([workspaceId, clientId, competencia])
+  @@index([workspaceId, centroDeCusto, competencia])
 }
 
 // ─── Continuous SDR Training V3 ───────────────────────────────────────────────

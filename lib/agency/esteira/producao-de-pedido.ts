@@ -234,6 +234,11 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
     maxTokens: 1800,
     workspaceId: projeto.workspaceId,
     preferredProvider: esp.provedor ?? "claude",
+    // O dono é o ESPECIALISTA que produz, não a esteira: é ele que aparece na
+    // linha de custo por agente do financeiro.
+    agentId: esp.id,
+    clientId: projeto.clientId ?? null,
+    projectId: projeto.id,
   });
 
   await moverTarefa(pedido.taskId, "in_progress");
@@ -311,6 +316,7 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
   let audit = await auditDeliverable({
     deptLabel: nome, title, content: body, brandContext: contextoDaMarca,
     workspaceId: projeto.workspaceId, provedorDoAutor: esp.provedor ?? "claude",
+    clientId: projeto.clientId ?? null, projectId: projeto.id,
   });
   if (foiReprovadaPelaQualidade(audit.verdict)) {
     const fix = await gerar(refazer(promptBase, data,
@@ -327,6 +333,7 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
         audit = await auditDeliverable({
           deptLabel: nome, title, content: body, brandContext: contextoDaMarca,
           workspaceId: projeto.workspaceId, provedorDoAutor: esp.provedor ?? "claude",
+          clientId: projeto.clientId ?? null, projectId: projeto.id,
         });
       }
     }

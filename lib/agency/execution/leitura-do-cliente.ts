@@ -670,6 +670,7 @@ async function analisarLegendas(
   posts: PostDoFeed[],
   metricas: Map<string, Record<string, number>>,
   workspaceId: string,
+  clientId: string | null,
 ): Promise<Qualitativa | null> {
   // Delimitador único por chamada: a legenda não tem como fechá-lo porque não
   // tem como adivinhá-lo. Aspas simples, que era o delimitador anterior,
@@ -699,6 +700,8 @@ Responda JSON: {"temas": ["2 a 4 temas recorrentes"], "tom": "o tom das legendas
     maxTokens: 600,
     workspaceId,
     preferredProvider: "claude",
+    agentId: "leitura-do-cliente",
+    clientId,
   });
   if (!r.ok) return null;
   const d = r.data as Record<string, unknown>;
@@ -969,7 +972,7 @@ export async function sinteseDoFeedDoCliente(
       for (const m of rm.posts as MetricasDoPost[]) if (!m.erro) metricas.set(m.mediaId, m.metricas);
     }
 
-    const qual = await analisarLegendas(feed.posts, metricas, workspaceId);
+    const qual = await analisarLegendas(feed.posts, metricas, workspaceId, clientId);
 
     // A LEITURA DE PIXEL. Uma vez por síntese — ou seja, no máximo uma vez por
     // dia por cliente, pelo TTL. Nunca no despertador: `estiloVistoPersistido`

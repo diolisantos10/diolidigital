@@ -239,6 +239,11 @@ export type ActivityEvent = Prisma.ActivityEventModel
  */
 export type AIRunLog = Prisma.AIRunLogModel
 /**
+ * Model LancamentoFinanceiro
+ * 
+ */
+export type LancamentoFinanceiro = Prisma.LancamentoFinanceiroModel
+/**
  * Model TrainingBatch
  * 
  */

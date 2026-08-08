@@ -52,7 +52,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const PEDIDO = { system: "você é o PM", user: "monte o plano" };
+const PEDIDO = { system: "você é o PM", user: "monte o plano", agentId: "pm-orquestrador" };
 
 describe("DeepSeek conectado", () => {
   it("chama o host da DeepSeek, com Bearer, e devolve o JSON", async () => {

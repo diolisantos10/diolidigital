@@ -28,7 +28,7 @@ ${JSON.stringify(scope)}
 Falta algum material DO CLIENTE pra começar a produção? Para cada item que falta, escreva um pedido curto e claro, em linguagem simples, direto pro cliente.
 JSON: {"sufficient": true|false, "missing": [{"type": "fotos|logo|acesso|midia|outro", "description": "pedido claro pro cliente"}]}`;
 
-  const r = await generate({ system: sys, user, maxTokens: 600, workspaceId: req.workspaceId ?? undefined, preferredProvider: "claude" });
+  const r = await generate({ system: sys, user, maxTokens: 600, workspaceId: req.workspaceId ?? undefined, preferredProvider: "claude", agentId: "comercial-materiais", clientId: req.clientId ?? null });
   if (!r.ok) return { sufficient: true, missing: [] }; // fail-open: never block on an AI hiccup
 
   const data = r.data as { sufficient?: unknown; missing?: unknown };

@@ -544,6 +544,72 @@ export const BRAIN_DEPARTMENTS: BrainDepartment[] = [
     humanApprovalTriggers: ["entrega_crítica_com_risco_legal_ou_financeiro"],
     firstVersionStatus: "existing",
   },
+
+  // ── FINANCEIRO ────────────────────────────────────────────────────────────
+  //
+  // Criado por decisão do CEO em 07/08/2026. As palavras dele:
+  //
+  //   "Em tese todos os projetos são de autoria da Dioli Digital. Então todos
+  //    os custos de todos os projetos, e também o faturamento, tudo, eu vou
+  //    colocar dentro do financeiro da agência. […] quem mede tudo em relação
+  //    a dinheiro vai ser o departamento de finanças — inclusive quem vai
+  //    medir quanto cada IA gasta."
+  //
+  // O id é `financeiro`, o MESMO já usado em `especialistas.ts` — de propósito.
+  // Departamento é a casa; agente é o especialista dentro dela. A casa é uma
+  // só e tem dois tipos de trabalho: o plano de investimento QUE O CLIENTE
+  // RECEBE (especialista `financeiro-plano`, que já existia) e os livros DA
+  // AGÊNCIA (`lib/agency/financeiro/dre.ts`, que nasce agora). Abrir um id novo
+  // criaria dois "financeiros" no painel e na escada, e ninguém saberia qual
+  // manda.
+  //
+  // NASCE EM SOMBRA, e não por promessa: `degrauDeclarado()` devolve `sombra`
+  // para qualquer linha ausente ou desconhecida, e `departamentosDaCasa()` já o
+  // enxerga (teste em `__tests__/qualidade/escada-de-exposicao.test.ts`). Sobe
+  // com evidência, como qualquer outro.
+  {
+    id: "financeiro",
+    name: "Financeiro",
+    mission:
+      "Ser o dono único de todo dinheiro da agência: consolidar faturamento e custo de TODOS os projetos — que são de autoria da Dioli Digital — em um DRE só, e medir o que cada agente de IA e cada cliente custam.",
+    responsibilities: [
+      "Manter o DRE da agência por período (receita, custo direto, despesa, resultado)",
+      "Registrar faturamento por cliente e por projeto",
+      "Registrar custo por categoria e por projeto",
+      "Medir o custo de IA por agente e por cliente a partir do AIRunLog",
+      "Responder as duas perguntas ao mesmo tempo: 'como está a agência?' e 'este projeto se paga?'",
+      "Declarar o que NÃO foi medido, em vez de escrever zero",
+    ],
+    permissions: [
+      "Ler o registro de chamadas de IA de todos os departamentos",
+      "Ler faturamento e custo de todos os projetos e clientes",
+      "Registrar lançamentos com procedência declarada",
+    ],
+    forbiddenActions: [
+      "Escrever zero onde a resposta é 'não medido'",
+      "Somar valor estimado com valor realizado sem rótulo",
+      "Converter moeda sem câmbio declarado",
+      "Extrapolar o histórico anterior à data em que a medição ficou completa",
+      "Publicar número sem procedência",
+    ],
+    tools: ["dre", "livro_de_lancamentos", "registro_de_custo_de_ia"],
+    suggestedAIEngine: "rule_based",   // dinheiro se soma, não se opina
+    allowedKnowledgeSources: ["ai_run_logs", "lancamentos_financeiros", "contracts", "projects", "clients"],
+    qualityGate: [
+      "Todo número em tela declara a origem (registro de IA, manual, contrato, extrato)",
+      "'Não medido' e 'nada lançado' aparecem com essas palavras — nunca como R$ 0,00",
+      "Estimado e realizado aparecem em linhas separadas",
+      "Período com medição incompleta sai marcado, com a data de corte",
+    ],
+    simulator: null,
+    trainingCenter: null,
+    evidenceTypes: ["dre_fechado", "lancamento_registrado", "custo_de_ia_atribuido"],
+    humanApprovalTriggers: ["lancamento_manual_de_receita", "conciliacao_bancaria"],
+    // `partial`: o motor de DRE e a medição de IA existem; conciliação
+    // bancária, contas a pagar/receber e regime de caixa NÃO existem. Declarar
+    // `existing` aqui seria a mentira mais fácil deste arquivo.
+    firstVersionStatus: "partial",
+  },
 ];
 
 export function getBrainDepartment(id: string): BrainDepartment | undefined {

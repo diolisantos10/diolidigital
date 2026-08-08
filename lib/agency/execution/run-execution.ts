@@ -688,6 +688,7 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
         // QUEM ESCREVEU. O juiz é escolhido para não ser ele — sem isto, em 11
         // das 14 entregas o autor se auditava (ver `escolherArbitro`).
         provedorDoAutor: esp.provedor ?? "claude",
+        clientId: project.clientId, projectId,
       });
       let revisions = 0;
       // Só REPROVAÇÃO manda refazer. `nao_auditado` não é parecer — pedir ao
@@ -724,6 +725,7 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
           marketGuidelines: insightBlock, workspaceId: project.workspaceId,
           feed: { lida: feedDoCliente.lida, posts: feedDoCliente.posts },
           provedorDoAutor: esp.provedor ?? "claude",
+          clientId: project.clientId, projectId,
         });
       }
 

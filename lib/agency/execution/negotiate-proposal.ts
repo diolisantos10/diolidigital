@@ -28,7 +28,7 @@ PISO — nunca vá abaixo disso: ${money(floor)} por mês.
 Se a objeção for preço e fizer sentido, sugira um novo total (>= piso). Senão, mantenha o valor e reforce o retorno.
 Responda em JSON: {"message":"resposta calorosa e negociadora, 2 a 4 frases, em pt-BR","newTotal": <número >= piso, ou null>}`;
 
-  const r = await generate({ system: sys, user, maxTokens: 500, workspaceId: req.workspaceId ?? undefined, preferredProvider: "claude" });
+  const r = await generate({ system: sys, user, maxTokens: 500, workspaceId: req.workspaceId ?? undefined, preferredProvider: "claude", agentId: "comercial-negociacao", clientId: req.clientId ?? null });
   const data = (r.ok ? r.data : {}) as { message?: string; newTotal?: number | null };
   const message = data.message?.trim()
     || "Oi! Entendi você. Vamos achar um caminho que caiba no seu momento — me conta o que seria ideal pra você e eu vejo uma condição especial. 💛";
