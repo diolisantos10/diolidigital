@@ -1,7 +1,7 @@
 ---
 titulo: "Google Ads — conteúdo inadequado (proibido)"
 url: https://support.google.com/adspolicy/answer/6015406?hl=pt-BR
-capturado_em: 2026-08-07
+capturado_em: 2026-08-08
 hash: a1705b38c01df812
 ---
 

@@ -1,8 +1,8 @@
 ---
 titulo: "Google Picker API — visão geral (o seletor de arquivos do Google)"
 url: https://developers.google.com/workspace/drive/picker/guides/overview
-capturado_em: 2026-08-07
-hash: 8149fb46d49ffdaa
+capturado_em: 2026-08-08
+hash: b46b77ea2ed26755
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -11,6 +11,10 @@ hash: 8149fb46d49ffdaa
 O Google usa tecnologia de IA na tradução de conteúdos para seu idioma de preferência. As traduções com IA podem ter erros.
 Envie comentários
 Visão geral do Google Picker
+Nesta página
+Principais casos de uso
+Comparação de apps da Web com apps para computador e dispositivos móveis
+Temas relacionados
 
 Este documento apresenta o Google Picker e a API Google Picker. Ele também ajuda você a decidir qual abordagem é melhor para seu app.
 

@@ -1,14 +1,20 @@
 ---
 titulo: "Google API Services — User Data Policy (uso limitado)"
 url: https://developers.google.com/terms/api-services-user-data-policy
-capturado_em: 2026-08-07
-hash: 54e4ffa4d8e6cc5c
+capturado_em: 2026-08-08
+hash: 11099e009f069573
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
 Google API Services User Data Policy
+Nesta página
+Accurately represent your identity and intent
+Be transparent about the data you access with clear and prominent privacy disclosures
+Request the minimum relevant permissions
+Deceptive or unauthorized use of Google API Services is prohibited
+Child-directed apps
 
 Last updated February 15, 2024
 

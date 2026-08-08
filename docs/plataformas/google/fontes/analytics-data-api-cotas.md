@@ -1,7 +1,7 @@
 ---
 titulo: "Google Analytics — Data API (GA4): cotas e limites"
 url: https://developers.google.com/analytics/devguides/reporting/data/v1/quotas?hl=pt-br
-capturado_em: 2026-08-07
+capturado_em: 2026-08-08
 hash: ffbe55f4158363cb
 ---
 

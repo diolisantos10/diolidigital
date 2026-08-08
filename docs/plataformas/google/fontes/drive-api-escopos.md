@@ -1,8 +1,8 @@
 ---
 titulo: "Google Drive API — escopos de OAuth (drive.file, sensíveis, restritos)"
 url: https://developers.google.com/workspace/drive/api/guides/api-specific-auth
-capturado_em: 2026-08-07
-hash: 378b80a6c39a5f8f
+capturado_em: 2026-08-08
+hash: d30c1c0920f7ac45
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -11,6 +11,15 @@ hash: 378b80a6c39a5f8f
 O Google usa tecnologia de IA na tradução de conteúdos para seu idioma de preferência. As traduções com IA podem ter erros.
 Envie comentários
 Escolher escopos da API Google Drive
+Nesta página
+Configurar o OAuth 2.0 para autorização
+Escopos da API Drive
+Escopos não confidenciais
+Escopos confidenciais
+Escopos restritos
+Qualificações para escopos restritos
+Migrar um app atual de escopos restritos
+Benefícios do escopo de arquivo do Drive
 
 Este documento contém informações de autorização e autenticação específicas da API Google Drive. Antes de ler este documento, leia as informações gerais de autenticação e autorização do Google Workspace em Saiba mais sobre autenticação e autorização.
 

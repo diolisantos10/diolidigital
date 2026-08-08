@@ -1,7 +1,7 @@
 ---
 titulo: "Desenvolvimento — criar um app, tipos de app e painel"
 url: https://developers.facebook.com/documentation/development/create-an-app
-capturado_em: 2026-08-07
+capturado_em: 2026-08-08
 hash: 34baa6cbabf1dfe6
 ---
 

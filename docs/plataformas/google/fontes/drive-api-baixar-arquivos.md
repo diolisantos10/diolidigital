@@ -1,8 +1,8 @@
 ---
 titulo: "Google Drive API — baixar e exportar arquivos"
 url: https://developers.google.com/workspace/drive/api/guides/manage-downloads
-capturado_em: 2026-08-07
-hash: 75d813db7be5062e
+capturado_em: 2026-08-08
+hash: 528a2664db2a14af
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -11,6 +11,12 @@ hash: 75d813db7be5062e
 O Google usa tecnologia de IA na tradução de conteúdos para seu idioma de preferência. As traduções com IA podem ter erros.
 Envie comentários
 Fazer o download e exportar arquivos
+Nesta página
+Baixar conteúdo do arquivo blob
+Download parcial
+Baixar o conteúdo do arquivo blob em uma versão anterior
+Fazer o download do conteúdo de um arquivo blob em um navegador
+Baixar conteúdo de arquivo blob usando operações de longa duração
 
 A API Google Drive é compatível com vários tipos de ações de download e exportação, conforme listado na tabela a seguir:
 

@@ -1,8 +1,8 @@
 ---
 titulo: "Google Identity — OAuth 2.0: refresh token e expiração (app em Testing = 7 dias)"
 url: https://developers.google.com/identity/protocols/oauth2
-capturado_em: 2026-08-07
-hash: c8d4af85cb99a5c3
+capturado_em: 2026-08-08
+hash: 4b00f5d43c1db98d
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -11,6 +11,15 @@ hash: c8d4af85cb99a5c3
 O Google usa tecnologia de IA na tradução de conteúdos para seu idioma de preferência. As traduções com IA podem ter erros.
 Envie comentários
 Como usar o OAuth 2.0 para acessar as APIs do Google
+Nesta página
+Etapas básicas
+1. Acesse as credenciais do OAuth 2.0 no Console de APIs do Google.
+2. Receba um token de acesso do servidor de autorização do Google.
+3. Examine os escopos de acesso concedidos pelo usuário.
+4. Envie o token de acesso para uma API.
+5. Atualize o token de acesso, se necessário.
+Scenarios
+Aplicativos do servidor da Web
 Observação: o uso da implementação do OAuth 2.0 do Google é regido pelas políticas do OAuth 2.0.
 
 As APIs do Google usam o protocolo OAuth 2.0 para autenticação e autorização. O Google permite o uso do OAuth 2.0 para diversas finalidades, como em apps de servidores da Web, lado do cliente, instalados e de dispositivos de entrada limitada aplicações.

@@ -1,8 +1,8 @@
 ---
 titulo: "Google Identity — lista de escopos OAuth 2.0 das APIs"
 url: https://developers.google.com/identity/protocols/oauth2/scopes?hl=pt-br
-capturado_em: 2026-08-07
-hash: e67d2ac730e14369
+capturado_em: 2026-08-08
+hash: 731c8c5bf5ff2e4c
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -658,11 +658,11 @@ Escopo	Descrição
 https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
 https://www.googleapis.com/auth/dialogflow	Ver, gerenciar e consultar agentes do Dialogflow
 API Discovery Engine, v1
-Scope	Description
-https://www.googleapis.com/auth/cloud-platform	See, edit, configure, and delete your Google Cloud data and see the email address for your Google Account.
-https://www.googleapis.com/auth/cloud_search.query	Search your organization's data in the Cloud Search index
-https://www.googleapis.com/auth/discoveryengine.assist.readwrite	View your Agentspace chat history, including uploaded files and generated reports and visualizations, and interact with the Agentspace assistant on your behalf.
-https://www.googleapis.com/auth/discoveryengine.readwrite	View, edit, create, and delete all your data associated with any Discovery Engine API product, such as Agentspace, Vertex AI Search, or NotebookLM Enterprise, including both end user data and administration or configuration data.
+Escopo	Descrição
+https://www.googleapis.com/auth/cloud-platform	Ver, editar, configurar e excluir seus dados do Google Cloud e conferir o endereço de e-mail da sua Conta do Google
+https://www.googleapis.com/auth/cloud_search.query	Pesquisar os dados da sua organização no índice do Cloud Search
+https://www.googleapis.com/auth/discoveryengine.assist.readwrite	Acessar seu histórico de conversas do Agentspace, incluindo arquivos enviados e visualizações e relatórios, e interaja com o assistente do Agentspace em seu nome.
+https://www.googleapis.com/auth/discoveryengine.readwrite	Ver, editar, criar e excluir seus dados associados a qualquer produto da API Discovery Engine, como Agentspace, Vertex AI para Pesquisa ou NotebookLM Enterprise, incluindo dados de usuários finais e de administração ou configuração.
 API do Display & Video 360, v4
 Escopo	Descrição
 https://www.googleapis.com/auth/display-video	Criar, visualizar, editar e excluir permanentemente seus relatórios e entidades do Display & Video 360
