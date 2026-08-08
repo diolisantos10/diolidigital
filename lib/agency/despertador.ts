@@ -210,6 +210,8 @@ export async function baterORelogio(): Promise<{
   pedidos: number;
   /** Pedidos de MATERIAL que estavam presos e finalmente foram ao cliente. */
   cobrancasEsquecidas: number;
+  /** Oportunidades NOVAS que entraram pela caixa de e-mail da agência. */
+  oportunidadesDaCaixa: number;
   backup: boolean;
 }> {
   let retomados = 0;
@@ -222,6 +224,7 @@ export async function baterORelogio(): Promise<{
   let campanhasFreadas = 0;
   let avaliacoes = 0;
   let cobrancasEsquecidas = 0;
+  let oportunidadesDaCaixa = 0;
   let backup = false;
 
   // ── A TESTEMUNHA DA RODADA (06/08/2026) ───────────────────────────────────
@@ -278,6 +281,12 @@ export async function baterORelogio(): Promise<{
     const r = await produzirArtesPendentes();
     artes = r.produzidas;
     for (const f of r.falhas) quebrou("arte", f.erro);
+    // A rodada que nem começou é NOTÍCIA, nunca silêncio. Sem esta linha, a
+    // casa sem Chromium produziria zero peça por dia e o pulso registraria
+    // "0 falhas" — que é exatamente como o molde ficou desligado em produção
+    // por dias sem ninguém saber, com a única testemunha dentro do `lastError`
+    // de cada post. Fila parada conta como entrega não feita.
+    if (r.semRenderizador) quebrou("arte", r.semRenderizador);
   } catch (err) {
     quebrou("arte", err);
   }
@@ -334,6 +343,34 @@ export async function baterORelogio(): Promise<{
     quebrou("cobranca-esquecida", err);
   }
 
+  // ── A CAIXA DE ENTRADA DA AGÊNCIA ─────────────────────────────────────────
+  // A terceira porta do Radar: em vez de esperar alguém colar o projeto ou
+  // configurar um encaminhador, a casa LÊ a caixa da agência e ingere sozinha.
+  // Só leitura — não apaga, não move, não responde. Passa pela MESMA função de
+  // qualificação da porta de colar, então a oportunidade nasce com nota.
+  //
+  // Sem credencial ela não roda e NÃO é falha: é porta fechada, e o motivo
+  // aparece na tela de configuração. O que vira falha da rodada é a caixa
+  // configurada que não abriu — essa é notícia, e silenciá-la deixaria a porta
+  // parecendo ligada por semanas sem ter lido um e-mail.
+  try {
+    const { varrerTodasAsCaixas } = await import("@/lib/agency/comercial/caixa-de-entrada/varredura");
+    const { resultados, impedidos } = await varrerTodasAsCaixas();
+    for (const r of resultados) {
+      if (r.rodou) {
+        oportunidadesDaCaixa += r.novas;
+        if (r.novas > 0) log(`caixa de ${r.workspaceId}: ${r.novas} oportunidade(s) nova(s) — ${r.motivo}`);
+        if (r.falhas > 0) quebrou("caixa-de-entrada", `${r.workspaceId}: ${r.falhas} mensagem(ns) falharam`);
+      } else {
+        quebrou("caixa-de-entrada", `${r.workspaceId}: ${r.motivo}`);
+      }
+    }
+    // Credencial de ambiente sem alvo resolvido: configurada e lendo NADA.
+    for (const i of impedidos) quebrou("caixa-de-entrada", i);
+  } catch (err) {
+    quebrou("caixa-de-entrada", err);
+  }
+
   // ── O BACKUP ──────────────────────────────────────────────────────────────
   // Uma vez por dia. Não é o relógio que decide a frequência: ele bate a cada
   // 5 min, e é o estado no disco que diz se já passou 24h. Assim um restart do
@@ -373,8 +410,8 @@ export async function baterORelogio(): Promise<{
     quebrou("vigia-da-madrugada", err);
   }
 
-  if (retomados > 0 || avisos > 0 || destravadas > 0 || publicados > 0 || mesesVirados > 0 || artes > 0 || campanhasFreadas > 0 || avaliacoes > 0 || pedidos > 0 || cobrancasEsquecidas > 0) {
-    log(`rodada: ${pedidos} pedido(s) do cliente movido(s), ${mesesVirados} mês(es) virado(s), ${retomados} produção(ões) retomada(s), ${destravadas} entrega(s) refeita(s), ${artes} arte(s) produzida(s), ${publicados} post(s) publicado(s), ${campanhasFreadas} campanha(s) freada(s), ${avaliacoes} avaliação(ões) tratada(s), ${cobrancasEsquecidas} cobrança(s) esquecida(s) enviada(s), ${avisos} aviso(s) enviado(s)`);
+  if (retomados > 0 || avisos > 0 || destravadas > 0 || publicados > 0 || mesesVirados > 0 || artes > 0 || campanhasFreadas > 0 || avaliacoes > 0 || pedidos > 0 || cobrancasEsquecidas > 0 || oportunidadesDaCaixa > 0) {
+    log(`rodada: ${pedidos} pedido(s) do cliente movido(s), ${mesesVirados} mês(es) virado(s), ${retomados} produção(ões) retomada(s), ${destravadas} entrega(s) refeita(s), ${artes} arte(s) produzida(s), ${publicados} post(s) publicado(s), ${campanhasFreadas} campanha(s) freada(s), ${avaliacoes} avaliação(ões) tratada(s), ${cobrancasEsquecidas} cobrança(s) esquecida(s) enviada(s), ${oportunidadesDaCaixa} oportunidade(s) lida(s) da caixa, ${avisos} aviso(s) enviado(s)`);
   }
 
   // A BATIDA É GRAVADA SEMPRE — inclusive (e principalmente) a rodada em que
@@ -383,11 +420,11 @@ export async function baterORelogio(): Promise<{
   await registrarBatida({
     em: new Date().toISOString(),
     ms: Date.now() - comeco,
-    moveu: { pedidos, mesesVirados, retomados, destravadas, artes, publicados, campanhasFreadas, avaliacoes, cobrancasEsquecidas, avisos },
+    moveu: { pedidos, mesesVirados, retomados, destravadas, artes, publicados, campanhasFreadas, avaliacoes, cobrancasEsquecidas, oportunidadesDaCaixa, avisos },
     falhas,
   });
 
-  return { retomados, avisos, destravadas, publicados, mesesVirados, artes, campanhasFreadas, avaliacoes, pedidos, cobrancasEsquecidas, backup };
+  return { retomados, avisos, destravadas, publicados, mesesVirados, artes, campanhasFreadas, avaliacoes, pedidos, cobrancasEsquecidas, oportunidadesDaCaixa, backup };
 }
 
 /**

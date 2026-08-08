@@ -45,7 +45,7 @@ import {
 } from "@/lib/agency/design/escolha-de-foto";
 import type { MaterialReal } from "@/lib/agency/design/storyboard";
 import { montarPeca } from "@/lib/agency/design/peca";
-import type { MotivoDeFalhaDeRender } from "@/lib/agency/design/renderizar";
+import { renderizadorDisponivel, type MotivoDeFalhaDeRender } from "@/lib/agency/design/renderizar";
 import { tituloDaFonte } from "@/lib/agency/design/trava-de-texto";
 import { cerebroDaMarca } from "@/lib/agency/design/repertorio-registrado";
 import {
@@ -101,6 +101,12 @@ export interface ArtesFeitas {
   /** Peças que NÃO foram tentadas porque o cliente bateu o teto diário de
    *  imagens. Não é falha da peça e não gasta tentativa — volta amanhã. */
   semOrcamento: string[];
+  /**
+   * A rodada inteira parou antes de gastar um centavo porque a casa não tem
+   * como aplicar o molde. Sai preenchido com o motivo, e vazio quando tudo
+   * estava montado. Ver o bloco "O DINHEIRO SAI ANTES DA PORTA FECHAR".
+   */
+  semRenderizador?: string;
 }
 
 /**
@@ -112,6 +118,36 @@ export interface ArtesFeitas {
  */
 export async function produzirArtesPendentes(): Promise<ArtesFeitas> {
   const saida: ArtesFeitas = { produzidas: 0, falhas: [], desistiram: [], semOrcamento: [] };
+
+  // ── O DINHEIRO SAI ANTES DA PORTA FECHAR (08/08/2026) ─────────────────────
+  //
+  // `comporComMolde` é FAIL CLOSED desde 07/08: sem Chromium a peça não é
+  // gravada, e isso está certo — ferramenta faltando é problema da agência, não
+  // um entregável pior para o cliente pagante.
+  //
+  // Só que a porta fecha DEPOIS da foto. A ordem real era: gerar a imagem de IA
+  // (que custa, por peça), guardar, e só então descobrir que não há navegador
+  // para pôr a camada de texto — e jogar tudo fora. Medido em produção em
+  // 08/08: `/api/capacidades` respondeu `montar-molde: pronta:false` com
+  // `onde_achei_o_navegador: null`, e o despertador bate a cada 5 minutos. É
+  // uma torneira de dinheiro aberta contra um balde furado, 288 vezes por dia.
+  //
+  // `renderizadorDisponivel()` foi escrito exatamente para isto — o docstring
+  // dele diz "para o chamador decidir ANTES de gastar uma imagem de IA que ele
+  // não conseguiria compor" — e não tinha um único chamador no caminho vivo.
+  // Agora tem.
+  //
+  // Isto NÃO afrouxa nada e NÃO é um caminho alternativo: nenhuma peça sai crua
+  // por causa desta guarda. Ela só antecipa uma recusa que ia acontecer de
+  // qualquer jeito, para que a recusa não custe.
+  const renderizador = await renderizadorDisponivel().catch(() => ({ disponivel: false, caminho: null }));
+  if (!renderizador.disponivel) {
+    saida.semRenderizador =
+      "não há Chromium para rasterizar o molde neste ambiente — NENHUMA arte foi tentada, e nenhuma imagem de IA foi paga. " +
+      "Confira `playwright` em `dependencies` e o pacote `chromium` em `railpack.json → deploy.aptPackages`. " +
+      "Diagnóstico ao vivo em GET /api/capacidades → `montar-molde`.";
+    return saida;
+  }
 
   const pendentes = await prisma.socialPost.findMany({
     where: { mediaUrl: null, status: { in: ["draft", "scheduled", "approved"] } },
