@@ -264,6 +264,24 @@ export async function baterORelogio(): Promise<{
     quebrou("decisao-do-dono", err);
   }
 
+  // ── A REPESCAGEM ──────────────────────────────────────────────────────────
+  // Vem colada na decisão porque é a outra metade dela. `escadaFiltraEntregas`
+  // roda uma vez só, no ato de apresentar — e apresentar não se repete. Sem
+  // esta perna, abrir o degrau muda um valor no banco e NÃO faz uma única peça
+  // chegar ao cliente: a entrega retida ontem fica `interno` para sempre.
+  // Portão que abre e não deixa passar o legítimo é tão inútil quanto o que não
+  // fecha.
+  try {
+    const { repescarEntregasRetidas } = await import("@/lib/agency/escada/repescagem");
+    const r = await repescarEntregasRetidas();
+    if (r.liberadas > 0) {
+      log(`escada: ${r.liberadas} entrega(s) repescada(s) em ${r.projetos} projeto(s) — o degrau abriu depois da apresentação`);
+    }
+    for (const a of r.avisos) quebrou("repescagem-da-escada", a);
+  } catch (err) {
+    quebrou("repescagem-da-escada", err);
+  }
+
   // A virada vem ANTES da retomada de propósito: ela é quem abre o mês novo e
   // marca o projeto como "pending". Assim o mês nasce e já é produzido na mesma
   // rodada, em vez de esperar mais cinco minutos.

@@ -12,8 +12,26 @@ ninguém logar em produção. Era esse degrau que segurava as peças do CityJobs
 (`POST /api/agency/escada`, `acao: "aplicar_decisoes_do_dono"`) só para não
 esperar os 5 minutos. Registro completo em `docs/decisoes.md`.
 
-**Portão:** `npx tsc --noEmit` limpo · **3028 testes em 186 arquivos, todos
-verdes** (31 novos) · `npm run build` compila.
+### 🔴 O ELO QUE QUASE FALTOU: SOLTAR A ESCADA NÃO SOLTA O QUE JÁ FOI RETIDO
+
+`escadaFiltraEntregas` roda em **um instante só** — o ato de apresentar. E
+`apresentar`/`apresentarCiclo` recusam repetição (`if (presentedAt) return`),
+o que está certo: apresentar duas vezes avisa o cliente duas vezes.
+
+**A consequência não estava:** a entrega retida por um degrau fechado fica
+`interno` **para sempre**. Abrir o degrau depois não a alcança. Sem conserto,
+esta frente inteira teria trocado um valor no banco e **não feito uma única peça
+chegar ao cliente** — decoração com cara de entrega.
+
+**Conserto:** `lib/agency/escada/repescagem.ts`, segunda perna do relógio. Ela
+**não** reapresenta, **não** avisa o cliente, **não** publica, **não** contorna
+a Qualidade (`quality_flag` fica fora da própria consulta), **não** antecipa
+ciclo não apresentado e **não** reimplementa a regra — quem decide continua
+sendo `escadaFiltraEntregas`.
+
+**Portão:** `npx tsc --noEmit` limpo · **3042 testes em 187 arquivos, todos
+verdes** (45 novos) · `npm run build` sai **0** (os 3 avisos de
+`instrumentation.ts` → `armazenamento.ts` são anteriores a este trabalho).
 
 ### 🔴 O PADRÃO DAS QUATRO RODADAS QUE NÃO ENTREGARAM PEÇA — em uma frase
 
