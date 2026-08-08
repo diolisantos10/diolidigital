@@ -794,6 +794,157 @@ async function comporComMolde(p: PedidoDeComposicao): Promise<ResultadoDaComposi
   return { ok: true, bytes: r.bytes, nota: comAviso(null) };
 }
 
+// ─── AS PEÇAS QUE FICARAM SEM A CAMADA DE TEXTO ──────────────────────────────
+
+/** A assinatura, no `lastError`, de uma peça que saiu como foto crua porque não
+ *  havia navegador. Casa com a nota que `comporComMolde` escreveu ANTES do
+ *  fail-closed de 07/08/2026 — e SÓ com ela: peça que degradou por texto que não
+ *  coube, ou por trava de letra, não é caso desta função. */
+const MARCA_DE_PECA_SEM_MOLDE = "sem camada de texto): sem_navegador";
+
+export interface Recomposicao {
+  /** Peças que ganharam a camada de marca nesta passada. */
+  recompostas: string[];
+  /** Peças cuja foto original não está mais guardada — recompor exigiria GERAR
+   *  de novo, e essa decisão custa e não é desta função. */
+  semFundo: string[];
+  /** Peças de pilar bloqueado. Não se recompõe o que não pode sair. */
+  bloqueadas: string[];
+  falhas: Array<{ postId: string; erro: string }>;
+  /** A passada nem começou: sem navegador, recompor é impossível. */
+  semRenderizador?: string;
+}
+
+/**
+ * DÁ A CAMADA DE MARCA ÀS PEÇAS QUE NASCERAM SEM ELA — E NÃO PAGA DUAS VEZES.
+ *
+ * ── Por que esta função existe (08/08/2026) ─────────────────────────────────
+ *
+ * Enquanto o `playwright` chegava quebrado ao contêiner, as peças saíram como a
+ * FOTO CRUA da IA: sem título, sem a cor da marca, sem selo e sem assinatura.
+ * Elas ficaram gravadas com `mediaUrl` preenchido — e é isso que as torna
+ * invisíveis para o conserto: `produzirArtesPendentes` só olha
+ * `mediaUrl: null`, então essas peças NUNCA voltariam à fila. Ficariam para
+ * sempre no banco, com aparência de entregue e conteúdo de rascunho, e a única
+ * testemunha seria o `lastError` de cada uma.
+ *
+ * ── O que ela NÃO faz, e é o ponto ──────────────────────────────────────────
+ *
+ * **Não gera imagem nenhuma.** A foto paga está no armazenamento como
+ * `fundo-<postId>.png` desde o dia em que foi comprada — exatamente para isto.
+ * Recompor é rasterização local (≈1s) e custa zero. Regerar custaria a fatura
+ * inteira de novo E mudaria a foto que o calendário já tinha, o que não é
+ * conserto: é outra peça.
+ *
+ * **Não afrouxa uma trava.** Pilar bloqueado continua bloqueado; a trava de
+ * letra continua valendo (o título tem de ser trecho LITERAL da legenda já
+ * auditada); e sem navegador a passada para antes de tocar em qualquer peça.
+ *
+ * **Não inventa conteúdo.** A legenda é a que já estava lá.
+ *
+ * Nunca lança.
+ */
+export async function recomporPecasSemMolde(limite = 20): Promise<Recomposicao> {
+  const saida: Recomposicao = { recompostas: [], semFundo: [], bloqueadas: [], falhas: [] };
+
+  // Mesma guarda de `produzirArtesPendentes`, e pelo mesmo motivo: sem
+  // ferramenta a passada não começa, para não escrever nada e não mentir sobre
+  // o resultado.
+  const renderizador = await renderizadorDisponivel().catch(() => ({ disponivel: false, caminho: null }));
+  if (!renderizador.disponivel) {
+    saida.semRenderizador =
+      "não há Chromium para rasterizar o molde neste ambiente — NENHUMA peça foi recomposta. " +
+      "Diagnóstico ao vivo em GET /api/capacidades → `montar-molde`.";
+    return saida;
+  }
+
+  const orfas = await prisma.socialPost.findMany({
+    where: {
+      mediaUrl: { not: null },
+      lastError: { contains: MARCA_DE_PECA_SEM_MOLDE },
+      status: { in: ["draft", "scheduled", "approved"] },
+    },
+    orderBy: { scheduledFor: "asc" },
+    take: limite,
+  }).catch(() => []);
+
+  for (const post of orfas) {
+    const veredito = conferirPilar(post.pillar);
+    if (veredito.bloqueado) {
+      saida.bloqueadas.push(post.id);
+      continue;
+    }
+
+    const fundo = await prisma.mediaAsset.findFirst({
+      where: { fileName: nomeDoFundo(post.id), workspaceId: post.workspaceId },
+      orderBy: { createdAt: "desc" },
+    }).catch(() => null);
+    if (!fundo) { saida.semFundo.push(post.id); continue; }
+
+    const bytes = await lerArquivo(fundo.storagePath).catch(() => null);
+    if (!bytes || bytes.length === 0) { saida.semFundo.push(post.id); continue; }
+
+    const marca = await lerMarca(post.clientId);
+    const composta = await comporComMolde({
+      formato: formatoDoPost(post.format),
+      molde: marca.molde,
+      fotoBytes: Buffer.from(bytes),
+      fotoMime: fundo.mimeType || "image/png",
+      fonteAuditada: post.caption,
+      selo: post.pillar,
+      assinatura: marca.nome,
+      indice: null,
+      notaDoMaterial: null,
+    });
+    if (!composta.ok) {
+      // Infra caiu no meio da passada. A peça fica exatamente como estava —
+      // ruim e declarada ruim, que é melhor do que ruim e calada.
+      saida.falhas.push({ postId: post.id, erro: composta.erro });
+      continue;
+    }
+
+    // ── A METADE QUE FALTAVA: A PEÇA SÓ CONTA SE MUDOU ────────────────────
+    // `comporComMolde` devolve `ok: true` com a FOTO CRUA quando o texto não
+    // coube ou a trava reprovou a letra. Gravar isso como recomposição seria
+    // trocar um arquivo idêntico por outro e declarar vitória — a peça
+    // continuaria sem marca, agora sem nem o aviso de que continua.
+    const mudou = composta.bytes.length !== bytes.length || !composta.bytes.equals(Buffer.from(bytes));
+    if (!mudou) {
+      saida.falhas.push({
+        postId: post.id,
+        erro: composta.nota ?? "a camada de texto não pôde ser aplicada e a peça continua sendo a foto crua",
+      });
+      // A nota nova é gravada mesmo assim: o motivo mudou de "sem navegador"
+      // (que já não é verdade) para o motivo real, e um motivo desatualizado
+      // manda a próxima passada procurar no lugar errado.
+      await prisma.socialPost.update({
+        where: { id: post.id }, data: { lastError: composta.nota },
+      }).catch(() => null);
+      continue;
+    }
+
+    const guardado = await guardarArquivo({
+      bytes: composta.bytes,
+      fileName: `arte-${post.id}.png`,
+      mimeType: "image/png",
+      workspaceId: post.workspaceId,
+      clientId: post.clientId,
+      clientRequestId: post.clientRequestId,
+      kind: "generated",
+      uploadedBy: "design",
+    });
+    if (!guardado.ok) { saida.falhas.push({ postId: post.id, erro: guardado.motivo }); continue; }
+
+    await prisma.socialPost.update({
+      where: { id: post.id },
+      data: { mediaUrl: `/api/media/${guardado.arquivo.id}`, lastError: composta.nota },
+    });
+    saida.recompostas.push(post.id);
+  }
+
+  return saida;
+}
+
 /**
  * Re-render de TEXTO, sem tocar no gerador de imagem.
  *
