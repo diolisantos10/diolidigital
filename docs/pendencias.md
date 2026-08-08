@@ -402,8 +402,19 @@ token):
 > alcance do app** enquanto `DriveMaterial` tem **zero linhas** para ela. Isso é
 > escolha feita no seletor do Google que **não gravou aqui**. O diagnóstico
 > passou a contar os dois lados e marcar `escolhaPerdida` quando divergem.
-> ⚠️ **Não confirmei quantos arquivos são** — a contagem entrou depois desta
-> medição e ainda não rodou em produção.
+>
+> **✅ CONFIRMADO com número, medido em produção:**
+>
+> | Cliente | O Google diz que o app alcança | O banco desta casa tem | Escolha perdida |
+> |---|---|---|---|
+> | **Foocci** | **1 arquivo** | **0** | **SIM** |
+> | CityJobs | 0 | 0 | não |
+> | Dioli Digital Studio | 0 | 0 | não |
+>
+> **O CEO mandou, sim, 1 arquivo pelo seletor do Drive da Foocci — e esta casa
+> perdeu a escolha.** Ele está certo e nós estávamos errados. É o item mais
+> quente da lista abaixo: enquanto isso não for consertado, todo cliente que
+> escolher material pode ter a escolha descartada em silêncio.
 
 A frase da tela mudou: *"Conectado, mas nenhum arquivo escolhido ainda"* dizia o
 estado e **escondia a consequência**. Agora diz que a Dioli **não alcança
@@ -458,9 +469,14 @@ Conferido em 375/768/1440 com a tela renderizada e os três estados vivos.
 
 ### O que vem a seguir (a fazer, com dono)
 
-- [ ] `plataforma` — **por que a escolha do seletor não gravou na Foocci.** É a
-      pista mais quente: há arquivo ao alcance do app e zero linha no banco.
-- [ ] `pm` — rodar o diagnóstico com a contagem nova e fechar o número.
+- [ ] `plataforma` — 🔴 **POR QUE A ESCOLHA DO SELETOR NÃO GRAVOU NA FOOCCI.**
+      Confirmado: **1 arquivo ao alcance do app, 0 linhas no banco.** É o item
+      mais quente da casa — enquanto não for consertado, todo cliente que
+      escolher material pode ter a escolha descartada **em silêncio**, e a tela
+      dirá a ele que ainda não escolheu nada. O `POST /api/portal/drive` recusa
+      a escolha quando `metadadosDoArquivo` falha e devolve `recusados` — que a
+      tela mostra, mas ninguém guarda. **Suspeita, não confirmada:** a escolha
+      caiu em `recusados` e o CEO não viu a mensagem.
 - [ ] `interface` — **a conta de anúncios autorizada precisa de cartão.** Hoje o
       CEO salva e nada aparece.
 - [ ] `seguranca` — **as 16 conexões órfãs de terceiros continuam no banco**,
