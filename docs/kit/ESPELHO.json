@@ -1,7 +1,7 @@
 {
   "origem": "diolisantos10/dioli-brain-kit",
-  "kitCommit": "8af560a2428ddd011a724ab04e78fe85382c1a8b",
-  "espelhadoEm": "2026-08-08T22:29:09.513Z",
+  "kitCommit": "8bc1af83271e4fa762041cebf7a8ff34347327fa",
+  "espelhadoEm": "2026-08-08T23:21:52.064Z",
   "arquivos": {
     "CLAUDE.md": {
       "origem": "CLAUDE.md",
@@ -85,7 +85,7 @@
     },
     "19-pendencia-zero.md": {
       "origem": "docs/19-pendencia-zero.md",
-      "sha256": "e3c47184d0a65063d27e23aa80d2df7762bc8d02b960531ef3d7efabbc922ab7"
+      "sha256": "3aa7071a1c7477bd3b9b7743cb40fce6ded84d68b114f7d38b3f5d1650018f65"
     },
     "20-sala-dos-agentes.md": {
       "origem": "docs/20-sala-dos-agentes.md",

@@ -1,13 +1,13 @@
 <!-- ESPELHO-DO-KIT
 origem: docs/16-raio-x-noturno.md
-kit-commit: 8af560a2428ddd011a724ab04e78fe85382c1a8b
+kit-commit: 8bc1af83271e4fa762041cebf7a8ff34347327fa
 sha256-do-corpo: f9b8e802462c8f4216d8a4e5313b6ea921198da44aaf78ef8f868f005c56f435
 -->
 
 > ⚠️ **ESPELHO GERADO — NÃO EDITE ESTE ARQUIVO.**
 >
 > Ele é uma cópia automática de `diolisantos10/dioli-brain-kit` → `docs/16-raio-x-noturno.md`,
-> no commit `8af560a`.
+> no commit `8bc1af8`.
 >
 > **Editar aqui não muda a doutrina** — muda só este repositório, e a próxima
 > geração do espelho apaga a sua edição sem avisar. Para mudar a regra,

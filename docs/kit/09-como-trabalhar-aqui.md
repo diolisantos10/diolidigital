@@ -1,13 +1,13 @@
 <!-- ESPELHO-DO-KIT
 origem: docs/09-como-trabalhar-aqui.md
-kit-commit: 8af560a2428ddd011a724ab04e78fe85382c1a8b
+kit-commit: 8bc1af83271e4fa762041cebf7a8ff34347327fa
 sha256-do-corpo: 9fce3b6c4e3e106034b2f58c604619e765dd3281e93c4bdc22f458f5bed53bb8
 -->
 
 > ⚠️ **ESPELHO GERADO — NÃO EDITE ESTE ARQUIVO.**
 >
 > Ele é uma cópia automática de `diolisantos10/dioli-brain-kit` → `docs/09-como-trabalhar-aqui.md`,
-> no commit `8af560a`.
+> no commit `8bc1af8`.
 >
 > **Editar aqui não muda a doutrina** — muda só este repositório, e a próxima
 > geração do espelho apaga a sua edição sem avisar. Para mudar a regra,

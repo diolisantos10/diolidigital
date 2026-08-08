@@ -1,13 +1,13 @@
 <!-- ESPELHO-DO-KIT
 origem: docs/08-modelo-ceo-pm-agentes.md
-kit-commit: 8af560a2428ddd011a724ab04e78fe85382c1a8b
+kit-commit: 8bc1af83271e4fa762041cebf7a8ff34347327fa
 sha256-do-corpo: 98d09897a2a19c39b29ae9e250bf0cb286802633d95034a8e3fc34c144449033
 -->
 
 > ⚠️ **ESPELHO GERADO — NÃO EDITE ESTE ARQUIVO.**
 >
 > Ele é uma cópia automática de `diolisantos10/dioli-brain-kit` → `docs/08-modelo-ceo-pm-agentes.md`,
-> no commit `8af560a`.
+> no commit `8bc1af8`.
 >
 > **Editar aqui não muda a doutrina** — muda só este repositório, e a próxima
 > geração do espelho apaga a sua edição sem avisar. Para mudar a regra,

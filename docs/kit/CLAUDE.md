@@ -1,13 +1,13 @@
 <!-- ESPELHO-DO-KIT
 origem: CLAUDE.md
-kit-commit: 8af560a2428ddd011a724ab04e78fe85382c1a8b
+kit-commit: 8bc1af83271e4fa762041cebf7a8ff34347327fa
 sha256-do-corpo: d175a7fd121050caf2f76e7e92d06f7e955bebf92652ad13f5e4ad7b112e2320
 -->
 
 > ⚠️ **ESPELHO GERADO — NÃO EDITE ESTE ARQUIVO.**
 >
 > Ele é uma cópia automática de `diolisantos10/dioli-brain-kit` → `CLAUDE.md`,
-> no commit `8af560a`.
+> no commit `8bc1af8`.
 >
 > **Editar aqui não muda a doutrina** — muda só este repositório, e a próxima
 > geração do espelho apaga a sua edição sem avisar. Para mudar a regra,
