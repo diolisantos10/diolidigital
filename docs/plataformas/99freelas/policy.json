@@ -158,15 +158,19 @@
 
   "autorizacao_do_suporte": {
     "_leia_isto": "ESTE É O CAMPO QUE A RESPOSTA DO SUPORTE VAI PREENCHER. É a UMA LINHA DE DADO que troca HUMAN_GATE por ALLOW no envio. Não existe flag escondida no código: `auto_submission_allowed` e a capability `proposalSubmission` só mudam quando `status` aqui virar `autorizado` COM data e evidência.",
-    "status": "nao_perguntado",
+    "status": "perguntado",
     "status_valores": ["nao_perguntado", "perguntado", "autorizado", "negado", "sem_resposta"],
-    "perguntado_em": null,
+    "perguntado_em": "2026-08-07",
     "respondido_em": null,
-    "canal": null,
-    "remetente": null,
+    "canal": "e-mail",
+    "remetente": "Gmail pessoal do CEO (Dioli), não a caixa da agência",
     "destinatario": "suporte@99freelas.com.br",
     "pergunta_enviada": "docs/plataformas/99freelas/pergunta-ao-suporte.md",
     "evidencia": null,
+
+    "_correcao_de_registro_2026_08_08": "Até 08/08/2026 este campo dizia `nao_perguntado`. ESTAVA ERRADO: o CEO ENVIOU a pergunta ao suporte em 07/08/2026, do Gmail pessoal dele, e confirmou o envio por escrito. Quem ficou para trás foi o nosso registro, não ele. Registro que contradiz o fato é pior que registro ausente — ele faz a casa decidir de novo o que já foi feito. `perguntado` NÃO destrava nada: o gate exige `autorizado` + `respondido_em` + `evidencia`, e dois dos três continuam nulos.",
+    "perguntado_em_procedencia": "declarado pelo CEO em conversa com o Diretor, 07/08/2026. NÃO temos o cabeçalho do e-mail arquivado — por isso `evidencia` continua null.",
+    "aguardando_resposta_desde": "2026-08-07",
     "evidencia_motivo": "Caminho do arquivo com a resposta capturada (cabeçalho do e-mail + corpo). Sem evidência arquivada, `autorizado` NÃO vale — o gate exige os três: status, respondido_em e evidencia."
   },
 

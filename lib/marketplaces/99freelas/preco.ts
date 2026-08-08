@@ -83,6 +83,30 @@ function pisoDaCategoriaPara(politicaCru: Record<string, unknown>, categoria: st
 }
 
 /**
+ * A plataforma IMPÕE piso por categoria?
+ *
+ * ── POR QUE ESTA PERGUNTA É SEPARADA DA DE CIMA (08/08/2026) ────────────────
+ * "Categoria que a tabela não reconhece" e "plataforma que não tem tabela
+ * nenhuma" pareciam a mesma coisa e não são:
+ *
+ *   • O 99Freelas TEM a tabela. Categoria fora dela = dado corrompido, e o piso
+ *     imposto é DESCONHECIDO — desconhecido não vale zero, então para.
+ *   • A Workana, a Upwork e a Freelancer.com NÃO declaram tabela nenhuma. Ali
+ *     não existe piso de plataforma para descobrir: o piso da casa vale sozinho.
+ *
+ * Colapsar as duas fazia toda oportunidade dessas plataformas que declarasse
+ * categoria sair SEM PREÇO — um fail closed que não protege de nada, porque não
+ * há regra da plataforma sendo protegida. Fail closed que dispara onde não há
+ * risco ensina a equipe a ignorar o fail closed.
+ */
+function plataformaImpoePisoPorCategoria(politicaCru: Record<string, unknown>): boolean {
+  const p = (politicaCru.precificacao ?? {}) as Record<string, unknown>;
+  const tabela = p.piso_por_categoria_reais;
+  if (typeof tabela !== "object" || tabela === null) return false;
+  return Object.keys(tabela as Record<string, unknown>).length > 0;
+}
+
+/**
  * O preço de uma proposta.
  *
  * FAIL CLOSED em duas situações, as duas devolvendo `ok: false`:
@@ -134,9 +158,10 @@ export function precificar(p: {
       `"${p.item}" não está na tabela de piso da casa. Preço que não existe não se inventa — a proposta para e alguém orça.`,
     );
   }
-  if (categoria !== null && pisoDaCategoria === null) {
+  const temTabelaDeCategoria = plataformaImpoePisoPorCategoria(politica.cru);
+  if (categoria !== null && pisoDaCategoria === null && temTabelaDeCategoria) {
     return vazio(
-      `O anúncio declarou a categoria "${categoria}", que não está na tabela de valor mínimo do 99Freelas. Piso da plataforma DESCONHECIDO — e desconhecido não vale zero. Confira a categoria na tela antes de enviar.`,
+      `O anúncio declarou a categoria "${categoria}", que não está na tabela de valor mínimo do ${politica.plataforma}. Piso da plataforma DESCONHECIDO — e desconhecido não vale zero. Confira a categoria na tela antes de enviar.`,
     );
   }
 
@@ -169,7 +194,13 @@ export function precificar(p: {
     regime,
     ofertaFinalQueOClienteVe: ofertaFinal,
     motivo: [
-      `Piso aplicado: R$ ${pisoEfetivo} (casa R$ ${pisoDaCasa}${pisoDaCategoria !== null ? ` × plataforma R$ ${pisoDaCategoria}` : " · categoria não declarada pelo anúncio"} — venceu o da ${pisoQueVenceu}).`,
+      `Piso aplicado: R$ ${pisoEfetivo} (casa R$ ${pisoDaCasa}${
+        pisoDaCategoria !== null
+          ? ` × plataforma R$ ${pisoDaCategoria}`
+          : categoria === null
+            ? " · categoria não declarada pelo anúncio"
+            : ` · a política de ${politica.plataforma} não declara piso por categoria — não há piso de plataforma a comparar`
+      } — venceu o da ${pisoQueVenceu}).`,
       notaDaTaxa,
       plano ? `Taxa do plano ${plano}.` : "PLANO NÃO DECLARADO: usada a taxa mais cara (20%), fail closed.",
       "⚠️ O texto da proposta NÃO pode mencionar a taxa nem a comissão — é violação (Central de Ajuda). O Compliance Validator barra.",

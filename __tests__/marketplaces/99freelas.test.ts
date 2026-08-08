@@ -216,10 +216,35 @@ describe("PLATFORM POLICY ENGINE — política é DADO versionado, e fail closed
     expect(capacidadeDeclarada("AUTHORIZED_BROWSER")).toBe("AUTHORIZED_BROWSER");
   });
 
-  it("a autorização do suporte ainda NÃO existe — e por isso não vale para o gate", () => {
+  // ── ESTE TESTE FOI REESCRITO EM 08/08/2026, E O MOTIVO IMPORTA ───────────
+  //
+  // Ele congelava `status === "nao_perguntado"`. Em 07/08 o CEO ENVIOU a
+  // pergunta ao suporte, do Gmail dele, e confirmou por escrito. O registro
+  // ficou para trás; quando foi corrigido para `perguntado`, este teste ficou
+  // vermelho — **por o mundo ter andado para frente**, exatamente a armadilha
+  // que o teste dos pedidos de API já tinha caído em 07/08.
+  //
+  // O INVARIANTE nunca foi "ninguém perguntou". É "sem as TRÊS metades, não
+  // destrava" — e é isso que ele passa a travar. `status` sozinho é a parte
+  // fácil de escrever com otimismo; por isso ele é o que menos importa aqui.
+  it("sem resposta arquivada, a autorização não vale para o gate — qualquer que seja o status", () => {
     const a = autorizacaoDoSuporte(politicaDe("99freelas"));
-    expect(a.status).toBe("nao_perguntado");
     expect(a.valeParaOGate).toBe(false);
+    // As duas que faltam, nomeadas: é a ausência delas que fecha a porta.
+    expect(a.respondido_em).toBeNull();
+    expect(a.evidencia).toBeNull();
+    // E o status tem de ser um dos declarados — nunca uma string inventada, que
+    // `autorizacaoDoSuporte` silenciaria devolvendo "nao_perguntado".
+    expect(["nao_perguntado", "perguntado", "negado", "sem_resposta"]).toContain(a.status);
+  });
+
+  it("metade 2 — só as TRÊS juntas valeriam, e nenhum atalho supre nenhuma", () => {
+    const a = autorizacaoDoSuporte(politicaDe("99freelas"));
+    // Prova de que `valeParaOGate` não é um alias de `status === "autorizado"`:
+    // hoje o status já mudou (de `nao_perguntado` para `perguntado`) e o gate
+    // não se mexeu um milímetro.
+    expect(a.status).not.toBe("autorizado");
+    expect(politicaDe("99freelas").autoSubmissaoPermitida).toBe(false);
   });
 });
 
@@ -302,7 +327,10 @@ describe("COMPLIANCE GATE — ALLOW · HUMAN_GATE · BLOCK", () => {
     const r = resumoDaPolitica("99freelas");
     expect(r.envio).toBe("HUMAN_GATE");
     expect(r.descoberta).toBe("ALLOW");
-    expect(r.autorizacao).toBe("nao_perguntado");
+    // NÃO se congela o valor: ele mudou em 08/08 (o CEO perguntou) e vai mudar
+    // de novo quando o suporte responder. O que a tela precisa é que o estado
+    // seja um dos declarados e que ele NÃO seja "autorizado" sem evidência.
+    expect(["nao_perguntado", "perguntado", "negado", "sem_resposta"]).toContain(r.autorizacao);
   });
 });
 
@@ -323,7 +351,15 @@ describe("A LINHA DE DADO que destrava o envio — sem flag escondida", () => {
     const bruto = JSON.parse(readFileSync(resolve(RAIZ, "docs/plataformas/99freelas/policy.json"), "utf8"));
     const a = bruto.autorizacao_do_suporte;
     expect(a).toBeTruthy();
-    expect(a.status).toBe("nao_perguntado");
+    expect(a.status_valores).toContain(a.status);
+    // `autorizado` no arquivo SEM data de resposta e SEM evidência é o estado
+    // que este teste existe para reprovar — otimismo escrito num JSON.
+    if (a.status === "autorizado") {
+      expect(a.respondido_em, "autorizado sem data de resposta não vale").toBeTruthy();
+      expect(a.evidencia, "autorizado sem evidência arquivada não vale").toBeTruthy();
+    }
+    // E `perguntado` sem data é o mesmo que não saber se alguém perguntou.
+    if (a.status === "perguntado") expect(a.perguntado_em).toMatch(/\d{4}-\d{2}-\d{2}/);
     expect(a).toHaveProperty("perguntado_em");
     expect(a).toHaveProperty("respondido_em");
     expect(a).toHaveProperty("evidencia");

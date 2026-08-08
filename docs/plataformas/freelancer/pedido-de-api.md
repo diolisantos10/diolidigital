@@ -1,6 +1,15 @@
 # Pedido de autorização de API à Freelancer.com — texto pronto para o CEO
 
-**Estado: ENVIADO pelo CEO em 07/08/2026. Aguardando resposta.** Quem envia é o CEO.
+> ### ⚠️ ESTADO EM CONFLITO — NINGUÉM DESTA CASA SABE QUAL VALE (08/08/2026)
+>
+> Mesma divergência da Upwork: este cabeçalho diz **enviado em 07/08/2026**, o
+> `policy.json` diz `nao_perguntado`, e `docs/pendencias.md` lista o envio como
+> pendência **aberta**. O CEO confirmou por escrito **apenas** o envio ao
+> suporte do 99Freelas. **O `policy.json` não foi mexido** e o conflito fica
+> declarado. **O que fecha isto:** uma frase do CEO.
+
+**Estado: DECLARADO como enviado pelo CEO em 07/08/2026 — NÃO CONFIRMADO (ver o
+aviso acima).** Quem envia é o CEO.
 
 ## 🎓 Por que este pedido é diferente do da Upwork
 

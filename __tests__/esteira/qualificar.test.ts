@@ -44,12 +44,49 @@ describe("o link não depende de o modelo obedecer", () => {
     expect(r.qualificacao.propostaTexto).not.toContain("diolidigital");
   });
 
-  it("plataforma que permite: o texto passa inteiro", async () => {
+  // ── ESTE TESTE MUDOU EM 08/08/2026, E A MUDANÇA É DECLARADA ──────────────
+  //
+  // Ele provava que o GetNinjas deixava o link passar. Aquela permissão vinha de
+  // um `LINK_PERMITIDO: Record<string, boolean>` escrito à mão dentro do
+  // qualificador — a política da plataforma repetida em código, ao lado do
+  // `policy.json` que o especialista-trava mantém. Segunda fonte de verdade é
+  // exatamente o defeito que quebrou o portal em 07/08.
+  //
+  // O mapa saiu; quem responde agora é o Policy Engine. **E o GetNinjas não tem
+  // `policy.json`** — ninguém escreveu parecer nem capturou fonte dessa
+  // plataforma. Sem política, a resposta é NÃO: ausência de informação não é
+  // informação, e a permissão que existia era uma afirmação sem lastro.
+  //
+  // A capacidade NÃO foi perdida. O dia em que o GetNinjas ganhar um
+  // `policy.json` com `external_links_allowed_pre_contract: true`, o link volta
+  // a passar — sem uma linha de código nova. É a troca certa: uma linha de dado
+  // com fonte no lugar de uma linha de código sem fonte.
+  it("plataforma COM política que permite link: o texto passa inteiro", async () => {
     respondeIA({ nota: 90, servicoId: "ritmo", raciocinio: "x", proposta: "Segue o link: https://exemplo.com" });
     const r = await qualificarOportunidade({ titulo: "t", descricao: "d", plataforma: "getninjas" });
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.qualificacao.propostaTexto).toContain("https://exemplo.com");
+    // Hoje: NÃO existe política do GetNinjas ⇒ fail closed ⇒ o link sai.
+    expect(r.qualificacao.propostaTexto).not.toContain("https://exemplo.com");
+    // E o fato de o rascunho ter sido limpo fica registrado, não some.
+    expect(r.qualificacao.higienizado).toBe(true);
+  });
+
+  it("proposta REPROVADA não devolve texto copiável — nem sujo, nem 'só para ver'", async () => {
+    respondeIA({
+      nota: 90,
+      servicoId: "ritmo",
+      raciocinio: "x",
+      proposta: "Faço por R$ 400. Esse valor já considera a taxa da plataforma.",
+    });
+    const r = await qualificarOportunidade({ titulo: "t", descricao: "d", plataforma: "99freelas" });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    // NULO, não o texto sujo: um texto reprovado na tela é um texto que alguém
+    // seleciona e copia com Ctrl+C.
+    expect(r.qualificacao.propostaTexto).toBeNull();
+    expect(r.qualificacao.conformidade.ok).toBe(false);
+    expect(r.qualificacao.conformidade.achados.map((a) => a.regra)).toContain("referencia_a_comissao");
   });
 
   it("plataforma desconhecida entra como PROIBIDA — fail-closed", async () => {

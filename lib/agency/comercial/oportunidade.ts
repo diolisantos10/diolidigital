@@ -557,6 +557,14 @@ const CAMPOS_DE_LEITURA = {
   valorSugerido: true,
   status: true,
   createdAt: true,
+  // ── O JULGAMENTO DE CONFORMIDADE (08/08/2026) ────────────────────────────
+  // Vão para a tela de propósito. Uma proposta barrada que chega à tela sem o
+  // motivo é pior que uma proposta ausente: o operador vê "não gerou", pede
+  // reanálise, e a reanálise devolve a mesma violação.
+  conformidadeOk: true,
+  conformidadeAchados: true,
+  propostaHigienizada: true,
+  precoDetalhe: true,
 } as const;
 
 export { CAMPOS_DE_LEITURA };

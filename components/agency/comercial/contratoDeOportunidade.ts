@@ -17,6 +17,42 @@
 
 export type StatusDaOportunidade = "nova" | "aprovada" | "recusada" | "enviada";
 
+/** Um motivo de reprovação do Compliance Validator, pronto para a tela. */
+export interface AchadoDeConformidade {
+  regra: string;
+  /** O trecho exato que disparou. Dizer "tem link" sem mostrar qual obriga o
+   *  operador a caçar dentro do texto que ele ia mandar ao cliente. */
+  trecho: string;
+  fonte: string;
+}
+
+/**
+ * O julgamento do Compliance Validator sobre esta proposta.
+ *
+ * ⚠️ TRÊS estados, não dois — e a distinção é o produto desta tela:
+ *   • `nao_julgada`  — ninguém passou pelo portão (linha antiga, ou a IA não
+ *                      respondeu). O caminho é analisar de novo.
+ *   • `aprovada`     — passou. Há texto e ele é copiável.
+ *   • `reprovada`    — passou e FOI BARRADA. Não há texto, de propósito, e o
+ *                      caminho NÃO é analisar de novo: é ler o que está errado.
+ * Colapsar `reprovada` em `nao_julgada` faria a tela pedir reanálise para uma
+ * violação — e a reanálise devolveria a mesma violação.
+ */
+export type EstadoDaConformidade = "nao_julgada" | "aprovada" | "reprovada";
+
+/** A procedência do preço. `null` quando o Pricing Engine não foi executado. */
+export interface DetalheDoPreco {
+  ok: boolean;
+  ofertaADigitar: number;
+  pisoDaCasa: number;
+  pisoDaCategoria: number | null;
+  pisoQueVenceu: string;
+  taxaPercentual: number;
+  taxaEmReais: number;
+  ofertaFinalQueOClienteVe: number;
+  motivo: string;
+}
+
 export interface Oportunidade {
   id: string;
   /** Chave da plataforma, já normalizada para as chaves de PLATAFORMAS. */
@@ -45,6 +81,17 @@ export interface Oportunidade {
   url: string | null;
   status: StatusDaOportunidade;
   criadaEm: string | null;
+
+  /** O veredito do Compliance Validator. Ver `EstadoDaConformidade`. */
+  conformidade: EstadoDaConformidade;
+  /** Os motivos, quando reprovada. Vazio nos outros estados. */
+  achados: AchadoDeConformidade[];
+  /** `true` quando o rascunho do modelo trazia link ou contato e o código tirou.
+   *  Aparece na tela: gerador que precisa ser limpo toda vez é gerador que vai
+   *  escapar no dia em que a limpeza falhar. */
+  higienizada: boolean;
+  /** De onde saiu o valor sugerido. `null` = o Pricing Engine não rodou. */
+  preco: DetalheDoPreco | null;
 }
 
 export const PLATAFORMAS: { id: string; label: string }[] = [
@@ -165,7 +212,94 @@ export function normalizarOportunidade(bruta: unknown): Oportunidade | null {
     url: texto(campo(o, "url", "urlExterna", "link", "sourceUrl")),
     status: normalizarStatus(campo(o, "status", "situacao", "state")),
     criadaEm: texto(campo(o, "criadaEm", "createdAt", "created_at", "data")),
+    conformidade: normalizarConformidade(o.conformidadeOk),
+    achados: normalizarAchados(o.conformidadeAchados),
+    // ⚠️ Só `true` literal vira `true`. Ausente é NÃO — e "não sei se limpou"
+    // não pode virar "limpou".
+    higienizada: o.propostaHigienizada === true,
+    preco: normalizarPreco(o.precoDetalhe),
   };
+}
+
+/** `null`/ausente = ninguém julgou. É diferente de reprovada, e a tela usa a
+ *  diferença para escolher entre "analise de novo" e "leia o que está errado". */
+function normalizarConformidade(bruto: unknown): EstadoDaConformidade {
+  if (bruto === true) return "aprovada";
+  if (bruto === false) return "reprovada";
+  return "nao_julgada";
+}
+
+/** Os achados chegam como TEXTO JSON do banco. JSON quebrado não pode derrubar a
+ *  tela nem, pior, virar "nenhum problema encontrado": vira uma linha honesta. */
+function normalizarAchados(bruto: unknown): AchadoDeConformidade[] {
+  if (Array.isArray(bruto)) return lerAchados(bruto);
+  if (typeof bruto !== "string" || !bruto.trim()) return [];
+  try {
+    const j: unknown = JSON.parse(bruto);
+    return Array.isArray(j) ? lerAchados(j) : [];
+  } catch {
+    return [
+      {
+        regra: "registro_ilegivel",
+        trecho: "não consegui ler o registro da reprovação",
+        fonte: "banco de dados desta casa",
+      },
+    ];
+  }
+}
+
+function lerAchados(lista: unknown[]): AchadoDeConformidade[] {
+  return lista
+    .filter((a): a is Record<string, unknown> => Boolean(a) && typeof a === "object")
+    .map((a) => ({
+      regra: texto(a.regra) ?? "regra_sem_nome",
+      trecho: texto(a.trecho) ?? "",
+      fonte: texto(a.fonte) ?? "",
+    }));
+}
+
+function normalizarPreco(bruto: unknown): DetalheDoPreco | null {
+  const j: unknown = typeof bruto === "string" ? seguroJson(bruto) : bruto;
+  if (!j || typeof j !== "object") return null;
+  const p = j as Record<string, unknown>;
+  const n = (v: unknown, padrao: number): number => (typeof v === "number" && Number.isFinite(v) ? v : padrao);
+  return {
+    ok: p.ok === true,
+    ofertaADigitar: n(p.ofertaADigitar, 0),
+    pisoDaCasa: n(p.pisoDaCasa, 0),
+    pisoDaCategoria: typeof p.pisoDaCategoria === "number" ? p.pisoDaCategoria : null,
+    pisoQueVenceu: texto(p.pisoQueVenceu) ?? "nenhum",
+    taxaPercentual: n(p.taxaPercentual, 0),
+    taxaEmReais: n(p.taxaEmReais, 0),
+    ofertaFinalQueOClienteVe: n(p.ofertaFinalQueOClienteVe, 0),
+    motivo: texto(p.motivo) ?? "",
+  };
+}
+
+function seguroJson(bruto: string): unknown {
+  try {
+    return JSON.parse(bruto);
+  } catch {
+    return null;
+  }
+}
+
+/** O nome humano de cada regra. O operador precisa saber O QUE está errado, não
+ *  o identificador interno. Regra desconhecida devolve o próprio id — nunca
+ *  "undefined", e nunca some da lista: motivo que some é motivo que não existe. */
+export const NOME_DA_REGRA: Record<string, string> = {
+  link_externo: "Link externo antes do contrato",
+  dado_de_contato: "Dado de contato (telefone, e-mail, @, rede social)",
+  pagamento_fora: "Pagamento por fora da plataforma",
+  referencia_a_comissao: "Referência à comissão ou à taxa da plataforma",
+  pagamento_comissionado: "Pagamento comissionado ou participação nos lucros",
+  permuta_ou_teste_gratis: "Permuta, teste grátis ou trabalho sem custo",
+  spam_por_repeticao: "Parecida demais com uma proposta já enviada (spam)",
+  registro_ilegivel: "Registro da reprovação ilegível",
+};
+
+export function nomeDaRegra(regra: string): string {
+  return NOME_DA_REGRA[regra] ?? regra;
 }
 
 /** Aceita `[...]`, `{oportunidades}`, `{items}`, `{data}` — o que o backend decidir. */

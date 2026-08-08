@@ -1,5 +1,146 @@
 # Pendências — o que está aberto
 
+## 🟢 08/08/2026 — 99FREELAS: A MÁQUINA DE CONFORMIDADE ENTROU NO CAMINHO QUE A TELA USA
+
+**A consequência, primeiro:** até hoje a proposta que o CEO copiava em
+`/agency/oportunidades` **não passava pelo Compliance Validator, não aplicava o
+piso do Pricing Engine e não contava conexão**. Existiam DUAS implementações do
+99Freelas: a viva (a tela) e a morta (`lib/marketplaces/`) — **113 testes verdes
+sobre código que o app nunca executava**. A única guarda no caminho vivo era um
+`semLink()` de quatro linhas.
+
+> **Cada peça verde, a junta rompida.** É o mesmo padrão do incidente do Drive de
+> 07/08, e é por isso que a trava nova **lê o código-fonte do caminho vivo**:
+> testar as peças de novo não protegeria nada, elas já estavam verdes.
+
+**Nada foi reescrito.** O caminho vivo passou a IMPORTAR E CHAMAR o que existia —
+uma terceira versão seria o defeito, não a correção.
+
+### O que a tela passa a barrar, e antes deixava passar
+
+- **Referência à comissão da plataforma** (*"esse valor já considera a taxa"*) —
+  é violação declarada e era a frase mais natural do mundo para quem precifica.
+- **Permuta, teste grátis, pagamento comissionado, pagamento por fora, dado de
+  contato.**
+- **Proposta parecida demais com outra já enviada** — spam é a sanção mais
+  provável para um robô, e a especificação do CEO não pedia essa trava.
+- **Reprovou ⇒ NÃO HÁ TEXTO.** `propostaTexto` volta nulo e a tela mostra a regra,
+  o trecho exato e a fonte. A recusa mora **dentro** de `copiarProposta`, não no
+  `disabled` do botão: `disabled` é aparência, e atalho de teclado passa por cima.
+- **Link no rascunho é retirado — e o fato aparece na tela.** Apagar o erro sem
+  contar esconde a reincidência do gerador, que é o sinal que antecede o banimento.
+
+### O preço deixou de sair da cabeça do modelo
+
+`max(piso da casa, piso da categoria da plataforma)`, com a procedência na tela:
+quanto se digita, quanto o cliente vê e **qual piso venceu**. A taxa é
+acrescentada por cima (o que se digita é o líquido da agência) — e o texto da
+proposta **não pode mencioná-la**, o que o validador barra.
+
+> **Um achado ao ligar:** *"categoria que a tabela não reconhece"* e *"plataforma
+> que não tem tabela nenhuma"* pareciam a mesma coisa e não são. O 99Freelas TEM
+> a tabela (categoria fora dela = piso desconhecido, e desconhecido não vale
+> zero). Upwork, Workana e Freelancer.com **não declaram tabela** — ali não há
+> piso de plataforma a descobrir. Colapsar as duas fazia toda oportunidade dessas
+> plataformas sair **sem preço**: um fail closed que não protege regra nenhuma, e
+> fail closed que dispara onde não há risco ensina a equipe a ignorá-lo.
+
+### O CEO passa a ver o saldo de conexões
+
+**237 de 240 restantes** no topo da tela (Premium declarado, competência mensal,
+fuso de São Paulo). Três estados, e o do meio é o que importa: `medido` ·
+**`não medido`** (a leitura falhou e o número é o pior caso, em vermelho) ·
+`plano não declarado` (cai para 10, Free, **fail closed intacto**).
+
+- **Marcar como enviada agora GASTA conexão** — e exige o número **lido da tela
+  do 99Freelas**, porque a plataforma não publica a tabela ("varia com o quão
+  disputado é", e marketing e design são os disputados). Sem o número: **400, e
+  nada muda de estado.** Aceitar "enviada" sem o custo deixaria o contador
+  otimista em silêncio, e contador otimista é o mesmo que não ter contador.
+- O gasto é registrado **antes** da mudança de status: o contrário deixaria uma
+  proposta contada como enviada e uma conexão fora do livro.
+
+### A política virou DADO, e um mapa escrito à mão saiu do código
+
+`LINK_PERMITIDO: Record<string, boolean>` dentro do qualificador era a política
+da plataforma repetida em código, ao lado do `policy.json`. **Saiu.** Quem
+responde é o Policy Engine.
+
+⚠️ **Efeito declarado:** o GetNinjas tinha `true` naquele mapa e **não tem
+`policy.json`** — nenhum parecer, nenhuma fonte capturada. Agora ele entra como
+fechado. A capacidade não foi perdida: volta com **uma linha de dado com fonte**,
+sem código novo. O teste que congelava o comportamento antigo foi reescrito com o
+motivo declarado.
+
+### A porta do e-mail deixou de ser muda
+
+Ela **ingeria e não qualificava** — só o "colar" chamava a IA. A fila ordena por
+nota e nota ausente conta como a menor: a oportunidade que chegava pela porta
+**mais barata da casa** nascia no rodapé da lista e ninguém a pegava. As duas
+portas passam agora pela **mesma função** (`lib/agency/comercial/pipeline.ts`) —
+duas cópias da regra é o defeito que quebrou o portal em 07/08.
+
+**Passo a passo do encaminhamento para o CEO:**
+`docs/plataformas/99freelas/porta-do-email-passo-a-passo.md`.
+
+### 🔴 O REGISTRO QUE CONTRADIZIA O FATO — corrigido
+
+`policy.json → autorizacao_do_suporte` dizia **`nao_perguntado`**. O CEO
+**ENVIOU** a pergunta ao suporte em **07/08/2026**, do Gmail dele, e confirmou por
+escrito. O `.md` já dizia "ENVIADA"; o JSON — que é o que o Policy Engine lê —
+tinha ficado para trás. Agora: `perguntado`, `perguntado_em: 2026-08-07`, canal e
+remetente declarados.
+
+**Isso NÃO destrava nada:** o gate exige as três metades juntas
+(`autorizado` + `respondido_em` + `evidencia`), e duas continuam nulas.
+
+> **Dois testes que CONGELAVAM `nao_perguntado` foram reescritos.** Eles ficaram
+> vermelhos **por o mundo ter andado para frente** — a mesma armadilha que o
+> teste dos pedidos de API já tinha caído em 07/08. O invariante nunca foi
+> "ninguém perguntou": é "sem as três metades, não destrava". É isso que travam
+> agora.
+
+### 🟠 UMA DIVERGÊNCIA QUE NÃO RESOLVI — de propósito
+
+Upwork e Freelancer.com: o `.md` diz **"ENVIADO em 07/08"**, o `policy.json` diz
+**`nao_perguntado`**, e este arquivo lista o envio como pendência **aberta**.
+**Três fontes, duas histórias.** O CEO confirmou por escrito **apenas** o caso do
+99Freelas.
+
+**Não escolhi um lado.** Os status ficaram como estavam (o lado que não destrava)
+e o conflito está **escrito** nos quatro arquivos, com teste que reprova quem o
+apagar. **O que fecha isto é uma frase do CEO: enviou ou não enviou.**
+
+### 🔴 O QUE FICOU DE FORA, E O MOTIVO
+
+- **`RADAR_EMAIL_SECRET` em produção: NÃO CONFIRMADO.** Não há token do Railway
+  aqui e este ambiente **não alcança `diolidigital.com.br`** (o proxy nega a
+  conexão). O documento traz um `curl` de 10 segundos que responde 401 (existe) ou
+  503 (não existe), e não grava nada.
+- **Pelo mesmo motivo, não confirmei em `/api/health` que o commit subiu.** O push
+  para `claude/dioli-agency-os-architecture-kk7kp` foi feito; a confirmação no ar
+  precisa de alguém com acesso à rede de produção.
+- **`BrowserComputer` continua sem chamador — de propósito.** Nenhum login,
+  nenhuma leitura autenticada, nenhuma escrita no 99Freelas. Há teste que reprova
+  quem o chamar a partir do caminho vivo, e que reprova `fetch(` nas rotas do
+  Radar (rajada de GET é a assinatura do que restringiu a conta na Meta em 03/08).
+- **Busca automática de projetos: não ligada.** Toca a plataforma e depende de
+  autorização que o CEO não deu.
+- **A qualificação por e-mail roda em linha**, então o encaminhador espera alguns
+  segundos a mais. Fila assíncrona é frente própria — sem dono ainda.
+- **A entrada do follow-up continua sem existir** (o chat fica atrás do login, e
+  login é BLOCK). Risco aberto, inalterado.
+
+**Defeito achado renderizando, não lendo:** sem `items-start`, a coluna curta
+("o projeto, como chegou") esticava até a altura da coluna longa e virava meia
+tela de retângulo branco a 1440px — o mesmo defeito do admin do Google, pela
+mesma razão: leitura de código não mede altura.
+
+**Portão:** `npx tsc --noEmit` limpo · **2747 testes em 169 arquivos, todos
+verdes** · `npm run build` limpo. Conferido em 375/768/1440 autenticado, com os
+estados limpo e barrado.
+
+
 ## 🟢 08/08/2026 — O PORTAL DO CLIENTE TEM UMA TAREFA SÓ, E AGORA A TELA SERVE A ELA
 
 Ordem do CEO: *"está uma coisa totalmente perdida e sem sentido"*. Auditado pelo

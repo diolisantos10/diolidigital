@@ -17,7 +17,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { requireSession } from "@/lib/auth/api-guard";
-import { qualificarOportunidade } from "@/lib/agency/comercial/qualificar";
+import { qualificarEGravar, lerOportunidade } from "@/lib/agency/comercial/pipeline";
 import {
   registrarOportunidade,
   ehStatusValido,
@@ -111,31 +111,26 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // ela já está gravada, e a nota entra depois. Ausência de nota é declarada na
   // tela, nunca substituída por um número inventado.
   if (!resultado.jaExistia) {
-    const q = await qualificarOportunidade({
+    // A MESMA função que a porta do e-mail chama. Duas cópias da regra é o
+    // defeito que quebrou o portal em 07/08 (o mapa de 3 linhas ao lado da forma
+    // canônica, já divergente em 11 dos 14 casos).
+    const passagem = await qualificarEGravar({
+      id: resultado.oportunidade.id,
+      workspaceId: session.workspaceId,
       titulo: resultado.oportunidade.titulo,
       descricao: resultado.oportunidade.descricao,
       plataforma: resultado.oportunidade.plataforma,
+      categoria: resultado.oportunidade.categoria,
       orcamentoInformado: resultado.oportunidade.orcamentoInformado,
-      workspaceId: session.workspaceId,
-    }).catch((e: unknown) => ({ ok: false as const, motivo: e instanceof Error ? e.message : "falha" }));
+    });
 
-    if (q.ok) {
-      const atualizada = await prisma.oportunidade.update({
-        where: { id: resultado.oportunidade.id },
-        data: {
-          nota: q.qualificacao.nota,
-          servicoSugerido: q.qualificacao.servicoSugerido,
-          raciocinio: q.qualificacao.raciocinio,
-          valorSugerido: q.qualificacao.valorSugerido,
-          propostaTexto: q.qualificacao.propostaTexto,
-        },
-        select: CAMPOS_DE_LEITURA,
-      }).catch(() => null);
+    if (passagem.gravou) {
+      const atualizada = await lerOportunidade(resultado.oportunidade.id, session.workspaceId);
       if (atualizada) {
         return NextResponse.json({ ...resultado, oportunidade: atualizada }, { status: 201 });
       }
     } else {
-      console.warn("[oportunidades] qualificação não saiu:", q.motivo);
+      console.warn("[oportunidades] qualificação não saiu:", passagem.motivo);
     }
   }
 

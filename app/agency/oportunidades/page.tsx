@@ -29,6 +29,7 @@ import EmptyState from "@/components/agency/ui/EmptyState";
 import Button from "@/components/agency/ui/Button";
 import { mensagemDeErro, type ErroHumano } from "@/components/agency/ui/mensagemDeErro";
 import CartaoDeOportunidade from "@/components/agency/comercial/CartaoDeOportunidade";
+import SaldoDeConexoes from "@/components/agency/comercial/SaldoDeConexoes";
 import {
   ABAS,
   PLATAFORMAS,
@@ -41,6 +42,11 @@ import {
 
 const ROTA = "/api/agency/oportunidades";
 
+/** As plataformas que cobram conexão por proposta. Espelha
+ *  `lib/marketplaces/cotas.ts` — o servidor é quem manda, e ele recusa o
+ *  "enviada" sem o número. Aqui é só para PERGUNTAR na hora certa. */
+const COBRAM_CONEXAO = new Set(["99freelas"]);
+
 export default function OportunidadesPage() {
   const [lista, setLista] = useState<Oportunidade[]>([]);
   const [carregando, setCarregando] = useState(true);
@@ -49,6 +55,8 @@ export default function OportunidadesPage() {
   const [aba, setAba] = useState<StatusDaOportunidade | "todas">("nova");
   const [abertaId, setAbertaId] = useState<string | null>(null);
   const [decidindoId, setDecidindoId] = useState<string | null>(null);
+  // Muda quando uma conexão é gasta, e é isso que manda o saldo se reler.
+  const [versaoDoSaldo, setVersaoDoSaldo] = useState(0);
 
   // ── Caixa de colar ────────────────────────────────────────────────────────
   const [colado, setColado] = useState("");
@@ -128,7 +136,7 @@ export default function OportunidadesPage() {
     }
   }
 
-  async function decidir(id: string, status: StatusDaOportunidade) {
+  async function decidir(id: string, status: StatusDaOportunidade, custoEmConexoes?: number) {
     const anterior = lista;
     setDecidindoId(id);
     setErro(null);
@@ -139,7 +147,7 @@ export default function OportunidadesPage() {
       const res = await fetch(`${ROTA}/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify(custoEmConexoes === undefined ? { status } : { status, custoEmConexoes }),
       });
       if (!res.ok) {
         const j = (await res.json().catch(() => ({}))) as { error?: string };
@@ -158,9 +166,14 @@ export default function OportunidadesPage() {
         status === "aprovada"
           ? "Aprovada e copiada. Ela está em “Aprovadas” — cole na plataforma e depois marque como enviada."
           : status === "enviada"
-            ? "Marcada como enviada. Ela está em “Enviadas”."
+            ? custoEmConexoes
+              ? `Marcada como enviada, e ${custoEmConexoes} conexão(ões) foram baixadas do mês. Ela está em “Enviadas”.`
+              : "Marcada como enviada. Ela está em “Enviadas”."
             : "Recusada. Ela fica em “Recusadas”, caso você mude de ideia."
       );
+      // O saldo do mês mudou. Recarregar é uma consulta ao NOSSO banco, não à
+      // plataforma — nenhum byte sai daqui para o 99Freelas.
+      if (status === "enviada") setVersaoDoSaldo((v) => v + 1);
     } catch (e) {
       setLista(anterior);
       setErro(mensagemDeErro(e, "registrar sua decisão"));
@@ -192,6 +205,13 @@ export default function OportunidadesPage() {
         eyebrow="Comercial"
         subtitle="Cole o projeto que apareceu na plataforma. A análise dá a nota, o serviço e o valor — e devolve a proposta pronta para você colar lá dentro."
       />
+
+      {/* ── O SALDO DE CONEXÕES ───────────────────────────────────────────────
+          Fica ACIMA da caixa de colar de propósito: a pergunta "quantas me
+          restam?" antecede "vale a pena esta aqui?". Cota mensal, conexão gasta
+          não volta e a cota não acumula — decidir onde gastar sem ver o saldo é
+          decidir no escuro. */}
+      <SaldoDeConexoes versao={versaoDoSaldo} />
 
       {/* ── Caixa de colar ───────────────────────────────────────────────────
           É o primeiro bloco da tela porque é a primeira coisa que se faz aqui:
@@ -389,8 +409,9 @@ export default function OportunidadesPage() {
               oportunidade={o}
               aberta={abertaId === o.id}
               onAlternar={() => setAbertaId((atual) => (atual === o.id ? null : o.id))}
-              onDecidir={(status) => void decidir(o.id, status)}
+              onDecidir={(status, custo) => void decidir(o.id, status, custo)}
               decidindo={decidindoId === o.id}
+              cobraConexao={COBRAM_CONEXAO.has(o.plataforma)}
             />
           ))}
         </ul>

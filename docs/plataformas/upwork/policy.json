@@ -56,7 +56,9 @@
     "respondido_em": null,
     "escopos_concedidos": null,
     "evidencia": null,
-    "pedido": "docs/plataformas/upwork/pedido-de-api.md"
+    "pedido": "docs/plataformas/upwork/pedido-de-api.md",
+
+    "_divergencia_de_registro_2026_08_08": "DUAS FONTES DA CASA CONTAM HISTÓRIAS DIFERENTES SOBRE O MESMO FATO, e nenhum agente tem como decidir qual vale. (a) `docs/plataformas/upwork/pedido-de-api.md` diz, no cabeçalho, 'ENVIADO pelo CEO em 07/08/2026'. (b) ESTE arquivo diz `nao_perguntado`. (c) `docs/pendencias.md` lista 'Mandar os dois pedidos de API' como pendência ABERTA do CEO. O caso do 99Freelas foi resolvido em 08/08 porque o CEO confirmou o envio por escrito; para a Upwork ele NÃO confirmou nada. Ausência de informação não é informação: o status fica em `nao_perguntado` (fail closed, o lado que não destrava nada) e a divergência fica ESCRITA em vez de ser resolvida por palpite. QUEM FECHA: o CEO, dizendo se enviou. Se enviou, muda-se `status` para `perguntado` + `perguntado_em`, como foi feito no 99Freelas."
   },
 
   "notes": "O desenho defensável, nas palavras do CEO: 100 vagas encontradas → IA qualifica → 12 realmente compatíveis → 12 propostas INDIVIDUALIZADAS. Volume filtrado, não volume disparado."

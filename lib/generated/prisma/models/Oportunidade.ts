@@ -71,6 +71,10 @@ export type OportunidadeMinAggregateOutputType = {
   status: string | null
   propostaTexto: string | null
   valorSugerido: number | null
+  conformidadeOk: boolean | null
+  conformidadeAchados: string | null
+  propostaHigienizada: boolean | null
+  precoDetalhe: string | null
   decididoPor: string | null
   decididoEm: Date | null
   createdAt: Date | null
@@ -95,6 +99,10 @@ export type OportunidadeMaxAggregateOutputType = {
   status: string | null
   propostaTexto: string | null
   valorSugerido: number | null
+  conformidadeOk: boolean | null
+  conformidadeAchados: string | null
+  propostaHigienizada: boolean | null
+  precoDetalhe: string | null
   decididoPor: string | null
   decididoEm: Date | null
   createdAt: Date | null
@@ -119,6 +127,10 @@ export type OportunidadeCountAggregateOutputType = {
   status: number
   propostaTexto: number
   valorSugerido: number
+  conformidadeOk: number
+  conformidadeAchados: number
+  propostaHigienizada: number
+  precoDetalhe: number
   decididoPor: number
   decididoEm: number
   createdAt: number
@@ -157,6 +169,10 @@ export type OportunidadeMinAggregateInputType = {
   status?: true
   propostaTexto?: true
   valorSugerido?: true
+  conformidadeOk?: true
+  conformidadeAchados?: true
+  propostaHigienizada?: true
+  precoDetalhe?: true
   decididoPor?: true
   decididoEm?: true
   createdAt?: true
@@ -181,6 +197,10 @@ export type OportunidadeMaxAggregateInputType = {
   status?: true
   propostaTexto?: true
   valorSugerido?: true
+  conformidadeOk?: true
+  conformidadeAchados?: true
+  propostaHigienizada?: true
+  precoDetalhe?: true
   decididoPor?: true
   decididoEm?: true
   createdAt?: true
@@ -205,6 +225,10 @@ export type OportunidadeCountAggregateInputType = {
   status?: true
   propostaTexto?: true
   valorSugerido?: true
+  conformidadeOk?: true
+  conformidadeAchados?: true
+  propostaHigienizada?: true
+  precoDetalhe?: true
   decididoPor?: true
   decididoEm?: true
   createdAt?: true
@@ -316,6 +340,10 @@ export type OportunidadeGroupByOutputType = {
   status: string
   propostaTexto: string | null
   valorSugerido: number | null
+  conformidadeOk: boolean | null
+  conformidadeAchados: string | null
+  propostaHigienizada: boolean | null
+  precoDetalhe: string | null
   decididoPor: string | null
   decididoEm: Date | null
   createdAt: Date
@@ -363,6 +391,10 @@ export type OportunidadeWhereInput = {
   status?: Prisma.StringFilter<"Oportunidade"> | string
   propostaTexto?: Prisma.StringNullableFilter<"Oportunidade"> | string | null
   valorSugerido?: Prisma.IntNullableFilter<"Oportunidade"> | number | null
+  conformidadeOk?: Prisma.BoolNullableFilter<"Oportunidade"> | boolean | null
+  conformidadeAchados?: Prisma.StringNullableFilter<"Oportunidade"> | string | null
+  propostaHigienizada?: Prisma.BoolNullableFilter<"Oportunidade"> | boolean | null
+  precoDetalhe?: Prisma.StringNullableFilter<"Oportunidade"> | string | null
   decididoPor?: Prisma.StringNullableFilter<"Oportunidade"> | string | null
   decididoEm?: Prisma.DateTimeNullableFilter<"Oportunidade"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Oportunidade"> | Date | string
@@ -387,6 +419,10 @@ export type OportunidadeOrderByWithRelationInput = {
   status?: Prisma.SortOrder
   propostaTexto?: Prisma.SortOrderInput | Prisma.SortOrder
   valorSugerido?: Prisma.SortOrderInput | Prisma.SortOrder
+  conformidadeOk?: Prisma.SortOrderInput | Prisma.SortOrder
+  conformidadeAchados?: Prisma.SortOrderInput | Prisma.SortOrder
+  propostaHigienizada?: Prisma.SortOrderInput | Prisma.SortOrder
+  precoDetalhe?: Prisma.SortOrderInput | Prisma.SortOrder
   decididoPor?: Prisma.SortOrderInput | Prisma.SortOrder
   decididoEm?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -415,6 +451,10 @@ export type OportunidadeWhereUniqueInput = Prisma.AtLeast<{
   status?: Prisma.StringFilter<"Oportunidade"> | string
   propostaTexto?: Prisma.StringNullableFilter<"Oportunidade"> | string | null
   valorSugerido?: Prisma.IntNullableFilter<"Oportunidade"> | number | null
+  conformidadeOk?: Prisma.BoolNullableFilter<"Oportunidade"> | boolean | null
+  conformidadeAchados?: Prisma.StringNullableFilter<"Oportunidade"> | string | null
+  propostaHigienizada?: Prisma.BoolNullableFilter<"Oportunidade"> | boolean | null
+  precoDetalhe?: Prisma.StringNullableFilter<"Oportunidade"> | string | null
   decididoPor?: Prisma.StringNullableFilter<"Oportunidade"> | string | null
   decididoEm?: Prisma.DateTimeNullableFilter<"Oportunidade"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Oportunidade"> | Date | string
@@ -439,6 +479,10 @@ export type OportunidadeOrderByWithAggregationInput = {
   status?: Prisma.SortOrder
   propostaTexto?: Prisma.SortOrderInput | Prisma.SortOrder
   valorSugerido?: Prisma.SortOrderInput | Prisma.SortOrder
+  conformidadeOk?: Prisma.SortOrderInput | Prisma.SortOrder
+  conformidadeAchados?: Prisma.SortOrderInput | Prisma.SortOrder
+  propostaHigienizada?: Prisma.SortOrderInput | Prisma.SortOrder
+  precoDetalhe?: Prisma.SortOrderInput | Prisma.SortOrder
   decididoPor?: Prisma.SortOrderInput | Prisma.SortOrder
   decididoEm?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -471,6 +515,10 @@ export type OportunidadeScalarWhereWithAggregatesInput = {
   status?: Prisma.StringWithAggregatesFilter<"Oportunidade"> | string
   propostaTexto?: Prisma.StringNullableWithAggregatesFilter<"Oportunidade"> | string | null
   valorSugerido?: Prisma.IntNullableWithAggregatesFilter<"Oportunidade"> | number | null
+  conformidadeOk?: Prisma.BoolNullableWithAggregatesFilter<"Oportunidade"> | boolean | null
+  conformidadeAchados?: Prisma.StringNullableWithAggregatesFilter<"Oportunidade"> | string | null
+  propostaHigienizada?: Prisma.BoolNullableWithAggregatesFilter<"Oportunidade"> | boolean | null
+  precoDetalhe?: Prisma.StringNullableWithAggregatesFilter<"Oportunidade"> | string | null
   decididoPor?: Prisma.StringNullableWithAggregatesFilter<"Oportunidade"> | string | null
   decididoEm?: Prisma.DateTimeNullableWithAggregatesFilter<"Oportunidade"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Oportunidade"> | Date | string
@@ -495,6 +543,10 @@ export type OportunidadeCreateInput = {
   status?: string
   propostaTexto?: string | null
   valorSugerido?: number | null
+  conformidadeOk?: boolean | null
+  conformidadeAchados?: string | null
+  propostaHigienizada?: boolean | null
+  precoDetalhe?: string | null
   decididoPor?: string | null
   decididoEm?: Date | string | null
   createdAt?: Date | string
@@ -519,6 +571,10 @@ export type OportunidadeUncheckedCreateInput = {
   status?: string
   propostaTexto?: string | null
   valorSugerido?: number | null
+  conformidadeOk?: boolean | null
+  conformidadeAchados?: string | null
+  propostaHigienizada?: boolean | null
+  precoDetalhe?: string | null
   decididoPor?: string | null
   decididoEm?: Date | string | null
   createdAt?: Date | string
@@ -543,6 +599,10 @@ export type OportunidadeUpdateInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   propostaTexto?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   valorSugerido?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  conformidadeOk?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  conformidadeAchados?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  propostaHigienizada?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  precoDetalhe?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   decididoPor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   decididoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -567,6 +627,10 @@ export type OportunidadeUncheckedUpdateInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   propostaTexto?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   valorSugerido?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  conformidadeOk?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  conformidadeAchados?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  propostaHigienizada?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  precoDetalhe?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   decididoPor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   decididoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -591,6 +655,10 @@ export type OportunidadeCreateManyInput = {
   status?: string
   propostaTexto?: string | null
   valorSugerido?: number | null
+  conformidadeOk?: boolean | null
+  conformidadeAchados?: string | null
+  propostaHigienizada?: boolean | null
+  precoDetalhe?: string | null
   decididoPor?: string | null
   decididoEm?: Date | string | null
   createdAt?: Date | string
@@ -615,6 +683,10 @@ export type OportunidadeUpdateManyMutationInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   propostaTexto?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   valorSugerido?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  conformidadeOk?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  conformidadeAchados?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  propostaHigienizada?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  precoDetalhe?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   decididoPor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   decididoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -639,6 +711,10 @@ export type OportunidadeUncheckedUpdateManyInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   propostaTexto?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   valorSugerido?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  conformidadeOk?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  conformidadeAchados?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  propostaHigienizada?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  precoDetalhe?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   decididoPor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   decididoEm?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -668,6 +744,10 @@ export type OportunidadeCountOrderByAggregateInput = {
   status?: Prisma.SortOrder
   propostaTexto?: Prisma.SortOrder
   valorSugerido?: Prisma.SortOrder
+  conformidadeOk?: Prisma.SortOrder
+  conformidadeAchados?: Prisma.SortOrder
+  propostaHigienizada?: Prisma.SortOrder
+  precoDetalhe?: Prisma.SortOrder
   decididoPor?: Prisma.SortOrder
   decididoEm?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -698,6 +778,10 @@ export type OportunidadeMaxOrderByAggregateInput = {
   status?: Prisma.SortOrder
   propostaTexto?: Prisma.SortOrder
   valorSugerido?: Prisma.SortOrder
+  conformidadeOk?: Prisma.SortOrder
+  conformidadeAchados?: Prisma.SortOrder
+  propostaHigienizada?: Prisma.SortOrder
+  precoDetalhe?: Prisma.SortOrder
   decididoPor?: Prisma.SortOrder
   decididoEm?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -722,6 +806,10 @@ export type OportunidadeMinOrderByAggregateInput = {
   status?: Prisma.SortOrder
   propostaTexto?: Prisma.SortOrder
   valorSugerido?: Prisma.SortOrder
+  conformidadeOk?: Prisma.SortOrder
+  conformidadeAchados?: Prisma.SortOrder
+  propostaHigienizada?: Prisma.SortOrder
+  precoDetalhe?: Prisma.SortOrder
   decididoPor?: Prisma.SortOrder
   decididoEm?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -732,6 +820,10 @@ export type OportunidadeSumOrderByAggregateInput = {
   orcamentoInformado?: Prisma.SortOrder
   nota?: Prisma.SortOrder
   valorSugerido?: Prisma.SortOrder
+}
+
+export type NullableBoolFieldUpdateOperationsInput = {
+  set?: boolean | null
 }
 
 
@@ -754,6 +846,10 @@ export type OportunidadeSelect<ExtArgs extends runtime.Types.Extensions.Internal
   status?: boolean
   propostaTexto?: boolean
   valorSugerido?: boolean
+  conformidadeOk?: boolean
+  conformidadeAchados?: boolean
+  propostaHigienizada?: boolean
+  precoDetalhe?: boolean
   decididoPor?: boolean
   decididoEm?: boolean
   createdAt?: boolean
@@ -778,6 +874,10 @@ export type OportunidadeSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   status?: boolean
   propostaTexto?: boolean
   valorSugerido?: boolean
+  conformidadeOk?: boolean
+  conformidadeAchados?: boolean
+  propostaHigienizada?: boolean
+  precoDetalhe?: boolean
   decididoPor?: boolean
   decididoEm?: boolean
   createdAt?: boolean
@@ -802,6 +902,10 @@ export type OportunidadeSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   status?: boolean
   propostaTexto?: boolean
   valorSugerido?: boolean
+  conformidadeOk?: boolean
+  conformidadeAchados?: boolean
+  propostaHigienizada?: boolean
+  precoDetalhe?: boolean
   decididoPor?: boolean
   decididoEm?: boolean
   createdAt?: boolean
@@ -826,13 +930,17 @@ export type OportunidadeSelectScalar = {
   status?: boolean
   propostaTexto?: boolean
   valorSugerido?: boolean
+  conformidadeOk?: boolean
+  conformidadeAchados?: boolean
+  propostaHigienizada?: boolean
+  precoDetalhe?: boolean
   decididoPor?: boolean
   decididoEm?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type OportunidadeOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "plataforma" | "urlExterna" | "titulo" | "descricao" | "categoria" | "orcamentoInformado" | "prazoInformado" | "textoBruto" | "impressaoDigital" | "nota" | "servicoSugerido" | "raciocinio" | "status" | "propostaTexto" | "valorSugerido" | "decididoPor" | "decididoEm" | "createdAt" | "updatedAt", ExtArgs["result"]["oportunidade"]>
+export type OportunidadeOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "plataforma" | "urlExterna" | "titulo" | "descricao" | "categoria" | "orcamentoInformado" | "prazoInformado" | "textoBruto" | "impressaoDigital" | "nota" | "servicoSugerido" | "raciocinio" | "status" | "propostaTexto" | "valorSugerido" | "conformidadeOk" | "conformidadeAchados" | "propostaHigienizada" | "precoDetalhe" | "decididoPor" | "decididoEm" | "createdAt" | "updatedAt", ExtArgs["result"]["oportunidade"]>
 
 export type $OportunidadePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Oportunidade"
@@ -893,9 +1001,39 @@ export type $OportunidadePayload<ExtArgs extends runtime.Types.Extensions.Intern
     status: string
     /**
      * A proposta redigida e o preço que vamos pedir (reais inteiros).
+     * ⚠️ `propostaTexto` NULO tem DOIS significados, e a tela precisa dos dois
+     * separados: "ainda não foi gerada" (`conformidadeOk` nulo) e "foi gerada e o
+     * Compliance Validator BARROU" (`conformidadeOk = false`). Colapsar os dois
+     * faria a tela pedir "analise de novo" para uma proposta que o portão
+     * reprovou — e a reanálise devolveria a mesma violação.
      */
     propostaTexto: string | null
     valorSugerido: number | null
+    /**
+     * ─── O QUE O COMPLIANCE VALIDATOR DECIDIU (08/08/2026) ──────────────────
+     * Nulo = ninguém julgou ainda (oportunidade anterior a esta data, ou a IA
+     * não respondeu). `false` = julgou e REPROVOU — e aí `propostaTexto` é nulo
+     * de propósito, para não haver o que copiar.
+     */
+    conformidadeOk: boolean | null
+    /**
+     * Os motivos da reprovação, em JSON: `[{regra,trecho,fonte}]`. É o que a tela
+     * mostra. Guardar só "reprovou" obrigaria o operador a adivinhar o quê.
+     */
+    conformidadeAchados: string | null
+    /**
+     * `true` quando o rascunho do modelo trazia link ou contato e o código tirou.
+     * Fica gravado porque apagar o erro sem contar esconde a reincidência do
+     * gerador — e é a reincidência que antecede a conta banida.
+     */
+    propostaHigienizada: boolean | null
+    /**
+     * O retorno inteiro do Pricing Engine, em JSON: piso da casa, piso da
+     * categoria da plataforma, qual venceu, taxa e a oferta final que o cliente
+     * vê. A tela mostra DE ONDE o número veio; número sem procedência é palpite
+     * com cara de cálculo.
+     */
+    precoDetalhe: string | null
     /**
      * Quem bateu o martelo. `userId` da sessão, não e-mail: registro de decisão
      * não precisa carregar identificador pessoal.
@@ -1344,6 +1482,10 @@ export interface OportunidadeFieldRefs {
   readonly status: Prisma.FieldRef<"Oportunidade", 'String'>
   readonly propostaTexto: Prisma.FieldRef<"Oportunidade", 'String'>
   readonly valorSugerido: Prisma.FieldRef<"Oportunidade", 'Int'>
+  readonly conformidadeOk: Prisma.FieldRef<"Oportunidade", 'Boolean'>
+  readonly conformidadeAchados: Prisma.FieldRef<"Oportunidade", 'String'>
+  readonly propostaHigienizada: Prisma.FieldRef<"Oportunidade", 'Boolean'>
+  readonly precoDetalhe: Prisma.FieldRef<"Oportunidade", 'String'>
   readonly decididoPor: Prisma.FieldRef<"Oportunidade", 'String'>
   readonly decididoEm: Prisma.FieldRef<"Oportunidade", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"Oportunidade", 'DateTime'>

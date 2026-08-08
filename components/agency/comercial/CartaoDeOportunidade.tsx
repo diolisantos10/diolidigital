@@ -16,6 +16,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import {
   faixaDaNota,
+  nomeDaRegra,
   rotuloDaPlataforma,
   type Oportunidade,
   type StatusDaOportunidade,
@@ -90,9 +91,13 @@ interface Props {
   oportunidade: Oportunidade;
   aberta: boolean;
   onAlternar: () => void;
-  onDecidir: (status: StatusDaOportunidade) => void;
+  /** `custoEmConexoes` só é usado em "enviada", e só onde a plataforma cobra
+   *  cota. É o número LIDO DA TELA da plataforma no momento do envio. */
+  onDecidir: (status: StatusDaOportunidade, custoEmConexoes?: number) => void;
   /** Trava os botões enquanto o PATCH está no ar. */
   decidindo: boolean;
+  /** A plataforma desta oportunidade cobra conexão por proposta? */
+  cobraConexao: boolean;
 }
 
 export default function CartaoDeOportunidade({
@@ -101,6 +106,7 @@ export default function CartaoDeOportunidade({
   onAlternar,
   onDecidir,
   decidindo,
+  cobraConexao,
 }: Props) {
   const painelId = useId();
   // `copiado` guarda QUAL botão copiou, para o "Copiado ✓" aparecer no botão
@@ -108,11 +114,25 @@ export default function CartaoDeOportunidade({
   // ciclo.
   const [copiado, setCopiado] = useState<"painel" | "aprovar" | null>(null);
   const [falhouAoCopiar, setFalhouAoCopiar] = useState(false);
+  // A caixinha do custo em conexões. Fica fechada até a pessoa pedir para marcar
+  // como enviada: perguntar antes seria perguntar o que ela ainda não viu.
+  const [pedindoCusto, setPedindoCusto] = useState(false);
+  const [custo, setCusto] = useState("");
   const faixa = faixaDaNota(o.nota);
-  const temProposta = Boolean(o.proposta);
+
+  // ── OS TRÊS ESTADOS DA PROPOSTA, E POR QUE NÃO PODEM SER DOIS ─────────────
+  // "reprovada" NÃO é "não gerada". A primeira pede leitura do motivo; a segunda
+  // pede reanálise. Se a tela tratasse as duas igual, o operador pediria
+  // reanálise de uma violação — e receberia a mesma violação de volta.
+  const barrada = o.conformidade === "reprovada";
+  const temProposta = Boolean(o.proposta) && !barrada;
 
   async function copiarProposta(origem: "painel" | "aprovar"): Promise<boolean> {
-    if (!o.proposta) return false;
+    // ⚠️ A TRAVA, e ela é aqui e não no `disabled` do botão: `disabled` é
+    // aparência, e um atalho de teclado, um teste ou um `click()` de console
+    // passam por cima dele. Proposta barrada não vai para a área de
+    // transferência por caminho nenhum.
+    if (barrada || !o.proposta) return false;
     try {
       await navigator.clipboard.writeText(o.proposta);
       setFalhouAoCopiar(false);
@@ -226,7 +246,13 @@ export default function CartaoDeOportunidade({
           {/* Duas colunas só a partir de `lg`: com a sidebar de 224px, um tablet
               de 768px tem 544px de conteúdo — menos que o celular tinha de sobra
               (mesma aritmética da §6.3 do DESIGN.md). */}
-          <div className="grid gap-4 lg:grid-cols-2 p-4">
+          {/* `items-start` não é detalhe: sem ele a coluna curta ("o projeto,
+              como chegou", 3 linhas) estica até a altura da coluna longa (a
+              proposta + procedência do preço, ~25 linhas) e vira meia tela de
+              retângulo branco vazio a 1440px. É o mesmo defeito que só apareceu
+              renderizando no admin do Google em 08/08 — e pela mesma razão:
+              leitura de código não mede altura. */}
+          <div className="grid gap-4 lg:grid-cols-2 items-start p-4">
             <section className="min-w-0">
               <div className="flex items-baseline justify-between gap-2 mb-2 min-h-[32px]">
                 <h4 className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">
@@ -274,16 +300,105 @@ export default function CartaoDeOportunidade({
                   {copiado === "painel" ? "Copiado ✓" : "Copiar"}
                 </button>
               </div>
-              <CaixaRolavel
-                classe={
-                  temProposta
-                    ? "bg-[var(--accent-light)] border-[#BFEFEC] text-[var(--text-primary)]"
-                    : "bg-[var(--bg)] border-[var(--border)] text-[var(--text-muted)]"
-                }
-                classeDoFade={temProposta ? "from-[var(--accent-light)]" : "from-[var(--bg)]"}
-              >
-                {o.proposta ?? "A proposta ainda não foi gerada. Analise a oportunidade de novo para produzi-la."}
-              </CaixaRolavel>
+
+              {/* ── A PROPOSTA BARRADA PELO COMPLIANCE VALIDATOR ─────────────
+                  Não há texto para mostrar, e isso é o desenho: um texto
+                  reprovado na tela é um texto que alguém seleciona e copia com
+                  Ctrl+C. O que aparece no lugar é O QUE reprovou, com o trecho
+                  exato e a fonte da regra — porque "não conforme" sem o motivo
+                  obriga o operador a adivinhar, e ele adivinha para o lado de
+                  mandar assim mesmo. */}
+              {barrada ? (
+                <div
+                  role="alert"
+                  className="rounded-[8px] border border-[#FCA5A5] bg-[var(--danger-bg)] px-3 py-3"
+                >
+                  <p className="text-[13px] font-semibold text-[var(--danger)]">
+                    Barrada antes de virar texto copiável
+                  </p>
+                  <p className="text-[12px] text-[var(--danger)]/80 mt-1 leading-relaxed">
+                    O texto que a IA escreveu viola a regra da plataforma. Ele não fica disponível
+                    para copiar — enviar assim é sanção, e sanção alcança as outras contas do mesmo
+                    usuário.
+                  </p>
+                  <ul className="mt-2.5 space-y-1.5 list-none p-0 m-0">
+                    {o.achados.length === 0 ? (
+                      <li className="text-[12px] text-[var(--danger)]">
+                        Reprovada sem motivo registrado. É defeito nosso — reanalise e, se repetir,
+                        registre.
+                      </li>
+                    ) : (
+                      o.achados.map((a, i) => (
+                        <li key={`${a.regra}-${i}`} className="text-[12px] text-[var(--danger)]">
+                          <span className="font-semibold">{nomeDaRegra(a.regra)}</span>
+                          {a.trecho && (
+                            <>
+                              {" — "}
+                              <span className="font-mono break-words">“{a.trecho}”</span>
+                            </>
+                          )}
+                          {a.fonte && (
+                            <span className="block text-[var(--danger)]/70">Fonte: {a.fonte}</span>
+                          )}
+                        </li>
+                      ))
+                    )}
+                  </ul>
+                </div>
+              ) : (
+                <CaixaRolavel
+                  classe={
+                    temProposta
+                      ? "bg-[var(--accent-light)] border-[#BFEFEC] text-[var(--text-primary)]"
+                      : "bg-[var(--bg)] border-[var(--border)] text-[var(--text-muted)]"
+                  }
+                  classeDoFade={temProposta ? "from-[var(--accent-light)]" : "from-[var(--bg)]"}
+                >
+                  {o.proposta ??
+                    (o.conformidade === "nao_julgada"
+                      ? "A proposta ainda não foi gerada. Analise a oportunidade de novo para produzi-la."
+                      : "Não há texto de proposta nesta oportunidade.")}
+                </CaixaRolavel>
+              )}
+
+              {/* O rascunho precisou ser limpo. Não é erro do operador e não
+                  bloqueia nada — é sinal sobre o GERADOR, e some se ninguém o
+                  mostrar. Reincidência é o que antecede a conta banida. */}
+              {o.higienizada && !barrada && (
+                <p className="text-[12px] text-[var(--warning)] mt-2 leading-relaxed">
+                  O rascunho da IA trazia link ou contato e o código retirou antes de julgar. O texto
+                  acima é o que sai; o rascunho, não.
+                </p>
+              )}
+
+              {/* ── DE ONDE VEIO O PREÇO ──────────────────────────────────────
+                  Número sem procedência é palpite com cara de cálculo. Aqui
+                  aparece qual piso venceu e quanto o CLIENTE vê na tela dele —
+                  que é diferente do que a agência recebe, porque a taxa é
+                  acrescentada por cima. */}
+              {o.preco && (
+                <div className="mt-3 rounded-[8px] border border-[var(--border)] bg-[var(--bg)] px-3 py-2.5">
+                  <p className="text-[12px] font-semibold text-[var(--text-secondary)]">
+                    {o.preco.ok ? "De onde veio o preço" : "Sem preço — e o motivo"}
+                  </p>
+                  {o.preco.ok && (
+                    <p className="text-[12px] text-[var(--text-secondary)] mt-1">
+                      Você digita{" "}
+                      <span className="mono-num font-semibold text-[var(--text-primary)]">
+                        R$ {o.preco.ofertaADigitar}
+                      </span>{" "}
+                      · o cliente vê{" "}
+                      <span className="mono-num font-semibold text-[var(--text-primary)]">
+                        R$ {o.preco.ofertaFinalQueOClienteVe.toFixed(2)}
+                      </span>{" "}
+                      (taxa de {o.preco.taxaPercentual}% por cima, paga por ele)
+                    </p>
+                  )}
+                  <p className="text-[12px] text-[var(--text-muted)] mt-1 leading-relaxed">
+                    {o.preco.motivo}
+                  </p>
+                </div>
+              )}
             </section>
           </div>
 
@@ -291,6 +406,67 @@ export default function CartaoDeOportunidade({
             <p role="alert" className="px-4 pb-2 text-[12px] text-[var(--danger)]">
               O navegador bloqueou a cópia automática. Selecione o texto da proposta e copie com Ctrl+C.
             </p>
+          )}
+
+          {/* ── QUANTAS CONEXÕES ISTO CUSTOU ──────────────────────────────────
+              A plataforma NÃO publica a tabela ("varia com o quão disputado
+              costuma ser aquele tipo de projeto", e marketing e design são os
+              disputados). Então o número tem de ser LIDO DA TELA dela, no
+              momento do envio — e por isso a pergunta aparece aqui, depois do
+              clique, e não antes.
+
+              Não há valor padrão no campo. Um "1" pré-preenchido seria aceito
+              sem leitura em nove de cada dez vezes, e aí o contador do mês
+              inteiro passa a ser ficção otimista. Conexão gasta não volta. */}
+          {pedindoCusto && (
+            <div className="mx-4 mb-3 rounded-[8px] border border-[var(--border-strong)] bg-[var(--bg)] px-3 py-3">
+              <label
+                htmlFor={`${painelId}-custo`}
+                className="block text-[13px] font-semibold text-[var(--text-primary)]"
+              >
+                Quantas conexões o 99Freelas cobrou?
+              </label>
+              <p className="text-[12px] text-[var(--text-muted)] mt-1 leading-relaxed max-w-[60ch]">
+                O número está na tela da plataforma, no momento do envio. Projeto disputado custa
+                mais de uma. Sem ele a casa não consegue saber quanto resta do mês — e conexão gasta
+                não volta.
+              </p>
+              <div className="flex flex-wrap items-center gap-2 mt-2.5">
+                <input
+                  id={`${painelId}-custo`}
+                  type="number"
+                  min={1}
+                  step={1}
+                  inputMode="numeric"
+                  value={custo}
+                  onChange={(e) => setCusto(e.target.value)}
+                  placeholder="ex.: 2"
+                  className="w-[110px] h-9 px-3 text-[16px] md:text-[14px] bg-white border border-[var(--border)] rounded-[7px] outline-none focus:border-[var(--navy)]"
+                />
+                <button
+                  type="button"
+                  disabled={decidindo || !Number.isInteger(Number(custo)) || Number(custo) < 1}
+                  onClick={() => {
+                    onDecidir("enviada", Number(custo));
+                    setPedindoCusto(false);
+                    setCusto("");
+                  }}
+                  className="h-9 px-4 rounded-[7px] bg-[var(--navy)] text-white text-[13px] font-semibold hover:bg-[#0E1333] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  Confirmar envio
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPedindoCusto(false);
+                    setCusto("");
+                  }}
+                  className="h-9 px-3 rounded-[7px] border border-[var(--border)] text-[13px] font-medium text-[var(--text-secondary)] hover:bg-[var(--accent)] transition-colors"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
           )}
 
           {/* ── As três decisões ──────────────────────────────────────────────
@@ -310,11 +486,15 @@ export default function CartaoDeOportunidade({
               disabled={decidindo || o.status === "aprovada"}
               className="h-9 px-4 rounded-[7px] bg-[var(--navy)] text-white text-[13px] font-semibold hover:bg-[#0E1333] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
+              {/* Sem proposta, o botão NÃO trava — ele vira "Aprovar". Mas com a
+                  proposta BARRADA ele nunca diz "e copiar": prometer a cópia de
+                  um texto que não vai para a área de transferência é a mesma
+                  mentira de tela que o "Copiado ✓" existe para desfazer. */}
               {copiado === "aprovar" ? "Copiado ✓" : temProposta ? "Aprovar e copiar" : "Aprovar"}
             </button>
             <button
               type="button"
-              onClick={() => onDecidir("enviada")}
+              onClick={() => (cobraConexao ? setPedindoCusto(true) : onDecidir("enviada"))}
               disabled={decidindo || o.status === "enviada"}
               className="h-9 px-4 rounded-[7px] border border-[var(--border-strong)] bg-white text-[13px] font-medium text-[var(--text-primary)] hover:bg-[var(--bg)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >

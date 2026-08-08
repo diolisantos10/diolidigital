@@ -26,6 +26,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
 import { segredoConfere } from "@/lib/security/crypto";
 import { registrarOportunidade, detectarPlataforma, normalizarUrl } from "@/lib/agency/comercial/oportunidade";
+import { qualificarEGravar } from "@/lib/agency/comercial/pipeline";
 
 /** Teto do corpo recebido, em bytes, antes de qualquer parsing. É a primeira
  *  tranca: não adianta validar tamanho depois de já ter carregado 50 MB. */
@@ -158,11 +159,41 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: resultado.detalhe, motivo: resultado.motivo }, { status: 400 });
   }
 
+  // ── 5) A QUALIFICAÇÃO — o buraco fechado em 08/08/2026 ───────────────────
+  //
+  // Esta rota INGERIA E NÃO QUALIFICAVA. Só o POST de colar chamava a IA. O
+  // efeito não era "fica para depois": a fila ordena por nota, e no SQLite NULL
+  // é o menor valor — a oportunidade que chegava pela porta mais barata da casa
+  // nascia no rodapé da lista, sem nota, e ninguém a pegava. A porta que devia
+  // avisar em minutos era a única que não produzia nada.
+  //
+  // Roda em linha, e isso é uma escolha declarada: o encaminhador de e-mail
+  // espera alguns segundos a mais. Uma fila assíncrona seria melhor e é uma
+  // frente própria — enquanto ela não existe, "grava agora e qualifica algum
+  // dia" é o mesmo que não qualificar.
+  let qualificacao = "não aplicável (já estava na fila)";
+  if (!resultado.jaExistia) {
+    const passagem = await qualificarEGravar({
+      id: resultado.oportunidade.id,
+      workspaceId,
+      titulo: resultado.oportunidade.titulo,
+      descricao: resultado.oportunidade.descricao,
+      plataforma: resultado.oportunidade.plataforma,
+      categoria: resultado.oportunidade.categoria,
+      orcamentoInformado: resultado.oportunidade.orcamentoInformado,
+    });
+    // Falhar aqui NÃO perde a oportunidade: ela já está gravada. O 201 continua
+    // sendo 201 — o que a rota prometeu (ingerir) foi cumprido.
+    qualificacao = passagem.gravou ? "ok" : `não saiu: ${passagem.motivo}`;
+    if (!passagem.gravou) console.warn("[oportunidades/email] qualificação não saiu:", passagem.motivo);
+  }
+
   // Resposta MÍNIMA de propósito: quem chama aqui é um robô de e-mail, não uma
   // tela. Devolver o conteúdo captado ecoaria para fora, sem sessão, um texto
-  // que pode carregar contato de terceiro.
+  // que pode carregar contato de terceiro. `qualificacao` é um rótulo curto e
+  // fixo — nunca o texto do anúncio nem o da proposta.
   return NextResponse.json(
-    { ok: true, id: resultado.oportunidade.id, jaExistia: resultado.jaExistia },
+    { ok: true, id: resultado.oportunidade.id, jaExistia: resultado.jaExistia, qualificacao },
     { status: resultado.jaExistia ? 200 : 201 },
   );
 }

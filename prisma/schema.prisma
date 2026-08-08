@@ -1682,8 +1682,31 @@ model Oportunidade {
   status String @default("nova")
 
   /// A proposta redigida e o preço que vamos pedir (reais inteiros).
+  /// ⚠️ `propostaTexto` NULO tem DOIS significados, e a tela precisa dos dois
+  /// separados: "ainda não foi gerada" (`conformidadeOk` nulo) e "foi gerada e o
+  /// Compliance Validator BARROU" (`conformidadeOk = false`). Colapsar os dois
+  /// faria a tela pedir "analise de novo" para uma proposta que o portão
+  /// reprovou — e a reanálise devolveria a mesma violação.
   propostaTexto String?
   valorSugerido Int?
+
+  /// ─── O QUE O COMPLIANCE VALIDATOR DECIDIU (08/08/2026) ──────────────────
+  /// Nulo = ninguém julgou ainda (oportunidade anterior a esta data, ou a IA
+  /// não respondeu). `false` = julgou e REPROVOU — e aí `propostaTexto` é nulo
+  /// de propósito, para não haver o que copiar.
+  conformidadeOk Boolean?
+  /// Os motivos da reprovação, em JSON: `[{regra,trecho,fonte}]`. É o que a tela
+  /// mostra. Guardar só "reprovou" obrigaria o operador a adivinhar o quê.
+  conformidadeAchados String?
+  /// `true` quando o rascunho do modelo trazia link ou contato e o código tirou.
+  /// Fica gravado porque apagar o erro sem contar esconde a reincidência do
+  /// gerador — e é a reincidência que antecede a conta banida.
+  propostaHigienizada Boolean?
+  /// O retorno inteiro do Pricing Engine, em JSON: piso da casa, piso da
+  /// categoria da plataforma, qual venceu, taxa e a oferta final que o cliente
+  /// vê. A tela mostra DE ONDE o número veio; número sem procedência é palpite
+  /// com cara de cálculo.
+  precoDetalhe String?
 
   /// Quem bateu o martelo. `userId` da sessão, não e-mail: registro de decisão
   /// não precisa carregar identificador pessoal.

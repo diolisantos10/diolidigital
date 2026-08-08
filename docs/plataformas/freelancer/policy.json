@@ -48,7 +48,9 @@
     "escopos_concedidos": null,
     "evidencia": null,
     "pedido": "docs/plataformas/freelancer/pedido-de-api.md",
-    "o_que_confirmar": "Não basta a API key: é preciso confirmação de que o uso autorizado INCLUI o gerenciamento automatizado de bids da PRÓPRIA CONTA."
+    "o_que_confirmar": "Não basta a API key: é preciso confirmação de que o uso autorizado INCLUI o gerenciamento automatizado de bids da PRÓPRIA CONTA.",
+
+    "_divergencia_de_registro_2026_08_08": "MESMA DIVERGÊNCIA DA UPWORK, e a mesma decisão. (a) `docs/plataformas/freelancer/pedido-de-api.md` diz 'ENVIADO pelo CEO em 07/08/2026'. (b) ESTE arquivo diz `nao_perguntado`. (c) `docs/pendencias.md` lista o envio como pendência ABERTA. O CEO confirmou por escrito APENAS o envio ao suporte do 99Freelas (corrigido em 08/08). Para a Freelancer.com não há confirmação, então o status NÃO foi mexido: fica no lado que não destrava nada, e a divergência fica escrita. QUEM FECHA: o CEO."
   },
 
   "notes": "A política de privacidade deles reconhece aplicações de terceiros conectadas à conta via API que podem agir em nome do usuário conforme as permissões concedidas — o que é a forma certa, e não o Playwright com login."

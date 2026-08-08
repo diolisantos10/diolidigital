@@ -146,8 +146,27 @@ describe("os dois pedidos formais de API existem, prontos para o CEO", () => {
     const linha = t.split("\n").find((l) => l.includes("**Estado:"));
     expect(linha, "o documento tem que declarar o estado do pedido").toBeTruthy();
 
-    const enviado = /ENVIAD[OA]/.test(linha!) && !/NÃO ENVIAD[OA]/.test(linha!);
-    if (enviado) {
+    // ── E POR QUE MUDOU DE NOVO EM 08/08/2026 ──────────────────────────────
+    //
+    // O teste conhecia DOIS estados: enviado (com data) ou "NÃO ENVIADO". A
+    // auditoria da frente do 99Freelas achou um TERCEIRO, e ele é o mais comum
+    // desta casa: **alguém escreveu que enviou e ninguém confirmou.** Aqui o
+    // cabeçalho do `.md` dizia "ENVIADO em 07/08", o `policy.json` dizia
+    // `nao_perguntado` e `docs/pendencias.md` listava o envio como pendência
+    // aberta — três fontes, duas histórias.
+    //
+    // Forçar esse caso a se declarar "ENVIADO" ou "NÃO ENVIADO" obrigaria a
+    // casa a escolher um lado por palpite. Ausência de informação não é
+    // informação: o terceiro estado existe, e o que o teste exige dele é o
+    // mesmo rigor — data E a palavra que impede que ele seja lido como fato.
+    const naoConfirmado = /NÃO CONFIRMADO/.test(linha!);
+    const enviado = /ENVIAD[OA]/i.test(linha!) && !/NÃO ENVIAD[OA]/.test(linha!);
+
+    if (naoConfirmado) {
+      // Sem data, "declarado como enviado" é boato. Com data, é algo que o CEO
+      // consegue confirmar ou desmentir em uma frase.
+      expect(linha, "estado não confirmado tem que carregar a data declarada").toMatch(/\d{2}\/\d{2}\/\d{4}/);
+    } else if (enviado) {
       // Enviado sem data é o mesmo que não saber se foi enviado.
       expect(linha, "pedido enviado tem que carregar a data").toMatch(/\d{2}\/\d{2}\/\d{4}/);
     } else {

@@ -1,7 +1,21 @@
 # Pedido de API key à Upwork — texto pronto para o CEO enviar
 
-**Estado: ENVIADO pelo CEO em 07/08/2026. Aguardando resposta.** Quem envia é o CEO. Nenhum agente desta casa mandou
-nada.
+> ### ⚠️ ESTADO EM CONFLITO — NINGUÉM DESTA CASA SABE QUAL VALE (08/08/2026)
+>
+> Este cabeçalho afirma que o pedido foi **enviado em 07/08/2026**.
+> `docs/plataformas/upwork/policy.json` diz `status: "nao_perguntado"`, e
+> `docs/pendencias.md` lista *"Mandar os dois pedidos de API"* como pendência
+> **aberta** do CEO. **Três fontes, duas histórias.**
+>
+> O caso do 99Freelas foi fechado em 08/08 porque o CEO **confirmou o envio por
+> escrito**. Aqui ele não confirmou nada. Então o `policy.json` **não foi
+> mexido** — fica no lado que não destrava — e o conflito fica declarado nos
+> dois arquivos em vez de ser resolvido por palpite.
+>
+> **O que fecha isto:** uma frase do CEO — enviou ou não enviou.
+
+**Estado: DECLARADO como enviado pelo CEO em 07/08/2026 — NÃO CONFIRMADO (ver o
+aviso acima).** Quem envia é o CEO. Nenhum agente desta casa mandou nada.
 
 **Por que a pressa, se a Upwork é prioridade 1 e ainda não há adaptador:**
 porque o prazo é EXTERNO. A Upwork analisa a conta e o caso de uso, e isso leva
