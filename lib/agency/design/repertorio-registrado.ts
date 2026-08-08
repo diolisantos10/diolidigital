@@ -234,9 +234,114 @@ export function cerebroDaDioli(): CerebroMontado {
   });
 }
 
+/**
+ * O cérebro criativo do CITYJOBS.
+ *
+ * ── POR QUE ELE NASCEU DEPOIS, E ISSO É O ACHADO (CEO, 08/08/2026) ──────────
+ *
+ * O CityJobs produzia peça desde 05/08 e **não tinha cérebro registrado**.
+ * `cerebroDaMarca("CityJobs")` devolvia o cérebro vazio, corretamente, e a peça
+ * saía no molde base. Foi nesse vácuo que quase se instalou o erro que o CEO
+ * pegou antes do Diretor: a régua de qualidade veio da peça de referência da
+ * DIOLI (`Radar Dioli Tech` — serifa de display, creme, azul-marinho, mockup de
+ * tablet sobre mármore, tom de curadoria de tecnologia), e ia ser aplicada
+ * inteira a uma plataforma de vagas do Alto Tietê.
+ *
+ * **"Essa arte é da Dioli Digital, você está misturando os projetos."**
+ *
+ * O que se leva de uma referência é o NÍVEL — fotografia real, camadas,
+ * respiro, hierarquia em três níveis, paleta contida. O que NÃO se leva é o
+ * VISUAL: a tipografia, a paleta e o repertório de objetos de outra marca.
+ * Este registro existe para que o CityJobs tenha os dele.
+ *
+ * ── A PROCEDÊNCIA, E ELA NÃO É "O DESIGNER ACHOU" ──────────────────────────
+ *
+ * Duas fontes, as duas do próprio cliente e as duas no repositório:
+ * `docs/projetos/cityjobs-orcamento.md` (o briefing aprovado em 05/08) e
+ * `public/brand/cityjobs/LEIA-ME.md` (o manual dos logos oficiais).
+ */
+export function cerebroDoCityJobs(): CerebroMontado {
+  const de =
+    "briefing aprovado em docs/projetos/cityjobs-orcamento.md (05/08/2026) + manual da marca em public/brand/cityjobs/LEIA-ME.md";
+  return montarCerebro({
+    marca: "CityJobs",
+    repertorio: [
+      {
+        id: "bastidor-da-regiao",
+        descricao:
+          "Fotografia real de um lugar do Alto Tietê que a pessoa reconhece, com o texto num campo azul-marinho embaixo.",
+        composicao: "dividido-reto",
+        funcoes: ["bastidor", "comunidade"],
+        razao: [
+          "quem lê está procurando trabalho e é da região: lugar reconhecível é prova de que a vaga é daqui, e prova vale mais que adjetivo",
+          "campo sólido próprio para o texto porque a peça é lida no celular, muitas vezes em movimento — legibilidade não pode depender do que a foto tem naquele canto",
+          "corte RETO e não curva: a curva é assinatura de peça de venda, e o CityJobs não está vendendo, está informando quem procura emprego",
+        ],
+        procedencia: de,
+      },
+      {
+        id: "institucional-vaga-validada",
+        descricao:
+          "A promessa da plataforma dita em uma frase curta, sobre foto de rua de comércio da região.",
+        composicao: "dividido-reto",
+        funcoes: ["institucional", "dica"],
+        razao: [
+          "a diferença do CityJobs é a CHECAGEM, e checagem é um conceito abstrato: a foto tem de ancorá-la no lugar de onde a vaga vem",
+          "frase curta e sem número: o pilar de salário está bloqueado e promessa de contratação é risco jurídico, não escolha de copy",
+        ],
+        procedencia: de,
+      },
+    ],
+    amplitude: [
+      {
+        eixo: "temperatura",
+        extremoA: "prática e direta — o que fazer, onde, com que documento",
+        extremoB: "quente e de gente — o alívio de trabalhar perto de casa",
+        porque:
+          "quem procura emprego alterna entre a tarefa (mandar currículo) e o motivo (ter tempo de volta). Só o prático vira mural de avisos; só o emocional vira frase de autoajuda sem vaga nenhuma atrás.",
+        foraDaMarca: [
+          "estética de escritório de tecnologia — coworking, tablet, mármore, café",
+          "tipografia serifada de display (o manual da marca é sans: Arial Black / Arial / Helvetica)",
+          "paleta creme ou qualquer cor fora de #0D2B4D · #FFFFFF · #16A34A · #FFD24D",
+          "promessa de contratação, 'emprego garantido' ou linguagem sensacionalista",
+          "salário, número de vagas ou nome de empresa dentro dos pixels",
+        ],
+        procedencia: de,
+      },
+      {
+        eixo: "distância da pessoa",
+        extremoA: "a cidade — estação, avenida, comércio de rua",
+        extremoB: "a pessoa — quem trabalha, quem espera, quem caminha",
+        porque:
+          "a marca é regional antes de ser de emprego: o Alto Tietê tem de ser reconhecível na foto. Mas cidade sem gente vira cartão-postal de prefeitura, e a peça precisa falar com quem está procurando trabalho.",
+        foraDaMarca: ["banco de imagem genérico sem relação com a região"],
+        procedencia: de,
+      },
+    ],
+    formatos: [
+      {
+        id: "post-simples-de-feed",
+        label: "Post simples de feed 4:5",
+        cadencia: "dois por dia, 60 por mês",
+        regua: REGUA_CARROSSEL_DE_VENDA,
+        // Só as divididas. `foto-cheia` é a composição que produziu as 36 telas
+        // iguais da Foocci, e num feed de DOIS posts por dia ela viraria a
+        // mesma peça 60 vezes por mês.
+        composicoesPermitidas: ["dividido-reto"],
+        procedencia: de,
+      },
+    ],
+  });
+}
+
 /** Os cérebros registrados, achados por nome de marca. */
 const REGISTRADOS: Array<{ chave: RegExp; montar: () => CerebroMontado }> = [
   { chave: /foocci/i, montar: cerebroDaFoocci },
+  // ⚠️ O CityJobs vem ANTES da Dioli de propósito. `/dioli/i` é uma régua
+  // larga, e a ordem desta lista é a única coisa que decide quando duas
+  // baterem. Regra: o mais específico primeiro. Há teste que reprova a
+  // inversão — foi um vazamento de marca que o CEO pegou em 08/08.
+  { chave: /city\s*jobs/i, montar: cerebroDoCityJobs },
   { chave: /dioli/i, montar: cerebroDaDioli },
 ];
 

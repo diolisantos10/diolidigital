@@ -36,6 +36,16 @@
 //    cara sem ninguém saber. As pilhas abaixo terminam sempre em família
 //    genérica (`serif`/`sans-serif`), que existe em qualquer máquina.
 //
+//    ── E A REGRA 2 NÃO BASTAVA (08/08/2026) ─────────────────────────────────
+//    Não buscar fonte na rede impede a peça de MENTIR sobre a letra; não
+//    garante que a letra seja a certa. O contêiner que rasteriza tem Liberation
+//    e DejaVu, e mais nada: `Inter`, `Helvetica Neue`, `Arial`, `Playfair
+//    Display`, `Poppins`, `Oswald` — nenhuma existe ali. Toda peça desta casa
+//    saía na última linha da pilha, e o CEO viu isso na peça reprovada do
+//    CityJobs. O conserto é `fontes-embutidas.ts`: os BYTES da fonte viajam
+//    dentro do documento, exatamente como os do logo real. A regra continua de
+//    pé — o que mudou é que agora existe fonte de verdade para ela proteger.
+//
 // ── CLIENTE SEM MARCA DEFINIDA ──────────────────────────────────────────────
 //
 // Vazio é vazio. Sem cor no `BrandBrain`, o molde NÃO inventa cor de marca:
@@ -63,6 +73,7 @@
 
 import { escaparHtml, type TextoDaPeca } from "./texto-da-peca";
 import { cssDoMockup } from "./mockup";
+import { cssDasFontesEmbutidas } from "./fontes-embutidas";
 import type { Composicao } from "./repertorio";
 
 // Reexportados para que nenhum chamador antigo precise mudar de import. A
@@ -117,7 +128,35 @@ export function formatoDoPost(format: string | null | undefined): FormatoDaPeca 
 export const FAMILIAS_DA_ARTE: Record<string, string> = {
   serifada: "'Playfair Display', 'Georgia', 'Liberation Serif', 'DejaVu Serif', serif",
   geometrica: "'Poppins', 'Futura', 'Century Gothic', 'DejaVu Sans', sans-serif",
-  neutra: "'Inter', 'Helvetica Neue', Arial, 'Liberation Sans', 'DejaVu Sans', sans-serif",
+  // `Archivo` vai NA FRENTE porque é a única desta linha que existe de verdade
+  // no rasterizador (ela viaja embutida). As outras ficam: se um dia a peça for
+  // aberta numa máquina que tenha Inter ou Helvetica de sistema, elas valem.
+  neutra: "'Archivo', 'Inter', 'Helvetica Neue', Arial, 'Liberation Sans', 'DejaVu Sans', sans-serif",
+  manuscrita: "'Pacifico', 'Brush Script MT', cursive",
+  condensada: "'Oswald', 'Impact', 'Arial Narrow', 'Liberation Sans Narrow', sans-serif",
+};
+
+/**
+ * A pilha do TÍTULO — o peso de display, que não é o mesmo do corpo.
+ *
+ * ── POR QUE ISTO PRECISOU EXISTIR ───────────────────────────────────────────
+ *
+ * Até aqui a peça inteira usava UMA família e o título se distinguia só por
+ * `font-weight:800`. Numa pilha que caía em Liberation Sans, `800` vira o
+ * Bold comum — e a diferença entre título e apoio virava quase nada. É metade
+ * da distância entre a peça reprovada e a referência: hierarquia tipográfica
+ * de verdade é famílias diferentes, não um número no CSS.
+ *
+ * `Archivo Black` é o substituto declarado de `Arial Black` (ver
+ * `fontes-embutidas.ts`) — que é o que o manual do CityJobs pede e o que o
+ * logo oficial dele usa. Marca cuja tipografia é sans NUNCA recebe display
+ * serifado por este mapa: o display de cada chave é da MESMA linhagem do
+ * corpo dela.
+ */
+export const FAMILIAS_DE_DISPLAY: Record<string, string> = {
+  serifada: "'Playfair Display', 'Georgia', 'Liberation Serif', 'DejaVu Serif', serif",
+  geometrica: "'Poppins', 'Futura', 'Century Gothic', 'DejaVu Sans', sans-serif",
+  neutra: "'Archivo Black', 'Archivo', 'Helvetica Neue', Arial, 'Liberation Sans', sans-serif",
   manuscrita: "'Pacifico', 'Brush Script MT', cursive",
   condensada: "'Oswald', 'Impact', 'Arial Narrow', 'Liberation Sans Narrow', sans-serif",
 };
@@ -128,6 +167,7 @@ export const NEUTRO = {
   secundaria: "#8A8A8A",
   tinta: "#FFFFFF",
   familia: FAMILIAS_DA_ARTE.neutra!,
+  familiaDisplay: FAMILIAS_DE_DISPLAY.neutra!,
 } as const;
 
 export interface Molde {
@@ -139,6 +179,12 @@ export interface Molde {
   /** A cor do texto sobre a faixa/scrim. Calculada por contraste, nunca chutada. */
   tinta: string;
   familia: string;
+  /**
+   * A pilha do TÍTULO. Ausente = usa a mesma do corpo (o comportamento de
+   * antes de 08/08/2026), e nunca uma família de outra linhagem escolhida por
+   * conta própria.
+   */
+  familiaDisplay?: string;
   /** O que faltava no BrandBrain. Entra no relatório da peça: a agência sabe o
    *  que não sabe, e o cliente pode preencher. */
   lacunas: string[];
@@ -213,7 +259,7 @@ export function tintaSobre(fundo: string): string {
  * Sem declaração, NEUTRA — nunca "combina com o segmento". Adivinhar tipografia
  * por ramo de negócio é a agência decidindo a identidade do cliente sozinha.
  */
-export function familiaDeclarada(typography: string | null | undefined): { chave: string; pilha: string; declarada: boolean } {
+export function familiaDeclarada(typography: string | null | undefined): { chave: string; pilha: string; display: string; declarada: boolean } {
   const t = (typography ?? "").toLowerCase();
   const achar = (): string | null => {
     if (/serif|playfair|georgia|times|garamond/.test(t) && !/sans/.test(t)) return "serifada";
@@ -224,8 +270,14 @@ export function familiaDeclarada(typography: string | null | undefined): { chave
     return null;
   };
   const chave = achar();
-  if (!chave) return { chave: "neutra", pilha: FAMILIAS_DA_ARTE.neutra!, declarada: false };
-  return { chave, pilha: FAMILIAS_DA_ARTE[chave]!, declarada: true };
+  // O display SEMPRE sai da MESMA chave do corpo. É a trava que impede a
+  // tipografia de uma marca de vazar para outra: marca declarada `sans` não
+  // recebe display serifado nem por engano, e a serifada de display da Dioli
+  // não aparece numa peça do CityJobs porque a chave dele não é `serifada`.
+  if (!chave) {
+    return { chave: "neutra", pilha: FAMILIAS_DA_ARTE.neutra!, display: FAMILIAS_DE_DISPLAY.neutra!, declarada: false };
+  }
+  return { chave, pilha: FAMILIAS_DA_ARTE[chave]!, display: FAMILIAS_DE_DISPLAY[chave]!, declarada: true };
 }
 
 export interface MarcaDoCliente {
@@ -260,6 +312,7 @@ export function moldeDoCliente(marca: MarcaDoCliente | null | undefined): Molde 
       secundaria: NEUTRO.secundaria,
       tinta: NEUTRO.tinta,
       familia: fam.pilha,
+      familiaDisplay: fam.display,
       lacunas,
     };
   }
@@ -270,6 +323,7 @@ export function moldeDoCliente(marca: MarcaDoCliente | null | undefined): Molde 
     secundaria: secundaria ?? NEUTRO.secundaria,
     tinta: tintaSobre(primaria),
     familia: fam.pilha,
+    familiaDisplay: fam.display,
     lacunas,
   };
 }
@@ -476,6 +530,7 @@ export function montarHtmlDaPeca(peca: PecaDoMolde, molde: Molde): string {
   return `<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8">
 <style>
+${cssDasFontesEmbutidas()}
   * { margin:0; padding:0; box-sizing:border-box; }
   html, body { width:${dim.largura}px; height:${dim.altura}px; overflow:hidden; }
   body {
@@ -539,6 +594,9 @@ export function montarHtmlDaPeca(peca: PecaDoMolde, molde: Molde): string {
     max-width:100%; word-break:break-word;
   }
   .titulo {
+    /* A família de DISPLAY, não a do corpo. Ausente = a do corpo, que é o
+       comportamento de antes de 08/08/2026 — nunca uma família escolhida aqui. */
+    font-family: ${molde.familiaDisplay ?? molde.familia};
     font-size:${TITULO_PX[peca.formato]}px; font-weight:800; line-height:1.06;
     letter-spacing:-1.5px; max-width:100%; word-break:break-word;
   }
@@ -568,7 +626,13 @@ export function montarHtmlDaPeca(peca: PecaDoMolde, molde: Molde): string {
      contain e não cover: logo cortado é logo errado, e a proporção de uma
      marca não é nossa para ajustar. Altura fixa (a mesma do monograma) para que
      um logo largo e um logo quadrado assinem na mesma linha de base. */
-  .logo-real { height:44px; width:auto; max-width:220px; object-fit:contain; flex:0 0 auto; display:block; }
+  /* A LARGURA subiu de 220 para 240; a ALTURA continua 44.
+     Wordmark horizontal (o do CityJobs é "CITY JOBS" numa linha, proporção
+     ~6,5:1) batia no teto de 220px e encolhia até virar borrão. Mas soltar a
+     altura foi pior: a 52px a assinatura vira um SEGUNDO TÍTULO no pé da peça e
+     briga com o de cima — medido nas duas renderizações das peças refeitas do
+     CityJobs. Assinatura é assinatura: ela se lê depois do título, nunca junto. */
+  .logo-real { height:44px; width:auto; max-width:240px; object-fit:contain; flex:0 0 auto; display:block; }
   .assinatura { font-size:24px; font-weight:600; letter-spacing:1px; opacity:.85; }
   .indice {
     font-size:22px; font-weight:700; letter-spacing:2px; opacity:.8;

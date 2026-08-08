@@ -1,5 +1,126 @@
 # Pendências — o que está aberto
 
+## 🟢 08/08/2026 — AS 2 PEÇAS DO CITYJOBS REFEITAS: O CLIPART VIROU REPROVAÇÃO EM CÓDIGO
+
+**A consequência, primeiro:** o CEO reprovou as duas peças de `4c4ea1a` (prédio
+retângulo, sol círculo, tipografia de sistema). Elas foram refeitas com
+**fotografia real do Alto Tietê**, tipografia **embarcada de verdade** e o logo
+oficial rasterizado com a letra certa — e o motivo da reprovação virou **portão
+que roda**, não recomendação em documento.
+
+**Portão:** `npx tsc --noEmit` limpo · **3088 testes em 191 arquivos, todos
+verdes** (60 novos) · `npm run build` compila.
+
+### 🔴 TRÊS DEFEITOS QUE NINGUÉM TINHA MEDIDO, E OS TRÊS ERAM SILENCIOSOS
+
+1. **NENHUMA fonte do molde existe no contêiner que rasteriza.** `Inter`,
+   `Helvetica Neue`, `Arial`, `Playfair Display`, `Poppins`, `Oswald` — o
+   contêiner tem Liberation e DejaVu, e mais nada. **Toda peça desta casa saía
+   na última linha da pilha**, desde sempre, e pilha de fonte não avisa quando
+   cai. Conserto: `lib/agency/design/fontes-embutidas.ts` — Archivo Black e
+   Archivo (OFL) viajam em base64 dentro do documento, como os bytes do logo
+   real já viajavam. A regra "nenhuma fonte de rede" continua de pé.
+2. **O "logo oficial" do CityJobs tem o MESMO defeito, e é pior:** ele é
+   `<text font-family="Arial Black">` dentro de um SVG. Arial Black é fonte
+   licenciada da Microsoft e não existe aqui — **o wordmark do cliente vinha
+   saindo em Liberation Sans**, e ninguém mediu porque "o logo é oficial".
+3. **`montarHtmlDaPeca` pinta o logo E o nome do cliente em texto**, lado a lado
+   no rodapé. Para o CityJobs isso **viola a primeira regra do manual dele**
+   ("nunca o logo junto da palavra CityJobs escrita na mesma peça"). Contornado
+   na peça (`assinatura: null`); **a regra ainda não é trava no molde.**
+
+### O MECANISMO — as duas metades, contra arquivo de verdade
+
+**`lib/agency/design/trava-de-fundo.ts`** (puro) + **`medir-fundo.ts`** (mede
+pixel). Duas perguntas independentes, porque exigir `fundo !== null` não pegaria
+nada: **a peça reprovada TINHA fundo** — era um `data:image/svg+xml`.
+
+| amostra | cores | dominante | textura |
+|---|---|---|---|
+| peça REPROVADA 1 | 232 | 0,528 | 0,031 |
+| peça REPROVADA 2 | 224 | 0,561 | 0,025 |
+| foto real 1 | 1.958 | 0,018 | 0,056 |
+| foto real 2 | 1.675 | 0,018 | 0,072 |
+
+- ⛔ **Reprova** as duas peças que o CEO reprovou — os PNGs estão guardados byte
+  a byte em `docs/entregas/cityjobs-08-08/reprovadas/` e são o fixture. Afrouxar
+  o piso derruba o teste.
+- ✅ **Não reprova** as duas fotografias que entraram nas peças refeitas.
+- 🔑 A separação é por **ordem de grandeza** (teste próprio exige 3×), não por
+  calibragem fina: trava rente ao caso conhecido reprova a próxima foto de
+  neblina ou parede branca, e trava que dispara onde não há risco é desligada.
+
+⚠️ **Honestidade sobre qual critério pegou:** foram as **cores** e a **cor
+dominante**. A **textura NÃO pegou** (0,031 contra piso de 0,012) — o clipart
+tinha janelinhas suficientes. Contra ESTE clipart há duas defesas, não três.
+
+### O VAZAMENTO DE MARCA — o que o CEO pegou antes do Diretor
+
+*"Essa arte é da Dioli Digital, você está misturando os projetos. CITY JOBS."*
+
+A régua de qualidade foi buscada na peça `Radar Dioli Tech`, que é da marca da
+**própria Dioli** (serifa de display, creme, mockup de tablet sobre mármore) —
+e ia ser aplicada inteira a uma plataforma de vagas do Alto Tietê. **O CityJobs
+não tinha cérebro criativo registrado**, e foi nesse vácuo que o erro quase se
+instalou. Esse era o achado.
+
+- **`cerebroDoCityJobs()`** registrado com procedência do próprio cliente (o
+  briefing aprovado + o manual dos logos), com `foraDaMarca` nomeando o que é da
+  Dioli: serifa de display, creme, tablet/mármore/coworking.
+- **A ordem de `REGISTRADOS` virou trava:** `/city\s*jobs/i` vem **antes** de
+  `/dioli/i`, que é régua larga, e há teste que reprova a inversão.
+- **A tipografia não vaza pela porta do molde:** `familiaDeclarada` passou a
+  devolver o display da **mesma chave** do corpo. Marca declarada sans **nunca**
+  recebe display serifado; marca serifada continua serifada (a trava não achata
+  todo mundo).
+
+### 🔴 O QUE NÃO FOI FEITO, E POR QUÊ
+
+- 🔴 **A FOTO NÃO É DE IA.** O despacho mandou gastar imagem de IA e **este
+  ambiente não tem chave de provedor nenhum** — medido: `OPENAI_API_KEY` e
+  `GEMINI_API_KEY` ausentes, `api.openai.com` responde **401**. O caminho foi
+  fotografia real do Alto Tietê, **CC0** (Wikimedia Commons), com procedência e
+  licença declaradas no script. Para este cliente não é plano B disfarçado — é
+  ancoragem —, mas **enquadramento sob medida a IA daria e isto não dá**.
+- 🔴 **AS PEÇAS NÃO SUBIRAM PARA PRODUÇÃO.** Medido: produção viva
+  (`/api/health` → commit `4335b61`), e `GET /api/agency/material-de-marca`
+  responde **401**. **Não há `CRON_SECRET` neste ambiente** e não há sessão de
+  admin. É o **quinto caso do mesmo padrão** já registrado abaixo: produzir é
+  livre, o último metro exige credencial de gente.
+- 🔴 **O TRABALHO ESTÁ EM `subida-07-08`, QUE NÃO DEPLOYA.** A branch de deploy é
+  `claude/dioli-agency-os-architecture-kk7kp` (medida em `/api/health`). Commit
+  em branch que não deploya é trabalho que não existe.
+- ⚠️ **AS LEGENDAS FORAM REESCRITAS, e isso está declarado.** O commit reprovado
+  deixou no repositório **os PNGs e nada mais** — sem legenda, sem script, sem a
+  fonte do texto. "Refazer com as mesmas legendas" era, por isso, impossível de
+  verificar. Os **títulos** são idênticos aos aprovados; as legendas novas moram
+  em `scripts/cityjobs-pecas-de-feed.mts` e são o lastro da trava de texto.
+- ⚠️ **DIREITO DE IMAGEM não é licença de foto.** CC0 resolve o **copyright**;
+  não resolve a imagem de pessoa identificável em peça comercial. Os recortes
+  foram escolhidos sem rosto identificável em primeiro plano, mas **isso é
+  mitigação, não parecer jurídico** — e não tem dono.
+- ⚠️ **`assinatura: null` é contorno, não trava.** A regra "logo OU palavra,
+  nunca os dois" continua sem mecanismo dentro de `molde.ts`.
+- ⚠️ **Archivo Black é SUBSTITUTA declarada de Arial Black**, que é licenciada e
+  não pode ser embarcada. Trocar pela fonte do manual é decisão do CEO.
+- **Nenhum especialista foi despachado como agente** (`interface`,
+  `experiencia`, `qualidade`, `seguranca`): **não há ferramenta de despacho
+  nesta execução.** O trabalho foi feito e auditado pelo `pm`. Não substitui a
+  passada deles.
+
+- [ ] `interface` — **a regra "logo XOR wordmark" precisa virar trava no molde**,
+      não um `null` passado à mão por quem produz.
+- [ ] `qualidade` — **plugar `travaDeFundoDeclarado` + `travaDeRiquezaDoFundo` em
+      `produzirArtesPendentes`**. Hoje o portão roda no script destas duas peças;
+      enquanto não estiver no caminho de produção, ele protege uma entrega, não
+      a casa.
+- [ ] **CEO** — decidir se a agência passa a **pagar imagem de IA** para fundo de
+      peça (e prover a chave a quem produz) ou se fotografia CC0 com procedência
+      vira o padrão declarado.
+- [ ] **CEO/Diretor** — **subir estas peças ao card do CityJobs em produção.**
+      Depende de sessão de admin, que nenhum agente tem.
+
+
 ## 🟢 08/08/2026 — A ESCADA SOLTA SOZINHA: A DECISÃO DO DONO VIROU MECANISMO
 
 **A consequência, primeiro:** `social-media` e `design` sobem para `allowlist`
