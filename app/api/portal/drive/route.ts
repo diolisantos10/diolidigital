@@ -30,6 +30,7 @@ import {
   papelValido,
   retratoDaEscolha,
   sugerirPapel,
+  vereditoDaEscolha,
   type ConexaoParaDecidir,
 } from "@/lib/integrations/google/escolha-de-material";
 
@@ -195,20 +196,43 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         // `papel` e `papelConfirmadoEm` ficam NULOS de propósito: a sugestão
         // não declara nada. Quem declara é o cliente, no PATCH.
       },
-    }).catch(() => null);
+      // ── A ESCRITA NÃO PODE FALHAR CALADA (08/08/2026) ────────────────────
+      //
+      // Era `.catch(() => null)`. O erro do Prisma — tabela sem migration,
+      // coluna nova, índice único, volume cheio — sumia sem log nenhum, e a
+      // escolha do cliente ia junto. É a mesma classe do "0 tanto para nada a
+      // fazer quanto para a escrita falhou" que esta casa já pagou. Agora o
+      // motivo REAL vai para o log do servidor e para a tela do cliente.
+    }).catch((e) => {
+      console.error(
+        `[portal/drive] NÃO GRAVEI a escolha do cliente ${dono.clientId} (fileId ${meta.dados?.fileId}):`,
+        e instanceof Error ? e.message : e,
+      );
+      return null;
+    });
 
     if (linha) gravados.push({ id: linha.id, nome: linha.nome, papelSugerido: linha.papelSugerido, ehPasta: linha.ehPasta });
-    else recusados.push({ nome: meta.dados.nome, motivo: "não consegui guardar a escolha" });
+    else recusados.push({ nome: meta.dados.nome, motivo: "não consegui guardar a escolha aqui do nosso lado" });
+  }
+
+  // Quem decide o status e a frase é o mecanismo, não este `if`. Zero gravado
+  // NUNCA é 200 e NUNCA é frase verde — ver `vereditoDaEscolha`.
+  const veredito = vereditoDaEscolha(gravados, recusados);
+  if (!veredito.ok) {
+    console.error(
+      `[portal/drive] escolha PERDIDA do cliente ${dono.clientId}: ${escolhas.length} arquivo(s) vieram do seletor, 0 gravados.`,
+    );
   }
 
   return NextResponse.json({
+    ok: veredito.ok,
     gravados,
     recusados,
+    error: veredito.erro ?? undefined,
+    aviso: veredito.aviso ?? undefined,
     // A frase que a tela mostra: escolher NÃO é declarar.
-    proximoPasso: gravados.some((g) => !g.ehPasta)
-      ? "Agora diga o que é cada arquivo — sem isso a equipe não usa nenhum deles."
-      : "Você escolheu apenas pastas. Abra a pasta no seletor e escolha os arquivos de dentro.",
-  });
+    proximoPasso: veredito.proximoPasso ?? undefined,
+  }, { status: veredito.status });
 }
 
 // ─── PATCH: o cliente disse o que é ─────────────────────────────────────────

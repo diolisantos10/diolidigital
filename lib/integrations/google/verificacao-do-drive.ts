@@ -47,6 +47,13 @@ export interface ExercicioDoDrive {
   alcancadosNoGoogle?: number | null;
   /** true quando o Google diz que há mais páginas — o número é um PISO. */
   haMais?: boolean;
+  /**
+   * Os arquivos alcançados, quando o chamador precisa deles pelo nome.
+   *
+   * Existe para a RECONCILIAÇÃO: o Google concedeu, a casa não guardou, e sem a
+   * lista não há como trazer o arquivo para dentro. `undefined` = não listei.
+   */
+  arquivos?: Array<{ id: string; nome: string; mimeType: string; tamanhoBytes: number }>;
 }
 
 /**
@@ -71,7 +78,7 @@ export async function exercitarDrive(connectionId: string): Promise<ExercicioDoD
 
   // 100 por página: um teto que responde "quantos" sem virar varredura. Página
   // única, sem seguir `nextPageToken` — o número vira um PISO declarado.
-  const url = `${HOST_DRIVE}/files?pageSize=100&fields=${encodeURIComponent("nextPageToken,files(id,name)")}&supportsAllDrives=true`;
+  const url = `${HOST_DRIVE}/files?pageSize=100&fields=${encodeURIComponent("nextPageToken,files(id,name,mimeType,size)")}&supportsAllDrives=true`;
   const res = await fetch(url, { headers: { Authorization: `Bearer ${t.token}` } }).catch(() => null);
   if (!res) {
     return { ok: false, codigo: null, mensagem: "o Google não respondeu à listagem de arquivos", alcancadosNoGoogle: null };
@@ -86,10 +93,23 @@ export async function exercitarDrive(connectionId: string): Promise<ExercicioDoD
   // dos três `.catch(() => null)` de 07/08.
   let alcanca: number | null = null;
   let haMais = false;
+  let arquivos: ExercicioDoDrive["arquivos"];
   try {
-    const j = JSON.parse(corpo) as { files?: unknown[]; nextPageToken?: string };
-    alcanca = (j.files ?? []).length;
+    const j = JSON.parse(corpo) as {
+      files?: Array<{ id?: string; name?: string; mimeType?: string; size?: string }>;
+      nextPageToken?: string;
+    };
+    const lista = j.files ?? [];
+    alcanca = lista.length;
     haMais = !!j.nextPageToken;
+    arquivos = lista
+      .filter((f) => typeof f.id === "string" && f.id.length > 0)
+      .map((f) => ({
+        id: f.id as string,
+        nome: f.name ?? "",
+        mimeType: f.mimeType ?? "",
+        tamanhoBytes: Number(f.size ?? 0) || 0,
+      }));
   } catch {
     /* o 200 já provou o acesso; a CONTAGEM é que fica declarada como não feita */
   }
@@ -98,6 +118,7 @@ export async function exercitarDrive(connectionId: string): Promise<ExercicioDoD
     ok: true,
     alcancadosNoGoogle: alcanca,
     haMais,
+    arquivos,
     prova:
       alcanca === null
         ? "o Google trocou o refresh token e respondeu à listagem, mas não consegui contar os arquivos"

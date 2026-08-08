@@ -297,6 +297,94 @@ export function materialAutorizado(
   return { pode: true, papel: p };
 }
 
+// ─── O VEREDITO DA GRAVAÇÃO: escolha do cliente não se perde em silêncio ────
+//
+// ── O INCIDENTE (08/08/2026, com o CEO na tela) ─────────────────────────────
+//
+// O CEO abriu o portal da Foocci, clicou em "Escolher arquivos", passou pelo
+// seletor do Google e escolheu o material. Medido em produção no mesmo dia pelo
+// diagnóstico de conexões: **o Google concedeu 1 arquivo ao app e a tabela
+// `DriveMaterial` tinha 0 linhas.** A tela dizia, em seguida, "Conectado, e a
+// Dioli não alcança NENHUM arquivo seu" — ou seja, a casa perdeu a escolha e
+// devolveu ao cliente a afirmação de que ele não tinha escolhido nada.
+//
+// O que produzia o silêncio, e são DOIS lugares:
+//
+//   1. o `upsert` do material era `.catch(() => null)` e virava um item em
+//      `recusados` — que NENHUMA tela renderizava;
+//   2. a rota devolvia **HTTP 200** mesmo com ZERO gravados, e o campo
+//      `proximoPasso` (que a tela mostra em VERDE, como sucesso) dizia
+//      "Você escolheu apenas pastas" — para um PNG. Sucesso verde por cima de
+//      uma escrita que não aconteceu.
+//
+// ── A REGRA QUE FICA ────────────────────────────────────────────────────────
+//
+// **Zero gravado nunca é 200, e nunca é frase verde.** Esta função é o único
+// lugar que decide isso, e ela é PURA: dá para provar as duas metades sem HTTP,
+// sem banco e sem Google — escolha que entra aparece; escolha impedida declara
+// o erro e **não** diz ao cliente que ele não escolheu nada.
+
+export interface GravadoNaEscolha {
+  ehPasta: boolean;
+}
+
+export interface RecusadoNaEscolha {
+  nome: string;
+  motivo: string;
+}
+
+export interface VereditoDaEscolha {
+  /** O status HTTP que a rota devolve. 200 só quando algo entrou de verdade. */
+  status: 200 | 502;
+  /** `true` só se pelo menos uma escolha virou linha no banco. */
+  ok: boolean;
+  /** A frase de ERRO. Preenchida sempre que nada foi gravado. */
+  erro: string | null;
+  /** A frase de sucesso. NUNCA preenchida quando `ok` é falso. */
+  proximoPasso: string | null;
+  /** Gravou parte e perdeu parte: o que falhou, com todas as letras. */
+  aviso: string | null;
+}
+
+/** A frase que o cliente lê quando a casa não conseguiu guardar a escolha. Ela
+ *  não culpa o cliente, não diz "você não escolheu nada", e diz o que fazer. */
+export const FRASE_ESCOLHA_PERDIDA =
+  "Sua escolha NÃO foi registrada — a falha foi nossa, não sua. Nada mudou no seu Drive. Clique em “Escolher arquivos” e tente de novo; se repetir, avise a equipe.";
+
+export function vereditoDaEscolha(
+  gravados: GravadoNaEscolha[],
+  recusados: RecusadoNaEscolha[],
+): VereditoDaEscolha {
+  const lista = recusados.map((r) => `${r.nome} — ${r.motivo}`).join(" · ");
+
+  // Fail-closed: nada gravado é falha, mesmo sem recusa nomeada. Um caminho que
+  // devolve 200 sem ter escrito nada é exatamente o defeito que isto fecha.
+  if (gravados.length === 0) {
+    return {
+      status: 502,
+      ok: false,
+      erro: lista ? `${FRASE_ESCOLHA_PERDIDA} (${lista})` : FRASE_ESCOLHA_PERDIDA,
+      proximoPasso: null,
+      aviso: null,
+    };
+  }
+
+  // "Apenas pastas" só pode ser dito quando pasta foi o que REALMENTE entrou.
+  const proximoPasso = gravados.some((g) => !g.ehPasta)
+    ? "Agora diga o que é cada arquivo — sem isso a equipe não usa nenhum deles."
+    : "Você escolheu apenas pastas. Abra a pasta no seletor e escolha os arquivos de dentro.";
+
+  return {
+    status: 200,
+    ok: true,
+    erro: null,
+    proximoPasso,
+    // Gravação parcial não passa em branco: o cliente precisa saber QUAL arquivo
+    // ficou de fora, senão ele acha que mandou tudo — que é o incidente inteiro.
+    aviso: recusados.length > 0 ? `Não consegui guardar ${recusados.length} arquivo(s): ${lista}` : null,
+  };
+}
+
 // ─── O retrato para a tela ──────────────────────────────────────────────────
 
 export interface RetratoDaEscolha {

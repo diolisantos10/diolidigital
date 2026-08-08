@@ -910,3 +910,45 @@ descobrir a regra que faltava depois de já ter agido.
 Google e TikTok hoje, e para todo especialista que a casa criar amanhã. O ativo
 da agência não é o código que cada agente executa — é o que cada agente sabe
 antes de executar.
+
+---
+
+## Escolha do cliente é dado crítico: nunca se perde em silêncio
+
+**Descoberto em produção em** 2026-08-08 · **registrado pelo** Project Manager
+
+O CEO escolheu material no seletor do Google, no portal da Foocci, e a tela
+respondeu **"Sem material — a Dioli não alcança NENHUM arquivo seu"**. Medido
+pelo diagnóstico de conexões, em produção: **1 arquivo ao alcance do app no
+Google, 0 linhas em `DriveMaterial`.** O Google concedeu; a casa perdeu a escolha
+sem um erro, sem um aviso, sem um registro.
+
+**A regra, em uma frase: escrita de dado do cliente que falha tem que aparecer na
+tela do cliente.** Não basta não perder — tem que ser impossível perder calado.
+
+**O que produzia o silêncio, e eram dois lugares no mesmo caminho:**
+
+1. **Navegador.** O callback do seletor fazia `await fetch(...)` e
+   `await res.json()` sem `try/catch`. Rede oscilando, servidor reiniciando num
+   deploy, ou 502 do proxy devolvendo HTML rejeitavam a promessa e o callback
+   morria ali — nada no banco, nada na tela.
+2. **Servidor.** O `upsert` era `.catch(() => null)` (o erro real nunca chegava
+   nem ao log), e a rota devolvia **HTTP 200** com zero gravados, no campo que a
+   tela pinta de **verde**, dizendo "Você escolheu apenas pastas" — para um PNG.
+
+**O que fica, como mecanismo:**
+
+- `vereditoDaEscolha` é o único lugar que decide status e frase da gravação.
+  **Zero gravado nunca é 200 e nunca é frase verde**; gravação parcial nomeia o
+  arquivo que ficou de fora, em vermelho. Função pura, portão nas duas metades.
+- O `catch` do servidor loga o motivo real com `clientId` e `fileId`, e a frase
+  de erro vai para a tela do cliente sem culpá-lo.
+- `POST /api/admin/reconciliar-drive` é o par do diagnóstico: ele já sabia
+  DETECTAR (`escolhaPerdida`), agora a casa CONSERTA — todo arquivo que o Google
+  concede e a casa não tem entra **pendente de triagem**, com papel NULO.
+  **Reconciliar não é declarar:** quem diz o que um arquivo é continua sendo o
+  cliente, senão a imagem errada entra numa peça entregue.
+
+**Por que é decisão de corredor:** o Drive é onde doeu, mas a classe é toda
+escrita nascida de um ato do cliente — envio de material, aprovação, resposta de
+briefing, pedido. Falha calada é o defeito, mesmo quando a causa é outra.

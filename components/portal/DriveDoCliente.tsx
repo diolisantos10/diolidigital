@@ -51,6 +51,21 @@ declare global {
   interface Window { gapi?: any; google?: any }
 }
 
+/**
+ * O corpo da resposta, sem nunca lançar.
+ *
+ * `await res.json()` num 502 do proxy (HTML, não JSON) LANÇA — e dentro de um
+ * callback `async` sem try/catch isso vira rejeição não tratada: nada na tela,
+ * nada no banco, nada em lugar nenhum. Foi metade do incidente de 08/08/2026.
+ */
+async function corpo(res: Response): Promise<Record<string, unknown>> {
+  try {
+    return (await res.json()) as Record<string, unknown>;
+  } catch {
+    return {};
+  }
+}
+
 function carregarScript(src: string): Promise<void> {
   return new Promise((resolve, reject) => {
     if (document.querySelector(`script[src="${src}"]`)) return resolve();
@@ -77,7 +92,7 @@ export function DriveDoCliente({ token }: { token: string }) {
     try {
       const res = await fetch(q("/api/portal/drive"));
       if (!res.ok) { setEstado(null); return null; }
-      const novo = (await res.json()) as EstadoDoDrive;
+      const novo = (await corpo(res)) as unknown as EstadoDoDrive;
       setEstado(novo);
       return novo;
     } catch {
@@ -189,19 +204,52 @@ export function DriveDoCliente({ token }: { token: string }) {
       .setAppId(estado.seletor.appId)
       .enableFeature(g.Feature.MULTISELECT_ENABLED)
       .setTitle("Escolha o material que a Dioli pode usar")
+      // ── A ESCOLHA DO CLIENTE É DADO CRÍTICO: NUNCA SOME EM SILÊNCIO ───────
+      //
+      // 08/08/2026. Este callback fazia `await fetch(...)` e `await res.json()`
+      // SEM try/catch. Qualquer tropeço — rede oscilando, servidor reiniciando
+      // no meio de um deploy, 502 do proxy devolvendo HTML — rejeitava a
+      // promessa e MORRIA aí: nenhuma linha no banco, nenhuma palavra na tela.
+      // O CEO escolheu o arquivo, o Google concedeu o acesso, e o cartão
+      // continuou dizendo "a Dioli não alcança NENHUM arquivo seu".
+      //
+      // Agora todo caminho de saída deste callback termina numa frase para o
+      // cliente. Falha calada é o defeito, mesmo quando a causa é outra.
       .setCallback(async (data: any) => {
-        if (data[g.Response.ACTION] !== g.Action.PICKED) return;
-        const docs = data[g.Response.DOCUMENTS] ?? [];
-        const escolhas = docs.map((d: any) => ({ fileId: d[g.Document.ID], nome: d[g.Document.NAME], mimeType: d[g.Document.MIME_TYPE] }));
-        const res = await fetch(q("/api/portal/drive"), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ escolhas }),
-        });
-        const j = await res.json();
-        if (!res.ok) { setRecado({ ok: false, texto: j.error ?? "Não consegui guardar sua escolha." }); return; }
-        setRecado({ ok: true, texto: j.proximoPasso ?? "Escolha registrada." });
-        void carregar();
+        try {
+          if (data?.[g.Response.ACTION] !== g.Action.PICKED) return;
+          const docs = data[g.Response.DOCUMENTS] ?? [];
+          const escolhas = docs.map((d: any) => ({ fileId: d[g.Document.ID], nome: d[g.Document.NAME], mimeType: d[g.Document.MIME_TYPE] }));
+          if (escolhas.length === 0) {
+            setRecado({ ok: false, texto: "O seletor do Google não devolveu nenhum arquivo. Tente escolher de novo." });
+            return;
+          }
+
+          const res = await fetch(q("/api/portal/drive"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ escolhas }),
+          });
+          const j = await corpo(res);
+
+          if (!res.ok) {
+            setRecado({ ok: false, texto: (j.error as string) ?? "Não consegui guardar sua escolha. Tente de novo." });
+            void carregar();
+            return;
+          }
+          // Gravou parte e perdeu parte também é má notícia, e vai em vermelho.
+          if (j.aviso) {
+            setRecado({ ok: false, texto: `${j.aviso as string}. Escolha os que faltaram de novo.` });
+          } else {
+            setRecado({ ok: true, texto: (j.proximoPasso as string) ?? "Escolha registrada." });
+          }
+          void carregar();
+        } catch {
+          setRecado({
+            ok: false,
+            texto: "Sua escolha NÃO foi registrada — não conseguimos falar com o servidor. Nada mudou no seu Drive. Clique em “Escolher arquivos” e tente de novo.",
+          });
+        }
       })
       .build();
     picker.setVisible(true);
@@ -211,17 +259,25 @@ export function DriveDoCliente({ token }: { token: string }) {
     setSalvando(id);
     setRecado(null);
     try {
-      const res = await fetch(q("/api/portal/drive"), {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, papel }),
-      });
-      const j = await res.json();
-      if (!res.ok) { setRecado({ ok: false, texto: j.error ?? "Não consegui salvar." }); return; }
-      if (j.falhas?.length) {
-        setRecado({ ok: false, texto: `Não consegui buscar: ${j.falhas.map((f: { nome: string; erro: string }) => `${f.nome} — ${f.erro}`).join(" · ")}` });
-      } else if (j.importados > 0) {
-        setRecado({ ok: true, texto: `Pronto. ${j.importados} arquivo(s) chegaram à equipe.` });
+      // Mesma lição do callback do seletor: nenhum caminho sai daqui calado.
+      let res: Response;
+      try {
+        res = await fetch(q("/api/portal/drive"), {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id, papel }),
+        });
+      } catch {
+        setRecado({ ok: false, texto: "Não consegui falar com o servidor. Sua marcação NÃO foi salva — tente de novo." });
+        return;
+      }
+      const j = await corpo(res);
+      if (!res.ok) { setRecado({ ok: false, texto: (j.error as string) ?? "Não consegui salvar." }); return; }
+      const falhas = (j.falhas ?? []) as Array<{ nome: string; erro: string }>;
+      if (falhas.length) {
+        setRecado({ ok: false, texto: `Não consegui buscar: ${falhas.map((f) => `${f.nome} — ${f.erro}`).join(" · ")}` });
+      } else if ((j.importados as number) > 0) {
+        setRecado({ ok: true, texto: `Pronto. ${j.importados as number} arquivo(s) chegaram à equipe.` });
       }
       await carregar();
     } finally {
@@ -230,9 +286,13 @@ export function DriveDoCliente({ token }: { token: string }) {
   }
 
   async function remover(id: string) {
-    const res = await fetch(q(`/api/portal/drive?id=${encodeURIComponent(id)}`), { method: "DELETE" });
-    const j = await res.json();
-    setRecado({ ok: res.ok, texto: j.aviso ?? j.error ?? "" });
+    try {
+      const res = await fetch(q(`/api/portal/drive?id=${encodeURIComponent(id)}`), { method: "DELETE" });
+      const j = await corpo(res);
+      setRecado({ ok: res.ok, texto: (j.aviso as string) ?? (j.error as string) ?? "" });
+    } catch {
+      setRecado({ ok: false, texto: "Não consegui falar com o servidor. Nada foi removido — tente de novo." });
+    }
     void carregar();
   }
 
