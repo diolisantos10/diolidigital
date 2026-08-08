@@ -26,6 +26,35 @@
 //
 // E arquivo ausente vira PERGUNTA, nunca invenção: sem logo no Drive, a peça sai
 // declarando que falta o logo, e não com um logo desenhado por IA.
+//
+// ── 🔴 08/08/2026 — A PONTE EXISTE DOS DOIS LADOS E FALTA O MEIO ────────────
+//
+// Medido, não deduzido, nesta data:
+//
+//   • `materiaisDeMarca` (abaixo) é a ÚNICA porta de material para dentro de uma
+//     peça. Quem consome: `execution/artes.ts` (logo + fotos reais) e
+//     `execution/logo.ts`. Não há outra.
+//   • Ela lê EXCLUSIVAMENTE `DriveMaterial`, exigindo as três coisas juntas:
+//     `mediaAssetId` + `papelConfirmadoEm` + `GoogleDriveConnection` viva.
+//   • E `DriveMaterial` nasce em UM ÚNICO lugar no repositório inteiro:
+//     `app/api/portal/drive/route.ts:173` — o caminho do **Google Picker**.
+//
+// Consequência: o portal do cliente TEM, desde 02/08, uma tela de arrastar e
+// soltar (`components/portal/EnvioDeMaterial.tsx` → `POST /api/media`). Ela
+// guarda o `MediaAsset`, fecha o `MaterialRequest` e destrava a esteira — e
+// **nunca cria linha de `DriveMaterial`, nem pergunta o papel do arquivo.**
+//
+// Ou seja: **o logo que o cliente (ou o CEO) sobe pelo portal chega ao disco da
+// casa, avisa a equipe, destrava a produção — e é INVISÍVEL para a peça.** O
+// logo da peça continua sendo o nome escrito em fonte, com o arquivo real já
+// gravado no volume. Os bytes atravessam; a declaração de PAPEL, não.
+//
+// ⚠️ NÃO consertado aqui, e o motivo é explícito: o conserto limpo é uma
+// ORIGEM no material (`drive` exige conexão viva; `envio_direto` não depende do
+// Google, porque a casa já tem os bytes pelo ato do próprio cliente) — e isso é
+// campo novo em `prisma/schema.prisma`, que estava em mãos de outro agente
+// nesta sessão. Codificar a origem dentro de `connectionId`/`fileId` como texto
+// seria esconder o modelo dentro de uma string. Dono: `esteira` + `plataforma`.
 
 import { prisma } from "@/lib/db/client";
 import { guardarArquivo } from "@/lib/agency/media/armazenamento";
