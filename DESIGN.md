@@ -289,7 +289,7 @@ conteúdo. A regra:
 
 | Superfície | Elemento fixo | Quem reserva | Conferido |
 |---|---|---|---|
-| Portal do cliente | FAB "Fale com seu PM" | `.portal-shell` em `app/portal/layout.tsx` | 04/08/2026 |
+| Portal do cliente | FAB "Fale com seu PM" | `.portal-shell` em `app/portal/layout.tsx` | **08/08/2026** ⚠️ ver abaixo |
 | Painel da agência | barra de navegação no topo (celular) | `.agency-shell` / `.agency-conteudo` em `AgencyShell.tsx` | 05/08/2026 |
 | Painel — barra de ação no rodapé | Planner, Escopo | `.acao-shell` + `useReservaDeBarra` | 05/08/2026 |
 | **Briefing público** | barra "Sim, quero meu orçamento" | `.acao-shell` + `useReservaDeBarra` em `PublicBriefingRoom.tsx` | **05/08/2026** |
@@ -309,6 +309,29 @@ cruzar nenhum elemento de conteúdo. Screenshot de página inteira **não** prov
 isso: ele desenha o elemento fixo numa posição só. E rolagem tem que ser
 instantânea (`behavior: "instant"`), porque o `scroll-behavior: smooth` do
 `globals.css` faz a medição acontecer antes de a página chegar ao destino.
+
+> #### ⚠️ Aberto: a 375px o portal não tem margem, e a §6.2 sabe disso
+>
+> A §6.2 permite botão flutuante solto **"fora da coluna de conteúdo (canto
+> inferior, sobre a margem)"**. No portal a coluna é `max-w-[860px]`: a 1440px
+> ele cai na margem e está correto; a **375px e 768px não existe margem**, então
+> o flutuante fica **por cima** da coluna de texto e recorta linhas enquanto o
+> cliente rola.
+>
+> Em 08/08/2026 o botão passou de pílula com rótulo (~185×48) para **disco de
+> 48×48** abaixo de `sm` — a área coberta caiu ~4× e a colisão nomeada (o card
+> "Precisa de alguma coisa?") foi a **0 recortes medidos**. Mas o **`recorte
+> parcial` de páginas longas de texto continua > 0** ("Sua conta": 11 a 375px),
+> e `nunca limpo` está em **0** em todas as seções — ou seja, tudo é legível em
+> alguma posição, nada fica inacessível.
+>
+> **Zerar o resto não é decisão de forma.** As saídas são tirar o chat do
+> flutuante (item de barra) ou transformá-lo em barra inferior — as duas mexem
+> em *quais destinos existem*, que é pergunta do `experiencia`, não do
+> `interface`. **Registrado aqui para não ser redescoberto como novidade.**
+>
+> Instrumento pronto: `scripts/medir-colisao.mjs` (as duas métricas da §6.2,
+> por seção e por largura).
 
 ### 6.2 No topo de uma área rolável, elemento fixo é BARRA — nunca botão solto
 
@@ -403,6 +426,42 @@ reais eram outros (rótulo mentindo, falha muda, `error` descartado no portal).
 **Comentário de código que afirma uma causa não verificada vira a próxima
 investigação errada.** Escreva o que foi medido, e escreva também o que a
 medição desmentiu.
+
+### 6.6 Quantos itens cabem na barra é uma MEDIDA, não uma escolha
+
+O portal tinha 7 abas. A 375px, **4 delas nasciam fora da tela** — Resultados
+começava em `x=293`, Conta em `x=589`, numa tela de 375. A barra rolava
+lateralmente, sem sombra de corte e sem seta: o gesto que revelava metade da
+navegação era o gesto que ninguém adivinha. **Aba invisível é aba que não
+existe** — e o cliente resume isso como "está uma coisa totalmente perdida".
+
+Havia até um remendo: um `scrollIntoView` arrastava a barra até a aba ativa. Ele
+tratava o sintoma (a aba ativa some) e deixava a doença (as outras também).
+
+Três regras saem daí:
+
+1. **O número de itens é o que cabe medido, não o que a spec quis.** Some as
+   larguras reais a 375px antes de acrescentar um item. Se não couber, um item
+   sai da barra — vira bloco de outra tela, ou funde com o vizinho de assunto.
+2. **`flex-auto`, não `flex-1`.** `flex-1` dá base 0: todas as células ficam
+   iguais e o rótulo mais longo é o que corta ("Aprovações" perdia letras numa
+   célula de 67px). `flex-auto` parte da largura do próprio rótulo e só divide a
+   sobra. **Célula igual só serve quando o texto é igual.** E só no celular:
+   dividir 860px entre 5 abas espalha a barra até parecer rodapé — de `sm` para
+   cima a aba tem o tamanho do próprio nome.
+3. **Contador inline rouba a largura da célula apertada.** O selo de Aprovações
+   somava ~23px na linha e estourava justamente a aba mais longa. No celular ele
+   vira selo absoluto no canto do item.
+
+Rótulo curto para caber é legítimo — desde que seja o **mesmo nome encurtado**,
+nunca outra palavra: "Enviar" é o começo de "Enviar arquivos". Dois nomes
+diferentes para a mesma coisa custam uma busca em toda visita (§4.3).
+
+> **Como provar:** medir o retângulo de cada item a 375px e afirmar três coisas —
+> nenhum item com `right > innerWidth`, o container sem `scrollWidth >
+> clientWidth`, e nenhum rótulo com `scrollWidth > clientWidth`. As três, não
+> uma: cabe na tela e mesmo assim corta por dentro. Instrumento:
+> `scripts/medir-barra.mjs`.
 
 ### 6.4 Ação revelada no hover não existe no celular
 
@@ -567,6 +626,69 @@ sem fechar troca um bug visível por um invisível:
 3. **Fechamento** — decidir o que sobrou fecha os irmãos escondidos, senão fica
    "pendente" fora da tela travando o passo seguinte para sempre.
 
+### 7.9 Ausência benigna não vira falha inventada
+
+A regra da casa já dizia que **falha de leitura não vira fato sobre o cliente**.
+Falta a gêmea, e ela custou o primeiro dia de todo cliente pagante:
+
+> **Se o servidor distingue "ainda não existe" de "deu errado", a tela é obrigada
+> a distinguir também.**
+
+`/api/portal/esteira` respondia **404** com `{"error":"Ainda não há projeto para
+acompanhar"}` — ele *sabia* que era ausência. O componente colapsava todo `!ok`
+numa frase só: *"Não consegui carregar agora. Tente atualizar a página."*
+Resultado: quem tinha acabado de assinar abria o portal e a primeira coisa que
+lia era uma mensagem de erro — **duas vezes no percurso**, porque o componente
+renderiza no Início e em Projetos. E atualizar nunca resolvia, porque não havia
+nada quebrado.
+
+O que separa os três estados não é o texto, é o **papel de cada um**:
+
+| Estado | Vem de | Diz | Oferece |
+|---|---|---|---|
+| carregando | ainda buscando | nada | esqueleto no formato do conteúdo |
+| **vazio** | 404 / `temProjeto: false` | **o próximo passo** | um caminho lateral, nunca um "tente de novo" |
+| erro | 4xx/5xx restantes, rede | que a falha é nossa, não dele | `role="alert"` + **Tentar de novo** |
+
+Três travas de escrita para o estado vazio:
+
+1. **Nunca "tente atualizar a página"** — se atualizar não resolve, a frase é uma
+   instrução falsa que gasta a paciência do cliente.
+2. **Nunca culpar o cliente e nunca prometer data.** "Seu projeto está sendo
+   montado" é honesto; "em até 48h" é uma promessa que a tela não pode cumprir.
+3. **Vazio não pede ação, oferece caminho.** Botão cheio implica que existe algo
+   a fazer. Onde não existe, o caminho é link discreto — e **nunca o mesmo rótulo
+   do botão flutuante que já está na tela**: a mesma porta desenhada duas vezes,
+   a três dedos de distância, é ruído.
+
+E a regra que fecha: **quem lê `!res.ok` sem olhar `res.status` está jogando fora
+a distinção que o servidor pagou para fazer.**
+
+> Travado em `__tests__/portal/um-lugar-para-decidir.test.ts`
+> ("o painel de esteira distingue ausência de falha").
+
+### 7.10 Tela que só sabe explicar a própria ausência não é tela — é bloco
+
+"Resultados" era uma aba do portal. Sem Instagram conectado, tudo que ela sabia
+dizer era *"Nenhuma rede conectada"* — um beco com um convite dentro, e o convite
+já morava em Integrações. Era também a primeira aba a cair fora da tela a 375px:
+o portal gastava um dos poucos destinos de topo com uma tela que, para a maioria
+dos clientes, não tinha conteúdo nenhum.
+
+**O teste:** se a tela, no estado mais comum dos seus usuários, só consegue
+explicar por que está vazia — ela não é um destino, é um bloco de outro destino
+que **só renderiza quando tem o que mostrar**.
+
+Duas consequências de implementação:
+
+- **Mover, nunca apagar.** O componente continua vivo e ganha um modo
+  (`somenteComNumeros`) em que devolve `null` fora do estado com conteúdo. A
+  rodada fica reversível por construção.
+- **Título e conteúdo aparecem juntos.** Quem descobre se há conteúdo é o
+  componente, depois de buscar — então ele **reporta ao pai** (`aoMedir`) e o pai
+  decide se a seção inteira existe. Cabeçalho que aparece antes do conteúdo e
+  fica sozinho é o mesmo buraco, com moldura.
+
 ### 7.8 Miniatura quebrada é estado de erro — e precisa de fallback
 
 `<img>` sem `onError` numa lista entrega o **ícone quebrado do navegador** ao
@@ -629,6 +751,13 @@ Levantamento de auditoria (Julho/2026). Prioridade: **P0** crítico → **P3** b
 ### P2 — Consistência
 - **I-5 · Sem escala de tipografia.** 24 tamanhos de fonte diferentes (incl. `11.5px`,
   `9.5px`). **Ação:** adotar a escala da §3.
+  *(Parcial — 08/08/2026: o **portal do cliente** foi normalizado. 53 trocas em
+  4 arquivos (`app/portal/access/[token]/page.tsx`, `AprovacoesDoCliente`,
+  `ConexoesDoCliente`, `ResultadosDoCliente`): `11.5→12`, `12.5→13`, `13.5→14`,
+  `10→12`. O mapeamento é para o degrau mais próximo e **para cima** no empate —
+  encolher texto que já está pequeno não é hierarquia, é sumir. Os `11.5px` e
+  `10px` estavam **abaixo do piso de 12px da §3**, então eram violação, não
+  drift. Sobram as outras superfícies.)*
 - **I-10 · Deriva de tokens.** Fundo de página usa `#F7F7F6` em vários lugares, mas o
   token `--bg` é `#F5F5F3`; insets de card variam entre `#FAFAF9/#FAFAFA/#F7F7F6`.
 - **I-11 · Botão primário com cores diferentes por tela.** `#070A1F` na vitrine,
@@ -710,7 +839,10 @@ _(Regras 4 e 5 estão fixadas no `CLAUDE.md`.)_
 
 ---
 
-_Última atualização: 2026-08-07 (raio-x do portal do cliente: §4.3, §7.6 um
+_Última atualização: 2026-08-08 (o portal deixou de estar perdido: §6.6 quantos
+itens cabem na barra é medida; §7.9 ausência benigna não vira falha inventada;
+§7.10 tela que só explica a própria ausência é bloco; §6.1 o caso aberto do
+flutuante a 375px; I-5 parcial no portal) · anterior: 2026-08-07 (raio-x do portal do cliente: §4.3, §7.6 um
 único lugar para decidir, §7.7 duplicata é bug de dados, §7.8 miniatura
 quebrada) · anterior: 2026-08-06 (§6.5 — o iPhone é WebKit em todo navegador;
 I-22 com a varredura dos três usos restantes; I-23 rótulo por motor) ·

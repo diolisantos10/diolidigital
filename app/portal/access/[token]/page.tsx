@@ -109,29 +109,53 @@ interface ProjetoDoPortal {
 
 interface ConexaoView { id: string; platform: string; name: string; status: string }
 
-type SecaoId = "inicio" | "projetos" | "aprovacoes" | "resultados" | "arquivos" | "integracoes" | "conta";
+/** As seções que a barra mostra. São 5 — o que a tela renderiza. */
+type SecaoId = "inicio" | "projetos" | "aprovacoes" | "arquivos" | "conta";
+/** Para onde um link pode APONTAR. Os dois extras são endereços antigos que
+ *  continuam válidos: `integracoes` cai dentro de "Sua conta" (na seção certa),
+ *  `resultados` cai no Início. Link antigo nunca vira beco. */
+type Destino = SecaoId | "integracoes" | "resultados";
 
 // ── Config ───────────────────────────────────────────────────────────────────
 
-// ── A NAVEGAÇÃO, E POR QUE ELA TEM 7 ITENS (CEO, 07/08/2026) ────────────────
-// O teto era 6 e o custo de manter era um item fazendo dois papéis: "Conta"
-// guardava o cadastro do cliente E as conexões com Facebook/Instagram/Drive.
-// O CEO: "aba de Conta é todas as informações sobre esse cliente; aba onde você
-// integra com aplicativos se chama aba de Integrações". Nomear a coisa pelo que
-// ela é vale mais que o número — nome errado custa uma busca em toda visita.
+// ── A NAVEGAÇÃO, E POR QUE ELA CAIU DE 7 PARA 5 (08/08/2026) ────────────────
+// A barra tinha 7 itens e o celular tem 375px: MEDIDO, 4 dos 7 nasciam fora da
+// tela (Resultados começava em x=293; Conta, em x=589). Quem não descobre que a
+// barra rola não sabe que aquelas abas existem — e a rolagem lateral numa barra
+// sem sombra de corte é o gesto que ninguém adivinha. Aba invisível é aba que
+// não existe, e o portal ficava "totalmente perdido" (CEO, 08/08/2026).
 //
-// A ORDEM tem uma lógica só: o que a Dioli faz por você (Projetos, Aprovações,
-// Resultados), o que você manda (Arquivos), o que você conecta (Integrações),
-// e quem você é (Conta).
-const NAV: { id: SecaoId; label: string }[] = [
-  { id: "inicio",      label: "Início" },
-  { id: "projetos",    label: "Projetos" },
-  { id: "aprovacoes",  label: "Aprovações" },
-  { id: "resultados",  label: "Resultados" },
-  { id: "arquivos",    label: "Arquivos" },
-  { id: "integracoes", label: "Integrações" },
-  { id: "conta",       label: "Conta" },
+// Os 5 cabem inteiros em 375px, sem rolagem. Duas mudanças produziram isso, e
+// NENHUMA apagou conteúdo:
+//
+//  • "Resultados" deixou de ser aba. Sem Instagram conectado ela só sabia dizer
+//    "Nenhuma rede conectada" — um beco, e o primeiro a sair da tela. O
+//    componente continua vivo: virou bloco do Início que SÓ renderiza quando
+//    existe número. O convite a conectar já morava em Integrações.
+//
+//  • "Conta" e "Integrações" viraram "Sua conta", com as duas seções rotuladas
+//    dentro. As duas respondem à mesma pergunta — "sobre você", não "sobre o
+//    trabalho" — e o assunto de cada uma continua com nome próprio na tela.
+//
+// A ORDEM: o que a Dioli faz por você (Projetos), o que só você pode destravar
+// (Aprovações), o que você manda (Enviar arquivos) e quem você é (Sua conta).
+// `curto` é o MESMO nome encurtado para a célula de 375px — nunca outra
+// palavra. "Enviar" é o começo de "Enviar arquivos"; quem lê os dois entende
+// que é a mesma coisa (DESIGN.md §4.3, um rótulo por conceito).
+const NAV: { id: SecaoId; label: string; curto?: string }[] = [
+  { id: "inicio",     label: "Início" },
+  { id: "projetos",   label: "Projetos" },
+  { id: "aprovacoes", label: "Aprovações" },
+  { id: "arquivos",   label: "Enviar arquivos", curto: "Enviar" },
+  { id: "conta",      label: "Sua conta" },
 ];
+
+/** Endereço antigo → a aba que hoje o contém. */
+const SECAO_DO_DESTINO: Record<Destino, SecaoId> = {
+  inicio: "inicio", projetos: "projetos", aprovacoes: "aprovacoes",
+  arquivos: "arquivos", conta: "conta",
+  integracoes: "conta", resultados: "inicio",
+};
 
 // Serviço contratado → módulo dentro de Projetos (as antigas abas dinâmicas).
 const MODULOS_DE_SERVICO: { id: string; label: string; match: RegExp; deptKeys: string[] }[] = [
@@ -180,20 +204,40 @@ function DioliMark() {
   // O logo OFICIAL, não uma recomposição em texto — o CEO pegou a marca errada
   // no ar em 03/08/2026. O arquivo horizontal branco é o certo para o
   // cabeçalho escuro do portal.
+  //
+  // 08/08/2026 — a marca ENCOLHEU (h-6 → h-4). Ela ocupava ~23% da primeira
+  // tela do cliente a 375px: logo grande, "Portal do Cliente", e só então o
+  // nome de quem paga. Este portal é a casa DELE; a assinatura da agência é
+  // rodapé de carta, não manchete.
   return (
     <div className="flex items-center">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/brand/dioli-logo-h-white.png" alt="Dioli Digital" className="h-6 w-auto" />
+      <img src="/brand/dioli-logo-h-white.png" alt="Dioli Digital" className="h-4 w-auto opacity-80" />
     </div>
   );
 }
 
 // ── Blocos de apoio ──────────────────────────────────────────────────────────
 
+/**
+ * Título de CAPÍTULO — o degrau entre o título da página e o título de um
+ * cartão. Nasceu com a fusão de Conta + Integrações: sem ele, "Seus dados" e
+ * "Disponíveis agora" saíam com a mesma aparência (11px, maiúscula, cinza) e
+ * ninguém conseguia ver que a segunda estava DENTRO da primeira. Rótulo
+ * indistinguível não é hierarquia, é lista.
+ */
+function TituloDeSecao({ children }: { children: React.ReactNode }) {
+  return (
+    <h3 className="border-t border-[var(--border)] pt-5 text-[16px] font-bold tracking-tight text-[var(--text-primary)]">
+      {children}
+    </h3>
+  );
+}
+
 function TituloDeBloco({ n, children }: { n: number; children: React.ReactNode }) {
   return (
     <h2 className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--text-muted)] mb-2.5">
-      <span aria-hidden className="w-[18px] h-[18px] rounded-[6px] bg-[#070A1F] text-white text-[10px] font-mono flex items-center justify-center">{n}</span>
+      <span aria-hidden className="w-[18px] h-[18px] rounded-[6px] bg-[var(--navy)] text-white text-[12px] font-mono flex items-center justify-center">{n}</span>
       {children}
     </h2>
   );
@@ -212,11 +256,63 @@ function LinhaDePendencia({
     >
       <span aria-hidden className="shrink-0 w-9 h-9 rounded-[9px] flex items-center justify-center text-[15px]" style={{ background: fundo }}>{icone}</span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[13.5px] font-semibold text-[var(--text-primary)] leading-snug">{titulo}</span>
-        <span className="block text-[12.5px] text-[var(--text-secondary)] mt-0.5 leading-snug">{porque}</span>
-        <span className="block text-[11.5px] text-[var(--text-muted)] mt-1">{meta}</span>
+        <span className="block text-[14px] font-semibold text-[var(--text-primary)] leading-snug">{titulo}</span>
+        <span className="block text-[13px] text-[var(--text-secondary)] mt-0.5 leading-snug">{porque}</span>
+        <span className="block text-[12px] text-[var(--text-muted)] mt-1">{meta}</span>
       </span>
       <span aria-hidden className="self-center text-[var(--text-subtle)]">›</span>
+    </button>
+  );
+}
+
+/**
+ * ── A PORTA DE PEDIR ────────────────────────────────────────────────────────
+ * Um componente só, usado no Início e em Projetos: o mesmo gatilho abre a mesma
+ * folha (`SolicitarAlgo`, montada na raiz da página). Ele não decide nada e não
+ * grava nada — só abre.
+ *
+ * ONDE ELE FICA é a parte que importava, e estava errada: o botão vivia a ~806px
+ * do topo, ABAIXO DA DOBRA nas duas telas. Porta de venda que o cliente precisa
+ * rolar para encontrar é porta fechada.
+ *
+ * A regra de posição, e o porquê dela:
+ *   • SEM pendência → o card sobe para o topo. Não há nada travado esperando o
+ *     cliente, então a coisa mais útil que a tela pode oferecer é "peça algo".
+ *   • COM pendência → o card fica ABAIXO do bloco 1. Destravar o que está parado
+ *     é a UMA COISA que este portal existe para fazer; pôr "pedir" acima dela
+ *     enterraria justamente aquilo.
+ */
+function CardDePedido({ destaque, onClick }: { destaque: boolean; onClick: () => void }) {
+  if (destaque) {
+    return (
+      <button
+        onClick={onClick}
+        style={{ touchAction: "manipulation" }}
+        className="w-full flex items-center gap-3.5 rounded-[16px] px-5 py-4 text-left bg-[var(--navy)] text-white shadow-[0_6px_20px_rgba(7,10,31,0.22)] hover:-translate-y-0.5 transition-transform"
+      >
+        <span aria-hidden className="shrink-0 w-11 h-11 rounded-[12px] bg-[var(--teal)] flex items-center justify-center text-[20px] font-bold leading-none">+</span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[15px] font-bold">Precisa de alguma coisa?</span>
+          <span className="block text-[13px] text-white/70 mt-0.5 leading-snug">
+            Peça, serviço novo, orçamento — a equipe responde aqui com prazo e preço.
+          </span>
+        </span>
+        <span aria-hidden className="text-white/50 text-[18px]">›</span>
+      </button>
+    );
+  }
+  return (
+    <button
+      onClick={onClick}
+      style={{ touchAction: "manipulation" }}
+      className="w-full flex items-center gap-3.5 rounded-[14px] px-4 py-3.5 text-left bg-white border border-[var(--border)] hover:bg-[var(--bg-elevated)] transition-colors shadow-[0_1px_3px_rgba(7,10,31,0.04)]"
+    >
+      <span aria-hidden className="shrink-0 w-10 h-10 rounded-[11px] bg-[var(--accent-light)] text-[var(--teal-text)] flex items-center justify-center text-[19px] font-bold leading-none">+</span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[14px] font-bold text-[var(--text-primary)]">Precisa de alguma coisa?</span>
+        <span className="block text-[13px] text-[var(--text-secondary)] mt-0.5 leading-snug">Peça, serviço novo ou orçamento — a resposta vem com preço.</span>
+      </span>
+      <span aria-hidden className="text-[var(--text-subtle)]">›</span>
     </button>
   );
 }
@@ -264,6 +360,13 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
   const [recadoDoPedido, setRecadoDoPedido] = useState<string | null>(null);
   const [pedidos, setPedidos] = useState<PedidoDoCliente[]>([]);
   const [aprovacaoAberta, setAprovacaoAberta] = useState<string | null>(null);
+  // Quem chegou por um link de Integrações entra em "Sua conta" e o navegador
+  // desce até a seção de conexões — a aba mudou de nome, o destino não mudou.
+  const [ancora, setAncora] = useState<string | null>(null);
+  // Resultados só é bloco do Início quando existe número. Quem sabe se existe é
+  // o próprio componente, depois de medir — então ele reporta e a seção (com o
+  // título) só aparece junto do conteúdo. Título sem conteúdo é buraco.
+  const [temNumeros, setTemNumeros] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [erroDecisao, setErroDecisao] = useState<string | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
@@ -272,15 +375,10 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
   // modo cookie; vira true no modo link assim que a troca por cookie dá certo.
   const [cookiePronto, setCookiePronto] = useState(modoCookie);
   const trocouUrl = useRef(false);
-  const navRef = useRef<HTMLDivElement | null>(null);
 
-  // Com 7 itens, a barra rola no celular — e "Integrações" e "Conta" nascem
-  // fora da tela. Aba ativa fora do campo de visão é o cliente sem saber onde
-  // está: a barra se move até ela sempre que a seção muda.
-  useEffect(() => {
-    const ativo = navRef.current?.querySelector<HTMLElement>('[aria-current="page"]');
-    ativo?.scrollIntoView({ block: "nearest", inline: "center", behavior: "instant" });
-  }, [secao]);
+  // Com 7 itens a barra rolava e 4 deles nasciam fora da tela a 375px — havia
+  // aqui um `scrollIntoView` para arrastar a barra até a aba ativa. Com 5 itens
+  // dividindo a largura não há mais rolagem: o remendo saiu junto com a causa.
 
   // A4: chegou com token no CAMINHO → troca por cookie e limpa a URL sem
   // recarregar. O token em memória continua servindo esta visita; a próxima já
@@ -306,14 +404,26 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
   }, [modoCookie, token]);
 
   // Deep-link de seção (?secao=aprovacoes&aprovacao=<id>) — é o que permite a
-  // pendência do Início apontar direto para o card certo.
+  // pendência do Início apontar direto para o card certo. `?secao=integracoes`
+  // e `?secao=resultados` continuam funcionando: caem na aba que hoje os contém.
   useEffect(() => {
     const sp = new URLSearchParams(window.location.search);
-    const s = sp.get("secao") as SecaoId | null;
-    if (s && NAV.some((n) => n.id === s)) setSecao(s);
+    const s = sp.get("secao") as Destino | null;
+    if (s && s in SECAO_DO_DESTINO) {
+      setSecao(SECAO_DO_DESTINO[s]);
+      if (s === "integracoes") setAncora("integracoes");
+    }
     const ap = sp.get("aprovacao");
     if (ap) { setSecao("aprovacoes"); setAprovacaoAberta(ap); }
   }, []);
+
+  // A âncora é consumida uma vez, depois de a seção pintar.
+  useEffect(() => {
+    if (!ancora) return;
+    const alvo = document.getElementById(ancora);
+    alvo?.scrollIntoView({ block: "start", behavior: "instant" });
+    setAncora(null);
+  }, [ancora, secao]);
 
   const carregarPedidos = useCallback(async () => {
     try {
@@ -328,15 +438,19 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
 
   useEffect(() => { void carregarPedidos(); }, [carregarPedidos]);
 
-  function irPara(s: SecaoId, aprovacaoId?: string | null) {
+  function irPara(destino: Destino, aprovacaoId?: string | null) {
+    const s = SECAO_DO_DESTINO[destino];
     setSecao(s);
     setAprovacaoAberta(aprovacaoId ?? null);
     setErroDecisao(null);
     const sp = new URLSearchParams(window.location.search);
-    sp.set("secao", s);
+    sp.set("secao", destino);
     if (aprovacaoId) sp.set("aprovacao", aprovacaoId); else sp.delete("aprovacao");
     window.history.replaceState(null, "", `${window.location.pathname}?${sp.toString()}`);
     window.scrollTo({ top: 0 });
+    // "Integrações" continua sendo um lugar, mesmo sem ser uma aba: quem clica
+    // em "Resolver em Integrações" cai na seção certa, não no topo da página.
+    if (destino === "integracoes") setAncora("integracoes");
   }
 
   const loadData = useCallback(async () => {
@@ -604,10 +718,10 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
         texto: pedidoDaEsteira,
         titulo: esteira?.etapa || esteira?.titulo || "A equipe precisa de você",
         destino: /conect|instagram|facebook|integra/i.test(pedidoDaEsteira)
-          ? ("integracoes" as SecaoId)
+          ? ("integracoes" as Destino)
           : /envi|materi|arquiv|foto|v[íi]deo|log[oô]/i.test(pedidoDaEsteira)
-            ? ("arquivos" as SecaoId)
-            : ("projetos" as SecaoId),
+            ? ("arquivos" as Destino)
+            : ("projetos" as Destino),
       }
     : null;
 
@@ -639,6 +753,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
   // parece bug para quem lê).
   const numeroEntregas = 3;
   const numeroDecisoes = entregasRecentes.length > 0 ? 4 : 3;
+  const numeroResultados = numeroDecisoes + (decididas.length > 0 ? 1 : 0);
 
   const tituloDaAprovacao = (ap: AprovacaoDoPortal) => {
     const primeira = ap.reviewNote?.split("\n")[0]?.trim();
@@ -654,33 +769,46 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
       {/* Cabeçalho de marca */}
       <header className="relative overflow-hidden" style={{ background: "linear-gradient(135deg, #0B0F2A 0%, #070A1F 55%, #0A0E24 100%)" }}>
         <div className="absolute inset-0 opacity-[0.15]" style={{ background: "radial-gradient(600px 200px at 80% -20%, #9AF5F0, transparent)" }} />
-        <div className="relative max-w-[860px] mx-auto px-5 pt-5 pb-12 sm:pb-14">
-          <div className="flex items-center justify-between">
+        {/* A ORDEM DE LEITURA É O NOME DE QUEM PAGA, PRIMEIRO. A marca da
+            agência virou uma linha discreta acima — presente, não protagonista. */}
+        <div className="relative max-w-[860px] mx-auto px-5 pt-3 pb-10 sm:pb-12">
+          <div className="flex items-center gap-2 text-white/40">
             <DioliMark />
-            <span className="text-[11px] font-medium text-white/45">Portal do Cliente</span>
+            <span aria-hidden className="text-[12px] leading-none">·</span>
+            <span className="text-[12px] font-medium">Portal do Cliente</span>
           </div>
-          <div className="mt-6 sm:mt-8">
-            <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full text-[11px] font-semibold" style={{ background: "rgba(154,245,240,0.12)", color: "#9AF5F0" }}>
-              <span className="w-1.5 h-1.5 rounded-full bg-[#9AF5F0] animate-pulse" /> {currentStatus}
-            </span>
-            <h1 className="text-[24px] sm:text-[30px] font-bold text-white mt-2.5 tracking-tight leading-tight truncate">
+          <div className="mt-3">
+            <h1 className="text-[24px] sm:text-[30px] font-bold text-white tracking-tight leading-tight truncate">
               {data.businessName}
             </h1>
-            <p className="text-[13px] text-white/55 mt-1">
-              {totalPendencias === 0
-                ? "Nada pendente com você agora."
-                : totalPendencias === 1
-                  ? "1 pendência espera por você."
-                  : `${totalPendencias} pendências esperam por você.`}
-            </p>
+            {/* Etapa e pendência na MESMA linha: eram duas, e cada linha extra
+                no cabeçalho é uma linha a menos de conteúdo na primeira tela. */}
+            <div className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+              <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full text-[12px] font-semibold" style={{ background: "rgba(154,245,240,0.12)", color: "#9AF5F0" }}>
+                <span className="w-1.5 h-1.5 rounded-full bg-[#9AF5F0] animate-pulse" /> {currentStatus}
+              </span>
+              <span className="text-[13px] font-medium text-white/70">
+                {totalPendencias === 0
+                  ? "Nada depende de você agora."
+                  : totalPendencias === 1
+                    ? "1 coisa depende de você."
+                    : `${totalPendencias} coisas dependem de você.`}
+              </span>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Navegação — exatamente 6 itens */}
+      {/* ── Navegação — 5 itens, TODOS visíveis a 375px ──────────────────────
+          A barra não rola mais: os itens dividem a largura (`flex-1`) em vez de
+          se enfileirarem até sair da tela. Duas consequências de forma:
+           • o rótulo do celular é a forma curta (`curto`) do MESMO nome, nunca
+             uma palavra diferente — "Enviar" é o começo de "Enviar arquivos";
+           • o contador de Aprovações sai de dentro da linha e vira selo no
+             canto: inline ele somava ~23px e estourava a única célula apertada. */}
       <nav aria-label="Navegação do portal" className="sticky top-0 z-20 bg-[var(--bg-elevated)]/92 backdrop-blur border-b border-[var(--border)] -mt-7 sm:-mt-8">
         <div className="max-w-[860px] mx-auto px-3">
-          <div ref={navRef} className="flex gap-1 overflow-x-auto no-scrollbar py-2.5">
+          <div className="flex gap-1 py-2.5">
             {NAV.map((item) => {
               const active = secao === item.id;
               const badge = item.id === "aprovacoes" ? decisoesEsperando : 0;
@@ -690,13 +818,30 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
                   onClick={() => irPara(item.id)}
                   aria-current={active ? "page" : undefined}
                   style={{ touchAction: "manipulation" }}
-                  className={`shrink-0 h-9 px-3.5 rounded-[9px] text-[13px] font-semibold transition-colors flex items-center gap-1.5 ${
-                    active ? "bg-[#070A1F] text-white shadow-[0_2px_8px_rgba(7,10,31,0.2)]" : "text-[var(--text-secondary)] hover:bg-[#F0EFEB]"
+                  // `flex-auto`, não `flex-1`: a célula parte da largura do
+                  // PRÓPRIO rótulo e só divide a sobra. Com `flex-1` (base 0)
+                  // todas ficavam com 67px e "Aprovações" — a mais longa —
+                  // saía cortada. Célula igual só serve quando o texto é igual.
+                  // E só no celular: dividir 860px entre 5 abas espalha a barra
+                  // até ela parecer um rodapé. Onde sobra espaço, a aba tem o
+                  // tamanho do próprio nome.
+                  className={`relative flex-auto sm:flex-none h-9 px-2 sm:px-3.5 rounded-[9px] text-[12px] sm:text-[13px] font-semibold transition-colors flex items-center justify-center whitespace-nowrap ${
+                    active ? "bg-[var(--navy)] text-white shadow-[0_2px_8px_rgba(7,10,31,0.2)]" : "text-[var(--text-secondary)] hover:bg-[var(--accent)]"
                   }`}
                 >
-                  {item.label}
+                  <span className="sm:hidden">{item.curto ?? item.label}</span>
+                  <span className="hidden sm:inline">{item.label}</span>
+                  {/* Abaixo de `sm` o selo é absoluto no canto (a célula é
+                      apertada e ele roubaria a largura do rótulo); de `sm` para
+                      cima sobra espaço e ele volta para dentro da linha, que é
+                      onde o olho espera encontrá-lo. */}
                   {badge > 0 && (
-                    <span className="ml-0.5 inline-flex items-center justify-center min-w-[17px] h-[17px] px-1 rounded-full text-[10px] font-bold bg-[#F59E0B] text-white">{badge}</span>
+                    <span
+                      className="absolute top-0 right-0 translate-x-1 -translate-y-1 ring-2 ring-[var(--bg-elevated)] sm:static sm:translate-x-0 sm:translate-y-0 sm:ring-0 sm:ml-1.5 inline-flex items-center justify-center min-w-[17px] h-[17px] px-1 rounded-full text-[11px] font-bold bg-[var(--warning)] text-white"
+                      aria-label={badge === 1 ? "1 decisão esperando por você" : `${badge} decisões esperando por você`}
+                    >
+                      {badge}
+                    </span>
                   )}
                 </button>
               );
@@ -712,12 +857,17 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
         {/* ══ INÍCIO — ordem inegociável: pendência acima de tudo ══ */}
         {secao === "inicio" && (
           <div className="space-y-7">
+            {/* Nada travado? Então a porta de pedir é o topo da tela. */}
+            {totalPendencias === 0 && (
+              <CardDePedido destaque onClick={() => { setSolicitando(true); setRecadoDoPedido(null); }} />
+            )}
+
             {/* 1 · O que depende de você */}
             <section>
               <TituloDeBloco n={1}>O que depende de você</TituloDeBloco>
               {totalPendencias === 0 ? (
                 <div className="bg-white rounded-[14px] border border-[var(--border)] p-6 text-center shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
-                  <p className="text-[13.5px] font-semibold text-[var(--text-primary)]">✅ Nada depende de você agora</p>
+                  <p className="text-[14px] font-semibold text-[var(--text-primary)]">✅ Nada depende de você agora</p>
                   <p className="text-[12px] text-[var(--text-muted)] mt-1">A equipe está trabalhando — quando precisarmos de você, aparece aqui primeiro.</p>
                 </div>
               ) : (
@@ -810,10 +960,25 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
               )}
             </section>
 
+            {/* Há coisa travada: a porta de pedir entra DEPOIS do que depende
+                dele e ANTES do acompanhamento — visível sem rolar, e sem passar
+                na frente da UMA COISA que o portal existe para fazer. */}
+            {totalPendencias > 0 && (
+              <CardDePedido destaque onClick={() => { setSolicitando(true); setRecadoDoPedido(null); }} />
+            )}
+
+            {recadoDoPedido && (
+              <p role="status" className="rounded-[12px] border border-[var(--border)] bg-[var(--success-bg)] px-4 py-3 text-[13px] text-[var(--success)]">✓ {recadoDoPedido}</p>
+            )}
+
             {/* 2 · Onde estamos */}
             <section>
               <TituloDeBloco n={2}>Onde estamos e o que vem</TituloDeBloco>
-              <EsteiraDoCliente token={token} aoIrParaAprovacoes={() => irPara("aprovacoes")} />
+              <EsteiraDoCliente
+                token={token}
+                aoIrParaAprovacoes={() => irPara("aprovacoes")}
+                aoFalarComPM={() => setChatOpen(true)}
+              />
             </section>
 
             {/* 3 · Entregas recentes — só renderiza quando existe entrega */}
@@ -830,10 +995,10 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
                     >
                       <span aria-hidden className="shrink-0 w-9 h-9 rounded-[9px] bg-[var(--accent)] flex items-center justify-center text-[15px]">🎨</span>
                       <span className="min-w-0 flex-1">
-                        <span className="block text-[13.5px] font-semibold text-[var(--text-primary)]">{p.department}</span>
+                        <span className="block text-[14px] font-semibold text-[var(--text-primary)]">{p.department}</span>
                         <span className="text-[12px] text-[var(--text-secondary)]">v{p.version}</span>
                       </span>
-                      <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full text-[11px] font-semibold bg-[#DCFCE7] text-[var(--success)] shrink-0">
+                      <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full text-[11px] font-semibold bg-[var(--success-bg)] text-[var(--success)] shrink-0">
                         Aprovado {dataCurta(p.approvedAt)}
                       </span>
                     </button>
@@ -859,7 +1024,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
                           linha só, "Kit de marca — paleta e tipografia — a…"
                           cortava justamente a palavra que diz o resultado. */}
                       <span className="min-w-0 flex-1">
-                        <span className="block text-[13.5px] font-semibold text-[var(--text-primary)] truncate">
+                        <span className="block text-[14px] font-semibold text-[var(--text-primary)] truncate">
                           {tituloDaAprovacao(d)}{d.version != null ? ` (v${d.version})` : ""}
                         </span>
                         <span className="block text-[12px] text-[var(--text-secondary)] leading-snug">
@@ -869,7 +1034,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
                     </button>
                   ))}
                   <div className="px-4 py-2.5 border-t border-[var(--border)]">
-                    <button onClick={() => irPara("aprovacoes")} className="text-[12.5px] font-semibold text-[var(--teal-text)] hover:underline" style={{ touchAction: "manipulation" }}>
+                    <button onClick={() => irPara("aprovacoes")} className="text-[13px] font-semibold text-[var(--teal-text)] hover:underline" style={{ touchAction: "manipulation" }}>
                       Ver todas as decisões →
                     </button>
                   </div>
@@ -877,32 +1042,24 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
               </section>
             )}
 
-            {/* 5 · Resultado do ciclo — SÓ com meta + comparação + ação.
-                Sem ciclo fechado com dado completo, o bloco simplesmente não
-                existe: os tiles "—" morreram e não voltam como placeholder. */}
-
-            {/* A PORTA DE VENDA. Estava no rodapé e navegava para outra aba —
-                o CEO: "está muito escondido... precisa estar super destacado...
-                tem que abrir em segundo plano e não abrir uma página". Porta de
-                venda no rodapé é porta fechada. */}
-            <button
-              onClick={() => { setSolicitando(true); setRecadoDoPedido(null); }}
-              style={{ touchAction: "manipulation" }}
-              className="w-full flex items-center gap-3.5 rounded-[16px] px-5 py-4 text-left bg-[#070A1F] text-white shadow-[0_6px_20px_rgba(7,10,31,0.22)] hover:-translate-y-0.5 transition-transform"
-            >
-              <span aria-hidden className="shrink-0 w-11 h-11 rounded-[12px] bg-[#12B5AC] flex items-center justify-center text-[20px] font-bold leading-none">+</span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-[15px] font-bold">Precisa de alguma coisa?</span>
-                <span className="block text-[12.5px] text-white/70 mt-0.5 leading-snug">
-                  Peça, serviço novo, orçamento — a equipe responde aqui com prazo e preço.
-                </span>
-              </span>
-              <span aria-hidden className="text-white/50 text-[18px]">›</span>
-            </button>
-
-            {recadoDoPedido && (
-              <p className="rounded-[12px] bg-[#ECFDF5] px-4 py-3 text-[13px] text-[#047857]">✓ {recadoDoPedido}</p>
-            )}
+            {/* ── Seus números — o que era a aba "Resultados" ──────────────────
+                A aba saiu da barra (08/08/2026): sem Instagram conectado ela só
+                sabia dizer "Nenhuma rede conectada" — um beco, e o primeiro item
+                a cair fora da tela a 375px. O componente NÃO foi apagado: virou
+                bloco daqui, e só aparece quando existe número de verdade.
+                Sem número não há título, não há moldura, não há nada — o convite
+                a conectar já mora em Integrações, dentro de "Sua conta".
+                A seção fica montada (só escondida) porque quem descobre se há
+                número é o próprio componente, depois de medir. */}
+            <section className={temNumeros ? "" : "hidden"} aria-hidden={!temNumeros}>
+              <TituloDeBloco n={numeroResultados}>Seus números</TituloDeBloco>
+              <ResultadosDoCliente
+                token={token}
+                onIrParaIntegracoes={() => irPara("integracoes")}
+                somenteComNumeros
+                aoMedir={setTemNumeros}
+              />
+            </section>
 
             {/* A lista "Seus pedidos" NÃO se repete aqui. Ela morava no Início
                 E em Projetos, com os botões de decisão nas duas — a mesma coisa
@@ -913,7 +1070,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
               <button
                 onClick={() => irPara("projetos")}
                 style={{ touchAction: "manipulation" }}
-                className="w-full text-left text-[12.5px] font-semibold text-[var(--teal-text)] hover:underline"
+                className="w-full text-left text-[13px] font-semibold text-[var(--teal-text)] hover:underline"
               >
                 Ver todos os seus pedidos em Projetos →
               </button>
@@ -927,7 +1084,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
           <div className="space-y-6">
             <div>
               <h2 className="text-[18px] font-bold text-[var(--text-primary)]">Projetos</h2>
-              <p className="text-[12.5px] text-[var(--text-secondary)] mt-0.5">
+              <p className="text-[13px] text-[var(--text-secondary)] mt-0.5">
                 O andamento do que a Dioli está construindo para você. Decisões ficam em <b>Aprovações</b>.
               </p>
             </div>
@@ -953,21 +1110,23 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
               </button>
             )}
 
-            <EsteiraDoCliente token={token} aoIrParaAprovacoes={() => irPara("aprovacoes")} />
+            {/* O mesmo gatilho, na aba onde ele pensa no trabalho — e na mesma
+                posição de lá: logo depois do que depende dele, antes do
+                acompanhamento. Um só componente, uma só folha. */}
+            {/* Discreto SEMPRE aqui — no Início ele é navy, em Projetos é
+                branco. Uma superfície, um peso: a mesma porta mudando de cor
+                conforme o estado da tela é o cliente achando que são duas. */}
+            <CardDePedido destaque={false} onClick={() => { setSolicitando(true); setRecadoDoPedido(null); }} />
 
-            {/* O mesmo caminho, na aba onde ele pensa no trabalho. Um só
-                componente, um só formulário: duas portas para a mesma folha. */}
-            <button
-              onClick={() => { setSolicitando(true); setRecadoDoPedido(null); }}
-              style={{ touchAction: "manipulation" }}
-              className="w-full flex items-center gap-3.5 rounded-[14px] px-4 py-3.5 text-left bg-white border border-[var(--border)] hover:bg-[var(--bg-elevated)] transition-colors shadow-[0_1px_3px_rgba(7,10,31,0.04)]"
-            >
-              <span aria-hidden className="shrink-0 w-10 h-10 rounded-[11px] bg-[#E6FBFA] text-[#0E9E96] flex items-center justify-center text-[19px] font-bold leading-none">+</span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-[14px] font-bold text-[var(--text-primary)]">Precisa de alguma coisa?</span>
-                <span className="block text-[12px] text-[var(--text-secondary)] mt-0.5">Peça, serviço novo ou orçamento — a resposta vem com preço.</span>
-              </span>
-            </button>
+            {recadoDoPedido && (
+              <p role="status" className="rounded-[12px] border border-[var(--border)] bg-[var(--success-bg)] px-4 py-3 text-[13px] text-[var(--success)]">✓ {recadoDoPedido}</p>
+            )}
+
+            <EsteiraDoCliente
+              token={token}
+              aoIrParaAprovacoes={() => irPara("aprovacoes")}
+              aoFalarComPM={() => setChatOpen(true)}
+            />
 
             {/* Sem botões de decisão: Projetos MOSTRA o estado e leva para
                 Aprovações. A mesma decisão não pode existir em duas telas. */}
@@ -990,7 +1149,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
                   <div className="min-w-0 order-2 sm:order-1">
                     <h3 className="text-[15px] font-bold text-[var(--text-primary)] leading-snug">{p.nome}</h3>
                     {p.objetivo && (
-                      <p className="text-[12.5px] text-[var(--text-secondary)] mt-1 leading-relaxed">{p.objetivo}</p>
+                      <p className="text-[13px] text-[var(--text-secondary)] mt-1 leading-relaxed">{p.objetivo}</p>
                     )}
                   </div>
                   <span className="order-1 sm:order-2 self-start shrink-0 h-6 px-2.5 rounded-full bg-[var(--info-bg)] text-[var(--info)] text-[11px] font-semibold flex items-center">
@@ -998,7 +1157,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
                   </span>
                 </div>
                 {p.criadoEm && (
-                  <p className="text-[11.5px] text-[var(--text-muted)] mt-2.5">Aberto em {dataCurta(p.criadoEm)}</p>
+                  <p className="text-[12px] text-[var(--text-muted)] mt-2.5">Aberto em {dataCurta(p.criadoEm)}</p>
                 )}
               </section>
             ))}
@@ -1018,7 +1177,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
                   <div className="flex items-center justify-between mb-2.5">
                     <h3 className="text-[14px] font-bold text-[var(--text-primary)]">{mod.label}</h3>
                     {dept?.approvedAt && (
-                      <span className="h-5 px-2 rounded-full bg-[#DCFCE7] text-[var(--success)] text-[10px] font-semibold flex items-center">✓ Plano aprovado</span>
+                      <span className="h-5 px-2 rounded-full bg-[var(--success-bg)] text-[var(--success)] text-[12px] font-semibold flex items-center">✓ Plano aprovado</span>
                     )}
                   </div>
                   {dept && (dept.headline || dept.bullets.length > 0) ? (
@@ -1027,7 +1186,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
                       {dept.bullets.length > 0 && (
                         <ul className="space-y-1.5">
                           {dept.bullets.map((b, i) => (
-                            <li key={i} className="flex items-start gap-2 text-[12.5px] text-[var(--text-secondary)]"><span aria-hidden className="text-[var(--teal-text)] mt-0.5 shrink-0">•</span>{b}</li>
+                            <li key={i} className="flex items-start gap-2 text-[13px] text-[var(--text-secondary)]"><span aria-hidden className="text-[var(--teal-text)] mt-0.5 shrink-0">•</span>{b}</li>
                           ))}
                         </ul>
                       )}
@@ -1058,8 +1217,8 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
             )}
 
             {erroProjetos && projetos.length === 0 && (
-              <div role="alert" className="bg-white rounded-[14px] border border-[#FCA5A5] p-7 text-center">
-                <p className="text-[13.5px] font-semibold text-[var(--text-primary)]">Não consegui carregar seus projetos</p>
+              <div role="alert" className="bg-white rounded-[14px] border border-[var(--danger)]/40 p-7 text-center">
+                <p className="text-[14px] font-semibold text-[var(--text-primary)]">Não consegui carregar seus projetos</p>
                 <p className="text-[12px] text-[var(--text-secondary)] mt-1">
                   Costuma ser conexão. Tente de novo — se continuar assim, fale com a gente pela conversa aqui do portal.
                 </p>
@@ -1084,7 +1243,7 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
 
             {!erroProjetos && modulosAtivos.length === 0 && projetos.length === 0 && pecasDoCalendario.length === 0 && (
               <div className="bg-white rounded-[14px] border border-[var(--border)] p-7 text-center">
-                <p className="text-[13.5px] font-semibold text-[var(--text-primary)]">Seu projeto está sendo montado</p>
+                <p className="text-[14px] font-semibold text-[var(--text-primary)]">Seu projeto está sendo montado</p>
                 <p className="text-[12px] text-[var(--text-muted)] mt-1">Assim que os módulos do seu plano forem definidos, cada um aparece aqui.</p>
               </div>
             )}
@@ -1107,35 +1266,25 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
           />
         )}
 
-        {/* ══ RESULTADOS — os números reais das redes (pedido do CEO, 04/08).
-            Número SEM meta sai com o período visível; comparação inventada não
-            entra. Sem conexão / token vencido são tela, não erro. ══ */}
-        {secao === "resultados" && (
-          <div className="space-y-5">
-            <div>
-              <h2 className="text-[18px] font-bold text-[var(--text-primary)]">Resultados</h2>
-              <p className="text-[12.5px] text-[var(--text-secondary)] mt-0.5">
-                Os números do seu Instagram, direto da Meta — sem enfeite e sem estimativa.
-              </p>
-            </div>
-            <ResultadosDoCliente token={token} onIrParaIntegracoes={() => irPara("integracoes")} />
-          </div>
-        )}
+        {/* ══ RESULTADOS — deixou de ser aba em 08/08/2026. Os números reais das
+            redes (pedido do CEO, 04/08) continuam existindo: viraram o bloco
+            "Seus números" do Início, que só aparece quando há número. O
+            componente `ResultadosDoCliente` não foi apagado — mudou de casa. ══ */}
 
-        {/* ══ ARQUIVOS (antiga Materiais) ══ */}
+        {/* ══ ENVIAR ARQUIVOS — não é acervo, é caixa de envio ══ */}
         {secao === "arquivos" && (
           <div className="space-y-4">
             <div>
-              <h2 className="text-[18px] font-bold text-[var(--text-primary)]">Arquivos</h2>
-              <p className="text-[12.5px] text-[var(--text-secondary)] mt-0.5">O que a equipe precisa de você — mande direto por aqui, sem criar conta em lugar nenhum.</p>
+              <h2 className="text-[18px] font-bold text-[var(--text-primary)]">Enviar arquivos</h2>
+              <p className="text-[13px] text-[var(--text-secondary)] mt-0.5">O que a equipe precisa de você — mande direto por aqui, sem criar conta em lugar nenhum.</p>
             </div>
 
             {materiaisPedidos.length > 0 && (
-              <div className="bg-[#FFFBEB] border border-[#FCE7A0] rounded-[12px] px-4 py-3">
-                <p className="text-[12.5px] font-semibold text-[#9B7B2D] mb-1">A produção está esperando:</p>
+              <div className="bg-[var(--warning-bg)] border border-[var(--border)] rounded-[12px] px-4 py-3">
+                <p className="text-[13px] font-semibold text-[var(--warning)] mb-1">A produção está esperando:</p>
                 <ul className="space-y-1">
                   {materiaisPedidos.map((m, i) => (
-                    <li key={i} className="flex items-start gap-2 text-[12.5px] text-[#B08D3E]"><span aria-hidden className="mt-0.5 shrink-0">•</span>{m}</li>
+                    <li key={i} className="flex items-start gap-2 text-[13px] text-[var(--warning)]"><span aria-hidden className="mt-0.5 shrink-0">•</span>{m}</li>
                   ))}
                 </ul>
               </div>
@@ -1154,72 +1303,34 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
           </div>
         )}
 
-        {/* ══ INTEGRAÇÕES — tudo que CONECTA um aplicativo ══
-            Saiu de dentro de Conta em 07/08/2026, por ordem do CEO: "aba onde
-            você integra com aplicativos se chama aba de Integrações". Conta
-            passou a ser só sobre o cliente. ══ */}
-        {secao === "integracoes" && (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-[18px] font-bold text-[var(--text-primary)]">Integrações</h2>
-              <p className="text-[12.5px] text-[var(--text-secondary)] mt-0.5">
-                As contas que você conecta à Dioli — e o que cada uma libera. Conectar é opcional: sem elas o trabalho continua, só não é publicado nem medido automaticamente.
-              </p>
-            </div>
+        {/* ══ SUA CONTA — tudo que é SOBRE VOCÊ, não sobre o trabalho ══
+            Fusão de "Conta" + "Integrações" (08/08/2026). As duas eram abas
+            separadas desde 07/08 e as duas caíam fora da tela a 375px — a barra
+            de 7 itens era o problema, não o conteúdo delas.
 
-            {conexoesQuebradas.length > 0 && (
-              <div role="alert" className="rounded-[12px] border border-[var(--border)] bg-[var(--danger-bg)] px-4 py-3">
-                <p className="text-[12.5px] font-semibold text-[var(--danger)]">
-                  {conexoesQuebradas.length === 1
-                    ? "1 conexão precisa ser refeita"
-                    : `${conexoesQuebradas.length} conexões precisam ser refeitas`}
-                </p>
-                <p className="text-[12px] text-[var(--danger)] mt-0.5 leading-snug">
-                  Enquanto ela estiver assim, os posts aprovados não são publicados e os números não atualizam.
-                </p>
-              </div>
-            )}
+            NADA SUMIU: as duas continuam existindo como SEÇÕES ROTULADAS aqui
+            dentro, cada uma com o nome que já tinha. A regra que criou a
+            separação continua valendo dentro desta página — "Seus dados" é sobre
+            o cliente, "Integrações" é sobre aplicativos, e nenhum bloco de uma
+            entra na outra.
 
-            {/* Checklist de conexões reais (Meta/Instagram, Google Drive, ativos
-                autorizados) — o componente já trata carregando / vazio / erro. */}
-            <ConexoesDoCliente token={token} />
-
-            <section>
-              <h3 className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em] mb-2">Em breve</h3>
-              <p className="text-[12px] text-[var(--text-secondary)] mb-2.5 max-w-[62ch] leading-relaxed">
-                Ainda não dá para conectar estas — quando abrirem, elas aparecem aqui com o botão de conectar. Não há nada a fazer agora.
-              </p>
-              <div className="grid sm:grid-cols-2 gap-2.5">
-                {INTEGRACOES_FUTURAS.map((it) => (
-                  <div key={it.key} className="bg-white rounded-[12px] border border-[var(--border)] p-3.5 flex items-center gap-3">
-                    <span aria-hidden className="w-9 h-9 rounded-[9px] flex items-center justify-center text-white text-[11px] font-bold shrink-0" style={{ background: it.color }}>{it.initials}</span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[13px] font-semibold text-[var(--text-primary)]">{it.name}</p>
-                      <p className="text-[11.5px] text-[var(--text-secondary)] leading-snug">{it.desc}</p>
-                    </div>
-                    <span className="shrink-0 h-6 px-2.5 rounded-full bg-[var(--accent)] text-[var(--text-muted)] text-[11px] font-semibold flex items-center">Em breve</span>
-                  </div>
-                ))}
-              </div>
-              <p className="text-[11.5px] text-[var(--text-muted)] mt-2.5 leading-relaxed">
-                🔒 Toda conexão é feita pela autorização oficial da plataforma (OAuth). Você nunca digita senha aqui, e tokens nunca aparecem.
-              </p>
-            </section>
-          </div>
-        )}
-
-        {/* ══ CONTA — TUDO sobre o cliente: negócio, plano, acesso ══ */}
+            A aba "Conta" NÃO foi eliminada de propósito: o conteúdo dela estar
+            todo em "Não informado" é problema de DADO, não de tela. Apagar a aba
+            esconderia o furo em vez de corrigi-lo. ══ */}
         {secao === "conta" && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-[18px] font-bold text-[var(--text-primary)]">Conta</h2>
-              <p className="text-[12.5px] text-[var(--text-secondary)] mt-0.5">
-                Os dados do seu negócio, o que você contratou e como você entra aqui.
+              <h2 className="text-[18px] font-bold text-[var(--text-primary)]">Sua conta</h2>
+              <p className="text-[13px] text-[var(--text-secondary)] mt-0.5">
+                Os dados do seu negócio, o que você contratou, como você entra aqui — e as contas que você conecta à Dioli.
               </p>
             </div>
 
+            {/* ─────────── SEÇÃO 1 · Seus dados ─────────── */}
+            <TituloDeSecao>Seus dados</TituloDeSecao>
+
             <section className="bg-white rounded-[14px] border border-[var(--border)] p-5 shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
-              <h3 className="text-[14px] font-bold text-[var(--text-primary)] mb-3">Sobre o seu negócio</h3>
+              <h4 className="text-[14px] font-bold text-[var(--text-primary)] mb-3">Sobre o seu negócio</h4>
               <div className="space-y-3">
                 <div>
                   <div className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em]">Nome</div>
@@ -1243,13 +1354,13 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
                   )}
                 </div>
               </div>
-              <p className="text-[11.5px] text-[var(--text-muted)] mt-4 leading-relaxed">
+              <p className="text-[12px] text-[var(--text-muted)] mt-4 leading-relaxed">
                 Algum dado está errado ou faltando? Diga na conversa com seu PM — a equipe corrige e o novo dado passa a valer para todo o trabalho.
               </p>
             </section>
 
             <section className="bg-white rounded-[14px] border border-[var(--border)] p-5 shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
-              <h3 className="text-[14px] font-bold text-[var(--text-primary)] mb-3">O que você contratou</h3>
+              <h4 className="text-[14px] font-bold text-[var(--text-primary)] mb-3">O que você contratou</h4>
               {data.services.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {data.services.map((s, i) => (
@@ -1257,18 +1368,18 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
                   ))}
                 </div>
               ) : (
-                <p className="text-[12.5px] text-[var(--text-secondary)] leading-relaxed">
+                <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
                   Nenhum serviço registrado neste cadastro ainda. Se você já contratou algo, fale com seu PM — o plano precisa aparecer aqui.
                 </p>
               )}
-              <p className="text-[11.5px] text-[var(--text-muted)] mt-3">
+              <p className="text-[12px] text-[var(--text-muted)] mt-3">
                 Situação atual do trabalho: <b className="text-[var(--text-secondary)]">{currentStatus}</b>.
               </p>
             </section>
 
             <section className="bg-white rounded-[14px] border border-[var(--border)] p-5">
-              <h3 className="text-[14px] font-bold text-[var(--text-primary)] mb-1.5">Seu acesso</h3>
-              <p className="text-[12.5px] text-[var(--text-secondary)] leading-relaxed">
+              <h4 className="text-[14px] font-bold text-[var(--text-primary)] mb-1.5">Seu acesso</h4>
+              <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
                 Você entra por um link único e seguro, sem senha. O link some da barra de endereço
                 depois do primeiro acesso — o navegador guarda a chave num cookie protegido.
                 Perdeu o link? Peça um novo ao seu PM pela conversa aqui do portal.
@@ -1282,31 +1393,78 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
               </button>
             </section>
 
-            {/* Ponte explícita: quem procurou conexão em Conta (onde ela morava
-                até hoje) encontra a porta, em vez de concluir que sumiu. */}
-            <button
-              onClick={() => irPara("integracoes")}
-              style={{ touchAction: "manipulation" }}
-              className="w-full flex items-center gap-3 rounded-[12px] border border-[var(--border)] bg-white px-4 py-3.5 text-left hover:bg-[var(--bg-elevated)] transition-colors"
-            >
-              <span aria-hidden className="shrink-0 w-9 h-9 rounded-[9px] bg-[var(--accent-light)] flex items-center justify-center text-[15px]">🔌</span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-[13.5px] font-semibold text-[var(--text-primary)]">Procurando suas conexões?</span>
-                <span className="block text-[12px] text-[var(--text-secondary)] mt-0.5">Facebook, Instagram e Google Drive agora ficam em Integrações.</span>
-              </span>
-              <span aria-hidden className="text-[var(--text-subtle)]">›</span>
-            </button>
+            {/* ─────────── SEÇÃO 2 · Integrações ───────────
+                O `id` é o endereço: "Resolver em Integrações", vindo de qualquer
+                pendência, cai AQUI — não no topo da página. A aba mudou de nome;
+                o destino não mudou. */}
+            <div id="integracoes" className="scroll-mt-16">
+              <TituloDeSecao>Integrações</TituloDeSecao>
+              <p className="text-[13px] text-[var(--text-secondary)] mt-1.5 max-w-[62ch] leading-relaxed">
+                As contas que você conecta à Dioli — e o que cada uma libera. Conectar é opcional: sem elas o trabalho continua, só não é publicado nem medido automaticamente.
+              </p>
+            </div>
+
+            {conexoesQuebradas.length > 0 && (
+              <div role="alert" className="rounded-[12px] border border-[var(--border)] bg-[var(--danger-bg)] px-4 py-3">
+                <p className="text-[13px] font-semibold text-[var(--danger)]">
+                  {conexoesQuebradas.length === 1
+                    ? "1 conexão precisa ser refeita"
+                    : `${conexoesQuebradas.length} conexões precisam ser refeitas`}
+                </p>
+                <p className="text-[12px] text-[var(--danger)] mt-0.5 leading-snug">
+                  Enquanto ela estiver assim, os posts aprovados não são publicados e os números não atualizam.
+                </p>
+              </div>
+            )}
+
+            {/* Checklist de conexões reais (Meta/Instagram, Google Drive, ativos
+                autorizados) — o componente já trata carregando / vazio / erro. */}
+            <ConexoesDoCliente token={token} />
+
+            <section>
+              <h4 className="text-[12px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.06em] mb-2">Em breve</h4>
+              <p className="text-[12px] text-[var(--text-secondary)] mb-2.5 max-w-[62ch] leading-relaxed">
+                Ainda não dá para conectar estas — quando abrirem, elas aparecem aqui com o botão de conectar. Não há nada a fazer agora.
+              </p>
+              <div className="grid sm:grid-cols-2 gap-2.5">
+                {INTEGRACOES_FUTURAS.map((it) => (
+                  <div key={it.key} className="bg-white rounded-[12px] border border-[var(--border)] p-3.5 flex items-center gap-3">
+                    <span aria-hidden className="w-9 h-9 rounded-[9px] flex items-center justify-center text-white text-[12px] font-bold shrink-0" style={{ background: it.color }}>{it.initials}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[13px] font-semibold text-[var(--text-primary)]">{it.name}</p>
+                      <p className="text-[12px] text-[var(--text-secondary)] leading-snug">{it.desc}</p>
+                    </div>
+                    <span className="shrink-0 h-6 px-2.5 rounded-full bg-[var(--accent)] text-[var(--text-muted)] text-[12px] font-semibold flex items-center">Em breve</span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[12px] text-[var(--text-muted)] mt-2.5 leading-relaxed">
+                🔒 Toda conexão é feita pela autorização oficial da plataforma (OAuth). Você nunca digita senha aqui, e tokens nunca aparecem.
+              </p>
+            </section>
           </div>
         )}
 
       </main>
 
       <footer className="max-w-[860px] mx-auto px-5 pb-8 text-center">
-        <p className="text-[10px] text-[var(--text-subtle)]">Acesso seguro via link único · Dioli Digital</p>
+        <p className="text-[12px] text-[var(--text-subtle)]">Acesso seguro via link único · Dioli Digital</p>
       </footer>
 
       {/* Chat com o PM — botão flutuante em TODAS as telas (adição do CEO).
-          O PM é a ponte única: o cliente nunca fala com um departamento direto. */}
+          O PM é a ponte única: o cliente nunca fala com um departamento direto.
+
+          ── A COLISÃO DE 375px (corrigida em 08/08/2026) ────────────────────
+          O layout já reserva o FIM do conteúdo (`.portal-shell`, DESIGN.md §6.1)
+          — mas isso protege a rolagem no fim, não o meio dela. Em pílula com
+          rótulo o botão tinha ~185px de largura e cobria metade do card
+          "Precisa de alguma coisa?" enquanto o cliente rolava.
+          §6.2 já dizia o remédio: flutuante solto só é aceitável FORA da coluna
+          de conteúdo. A 375px não existe margem — então abaixo de `sm` ele vira
+          disco de 48px (o mínimo de alvo de toque), com `aria-label` fazendo o
+          papel do rótulo. De `sm` para cima sobra margem e o rótulo volta.
+          A ALTURA continua 3rem nos dois casos, que é a medida que o layout
+          reserva — as duas nunca saem de sincronia. */}
       {!chatOpen && (
         <button
           onClick={() => setChatOpen(true)}
@@ -1315,13 +1473,17 @@ export default function ClientPortalPage({ params }: { params: Promise<{ token: 
           // parava por baixo do traço de home. Mesma fonte de medida que o
           // espaço reservado no layout — os dois nunca saem de sincronia.
           style={{ touchAction: "manipulation", background: "linear-gradient(135deg,#0B0F2A,#070A1F)", bottom: "var(--fab-base, 1.25rem)" }}
-          className="fixed right-5 z-40 inline-flex items-center gap-2 h-12 pl-4 pr-5 rounded-full text-white font-semibold text-[13px] shadow-[0_8px_24px_rgba(7,10,31,0.35)] border border-white/10 transition-transform hover:scale-[1.03]"
+          className="fixed right-5 z-40 inline-flex items-center justify-center sm:justify-start gap-2 h-12 w-12 sm:w-auto p-0 sm:pl-4 sm:pr-5 rounded-full text-white font-semibold text-[13px] shadow-[0_8px_24px_rgba(7,10,31,0.35)] border border-white/10 transition-transform hover:scale-[1.03]"
         >
-          <svg width="17" height="17" viewBox="0 0 20 20" fill="none" aria-hidden>
-            <path d="M4 4h12a1 1 0 011 1v8a1 1 0 01-1 1H8l-3.5 3V14H4a1 1 0 01-1-1V5a1 1 0 011-1z" stroke="#9AF5F0" strokeWidth="1.4" strokeLinejoin="round" />
-          </svg>
-          Fale com seu PM
-          <span aria-hidden className="w-2 h-2 rounded-full bg-[#22C55E]" />
+          <span className="relative inline-flex">
+            <svg width="19" height="19" className="sm:w-[17px] sm:h-[17px]" viewBox="0 0 20 20" fill="none" aria-hidden>
+              <path d="M4 4h12a1 1 0 011 1v8a1 1 0 01-1 1H8l-3.5 3V14H4a1 1 0 01-1-1V5a1 1 0 011-1z" stroke="#9AF5F0" strokeWidth="1.4" strokeLinejoin="round" />
+            </svg>
+            {/* O ponto "online" acompanha o ícone quando o rótulo não cabe. */}
+            <span aria-hidden className="sm:hidden absolute -top-0.5 -right-1 w-2 h-2 rounded-full bg-[#22C55E] ring-2 ring-[#070A1F]" />
+          </span>
+          <span className="hidden sm:inline">Fale com seu PM</span>
+          <span aria-hidden className="hidden sm:block w-2 h-2 rounded-full bg-[#22C55E]" />
         </button>
       )}
 

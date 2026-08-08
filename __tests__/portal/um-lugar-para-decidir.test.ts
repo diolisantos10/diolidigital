@@ -104,21 +104,56 @@ describe("a decisão não volta para as telas de acompanhamento", () => {
   });
 });
 
-describe("Conta é sobre o cliente; Integrações é sobre aplicativos", () => {
+// ── "Integrações" continua sendo um ASSUNTO; deixou de ser uma ABA ──────────
+//
+// Em 07/08/2026 o CEO separou Conta de Integrações e esta suíte travou a
+// separação numa ABA ("a navegação tem uma aba Integrações"). Em 08/08/2026,
+// auditando o portal no ar, ele viu a consequência: com 7 abas, MEDIDO a 375px,
+// 4 delas nasciam fora da tela — Integrações e Conta entre elas. Aba que não
+// aparece não separa nada; ela só esconde.
+//
+// A regra sobreviveu, o mecanismo mudou: as duas são SEÇÕES ROTULADAS dentro de
+// "Sua conta". O que estes testes travam agora é o que sempre importou — cada
+// assunto com nome próprio, nenhum bloco misturado, e nenhum conteúdo perdido
+// na mudança.
+describe("Integrações e dados do cliente: dois assuntos, nomes próprios, nada perdido", () => {
   const src = ler("app/portal/access/[token]/page.tsx");
 
-  it("a navegação tem uma aba Integrações", () => {
-    expect(src).toContain('{ id: "integracoes", label: "Integrações" }');
+  it("a barra cabe em 375px: são 5 itens, e nenhum deles se chama Integrações", () => {
+    const nav = src.slice(src.indexOf("const NAV:"), src.indexOf("const SECAO_DO_DESTINO"));
+    expect(nav.match(/\{ id: "/g) ?? []).toHaveLength(5);
+    expect(nav).not.toContain('label: "Integrações"');
   });
 
-  it("o checklist de conexões saiu de Conta e mora em Integrações", () => {
-    const integracoes = src.slice(src.indexOf('secao === "integracoes"'), src.indexOf('secao === "conta"'));
-    expect(integracoes).toContain("<ConexoesDoCliente");
-    expect(integracoes).toContain("INTEGRACOES_FUTURAS");
-
+  it("o checklist de conexões NÃO foi apagado — mora na seção Integrações de Sua conta", () => {
     const conta = src.slice(src.indexOf('secao === "conta"'));
-    expect(conta).not.toContain("<ConexoesDoCliente");
-    expect(conta).not.toContain("INTEGRACOES_FUTURAS");
+    expect(conta).toContain("<ConexoesDoCliente");
+    expect(conta).toContain("INTEGRACOES_FUTURAS");
+    // E com nome próprio: o assunto não se dissolve dentro do outro.
+    expect(conta).toContain('id="integracoes"');
+    expect(conta).toContain("Seus dados");
+  });
+
+  it("os dados do cliente continuam lá — a aba não foi eliminada para esconder o furo", () => {
+    const conta = src.slice(src.indexOf('secao === "conta"'));
+    for (const campo of ["Segmento", "Público-alvo", "Objetivos", "O que você contratou", "Seu acesso"]) {
+      expect(conta).toContain(campo);
+    }
+  });
+
+  it("Resultados não é mais aba, mas o componente não foi apagado", () => {
+    const nav = src.slice(src.indexOf("const NAV:"), src.indexOf("const SECAO_DO_DESTINO"));
+    expect(nav).not.toContain('label: "Resultados"');
+    expect(src).toContain("<ResultadosDoCliente");
+    // E só entra quando existe número — bloco vazio no portal é o cliente
+    // achando que não recebeu nada.
+    expect(src).toContain("somenteComNumeros");
+  });
+
+  it("endereço antigo não vira beco: ?secao=integracoes e ?secao=resultados ainda chegam", () => {
+    const mapa = src.slice(src.indexOf("const SECAO_DO_DESTINO"), src.indexOf("const MODULOS_DE_SERVICO"));
+    expect(mapa).toContain('integracoes: "conta"');
+    expect(mapa).toContain('resultados: "inicio"');
   });
 
   it("conexão quebrada manda o cliente para Integrações, não para Conta", () => {
@@ -131,5 +166,33 @@ describe("Conta é sobre o cliente; Integrações é sobre aplicativos", () => {
     expect(resultados).toContain("Conectar em Integrações");
     expect(resultados).toContain("Reconectar em Integrações");
     expect(resultados).not.toContain("em Conta");
+  });
+});
+
+// ── AUSÊNCIA BENIGNA NÃO VIRA FALHA INVENTADA (08/08/2026) ──────────────────
+//
+// O painel de esteira colapsava todo `!ok` em "Não consegui carregar agora.
+// Tente atualizar a página." — inclusive o 404 que o servidor usa para dizer
+// "ainda não há projeto para acompanhar". Atualizar nunca resolvia, e este é o
+// estado do PRIMEIRO DIA de todo cliente pagante, em DUAS telas do percurso.
+describe("o painel de esteira distingue ausência de falha", () => {
+  const src = ler("components/agency/portal/EsteiraDoCliente.tsx");
+
+  it("lê o status HTTP em vez de colapsar tudo em erro", () => {
+    expect(src).toContain("r.status === 404");
+    expect(src).toContain('fase: "vazio"');
+    expect(src).toContain('fase: "erro"');
+  });
+
+  it("o estado vazio nomeia o próximo passo e NÃO manda atualizar a página", () => {
+    const vazio = src.slice(src.indexOf("const VAZIO_PADRAO"), src.indexOf("export default function"));
+    expect(vazio).toContain("está sendo montado");
+    expect(vazio).not.toMatch(/atualizar a página/i);
+  });
+
+  it("os três estados obrigatórios existem, cada um com o seu papel", () => {
+    expect(src).toContain('fase === "carregando"'); // esqueleto
+    expect(src).toContain('role="alert"');          // só o erro alerta
+    expect(src).toContain("Tentar de novo");        // só o erro tem o que tentar
   });
 });

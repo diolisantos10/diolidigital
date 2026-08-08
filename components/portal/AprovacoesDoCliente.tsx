@@ -161,7 +161,7 @@ function PecaDoCard({ peca, indice, total, token }: { peca: PecaAberta; indice: 
             {rotuloDeFormatoDaPeca(peca.format)}
           </span>
           {peca.pillar && (
-            <span className="truncate text-[11.5px] text-[var(--text-muted)]">{peca.pillar}</span>
+            <span className="truncate text-[12px] text-[var(--text-muted)]">{peca.pillar}</span>
           )}
         </div>
         {total > 1 && (
@@ -175,20 +175,20 @@ function PecaDoCard({ peca, indice, total, token }: { peca: PecaAberta; indice: 
         <CarrosselDeTelas telas={telas} token={token} alt={rotuloDeFormatoDaPeca(peca.format)} />
       ) : (
         <div className="flex aspect-square w-full items-center justify-center bg-[var(--accent)] px-6 text-center">
-          <span className="text-[12.5px] leading-relaxed text-[var(--text-muted)]">arte em produção</span>
+          <span className="text-[13px] leading-relaxed text-[var(--text-muted)]">arte em produção</span>
         </div>
       )}
 
       <div className="space-y-2 px-3.5 py-3">
         {data && (
-          <p className="text-[11.5px] font-medium text-[var(--text-secondary)]">
+          <p className="text-[12px] font-medium text-[var(--text-secondary)]">
             📅 Programado para {data}
           </p>
         )}
         {peca.caption ? (
           <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-[var(--text-primary)]">{peca.caption}</p>
         ) : (
-          <p className="text-[12.5px] italic text-[var(--text-muted)]">Legenda em produção.</p>
+          <p className="text-[13px] italic text-[var(--text-muted)]">Legenda em produção.</p>
         )}
       </div>
     </article>
@@ -325,7 +325,7 @@ function DetalheDaAprovacao({
 
   return (
     <div className="space-y-4">
-      <button onClick={onVoltar} className="inline-flex items-center gap-1.5 text-[12.5px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]" style={{ touchAction: "manipulation" }}>
+      <button onClick={onVoltar} className="inline-flex items-center gap-1.5 text-[13px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]" style={{ touchAction: "manipulation" }}>
         ‹ Aprovações
       </button>
 
@@ -371,19 +371,19 @@ function DetalheDaAprovacao({
             <p className="text-[13px] font-semibold text-[var(--text-primary)] flex items-center gap-2">
               <span aria-hidden>⏳</span> O material ainda não subiu
             </p>
-            <p className="text-[12.5px] text-[var(--text-secondary)] mt-1.5 leading-relaxed max-w-[62ch]">
+            <p className="text-[13px] text-[var(--text-secondary)] mt-1.5 leading-relaxed max-w-[62ch]">
               Esta entrega está em produção na Dioli e ainda não tem conteúdo para você ver.
               Enquanto ela não chegar aqui, <b>não há nada para você decidir</b> — e nós não vamos
               pedir sua aprovação sem te mostrar o trabalho. Você recebe um aviso assim que estiver pronta.
             </p>
-            <p className="text-[11.5px] text-[var(--text-muted)] mt-2">
+            <p className="text-[12px] text-[var(--text-muted)] mt-2">
               Não é problema seu nem falta de ação sua — é a agência que ainda não publicou o material.
             </p>
           </div>
         )}
 
         {pendente && prazo && (
-          <div className={`mt-3 rounded-[10px] px-3.5 py-2.5 text-[12.5px] ${vencida ? "bg-[#FEF2F2] text-[#B91C1C]" : "bg-[var(--bg-elevated)] text-[var(--text-secondary)] border border-[var(--border)]"}`}>
+          <div className={`mt-3 rounded-[10px] px-3.5 py-2.5 text-[13px] ${vencida ? "bg-[#FEF2F2] text-[#B91C1C]" : "bg-[var(--bg-elevated)] text-[var(--text-secondary)] border border-[var(--border)]"}`}>
             {ap.questionOpen ? (
               <><s>Prazo: {prazo}</s> — pausado enquanto a dúvida está com a agência.</>
             ) : vencida ? (
@@ -396,7 +396,7 @@ function DetalheDaAprovacao({
 
         {/* Caminho C aberto: dúvida presa ao card, prazo pausado */}
         {pendente && ap.questionOpen && (
-          <div className="mt-3 flex items-start gap-2 rounded-[10px] bg-[#EFF6FF] text-[#2563EB] px-3.5 py-2.5 text-[12.5px]">
+          <div className="mt-3 flex items-start gap-2 rounded-[10px] bg-[#EFF6FF] text-[#2563EB] px-3.5 py-2.5 text-[13px]">
             <span aria-hidden>⏸</span>
             <span><b>Dúvida aberta — aguardando resposta da agência.</b> O prazo desta aprovação está <b>pausado</b>. A resposta chega aqui, neste card.</span>
           </div>
@@ -434,7 +434,7 @@ function DetalheDaAprovacao({
 
         {pendente && modo !== null && (
           <div className="mt-4">
-            <label htmlFor="texto-decisao" className="block text-[12.5px] font-semibold text-[var(--text-primary)] mb-1.5">
+            <label htmlFor="texto-decisao" className="block text-[13px] font-semibold text-[var(--text-primary)] mb-1.5">
               {modo === "ajuste" ? "Descreva o ajuste" : "Escreva sua dúvida"}
             </label>
             <textarea
@@ -467,7 +467,7 @@ function DetalheDaAprovacao({
                 : "A dúvida fica presa a este card e não muda sua decisão. O prazo pausa até a agência responder."}
             </p>
             {(erroLocal || erro) && (
-              <p role="alert" className="text-[12.5px] font-semibold text-[var(--danger)] mt-1.5">{erroLocal ?? erro}</p>
+              <p role="alert" className="text-[13px] font-semibold text-[var(--danger)] mt-1.5">{erroLocal ?? erro}</p>
             )}
             <div className="flex gap-2 mt-3">
               <button
@@ -491,14 +491,14 @@ function DetalheDaAprovacao({
         )}
 
         {pendente && modo === null && erro && (
-          <p role="alert" className="text-[12.5px] font-semibold text-[var(--danger)] mt-3">{erro}</p>
+          <p role="alert" className="text-[13px] font-semibold text-[var(--danger)] mt-3">{erro}</p>
         )}
 
         {/* `!pendente` sozinho pegava o card SEM CORPO junto — e ele anunciava
             "Decisão registrada" em verde para uma decisão que nunca houve. Card
             vazio não é decidido: é uma entrega que ainda não chegou. */}
         {!pendente && !semCorpo && (
-          <div className="mt-4 rounded-[10px] bg-[#DCFCE7] text-[#166534] px-3.5 py-2.5 text-[12.5px]">
+          <div className="mt-4 rounded-[10px] bg-[#DCFCE7] text-[#166534] px-3.5 py-2.5 text-[13px]">
             <b>Decisão registrada{ap.reviewedAt ? ` em ${dataCurta(ap.reviewedAt)}` : ""}.</b>{" "}
             Registro imutável: os dois lados param de rediscutir o que já foi decidido.
           </div>
@@ -513,7 +513,7 @@ function DetalheDaAprovacao({
                 <div key={c.id} className="flex gap-2.5 py-2.5 border-t border-[var(--border)] first:border-t-0">
                   <span
                     aria-hidden
-                    className={`shrink-0 w-7 h-7 rounded-full text-[10px] font-bold flex items-center justify-center ${c.authorRole === "client" ? "bg-[var(--accent)] text-[var(--text-secondary)]" : "bg-[#070A1F] text-[#9AF5F0]"}`}
+                    className={`shrink-0 w-7 h-7 rounded-full text-[12px] font-bold flex items-center justify-center ${c.authorRole === "client" ? "bg-[var(--accent)] text-[var(--text-secondary)]" : "bg-[#070A1F] text-[#9AF5F0]"}`}
                   >
                     {c.authorRole === "client" ? "VC" : "DD"}
                   </span>
@@ -522,7 +522,7 @@ function DetalheDaAprovacao({
                       {c.authorRole === "client" ? "Você" : c.authorName || "Dioli Digital"}
                       <span className="font-normal text-[var(--text-muted)]"> · {dataCurta(c.createdAt)}{KIND_LABEL[c.kind] ?? ""}</span>
                     </p>
-                    <p className="text-[12.5px] text-[var(--text-secondary)] mt-0.5 whitespace-pre-wrap">{c.body}</p>
+                    <p className="text-[13px] text-[var(--text-secondary)] mt-0.5 whitespace-pre-wrap">{c.body}</p>
                   </div>
                 </div>
               ))}
@@ -576,7 +576,7 @@ function DetalheDoOrcamento({
 
   return (
     <div className="space-y-4">
-      <button onClick={onVoltar} className="inline-flex items-center gap-1.5 text-[12.5px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]" style={{ touchAction: "manipulation" }}>
+      <button onClick={onVoltar} className="inline-flex items-center gap-1.5 text-[13px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]" style={{ touchAction: "manipulation" }}>
         ‹ Aprovações
       </button>
 
@@ -609,21 +609,21 @@ function DetalheDoOrcamento({
           </div>
         ) : (
           <div className="mt-4 rounded-[10px] bg-[var(--bg-elevated)] border border-[var(--border)] px-3.5 py-3">
-            <p className="text-[12.5px] text-[var(--text-secondary)]">
+            <p className="text-[13px] text-[var(--text-secondary)]">
               <b>Ainda não há preço nesta proposta.</b> A equipe está montando o orçamento — assim que chegar, ele aparece aqui e você decide.
             </p>
           </div>
         )}
 
         {pedido.motivo && (
-          <p className="mt-3 text-[12.5px] text-[var(--text-secondary)] leading-relaxed">{pedido.motivo}</p>
+          <p className="mt-3 text-[13px] text-[var(--text-secondary)] leading-relaxed">{pedido.motivo}</p>
         )}
 
         {pendente ? (
           ajustando ? (
             /* A TERCEIRA SAÍDA, aberta. Campo obrigatório: vazio não envia. */
             <div className="mt-4">
-              <label htmlFor="apontamento-orcamento" className="block text-[12.5px] font-semibold text-[var(--text-primary)]">
+              <label htmlFor="apontamento-orcamento" className="block text-[13px] font-semibold text-[var(--text-primary)]">
                 O que precisa mudar nesta proposta?
               </label>
               <p className="text-[12px] text-[var(--text-muted)] mt-0.5 mb-2 leading-relaxed">
@@ -638,7 +638,7 @@ function DetalheDoOrcamento({
                 placeholder="Ex.: o valor está acima do que posso agora; consegue fechar só os 2 primeiros carrosséis?"
                 className="w-full rounded-[10px] border border-[var(--border-strong)] bg-white px-3.5 py-2.5 text-[14px] text-[var(--text-primary)] leading-relaxed outline-none focus:border-[var(--text-primary)] transition-colors"
               />
-              {erroLocal && <p role="alert" className="text-[12.5px] font-semibold text-[var(--danger)] mt-1.5">{erroLocal}</p>}
+              {erroLocal && <p role="alert" className="text-[13px] font-semibold text-[var(--danger)] mt-1.5">{erroLocal}</p>}
               <div className="mt-2.5 flex flex-col sm:flex-row gap-2">
                 <button
                   disabled={enviando || !apontamento.trim()}
@@ -695,7 +695,7 @@ function DetalheDoOrcamento({
             </>
           )
         ) : (
-          <div className="mt-4 rounded-[10px] bg-[var(--bg-elevated)] border border-[var(--border)] px-3.5 py-2.5 text-[12.5px] text-[var(--text-secondary)]">
+          <div className="mt-4 rounded-[10px] bg-[var(--bg-elevated)] border border-[var(--border)] px-3.5 py-2.5 text-[13px] text-[var(--text-secondary)]">
             {pedido.orcamento === "aceito"
               ? <><b>Você aprovou este orçamento.</b> O trabalho já está na fila da equipe — o andamento aparece em Projetos.</>
               : pedido.orcamento === "recusado"
@@ -706,7 +706,7 @@ function DetalheDoOrcamento({
           </div>
         )}
 
-        {erro && <p role="alert" className="text-[12.5px] font-semibold text-[var(--danger)] mt-3">{erro}</p>}
+        {erro && <p role="alert" className="text-[13px] font-semibold text-[var(--danger)] mt-3">{erro}</p>}
       </div>
     </div>
   );
@@ -824,7 +824,7 @@ export function AprovacoesDoCliente({
     >
       <span aria-hidden className="shrink-0 w-11 h-11 rounded-[9px] bg-[var(--accent-light)] border border-[var(--border)] flex items-center justify-center text-[15px]">💬</span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[13.5px] font-semibold text-[var(--text-primary)] leading-snug">{p.titulo}</span>
+        <span className="block text-[14px] font-semibold text-[var(--text-primary)] leading-snug">{p.titulo}</span>
         <span className="block text-[12px] text-[var(--text-secondary)] mt-0.5">
           Orçamento
           {typeof p.preco === "number" && p.preco > 0 ? ` · ${emReais(p.preco)}` : ""}
@@ -871,7 +871,7 @@ export function AprovacoesDoCliente({
       >
         <Miniatura ap={ap} token={token} />
         <span className="min-w-0 flex-1">
-          <span className="block text-[13.5px] font-semibold text-[var(--text-primary)] leading-snug">{titulo}</span>
+          <span className="block text-[14px] font-semibold text-[var(--text-primary)] leading-snug">{titulo}</span>
           <span className="text-[12px] text-[var(--text-secondary)] flex items-center gap-1.5 mt-0.5 flex-wrap">
             <span>{contexto}{meta.length > 0 ? ` · ${meta.join(" · ")}` : ""}</span>
             <TagVersao n={ap.version} />
@@ -890,7 +890,7 @@ export function AprovacoesDoCliente({
     <div className="space-y-5">
       <div>
         <h2 className="text-[18px] font-bold text-[var(--text-primary)]">Aprovações</h2>
-        <p className="text-[12.5px] text-[var(--text-secondary)] mt-0.5">
+        <p className="text-[13px] text-[var(--text-secondary)] mt-0.5">
           O único lugar onde você decide: entregas e orçamentos, juntos — e o registro do que já foi decidido.
         </p>
       </div>
@@ -900,7 +900,7 @@ export function AprovacoesDoCliente({
         {totalAguardando === 0 ? (
           <div className="bg-white rounded-[14px] border border-[var(--border)] p-7 text-center">
             <div aria-hidden className="w-10 h-10 rounded-full bg-[var(--success-bg)] text-[var(--success)] text-lg flex items-center justify-center mx-auto mb-2.5">✓</div>
-            <p className="text-[13.5px] font-semibold text-[var(--text-primary)]">Nada esperando sua decisão</p>
+            <p className="text-[14px] font-semibold text-[var(--text-primary)]">Nada esperando sua decisão</p>
             <p className="text-[12px] text-[var(--text-muted)] mt-1 max-w-[42ch] mx-auto leading-relaxed">
               Toda entrega e todo orçamento que precisar de um &quot;sim&quot; seu chega aqui — e você recebe um aviso.
               Enquanto isso, o andamento do trabalho fica em <b>Projetos</b>.
@@ -911,7 +911,7 @@ export function AprovacoesDoCliente({
             {decisaoDaEsteira && (
               <div className="rounded-[14px] border border-[var(--border-strong)] bg-white p-5 shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
                 <h4 className="text-[15px] font-bold text-[var(--text-primary)] leading-snug">{decisaoDaEsteira.titulo}</h4>
-                <p className="text-[12.5px] text-[var(--text-secondary)] mt-1 leading-relaxed max-w-[62ch]">{decisaoDaEsteira.descricao}</p>
+                <p className="text-[13px] text-[var(--text-secondary)] mt-1 leading-relaxed max-w-[62ch]">{decisaoDaEsteira.descricao}</p>
                 <button
                   disabled={enviando}
                   onClick={() => void decisaoDaEsteira.decidir()}
@@ -920,7 +920,7 @@ export function AprovacoesDoCliente({
                 >
                   {enviando ? "Registrando…" : decisaoDaEsteira.rotulo}
                 </button>
-                {erro && <p role="alert" className="text-[12.5px] font-semibold text-[var(--danger)] mt-2">{erro}</p>}
+                {erro && <p role="alert" className="text-[13px] font-semibold text-[var(--danger)] mt-2">{erro}</p>}
               </div>
             )}
             {(orcamentosPendentes.length > 0 || pendentes.length > 0) && (
@@ -944,7 +944,7 @@ export function AprovacoesDoCliente({
           <div className="bg-white rounded-[14px] border border-[var(--border)] overflow-hidden shadow-[0_1px_3px_rgba(7,10,31,0.04)]">
             {emProducao.map(linha)}
           </div>
-          <p className="text-[11.5px] text-[var(--text-muted)] mt-2 px-1 leading-relaxed">
+          <p className="text-[12px] text-[var(--text-muted)] mt-2 px-1 leading-relaxed">
             Estas entregas ainda não têm material para você ver — por isso não pedimos decisão sobre elas.
             Assim que ficarem prontas, elas sobem para <b>Aguardando você</b> e você recebe um aviso.
           </p>
@@ -958,7 +958,7 @@ export function AprovacoesDoCliente({
             {orcamentosDecididos.map(linhaDeOrcamento)}
             {decididas.map(linha)}
           </div>
-          <p className="text-[11.5px] text-[var(--text-muted)] mt-2 px-1">
+          <p className="text-[12px] text-[var(--text-muted)] mt-2 px-1">
             Decisão registrada é imutável: muda-se de ideia criando uma nova rodada, nunca reescrevendo a anterior.
           </p>
         </section>

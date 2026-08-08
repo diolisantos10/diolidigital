@@ -1,5 +1,138 @@
 # Pendências — o que está aberto
 
+## 🟢 08/08/2026 — O PORTAL DO CLIENTE TEM UMA TAREFA SÓ, E AGORA A TELA SERVE A ELA
+
+Ordem do CEO: *"está uma coisa totalmente perdida e sem sentido"*. Auditado pelo
+`experiencia` (somente leitura), executado pelo `interface`, auditado pelo `pm`.
+
+**A UMA COISA que o cliente vem fazer no portal — a pergunta que ninguém tinha
+feito:**
+
+> **"Destravar o trabalho que está parado esperando uma decisão minha."**
+
+A casa **já sabia** a resposta (o cabeçalho conta pendências, o bloco 1 se chama
+"O QUE DEPENDE DE VOCÊ", Aprovações se declara "o único lugar onde você decide")
+— e **só 1 das 7 abas servia a ela**. As outras 6 serviam a *acompanhar*, que é o
+que a agência quer mostrar, não o que o cliente veio fazer. É essa distância que
+produzia o "perdido".
+
+⚠️ **É HIPÓTESE, marcada como hipótese.** Ninguém observou cliente real usando.
+**O teste que confirma:** registrar por sessão quais abas recebem clique e
+quantas sessões terminam sem nenhuma decisão. Se a maioria tocar só Início +
+Aprovações, está confirmado.
+
+### 🔴 O pior defeito não era feio — era o primeiro dia de TODO cliente pagante
+
+O servidor **já distinguia**: `404 {"error":"Ainda não há projeto para
+acompanhar"}`. `EsteiraDoCliente.tsx:104` colapsava **todo** `!ok` numa
+mensagem só: *"Não consegui carregar agora. Tente atualizar a página."*
+
+- **Atualizar nunca resolvia** — não havia projeto. O cliente recarregava,
+  desistia e ligava para o PM por um não-problema.
+- **Aparecia DUAS vezes** no mesmo percurso: Início (bloco 2) e Projetos.
+- É a **gêmea invertida do incidente do Drive** (07/08). Lá, falha de leitura
+  virou fato sobre o cliente. Aqui, **ausência benigna virou falha inventada**.
+  A origem é a mesma nos dois: **um `if` que trata "não sei" e "quebrou" como a
+  mesma coisa.**
+
+Agora há estado vazio próprio — *"Seu projeto está sendo montado"* — que nomeia o
+próximo passo, não culpa o cliente e **não promete data**. Travado por teste.
+
+### As 7 abas viraram 5 — nada foi apagado, tudo é reversível
+
+Medido a 375px: **4 das 7 abas nasciam fora da tela** (Resultados em x=293,
+Conta em x=589, tela=375). Aba que não aparece não separa nada — só esconde.
+Agora **5 abas, todas visíveis, sem rolagem** (x=12 a 363).
+
+| Antes | Agora | Por quê |
+|---|---|---|
+| `Resultados` | **bloco do Início, só quando existe número** | sem Meta conectada só sabia dizer "nenhuma rede conectada" — um beco, e a 1ª aba fora da tela |
+| `Arquivos` | **"Enviar arquivos"** (`Enviar` no celular) | não é acervo, é caixa de envio |
+| `Conta` + `Integrações` | **"Sua conta"**, duas seções rotuladas | ambas são sobre o cliente, não sobre o trabalho |
+
+- **Nenhum componente foi removido.** Os 10 de `components/portal/` continuam lá.
+- **Endereço antigo não vira beco:** `?secao=integracoes` e `?secao=resultados`
+  ainda chegam ao lugar certo. Travado por teste.
+- **O `pm` BARROU a eliminação da aba `Conta`** que o `experiencia` propôs: há
+  trava registrada em 07/08, e o conteúdo estar todo em *"Não informado"* é
+  **problema de DADO, não de tela** — apagar a aba esconderia o furo. Fusão, não
+  exclusão.
+
+### 🔴 UMA TRAVA DE TESTE FOI REESCRITA — declarado, não escondido
+
+`__tests__/portal/um-lugar-para-decidir.test.ts` exigia *"a navegação tem uma aba
+Integrações"* (decisão de 07/08). A fusão quebra a **letra** dela.
+
+**A regra sobreviveu; o mecanismo mudou.** O teste passou a travar o que sempre
+importou — dois assuntos com nome próprio, nenhum bloco misturado, **nenhum
+conteúdo perdido** — e ganhou anti-regressão que não existia (componentes não
+apagados, endereços antigos ainda resolvem). **O `pm` autorizou a fusão no
+despacho e responde por ela.** Quem discordar, o caminho é reabrir aqui.
+
+### As outras correções
+
+- **Cabeçalho:** 186px → 144px. A marca da Dioli ocupava ~23% da primeira tela do
+  cliente; o **nome de quem paga** virou o primeiro elemento.
+- **A porta de vender saiu do rodapé.** ⚠️ **A premissa que circulava estava
+  errada:** `SolicitarAlgo` na linha 1311 é folha sobreposta montada na raiz —
+  mover aquela linha não muda nada na tela. O enterrado era o **gatilho**
+  (`page.tsx:889` e `:961`, a ~806px, abaixo da dobra) **e ele estava coberto**
+  pelo botão flutuante "Fale com seu PM". Agora fica no topo quando nada trava, e
+  **logo abaixo da pendência** quando algo trava — nunca na frente dela.
+- **53 correções de escala tipográfica.** `11.5px` e `10px` estavam **abaixo do
+  piso** do manual. Hex solto na página: 15 → 5 (sobram só gradientes de marca).
+
+**Notas do `interface` (0–10):** hierarquia **9** · tipografia **9** ·
+espaçamento **8** · consistência **9**. Evidência antes/depois nos 3 tamanhos +
+os três estados obrigatórios em `scratchpad/shots/` (**não commitado**).
+
+**Portão:** `npx tsc --noEmit` limpo · **2709 testes em 168 arquivos, todos
+verdes** · `npm run build` limpo. As duas falhas herdadas
+(`as-cinco-plataformas`, `passagem-do-pedido`) **passaram** nesta rodada.
+
+### 🔴 O QUE NÃO FOI FEITO — com dono, e o motivo
+
+- [ ] `esteira` — **duas verdades na mesma tela.** No Foocci o bloco 1 diz
+      *"aguarda sua aprovação"* e o bloco 2, colado abaixo, diz *"quando algo
+      precisar de você, aparece nas pendências"*. A API confirma:
+      `aBolaEstaComVoce: false` com 1 aprovação pendente. **É o defeito nº 2 do
+      Drive repetido** — duas fontes de verdade adjacentes. Regra de servidor,
+      fora do escopo do `interface`.
+- [ ] `esteira` — **o card não diz O QUE se aprova** quando as peças estão em
+      "arte em produção". O cliente aprova o texto sem ver a arte que vai ao ar.
+- [ ] `esteira` — **"Enviar arquivos" promete listar o que a equipe precisa e
+      nunca lista.**
+- [ ] `esteira` — **Projetos anuncia a mesma pendência duas vezes** (aviso do
+      topo + banner do calendário). Sinal repetido, não decisão repetida.
+- [ ] `plataforma` — **logo do cliente no cabeçalho.** ⚠️ **Correção:** a fonte
+      **não** é `lib/agency/execution/logo.ts` (aquilo é gerador de kit de
+      marca) — é `lib/agency/esteira/material-do-drive.ts::logoDoCliente()`, que
+      **exige Drive conectado + logo declarado**, e **nenhum cliente tem**. **O
+      fallback em nome de texto é o caso NORMAL, não a exceção.** Nada inventado.
+- [ ] `experiencia` — **o chat flutuante recorta texto a 375px.** Colisão com o
+      card de pedido está em **0, medido**, mas o `DESIGN.md` só permite
+      flutuante "sobre a margem" e **a 375px não existe margem**. Resolver de vez
+      é tirar o chat do flutuante — isso é *"qual destino existe"*, pergunta do
+      `experiencia`. Registrado em `DESIGN.md`.
+- [ ] **Cardápio de tipos** — o CEO pediu; a folha já tem *"Para quê?"* com 5
+      opções, mas é **motivo**, não **tipo de entregável**. **Precisa do CEO
+      dizer qual dos dois ele quis.**
+- [ ] **Cartões vazios que JÁ estão no banco de produção** continuam lá.
+      Recomendação mantida: **ocultar por leitura, nunca apagar linha**. Nada
+      foi rodado em produção.
+
+### 🟠 Lacunas de ambiente achadas nesta rodada
+
+- **A constituição dos Essenciais não existe nesta cópia do kit.**
+  `/workspace/dioli-brain-kit` existe mas vai só até `16-raio-x-noturno.md` —
+  **não há `21-elenco-obrigatorio.md` nem `23-constituicao-dos-essenciais.md`**,
+  que são o que `.claude/agents/experiencia.md` e `interface.md` mandam ler
+  primeiro. Os dois trabalharam pelo próprio perfil. **É lacuna de versão do
+  kit** — vale um `git pull` antes do próximo despacho.
+- **Não exercitado:** fluxo de orçamento com as 3 saídas (nenhum cliente local
+  tinha orçamento pendente), Resultados com número real, logo de cliente
+  renderizado. Nenhum dos dois tokens tem Meta ou Drive conectados.
+
 ## 🟢 08/08/2026 — O GOOGLE ENTROU NO ADMIN: `/agency/google`, item próprio no menu
 
 **Pedido urgente do CEO:** *"preciso da integração das ferramentas do Google nas

@@ -183,8 +183,8 @@ export function ConexoesDoCliente({ token }: { token: string }) {
           se chama Integrações: dois nomes para a mesma coisa, um embaixo do
           outro. Aqui vira o rótulo da SEÇÃO, no degrau abaixo do título. */}
       <div>
-        <h3 className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--text-muted)]">Disponíveis agora</h3>
-        <p className="mt-1.5 text-[12.5px] text-[var(--text-secondary)] max-w-[62ch] leading-relaxed">
+        <h4 className="text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--text-muted)]">Disponíveis agora</h4>
+        <p className="mt-1.5 text-[13px] text-[var(--text-secondary)] max-w-[62ch] leading-relaxed">
           Conecte o Facebook e o Instagram do seu negócio para a Dioli publicar e
           trazer seus resultados direto para este portal, e o Google Drive para a
           equipe usar seu logo e suas fotos reais nas peças. Você controla o
@@ -215,7 +215,7 @@ export function ConexoesDoCliente({ token }: { token: string }) {
       {/* Resultado do popup (sucesso/erro) */}
       {popupMsg && (
         <div
-          className={`rounded-[12px] border px-4 py-3 text-[12.5px] leading-snug ${
+          className={`rounded-[12px] border px-4 py-3 text-[13px] leading-snug ${
             popupMsg.ok
               ? "bg-[#DCFCE7] border-[#86EFAC] text-[#166534]"
               : "bg-[#FEF2F2] border-[#FCA5A5] text-[#991B1B]"
@@ -248,7 +248,7 @@ export function ConexoesDoCliente({ token }: { token: string }) {
                   <p className="text-[12px] font-semibold text-[#9B7B2D]">
                     Falta autorizar quais contas.
                   </p>
-                  <p className="text-[11.5px] text-[#9B7B2D] leading-snug">
+                  <p className="text-[12px] text-[#9B7B2D] leading-snug">
                     Enquanto nada estiver marcado, a Dioli não lê nenhuma conta sua.
                   </p>
                 </div>
@@ -298,7 +298,7 @@ export function ConexoesDoCliente({ token }: { token: string }) {
           {lacunas.length > 0 && (
             <ul className="mt-3 space-y-1">
               {lacunas.map((l, i) => (
-                <li key={i} className="text-[11.5px] text-[var(--text-muted)] leading-snug">• {l}</li>
+                <li key={i} className="text-[12px] text-[var(--text-muted)] leading-snug">• {l}</li>
               ))}
             </ul>
           )}
@@ -366,9 +366,9 @@ export function ConexoesDoCliente({ token }: { token: string }) {
           diferentes. Encaixado no meio, o vazio "Nenhuma conta conectada" da
           Meta caía logo abaixo do cartão do Drive e parecia ser dele. */}
       <div className="pt-1">
-        <h3 className="text-[13px] font-bold text-[var(--text-primary)] mb-2">
+        <h4 className="text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--text-muted)] mb-2">
           Seu material de marca
-        </h3>
+        </h4>
         <DriveDoCliente token={token} />
       </div>
     </div>
