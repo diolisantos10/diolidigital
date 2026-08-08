@@ -1,5 +1,190 @@
 # Pendências — o que está aberto
 
+## 🔴 08/08/2026 — O MOLDE NÃO EXISTE EM PRODUÇÃO. É P0, E É POR ISSO QUE ZERO PEÇAS SAÍRAM HOJE
+
+**A consequência, primeiro: nenhuma peça pode ser produzida hoje, para cliente
+nenhum.** Não é fila parada nem falta de despacho — é ferramenta ausente.
+
+**Medido, não deduzido.** `GET /api/capacidades` em produção (commit `27be1af`,
+depois `ffe6329`) respondeu:
+
+```
+montar-molde → pronta: false · onde_achei_o_navegador: null
+```
+
+Não há Chromium no container — **mesmo com `playwright` em `dependencies` e
+`chromium` em `railpack.json → deploy.aptPackages`**. O `ffmpeg`, que vem da
+MESMA lista de `aptPackages`, responde `pronta: true`: **a lista É aplicada; o
+Chromium é que não aparece em `/usr/bin`.** A hipótese mais provável (não
+confirmada — não há CLI do Railway nesta execução) é o pacote `chromium` do
+Ubuntu ser stub de snap, que instala sem deixar binário.
+
+### Por que isto vira ZERO peças, e não peças piores
+
+A trava de 07/08 está correta e está no ar: falha de INFRA no molde devolve
+`ok:false` e **a peça não é gravada**. Ferramenta faltando é problema da
+agência, não um entregável de qualidade menor para cliente pagante.
+
+> **Não produzi peça em produção nesta rodada, e isso foi decisão, não
+> omissão.** Rodar a esteira hoje geraria a foto de IA de cada peça — que
+> **custa, por peça** — para descobrir logo depois que não há como aplicar o
+> molde, e jogar tudo fora. Zero entregáveis, com fatura.
+
+### O que os 6 posts do CityJobs no banco realmente são
+
+Os 6 estão em `draft`/`interno` com `lastError` dizendo
+`[molde] peça entregue só com a foto (sem camada de texto): sem_navegador`.
+**São de 07/08, anteriores ao fail-closed.** São foto crua de IA, sem título,
+sem a cor da marca, sem selo e sem assinatura. **Não são entregáveis** e não
+devem ser apresentadas a ninguém.
+
+### O que fechou nesta rodada (`4244f83`)
+
+`produzirArtesPendentes` passou a consultar `renderizadorDisponivel()` **antes
+de olhar a fila**. Sem navegador, a rodada para sem gastar um centavo, e o
+despertador **grita** o motivo no pulso — antes, a casa produziria zero peça por
+dia e o pulso registraria "0 falhas", o pior tipo de número, porque tem cara de
+saúde. É o mesmo silêncio que deixou o molde desligado por dias, com a única
+testemunha dentro do `lastError` de cada post.
+
+⚠️ **Isto NÃO conserta o P0.** Só para de cobrar por ele. **O P0 continua aberto
+e sem dono: fazer o Chromium existir no container.** Enquanto ele não existir,
+a agência não produz peça — para nenhum dos 5 clientes.
+
+**Dono sugerido: `plataforma`.** Caminhos, do mais provável ao menos:
+1. `playwright install --with-deps chromium` no build (põe o binário em
+   `~/.cache/ms-playwright`, que `acharExecutavel()` já procura);
+2. trocar o nome do pacote apt (`chromium-browser`, ou a base do Railpack);
+3. `PLAYWRIGHT_CHROMIUM_EXECUTABLE` apontando para o caminho real.
+**Nenhum foi tentado daqui: não há como inspecionar o container nesta execução,
+e um build quebrado pararia três agentes.**
+
+## 🟢 08/08/2026 — O CARD DO PACOTE PARA DE PEDIR ASSINATURA EM BRANCO (`1184b90`, no ar)
+
+**O CEO abriu o portal do CityJobs e mandou print:** o card do topo dizia *"O
+pacote inteiro está pronto para você — terminamos e organizamos tudo"*, com o
+botão **"Aprovar tudo"**. Três dedos abaixo, as **3 entregas** (Analytics, Social
+Media, Estratégia) diziam *"material ainda não subiu"*, em "Em produção na
+Dioli". As duas não podem ser verdade — e clicar aprovaria **nada**.
+
+É o **mesmo defeito consertado em 07/08 no card individual, um nível acima**.
+Passou porque a trava de 07/08 nasceu na leitura do card (`semConteudo`) e o card
+do **pacote** não a consultava: ele saía de `presentedAt` sozinho — um carimbo
+que só diz *"o PM apresentou"*, nunca *"há o que ver"*.
+
+**A regra, em três portas, e nenhuma é redundante:**
+
+- **`lerFase`** — apresentado com ZERO entregas decidíveis não anuncia pacote
+  pronto, a bola volta para a agência e **o botão some junto** (as duas telas
+  derivam o botão da etapa).
+- **`aprovarPacote`** — **TRAVA, não aviso.** `POST /api/portal/esteira` é
+  pública por token: esconder o botão não impede um link antigo. A recusa vem
+  **antes da primeira escrita** — daqui para baixo a função abre o ciclo e chama
+  `aprovarCalendario`, o **único consentimento de publicação desta casa**. E no
+  pacote **misto**, o `updateMany` passou a casar por id da lista de prontas:
+  `status: "pending"` sozinho carimbava a entrega que o cliente nunca viu.
+- **A tela** — **lista o que está dentro**, item por item, e nomeia o que fica
+  de fora.
+
+**O texto honesto de baixo não foi tocado** — era o topo que mentia.
+
+**Verificado EM PRODUÇÃO, no projeto do print:**
+
+```
+etapa   = "Ainda estamos produzindo"
+pacote  = { pedeAprovacao: false, prontas: [],
+            emProducao: ["Analytics", "Social Media", "Estratégia"] }
+POST aprovar_pacote → { ok: false, "não há nenhuma entrega com material
+                        para aprovar — o pacote está em produção." }
+```
+
+E **não dispara onde não há risco**: Foocci e Dioli Digital Studio ficaram
+inalterados (`emProducao: []`).
+
+**UMA implementação da regra "este card tem corpo", não duas.** A consulta, o
+agrupamento dos genéricos, as peças estruturadas e o casamento
+entrega→departamento saíram de `portal-data` para `lib/agency/esteira/pacote.ts`
+e ganharam um **segundo chamador**. Nada foi reescrito. Duas fontes de verdade
+adjacentes é o defeito nº 2 do incidente do Drive — e esse mesmo casamento já
+quebrou este portal em 07/08, divergindo em 11 dos 14 casos.
+
+**ZERO e "NÃO SEI" não dividem o mesmo pixel** (`RetratoDoPacote.medido`): a
+LEITURA trata não-medido como não-medido e mantém a etapa antiga; a ESCRITA
+trata não-medido como **recusa**.
+
+> 🟠 **DUAS ASSERÇÕES MUDARAM DE LADO, declaradas no próprio arquivo.**
+> `jornada-real` afirmava `fase === "aprovacao_cliente"` no passo 7 — quando o
+> passo 6, logo acima, já **provava com banco real** que `deptsComCorpo` é
+> VAZIO. A jornada dizia *"a bola passou para o cliente"* sobre um pacote sem
+> uma linha para ler: **o defeito escrito como contrato, pela segunda vez no
+> mesmo teste.** Agora prova os dois mundos — escada em sombra (não cobra, e o
+> servidor recusa o aval) e departamento que subiu de degrau (aí sim a bola
+> passa). `marcos.test` ganhou as três metades que faltavam.
+
+**Portão:** `npx tsc --noEmit` limpo · **2868 testes em 176 arquivos, todos
+verdes** · `npm run build` limpo.
+
+## 🟢 08/08/2026 — A PERGUNTA QUE NUNCA CHEGOU AO CLIENTE CHEGOU (medido antes/depois)
+
+O despertador de `27be1af` entrou em produção nesta rodada e **cobrou sozinho** o
+pedido de material preso desde 01/08. Medido no `/api/cron/raio-x`, antes e
+depois do deploy: `materiaisNaoPerguntados: 1 → 0`. **Nenhuma intervenção manual
+— foi o mecanismo.**
+
+## 🔴 08/08/2026 — A FILA DE ENTRADA NUNCA FOI VARRIDA. É O DEFEITO QUE CRIOU O CARGO DE PM
+
+`GET /api/brain/client-requests` em produção mostra **3 solicitações em `"new"`**,
+e nenhuma delas é de hoje:
+
+| Solicitação | Desde | Parada há |
+|---|---|---|
+| **Sushi Cazza** | 18/06/2026 | **51 dias** |
+| **Camila Pereira** | 10/07/2026 | **29 dias** |
+| **Beatriz** | 11/07/2026 | **28 dias** |
+
+O cargo de PM nasceu em 06/08 porque **um** pedido ficou **dois dias** em
+`"novo"`. Estes três estão parados há **semanas** e não aparecem em alarme
+nenhum: o raio-x mede `pedidosDoClienteAbertos` (`ContentRequest`), que é outra
+tabela — **`ClientRequestDb` em `"new"` não é varrido por ninguém.**
+
+⚠️ **Não os movi.** Duas delas não têm `clientId` e a terceira aponta para uma
+das **duas fichas duplicadas de "Camila Pereira"** — decidir qual é a boa é
+decisão de negócio, e escolher por inferência é o que a lei da casa proíbe.
+
+- [ ] `qualidade` — **varredura de `ClientRequestDb` em `"new"` há +24h**, com
+      achado próprio no raio-x. Hoje o alarme não existe.
+- [ ] **CEO/Diretor** — as três solicitações precisam de destino: atender,
+      recusar ou arquivar.
+- [ ] `esteira` — **"Camila Pereira" tem DUAS fichas de cliente**
+      (`cmqyb0bpo…` e `cmrt7aecz…`), ambas com zero de tudo. Fundir é afirmar
+      que são o mesmo negócio; não fundi.
+
+## 🟠 08/08/2026 — O QUE ESTÁ PARADO ESPERANDO GENTE (e está CERTO estar)
+
+**3 pedidos em `precisa_decisao`** — e nos três o fail-closed funcionou: a
+máquina se recusou a adivinhar preço ou escopo e escalou. **Nenhum é bug; todos
+esperam uma frase de gente.**
+
+1. **CityJobs** (`cmsj7mev9…`, +24h) — *"Você pediu 2 peças e a minha tabela tem
+   preço fechado de uma."* ⚠️ **É o pedido do próprio CEO** (*"preciso de dois
+   posts por dia… preciso que isso comece hoje"*) — a origem de toda esta frente.
+2. **Foocci** (`cmsj7e50a…`) — roteiro **e** peças são trabalhos com preços
+   diferentes; a máquina não escolheu por ele.
+3. **Foocci** (`cmshiesdq…`) — adiantar publicação agendada é gestão de
+   calendário, não peça nova.
+
+**2 posts agendados no passado** (Foocci, 07/08 10:00 e 08/08 10:00). **Não são
+fila morta: estão barrados pela trava de publicação orgânica**, que só o CEO
+levanta (`PUBLICACAO_ORGANICA=liberada`). **Não os reagendei** — mudar a data
+esconderia que o bloqueio é uma decisão pendente do CEO, e a trava desta casa é
+"nada é publicado".
+
+> **O `ritmoContratado` continua NULO para os 5 clientes**, como o PM anterior
+> registrou: não existe coluna que o guarde. Para o CityJobs o número está no
+> `rawContext` do briefing (**2 posts/dia, 60/mês**) — texto livre, não campo.
+> **Não o promovi a dado**: inferir contrato de prosa é exatamente o que a lei
+> da casa proíbe. **Quem fecha isto é o CEO.**
+
 ## 🔴 08/08/2026 — VERIFICAÇÃO EM PRODUÇÃO: O CITYJOBS NÃO CAIU. QUEM MENTIU FOI A TELA (E O DIRETOR)
 
 **Pedido do CEO:** ele abriu o portal do CityJobs e leu **"Conectada · desde
