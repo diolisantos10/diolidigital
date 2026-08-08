@@ -107,7 +107,8 @@ export const ModelName = {
   RateLimitBucket: 'RateLimitBucket',
   DepartmentLadder: 'DepartmentLadder',
   DepartmentLadderRecord: 'DepartmentLadderRecord',
-  ConexaoGasta: 'ConexaoGasta'
+  ConexaoGasta: 'ConexaoGasta',
+  EmailDoRadar: 'EmailDoRadar'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1147,6 +1148,23 @@ export const ConexaoGastaScalarFieldEnum = {
 } as const
 
 export type ConexaoGastaScalarFieldEnum = (typeof ConexaoGastaScalarFieldEnum)[keyof typeof ConexaoGastaScalarFieldEnum]
+
+
+export const EmailDoRadarScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  mensagemId: 'mensagemId',
+  uid: 'uid',
+  remetente: 'remetente',
+  assunto: 'assunto',
+  recebidoEm: 'recebidoEm',
+  processadoEm: 'processadoEm',
+  resultado: 'resultado',
+  motivo: 'motivo',
+  oportunidadeId: 'oportunidadeId'
+} as const
+
+export type EmailDoRadarScalarFieldEnum = (typeof EmailDoRadarScalarFieldEnum)[keyof typeof EmailDoRadarScalarFieldEnum]
 
 
 export const SortOrder = {

@@ -440,7 +440,8 @@ export const ModelName = {
   RateLimitBucket: 'RateLimitBucket',
   DepartmentLadder: 'DepartmentLadder',
   DepartmentLadderRecord: 'DepartmentLadderRecord',
-  ConexaoGasta: 'ConexaoGasta'
+  ConexaoGasta: 'ConexaoGasta',
+  EmailDoRadar: 'EmailDoRadar'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -456,7 +457,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "lancamentoFinanceiro" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord" | "conexaoGasta"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "lancamentoFinanceiro" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord" | "conexaoGasta" | "emailDoRadar"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -4678,6 +4679,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    EmailDoRadar: {
+      payload: Prisma.$EmailDoRadarPayload<ExtArgs>
+      fields: Prisma.EmailDoRadarFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.EmailDoRadarFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailDoRadarPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.EmailDoRadarFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailDoRadarPayload>
+        }
+        findFirst: {
+          args: Prisma.EmailDoRadarFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailDoRadarPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.EmailDoRadarFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailDoRadarPayload>
+        }
+        findMany: {
+          args: Prisma.EmailDoRadarFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailDoRadarPayload>[]
+        }
+        create: {
+          args: Prisma.EmailDoRadarCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailDoRadarPayload>
+        }
+        createMany: {
+          args: Prisma.EmailDoRadarCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.EmailDoRadarCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailDoRadarPayload>[]
+        }
+        delete: {
+          args: Prisma.EmailDoRadarDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailDoRadarPayload>
+        }
+        update: {
+          args: Prisma.EmailDoRadarUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailDoRadarPayload>
+        }
+        deleteMany: {
+          args: Prisma.EmailDoRadarDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.EmailDoRadarUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.EmailDoRadarUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailDoRadarPayload>[]
+        }
+        upsert: {
+          args: Prisma.EmailDoRadarUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailDoRadarPayload>
+        }
+        aggregate: {
+          args: Prisma.EmailDoRadarAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateEmailDoRadar>
+        }
+        groupBy: {
+          args: Prisma.EmailDoRadarGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.EmailDoRadarGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.EmailDoRadarCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.EmailDoRadarCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -5740,6 +5815,23 @@ export const ConexaoGastaScalarFieldEnum = {
 export type ConexaoGastaScalarFieldEnum = (typeof ConexaoGastaScalarFieldEnum)[keyof typeof ConexaoGastaScalarFieldEnum]
 
 
+export const EmailDoRadarScalarFieldEnum = {
+  id: 'id',
+  workspaceId: 'workspaceId',
+  mensagemId: 'mensagemId',
+  uid: 'uid',
+  remetente: 'remetente',
+  assunto: 'assunto',
+  recebidoEm: 'recebidoEm',
+  processadoEm: 'processadoEm',
+  resultado: 'resultado',
+  motivo: 'motivo',
+  oportunidadeId: 'oportunidadeId'
+} as const
+
+export type EmailDoRadarScalarFieldEnum = (typeof EmailDoRadarScalarFieldEnum)[keyof typeof EmailDoRadarScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -5963,6 +6055,7 @@ export type GlobalOmitConfig = {
   departmentLadder?: Prisma.DepartmentLadderOmit
   departmentLadderRecord?: Prisma.DepartmentLadderRecordOmit
   conexaoGasta?: Prisma.ConexaoGastaOmit
+  emailDoRadar?: Prisma.EmailDoRadarOmit
 }
 
 /* Types for Logging */

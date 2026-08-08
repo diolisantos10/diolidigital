@@ -376,8 +376,10 @@ export function extrairPrazo(texto: string): string | null {
 
 export interface EntradaDeOportunidade {
   workspaceId: string;
-  /** Como chegou: "colar" (painel) ou "email" (alerta encaminhado). */
-  porta: "colar" | "email";
+  /** Como chegou: "colar" (painel), "email" (alerta encaminhado para a rota) ou
+   *  "caixa" (a rotina leu a caixa da agência por IMAP). As TRÊS passam por
+   *  aqui — é o que garante que a dedup e a extração valem para todas. */
+  porta: "colar" | "email" | "caixa";
   texto: string;
   url?: string | null;
   plataforma?: string | null;

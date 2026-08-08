@@ -30,6 +30,7 @@ import Button from "@/components/agency/ui/Button";
 import { mensagemDeErro, type ErroHumano } from "@/components/agency/ui/mensagemDeErro";
 import CartaoDeOportunidade from "@/components/agency/comercial/CartaoDeOportunidade";
 import SaldoDeConexoes from "@/components/agency/comercial/SaldoDeConexoes";
+import CaixaDeEntradaDaAgencia from "@/components/agency/comercial/CaixaDeEntradaDaAgencia";
 import {
   ABAS,
   PLATAFORMAS,
@@ -212,6 +213,13 @@ export default function OportunidadesPage() {
           não volta e a cota não acumula — decidir onde gastar sem ver o saldo é
           decidir no escuro. */}
       <SaldoDeConexoes versao={versaoDoSaldo} />
+
+      {/* ── A CAIXA DE ENTRADA DA AGÊNCIA ─────────────────────────────────────
+          A terceira porta: em vez de esperar alguém colar, a casa lê a caixa da
+          agência e ingere sozinha. Fica ACIMA da caixa de colar porque colar é o
+          que se faz quando a porta automática não trouxe — e porque, se a porta
+          estiver FECHADA, quem abre esta tela precisa ver isso antes de tudo. */}
+      <CaixaDeEntradaDaAgencia aoIngerir={() => void carregar()} />
 
       {/* ── Caixa de colar ───────────────────────────────────────────────────
           É o primeiro bloco da tela porque é a primeira coisa que se faz aqui:

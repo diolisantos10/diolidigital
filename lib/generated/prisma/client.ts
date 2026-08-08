@@ -504,3 +504,8 @@ export type DepartmentLadderRecord = Prisma.DepartmentLadderRecordModel
  * 
  */
 export type ConexaoGasta = Prisma.ConexaoGastaModel
+/**
+ * Model EmailDoRadar
+ * 
+ */
+export type EmailDoRadar = Prisma.EmailDoRadarModel

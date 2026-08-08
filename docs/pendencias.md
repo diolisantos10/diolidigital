@@ -1,5 +1,139 @@
 # Pendências — o que está aberto
 
+## 🟢 08/08/2026 — 99FREELAS: A CASA PASSOU A LER O GMAIL DA AGÊNCIA SOZINHA (IMAP)
+
+**O CEO recusou o caminho do Make** — *"muita função ir pelo Make, por que você
+não acessa o Gmail da agência?"*. Intermediário pago para reencaminhar o próprio
+e-mail é volta desnecessária. Agora a casa lê a caixa direto.
+
+**A terceira porta do Radar**, e ela é ADIÇÃO, não troca: `POST
+/api/agency/oportunidades/email` (o encaminhamento, com `RADAR_EMAIL_SECRET`
+confirmado em produção) **continua valendo**. Colar, encaminhar e ler a caixa —
+as três caem na MESMA função.
+
+### O que ficou de pé
+
+- `lib/agency/comercial/caixa-de-entrada/` — cofre, leitor IMAP, parser de MIME
+  e a varredura. Entra no relógio existente (`despertador.ts`, a cada 5 min) e
+  tem porta própria em `POST /api/cron/caixa-de-entrada` (`CRON_SECRET`).
+- **Tela em `/agency/oportunidades`**: colar a senha, testar a conexão, ver o
+  que a rotina já leu, e apagar a credencial.
+- **`npx tsc --noEmit` limpo · 2907 testes em 177 arquivos, todos verdes ·
+  `npm run build` limpo.** Os 7 avisos do build são **anteriores** a este
+  trabalho (`instrumentation.ts` → `armazenamento.ts` → `next.config.ts`);
+  nenhum vem daqui nem do `imapflow`.
+
+### A regra que mandou no desenho: NÃO EXISTE UM SEGUNDO CAMINHO DE QUALIFICAÇÃO
+
+A mensagem lida por IMAP passa por `registrarOportunidade` e `qualificarEGravar`
+— **as mesmas duas funções da porta de colar**. Nota, serviço, piso de preço e
+Compliance Validator. Copiar o bloco resolveria hoje e criaria a divergência de
+amanhã; é o defeito que deixou a porta do e-mail meses ingerindo sem qualificar,
+com as oportunidades nascendo no rodapé da fila. Há teste que reprova a varredura
+que importar `@/lib/ai/generate` ou chamar `prisma.oportunidade.create`.
+
+### Idempotência em DUAS camadas, e a ORDEM é o mecanismo
+
+1. `EmailDoRadar.@@unique([workspaceId, mensagemId])` — o `Message-ID`;
+2. `Oportunidade.@@unique([workspaceId, impressaoDigital])` + dedup por link.
+
+**Grava-se a oportunidade PRIMEIRO e o registro da mensagem DEPOIS.** Um processo
+que morra entre as duas relê a mensagem e é barrado pela camada 2 — nunca
+duplica. A ordem inversa perderia a oportunidade em silêncio, que é o erro mais
+caro dos dois. Travado por teste que compara a ordem de invocação.
+
+> ⚠️ **A especificação pedia `UNIQUE(platform, external_project_id)` e esta casa
+> não tem essa coluna.** O equivalente que já existia e continua valendo é
+> `impressaoDigital` + `urlExterna`. Não inventei coluna nova para casar com o
+> nome; declarei a diferença.
+
+### 🔴 O ACHADO DE SEGURANÇA QUE MAIS IMPORTA — e ele não era óbvio
+
+**O `SEARCH FROM` do IMAP compara por substring o cabeçalho `From:` INTEIRO,
+nome de exibição incluso.** Um e-mail assinado `"Alertas @99freelas.com.br"
+<atacante@dominio-qualquer.com>` **passa pela busca do servidor**. Sem
+conferência do lado de cá, a porta de entrada de oportunidade da agência
+aceitaria texto de qualquer remetente do mundo — e esse texto vira `textoBruto`,
+vira prompt de qualificação e vira proposta.
+
+`remetenteConfere()` compara contra o **endereço parseado do envelope**, e só.
+Teste com as duas metades: barra o forjado, e não barra domínio, subdomínio nem
+endereço exato legítimos.
+
+### As outras travas, todas com as duas metades
+
+- **Sem credencial = porta FECHADA.** Não conecta, não grava, e **diz por quê**
+  na tela. Teste prova que nem o socket é aberto.
+- **`logger: false` no `imapflow`** — o logger padrão imprime o diálogo IMAP, e
+  o comando `LOGIN` carrega a senha em texto puro no console do Railway. Teste
+  reprova o arquivo sem ele.
+- **O host é CONSTANTE** (`imap.gmail.com:993`, fixo no cofre). Host vindo de
+  formulário viraria um jeito de mandar a senha da agência para a máquina de
+  quem pedir.
+- **A senha da CONTA é recusada** — não tem a forma de senha de app (16 letras).
+  E os espaços do `abcd efgh ijkl mnop` caem, porque é assim que o Google a
+  exibe e recusar a senha certa por causa de espaço seria a pior falha da tela.
+- **A dica NÃO é `keyHint`.** `keyHint` mostraria 7 de 16 caracteres de um
+  alfabeto de 26 — 44% do segredo numa tela que vaza por screenshot. Virou
+  máscara.
+- **Teto no botão "Testar conexão"** (6 por 5 min). Não é contra atacante (a
+  rota exige `master`): é contra o **Google**, porque cada clique é uma tentativa
+  de login e uma sequência de falhas bloqueia a caixa da agência.
+- **Falha de leitura nunca vira zero.** A contagem de volume devolve `null` com
+  motivo — "não consegui contar" e "não há alerta nenhum" são fatos opostos, e o
+  segundo mataria o canal por engano.
+
+### A caixa NÃO é tocada
+
+Lê. Só. **Não apaga, não move, não arquiva, não responde e não envia.** Teste
+reprova `messageDelete`, `messageMove`, `messageCopy`, `\Deleted` e `append(`
+nos arquivos da frente. A única marca possível é `\Seen`, **desligada por
+padrão** — o alerta original é a prova de que a oportunidade existiu.
+
+### A precedência: AMBIENTE → COFRE (a senha) · PAINEL → AMBIENTE (os ajustes)
+
+`RADAR_GMAIL_USER` e `RADAR_GMAIL_APP_PASSWORD` **já estão no Railway** e vencem
+o cofre — mesma ordem de `resolverWebhookVerifyToken`. Os AJUSTES (remetentes,
+marcar como lida) seguem a ordem inversa: o painel manda, porque o remetente
+exato ainda não foi confirmado e quem descobrir tem que corrigir sem redeploy.
+
+⚠️ **Apagar a credencial na tela NÃO fecha a porta enquanto a variável existir no
+Railway**, e a resposta do DELETE diz isso na cara de quem clicou.
+
+### 🔴 O QUE NÃO FOI PROVADO, E POR QUÊ
+
+1. **NINGUÉM CONECTOU NO GMAIL AINDA.** A porta 993 **não sai deste ambiente**
+   (medido: o socket TLS fica pendurado até o timeout; a saída só passa por
+   HTTPS via proxy). O protocolo é exercitado contra caixa mockada. **A prova de
+   conexão é o botão "Testar conexão" em produção**, e é o primeiro gesto depois
+   do deploy.
+2. **O REMETENTE DO 99FREELAS NÃO ESTÁ CONFIRMADO.** O padrão é o domínio
+   `@99freelas.com.br` — o que dá para afirmar. Endereço inventado teria cara de
+   fato e faria a rotina ler zero para sempre, em silêncio. Configurável na tela.
+3. **QUANTOS ALERTAS JÁ EXISTEM NA CAIXA: ainda não medido.** É a primeira
+   medida real de volume desta plataforma e decide se o canal vale.
+   `POST /api/agency/oportunidades/caixa/testar?contar=1` devolve o número —
+   **em produção, depois do deploy.**
+4. **A senha de app não tem prazo de validade nem data de rotação.** Senha de
+   app do Google não expira sozinha. Sem dono para a rotação.
+5. **A qualificação roda EM LINHA na varredura**, como na porta do
+   encaminhamento. Fila assíncrona continua sendo frente própria, sem dono.
+6. **Uma dependência nova: `imapflow`** (21 pacotes transitivos, `pino` incluso).
+   Escolha declarada: o protocolo IMAP não pode ser exercitado neste ambiente, e
+   um cliente escrito à mão só poderia ser testado contra o meu próprio mock —
+   a "peça verde, junta rompida" que esta casa já pagou duas vezes. O parsing de
+   **MIME**, que é função pura e testável, ficou nosso (`mime.ts`).
+7. **`seguranca` NÃO foi despachado como agente** — não havia ferramenta de
+   despacho nesta execução. A revisão foi feita pelo `pm` contra a carta do
+   Essencial, e **produziu dois consertos** (a dica de senha e o teto do botão).
+   **Não substitui a passada dele**: fica aberto, com dono.
+
+**Defeito achado pelo teste, não pela leitura:** `boundary="LIMITE"` lido de um
+`Content-Type` já minusculado vira `--limite`, não casa com linha nenhuma, e a
+mensagem inteira volta **vazia, em silêncio**. O nome do tipo é insensível a
+caixa; o valor do `boundary` **não é**.
+
+
 ## 🔴 08/08/2026 — O MOLDE NÃO EXISTE EM PRODUÇÃO. É P0, E É POR ISSO QUE ZERO PEÇAS SAÍRAM HOJE
 
 **A consequência, primeiro: nenhuma peça pode ser produzida hoje, para cliente

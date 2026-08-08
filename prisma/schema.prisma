@@ -1878,3 +1878,84 @@ model ConexaoGasta {
   /// (perguntas avulsas) não colide: no SQLite, NULLs são distintos entre si.
   @@unique([workspaceId, plataforma, motivo, oportunidadeId])
 }
+
+// ─── O LIVRO DAS MENSAGENS JÁ LIDAS DA CAIXA DA AGÊNCIA ──────────────────────
+//
+// A terceira porta de entrada do Radar (08/08/2026): em vez de alguém
+// ENCAMINHAR o alerta do 99Freelas para `/api/agency/oportunidades/email`, a
+// casa LÊ a caixa da agência por IMAP e ingere sozinha.
+//
+// ── POR QUE ESTA TABELA EXISTE, E POR QUE ELA NÃO É "MAIS UM CAMPO NA
+//    OPORTUNIDADE" ─────────────────────────────────────────────────────────
+// Ela é o CURSOR da caixa, não um atributo da oportunidade. Guarda TODA
+// mensagem examinada — inclusive a que NÃO virou oportunidade (remetente que
+// não é da plataforma, corpo ilegível, ingestão que falhou). Um campo na
+// `Oportunidade` só saberia registrar o caso feliz, e a rotina releria para
+// sempre a mensagem que nunca vira nada.
+//
+// ── IDEMPOTÊNCIA EM DUAS CAMADAS, E NENHUMA SOZINHA BASTA ────────────────────
+//   1. `@@unique([workspaceId, mensagemId])` — o `Message-ID` do e-mail, que é
+//      o identificador que o remetente atribui e que sobrevive a re-download,
+//      a mudança de UID e a re-indexação da caixa. É a trava de fora.
+//   2. `Oportunidade.@@unique([workspaceId, impressaoDigital])` + a dedup por
+//      link, que já existiam. É a trava de dentro.
+// A ordem de gravação é: oportunidade PRIMEIRO, registro da mensagem DEPOIS.
+// Um processo que morra entre as duas relê a mensagem na rodada seguinte e é
+// barrado pela camada 2 — nunca cria a segunda linha. O contrário (registrar a
+// mensagem antes) perderia a oportunidade em silêncio.
+//
+// ⚠️ UID **não** é identidade. O IMAP permite que o servidor invalide os UIDs
+// da pasta inteira (`UIDVALIDITY`), e o Gmail o faz. Ele é guardado só como
+// rastro operacional; a chave é o `Message-ID`.
+model EmailDoRadar {
+  id          String @id @default(cuid())
+  workspaceId String
+
+  /// O `Message-ID` do cabeçalho, COMO VEIO (com os `<>`, se vieram). É a
+  /// chave da idempotência.
+  /// ⚠️ Mensagem sem `Message-ID` existe — raríssima, mas existe. Nesse caso a
+  /// rotina grava aqui um substituto derivado por hash do remetente + assunto +
+  /// data + tamanho, prefixado por `sem-message-id:`, e o motivo diz isso. O que
+  /// não pode acontecer é a chave ficar vazia: chave vazia colide com todas as
+  /// outras mensagens sem `Message-ID` e engoliria alertas de verdade.
+  mensagemId String
+
+  /// O UID na pasta, no momento da leitura. Rastro operacional, nunca chave.
+  uid Int?
+
+  /// O remetente, minúsculo e sem nome de exibição ("naoresponda@99freelas.com.br").
+  /// Guardado porque é o que responde "por que esta mensagem entrou?" — e é o
+  /// dado que confirma (ou desmente) o filtro configurado.
+  remetente String
+  /// O assunto, cortado. É o que a tela mostra no histórico.
+  assunto   String?
+
+  /// A data do e-mail, quando o servidor a informou.
+  recebidoEm   DateTime?
+  processadoEm DateTime  @default(now())
+
+  /// O que a rodada decidiu sobre esta mensagem. Conjunto FECHADO:
+  ///   "oportunidade" — virou linha nova em `Oportunidade`;
+  ///   "duplicada"    — a oportunidade já existia (dedup de dentro pegou);
+  ///   "ignorada"     — remetente fora do filtro, ou corpo sem texto legível;
+  ///   "falha"        — a ingestão quebrou. Fica gravado para NÃO ser relido em
+  ///                    laço infinito, e o motivo aparece na tela.
+  resultado String
+  /// Por que, em uma frase. Nunca nulo quando `resultado` não é "oportunidade":
+  /// mensagem descartada sem motivo é a mesma coisa que mensagem perdida.
+  motivo    String?
+
+  /// A oportunidade que nasceu (ou que já existia), quando houve uma.
+  oportunidadeId String?
+
+  /// ⚠️ O CORPO DO E-MAIL NÃO MORA AQUI. Ele já é gravado em
+  /// `Oportunidade.textoBruto` quando vira oportunidade, e alerta de
+  /// marketplace carrega contato de terceiro com frequência — PII que não
+  /// pedimos. Duas cópias do mesmo texto é uma superfície de vazamento a mais
+  /// sem nenhum leitor novo.
+
+  /// A trava da idempotência. Por workspace, como toda dedup desta casa.
+  @@unique([workspaceId, mensagemId])
+  /// O histórico da tela: "as últimas mensagens que a rotina leu".
+  @@index([workspaceId, processadoEm])
+}
