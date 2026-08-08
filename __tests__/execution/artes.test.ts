@@ -292,7 +292,10 @@ describe("carrossel: uma arte POR TELA — repetir a mesma imagem 5x não é car
     const artes = guardarArquivo.mock.calls
       .filter((c) => (c[0] as { fileName: string }).fileName.startsWith("carrossel-"))
       .map((c) => (c[0] as { fileName: string }).fileName);
-    expect(artes).toEqual(["carrossel-sp3-1.png", "carrossel-sp3-2.png", "carrossel-sp3-3.png"]);
+    // `.jpg` desde 08/08/2026: a tela é PEÇA FINAL, vai ao Instagram, e o
+    // Instagram só aceita JPEG. A extensão do nome segue o MIME de verdade —
+    // ver `nomeDaTelaDoCarrossel` em artes.ts.
+    expect(artes).toEqual(["carrossel-sp3-1.jpg", "carrossel-sp3-2.jpg", "carrossel-sp3-3.jpg"]);
     expect(JSON.parse(d.mediaUrlsJson)).toHaveLength(3);
     expect(d.mediaUrl).toBe(JSON.parse(d.mediaUrlsJson)[0]);
   });
@@ -370,8 +373,11 @@ describe("a peça sai do MOLDE — foto da IA + texto por código", () => {
   it("a FOTO é guardada à parte — é o que faz o re-render de texto ser barato", async () => {
     await produzirArtesPendentes();
     const nomes = guardarArquivo.mock.calls.map((c) => (c[0] as { fileName: string }).fileName);
+    // O FUNDO continua `.png` (intermediário, nunca publicado) e a PEÇA FINAL
+    // sai `.jpg` (é ela que a Meta vai buscar). Os dois formatos convivendo
+    // nesta linha são o desenho, não um resíduo.
     expect(nomes).toContain(nomeDoFundo("sp1"));
-    expect(nomes).toContain("arte-sp1.png");
+    expect(nomes).toContain("arte-sp1.jpg");
   });
 
   // ── ESTE TESTE MUDOU DE LADO EM 07/08/2026 ────────────────────────────────

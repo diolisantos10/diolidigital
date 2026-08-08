@@ -19,7 +19,7 @@ import { describe, it, expect } from "vitest";
 //      texto foi realmente pintado" — fonte que não carrega, cor sobre cor ou
 //      elemento invisível cairiam aqui.
 //
-// O que esta prova NÃO faz, dito com todas as letras: não passa OCR no PNG.
+// O que esta prova NÃO faz, dito com todas as letras: não passa OCR no arquivo.
 // Ela prova que a letra saiu do rasterizador de fonte com o conteúdo pedido —
 // que é justamente a propriedade que um modelo de imagem não tem.
 
@@ -91,7 +91,13 @@ describe("a letra sai certa — a razão de existir do motor de molde", () => {
       expect(r.ok, r.ok ? "" : `${r.motivo}: ${r.erro}`).toBe(true);
       if (!r.ok) return;
       expect(r.conferencia.conferidos).toBe(3);
-      expect(r.bytes.subarray(0, 8)).toEqual(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+      // ── JPEG, E NÃO PNG (08/08/2026) ────────────────────────────────────
+      // Esta linha exigia a assinatura de PNG. Ela estava certa sobre o que o
+      // código fazia e errada sobre o que a casa precisa: o Instagram só
+      // publica JPEG, e enquanto isto rasterizou PNG, 100% das peças eram
+      // recusadas pela própria trava da casa antes de falar com a Meta.
+      // `FF D8 FF` é o começo de todo JPEG (SOI + primeiro marcador).
+      expect(r.bytes.subarray(0, 3)).toEqual(Buffer.from([0xff, 0xd8, 0xff]));
     },
     60_000,
   );

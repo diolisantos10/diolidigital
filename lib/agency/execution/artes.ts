@@ -45,7 +45,9 @@ import {
 } from "@/lib/agency/design/escolha-de-foto";
 import type { MaterialReal } from "@/lib/agency/design/storyboard";
 import { montarPeca } from "@/lib/agency/design/peca";
-import { renderizadorDisponivel, type MotivoDeFalhaDeRender } from "@/lib/agency/design/renderizar";
+import {
+  renderizadorDisponivel, MIME_DA_PECA_RENDERIZADA, type MotivoDeFalhaDeRender,
+} from "@/lib/agency/design/renderizar";
 import { tituloDaFonte } from "@/lib/agency/design/trava-de-texto";
 import { cerebroDaMarca } from "@/lib/agency/design/repertorio-registrado";
 import {
@@ -423,8 +425,10 @@ export async function produzirArtesPendentes(): Promise<ArtesFeitas> {
     // uma só cota, um só link assinado que a Meta consegue buscar.
     const guardado = await guardarArquivo({
       bytes: composta.bytes,
-      fileName: `arte-${post.id}.png`,
-      mimeType: "image/png",
+      // PEÇA FINAL — é ela que vira `mediaUrl` e que a Meta vai buscar. Nome e
+      // MIME saem do que a composição REALMENTE produziu, nunca de um literal.
+      fileName: nomeDaArte(post.id, composta.mime),
+      mimeType: composta.mime,
       workspaceId: post.workspaceId,
       clientId: post.clientId,
       clientRequestId: post.clientRequestId,
@@ -637,9 +641,43 @@ async function lerMarca(clientId: string | null): Promise<MarcaDaPeca> {
 }
 
 /** O nome do arquivo da FOTO de uma peça. Fixo por post (e por tela, no
- *  carrossel) porque é a chave do re-render barato. */
+ *  carrossel) porque é a chave do re-render barato.
+ *
+ *  Continua PNG, e de propósito: este arquivo NUNCA é publicado — ele é o fundo
+ *  intermediário que a peça final recompõe. Recomprimir em JPEG uma foto que
+ *  ainda vai ser recomposta seria perder qualidade duas vezes de graça. */
 export function nomeDoFundo(postId: string, tela?: number): string {
   return tela ? `fundo-${postId}-${tela}.png` : `fundo-${postId}.png`;
+}
+
+// ── O NOME DO ARQUIVO SEGUE O MIME, SEMPRE ──────────────────────────────────
+//
+// `guardarArquivo` já deriva a extensão do arquivo em disco do MIME
+// (`MIMES_ACEITOS`, em `media/armazenamento.ts`). O `fileName` é a outra
+// metade — é o que o operador lê na lista de Arquivos e no relatório. Um
+// `arte-sp1.png` gravado sobre bytes de JPEG manda quem investiga procurar o
+// defeito no lugar errado, que é exatamente como se perdeu o dia 08/08.
+const EXTENSAO_POR_MIME: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
+
+function extensaoDe(mime: string): string {
+  // Sem palpite: MIME que a casa não conhece vira `bin`, e o nome fica
+  // estranho o bastante para alguém perguntar — melhor que uma extensão
+  // bonita e errada.
+  return EXTENSAO_POR_MIME[mime] ?? "bin";
+}
+
+/** O nome da PEÇA FINAL de um post. A extensão é a do MIME REAL dos bytes. */
+export function nomeDaArte(postId: string, mime: string): string {
+  return `arte-${postId}.${extensaoDe(mime)}`;
+}
+
+/** O nome de UMA TELA da peça final de um carrossel. */
+export function nomeDaTelaDoCarrossel(postId: string, tela: number, mime: string): string {
+  return `carrossel-${postId}-${tela}.${extensaoDe(mime)}`;
 }
 
 interface PedidoDeComposicao {
@@ -706,8 +744,30 @@ const MOTIVOS_DE_INFRA: ReadonlySet<MotivoDeFalhaDeRender> = new Set([
  *     chamada continua sendo uma peça. Mudar isto é decisão de produto, com
  *     alcance maior — está anotado em `docs/pendencias.md` para o CEO decidir.
  */
+/**
+ * ── POR QUE O RESULTADO CARREGA O `mime` (08/08/2026) ───────────────────────
+ *
+ * Esta função tem DOIS tipos de saída, e eles não têm o mesmo formato:
+ *
+ *   • a PEÇA COMPOSTA, que sai do rasterizador → sempre `image/jpeg`;
+ *   • a FOTO CRUA, quando o molde degrada por conteúdo (não há frase
+ *     utilizável, ou o texto não coube) → o formato é o da foto que ENTROU:
+ *     PNG quando veio do gerador de imagem, e o que o cliente mandou quando é
+ *     material dele.
+ *
+ * Antes, quem gravava escrevia `"image/png"` fixo nos dois casos. Isso era
+ * mentira nos dois sentidos ao mesmo tempo: a peça composta era JPEG rotulada
+ * de PNG (e a trava da publicação recusava, corretamente, 100% das peças), e a
+ * foto JPEG do cliente era rotulada de PNG (e ninguém percebia porque o
+ * navegador farejava o conteúdo).
+ *
+ * Trocar aquele literal por `"image/jpeg"` fixo teria criado o defeito PIOR:
+ * a foto crua PNG sairia rotulada como JPEG, passaria pela trava da casa e
+ * morreria na Meta — a rajada de tentativas recusadas que a trava veio impedir.
+ * Por isso o resultado DIZ o que ele é, e quem grava obedece.
+ */
 type ResultadoDaComposicao =
-  | { ok: true; bytes: Buffer; nota: string | null }
+  | { ok: true; bytes: Buffer; mime: string; nota: string | null }
   | { ok: false; motivo: MotivoDeFalhaDeRender; erro: string };
 
 async function comporComMolde(p: PedidoDeComposicao): Promise<ResultadoDaComposicao> {
@@ -744,9 +804,18 @@ async function comporComMolde(p: PedidoDeComposicao): Promise<ResultadoDaComposi
   const comAviso = (nota: string | null): string | null =>
     [nota, p.notaDoMaterial ?? null, avisoDeNeutro, avisoDeLogo].filter(Boolean).join(" ").slice(0, 480) || null;
 
+  /** O formato da FOTO que entrou. É o que a peça tem quando o molde degrada e
+   *  ela sai como foto crua — e é o que precisa ser dito a quem grava. */
+  const mimeDaFotoCrua = p.fotoMime ?? "image/png";
+
   const titulo = tituloDaFonte(p.fonteAuditada);
   if (!titulo) {
-    return { ok: true, bytes: p.fotoBytes, nota: comAviso("[molde] peça entregue só com a foto: o conteúdo não tem uma frase utilizável como chamada.") };
+    return {
+      ok: true,
+      bytes: p.fotoBytes,
+      mime: mimeDaFotoCrua,
+      nota: comAviso("[molde] peça entregue só com a foto: o conteúdo não tem uma frase utilizável como chamada."),
+    };
   }
 
   const r = await montarPeca({
@@ -780,6 +849,7 @@ async function comporComMolde(p: PedidoDeComposicao): Promise<ResultadoDaComposi
     return {
       ok: true,
       bytes: p.fotoBytes,
+      mime: mimeDaFotoCrua,
       // `comAviso` e não string crua: a declaração do molde neutro, a do logo
       // ausente e a do material do cliente não podem sumir só porque o texto
       // não coube. Nota que some é declaração que nunca existiu.
@@ -789,9 +859,14 @@ async function comporComMolde(p: PedidoDeComposicao): Promise<ResultadoDaComposi
   if (r.textoRecusado.length > 0) {
     // Aconteceu o caminho bom: a peça SAIU, e o que a trava barrou está dito.
     const barrado = r.textoRecusado.map((t) => `${t.papel}: ${t.detalhe}`).join(" · ");
-    return { ok: true, bytes: r.bytes, nota: comAviso(`[molde] texto barrado pela trava — ${barrado}`) };
+    return {
+      ok: true,
+      bytes: r.bytes,
+      mime: MIME_DA_PECA_RENDERIZADA,
+      nota: comAviso(`[molde] texto barrado pela trava — ${barrado}`),
+    };
   }
-  return { ok: true, bytes: r.bytes, nota: comAviso(null) };
+  return { ok: true, bytes: r.bytes, mime: MIME_DA_PECA_RENDERIZADA, nota: comAviso(null) };
 }
 
 // ─── AS PEÇAS QUE FICARAM SEM A CAMADA DE TEXTO ──────────────────────────────
@@ -925,8 +1000,9 @@ export async function recomporPecasSemMolde(limite = 20): Promise<Recomposicao> 
 
     const guardado = await guardarArquivo({
       bytes: composta.bytes,
-      fileName: `arte-${post.id}.png`,
-      mimeType: "image/png",
+      // PEÇA FINAL da recomposição — mesma regra: o nome e o MIME seguem os bytes.
+      fileName: nomeDaArte(post.id, composta.mime),
+      mimeType: composta.mime,
       workspaceId: post.workspaceId,
       clientId: post.clientId,
       clientRequestId: post.clientRequestId,
@@ -992,8 +1068,10 @@ export async function reRenderizarTexto(
 
   const guardado = await guardarArquivo({
     bytes: r.bytes,
-    fileName: `arte-${postId}.png`,
-    mimeType: "image/png",
+    // PEÇA FINAL — estes bytes vieram do rasterizador (`montarPeca` devolveu
+    // `ok`), então o formato é o da peça renderizada, não o do fundo.
+    fileName: nomeDaArte(postId, MIME_DA_PECA_RENDERIZADA),
+    mimeType: MIME_DA_PECA_RENDERIZADA,
     workspaceId: post.workspaceId,
     clientId: post.clientId,
     clientRequestId: post.clientRequestId,
@@ -1058,8 +1136,10 @@ export async function montarArteComFotoDoCliente(
 
   const guardado = await guardarArquivo({
     bytes: composta.bytes,
-    fileName: `arte-${postId}.png`,
-    mimeType: "image/png",
+    // PEÇA FINAL montada sobre a foto do cliente. O MIME é o da composição:
+    // JPEG quando o molde entrou, e o da própria foto quando ela saiu crua.
+    fileName: nomeDaArte(postId, composta.mime),
+    mimeType: composta.mime,
     workspaceId: post.workspaceId,
     clientId: post.clientId,
     clientRequestId: post.clientRequestId,
@@ -1367,8 +1447,9 @@ async function montarCarrossel(
 
       const gReal = await guardarArquivo({
         bytes: compostaReal.bytes,
-        fileName: `carrossel-${post.id}-${i + 1}.png`,
-        mimeType: "image/png",
+        // PEÇA FINAL desta tela — entra em `mediaUrlsJson` e vai ao Instagram.
+        fileName: nomeDaTelaDoCarrossel(post.id, i + 1, compostaReal.mime),
+        mimeType: compostaReal.mime,
         workspaceId: post.workspaceId,
         clientId: post.clientId,
         clientRequestId: post.clientRequestId,
@@ -1482,8 +1563,9 @@ async function montarCarrossel(
 
     const g = await guardarArquivo({
       bytes: composta.bytes,
-      fileName: `carrossel-${post.id}-${i + 1}.png`,
-      mimeType: "image/png",
+      // PEÇA FINAL desta tela — entra em `mediaUrlsJson` e vai ao Instagram.
+      fileName: nomeDaTelaDoCarrossel(post.id, i + 1, composta.mime),
+      mimeType: composta.mime,
       workspaceId: post.workspaceId,
       clientId: post.clientId,
       clientRequestId: post.clientRequestId,

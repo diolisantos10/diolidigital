@@ -89,6 +89,34 @@ const TIMEOUT_MS = 45_000;
 /** Quantos passos de encolhimento antes de desistir. 12 × 6% ≈ metade do corpo. */
 const PASSOS_DE_ENCOLHIMENTO = 12;
 
+// ── O FORMATO DE SAÍDA DA PEÇA: JPEG, E ISTO É REGRA DE PLATAFORMA ──────────
+//
+// O Instagram só publica JPEG pela API — "não há compatibilidade com formatos
+// derivados de JPEG, como MPO e JPS" (fontes/instagram-publicacao-de-conteudo.md,
+// linha 82). Enquanto este módulo rasterizava PNG, TODA peça da casa era
+// recusada pela própria trava de `lib/integrations/meta/formato-de-midia.ts`
+// antes de qualquer byte sair: publicação = 0 por construção, com a suíte verde.
+//
+// POR QUE 92, E NÃO 100 NEM 80. Peça de rede social é o pior caso do JPEG:
+// tipografia de alto contraste POR CIMA de foto. O artefato de compressão do
+// JPEG mora exatamente na borda dura entre letra e fundo, e aparece como uma
+// sujeira fantasma ao redor do texto — o "mosquito noise". Abaixo de ~90 ela
+// fica visível num título claro sobre fundo escuro, que é o layout padrão do
+// molde desta casa. Acima de ~95 o arquivo cresce rápido e não se ganha nada
+// que o feed do Instagram (que recomprime tudo de novo do lado dele) preserve.
+// 92 é a faixa alta antes desse joelho.
+//
+// O `type` e o MIME declarado saem do MESMO objeto de propósito. Escrever
+// `type: "png"` aqui e continuar gravando `image/jpeg` no banco seria a mentira
+// PIOR que a de hoje: passaria pela trava da casa e morreria na Meta, que é
+// justamente a rajada de tentativas recusadas contra a conta do cliente que a
+// trava veio impedir. Aqui isso é impossível por construção, não por cuidado.
+const SAIDA_DA_PECA = { type: "jpeg", quality: 92 } as const;
+
+/** O MIME dos bytes que este módulo devolve. Derivado da opção de captura
+ *  acima — quem grava a peça usa ESTE valor, nunca uma string escrita à mão. */
+export const MIME_DA_PECA_RENDERIZADA = `image/${SAIDA_DA_PECA.type}`;
+
 /**
  * O código que roda DENTRO da página, como texto.
  *
@@ -284,7 +312,10 @@ export async function renderizarHtml(p: PedidoDeRender): Promise<ResultadoDeRend
       };
     }
 
-    const bytes = await page.screenshot({ type: "png", clip: { x: 0, y: 0, width: p.largura, height: p.altura } });
+    const bytes = await page.screenshot({
+      ...SAIDA_DA_PECA,
+      clip: { x: 0, y: 0, width: p.largura, height: p.altura },
+    });
     await ctx.close();
     return {
       ok: true,
