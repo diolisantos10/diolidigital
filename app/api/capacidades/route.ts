@@ -74,7 +74,14 @@ export async function GET(): Promise<NextResponse> {
       o_que_faz: "Aplicar o molde de marca na peça: título, cor, selo e assinatura de rodapé",
       pronta: renderizador.disponivel,
       sem_isso: "a peça sai como a foto crua da IA — sem texto, sem a cor da marca e sem assinatura. Ela é entregue assim mesmo, e o cliente recebe uma imagem genérica assinada por ninguém",
-      depende_de: "playwright em dependencies (hoje está em devDependencies) + binário do Chromium no runtime",
+      // 08/08/2026: esta linha dizia "playwright em dependencies (hoje está em
+      // devDependencies)". Ele saiu de `devDependencies` em 07/08 e a frase
+      // ficou — mandando três agentes procurarem um problema já resolvido. O
+      // texto agora nomeia as DUAS metades reais, e a segunda é a que custou
+      // dias: o pacote precisa CHEGAR inteiro ao contêiner, e o rastreador do
+      // `output: "standalone"` não copia `browsers.json` sozinho.
+      depende_de:
+        "binário do Chromium no runtime (`railpack.json → deploy.aptPackages`) + o pacote `playwright` chegando INTEIRO ao contêiner (`next.config.ts → outputFileTracingIncludes`, senão falta `playwright-core/browsers.json`)",
       onde_achei_o_navegador: renderizador.caminho,
     },
     {

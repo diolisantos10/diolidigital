@@ -134,7 +134,133 @@ mensagem inteira volta **vazia, em silêncio**. O nome do tipo é insensível a
 caixa; o valor do `boundary` **não é**.
 
 
-## 🔴 08/08/2026 — O MOLDE NÃO EXISTE EM PRODUÇÃO. É P0, E É POR ISSO QUE ZERO PEÇAS SAÍRAM HOJE
+## 🟢 08/08/2026 — O P0 DO MOLDE ESTÁ FECHADO. O NAVEGADOR ESTAVA LÁ O TEMPO TODO; QUEM CHEGAVA QUEBRADO ERA O PLAYWRIGHT
+
+**A consequência, primeiro: a agência voltou a produzir peça, e as 6 peças que
+tinham nascido como foto crua ganharam a marca do cliente — sem pagar a foto de
+novo.**
+
+```
+GET /api/capacidades  →  faltando: 0
+                         montar-molde · pronta: true
+                         onde_achei_o_navegador: /usr/bin/chromium
+```
+
+### 🔴 A HIPÓTESE REGISTRADA ABAIXO ESTAVA ERRADA — e é por isso que ela ficou
+
+O registro de mais cedo dizia *"não há Chromium no container"* e apostava no
+pacote `chromium` do Ubuntu ser stub de snap. **Medido de dentro da produção
+pela rota nova `/api/admin/diagnostico-do-navegador`, o contêiner respondeu o
+contrário:**
+
+| O que se mediu | O que se achou |
+|---|---|
+| `/usr/bin/chromium` | **EXISTE** (5.066 bytes, o wrapper do Debian) |
+| `/usr/lib/chromium/` | **20 arquivos** — binário, `.pak`, ICU, tudo |
+| `import("playwright")` | **`Cannot find module …/playwright-core/browsers.json`** |
+
+O `apt` de `railpack.json` **sempre funcionou** — igual ao `ffmpeg`, e era isso
+que a pista do `ffmpeg` já dizia. O que não chegava era a **biblioteca**: o
+rastreador de arquivos do `output: "standalone"` só copia o que consegue seguir
+por `import`/`require`, e `browsers.json` é aberto do disco em tempo de
+execução. Nenhum grafo de import leva até ele, então o pacote viajou para o
+contêiner sem o arquivo que abre na primeira linha.
+
+E como `renderizadorDisponivel()` e `renderizarHtml()` **importam o playwright
+ANTES de procurar o executável**, os dois desistiam sem nunca olhar o Chromium
+que estava a um caminho de distância. Trocar o pacote do apt, mexer em
+`PLAYWRIGHT_BROWSERS_PATH` ou baixar um segundo Chromium no build — os três
+caminhos sugeridos aqui — **não teriam consertado uma linha disto.**
+
+> **A lição não é sobre o playwright.** Três agentes, em dias diferentes,
+> refinaram uma hipótese sobre um contêiner que ninguém tinha aberto. O que
+> fechou o P0 em uma tarde não foi um palpite melhor: foi **uma rota de leitura
+> de 5 minutos que mede o disco**. Adivinhação sobre build custa um deploy por
+> hipótese; medida custa um.
+
+### O conserto, e a prova (não "deve funcionar")
+
+**`next.config.ts → outputFileTracingIncludes`.** Nenhum pacote apt trocado,
+nenhum navegador baixado no build, nenhuma variável de ambiente nova.
+
+- **Provado LOCALMENTE antes do push** — um build quebrado pararia três agentes:
+  `.next/standalone/node_modules/playwright-core/browsers.json` passou a existir,
+  e `import("playwright")` de dentro de `.next/standalone` resolve.
+- **Provado NO AR, e não pelo caminho fácil.** `pronta: true` só mede que o
+  CAMINHO existe — e `/usr/bin/chromium` é um script que faz `exec` no binário
+  de verdade. Isso importa em DINHEIRO: `produzirArtesPendentes` consulta
+  `renderizadorDisponivel()` e, se ela disser que sim, manda gerar a foto de IA
+  de cada peça (que custa, por peça) para só então tentar aplicar o molde. **Um
+  `pronta: true` que mente vira fatura sem entregável.** Por isso o diagnóstico
+  ganhou `?lancar=1`, que sobe o Chromium pelo MESMO `renderizarHtml` da esteira:
+
+  ```
+  provaDeVida: { ok: true, bytes: 5719, conferidos: 1, ms: 570 }
+  ```
+- **O alarme parou sozinho.** No `/api/pulso`, a última falha da perna `arte`
+  por "não há Chromium" é de **15:29**; o conserto entrou às **15:41**. Nenhuma
+  desde então.
+
+### As 6 peças do CityJobs: de foto crua a entregável, custo ZERO
+
+As 6 estavam **invisíveis para o conserto automático**: nasceram com `mediaUrl`
+preenchido (a foto crua), e `produzirArtesPendentes` só olha `mediaUrl: null`.
+**Elas nunca voltariam à fila do despertador** — ficariam no banco para sempre
+com aparência de entregue e conteúdo de rascunho.
+
+`recomporPecasSemMolde` lê a foto **já paga** (`fundo-<postId>.png`, guardada
+desde o dia em que foi comprada, exatamente para isto) e aplica o molde.
+Rasterização local. **Regerar custaria a fatura inteira de novo E trocaria a
+foto que o calendário já tinha — não é conserto, é outra peça.**
+
+```
+POST /api/admin/recompor-pecas
+→ recompostas: 6 · semFundo: 0 · bloqueadas: 0 · falhas: 0
+```
+
+**Conferido com os olhos, não pelo `ok:true`:** as duas peças de HOJE
+(12:00 "Leve documento com foto no dia da entrevista" e 21:00 "Trabalhar perto
+de casa é ganhar tempo de volta") saem 1080×1350 com título, o verde da marca,
+o degradê e a assinatura **CJ · CityJobs**.
+
+- **Nenhuma trava afrouxada:** pilar bloqueado continua bloqueado, o título
+  continua tendo de ser trecho literal da legenda já auditada, sem navegador a
+  passada para antes de tocar em qualquer peça, e **nada foi publicado**.
+- **A metade que faltava:** bytes idênticos **não** contam como recomposta.
+  `comporComMolde` devolve `ok: true` com a foto crua quando o texto não coube —
+  contar isso como conserto deixaria a peça sem marca **e** sem o aviso de que
+  continua sem marca.
+- **Passada à mão, nunca no despertador.** Rotina que reescreve arte já entregue
+  ao cliente a cada 5 minutos é uma máquina apontada para o trabalho pronto. Há
+  teste que reprova quem a plugar lá.
+
+### 🟠 O SELO NÃO SAI EM NENHUMA PEÇA DO CITYJOBS — achado ao recompor
+
+As 6 saíram com `[molde] texto barrado pela trava — selo: rótulo com N palavras
+(máximo 3)`. Os pilares do CityJobs foram escritos como **frases**
+(*"Alto Tietê · Dica para candidato"*, *"Alto Tietê · Bastidor da região"*), e a
+trava do selo exige rótulo de até 3 palavras / 28 caracteres.
+
+**A peça sai completa e correta; o que falta é a etiqueta do pilar.** Não é
+falha do molde: é o formato do dado. **Sem dono** — encurtar nome de pilar é
+decisão de conteúdo, e escolher por inferência é o que a lei da casa proíbe.
+
+### O que continua fora, e por quê
+
+- **Dioli Digital Studio, Camila Pereira (×2): ZERO peças hoje, e é correto.**
+  Não há calendário para produzir. O que criaria trabalho novo são os **3
+  pedidos em `precisa_decisao`**, que esperam uma frase do CEO — e a Camila tem
+  **duas fichas de cliente**, cuja fusão é afirmação de negócio.
+- **Foocci: 1 peça hoje (10:00), já pronta e com marca.** Ela não vai ao ar pela
+  **trava de publicação orgânica**, que só o CEO levanta. **Não reagendei nada.**
+
+---
+
+<details>
+<summary>O registro ANTERIOR desta frente, mantido inteiro porque a hipótese
+dele estava errada e apagá-la esconderia como se erra assim (clique)</summary>
+
+## 🔴 08/08/2026 — O MOLDE NÃO EXISTE EM PRODUÇÃO (HIPÓTESE REFUTADA — ver acima)
 
 **A consequência, primeiro: nenhuma peça pode ser produzida hoje, para cliente
 nenhum.** Não é fila parada nem falta de despacho — é ferramenta ausente.
@@ -192,6 +318,11 @@ a agência não produz peça — para nenhum dos 5 clientes.
 3. `PLAYWRIGHT_CHROMIUM_EXECUTABLE` apontando para o caminho real.
 **Nenhum foi tentado daqui: não há como inspecionar o container nesta execução,
 e um build quebrado pararia três agentes.**
+
+> **REFUTADO às 15:41 de 08/08.** Os três caminhos acima partiam da premissa de
+> que o binário não existia. Ele existia. Ver o registro no topo desta seção.
+
+</details>
 
 ## 🟢 08/08/2026 — O CARD DO PACOTE PARA DE PEDIR ASSINATURA EM BRANCO (`1184b90`, no ar)
 
