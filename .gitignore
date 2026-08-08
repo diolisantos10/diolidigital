@@ -69,3 +69,7 @@ scratch-*
 
 # Testes de rascunho de auditoria (não versionar)
 __tests__/_scratch/
+
+# Evidência de tela (screenshots de auto-revisão). Prova de trabalho, não
+# entregável: nasce a cada rodada, pesa, e o que importa dela já foi relatado.
+scratchpad/
