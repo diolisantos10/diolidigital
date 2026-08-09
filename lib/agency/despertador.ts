@@ -30,6 +30,7 @@ import { virarOsMesesVencidos } from "@/lib/agency/esteira/mes";
 import { produzirArtesPendentes } from "@/lib/agency/execution/artes";
 import { guardarAVerba } from "@/lib/agency/esteira/trafego";
 import { cuidarDasAvaliacoes } from "@/lib/agency/esteira/avaliacoes";
+import { cobrarAFila } from "@/lib/agency/esteira/fila-que-se-cobra";
 import { cobrarPedidosEsquecidos } from "@/lib/agency/esteira/pedidos";
 import { fazerBackup, estadoDoBackup } from "@/lib/agency/backup";
 import { registrarBatida, type FalhaDaRodada } from "@/lib/agency/pulso";
@@ -362,6 +363,32 @@ export async function baterORelogio(): Promise<{
     for (const f of r.falhas) quebrou("avaliacoes", f);
   } catch (err) {
     quebrou("avaliacoes", err);
+  }
+
+  // ── A FILA DE EXCEÇÃO SE COBRANDO (09/08/2026) ───────────────────────────
+  // O aviso que não conseguiu sair ficava parado até alguém abrir o painel. Um
+  // cliente esperou 7 DIAS para aprovar uma direção, com o texto pronto o tempo
+  // todo. Fila de exceção que não se cobra é caixa de entrada que ninguém abre.
+  //
+  // Reenvia só o que falhou por motivo TEMPORÁRIO; o que só cadastro resolve é
+  // gritado em vez de re-tentado, porque nenhuma tentativa número 40 inventa um
+  // telefone que ninguém cadastrou.
+  try {
+    // O workspace vem de um aviso pendente qualquer: se não há nenhum, não há
+    // fila a cobrar, e a passada termina sem tocar no banco de novo.
+    const algum = await prisma.clientNotice.findFirst({
+      where: { status: "pendente" }, select: { workspaceId: true },
+    });
+    if (algum) {
+      const r = await cobrarAFila(algum.workspaceId, new Date());
+      if (r.reenviados.length > 0) log(`${r.reenviados.length} aviso(s) reenviado(s) sozinho(s)`);
+      for (const p of r.precisamDeCadastro) {
+        log(`aviso parado por CADASTRO — ${p.cliente}: ${p.oQueFalta}`);
+      }
+      if (r.desistidos.length > 0) log(`${r.desistidos.length} aviso(s) esgotaram o reenvio e precisam de gente`);
+    }
+  } catch (err) {
+    quebrou("fila-que-se-cobra", err);
   }
 
   // ── A PERGUNTA QUE NUNCA CHEGOU AO CLIENTE ────────────────────────────────

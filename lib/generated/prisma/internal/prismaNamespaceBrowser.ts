@@ -340,7 +340,8 @@ export const ClientNoticeScalarFieldEnum = {
   sentAt: 'sentAt',
   sentBy: 'sentBy',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  retryCount: 'retryCount'
 } as const
 
 export type ClientNoticeScalarFieldEnum = (typeof ClientNoticeScalarFieldEnum)[keyof typeof ClientNoticeScalarFieldEnum]

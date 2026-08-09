@@ -34,8 +34,18 @@ export type ClientNoticeModel = runtime.Types.Result.DefaultSelection<Prisma.$Cl
 
 export type AggregateClientNotice = {
   _count: ClientNoticeCountAggregateOutputType | null
+  _avg: ClientNoticeAvgAggregateOutputType | null
+  _sum: ClientNoticeSumAggregateOutputType | null
   _min: ClientNoticeMinAggregateOutputType | null
   _max: ClientNoticeMaxAggregateOutputType | null
+}
+
+export type ClientNoticeAvgAggregateOutputType = {
+  retryCount: number | null
+}
+
+export type ClientNoticeSumAggregateOutputType = {
+  retryCount: number | null
 }
 
 export type ClientNoticeMinAggregateOutputType = {
@@ -53,6 +63,7 @@ export type ClientNoticeMinAggregateOutputType = {
   sentBy: string | null
   createdAt: Date | null
   updatedAt: Date | null
+  retryCount: number | null
 }
 
 export type ClientNoticeMaxAggregateOutputType = {
@@ -70,6 +81,7 @@ export type ClientNoticeMaxAggregateOutputType = {
   sentBy: string | null
   createdAt: Date | null
   updatedAt: Date | null
+  retryCount: number | null
 }
 
 export type ClientNoticeCountAggregateOutputType = {
@@ -87,9 +99,18 @@ export type ClientNoticeCountAggregateOutputType = {
   sentBy: number
   createdAt: number
   updatedAt: number
+  retryCount: number
   _all: number
 }
 
+
+export type ClientNoticeAvgAggregateInputType = {
+  retryCount?: true
+}
+
+export type ClientNoticeSumAggregateInputType = {
+  retryCount?: true
+}
 
 export type ClientNoticeMinAggregateInputType = {
   id?: true
@@ -106,6 +127,7 @@ export type ClientNoticeMinAggregateInputType = {
   sentBy?: true
   createdAt?: true
   updatedAt?: true
+  retryCount?: true
 }
 
 export type ClientNoticeMaxAggregateInputType = {
@@ -123,6 +145,7 @@ export type ClientNoticeMaxAggregateInputType = {
   sentBy?: true
   createdAt?: true
   updatedAt?: true
+  retryCount?: true
 }
 
 export type ClientNoticeCountAggregateInputType = {
@@ -140,6 +163,7 @@ export type ClientNoticeCountAggregateInputType = {
   sentBy?: true
   createdAt?: true
   updatedAt?: true
+  retryCount?: true
   _all?: true
 }
 
@@ -181,6 +205,18 @@ export type ClientNoticeAggregateArgs<ExtArgs extends runtime.Types.Extensions.I
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    * 
+   * Select which fields to average
+  **/
+  _avg?: ClientNoticeAvgAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
+   * Select which fields to sum
+  **/
+  _sum?: ClientNoticeSumAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
    * Select which fields to find the minimum value
   **/
   _min?: ClientNoticeMinAggregateInputType
@@ -211,6 +247,8 @@ export type ClientNoticeGroupByArgs<ExtArgs extends runtime.Types.Extensions.Int
   take?: number
   skip?: number
   _count?: ClientNoticeCountAggregateInputType | true
+  _avg?: ClientNoticeAvgAggregateInputType
+  _sum?: ClientNoticeSumAggregateInputType
   _min?: ClientNoticeMinAggregateInputType
   _max?: ClientNoticeMaxAggregateInputType
 }
@@ -230,7 +268,10 @@ export type ClientNoticeGroupByOutputType = {
   sentBy: string | null
   createdAt: Date
   updatedAt: Date
+  retryCount: number
   _count: ClientNoticeCountAggregateOutputType | null
+  _avg: ClientNoticeAvgAggregateOutputType | null
+  _sum: ClientNoticeSumAggregateOutputType | null
   _min: ClientNoticeMinAggregateOutputType | null
   _max: ClientNoticeMaxAggregateOutputType | null
 }
@@ -268,6 +309,7 @@ export type ClientNoticeWhereInput = {
   sentBy?: Prisma.StringNullableFilter<"ClientNotice"> | string | null
   createdAt?: Prisma.DateTimeFilter<"ClientNotice"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ClientNotice"> | Date | string
+  retryCount?: Prisma.IntFilter<"ClientNotice"> | number
   client?: Prisma.XOR<Prisma.ClientScalarRelationFilter, Prisma.ClientWhereInput>
 }
 
@@ -286,6 +328,7 @@ export type ClientNoticeOrderByWithRelationInput = {
   sentBy?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  retryCount?: Prisma.SortOrder
   client?: Prisma.ClientOrderByWithRelationInput
 }
 
@@ -307,6 +350,7 @@ export type ClientNoticeWhereUniqueInput = Prisma.AtLeast<{
   sentBy?: Prisma.StringNullableFilter<"ClientNotice"> | string | null
   createdAt?: Prisma.DateTimeFilter<"ClientNotice"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ClientNotice"> | Date | string
+  retryCount?: Prisma.IntFilter<"ClientNotice"> | number
   client?: Prisma.XOR<Prisma.ClientScalarRelationFilter, Prisma.ClientWhereInput>
 }, "id">
 
@@ -325,9 +369,12 @@ export type ClientNoticeOrderByWithAggregationInput = {
   sentBy?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  retryCount?: Prisma.SortOrder
   _count?: Prisma.ClientNoticeCountOrderByAggregateInput
+  _avg?: Prisma.ClientNoticeAvgOrderByAggregateInput
   _max?: Prisma.ClientNoticeMaxOrderByAggregateInput
   _min?: Prisma.ClientNoticeMinOrderByAggregateInput
+  _sum?: Prisma.ClientNoticeSumOrderByAggregateInput
 }
 
 export type ClientNoticeScalarWhereWithAggregatesInput = {
@@ -348,6 +395,7 @@ export type ClientNoticeScalarWhereWithAggregatesInput = {
   sentBy?: Prisma.StringNullableWithAggregatesFilter<"ClientNotice"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"ClientNotice"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"ClientNotice"> | Date | string
+  retryCount?: Prisma.IntWithAggregatesFilter<"ClientNotice"> | number
 }
 
 export type ClientNoticeCreateInput = {
@@ -364,6 +412,7 @@ export type ClientNoticeCreateInput = {
   sentBy?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  retryCount?: number
   client: Prisma.ClientCreateNestedOneWithoutNoticesInput
 }
 
@@ -382,6 +431,7 @@ export type ClientNoticeUncheckedCreateInput = {
   sentBy?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  retryCount?: number
 }
 
 export type ClientNoticeUpdateInput = {
@@ -398,6 +448,7 @@ export type ClientNoticeUpdateInput = {
   sentBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  retryCount?: Prisma.IntFieldUpdateOperationsInput | number
   client?: Prisma.ClientUpdateOneRequiredWithoutNoticesNestedInput
 }
 
@@ -416,6 +467,7 @@ export type ClientNoticeUncheckedUpdateInput = {
   sentBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  retryCount?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type ClientNoticeCreateManyInput = {
@@ -433,6 +485,7 @@ export type ClientNoticeCreateManyInput = {
   sentBy?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  retryCount?: number
 }
 
 export type ClientNoticeUpdateManyMutationInput = {
@@ -449,6 +502,7 @@ export type ClientNoticeUpdateManyMutationInput = {
   sentBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  retryCount?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type ClientNoticeUncheckedUpdateManyInput = {
@@ -466,6 +520,7 @@ export type ClientNoticeUncheckedUpdateManyInput = {
   sentBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  retryCount?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type ClientNoticeListRelationFilter = {
@@ -493,6 +548,11 @@ export type ClientNoticeCountOrderByAggregateInput = {
   sentBy?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  retryCount?: Prisma.SortOrder
+}
+
+export type ClientNoticeAvgOrderByAggregateInput = {
+  retryCount?: Prisma.SortOrder
 }
 
 export type ClientNoticeMaxOrderByAggregateInput = {
@@ -510,6 +570,7 @@ export type ClientNoticeMaxOrderByAggregateInput = {
   sentBy?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  retryCount?: Prisma.SortOrder
 }
 
 export type ClientNoticeMinOrderByAggregateInput = {
@@ -527,6 +588,11 @@ export type ClientNoticeMinOrderByAggregateInput = {
   sentBy?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  retryCount?: Prisma.SortOrder
+}
+
+export type ClientNoticeSumOrderByAggregateInput = {
+  retryCount?: Prisma.SortOrder
 }
 
 export type ClientNoticeCreateNestedManyWithoutClientInput = {
@@ -585,6 +651,7 @@ export type ClientNoticeCreateWithoutClientInput = {
   sentBy?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  retryCount?: number
 }
 
 export type ClientNoticeUncheckedCreateWithoutClientInput = {
@@ -601,6 +668,7 @@ export type ClientNoticeUncheckedCreateWithoutClientInput = {
   sentBy?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  retryCount?: number
 }
 
 export type ClientNoticeCreateOrConnectWithoutClientInput = {
@@ -646,6 +714,7 @@ export type ClientNoticeScalarWhereInput = {
   sentBy?: Prisma.StringNullableFilter<"ClientNotice"> | string | null
   createdAt?: Prisma.DateTimeFilter<"ClientNotice"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ClientNotice"> | Date | string
+  retryCount?: Prisma.IntFilter<"ClientNotice"> | number
 }
 
 export type ClientNoticeCreateManyClientInput = {
@@ -662,6 +731,7 @@ export type ClientNoticeCreateManyClientInput = {
   sentBy?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  retryCount?: number
 }
 
 export type ClientNoticeUpdateWithoutClientInput = {
@@ -678,6 +748,7 @@ export type ClientNoticeUpdateWithoutClientInput = {
   sentBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  retryCount?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type ClientNoticeUncheckedUpdateWithoutClientInput = {
@@ -694,6 +765,7 @@ export type ClientNoticeUncheckedUpdateWithoutClientInput = {
   sentBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  retryCount?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type ClientNoticeUncheckedUpdateManyWithoutClientInput = {
@@ -710,6 +782,7 @@ export type ClientNoticeUncheckedUpdateManyWithoutClientInput = {
   sentBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  retryCount?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 
@@ -729,6 +802,7 @@ export type ClientNoticeSelect<ExtArgs extends runtime.Types.Extensions.Internal
   sentBy?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  retryCount?: boolean
   client?: boolean | Prisma.ClientDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["clientNotice"]>
 
@@ -747,6 +821,7 @@ export type ClientNoticeSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   sentBy?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  retryCount?: boolean
   client?: boolean | Prisma.ClientDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["clientNotice"]>
 
@@ -765,6 +840,7 @@ export type ClientNoticeSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   sentBy?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  retryCount?: boolean
   client?: boolean | Prisma.ClientDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["clientNotice"]>
 
@@ -783,9 +859,10 @@ export type ClientNoticeSelectScalar = {
   sentBy?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  retryCount?: boolean
 }
 
-export type ClientNoticeOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "clientId" | "projectId" | "kind" | "body" | "link" | "status" | "channel" | "failReason" | "sentAt" | "sentBy" | "createdAt" | "updatedAt", ExtArgs["result"]["clientNotice"]>
+export type ClientNoticeOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "workspaceId" | "clientId" | "projectId" | "kind" | "body" | "link" | "status" | "channel" | "failReason" | "sentAt" | "sentBy" | "createdAt" | "updatedAt" | "retryCount", ExtArgs["result"]["clientNotice"]>
 export type ClientNoticeInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   client?: boolean | Prisma.ClientDefaultArgs<ExtArgs>
 }
@@ -837,6 +914,12 @@ export type $ClientNoticePayload<ExtArgs extends runtime.Types.Extensions.Intern
     sentBy: string | null
     createdAt: Date
     updatedAt: Date
+    /**
+     * Quantas vezes a fila JÁ reenviou este aviso sozinha. Sem contador, o
+     * reenvio automático vira a rajada que esta casa já pagou caro: insistir
+     * para sempre contra um canal que não volta.
+     */
+    retryCount: number
   }, ExtArgs["result"]["clientNotice"]>
   composites: {}
 }
@@ -1275,6 +1358,7 @@ export interface ClientNoticeFieldRefs {
   readonly sentBy: Prisma.FieldRef<"ClientNotice", 'String'>
   readonly createdAt: Prisma.FieldRef<"ClientNotice", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"ClientNotice", 'DateTime'>
+  readonly retryCount: Prisma.FieldRef<"ClientNotice", 'Int'>
 }
     
 

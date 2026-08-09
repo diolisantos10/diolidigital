@@ -471,6 +471,10 @@ model ClientNotice {
 
   @@index([workspaceId, status])
   @@index([clientId, status])
+  /// Quantas vezes a fila JÁ reenviou este aviso sozinha. Sem contador, o
+  /// reenvio automático vira a rajada que esta casa já pagou caro: insistir
+  /// para sempre contra um canal que não volta.
+  retryCount     Int      @default(0)
 }
 
 // ─── Deliverables ─────────────────────────────────────────────────────────────
