@@ -26,6 +26,7 @@ import { getClientAgentContext } from "@/lib/agency/workspace";
 import { getClientProgress } from "@/lib/agency/reporting";
 import { getRolePermissions, BRAND_FIELD_LABELS } from "@/lib/agency/roles";
 import { parseBrandBook, type ParsedBrandField } from "@/lib/agency/brand-parser";
+import { FichaDeMarca } from "@/components/agency/clients/FichaDeMarca";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -614,6 +615,12 @@ export default function ClientDetailPage({ params }: { params: Promise<{ id: str
               </div>
             )}
           </div>
+
+          {/* ── Marca — a ficha dos nove campos (09/08/2026) ───────────────── */}
+          {/* Vem ANTES do Brand Hub de propósito: é ela que diz o que a marca
+              JÁ declarou e o que ainda não — e é essa régua que a produção
+              recebe. O Brand Hub é a descrição; esta é a que julga. */}
+          <FichaDeMarca clientId={id} />
 
           {/* ── Brand Hub ──────────────────────────────────────────────────── */}
           <div className="bg-white rounded-[12px] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
