@@ -91,6 +91,45 @@ que ninguém lê, ou seja, decoração.
 
 ---
 
+---
+
+## UM lugar só — o brand book é o repositório
+
+> Ordem do CEO, 09/08/2026: *"a gente está quebrando a cabeça pra entender qual
+> repositório: as imagens, o logo… sendo que UM é suficiente pra uma agência.
+> Não precisa de um Google com um monte de coisa, se o brand book já basta."*
+
+**Ele está certo, e isto ENCOLHE o sistema em vez de aumentá-lo.**
+
+Hoje o material de um cliente tem endereço demais: `BrandBrain` (as regras),
+`DriveMaterial` (o papel de cada arquivo), `MediaAsset` (os bytes), a tela de
+"Enviar material", a tela de "Material de marca", e um hub de marca à parte.
+São seis portas para uma coisa só — e **cada porta nova é mais um lugar onde o
+arquivo do cliente some.**
+
+**A regra:** o cliente e a agência enxergam **uma** coisa — o **brand book do
+cliente**, dentro da ficha dele. Regras da marca e arquivos da marca **no mesmo
+lugar**, porque são a mesma pergunta: *quem é essa marca?* Nada de repositório
+externo. O Drive já foi descartado em 08/08 e não volta pela porta dos fundos.
+
+**A distinção que impede o mal-entendido, porque parece contradição e não é:**
+
+| | Onde |
+|---|---|
+| **Onde as pessoas olham** | **um só lugar:** o brand book, na ficha |
+| **Onde os bytes moram** | armazenamento de objeto (Cloudflare R2) |
+
+Isso **não** são dois repositórios. É um cofre e uma vitrine: ninguém navega no
+cofre. O cliente arrasta no brand book, o arquivo pousa no R2, e ele nunca sabe
+disso — nem precisa.
+
+**Consequência para quem for construir:** não crie tela nova de material. **A aba
+de Marca absorve** o que hoje está espalhado, e as telas antigas passam a apontar
+para ela em vez de existirem em paralelo. Duas telas para a mesma coisa é como
+nasce a próxima "duas verdades".
+
+---
+
 ## Ordem de execução
 
 1. **A aba, com os campos vazios declarados como vazios.** Sozinha já melhora:
