@@ -113,3 +113,62 @@ describe("o despertador NÃO chama a recomposição", () => {
     ).toBe(false);
   });
 });
+
+// ── O MODO `marca-nova` (09/08/2026) ────────────────────────────────────────
+//
+// A peça composta CERTA, só que antes de o logo do cliente existir. Ela não tem
+// defeito em `lastError` — o modo antigo nunca a acharia. Nasceu de a porta de
+// upload recusar SVG: os logos do CityJobs entraram só depois que ela abriu.
+
+/** O corpo de `pecasComMarcaMaisNovaQueAArte`. */
+function corpoDaSelecaoPorMarca(): string {
+  const i = ARTES.indexOf("async function pecasComMarcaMaisNovaQueAArte");
+  expect(i, "pecasComMarcaMaisNovaQueAArte sumiu de artes.ts").toBeGreaterThan(-1);
+  const fim = ARTES.indexOf("export async function recomporPecas(", i);
+  return ARTES.slice(i, fim > i ? fim : undefined);
+}
+
+describe("modo marca-nova — alcança a peça que nasceu antes do logo", () => {
+  const selecao = corpoDaSelecaoPorMarca();
+
+  it("compara a data da ARTE com a data do MATERIAL — é isso que define 'velha'", () => {
+    expect(selecao.includes("papelConfirmadoEm")).toBe(true);
+    expect(selecao.includes("arte.createdAt >= marca")).toBe(true);
+  });
+
+  it("metade 1 — peça cuja arte é MAIS NOVA que o material é pulada", () => {
+    // Sem este `continue`, a passada reescreveria peça que já tem a marca —
+    // gastando rasterização e mexendo em trabalho entregue sem motivo.
+    expect(selecao.includes("if (arte.createdAt >= marca) continue;")).toBe(true);
+  });
+
+  it("metade 2 — peça SEM arte gravada é pulada, não recomposta no escuro", () => {
+    // Guardrail 1: ausência de informação não é informação. Sem o arquivo não
+    // há como saber se a peça é velha, e o palpite reescreveria peça boa.
+    expect(selecao.includes("if (!arte) continue;")).toBe(true);
+  });
+
+  it("não passa a custar: o modo novo só troca a SELEÇÃO, não o laço", () => {
+    for (const pago of ["generateDesign", "baixarImagem", "montarCarrossel"]) {
+      expect(selecao.includes(pago), `a seleção passou a usar ${pago} — isso custa`).toBe(false);
+    }
+  });
+
+  it("o teto continua valendo dentro da seleção", () => {
+    expect(selecao.includes("if (velhas.length >= limite) break;")).toBe(true);
+  });
+});
+
+describe("a rota escolhe o modo, e o padrão é o comportamento antigo", () => {
+  it("só `marca-nova` liga o modo novo — qualquer outra coisa cai no antigo", () => {
+    expect(ROTA.includes('bruto === "marca-nova" ? "marca-nova" : "sem-molde"')).toBe(true);
+  });
+
+  it("o modo escolhido volta na resposta — quem chamou não fica adivinhando", () => {
+    expect(ROTA.includes("modo,")).toBe(true);
+  });
+
+  it("o teto por chamada continua de pé nos dois modos", () => {
+    expect(ROTA.includes("Math.min(pedido, TETO)")).toBe(true);
+  });
+});

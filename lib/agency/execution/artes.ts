@@ -919,7 +919,88 @@ export interface Recomposicao {
  *
  * Nunca lança.
  */
+/** Quais peças a passada procura.
+ *
+ *  `sem-molde` — o estrago datado de 08/08: a peça foi gravada como foto crua
+ *  porque não havia Chromium. Marcada em `lastError`.
+ *
+ *  `marca-nova` — 09/08: a peça foi composta CERTA, mas antes de o material de
+ *  marca do cliente existir. Ela não tem defeito registrado em lugar nenhum —
+ *  simplesmente nasceu antes do logo. Nasceu de o upload de SVG estar fechado:
+ *  os logos do CityJobs chegaram só depois que a porta abriu, e tudo o que
+ *  saiu antes está sem marca. Nenhuma marca em `lastError` alcança essas. */
+export type SelecaoDeRecomposicao = "sem-molde" | "marca-nova";
+
+/** Compatibilidade: o nome antigo continua valendo e continua fazendo o que
+ *  fazia. A rota e os testes que já existiam não precisam saber do modo novo. */
 export async function recomporPecasSemMolde(limite = 20): Promise<Recomposicao> {
+  return recomporPecas(limite, "sem-molde");
+}
+
+/**
+ * As peças cujo material de marca chegou DEPOIS da arte.
+ *
+ * Compara duas datas: quando o material daquele cliente foi confirmado, e
+ * quando a arte daquela peça foi gravada. Arte mais velha que o material =
+ * peça que nunca viu o logo.
+ *
+ * **Peça sem arte gravada é PULADA, não recomposta.** Sem o arquivo não há como
+ * saber se ela é velha, e recompor no escuro reescreveria peça boa. Ausência de
+ * informação não é informação — guardrail 1.
+ */
+async function pecasComMarcaMaisNovaQueAArte(limite: number): Promise<SocialPostDaBase[]> {
+  const materiais = await prisma.driveMaterial.findMany({
+    where: { papelConfirmadoEm: { not: null }, mediaAssetId: { not: null } },
+    select: { clientId: true, papelConfirmadoEm: true },
+    orderBy: { papelConfirmadoEm: "desc" },
+  }).catch(() => []);
+
+  // O material mais RECENTE de cada cliente. Vem ordenado por data desc, então
+  // o primeiro de cada cliente já é o mais novo.
+  const marcaChegouEm = new Map<string, Date>();
+  for (const m of materiais) {
+    if (!m.clientId || !m.papelConfirmadoEm) continue;
+    if (!marcaChegouEm.has(m.clientId)) marcaChegouEm.set(m.clientId, m.papelConfirmadoEm);
+  }
+  if (marcaChegouEm.size === 0) return [];
+
+  const candidatas = await prisma.socialPost.findMany({
+    where: {
+      mediaUrl: { not: null },
+      clientId: { in: [...marcaChegouEm.keys()] },
+      status: { in: ["draft", "scheduled", "approved"] },
+    },
+    orderBy: { scheduledFor: "asc" },
+    // Folga sobre o teto: a data da arte só dá para conferir peça a peça, e
+    // sem folga uma leva de peças já novas consumiria a passada inteira.
+    take: Math.min(limite * 10, 200),
+  }).catch(() => []);
+
+  const velhas: SocialPostDaBase[] = [];
+  for (const post of candidatas) {
+    if (velhas.length >= limite) break;
+    const marca = post.clientId ? marcaChegouEm.get(post.clientId) : null;
+    if (!marca) continue;
+
+    const arte = await prisma.mediaAsset.findFirst({
+      where: { workspaceId: post.workspaceId, fileName: { startsWith: `arte-${post.id}.` } },
+      orderBy: { createdAt: "desc" },
+      select: { createdAt: true },
+    }).catch(() => null);
+    if (!arte) continue;
+    if (arte.createdAt >= marca) continue;
+
+    velhas.push(post);
+  }
+  return velhas;
+}
+
+type SocialPostDaBase = NonNullable<Awaited<ReturnType<typeof prisma.socialPost.findFirst>>>;
+
+export async function recomporPecas(
+  limite = 20,
+  selecao: SelecaoDeRecomposicao = "sem-molde",
+): Promise<Recomposicao> {
   const saida: Recomposicao = { recompostas: [], semFundo: [], bloqueadas: [], falhas: [] };
 
   // Mesma guarda de `produzirArtesPendentes`, e pelo mesmo motivo: sem
@@ -933,15 +1014,18 @@ export async function recomporPecasSemMolde(limite = 20): Promise<Recomposicao> 
     return saida;
   }
 
-  const orfas = await prisma.socialPost.findMany({
-    where: {
-      mediaUrl: { not: null },
-      lastError: { contains: MARCA_DE_PECA_SEM_MOLDE },
-      status: { in: ["draft", "scheduled", "approved"] },
-    },
-    orderBy: { scheduledFor: "asc" },
-    take: limite,
-  }).catch(() => []);
+  const orfas =
+    selecao === "marca-nova"
+      ? await pecasComMarcaMaisNovaQueAArte(limite)
+      : await prisma.socialPost.findMany({
+          where: {
+            mediaUrl: { not: null },
+            lastError: { contains: MARCA_DE_PECA_SEM_MOLDE },
+            status: { in: ["draft", "scheduled", "approved"] },
+          },
+          orderBy: { scheduledFor: "asc" },
+          take: limite,
+        }).catch(() => []);
 
   for (const post of orfas) {
     const veredito = conferirPilar(post.pillar);

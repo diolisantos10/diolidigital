@@ -33,7 +33,7 @@
 //     continua tendo de ser trecho literal da legenda já auditada.
 
 import { NextRequest, NextResponse } from "next/server";
-import { recomporPecasSemMolde } from "@/lib/agency/execution/artes";
+import { recomporPecas, type SelecaoDeRecomposicao } from "@/lib/agency/execution/artes";
 import { segredoConfere } from "@/lib/security/crypto";
 
 export const dynamic = "force-dynamic";
@@ -60,10 +60,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const pedido = Number(request.nextUrl.searchParams.get("limite"));
   const limite = Number.isFinite(pedido) && pedido > 0 ? Math.min(pedido, TETO) : TETO;
 
-  const r = await recomporPecasSemMolde(limite);
+  // `?modo=marca-nova` alcança a peça que foi composta CERTA, só que ANTES de o
+  // material de marca do cliente existir. Ela não tem defeito registrado em
+  // `lastError`, então o modo antigo nunca a encontraria. Isso apareceu em
+  // 09/08: a porta de upload recusava SVG, os logos do CityJobs só entraram
+  // depois que ela abriu, e tudo o que foi produzido antes ficou sem marca.
+  //
+  // O padrão continua `sem-molde`: quem já chamava esta rota continua tendo
+  // exatamente o comportamento que conhecia.
+  const bruto = request.nextUrl.searchParams.get("modo");
+  const modo: SelecaoDeRecomposicao = bruto === "marca-nova" ? "marca-nova" : "sem-molde";
+
+  const r = await recomporPecas(limite, modo);
   return NextResponse.json({
     // Conclusão primeiro: quantas peças passaram a ter a marca do cliente.
     quantasRecompostas: r.recompostas.length,
+    modo,
     ...r,
     em: new Date().toISOString(),
   });
