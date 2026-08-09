@@ -53,6 +53,7 @@ import { conexaoDoCliente } from "@/lib/integrations/meta/connections";
 import { caminhoPublicoAssinado } from "@/lib/agency/media/armazenamento";
 import { conferirPilar, motivoCurto } from "@/lib/agency/execution/pilares-bloqueados";
 import { conferirFormatoDeMidia, type MidiaConferida } from "@/lib/integrations/meta/formato-de-midia";
+import { contratoDeMarca } from "@/lib/agency/esteira/contrato-de-marca";
 
 /** Quantos posts publicamos por rodada do relógio. Publicação é irreversível e
  *  a Meta limita chamadas — melhor ir devagar e nunca em enxurrada. */
@@ -413,6 +414,47 @@ export async function publicarAgendados(): Promise<PublicacaoFeita> {
     // ali seria postar no perfil errado.
     if (!post.clientId) {
       await falhar("post sem cliente definido — não sei em qual perfil postar");
+      continue;
+    }
+
+    // ── O PORTÃO DE MARCA, NO CAMINHO DA ENTREGA (09/08/2026) ──────────────
+    //
+    // O Conselho listou nove premissas para a constituição do `branding` e
+    // avisou que nenhuma tinha sido verificada. Oito esta casa cumpria. A que
+    // faltava era a que sustenta todas:
+    //
+    //   > "O portão é bloqueante de fato: não existe rota alternativa para
+    //   >  entregar contornando o portão."
+    //
+    // Existia. ESTA função era a rota: lia `socialPost` agendado e entregava.
+    // Enquanto ela existisse assim, qualquer portão de marca ficaria AO LADO do
+    // caminho, e não NO caminho — decorativo por melhor que fosse a
+    // constituição.
+    //
+    // Por que aqui, e não na produção: a produção protege o futuro; esta é a
+    // porta pela qual o dano chega ao público, e ela precisa valer mesmo para
+    // as peças que nasceram antes de qualquer trava existir. É o mesmo
+    // raciocínio da trava de pilar logo acima, e pela mesma razão.
+    //
+    // O que ele NÃO faz, de propósito: não julga a peça. Julgar identidade é do
+    // agente `branding`, e ele não pode fazê-lo sem régua registrada. Este
+    // portão pergunta uma coisa só, e é a mais básica: **esta marca chegou a
+    // declarar alguma regra?** Publicar em nome de uma marca sobre a qual a casa
+    // não sabe NADA é o caso que nenhuma revisão posterior conserta — o post
+    // fica no perfil do cliente.
+    const marca = await contratoDeMarca(post.clientId).catch(() => null);
+    if (!marca) {
+      // Fail-closed: não conseguir LER a régua não pode virar permissão. É o
+      // mesmo princípio do "sem portão = reprovado".
+      await falhar("não consegui ler a régua de marca deste cliente — não publico sem saber por qual régua a peça foi feita");
+      continue;
+    }
+    if (marca.naoConstituida) {
+      await falhar(
+        "marca não constituída: este cliente não declarou nenhuma regra de marca — " +
+          "nem proibição, nem identidade. Publicar em nome dele agora é a agência " +
+          "escolhendo a marca por ele. Preencha a ficha de marca e este post sai sozinho na próxima passada.",
+      );
       continue;
     }
     const conexao = await conexaoDoCliente(post.workspaceId, post.clientId, "instagram")

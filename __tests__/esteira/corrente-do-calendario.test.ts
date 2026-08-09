@@ -36,6 +36,11 @@ const midiaTodaJpeg = async (args?: { where?: { id?: { in?: string[] } } }) =>
   (args?.where?.id?.in ?? []).map((id) => ({ id, mimeType: "image/jpeg" }));
 const publishPost = vi.hoisted(() => vi.fn());
 const conexaoDoCliente = vi.hoisted(() => vi.fn());
+// 09/08/2026: a entrega passou a consultar a régua de marca antes de publicar
+// (`lib/agency/esteira/contrato-de-marca.ts`). Estes testes são sobre O RELÓGIO,
+// então o caso limpo é uma marca constituída; o portão tem teste próprio.
+const contratoDeMarca = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/agency/esteira/contrato-de-marca", () => ({ contratoDeMarca }));
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
 vi.mock("@/lib/integrations/meta/client", () => ({ publishPost }));
 vi.mock("@/lib/integrations/meta/connections", () => ({ conexaoDoCliente }));
@@ -71,6 +76,10 @@ const ONTEM = new Date(Date.now() - 24 * 60 * 60_000);
 const SEIS = ["sp1", "sp2", "sp3", "sp4", "sp5", "sp6"];
 
 beforeEach(() => {
+  contratoDeMarca.mockResolvedValue({
+    texto: "QUEM É\nMarca: Cliente", marcaVersao: "mv_teste0001",
+    lacunas: [], cortado: [], naoConstituida: false,
+  });
   vi.clearAllMocks();
   db.mediaAsset.findMany.mockImplementation(midiaTodaJpeg);
   banco.clear();

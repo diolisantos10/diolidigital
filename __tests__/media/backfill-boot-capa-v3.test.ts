@@ -43,6 +43,15 @@ const DB_PATH = vi.hoisted(() => {
 // backfill e publicação são os reais — junta com dublê não é junta testada.
 const publishPost = vi.hoisted(() => vi.fn());
 const conexaoDoCliente = vi.hoisted(() => vi.fn());
+// 09/08/2026: a entrega consulta a régua de marca antes de publicar. Este
+// arquivo testa o FORMATO da mídia, então a marca aqui é constituída — o
+// portão de marca tem teste próprio em `__tests__/esteira/portao-de-marca`.
+vi.mock("@/lib/agency/esteira/contrato-de-marca", () => ({
+  contratoDeMarca: async () => ({
+    texto: "QUEM É\nMarca: Cliente", marcaVersao: "mv_teste0001",
+    lacunas: [], cortado: [], naoConstituida: false,
+  }),
+}));
 vi.mock("@/lib/integrations/meta/client", () => ({ publishPost }));
 vi.mock("@/lib/integrations/meta/connections", () => ({ conexaoDoCliente }));
 vi.mock("@/lib/agency/media/armazenamento", () => ({

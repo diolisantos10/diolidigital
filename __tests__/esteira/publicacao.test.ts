@@ -19,6 +19,11 @@ const midiaTodaJpeg = async (args?: { where?: { id?: { in?: string[] } } }) =>
   (args?.where?.id?.in ?? []).map((id) => ({ id, mimeType: "image/jpeg" }));
 const publishPost = vi.hoisted(() => vi.fn());
 const conexaoDoCliente = vi.hoisted(() => vi.fn());
+// 09/08/2026: a entrega passou a consultar a régua de marca antes de publicar
+// (`lib/agency/esteira/contrato-de-marca.ts`). Estes testes são sobre O RELÓGIO,
+// então o caso limpo é uma marca constituída; o portão tem teste próprio.
+const contratoDeMarca = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/agency/esteira/contrato-de-marca", () => ({ contratoDeMarca }));
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
 vi.mock("@/lib/integrations/meta/client", () => ({ publishPost }));
 vi.mock("@/lib/integrations/meta/connections", () => ({ conexaoDoCliente }));
@@ -49,6 +54,10 @@ const projeto = {
 };
 
 beforeEach(() => {
+  contratoDeMarca.mockResolvedValue({
+    texto: "QUEM É\nMarca: Cliente", marcaVersao: "mv_teste0001",
+    lacunas: [], cortado: [], naoConstituida: false,
+  });
   vi.clearAllMocks();
   db.mediaAsset.findMany.mockImplementation(midiaTodaJpeg);
   db.project.findUnique.mockResolvedValue({ ...projeto });
@@ -185,6 +194,35 @@ describe("o relógio publica o que está agendado", () => {
     const dados = db.socialPost.update.mock.calls[0]![0].data;
     expect(dados.status).toBe("published");
     expect(dados.externalPostId).toBe("ig_1");
+  });
+
+  // ── O PORTÃO DE MARCA (09/08/2026) ───────────────────────────────────────
+  // O Conselho listou como condição de tudo: "não existe rota alternativa para
+  // entregar contornando o portão". Esta função ERA a rota.
+
+  it("marca não constituída NÃO publica — e nem chega a falar com a Meta", async () => {
+    contratoDeMarca.mockResolvedValue({
+      texto: "MARCA NÃO CONSTITUÍDA", marcaVersao: "mv_vazio0000",
+      lacunas: ["proibições"], cortado: [], naoConstituida: true,
+    });
+    const r = await publicarAgendados();
+    expect(r.publicados).toBe(0);
+    expect(publishPost, "publicou sem saber por qual régua a peça foi feita").not.toHaveBeenCalled();
+    expect(r.falhas[0]!.erro).toMatch(/marca não constituída/i);
+  });
+
+  it("a metade oposta: marca constituída publica normalmente", async () => {
+    const r = await publicarAgendados();
+    expect(r.publicados).toBe(1);
+    expect(publishPost).toHaveBeenCalled();
+  });
+
+  it("não conseguir LER a régua também barra — erro de leitura nunca vira permissão", async () => {
+    contratoDeMarca.mockRejectedValue(new Error("banco fora do ar"));
+    const r = await publicarAgendados();
+    expect(r.publicados).toBe(0);
+    expect(publishPost).not.toHaveBeenCalled();
+    expect(r.falhas[0]!.erro).toMatch(/régua de marca/i);
   });
 
   it("a mídia vai à Meta como link público assinado — os servidores dela precisam alcançar", async () => {
