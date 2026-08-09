@@ -686,6 +686,49 @@ model BrandBrain {
   values         String   @default("[]")
   targetAudience String?
   positioning    String?
+
+  // ── OS CAMPOS QUE PERMITEM JULGAR (09/08/2026) ───────────────────────────
+  //
+  // Os campos acima dizem quem a marca É. Sozinhos, eles nunca permitiram
+  // reprovar nada — e foi por isso que, medido neste dia, quem produzia recebia
+  // apenas público-alvo e tom. O esquema abaixo vem da constituição do
+  // `branding` (dioli-brain-kit, doutrina 23), que o Conselho desenhou em
+  // 09/08: nove campos, e cada um só entra porque MUDA UMA DECISÃO.
+  //
+  // As PROIBIÇÕES não estão aqui de propósito: já existem, funcionam e moram em
+  // `BrainArtifact` (departamento `proibicoes-do-cliente`). Duplicá-las numa
+  // coluna criaria duas verdades sobre a mesma regra — o defeito que esta casa
+  // já pagou caro em preço e em material.
+
+  /// O que a marca serve e o que quem interage pode esperar. Barra trabalho que
+  /// promete efeito fora do que ela entrega.
+  purposeAndPromise String?
+  /// A quem fala e em que posição (par, autoridade, prestador). Decide
+  /// tratamento e distância.
+  audienceRelation  String?
+  /// JSON: pares "dizemos assim / não dizemos assim", com exemplos LITERAIS.
+  /// Adjetivo não é verificável; par de exemplo é.
+  voicePairsJson    String  @default("[]")
+  /// JSON: grafia canônica do nome, termos obrigatórios e proibidos. É o único
+  /// campo checável de forma determinística.
+  lexiconJson       String  @default("{}")
+  /// JSON: artefatos aprovados E reprovados, com motivo. O contra-exemplo
+  /// ensina mais que o exemplo — e faltavam os dois.
+  referencesJson    String  @default("{}")
+  /// JSON: tokens invariáveis expressos como VALORES, nunca como adjetivos.
+  formalTokensJson  String  @default("{}")
+  /// O que a marca não pode afirmar sobre si AINDA QUE SEJA VERDADE
+  /// (superlativo, garantia, comparação com terceiro). É a fronteira exata com
+  /// o `qualidade`: ele julga se é verdade, isto julga se pode ser dito.
+  promiseLimits     String?
+  /// JSON: qual regra vence quando duas colidem, mais o humano dono, o canal e
+  /// o prazo de resposta. Sem isto a escalada não tem endereço.
+  ownerAndHierarchyJson String @default("{}")
+  /// JSON por campo: "definido" | "lacuna" | "herdado_default", com data e
+  /// autor. É o ESTADO, e não um décimo campo, que impede ausência de virar
+  /// informação — a regra que o Conselho fez questão de separar.
+  fieldStatesJson   String  @default("{}")
+
   updatedAt      DateTime @updatedAt
 }
 

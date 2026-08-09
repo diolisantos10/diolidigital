@@ -35,7 +35,7 @@
 // existem. Este contrato as REÚNE com o resto — não as substitui.
 
 import { createHash } from "node:crypto";
-import { prisma } from "@/lib/db/client";
+import { lerFichaDeMarca, type CampoNaFicha } from "@/lib/agency/esteira/ficha-de-marca";
 import { lerProibicoes } from "@/lib/agency/esteira/proibicoes";
 import { materiaisDeMarca } from "@/lib/agency/esteira/material-do-drive";
 
@@ -62,20 +62,6 @@ export interface ContratoDeMarca {
   naoConstituida: boolean;
 }
 
-/** Um campo que vale a pena estar no contrato só se MUDA UMA DECISÃO de quem
- *  produz. Campo que não muda decisão não entra — regra da constituição. */
-interface Linha {
-  rotulo: string;
-  valor: string | null | undefined;
-  /** Nome da lacuna quando o valor falta. `null` = a falta não é lacuna. */
-  lacuna: string | null;
-}
-
-function limpar(v: string | null | undefined): string | null {
-  const s = (v ?? "").trim();
-  return s.length > 0 ? s : null;
-}
-
 /**
  * Monta o contrato de marca de um cliente.
  *
@@ -93,65 +79,67 @@ export async function contratoDeMarca(clientId: string | null | undefined): Prom
     };
   }
 
-  const [marca, proibicoes, materiais] = await Promise.all([
-    prisma.brandBrain.findUnique({ where: { clientId } }).catch(() => null),
-    lerProibicoes(clientId).catch(() => ({ lidas: false, itens: [] as { frase: string }[] })),
+  const [ficha, materiais, proibicoes] = await Promise.all([
+    lerFichaDeMarca(clientId),
     materiaisDeMarca(clientId).catch(() => []),
+    // A régua lê a lista INTEIRA, não o resumo da ficha. A ficha encurta para
+    // caber na tela de quem olha; proibição encurtada em silêncio vira regra
+    // que sumiu — e quem produz obedece o pedaço e inventa o resto.
+    lerProibicoes(clientId).catch(() => ({ lidas: false, itens: [] as { frase: string }[] })),
   ]);
 
   const lacunas: string[] = [];
   const partes: string[] = [];
   const cortado: string[] = [];
 
-  // ── 1. QUEM É ────────────────────────────────────────────────────────────
-  const identidade: Linha[] = [
-    { rotulo: "Marca", valor: limpar(marca?.brandName), lacuna: "nome da marca" },
-    { rotulo: "Promessa", valor: limpar(marca?.tagline), lacuna: "promessa (tagline)" },
-    { rotulo: "Posicionamento", valor: limpar(marca?.positioning), lacuna: "posicionamento" },
-    { rotulo: "Fala com", valor: limpar(marca?.targetAudience), lacuna: "público" },
-    { rotulo: "Tom", valor: limpar(marca?.tone), lacuna: "tom de voz" },
-  ];
-  const linhasIdentidade = identidade
-    .filter((l) => {
-      if (l.valor) return true;
-      if (l.lacuna) lacunas.push(l.lacuna);
-      return false;
-    })
-    .map((l) => `${l.rotulo}: ${l.valor}`);
-  if (linhasIdentidade.length > 0) partes.push(`QUEM É\n${linhasIdentidade.join("\n")}`);
+  const definido = (campo: string): CampoNaFicha | undefined =>
+    ficha.campos.find((c) => c.campo === campo && c.estado === "definido");
+
+  // ── 1. QUEM É, e COM QUEM FALA ───────────────────────────────────────────
+  const identidade = [
+    definido("proposito_e_promessa") && `Promessa: ${definido("proposito_e_promessa")!.valor}`,
+    definido("publico_e_relacao") && `Fala com: ${definido("publico_e_relacao")!.valor}`,
+  ].filter(Boolean) as string[];
+  if (identidade.length > 0) partes.push(`QUEM É\n${identidade.join("\n")}`);
 
   // ── 2. O QUE NUNCA FAZER ─────────────────────────────────────────────────
-  // Primeiro bloco depois da identidade, de propósito: é o único que permite
+  // Logo depois da identidade, de propósito: é o único bloco que permite
   // reprovar, e é o que o cliente já disse em voz alta.
   const frases = (proibicoes.itens ?? []).map((i) => i.frase).filter(Boolean);
-  if (frases.length > 0) {
-    partes.push(`NUNCA\n${frases.map((f) => `— ${f}`).join("\n")}`);
-  } else {
-    lacunas.push("proibições (o que a marca nunca faz)");
-  }
+  if (frases.length > 0) partes.push(`NUNCA\n${frases.map((f) => `— ${f}`).join("\n")}`);
 
-  // ── 3. COM O QUE SE PARECE ───────────────────────────────────────────────
-  const formais = [
-    marca?.primaryColor ? `cor principal ${marca.primaryColor}` : null,
-    marca?.secondaryColor ? `cor de apoio ${marca.secondaryColor}` : null,
-    limpar(marca?.typography) ? `tipografia ${limpar(marca?.typography)}` : null,
-  ].filter(Boolean) as string[];
-  if (formais.length > 0) partes.push(`FORMA\n${formais.join(" · ")}`);
-  else lacunas.push("cor e tipografia");
+  const limites = definido("limites_de_promessa");
+  if (limites) partes.push(`NÃO AFIRMAR, mesmo sendo verdade\n${limites.valor}`);
+
+  // ── 3. COMO SE FALA ──────────────────────────────────────────────────────
+  // Pares de exemplo, nunca adjetivo: "tom natural e direto" não é verificável
+  // por ninguém, e por isso não vira régua.
+  const voz = definido("voz");
+  if (voz) partes.push(`COMO FALAMOS\n${voz.valor}`);
+  const lex = definido("lexico");
+  if (lex) partes.push(`PALAVRAS\n${lex.valor}`);
+
+  // ── 4. COM O QUE SE PARECE ───────────────────────────────────────────────
+  const forma = definido("atributos_formais");
+  if (forma) partes.push(`FORMA\n${forma.valor}`);
+  const refs = definido("referencias");
+  if (refs) partes.push(`REFERÊNCIAS\n${refs.valor}`);
 
   const logo = materiais.find((m) => m.papel === "logo");
-  const referencias = materiais.filter((m) => m.papel === "referencia");
+  const referenciasDeArquivo = materiais.filter((m) => m.papel === "referencia");
   const material: string[] = [];
   if (logo) material.push(`logo: ${logo.nome}`);
   else lacunas.push("arquivo de logo");
-  if (referencias.length > 0) material.push(`referências: ${referencias.map((r) => r.nome).slice(0, 3).join(", ")}`);
-  else lacunas.push("referência visual (o que a marca considera certo)");
+  if (referenciasDeArquivo.length > 0) {
+    material.push(`arquivos de referência: ${referenciasDeArquivo.map((r) => r.nome).slice(0, 3).join(", ")}`);
+  }
   if (material.length > 0) partes.push(`MATERIAL\n${material.join("\n")}`);
 
-  // ── 4. O QUE A MARCA AINDA NÃO DECIDIU ───────────────────────────────────
+  // ── 5. O QUE A MARCA AINDA NÃO DECIDIU ───────────────────────────────────
   // Vai DENTRO do contrato, não num relatório à parte: quem produz precisa
   // saber que ali não há régua — senão preenche com o próprio gosto e ninguém
   // fica sabendo.
+  lacunas.push(...ficha.lacunas.map((c) => c.rotulo.toLowerCase()));
   if (lacunas.length > 0) {
     partes.push(
       `AINDA NÃO DECIDIDO (${lacunas.length})\n` +
@@ -160,10 +148,10 @@ export async function contratoDeMarca(clientId: string | null | undefined): Prom
     );
   }
 
-  const naoConstituida = frases.length === 0 && linhasIdentidade.length === 0;
+  const naoConstituida = ficha.naoConstituida;
   if (naoConstituida) {
     partes.unshift(
-      "MARCA NÃO CONSTITUÍDA — esta marca ainda não declarou regra nenhuma.\n" +
+      "MARCA NÃO CONSTITUÍDA — esta marca ainda não declarou regra suficiente.\n" +
         "Produza com o que o briefing disser e NÃO afirme nada sobre a marca que\n" +
         "não esteja escrito nele.",
     );

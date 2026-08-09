@@ -1,9 +1,15 @@
-// O contrato de marca — a régua que chega a quem produz.
+// O contrato de marca — a régua que chega a quem produz, ANTES de produzir.
 //
-// Cada trava aqui tem AS DUAS METADES: prova que o problema plantado é pego E
-// que o caso limpo não é acusado à toa.
+// Desde 09/08 ele monta a partir da FICHA (`ficha-de-marca.ts`), que é a única
+// fonte do estado de cada campo. Estes testes mockam só o banco: a ficha real
+// roda por cima, e é o caminho de verdade — não um atalho.
+//
+// Cada trava tem AS DUAS METADES: pega o problema plantado E não acusa o caso
+// limpo.
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
 
 const db = vi.hoisted(() => ({ brandBrain: { findUnique: vi.fn() } }));
 vi.mock("@/lib/db/client", () => ({ prisma: db }));
@@ -17,16 +23,31 @@ vi.mock("@/lib/agency/esteira/material-do-drive", () => mat);
 import { contratoDeMarca, versaoDe, TETO_DO_CONTRATO } from "@/lib/agency/esteira/contrato-de-marca";
 
 const MARCA_CHEIA = {
-  brandName: "CityJobs", tagline: "trabalho perto de casa",
-  positioning: "o classificado de bairro", targetAudience: "quem procura emprego na região",
-  tone: "direto, sem jargão", primaryColor: "#1B4D3E", secondaryColor: "#E8B54D",
-  typography: "Inter",
+  purposeAndPromise: "conecta quem procura trabalho a vagas do próprio bairro",
+  audienceRelation: "fala como vizinho, não como consultoria",
+  voicePairsJson: JSON.stringify([{ dizemos: "vaga perto de você", naoDizemos: "oportunidade de carreira" }]),
+  lexiconJson: JSON.stringify({ nome: "CityJobs", proibidas: ["emprego dos sonhos"] }),
+  referencesJson: JSON.stringify({ aprovadas: ["post-1"], reprovadas: ["post-9"] }),
+  formalTokensJson: JSON.stringify({ primaria: "#1B4D3E" }),
+  promiseLimits: "não prometemos contratação",
+  ownerAndHierarchyJson: JSON.stringify({ dono: "Marcos", canal: "portal", prazoHoras: 48 }),
+  fieldStatesJson: "{}",
+  primaryColor: "#1B4D3E", typography: "Inter",
+};
+
+const TRES_PROIBICOES = {
+  lidas: true,
+  itens: [
+    { frase: "nunca escreva o nome em letra gigante" },
+    { frase: "não cite concorrente" },
+    { frase: "não fale de salário exato" },
+  ],
 };
 
 beforeEach(() => {
   vi.clearAllMocks();
   db.brandBrain.findUnique.mockResolvedValue(MARCA_CHEIA);
-  proib.lerProibicoes.mockResolvedValue({ lidas: true, itens: [{ frase: "nunca escreva o nome em letra gigante" }] });
+  proib.lerProibicoes.mockResolvedValue(TRES_PROIBICOES);
   mat.materiaisDeMarca.mockResolvedValue([
     { papel: "logo", nome: "05_city_jobs_retangular.svg" },
     { papel: "referencia", nome: "post-que-funcionou.jpg" },
@@ -34,12 +55,18 @@ beforeEach(() => {
 });
 
 describe("a régua CHEGA a quem produz", () => {
-  it("o contrato traz quem é, o que nunca fazer, a forma e o material", async () => {
+  it("traz a promessa, o que nunca fazer, como se fala e a forma", async () => {
     const c = await contratoDeMarca("cli1");
-    expect(c.texto).toContain("CityJobs");
+    expect(c.texto).toContain("conecta quem procura trabalho");
     expect(c.texto).toContain("nunca escreva o nome em letra gigante");
+    expect(c.texto).toContain("vaga perto de você");
     expect(c.texto).toContain("#1B4D3E");
     expect(c.texto).toContain("05_city_jobs_retangular.svg");
+  });
+
+  it("traz o que NÃO se afirma mesmo sendo verdade — a fronteira com o qualidade", async () => {
+    const c = await contratoDeMarca("cli1");
+    expect(c.texto).toContain("não prometemos contratação");
   });
 
   it("marca completa não inventa lacuna — a metade que impede acusação à toa", async () => {
@@ -53,22 +80,28 @@ describe("o que a marca não decidiu vira LACUNA NOMEADA, nunca um valor plausí
   it("sem proibição registrada, o contrato diz que falta — não diz 'pode tudo'", async () => {
     proib.lerProibicoes.mockResolvedValue({ lidas: true, itens: [] });
     const c = await contratoDeMarca("cli1");
-    expect(c.lacunas).toContain("proibições (o que a marca nunca faz)");
     expect(c.texto).toContain("AINDA NÃO DECIDIDO");
+    expect(c.lacunas.join(" ")).toMatch(/nunca faz/i);
     expect(c.texto.toLowerCase()).not.toContain("pode tudo");
   });
 
-  it("sem logo e sem referência, as duas faltas são nomeadas separadamente", async () => {
+  it("sem logo, a falta do arquivo é nomeada", async () => {
     mat.materiaisDeMarca.mockResolvedValue([]);
     const c = await contratoDeMarca("cli1");
     expect(c.lacunas).toContain("arquivo de logo");
-    expect(c.lacunas).toContain("referência visual (o que a marca considera certo)");
   });
 
   it("a lacuna manda NÃO inventar — senão quem produz preenche com o próprio gosto", async () => {
     mat.materiaisDeMarca.mockResolvedValue([]);
     const c = await contratoDeMarca("cli1");
     expect(c.texto).toContain("Não invente estes");
+  });
+
+  it("tom em adjetivo NÃO conta como voz — e a falta aparece", async () => {
+    db.brandBrain.findUnique.mockResolvedValue({ ...MARCA_CHEIA, voicePairsJson: "[]", tone: "natural e direto" });
+    const c = await contratoDeMarca("cli1");
+    expect(c.texto).toContain("AINDA NÃO DECIDIDO");
+    expect(c.texto).not.toContain("natural e direto");
   });
 });
 
@@ -82,7 +115,7 @@ describe("marca sem nada é declarada, e não vira licença", () => {
     expect(c.texto).toContain("MARCA NÃO CONSTITUÍDA");
   });
 
-  it("a metade oposta: marca com regra NÃO é declarada não-constituída", async () => {
+  it("a metade oposta: marca com régua NÃO é declarada não-constituída", async () => {
     const c = await contratoDeMarca("cli1");
     expect(c.naoConstituida).toBe(false);
     expect(c.texto).not.toContain("MARCA NÃO CONSTITUÍDA");
@@ -95,7 +128,7 @@ describe("o teto de uma tela é código, não recomendação", () => {
     // pedaço e inventa o resto.
     proib.lerProibicoes.mockResolvedValue({
       lidas: true,
-      itens: Array.from({ length: 80 }, (_, i) => ({ frase: `proibição número ${i} com texto longo o suficiente para encher` })),
+      itens: Array.from({ length: 80 }, (_, i) => ({ frase: `proibição número ${i} com texto longo o suficiente para encher a tela` })),
     });
     const c = await contratoDeMarca("cli1");
     expect(c.texto.length).toBeLessThanOrEqual(TETO_DO_CONTRATO);
@@ -115,7 +148,7 @@ describe("marca_versao identifica a RÉGUA, não o relógio", () => {
     expect(versaoDe("abc")).toBe(versaoDe("abc"));
   });
 
-  it("conteúdo diferente devolve versão diferente — senão duas réguas se confundem", () => {
+  it("conteúdo diferente devolve versão diferente", () => {
     expect(versaoDe("abc")).not.toBe(versaoDe("abd"));
   });
 
@@ -127,7 +160,7 @@ describe("marca_versao identifica a RÉGUA, não o relógio", () => {
 });
 
 describe("nunca derruba a produção", () => {
-  it("banco fora do ar não lança — vira lacuna, não exceção", async () => {
+  it("banco fora do ar vira lacuna, não exceção", async () => {
     db.brandBrain.findUnique.mockRejectedValue(new Error("db down"));
     proib.lerProibicoes.mockRejectedValue(new Error("db down"));
     mat.materiaisDeMarca.mockRejectedValue(new Error("db down"));
@@ -146,12 +179,7 @@ describe("nunca derruba a produção", () => {
 // ── A METADE QUE DECIDE SE ISTO VALE ALGUMA COISA ───────────────────────────
 //
 // Um contrato perfeito guardado numa variável que ninguém lê é exatamente o
-// defeito que ele veio consertar: "campo que ninguém lê é decoração". Estes
-// testes olham o CÓDIGO-FONTE, não o comportamento, porque o que precisa ser
-// garantido é estrutural — que a régua esteja no bloco compartilhado de prompt.
-
-import fs from "node:fs";
-import path from "node:path";
+// defeito que ele veio consertar.
 
 const ESPECIALISTAS = fs.readFileSync(path.join(process.cwd(), "lib/agency/execution/especialistas.ts"), "utf8");
 const RUN = fs.readFileSync(path.join(process.cwd(), "lib/agency/execution/run-execution.ts"), "utf8");
@@ -170,7 +198,7 @@ describe("o contrato CHEGA ao prompt de quem produz", () => {
     expect(bloco.indexOf("c.contratoDeMarca")).toBeLessThan(bloco.indexOf("c.businessName"));
   });
 
-  it("a produção monta o contrato de verdade, e não deixa o campo vazio", () => {
+  it("a produção monta o contrato de verdade", () => {
     expect(RUN.includes("contratoDeMarca(project.clientId)")).toBe(true);
   });
 

@@ -5105,6 +5105,15 @@ export const BrandBrainScalarFieldEnum = {
   values: 'values',
   targetAudience: 'targetAudience',
   positioning: 'positioning',
+  purposeAndPromise: 'purposeAndPromise',
+  audienceRelation: 'audienceRelation',
+  voicePairsJson: 'voicePairsJson',
+  lexiconJson: 'lexiconJson',
+  referencesJson: 'referencesJson',
+  formalTokensJson: 'formalTokensJson',
+  promiseLimits: 'promiseLimits',
+  ownerAndHierarchyJson: 'ownerAndHierarchyJson',
+  fieldStatesJson: 'fieldStatesJson',
   updatedAt: 'updatedAt'
 } as const
 
