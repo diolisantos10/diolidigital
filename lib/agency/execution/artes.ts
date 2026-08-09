@@ -593,7 +593,7 @@ async function lerMaterialReal(clientId: string | null): Promise<{
   };
 }
 
-async function lerMarca(clientId: string | null): Promise<MarcaDaPeca> {
+export async function lerMarca(clientId: string | null): Promise<MarcaDaPeca> {
   const vazio: MarcaDaPeca = {
     nome: "", segmento: "", cores: [], tom: "",
     // Sem cliente não há logo e não há foto — e o molde declara a falta do logo
@@ -770,7 +770,7 @@ type ResultadoDaComposicao =
   | { ok: true; bytes: Buffer; mime: string; nota: string | null }
   | { ok: false; motivo: MotivoDeFalhaDeRender; erro: string };
 
-async function comporComMolde(p: PedidoDeComposicao): Promise<ResultadoDaComposicao> {
+export async function comporComMolde(p: PedidoDeComposicao): Promise<ResultadoDaComposicao> {
   // ── O MOLDE NEUTRO PRECISA SER DECLARADO PARA FORA ────────────────────────
   // Até a 7ª auditoria, `origem: "neutro"` e `lacunas` não tinham um único
   // consumidor fora de teste: o cliente sem marca recebia a peça cinza e nada —

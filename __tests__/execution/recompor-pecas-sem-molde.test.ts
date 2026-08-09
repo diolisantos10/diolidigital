@@ -160,8 +160,15 @@ describe("modo marca-nova — alcança a peça que nasceu antes do logo", () => 
 });
 
 describe("a rota escolhe o modo, e o padrão é o comportamento antigo", () => {
-  it("só `marca-nova` liga o modo novo — qualquer outra coisa cai no antigo", () => {
-    expect(ROTA.includes('bruto === "marca-nova" ? "marca-nova" : "sem-molde"')).toBe(true);
+  it("só os modos NOMEADOS ligam comportamento novo — o resto cai no antigo", () => {
+    // 09/08: entrou um terceiro modo (`carrossel`, que redesenha as telas). A
+    // lista continua FECHADA de propósito: modo desconhecido não pode virar
+    // comportamento novo por acidente de digitação.
+    expect(ROTA.includes('bruto === "marca-nova" || bruto === "carrossel" ? bruto : "sem-molde"')).toBe(true);
+  });
+
+  it("o modo de carrossel chama a função das TELAS, não a da peça única", () => {
+    expect(ROTA.includes('modo === "carrossel" ? await recomporCarrosseis(limite)')).toBe(true);
   });
 
   it("o modo escolhido volta na resposta — quem chamou não fica adivinhando", () => {

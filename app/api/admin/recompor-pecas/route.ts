@@ -34,6 +34,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { recomporPecas, type SelecaoDeRecomposicao } from "@/lib/agency/execution/artes";
+import { recomporCarrosseis } from "@/lib/agency/execution/recompor-carrossel";
 import { segredoConfere } from "@/lib/security/crypto";
 
 export const dynamic = "force-dynamic";
@@ -69,9 +70,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // O padrão continua `sem-molde`: quem já chamava esta rota continua tendo
   // exatamente o comportamento que conhecia.
   const bruto = request.nextUrl.searchParams.get("modo");
-  const modo: SelecaoDeRecomposicao = bruto === "marca-nova" ? "marca-nova" : "sem-molde";
+  const modo = bruto === "marca-nova" || bruto === "carrossel" ? bruto : "sem-molde";
 
-  const r = await recomporPecas(limite, modo);
+  // `?modo=carrossel` redesenha as TELAS de um carrossel. O modo normal compõe
+  // uma arte por peça, e num carrossel o que vai ao ar são as N telas — recompor
+  // por lá escrevia capa nova e deixava as telas quebradas.
+  const r = modo === "carrossel" ? await recomporCarrosseis(limite) : await recomporPecas(limite, modo as SelecaoDeRecomposicao);
   return NextResponse.json({
     // Conclusão primeiro: quantas peças passaram a ter a marca do cliente.
     quantasRecompostas: r.recompostas.length,
