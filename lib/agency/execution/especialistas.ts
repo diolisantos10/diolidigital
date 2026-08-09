@@ -32,6 +32,15 @@ import {
 /** O contexto do cliente que todo especialista recebe. Verdade ancorada: campo
  *  vazio é campo vazio — nenhum prompt aqui manda preencher por inferência. */
 export interface Ctx {
+  /** A RÉGUA DA MARCA, entregue ANTES de produzir — texto de no máximo uma tela
+   *  vindo de `esteira/contrato-de-marca.ts`: quem a marca é, o que ela NUNCA
+   *  faz, com o que se parece, e o que ela ainda não decidiu (nomeado, para
+   *  ninguém preencher por inferência).
+   *
+   *  Até 09/08/2026 isto não existia: as proibições do cliente só chegavam ao
+   *  piso de verdade, que confere o texto DEPOIS de pronto. Quem produzia era
+   *  pego, nunca avisado. */
+  contratoDeMarca?: string;
   businessName: string;
   segment: string;
   targetAudience: string;
@@ -257,6 +266,10 @@ export interface Departamento {
 
 function ctxBlock(c: Ctx): string {
   return [
+    // ── O CONTRATO DE MARCA VEM PRIMEIRO, e a ordem é a mensagem ───────────
+    // Entra no bloco COMPARTILHADO porque assim alcança TODO especialista de
+    // uma vez — e não só aquele que alguém lembrou de alterar depois.
+    c.contratoDeMarca,
     `Negócio: ${c.businessName}`,
     c.segment && `Segmento: ${c.segment}`,
     c.targetAudience && `Público-alvo: ${c.targetAudience}`,

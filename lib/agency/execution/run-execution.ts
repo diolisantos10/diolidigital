@@ -31,6 +31,7 @@ import {
 } from "@/lib/agency/execution/piso-de-verdade";
 import { sinteseDoFeedDoCliente } from "@/lib/agency/execution/leitura-do-cliente";
 import { lerProibicoes, sincronizarDoBriefing } from "@/lib/agency/esteira/proibicoes";
+import { contratoDeMarca } from "@/lib/agency/esteira/contrato-de-marca";
 import {
   VERSAO_DA_MEDICAO, versaoDaMedicao,
   type MedicaoDoMes,
@@ -339,6 +340,11 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
     const brand = client?.brandBrain ?? null;
 
     const context: Ctx = {
+      // A régua da marca, montada ANTES da produção e entregue no prompt de
+      // todo especialista. Best-effort de propósito: contrato que falha não
+      // pode derrubar a esteira — e a falta dele não fica muda, porque o próprio
+      // texto do contrato declara "marca não constituída" quando é o caso.
+      contratoDeMarca: (await contratoDeMarca(project.clientId).catch(() => null))?.texto,
       businessName: req.businessName || client?.name || "o cliente",
       segment: req.segment || (typeof scope.segment === "string" ? scope.segment : "") || client?.industry || "",
       targetAudience: typeof scope.targetAudience === "string" ? scope.targetAudience : (brand?.targetAudience ?? ""),
