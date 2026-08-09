@@ -1,13 +1,13 @@
 <!-- ESPELHO-DO-KIT
 origem: docs/02-arquitetura.md
-kit-commit: 8bc1af83271e4fa762041cebf7a8ff34347327fa
+kit-commit: 678294223e4678da70f4913ce00d8fa7f9b0eaa4
 sha256-do-corpo: f5b8842fa7ac4a3953b67234895352944934fa4df26827737ae459cf63926301
 -->
 
 > ⚠️ **ESPELHO GERADO — NÃO EDITE ESTE ARQUIVO.**
 >
 > Ele é uma cópia automática de `diolisantos10/dioli-brain-kit` → `docs/02-arquitetura.md`,
-> no commit `8bc1af8`.
+> no commit `6782942`.
 >
 > **Editar aqui não muda a doutrina** — muda só este repositório, e a próxima
 > geração do espelho apaga a sua edição sem avisar. Para mudar a regra,

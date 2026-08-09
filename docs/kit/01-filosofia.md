@@ -1,13 +1,13 @@
 <!-- ESPELHO-DO-KIT
 origem: docs/01-filosofia.md
-kit-commit: 8bc1af83271e4fa762041cebf7a8ff34347327fa
+kit-commit: 678294223e4678da70f4913ce00d8fa7f9b0eaa4
 sha256-do-corpo: 088d428d246ea979739f07a3a048422d578167876e4fac6db80c256cc9fa4a46
 -->
 
 > ⚠️ **ESPELHO GERADO — NÃO EDITE ESTE ARQUIVO.**
 >
 > Ele é uma cópia automática de `diolisantos10/dioli-brain-kit` → `docs/01-filosofia.md`,
-> no commit `8bc1af8`.
+> no commit `6782942`.
 >
 > **Editar aqui não muda a doutrina** — muda só este repositório, e a próxima
 > geração do espelho apaga a sua edição sem avisar. Para mudar a regra,

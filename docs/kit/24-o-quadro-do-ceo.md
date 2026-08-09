@@ -1,13 +1,13 @@
 <!-- ESPELHO-DO-KIT
 origem: docs/24-o-quadro-do-ceo.md
-kit-commit: 8bc1af83271e4fa762041cebf7a8ff34347327fa
-sha256-do-corpo: 8c2e42aa7f583247f9bacb56a409a3d6652b31b75bee2e75166bc392e097e3b6
+kit-commit: 678294223e4678da70f4913ce00d8fa7f9b0eaa4
+sha256-do-corpo: 4f4ebb5f4ed7cbd5e93e475cd6d149b8661565e3b4d29cbe48797741d4b0410a
 -->
 
 > ⚠️ **ESPELHO GERADO — NÃO EDITE ESTE ARQUIVO.**
 >
 > Ele é uma cópia automática de `diolisantos10/dioli-brain-kit` → `docs/24-o-quadro-do-ceo.md`,
-> no commit `8bc1af8`.
+> no commit `6782942`.
 >
 > **Editar aqui não muda a doutrina** — muda só este repositório, e a próxima
 > geração do espelho apaga a sua edição sem avisar. Para mudar a regra,
@@ -111,6 +111,40 @@ Erro meu → não pergunte, resolva. Escolha dele → pergunte.
 > de segurança abertas", "no ar desde vazio em todos os cartões" e "autorizar o
 > merge" como se fossem pendências do CEO. A resposta foi: *"não sei nem o que que
 > é isso."* Ele estava certo — nenhuma das três era decisão de negócio.
+
+---
+
+## ⭐ O CEO não faz setup
+
+> **Ordem do CEO, 08/08/2026, literal:** *"Regra de ouro: CEO não faz setup
+> nenhum. Eu sou estratégico."*
+
+Configuração **não é decisão de dono**. Criar conta, gerar chave, colar variável,
+editar registro de DNS, apertar botão em painel de terceiro — nada disso escolhe
+preço, promessa, gasto ou prioridade. É trabalho de execução que subiu de andar
+porque o Diretor não achou o caminho, e **achar o caminho é a função dele**.
+
+**Antes de pedir qualquer setup ao CEO, o Diretor esgota, nesta ordem:**
+
+1. **Procure a credencial.** Variáveis do ambiente de produção, cofre do sistema,
+   repositório, registros anteriores. Em 08/08 um Diretor cobrou do CEO por dias um
+   logo que estava versionado no próprio repositório.
+2. **Procure outro caminho.** Quase toda configuração de painel tem API. Quase toda
+   API tem credencial que já existe para outra coisa.
+3. **Reduza ao átomo.** Se sobrar mesmo um passo humano, ele tem que ser **o menor
+   possível e o último** — uma colagem, não um roteiro de dez cliques. E o pedido
+   diz **por que é irredutível**, não só o que fazer.
+
+**O que resta legitimamente para ele** é sempre da mesma família: um segredo que
+**só existe do lado de fora** e que ninguém dentro de casa pode gerar — a conta é
+dele, o cartão é dele, a identidade é dele. Isso não é setup: é **posse**.
+
+E mesmo esse pedido carrega duas coisas: **quanto tempo custa** e **o que ele
+compra em troca** — de preferência, *"esta é a última vez que você toca nisso"*.
+
+> ⚠️ **A armadilha:** pedir setup é o jeito mais rápido de destravar o Diretor e o
+> mais caro para a companhia. Cada pedido gasta o tempo de quem decide para poupar
+> o esforço de quem executa — e o executor é multiplicável, o CEO não.
 
 ---
 

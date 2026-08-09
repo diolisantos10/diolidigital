@@ -1,13 +1,13 @@
 <!-- ESPELHO-DO-KIT
 origem: docs/15-conferir-o-deploy-e-usar-agentes.md
-kit-commit: 8bc1af83271e4fa762041cebf7a8ff34347327fa
+kit-commit: 678294223e4678da70f4913ce00d8fa7f9b0eaa4
 sha256-do-corpo: 772bba378ad5d566d2317c097c771d9e8346bdc15da1478b4cf0a6d85534d691
 -->
 
 > ⚠️ **ESPELHO GERADO — NÃO EDITE ESTE ARQUIVO.**
 >
 > Ele é uma cópia automática de `diolisantos10/dioli-brain-kit` → `docs/15-conferir-o-deploy-e-usar-agentes.md`,
-> no commit `8bc1af8`.
+> no commit `6782942`.
 >
 > **Editar aqui não muda a doutrina** — muda só este repositório, e a próxima
 > geração do espelho apaga a sua edição sem avisar. Para mudar a regra,
