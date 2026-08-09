@@ -1,7 +1,7 @@
 ---
 titulo: "TikTok Advertising Policies — Healthcare and Pharmaceuticals (por mercado, inclui Brasil)"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-healthcare-pharmaceuticals
-capturado_em: 2026-08-08
+capturado_em: 2026-08-09
 hash: e80400b72680b94b
 ---
 

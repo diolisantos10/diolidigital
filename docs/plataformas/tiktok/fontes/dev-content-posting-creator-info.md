@@ -1,7 +1,7 @@
 ---
 titulo: "Content Posting API — Query Creator Info (/v2/post/publish/creator_info/query/: opções de privacidade, toggles e cota diária do criador)"
 url: https://developers.tiktok.com/doc/content-posting-api-reference-query-creator-info
-capturado_em: 2026-08-08
+capturado_em: 2026-08-09
 hash: ede1a5b92cf04afd
 ---
 

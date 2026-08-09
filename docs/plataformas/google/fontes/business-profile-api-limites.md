@@ -1,7 +1,7 @@
 ---
 titulo: "Business Profile APIs — limites de uso (cotas por projeto)"
 url: https://developers.google.com/my-business/content/limits?hl=pt-br
-capturado_em: 2026-08-08
+capturado_em: 2026-08-09
 hash: 62e4557dee365e19
 ---
 

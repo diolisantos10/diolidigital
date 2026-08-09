@@ -1,7 +1,7 @@
 ---
 titulo: "Content Posting API — Initialize Video Upload (/v2/post/publish/inbox/video/init/, 6 req/min por token)"
 url: https://developers.tiktok.com/doc/content-posting-api-reference-upload-video
-capturado_em: 2026-08-08
+capturado_em: 2026-08-09
 hash: 966e36753c2ebade
 ---
 
