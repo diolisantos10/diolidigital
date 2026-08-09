@@ -74,14 +74,92 @@ export const MIMES_ACEITOS: Record<string, string> = {
   "image/svg+xml": "svg",
 };
 
-/** SVG só pode ser aceito quando FOMOS NÓS que geramos (kind "generated" ou
- *  "deliverable"). Upload de SVG do cliente continua recusado na porta: o
- *  arquivo dele vem de uma máquina que não controlamos. */
-export const MIMES_SO_INTERNOS = new Set(["image/svg+xml"]);
+// SVG DE UPLOAD — por que a porta abriu em 09/08/2026.
+//
+// Até aqui, SVG que chegava de fora era RECUSADO: só passava o que a casa
+// gerava. A intenção estava certa (SVG é XML e XML carrega script), mas o
+// preço apareceu em produção — o CityJobs mandou os seis logos da marca, nos
+// quatro formatos, e a agência recusou todos. Ordem do CEO no mesmo dia:
+// *"tem que aceitar esse formato sim"*.
+//
+// Recusar era jogar fora o MELHOR material que um cliente pode mandar: logo em
+// PNG é logo que já perdeu resolução — não serve para fachada, camiseta nem
+// impressão.
+//
+// O conserto certo não é aceitar cru; é LIMPAR NA ENTRADA. E a limpeza é a
+// terceira camada, não a primeira:
+//   1. `PODE_ABRIR_NA_TELA` (app/api/media/[id]) NÃO inclui SVG → todo SVG sai
+//      como `attachment`, nunca `inline`. Um SVG baixado é arquivo inerte.
+//   2. `X-Content-Type-Options: nosniff` na mesma rota.
+//   3. `limparSvg` abaixo, que remove o executável ANTES de gravar o byte.
+//
+// Dito com todas as letras, porque camada que se vende como perfeita é a que
+// ninguém revisa: **limpeza por expressão regular é piso, não teto.** SVG é XML
+// e existe escape que um regex não pega. A garantia que sustenta este arquivo
+// continua sendo o MODO DE SERVIR (1 e 2); a limpeza é profundidade, para que
+// um byte perigoso não fique guardado esperando alguém servir inline por engano.
 
-// SVG está FORA de propósito. Ele é aceito hoje no fluxo de briefing, e no
-// momento em que passar a ser SERVIDO pelo nosso domínio vira XSS: um SVG
-// carrega script. Quem precisar de vetor manda PDF.
+/** O que é removido de um SVG que chega de fora. Cada padrão tem nome porque o
+ *  resultado devolve o que foi removido — evidência junto do fato, não depois
+ *  (guardrail 6). */
+const PERIGO_NO_SVG: Array<{ nome: string; padrao: RegExp }> = [
+  { nome: "script", padrao: /<script[\s\S]*?<\/script\s*>/gi },
+  { nome: "script-vazio", padrao: /<script\b[^>]*\/?>/gi },
+  // Abre HTML dentro do SVG — é por onde um <iframe> entraria.
+  { nome: "foreignObject", padrao: /<foreignObject[\s\S]*?<\/foreignObject\s*>/gi },
+  // DOCTYPE com entidade é XXE e "billion laughs".
+  { nome: "doctype", padrao: /<!DOCTYPE[\s\S]*?>/gi },
+  { nome: "entidade", padrao: /<!ENTITY[\s\S]*?>/gi },
+  // onload, onclick, onmouseover… a porta mais usada num SVG.
+  { nome: "manipulador-de-evento", padrao: /\son[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi },
+  { nome: "url-javascript", padrao: /(?:xlink:href|href|src)\s*=\s*(?:"\s*javascript:[^"]*"|'\s*javascript:[^']*'|javascript:[^\s>]+)/gi },
+  // data: que vira documento executável (text/html, SVG aninhado).
+  { nome: "url-data-executavel", padrao: /(?:xlink:href|href|src)\s*=\s*(?:"\s*data:(?:text\/html|image\/svg\+xml)[^"]*"|'\s*data:(?:text\/html|image\/svg\+xml)[^']*')/gi },
+  // Referência que busca byte em servidor de terceiro na hora de abrir: vaza
+  // quem abriu e deixa o conteúdo final fora do nosso controle.
+  // `xmlns="http://www.w3.org/2000/svg"` NÃO casa aqui, de propósito — é
+  // declaração de namespace, não busca de recurso.
+  { nome: "referencia-externa", padrao: /(?:xlink:href|href|src)\s*=\s*(?:"\s*(?:https?:)?\/\/[^"]*"|'\s*(?:https?:)?\/\/[^']*')/gi },
+  // <set attributeName="onload" …> reintroduz manipulador por animação.
+  { nome: "animacao-que-vira-evento", padrao: /<(?:set|animate)\b[^>]*attributeName\s*=\s*["']?\s*on[a-z]+[\s\S]*?(?:\/>|<\/(?:set|animate)\s*>)/gi },
+];
+
+export type ResultadoDaLimpeza =
+  | { ok: true; bytes: Buffer; removeu: string[] }
+  | { ok: false; motivo: string };
+
+/**
+ * Limpa um SVG que veio de fora. Devolve os bytes já sem o que executa.
+ *
+ * Não recusa por conter perigo — REMOVE. Um logo com `onload` continua sendo o
+ * logo do cliente depois que o `onload` sai, e recusar o arquivo inteiro foi
+ * exatamente o erro que travou o CityJobs. Só recusa o que não é SVG de
+ * verdade: aí o MIME está mentindo e nada garante o resto.
+ */
+export function limparSvg(bytes: Buffer): ResultadoDaLimpeza {
+  const texto = bytes.toString("utf8");
+  if (!/<svg[\s>]/i.test(texto)) {
+    return {
+      ok: false,
+      motivo: "Esse arquivo diz ser SVG mas não parece um SVG. Exporte de novo pelo seu editor e mande outra vez.",
+    };
+  }
+
+  let limpo = texto;
+  const removeu: string[] = [];
+  for (const { nome, padrao } of PERIGO_NO_SVG) {
+    // `padrao` é global: zerar `lastIndex` evita que a chamada anterior desloque
+    // o início da varredura e deixe passar a primeira ocorrência.
+    padrao.lastIndex = 0;
+    if (padrao.test(limpo)) {
+      removeu.push(nome);
+      padrao.lastIndex = 0;
+      limpo = limpo.replace(padrao, "");
+    }
+  }
+
+  return { ok: true, bytes: Buffer.from(limpo, "utf8"), removeu };
+}
 
 /** A raiz da mídia. No Railway, dentro do volume; fora dele, um diretório local
  *  de desenvolvimento. */
@@ -139,22 +217,29 @@ export async function guardarArquivo(input: {
       motivo: `Não aceitamos esse tipo de arquivo (${input.mimeType || "desconhecido"}). Mande foto, vídeo, PDF ou documento.`,
     };
   }
-  // O que a casa gera pode ser SVG; o que chega de fora, não. A distinção é o
-  // que permite entregar logo vetorial sem abrir upload de SVG do cliente.
-  // Default-deny: a permissão exige `kind` EXPLICITAMENTE interno. Testar
-  // `kind === "inbound"` deixaria passar quem esquecesse de informar o campo —
-  // e o esquecimento é justamente o caminho por onde um SVG de fora entraria.
-  if (MIMES_SO_INTERNOS.has(input.mimeType) && input.kind !== "generated" && input.kind !== "deliverable") {
-    return {
-      ok: false,
-      erro: "mime_recusado",
-      motivo: "Não aceitamos arquivo SVG enviado de fora. Mande em PNG, JPG ou PDF.",
-    };
-  }
   if (input.bytes.length === 0) {
     return { ok: false, erro: "vazio", motivo: "O arquivo chegou vazio. Tente enviar de novo." };
   }
-  if (input.bytes.length > MAX_BYTES_POR_ARQUIVO) {
+
+  // SVG de fora é LIMPO aqui, antes de tudo o que vem depois. A ordem não é
+  // estética: tamanho, cota, sha256 e o byte gravado passam a ser todos do
+  // arquivo JÁ limpo. Limpar depois de hashear guardaria um sha256 de um
+  // conteúdo diferente do que está no disco — e o hash é o que faz o reenvio do
+  // mesmo arquivo devolver o registro existente em vez de duplicar bytes.
+  //
+  // O que a casa gera não passa pela limpeza: nós o produzimos, e o molde do
+  // logo usa recurso que a limpeza removeria.
+  let bytes = input.bytes;
+  const veioDeFora = input.kind !== "generated" && input.kind !== "deliverable";
+  if (input.mimeType === "image/svg+xml" && veioDeFora) {
+    const limpeza = limparSvg(bytes);
+    if (!limpeza.ok) {
+      return { ok: false, erro: "svg_invalido", motivo: limpeza.motivo };
+    }
+    bytes = limpeza.bytes;
+  }
+
+  if (bytes.length > MAX_BYTES_POR_ARQUIVO) {
     const mb = Math.round(MAX_BYTES_POR_ARQUIVO / 1024 / 1024);
     return {
       ok: false,
@@ -169,7 +254,7 @@ export async function guardarArquivo(input: {
     where: { workspaceId: input.workspaceId },
     _sum: { sizeBytes: true },
   });
-  if ((usado._sum.sizeBytes ?? 0) + input.bytes.length > COTA_BYTES_POR_WORKSPACE) {
+  if ((usado._sum.sizeBytes ?? 0) + bytes.length > COTA_BYTES_POR_WORKSPACE) {
     return {
       ok: false,
       erro: "cota_estourada",
@@ -177,7 +262,7 @@ export async function guardarArquivo(input: {
     };
   }
 
-  const sha256 = createHash("sha256").update(input.bytes).digest("hex");
+  const sha256 = createHash("sha256").update(bytes).digest("hex");
   const dono = input.clientRequestId ?? input.clientId ?? input.workspaceId;
 
   // Mesmo conteúdo, mesmo dono → devolve o que já existe.
@@ -198,7 +283,7 @@ export async function guardarArquivo(input: {
   if (existsSync(destino)) {
     return { ok: false, erro: "colisao", motivo: "Não consegui guardar o arquivo. Tente de novo." };
   }
-  await writeFile(destino, input.bytes);
+  await writeFile(destino, bytes);
 
   const registro = await prisma.mediaAsset.create({
     data: {
@@ -210,7 +295,7 @@ export async function guardarArquivo(input: {
       kind: input.kind ?? "inbound",
       fileName: input.fileName.slice(0, 200),
       mimeType: input.mimeType,
-      sizeBytes: input.bytes.length,
+      sizeBytes: bytes.length,
       sha256,
       storagePath,
       uploadedBy: input.uploadedBy ?? "cliente",
