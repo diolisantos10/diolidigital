@@ -74,3 +74,58 @@ describe("dá para usar sem mouse", () => {
     expect(SRC).toContain("aria-label");
   });
 });
+
+// ── AS DUAS METADES LIGADAS ─────────────────────────────────────────────────
+//
+// A caixa da triagem só vale se o servidor souber o que fazer com ela. Uma
+// caixa que dá erro ao soltar o arquivo é pior do que não ter a caixa.
+
+const ENVIO = fs.readFileSync(path.join(process.cwd(), "components/portal/EnvioDeMaterial.tsx"), "utf8");
+const ROTA = fs.readFileSync(path.join(process.cwd(), "app/api/media/route.ts"), "utf8");
+
+describe("as caixas estão ligadas no envio", () => {
+  it("o portal mostra as caixas", () => {
+    expect(ENVIO).toContain("<CaixasDeMaterial onSoltar={soltarNasCaixas} />");
+  });
+
+  it('"disse que não sabe" é diferente de "ainda não disse"', () => {
+    // Sem essa distinção, a triagem cairia na trava de "falta dizer o que é" e
+    // o cliente não conseguiria enviar — a caixa viraria um beco.
+    expect(ENVIO).toContain("fila.filter((f) => !f.papel && !f.triagem)");
+  });
+
+  it("a triagem vai ao servidor como campo próprio", () => {
+    expect(ENVIO).toContain('form.append("triagem", "1")');
+  });
+
+  it("a triagem NÃO inventa papel", () => {
+    // Inventar um papel aqui faria a peça obedecer a um chute do sistema.
+    const i = ENVIO.indexOf("function soltarNasCaixas");
+    const corpo = ENVIO.slice(i, i + 700);
+    expect(corpo).toContain('i.destino === NAO_SEI ? ""');
+  });
+});
+
+describe("o servidor sabe o que fazer com a triagem", () => {
+  it("reconhece o campo", () => {
+    expect(ROTA).toContain('form.get("triagem") === "1"');
+  });
+
+  it("NÃO grava papel para o arquivo em triagem", () => {
+    const i = ROTA.indexOf("pediuTriagem");
+    const bloco = ROTA.slice(i, ROTA.indexOf("if (typeof papelBruto", i));
+    expect(bloco.includes("registrarMaterialEnviado"), "a triagem passou a inventar papel").toBe(false);
+  });
+
+  it("o arquivo em triagem NÃO some em silêncio — vira evento visível", () => {
+    const i = ROTA.indexOf("pediuTriagem");
+    const bloco = ROTA.slice(i, ROTA.indexOf("if (typeof papelBruto", i));
+    expect(bloco).toContain("material_para_triagem");
+  });
+
+  it("a resposta ao cliente não o repreende por não saber", () => {
+    const i = ROTA.indexOf("pediuTriagem");
+    const bloco = ROTA.slice(i, ROTA.indexOf("if (typeof papelBruto", i));
+    expect(bloco).toMatch(/nossa equipe vai classificar/);
+  });
+});

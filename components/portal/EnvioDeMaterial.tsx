@@ -31,6 +31,7 @@
 
 import { useState, useRef } from "react";
 import { PAPEIS, PAPEIS_VALIDOS, sugerirPapel, type Papel } from "@/lib/integrations/google/escolha-de-material";
+import { CaixasDeMaterial, NAO_SEI, rotuloDoDestino, type ArquivoNaCaixa } from "@/components/portal/CaixasDeMaterial";
 
 interface ArquivoEnviado {
   id: string;
@@ -45,6 +46,10 @@ interface ArquivoEnviado {
 interface NaFila {
   arquivo: File;
   papel: Papel | "";
+  /** O cliente escolheu a caixa "não sei o que é". NÃO é o mesmo que papel
+   *  vazio: papel vazio é "ainda não disse"; isto é "disse que não sabe", e a
+   *  segunda é uma resposta legítima que não pode travar o envio. */
+  triagem: boolean;
 }
 
 function tamanhoLegivel(bytes: number): string {
@@ -74,6 +79,7 @@ export function EnvioDeMaterial({
     const novos = Array.from(lista).map((arquivo) => ({
       arquivo,
       papel: (sugerirPapel(arquivo.name, arquivo.type) ?? "") as Papel | "",
+      triagem: false,
     }));
     if (novos.length === 0) return;
     setErro(null);
@@ -81,7 +87,26 @@ export function EnvioDeMaterial({
     if (inputRef.current) inputRef.current.value = "";
   }
 
-  const faltaDizer = fila.filter((f) => !f.papel).length;
+  /** Pela CAIXA, o papel já vem decidido — o cliente não escolhe duas vezes.
+   *  A caixa da triagem entra com papel vazio E `triagem: true`: são coisas
+   *  diferentes, e o envio precisa saber distinguir "não disse" de "disse que
+   *  não sabe". */
+  function soltarNasCaixas(itens: ArquivoNaCaixa[]) {
+    if (itens.length === 0) return;
+    setErro(null);
+    setFila((atual) => [
+      ...atual,
+      ...itens.map((i) => ({
+        arquivo: i.arquivo,
+        papel: (i.destino === NAO_SEI ? "" : i.destino) as Papel | "",
+        triagem: i.destino === NAO_SEI,
+      })),
+    ]);
+  }
+
+  // "Falta dizer" é só quem NÃO passou por caixa nenhuma. Quem escolheu a
+  // triagem JÁ disse o que tinha a dizer — que não sabe — e isso é resposta.
+  const faltaDizer = fila.filter((f) => !f.papel && !f.triagem).length;
 
   async function enviar() {
     if (fila.length === 0) return;
@@ -107,6 +132,9 @@ export function EnvioDeMaterial({
       form.append("file", item.arquivo);
       // O PAPEL VAI JUNTO DOS BYTES. É isto que faz o arquivo chegar na peça.
       form.append("papel", item.papel);
+      // A triagem vai como campo próprio: o servidor precisa distinguir "o
+      // cliente não disse" de "o cliente disse que não sabe".
+      if (item.triagem) form.append("triagem", "1");
       // A4: sem token (URL limpa), o cookie httpOnly vai junto do fetch.
       if (token) form.append("token", token);
       try {
@@ -144,6 +172,15 @@ export function EnvioDeMaterial({
       <p className="mt-1 text-[12px] leading-snug text-[var(--text-secondary)]">
         Escolha do seu celular ou computador e diga o que é cada arquivo — é assim que ele entra nas suas peças.
         Aceita foto, vídeo, PDF e documento, até 120 MB cada.
+      </p>
+
+      {/* ── AS CAIXAS: a caixa onde ele solta JÁ diz o que é ──────────────── */}
+      <div className="mt-3">
+        <CaixasDeMaterial onSoltar={soltarNasCaixas} />
+      </div>
+
+      <p className="mt-3 text-center text-[11.5px] text-[var(--text-muted)]">
+        ou escolha os arquivos e diga depois o que é cada um
       </p>
 
       <div

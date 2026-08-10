@@ -155,6 +155,36 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // do Drive.
   const papelBruto = form.get("papel");
   let materialDeMarca: { registrado: boolean; papel?: string; motivo?: string } | null = null;
+
+  // ── A CAIXA "NÃO SEI O QUE É" (10/08/2026) ────────────────────────────────
+  //
+  // Desenho do CEO: o portal passou a ter caixas pré-classificadas, e uma delas
+  // é a triagem — para o cliente que não sabe em qual categoria o arquivo cai.
+  //
+  // Sem esta porta, o arquivo dele chegaria SEM papel e ficaria guardado em
+  // silêncio: nem registrado como material, nem visível para ninguém. O silêncio
+  // é justamente o que a caixa veio evitar — ele mandou o arquivo, e alguém
+  // precisa saber que ele está esperando classificação.
+  //
+  // A triagem NÃO grava papel. Papel é declaração, e "não sei" é a ausência
+  // declarada dela — inventar um aqui faria a peça obedecer a um chute do
+  // sistema, que é pior do que o arquivo esperar.
+  const pediuTriagem = form.get("triagem") === "1";
+  if (pediuTriagem && !(typeof papelBruto === "string" && papelBruto.trim())) {
+    materialDeMarca = {
+      registrado: false,
+      motivo: "Recebemos. Você disse que não sabia o que era, então a nossa equipe vai classificar.",
+    };
+    await prisma.activityEvent.create({
+      data: {
+        workspaceId,
+        clientId,
+        type: "material_para_triagem",
+        message: `Arquivo recebido sem classificação (o cliente escolheu "não sei o que é"): ${nome}`,
+      },
+    }).catch(() => { /* best-effort: o registro não pode derrubar o envio */ });
+  }
+
   if (typeof papelBruto === "string" && papelBruto.trim()) {
     const { registrarMaterialEnviado } = await import("@/lib/agency/esteira/material-do-drive");
     const reg = await registrarMaterialEnviado({
