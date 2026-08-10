@@ -441,7 +441,8 @@ export const ModelName = {
   DepartmentLadder: 'DepartmentLadder',
   DepartmentLadderRecord: 'DepartmentLadderRecord',
   ConexaoGasta: 'ConexaoGasta',
-  EmailDoRadar: 'EmailDoRadar'
+  EmailDoRadar: 'EmailDoRadar',
+  MetricaDePost: 'MetricaDePost'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -457,7 +458,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "lancamentoFinanceiro" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord" | "conexaoGasta" | "emailDoRadar"
+    modelProps: "agencyWorkspace" | "user" | "client" | "project" | "adCampaign" | "googleConnection" | "googleReview" | "googleDriveConnection" | "driveMaterial" | "cycle" | "clientNotice" | "deliverable" | "deliverableVersion" | "materialRequest" | "contentRequest" | "brandBrain" | "strategyRoom" | "briefing" | "brandUpdate" | "brainUpdate" | "dbIntegrationConfig" | "clientAiProvider" | "task" | "timelineEvent" | "activityEvent" | "aIRunLog" | "lancamentoFinanceiro" | "trainingBatch" | "dbSimulationRun" | "dbAgentSuggestion" | "trainingAlert" | "brainChangeRequest" | "brainVersion" | "clientRequestDb" | "portalMessage" | "socialPost" | "brainArtifact" | "approvalRequest" | "approvalComment" | "evidenceItem" | "metaConnection" | "metaAdCota" | "metaAdFreio" | "metaRitmoJanela" | "metaRitmoFreio" | "metaLeituraCache" | "metaAtivoAutorizado" | "whatsAppMessage" | "whatsAppOutbox" | "portalAccess" | "marketInsight" | "mediaAsset" | "oportunidade" | "rateLimitBucket" | "departmentLadder" | "departmentLadderRecord" | "conexaoGasta" | "emailDoRadar" | "metricaDePost"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -4753,6 +4754,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    MetricaDePost: {
+      payload: Prisma.$MetricaDePostPayload<ExtArgs>
+      fields: Prisma.MetricaDePostFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MetricaDePostFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetricaDePostPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MetricaDePostFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetricaDePostPayload>
+        }
+        findFirst: {
+          args: Prisma.MetricaDePostFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetricaDePostPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MetricaDePostFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetricaDePostPayload>
+        }
+        findMany: {
+          args: Prisma.MetricaDePostFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetricaDePostPayload>[]
+        }
+        create: {
+          args: Prisma.MetricaDePostCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetricaDePostPayload>
+        }
+        createMany: {
+          args: Prisma.MetricaDePostCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MetricaDePostCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetricaDePostPayload>[]
+        }
+        delete: {
+          args: Prisma.MetricaDePostDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetricaDePostPayload>
+        }
+        update: {
+          args: Prisma.MetricaDePostUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetricaDePostPayload>
+        }
+        deleteMany: {
+          args: Prisma.MetricaDePostDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MetricaDePostUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MetricaDePostUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetricaDePostPayload>[]
+        }
+        upsert: {
+          args: Prisma.MetricaDePostUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MetricaDePostPayload>
+        }
+        aggregate: {
+          args: Prisma.MetricaDePostAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMetricaDePost>
+        }
+        groupBy: {
+          args: Prisma.MetricaDePostGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetricaDePostGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MetricaDePostCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MetricaDePostCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -5843,6 +5918,25 @@ export const EmailDoRadarScalarFieldEnum = {
 export type EmailDoRadarScalarFieldEnum = (typeof EmailDoRadarScalarFieldEnum)[keyof typeof EmailDoRadarScalarFieldEnum]
 
 
+export const MetricaDePostScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  externalPostId: 'externalPostId',
+  plataforma: 'plataforma',
+  alcance: 'alcance',
+  impressoes: 'impressoes',
+  curtidas: 'curtidas',
+  comentarios: 'comentarios',
+  salvamentos: 'salvamentos',
+  compartilham: 'compartilham',
+  cliques: 'cliques',
+  lidoEm: 'lidoEm',
+  origem: 'origem'
+} as const
+
+export type MetricaDePostScalarFieldEnum = (typeof MetricaDePostScalarFieldEnum)[keyof typeof MetricaDePostScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -6067,6 +6161,7 @@ export type GlobalOmitConfig = {
   departmentLadderRecord?: Prisma.DepartmentLadderRecordOmit
   conexaoGasta?: Prisma.ConexaoGastaOmit
   emailDoRadar?: Prisma.EmailDoRadarOmit
+  metricaDePost?: Prisma.MetricaDePostOmit
 }
 
 /* Types for Logging */

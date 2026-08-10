@@ -516,3 +516,8 @@ export type ConexaoGasta = Prisma.ConexaoGastaModel
  * 
  */
 export type EmailDoRadar = Prisma.EmailDoRadarModel
+/**
+ * Model MetricaDePost
+ * 
+ */
+export type MetricaDePost = Prisma.MetricaDePostModel

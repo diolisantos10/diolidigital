@@ -2031,3 +2031,41 @@ model EmailDoRadar {
   /// O histórico da tela: "as últimas mensagens que a rotina leu".
   @@index([workspaceId, processadoEm])
 }
+
+
+// ─── Medição da conta do cliente ──────────────────────────────────────────────
+//
+// O que a conta DELE já ensinou. Pedido do CEO em 09/08/2026: *"a agência
+// precisa ter essa inteligência pra acertar na entrega, e não depender só dos
+// arquivos dos clientes."*
+//
+// Uma linha por post por leitura. NÃO sobrescreve: o mesmo post medido em dois
+// dias tem duas linhas, porque desempenho é curva e não fotografia — e
+// sobrescrever apagaria justamente a diferença que interessa.
+
+model MetricaDePost {
+  id             String   @id @default(cuid())
+  clientId       String
+  /// O id do post NA PLATAFORMA. É por ele que a leitura casa com o que já foi
+  /// publicado; sem ele a métrica não tem dono e não entra.
+  externalPostId String
+  plataforma     String   @default("instagram")
+  /// Nulo = NÃO MEDIDO. Nunca zero: zero é um número que a plataforma devolveu,
+  /// e "não medido" é a ausência dela — confundir os dois faz a agência
+  /// declarar fracasso onde houve silêncio.
+  alcance        Int?
+  impressoes     Int?
+  curtidas       Int?
+  comentarios    Int?
+  salvamentos    Int?
+  compartilham   Int?
+  cliques        Int?
+  /// Quando a plataforma foi consultada.
+  lidoEm         DateTime @default(now())
+  /// De onde veio. `api` = lido da plataforma; `manual` = alguém digitou.
+  /// Separado porque número digitado à mão não sustenta a mesma conclusão.
+  origem         String   @default("api")
+
+  @@index([clientId, externalPostId])
+  @@index([clientId, lidoEm])
+}

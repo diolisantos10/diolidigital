@@ -108,7 +108,8 @@ export const ModelName = {
   DepartmentLadder: 'DepartmentLadder',
   DepartmentLadderRecord: 'DepartmentLadderRecord',
   ConexaoGasta: 'ConexaoGasta',
-  EmailDoRadar: 'EmailDoRadar'
+  EmailDoRadar: 'EmailDoRadar',
+  MetricaDePost: 'MetricaDePost'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1176,6 +1177,25 @@ export const EmailDoRadarScalarFieldEnum = {
 } as const
 
 export type EmailDoRadarScalarFieldEnum = (typeof EmailDoRadarScalarFieldEnum)[keyof typeof EmailDoRadarScalarFieldEnum]
+
+
+export const MetricaDePostScalarFieldEnum = {
+  id: 'id',
+  clientId: 'clientId',
+  externalPostId: 'externalPostId',
+  plataforma: 'plataforma',
+  alcance: 'alcance',
+  impressoes: 'impressoes',
+  curtidas: 'curtidas',
+  comentarios: 'comentarios',
+  salvamentos: 'salvamentos',
+  compartilham: 'compartilham',
+  cliques: 'cliques',
+  lidoEm: 'lidoEm',
+  origem: 'origem'
+} as const
+
+export type MetricaDePostScalarFieldEnum = (typeof MetricaDePostScalarFieldEnum)[keyof typeof MetricaDePostScalarFieldEnum]
 
 
 export const SortOrder = {
