@@ -1,7 +1,7 @@
 ---
 titulo: "Google Analytics — Data API (GA4): fundamentos de relatório"
 url: https://developers.google.com/analytics/devguides/reporting/data/v1/basics?hl=pt-br
-capturado_em: 2026-08-09
+capturado_em: 2026-08-10
 hash: f1ad672ada3fff1f
 ---
 

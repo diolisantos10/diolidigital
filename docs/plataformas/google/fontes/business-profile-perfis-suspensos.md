@@ -1,8 +1,8 @@
 ---
 titulo: "Perfil de Empresa — corrigir perfis suspensos ou desativados"
 url: https://support.google.com/business/answer/4569145?hl=pt-BR
-capturado_em: 2026-08-09
-hash: 207fa37acc8b3225
+capturado_em: 2026-08-10
+hash: 4ba88a083ae92b08
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -125,6 +125,3 @@ Siga as próximas etapas:
 Postar na Comunidade de Ajuda Receba respostas dos membros da comunidade
  
 Fale conosco Conte mais sobre o problema para podermos ajudar você
-Moldando o futuro do Suporte do Google
-
-Estudos de pesquisa com usuários ajudam a melhorar nossos serviços de suporte, pois nos permitem receber comentários diretamente de usuários como você. Saiba mais ou inscreva-se agora e receba convites para participar de estudos futuros.

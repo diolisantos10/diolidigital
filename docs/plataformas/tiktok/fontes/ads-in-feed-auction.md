@@ -1,43 +1,13 @@
 ---
 titulo: "TikTok Auction In-Feed Ads — especificações de criativo (formato, duração, resolução, sem marca d'água)"
 url: https://ads.tiktok.com/help/article/tiktok-auction-in-feed-ads?lang=en
-capturado_em: 2026-08-08
-hash: 43d26e2b3905cda6
+capturado_em: 2026-08-10
+hash: b667d9232c395921
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
-Advertisers
-Getting started
-Ad creation
-Ad formats
-Ad objectives
-Ad optimization
-Measurement
-Payment and billing
-Policies and security
-In-feed video
-
-TopView
-
-Top Feed
-
-Standard feed
-
-TikTok Auction In-Feed Ads
-TikTok reservation in-feed ad specifications (including Reach & Frequency)
-
-Branded Mission
-
-Spark Ads
-
-TikTok Pulse suite
-
-Advertisers /
-Ad formats /
-In-feed video /
-Standard feed /
 TikTok Auction In-Feed Ads
 Last updated: June 2026
 
@@ -129,19 +99,3 @@ Download Card
 Ad objective: Applies only to App ads.
 
 Ad Format: Automatically generated and shown immediately after the appearance of the call-to-action content or background color.
-
-*Was the information helpful?
-Content
-Spark Ads (Pull)
-Non-Spark Ads
-Safe Zone
-Profile Photo (optional)
-Account Name (Nickname)
-Download Card
-Related Articles
- TikTok reservation in-feed ad specifications (including Reach & Frequency)
- About Top Feed for Reach & Frequency Campaigns
- About Spark Ads
-Log in for a personalized experience
-Sign up
-Log in
