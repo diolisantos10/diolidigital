@@ -31,6 +31,7 @@ import { produzirArtesPendentes } from "@/lib/agency/execution/artes";
 import { guardarAVerba } from "@/lib/agency/esteira/trafego";
 import { cuidarDasAvaliacoes } from "@/lib/agency/esteira/avaliacoes";
 import { cobrarAFila } from "@/lib/agency/esteira/fila-que-se-cobra";
+import { resumoDoPortao } from "@/lib/agency/comercial/o-que-espera-no-portao";
 import { cobrarPedidosEsquecidos } from "@/lib/agency/esteira/pedidos";
 import { fazerBackup, estadoDoBackup } from "@/lib/agency/backup";
 import { registrarBatida, type FalhaDaRodada } from "@/lib/agency/pulso";
@@ -389,6 +390,27 @@ export async function baterORelogio(): Promise<{
     }
   } catch (err) {
     quebrou("fila-que-se-cobra", err);
+  }
+
+  // ── O QUE ESPERA NO PORTÃO COMERCIAL (10/08/2026) ────────────────────────
+  // Três propostas ficaram paradas desde junho e o raio-X chamou isso de
+  // defeito. Não era: a política da plataforma classifica o envio como
+  // HUMAN_GATE, e o sistema se RECUSA a mandar sozinho — trava funcionando.
+  //
+  // O que faltava não era automação: era alguém ser avisado. Trava que segura
+  // trabalho pronto e não conta a ninguém tem o mesmo efeito prático de fila
+  // morta, com a diferença de que esta está certa.
+  try {
+    const algum = await prisma.oportunidade.findFirst({ select: { workspaceId: true } });
+    if (algum) {
+      const r = await resumoDoPortao(algum.workspaceId, new Date());
+      if (r.esperando > 0) {
+        log(`${r.esperando} proposta(s) esperando mão humana no portão` +
+            (r.esquecidas > 0 ? ` — ${r.esquecidas} parada(s) há ${r.maisAntigaEmDias} dia(s)` : ""));
+      }
+    }
+  } catch (err) {
+    quebrou("portao-comercial", err);
   }
 
   // ── A PERGUNTA QUE NUNCA CHEGOU AO CLIENTE ────────────────────────────────
