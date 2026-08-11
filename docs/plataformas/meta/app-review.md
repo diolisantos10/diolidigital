@@ -98,7 +98,23 @@ existem no código.
 | `whatsapp_business_management` | `{waba}/message_templates` — `templates.ts:44,71` | `/api/meta/templates`; demo pelo Gerenciador do WhatsApp (permitido — ver §3) |
 | `whatsapp_business_messaging` | `{phone_id}/messages` — `client.ts:263` | `/agency/whatsapp`, `/agency/inbox` |
 
-### ❌ RECOMENDO TIRAR — 3 permissões sem uso em código
+### ❌ DECIDIDO: SAEM DO ENVIO — 3 permissões sem uso em código
+
+> **Decidido em 2026-08-11 pelo Diretor.** Isto era uma recomendação do
+> especialista `meta` e virou decisão: **`instagram_manage_comments`,
+> `pages_manage_metadata` e `business_management` não vão neste envio.**
+>
+> **Por que a decisão é minha e não sobe ao CEO:** o que se pede à Meta é escolha
+> técnica, e o erro é meu de desfazer — pedir de novo num segundo envio, com o
+> código pronto, custa um formulário. O caminho contrário é que é caro:
+> *"a seleção de permissões desnecessárias é um motivo comum de rejeição"*
+> (`fontes/permissoes-referencia.md:31`), e uma reprovação atrasa **as nove
+> permissões**, não só as três.
+>
+> **O gatilho para pedir de novo, escrito para não se perder:** no dia em que
+> existir código chamando `{ig-media}/comments`, `{page-id}/subscribed_apps` ou
+> `/{business-id}/…`, a permissão correspondente entra num envio novo — com a
+> tela que o revisor precisa exercitar já construída.
 
 Pedir permissão que não se usa é motivo de reprovação, e a Meta pergunta onde
 cada uma é exercida.

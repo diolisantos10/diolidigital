@@ -8,6 +8,51 @@
 
 ---
 
+## O QUE TRAVA PUBLICAÇÃO, MEDIÇÃO E TRÁFEGO É **UM** PORTÃO SÓ: ACESSO AVANÇADO
+
+**Decidido em** 2026-08-11 · **apurado pelo** especialista `meta` (parecer
+assinado) · **registrado pelo** Diretor · **commit** `cbf3d60`
+
+Três departamentos estavam parados e a casa tratava isso como três problemas.
+**É um.** A pergunta que decidia o cronograma — *"se o ativo do cliente estiver
+atribuído ao nosso Business Manager, o acesso padrão basta?"* — tem resposta
+publicada, e é **não**:
+
+| Capacidade | Permissões | Basta acesso padrão? |
+|---|---|---|
+| Publicar no Instagram do cliente | `instagram_basic` · `instagram_content_publish` · `pages_read_engagement` · `pages_show_list` | **Não** — App Review |
+| Ler desempenho do Instagram | `instagram_basic` · `instagram_manage_insights` · `pages_read_engagement` | **Não** — App Review |
+| Campanha na conta do cliente | `ads_management` · `ads_read` (+ Marketing API Access Tier) | **Não** — App Review, e a Meta é explícita |
+
+O teste da Meta não é "está no nosso Business Manager": é **"adicionada ao app no
+Painel de Apps"** mais quem concede ter **função no app**
+(`fontes/instagram-insights.md:57`, `fontes/instagram-visao-geral.md:99-101`).
+
+**E há um segundo portão que quase ninguém vê:** sem **verificação do negócio**
+concluída, *"os usuários de outras empresas não poderão conceder permissões a
+esses apps, e todos os recursos ficarão inativos"*
+(`fontes/verificacao-de-negocio.md:20`). Ele morde no cenário em que todo mundo
+confia — *"mas o cliente autorizou"* — e é o **prazo externo mais longo** do
+cronograma.
+
+**O que muda no trabalho da casa, e é o ponto:**
+
+1. **Nenhuma das três é destravável por código.** Continuar construindo em cima
+   delas esperando "ligar" um dia é construir sobre uma porta trancada.
+2. **A casa constrói a máquina fail-closed enquanto a análise corre** — que é o
+   que já existe em `trava-de-publicacao.ts` e `formato-de-midia.ts`, e ganhou
+   `permissoes-do-token.ts` para **medir** a concessão em vez de descobri-la
+   tentando.
+3. **É ato do CEO, não do Diretor:** verificação do negócio, envio da análise,
+   gravação dos vídeos e a configuração do login exigem a conta pessoal dele.
+   Eu preparo; não finjo que executei.
+
+**A regra que fica, e ela é a lição do 03/08:** *"a API deixou"* nunca foi
+sinônimo de *"pode"*. O escopo estar no token prova que a chamada passaria — não
+que ela é permitida.
+
+---
+
 ## A ESCADA GANHOU UMA SEGUNDA PORTA: A DECISÃO DO DONO, DECLARADA EM CÓDIGO
 
 **Decidido em** 2026-08-08 · **por** Dioli (CEO), executado pelo `pm` ·
