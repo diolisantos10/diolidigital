@@ -23,7 +23,7 @@
 | 4 | **Entrada de material** | 90% | Caixas pré-classificadas ligadas ponta a ponta, com a triagem tendo destino real. SVG aceito e higienizado. |
 | 5 | **Produção de peça** | 88% | Motor de molde rasteriza JPEG de qualidade de agência — conferido no pixel em 11/08. Falta variedade de composição por função. |
 | 6 | **Captação** | 80% | Proposta que espera no portão é contada. Falta o SDR fechar sozinho o laço com quem não respondeu. |
-| 7 | **Aprovação** | 80% | Ciclo do cliente existe. Falta o fechamento automático do mês. |
+| 7 | **Aprovação** | 88% | Ciclo do cliente existe **e o mês vira sozinho** — `virarOsMesesVencidos` é perna do relógio (`despertador.ts:291`), medir → relatar → fechar → produzir, nessa ordem. |
 | 8 | **Tráfego pago** | 55% | Campanha nasce pausada, com teto, e **não sai mais para o Brasil inteiro por omissão** (11/08). ⛔ Ligar de verdade depende da Meta. |
 | 9 | **Publicação** | 40% | Máquina inteira pronta e fail-closed. ⛔ Depende da Meta. |
 | 10 | **Medição** | 30% | Máquina pronta, porta declarada fechada. ⛔ Depende da Meta. |
@@ -77,3 +77,22 @@ da casa até **carimbava** o defeito, esperando `"PD"`.
 
 **A lição que fica:** verde não é sinônimo de certo. Onde o produto é visual, a
 prova final é o olho — e ela tem de ser feita, não presumida.
+
+---
+
+## Nota sobre as próprias notas
+
+Duas linhas deste placar já nasceram erradas e foram corrigidas **no mesmo dia**,
+por conferência contra o código:
+
+- **Aprovação** estava marcada como *"falta o fechamento automático do mês"*.
+  **Já existe** e é perna do relógio (`despertador.ts:291`). A anotação vinha de
+  um raio-X de 02/08 e envelheceu sem que ninguém a reconferisse.
+- **Tráfego pago** estava em 20% com *"não há uma linha de Marketing API"*.
+  **Havia** — campanha, conjunto, anúncio e guarda de verba existem.
+
+**Por que isto está escrito aqui em vez de apagado:** número velho num arquivo
+que os agentes leem como verdade faz a casa **consertar o que já está
+consertado** — foi exatamente o defeito que aposentou `docs/pendencias.md` como
+fonte de verdade em 08/08. A regra deste arquivo, então: **antes de repetir uma
+nota, reconferir contra o código.** Nota herdada não é nota medida.
