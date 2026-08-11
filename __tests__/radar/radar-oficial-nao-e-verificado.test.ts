@@ -36,7 +36,11 @@ beforeEach(() => {
   db.marketInsight.create.mockImplementation(async (args: { data: Record<string, unknown> }) => ({
     id: "i1", status: args.data.status,
   }));
-  delete process.env.RADAR_SOURCES;
+  // Estes testes medem a varredura POR DOMÍNIO. Desligo as fontes ao vivo de
+  // propósito e POR ESCRITO: desde 11/08/2026 a ausência da variável significa
+  // "use as fontes de fábrica", e omitir aqui traria dez escopos para um teste
+  // que conta cinco.
+  process.env.RADAR_SOURCES = "[]";
 });
 
 describe("'official' passou a significar 'a fonte é confiável', não 'a extração é verificada'", () => {

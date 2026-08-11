@@ -32,8 +32,17 @@ describe("Radar Dioli — buscador de feed (fetcher)", () => {
 });
 
 describe("Radar Dioli — registro de fontes (governança na origem)", () => {
-  it("sem RADAR_SOURCES → vazio (fontes desligadas por padrão)", () => {
+  it("sem RADAR_SOURCES → as fontes de fábrica (mudou em 11/08/2026)", () => {
+    // Esta expectativa era `toEqual([])`. Ela estava CERTA sobre o código e
+    // ERRADA sobre o produto: a lista nascia vazia, ninguém colou o JSON em
+    // ambiente nenhum, e a tela de mercado mostrou memória de modelo em vez de
+    // notícia de plataforma. Hoje o padrão é ter fonte.
     delete process.env.RADAR_SOURCES;
+    expect(getConfiguredSources().length).toBeGreaterThan(0);
+  });
+
+  it("e desligar continua possível — dizendo, não omitindo", () => {
+    process.env.RADAR_SOURCES = "[]";
     expect(getConfiguredSources()).toEqual([]);
   });
 

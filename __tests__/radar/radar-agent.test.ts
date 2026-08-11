@@ -13,6 +13,9 @@ beforeEach(() => {
   vi.clearAllMocks();
   db.marketInsight.findMany.mockResolvedValue([]); // nada existente → nada deduplicado
   addInsight.mockResolvedValue({ id: "i", status: "pending" });
+  // Fontes ao vivo desligadas POR ESCRITO: aqui se mede a varredura por
+  // DOMÍNIO. Desde 11/08/2026, omitir a variável liga as fontes de fábrica.
+  process.env.RADAR_SOURCES = "[]";
 });
 
 describe("Radar Dioli — o agente que capta e propõe (tudo PENDENTE)", () => {
