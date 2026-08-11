@@ -444,8 +444,33 @@ export function monogramaDe(nome: string | null | undefined): string | null {
     .filter((p) => p.length > 0);
   if (palavras.length === 0) return null;
   if (palavras.length === 1) return palavras[0]!.slice(0, 2).toUpperCase();
-  return (palavras[0]![0]! + palavras[1]![0]!).toUpperCase();
+
+  // ── AS PALAVRINHAS DE LIGAÇÃO NÃO VIRAM INICIAL ──────────────────────────
+  //
+  // Medido rasterizando uma peça de verdade em 11/08/2026: "Padaria do João"
+  // saía assinada **PD**. Pegar a inicial das duas primeiras palavras funciona
+  // em inglês e falha em português, onde nome de negócio quase sempre traz uma
+  // ligação no meio — "Casa **de** Carnes Silva" → CD, "Clínica **da** Mulher"
+  // → CD, "Bar **e** Bistrô Lua" → BE.
+  //
+  // Não é defeito grave, e é exatamente por isso que atravessou: nenhum teste
+  // olha o pixel, e o monograma é pequeno. Mas ele assina **toda peça de
+  // cliente sem logo** — é a marca do cliente saindo errada em toda entrega.
+  const semLigacao = palavras.filter((p) => !LIGACOES.has(p.toLowerCase()));
+
+  // O filtro só pode MELHORAR, nunca esvaziar. Nome feito só de ligações, ou
+  // "E o Bar", tem de continuar assinando alguma coisa: sobrando menos de duas
+  // palavras, vale a lista original.
+  const base = semLigacao.length >= 2 ? semLigacao : palavras;
+  return (base[0]![0]! + base[1]![0]!).toUpperCase();
 }
+
+/** As palavras que ligam, e que uma pessoa nunca poria num monograma. Só as de
+ *  ligação — nada de artigo solto: em "O Boticário" o "O" faz parte do nome. */
+const LIGACOES = new Set([
+  "de", "do", "da", "dos", "das", "e", "em", "no", "na", "nos", "nas",
+  "para", "por", "com", "&",
+]);
 
 /**
  * Os textos que a peça vai pintar, na ordem, já com a caixa aplicada.

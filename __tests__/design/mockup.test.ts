@@ -184,7 +184,9 @@ describe("a assinatura de marca virou token", () => {
   it("o monograma sai do nome, por regra — não é desenhado por modelo de imagem", () => {
     expect(monogramaDe("Foocci Tecnologia")).toBe("FT");
     expect(monogramaDe("Foocci")).toBe("FO");
-    expect(monogramaDe("padaria da esquina")).toBe("PD");
+    // 11/08/2026: esta linha esperava "PD". A expectativa antiga carimbava o
+    // defeito — o "da" virava inicial. Ver `__tests__/design/monograma.test.ts`.
+    expect(monogramaDe("padaria da esquina")).toBe("PE");
   });
 
   it("caixa camelo é emenda de duas palavras — 'CityJobs' assina CJ, não CI", () => {
