@@ -30,6 +30,22 @@
 
 ---
 
+## Prioridade um — a casa
+
+| # | Item | Estado |
+|---|---|---|
+| 1 | Artes saírem em JPEG | ✅ feito |
+| 2 | Enviar a análise do aplicativo na Meta | ⏳ **ato do CEO** |
+| 3 | Produtor receber proibições e referências da marca | ✅ feito |
+| 4 | A reprovação de dentro de casa virar dado | ✅ **feito 11/08** (`esteira/reprovacao.ts`) |
+| 5 | Toda tela mostrar os dois lados do interruptor | 🔄 parcial |
+| 6 | Falar com os três leads parados | ⏸️ **parado por ordem do CEO** |
+| 7 | Varredura de segurança | ✅ feito |
+| 8 | Ligar as fontes do Radar | ✅ **feito 11/08** (`radar/sources.ts`) |
+| 9 | Não mexer no Drive | 🚫 regra, não tarefa |
+
+---
+
 ## ⛔ O teto que não é meu: três departamentos param na Meta
 
 **Isto é o achado que governa o cronograma inteiro, e ele mudou em 11/08.**
