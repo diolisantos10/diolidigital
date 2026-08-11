@@ -7,6 +7,7 @@
 import type { ConvState, ConvMessage, BriefingScope, SocialScope } from "./briefing-conversation";
 import { emptyBrandingScope, emptyScope, emptyEstimate } from "./briefing-conversation";
 import { computeEstimate } from "./live-calculator";
+import { lerAreaDeAtendimento } from "./comercial/onde-o-negocio-vende";
 
 // ── Text helpers ──────────────────────────────────────────────────────────────
 
@@ -131,6 +132,7 @@ export function inferAnsweredQIds(scope: BriefingScope): string[] {
   if (scope.wantsPaidTraffic !== undefined)         a.push("wants_traffic");
   if (scope.traffic?.platforms.length)              a.push("traffic_platforms");
   if (scope.traffic?.monthlyAdBudget)               a.push("ad_budget");
+  if (scope.traffic?.serviceArea)                   a.push("service_area");
   if (scope.branding?.deliverables)                  a.push("branding_deliverables");
   if (scope.competitors?.length)                    a.push("competitors_refs");
   if (scope.budgetRange)                            a.push("budget_range");
@@ -297,6 +299,27 @@ const QUESTIONS: QuestionDef[] = [
     when: (s) => !!s.scope.wantsPaidTraffic && !s.scope.traffic?.monthlyAdBudget,
     text: () => "Qual é a verba mensal disponível para os anúncios? (Esse valor vai direto para o Google/Meta — é separado da gestão)",
     parse: (answer, s) => ({ traffic: { ...(s.scope.traffic ?? { platforms: [] }), monthlyAdBudget: answer.trim() } }),
+  },
+
+  // Q9.2 — ONDE O NEGÓCIO VENDE (only if traffic wanted)
+  //
+  // Sem esta pergunta a campanha nasce com `cidade: null`, e `null` virava
+  // "Brasil inteiro" sem uma palavra. Para o padeiro que quer anunciar no bairro
+  // dele, isso é a verba do mês gasta em quem não alcança a padaria.
+  //
+  // A pergunta oferece as DUAS saídas em voz alta — cidade ou Brasil inteiro —
+  // porque quem vende online de verdade precisa poder dizer isso, e o silêncio
+  // não pode ser lido como nenhuma das duas.
+  {
+    id: "service_area",
+    when: (s) => !!s.scope.wantsPaidTraffic && !s.scope.traffic?.serviceArea,
+    text: () => "Onde estão os clientes que você quer alcançar? Me diga a **cidade** (e o raio, se souber — ex: \"São Paulo, uns 10 km\"). Se você vende para o **Brasil inteiro**, pode dizer também.",
+    parse: (answer, s) => ({
+      traffic: {
+        ...(s.scope.traffic ?? { platforms: [] }),
+        serviceArea: lerAreaDeAtendimento(answer),
+      },
+    }),
   },
 
   // Q9.1 — BRANDING: is there a current identity? (only if branding requested)

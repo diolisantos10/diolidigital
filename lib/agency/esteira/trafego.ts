@@ -25,6 +25,9 @@ import {
   type PlanoDeCampanha, type DesempenhoPago, type PublicoDoConjunto,
 } from "@/lib/integrations/meta/ads";
 import { caminhoPublicoAssinado } from "@/lib/agency/media/armazenamento";
+import {
+  oQueFaltaParaSegmentar, NAO_PERGUNTADO, type AreaDeAtendimento,
+} from "@/lib/agency/comercial/onde-o-negocio-vende";
 
 /** Fração da verba mensal que vira orçamento diário. Divide por 30 e arredonda
  *  para baixo: preferir gastar de menos a estourar o mês no dia 28. */
@@ -117,6 +120,25 @@ export async function prepararCampanha(projectId: string): Promise<CampanhaPrepa
     return { ok: false, pendencia: `a verba informada (R$ ${verbaMensal}/mês) não dá uma campanha válida: ${conferido.erro}` };
   }
 
+  // ── ONDE, ANTES DE QUANTO ─────────────────────────────────────────────────
+  //
+  // A pergunta "para quem este anúncio aparece" é respondida **antes de tocar na
+  // Meta**, e não depois. Duas razões, e a segunda é a que importa:
+  //
+  // 1. Campanha criada e depois abandonada por falta de dado deixa lixo na conta
+  //    de anúncio do cliente — conta que não é nossa.
+  // 2. Sem cidade, o conjunto sai para o **Brasil inteiro**. Esse era o
+  //    comportamento até 10/08/2026, em silêncio: o briefing nunca perguntou
+  //    onde o negócio vende, `cidade` era sempre nula, e "nula" virava "país".
+  //    Para o padeiro do bairro, é a verba do mês inteira gasta com quem nunca
+  //    vai atravessar a cidade para comprar o pão dele.
+  //
+  // Ausência de informação não é informação: aqui ela vira **pendência**, que é
+  // uma pergunta para uma pessoa, e não um alvo largo escolhido pelo código.
+  const publico = await lerSegmentacao(projectId, projeto.workspaceId, conexao.id, scope);
+  const faltaGeografia = geografiaPendente(publico, scope);
+  if (faltaGeografia) return { ok: false, pendencia: faltaGeografia };
+
   const plano: PlanoDeCampanha = {
     contaId: contas.dados[0]!.id,
     nome: `${req?.businessName ?? projeto.client?.name ?? projeto.name} — ${projeto.name}`.slice(0, 200),
@@ -134,7 +156,6 @@ export async function prepararCampanha(projectId: string): Promise<CampanhaPrepa
   // A campanha sozinha é um envelope com verba: ela liga e não entrega nada.
   // Foi o buraco do raio-X de 02/08/2026 — a casa dizia "tráfego pronto" e a
   // conta ficava parada.
-  const publico = await lerSegmentacao(projectId, projeto.workspaceId, conexao.id, scope);
   const conjunto = await criarConjuntoPausado(projeto.workspaceId, conexao.id, {
     contaId: plano.contaId,
     campaignId: criada.dados.campaignId,
@@ -380,6 +401,39 @@ export async function guardarAVerba(hoje: Date = new Date()): Promise<GuardaFeit
 
 // ─── Internos ───────────────────────────────────────────────────────────────
 
+/** A área de atendimento como o briefing a guardou. Briefing antigo não tem o
+ *  campo — e isso volta como `nao_declarado`, que é a verdade sobre ele. */
+function areaDoBriefing(scope: Record<string, unknown>): AreaDeAtendimento {
+  const trafego = scope.traffic as { serviceArea?: unknown } | undefined;
+  const bruta = trafego?.serviceArea as Partial<AreaDeAtendimento> | undefined;
+  if (!bruta || typeof bruta !== "object") return NAO_PERGUNTADO;
+  const alcance = bruta.alcance;
+  if (alcance !== "nacional" && alcance !== "local" && alcance !== "nao_declarado") return NAO_PERGUNTADO;
+  return {
+    alcance,
+    cidade: typeof bruta.cidade === "string" && bruta.cidade.trim() ? bruta.cidade.slice(0, 80) : null,
+    raioKm: typeof bruta.raioKm === "number" && bruta.raioKm > 0 ? bruta.raioKm : null,
+    comoFoiDito: typeof bruta.comoFoiDito === "string" ? bruta.comoFoiDito.slice(0, 240) : "",
+  };
+}
+
+/**
+ * O que impede de segmentar — ou `null` quando nada impede.
+ *
+ * A cidade pode chegar por dois caminhos: o briefing do cliente ou a entrega do
+ * especialista de segmentação. Basta **um** deles. O que não basta é nenhum: aí
+ * o alvo seria o país inteiro, e ninguém escolheu isso.
+ *
+ * `nacional` declarado passa — porque aí o Brasil inteiro é o alvo **pedido**,
+ * não o alvo que sobrou.
+ */
+function geografiaPendente(publico: PublicoDoConjunto, scope: Record<string, unknown>): string | null {
+  if (publico.cidade) return null;
+  const area = areaDoBriefing(scope);
+  if (area.alcance === "nacional") return null;
+  return oQueFaltaParaSegmentar(area);
+}
+
 function iso(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
@@ -406,9 +460,16 @@ async function lerSegmentacao(
   connectionId: string,
   scope: Record<string, unknown>,
 ): Promise<PublicoDoConjunto> {
+  const area = areaDoBriefing(scope);
   const padrao: PublicoDoConjunto = {
-    cidade: typeof scope.city === "string" ? scope.city : (typeof scope.cidade === "string" ? scope.cidade : null),
-    raioKm: 8, idadeMin: 25, idadeMax: 55, interesses: [],
+    // A cidade vem do que o CLIENTE disse no briefing. Os dois campos soltos
+    // (`city`/`cidade`) ficam como compatibilidade com briefing antigo — eles
+    // nunca foram preenchidos por pergunta nenhuma, e é por isso que este
+    // caminho inteiro nascia nulo.
+    cidade: area.cidade
+      ?? (typeof scope.city === "string" ? scope.city : (typeof scope.cidade === "string" ? scope.cidade : null)),
+    raioKm: area.raioKm ?? 8,
+    idadeMin: 25, idadeMax: 55, interesses: [],
   };
 
   const entrega = await prisma.deliverable.findFirst({

@@ -32,7 +32,20 @@ import {
   guardarAVerba, GASTO_MINIMO_PARA_JULGAR_BRL, CPC_ABSURDO_BRL,
 } from "@/lib/agency/esteira/trafego";
 
-const BRIEFING = JSON.stringify({ scope: { adsBudget: 900, objetivo: "quero mais gente na loja" } });
+// A padaria vende no bairro dela, e o briefing agora DIZ isso. Antes de
+// 10/08/2026 este fixture não tinha área nenhuma e a campanha era criada para o
+// Brasil inteiro sem que nenhum teste reclamasse — foi assim que o buraco passou
+// despercebido por toda a construção do departamento.
+const AREA_DECLARADA = {
+  alcance: "local" as const, cidade: "Campinas", raioKm: 8, comoFoiDito: "aqui em Campinas, uns 8 km",
+};
+const BRIEFING = JSON.stringify({
+  scope: {
+    adsBudget: 900,
+    objetivo: "quero mais gente na loja",
+    traffic: { platforms: ["Meta Ads"], serviceArea: AREA_DECLARADA },
+  },
+});
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -280,5 +293,73 @@ describe("o guardião de verba — o que separa gestão de 'criei e esqueci'", (
     await guardarAVerba();
     expect(db.activityEvent.create.mock.calls[0]![0].data.type).toBe("campanha_pausada_pelo_guardiao");
     expect(db.adCampaign.update.mock.calls[0]![0].data.pausedByGuardAt).toBeInstanceOf(Date);
+  });
+});
+
+// ── ONDE O ANÚNCIO APARECE ──────────────────────────────────────────────────
+//
+// Este bloco existe porque o conserto de 10/08/2026 é caro de errar e barato de
+// perder: se um dia alguém "simplificar" o portão geográfico, a casa volta a
+// gastar a verba do cliente no país inteiro sem uma linha de aviso. Os testes
+// abaixo são comportamentais de propósito — eles chamam `prepararCampanha` e
+// olham o que foi (ou não foi) criado na Meta.
+
+describe("a campanha não sai sem saber ONDE o negócio vende", () => {
+  function briefingSem(area: unknown) {
+    return JSON.stringify({
+      scope: { adsBudget: 900, objetivo: "quero mais gente na loja", traffic: { platforms: ["Meta Ads"], ...(area ? { serviceArea: area } : {}) } },
+    });
+  }
+
+  it("briefing sem área NÃO cria campanha — e nada é tocado na conta do cliente", async () => {
+    db.clientRequestDb.findUnique.mockResolvedValue({ businessName: "Padaria do João", briefingJson: briefingSem(null) });
+    const r = await prepararCampanha("p1");
+    expect(r.ok).toBe(false);
+    expect(r.pendencia).toMatch(/onde este negócio vende/i);
+    // O portão vem ANTES da Meta: campanha abandonada por falta de dado deixaria
+    // lixo numa conta de anúncio que não é nossa.
+    expect(ads.criarCampanhaPausada).not.toHaveBeenCalled();
+    expect(db.adCampaign.create).not.toHaveBeenCalled();
+  });
+
+  it("o padeiro que disse 'meu bairro' sem dizer a cidade também para — e o aviso traz a frase dele", async () => {
+    db.clientRequestDb.findUnique.mockResolvedValue({
+      businessName: "Padaria do João",
+      briefingJson: briefingSem({ alcance: "local", cidade: null, raioKm: null, comoFoiDito: "só aqui no meu bairro" }),
+    });
+    const r = await prepararCampanha("p1");
+    expect(r.ok).toBe(false);
+    expect(r.pendencia).toMatch(/não disse qual cidade/i);
+    expect(r.pendencia).toContain("meu bairro");
+    expect(ads.criarCampanhaPausada).not.toHaveBeenCalled();
+  });
+
+  it("A METADE OPOSTA: quem declarou Brasil inteiro é atendido, e o país é o alvo PEDIDO", async () => {
+    // Sem esta metade o portão viraria "tráfego local só" e quebraria o
+    // e-commerce, que legitimamente vende para o país todo.
+    db.clientRequestDb.findUnique.mockResolvedValue({
+      businessName: "Loja Online", briefingJson: briefingSem({ alcance: "nacional", cidade: null, raioKm: null, comoFoiDito: "vendo pro Brasil inteiro" }),
+    });
+    const r = await prepararCampanha("p1");
+    expect(r.ok).toBe(true);
+    expect(ads.criarConjuntoPausado).toHaveBeenCalled();
+    expect(ads.criarConjuntoPausado.mock.calls[0]![2].publico.cidade).toBeNull();
+  });
+
+  it("a cidade do briefing chega no conjunto — não fica só guardada", async () => {
+    const r = await prepararCampanha("p1");
+    expect(r.ok).toBe(true);
+    const publico = ads.criarConjuntoPausado.mock.calls[0]![2].publico;
+    expect(publico.cidade).toBe("Campinas");
+    expect(publico.raioKm).toBe(8);
+    expect(db.adCampaign.create.mock.calls[0]![0].data.audience).toContain("Campinas");
+  });
+
+  it("a entrega do especialista de segmentação também basta — briefing mudo não trava quem já tem cidade", async () => {
+    db.clientRequestDb.findUnique.mockResolvedValue({ businessName: "Padaria do João", briefingJson: briefingSem(null) });
+    db.deliverable.findFirst.mockResolvedValue({ content: "Cidade: Sorocaba\nRaio: 12 km\nIdade: 25 a 45" });
+    const r = await prepararCampanha("p1");
+    expect(r.ok).toBe(true);
+    expect(ads.criarConjuntoPausado.mock.calls[0]![2].publico.cidade).toBe("Sorocaba");
   });
 });

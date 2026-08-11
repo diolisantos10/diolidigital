@@ -3,6 +3,10 @@
 // calculator. Pure data — no UI or side effects.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import type { AreaDeAtendimento } from "./comercial/onde-o-negocio-vende";
+
+export type { AreaDeAtendimento };
+
 // ── Message ───────────────────────────────────────────────────────────────────
 export interface ConvMessage {
   id: string;
@@ -30,6 +34,13 @@ export interface SocialScope {
 export interface TrafficScope {
   platforms: string[];
   monthlyAdBudget?: string;
+  /** ONDE o negócio vende. Sem isto a campanha nasce apontada para o Brasil
+   *  inteiro, e a verba do padeiro é gasta em quem não alcança a padaria dele.
+   *
+   *  Opcional no tipo porque briefing antigo não tem o campo — e um tipo que
+   *  mentisse sobre isso daria a falsa segurança de que o dado existe. Quem
+   *  consome trata a ausência como ausência: ver `oQueFaltaParaSegmentar`. */
+  serviceArea?: AreaDeAtendimento;
 }
 
 export interface BrandingScope {
