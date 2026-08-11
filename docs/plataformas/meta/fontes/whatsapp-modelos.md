@@ -1,7 +1,7 @@
 ---
 titulo: "WhatsApp — modelos de mensagem (templates): criação e aprovação"
 url: https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/overview
-capturado_em: 2026-08-10
+capturado_em: 2026-08-11
 hash: f27c4dc223d26b65
 ---
 

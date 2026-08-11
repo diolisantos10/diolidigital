@@ -1,8 +1,8 @@
 ---
 titulo: "WhatsApp Cloud API — visão geral da plataforma"
 url: https://developers.facebook.com/documentation/business-messaging/whatsapp/about-the-platform
-capturado_em: 2026-08-10
-hash: d5f0df71a7dd95aa
+capturado_em: 2026-08-11
+hash: 139d81646ff23990
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -11,7 +11,7 @@ hash: d5f0df71a7dd95aa
 Esta página foi traduzida do inglês para outro idioma usando IA. O conteúdo traduzido por IA pode conter erros, omissões ou divergências de sentido. Como a tradução automática pode ser imprecisa ou pouco clara, consulte o conteúdo original em inglês desta página para validar as orientações corretas.
 Isso foi útil?
 Sobre a Plataforma do WhatsApp Business
-Updated: 2 de jun de 2026
+Updated: 4 de ago de 2026
 Copiar para LLM
 Ver como Markdown
 A Plataforma do WhatsApp Business permite que as empresas se comuniquem com os clientes em grande escala.
@@ -30,8 +30,8 @@ Enviar mensagens que recomendam produtos relacionados ou adicionais
 Facilitar as transações do início ao fim, da descoberta do produto até o pagamento.
 Ativar a autenticação multifatorial ou as senhas descartáveis para fazer a confirmação de contas e usuários.
 Fornecer experiências de conversa interativas e personalizadas
-Saiba mais sobre os tipos de mensagens na API de Nuvem.
-API de Gerenciamento de Negócios da Plataforma do WhatsApp Business
+Saiba mais sobre os tipos de mensagens na API de Nuvem do WhatsApp.
+API de Gerenciamento de Negócios da Plataforma Comercial do WhatsApp
 A API de Gerenciamento do WhatsApp Business permite gerenciar programaticamente uma conta do WhatsApp Business e os ativos associados.
 Gerencie ativos de conta com a API de Gerenciamento do WhatsApp Business, como:
 Números de telefone comerciais: adicione e remova números de telefone associados à sua empresa.
@@ -59,11 +59,11 @@ Saiba mais sobre webhooks.
 Meta Business Agent
 Com o Meta Business Agent, você pode configurar e operar agentes com tecnologia de IA no WhatsApp. Os agentes lidam com as conversas de forma autônoma, usando as fontes de conhecimento fornecidas (perguntas frequentes, informações da empresa, catálogos de produtos, arquivos e sites) e conectores personalizados às suas APIs externas.
 O Meta Business Agent inclui:
-Configuração do agente: defina o comportamento, a persona, o idioma e as instruções do sistema para o agente.
-Gerenciamento de conhecimento: conecte perguntas frequentes, informações da empresa, catálogos, arquivos e sites para consulta do agente.
-Conectores personalizados: integre suas APIs externas para que o agente possa realizar ações como verificar o status do pedido ou marcar um horário
-Controle da conversa: gerencie a troca entre o agente de IA e os agentes humanos
-Avaliação e teste: teste as respostas do agente e avalie o desempenho
+Configuração do agente: Defina o comportamento, a identidade, o idioma e as instruções de sistema do agente.
+Gerenciamento de conhecimento: Conecte perguntas frequentes, informações da empresa, catálogos, arquivos e sites para consulta do agente
+Conectores personalizados: Integre suas APIs externas para que o agente possa realizar ações como verificar o status do pedido ou marcar um horário
+Controle de conversas: Gerencie a troca entre o agente de IA e os agentes humanos
+Avaliação e teste: Teste as respostas do agente e avalie o desempenho
 Saiba mais sobre o Meta Business Agent.
 Fundamentos técnicos
 Protocolo HTTP e solicitações de API
@@ -111,7 +111,7 @@ Portfólios empresariais
 Com o portfólio empresarial, as organizações podem reunir todos os ativos de negócios da Meta para gerenciá-los em um só lugar. Na Plataforma do WhatsApp Business, um portfólio empresarial serve principalmente como um contêiner para contas do WhatsApp Business (WABA). É preciso ter um portfólio empresarial para usar a plataforma.
 Os portfólios empresariais podem ser verificados, e o status de verificação contribui para melhorar a funcionalidade, como maior taxa de transferência de dados e o status de conta comercial oficial.
 Saiba mais sobre portfólios empresariais⁠.
-Contas do WhatsApp Business (WABA)
+Contas do WhatsApp Business
 Uma conta do WhatsApp Business representa sua empresa e contém números de telefone, nomes de usuário e análises.
 Saiba mais sobre as contas do WhatsApp Business.
 Números de telefone comerciais
@@ -127,7 +127,7 @@ Depois que você começar a usar a API de Nuvem, uma conta do WhatsApp Business 
 Será possível excluir seu portfólio empresarial e os respectivos recursos de teste se:
 você for um administrador do portfólio empresarial associada ao app;
 nenhum outro app estiver associado ao portfólio empresarial;
-O portfólio empresarial não estiver associado a outras contas do WhatsApp Business.
+O portfólio empresarial não estiver associado a nenhuma outra conta do WhatsApp Business.
 a conta do WhatsApp Business não estiver associada a nenhum outro número de telefone comercial.
 Para excluir seu portfólio empresarial e os respectivos recursos de teste:
 Acesse Painel de Apps > WhatsApp > Configuração.
@@ -150,7 +150,7 @@ Os números de telefone comercial podem enviar até 80 mensagens por segundo por
 Saiba mais sobre taxa de transferência.
 Criptografia
 Com a API de Nuvem, todas as mensagens do WhatsApp continuam protegidas pela criptografia do protocolo Signal, que assegura a segurança das mensagens antes de saírem do dispositivo. A criptografia do protocolo Signal garante que as mensagens com uma conta do WhatsApp Business sejam entregues com segurança ao destino escolhido por cada empresa.
-A API de Nuvem aplica técnicas padrão de criptografia do setor para proteger dados em trânsito e em repouso. A API de Nuvem usa a Graph API para enviar mensagens e Webhooks a fim de receber eventos. Ambos operam com HTTPS padrão da indústria protegido por TLS.
+A API de Nuvem aplica técnicas padrão de criptografia da indústria para proteger os dados em trânsito e em repouso. A API de Nuvem usa a Graph API para enviar mensagens e Webhooks a fim de receber eventos. Ambos operam com HTTPS padrão da indústria protegido por TLS.
 Para saber mais, consulte o relatório técnico Visão Geral da Criptografia do WhatsApp⁠.
 Dimensionamento
 A API de Nuvem dimensiona automaticamente o uso dentro dos limites de volume.
@@ -202,10 +202,9 @@ GET
 /<EXTENDED_CREDIT_ID>/owning_credit_allocation_configs
 Para ver informações adicionais sobre como obter a utilização do limite de volume atual, consulte Cabeçalhos.
 Além disso, a plataforma aplica vários limites de volume de mensagens:
-Testar o limite de volume de mensagens (para WABAs não verificadas)
-Limites de mensagens e classificação de qualidade (para WABAs verificadas)
-Limite de volume de capacidade (para todas as contas)
-Limite de volume de telefonia comercial (por número de telefone)
+Limites de mensagens: O número máximo de usuários únicos do WhatsApp para os quais você pode entregar mensagens, fora de uma janela de atendimento ao cliente, em um período móvel de 24 horas. Definido no nível do portfólio empresarial. Consulte Limites de mensagens.
+Taxa de transferência de dados: Os números de telefone comercial podem enviar até 80 mensagens por segundo por padrão, com atualizações de capacidade disponíveis. Definido por número de telefone comercial. Consulte Taxa de transferência de dados.
+Classificação de qualidade: Atribuída por número de telefone comercial e por modelo, essa classificação é usada para determinar atualizações automáticas de nível de taxa de transferência de dados. Consulte Template quality rating.
 Limites de volume de pareamento
 Os números de telefone comercial podem enviar uma mensagem a cada 6 segundos para o mesmo usuário do WhatsApp (0,17 mensagem por segundo), o que é equivalente a cerca de 10 mensagens por minuto ou 600 por hora. Exceder esse limite gera o código de erro 131056 até que você fique dentro da taxa permitida novamente.
 É possível enviar até 45 mensagens em um período de seis segundos, mas essa ação tomará "emprestado" parte da sua cota futura. Após um pico no uso, é preciso esperar o tempo equivalente ao que levaria para enviar essas mensagens dentro da taxa normal (por exemplo, uma pico de 20 mensagens requer uma espera de aproximadamente dois minutos para enviar mais mensagens para o usuário).

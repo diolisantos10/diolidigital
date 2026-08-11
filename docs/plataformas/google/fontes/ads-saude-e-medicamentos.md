@@ -1,8 +1,8 @@
 ---
 titulo: "Google Ads — conteúdo restrito: saúde e medicamentos"
 url: https://support.google.com/adspolicy/answer/176031?hl=pt-BR
-capturado_em: 2026-08-10
-hash: eaecf057befe8c6b
+capturado_em: 2026-08-11
+hash: 7b4fed898979ba27
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -173,6 +173,7 @@ Tchéquia
 Alemanha
 Dinamarca
 Estônia
+Espanha
 França
 Reino Unido
 Hong Kong
@@ -875,6 +876,20 @@ Os anunciantes não podem divulgar medicamentos controlados em anúncios e pági
 Tem um problema com sua certificação da LegitScript? Entre em contato com a equipe da LegitScript.
 
 Os anunciantes também precisam ser certificados pelo Google. Saiba como se inscrever para receber a certificação e veicular anúncios relacionados a saúde.
+
+Espanha
+Produto	Permitido?	 
+Telemedicina	
+
+Permitido com limitações
+
+	
+
+O Google permite que a promoção de serviços de medicamentos controlados seja feita por provedores de telemedicina certificados pelo Programa de Certificação para Comerciantes do Setor Médico da LegitScript (link em inglês). Os anunciantes não têm permissão para promover esses medicamentos em anúncios e páginas de destino.
+
+Saiba mais ou inscreva-se para receber a certificação da LegitScript.
+
+Os anunciantes também devem ser certificados pelo Google. Saiba como se inscrever.
 
 Suécia
 Produto	Permitido?	 

@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — públicos personalizados (custom audiences)"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/audiences/guides/custom-audiences
-capturado_em: 2026-08-10
-hash: 526bf5c8c1847797
+capturado_em: 2026-08-11
+hash: 226f3b476069f270
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -20,15 +20,15 @@ Como essas restrições afetam suas campanhas:
 Você não poderá usar públicos personalizados sinalizados ao criar novas campanhas.
 Se você tiver uma campanha ativa usando públicos personalizados sinalizados, edite-a ou pause-a e escolha um público diferente para evitar problemas de desempenho e veiculação.
 Para desenvolvedores da API:
-A partir de 2 de setembro de 2025, operation_statu retornará 471 para indicar que um público personalizado foi sinalizado.
+A partir de 2 de setembro de 2025, operation_status retornará 471 para indicar que um público personalizado foi sinalizado.
 Saiba mais⁠ sobre essa atualização e veja como resolver públicos personalizados que foram sinalizados.
 A API de Marketing permite criar públicos personalizados com base em informações do cliente. Isso inclui endereços de email, telefones, nomes, datas de nascimento, gênero, localizações, números de identificação do usuário do app, números de identificação do usuário no escopo da Página, Identificador de Anunciante da Apple (IDFA, pelas iniciais em inglês) ou ID de publicidade do Android⁠.
 Como proprietário dos dados da sua empresa, você é responsável pela criação e pelo gerenciamento desses dados. Isso inclui as informações dos sistemas de gestão do relacionamento com o cliente (CRM). Para criar públicos, é necessário compartilhar seus dados em um formato com hash, de modo a manter a privacidade. Consulte Como fazer hashing e normalizar dados. A Meta os compara aos nossos dados com hash para verificar se você deve adicionar alguém que está no Facebook ao público do seu anúncio.
 Você pode adicionar um número ilimitado de registros a um público, com o máximo de 10 mil por vez. As alterações nos públicos personalizados não são aplicadas de maneira automática. Geralmente, isso demora até 24 horas. O número de registros que você solicita remover ou o número de públicos personalizados na sua conta aumentará o tempo necessário para processar a solicitação.
-Para melhorar a forma como os anunciantes criam e gerenciam públicos, os públicos personalizados de arquivo de cliente que não são usados em nenhum conjunto de anúncios ativo por mais de dois anos são sinalizados para exclusão periodicamente. Forneça instruções para que possamos realizar as ações necessárias. Assim que um público for sinalizado e movido para o estágio "Público prestes a expirar", você poderá usá-lo em um conjunto de anúncios ativos, e isso será entendido como uma instrução para que ele seja retido. Caso você decida não usar o público, isso será considerado uma instrução para que ele seja excluído. Para mais informações, consulte a documentação de visão geral sobre públicos personalizados.
+Para melhorar a forma como os anunciantes criam e gerenciam públicos, os públicos personalizados de arquivo de cliente que não são usados em nenhum conjunto de anúncios ativo por mais de dois anos são sinalizados para exclusão periodicamente. Forneça instruções para que possamos realizar as ações necessárias. Assim que um público for sinalizado e movido para o estágio "Público prestes a expirar", você poderá usá-lo em um conjunto de anúncios ativos, e isso será entendido como uma instrução para que ele seja retido. Caso você decida não usar o público, isso será considerado uma instrução para que ele seja excluído. Para saber mais, consulte a documentação Visão geral dos públicos personalizados.
 Caso você compartilhe eventos de conversão por meio da API de Conversões, será possível criar um público personalizado do site sem precisar carregar dados adicionais. No entanto, ainda será possível carregar informações compatíveis para criar um público personalizado de arquivos de clientes.
 Crie um Público Personalizado
-Etapa 1: criar um público personalizado vazio
+Etapa 1: criar um Público Personalizado vazio
 Especifique subtype=CUSTOM e customer_file_source na sua chamada de API.
 curl -X POST \
   -F 'name="My new Custom Audience"' \
@@ -74,16 +74,16 @@ string
 Escolha um rótulo que descreva o público. Os rótulos podem ser usados para encontrar públicos para seus anúncios de forma mais eficaz. Sobre os rótulos de público.⁠
 Públicos engajados:
 QUALIFIED_LEADS: leads que atendem aos seus critérios de qualificação.
-DISQUALIFIED_LEADS: leads que não atendem aos seus critérios de qualificação.
+DISQUALIFIED_LEADS – leads que não atendem aos seus critérios de qualificação.
 APP_USERS – pessoas que usam seu app.
 TRIAL_USERS: pessoas que iniciaram um teste do seu produto.
-ENGAGED_USERS: pessoas que demonstraram interesse, mas não são clientes.
+ENGAGED_USERS – pessoas que demonstraram interesse, mas não são clientes.
 Clientes:
 HIGH_VALUE_CUSTOMERS: clientes que você considera valiosos para sua empresa.
 LOW_VALUE_CUSTOMERS: clientes que têm valor baixo ou negativo para sua empresa.
 AT_RISK: clientes que estão demonstrando sinais de desengajamento ou abandono.
 DISENGAGED: clientes que não fizeram uma compra recentemente ou que deixaram de assinar.
-GENERAL_CUSTOMERS – Seus clientes existentes.
+GENERAL_CUSTOMERS – seus clientes existentes.
 Etapa 2: especificar uma lista de usuários
 Use uma chamada de API POST ao ponto de extremidade /{audience_id}/users para especificar a lista de usuários que você quer adicionar ao Público Personalizado.
 Parâmetros
@@ -119,7 +119,7 @@ Exemplo
     ]
 }
 Opções de processamento de dados para usuários dos EUA
-Se quiser habilitar o Uso Limitado de Dados para pessoas na Califórnia por meio de públicos personalizados de lista de clientes a partir de 1º de junho de 2023, você precisará carregar novos públicos ou atualizar os públicos existentes com a sinalização de Uso Limitado de Dados. Atualize e mantenha os status de Uso Limitado de Dados dos seus públicos e das pessoas, conforme necessário.
+Se você quiser habilitar o Uso Limitado de Dados para pessoas na Califórnia por meio de públicos personalizados de lista de clientes a partir de 1º de junho de 2023, carregue novos públicos ou atualize os existentes com a sinalização de Uso Limitado de Dados. Atualize e mantenha os status de Uso Limitado de Dados dos seus públicos e das pessoas, conforme necessário.
 Uma sinalização de Uso Limitado de Dados aplicada a um usuário em um público não será transferida automaticamente para públicos diferentes. Da mesma forma que os anunciantes devem gerenciar cada um dos públicos personalizados de lista de clientes separadamente pelos critérios selecionados, a sinalização de Uso Limitado de Dados precisa ser aplicada de modo específico a cada público usado para publicidade.
 Para NÃO habilitar o LDU de forma explícita para o registro, você pode enviar uma matriz de data_processing_options vazia ou remover o campo na carga. Exemplo de uma matriz vazia:
 {
@@ -198,7 +198,7 @@ estimated_num_total
 número inteiro
 	
 Opcional
-O total estimado de usuários que serão carregados na sessão. Esse campo é usado para melhorar o processamento da sessão.
+O total estimado de usuários que serão carregados na sessão. Este campo é usado para melhorar o processamento da sessão.
 Resposta
 Se for bem-sucedida, a resposta incluirá um objeto JSON com os seguintes campos:
 Nome	Descrição
@@ -227,7 +227,7 @@ invalid_entry_samples
 Matriz JSON de string ou mapa {string: string}
 	
 Até 100 exemplos de entradas inválidas na solicitação atual.
-Saiba mais sobre como compartilhar o público personalizado com objetos para empresas.
+Saiba mais sobre como compartilhar seu público personalizado com objetos para empresas.
 Códigos de erro
 Veja a seguir os erros que podem ser recebidos quando você criar públicos personalizados.
 Código de erro	Subcódigo de erro	Descrição	Resolução
@@ -235,7 +235,7 @@ Código de erro	Subcódigo de erro	Descrição	Resolução
 1
 	
 	
-Reduza a quantidade de dados que você está solicitando e tente novamente.
+Reduza a quantidade de dados que você está pedindo e tente novamente.
 	
 Isso está relacionado ao limite de dados que são retornados em uma resposta da API. Apesar de não haver um limite máximo específico, uma boa prática é usar o limite de 20 com paginação.
 
@@ -382,19 +382,19 @@ DOBY
 critérios: ano de nascimento
 	
 Hashing obrigatório.
-Use o formato AAAA de 1900 até o ano atual.
+Use o formato AAAA, que vai de 1900 até o ano atual.
 
 DOBM
 critérios: mês de nascimento
 	
 Hashing obrigatório.
-Use o formato MM: 01 até 12.
+Use o formato MM: 01 para 12.
 
 DOBD
 critérios: aniversário
 	
 Hashing obrigatório.
-Use o formato DD: 01 até 31.
+Use o formato DD: 01 para 31.
 
 LN e FN
 critérios: nome e sobrenome
@@ -412,7 +412,7 @@ ST
 critérios: estados dos EUA
 	
 Hashing obrigatório.
-Use o código de abreviação ANSI de dois caracteres ⁠ em minúsculas. Padronize os estados fora dos EUA em minúsculas sem pontuação, caracteres especiais nem espaços em branco.
+Use o código de abreviação ANSI de dois caracteres 2, em minúsculas⁠. Padronize os estados fora dos EUA em minúsculas sem pontuação, caracteres especiais nem espaços em branco.
 
 CT
 critérios: cidade
@@ -497,7 +497,7 @@ API de substituição de usuários
 O ponto de extremidade /<CUSTOM_AUDIENCE_ID>/usersreplace permite que você realize duas ações com uma chamada de API:
 Remover completamente os usuários existentes de um público específico.
 Substituí-los por um novo conjunto de usuários.
-O ponto de extremidade /<CUSTOM_AUDIENCE_ID>/usersreplace permite que você remova automaticamente todos os usuários existentes em vez de carregar uma lista com todos os usuários a serem excluídos. Esse ponto de extremidade não redefinirá a fase de aprendizado⁠ do seu conjunto de anúncios quando um público estiver em conjuntos ativos, ao contrário das chamadas de API POST ou DELETE ao ponto de extremidade /<CUSTOM_AUDIENCE_ID>/users.
+Com o ponto de extremidade /<CUSTOM_AUDIENCE_ID>/usersreplace, você pode excluir automaticamente todos os usuários existentes, em vez de carregar uma lista dos usuários que deseja remover. Esse ponto de extremidade não redefinirá a fase de aprendizado⁠ do seu conjunto de anúncios quando um público estiver em conjuntos ativos, ao contrário das chamadas de API POST ou DELETE ao ponto de extremidade /<CUSTOM_AUDIENCE_ID>/users.
 A API de Substituição de Usuários funciona apenas com públicos que atendem aos requisitos a seguir:
 O número de usuários no local antes da execução do processo de substituição deve ser menor que 100 milhões. Se o público for maior que esse valor, sugerimos usar o ponto de extremidade /<CUSTOM_AUDIENCE_ID>/users para adicionar e remover usuários.
 O subtipo deve ser definido como CUSTOM.
@@ -689,30 +689,71 @@ A lista de clientes não foi completamente atualizada. Se o público tiver taman
 Tamanho do público personalizado do arquivo de dados não compatível com substituição
 	
 Não é possível substituir o público de um cliente por uma lista com 100 milhões de clientes ou mais.
+Atualizar rótulos para públicos compartilhados
+Caso um público personalizado tenha sido compartilhado com sua conta de anúncios, você poderá definir e ler suas próprias etiquetas de público, independentemente das etiquetas do proprietário. Passe acting_account_id na solicitação para que as etiquetas sejam anexadas à sua conta, e não à do proprietário.
+Adicionar ou editar uma etiqueta
+Ponto de extremidade da API: POST /{custom-audience-id}
+Exemplo: Se um público for compartilhado da conta A para a conta B e esta quiser definir uma etiqueta para esse público, passe a conta B como acting_account_id.
+curl -X POST \
+  -F 'audience_labels=["HIGH_VALUE_CUSTOMERS"]' \
+  -F 'acting_account_id=<AD_ACCOUNT_ID>' \
+  -F 'access_token=<ACCESS_TOKEN>' \
+https://graph.facebook.com/v26.0/<CUSTOM_AUDIENCE_ID>
+Exemplo de resposta:
+{
+  "success": true
+}
+Parâmetros
+Nome	Descrição
+
+acting_account_id
+int
+	
+Opcional. A conta de anúncios que atua no público personalizado. Forneça essa informação quando uma conta que não seja a proprietária (por exemplo, uma conta com a qual o público foi compartilhado) estiver atualizando a própria audience_labels no público. Se omitido, os rótulos serão gravados na conta proprietária, caso o usuário tenha todas as permissões de gravação.
+
+audience_labels
+matriz<string>
+	
+Veja o parâmetro audience_labels em Criar um público personalizado para conferir a lista completa de rótulos compatíveis.
+Observação: É necessário garantir que o usuário tenha permissões de edição na conta de anúncios em uso. Caso contrário, a solicitação resultará em um erro de permissão.
+Ler rótulos de público
+Ponto de extremidade da API: GET /{custom-audience-id}
+curl -G \
+  -d 'fields=audience_labels' \
+  -d 'acting_account_id=<AD_ACCOUNT_ID>' \
+  -d 'access_token=<ACCESS_TOKEN>' \
+https://graph.facebook.com/v26.0/<CUSTOM_AUDIENCE_ID>
+Parâmetros
+Nome	Descrição
+
+acting_account_id
+int
+	
+Opcional. A conta de anúncios agindo no público personalizado. Forneça essa informação quando uma conta que não seja a proprietária (por exemplo, uma conta com a qual o público foi compartilhado) estiver lendo a própria audience_labels no público. Se omitidas, as etiquetas serão lidas na conta proprietária, caso o usuário tenha todas as permissões de gravação.
 Perguntas frequentes
 Qual é o valor máximo recomendado de "limit" que deve ser usado no ponto de extremidade /customaudiences?
-O campo limit é o número máximo de objetos que podem ser retornados em uma chamada de API. Não há um valor máximo específico para o parâmetro limit ao consultar os pontos de extremidade do público personalizado.
-No entanto, a boa prática é usar um limite de 20 com paginação. Consulte a documentação Resultados paginados para mais informações.
+O campo limit representa o número máximo de objetos que podem ser retornados em uma chamada de API. Não há um valor máximo específico para o parâmetro limit ao consultar os pontos de extremidade do público personalizado.
+No entanto, a boa prática é usar um limite de 20 com paginação. Consulte a documentação Resultados paginados para saber mais.
 Quais são os limites quanto ao número de públicos personalizados que podemos ter em uma conta?
 Estes são os limites para o número de públicos personalizados em uma conta:
 Públicos personalizados de arquivo de dados padrão: 500
 Públicos personalizados do seu site: 10.000
 Públicos personalizados do app para celular: 200
 Públicos semelhantes: 500
-Is hashing required for Mobile Advertiser IDs (MADID)?
+É necessário aplicar hash às identificações de anunciante da plataforma móvel (MADID)?
 Não.
 Existem restrições para um público com base na fonte do arquivo de clientes (ou seja, USER_PROVIDED_ONLY, PARTNER_PROVIDED_ONLY, BOTH_USER_AND_PARTNER_PROVIDED)?
-No momento, não existem restrições ao campo customer_file_source quando você cria um público personalizado usando a API de Marketing.
-Como você resolve o erro "Termos do público personalizado não aceitos"?
-O erro "Termos do público personalizado não aceitos" normalmente ocorre ao tentar criar ou usar um público personalizado na plataforma de publicidade da Meta sem aceitar os termos e condições necessários ou ao aceitar os termos e condições de uma conta de anúncios em nome de ou compartilhados com empresas diferentes.
+Atualmente, não há restrições no campo customer_file_source ao criar um público personalizado usando a API de Marketing.
+Como você resolve o erro “Termos do público personalizado não aceitos”?
+O erro "Termos de público personalizado não aceitos" normalmente ocorre ao tentar criar ou usar um público personalizado na plataforma de publicidade da Meta sem aceitar os termos e condições necessários ou ao aceitar os termos e condições de uma conta de anúncios em nome de ou compartilhados com empresas diferentes.
 Consulte o documento Termos de Serviço para públicos personalizados para obter mais informações sobre como aceitar os termos de serviço ao verificar os casos especiais de uso de contas de anúncios compartilhadas ou em nome de contas de anúncios.
 Recursos
 Você pode criar e direcionar ou compartilhar outros tipos de público:
-Públicos personalizados do site: crie um público com base nas pessoas que visitaram uma página específica ou realizaram ações no site. Crie um público com base em dados do Pixel da Meta no seu site.
-Públicos personalizados do app para celular: crie um público com base nas pessoas que usam seu app para celular. Gere um público com base em dados de eventos do app.
-Públicos semelhantes: identifique pessoas que você já conhece e anuncie para usuários semelhantes no app do Facebook.
-Públicos personalizados offline: crie um público com base nas pessoas que visitaram sua loja, ligaram para o atendimento ao cliente ou realizaram outras ações offline.
-Públicos de engajamento com o Canvas: crie um público com todas as pessoas que tiveram engajamento com seu Canvas.
+Públicos personalizados do site – crie um público com base nas pessoas que visitaram uma página específica ou realizaram ações no site. Crie um público com base em dados do Pixel da Meta no seu site.
+Públicos personalizados do app para celular – crie um público com base nas pessoas que usam seu app para celular. Gere um público com base em dados de eventos do app.
+Públicos semelhantes – identifique pessoas que você já conhece e anuncie para usuários semelhantes no app do Facebook.
+Públicos personalizados offline – crie um público com base nas pessoas que visitaram sua loja, ligaram para o atendimento ao cliente ou realizaram outras ações offline.
+Públicos de engajamento com o Canvas — Crie um público com todas as pessoas que tiveram engajamento com seu Canvas.
 Veja também
 Público personalizado
 Usuários de público personalizado

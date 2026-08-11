@@ -1,7 +1,7 @@
 ---
 titulo: "Conversions API — primeiros passos"
 url: https://developers.facebook.com/documentation/ads-commerce/conversions-api/get-started
-capturado_em: 2026-08-10
+capturado_em: 2026-08-11
 hash: e903172bd3906785
 ---
 

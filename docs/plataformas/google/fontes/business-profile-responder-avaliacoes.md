@@ -1,8 +1,8 @@
 ---
 titulo: "Perfil de Empresa — ler e responder avaliações"
 url: https://support.google.com/business/answer/3474050?hl=pt-BR
-capturado_em: 2026-08-10
-hash: 93b949ae17ae7181
+capturado_em: 2026-08-11
+hash: fc4616dce239cabf
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -67,3 +67,6 @@ Siga as próximas etapas:
 Postar na Comunidade de Ajuda Receba respostas dos membros da comunidade
  
 Fale conosco Conte mais sobre o problema para podermos ajudar você
+Moldando o futuro do Suporte do Google
+
+Estudos de pesquisa com usuários ajudam a melhorar nossos serviços de suporte, pois nos permitem receber comentários diretamente de usuários como você. Saiba mais ou inscreva-se agora e receba convites para participar de estudos futuros.
