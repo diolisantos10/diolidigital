@@ -45,14 +45,33 @@
 // ESTÁ na lista de autorizados. E, mesmo assim, publicar hoje é NÃO PODE — por
 // razões que a lista de ativos não conhece e nunca vai conhecer:
 //
-//   • O app `Dioli Digital Studio` está em **modo de desenvolvimento**. Nesse
-//     modo o app só opera em nome de quem tem FUNÇÃO nele (Administrador,
-//     Desenvolvedor, Testador). Cliente não tem função no nosso app.
-//     (fonte: docs/plataformas/meta/fontes/app-modos-dev-vs-live.md)
+//   • O app opera em **acesso padrão**, e acesso padrão só alcança conta que a
+//     casa possui ou gerencia **"e que foi adicionada ao app no Painel de
+//     Apps"**. Perfil de cliente não é nenhuma das duas coisas — e atribuir o
+//     ativo ao nosso Business Manager NÃO é o teste que a Meta usa.
+//     (fonte: docs/plataformas/meta/fontes/instagram-insights.md:57 e
+//      fontes/instagram-visao-geral.md:99-101)
 //   • `instagram_content_publish` publicando em nome de terceiro exige **App
 //     Review**: "se o app se destina a ser usado por pessoas sem função nele,
 //     ele precisa passar pela análise". A análise não foi feita.
 //     (fonte: docs/plataformas/meta/fontes/app-review-processo.md)
+//   • E há um segundo portão, independente da análise: sem **verificação do
+//     negócio** concluída, *"os usuários de outras empresas não poderão conceder
+//     permissões a esses apps, e todos os recursos ficarão inativos"*.
+//     (fonte: docs/plataformas/meta/fontes/verificacao-de-negocio.md:20)
+//
+//   ⚠️ CORRIGIDO EM 11/08/2026. Este bloco dizia *"o app está em modo de
+//   desenvolvimento"*. **Está errado**, e o erro tem consequência prática. O
+//   parecer assinado do especialista `meta` apurou que o app da casa é do tipo
+//   **Business** (usa Login do Facebook para Empresas, que só aceita `config_id`
+//   — `oauth.ts:31-49`), e a Meta diz com todas as letras: *"os apps de empresa
+//   não têm modos e se baseiam exclusivamente em níveis de acesso"*
+//   (fontes/app-review-publicacao.md:35).
+//
+//   Por que corrigir em vez de anotar: com o motivo errado escrito aqui, quem
+//   fosse destravar procuraria o botão "ligar modo Ativo". Ou não o acharia, ou
+//   — pior — o acharia, o ligaria, veria que nada mudou e concluiria que **a
+//   trava é que está quebrada**. A trava está certa. A explicação é que estava.
 //   • O token de hoje TEM o escopo porque quem clicou "Conectar" foi o próprio
 //     CEO, que é admin do app. O escopo estar no token prova que a chamada
 //     PASSARIA — não prova que ela é permitida. Foi exatamente essa confusão
@@ -114,9 +133,11 @@ export function publicacaoOrganicaLiberada(): boolean {
  *  operador procurar defeito onde há regra. */
 export const FRASE_SEM_DECISAO =
   "A publicação orgânica está DESLIGADA nesta casa: nada vai ao Instagram ou ao " +
-  "Facebook sem decisão do CEO. O app está em modo de desenvolvimento e as " +
-  "permissões de publicação não passaram por App Review — publicar em nome de " +
-  "cliente nessa condição é o que a Meta chama de automação fora das regras. " +
+  "Facebook sem decisão do CEO. As permissões de publicação estão em acesso " +
+  "PADRÃO, que só alcança conta da própria casa — publicar no perfil de um " +
+  "cliente exige acesso avançado, e acesso avançado exige App Review mais a " +
+  "verificação do negócio. Publicar em nome de cliente antes disso é o que a " +
+  "Meta chama de automação fora das regras. " +
   `Para liberar, o CEO define ${CHAVE_DA_DECISAO}=${VALOR_QUE_LIBERA}.`;
 
 /** A frase da recusa por ativo não autorizado. */

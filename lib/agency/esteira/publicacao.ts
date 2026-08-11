@@ -513,8 +513,8 @@ export async function publicarAgendados(): Promise<PublicacaoFeita> {
     // falhavam 12 vezes por hora com "Only photo or video can be accepted as
     // media type" — as 36 telas são PNG, e o Instagram só aceita JPEG. A casa
     // descobria isso PERGUNTANDO À META, em rajada permanente, contra a conta
-    // de um cliente, com o app em modo de desenvolvimento. É o padrão de
-    // 03/08. Ver `lib/integrations/meta/formato-de-midia.ts`.
+    // de um cliente, com o app sem App Review. É o padrão de 03/08. Ver
+    // `lib/integrations/meta/formato-de-midia.ts`.
     const idsDaPeca = (formato === "carousel" ? lerLista(post.mediaUrlsJson) : [post.mediaUrl])
       .filter((u): u is string => !!u && u.startsWith("/api/media/"))
       .map((u) => u.split("/api/media/")[1]?.split("?")[0] ?? "")

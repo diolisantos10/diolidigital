@@ -29,8 +29,11 @@
 // que falha continua `scheduled` de propósito (a causa quase sempre é externa
 // e temporária; ver `esteira/publicacao.ts`). O resultado medido: uma rajada
 // permanente de criações de container recusadas, contra a conta de um
-// CLIENTE, com o app `Dioli Digital Studio` em modo de desenvolvimento e sem
-// App Review.
+// CLIENTE, com o app `Dioli Digital Studio` sem App Review — isto é, em acesso
+// PADRÃO, que não alcança perfil de terceiro.
+// (11/08/2026: este trecho dizia "em modo de desenvolvimento". App do tipo
+//  Business não tem modo, só nível de acesso — a correção e a fonte estão em
+//  `trava-de-publicacao.ts`.)
 //
 // Isso é, letra por letra, o padrão que restringiu a conta de anúncios da
 // agência em 03/08/2026: "conta usada com uma automação que não segue nossas
