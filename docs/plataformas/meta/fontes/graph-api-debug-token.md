@@ -1,8 +1,8 @@
 ---
 titulo: "Graph API — referência do endpoint debug_token (inspecionar token)"
 url: https://developers.facebook.com/docs/graph-api/reference/debug_token
-capturado_em: 2026-08-11
-hash: c8d7ffacc569b343
+capturado_em: 2026-08-12
+hash: f45640f7a1e02b8f
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -21,6 +21,7 @@ Secure Requests
 Registro de alterações
 Reference
 /video
+Ad Set
 Ad
 Ads Archive
 Application

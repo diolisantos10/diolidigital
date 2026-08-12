@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — referência de AdCreative"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/reference/ad-creative
-capturado_em: 2026-08-11
-hash: b2dfacb56a8effbe
+capturado_em: 2026-08-12
+hash: 4a13f255ad5dde15
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -16,7 +16,7 @@ v24.0
 v25.0
 Isso foi útil?
 Criativo do anúncio
-Updated: 24 de mar de 2026
+Updated: 6 de ago de 2026
 Copiar para LLM
 Ver como Markdown
 Os anúncios no Status do WhatsApp são disponibilizados por meio da API de Marketing. Saiba mais sobre anúncios no Status do WhatsApp.
@@ -42,7 +42,7 @@ curl \
   }' \
   -F 'access_token=<ACCESS_TOKEN>' \
   https://graph.facebook.com/v26.0/act_<AD_ACCOUNT_ID>/adcreatives
-É possível substituir picture por image_hash para especificar uma imagem da biblioteca da conta de anúncios. Você também pode especificar o corte de imagem com image_crops em link_data. Consulte Corte de imagem, Referência.
+É possível substituir picture por image_hash para especificar uma imagem da biblioteca da conta de anúncios. Você também pode especificar o corte de imagem com image_crops em link_data. Consulte Image Crop, Reference.
 Para criar um criativo do anúncio político, use o campo authorization_category com o valor POLITICAL. Por exemplo:
 curl \
   -F 'authorization_category=POLITICAL' \
@@ -110,7 +110,7 @@ Exceções
 Anúncios com link não podem usar caracteres especiais
 Anúncios de publicações da Página permitem caracteres especiais, como ★
 Posicionamento
-Consulte Posicionamento para ver restrições de posicionamento do anúncio com base no criativo.
+Veja Placement para restrições de posicionamento do seu anúncio com base no criativo.
 Leitura
 Um objeto de criativo do anúncio é uma instância de um criativo específico que está sendo usado para definir o campo creative de um ou mais anúncios.
 Ler miniatura
@@ -191,7 +191,7 @@ Usado para criativo dinâmico a fim de experimentar e veicular automaticamente d
 authorization_category
 enum
 	
-Especifica se o anúncio foi configurado para ser rotulado como conteúdo político ou não. Consulte as Políticas de Publicidade do Facebook⁠. Este campo não pode ser usado para anúncios dinâmicos.
+Especifica se o anúncio foi configurado para ser rotulado como conteúdo político ou não. Consulte Políticas de Publicidade do Facebook⁠. Este campo não pode ser usado para anúncios dinâmicos.
 
 body
 string
@@ -221,7 +221,7 @@ Chamada para ação de um anúncio criado a partir de um post existente do Insta
 call_to_action_type
 enum {OPEN_LINK, LIKE_PAGE, SHOP_NOW, PLAY_GAME, INSTALL_APP, USE_APP, CALL, CALL_ME, VIDEO_CALL, INSTALL_MOBILE_APP, USE_MOBILE_APP, MOBILE_DOWNLOAD, BOOK_TRAVEL, LISTEN_MUSIC, WATCH_VIDEO, LEARN_MORE, SIGN_UP, DOWNLOAD, WATCH_MORE, NO_BUTTON, VISIT_PAGES_FEED, CALL_NOW, APPLY_NOW, CONTACT, BUY_NOW, GET_OFFER, GET_OFFER_VIEW, BUY_TICKETS, UPDATE_APP, GET_DIRECTIONS, BUY, SEND_UPDATES, MESSAGE_PAGE, DONATE, SUBSCRIBE, SAY_THANKS, SELL_NOW, SHARE, DONATE_NOW, GET_QUOTE, CONTACT_US, ORDER_NOW, START_ORDER, ADD_TO_CART, VIEW_CART, VIEW_IN_CART, VIDEO_ANNOTATION, RECORD_NOW, INQUIRE_NOW, CONFIRM, REFER_FRIENDS, REQUEST_TIME, GET_SHOWTIMES, LISTEN_NOW, TRY_DEMO, WOODHENGE_SUPPORT, SOTTO_SUBSCRIBE, FOLLOW_USER, RAISE_MONEY, SEE_SHOP, GET_DETAILS, FIND_OUT_MORE, VISIT_WEBSITE, BROWSE_SHOP, EVENT_RSVP, WHATSAPP_MESSAGE, FOLLOW_NEWS_STORYLINE, SEE_MORE, BOOK_NOW, FIND_A_GROUP, FIND_YOUR_GROUPS, PAY_TO_ACCESS, PURCHASE_GIFT_CARDS, FOLLOW_PAGE, SEND_A_GIFT, SWIPE_UP_SHOP, SWIPE_UP_PRODUCT, SEND_GIFT_MONEY, PLAY_GAME_ON_FACEBOOK, GET_STARTED, OPEN_INSTANT_APP, AUDIO_CALL, GET_PROMOTIONS, JOIN_CHANNEL, MAKE_AN_APPOINTMENT, ASK_ABOUT_SERVICES, BOOK_A_CONSULTATION, GET_A_QUOTE, BUY_VIA_MESSAGE, ASK_FOR_MORE_INFO, CHAT_WITH_US, VIEW_PRODUCT, VIEW_CHANNEL, GET_IN_TOUCH, ASK_A_QUESTION, START_A_CHAT, CHAT_NOW, ASK_US, WATCH_LIVE_VIDEO, JOIN_LIVE_VIDEO, SHOP_WITH_AI, TRY_ON_WITH_AI}
 	
-O tipo de botão de chamada para ação no anúncio. Isso determina o texto do botão e o texto do cabeçalho do anúncio. Consulte o Guia de Anúncios⁠ para objetivos de campanha e tipos de chamada para ação permitidos.
+O tipo de botão de chamada para ação no anúncio. Isso determina o texto do botão e o texto do cabeçalho do anúncio. Consulte o Guia de anúncios⁠ para ver os objetivos da campanha e os tipos permitidos de chamada para ação.
 
 categorization_criteria
 enum
@@ -261,7 +261,7 @@ O ID do conjunto de produtos para um catálogo de destinos que será usado para 
 dynamic_ad_voice
 string
 	
-Usado para o objetivo de tráfego para o estabelecimento dentro de anúncios dinâmicos. Permite que você controle a voz do seu anúncio. Se for definida como DYNAMIC, o nome da página e a foto de perfil na sua publicação de anúncio virão da localização de página mais próxima. Se for definido como STORY_OWNER, o nome da página e a foto de perfil na sua publicação de anúncio virão da localização da Página principal.
+Usado para o objetivo de tráfego para o estabelecimento dentro de anúncios dinâmicos. Permite que você controle a voz do seu anúncio. Se for definido como DYNAMIC, o nome da página e a foto de perfil na publicação do seu anúncio virão da localização de página mais próxima. Se for definido como STORY_OWNER, o nome da página e a foto de perfil na publicação de anúncio virão da localização da Página principal.
 
 effective_authorization_category
 enum
@@ -332,7 +332,7 @@ A URL de uma publicação do Instagram que você quer veicular como anúncio. Ta
 instagram_user_id
 string numérica
 	
-O ID do ator do Instagram.
+Identificação do ator do Instagram
 
 interactive_components_spec
 AdCreativeInteractiveComponentsSpec
@@ -342,7 +342,7 @@ Especificações de todos os componentes interativos que serão exibidos no anú
 link_destination_display_url
 string
 	
-Substitui o URL de exibição dos anúncios com link quando object_url for definida como uma tag de clique.
+Substitui o URL de exibição dos anúncios com link quando object_url é definido como uma tag de clique.
 
 link_og_id
 string numérica
@@ -352,12 +352,7 @@ O ID do Open Graph (OG) para o link no criativo, caso a página de destino tenha
 link_url
 string
 	
-Identifique uma aba de destino específica na sua Página do Facebook pela URL da aba da Página. Consulte os objetos de conexão para recuperar as URLs de abas da Página. É possível adicionar parâmetros app_data à URL para transmitir dados à aba de uma Página.
-
-marketing_message_structured_spec
-AdCreativeMarketingMessageStructuredSpec
-	
-marketing_message_structured_spec
+Identifique uma aba de destino específica na sua Página do Facebook pela URL da aba da Página. Consulte connection objects para saber como recuperar URLs de abas de Páginas. É possível adicionar parâmetros app_data à URL para transmitir dados à aba de uma Página.
 
 media_sourcing_spec
 AdCreativeMediaSourcingSpec
@@ -401,7 +396,7 @@ O tipo de objeto do Facebook que você quer anunciar. Valores permitidos:
 PAGE
 DOMAIN
 EVENT
-STORE_ITEM: refere-se a um destino da iTunes Store ou da Google Play Store
+STORE_ITEM: refere-se a um destino da iTunes Store ou da Google Play Store.
 SHARE: de uma página
 PHOTO
 STATUS: de uma página
@@ -414,7 +409,7 @@ POST_DELETED: este object_type foi excluído
 object_url
 string
 	
-URL que abre quando alguém clica no seu link em um anúncio com link. O URL não está conectado a uma página do Facebook.
+URL que abre quando alguém clica no seu link em um anúncio com link. Este URL não está conectado a uma página do Facebook.
 
 page_welcome_message
 string
@@ -529,7 +524,7 @@ Um conjunto de parâmetros da string de consulta que substituirá ou será anexa
 use_page_actor_override
 booliano
 	
-Usado para anúncios de app. Se true, exibiremos a página do Facebook associada aos anúncios de app.
+Usado para Anúncios no App. Se for true, exibiremos a página do Facebook associada aos anúncios de app.
 
 video_id
 string numérica
@@ -641,7 +636,7 @@ curl \
 https://graph.facebook.com/<VERSION>/<ACCOUNT_ID>/adcreatives
 Onde object_story_id é a identificação da publicação no formato: postOwnerID_postID.
 Criação de publicação da Página inline
-A maioria dos criativos do anúncio usa publicações da Página para incluir conteúdo criativo. Embora seja possível criar publicações de Página separadamente e referenciá-las por ID, é mais fácil criá-las na mesma chamada usada para fornecer o criativo do anúncio. Especifique o conteúdo do post da Página com object_story_spec para criar um post sem exibição na Página. Consulte Publicação da Página inline, Blog.
+A maioria dos criativos do anúncio usa publicações da Página para incluir conteúdo criativo. Embora seja possível criar publicações de Página separadamente e referenciá-las por ID, é mais fácil criá-las na mesma chamada usada para fornecer o criativo do anúncio. Especifique o conteúdo do post da Página com object_story_spec, que criará um post sem exibição na Página. Consulte Publicação da Página inline, Blog.
 Você pode obter o novo ID recuperando object_story_id do criativo do anúncio. Para obter identificações de publicações criadas com object_story_spec até /promotable_posts, transmita include_inline=true na sua HTTP GET. Se o valor de include_inline for false, não retornaremos nenhum ID.
 Obter objetos relacionados
 Muitos criativos de anúncio exigem object_id para um objeto relevante do Facebook, ID do app ou URL da aba da página. Consulte Connection Objects para mais informações.
@@ -713,7 +708,7 @@ O nome do criativo na biblioteca de criativos. O campo recebe uma string com at�
 status
 enum {ACTIVE, IN_PROCESS, WITH_ISSUES, DELETED}
 	
-O status do criativo do anúncio. Consulte Como armazenar e recuperar objetos de anúncio.
+O status do criativo do anúncio. Consulte Armazenamento e recuperação de objetos de anúncio.
 Tipo de retorno
 Esse ponto de extremidade é compatível com read-after-write e lê o nó em que você fez um POST.
 
@@ -758,7 +753,7 @@ O nome do criativo do anúncio, conforme exibido na biblioteca da conta de anún
 status
 enum {ACTIVE, IN_PROCESS, WITH_ISSUES, DELETED}
 	
-O status do criativo do anúncio. Consulte Como armazenar e recuperar objetos de anúncio.
+O status do criativo do anúncio. Consulte Armazenamento e recuperação de objetos de anúncio.
 Tipo de retorno
 
 Struct  {

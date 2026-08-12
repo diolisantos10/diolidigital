@@ -1,7 +1,7 @@
 ---
 titulo: "Google Analytics — Admin API (GA4): visão geral"
 url: https://developers.google.com/analytics/devguides/config/admin/v1?hl=pt-br
-capturado_em: 2026-08-11
+capturado_em: 2026-08-12
 hash: ae58c03186ea0f0b
 ---
 

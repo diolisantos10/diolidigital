@@ -1,7 +1,7 @@
 ---
 titulo: "Google Analytics — práticas para evitar envio de PII"
 url: https://support.google.com/analytics/answer/6366371?hl=pt-BR
-capturado_em: 2026-08-11
+capturado_em: 2026-08-12
 hash: 1afea37362012133
 ---
 

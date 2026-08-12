@@ -1,7 +1,7 @@
 ---
 titulo: "Scopes Overview — como escopo é pedido, aprovado e autorizado pelo usuário"
 url: https://developers.tiktok.com/doc/scopes-overview
-capturado_em: 2026-08-11
+capturado_em: 2026-08-12
 hash: db4cf5997ac16857
 ---
 

@@ -1,7 +1,7 @@
 ---
 titulo: "WhatsApp Cloud API — visão geral da plataforma"
 url: https://developers.facebook.com/documentation/business-messaging/whatsapp/about-the-platform
-capturado_em: 2026-08-11
+capturado_em: 2026-08-12
 hash: 139d81646ff23990
 ---
 

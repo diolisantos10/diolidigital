@@ -1,8 +1,8 @@
 ---
 titulo: "Desenvolvimento — criar um app, tipos de app e painel"
 url: https://developers.facebook.com/documentation/development/create-an-app
-capturado_em: 2026-08-11
-hash: 34baa6cbabf1dfe6
+capturado_em: 2026-08-12
+hash: f9b6ba51cd4da6bc
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -215,6 +215,7 @@ pages_read_engagement
 paid_marketing_messages
 Business Asset User Profile Access
 marketing_messages_messenger
+Human Agent
 Lance um jogo instantâneo no Facebook e no Messenger
 gaming_profile
 gaming_user_picture

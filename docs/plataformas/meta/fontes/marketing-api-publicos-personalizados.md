@@ -1,7 +1,7 @@
 ---
 titulo: "Marketing API — públicos personalizados (custom audiences)"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/audiences/guides/custom-audiences
-capturado_em: 2026-08-11
+capturado_em: 2026-08-12
 hash: 226f3b476069f270
 ---
 

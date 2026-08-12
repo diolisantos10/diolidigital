@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — Insights: breakdowns (recortes)"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/insights/breakdowns
-capturado_em: 2026-08-11
-hash: 43958c9eaa3b74fb
+capturado_em: 2026-08-12
+hash: d38e41c587c42378
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -40,9 +40,9 @@ product_id
 action_carousel_card_id/action_carousel_card_name
 action_canvas_component_name
 Regras relacionadas a consultas que contêm os detalhamentos acima:
-Tipo 1 – A API de Insights não retornará métricas incompatíveis fora da Meta (por exemplo, uma métrica de ações com detalhamentos do tipo 1).
+Type 1 – A API de Insights não retornará métricas incompatíveis fora da Meta (por exemplo, uma métrica de ações com detalhamentos do tipo 1).
 Tipo 2: as métricas da web fora da Meta continuarão sendo retornadas pela API, mas não terão o valor de detalhamento. As métricas para dispositivos móveis não serão mais retornadas quando forem consultadas com os detalhamentos mencionados.
-Observação: os detalhamentos listados acima ainda são compatíveis com métricas na Meta, como impressões e cliques no link. As alterações não afetarão dados históricos anteriores a 27 de abril de 2021. Os detalhamentos desse tipo de dados continuarão disponíveis.
+Observação: Os detalhamentos listados acima ainda são compatíveis com métricas na Meta, como impressões e cliques no link. As alterações não afetarão dados históricos anteriores a 27 de abril de 2021. Os detalhamentos desse tipo de dados continuarão disponíveis.
 Métricas de ação
 As métricas não estarão disponíveis nas seguintes situações:
 Quando houver uma tentativa de agregação em diversas configurações de atribuição.
@@ -74,7 +74,7 @@ O destino das pessoas após clicarem no seu anúncio. O destino pode ser sua Pá
 
 action_reaction
 	
-O número de reações aos seus anúncios ou posts turbinados. O botão de reações em um anúncio permite que as pessoas reajam ao conteúdo com uma das seguintes opções: Curtir, Amei, Haha, Uau, Triste ou Grr.
+O número de reações aos seus anúncios ou posts turbinados. Com o botão de reações, as pessoas podem demonstrar como se sentem com o conteúdo do anúncio: Curtir, Amei, Haha, Uau, Triste ou Grr.
 
 action_target_id
 	
@@ -135,7 +135,7 @@ frequency_value
 	
 O número de vezes que um anúncio da sua campanha de reserva foi exibido a cada conta da Central de Contas.
 
-Aviso de disponibilidade (em vigor a partir de 6 de agosto de 2026): este detalhamento pode estar indisponível para algumas contas de anúncios. Se uma solicitação síncrona não retornar resultados, o administrador da conta poderá ativar o detalhamento por meio do Gerenciador de Anúncios. Outra opção é recuperar os dados por meio de um trabalho assíncrono de geração de relatórios. Consulte o registro de alterações para saber mais detalhes.
+Aviso de disponibilidade (em vigor a partir de 6 de agosto de 2026): esse detalhamento pode estar indisponível para algumas contas de anúncios. Se uma solicitação síncrona não retornar resultados, o administrador da conta poderá ativar o detalhamento por meio do Gerenciador de Anúncios. Outra opção é recuperar os dados por meio de um trabalho assíncrono de geração de relatórios. Consulte o registro de alterações para obter mais detalhes.
 
 gender
 	
@@ -149,7 +149,7 @@ hourly_stats_aggregated_by_audience_time_zone
 	
 Detalhamento por hora agregado pelo horário em que os anúncios foram veiculados no fuso horário dos públicos. Por exemplo, se estiverem programados para veiculação das 9h às 11h, mas alcançarem públicos em diversos fusos horários, os anúncios poderão ser veiculados das 9h às 13h no fuso horário do anunciante. As estatísticas serão reunidas em dois grupos: das 9h às 10h e das 10h às 11h.
 
-Aviso de disponibilidade (em vigor a partir de 6 de agosto de 2026): este detalhamento pode estar indisponível para algumas contas de anúncios. Se uma solicitação síncrona não retornar resultados, o administrador da conta poderá ativar o detalhamento por meio do Gerenciador de Anúncios. Outra opção é recuperar os dados por meio de um trabalho assíncrono de geração de relatórios. Consulte o registro de alterações para saber mais detalhes.
+Aviso de disponibilidade (em vigor a partir de 6 de agosto de 2026): esse detalhamento pode estar indisponível para algumas contas de anúncios. Se uma solicitação síncrona não retornar resultados, o administrador da conta poderá ativar o detalhamento por meio do Gerenciador de Anúncios. Outra opção é recuperar os dados por meio de um trabalho assíncrono de geração de relatórios. Consulte o registro de alterações para obter mais detalhes.
 
 image_asset
 	
@@ -159,7 +159,7 @@ impression_device
 	
 O dispositivo no qual seu último anúncio foi exibido a alguém na Meta. Por exemplo, "iPhone" se alguém tiver visto o anúncio em um iPhone.
 
-Aviso de disponibilidade (em vigor a partir de 6 de agosto de 2026): este detalhamento pode estar indisponível para algumas contas de anúncios. Se uma solicitação síncrona não retornar resultados, o administrador da conta poderá ativar o detalhamento por meio do Gerenciador de Anúncios. Outra opção é recuperar os dados por meio de um trabalho assíncrono de geração de relatórios. Isso se aplica a impression_device e a qualquer combinação de detalhamento que inclua impression_device. Consulte o registro de alterações para saber mais detalhes.
+Aviso de disponibilidade (em vigor a partir de 6 de agosto de 2026): esse detalhamento pode estar indisponível para algumas contas de anúncios. Se uma solicitação síncrona não retornar resultados, o administrador da conta poderá ativar o detalhamento por meio do Gerenciador de Anúncios. Outra opção é recuperar os dados por meio de um trabalho assíncrono de geração de relatórios. Isso se aplica a impression_device sozinha e a qualquer combinação de detalhamento que inclua impression_device. Consulte o registro de alterações para obter mais detalhes.
 
 is_conversion_id_modeled
 	
@@ -220,7 +220,7 @@ O detalhamento dma não está disponível para as métricas estimated_ad_recall_
 O detalhamento dma aplica uma metodologia de amostragem para computar métricas únicas como alcance. Quando houver um grande número de regiões DMA com volumes baixos, talvez elas não sejam representadas na amostra ou dimensionadas em potência de 2. Por isso, recomendamos consultar as impressões correspondentes para melhorar a precisão.
 frequency_value é usado somente com reach. Por exemplo, com que frequência determinado usuário visualizou um anúncio.
 Os detalhamentos image_asset e video_asset não estão disponíveis no nível da conta de anúncios para ativos usados no criativo dinâmico.
-As ações de anúnciovideo_p25_watched_actions, video_p50_watched_actions, video_p75_watched_actions, video_p95_watched_actions e video_p100_watched_actions não são compatíveis com o detalhamento region.
+As ações de anúncio video_p25_watched_actions, video_p50_watched_actions, video_p75_watched_actions, video_p95_watched_actions e video_p100_watched_actions não são compatíveis com o detalhamento region.
 Os detalhamentos de ativos de criativo dinâmico aceitam somente um conjunto limitado de métricas:
 Detalhamentos de criativo dinâmico	Métricas compatíveis com os detalhamentos de criativo dinâmico
 
@@ -263,7 +263,7 @@ curl -G \
 "https://graph.facebook.com/<API_VERSION>/<AD_CAMPAIGN_ID>/insights"
 
 Mostrar resposta
-Detalhamento por ação
+Detalhamento de ações
 Agrupe resultados no campo actions. Os detalhamentos a seguir podem ser usados com action_breakdowns:
 Os detalhamentos a seguir podem ser fornecidos no campo action_breakdowns.
 action_device
@@ -369,4 +369,72 @@ Limitações
 Os campos video_* não podem ser solicitados com detalhamentos de estatísticas por hora.
 O campo video_avg_time_watched_actions não pode ser solicitado com o detalhamento por região.
 action_type será adicionado de forma implícita como action_breakdowns quando o parâmetro action_breakdowns não for especificado.
+Configurações do recurso Insights
+Talvez seja preciso habilitar alguns detalhamentos antes de usá-los em uma determinada conta de anúncios. A API de Configurações de Recursos de Insights permite que você veja os recursos disponíveis, verifique o status de habilitação e habilite novos recursos de forma programática. Depois que um detalhamento for habilitado para determinada conta, os dados correspondentes ficarão disponíveis na API de Insights sobre Anúncios em até 24 horas.
+Listar recursos disponíveis
+Para listar os recursos disponíveis (independentemente da habilitação), faça uma solicitação GET para /act_<AD_ACCOUNT_ID>/insights/feature-settings/list-features.
+Solicitação:
+curl -G \
+  -d 'access_token=<ACCESS_TOKEN>' \
+  'https://graph.facebook.com/<API_VERSION>/act_<AD_ACCOUNT_ID>/insights/feature-settings/list-features'
+Cada item tem uma feature_name (a string que você passa para os outros pontos de extremidade) e uma feature_type. No momento, breakdown para todos os recursos disponíveis. Elas correspondem a:
+Nome do recurso	Tipo	Desbloqueios
+
+comscore
+	
+breakdown
+	
+breakdowns=comscore_market
+
+impression_device
+	
+breakdown
+	
+breakdowns=impression_device
+
+time_of_day_viewer_tz
+	
+breakdown
+	
+breakdowns=hourly_stats_aggregated_by_audience_time_zone
+
+frequency_value
+	
+breakdown
+	
+breakdowns=frequency_value
+Listar recursos habilitados
+Para listar os recursos habilitados em uma conta específica, faça uma solicitação GET a /act_<AD_ACCOUNT_ID>/insights/feature-settings. Como opção, é possível filtrar por um recurso específico adicionando um parâmetro de filtragem para insights_feature=<name>.
+Solicitação:
+curl -G \
+  -d 'access_token=<ACCESS_TOKEN>' \
+  'https://graph.facebook.com/<API_VERSION>/act_<AD_ACCOUNT_ID>/insights/feature-settings'
+Resposta:
+{
+  "data": [
+    {
+      "feature_name": "comscore",
+      "status": "enabled",
+      "insights_effective_date": "2026-07-15"
+    },
+    {
+      "feature_name": "impression_device",
+      "status": "enabled"
+    }
+  ],
+  "paging": { "cursors": { "before": "...", "after": "..." } }
+}
+A resposta contém apenas os recursos que a conta habilitou. Os recursos que não aparecem são equivalentes a disabled. insights_effective_date indica a primeira data disponível para dados. Quando não é retornado, os dados estão disponíveis para todas as datas.
+Habilitar um novo recurso
+Para habilitar um novo recurso em uma conta, faça uma solicitação POST a /act_<AD_ACCOUNT_ID>/insights/feature-settings com o feature_name correspondente. O ponto de extremidade só habilita novos recursos. Não há uma API para desabilitar recursos, e publicar um recurso que já foi habilitado não terá nenhum efeito.
+Solicitação:
+curl -i -X POST \
+  'https://graph.facebook.com/<API_VERSION>/act_<AD_ACCOUNT_ID>/insights/feature-settings' \
+  -d 'feature_name=comscore' \
+  -d 'access_token=<ACCESS_TOKEN>'
+Resposta:
+{
+  "id": "act_<AD_ACCOUNT_ID>"
+}
+A resposta (200 OK) ecoa de volta a identificação da conta de anúncios. Para verificar o novo status, chame GET .../feature-settings (aguarde até 24 horas para que o detalhamento fique disponível para consulta na API de Insights). Se você passar o nome de um recurso desconhecido, o valor 400 será retornado.
 Você achou esta página útil?

@@ -1,7 +1,7 @@
 ---
 titulo: "Marketing API — mudanças fora de ciclo em 2026 (out-of-cycle changes)"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/out-of-cycle-changes/occ-2026
-capturado_em: 2026-08-11
+capturado_em: 2026-08-12
 hash: 7c46da0ad4fde935
 ---
 
