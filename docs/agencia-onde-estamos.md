@@ -9,7 +9,7 @@
 > intenção nem contra um documento. Nota que não disser *onde* foi medida não
 > vale.
 >
-> **Última medição:** 2026-08-11
+> **Última medição:** 2026-08-12
 
 ---
 
