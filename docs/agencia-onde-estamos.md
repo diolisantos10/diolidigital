@@ -21,9 +21,9 @@
 | 2 | **Relacionamento com o cliente** | 90% | Portal, fila que se cobra sozinha, avisos. |
 | 3 | **Preço** | 90% | Fonte única de preço, verba de mídia separada do honorário. |
 | 4 | **Entrada de material** | 90% | Caixas pré-classificadas ligadas ponta a ponta, com a triagem tendo destino real. SVG aceito e higienizado. |
-| 5 | **Produção de peça** | 88% | Motor de molde rasteriza JPEG de qualidade de agência — conferido no pixel em 11/08. Falta variedade de composição por função. |
+| 5 | **Produção de peça** | 90% | Molde rasteriza JPEG de qualidade de agência (conferido no pixel em 11/08) e as **três composições por função** existem e funcionam (conferidas em 12/08). |
 | 6 | **Captação** | 90% | Proposta parada é contada, e **a porta da frente passou a ser varrida** — quem entrou e não foi respondido aparece, separado de quem não deixou como falar. |
-| 7 | **Aprovação** | 88% | Ciclo do cliente existe **e o mês vira sozinho** — `virarOsMesesVencidos` é perna do relógio (`despertador.ts:291`), medir → relatar → fechar → produzir, nessa ordem. |
+| 7 | **Aprovação** | 90% | O mês vira sozinho (`despertador.ts:291`) e **o card parado passou a ser contado** — separando o que espera o cliente do que espera a agência. |
 | 8 | **Tráfego pago** | 55% | Campanha nasce pausada, com teto, e **não sai mais para o Brasil inteiro por omissão** (11/08). ⛔ Ligar de verdade depende da Meta. |
 | 9 | **Publicação** | 40% | Máquina inteira pronta e fail-closed. ⛔ Depende da Meta. |
 | 10 | **Medição** | 30% | Máquina pronta, porta declarada fechada. ⛔ Depende da Meta. |
