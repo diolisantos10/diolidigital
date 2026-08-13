@@ -70,7 +70,12 @@ export async function destravarPacote(projectId: string): Promise<ResultadoDoDes
 
   const reprovadas = await prisma.deliverable.findMany({
     where: { projectId, revisionStatus: "quality_flag" },
-    select: { id: true, name: true, content: true, ownerAgentId: true, lastFeedback: true, version: true },
+    // `type` entra porque a reauditoria precisa saber se a régua determinística
+    // de texto se aplica a esta peça (`regua-do-texto.ts`). Sem ele, o caminho
+    // de CONSERTO julgaria por uma régua diferente da que reprovou a peça — e
+    // duas réguas para a mesma peça é exatamente como a porta dos fundos que
+    // este arquivo fechou em 04/08 voltaria a existir.
+    select: { id: true, name: true, content: true, type: true, ownerAgentId: true, lastFeedback: true, version: true },
   });
   if (reprovadas.length === 0) return saida;
 
@@ -168,6 +173,9 @@ export async function destravarPacote(projectId: string): Promise<ResultadoDoDes
       content: novoCorpo,
       brandContext: contextoDaMarca,
       workspaceId: projeto.workspaceId,
+      // A MESMA régua que reprovou a peça julga a refeita. Ver o `select` lá em
+      // cima: é para isto que o `type` é lido.
+      tipoDaEntrega: entrega.type,
       clientId: projeto.clientId ?? null,
       projectId: projeto.id,
     });

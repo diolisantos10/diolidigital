@@ -54,6 +54,7 @@ import { caminhoPublicoAssinado } from "@/lib/agency/media/armazenamento";
 import { conferirPilar, motivoCurto } from "@/lib/agency/execution/pilares-bloqueados";
 import { conferirFormatoDeMidia, type MidiaConferida } from "@/lib/integrations/meta/formato-de-midia";
 import { contratoDeMarca } from "@/lib/agency/esteira/contrato-de-marca";
+import { REVISION_STATUS_DA_QUALIDADE } from "@/lib/agency/execution/quality-auditor";
 
 /** Quantos posts publicamos por rodada do relógio. Publicação é irreversível e
  *  a Meta limita chamadas — melhor ir devagar e nunca em enxurrada. */
@@ -65,6 +66,101 @@ const HORA_PADRAO = 10;
 
 /** Tipos de entregável que viram post. Estratégia e relatório não vão ao ar. */
 const TIPOS_PUBLICAVEIS = ["social", "video"];
+
+// ─── QUEM PODE VIRAR CALENDÁRIO (13/08/2026) ────────────────────────────────
+//
+// ── O buraco, medido, e aberto por seis dias ────────────────────────────────
+//
+// `agendarPostsDaEntrega` lia TODO entregável de tipo publicável do projeto —
+// sem olhar se a escada de exposição tinha liberado, e sem olhar o parecer da
+// Qualidade — e criava cada `SocialPost` com `visibility: "compartilhado"`.
+//
+// As duas metades da esteira faziam a coisa certa e esta função desfazia as
+// duas, uma linha depois:
+//
+//   • `marcos.apresentar` (`marcos.ts:210`) roda a escada e só marca
+//     "compartilhado" o `Deliverable` LIBERADO. Sete linhas depois
+//     (`marcos.ts:326`) chamava esta função, que ignorava aquele veredito.
+//   • `apresentar` recusa apresentar com peça em `quality_flag`
+//     (`marcos.ts:181`) — mas `mesmoComRessalva: true` existe, `apresentarCiclo`
+//     tem o mesmo escape, e a peça reprovada continuava virando post.
+//
+// Não é hipótese. Está medido em `docs/projetos/cityjobs-registro-07-08.md:172`:
+// as 10 peças reprovadas à mão apareceram no calendário do cliente marcadas
+// como compartilhado — "De procurando emprego a CONTRATADO", "🔥 VAGAS QUENTES
+// HOJE" — num departamento que estava em allowlist e não tinha aquele cliente.
+// O registro daquele dia já nomeava a causa: *"`escadaFiltraEntregas` guarda o
+// `Deliverable`. O `SocialPost` NÃO passa por ela."* Continuou não passando.
+//
+// ── Por que a correção é AQUI, e não em quem chama ──────────────────────────
+//
+// São dois chamadores (`marcos.ts:326` e `mes.ts:782`) e o defeito de 07/08
+// nasceu exatamente de consertar um e esquecer o outro. A régua fica na função
+// que cria o post: quem chamar, de onde chamar, obedece.
+//
+// ── O que NÃO mudou, de propósito ───────────────────────────────────────────
+//
+// O post continua nascendo `visibility: "compartilhado"`. A decisão está
+// justificada logo abaixo e é correta — o calendário existe PARA o cliente ver
+// e aprovar. O defeito nunca foi nascer compartilhado: era QUAIS entregas
+// entravam.
+
+/**
+ * Estados de revisão da Qualidade cuja entrega PODE virar calendário.
+ *
+ * Importados de `quality-auditor.ts` em vez de escritos à mão: aquele arquivo é
+ * o único ponto de tradução veredito → banco, e ele mesmo avisa que "string
+ * comparada à mão é como o bug volta".
+ *
+ * `nao_auditado` ENTRA, e isto é obediência a uma decisão já tomada — não
+ * descuido. A casa declarou, em `quality-auditor.ts:19-24` e aplicou em
+ * `run-execution.ts:771-786`, que "ninguém olhou" **não bloqueia**: a operação
+ * não pode parar porque um provedor caiu, e o fato fica declarado no banco e num
+ * `ActivityEvent`. Barrar aqui criaria uma SEGUNDA política sobre o mesmo estado,
+ * divergindo da que já roda em três arquivos. Se a casa quiser que "não
+ * auditado" bloqueie, isso se muda lá, uma vez, para todo mundo.
+ */
+const REVISOES_QUE_PODEM_VIRAR_POST: readonly string[] = [
+  REVISION_STATUS_DA_QUALIDADE.aprovado,
+  REVISION_STATUS_DA_QUALIDADE.nao_auditado,
+];
+
+/** A visibilidade que a escada de exposição carimba em quem ela liberou. */
+const LIBERADA_PELA_ESCADA = "compartilhado";
+
+/**
+ * Por que esta entrega NÃO vira calendário — ou `null` quando pode virar.
+ *
+ * **Fail-closed nas duas perguntas.** Visibilidade que não seja exatamente
+ * "compartilhado" (inclusive nula, inclusive "aguardando_publicacao") é entrega
+ * que a escada não liberou. `revisionStatus` ausente é entrega sem parecer, e
+ * ausência de informação não é informação: peça nunca conferida não estreia no
+ * calendário do cliente porque ninguém lembrou de reprová-la.
+ *
+ * Isto barra entrega legítima antiga — a coluna `revisionStatus` é anulável e
+ * nasceu depois de parte do banco. É a troca certa e foi escolhida com o custo
+ * na mão: peça reprovada chegando ao cliente é pior que peça boa atrasada, e a
+ * peça boa atrasada aparece com nome e motivo (`AgendamentoFeito.retidas` e um
+ * `ActivityEvent`), então dá para destravá-la. A peça reprovada que sai não dá
+ * para despublicar.
+ *
+ * Exportada para ser testável direto: é a régua, e régua que só existe dentro de
+ * um laço de 60 linhas é régua que ninguém consegue provar.
+ */
+export function motivoParaNaoVirarCalendario(
+  entrega: { visibility?: string | null; revisionStatus?: string | null },
+): string | null {
+  if (entrega.visibility !== LIBERADA_PELA_ESCADA) {
+    return `a escada de exposição não liberou esta entrega ao cliente (visibilidade "${entrega.visibility ?? "não declarada"}")`;
+  }
+  if (!entrega.revisionStatus) {
+    return "entrega sem parecer da Qualidade registrado — ausência não é aprovação";
+  }
+  if (!REVISOES_QUE_PODEM_VIRAR_POST.includes(entrega.revisionStatus)) {
+    return `a Qualidade marcou esta entrega como "${entrega.revisionStatus}"`;
+  }
+  return null;
+}
 
 /**
  * Estados de onde uma peça PODE ser promovida a "scheduled".
@@ -96,6 +192,16 @@ export interface AgendamentoFeito {
    * de `naoInterpretadas`, logo acima.
    */
   bloqueadasPorPilar: Array<{ pilar: string; motivo: string }>;
+  /**
+   * Entregas que existem e NÃO viraram calendário porque a escada não as
+   * liberou ou a Qualidade não as aprovou.
+   *
+   * Campo próprio pelo mesmo motivo dos dois de cima: o que este conserto barra
+   * é trabalho já pago, e barrar em silêncio troca um defeito visível (peça
+   * ruim no portal) por um invisível (peça boa que nunca aparece e ninguém sabe
+   * por quê). Vira também `ActivityEvent`, com o nome da entrega e o motivo.
+   */
+  retidas: Array<{ nome: string; motivo: string }>;
 }
 
 /**
@@ -106,7 +212,7 @@ export interface AgendamentoFeito {
  * Idempotência por projeto travaria a agência no primeiro mês para sempre.
  */
 export async function agendarPostsDaEntrega(projectId: string): Promise<AgendamentoFeito> {
-  const saida: AgendamentoFeito = { projectId, criados: 0, jaAgendadas: 0, naoInterpretadas: [], bloqueadasPorPilar: [] };
+  const saida: AgendamentoFeito = { projectId, criados: 0, jaAgendadas: 0, naoInterpretadas: [], bloqueadasPorPilar: [], retidas: [] };
 
   const projeto = await prisma.project.findUnique({
     where: { id: projectId },
@@ -116,11 +222,37 @@ export async function agendarPostsDaEntrega(projectId: string): Promise<Agendame
   // calendário dele com coisa que ele ainda não aprovou.
   if (!projeto?.presentedAt) return saida;
 
-  const entregas = await prisma.deliverable.findMany({
+  // ⚠️ `visibility` e `revisionStatus` são LIDOS, e a exclusão acontece em
+  // código logo abaixo — não num `where`. É a mesma escolha de
+  // `refacao.ts:216`, e pelo mesmo motivo: filtrando no banco, a entrega
+  // barrada simplesmente não existe para esta função, e ninguém consegue dizer
+  // ao operador POR QUE o calendário do cliente veio menor do que o pacote.
+  const candidatas = await prisma.deliverable.findMany({
     where: { projectId, type: { in: TIPOS_PUBLICAVEIS } },
-    select: { id: true, name: true, content: true, type: true },
+    select: { id: true, name: true, content: true, type: true, visibility: true, revisionStatus: true },
     orderBy: { createdAt: "asc" },
   });
+  if (candidatas.length === 0) return saida;
+
+  const entregas: typeof candidatas = [];
+  for (const c of candidatas) {
+    const motivo = motivoParaNaoVirarCalendario(c);
+    if (motivo) saida.retidas.push({ nome: c.name, motivo });
+    else entregas.push(c);
+  }
+  if (saida.retidas.length > 0) {
+    // O alerta carrega a própria evidência: qual entrega e por quê. "Algo foi
+    // retido" sem o caso concreto é ruído que ninguém investiga.
+    await prisma.activityEvent.create({
+      data: {
+        workspaceId: projeto.workspaceId,
+        projectId,
+        clientId: projeto.clientId,
+        type: "calendario_reteve_entrega",
+        message: `${saida.retidas.length} entrega(s) de social NÃO entraram no calendário do cliente: ${saida.retidas.map((r) => `"${r.nome}" — ${r.motivo}`).join(" | ")}`.slice(0, 900),
+      },
+    }).catch(() => { /* best-effort: o registro não pode travar o agendamento */ });
+  }
   if (entregas.length === 0) return saida;
 
   const jaFeitas = new Set(

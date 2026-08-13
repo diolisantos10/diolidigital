@@ -316,6 +316,9 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
   let audit = await auditDeliverable({
     deptLabel: nome, title, content: body, brandContext: contextoDaMarca,
     workspaceId: projeto.workspaceId, provedorDoAutor: esp.provedor ?? "claude",
+    // A peça do balcão é peça de comunicação como qualquer outra: a régua
+    // determinística de texto vale aqui igual.
+    tipoDaEntrega: esp.deliverableType,
     clientId: projeto.clientId ?? null, projectId: projeto.id,
   });
   if (foiReprovadaPelaQualidade(audit.verdict)) {
@@ -333,6 +336,7 @@ async function produzirDeVerdade(pedidoId: string): Promise<ResultadoDaProducao>
         audit = await auditDeliverable({
           deptLabel: nome, title, content: body, brandContext: contextoDaMarca,
           workspaceId: projeto.workspaceId, provedorDoAutor: esp.provedor ?? "claude",
+          tipoDaEntrega: esp.deliverableType,
           clientId: projeto.clientId ?? null, projectId: projeto.id,
         });
       }

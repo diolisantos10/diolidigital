@@ -184,9 +184,31 @@ describe("o arquivo em si", () => {
     expect(fonte).not.toMatch(/degrau === "sombra"/);
   });
 
-  it("não fala com plataforma nenhuma e não publica", () => {
+  // ⚠️ 13/08/2026 — ESTA ASSERÇÃO MEDIA A COISA ERRADA.
+  //
+  // Chamava-se "não publica" e conferia `not.toMatch(/esteira\/publicacao/)`:
+  // media MENÇÃO AO ARQUIVO, não o ato de publicar. A diferença apareceu no dia
+  // em que a repescagem passou a montar o CALENDÁRIO do que ela libera — posts
+  // em `draft`, que continuam exigindo o aval do cliente para virar
+  // `scheduled`, e portanto não publicam nada.
+  //
+  // Escrita como estava, ela proibia o conserto certo e teria empurrado a
+  // solução para uma CÓPIA da regra em outro arquivo, que é a doença que este
+  // repositório mais paga. Agora confere o ATO.
+  it("não fala com plataforma nenhuma e não dispara publicação", () => {
     expect(fonte).not.toMatch(/integrations\/(meta|google|tiktok)/);
-    expect(fonte).not.toMatch(/esteira\/publicacao/);
+    expect(fonte).not.toMatch(/publishPost/);
+    expect(fonte).not.toMatch(/publicarAgendados/);
+    // Promover rascunho a agendado é o consentimento do cliente — não é aqui.
+    expect(fonte).not.toMatch(/aprovarCalendario|promoverParaAgendado/);
+  });
+
+  it("monta o calendário do que libera — senão o portão abre e nada passa", () => {
+    // O simétrico do conserto de 13/08: `agendarPostsDaEntrega` passou a
+    // recusar entrega que a escada não liberou. Sem esta chamada, a entrega
+    // liberada DEPOIS da apresentação nunca viraria calendário — o ato de
+    // apresentar é o único gatilho de agendamento, e ele não repete.
+    expect(fonte).toMatch(/agendarPostsDaEntrega/);
   });
 
   it("não manda aviso ao cliente", () => {

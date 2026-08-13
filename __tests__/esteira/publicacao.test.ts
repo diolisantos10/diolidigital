@@ -36,6 +36,7 @@ import {
   aprovarCalendario,
   publicarAgendados,
   extrairPecas,
+  motivoParaNaoVirarCalendario,
 } from "@/lib/agency/esteira/publicacao";
 
 const CONTEUDO = `**1. Bastidor da produção**
@@ -61,8 +62,17 @@ beforeEach(() => {
   vi.clearAllMocks();
   db.mediaAsset.findMany.mockImplementation(midiaTodaJpeg);
   db.project.findUnique.mockResolvedValue({ ...projeto });
+  // ⚠️ 13/08/2026 — `visibility` e `revisionStatus` passaram a ser
+  // OBRIGATÓRIOS na fixture, e a exigência é o conserto em si: o agendamento
+  // recusa entrega que a escada não liberou ou que a Qualidade não aprovou
+  // (`publicacao.ts`, `motivoParaNaoVirarCalendario`). Esta fixture não os
+  // declarava — e uma entrega sem os dois campos é exatamente o que pôs 10
+  // peças reprovadas no calendário do CityJobs em 07/08. Estes testes são
+  // sobre O RELÓGIO, então o caso limpo é a entrega liberada e aprovada; a
+  // recusa tem bloco próprio no fim do arquivo.
   db.deliverable.findMany.mockResolvedValue([
-    { id: "d1", name: "Calendário de conteúdo", content: CONTEUDO, type: "social" },
+    { id: "d1", name: "Calendário de conteúdo", content: CONTEUDO, type: "social",
+      visibility: "compartilhado", revisionStatus: "quality_ok" },
   ]);
   db.socialPost.findMany.mockResolvedValue([]);
   db.socialPost.findFirst.mockResolvedValue(null);
@@ -111,8 +121,10 @@ describe("a entrega vira calendário", () => {
     // Mês 1 já agendado; uma entrega nova chega. Se a trava fosse por projeto,
     // o cliente pagaria o mês 2 e não sairia post nenhum.
     db.deliverable.findMany.mockResolvedValue([
-      { id: "d1", name: "Mês 1", content: CONTEUDO, type: "social" },
-      { id: "d2", name: "Mês 2", content: CONTEUDO, type: "social" },
+      { id: "d1", name: "Mês 1", content: CONTEUDO, type: "social",
+        visibility: "compartilhado", revisionStatus: "quality_ok" },
+      { id: "d2", name: "Mês 2", content: CONTEUDO, type: "social",
+        visibility: "compartilhado", revisionStatus: "quality_ok" },
     ]);
     db.socialPost.findMany.mockResolvedValue([{ deliverableId: "d1" }]);
     const r = await agendarPostsDaEntrega("p1");
@@ -130,11 +142,114 @@ describe("a entrega vira calendário", () => {
 
   it("entrega que o leitor não entende é relatada, não engolida", async () => {
     db.deliverable.findMany.mockResolvedValue([
-      { id: "d9", name: "Calendário estranho", content: "texto solto sem peças", type: "social" },
+      { id: "d9", name: "Calendário estranho", content: "texto solto sem peças", type: "social",
+        visibility: "compartilhado", revisionStatus: "quality_ok" },
     ]);
     const r = await agendarPostsDaEntrega("p1");
     expect(r.criados).toBe(0);
     expect(r.naoInterpretadas).toEqual(["Calendário estranho"]);
+  });
+});
+
+// ─── O FURO DA ESCADA, FECHADO (13/08/2026) ─────────────────────────────────
+//
+// Medido em produção em 07/08 e aberto por seis dias
+// (`docs/projetos/cityjobs-registro-07-08.md:172`): a escada de exposição
+// guardava o `Deliverable` e o `SocialPost` não passava por ela. As 10 peças
+// reprovadas à mão apareceram no calendário do cliente como "compartilhado".
+//
+// Cada teste abaixo tem as DUAS metades: o que barra e o que continua passando.
+// Sem a segunda, um filtro que reprovasse tudo passaria neste arquivo.
+
+describe("o calendário só recebe o que a escada liberou e a Qualidade aprovou", () => {
+  const entrega = (extra: Record<string, unknown>) => [{
+    id: "d1", name: "Social — semana 1", content: CONTEUDO, type: "social",
+    visibility: "compartilhado", revisionStatus: "quality_ok", ...extra,
+  }];
+
+  it("entrega retida pela escada (interno) NÃO vira post", async () => {
+    db.deliverable.findMany.mockResolvedValue(entrega({ visibility: "interno" }));
+    const r = await agendarPostsDaEntrega("p1");
+    expect(r.criados).toBe(0);
+    expect(db.socialPost.create).not.toHaveBeenCalled();
+    expect(r.retidas[0]!.motivo).toMatch(/escada/i);
+  });
+
+  it("entrega liberada pela escada VIRA post — a trava não pode barrar tudo", async () => {
+    db.deliverable.findMany.mockResolvedValue(entrega({}));
+    const r = await agendarPostsDaEntrega("p1");
+    expect(r.criados).toBe(2);
+    expect(r.retidas).toEqual([]);
+  });
+
+  it("entrega REPROVADA pela Qualidade NÃO vira post", async () => {
+    db.deliverable.findMany.mockResolvedValue(entrega({ revisionStatus: "quality_flag" }));
+    const r = await agendarPostsDaEntrega("p1");
+    expect(r.criados).toBe(0);
+    expect(db.socialPost.create).not.toHaveBeenCalled();
+    expect(r.retidas[0]!.motivo).toContain("quality_flag");
+  });
+
+  it("entrega SEM parecer da Qualidade NÃO vira post — ausência não é aprovação", async () => {
+    db.deliverable.findMany.mockResolvedValue(entrega({ revisionStatus: null }));
+    const r = await agendarPostsDaEntrega("p1");
+    expect(r.criados).toBe(0);
+    expect(r.retidas[0]!.motivo).toMatch(/ausência não é aprovação/i);
+  });
+
+  it("entrega NÃO AUDITADA vira post — é a política já declarada da casa", async () => {
+    // `quality-auditor.ts:19-24` e `run-execution.ts:771-786`: "ninguém olhou"
+    // NÃO bloqueia, fica declarado. Barrar aqui criaria uma segunda política
+    // sobre o mesmo estado. Este teste existe para que mudar isso seja uma
+    // decisão, e não um efeito colateral.
+    db.deliverable.findMany.mockResolvedValue(entrega({ revisionStatus: "quality_nao_auditado" }));
+    const r = await agendarPostsDaEntrega("p1");
+    expect(r.criados).toBe(2);
+  });
+
+  it("a retenção NÃO é silenciosa — vira ActivityEvent com nome e motivo", async () => {
+    db.deliverable.findMany.mockResolvedValue(entrega({ visibility: "interno" }));
+    await agendarPostsDaEntrega("p1");
+    const evento = db.activityEvent.create.mock.calls
+      .map((c: unknown[]) => (c[0] as { data: { type: string; message: string } }).data)
+      .find((e) => e.type === "calendario_reteve_entrega");
+    expect(evento).toBeTruthy();
+    // O alerta carrega a própria evidência: QUAL entrega e POR QUÊ.
+    expect(evento!.message).toContain("Social — semana 1");
+    expect(evento!.message).toMatch(/escada/i);
+  });
+
+  it("uma retida não derruba a liberada que veio junto", async () => {
+    db.deliverable.findMany.mockResolvedValue([
+      { id: "d1", name: "Retida", content: CONTEUDO, type: "social",
+        visibility: "interno", revisionStatus: "quality_ok" },
+      { id: "d2", name: "Liberada", content: CONTEUDO, type: "social",
+        visibility: "compartilhado", revisionStatus: "quality_ok" },
+    ]);
+    const r = await agendarPostsDaEntrega("p1");
+    expect(r.criados).toBe(2);
+    expect(r.retidas.map((x) => x.nome)).toEqual(["Retida"]);
+  });
+});
+
+// ── A RÉGUA, TESTADA DIRETO ─────────────────────────────────────────────────
+// `motivoParaNaoVirarCalendario` é exportada justamente para isto: régua que só
+// existe dentro de um laço de 60 linhas é régua que ninguém consegue provar.
+
+describe("a régua de quem pode virar calendário", () => {
+  it("só passa quem tem as DUAS coisas", () => {
+    expect(motivoParaNaoVirarCalendario({ visibility: "compartilhado", revisionStatus: "quality_ok" })).toBeNull();
+  });
+
+  it.each([
+    ["visibilidade interna", { visibility: "interno", revisionStatus: "quality_ok" }],
+    ["visibilidade ausente", { visibility: null, revisionStatus: "quality_ok" }],
+    ["estado intermediário do Hub", { visibility: "aguardando_publicacao", revisionStatus: "quality_ok" }],
+    ["reprovada pela Qualidade", { visibility: "compartilhado", revisionStatus: "quality_flag" }],
+    ["sem parecer", { visibility: "compartilhado", revisionStatus: null }],
+    ["parecer desconhecido", { visibility: "compartilhado", revisionStatus: "revisado_por_alguem" }],
+  ])("barra: %s", (_caso, entrada) => {
+    expect(motivoParaNaoVirarCalendario(entrada)).not.toBeNull();
   });
 });
 

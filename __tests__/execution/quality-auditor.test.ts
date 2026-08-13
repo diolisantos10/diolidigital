@@ -195,3 +195,102 @@ describe("a auditoria é IMPARCIAL — o juiz nunca é o autor", () => {
     expect(v.issues).toContain("inventa preço");
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// A RÉGUA DETERMINÍSTICA RODA ANTES DA IA (13/08/2026)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// ── POR QUE ESTE BLOCO EXISTE, e como ele foi descoberto ────────────────────
+//
+// A régua (`regua-do-texto.ts`) nasceu com 81 testes próprios, todos verdes. Aí
+// desliguei a chamada dela DENTRO deste juiz — `if (false && reguaSeAplicaA…)` —
+// e rodei a suíte inteira: **593 testes, nenhum falhou.**
+//
+// Ou seja: a trava estava construída, testada, e nada provava que ela RODAVA.
+// É a definição de portão decorativo, e é a doença que este repositório já
+// nomeou ("mecanismo construído e sem chamador é a doença desta casa",
+// `docs/projetos/cityjobs-registro-07-08.md`). Os testes abaixo são o que
+// impede a régua de virar mais uma.
+//
+// Cada um confere as DUAS metades: que a régua barra, e que ela não passou a
+// barrar tudo.
+describe("a régua de texto roda ANTES do juiz de IA", () => {
+  it("frase medida em produção é reprovada SEM consultar modelo nenhum", async () => {
+    // "Tem centenas de vagas esperando" foi ao calendário de um cliente real em
+    // 07/08 com `quality_ok` carimbado por este juiz.
+    const v = await auditDeliverable({
+      ...base,
+      content: "Tem centenas de vagas esperando por você.",
+      tipoDaEntrega: "social",
+    });
+    expect(v.verdict).toBe("reprovado");
+    // A METADE QUE IMPORTA: nenhuma chamada de IA. Reprovação determinística
+    // não custa uma chamada e não pode ser convencida por um modelo bem-humorado.
+    expect(generate).not.toHaveBeenCalled();
+  });
+
+  it("o TÍTULO também é conferido — é o primeiro campo que o cliente lê", async () => {
+    const v = await auditDeliverable({
+      ...base,
+      title: "A solução inovadora que sua empresa procura",
+      content: "Texto absolutamente normal sobre o horário de atendimento.",
+      tipoDaEntrega: "social",
+    });
+    expect(v.verdict).toBe("reprovado");
+    expect(generate).not.toHaveBeenCalled();
+  });
+
+  it("a recusa carrega a evidência: qual trecho e qual regra", async () => {
+    const v = await auditDeliverable({
+      ...base,
+      content: "Somos a melhor agência da região.",
+      tipoDaEntrega: "social",
+    });
+    expect(v.issues.length).toBeGreaterThan(0);
+    expect(v.issues.join(" ")).toMatch(/superlativo/i);
+    // E diz que a recusa é de CÓDIGO — senão o time discute com o juiz uma
+    // decisão que nenhum juiz tomou.
+    expect(v.note).toMatch(/determinística|sem IA/i);
+  });
+
+  it("reprovada pela régua BLOQUEIA — é `quality_flag` no banco", async () => {
+    const v = await auditDeliverable({
+      ...base, content: "Clientes satisfeitos aprovam.", tipoDaEntrega: "social",
+    });
+    expect(revisionStatusDoVeredito(v.verdict)).toBe("quality_flag");
+    expect(foiAprovadaPelaQualidade(v.verdict)).toBe(false);
+  });
+
+  it("peça limpa PASSA pela régua e vai para o juiz de IA — a trava não barra tudo", async () => {
+    generate.mockResolvedValue({ ok: true, provider: "openai", data: { verdict: "pass", issues: [], note: "boa" } });
+    const v = await auditDeliverable({
+      ...base,
+      title: "Pão de fermentação natural",
+      content: "A massa descansa doze horas antes de ir ao forno, e é isso que dá o sabor.",
+      tipoDaEntrega: "social",
+    });
+    expect(v.verdict).toBe("aprovado");
+    // A opinião da IA continua existindo — ela julga em cima do que passou.
+    expect(generate).toHaveBeenCalled();
+  });
+
+  it("documento interno não passa pela régua — a análise legítima não é reprovada", async () => {
+    // O especialista de concorrência tem por trabalho escrever como o
+    // concorrente se posiciona, e essa frase casa com o padrão de superlativo
+    // pela forma. Reprovar a análise correta ensinaria o time a desligar o freio.
+    generate.mockResolvedValue({ ok: true, provider: "openai", data: { verdict: "pass", issues: [], note: "ok" } });
+    const v = await auditDeliverable({
+      ...base,
+      content: "A Padaria X se posiciona como a melhor da região e deixa a brecha do atendimento noturno.",
+      tipoDaEntrega: "strategy",
+    });
+    expect(v.verdict).toBe("aprovado");
+    expect(generate).toHaveBeenCalled();
+  });
+
+  it("tipo AUSENTE não isenta — ausência de informação não é informação", async () => {
+    const v = await auditDeliverable({ ...base, content: "Clientes satisfeitos aprovam." });
+    expect(v.verdict).toBe("reprovado");
+    expect(generate).not.toHaveBeenCalled();
+  });
+});

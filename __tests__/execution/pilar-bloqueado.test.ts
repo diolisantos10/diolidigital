@@ -162,8 +162,15 @@ describe("o calendário não recebe peça de pilar bloqueado", () => {
     db.activityEvent.create.mockResolvedValue({});
   });
 
+  // ⚠️ `visibility` e `revisionStatus` passaram a ser OBRIGATÓRIOS em
+  // 13/08/2026: o agendamento recusa entrega que a escada não liberou ou que a
+  // Qualidade não aprovou (`publicacao.ts`, `motivoParaNaoVirarCalendario`).
+  // Esta fixture não os declarava — e é exatamente essa a forma do defeito que
+  // pôs 10 peças reprovadas no calendário do CityJobs em 07/08. Estes testes
+  // são sobre O PILAR, então o caso limpo é uma entrega liberada e aprovada.
   const entregaCom = (blocos: string) => [{
     id: "d1", name: "Social — semana 1", type: "social", content: blocos,
+    visibility: "compartilhado", revisionStatus: "quality_ok",
   }];
 
   // O formato que `extrairPecas` lê. Duas peças: uma bloqueada, uma limpa.

@@ -70,3 +70,99 @@ visibilidade fica `interno` e a régua corretamente não dispara: ele não receb
   visibilidade é fraca — depende de alguém ler a resposta do cron.
 - O canal e-mail não existe na casa. Com opt-in de WhatsApp registrável, ou com
   e-mail transacional, a régua ganha braço automático sem mudar de desenho.
+
+---
+
+## 2026-08-13 · Raio-X da esteira, e os dois consertos que saíram dele
+
+**A pergunta do CEO:** *"a gente precisa saber se o Radar ou a Oficina de peças
+está funcionando, porque está saindo uns posts bem ruins."*
+
+**A resposta:** nenhum dos dois. O Radar não encosta na peça — o que ele acha
+entra `pending` e só vira insumo com clique humano (`radar/library.ts:81`). A
+oficina funciona no que cobre; ela só cobre pouco. **Quem deixava passar era o
+juiz** — e, quando a peça vinha da tela da agência, nada.
+
+### O que se apurou, elo por elo
+
+1. **Briefing → produtor:** chega, e por dois caminhos. `run-execution.ts:423`
+   sincroniza as proibições antes de ler. A perda real é que `extrairProibicoes`
+   só reconhece negação explícita: *"sem sensacionalismo"* não vira trava.
+2. **Contrato de marca:** completo, não truncado, corta por bloco inteiro e
+   declara o corte (`contrato-de-marca.ts:163`). **Mas chega vazio** em todo
+   cliente que não preencheu a ficha de nove campos (`ficha-de-marca.ts:231`) —
+   sem tom, sem voz, sem referências. Causa estrutural nº 1 de post genérico, e
+   não é defeito de código: é campo em branco.
+3. **Radar:** governança boa. Desde 11/08 (`radar/sources.ts:43`) existe UM canal
+   que ativa diretriz **sem humano** (fonte oficial + lastro literal) e ele
+   alimenta o prompt do produtor **e** a régua do juiz ao mesmo tempo. Não achei
+   evidência de que tenha disparado — **NÃO VERIFICADO**, precisa de uma consulta
+   a `MarketInsight where status='active'` no banco de produção.
+4. **Juiz:** uma chamada de IA, cinco perguntas em prosa, `flag só se houver
+   problema real`. Carimbou `quality_ok` em 8 peças ruins em 07/08.
+5. **Portões registrados:** 33, dos quais **8 com mecanismo** e 25 lacuna
+   declarada (`quality-gates.ts`) — e esse registro nem roda no caminho da peça.
+
+### Conserto 1 — o furo da escada, aberto desde 07/08
+
+`agendarPostsDaEntrega` lia todo entregável publicável e criava o post já
+`compartilhado`, sem olhar a escada nem a Qualidade. As duas metades da esteira
+faziam a coisa certa e esta função desfazia as duas uma linha depois.
+
+- `publicacao.ts` — `motivoParaNaoVirarCalendario`, fail-closed nas duas
+  perguntas; `revisionStatus` ausente **não** é aprovação.
+- `nao_auditado` continua entrando **de propósito**: a casa já decidiu isso em
+  `quality-auditor.ts:19` e aplica em `run-execution.ts:771`. Barrar aqui criaria
+  uma segunda política sobre o mesmo estado.
+- A retenção vira `ActivityEvent` com nome e motivo — barrar em silêncio trocaria
+  um defeito visível por um invisível.
+- `escada/repescagem.ts` passou a montar o calendário do que libera. Sem isso, o
+  conserto criaria o defeito simétrico: entrega liberada depois da apresentação
+  nunca viraria calendário, porque apresentar é o único gatilho e não repete.
+
+### Conserto 2 — régua determinística antes do juiz
+
+`trava-de-texto.ts` guardava só o pixel. A lista se partiu em duas —
+`CLASSES_DE_FATO` (preço, telefone, prazo: existe cliente para quem é verdade, e
+quem confere é o piso) e `CLASSES_DE_ALEGACAO` (superlativo, jargão, promessa
+vaga, prova social, multidão: **não têm versão verdadeira**). A arte continua
+sendo a soma; a peça recebe só a segunda. `regua-do-texto.ts` faz o recorte e
+roda **dentro de `auditDeliverable`, antes da IA** — um lugar, quatro caminhos.
+
+### As três coisas que eu errei, e que só o teste pegou
+
+1. **Parti a frase pelo ponto, e "3.000" virou "3" + "000".** A lição estava
+   escrita em `piso-de-verdade.ts:247` e eu a repeti mesmo assim. A régua falhava
+   calada exatamente na forma que ela existe para pegar.
+2. **A trava nasceu decorativa e eu quase não vi.** 81 testes verdes na régua; aí
+   desliguei a chamada dela dentro do juiz (`if (false && …)`) e rodei a suíte:
+   **593 testes, nenhum falhou.** Construída, testada, e nada provava que rodava.
+   Sete testes novos em `quality-auditor.test.ts` fecham isso — e a sabotagem
+   repetida agora derruba quatro.
+3. **Um teste da casa media a coisa errada.** `repescagem-da-escada.test.ts:189`
+   chamava-se "não publica" e conferia `not.toMatch(/esteira\/publicacao/)` —
+   menção ao arquivo, não o ato. Escrito assim, ele **proibia o conserto certo** e
+   teria empurrado a solução para uma cópia da regra em outro arquivo. Passou a
+   conferir o ato (`publishPost`, `publicarAgendados`).
+
+### O que ficou aberto
+
+- **As três portas do Planner continuam sem portão** (`api/social-posts/generate`,
+  `api/social-posts` POST, `api/ai/run`, esta com auto-aprovação em
+  `agency-store.ts:642`). Não toquei: é decisão de dono e subiu ao CEO.
+- **A fronteira por tipo de entregável é declarada, não medida.** Documento
+  interno (estratégia, relatório) não passa pela régua, porque o especialista de
+  concorrência descreve o superlativo do concorrente e seria reprovado pela
+  forma. Se o jargão entrar pelo posicionamento, ele desce para todas as peças e
+  a régua não o pega na origem. Fechar isso exige medir o corpus de estratégia
+  com legendas que eu não escrevi — lei da 8ª auditoria.
+- **Resíduo travado em teste:** "De procurando emprego a CONTRATADO", "VAGAS
+  QUENTES HOJE", "Empresa em ALTA DEMANDA contratando" continuam passando.
+  Promessa contada como história exige julgamento de sentido (Onda 5 do P0).
+- **Números fabricados escritos à mão** em `dioli-brain/analytics-engine.ts:180,
+  186,269` ("CTR 2–3× maior", "aumenta conversão em 40–80%"), fora do alcance do
+  piso por omissão em `quality-engine.ts:121` (`textoAfirmado` não inclui o canvas
+  de analytics). Não toquei — outro despacho.
+
+**Verificação:** `npx tsc --noEmit` limpo · `npx vitest run` 3472 verdes
+(212 arquivos), +103 testes.

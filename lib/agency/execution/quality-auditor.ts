@@ -29,6 +29,21 @@
 
 import { generate } from "@/lib/ai/generate";
 import type { AiProvider } from "@/lib/ai/resolve-key";
+// ── A RÉGUA DETERMINÍSTICA, ANTES DA OPINIÃO (13/08/2026) ────────────────────
+//
+// Este juiz é UMA chamada de IA com cinco perguntas em prosa e a instrução
+// `verdict="flag" só se houver problema real`. Em 07/08 ele carimbou
+// `quality_ok` em 8 peças que um humano reprovou na hora seguinte
+// (`docs/projetos/cityjobs-registro-07-08.md:139`). Nenhuma das frases era fato
+// inventado — o piso de verdade estava certo em deixá-las passar —, e todas as
+// quatro citadas no registro são regex.
+//
+// Prompt é aviso; código é trava. O que dá para conferir sem modelo passa a ser
+// conferido sem modelo, e a opinião da IA continua existindo, julgando o que
+// sobrou. Ver `lib/agency/execution/regua-do-texto.ts`.
+import {
+  conferirReguaDoTexto, resumirAlegacoes, reguaSeAplicaA,
+} from "@/lib/agency/execution/regua-do-texto";
 
 /** O parecer possível da Qualidade. Três estados, de propósito — ver o topo. */
 export type VereditoDaQualidade = "aprovado" | "reprovado" | "nao_auditado";
@@ -165,7 +180,43 @@ export async function auditDeliverable(input: {
    *  do cliente auditado — sem isto ele caía em "gasto sem dono". */
   clientId?: string | null;
   projectId?: string | null;
+  /**
+   * O `type` do entregável (`social`, `campaign`, `report`, …).
+   *
+   * Decide se a régua determinística de texto se aplica: documento em que a
+   * agência ANALISA (estratégia, relatório) não é peça que fala com o mercado, e
+   * a régua reprovaria a análise correta de um concorrente pela mesma forma que
+   * reprova a peça ruim. Ver `TIPOS_DE_DOCUMENTO_INTERNO`.
+   *
+   * **Omitir NÃO isenta.** Ausência de informação não é informação: chamador que
+   * não declara o tipo é tratado como peça de comunicação, que é o lado seguro.
+   */
+  tipoDaEntrega?: string | null;
 }): Promise<QualityVerdict> {
+  // ── PRIMEIRO A TRAVA, DEPOIS A OPINIÃO ────────────────────────────────────
+  //
+  // Roda antes de `escolherArbitro` e antes de qualquer chamada: reprovação
+  // determinística não custa uma chamada de IA e não pode ser "convencida" por
+  // um modelo bem-humorado. O que ela pega, o juiz nem chega a ver.
+  //
+  // O TÍTULO entra junto com o corpo. Ele vira o `name` do `Deliverable` e é o
+  // primeiro campo que o cliente lê no portal — foi por conferir só o corpo que
+  // "Pacote Noiva R$ 1.000" atravessou o piso de verdade até 05/08.
+  if (reguaSeAplicaA(input.tipoDaEntrega)) {
+    const regua = conferirReguaDoTexto(`${input.title}\n\n${input.content}`);
+    if (!regua.aprovado) {
+      const issues = resumirAlegacoes(regua.violacoes);
+      return {
+        verdict: "reprovado",
+        issues,
+        // O parecer diz que a recusa é de CÓDIGO. Sem isso, quem lê o registro
+        // atribui a um modelo o que nenhum modelo decidiu — e passa a discutir
+        // com o juiz uma recusa que não é dele.
+        note: `Reprovada pela régua de texto da casa (conferência determinística, sem IA): ${regua.violacoes.length} afirmação(ões) que nada sustenta.`,
+      };
+    }
+  }
+
   const arbitro = escolherArbitro(input.provedorDoAutor);
   const autor = (input.provedorDoAutor ?? "claude").trim().toLowerCase();
   // O critério do feed real (pedido do CEO, 04/08/2026) tem TRÊS estados, e a

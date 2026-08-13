@@ -532,6 +532,13 @@ export async function virarOMes(projectId: string, ciclo: CicloResumido): Promis
           "Todo número deste relatório foi medido, não estimado. Reprove se o texto afirmar resultado, comparação ou causa que os números não sustentam.",
         ].join("\n"),
         workspaceId: projeto.workspaceId,
+        // DOCUMENTO INTERNO, e declarado: o relatório ANALISA números medidos,
+        // não fala com o mercado. A régua determinística de texto
+        // (`regua-do-texto.ts`) não se aplica — ela lê forma, e reprovaria a
+        // análise correta pelo mesmo padrão com que reprova a peça ruim. Quem
+        // confere se o relatório afirma resultado sem lastro continua sendo o
+        // juiz de IA, com o critério que já está no `brandContext` acima.
+        tipoDaEntrega: "report",
         clientId: projeto.clientId ?? null,
         projectId,
       }).catch(() => null)

@@ -271,7 +271,60 @@ const NUM =
 const DIA =
   "(?:hoje|amanha|segunda|terca|quarta|quinta|sexta|sabado|domingo|feira|natal|pascoa|carnaval|janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)";
 
-export const CLASSES_PROIBIDAS_NA_ARTE: Array<{ classe: string; padrao: RegExp }> = [
+export interface ClasseDeTexto {
+  classe: string;
+  padrao: RegExp;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// A LISTA SE PARTE EM DUAS, E A DIVISÃO É A REGRA (13/08/2026)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Até hoje isto era um array só, usado por um lugar só (o pixel). O raio-X de
+// 13/08 mostrou que a casa tem **duas** perguntas diferentes e só sabia
+// responder uma delas:
+//
+//   • CLASSES DE FATO — preço, percentual, telefone, prazo, promessa comercial.
+//     São coisas que o cliente PODE ter de verdade. "R$ 19,90" numa legenda é
+//     legítimo se o cliente informou aquele preço, e quem confere isso contra a
+//     verdade dele é `piso-de-verdade.ts`, que lê o banco. Estas classes só são
+//     proibidas **no pixel**, e o motivo está no cabeçalho: corrigir uma legenda
+//     é editar texto; corrigir um número dentro de um PNG publicado é apagar o
+//     post.
+//
+//   • CLASSES DE ALEGAÇÃO — superlativo sem lastro, jargão de robô, promessa
+//     vaga, prova social sem prova, multidão inventada. Estas **não têm versão
+//     verdadeira**. Não existe cliente para quem "solução inovadora" ou "as
+//     melhores empresas da região" seja fato conferível: são afirmações que
+//     nenhum banco de dados pode sustentar. Elas são proibidas nos DOIS lugares.
+//
+// ── POR QUE ISSO IMPORTA, com a medição atrás ───────────────────────────────
+//
+// O piso de verdade e o contrato de saída barram fato inventado e contagem
+// errada. Nenhum dos dois tem opinião sobre texto ruim — isso ficou inteiro nas
+// mãos do juiz de IA (`quality-auditor.ts`), que julga com cinco perguntas em
+// prosa e a instrução "flag só se houver problema real".
+//
+// Em 07/08, produção real, esse juiz carimbou `quality_ok` em 8 peças que um
+// humano reprovou na hora seguinte (`docs/projetos/cityjobs-registro-07-08.md:139`).
+// As frases estão registradas: *"Tem centenas de vagas esperando"*, *"aumenta
+// suas chances drasticamente"*, *"as melhores empresas da região"*. As três
+// passaram por tudo que esta casa tem — porque nada disso é fato inventado, é
+// texto ruim, e texto ruim não tinha trava.
+//
+// A lei da casa resolve: **prompt é aviso; código é trava.** O que dá para
+// escrever em regex vira regex, e a opinião da IA passa a julgar o que sobrou.
+//
+// ── UMA LISTA, DOIS USOS — e por que não duas listas ────────────────────────
+//
+// `CLASSES_PROIBIDAS_NA_ARTE` continua existindo e continua sendo a soma das
+// duas. A arte é o lugar MAIS restrito da casa, então tudo que é proibido na
+// legenda é proibido no pixel por construção — não por alguém lembrar de copiar
+// a regra para lá. Duas cópias divergem em três meses; é a doença que este
+// repositório já pagou em manual, em preço e em material.
+
+/** O que o cliente PODE ter de verdade — e por isso só é proibido no pixel. */
+export const CLASSES_DE_FATO: ClasseDeTexto[] = [
   // ── DINHEIRO ──────────────────────────────────────────────────────────────
   { classe: "preço", padrao: /r\$|\bbrl\b|\breais\b/ },
   { classe: "preço", padrao: /\b\d+[.,]\d{2}\b/ },
@@ -364,7 +417,16 @@ export const CLASSES_PROIBIDAS_NA_ARTE: Array<{ classe: string; padrao: RegExp }
   { classe: "promessa comercial", padrao: /\bna\s+compra\s+d[eoa]\b|\bcompre\s+\S+\s+(?:e\s+)?(?:ganhe|leve)\b/ },
   { classe: "promessa comercial", padrao: /\bfrete\s+gratis\b|\bentrega\s+gratis\b/ },
   { classe: "promessa comercial", padrao: /\bpor\s+(?:nossa|minha|conta\s+d[ao]\s+casa)\b|\bpor\s+conta\s+da\s+casa\b/ },
+];
 
+/**
+ * O que NÃO tem versão verdadeira — proibido no pixel E no texto da peça.
+ *
+ * Régua de quem escrever padrão novo aqui: se existe um cliente para quem
+ * aquilo é FATO conferível contra o banco, o padrão não é desta lista — é de
+ * `CLASSES_DE_FATO`, e quem confere é o piso de verdade.
+ */
+export const CLASSES_DE_ALEGACAO: ClasseDeTexto[] = [
   // ── SUPERLATIVO NÃO SUSTENTÁVEL ───────────────────────────────────────────
   // O que só existe como afirmação de mercado — estes continuam nus.
   // Saíram daqui, e cada saída tem um caso medido pela 8ª auditoria atrás:
@@ -399,17 +461,157 @@ export const CLASSES_PROIBIDAS_NA_ARTE: Array<{ classe: string; padrao: RegExp }
   // pronome — então o complemento passou a ser exigido.
   { classe: "superlativo não sustentável", padrao: /\bninguem\s+(?:faz|tem|serve|entrega|cuida|trata|consegue|cozinha)\s+(?:igual|como|assim)\b|\bninguem\s+(?:chega|chegou)\s+perto\b|\bninguem\s+iguala\b|\bnao\s+existe\s+igual\b|\bsem\s+comparacao\b|\bnada\s+se\s+compara\b/ },
   { classe: "superlativo não sustentável", padrao: /\bnunca\s+(?:viu|vira|comeu|provou|experimentou|sentiu|encontrou|achou|vai\s+encontrar|vai\s+achar)\b/ },
+
+  // ── JARGÃO DE ROBÔ ────────────────────────────────────────────────────────
+  //
+  // Lista negra nomeada pelo CEO ("solução inovadora", "revolucionar o
+  // mercado" e parentes). São frases que não dizem NADA sobre o negócio: cabem
+  // em qualquer cliente, o que é a definição operacional de texto ruim nesta
+  // casa — os prompts já pedem "específico deste negócio, nada que sirva para
+  // qualquer cliente" (`especialistas.ts:293`) e ninguém conferia.
+  //
+  // Cada padrão exige o SINTAGMA inteiro, nunca a palavra solta. `inovador` nu
+  // comeria "um método inovador de assar" (descrição legítima); `transformar`
+  // nu comeria metade da copy de nutrição e educação, onde transformação é o
+  // serviço vendido. O que é jargão é a colocação fixa, e é ela que entra.
+  { classe: "jargão de robô", padrao: /\bsolu(?:cao|coes)\s+(?:\S+\s+){0,1}?inovador[ae]s?\b/ },
+  { classe: "jargão de robô", padrao: /\brevolucion\w+\s+(?:o|a|os|as)\s+(?:mercado|setor|segmento|ramo|industria|forma)\b/ },
+  { classe: "jargão de robô", padrao: /\bveio\s+para\s+(?:revolucionar|transformar|mudar\s+tudo|ficar)\b/ },
+  { classe: "jargão de robô", padrao: /\b(?:pensar|pensando|pensamos)\s+fora\s+da\s+caixa\b/ },
+  { classe: "jargão de robô", padrao: /\b(?:novo|outro)\s+patamar\b|\bdivisor\s+de\s+aguas\b/ },
+  { classe: "jargão de robô", padrao: /\bcompromisso\s+com\s+a\s+excelencia\b|\bsinonimo\s+de\s+(?:qualidade|sucesso|confianca)\b/ },
+  { classe: "jargão de robô", padrao: /\bexperiencia\s+unica\s+e\s+inesquecivel\b|\bexcelencia\s+em\s+atendimento\b/ },
+  // "a um clique de distância" — a promessa de facilidade que não afirma nada.
+  // Foi a forma exata de uma das peças reprovadas em 07/08 ("seu próximo
+  // trabalho está a um clique").
+  { classe: "jargão de robô", padrao: /\ba\s+(?:apenas\s+|so\s+|somente\s+)?um\s+clique\b/ },
+  // "alavancar" nu vive em finanças ("alavancagem do balanço"). O jargão é
+  // alavancar o que é DO LEITOR.
+  { classe: "jargão de robô", padrao: /\b(?:alavanc|potencializ|maximiz)\w+\s+(?:o|a|os|as|seu|sua|seus|suas)\s+(?:negocio|negocios|resultado|resultados|venda|vendas|marca|empresa|faturamento|lucro)\b/ },
+
+  // ── PROMESSA VAGA ─────────────────────────────────────────────────────────
+  //
+  // O ganho prometido ao leitor SEM número que o sustente. É a metade que o
+  // piso de verdade não pega de propósito: `RE_PROMESSA`
+  // (`piso-de-verdade.ts:198`) exige "%" ou o verbo "garantimos/prometemos"
+  // colado a venda/lucro. "Aumenta suas chances drasticamente" não tem nenhum
+  // dos dois — e foi ao cliente.
+  //
+  // O padrão exige DUAS coisas juntas: o verbo de ganho E o intensificador
+  // vago. Só o verbo comeria "o objetivo é aumentar as vendas", que é uma frase
+  // legítima de documento de estratégia e aparece em quase toda entrega de
+  // planejamento. O que transforma objetivo em promessa é o advérbio que
+  // promete tamanho sem dizer qual.
+  {
+    classe: "promessa vaga",
+    padrao: new RegExp(
+      String.raw`\b(?:aumenta|aumente|aumentar|multiplica|multiplique|multiplicar|dobra|dobre|dobrar|triplica|triplicar|turbina|turbine|impulsiona|impulsione|alavanca|dispara|decola)\w*\s+(?:\S+\s+){0,3}?(?:venda|vendas|faturamento|resultado|resultados|lucro|lucros|cliente|clientes|chance|chances|oportunidade|oportunidades|receita|conversao|conversoes|seguidor|seguidores|alcance)\b[^.!?\n]{0,40}?\b(?:drasticamente|significativamente|exponencialmente|absurdamente|consideravelmente|rapidamente|imediatamente|de\s+verdade|como\s+nunca|muito\s+mais|na\s+hora|do\s+dia\s+para\s+a\s+noite)\b`,
+    ),
+  },
+  {
+    classe: "promessa vaga",
+    padrao: new RegExp(
+      String.raw`\b(?:drasticamente|significativamente|exponencialmente|absurdamente|consideravelmente)\s+(?:mais|maior|melhor)\s+(?:venda|vendas|faturamento|resultado|resultados|lucro|cliente|clientes|chance|chances|receita|conversao|conversoes)\b`,
+    ),
+  },
+  // A promessa de virada de estado, sem número e sem prazo. "Saia do zero e
+  // fature todo mês" é a família inteira num molde só.
+  { classe: "promessa vaga", padrao: /\b(?:sai[ar]?|saindo)\s+d[oe]\s+zero\s+(?:e|para|pra)\b|\bdo\s+zero\s+a[oa]?\s+(?:sucesso|topo|primeiro\s+milhao)\b/ },
+  { classe: "promessa vaga", padrao: /\b(?:transforme|transformamos|mudamos|mude)\s+(?:o\s+|a\s+|seu\s+|sua\s+)?(?:seu|sua)?\s*(?:vida|negocio|futuro|carreira)\b/ },
+
+  // ── PROVA SOCIAL SEM PROVA ────────────────────────────────────────────────
+  //
+  // Guardrail da casa: nunca inventar depoimento nem prova social. O que entra
+  // aqui é a AFIRMAÇÃO sobre clientes satisfeitos feita na voz da marca.
+  //
+  // O que NÃO entra, e a omissão é decisão: as palavras "depoimento" e "prova
+  // social" nuas. Uma pauta legítima PLANEJA colher depoimento real do cliente
+  // ("Semana 3: prova social — pedir depoimento ao cliente"), e barrar isso
+  // reprovaria o planejamento correto junto com a invenção. A diferença entre
+  // planejar colher e fingir ter é o modo do verbo, e é o resíduo declarado no
+  // fim deste bloco.
+  { classe: "prova social sem prova", padrao: /\bclientes\s+satisfeit[oa]s\b|\balunos\s+satisfeit[oa]s\b/ },
+  { classe: "prova social sem prova", padrao: /\bquem\s+(?:ja\s+)?(?:usou|comprou|experimentou|testou|provou|contratou)\s+(?:\S+\s+){0,2}?(?:aprova|aprovou|recomenda|recomendou|nao\s+troca|nao\s+larga|volta\s+sempre)\b/ },
+  { classe: "prova social sem prova", padrao: /\baprovad[oa]\s+por\s+(?:mais\s+de|milhares|centenas|dezenas|todos|nossos)\b/ },
+  { classe: "prova social sem prova", padrao: /\b(?:milhares|centenas|dezenas|milhoes)\s+de\s+(?:pessoas|clientes|alunos|familias|empresas)\s+(?:ja\s+)?(?:confiam|confiaram|escolheram|aprovam|recomendam|usam)\b/ },
+  { classe: "prova social sem prova", padrao: /\bveja\s+o\s+que\s+(?:nossos\s+|os\s+)?(?:clientes|alunos|pacientes)\s+(?:dizem|falam|acham)\b/ },
+
+  // ── MULTIDÃO INVENTADA ────────────────────────────────────────────────────
+  //
+  // A quantidade que ninguém contou. `piso-de-verdade.ts` confere `R$` e `%` —
+  // "centenas de vagas esperando" não é nenhum dos dois, e foi exatamente a
+  // frase que chegou ao calendário do CityJobs numa plataforma de vagas.
+  //
+  // Ancorado em substantivo que um NEGÓCIO alega ter. Sem a âncora, o padrão
+  // comeria "milhares de anos de tradição" e "centenas de espécies", que são
+  // afirmações sobre o mundo, não sobre a carteira do cliente.
+  {
+    classe: "multidão inventada",
+    padrao: /\b(?:centenas|milhares|milhoes|dezenas)\s+de\s+(?:\S+\s+){0,1}?(?:cliente|clientes|aluno|alunos|pessoa|pessoas|empresa|empresas|vaga|vagas|pedido|pedidos|seguidor|seguidores|familia|familias|profissional|profissionais|oportunidade|oportunidades|avaliacao|avaliacoes|atendimento|atendimentos)\b/,
+  },
+  {
+    classe: "multidão inventada",
+    padrao: /\bmais\s+de\s+[\d.]+\s*(?:mil\s+)?(?:cliente|clientes|aluno|alunos|pessoa|pessoas|empresa|empresas|vaga|vagas|pedido|pedidos|seguidor|seguidores|familia|familias|avaliacao|avaliacoes|atendimento|atendimentos)\b/,
+  },
+  // O número redondo SEM "mais de" — "Já são 12.500 clientes atendidos".
+  //
+  // Exige a forma de VANGLÓRIA (separador de milhar ou a palavra "mil") e não
+  // um dígito qualquer, e a diferença é o falso positivo: "atendemos 2 pessoas
+  // por vez" e "3 vagas abertas hoje" são informação operacional legítima, e um
+  // padrão que as comesse reprovaria a peça correta o tempo todo. Ninguém
+  // escreve "12.500 clientes" com modéstia.
+  {
+    classe: "multidão inventada",
+    padrao: /\b(?:\d{1,3}(?:\.\d{3})+|\d+\s*mil)\s+(?:cliente|clientes|aluno|alunos|pessoa|pessoas|empresa|empresas|vaga|vagas|pedido|pedidos|seguidor|seguidores|familia|familias|avaliacao|avaliacoes|atendimento|atendimentos)\b/,
+  },
 ];
+
+/**
+ * Tudo que não pode virar pixel: fato E alegação.
+ *
+ * A arte é o lugar mais restrito da casa — o que é proibido na legenda é
+ * proibido aqui por construção, não por alguém lembrar de copiar a regra.
+ */
+export const CLASSES_PROIBIDAS_NA_ARTE: ClasseDeTexto[] = [
+  ...CLASSES_DE_FATO,
+  ...CLASSES_DE_ALEGACAO,
+];
+
+/**
+ * A primeira classe da lista que pega este texto, com o TRECHO que a acionou.
+ *
+ * O trecho é o que separa parecer de ruído: "a peça tem jargão" manda o agente
+ * reescrever no escuro; "a peça tem jargão em 'solução inovadora'" ele conserta
+ * numa passada. É o guardrail 6 da companhia — o alerta carrega a evidência.
+ *
+ * O trecho devolvido sai da forma DOBRADA (minúscula, sem acento), porque é
+ * sobre ela que os padrões correm. Dizer "encontrado: 'solucao inovadora'"
+ * quando o original tinha "Solução Inovadora" é fiel ao que a régua viu, e
+ * quem lê acha na peça do mesmo jeito.
+ */
+export function acharClasse(
+  texto: string,
+  lista: ClasseDeTexto[] = CLASSES_PROIBIDAS_NA_ARTE,
+): { classe: string; trecho: string } | null {
+  const d = dobrar(texto);
+  if (!d.trim()) return null;
+  const formas = [d, desespacar(d)];
+  for (const { classe, padrao } of lista) {
+    for (const forma of formas) {
+      // Regex nova a cada teste: os padrões desta casa nascem sem `g`, mas um
+      // padrão futuro com `g` guardaria `lastIndex` entre as duas formas e
+      // alternaria entre pegar e não pegar. Portão que oscila é pior que
+      // portão nenhum — a mesma lição de `temCaractereInvisivel`.
+      const m = new RegExp(padrao.source, padrao.flags.replace("g", "")).exec(forma);
+      if (m) return { classe, trecho: m[0].trim().slice(0, 120) };
+    }
+  }
+  return null;
+}
 
 /** Qual classe pegou este texto — ou `null`. Dobra UMA vez e varre. */
 export function classeProibida(texto: string): string | null {
-  const d = dobrar(texto);
-  if (!d.trim()) return null;
-  const formas = new Set([d, desespacar(d)]);
-  for (const { classe, padrao } of CLASSES_PROIBIDAS_NA_ARTE) {
-    for (const forma of formas) if (padrao.test(forma)) return classe;
-  }
-  return null;
+  return acharClasse(texto)?.classe ?? null;
 }
 
 export type MotivoDaTrava =

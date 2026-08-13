@@ -153,6 +153,30 @@ export async function repescarEntregasRetidas(): Promise<ResultadoDaRepescagem> 
         }
       }
 
+      // ── O CALENDÁRIO VEM JUNTO (13/08/2026) ──────────────────────────────
+      //
+      // `agendarPostsDaEntrega` passou a recusar entrega que a escada não
+      // liberou (`publicacao.ts`, `motivoParaNaoVirarCalendario`) — que é o
+      // conserto do furo pelo qual peça retida virava post compartilhado. Sem
+      // esta chamada, o conserto criaria o defeito simétrico: a entrega
+      // liberada DEPOIS da apresentação nunca viraria calendário, porque o
+      // único gatilho de agendamento é o ato de apresentar, e ele não repete.
+      //
+      // É o próprio argumento do cabeçalho deste arquivo — *"um portão que abre
+      // e não deixa passar o legítimo é tão inútil quanto um que não fecha"*.
+      //
+      // Isto NÃO viola o contrato declarado lá em cima ("não publica nada"): o
+      // post nasce `draft`, e `draft → scheduled` continua exigindo o aval do
+      // cliente. Idempotente por `deliverableId`, então repetir é no-op; e
+      // best-effort, porque calendário que falha não pode desfazer a liberação
+      // que já foi gravada.
+      try {
+        const { agendarPostsDaEntrega } = await import("@/lib/agency/esteira/publicacao");
+        await agendarPostsDaEntrega(projectId);
+      } catch (e) {
+        r.avisos.push(`projeto ${projectId}: entregas liberadas, mas o calendário não foi montado (${e instanceof Error ? e.message : "erro"})`);
+      }
+
       // O rastro fica no projeto: quem abrir o histórico entende por que uma
       // entrega apareceu no portal dias depois de apresentada.
       await prisma.activityEvent.create({

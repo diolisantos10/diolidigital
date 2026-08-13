@@ -694,6 +694,10 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
         // QUEM ESCREVEU. O juiz é escolhido para não ser ele — sem isto, em 11
         // das 14 entregas o autor se auditava (ver `escolherArbitro`).
         provedorDoAutor: esp.provedor ?? "claude",
+        // O tipo decide se a régua determinística de texto se aplica: peça que
+        // fala com o mercado sim, documento de análise não. Ver
+        // `regua-do-texto.ts` (`TIPOS_DE_DOCUMENTO_INTERNO`).
+        tipoDaEntrega: esp.deliverableType,
         clientId: project.clientId, projectId,
       });
       let revisions = 0;
@@ -731,6 +735,7 @@ export async function runProjectExecution(projectId: string): Promise<ExecutionR
           marketGuidelines: insightBlock, workspaceId: project.workspaceId,
           feed: { lida: feedDoCliente.lida, posts: feedDoCliente.posts },
           provedorDoAutor: esp.provedor ?? "claude",
+          tipoDaEntrega: esp.deliverableType,
           clientId: project.clientId, projectId,
         });
       }
