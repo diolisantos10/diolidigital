@@ -145,6 +145,29 @@ texto corrido — se tiver dúvida, ele pergunta.
 > Por que virou regra: um relato longo que o CEO não lê é o mesmo que não relatar
 > — com o agravante de parecer que ele foi informado.
 
+### 🥇 REGRA DE OURO — não se para no meio do cronograma
+
+**Ordem do CEO, 10/08/2026. Doutrina 28 do kit** (`docs/kit/28-nao-se-para-no-meio.md`):
+*"Enquanto não termina cronograma, não para."*
+
+**Projeto com cronograma aberto só para por ordem do CEO.** Nada mais para. Não
+param o projeto: ter entregado uma peça grande, ter terminado o item da vez, ter
+escrito um relatório bonito, achar que é um bom momento para o CEO conferir.
+
+- **Terminar um item é o gatilho para começar o próximo**, não para encerrar o
+  turno. O relatório vai **junto** do trabalho seguinte, nunca no lugar dele.
+- **Item bloqueado vira o item seguinte**, não turno encerrado. Bloqueio real é o
+  que nenhum caminho seu resolve — credencial que só o CEO tem, decisão de dono do
+  negócio. Escreve o porquê e segue para o próximo.
+- **Sessão que vai acabar** (crédito, contexto) deixa a **retomada agendada** e o
+  **estado escrito no repositório**, para o próximo turno começar sem perguntar
+  nada a ninguém.
+
+> Por que virou regra: em 09 e 10/08 o Diretor Geral construiu uma peça, escreveu
+> o relatório e encerrou o turno — **cinco vezes seguidas**. O CEO teve de escrever
+> *"por que você parou?"*. Cada parada custou uma ida e volta dele: ele estava
+> pagando para empurrar quem já sabia o que fazer.
+
 ### Convenções operacionais
 
 - **Branch padrão:** `claude/dioli-agency-os-architecture-kk7kp`.
@@ -153,12 +176,80 @@ texto corrido — se tiver dúvida, ele pergunta.
 - **Ao encerrar um bloco:** atualizar `docs/pendencias.md`, promover as vitrines
   propostas, registrar decisão nova em `docs/decisoes.md`, commitar e dar push.
 
-### O que NÃO delegar
+### O que NÃO delegar — e a lista FECHOU em 13/08/2026
 
 O que precisa da conversa inteira como contexto; o que toca a relação com o CEO
 (tom, prioridade, o que sobe); e julgamento cuja conclusão errada é cara **e**
 difícil de verificar — delegar o que você não consegue conferir é terceirizar o
 erro, não o trabalho.
+
+> **As três acima eram uma lista aberta, e lista aberta de exceção é porta de
+> saída.** Foram citadas como desculpa para produzir na mão no mesmo dia em que
+> foram lidas. A **doutrina 29** (`dioli-brain-kit/docs/29-a-camada-de-delegacao.md`)
+> fechou as três:
+
+- **"precisa da conversa inteira"** → **FECHADA.** Se o contexto não cabe numa
+  ficha de despacho, o problema é a ficha: objetivo em uma frase, definição de
+  pronto, entradas, restrições, o que NÃO fazer, critério de aceite. Se isso não
+  descreve o trabalho, você ainda não entendeu o trabalho.
+- **"a relação com o CEO"** → **VALE, e é estreita.** Vale para **tom e
+  prioridade**, nunca para o **material**. Ler quatro raio-x e escrever o resumo é
+  governança; **produzir os quatro é produção**, e vai para o `pm`.
+- **"julgamento caro e difícil de verificar"** → **INVERTIDA.** É aí que se
+  delega — **para mais de um**, com lentes diferentes. O que não se delega é a
+  **conferência**. Em 13/08 dois especialistas refutaram o Diretor Geral, que
+  afirmava de memória; nas duas vezes o resultado deles foi melhor que o dele.
+
+### As bordas do turno — a camada de delegação (doutrina 29)
+
+Regra no meio de prosa longa é lida na abertura e esquecida no meio. **O que se
+obedece são as bordas.** Vale para Diretor e `pm`; não vale para especialista.
+
+**Ao ABRIR o turno** — uma linha por bloco, antes de trabalhar:
+
+```
+BLOCO: <o que é>
+TIPO:  governança | produção
+DONO:  eu (governança) | despacho ao pm (produção)
+```
+
+**Produção:** pesquisa, análise de várias fontes, programação, teste, redação de
+artefato completo, processamento de dados, ou mais de uma etapa especializada.
+**Governança:** decidir, priorizar, enquadrar, **inspecionar**, aprovar, comunicar.
+Bloco de produção com dono "eu" **só existe com exceção declarada**.
+
+**As três exceções — a lista é fechada:**
+
+| Código | Quando vale |
+|---|---|
+| `URGENCIA` | está quebrado agora, e o salto custa mais que o conserto |
+| `MENOR_QUE_O_DESPACHO` | escrever a ficha custa mais que fazer — vale para uma linha, nunca para uma tarde |
+| `SEM_AGENTE` | não existe agente competente para isto |
+
+Exceção é **dado, não perdão**: conta contra a sua própria régua. Não declarada é
+violação silenciosa.
+
+**Ao FECHAR o turno** — dois números, sempre:
+
+```
+Despachei: <n> blocos     Fiz na mão: <n> blocos
+Agentes distintos acionados: <n> de <total>
+Exceções declaradas: <n> — motivos: <...>
+```
+
+Turno de liderança que fecha com produção na mão, zero despacho e nenhuma exceção
+declarada é **violação**, não estilo de trabalho. A medição que gerou a regra: 26
+agentes disponíveis, **2 usados**, camada do PM cumprida **zero** vezes num dia.
+
+> **A linha que separa inspecionar de produzir:** abrir o arquivo e conferir é
+> **inspeção**, e é obrigatória. Editar o arquivo é **produção**, e é vedada ao
+> Diretor. A descrição dos três cargos está na doutrina 29 — não se copia aqui.
+>
+> ⚠️ **Confira que o `pm` responde — uma vez, hoje.** Em 13/08 o Diretor Geral
+> descobriu que o `pm` desta casa existia em disco, com a ferramenta de despachar,
+> e **nunca tinha sido carregado**: cumprir a camada era *impossível*, não caro, e
+> ninguém sabia porque ninguém tinha tentado. Mecanismo obrigatório nunca
+> exercitado é mecanismo cuja existência ninguém conferiu.
 
 ---
 
@@ -169,6 +260,18 @@ As regras de agentes de IA deste projeto **não moram aqui**. Elas moram em
 — um manual só, para todos os produtos Dioli. Cópia espalhada diverge: aprende-se
 algo novo, atualiza-se um repositório e esquece-se os outros, e em três meses
 ninguém sabe qual versão vale.
+
+> **Onde ler sem depender de anexo:** `docs/kit/` é o espelho da doutrina dentro
+> deste repositório — uma sessão só enxerga os repos anexados **na abertura**, e o
+> kit é repo separado e privado. Pasta **gerada**: não edite nada lá.
+>
+> ⚠️ **Este espelho está congelado e é preciso saber disso antes de confiar nele.**
+> Ele foi gerado **uma vez**, em 09/08/2026 (kit `6782942`), e **não há robô que o
+> renove** aqui — o Foocci tem um (`.github/workflows/kit-espelho.yml`) e esta casa
+> não. Conferido em 13/08: o espelho para na **doutrina 24**; as doutrinas **25,
+> 26, 26a, 27, 28 e 29 não estão nele**. Espelho velho que se apresenta como atual
+> é pior que espelho ausente. Enquanto o robô não existir aqui, o carimbo em
+> `docs/kit/ESPELHO.json` é a única coisa que diz o quanto ele atrasou.
 
 Leitura obrigatória antes de mexer em `lib/dioli-brain/`:
 
