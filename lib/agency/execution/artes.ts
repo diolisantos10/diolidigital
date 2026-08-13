@@ -339,6 +339,28 @@ export async function produzirArtesPendentes(): Promise<ArtesFeitas> {
           formato: post.format,
           estiloDoFeed,
           estiloVisto,
+          // ── A MARCA CHEGA À IMAGEM, E NÃO SÓ AO TEXTO (13/08/2026) ─────────
+          //
+          // Até aqui a amplitude declarada da marca — os extremos permitidos e,
+          // sobretudo, a lista `NUNCA` de cada eixo — só entrava no prompt do
+          // CARROSSEL (`montarCarrossel`, mais abaixo). O post simples e o
+          // STORY, que são o volume da casa (60 posts/mês só no CityJobs),
+          // recebiam seis constantes do CLIENTE (nome, segmento, cores, tom,
+          // estilo do feed, estilo visto) e dois campos da peça (legenda e
+          // pilar). Nada do contrato criativo daquela marca.
+          //
+          // O efeito medido, com a peça na mão: o cérebro do CityJobs diz
+          // `NUNCA: banco de imagem genérico sem relação com a região` e
+          // `NUNCA: estética de escritório de tecnologia — coworking, tablet,
+          // mármore, café` (`repertorio-registrado.ts`), e essa frase nunca
+          // chegou ao gerador de uma peça avulsa. Regra escrita que não
+          // atravessa a porta é a doença que esta casa já nomeou duas vezes:
+          // `contratoDeMarca` chega a quem escreve a LEGENDA
+          // (`run-execution.ts:347`) e não a quem desenha a IMAGEM.
+          //
+          // Cérebro sem amplitude devolve string vazia e o prompt não fala de
+          // amplitude nenhuma — vazio continua sendo vazio.
+          amplitude: direcaoDeAmplitude(marca.cerebro),
         }),
         size: proporcao,
         quality: "high",

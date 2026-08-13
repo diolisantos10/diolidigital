@@ -309,6 +309,40 @@ export function cerebroDoCityJobs(): CerebroMontado {
         procedencia: de,
       },
       {
+        // ── A DIREÇÃO PEDIDA PELO CEO EM 13/08/2026 ─────────────────────────
+        //
+        // Ele ELOGIOU as peças e apontou desalinhamento: *"as vagas não têm
+        // muito a ver com a arte que ele está criando"*. Não é peça feia — é
+        // peça que não conversa com o próprio conteúdo.
+        //
+        // O padrão, medido nas peças que existem no repositório: a arte prova
+        // O CLIENTE (uma plataforma de vagas do Alto Tietê) e nunca prova A
+        // PEÇA (este cargo, neste setor, nesta cidade). Nas duas aprovadas de
+        // 08/08 isso está CERTO — as duas são institucionais, e institucional
+        // prova a região mesmo. O erro aparece quando a mesma direção é
+        // aplicada a uma peça que anuncia uma vaga: sobra cidade e falta
+        // trabalho.
+        //
+        // Este eixo é o que separa os dois casos. Ele NÃO revoga a estação de
+        // Mogi nem a rua de comércio: as duas continuam sendo o extremo B, e
+        // o extremo B é permitido e proposital.
+        eixo: "o que a imagem tem de provar",
+        extremoA:
+          "a VAGA — o lugar onde aquele trabalho acontece: o galpão, o balcão, a cozinha, a obra, a cabine do caminhão, a recepção, na cidade em que a vaga está aberta",
+        extremoB:
+          "a REGIÃO — a estação, a avenida, o comércio de rua que quem mora aqui reconhece",
+        porque:
+          "os dois extremos são permitidos, e quem decide qual vale é O QUE A PEÇA DIZ: peça que anuncia UM cargo prova o cargo, no lugar onde ele é exercido; peça institucional, de comunidade ou de bastidor prova a região. Trocar os dois é a arte falando da cidade enquanto o texto fala do cargo — a peça sai bonita e desligada do próprio conteúdo.",
+        foraDaMarca: [
+          "foto de cidade, estação, avenida ou skyline em peça que anuncia um cargo específico — a região é o assunto do institucional, não do anúncio de vaga",
+          "escritório, coworking, notebook, reunião ou aperto de mão quando o cargo anunciado não é de escritório",
+          "clichê de contratação: currículo na mão, gravata, confete, comemoração de contratado",
+          "pessoa sorrindo sem nenhum lugar de trabalho reconhecível em volta — sem o lugar, a imagem não prova nada",
+        ],
+        procedencia:
+          'dito pelo CEO em 13/08/2026, verbatim: "as vagas não têm muito a ver com a arte que ele está criando"',
+      },
+      {
         eixo: "distância da pessoa",
         extremoA: "a cidade — estação, avenida, comércio de rua",
         extremoB: "a pessoa — quem trabalha, quem espera, quem caminha",
