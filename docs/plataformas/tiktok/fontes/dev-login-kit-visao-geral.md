@@ -1,7 +1,7 @@
 ---
 titulo: "Login Kit Overview — o OAuth 2.0 do TikTok"
 url: https://developers.tiktok.com/doc/login-kit-overview
-capturado_em: 2026-08-12
+capturado_em: 2026-08-13
 hash: e991108bc25c4666
 ---
 

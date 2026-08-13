@@ -1,7 +1,7 @@
 ---
 titulo: "Instagram — webhooks (campos e assinatura)"
 url: https://developers.facebook.com/documentation/instagram-platform/webhooks
-capturado_em: 2026-08-12
+capturado_em: 2026-08-13
 hash: 7ac5ea84a580c7ab
 ---
 

@@ -1,8 +1,8 @@
 ---
 titulo: "WhatsApp Cloud API — webhooks (eventos de mensagem e status)"
 url: https://developers.facebook.com/documentation/business-messaging/whatsapp/webhooks/overview
-capturado_em: 2026-08-12
-hash: cf9ea3ad19837f6d
+capturado_em: 2026-08-13
+hash: 450194b52e4d0378
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -14,8 +14,8 @@ Webhooks
 Updated: 26 de jun de 2026
 Copiar para LLM
 Ver como Markdown
-Este documento descreve os webhooks e como eles são usados ​​pela Plataforma do WhatsApp Business.
-Os webhooks são pedidos HTTP com cargas JSON que os servidores da Meta enviam para um servidor indicado por você. A Plataforma do WhatsApp Business usa webhooks para informar você sobre mensagens recebidas, o status de mensagens enviadas, eventos de ligação e outras informações importantes, como alterações no status da conta, atualizações de recursos de mensagens e mudanças nas pontuações de qualidade de modelos.
+Este documento descreve os webhooks e como eles são usados pela Plataforma do WhatsApp Business.
+Os webhooks são pedidos HTTP com cargas JSON que os servidores da Meta enviam para um servidor indicado por você. A Plataforma Comercial do WhatsApp usa webhooks para informar você sobre mensagens recebidas, o status de mensagens enviadas, eventos de ligação e outras informações importantes, como alterações no status da conta, atualizações de recursos de mensagens e mudanças nas pontuações de qualidade de modelos.
 Por exemplo, este é um webhook que descreve uma mensagem enviada por um usuário do WhatsApp para uma empresa:
 {
   "object": "whatsapp_business_account",
@@ -157,7 +157,7 @@ Tamanho da carga
 As cargas de webhook podem ter até 3 MB.
 Falha na entrega do webhook
 Se uma solicitação de webhook para seu ponto de extremidade receber um código de status HTTP diferente de 200 ou se o webhook não puder ser entregue por outro motivo, a Meta fará uma nova tentativa de entrega com frequência decrescente até que a solicitação seja concluída com sucesso, por até sete dias.
-A Meta envia novas tentativas para todos os apps que assinaram os webhooks (e os campos relacionados) na conta do WhatsApp Business. Essas novas tentativas podem fazer com que as notificações de webhook sejam duplicadas.
+Essas tentativas serão enviadas a todos os apps que assinaram os webhooks (e os campos relacionados) na conta do WhatsApp Business. Essas novas tentativas podem fazer com que as notificações de webhook sejam duplicadas.
 TLS mútuo
 Os webhooks são compatíveis com o protocolo TLS mútuo (mTLS) para aumentar a segurança. Para saber como habilitar e usar o mTLS, consulte o documento mTLS para webhooks da Graph API.
 Endereços IP

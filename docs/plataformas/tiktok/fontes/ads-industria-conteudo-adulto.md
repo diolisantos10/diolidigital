@@ -1,7 +1,7 @@
 ---
 titulo: "TikTok Advertising Policies — Adult Content"
 url: https://ads.tiktok.com/help/article/tiktok-ads-policy-adult-content
-capturado_em: 2026-08-11
+capturado_em: 2026-08-13
 hash: e38f715e1e619547
 ---
 

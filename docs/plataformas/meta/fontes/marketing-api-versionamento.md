@@ -1,13 +1,15 @@
 ---
 titulo: "Marketing API — versionamento e ciclo de vida das versões"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/overview/versioning
-capturado_em: 2026-08-12
-hash: fc8367974632d3aa
+capturado_em: 2026-08-13
+hash: 6dc2f07d8cf246fb
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
 > este arquivo é a cópia de trabalho da biblioteca. Não edite à mão.
 
+Esta página foi traduzida do inglês para outro idioma usando IA. O conteúdo traduzido por IA pode conter erros, omissões ou divergências de sentido. Como a tradução automática pode ser imprecisa ou pouco clara, consulte o conteúdo original em inglês desta página para validar as orientações corretas.
+Isso foi útil?
 Controle de versões
 Updated: 24 de jun de 2026
 Copiar para LLM
@@ -96,3 +98,4 @@ Posso verificar se alguma chamada de API específica foi atualizada automaticame
 Se uma chamada de API for direcionada a uma versão que ficou obsoleta e foi atualizada automaticamente, um cabeçalho de resposta da API será incluído em todas as chamadas atualizadas de maneira automática.
 Exemplo de cabeçalho de notificação
 X-Ad-Api-Version-Warning: 'X-Ad-Api-Version-Warning: 'The call has been auto-upgraded to vXXX as vXXX has been deprecated''
+Você achou esta página útil?

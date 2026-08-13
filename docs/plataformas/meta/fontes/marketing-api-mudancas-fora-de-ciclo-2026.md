@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — mudanças fora de ciclo em 2026 (out-of-cycle changes)"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/out-of-cycle-changes/occ-2026
-capturado_em: 2026-08-12
-hash: 7c46da0ad4fde935
+capturado_em: 2026-08-13
+hash: 505c4877cf57330f
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -11,7 +11,7 @@ hash: 7c46da0ad4fde935
 Esta página foi traduzida do inglês para outro idioma usando IA. O conteúdo traduzido por IA pode conter erros, omissões ou divergências de sentido. Como a tradução automática pode ser imprecisa ou pouco clara, consulte o conteúdo original em inglês desta página para validar as orientações corretas.
 Isso foi útil?
 Alterações fora de ciclo de 2026
-Updated: 20 de jul de 2026
+Updated: 11 de ago de 2026
 Copiar para LLM
 Ver como Markdown
 Os anúncios no Status do WhatsApp são disponibilizados por meio da API de Marketing. Saiba mais sobre anúncios no Status do WhatsApp.
@@ -37,7 +37,7 @@ POST /act_{ad-account-id}/adcreatives
 POST /act_{ad-account-id}/ads
 Criativo Advantage+: filtro de vídeo
 Aplicável a todas as versões.
-Agora, o filtro de vídeo está disponível como um aprimoramento do criativo Advantage+ por meio da API de Marketing. Quando essa opção é habilitada, um aprimoramento visual é aplicado automaticamente ao criativo do vídeo, melhorando a cor ou convertendo o vídeo padrão em alta faixa dinâmica (HDR), por exemplo, para torná-lo mais atraente. Ative ou desative esse recurso por criativo usando o campo video_filtering em degrees_of_freedom_spec.creative_features_spec.
+Agora, o filtro de vídeo está disponível como um aprimoramento do criativo Advantage+ por meio da API de Marketing. Quando essa opção é habilitada, um aprimoramento visual é aplicado automaticamente ao criativo do vídeo para torná-lo mais atrativo. Por exemplo, melhorar a cor ou converter um vídeo padrão em alta faixa dinâmica (HDR, pelas iniciais em inglês). Ative ou desative esse recurso por criativo usando o campo video_filtering em degrees_of_freedom_spec.creative_features_spec.
 Consulte Introdução ao criativo Advantage+ para obter mais informações.
 Os seguintes pontos de extremidade serão afetados:
 POST /act_{ad-account-id}/adcreatives
@@ -45,7 +45,7 @@ POST /act_{ad-account-id}/ads
 Criativo Advantage+: reversão do corte de vídeo
 Aplicável a todas as versões.
 A reversão do corte de vídeo agora está disponível como um aprimoramento do criativo Advantage+ por meio da API de Marketing. Quando essa opção estiver habilitada, seu vídeo será expandido automaticamente (sem cortes) para se ajustar melhor à taxa de proporção de posicionamentos adicionais. Por exemplo, preenchendo superfícies verticais em tela cheia em vez de cortar ou colocar faixas pretas no vídeo. Ative ou desative esse recurso por criativo usando o campo video_uncrop em degrees_of_freedom_spec.creative_features_spec.
-Consulte Introdução ao criativo Advantage+ para saber mais.
+Consulte Introdução ao criativo Advantage+ para obter mais informações.
 Os seguintes pontos de extremidade serão afetados:
 POST /act_{ad-account-id}/adcreatives
 POST /act_{ad-account-id}/ads
@@ -63,14 +63,14 @@ Aplicável a todas as versões.
 A API do Marketplace de Criadores de Conteúdo agora inclui vários novos recursos para descobrir e avaliar criadores de conteúdo:
 Filtragem expandida: novos filtros de contagem de seguidores (100 mil – 250 mil, 250 mil – 1 milhão e mais de 1 milhão) e filtragem em nível de estado dos EUA agora estão disponíveis para criadores de conteúdo e públicos.
 Recomendações personalizadas de criadores de conteúdo: um novo recommendation_typefiltro retorna conjuntos selecionados de criadores de conteúdo com base em critérios específicos: mais relevante para mim, alto desempenho do anúncio, maior experiência com anúncios, marcas semelhantes e público semelhante.
-Selos de criador de conteúdo: um novo campo badges está disponível ao consultar o perfil do criador.
+Selos de criador de conteúdo: um novo campo badges está disponível ao consultar o perfil do criador de conteúdo.
 URL de miniatura: um novo campo thumbnail_url está disponível ao consultar a mídia do criador de conteúdo.
-Integração com o Gerenciador de Anúncios: agora você pode descobrir criadores de conteúdo cujos seguidores correspondem a um público personalizado ou semelhante salvo no Gerenciador de Anúncios, pesquisando públicos salvos por nome ou identificação do público. As agências passam a identificação da própria empresa por meio do parâmetro acting_business_id para usar os públicos de um cliente.
+Integração com o Gerenciador de Anúncios: agora você pode descobrir criadores de conteúdo cujos seguidores correspondem a um público personalizado ou semelhante salvo no Gerenciador de Anúncios. Para isso, pesquise os públicos salvos pelo nome ou identificação do público. As agências passam a identificação da própria empresa por meio do parâmetro acting_business_id para usar os públicos de um cliente.
 Consulte API do Marketplace de Criadores de Conteúdo para mais informações.
 1º de junho de 2026
 Troca de áudio do Instagram para anúncios no Reels
 Aplicável a todas as versões.
-Novos parâmetros em POST /act_{id}/advideos para substituir música protegida por direitos autorais no Instagram Reels por áudio isento de royalties da Coleção de Sons da Meta. Passe source_instagram_media_id com selected_audio_spec para criar um ativo de vídeo de anúncio com áudio trocado.
+Novos parâmetros em POST /act_{id}/advideos para substituir música protegida por direitos autorais no Instagram Reels por áudio isento de royalties da Coleção de Sons da Meta. Passe source_instagram_media_id com selected_audio_spec para criar um ativo de vídeo do anúncio com áudio trocado.
 Novos campos replace_audio_status e selected_audio_spec em GET /{ad-video-id} para sondar a conclusão da troca de áudio assíncrona. Verifique replace_audio_status até que ela retorne SUCCESSFUL antes de usar o vídeo trocado na criação do criativo do anúncio.
 Os seguintes pontos de extremidade serão afetados:
 POST /act_{id}/advideos
@@ -91,11 +91,11 @@ Habilitar via Gerenciador de Anúncios
 	
 Os administradores de contas podem solicitar acesso a esses detalhamentos diretamente no Gerenciador de Anúncios. Depois que a opção for habilitada, as chamadas de API síncronas continuarão funcionando como esperado a partir desse dia.
 
-Use tarefas assíncronas da API
+Use trabalhos assíncronos da API
 	
 Depois da habilitação, os trabalhos assíncronos de relatórios retornam o histórico completo. Os trabalhos assíncronos estão sujeitos à cota de limitação padrão: min(10, number_of_ad_groups) per 24 hours.
 Ação recomendada
-Caso seu app dependa de um dos detalhamentos listados acima, atualize sua integração para (a) lidar com as situações em que as solicitações não retornam resultados, (b) solicitar que os anunciantes afetados habilitem o detalhamento por meio do Gerenciador de Anúncios e (c) usar trabalhos assíncronos de relatórios para recuperar dados históricos depois de habilitar o recurso.
+Caso seu app dependa de um dos detalhamentos listados acima, atualize sua integração para (a) lidar com as situações em que as solicitações não retornam resultados, (b) solicitar que os anunciantes afetados habilitem o detalhamento por meio do Gerenciador de Anúncios e (c) usar trabalhos de relatórios assíncronos para recuperar dados históricos depois de habilitar o recurso.
 Caso tenha dúvidas, consulte a documentação sobre os detalhamentos da API de Insights sobre Anúncios ou acesse o suporte ao desenvolvedor.
 4 de maio de 2026
 Recomendações de desempenho
@@ -116,7 +116,7 @@ Posts existentes do Facebook e do Instagram podem ser promovidos para criar anú
 Anúncios em parceria
 Permissões no nível da conta
 Aplicável a todas as versões.
-O ponto de extremidade /{business-account-id}/branded_content_ad_permissions agora aceita filtragem por creator_username, permitindo que você pesquise e recupere permissões de anúncio para um criador de conteúdo específico. Consulte Permissões no nível da conta para saber mais.
+O ponto de extremidade /{business-account-id}/branded_content_ad_permissions agora é compatível com a filtragem por creator_username, permitindo que você pesquise e recupere permissões de anúncio para um criador de conteúdo específico. Consulte Permissões no nível da conta para saber mais.
 Códigos de anúncio
 Aplicável a todas as versões.
 Agora, os criadores de conteúdo podem gerar códigos de anúncios em parceria por meio da API, habilitando fluxos de trabalho automatizados para autorização de conteúdo de marca sem exigir etapas manuais no app do Instagram. Consulte Códigos de anúncios para saber mais.
@@ -125,5 +125,5 @@ Anúncios no Threads
 Agora você pode visualizar, ocultar e responder a respostas nos seus anúncios do Threads. Consulte Moderação de respostas para mais informações.
 17 de fevereiro de 2026
 Anúncios no Threads
-Agora, os anúncios de app estão disponíveis para o Threads. Consulte Anúncios no app do Threads para saber mais.
+Os anúncios de app já estão disponíveis para o Threads. Consulte Anúncios no app do Threads para saber mais.
 Você achou esta página útil?

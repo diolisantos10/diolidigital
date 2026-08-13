@@ -1,8 +1,8 @@
 ---
 titulo: "About API for Business (o que a Marketing API cobre — Business Help Center)"
 url: https://ads.tiktok.com/help/article/marketing-api?lang=en
-capturado_em: 2026-08-12
-hash: f7a4beeba1405edc
+capturado_em: 2026-08-13
+hash: 01bb85dd58ffcb7a
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -19,7 +19,7 @@ Payment and billing
 Policies and security
 Developers
 
-Agentic Hub and MCP Server
+MCP Server and Agentic Hub
 
 API for Business
 
