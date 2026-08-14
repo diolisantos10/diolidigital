@@ -1,7 +1,7 @@
 ---
 titulo: "Webhooks Overview — eventos de publicação e de autorização"
 url: https://developers.tiktok.com/doc/webhooks-overview
-capturado_em: 2026-08-13
+capturado_em: 2026-08-14
 hash: 62022c369cd14866
 ---
 

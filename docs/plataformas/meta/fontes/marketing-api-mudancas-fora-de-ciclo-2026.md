@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — mudanças fora de ciclo em 2026 (out-of-cycle changes)"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/out-of-cycle-changes/occ-2026
-capturado_em: 2026-08-13
-hash: 505c4877cf57330f
+capturado_em: 2026-08-14
+hash: b38079bd684420d8
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -16,6 +16,16 @@ Copiar para LLM
 Ver como Markdown
 Os anúncios no Status do WhatsApp são disponibilizados por meio da API de Marketing. Saiba mais sobre anúncios no Status do WhatsApp.
 Alterações fora de ciclo da API de Marketing em 2026.
+13 de agosto de 2026
+Mensagens de marketing do WhatsApp
+Aplicável a todas as versões.
+As mensagens de marketing no WhatsApp agora estão disponíveis na API de Marketing.
+Consulte Mensagens de marketing para saber mais.
+Os seguintes pontos de extremidade serão afetados:
+GET /act_{ad-account-id}
+POST /act_{ad-account-id}/adsets
+POST /act_{ad-account-id}/adcreatives
+GET /{ad-object-id}/insights
 20 de julho de 2026
 Otimização para visitas ao perfil
 Aplicável a todas as versões.

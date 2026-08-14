@@ -1,7 +1,7 @@
 ---
 titulo: "Meta Pixel — instalação e eventos"
 url: https://developers.facebook.com/documentation/meta-pixel/get-started
-capturado_em: 2026-08-13
+capturado_em: 2026-08-14
 hash: b94f2d175be86f70
 ---
 

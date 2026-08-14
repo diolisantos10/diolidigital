@@ -1,8 +1,8 @@
 ---
 titulo: "Marketing API — referência de AdCreative"
 url: https://developers.facebook.com/documentation/ads-commerce/marketing-api/reference/ad-creative
-capturado_em: 2026-08-13
-hash: 4a13f255ad5dde15
+capturado_em: 2026-08-14
+hash: 288c2b62f9f7f77f
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -354,6 +354,11 @@ string
 	
 Identifique uma aba de destino específica na sua Página do Facebook pela URL da aba da Página. Consulte connection objects para saber como recuperar URLs de abas de Páginas. É possível adicionar parâmetros app_data à URL para transmitir dados à aba de uma Página.
 
+marketing_message_structured_spec
+AdCreativeMarketingMessageStructuredSpec
+	
+Personalizações opcionais para a mensagem de marketing do WhatsApp veiculada com esse anúncio, retornadas quando o conjunto de anúncios inclui a posição marketing_messages do WhatsApp. Os criativos que não personalizam a mensagem de marketing não têm nada definido aqui. A mensagem de marketing é criada a partir de object_story_spec.
+
 media_sourcing_spec
 AdCreativeMediaSourcingSpec
 	
@@ -388,6 +393,11 @@ object_story_spec
 AdCreativeObjectStorySpec
 	
 Use esta opção se quiser criar um novo post sem exibição na Página e transformá-lo em um anúncio. A identificação da Página e o conteúdo para criar um novo post sem exibição na Página. Especifique link_data, photo_data, video_data, text_data ou template_data com o conteúdo.
+
+object_story_spec{whats_app_business_phone_number}
+string
+	
+O número de telefone comercial do WhatsApp do qual as mensagens de marketing são enviadas, em formato legível por humanos, por exemplo +1-650-555-1234. Solicite explicitamente com fields=object_story_spec{whats_app_business_phone_number}. Não é retornado por padrão. Retorna null quando o criativo não tem um número de telefone atribuído.
 
 object_type
 enum {APPLICATION, DOMAIN, EVENT, OFFER, PAGE, PHOTO, SHARE, STATUS, STORE_ITEM, VIDEO, INVALID, PRIVACY_CHECK_FAIL, POST_DELETED}

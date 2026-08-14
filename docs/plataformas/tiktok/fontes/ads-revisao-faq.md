@@ -1,8 +1,8 @@
 ---
 titulo: "TikTok Ad Review FAQ (revisão e recurso)"
 url: https://ads.tiktok.com/help/article/ad-review-faq?lang=en
-capturado_em: 2026-08-13
-hash: c39fd1b0d3c57d2d
+capturado_em: 2026-08-14
+hash: 2563a859208e00a2
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -225,6 +225,7 @@ Are there any limits on how long an ad can be?
 
 All video ads on TikTok should be between 5 seconds and 10 minutes. Ads less than 5 seconds and more than 10 minutes will not be approved.
 
+*Was the information helpful?
 Related Articles
  About suspended ad accounts on TikTok
  Why some ads are rejected after they're approved

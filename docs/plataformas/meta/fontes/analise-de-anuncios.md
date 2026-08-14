@@ -1,8 +1,8 @@
 ---
 titulo: "Central de Ajuda — processo de análise de anúncios"
 url: https://www.facebook.com/business/help/204798856225114
-capturado_em: 2026-08-13
-hash: dbc82bfa131006dc
+capturado_em: 2026-08-14
+hash: a901214d8e729593
 ---
 
 > Documento oficial capturado da plataforma. A fonte é a URL acima;
@@ -30,7 +30,7 @@ Categorias de anúncio especial
 Permissões do anunciante
 Outros componentes e informações essenciais
 
-Com base nos resultados da análise, o anúncio é rejeitado ou aprovado para veiculação.
+Com base nos resultados da análise, o anúncio pode ser rejeitado ou aprovado para veiculação.
 
 Quanto tempo demora a análise de anúncios
 
@@ -40,7 +40,7 @@ Observação: se você deseja que um anúncio comece a ser veiculado em uma data
 
 Limitações da análise
 
-Analisar anúncios de milhões de anunciantes em todo o mundo de acordo com os Padrões de Publicidade é essencial, mas traz desafios. Nossa aplicação de políticas não é perfeita, e tanto as máquinas quanto as pessoas cometem erros.
+Analisar anúncios de milhões de anunciantes em todo o mundo de acordo com os Padrões de Publicidade é essencial, mas traz desafios. Nossa aplicação de políticas não é perfeita. Tanto as máquinas quanto as pessoas cometem erros.
 
 Quando lançamos uma nova política, pode levar algum tempo para que as diversas partes do nosso sistema de monitoramento (tanto a tecnologia automatizada quanto as equipes humanas treinadas) aprendam a aplicar de maneira correta e consistente o novo padrão. No entanto, conforme coletamos novos dados e feedbacks, nossos modelos de aprendizado de máquina ficam melhores e nosso monitoramento automatizado é aprimorado.
 
