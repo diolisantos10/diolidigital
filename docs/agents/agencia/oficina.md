@@ -114,3 +114,104 @@ por peça, via `lerMarca` → `marca.cerebro` → `direcaoDeAmplitude` → promp
   inventei o campo: sem produtor para ele, seria mais um portão de decoração.
 - `conferenciaDePixelDisponivel()` continua `false` — os pilares de vaga seguem
   bloqueados, e com razão.
+
+---
+
+## 2026-08-14 — As 6 peças do CityJobs não saem porque o ARQUIVO é velho, não o código
+
+**Despacho:** `/api/meta/prontidao` rodou contra produção em 2026-08-14T21:43Z —
+6 posts do CityJobs agendados, os 6 com `pronto:false`, todos parando no portão
+8 (**Formato do arquivo**). Reconverter e religar, sem publicar nada.
+
+### O que eu medi, e onde
+
+Não confiei no resumo do despacho; li a corrente inteira.
+
+**Como um post agendado referencia a mídia** (`prontidao-de-publicacao.ts:362-365`
+e `esteira/publicacao.ts`): peça única guarda `SocialPost.mediaUrl`; carrossel
+guarda as N telas em `SocialPost.mediaUrlsJson`. Nos dois casos a string é
+`/api/media/<id>`, e o `<id>` é a chave de `MediaAsset`.
+
+**O que o portão de formato lê** (`prontidao-de-publicacao.ts:372-386`): ele
+recorta esses ids, busca `MediaAsset.mimeType` no banco e entrega a
+`conferirFormatoDeMidia` (`integrations/meta/formato-de-midia.ts:83`), que é a
+MESMA função que o publicador chama em `publicacao.ts:679`. Ele lê o `mimeType`
+gravado — nunca os bytes. Peça sem mídia guardada nesta casa **passa** no portão
+8 (`:369`), o que está certo: não medimos o que não é nosso.
+
+**A causa está consertada há uma semana.** `design/renderizar.ts` rasteriza com
+`SAIDA_DA_PECA = { type: "jpeg", quality: 92 }` e exporta
+`MIME_DA_PECA_RENDERIZADA`; `comporComMolde` devolve esse MIME e quem grava
+obedece (`artes.ts:891`, `:452`). O defeito não é do código de hoje — é
+**estoque**: peças rasterizadas em 08/08 pelo motor velho, ainda penduradas nos
+posts. Nenhum deploy as desbloqueia, porque o arquivo antigo continua sendo o
+arquivo do post.
+
+**E nenhum dos dois consertos que já existiam as alcançava.** `sem-molde`
+procura uma marca em `lastError` que elas não têm (nasceram certas para o motor
+da época); `marca-nova` compara a data da arte com a do material de marca, e
+nelas essa comparação está certa. Elas são invisíveis para os dois — a única
+testemunha é o `mimeType` do arquivo.
+
+### O caminho escolhido: REGERAR, não converter o binário
+
+Regerar é viável e não passa perto de publicar. `recomporPecas`
+(`artes.ts:1022`) lê a foto **já paga** de `fundo-<postId>.png`, roda o
+rasterizador de hoje (que sai JPEG), grava arquivo novo e troca só o `mediaUrl`.
+Custa ≈1s de rasterização e zero de fatura. Converter o binário por fora foi
+descartado: entregaria um JPEG recomprimido a partir de um PNG que já perdeu a
+camada de marca daquela época, sem passar pela trava de letra — e a régua de
+texto (`trava-de-texto.ts`) é justamente o que separa peça de arquivo.
+
+### O que mudou em código
+
+- `lib/agency/execution/reconversao-de-formato.ts` — **novo, somente leitura.**
+  A seleção e o retrato. Chama `conferirFormatoDeMidia`, não copia a régua.
+  Lista à parte os carrosséis recusados, que são de outra mão
+  (`recomporCarrosseis`), para o relatório não parecer completo calando.
+- `lib/agency/execution/artes.ts` — modo `formato-recusado` em `recomporPecas`,
+  usando aquela seleção. E um **portão de saída** antes de gravar
+  (`conferirFormatoDeMidia` sobre a peça recomposta): hoje é impossível falhar,
+  e é por isso que ele custa nada e transforma "sai JPEG porque eu li o código"
+  em "sai JPEG porque foi medido antes de gravar".
+- `app/api/admin/recompor-pecas/route.ts` — `?modo=formato-recusado`. Lista de
+  modos continua FECHADA.
+- `scripts/reconverter-pecas-para-jpeg.mts` — o comando de operação.
+  **Padrão é MEDIR**; só escreve com `--aplicar`; `--carrosseis` chama a outra
+  função. Mede antes E depois — conserto que não remede é portão de decoração,
+  que é a pendência P0 desta sala.
+- `package.json` — `npm run reconverter:jpeg` e `npm run prontidao`.
+- `__tests__/execution/reconverter-para-jpeg.test.ts` — 17 testes.
+
+### O que a prova cobre (e como sei que ela vale)
+
+A camada que importa anda a corrente inteira com o **Chromium de verdade**: a
+peça em PNG entra, o rasterizador roda, o arquivo é gravado, o post passa a
+apontar para ele, e a MESMA trava que recusou o PNG é chamada sobre o resultado.
+Confere os **bytes** (assinatura JPEG), não só a etiqueta.
+
+**Mutação conferida:** troquei `SAIDA_DA_PECA` para `png` em `renderizar.ts` e
+rodei — **2 vermelhos**, e o portão de saída novo recusou gravar. Restaurado.
+Suíte inteira: 217 arquivos, 3523 verdes, 1 pulado; `tsc --noEmit` limpo.
+
+### Nada publica, e isso é mecanismo
+
+A data marcada não é tocada (um teste exige que a escrita no post tenha
+EXATAMENTE `mediaUrl` e `lastError`). `PUBLICACAO_ORGANICA` não é lida nem
+mencionada em código — um teste reprova `process.env.PUBLICACAO_ORGANICA`,
+`publicacaoOrganicaLiberada` e o módulo da trava dentro do script. Reagendar ≠
+publicar, e aqui nem reagendar acontece: o que muda é o arquivo.
+
+### O que fica aberto
+
+- **Não rodei contra produção.** Este ambiente não tem o `DATABASE_URL` de
+  produção (o `.env` local aponta para um sqlite). O comando existe e foi rodado
+  em modo medição contra o banco local; quem tiver a credencial roda com
+  `--aplicar`. Não afirmo o estado dos 6 posts depois — afirmo que a máquina
+  que os conserta está provada, e que ela remede sozinha e imprime o depois.
+- **O formato é 1 portão de 12.** Passar nele não faz o post sair: o portão 11
+  (`PUBLICACAO_ORGANICA`) segue desligado por decisão declarada do CEO, e o 12
+  (o que a Meta concedeu) fica `nao_medido` sem `--meta`. Isso está certo.
+- Peça cuja foto de fundo sumiu do armazenamento cai em `semFundo` e **não** é
+  regerada: regerar exigiria comprar imagem nova e entregaria outra foto num
+  calendário já aprovado. Continua sendo decisão que custa, e não é do script.

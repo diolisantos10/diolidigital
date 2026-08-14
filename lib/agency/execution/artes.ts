@@ -59,6 +59,11 @@ import {
 } from "@/lib/agency/design/storyboard";
 import { createHash } from "node:crypto";
 import { conferirPilar, motivoCurto } from "@/lib/agency/execution/pilares-bloqueados";
+// A MESMA régua que a publicação usa. Uma segunda cópia começaria idêntica e
+// divergiria no primeiro ajuste — e um conserto que discorda do publicador é
+// pior que nenhum, porque ele é acreditado.
+import { conferirFormatoDeMidia } from "@/lib/integrations/meta/formato-de-midia";
+import { postsComFormatoRecusado } from "@/lib/agency/execution/reconversao-de-formato";
 
 /** Quantas artes por rodada. Cada uma é uma chamada cara de modelo de imagem —
  *  um calendário de 12 posts custaria 12 de uma vez se não houvesse teto. */
@@ -950,8 +955,16 @@ export interface Recomposicao {
  *  marca do cliente existir. Ela não tem defeito registrado em lugar nenhum —
  *  simplesmente nasceu antes do logo. Nasceu de o upload de SVG estar fechado:
  *  os logos do CityJobs chegaram só depois que a porta abriu, e tudo o que
- *  saiu antes está sem marca. Nenhuma marca em `lastError` alcança essas. */
-export type SelecaoDeRecomposicao = "sem-molde" | "marca-nova";
+ *  saiu antes está sem marca. Nenhuma marca em `lastError` alcança essas.
+ *
+ *  `formato-recusado` — 14/08: a peça foi composta pelo rasterizador ANTIGO,
+ *  que gravava PNG. O rasterizador de hoje já sai JPEG
+ *  (`MIME_DA_PECA_RENDERIZADA`), então o defeito não está no código: está no
+ *  ARQUIVO que continua pendurado no post agendado. Ela não tem marca em
+ *  `lastError`, o logo do cliente já existia quando ela nasceu, e por isso
+ *  nenhum dos dois modos acima a encontra. O que a denuncia é o `mimeType` do
+ *  `MediaAsset` que o `mediaUrl` aponta, medido pela régua da publicação. */
+export type SelecaoDeRecomposicao = "sem-molde" | "marca-nova" | "formato-recusado";
 
 /** Compatibilidade: o nome antigo continua valendo e continua fazendo o que
  *  fazia. A rota e os testes que já existiam não precisam saber do modo novo. */
@@ -1019,6 +1032,19 @@ async function pecasComMarcaMaisNovaQueAArte(limite: number): Promise<SocialPost
 
 type SocialPostDaBase = NonNullable<Awaited<ReturnType<typeof prisma.socialPost.findFirst>>>;
 
+/**
+ * AS PEÇAS CUJO ARQUIVO A PLATAFORMA RECUSA — medidas, não deduzidas.
+ *
+ * A medição inteira mora em `reconversao-de-formato.ts`, que é somente leitura,
+ * e é a MESMA que o script de operação usa para relatar antes de mexer. Uma
+ * cópia da seleção aqui começaria idêntica e divergiria no primeiro ajuste — e
+ * aí o relatório e o conserto passariam a discordar em silêncio.
+ */
+async function pecasEmFormatoQueAPlataformaRecusa(limite: number): Promise<SocialPostDaBase[]> {
+  const achadas = await postsComFormatoRecusado(limite);
+  return achadas.map((a) => a.post);
+}
+
 export async function recomporPecas(
   limite = 20,
   selecao: SelecaoDeRecomposicao = "sem-molde",
@@ -1039,6 +1065,8 @@ export async function recomporPecas(
   const orfas =
     selecao === "marca-nova"
       ? await pecasComMarcaMaisNovaQueAArte(limite)
+      : selecao === "formato-recusado"
+      ? await pecasEmFormatoQueAPlataformaRecusa(limite)
       : await prisma.socialPost.findMany({
           where: {
             mediaUrl: { not: null },
@@ -1101,6 +1129,25 @@ export async function recomporPecas(
       await prisma.socialPost.update({
         where: { id: post.id }, data: { lastError: composta.nota },
       }).catch(() => null);
+      continue;
+    }
+
+    // ── O CONSERTO PASSA NA MESMA RÉGUA QUE REPROVOU O DEFEITO ────────────
+    // Hoje isto é impossível de falhar: bytes diferentes do fundo só saem do
+    // rasterizador, e o rasterizador só produz JPEG. É por isso mesmo que o
+    // portão fica aqui — ele custa nada e transforma "sai JPEG porque eu li o
+    // código" em "sai JPEG porque a peça foi medida antes de ser gravada".
+    // Sem ele, o dia em que o rasterizador mudar de formato repete 08/08, e o
+    // primeiro a saber seria a Meta, contra a conta de um cliente.
+    const formatoDaPecaNova = conferirFormatoDeMidia(
+      [{ id: nomeDaArte(post.id, composta.mime), mime: composta.mime }],
+      false,
+    );
+    if (!formatoDaPecaNova.aceita) {
+      saida.falhas.push({
+        postId: post.id,
+        erro: `a peça recomposta continua em formato que a plataforma recusa — NADA foi gravado. ${formatoDaPecaNova.motivo}`,
+      });
       continue;
     }
 

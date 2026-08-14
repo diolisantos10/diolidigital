@@ -161,10 +161,16 @@ describe("modo marca-nova — alcança a peça que nasceu antes do logo", () => 
 
 describe("a rota escolhe o modo, e o padrão é o comportamento antigo", () => {
   it("só os modos NOMEADOS ligam comportamento novo — o resto cai no antigo", () => {
-    // 09/08: entrou um terceiro modo (`carrossel`, que redesenha as telas). A
-    // lista continua FECHADA de propósito: modo desconhecido não pode virar
-    // comportamento novo por acidente de digitação.
-    expect(ROTA.includes('bruto === "marca-nova" || bruto === "carrossel" ? bruto : "sem-molde"')).toBe(true);
+    // 09/08: entrou um terceiro modo (`carrossel`, que redesenha as telas).
+    // 14/08: entrou o quarto (`formato-recusado`, a peça em PNG do rasterizador
+    // velho). A lista continua FECHADA de propósito: modo desconhecido não pode
+    // virar comportamento novo por acidente de digitação.
+    expect(
+      ROTA.includes(
+        'bruto === "marca-nova" || bruto === "carrossel" || bruto === "formato-recusado"',
+      ),
+    ).toBe(true);
+    expect(ROTA.includes(': "sem-molde"')).toBe(true);
   });
 
   it("o modo de carrossel chama a função das TELAS, não a da peça única", () => {
